@@ -24,21 +24,27 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
 //
 
 /**
- * The NtDelayExecution routine suspends the current thread until the specified condition is met.
+ * The NtDelayExecution routine delays the calling thread until a deadline or an allowed interruption. 
+ * This is a scheduling delay, not a wait for an object's signal and not a precision clock.
  *
- * \param Alertable If TRUE, the wait is alertable and can be terminated by an alert or by the delivery of a user-mode APC.
- * \param DelayInterval A pointer to the time interval for which execution is to be suspended, in units of 100 nanoseconds.
- * - A negative value specifies an interval relative to the current time.
- * - A positive value specifies an absolute time, measured in 100-nanosecond intervals since January 1, 1601 (UTC).
- * - A value of zero causes the thread to relinquish the remainder of its time slice to any other thread that is ready to run.
- * - If there are no other threads ready to run, the function returns STATUS_NO_YIELD_PERFORMED immediately, and the thread continues execution.
- * \return NTSTATUS Successful or errant status.
- * - STATUS_SUCCESS when the interval elapses.
- * - STATUS_USER_APC or STATUS_ALERTED when Alertable is TRUE and the wait was interrupted.
- * - STATUS_NO_YIELD_PERFORMED when DelayInterval is zero and no other thread was ready to run.
- * \remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
- * based upon the system "tick" frequency and the load factor from other processes.
+ * \param Alertable TRUE permits an alert or ordinary user APC to interrupt the
+ * delay; the APC runs on this thread. Retrying after an interruption is the caller's
+ * responsibility, including recomputing remaining time for a relative interval.
+ * \param DelayInterval Required readable LARGE_INTEGER; NULL does not mean an
+ * infinite delay. Units are 100 nanoseconds: negative values are relative intervals,
+ * positive values are absolute times since January 1, 1601 (UTC), and zero requests
+ * a scheduling yield. User input must be 4-byte aligned on x64 and its WoW64 forwarding path. 
+ * The captured input is not updated with remaining time.
+ * \return STATUS_SUCCESS (0) on elapsed nonzero delay, STATUS_USER_APC (0xC0) or
+ * STATUS_ALERTED (0x101) for interruption. A zero interval can return either
+ * STATUS_SUCCESS or STATUS_NO_YIELD_PERFORMED (0x40000024). This also applies to
+ * an alertable zero interval when no APC or alert terminates it first.
+ * \remarks Expiration makes execution eligible, not necessarily immediate; other
+ * scheduling work can delay return. A yield does not prove another thread ran or
+ * completed useful work, and is not a replacement for synchronization. Do not
+ * treat STATUS_NO_YIELD_PERFORMED as failure or as a count of ready threads.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
+ * \see RtlDelayExecution
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -54,8 +60,9 @@ NtDelayExecution(
 //
 
 /**
- * Retrieves the value of the specified firmware environment variable.
- * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ * The NtQuerySystemEnvironmentValue routine retrieves the value of the specified firmware environment
+ * variable. The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME
+ * privilege.
  *
  * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
  * \param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
@@ -93,8 +100,9 @@ NtQuerySystemEnvironmentValue(
 #define EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS 0x00000080
 
 /**
- * Retrieves the value of the specified firmware environment variable and its attributes.
- * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ * The NtQuerySystemEnvironmentValueEx routine retrieves the value of the specified firmware environment
+ * variable and its attributes. The user account that the app is running under must have the
+ * SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
  * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
  * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
@@ -116,8 +124,8 @@ NtQuerySystemEnvironmentValueEx(
     );
 
 /**
- * Sets the value of the specified firmware environment variable.
- * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ * The NtSetSystemEnvironmentValue routine sets the value of the specified firmware environment variable. The
+ * user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
  * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
  * \param VariableValue A pointer to the new value for the firmware environment variable.
@@ -134,8 +142,9 @@ NtSetSystemEnvironmentValue(
     );
 
 /**
- * Sets the value of the specified firmware environment variable and the attributes that indicate how this variable is stored and maintained.
- * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ * The NtSetSystemEnvironmentValueEx routine sets the value of the specified firmware environment variable and
+ * the attributes that indicate how this variable is stored and maintained. The user account that the app is
+ * running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
  * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
  * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
@@ -169,10 +178,10 @@ typedef enum _SYSTEM_ENVIRONMENT_INFORMATION_CLASS
     MaxSystemEnvironmentInfoClass
 } SYSTEM_ENVIRONMENT_INFORMATION_CLASS;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The VARIABLE_NAME structure describes the name and vendor GUID of a firmware environment variable.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _VARIABLE_NAME
 {
     ULONG NextEntryOffset;
@@ -180,10 +189,10 @@ typedef struct _VARIABLE_NAME
     WCHAR Name[ANYSIZE_ARRAY];
 } VARIABLE_NAME, *PVARIABLE_NAME;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The VARIABLE_NAME_AND_VALUE structure describes the name, vendor GUID, and value of a firmware environment variable.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _VARIABLE_NAME_AND_VALUE
 {
     ULONG NextEntryOffset;
@@ -234,10 +243,10 @@ typedef struct _BOOT_ENTRY
 } BOOT_ENTRY, *PBOOT_ENTRY;
 
 // private
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The BOOT_ENTRY_LIST structure describes a linked list of boot entries.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _BOOT_ENTRY_LIST
 {
     ULONG NextEntryOffset;
@@ -284,10 +293,10 @@ typedef struct _EFI_DRIVER_ENTRY
 } EFI_DRIVER_ENTRY, *PEFI_DRIVER_ENTRY;
 
 // private
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The EFI_DRIVER_ENTRY_LIST structure describes a linked list of EFI driver entries.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _EFI_DRIVER_ENTRY_LIST
 {
     ULONG NextEntryOffset;
@@ -424,7 +433,8 @@ NtSetBootOptions(
  * \param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
  * \param OutputType The type of the output file path.
  * \param OutputFilePath A pointer to a buffer that receives the translated file path.
- * \param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \param OutputFilePathLength A required pointer to the buffer size, in bytes. On return,
+ * it receives the required size even when OutputFilePath is NULL (a size-only query).
  * \return NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -435,7 +445,7 @@ NtTranslateFilePath(
     _In_ PFILE_PATH InputFilePath,
     _In_ ULONG OutputType,
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
-    _Inout_opt_ PULONG OutputFilePathLength
+    _Inout_ PULONG OutputFilePathLength
     );
 
 /**
@@ -609,6 +619,12 @@ typedef struct _EVENT_BASIC_INFORMATION
  * \param InitialState The initial state of the event object.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
+ * \remarks ObjectAttributes may be NULL to create an unnamed, process-owned event. The returned
+ * handle is closed with NtClose. NotificationEvent (0) is manual-reset: successful waits do
+ * not clear it. SynchronizationEvent (1) is auto-reset: a satisfied wait consumes the signal.
+ * Other EventType values return STATUS_INVALID_PARAMETER. With OBJ_OPENIF, an existing
+ * named event is returned with STATUS_OBJECT_NAME_EXISTS; its type and state are not
+ * reinitialized from EventType or InitialState.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -629,6 +645,9 @@ NtCreateEvent(
  * \param DesiredAccess The access mask that specifies the requested access to the event object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Opens an existing named object; it does not reset or acquire its signal. Request
+ * EVENT_QUERY_STATE (0x1) for NtQueryEvent, EVENT_MODIFY_STATE (0x2) for state changes, and
+ * SYNCHRONIZE (0x00100000) for waits. Close the returned handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -646,6 +665,9 @@ NtOpenEvent(
  * \param EventHandle A handle to the event object.
  * \param PreviousState A pointer to a variable that receives the previous state of the event object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires EVENT_MODIFY_STATE (0x2). For an ordinary event, PreviousState receives the
+ * state before signaling (0 or 1), not a count of awakened threads. Repeated sets do not
+ * accumulate signals. PreviousState may be NULL. A query-only handle is insufficient.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -695,6 +717,8 @@ NtSetEventBoostPriority(
  *
  * \param EventHandle A handle to the event object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires EVENT_MODIFY_STATE (0x2). For ordinary events, this uses
+ * the same KeResetEvent operation as NtResetEvent but has no previous-state output.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -711,6 +735,9 @@ NtClearEvent(
  * \param PreviousState A pointer to a variable that receives the previous state of the event object.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
+ * \remarks Requires EVENT_MODIFY_STATE (0x2). Clears the signal and optionally returns the state
+ * before resetting (0 or 1). Resetting an already nonsignaled event succeeds and reports 0.
+ * This does not cancel waits or return ownership of an auto-reset signal already consumed.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -728,6 +755,10 @@ NtResetEvent(
  * \param PreviousState A pointer to a variable that receives the previous state of the event object.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
+ * \remarks Requires EVENT_MODIFY_STATE (0x2). Optionally reports the state before the pulse.
+ * The signal is transient: when no eligible waiter is released immediately, the event
+ * is left nonsignaled; a later wait cannot consume a saved pulse. Do not use this as a
+ * persistent notification or as proof that another thread observed the event.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -747,6 +778,11 @@ NtPulseEvent(
  * \param EventInformationLength The size of the buffer pointed to by EventInformation.
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires EVENT_QUERY_STATE (0x1). EventBasicInformation (0) is the supported class
+ * and requires exactly sizeof(EVENT_BASIC_INFORMATION), 8 bytes. Unsupported classes
+ * return STATUS_INVALID_INFO_CLASS; an incorrect size returns STATUS_INFO_LENGTH_MISMATCH.
+ * These validation failures leave ReturnLength unchanged, while success writes 8 when ReturnLength 
+ * is non-NULL. Do not use a NULL/zero-size discovery call.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -774,6 +810,12 @@ NtQueryEvent(
  * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
+ * The native stub leaves EventPairHandle unchanged. With valid arguments, the
+ * WoW64 thunk instead copies its zero-initialized local handle to the output even
+ * on this failure; it can also fail earlier while converting ObjectAttributes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -792,6 +834,12 @@ NtCreateEventPair(
  * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
+ * The native stub leaves EventPairHandle unchanged. With valid arguments, the
+ * WoW64 thunk instead copies its zero-initialized local handle to the output even
+ * on this failure; it can also fail earlier while converting ObjectAttributes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -808,6 +856,9 @@ NtOpenEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -822,6 +873,9 @@ NtSetLowEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -836,6 +890,9 @@ NtSetHighEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -850,6 +907,9 @@ NtWaitLowEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -864,6 +924,9 @@ NtWaitHighEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -878,6 +941,9 @@ NtSetLowWaitHighEventPair(
  *
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy event-pair API. Unsupported service-table entries
+ * return STATUS_NOT_IMPLEMENTED (0xC0000002) without performing the operation.
+ * A declaration or ntdll export does not establish that event pairs are supported.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -910,16 +976,21 @@ typedef enum _MUTANT_INFORMATION_CLASS
 
 /**
  * The MUTANT_BASIC_INFORMATION structure contains basic information about a mutant object.
+ * The structure is 8 bytes, but NtQueryMutant writes only the 6 bytes occupied by
+ * these members. The 2 trailing padding bytes are not initialized;
+ * compare members rather than the complete structure, or pre-zero the output.
  */
 typedef struct _MUTANT_BASIC_INFORMATION
 {
-    LONG CurrentCount;
-    BOOLEAN OwnedByCaller;
-    BOOLEAN AbandonedState;
+    LONG CurrentCount; // 1 when unowned; 0 for one acquisition; 1 minus the recursive acquisition count otherwise.
+    BOOLEAN OwnedByCaller; // TRUE only when the calling thread is the current owner.
+    BOOLEAN AbandonedState; // TRUE after an owner exits without releasing; cleared when ownership is acquired.
 } MUTANT_BASIC_INFORMATION, *PMUTANT_BASIC_INFORMATION;
 
 /**
  * The MUTANT_OWNER_INFORMATION structure contains information about the owner of a mutant object.
+ * ClientId contains process and thread identifiers (not handles to close), or two
+ * NULL values when there is no owner. Use it for diagnostics, not synchronization.
  */
 typedef struct _MUTANT_OWNER_INFORMATION
 {
@@ -935,6 +1006,12 @@ typedef struct _MUTANT_OWNER_INFORMATION
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks A mutant is an ownership-tracked, recursively acquirable mutex. NULL ObjectAttributes
+ * creates an unnamed object. InitialOwner applies only to a newly created mutant. With
+ * OBJ_OPENIF, an existing named mutant is returned with STATUS_OBJECT_NAME_EXISTS; TRUE
+ * InitialOwner does not acquire it. Acquire an existing mutant by waiting instead.
+ * Release each acquired recursion level with NtReleaseMutant; NtClose closes the handle
+ * but is not a substitute for releasing ownership.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -954,6 +1031,10 @@ NtCreateMutant(
  * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Opening a handle does not acquire the mutant. Request MUTANT_QUERY_STATE (0x1) for
+ * queries and SYNCHRONIZE (0x00100000) for waits. A successful wait acquires ownership;
+ * an abandoned-wait result also acquires ownership but requires checking protected state.
+ * Close the returned handle with NtClose after balancing any acquisitions.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -971,6 +1052,14 @@ NtOpenMutant(
  * \param MutantHandle A handle to the mutant object.
  * \param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For ordinary mutants no specific handle access right is required
+ * (the handle is referenced with desired access 0), but the calling thread must own it.
+ * Each release removes one recursion level. PreviousCount receives the prior dispatcher
+ * signal count, not a positive recursion depth: 0 for the final release and negative
+ * values for recursive ownership. A nonowner normally receives STATUS_MUTANT_NOT_OWNED.
+ * If the mutant is abandoned, a nonowner release returns STATUS_ABANDONED (0x80) without
+ * releasing/acquiring it or writing PreviousCount. This status is nonnegative: test for
+ * STATUS_SUCCESS, not merely NT_SUCCESS, when deciding whether a release occurred.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -990,6 +1079,12 @@ NtReleaseMutant(
  * \param MutantInformationLength The size of the buffer pointed to by MutantInformation.
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires MUTANT_QUERY_STATE (0x1). MutantBasicInformation (0) requires exactly 8 bytes;
+ * MutantOwnerInformation (1) requires exactly sizeof(MUTANT_OWNER_INFORMATION), 16 bytes on x64 and 8 bytes
+ * for x86 callers. Unsupported classes return STATUS_INVALID_INFO_CLASS; incorrect sizes return
+ * STATUS_INFO_LENGTH_MISMATCH. Basic-query wrong-size failures leave ReturnLength unchanged on the native x64
+ * and x86/WoW64 paths; success reports the selected structure size. Querying never acquires ownership. The
+ * owner IDs and state are snapshots and may change immediately after the query.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1046,6 +1141,11 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
  * \param InitialCount The initial count of the semaphore object.
  * \param MaximumCount The maximum count of the semaphore object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires MaximumCount > 0 and 0 <= InitialCount <= MaximumCount; invalid counts
+ * return STATUS_INVALID_PARAMETER. NULL ObjectAttributes creates an unnamed semaphore.
+ * A satisfied wait consumes one count; NtReleaseSemaphore adds a positive count. With
+ * OBJ_OPENIF, opening an existing named semaphore returns STATUS_OBJECT_NAME_EXISTS and
+ * does not replace its current or maximum count. Close the returned handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1066,6 +1166,9 @@ NtCreateSemaphore(
  * \param DesiredAccess The access mask that specifies the requested access to the semaphore object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Does not consume a semaphore count. Request SEMAPHORE_QUERY_STATE (0x1) for queries,
+ * SEMAPHORE_MODIFY_STATE (0x2) for release, and SYNCHRONIZE (0x00100000) for waits.
+ * Close the returned handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1084,6 +1187,11 @@ NtOpenSemaphore(
  * \param ReleaseCount The amount by which the semaphore object's count is to be increased.
  * \param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires SEMAPHORE_MODIFY_STATE (0x2). ReleaseCount must be positive; zero or a
+ * negative value returns STATUS_INVALID_PARAMETER. If the addition exceeds MaximumCount
+ * or overflows the signed count, STATUS_SEMAPHORE_LIMIT_EXCEEDED is returned without
+ * changing the count or writing PreviousCount. On success, PreviousCount receives the
+ * count before the addition and may be NULL. Release does not require prior acquisition.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1104,6 +1212,13 @@ NtReleaseSemaphore(
  * \param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires SEMAPHORE_QUERY_STATE (0x1). SemaphoreBasicInformation (0) requires exactly
+ * sizeof(SEMAPHORE_BASIC_INFORMATION), 8 bytes. Unsupported classes return
+ * STATUS_INVALID_INFO_CLASS; other sizes return STATUS_INFO_LENGTH_MISMATCH. With a valid
+ * output buffer, these failures leave ReturnLength unchanged; success
+ * writes 8 if requested. The native x64 entry probes an 8-byte writable, 4-byte-aligned
+ * output buffer before class/length validation, so NULL/zero-length sizing is not supported.
+ * Counts are observational snapshots; another thread may consume a count immediately.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1138,7 +1253,7 @@ NtQuerySemaphore(
  */
 typedef enum _TIMER_INFORMATION_CLASS
 {
-    TimerBasicInformation // TIMER_BASIC_INFORMATION
+    TimerBasicInformation // q: TIMER_BASIC_INFORMATION
 } TIMER_INFORMATION_CLASS;
 
 /**
@@ -1146,49 +1261,72 @@ typedef enum _TIMER_INFORMATION_CLASS
  */
 typedef enum _TIMER_SET_INFORMATION_CLASS
 {
-    TimerSetCoalescableTimer, // TIMER_SET_COALESCABLE_TIMER_INFO
+    TimerSetCoalescableTimer, // s: TIMER_SET_COALESCABLE_TIMER_INFO
     MaxTimerInfoClass
 } TIMER_SET_INFORMATION_CLASS;
 
 /**
- * The TIMER_BASIC_INFORMATION structure contains basic information about a timer object.
+ * Snapshot returned by NtQueryTimer(TimerBasicInformation), not a reservation of
+ * the timer signal. Size is 16 bytes on x64 and x86. The query
+ * writes only bytes 0 through 8; the 7 trailing padding bytes remain unchanged.
+ * Compare members, or initialize the output first, rather than comparing all bytes.
  */
 typedef struct _TIMER_BASIC_INFORMATION
 {
-    LARGE_INTEGER RemainingTime;
-    BOOLEAN TimerState;
+    LARGE_INTEGER RemainingTime; // Signed 100-nanosecond difference; positive for a future queued due time, not clamped to zero when inactive.
+    BOOLEAN TimerState; // Current signal state, not whether the timer is armed or periodic.
 } TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
 
+/**
+ * Optional timer completion routine, delivered as a user APC to the thread that
+ * last set the ordinary timer with this callback. That thread must enter an
+ * alertable wait; waiting nonalertably on the timer does not dispatch the callback.
+ * TimerContext is the caller-supplied value and may be NULL. TimerLowValue and
+ * TimerHighValue contain the low and high 32-bit halves of the system-time stamp
+ * sampled when the timer DPC queues the APC, in 100-nanosecond FILETIME units;
+ * they are not the relative interval originally supplied to NtSetTimer.
+ */
 typedef _Function_class_(TIMER_APC_ROUTINE)
 VOID NTAPI TIMER_APC_ROUTINE(
-    _In_ PVOID TimerContext,
+    _In_opt_ PVOID TimerContext,
     _In_ ULONG TimerLowValue,
     _In_ LONG TimerHighValue
     );
 typedef TIMER_APC_ROUTINE* PTIMER_APC_ROUTINE;
 
 /**
- * The TIMER_SET_COALESCABLE_TIMER_INFO structure specifies the parameters used to configure a coalescable timer.
+ * Input for NtSetTimerEx(TimerSetCoalescableTimer). Coalescing permits expiration
+ * to be delayed so wakeups can be combined; it is not a timer-resolution request.
+ * The record is 48 bytes on x64 and 32 bytes on x86. The record itself is read-only
+ * to the syscall; PreviousState, when non-NULL, points to a separate writable byte.
+ * Use the native pointer-width layout, not the other architecture's record.
  */
 typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
 {
-    _In_ LARGE_INTEGER DueTime;
-    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine;
-    _In_opt_ PVOID TimerContext;
-    _In_opt_ PCOUNTED_REASON_CONTEXT WakeContext;
-    _In_opt_ ULONG Period;
-    _In_ ULONG TolerableDelay;
-    _Out_opt_ PBOOLEAN PreviousState;
+    _In_ LARGE_INTEGER DueTime;                     // 100-nanosecond units: negative relative interval; nonnegative absolute UTC deadline.
+    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine;    // APC to the setting thread; see TIMER_APC_ROUTINE.
+    _In_opt_ PVOID TimerContext;                    // Opaque callback context; NULL is permitted.
+    _In_opt_ PCOUNTED_REASON_CONTEXT WakeContext;   // Optional reason for requesting system wake; captured by the kernel.
+    _In_opt_ ULONG Period;                          // Milliseconds, 0 for one-shot; values above 0x7FFFFFFF return STATUS_INVALID_PARAMETER_3.
+    _In_ ULONG TolerableDelay;                      // Milliseconds of permitted coalescing delay; 0 requests no additional tolerance.
+    _Out_opt_ PBOOLEAN PreviousState;               // Receives the previous signal state, not whether the timer was armed.
 } TIMER_SET_COALESCABLE_TIMER_INFO, *PTIMER_SET_COALESCABLE_TIMER_INFO;
 
 /**
- * The NtCreateTimer routine creates a timer object.
+ * The NtCreateTimer routine creates an initially inactive, nonsignaled ordinary waitable timer.
  *
- * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
- * \param DesiredAccess The access mask that specifies the requested access to the timer object.
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param TimerType The type of the timer object.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Receives a caller-owned handle; release it with NtClose.
+ * \param DesiredAccess Requested access. TIMER_QUERY_STATE (0x1) permits queries,
+ * TIMER_MODIFY_STATE (0x2) permits setting/canceling, and SYNCHRONIZE permits waits.
+ * \param ObjectAttributes Optional name, root directory and security attributes.
+ * \param TimerType NotificationTimer (0) retains its signal across waits;
+ * SynchronizationTimer (1) consumes the signal on a successful wait.
+ * \return STATUS_SUCCESS for a new timer. With OBJ_OPENIF, an existing named timer
+ * is opened with STATUS_OBJECT_NAME_EXISTS without changing its type or state.
+ * An unsupported TimerType returns STATUS_INVALID_PARAMETER_4.
+ * \remarks On x64, a failed type check leaves TimerHandle
+ * unchanged. WoW64 copies a zero-initialized local handle after the native call,
+ * including on this failure. Only use the returned handle on a successful status.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1202,12 +1340,16 @@ NtCreateTimer(
     );
 
 /**
- * The NtOpenTimer routine opens a handle to an existing timer object.
+ * The NtOpenTimer routine opens an existing named ordinary timer without arming it or consuming its signal.
  *
- * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
- * \param DesiredAccess The access mask that specifies the requested access to the timer object.
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Receives a caller-owned handle; release it with NtClose.
+ * \param DesiredAccess Requested access: TIMER_QUERY_STATE (0x1),
+ * TIMER_MODIFY_STATE (0x2), and/or SYNCHRONIZE for waits.
+ * \param ObjectAttributes Identifies the timer by name and optional root directory.
+ * \return NTSTATUS indicating whether a handle was opened.
+ * \remarks Native x64 name-lookup failure leaves TimerHandle
+ * unchanged; the WoW64 thunk copies its zero-initialized local handle on that failure.
+ * Attribute conversion may fail earlier. Do not treat output preservation as portable.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1220,16 +1362,30 @@ NtOpenTimer(
     );
 
 /**
- * The NtSetTimer routine sets a timer object to the signaled state after a specified interval.
+ * The NtSetTimer routine arms or replaces an ordinary timer's due time and optional periodic/APC behavior.
+ * Rearming clears the previous signal and removes pending completion APCs; it does not signal threads waiting
+ * for the old deadline. An already-due deadline can signal the timer again immediately.
  *
- * \param TimerHandle A handle to the timer object.
- * \param DueTime A pointer to a LARGE_INTEGER that specifies the absolute or relative time at which the timer is to be set to the signaled state.
- * \param TimerApcRoutine An optional pointer to a function to be called when the timer is signaled.
- * \param TimerContext An optional pointer to a context to be passed to the APC routine.
- * \param ResumeTimer If TRUE, resumes the timer; otherwise, sets a new timer.
- * \param Period The period of the timer, in milliseconds. If zero, the timer is signaled once.
- * \param PreviousState A pointer to a variable that receives the previous state of the timer.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Handle with TIMER_MODIFY_STATE (0x2).
+ * \param DueTime Required pointer to a time in 100-nanosecond units. Negative values
+ * specify a relative interval; nonnegative values specify an absolute UTC deadline
+ * in FILETIME units. A deadline in the past expires immediately.
+ * \param TimerApcRoutine Optional completion APC delivered to the setting thread
+ * when it enters an alertable wait. See TIMER_APC_ROUTINE for arguments and context.
+ * \param TimerContext Optional opaque value passed to TimerApcRoutine.
+ * \param ResumeTimer Requests that expiration wake the system from a suspended
+ * power state. This does not mean resume a paused timer. Support depends on the
+ * platform and wake policy; STATUS_TIMER_RESUME_IGNORED can accompany an armed timer.
+ * \param Period Milliseconds between periodic expirations, in the range 0 through
+ * 0x7FFFFFFF. Zero selects one-shot operation; negative values return
+ * STATUS_INVALID_PARAMETER_6.
+ * \param PreviousState Optional writable byte receiving the previous signal state,
+ * not an armed-state indicator or a count of pending expirations.
+ * \return NTSTATUS. STATUS_TIMER_RESUME_IGNORED (0x40000025) is informational:
+ * the timer was set, but its wake request could not be honored.
+ * \remarks Ordinary timers created by NtCreateTimer are described here. Timer2/IR
+ * compatibility paths have additional restrictions on callbacks, context and state
+ * output; do not assume those object types support the complete ordinary-timer contract.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1246,13 +1402,26 @@ NtSetTimer(
     );
 
 /**
- * The NtSetTimerEx routine sets extended information for a timer object.
+ * The NtSetTimerEx routine arms an ordinary timer with coalescing tolerance and an optional wake-reason
+ * context. Its rearming, signal-state and APC semantics are the same as NtSetTimer.
  *
- * \param TimerHandle A handle to the timer object.
- * \param TimerSetInformationClass The class of information to set.
- * \param TimerSetInformation A pointer to a buffer that contains the information to set.
- * \param TimerSetInformationLength The size of the buffer, in bytes.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Handle with TIMER_MODIFY_STATE (0x2).
+ * \param TimerSetInformationClass TimerSetCoalescableTimer (0). Other classes return
+ * STATUS_INVALID_INFO_CLASS.
+ * \param TimerSetInformation Required readable TIMER_SET_COALESCABLE_TIMER_INFO
+ * record. The record itself is not modified, even if supplied from read-only memory.
+ * Its optional PreviousState member points to a separately writable BOOLEAN output.
+ * \param TimerSetInformationLength Use sizeof(TIMER_SET_COALESCABLE_TIMER_INFO):
+ * exactly 48 bytes on native x64, 32 bytes on x86. The WoW64
+ * thunk accepts lengths of at least 32 bytes, converts that prefix, and ignores the
+ * excess; the native x64 entry rejects any length other than 48 bytes.
+ * \return NTSTATUS. A Period above 0x7FFFFFFF returns STATUS_INVALID_PARAMETER_3;
+ * invalid sizing returns STATUS_INFO_LENGTH_MISMATCH. STATUS_TIMER_RESUME_IGNORED
+ * (0x40000025) can indicate that the timer was armed without honoring a wake request.
+ * \remarks Native user-mode input must be 4-byte aligned. The
+ * WoW64 thunk copies an unaligned x86 record into an aligned native local,
+ * so the original x86 buffer does not receive the same alignment check. Supply a
+ * naturally aligned record for portability. Timer2/IR objects have additional restrictions.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1261,16 +1430,23 @@ NTAPI
 NtSetTimerEx(
     _In_ HANDLE TimerHandle,
     _In_ TIMER_SET_INFORMATION_CLASS TimerSetInformationClass,
-    _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
+    _In_reads_bytes_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
 
 /**
- * The NtCancelTimer routine Cancels a timer object.
+ * The NtCancelTimer routine deactivates an ordinary timer and removes pending timer completion APCs without
+ * clearing its current signal state. Canceling an inactive timer is also successful.
  *
- * \param TimerHandle A handle to the timer object.
- * \param CurrentState A pointer to a variable that receives the current state of the timer object.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Handle with TIMER_MODIFY_STATE (0x2).
+ * \param CurrentState Optional writable byte receiving the timer's signal state,
+ * not whether an active timer was removed. A canceled, signaled notification timer
+ * remains signaled; rearm it to clear the signal.
+ * \return NTSTATUS indicating whether cancellation completed.
+ * \remarks Cancellation is not a join for a user callback already executing on
+ * another thread; synchronize callback/context lifetime separately. For a Timer2/IR
+ * compatibility object, CurrentState must be NULL; the ordinary
+ * timer's state-output contract does not apply to those objects.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1282,14 +1458,23 @@ NtCancelTimer(
     );
 
 /**
- * The NtQueryTimer routine retrieves information about a timer object.
+ * The NtQueryTimer routine retrieves a snapshot of an ordinary timer's signal state and remaining time.
+ * Querying neither consumes the signal nor arms or cancels the timer.
  *
- * \param TimerHandle A handle to the timer object.
- * \param TimerInformationClass The class of information to retrieve.
- * \param TimerInformation A pointer to a buffer that receives the requested information.
- * \param TimerInformationLength The size of the buffer, in bytes.
- * \param ReturnLength A pointer to a variable that receives the size of the data returned.
- * \return NTSTATUS Successful or errant status.
+ * \param TimerHandle Handle with TIMER_QUERY_STATE (0x1).
+ * \param TimerInformationClass TimerBasicInformation (0), the supported class.
+ * \param TimerInformation Writable TIMER_BASIC_INFORMATION, 4-byte aligned for
+ * user-mode callers on native x64 and WoW64.
+ * \param TimerInformationLength Exactly 16 bytes on x64 and x86/WoW64.
+ * \param ReturnLength Optional ULONG receiving 16 on success. Invalid class/size
+ * checks leave it unchanged; NULL/zero-size discovery is
+ * not a supported sizing protocol.
+ * \return STATUS_INVALID_INFO_CLASS for an unsupported class,
+ * STATUS_INFO_LENGTH_MISMATCH for an incorrect size, or the query's NTSTATUS.
+ * \remarks Only 9 member bytes are written; 7 trailing padding bytes are untouched.
+ * RemainingTime is a signed 100-nanosecond difference, not clamped to zero when
+ * inactive. The state and due time are sampled separately and can change concurrently;
+ * this information is diagnostic, not a substitute for waiting on the timer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1305,56 +1490,39 @@ NtQueryTimer(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-// ExCheckValidIRTimerId
+// rev: ExpIRTimerDescs, ExpCheckIRTimerAccess and ExCheckValidIRTimerId
 /**
- * The IR_TIMER_PROVIDER_INDEX enumeration identifies the interrupt-routing timer provider.
+ * Identifies the provider encoded in the low word of an IR timer identifier.
+ * The high word selects a timer within that provider. ExCheckValidIRTimerId
+ * requires that selector to be less than the ID count shown below.
+ * Provider zero is not a usable provider for NtCreateIRTimer/NtCreateTimer2.
+ * User-mode creation also checks the provider service SID, or the wake-timer
+ * security descriptor when the provider has no service SID.
  */
 typedef enum _IR_TIMER_PROVIDER_INDEX
 {
-    IR_TIMER_PROVIDER_TESTIDENTIFIER, // Token(Service SID)
-    IR_TIMER_PROVIDER_BROKERINFRASTRUCTURE, // Token(Service SID)
-    IR_TIMER_PROVIDER_TIMEBROKERSVC, // Token(Service SID)
-    IR_TIMER_PROVIDER_LFSVC,
-    IR_TIMER_PROVIDER_WINLOGON,
-    IR_TIMER_PROVIDER_POWER,
-    IR_TIMER_PROVIDER_SENSORSERVICE,
-    IR_TIMER_PROVIDER_NTOSPO,
-    IR_TIMER_PROVIDER_ACPI,
-    IR_TIMER_PROVIDER_BUTTON,
-    IR_TIMER_PROVIDER_MSGPIOCLX,
-    IR_TIMER_PROVIDER_BUTTONCONVERTER,
-    IR_TIMER_PROVIDER_MSGPIOWIN32,
-    IR_TIMER_PROVIDER_KNETPWRDEPBROKER,
-    IR_TIMER_PROVIDER_CMBATT,
-    IR_TIMER_PROVIDER_BTHPORT,
-    IR_TIMER_PROVIDER_AUDIOSRV, // TOKEN(SERVICE SID)
-    IR_TIMER_PROVIDER_ARTESTIDENTIFIER, // TOKEN(SERVICE SID)
-    IR_TIMER_PROVIDER_BATTC,
-    IR_TIMER_PROVIDER_MAXINDEX
+    IR_TIMER_PROVIDER_UNKNOWN = 0,           // Not a valid creation provider.
+    IR_TIMER_PROVIDER_TESTIDENTIFIER = 1,    // 1 ID; wake-timer access check.
+    IR_TIMER_PROVIDER_BROKERINFRASTRUCTURE = 2, // 1 ID; service SID.
+    IR_TIMER_PROVIDER_TIMEBROKERSVC = 3,     // 1 ID; service SID.
+    IR_TIMER_PROVIDER_LFSVC = 4,             // 11 IDs; service SID.
+    IR_TIMER_PROVIDER_WINLOGON = 5,          // 1 ID.
+    IR_TIMER_PROVIDER_POWER = 6,             // 2 IDs; service SID.
+    IR_TIMER_PROVIDER_SENSORSERVICE = 7,     // 1 ID; service SID.
+    IR_TIMER_PROVIDER_NTOSPO = 8,            // 7 IDs.
+    IR_TIMER_PROVIDER_ACPI = 9,              // 1 ID.
+    IR_TIMER_PROVIDER_BUTTON = 10,           // 1 ID.
+    IR_TIMER_PROVIDER_MSGPIOCLX = 11,        // 2 IDs.
+    IR_TIMER_PROVIDER_BUTTONCONVERTER = 12,  // 1 ID.
+    IR_TIMER_PROVIDER_MSGPIOWIN32 = 13,      // 2 IDs.
+    IR_TIMER_PROVIDER_KNETPWRDEPBROKER = 14,  // 2 IDs.
+    IR_TIMER_PROVIDER_CMBATT = 15,           // 1 ID.
+    IR_TIMER_PROVIDER_BTHPORT = 16,          // 2 IDs.
+    IR_TIMER_PROVIDER_AUDIOSRV = 17,         // 1 ID; service SID.
+    IR_TIMER_PROVIDER_ARTESTIDENTIFIER = 18, // 1 ID; wake-timer access check.
+    IR_TIMER_PROVIDER_BATTC = 19,            // 1 ID.
+    IR_TIMER_PROVIDER_MAXINDEX = 20
 } IR_TIMER_PROVIDER_INDEX;
-
-//CONST USHORT IR_TIMER_PROVIDER_ID_MAX[] =
-//{
-//    1,  // IR_TIMER_PROVIDER_TESTIDENTIFIER
-//    1,  // IR_TIMER_PROVIDER_BROKERINFRASTRUCTURE
-//    1,  // IR_TIMER_PROVIDER_TIMEBROKERSVC
-//    11, // IR_TIMER_PROVIDER_LFSVC (0x0B)
-//    1,  // IR_TIMER_PROVIDER_WINLOGON
-//    2,  // IR_TIMER_PROVIDER_POWER
-//    1,  // IR_TIMER_PROVIDER_SENSORSERVICE
-//    6,  // IR_TIMER_PROVIDER_NTOSPO
-//    1,  // IR_TIMER_PROVIDER_ACPI
-//    1,  // IR_TIMER_PROVIDER_BUTTON
-//    2,  // MsGpioClx
-//    1,  // ButtonConverter
-//    2,  // MsGpioWin32
-//    2,  // KNetPwrDepBroker
-//    1,  // Cmbatt
-//    2,  // Bthport
-//    1,  // AudioSrv
-//    1,  // ArTestIdentifier
-//    1   // Battc
-//};
 
 // rev
 #define IR_TIMERID_PROVIDER(TimerId) ((USHORT)LOWORD((ULONG)(TimerId)))
@@ -1365,13 +1533,17 @@ typedef enum _IR_TIMER_PROVIDER_INDEX
 
 /**
  * The NtCreateIRTimer routine creates an IR timer object.
- * IR timers are interruptdriven and designed for high-resolution timing in system components.
+ * Associates a timer with an IR_TIMER_PROVIDER_INDEX provider and its timer selector.
+ * This wrapper requests TIMER2_ATTRIBUTE_IR_TIMER, not TIMER2_ATTRIBUTE_HIGH_RESOLUTION.
  *
  * \param TimerHandle A pointer to a variable that receives the handle to the IR timer object.
  * \param TimerId A pointer to a timer identifier that specifies the provider.
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
  * \return NTSTATUS Successful or errant status.
  * \remarks The TimerId must be non-NULL and point to a valid timer identifier.
+ * \remarks Forwards to NtCreateTimer2 with attribute 0x2 and no object attributes. TimerId is a
+ * caller-supplied 4-byte identifier, not an output handle; its low word must be in the range 1 through 19
+ * before additional descriptor and access checks. Identifier zero is rejected, not assigned automatically.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1388,8 +1560,11 @@ NtCreateIRTimer(
  *
  * \param TimerHandle A handle to the IR timer object.
  * \param DueTime An optional pointer to a LARGE_INTEGER that specifies
- * the time at which the timer is to be set to the signaled state.
+ * the time at which the timer is to be set to the signaled state. NULL cancels the timer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Shares the Timer2 set/cancel helper. A NULL DueTime selects cancellation, unlike NtSetTimer2,
+ * which rejects NULL. The wrapper supplies no periodic interval or parameter block; it does not provide a general
+ * interface for changing the IR timer identity or ownership.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1405,6 +1580,8 @@ NtSetIRTimer(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 //
 // NtCreateTimer2 Attributes
+// ExpExTimerAttributesAreValid accepts 0, 2, 4, 8, 6 or 12,
+// optionally ORed with 0x80000000. IR_TIMER and NO_WAKE cannot be combined.
 //
 #define TIMER2_ATTRIBUTE_IR_TIMER        0x00000002UL
 #define TIMER2_ATTRIBUTE_HIGH_RESOLUTION 0x00000004UL
@@ -1453,11 +1630,14 @@ typedef union _TIMER2_ATTRIBUTES
  *
  * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
  * \param TimerId For IR timers: A pointer to ULONG TIMERID (non-NULL). For non-IR timers: must be NULL.
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param Attributes Timer attributes (TIMER_TYPE).
+ * \param ObjectAttributes Reserved; must be NULL. This entry point creates unnamed timers.
+ * A non-NULL value returns STATUS_INVALID_PARAMETER_3.
+ * \param Attributes A combination of TIMER2_ATTRIBUTE_* flags, not a TIMER_TYPE value.
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw
+ * \remarks Use for an unnamed second-generation timer, not for opening a named legacy timer. The attribute validator accepts base combinations 0, 2, 4, 8, 6 and 12, optionally with bit 0x80000000.
+ * The IR bit 0x2 adds TimerId access checks. Successful creation does not arm the timer; close its handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1466,7 +1646,7 @@ NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
     _In_opt_ PULONG TimerId,
-    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _Reserved_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes,
     _In_ ACCESS_MASK DesiredAccess
     );
@@ -1477,31 +1657,21 @@ NtCreateTimer2(
 
 // rev
 /**
- * The T2_SET_PARAMETERS structure configures the high-resolution or coalescable timers,
- * and specify a "no-wake tolerance" value, which controls how much the kernel
- * may delay the timers for coalescing or power efficiency.
- * \remarks Setting NoWakeTolerance to 0 requests **no coalescing** and the most precise
- * wake-up behavior the system can provide.
+ * Supplies the versioned coalescing policy to NtSetTimer2.
+ * The ExpSetTimer2 implementation copies 16 bytes, checks Version == 0,
+ * and rejects NoWakeTolerance values below -1 with STATUS_INVALID_PARAMETER_3.
+ * Timer resolution is selected when the timer is created; changing this
+ * tolerance does not turn a normal timer into a high-resolution timer.
  */
 typedef struct _T2_SET_PARAMETERS_V0
 {
+    ULONG Version; // TIMER2_SET_PARAMETERS_CURRENT_VERSION (0).
+    ULONG Reserved; // Alignment padding; copied but not interpreted by ExpSetTimer2/KeSetTimer2.
     /**
-     * Structure version. Must be set to zero.
-     */
-    ULONG Version;
-    /**
-     * Reserved.
-     */
-    ULONG Reserved;
-    /**
-     * Maximum tolerable delay (in 100-ns units) for timer coalescing.
-     * - Set to 0 for **no coalescing** (strict wake-up).
-     * - Set to a positive value to allow the kernel to delay the timer
-     *   by up to this amount for power efficiency.
-     * Example:
-     *   If NoWakeTolerance = 0 --> High-resolution, best precision, min jitter, zero coalescing, low power savings.
-     *   If NoWakeTolerance > 0 --> Normal-resolution, allow up to this value of coalescing, normal power savings.
-     *   If NoWakeTolerance = -1 --> Low-resolution, worst precision, max jitter, max coalescing, max power savings.
+     * Delay beyond DueTime, in 100-nanosecond units, allowed before a wake is
+     * required. Zero gives no additional tolerance; a positive value gives a
+     * finite tolerance; -1 sets an unlimited no-wake deadline.
+     * This does not guarantee a particular scheduling latency or resolution.
      */
     LONGLONG NoWakeTolerance;
 } T2_SET_PARAMETERS, *PT2_SET_PARAMETERS;
@@ -1518,6 +1688,10 @@ typedef PVOID PT2_CANCEL_PARAMETERS;
  * \param Parameters A pointer to a T2_SET_PARAMETERS structure containing additional timer configuration parameters.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setwaitabletimer
+ * \remarks Requires timer modify access 0x2. A NULL DueTime returns STATUS_INVALID_PARAMETER_2.
+ * The optional parameter block is 16 bytes; Version must be zero and NoWakeTolerance must be at least -1.
+ * The native helper rejects an invalid block with STATUS_INVALID_PARAMETER_3. Period and due time use
+ * 100-nanosecond units; no APC routine or callback pointer is present in T2_SET_PARAMETERS.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1534,9 +1708,13 @@ NtSetTimer2(
  * The NtCancelTimer2 routine sets the specified waitable timer to the inactive state.
  *
  * \param TimerHandle A handle to the timer object to set.
- * \param Parameters A pointer to a PT2_CANCEL_PARAMETERS structure containing additional parameters.
+ * \param Parameters Reserved; pass NULL. Do not rely on NtCancelTimer2 interpreting this argument.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-cancelwaitabletimer
+ * \remarks Cancels the timer using the same modify access 0x2 as NtSetTimer2. The native entry clears the
+ * due-time, period and parameter arguments before calling the common helper, without consuming Parameters.
+ * Pass NULL for portability. Cancellation does not close the handle or undo an expiration that was already
+ * observed.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1544,7 +1722,7 @@ NTSTATUS
 NTAPI
 NtCancelTimer2(
     _In_ HANDLE TimerHandle,
-    _In_ PT2_CANCEL_PARAMETERS Parameters
+    _Reserved_ PT2_CANCEL_PARAMETERS Parameters
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
@@ -1651,6 +1829,9 @@ NtStopProfile(
  * \param ProfileSource The profile source (KPROFILE_SOURCE) to query.
  * \param Interval A pointer to a variable that receives the interval, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns a 4-byte interval selected by ProfileSource through KeQueryIntervalProfile.
+ * A successful interval query does not create or start profiling and does not establish that a corresponding
+ * hardware source can be enabled by this caller.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1667,6 +1848,9 @@ NtQueryIntervalProfile(
  * \param Interval The interval, in 100-nanosecond units, to set.
  * \param Source The profile source (KPROFILE_SOURCE) to set the interval for.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Changes profiling policy rather than querying it. The entry checks
+ * SeSystemProfilePrivilege before calling KeSetIntervalProfile. Do not change the global sampling interval
+ * merely to discover the interval; use NtQueryIntervalProfile.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1687,13 +1871,21 @@ NtSetIntervalProfile(
     (STANDARD_RIGHTS_REQUIRED | KEYEDEVENT_WAIT | KEYEDEVENT_WAKE)
 
 /**
- * The NtCreateKeyedEvent routine creates a keyed event object and returns a handle to it.
+ * The NtCreateKeyedEvent routine creates a keyed event for multiplexing thread rendezvous by opaque key
+ * values. It can back multiple user-mode synchronization objects without allocating a separate kernel event
+ * for each key. A release pairs with one wait, rather than setting a persistent event signal or accumulating
+ * a semaphore count.
  *
- * \param KeyedEventHandle A pointer to a variable that receives the handle to the keyed event object.
- * \param DesiredAccess The access mask that specifies the requested access to the keyed event object.
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param Flags Reserved. Must be zero.
- * \return NTSTATUS Successful or errant status.
+ * \param KeyedEventHandle Receives a handle owned by the caller; close it with NtClose.
+ * \param DesiredAccess Requested access, including KEYEDEVENT_WAIT (0x1) and/or
+ * KEYEDEVENT_WAKE (0x2). KEYEDEVENT_ALL_ACCESS is 0xF0003 and excludes SYNCHRONIZE.
+ * \param ObjectAttributes Optional name, root directory and security attributes.
+ * \param Flags Reserved. Must be zero; nonzero values return STATUS_INVALID_PARAMETER_4.
+ * \return STATUS_SUCCESS for a new object, or STATUS_OBJECT_NAME_EXISTS when
+ * OBJ_OPENIF opens an existing named object. Other failures are returned as NTSTATUS.
+ * \remarks On x64, a valid output slot is cleared before Flags
+ * validation. Matching requires the same keyed-event object, key value and process;
+ * sharing a named object or handle does not make equal keys match across processes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1707,12 +1899,15 @@ NtCreateKeyedEvent(
     );
 
 /**
- * The NtOpenKeyedEvent routine opens a handle to an existing keyed event object.
+ * The NtOpenKeyedEvent routine opens an existing named keyed event without performing a wait or release.
  *
- * \param KeyedEventHandle A pointer to a variable that receives the handle to the keyed event object.
- * \param DesiredAccess The access mask that specifies the requested access to the keyed event object.
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \return NTSTATUS Successful or errant status.
+ * \param KeyedEventHandle Receives a handle owned by the caller; close it with NtClose.
+ * \param DesiredAccess Requested access. KEYEDEVENT_WAIT (0x1) permits waits;
+ * KEYEDEVENT_WAKE (0x2) permits releases. Opening does not perform either operation.
+ * \param ObjectAttributes Identifies the existing object by name and optional root directory.
+ * \return NTSTATUS indicating whether the object was opened.
+ * \remarks On x64, a valid output slot is cleared before name lookup.
+ * Even with a shared object, matching waits and releases must belong to the same process.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1725,13 +1920,29 @@ NtOpenKeyedEvent(
     );
 
 /**
- * The NtReleaseKeyedEvent routine releases a thread that is waiting on a keyed event with the specified key value.
+ * The NtReleaseKeyedEvent routine pairs with one matching keyed-event wait, blocking if no matching waiter is
+ * present. Unlike NtSetEvent, this is a rendezvous operation, not a persistent signal: a release that times
+ * out does not leave a wake credit for a later wait.
  *
- * \param KeyedEventHandle Optional handle to the keyed event object. If NULL, the default keyed event is used.
- * \param KeyValue The key value that identifies the waiting thread to release.
- * \param Alertable Specifies whether the call is alertable (can be interrupted by APCs).
- * \param Timeout Optional pointer to a timeout value (in 100-nanosecond intervals). If NULL, waits indefinitely.
- * \return NTSTATUS Successful or errant status.
+ * \param KeyedEventHandle Handle with KEYEDEVENT_WAKE (0x2), or NULL for the system's
+ * default keyed event (ExpCritSecOutOfMemoryEvent).
+ * \param KeyValue Opaque pointer-sized matching key, not an object handle (including a
+ * registry key handle). An address may be used as the key, but the kernel does not
+ * dereference it or inspect the memory contents, unlike the Address parameter of
+ * WaitOnAddress.
+ * Its low bit must be zero; NULL is a valid zero key, not a wildcard. The matching
+ * wait must use the same object and key and belong to the same process.
+ * \param Alertable Whether a blocking release can be interrupted by an alert or user APC.
+ * \param Timeout Optional timeout in 100-nanosecond units: negative for a relative
+ * interval, positive for an absolute deadline, zero for polling, or NULL for no deadline.
+ * \return STATUS_SUCCESS only when paired with a matching wait; STATUS_TIMEOUT,
+ * STATUS_ALERTED or STATUS_USER_APC can end an unmatched blocking release.
+ * On x64, an odd KeyValue returns STATUS_INVALID_PARAMETER_1
+ * (despite KeyValue being the second parameter), before handle validation.
+ * \remarks NT_SUCCESS alone does not establish a match: STATUS_TIMEOUT, STATUS_ALERTED
+ * and STATUS_USER_APC are nonnegative. A successful release pairs with one waiter,
+ * not all waiters for the key. If the match wins a timeout/APC race, the kernel
+ * completes the rendezvous and may return STATUS_SUCCESS instead of the interrupt.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1739,19 +1950,35 @@ NTSTATUS
 NTAPI
 NtReleaseKeyedEvent(
     _In_opt_ HANDLE KeyedEventHandle,
-    _In_ PVOID KeyValue,
+    _In_opt_ PVOID KeyValue,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
 /**
- *  The NtWaitForKeyedEvent routine waits for a keyed event to be released with the specified key value.
+ * The NtWaitForKeyedEvent routine pairs with one matching keyed-event release, blocking until a match or
+ * interruption. Use it as the wait half of a user-mode synchronization protocol, not to wait on a persistent
+ * signal state; a matching release may arrive before or after this call.
  *
- * \param KeyedEventHandle Optional handle to the keyed event object. If NULL, the default keyed event is used.
- * \param KeyValue The key value to wait for.
- * \param Alertable Specifies whether the call is alertable (can be interrupted by APCs).
- * \param Timeout Optional pointer to a timeout value (in 100-nanosecond intervals). If NULL, waits indefinitely.
- * \return NTSTATUS Successful or errant status.
+ * \param KeyedEventHandle Handle with KEYEDEVENT_WAIT (0x1), or NULL for the system's
+ * default keyed event (ExpCritSecOutOfMemoryEvent).
+ * \param KeyValue Opaque pointer-sized matching key, not an object handle (including a
+ * registry key handle). An address may be used as the key, but the kernel does not
+ * dereference it or inspect the memory contents, unlike the Address parameter of
+ * WaitOnAddress.
+ * Its low bit must be zero; NULL is a valid zero key, not a wildcard. The matching
+ * release must use the same object and key and belong to the same process.
+ * \param Alertable Whether a blocking wait can be interrupted by an alert or user APC.
+ * \param Timeout Optional timeout in 100-nanosecond units: negative for a relative
+ * interval, positive for an absolute deadline, zero for polling, or NULL for no deadline.
+ * \return STATUS_SUCCESS only when paired with a matching release; STATUS_TIMEOUT,
+ * STATUS_ALERTED or STATUS_USER_APC can end an unmatched blocking wait.
+ * On x64, an odd KeyValue returns STATUS_INVALID_PARAMETER_1
+ * (despite KeyValue being the second parameter), before handle validation.
+ * \remarks Test for STATUS_SUCCESS, not just NT_SUCCESS, to distinguish a match
+ * from timeout or interruption. A successful wait consumes one matching release.
+ * If the match wins a timeout/APC race, the kernel completes the rendezvous and
+ * may return STATUS_SUCCESS instead of the interrupt.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1759,7 +1986,7 @@ NTSTATUS
 NTAPI
 NtWaitForKeyedEvent(
     _In_opt_ HANDLE KeyedEventHandle,
-    _In_ PVOID KeyValue,
+    _In_opt_ PVOID KeyValue,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -1775,6 +2002,9 @@ NtWaitForKeyedEvent(
  * \param SchedulerParam Optional handle to the keyed event object. If NULL, the default keyed event is used.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-umsthreadyield
+ * \remarks The native x64 service returns STATUS_NOT_SUPPORTED (0xC00000BB).
+ * Export presence is not proof that UMS scheduling is available. The WoW64 entry uses a different dispatch path;
+ * this native status must not be generalized into a supported 32-bit UMS contract.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1828,13 +2058,21 @@ typedef enum _WNF_STATE_NAME_LIFETIME
  */
 typedef enum _WNF_STATE_NAME_INFORMATION
 {
-    WnfInfoStateNameExist,
-    WnfInfoSubscribersPresent,     // ULONG
-    WnfInfoIsQuiescent
+    WnfInfoStateNameExist,         // q: ULONG boolean; ExplicitScope must be NULL.
+    WnfInfoSubscribersPresent,     // q: ULONG boolean.
+    WnfInfoIsQuiescent             // q: ULONG boolean.
 } WNF_STATE_NAME_INFORMATION;
 
 /**
- * The WNF_DATA_SCOPE enumeration defines the scope in which a WNF state's data is maintained.
+ * Defines the scope in which a WNF state's data is maintained.
+ * For the Nt*WnfStateData and NtQueryWnfStateNameInformation ExplicitScope
+ * arguments, NULL selects the caller's implicit scope. Explicit scope values use:
+ * - WnfDataScopeSession: a pointer to a 4-byte ULONG session ID.
+ * - WnfDataScopeUser: a pointer to a SID (not a pointer to a SID pointer).
+ * - WnfDataScopeProcess: the process HANDLE value itself, not a PHANDLE.
+ * - System, Machine and PhysicalMachine: a non-NULL explicit scope is rejected.
+ * User-mode explicit-scope requests are also subject to cross-scope access checks.
+ * See ExpWnfCaptureScopeInstanceId and ExpWnfCheckCrossScopeAccess.
  */
 typedef enum _WNF_DATA_SCOPE
 {
@@ -1860,7 +2098,10 @@ typedef const WNF_TYPE_ID *PCWNF_TYPE_ID;
 typedef ULONG WNF_CHANGE_STAMP, *PWNF_CHANGE_STAMP;
 
 /**
- * The WNF_DELIVERY_DESCRIPTOR structure describes a Windows Notification Facility (WNF) state change delivery.
+ * Describes one delivered WNF subscription notification. The 48-byte header is
+ * followed by state data in the same caller-owned buffer. StateDataOffset is a byte
+ * offset from this header (48 in the described delivery layout); StateDataSize is the payload length.
+ * NtGetCompleteWnfStateSubscription requires more space than sizeof this header.
  */
 typedef struct _WNF_DELIVERY_DESCRIPTOR
 {
@@ -1873,11 +2114,18 @@ typedef struct _WNF_DELIVERY_DESCRIPTOR
     ULONG StateDataOffset;
 } WNF_DELIVERY_DESCRIPTOR, *PWNF_DELIVERY_DESCRIPTOR;
 
+// rev: minimum nonzero DescriptorSize checked by NtGetCompleteWnfStateSubscription.
+#define WNF_DELIVERY_DESCRIPTOR_MINIMUM_BUFFER_SIZE 0x1030UL // 48-byte header + 4096 bytes; 8-byte aligned on x64.
+
 // end_private
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 /**
- * The NtCreateWnfStateName routine creates a new WNF (Windows Notification Facility) state name.
+ * The NtCreateWnfStateName routine creates a new WNF state name with a caller-supplied security descriptor.
+ * MaximumStateSize cannot exceed 4096 bytes. Creation rejects WnfWellKnownStateName,
+ * WnfDataScopePhysicalMachine, and the combination of WnfTemporaryStateName with WnfDataScopeProcess.
+ * Non-temporary creation requires SeCreatePermanentPrivilege. PersistData is accepted only for
+ * WnfPermanentStateName with WnfDataScopeSystem or WnfDataScopeMachine.
  *
  * \param StateName Pointer to a WNF_STATE_NAME structure that receives the created state name.
  * \param NameLifetime The lifetime of the state name (see WNF_STATE_NAME_LIFETIME).
@@ -1887,6 +2135,9 @@ typedef struct _WNF_DELIVERY_DESCRIPTOR
  * \param MaximumStateSize The maximum size, in bytes, of the state data.
  * \param SecurityDescriptor Pointer to a security descriptor for the state name.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For disposable application state, use a temporary name with an allowed scope and a
+ * descriptor granting only the intended principals access. Query/update rights 0x1/0x2 do not include DELETE
+ * (0x00010000), which is needed for explicit name deletion. A state name is an identifier, not an NtClose handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1907,6 +2158,9 @@ NtCreateWnfStateName(
  *
  * \param StateName Pointer to the WNF_STATE_NAME to delete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Explicit name deletion checks DELETE (0x00010000) against the WNF security descriptor.
+ * Possessing the identifier or having permission to update/delete its data is not sufficient. A temporary name
+ * also has creator-process ownership checks; do not confuse name deletion with NtDeleteWnfStateData.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1923,10 +2177,15 @@ NtDeleteWnfStateName(
  * \param Buffer Pointer to the data buffer to write.
  * \param Length Length, in bytes, of the data buffer.
  * \param TypeId Optional pointer to a WNF_TYPE_ID structure specifying the type of the state data.
- * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
+ * \param ExplicitScope Optional scope selector: a session-ID pointer, SID pointer, or process HANDLE
+ * value, according to the state name's WNF_DATA_SCOPE. NULL selects the implicit scope.
  * \param MatchingChangeStamp The change stamp to match for update.
  * \param CheckStamp If TRUE, the change stamp is checked before updating.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For conditional updates, CheckStamp enables comparison against MatchingChangeStamp.
+ * The state-data helper returns STATUS_UNSUCCESSFUL for a mismatch without publishing a new value.
+ * Successful updates advance the change stamp; retry logic should re-query and re-evaluate the intended change,
+ * not blindly overwrite after a mismatch. Length remains bounded by the name's MaximumStateSize.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1937,7 +2196,7 @@ NtUpdateWnfStateData(
     _In_reads_bytes_opt_(Length) const VOID* Buffer,
     _In_opt_ ULONG Length,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
     _In_ LOGICAL CheckStamp
     );
@@ -1946,8 +2205,12 @@ NtUpdateWnfStateData(
  * The NtDeleteWnfStateData routine deletes the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME whose data is to be deleted.
- * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
+ * \param ExplicitScope Optional scope selector: a session-ID pointer, SID pointer, or process HANDLE
+ * value, according to the state name's WNF_DATA_SCOPE. NULL selects the implicit scope.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletes the payload, not the state name or subscriptions. An owned temporary name remains
+ * queryable with an empty payload afterwards. Explicit name deletion is a separate operation with DELETE access;
+ * publishing rights alone do not confer that permission.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1955,7 +2218,7 @@ NTSTATUS
 NTAPI
 NtDeleteWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_opt_ PCSID ExplicitScope
+    _In_opt_ PCVOID ExplicitScope
     );
 
 /**
@@ -1963,11 +2226,16 @@ NtDeleteWnfStateData(
  *
  * \param StateName Pointer to the WNF_STATE_NAME to query.
  * \param TypeId Optional pointer to a WNF_TYPE_ID structure specifying the type of the state data.
- * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
+ * \param ExplicitScope Optional scope selector: a session-ID pointer, SID pointer, or process HANDLE
+ * value, according to the state name's WNF_DATA_SCOPE. NULL selects the implicit scope.
  * \param ChangeStamp Pointer to a variable that receives the change stamp.
  * \param Buffer Pointer to a buffer that receives the state data.
- * \param BufferLength On input, the size of the buffer in bytes; on output, the number of bytes written.
+ * \param BufferLength On input, the capacity in bytes; on output, the current payload size, including
+ * the required capacity when the buffer is too small.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For an existing payload, a short output buffer returns STATUS_BUFFER_TOO_SMALL and
+ * reports the required byte length and current change stamp without copying a partial payload. Thus BufferLength
+ * is not always the number of bytes written. A size/query retry can race another publisher; recheck the final status.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1976,7 +2244,7 @@ NTAPI
 NtQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength
@@ -1987,10 +2255,15 @@ NtQueryWnfStateData(
  *
  * \param StateName Pointer to the WNF_STATE_NAME to query.
  * \param NameInfoClass The information class to query (see WNF_STATE_NAME_INFORMATION).
- * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
+ * \param ExplicitScope Optional scope selector: a session-ID pointer, SID pointer, or process HANDLE
+ * value, according to the state name's WNF_DATA_SCOPE. NULL selects the implicit scope.
  * \param Buffer Pointer to a buffer that receives the requested information.
- * \param BufferLength The size, in bytes, of the buffer.
+ * \param BufferLength The buffer size in bytes; at least 4. Each class returns a ULONG boolean.
+ * WnfInfoStateNameExist requires ExplicitScope == NULL even for session/user/process names.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The entry accepts classes 0, 1 and 2 and requires at least 4 output
+ * bytes; a shorter buffer returns STATUS_INVALID_PARAMETER, not STATUS_INFO_LENGTH_MISMATCH. These are
+ * ULONG boolean results, not BOOLEAN-sized stores. Subscriber presence is not proof of delivery or callback completion.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1999,7 +2272,7 @@ NTAPI
 NtQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
@@ -2012,6 +2285,10 @@ NtQueryWnfStateNameInformation(
  * \param EventMask Bitmask specifying which events to subscribe to.
  * \param SubscriptionId Optional pointer to a variable that receives the subscription ID.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Registers a subscription for the calling process rather than installing a user
+ * callback supplied to this syscall. SubscriptionId, when requested, is an 8-byte identifier on both architectures.
+ * Native registration and the higher-level Rtl callback dispatcher are separate layers; pair registration with
+ * NtUnsubscribeWnfStateChange and do not free callback state merely because data publication returned.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2029,6 +2306,9 @@ NtSubscribeWnfStateChange(
  *
  * \param StateName Pointer to the WNF_STATE_NAME to unsubscribe from.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Removes the current process's subscription selected by StateName. This operation
+ * does not delete the published data or the name. An owned subscription can be checked with
+ * WnfInfoSubscribersPresent, but that observation is not a cross-process delivery synchronization primitive.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2043,7 +2323,11 @@ NtUnsubscribeWnfStateChange(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 /**
- * The NtGetCompleteWnfStateSubscription routine retrieves the complete WNF state subscription information.
+ * The NtGetCompleteWnfStateSubscription routine completes a previously delivered WNF notification and
+ * optionally retrieves the next one. To acknowledge a delivery, supply both old pointers, a nonzero old event
+ * mask, and an OldDescriptorStatus of STATUS_SUCCESS or STATUS_RETRY (0xC000022D). A nonzero DescriptorSize
+ * must be at least 0x1030 (4144) and NewDeliveryDescriptor must be 8-byte aligned. A zero size skips
+ * retrieval.
  *
  * \param OldDescriptorStateName Optional pointer to the previous state name.
  * \param OldSubscriptionId Optional pointer to the previous subscription ID.
@@ -2052,17 +2336,21 @@ NtUnsubscribeWnfStateChange(
  * \param NewDeliveryDescriptor Pointer to a buffer that receives the new delivery descriptor.
  * \param DescriptorSize The size, in bytes, of the delivery descriptor buffer.
  * \return NTSTATUS code indicating success or failure.
+ * \remarks Combines completion of an earlier delivery descriptor with retrieval of further thread
+ * notifications. The minimum nonzero DescriptorSize is 0x1030 bytes, not just the 48-byte header. A buffer is
+ * not an executable callback registration; respect returned StateDataOffset and StateDataSize when
+ * interpreting the inline payload. Full dispatcher/rundown behavior requires separate lifetime analysis.
  */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetCompleteWnfStateSubscription(
-    _In_opt_ PWNF_STATE_NAME OldDescriptorStateName,
-    _In_opt_ ULONG64 *OldSubscriptionId,
+    _In_opt_ PCWNF_STATE_NAME OldDescriptorStateName,
+    _In_opt_ const ULONG64 *OldSubscriptionId,
     _In_opt_ ULONG OldDescriptorEventMask,
-    _In_opt_ ULONG OldDescriptorStatus,
-    _Out_writes_bytes_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
+    _In_opt_ NTSTATUS OldDescriptorStatus,
+    _Out_writes_bytes_opt_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
     _In_ ULONG DescriptorSize
     );
 
@@ -2110,31 +2398,38 @@ NtSetWnfProcessNotificationEvent(
 // begin_private
 
 /**
- * The WORKERFACTORYINFOCLASS enumeration defines the information classes for querying and setting worker factory information.
+ * Selects worker-factory configuration and status operations.
+ * NtQueryInformationWorkerFactory accepts only
+ * WorkerFactoryBasicInformation (7); individual configuration selectors are not query classes.
+ * NtSetInformationWorkerFactory requires WORKER_FACTORY_SET_INFORMATION;
+ * the basic query requires WORKER_FACTORY_QUERY_INFORMATION.
  */
 typedef enum _WORKERFACTORYINFOCLASS
 {
-    WorkerFactoryTimeout,               // qs: LARGE_INTEGER
-    WorkerFactoryRetryTimeout,          // qs: LARGE_INTEGER
-    WorkerFactoryIdleTimeout,           // qs: LARGE_INTEGER
-    WorkerFactoryBindingCount,          // qs: ULONG
-    WorkerFactoryThreadMinimum,         // qs: ULONG
-    WorkerFactoryThreadMaximum,         // qs: ULONG
-    WorkerFactoryPaused,                // qs: ULONG or BOOLEAN
+    WorkerFactoryTimeout,               // Historical; may be rejected with STATUS_INVALID_INFO_CLASS
+    WorkerFactoryRetryTimeout,          // Historical; may be rejected with STATUS_INVALID_INFO_CLASS
+    WorkerFactoryIdleTimeout,           // s: LARGE_INTEGER
+    WorkerFactoryBindingCount,          // s: LONG (signed adjustment, not an absolute count)
+    WorkerFactoryThreadMinimum,         // s: ULONG
+    WorkerFactoryThreadMaximum,         // s: ULONG
+    WorkerFactoryPaused,                // Historical; setting this class may return STATUS_NOT_IMPLEMENTED
     WorkerFactoryBasicInformation,      // q: WORKER_FACTORY_BASIC_INFORMATION
     WorkerFactoryAdjustThreadGoal,      // s: ULONG
-    WorkerFactoryCallbackType,          // qs: ULONG
-    WorkerFactoryStackInformation,      // qs: ULONG/ULONG_PTR // 10
-    WorkerFactoryThreadBasePriority,    // qs: ULONG
-    WorkerFactoryTimeoutWaiters,        // qs: ULONG // since THRESHOLD
-    WorkerFactoryFlags,                 // qs: ULONG
-    WorkerFactoryThreadSoftMaximum,     // qs: ULONG
-    WorkerFactoryThreadCpuSets,         // qs: ULONG[] // since REDSTONE5
+    WorkerFactoryCallbackType,          // s: ULONG
+    WorkerFactoryStackInformation,      // s: ULONG/ULONG_PTR // 10
+    WorkerFactoryThreadBasePriority,    // s: ULONG
+    WorkerFactoryTimeoutWaiters,        // s: ULONG // since THRESHOLD
+    WorkerFactoryFlags,                 // s: ULONG
+    WorkerFactoryThreadSoftMaximum,     // s: ULONG
+    WorkerFactoryThreadCpuSets,         // s: ULONG[] // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
 /**
- * The WORKER_FACTORY_BASIC_INFORMATION structure contains basic information about a worker factory object.
+ * Returns worker counts, thread entry-point parameters and stack sizes for a worker factory.
+ * NtQueryInformationWorkerFactory requires exactly 120 bytes on x64.
+ * Timeout, RetryTimeout, Paused, TimerSet and InfiniteWaitGoal are returned as zero
+ * in this implementation; IdleTimeout contains the active relative timeout.
  */
 typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 {
@@ -2207,6 +2502,10 @@ NtCreateWorkerFactory(
  * \param WorkerFactoryInformationLength The size of the \c WorkerFactoryInformation buffer, in bytes.
  * \param ReturnLength A pointer to a variable that receives the number of bytes written to the \c WorkerFactoryInformation buffer. This parameter is optional.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native entry supports WorkerFactoryBasicInformation (7),
+ * requires exactly 120 bytes and worker-factory query access 0x8. It probes the fixed native record before
+ * testing the supplied length, so a short-length test must still use valid backing storage. WoW64 converts the
+ * basic record to 96 bytes; the mere presence of a thunk for another class does not establish native support.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2349,6 +2648,10 @@ NtWaitForWorkViaWorkerFactory(
  * \param SystemTime A pointer to a LARGE_INTEGER structure that receives the system time. This is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
+ * \remarks The ntdll export is not an ordinary syscall stub, although a kernel routine
+ * with this name also exists. Do not attribute user-mode export behavior solely to that kernel entry. Use this
+ * wall-clock result for timestamps, not monotonic elapsed-time measurement; NtQueryPerformanceCounter serves
+ * a different purpose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2383,6 +2686,9 @@ NtSetSystemTime(
  * \param MinimumTime The minimum timer resolution, in 100-nanosecond units.
  * \param CurrentTime The current timer resolution, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns three 4-byte values without acquiring a resolution request. The duration values are
+ * expressed in 100-ns units; compare the numeric values rather than their names. Querying these values does
+ * not change the current resolution or prove a particular timer-delivery latency.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2425,6 +2731,9 @@ NtSetTimerResolution(
  * \return NTSTATUS Successful or errant status.
  * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ * \remarks Returns a counter with an optional frequency, each in an 8-byte LARGE_INTEGER.
+ * Use the frequency to interpret deltas; these values are not system-time timestamps. The native
+ * entry checks 4-byte pointer alignment and forwards to KeQueryPerformanceCounter.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2443,6 +2752,9 @@ NtQueryPerformanceCounter(
  * \param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
+ * \remarks Queries a hardware-dependent auxiliary counter, not a guaranteed
+ * substitute for NtQueryPerformanceCounter. STATUS_NOT_SUPPORTED is a meaningful platform result; inspect
+ * status before consuming the output frequency or attempting counter conversion.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2675,7 +2987,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSessionBigPoolInformation,                        // q: SYSTEM_SESSION_POOLTAG_INFORMATION // since WIN8
     SystemBootGraphicsInformation,                          // qs: SYSTEM_BOOT_GRAPHICS_INFORMATION (kernel-mode only)
     SystemScrubPhysicalMemoryInformation,                   // qs: MEMORY_SCRUB_INFORMATION
-    SystemBadPageInformation,                               // q: SYSTEM_BAD_PAGE_INFORMATION
+    SystemBadPageInformation,                               // q: SYSTEM_BAD_PAGE_INFORMATION[] (non-pending pages; Poisoned cleared)
     SystemProcessorProfileControlArea,                      // qs: SYSTEM_PROCESSOR_PROFILE_CONTROL_AREA
     SystemCombinePhysicalMemoryInformation,                 // s: MEMORY_COMBINE_INFORMATION, MEMORY_COMBINE_INFORMATION_EX, MEMORY_COMBINE_INFORMATION_EX2 // 130
     SystemEntropyInterruptTimingInformation,                // qs: SYSTEM_ENTROPY_TIMING_INFORMATION
@@ -2784,14 +3096,14 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHypervisorMinrootInformation,                     // q: SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     SystemHypervisorBootPagesInformation,                   // q: SYSTEM_HYPERVISOR_BOOT_PAGES_INFORMATION
     SystemPointerAuthInformation,                           // q: SYSTEM_POINTER_AUTH_INFORMATION
-    SystemSecureKernelDebuggerInformation,                  // q: in: SYSTEM_SECURE_KERNEL_DEBUGGER_INFORMATION_INPUT, out: SYSTEM_SECURE_KERNEL_DEBUGGER_INFORMATION // NtQuerySystemInformationEx // kernel mode only on this build
+    SystemSecureKernelDebuggerInformation,                  // q: in: SYSTEM_SECURE_KERNEL_DEBUGGER_INFORMATION_INPUT, out: SYSTEM_SECURE_KERNEL_DEBUGGER_INFORMATION // NtQuerySystemInformationEx // kernel mode only
     SystemOriginalImageFeatureInformation,                  // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaInformation,                            // q: SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaPerformanceInformation,                 // q: SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
     SystemCodeIntegritySignedPoliciesFullInformation,       // qs: SYSTEM_CODE_INTEGRITY_SIGNED_POLICIES // NtQuerySystemInformationEx
     SystemSecureCoreInformation,                            // qs: SYSTEM_SECURE_CORE_INFORMATION // SystemSecureSecretsInformation
     SystemTrustedAppsRuntimeInformation,                    // q: SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
-    SystemBadPageInformationEx,                             // q: SYSTEM_BAD_PAGE_INFORMATION
+    SystemBadPageInformationEx,                             // q: SYSTEM_BAD_PAGE_INFORMATION[] (includes Pending and Poisoned)
     SystemResourceDeadlockTimeout,                          // q: ULONG
     SystemBreakOnContextUnwindFailureInformation,           // q: ULONG (requires SeDebugPrivilege)
     SystemOslRamdiskInformation,                            // q: SYSTEM_OSL_RAMDISK_INFORMATION
@@ -2801,7 +3113,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRefTraceInformationEx,                            // q: SYSTEM_REF_TRACE_INFORMATION_EX
     SystemBasicProcessInformation,                          // q: SYSTEM_BASICPROCESS_INFORMATION
     SystemHandleCountInformation,                           // q: SYSTEM_HANDLECOUNT_INFORMATION
-    SystemRuntimeAttestationReport,                         // q: SYSTEM_RUNTIME_REPORT_INPUT
+    SystemRuntimeAttestationReport,                         // q: in: SYSTEM_RUNTIME_REPORT_INPUT (48 bytes on x64), out: report package // NtQuerySystemInformationEx
     SystemPoolTagInformation2,                              // q: SYSTEM_POOLTAG_INFORMATION2 // since 26H1
     SystemCodeIntegrityEndpointSecurityInformation,         // q: SYSTEM_CODE_INTEGRITY_ENDPOINT_SECURITY_INFORMATION
     MaxSystemInfoClass
@@ -3292,10 +3604,10 @@ typedef struct _SYSTEM_HANDLE_INFORMATION
     _Field_size_(NumberOfHandles) SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_OBJECTTYPE_INFORMATION structure contains information about an object type in the system.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -3311,10 +3623,10 @@ typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
     UNICODE_STRING TypeName;
 } SYSTEM_OBJECTTYPE_INFORMATION, *PSYSTEM_OBJECTTYPE_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_OBJECT_INFORMATION structure contains information about an object in the system.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_OBJECT_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -3331,10 +3643,10 @@ typedef struct _SYSTEM_OBJECT_INFORMATION
     UNICODE_STRING NameInfo;
 } SYSTEM_OBJECT_INFORMATION, *PSYSTEM_OBJECT_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_PAGEFILE_INFORMATION structure contains information about a paging file in the system.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_PAGEFILE_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -4005,10 +4317,10 @@ typedef struct _SYSTEM_RANGE_START_INFORMATION
     ULONG_PTR SystemRangeStart;
 } SYSTEM_RANGE_START_INFORMATION, *PSYSTEM_RANGE_START_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_VERIFIER_INFORMATION_LEGACY structure describes the system verifier information legacy.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
 {
     ULONG NextEntryOffset;
@@ -4038,10 +4350,10 @@ typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
     SIZE_T PeakNonPagedPoolUsageInBytes;
 } SYSTEM_VERIFIER_INFORMATION_LEGACY, *PSYSTEM_VERIFIER_INFORMATION_LEGACY;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_VERIFIER_INFORMATION structure contains system verifier information.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_VERIFIER_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -4364,10 +4676,10 @@ typedef struct _SYSTEM_POOL_INFORMATION
     _Field_size_(NumberOfEntries) SYSTEM_POOL_ENTRY Entries[1];
 } SYSTEM_POOL_INFORMATION, *PSYSTEM_POOL_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_SESSION_POOLTAG_INFORMATION structure contains system session pooltag information.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
 {
     SIZE_T NextEntryOffset;
@@ -4376,10 +4688,10 @@ typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
     _Field_size_(Count) SYSTEM_POOLTAG TagInfo[1];
 } SYSTEM_SESSION_POOLTAG_INFORMATION, *PSYSTEM_SESSION_POOLTAG_INFORMATION;
 
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_SESSION_MAPPED_VIEW_INFORMATION structure contains system session mapped view information.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
 {
     SIZE_T NextEntryOffset;
@@ -4532,7 +4844,6 @@ typedef enum _SYSTEM_MEMORY_LIST_COMMAND
  * The SYSTEM_THREAD_CID_PRIORITY_INFORMATION structure is used with NtSetSystemInformation
  * to set the priority of a thread by its client ID (process ID and thread ID) without
  * requiring a thread handle.
- *
  * \remarks This structure is used with the SystemThreadPriorityClientIdInformation
  * information class (0x52). The caller must have SeIncreaseBasePriorityPrivilege
  * to raise a thread's priority above normal.
@@ -4965,6 +5276,7 @@ typedef HANDLE SYSTEM_WIN32_WER_START_CALLOUT, *PSYSTEM_WIN32_WER_START_CALLOUT;
 #define SYSTEM_CONTROL_FLOW_TRANSITION_OPERATION_SET_DYNAMIC_ENFORCEMENT 0x08 // sub_140A6375C, SYSTEM_CONTROL_FLOW_TRANSITION_OP8
 #define SYSTEM_CONTROL_FLOW_TRANSITION_OPERATION_UNLOAD_MODULE           0x09 // WbHeapExecutionUnloadModule/sub_140A50E08, SYSTEM_CONTROL_FLOW_TRANSITION_OP9
 
+// private
 /**
  * \brief Warbird control-flow transition request header.
  *
@@ -4977,10 +5289,6 @@ typedef HANDLE SYSTEM_WIN32_WER_START_CALLOUT, *PSYSTEM_WIN32_WER_START_CALLOUT;
  *
  * \a Parameters points to an operation-specific payload determined by
  * \a Operation.
- */
-// private
-/**
- * The SYSTEM_CONTROL_FLOW_TRANSITION structure describes the system control flow transition.
  */
 typedef struct _SYSTEM_CONTROL_FLOW_TRANSITION
 {
@@ -6310,23 +6618,33 @@ typedef struct _MEMORY_SCRUB_INFORMATION
 
 // private
 /**
- * The SYSTEM_BAD_PAGE_INFORMATION union contains system bad page information.
+ * Describes one page returned in the flat array for SystemBadPageInformationEx (244).
+ * On x64, bits 0-51 are the page number, bit 62 is Pending, and bit 63 is Poisoned.
+ * SystemBadPageInformation (128) omits pending entries and clears the poisoned bit.
+ * There is no count prefix in the returned buffer; divide ReturnLength by the entry size.
+ * ExpQuerySystemInformation and MiGetListOfPendingBadPages use 8-byte entries on x64.
  */
 typedef union _SYSTEM_BAD_PAGE_INFORMATION
 {
+    ULONG_PTR Value;
+    struct
+    {
 #ifdef _WIN64
-    ULONG_PTR PhysicalPageNumber : 52;
+        ULONG_PTR PhysicalPageNumber : 52;
 #else
-    ULONG PhysicalPageNumber : 20;
+        ULONG PhysicalPageNumber : 20;
 #endif
-    ULONG_PTR Reserved : 10;
-    ULONG_PTR Pending : 1;
-    ULONG_PTR Poisoned : 1;
+        ULONG_PTR Reserved : 10;
+        ULONG_PTR Pending : 1;
+        ULONG_PTR Poisoned : 1;
+    } DUMMYSTRUCTNAME;
 } SYSTEM_BAD_PAGE_INFORMATION, *PSYSTEM_BAD_PAGE_INFORMATION;
 
 // private
 /**
- * The PEBS_DS_SAVE_AREA32 structure describes the PEBS ds save area32.
+ * Describes the 32-bit-address Intel BTS/PEBS debug-store save area. The address
+ * fields are ULONGs, but all counter-reset values are 64-bit. The layout occupies
+ * 0x80 bytes, with GP resets at 0x20 and fixed resets at 0x60.
  */
 typedef struct _PEBS_DS_SAVE_AREA32
 {
@@ -6338,8 +6656,8 @@ typedef struct _PEBS_DS_SAVE_AREA32
     ULONG PebsIndex;
     ULONG PebsAbsoluteMaximum;
     ULONG PebsInterruptThreshold;
-    ULONG PebsGpCounterReset[8];
-    ULONG PebsFixedCounterReset[4];
+    ULONGLONG PebsGpCounterReset[8]; // 64-bit reset values even in the 32-bit DS format.
+    ULONGLONG PebsFixedCounterReset[4];
 } PEBS_DS_SAVE_AREA32, *PPEBS_DS_SAVE_AREA32;
 
 // private
@@ -6601,10 +6919,10 @@ typedef struct _SYSTEM_SECUREBOOT_POLICY_INFORMATION
 } SYSTEM_SECUREBOOT_POLICY_INFORMATION, *PSYSTEM_SECUREBOOT_POLICY_INFORMATION;
 
 // private
-_Struct_size_bytes_(NextEntryOffset)
 /**
  * The SYSTEM_PAGEFILE_INFORMATION_EX structure contains system pagefile information.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_PAGEFILE_INFORMATION_EX
 {
     union // union declaration for convenience (dmex)
@@ -6977,7 +7295,6 @@ typedef enum _SYSTEM_PROCESS_CLASSIFICATION
  * SYSTEM_EXTENDED_PROCESS_INFORMATION, and the offsets are relative to the start of this extension structure.
  *
  * \since Windows 10 Threshold (version 1507, build 10240)
- *
  * \remarks This structure contains variable-length data. The UserSidOffset, PackageFullNameOffset,
  * and AppIdOffset fields point to data stored immediately after this structure in memory.
  * Callers must use these offsets to locate the actual strings and SID data.
@@ -7133,8 +7450,8 @@ typedef struct _SYSTEM_BOOT_METADATA_INFORMATION
 
 // rev
 #define SYSTEM_SOFT_REBOOT_FLAGS_STATE_MASK 0x000000BBu // State-selection bits consumed by ExpSetSoftRebootFlags.
-#define SYSTEM_SOFT_REBOOT_FLAGS_OPTION_MASK 0x25000000u // User-settable option bits accepted by ExpSetSoftRebootFlags in this build.
-#define SYSTEM_SOFT_REBOOT_FLAGS_USER_MASK 0x250000BBu // Accepted user input mask in this build.
+#define SYSTEM_SOFT_REBOOT_FLAGS_OPTION_MASK 0x25000000u // User-settable option bits accepted by ExpSetSoftRebootFlags.
+#define SYSTEM_SOFT_REBOOT_FLAGS_USER_MASK 0x250000BBu // Accepted user input mask.
 #define SYSTEM_SOFT_REBOOT_FLAGS_INTERNAL_PERSIST 0x40000000u // Kernel-managed bit preserved across transitions.
 #define SYSTEM_SOFT_REBOOT_FLAGS_INTERNAL_TRANSITION 0x80000000u // Kernel-managed transition-in-progress bit.
 
@@ -7887,7 +8204,6 @@ typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
 
 /**
  * The SYSTEM_PHYSICAL_MEMORY_INFORMATION structure retrieves the physical memory layout of the system.
- *
  * \remarks The addresses are physical, not virtual.
  */
 typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
@@ -7900,7 +8216,6 @@ typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
 /**
  * The SYSTEM_ACTIVITY_MODERATION_STATE type contains the moderation state applied to an application,
  * with respect to background throttling, resource reduction, and related heuristics.
- *
  * \remarks The state may be assigned automatically by the system or explicitly overridden by the user.
  */
 typedef enum _SYSTEM_ACTIVITY_MODERATION_STATE
@@ -7981,6 +8296,7 @@ typedef struct _SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION
     UCHAR PolicyBlobs[ANYSIZE_ARRAY];
 } SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION, *PSYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION;
 
+// private
 /**
  * The SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION structure contains Code Integrity unlock state and validation token.
  *
@@ -8026,10 +8342,6 @@ typedef struct _SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION
  * \note The UnlockId prevents unauthorized bypasses of code integrity protection and is only trusted after cryptographic validation succeeds.
  * \note This structure is private to the kernel and not part of the public API.
  * \note Available since Windows Redstone 4 (Windows 10 version 1803).
- */
-// private
-/**
- * The SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION structure contains the Code Integrity unlock identifier.
  */
 typedef struct _SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION
 {
@@ -8373,29 +8685,38 @@ typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
 
 // private
 /**
- * The SECURE_SPECULATION_CONTROL_INFORMATION union contains secure speculation control information.
+ * Decodes secure-kernel speculation mitigations returned by SystemSecureSpeculationControlInformation (213).
+ * Flags is the raw first ULONG; the named fields occupy consecutive bits, not overlapping union members.
+ * On x64, KeQuerySecureSpeculationInformation accepts at least 4 bytes,
+ * clears the supplied output buffer, and populates bits 0-15. It reports ReturnLength == 8
+ * even for a successful 4-byte query; additional returned bytes are zero in this implementation.
+ * The Ssbs fields describe architecture-specific state; do not infer ARM behavior from x64 results.
  */
 typedef union _SECURE_SPECULATION_CONTROL_INFORMATION
 {
-    ULONG KvaShadowSupported : 1;
-    ULONG KvaShadowEnabled : 1;
-    ULONG KvaShadowUserGlobal : 1;
-    ULONG KvaShadowPcid : 1;
-    ULONG MbClearEnabled : 1;
-    ULONG L1TFMitigated : 1; // since 20H2
-    ULONG BpbEnabled : 1;
-    ULONG IbrsPresent : 1;
-    ULONG EnhancedIbrs : 1;
-    ULONG StibpPresent : 1;
-    ULONG SsbdSupported : 1;
-    ULONG SsbdRequired : 1;
-    ULONG BpbKernelToUser : 1;
-    ULONG BpbUserToKernel : 1;
-    ULONG ReturnSpeculate : 1;
-    ULONG BranchConfusionSafe : 1;
-    ULONG SsbsEnabledAlways : 1; // 24H2
-    ULONG SsbsEnabledKernel : 1;
-    ULONG Reserved : 14;
+    ULONG Flags;
+    struct
+    {
+        ULONG KvaShadowSupported : 1;
+        ULONG KvaShadowEnabled : 1;
+        ULONG KvaShadowUserGlobal : 1;
+        ULONG KvaShadowPcid : 1;
+        ULONG MbClearEnabled : 1;
+        ULONG L1TFMitigated : 1; // since 20H2
+        ULONG BpbEnabled : 1;
+        ULONG IbrsPresent : 1;
+        ULONG EnhancedIbrs : 1;
+        ULONG StibpPresent : 1;
+        ULONG SsbdSupported : 1;
+        ULONG SsbdRequired : 1;
+        ULONG BpbKernelToUser : 1;
+        ULONG BpbUserToKernel : 1;
+        ULONG ReturnSpeculate : 1;
+        ULONG BranchConfusionSafe : 1;
+        ULONG SsbsEnabledAlways : 1; // 24H2
+        ULONG SsbsEnabledKernel : 1;
+        ULONG Reserved : 14;
+    } DUMMYSTRUCTNAME;
 } SECURE_SPECULATION_CONTROL_INFORMATION, *PSECURE_SPECULATION_CONTROL_INFORMATION;
 
 // private
@@ -8412,7 +8733,9 @@ typedef struct _SYSTEM_FIRMWARE_RAMDISK_INFORMATION
 
 // rev
 /**
- * The SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10 structure contains system WHEA IPMI hardware information.
+ * Legacy WHEA/IPMI declaration retained from the existing header; its Windows 10
+ * layout was not established. It is NOT the 32-byte SystemWheaIpmiHardwareInformation
+ * output described below.
  */
 typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10
 {
@@ -8423,6 +8746,30 @@ typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10
     UCHAR EvmRevision;      // Event Message format revision
     UCHAR RecordType;       // SEL record type (e.g. system event vs OEM)
     UCHAR Data[4];          // Event-specific data bytes
+} SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10, *PSYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10;
+
+// rev: WheaQuerySystemInformation, IpmiHwpParseSpmiTable, IpmiLibpParseDeviceInfo
+/**
+ * Describes the IPMI controller used by WHEA, not an IPMI SEL event record.
+ * The x64 SystemWheaIpmiHardwareInformation (216) query requires
+ * exactly 32 output bytes. WheaQuerySystemInformation copies the first
+ * 32 bytes of WheaIpmiContext after checking that the context is initialized.
+ * Use this information to identify the firmware-described IPMI interface.
+ * The mapped register VA, MMIO mapping length and initialization flag belong
+ * to the larger private context and are NOT part of this query result.
+ * Field names below are descriptive reconstructions from the parser/consumer.
+ */
+typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION
+{
+    USHORT IpmiSpecVersion; // +0x00: packed major/minor nibbles; 0x15 = 1.5, 0x20 = 2.0.
+    USHORT Reserved02; // +0x02: alignment padding; no field access found.
+    ULONG InterfaceType; // +0x04: firmware interface code; the KCS handler requires 1.
+    UCHAR RegisterSpacing; // +0x08: SPMI maps 1/2/3/4 to 1/2/4/8; SMBIOS maps 0/1/2 to 1/4/16.
+    UCHAR Reserved09[7]; // +0x09: alignment padding; no field access found.
+    ULONGLONG BaseAddress; // +0x10: physical MMIO or I/O-port base, not a mapped virtual address.
+    UCHAR AddressSpaceType; // +0x18: zero selects MMIO; nonzero selects port I/O in the KCS consumer.
+    UCHAR BmcSlaveAddress; // +0x19: SPMI default 0x20, or SMBIOS type-38 byte 6 & 0xFE; SEL request destination.
+    UCHAR Reserved1A[6]; // +0x1A: tail padding; no field access found.
 } SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION, *PSYSTEM_WHEA_IPMI_HARDWARE_INFORMATION;
 
 // private
@@ -8457,7 +8804,7 @@ typedef struct _SYSTEM_SPACES_BOOT_INFORMATION
      * Opaque variable-length blob copied from ExpSpacesBootInformation.
      *
      * The returned byte count is reported via ReturnLength.
-     * NtQuerySystemInformationEx rejects user-mode callers for this class on this build.
+     * NtQuerySystemInformationEx rejects user-mode callers for this class.
      */
     UCHAR Data[1];
 } SYSTEM_SPACES_BOOT_INFORMATION, *PSYSTEM_SPACES_BOOT_INFORMATION;
@@ -9001,7 +9348,13 @@ typedef struct _SYSTEM_HANDLECOUNT_INFORMATION
 
 // private
 /**
- * The SYSTEM_RUNTIME_REPORT_INPUT structure specifies the input parameters for a system runtime report query.
+ * Requests a signed runtime-attestation report through NtQuerySystemInformationEx
+ * with SystemRuntimeAttestationReport (254). InputBufferLength must be exactly 48
+ * bytes on x64. InputVersion and PackageVersion must both be 1,
+ * and the implementation accepts only ReportTypesBitmap == 1. Nonce supplies 32 caller bytes.
+ * A NULL output buffer with zero output length requests the required report size;
+ * a non-NULL output buffer must have a nonzero length. The output is a report-package
+ * byte buffer, not another SYSTEM_RUNTIME_REPORT_INPUT.
  */
 typedef struct _SYSTEM_RUNTIME_REPORT_INPUT
 {
@@ -9567,6 +9920,10 @@ NtQuerySystemInformation(
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ * \remarks Uses class-specific input as well as output contracts. Native rejection of
+ * a NULL/zero input pair can occur before class dispatch; WoW64 can instead reject an unsupported selector first.
+ * For example, SystemBasicInformation with NULL/zero input returns STATUS_INVALID_PARAMETER natively and
+ * STATUS_INVALID_INFO_CLASS through the WoW64 path. Use the ordinary query for that class.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -9953,7 +10310,6 @@ NtRaiseHardError(
 /**
  * The ALTERNATIVE_ARCHITECTURE_TYPE enumeration specifies the hardware
  * architecture variant used by the system.
- *
  * \remarks NEC98x86 represents the NEC PC-98 architecture,
  * supported only on very early Windows releases.
  */
@@ -10162,7 +10518,46 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 #define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP (0x80)
 
 /**
+ * Windows 11 24H2 shared-page XSTATE configuration, independent of the installed SDK.
+ * The 24H2 kernel and ntdll layout occupies 0x348 bytes. Newer SDKs
+ * enlarge XSTATE_CONFIGURATION, which must not shift the trailing KUSER fields
+ * when PHNT_VERSION explicitly targets PHNT_WINDOWS_11_24H2.
+ * Feature arrays are indexed by XSTATE feature number (64 entries).
+ */
+typedef struct _XSTATE_CONFIGURATION_24H2
+{
+    ULONG64 EnabledFeatures;
+    ULONG64 EnabledVolatileFeatures;
+    ULONG Size;
+    union
+    {
+        ULONG ControlFlags;
+        struct
+        {
+            ULONG OptimizedSave : 1;
+            ULONG CompactionEnabled : 1;
+            ULONG ExtendedFeatureDisable : 1;
+            ULONG ReservedControlFlags : 29;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+    XSTATE_FEATURE Features[64];
+    ULONG64 EnabledSupervisorFeatures;
+    ULONG64 AlignedFeatures;
+    ULONG AllFeatureSize;
+    ULONG AllFeatures[64];
+    ULONG64 EnabledUserVisibleSupervisorFeatures;
+    ULONG64 ExtendedFeatureDisableFeatures;
+    ULONG AllNonLargeFeatureSize;
+    USHORT MaxSveVectorLength;
+    USHORT Spare1;
+} XSTATE_CONFIGURATION_24H2, *PXSTATE_CONFIGURATION_24H2;
+
+static_assert(sizeof(XSTATE_CONFIGURATION_24H2) == 0x348, "XSTATE_CONFIGURATION_24H2 size is incorrect");
+
+/**
  * The KUSER_SHARED_DATA structure contains information shared with user-mode.
+ * Define PHNT_VERSION for the target OS before including phnt.h; the default
+ * PHNT_WINDOWS_NEW follows the installed SDK XSTATE layout.
  *
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-kuser_shared_data
  */
@@ -10411,8 +10806,8 @@ typedef struct _KUSER_SHARED_DATA
             UCHAR SEHValidationPolicy : 2;
             UCHAR CurDirDevicesSkippedForDlls : 2;
             UCHAR Reserved : 2;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 
     //
     // Measured duration of a single processor yield, in cycles. This is used by
@@ -10490,11 +10885,11 @@ typedef struct _KUSER_SHARED_DATA
             UCHAR ArchStartedInEl2 : 1;
             UCHAR QcSlIsSupported : 1;
             UCHAR : 6;
-        };
+        } DUMMYSTRUCTNAME;
 
 #endif
 
-    };
+    } DUMMYUNIONNAME;
 
     //
     // Reserved (available for reuse).
@@ -10807,8 +11202,8 @@ typedef struct _KUSER_SHARED_DATA
                     // RDTSCP instead of RDTSC in the fast path.
                     //
                     volatile UCHAR UseRdtscp : 1;
-                };
-            };
+                } DUMMYSTRUCTNAME;
+            } DUMMYUNIONNAME;
 
             //
             // Reserved, leave as zero for backward compatibility. Was shift
@@ -10816,8 +11211,8 @@ typedef struct _KUSER_SHARED_DATA
             //
 
             UCHAR QpcReserved;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 
     //
     // Reserved for future use.
@@ -10830,7 +11225,11 @@ typedef struct _KUSER_SHARED_DATA
     // Extended processor state configuration (AMD64 and x86).
     //
 
+#if (PHNT_VERSION == PHNT_WINDOWS_11_24H2)
+    XSTATE_CONFIGURATION_24H2 XState;
+#else
     XSTATE_CONFIGURATION XState;
+#endif
 
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
     ULONG Spare;
@@ -10843,12 +11242,21 @@ typedef struct _KUSER_SHARED_DATA
     //
 
 #if defined(_ARM64_)
+#if (PHNT_VERSION == PHNT_WINDOWS_11_24H2)
+    XSTATE_CONFIGURATION_24H2 XStateArm64;
+#else
     XSTATE_CONFIGURATION XStateArm64;
+#endif
 #else
     ULONG Reserved10[210];
 #endif
 
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
+
+#if (PHNT_VERSION == PHNT_WINDOWS_11_24H2)
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720, "KUSER_SHARED_DATA feature stamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730, "KUSER_SHARED_DATA pointer auth mask offset is incorrect");
+#endif
 
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated)               == 0x000, "KUSER_SHARED_DATA.TickCountLowDeprecated offset is incorrect");
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier)                  == 0x004, "KUSER_SHARED_DATA.TickCountMultiplier offset is incorrect");
@@ -11120,6 +11528,9 @@ NtFlushInstallUILanguage(
  * \param DefaultUILanguageId A pointer that receives the default UI language identifier (LANGID).
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultuilanguage
+ * \remarks On native this entry forwards to NtQueryInstallUILanguage.
+ * Do not infer a distinct per-thread UI-language selection from this syscall name. The output remains a
+ * 2-byte LANGID, not a locale-name string or a 4-byte LCID.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11146,6 +11557,9 @@ NtSetDefaultUILanguage(
 /**
  * The NtIsUILanguageComitted routine determines whether the system UI language has been committed.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns an NTSTATUS result: STATUS_SUCCESS when the global committed state is set,
+ * otherwise STATUS_OBJECT_NAME_NOT_FOUND (0xC0000034). It is not a BOOLEAN return
+ * despite its predicate-style name; retain the exported spelling Comitted.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11380,16 +11794,26 @@ NtGetMUIRegistryInfo(
 //
 
 /**
- * The NtAddAtom routine adds a Unicode string to the system atom table and
- * returns the corresponding atom identifier.
+ * The NtAddAtom routine adds or references a name in the atom table obtained from the current session's Win32
+ * callout. This is not the per-process local table managed by AddAtomW. The x64 entry forwards to NtAddAtomEx
+ * with Flags = 0.
  *
- * \param AtomName A pointer to a Unicode string containing the atom name.
- * \param Length The length, in bytes, of the string pointed to by AtomName.
- * \param Atom An optional pointer that receives the resulting atom identifier.
- * \return NTSTATUS Successful or errant status.
- * \remarks If the atom already exists, its reference count is incremented and
- * the existing atom identifier is returned.
- * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
+ * \param AtomName Readable UTF-16 name. User-mode input is captured by Length and
+ * terminated by the kernel; a source terminator need not be included. An embedded
+ * NUL ends the effective name. NULL does not create an unnamed atom.
+ * \param Length Bytes to capture, at most 510 (255 WCHARs). Supply an even length
+ * excluding the source terminator. An odd trailing byte is
+ * discarded when the captured buffer is terminated; nonzero input requires 2-byte alignment.
+ * \param Atom Optional output for the 16-bit identifier. Omitting it does not
+ * suppress the addition or its reference-count increment.
+ * \return NTSTATUS. Empty names return STATUS_OBJECT_NAME_INVALID; Length above
+ * 510 and a NULL name return STATUS_INVALID_PARAMETER.
+ * \remarks Ordinary string matching is case-insensitive and preserves the first
+ * inserted spelling. Each successful string addition owns a reference to balance
+ * with NtDeleteAtom; the identifier is not a handle for NtClose. Integer strings
+ * such as L"#123" select integer atoms without allocating a string entry.
+ * Kernel-mode callers are not covered by the user-buffer capture rules above.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globaladdatomw
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11404,31 +11828,39 @@ NtAddAtom(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 /**
- * ATOM_FLAG_NONE indicates that the atom being created should be placed in
- * the session-local atom table rather than the global atom table.
+ * No extra entry-visibility flag. NtAddAtom uses this value. Both 0 and 0x2
+ * operate on the table selected by the session Win32 callout; this is not a
+ * selector for the per-process local atom table.
  */
 #define ATOM_FLAG_NONE 0x0
 /**
- * ATOM_FLAG_GLOBAL indicates that the atom being created should be placed in
- * the global atom table rather than the session-local table.
- * \remarks This flag is only valid starting with Windows 8 and later.
+ * Marks a newly allocated entry with bit 0x2, which permits the global-entry
+ * path in RtlpAllowsLowBoxAccess on x64. It does not select a separate 
+ * machine-global table, and re-adding a name does not update this flag.
+ * Lowbox/AppContainer behavior is distinct from cross-session visibility.
  */
 #define ATOM_FLAG_GLOBAL 0x2
 
 // rev
 /**
- * The NtAddAtomEx routine adds a Unicode string to the system atom table with
- * additional creation flags.
+ * The NtAddAtomEx routine adds or references an atom with an optional entry-visibility flag. The name capture
+ * and reference-ownership rules are those of NtAddAtom.
  *
- * \param AtomName A pointer to a Unicode string containing the atom name.
- * \param Length The length, in bytes, of the string pointed to by AtomName.
- * \param Atom An optional pointer that receives the resulting atom identifier.
- * \param Flags A set of flags that control atom creation behavior.
- * \return NTSTATUS Successful or errant status.
- * \remarks ATOM_FLAG_GLOBAL may be used to create a global atom.
- * Only ATOM_FLAG_GLOBAL and ATOM_FLAG_NONE are currently supported.
- * Any other flag value results in STATUS_INVALID_PARAMETER.
- * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
+ * \param AtomName Readable UTF-16 name; the kernel terminates the user-mode copy.
+ * \param Length Bytes to capture, at most 510 (255 WCHARs). Use an even byte count;
+ * nonzero user input requires 2-byte alignment on x64 and WoW64.
+ * \param Atom Optional 16-bit output. NULL still performs the addition.
+ * \param Flags ATOM_FLAG_NONE (0) or ATOM_FLAG_GLOBAL (0x2); other bits return
+ * STATUS_INVALID_PARAMETER. The flag is stored only when a new entry is allocated.
+ * \return NTSTATUS describing the addition. A successful string add creates a
+ * reference that the caller must balance with NtDeleteAtom.
+ * \remarks Both flag values use the table obtained from the same session Win32
+ * callout. Bit 0x2 is an entry flag consulted by RtlpAllowsLowBoxAccess, not a switch
+ * to a separate machine-global table. Re-adding an existing name with different
+ * Flags increments its reference count but does not change its stored flag.
+ * Lowbox/AppContainer visibility and accounting are context-sensitive; do not
+ * infer cross-session visibility or access to every existing atom from this flag.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globaladdatomexw
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11444,14 +11876,22 @@ NtAddAtomEx(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 /**
- * The NtFindAtom routine retrieves the atom identifier associated with a
- * Unicode string in the system atom table.
+ * The NtFindAtom routine looks up a name in the atom table selected by the session Win32 callout. Use
+ * NtAddAtom when a new ordinary string reference is required, not merely lookup.
  *
- * \param AtomName A pointer to a Unicode string containing the atom name.
- * \param Length The length, in bytes, of the string pointed to by AtomName.
- * \param Atom An optional pointer that receives the atom identifier if found.
- * \return NTSTATUS Successful or errant status.
- * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-findatomw
+ * \param AtomName Readable UTF-16 name. The user-mode copy is terminated after capture; matching is
+ * case-insensitive and an embedded NUL ends the effective name.
+ * \param Length Bytes to capture, at most 510 (255 WCHARs). Use an even count and 2-byte-aligned source. The
+ * kernel discards an odd trailing byte.
+ * \param Atom Optional 16-bit output; NULL performs a lookup without returning the ID.
+ * \return STATUS_OBJECT_NAME_NOT_FOUND if absent, STATUS_OBJECT_NAME_INVALID for an empty captured name, or
+ * the lookup's NTSTATUS. On the native x64 path and WoW64, failure paths leave a supplied output identifier
+ * unchanged.
+ * \remarks For ordinary non-AppContainer callers, lookup does not add a reference: do not delete an atom
+ * merely because lookup found it. Lowbox lookup can establish internal bookkeeping references; that
+ * implementation detail is not a caller-owned NtAddAtom reference. Integer strings in the range L"#1" through
+ * L"#49151" resolve without a prior string-table insertion.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalfindatomw
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11464,14 +11904,19 @@ NtFindAtom(
     );
 
 /**
- * The NtDeleteAtom routine decrements the reference count of an atom and
- * removes it from the system atom table when the count reaches zero.
+ * The NtDeleteAtom routine releases one caller-owned ordinary string-atom reference. The table entry is
+ * removed when its unpinned reference count reaches zero; identifiers may be reused.
  *
- * \param Atom The atom identifier to delete.
- * \return NTSTATUS Successful or errant status.
- * \remarks If the atom is still referenced elsewhere, it is not removed until
- * its reference count reaches zero.
- * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-deleteatom
+ * \param Atom A 16-bit atom identifier, not an object handle. Balance additions,
+ * not lookups, and do not delete references owned by unrelated code.
+ * \return NTSTATUS. Integer atoms 1 through 0xBFFF return STATUS_SUCCESS without
+ * removing a string entry. Zero or an invalid string identifier returns
+ * STATUS_INVALID_HANDLE. A pinned string entry returns
+ * informational STATUS_WAS_LOCKED (0x40000019) without being decremented or removed.
+ * \remarks NT_SUCCESS does not prove that an entry disappeared. Other references,
+ * pinning and lowbox accounting can retain it. The pin/saturation paths are distinct
+ * from the ordinary balanced-add/delete lifetime.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globaldeleteatom
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11487,39 +11932,64 @@ NtDeleteAtom(
  */
 typedef enum _ATOM_INFORMATION_CLASS
 {
-    AtomBasicInformation,
-    AtomTableInformation
+    AtomBasicInformation, // 0: ATOM_BASIC_INFORMATION, 6-byte prefix plus name and terminator.
+    AtomTableInformation // 1: ATOM_TABLE_INFORMATION; Atom input is ignored.
 } ATOM_INFORMATION_CLASS;
 
 /**
- * The ATOM_BASIC_INFORMATION structure contains basic information about an Atom.
+ * Basic atom snapshot. The fixed prefix is 6 bytes; sizeof is 8 because Name[1]
+ * includes a WCHAR. On the native x64 and WoW64 paths, successful queries append
+ * a NUL after the copied name. They can return STATUS_SUCCESS after truncation,
+ * so NameLength is the copied byte count, not necessarily the complete name length.
+ * Reserve 518 bytes (6 + 255 WCHARs + terminator) for an untruncated maximum name.
  */
 typedef struct _ATOM_BASIC_INFORMATION
 {
-    USHORT UsageCount;   // The number of times the atom is referenced.
-    USHORT Flags;        // Flags associated with the atom. */
-    USHORT NameLength;   // Length, in bytes, of the atom's name.
-    _Field_size_bytes_(NameLength) WCHAR Name[1]; // The atom's name (not null-terminated).
+    USHORT UsageCount;   // Reference snapshot; integer atoms report 1. Not an ownership grant.
+    USHORT Flags;        // Bit 0x1: pinned; bit 0x2: global-entry lowbox access flag. Not NtAddAtomEx input flags in general.
+    USHORT NameLength;   // Bytes copied into Name, excluding the trailing WCHAR NUL; may be truncated.
+    _Field_size_bytes_(NameLength) WCHAR Name[1]; // Variable-length name, followed by a NUL on successful query.
 } ATOM_BASIC_INFORMATION, *PATOM_BASIC_INFORMATION;
 
 /**
- * The ATOM_TABLE_INFORMATION structure contains information about all Atoms from the system atom table.
+ * Visible string-atom identifiers for AtomTableInformation. The array starts at
+ * byte 4 and each RTL_ATOM is 2 bytes. On insufficient capacity the query copies
+ * the prefix that fits and returns STATUS_INFO_LENGTH_MISMATCH; NumberOfAtoms
+ * still reports the total visible count, not how many entries were copied.
+ * On that failure read at most (buffer length - 4) / 2 entries, not NumberOfAtoms.
+ * The table can change between calls, so allocation from the count may need retry.
  */
 typedef struct _ATOM_TABLE_INFORMATION
 {
-    ULONG NumberOfAtoms; // The number of atoms in the atom table.
-    _Field_size_(NumberOfAtoms) RTL_ATOM Atoms[1]; // Array of atom identifiers.
+    ULONG NumberOfAtoms; // Total visible string-atom count; can exceed the returned array capacity on failure.
+    _Field_size_(NumberOfAtoms) RTL_ATOM Atoms[1]; // Complete array only on success; no acquired atom references.
 } ATOM_TABLE_INFORMATION, *PATOM_TABLE_INFORMATION;
 
 /**
- * The NtQueryInformationAtom routine retrieves information about a specified atom in the system atom table.
+ * The NtQueryInformationAtom routine retrieves an atom's name/reference snapshot or a list of visible string
+ * atoms. The layouts contain no pointers and are shared by native x64 and WoW64 callers.
  *
- * \param Atom The atom identifier for which information is being queried.
- * \param AtomInformationClass Specifies the type of information to retrieve. This is an ATOM_INFORMATION_CLASS value.
- * \param AtomInformation A pointer to a buffer that receives the requested information.
- * \param AtomInformationLength The size, in bytes, of the AtomInformation buffer.
- * \param ReturnLength Optional pointer to a variable that receives the number of bytes written to the AtomInformation buffer.
- * \return NTSTATUS Successful or errant status.
+ * \param Atom Identifier for AtomBasicInformation (0); ignored for AtomTableInformation (1).
+ * \param AtomInformationClass Basic information (0) or table enumeration (1).
+ * \param AtomInformation Writable, 4-byte-aligned user buffer on x64 and its WoW64 path. 
+ * See the selected structure for partial-result semantics.
+ * \param AtomInformationLength Bytes available. Basic information requires at least
+ * the 6-byte prefix; table information requires at least the 4-byte count prefix.
+ * A shorter buffer returns STATUS_INFO_LENGTH_MISMATCH without updating ReturnLength.
+ * \param ReturnLength Optional ULONG. For successful basic queries receives
+ * 8 + NameLength (6-byte prefix, copied name, 2-byte terminator), not necessarily
+ * the size required for the full name. On basic-query failure after the minimum
+ * length check it receives 6. For table enumeration it receives 4 on insufficient
+ * capacity, or 4 + 2 * NumberOfAtoms on success; it is not a universal sizing oracle.
+ * \return NTSTATUS. Basic queries can succeed with a truncated name. A buffer with
+ * no room for at least one WCHAR plus its terminator returns STATUS_BUFFER_TOO_SMALL
+ * for a nonempty name. Table queries can return a partial array with
+ * STATUS_INFO_LENGTH_MISMATCH and the total count in NumberOfAtoms.
+ * \remarks Allocate enough for the maximum name when a complete string is needed:
+ * 6 + 510 + 2 = 518 bytes. NULL/zero-length discovery does not report that size.
+ * An unsupported class returns STATUS_INVALID_INFO_CLASS; native x64 writes
+ * ReturnLength = 0, whereas the WoW64 thunk rejects it before the kernel
+ * and leaves ReturnLength unchanged. Buffer probing can fail before class validation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
