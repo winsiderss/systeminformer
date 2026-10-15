@@ -391,7 +391,6 @@ typedef PS_PROCESS_START_ROUTINE* PPS_PROCESS_START_ROUTINE;
 
 /**
  * Process-wide USER client state referenced by PEB.Win32ClientProcInfo.
- *
  * \remarks The tag name is from USER32's gpClientProcInfo symbol. The layout and
  * Flags member name are reverse-engineered: USER32 allocates an 8-byte zero-initialized 
  * block on both x64 and x86 when Feature_UserModeMenus is enabled. Win32kbase accesses 
@@ -1014,7 +1013,7 @@ typedef struct _PEB
     //
     // Optional USER client process flags (Feature_UserModeMenus); allocated by USER32.
     // NULL when not initialized or the feature is disabled. OS-owned; do not free.
-    // PEB offset 0x7D0 on x64, 0x488 on x86 in the inspected 26100 binaries.
+    // PEB offset 0x7D0 on x64, 0x488 on x86 for the layout declared here.
     //
     PCLIENTPROCINFO Win32ClientProcInfo;
 } PEB, *PPEB;
@@ -1022,7 +1021,7 @@ typedef struct _PEB
 #ifdef _WIN64
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
 static_assert(FIELD_OFFSET(PEB, Win32ClientProcInfo) == 0x7D0, "PEB.Win32ClientProcInfo offset is incorrect");
-static_assert(sizeof(PEB) == 0x7D8, "Size of PEB is incorrect"); // 10.0.26100.9549
+static_assert(sizeof(PEB) == 0x7D8, "Size of PEB is incorrect");
 #else
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
 static_assert(FIELD_OFFSET(PEB, Win32ClientProcInfo) == 0x488, "PEB.Win32ClientProcInfo offset is incorrect");
