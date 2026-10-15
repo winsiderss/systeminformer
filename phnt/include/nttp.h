@@ -165,7 +165,7 @@ TpSetPoolStackInformation(
  * \param[in,out] Pool A pointer to a TP_POOL structure that defines the thread pool.
  * \param[in] BasePriority The new base priority value for worker threads.
  * \return NTSTATUS Successful or errant status.
- * \remarks BasePriority is signed LONG. The inspected code maps values >= 15 to 16 and values <= -15 to -16 before forwarding worker-factory class 11. 
+ * \remarks BasePriority is signed LONG. The code maps values >= 15 to 16 and values <= -15 to -16 before forwarding worker-factory class 11.
  * It is not an unsigned absolute priority. Apply changes only to an owned pool.
  */
 NTSYSAPI
@@ -180,11 +180,13 @@ TpSetPoolThreadBasePriority(
 /**
  * Creates a cleanup group that applications can use to track one or more thread pool callbacks.
  *
- * \param[out] CleanupGroup A pointer to a variable that receives the address of the newly allocated cleanup group.
+ * \param[out] CleanupGroup A pointer to a variable that receives the address of the newly allocated cleanup
+ * group.
  * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-createthreadpoolcleanupgroup
- * \remarks A cleanup group owns registrations of member callback objects; release group members first, then release the group itself. 
- * Releasing an empty group does not certify cancellation behavior for executing callbacks.
+ * \sa
+ * https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-createthreadpoolcleanupgroup
+ * \remarks A cleanup group owns registrations of member callback objects; release group members first, then
+ * release the group itself. Cancellation does not imply that an executing callback has returned.
  */
 NTSYSAPI
 NTSTATUS
@@ -198,9 +200,10 @@ TpAllocCleanupGroup(
  * Closes the specified cleanup group.
  *
  * \param[in,out] CleanupGroup A pointer to a TP_CLEANUP_GROUP structure that defines the cleanup group.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-closethreadpoolcleanupgroup
- * \remarks A cleanup group owns registrations of member callback objects; release group members first, then release the group itself. 
- * Releasing an empty group does not certify cancellation behavior for executing callbacks.
+ * \sa
+ * https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-closethreadpoolcleanupgroup
+ * \remarks A cleanup group owns registrations of member callback objects; release group members first, then
+ * release the group itself. Cancellation does not imply that an executing callback has returned.
  */
 NTSYSAPI
 VOID
