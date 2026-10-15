@@ -331,7 +331,7 @@ NTSTATUS
 NTAPI
 ZwAllocateReserveObject(
     _Out_ PHANDLE MemoryReserveHandle,
-    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
 
@@ -402,11 +402,11 @@ NTAPI
 ZwAlpcAcceptConnectPort(
     _Out_ PHANDLE PortHandle,
     _In_ HANDLE ConnectionPortHandle,
-    _In_ ULONG Flags,
+    _In_ ALPC_PORT_FLAGS Flags, // Only ALPC_PORT_FLAG_HEADER_MASK bits are retained.
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
     _In_opt_ PVOID PortContext,
-    _In_reads_bytes_(ConnectionRequest->u1.s1.TotalLength) PPORT_MESSAGE ConnectionRequest,
+    _In_reads_bytes_(ConnectionRequest->TotalLength) PPORT_MESSAGE ConnectionRequest,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES ConnectionMessageAttributes,
     _In_ BOOLEAN AcceptConnection
     );
@@ -417,7 +417,7 @@ NTSTATUS
 NTAPI
 ZwAlpcCancelMessage(
     _In_ HANDLE PortHandle,
-    _In_ ULONG Flags,
+    _In_ ALPC_CANCEL_FLAGS Flags,
     _In_ PALPC_CONTEXT_ATTR MessageContext
     );
 
@@ -428,9 +428,9 @@ NTAPI
 ZwAlpcConnectPort(
     _Out_ PHANDLE PortHandle,
     _In_ PCUNICODE_STRING PortName,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
-    _In_ ULONG Flags,
+    _In_ ALPC_MESSAGE_FLAGS Flags, // For connection; low 16 bits are ignored.
     _In_opt_ PSID RequiredServerSid,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
     _Inout_opt_ PSIZE_T BufferLength,
@@ -445,10 +445,10 @@ NTSTATUS
 NTAPI
 ZwAlpcConnectPortEx(
     _Out_ PHANDLE PortHandle,
-    _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
-    _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ClientPortObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
-    _In_ ULONG Flags,
+    _In_ ALPC_MESSAGE_FLAGS Flags, // For connection; low 16 bits are ignored.
     _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
     _Inout_opt_ PSIZE_T BufferLength,
@@ -463,7 +463,7 @@ NTSTATUS
 NTAPI
 ZwAlpcCreatePort(
     _Out_ PHANDLE PortHandle,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes
     );
 
@@ -473,7 +473,7 @@ NTSTATUS
 NTAPI
 ZwAlpcCreatePortSection(
     _In_ HANDLE PortHandle,
-    _In_ ULONG Flags,
+    _In_ ALPC_CREATE_PORT_SECTION_FLAGS Flags,
     _In_opt_ HANDLE SectionHandle,
     _In_ SIZE_T SectionSize,
     _Out_ PALPC_HANDLE AlpcSectionHandle,
@@ -557,7 +557,7 @@ NTSTATUS
 NTAPI
 ZwAlpcDisconnectPort(
     _In_ HANDLE PortHandle,
-    _In_ ULONG Flags
+    _In_ ALPC_DISCONNECT_PORT_FLAGS Flags
     );
 
 _Kernel_entry_
@@ -577,7 +577,7 @@ NTAPI
 ZwAlpcImpersonateClientOfPort(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE Message,
-    _In_ PVOID Flags
+    _In_ ALPC_IMPERSONATE_FLAGS Flags
     );
 
 _Kernel_entry_
@@ -588,9 +588,9 @@ ZwAlpcOpenSenderProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
-    _Reserved_ ULONG Flags,
+    _In_ ALPC_PORT_FLAGS Flags,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 _Kernel_entry_
@@ -603,7 +603,7 @@ ZwAlpcOpenSenderThread(
     _In_ PPORT_MESSAGE PortMessage,
     _Reserved_ ULONG Flags,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 _Kernel_entry_
@@ -626,7 +626,7 @@ ZwAlpcQueryInformationMessage(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
     _In_ ALPC_MESSAGE_INFORMATION_CLASS MessageInformationClass,
-    _Out_writes_bytes_to_opt_(Length, *ReturnLength) PVOID MessageInformation,
+    _Inout_updates_bytes_to_opt_(Length, *ReturnLength) PVOID MessageInformation,
     _In_ ULONG Length,
     _Out_opt_ PULONG ReturnLength
     );
@@ -647,10 +647,10 @@ NTSTATUS
 NTAPI
 ZwAlpcSendWaitReceivePort(
     _In_ HANDLE PortHandle,
-    _In_ ULONG Flags,
-    _In_reads_bytes_opt_(SendMessage->u1.s1.TotalLength) PPORT_MESSAGE SendMessage,
+    _In_ ALPC_MESSAGE_FLAGS Flags,
+    _In_reads_bytes_opt_(SendMessage->TotalLength) PPORT_MESSAGE SendMessage,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
-    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ReceiveMessage,
+    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ReceiveMessage,
     _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
@@ -724,8 +724,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwCallEnclave(
-    _In_ PENCLAVE_ROUTINE Routine,
-    _In_ PVOID Reserved,              // SelectVsmEnclaveByNumber > 0 // reserved for dispatch (RtlEnclaveCallDispatch)
+    _In_opt_ PENCLAVE_ROUTINE Routine,
+    _In_ ULONG_PTR EnclaveNumber,     // zero for address-based dispatch
     _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
     _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
@@ -774,7 +774,7 @@ NTSTATUS
 NTAPI
 ZwCancelTimer2(
     _In_ HANDLE TimerHandle,
-    _In_ PT2_CANCEL_PARAMETERS Parameters
+    _Reserved_ PT2_CANCEL_PARAMETERS Parameters
     );
 
 _Kernel_entry_
@@ -809,7 +809,7 @@ ZwChangeThreadState(
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
     _In_opt_ PVOID ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
-    _In_opt_ ULONG Reserved
+    _In_ ULONG Flags
     );
 
 _Kernel_entry_
@@ -1044,7 +1044,7 @@ NTAPI
 ZwCreateDirectoryObject(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 _Kernel_entry_
@@ -1054,8 +1054,8 @@ NTAPI
 ZwCreateDirectoryObjectEx(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ HANDLE ShadowDirectoryHandle,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ HANDLE ShadowDirectoryHandle,
     _In_ ULONG Flags
     );
 
@@ -1097,7 +1097,7 @@ NTAPI
 ZwCreateEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ EVENT_TYPE EventType,
     _In_ BOOLEAN InitialState
     );
@@ -1251,7 +1251,7 @@ ZwCreateMailslotFile(
     _In_ ULONG CreateOptions,
     _In_ ULONG MailslotQuota,
     _In_ ULONG MaximumMessageSize,
-    _In_ PLARGE_INTEGER ReadTimeout
+    _In_opt_ PLARGE_INTEGER ReadTimeout
     );
 
 _Kernel_entry_
@@ -1314,7 +1314,7 @@ NTSTATUS
 NTAPI
 ZwCreatePort(
     _Out_ PHANDLE PortHandle,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG MaxConnectionInfoLength,
     _In_ ULONG MaxMessageLength,
     _In_opt_ ULONG MaxPoolUsage
@@ -1548,7 +1548,7 @@ NTAPI
 ZwCreateTimer2(
     _Out_ PHANDLE TimerHandle,
     _In_opt_ PULONG TimerId,
-    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _Reserved_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes,
     _In_ ACCESS_MASK DesiredAccess
     );
@@ -1651,7 +1651,7 @@ NTSTATUS
 NTAPI
 ZwCreateWaitablePort(
     _Out_ PHANDLE PortHandle,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG MaxConnectionInfoLength,
     _In_ ULONG MaxMessageLength,
     _In_opt_ ULONG MaxPoolUsage
@@ -1799,7 +1799,7 @@ NTSTATUS
 NTAPI
 ZwDeleteWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_opt_ PCSID ExplicitScope
+    _In_opt_ PCVOID ExplicitScope
     );
 
 _Kernel_entry_
@@ -2177,11 +2177,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwGetCompleteWnfStateSubscription(
-    _In_opt_ PWNF_STATE_NAME OldDescriptorStateName,
-    _In_opt_ ULONG64 *OldSubscriptionId,
+    _In_opt_ PCWNF_STATE_NAME OldDescriptorStateName,
+    _In_opt_ const ULONG64 *OldSubscriptionId,
     _In_opt_ ULONG OldDescriptorEventMask,
-    _In_opt_ ULONG OldDescriptorStatus,
-    _Out_writes_bytes_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
+    _In_opt_ NTSTATUS OldDescriptorStatus,
+    _Out_writes_bytes_opt_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
     _In_ ULONG DescriptorSize
     );
 
@@ -2204,10 +2204,10 @@ ZwGetCurrentProcessorNumber(
 
 _Kernel_entry_
 NTSYSCALLAPI
-ULONG
+NTSTATUS
 NTAPI
 ZwGetCurrentProcessorNumberEx(
-    _Out_opt_ PPROCESSOR_NUMBER ProcessorNumber
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
     );
 
 _Kernel_entry_
@@ -2261,9 +2261,9 @@ NTAPI
 ZwGetNlsSectionPtr(
     _In_ ULONG SectionType,
     _In_ ULONG SectionData,
-    _In_ PVOID ContextData,
-    _Out_ PVOID *SectionPointer,
-    _Out_ PULONG SectionSize
+    _Out_opt_ PVOID *ContextData, // Must be NULL for user-mode callers.
+    _When_(ContextData == NULL, _Out_) _When_(ContextData != NULL, _Out_opt_) PVOID *SectionPointer,
+    _Out_opt_ PSIZE_T SectionSize
     );
 
 _Kernel_entry_
@@ -2319,7 +2319,7 @@ NTSTATUS
 NTAPI
 ZwImpersonateClientOfPort(
     _In_ HANDLE PortHandle,
-    _In_ PPORT_MESSAGE Message
+    _In_ PPORT_MESSAGE PortMessage
     );
 
 _Kernel_entry_
@@ -2458,7 +2458,7 @@ ZwLoadKey3(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ POBJECT_ATTRIBUTES SourceFile,
     _In_ ULONG Flags,
-    _In_reads_(ExtendedParameterCount) PCM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_reads_opt_(ExtendedParameterCount) PCM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount,
     _In_opt_ ACCESS_MASK DesiredAccess,
     _Out_opt_ PHANDLE RootHandle,
@@ -2502,8 +2502,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwLockProductActivationKeys(
-    _Inout_opt_ ULONG *pPrivateVer,
-    _Out_opt_ ULONG *pSafeMode
+    _Inout_opt_ PULONG PrivateVersion,
+    _Out_opt_ PULONG SafeMode
     );
 
 _Kernel_entry_
@@ -2769,7 +2769,7 @@ NTAPI
 ZwOpenEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 _Kernel_entry_
@@ -2969,7 +2969,7 @@ ZwOpenResourceManager(
     _Out_ PHANDLE ResourceManagerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ HANDLE TmHandle,
-    _In_opt_ LPGUID ResourceManagerGuid,
+    _In_ LPGUID ResourceManagerGuid,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
@@ -3725,7 +3725,7 @@ ZwQuerySecurityAttributesToken(
     _In_ HANDLE TokenHandle,
     _In_reads_opt_(NumberOfAttributes) PCUNICODE_STRING Attributes,
     _In_ ULONG NumberOfAttributes,
-    _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    _Out_writes_bytes_opt_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
     _In_ ULONG Length,
     _Out_ PULONG ReturnLength
     );
@@ -3899,7 +3899,7 @@ NTAPI
 ZwQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength
@@ -3912,7 +3912,7 @@ NTAPI
 ZwQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
@@ -4117,7 +4117,7 @@ NTSTATUS
 NTAPI
 ZwReleaseKeyedEvent(
     _In_opt_ HANDLE KeyedEventHandle,
-    _In_ PVOID KeyValue,
+    _In_opt_ PVOID KeyValue,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -4216,8 +4216,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwReplacePartitionUnit(
-    _In_ PCUNICODE_STRING TargetInstancePath,
-    _In_ PCUNICODE_STRING SpareInstancePath,
+    _When_(Flags == 0, _In_) _When_(Flags == 0x80000000, _In_opt_) PCUNICODE_STRING TargetInstancePath,
+    _When_(Flags == 0, _In_) _When_(Flags == 0x80000000, _In_opt_) PCUNICODE_STRING SpareInstancePath,
     _In_ ULONG Flags
     );
 
@@ -4680,7 +4680,8 @@ NTAPI
 ZwSetInformationObject(
     _In_ HANDLE Handle,
     _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _When_(ObjectInformationClass == ObjectSessionInformation || ObjectInformationClass == ObjectSessionObjectInformation, _In_opt_)
+    _When_(ObjectInformationClass != ObjectSessionInformation && ObjectInformationClass != ObjectSessionObjectInformation, _In_reads_bytes_(ObjectInformationLength)) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength
     );
 
@@ -4969,7 +4970,7 @@ NTAPI
 ZwSetTimerEx(
     _In_ HANDLE TimerHandle,
     _In_ TIMER_SET_INFORMATION_CLASS TimerSetInformationClass,
-    _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
+    _In_reads_bytes_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
 
@@ -5221,7 +5222,7 @@ ZwTranslateFilePath(
     _In_ PFILE_PATH InputFilePath,
     _In_ ULONG OutputType,
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
-    _Inout_opt_ PULONG OutputFilePathLength
+    _Inout_ PULONG OutputFilePathLength
     );
 
 _Kernel_entry_
@@ -5325,7 +5326,7 @@ ZwUpdateWnfStateData(
     _In_reads_bytes_opt_(Length) const VOID* Buffer,
     _In_opt_ ULONG Length,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ PCSID ExplicitScope,
+    _In_opt_ PCVOID ExplicitScope,
     _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
     _In_ LOGICAL CheckStamp
     );
@@ -5365,7 +5366,7 @@ NTSTATUS
 NTAPI
 ZwWaitForKeyedEvent(
     _In_opt_ HANDLE KeyedEventHandle,
-    _In_ PVOID KeyValue,
+    _In_opt_ PVOID KeyValue,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -5404,6 +5405,19 @@ ZwWaitForSingleObject(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
+_Kernel_entry_
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitForWorkViaWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _Out_writes_to_(Count, *PacketsReturned) PFILE_IO_COMPLETION_INFORMATION MiniPackets,
+    _In_ ULONG Count,
+    _Out_ PULONG PacketsReturned,
+    _In_ PVOID DeferredWork // PWORKER_FACTORY_DEFERRED_WORK
+    );
+#else
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -5412,6 +5426,7 @@ ZwWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
     _Out_ PFILE_IO_COMPLETION_INFORMATION MiniPacket
     );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 _Kernel_entry_
 NTSYSCALLAPI
