@@ -984,7 +984,7 @@ typedef struct _BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION
 
 /**
  * Serialized device-format element data passed to BcdSetElementData and returned
- * by BcdGetElementData. Layout verified against bcdsrv.dll 10.0.26100.1.
+ * by BcdGetElementData. DeviceType selects the serialized payload layout.
  * DeviceType selects the payload at byte offset 20. AdditionalOptions identifies
  * a device-options object, or is GUID_NULL when there is no such object.
  *
