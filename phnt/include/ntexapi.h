@@ -8761,15 +8761,15 @@ typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION_WIN10
  */
 typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION
 {
-    USHORT IpmiSpecVersion; // +0x00: packed major/minor nibbles; 0x15 = 1.5, 0x20 = 2.0.
-    USHORT Reserved02; // +0x02: alignment padding; no field access found.
-    ULONG InterfaceType; // +0x04: firmware interface code; the KCS handler requires 1.
-    UCHAR RegisterSpacing; // +0x08: SPMI maps 1/2/3/4 to 1/2/4/8; SMBIOS maps 0/1/2 to 1/4/16.
-    UCHAR Reserved09[7]; // +0x09: alignment padding; no field access found.
-    ULONGLONG BaseAddress; // +0x10: physical MMIO or I/O-port base, not a mapped virtual address.
-    UCHAR AddressSpaceType; // +0x18: zero selects MMIO; nonzero selects port I/O in the KCS consumer.
-    UCHAR BmcSlaveAddress; // +0x19: SPMI default 0x20, or SMBIOS type-38 byte 6 & 0xFE; SEL request destination.
-    UCHAR Reserved1A[6]; // +0x1A: tail padding; no field access found.
+    USHORT IpmiSpecVersion; // packed major/minor nibbles; 0x15 = 1.5, 0x20 = 2.0.
+    USHORT Reserved02; // alignment padding; no field access found.
+    ULONG InterfaceType; // firmware interface code; the KCS handler requires 1.
+    UCHAR RegisterSpacing; // SPMI maps 1/2/3/4 to 1/2/4/8; SMBIOS maps 0/1/2 to 1/4/16.
+    UCHAR Reserved09[7]; // alignment padding; no field access found.
+    ULONGLONG BaseAddress; // physical MMIO or I/O-port base, not a mapped virtual address.
+    UCHAR AddressSpaceType; // zero selects MMIO; nonzero selects port I/O in the KCS consumer.
+    UCHAR BmcSlaveAddress; // SPMI default 0x20, or SMBIOS type-38 byte 6 & 0xFE; SEL request destination.
+    UCHAR Reserved1A[6]; // tail padding; no field access found.
 } SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION, *PSYSTEM_WHEA_IPMI_HARDWARE_INFORMATION;
 
 // private
