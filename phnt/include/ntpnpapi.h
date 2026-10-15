@@ -128,13 +128,13 @@ typedef enum _PLUGPLAY_CONTROL_CLASS
 // rev
 // Payloads for the six non-NULL entries in PlugPlayHandlerTable on
 // ntoskrnl 10.0.26100.9457 (AMD64). The remaining control classes are retained
-// for compatibility, but return STATUS_NOT_IMPLEMENTED on this build.
+// for compatibility, but return STATUS_NOT_IMPLEMENTED.
 // DeviceInstance.Length must be even and in the range 2..400 bytes; its
 // MaximumLength is not used by these handlers. Device interface names use
 // the separate limit documented with PLUGPLAY_CONTROL_DEVICE_INTERFACE_ENABLED.
 
 // rev: selectors for PlugPlayControlProperty, not DEVICE_REGISTRY_PROPERTY or CM_DRP_*.
-// Values 0, 9 and 12 are not accepted by the audited handler.
+// Values 0, 9 and 12 are not accepted by the handler.
 typedef enum _PLUGPLAY_CONTROL_PROPERTY_TYPE
 {
     PlugPlayPropertyPhysicalDeviceObjectName        = 1, // NUL-terminated WCHAR string
