@@ -13,7 +13,6 @@
 
 /**
  * The PREFETCHER_INFORMATION_CLASS enumeration selects a Prefetcher query or control operation.
- *
  * \remarks Support classes 1 and 2 and require SeProfileSingleProcessPrivilege.
  * Sets support classes 3, 5, 6 and 8; only class 6 requires that privilege at dispatch.
  * Classes 4 and 7 and the maximum sentinel are not implemented by these dispatchers.
@@ -26,18 +25,17 @@ typedef enum _PREFETCHER_INFORMATION_CLASS
     PrefetcherSpare1,                           // Formerly PrefetcherRetrieveBootLoaderTrace; not implemented on build 26100
     PrefetcherOperationProcess,                 // s: PF_OPERATION_PROCESS
     PrefetcherCacheEntryUpdate,                 // s: PF_CACHE_ENTRY_UPDATE
-    PrefetcherSpare2,                           // Reserved information class; not implemented on the verified build.
+    PrefetcherSpare2,                           // Reserved information class; not implemented.
     PrefetcherAppLaunchScenarioControl,         // s: PF_APP_LAUNCH_SCENARIO_CONTROL
     PrefetcherInformationMax
 } PREFETCHER_INFORMATION_CLASS;
 
 #define PREFETCHER_INFORMATION_VERSION 1 // Current Prefetcher envelope version (1).
-#define PREFETCHER_INFORMATION_VERSION_LEGACY 23 // Historical Prefetcher envelope version (23); rejected by the verified build.
+#define PREFETCHER_INFORMATION_VERSION_LEGACY 23 // Historical Prefetcher envelope version (23); rejected by the native entry.
 #define PREFETCHER_INFORMATION_MAGIC ('kuhC') // Prefetcher envelope signature, 0x6b756843.
 
 /**
  * The PREFETCHER_INFORMATION structure supplies the versioned envelope for Prefetcher system-information requests.
- *
  * \remarks Pass this initialized envelope to NtQuerySystemInformation or NtSetSystemInformation with
  * SystemPrefetcherInformation (56). The native x64 dispatcher requires exactly 32 bytes for the envelope,
  * Version 1 and Magic 0x6b756843. The x86 declaration occupies 20 bytes; this does not establish WOW64 support.
@@ -120,8 +118,7 @@ typedef struct _PF_TRACE_LIMITS
 // rev
 /**
  * The PF_SYSTEM_PREFETCH_PARAMETERS structure contains the parameters returned by PrefetcherSystemParameters.
- *
- * \remarks On the verified x64 build, the payload length must be exactly 408 bytes with 8-byte alignment.
+ * \remarks On x64, the payload length must be exactly 408 bytes with 8-byte alignment.
  * A different payload length returns STATUS_INVALID_PARAMETER. Successful queries report ReturnLength = 408.
  */
 typedef struct _PF_SYSTEM_PREFETCH_PARAMETERS
@@ -137,7 +134,7 @@ typedef struct _PF_SYSTEM_PREFETCH_PARAMETERS
 } PF_SYSTEM_PREFETCH_PARAMETERS, *PPF_SYSTEM_PREFETCH_PARAMETERS;
 
 // Legacy boot phase identifiers; not the 0..4 values accepted by the current PrefetcherBootPhase handler.
-#define PF_SN_BOOT_PHASE_USER_SHELL_READY 2 // Current user-shell-ready phase (2); the only phase accepted from user mode on the verified build.
+#define PF_SN_BOOT_PHASE_USER_SHELL_READY 2 // Current user-shell-ready phase (2); the only phase accepted from user mode.
 #define PF_SN_BOOT_PHASE_MAX 5 // Exclusive upper bound (5) for current Prefetcher boot phases.
 
 /**
@@ -171,7 +168,6 @@ typedef enum _PF_OPERATION_PROCESS_ACTION
 
 /**
  * The PF_OPERATION_PROCESS structure starts or ends an operation scenario for the calling process.
- *
  * \remarks The payload must be exactly 12 bytes with 4-byte alignment. Version must be 1 and Reserved
  * must be zero. Invalid fields or an incorrect payload length return STATUS_INVALID_PARAMETER.
  * Success can be a no-op when the operation scenario is disabled.
@@ -200,7 +196,6 @@ typedef struct _PF_BOOT_CONTROL
 
 /**
  * The PF_CACHE_ENTRY_UPDATE structure supplies an update to a Prefetcher cache entry.
- *
  * \remarks The payload must be exactly 72 bytes with 4-byte alignment and Version 2.
  * The dispatcher requires SeProfileSingleProcessPrivilege. An incorrect payload length returns
  * STATUS_INVALID_BUFFER_SIZE; an incorrect version returns STATUS_INVALID_PARAMETER.
@@ -216,8 +211,7 @@ typedef struct _PF_CACHE_ENTRY_UPDATE
 
 /**
  * The PF_APP_LAUNCH_SCENARIO_CONTROL structure starts an application-launch scenario for a process.
- *
- * \remarks The verified x64 dispatcher requires exactly 16 bytes with 8-byte alignment.
+ * \remarks The x64 dispatcher requires exactly 16 bytes with 8-byte alignment.
  * Version must be 1 and Enable must be nonzero. ProcessHandle requires PROCESS_VM_OPERATION access.
  * An incorrect length returns STATUS_INVALID_BUFFER_SIZE; an incorrect version returns
  * STATUS_REVISION_MISMATCH; Enable == 0 returns STATUS_INVALID_PARAMETER.
@@ -236,7 +230,6 @@ typedef struct _PF_APP_LAUNCH_SCENARIO_CONTROL
 // rev
 /**
  * The SUPERFETCH_INFORMATION_CLASS enumeration selects a Superfetch query or control operation.
- *
  * \remarks All set operations require SeProfileSingleProcessPrivilege. Query dispatch exempts classes
  * 8 (SuperfetchPrivSourceQuery), 16 (SuperfetchMemoryListQuery), and 28 (SuperfetchGpuUtilizationQuery)
  * from that privilege check; class-specific checks still apply. The private-source query checks the
@@ -282,7 +275,6 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
 
 /**
  * The SUPERFETCH_INFORMATION structure supplies the versioned envelope for Superfetch system-information requests.
- *
  * \remarks Pass this initialized envelope with SystemSuperfetchInformation (79). The native x64 dispatcher
  * requires exactly 32 bytes, Version 45 and Magic 0x6b756843. The x86 declaration occupies 20 bytes;
  * native x64 validation does not establish WOW64 payload translation or support.
@@ -303,8 +295,7 @@ typedef struct _SUPERFETCH_INFORMATION
 
 /**
  * The PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE structure provides the input and output envelope for a completed Superfetch trace.
- *
- * \remarks The verified x64 handler requires at least 24 bytes with 8-byte alignment and checks only the
+ * \remarks The x64 handler requires at least 24 bytes with 8-byte alignment and checks only the
  * low USHORT of RequestType for version 2. Additional bytes hold the trace dump. STATUS_BUFFER_TOO_SMALL
  * reports the required payload size through query ReturnLength; STATUS_NO_MORE_ENTRIES means no trace is available.
  */
@@ -335,8 +326,7 @@ typedef struct _PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE
 // rev
 /**
  * The PF_SYSTEM_SUPERFETCH_PARAMETERS structure contains the parameters returned by SuperfetchSystemParameters.
- *
- * \remarks The verified x64 handler requires exactly 28 bytes with 4-byte alignment and reports
+ * \remarks The x64 handler requires exactly 28 bytes with 4-byte alignment and reports
  * ReturnLength = 28 on success. An incorrect payload length returns STATUS_INVALID_BUFFER_SIZE.
  */
 typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
@@ -601,8 +591,7 @@ typedef struct _PFN_TRIPLET
 
 /**
  * The PF_PFN_PRIO_REQUEST structure queries or updates a variable array of page-frame entries.
- *
- * \remarks On the verified x64 build, entries begin at offset 0xc0 and occupy 24 bytes each; the minimum
+ * \remarks On x64, entries begin at offset 0xc0 and occupy 24 bytes each; the minimum
  * payload is 0xd8 bytes (one entry), aligned to 8 bytes. PfnCount must be nonzero and the supplied buffer
  * must cover 0xc0 + 24 * PfnCount bytes. The computed size must fit in ULONG. The declared 256-element
  * arrays are compatibility declarations, not a fixed request-size requirement or a maximum count.
@@ -693,8 +682,7 @@ typedef struct _PF_PRIVSOURCE_INFO
 // rev
 /**
  * The PF_PRIVSOURCE_QUERY_REQUEST structure enumerates private-page sources and their memory-use information.
- *
- * \remarks Initialize Version and Flags before querying. The verified x64 buffer has a 16-byte header
+ * \remarks Initialize Version and Flags before querying. The x64 buffer has a 16-byte header
  * followed by 96-byte PF_PRIVSOURCE_INFO records and requires 8-byte alignment. InfoCount is output, not
  * the input capacity. STATUS_BUFFER_TOO_SMALL reports a required payload length through query ReturnLength;
  * retry with that capacity because the process population can change between calls.
@@ -783,7 +771,7 @@ typedef struct _PF_SCENARIO_QUERY_INFO
  */
 typedef struct _PF_MEMORY_LIST_NODE
 {
-    ULONGLONG Node : 8;                         // Node identifier; the verified aggregate result uses 0.
+    ULONGLONG Node : 8;                         // Node identifier; the aggregate result uses 0.
     ULONGLONG Spare : 56;                       // Reserved field; initialize to zero and do not interpret on output.
     ULONGLONG StandbyLowPageCount;              // Pages on low-priority standby lists.
     ULONGLONG StandbyMediumPageCount;           // Pages on the medium-priority standby list.
@@ -941,16 +929,15 @@ typedef struct _PF_TIME_CONTROL
 
 /**
  * The PF_MEMORY_LIST_INFO structure receives a variable array of memory-list node statistics.
- *
- * \remarks The verified x64 handler requires at least 64 bytes with 8-byte alignment and reports
+ * \remarks The x64 handler requires at least 64 bytes with 8-byte alignment and reports
  * ReturnLength = 64 on success or STATUS_BUFFER_TOO_SMALL. Version is output; it is not checked on input.
  * The handler returns one aggregate node (Node = 0). Reserved bits and padding are not fully initialized.
  */
 typedef struct _PF_MEMORY_LIST_INFO
 {
     ULONG Version;                              // Output format version: PF_MEMORY_LIST_INFO_VERSION (1).
-    ULONG Size;                                 // Output size in bytes; 64 on the verified x64 build.
-    ULONG NodeCount;                            // Number of returned node records; 1 on the verified build.
+    ULONG Size;                                 // Output size in bytes; 64 on x64.
+    ULONG NodeCount;                            // Number of returned node records; 1.
     PF_MEMORY_LIST_NODE Nodes[1];               // Variable array of NodeCount memory-list records.
 } PF_MEMORY_LIST_INFO, *PPF_MEMORY_LIST_INFO;
 
@@ -980,8 +967,7 @@ typedef struct _PF_PHYSICAL_MEMORY_RANGE_INFO_V1
 
 /**
  * The PF_PHYSICAL_MEMORY_RANGE_INFO_V2 structure receives physical-memory ranges from SuperfetchMemoryRangesQuery.
- *
- * \remarks Initialize Version = 2 and Flags before querying. On the verified x64 build the header is
+ * \remarks Initialize Version = 2 and Flags before querying. On x64 the header is
  * 16 bytes, each range is 16 bytes, and the buffer requires 8-byte alignment. Required capacity is
  * 16 + 16 * RangeCount bytes and is returned through query ReturnLength on STATUS_BUFFER_TOO_SMALL.
  * RangeCount is written only when the buffer is large enough. BasePfn and PageCount are in 4096-byte page units.
@@ -1014,8 +1000,7 @@ typedef struct _PF_START_TRACE_CONTROL
 
 /**
  * The PF_ACCESS_TRACING_CONTROL structure controls access tracing for a Superfetch partition.
- *
- * \remarks This is an input/output payload supplied through NtSetSystemInformation. The verified x64
+ * \remarks This is an input/output payload supplied through NtSetSystemInformation. The x64
  * handler requires exactly 32 bytes with 8-byte alignment, Version 3, Type 0 or 1 and a flag mask of 0x3.
  * For Type 0, TraceHandle must initially be NULL and is written on success; the buffer must be writable.
  */
@@ -1117,8 +1102,7 @@ typedef struct _PF_DEPRIORITIZE_OLD_PAGES_V3
 
 /**
  * The PF_DEPRIORITIZE_OLD_PAGES structure deprioritizes or trims old pages in a process working set.
- *
- * \remarks The verified x64 handler requires exactly 32 bytes with 8-byte alignment and Version 4.
+ * \remarks The x64 handler requires exactly 32 bytes with 8-byte alignment and Version 4.
  * Although submitted through NtSetSystemInformation, the payload must be writable: NumberOfPages is
  * replaced with the processed-page count on success. ProcessHandle requires PROCESS_SET_LIMITED_INFORMATION.
  */
@@ -1184,8 +1168,7 @@ typedef struct _PF_FILE_EXTENTS_INFO_V2
 
 /**
  * The PF_GPU_UTILIZATION_INFO structure queries GPU time for a session.
- *
- * \remarks The verified x64 handler accepts at least 16 bytes with 8-byte alignment and Version 1.
+ * \remarks The x64 handler accepts at least 16 bytes with 8-byte alignment and Version 1.
  * Successful queries report ReturnLength = 16. A short buffer returns STATUS_INVALID_BUFFER_SIZE and
  * an incorrect version returns STATUS_REVISION_MISMATCH. Version and SessionId must be initialized on input.
  */
