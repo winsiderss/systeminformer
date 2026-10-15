@@ -31,21 +31,32 @@ typedef enum _ACTCTX_COMPATIBILITY_ELEMENT_TYPE
 } ACTCTX_COMPATIBILITY_ELEMENT_TYPE;
 #endif // (PHNT_MODE == PHNT_MODE_KERNEL)
 
+/**
+ * Header of a serialized activation context data blob.
+ *
+ * Offsets in this header are byte offsets from the ACTIVATION_CONTEXT_DATA base, not pointers.
+ * TotalSize includes the header and all tables and sections. The fixed header is 32 bytes on
+ * both x86 and x64. The runtime ACTIVATION_CONTEXT object is a separate, pointer-sized layout.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA
 {
     ULONG Magic;
     ULONG HeaderSize;
     ULONG FormatVersion;
     ULONG TotalSize;
-    ULONG DefaultTocOffset; // to ACTIVATION_CONTEXT_DATA_TOC_HEADER
-    ULONG ExtendedTocOffset; // to ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_HEADER
-    ULONG AssemblyRosterOffset; // to ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER
+    ULONG DefaultTocOffset; // to ACTIVATION_CONTEXT_DATA_TOC_HEADER, from this struct base
+    ULONG ExtendedTocOffset; // to ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_HEADER, from this struct base; zero if absent
+    ULONG AssemblyRosterOffset; // to ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER, from this struct base
     ULONG Flags; // ACTIVATION_CONTEXT_FLAG_*
 } ACTIVATION_CONTEXT_DATA, *PACTIVATION_CONTEXT_DATA;
 
 #define ACTIVATION_CONTEXT_DATA_TOC_HEADER_DENSE 0x00000001
 #define ACTIVATION_CONTEXT_DATA_TOC_HEADER_INORDER 0x00000002
 
+/**
+ * Describes an array of 16-byte TOC entries. INORDER permits binary search by section Id;
+ * DENSE together with INORDER permits direct indexing by Id minus the first entry's Id.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_TOC_HEADER
 {
     ULONG HeaderSize;
@@ -80,13 +91,17 @@ typedef struct _ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_ENTRY
 #define ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY_INVALID 0x00000001
 #define ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY_ROOT 0x00000002
 
+/**
+ * Describes the assembly roster. Entry zero is reserved; assembly roster indices refer
+ * directly to the entry array, and EntryCount includes the reserved entry.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER
 {
     ULONG HeaderSize;
     ULONG HashAlgorithm; // HASH_STRING_ALGORITHM_*
     ULONG EntryCount;
     ULONG FirstEntryOffset; // to ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY[], from ACTIVATION_CONTEXT_DATA base
-    ULONG AssemblyInformationSectionOffset; // to resolve section-relative offsets
+    ULONG AssemblyInformationSectionOffset; // to assembly information section, from ACTIVATION_CONTEXT_DATA base
 } ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER, *PACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER;
 
 typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY
@@ -109,6 +124,12 @@ typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY
 #define ACTIVATION_CONTEXT_STRING_SECTION_CASE_INSENSITIVE 0x00000001
 #define ACTIVATION_CONTEXT_STRING_SECTION_ENTRIES_IN_PSEUDOKEY_ORDER 0x00000002
 
+/**
+ * Header of a string-keyed section. The fixed header is 44 bytes, and each entry is 24 bytes.
+ * Offsets in the header and entry array are relative to this section header.
+ * SearchStructureOffset is zero when no hash table is present. Without a usable hash table,
+ * ENTRIES_IN_PSEUDOKEY_ORDER permits binary search; otherwise the entries are scanned linearly.
+ */
 typedef struct _ACTIVATION_CONTEXT_STRING_SECTION_HEADER
 {
     ULONG Magic;
@@ -128,7 +149,7 @@ typedef struct _ACTIVATION_CONTEXT_STRING_SECTION_ENTRY
 {
     ULONG PseudoKey;
     ULONG KeyOffset; // to WCHAR[], from section header
-    ULONG KeyLength;
+    ULONG KeyLength; // in bytes, excluding the terminating WCHAR
     ULONG Offset; // to data depending on section Id, from section header
     ULONG Length;
     ULONG AssemblyRosterIndex;
@@ -140,6 +161,10 @@ typedef struct _ACTIVATION_CONTEXT_STRING_SECTION_HASH_TABLE
     ULONG BucketTableOffset; // to ACTIVATION_CONTEXT_STRING_SECTION_HASH_BUCKET[], from section header
 } ACTIVATION_CONTEXT_STRING_SECTION_HASH_TABLE, *PACTIVATION_CONTEXT_STRING_SECTION_HASH_TABLE;
 
+/**
+ * Describes a collision chain. Each LONG in the chain is a byte offset from the section
+ * header to an ACTIVATION_CONTEXT_STRING_SECTION_ENTRY, not an element index.
+ */
 typedef struct _ACTIVATION_CONTEXT_STRING_SECTION_HASH_BUCKET
 {
     ULONG ChainCount;
@@ -151,6 +176,11 @@ typedef struct _ACTIVATION_CONTEXT_STRING_SECTION_HASH_BUCKET
 
 #define ACTIVATION_CONTEXT_GUID_SECTION_ENTRIES_IN_ORDER 0x00000001
 
+/**
+ * Header of a GUID-keyed section. The fixed header is 40 bytes, and each entry is 28 bytes.
+ * Offsets in the header and entry array are relative to this section header.
+ * SearchStructureOffset is zero when no hash table is present.
+ */
 typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HEADER
 {
     ULONG Magic;
@@ -179,6 +209,10 @@ typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE
     ULONG BucketTableOffset; // to ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET[], from section header
 } ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE, *PACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE;
 
+/**
+ * Describes a collision chain of section-relative byte offsets to GUID section entries.
+ * The bucket is selected using Guid.Data1 modulo BucketTableEntryCount.
+ */
 typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET
 {
     ULONG ChainCount;
@@ -207,6 +241,14 @@ typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET
 #define ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_ROOT_POLICY_APPLIED 0x00000008
 #define ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_PRIVATE_ASSEMBLY 0x00000010
 
+/**
+ * Serialized assembly metadata. String lengths are byte counts; strings need not be null-terminated.
+ * Use the explicit lengths, in particular for EncodedAssemblyIdentity. The corresponding offsets
+ * are relative to the assembly information section header.
+ * The two-part timestamps intentionally have 4-byte alignment. Replacing them with LARGE_INTEGER
+ * would change the serialized layout: ManifestLastWriteTime is at offset 28 and PolicyLastWriteTime
+ * is at offset 48. The fixed structure, including RunLevel and UiAccess, is 108 bytes.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION
 {
     ULONG Size;
@@ -244,7 +286,11 @@ typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION
     ULONG UiAccess;
 } ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION, *PACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION;
 
-// via UserData
+/**
+ * Global assembly metadata located through the assembly information section's UserDataOffset.
+ * ApplicationDirectoryLength is in bytes, excluding the terminating WCHAR; its offset is relative
+ * to this structure, unlike the section-relative string offsets in per-assembly metadata.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_GLOBAL_INFORMATION
 {
     ULONG Size;
@@ -264,6 +310,13 @@ typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_GLOBAL_INFORMATION
 #define ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_EXPAND 0x00000004
 #define ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SYSTEM_DEFAULT_REDIRECTED_SYSTEM32_DLL 0x00000008
 
+/**
+ * DLL redirection data. PathSegmentOffset and each path segment's Offset are relative to the
+ * string section header. Segment lengths are in bytes and exclude any terminating WCHAR.
+ * PATH_OMITS_ASSEMBLY_ROOT causes the assembly storage root to be prepended; PATH_INCLUDES_BASE_NAME
+ * suppresses appending the requested DLL name. PATH_EXPAND requests environment-variable expansion
+ * and cannot be combined with PATH_OMITS_ASSEMBLY_ROOT in the runtime loader.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION
 {
     ULONG Size;
@@ -376,7 +429,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION
 {
     ULONG Size;
     ULONG Flags;
-    ULONG NameLength;
+    ULONG NameLength; // in bytes, including the terminating WCHAR
     ULONG NameOffset; // to WCHAR[], from section header
     USHORT ResourceId;
     USHORT LibraryFlags; // LIBFLAG_* oaidl.h
@@ -418,6 +471,11 @@ typedef struct _ACTIVATION_CONTEXT_DATA_CLR_SURROGATE
 #define SXS_WINDOWS_SETTINGS_2019_NAMESPACE L"http://schemas.microsoft.com/SMI/2019/WindowsSettings"
 #define SXS_WINDOWS_SETTINGS_2020_NAMESPACE L"http://schemas.microsoft.com/SMI/2020/WindowsSettings"
 
+/**
+ * Application setting stored in section ACTIVATION_CONTEXT_SECTION_APPLICATION_SETTINGS.
+ * Namespace, name and value lengths are in bytes, excluding the terminating WCHAR.
+ * All three string offsets are relative to this structure, not the section header.
+ */
 typedef struct _ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS
 {
     ULONG Size;
@@ -430,14 +488,14 @@ typedef struct _ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS
     ULONG SettingValueOffset; // to WCHAR[], from this struct base
 } ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS, *PACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS;
 
-// COMPATIBILITY_CONTEXT_ELEMENT from winnt.h before 19H1
+// COMPATIBILITY_CONTEXT_ELEMENT from winnt.h before 19H1; 20 bytes, without MaxVersionTested.
 typedef struct _COMPATIBILITY_CONTEXT_ELEMENT_LEGACY
 {
     GUID Id;
     ACTCTX_COMPATIBILITY_ELEMENT_TYPE Type;
 } COMPATIBILITY_CONTEXT_ELEMENT_LEGACY, *PCOMPATIBILITY_CONTEXT_ELEMENT_LEGACY;
 
-// ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION from winnt.h before 19H1
+// ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION from winnt.h before 19H1; Elements begins at offset 4.
 typedef struct _ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION_LEGACY
 {
     ULONG ElementCount;
@@ -446,6 +504,10 @@ typedef struct _ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION_LEGACY
 
 // begin_private
 
+/**
+ * Runtime assembly storage location. DosPath is a native UNICODE_STRING, not a serialized offset.
+ * Handle is the directory handle owned by the storage-map entry and closed when the entry is freed.
+ */
 typedef struct _ASSEMBLY_STORAGE_MAP_ENTRY
 {
     ULONG Flags;
@@ -457,9 +519,9 @@ typedef struct _ASSEMBLY_STORAGE_MAP_ENTRY
 
 typedef struct _ASSEMBLY_STORAGE_MAP
 {
-    ULONG Flags;
-    ULONG AssemblyCount;
-    PASSEMBLY_STORAGE_MAP_ENTRY *AssemblyArray;
+    ULONG Flags; // ASSEMBLY_STORAGE_MAP_*
+    ULONG AssemblyCount; // includes the reserved roster entry at index zero
+    PASSEMBLY_STORAGE_MAP_ENTRY *AssemblyArray; // indexed by assembly roster index; entries may be NULL
 } ASSEMBLY_STORAGE_MAP, *PASSEMBLY_STORAGE_MAP;
 
 typedef struct _ACTIVATION_CONTEXT *PACTIVATION_CONTEXT;
@@ -468,6 +530,12 @@ typedef struct _ACTIVATION_CONTEXT *PACTIVATION_CONTEXT;
 #define ACTIVATION_CONTEXT_NOTIFICATION_ZOMBIFY 2
 #define ACTIVATION_CONTEXT_NOTIFICATION_USED 3
 
+/**
+ * Receives activation-context destruction (1), zombification (2), or use (3) notifications.
+ * NotificationContext is the caller-supplied context from RtlCreateActivationContext.
+ * DisableThisNotification initially points to FALSE. Setting it to TRUE suppresses subsequent
+ * USED notifications. The destruction and zombification paths do not use its returned value.
+ */
 typedef _Function_class_(ACTIVATION_CONTEXT_NOTIFY_ROUTINE)
 VOID NTAPI ACTIVATION_CONTEXT_NOTIFY_ROUTINE(
     _In_ ULONG NotificationType, // ACTIVATION_CONTEXT_NOTIFICATION_*
@@ -479,17 +547,27 @@ VOID NTAPI ACTIVATION_CONTEXT_NOTIFY_ROUTINE(
     );
 typedef ACTIVATION_CONTEXT_NOTIFY_ROUTINE* PACTIVATION_CONTEXT_NOTIFY_ROUTINE;
 
+// rev
+/**
+ * Private runtime activation context, separate from the serialized ACTIVATION_CONTEXT_DATA blob.
+ * This private layout occupies 0x208 bytes on x64 and 0x12c bytes on x86.
+ * It is not a version-independent ABI. Links is used by the optional live/dead context lists;
+ * StackTraces holds four release stack traces of four addresses each when tracking is enabled.
+ */
 typedef struct _ACTIVATION_CONTEXT
 {
     LONG RefCount;
-    ULONG Flags;
+    ULONG Flags; // bit 0: zombified; bit 1: allocation is not freed by RtlpFreeActivationContext
+    LIST_ENTRY Links;
     PACTIVATION_CONTEXT_DATA ActivationContextData;
     PACTIVATION_CONTEXT_NOTIFY_ROUTINE NotificationRoutine;
     PVOID NotificationContext;
-    ULONG SentNotifications[8];
-    ULONG DisabledNotifications[8];
+    ULONG SentNotifications[8]; // notification-type bitmap
+    ULONG DisabledNotifications[8]; // notification-type bitmap
     ASSEMBLY_STORAGE_MAP StorageMap;
     PASSEMBLY_STORAGE_MAP_ENTRY InlineStorageMapEntries[32];
+    ULONG StackTraceIndex;
+    PVOID StackTraces[4][4];
 } ACTIVATION_CONTEXT, *PACTIVATION_CONTEXT;
 
 #define RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_RELEASE_ON_DEACTIVATION 0x00000001
@@ -507,6 +585,12 @@ typedef struct _RTL_ACTIVATION_CONTEXT_STACK_FRAME
 
 #define ACTIVATION_CONTEXT_STACK_FLAG_QUERIES_DISABLED 0x00000001
 
+/**
+ * Per-thread runtime activation-context stack: 40 bytes on x64 and 24 bytes on x86.
+ * ActiveFrame is the top of the stack; FrameListCache contains cached frame allocations.
+ * Flags bit 0 disables queries. Bit 1 marks inline storage, which is not freed as a heap block
+ * by RtlFreeActivationContextStack (for example, the stack embedded in the TEB).
+ */
 typedef struct _ACTIVATION_CONTEXT_STACK
 {
     PRTL_ACTIVATION_CONTEXT_STACK_FRAME ActiveFrame;
