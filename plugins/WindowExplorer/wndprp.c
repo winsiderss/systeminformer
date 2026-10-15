@@ -2466,22 +2466,13 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORLISTBOX:
-        {
-            HBRUSH brush;
-
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            SetTextColor((HDC)wParam, RGB(0, 0, 0));
-
-            brush = PhGetStockBrush(DC_BRUSH);
-            SelectBrush((HDC)wParam, brush);
-            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-
-            return (INT_PTR)brush;
-        }
-        break;
+        return HANDLE_WM_CTLCOLORLISTBOX(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

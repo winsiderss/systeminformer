@@ -1411,12 +1411,12 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
 
             PhSetDialogItemText(WindowHandle, IDC_TITLE, PhGetString(adapterDescription));
 
-            // Show the adapter name below the title, falling back to the title text
-            // when the device cannot be resolved. (dmex)
+            // Show the adapter name below the title. Leave it blank when the device cannot be
+            // resolved rather than echoing the title text, which would show "GPU N" twice. (dmex)
             if (deviceName = PH_AUTO_T(PH_STRING, GraphicsDeviceGetName(context->DeviceEntry)))
                 PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(deviceName));
             else
-                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(adapterDescription));
+                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, L"Unknown");
 
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), WindowHandle, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);

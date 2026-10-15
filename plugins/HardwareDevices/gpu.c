@@ -17,9 +17,6 @@ BOOLEAN GraphicsEnableScaleGraph = FALSE;
 BOOLEAN GraphicsEnableScaleText = FALSE;
 BOOLEAN GraphicsPropagateCpuUsage = FALSE;
 
-// Guards the cached device name, the nodes window resolves it from its own thread. (dmex)
-static PH_QUEUED_LOCK GraphicsDeviceNameLock = PH_QUEUED_LOCK_INIT;
-
 /**
  * Deletes a graphics device entry and releases its resources.
  *
@@ -94,19 +91,38 @@ PPH_STRING GraphicsDeviceGetName(
 {
     PPH_STRING deviceName;
 
-    PhAcquireQueuedLockExclusive(&GraphicsDeviceNameLock);
+    deviceName = ReadPointerAcquire(&Entry->DeviceName);
 
-    if (!Entry->DeviceName)
+    if (!deviceName)
     {
-        Entry->DeviceName = GraphicsQueryAdapterName(PhGetString(Entry->Id.DevicePath));
-    }
+        PPH_STRING newDeviceName;
 
-    deviceName = Entry->DeviceName;
+        newDeviceName = GraphicsQueryAdapterName(PhGetString(Entry->Id.DevicePath));
+
+        if (newDeviceName)
+        {
+            // Try to install the resolved name. (dmex)
+            deviceName = InterlockedCompareExchangePointer(
+                &Entry->DeviceName,
+                newDeviceName,
+                NULL
+                );
+
+            if (!deviceName)
+            {
+                // We stored the name; the cache now owns our reference.
+                deviceName = newDeviceName;
+            }
+            else
+            {
+                // Another thread won the race; discard our copy.
+                PhDereferenceObject(newDeviceName);
+            }
+        }
+    }
 
     if (deviceName)
         PhReferenceObject(deviceName);
-
-    PhReleaseQueuedLockExclusive(&GraphicsDeviceNameLock);
 
     return deviceName;
 }
