@@ -4266,7 +4266,7 @@ typedef struct _HV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES
     {
             ULONG ProcessorPowerManagement : 1;
             ULONG MwaitIdleStates : 1;
-            ULONG LogicalProcessorIdling : 1;
+            ULONG LogicalProcessorIdlingSupported : 1; // CPUID EBX bit 2; avoids the POWER_INFORMATION_LEVEL macro.
             ULONG Reserved1 : 29;
     };
 
