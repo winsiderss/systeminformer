@@ -48,7 +48,6 @@ jobs:
       with:
         path: tools/thirdparty/**
         key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-        restore-keys: thirdparty-${{ runner.os }}-
 
     - name: Build Tools
       if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
@@ -100,7 +99,6 @@ jobs:
       with:
         path: tools/thirdparty/**
         key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-        restore-keys: thirdparty-${{ runner.os }}-
 
     - name: Build Tools
       if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
