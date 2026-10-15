@@ -2223,14 +2223,14 @@ typedef struct _WMI_JOB_SEND_NOTIFICATION_INFORMATION
 //
 typedef struct _WMI_PROCESS_INFORMATION
 {
-    ULONG_PTR UniqueProcessKey;     // +0x00  EPROCESS pointer (the object itself)
-    ULONG ProcessId;                // +0x08  EPROCESS.UniqueProcessId (0x1D0)
-    ULONG ParentId;                 // +0x0C  EPROCESS.InheritedFromUniqueProcessId (0x2D0)
-    ULONG SessionId;                // +0x10  PsGetSessionIdEx(Process)
-    NTSTATUS ExitStatus;            // +0x14  EPROCESS.ExitStatus (0x554)
-    ULONG_PTR DirectoryTableBase;   // +0x18  KPROCESS.DirectoryTableBase (0x28) & ~0xFFF
-    ULONG Flags;                    // +0x20  ETW_PROCESS_EVENT_FLAG_*
-    ULONG Sid;                      // +0x24  start of the variable data (see below)
+    ULONG_PTR UniqueProcessKey;     // EPROCESS pointer (the object itself)
+    ULONG ProcessId;                // EPROCESS.UniqueProcessId (0x1D0)
+    ULONG ParentId;                 // EPROCESS.InheritedFromUniqueProcessId (0x2D0)
+    ULONG SessionId;                // PsGetSessionIdEx(Process)
+    NTSTATUS ExitStatus;            // EPROCESS.ExitStatus (0x554)
+    ULONG_PTR DirectoryTableBase;   // KPROCESS.DirectoryTableBase (0x28) & ~0xFFF
+    ULONG Flags;                    // ETW_PROCESS_EVENT_FLAG_*
+    ULONG Sid;                      // start of the variable data (see below)
     // Variable-length trailer, in this exact order:
     //   Sid             - from the primary token's TOKEN_USER (SeQueryInformationToken)
     //   ImageFileName   - ANSI, NUL-terminated; EPROCESS.ImageFileName (0x338), or the
@@ -5198,8 +5198,8 @@ typedef struct _PERFINFO_CLOCK_INTERRUPT_INFORMATION
 //
 typedef struct _PERFINFO_IPI_INFORMATION
 {
-    ULONG_PTR Routine;        // +0x00 generic-call worker routine, else 0
-    ULONG RequestType;        // +0x08 PERFINFO_IPI_TYPE_*
+    ULONG_PTR Routine;        // generic-call worker routine, else 0
+    ULONG RequestType;        // PERFINFO_IPI_TYPE_*
 } PERFINFO_IPI_INFORMATION, *PPERFINFO_IPI_INFORMATION;
 
 //
@@ -5212,10 +5212,10 @@ typedef struct _PERFINFO_IPI_INFORMATION
 //
 typedef struct _PERFINFO_IPI_SEND_INFORMATION
 {
-    ULONG_PTR Routine;        // +0x00 generic-call worker routine, else 0
-    ULONG RequestType;        // +0x08 request & 0xF (PERFINFO_IPI_TYPE_*)
-    ULONG SendType;           // +0x0C send flavor (0 = targeted, 1/2 = broadcast)
-    ULONG TargetCount;        // +0x10 number of trailing ULONG64 target-mask words
+    ULONG_PTR Routine;        // generic-call worker routine, else 0
+    ULONG RequestType;        // request & 0xF (PERFINFO_IPI_TYPE_*)
+    ULONG SendType;           // send flavor (0 = targeted, 1/2 = broadcast)
+    ULONG TargetCount;        // number of trailing ULONG64 target-mask words
     // ULONG64 TargetMask[TargetCount]; // variable KAFFINITY bitmap of targets
 } PERFINFO_IPI_SEND_INFORMATION, *PPERFINFO_IPI_SEND_INFORMATION;
 
@@ -5372,11 +5372,11 @@ typedef struct _PERFINFO_PAGECOMBINE_ITERATION_STAT
 
 typedef struct _PERFINFO_HARDPAGEFAULT_INFORMATION
 {
-    LARGE_INTEGER ReadOffset;   // +0x00 file offset of the in-page read
-    PVOID VirtualAddress;       // +0x08 faulting VA
-    PVOID FileObject;           // +0x10 backing FILE_OBJECT
-    ULONG ThreadId;             // +0x18 faulting thread id
-    ULONG ByteCount;            // +0x1C bytes read
+    LARGE_INTEGER ReadOffset;   // file offset of the in-page read
+    PVOID VirtualAddress;       // faulting VA
+    PVOID FileObject;           // backing FILE_OBJECT
+    ULONG ThreadId;             // faulting thread id
+    ULONG ByteCount;            // bytes read
 } PERFINFO_HARDPAGEFAULT_INFORMATION, *PPERFINFO_HARDPAGEFAULT_INFORMATION;
 
 //
@@ -6273,10 +6273,10 @@ typedef struct _ETW_SYSTEM_LOGGER
  */
 typedef struct _ETW_SYSTEM_LOGGER_SETTINGS
 {
-    ETW_SYSTEM_LOGGER EtwpSystemLogger[8];         // +0x000 (silo +0x1198)
-    volatile ULONG EtwpActiveSystemLoggers;       // +0x010 (silo +0x11A8)
-    PERFINFO_GROUPMASK SiloGlobalGroupMask;       // +0x014 (silo +0x11AC)
-    PERFINFO_GROUPMASK EtwpGroupMasks[10];        // +0x034 (silo +0x11CC)
+    ETW_SYSTEM_LOGGER EtwpSystemLogger[8];         // (silo +0x1198)
+    volatile ULONG EtwpActiveSystemLoggers;       // (silo +0x11A8)
+    PERFINFO_GROUPMASK SiloGlobalGroupMask;       // (silo +0x11AC)
+    PERFINFO_GROUPMASK EtwpGroupMasks[10];        // (silo +0x11CC)
 } ETW_SYSTEM_LOGGER_SETTINGS, *PETW_SYSTEM_LOGGER_SETTINGS;
 
 //
