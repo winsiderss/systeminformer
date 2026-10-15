@@ -2803,7 +2803,7 @@ SamLapsSysprepCleanup(
  *
  * \param DomainHandle The domain handle passed to the test entry point.
  * \return NTSTATUS indicating success or failure.
- * \remarks The inspected implementation returns STATUS_NOT_IMPLEMENTED.
+ * \remarks The implementation returns STATUS_NOT_IMPLEMENTED.
  */
 NTSYSAPI
 NTSTATUS
@@ -2818,7 +2818,7 @@ SamTestPrivateFunctionsDomain(
  *
  * \param UserHandle The user handle passed to the test entry point.
  * \return NTSTATUS indicating success or failure.
- * \remarks The inspected implementation returns STATUS_NOT_IMPLEMENTED.
+ * \remarks The implementation returns STATUS_NOT_IMPLEMENTED.
  */
 NTSYSAPI
 NTSTATUS
