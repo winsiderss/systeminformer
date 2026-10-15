@@ -19294,28 +19294,28 @@ RtlpCleanupRegistryKeys(
  */
 typedef struct _RTL_MUI_REGISTRY_INFO
 {
-    ULONG Flags;                                  // +0x00 ownership mask (0x400 = self-owned)
-    ULONG Reserved0;                              // +0x04
-    PVOID Reserved1;                              // +0x08
-    PVOID Reserved2;                              // +0x10
-    PVOID SerializedData;                         // +0x18 (0x001) RtlFreeHeap
-    PVOID StringPool;                             // +0x20 (0x002) RtlpMuiRegFreeStringPool
-    PVOID UserLanguageConfigList;                 // +0x28 (0x004) RtlpMuiRegFreeLanguageConfigList
-    PVOID MachineLanguageConfigList;              // +0x30 (0x008) RtlpMuiRegFreeLanguageConfigList
-    PVOID LanguageList10;                         // +0x38 (0x010) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList20;                         // +0x40 (0x020) RtlpMuiRegFreeLanguageList
-    PVOID Reserved3;                              // +0x48
-    PVOID LanguageList80;                         // +0x50 (0x080) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList40;                         // +0x58 (0x040) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList200;                        // +0x60 (0x200) RtlpMuiRegFreeLanguageList
-    struct _RTL_MUI_REGISTRY_INFO *Alternate;     // +0x68 nested (recursive free + RtlFreeHeap)
-    PVOID Reserved4;                              // +0x70
-    PVOID Reserved5;                              // +0x78
-    PVOID Reserved6;                              // +0x80
-    PVOID FallbackData;                           // +0x88 (0x800) RtlFreeHeap
-    PVOID Reserved7;                              // +0x90
-    PVOID Reserved8;                              // +0x98
-    PVOID Reserved9;                              // +0xA0
+    ULONG Flags;                                  // ownership mask (0x400 = self-owned)
+    ULONG Reserved0;
+    PVOID Reserved1;
+    PVOID Reserved2;
+    PVOID SerializedData;                         // (0x001) RtlFreeHeap
+    PVOID StringPool;                             // (0x002) RtlpMuiRegFreeStringPool
+    PVOID UserLanguageConfigList;                 // (0x004) RtlpMuiRegFreeLanguageConfigList
+    PVOID MachineLanguageConfigList;              // (0x008) RtlpMuiRegFreeLanguageConfigList
+    PVOID LanguageList10;                         // (0x010) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList20;                         // (0x020) RtlpMuiRegFreeLanguageList
+    PVOID Reserved3;
+    PVOID LanguageList80;                         // (0x080) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList40;                         // (0x040) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList200;                        // (0x200) RtlpMuiRegFreeLanguageList
+    struct _RTL_MUI_REGISTRY_INFO *Alternate;     // nested (recursive free + RtlFreeHeap)
+    PVOID Reserved4;
+    PVOID Reserved5;
+    PVOID Reserved6;
+    PVOID FallbackData;                           // (0x800) RtlFreeHeap
+    PVOID Reserved7;
+    PVOID Reserved8;
+    PVOID Reserved9;
 } RTL_MUI_REGISTRY_INFO, *PRTL_MUI_REGISTRY_INFO;
     
 // rev
