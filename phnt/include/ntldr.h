@@ -149,6 +149,20 @@ typedef enum _LDR_HOT_PATCH_STATE
     LdrHotPatchStateMax,
 } LDR_HOT_PATCH_STATE, *PLDR_HOT_PATCH_STATE;
 
+/**
+ * ntdll.dll table SbSupportedOsList[5] holds one entry per supported OS
+ * generation (Vista, 7, 8, 8.1, 10). A module's SwitchBackContext points at
+ * the CompatibilityGuid field of the selected entry.
+ * ------------------------------------------------------------------------- */
+typedef struct _LDR_SWITCHBACK_CONTEXT           /* sizeof == 0x20 */
+{
+    ULONG ContextId;        // The array index of this LDR_SWITCHBACK_CONTEXT entry.
+    GUID CompatibilityGuid; // LDR_DATA_TABLE_ENTRY->SwitchBackContext points here
+    USHORT OsMajorVersion;
+    USHORT OsMinorVersion;
+    PCWSTR FriendlyName;
+} LDR_SWITCHBACK_CONTEXT, *PLDR_SWITCHBACK_CONTEXT;
+
 // LDR_DATA_TABLE_ENTRY->Flags
 #define LDRP_PACKAGED_BINARY                    0x00000001
 #define LDRP_MARKED_FOR_REMOVAL                 0x00000002
@@ -353,6 +367,9 @@ typedef union _LDR_DLL_PATH
  * \param DllHandle A pointer that receives the handle to module on success.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
+ * \remarks Loads the named image into the current process and returns a loader module base, not an Object
+ * Manager handle. Successful ordinary loads acquire a reference released with LdrUnloadDll; do not use
+ * NtClose. Loading executes loader callbacks and image initialization.
  */
 NTSYSAPI
 NTSTATUS
@@ -370,6 +387,8 @@ LdrLoadDll(
  * \param DllHandle A handle to the DLL module to unload, as returned by LdrLoadDll.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-freelibrary
+ * \remarks Releases a loader reference, potentially running detach/notification callbacks and unmapping the
+ * image at the last reference. Do not use it for a borrowed base from an unchanged-refcount lookup.
  */
 NTSYSAPI
 NTSTATUS
@@ -387,6 +406,9 @@ LdrUnloadDll(
  * \param DllHandle A pointer that receives the handle to the loaded DLL module on success.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw
+ * \remarks Looks up an already loaded DLL without adding a load reference. A failed lookup can leave
+ * DllHandle unchanged; initialize and consume the output only after NT_SUCCESS. Do not balance this lookup
+ * with LdrUnloadDll unless a separate reference was acquired.
  */
 NTSYSAPI
 NTSTATUS
@@ -413,6 +435,10 @@ LdrGetDllHandle(
  * \param DllName The Unicode name of the module to find. Can be a base name (e.g., "ntdll.dll") or a fully-qualified path.
  * \param DllHandle Receives the module handle on success.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For ordinary lookups Flags=0 adds a load reference, while
+ * LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT avoids it. The pin flag has different lifetime semantics. A
+ * failed lookup can preserve the handle output. Do not treat every successful lookup as a reference to
+ * unload.
  */
 NTSYSAPI
 NTSTATUS
@@ -432,6 +458,8 @@ LdrGetDllHandleEx(
  * \param BaseAddress The base address of a mapped image (image or datafile view).
  * \param DllHandle Receives the module handle corresponding to the base address.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Matches a mapped PE image to a loaded module and acquires a load reference on success; balance it
+ * with LdrUnloadDll. The mapping must be a readable image, not an arbitrary opaque handle.
  */
 NTSYSAPI
 NTSTATUS
@@ -450,6 +478,8 @@ LdrGetDllHandleByMapping(
  * \param DllHandle Receives the module handle on success.
  * \return NTSTATUS Successful or errant status.
  * \remarks At least one of BaseDllName or FullDllName must be supplied. If both are supplied, they must refer to the same module.
+ * \remarks Finds a loaded module by base/full name and increments its load count on success. Balance the
+ * acquired reference with LdrUnloadDll. This is not the unchanged-refcount contract of LdrGetDllHandle.
  */
 NTSYSAPI
 NTSTATUS
@@ -468,13 +498,17 @@ LdrGetDllHandleByName(
  * \param DllHandle A handle to the loaded module (base address).
  * \param FullDllName A pointer to a UNICODE_STRING structure that receives the full path.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Copies into caller-owned Buffer/MaximumLength; it does not allocate a UNICODE_STRING buffer.
+ * Length is the number of bytes actually copied, including on STATUS_BUFFER_TOO_SMALL, not the required
+ * full-name size. A terminator is written only when two extra bytes fit. NULL DllHandle selects the
+ * executable image.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllFullName(
     _In_opt_ PVOID DllHandle,
-    _Out_ PUNICODE_STRING FullDllName
+    _Inout_ PUNICODE_STRING FullDllName
     );
 
 // rev
@@ -504,12 +538,16 @@ LdrGetDllPath(
  * \param PathName A pointer to a buffer that receives the application-specific portion of the search path.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getdlldirectoryw
+ * \remarks Reads Buffer and MaximumLength supplied by the caller. A short buffer
+ * receives STATUS_BUFFER_TOO_SMALL and Length equal to the required byte count including the WCHAR
+ * terminator; this differs from LdrGetDllFullName. The queried value is process DLL-directory state, not the
+ * working directory.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllDirectory(
-    _Out_ PUNICODE_STRING PathName
+    _Inout_ PUNICODE_STRING PathName
     );
 
 // rev
@@ -536,6 +574,9 @@ LdrSetDllDirectory(
  * \param Flags Flags controlling the reference count (e.g., LDR_ADDREF_DLL_PIN).
  * \param DllHandle A handle to the DLL (base address).
  * \return NTSTATUS Successful or errant status.
+ * \remarks Acquires another load reference for an already loaded image; Flags=0 is the ordinary
+ * balanced-reference form. Pinning is a stronger lifetime operation and should not be used merely to protect
+ * a short query.
  */
 NTSYSAPI
 NTSTATUS
@@ -554,6 +595,9 @@ LdrAddRefDll(
  * \param ProcedureAddress A pointer that receives the address of the exported function or variable.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress
+ * \remarks Resolves a named or ordinal export from a loaded module. This wrapper supplies Flags=0 and its
+ * caller address to LdrGetProcedureAddressForCaller. Keep the module referenced while using the returned
+ * code/data address; forwarders can involve other loader work.
  */
 NTSYSAPI
 NTSTATUS
@@ -578,6 +622,9 @@ LdrGetProcedureAddress(
  * \param ProcedureAddress A pointer that receives the address of the exported function or variable.
  * \param Flags Flags to modify the behavior of the function.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Resolves an export with LDR_GET_PROCEDURE_ADDRESS_* policy flags and forwards the caller address
+ * to the common worker. The returned address is borrowed from loaded-image lifetime, not separately
+ * allocated storage.
  */
 NTSYSAPI
 NTSTATUS
@@ -619,6 +666,9 @@ LdrGetKnownDllSectionHandle(
  * \param Flags Flags to modify the behavior of the function.
  * \param CallerAddress The address of the caller.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Resolves an export with explicit caller identity for loader policy. Do not interpret the result
+ * as an owning module reference; retain the relevant image lifetime while using it. Error returns must be
+ * checked before consuming ProcedureAddress.
  */
 NTSYSAPI
 NTSTATUS
@@ -647,6 +697,10 @@ LdrGetProcedureAddressForCaller(
  * \param Disposition An optional pointer to a variable that receives the disposition of the lock (LDR_LOCK_LOADER_LOCK_DISPOSITION_*).
  * \param Cookie A pointer to a variable that receives a cookie for the lock, which is used to release it.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Flag 0x2 is try-only and requires Disposition. STATUS_SUCCESS alone
+ * does not establish acquisition: Disposition=1 means acquired, 2 means not acquired. Flag 0x1 requests
+ * exception-style errors. Release an acquired opaque Cookie on the same thread; do not hold the lock across
+ * arbitrary callbacks or waits.
  */
 NTSYSAPI
 NTSTATUS
@@ -665,6 +719,9 @@ LdrLockLoaderLock(
  * \param Flags Flags to modify the behavior of the function (e.g., LDR_UNLOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS).
  * \param Cookie The cookie received from LdrLockLoaderLock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases the acquisition represented by the opaque cookie on its acquiring thread. Cookie=NULL is
+ * a successful no-op. A non-NULL cookie is not a pointer to dereference or a general
+ * handle to close.
  */
 NTSYSAPI
 NTSTATUS
@@ -805,13 +862,16 @@ LdrVerifyImageMatchesChecksumEx(
  * \param ServiceTagBuffer A pointer to a buffer to receive the service tags.
  * \param BufferSize A pointer to a variable that specifies the size of the buffer, and receives the required size.
  * \return NTSTATUS Successful or errant status.
+ * \remarks BufferSize is an input element capacity and an output total tag count, not a byte count. NULL
+ * ServiceTagBuffer is usable with zero capacity for sizing. A short buffer can receive a prefix and
+ * STATUS_BUFFER_TOO_SMALL; the returned count may exceed the copied prefix.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryModuleServiceTags(
     _In_ PVOID DllHandle,
-    _Out_writes_to_(*BufferSize, *BufferSize) PULONG ServiceTagBuffer,
+    _Out_writes_to_opt_(*BufferSize, *BufferSize) PULONG ServiceTagBuffer,
     _Inout_ PULONG BufferSize
     );
 
@@ -863,6 +923,9 @@ typedef LDR_DLL_NOTIFICATION_FUNCTION* PLDR_DLL_NOTIFICATION_FUNCTION;
  * \param Cookie A pointer to a variable to receive an identifier for the callback function. This identifier is used to unregister the notification callback function.
  * \return NTSTATUS Successful or errant status.
  * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrregisterdllnotification
+ * \remarks Registers a process-local loader notification callback; Flags must be zero. Keep callback code
+ * and borrowed Context alive until unregistering the returned Cookie. Notifications execute during loader
+ * activity, so avoid reentrant loader-dependent operations in the callback.
  */
 NTSYSAPI
 NTSTATUS
@@ -879,7 +942,10 @@ LdrRegisterDllNotification(
  *
  * \param Cookie A pointer to the callback identifier received from the LdrRegisterDllNotification call that registered for notification.
  * \return NTSTATUS Successful or errant status.
- * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrunregisterdllnotification
+ * \remarks Https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrunregisterdllnotification
+ * \remarks Removes and frees the registration identified by Cookie. The implementation searches
+ * for the exact cookie and returns STATUS_DLL_NOT_FOUND when it is not registered; it does not dereference a
+ * missing cookie as a registration.
  */
 NTSYSAPI
 NTSTATUS
@@ -1363,7 +1429,7 @@ LdrResFindResourceDirectory(
     );
 
 // rev
-// LDR_FALLBACK_LANG_LIST_ENTRY Source values (verified 10.0.26100)
+// LDR_FALLBACK_LANG_LIST_ENTRY Source values
 #define LDR_FALLBACK_LANG_SOURCE_REQUESTED          1   // The LangId passed by the caller
 #define LDR_FALLBACK_LANG_SOURCE_PARENT             2   // Parent language (LdrpGetParentLangId); LangId 0 entries of this source are skipped by the search
 #define LDR_FALLBACK_LANG_SOURCE_PREFERRED_UI       3   // Thread/process preferred UI language list (TEB->MergedPrefLanguages)
@@ -1384,7 +1450,7 @@ typedef struct _LDR_FALLBACK_LANG_LIST_ENTRY
 
 // rev
 /**
- * Ordered, de-duplicated language fallback list built by LdrResFallbackLangList (verified 10.0.26100, size 0x208).
+ * Ordered, de-duplicated language fallback list built by LdrResFallbackLangList (size 0x208).
  */
 typedef struct _LDR_FALLBACK_LANG_LIST
 {
@@ -1519,7 +1585,7 @@ typedef struct _MUI_RC_CONFIG
 } MUI_RC_CONFIG, *PMUI_RC_CONFIG;
 
 // Internal status flags for resource searching (returned by LdrIsResItemExist/LdrRscIsTypeExist and OR-ed into the
-// search flags). They describe where the MUI RC config says a resource type lives (verified 10.0.26100).
+// search flags). They describe where the MUI RC config says a resource type lives.
 #define LDR_RES_SEARCH_RESULT_NOT_IN_MUI         0x00020000u // Type is not listed in the config MUI type lists (Section5/Section6): skip .mui modules
 #define LDR_RES_SEARCH_RESULT_NOT_IN_MAIN        0x00040000u // Type is not listed in the config main type lists (MainTypes/Section4): skip the main module
 #define LDR_RES_SEARCH_RESULT_NO_RC_CONFIG       0x00080000u // Module has no valid MUI RC config: search the main module only
@@ -1660,6 +1726,9 @@ LdrEnumResources(
  * \param DllHandle A pointer to an address within the loaded module (such as the base address of the DLL or any address inside the module).
  * \param Entry On success, receives a pointer to the LDR_DATA_TABLE_ENTRY structure corresponding to the module containing the specified address.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Finds the loaded-image entry containing an address, including an address within an exported
+ * function. The returned loader entry is borrowed internal state; this query does not make the entry safe
+ * across concurrent unloads.
  */
 NTSYSAPI
 NTSTATUS
@@ -1810,13 +1879,15 @@ typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
  * \param Size An optional size of the module information buffer.
  * \param ReturnedSize An optional pointer to a variable that receives the actual size of the module information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Enumerates modules of the current process into caller-owned output storage. A NULL buffer with
+ * Size=0 reports the needed bytes through ReturnedSize and STATUS_INFO_LENGTH_MISMATCH. Retry after allocation; module activity can change the required size.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryProcessModuleInformation(
-    _In_opt_ PRTL_PROCESS_MODULES ModuleInformation,
-    _In_opt_ ULONG Size,
+    _Out_writes_bytes_opt_(Size) PRTL_PROCESS_MODULES ModuleInformation,
+    _In_ ULONG Size,
     _Out_opt_ PULONG ReturnedSize
     );
 
@@ -1831,8 +1902,9 @@ typedef LDR_LOADED_MODULE_ENUMERATION_CALLBACK_FUNCTION* PLDR_LOADED_MODULE_ENUM
 /**
  * The LdrEnumerateLoadedModules routine enumerates the modules loaded in the current process.
  *
- * \param Flags Reserved; must be 0 (tested as a 32-bit value; nonzero fails with STATUS_INVALID_PARAMETER).
- * \param EnumProc A pointer to a callback function to be called for each loaded module while the loader lock is held; set *StopEnumeration to stop.
+ * \param Flags Reserved; must be 0 (a 32-bit value; nonzero fails with STATUS_INVALID_PARAMETER).
+ * \param EnumProc A pointer to a callback function to be called for each loaded module while the loader lock
+ * is held; set *StopEnumeration to stop.
  * \param Context An optional context to pass to the callback function.
  * \return NTSTATUS Successful or errant status.
  */
@@ -2344,7 +2416,7 @@ LdrFlushAlternateResourceModules(
  * The LDR_DLL_REDIRECTION_CALLBACK routine is a callback used by the loader to allow a process to redirect DLL loading requests.
  * It is not an ntdll export (no LdrDllRedirectionCallback export exists on 10.0.26100), so it is declared as a callback type.
  * The registration export, LdrSetAppCompatDllRedirectionCallback, is a `return 0` stub on 10.0.26100; the parameter list
- * below could not be verified against a live call site.
+ * below does not establish a callable registration contract.
  *
  * \param Flags Bitwise flags indicating the context of the redirection request.
  * \param DllName The name of the DLL being requested.
