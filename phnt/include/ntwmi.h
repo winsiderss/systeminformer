@@ -592,7 +592,7 @@ typedef struct _PERFINFO_GROUPMASK
 #define PERF_GET_MASK_GROUP(GM) ((GM) & PERF_MASK_GROUP)
 
 // Event id packing in kernel system events is Group (bits 8..12) + Type (bits 0..7).
-// Disassembly evidence: EtwpLogKernelEvent indexes per-event state with (EventId & 0x1FFF).
+// EtwpLogKernelEvent indexes per-event state with (EventId & 0x1FFF).
 #define PERF_EVENT_TYPE_MASK    0x00FF
 #define PERF_EVENT_GROUP_MASK   0x1F00
 #define PERF_EVENT_ID_MASK      0x1FFF
@@ -2218,7 +2218,7 @@ typedef struct _WMI_JOB_SEND_NOTIFICATION_INFORMATION
 //
 // Process event payload (EVENT_TRACE_GROUP_PROCESS). The fixed part is 36
 // (0x24) bytes; a run of variable-length fields is appended after it. Layout
-// and EPROCESS field sources verified against nt!EtwpBuildProcessEvent
+// and EPROCESS field sources used by nt!EtwpBuildProcessEvent
 // (ntoskrnl).
 //
 typedef struct _WMI_PROCESS_INFORMATION
@@ -2274,7 +2274,7 @@ typedef signed char SCHAR;
 #define ETW_THREAD_FLAG_REGISTRY_NOTIFICATION 0x00000001
 
 //
-// Verified against ntoskrnl EtwTraceThread: the fixed body is 72 (0x48) bytes
+// EtwTraceThread emits a fixed body of 72 (0x48) bytes
 // on x64, laid out exactly as below. Event types 0x501 (create) / 0x502
 // (rundown/DCStart). A variable UNICODE ThreadName descriptor (from
 // ETHREAD.ThreadName) is appended after the fixed body. Source offsets:
@@ -2335,7 +2335,7 @@ typedef struct _WMI_EXTENDED_THREAD_INFORMATION64
 #define ETW_IMAGE_EMBEDDED_SIGNED  0x20
 
 //
-// Verified against ntoskrnl PerfLogImageLoad: fixed body is 56 (0x38) bytes on
+// PerfLogImageLoad emits a fixed body of 56 (0x38) bytes on
 // x64, followed by a variable UNICODE FileName descriptor. Event hook 0x30A
 // (Image group). Source: ImageChecksum = OptionalHeader.CheckSum,
 // TimeDateStamp = FileHeader.TimeDateStamp, DefaultBase = OptionalHeader.ImageBase
@@ -2574,7 +2574,7 @@ typedef struct _ETW_SPLITIO_INFO
 #include <poppack.h>
 
 //
-// Verified against ntoskrnl EtwpTraceRegistry: fixed body is 24 (0x18) bytes,
+// EtwpTraceRegistry emits a fixed body of 24 (0x18) bytes,
 // followed by a variable UNICODE Name descriptor. Event code = (type | 0x0900)
 // (Registry group). InitialTime is a per-CPU performance timestamp; Status is
 // the operation NTSTATUS; Index/InfoClass and Kcb are passed by the Cm caller.
@@ -2857,7 +2857,7 @@ static_assert(sizeof(WMI_UDP_V4) == 28, "WMI_UDP_V4 must equal 28");
 static_assert(sizeof(WMI_UDP_V6) == 52, "WMI_UDP_V6 must equal 52");
 
 //
-// Verified against ntoskrnl EtwTracePageFault: fixed body is 16 bytes (PageFault
+// EtwTracePageFault emits a fixed body of 16 bytes (PageFault
 // group mask 0x1000). VirtualAddress = faulting address; ProgramCounter =
 // KTRAP_FRAME.Rip (+0x168), or 0 when no trap frame. Event hooks (subtype):
 //   0x20A TransitionFault, 0x20B DemandZeroFault, 0x20C CopyOnWrite,
@@ -5188,7 +5188,7 @@ typedef struct _PERFINFO_CLOCK_INTERRUPT_INFORMATION
 
 //
 // Inter-processor interrupt PerfInfo events (PerfInfoGuid), group mask bit
-// 0x400000. Both bodies verified against ntoskrnl.
+// 0x400000. Both records are emitted by the kernel.
 //
 // Receive: PerfInfoLogIpiReceive (hook 0xF71 / 3953), emitted by
 // KiIpiProcessRequests via EtwTraceTimedEvent. Fixed 12-byte record:
@@ -5357,7 +5357,7 @@ typedef struct _PERFINFO_PAGECOMBINE_ITERATION_STAT
 // NOTE: Hard Fault event starts with InitialTime (LARGE_INTEGER)
 //       not shown in the structure.
 //
-// Verified against ntoskrnl. Emitted by PfHardFaultLog() ->
+// Emitted by PfHardFaultLog() ->
 // EtwTraceSiloTimedEvent(silo, HookId, SubType, &Record); the fixed MOF
 // descriptor length is 32 bytes (0x20). HookId = PERFINFO_LOG_TYPE_HARDFAULT
 // (0x220) for a normal hard fault, or 626/627 for prefetcher hard-fault
@@ -6712,7 +6712,7 @@ typedef enum _EVENT_INFO_CLASS EVENT_INFO_CLASS;
  * \param EventInformation A pointer to the buffer containing the configuration information.
  * \param InformationLength The size of the configuration information buffer in bytes.
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Returns Win32 errors. On the inspected build, unsupported information 
+ * \remarks Returns Win32 errors. Unsupported information
  * classes return ERROR_NOT_SUPPORTED (50). Provider traits (class 2) 
  * require non-NULL data and a length from 3 through 65535 bytes; 
  * descriptor-type selection (class 3) requires exactly 1 byte. 
