@@ -772,7 +772,7 @@ static void Si7zFreeItems(SI7Z_ITEM* items, uint32_t count)
     free(items);
 }
 
-SI7Z_RESULT Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourcePath, const SI7Z_OPTIONS* options)
+SI7Z_RESULT SI7ZAPI Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourcePath, const SI7Z_OPTIONS* options)
 {
     if (!archivePath || !sourcePath)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -786,7 +786,7 @@ SI7Z_RESULT Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourc
     return SI7Z_ERROR_NOT_IMPLEMENTED;
 }
 
-SI7Z_RESULT Si7zExtractArchive(const wchar_t* archivePath, const wchar_t* destinationPath, const SI7Z_OPTIONS* options)
+SI7Z_RESULT SI7ZAPI Si7zExtractArchive(const wchar_t* archivePath, const wchar_t* destinationPath, const SI7Z_OPTIONS* options)
 {
     if (!archivePath || !destinationPath)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -799,7 +799,7 @@ SI7Z_RESULT Si7zExtractArchive(const wchar_t* archivePath, const wchar_t* destin
     return SI7Z_ERROR_NOT_IMPLEMENTED;
 }
 
-SI7Z_RESULT Si7zListArchive(const wchar_t* archivePath, const SI7Z_OPTIONS* options, SI7Z_LIST* list)
+SI7Z_RESULT SI7ZAPI Si7zListArchive(const wchar_t* archivePath, const SI7Z_OPTIONS* options, SI7Z_LIST* list)
 {
     if (!archivePath || !list)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -815,7 +815,7 @@ SI7Z_RESULT Si7zListArchive(const wchar_t* archivePath, const SI7Z_OPTIONS* opti
     return SI7Z_ERROR_NOT_IMPLEMENTED;
 }
 
-SI7Z_RESULT Si7zCompressBuffer(const void* sourceData, size_t sourceSize, const wchar_t* itemName, const SI7Z_OPTIONS* options, void** archiveData, size_t* archiveSize)
+SI7Z_RESULT SI7ZAPI Si7zCompressBuffer(const void* sourceData, size_t sourceSize, const wchar_t* itemName, const SI7Z_OPTIONS* options, void** archiveData, size_t* archiveSize)
 {
     if ((!sourceData && sourceSize) || !archiveData || !archiveSize)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -911,7 +911,7 @@ SI7Z_RESULT Si7zCompressBuffer(const void* sourceData, size_t sourceSize, const 
     return SI7Z_OK;
 }
 
-SI7Z_RESULT Si7zExtractBufferItem(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* itemName, void** outputData, size_t* outputSize)
+SI7Z_RESULT SI7ZAPI Si7zExtractBufferItem(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* itemName, void** outputData, size_t* outputSize)
 {
     if ((!archiveData && archiveSize) || !outputData || !outputSize)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -948,7 +948,7 @@ SI7Z_RESULT Si7zExtractBufferItem(const void* archiveData, size_t archiveSize, c
     }
 }
 
-SI7Z_RESULT Si7zExtractBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, void** outputData, size_t* outputSize)
+SI7Z_RESULT SI7ZAPI Si7zExtractBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, void** outputData, size_t* outputSize)
 {
     return Si7zExtractBufferItem(archiveData, archiveSize, options, NULL, outputData, outputSize);
 }
@@ -1260,7 +1260,7 @@ Z7_COM7F_IMF(CSi7zDirectoryExtractCallback::CryptoGetTextPassword(BSTR* password
     return Si7zGetPassword(Password, password);
 }
 
-SI7Z_RESULT Si7zExtractBufferToDirectory(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* destinationPath)
+SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* destinationPath)
 {
     if ((!archiveData && archiveSize) || !destinationPath || !destinationPath[0])
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -1377,7 +1377,7 @@ SI7Z_RESULT Si7zExtractBufferToDirectory(const void* archiveData, size_t archive
     }
 }
 
-SI7Z_RESULT Si7zListBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, SI7Z_LIST* list)
+SI7Z_RESULT SI7ZAPI Si7zListBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, SI7Z_LIST* list)
 {
     if ((!archiveData && archiveSize) || !list)
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -1461,12 +1461,12 @@ SI7Z_RESULT Si7zListBuffer(const void* archiveData, size_t archiveSize, const SI
     return SI7Z_OK;
 }
 
-void Si7zFreeBuffer(void* buffer)
+void SI7ZAPI Si7zFreeBuffer(void* buffer)
 {
     free(buffer);
 }
 
-void Si7zFreeList(SI7Z_LIST* list)
+void SI7ZAPI Si7zFreeList(SI7Z_LIST* list)
 {
     if (!list)
         return;

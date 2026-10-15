@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef SI7ZAPI
+#define SI7ZAPI __cdecl
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,25 +73,25 @@ typedef struct _SI7Z_LIST
     uint32_t Count;
 } SI7Z_LIST;
 
-SI7Z_RESULT Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourcePath, const SI7Z_OPTIONS* options);
-SI7Z_RESULT Si7zExtractArchive(const wchar_t* archivePath, const wchar_t* destinationPath, const SI7Z_OPTIONS* options);
-SI7Z_RESULT Si7zListArchive(const wchar_t* archivePath, const SI7Z_OPTIONS* options, SI7Z_LIST* list);
-SI7Z_RESULT Si7zCompressBuffer(const void* sourceData, size_t sourceSize, const wchar_t* itemName, const SI7Z_OPTIONS* options, void** archiveData, size_t* archiveSize);
+SI7Z_RESULT SI7ZAPI Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourcePath, const SI7Z_OPTIONS* options);
+SI7Z_RESULT SI7ZAPI Si7zExtractArchive(const wchar_t* archivePath, const wchar_t* destinationPath, const SI7Z_OPTIONS* options);
+SI7Z_RESULT SI7ZAPI Si7zListArchive(const wchar_t* archivePath, const SI7Z_OPTIONS* options, SI7Z_LIST* list);
+SI7Z_RESULT SI7ZAPI Si7zCompressBuffer(const void* sourceData, size_t sourceSize, const wchar_t* itemName, const SI7Z_OPTIONS* options, void** archiveData, size_t* archiveSize);
 // Reads 7z and ZIP archives. With Format == SI7Z_FORMAT_AUTO the format is detected
 // from the signature; Method is ignored. Password is used for encrypted archives.
 // Si7zExtractBuffer requires an archive with exactly one file (otherwise
 // SI7Z_ERROR_INVALID_ARGUMENT); Si7zExtractBufferItem extracts the file whose
 // path matches itemName ('/' and '\' are equivalent, case-insensitive).
-SI7Z_RESULT Si7zExtractBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, void** outputData, size_t* outputSize);
-SI7Z_RESULT Si7zExtractBufferItem(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* itemName, void** outputData, size_t* outputSize);
+SI7Z_RESULT SI7ZAPI Si7zExtractBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, void** outputData, size_t* outputSize);
+SI7Z_RESULT SI7ZAPI Si7zExtractBufferItem(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* itemName, void** outputData, size_t* outputSize);
 // Extracts every entry under destinationPath. Drive letters and leading separators are
 // stripped; entries containing "..", ':' or other unsafe components fail the whole call
 // before anything is written, and existing reparse points are never written through.
 // Modification times are restored. Extraction stops at the first failed entry.
-SI7Z_RESULT Si7zExtractBufferToDirectory(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* destinationPath);
-SI7Z_RESULT Si7zListBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, SI7Z_LIST* list);
-void Si7zFreeBuffer(void* buffer);
-void Si7zFreeList(SI7Z_LIST* list);
+SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, const wchar_t* destinationPath);
+SI7Z_RESULT SI7ZAPI Si7zListBuffer(const void* archiveData, size_t archiveSize, const SI7Z_OPTIONS* options, SI7Z_LIST* list);
+void SI7ZAPI Si7zFreeBuffer(void* buffer);
+void SI7ZAPI Si7zFreeList(SI7Z_LIST* list);
 
 #ifdef __cplusplus
 }
