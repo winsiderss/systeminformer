@@ -142,8 +142,8 @@ const SYMCRYPT_MLDSA_INTERNAL_PARAMS SymCryptMlDsaInternalParams44 =
     .commitmentRoundingRange = 95232,
     .w1EncodeCoefficientBitLength = 6, // [0, 43]
     .cbCommitmentHash = 32,
-    .cbEncodedPrivateKey = 2560,
-    .cbEncodedPublicKey = 1312,
+    .cbEncodedPrivateKey = SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA44,
+    .cbEncodedPublicKey = SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA44,
     .cbEncodedSignature = SYMCRYPT_MLDSA_SIGNATURE_SIZE_MLDSA44
 };
 
@@ -166,8 +166,8 @@ const SYMCRYPT_MLDSA_INTERNAL_PARAMS SymCryptMlDsaInternalParams65 =
     .commitmentRoundingRange = 261888,
     .w1EncodeCoefficientBitLength = 4, // [0, 15]
     .cbCommitmentHash = 48,
-    .cbEncodedPrivateKey = 4032,
-    .cbEncodedPublicKey = 1952,
+    .cbEncodedPrivateKey = SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA65,
+    .cbEncodedPublicKey = SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA65,
     .cbEncodedSignature = SYMCRYPT_MLDSA_SIGNATURE_SIZE_MLDSA65
 };
 
@@ -190,8 +190,8 @@ const SYMCRYPT_MLDSA_INTERNAL_PARAMS SymCryptMlDsaInternalParams87 =
     .commitmentRoundingRange = 261888,
     .w1EncodeCoefficientBitLength = 4, // [0, 15]
     .cbCommitmentHash = 64,
-    .cbEncodedPrivateKey = 4896,
-    .cbEncodedPublicKey = 2592,
+    .cbEncodedPrivateKey = SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA87,
+    .cbEncodedPublicKey = SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA87,
     .cbEncodedSignature = SYMCRYPT_MLDSA_SIGNATURE_SIZE_MLDSA87
 };
 
@@ -212,10 +212,13 @@ typedef struct _SYMCRYPT_HASH_OID_MAPPING
 //
 const SYMCRYPT_HASH_OID_MAPPING g_hashOidMap[] =
 {
+    { SYMCRYPT_PQDSA_HASH_ID_SHA224,        &SymCryptSha224Algorithm_default,       &SymCryptSha224OidList[1],      FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA256,        &SymCryptSha256Algorithm_default,       &SymCryptSha256OidList[1],      FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA384,        &SymCryptSha384Algorithm_default,       &SymCryptSha384OidList[1],      FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA512,        &SymCryptSha512Algorithm_default,       &SymCryptSha512OidList[1],      FALSE },
+    { SYMCRYPT_PQDSA_HASH_ID_SHA512_224,    &SymCryptSha512_224Algorithm_default,   &SymCryptSha512_224OidList[1],  FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA512_256,    &SymCryptSha512_256Algorithm_default,   &SymCryptSha512_256OidList[1],  FALSE },
+    { SYMCRYPT_PQDSA_HASH_ID_SHA3_224,      &SymCryptSha3_224Algorithm_default,     &SymCryptSha3_224OidList[1],    FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA3_256,      &SymCryptSha3_256Algorithm_default,     &SymCryptSha3_256OidList[1],    FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA3_384,      &SymCryptSha3_384Algorithm_default,     &SymCryptSha3_384OidList[1],    FALSE },
     { SYMCRYPT_PQDSA_HASH_ID_SHA3_512,      &SymCryptSha3_512Algorithm_default,     &SymCryptSha3_512OidList[1],    FALSE },
@@ -227,10 +230,13 @@ const SYMCRYPT_HASH_OID_MAPPING g_hashOidMap[] =
 // The table above relies on the OID lists having (at least) two entries, where the second one
 // is the 11-byte encoding of the OID. If this ever changes, the table needs to be updated.
 //
+C_ASSERT( SYMCRYPT_SHA224_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA256_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA384_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA512_OID_COUNT == 2 );
+C_ASSERT( SYMCRYPT_SHA512_224_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA512_256_OID_COUNT == 2 );
+C_ASSERT( SYMCRYPT_SHA3_224_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA3_256_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA3_384_OID_COUNT == 2 );
 C_ASSERT( SYMCRYPT_SHA3_512_OID_COUNT == 2 );
@@ -288,7 +294,7 @@ SymCryptMlDsaSizeofKeyFormatFromParams(
     switch( mlDsakeyFormat )
     {
         case SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_SEED:
-            *pcbKeyFormat = SYMCRYPT_MLDSA_ROOT_SEED_SIZE;
+            *pcbKeyFormat = SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE;
             break;
         case SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_KEY:
             *pcbKeyFormat = pInternalParams->cbEncodedPrivateKey;
@@ -834,13 +840,16 @@ SymCryptMlDsaMatrixVectorMontMul(
 }
 
 _Use_decl_annotations_
-VOID
+SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptMlDsaRejNttPoly(
     PCBYTE                      pbRejNttPolySeed,
     SIZE_T                      cbRejNttPolySeed,
     PSYMCRYPT_MLDSA_POLYELEMENT peDst )
 {
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    UINT32 nIterations = 0;
+
     SYMCRYPT_ASSERT( cbRejNttPolySeed == SYMCRYPT_MLDSA_REJNTTPOLY_SEED_SIZE );
 
     SYMCRYPT_SHAKE128_STATE shakeState;
@@ -857,23 +866,34 @@ SymCryptMlDsaRejNttPoly(
         // CoeffFromThreeBytes from FIPS 204
         do
         {
+            if( nIterations >= SYMCRYPT_MLDSA_REJNTTPOLY_MAX_ITERATIONS )
+            {
+                scError = SYMCRYPT_EXTERNAL_FAILURE;
+                goto cleanup;
+            }
             SymCryptShake128Extract( &shakeState, shakeBytes, 3, FALSE );
             shakeBytes[2] &= 0x7F; // if b2 > 127, b2 -= 128
             coeff = SYMCRYPT_LOAD_LSBFIRST32( shakeBytes );
+            nIterations++;
         } while (coeff >= SYMCRYPT_MLDSA_Q);
         
         peDst->coeffs[i] = coeff;
     }
+
+cleanup:
+    return scError;
 }
 
 _Use_decl_annotations_
-VOID
+SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptMlDsaExpandA(
     PCBYTE                  pbPublicSeed,
     SIZE_T                  cbPublicSeed,
     PSYMCRYPT_MLDSA_MATRIX  pmA )
 {
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+
     SYMCRYPT_ASSERT( cbPublicSeed == SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE );
     C_ASSERT( SYMCRYPT_MLDSA_REJNTTPOLY_SEED_SIZE == SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE + 2 );
 
@@ -890,10 +910,16 @@ SymCryptMlDsaExpandA(
             rejNttSeed[SYMCRYPT_MLDSA_REJNTTPOLY_SEED_SIZE - 1] = i;
 
             #pragma prefast( suppress: 6385, "False warning - reading invalid data from rejNttSeed" );
-            SymCryptMlDsaRejNttPoly( rejNttSeed, sizeof(rejNttSeed), SYMCRYPT_INTERNAL_MLDSA_MATRIX_ELEMENT( i, j, pmA ) );
-
+            scError = SymCryptMlDsaRejNttPoly( rejNttSeed, sizeof(rejNttSeed), SYMCRYPT_INTERNAL_MLDSA_MATRIX_ELEMENT( i, j, pmA ) );
+            if( scError != SYMCRYPT_NO_ERROR )
+            {
+                goto cleanup;
+            }
         }
     }
+
+cleanup:
+    return scError;
 }
 
 _Use_decl_annotations_
@@ -922,7 +948,7 @@ SymCryptMlDsaCoeffFromHalfByte(
 }
 
 _Use_decl_annotations_
-VOID
+SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptMlDsaRejBoundedPoly(
     PCSYMCRYPT_MLDSA_INTERNAL_PARAMS    pParams,
@@ -930,6 +956,8 @@ SymCryptMlDsaRejBoundedPoly(
     SIZE_T                              cbRejBoundedPolySeed,
     PSYMCRYPT_MLDSA_POLYELEMENT         peDst )
 {
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+
     SYMCRYPT_ASSERT( cbRejBoundedPolySeed == SYMCRYPT_MLDSA_REJBOUNDEDPOLY_SEED_SIZE );
 
     SYMCRYPT_SHAKE256_STATE shakeState;
@@ -940,8 +968,16 @@ SymCryptMlDsaRejBoundedPoly(
     UINT32 i = 0;
     INT8 z0, z1;
 
+    UINT32 nIterations = 0;
+
     do
     {
+        if( nIterations >= SYMCRYPT_MLDSA_REJBOUNDEDPOLY_MAX_ITERATIONS )
+        {
+            scError = SYMCRYPT_EXTERNAL_FAILURE;
+            goto cleanup;
+        }
+
         // Note on sidechannel safety: the rejection sampling here can leak which bytes of the SHAKE
         // output are used and which are rejected. However, bytes themselves are not leaked. This
         // may allow the attacker to more quickly eliminate incorrect seed values when doing an
@@ -950,6 +986,7 @@ SymCryptMlDsaRejBoundedPoly(
         SymCryptShake256Extract( &shakeState, &shakeByte, sizeof(shakeByte), FALSE );
         z0 = SymCryptMlDsaCoeffFromHalfByte( pParams, shakeByte & 0x0F );
         z1 = SymCryptMlDsaCoeffFromHalfByte( pParams, shakeByte >> 4 );
+        nIterations++;
 
         SYMCRYPT_ASSERT( z0 == INT8_MIN || (( z0 + pParams->privateKeyRange >= 0 ) && ( z0 + pParams->privateKeyRange <= 2 * pParams->privateKeyRange )) );
         SYMCRYPT_ASSERT( z1 == INT8_MIN || (( z1 + pParams->privateKeyRange >= 0 ) && ( z1 + pParams->privateKeyRange <= 2 * pParams->privateKeyRange )) );
@@ -968,11 +1005,14 @@ SymCryptMlDsaRejBoundedPoly(
 
     } while( i < SYMCRYPT_MLWE_POLYNOMIAL_COEFFICIENTS );
 
+cleanup:
     SymCryptWipeKnownSize( &shakeState, sizeof(shakeState) );
+
+    return scError;
 }
 
 _Use_decl_annotations_
-VOID
+SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptMlDsaExpandS(
     PCSYMCRYPT_MLDSA_INTERNAL_PARAMS    pParams,
@@ -981,6 +1021,8 @@ SymCryptMlDsaExpandS(
     PSYMCRYPT_MLDSA_VECTOR              pvs1,
     PSYMCRYPT_MLDSA_VECTOR              pvs2 )
 {
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+
     SYMCRYPT_ASSERT( cbPrivateVectorSeed == SYMCRYPT_MLDSA_PRIVATE_VECTOR_SEED_SIZE );
     C_ASSERT( SYMCRYPT_MLDSA_REJBOUNDEDPOLY_SEED_SIZE == SYMCRYPT_MLDSA_PRIVATE_VECTOR_SEED_SIZE + 2 );
 
@@ -995,23 +1037,34 @@ SymCryptMlDsaExpandS(
     for(UINT16 i = 0; i < nCols; ++i)
     {
         SYMCRYPT_STORE_LSBFIRST16( rejBoundedPolySeed + SYMCRYPT_MLDSA_REJBOUNDEDPOLY_SEED_SIZE - sizeof(UINT16), i );
-        SymCryptMlDsaRejBoundedPoly( pParams, rejBoundedPolySeed, sizeof(rejBoundedPolySeed),
+        scError = SymCryptMlDsaRejBoundedPoly( pParams, rejBoundedPolySeed, sizeof(rejBoundedPolySeed),
             SYMCRYPT_INTERNAL_MLDSA_VECTOR_ELEMENT( i, pvs1 ) );
+        if( scError != SYMCRYPT_NO_ERROR )
+        {
+            goto cleanup;
+        }
     }
 
     for(UINT16 i = 0; i < nRows; ++i)
     {
         SYMCRYPT_STORE_LSBFIRST16( rejBoundedPolySeed + SYMCRYPT_MLDSA_REJBOUNDEDPOLY_SEED_SIZE - sizeof(UINT16), (UINT16) nCols + i );
         #pragma prefast( suppress: 6385, "False warning - reading invalid data from rejBoundedPolySeed" ); // Doesn't trigger in previous loop for some reason
-        SymCryptMlDsaRejBoundedPoly( pParams, rejBoundedPolySeed, sizeof(rejBoundedPolySeed),
+        scError = SymCryptMlDsaRejBoundedPoly( pParams, rejBoundedPolySeed, sizeof(rejBoundedPolySeed),
             SYMCRYPT_INTERNAL_MLDSA_VECTOR_ELEMENT( i, pvs2 ) );
+        if( scError != SYMCRYPT_NO_ERROR )
+        {
+            goto cleanup;
+        }
     }
 
+cleanup:
     SymCryptWipeKnownSize( rejBoundedPolySeed, sizeof(rejBoundedPolySeed) );
+
+    return scError;
 }
 
 _Use_decl_annotations_
-VOID
+SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptMlDsaSampleInBall(
     PCSYMCRYPT_MLDSA_INTERNAL_PARAMS    pParams,
@@ -1019,6 +1072,9 @@ SymCryptMlDsaSampleInBall(
     SIZE_T                              cbCommitmentHash,
     PSYMCRYPT_MLDSA_POLYELEMENT         peChallenge )
 {
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    
+
     SymCryptMlDsaPolyElementSetZero( peChallenge );
 
     SYMCRYPT_SHAKE256_STATE shakeState;
@@ -1038,9 +1094,16 @@ SymCryptMlDsaSampleInBall(
         ++i)
     {
         BYTE j = 0;
+        UINT32 nIterations = 0;
         do
         {
+            if( nIterations >= SYMCRYPT_MLDSA_SAMPLEINBALL_MAX_ITERATIONS )
+            {
+                scError = SYMCRYPT_EXTERNAL_FAILURE;
+                goto cleanup;
+            }
             SymCryptShake256Extract( &shakeState, &j, sizeof(j), FALSE );
+            nIterations++;
         } while( j > i );
 
         peChallenge->coeffs[i] = peChallenge->coeffs[j];
@@ -1052,7 +1115,10 @@ SymCryptMlDsaSampleInBall(
         peChallenge->coeffs[j] = ((SYMCRYPT_MLDSA_Q - 1) & negativeMask) | (1 & ~negativeMask);
     }
 
+cleanup:
     SymCryptWipeKnownSize( &shakeState, sizeof(shakeState) );
+
+    return scError;
 }
 
 _Use_decl_annotations_
@@ -1296,7 +1362,7 @@ SymCryptMlDsaPkDecode(
     // Reset the private key state in case this key object is being reused
     if( pkMlDsakey->hasRootSeed )
     {
-        SymCryptWipeKnownSize( pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_ROOT_SEED_SIZE );
+        SymCryptWipeKnownSize( pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE );
         pkMlDsakey->hasRootSeed = FALSE;
     }
 
@@ -1342,10 +1408,14 @@ SymCryptMlDsaPkDecode(
 
     SymCryptMlDsaVectorNTT( pkMlDsakey->pvt1 );
 
-    SymCryptMlDsaExpandA(
+    scError = SymCryptMlDsaExpandA(
         pkMlDsakey->publicSeed,
         SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE,
         pkMlDsakey->pmA );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
 
     SymCryptShake256Result( pShakeState, pkMlDsakey->publicKeyHash );
 
@@ -1504,7 +1574,7 @@ SymCryptMlDsaSkDecode(
     // Reset the key state in case this key is being reused
     pkMlDsakey->hasRootSeed = FALSE;
     pkMlDsakey->hasPrivateKey = FALSE;
-    SymCryptWipeKnownSize( pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_ROOT_SEED_SIZE );
+    SymCryptWipeKnownSize( pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE );
 
     memcpy( pkMlDsakey->publicSeed, pbCurr, SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE );
     pbCurr += SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE;
@@ -1516,7 +1586,11 @@ SymCryptMlDsaSkDecode(
     pbCurr += SYMCRYPT_MLDSA_PUBLIC_KEY_HASH_SIZE;
 
     // Expand A matrix
-    SymCryptMlDsaExpandA( pkMlDsakey->publicSeed, SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE, pkMlDsakey->pmA );
+    scError = SymCryptMlDsaExpandA( pkMlDsakey->publicSeed, SYMCRYPT_MLDSA_PUBLIC_SEED_SIZE, pkMlDsakey->pmA );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
 
     scError = SymCryptMlDsaVectorDecode(
         pbCurr,
@@ -1797,7 +1871,6 @@ _Use_decl_annotations_
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptHashMlDsaValidateHashAlgAndGetOid(
-    PCSYMCRYPT_MLDSA_INTERNAL_PARAMS    pParams,
     SYMCRYPT_PQDSA_HASH_ID              hashAlg,
     SIZE_T                              cbHash,
     PCSYMCRYPT_OID*                     ppOid )
@@ -1829,10 +1902,16 @@ SymCryptHashMlDsaValidateHashAlgAndGetOid(
     SYMCRYPT_ASSERT( pHashOid->cbOID == SYMCRYPT_MLDSA_SUPPORTED_HASH_OID_SIZE );
 
     // For traditional hash algorithms (non-XOFs), the hash length must exactly match the expected
-    // value. For XOFs, the output length is arbitrary, and any length is acceptable as long as it
-    // meets the minimum collision strength specified by the parameter set (cbCommitmentHash)
-    if( (!fIsXof && cbHash != cbHashExpected ) ||
-        ( cbHash < pParams->cbCommitmentHash ) )
+    // value. For XOFs, the output length must be at least the default output size.
+    if( fIsXof )
+    {
+        if( cbHash < cbHashExpected )
+        {
+            scError = SYMCRYPT_INVALID_ARGUMENT;
+            goto cleanup;
+        }
+    }
+    else if( cbHash != cbHashExpected )
     {
         scError = SYMCRYPT_INVALID_ARGUMENT;
         goto cleanup;
@@ -2407,4 +2486,26 @@ SymCryptMlDsaTemporariesFree(
 
     SymCryptWipe( pTemporaries, pTemporaries->cbTotalSize );
     SymCryptCallbackFree( pTemporaries );
+}
+
+_Use_decl_annotations_
+VOID
+SYMCRYPT_CALL
+SymCryptMlDsakeyWipePrivateState(
+    PSYMCRYPT_MLDSAKEY pkMlDsakey )
+{
+    if ( pkMlDsakey->hasRootSeed )
+    {
+        SymCryptWipeKnownSize( pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE );
+        pkMlDsakey->hasRootSeed = FALSE;
+    }
+
+    if ( pkMlDsakey->hasPrivateKey )
+    {
+        SymCryptWipeKnownSize( pkMlDsakey->privateSigningSeed, SYMCRYPT_MLDSA_PRIVATE_SIGNING_SEED_SIZE );
+        SymCryptMlDsaVectorSetZero( pkMlDsakey->pvs1 );
+        SymCryptMlDsaVectorSetZero( pkMlDsakey->pvs2 );
+        SymCryptMlDsaVectorSetZero( pkMlDsakey->pvt0 );
+        pkMlDsakey->hasPrivateKey = FALSE;
+    }
 }

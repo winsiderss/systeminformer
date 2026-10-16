@@ -6,7 +6,12 @@
 //
 
 #include "precomp.h"
-#include <sys/random.h>
+
+#if SYMCRYPT_PLATFORM_APPLE
+    #include <sys/random.h>
+#else
+    #include <unistd.h>
+#endif
 
 // Nothing to init
 VOID

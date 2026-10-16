@@ -36,7 +36,11 @@
 
 SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsKernelmodeWin8_1nLater()
 {
-    return 0;
+    #if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
+        return (SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL | SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL);
+    #else
+        return 0;
+    #endif
 }
 
 
@@ -191,6 +195,58 @@ cleanup:
 VOID
 SYMCRYPT_CALL
 SymCryptRestoreYmmEnvWindowsKernelmodeWin8_1nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+
+    SYMCRYPT_CHECK_MAGIC( pSaveData );
+
+    KeRestoreExtendedProcessorState( (PXSTATE_SAVE)&pSaveData->data[0] );
+
+    SYMCRYPT_WIPE_MAGIC( pSaveData );
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmmEnvWindowsKernelmodeWin8_1nLater( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    SYMCRYPT_ERROR result = SYMCRYPT_NO_ERROR;
+
+    C_ASSERT( sizeof( pSaveData->data ) == sizeof( XSTATE_SAVE ));
+
+    //
+    // A rare error check. If we are called without AVX512 enabled something is badly
+    // wrong, and it could create a corrupted CPU state which is impossible to debug.
+    //
+    if( !SYMCRYPT_CPU_FEATURES_PRESENT( SYMCRYPT_CPU_FEATURE_AVX512 ) )
+    {
+        SymCryptFatal( 'mmzs' );
+    }
+
+    // KeSaveExtendedProcessorState must only be called at IRQL <= DISPATCH_LEVEL
+    if( KeGetCurrentIrql() > DISPATCH_LEVEL )
+    {
+        result = SYMCRYPT_EXTERNAL_FAILURE;
+        goto cleanup;
+    }
+
+    //
+    // Our init routine disabled AVX512 if the XSTATE_MASK_AVX512 isn't supported, so we don't have to check
+    // for that anymore.
+    //
+    if( !NT_SUCCESS( KeSaveExtendedProcessorState( XSTATE_MASK_AVX512, (PXSTATE_SAVE)&pSaveData->data[0] ) ) )
+    {
+        result = SYMCRYPT_EXTERNAL_FAILURE;
+        goto cleanup;
+    }
+
+    SYMCRYPT_SET_MAGIC( pSaveData );
+
+cleanup:
+    return result;
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmmEnvWindowsKernelmodeWin8_1nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
 {
 
     SYMCRYPT_CHECK_MAGIC( pSaveData );

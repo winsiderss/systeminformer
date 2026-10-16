@@ -59,9 +59,6 @@ functionality/performance improvements. We take care to maintain a stable API an
 a suite of strong regression tests, and staying on the current version prevents the need for complex
 and potential riskier backports.
 
-We will support long-term servicing of specific releases for security fixes. Details of this plan will be
-released publicly in the future.
-
 # Security Bugs
 If you believe you have found a problem that affects the security of this code, please do **NOT** create an issue
 or pull request, but instead email your comments to secure@microsoft.com. See [SECURITY.md](SECURITY.md) for more info.

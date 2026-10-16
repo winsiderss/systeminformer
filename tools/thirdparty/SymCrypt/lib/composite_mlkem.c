@@ -313,10 +313,10 @@ SymCryptCompositeMlKemkeyGenerate(
             UINT32                          flags )
 {
     SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    BYTE rgbPrivateSeed[SYMCRYPT_COMPOSITE_MLKEM_IRTF_PRIVATE_SEED_SIZE];
 
     // Ensure only allowed flags are specified
     UINT32 allowedFlags = SYMCRYPT_FLAG_KEY_NO_FIPS;
-    UINT32 eckeyFlags = flags | SYMCRYPT_FLAG_ECKEY_ECDH;
 
     if ( ( flags & ~allowedFlags ) != 0 )
     {
@@ -324,25 +324,24 @@ SymCryptCompositeMlKemkeyGenerate(
         goto cleanup;
     }
 
-    scError = SymCryptMlKemkeyGenerate( pkCompositeMlKemkey->pkMlKemkey, flags );
+    scError = SymCryptCallbackRandom( rgbPrivateSeed, sizeof(rgbPrivateSeed) );
     if ( scError != SYMCRYPT_NO_ERROR )
     {
         goto cleanup;
     }
 
-    scError = SymCryptEckeySetRandom( eckeyFlags, pkCompositeMlKemkey->pkEcKey );
+    scError = SymCryptCompositeMlKemkeySetValue(
+                rgbPrivateSeed, sizeof(rgbPrivateSeed),
+                SYMCRYPT_COMPOSITE_MLKEMKEY_FORMAT_IRTF_PRIVATE_SEED,
+                flags,
+                pkCompositeMlKemkey );
     if ( scError != SYMCRYPT_NO_ERROR )
     {
         goto cleanup;
     }
-
-    pkCompositeMlKemkey->hasPrivateSeed = FALSE;
 
 cleanup:
-    if ( scError != SYMCRYPT_NO_ERROR )
-    {
-        SymCryptCompositeMlKemkeyWipePrivateState( pkCompositeMlKemkey );
-    }
+    SymCryptWipeKnownSize( rgbPrivateSeed, sizeof(rgbPrivateSeed) );
 
     return scError;
 }
@@ -928,10 +927,10 @@ SymCryptCompositeMlKemEncapsulateEx(
     if (pbMlKemRandom != NULL)
     {
         scError = SymCryptMlKemEncapsulateEx(
-                pkCompositeMlKemkey->pkMlKemkey,
-                pbMlKemRandom, cbMlKemRandom,
-                rgbSharedSecretMlKem, sizeof(rgbSharedSecretMlKem),
-                pbMlKemCiphertext, cbMlKemCiphertext );
+                    pkCompositeMlKemkey->pkMlKemkey,
+                    pbMlKemRandom, cbMlKemRandom,
+                    rgbSharedSecretMlKem, sizeof(rgbSharedSecretMlKem),
+                    pbMlKemCiphertext, cbMlKemCiphertext );
         if( scError != SYMCRYPT_NO_ERROR )
         {
             goto cleanup;
@@ -940,9 +939,9 @@ SymCryptCompositeMlKemEncapsulateEx(
     else
     {
         scError = SymCryptMlKemEncapsulate(
-                pkCompositeMlKemkey->pkMlKemkey,
-                rgbSharedSecretMlKem, sizeof(rgbSharedSecretMlKem),
-                pbMlKemCiphertext, cbMlKemCiphertext );
+                    pkCompositeMlKemkey->pkMlKemkey,
+                    rgbSharedSecretMlKem, sizeof(rgbSharedSecretMlKem),
+                    pbMlKemCiphertext, cbMlKemCiphertext );
         if( scError != SYMCRYPT_NO_ERROR )
         {
             goto cleanup;

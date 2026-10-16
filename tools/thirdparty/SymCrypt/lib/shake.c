@@ -15,6 +15,9 @@
 //
 //  SHAKE128
 //
+
+#ifndef SYMCRUST_EXPERIMENTAL_BUILD
+
 #define Alg Shake128
 #define ALG SHAKE128
 #define SYMCRYPT_SHAKEXXX_INPUT_BLOCK_SIZE      SYMCRYPT_SHAKE128_INPUT_BLOCK_SIZE
@@ -24,6 +27,43 @@
 #undef SYMCRYPT_SHAKEXXX_INPUT_BLOCK_SIZE
 #undef ALG
 #undef Alg
+
+#endif // SYMCRUST_EXPERIMENTAL_BUILD
+
+//
+// SymCryptShake128StateExport
+//
+VOID
+SYMCRYPT_CALL
+SymCryptShake128StateExport(
+    _In_                                                    PCSYMCRYPT_SHAKE128_STATE   pState,
+    _Out_writes_bytes_(SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE) PBYTE                       pbBlob)
+{
+    SYMCRYPT_CHECK_MAGIC(pState);
+    SymCryptKeccakStateExport(SymCryptBlobTypeShake128State, &pState->ks, pbBlob);
+}
+
+
+//
+// SymCryptShake128StateImport
+//
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptShake128StateImport(
+    _Out_                                                   PSYMCRYPT_SHAKE128_STATE    pState,
+    _In_reads_bytes_(SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE)   PCBYTE                      pbBlob)
+{
+    SYMCRYPT_ERROR scError = SymCryptKeccakStateImport(SymCryptBlobTypeShake128State,
+                                                        &pState->ks,
+                                                        pbBlob);
+
+    if (scError == SYMCRYPT_NO_ERROR)
+    {
+        SYMCRYPT_SET_MAGIC(pState);
+    }
+
+    return scError;
+}
 
 const SYMCRYPT_HASH SymCryptShake128HashAlgorithm_default = {
     &SymCryptShake128Init,
@@ -65,8 +105,11 @@ SymCryptShake128Selftest(void)
 
 
 //
-//  SHAKE256 
+//  SHAKE256
 //
+
+#ifndef SYMCRUST_EXPERIMENTAL_BUILD
+
 #define Alg Shake256
 #define ALG SHAKE256
 #define SYMCRYPT_SHAKEXXX_INPUT_BLOCK_SIZE      SYMCRYPT_SHAKE256_INPUT_BLOCK_SIZE
@@ -76,6 +119,42 @@ SymCryptShake128Selftest(void)
 #undef SYMCRYPT_SHAKEXXX_INPUT_BLOCK_SIZE
 #undef ALG
 #undef Alg
+
+#endif // SYMCRUST_EXPERIMENTAL_BUILD
+
+//
+// SymCryptShake256StateExport
+//
+VOID
+SYMCRYPT_CALL
+SymCryptShake256StateExport(
+    _In_                                                    PCSYMCRYPT_SHAKE256_STATE   pState,
+    _Out_writes_bytes_(SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE) PBYTE                       pbBlob)
+{
+    SYMCRYPT_CHECK_MAGIC(pState);
+    SymCryptKeccakStateExport(SymCryptBlobTypeShake256State, &pState->ks, pbBlob);
+}
+
+//
+// SymCryptShake256StateImport
+//
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptShake256StateImport(
+    _Out_                                                   PSYMCRYPT_SHAKE256_STATE    pState,
+    _In_reads_bytes_(SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE)   PCBYTE                      pbBlob)
+{
+    SYMCRYPT_ERROR scError = SymCryptKeccakStateImport(SymCryptBlobTypeShake256State,
+                                                        &pState->ks,
+                                                        pbBlob);
+
+    if (scError == SYMCRYPT_NO_ERROR)
+    {
+        SYMCRYPT_SET_MAGIC(pState);
+    }
+
+    return scError;
+}
 
 const SYMCRYPT_HASH SymCryptShake256HashAlgorithm_default = {
     &SymCryptShake256Init,
@@ -149,9 +228,9 @@ SymCryptCShake128Selftest(void)
     static const unsigned char Nstr[] = { 'N' };
     static const unsigned char Sstr[] = { 'S' };
 
-    SymCryptCShake128(  Nstr, sizeof(Nstr), 
-                        Sstr, sizeof(Sstr), 
-                        SymCryptTestMsg3, sizeof(SymCryptTestMsg3), 
+    SymCryptCShake128(  Nstr, sizeof(Nstr),
+                        Sstr, sizeof(Sstr),
+                        SymCryptTestMsg3, sizeof(SymCryptTestMsg3),
                         result, sizeof(result));
 
     SymCryptInjectError(result, sizeof(result));
@@ -164,7 +243,7 @@ SymCryptCShake128Selftest(void)
 
 
 //
-//  CSHAKE256 
+//  CSHAKE256
 //
 #define Alg CShake256
 #define ALG CSHAKE256
@@ -229,14 +308,14 @@ SymCryptCShakeEncodeInputStrings(
 
     // left_encode( inputBlockSize ) for byte_pad function
     //
-    // SymCryptKeccakEncodeTimes8 function encodes 8 times the value passed to 
+    // SymCryptKeccakEncodeTimes8 function encodes 8 times the value passed to
     // it. Here, we want the actual value of pState->inputBlockSize to be encoded,
     // hence the division by 8.
     SymCryptKeccakAppendEncodeTimes8(pState, pState->inputBlockSize / 8, TRUE);
 
     SymCryptKeccakAppendEncodedString(pState, pbFunctionNameString, cbFunctionNameString);
     SymCryptKeccakAppendEncodedString(pState, pbCustomizationString, cbCustomizationString);
-    
+
     // Appending of Customization String may have already called the permutation
     // if the appended data is aligned to input block size, in which case the zero
     // padding has been done.
@@ -259,7 +338,7 @@ SymCryptKeccakEncodeTimes8(
 {
     BYTE encoding[1 + sizeof(UINT64)];
     SIZE_T ret = 0;
-    
+
     // longest encoding is 1 byte for length + 9 bytes for uInput * 8
     SYMCRYPT_ASSERT(cbOutput >= (1 + sizeof(encoding)));
     UNREFERENCED_PARAMETER(cbOutput);

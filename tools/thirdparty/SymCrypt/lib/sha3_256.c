@@ -30,6 +30,9 @@ const PCSYMCRYPT_HASH SymCryptSha3_256Algorithm = &SymCryptSha3_256Algorithm_def
 //
 // SymCryptSha3_256
 //
+
+#ifndef SYMCRUST_EXPERIMENTAL_BUILD
+
 #define ALG     SHA3_256
 #define Alg     Sha3_256
 #include "hash_pattern.c"
@@ -47,7 +50,7 @@ SymCryptSha3_256Init(_Out_ PSYMCRYPT_SHA3_256_STATE pState)
     SymCryptKeccakInit(&pState->ks,
                         SYMCRYPT_SHA3_256_INPUT_BLOCK_SIZE,
                         SYMCRYPT_SHA3_PADDING_VALUE);
-    
+
     SYMCRYPT_SET_MAGIC(pState);
 }
 
@@ -78,6 +81,7 @@ SymCryptSha3_256Result(
     SymCryptKeccakExtract(&pState->ks, pbResult, SYMCRYPT_SHA3_256_RESULT_SIZE, TRUE);
 }
 
+#endif // SYMCRUST_EXPERIMENTAL_BUILD
 
 //
 // SymCryptSha3_256StateExport

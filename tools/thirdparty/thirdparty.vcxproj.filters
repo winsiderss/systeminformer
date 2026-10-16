@@ -1012,6 +1012,9 @@
     <ClInclude Include="SymCrypt\lib\sc_lib.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="SymCrypt\lib\sc_lib_composite_mldsa.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
     <ClInclude Include="SymCrypt\lib\smallPrimes32.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
@@ -1022,6 +1025,9 @@
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
     <ClInclude Include="SymCrypt\inc\symcrypt.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\symcrypt_atomics.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
     <ClInclude Include="SymCrypt\lib\precomp.h">
@@ -1103,6 +1109,9 @@
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\composite_encoding.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\composite_mldsa.c">
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\composite_mlkem.c">

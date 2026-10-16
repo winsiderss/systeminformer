@@ -429,6 +429,7 @@ set(SOURCES_SYMCRYPT
     "SymCrypt/lib/aes-selftest.c"
     "SymCrypt/lib/aes-xmm.c"
     "SymCrypt/lib/aes-ymm.c"
+    "SymCrypt/lib/aes-zmm.c"
     "SymCrypt/lib/aescmac.c"
     "SymCrypt/lib/aesCtrDrbg.c"
     "SymCrypt/lib/aeskw.c"
@@ -439,6 +440,7 @@ set(SOURCES_SYMCRYPT
     "SymCrypt/lib/chacha20.c"
     "SymCrypt/lib/chacha20_poly1305.c"
     "SymCrypt/lib/composite_encoding.c"
+    "SymCrypt/lib/composite_mldsa.c"
     "SymCrypt/lib/composite_mlkem.c"
     "SymCrypt/lib/cpuid.c"
     "SymCrypt/lib/cpuid_notry.c"
@@ -576,11 +578,13 @@ endif()
 set(HEADERS_SYMCRYPT
     "SymCrypt/inc/buildInfo.h"
     "SymCrypt/inc/symcrypt.h"
+    "SymCrypt/inc/symcrypt_atomics.h"
     "SymCrypt/inc/symcrypt_internal.h"
     "SymCrypt/inc/symcrypt_low_level.h"
     "SymCrypt/lib/ghash_definitions.h"
     "SymCrypt/lib/precomp.h"
     "SymCrypt/lib/sc_lib.h"
+    "SymCrypt/lib/sc_lib_composite_mldsa.h"
     "SymCrypt/lib/sc_lib_mldsa.h"
     "SymCrypt/lib/sc_lib_mlkem.h"
     "SymCrypt/lib/smallPrimes32.h"
@@ -680,6 +684,11 @@ if(MSVC_CLANG)
             $<$<COMPILE_LANGUAGE:C,CXX>:-mvaes>
             $<$<COMPILE_LANGUAGE:C,CXX>:-mvpclmulqdq>
             $<$<COMPILE_LANGUAGE:C,CXX>:-mrdseed>
+        )
+
+        # AVX-512 is only enabled for the ZMM file; it is runtime-dispatched by CPU feature checks.
+        set_source_files_properties("SymCrypt/lib/aes-zmm.c" PROPERTIES COMPILE_OPTIONS
+            "-mavx512f;-mavx512bw;-mavx512dq;-mavx512vl"
         )
     endif()
 endif()
