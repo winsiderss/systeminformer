@@ -881,6 +881,16 @@ VOID PhShowPagefilesDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// hwsensorwnd
+
+VOID PhShowHardwareSensorsWindow(
+    _In_ HWND ParentWindowHandle
+    );
+
+BOOLEAN PhHwSensorsWindowAvailable(
+    VOID
+    );
+
 // envdlg
 
 BOOLEAN PhShowEnvironmentVariableEditDialog(
