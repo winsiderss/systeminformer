@@ -69,6 +69,18 @@
     <ClCompile Include="hndlstat.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hwreport.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hwsensorwnd.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hwsmu.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="infodlg.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -459,6 +471,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\hndlprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hwprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hwsmu.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\memprv.h">

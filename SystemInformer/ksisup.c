@@ -1163,7 +1163,9 @@ NTSTATUS KsiValidateDynamicConfiguration(
  * This routine attempts to read a local `ksidyn.bin` and `ksidyn.sig` files,
  * validate the dynamic configuration for the current kernel and return both
  * the data and signature buffers to the caller. Caller owns the returned
- * buffers and must free them using PhFree().
+ * buffers and must free them using PhFree(). A configuration without a row for
+ * the current kernel is returned with STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL, its
+ * other parts still activate.
  *
  * \param[out] DynData Receives pointer to allocated dynamic data buffer.
  * \param[out] DynDataLength Receives the length of the dynamic data buffer.
@@ -1181,6 +1183,7 @@ NTSTATUS KsiGetDynData(
     static CONST PH_STRINGREF dataFileName = PH_STRINGREF_INIT(L"ksidyn.bin");
     static CONST PH_STRINGREF sigFileName = PH_STRINGREF_INIT(L"ksidyn.sig");
     NTSTATUS status;
+    NTSTATUS supportStatus;
     PBYTE data = NULL;
     ULONG dataLength;
     PBYTE sig = NULL;
@@ -1197,9 +1200,12 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiValidateDynamicConfiguration(data, dataLength);
-    if (!NT_SUCCESS(status))
+    supportStatus = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(supportStatus) && supportStatus != STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    {
+        status = supportStatus;
         goto CleanupExit;
+    }
 
     status = KsiReadConfiguration(&sigFileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
@@ -1219,7 +1225,7 @@ NTSTATUS KsiGetDynData(
     *Signature = sig;
     sig = NULL;
 
-    status = STATUS_SUCCESS;
+    status = supportStatus;
 
 CleanupExit:
     if (data)
@@ -1256,6 +1262,22 @@ VOID KsiActivateDynData(
         &signature,
         &signatureLength
         );
+
+    if (dynData && signature)
+    {
+        NTSTATUS activateStatus;
+
+        activateStatus = KphActivateDynData(
+            dynData,
+            dynDataLength,
+            signature,
+            signatureLength,
+            NULL
+            );
+
+        if (!NT_SUCCESS(activateStatus))
+            status = activateStatus;
+    }
 
     if (!showMessage)
     {
@@ -1313,27 +1335,8 @@ VOID KsiActivateDynData(
             status,
             FALSE,
             L"Reduced driver functionality",
-            L"Failed to access the dynamic configuration."
+            dynData ? L"Failed to activate the dynamic configuration." : L"Failed to access the dynamic configuration."
             );
-    }
-
-    if (dynData && signature)
-    {
-        status = KphActivateDynData(dynData,
-                                    dynDataLength,
-                                    signature,
-                                    signatureLength);
-        if (showMessage && !NT_SUCCESS(status))
-        {
-            PhShowKsiMessageEx(
-                WindowHandle,
-                TD_WARNING_ICON,
-                status,
-                FALSE,
-                L"Reduced driver functionality",
-                L"Failed to activate the dynamic configuration."
-                );
-        }
     }
 
     if (signature)

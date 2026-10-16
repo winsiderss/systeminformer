@@ -255,6 +255,10 @@
         <ClCompile Include="hndlprp.c" />
         <ClCompile Include="hndlprv.c" />
         <ClCompile Include="hndlstat.c" />
+        <ClCompile Include="hwprv.c" />
+        <ClCompile Include="hwreport.c" />
+        <ClCompile Include="hwsensorwnd.c" />
+        <ClCompile Include="hwsmu.c" />
         <ClCompile Include="infodlg.c" />
         <ClCompile Include="itemtips.c" />
         <ClCompile Include="jobprp.c" />
@@ -358,6 +362,8 @@
         <ClInclude Include="include\hndllist.h" />
         <ClInclude Include="include\hndlmenu.h" />
         <ClInclude Include="include\hndlprv.h" />
+        <ClInclude Include="include\hwprv.h" />
+        <ClInclude Include="include\hwsmu.h" />
         <ClInclude Include="include\informer.h" />
         <ClInclude Include="include\ksisup.h" />
         <ClInclude Include="include\mainwnd.h" />

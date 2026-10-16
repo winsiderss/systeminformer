@@ -119,6 +119,15 @@ EXPORTS
     PhHandleListViewNotifyBehaviors
     PhHandleListViewNotifyForCopy
     PhHandleTreeNewColumnMenu
+    PhHwFormatTemperature
+    PhHwGetCapabilities
+    PhHwGetChipsetTemperature
+    PhHwGetCpuSensor
+    PhHwGetCpuTemperatureLimit
+    PhHwGetPackageCount
+    PhHwGetPackageSensor
+    PhHwSensorsAvailable
+    PhHwSensorsEnabled
     PhImageListExtractIcon
     PhImageListFlushCache
     PhInitializeTreeNewColumnMenu
@@ -159,6 +168,7 @@ EXPORTS
     PhReferenceProcessRecordSafe
     PhReferenceServiceItem
     PhRegisterDialog
+    PhRegisterHardwareSensorSource
     PhRegisterMessageLoopFilter
     PhHideToast
     PhReleaseToast
@@ -209,6 +219,7 @@ EXPORTS
     PhSiUInt64LabelYFunction
     PhThawThread
     PhUnregisterDialog
+    PhUnregisterHardwareSensorSource
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
     PhUpdateServiceNode
@@ -1465,6 +1476,7 @@ EXPORTS
     KphAlpcQueryCommunicationsNamesInfo
     KphAlpcQueryInformation
     KphDuplicateObject
+    KphHwReadSuperIoBatch
     KphOpenDevice
     KphOpenDeviceBaseDevice
     KphOpenDeviceDriver

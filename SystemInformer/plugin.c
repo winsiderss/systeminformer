@@ -17,6 +17,7 @@
 #include <extmgri.h>
 #include <phsvccl.h>
 #include <procprv.h>
+#include <hwprv.h>
 #include <settings.h>
 #include <phsettings.h>
 #include <mapldr.h>
@@ -618,6 +619,9 @@ VOID PhUnloadPlugins(
     )
 {
     PhInvokeCallbackForAllPlugins(PluginCallbackUnload, UlongToPtr(SessionEnding));
+
+    // Hardware sensor sources are owned by their plugins.
+    PhHwSweepSensorSources();
 }
 
 /**
