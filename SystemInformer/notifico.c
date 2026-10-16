@@ -20,6 +20,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <appresolver.h>
+#include <hwprv.h>
 
 #include <mainwndp.h>
 #include <notifico.h>
@@ -51,7 +52,6 @@ static HANDLE PhpTrayIconEventHandle = NULL;
 #ifdef PH_NF_ENABLE_WORKQUEUE
 static SLIST_HEADER PhpTrayIconWorkQueueListHead;
 #endif
-static ULONG PopupIconIndex = ULONG_MAX; // Win11 workaround (dmex)
 static PPH_NF_ICON PopupRegisteredIcon = NULL; // Win11 workaround (dmex)
 
 VOID PhNfLoadStage1(
@@ -176,70 +176,73 @@ VOID PhNfSaveSettings(
     PhDereferenceObject(settingsString);
 }
 
+static VOID PhNfpSaveGuids(
+    VOID
+    )
+{
+    PH_STRING_BUILDER iconListBuilder;
+    PPH_STRING iconGuid;
+    PPH_STRING settingsString;
+
+    PhInitializeStringBuilder(&iconListBuilder, 100);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
+    {
+        if (iconGuid = PhFormatGuid(&PhNfpTrayIconItemGuids[i]))
+        {
+            PhAppendFormatStringBuilder(
+                &iconListBuilder,
+                L"%s|",
+                iconGuid->Buffer
+                );
+            PhDereferenceObject(iconGuid);
+        }
+    }
+
+    if (iconListBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&iconListBuilder, 1);
+
+    settingsString = PhFinalStringBuilderString(&iconListBuilder);
+    PhSetStringSetting2(SETTING_ICON_TRAY_GUIDS, &settingsString->sr);
+    PhDereferenceObject(settingsString);
+}
+
 VOID PhNfLoadGuids(
     VOID
     )
 {
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
-    ULONG i;
+    BOOLEAN save = FALSE;
 
     settingsString = PhGetStringSetting(SETTING_ICON_TRAY_GUIDS);
+    remaining = PhGetStringRef(settingsString);
 
-    if (PhIsNullOrEmptyString(settingsString))
+    // Slots that are missing, empty or malformed get a new GUID and the setting is saved again.
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
     {
-        PH_STRING_BUILDER iconListBuilder;
-        PPH_STRING iconGuid;
+        PH_STRINGREF guidPart;
+        GUID guid;
 
-        PhInitializeStringBuilder(&iconListBuilder, 100);
+        PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
 
-        for (i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
+        if (guidPart.Length != 0 && NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
+        {
+            PhNfpTrayIconItemGuids[i] = guid;
+        }
+        else
         {
             PhGenerateGuid(&PhNfpTrayIconItemGuids[i]);
-
-            if (iconGuid = PhFormatGuid(&PhNfpTrayIconItemGuids[i]))
-            {
-                PhAppendFormatStringBuilder(
-                    &iconListBuilder,
-                    L"%s|",
-                    iconGuid->Buffer
-                    );
-                PhDereferenceObject(iconGuid);
-            }
+            save = TRUE;
         }
-
-        if (iconListBuilder.String->Length != 0)
-            PhRemoveEndStringBuilder(&iconListBuilder, 1);
-
-        PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
-        PhSetStringSetting2(SETTING_ICON_TRAY_GUIDS, &settingsString->sr);
-        PhDereferenceObject(settingsString);
     }
-    else
+
+    if (save)
     {
-        remaining = PhGetStringRef(settingsString);
-
-        for (i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
-        {
-            PH_STRINGREF guidPart;
-            GUID guid;
-
-            if (remaining.Length == 0)
-                continue;
-
-            PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
-
-            if (guidPart.Length == 0)
-                continue;
-
-            if (!NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
-                PhGenerateGuid(&PhNfpTrayIconItemGuids[i]);
-            else
-                PhNfpTrayIconItemGuids[i] = guid;
-        }
-
-        PhDereferenceObject(settingsString);
+        PhNfpSaveGuids();
     }
+
+    PhClearReference(&settingsString);
 }
 
 VOID PhNfCreateIconThreadDelayed(
@@ -349,6 +352,9 @@ VOID PhNfLoadStage2(
     VOID
     )
 {
+    PPH_NF_ICON icon;
+    ULONG hwIconFlags;
+
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_ENABLED);
     PhNfTransparencyEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED);
     PhNfPersistTrayIconPositionEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED);
@@ -377,6 +383,15 @@ VOID PhNfLoadStage2(
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackTrayIconsInitializing), &pointers);
     }
+
+    // Registered after the plugin icons, which take their IconId from the registration count.
+    hwIconFlags = PhHwSensorsEnabled() ? 0 : PH_NF_ICON_UNAVAILABLE;
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_HISTORY], NULL, L"CPU &temperature history", hwIconFlags, PhNfpCpuTemperatureHistoryIconUpdateCallback, NULL);
+    icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY;
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_TEXT], NULL, L"CPU temperature (text)", hwIconFlags, PhNfpCpuTemperatureTextIconUpdateCallback, NULL);
+    icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT;
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_POWER_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_POWER_TEXT], NULL, L"CPU power (text)", hwIconFlags, PhNfpCpuPowerTextIconUpdateCallback, NULL);
+    icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_POWER_TEXT;
 
     // Load tray icon settings.
     PhNfLoadSettings();
@@ -486,6 +501,9 @@ PCWSTR PhNfpGetMiniInfoInitialSectionName(
     case PH_TRAY_ICON_ID_COMMIT_TEXT:
     case PH_TRAY_ICON_ID_PHYSICAL_HISTORY:
     case PH_TRAY_ICON_ID_PHYSICAL_TEXT:
+    case PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY:
+    case PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT:
+    case PH_TRAY_ICON_ID_CPU_POWER_TEXT:
         return L"Graphs";
     }
 
@@ -552,7 +570,7 @@ VOID PhNfForwardMessage(
             {
                 PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
 
-                if (PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+                if (PhNfpGetShowMiniInfoSectionData(registeredIcon, &showMiniInfoSectionData))
                 {
                     GetCursorPos(&IconClickLocation);
 
@@ -634,7 +652,6 @@ VOID PhNfForwardMessage(
                 // the broken NIN_POPUPOPEN notifications on Win11 the tray icons also send WM_MOUSEMOSE and before NIN_POPUPOPEN existed
                 // XP applications would compare the cursor position in a timer callback to show or hide the popup. (dmex)
 
-                PopupIconIndex = iconIndex;
                 PopupRegisteredIcon = registeredIcon;
 
                 PhSetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
@@ -644,7 +661,7 @@ VOID PhNfForwardMessage(
                 PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
                 POINT location;
 
-                if (PhNfMiniInfoEnabled && !IconDisableHover && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+                if (PhNfMiniInfoEnabled && !IconDisableHover && PhNfpGetShowMiniInfoSectionData(registeredIcon, &showMiniInfoSectionData))
                 {
                     GetCursorPos(&location);
                     PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
@@ -949,7 +966,7 @@ PPH_NF_ICON PhNfGetIconById(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (icon->SubId == SubId)
+        if (!icon->Plugin && icon->SubId == SubId)
             return icon;
     }
 
@@ -1685,7 +1702,12 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
     if (!(lineData1 && lineData2))
+    {
+        _freea(lineData2);
+        _freea(lineData1);
+        SelectBitmap(hdc, oldBitmap);
         return;
+    }
 
     lineDataCount = min(maxDataCount, PhCpuKernelHistory.Count);
     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
@@ -1791,7 +1813,12 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
     if (!(lineData1 && lineData2))
+    {
+        _freea(lineData2);
+        _freea(lineData1);
+        SelectBitmap(hdc, oldBitmap);
         return;
+    }
 
     lineDataCount = min(maxDataCount, PhIoReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -1907,7 +1934,10 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
     if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
         return;
+    }
 
     lineDataCount = min(maxDataCount, PhCommitHistory.Count);
 
@@ -1993,7 +2023,10 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
     if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
         return;
+    }
 
     lineDataCount = min(maxDataCount, PhPhysicalHistory.Count);
 
@@ -2540,6 +2573,312 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 0);
 }
 
+// Hardware sensor icons
+
+// After the gate closes the icon shows one update without a value, then stops until it opens.
+static VOID PhNfpHwUpdateIconAvailability(
+    _In_ PPH_NF_ICON Icon
+    )
+{
+    static ULONG closedShown = 0; // bit per hardware icon: an update without a value was shown
+    ULONG bit = 1UL << (Icon->SubId - PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY);
+
+    C_ASSERT(PH_TRAY_ICON_ID_CPU_POWER_TEXT - PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY < 32);
+
+    if (PhHwSensorsEnabled())
+    {
+        closedShown &= ~bit;
+
+        if (BooleanFlagOn(Icon->Flags, PH_NF_ICON_UNAVAILABLE))
+            RtlInterlockedClearBits(&Icon->Flags, PH_NF_ICON_UNAVAILABLE);
+    }
+    else if (!(closedShown & bit))
+    {
+        closedShown |= bit;
+    }
+    else if (!BooleanFlagOn(Icon->Flags, PH_NF_ICON_UNAVAILABLE))
+    {
+        RtlInterlockedSetBits(&Icon->Flags, PH_NF_ICON_UNAVAILABLE);
+    }
+}
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    *NewIconOrBitmap = NULL;
+    *Flags = 0;
+    *NewText = NULL;
+
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG maxDataCount;
+    ULONG lineDataCount;
+    PFLOAT lineData1;
+    BOOLEAN available;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[3];
+
+    PhNfpHwUpdateIconAvailability(Icon);
+    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    maxDataCount = drawInfo.Width / 2 + 1;
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
+        return;
+    }
+
+    // The history is empty until the first provider update.
+    lineDataCount = min(maxDataCount, PhHwCpuTemperatureHistory.Count);
+    PhCopyCircularBuffer_FLOAT(&PhHwCpuTemperatureHistory, lineData1, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, PhHwGetCpuTemperatureLimit(), lineDataCount);
+
+    for (ULONG i = 0; i < lineDataCount; i++)
+    {
+        if (lineData1[i] > 1.0f)
+            lineData1[i] = 1.0f;
+    }
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = PhCsColorTemperature;
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorTemperature);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"CPU temperature: ");
+
+    if (available)
+    {
+        PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[1]);
+        *NewText = PhFormat(format, 3, 0);
+    }
+    else
+    {
+        PhInitFormatS(&format[1], L"Unavailable");
+        *NewText = PhFormat(format, 2, 0);
+    }
+
+    _freea(lineData1);
+}
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuTemperatureTextIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    BOOLEAN available;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[3];
+    PPH_STRING text;
+    SIZE_T returnLength;
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    PhNfpHwUpdateIconAvailability(Icon);
+    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
+    drawInfo.TextColor = PhCsColorTemperature;
+
+    // The icon shows the value only; the unit is in the tooltip.
+    if (available)
+        PhHwFormatTemperature(PhHwCpuTemperature, 0, format);
+    else
+        PhInitFormatC(&format[0], L'-');
+
+    if (PhFormatToBuffer(format, 1, buffer, sizeof(buffer), &returnLength))
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = buffer;
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &string);
+    }
+    else
+    {
+        text = PhFormat(format, 1, 0);
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+        PhDereferenceObject(text);
+    }
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"CPU temperature: ");
+
+    if (available)
+    {
+        PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[1]);
+        *NewText = PhFormat(format, 3, 0);
+    }
+    else
+    {
+        PhInitFormatS(&format[1], L"Unavailable");
+        *NewText = PhFormat(format, 2, 0);
+    }
+}
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuPowerTextIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    BOOLEAN available;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[3];
+    PPH_STRING text;
+    SIZE_T returnLength;
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    PhNfpHwUpdateIconAvailability(Icon);
+    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_RAPL_PACKAGE);
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
+    drawInfo.TextColor = PhCsColorPowerUsage;
+
+    if (available)
+        PhInitFormatF(&format[0], PhHwCpuPower, 0);
+    else
+        PhInitFormatC(&format[0], L'-');
+
+    if (PhFormatToBuffer(format, 1, buffer, sizeof(buffer), &returnLength))
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = buffer;
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &string);
+    }
+    else
+    {
+        text = PhFormat(format, 1, 0);
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+        PhDereferenceObject(text);
+    }
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"CPU power: ");
+
+    if (available)
+    {
+        PhInitFormatF(&format[1], PhHwCpuPower, 1);
+        PhInitFormatS(&format[2], L" W");
+        *NewText = PhFormat(format, 3, 0);
+    }
+    else
+    {
+        PhInitFormatS(&format[1], L"Unavailable");
+        *NewText = PhFormat(format, 2, 0);
+    }
+}
+
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPlainIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2564,14 +2903,13 @@ VOID PhNfpPlainIconUpdateCallback(
 
 _Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
-    _In_ ULONG IconIndex,
     _In_ PPH_NF_ICON RegisteredIcon,
     _Out_ PPH_NF_MSG_SHOWMINIINFOSECTION_DATA Data
     )
 {
     BOOLEAN showMiniInfo = FALSE;
 
-    if (RegisteredIcon && RegisteredIcon->MessageCallback)
+    if (RegisteredIcon->MessageCallback)
     {
         Data->SectionName = NULL;
 
@@ -2590,16 +2928,19 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
             showMiniInfo = TRUE;
         }
     }
-    else
+    else if (!RegisteredIcon->Plugin)
     {
         showMiniInfo = TRUE;
 
-        switch (IconIndex)
+        switch (RegisteredIcon->SubId)
         {
         case PH_TRAY_ICON_ID_CPU_HISTORY:
         case PH_TRAY_ICON_ID_CPU_USAGE:
         case PH_TRAY_ICON_ID_CPU_TEXT:
         case PH_TRAY_ICON_ID_PLAIN_ICON:
+        case PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY:
+        case PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT:
+        case PH_TRAY_ICON_ID_CPU_POWER_TEXT:
             Data->SectionName = L"CPU";
             break;
         case PH_TRAY_ICON_ID_IO_HISTORY:
@@ -2661,7 +3002,6 @@ VOID PhNfpIconDisablePopupHoverWin11Workaround(
 {
     if (WindowsVersion >= WINDOWS_11_22H2)
     {
-        PopupIconIndex = ULONG_MAX;
         PopupRegisteredIcon = NULL;
 
         PhKillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
@@ -2680,8 +3020,8 @@ VOID PhNfpIconShowPopupHoverTimerProc(
 
     if (
         PhNfMiniInfoEnabled && !IconDisableHover &&
-        PopupIconIndex != ULONG_MAX && PopupRegisteredIcon &&
-        PhNfpGetShowMiniInfoSectionData(PopupIconIndex, PopupRegisteredIcon, &showMiniInfoSectionData)
+        PopupRegisteredIcon &&
+        PhNfpGetShowMiniInfoSectionData(PopupRegisteredIcon, &showMiniInfoSectionData)
         )
     {
         GetCursorPos(&location);

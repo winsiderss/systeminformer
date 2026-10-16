@@ -213,6 +213,9 @@ EXT ULONG PhCsEnableGraphMaxText;
 EXT ULONG PhCsEnableAvxSupport;
 EXT ULONG PhCsEnableHandleSnapshot;
 
+EXT ULONG PhCsEnableHardwareSensors;
+EXT ULONG PhCsTemperatureUnitFahrenheit;
+
 EXT ULONG PhCsEnableProcessMonitor;
 EXT ULONG PhCsProcessMonitorLookback;
 EXT ULONG PhCsProcessMonitorCacheLimit;
@@ -249,6 +252,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_LAST_PROCESS_SHUTDOWN                        L"EnableLastProcessShutdown"
 #define SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT                      L"EnableLinuxSubsystemSupport"
 #define SETTING_ENABLE_HANDLE_SNAPSHOT                              L"EnableHandleSnapshot"
+#define SETTING_ENABLE_HARDWARE_SENSORS                             L"EnableHardwareSensors"
 #define SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP                     L"EnableMinidumpKernelMinidump"
 #define SETTING_ENABLE_MINIDUMP_SNAPSHOT                            L"EnableMinidumpSnapshot"
 #define SETTING_ENABLE_MONOSPACE_FONT                               L"EnableMonospaceFont"
@@ -335,6 +339,8 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SEARCH_THREAD_STACKS_CASE_SENSITIVE                 L"SearchThreadStacksCaseSensitive"
 #define SETTING_SEARCH_USERS_REGEX                                  L"SearchUsersRegex"
 #define SETTING_SEARCH_USERS_CASE_SENSITIVE                         L"SearchUsersCaseSensitive"
+#define SETTING_SEARCH_HW_SENSORS_REGEX                             L"SearchHardwareSensorsRegex"
+#define SETTING_SEARCH_HW_SENSORS_CASE_SENSITIVE                    L"SearchHardwareSensorsCaseSensitive"
 #define SETTING_FIND_OBJ_TREE_LIST_COLUMNS                          L"FindObjTreeListColumns"
 #define SETTING_FIND_OBJ_WINDOW_POSITION                            L"FindObjWindowPosition"
 #define SETTING_FIND_OBJ_WINDOW_SIZE                                L"FindObjWindowSize"
@@ -455,6 +461,9 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PAGE_FILE_WINDOW_POSITION                           L"PageFileWindowPosition"
 #define SETTING_PAGE_FILE_WINDOW_SIZE                               L"PageFileWindowSize"
 #define SETTING_PAGE_FILE_LIST_VIEW_COLUMNS                         L"PageFileListViewColumns"
+#define SETTING_HW_SENSORS_WINDOW_POSITION                          L"HardwareSensorsWindowPosition"
+#define SETTING_HW_SENSORS_WINDOW_SIZE                              L"HardwareSensorsWindowSize"
+#define SETTING_HW_SENSORS_TREE_LIST_COLUMNS                        L"HardwareSensorsTreeListColumns"
 #define SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION               L"EnvironmentVariablesWindowPosition"
 #define SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE                   L"EnvironmentVariablesWindowSize"
 #define SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS             L"EnvironmentVariablesListViewColumns"
@@ -515,6 +524,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SYSINFO_WINDOW_SCROLL_ENABLED                       L"SysInfoScrollEnabled"
 #define SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ                          L"SysInfoShowCpuSpeedMhz"
 #define SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU                      L"SysInfoShowCpuSpeedPerCpu"
+#define SETTING_SYSINFO_SHOW_CPU_TEMPERATURE_PER_CPU                L"SysInfoShowCpuTemperaturePerCpu"
 #define SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP                        L"SysInfoWindowAlwaysOnTop"
 #define SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU                    L"SysInfoWindowOneGraphPerCpu"
 #define SETTING_SYSINFO_WINDOW_POSITION                             L"SysInfoWindowPosition"
@@ -523,6 +533,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SYSINFO_WINDOW_SIZE                                 L"SysInfoWindowSize"
 #define SETTING_SYSINFO_WINDOW_STATE                                L"SysInfoWindowState"
 #define SETTING_TASKMGR_WINDOW_STATE                                L"TaskmgrWindowState"
+#define SETTING_TEMPERATURE_UNIT_FAHRENHEIT                         L"TemperatureUnitFahrenheit"
 #define SETTING_THEME_WINDOW_FOREGROUND_COLOR                       L"ThemeWindowForegroundColor"
 #define SETTING_THEME_WINDOW_BACKGROUND_COLOR                       L"ThemeWindowBackgroundColor"
 #define SETTING_THEME_WINDOW_BACKGROUND2_COLOR                      L"ThemeWindowBackground2Color"

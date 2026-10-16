@@ -26,6 +26,7 @@
 
 #include <actions.h>
 #include <colsetmgr.h>
+#include <hwprv.h>
 #include <memsrch.h>
 #include <netlist.h>
 #include <netprv.h>
@@ -326,6 +327,23 @@ RTL_ATOM PhMwpInitializeWindowClass(
     }
 
     return RegisterClassEx(&wcex);
+}
+
+/**
+ * Checks whether the driver has kernel dynamic data; without it the driver runs with reduced functionality.
+ *
+ * \return TRUE if kernel dynamic data is active, FALSE otherwise.
+ */
+static BOOLEAN PhMwpIsKernelDynDataActive(
+    VOID
+    )
+{
+    KPH_DYN_ACTIVE_FLAGS flags;
+
+    if (!NT_SUCCESS(KphQueryActiveDynData(&flags)))
+        return FALSE;
+
+    return BooleanFlagOn(flags, KPH_DYN_ACTIVE_KERNEL);
 }
 
 /**
@@ -727,8 +745,7 @@ NTSTATUS PhMwpLoadStage1Worker(
         PPH_STRING windowTitle;
 
         PhMainWndKph.Level = KphLevelEx(FALSE);
-        if (!NT_SUCCESS(KphIsDynDataActive(&PhMainWndKph.DynDataActive)))
-            PhMainWndKph.DynDataActive = FALSE;
+        PhMainWndKph.DynDataActive = PhMwpIsKernelDynDataActive();
 
         if (windowTitle = PhMwpInitializeWindowTitle())
         {
@@ -1623,6 +1640,11 @@ VOID PhMwpOnCommand(
     case ID_TOOLS_INFORMER:
         {
             PhShowInformerWindow(WindowHandle);
+        }
+        break;
+    case ID_TOOLS_HARDWARESENSORS:
+        {
+            PhShowHardwareSensorsWindow(WindowHandle);
         }
         break;
     case ID_TOOLS_STARTTASKMANAGER:
@@ -2993,8 +3015,7 @@ VOID PhMwpOnSetFocus(
         PPH_STRING windowTitle;
 
         kph.Level = KphLevelEx(FALSE);
-        if (!NT_SUCCESS(KphIsDynDataActive(&kph.DynDataActive)))
-            kph.DynDataActive = FALSE;
+        kph.DynDataActive = PhMwpIsKernelDynDataActive();
 
         if (DelayedLoadCompleted &&
             (PhMainWndKph.Level != kph.Level ||
@@ -3789,6 +3810,9 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
         (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
+        PhHwSensorsWindowAvailable() ? 0 : PH_EMENU_DISABLED,
+        ID_TOOLS_HARDWARESENSORS, L"&Hardware sensors", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);

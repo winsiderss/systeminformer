@@ -45,6 +45,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_LAST_PROCESS_SHUTDOWN, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_HARDWARE_SENSORS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_SNAPSHOT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT, L"0");
@@ -133,6 +134,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_SEARCH_PACKAGES_CASE_SENSITIVE, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_USERS_REGEX, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_USERS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_HW_SENSORS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_HW_SENSORS_CASE_SENSITIVE, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_REGEX, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_CASE_SENSITIVE, L"0");
     PhpAddStringSetting(SETTING_FIND_OBJ_TREE_LIST_COLUMNS, L"");
@@ -255,6 +258,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(SETTING_PAGE_FILE_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_PAGE_FILE_WINDOW_SIZE, L"@96|500,300");
     PhpAddStringSetting(SETTING_PAGE_FILE_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_HW_SENSORS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_HW_SENSORS_WINDOW_SIZE, L"@96|811,884");
+    PhpAddStringSetting(SETTING_HW_SENSORS_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_PLUGIN_MANAGER_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_PROCESS_SERVICE_LIST_VIEW_COLUMNS, L"");
     PhpAddStringSetting(SETTING_PROCESS_TREE_COLUMN_SET_CONFIG, L"");
@@ -310,6 +316,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_SCROLL_ENABLED, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU, L"1");
+    PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_TEMPERATURE_PER_CPU, L"1");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU, L"0");
     PhpAddIntegerPairSetting(SETTING_SYSINFO_WINDOW_POSITION, L"200,200");
@@ -318,6 +325,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(SETTING_SYSINFO_WINDOW_SIZE, L"@96|900,590");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, L"1");
     PhpAddIntegerSetting(SETTING_TASKMGR_WINDOW_STATE, L"0");
+    PhpAddIntegerSetting(SETTING_TEMPERATURE_UNIT_FAHRENHEIT, L"0");
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR, L"1c1c1c"); // RGB(28, 28, 28)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR, L"2b2b2b"); // RGB(43, 43, 43)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR, L"414141"); // RGB(65, 65, 65)
@@ -501,8 +509,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_COLOR_PRIVATE, L"0077ff");
     PhpAddIntegerSetting(SETTING_COLOR_PHYSICAL, L"ff8000"); // Blue
 
-    PhpAddIntegerSetting(SETTING_COLOR_POWER_USAGE, L"00ff00");
-    PhpAddIntegerSetting(SETTING_COLOR_TEMPERATURE, L"0000ff");
+    PhpAddIntegerSetting(SETTING_COLOR_POWER_USAGE, L"33ff22");
+    PhpAddIntegerSetting(SETTING_COLOR_TEMPERATURE, L"3322ff");
     PhpAddIntegerSetting(SETTING_COLOR_FAN_RPM, L"ff0077");
 
     PhpAddIntegerSetting(SETTING_KSI_ENABLE, L"0");
@@ -702,6 +710,9 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
     PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
     PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
+
+    PH_GET_INTEGER_CACHED_SETTING(EnableHardwareSensors);
+    PH_GET_INTEGER_CACHED_SETTING(TemperatureUnitFahrenheit);
 
     PH_GET_INTEGER_CACHED_SETTING(EnableProcessMonitor);
     PH_GET_INTEGER_CACHED_SETTING(ProcessMonitorLookback);

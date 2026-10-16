@@ -28,6 +28,9 @@ typedef enum _PH_TRAY_ICON_ID
     PH_TRAY_ICON_ID_COMMIT_TEXT,
     PH_TRAY_ICON_ID_PHYSICAL_TEXT,
     PH_TRAY_ICON_ID_PLAIN_ICON,
+    PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY,
+    PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT,
+    PH_TRAY_ICON_ID_CPU_POWER_TEXT,
     PH_TRAY_ICON_ID_MAXIMUM
 } PH_TRAY_ICON_ID;
 
@@ -43,10 +46,16 @@ typedef enum _PH_TRAY_ICON_GUID
     PH_TRAY_ICON_GUID_COMMIT_TEXT,
     PH_TRAY_ICON_GUID_PHYSICAL_TEXT,
     PH_TRAY_ICON_GUID_PLAIN_ICON,
+    PH_TRAY_ICON_GUID_CPU_TEMPERATURE_HISTORY,
+    PH_TRAY_ICON_GUID_CPU_TEMPERATURE_TEXT,
+    PH_TRAY_ICON_GUID_CPU_POWER_TEXT,
     PH_TRAY_ICON_GUID_MAXIMUM
 } PH_TRAY_ICON_GUID;
 
 #define PH_TRAY_ICON_ID_PLUGIN 0x80
+
+// Fixed uIDs (base + SubId) for built-in icons registered after the plugin icons.
+#define PH_TRAY_ICON_UID_FIXED_BASE 0x100
 
 #define PH_ICON_LIMIT 0x80000000
 #define PH_ICON_ALL 0xffffffff
@@ -261,7 +270,7 @@ PPH_NF_ICON PhNfRegisterIcon(
     );
 
 /**
- * Gets a notification icon by its sub-ID.
+ * Gets a built-in notification icon by its sub-ID.
  *
  * \param SubId The sub-ID of the icon.
  * \return The icon, or NULL if not found.

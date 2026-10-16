@@ -106,6 +106,7 @@
 #define IDD_ENVIRONMENTVARIABLES        294
 #define IDD_ENVIRONMENTADD              295
 #define IDD_ENVADD                      295
+#define IDD_HWSENSORS                   297
 #define IDB_SEARCH_ACTIVE               223
 #define IDB_SEARCH_INACTIVE             224
 #define IDB_SEARCH_ACTIVE_BMP           225
@@ -644,9 +645,33 @@
 #define IDC_ZMEMTYPE_V                  1448
 #define IDC_ZMEMTECHNOLOGY_V            1449
 #define IDC_ZMEMSPEED_V                 1450
+#define IDC_ZMEMHARDWARE                1544
+#define IDC_ZMEMSPEED_L                 1545
+#define IDC_ZMEMCLOCK_L                 1546
+#define IDC_ZMEMCLOCK_V                 1547
+#define IDC_ZMEMCONTROLLERCLOCK_L       1548
+#define IDC_ZMEMCONTROLLERCLOCK_V       1549
+#define IDC_ZMEMFABRICCLOCK_L           1550
+#define IDC_ZMEMFABRICCLOCK_V           1551
+#define IDC_ZMEMTIMINGS_L               1552
+#define IDC_ZMEMTIMINGS_V               1553
+#define IDC_ZMEMROWCYCLE_L              1554
+#define IDC_ZMEMROWCYCLE_V              1555
+#define IDC_ZMEMREFRESHCYCLE_L          1556
+#define IDC_ZMEMREFRESHCYCLE_V          1557
+#define IDC_ZMEMCOMMANDRATE_L           1558
+#define IDC_ZMEMCOMMANDRATE_V           1559
+#define IDC_ZMEMGEARDOWN_L              1560
+#define IDC_ZMEMGEARDOWN_V              1561
 #define IDC_ZL1CACHE_V                  1451
 #define IDC_ZL2CACHE_V                  1452
 #define IDC_ZL3CACHE_V                  1453
+#define IDC_ZCPULIMITS_L                1562
+#define IDC_ZCPULIMITS_V                1563
+#define IDC_ZMEMVOLTAGE_L               1564
+#define IDC_ZMEMVOLTAGE_V               1565
+#define IDC_ZMEMTEMPERATURE_L           1566
+#define IDC_ZMEMTEMPERATURE_V           1567
 #define IDC_CAPTURE                     1454
 #define IDC_HOTKEYS_LIST_VIEW           1455
 #define IDC_HOTKEYS_HOTKEY              1456
@@ -1025,13 +1050,14 @@
 #define ID_MENUBAR_PAUSE                10334
 #define ID_MENUBAR_DRIVERSTATUS         10335
 #define ID_MENUBAR_ELEVATE              10336
+#define ID_TOOLS_HARDWARESENSORS        10338
 
 #define IDD_THRDSHADOWSTACK             298
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        299
