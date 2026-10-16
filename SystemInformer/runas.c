@@ -1263,7 +1263,7 @@ VOID PhRunAsExecuteCommmand(
         if (NT_SUCCESS(PhLookupName(&username->sr, &sid, NULL, NULL)))
         {
             if (newUserName = PH_AUTO(PhGetSidFullName(sid, TRUE, NULL)))
-                PhSwapReference(&username, newUserName);
+                username = newUserName;
 
             PhFree(sid);
         }
