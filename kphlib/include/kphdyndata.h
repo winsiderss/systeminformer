@@ -130,6 +130,17 @@ BOOLEAN KphDynHwSuperIoChipKnown(
     );
 
 _Must_inspect_result_
+BOOLEAN KphDynHwSuperIoBaseAllowed(
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _In_ UCHAR Slot,
+    _In_ UCHAR Family,
+    _In_ USHORT ChipId,
+    _In_ UCHAR ChassisType,
+    _In_ USHORT Base,
+    _In_ USHORT Extent
+    );
+
+_Must_inspect_result_
 NTSTATUS KphDynHwFindSuperIoOp(
     _In_ PKPH_DYN_HW_TABLE Table,
     _In_ ULONG Index,

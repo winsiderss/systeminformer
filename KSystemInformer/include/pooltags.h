@@ -50,6 +50,7 @@
 #define KPH_TAG_REG_BINARY                      '1UpK'
 #define KPH_TAG_FILE_OBJECT_NAME                '2UpK'
 #define KPH_TAG_CAPTURED_UNICODE_STRING         '3UpK'
+#define KPH_TAG_CAPTURED_ANSI_STRING            '4UpK'
 
 // vm
 
@@ -125,3 +126,27 @@
 // kphthread
 
 #define KPH_TAG_THREAD_START_CONTEXT             '0rpK'
+
+// hw
+
+#define KPH_TAG_HW_MSR_BATCH                    '0hpK'
+#define KPH_TAG_HW_DOLIST                       '1hpK'
+#define KPH_TAG_HW_PCI_BUFFER                   '2hpK'
+#define KPH_TAG_HW_SMBIOS                       '3hpK'
+#define KPH_TAG_HW_SECTION                      '4hpK'
+#define KPH_TAG_HW_WINDOW_BATCH                 '5hpK'
+#define KPH_TAG_HW_FIRMWARE                     '6hpK'
+#define KPH_TAG_HW_SUPERIO_BATCH                '7hpK'
+#define KPH_TAG_HW_SMBUS_BATCH                  '8hpK'
+#define KPH_TAG_HW_VSEC_BATCH                   '9hpK'
+#define KPH_TAG_HW_VSEC                         'AhpK'
+#define KPH_TAG_HW_MAILBOX_BATCH                'BhpK'
+#define KPH_TAG_HW_SMU_TABLE                    'ChpK'
+#define KPH_TAG_HW_ACPI_EVAL                    'DhpK'
+#define KPH_TAG_HW_ACPI_BUFFER                  'EhpK'
+#define KPH_TAG_HW_BOOT_CONFIG                  'FhpK'
+#define KPH_TAG_HW_SYSREG_BATCH                 'GhpK'
+#define KPH_TAG_HW_PORT_BATCH                   'HhpK'
+#define KPH_TAG_HW_ACPI_DEVICE                  'IhpK'
+#define KPH_TAG_HW_ACPI_PATH                    'JhpK'
+#define KPH_TAG_HW_MAILBOX_PATH                 'KhpK'

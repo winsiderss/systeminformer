@@ -65,7 +65,8 @@ NTSTATUS KphOpenDevice(
         if (capturedAttributes.ObjectName)
         {
             status = KphCaptureUnicodeString(capturedAttributes.ObjectName,
-                                             &capturedObjectName);
+                                             &capturedObjectName,
+                                             AccessMode);
             if (!NT_SUCCESS(status))
             {
                 goto Exit;

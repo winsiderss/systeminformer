@@ -12,6 +12,7 @@
 
 #include <kph.h>
 #include <informer.h>
+#include <kphhw.h>
 
 #include <trace.h>
 
@@ -95,6 +96,7 @@ VOID KphpDriverCleanup(
     KphCidCleanup();
     KphCleanupInformer();
     KphCleanupDynData();
+    KphCleanupHardware();
     KphCleanupVerify();
     KphCleanupHashing();
     KphCleanupThreading();
@@ -262,6 +264,7 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
+    KphInitializeHardware();
     KphInitializeDynData();
     KphInitializeProtection();
     KphInitializeSessionToken();

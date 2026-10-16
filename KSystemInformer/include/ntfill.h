@@ -9,6 +9,24 @@
 
 #pragma once
 
+#if defined(_M_ARM64)
+#define ARM64_MIDR_EL1          ARM64_SYSREG(3, 0, 0, 0, 0)
+#define ARM64_MPIDR_EL1         ARM64_SYSREG(3, 0, 0, 0, 5)
+#define ARM64_REVIDR_EL1        ARM64_SYSREG(3, 0, 0, 0, 6)
+#define ARM64_ID_AA64PFR0_EL1   ARM64_SYSREG(3, 0, 0, 4, 0)
+#define ARM64_ID_AA64PFR1_EL1   ARM64_SYSREG(3, 0, 0, 4, 1)
+#define ARM64_ID_AA64DFR0_EL1   ARM64_SYSREG(3, 0, 0, 5, 0)
+#define ARM64_ID_AA64MMFR0_EL1  ARM64_SYSREG(3, 0, 0, 7, 0)
+#define ARM64_AMCFGR_EL0        ARM64_SYSREG(3, 3, 13, 2, 1)
+#define ARM64_AMCGCR_EL0        ARM64_SYSREG(3, 3, 13, 2, 2)
+#define ARM64_AMCNTENSET0_EL0   ARM64_SYSREG(3, 3, 13, 2, 5)
+#define ARM64_AMEVCNTR00_EL0    ARM64_SYSREG(3, 3, 13, 4, 0)
+#define ARM64_AMEVCNTR01_EL0    ARM64_SYSREG(3, 3, 13, 4, 1)
+#define ARM64_AMEVCNTR02_EL0    ARM64_SYSREG(3, 3, 13, 4, 2)
+#define ARM64_AMEVCNTR03_EL0    ARM64_SYSREG(3, 3, 13, 4, 3)
+#endif
+
+
 typedef struct _CLIENT_ID32
 {
     ULONG UniqueProcess;
@@ -144,6 +162,21 @@ ZwQuerySection(
     _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
     _In_ SIZE_T SectionInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObReferenceObjectByName(
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ ULONG Attributes,
+    _In_opt_ PACCESS_STATE AccessState,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Inout_opt_ PVOID ParseContext,
+    _Out_ PVOID *Object
     );
 
 // IO
@@ -1061,6 +1094,16 @@ typedef MM_PROTECT_DRIVER_SECTION* PMM_PROTECT_DRIVER_SECTION;
 
 #define MM_PROTECT_DRIVER_SECTION_VALID_FLAGS \
     (MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD)
+
+typedef // routine: MmGetPhysicalMemoryRangesEx2
+_Function_class_(MM_GET_PHYSICAL_MEMORY_RANGES_EX2)
+_IRQL_requires_max_(APC_LEVEL)
+PPHYSICAL_MEMORY_RANGE
+MM_GET_PHYSICAL_MEMORY_RANGES_EX2(
+    _In_opt_ PVOID PartitionObject,
+    _In_ ULONG Flags
+    );
+typedef MM_GET_PHYSICAL_MEMORY_RANGES_EX2* PMM_GET_PHYSICAL_MEMORY_RANGES_EX2;
 
 typedef struct _MMVAD_FLAGS
 {

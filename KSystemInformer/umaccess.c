@@ -16,11 +16,12 @@
 KPH_PAGED_FILE();
 
 /**
- * \brief Captures a Unicode string from user mode.
+ * \brief Captures a Unicode string.
  *
- * \param[in] UnicodeString Unicode string to capture from user mode.
+ * \param[in] UnicodeString Unicode string to capture.
  * \param[out] CapturedUnicodeString Receives the captured Unicode string, the
  * captured buffer must be freed using KphReleaseUnicodeString.
+ * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
  */
@@ -28,7 +29,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureUnicodeString(
     _In_ PUNICODE_STRING UnicodeString,
-    _Out_ PUNICODE_STRING* CapturedUnicodeString
+    _Out_ PUNICODE_STRING* CapturedUnicodeString,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -39,13 +41,12 @@ NTSTATUS KphCaptureUnicodeString(
 
     outputString = NULL;
 
-    __try
+    status = KphCopyFromMode(&inputString,
+                             UnicodeString,
+                             sizeof(UNICODE_STRING),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        CopyFromUser(&inputString, UnicodeString, sizeof(UNICODE_STRING));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
         goto Exit;
     }
 
@@ -67,18 +68,16 @@ NTSTATUS KphCaptureUnicodeString(
     outputString->Length = 0;
     outputString->MaximumLength = inputString.Length;
 
-    __try
+    status = KphCopyFromMode(outputString->Buffer,
+                             inputString.Buffer,
+                             inputString.Length,
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        CopyFromUser(outputString->Buffer,
-                     inputString.Buffer,
-                     inputString.Length);
-        outputString->Length = inputString.Length;
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
         goto Exit;
     }
+
+    outputString->Length = inputString.Length;
 
     *CapturedUnicodeString = outputString;
     outputString = NULL;
@@ -108,6 +107,95 @@ VOID KphReleaseUnicodeString(
     KPH_PAGED_CODE_PASSIVE();
 
     KphFree(CaputredUnicodeString, KPH_TAG_CAPTURED_UNICODE_STRING);
+}
+
+/**
+ * \brief Captures an ANSI string.
+ *
+ * \param[in] AnsiString ANSI string to capture.
+ * \param[out] CapturedAnsiString Receives the captured ANSI string, the
+ * captured buffer must be freed using KphReleaseAnsiString.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureAnsiString(
+    _In_ PANSI_STRING AnsiString,
+    _Outptr_ PANSI_STRING* CapturedAnsiString,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    ANSI_STRING inputString;
+    PANSI_STRING outputString;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *CapturedAnsiString = NULL;
+    outputString = NULL;
+
+    status = KphCopyFromMode(&inputString,
+                             AnsiString,
+                             sizeof(ANSI_STRING),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    outputString = KphAllocatePaged(sizeof(ANSI_STRING) + inputString.Length,
+                                    KPH_TAG_CAPTURED_ANSI_STRING);
+    if (!outputString)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    outputString->Buffer = Add2Ptr(outputString, sizeof(ANSI_STRING));
+    outputString->Length = 0;
+    outputString->MaximumLength = inputString.Length;
+
+    status = KphCopyFromMode(outputString->Buffer,
+                             inputString.Buffer,
+                             inputString.Length,
+                             AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    outputString->Length = inputString.Length;
+
+    *CapturedAnsiString = outputString;
+    outputString = NULL;
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (outputString)
+    {
+        KphFree(outputString, KPH_TAG_CAPTURED_ANSI_STRING);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Releases a string captured by KphCaptureAnsiString.
+ *
+ * \param[in] String The captured string.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphReleaseAnsiString(
+    _In_ PANSI_STRING String
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphFree(String, KPH_TAG_CAPTURED_ANSI_STRING);
 }
 
 /**

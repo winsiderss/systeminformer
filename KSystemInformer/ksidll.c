@@ -455,6 +455,137 @@ BOOLEAN KSIAPI KsiRemoveQueueDpcEx(
 }
 
 //
+// This is an extension of the I/O completion functionality in Windows to
+// enable a driver to be unloaded while there are outstanding IRPs on the
+// system with completion routines that reference it.
+//
+// N.B. IoSetCompletionRoutineEx references a device object but allocates,
+// which may fail. This implementation uses caller-provided storage. The
+// completion routine of this library is set for success, error, and cancel so
+// that it always runs and releases the driver reference. The driver routine is
+// invoked under the same conditions the I/O manager would apply. Once
+// KsiSetCompletionRoutine is called the IRP must be sent with IoCallDriver.
+//
+// N.B. While this library guarantees the driver will not be unmapped, it does
+// not prevent DriverUnload from being invoked. Drivers using this library may
+// check DRIVER_OBJECT.Flags for DRVO_UNLOAD_INVOKED to know if the system has
+// or is about to invoke DriverUnload. If applicable the driver should act
+// accordingly in their routines.
+//
+
+_Function_class_(IO_COMPLETION_ROUTINE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_same_
+NTSTATUS KsipIoCompletionRoutine(
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PIRP Irp,
+    _In_reads_opt_(_Inexpressible_("varies")) PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKSI_IO_COMPLETION completion;
+    PDRIVER_OBJECT driverObject;
+    PIO_COMPLETION_ROUTINE routine;
+    PVOID context;
+    UCHAR control;
+    BOOLEAN invoke;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    NT_ASSERT(Context);
+
+    completion = Context;
+    driverObject = completion->DriverObject;
+    routine = completion->Routine;
+    context = completion->Context;
+    control = completion->Control;
+
+    if (NT_SUCCESS(Irp->IoStatus.Status))
+    {
+        invoke = !!(control & SL_INVOKE_ON_SUCCESS);
+    }
+    else
+    {
+        invoke = !!(control & SL_INVOKE_ON_ERROR);
+    }
+
+    if (Irp->Cancel && (control & SL_INVOKE_ON_CANCEL))
+    {
+        invoke = TRUE;
+    }
+
+    if (invoke)
+    {
+        status = routine(DeviceObject, Irp, context);
+    }
+    else
+    {
+        if (Irp->PendingReturned && (Irp->CurrentLocation <= Irp->StackCount))
+        {
+            IoMarkIrpPending(Irp);
+        }
+
+        status = STATUS_CONTINUE_COMPLETION;
+    }
+
+    ObDereferenceObjectDeferDelete(driverObject);
+
+    return status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KSIAPI KsiInitializeIoCompletion(
+    _Out_ PKSI_IO_COMPLETION Completion,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PIO_COMPLETION_ROUTINE CompletionRoutine,
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN InvokeOnSuccess,
+    _In_ BOOLEAN InvokeOnError,
+    _In_ BOOLEAN InvokeOnCancel
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    Completion->DriverObject = DriverObject;
+    Completion->Routine = CompletionRoutine;
+    Completion->Context = Context;
+    Completion->Control = 0;
+
+    if (InvokeOnSuccess)
+    {
+        Completion->Control |= SL_INVOKE_ON_SUCCESS;
+    }
+
+    if (InvokeOnError)
+    {
+        Completion->Control |= SL_INVOKE_ON_ERROR;
+    }
+
+    if (InvokeOnCancel)
+    {
+        Completion->Control |= SL_INVOKE_ON_CANCEL;
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KSIAPI KsiSetCompletionRoutine(
+    _In_ PIRP Irp,
+    _Inout_ PKSI_IO_COMPLETION Completion
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    ObReferenceObject(Completion->DriverObject);
+
+    IoSetCompletionRoutine(Irp,
+                           KsipIoCompletionRoutine,
+                           Completion,
+                           TRUE,
+                           TRUE,
+                           TRUE);
+}
+
+//
 // This is an extension that allows a minimal system process to be created.
 // Minimal processes must be terminated using PsTerminateMinimalProcess, but
 // this routine is not exported or accessible through normal means. If a minimal

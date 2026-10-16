@@ -12,6 +12,7 @@
 
 #include <kph.h>
 #include <kphdyndata.h>
+#include <kphhw.h>
 
 #include <trace.h>
 
@@ -20,6 +21,8 @@ typedef struct _KPH_DYN_INIT
     PKPH_DYN_CONFIG Config;
     PKPH_DYN_KERNEL_FIELDS Kernel;
     PKPH_DYN_LXCORE_FIELDS Lxcore;
+    PKPH_DYN_HW_SECTION Hardware;
+    ULONG HardwareLength;
 } KPH_DYN_INIT, *PKPH_DYN_INIT;
 
 typedef union _KPH_DYN_ATOMIC
@@ -98,6 +101,111 @@ PVOID KSIAPI KphpAllocateDynData(
 }
 
 /**
+ * \brief Copies the hardware section and resolves this CPU's and board's rows.
+ *
+ * \param[in,out] Dyn Dynamic configuration object.
+ * \param[in] Init Initialization parameters for dynamic configuration.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpInitializeDynHardware(
+    _Inout_ PKPH_DYN Dyn,
+    _In_ PKPH_DYN_INIT Init
+    )
+{
+    NTSTATUS status;
+    KPH_DYN_HW_IDENTITY identity;
+    PCKPH_DYN_HW_BOARD_IDENTITY board;
+#if defined(_M_X64)
+    PCKPH_HW_CPU_IDENTITY cpu;
+#endif
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!Init->Hardware)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    Dyn->Hardware.Section = KphAllocatePaged(Init->HardwareLength,
+                                             KPH_TAG_HW_SECTION);
+    if (!Dyn->Hardware.Section)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate hardware section");
+
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    Dyn->Hardware.SectionLength = Init->HardwareLength;
+
+    RtlCopyMemory(Dyn->Hardware.Section,
+                  Init->Hardware,
+                  Init->HardwareLength);
+
+#if defined(_M_X64)
+    cpu = KphGetHardwareCpuIdentity();
+
+    RtlZeroMemory(&identity, sizeof(identity));
+    RtlCopyMemory(identity.Cpu.Vendor,
+                  cpu->Vendor,
+                  sizeof(identity.Cpu.Vendor));
+    identity.Cpu.DisplayFamily = cpu->DisplayFamily;
+    identity.Cpu.DisplayModel = cpu->DisplayModel;
+
+    status = KphDynHwFindTable(Dyn->Hardware.Section,
+                               KPH_DYN_HW_IDENTITY_CPU,
+                               &identity,
+                               &Dyn->Hardware.CpuTable);
+    NT_VERIFY(NT_SUCCESS(status) || (status == STATUS_NOT_FOUND));
+#endif
+
+    board = KphGetHardwareBoardIdentity();
+
+    if (board->BaseboardHash)
+    {
+        RtlZeroMemory(&identity, sizeof(identity));
+        identity.Board.BaseboardHash = board->BaseboardHash;
+
+        status = KphDynHwFindTable(Dyn->Hardware.Section,
+                                   KPH_DYN_HW_IDENTITY_BOARD,
+                                   &identity,
+                                   &Dyn->Hardware.BoardTable);
+        NT_VERIFY(NT_SUCCESS(status) || (status == STATUS_NOT_FOUND));
+    }
+
+    if (!Dyn->Hardware.BoardTable && board->SystemHash)
+    {
+        RtlZeroMemory(&identity, sizeof(identity));
+        identity.Board.SystemHash = board->SystemHash;
+
+        status = KphDynHwFindTable(Dyn->Hardware.Section,
+                                   KPH_DYN_HW_IDENTITY_BOARD,
+                                   &identity,
+                                   &Dyn->Hardware.BoardTable);
+        NT_VERIFY(NT_SUCCESS(status) || (status == STATUS_NOT_FOUND));
+
+        Dyn->Hardware.BoardSystem = !!Dyn->Hardware.BoardTable;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "Dynamic Configuration hardware section: "
+                  "%lu bytes, %lu rows, CPU row %!bool!, board row %!bool!, "
+                  "board system %!bool!",
+                  Dyn->Hardware.SectionLength,
+                  Dyn->Hardware.Section->Count,
+                  !!Dyn->Hardware.CpuTable,
+                  !!Dyn->Hardware.BoardTable,
+                  Dyn->Hardware.BoardSystem);
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Initializes a dynamic configuration object.
  *
  * \param[in] Object Dynamic configuration object to initialize.
@@ -116,6 +224,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     NTSTATUS status;
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
+    BCRYPT_KEY_HANDLE sessionTokenPublicKeyHandle;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -124,8 +233,10 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     dyn = Object;
     init = Parameter;
 
-#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = C_2sTo4(init->Kernel->x)
-#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
+#define KPH_LOAD_DYNITEM_KERNEL(x)                                             \
+    dyn->x = init->Kernel ? C_2sTo4(init->Kernel->x) : ULONG_MAX;
+#define KPH_LOAD_DYNITEM_LXCORE(x)                                             \
+    dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
 
     KPH_LOAD_DYNITEM_KERNEL(EgeGuid);
     KPH_LOAD_DYNITEM_KERNEL(EpObjectTable);
@@ -169,7 +280,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfo);
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfoTID);
 
-    status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
+    status = KphVerifyCreateKey(&sessionTokenPublicKeyHandle,
                                 init->Config->SessionTokenPublicKey,
                                 KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
     if (!NT_SUCCESS(status))
@@ -179,7 +290,44 @@ NTSTATUS KSIAPI KphpInitializeDynData(
                       "KphVerifyCreateKey failed: %!STATUS!",
                       status);
 
-        dyn->SessionTokenPublicKeyHandle = NULL;
+        sessionTokenPublicKeyHandle = NULL;
+        goto Exit;
+    }
+
+    status = KphpInitializeDynHardware(dyn, init);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpInitializeDynHardware failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    dyn->SessionTokenPublicKeyHandle = sessionTokenPublicKeyHandle;
+    sessionTokenPublicKeyHandle = NULL;
+
+    if (init->Kernel)
+    {
+        SetFlag(dyn->ActiveFlags, KPH_DYN_ACTIVE_KERNEL);
+    }
+
+    if (init->Lxcore)
+    {
+        SetFlag(dyn->ActiveFlags, KPH_DYN_ACTIVE_LXCORE);
+    }
+
+    if (dyn->Hardware.Section)
+    {
+        SetFlag(dyn->ActiveFlags, KPH_DYN_ACTIVE_HARDWARE);
+    }
+
+Exit:
+
+    if (sessionTokenPublicKeyHandle)
+    {
+        KphVerifyCloseKey(sessionTokenPublicKeyHandle);
     }
 
     return status;
@@ -205,6 +353,11 @@ VOID KSIAPI KphpDeleteDynData(
     if (dyn->SessionTokenPublicKeyHandle)
     {
         KphVerifyCloseKey(dyn->SessionTokenPublicKeyHandle);
+    }
+
+    if (dyn->Hardware.Section)
+    {
+        KphFree(dyn->Hardware.Section, KPH_TAG_HW_SECTION);
     }
 }
 
@@ -248,6 +401,8 @@ NTSTATUS KphpActivateDynData(
     KPH_DYN_INIT init;
     PKPH_DYN_KERNEL_FIELDS kernel;
     PKPH_DYN_LXCORE_FIELDS lxcore;
+    PKPH_DYN_HW_SECTION hardwareSection;
+    ULONG hardwareSectionLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -309,10 +464,7 @@ NTSTATUS KphpActivateDynData(
                       "KphDynDataLookup failed: %!STATUS!",
                       status);
 
-        //
-        // Activating dynamic data requires at least kernel data.
-        //
-        goto Exit;
+        kernel = NULL;
     }
 
     if (KphpDynModules[KphDynLxcore].Valid)
@@ -339,15 +491,29 @@ NTSTATUS KphpActivateDynData(
                       "KphDynDataLookup failed: %!STATUS!",
                       status);
 
-        //
-        // Activating dynamic data does not require lxcore data.
-        //
         lxcore = NULL;
+    }
+
+    status = KphDynDataLookupHardware((PKPH_DYN_CONFIG)DynConfig,
+                                      DynConfigLength,
+                                      &hardwareSection,
+                                      &hardwareSectionLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphDynDataLookupHardware failed: %!STATUS!",
+                      status);
+
+        hardwareSection = NULL;
+        hardwareSectionLength = 0;
     }
 
     init.Config = (PKPH_DYN_CONFIG)DynConfig;
     init.Kernel = kernel;
     init.Lxcore = lxcore;
+    init.Hardware = hardwareSection;
+    init.HardwareLength = hardwareSectionLength;
 
     status = KphCreateObject(KphpDynDataType, sizeof(KPH_DYN), &dyn, &init);
     if (!NT_SUCCESS(status))
@@ -365,14 +531,18 @@ NTSTATUS KphpActivateDynData(
     KphTracePrint(TRACE_LEVEL_INFORMATION,
                   GENERAL,
                   "Activated Dynamic Configuration "
-                  "for Windows %lu.%lu.%lu Kernel %hu.%hu.%hu.%hu",
+                  "for Windows %lu.%lu.%lu Kernel %hu.%hu.%hu.%hu "
+                  "(flags 0x%08lx)",
                   KphOsVersionInfo.dwMajorVersion,
                   KphOsVersionInfo.dwMinorVersion,
                   KphOsVersionInfo.dwBuildNumber,
                   KphKernelVersion.MajorVersion,
                   KphKernelVersion.MinorVersion,
                   KphKernelVersion.BuildNumber,
-                  KphKernelVersion.Revision);
+                  KphKernelVersion.Revision,
+                  dyn->ActiveFlags);
+
+    status = STATUS_SUCCESS;
 
 Exit:
 
@@ -391,6 +561,8 @@ Exit:
  * \param[in] DynDataLength The length of the dynamic data.
  * \param[in] Signature The signature of the dynamic data.
  * \param[in] SignatureLength The length of the signature.
+ * \param[out] Flags Receives the parts of the active configuration, whether
+ * or not this one was activated.
  * \param[in] AccessMode The access mode of the caller.
  *
  * \return Successful or errant status.
@@ -402,6 +574,7 @@ NTSTATUS KphActivateDynData(
     _In_ ULONG DynDataLength,
     _In_ PBYTE Signature,
     _In_ ULONG SignatureLength,
+    _Out_opt_ PKPH_DYN_ACTIVE_FLAGS Flags,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
@@ -466,6 +639,13 @@ NTSTATUS KphActivateDynData(
 
 Exit:
 
+    if (Flags)
+    {
+        KphWriteULongToMode((PULONG)Flags,
+                            KphQueryActiveDynData(),
+                            AccessMode);
+    }
+
     if (dynData && (dynData != DynData))
     {
         KphFree(dynData, KPH_TAG_DYNDATA);
@@ -480,37 +660,31 @@ Exit:
 }
 
 /**
- * \brief Checks if dynamic data is active.
+ * \brief Retrieves the parts of the active dynamic configuration.
  *
- * \param[out] IsActive Receives TRUE if active, FALSE otherwise.
- * \param[in] AccessMode The access mode of the caller.
- *
- * \return Successful or errant status.
+ * \return The active parts, KPH_DYN_ACTIVE_NONE when none is active.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphIsDynDataActive(
-    _Out_ PBOOLEAN IsActive,
-    _In_ KPROCESSOR_MODE AccessMode
+KPH_DYN_ACTIVE_FLAGS KphQueryActiveDynData(
+    VOID
     )
 {
     PKPH_DYN dyn;
-    BOOLEAN isActive;
+    KPH_DYN_ACTIVE_FLAGS flags;
 
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = KphReferenceDynData();
-    if (dyn)
+    if (!dyn)
     {
-        isActive = TRUE;
-        KphDereferenceObject(dyn);
-    }
-    else
-    {
-        isActive = FALSE;
+        return KPH_DYN_ACTIVE_NONE;
     }
 
-    return KphWriteUCharToMode(IsActive, isActive, AccessMode);
+    flags = dyn->ActiveFlags;
+
+    KphDereferenceObject(dyn);
+
+    return flags;
 }
 
 /**

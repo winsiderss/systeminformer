@@ -14,5 +14,7 @@ EXPORTS
     KsiInsertQueueDpc
     KsiRemoveQueueDpc
     KsiRemoveQueueDpcEx
+    KsiInitializeIoCompletion
+    KsiSetCompletionRoutine
     KsiInitializeSystemProcess
     KsiSystemProcess              DATA
