@@ -27,6 +27,7 @@
 #include <phsvc.h>
 #include <procprv.h>
 #include <devprv.h>
+#include <hwprv.h>
 #include <notifico.h>
 
 #include <ksisup.h>
@@ -1462,6 +1463,7 @@ NTSTATUS PhInitializeAppSystem(
 {
     if (!PhProcessProviderInitialization())
         return STATUS_UNSUCCESSFUL;
+    PhHwProviderInitialization();
     if (!PhServiceProviderInitialization())
         return STATUS_UNSUCCESSFUL;
     if (!PhNetworkProviderInitialization())
