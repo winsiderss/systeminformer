@@ -58,7 +58,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgReleaseDriverUnloadProtection,
     KphMsgGetConnectedClientCount,
     KphMsgActivateDynData,
-    KphMsgIsDynDataActive,
+    KphMsgQueryActiveDynData,
     KphMsgRequestSessionAccessToken,
     KphMsgAssignProcessSessionToken,
     KphMsgAssignThreadSessionToken,
@@ -72,6 +72,23 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenDeviceBaseDevice,
     KphMsgGetInformerStats,
     KphMsgGetInformerClientStats,
+    KphMsgHwQueryCapabilities,
+    KphMsgHwReadMsrBatch,
+    KphMsgHwReadPciConfig,
+    KphMsgHwReadPciIndirect,
+    KphMsgHwReadWindowBatch,
+    KphMsgHwReadSuperIoBatch,
+    KphMsgHwReadSmbusBatch,
+    KphMsgHwQueryVsecRegions,
+    KphMsgHwReadVsecBatch,
+    KphMsgHwMailboxBatch,
+    KphMsgHwReadSmuTable,
+    KphMsgHwEvalAcpi,
+    KphMsgHwReadAcpiWindowBatch,
+    KphMsgHwReadSysregBatch,
+    KphMsgHwMailboxBatchAcpi,
+    KphMsgHwReadPortIndirectBatch,
+    KphMsgHwReadPlatformWindowBatch,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -353,7 +370,7 @@ typedef struct _KPH_MESSAGE
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
             KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
             KPHM_ACTIVATE_DYNDATA ActivateDynData;
-            KPHM_IS_DYNDATA_ACTIVE IsDynDataActive;
+            KPHM_QUERY_ACTIVE_DYNDATA QueryActiveDynData;
             KPHM_REQUEST_SESSION_ACCESS_TOKEN RequestSessionAccessToken;
             KPHM_ASSIGN_PROCESS_SESSION_TOKEN AssignProcessSessionToken;
             KPHM_ASSIGN_THREAD_SESSION_TOKEN AssignThreadSessionToken;
@@ -367,6 +384,23 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_DEVICE_BASE_DEVICE OpenDeviceBaseDevice;
             KPHM_GET_INFORMER_STATS GetInformerStats;
             KPHM_GET_INFORMER_CLIENT_STATS GetInformerClientStats;
+            KPHM_HW_QUERY_CAPABILITIES HwQueryCapabilities;
+            KPHM_HW_READ_MSR_BATCH HwReadMsrBatch;
+            KPHM_HW_READ_PCI_CONFIG HwReadPciConfig;
+            KPHM_HW_READ_PCI_INDIRECT HwReadPciIndirect;
+            KPHM_HW_READ_WINDOW_BATCH HwReadWindowBatch;
+            KPHM_HW_READ_SUPERIO_BATCH HwReadSuperIoBatch;
+            KPHM_HW_READ_SMBUS_BATCH HwReadSmbusBatch;
+            KPHM_HW_QUERY_VSEC_REGIONS HwQueryVsecRegions;
+            KPHM_HW_READ_VSEC_BATCH HwReadVsecBatch;
+            KPHM_HW_MAILBOX_BATCH HwMailboxBatch;
+            KPHM_HW_READ_SMU_TABLE HwReadSmuTable;
+            KPHM_HW_EVAL_ACPI HwEvalAcpi;
+            KPHM_HW_READ_ACPI_WINDOW_BATCH HwReadAcpiWindowBatch;
+            KPHM_HW_READ_SYSREG_BATCH HwReadSysregBatch;
+            KPHM_HW_MAILBOX_BATCH_ACPI HwMailboxBatchAcpi;
+            KPHM_HW_READ_PORT_INDIRECT_BATCH HwReadPortIndirectBatch;
+            KPHM_HW_READ_PLATFORM_WINDOW_BATCH HwReadPlatformWindowBatch;
         } User;
 
         //
