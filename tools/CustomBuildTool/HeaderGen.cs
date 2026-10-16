@@ -64,6 +64,7 @@ namespace CustomBuildTool
             "hndlprv.h",
             "memprv.h",
             "devprv.h",
+            "hwprv.h",
             "phuisup.h",
             "colmgr.h",
             "proctree.h",

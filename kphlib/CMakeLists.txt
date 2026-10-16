@@ -19,6 +19,7 @@ source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES
     "kphdyn.xml"
+    "kphdynhw.xml"
     "sistatus.mc"
 )
 source_group("Resource Files" FILES ${RESOURCES})

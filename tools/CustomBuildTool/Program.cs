@@ -502,7 +502,7 @@ namespace CustomBuildTool
             cmd.SetAction(ParseResult =>
             {
                 string k = ParseResult.GetValue(arg);
-                
+
                 BuildToolsId.CheckForOutOfDateTools();
 
                 if (!BuildVerify.CreateSigFile("kph", k, Build.BuildCanary))

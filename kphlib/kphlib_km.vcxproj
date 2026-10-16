@@ -91,6 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
+    <Xml Include="kphdynhw.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
