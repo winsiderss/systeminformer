@@ -7671,6 +7671,46 @@ PhOpenMutant(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateHardwareBusMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ PCPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAcquireHardwareBusMutant(
+    _In_ HANDLE MutantHandle,
+    _In_ ULONG Milliseconds
+    );
+
+typedef enum _PH_HARDWARE_BUS
+{
+    PhHardwareBusPci,
+    PhHardwareBusIsa,
+    PhHardwareBusSmbus,
+    PhHardwareBusMaximum
+} PH_HARDWARE_BUS;
+
+_Must_inspect_result_
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAcquireHardwareBus(
+    _In_ PH_HARDWARE_BUS Bus,
+    _In_ ULONG Milliseconds
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhReleaseHardwareBus(
+    _In_ PH_HARDWARE_BUS Bus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetMutantBasicInformation(
     _In_ HANDLE MutantHandle,
     _Out_ PMUTANT_BASIC_INFORMATION BasicInformation

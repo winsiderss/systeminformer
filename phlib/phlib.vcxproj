@@ -165,6 +165,7 @@
     <ClCompile Include="bcd.cpp" />
     <ClCompile Include="circbuf.c" />
     <ClCompile Include="colorbox.c" />
+    <ClCompile Include="cpusensor.c" />
     <ClCompile Include="cpysave.c" />
     <ClCompile Include="data.c" />
     <ClCompile Include="directdraw.cpp" />
@@ -256,6 +257,7 @@
     <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
     <ClInclude Include="include\searchmatch.h" />
+    <ClInclude Include="include\cpusensor.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />

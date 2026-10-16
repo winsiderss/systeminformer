@@ -110,6 +110,9 @@
     <ClCompile Include="workqueue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpusensor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="cpysave.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -344,6 +347,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphuser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cpusensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cpysave.h">

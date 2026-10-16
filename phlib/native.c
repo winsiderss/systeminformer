@@ -7927,6 +7927,164 @@ NTSTATUS PhOpenMutant(
 }
 
 /**
+ * Creates or opens a hardware monitor bus mutant, such as \BaseNamedObjects\Access_PCI.
+ *
+ * \details A created mutant grants SYSTEM and Administrators full access and Everyone only the rights to wait
+ * on and query it, so any tool can take part but none can re-secure or delete it.
+ *
+ * \param MutantHandle A pointer to a variable that receives the handle.
+ * \param ObjectName The full name of the mutant.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateHardwareBusMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ PCPH_STRINGREF ObjectName
+    )
+{
+    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + sizeof(ACL) + (3 * (sizeof(ACCESS_ALLOWED_ACE) + SECURITY_MAX_SID_SIZE))];
+    PSECURITY_DESCRIPTOR securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+    PACL dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE mutantHandle;
+    NTSTATUS status;
+
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+        return status;
+    if (!NT_SUCCESS(status = PhCreateAcl(dacl, sizeof(ACL) + (3 * (sizeof(ACCESS_ALLOWED_ACE) + SECURITY_MAX_SID_SIZE)), ACL_REVISION)))
+        return status;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, MUTANT_ALL_ACCESS, (PSID)&PhSeLocalSystemSid)))
+        return status;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, MUTANT_ALL_ACCESS, PhSeAdministratorsSid())))
+        return status;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, SYNCHRONIZE | READ_CONTROL | MUTANT_QUERY_STATE, (PSID)&PhSeEveryoneSid)))
+        return status;
+    if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_OPENIF | OBJ_DONT_REPARSE,
+        NULL,
+        securityDescriptor
+        );
+
+    status = NtCreateMutant(
+        &mutantHandle,
+        SYNCHRONIZE | MUTANT_QUERY_STATE,
+        &objectAttributes,
+        FALSE
+        );
+
+    // A tool that created the mutant with a narrower DACL may still grant SYNCHRONIZE.
+    if (status == STATUS_ACCESS_DENIED)
+    {
+        status = NtOpenMutant(&mutantHandle, SYNCHRONIZE, &objectAttributes);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *MutantHandle = mutantHandle;
+    }
+
+    return status;
+}
+
+/**
+ * Waits for a hardware bus mutant. An abandoned mutant counts as acquired.
+ *
+ * \param MutantHandle A handle to the mutant.
+ * \param Milliseconds The longest time to wait.
+ * \return STATUS_SUCCESS when held, STATUS_RETRY on timeout, or an errant status.
+ */
+NTSTATUS PhAcquireHardwareBusMutant(
+    _In_ HANDLE MutantHandle,
+    _In_ ULONG Milliseconds
+    )
+{
+    LARGE_INTEGER timeout;
+    NTSTATUS status;
+
+    status = NtWaitForSingleObject(MutantHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, Milliseconds));
+
+    if (status == STATUS_WAIT_0 || status == STATUS_ABANDONED_WAIT_0)
+        return STATUS_SUCCESS;
+    if (status == STATUS_TIMEOUT)
+        return STATUS_RETRY;
+
+    return NT_SUCCESS(status) ? STATUS_UNSUCCESSFUL : status;
+}
+
+static HANDLE PhpHardwareBusHandle[PhHardwareBusMaximum] = { NULL };
+
+/**
+ * Acquires the mutant hardware monitors share to serialize a bus.
+ *
+ * \details A failure to create or open the mutant is retried on the next call.
+ *
+ * \param Bus The bus.
+ * \param Milliseconds The longest time to wait.
+ * \return STATUS_SUCCESS when held, STATUS_RETRY on timeout, or an errant status.
+ */
+NTSTATUS PhAcquireHardwareBus(
+    _In_ PH_HARDWARE_BUS Bus,
+    _In_ ULONG Milliseconds
+    )
+{
+    static CONST PH_STRINGREF mutantNames[PhHardwareBusMaximum] =
+    {
+        PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_PCI"),
+        PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_ISABUS.HTP.Method"),
+        PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_SMBUS.HTP.Method"),
+    };
+    HANDLE mutantHandle;
+
+    if (Bus >= PhHardwareBusMaximum)
+        return STATUS_INVALID_PARAMETER;
+
+    mutantHandle = ReadPointerAcquire(&PhpHardwareBusHandle[Bus]);
+
+    if (!mutantHandle)
+    {
+        HANDLE existingHandle;
+        NTSTATUS status;
+
+        status = PhCreateHardwareBusMutant(&mutantHandle, &mutantNames[Bus]);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        existingHandle = InterlockedCompareExchangePointer(&PhpHardwareBusHandle[Bus], mutantHandle, NULL);
+
+        if (existingHandle)
+        {
+            NtClose(mutantHandle);
+            mutantHandle = existingHandle;
+        }
+    }
+
+    return PhAcquireHardwareBusMutant(mutantHandle, Milliseconds);
+}
+
+/**
+ * Releases a bus acquired with PhAcquireHardwareBus.
+ *
+ * \param Bus The bus.
+ */
+VOID PhReleaseHardwareBus(
+    _In_ PH_HARDWARE_BUS Bus
+    )
+{
+    assert(Bus < PhHardwareBusMaximum);
+
+    NT_VERIFY(NT_SUCCESS(NtReleaseMutant(PhpHardwareBusHandle[Bus], NULL)));
+}
+
+/**
  * Retrieves basic information about a mutant (mutex) object.
  *
  * \param MutantHandle Handle to the mutant object.
