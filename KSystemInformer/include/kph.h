@@ -30,6 +30,7 @@
 #include <ntwow64.h>
 #include <kphapi.h>
 #include <kphringbuff.h>
+#include <kphdyn.h>
 
 #define KSIAPI NTAPI
 
@@ -784,6 +785,7 @@ VOID KphFreeToNPagedLookasideObject(
 extern PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx;
 extern PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2;
 extern PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection;
+extern PMM_GET_PHYSICAL_MEMORY_RANGES_EX2 KphDynMmGetPhysicalMemoryRangesEx2;
 extern PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber;
 extern PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey;
 extern PSE_REGISTER_IMAGE_VERIFICATION_CALLBACK KphSeRegisterImageVerificationCallback;
@@ -822,8 +824,19 @@ PVOID KphGetRoutineAddress(
 
 // dyndata
 
+typedef struct _KPH_DYN_HW
+{
+    PKPH_DYN_HW_SECTION Section;
+    ULONG SectionLength;
+    PKPH_DYN_HW_TABLE CpuTable;
+    PKPH_DYN_HW_TABLE BoardTable;
+    BOOLEAN BoardSystem;
+} KPH_DYN_HW, *PKPH_DYN_HW;
+
 typedef struct _KPH_DYN
 {
+    KPH_DYN_ACTIVE_FLAGS ActiveFlags;
+
     ULONG EgeGuid;
     ULONG EpObjectTable;
     ULONG EreGuidEntry;
@@ -867,6 +880,8 @@ typedef struct _KPH_DYN
     ULONG LxPicoThrdInfoTID;
 
     BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
+
+    KPH_DYN_HW Hardware;
 } KPH_DYN, *PKPH_DYN;
 
 _IRQL_requires_max_(HIGH_LEVEL)
@@ -882,14 +897,13 @@ NTSTATUS KphActivateDynData(
     _In_ ULONG DynDataLength,
     _In_ PBYTE Signature,
     _In_ ULONG SignatureLength,
+    _Out_opt_ PKPH_DYN_ACTIVE_FLAGS Flags,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphIsDynDataActive(
-    _Out_ PBOOLEAN IsActive,
-    _In_ KPROCESSOR_MODE AccessMode
+KPH_DYN_ACTIVE_FLAGS KphQueryActiveDynData(
+    VOID
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2634,6 +2648,37 @@ KsiRemoveQueueDpcEx(
     _In_ BOOLEAN WaitIfActive
     );
 
+typedef struct _KSI_IO_COMPLETION
+{
+    PDRIVER_OBJECT DriverObject;
+    PIO_COMPLETION_ROUTINE Routine;
+    PVOID Context;
+    UCHAR Control;
+} KSI_IO_COMPLETION, *PKSI_IO_COMPLETION;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiInitializeIoCompletion(
+    _Out_ PKSI_IO_COMPLETION Completion,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PIO_COMPLETION_ROUTINE CompletionRoutine,
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN InvokeOnSuccess,
+    _In_ BOOLEAN InvokeOnError,
+    _In_ BOOLEAN InvokeOnCancel
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiSetCompletionRoutine(
+    _In_ PIRP Irp,
+    _Inout_ PKSI_IO_COMPLETION Completion
+    );
+
 extern KSISYSAPI PEPROCESS KsiSystemProcess;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2902,12 +2947,26 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureUnicodeString(
     _In_ PUNICODE_STRING UnicodeString,
-    _Out_ PUNICODE_STRING* CapturedUnicodeString
+    _Out_ PUNICODE_STRING* CapturedUnicodeString,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphReleaseUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureAnsiString(
+    _In_ PANSI_STRING AnsiString,
+    _Outptr_ PANSI_STRING* CapturedAnsiString,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphReleaseAnsiString(
+    _In_ PANSI_STRING String
     );
 
 _IRQL_requires_max_(APC_LEVEL)

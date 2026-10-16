@@ -12,6 +12,7 @@
 #include <kph.h>
 #include <comms.h>
 #include <informer.h>
+#include <kphhw.h>
 
 #include <trace.h>
 
@@ -49,7 +50,7 @@ KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsGetConnectedClientCount);
 KPHM_DEFINE_HANDLER(KphpCommsActivateDynData);
-KPHM_DEFINE_HANDLER(KphpCommsIsDynDataActive);
+KPHM_DEFINE_HANDLER(KphpCommsQueryActiveDynData);
 KPHM_DEFINE_HANDLER(KphpCommsRequestSessionAccessToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignProcessSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
@@ -63,6 +64,23 @@ KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceDriver);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceBaseDevice);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerStats);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerClientStats);
+KPHM_DEFINE_HANDLER(KphpCommsHwQueryCapabilities);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadMsrBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadPciConfig);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadPciIndirect);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadWindowBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadSuperIoBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadSmbusBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwQueryVsecRegions);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadVsecBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwMailboxBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadSmuTable);
+KPHM_DEFINE_HANDLER(KphpCommsHwEvalAcpi);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadAcpiWindowBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadSysregBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwMailboxBatchAcpi);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadPortIndirectBatch);
+KPHM_DEFINE_HANDLER(KphpCommsHwReadPlatformWindowBatch);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -115,7 +133,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
 { KphMsgActivateDynData,               KphpCommsActivateDynData,               KphpCommsRequireLow },
-{ KphMsgIsDynDataActive,               KphpCommsIsDynDataActive,               KphpCommsRequireLow },
+{ KphMsgQueryActiveDynData,            KphpCommsQueryActiveDynData,            KphpCommsRequireLow },
 { KphMsgRequestSessionAccessToken,     KphpCommsRequestSessionAccessToken,     KphpCommsRequireMaximum },
 { KphMsgAssignProcessSessionToken,     KphpCommsAssignProcessSessionToken,     KphpCommsRequireMaximum },
 { KphMsgAssignThreadSessionToken,      KphpCommsAssignThreadSessionToken,      KphpCommsRequireMaximum },
@@ -129,6 +147,23 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenDeviceBaseDevice,          KphpCommsOpenDeviceBaseDevice,          KphpCommsRequireMaximum },
 { KphMsgGetInformerStats,              KphpCommsGetInformerStats,              KphpCommsRequireLow },
 { KphMsgGetInformerClientStats,        KphpCommsGetInformerClientStats,        KphpCommsRequireLow },
+{ KphMsgHwQueryCapabilities,           KphpCommsHwQueryCapabilities,           KphpCommsRequireMaximum },
+{ KphMsgHwReadMsrBatch,                KphpCommsHwReadMsrBatch,                KphpCommsRequireMaximum },
+{ KphMsgHwReadPciConfig,               KphpCommsHwReadPciConfig,               KphpCommsRequireMaximum },
+{ KphMsgHwReadPciIndirect,             KphpCommsHwReadPciIndirect,             KphpCommsRequireMaximum },
+{ KphMsgHwReadWindowBatch,             KphpCommsHwReadWindowBatch,             KphpCommsRequireMaximum },
+{ KphMsgHwReadSuperIoBatch,            KphpCommsHwReadSuperIoBatch,            KphpCommsRequireMaximum },
+{ KphMsgHwReadSmbusBatch,              KphpCommsHwReadSmbusBatch,              KphpCommsRequireMaximum },
+{ KphMsgHwQueryVsecRegions,            KphpCommsHwQueryVsecRegions,            KphpCommsRequireMaximum },
+{ KphMsgHwReadVsecBatch,               KphpCommsHwReadVsecBatch,               KphpCommsRequireMaximum },
+{ KphMsgHwMailboxBatch,                KphpCommsHwMailboxBatch,                KphpCommsRequireMaximum },
+{ KphMsgHwReadSmuTable,                KphpCommsHwReadSmuTable,                KphpCommsRequireMaximum },
+{ KphMsgHwEvalAcpi,                    KphpCommsHwEvalAcpi,                    KphpCommsRequireMaximum },
+{ KphMsgHwReadAcpiWindowBatch,         KphpCommsHwReadAcpiWindowBatch,         KphpCommsRequireMaximum },
+{ KphMsgHwReadSysregBatch,             KphpCommsHwReadSysregBatch,             KphpCommsRequireMaximum },
+{ KphMsgHwMailboxBatchAcpi,            KphpCommsHwMailboxBatchAcpi,            KphpCommsRequireMaximum },
+{ KphMsgHwReadPortIndirectBatch,       KphpCommsHwReadPortIndirectBatch,       KphpCommsRequireMaximum },
+{ KphMsgHwReadPlatformWindowBatch,     KphpCommsHwReadPlatformWindowBatch,     KphpCommsRequireMaximum },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
@@ -1395,6 +1430,7 @@ NTSTATUS KSIAPI KphpCommsActivateDynData(
                                      msg->DynDataLength,
                                      msg->Signature,
                                      msg->SignatureLength,
+                                     msg->Flags,
                                      UserMode);
 
     return STATUS_SUCCESS;
@@ -1403,22 +1439,23 @@ NTSTATUS KSIAPI KphpCommsActivateDynData(
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsIsDynDataActive(
+NTSTATUS KSIAPI KphpCommsQueryActiveDynData(
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
-    PKPHM_IS_DYNDATA_ACTIVE msg;
+    PKPHM_QUERY_ACTIVE_DYNDATA msg;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgIsDynDataActive);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryActiveDynData);
 
     UNREFERENCED_PARAMETER(Client);
 
-    msg = &Message->User.IsDynDataActive;
+    msg = &Message->User.QueryActiveDynData;
 
-    msg->Status = KphIsDynDataActive(msg->IsActive, UserMode);
+    msg->Flags = KphQueryActiveDynData();
+    msg->Status = STATUS_SUCCESS;
 
     return STATUS_SUCCESS;
 }
@@ -1779,6 +1816,468 @@ NTSTATUS KSIAPI KphpCommsGetInformerClientStats(
     msg = &Message->User.GetInformerClientStats;
 
     msg->Status = KphGetInformerClientStats(Client, msg->Stats);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwQueryCapabilities(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_QUERY_CAPABILITIES msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwQueryCapabilities);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwQueryCapabilities;
+
+    msg->Status = KphHwQueryCapabilities(msg->Capabilities, UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadMsrBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_MSR_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadMsrBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadMsrBatch;
+
+    msg->Status = KphHwReadMsrBatch(msg->Count, msg->Entries, UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadPciConfig(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_PCI_CONFIG msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadPciConfig);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadPciConfig;
+
+    msg->Status = KphHwReadPciConfig(&msg->Locator,
+                                     msg->Offset,
+                                     msg->Length,
+                                     msg->Buffer,
+                                     msg->ReturnLength,
+                                     UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadPciIndirect(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_PCI_INDIRECT msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadPciIndirect);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadPciIndirect;
+
+    msg->Status = KphHwReadPciIndirect(&msg->Locator,
+                                       msg->Target,
+                                       msg->Value,
+                                       UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadWindowBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_WINDOW_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadWindowBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadWindowBatch;
+
+    msg->Status = KphHwReadWindowBatch(&msg->Locator,
+                                       msg->OpIndex,
+                                       msg->Count,
+                                       msg->Entries,
+                                       UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadSuperIoBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_SUPERIO_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadSuperIoBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadSuperIoBatch;
+
+    msg->Status = KphHwReadSuperIoBatch(msg->Slot,
+                                        msg->OpIndex,
+                                        msg->Count,
+                                        msg->Entries,
+                                        msg->Chip,
+                                        msg->Timeout,
+                                        UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadSmbusBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_SMBUS_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadSmbusBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadSmbusBatch;
+
+    msg->Status = KphHwReadSmbusBatch(&msg->Locator,
+                                      msg->OpIndex,
+                                      msg->Count,
+                                      msg->Entries,
+                                      msg->Timeout,
+                                      UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwQueryVsecRegions(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_QUERY_VSEC_REGIONS msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwQueryVsecRegions);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwQueryVsecRegions;
+
+    msg->Status = KphHwQueryVsecRegions(&msg->Locator,
+                                        msg->Count,
+                                        msg->Regions,
+                                        msg->ReturnCount,
+                                        UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadVsecBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_VSEC_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadVsecBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadVsecBatch;
+
+    msg->Status = KphHwReadVsecBatch(&msg->Locator,
+                                     msg->OpIndex,
+                                     msg->Instance,
+                                     msg->Count,
+                                     msg->Entries,
+                                     UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwMailboxBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_MAILBOX_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwMailboxBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwMailboxBatch;
+
+    msg->Status = KphHwMailboxBatch(&msg->Locator,
+                                    msg->OpIndex,
+                                    msg->Count,
+                                    msg->Entries,
+                                    msg->FirmwareVersion,
+                                    msg->Timeout,
+                                    UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadSmuTable(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_SMU_TABLE msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadSmuTable);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadSmuTable;
+
+    msg->Status = KphHwReadSmuTable(&msg->Locator,
+                                    msg->OpIndex,
+                                    msg->Length,
+                                    msg->Buffer,
+                                    msg->Version,
+                                    msg->ReturnLength,
+                                    msg->Timeout,
+                                    UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwEvalAcpi(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_EVAL_ACPI msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwEvalAcpi);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwEvalAcpi;
+
+    msg->Status = KphHwEvalAcpi(msg->Path,
+                                msg->OpIndex,
+                                msg->ArgCount,
+                                msg->Args,
+                                msg->Length,
+                                msg->Buffer,
+                                msg->ReturnLength,
+                                msg->Timeout,
+                                UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadAcpiWindowBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_ACPI_WINDOW_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadAcpiWindowBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadAcpiWindowBatch;
+
+    msg->Status = KphHwReadAcpiWindowBatch(msg->Path,
+                                           msg->OpIndex,
+                                           msg->Count,
+                                           msg->Entries,
+                                           UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadSysregBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_SYSREG_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadSysregBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadSysregBatch;
+
+    msg->Status = KphHwReadSysregBatch(msg->Count, msg->Entries, UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwMailboxBatchAcpi(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_MAILBOX_BATCH_ACPI msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwMailboxBatchAcpi);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwMailboxBatchAcpi;
+
+    msg->Status = KphHwMailboxBatchAcpi(msg->Path,
+                                        msg->OpIndex,
+                                        msg->Count,
+                                        msg->Entries,
+                                        msg->FirmwareVersion,
+                                        msg->Timeout,
+                                        UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadPortIndirectBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_PORT_INDIRECT_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadPortIndirectBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadPortIndirectBatch;
+
+    msg->Status = KphHwReadPortIndirectBatch(&msg->Locator,
+                                             msg->OpIndex,
+                                             msg->Count,
+                                             msg->Entries,
+                                             UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsHwReadPlatformWindowBatch(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_HW_READ_PLATFORM_WINDOW_BATCH msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgHwReadPlatformWindowBatch);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.HwReadPlatformWindowBatch;
+
+    msg->Status = KphHwReadPlatformWindowBatch(msg->Source,
+                                               msg->OpIndex,
+                                               msg->Count,
+                                               msg->Entries,
+                                               UserMode);
 
     return STATUS_SUCCESS;
 }

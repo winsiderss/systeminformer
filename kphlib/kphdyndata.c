@@ -1300,6 +1300,51 @@ BOOLEAN KphpDynHwSuperIoTablePasses(
 }
 
 /**
+ * \brief Checks whether a passing superio_read op of a table allows a
+ * hardware monitor base.
+ *
+ * \param[in] Table The op table of a SUPERIO index row.
+ * \param[in] ChassisType The SMBIOS chassis type, zero when absent.
+ * \param[in] Base The hardware monitor base port read from the chip.
+ * \param[in] Extent The number of ports accessed from the base.
+ *
+ * \return TRUE if an op of the table passes its gate and its base range
+ * contains [Base, Base + Extent).
+ */
+_Must_inspect_result_
+BOOLEAN KphpDynHwSuperIoTableBaseAllowed(
+    _In_ PKPH_DYN_HW_TABLE Table,
+    _In_ UCHAR ChassisType,
+    _In_ USHORT Base,
+    _In_ USHORT Extent
+    )
+{
+    PKPH_DYN_HW_OP op;
+
+    NT_ASSERT(Extent >= 1);
+
+    op = Add2Ptr(Table, sizeof(KPH_DYN_HW_TABLE));
+
+    for (ULONG i = 0; i < Table->Count; i++)
+    {
+        PKPH_DYN_HW_SUPERIO_READ superIo;
+
+        superIo = (PKPH_DYN_HW_SUPERIO_READ)op->Body;
+
+        if (KphDynHwSuperIoGatePasses(op, ChassisType) &&
+            (Base >= superIo->BaseMin) &&
+            (((ULONG)Base + Extent - 1) <= superIo->BaseMax))
+        {
+            return TRUE;
+        }
+
+        op = Add2Ptr(op, op->Length);
+    }
+
+    return FALSE;
+}
+
+/**
  * \brief Retrieves the SuperIO families with a passing row for a slot.
  *
  * \param[in] Section The hardware section.
@@ -1390,6 +1435,64 @@ BOOLEAN KphDynHwSuperIoChipKnown(
             (superIo->ChipId == ChipId) &&
             KphpDynHwSuperIoTablePasses(Add2Ptr(body, index[i].Offset),
                                         ChassisType))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * \brief Checks whether a SuperIO chip's hardware monitor base lies in the
+ * range a passing row allows.
+ *
+ * \param[in] Section The hardware section.
+ * \param[in] Slot The configuration port slot.
+ * \param[in] Family The SuperIO family (KPH_DYN_HW_SUPERIO_FAMILY_*).
+ * \param[in] ChipId The chip ID read from the chip.
+ * \param[in] ChassisType The SMBIOS chassis type, zero when absent.
+ * \param[in] Base The hardware monitor base port read from the chip.
+ * \param[in] Extent The number of ports accessed from the base.
+ *
+ * \return TRUE if a passing row with the slot, family and chip ID has a
+ * superio_read op whose base range contains [Base, Base + Extent).
+ */
+_Must_inspect_result_
+BOOLEAN KphDynHwSuperIoBaseAllowed(
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _In_ UCHAR Slot,
+    _In_ UCHAR Family,
+    _In_ USHORT ChipId,
+    _In_ UCHAR ChassisType,
+    _In_ USHORT Base,
+    _In_ USHORT Extent
+    )
+{
+    PKPH_DYN_HW_INDEX index;
+    PVOID body;
+
+    index = Add2Ptr(Section, sizeof(KPH_DYN_HW_SECTION));
+    body = &index[Section->Count];
+
+    for (ULONG i = 0; i < Section->Count; i++)
+    {
+        PKPH_DYN_HW_SUPERIO_IDENTITY superIo;
+
+        if (index[i].IdentityKind != KPH_DYN_HW_IDENTITY_SUPERIO)
+        {
+            continue;
+        }
+
+        superIo = &index[i].Identity.SuperIo;
+
+        if ((superIo->Slot == Slot) &&
+            (superIo->VendorFamily == Family) &&
+            (superIo->ChipId == ChipId) &&
+            KphpDynHwSuperIoTableBaseAllowed(Add2Ptr(body, index[i].Offset),
+                                             ChassisType,
+                                             Base,
+                                             Extent))
         {
             return TRUE;
         }
