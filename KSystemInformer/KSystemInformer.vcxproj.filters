@@ -144,6 +144,39 @@
     <ClCompile Include="informer_silo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwmsr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwacpi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwmailbox.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwpci.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwport.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwsmbus.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwsuperio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwsysreg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwvsec.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwwindow.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -170,6 +203,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\informer_filep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphhw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
