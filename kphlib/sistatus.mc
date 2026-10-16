@@ -60,6 +60,14 @@ Language     = English
 System Informer dynamic data signature is invalid.
 .
 
+MessageId    = 0x0005
+Facility     = DynamicData
+Severity     = Error
+SymbolicName = STATUS_SI_DYNDATA_HW_INVALID
+Language     = English
+System Informer dynamic data hardware section is invalid.
+.
+
 MessageId    = 0x0001
 Facility     = KSystemInformer
 Severity     = Error

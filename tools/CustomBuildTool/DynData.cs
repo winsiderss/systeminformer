@@ -38,7 +38,7 @@ namespace CustomBuildTool
         /// <summary>
         /// The dynamic configuration version.
         /// </summary>
-        private const UInt32 Version = 16;
+        private const UInt32 Version = 17;
 
         /// <summary>
         /// The public key used for session token validation.
@@ -242,11 +242,591 @@ typedef struct _KPH_DYN_CONFIG
     ULONG Version;
     BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     ULONG Count;
+    ULONG HardwareOffset;
+    ULONG HardwareLength;
     KPH_DYN_DATA Data[ANYSIZE_ARRAY];
     // BYTE Fields[ANYSIZE_ARRAY];
+    // KPH_DYN_HW_SECTION Hardware;
 } KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
 
+#define KPH_DYN_HW_SECTION_MAGIC                ((ULONG)'WHPK')
+#define KPH_DYN_HW_MAX_SECTION_LENGTH           ((ULONG)0x{{DynDataHw.MaxSectionLength:X}})
+#define KPH_DYN_HW_MAX_ROWS                     ((ULONG){{DynDataHw.MaxRows}})
+#define KPH_DYN_HW_MAX_OPS                      ((ULONG){{DynDataHw.MaxOps}})
+#define KPH_DYN_HW_MAX_RANGES                   ((ULONG){{DynDataHw.MaxRanges}})
+#define KPH_DYN_HW_PCI_CONFIG_LENGTH            ((ULONG)0x{{DynDataHw.PciConfigLength:X}})
+#define KPH_DYN_HW_PCI_HEADER_LENGTH            ((ULONG)0x{{DynDataHw.PciConfigHeaderLength:X}})
+#define KPH_DYN_HW_PCI_HEADER_LAYOUT_MASK       ((UCHAR)0x{{DynDataHw.PciHeaderLayoutMask:X2}})
+
+#define KPH_DYN_HW_KIND_MSR_READ                ((USHORT){{DynDataHw.KindMsrRead}})
+#define KPH_DYN_HW_KIND_PCI_READ                ((USHORT){{DynDataHw.KindPciRead}})
+#define KPH_DYN_HW_KIND_PCI_INDIRECT_READ       ((USHORT){{DynDataHw.KindPciIndirectRead}})
+#define KPH_DYN_HW_KIND_WINDOW_READ             ((USHORT){{DynDataHw.KindWindowRead}})
+#define KPH_DYN_HW_KIND_SUPERIO_READ            ((USHORT){{DynDataHw.KindSuperIoRead}})
+#define KPH_DYN_HW_KIND_SMBUS_READ              ((USHORT){{DynDataHw.KindSmbusRead}})
+#define KPH_DYN_HW_KIND_VSEC_READ               ((USHORT){{DynDataHw.KindVsecRead}})
+#define KPH_DYN_HW_KIND_MAILBOX_TRANSACT        ((USHORT){{DynDataHw.KindMailboxTransact}})
+#define KPH_DYN_HW_KIND_SMU_TABLE_READ          ((USHORT){{DynDataHw.KindSmuTableRead}})
+#define KPH_DYN_HW_KIND_ACPI_EVAL               ((USHORT){{DynDataHw.KindAcpiEval}})
+#define KPH_DYN_HW_KIND_SYSREG_READ             ((USHORT){{DynDataHw.KindSysregRead}})
+#define KPH_DYN_HW_KIND_PORT_INDIRECT_READ      ((USHORT){{DynDataHw.KindPortIndirectRead}})
+#define KPH_DYN_HW_KIND_SMBUS_HOST              ((USHORT){{DynDataHw.KindSmbusHost}})
+
+#define KPH_DYN_HW_FLAG_REQUIRE_D0              ((UCHAR)0x{{DynDataHw.FlagRequireD0:X2}})
+
+#define KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR     ((UCHAR){{DynDataHw.WindowBaseStandardBar}})
+#define KPH_DYN_HW_WINDOW_BASE_CONFIG_REG       ((UCHAR){{DynDataHw.WindowBaseConfigReg}})
+#define KPH_DYN_HW_WINDOW_BASE_ACPI_LPIT        ((UCHAR){{DynDataHw.WindowBaseAcpiLpit}})
+#define KPH_DYN_HW_WINDOW_BASE_ACPI_CRS         ((UCHAR){{DynDataHw.WindowBaseAcpiCrs}})
+#define KPH_DYN_HW_WINDOW_BASE_SMN_DERIVED      ((UCHAR){{DynDataHw.WindowBaseSmnDerived}})
+#define KPH_DYN_HW_WINDOW_BASE_FIXED_MMIO       ((UCHAR){{DynDataHw.WindowBaseFixedMmio}})
+#define KPH_DYN_HW_WINDOW_BASE_FIXED_IO         ((UCHAR){{DynDataHw.WindowBaseFixedIo}})
+#define KPH_DYN_HW_WINDOW_BASE_ACPI_LPIT_RELATIVE ((UCHAR){{DynDataHw.WindowBaseAcpiLpitRelative}})
+#define KPH_DYN_HW_ACPI_LPIT_MAX_ENTRIES        ((UCHAR){{DynDataHw.AcpiLpitMaxEntries}})
+#define KPH_DYN_HW_SMN_APERTURE_SIZE            ((ULONG)0x{{DynDataHw.SmnApertureSize:X}})
+#define KPH_DYN_HW_FIXED_IO_MIN_BASE            ((ULONG)0x{{DynDataHw.FixedIoMinBase:X}})
+#define KPH_DYN_HW_FIXED_IO_MAX_SIZE            ((ULONG)0x{{DynDataHw.FixedIoMaxSize:X}})
+#define KPH_DYN_HW_FIXED_IO_MAX_SIGNATURE       ((ULONG){{DynDataHw.FixedIoMaxSignature}})
+#define KPH_DYN_HW_WINDOW_SPACE_MMIO            ((UCHAR){{DynDataHw.WindowSpaceMmio}})
+#define KPH_DYN_HW_WINDOW_SPACE_IO              ((UCHAR){{DynDataHw.WindowSpaceIo}})
+#define KPH_DYN_HW_WINDOW_ENABLE_NONE           ((UCHAR)0x{{DynDataHw.WindowEnableNone:X2}})
+#define KPH_DYN_HW_WINDOW_MAX_SIZE              ((ULONG)0x{{DynDataHw.MaxWindowSize:X}})
+#define KPH_DYN_HW_PCI_BAR_COUNT                ((UCHAR){{DynDataHw.PciBarCount}})
+
+#define KPH_DYN_HW_IDENTITY_CPU                 ((UCHAR){{DynDataHw.IdentityCpu}})
+#define KPH_DYN_HW_IDENTITY_PCI                 ((UCHAR){{DynDataHw.IdentityPci}})
+#define KPH_DYN_HW_IDENTITY_CPU_AND_PCI         ((UCHAR){{DynDataHw.IdentityCpuAndPci}})
+#define KPH_DYN_HW_IDENTITY_CPU_AND_PCI_CLASS   ((UCHAR){{DynDataHw.IdentityCpuAndPciClass}})
+#define KPH_DYN_HW_IDENTITY_SUPERIO             ((UCHAR){{DynDataHw.IdentitySuperIo}})
+#define KPH_DYN_HW_IDENTITY_BOARD               ((UCHAR){{DynDataHw.IdentityBoard}})
+#define KPH_DYN_HW_IDENTITY_ACPI_HID            ((UCHAR){{DynDataHw.IdentityAcpiHid}})
+#define KPH_DYN_HW_IDENTITY_ARM_CPU             ((UCHAR){{DynDataHw.IdentityArmCpu}})
+
+{{DynDataHw.ImplementedIdentityKindsDefinition()}}
+
+#define KPH_DYN_HW_SUPERIO_SLOTS                ((UCHAR){{DynDataHw.SuperIoSlots}})
+#define KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON       ((UCHAR){{DynDataHw.SuperIoFamilyNuvoton}})
+#define KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC    ((UCHAR){{DynDataHw.SuperIoFamilyNuvotonEc}})
+#define KPH_DYN_HW_SUPERIO_FAMILY_ITE           ((UCHAR){{DynDataHw.SuperIoFamilyIte}})
+#define KPH_DYN_HW_SUPERIO_FAMILY_FINTEK        ((UCHAR){{DynDataHw.SuperIoFamilyFintek}})
+#define KPH_DYN_HW_SUPERIO_FAMILY_SMSC          ((UCHAR){{DynDataHw.SuperIoFamilySmsc}})
+#define KPH_DYN_HW_SUPERIO_EXIT_NONE            ((UCHAR){{DynDataHw.SuperIoExitNone}})
+#define KPH_DYN_HW_SUPERIO_EXIT_KEY_AA          ((UCHAR){{DynDataHw.SuperIoExitKeyAa}})
+#define KPH_DYN_HW_SUPERIO_EXIT_CONFIG_02       ((UCHAR){{DynDataHw.SuperIoExitConfig02}})
+#define KPH_DYN_HW_SUPERIO_EC_LDN               ((UCHAR)0x{{DynDataHw.SuperIoEcLdn:X2}})
+
+#define KPH_DYN_HW_SMBUS_HOST_I801              ((UCHAR){{DynDataHw.SmbusHostI801}})
+#define KPH_DYN_HW_SMBUS_HOST_PIIX4             ((UCHAR){{DynDataHw.SmbusHostPiix4}})
+#define KPH_DYN_HW_SMBUS_PROTOCOL_BYTE_DATA     ((UCHAR)0x{{DynDataHw.SmbusProtocolByteData:X2}})
+#define KPH_DYN_HW_SMBUS_PROTOCOL_WORD_DATA     ((UCHAR)0x{{DynDataHw.SmbusProtocolWordData:X2}})
+#define KPH_DYN_HW_SMBUS_PORTS                  ((UCHAR){{DynDataHw.SmbusPorts}})
+#define KPH_DYN_HW_SMBUS_PM_PORT_PAIR           ((UCHAR){{DynDataHw.SmbusPmPortPair}})
+#define KPH_DYN_HW_SMBUS_PM_MMIO                ((UCHAR){{DynDataHw.SmbusPmMmio}})
+
+#define KPH_DYN_HW_VSEC_DISCOVERY_PMT_TELEMETRY ((UCHAR){{DynDataHw.VsecDiscoveryPmtTelemetry}})
+#define KPH_DYN_HW_VSEC_DISCOVERY_TPMI          ((UCHAR){{DynDataHw.VsecDiscoveryTpmi}})
+#define KPH_DYN_HW_VSEC_QUIRK_TABLE_SHIFT       ((UCHAR)0x{{DynDataHw.VsecQuirkTableShift:X2}})
+#define KPH_DYN_HW_VSEC_QUIRK_EARLY_HW          ((UCHAR)0x{{DynDataHw.VsecQuirkEarlyHw:X2}})
+#define KPH_DYN_HW_VSEC_TPMI_CONTROL            ((UCHAR)0x{{DynDataHw.VsecTpmiControl:X2}})
+#define KPH_DYN_HW_VSEC_GUID_ANY                ((ULONG){{DynDataHw.VsecGuidAny}})
+#define KPH_DYN_HW_VSEC_MAX_REGIONS             ((UCHAR){{DynDataHw.VsecMaxRegions}})
+#define KPH_DYN_HW_VSEC_MAX_REGION_SIZE         ((ULONG)0x{{DynDataHw.VsecMaxRegionSize:X}})
+#define KPH_DYN_HW_VSEC_MAX_TABLE_REGIONS       ((ULONG){{DynDataHw.VsecMaxTableRegions}})
+
+#define KPH_DYN_HW_MAILBOX_TRANSPORT_SMN_PAIR   ((UCHAR){{DynDataHw.MailboxTransportSmnPair}})
+#define KPH_DYN_HW_MAILBOX_TRANSPORT_MMIO_WINDOW ((UCHAR){{DynDataHw.MailboxTransportMmioWindow}})
+#define KPH_DYN_HW_MAILBOX_WINDOW_PAGE          ((ULONG)0x{{DynDataHw.MailboxWindowPage:X}})
+#define KPH_DYN_HW_MAILBOX_MAX_ARGS             ((UCHAR){{DynDataHw.MailboxMaxArgs}})
+#define KPH_DYN_HW_MAILBOX_MAX_COMMANDS         ((UCHAR){{DynDataHw.MailboxMaxCommands}})
+#define KPH_DYN_HW_MAILBOX_MAX_OPCODE           ((ULONG)0x{{DynDataHw.MailboxMaxOpcode:X2}})
+#define KPH_DYN_HW_MAILBOX_COMMAND_GET          ((UCHAR){{DynDataHw.MailboxCommandGet}})
+#define KPH_DYN_HW_MAILBOX_COMMAND_INTERNAL     ((UCHAR)0x{{DynDataHw.MailboxCommandInternal:X2}})
+#define KPH_DYN_HW_SMU_TABLE_BASE_HI_LO         ((UCHAR){{DynDataHw.SmuTableBaseHiLo}})
+#define KPH_DYN_HW_SMU_TABLE_BASE_HSMP          ((UCHAR){{DynDataHw.SmuTableBaseHsmp}})
+#define KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP      ((UCHAR){{DynDataHw.SmuTableBaseTwoStep}})
+#define KPH_DYN_HW_SMU_TABLE_MAX_VERSIONS       ((UCHAR){{DynDataHw.SmuTableMaxVersions}})
+#define KPH_DYN_HW_SMU_TABLE_MAX_SIZE           ((ULONG)0x{{DynDataHw.SmuTableMaxSize:X}})
+
+#define KPH_DYN_HW_PORT_PAIR_FCH_PM             ((UCHAR){{DynDataHw.PortPairFchPm}})
+#define KPH_DYN_HW_PORT_INDEX_END               ((ULONG)0x{{DynDataHw.PortIndexEnd:X}})
+
+#define KPH_DYN_HW_ACPI_ID_LENGTH               ((ULONG){{DynDataHw.AcpiIdSize}})
+#define KPH_DYN_HW_ACPI_MAX_ARGS                ((UCHAR){{DynDataHw.AcpiMaxArgs}})
+#define KPH_DYN_HW_ACPI_MIN_OUTPUT              ((USHORT){{DynDataHw.AcpiMinOutput}})
+#define KPH_DYN_HW_ACPI_MAX_OUTPUT              ((USHORT){{DynDataHw.AcpiMaxOutput}})
+#define KPH_DYN_HW_ACPI_RESULT_INTEGER          ((UCHAR)0x{{DynDataHw.AcpiResultInteger:X2}})
+#define KPH_DYN_HW_ACPI_RESULT_STRING           ((UCHAR)0x{{DynDataHw.AcpiResultString:X2}})
+#define KPH_DYN_HW_ACPI_RESULT_BUFFER           ((UCHAR)0x{{DynDataHw.AcpiResultBuffer:X2}})
+#define KPH_DYN_HW_ACPI_RESULT_PACKAGE          ((UCHAR)0x{{DynDataHw.AcpiResultPackage:X2}})
+
+#define KPH_DYN_HW_LOCK_NONE                    ((UCHAR){{DynDataHw.LockNone}})
+#define KPH_DYN_HW_LOCK_PCI                     ((UCHAR){{DynDataHw.LockPci}})
+#define KPH_DYN_HW_LOCK_ISA_BUS                 ((UCHAR){{DynDataHw.LockIsaBus}})
+#define KPH_DYN_HW_LOCK_SMBUS                   ((UCHAR){{DynDataHw.LockSmbus}})
+
+#define KPH_DYN_HW_GATE_NONE                    ((UCHAR){{DynDataHw.GateNone}})
+#define KPH_DYN_HW_GATE_CPUID                   ((UCHAR){{DynDataHw.GateCpuid}})
+#define KPH_DYN_HW_GATE_CHASSIS                 ((UCHAR){{DynDataHw.GateChassis}})
+#define KPH_DYN_HW_GATE_SYSREG_FIELD            ((UCHAR){{DynDataHw.GateSysregField}})
+#define KPH_DYN_HW_GATE_PCI_CONFIG              ((UCHAR){{DynDataHw.GatePciConfig}})
+
+#define KPH_DYN_HW_CPUID_EAX                    ((UCHAR){{DynDataHw.CpuidEax}})
+#define KPH_DYN_HW_CPUID_EBX                    ((UCHAR){{DynDataHw.CpuidEbx}})
+#define KPH_DYN_HW_CPUID_ECX                    ((UCHAR){{DynDataHw.CpuidEcx}})
+#define KPH_DYN_HW_CPUID_EDX                    ((UCHAR){{DynDataHw.CpuidEdx}})
+
+#define KPH_DYN_HW_SYSREG_MIDR_EL1              ((UCHAR){{DynDataHw.SysregMidr}})
+#define KPH_DYN_HW_SYSREG_MPIDR_EL1             ((UCHAR){{DynDataHw.SysregMpidr}})
+#define KPH_DYN_HW_SYSREG_REVIDR_EL1            ((UCHAR){{DynDataHw.SysregRevidr}})
+#define KPH_DYN_HW_SYSREG_ID_AA64PFR0_EL1       ((UCHAR){{DynDataHw.SysregIdAa64Pfr0}})
+#define KPH_DYN_HW_SYSREG_ID_AA64PFR1_EL1       ((UCHAR){{DynDataHw.SysregIdAa64Pfr1}})
+#define KPH_DYN_HW_SYSREG_ID_AA64DFR0_EL1       ((UCHAR){{DynDataHw.SysregIdAa64Dfr0}})
+#define KPH_DYN_HW_SYSREG_CNTFRQ_EL0            ((UCHAR){{DynDataHw.SysregCntfrq}})
+#define KPH_DYN_HW_SYSREG_CNTVCT_EL0            ((UCHAR){{DynDataHw.SysregCntvct}})
+#define KPH_DYN_HW_SYSREG_PMCCNTR_EL0           ((UCHAR){{DynDataHw.SysregPmccntr}})
+#define KPH_DYN_HW_SYSREG_AMCFGR_EL0            ((UCHAR){{DynDataHw.SysregAmcfgr}})
+#define KPH_DYN_HW_SYSREG_AMCGCR_EL0            ((UCHAR){{DynDataHw.SysregAmcgcr}})
+#define KPH_DYN_HW_SYSREG_AMCNTENSET0_EL0       ((UCHAR){{DynDataHw.SysregAmcntenset0}})
+#define KPH_DYN_HW_SYSREG_AMEVCNTR00_EL0        ((UCHAR){{DynDataHw.SysregAmevcntr00}})
+#define KPH_DYN_HW_SYSREG_AMEVCNTR01_EL0        ((UCHAR){{DynDataHw.SysregAmevcntr01}})
+#define KPH_DYN_HW_SYSREG_AMEVCNTR02_EL0        ((UCHAR){{DynDataHw.SysregAmevcntr02}})
+#define KPH_DYN_HW_SYSREG_AMEVCNTR03_EL0        ((UCHAR){{DynDataHw.SysregAmevcntr03}})
+#define KPH_DYN_HW_SYSREG_ID_LAST               ((UCHAR){{DynDataHw.SysregIdLast}})
+#define KPH_DYN_HW_SYSREG_MAX                   ((UCHAR){{DynDataHw.SysregMax}})
+#define KPH_DYN_HW_ARM_MAX_VARIANT              ((UCHAR)0x{{DynDataHw.ArmMaxVariant:X}})
+#define KPH_DYN_HW_ARM_MAX_PART_NUM             ((USHORT)0x{{DynDataHw.ArmMaxPartNum:X}})
+#define KPH_DYN_HW_ARM_MAX_REVISION             ((UCHAR)0x{{DynDataHw.ArmMaxRevision:X}})
+
+typedef struct _KPH_DYN_HW_CPU_IDENTITY
+{
+    ULONG Vendor[3];
+    USHORT DisplayFamily;
+    UCHAR DisplayModel;
+    UCHAR Reserved;
+} KPH_DYN_HW_CPU_IDENTITY, *PKPH_DYN_HW_CPU_IDENTITY;
+typedef const KPH_DYN_HW_CPU_IDENTITY* PCKPH_DYN_HW_CPU_IDENTITY;
+
+typedef struct _KPH_DYN_HW_PCI_IDENTITY
+{
+    USHORT VendorId;
+    USHORT DeviceId;
+} KPH_DYN_HW_PCI_IDENTITY, *PKPH_DYN_HW_PCI_IDENTITY;
+typedef const KPH_DYN_HW_PCI_IDENTITY* PCKPH_DYN_HW_PCI_IDENTITY;
+
+typedef struct _KPH_DYN_HW_CPU_AND_PCI_IDENTITY
+{
+    KPH_DYN_HW_CPU_IDENTITY Cpu;
+    KPH_DYN_HW_PCI_IDENTITY Pci;
+} KPH_DYN_HW_CPU_AND_PCI_IDENTITY, *PKPH_DYN_HW_CPU_AND_PCI_IDENTITY;
+typedef const KPH_DYN_HW_CPU_AND_PCI_IDENTITY* PCKPH_DYN_HW_CPU_AND_PCI_IDENTITY;
+
+typedef struct _KPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY
+{
+    KPH_DYN_HW_CPU_IDENTITY Cpu;
+    USHORT VendorId;
+    UCHAR BaseClass;
+    UCHAR SubClass;
+    UCHAR ProgIf;
+    UCHAR HeaderType;
+    UCHAR DevFn;
+    UCHAR Reserved;
+} KPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY, *PKPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY;
+typedef const KPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY* PCKPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY;
+
+typedef struct _KPH_DYN_HW_SUPERIO_IDENTITY
+{
+    UCHAR Slot;
+    UCHAR VendorFamily;
+    USHORT ChipId;
+    USHORT CustomerId;
+} KPH_DYN_HW_SUPERIO_IDENTITY, *PKPH_DYN_HW_SUPERIO_IDENTITY;
+typedef const KPH_DYN_HW_SUPERIO_IDENTITY* PCKPH_DYN_HW_SUPERIO_IDENTITY;
+
+typedef struct _KPH_DYN_HW_BOARD_IDENTITY
+{
+    ULONG64 BaseboardHash;
+    ULONG64 SystemHash;
+} KPH_DYN_HW_BOARD_IDENTITY, *PKPH_DYN_HW_BOARD_IDENTITY;
+typedef const KPH_DYN_HW_BOARD_IDENTITY* PCKPH_DYN_HW_BOARD_IDENTITY;
+
+typedef struct _KPH_DYN_HW_ACPI_HID_IDENTITY
+{
+    CHAR Id[{{DynDataHw.AcpiIdSize}}];
+} KPH_DYN_HW_ACPI_HID_IDENTITY, *PKPH_DYN_HW_ACPI_HID_IDENTITY;
+typedef const KPH_DYN_HW_ACPI_HID_IDENTITY* PCKPH_DYN_HW_ACPI_HID_IDENTITY;
+
+typedef struct _KPH_DYN_HW_ARM_CPU_IDENTITY
+{
+    UCHAR Implementer;
+    UCHAR Variant;
+    USHORT PartNum;
+    UCHAR Revision;
+    UCHAR Reserved[3];
+} KPH_DYN_HW_ARM_CPU_IDENTITY, *PKPH_DYN_HW_ARM_CPU_IDENTITY;
+typedef const KPH_DYN_HW_ARM_CPU_IDENTITY* PCKPH_DYN_HW_ARM_CPU_IDENTITY;
+
+typedef union _KPH_DYN_HW_IDENTITY
+{
+    KPH_DYN_HW_CPU_IDENTITY Cpu;
+    KPH_DYN_HW_PCI_IDENTITY Pci;
+    KPH_DYN_HW_CPU_AND_PCI_IDENTITY CpuAndPci;
+    KPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY CpuAndPciClass;
+    KPH_DYN_HW_SUPERIO_IDENTITY SuperIo;
+    KPH_DYN_HW_BOARD_IDENTITY Board;
+    KPH_DYN_HW_ACPI_HID_IDENTITY AcpiHid;
+    KPH_DYN_HW_ARM_CPU_IDENTITY ArmCpu;
+    UCHAR Bytes[{{DynDataHw.IdentitySize}}];
+} KPH_DYN_HW_IDENTITY, *PKPH_DYN_HW_IDENTITY;
+typedef const KPH_DYN_HW_IDENTITY* PCKPH_DYN_HW_IDENTITY;
+
+typedef struct _KPH_DYN_HW_INDEX
+{
+    UCHAR IdentityKind; // KPH_DYN_HW_IDENTITY_*
+    UCHAR Reserved[3];
+    KPH_DYN_HW_IDENTITY Identity;
+    ULONG Offset;
+    ULONG Length;
+} KPH_DYN_HW_INDEX, *PKPH_DYN_HW_INDEX;
+typedef const KPH_DYN_HW_INDEX* PCKPH_DYN_HW_INDEX;
+
+typedef struct _KPH_DYN_HW_GATE
+{
+    UCHAR Kind; // KPH_DYN_HW_GATE_*
+    UCHAR Register; // KPH_DYN_HW_CPUID_* or KPH_DYN_HW_SYSREG_*
+    UCHAR Shift;
+    UCHAR Width;
+    ULONG Leaf;
+    ULONG SubLeaf;
+    ULONG Value;
+    ULONG ValueMax;
+} KPH_DYN_HW_GATE, *PKPH_DYN_HW_GATE;
+typedef const KPH_DYN_HW_GATE* PCKPH_DYN_HW_GATE;
+
+typedef struct _KPH_DYN_HW_OP
+{
+    USHORT Kind; // KPH_DYN_HW_KIND_*
+    USHORT Length;
+    UCHAR CoreType;
+    UCHAR LockClass; // KPH_DYN_HW_LOCK_*
+    UCHAR Flags; // KPH_DYN_HW_FLAG_*
+    UCHAR Reserved;
+    ULONG Reserved2;
+    KPH_DYN_HW_GATE Gate;
+    UCHAR Body[ANYSIZE_ARRAY];
+} KPH_DYN_HW_OP, *PKPH_DYN_HW_OP;
+typedef const KPH_DYN_HW_OP* PCKPH_DYN_HW_OP;
+
+typedef struct _KPH_DYN_HW_TABLE
+{
+    ULONG Count;
+    // KPH_DYN_HW_OP Ops[Count];
+} KPH_DYN_HW_TABLE, *PKPH_DYN_HW_TABLE;
+typedef const KPH_DYN_HW_TABLE* PCKPH_DYN_HW_TABLE;
+
+typedef struct _KPH_DYN_HW_MSR_READ
+{
+    ULONG Register;
+    ULONG64 ReadMask;
+} KPH_DYN_HW_MSR_READ, *PKPH_DYN_HW_MSR_READ;
+typedef const KPH_DYN_HW_MSR_READ* PCKPH_DYN_HW_MSR_READ;
+
+typedef struct _KPH_DYN_HW_RANGE
+{
+    USHORT Offset;
+    USHORT Length;
+} KPH_DYN_HW_RANGE, *PKPH_DYN_HW_RANGE;
+typedef const KPH_DYN_HW_RANGE* PCKPH_DYN_HW_RANGE;
+
+typedef struct _KPH_DYN_HW_PCI_READ
+{
+    UCHAR RangeCount;
+    UCHAR Reserved[3];
+    KPH_DYN_HW_RANGE Ranges[ANYSIZE_ARRAY];
+} KPH_DYN_HW_PCI_READ, *PKPH_DYN_HW_PCI_READ;
+typedef const KPH_DYN_HW_PCI_READ* PCKPH_DYN_HW_PCI_READ;
+
+typedef struct _KPH_DYN_HW_TARGET_RANGE
+{
+    ULONG Begin;
+    ULONG End;
+    ULONG Stride;
+    UCHAR StrideCount;
+    UCHAR Reserved[3];
+} KPH_DYN_HW_TARGET_RANGE, *PKPH_DYN_HW_TARGET_RANGE;
+typedef const KPH_DYN_HW_TARGET_RANGE* PCKPH_DYN_HW_TARGET_RANGE;
+
+typedef struct _KPH_DYN_HW_PCI_INDIRECT_READ
+{
+    USHORT IndexOffset;
+    USHORT DataOffset;
+    UCHAR PinDevice;
+    UCHAR PinFunction;
+    UCHAR RangeCount;
+    UCHAR ValueCount;
+    // KPH_DYN_HW_TARGET_RANGE Ranges[RangeCount];
+    // ULONG Values[ValueCount];
+} KPH_DYN_HW_PCI_INDIRECT_READ, *PKPH_DYN_HW_PCI_INDIRECT_READ;
+typedef const KPH_DYN_HW_PCI_INDIRECT_READ* PCKPH_DYN_HW_PCI_INDIRECT_READ;
+
+typedef struct _KPH_DYN_HW_WINDOW_RANGE
+{
+    ULONG Offset;
+    ULONG Length;
+    UCHAR Width;
+    UCHAR Reserved[3];
+} KPH_DYN_HW_WINDOW_RANGE, *PKPH_DYN_HW_WINDOW_RANGE;
+typedef const KPH_DYN_HW_WINDOW_RANGE* PCKPH_DYN_HW_WINDOW_RANGE;
+
+typedef struct _KPH_DYN_HW_WINDOW_READ
+{
+    UCHAR BaseKind; // KPH_DYN_HW_WINDOW_BASE_*
+    UCHAR BarIndex;
+    UCHAR SpaceKind; // KPH_DYN_HW_WINDOW_SPACE_*
+    UCHAR EnableBit;
+    USHORT ConfigOffset;
+    UCHAR Is64;
+    UCHAR Width;
+    ULONG64 ConfigMask;
+    ULONG64 FixedBase;
+    ULONG WindowSize;
+    UCHAR RangeCount;
+    UCHAR AuxCount;
+    UCHAR Reserved[2];
+    // KPH_DYN_HW_WINDOW_RANGE Ranges[RangeCount];
+    // ULONG Aux[AuxCount];
+} KPH_DYN_HW_WINDOW_READ, *PKPH_DYN_HW_WINDOW_READ;
+typedef const KPH_DYN_HW_WINDOW_READ* PCKPH_DYN_HW_WINDOW_READ;
+
+typedef struct _KPH_DYN_HW_SUPERIO_READ
+{
+    UCHAR Ldn;
+    UCHAR Exit; // KPH_DYN_HW_SUPERIO_EXIT_*
+    UCHAR RangeCount;
+    UCHAR VendorIndex;
+    USHORT BaseMin;
+    USHORT BaseMax;
+    // KPH_DYN_HW_RANGE Ranges[RangeCount];
+} KPH_DYN_HW_SUPERIO_READ, *PKPH_DYN_HW_SUPERIO_READ;
+typedef const KPH_DYN_HW_SUPERIO_READ* PCKPH_DYN_HW_SUPERIO_READ;
+
+typedef struct _KPH_DYN_HW_SMBUS_READ
+{
+    UCHAR HostKind; // KPH_DYN_HW_SMBUS_HOST_*
+    UCHAR Port;
+    UCHAR Protocols; // KPH_DYN_HW_SMBUS_PROTOCOL_*
+    UCHAR RangeCount;
+    UCHAR Reserved[4];
+    UCHAR Slaves[{{DynDataHw.SmbusSlaveMapSize}}];
+    // KPH_DYN_HW_RANGE Ranges[RangeCount];
+} KPH_DYN_HW_SMBUS_READ, *PKPH_DYN_HW_SMBUS_READ;
+typedef const KPH_DYN_HW_SMBUS_READ* PCKPH_DYN_HW_SMBUS_READ;
+
+typedef struct _KPH_DYN_HW_VSEC_READ
+{
+    UCHAR Discovery; // KPH_DYN_HW_VSEC_DISCOVERY_*
+    UCHAR Quirks; // KPH_DYN_HW_VSEC_QUIRK_*
+    UCHAR MaxRegions;
+    UCHAR FeatureId;
+    ULONG Guid;
+    ULONG MaxRegionSize;
+    ULONG FeatureCapsMask;
+    UCHAR RangeCount;
+    UCHAR Reserved[3];
+    // KPH_DYN_HW_WINDOW_RANGE Ranges[RangeCount];
+} KPH_DYN_HW_VSEC_READ, *PKPH_DYN_HW_VSEC_READ;
+typedef const KPH_DYN_HW_VSEC_READ* PCKPH_DYN_HW_VSEC_READ;
+
+typedef struct _KPH_DYN_HW_MAILBOX_SMN
+{
+    USHORT IndexOffset;
+    USHORT DataOffset;
+    UCHAR PinDevice;
+    UCHAR PinFunction;
+    UCHAR Reserved[2];
+    ULONG Msg;
+    ULONG Rsp;
+    ULONG Arg0;
+    ULONG Reserved2[3];
+} KPH_DYN_HW_MAILBOX_SMN, *PKPH_DYN_HW_MAILBOX_SMN;
+typedef const KPH_DYN_HW_MAILBOX_SMN* PCKPH_DYN_HW_MAILBOX_SMN;
+
+typedef struct _KPH_DYN_HW_MAILBOX_WINDOW
+{
+    UCHAR BaseKind; // KPH_DYN_HW_WINDOW_BASE_ACPI_CRS
+    UCHAR BarIndex;
+    UCHAR Reserved[2];
+    ULONG WindowSize;
+    ULONG Msg;
+    ULONG Rsp;
+    ULONG Arg0;
+    ULONG Reserved2[3];
+} KPH_DYN_HW_MAILBOX_WINDOW, *PKPH_DYN_HW_MAILBOX_WINDOW;
+typedef const KPH_DYN_HW_MAILBOX_WINDOW* PCKPH_DYN_HW_MAILBOX_WINDOW;
+
+typedef union _KPH_DYN_HW_MAILBOX_ADDRESS
+{
+    KPH_DYN_HW_MAILBOX_SMN Smn;
+    KPH_DYN_HW_MAILBOX_WINDOW Window;
+    UCHAR Bytes[32];
+} KPH_DYN_HW_MAILBOX_ADDRESS, *PKPH_DYN_HW_MAILBOX_ADDRESS;
+typedef const KPH_DYN_HW_MAILBOX_ADDRESS* PCKPH_DYN_HW_MAILBOX_ADDRESS;
+
+typedef struct _KPH_DYN_HW_MAILBOX_COMMAND
+{
+    ULONG Opcode;
+    UCHAR IsGet;
+    UCHAR ResponseWords;
+    UCHAR Flags;
+    UCHAR Reserved;
+    ULONG ArgMask[8];
+    ULONG ArgMax[8];
+    ULONG ArgFixed[8];
+} KPH_DYN_HW_MAILBOX_COMMAND, *PKPH_DYN_HW_MAILBOX_COMMAND;
+typedef const KPH_DYN_HW_MAILBOX_COMMAND* PCKPH_DYN_HW_MAILBOX_COMMAND;
+
+typedef struct _KPH_DYN_HW_MAILBOX_TRANSACT
+{
+    UCHAR Transport; // KPH_DYN_HW_MAILBOX_TRANSPORT_*
+    UCHAR ArgCount;
+    UCHAR CommandCount;
+    UCHAR Reserved;
+    ULONG VersionOpcode;
+    ULONG VersionArg0;
+    ULONG Reserved2;
+    KPH_DYN_HW_MAILBOX_ADDRESS Address;
+    // KPH_DYN_HW_MAILBOX_COMMAND Commands[CommandCount];
+} KPH_DYN_HW_MAILBOX_TRANSACT, *PKPH_DYN_HW_MAILBOX_TRANSACT;
+typedef const KPH_DYN_HW_MAILBOX_TRANSACT* PCKPH_DYN_HW_MAILBOX_TRANSACT;
+
+typedef struct _KPH_DYN_HW_SMU_TABLE_VERSION
+{
+    ULONG Version;
+    ULONG Size;
+} KPH_DYN_HW_SMU_TABLE_VERSION, *PKPH_DYN_HW_SMU_TABLE_VERSION;
+typedef const KPH_DYN_HW_SMU_TABLE_VERSION* PCKPH_DYN_HW_SMU_TABLE_VERSION;
+
+typedef struct _KPH_DYN_HW_SMU_TABLE_READ
+{
+    UCHAR MailboxOp;
+    UCHAR BaseShape; // KPH_DYN_HW_SMU_TABLE_BASE_*
+    UCHAR VersionCount;
+    UCHAR SetupOpcode;
+    ULONG VersionOpcode;
+    ULONG TransferOpcode;
+    ULONG BaseOpcode;
+    // KPH_DYN_HW_SMU_TABLE_VERSION Versions[VersionCount];
+} KPH_DYN_HW_SMU_TABLE_READ, *PKPH_DYN_HW_SMU_TABLE_READ;
+typedef const KPH_DYN_HW_SMU_TABLE_READ* PCKPH_DYN_HW_SMU_TABLE_READ;
+
+typedef struct _KPH_DYN_HW_ACPI_ARG
+{
+    ULONG Mask;
+    ULONG Max;
+    ULONG Fixed;
+    ULONG Reserved;
+} KPH_DYN_HW_ACPI_ARG, *PKPH_DYN_HW_ACPI_ARG;
+typedef const KPH_DYN_HW_ACPI_ARG* PCKPH_DYN_HW_ACPI_ARG;
+
+typedef struct _KPH_DYN_HW_ACPI_EVAL
+{
+    ULONG Method;
+    UCHAR ArgCount;
+    UCHAR ResultTypes; // KPH_DYN_HW_ACPI_RESULT_*
+    USHORT MaxOutput;
+    ULONG Reserved;
+    ULONG Reserved2;
+    // KPH_DYN_HW_ACPI_ARG Args[ArgCount];
+} KPH_DYN_HW_ACPI_EVAL, *PKPH_DYN_HW_ACPI_EVAL;
+typedef const KPH_DYN_HW_ACPI_EVAL* PCKPH_DYN_HW_ACPI_EVAL;
+
+typedef struct _KPH_DYN_HW_SYSREG_READ
+{
+    UCHAR SysregEnum; // KPH_DYN_HW_SYSREG_*
+    UCHAR Reserved[3];
+    ULONG64 ReadMask;
+} KPH_DYN_HW_SYSREG_READ, *PKPH_DYN_HW_SYSREG_READ;
+typedef const KPH_DYN_HW_SYSREG_READ* PCKPH_DYN_HW_SYSREG_READ;
+
+typedef struct _KPH_DYN_HW_PORT_INDIRECT_READ
+{
+    UCHAR PortPair; // KPH_DYN_HW_PORT_PAIR_*
+    UCHAR PinDevice;
+    UCHAR PinFunction;
+    UCHAR RangeCount;
+    UCHAR Reserved[4];
+    // KPH_DYN_HW_RANGE Ranges[RangeCount];
+} KPH_DYN_HW_PORT_INDIRECT_READ, *PKPH_DYN_HW_PORT_INDIRECT_READ;
+typedef const KPH_DYN_HW_PORT_INDIRECT_READ* PCKPH_DYN_HW_PORT_INDIRECT_READ;
+
+typedef struct _KPH_DYN_HW_SMBUS_HOST
+{
+    UCHAR PmAccess; // KPH_DYN_HW_SMBUS_PM_*
+    UCHAR PortPair; // KPH_DYN_HW_PORT_PAIR_*
+    UCHAR PmLength;
+    UCHAR DecodeLow;
+    UCHAR DecodeHigh;
+    UCHAR EnableMask;
+    USHORT BaseMask;
+    UCHAR Select;
+    UCHAR SelectAlternate;
+    UCHAR SelectChoose;
+    UCHAR SelectChooseMask;
+    UCHAR SelectMask;
+    UCHAR SelectShift;
+    UCHAR Reserved[2];
+    ULONG64 PmBase; // MMIO access
+} KPH_DYN_HW_SMBUS_HOST, *PKPH_DYN_HW_SMBUS_HOST;
+typedef const KPH_DYN_HW_SMBUS_HOST* PCKPH_DYN_HW_SMBUS_HOST;
+
+typedef struct _KPH_DYN_HW_SECTION
+{
+    ULONG Magic; // KPH_DYN_HW_SECTION_MAGIC
+    ULONG Length;
+    ULONG Count;
+    // KPH_DYN_HW_INDEX Index[Count];
+    // BYTE Body[ANYSIZE_ARRAY];
+} KPH_DYN_HW_SECTION, *PKPH_DYN_HW_SECTION;
+typedef const KPH_DYN_HW_SECTION* PCKPH_DYN_HW_SECTION;
+
 #include <poppack.h>
+
+C_ASSERT(sizeof(KPH_DYN_HW_CPU_IDENTITY) == {{DynDataHw.CpuIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_PCI_IDENTITY) == {{DynDataHw.PciIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_CPU_AND_PCI_IDENTITY) == {{DynDataHw.CpuAndPciIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_CPU_AND_PCI_CLASS_IDENTITY) == {{DynDataHw.CpuAndPciClassIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SUPERIO_IDENTITY) == {{DynDataHw.SuperIoIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_BOARD_IDENTITY) == {{DynDataHw.BoardIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_ACPI_HID_IDENTITY) == {{DynDataHw.AcpiHidIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_ARM_CPU_IDENTITY) == {{DynDataHw.ArmCpuIdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_IDENTITY) == {{DynDataHw.IdentitySize}});
+C_ASSERT(sizeof(KPH_DYN_HW_INDEX) == {{DynDataHw.IndexSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_GATE) == {{DynDataHw.GateSize}});
+C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, Body) == {{DynDataHw.OpHeaderSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MSR_READ) == {{DynDataHw.MsrReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_RANGE) == {{DynDataHw.RangeSize}});
+C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_PCI_READ, Ranges) == {{DynDataHw.PciReadHeaderSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_TARGET_RANGE) == {{DynDataHw.TargetRangeSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_PCI_INDIRECT_READ) == {{DynDataHw.PciIndirectReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_WINDOW_RANGE) == {{DynDataHw.WindowRangeSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_WINDOW_READ) == {{DynDataHw.WindowReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SUPERIO_READ) == {{DynDataHw.SuperIoReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SMBUS_READ) == {{DynDataHw.SmbusReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_VSEC_READ) == {{DynDataHw.VsecReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MAILBOX_ADDRESS) == {{DynDataHw.MailboxAddressSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MAILBOX_SMN) == {{DynDataHw.MailboxAddressSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MAILBOX_WINDOW) == {{DynDataHw.MailboxAddressSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MAILBOX_COMMAND) == {{DynDataHw.MailboxCommandSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_MAILBOX_TRANSACT) == {{DynDataHw.MailboxTransactSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SMU_TABLE_VERSION) == {{DynDataHw.SmuTableVersionSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SMU_TABLE_READ) == {{DynDataHw.SmuTableReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_ACPI_ARG) == {{DynDataHw.AcpiArgSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_ACPI_EVAL) == {{DynDataHw.AcpiEvalSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SYSREG_READ) == {{DynDataHw.SysregReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_PORT_INDIRECT_READ) == {{DynDataHw.PortIndirectReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SMBUS_HOST) == {{DynDataHw.SmbusHostSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SECTION) == {{DynDataHw.SectionSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
+{{DynDataHw.FieldOffsetAsserts()}}
 """;
 
         /// <summary>
@@ -396,7 +976,10 @@ typedef struct _KPH_DYN_CONFIG
         public static bool Execute(string OutDir, bool StrictChecks)
         {
             string manifestFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.xml"]);
+            string hardwareFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdynhw.xml"]);
             string headerFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\kphdyn.h"]);
+
+            DynDataHw.VerifyLayouts();
 
             // Check for new or modified content. We don't want to touch the file if it's unnecessary.
             {
@@ -405,7 +988,10 @@ typedef struct _KPH_DYN_CONFIG
                 Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
             }
 
-            byte[] config = GenerateConfig(manifestFile);
+            if (!File.Exists(hardwareFile))
+                throw new FileNotFoundException("The hardware allow-list is required to build dynamic data.", hardwareFile);
+
+            byte[] config = GenerateConfig(manifestFile, [hardwareFile]);
 
             if (string.IsNullOrWhiteSpace(OutDir))
                 return true;
@@ -465,10 +1051,12 @@ typedef struct _KPH_DYN_CONFIG
         /// Generates the dynamic configuration binary from the manifest XML.
         /// </summary>
         /// <param name="ManifestFile">The manifest XML file path.</param>
+        /// <param name="HardwareFiles">The hardware manifest XML file paths; no hardware section when empty.</param>
         /// <returns>The configuration binary as a byte array.</returns>
-        private static byte[] GenerateConfig(string ManifestFile)
+        private static byte[] GenerateConfig(string ManifestFile, string[] HardwareFiles)
         {
             var xml = new XmlDocument();
+
             var xmlSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -596,13 +1184,29 @@ typedef struct _KPH_DYN_CONFIG
                 entries.Add(entry);
             }
 
+            // Build the hardware section, if there is a hardware manifest.
+            byte[] hardware = [];
+
+            if (HardwareFiles.Length != 0)
+            {
+                var hardwareRows = HwManifest.Load(HardwareFiles);
+
+                hardware = HwSection.Serialize(hardwareRows, out int hardwareTables);
+
+                Program.PrintColorMessage($"Dynamic hardware -> {hardwareRows.Count} rows, {hardwareTables} tables, {hardware.Length} bytes, SHA-256 {Convert.ToHexString(SHA256.HashData(hardware))}", ConsoleColor.Cyan);
+            }
+
             // Allocate a pre-sized buffer for the entire configuration binary.
-            // The size is calculated as: Version (4) + Public Key Length + Count (4) + (Entries * EntrySize) + Fields Data Length.
-            byte[] result = new byte[sizeof(uint) +
-                                     SessionTokenPublicKey.Length +
-                                     sizeof(uint) +
-                                     (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
-                                     fieldsStream.WrittenCount];
+            // The size is calculated as: Version (4) + Public Key Length + Count (4) + HardwareOffset (4) +
+            // HardwareLength (4) + (Entries * EntrySize) + Fields Data Length + Hardware Section Length.
+            int hardwareOffset = sizeof(uint) +
+                                 SessionTokenPublicKey.Length +
+                                 sizeof(uint) +
+                                 sizeof(uint) +
+                                 sizeof(uint) +
+                                 (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
+                                 fieldsStream.WrittenCount;
+            byte[] result = new byte[hardwareOffset + hardware.Length];
             // Create a span over the result buffer for efficient writing.
             Span<byte> span = result;
 
@@ -618,13 +1222,23 @@ typedef struct _KPH_DYN_CONFIG
             BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)entries.Count);
             span = span[sizeof(uint)..];
 
+            // Write the hardware section offset (absolute, 0 = absent) and length and advance the span.
+            BinaryPrimitives.WriteUInt32LittleEndian(span, hardware.Length != 0 ? (uint)hardwareOffset : 0);
+            span = span[sizeof(uint)..];
+            BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)hardware.Length);
+            span = span[sizeof(uint)..];
+
             // Convert the entry list to a read-only byte span and copy it to the buffer.
             ReadOnlySpan<byte> entriesSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries));
             entriesSpan.CopyTo(span);
             span = span[entriesSpan.Length..];
 
-            // Copy the field data from the ArrayBufferWriter to the remaining buffer space.
+            // Copy the field data from the ArrayBufferWriter and advance the span.
             fieldsStream.WrittenSpan.CopyTo(span);
+            span = span[fieldsStream.WrittenCount..];
+
+            // Copy the hardware section to the remaining buffer space.
+            hardware.CopyTo(span);
 
             return result;
         }
