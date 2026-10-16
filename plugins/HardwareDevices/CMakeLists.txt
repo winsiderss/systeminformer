@@ -66,6 +66,12 @@ set(SOURCES_RAPL
 )
 source_group("Source Files\\RAPL" FILES ${SOURCES_RAPL})
 
+set(SOURCES_MOTHERBOARD
+    "motherboard.c"
+    "superio.c"
+)
+source_group("Source Files\\Motherboard" FILES ${SOURCES_MOTHERBOARD})
+
 si_add_plugin(HardwareDevices
     ${HEADERS}
     ${RESOURCES}
@@ -75,6 +81,7 @@ si_add_plugin(HardwareDevices
     ${SOURCES_GRAPHICS}
     ${SOURCES_NETWORK}
     ${SOURCES_RAPL}
+    ${SOURCES_MOTHERBOARD}
 )
 
 target_link_libraries(HardwareDevices PRIVATE

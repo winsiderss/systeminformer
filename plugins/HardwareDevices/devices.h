@@ -60,8 +60,10 @@
 #define SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION (PLUGIN_NAME L".DeviceHighlightingDuration")
 #define SETTING_NAME_DEVICE_SORT_CHILD_DEVICES (PLUGIN_NAME L".SortChildDevices")
 #define SETTING_NAME_DEVICE_SORT_ROOT_DEVICES (PLUGIN_NAME L".SortRootDevices")
+#define SETTING_NAME_MOTHERBOARD_ENABLED (PLUGIN_NAME L".MotherboardEnabled")
 
 #include <phdk.h>
+#include <kphuser.h>
 #include <phappresource.h>
 #include <settings.h>
 #include <searchbox.h>
@@ -1412,6 +1414,88 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+// motherboard.c
+
+VOID MotherboardInitialize(
+    VOID
+    );
+
+VOID MotherboardUninitialize(
+    VOID
+    );
+
+VOID MotherboardUpdate(
+    VOID
+    );
+
+INT_PTR CALLBACK MotherboardOptionsDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// superio.c
+
+#define MB_REGISTER_SPACE 0x1000
+#define MB_SENSOR_NAME_LENGTH 48
+
+typedef struct _MB_SENSOR
+{
+    ULONG Type; // PH_HW_SENSOR_TYPE
+    ULONG SensorId;
+    FLOAT Value;
+    WCHAR Name[MB_SENSOR_NAME_LENGTH];
+} MB_SENSOR, *PMB_SENSOR;
+
+typedef struct _MB_REGISTERS
+{
+    UCHAR Value[MB_REGISTER_SPACE];
+    UCHAR Age[MB_REGISTER_SPACE];
+    ULONG Valid[MB_REGISTER_SPACE / 32];
+} MB_REGISTERS, *PMB_REGISTERS;
+typedef const MB_REGISTERS* PCMB_REGISTERS;
+
+struct _MB_CHIP;
+struct _MB_BOARD;
+
+typedef struct _MB_CHIP_STATE
+{
+    const struct _MB_CHIP* Chip;
+    const struct _MB_BOARD* Board;
+    USHORT CustomerId;
+    ULONG SeenVoltages;
+    ULONG SeenFans;
+    UCHAR VoltageBank; // NCT610x: 0 until a bank reads, then 1 (00h) or 2 (300h)
+} MB_CHIP_STATE, *PMB_CHIP_STATE;
+typedef const MB_CHIP_STATE* PCMB_CHIP_STATE;
+
+_Success_(return)
+BOOLEAN SuperIoIdentifyChip(
+    _In_ const KPH_HW_SUPERIO_CHIP* Identity,
+    _In_opt_ PCPH_STRINGREF Manufacturer,
+    _In_opt_ PCPH_STRINGREF Product,
+    _Out_ PMB_CHIP_STATE State
+    );
+
+PCWSTR SuperIoGetChipName(
+    _In_ PCMB_CHIP_STATE State
+    );
+
+ULONG SuperIoGetRegisters(
+    _In_ PCMB_CHIP_STATE State,
+    _Out_writes_to_(Capacity, return) PUSHORT Registers,
+    _In_ ULONG Capacity
+    );
+
+ULONG SuperIoDecode(
+    _Inout_ PMB_CHIP_STATE State,
+    _In_ PCMB_REGISTERS Registers,
+    _Out_writes_to_(Capacity, return) PMB_SENSOR Sensors,
+    _In_ ULONG Capacity,
+    _Out_ PBOOLEAN Rejected
     );
 
 // powergraph.c

@@ -118,6 +118,7 @@
     <ClCompile Include="disk.c" />
     <ClCompile Include="netgraph.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="motherboard.c" />
     <ClCompile Include="ndis.c" />
     <ClCompile Include="netoptions.c" />
     <ClCompile Include="power.c" />
@@ -125,6 +126,7 @@
     <ClCompile Include="poweroptions.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="storage.c" />
+    <ClCompile Include="superio.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
