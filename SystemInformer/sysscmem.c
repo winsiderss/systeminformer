@@ -23,6 +23,8 @@
 #include <procprv.h>
 #include <phsettings.h>
 #include <graphbar.h>
+#include <hwprv.h>
+#include <hwsmu.h>
 
 static CONST PH_KEY_VALUE_PAIR MemoryFormFactors[] =
 {
@@ -130,6 +132,31 @@ static UCHAR MemoryFormFactor;
 static UCHAR MemoryTechnology;
 static UCHAR MemoryType;
 static ULONG MemorySpeed;
+static ULONG MemoryMaximumSpeed;
+static ULONG MemoryHardwareRowsShown; // bit n set when MemoryHardwareRows[n] is shown
+static RECT MemoryHardwareRect; // IDD_SYSINFO_MEMPANEL rectangles in dialog units
+static RECT MemorySpeedValueRect;
+
+// Rows shown below the SMBIOS speed when the hardware provides them, in order.
+static CONST struct
+{
+    INT LabelId;
+    INT ValueId;
+} MemoryHardwareRows[] =
+{
+    { IDC_ZMEMCLOCK_L, IDC_ZMEMCLOCK_V },
+    { IDC_ZMEMCONTROLLERCLOCK_L, IDC_ZMEMCONTROLLERCLOCK_V },
+    { IDC_ZMEMFABRICCLOCK_L, IDC_ZMEMFABRICCLOCK_V },
+    { IDC_ZMEMTIMINGS_L, IDC_ZMEMTIMINGS_V },
+    { IDC_ZMEMROWCYCLE_L, IDC_ZMEMROWCYCLE_V },
+    { IDC_ZMEMREFRESHCYCLE_L, IDC_ZMEMREFRESHCYCLE_V },
+    { IDC_ZMEMCOMMANDRATE_L, IDC_ZMEMCOMMANDRATE_V },
+    { IDC_ZMEMGEARDOWN_L, IDC_ZMEMGEARDOWN_V },
+    { IDC_ZMEMVOLTAGE_L, IDC_ZMEMVOLTAGE_V },
+    { IDC_ZMEMTEMPERATURE_L, IDC_ZMEMTEMPERATURE_V },
+};
+static RECT MemoryHardwareRowRects[RTL_NUMBER_OF(MemoryHardwareRows)][2];
+C_ASSERT(RTL_NUMBER_OF(MemoryHardwareRows) <= sizeof(ULONG) * 8);
 
 static BOOLEAN PhSipGetMemoryListInfo(
     _Out_ PSYSTEM_MEMORY_LIST_INFORMATION MemoryListInfo,
@@ -158,6 +185,7 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     UCHAR memoryType = 0;
     UCHAR technology = 0;
     ULONG speed = 0;
+    ULONG maximumSpeed = 0;
 
     if (Entry->Header.Type != SMBIOS_MEMORY_DEVICE_INFORMATION_TYPE)
         return FALSE;
@@ -174,13 +202,11 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     if (speed == MAXUSHORT && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedConfiguredSpeed))
         speed = Entry->MemoryDevice.ExtendedConfiguredSpeed;
 
-    if (!speed)
-    {
-        if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Speed))
-            speed = Entry->MemoryDevice.Speed;
-        if (speed == MAXUSHORT && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedSpeed))
-            speed = Entry->MemoryDevice.ExtendedSpeed;
-    }
+    // Speed is the maximum the device supports, not the speed it runs at.
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Speed))
+        maximumSpeed = Entry->MemoryDevice.Speed;
+    if (maximumSpeed == MAXUSHORT && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedSpeed))
+        maximumSpeed = Entry->MemoryDevice.ExtendedSpeed;
 
     MemorySlotsTotal++;
     if (Entry->MemoryDevice.Size.Value)
@@ -190,6 +216,7 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     MemoryType = max(MemoryType, memoryType);
     MemoryTechnology = max(MemoryTechnology, technology);
     MemorySpeed = max(MemorySpeed, speed);
+    MemoryMaximumSpeed = max(MemoryMaximumSpeed, maximumSpeed);
 
     return FALSE;
 }
@@ -213,6 +240,7 @@ BOOLEAN PhSipMemorySectionCallback(
             MemoryFormFactor = 0;
             MemoryType = 0;
             MemorySpeed = 0;
+            MemoryMaximumSpeed = 0;
             PhEnumSMBIOS(PhpSipMemorySMBIOSCallback, NULL);
 
             PhGraphBarInitialization();
@@ -464,6 +492,7 @@ VOID PhSipInitializeMemoryDialog(
     PhInitializeGraphState(&PhysicalGraphState);
 
     MemoryTicked = 0;
+    MemoryHardwareRowsShown = 0;
 
     if (!MmAddressesInitialized)
     {
@@ -615,6 +644,256 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
     return FALSE;
 }
 
+// Rect is in dialog units.
+static VOID PhSipGetMemoryPanelItemRect(
+    _In_ HWND PanelHandle,
+    _In_ INT ItemId,
+    _Out_ PRECT Rect
+    )
+{
+    RECT units = { 0, 0, 4, 8 };
+    RECT rect;
+
+    MapDialogRect(PanelHandle, &units);
+    GetWindowRect(GetDlgItem(PanelHandle, ItemId), &rect);
+    MapWindowRect(NULL, PanelHandle, &rect);
+
+    Rect->left = MulDiv(rect.left, 4, units.right);
+    Rect->top = MulDiv(rect.top, 8, units.bottom);
+    Rect->right = MulDiv(rect.right, 4, units.right);
+    Rect->bottom = MulDiv(rect.bottom, 8, units.bottom);
+}
+
+// Rect is in dialog units.
+static VOID PhSipSetMemoryPanelItemRect(
+    _In_ INT ItemId,
+    _In_ LPCRECT Rect
+    )
+{
+    RECT rect = *Rect;
+
+    MapDialogRect(MemoryPanel, &rect);
+
+    SetWindowPos(
+        GetDlgItem(MemoryPanel, ItemId),
+        NULL,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        SWP_NOZORDER | SWP_NOACTIVATE
+        );
+}
+
+// The shown rows stack below the SMBIOS speed and the group box grows to fit them.
+static VOID PhSipLayoutMemoryHardwareRows(
+    _In_ ULONG Shown
+    )
+{
+    LONG pitch = MemoryHardwareRowRects[0][1].top - MemorySpeedValueRect.top;
+    LONG top = MemorySpeedValueRect.top;
+    RECT hardware = MemoryHardwareRect;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(MemoryHardwareRows); i++)
+    {
+        BOOLEAN show = !!(Shown & (1UL << i));
+
+        if (show)
+        {
+            top += pitch;
+
+            for (ULONG j = 0; j < 2; j++)
+            {
+                RECT rect = MemoryHardwareRowRects[i][j];
+
+                rect.bottom = top + (rect.bottom - rect.top);
+                rect.top = top;
+                PhSipSetMemoryPanelItemRect(j ? MemoryHardwareRows[i].ValueId : MemoryHardwareRows[i].LabelId, &rect);
+            }
+        }
+
+        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].LabelId), show ? SW_SHOW : SW_HIDE);
+        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].ValueId), show ? SW_SHOW : SW_HIDE);
+    }
+
+    hardware.bottom = MemoryHardwareRect.bottom + (top - MemorySpeedValueRect.top);
+    PhSipSetMemoryPanelItemRect(IDC_ZMEMHARDWARE, &hardware);
+
+    InvalidateRect(MemoryPanel, NULL, TRUE);
+
+    MemoryHardwareRowsShown = Shown;
+}
+
+static PPH_STRING PhSipFormatMemoryMhz(
+    _In_ FLOAT Mhz
+    )
+{
+    PH_FORMAT format[2];
+
+    PhInitFormatF(&format[0], Mhz, 0);
+    PhInitFormatS(&format[1], L" MHz");
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 16);
+}
+
+static VOID PhSipUpdateMemoryHardwareRows(
+    VOID
+    )
+{
+    PPH_STRING values[RTL_NUMBER_OF(MemoryHardwareRows)] = { 0 };
+    ULONG capabilities = PhHwGetCapabilities();
+    ULONG shown = 0;
+
+    for (ULONG i = 0; i < PhHwGetPackageCount(); i++)
+    {
+        PPH_HW_PACKAGE_SENSOR package = PhHwGetPackageSensor(i);
+        PH_FORMAT format[7];
+        FLOAT mhz;
+
+        if (!package)
+            continue;
+
+        // The SMU clocks of the first package that reports them; they need no SPD or timing data.
+        if (!values[1] && PhHwGetNamedSensorValue(PhHwNamedSensorSmuMemoryClock, i, PhHwSmuIdUclk, &mhz))
+            values[1] = PhSipFormatMemoryMhz(mhz);
+        if (
+            !values[2] &&
+            (PhHwGetNamedSensorValue(PhHwNamedSensorSmuClock, i, PhHwSmuIdFclk, &mhz) ||
+            PhHwGetNamedSensorValue(PhHwNamedSensorSmuClock, i, PhHwSmuIdFclk | PH_HW_SMU_ID_HSMP, &mhz))
+            )
+        {
+            values[2] = PhSipFormatMemoryMhz(mhz);
+        }
+
+        if (!(package->Valid & (PH_HW_CAP_MEMORY_CLOCK | PH_HW_CAP_MEMORY_TIMINGS)))
+            continue;
+
+        if (package->Valid & PH_HW_CAP_MEMORY_CLOCK)
+            values[0] = PhSipFormatMemoryMhz(package->MemoryClockMhz);
+
+        if (package->Valid & PH_HW_CAP_MEMORY_TIMINGS)
+        {
+            PPH_HW_MEMORY_TIMINGS timings = &package->MemoryTimings;
+
+            PhInitFormatU(&format[0], timings->CasLatency);
+            PhInitFormatC(&format[1], L'-');
+            PhInitFormatU(&format[2], timings->RasToCasDelay);
+            PhInitFormatC(&format[3], L'-');
+            PhInitFormatU(&format[4], timings->RowPrecharge);
+            PhInitFormatC(&format[5], L'-');
+            PhInitFormatU(&format[6], timings->RowActive);
+            values[3] = PhFormat(format, 7, 24);
+
+            if (timings->RowCycle)
+            {
+                PhInitFormatU(&format[0], timings->RowCycle);
+                values[4] = PhFormat(format, 1, 8);
+            }
+
+            if (timings->RefreshCycle)
+            {
+                PhInitFormatU(&format[0], timings->RefreshCycle);
+
+                // A cycle is one memory clock period.
+                if ((package->Valid & PH_HW_CAP_MEMORY_CLOCK) && package->MemoryClockMhz > 0.0f)
+                {
+                    PhInitFormatS(&format[1], L" (");
+                    PhInitFormatF(&format[2], (FLOAT)timings->RefreshCycle * 1000.0f / package->MemoryClockMhz, 0);
+                    PhInitFormatS(&format[3], L" ns)");
+                    values[5] = PhFormat(format, 4, 24);
+                }
+                else
+                {
+                    values[5] = PhFormat(format, 1, 8);
+                }
+            }
+
+            if (timings->CommandRate)
+                values[6] = PhFormatString(L"%luT", timings->CommandRate);
+            else
+                values[6] = PhCreateString(L"N:1");
+
+            if (timings->GearDownValid)
+                values[7] = PhCreateString(timings->GearDown ? L"Enabled" : L"Disabled");
+        }
+
+        break;
+    }
+
+    // The first DIMM's VDD set point and the hottest DIMM.
+    {
+        ULONG count = PhHwGetNamedSensorCount();
+        BOOLEAN voltageFound = FALSE;
+        BOOLEAN temperatureFound = FALSE;
+        FLOAT voltage = 0.0f;
+        FLOAT temperature = 0.0f;
+        PH_FORMAT format[2];
+        PH_FORMAT temperatureFormat[PH_HW_TEMPERATURE_FORMAT_COUNT];
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            PH_HW_NAMED_SENSOR sensor;
+
+            if (!PhHwGetNamedSensor(i, &sensor) || !sensor.Valid)
+                continue;
+
+            if (sensor.Kind == PhHwNamedSensorDimmVoltage && sensor.Id % PH_HW_PMIC_RAILS == 0 && !voltageFound)
+            {
+                voltage = sensor.Value;
+                voltageFound = TRUE;
+            }
+            else if (sensor.Kind == PhHwNamedSensorDimmTemperature && (!temperatureFound || sensor.Value > temperature))
+            {
+                temperature = sensor.Value;
+                temperatureFound = TRUE;
+            }
+        }
+
+        if (voltageFound)
+        {
+            PhInitFormatF(&format[0], voltage, 3);
+            PhInitFormatS(&format[1], L" V");
+            values[8] = PhFormat(format, 2, 16);
+        }
+
+        if (temperatureFound)
+        {
+            PhHwFormatTemperature(temperature, 1, temperatureFormat);
+            values[9] = PhFormat(temperatureFormat, PH_HW_TEMPERATURE_FORMAT_COUNT, 16);
+        }
+    }
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(values); i++)
+    {
+        if (values[i])
+            shown |= 1UL << i;
+    }
+
+    // A row stays while its source lasts; a value can miss a pass.
+    if (capabilities & PH_HW_CAP_MEMORY_CLOCK)
+        shown |= MemoryHardwareRowsShown & (1UL << 0);
+    if (capabilities & PH_HW_CAP_SMU)
+        shown |= MemoryHardwareRowsShown & ((1UL << 1) | (1UL << 2));
+    if (capabilities & PH_HW_CAP_MEMORY_TIMINGS)
+        shown |= MemoryHardwareRowsShown & ((1UL << 3) | (1UL << 4) | (1UL << 5) | (1UL << 6) | (1UL << 7));
+    if (capabilities & PH_HW_CAP_DIMM_VOLTAGE)
+        shown |= MemoryHardwareRowsShown & (1UL << 8);
+    if (capabilities & PH_HW_CAP_DIMM_TEMP)
+        shown |= MemoryHardwareRowsShown & (1UL << 9);
+
+    if (shown != MemoryHardwareRowsShown)
+        PhSipLayoutMemoryHardwareRows(shown);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(values); i++)
+    {
+        if (values[i])
+        {
+            PhSetDialogItemText(MemoryPanel, MemoryHardwareRows[i].ValueId, values[i]->Buffer);
+            PhDereferenceObject(values[i]);
+        }
+    }
+}
+
 INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -627,6 +906,15 @@ INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
     case WM_INITDIALOG:
         {
             PhInitializeThemeWindowGroupBoxes(hwndDlg);
+
+            PhSipGetMemoryPanelItemRect(hwndDlg, IDC_ZMEMHARDWARE, &MemoryHardwareRect);
+            PhSipGetMemoryPanelItemRect(hwndDlg, IDC_ZMEMSPEED_V, &MemorySpeedValueRect);
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(MemoryHardwareRows); i++)
+            {
+                PhSipGetMemoryPanelItemRect(hwndDlg, MemoryHardwareRows[i].LabelId, &MemoryHardwareRowRects[i][0]);
+                PhSipGetMemoryPanelItemRect(hwndDlg, MemoryHardwareRows[i].ValueId, &MemoryHardwareRowRects[i][1]);
+            }
         }
         break;
     case WM_COMMAND:
@@ -1407,11 +1695,26 @@ VOID PhSipUpdateMemoryPanel(
             else
                 PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, L"Undefined");
 
-            PhInitFormatU(&format[0], MemorySpeed);
-            PhInitFormatS(&format[1], L" MT/s");
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 10)->Buffer);
+            if (MemorySpeed)
+            {
+                PhInitFormatU(&format[0], MemorySpeed);
+                PhInitFormatS(&format[1], L" MT/s");
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 10)->Buffer);
+            }
+            else if (MemoryMaximumSpeed)
+            {
+                PhInitFormatU(&format[0], MemoryMaximumSpeed);
+                PhInitFormatS(&format[1], L" MT/s (max)");
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 16)->Buffer);
+            }
+            else
+            {
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, L"N/A");
+            }
         }
     }
+
+    PhSipUpdateMemoryHardwareRows();
 
     // Commit charge
 

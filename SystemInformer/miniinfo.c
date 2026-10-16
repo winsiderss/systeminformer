@@ -24,6 +24,7 @@
 #include <sysinfop.h>
 
 #include <emenu.h>
+#include <hwprv.h>
 #include <settings.h>
 #include <phsettings.h>
 
@@ -2423,15 +2424,35 @@ BOOLEAN PhMipCpuListSectionCallback(
     {
     case MiListSectionTick:
         {
-            PH_FORMAT format[3];
+            PH_FORMAT format[9];
+            ULONG count;
+            ULONG valid;
 
-            // CPU    %.2f%%
+            // CPU    %.2f%%    %.1f°C    %.1f W
             PhInitFormatS(&format[0], L"CPU    ");
             PhInitFormatF(&format[1], (PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[2], L'%');
+            count = 3;
+
+            // Hottest package temperature and total package power, when reported.
+            valid = PhHwGetPackageValidMask();
+
+            if (FlagOn(valid, PH_HW_CAP_PACKAGE_TEMP))
+            {
+                PhInitFormatS(&format[count++], L"    ");
+                PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[count]);
+                count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+            }
+
+            if (FlagOn(valid, PH_HW_CAP_RAPL_PACKAGE))
+            {
+                PhInitFormatS(&format[count++], L"    ");
+                PhInitFormatF(&format[count++], PhHwCpuPower, 1);
+                PhInitFormatS(&format[count++], L" W");
+            }
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PH_AUTO(PhFormat(format, RTL_NUMBER_OF(format), 16)));
+                PH_AUTO(PhFormat(format, count, 48)));
         }
         break;
     case MiListSectionSortProcessList:

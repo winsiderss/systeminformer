@@ -18,7 +18,14 @@
 #include <phsettings.h>
 #include <phfirmware.h>
 #include <phintrin.h>
+#include <hwprv.h>
+#include <hwsmu.h>
 #include <devguid.h>
+
+#define CPU_SENSOR_GRAPHS (PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_RAPL_PACKAGE)
+#define CPU_SENSOR_GRAPH_DIVISOR 4 // The sensor row takes a quarter of the graph area
+#define CPU_SENSOR_GRAPH_DIVISOR_PER_CPU 6 // A sixth with one graph per CPU
+#define CPU_POWER_GRAPH_MINIMUM 10.0f // Watts
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -29,9 +36,16 @@ static HWND CpuGraphHandle;
 static PH_GRAPH_STATE CpuGraphState;
 static HWND *CpusGraphHandle;
 static PPH_GRAPH_STATE CpusGraphState;
+static HWND CpuTemperatureGraphHandle;
+static PH_GRAPH_STATE CpuTemperatureGraphState;
+static HWND CpuPowerGraphHandle;
+static PH_GRAPH_STATE CpuPowerGraphState;
+static ULONG CpuSensorGraphs; // CPU_SENSOR_GRAPHS bits whose capability is present
 static BOOLEAN OneGraphPerCpu;
+static BOOLEAN CpuTemperaturePerCpu;
 static HWND CpuPanel;
 static ULONG CpuTicked;
+static BOOLEAN CpuLimitsShown;
 static ULONG CpuMaxMhz;
 static PULONG CpuNominalMhz; // Per processor nominal frequency (hybrid processors have more than one)
 static ULONG NumberOfProcessors;
@@ -67,6 +81,614 @@ static HWND CpuPanelLatencyLabel;
 static ULONG64 CpuL1CacheSize;
 static ULONG64 CpuL2CacheSize;
 static ULONG64 CpuL3CacheSize;
+
+typedef struct _CPU_HARDWARE_SENSORS
+{
+    ULONG Valid; // PH_HW_CAP_* bits with at least one current value
+    FLOAT Temperature; // Hottest package
+    FLOAT CcdTemperature; // Hottest CCD
+    FLOAT Voltage; // Highest logical processor
+    FLOAT ActiveMhz; // Average over logical processors
+    FLOAT Multiplier; // Average over logical processors
+    FLOAT PackagePower; // Sum over packages
+    FLOAT CorePower;
+    FLOAT DramPower;
+    ULONG ThrottleFlags;
+} CPU_HARDWARE_SENSORS, *PCPU_HARDWARE_SENSORS;
+
+// Valid is zero when hardware sensors are unavailable.
+static VOID CpuQueryHardwareSensors(
+    _Out_ PCPU_HARDWARE_SENSORS Sensors
+    )
+{
+    ULONG valid = 0;
+    ULONG activeCount = 0;
+    ULONG multiplierCount = 0;
+    ULONG packageCount;
+    PPH_HW_PACKAGE_SENSOR package;
+    PPH_HW_CPU_SENSOR sensor;
+
+    memset(Sensors, 0, sizeof(CPU_HARDWARE_SENSORS));
+
+    if (!PhHwSensorsAvailable())
+        return;
+
+    packageCount = PhHwGetPackageCount();
+
+    for (ULONG i = 0; i < packageCount; i++)
+    {
+        if (!(package = PhHwGetPackageSensor(i)))
+            break;
+
+        if (package->Valid & PH_HW_CAP_PACKAGE_TEMP)
+        {
+            if (!(valid & PH_HW_CAP_PACKAGE_TEMP) || package->Temperature > Sensors->Temperature)
+                Sensors->Temperature = package->Temperature;
+
+            valid |= PH_HW_CAP_PACKAGE_TEMP;
+        }
+
+        if (package->Valid & PH_HW_CAP_CCD_TEMP)
+        {
+            for (ULONG ccd = 0; ccd < PH_HW_MAX_CCD; ccd++)
+            {
+                if (!(package->CcdValidMask & (1UL << ccd)))
+                    continue;
+
+                if (!(valid & PH_HW_CAP_CCD_TEMP) || package->CcdTemperature[ccd] > Sensors->CcdTemperature)
+                    Sensors->CcdTemperature = package->CcdTemperature[ccd];
+
+                valid |= PH_HW_CAP_CCD_TEMP;
+            }
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_PACKAGE)
+        {
+            Sensors->PackagePower += package->PackagePower;
+            valid |= PH_HW_CAP_RAPL_PACKAGE;
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_CORE)
+        {
+            Sensors->CorePower += package->CorePower;
+            valid |= PH_HW_CAP_RAPL_CORE;
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_DRAM)
+        {
+            Sensors->DramPower += package->DramPower;
+            valid |= PH_HW_CAP_RAPL_DRAM;
+        }
+
+        if (package->Valid & PH_HW_CAP_THROTTLE)
+        {
+            Sensors->ThrottleFlags |= package->ThrottleFlags;
+            valid |= PH_HW_CAP_THROTTLE;
+        }
+    }
+
+    for (ULONG i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
+    {
+        if (!(sensor = PhHwGetCpuSensor(i)))
+            break;
+
+        if (sensor->Valid & PH_HW_CAP_ACTIVE_CLOCK)
+        {
+            Sensors->ActiveMhz += sensor->ActiveMhz;
+            activeCount++;
+        }
+
+        if (sensor->Valid & PH_HW_CAP_MULTIPLIER)
+        {
+            Sensors->Multiplier += sensor->Multiplier;
+            multiplierCount++;
+        }
+
+        if (sensor->Valid & PH_HW_CAP_VOLTAGE)
+        {
+            if (!(valid & PH_HW_CAP_VOLTAGE) || sensor->Voltage > Sensors->Voltage)
+                Sensors->Voltage = sensor->Voltage;
+
+            valid |= PH_HW_CAP_VOLTAGE;
+        }
+    }
+
+    if (activeCount)
+    {
+        Sensors->ActiveMhz /= (FLOAT)activeCount;
+        valid |= PH_HW_CAP_ACTIVE_CLOCK;
+    }
+
+    if (multiplierCount)
+    {
+        Sensors->Multiplier /= (FLOAT)multiplierCount;
+        valid |= PH_HW_CAP_MULTIPLIER;
+    }
+
+    Sensors->Valid = valid;
+}
+
+// Hottest package, degrees Celsius.
+_Success_(return)
+static BOOLEAN CpuGetPackageTemperature(
+    _Out_ PFLOAT Temperature
+    )
+{
+    BOOLEAN found = FALSE;
+    FLOAT temperature = 0.0f;
+    ULONG packageCount;
+    PPH_HW_PACKAGE_SENSOR package;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+
+    packageCount = PhHwGetPackageCount();
+
+    for (ULONG i = 0; i < packageCount; i++)
+    {
+        if (!(package = PhHwGetPackageSensor(i)))
+            break;
+
+        if ((package->Valid & PH_HW_CAP_PACKAGE_TEMP) && (!found || package->Temperature > temperature))
+        {
+            temperature = package->Temperature;
+            found = TRUE;
+        }
+    }
+
+    if (found)
+        *Temperature = temperature;
+
+    return found;
+}
+
+// Index is the flat processor index; degrees Celsius.
+_Success_(return)
+static BOOLEAN CpuGetCoreTemperature(
+    _In_ ULONG Index,
+    _Out_ PFLOAT Temperature
+    )
+{
+    PPH_HW_CPU_SENSOR sensor;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+    if (!(sensor = PhHwGetCpuSensor(Index)) || !(sensor->Valid & PH_HW_CAP_CORE_TEMP))
+        return FALSE;
+
+    *Temperature = sensor->Temperature;
+    return TRUE;
+}
+
+static VOID CpuInvalidateGraphStates(
+    VOID
+    )
+{
+    if (OneGraphPerCpu)
+    {
+        for (ULONG i = 0; i < NumberOfProcessors; i++)
+        {
+            CpusGraphState[i].Valid = FALSE;
+            CpusGraphState[i].TooltipIndex = ULONG_MAX;
+        }
+    }
+    else
+    {
+        CpuGraphState.Valid = FALSE;
+        CpuGraphState.TooltipIndex = ULONG_MAX;
+    }
+
+    CpuTemperatureGraphState.Valid = FALSE;
+    CpuTemperatureGraphState.TooltipIndex = ULONG_MAX;
+    CpuPowerGraphState.Valid = FALSE;
+    CpuPowerGraphState.TooltipIndex = ULONG_MAX;
+}
+
+// Capability is PH_HW_CAP_PACKAGE_TEMP (degrees Celsius) or PH_HW_CAP_RAPL_PACKAGE (watts).
+static VOID CpuInitSensorGraphFormat(
+    _In_ ULONG Capability,
+    _In_ FLOAT Value,
+    _In_ USHORT Precision,
+    _Out_writes_(PH_HW_TEMPERATURE_FORMAT_COUNT) PPH_FORMAT Format
+    )
+{
+    C_ASSERT(PH_HW_TEMPERATURE_FORMAT_COUNT == 2);
+
+    if (Capability == PH_HW_CAP_PACKAGE_TEMP)
+    {
+        PhHwFormatTemperature(Value, Precision, Format);
+    }
+    else
+    {
+        PhInitFormatF(&Format[0], Value, Precision);
+        PhInitFormatS(&Format[1], L" W");
+    }
+}
+
+static PPH_STRING CpuFormatSensorGraphLabelY(
+    _In_ ULONG Capability,
+    _In_ FLOAT Value
+    )
+{
+    PH_FORMAT format[PH_HW_TEMPERATURE_FORMAT_COUNT];
+
+    if (Value != 0)
+    {
+        CpuInitSensorGraphFormat(Capability, Value, 0, format);
+        return PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
+static PPH_STRING NTAPI CpuTemperatureGraphLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    return CpuFormatSensorGraphLabelY(PH_HW_CAP_PACKAGE_TEMP, Value * Parameter);
+}
+
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
+static PPH_STRING NTAPI CpuPowerGraphLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    return CpuFormatSensorGraphLabelY(PH_HW_CAP_RAPL_PACKAGE, Value * Parameter);
+}
+
+// Returns NULL when the graphed value is not current.
+static PPH_STRING CpuFormatSensorGraphText(
+    _In_ ULONG Capability
+    )
+{
+    static CONST struct { ULONG Flag; PCWSTR Name; } throttleNames[] =
+    {
+        { PH_HW_THROTTLE_THERMAL, L"Therm" },
+        { PH_HW_THROTTLE_PROCHOT, L"PROCHOT" },
+        { PH_HW_THROTTLE_CRITICAL, L"Crit" },
+        { PH_HW_THROTTLE_POWER_LIMIT, L"PL" },
+        { PH_HW_THROTTLE_PL1, L"PL1" },
+        { PH_HW_THROTTLE_PL2, L"PL2" },
+        { PH_HW_THROTTLE_VR_THERMAL, L"VR" },
+        { PH_HW_THROTTLE_VR_CURRENT, L"TDC" },
+        { PH_HW_THROTTLE_ELECTRICAL, L"EDP" },
+        { PH_HW_THROTTLE_RUNNING_AVERAGE_THERMAL, L"RATL" },
+        { PH_HW_THROTTLE_GRAPHICS, L"GFX" },
+        { PH_HW_THROTTLE_AUTONOMOUS, L"Auto" },
+    };
+    CPU_HARDWARE_SENSORS sensors;
+    PH_FORMAT format[PH_HW_TEMPERATURE_FORMAT_COUNT * 2 + 2 + RTL_NUMBER_OF(throttleNames) * 2];
+    ULONG count = 0;
+
+    CpuQueryHardwareSensors(&sensors);
+
+    if (!(sensors.Valid & Capability))
+        return NULL;
+
+    if (Capability == PH_HW_CAP_PACKAGE_TEMP)
+    {
+        // %.1f C, CCD %.1f C, throttle reasons
+        PhHwFormatTemperature(sensors.Temperature, 1, &format[count]);
+        count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+
+        if (sensors.Valid & PH_HW_CAP_CCD_TEMP)
+        {
+            PhInitFormatS(&format[count++], L" \u00b7 CCD ");
+            PhHwFormatTemperature(sensors.CcdTemperature, 1, &format[count]);
+            count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+        }
+
+        if ((sensors.Valid & PH_HW_CAP_THROTTLE) && sensors.ThrottleFlags)
+        {
+            PCWSTR separator = L" \u00b7 Throttling: ";
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(throttleNames); i++)
+            {
+                if (!(sensors.ThrottleFlags & throttleNames[i].Flag))
+                    continue;
+
+                PhInitFormatS(&format[count++], separator);
+                PhInitFormatS(&format[count++], throttleNames[i].Name);
+                separator = L", ";
+            }
+        }
+    }
+    else
+    {
+        // %.1f W, core %.1f W, DRAM %.1f W, %.2f V
+        PhInitFormatF(&format[count++], sensors.PackagePower, 1);
+        PhInitFormatS(&format[count++], L" W");
+
+        if (sensors.Valid & PH_HW_CAP_RAPL_CORE)
+        {
+            PhInitFormatS(&format[count++], L" \u00b7 Core ");
+            PhInitFormatF(&format[count++], sensors.CorePower, 1);
+            PhInitFormatS(&format[count++], L" W");
+        }
+
+        if (sensors.Valid & PH_HW_CAP_RAPL_DRAM)
+        {
+            PhInitFormatS(&format[count++], L" \u00b7 DRAM ");
+            PhInitFormatF(&format[count++], sensors.DramPower, 1);
+            PhInitFormatS(&format[count++], L" W");
+        }
+
+        if (sensors.Valid & PH_HW_CAP_VOLTAGE)
+        {
+            PhInitFormatS(&format[count++], L" \u00b7 ");
+            PhInitFormatF(&format[count++], sensors.Voltage, 2);
+            PhInitFormatS(&format[count++], L" V");
+        }
+    }
+
+    return PhFormat(format, count, 64);
+}
+
+// The aggregate, each package when there are several, and the sample time.
+static PPH_STRING CpuFormatSensorGraphTooltipText(
+    _In_ ULONG Capability,
+    _In_ ULONG Index
+    )
+{
+    PPH_CIRCULAR_BUFFER_FLOAT history;
+    PH_STRING_BUILDER stringBuilder;
+    PH_FORMAT format[4 + PH_HW_TEMPERATURE_FORMAT_COUNT];
+    WCHAR formatBuffer[64];
+    SIZE_T returnLength;
+    ULONG packageCount;
+    PPH_HW_PACKAGE_SENSOR package;
+
+    history = Capability == PH_HW_CAP_PACKAGE_TEMP ? &PhHwCpuTemperatureHistory : &PhHwCpuPowerHistory;
+    PhInitializeStringBuilder(&stringBuilder, 64);
+
+    // %.1f%s\n
+    CpuInitSensorGraphFormat(Capability, PhGetItemCircularBuffer_FLOAT(history, Index), 1, format);
+    PhInitFormatC(&format[PH_HW_TEMPERATURE_FORMAT_COUNT], L'\n');
+
+    if (PhFormatToBuffer(format, PH_HW_TEMPERATURE_FORMAT_COUNT + 1, formatBuffer, sizeof(formatBuffer), &returnLength))
+        PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
+
+    packageCount = PhHwGetPackageCount();
+
+    if (packageCount > 1)
+    {
+        for (ULONG i = 0; i < packageCount; i++)
+        {
+            PPH_CIRCULAR_BUFFER_FLOAT packageHistory;
+
+            if (!(package = PhHwGetPackageSensor(i)))
+                break;
+
+            packageHistory = Capability == PH_HW_CAP_PACKAGE_TEMP ? &package->TemperatureHistory : &package->PackagePowerHistory;
+
+            if (Index >= packageHistory->Count)
+                continue;
+
+            // Package %u: %.1f%s\n
+            PhInitFormatS(&format[0], L"Package ");
+            PhInitFormatU(&format[1], i);
+            PhInitFormatS(&format[2], L": ");
+            CpuInitSensorGraphFormat(Capability, PhGetItemCircularBuffer_FLOAT(packageHistory, Index), 1, &format[3]);
+            PhInitFormatC(&format[3 + PH_HW_TEMPERATURE_FORMAT_COUNT], L'\n');
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+                PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
+        }
+    }
+
+    PhAppendStringBuilder(&stringBuilder, &PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, Index))->sr);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+static BOOLEAN NTAPI CpuSensorGraphCallback(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    ULONG capability = PtrToUlong(Context);
+    PPH_GRAPH_STATE graphState;
+    PPH_CIRCULAR_BUFFER_FLOAT history;
+
+    if (capability == PH_HW_CAP_PACKAGE_TEMP)
+    {
+        graphState = &CpuTemperatureGraphState;
+        history = &PhHwCpuTemperatureHistory;
+    }
+    else
+    {
+        graphState = &CpuPowerGraphState;
+        history = &PhHwCpuPowerHistory;
+    }
+
+    switch (GraphMessage)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
+            PhSiSetColorsGraphDrawInfo(
+                drawInfo,
+                capability == PH_HW_CAP_PACKAGE_TEMP ? PhCsColorTemperature : PhCsColorPowerUsage,
+                0,
+                CpuSection->Parameters->WindowDpi
+                );
+
+            PhGraphStateGetDrawInfo(
+                graphState,
+                getDrawInfo,
+                history->Count
+                );
+
+            if (!graphState->Valid)
+            {
+                FLOAT max;
+
+                PhCopyCircularBuffer_FLOAT(history, graphState->Data1, drawInfo->LineDataCount);
+
+                if (capability == PH_HW_CAP_PACKAGE_TEMP)
+                {
+                    max = PhHwGetCpuTemperatureLimit();
+                }
+                else
+                {
+                    max = CPU_POWER_GRAPH_MINIMUM;
+
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        if (max < graphState->Data1[i])
+                            max = graphState->Data1[i];
+                    }
+                }
+
+                PhDivideSinglesBySingle(graphState->Data1, max, drawInfo->LineDataCount);
+
+                // Readings above the temperature limit are clipped.
+                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    if (graphState->Data1[i] > 1.0f)
+                        graphState->Data1[i] = 1.0f;
+                }
+
+                if (PhCsEnableGraphMaxText)
+                {
+                    drawInfo->LabelYFunction = capability == PH_HW_CAP_PACKAGE_TEMP ? CpuTemperatureGraphLabelYFunction : CpuPowerGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                }
+
+                graphState->Valid = TRUE;
+            }
+
+            PhMoveReference(&graphState->Text, CpuFormatSensorGraphText(capability));
+
+            if (graphState->Text)
+            {
+                HDC hdc;
+
+                hdc = Graph_GetBufferedContext(GraphHandle);
+                PhSetGraphText(
+                    hdc,
+                    drawInfo,
+                    &graphState->Text->sr,
+                    &PhNormalGraphTextMargin,
+                    &PhNormalGraphTextPadding,
+                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                    );
+            }
+            else
+            {
+                drawInfo->Text.Buffer = NULL;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (graphState->TooltipIndex != getTooltipText->Index)
+                {
+                    PhMoveReference(&graphState->TooltipText, CpuFormatSensorGraphTooltipText(capability, getTooltipText->Index));
+                }
+
+                getTooltipText->Text = graphState->TooltipText->sr;
+            }
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
+static ULONG CpuGetSensorGraphs(
+    VOID
+    )
+{
+    return PhHwGetCapabilities() & CPU_SENSOR_GRAPHS;
+}
+
+// Returns 0 when the row is hidden.
+static LONG CpuGetSensorGraphHeight(
+    _In_ PRECT ClientRect
+    )
+{
+    LONG usageHeight;
+    LONG height;
+
+    if (!CpuSensorGraphs)
+        return 0;
+
+    usageHeight = ClientRect->bottom - CpuGraphMarginScaled.top - CpuGraphMarginScaled.bottom - CpuSection->Parameters->CpuPadding;
+
+    height = usageHeight / (OneGraphPerCpu ? CPU_SENSOR_GRAPH_DIVISOR_PER_CPU : CPU_SENSOR_GRAPH_DIVISOR);
+
+    // Hidden when the usage graphs would be shorter than the row.
+    if (height <= 0 || usageHeight - height < height)
+        return 0;
+
+    return height;
+}
+
+// Side by side along the bottom of the graph area.
+static HDWP CpuLayoutSensorGraphs(
+    _In_ HDWP DeferHandle,
+    _In_ PRECT ClientRect,
+    _In_ LONG Height
+    )
+{
+    BOOLEAN showTemperature = Height && (CpuSensorGraphs & PH_HW_CAP_PACKAGE_TEMP);
+    BOOLEAN showPower = Height && (CpuSensorGraphs & PH_HW_CAP_RAPL_PACKAGE);
+    LONG x = CpuGraphMarginScaled.left;
+    LONG y = ClientRect->bottom - CpuGraphMarginScaled.bottom - Height;
+    LONG right = ClientRect->right - CpuGraphMarginScaled.right;
+    LONG temperatureWidth = right - x;
+
+    if (showTemperature && showPower)
+        temperatureWidth = (right - x - CpuSection->Parameters->CpuPadding) / 2;
+
+    DeferHandle = DeferWindowPos(
+        DeferHandle,
+        CpuTemperatureGraphHandle,
+        NULL,
+        x,
+        y,
+        temperatureWidth,
+        Height,
+        SWP_NOACTIVATE | SWP_NOZORDER | (showTemperature ? SWP_SHOWWINDOW : (SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE))
+        );
+
+    if (showTemperature)
+        x += temperatureWidth + CpuSection->Parameters->CpuPadding;
+
+    DeferHandle = DeferWindowPos(
+        DeferHandle,
+        CpuPowerGraphHandle,
+        NULL,
+        x,
+        y,
+        right - x,
+        Height,
+        SWP_NOACTIVATE | SWP_NOZORDER | (showPower ? SWP_SHOWWINDOW : (SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE))
+        );
+
+    return DeferHandle;
+}
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
@@ -128,6 +750,20 @@ BOOLEAN PhSipCpuSectionCallback(
                     CpuGraphState.TooltipIndex = ULONG_MAX;
                     Graph_Draw(CpuGraphHandle);
                 }
+            }
+
+            if (CpuTemperatureGraphHandle)
+            {
+                CpuTemperatureGraphState.Valid = FALSE;
+                CpuTemperatureGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(CpuTemperatureGraphHandle);
+            }
+
+            if (CpuPowerGraphHandle)
+            {
+                CpuPowerGraphState.Valid = FALSE;
+                CpuPowerGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(CpuPowerGraphHandle);
             }
         }
         return TRUE;
@@ -223,14 +859,27 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
-            PH_FORMAT format[2];
+            PH_FORMAT format[3 + PH_HW_TEMPERATURE_FORMAT_COUNT];
+            FLOAT temperature;
 
             // %.2f%%
             PhInitFormatF(&format[0], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
 
             drawPanel->Title = PhCreateString(L"CPU");
-            drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 16);
+
+            if (CpuGetPackageTemperature(&temperature))
+            {
+                // %.2f%%\n%.1f%s
+                PhInitFormatC(&format[2], L'\n');
+                PhHwFormatTemperature(temperature, 1, &format[3]);
+
+                drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 32);
+            }
+            else
+            {
+                drawPanel->SubTitle = PhFormat(format, 2, 16);
+            }
         }
         return TRUE;
     }
@@ -259,12 +908,19 @@ VOID PhSipInitializeCpuDialog(
         CpuFrequencyInformation = PhAllocateZero(sizeof(FLOAT) * NumberOfProcessors);
     }
 
+    CpuTemperaturePerCpu = !!PhGetIntegerSetting(SETTING_SYSINFO_SHOW_CPU_TEMPERATURE_PER_CPU);
+
     PhInitializeGraphState(&CpuGraphState);
 
     for (ULONG i = 0; i < NumberOfProcessors; i++)
         PhInitializeGraphState(&CpusGraphState[i]);
 
+    PhInitializeGraphState(&CpuTemperatureGraphState);
+    PhInitializeGraphState(&CpuPowerGraphState);
+    CpuSensorGraphs = 0;
+
     CpuTicked = 0;
+    CpuLimitsShown = FALSE;
     CpuMaxMhz = 0;
 
     PhSipUpdateTimerResolution();
@@ -301,6 +957,9 @@ VOID PhSipUninitializeCpuDialog(
     for (i = 0; i < NumberOfProcessors; i++)
         PhDeleteGraphState(&CpusGraphState[i]);
 
+    PhDeleteGraphState(&CpuTemperatureGraphState);
+    PhDeleteGraphState(&CpuPowerGraphState);
+
     PhFree(CpusGraphHandle);
     PhFree(CpusGraphState);
     PhFree(InterruptInformation);
@@ -313,6 +972,8 @@ VOID PhSipUninitializeCpuDialog(
     CpuGraphHandle = NULL;
     CpusGraphHandle = NULL;
     CpusGraphState = NULL;
+    CpuTemperatureGraphHandle = NULL;
+    CpuPowerGraphHandle = NULL;
     InterruptInformation = NULL;
     PowerInformation = NULL;
     CpuNominalMhz = NULL;
@@ -464,19 +1125,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
             }
 
-            if (OneGraphPerCpu)
-            {
-                for (ULONG i = 0; i < NumberOfProcessors; i++)
-                {
-                    CpusGraphState[i].Valid = FALSE;
-                    CpusGraphState[i].TooltipIndex = ULONG_MAX;
-                }
-            }
-            else
-            {
-                CpuGraphState.Valid = FALSE;
-                CpuGraphState.TooltipIndex = ULONG_MAX;
-            }
+            CpuInvalidateGraphStates();
 
             PhLayoutManagerUpdate(&CpuLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&CpuLayoutManager);
@@ -485,19 +1134,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
         break;
     case WM_SIZE:
         {
-            if (OneGraphPerCpu)
-            {
-                for (ULONG i = 0; i < NumberOfProcessors; i++)
-                {
-                    CpusGraphState[i].Valid = FALSE;
-                    CpusGraphState[i].TooltipIndex = ULONG_MAX;
-                }
-            }
-            else
-            {
-                CpuGraphState.Valid = FALSE;
-                CpuGraphState.TooltipIndex = ULONG_MAX;
-            }
+            CpuInvalidateGraphStates();
 
             PhLayoutManagerLayout(&CpuLayoutManager);
             PhSipLayoutCpuGraphs();
@@ -567,7 +1204,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
                     PhSipSetOneGraphPerCpu();
                     PhSipUpdateCpuGraphs();
                     SendMessage(CpuDialog, WM_SETREDRAW, TRUE, 0);
-                    RedrawWindow(CpuDialog, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+                    RedrawWindow(CpuDialog, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
                 }
                 break;
             }
@@ -652,6 +1289,45 @@ VOID PhSipCreateCpuGraphs(
             Graph_SetTooltip(CpusGraphHandle[i], TRUE);
         }
     }
+
+    graphCreateParams.Callback = CpuSensorGraphCallback;
+    graphCreateParams.Context = UlongToPtr(PH_HW_CAP_PACKAGE_TEMP);
+
+    CpuTemperatureGraphHandle = PhCreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        CpuDialog,
+        NULL,
+        NULL,
+        &graphCreateParams
+        );
+
+    graphCreateParams.Context = UlongToPtr(PH_HW_CAP_RAPL_PACKAGE);
+
+    CpuPowerGraphHandle = PhCreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        CpuDialog,
+        NULL,
+        NULL,
+        &graphCreateParams
+        );
+
+    if (PhEnableTooltipSupport)
+    {
+        Graph_SetTooltip(CpuTemperatureGraphHandle, TRUE);
+        Graph_SetTooltip(CpuPowerGraphHandle, TRUE);
+    }
 }
 
 VOID PhSipLayoutCpuGraphs(
@@ -661,13 +1337,19 @@ VOID PhSipLayoutCpuGraphs(
     RECT clientRect;
     RECT rect;
     HDWP deferHandle;
+    LONG sensorGraphHeight;
 
     rect = CpuGraphMarginScaled;
 
     if (!PhGetClientRect(CpuDialog, &clientRect))
         return;
 
-    deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
+    sensorGraphHeight = CpuGetSensorGraphHeight(&clientRect);
+
+    if (sensorGraphHeight)
+        rect.bottom += sensorGraphHeight + CpuSection->Parameters->CpuPadding;
+
+    deferHandle = BeginDeferWindowPos((OneGraphPerCpu ? NumberOfProcessors : 1) + 2);
 
     if (!OneGraphPerCpu)
     {
@@ -749,6 +1431,8 @@ VOID PhSipLayoutCpuGraphs(
             y += cellHeight + CpuSection->Parameters->CpuPadding;
         }
     }
+
+    deferHandle = CpuLayoutSensorGraphs(deferHandle, &clientRect, sensorGraphHeight);
 
     EndDeferWindowPos(deferHandle);
 }
@@ -898,10 +1582,14 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     HDC hdc;
                     FLOAT cpuKernel;
                     FLOAT cpuUser;
-                    PH_FORMAT format[11];
+                    FLOAT temperature;
+                    BOOLEAN temperatureValid;
+                    PH_FORMAT format[12 + PH_HW_TEMPERATURE_FORMAT_COUNT];
+                    ULONG count;
 
                     cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[index], 0);
                     cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[index], 0);
+                    temperatureValid = CpuTemperaturePerCpu && CpuGetCoreTemperature(index, &temperature);
 
                     // %.2f%% (K: %.2f%%, U: %.2f%%)
                     PhInitFormatF(&format[0], (cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
@@ -918,7 +1606,16 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                         PhInitFormatS(&format[8], L" (");
                         PhInitFormatFD(&format[9], 1000 / CpuFrequencyInformation[index], 3); // ns per cycle
                         PhInitFormatS(&format[10], L" \u00B5s)");
-                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        count = 11;
+
+                        if (temperatureValid)
+                        {
+                            PhInitFormatS(&format[count++], L", ");
+                            PhHwFormatTemperature(temperature, 0, &format[count]);
+                            count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+                        }
+
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, count, 0));
 
                         hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                         PhSetGraphText2(
@@ -933,7 +1630,15 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     else
                     {
                         PhInitFormatS(&format[5], L"%) ");
-                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, 6, 0));
+                        count = 6;
+
+                        if (temperatureValid)
+                        {
+                            PhHwFormatTemperature(temperature, 0, &format[count]);
+                            count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+                        }
+
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, count, 0));
 
                         hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                         PhSetGraphText(
@@ -1104,6 +1809,16 @@ VOID PhSipUpdateCpuGraphs(
     VOID
     )
 {
+    ULONG sensorGraphs;
+
+    sensorGraphs = CpuGetSensorGraphs();
+
+    if (CpuSensorGraphs != sensorGraphs)
+    {
+        CpuSensorGraphs = sensorGraphs;
+        PhSipLayoutCpuGraphs();
+    }
+
     CpuGraphState.Valid = FALSE;
     CpuGraphState.TooltipIndex = ULONG_MAX;
     Graph_Update(CpuGraphHandle);
@@ -1114,6 +1829,85 @@ VOID PhSipUpdateCpuGraphs(
         CpusGraphState[i].TooltipIndex = ULONG_MAX;
         Graph_Update(CpusGraphHandle[i]);
     }
+
+    CpuTemperatureGraphState.Valid = FALSE;
+    CpuTemperatureGraphState.TooltipIndex = ULONG_MAX;
+    Graph_Update(CpuTemperatureGraphHandle);
+
+    CpuPowerGraphState.Valid = FALSE;
+    CpuPowerGraphState.TooltipIndex = ULONG_MAX;
+    Graph_Update(CpuPowerGraphHandle);
+}
+
+// The limits row shows the temperature limit and the power limit the hardware reports.
+static VOID PhSipUpdateCpuLimits(
+    VOID
+    )
+{
+    static CONST ULONG smuLimits[] = { PhHwSmuIdPpt, PhHwSmuIdSocket | PH_HW_SMU_ID_HSMP, PhHwSmuIdPptSlow };
+    PPH_HW_PACKAGE_SENSOR package = PhHwGetPackageSensor(0);
+    PH_FORMAT format[PH_HW_TEMPERATURE_FORMAT_COUNT + 5];
+    ULONG count = 0;
+    FLOAT value;
+    BOOLEAN show;
+
+    if (package && package->TjMax > 0.0f)
+    {
+        PhHwFormatTemperature(package->TjMax, 0, &format[count]);
+        count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+    }
+    else if (PhHwGetNamedSensorValue(PhHwNamedSensorSmuTemperatureLimit, 0, PhHwSmuIdThermal, &value))
+    {
+        PhHwFormatTemperature(value, 0, &format[count]);
+        count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+    }
+
+    if (package && (package->Valid & PH_HW_CAP_POWER_LIMIT1))
+    {
+        if (count)
+            PhInitFormatS(&format[count++], L" | ");
+
+        PhInitFormatF(&format[count++], package->ActivePowerLimit1, 0);
+
+        if (package->Valid & PH_HW_CAP_POWER_LIMIT2)
+        {
+            PhInitFormatS(&format[count++], L" / ");
+            PhInitFormatF(&format[count++], package->ActivePowerLimit2, 0);
+        }
+
+        PhInitFormatS(&format[count++], L" W");
+    }
+    else
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(smuLimits); i++)
+        {
+            if (PhHwGetNamedSensorValue(PhHwNamedSensorSmuPowerLimit, 0, smuLimits[i], &value))
+            {
+                if (count)
+                    PhInitFormatS(&format[count++], L" | ");
+
+                PhInitFormatF(&format[count++], value, 0);
+                PhInitFormatS(&format[count++], L" W");
+                break;
+            }
+        }
+    }
+
+    show = count != 0;
+
+    if (show)
+        PhSetDialogItemText(CpuPanel, IDC_ZCPULIMITS_V, PhaFormat(format, count, 32)->Buffer);
+
+    // A limit can miss a pass; the row stays while the hardware reports limits.
+    if (!show && (PhHwGetCapabilities() & (PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_SMU)) && CpuLimitsShown)
+        return;
+
+    if (show != CpuLimitsShown)
+    {
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_L), show ? SW_SHOW : SW_HIDE);
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_V), show ? SW_SHOW : SW_HIDE);
+        CpuLimitsShown = show;
+    }
 }
 
 VOID PhSipUpdateCpuPanel(
@@ -1122,9 +1916,13 @@ VOID PhSipUpdateCpuPanel(
 {
     LARGE_INTEGER systemUptime;
     LARGE_INTEGER performanceCounterTicks;
+    CPU_HARDWARE_SENSORS sensors;
+    FLOAT currentMhz;
     PH_FORMAT format[6];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
+
+    CpuQueryHardwareSensors(&sensors);
 
     // Hardware
 
@@ -1156,6 +1954,8 @@ VOID PhSipUpdateCpuPanel(
         PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, CpuL3CacheSize ? PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer : L"N/A");
     }
 
+    PhSipUpdateCpuLimits();
+
     // %.2f%%
     PhInitFormatF(&format[0], (PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[1], L'%');
@@ -1167,16 +1967,22 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelUtilizationLabel, PH_AUTO_T(PH_STRING, PhFormat(format, 2, 0))->Buffer);
     }
 
+    // The active clock replaces the performance distribution estimate when available.
+    if (sensors.Valid & PH_HW_CAP_ACTIVE_CLOCK)
+        currentMhz = sensors.ActiveMhz;
+    else
+        currentMhz = CpuCurrentFrequency;
+
     if (PhGetIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ))
     {
-        PhInitFormatF(&format[0], CpuCurrentFrequency, 0);
+        PhInitFormatF(&format[0], currentMhz, 0);
         PhInitFormatS(&format[1], L" / ");
         PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz, 0);
         PhInitFormatS(&format[3], L" MHz");
     }
     else
     {
-        PhInitFormatF(&format[0], CpuCurrentFrequency / 1000, PhMaxPrecisionUnit);
+        PhInitFormatF(&format[0], currentMhz / 1000, PhMaxPrecisionUnit);
         PhInitFormatS(&format[1], L" / ");
         PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz / 1000, PhMaxPrecisionUnit);
         PhInitFormatS(&format[3], L" GHz");
