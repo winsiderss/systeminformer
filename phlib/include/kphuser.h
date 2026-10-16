@@ -535,14 +535,15 @@ KphActivateDynData(
     _In_ PBYTE DynData,
     _In_ ULONG DynDataLength,
     _In_ PBYTE Signature,
-    _In_ ULONG SignatureLength
+    _In_ ULONG SignatureLength,
+    _Out_opt_ PKPH_DYN_ACTIVE_FLAGS Flags
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphIsDynDataActive(
-    _Out_ PBOOLEAN IsActive
+KphQueryActiveDynData(
+    _Out_ PKPH_DYN_ACTIVE_FLAGS Flags
     );
 
 PHLIBAPI
@@ -660,6 +661,215 @@ NTSTATUS
 NTAPI
 KphGetInformerClientStats(
     _Out_ PKPH_INFORMER_CLIENT_STATS Stats
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwQueryCapabilities(
+    _Out_ PKPH_HW_CAPABILITIES Capabilities
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadMsrBatch(
+    _Inout_updates_(Count) PKPH_HW_MSR_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadMsr(
+    _In_ ULONG Register,
+    _In_ PPROCESSOR_NUMBER Processor,
+    _Out_ PULONG64 Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadPciConfig(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ ULONG Offset,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadPciIndirect(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ ULONG Target,
+    _Out_ PULONG Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadWindowBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadWindowBatchLocked(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadWindow(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _In_ ULONG Offset,
+    _In_ UCHAR Width,
+    _Out_ PULONG64 Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadSuperIoBatch(
+    _In_ UCHAR Slot,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_SUPERIO_BATCH_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PKPH_HW_SUPERIO_CHIP Chip,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadPortIndirectBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_PORT_INDIRECT_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadSmbusBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_SMBUS_BATCH_ENTRY Entries,
+    _In_ ULONG Count,
+    _In_ BOOLEAN IsaBus,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwQueryVsecRegions(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _Out_writes_opt_(Count) PKPH_HW_VSEC_REGION Regions,
+    _In_ ULONG Count,
+    _Out_ PULONG ReturnCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadVsecBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _In_ USHORT Instance,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwMailboxBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_opt_(Count) PKPH_HW_MAILBOX_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PULONG FirmwareVersion,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwMailboxBatchAcpi(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_opt_(Count) PKPH_HW_MAILBOX_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PULONG FirmwareVersion,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadSmuTable(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG Version,
+    _Out_ PULONG ReturnLength,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwEvalAcpi(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _In_reads_(ArgCount) PULONG Args,
+    _In_ UCHAR ArgCount,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadAcpiWindowBatch(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadPlatformWindowBatch(
+    _In_ UCHAR Source,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwReadSysregBatch(
+    _Inout_updates_(Count) PKPH_HW_SYSREG_BATCH_ENTRY Entries,
+    _In_ ULONG Count
     );
 
 EXTERN_C_END

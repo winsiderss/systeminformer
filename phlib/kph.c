@@ -2325,23 +2325,29 @@ NTSTATUS KphGetConnectedClientCount(
  * \param DynDataLength Length of the dynamic data.
  * \param Signature Pointer to the signature.
  * \param SignatureLength Length of the signature.
+ * \param Flags Optionally receives the parts of the active configuration, also when this one was not activated.
  * \return Successful or errant status.
  */
 NTSTATUS KphActivateDynData(
     _In_ PBYTE DynData,
     _In_ ULONG DynDataLength,
     _In_ PBYTE Signature,
-    _In_ ULONG SignatureLength
+    _In_ ULONG SignatureLength,
+    _Out_opt_ PKPH_DYN_ACTIVE_FLAGS Flags
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    if (Flags)
+        *Flags = KPH_DYN_ACTIVE_NONE;
 
     msg = KphCreateUserMessage(KphMsgActivateDynData);
     msg->User.ActivateDynData.DynData = DynData;
     msg->User.ActivateDynData.DynDataLength = DynDataLength;
     msg->User.ActivateDynData.Signature = Signature;
     msg->User.ActivateDynData.SignatureLength = SignatureLength;
+    msg->User.ActivateDynData.Flags = Flags;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -2354,30 +2360,32 @@ NTSTATUS KphActivateDynData(
 }
 
 /**
- * Checks if dynamic data is active.
+ * Retrieves the parts of the active dynamic configuration.
  *
- * \param IsActive Pointer to receive the active state.
+ * \param Flags Receives the active parts, KPH_DYN_ACTIVE_NONE when none is active.
  * \return Successful or errant status.
  */
-NTSTATUS KphIsDynDataActive(
-    _Out_ PBOOLEAN IsActive
+NTSTATUS KphQueryActiveDynData(
+    _Out_ PKPH_DYN_ACTIVE_FLAGS Flags
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    *IsActive = FALSE;
+    *Flags = KPH_DYN_ACTIVE_NONE;
 
     if (!KphCommsIsConnected())
         return STATUS_PORT_DISCONNECTED;
 
-    msg = KphCreateUserMessage(KphMsgIsDynDataActive);
-    msg->User.IsDynDataActive.IsActive = IsActive;
+    msg = KphCreateUserMessage(KphMsgQueryActiveDynData);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.IsDynDataActive.Status;
+        status = msg->User.QueryActiveDynData.Status;
+
+        if (NT_SUCCESS(status))
+            *Flags = msg->User.QueryActiveDynData.Flags;
     }
 
     PhDereferenceObject(msg);
@@ -2813,6 +2821,943 @@ NTSTATUS KphGetInformerClientStats(
     if (NT_SUCCESS(status))
     {
         status = msg->User.GetInformerClientStats.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Queries the hardware access capabilities.
+ *
+ * \param Capabilities Pointer to receive the hardware capabilities; zeroed on failure.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwQueryCapabilities(
+    _Out_ PKPH_HW_CAPABILITIES Capabilities
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    memset(Capabilities, 0, sizeof(KPH_HW_CAPABILITIES));
+
+    msg = KphCreateUserMessage(KphMsgHwQueryCapabilities);
+    msg->User.HwQueryCapabilities.Capabilities = Capabilities;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwQueryCapabilities.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of model-specific registers.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Entries The batch entries; the caller sets Register and Processor.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadMsrBatch(
+    _Inout_updates_(Count) PKPH_HW_MSR_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadMsrBatch);
+    msg->User.HwReadMsrBatch.Count = Count;
+    msg->User.HwReadMsrBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadMsrBatch.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a model-specific register.
+ *
+ * \param Register The register to read.
+ * \param Processor The processor to read the register on.
+ * \param Value Pointer to receive the register value; zero on failure.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadMsr(
+    _In_ ULONG Register,
+    _In_ PPROCESSOR_NUMBER Processor,
+    _Out_ PULONG64 Value
+    )
+{
+    NTSTATUS status;
+    KPH_HW_MSR_BATCH_ENTRY entry;
+
+    *Value = 0;
+
+    memset(&entry, 0, sizeof(KPH_HW_MSR_BATCH_ENTRY));
+    entry.Register = Register;
+    entry.Processor = *Processor;
+
+    status = KphHwReadMsrBatch(&entry, 1);
+
+    if (NT_SUCCESS(status))
+    {
+        *Value = entry.Value;
+        status = entry.Status;
+    }
+
+    return status;
+}
+
+/**
+ * Reads PCI configuration space.
+ *
+ * \param Locator The locator of the device.
+ * \param Offset The configuration space offset.
+ * \param Buffer Buffer to receive the configuration space bytes; zero-filled first.
+ * \param Length Length of the buffer.
+ * \param ReturnLength Optionally receives the number of bytes read.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadPciConfig(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ ULONG Offset,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    if (Length)
+        memset(Buffer, 0, Length);
+    if (ReturnLength)
+        *ReturnLength = 0;
+
+    msg = KphCreateUserMessage(KphMsgHwReadPciConfig);
+    msg->User.HwReadPciConfig.Locator = *Locator;
+    msg->User.HwReadPciConfig.Offset = Offset;
+    msg->User.HwReadPciConfig.Length = Length;
+    msg->User.HwReadPciConfig.Buffer = Buffer;
+    msg->User.HwReadPciConfig.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadPciConfig.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads an indirect PCI register.
+ *
+ * \param Locator The locator of the device.
+ * \param Target The indirect register to read.
+ * \param Value Pointer to receive the register value; zero on failure.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadPciIndirect(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ ULONG Target,
+    _Out_ PULONG Value
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    *Value = 0;
+
+    msg = KphCreateUserMessage(KphMsgHwReadPciIndirect);
+    msg->User.HwReadPciIndirect.Locator = *Locator;
+    msg->User.HwReadPciIndirect.Target = Target;
+    msg->User.HwReadPciIndirect.Value = Value;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadPciIndirect.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers of a device window.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Locator The locator of the device.
+ * \param OpIndex The index of the window among the windows of the device.
+ * \param Entries The batch entries; the caller sets Offset and Width.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadWindowBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadWindowBatch);
+    msg->User.HwReadWindowBatch.Locator = *Locator;
+    msg->User.HwReadWindowBatch.OpIndex = OpIndex;
+    msg->User.HwReadWindowBatch.Count = Count;
+    msg->User.HwReadWindowBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadWindowBatch.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers of a device window whose op has lock class PCI.
+ *
+ * \details Holds Global\Access_PCI around the request.
+ *
+ * \param Locator The locator of the device.
+ * \param OpIndex The index of the window among the windows of the device.
+ * \param Entries The batch entries, as KphHwReadWindowBatch.
+ * \param Count The number of entries.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired.
+ */
+NTSTATUS KphHwReadWindowBatchLocked(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhAcquireHardwareBus(PhHardwareBusPci, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = KphHwReadWindowBatch(Locator, OpIndex, Entries, Count);
+
+    PhReleaseHardwareBus(PhHardwareBusPci);
+
+    return status;
+}
+
+/**
+ * Reads a register of a device window.
+ *
+ * \param Locator The locator of the device.
+ * \param OpIndex The index of the window among the windows of the device.
+ * \param Offset The window offset of the register.
+ * \param Width The access width: 1, 2, 4 or 8.
+ * \param Value Pointer to receive the register value; zero on failure.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadWindow(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _In_ ULONG Offset,
+    _In_ UCHAR Width,
+    _Out_ PULONG64 Value
+    )
+{
+    NTSTATUS status;
+    KPH_HW_WINDOW_BATCH_ENTRY entry;
+
+    *Value = 0;
+
+    memset(&entry, 0, sizeof(KPH_HW_WINDOW_BATCH_ENTRY));
+    entry.Offset = Offset;
+    entry.Width = Width;
+
+    status = KphHwReadWindowBatch(Locator, OpIndex, &entry, 1);
+
+    if (NT_SUCCESS(status))
+    {
+        *Value = entry.Value;
+        status = entry.Status;
+    }
+
+    return status;
+}
+
+/**
+ * Reads a batch of hardware monitor registers of the SuperIO chip at a slot.
+ *
+ * \details Holds Global\Access_ISABUS.HTP.Method around the request. On a whole-batch
+ * failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Slot The configuration port slot: 0 for 2Eh/2Fh, 1 for 4Eh/4Fh.
+ * \param OpIndex The index of the register set among those of the chip.
+ * \param Entries The batch entries; the caller sets Register.
+ * \param Count The number of entries, zero to only identify the chip.
+ * \param Chip Optionally receives the identified chip; zeroed when none.
+ * \param Timeout Optional timeout for the request; NULL is infinite.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired.
+ */
+NTSTATUS KphHwReadSuperIoBatch(
+    _In_ UCHAR Slot,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_SUPERIO_BATCH_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PKPH_HW_SUPERIO_CHIP Chip,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (Chip)
+    {
+        memset(Chip, 0, sizeof(KPH_HW_SUPERIO_CHIP));
+    }
+
+    status = PhAcquireHardwareBus(PhHardwareBusIsa, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    msg = KphCreateUserMessage(KphMsgHwReadSuperIoBatch);
+    msg->User.HwReadSuperIoBatch.Slot = Slot;
+    msg->User.HwReadSuperIoBatch.OpIndex = OpIndex;
+    msg->User.HwReadSuperIoBatch.Count = Count;
+    msg->User.HwReadSuperIoBatch.Entries = Entries;
+    msg->User.HwReadSuperIoBatch.Chip = Chip;
+    msg->User.HwReadSuperIoBatch.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadSuperIoBatch.Status;
+    }
+
+    PhReleaseHardwareBus(PhHardwareBusIsa);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers through a port index/data pair (AMD FCH PM CD6h/CD7h).
+ *
+ * \details Holds Global\Access_ISABUS.HTP.Method around the request. On a whole-batch
+ * failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Locator The locator of the PCI function proving the pair.
+ * \param OpIndex The index of the register set among those of the function.
+ * \param Entries The batch entries; the caller sets Index.
+ * \param Count The number of entries.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired.
+ */
+NTSTATUS KphHwReadPortIndirectBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_PORT_INDIRECT_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhAcquireHardwareBus(PhHardwareBusIsa, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    msg = KphCreateUserMessage(KphMsgHwReadPortIndirectBatch);
+    msg->User.HwReadPortIndirectBatch.Locator = *Locator;
+    msg->User.HwReadPortIndirectBatch.OpIndex = OpIndex;
+    msg->User.HwReadPortIndirectBatch.Count = Count;
+    msg->User.HwReadPortIndirectBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadPortIndirectBatch.Status;
+    }
+
+    PhReleaseHardwareBus(PhHardwareBusIsa);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Runs a batch of SMBus read transactions on a host controller.
+ *
+ * \details Holds Global\Access_SMBUS.HTP.Method around the request, and Global\Access_ISABUS.HTP.Method
+ * inside it when IsaBus is set. On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Locator The locator of the SMBus host controller.
+ * \param OpIndex The index of the transaction set among those of the controller.
+ * \param Entries The batch entries; the caller sets Address, Command and Protocol.
+ * \param Count The number of entries.
+ * \param IsaBus TRUE for AMD FCH hosts, whose PM registers the driver may reach through CD6h/CD7h.
+ * \param Timeout Optional timeout for the request; NULL is infinite.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired or the host was busy.
+ */
+NTSTATUS KphHwReadSmbusBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_SMBUS_BATCH_ENTRY Entries,
+    _In_ ULONG Count,
+    _In_ BOOLEAN IsaBus,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhAcquireHardwareBus(PhHardwareBusSmbus, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (IsaBus)
+    {
+        status = PhAcquireHardwareBus(PhHardwareBusIsa, 100);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhReleaseHardwareBus(PhHardwareBusSmbus);
+            return status;
+        }
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadSmbusBatch);
+    msg->User.HwReadSmbusBatch.Locator = *Locator;
+    msg->User.HwReadSmbusBatch.OpIndex = OpIndex;
+    msg->User.HwReadSmbusBatch.Count = Count;
+    msg->User.HwReadSmbusBatch.Entries = Entries;
+    msg->User.HwReadSmbusBatch.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadSmbusBatch.Status;
+    }
+
+    if (IsaBus)
+        PhReleaseHardwareBus(PhHardwareBusIsa);
+
+    PhReleaseHardwareBus(PhHardwareBusSmbus);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Lists the allowed regions of a device's Intel VSEC/DVSEC discovery tables.
+ *
+ * \param Locator The locator of the device.
+ * \param Regions The buffer that receives the regions; NULL when Count is zero.
+ * \param Count The capacity of Regions.
+ * \param ReturnCount Receives the number of regions, also when they do not fit.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwQueryVsecRegions(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _Out_writes_opt_(Count) PKPH_HW_VSEC_REGION Regions,
+    _In_ ULONG Count,
+    _Out_ PULONG ReturnCount
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    *ReturnCount = 0;
+
+    msg = KphCreateUserMessage(KphMsgHwQueryVsecRegions);
+    msg->User.HwQueryVsecRegions.Locator = *Locator;
+    msg->User.HwQueryVsecRegions.Count = Count;
+    msg->User.HwQueryVsecRegions.Regions = Regions;
+    msg->User.HwQueryVsecRegions.ReturnCount = ReturnCount;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwQueryVsecRegions.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers of a region KphHwQueryVsecRegions listed.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Locator The locator of the device.
+ * \param OpIndex The OpIndex of the region.
+ * \param Instance The Instance of the region.
+ * \param Entries The batch entries; the caller sets Offset (region-relative) and Width.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadVsecBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _In_ USHORT Instance,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadVsecBatch);
+    msg->User.HwReadVsecBatch.Locator = *Locator;
+    msg->User.HwReadVsecBatch.OpIndex = OpIndex;
+    msg->User.HwReadVsecBatch.Instance = Instance;
+    msg->User.HwReadVsecBatch.Count = Count;
+    msg->User.HwReadVsecBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadVsecBatch.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Runs a batch of read-type commands on an SMU firmware mailbox of a root complex.
+ *
+ * \details Holds Global\Access_PCI around the request. On a whole-batch failure
+ * every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Locator The locator of the root complex.
+ * \param OpIndex The index of the mailbox among those of the root.
+ * \param Entries The batch entries; the caller sets Opcode and Args, Args receives the response.
+ * \param Count The number of entries; zero reads the firmware version only.
+ * \param FirmwareVersion Optionally receives the firmware version; zero when not read.
+ * \param Timeout Optional timeout for the request; NULL is infinite.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired.
+ */
+NTSTATUS KphHwMailboxBatch(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_opt_(Count) PKPH_HW_MAILBOX_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PULONG FirmwareVersion,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    if (FirmwareVersion)
+        *FirmwareVersion = 0;
+
+    for (ULONG i = 0; Entries && i < Count; i++)
+    {
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhAcquireHardwareBus(PhHardwareBusPci, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    msg = KphCreateUserMessage(KphMsgHwMailboxBatch);
+    msg->User.HwMailboxBatch.Locator = *Locator;
+    msg->User.HwMailboxBatch.OpIndex = OpIndex;
+    msg->User.HwMailboxBatch.Count = Count;
+    msg->User.HwMailboxBatch.Entries = Entries;
+    msg->User.HwMailboxBatch.FirmwareVersion = FirmwareVersion;
+    msg->User.HwMailboxBatch.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwMailboxBatch.Status;
+    }
+
+    PhReleaseHardwareBus(PhHardwareBusPci);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Runs a batch of read-type commands on the MMIO mailbox of an ACPI device (HSMP).
+ *
+ * \details Holds Global\Access_PCI around the request.
+ *
+ * \param Path The namespace path of the device.
+ * \param OpIndex The index of the mailbox among those of the device.
+ * \param Entries The batch entries, as KphHwMailboxBatch.
+ * \param Count The number of entries; zero reads the firmware version only.
+ * \param FirmwareVersion Optionally receives the firmware version; zero when not read.
+ * \param Timeout Optional timeout for the request; NULL is infinite.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired.
+ */
+NTSTATUS KphHwMailboxBatchAcpi(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_opt_(Count) PKPH_HW_MAILBOX_ENTRY Entries,
+    _In_ ULONG Count,
+    _Out_opt_ PULONG FirmwareVersion,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+    ANSI_STRING path;
+
+    if (FirmwareVersion)
+        *FirmwareVersion = 0;
+
+    for (ULONG i = 0; Entries && i < Count; i++)
+    {
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (Path->Length > MAXUSHORT)
+        return STATUS_NAME_TOO_LONG;
+
+    path.Length = (USHORT)Path->Length;
+    path.MaximumLength = (USHORT)Path->Length;
+    path.Buffer = Path->Buffer;
+
+    status = PhAcquireHardwareBus(PhHardwareBusPci, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    msg = KphCreateUserMessage(KphMsgHwMailboxBatchAcpi);
+    msg->User.HwMailboxBatchAcpi.Path = &path;
+    msg->User.HwMailboxBatchAcpi.OpIndex = OpIndex;
+    msg->User.HwMailboxBatchAcpi.Count = Count;
+    msg->User.HwMailboxBatchAcpi.Entries = Entries;
+    msg->User.HwMailboxBatchAcpi.FirmwareVersion = FirmwareVersion;
+    msg->User.HwMailboxBatchAcpi.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwMailboxBatchAcpi.Status;
+    }
+
+    PhReleaseHardwareBus(PhHardwareBusPci);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Copies out an SMU telemetry table (AMD PM table) of a root complex.
+ *
+ * \details Holds Global\Access_PCI around the request.
+ *
+ * \param Locator The locator of the root complex.
+ * \param OpIndex The index of the table among those of the root.
+ * \param Buffer The buffer that receives the table.
+ * \param Length The capacity of Buffer.
+ * \param Version Receives the table version (the layout key); zero when not read.
+ * \param ReturnLength Receives the table size; zero when not known.
+ * \param Timeout Optional timeout for the request; NULL is infinite.
+ * \return Successful or errant status; STATUS_RETRY when the mutex was not acquired or the table
+ * changed during the copy.
+ */
+NTSTATUS KphHwReadSmuTable(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ UCHAR OpIndex,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG Version,
+    _Out_ PULONG ReturnLength,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    *Version = 0;
+    *ReturnLength = 0;
+
+    status = PhAcquireHardwareBus(PhHardwareBusPci, 100);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    msg = KphCreateUserMessage(KphMsgHwReadSmuTable);
+    msg->User.HwReadSmuTable.Locator = *Locator;
+    msg->User.HwReadSmuTable.OpIndex = OpIndex;
+    msg->User.HwReadSmuTable.Length = Length;
+    msg->User.HwReadSmuTable.Buffer = Buffer;
+    msg->User.HwReadSmuTable.Version = Version;
+    msg->User.HwReadSmuTable.ReturnLength = ReturnLength;
+    msg->User.HwReadSmuTable.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadSmuTable.Status;
+    }
+
+    PhReleaseHardwareBus(PhHardwareBusPci);
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Evaluates an allow-listed method of an ACPI device.
+ *
+ * \details The output is validated at the top level only; parse packages defensively.
+ *
+ * \param Path The namespace path of the device as BiosDeviceName prints it.
+ * \param OpIndex The index of the method among the methods of the device.
+ * \param Args The integer arguments.
+ * \param ArgCount The number of arguments, at most KPH_HW_ACPI_MAX_ARGS.
+ * \param Buffer The buffer that receives the ACPI_EVAL_OUTPUT_BUFFER.
+ * \param Length The capacity of Buffer.
+ * \param ReturnLength Receives the output size, also when it does not fit.
+ * \param Timeout Optional timeout for the evaluation; NULL is infinite.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwEvalAcpi(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _In_reads_(ArgCount) PULONG Args,
+    _In_ UCHAR ArgCount,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+    ANSI_STRING path;
+
+    *ReturnLength = 0;
+
+    if (ArgCount > KPH_HW_ACPI_MAX_ARGS)
+        return STATUS_INVALID_PARAMETER;
+    if (Path->Length > MAXUSHORT)
+        return STATUS_NAME_TOO_LONG;
+
+    path.Length = (USHORT)Path->Length;
+    path.MaximumLength = (USHORT)Path->Length;
+    path.Buffer = Path->Buffer;
+
+    msg = KphCreateUserMessage(KphMsgHwEvalAcpi);
+    msg->User.HwEvalAcpi.Path = &path;
+    msg->User.HwEvalAcpi.OpIndex = OpIndex;
+    msg->User.HwEvalAcpi.ArgCount = ArgCount;
+    if (ArgCount)
+        memcpy(msg->User.HwEvalAcpi.Args, Args, ArgCount * sizeof(ULONG));
+    msg->User.HwEvalAcpi.Length = Length;
+    msg->User.HwEvalAcpi.Buffer = Buffer;
+    msg->User.HwEvalAcpi.ReturnLength = ReturnLength;
+    msg->User.HwEvalAcpi.Timeout = Timeout;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwEvalAcpi.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers of a boot configuration memory range of an ACPI device.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Path The namespace path of the device.
+ * \param OpIndex The index of the window among the windows of the device.
+ * \param Entries The batch entries; the caller sets Offset and Width.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadAcpiWindowBatch(
+    _In_ PCPH_BYTESREF Path,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+    ANSI_STRING path;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (Path->Length > MAXUSHORT)
+        return STATUS_NAME_TOO_LONG;
+
+    path.Length = (USHORT)Path->Length;
+    path.MaximumLength = (USHORT)Path->Length;
+    path.Buffer = Path->Buffer;
+
+    msg = KphCreateUserMessage(KphMsgHwReadAcpiWindowBatch);
+    msg->User.HwReadAcpiWindowBatch.Path = &path;
+    msg->User.HwReadAcpiWindowBatch.OpIndex = OpIndex;
+    msg->User.HwReadAcpiWindowBatch.Count = Count;
+    msg->User.HwReadAcpiWindowBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadAcpiWindowBatch.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of registers of a platform window of this CPU's or board's row.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Source The row, KPH_HW_PLATFORM_CPU or KPH_HW_PLATFORM_BOARD.
+ * \param OpIndex The index of the window among the windows of the row.
+ * \param Entries The batch entries; the caller sets Offset and Width.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadPlatformWindowBatch(
+    _In_ UCHAR Source,
+    _In_ UCHAR OpIndex,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadPlatformWindowBatch);
+    msg->User.HwReadPlatformWindowBatch.Source = Source;
+    msg->User.HwReadPlatformWindowBatch.OpIndex = OpIndex;
+    msg->User.HwReadPlatformWindowBatch.Count = Count;
+    msg->User.HwReadPlatformWindowBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadPlatformWindowBatch.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Reads a batch of ARM64 system registers.
+ *
+ * \details On a whole-batch failure every entry keeps STATUS_UNSUCCESSFUL.
+ *
+ * \param Entries The batch entries; the caller sets Register (Reserved zero) and Processor.
+ * \param Count The number of entries.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwReadSysregBatch(
+    _Inout_updates_(Count) PKPH_HW_SYSREG_BATCH_ENTRY Entries,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Entries[i].Value = 0;
+        Entries[i].Status = STATUS_UNSUCCESSFUL;
+        Entries[i].Midr = 0;
+    }
+
+    msg = KphCreateUserMessage(KphMsgHwReadSysregBatch);
+    msg->User.HwReadSysregBatch.Count = Count;
+    msg->User.HwReadSysregBatch.Entries = Entries;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.HwReadSysregBatch.Status;
     }
 
     PhDereferenceObject(msg);
