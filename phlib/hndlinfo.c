@@ -17,8 +17,12 @@
 #include <kphuser.h>
 #include <lsasup.h>
 
-#include <devquery.h>
 #include <phafd.h>
+// devpkey.h has no include guard; some SDKs already include it via netioapi.h -> ntddndis.h
+#ifndef DEVPKEY_H_INCLUDED
+#include <devpkey.h>
+#endif
+#include <devquery.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
 
@@ -364,7 +368,8 @@ NTSTATUS PhGetObjectTypeName(
         if (returnLength == 0)
             return STATUS_UNSUCCESSFUL;
 
-        buffer = PhAllocate(returnLength);
+        buffer = PhAllocateSafe(returnLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         if (level >= KphLevelMed)
         {
@@ -584,7 +589,8 @@ NTSTATUS PhGetObjectName(
     ULONG attempts = 8;
 
     bufferSize = sizeof(OBJECT_NAME_INFORMATION) + (MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR));
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     // A loop is needed because the I/O subsystem likes to give us the wrong return lengths... (wj32)
     do
@@ -628,7 +634,8 @@ NTSTATUS PhGetObjectName(
             status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {

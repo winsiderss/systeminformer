@@ -148,6 +148,16 @@ NTSTATUS KphConnect(
         PhCloseServiceHandle(serviceHandle);
         serviceHandle = NULL;
 
+        //
+        // The service entry was created by a native or filter load which sets
+        // the start type to disabled (SCM refuses to start it). Load the driver
+        // natively using the existing entry instead. (dmex)
+        //
+        if (status == STATUS_PLUGPLAY_NO_DEVICE && Config->FileName && Config->ObjectName)
+        {
+            status = KsiLoadUnloadService(Config, TRUE);
+        }
+
         if (status != STATUS_SUCCESS)
             goto CreateAndConnectEnd;
 
@@ -1071,7 +1081,8 @@ NTSTATUS KsiEnumerateProcessHandles(
     PVOID buffer;
     ULONG bufferSize = 2048;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1085,7 +1096,8 @@ NTSTATUS KsiEnumerateProcessHandles(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -1236,7 +1248,8 @@ NTSTATUS KphQueryObjectSectionMappingsInfo(
 
     *Info = NULL;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1252,7 +1265,8 @@ NTSTATUS KphQueryObjectSectionMappingsInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -1707,7 +1721,8 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
     PVOID buffer;
     ULONG bufferSize = MAX_PATH;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1720,7 +1735,8 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -2071,7 +2087,8 @@ NTSTATUS KphQuerySectionMappingsInfo(
 
     *Info = NULL;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -2083,7 +2100,8 @@ NTSTATUS KphQuerySectionMappingsInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {

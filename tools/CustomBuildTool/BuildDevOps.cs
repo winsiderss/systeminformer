@@ -89,7 +89,7 @@ namespace CustomBuildTool
                 var content = await BuildHttpClient.SendMessage(DevOpsHttpClient, requestMessage, BuildInfoResponseContext.Default.BuildInfo);
                 if (content == null)
                 {
-                    Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
+                    Program.PrintErrorMessage("Failed to deserialize the response.");
                     ArgumentNullException.ThrowIfNull((BuildInfo)null);
                 }
 
@@ -104,7 +104,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET} (TickCount)");
+                Program.PrintErrorMessage(ex, "TickCount");
                 queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
                 return (false, queueTime);
             }
@@ -121,7 +121,7 @@ namespace CustomBuildTool
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
             requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
 
-            using var response = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, requestMessage, CancellationToken);
+            using var response = await BuildHttpClient.SendRequestMessage(DevOpsHttpClient, requestMessage, CancellationToken);
             if (response == null || !response.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] download page failed", ConsoleColor.Red);
@@ -155,7 +155,7 @@ namespace CustomBuildTool
             using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
             jsonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest, CancellationToken);
+            using var jsonResponse = await BuildHttpClient.SendRequestMessage(DevOpsHttpClient, jsonRequest, CancellationToken);
             if (jsonResponse == null || !jsonResponse.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] json download failed", ConsoleColor.Red);

@@ -22,6 +22,7 @@
 
 #include <procprv.h>
 #include <phsettings.h>
+#include <graphbar.h>
 
 static CONST PH_KEY_VALUE_PAIR MemoryFormFactors[] =
 {
@@ -98,16 +99,20 @@ static PPH_SYSINFO_SECTION MemorySection;
 static HWND MemoryDialog;
 static PH_LAYOUT_MANAGER MemoryLayoutManager;
 static RECT MemoryGraphMargin;
+static RECT MemoryGraphMarginScaled;
 static HWND CommitGraphHandle;
 static PH_GRAPH_STATE CommitGraphState;
 static HWND PhysicalGraphHandle;
 static PH_GRAPH_STATE PhysicalGraphState;
+static HWND MemoryGraphBarHandle;
 static HWND MemoryPanel;
 static ULONG MemoryTicked;
 static PH_UINT32_DELTA PagedAllocsDelta;
 static PH_UINT32_DELTA PagedFreesDelta;
+static PH_UINT32_DELTA PagedPoolPagesDelta;
 static PH_UINT32_DELTA NonPagedAllocsDelta;
 static PH_UINT32_DELTA NonPagedFreesDelta;
+static PH_UINT32_DELTA NonPagedPoolPagesDelta;
 static PH_UINT32_DELTA PageFaultsDelta;
 static PH_UINT32_DELTA PageReadsDelta;
 static PH_UINT32_DELTA PagefileWritesDelta;
@@ -125,6 +130,20 @@ static UCHAR MemoryFormFactor;
 static UCHAR MemoryTechnology;
 static UCHAR MemoryType;
 static ULONG MemorySpeed;
+
+static BOOLEAN PhSipGetMemoryListInfo(
+    _Out_ PSYSTEM_MEMORY_LIST_INFORMATION MemoryListInfo,
+    _Out_opt_ PULONG_PTR StandbyPageCount
+    );
+
+_Function_class_(PH_GRAPHBAR_MESSAGE_CALLBACK)
+static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
 
 _Function_class_(PH_ENUM_SMBIOS_CALLBACK)
 BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
@@ -195,6 +214,8 @@ BOOLEAN PhSipMemorySectionCallback(
             MemoryType = 0;
             MemorySpeed = 0;
             PhEnumSMBIOS(PhpSipMemorySMBIOSCallback, NULL);
+
+            PhGraphBarInitialization();
         }
         return TRUE;
     case SysInfoDestroy:
@@ -234,6 +255,11 @@ BOOLEAN PhSipMemorySectionCallback(
                 PhysicalGraphState.Valid = FALSE;
                 PhysicalGraphState.TooltipIndex = ULONG_MAX;
                 Graph_Draw(PhysicalGraphHandle);
+            }
+
+            if (MemoryGraphBarHandle)
+            {
+                InvalidateRect(MemoryGraphBarHandle, NULL, FALSE);
             }
         }
         return TRUE;
@@ -423,8 +449,10 @@ VOID PhSipInitializeMemoryDialog(
 {
     PhInitializeDelta(&PagedAllocsDelta);
     PhInitializeDelta(&PagedFreesDelta);
+    PhInitializeDelta(&PagedPoolPagesDelta);
     PhInitializeDelta(&NonPagedAllocsDelta);
     PhInitializeDelta(&NonPagedFreesDelta);
+    PhInitializeDelta(&NonPagedPoolPagesDelta);
     PhInitializeDelta(&PageFaultsDelta);
     PhInitializeDelta(&PageReadsDelta);
     PhInitializeDelta(&PagefileWritesDelta);
@@ -454,6 +482,7 @@ VOID PhSipUninitializeMemoryDialog(
     // Note: Required for SysInfoViewChanging (dmex)
     CommitGraphHandle = NULL;
     PhysicalGraphHandle = NULL;
+    MemoryGraphBarHandle = NULL;
 }
 
 VOID PhSipTickMemoryDialog(
@@ -462,8 +491,10 @@ VOID PhSipTickMemoryDialog(
 {
     PhUpdateDelta(&PagedAllocsDelta, PhPerfInformation.PagedPoolAllocs);
     PhUpdateDelta(&PagedFreesDelta, PhPerfInformation.PagedPoolFrees);
+    PhUpdateDelta(&PagedPoolPagesDelta, PhPerfInformation.PagedPoolPages);
     PhUpdateDelta(&NonPagedAllocsDelta, PhPerfInformation.NonPagedPoolAllocs);
     PhUpdateDelta(&NonPagedFreesDelta, PhPerfInformation.NonPagedPoolFrees);
+    PhUpdateDelta(&NonPagedPoolPagesDelta, PhPerfInformation.NonPagedPoolPages);
     PhUpdateDelta(&PageFaultsDelta, PhPerfInformation.PageFaultCount);
     PhUpdateDelta(&PageReadsDelta, PhPerfInformation.PageReadCount);
     PhUpdateDelta(&PagefileWritesDelta, PhPerfInformation.DirtyPagesWriteCount);
@@ -504,6 +535,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             graphItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             MemoryGraphMargin = graphItem->Margin;
+            MemoryGraphMarginScaled = MemoryGraphMargin;
+            PhGetMarginDpiValue(&MemoryGraphMarginScaled, MemorySection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
             SetWindowFont(totalPhysicalLabel, MemorySection->Parameters->MediumFont, FALSE);
@@ -538,6 +571,9 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            MemoryGraphMarginScaled = MemoryGraphMargin;
+            PhGetMarginDpiValue(&MemoryGraphMarginScaled, MemorySection->Parameters->WindowDpi, TRUE);
+
             if (MemorySection->Parameters->LargeFont)
             {
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
@@ -628,6 +664,7 @@ VOID PhSipCreateMemoryGraphs(
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    PH_GRAPHBAR_CREATEPARAMS graphBarCreateParams;
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -647,6 +684,7 @@ VOID PhSipCreateMemoryGraphs(
         &graphCreateParams
         );
     Graph_SetTooltip(CommitGraphHandle, TRUE);
+    PhBringWindowToTop(CommitGraphHandle);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -655,7 +693,27 @@ VOID PhSipCreateMemoryGraphs(
     PhysicalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        MemoryDialog,
+        NULL,
+        NULL,
+        &graphCreateParams
+        );
+    Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+    PhBringWindowToTop(CommitGraphHandle);
+
+    memset(&graphBarCreateParams, 0, sizeof(PH_GRAPHBAR_CREATEPARAMS));
+    graphBarCreateParams.Size = sizeof(PH_GRAPHBAR_CREATEPARAMS);
+    graphBarCreateParams.Callback = PhSipNotifyMemoryGraphBar;
+
+    MemoryGraphBarHandle = PhCreateWindow(
+        PH_GRAPHBAR_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -663,9 +721,9 @@ VOID PhSipCreateMemoryGraphs(
         MemoryDialog,
         NULL,
         PhInstanceHandle,
-        &graphCreateParams
+        &graphBarCreateParams
         );
-    Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+    PhBringWindowToTop(MemoryGraphBarHandle);
 }
 
 VOID PhSipLayoutMemoryGraphs(
@@ -675,23 +733,26 @@ VOID PhSipLayoutMemoryGraphs(
     RECT clientRect;
     RECT labelRect;
     RECT marginRect;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    LONG availableHeight;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphBarHeight;
     HDWP deferHandle;
     ULONG y;
 
-    marginRect = MemoryGraphMargin;
-    PhGetMarginDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
+    marginRect = MemoryGraphMarginScaled;
 
     if (!PhGetClientRect(MemoryDialog, &clientRect))
         return;
     if (!PhGetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect))
         return;
 
-    graphWidth = clientRect.right - marginRect.left - marginRect.right;
-    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
+    graphWidth = max(clientRect.right - marginRect.left - marginRect.right, 1);
+    graphBarHeight = PhScaleToDisplay(40, MemorySection->Parameters->WindowDpi);
+    availableHeight = clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphBarHeight - MemorySection->Parameters->MemoryPadding * 4;
+    graphHeight = max(availableHeight / 2, 1);
 
-    deferHandle = BeginDeferWindowPos(4);
+    deferHandle = BeginDeferWindowPos(5);
     y = marginRect.top;
 
     deferHandle = DeferWindowPos(
@@ -737,7 +798,19 @@ VOID PhSipLayoutMemoryGraphs(
         marginRect.left,
         y,
         graphWidth,
-        clientRect.bottom - marginRect.bottom - y,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + MemorySection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        MemoryGraphBarHandle,
+        NULL,
+        marginRect.left,
+        y,
+        graphWidth,
+        graphBarHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -807,6 +880,39 @@ BOOLEAN NTAPI PhSipNotifyCommitGraph(
                 }
 
                 CommitGraphState.Valid = TRUE;
+            }
+
+            if (PhPerfInformation.CommitLimit != 0)
+            {
+                ULONG commitUsagePages = PhPerfInformation.CommittedPages;
+                ULONG commitLimitPages = PhPerfInformation.CommitLimit;
+                ULONG commitUsagePercent = PhMultiplyDivide(commitUsagePages, 100, commitLimitPages);
+                PH_FORMAT format[6];
+                HDC hdc;
+
+                // <current> / <total> <percent>%
+                PhInitFormatSize(&format[0], UInt32x32To64(commitUsagePages, PAGE_SIZE));
+                PhInitFormatS(&format[1], L" / ");
+                PhInitFormatSize(&format[2], UInt32x32To64(commitLimitPages, PAGE_SIZE));
+                PhInitFormatS(&format[3], L" ");
+                PhInitFormatU(&format[4], commitUsagePercent);
+                PhInitFormatS(&format[5], L"%");
+
+                PhMoveReference(&CommitGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                hdc = Graph_GetBufferedContext(GraphHandle);
+                PhSetGraphText(
+                    hdc,
+                    drawInfo,
+                    &CommitGraphState.Text->sr,
+                    &PhNormalGraphTextMargin,
+                    &PhNormalGraphTextPadding,
+                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                    );
+            }
+            else
+            {
+                drawInfo->Text.Buffer = NULL;
             }
         }
         break;
@@ -905,6 +1011,39 @@ BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
 
                 PhysicalGraphState.Valid = TRUE;
             }
+
+            if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+            {
+                ULONG physicalUsagePages = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+                ULONG physicalTotalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+                ULONG physicalUsagePercent = PhMultiplyDivide(physicalUsagePages, 100, physicalTotalPages);
+                PH_FORMAT format[6];
+                HDC hdc;
+
+                // <current> / <total> <percent>%
+                PhInitFormatSize(&format[0], UInt32x32To64(physicalUsagePages, PAGE_SIZE));
+                PhInitFormatS(&format[1], L" / ");
+                PhInitFormatSize(&format[2], UInt32x32To64(physicalTotalPages, PAGE_SIZE));
+                PhInitFormatS(&format[3], L" ");
+                PhInitFormatU(&format[4], physicalUsagePercent);
+                PhInitFormatS(&format[5], L"%");
+
+                PhMoveReference(&PhysicalGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                hdc = Graph_GetBufferedContext(GraphHandle);
+                PhSetGraphText(
+                    hdc,
+                    drawInfo,
+                    &PhysicalGraphState.Text->sr,
+                    &PhNormalGraphTextMargin,
+                    &PhNormalGraphTextPadding,
+                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                    );
+            }
+            else
+            {
+                drawInfo->Text.Buffer = NULL;
+            }
         }
         break;
     case GCN_GETTOOLTIPTEXT:
@@ -916,13 +1055,13 @@ BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
                 if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG usedPages;
-                    FLOAT currentCompressedMemory;
-                    FLOAT totalCompressedMemory;
-                    FLOAT totalSavedMemory;
+                    DOUBLE currentCompressedMemory;
+                    DOUBLE totalCompressedMemory;
+                    DOUBLE totalSavedMemory;
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                    if (PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory))
+                    if (NT_SUCCESS(PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory)))
                     {
                         PH_FORMAT format[13];
 
@@ -964,6 +1103,249 @@ BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
     return TRUE;
 }
 
+static BOOLEAN PhSipGetMemoryListInfo(
+    _Out_ PSYSTEM_MEMORY_LIST_INFORMATION MemoryListInfo,
+    _Out_opt_ PULONG_PTR StandbyPageCount
+    )
+{
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemMemoryListInformation,
+        MemoryListInfo,
+        sizeof(SYSTEM_MEMORY_LIST_INFORMATION),
+        NULL
+        )))
+    {
+        if (StandbyPageCount)
+            *StandbyPageCount = 0;
+
+        return FALSE;
+    }
+
+    if (StandbyPageCount)
+    {
+        ULONG_PTR standbyPageCount = 0;
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(MemoryListInfo->PageCountByPriority); i++)
+        {
+            standbyPageCount += MemoryListInfo->PageCountByPriority[i];
+        }
+
+        *StandbyPageCount = standbyPageCount;
+    }
+
+    return TRUE;
+}
+
+_Function_class_(PH_GRAPHBAR_MESSAGE_CALLBACK)
+static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (Message)
+    {
+    case GBN_DRAWBAR:
+        {
+            PPH_GRAPHBAR_DRAWBAR drawBar = (PPH_GRAPHBAR_DRAWBAR)Parameter1;
+            SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
+            ULONG_PTR standbyPageCount;
+            ULONG64 totalPages;
+            ULONG64 segmentPages[6];
+            COLORREF segmentColors[RTL_NUMBER_OF(segmentPages)];
+            RECT rect;
+            HBRUSH oldBrush;
+            HPEN oldPen;
+            LONG x;
+            ULONG64 consumedPages;
+            ULONG64 usedPages;
+
+            rect = drawBar->Rect;
+
+            FillRect(
+                drawBar->hdc,
+                &rect,
+                PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW)
+                );
+
+            if (!PhSipGetMemoryListInfo(&memoryListInfo, &standbyPageCount))
+                break;
+
+            totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+
+            if (!totalPages || rect.right <= rect.left || rect.bottom <= rect.top)
+                break;
+
+            usedPages = totalPages;
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ZeroPageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.FreePageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ModifiedPageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ModifiedNoWritePageCount);
+            usedPages -= min(usedPages, (ULONG64)standbyPageCount);
+
+            segmentPages[0] = usedPages;
+            segmentPages[1] = memoryListInfo.ModifiedPageCount;
+            segmentPages[2] = memoryListInfo.ModifiedNoWritePageCount;
+            segmentPages[3] = standbyPageCount;
+            segmentPages[4] = memoryListInfo.ZeroPageCount;
+            segmentPages[5] = memoryListInfo.FreePageCount;
+
+            segmentColors[0] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x67, 0xbb, 0x46)) : RGB(0x67, 0xbb, 0x46); // In Use (green)
+            segmentColors[1] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0xee, 0x89, 0x3d)) : RGB(0xee, 0x89, 0x3d); // Modified (orange)
+            segmentColors[2] = PhEnableThemeSupport ? RGB(0x95, 0x4f, 0x16) : RGB(0xc6, 0x70, 0x2e); // Modified NoWrite (darker orange)
+            segmentColors[3] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x4e, 0xa4, 0xe0)) : RGB(0x4e, 0xa4, 0xe0); // Standby (blue)
+            segmentColors[4] = PhEnableThemeSupport ? RGB(0x7a, 0x7a, 0x7a) : RGB(0x9e, 0x9e, 0x9e); // Zero (gray)
+            segmentColors[5] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x48, 0xc0, 0xc4)) : RGB(0x48, 0xc0, 0xc4); // Free (teal)
+
+            oldBrush = SelectBrush(drawBar->hdc, PhGetStockBrush(DC_BRUSH));
+            oldPen = SelectPen(drawBar->hdc, PhGetStockPen(DC_PEN));
+
+            x = rect.left;
+            consumedPages = 0;
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages); i++)
+            {
+                RECT fillRect;
+                LONG right;
+                ULONG64 scaledWidth = 0;
+
+                if (!segmentPages[i])
+                    continue;
+
+                consumedPages += segmentPages[i];
+
+                if (i == RTL_NUMBER_OF(segmentPages) - 1)
+                    right = rect.right;
+                else
+                {
+                    PhMultiplyDivide64(consumedPages, rect.right - rect.left, totalPages, &scaledWidth);
+                    right = rect.left + (LONG)scaledWidth;
+                }
+
+                if (right <= x)
+                    continue;
+
+                fillRect.left = x;
+                fillRect.top = rect.top;
+                fillRect.right = right;
+                fillRect.bottom = rect.bottom;
+
+                SetDCBrushColor(drawBar->hdc, segmentColors[i]);
+                FillRect(drawBar->hdc, &fillRect, PhGetStockBrush(DC_BRUSH));
+
+                if (x != rect.left)
+                {
+                    SetDCPenColor(drawBar->hdc, RGB(0x00, 0x00, 0x00));
+                    MoveToEx(drawBar->hdc, x, rect.top, NULL);
+                    LineTo(drawBar->hdc, x, rect.bottom);
+                }
+
+                x = right;
+            }
+
+            SelectBrush(drawBar->hdc, oldBrush);
+            SelectPen(drawBar->hdc, oldPen);
+        }
+        break;
+    case GBN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPHBAR_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPHBAR_GETTOOLTIPTEXT)Parameter1;
+            SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
+            ULONG_PTR standbyPageCount;
+            ULONG64 totalPages;
+            ULONG64 segmentPages[6];
+            PCWSTR segmentNames[RTL_NUMBER_OF(segmentPages)];
+            ULONG64 usedPages;
+            LONG barWidth;
+            LONG x;
+            ULONG64 consumedPages;
+            ULONG hitIndex;
+            BOOLEAN hit;
+            PH_FORMAT format[3];
+
+            if (!PhSipGetMemoryListInfo(&memoryListInfo, &standbyPageCount))
+                break;
+
+            totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+            barWidth = getTooltipText->Rect.right - getTooltipText->Rect.left;
+
+            if (!totalPages || barWidth <= 0)
+                break;
+
+            usedPages = totalPages;
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ZeroPageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.FreePageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ModifiedPageCount);
+            usedPages -= min(usedPages, (ULONG64)memoryListInfo.ModifiedNoWritePageCount);
+            usedPages -= min(usedPages, (ULONG64)standbyPageCount);
+
+            segmentPages[0] = usedPages;
+            segmentPages[1] = memoryListInfo.ModifiedPageCount;
+            segmentPages[2] = memoryListInfo.ModifiedNoWritePageCount;
+            segmentPages[3] = standbyPageCount;
+            segmentPages[4] = memoryListInfo.ZeroPageCount;
+            segmentPages[5] = memoryListInfo.FreePageCount;
+
+            segmentNames[0] = L"In use";
+            segmentNames[1] = L"Modified";
+            segmentNames[2] = L"Modified (no write)";
+            segmentNames[3] = L"Standby";
+            segmentNames[4] = L"Zeroed";
+            segmentNames[5] = L"Free";
+
+            x = getTooltipText->Rect.left;
+            consumedPages = 0;
+            hit = FALSE;
+            hitIndex = 0;
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages); i++)
+            {
+                LONG right;
+                ULONG64 scaledWidth = 0;
+
+                if (!segmentPages[i])
+                    continue;
+
+                consumedPages += segmentPages[i];
+
+                if (i == RTL_NUMBER_OF(segmentPages) - 1)
+                    right = getTooltipText->Rect.right;
+                else
+                {
+                    PhMultiplyDivide64(consumedPages, barWidth, totalPages, &scaledWidth);
+                    right = getTooltipText->Rect.left + (LONG)scaledWidth;
+                }
+
+                if (right <= x)
+                    continue;
+
+                if (getTooltipText->CursorX >= x && getTooltipText->CursorX < right)
+                {
+                    hit = TRUE;
+                    hitIndex = i;
+                    break;
+                }
+
+                x = right;
+            }
+
+            if (!hit)
+                break;
+
+            PhInitFormatS(&format[0], segmentNames[hitIndex]);
+            PhInitFormatS(&format[1], L": ");
+            PhInitFormatSize(&format[2], segmentPages[hitIndex] * PAGE_SIZE);
+
+            getTooltipText->Text = PhFormat(format, RTL_NUMBER_OF(format), 0);
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
 VOID PhSipUpdateMemoryGraphs(
     VOID
     )
@@ -975,6 +1357,9 @@ VOID PhSipUpdateMemoryGraphs(
     PhysicalGraphState.Valid = FALSE;
     PhysicalGraphState.TooltipIndex = ULONG_MAX;
     Graph_Update(PhysicalGraphHandle);
+
+    if (MemoryGraphBarHandle)
+        InvalidateRect(MemoryGraphBarHandle, NULL, FALSE);
 }
 
 VOID PhSipUpdateMemoryPanel(
@@ -1064,9 +1449,27 @@ VOID PhSipUpdateMemoryPanel(
         PhaFormatSize(UInt32x32To64(PhPerfInformation.PagedPoolPages, PAGE_SIZE), ULONG_MAX)->Buffer);
 
     if (MemoryTicked > 1)
-        PhSetDialogItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, PhaFormatUInt64(PagedAllocsDelta.Delta, TRUE)->Buffer);
+    {
+        LONG delta = (LONG)PagedPoolPagesDelta.Delta;
+
+        if (delta != 0)
+        {
+            PH_FORMAT format[2];
+
+            PhInitFormatS(&format[0], (delta > 0 ? L"+" : L"-"));
+            PhInitFormatSize(&format[1], UInt32x32To64((ULONG)abs(delta), PAGE_SIZE));
+
+            PhSetDialogItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, PhFormat(format, 2, 0)->Buffer);
+        }
+        else
+        {
+            PhSetDialogItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, L"0");
+        }
+    }
     else
+    {
         PhSetDialogItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, L"-");
+    }
 
     if (MemoryTicked > 1)
         PhSetDialogItemText(MemoryPanel, IDC_ZPAGEDFREESDELTA_V, PhaFormatUInt64(PagedFreesDelta.Delta, TRUE)->Buffer);
@@ -1079,9 +1482,30 @@ VOID PhSipUpdateMemoryPanel(
         PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), ULONG_MAX)->Buffer);
 
     if (MemoryTicked > 1)
-        PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, PhaFormatUInt64(NonPagedAllocsDelta.Delta, TRUE)->Buffer);
+    {
+        LONG delta = (LONG)NonPagedPoolPagesDelta.Delta;
+
+        if (delta != 0)
+        {
+            PH_FORMAT format[2];
+            PPH_STRING string;
+
+            PhInitFormatS(&format[0], (delta > 0 ? L"+" : L"-"));
+            PhInitFormatSize(&format[1], UInt32x32To64((ULONG)abs(delta), PAGE_SIZE));
+
+            string = PhFormat(format, 2, 0);
+            PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, string->Buffer);
+            PhDereferenceObject(string);
+        }
+        else
+        {
+            PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, L"0");
+        }
+    }
     else
+    {
         PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, L"-");
+    }
 
     if (MemoryTicked > 1)
         PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDFREESDELTA_V, PhaFormatUInt64(NonPagedFreesDelta.Delta, TRUE)->Buffer);
@@ -1321,29 +1745,33 @@ VOID PhSipGetPoolLimits(
     *NonPaged = nonPaged;
 }
 
-_Success_(return)
-BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ FLOAT *CurrentCompressedMemory,
-    _Out_ FLOAT *TotalCompressedMemory,
-    _Out_ FLOAT *TotalSavedMemory
+NTSTATUS PhSipGetMemoryCompressionLimits(
+    _Out_ PDOUBLE CurrentCompressedMemory,
+    _Out_ PDOUBLE TotalCompressedMemory,
+    _Out_ PDOUBLE TotalSavedMemory
     )
 {
     PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
-    FLOAT current;
-    FLOAT total;
-    FLOAT saved;
+    NTSTATUS status;
+    DOUBLE current;
+    DOUBLE ratio;
+    DOUBLE total;
+    DOUBLE saved;
 
-    if (!NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
-        return FALSE;
+    status = PhGetSystemCompressionStoreInformation(&compressionInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
     if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
-        return FALSE;
+        return STATUS_FAIL_CHECK;
 
-    current = (FLOAT)compressionInfo.WorkingSetSize / (FLOAT)(1024 * 1024);
-    total = current * (FLOAT)compressionInfo.TotalDataCompressed / (FLOAT)compressionInfo.TotalCompressedSize;
+    current = (DOUBLE)compressionInfo.WorkingSetSize;
+    ratio = (DOUBLE)compressionInfo.TotalDataCompressed / (DOUBLE)compressionInfo.TotalCompressedSize;
+    total = current * ratio;
     saved = total - current;
 
-    *CurrentCompressedMemory = current * 1024 * 1024;
-    *TotalCompressedMemory = total * 1024 * 1024;
-    *TotalSavedMemory = saved * 1024 * 1024;
-    return TRUE;
+    *CurrentCompressedMemory = current;
+    *TotalCompressedMemory = total;
+    *TotalSavedMemory = saved;
+    return status;
 }

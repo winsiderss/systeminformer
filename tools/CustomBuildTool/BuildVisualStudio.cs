@@ -366,7 +366,7 @@ namespace CustomBuildTool
                 Win32.HasEnvironmentVariable("GITHUB_ACTIONS");
             string edition = integration ? "enterprise" : "community";
             string installerUrl = $"https://aka.ms/vs/18/Stable/vs_{edition}.exe";
-            string installerPath = Path.Combine(Path.GetTempPath(), $"vs_{edition}_{Path.GetRandomFileName()}.exe");
+            string installerPath = Path.Join([Path.GetTempPath(), $"vs_{edition}_{Path.GetRandomFileName()}.exe"]);
 
             try
             {
@@ -374,7 +374,7 @@ namespace CustomBuildTool
 
                 using (var client = BuildHttpClient.CreateHttpClient())
                 using (var request = new HttpRequestMessage(HttpMethod.Get, installerUrl))
-                using (var response = await BuildHttpClient.SendMessageResponse(client, request))
+                using (var response = await BuildHttpClient.SendRequestMessage(client, request))
                 {
                     if (response == null || !response.IsSuccessStatusCode)
                     {
@@ -603,7 +603,7 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(InstallPath))
                 return false;
 
-            string msvcRoot = System.IO.Path.Combine(InstallPath, @"VC\Tools\MSVC");
+            string msvcRoot = System.IO.Path.Join([InstallPath, @"VC\Tools\MSVC"]);
             if (!Directory.Exists(msvcRoot))
                 return false;
 

@@ -666,6 +666,7 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
     PVOID Context;
     PROPSHEETPAGE PropSheetPage;
     PPH_TYPE_DELETE_PROCEDURE ContextDeleteProcedure;
+    ULONG Flags;
 
     BOOLEAN LayoutInitialized;
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
@@ -782,6 +783,42 @@ VOID PhShowMemoryStringTreeDialog(
 // memmod
 
 VOID PhShowImagePageModifiedDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+// memcfg
+
+typedef enum _PH_CFG_TARGET_STATUS
+{
+    PhCfgTargetUnavailable,
+    PhCfgTargetDisabled,
+    PhCfgTargetInvalid,
+    PhCfgTargetValid
+} PH_CFG_TARGET_STATUS;
+
+typedef struct _PH_CFG_TARGET_CONTEXT
+{
+    ULONG_PTR BitmapBase;
+    ULONG64 BitmapSize;
+    ULONG_PTR Wow64BitmapBase;
+    ULONG64 Wow64BitmapSize;
+    BOOLEAN Enabled;
+} PH_CFG_TARGET_CONTEXT, *PPH_CFG_TARGET_CONTEXT;
+
+NTSTATUS PhInitializeProcessCfgTargetContext(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_CFG_TARGET_CONTEXT Context
+    );
+
+PH_CFG_TARGET_STATUS PhQueryProcessCfgTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_CFG_TARGET_CONTEXT Context,
+    _In_ PVOID Address,
+    _In_ BOOLEAN Wow64
+    );
+
+VOID PhShowProcessCfgBitmapDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
@@ -993,8 +1030,8 @@ PhCreateSearchControl(
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
-// end_phapppub
 
+PHAPPAPI
 VOID
 NTAPI
 PhCreateSearchControl2(
@@ -1006,6 +1043,7 @@ PhCreateSearchControl2(
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
+// end_phapppub
 
 // sessmsg
 
@@ -1056,6 +1094,112 @@ VOID PhShowServiceProperties(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
+// begin_phapppub
+
+// Service property sheet (new tabnew-based host). Plugins add pages during the
+// GeneralCallbackServicePropertiesInitializing callback via PhAddServicePropPage.
+
+// Opaque to callers; the full definition is private to srvprp.c.
+typedef struct _PH_SERVICE_PROPCONTEXT PH_SERVICE_PROPCONTEXT, *PPH_SERVICE_PROPCONTEXT;
+
+typedef struct _PH_SERVICE_PROPPAGECONTEXT
+{
+    PVOID Context;                 // caller/page-specific context (WM_INITDIALOG lParam is this struct)
+    PVOID Instance;
+    PCWSTR Template;
+    DLGPROC DialogProc;
+    PCWSTR Id;
+    PCWSTR Name;
+    BOOLEAN LayoutInitialized;
+} PH_SERVICE_PROPPAGECONTEXT, *PPH_SERVICE_PROPPAGECONTEXT;
+
+PHAPPAPI
+PPH_SERVICE_PROPPAGECONTEXT
+NTAPI
+PhCreateServicePropPageContext(
+    _In_ PCWSTR Id,
+    _In_ PCWSTR Name,
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+PPH_SERVICE_PROPPAGECONTEXT
+NTAPI
+PhCreateServicePropPageContextEx(
+    _In_opt_ PVOID InstanceHandle,
+    _In_ PCWSTR Id,
+    _In_ PCWSTR Name,
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhAddServicePropPage(
+    _Inout_ PPH_SERVICE_PROPCONTEXT PropContext,
+    _In_ _Assume_refs_(1) PPH_SERVICE_PROPPAGECONTEXT PropPageContext
+    );
+
+#define PH_SERVICE_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
+
+PHAPPAPI
+PPH_LAYOUT_ITEM
+NTAPI
+PhAddServicePropPageLayoutItem(
+    _In_ HWND WindowHandle,
+    _In_ HWND Handle,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDoServicePropPageLayout(
+    _In_ HWND WindowHandle
+    );
+
+#define PH_SERVICE_PROP_PAGE_CONTEXT_SLOT 0xfff
+
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhServicePropPageDlgProcHeader(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ LPARAM lParam,
+    _Out_ PPH_SERVICE_PROPPAGECONTEXT *PropPageContext
+    )
+{
+    PPH_SERVICE_PROPPAGECONTEXT propPageContext;
+
+    if (WindowMessage == WM_INITDIALOG)
+    {
+        propPageContext = (PPH_SERVICE_PROPPAGECONTEXT)lParam;
+        PhSetWindowContext(WindowHandle, PH_SERVICE_PROP_PAGE_CONTEXT_SLOT, propPageContext);
+    }
+    else
+    {
+        propPageContext = (PPH_SERVICE_PROPPAGECONTEXT)PhGetWindowContext(WindowHandle, PH_SERVICE_PROP_PAGE_CONTEXT_SLOT);
+
+        if (!propPageContext)
+            return FALSE;
+
+        if (WindowMessage == WM_NCDESTROY)
+            PhRemoveWindowContext(WindowHandle, PH_SERVICE_PROP_PAGE_CONTEXT_SLOT);
+    }
+
+    *PropPageContext = propPageContext;
+
+    return TRUE;
+}
+// end_phapppub
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
@@ -1063,6 +1207,30 @@ VOID PhShowThreadStackDialog(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ PPH_THREAD_PROVIDER ThreadProvider
+    );
+
+// thrdctx
+
+VOID PhShowThreadContextDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
+    );
+
+VOID PhShowThreadFrameContextDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ USHORT Machine,
+    _In_ PVOID FrameContext,
+    _In_opt_ PCWSTR FrameTitle
+    );
+
+VOID PhShowSymbolsDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PVOID Address,
+    _In_ PCWSTR TypeName
     );
 
 // thrdstks

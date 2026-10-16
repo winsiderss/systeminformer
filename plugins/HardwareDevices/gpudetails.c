@@ -29,6 +29,7 @@ typedef enum _GPUADAPTER_DETAILS_INDEX
     GPUADAPTER_DETAILS_INDEX_FANRPM,
     GPUADAPTER_DETAILS_INDEX_POWERUSAGE,
     GPUADAPTER_DETAILS_INDEX_TEMPERATURE,
+    GPUADAPTER_DETAILS_INDEX_COUNT,
 } GPUADAPTER_DETAILS_INDEX;
 
 typedef struct _GPU_DEVICE_DETAILS_DIALOG_CONTEXT
@@ -41,7 +42,6 @@ typedef struct _GPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     PH_LAYOUT_MANAGER LayoutManager;
     PGPU_DEVICE_DETAILS_DIALOG_CONTEXT DetailsContext;
 } GPU_DETAILS_CONTEXT, *PGPU_DETAILS_CONTEXT;
@@ -368,16 +368,6 @@ VOID GraphicsDeviceQueryAdapterDetails(
     GraphicsCloseAdapterHandle(adapterHandle);
 }
 
-_Function_class_(PH_CALLBACK_FUNCTION)
-static VOID ProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    //PGPU_DETAILS_CONTEXT context = Context;
-    //PostMessage(context->DialogHandle, ET_WM_UPDATE, 0, 0);
-}
-
 INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -428,19 +418,10 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             GraphicsDeviceQueryAdapterDetails(context);
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                ProcessesUpdatedCallback,
-                context,
-                &context->ProcessesUpdatedCallbackRegistration
-                );
         }
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
-
             PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -478,11 +459,6 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             PhSetApplicationWindowIconEx(WindowHandle, windowDpi);
-        }
-        break;
-    case WM_PH_UPDATE_DIALOG:
-        {
-            //GraphicsDeviceQueryAdapterDetails(context->ListViewHandle);
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -620,3 +596,5 @@ VOID GraphicsDeviceShowDetailsDialog(
 
     PhCreateThread2(GraphicsDeviceDetailsDialogThreadStart, context);
 }
+
+

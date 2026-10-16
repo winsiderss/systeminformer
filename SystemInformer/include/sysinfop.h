@@ -259,6 +259,10 @@ VOID PhSipUpdateProcessorPerformanceDistribution(
     VOID
     );
 
+VOID PhSipUpdateProcessorPerformanceDistributionEx(
+    VOID
+    );
+
 VOID PhSipUpdateThemeData(
     VOID
     );
@@ -462,11 +466,10 @@ VOID PhSipGetPoolLimits(
     _Out_ PSIZE_T NonPaged
     );
 
-_Success_(return)
-BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ FLOAT *CurrentCompressedMemory,
-    _Out_ FLOAT *TotalCompressedMemory,
-    _Out_ FLOAT *TotalSavedMemory
+NTSTATUS PhSipGetMemoryCompressionLimits(
+    _Out_ PDOUBLE CurrentCompressedMemory,
+    _Out_ PDOUBLE TotalCompressedMemory,
+    _Out_ PDOUBLE TotalSavedMemory
     );
 
 //

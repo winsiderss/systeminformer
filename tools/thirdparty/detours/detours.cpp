@@ -11,6 +11,13 @@
 //#define DETOUR_DEBUG 1
 #define DETOURS_INTERNAL
 #include "detours.h"
+#include <apiimport.h>
+
+// Provide a fallback for ReadPointerAcquire when the SDK doesn't define it.
+#ifndef ReadPointerAcquire
+#include <windows.h>
+#define ReadPointerAcquire(P) ((PBYTE)InterlockedCompareExchangePointer((PVOID*)(P), NULL, NULL))
+#endif
 
 #if DETOURS_VERSION != 0x4c0c1   // 0xMAJORcMINORcPATCH
 #error detours.h version mismatch
@@ -31,52 +38,12 @@ C_ASSERT(sizeof(_DETOUR_ALIGN) == 1);
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Region reserved for system DLLs, which cannot be used for trampolines.
+// Optional caller-configured range which cannot be used for trampolines.
+// The range is disabled unless both bounds form a valid half-open interval
+// [lower, upper).
 //
-// On Windows 10, ntdll.dll is mapped at random location (ASLR) within a
-// range near the top of the usermode address space.
-// After that, further system DLLs are mapped top down within this range.
-// In the bottom of the range is reached, the allocator wraps to the top.
-//
-// We also want to exlcude any pages that share a CFG bitmap page with a system DLL
-// so leave an additional a 1MB buffer on each side of the range.
-//
-#if defined(DETOURS_64BIT)
-// On X64 the range is 0x7FF800000000..0x7FFFFFFF0000 - which is 32GB!
-// So we likely must allocate in the system DLL range to be +/- 2GB.
-// But we want to avoid at least the first 1GB that will be used for system DLLs.
-// Due to wrapping, this may be two seperate ranges.
-static PVOID    s_pSystemRegionUpperBound = nullptr; // (PVOID)((ULONG_PTR)GetModuleHandleW(L"ntdll.dll") + (ULONG_PTR)0x100000);
-static PVOID    s_pSystemRegionLowerBound = nullptr; // (PVOID)((ULONG_PTR)s_pSystemRegionUpperBound < (ULONG_PTR)0x7FF83F000000 ?
-                                                     // (ULONG_PTR)0x7FF7FF000000 : ((ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)0x40000000));
-static SIZE_T   s_pSystemRegionSize        = 0;      // (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // up to 1GB
-static SIZE_T   s_pSystemRegion2Size       = 0;      // (SIZE_T)0x40000000 - s_pSystemRegionSize;
-static PVOID    s_pSystemRegion2UpperBound = nullptr; //(PVOID)(ULONG_PTR)0x800000000000;
-static PVOID    s_pSystemRegion2LowerBound = nullptr; //(PVOID)((ULONG_PTR)s_pSystemRegion2UpperBound - s_pSystemRegion2Size);
-#else
-// On X86 the range was originally 0x70000000..0x80000000
-// However, since Windows 8, the range is now 0x50000000..0x78000000
-// Reference: Windows Internals, 7th Edition, page 368
-// We just exclude both ranges.
-static PVOID    s_pSystemRegionUpperBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x80000000));
-static PVOID    s_pSystemRegionLowerBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x50000000) - 0x100000);
-static SIZE_T   s_pSystemRegionSize       = reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - reinterpret_cast<ULONG_PTR>(s_pSystemRegionLowerBound); // 769MB
-#endif
-
-FORCEINLINE
-SIZE_T
-should_skip_sytem_range_size(PBYTE pbTry)
-{
-    if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) {
-        return s_pSystemRegionSize;
-    }
-#if defined(DETOURS_64BIT)
-    if (pbTry >= s_pSystemRegion2LowerBound && pbTry <= s_pSystemRegion2UpperBound) {
-        return s_pSystemRegion2Size;
-    }
-#endif
-    return 0;
-}
+static PVOID s_pSystemRegionLowerBound = nullptr;
+static PVOID s_pSystemRegionUpperBound = nullptr;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -90,14 +57,17 @@ static bool detour_is_imported(PBYTE pbCode, PBYTE pbAddress)
     __try {
 
         PIMAGE_DOS_HEADER dosHeader = static_cast<PIMAGE_DOS_HEADER>(mbi.AllocationBase);
-        if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+        if (ReadUShortAcquire((UNALIGNED PUSHORT)&dosHeader->e_magic) != IMAGE_DOS_SIGNATURE)
             return false;
 
-        PIMAGE_NT_HEADERS ntHeader = static_cast<PIMAGE_NT_HEADERS>(PTR_ADD_OFFSET(dosHeader, dosHeader->e_lfanew));
-        if (ntHeader->Signature != IMAGE_NT_SIGNATURE)
+        LONG e_lfanew = ReadInt32Acquire((UNALIGNED PINT32)&dosHeader->e_lfanew);
+        PIMAGE_NT_HEADERS ntHeader = static_cast<PIMAGE_NT_HEADERS>(PTR_ADD_OFFSET(dosHeader, e_lfanew));
+        if (ReadULongAcquire((UNALIGNED PULONG)&ntHeader->Signature) != IMAGE_NT_SIGNATURE)
             return false;
 
-        IMAGE_DATA_DIRECTORY dataDirectory = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT];
+        IMAGE_DATA_DIRECTORY dataDirectory;
+        dataDirectory.VirtualAddress = ReadULongAcquire((UNALIGNED PULONG)&ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress);
+        dataDirectory.Size = ReadULongAcquire((UNALIGNED PULONG)&ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size);
         if (!(dataDirectory.VirtualAddress && dataDirectory.Size))
             return false;
 
@@ -127,6 +97,17 @@ inline ULONG_PTR detour_2gb_above(ULONG_PTR address)
 #else
     return (address < (ULONG_PTR)0x80000000) ? address + 0x7ff80000 : (ULONG_PTR)0xfff80000;
 #endif
+}
+
+inline bool detour_is_valid_jmp_immediate(PBYTE pbCode, PBYTE pbJmpVal)
+{
+    ULONG_PTR source = reinterpret_cast<ULONG_PTR>(pbCode) + 5;
+    ULONG_PTR target = reinterpret_cast<ULONG_PTR>(pbJmpVal);
+
+    if (target >= source)
+        return target - source <= MAXLONG;
+
+    return source - target <= static_cast<ULONG_PTR>(MAXLONG) + 1;
 }
 
 ///////////////////////////////////////////////////////////////////////// X86.
@@ -188,36 +169,36 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
     }
 
     // First, skip over the import vector if there is one.
-    if (pbCode[0] == 0xff && pbCode[1] == 0x25) {   // jmp [imm32]
+    if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xff && ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]) == 0x25) {   // jmp [imm32]
         // Looks like an import alias jump, then get the code it points to.
-        PBYTE pbTarget = *(UNALIGNED PBYTE *)&pbCode[2];
+        PBYTE pbTarget = ReadPointerAcquire((UNALIGNED PBYTE *)&pbCode[2]);
         if (detour_is_imported(pbCode, pbTarget)) {
-            PBYTE pbNew = *(UNALIGNED PBYTE *)pbTarget;
+            PBYTE pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
             DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
             pbCode = pbNew;
         }
     }
 
     // Then, skip over a patch jump
-    if (pbCode[0] == 0xeb) {   // jmp +imm8
-        PBYTE pbNew = pbCode + 2 + *(CHAR *)&pbCode[1];
+    if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xeb) {   // jmp +imm8
+            PBYTE pbNew = pbCode + 2 + (CHAR)ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]);
         DETOUR_TRACE(("%p->%p: skipped over short jump.\n", pbCode, pbNew));
         pbCode = pbNew;
         pbCodeOriginal = pbCode;
 
         // First, skip over the import vector if there is one.
-        if (pbCode[0] == 0xff && pbCode[1] == 0x25) {   // jmp [imm32]
+        if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xff && ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]) == 0x25) {   // jmp [imm32]
             // Looks like an import alias jump, then get the code it points to.
-            PBYTE pbTarget = *(UNALIGNED PBYTE *)&pbCode[2];
-            if (detour_is_imported(pbCode, pbTarget)) {
-                pbNew = *(UNALIGNED PBYTE *)pbTarget;
+                PBYTE pbTarget = ReadPointerAcquire((UNALIGNED PBYTE *)&pbCode[2]);
+                if (detour_is_imported(pbCode, pbTarget)) {
+                    pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
                 DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
                 pbCode = pbNew;
             }
         }
         // Finally, skip over a long jump if it is the target of the patch jump.
-        else if (pbCode[0] == 0xe9) {   // jmp +imm32
-            pbNew = pbCode + 5 + *(UNALIGNED INT32 *)&pbCode[1];
+        else if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xe9) {   // jmp +imm32
+            pbNew = pbCode + 5 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[1]);
             DETOUR_TRACE(("%p->%p: skipped over long jump.\n", pbCode, pbNew));
             pbCode = pbNew;
             
@@ -229,9 +210,9 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
             // padding in the base image. Ideally, we would detour at the target function, but
             // since it's patched it begins with a short jump (to padding) which isn't long
             // enough to hold the detour code bytes.
-            if (pbCode[0] == 0xff &&
-                pbCode[1] == 0x25 &&
-                *(UNALIGNED INT32 *)&pbCode[2] == (UNALIGNED INT32)(pbCode + 0x1000)) {   // jmp [eip+PAGE_SIZE-6]
+            if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xff &&
+                ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]) == 0x25 &&
+                ReadInt32Acquire((UNALIGNED PINT32)&pbCode[2]) == (UNALIGNED INT32)(pbCode + 0x1000)) {   // jmp [eip+PAGE_SIZE-6]
 
                 DETOUR_TRACE(("%p->%p: OS patch encountered, reset back to long jump 5 bytes prior to target function.\n", pbCode, pbCodeOriginal));
                 pbCode = pbCodeOriginal;
@@ -252,8 +233,8 @@ inline void detour_find_jmp_bounds(PBYTE pbCode,
     DETOUR_TRACE(("[%p..%p..%p]\n", (PVOID)lo, pbCode, (PVOID)hi));
 
     // And, within +/- 2GB of relative jmp targets.
-    if (pbCode[0] == 0xe9) {   // jmp +imm32
-        PBYTE pbNew = pbCode + 5 + *(UNALIGNED INT32 *)&pbCode[1];
+    if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]) == 0xe9) {   // jmp +imm32
+        PBYTE pbNew = pbCode + 5 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[1]);
 
         if (pbNew < pbCode) {
             hi = detour_2gb_above((ULONG_PTR)pbNew);
@@ -270,28 +251,33 @@ inline void detour_find_jmp_bounds(PBYTE pbCode,
 
 inline BOOL detour_does_code_end_function(PBYTE pbCode)
 {
-    if (pbCode[0] == 0xeb ||    // jmp +imm8
-        pbCode[0] == 0xe9 ||    // jmp +imm32
-        pbCode[0] == 0xe0 ||    // jmp eax
-        pbCode[0] == 0xc2 ||    // ret +imm8
-        pbCode[0] == 0xc3 ||    // ret
-        pbCode[0] == 0xcc) {    // brk
+    BYTE b[3];
+    b[0] = ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[0]);
+    b[1] = ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]);
+    b[2] = ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[2]);
+
+    if (b[0] == 0xeb ||    // jmp +imm8
+        b[0] == 0xe9 ||    // jmp +imm32
+        b[0] == 0xe0 ||    // jmp eax
+        b[0] == 0xc2 ||    // ret +imm8
+        b[0] == 0xc3 ||    // ret
+        b[0] == 0xcc) {    // brk
         return TRUE;
     }
-    else if (pbCode[0] == 0xf3 && pbCode[1] == 0xc3) {  // rep ret
+    else if (b[0] == 0xf3 && b[1] == 0xc3) {  // rep ret
         return TRUE;
     }
-    else if (pbCode[0] == 0xff && pbCode[1] == 0x25) {  // jmp [+imm32]
+    else if (b[0] == 0xff && b[1] == 0x25) {  // jmp [+imm32]
         return TRUE;
     }
-    else if ((pbCode[0] == 0x26 ||      // jmp es:
-              pbCode[0] == 0x2e ||      // jmp cs:
-              pbCode[0] == 0x36 ||      // jmp ss:
-              pbCode[0] == 0x3e ||      // jmp ds:
-              pbCode[0] == 0x64 ||      // jmp fs:
-              pbCode[0] == 0x65) &&     // jmp gs:
-             pbCode[1] == 0xff &&       // jmp [+imm32]
-             pbCode[2] == 0x25) {
+    else if ((b[0] == 0x26 ||      // jmp es:
+              b[0] == 0x2e ||      // jmp cs:
+              b[0] == 0x36 ||      // jmp ss:
+              b[0] == 0x3e ||      // jmp ds:
+              b[0] == 0x64 ||      // jmp fs:
+              b[0] == 0x65) &&     // jmp gs:
+             b[1] == 0xff &&       // jmp [+imm32]
+             b[2] == 0x25) {
         return TRUE;
     }
     return FALSE;
@@ -299,58 +285,63 @@ inline BOOL detour_does_code_end_function(PBYTE pbCode)
 
 inline ULONG detour_is_code_filler(PBYTE pbCode)
 {
+    BYTE b[11];
+    for (ULONG i = 0; i < ARRAYSIZE(b); i++) {
+        b[i] = ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[i]);
+    }
+
     // 1-byte through 11-byte NOPs.
-    if (pbCode[0] == 0x90) {
+    if (b[0] == 0x90) {
         return 1;
     }
-    if (pbCode[0] == 0x66 && pbCode[1] == 0x90) {
+    if (b[0] == 0x66 && b[1] == 0x90) {
         return 2;
     }
-    if (pbCode[0] == 0x0F && pbCode[1] == 0x1F && pbCode[2] == 0x00) {
+    if (b[0] == 0x0F && b[1] == 0x1F && b[2] == 0x00) {
         return 3;
     }
-    if (pbCode[0] == 0x0F && pbCode[1] == 0x1F && pbCode[2] == 0x40 &&
-        pbCode[3] == 0x00) {
+    if (b[0] == 0x0F && b[1] == 0x1F && b[2] == 0x40 &&
+        b[3] == 0x00) {
         return 4;
     }
-    if (pbCode[0] == 0x0F && pbCode[1] == 0x1F && pbCode[2] == 0x44 &&
-        pbCode[3] == 0x00 && pbCode[4] == 0x00) {
+    if (b[0] == 0x0F && b[1] == 0x1F && b[2] == 0x44 &&
+        b[3] == 0x00 && b[4] == 0x00) {
         return 5;
     }
-    if (pbCode[0] == 0x66 && pbCode[1] == 0x0F && pbCode[2] == 0x1F &&
-        pbCode[3] == 0x44 && pbCode[4] == 0x00 && pbCode[5] == 0x00) {
+    if (b[0] == 0x66 && b[1] == 0x0F && b[2] == 0x1F &&
+        b[3] == 0x44 && b[4] == 0x00 && b[5] == 0x00) {
         return 6;
     }
-    if (pbCode[0] == 0x0F && pbCode[1] == 0x1F && pbCode[2] == 0x80 &&
-        pbCode[3] == 0x00 && pbCode[4] == 0x00 && pbCode[5] == 0x00 &&
-        pbCode[6] == 0x00) {
+    if (b[0] == 0x0F && b[1] == 0x1F && b[2] == 0x80 &&
+        b[3] == 0x00 && b[4] == 0x00 && b[5] == 0x00 &&
+        b[6] == 0x00) {
         return 7;
     }
-    if (pbCode[0] == 0x0F && pbCode[1] == 0x1F && pbCode[2] == 0x84 &&
-        pbCode[3] == 0x00 && pbCode[4] == 0x00 && pbCode[5] == 0x00 &&
-        pbCode[6] == 0x00 && pbCode[7] == 0x00) {
+    if (b[0] == 0x0F && b[1] == 0x1F && b[2] == 0x84 &&
+        b[3] == 0x00 && b[4] == 0x00 && b[5] == 0x00 &&
+        b[6] == 0x00 && b[7] == 0x00) {
         return 8;
     }
-    if (pbCode[0] == 0x66 && pbCode[1] == 0x0F && pbCode[2] == 0x1F &&
-        pbCode[3] == 0x84 && pbCode[4] == 0x00 && pbCode[5] == 0x00 &&
-        pbCode[6] == 0x00 && pbCode[7] == 0x00 && pbCode[8] == 0x00) {
+    if (b[0] == 0x66 && b[1] == 0x0F && b[2] == 0x1F &&
+        b[3] == 0x84 && b[4] == 0x00 && b[5] == 0x00 &&
+        b[6] == 0x00 && b[7] == 0x00 && b[8] == 0x00) {
         return 9;
     }
-    if (pbCode[0] == 0x66 && pbCode[1] == 0x66 && pbCode[2] == 0x0F &&
-        pbCode[3] == 0x1F && pbCode[4] == 0x84 && pbCode[5] == 0x00 &&
-        pbCode[6] == 0x00 && pbCode[7] == 0x00 && pbCode[8] == 0x00 &&
-        pbCode[9] == 0x00) {
+    if (b[0] == 0x66 && b[1] == 0x66 && b[2] == 0x0F &&
+        b[3] == 0x1F && b[4] == 0x84 && b[5] == 0x00 &&
+        b[6] == 0x00 && b[7] == 0x00 && b[8] == 0x00 &&
+        b[9] == 0x00) {
         return 10;
     }
-    if (pbCode[0] == 0x66 && pbCode[1] == 0x66 && pbCode[2] == 0x66 &&
-        pbCode[3] == 0x0F && pbCode[4] == 0x1F && pbCode[5] == 0x84 &&
-        pbCode[6] == 0x00 && pbCode[7] == 0x00 && pbCode[8] == 0x00 &&
-        pbCode[9] == 0x00 && pbCode[10] == 0x00) {
+    if (b[0] == 0x66 && b[1] == 0x66 && b[2] == 0x66 &&
+        b[3] == 0x0F && b[4] == 0x1F && b[5] == 0x84 &&
+        b[6] == 0x00 && b[7] == 0x00 && b[8] == 0x00 &&
+        b[9] == 0x00 && b[10] == 0x00) {
         return 11;
     }
 
     // int 3.
-    if (pbCode[0] == 0xcc) {
+    if (b[0] == 0xcc) {
         return 1;
     }
     return 0;
@@ -422,10 +413,10 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 
     // First, skip over the import vector if there is one.
     if (pbCode[0] == 0xff && pbCode[1] == 0x25) {   // jmp [+imm32]
-        // Looks like an import alias jump, then get the code it points to.
-        PBYTE pbTarget = pbCode + 6 + *(UNALIGNED INT32 *)&pbCode[2];
-        if (detour_is_imported(pbCode, pbTarget)) {
-            PBYTE pbNew = *(UNALIGNED PBYTE *)pbTarget;
+            // Looks like an import alias jump, then get the code it points to.
+            PBYTE pbTarget = pbCode + 6 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[2]);
+            if (detour_is_imported(pbCode, pbTarget)) {
+                PBYTE pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
             DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
             pbCode = pbNew;
         }
@@ -433,7 +424,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 
     // Then, skip over a patch jump
     if (pbCode[0] == 0xeb) {   // jmp +imm8
-        PBYTE pbNew = pbCode + 2 + *(CHAR *)&pbCode[1];
+        PBYTE pbNew = pbCode + 2 + (CHAR)ReadUCharAcquire((UNALIGNED PUCHAR)&pbCode[1]);
         DETOUR_TRACE(("%p->%p: skipped over short jump.\n", pbCode, pbNew));
         pbCode = pbNew;
         pbCodeOriginal = pbCode;
@@ -441,16 +432,16 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
         // First, skip over the import vector if there is one.
         if (pbCode[0] == 0xff && pbCode[1] == 0x25) {   // jmp [+imm32]
             // Looks like an import alias jump, then get the code it points to.
-            PBYTE pbTarget = pbCode + 6 + *(UNALIGNED INT32 *)&pbCode[2];
+            PBYTE pbTarget = pbCode + 6 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[2]);
             if (detour_is_imported(pbCode, pbTarget)) {
-                pbNew = *(UNALIGNED PBYTE *)pbTarget;
+                pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
                 DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
                 pbCode = pbNew;
             }
         }
         // Finally, skip over a long jump if it is the target of the patch jump.
         else if (pbCode[0] == 0xe9) {   // jmp +imm32
-            pbNew = pbCode + 5 + *(UNALIGNED INT32 *)&pbCode[1];
+            pbNew = pbCode + 5 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[1]);
             DETOUR_TRACE(("%p->%p: skipped over long jump.\n", pbCode, pbNew));
             pbCode = pbNew;
             // Patches applied by the OS will jump through an HPAT page to get
@@ -462,7 +453,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
             // point of the long jump instead of the short jump at the start of the target.
             if (pbCode[0] == 0xff &&
                 pbCode[1] == 0x25 &&
-                *(UNALIGNED INT32 *)&pbCode[2] == 0xFFA) {   // jmp [rip+PAGE_SIZE-6]
+                ReadInt32Acquire((UNALIGNED PINT32)&pbCode[2]) == 0xFFA) {   // jmp [rip+PAGE_SIZE-6]
 
                 DETOUR_TRACE(("%p->%p: OS patch encountered, reset back to long jump 5 bytes prior to target function.\n", pbCode, pbCodeOriginal));
                 pbCode = pbCodeOriginal;
@@ -483,7 +474,7 @@ inline void detour_find_jmp_bounds(PBYTE pbCode,
 
     // And, within +/- 2GB of relative jmp vectors.
     if (pbCode[0] == 0xff && pbCode[1] == 0x25) {   // jmp [+imm32]
-        PBYTE pbNew = pbCode + 6 + *(UNALIGNED INT32 *)&pbCode[2];
+        PBYTE pbNew = pbCode + 6 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[2]);
 
         if (pbNew < pbCode) {
             hi = detour_2gb_above(reinterpret_cast<ULONG_PTR>(pbNew));
@@ -495,7 +486,7 @@ inline void detour_find_jmp_bounds(PBYTE pbCode,
     }
     // And, within +/- 2GB of relative jmp targets.
     else if (pbCode[0] == 0xe9) {   // jmp +imm32
-        PBYTE pbNew = pbCode + 5 + *(UNALIGNED INT32 *)&pbCode[1];
+        PBYTE pbNew = pbCode + 5 + ReadInt32Acquire((UNALIGNED PINT32)&pbCode[1]);
 
         if (pbNew < pbCode) {
             hi = detour_2gb_above(reinterpret_cast<ULONG_PTR>(pbNew));
@@ -693,8 +684,8 @@ inline PBYTE detour_skip_jmp(PBYTE pPointer, PVOID *ppGlobals)
 
     if (pPointer != nullptr) {
         PPLABEL_DESCRIPTOR ppld = (PPLABEL_DESCRIPTOR)pPointer;
-        pbCode = (PBYTE)ppld->EntryPoint;
-        pGlobals = (PBYTE)ppld->GlobalPointer;
+        pbCode = (PBYTE)ReadPointerAcquire((UNALIGNED PBYTE *)&ppld->EntryPoint);
+        pGlobals = (PBYTE)ReadPointerAcquire((UNALIGNED PBYTE *)&ppld->GlobalPointer);
     }
     if (ppGlobals != nullptr) {
         *ppGlobals = pGlobals;
@@ -737,14 +728,15 @@ inline PBYTE detour_skip_jmp(PBYTE pPointer, PVOID *ppGlobals)
         PBYTE pbTarget = pGlobals + offset;
         DETOUR_TRACE(("%p: potential import jump, target=%p\n", pb, pbTarget));
 
-        if (detour_is_imported(pbCode, pbTarget) && *(PBYTE*)pbTarget != nullptr) {
-            DETOUR_TRACE(("%p: is import jump, label=%p\n", pb, *(PBYTE *)pbTarget));
-
-            PPLABEL_DESCRIPTOR ppld = (PPLABEL_DESCRIPTOR)*(PBYTE *)pbTarget;
-            pbCode = (PBYTE)ppld->EntryPoint;
-            pGlobals = (PBYTE)ppld->GlobalPointer;
-            if (ppGlobals != nullptr) {
-                *ppGlobals = pGlobals;
+        if (detour_is_imported(pbCode, pbTarget)) {
+            PPLABEL_DESCRIPTOR ppld = (PPLABEL_DESCRIPTOR)ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
+            if (ppld != nullptr) {
+                DETOUR_TRACE(("%p: is import jump, label=%p\n", pb, ppld));
+                pbCode = (PBYTE)ReadPointerAcquire((UNALIGNED PBYTE *)&ppld->EntryPoint);
+                pGlobals = (PBYTE)ReadPointerAcquire((UNALIGNED PBYTE *)&ppld->GlobalPointer);
+                if (ppGlobals != nullptr) {
+                    *ppGlobals = pGlobals;
+                }
             }
         }
     }
@@ -806,9 +798,9 @@ inline PBYTE align4(PBYTE pValue)
 
 inline ULONG fetch_thumb_opcode(PBYTE pbCode)
 {
-    ULONG Opcode = *(UINT16 *)&pbCode[0];
+    ULONG Opcode = ReadUShortAcquire((UNALIGNED PUSHORT)&pbCode[0]);
     if (Opcode >= 0xe800) {
-        Opcode = (Opcode << 16) | *(UINT16 *)&pbCode[2];
+        Opcode = (Opcode << 16) | ReadUShortAcquire((UNALIGNED PUSHORT)&pbCode[2]);
     }
     return Opcode;
 }
@@ -880,7 +872,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
                                          ((Opcode  >> 15) & 0x00000800) |
                                          ((Opcode  >>  0) & 0x000000ff));
                 if (detour_is_imported(pbCode, pbTarget)) {
-                    PBYTE pbNew = *(PBYTE *)pbTarget;
+                    PBYTE pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
                     pbNew = DETOURS_PFUNC_TO_PBYTE(pbNew);
                     DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
                     return pbNew;
@@ -903,7 +895,6 @@ inline void detour_find_jmp_bounds(PBYTE pbCode,
     *ppLower = (PDETOUR_TRAMPOLINE)lo;
     *ppUpper = (PDETOUR_TRAMPOLINE)hi;
 }
-
 
 inline BOOL detour_does_code_end_function(PBYTE pbCode)
 {
@@ -983,8 +974,8 @@ enum {
 
 inline ULONG fetch_opcode(PBYTE pbCode)
 {
-    return *(ULONG *)pbCode;
-}
+    return ReadULongAcquire((UNALIGNED PULONG)pbCode);
+}                                                                                                                                                                                                                                                                                                          
 
 inline void write_opcode(PBYTE &pbCode, ULONG Opcode)
 {
@@ -1184,7 +1175,7 @@ then unsigned size-unscaled (8) 12-bit offset, then opcode bits 0xF94.
                 PBYTE const pbTarget = (PBYTE)((ULONG64)pbCode & 0xfffffffffffff000ULL) + page + offset;
 
                 if (detour_is_imported(pbCode, pbTarget)) {
-                    PBYTE pbNew = *(PBYTE *)pbTarget;
+                    PBYTE pbNew = ReadPointerAcquire((UNALIGNED PBYTE *)pbTarget);
                     DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
                     return pbNew;
                 }
@@ -1258,10 +1249,10 @@ inline BOOL detour_does_code_end_function(PBYTE pbCode)
 
 inline ULONG detour_is_code_filler(PBYTE pbCode)
 {
-    if (*(ULONG *)pbCode == 0xd503201f) {   // nop.
+    if (fetch_opcode(pbCode) == 0xd503201f) {   // nop.
         return 4;
     }
-    if (*(ULONG *)pbCode == 0x00000000) {   // zero-filled padding.
+    if (fetch_opcode(pbCode) == 0x00000000) {   // zero-filled padding.
         return 4;
     }
     return 0;
@@ -1271,56 +1262,159 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 //////////////////////////////////////////////// Trampoline Memory Management.
 //
+static constexpr ULONG DETOUR_REGION_SIZE = 0x10000;
+static constexpr ULONG DETOUR_TRAMPOLINES_PER_REGION = DETOUR_REGION_SIZE / sizeof(DETOUR_TRAMPOLINE);
+
 struct DETOUR_REGION
 {
-    ULONG               dwSignature;
-    DETOUR_REGION *     pNext;  // Next region in list of regions.
-    DETOUR_TRAMPOLINE * pFree;  // List of free trampolines in this region.
+    DETOUR_REGION * pNext;
+    PBYTE pbBase;
+    BOOLEAN sealed;
+    BOOLEAN slots[DETOUR_TRAMPOLINES_PER_REGION];
 };
 typedef DETOUR_REGION * PDETOUR_REGION;
 
-static constexpr ULONG DETOUR_REGION_SIGNATURE = 'R3IS';
-static constexpr ULONG DETOUR_REGION_SIZE = 0x10000;
-static constexpr ULONG DETOUR_TRAMPOLINES_PER_REGION = (DETOUR_REGION_SIZE / sizeof(DETOUR_TRAMPOLINE)) - 1;
 static PDETOUR_REGION s_pRegions = nullptr;            // List of all regions.
 static PDETOUR_REGION s_pRegion = nullptr;             // Default region.
+static PH_QUEUED_LOCK s_DetourLock = PH_QUEUED_LOCK_INIT;
 
-
-static NTSTATUS detour_writable_trampoline_regions()
+class DetourLockGuard
 {
-    // Mark all of the regions as writable.
-    for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext) 
+public:
+    DetourLockGuard()
+    {
+        PhAcquireQueuedLockExclusive(&s_DetourLock);
+    }
+
+    ~DetourLockGuard()
+    {
+        PhReleaseQueuedLockExclusive(&s_DetourLock);
+    }
+
+private:
+    DetourLockGuard(const DetourLockGuard&) = delete;
+    DetourLockGuard& operator=(const DetourLockGuard&) = delete;
+};
+
+static bool detour_get_system_region(ULONG_PTR *pLower, ULONG_PTR *pUpper)
+{
+    ULONG_PTR lower = reinterpret_cast<ULONG_PTR>(s_pSystemRegionLowerBound);
+    ULONG_PTR upper = reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound);
+
+    if (lower == 0 || upper == 0 || lower >= upper)
+        return false;
+
+    *pLower = lower;
+    *pUpper = upper;
+    return true;
+}
+
+static bool detour_range_contains_region(PBYTE pbLo, PBYTE pbHi, PBYTE pbBase)
+{
+    ULONG_PTR lower = reinterpret_cast<ULONG_PTR>(pbLo);
+    ULONG_PTR upper = reinterpret_cast<ULONG_PTR>(pbHi);
+    ULONG_PTR base = reinterpret_cast<ULONG_PTR>(pbBase);
+
+    if (lower >= upper || base < lower || base >= upper)
+        return false;
+
+    return DETOUR_REGION_SIZE <= upper - base;
+}
+
+static bool detour_region_overlaps_system_range(PBYTE pbBase)
+{
+    ULONG_PTR lower;
+    ULONG_PTR upper;
+    ULONG_PTR base = reinterpret_cast<ULONG_PTR>(pbBase);
+
+    if (!detour_get_system_region(&lower, &upper))
+        return false;
+
+    if (base > MAXULONG_PTR - DETOUR_REGION_SIZE)
+        return true;
+
+    return base < upper && base + DETOUR_REGION_SIZE > lower;
+}
+
+static bool detour_get_user_address_range(ULONG_PTR *pLower, ULONG_PTR *pUpper)
+{
+    SYSTEM_BASIC_INFORMATION basicInformation = {};
+    ULONG_PTR lower = DETOUR_REGION_SIZE;
+#if defined(DETOURS_64BIT)
+    ULONG_PTR upper = static_cast<ULONG_PTR>(0x800000000000);
+#else
+    ULONG_PTR upper = static_cast<ULONG_PTR>(0x80000000);
+#endif
+
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemBasicInformation,
+        &basicInformation,
+        sizeof(basicInformation),
+        nullptr
+        )))
+    {
+        lower = basicInformation.MinimumUserModeAddress;
+
+        if (basicInformation.MaximumUserModeAddress != MAXULONG_PTR)
+            upper = basicInformation.MaximumUserModeAddress + 1;
+    }
+
+    lower = (lower + DETOUR_REGION_SIZE - 1) & ~(static_cast<ULONG_PTR>(DETOUR_REGION_SIZE) - 1);
+    upper &= ~(static_cast<ULONG_PTR>(DETOUR_REGION_SIZE) - 1);
+
+    if (lower >= upper)
+        return false;
+
+    *pLower = lower;
+    *pUpper = upper;
+    return true;
+}
+
+static bool detour_clamp_region_range(PBYTE *ppbLo, PBYTE *ppbHi)
+{
+    ULONG_PTR userLower;
+    ULONG_PTR userUpper;
+    ULONG_PTR lower = reinterpret_cast<ULONG_PTR>(*ppbLo);
+    ULONG_PTR upper = reinterpret_cast<ULONG_PTR>(*ppbHi);
+
+    if (!detour_get_user_address_range(&userLower, &userUpper))
+        return false;
+
+    if (lower >= userUpper || upper <= userLower)
+        return false;
+
+    if (lower < userLower)
+        lower = userLower;
+    if (upper > userUpper)
+        upper = userUpper;
+
+    lower = (lower + DETOUR_REGION_SIZE - 1) & ~(static_cast<ULONG_PTR>(DETOUR_REGION_SIZE) - 1);
+    upper &= ~(static_cast<ULONG_PTR>(DETOUR_REGION_SIZE) - 1);
+
+    if (lower >= upper || DETOUR_REGION_SIZE > upper - lower)
+        return false;
+
+    *ppbLo = reinterpret_cast<PBYTE>(lower);
+    *ppbHi = reinterpret_cast<PBYTE>(upper);
+    return true;
+}
+
+
+static NTSTATUS detour_runnable_trampoline_regions()
+{
+    // Seal newly-created staging regions as executable. Sealed regions are
+    // immutable and are never made writable again.
+    for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext)
     {
         NTSTATUS status;
         ULONG protection = 0;
-        PVOID address = pRegion;
+        PVOID address = pRegion->pbBase;
         SIZE_T size = DETOUR_REGION_SIZE;
+
+        if (pRegion->sealed)
+            continue;
 
         status = NtProtectVirtualMemory(
-            NtCurrentProcess(), 
-            &address,
-            &size,
-            PAGE_EXECUTE_READWRITE, 
-            &protection
-            );
-
-        if (!NT_SUCCESS(status))
-            return status;
-    }
-
-    return STATUS_SUCCESS;
-}
-
-static void detour_runnable_trampoline_regions()
-{
-    // Mark all of the regions as executable.
-    for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext)
-    {
-        ULONG protection = 0;
-        PVOID address = pRegion;
-        SIZE_T size = DETOUR_REGION_SIZE;
-
-        NtProtectVirtualMemory(
             NtCurrentProcess(),
             &address,
             &size,
@@ -1328,8 +1422,14 @@ static void detour_runnable_trampoline_regions()
             &protection
             );
 
-        NtFlushInstructionCache(NtCurrentProcess(), pRegion, DETOUR_REGION_SIZE);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        NtFlushInstructionCache(NtCurrentProcess(), pRegion->pbBase, DETOUR_REGION_SIZE);
+        pRegion->sealed = TRUE;
     }
+
+    return STATUS_SUCCESS;
 }
 
 static PBYTE detour_alloc_round_down_to_region(PBYTE pbTry)
@@ -1354,32 +1454,119 @@ static PBYTE detour_alloc_round_up_to_region(PBYTE pbTry)
     return pbTry;
 }
 
+static PVOID detour_alloc_region_with_requirements(PBYTE pbLo, PBYTE pbHi, ULONG protection)
+{
+    NTSTATUS status;
+    MEM_ADDRESS_REQUIREMENTS requirements = {};
+    MEM_EXTENDED_PARAMETER parameter[1] = {};
+    ULONG_PTR lower;
+    ULONG_PTR upper;
+    SIZE_T size = DETOUR_REGION_SIZE;
+    PVOID address = nullptr;
+
+    if (!NtAllocateVirtualMemoryEx_Import())
+        return nullptr;
+
+    lower = reinterpret_cast<ULONG_PTR>(detour_alloc_round_up_to_region(pbLo));
+    upper = reinterpret_cast<ULONG_PTR>(detour_alloc_round_down_to_region(pbHi));
+
+    if (lower >= upper || DETOUR_REGION_SIZE > upper - lower)
+        return nullptr;
+
+    requirements.LowestStartingAddress = reinterpret_cast<PVOID>(lower);
+    requirements.HighestEndingAddress = reinterpret_cast<PVOID>(upper - 1);
+    requirements.Alignment = DETOUR_REGION_SIZE;
+
+    parameter[0].Type = MemExtendedParameterAddressRequirements;
+    parameter[0].Pointer = &requirements;
+
+    if (protection == PAGE_READWRITE)
+    {
+        status = NtAllocateVirtualMemoryEx_Import()(
+            NtCurrentProcess(),
+            &address,
+            &size,
+            MEM_RESERVE | MEM_RESERVE_PLACEHOLDER,
+            PAGE_NOACCESS,
+            parameter,
+            RTL_NUMBER_OF(parameter)
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PVOID placeholderAddress = address;
+
+            if (!detour_region_overlaps_system_range(static_cast<PBYTE>(address)))
+            {
+                PVOID replacementAddress = address;
+                SIZE_T replacementSize = size;
+
+                status = NtAllocateVirtualMemoryEx_Import()(
+                    NtCurrentProcess(),
+                    &replacementAddress,
+                    &replacementSize,
+                    MEM_RESERVE | MEM_COMMIT | MEM_REPLACE_PLACEHOLDER,
+                    protection,
+                    nullptr,
+                    0
+                    );
+
+                if (NT_SUCCESS(status))
+                    return replacementAddress;
+            }
+
+            SIZE_T freeSize = 0;
+            NtFreeVirtualMemory(NtCurrentProcess(), &placeholderAddress, &freeSize, MEM_RELEASE);
+            address = nullptr;
+            size = DETOUR_REGION_SIZE;
+        }
+    }
+
+    status = NtAllocateVirtualMemoryEx_Import()(
+        NtCurrentProcess(),
+        &address,
+        &size,
+        MEM_COMMIT | MEM_RESERVE,
+        protection,
+        parameter,
+        RTL_NUMBER_OF(parameter)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (!detour_region_overlaps_system_range(static_cast<PBYTE>(address)))
+            return address;
+
+        SIZE_T freeSize = 0;
+        NtFreeVirtualMemory(NtCurrentProcess(), &address, &freeSize, MEM_RELEASE);
+    }
+
+    return nullptr;
+}
+
 // Starting at pbLo, try to allocate a memory region, continue until pbHi.
 
-static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
+static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi, ULONG protection)
 {
     PBYTE pbTry = detour_alloc_round_up_to_region(pbLo);
 
     DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 
-    while (pbTry < pbHi) 
+    while (detour_range_contains_region(pbLo, pbHi, pbTry))
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        SIZE_T nSkipSize = should_skip_sytem_range_size(pbTry);
-        if (nSkipSize)
+        if (detour_region_overlaps_system_range(pbTry))
         {
-            // Skip region reserved for system DLLs, but preserve address space entropy.
-            pbTry += nSkipSize;
+            ULONG_PTR lower;
+            ULONG_PTR upper;
+
+            if (!detour_get_system_region(&lower, &upper))
+                break;
+
+            pbTry = detour_alloc_round_up_to_region(reinterpret_cast<PBYTE>(upper));
             continue;
         }
-
-        //if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound)
-        //{
-        //    // Skip region reserved for system DLLs, but preserve address space entropy.
-        //    pbTry += 0x08000000;
-        //    continue;
-        //}
 
         ZeroMemory(&mbi, sizeof(mbi));
 
@@ -1404,7 +1591,7 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
                 0,
                 &size,
                 MEM_COMMIT | MEM_RESERVE,
-                PAGE_EXECUTE_READWRITE
+                protection
                 );
 
             if (NT_SUCCESS(status))
@@ -1420,7 +1607,12 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
         }
         else 
         {
-            pbTry = detour_alloc_round_up_to_region(static_cast<PBYTE>(PTR_ADD_OFFSET(mbi.BaseAddress, mbi.RegionSize)));
+            ULONG_PTR allocationBase = reinterpret_cast<ULONG_PTR>(mbi.BaseAddress);
+
+            if (mbi.RegionSize > MAXULONG_PTR - allocationBase)
+                break;
+
+            pbTry = detour_alloc_round_up_to_region(reinterpret_cast<PBYTE>(allocationBase + mbi.RegionSize));
         }
     }
 
@@ -1429,23 +1621,30 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
 // Starting at pbHi, try to allocate a memory region, continue until pbLo.
 
-static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
+static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi, ULONG protection)
 {
+    if (reinterpret_cast<ULONG_PTR>(pbHi) < DETOUR_REGION_SIZE)
+        return nullptr;
+
     PBYTE pbTryn = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
 
-    DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
+    DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTryn));
 
-    while (pbTryn > pbLo)
+    while (detour_range_contains_region(pbLo, pbHi, pbTryn))
     {
         MEMORY_BASIC_INFORMATION mbi;
 
         DETOUR_TRACE(("  Try %p\n", pbTryn));
 
-        const SIZE_T nSkipSize = should_skip_sytem_range_size(pbTryn);
-        if (nSkipSize)
+        if (detour_region_overlaps_system_range(pbTryn))
         {
-            // Skip region reserved for system DLLs, but preserve address space entropy.
-            pbTryn -= nSkipSize;
+            ULONG_PTR lower;
+            ULONG_PTR upper;
+
+            if (!detour_get_system_region(&lower, &upper) || lower < DETOUR_REGION_SIZE)
+                break;
+
+            pbTryn = detour_alloc_round_down_to_region(reinterpret_cast<PBYTE>(lower - DETOUR_REGION_SIZE));
             continue;
         }
 
@@ -1455,7 +1654,7 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
             break;
 
         DETOUR_TRACE(("  Try %p => %p..%p %6lx\n",
-                      pbTry,
+                      pbTryn,
                       mbi.BaseAddress,
                       (PBYTE)mbi.BaseAddress + mbi.RegionSize - 1,
                       mbi.State));
@@ -1472,7 +1671,7 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
                 0,
                 &size,
                 MEM_COMMIT | MEM_RESERVE,
-                PAGE_EXECUTE_READWRITE
+                protection
                 );
 
             if (NT_SUCCESS(status))
@@ -1488,7 +1687,12 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
         }
         else 
         {
-            pbTryn = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
+            ULONG_PTR allocationBase = reinterpret_cast<ULONG_PTR>(mbi.AllocationBase);
+
+            if (allocationBase < DETOUR_REGION_SIZE)
+                break;
+
+            pbTryn = detour_alloc_round_down_to_region(reinterpret_cast<PBYTE>(allocationBase - DETOUR_REGION_SIZE));
         }
     }
 
@@ -1497,9 +1701,22 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 
 static PVOID detour_alloc_trampoline_allocate_new(PBYTE pbTarget,
                                                   PDETOUR_TRAMPOLINE pLo,
-                                                  PDETOUR_TRAMPOLINE pHi)
+                                                  PDETOUR_TRAMPOLINE pHi,
+                                                  ULONG protection)
 {
+    PBYTE pbLo = reinterpret_cast<PBYTE>(pLo);
+    PBYTE pbHi = reinterpret_cast<PBYTE>(pHi);
     PVOID pbTry = nullptr;
+
+    if (!detour_clamp_region_range(&pbLo, &pbHi))
+        return nullptr;
+
+#if PHNT_VERSION >= PHNT_WINDOWS_10_RS5
+    pbTry = detour_alloc_region_with_requirements(pbLo, pbHi, protection);
+#endif
+
+    if (pbTry != nullptr)
+        return pbTry;
 
     // NB: We must always also start the search at an offset from pbTarget
     //     in order to maintain ASLR entropy.
@@ -1508,32 +1725,58 @@ static PVOID detour_alloc_trampoline_allocate_new(PBYTE pbTarget,
     // Try looking 1GB below or lower.
     if (pbTry == nullptr && pbTarget > reinterpret_cast<PBYTE>(0x40000000)) 
     {
-        pbTry = detour_alloc_region_from_hi((PBYTE)pLo, pbTarget - 0x40000000);
+        PBYTE pbSplit = pbTarget - 0x40000000;
+
+        if (pbSplit > pbHi)
+            pbSplit = pbHi;
+
+        pbTry = detour_alloc_region_from_hi(pbLo, pbSplit, protection);
     }
     // Try looking 1GB above or higher.
     if (pbTry == nullptr && pbTarget < reinterpret_cast<PBYTE>(0xffffffff40000000))
     {
-        pbTry = detour_alloc_region_from_lo(pbTarget + 0x40000000, (PBYTE)pHi);
+        PBYTE pbSplit = pbTarget + 0x40000000;
+
+        if (pbSplit < pbLo)
+            pbSplit = pbLo;
+
+        pbTry = detour_alloc_region_from_lo(pbSplit, pbHi, protection);
     }
     // Try looking 1GB below or higher.
     if (pbTry == nullptr && pbTarget > reinterpret_cast<PBYTE>(0x40000000)) 
     {
-        pbTry = detour_alloc_region_from_lo(pbTarget - 0x40000000, pbTarget);
+        PBYTE pbSplit = pbTarget - 0x40000000;
+        PBYTE pbUpper = pbTarget;
+
+        if (pbSplit < pbLo)
+            pbSplit = pbLo;
+        if (pbUpper > pbHi)
+            pbUpper = pbHi;
+
+        pbTry = detour_alloc_region_from_lo(pbSplit, pbUpper, protection);
     }
     // Try looking 1GB above or lower.
     if (pbTry == nullptr && pbTarget < reinterpret_cast<PBYTE>(0xffffffff40000000)) 
     {
-        pbTry = detour_alloc_region_from_hi(pbTarget, pbTarget + 0x40000000);
+        PBYTE pbSplit = pbTarget;
+        PBYTE pbUpper = pbTarget + 0x40000000;
+
+        if (pbSplit < pbLo)
+            pbSplit = pbLo;
+        if (pbUpper > pbHi)
+            pbUpper = pbHi;
+
+        pbTry = detour_alloc_region_from_hi(pbSplit, pbUpper, protection);
     }
 #endif
 
     // Try anything below.
     if (pbTry == nullptr) {
-      pbTry = detour_alloc_region_from_hi((PBYTE)pLo, pbTarget);
+            pbTry = detour_alloc_region_from_hi(pbLo, pbTarget, protection);
     }
     // try anything above.
     if (pbTry == nullptr) {
-        pbTry = detour_alloc_region_from_lo(pbTarget, (PBYTE)pHi);
+        pbTry = detour_alloc_region_from_lo(pbTarget, pbHi, protection);
     }
 
     return pbTry;
@@ -1542,11 +1785,17 @@ static PVOID detour_alloc_trampoline_allocate_new(PBYTE pbTarget,
 PVOID WINAPI DetourAllocateRegionWithinJumpBounds(_In_ PVOID pbTarget,
                                                   _Out_ PDWORD pcbAllocatedSize)
 {
+    DetourLockGuard lock;
     PDETOUR_TRAMPOLINE pLo;
     PDETOUR_TRAMPOLINE pHi;
     detour_find_jmp_bounds(static_cast<PBYTE>(pbTarget), &pLo, &pHi);
 
-    PVOID pbNewlyAllocated = detour_alloc_trampoline_allocate_new(static_cast<PBYTE>(pbTarget), pLo, pHi);
+    PVOID pbNewlyAllocated = detour_alloc_trampoline_allocate_new(
+        static_cast<PBYTE>(pbTarget),
+        pLo,
+        pHi,
+        PAGE_EXECUTE_READWRITE
+        );
 
     if (pbNewlyAllocated == nullptr) 
     {
@@ -1576,34 +1825,36 @@ static PDETOUR_TRAMPOLINE detour_alloc_trampoline(PBYTE pbTarget)
 
     PDETOUR_TRAMPOLINE pTrampoline = nullptr;
 
-    // Insure that there is a default region.
+    // Ensure that there is a default region.
     if (s_pRegion == nullptr && s_pRegions != nullptr) {
         s_pRegion = s_pRegions;
     }
 
-    // First check the default region for an valid free block.
-    if (s_pRegion != nullptr && s_pRegion->pFree != nullptr &&
-        s_pRegion->pFree >= pLo && s_pRegion->pFree <= pHi) {
-
-      found_region:
-        pTrampoline = s_pRegion->pFree;
-        // do a last sanity check on region.
-        if (pTrampoline < pLo || pTrampoline > pHi) 
-        {
-            return nullptr;
-        }
-        s_pRegion->pFree = reinterpret_cast<PDETOUR_TRAMPOLINE>(pTrampoline->pbRemain);
-        memset(pTrampoline, 0xcc, sizeof(*pTrampoline));
-        return pTrampoline;
-    }
-
-    // Then check the existing regions for a valid free block.
-    for (s_pRegion = s_pRegions; s_pRegion != nullptr; s_pRegion = s_pRegion->pNext) 
+    // Check the default region first, then all other existing regions.
+    for (ULONG pass = 0; pass < 2; pass++)
     {
-        if (s_pRegion != nullptr && s_pRegion->pFree != nullptr &&
-            s_pRegion->pFree >= pLo && s_pRegion->pFree <= pHi) 
+        PDETOUR_REGION pRegion = pass == 0 ? s_pRegion : s_pRegions;
+
+        for (; pRegion != nullptr; pRegion = pRegion->pNext)
         {
-            goto found_region;
+            if ((pass != 0 && pRegion == s_pRegion) || pRegion->sealed)
+                continue;
+
+            for (ULONG index = 0; index < DETOUR_TRAMPOLINES_PER_REGION; index++)
+            {
+                pTrampoline = reinterpret_cast<PDETOUR_TRAMPOLINE>(pRegion->pbBase) + index;
+
+                if (!pRegion->slots[index] && pTrampoline >= pLo && pTrampoline <= pHi)
+                {
+                    pRegion->slots[index] = TRUE;
+                    s_pRegion = pRegion;
+                    memset(pTrampoline, 0xcc, sizeof(*pTrampoline));
+                    return pTrampoline;
+                }
+            }
+
+            if (pass == 0)
+                break;
         }
     }
 
@@ -1613,30 +1864,36 @@ static PDETOUR_TRAMPOLINE detour_alloc_trampoline(PBYTE pbTarget)
     // /RTCc RuntimeChecks breaks PtrToUlong.
     pbTarget = pbTarget - static_cast<ULONG>(reinterpret_cast<ULONG_PTR>(pbTarget) & 0xffff);
 
-    PVOID pbNewlyAllocated = detour_alloc_trampoline_allocate_new(pbTarget, pLo, pHi);
+    PVOID pbNewlyAllocated = detour_alloc_trampoline_allocate_new(
+        pbTarget,
+        pLo,
+        pHi,
+        PAGE_READWRITE
+        );
 
     if (pbNewlyAllocated != nullptr) 
     {
-        s_pRegion = static_cast<DETOUR_REGION*>(pbNewlyAllocated);
-        s_pRegion->dwSignature = DETOUR_REGION_SIGNATURE;
-        s_pRegion->pFree = nullptr;
+        s_pRegion = new NOTHROW DETOUR_REGION;
+
+        if (s_pRegion == nullptr)
+        {
+            SIZE_T size = 0;
+            NtFreeVirtualMemory(NtCurrentProcess(), &pbNewlyAllocated, &size, MEM_RELEASE);
+            return nullptr;
+        }
+
+        s_pRegion->pbBase = static_cast<PBYTE>(pbNewlyAllocated);
+        s_pRegion->sealed = FALSE;
+        memset(s_pRegion->slots, 0, sizeof(s_pRegion->slots));
         s_pRegion->pNext = s_pRegions;
         s_pRegions = s_pRegion;
         DETOUR_TRACE(("  Allocated region %p..%p\n\n",
-                      s_pRegion, ((PBYTE)s_pRegion) + DETOUR_REGION_SIZE - 1));
+                      s_pRegion->pbBase, s_pRegion->pbBase + DETOUR_REGION_SIZE - 1));
 
-        // Put everything but the first trampoline on the free list.
-        PBYTE pFree = nullptr;
-        pTrampoline = reinterpret_cast<PDETOUR_TRAMPOLINE>(s_pRegion) + 1;
-
-        for (ULONG i = DETOUR_TRAMPOLINES_PER_REGION - 1; i > 1; i--)
-        {
-            pTrampoline[i].pbRemain = pFree;
-            pFree = reinterpret_cast<PBYTE>(&pTrampoline[i]);
-        }
-
-        s_pRegion->pFree = reinterpret_cast<PDETOUR_TRAMPOLINE>(pFree);
-        goto found_region;
+        s_pRegion->slots[0] = TRUE;
+        pTrampoline = reinterpret_cast<PDETOUR_TRAMPOLINE>(s_pRegion->pbBase);
+        memset(pTrampoline, 0xcc, sizeof(*pTrampoline));
+        return pTrampoline;
     }
 
     DETOUR_TRACE(("Couldn't find available memory region!\n"));
@@ -1645,33 +1902,37 @@ static PDETOUR_TRAMPOLINE detour_alloc_trampoline(PBYTE pbTarget)
 
 static void detour_free_trampoline(PDETOUR_TRAMPOLINE pTrampoline)
 {
-    PDETOUR_REGION pRegion = reinterpret_cast<PDETOUR_REGION>(reinterpret_cast<ULONG_PTR>(pTrampoline) & ~static_cast<ULONG_PTR>(0xffff));
+    ULONG_PTR address = reinterpret_cast<ULONG_PTR>(pTrampoline);
 
-    memset(pTrampoline, 0, sizeof(*pTrampoline));
-    pTrampoline->pbRemain = reinterpret_cast<PBYTE>(pRegion->pFree);
-    pRegion->pFree = pTrampoline;
+    for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext)
+    {
+        ULONG_PTR base = reinterpret_cast<ULONG_PTR>(pRegion->pbBase);
+
+        if (address >= base && address < base + DETOUR_REGION_SIZE)
+        {
+            SIZE_T offset = address - base;
+
+            if (offset % sizeof(DETOUR_TRAMPOLINE) == 0)
+            {
+                ULONG index = static_cast<ULONG>(offset / sizeof(DETOUR_TRAMPOLINE));
+
+                if (index < DETOUR_TRAMPOLINES_PER_REGION)
+                {
+                    pRegion->slots[index] = FALSE;
+                }
+            }
+
+            return;
+        }
+    }
 }
 
 static BOOL detour_is_region_empty(PDETOUR_REGION pRegion)
 {
-    // Stop if the region isn't a region (this would be bad).
-    if (pRegion->dwSignature != DETOUR_REGION_SIGNATURE) {
-        return FALSE;
-    }
-
-    PBYTE pbRegionBeg = reinterpret_cast<PBYTE>(pRegion);
-    PBYTE pbRegionLim  = pbRegionBeg + DETOUR_REGION_SIZE;
-
-    // Stop if any of the trampolines aren't free.
-    PDETOUR_TRAMPOLINE pTrampoline = reinterpret_cast<PDETOUR_TRAMPOLINE>(pRegion) + 1;
-
     for (ULONG i = 0; i < DETOUR_TRAMPOLINES_PER_REGION; i++)
     {
-        if (pTrampoline[i].pbRemain != nullptr &&
-            (pTrampoline[i].pbRemain < pbRegionBeg || pTrampoline[i].pbRemain >= pbRegionLim)) 
-        {
+        if (pRegion->slots[i])
             return FALSE;
-        }
     }
 
     // OK, the region is empty.
@@ -1687,24 +1948,27 @@ static void detour_free_unused_trampoline_regions()
     {
         if (detour_is_region_empty(pRegion)) 
         {
-            *ppRegionBase = pRegion->pNext;
-
-            PVOID address = pRegion;
+            PVOID address = pRegion->pbBase;
             SIZE_T size = 0;
 
-            NtFreeVirtualMemory(
+            NTSTATUS status = NtFreeVirtualMemory(
                 NtCurrentProcess(),
                 &address, 
                 &size, 
                 MEM_RELEASE
                 );
 
-            s_pRegion = nullptr;
+            if (NT_SUCCESS(status))
+            {
+                *ppRegionBase = pRegion->pNext;
+                delete pRegion;
+                s_pRegion = nullptr;
+                pRegion = *ppRegionBase;
+                continue;
+            }
         }
-        else 
-        {
-            ppRegionBase = &pRegion->pNext;
-        }
+
+        ppRegionBase = &pRegion->pNext;
         pRegion = *ppRegionBase;
     }
 }
@@ -1730,7 +1994,7 @@ struct DetourOperation
 static BOOL                 s_fIgnoreTooSmall       = FALSE;
 static BOOL                 s_fRetainRegions        = FALSE;
 
-static LONG                 s_nPendingThreadId      = 0; // Thread owning pending transaction.
+static ULONG_PTR            s_nPendingThreadId      = 0; // Thread owning pending transaction.
 static NTSTATUS             s_nPendingError         = STATUS_SUCCESS;
 static PVOID *              s_ppPendingError        = nullptr;
 static DetourThread *       s_pPendingThreads       = nullptr;
@@ -1748,6 +2012,7 @@ PVOID WINAPI DetourCodeFromPointer(_In_ PVOID pPointer,
 //
 BOOL WINAPI DetourSetIgnoreTooSmall(_In_ BOOL fIgnore)
 {
+    DetourLockGuard lock;
     BOOL fPrevious = s_fIgnoreTooSmall;
     s_fIgnoreTooSmall = fIgnore;
     return fPrevious;
@@ -1755,6 +2020,7 @@ BOOL WINAPI DetourSetIgnoreTooSmall(_In_ BOOL fIgnore)
 
 BOOL WINAPI DetourSetRetainRegions(_In_ BOOL fRetain)
 {
+    DetourLockGuard lock;
     BOOL fPrevious = s_fRetainRegions;
     s_fRetainRegions = fRetain;
     return fPrevious;
@@ -1762,6 +2028,7 @@ BOOL WINAPI DetourSetRetainRegions(_In_ BOOL fRetain)
 
 PVOID WINAPI DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound)
 {
+    DetourLockGuard lock;
     PVOID pPrevious = s_pSystemRegionLowerBound;
     s_pSystemRegionLowerBound = pSystemRegionLowerBound;
     return pPrevious;
@@ -1769,6 +2036,7 @@ PVOID WINAPI DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound)
 
 PVOID WINAPI DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound)
 {
+    DetourLockGuard lock;
     PVOID pPrevious = s_pSystemRegionUpperBound;
     s_pSystemRegionUpperBound = pSystemRegionUpperBound;
     return pPrevious;
@@ -1776,52 +2044,32 @@ PVOID WINAPI DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound)
 
 NTSTATUS NTAPI DetourTransactionBegin()
 {
-    // Only one transaction is allowed at a time.
-_Benign_race_begin_
-    if (s_nPendingThreadId != 0) 
-    {
-        return STATUS_OPERATION_IN_PROGRESS;
-    }
-_Benign_race_end_
+    DetourLockGuard lock;
+    ULONG_PTR threadId = reinterpret_cast<ULONG_PTR>(NtCurrentThreadId());
 
-    // Make sure only one thread can start a transaction.
-    if (InterlockedCompareExchange(&s_nPendingThreadId, HandleToLong(NtCurrentThreadId()), 0) != 0) 
+    //
+    // Only one transaction is allowed at a time.
+    //
+
+    if (s_nPendingThreadId != 0)
     {
         return STATUS_OPERATION_IN_PROGRESS;
     }
+
+    s_nPendingThreadId = threadId;
 
     s_pPendingOperations = nullptr;
     s_pPendingThreads = nullptr;
     s_ppPendingError = nullptr;
-
-    // Make sure the trampoline pages are writable.
-    s_nPendingError = detour_writable_trampoline_regions();
-
-    if (!NT_SUCCESS(s_nPendingError))
-        return s_nPendingError;
-
-#if defined(DETOURS_64BIT)
-    // On X64 the range is 0x7FF800000000..0x7FFFFFFF0000 - which is 32GB!
-    // So we likely must allocate in the system DLL range to be +/- 2GB.
-    // But we want to avoid at least the first 1GB that will be used for system DLLs.
-    // Due to wrapping, this may be two seperate ranges.
-    s_pSystemRegionUpperBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(GetModuleHandleW(L"ntdll.dll")) + static_cast<ULONG_PTR>(0x100000));
-    s_pSystemRegionLowerBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) < static_cast<ULONG_PTR>(0x7FF83F000000)
-                                                            ? static_cast<ULONG_PTR>(0x7FF7FF000000)
-                                                            : (reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - static_cast<ULONG_PTR>(
-                                                                0x40000000)));
-    s_pSystemRegionSize = reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - reinterpret_cast<ULONG_PTR>(s_pSystemRegionLowerBound); // up to 1GB
-    s_pSystemRegion2Size = static_cast<SIZE_T>(0x40000000) - s_pSystemRegionSize;
-    s_pSystemRegion2UpperBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x800000000000));
-    s_pSystemRegion2LowerBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(s_pSystemRegion2UpperBound) - s_pSystemRegion2Size);
-#endif
+    
+    s_nPendingError = STATUS_SUCCESS;
 
     return s_nPendingError;
 }
 
-NTSTATUS NTAPI DetourTransactionAbort()
+static NTSTATUS detour_transaction_abort()
 {
-    if (s_nPendingThreadId != HandleToLong(NtCurrentThreadId())) 
+    if (s_nPendingThreadId != reinterpret_cast<ULONG_PTR>(NtCurrentThreadId()))
     {
         return STATUS_OPERATION_IN_PROGRESS;
     }
@@ -1857,7 +2105,10 @@ NTSTATUS NTAPI DetourTransactionAbort()
     }
     s_pPendingOperations = nullptr;
 
-    // Make sure the trampoline pages are no longer writable.
+    if (!s_fRetainRegions)
+        detour_free_unused_trampoline_regions();
+
+    // Seal any retained staging regions.
     detour_runnable_trampoline_regions();
 
     // Resume any suspended threads.
@@ -1874,6 +2125,13 @@ NTSTATUS NTAPI DetourTransactionAbort()
     s_nPendingThreadId = 0;
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI DetourTransactionAbort()
+{
+    DetourLockGuard lock;
+
+    return detour_transaction_abort();
 }
 
 NTSTATUS NTAPI DetourTransactionCommit()
@@ -1903,12 +2161,14 @@ static LONG detour_align_from_target(PDETOUR_TRAMPOLINE pTrampoline, LONG obTarg
 
 NTSTATUS NTAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 {
+    DetourLockGuard lock;
+
     if (pppFailedPointer != nullptr) {
         // Used to get the last error.
         *pppFailedPointer = s_ppPendingError;
     }
 
-    if (s_nPendingThreadId != HandleToLong(NtCurrentThreadId())) 
+    if (s_nPendingThreadId != reinterpret_cast<ULONG_PTR>(NtCurrentThreadId()))
     {
         return STATUS_OPERATION_IN_PROGRESS;
     }
@@ -1917,7 +2177,18 @@ NTSTATUS NTAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
     if (!NT_SUCCESS(s_nPendingError)) 
     {
         DETOUR_BREAK();
-        DetourTransactionAbort();
+        detour_transaction_abort();
+        return s_nPendingError;
+    }
+
+    // Trampoline contents must be executable and immutable before any target
+    // or caller-visible pointer can publish them.
+    s_nPendingError = detour_runnable_trampoline_regions();
+
+    if (!NT_SUCCESS(s_nPendingError))
+    {
+        DETOUR_BREAK();
+        detour_transaction_abort();
         return s_nPendingError;
     }
 
@@ -1933,23 +2204,23 @@ NTSTATUS NTAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
                        o->pTrampoline->rbRestore,
                        o->pTrampoline->cbRestore);
 #ifdef DETOURS_IA64
-            *o->ppbPointer = (PBYTE)o->pTrampoline->ppldTarget;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), (PBYTE)o->pTrampoline->ppldTarget);
 #endif // DETOURS_IA64
 
 #ifdef DETOURS_X86
-            *o->ppbPointer = o->pbTarget;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pbTarget);
 #endif // DETOURS_X86
 
 #ifdef DETOURS_X64
-            *o->ppbPointer = o->pbTarget;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pbTarget);
 #endif // DETOURS_X64
 
 #ifdef DETOURS_ARM
-            *o->ppbPointer = DETOURS_PBYTE_TO_PFUNC(o->pbTarget);
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), DETOURS_PBYTE_TO_PFUNC(o->pbTarget));
 #endif // DETOURS_ARM
 
 #ifdef DETOURS_ARM64
-            *o->ppbPointer = o->pbTarget;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pbTarget);
 #endif // DETOURS_ARM
         }
         else {
@@ -1971,35 +2242,34 @@ NTSTATUS NTAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_IA64
             ((DETOUR_IA64_BUNDLE*)o->pbTarget)
                 ->SetBrl((UINT64)&o->pTrampoline->bAllocFrame);
-            *o->ppbPointer = (PBYTE)&o->pTrampoline->pldTrampoline;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), (PBYTE)&o->pTrampoline->pldTrampoline);
 #endif // DETOURS_IA64
 
 #ifdef DETOURS_X64
-            detour_gen_jmp_indirect(o->pTrampoline->rbCodeIn, &o->pTrampoline->pbDetour);
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, o->pTrampoline->rbCodeIn);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
-            *o->ppbPointer = o->pTrampoline->rbCode;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pTrampoline->rbCode);
             UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_X64
 
 #ifdef DETOURS_X86
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, o->pTrampoline->pbDetour);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
-            *o->ppbPointer = o->pTrampoline->rbCode;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pTrampoline->rbCode);
             UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_X86
 
 #ifdef DETOURS_ARM
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, nullptr, o->pTrampoline->pbDetour);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
-            *o->ppbPointer = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode));
             UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_ARM
 
 #ifdef DETOURS_ARM64
             PBYTE pbCode = detour_gen_jmp_indirect(o->pbTarget, (ULONG64*)&(o->pTrampoline->pbDetour));
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
-            *o->ppbPointer = o->pTrampoline->rbCode;
+            WritePointerRelease(reinterpret_cast<volatile PVOID *>(o->ppbPointer), o->pTrampoline->rbCode);
             UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_ARM64
 
@@ -2192,9 +2462,6 @@ NTSTATUS status;
         detour_free_unused_trampoline_regions();
     }
 
-    // Make sure the trampoline pages are no longer writable.
-    detour_runnable_trampoline_regions();
-
     // Resume any suspended threads.
     for (t = s_pPendingThreads; t != nullptr;) {
         // There is nothing we can do if this fails.
@@ -2217,7 +2484,11 @@ NTSTATUS status;
 
 NTSTATUS NTAPI DetourUpdateThread(_In_ HANDLE hThread)
 {
+    DetourLockGuard lock;
     LONG error;
+
+    if (s_nPendingThreadId != reinterpret_cast<ULONG_PTR>(NtCurrentThreadId()))
+        return STATUS_OPERATION_IN_PROGRESS;
 
     // If any of the pending operations failed, then we don't need to do this.
     if (!NT_SUCCESS(s_nPendingError))
@@ -2276,6 +2547,7 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
                            _Out_opt_ PVOID *ppRealTarget,
                            _Out_opt_ PVOID *ppRealDetour)
 {
+    DetourLockGuard lock;
     NTSTATUS error = STATUS_SUCCESS;
 
     if (ppRealTrampoline != nullptr) {
@@ -2292,8 +2564,8 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
         return STATUS_INVALID_PARAMETER;
     }
 
-    if (s_nPendingThreadId != HandleToLong(NtCurrentThreadId())) {
-        DETOUR_TRACE(("transaction conflict with thread id=%ld\n", s_nPendingThreadId));
+    if (s_nPendingThreadId != reinterpret_cast<ULONG_PTR>(NtCurrentThreadId())) {
+        DETOUR_TRACE(("transaction conflict with thread id=%Ix\n", s_nPendingThreadId));
         return STATUS_OPERATION_IN_PROGRESS;
     }
 
@@ -2307,7 +2579,8 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
         DETOUR_TRACE(("ppPointer is null\n"));
         return STATUS_INVALID_HANDLE;
     }
-    if (*ppPointer == nullptr) {
+    PVOID p = ReadPointerAcquire(ppPointer);
+    if (p == nullptr) {
         error = STATUS_INVALID_HANDLE;
         s_nPendingError = error;
         s_ppPendingError = ppPointer;
@@ -2316,7 +2589,7 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
         return error;
     }
 
-    PBYTE pbTarget = static_cast<PBYTE>(*ppPointer);
+    PBYTE pbTarget = static_cast<PBYTE>(p);
     PDETOUR_TRAMPOLINE pTrampoline = nullptr;
     DetourOperation *o = nullptr;
 
@@ -2334,7 +2607,7 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
                   ppldTarget, pbTarget, pTargetGlobals));
 #else // DETOURS_IA64
 #if defined(_M_ARM64EC)
-    if (RtlIsEcCode(reinterpret_cast<DWORD64>(*ppPointer))) {
+    if (RtlIsEcCode(reinterpret_cast<DWORD64>(p))) {
         DETOUR_TRACE(("*ppPointer is an Arm64EC address (ppPointer=%p). "
                       "An Arm64EC address cannot be legitimately detoured with an x64 jmp. "
                       "Mark the target function with __declspec(hybrid_patchable) to make it detour-able. "
@@ -2539,6 +2812,17 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
     pTrampoline->pbRemain = pbTarget + cbTarget;
     pTrampoline->pbDetour = static_cast<PBYTE>(pDetour);
 
+#ifdef DETOURS_X64
+    detour_gen_jmp_indirect(pTrampoline->rbCodeIn, &pTrampoline->pbDetour);
+
+    if (!detour_is_valid_jmp_immediate(pbTarget, pTrampoline->rbCodeIn))
+    {
+        error = STATUS_INVALID_ADDRESS;
+        DETOUR_BREAK();
+        goto fail;
+    }
+#endif // DETOURS_X64
+
 #ifdef DETOURS_IA64
     pTrampoline->ppldDetour = ppldDetour;
     pTrampoline->ppldTarget = ppldTarget;
@@ -2656,9 +2940,10 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 
 NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
 {
+    DetourLockGuard lock;
     NTSTATUS error = STATUS_SUCCESS;
 
-    if (s_nPendingThreadId != HandleToLong(NtCurrentThreadId())) {
+    if (s_nPendingThreadId != reinterpret_cast<ULONG_PTR>(NtCurrentThreadId())) {
         return STATUS_OPERATION_IN_PROGRESS;
     }
 
@@ -2673,7 +2958,9 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
     if (ppPointer == nullptr) {
         return STATUS_INVALID_HANDLE;
     }
-    if (*ppPointer == nullptr) {
+    
+    PVOID p = ReadPointerAcquire(ppPointer);
+    if (p == nullptr) {
         error = STATUS_INVALID_HANDLE;
         s_nPendingError = error;
         s_ppPendingError = ppPointer;
@@ -2699,14 +2986,14 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
 
 
 #ifdef DETOURS_IA64
-    PPLABEL_DESCRIPTOR ppldTrampo = (PPLABEL_DESCRIPTOR)*ppPointer;
+    PPLABEL_DESCRIPTOR ppldTrampo = (PPLABEL_DESCRIPTOR)p;
     PPLABEL_DESCRIPTOR ppldDetour = (PPLABEL_DESCRIPTOR)pDetour;
     PVOID pDetourGlobals = nullptr;
     PVOID pTrampoGlobals = nullptr;
 
     pDetour = (PBYTE)DetourCodeFromPointer(ppldDetour, &pDetourGlobals);
-    PDETOUR_TRAMPOLINE pTrampoline = (PDETOUR_TRAMPOLINE)
-        DetourCodeFromPointer(ppldTrampo, &pTrampoGlobals);
+    PDETOUR_TRAMPOLINE pTrampoline = (PDETOUR_TRAMPOLINE)DetourCodeFromPointer(ppldTrampo, &pTrampoGlobals);
+    
     DETOUR_TRACE(("  ppldDetour=%p, code=%p [gp=%p]\n",
                   ppldDetour, pDetour, pDetourGlobals));
     DETOUR_TRACE(("  ppldTrampo=%p, code=%p [gp=%p]\n",
@@ -2743,7 +3030,7 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
                   pTrampoline->pbDetour));
     DETOUR_TRACE(("\n"));
 #else // !DETOURS_IA64
-    PDETOUR_TRAMPOLINE pTrampoline = static_cast<PDETOUR_TRAMPOLINE>(DetourCodeFromPointer(*ppPointer, nullptr));
+    PDETOUR_TRAMPOLINE pTrampoline = static_cast<PDETOUR_TRAMPOLINE>(DetourCodeFromPointer(p, nullptr));
     pDetour = DetourCodeFromPointer(pDetour, nullptr);
 #endif // !DETOURS_IA64
 

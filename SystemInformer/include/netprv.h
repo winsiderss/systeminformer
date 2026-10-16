@@ -24,6 +24,9 @@ typedef enum _PH_NETWORK_PROVIDER_FLAG
 
 extern ULONG PhNetworkProviderFlagsMask;
 
+// Defined in mainwnd.c; netprv.c reads the elapsed time actually spanned by the last provider run. (dmex)
+extern PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
+
 // begin_phapppub
 #define PH_NETWORK_OWNER_INFO_SIZE 16
 

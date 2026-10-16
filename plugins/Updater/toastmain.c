@@ -406,7 +406,7 @@ BOOLEAN UpdaterShowAvailableToast(
     PPH_STRING xml;
     PH_STRINGREF appIdSr;
     PH_STRINGREF xmlSr;
-    HRESULT hr;
+    HRESULT result;
 
     versionEsc = PhEscapeStringForXml(PhGetStringOrEmpty(Context->Version));
     sizeEsc = PhEscapeStringForXml(PhGetStringOrEmpty(Context->SetupFileLength));
@@ -447,7 +447,7 @@ BOOLEAN UpdaterShowAvailableToast(
     toastContext->UpdaterContext = Context;
     PhReferenceObject(Context);
 
-    hr = PhShowToastEx2(
+    result = PhShowToastEx2(
         &appIdSr,
         &xmlSr,
         &tag,
@@ -463,7 +463,7 @@ BOOLEAN UpdaterShowAvailableToast(
     if (versionEsc) PhDereferenceObject(versionEsc);
     if (sizeEsc) PhDereferenceObject(sizeEsc);
 
-    if (HR_FAILED(hr))
+    if (HR_FAILED(result))
     {
         PhDereferenceObject(Context);
         PhFree(toastContext);
@@ -485,7 +485,7 @@ BOOLEAN UpdaterShowProgressToast(
     PH_STRINGREF xmlSr;
     PH_STRINGREF tagSr;
     PH_STRINGREF groupSr;
-    HRESULT hr;
+    HRESULT result;
 
     versionEsc = PhEscapeStringForXml(PhGetStringOrEmpty(Context->Version));
 
@@ -525,7 +525,7 @@ BOOLEAN UpdaterShowProgressToast(
         UpdaterReadyToInstallToast = NULL;
     }
 
-    hr = PhShowToastEx2(
+    result = PhShowToastEx2(
         &appIdSr,
         &xmlSr,
         &tagSr,
@@ -540,7 +540,7 @@ BOOLEAN UpdaterShowProgressToast(
     PhDereferenceObject(xml);
     if (versionEsc) PhDereferenceObject(versionEsc);
 
-    if (HR_FAILED(hr))
+    if (HR_FAILED(result))
     {
         return FALSE;
     }
@@ -565,7 +565,7 @@ BOOLEAN UpdaterShowReadyToInstallToast(
     PH_STRINGREF xmlSr;
     PH_STRINGREF tagSr;
     PH_STRINGREF groupSr;
-    HRESULT hr;
+    HRESULT result;
 
     versionEsc = PhEscapeStringForXml(PhGetStringOrEmpty(Context->Version));
 
@@ -609,7 +609,7 @@ BOOLEAN UpdaterShowReadyToInstallToast(
     toastContext->UpdaterContext = Context;
     PhReferenceObject(Context);
 
-    hr = PhShowToastEx2(
+    result = PhShowToastEx2(
         &appIdSr,
         &xmlSr,
         &tagSr,
@@ -624,7 +624,7 @@ BOOLEAN UpdaterShowReadyToInstallToast(
     PhDereferenceObject(xml);
     if (versionEsc) PhDereferenceObject(versionEsc);
 
-    if (HR_FAILED(hr))
+    if (HR_FAILED(result))
     {
         PhDereferenceObject(Context);
         PhFree(toastContext);
@@ -655,7 +655,7 @@ BOOLEAN UpdaterShowFailedToast(
     PH_STRINGREF tagSr;
     PH_STRINGREF groupSr;
     PCWSTR errorText;
-    HRESULT hr;
+    HRESULT result;
 
     if (UpdaterAvailableToast)
     {
@@ -723,7 +723,7 @@ BOOLEAN UpdaterShowFailedToast(
     if (UpdaterProgressToast)
         PhHideToast(UpdaterProgressToast);
 
-    hr = PhShowToastEx2(
+    result = PhShowToastEx2(
         &appIdSr,
         &xmlSr,
         &tagSr,
@@ -739,11 +739,11 @@ BOOLEAN UpdaterShowFailedToast(
     if (errorEsc)
         PhDereferenceObject(errorEsc);
 
-    if (HR_SUCCESS(hr) && UpdaterProgressToast)
+    if (HR_SUCCESS(result) && UpdaterProgressToast)
     {
         PhReleaseToast(UpdaterProgressToast);
         UpdaterProgressToast = NULL;
     }
 
-    return HR_SUCCESS(hr);
+    return HR_SUCCESS(result);
 }

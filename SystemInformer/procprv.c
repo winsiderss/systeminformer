@@ -198,9 +198,11 @@ BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 BOOLEAN PhEnablePackageIconSupport = FALSE;
 ULONG PhProcessProviderFlagsMask = 0;
+ULONG PhProcessProviderElapsedMilliseconds = 1000;
 LONG PhProcessImageListWindowDpi = 96;
 
 PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
+PH_QUEUED_LOCK PhpProcessInformationLock = PH_QUEUED_LOCK_INIT; // guards replacement vs. PhDuplicateProcessInformation
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation = NULL;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
@@ -3613,10 +3615,14 @@ VOID PhProcessProviderUpdate(
         }
     }
 
+    PhAcquireQueuedLockExclusive(&PhpProcessInformationLock);
+
     if (PhProcessInformation)
         PhFree(PhProcessInformation);
 
     PhProcessInformation = processes;
+
+    PhReleaseQueuedLockExclusive(&PhpProcessInformationLock);
 
     // History cannot be updated on the first run because the deltas are invalid. For example, the
     // I/O "deltas" will be huge because they are currently the raw accumulated values.
@@ -4425,6 +4431,35 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             32
             );
     }
+    else
+    {
+        // Another thread may have inserted the entry while we were extracting
+        // the icons without the lock held. Return that entry instead of adding
+        // a duplicate that would leak the object and its image-list slots.
+        PH_IMAGELIST_ITEM lookupEntry;
+        PPH_IMAGELIST_ITEM lookupEntryPtr = &lookupEntry;
+        PPH_IMAGELIST_ITEM* entry;
+
+        lookupEntry.FileName = FileName;
+
+        entry = (PPH_IMAGELIST_ITEM*)PhFindEntryHashtable(PhImageListCacheHashtable, &lookupEntryPtr);
+
+        if (entry)
+        {
+            PPH_IMAGELIST_ITEM foundEntry = *entry;
+
+            PhReferenceObject(foundEntry);
+
+            PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+            if (smallIcon)
+                DestroyIcon(smallIcon);
+            if (largeIcon)
+                DestroyIcon(largeIcon);
+
+            return foundEntry;
+        }
+    }
 
     newentry = PhCreateObject(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
     newentry->FileName = PhReferenceObject(FileName);
@@ -4572,15 +4607,25 @@ BOOLEAN PhDuplicateProcessInformation(
 {
     SIZE_T infoLength;
 
+    PhAcquireQueuedLockShared(&PhpProcessInformationLock);
+
     if (!PhProcessInformation)
+    {
+        PhReleaseQueuedLockShared(&PhpProcessInformationLock);
         return FALSE;
+    }
 
     infoLength = PhSizeHeap(PhProcessInformation);
 
     if (!infoLength)
+    {
+        PhReleaseQueuedLockShared(&PhpProcessInformationLock);
         return FALSE;
+    }
 
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
+
+    PhReleaseQueuedLockShared(&PhpProcessInformationLock);
 
     return TRUE;
 }

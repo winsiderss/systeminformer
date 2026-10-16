@@ -12,6 +12,8 @@
 #ifndef PH_PHUISUP_H
 #define PH_PHUISUP_H
 
+#include <phsettings.h>
+
 // begin_phapppub
 // Common state highlighting support
 
@@ -208,6 +210,51 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
 
     return events;
 }
+
 // end_phapppub
+
+/**
+ * Normalizes a CPU usage value for sorting.
+ *
+ * \param CpuUsage The CPU usage value to normalize.
+ * \return The original value when it meets the display precision limit or showing values below
+ * 0.01% is enabled; otherwise zero.
+ */
+FORCEINLINE FLOAT PhNormalizeCpuSortValue(
+    _In_ FLOAT CpuUsage
+    )
+{
+    if (CpuUsage >= PhMaxPrecisionLimit)
+        return CpuUsage;
+
+    if (CpuUsage != 0 && PhCsShowCpuBelow001)
+        return CpuUsage;
+
+    return 0;
+}
+
+/**
+ * Compares two tree nodes by their stable display index to maintain consistent sort order
+ * when CPU usage is zero or blank.
+ *
+ * \param Node1 The first tree node.
+ * \param Node2 The second tree node.
+ * \return A negative value if Node1 precedes Node2, a positive value if Node1 succeeds Node2, or 0 if equal.
+ */
+FORCEINLINE INT PhCompareTreeNewBlankCpuSortOrder(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2
+    )
+{
+    PPH_TREENEW_NODE node1 = (PPH_TREENEW_NODE)Node1;
+    PPH_TREENEW_NODE node2 = (PPH_TREENEW_NODE)Node2;
+
+    if (node1->Index != node2->Index)
+    {
+        return uintcmp(node1->Index, node2->Index);
+    }
+
+    return 0;
+}
 
 #endif

@@ -29,6 +29,14 @@ namespace CustomBuildTool
         private static string VsWhereFilePath;
 
         /// <summary>
+        /// Generates a random integer from 1 through 7, inclusive.
+        /// </summary>
+        public static int GetRandomNumberOneToSeven()
+        {
+            return RandomNumberGenerator.GetInt32(1, 8);
+        }
+
+        /// <summary>
         /// Splits a string into key-value pairs.
         /// </summary>
         public static Dictionary<string, string> ParseArgs(string[] args)
@@ -3087,65 +3095,75 @@ namespace CustomBuildTool
     /// </summary>
     public static class VT
     {
+        /// <summary>
+        /// Returns the escape sequence, or an empty string when output is redirected
+        /// outside of CI (e.g. MSBuild Exec) so captured logs stay free of escape codes.
+        /// Evaluated per access because <see cref="Build.BuildIntegration"/> is set after startup.
+        /// </summary>
+        private static string C(string Sequence)
+        {
+            return Console.IsOutputRedirected && !Build.BuildIntegration ? string.Empty : Sequence;
+        }
+
         // Reset
-        public const string RESET       = "\x1b[0m";
+        public static string RESET       => C("\x1b[0m");
 
         // Standard foreground colors
-        public const string BLACK       = "\x1b[30m";
-        public const string RED         = "\x1b[31m";
-        public const string GREEN       = "\x1b[32m";
-        public const string YELLOW      = "\x1b[33m";
-        public const string BLUE        = "\x1b[34m";
-        public const string MAGENTA     = "\x1b[35m";
-        public const string CYAN        = "\x1b[36m";
-        public const string WHITE       = "\x1b[37m";
-        public const string GRAY        = "\x1b[90m";
+        public static string BLACK       => C("\x1b[30m");
+        public static string RED         => C("\x1b[31m");
+        public static string GREEN       => C("\x1b[32m");
+        public static string YELLOW      => C("\x1b[33m");
+        public static string BLUE        => C("\x1b[34m");
+        public static string MAGENTA     => C("\x1b[35m");
+        public static string CYAN        => C("\x1b[36m");
+        public static string WHITE       => C("\x1b[37m");
+        public static string GRAY        => C("\x1b[90m");
 
         // Bright foreground colors
-        public const string BRIGHT_RED      = "\x1b[91m";
-        public const string BRIGHT_GREEN    = "\x1b[92m";
-        public const string BRIGHT_YELLOW   = "\x1b[93m";
-        public const string BRIGHT_BLUE     = "\x1b[94m";
-        public const string BRIGHT_MAGENTA  = "\x1b[95m";
-        public const string BRIGHT_CYAN     = "\x1b[96m";
-        public const string BRIGHT_WHITE    = "\x1b[97m";
+        public static string BRIGHT_RED      => C("\x1b[91m");
+        public static string BRIGHT_GREEN    => C("\x1b[92m");
+        public static string BRIGHT_YELLOW   => C("\x1b[93m");
+        public static string BRIGHT_BLUE     => C("\x1b[94m");
+        public static string BRIGHT_MAGENTA  => C("\x1b[95m");
+        public static string BRIGHT_CYAN     => C("\x1b[96m");
+        public static string BRIGHT_WHITE    => C("\x1b[97m");
 
         // Background colors
-        public const string BG_BLACK    = "\x1b[40m";
-        public const string BG_RED      = "\x1b[41m";
-        public const string BG_GREEN    = "\x1b[42m";
-        public const string BG_YELLOW   = "\x1b[43m";
-        public const string BG_BLUE     = "\x1b[44m";
-        public const string BG_MAGENTA  = "\x1b[45m";
-        public const string BG_CYAN     = "\x1b[46m";
-        public const string BG_WHITE    = "\x1b[47m";
+        public static string BG_BLACK    => C("\x1b[40m");
+        public static string BG_RED      => C("\x1b[41m");
+        public static string BG_GREEN    => C("\x1b[42m");
+        public static string BG_YELLOW   => C("\x1b[43m");
+        public static string BG_BLUE     => C("\x1b[44m");
+        public static string BG_MAGENTA  => C("\x1b[45m");
+        public static string BG_CYAN     => C("\x1b[46m");
+        public static string BG_WHITE    => C("\x1b[47m");
 
         // Bright background colors
-        public const string BG_BRIGHT_BLACK     = "\x1b[100m";
-        public const string BG_BRIGHT_RED       = "\x1b[101m";
-        public const string BG_BRIGHT_GREEN     = "\x1b[102m";
-        public const string BG_BRIGHT_YELLOW    = "\x1b[103m";
-        public const string BG_BRIGHT_BLUE      = "\x1b[104m";
-        public const string BG_BRIGHT_MAGENTA   = "\x1b[105m";
-        public const string BG_BRIGHT_CYAN      = "\x1b[106m";
-        public const string BG_BRIGHT_WHITE     = "\x1b[107m";
+        public static string BG_BRIGHT_BLACK     => C("\x1b[100m");
+        public static string BG_BRIGHT_RED       => C("\x1b[101m");
+        public static string BG_BRIGHT_GREEN     => C("\x1b[102m");
+        public static string BG_BRIGHT_YELLOW    => C("\x1b[103m");
+        public static string BG_BRIGHT_BLUE      => C("\x1b[104m");
+        public static string BG_BRIGHT_MAGENTA   => C("\x1b[105m");
+        public static string BG_BRIGHT_CYAN      => C("\x1b[106m");
+        public static string BG_BRIGHT_WHITE     => C("\x1b[107m");
 
         // 256-color foreground
-        public static string FROM256(int n) => $"\x1b[38;5;{n}m";
+        public static string FROM256(int n) => C($"\x1b[38;5;{n}m");
 
         // 256-color background
-        public static string BGFROM256(int n) => $"\x1b[48;5;{n}m";
+        public static string BGFROM256(int n) => C($"\x1b[48;5;{n}m");
 
         // True-color (RGB)
-        public static string RGB(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
-        public static string BGRGB(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
+        public static string RGB(int r, int g, int b) => C($"\x1b[38;2;{r};{g};{b}m");
+        public static string BGRGB(int r, int g, int b) => C($"\x1b[48;2;{r};{g};{b}m");
 
         // Extended palette colors (256-color ANSI)
-        public const string ORANGE = "\u001b[38;5;208m";
-        public const string PURPLE = "\u001b[38;5;141m";
-        public const string TEAL = "\u001b[38;5;44m";
-        public const string PINK = "\u001b[38;5;213m";
-        public const string LIME = "\u001b[38;5;118m";
+        public static string ORANGE => C("\u001b[38;5;208m");
+        public static string PURPLE => C("\u001b[38;5;141m");
+        public static string TEAL => C("\u001b[38;5;44m");
+        public static string PINK => C("\u001b[38;5;213m");
+        public static string LIME => C("\u001b[38;5;118m");
     }
 
     /// <summary>
@@ -3167,14 +3185,14 @@ namespace CustomBuildTool
         private const uint PAGE_READWRITE = 0x04;
         private const uint LOCK_VM_IN_WSL = 1;
 
-        public int Length => _length;
+        public int Length => this._length;
 
         public ReadOnlySpan<char> Span
         {
             get
             {
-                ObjectDisposedException.ThrowIf(_buffer == IntPtr.Zero, this);
-                return new ReadOnlySpan<char>((void*)_buffer, _length);
+                ObjectDisposedException.ThrowIf(this._buffer == IntPtr.Zero, this);
+                return new ReadOnlySpan<char>((void*)this._buffer, this._length);
             }
         }
 
@@ -3182,8 +3200,8 @@ namespace CustomBuildTool
         {
             get
             {
-                ObjectDisposedException.ThrowIf(_buffer == IntPtr.Zero, this);
-                return new Span<char>((void*)_buffer, _length);
+                ObjectDisposedException.ThrowIf(this._buffer == IntPtr.Zero, this);
+                return new Span<char>((void*)this._buffer, this._length);
             }
         }
 
@@ -3198,7 +3216,7 @@ namespace CustomBuildTool
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
 
-            _length = length;
+            this._length = length;
             if (length == 0)
                 return;
 
@@ -3215,8 +3233,8 @@ namespace CustomBuildTool
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
-            _buffer = (IntPtr)baseAddress;
-            _regionSize = size; // NtAllocateVirtualMemory updates this to the page-rounded size.
+            this._buffer = (IntPtr)baseAddress;
+            this._regionSize = size;
 
             // Attempt to lock memory in the working set to prevent it from being written to the pagefile.
             // We do not throw on failure, as the process might lack the necessary quotas or privileges, 
@@ -3229,16 +3247,16 @@ namespace CustomBuildTool
         /// </summary>
         public void Dispose()
         {
-            IntPtr buffer = Interlocked.Exchange(ref _buffer, IntPtr.Zero);
+            IntPtr buffer = Interlocked.Exchange(ref this._buffer, IntPtr.Zero);
 
             if (buffer != IntPtr.Zero)
             {
                 // CryptographicOperations.ZeroMemory is preserved here instead of P/Invoking RtlSecureZeroMemory
                 // because it uses the exact same JIT/AOT intrinsic protections without the P/Invoke boundary overhead.
-                CryptographicOperations.ZeroMemory(new Span<byte>((void*)buffer, (int)_regionSize));
+                CryptographicOperations.ZeroMemory(new Span<byte>((void*)buffer, (int)this._regionSize));
 
-                PInvoke.VirtualUnlock((void*)buffer, _regionSize); // LOCK_VM_IN_WSL
-                PInvoke.VirtualFree((void*)buffer, _regionSize, VIRTUAL_FREE_TYPE.MEM_RELEASE);
+                PInvoke.VirtualUnlock((void*)buffer, this._regionSize); // LOCK_VM_IN_WSL
+                PInvoke.VirtualFree((void*)buffer, this._regionSize, VIRTUAL_FREE_TYPE.MEM_RELEASE);
             }
         }
     }

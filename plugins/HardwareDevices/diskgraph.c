@@ -64,13 +64,13 @@ VOID DiskDeviceUpdatePanel(
     else
         PhSetWindowText(Context->DiskDevicePanelTimeLabel, PhaFormatString(L"%.1f ms", Context->DiskEntry->ResponseTime / PH_TICKS_PER_MS)->Buffer);
 
-    PhInitFormatSize(&format[0], Context->DiskEntry->BytesReadDelta.Delta + Context->DiskEntry->BytesWrittenDelta.Delta);
+    PhInitFormatSize(&format[0], Context->DiskEntry->CurrentBytesRead + Context->DiskEntry->CurrentBytesWritten);
     PhInitFormatS(&format[1], L"/s");
 
     if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->DiskDevicePanelBytesLabel, formatBuffer);
     else
-        PhSetWindowText(Context->DiskDevicePanelBytesLabel, PhaFormatString(L"%s/s", PhaFormatSize(Context->DiskEntry->BytesReadDelta.Delta + Context->DiskEntry->BytesWrittenDelta.Delta, ULONG_MAX)->Buffer)->Buffer);
+        PhSetWindowText(Context->DiskDevicePanelBytesLabel, PhaFormatString(L"%s/s", PhaFormatSize(Context->DiskEntry->CurrentBytesRead + Context->DiskEntry->CurrentBytesWritten, ULONG_MAX)->Buffer)->Buffer);
 
     PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->QueueDepth);
     PhInitFormatS(&format[1], L" | ");
@@ -231,7 +231,7 @@ VOID DiskDeviceCreateGraphs(
     Context->GraphReadHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -246,7 +246,7 @@ VOID DiskDeviceCreateGraphs(
     Context->GraphWriteHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -607,7 +607,7 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), WindowHandle, DiskDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
+            PhAddLayoutItemExLogical(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             DiskDeviceUpdateDialogDpi(context);
             DiskDeviceUpdateTitle(context);
@@ -731,10 +731,9 @@ BOOLEAN DiskDeviceSectionCallback(
         {
             if (context->WindowHandle)
             {
-                if (context->DiskEntry->JustProcessed)
+                if (InterlockedExchangeAcquire((volatile LONG*)&context->DiskEntry->JustProcessed, FALSE))
                 {
                     DiskDeviceUpdateTitle(context);
-                    InterlockedExchange((volatile LONG*)&context->DiskEntry->JustProcessed, FALSE);
                 }
 
                 DiskDeviceTickDialog(context);

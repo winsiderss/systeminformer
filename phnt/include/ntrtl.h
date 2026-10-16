@@ -7,59 +7,19 @@
 #ifndef _NTRTL_H
 #define _NTRTL_H
 
-/**
- * Forward declaration of the CPTABLEINFO (code page table information) structure.
- */
 typedef struct _CPTABLEINFO CPTABLEINFO, *PCPTABLEINFO;
-/**
- * Forward declaration of the FILE_INFORMATION_CLASS enumeration.
- */
 typedef enum _FILE_INFORMATION_CLASS FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
-/**
- * Forward declaration of the RTL_AVL_TREE structure.
- */
 typedef struct _RTL_AVL_TREE RTL_AVL_TREE, *PRTL_AVL_TREE;
-/**
- * Forward declaration of the RTL_TRACE_DATABASE structure.
- */
 typedef struct _RTL_TRACE_DATABASE RTL_TRACE_DATABASE, *PRTL_TRACE_DATABASE;
-/**
- * Forward declaration of the RTL_DEBUG_INFORMATION structure.
- */
 typedef struct _RTL_DEBUG_INFORMATION RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
-/**
- * Forward declaration of the RTL_BUFFER structure.
- */
 typedef struct _RTL_BUFFER RTL_BUFFER, *PRTL_BUFFER;
-/**
- * Forward declaration of the RTL_RXACT_CONTEXT (registry transaction context) structure.
- */
 typedef struct _RTL_RXACT_CONTEXT RTL_RXACT_CONTEXT, *PRTL_RXACT_CONTEXT;
-/**
- * Forward declaration of the RTL_MUI_REGISTRY_INFO structure.
- */
 typedef struct _RTL_MUI_REGISTRY_INFO RTL_MUI_REGISTRY_INFO, *PRTL_MUI_REGISTRY_INFO;
-/**
- * Forward declaration of the CM_PARTIAL_RESOURCE_DESCRIPTOR structure.
- */
 typedef struct _CM_PARTIAL_RESOURCE_DESCRIPTOR CM_PARTIAL_RESOURCE_DESCRIPTOR, *PCM_PARTIAL_RESOURCE_DESCRIPTOR;
-/**
- * Forward declaration of the IO_RESOURCE_DESCRIPTOR structure.
- */
 typedef struct _IO_RESOURCE_DESCRIPTOR IO_RESOURCE_DESCRIPTOR, *PIO_RESOURCE_DESCRIPTOR;
 
-
-/**
- * Opaque pointer placeholder for an RTL length function.
- */
 typedef PVOID PRTL_LENGTH_FUNCTION;
-/**
- * Represents a 64-bit event tracing (ETW) registration handle.
- */
 typedef ULONGLONG REGHANDLE, *PREGHANDLE;
-/**
- * Opaque pointer to dynamic time zone information.
- */
 typedef PVOID PRTL_DYNAMIC_TIME_ZONE_INFORMATION;
 
 //
@@ -1076,6 +1036,7 @@ typedef struct _RTL_AVL_TABLE
  * \param FreeRoutine A free routine to be used for freeing memory allocated for the table.
  * \param TableContext A context to be passed to the comparison, allocation, and free routines.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitializegenerictableavl
+ * \remarks Initializes a caller-owned table header and records the callbacks/context; this does not allocate element storage. The comparison callback returns GenericLessThan, GenericGreaterThan or GenericEqual, not a signed strcmp-style result. Element allocation/free callbacks own internal node storage; serialize access to the table externally.
  */
 NTSYSAPI
 VOID
@@ -1097,6 +1058,7 @@ RtlInitializeGenericTableAvl(
  * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
  * \return A pointer to the newly inserted or existing element.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictableavl
+ * \remarks Copies a newly inserted value into callback-allocated node storage and returns its embedded user-data pointer. For a duplicate key, returns the existing value and reports NewElement FALSE without replacing the payload. Allocation failure returns NULL and, when supplied, clears NewElement. Delete via the table API, not by freeing the returned interior pointer.
  */
 NTSYSAPI
 PVOID
@@ -1119,6 +1081,7 @@ RtlInsertElementGenericTableAvl(
  * \param SearchResult The result of the search for the insertion point.
  * \return A pointer to the newly inserted or existing element.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictablefullavl
+ * \remarks Consumes the NodeOrParent and SearchResult from the matching full-lookup operation. Do not mutate the table between lookup and insertion. A found key returns existing user data without replacing it; an empty-tree result does not require a meaningful parent value. Returned user-data storage is owned by the table allocation callback.
  */
 NTSYSAPI
 PVOID
@@ -1139,6 +1102,7 @@ RtlInsertElementGenericTableFullAvl(
  * \param Buffer A pointer to the buffer containing the element to be deleted.
  * \return `TRUE` if the element was deleted, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtldeleteelementgenerictableavl
+ * \remarks Removes an equal key and invokes the table free callback on its internal node. TRUE means an element was removed; FALSE means no match. Returned pointers and enumeration state referring to the removed element must no longer be used.
  */
 NTSYSAPI
 BOOLEAN
@@ -1155,6 +1119,7 @@ RtlDeleteElementGenericTableAvl(
  * \param Buffer A pointer to the buffer containing the element to look up.
  * \return A pointer to the found element, or `NULL` if the element was not found.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupelementgenerictableavl
+ * \remarks Returns a borrowed pointer to table-owned user data, or NULL if no key compares equal. It neither allocates a result copy nor establishes a lifetime beyond deletion. The splay-table lookup may rebalance the tree; use external synchronization even for lookups.
  */
 _Check_return_
 NTSYSAPI
@@ -1174,6 +1139,7 @@ RtlLookupElementGenericTableAvl(
  * \param SearchResult A pointer that receives the result of the search.
  * \return A pointer to the found element, or `NULL` if the element was not found.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupelementgenerictablefullavl
+ * \remarks An empty table returns NULL and TableEmptyTree without writing NodeOrParent. Initialize that variable when needed, and use SearchResult to decide whether it is meaningful. A returned element pointer refers to table-owned data; the lookup is not a synchronization operation.
  */
 NTSYSAPI
 PVOID
@@ -1192,6 +1158,7 @@ RtlLookupElementGenericTableFullAvl(
  * \param Restart `TRUE` to restart the enumeration, `FALSE` to continue.
  * \return A pointer to the next element in the table, or `NULL` if there are no more elements.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlenumerategenerictableavl
+ * \remarks Enumerates in comparison order; Restart TRUE begins a new traversal. Returned values are borrowed. The splay version rearranges the tree, and the AVL version uses table-owned restart state, so neither is a concurrent snapshot or independent reentrant enumeration.
  */
 _Check_return_
 NTSYSAPI
@@ -1209,6 +1176,7 @@ RtlEnumerateGenericTableAvl(
  * \param RestartKey A pointer to a restart key.
  * \return A pointer to the next element in the table, or `NULL` if there are no more elements.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlenumerategenerictablewithoutsplayingavl
+ * \remarks Uses the caller RestartKey as traversal state; initialize *RestartKey to NULL to start. Returns borrowed element data in comparison order without allocating a result. Do not free the restart pointer or reuse it after invalidating table changes; external locking is still required.
  */
 _Check_return_
 NTSYSAPI
@@ -1271,6 +1239,7 @@ RtlEnumerateGenericTableLikeADirectory(
  * \param I The index of the element to get.
  * \return A pointer to the element, or `NULL` if the index is out of range.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlgetelementgenerictableavl
+ * \remarks The zero-based index follows sorted comparison order unlike the splay table insertion-list index. Returns NULL for an out-of-range index. The lookup updates an internal traversal cache and is not a thread-safe snapshot.
  */
 _Check_return_
 NTSYSAPI
@@ -1287,6 +1256,7 @@ RtlGetElementGenericTableAvl(
  * \param Table A pointer to the generic table.
  * \return The number of elements in the table.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlnumbergenerictableelementsavl
+ * \remarks Reads table metadata without adding synchronization. Use the result only while the table lifetime and concurrent modifications are controlled; a count or empty result does not reserve an element or prevent later changes.
  */
 NTSYSAPI
 ULONG
@@ -1301,6 +1271,7 @@ RtlNumberGenericTableElementsAvl(
  * \param Table A pointer to the generic table.
  * \return `TRUE` if the table is empty, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlisgenerictableemptyavl
+ * \remarks Reads table metadata without adding synchronization. Use the result only while the table lifetime and concurrent modifications are controlled; a count or empty result does not reserve an element or prevent later changes.
  */
 _Check_return_
 NTSYSAPI
@@ -1374,6 +1345,7 @@ typedef struct _RTL_SPLAY_LINKS
  * \param Links A pointer to the splay links of the node to splay.
  * \return A pointer to the new root of the splay tree.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsplay
+ * \remarks Manipulates caller-owned splay links without allocating or freeing the containing objects. Roots use the self-parent convention. Retain the returned or updated root after mutation and serialize access; generic-table element ownership is a separate callback-based layer.
  */
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -1388,6 +1360,7 @@ RtlSplay(
  * \param Links A pointer to the splay links of the node to delete.
  * \return A pointer to the new root of the splay tree.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtldelete
+ * \remarks Manipulates caller-owned splay links without allocating or freeing the containing objects. Roots use the self-parent convention. Retain the returned or updated root after mutation and serialize access; generic-table element ownership is a separate callback-based layer.
  */
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -1401,6 +1374,7 @@ RtlDelete(
  *
  * \param Links A pointer to the splay links of the node to delete.
  * \param Root A pointer to the root of the splay tree.
+ * \remarks Manipulates caller-owned splay links without allocating or freeing the containing objects. Roots use the self-parent convention. Retain the returned or updated root after mutation and serialize access; generic-table element ownership is a separate callback-based layer.
  */
 NTSYSAPI
 VOID
@@ -1416,6 +1390,7 @@ RtlDeleteNoSplay(
  * \param Links A pointer to the splay links of the node.
  * \return A pointer to the splay links of the successor node.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsubtreesuccessor
+ * \remarks Searches only the appropriate child subtree; absence of that subtree returns NULL even if an ancestor is the next item in whole-tree order. Use the RealSuccessor/RealPredecessor variant when ancestor traversal is required. The link pointer is borrowed.
  */
 _Check_return_
 NTSYSAPI
@@ -1431,6 +1406,7 @@ RtlSubtreeSuccessor(
  * \param Links A pointer to the splay links of the node.
  * \return A pointer to the splay links of the predecessor node.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsubtreepredecessor
+ * \remarks Searches only the appropriate child subtree; absence of that subtree returns NULL even if an ancestor is the next item in whole-tree order. Use the RealSuccessor/RealPredecessor variant when ancestor traversal is required. The link pointer is borrowed.
  */
 _Check_return_
 NTSYSAPI
@@ -1446,6 +1422,7 @@ RtlSubtreePredecessor(
  * \param Links A pointer to the splay links of the node.
  * \return A pointer to the splay links of the real successor node.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrealsuccessor
+ * \remarks Traverses parent links when the appropriate child subtree is absent, returning the adjacent node in whole-tree order or NULL. Links must satisfy the splay root self-parent convention. No storage is allocated and no synchronization is added.
  */
 _Check_return_
 NTSYSAPI
@@ -1461,6 +1438,7 @@ RtlRealSuccessor(
  * \param Links A pointer to the splay links of the node.
  * \return A pointer to the splay links of the real predecessor node.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrealpredecessor
+ * \remarks Traverses parent links when the appropriate child subtree is absent, returning the adjacent node in whole-tree order or NULL. Links must satisfy the splay root self-parent convention. No storage is allocated and no synchronization is added.
  */
 _Check_return_
 NTSYSAPI
@@ -1531,6 +1509,7 @@ typedef struct _RTL_GENERIC_TABLE
  * \param FreeRoutine A free routine to be used for freeing memory allocated for the table.
  * \param TableContext A context to be passed to the comparison, allocation, and free routines.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitializegenerictable
+ * \remarks Initializes a caller-owned table header and records the callbacks/context; this does not allocate element storage. The comparison callback returns GenericLessThan, GenericGreaterThan or GenericEqual, not a signed strcmp-style result. Element allocation/free callbacks own internal node storage; serialize access to the table externally.
  */
 NTSYSAPI
 VOID
@@ -1552,6 +1531,7 @@ RtlInitializeGenericTable(
  * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
  * \return A pointer to the newly inserted or existing element.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictable
+ * \remarks Copies a newly inserted value into callback-allocated node storage and returns its embedded user-data pointer. For a duplicate key, returns the existing value and reports NewElement FALSE without replacing the payload. Allocation failure returns NULL and, when supplied, clears NewElement. Delete via the table API, not by freeing the returned interior pointer.
  */
 NTSYSAPI
 PVOID
@@ -1574,6 +1554,7 @@ RtlInsertElementGenericTable(
  * \param SearchResult The result of the search for the insertion point.
  * \return A pointer to the newly inserted or existing element.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictablefull
+ * \remarks Consumes the NodeOrParent and SearchResult from the matching full-lookup operation. Do not mutate the table between lookup and insertion. A found key returns existing user data without replacing it; an empty-tree result does not require a meaningful parent value. Returned user-data storage is owned by the table allocation callback.
  */
 NTSYSAPI
 PVOID
@@ -1593,6 +1574,7 @@ RtlInsertElementGenericTableFull(
  * \param Table The generic table to modify.
  * \param Buffer A buffer containing the key that identifies the element to delete.
  * \return TRUE if the element was found and deleted; otherwise, FALSE.
+ * \remarks Removes an equal key and invokes the table free callback on its internal node. TRUE means an element was removed; FALSE means no match. Returned pointers and enumeration state referring to the removed element must no longer be used.
  */
 NTSYSAPI
 BOOLEAN
@@ -1608,6 +1590,7 @@ RtlDeleteElementGenericTable(
  * \param Table The generic table to search.
  * \param Buffer A buffer containing the key that identifies the element to find.
  * \return A pointer to the user data of the matching element, or NULL if not found.
+ * \remarks Returns a borrowed pointer to table-owned user data, or NULL if no key compares equal. It neither allocates a result copy nor establishes a lifetime beyond deletion. The splay-table lookup may rebalance the tree; use external synchronization even for lookups.
  */
 _Check_return_
 NTSYSAPI
@@ -1626,6 +1609,7 @@ RtlLookupElementGenericTable(
  * \param NodeOrParent Receives the matching node, or its prospective parent if not found.
  * \param SearchResult Receives the result of the search describing NodeOrParent.
  * \return A pointer to the user data of the matching element, or NULL if not found.
+ * \remarks An empty table returns NULL and TableEmptyTree without writing NodeOrParent. Initialize that variable when needed, and use SearchResult to decide whether it is meaningful. A returned element pointer refers to table-owned data; the lookup is not a synchronization operation.
  */
 NTSYSAPI
 PVOID
@@ -1643,6 +1627,7 @@ RtlLookupElementGenericTableFull(
  * \param Table The generic table to enumerate.
  * \param Restart TRUE to restart the enumeration from the first element; FALSE to continue.
  * \return A pointer to the user data of the next element, or NULL when enumeration is complete.
+ * \remarks Enumerates in comparison order; Restart TRUE begins a new traversal. Returned values are borrowed. The splay version rearranges the tree, and the AVL version uses table-owned restart state, so neither is a concurrent snapshot or independent reentrant enumeration.
  */
 _Check_return_
 NTSYSAPI
@@ -1659,6 +1644,7 @@ RtlEnumerateGenericTable(
  * \param Table The generic table to enumerate.
  * \param RestartKey On input, NULL restarts the enumeration; receives a key used to continue enumeration.
  * \return A pointer to the user data of the next element, or NULL when enumeration is complete.
+ * \remarks Uses the caller RestartKey as traversal state; initialize *RestartKey to NULL to start. Returns borrowed element data in comparison order without allocating a result. Do not free the restart pointer or reuse it after invalidating table changes; external locking is still required.
  */
 _Check_return_
 NTSYSAPI
@@ -1675,6 +1661,7 @@ RtlEnumerateGenericTableWithoutSplaying(
  * \param Table The generic table to query.
  * \param I The zero-based index of the element to retrieve.
  * \return A pointer to the user data of the element, or NULL if the index is out of range.
+ * \remarks The index follows insertion-list order not sorted comparison order. Index 0 returns the first inserted surviving element. Returns NULL for an out-of-range index; the returned user-data pointer is borrowed.
  */
 _Check_return_
 NTSYSAPI
@@ -1691,6 +1678,7 @@ RtlGetElementGenericTable(
  * \param Table A pointer to the generic table to query.
  * \return The number of elements in the generic table.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlnumbergenerictableelements
+ * \remarks Reads table metadata without adding synchronization. Use the result only while the table lifetime and concurrent modifications are controlled; a count or empty result does not reserve an element or prevent later changes.
  */
 NTSYSAPI
 ULONG
@@ -1705,6 +1693,7 @@ RtlNumberGenericTableElements(
  * \param Table A pointer to the generic table to query.
  * \return `TRUE` if the generic table is empty, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlisgenerictableempty
+ * \remarks Reads table metadata without adding synchronization. Use the result only while the table lifetime and concurrent modifications are controlled; a count or empty result does not reserve an element or prevent later changes.
  */
 _Check_return_
 NTSYSAPI
@@ -1723,6 +1712,7 @@ RtlIsGenericTableEmpty(
  *
  * \param Root A pointer to the root pointer of the AVL tree.
  * \param Node A pointer to the balanced node to remove from the tree.
+ * \remarks Operates on caller-owned embedded tree nodes. The caller supplies the insertion location or an actual linked node; the routine does not compare application keys, allocate nodes or free their containers. Parent/link corruption can fail-fast. External synchronization and correct node lifetime are required.
  */
 NTSYSAPI
 VOID
@@ -1759,6 +1749,7 @@ typedef struct _RTL_RB_TREE
  * \param Right If `TRUE`, the node is inserted as the right child of the parent; otherwise as the left child.
  * \param Node A pointer to the balanced node to insert into the tree.
  * \return `TRUE` if the node was inserted successfully, otherwise `FALSE`.
+ * \remarks Operates on caller-owned embedded tree nodes. The caller supplies the insertion location or an actual linked node; the routine does not compare application keys, allocate nodes or free their containers. Parent/link corruption can fail-fast. External synchronization and correct node lifetime are required.
  */
 NTSYSAPI
 BOOLEAN
@@ -1776,6 +1767,7 @@ RtlRbInsertNodeEx(
  *
  * \param Tree A pointer to the red-black tree.
  * \param Node A pointer to the balanced node to remove from the tree.
+ * \remarks Operates on caller-owned embedded tree nodes. The caller supplies the insertion location or an actual linked node; the routine does not compare application keys, allocate nodes or free their containers. Parent/link corruption can fail-fast. External synchronization and correct node lifetime are required.
  */
 NTSYSAPI
 BOOLEAN
@@ -1789,54 +1781,59 @@ RtlRbRemoveNode(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 /**
- * The RtlCompareExchangePointerMapping routine atomically exchanges a pair of pointer-mapping nodes in a red-black tree.
+ * Associates an opaque pointer key with a pointer value in the process-local RTL mapping table.
  *
- * \param Node1 A pointer to the first balanced node.
- * \param Node2 A pointer to the second balanced node.
- * \param Node3 A pointer to a variable that receives a balanced node.
- * \param Node4 A pointer to a variable that receives a balanced node.
- * \return NTSTATUS Successful or errant status.
+ * \param Key The opaque key; this is not a caller-owned tree node.
+ * \param Value The value to insert or conditionally replace the existing value with.
+ * \param CompareValue Optional pointer to the expected existing value. NULL permits unconditional replacement.
+ * \param PreviousValue Optionally receives the existing value, or on insertion the supplied comparison value (NULL if omitted).
+ * \return STATUS_SUCCESS for insertion; STATUS_OBJECT_NAME_EXISTS (0x40000000) when the key already exists, even if comparison fails.
+ * \remarks Compare PreviousValue with the expected value to determine whether an existing mapping was replaced.
+ * The routine allocates and owns its internal tree nodes; it neither dereferences nor owns the key/value objects.
+ * Remove the mapping before the key's lifetime ends. Allocation failure returns STATUS_INSUFFICIENT_RESOURCES.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCompareExchangePointerMapping(
-    _In_ PRTL_BALANCED_NODE Node1,
-    _In_ PRTL_BALANCED_NODE Node2,
-    _Out_ PRTL_BALANCED_NODE *Node3,
-    _Out_ PRTL_BALANCED_NODE *Node4
+    _In_ PVOID Key,
+    _In_opt_ PVOID Value,
+    _In_opt_ PVOID *CompareValue,
+    _Out_opt_ PVOID *PreviousValue
     );
 
 // rev
 /**
- * The RtlQueryPointerMapping routine queries the pointer-mapping entries associated with a red-black tree.
+ * Looks up an opaque pointer key in the process-local RTL mapping table.
  *
- * \param Tree A pointer to the red-black tree.
- * \param Children A pointer to a balanced node that receives the queried mapping.
- * \return NTSTATUS Successful or errant status.
+ * \param Key The opaque key, not a tree pointer.
+ * \param Value Receives the stored pointer value on success.
+ * \return STATUS_SUCCESS or STATUS_NOT_FOUND; on not-found the output is unchanged.
+ * \remarks The returned value is borrowed. The table does not extend the lifetime of the pointed-to object.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryPointerMapping(
-    _In_ PRTL_RB_TREE Tree,
-    _Inout_ PRTL_BALANCED_NODE Children
+    _In_ PVOID Key,
+    _Out_ PVOID *Value
     );
 
 // rev
 /**
- * The RtlRemovePointerMapping routine removes the pointer-mapping entries associated with a red-black tree.
+ * Removes one opaque pointer key from the process-local RTL mapping table.
  *
- * \param Tree A pointer to the red-black tree.
- * \param Children A pointer to a balanced node describing the mapping to remove.
- * \return NTSTATUS Successful or errant status.
+ * \param Key The opaque key to remove, not a tree pointer.
+ * \param Value Receives the removed pointer value on success.
+ * \return STATUS_SUCCESS or STATUS_NOT_FOUND; on not-found the output is unchanged.
+ * \remarks Frees the internal mapping node, not the caller's key or value objects.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRemovePointerMapping(
-    _In_ PRTL_RB_TREE Tree,
-    _Inout_ PRTL_BALANCED_NODE Children
+    _In_ PVOID Key,
+    _Out_ PVOID *Value
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
@@ -1917,6 +1914,7 @@ typedef struct _RTL_DYNAMIC_HASH_TABLE
  * The RtlInitHashTableContext routine initializes a dynamic hash table context for use in subsequent lookup operations.
  *
  * \param Context A pointer to the dynamic hash table context to initialize.
+ * \remarks Clears ChainHead and PrevLinkage; it does not initialize Signature or allocate resources. Before a signature-dependent use, populate the context with a matching lookup or explicitly valid state. This is not a general memset of the structure.
  */
 FORCEINLINE
 VOID
@@ -1934,6 +1932,7 @@ RtlInitHashTableContext(
  *
  * \param Context A pointer to the dynamic hash table context to initialize.
  * \param Enumerator A pointer to the enumerator whose position initializes the context.
+ * \remarks Copies the active enumerator chain and predecessor linkage into Context; Signature is not written. The resulting context borrows table links and must not outlive the enumeration/table state that makes those links valid.
  */
 FORCEINLINE
 VOID
@@ -1951,6 +1950,7 @@ RtlInitHashTableContextFromEnumerator(
  * The RtlReleaseHashTableContext routine releases any resources associated with a dynamic hash table context.
  *
  * \param Context A pointer to the dynamic hash table context to release.
+ * \remarks This inline helper is a no-op: it neither frees storage nor clears the context. Context pointers are borrowed traversal state, not owning allocations.
  */
 FORCEINLINE
 VOID
@@ -1968,6 +1968,7 @@ RtlReleaseHashTableContext(
  *
  * \param HashTable A pointer to the dynamic hash table to query.
  * \return ULONG The total number of buckets in the hash table.
+ * \remarks Reads the corresponding table counters without synchronization. EmptyBuckets is TableSize minus NonEmptyBuckets. These helpers do not create a consistent multi-counter snapshot during concurrent table mutation.
  */
 FORCEINLINE
 ULONG
@@ -1984,6 +1985,7 @@ RtlTotalBucketsHashTable(
  *
  * \param HashTable A pointer to the dynamic hash table to query.
  * \return ULONG The number of non-empty buckets in the hash table.
+ * \remarks Reads the corresponding table counters without synchronization. EmptyBuckets is TableSize minus NonEmptyBuckets. These helpers do not create a consistent multi-counter snapshot during concurrent table mutation.
  */
 FORCEINLINE
 ULONG
@@ -2000,6 +2002,7 @@ RtlNonEmptyBucketsHashTable(
  *
  * \param HashTable A pointer to the dynamic hash table to query.
  * \return ULONG The number of empty buckets in the hash table.
+ * \remarks Reads the corresponding table counters without synchronization. EmptyBuckets is TableSize minus NonEmptyBuckets. These helpers do not create a consistent multi-counter snapshot during concurrent table mutation.
  */
 FORCEINLINE
 ULONG
@@ -2016,6 +2019,7 @@ RtlEmptyBucketsHashTable(
  *
  * \param HashTable A pointer to the dynamic hash table to query.
  * \return ULONG The total number of entries in the hash table.
+ * \remarks Reads the corresponding table counters without synchronization. EmptyBuckets is TableSize minus NonEmptyBuckets. These helpers do not create a consistent multi-counter snapshot during concurrent table mutation.
  */
 FORCEINLINE
 ULONG
@@ -2032,6 +2036,7 @@ RtlTotalEntriesHashTable(
  *
  * \param HashTable A pointer to the dynamic hash table to query.
  * \return ULONG The number of active enumerators on the hash table.
+ * \remarks Reads the corresponding table counters without synchronization. EmptyBuckets is TableSize minus NonEmptyBuckets. These helpers do not create a consistent multi-counter snapshot during concurrent table mutation.
  */
 FORCEINLINE
 ULONG
@@ -2051,6 +2056,7 @@ RtlActiveEnumeratorsHashTable(
  * \param Flags Reserved. Must be zero.
  * \return `TRUE` if the hash table was created successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlcreatehashtable
+ * \remarks Creates 128 buckets. Pass a valid pointer variable: when *HashTable is NULL the header is allocated; otherwise its existing header storage is used. Bucket storage is allocated in either case. Use zero Flags for ordinary use and delete only after entries/enumerators are no longer in use.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2070,6 +2076,7 @@ RtlCreateHashTable(
  * \param Shift The number of reserved low-order bits of the hash value, used to control the number of buckets.
  * \param Flags Reserved. Must be zero.
  * \return `TRUE` if the hash table was created successfully, otherwise `FALSE`.
+ * \remarks InitialSize must be a power of two and the range check is 128 through 8388480 inclusive; the largest power of two accepted is 4194304. This is a bucket count, not an entry capacity. Invalid sizing returns FALSE before changing the pointer. A NULL *HashTable requests an allocated header, not a NULL HashTable argument.
  */
 _Must_inspect_result_
 _Success_(return != 0)
@@ -2089,6 +2096,7 @@ RtlCreateHashTableEx(
  * \param HashTable A pointer to the dynamic hash table to delete.
  * \return `TRUE` if the hash table was deleted successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtldeletehashtable
+ * \remarks Frees internal bucket storage and the header only when its allocation-ownership flag is set. It does not free caller-owned entry containers. Remove entries and finish enumerations before deletion; do not reuse table/header storage whose ownership was transferred.
  */
 NTSYSAPI
 LOGICAL
@@ -2106,6 +2114,7 @@ RtlDeleteHashTable(
  * \param Context An optional pointer to a context structure that can be used to optimize the insertion.
  * \return `TRUE` if the entry was inserted successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertentryhashtable
+ * \remarks Links caller-owned RTL_DYNAMIC_HASH_TABLE_ENTRY storage without copying the containing object or enforcing unique signatures. Multiple entries with the same nonzero signature are allowed. Signature 0 is reserved for enumeration markers. Supply a valid matching context or NULL, and serialize mutations externally.
  */
 NTSYSAPI
 BOOLEAN
@@ -2125,6 +2134,7 @@ RtlInsertEntryHashTable(
  * \param Context An optional pointer to a context structure that can be used to optimize the removal.
  * \return `TRUE` if the entry was removed successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlremoveentryhashtable
+ * \remarks Unlinks the actual entry passed; it does not perform a key lookup or free the entry container. Passing an unlinked or corrupted entry is not a safe not-found probe. Update application ownership and invalidate related traversal state after removal.
  */
 NTSYSAPI
 BOOLEAN
@@ -2143,6 +2153,7 @@ RtlRemoveEntryHashTable(
  * \param Context An optional pointer to a context structure that receives information used to enumerate matching entries.
  * \return A pointer to the first matching entry, or `NULL` if no matching entry was found.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupentryhashtable
+ * \remarks Lookup returns a borrowed entry and can initialize the context for subsequent same-signature matches. GetNext advances that context and stops when the signature changes or the chain ends. It is not a whole-table enumeration and does not compare the application payload for equality.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2161,6 +2172,7 @@ RtlLookupEntryHashTable(
  * \param Context A pointer to a context structure initialized by a previous call to RtlLookupEntryHashTable.
  * \return A pointer to the next matching entry, or `NULL` if there are no more matching entries.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlgetnextentryhashtable
+ * \remarks Lookup returns a borrowed entry and can initialize the context for subsequent same-signature matches. GetNext advances that context and stops when the signature changes or the chain ends. It is not a whole-table enumeration and does not compare the application payload for equality.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2178,6 +2190,7 @@ RtlGetNextEntryHashTable(
  * \param Enumerator A pointer to the enumerator structure to initialize.
  * \return `TRUE` if the enumerator was initialized successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitenumerationhashtable
+ * \remarks Registers a traversal marker in the table and increments its active-enumerator count. Pair each successful initialization with the matching end call, including early exit, before resizing or deleting the table.
  */
 NTSYSAPI
 BOOLEAN
@@ -2194,6 +2207,7 @@ RtlInitEnumerationHashTable(
  * \param Enumerator A pointer to the enumerator initialized by RtlInitEnumerationHashTable.
  * \return A pointer to the next entry in the enumeration, or `NULL` if the enumeration is complete.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlenumerateentryhashtable
+ * \remarks Returns borrowed entries while advancing a registered traversal marker. The weak entry point forwards to the ordinary implementation; this does not make unsynchronized concurrent mutation safe. Finish the enumerator even when iteration ends early.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2210,6 +2224,7 @@ RtlEnumerateEntryHashTable(
  * \param HashTable A pointer to the dynamic hash table.
  * \param Enumerator A pointer to the enumerator to terminate.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlendenumerationhashtable
+ * \remarks Unregisters the traversal marker and decrements the active-enumerator count; call exactly once for each active initialized enumerator. It does not free entry containers or the table.
  */
 NTSYSAPI
 VOID
@@ -2226,6 +2241,7 @@ RtlEndEnumerationHashTable(
  * \param Enumerator A pointer to the enumerator structure to initialize.
  * \return `TRUE` if the enumerator was initialized successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitweakenumerationhashtable
+ * \remarks Registers a traversal marker in the table and increments its active-enumerator count. Pair each successful initialization with the matching end call, including early exit, before resizing or deleting the table.
  */
 NTSYSAPI
 BOOLEAN
@@ -2242,6 +2258,7 @@ RtlInitWeakEnumerationHashTable(
  * \param Enumerator A pointer to the enumerator initialized by RtlInitWeakEnumerationHashTable.
  * \return A pointer to the next entry in the enumeration, or `NULL` if the enumeration is complete.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlweaklyenumerateentryhashtable
+ * \remarks Returns borrowed entries while advancing a registered traversal marker. The weak entry point forwards to the ordinary implementation; this does not make unsynchronized concurrent mutation safe. Finish the enumerator even when iteration ends early.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2258,6 +2275,7 @@ RtlWeaklyEnumerateEntryHashTable(
  * \param HashTable A pointer to the dynamic hash table.
  * \param Enumerator A pointer to the enumerator to terminate.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlendweakenumerationhashtable
+ * \remarks Unregisters the traversal marker and decrements the active-enumerator count; call exactly once for each active initialized enumerator. It does not free entry containers or the table.
  */
 NTSYSAPI
 VOID
@@ -2273,6 +2291,7 @@ RtlEndWeakEnumerationHashTable(
  * \param HashTable A pointer to the dynamic hash table.
  * \return `TRUE` if the hash table was expanded, otherwise `FALSE` if no expansion was performed.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlexpandhashtable
+ * \remarks Changes the table by one bucket per successful call. Both return FALSE while ordinary/weak enumerators are active. Contraction stops at 128 buckets; expansion also stops at 8388480. These operations are not automatic allocation limits for inserted entries.
  */
 NTSYSAPI
 BOOLEAN
@@ -2287,6 +2306,7 @@ RtlExpandHashTable(
  * \param HashTable A pointer to the dynamic hash table.
  * \return `TRUE` if the hash table was contracted, otherwise `FALSE` if no contraction was performed.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlcontracthashtable
+ * \remarks Changes the table by one bucket per successful call. Both return FALSE while ordinary/weak enumerators are active. Contraction stops at 128 buckets; expansion also stops at 8388480. These operations are not automatic allocation limits for inserted entries.
  */
 NTSYSAPI
 BOOLEAN
@@ -2304,6 +2324,7 @@ RtlContractHashTable(
  * \param Enumerator A pointer to the enumerator structure to initialize.
  * \return `TRUE` if the enumerator was initialized successfully, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitstrongenumerationhashtable
+ * \remarks The strong traversal keeps cursor state without registering an ordinary marker or incrementing NumEnumerators. The caller must provide the required external synchronization and avoid invalidating the cursor; the name does not imply an internal lock or concurrent snapshot.
  */
 NTSYSAPI
 BOOLEAN
@@ -2320,6 +2341,7 @@ RtlInitStrongEnumerationHashTable(
  * \param Enumerator A pointer to the enumerator initialized by RtlInitStrongEnumerationHashTable.
  * \return A pointer to the next entry in the enumeration, or `NULL` if the enumeration is complete.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlstronglyenumerateentryhashtable
+ * \remarks The strong traversal keeps cursor state without registering an ordinary marker or incrementing NumEnumerators. The caller must provide the required external synchronization and avoid invalidating the cursor; the name does not imply an internal lock or concurrent snapshot.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -2336,6 +2358,7 @@ RtlStronglyEnumerateEntryHashTable(
  * \param HashTable A pointer to the dynamic hash table.
  * \param Enumerator A pointer to the enumerator to terminate.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlendstrongenumerationhashtable
+ * \remarks The x64/x86 export is a no-op compatibility entry point. It does not release a lock or clear the caller enumerator; retain the API pairing without inferring ordinary-enumerator accounting from this call.
  */
 NTSYSAPI
 VOID
@@ -2400,6 +2423,7 @@ RtlEndStrongEnumerationHashTable(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initializecriticalsection
+ * \remarks Initializes caller-owned storage for a recursive lock; initialization must not race with use. Release every acquired recursion level and stop all users before deletion. Spin behavior depends on processor count and runtime policy; the stored/effective spin count need not equal the requested value.
  */
 NTSYSAPI
 NTSTATUS
@@ -2414,6 +2438,7 @@ RtlInitializeCriticalSection(
  * \param CriticalSection A pointer to the critical section object.
  * \param SpinCount The spin count for the critical section object. On single-processor systems, the spin count is ignored.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initializecriticalsectionandspincount
+ * \remarks Initializes caller-owned storage for a recursive lock; initialization must not race with use. Release every acquired recursion level and stop all users before deletion. Spin behavior depends on processor count and runtime policy; the stored/effective spin count need not equal the requested value.
  */
 NTSYSAPI
 NTSTATUS
@@ -2430,6 +2455,7 @@ RtlInitializeCriticalSectionAndSpinCount(
  * \param SpinCount The spin count for the critical section object. On single-processor systems, the spin count is ignored.
  * \param Flags This parameter can be 0 or the CRITICAL_SECTION_NO_DEBUG_INFO flag.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initializecriticalsectionex
+ * \remarks Initializes caller-owned storage for a recursive lock; initialization must not race with use. Release every acquired recursion level and stop all users before deletion. Spin behavior depends on processor count and runtime policy; the stored/effective spin count need not equal the requested value.
  */
 NTSYSAPI
 NTSTATUS
@@ -2445,6 +2471,7 @@ RtlInitializeCriticalSectionEx(
  *
  * \param CriticalSection A pointer to the critical section object to delete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletes the synchronization resources, not the caller storage. The caller must ensure no owner, waiter or later user remains; deletion is not a cancellation or a substitute for balanced leaves.
  */
 NTSYSAPI
 NTSTATUS
@@ -2458,6 +2485,7 @@ RtlDeleteCriticalSection(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Acquisition by the owning thread increments recursion. Each successful enter/try-enter needs one leave on that thread. Try-enter FALSE does not acquire a level. A successful status or unlocked snapshot is not a lifetime guarantee for the lock storage.
  */
 _Acquires_exclusive_lock_(*CriticalSection)
 NTSYSAPI
@@ -2472,6 +2500,7 @@ RtlEnterCriticalSection(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Acquisition by the owning thread increments recursion. Each successful enter/try-enter needs one leave on that thread. Try-enter FALSE does not acquire a level. A successful status or unlocked snapshot is not a lifetime guarantee for the lock storage.
  */
 _Releases_exclusive_lock_(*CriticalSection)
 NTSYSAPI
@@ -2486,6 +2515,7 @@ RtlLeaveCriticalSection(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return A nonzero value if the critical section was successfully entered, otherwise zero.
+ * \remarks Acquisition by the owning thread increments recursion. Each successful enter/try-enter needs one leave on that thread. Try-enter FALSE does not acquire a level. A successful status or unlocked snapshot is not a lifetime guarantee for the lock storage.
  */
 _When_(return != 0, _Acquires_exclusive_lock_(*CriticalSection))
 NTSYSAPI
@@ -2500,6 +2530,7 @@ RtlTryEnterCriticalSection(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return A nonzero value if the critical section is locked, otherwise zero.
+ * \remarks These are observational queries, not acquisition operations. The recursion-count routine returns zero unless the calling thread owns the lock; it is not a cross-thread ownership count. Snapshot results can change immediately.
  */
 NTSYSAPI
 LOGICAL
@@ -2513,6 +2544,7 @@ RtlIsCriticalSectionLocked(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return A nonzero value if the critical section is owned by the calling thread, otherwise zero.
+ * \remarks These are observational queries, not acquisition operations. The recursion-count routine returns zero unless the calling thread owns the lock; it is not a cross-thread ownership count. Snapshot results can change immediately.
  */
 NTSYSAPI
 LOGICAL
@@ -2526,6 +2558,7 @@ RtlIsCriticalSectionLockedByThread(
  *
  * \param CriticalSection A pointer to the critical section object.
  * \return The recursion count of the critical section.
+ * \remarks These are observational queries, not acquisition operations. The recursion-count routine returns zero unless the calling thread owns the lock; it is not a cross-thread ownership count. Snapshot results can change immediately.
  */
 NTSYSAPI
 ULONG
@@ -2540,6 +2573,7 @@ RtlGetCriticalSectionRecursionCount(
  * \param CriticalSection A pointer to the critical section object.
  * \param SpinCount The spin count for the critical section object.
  * \return The previous spin count for the critical section object.
+ * \remarks Returns the previous effective low-24-bit spin count. Processor count and runtime policy can normalize the requested value; this does not change lock ownership or recursion.
  */
 NTSYSAPI
 ULONG
@@ -2555,6 +2589,7 @@ RtlSetCriticalSectionSpinCount(
  * \param EventHandle A handle to the event used by the critical section's lock semaphore.
  * \param ExactMatchOwnerAddress If `TRUE`, requires an exact match of the owner address.
  * \return A handle to the owning thread, or `NULL` if the critical section is not owned.
+ * \remarks Performs a best-effort search of the runtime debug critical-section list, using a try-acquired shared list lock. A zero result can mean no tracked match or an unavailable list lock, not proof that no thread owns the underlying synchronization object.
  */
 NTSYSAPI
 HANDLE
@@ -2625,6 +2660,7 @@ typedef struct _RTL_RESOURCE
  * The RtlInitializeResource routine initializes a resource variable.
  *
  * \param Resource A pointer to the resource variable to initialize.
+ * \remarks The resource header is caller-owned, while initialization creates its internal synchronization/debug resources. Initialization can raise on allocation failure. Stop all users and release all acquisitions before deletion; this is not a resource-handle NtClose contract.
  */
 NTSYSAPI
 VOID
@@ -2637,6 +2673,7 @@ RtlInitializeResource(
  * The RtlDeleteResource routine releases all resources used by a resource variable that is no longer needed.
  *
  * \param Resource A pointer to the resource variable to delete.
+ * \remarks The resource header is caller-owned, while initialization creates its internal synchronization/debug resources. Initialization can raise on allocation failure. Stop all users and release all acquisitions before deletion; this is not a resource-handle NtClose contract.
  */
 NTSYSAPI
 VOID
@@ -2651,6 +2688,7 @@ RtlDeleteResource(
  * \param Resource A pointer to the resource variable.
  * \param Wait If `TRUE`, the calling thread waits until the resource can be acquired; if `FALSE`, the routine returns immediately.
  * \return `TRUE` if the resource was acquired, otherwise `FALSE`.
+ * \remarks Acquisition returns a BOOLEAN, not NTSTATUS. Wait FALSE permits a nonblocking failure. Successful acquisitions must be balanced; exclusive ownership is recursive. The caller must not delete the resource while owners or waiters remain.
  */
 _When_(return != 0, _Acquires_shared_lock_(*Resource))
 NTSYSAPI
@@ -2667,6 +2705,7 @@ RtlAcquireResourceShared(
  * \param Resource A pointer to the resource variable.
  * \param Wait If `TRUE`, the calling thread waits until the resource can be acquired; if `FALSE`, the routine returns immediately.
  * \return `TRUE` if the resource was acquired, otherwise `FALSE`.
+ * \remarks Acquisition returns a BOOLEAN, not NTSTATUS. Wait FALSE permits a nonblocking failure. Successful acquisitions must be balanced; exclusive ownership is recursive. The caller must not delete the resource while owners or waiters remain.
  */
 _When_(return != 0, _Acquires_exclusive_lock_(*Resource))
 NTSYSAPI
@@ -2681,6 +2720,7 @@ RtlAcquireResourceExclusive(
  * The RtlReleaseResource routine releases a resource variable that was acquired for shared or exclusive access.
  *
  * \param Resource A pointer to the resource variable.
+ * \remarks Acquisition returns a BOOLEAN, not NTSTATUS. Wait FALSE permits a nonblocking failure. Successful acquisitions must be balanced; exclusive ownership is recursive. The caller must not delete the resource while owners or waiters remain.
  */
 _Releases_lock_(*Resource)
 NTSYSAPI
@@ -2694,6 +2734,7 @@ RtlReleaseResource(
  * The RtlConvertSharedToExclusive routine converts shared access of a resource variable to exclusive access.
  *
  * \param Resource A pointer to the resource variable.
+ * \remarks The contended upgrade releases shared ownership before acquiring exclusive ownership. It is not an atomic upgrade preserving the observed data; revalidate protected state after conversion. Upgrade/deadlock policy remains the caller responsibility.
  */
 NTSYSAPI
 VOID
@@ -2706,6 +2747,7 @@ RtlConvertSharedToExclusive(
  * The RtlConvertExclusiveToShared routine converts exclusive access of a resource variable to shared access.
  *
  * \param Resource A pointer to the resource variable.
+ * \remarks Downgrades an owned exclusive resource and may wake shared waiters. Use a correctly balanced ownership state; it is not a generic acquire operation for an unowned resource.
  */
 NTSYSAPI
 VOID
@@ -2744,6 +2786,7 @@ RtlDumpResource(
  *
  * \param SRWLock A pointer to the SRW lock.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initializesrwlock
+ * \remarks Initializes the caller-owned pointer-sized synchronization state to zero. It allocates no handle; zero initialization is not a safe reset while waiters or owners are present.
  */
 NTSYSAPI
 VOID
@@ -2757,6 +2800,7 @@ RtlInitializeSRWLock(
  * The RtlAcquireSRWLockExclusive routine acquires a slim reader/writer (SRW) lock in exclusive mode.
  *
  * \param SRWLock A pointer to the SRW lock.
+ * \remarks Use a stable caller-owned lock and release in the same acquired mode. Treat SRW locks as nonrecursive and provide any upgrade protocol externally. A successful try-acquire owns the lock; FALSE does not. The routines are not kernel-object handle operations.
  */
 _Acquires_exclusive_lock_(*SRWLock)
 NTSYSAPI
@@ -2771,6 +2815,7 @@ RtlAcquireSRWLockExclusive(
  * The RtlAcquireSRWLockShared routine acquires a slim reader/writer (SRW) lock in shared mode.
  *
  * \param SRWLock A pointer to the SRW lock.
+ * \remarks Use a stable caller-owned lock and release in the same acquired mode. Treat SRW locks as nonrecursive and provide any upgrade protocol externally. A successful try-acquire owns the lock; FALSE does not. The routines are not kernel-object handle operations.
  */
 _Acquires_shared_lock_(*SRWLock)
 NTSYSAPI
@@ -2785,6 +2830,7 @@ RtlAcquireSRWLockShared(
  * The RtlReleaseSRWLockExclusive routine releases a slim reader/writer (SRW) lock that was acquired in exclusive mode.
  *
  * \param SRWLock A pointer to the SRW lock.
+ * \remarks Requires a matching outstanding acquisition in that mode. It can wake waiters; returning does not mean the storage is unused by other threads. Do not free or reinitialize the lock until all possible users have stopped.
  */
 _Releases_exclusive_lock_(*SRWLock)
 NTSYSAPI
@@ -2799,6 +2845,7 @@ RtlReleaseSRWLockExclusive(
  * The RtlReleaseSRWLockShared routine releases a slim reader/writer (SRW) lock that was acquired in shared mode.
  *
  * \param SRWLock A pointer to the SRW lock.
+ * \remarks Requires a matching outstanding acquisition in that mode. It can wake waiters; returning does not mean the storage is unused by other threads. Do not free or reinitialize the lock until all possible users have stopped.
  */
 _Releases_shared_lock_(*SRWLock)
 NTSYSAPI
@@ -2814,6 +2861,7 @@ RtlReleaseSRWLockShared(
  *
  * \param SRWLock A pointer to the SRW lock.
  * \return `TRUE` if the lock was acquired, otherwise `FALSE`.
+ * \remarks Use a stable caller-owned lock and release in the same acquired mode. Treat SRW locks as nonrecursive and provide any upgrade protocol externally. A successful try-acquire owns the lock; FALSE does not. The routines are not kernel-object handle operations.
  */
 _When_(return != 0, _Acquires_exclusive_lock_(*SRWLock))
 NTSYSAPI
@@ -2829,6 +2877,7 @@ RtlTryAcquireSRWLockExclusive(
  *
  * \param SRWLock A pointer to the SRW lock.
  * \return `TRUE` if the lock was acquired, otherwise `FALSE`.
+ * \remarks Use a stable caller-owned lock and release in the same acquired mode. Treat SRW locks as nonrecursive and provide any upgrade protocol externally. A successful try-acquire owns the lock; FALSE does not. The routines are not kernel-object handle operations.
  */
 _When_(return != 0, _Acquires_shared_lock_(*SRWLock))
 NTSYSAPI
@@ -2843,6 +2892,7 @@ RtlTryAcquireSRWLockShared(
  * The RtlAcquireReleaseSRWLockExclusive routine acquires and immediately releases a slim reader/writer (SRW) lock in exclusive mode, which can be used to drain pending exclusive waiters.
  *
  * \param SRWLock A pointer to the SRW lock.
+ * \remarks Waits through an exclusive acquire/release when the observed lock is held; it does not return holding exclusive ownership. The free-lock fast path can return without an actual acquisition. Use an ordinary acquire when a critical section must remain protected.
  */
 _Requires_lock_not_held_(*SRWLock)
 NTSYSAPI
@@ -2859,6 +2909,7 @@ RtlAcquireReleaseSRWLockExclusive(
  *
  * \param SRWLock A pointer to the SRW lock.
  * \return `TRUE` if the conversion succeeded, otherwise `FALSE`.
+ * \remarks Requires current exclusive ownership. Conversion updates the lock state and can coordinate shared waiter wakeup; do not interpret its BOOLEAN alone as permission to abandon the required shared release. Contended-path behavior is not a general try-acquire contract.
  */
 _Requires_exclusive_lock_held_(*SRWLock)
 NTSYSAPI
@@ -2929,6 +2980,7 @@ typedef struct _RTL_RCU_STATE
  *
  * \param Options Options that control the created RCU state.
  * \return A pointer to the allocated RCU state, or `NULL` on failure.
+ * \remarks The state and per-thread records are runtime-owned. Free only after all readers, synchronization operations and possible future users have stopped; freeing is not a grace-period substitute. Allocation failure returns NULL. Keep the state opaque rather than changing its embedded links.
  */
 NTSYSAPI
 PRTL_RCU_STATE
@@ -2941,6 +2993,7 @@ RtlRcuAllocate(
  * The RtlRcuFree routine frees a read-copy-update (RCU) synchronization state previously allocated by RtlRcuAllocate.
  *
  * \param State A pointer to the RCU state to free.
+ * \remarks The state and per-thread records are runtime-owned. Free only after all readers, synchronization operations and possible future users have stopped; freeing is not a grace-period substitute. Allocation failure returns NULL. Keep the state opaque rather than changing its embedded links.
  */
 NTSYSAPI
 VOID
@@ -2955,6 +3008,7 @@ RtlRcuFree(
  *
  * \param State A pointer to the RCU state.
  * \param ThreadData A pointer to a variable that receives the per-thread RCU entry associated with the read lock.
+ * \remarks Pass the address of per-acquisition ThreadData storage to both calls. The stored value may be NULL for the SRW shared-lock fallback; NULL is valid data inside the output slot, not permission to pass a NULL slot pointer. Balance read sections before synchronization or freeing the state.
  */
 _Acquires_lock_(*State)
 NTSYSAPI
@@ -2970,6 +3024,7 @@ RtlRcuReadLock(
  *
  * \param State A pointer to the RCU state.
  * \param ThreadData A pointer to the per-thread RCU entry returned by RtlRcuReadLock.
+ * \remarks Pass the address of per-acquisition ThreadData storage to both calls. The stored value may be NULL for the SRW shared-lock fallback; NULL is valid data inside the output slot, not permission to pass a NULL slot pointer. Balance read sections before synchronization or freeing the state.
  */
 _Releases_lock_(*State)
 NTSYSAPI
@@ -2984,6 +3039,7 @@ RtlRcuReadUnlock(
  * The RtlRcuSynchronize routine waits until all pre-existing read-copy-update (RCU) read-side critical sections have completed.
  *
  * \param State A pointer to the RCU state.
+ * \remarks Waits for a read-side grace period; call outside an active read section on the same state. This is not a general lifetime barrier against future readers, and the caller must still coordinate publication and final shutdown.
  */
 _Requires_lock_not_held_(*State)
 NTSYSAPI
@@ -3006,6 +3062,7 @@ RtlRcuSynchronize(
  * The RtlInitializeConditionVariable routine initializes a condition variable.
  *
  * \param ConditionVariable A pointer to the condition variable to initialize.
+ * \remarks Initializes the caller-owned pointer-sized synchronization state to zero. It allocates no handle; zero initialization is not a safe reset while waiters or owners are present.
  */
 NTSYSAPI
 VOID
@@ -3022,6 +3079,7 @@ RtlInitializeConditionVariable(
  * \param CriticalSection A pointer to the critical section associated with the condition variable.
  * \param Timeout An optional pointer to the time-out interval. If `NULL`, the routine waits indefinitely.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases one critical-section acquisition while sleeping and reacquires before returning, including a timeout. Enter with the documented single ownership level; recursive nesting can prevent useful release. Always check the protected predicate again after waking; STATUS_TIMEOUT is a successful-severity NTSTATUS but not predicate satisfaction.
  */
 NTSYSAPI
 NTSTATUS
@@ -3041,6 +3099,7 @@ RtlSleepConditionVariableCS(
  * \param Timeout An optional pointer to the time-out interval. If `NULL`, the routine waits indefinitely.
  * \param Flags If RTL_CONDITION_VARIABLE_LOCKMODE_SHARED is set, the SRW lock is held in shared mode; otherwise it is held in exclusive mode.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases the held SRW mode and reacquires it before return. Flag 0 selects exclusive mode and RTL_CONDITION_VARIABLE_LOCKMODE_SHARED (0x1) selects shared mode; the routine rejects other bits with STATUS_INVALID_PARAMETER_2. Recheck the protected predicate after return, including spurious wakes/timeouts.
  */
 NTSYSAPI
 NTSTATUS
@@ -3057,6 +3116,7 @@ RtlSleepConditionVariableSRW(
  * The RtlWakeConditionVariable routine wakes a single thread waiting on the specified condition variable.
  *
  * \param ConditionVariable A pointer to the condition variable.
+ * \remarks Wakes queued condition-variable waiters but does not store a signal for future waiters or transfer protected data ownership. Update the predicate under the associated lock and let awakened threads recheck it.
  */
 NTSYSAPI
 VOID
@@ -3070,6 +3130,7 @@ RtlWakeConditionVariable(
  * The RtlWakeAllConditionVariable routine wakes all threads waiting on the specified condition variable.
  *
  * \param ConditionVariable A pointer to the condition variable.
+ * \remarks Wakes queued condition-variable waiters but does not store a signal for future waiters or transfer protected data ownership. Update the predicate under the associated lock and let awakened threads recheck it.
  */
 NTSYSAPI
 VOID
@@ -3096,6 +3157,7 @@ RtlWakeAllConditionVariable(
  * \param TotalThreads The maximum number of threads that participate in the barrier.
  * \param SpinCount The number of times a thread spins while waiting for other threads to reach the barrier.
  * \return NTSTATUS Successful or errant status.
+ * \remarks TotalThreads is the exact participant count needed for a phase, not a maximum. The implementation aligns its internal state upward to 8 bytes and ignores SpinCount. Supply the full RTL_BARRIER object, require a nonzero participant count in the caller, and keep membership stable across a phase.
  */
 NTSYSAPI
 NTSTATUS
@@ -3111,6 +3173,7 @@ RtlInitBarrier(
  *
  * \param Barrier A pointer to the barrier to delete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires no future entrants. The entry waits through an internal exclusive SRW acquisition and tail-calls release, without explicitly constructing an NTSTATUS result; do not use its return register as evidence of successful lifecycle cleanup. Concurrent deletion and all historical versions are not established by that observation.
  */
 NTSYSAPI
 NTSTATUS
@@ -3120,11 +3183,15 @@ RtlDeleteBarrier(
     );
 
 /**
- * The RtlBarrier routine causes the calling thread to wait at a synchronization barrier until the required number of threads have reached it.
+ * The RtlBarrier routine causes the calling thread to wait at a synchronization barrier until the required
+ * number of threads have reached it.
  *
  * \param Barrier A pointer to the barrier.
  * \param Flags Flags that control the barrier behavior.
  * \return `TRUE` for the last thread to reach the barrier, otherwise `FALSE`.
+ * \remarks All configured participants must arrive before a phase completes; the last arrival returns TRUE
+ * and others FALSE. FALSE is not necessarily failure. The ForDelete entry adds flag 0x10000 for deletion
+ * coordination internally. Coordinate all participants before deleting the barrier.
  */
 NTSYSAPI
 BOOLEAN
@@ -3140,6 +3207,9 @@ RtlBarrier(
  * \param Barrier A pointer to the barrier.
  * \param Flags Flags that control the barrier behavior.
  * \return `TRUE` for the last thread to reach the barrier, otherwise `FALSE`.
+ * \remarks All configured participants must arrive before a phase completes; the last arrival returns TRUE
+ * and others FALSE. FALSE is not necessarily failure. The ForDelete entry adds flag 0x10000 for deletion
+ * coordination internally. Coordinate all participants before deleting the barrier.
  */
 NTSYSAPI
 BOOLEAN
@@ -3171,6 +3241,7 @@ RtlBarrierForDelete(
  * \remarks WaitOnAddress is guaranteed to return when the address is signaled, but it is also allowed to return for other reasons.
  * For this reason, the caller should compare the new value with the original undesired value to confirm that the value has actually changed.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress
+ * \remarks Accepts comparison widths 1, 2, 4 or 8 bytes; other widths return STATUS_INVALID_PARAMETER. A differing value can return immediately, while an equal value waits subject to Timeout. Waking is not proof of a changed predicate: reload with appropriate synchronization and loop. Address lifetime must cover all waiters.
  */
 NTSYSAPI
 NTSTATUS
@@ -3187,6 +3258,7 @@ RtlWaitOnAddress(
  *
  * \param Address The address to signal. If any threads have previously called RtlWaitOnAddress for this address, the system wakes all of the waiting threads.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddressall
+ * \remarks Targets waiters for the same process-local address; it does not write the compared memory or preserve a signal for later waits. Publish predicate changes with the required memory ordering before waking. The NoFence name is not a substitute for application synchronization.
  */
 NTSYSAPI
 VOID
@@ -3200,6 +3272,7 @@ RtlWakeAddressAll(
  *
  * \param Address The address to signal. If any threads have previously called RtlWaitOnAddress for this address, the system wakes all of the waiting threads.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddressall
+ * \remarks Targets waiters for the same process-local address; it does not write the compared memory or preserve a signal for later waits. Publish predicate changes with the required memory ordering before waking. The NoFence name is not a substitute for application synchronization.
  */
 NTSYSAPI
 VOID
@@ -3213,6 +3286,7 @@ RtlWakeAddressAllNoFence(
  *
  * \param Address The address to signal.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddresssingle
+ * \remarks Targets waiters for the same process-local address; it does not write the compared memory or preserve a signal for later waits. Publish predicate changes with the required memory ordering before waking. The NoFence name is not a substitute for application synchronization.
  */
 NTSYSAPI
 VOID
@@ -3226,6 +3300,7 @@ RtlWakeAddressSingle(
  *
  * \param Address The address to signal.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddresssingle
+ * \remarks Targets waiters for the same process-local address; it does not write the compared memory or preserve a signal for later waits. Publish predicate changes with the required memory ordering before waking. The NoFence name is not a substitute for application synchronization.
  */
 NTSYSAPI
 VOID
@@ -3272,6 +3347,7 @@ RtlInitEmptyAnsiString(
  * \param DestinationString A pointer to the STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitstring
+ * \remarks Borrows the source buffer without allocating or copying. Length excludes the terminator. The native implementation saturates Length at 65534 bytes and MaximumLength at 65535 rather than wrapping; use the Ex variant to reject an overlong source.
  */
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE
@@ -3283,7 +3359,15 @@ RtlInitString(
     )
 {
     if (SourceString)
-        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + sizeof(ANSI_NULL);
+    {
+        SIZE_T stringLength = strlen(SourceString);
+
+        if (stringLength > MAXUSHORT - sizeof(ANSI_NULL))
+            stringLength = MAXUSHORT - sizeof(ANSI_NULL);
+
+        DestinationString->Length = (USHORT)stringLength;
+        DestinationString->MaximumLength = DestinationString->Length + sizeof(ANSI_NULL);
+    }
     else
         DestinationString->MaximumLength = DestinationString->Length = 0;
 
@@ -3306,6 +3390,7 @@ RtlInitString(
  * \param DestinationString A pointer to the STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Accepts at most 65534 source bytes excluding the terminator; a longer source returns STATUS_NAME_TOO_LONG with Length and MaximumLength zero and Buffer still pointing to the source. NULL initializes an empty descriptor. No storage is allocated.
  */
 NTSYSAPI
 NTSTATUS
@@ -3322,6 +3407,7 @@ RtlInitStringEx(
  * \param DestinationString A pointer to the ANSI_STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitansistring
+ * \remarks Borrows the source buffer without allocating or copying. Length excludes the terminator. The native implementation saturates Length at 65534 bytes and MaximumLength at 65535 rather than wrapping; use the Ex variant to reject an overlong source.
  */
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE
@@ -3333,7 +3419,15 @@ RtlInitAnsiString(
     )
 {
     if (SourceString)
-        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + sizeof(ANSI_NULL);
+    {
+        SIZE_T stringLength = strlen(SourceString);
+
+        if (stringLength > MAXUSHORT - sizeof(ANSI_NULL))
+            stringLength = MAXUSHORT - sizeof(ANSI_NULL);
+
+        DestinationString->Length = (USHORT)stringLength;
+        DestinationString->MaximumLength = DestinationString->Length + sizeof(ANSI_NULL);
+    }
     else
         DestinationString->MaximumLength = DestinationString->Length = 0;
 
@@ -3356,6 +3450,7 @@ RtlInitAnsiString(
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlinitansistringex
+ * \remarks Accepts at most 65534 source bytes excluding the terminator; a longer source returns STATUS_NAME_TOO_LONG with Length and MaximumLength zero and Buffer still pointing to the source. NULL initializes an empty descriptor. No storage is allocated.
  */
 NTSYSAPI
 NTSTATUS
@@ -3370,6 +3465,7 @@ RtlInitAnsiStringEx(
  *
  * \param AnsiString A pointer to the ANSI string whose buffer is freed.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfreeansistring
+ * \remarks Use only for a compatible RTL-allocated buffer, not borrowed or stack storage. A non-NULL buffer is freed and the descriptor cleared; a descriptor whose Buffer is already NULL is left unchanged.
  */
 NTSYSAPI
 VOID
@@ -3384,6 +3480,7 @@ RtlFreeAnsiString(
  *
  * \param DestinationString A pointer to the UTF8_STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
+ * \remarks Borrows the source buffer without allocating or copying. Length excludes the terminator. The native implementation saturates Length at 65534 bytes and MaximumLength at 65535 rather than wrapping; use the Ex variant to reject an overlong source.
  */
 NTSYSAPI
 VOID
@@ -3399,6 +3496,7 @@ RtlInitUTF8String(
  * \param DestinationString A pointer to the UTF8_STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated string used to initialize the counted string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Accepts at most 65534 source bytes excluding the terminator; a longer source returns STATUS_NAME_TOO_LONG with Length and MaximumLength zero and Buffer still pointing to the source. NULL initializes an empty descriptor. No storage is allocated.
  */
 NTSYSAPI
 NTSTATUS
@@ -3412,6 +3510,7 @@ RtlInitUTF8StringEx(
  * The RtlFreeUTF8String routine releases storage that was allocated by RtlUnicodeStringToUTF8String.
  *
  * \param Utf8String A pointer to the UTF-8 string whose buffer is freed.
+ * \remarks Use only for a compatible RTL-allocated buffer, not borrowed or stack storage. A non-NULL buffer is freed and the descriptor cleared; a descriptor whose Buffer is already NULL is left unchanged.
  */
 NTSYSAPI
 VOID
@@ -3426,6 +3525,7 @@ RtlFreeUTF8String(
  *
  * \param OemString A pointer to the OEM string whose buffer is freed.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlfreeoemstring
+ * \remarks The compatible RTL-allocated buffer is freed but the descriptor is not cleared. Clear or discard the descriptor after the call to avoid reusing a dangling pointer or freeing it twice.
  */
 NTSYSAPI
 VOID
@@ -3440,12 +3540,13 @@ RtlFreeOemString(
  * \param DestinationString A pointer to the destination counted string.
  * \param SourceString An optional pointer to the source counted string. If `NULL`, the destination length is set to zero.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlcopystring
+ * \remarks Writes into caller-owned storage, limiting the copy to MaximumLength and updating Length to the copied byte count. It does not allocate storage or append a terminator; an exact-fit destination is not necessarily a C string.
  */
 NTSYSAPI
 VOID
 NTAPI
 RtlCopyString(
-    _In_ PSTRING DestinationString,
+    _Inout_ PSTRING DestinationString,
     _In_opt_ PSTRING SourceString
     );
 
@@ -3527,6 +3628,7 @@ RtlPrefixString(
  * \param Source A pointer to the source counted string to append.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlappendstringtostring
+ * \remarks Appends into caller-owned storage without adding a terminator. Insufficient capacity returns STATUS_BUFFER_TOO_SMALL without a partial append. Exact-fit success does not imply NUL termination.
  */
 NTSYSAPI
 NTSTATUS
@@ -3543,6 +3645,7 @@ RtlAppendStringToString(
  * \param Source An optional pointer to the null-terminated source string to append.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlappendasciiztostring
+ * \remarks Appends into caller-owned storage without adding a terminator. Insufficient capacity returns STATUS_BUFFER_TOO_SMALL without a partial append. Exact-fit success does not imply NUL termination.
  */
 NTSYSAPI
 NTSTATUS
@@ -3558,6 +3661,7 @@ RtlAppendAsciizToString(
  * \param DestinationString A pointer to the destination counted string.
  * \param SourceString A pointer to the source counted string.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlupperstring
+ * \remarks Writes into caller-owned storage, limiting the copy to MaximumLength and updating Length to the copied byte count. It does not allocate storage or append a terminator; an exact-fit destination is not necessarily a C string.
  */
 NTSYSAPI
 VOID
@@ -3613,6 +3717,7 @@ RtlInitEmptyUnicodeString(
  * \param DestinationString A pointer to the UNICODE_STRING structure to initialize.
  * \param SourceString An optional pointer to a null-terminated Unicode string used to initialize the counted string.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlinitunicodestring
+ * \remarks Borrows the source buffer. The native implementation saturates at 32766 WCHARs (65532 bytes), with MaximumLength 65534; it does not truncate or terminate the buffer. Use RtlInitUnicodeStringEx when an overlong source must be rejected.
  */
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE
@@ -3624,7 +3729,15 @@ RtlInitUnicodeString(
     )
 {
     if (SourceString)
-        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR))) + sizeof(UNICODE_NULL);
+    {
+        SIZE_T stringLength = wcslen(SourceString);
+
+        if (stringLength > UNICODE_STRING_MAX_CHARS - 1)
+            stringLength = UNICODE_STRING_MAX_CHARS - 1;
+
+        DestinationString->Length = (USHORT)(stringLength * sizeof(WCHAR));
+        DestinationString->MaximumLength = DestinationString->Length + sizeof(UNICODE_NULL);
+    }
     else
         DestinationString->MaximumLength = DestinationString->Length = 0;
 
@@ -3647,6 +3760,7 @@ RtlInitUnicodeString(
  * \param SourceString An optional pointer to a null-terminated Unicode string used to initialize the counted string.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlinitunicodestringex
+ * \remarks Accepts at most 32766 WCHARs excluding the terminator. NULL succeeds with both lengths zero. An overlong source returns STATUS_NAME_TOO_LONG with Length and MaximumLength zero and Buffer still pointing to the source. No storage is allocated.
  */
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE
@@ -3660,6 +3774,7 @@ RtlInitUnicodeStringEx(
     SIZE_T stringLength;
 
     DestinationString->Length = 0;
+    DestinationString->MaximumLength = 0;
     DestinationString->Buffer = (PWCH)SourceString;
 
     if (!SourceString)
@@ -3725,6 +3840,7 @@ RtlCreateUnicodeStringFromAsciiz(
  *
  * \param UnicodeString A pointer to the string buffer.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfreeunicodestring
+ * \remarks Use only for a compatible RTL-allocated buffer, not borrowed or stack storage. A non-NULL buffer is freed and the descriptor cleared; a descriptor whose Buffer is already NULL is left unchanged.
  */
 NTSYSAPI
 VOID
@@ -3747,13 +3863,14 @@ RtlFreeUnicodeString(
  * \param StringOut A pointer to the UNICODE_STRING structure that receives the duplicated string.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlduplicateunicodestring
+ * \remarks NULL StringIn is treated as empty. Flag 0x1 requests termination; 0x2 forces allocation for empty input and requires 0x1. Other bits, or 0x2 alone, return STATUS_INVALID_PARAMETER. Flags 0 or 0x1 with empty input produce an empty nonallocated descriptor; 0x3 allocates 2 bytes containing a terminator. Release allocated output with RtlFreeUnicodeString.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDuplicateUnicodeString(
     _In_ ULONG Flags,
-    _In_ PCUNICODE_STRING StringIn,
+    _In_opt_ PCUNICODE_STRING StringIn,
     _Out_ PUNICODE_STRING StringOut
     );
 
@@ -3763,12 +3880,13 @@ RtlDuplicateUnicodeString(
  * \param[in] DestinationString A pointer to the destination string buffer.
  * \param[in] SourceString A pointer to the source string buffer.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcopyunicodestring
+ * \remarks Updates the destination descriptor as well as its buffer; the destination is not const. Copies at most MaximumLength bytes, sets Length to the copied length, and appends a WCHAR terminator only when at least 2 bytes remain. NULL SourceString sets Length to zero without clearing or terminating the existing buffer.
  */
 NTSYSAPI
 VOID
 NTAPI
 RtlCopyUnicodeString(
-    _In_ PCUNICODE_STRING DestinationString,
+    _Inout_ PUNICODE_STRING DestinationString,
     _In_opt_ PCUNICODE_STRING SourceString
     );
 
@@ -3893,13 +4011,14 @@ RtlHashUnicodeString(
  * \param Flags Reserved. Must be zero.
  * \param String A pointer to the Unicode string to validate.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Checks descriptor consistency, not Unicode contents or buffer accessibility. NULL is accepted as empty. Nonzero Flags, odd byte lengths, Length greater than MaximumLength, or a NULL Buffer with nonzero lengths return STATUS_INVALID_PARAMETER. This is not a UTF-16 validator.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlValidateUnicodeString(
     _In_ ULONG Flags,
-    _In_ PCUNICODE_STRING String
+    _In_opt_ PCUNICODE_STRING String
     );
 
 /**
@@ -4063,6 +4182,7 @@ RtlAppendPathElement(
  * \param Source A pointer to the source Unicode string to append.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlappendunicodestringtostring
+ * \remarks Appends into caller-owned storage; insufficient capacity returns STATUS_BUFFER_TOO_SMALL without a partial append. A WCHAR terminator is written only if at least 2 bytes remain after the new Length. Exact-fit success does not imply NUL termination.
  */
 NTSYSAPI
 NTSTATUS
@@ -4079,6 +4199,7 @@ RtlAppendUnicodeStringToString(
  * \param Source An optional pointer to the null-terminated Unicode source string to append.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlappendunicodetostring
+ * \remarks Appends into caller-owned storage; insufficient capacity returns STATUS_BUFFER_TOO_SMALL without a partial append. A WCHAR terminator is written only if at least 2 bytes remain after the new Length. Exact-fit success does not imply NUL termination.
  */
 NTSYSAPI
 NTSTATUS
@@ -4096,6 +4217,7 @@ RtlAppendUnicodeToString(
  * \param AllocateDestinationString If `TRUE`, the routine allocates the destination string buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlupcaseunicodestring
+ * \remarks Case mapping preserves the counted length, not a guaranteed trailing terminator. Allocated storage is sized to source Length; release it with RtlFreeUnicodeString. Insufficient caller-provided capacity returns STATUS_BUFFER_OVERFLOW.
  */
 NTSYSAPI
 NTSTATUS
@@ -4114,6 +4236,7 @@ RtlUpcaseUnicodeString(
  * \param AllocateDestinationString If `TRUE`, the routine allocates the destination string buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldowncaseunicodestring
+ * \remarks Case mapping preserves the counted length, not a guaranteed trailing terminator. Allocated storage is sized to source Length; release it with RtlFreeUnicodeString. Insufficient caller-provided capacity returns STATUS_BUFFER_OVERFLOW.
  */
 NTSYSAPI
 NTSTATUS
@@ -4128,6 +4251,7 @@ RtlDowncaseUnicodeString(
  * The RtlEraseUnicodeString routine securely zeroes the buffer of a counted Unicode string.
  *
  * \param String A pointer to the Unicode string to erase.
+ * \remarks Clears the entire MaximumLength-byte backing buffer, not only Length bytes, when Buffer is non-NULL and MaximumLength is nonzero; then sets Length to zero. It does not release storage.
  */
 NTSYSAPI
 VOID
@@ -4519,7 +4643,7 @@ RtlUnicodeToMultiByteSize(
  * The translated string is not necessarily from a multibyte character set.
  *
  * \param MultiByteString Pointer to a caller-allocated buffer to receive the translated string.
- * \param MaxBytesInMultiByteString Maximum number of bytes to be written at MultiByteString. If this value causes the translated string to be truncated, RtlUpcaseUnicodeToMultiByteN does not return an error status.
+ * \param MaxBytesInMultiByteString Maximum number of bytes to write to UnicodeStringDestination. Insufficient output capacity returns STATUS_BUFFER_TOO_SMALL.
  * \param BytesInMultiByteString Pointer to a caller-allocated variable that receives the length, in bytes, of the translated string. This parameter can be NULL.
  * \param UnicodeString Pointer to the Unicode source string to be translated.
  * \param BytesInUnicodeString Size, in bytes, of the string at UnicodeString.
@@ -4630,18 +4754,19 @@ RtlConsoleMultiByteToUnicodeN(
  * The RtlUTF8ToUnicodeN routine translates the specified source string into a Unicode string, using the 8-bit Unicode Transformation Format (UTF-8) code page.
  *
  * \param UnicodeStringDestination Pointer to a caller-allocated buffer to receive the translated string.
- * \param UnicodeStringMaxByteCount Maximum number of bytes to be written at MultiByteString. If this value causes the translated string to be truncated, RtlUpcaseUnicodeToMultiByteN does not return an error status.
+ * \param UnicodeStringMaxByteCount Maximum number of bytes to write to UnicodeStringDestination. Insufficient output capacity returns STATUS_BUFFER_TOO_SMALL.
  * \param UnicodeStringActualByteCount Pointer to a caller-allocated variable that receives the length, in bytes, of the translated string. This parameter can be NULL.
- * \param UTF8StringSource Pointer to the Unicode source string to be translated.
- * \param UTF8StringByteCount Size, in bytes, of the string at UnicodeString.
+ * \param UTF8StringSource Pointer to the counted UTF-8 source bytes to translate.
+ * \param UTF8StringByteCount Number of source bytes at UTF8StringSource.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlutf8tounicoden
+ * \remarks All sizes are bytes. NULL destination requests a sizing pass and requires the actual-byte-count output. A non-NULL destination may omit that count output. No terminator is appended unless it occurs in the counted source; output exhaustion returns STATUS_BUFFER_TOO_SMALL and reports bytes actually written when requested.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUTF8ToUnicodeN(
-    _Out_writes_bytes_to_(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
+    _Out_writes_bytes_to_opt_(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
     _In_ ULONG UnicodeStringMaxByteCount,
     _Out_opt_ PULONG UnicodeStringActualByteCount,
     _In_reads_bytes_(UTF8StringByteCount) PCCH UTF8StringSource,
@@ -4658,12 +4783,13 @@ RtlUTF8ToUnicodeN(
  * \param UnicodeStringByteCount Specifies the number of bytes in the Unicode source string that the UnicodeStringSource parameter points to.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlunicodetoutf8n
+ * \remarks All sizes are bytes. NULL destination requests a sizing pass and requires the actual-byte-count output. A non-NULL destination may omit that count output. No terminator is appended unless it occurs in the counted source; output exhaustion returns STATUS_BUFFER_TOO_SMALL and reports bytes actually written when requested.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToUTF8N(
-    _Out_writes_bytes_to_(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
+    _Out_writes_bytes_to_opt_(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
     _In_ ULONG UTF8StringMaxByteCount,
     _Out_opt_ PULONG UTF8StringActualByteCount,
     _In_reads_bytes_(UnicodeStringByteCount) PCWCH UnicodeStringSource,
@@ -4680,12 +4806,13 @@ RtlUnicodeToUTF8N(
  * \param CustomCPString A pointer to the custom code page source string.
  * \param BytesInCustomCPString The number of bytes in the custom code page source string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NULL CustomCP selects UTF-8, as does a table whose CodePage is 65001. No terminator is added. UTF-8 output exhaustion is mapped to STATUS_BUFFER_OVERFLOW; the upcasing custom-code-page routine does not share the NULL-table contract.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCustomCPToUnicodeN(
-    _In_ PCPTABLEINFO CustomCP,
+    _In_opt_ PCPTABLEINFO CustomCP,
     _Out_writes_bytes_to_(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
     _In_ ULONG MaxBytesInUnicodeString,
     _Out_opt_ PULONG BytesInUnicodeString,
@@ -4703,12 +4830,13 @@ RtlCustomCPToUnicodeN(
  * \param UnicodeString A pointer to the Unicode source string.
  * \param BytesInUnicodeString The number of bytes in the Unicode source string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NULL CustomCP selects UTF-8, as does a table whose CodePage is 65001. No terminator is added. UTF-8 output exhaustion is mapped to STATUS_BUFFER_OVERFLOW; the upcasing custom-code-page routine does not share the NULL-table contract.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToCustomCPN(
-    _In_ PCPTABLEINFO CustomCP,
+    _In_opt_ PCPTABLEINFO CustomCP,
     _Out_writes_bytes_to_(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
     _In_ ULONG MaxBytesInCustomCPString,
     _Out_opt_ PULONG BytesInCustomCPString,
@@ -4762,6 +4890,7 @@ RtlInitCodePageTable(
  * \param OemNlsBase A pointer to the OEM code page NLS data.
  * \param LanguageNlsBase A pointer to the language (case-mapping) NLS data.
  * \param TableInfo A pointer to the NLSTABLEINFO structure that receives the initialized table information.
+ * \remarks The Windows 11 ntdll x64 and x86 exports are no-op compatibility stubs. Do not rely on these exports to populate a table or replace process translation state on that build; the historical signature is retained.
  */
 NTSYSAPI
 VOID
@@ -4778,6 +4907,7 @@ RtlInitNlsTables(
  * The RtlResetRtlTranslations routine resets the code page translation tables used by the run-time library to those described by the specified NLS table information.
  *
  * \param TableInfo A pointer to the NLSTABLEINFO structure that describes the translation tables.
+ * \remarks The Windows 11 ntdll x64 and x86 exports are no-op compatibility stubs. Do not rely on these exports to populate a table or replace process translation state on that build; the historical signature is retained.
  */
 NTSYSAPI
 VOID
@@ -4981,6 +5111,7 @@ RtlDnsHostNameToComputerName(
  * \param[out] GuidString Pointer to a caller-supplied variable in which a pointer to the converted GUID string is returned and must free by calling RtlFreeUnicodeString.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlstringfromguid
+ * \remarks Formats 38 visible WCHARs in brace-and-hyphen form: Length is 76 bytes and capacity including the terminator must be at least 78 bytes. Free allocated output with RtlFreeUnicodeString; nonallocating Ex returns STATUS_BUFFER_TOO_SMALL for capacity below 78 bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -5006,6 +5137,7 @@ RtlStringFromGUID(
  * \param GuidString A pointer to the Unicode string that receives the string representation. If AllocateGuidString is `TRUE`, the buffer is allocated by the routine.
  * \param AllocateGuidString If `TRUE`, the routine allocates the destination string buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Formats 38 visible WCHARs in brace-and-hyphen form: Length is 76 bytes and capacity including the terminator must be at least 78 bytes. Free allocated output with RtlFreeUnicodeString; nonallocating Ex returns STATUS_BUFFER_TOO_SMALL for capacity below 78 bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -5401,6 +5533,7 @@ typedef struct _COMPRESSED_DATA_INFO
  * \param CompressFragmentWorkSpaceSize A pointer to a variable that receives the work space size required to compress a fragment.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetcompressionworkspacesize
+ * \remarks The dispatcher uses the low 8 bits as the format and high 8 bits as the engine. Formats 0 and 1 return STATUS_INVALID_PARAMETER; formats above 8 return STATUS_UNSUPPORTED_COMPRESSION. Support within 2..8 still depends on implementation and engine: check the workspace-query result before allocating or compressing.
  */
 NTSYSAPI
 NTSTATUS
@@ -5423,6 +5556,7 @@ RtlGetCompressionWorkSpaceSize(
  * \param FinalCompressedSize Receives the size, in bytes, of the compressed data.
  * \param WorkSpace A workspace buffer sized per RtlGetCompressionWorkSpaceSize.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The dispatcher uses the low 8 bits as the format and high 8 bits as the engine. Formats 0 and 1 return STATUS_INVALID_PARAMETER; formats above 8 return STATUS_UNSUPPORTED_COMPRESSION. Support within 2..8 still depends on implementation and engine: check the workspace-query result before allocating or compressing.
  */
 NTSYSAPI
 NTSTATUS
@@ -5449,6 +5583,7 @@ RtlCompressBuffer(
  * \param FinalUncompressedSize A pointer to a variable that receives the number of bytes written to the uncompressed buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldecompressbuffer
+ * \remarks The dispatcher accepts a format, not format-or-engine flags: values below 2 return STATUS_INVALID_PARAMETER and values above 8 return STATUS_UNSUPPORTED_COMPRESSION. Support within that range depends on the implementation. Bound input and output and use the returned decompressed byte count.
  */
 NTSYSAPI
 NTSTATUS
@@ -5474,6 +5609,7 @@ RtlDecompressBuffer(
  * \param FinalUncompressedSize Receives the size, in bytes, of the decompressed data.
  * \param WorkSpace An optional workspace buffer sized per RtlGetCompressionWorkSpaceSize.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The dispatcher accepts a format, not format-or-engine flags: values below 2 return STATUS_INVALID_PARAMETER and values above 8 return STATUS_UNSUPPORTED_COMPRESSION. Support within that range depends on the implementation. Bound input and output and use the returned decompressed byte count.
  */
 NTSYSAPI
 NTSTATUS
@@ -5530,6 +5666,7 @@ RtlDecompressBufferEx2(
  * \param FinalUncompressedSize Receives the size, in bytes, of the decompressed fragment.
  * \param WorkSpace A workspace buffer sized per RtlGetCompressionWorkSpaceSize.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The dispatcher accepts a format, not format-or-engine flags: values below 2 return STATUS_INVALID_PARAMETER and values above 8 return STATUS_UNSUPPORTED_COMPRESSION. Support within that range depends on the implementation. Bound input and output and use the returned decompressed byte count.
  */
 NTSYSAPI
 NTSTATUS
@@ -5701,6 +5838,7 @@ RtlConvertLCIDToString(
  * \param LocaleName A pointer to the locale name to validate.
  * \param Flags Flags that control the validation.
  * \return `TRUE` if the locale name is valid, otherwise `FALSE`.
+ * \remarks Locale resolution depends on the installed NLS data and the routine-specific flags. Names and LCIDs are identifiers, not necessarily user UI-language preferences. The IsValidLocaleName/LcidToLocaleName paths accept flag bit 0x2 only; LocaleNameToLcid accepts bits 0x1 and 0x2. Do not reuse a mask across the APIs without checking its contract.
  */
 NTSYSAPI
 BOOLEAN
@@ -5719,6 +5857,7 @@ RtlIsValidLocaleName(
  * \param Flags Flags that control the operation.
  * \param AllocateDestinationString If `TRUE`, the routine allocates the destination string buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Do not treat this as a simple truncation at the last hyphen: installed/custom locale data determine the parent. The output descriptor and its Buffer are checked for non-NULL before the allocation choice. A zeroed destination is therefore not equivalent to the allocating LCID-conversion contract; check status and preserve correct string ownership.
  */
 NTSYSAPI
 NTSTATUS
@@ -5739,13 +5878,14 @@ RtlGetParentLocaleName(
  * \param Flags Flags that control the operation.
  * \param AllocateDestinationString If `TRUE`, the routine allocates the destination string buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The nonallocating path reads Buffer/MaximumLength and writes Length and the caller buffer; it is input/output, not input-only. Length excludes the WCHAR terminator while MaximumLength is in bytes and must allow it. The allocating path produces RTL-owned string storage released with RtlFreeUnicodeString. The flags allow only bit 0x2.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLcidToLocaleName(
     _In_ LCID lcid, // sic
-    _When_(AllocateDestinationString, _Out_) _When_(!AllocateDestinationString, _In_) PUNICODE_STRING LocaleName,
+    _When_(AllocateDestinationString, _Out_) _When_(!AllocateDestinationString, _Inout_) PUNICODE_STRING LocaleName,
     _In_ ULONG Flags,
     _In_ BOOLEAN AllocateDestinationString
     );
@@ -5758,6 +5898,7 @@ RtlLcidToLocaleName(
  * \param lcid A pointer to a variable that receives the locale identifier.
  * \param Flags Flags that control the operation.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Locale resolution depends on the installed NLS data and the routine-specific flags. Names and LCIDs are identifiers, not necessarily user UI-language preferences. The IsValidLocaleName/LcidToLocaleName paths accept flag bit 0x2 only; LocaleNameToLcid accepts bits 0x1 and 0x2. Do not reuse a mask across the APIs without checking its contract.
  */
 NTSYSAPI
 NTSTATUS
@@ -5775,6 +5916,7 @@ RtlLocaleNameToLcid(
  * \param Lcid The locale identifier to convert.
  * \param String A pointer to the string that receives the culture name.
  * \return `TRUE` if the conversion succeeded, otherwise `FALSE`.
+ * \remarks These return BOOLEAN, not NTSTATUS. They use counted UNICODE_STRING descriptors and installed language/culture information; do not assume all names accepted by newer locale APIs have the same conversion behavior here. Caller-supplied output string capacity is measured in bytes.
  */
 NTSYSAPI
 BOOLEAN
@@ -5791,6 +5933,7 @@ RtlLCIDToCultureName(
  * \param String A pointer to the culture name to convert.
  * \param Lcid A pointer to a variable that receives the locale identifier.
  * \return `TRUE` if the conversion succeeded, otherwise `FALSE`.
+ * \remarks These return BOOLEAN, not NTSTATUS. They use counted UNICODE_STRING descriptors and installed language/culture information; do not assume all names accepted by newer locale APIs have the same conversion behavior here. Caller-supplied output string capacity is measured in bytes.
  */
 NTSYSAPI
 BOOLEAN
@@ -5852,6 +5995,7 @@ RtlCleanUpTEBLangLists(
  * \param Languages An optional buffer that receives the double-null-terminated list of languages.
  * \param ReturnLength On input, the size of the buffer in characters; on output, the number of characters returned or required.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Language output is a MULTI_SZ, and ReturnLength is a WCHAR count rather than a byte count. Start a sizing call with length zero and a NULL buffer, then allocate for the returned count and check the second result. NumberOfLanguages counts entries, not code units. Flags and fallback scope differ between thread, process, user and system queries.
  */
 NTSYSAPI
 NTSTATUS
@@ -5872,6 +6016,7 @@ RtlGetThreadPreferredUILanguages(
  * \param Languages An optional buffer that receives the double-null-terminated list of languages.
  * \param ReturnLength On input, the size of the buffer in characters; on output, the number of characters returned or required.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Language output is a MULTI_SZ, and ReturnLength is a WCHAR count rather than a byte count. Start a sizing call with length zero and a NULL buffer, then allocate for the returned count and check the second result. NumberOfLanguages counts entries, not code units. Flags and fallback scope differ between thread, process, user and system queries.
  */
 NTSYSAPI
 NTSTATUS
@@ -5893,6 +6038,7 @@ RtlGetProcessPreferredUILanguages(
  * \param Languages An optional buffer that receives the double-null-terminated list of languages.
  * \param ReturnLength On input, the size of the buffer in characters; on output, the number of characters returned or required.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Language output is a MULTI_SZ, and ReturnLength is a WCHAR count rather than a byte count. Start a sizing call with length zero and a NULL buffer, then allocate for the returned count and check the second result. NumberOfLanguages counts entries, not code units. Flags and fallback scope differ between thread, process, user and system queries.
  */
 NTSYSAPI
 NTSTATUS
@@ -5931,6 +6077,7 @@ RtlpGetSystemDefaultUILanguage(
  * \param Languages An optional buffer that receives the double-null-terminated list of languages.
  * \param ReturnLength On input, the size of the buffer in characters; on output, the number of characters returned or required.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Language output is a MULTI_SZ, and ReturnLength is a WCHAR count rather than a byte count. Start a sizing call with length zero and a NULL buffer, then allocate for the returned count and check the second result. NumberOfLanguages counts entries, not code units. Flags and fallback scope differ between thread, process, user and system queries.
  */
 NTSYSAPI
 NTSTATUS
@@ -5965,6 +6112,7 @@ RtlGetUILanguageInfo(
     _Out_ PULONG Attributes
     );
 
+// rev
 /**
  * Retrieves the base address of the memory-mapped NLS locale data file, mapping and caching it on first use.
  *
@@ -5973,16 +6121,7 @@ RtlGetUILanguageInfo(
  * \param DefaultCasingTableSize An optional pointer to a variable that receives the size, in bytes, of the default casing table.
  * \param CurrentNLSVersion An optional pointer to a variable that receives the current NLS version.
  * \return NTSTATUS Successful or errant status.
- */
-// rev
-/**
- * The RtlGetLocaleFileMappingAddress routine returns the base address of the mapped locale data file and related default locale information.
- *
- * \param BaseAddress A pointer to a variable that receives the base address of the mapped locale data.
- * \param DefaultLocaleId A pointer to a variable that receives the default locale identifier.
- * \param DefaultCasingTableSize An optional pointer to a variable that receives the size of the default casing table.
- * \param CurrentNLSVersion An optional pointer to a variable that receives the current NLS version.
- * \return NTSTATUS Successful or errant status.
+ * \remarks Returns borrowed process-cached NLS mapping information. It does not transfer allocation ownership to the caller, so do not heap-free or unmap the returned address as if it were a private buffer. Check the status before consuming either output.
  */
 NTSYSAPI
 NTSTATUS
@@ -5998,19 +6137,14 @@ RtlGetLocaleFileMappingAddress(
 // MUI / Languages
 //
 
+// rev
 /**
  * Restores the thread preferred UI language state previously captured by RtlSetThreadPreferredUILanguages2 and releases the saved-state block.
  *
  * \param State A pointer to the opaque saved-state block returned through the SavedState parameter of RtlSetThreadPreferredUILanguages2.
  * \return BOOLEAN TRUE if the saved state was restored and freed; otherwise the routine raises a critical failure when the state does not belong to the current thread.
  * \remarks Prototype reconstructed from disassembly. The saved-state block records the previous PreferredLanguages, MergedPrefLanguages and UserPrefLanguages lists together with the owning thread id.
- */
-// rev
-/**
- * The RtlRestoreThreadPreferredUILanguages routine restores the thread's preferred UI languages from a previously saved state.
- *
- * \param State A pointer to the saved state returned by a previous call to RtlSetThreadPreferredUILanguages2.
- * \return `TRUE` if the languages were restored, otherwise `FALSE`.
+ * \remarks The saved-language object belongs to the thread that created it. Restore validates the saved thread identity and frees its bookkeeping; it is not a transferable language-list buffer. Use a matched same-thread save/restore lifecycle and do not reuse the restore object afterward.
  */
 NTSYSAPI
 BOOLEAN
@@ -6027,6 +6161,7 @@ RtlRestoreThreadPreferredUILanguages(
  * \param LanguagesBuffer An optional pointer to the double-null-terminated list of languages to set.
  * \param NumberOfLanguages An optional pointer to a variable that receives the number of languages set.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Changes language-resolution state for the selected scope, not merely an output string. Inputs are MULTI_SZ lists with representation-specific flags. A process-level change affects other threads; do not use a global setter as a harmless locale-query probe.
  */
 NTSYSAPI
 NTSTATUS
@@ -6037,6 +6172,7 @@ RtlSetProcessPreferredUILanguages(
     _Out_opt_ PULONG NumberOfLanguages
     );
 
+// rev
 /**
  * Sets the preferred UI languages for the current thread.
  *
@@ -6045,15 +6181,7 @@ RtlSetProcessPreferredUILanguages(
  * \param NumberOfLanguages An optional pointer to a variable that receives the number of languages that were set.
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly; the trailing Reserved parameter present in earlier headers does not exist.
- */
-// rev
-/**
- * The RtlSetThreadPreferredUILanguages routine sets the preferred UI languages for the calling thread.
- *
- * \param Flags Flags that control the operation.
- * \param LanguagesBuffer An optional pointer to the double-null-terminated list of languages to set.
- * \param NumberOfLanguages An optional pointer to a variable that receives the number of languages set.
- * \return NTSTATUS Successful or errant status.
+ * \remarks Changes language-resolution state for the selected scope, not merely an output string. Inputs are MULTI_SZ lists with representation-specific flags. A process-level change affects other threads; do not use a global setter as a harmless locale-query probe.
  */
 NTSYSAPI
 NTSTATUS
@@ -6064,6 +6192,7 @@ RtlSetThreadPreferredUILanguages(
     _Out_opt_ PULONG NumberOfLanguages
     );
 
+// rev
 /**
  * Sets the preferred UI languages for the current thread and optionally captures the previous state for later restoration.
  *
@@ -6073,16 +6202,7 @@ RtlSetThreadPreferredUILanguages(
  * \param SavedState An optional pointer to a variable that receives an opaque saved-state block to be passed to RtlRestoreThreadPreferredUILanguages.
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly; SavedState receives a pointer (not a scalar cookie).
- */
-// rev
-/**
- * The RtlSetThreadPreferredUILanguages2 routine sets the preferred UI languages for the calling thread and returns a state that can be used to restore the previous setting.
- *
- * \param Flags Flags that control the operation.
- * \param LanguagesBuffer An optional pointer to the double-null-terminated list of languages to set.
- * \param NumberOfLanguages An optional pointer to a variable that receives the number of languages set.
- * \param SavedState An optional pointer to a variable that receives the saved state, which can be passed to RtlRestoreThreadPreferredUILanguages.
- * \return NTSTATUS Successful or errant status.
+ * \remarks The saved-language object belongs to the thread that created it. Restore validates the saved thread identity and frees its bookkeeping; it is not a transferable language-list buffer. Use a matched same-thread save/restore lifecycle and do not reuse the restore object afterward.
  */
 NTSYSAPI
 NTSTATUS
@@ -6094,21 +6214,13 @@ RtlSetThreadPreferredUILanguages2(
     _Out_opt_ PVOID *SavedState
     );
 
+// rev
 /**
  * Resolves the locale identifier associated with a language-info node using the MUI registry information string pool.
  *
  * \param RegistryInfo The MUI registry information block that owns the string pool referenced by the node.
  * \param LangInfoNode A pointer to the language-info node to resolve.
  * \param Lcid A pointer to a variable that receives the resolved locale identifier.
- * \return NTSTATUS Successful or errant status.
- */
-// rev
-/**
- * The RtlpGetLCIDFromLangInfoNode routine retrieves the locale identifier associated with a language information node in the MUI registry information.
- *
- * \param RegistryInfo A pointer to the MUI registry information.
- * \param LangInfoNode A pointer to the language information node.
- * \param Lcid A pointer to a variable that receives the locale identifier.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -6138,6 +6250,7 @@ RtlpGetUserOrMachineUILanguage4NLS(
     _Inout_ PULONGLONG LanguageCount
     );
 
+// rev
 /**
  * Determines whether a language node qualifies against the installed and parent language set.
  *
@@ -6145,15 +6258,6 @@ RtlpGetUserOrMachineUILanguage4NLS(
  * \param LangNode A pointer to the language node (culture identifier) to test.
  * \param CheckInstallLanguage When TRUE the install language is included in the qualification check.
  * \return NTSTATUS STATUS_SUCCESS (with the qualified result encoded by the routine) or an errant status.
- */
-// rev
-/**
- * The RtlpIsQualifiedLanguage routine determines whether a language node identifies a qualified (supported) language.
- *
- * \param RegistryInfo A pointer to the MUI registry information.
- * \param LangNode A pointer to the language node to test.
- * \param CheckInstallLanguage If `TRUE`, the install language is also considered.
- * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6164,19 +6268,13 @@ RtlpIsQualifiedLanguage(
     _In_ BOOLEAN CheckInstallLanguage
     );
 
+// rev
 /**
  * Frees every sub-allocation owned by an MUI registry information block and releases the block itself.
  *
  * \param RegistryInfo The MUI registry information block to free.
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly; this is a full-teardown wrapper around RtlpMuiRegFreeRegistryInfo(RegistryInfo, 0xFFF) followed by RtlFreeHeap.
- */
-// rev
-/**
- * The RtlpMuiFreeLangRegistryInfo routine frees the language portion of an MUI registry information structure.
- *
- * \param RegistryInfo A pointer to the MUI registry information to free.
- * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6185,16 +6283,11 @@ RtlpMuiFreeLangRegistryInfo(
     _In_ PRTL_MUI_REGISTRY_INFO RegistryInfo
     );
 
+// rev
 /**
  * Allocates and zero-initializes an empty MUI registry information block.
  *
  * \return A pointer to the newly allocated MUI registry information block, or NULL on allocation failure.
- */
-// rev
-/**
- * The RtlpMuiRegCreateRegistryInfo routine allocates and initializes an MUI registry information structure.
- *
- * \return A pointer to the allocated MUI registry information, or `NULL` on failure.
  */
 NTSYSAPI
 PRTL_MUI_REGISTRY_INFO
@@ -6203,6 +6296,7 @@ RtlpMuiRegCreateRegistryInfo(
     VOID
     );
 
+// rev
 /**
  * Selectively frees the sub-allocations owned by an MUI registry information block according to a free mask.
  *
@@ -6210,14 +6304,6 @@ RtlpMuiRegCreateRegistryInfo(
  * \param FreeMask A bitmask selecting which owned members to release (0xFFF frees all standard categories).
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly; the block itself is not freed, only its selected members.
- */
-// rev
-/**
- * The RtlpMuiRegFreeRegistryInfo routine frees the resources associated with an MUI registry information structure.
- *
- * \param RegistryInfo A pointer to the MUI registry information to free.
- * \param FreeMask A mask that specifies which portions of the structure to free.
- * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6227,6 +6313,7 @@ RtlpMuiRegFreeRegistryInfo(
     _In_ ULONG FreeMask
     );
 
+// rev
 /**
  * Loads the requested categories of MUI registry information into an existing block.
  *
@@ -6234,14 +6321,6 @@ RtlpMuiRegFreeRegistryInfo(
  * \param LoadMask A bitmask selecting which categories to load (installed languages, license information, fallback and language-configuration lists).
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly.
- */
-// rev
-/**
- * The RtlpMuiRegLoadRegistryInfo routine loads MUI language information from the registry into an MUI registry information structure.
- *
- * \param RegistryInfo A pointer to the MUI registry information to populate.
- * \param LoadMask A mask that specifies which portions of the structure to load.
- * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6299,6 +6378,7 @@ RtlpSetInstallLanguage(
     _In_z_ PCWSTR Language
     );
 
+// rev
 /**
  * Applies a preferred UI language multi-string to the current process or thread scope selected by Flags.
  *
@@ -6306,15 +6386,6 @@ RtlpSetInstallLanguage(
  * \param LanguagesMultiSz An optional null-null terminated multi-string of preferred UI languages.
  * \param LanguagesCount An optional pointer to a variable that receives the number of languages that were applied.
  * \param Reserved Reserved; must be NULL.
- * \return NTSTATUS Successful or errant status.
- */
-// rev
-/**
- * The RtlpSetPreferredUILanguages routine sets the preferred UI languages using the specified multi-string language list.
- *
- * \param Flags Flags that control the operation.
- * \param LanguagesMultiSz An optional pointer to the double-null-terminated list of languages to set.
- * \param LanguagesCount An optional pointer to a variable that receives the number of languages set.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -6366,6 +6437,7 @@ RtlpVerifyAndCommitUILanguageSettings(
  * The RtlGetCurrentPeb routine returns a pointer to the process environment block (PEB) of the current process.
  *
  * \return A pointer to the PEB of the current process.
+ * \remarks Returns the current process PEB pointer from the calling thread TEB. The pointer is borrowed process infrastructure, not a snapshot or an allocation; obtaining it does not grant synchronization for mutable PEB fields.
  */
 NTSYSAPI
 PPEB
@@ -6378,6 +6450,7 @@ RtlGetCurrentPeb(
  * The RtlAcquirePebLock routine acquires the lock that protects the process environment block (PEB).
  *
  * \return NTSTATUS Successful or errant status.
+ * \remarks Wraps the process FastPebLock critical section. Balance each successful acquisition and keep the protected work short; this lock is not a universal lock for all loader, heap or PEB-related state. The try-acquire result is BOOLEAN.
  */
 _Acquires_exclusive_lock_(*NtCurrentPeb()->FastPebLock)
 NTSYSAPI
@@ -6391,6 +6464,7 @@ RtlAcquirePebLock(
  * The RtlReleasePebLock routine releases the lock that protects the process environment block (PEB).
  *
  * \return NTSTATUS Successful or errant status.
+ * \remarks Wraps the process FastPebLock critical section. Balance each successful acquisition and keep the protected work short; this lock is not a universal lock for all loader, heap or PEB-related state. The try-acquire result is BOOLEAN.
  */
 _Releases_exclusive_lock_(*NtCurrentPeb()->FastPebLock)
 NTSYSAPI
@@ -6405,6 +6479,7 @@ RtlReleasePebLock(
  * The RtlTryAcquirePebLock routine attempts to acquire the process environment block (PEB) lock without blocking.
  *
  * \return A nonzero value if the lock was acquired, otherwise zero.
+ * \remarks Wraps the process FastPebLock critical section. Balance each successful acquisition and keep the protected work short; this lock is not a universal lock for all loader, heap or PEB-related state. The try-acquire result is BOOLEAN.
  */
 _When_(return != 0, _Acquires_exclusive_lock_(*NtCurrentPeb()->FastPebLock))
 NTSYSAPI
@@ -6584,6 +6659,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
  * \param ShellInfo An optional shell information string.
  * \param RuntimeData An optional runtime data string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Allocates process-parameter data; it does not create a process. Keep counted source strings and any input environment valid during capture. Destroy the resulting allocation with RtlDestroyProcessParameters. Normalization is controlled by the selected entry/flags and is not guaranteed solely by a successful status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6617,6 +6693,7 @@ RtlCreateProcessParameters(
  * \param RuntimeData An optional runtime data string.
  * \param Flags Pass RTL_USER_PROC_PARAMS_NORMALIZED to keep the parameters normalized.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Allocates process-parameter data; it does not create a process. Keep counted source strings and any input environment valid during capture. Destroy the resulting allocation with RtlDestroyProcessParameters. Normalization is controlled by the selected entry/flags and is not guaranteed solely by a successful status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6649,6 +6726,7 @@ RtlCreateProcessParametersEx(
  * \param Template Pointer to an existing process parameters block to use as a template.
  * \param Flags Pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Allocates process-parameter data; it does not create a process. Keep counted source strings and any input environment valid during capture. Destroy the resulting allocation with RtlDestroyProcessParameters. Normalization is controlled by the selected entry/flags and is not guaranteed solely by a successful status.
  */
 NTSYSAPI
 NTSTATUS
@@ -6665,6 +6743,7 @@ RtlCreateProcessParametersWithTemplate(
  *
  * \param ProcessParameters A pointer to the process parameters block to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases the compatible process-heap parameter allocation. It does not terminate a process, close arbitrary inherited handles or free caller-owned inputs independently. Do not install the allocation as live process state and then destroy it while another thread may still use it.
  */
 NTSYSAPI
 NTSTATUS
@@ -6678,6 +6757,7 @@ RtlDestroyProcessParameters(
  *
  * \param ProcessParameters A pointer to the process parameters block to normalize.
  * \return A pointer to the normalized process parameters block.
+ * \remarks Mutates selected parameter string pointers between base-relative offsets and absolute addresses, using flag bit 0x1 to avoid applying the transformation twice. Both return NULL for NULL input. Environment is not one of the string pointers converted by these routines; do not blindly rebase every pointer field.
  */
 NTSYSAPI
 PRTL_USER_PROCESS_PARAMETERS
@@ -6691,6 +6771,7 @@ RtlNormalizeProcessParams(
  *
  * \param ProcessParameters A pointer to the process parameters block to de-normalize.
  * \return A pointer to the de-normalized process parameters block.
+ * \remarks Mutates selected parameter string pointers between base-relative offsets and absolute addresses, using flag bit 0x1 to avoid applying the transformation twice. Both return NULL for NULL input. Environment is not one of the string pointers converted by these routines; do not blindly rebase every pointer field.
  */
 NTSYSAPI
 PRTL_USER_PROCESS_PARAMETERS
@@ -6713,20 +6794,30 @@ typedef struct _RTL_USER_PROCESS_INFORMATION
 
 // private
 /**
- * The RtlCreateUserProcess routine creates a new process and its primary thread. The new process runs in the security context of the calling process.
+ * The RtlCreateUserProcess routine creates a new process and its primary thread. The new process runs in the
+ * security context of the calling process.
  *
  * \param NtImagePathName The path of the image to be executed.
  * \param ExtendedParameters Reserved
  * \param ProcessParameters The process parameter information.
- * \param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a default security descriptor.
- * \param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a default security descriptor.
- * \param ParentProcess The handle of a process to use (instead of the calling process) as the parent for the process being created.
- * \param InheritHandles If this parameter is TRUE, each inheritable handle in the calling process is inherited by the new process.
- * \param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port. (WindowsErrorReportingServicePort)
+ * \param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a
+ * default security descriptor.
+ * \param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a
+ * default security descriptor.
+ * \param ParentProcess The handle of a process to use (instead of the calling process) as the parent for the
+ * process being created.
+ * \param InheritHandles If this parameter is TRUE, each inheritable handle in the calling process is
+ * inherited by the new process.
+ * \param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port.
+ * (WindowsErrorReportingServicePort)
  * \param TokenHandle The handle of a Token to use as the security context.
  * \param ProcessInformation The user process information.
  * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ * \sa
+ * https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ * \remarks Creates operating-system process/thread resources through internal creation helpers, unlike
+ * process-parameter allocation. Returned handles and partially completed creation require lifecycle-aware
+ * cleanup. Process creation flags and loader initialization have separate requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -6770,13 +6861,22 @@ typedef struct _RTL_USER_PROCESS_EXTENDED_PARAMETERS
  * The RtlCreateUserProcessEx routine creates a new process and its primary thread, with extended parameters.
  *
  * \param NtImagePathName Pointer to a UNICODE_STRING that specifies the path of the image to be executed.
- * \param ProcessParameters Pointer to a RTL_USER_PROCESS_PARAMETERS structure that contains process parameter information.
- * \param InheritHandles If TRUE, each inheritable handle in the calling process is inherited by the new process.
- * \param ProcessExtendedParameters Optional pointer to a RTL_USER_PROCESS_EXTENDED_PARAMETERS structure for additional process creation options. Can be NULL.
- * \param ProcessInformation Pointer to a RTL_USER_PROCESS_INFORMATION structure that receives information about the new process and its primary thread.
+ * \param ProcessParameters Pointer to a RTL_USER_PROCESS_PARAMETERS structure that contains process parameter
+ * information.
+ * \param InheritHandles If TRUE, each inheritable handle in the calling process is inherited by the new
+ * process.
+ * \param ProcessExtendedParameters Optional pointer to a RTL_USER_PROCESS_EXTENDED_PARAMETERS structure for
+ * additional process creation options. Can be NULL.
+ * \param ProcessInformation Pointer to a RTL_USER_PROCESS_INFORMATION structure that receives information
+ * about the new process and its primary thread.
  * \return NTSTATUS Successful or errant status.
- * \remarks This function is available on Windows 10 RS2 and later. It allows for more advanced process creation scenarios than RtlCreateUserProcess.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ * \remarks This function is available on Windows 10 RS2 and later. It allows for more advanced process
+ * creation scenarios than RtlCreateUserProcess.
+ * \sa
+ * https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ * \remarks Creates operating-system process/thread resources through internal creation helpers, unlike
+ * process-parameter allocation. Returned handles and partially completed creation require lifecycle-aware
+ * cleanup. Process creation flags and loader initialization have separate requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -6795,7 +6895,10 @@ RtlCreateUserProcessEx(
  *
  * \param ExitStatus The exit status for the process and all threads.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitprocess
- * \remarks This function does not return to the caller. It terminates the process and all threads immediately.
+ * \remarks This function does not return to the caller. It terminates the process and all threads
+ * immediately.
+ * \remarks These alter execution lifecycle rather than just creating/freeing a data structure. Thread exit
+ * can become process exit for the last thread; runtime loader notifications and synchronization matter.
  */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
@@ -6820,11 +6923,17 @@ RtlExitUserProcess(
  * The RtlCloneUserProcess routine creates a new process from the current process.
  *
  * \param ProcessFlags The path of the image to be executed.
- * \param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a default security descriptor.
- * \param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a default security descriptor.
- * \param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port. (WindowsErrorReportingServicePort)
+ * \param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a
+ * default security descriptor.
+ * \param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a
+ * default security descriptor.
+ * \param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port.
+ * (WindowsErrorReportingServicePort)
  * \param ProcessInformation The new process information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These are process-lifecycle operations, not memory-copy helpers. They coordinate runtime locks and
+ * may create a process or execute startup work. Do not invoke prepare/complete independently as validation
+ * probes. Child and parent continuation, cleanup, and concurrency protocols are private.
  */
 NTSYSAPI
 NTSTATUS
@@ -6839,9 +6948,13 @@ RtlCloneUserProcess(
 
 // rev
 /**
- * The RtlPrepareForProcessCloning routine prepares the current process for cloning by acquiring the locks required to produce a consistent clone.
+ * The RtlPrepareForProcessCloning routine prepares the current process for cloning by acquiring the locks
+ * required to produce a consistent clone.
  *
  * \return NTSTATUS Successful or errant status.
+ * \remarks These are process-lifecycle operations, not memory-copy helpers. They coordinate runtime locks and
+ * may create a process or execute startup work. Do not invoke prepare/complete independently as validation
+ * probes. Child and parent continuation, cleanup, and concurrency protocols are private.
  */
 NTSYSAPI
 NTSTATUS
@@ -6852,10 +6965,14 @@ RtlPrepareForProcessCloning(
 
 // rev
 /**
- * The RtlCompleteProcessCloning routine completes a process cloning operation started by RtlPrepareForProcessCloning, releasing the locks acquired for cloning.
+ * The RtlCompleteProcessCloning routine completes a process cloning operation started by
+ * RtlPrepareForProcessCloning, releasing the locks acquired for cloning.
  *
  * \param Completed A value indicating whether the clone completed successfully.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These are process-lifecycle operations, not memory-copy helpers. They coordinate runtime locks and
+ * may create a process or execute startup work. Do not invoke prepare/complete independently as validation
+ * probes. Child and parent continuation, cleanup, and concurrency protocols are private.
  */
 NTSYSAPI
 NTSTATUS
@@ -6920,15 +7037,19 @@ typedef RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION PROCESS_REFLECTION_INFORM
 
 // rev
 /**
- * The RtlCreateProcessReflection function creates a lightweight copy of a process for debugging or snapshot purposes.
+ * The RtlCreateProcessReflection function creates a lightweight copy of a process for debugging or snapshot
+ * purposes.
  *
  * \param ProcessHandle Handle to the process to reflect.
  * \param Flags Flags that control the behavior of the reflection. See RTL_PROCESS_REFLECTION_FLAGS_*.
  * \param StartRoutine Optional pointer to a routine to execute in the reflected process.
  * \param StartContext Optional pointer to context to pass to the start routine.
  * \param EventHandle Optional handle to an event to signal when the reflection is complete.
- * \param ReflectionInformation Optional pointer to a structure that receives information about the reflected process.
+ * \param ReflectionInformation Optional pointer to a structure that receives information about the reflected
+ * process.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates operating-system process and thread resources. Flags control suspension, handle
+ * inheritance, and synchronization. Check the returned status before reading ReflectionInformation.
  */
 NTSYSAPI
 NTSTATUS
@@ -6950,6 +7071,8 @@ RtlCreateProcessReflection(
  * \param CheckFlag If TRUE, checks for certain conditions before setting.
  * \return NTSTATUS Successful or errant status.
  * \remarks A critical process will cause a system bugcheck if terminated.
+ * \remarks Changes termination policy and can make process/thread termination trigger a system bugcheck. The
+ * optional old-state output is not a guarantee that a failed or interrupted sequence can be safely undone.
  */
 NTSYSAPI
 NTSTATUS
@@ -6968,6 +7091,8 @@ RtlSetProcessIsCritical(
  * \param CheckFlag If TRUE, checks for certain conditions before setting.
  * \return NTSTATUS Successful or errant status.
  * \remarks A critical thread will cause a system bugcheck if terminated.
+ * \remarks Changes termination policy and can make process/thread termination trigger a system bugcheck. The
+ * optional old-state output is not a guarantee that a failed or interrupted sequence can be safely undone.
  */
 NTSYSAPI
 NTSTATUS
@@ -6984,6 +7109,7 @@ RtlSetThreadIsCritical(
  *
  * \param SubProcessTag Pointer to the tag value to set.
  * \return The previous sub-process tag value.
+ * \remarks Updates the current thread tag and returns the previous pointer-sized tag. It is bookkeeping rather than an owned allocation or handle. Preserve the previous value around scoped use; tag changes can participate in tracing.
  */
 NTSYSAPI
 PVOID
@@ -6998,6 +7124,7 @@ RtlSetThreadSubProcessTag(
  *
  * \param ProcessProtection Pointer to a PS_PROTECTION structure describing the protection.
  * \return TRUE if the protection level is valid, FALSE otherwise.
+ * \remarks Validates an encoded PS_PROTECTION value against the supported combinations; it does not validate that a particular process has that protection. The observed accepted bytes are 0, 8, 18, 33, 49, 65, 81, 82, 97, 98, 114 and 129. Treat this list as build-specific, not a portable authorization policy.
  */
 NTSYSAPI
 BOOLEAN
@@ -7013,6 +7140,7 @@ RtlValidProcessProtection(
  * \param Source Pointer to a PS_PROTECTION structure for the source.
  * \param Target Pointer to a PS_PROTECTION structure for the target.
  * \return TRUE if access is allowed, FALSE otherwise.
+ * \remarks Compares encoded protection levels using an internal relationship table, not process handles or a token access check. Supply valid protection encodings; do not infer general access rights or permission to bypass process security from its BOOLEAN result.
  */
 NTSYSAPI
 BOOLEAN
@@ -7029,6 +7157,7 @@ RtlTestProtectedAccess(
  * \param ProcessHandle Handle to the process to compare with the current process.
  * \return TRUE if the handle refers to the current process; otherwise, FALSE.
  * \remarks Internally compares the specified handle with the current process handle using NtCompareObjects.
+ * \remarks Accepts the corresponding current-process/current-thread pseudohandle or compares an actual handle using NtCompareObjects. FALSE conflates a nonmatching object with a comparison failure; no handle ownership is transferred.
  */
 NTSYSAPI
 BOOLEAN
@@ -7043,6 +7172,7 @@ RtlIsCurrentProcess( // NtCompareObjects(NtCurrentProcess(), ProcessHandle)
  * \param ThreadHandle Handle to the thread to compare with the current thread.
  * \return TRUE if the handle refers to the current thread; otherwise, FALSE.
  * \remarks Internally compares the specified handle with the current thread handle using NtCompareObjects.
+ * \remarks Accepts the corresponding current-process/current-thread pseudohandle or compares an actual handle using NtCompareObjects. FALSE conflates a nonmatching object with a comparison failure; no handle ownership is transferred.
  */
 NTSYSAPI
 BOOLEAN
@@ -7069,16 +7199,23 @@ typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
  * The RtlCreateUserThread routine creates a thread in the specified process.
  *
  * \param ProcessHandle Handle to the process in which the thread is to be created.
- * \param ThreadSecurityDescriptor Optional pointer to a security descriptor for the new thread. If NULL, the thread gets a default security descriptor.
- * \param CreateSuspended If TRUE, the thread is created in a suspended state and must be resumed explicitly. If FALSE, the thread starts running immediately.
- * \param ZeroBits Optional number of high-order address bits that must be zero in the stack's base address. Usually set to 0.
- * \param MaximumStackSize Optional maximum size, in bytes, of the stack for the new thread. If 0, the default size is used.
- * \param CommittedStackSize Optional initial size, in bytes, of committed stack for the new thread. If 0, the default size is used.
+ * \param ThreadSecurityDescriptor Optional pointer to a security descriptor for the new thread. If NULL, the
+ * thread gets a default security descriptor.
+ * \param CreateSuspended If TRUE, the thread is created in a suspended state and must be resumed explicitly.
+ * If FALSE, the thread starts running immediately.
+ * \param ZeroBits Optional number of high-order address bits that must be zero in the stack's base address.
+ * Usually set to 0.
+ * \param MaximumStackSize Optional maximum size, in bytes, of the stack for the new thread. If 0, the default
+ * size is used.
+ * \param CommittedStackSize Optional initial size, in bytes, of committed stack for the new thread. If 0, the
+ * default size is used.
  * \param StartAddress Pointer to the application-defined function to be executed by the thread.
  * \param Parameter Optional pointer to a variable to be passed to the thread function.
  * \param ThreadHandle Optional pointer to a variable that receives the handle of the new thread.
  * \param ClientId Optional pointer to a CLIENT_ID structure that receives the thread and process identifiers.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These alter execution lifecycle rather than just creating/freeing a data structure. Thread exit
+ * can become process exit for the last thread; runtime loader notifications and synchronization matter.
  */
 NTSYSAPI
 NTSTATUS
@@ -7102,6 +7239,8 @@ RtlCreateUserThread(
  * \param ExitStatus The exit status for the thread.
  * \remarks This function does not return to the caller. It terminates the thread immediately.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
+ * \remarks These alter execution lifecycle rather than just creating/freeing a data structure. Thread exit
+ * can become process exit for the last thread; runtime loader notifications and synchronization matter.
  */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
@@ -7136,6 +7275,7 @@ RtlIsCurrentThreadAttachExempt(
  * \param ReserveAlignment The alignment for the reserved stack region.
  * \param InitialTeb Pointer to an INITIAL_TEB structure that receives the stack information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates or releases a private virtual-memory stack allocation, including stack geometry/guard handling. Release using InitialTeb.StackAllocationBase, not StackBase or StackLimit. The allocation is not a running thread and must not be freed while any thread is using it.
  */
 NTSYSAPI
 NTSTATUS
@@ -7154,6 +7294,7 @@ RtlCreateUserStack(
  *
  * \param AllocationBase The base address of the stack allocation to free.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates or releases a private virtual-memory stack allocation, including stack geometry/guard handling. Release using InitialTeb.StackAllocationBase, not StackBase or StackLimit. The allocation is not a running thread and must not be freed while any thread is using it.
  */
 NTSYSAPI
 NTSTATUS
@@ -7267,6 +7408,7 @@ RtlInitializeContext(
  * \param ContextFlags Flags that specify which portions of the context are initialized.
  * \param ContextEx A pointer to a variable that receives a pointer to the extended context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Query the required backing size for the actual architecture/context flags before initialization. The initialized CONTEXT_EX describes chunks within the caller allocation; initialization is not capture of current CPU register values. XSTATE feature availability and alignment depend on the target architecture and machine configuration.
  */
 NTSYSAPI
 NTSTATUS
@@ -7285,6 +7427,7 @@ RtlInitializeExtendedContext(
  * \param ContextEx A pointer to a variable that receives a pointer to the extended context.
  * \param EnabledExtendedFeatures A mask of the enabled extended processor features.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Query the required backing size for the actual architecture/context flags before initialization. The initialized CONTEXT_EX describes chunks within the caller allocation; initialization is not capture of current CPU register values. XSTATE feature availability and alignment depend on the target architecture and machine configuration.
  */
 NTSYSAPI
 NTSTATUS
@@ -7303,6 +7446,9 @@ RtlInitializeExtendedContext2(
  * \param ContextFlags Flags that specify which portions of the context are copied.
  * \param Source A pointer to the source context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Copies requested context components between caller-owned compatible layouts; it does not get/set a
+ * live thread context. Required source/destination flags and chunk capacity must be established before the
+ * call. XSTATE and cross-architecture layouts require their corresponding flags and buffer sizes.
  */
 NTSYSAPI
 NTSTATUS
@@ -7320,6 +7466,9 @@ RtlCopyContext(
  * \param ContextFlags Flags that specify which portions of the context are copied.
  * \param Source A pointer to the source extended context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Copies requested context components between caller-owned compatible layouts; it does not get/set a
+ * live thread context. Required source/destination flags and chunk capacity must be established before the
+ * call. XSTATE and cross-architecture layouts require their corresponding flags and buffer sizes.
  */
 NTSYSAPI
 NTSTATUS
@@ -7336,6 +7485,7 @@ RtlCopyExtendedContext(
  * \param ContextFlags Flags that specify which portions of the context are included.
  * \param ContextLength A pointer to a variable that receives the required length, in bytes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Query the required backing size for the actual architecture/context flags before initialization. The initialized CONTEXT_EX describes chunks within the caller allocation; initialization is not capture of current CPU register values. XSTATE feature availability and alignment depend on the target architecture and machine configuration.
  */
 NTSYSAPI
 NTSTATUS
@@ -7352,6 +7502,7 @@ RtlGetExtendedContextLength(
  * \param ContextLength A pointer to a variable that receives the required length, in bytes.
  * \param EnabledExtendedFeatures A mask of the enabled extended processor features.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Query the required backing size for the actual architecture/context flags before initialization. The initialized CONTEXT_EX describes chunks within the caller allocation; initialization is not capture of current CPU register values. XSTATE feature availability and alignment depend on the target architecture and machine configuration.
  */
 NTSYSAPI
 NTSTATUS
@@ -7367,6 +7518,7 @@ RtlGetExtendedContextLength2(
  *
  * \param ContextEx A pointer to the extended context.
  * \return The mask of extended processor features.
+ * \remarks Operates on initialized extended-context metadata and machine-supported feature layouts. Returned feature pointers are borrowed slices, not allocations. Feature-mask bits are not permission to access unavailable or unallocated storage; legacy features and compacted layouts require the corresponding context contract.
  */
 NTSYSAPI
 ULONG64
@@ -7382,6 +7534,7 @@ RtlGetExtendedFeaturesMask(
  * \param FeatureId The XSTATE feature identifier to locate.
  * \param Length An optional pointer that receives the length, in bytes, of the feature save area.
  * \return A pointer to the feature save area, or NULL if the feature is not present.
+ * \remarks Operates on initialized extended-context metadata and machine-supported feature layouts. Returned feature pointers are borrowed slices, not allocations. Feature-mask bits are not permission to access unavailable or unallocated storage; legacy features and compacted layouts require the corresponding context contract.
  */
 NTSYSAPI
 PVOID
@@ -7400,6 +7553,7 @@ RtlLocateExtendedFeature(
  * \param XState The XSTATE configuration describing feature layout.
  * \param Length An optional pointer that receives the length, in bytes, of the feature save area.
  * \return A pointer to the feature save area, or NULL if the feature is not present.
+ * \remarks Operates on initialized extended-context metadata and machine-supported feature layouts. Returned feature pointers are borrowed slices, not allocations. Feature-mask bits are not permission to access unavailable or unallocated storage; legacy features and compacted layouts require the corresponding context contract.
  */
 NTSYSAPI
 PVOID
@@ -7417,6 +7571,9 @@ RtlLocateExtendedFeature2(
  * \param ContextEx A pointer to the extended context.
  * \param Length An optional pointer to a variable that receives the length of the legacy context.
  * \return A pointer to the legacy CONTEXT structure.
+ * \remarks Returns a borrowed pointer to the legacy chunk described by CONTEXT_EX and optionally its chunk
+ * length. Do not assume that length equals sizeof(CONTEXT): an x86 CONTEXT_FULL legacy chunk can be 204 bytes
+ * while sizeof(CONTEXT) is 716. The returned range must stay within the original backing allocation.
  */
 NTSYSAPI
 PCONTEXT
@@ -7431,6 +7588,7 @@ RtlLocateLegacyContext(
  *
  * \param ContextEx A pointer to the extended context.
  * \param FeatureMask The mask of extended processor features to set.
+ * \remarks Operates on initialized extended-context metadata and machine-supported feature layouts. Returned feature pointers are borrowed slices, not allocations. Feature-mask bits are not permission to access unavailable or unallocated storage; legacy features and compacted layouts require the corresponding context contract.
  */
 NTSYSAPI
 VOID
@@ -7549,6 +7707,7 @@ RtlRemoteCall(
  * \param Handler A pointer to the vectored exception handler to be called.
  * \return A handle to the vectored exception handler.
  * \see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredexceptionhandler
+ * \remarks Registration returns an opaque cookie used with the matching removal family. It is not a kernel handle or the callback address. Keep callback code/storage alive while dispatch can reach it; a sequential add/remove test does not prove safe concurrent DLL unloading or in-flight handler completion.
  */
 NTSYSAPI
 PVOID
@@ -7564,6 +7723,7 @@ RtlAddVectoredExceptionHandler(
  * \param Handle A handle to the vectored exception handler to remove.
  * \return The function returns 0 if the handler is removed, or -1 if the handler is not found.
  * \see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredexceptionhandler
+ * \remarks Registration returns an opaque cookie used with the matching removal family. It is not a kernel handle or the callback address. Keep callback code/storage alive while dispatch can reach it; a sequential add/remove test does not prove safe concurrent DLL unloading or in-flight handler completion.
  */
 NTSYSAPI
 ULONG
@@ -7579,6 +7739,7 @@ RtlRemoveVectoredExceptionHandler(
  * \param Handler A pointer to the vectored exception handler to be called.
  * \return A handle to the vectored continue handler.
  * \see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredcontinuehandler
+ * \remarks Registration returns an opaque cookie used with the matching removal family. It is not a kernel handle or the callback address. Keep callback code/storage alive while dispatch can reach it; a sequential add/remove test does not prove safe concurrent DLL unloading or in-flight handler completion.
  */
 NTSYSAPI
 PVOID
@@ -7594,6 +7755,7 @@ RtlAddVectoredContinueHandler(
  * \param Handle A handle to the vectored continue handler to remove.
  * \return The function returns 0 if the handler is removed, or -1 if the handler is not found.
  * \see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredcontinuehandler
+ * \remarks Registration returns an opaque cookie used with the matching removal family. It is not a kernel handle or the callback address. Keep callback code/storage alive while dispatch can reach it; a sequential add/remove test does not prove safe concurrent DLL unloading or in-flight handler completion.
  */
 NTSYSAPI
 ULONG
@@ -7730,6 +7892,7 @@ RtlGetFunctionTableListHead(
  *
  * \param ListHead A pointer to the SLIST_HEADER that represents the list head.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlinitializeslisthead
+ * \remarks Uses caller-owned aligned intrusive nodes. On x64 the header requires 16-byte alignment. Pop/flush detach entries but do not free them; callers must still solve reclamation against concurrent users. For batch push, the linked chain, end pointer and count must describe the same nodes.
  */
 NTSYSAPI
 VOID
@@ -7744,6 +7907,7 @@ RtlInitializeSListHead(
  * \param ListHead A pointer to the initialized singly linked-list header.
  * \return A pointer to the first entry in the list, or NULL if the list is empty.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlfirstentryslist
+ * \remarks These are observations, not removal/reservation operations. The first-entry pointer can be invalidated by another thread unless the caller provides a safe lifetime protocol. Depth is a 16-bit value and is not an unbounded allocation counter.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -7759,6 +7923,7 @@ RtlFirstEntrySList(
  * \param ListHead A pointer to the singly linked-list header.
  * \return The removed entry, or NULL if the list was empty.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlinterlockedpopentryslist
+ * \remarks Uses caller-owned aligned intrusive nodes. On x64 the header requires 16-byte alignment. Pop/flush detach entries but do not free them; callers must still solve reclamation against concurrent users. For batch push, the linked chain, end pointer and count must describe the same nodes.
  */
 NTSYSAPI
 PSLIST_ENTRY
@@ -7774,6 +7939,7 @@ RtlInterlockedPopEntrySList(
  * \param ListEntry A pointer to the entry to insert.
  * \return The previous first entry in the list, or NULL if the list was empty.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlinterlockedpushentryslist
+ * \remarks Uses caller-owned aligned intrusive nodes. On x64 the header requires 16-byte alignment. Pop/flush detach entries but do not free them; callers must still solve reclamation against concurrent users. For batch push, the linked chain, end pointer and count must describe the same nodes.
  */
 NTSYSAPI
 PSLIST_ENTRY
@@ -7793,6 +7959,7 @@ RtlInterlockedPushEntrySList(
  * \return The previous first entry in the destination list, or NULL if the
  * destination list was empty.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/interlockedapi/nf-interlockedapi-interlockedpushlistslistex
+ * \remarks Uses caller-owned aligned intrusive nodes. On x64 the header requires 16-byte alignment. Pop/flush detach entries but do not free them; callers must still solve reclamation against concurrent users. For batch push, the linked chain, end pointer and count must describe the same nodes.
  */
 NTSYSAPI
 PSLIST_ENTRY
@@ -7810,6 +7977,7 @@ RtlInterlockedPushListSListEx(
  * \param ListHead A pointer to the singly linked-list header.
  * \return The previous first entry in the list, or NULL if the list was empty.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlinterlockedflushslist
+ * \remarks Uses caller-owned aligned intrusive nodes. On x64 the header requires 16-byte alignment. Pop/flush detach entries but do not free them; callers must still solve reclamation against concurrent users. For batch push, the linked chain, end pointer and count must describe the same nodes.
  */
 NTSYSAPI
 PSLIST_ENTRY
@@ -7824,6 +7992,7 @@ RtlInterlockedFlushSList(
  * \param ListHead A pointer to the singly linked-list header.
  * \return The number of entries currently present in the list.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlquerydepthslist
+ * \remarks These are observations, not removal/reservation operations. The first-entry pointer can be invalidated by another thread unless the caller provides a safe lifetime protocol. Depth is a 16-bit value and is not an unbounded allocation counter.
  */
 NTSYSAPI
 USHORT
@@ -7851,6 +8020,7 @@ RtlQueryDepthSList(
  *
  * \param ActivationContext A pointer to a variable that receives the active activation context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Success can return NULL when no frame is active. A non-NULL ordinary context is add-referenced and must be released with RtlReleaseActivationContext. The output is not a kernel handle to close with NtClose.
  */
 NTSYSAPI
 NTSTATUS
@@ -7864,6 +8034,7 @@ RtlGetActiveActivationContext(
  * The RtlAddRefActivationContext routine increments the reference count of an activation context.
  *
  * \param ActivationContext A pointer to the activation context.
+ * \remarks Manages runtime activation-context references, not kernel-object handles. Special sentinel values have runtime-specific handling; do not assume arbitrary pointer-shaped values are safe. A released final reference invalidates the object and its borrowed section data.
  */
 NTSYSAPI
 VOID
@@ -7877,6 +8048,7 @@ RtlAddRefActivationContext(
  * The RtlReleaseActivationContext routine decrements the reference count of an activation context, releasing it when the count reaches zero.
  *
  * \param ActivationContext A pointer to the activation context.
+ * \remarks Manages runtime activation-context references, not kernel-object handles. Special sentinel values have runtime-specific handling; do not assume arbitrary pointer-shaped values are safe. A released final reference invalidates the object and its borrowed section data.
  */
 NTSYSAPI
 VOID
@@ -7921,6 +8093,9 @@ RtlIsActivationContextActive(
  * \param ActivationContext A pointer to the activation context to activate.
  * \param Cookie A pointer to a variable that receives a cookie used to deactivate the context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Activation cookies belong to the target thread activation stack, not a process-global handle
+ * table. Pair activation/deactivation in the correct thread and stack order. Invalid or out-of-order cookies
+ * can raise exceptions.
  */
 NTSYSAPI
 NTSTATUS
@@ -7945,6 +8120,9 @@ RtlActivateActivationContext(
  * \param ActivationContext A pointer to the activation context to activate.
  * \param Cookie A pointer to a variable that receives a cookie used to deactivate the context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Activation cookies belong to the target thread activation stack, not a process-global handle
+ * table. Pair activation/deactivation in the correct thread and stack order. Invalid or out-of-order cookies
+ * can raise exceptions.
  */
 NTSYSAPI
 NTSTATUS
@@ -7963,10 +8141,14 @@ RtlActivateActivationContextEx(
 
 // private
 /**
- * The RtlDeactivateActivationContext routine deactivates an activation context previously activated on the calling thread.
+ * The RtlDeactivateActivationContext routine deactivates an activation context previously activated on the
+ * calling thread.
  *
  * \param Flags Flags that control the deactivation.
  * \param Cookie The cookie returned when the activation context was activated.
+ * \remarks Activation cookies belong to the target thread activation stack, not a process-global handle
+ * table. Pair activation/deactivation in the correct thread and stack order. Invalid or out-of-order cookies
+ * can raise exceptions.
  */
 NTSYSAPI
 VOID
@@ -8106,6 +8288,7 @@ RtlQueryActivationContextApplicationSettings(
  * \param ActivationContextInformationLength The size, in bytes, of the buffer.
  * \param ReturnLength An optional pointer that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Sizing depends on the information class and flags. Returned data can contain borrowed context references or pointers, so follow the class-specific ownership rules. Do not generalize the basic-info size to detailed assembly, file, compatibility or run-level outputs.
  */
 NTSYSAPI
 NTSTATUS
@@ -8128,6 +8311,7 @@ RtlQueryInformationActivationContext(
  * \param ActivationContextInformationLength The size, in bytes, of the buffer.
  * \param ReturnLength An optional pointer that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Sizing depends on the information class and flags. Returned data can contain borrowed context references or pointers, so follow the class-specific ownership rules. Do not generalize the basic-info size to detailed assembly, file, compatibility or run-level outputs.
  */
 #if defined(_PHLIB_)
 // private
@@ -8168,13 +8352,14 @@ RtlQueryInformationActiveActivationContext(
 // Loader (Ldr)
 //
 
+// rev
 /**
  * The LdrHotPatchNotify routine notifies the loader that a hot-patch image has been applied so that dependent loader state can be updated.
  *
- * \param ImageBase The base address of the image receiving the hot patch.
- * \return NTSTATUS Successful or errant status.
+ * \param ImageBase The base address of the image receiving the hot patch. For a 32-bit image in a WOW64 process
+ * (or the WOW64 main image) the call is forwarded to the 32-bit ntdll on a new thread.
+ * \return NTSTATUS Successful or errant status (STATUS_NOT_SUPPORTED when hot patching is disabled).
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -8182,47 +8367,57 @@ LdrHotPatchNotify(
     _In_ PVOID ImageBase
     );
 
+// rev
 /**
  * The LdrInitShimEngineDynamic routine dynamically initializes the application-compatibility shim engine for the specified image.
  *
- * \param ImageBase The base address of the shim engine image.
- * \param ShimData Opaque shim data describing the shims to apply.
- * \return BOOL TRUE if successful, FALSE otherwise.
+ * \param ImageBase The base address of the shim engine image (must already be loaded; it is pinned and becomes the process shim engine if none is set).
+ * \param ShimData Required. Dereferenced without a NULL check: the pointer at offset 8 is passed to LdrpLoadShimEngine as a
+ * NUL-terminated wide string (layout consistent with a UNICODE_STRING whose Buffer holds the shim data path).
+ * \return BOOL TRUE if the shim engine was loaded, FALSE otherwise (the result is a zero-extended BOOLEAN).
  */
-// rev
 NTSYSAPI
 BOOL
 NTAPI
 LdrInitShimEngineDynamic(
     _In_ PVOID ImageBase,
-    _In_opt_ PVOID ShimData
+    _In_ PVOID ShimData
     );
 
-/**
- * The LdrRscIsTypeExist routine determines whether a resource of the specified type exists within a resource enumeration context.
- *
- * \param RscContext A pointer to the resource enumeration context.
- * \param Type The resource type name to test for.
- * \param Reserved Reserved; must be NULL.
- * \param Flags On input specifies matching flags; on output receives result flags.
- * \return NTSTATUS Successful or errant status.
- */
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
+/**
+ * The LdrRscIsTypeExist routine checks a resource type against the type lists of a module's MUI RC configuration,
+ * which tells the MUI loader whether to look for the type in the main module, the .mui module, or both.
+ * Called by LdrIsResItemExist and LdrpSearchResourceSection_U.
+ *
+ * \param RcConfig The MUI_RC_CONFIG of the module (e.g. from LdrResGetRCConfig).
+ * \param Type The resource type: a name (compared case-insensitively with the MainTypes/MuiTypes multi-strings) or
+ * MAKEINTRESOURCE(ID) (compared with the Section4/Section6 integer arrays).
+ * \param Flags Ignored (callers pass their LDR_RES_SEARCH_* flags).
+ * \param ResultFlags Receives, OR-ed into its current value, LDR_RES_SEARCH_RESULT_NOT_IN_MAIN (0x40000) if the type is
+ * not listed for the main module and LDR_RES_SEARCH_RESULT_NOT_IN_MUI (0x20000) if not listed for the MUI module.
+ * The caller must initialize it.
+ * \return NTSTATUS STATUS_SUCCESS, or STATUS_INVALID_PARAMETER if RcConfig or ResultFlags is NULL.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrRscIsTypeExist(
-    _Inout_ PULONG RscContext,
-    _In_z_ PCWSTR Type,
-    _Reserved_ PVOID Reserved,
-    _Inout_ PULONG Flags
+    _In_ PMUI_RC_CONFIG RcConfig,
+    _In_ PCWSTR Type,
+    _In_ ULONG Flags,
+    _Inout_ PULONG ResultFlags
     );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 /**
  * The LdrSetAppCompatDllRedirectionCallback routine registers a callback used to redirect application-compatibility DLL loads.
  *
- * \param Callback The redirection callback routine to register.
+ * \param Callback The redirection callback routine to register (see LDR_DLL_REDIRECTION_CALLBACK).
  * \return NTSTATUS Successful or errant status.
+ * \remarks On 10.0.26100 the export is a shared stub that ignores its arguments and returns STATUS_SUCCESS without
+ * registering anything; the stub does not establish a callable parameter contract.
  */
 NTSYSAPI
 NTSTATUS
@@ -8235,8 +8430,9 @@ LdrSetAppCompatDllRedirectionCallback(
 /**
  * The LdrSetMUICacheType routine sets the MUI (Multilingual User Interface) resource cache type for the current process.
  *
- * \param MuiCacheType The MUI cache type to set.
- * \return NTSTATUS Successful or errant status.
+ * \param MuiCacheType The MUI cache type to set: bits 0-2 only, and bits 1 and 2 must not both be set.
+ * \return NTSTATUS STATUS_INVALID_PARAMETER for an invalid value, STATUS_UNSUCCESSFUL if a type was already set
+ * (it can be set only once per process), otherwise STATUS_SUCCESS.
  */
 NTSYSAPI
 NTSTATUS
@@ -8254,6 +8450,7 @@ LdrSetMUICacheType(
  *
  * \param BaseOfImage The base address of the mapped image.
  * \return A pointer to the image NT headers, or NULL if the image is invalid.
+ * \remarks The non-Ex wrapper uses the no-range-check path. Ex with range checks validates selected header bounds and signatures, not every PE directory or all pointer accessibility. A bound ending exactly at e_lfanew + 24 is rejected. Use a known readable allocation and validate each later directory/section access independently.
  */
 NTSYSAPI
 PIMAGE_NT_HEADERS
@@ -8275,6 +8472,7 @@ RtlImageNtHeader(
  * \param Size The size, in bytes, of the mapped image.
  * \param OutHeaders Receives a pointer to the image NT headers.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The non-Ex wrapper uses the no-range-check path. Ex with range checks validates selected header bounds and signatures, not every PE directory or all pointer accessibility. A bound ending exactly at e_lfanew + 24 is rejected. Use a known readable allocation and validate each later directory/section access independently.
  */
 NTSYSAPI
 NTSTATUS
@@ -8293,6 +8491,7 @@ RtlImageNtHeaderEx(
  * \param BaseOfImage The base address of the mapped image.
  * \param VirtualAddress The relative virtual address to translate.
  * \return A pointer to the data at the RVA, or NULL if the RVA is not within any section.
+ * \remarks The section lookup uses SizeOfRawData, not VirtualSize, when deciding whether an RVA belongs to a section. Translation uses PointerToRawData and is suitable for file-layout data; it is not simply image-base plus RVA. These helpers do not receive the mapped allocation size, so they are not full bounded PE validators.
  */
 NTSYSAPI
 PVOID
@@ -8328,6 +8527,7 @@ RtlSectionTableFromVirtualAddress(
  * \param DirectoryEntry The data directory entry index (IMAGE_DIRECTORY_ENTRY_*).
  * \param Size Receives the size, in bytes, of the directory data.
  * \return A pointer to the directory data, or NULL if the directory is absent.
+ * \remarks MappedAsImage distinguishes image-layout addressing from raw file-layout translation. Size is meaningful only when a directory pointer is returned. Neither the returned pointer nor the directory size proves that the whole directory lies within caller-readable storage; retain and independently bound the mapping.
  */
 NTSYSAPI
 PVOID
@@ -8346,6 +8546,7 @@ RtlImageDirectoryEntryToData(
  * \param BaseOfImage The base address of the mapped image.
  * \param Rva The relative virtual address to locate.
  * \return A pointer to the containing section header, or NULL if none contains the RVA.
+ * \remarks The section lookup uses SizeOfRawData, not VirtualSize, when deciding whether an RVA belongs to a section. Translation uses PointerToRawData and is suitable for file-layout data; it is not simply image-base plus RVA. These helpers do not receive the mapped allocation size, so they are not full bounded PE validators.
  */
 NTSYSAPI
 PIMAGE_SECTION_HEADER
@@ -8364,6 +8565,7 @@ RtlImageRvaToSection(
  * \param Rva The relative virtual address to translate.
  * \param LastRvaSection An optional pointer to a cached section header used and updated across calls.
  * \return A pointer to the data at the RVA, or NULL if the RVA is not within any section.
+ * \remarks LastRvaSection is an optional input/output cache. Initialize *LastRvaSection to NULL for a new image, and do not reuse a section pointer from another mapping. A miss can leave the cached pointer unchanged. The result is borrowed file-layout storage, not newly allocated memory.
  */
 NTSYSAPI
 PVOID
@@ -8372,19 +8574,20 @@ RtlImageRvaToVa(
     _In_ PIMAGE_NT_HEADERS NtHeaders,
     _In_ PVOID BaseOfImage,
     _In_ ULONG Rva,
-    _Out_opt_ PIMAGE_SECTION_HEADER *LastRvaSection
+    _Inout_opt_ PIMAGE_SECTION_HEADER *LastRvaSection
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 
+// rev
 /**
  * The RtlFindExportedRoutineByName routine locates an exported routine within a mapped image by its export name.
  *
  * \param BaseOfImage The base address of the mapped image to search.
  * \param RoutineName The name of the exported routine to find.
  * \return A pointer to the exported routine, or NULL if the export was not found.
+ * \remarks Searches a loaded image export table without returning an owning module reference. The implementation returns NULL for a forwarder rather than resolving another DLL. Do not call an unchecked result or unload its image while the result is in use.
  */
-// rev
 NTSYSAPI
 PVOID
 NTAPI
@@ -8393,6 +8596,7 @@ RtlFindExportedRoutineByName(
     _In_z_ PCSTR RoutineName
     );
 
+// rev
 /**
  * The RtlGuardCheckLongJumpTarget routine determines whether the specified address is a valid Control Flow Guard long-jump target.
  *
@@ -8401,7 +8605,6 @@ RtlFindExportedRoutineByName(
  * \param IsLongJumpTarget Receives TRUE if the address is a valid long-jump target.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -8440,6 +8643,7 @@ RtlValidateUserCallTarget(
  * \param Length The number of bytes to compare.
  * \return SIZE_T The number of bytes that are equal in the two memory blocks.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcomparememory
+ * \remarks Returns the number of matching bytes in the initial prefix, not a signed ordering result like memcmp and not necessarily the total number of equal bytes across the buffers. Full equality requires the result to equal Length.
  */
 _Check_return_
 NTSYSAPI
@@ -8458,6 +8662,7 @@ RtlCompareMemory(
  * \param Length The number of bytes to compare.
  * \param Pattern The ULONG pattern to compare against.
  * \return The number of leading bytes that match the pattern.
+ * \remarks Compares complete ULONG-sized units against the repeated pattern and reports a byte count. A nonmultiple-of-4 suffix is not a complete compared ULONG; do not use the result as bytewise validation of arbitrary trailing bytes.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -8476,6 +8681,9 @@ RtlCompareMemoryUlong(
  * \param Source The source memory to copy from.
  * \param Length The number of bytes to copy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Copies caller-supplied readable/writable memory through the runtime mapped-memory helper; it does
+ * not map memory or establish access permissions. Its status must be checked. Access faults and in-page
+ * errors require separate handling.
  */
 NTSYSAPI
 NTSTATUS
@@ -8488,11 +8696,15 @@ RtlCopyMappedMemory(
 
 #if defined(_M_AMD64) || defined(_M_ARM64)
 /**
- * The RtlCopyMemoryNonTemporal routine copies the contents of one memory block to another using non-temporal store operations that bypass the CPU cache.
+ * The RtlCopyMemoryNonTemporal routine copies the contents of one memory block to another using non-temporal
+ * store operations that bypass the CPU cache.
  *
  * \param Destination A pointer to the destination memory block.
  * \param Source A pointer to the source memory block.
  * \param Length The number of bytes to copy.
+ * \remarks These x64 exports perform explicit non-temporal data movement; the matching x86 header routes to
+ * ordinary memory macros and the x86 DLL lacks the corresponding exports. Do not dynamically invoke a NULL
+ * resolution on x86 or assume a macro fallback establishes DLL export availability.
  */
 NTSYSAPI
 VOID
@@ -8504,11 +8716,15 @@ RtlCopyMemoryNonTemporal(
    );
 
 /**
- * The RtlFillMemoryNonTemporal routine fills a block of memory with the specified byte value using non-temporal store operations that bypass the CPU cache.
+ * The RtlFillMemoryNonTemporal routine fills a block of memory with the specified byte value using
+ * non-temporal store operations that bypass the CPU cache.
  *
  * \param Destination A pointer to the memory block to fill.
  * \param Length The number of bytes to fill.
  * \param Value The byte value to write to each byte of the memory block.
+ * \remarks These x64 exports perform explicit non-temporal data movement; the matching x86 header routes to
+ * ordinary memory macros and the x86 DLL lacks the corresponding exports. Do not dynamically invoke a NULL
+ * resolution on x86 or assume a macro fallback establishes DLL export availability.
  */
 NTSYSAPI
 VOID
@@ -8619,6 +8835,7 @@ RtlFillMemoryUlonglong(
  * \param Buffer The buffer to examine.
  * \param Length The number of bytes to examine.
  * \return TRUE if all examined bytes are zero; otherwise, FALSE.
+ * \remarks Tests all requested bytes and returns BOOLEAN; it is not a constant-time secrecy primitive or an allocation-validity probe. The buffers must remain readable and stable for the duration of the scan.
  */
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_19H2)
 NTSYSAPI
@@ -8678,6 +8895,7 @@ RtlIsZeroMemory(
  * \param InitialCrc The initial CRC value used to seed the computation.
  * \return ULONG The computed CRC-32 checksum.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcrc32
+ * \remarks Checksums use caller-supplied seed/state and byte counts. They are not cryptographic authentication. The CRC32 entry can select a feature-gated accelerated helper; document the exact routine/seed when storing an interoperability format instead of assuming every CRC32-named routine has the same polynomial.
  */
 NTSYSAPI
 ULONG
@@ -8696,6 +8914,7 @@ RtlCrc32(
  * \param InitialCrc The initial CRC value used to seed the computation.
  * \return ULONGLONG The computed CRC-64 checksum.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcrc64
+ * \remarks Checksums use caller-supplied seed/state and byte counts. They are not cryptographic authentication. The CRC32 entry can select a feature-gated accelerated helper; document the exact routine/seed when storing an interoperability format instead of assuming every CRC32-named routine has the same polynomial.
  */
 NTSYSAPI
 ULONGLONG
@@ -8781,6 +9000,7 @@ RtlSetSystemGlobalData(
  * \param CloneCurrentEnvironment TRUE to clone the current environment; FALSE to create an empty one.
  * \param Environment Receives the newly created environment block.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates/destroys a separately owned environment allocation. CreateEnvironment(FALSE) creates an empty block rather than copying the process environment. Ex flags and source encoding determine cloning behavior. Do not free a live process environment or borrow its pointer and treat it as a private allocation.
  */
 NTSYSAPI
 NTSTATUS
@@ -8807,6 +9027,7 @@ RtlCreateEnvironment(
  * \param Environment Receives the newly created environment block.
  * \param Flags Flags controlling creation.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates/destroys a separately owned environment allocation. CreateEnvironment(FALSE) creates an empty block rather than copying the process environment. Ex flags and source encoding determine cloning behavior. Do not free a live process environment or borrow its pointer and treat it as a private allocation.
  */
 NTSYSAPI
 NTSTATUS
@@ -8822,6 +9043,7 @@ RtlCreateEnvironmentEx(
  *
  * \param Environment The environment block to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates/destroys a separately owned environment allocation. CreateEnvironment(FALSE) creates an empty block rather than copying the process environment. Ex flags and source encoding determine cloning behavior. Do not free a live process environment or borrow its pointer and treat it as a private allocation.
  */
 NTSYSAPI
 NTSTATUS
@@ -8836,6 +9058,9 @@ RtlDestroyEnvironment(
  * \param Environment The environment block to make current.
  * \param PreviousEnvironment An optional pointer that receives the previous environment block.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Mutates process-wide environment state and can invalidate other threads borrowed pointers.
+ * SetCurrentEnvironment can return the old allocation or release it when no old-output slot is supplied. This
+ * operation transfers ownership of process-wide environment storage.
  */
 NTSYSAPI
 NTSTATUS
@@ -8855,6 +9080,7 @@ RtlSetCurrentEnvironment(
  * \param Value The value to set, or NULL to remove the variable.
  * \param ValueLength The length, in characters, of Value.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NULL Value deletes the variable; a non-NULL value with zero counted length sets an empty value. Mutation can replace the allocation and update *Environment, invalidating cached interior pointers. NULL Environment selects process-global state; use a private block for isolated edits. Raw Var lengths are WCHAR counts, while UNICODE_STRING lengths are bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -8863,7 +9089,7 @@ RtlSetEnvironmentVar(
     _Inout_opt_ PVOID *Environment,
     _In_reads_(NameLength) PCWSTR Name,
     _In_ SIZE_T NameLength,
-    _In_reads_(ValueLength) PCWSTR Value,
+    _In_reads_opt_(ValueLength) PCWSTR Value,
     _In_opt_ SIZE_T ValueLength
     );
 
@@ -8874,6 +9100,7 @@ RtlSetEnvironmentVar(
  * \param Name The name of the environment variable.
  * \param Value The value to set, or NULL to remove the variable.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NULL Value deletes the variable; a non-NULL value with zero counted length sets an empty value. Mutation can replace the allocation and update *Environment, invalidating cached interior pointers. NULL Environment selects process-global state; use a private block for isolated edits. Raw Var lengths are WCHAR counts, while UNICODE_STRING lengths are bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -8895,6 +9122,7 @@ RtlSetEnvironmentVariable(
  * \param ValueLength The length, in characters, of the Value buffer.
  * \param ReturnLength Receives the length, in characters, of the value.
  * \return NTSTATUS Successful or errant status.
+ * \remarks ReturnLength changes meaning with status : successful lookup reports visible WCHARs excluding NUL; STATUS_BUFFER_TOO_SMALL reports required WCHARs including NUL. Exact visible-character capacity is insufficient. On short nonempty output the first WCHAR is cleared; a missing variable returns STATUS_VARIABLE_NOT_FOUND. Pseudo-variable paths can differ from ordinary private-block lookup.
  */
 NTSYSAPI
 NTSTATUS
@@ -8915,6 +9143,7 @@ RtlQueryEnvironmentVariable(
  * \param Name The name of the environment variable.
  * \param Value Receives the value of the environment variable.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Length is a byte count excluding the terminator, including on STATUS_BUFFER_TOO_SMALL; it can exceed MaximumLength and is not a copied-byte count on failure. The destination still needs room for NUL. Check status before consuming Buffer or treating Length as initialized output.
  */
 NTSYSAPI
 NTSTATUS
@@ -8936,6 +9165,7 @@ RtlQueryEnvironmentVariable_U(
  * \param DestinationLength The length, in characters, of the Destination buffer.
  * \param ReturnLength An optional pointer that receives the length, in characters, of the expanded string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Expansion is not validation or escaping of command lines/paths. Unresolved percent-delimited names can remain unchanged. The raw API ReturnLength is a WCHAR count including NUL; the _U optional required-length output is bytes including NUL, while successful destination Length excludes NUL.
  */
 NTSYSAPI
 NTSTATUS
@@ -8957,6 +9187,7 @@ RtlExpandEnvironmentStrings(
  * \param Destination Receives the expanded string.
  * \param ReturnedLength An optional pointer that receives the length, in bytes, of the expanded string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Expansion is not validation or escaping of command lines/paths. Unresolved percent-delimited names can remain unchanged. The raw API ReturnLength is a WCHAR count including NUL; the _U optional required-length output is bytes including NUL, while successful destination Length excludes NUL.
  */
 NTSYSAPI
 NTSTATUS
@@ -8969,11 +9200,16 @@ RtlExpandEnvironmentStrings_U(
     );
 
 /**
- * The RtlSetEnvironmentStrings routine replaces the environment block of the current process with the specified environment strings.
+ * The RtlSetEnvironmentStrings routine replaces the environment block of the current process with the
+ * specified environment strings.
  *
- * \param NewEnvironment A pointer to the new environment block, consisting of null-terminated name=value strings terminated by an additional null character.
+ * \param NewEnvironment A pointer to the new environment block, consisting of null-terminated name=value
+ * strings terminated by an additional null character.
  * \param NewEnvironmentSize The size, in bytes, of the new environment block.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Mutates process-wide environment state and can invalidate other threads borrowed pointers.
+ * SetCurrentEnvironment can return the old allocation or release it when no old-output slot is supplied. This
+ * operation transfers ownership of process-wide environment storage.
  */
 NTSYSAPI
 NTSTATUS
@@ -9064,6 +9300,7 @@ NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
  *
  * \param DosFileName A pointer to the buffer that contains the Dos or Win32 filename.
  * \return The return value specifies the path type for the specified file.
+ * \remarks Classifies syntax only; it does not open a file, prove existence or establish that a path is safe. Drive-relative, rooted, UNC and device forms have different resolution rules. Perform filesystem authorization after resolving/opening the intended object.
  */
 NTSYSAPI
 RTL_PATH_TYPE
@@ -9080,6 +9317,7 @@ RtlDetermineDosPathNameType_U(
  * in the input buffer where the dos device name beings and the low order 16 bits is the length of the device name (excluding any optional trailing colon).
  * Otherwise, A zero value when the Dos file name is not the name of a Dos device.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlisdosdevicename_u
+ * \remarks A nonzero result encodes byte offset in the high WORD and device-name byte length in the low WORD; it is not a BOOLEAN or character index. For example NUL returns 6. This detects DOS device-name syntax, not filesystem object identity.
  */
 NTSYSAPI
 ULONG
@@ -9092,11 +9330,18 @@ RtlIsDosDeviceName_U(
  * The RtlGetFullPathName_U routine retrieves the full path and file name of the specified file.
  *
  * \param FileName A pointer to the buffer that contains the relative filename.
- * \param BufferLength The length of the buffer for the file path string, in WCHARs. The buffer length must include room for a terminating null character.
+ * \param BufferLength The length of the buffer for the file path string, in WCHARs. The buffer length must
+ * include room for a terminating null character.
  * \param Buffer A pointer to the buffer that receives the file path string.
- * \param FilePart A pointer to a buffer that receives the address (within Buffer) of the final file name component in the path.
- * \return If the function succeeds, the return value specifies the number of characters that are written to the buffer, not including the terminating null character.
+ * \param FilePart A pointer to a buffer that receives the address (within Buffer) of the final file name
+ * component.
+ * \return If the function succeeds, the return value specifies the number of characters that are written to
+ * the buffer, not including the terminating null character.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamea
+ * \remarks BufferLength and the returned/reported length are bytes, not WCHAR counts. When capacity suffices
+ * the reported length excludes NUL; the required short-buffer length includes it. The _UEx wrapper can return
+ * STATUS_SUCCESS for a sizing/short-buffer result, so compare BytesRequired with capacity instead of testing
+ * status alone. FilePart is borrowed within Buffer.
  */
 NTSYSAPI
 ULONG
@@ -9113,12 +9358,19 @@ RtlGetFullPathName_U(
  * The RtlGetFullPathName_UEx routine retrieves the full path and file name of the specified file.
  *
  * \param FileName A pointer to the buffer that contains the relative filename.
- * \param BufferLength The length of the buffer for the file path string, in WCHARs. The buffer length must include room for a terminating null character.
+ * \param BufferLength The length of the buffer for the file path string, in bytes. The buffer length must
+ * include room for a terminating null character.
  * \param Buffer A pointer to the buffer that receives the file path string.
- * \param FilePart A pointer to a buffer that receives the address (within Buffer) of the final file name component in the path.
- * \param BytesRequired If the function succeeds, the return value specifies the number of characters that are written to the buffer, not including the terminating null character.
+ * \param FilePart A pointer to a buffer that receives the address (within Buffer) of the final file name
+ * component.
+ * \param BytesRequired Receives a byte count: written bytes excluding NUL on a full copy, or required bytes
+ * including NUL when capacity is insufficient.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamea
+ * \remarks BufferLength and the returned/reported length are bytes, not WCHAR counts. When capacity suffices
+ * the reported length excludes NUL; the required short-buffer length includes it. The _UEx wrapper can return
+ * STATUS_SUCCESS for a sizing/short-buffer result, so compare BytesRequired with capacity instead of testing
+ * status alone. FilePart is borrowed within Buffer.
  */
 NTSYSAPI
 NTSTATUS
@@ -9165,6 +9417,7 @@ RtlGetFullPathName_UstrEx(
  * \param Buffer A pointer to the buffer that receives the current directory string.
  * \return If the function succeeds, the return value specifies the number of characters that are written to the buffer, not including the terminating null character.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory
+ * \remarks Returns a byte count, excluding NUL on successful copy and including it for required-capacity results. The current directory is shared mutable process state; a separate sizing/copy pair is not a stable snapshot if another thread changes it.
  */
 NTSYSAPI
 ULONG
@@ -9177,10 +9430,14 @@ RtlGetCurrentDirectory_U(
 /**
  * The RtlSetCurrentDirectory_U routine changes the current directory for the current process.
  *
- * \param PathName The path to the new current directory.
- * This parameter may specify a relative path or a full path. In either case, the full path of the specified directory is calculated and stored as the current directory.
- * \return If the function succeeds, the return value specifies the number of characters that are written to the buffer, not including the terminating null character.
+ * \param PathName The path to the new current directory. This parameter may specify a relative path or a full
+ * path. In either case, the full path of the specified directory is calculated and stored as the current
+ * directory.
+ * \return If the function succeeds, the return value specifies the number of characters that are written to
+ * the buffer, not including the terminating null character.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory
+ * \remarks Changes process-wide path-resolution state and its directory reference. It is not a thread-local
+ * convenience setter; coordinate concurrent relative-path operations.
  */
 NTSYSAPI
 NTSTATUS
@@ -9193,6 +9450,7 @@ RtlSetCurrentDirectory_U(
  * The RtlGetLongestNtPathLength routine returns the length, in characters, of the longest possible NT path name.
  *
  * \return ULONG The maximum NT path length, in characters.
+ * \remarks The export returns constant 269. This historical helper is not a complete modern long-path policy or a safe upper bound for all NT object paths; use operation-specific sizing and counted-string limits.
  */
 NTSYSAPI
 ULONG
@@ -9276,6 +9534,7 @@ RtlNtPathNameToDosPathName(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return `TRUE` if the conversion succeeded, otherwise `FALSE`.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 BOOLEAN
@@ -9295,6 +9554,7 @@ RtlDosPathNameToNtPathName_U(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 NTSTATUS
@@ -9316,6 +9576,7 @@ RtlDosPathNameToNtPathName_U_WithStatus(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 NTSTATUS
@@ -9336,6 +9597,7 @@ RtlDosLongPathNameToNtPathName_U_WithStatus(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return `TRUE` if the conversion succeeded, otherwise `FALSE`.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 BOOLEAN
@@ -9355,6 +9617,7 @@ RtlDosPathNameToRelativeNtPathName_U(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 NTSTATUS
@@ -9376,6 +9639,7 @@ RtlDosPathNameToRelativeNtPathName_U_WithStatus(
  * \param FilePart An optional pointer to a variable that receives a pointer to the file-name portion of the NT path.
  * \param RelativeName An optional pointer to a structure that receives relative-name information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Produces an allocated counted NT path; release that string with RtlFreeUnicodeString. FilePart is borrowed inside the result. Relative variants can also acquire current-directory reference state that must be released separately with RtlReleaseRelativeName. Syntax conversion does not prove file existence or authorize access.
  */
 NTSYSAPI
 NTSTATUS
@@ -9392,6 +9656,7 @@ RtlDosLongPathNameToRelativeNtPathName_U_WithStatus(
  * The RtlReleaseRelativeName routine releases the resources associated with a relative-name structure previously returned by one of the RtlDosPathNameToRelativeNtPathName routines.
  *
  * \param RelativeName A pointer to the relative-name structure to release.
+ * \remarks Releases only the retained current-directory reference in RTL_RELATIVE_NAME_U. It does not free the separate allocated NT path returned by path conversion; both lifetimes must be handled. Use only a successfully initialized relative-name record.
  */
 NTSYSAPI
 VOID
@@ -9509,6 +9774,7 @@ RtlDosApplyFileIsolationRedirection_Ustr(
  * \param PathString A pointer to the path string to examine.
  * \param Length A pointer to a variable that receives the length, in characters, of the path without its last element.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Computes a lexical path prefix using the supplied counted string; it does not resolve reparse points or verify an object. Do not infer filesystem containment or authorization from a textual prefix length.
  */
 NTSYSAPI
 NTSTATUS
@@ -9526,6 +9792,7 @@ RtlGetLengthWithoutLastFullDosOrNtPathElement(
  * \param PathString A pointer to the path string to examine.
  * \param Length A pointer to a variable that receives the length, in characters, of the path without trailing separators.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns a WCHAR count, not bytes, and strips both slash forms lexically without preserving root semantics. Flags must be zero; the output is initialized to zero before invalid-argument rejection. The exported Seperators spelling is retained intentionally.
  */
 NTSYSAPI
 NTSTATUS
@@ -9597,6 +9864,7 @@ RtlComputePrivatizedDllName_U(
  *
  * \param Path A pointer to a variable that receives an allocated null-terminated search path string. The caller frees the string with RtlReleasePath.
  * \return NTSTATUS Successful or errant status.
+ * \remarks GetSearchPath/GetExePath return runtime-managed path storage released with RtlReleasePath, not RtlFreeUnicodeString or arbitrary heap free. The release routine uses metadata before the string pointer. Keep ownership separate from borrowed components and process search-policy state.
  */
 NTSYSAPI
 NTSTATUS
@@ -9607,10 +9875,13 @@ RtlGetSearchPath(
 
 // rev
 /**
- * The RtlSetSearchPathMode routine sets the search path mode used when locating images and files for the current process.
+ * The RtlSetSearchPathMode routine sets the search path mode used when locating images and files for the
+ * current process.
  *
  * \param Flags Flags that specify the search path mode.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Changes shared process search policy and can make a setting permanent. Do not invoke it as a query
+ * or assume a temporary test can restore the previous mode.
  */
 NTSYSAPI
 NTSTATUS
@@ -9626,6 +9897,7 @@ RtlSetSearchPathMode(
  * \param DosPathName A pointer to the DOS path name of the application.
  * \param Path A pointer to a variable that receives an allocated null-terminated search path string. The caller frees the string with RtlReleasePath.
  * \return NTSTATUS Successful or errant status.
+ * \remarks GetSearchPath/GetExePath return runtime-managed path storage released with RtlReleasePath, not RtlFreeUnicodeString or arbitrary heap free. The release routine uses metadata before the string pointer. Keep ownership separate from borrowed components and process search-policy state.
  */
 NTSYSAPI
 NTSTATUS
@@ -9640,6 +9912,7 @@ RtlGetExePath(
  * The RtlReleasePath routine frees a path buffer previously allocated by the RtlGetSearchPath or RtlGetExePath routines.
  *
  * \param Path A pointer to the path buffer to free.
+ * \remarks GetSearchPath/GetExePath return runtime-managed path storage released with RtlReleasePath, not RtlFreeUnicodeString or arbitrary heap free. The release routine uses metadata before the string pointer. Keep ownership separate from borrowed components and process search-policy state.
  */
 NTSYSAPI
 VOID
@@ -9779,6 +10052,7 @@ RtlGetImageFileMachines(
  * The RtlGetNtSystemRoot routine returns the path of the Windows system root directory.
  *
  * \return PWSTR A pointer to a null-terminated string containing the system root path.
+ * \remarks Returns a borrowed runtime/shared-data string, including silo-specific data when applicable. Do not free or modify it, and do not confuse it with an allocated copy or proof that a particular filesystem path exists.
  */
 NTSYSAPI
 PWSTR
@@ -9792,6 +10066,7 @@ RtlGetNtSystemRoot(
  * The RtlAreLongPathsEnabled routine determines whether long path support is enabled for the current process.
  *
  * \return `TRUE` if long paths are enabled, otherwise `FALSE`.
+ * \remarks Returns a current runtime-state observation, not an acquired lock or a promise the state will remain unchanged. Long-path awareness does not remove every per-API limit; loader-callout/shutdown observations do not establish safe arbitrary DLL operations.
  */
 NTSYSAPI
 BOOLEAN
@@ -9805,6 +10080,7 @@ RtlAreLongPathsEnabled(
  * The RtlIsThreadWithinLoaderCallout routine determines whether the current thread is executing within a loader callout.
  *
  * \return `TRUE` if the current thread is within a loader callout, otherwise `FALSE`.
+ * \remarks Returns a current runtime-state observation, not an acquired lock or a promise the state will remain unchanged. Long-path awareness does not remove every per-API limit; loader-callout/shutdown observations do not establish safe arbitrary DLL operations.
  */
 NTSYSAPI
 BOOLEAN
@@ -9817,6 +10093,7 @@ RtlIsThreadWithinLoaderCallout(
  * The RtlDllShutdownInProgress routine gets a value indicating whether the process is currently in the shutdown phase.
  *
  * \return TRUE if a shutdown of the current dll process is in progress; otherwise, FALSE.
+ * \remarks Returns a current runtime-state observation, not an acquired lock or a promise the state will remain unchanged. Long-path awareness does not remove every per-API limit; loader-callout/shutdown observations do not establish safe arbitrary DLL operations.
  */
 NTSYSAPI
 BOOLEAN
@@ -10164,6 +10441,7 @@ typedef struct _RTL_HEAP_PARAMETERS
  * \param Parameters Pointer to a RTL_HEAP_PARAMETERS structure that contains parameters to be applied when creating the heap.
  * \return RtlCreateHeap returns a handle to be used in accessing the created heap.
  * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateheap
+ * \remarks Own private heaps created for the component; do not destroy the process default heap. DestroyHeap returns NULL on successful destruction and can return the original handle on failure. All allocations and references from a destroyed heap become invalid; use the correct heap for every block operation.
  */
 _Success_(return != 0)
 _Must_inspect_result_
@@ -10189,6 +10467,7 @@ RtlCreateHeap(
  * \param HeapHandle Handle for the heap to be destroyed. This parameter is a heap handle returned by RtlCreateHeap.
  * \return If the call to RtlDestroyHeap succeeds, the return value is a NULL pointer. If the call to RtlDestroyHeap fails, the return value is a handle for the heap.
  * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldestroyheap
+ * \remarks Own private heaps created for the component; do not destroy the process default heap. DestroyHeap returns NULL on successful destruction and can return the original handle on failure. All allocations and references from a destroyed heap become invalid; use the correct heap for every block operation.
  */
 _Success_(return == 0)
 NTSYSAPI
@@ -10205,7 +10484,8 @@ RtlDestroyHeap(
  * \param Flags Controllable aspects of heap allocation. Specifying any flags will override the corresponding value specified when the heap was created with RtlCreateHeap.
  * \param Size Number of bytes to be allocated. If the heap, specified by the HeapHandle parameter, is a nongrowable heap, Size must be less than or equal to the heap's virtual memory threshold.
  * \return If the call to RtlAllocateHeap succeeds, the return value is a pointer to the newly-allocated block. The return value is NULL if the allocation failed.
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
+ * \remarks Https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
+ * \remarks Operations are bound to the originating heap and valid allocation base. Never use them to probe arbitrary pointers. FreeHeap accepts a NULL block as a no-op; SizeHeap failure uses SIZE_T -1. Preserve the old pointer when reallocation fails. Heap flags can select exceptions instead of simple failure returns.
  */
 _Success_(return != 0)
 _Must_inspect_result_
@@ -10230,6 +10510,7 @@ RtlAllocateHeap(
  * \param Flags Heap free flags (for example, HEAP_NO_SERIALIZE).
  * \param BaseAddress The block to free.
  * \return TRUE if the block was freed; otherwise, FALSE.
+ * \remarks Operations are bound to the originating heap and valid allocation base. Never use them to probe arbitrary pointers. FreeHeap accepts a NULL block as a no-op; SizeHeap failure uses SIZE_T -1. Preserve the old pointer when reallocation fails. Heap flags can select exceptions instead of simple failure returns.
  */
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 _Success_(return != 0)
@@ -10260,6 +10541,7 @@ RtlFreeHeap(
  * \param Flags Heap access flags (for example, HEAP_NO_SERIALIZE).
  * \param BaseAddress A pointer to the memory block whose size is queried.
  * \return SIZE_T The size, in bytes, of the memory block, or (SIZE_T)-1 if the block is invalid.
+ * \remarks Operations are bound to the originating heap and valid allocation base. Never use them to probe arbitrary pointers. FreeHeap accepts a NULL block as a no-op; SizeHeap failure uses SIZE_T -1. Preserve the old pointer when reallocation fails. Heap flags can select exceptions instead of simple failure returns.
  */
 NTSYSAPI
 SIZE_T
@@ -10276,6 +10558,7 @@ RtlSizeHeap(
  * \param HeapHandle A handle to the heap to zero.
  * \param Flags Heap access flags (for example, HEAP_NO_SERIALIZE).
  * \return NTSTATUS Successful or errant status.
+ * \remarks This is not a secure wipe of all live allocations. The legacy path processes free storage, while the segment-heap path returns success without that work. Wipe sensitive live buffers explicitly before releasing them.
  */
 NTSYSAPI
 NTSTATUS
@@ -10309,6 +10592,7 @@ RtlProtectHeap(
  *
  * \param HeapHandle A handle to the heap to lock.
  * \return `TRUE` if the heap was locked, otherwise `FALSE`.
+ * \remarks Use a matching lock/unlock pair when a stable multi-step heap walk is required. Individual heap-operation serialization does not preserve a traversal across concurrent allocations. WalkHeap uses caller-owned cursor storage and can return STATUS_NO_MORE_ENTRIES; it does not transfer ownership of enumerated blocks.
  */
 _When_(return != 0, _Acquires_lock_(HeapHandle))
 NTSYSAPI
@@ -10323,6 +10607,7 @@ RtlLockHeap(
  *
  * \param HeapHandle A handle to the heap to unlock.
  * \return `TRUE` if the heap was unlocked, otherwise `FALSE`.
+ * \remarks Use a matching lock/unlock pair when a stable multi-step heap walk is required. Individual heap-operation serialization does not preserve a traversal across concurrent allocations. WalkHeap uses caller-owned cursor storage and can return STATUS_NO_MORE_ENTRIES; it does not transfer ownership of enumerated blocks.
  */
 _When_(return != 0, _Releases_lock_(HeapHandle))
 NTSYSAPI
@@ -10340,6 +10625,7 @@ RtlUnlockHeap(
  * \param BaseAddress The block to reallocate.
  * \param Size The new size, in bytes, of the block.
  * \return A pointer to the reallocated block, or NULL on failure.
+ * \remarks Operations are bound to the originating heap and valid allocation base. Never use them to probe arbitrary pointers. FreeHeap accepts a NULL block as a no-op; SizeHeap failure uses SIZE_T -1. Preserve the old pointer when reallocation fails. Heap flags can select exceptions instead of simple failure returns.
  */
 _Success_(return != 0)
 _Must_inspect_result_
@@ -10368,6 +10654,7 @@ RtlReAllocateHeap(
  * \param UserValue An optional pointer that receives the user value.
  * \param UserFlags An optional pointer that receives the user flags.
  * \return TRUE if the information was retrieved; otherwise, FALSE.
+ * \remarks User metadata support depends on the allocation flags and heap backend. Allocate with HEAP_SETTABLE_USER_VALUE when that value is needed, and check the BOOLEAN result before consuming outputs. Only settable user flag bits are accepted; this metadata is not a pointer-ownership mechanism.
  */
 NTSYSAPI
 BOOLEAN
@@ -10388,6 +10675,7 @@ RtlGetUserInfoHeap(
  * \param BaseAddress The heap block to modify.
  * \param UserValue The user value to associate with the block.
  * \return TRUE if the value was set; otherwise, FALSE.
+ * \remarks User metadata support depends on the allocation flags and heap backend. Allocate with HEAP_SETTABLE_USER_VALUE when that value is needed, and check the BOOLEAN result before consuming outputs. Only settable user flag bits are accepted; this metadata is not a pointer-ownership mechanism.
  */
 NTSYSAPI
 BOOLEAN
@@ -10408,6 +10696,7 @@ RtlSetUserValueHeap(
  * \param UserFlagsReset The user flags to clear.
  * \param UserFlagsSet The user flags to set.
  * \return TRUE if the flags were modified; otherwise, FALSE.
+ * \remarks User metadata support depends on the allocation flags and heap backend. Allocate with HEAP_SETTABLE_USER_VALUE when that value is needed, and check the BOOLEAN result before consuming outputs. Only settable user flag bits are accepted; this metadata is not a pointer-ownership mechanism.
  */
 NTSYSAPI
 BOOLEAN
@@ -10664,6 +10953,7 @@ typedef struct _RTL_HEAP_WALK_ENTRY
  * \param HeapHandle A handle to the heap to enumerate.
  * \param Entry A pointer to a structure that receives the next heap block and maintains enumeration state.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Use a matching lock/unlock pair when a stable multi-step heap walk is required. Individual heap-operation serialization does not preserve a traversal across concurrent allocations. WalkHeap uses caller-owned cursor storage and can return STATUS_NO_MORE_ENTRIES; it does not transfer ownership of enumerated blocks.
  */
 NTSYSAPI
 NTSTATUS
@@ -11076,6 +11366,7 @@ typedef struct _HEAP_DEBUGGING_INFORMATION
  * \param ReturnLength Receives the required or returned size, in bytes.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapqueryinformation
+ * \remarks Information-class contracts differ. For HeapCompatibilityInformation, the path needs at least 4 bytes and reports ReturnLength 4; the returned backend mode is not a general validation of the heap. Do not generalize its sizing behavior to other classes.
  */
 NTSYSAPI
 NTSTATUS
@@ -11098,6 +11389,7 @@ RtlQueryHeapInformation(
  * \param HeapInformationLength Size, in bytes, of HeapInformation.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsetinformation
+ * \remarks The selector determines whether the effect is heap-local or process-wide. Some classes change diagnostic/failure policy globally or irreversibly. A successful status from an unsupported/no-op path does not establish that a requested heap mode changed; query a supported readback when available.
  */
 NTSYSAPI
 NTSTATUS
@@ -11119,6 +11411,7 @@ RtlSetHeapInformation(
  * \param Array Caller-supplied array that receives pointers to allocated blocks.
  * \return The number of successfully allocated elements.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
+ * \remarks Returns the number of successful operations, not NTSTATUS. Processing stops at the first allocation/free failure without rolling back earlier successes. Only the returned allocation prefix is initialized/owned; free exactly those successful blocks and do not assume failure is all-or-nothing.
  */
 NTSYSAPI
 ULONG
@@ -11140,6 +11433,7 @@ RtlMultipleAllocateHeap(
  * \param Array Array of pointers to previously allocated heap blocks.
  * \return The number of successfully freed elements.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
+ * \remarks Returns the number of successful operations, not NTSTATUS. Processing stops at the first allocation/free failure without rolling back earlier successes. Only the returned allocation prefix is initialized/owned; free exactly those successful blocks and do not assume failure is all-or-nothing.
  */
 NTSYSAPI
 ULONG
@@ -11210,6 +11504,7 @@ typedef struct _RTL_MEMORY_ZONE
  * \param InitialSize The initial number of bytes to reserve for the zone.
  * \param Flags Reserved; must be zero.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The creator requires nonzero InitialSize and zero Flags. Allocation requires a nonzero BlockSize and publishes NULL to its output before validation/failure. Blocks are slices of zone storage, not individually heap-freeable allocations. Capacity failure returns STATUS_INSUFFICIENT_RESOURCES.
  */
 NTSYSAPI
 NTSTATUS
@@ -11225,6 +11520,7 @@ RtlCreateMemoryZone(
  *
  * \param MemoryZone The memory zone to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Reset invalidates outstanding block contents/allocation state for reuse; destruction releases backing storage. Neither replaces an application shutdown protocol: stop users before resetting or destroying the zone, and never free a returned zone block with RtlFreeHeap.
  */
 NTSYSAPI
 NTSTATUS
@@ -11240,6 +11536,7 @@ RtlDestroyMemoryZone(
  * \param BlockSize The number of bytes to allocate.
  * \param Block Receives a pointer to the allocated block.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The creator requires nonzero InitialSize and zero Flags. Allocation requires a nonzero BlockSize and publishes NULL to its output before validation/failure. Blocks are slices of zone storage, not individually heap-freeable allocations. Capacity failure returns STATUS_INSUFFICIENT_RESOURCES.
  */
 NTSYSAPI
 NTSTATUS
@@ -11255,6 +11552,7 @@ RtlAllocateMemoryZone(
  *
  * \param MemoryZone The memory zone to reset.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Reset invalidates outstanding block contents/allocation state for reuse; destruction releases backing storage. Neither replaces an application shutdown protocol: stop users before resetting or destroying the zone, and never free a returned zone block with RtlFreeHeap.
  */
 NTSYSAPI
 NTSTATUS
@@ -11268,6 +11566,8 @@ RtlResetMemoryZone(
  *
  * \param MemoryZone The memory zone to lock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These manage resident backing-memory locks and internal lock counts, not an application mutex held
+ * across the call pair. Check status, balance successful locks, and account for working-set/locking limits.
  */
 _Acquires_lock_(MemoryZone)
 NTSYSAPI
@@ -11278,10 +11578,13 @@ RtlLockMemoryZone(
     );
 
 /**
- * The RtlUnlockMemoryZone routine unlocks the memory backing a memory zone previously locked with RtlLockMemoryZone.
+ * The RtlUnlockMemoryZone routine unlocks the memory backing a memory zone previously locked with
+ * RtlLockMemoryZone.
  *
  * \param MemoryZone The memory zone to unlock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These manage resident backing-memory locks and internal lock counts, not an application mutex held
+ * across the call pair. Check status, balance successful locks, and account for working-set/locking limits.
  */
 _Releases_lock_(MemoryZone)
 NTSYSAPI
@@ -11304,6 +11607,7 @@ RtlUnlockMemoryZone(
  * \param MinimumBlockSize The minimum block size served by the lookaside.
  * \param MaximumBlockSize The maximum block size served by the lookaside.
  * \return NTSTATUS Successful or errant status.
+ * \remarks InitialSize, MinimumBlockSize and MaximumBlockSize are SIZE_T quantities. The creator requires nonzero sizes, zero Flags and MaximumBlockSize >= MinimumBlockSize, then rounds block classes upward to powers of two. Keep requests bounded; arithmetic acceptance is not a promise that large backing allocations can succeed.
  */
 NTSYSAPI
 NTSTATUS
@@ -11311,9 +11615,9 @@ NTAPI
 RtlCreateMemoryBlockLookaside(
     _Out_ PVOID *MemoryBlockLookaside,
     _Reserved_ ULONG Flags,
-    _In_ ULONG InitialSize,
-    _In_ ULONG MinimumBlockSize,
-    _In_ ULONG MaximumBlockSize
+    _In_ SIZE_T InitialSize,
+    _In_ SIZE_T MinimumBlockSize,
+    _In_ SIZE_T MaximumBlockSize
     );
 
 /**
@@ -11321,6 +11625,7 @@ RtlCreateMemoryBlockLookaside(
  *
  * \param MemoryBlockLookaside The lookaside to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Free accepts an actual outstanding block from this lookaside. Reset/destruction invalidate outstanding allocations and require all users to stop; they are not a way to reclaim blocks still in use concurrently. Caller storage ownership differs from ordinary heap allocations.
  */
 NTSYSAPI
 NTSTATUS
@@ -11336,13 +11641,14 @@ RtlDestroyMemoryBlockLookaside(
  * \param BlockSize The number of bytes to allocate.
  * \param Block Receives a pointer to the allocated block.
  * \return NTSTATUS Successful or errant status.
+ * \remarks BlockSize is SIZE_T, including on x64. Requests above the configured maximum return STATUS_INVALID_PARAMETER before changing the output pointer; initialize outputs before failure-prone calls. Blocks are returned to the same lookaside with RtlFreeMemoryBlockLookaside, not freed on an arbitrary heap.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAllocateMemoryBlockLookaside(
     _In_ PVOID MemoryBlockLookaside,
-    _In_ ULONG BlockSize,
+    _In_ SIZE_T BlockSize,
     _Out_ PVOID *Block
     );
 
@@ -11352,6 +11658,7 @@ RtlAllocateMemoryBlockLookaside(
  * \param MemoryBlockLookaside The lookaside that owns the block.
  * \param Block The block to free.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Free accepts an actual outstanding block from this lookaside. Reset/destruction invalidate outstanding allocations and require all users to stop; they are not a way to reclaim blocks still in use concurrently. Caller storage ownership differs from ordinary heap allocations.
  */
 NTSYSAPI
 NTSTATUS
@@ -11367,13 +11674,14 @@ RtlFreeMemoryBlockLookaside(
  * \param MemoryBlockLookaside The lookaside to extend.
  * \param Increment The number of additional blocks to make available.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Increment is a SIZE_T byte quantity forwarded to the backing-zone extension. The helper rejects zero, rounds the request to pages and can fail allocating or locking memory. Extension does not change the supported minimum/maximum block classes.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExtendMemoryBlockLookaside(
     _In_ PVOID MemoryBlockLookaside,
-    _In_ ULONG Increment
+    _In_ SIZE_T Increment
     );
 
 /**
@@ -11381,6 +11689,7 @@ RtlExtendMemoryBlockLookaside(
  *
  * \param MemoryBlockLookaside The lookaside to reset.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Free accepts an actual outstanding block from this lookaside. Reset/destruction invalidate outstanding allocations and require all users to stop; they are not a way to reclaim blocks still in use concurrently. Caller storage ownership differs from ordinary heap allocations.
  */
 NTSYSAPI
 NTSTATUS
@@ -11390,10 +11699,13 @@ RtlResetMemoryBlockLookaside(
     );
 
 /**
- * The RtlLockMemoryBlockLookaside routine locks the memory backing a memory block lookaside into the working set.
+ * The RtlLockMemoryBlockLookaside routine locks the memory backing a memory block lookaside into the working
+ * set.
  *
  * \param MemoryBlockLookaside The lookaside to lock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These manage resident backing-memory locks and internal lock counts, not an application mutex held
+ * across the call pair. Check status, balance successful locks, and account for working-set/locking limits.
  */
 _Acquires_lock_(MemoryBlockLookaside)
 NTSYSAPI
@@ -11408,6 +11720,8 @@ RtlLockMemoryBlockLookaside(
  *
  * \param MemoryBlockLookaside The lookaside to unlock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These manage resident backing-memory locks and internal lock counts, not an application mutex held
+ * across the call pair. Check status, balance successful locks, and account for working-set/locking limits.
  */
 _Releases_lock_(MemoryBlockLookaside)
 NTSYSAPI
@@ -11428,6 +11742,7 @@ RtlUnlockMemoryBlockLookaside(
  * The RtlGetCurrentTransaction routine returns the transaction handle associated with the calling thread.
  *
  * \return HANDLE A handle to the current transaction, or NULL if no transaction is active.
+ * \remarks Gets or sets the calling thread TEB transaction slot; it does not duplicate, close, commit or roll back a handle. The setter rejects INVALID_HANDLE_VALUE and otherwise stores the supplied value, including NULL. Preserve and restore prior thread state around temporary changes.
  */
 NTSYSAPI
 HANDLE
@@ -11442,6 +11757,7 @@ RtlGetCurrentTransaction(
  *
  * \param TransactionHandle An optional handle to the transaction to associate with the current thread, or NULL to clear the current transaction.
  * \return `TRUE` if the transaction was set, otherwise `FALSE`.
+ * \remarks Gets or sets the calling thread TEB transaction slot; it does not duplicate, close, commit or roll back a handle. The setter rejects INVALID_HANDLE_VALUE and otherwise stores the supplied value, including NULL. Preserve and restore prior thread state around temporary changes.
  */
 NTSYSAPI
 LOGICAL
@@ -11478,6 +11794,7 @@ RtlIsEqualLuid( // RtlEqualLuid
  *
  * \param L1 A pointer to the LUID to test.
  * \return Returns `TRUE` if the LUID is zero, otherwise `FALSE`.
+ * \remarks These inline operations manipulate identifier bits; they do not allocate a new locally unique identifier. The current signed LONG-to-LUID helper zeroes HighPart rather than sign-extending, so converting -1 yields 0x00000000FFFFFFFF. Treat that as identifier construction, not signed widening arithmetic.
  */
 FORCEINLINE
 BOOLEAN
@@ -11494,6 +11811,7 @@ RtlIsZeroLuid(
  *
  * \param Long The signed 32-bit value to convert.
  * \return LUID The LUID whose low part is the specified value and whose high part is zero.
+ * \remarks These inline operations manipulate identifier bits; they do not allocate a new locally unique identifier. The current signed LONG-to-LUID helper zeroes HighPart rather than sign-extending, so converting -1 yields 0x00000000FFFFFFFF. Treat that as identifier construction, not signed widening arithmetic.
  */
 FORCEINLINE
 LUID
@@ -11515,6 +11833,7 @@ RtlConvertLongToLuid(
  *
  * \param Ulong The unsigned 32-bit value to convert.
  * \return LUID The LUID whose low part is the specified value and whose high part is zero.
+ * \remarks These inline operations manipulate identifier bits; they do not allocate a new locally unique identifier. The current signed LONG-to-LUID helper zeroes HighPart rather than sign-extending, so converting -1 yields 0x00000000FFFFFFFF. Treat that as identifier construction, not signed widening arithmetic.
  */
 FORCEINLINE
 LUID
@@ -11536,6 +11855,7 @@ RtlConvertUlongToLuid(
  *
  * \param Luid The LUID to convert.
  * \return LONGLONG The 64-bit signed value formed from the LUID.
+ * \remarks These inline operations manipulate identifier bits; they do not allocate a new locally unique identifier. The current signed LONG-to-LUID helper zeroes HighPart rather than sign-extending, so converting -1 yields 0x00000000FFFFFFFF. Treat that as identifier construction, not signed widening arithmetic.
  */
 FORCEINLINE
 LONGLONG
@@ -11557,6 +11877,7 @@ RtlConvertLuidToLonglong(
  *
  * \param Luid The LUID to convert.
  * \return ULONGLONG The 64-bit unsigned value formed from the LUID.
+ * \remarks These inline operations manipulate identifier bits; they do not allocate a new locally unique identifier. The current signed LONG-to-LUID helper zeroes HighPart rather than sign-extending, so converting -1 yields 0x00000000FFFFFFFF. Treat that as identifier construction, not signed widening arithmetic.
  */
 FORCEINLINE
 ULONGLONG
@@ -11579,6 +11900,7 @@ RtlConvertLuidToUlonglong(
  * \param DestinationLuid A pointer to a variable that receives the copied LUID.
  * \param SourceLuid A pointer to the LUID to copy.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcopyluid
+ * \remarks Copies caller-owned values without allocating storage or changing token privileges. The array routine writes Count destination elements; on the x64/x86 build each LUID_AND_ATTRIBUTES element is 12 bytes. Provide valid complete arrays and do not assume overlapping ranges are supported.
  */
 NTSYSAPI
 VOID
@@ -11595,14 +11917,15 @@ RtlCopyLuid(
  * \param Count The number of elements in the array.
  * \param Src A pointer to the source array of LUID_AND_ATTRIBUTES structures.
  * \param Dest A pointer to the destination array that receives the copied structures.
+ * \remarks Copies caller-owned values without allocating storage or changing token privileges. The array routine writes Count destination elements; on the x64/x86 build each LUID_AND_ATTRIBUTES element is 12 bytes. Provide valid complete arrays and do not assume overlapping ranges are supported.
  */
 NTSYSAPI
 VOID
 NTAPI
 RtlCopyLuidAndAttributesArray(
     _In_ ULONG Count,
-    _In_ PLUID_AND_ATTRIBUTES Src,
-    _In_ PLUID_AND_ATTRIBUTES Dest
+    _In_reads_(Count) PLUID_AND_ATTRIBUTES Src,
+    _Out_writes_(Count) PLUID_AND_ATTRIBUTES Dest
     );
 
 //
@@ -11622,6 +11945,7 @@ RtlCopyLuidAndAttributesArray(
  *
  * \param Source The 16-bit value whose bytes are swapped.
  * \return USHORT The byte-swapped 16-bit value.
+ * \remarks The default header uses byte-swap intrinsics/macros, while PHNT_RTL_BYTESWAP selects export declarations. Export presence differs by architecture: the x64 DLL does not export these names, although the default macros work. Do not equate macro success with DLL availability.
  */
 NTSYSAPI
 USHORT
@@ -11635,6 +11959,7 @@ RtlUshortByteSwap(
  *
  * \param Source The 32-bit value whose bytes are swapped.
  * \return ULONG The byte-swapped 32-bit value.
+ * \remarks The default header uses byte-swap intrinsics/macros, while PHNT_RTL_BYTESWAP selects export declarations. Export presence differs by architecture: the x64 DLL does not export these names, although the default macros work. Do not equate macro success with DLL availability.
  */
 NTSYSAPI
 ULONG
@@ -11648,6 +11973,7 @@ RtlUlongByteSwap(
  *
  * \param Source The 64-bit value whose bytes are swapped.
  * \return ULONGLONG The byte-swapped 64-bit value.
+ * \remarks The default header uses byte-swap intrinsics/macros, while PHNT_RTL_BYTESWAP selects export declarations. Export presence differs by architecture: the x64 DLL does not export these names, although the default macros work. Do not equate macro success with DLL availability.
  */
 NTSYSAPI
 ULONGLONG
@@ -11808,11 +12134,17 @@ RTL_TRACE_HASH_FUNCTION(
 typedef RTL_TRACE_HASH_FUNCTION *PRTL_TRACE_HASH_FUNCTION;
 
 /**
- * The RtlCreateQueryDebugBuffer routine allocates and initializes a debug information buffer for use with the RtlQueryProcessDebugInformation routine.
+ * The RtlCreateQueryDebugBuffer routine allocates and initializes a debug information buffer for use with the
+ * RtlQueryProcessDebugInformation routine.
  *
  * \param MaximumCommit The maximum number of bytes to commit for the buffer, or zero for the default.
- * \param UseEventPair A boolean that specifies whether an event pair is used to synchronize with the target process.
+ * \param UseEventPair A boolean that specifies whether an event pair is used to synchronize with the target
+ * process.
  * \return PRTL_DEBUG_INFORMATION A pointer to the allocated debug buffer, or NULL on failure.
+ * \remarks Use the matched allocator/destructor, not RtlFreeHeap. The creator defaults to 0x400000 bytes per
+ * reserved region and creates two regions; it initially commits descriptor storage (208 bytes x64, 104 bytes
+ * x86, rounded by virtual-memory allocation). UseEventPair is not consumed by the implementation. Validate
+ * capacities and manage remote-query resources separately.
  */
 NTSYSAPI
 PRTL_DEBUG_INFORMATION
@@ -11823,10 +12155,15 @@ RtlCreateQueryDebugBuffer(
     );
 
 /**
- * The RtlDestroyQueryDebugBuffer routine frees a debug information buffer previously allocated by RtlCreateQueryDebugBuffer.
+ * The RtlDestroyQueryDebugBuffer routine frees a debug information buffer previously allocated by
+ * RtlCreateQueryDebugBuffer.
  *
  * \param Buffer A pointer to the debug buffer to free.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Use the matched allocator/destructor, not RtlFreeHeap. The creator defaults to 0x400000 bytes per
+ * reserved region and creates two regions; it initially commits descriptor storage (208 bytes x64, 104 bytes
+ * x86, rounded by virtual-memory allocation). UseEventPair is not consumed by the implementation. Validate
+ * capacities and manage remote-query resources separately.
  */
 NTSYSAPI
 NTSTATUS
@@ -11842,6 +12179,9 @@ RtlDestroyQueryDebugBuffer(
  * \param Buffer The debug information buffer to allocate from.
  * \param Size The number of bytes to allocate.
  * \return A pointer to the allocated block, or NULL on failure.
+ * \remarks Manages suballocations within a compatible RTL_DEBUG_INFORMATION allocation; returned storage is
+ * not independently heap-owned. Keep the debug buffer alive and use the paired bookkeeping operations.
+ * Remote-process access requires appropriate synchronization.
  */
 NTSYSAPI
 PVOID
@@ -11858,6 +12198,9 @@ RtlCommitDebugInfo(
  * \param Buffer The debug information buffer that owns the block.
  * \param p The block to free.
  * \param Size The size, in bytes, of the block.
+ * \remarks Manages suballocations within a compatible RTL_DEBUG_INFORMATION allocation; returned storage is
+ * not independently heap-owned. Keep the debug buffer alive and use the paired bookkeeping operations.
+ * Remote-process access requires appropriate synchronization.
  */
 NTSYSAPI
 VOID
@@ -11887,12 +12230,17 @@ RtlDeCommitDebugInfo(
 #define RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER 0x80000800 // RtlQueryCriticalSectionOwner (non-invasive); WIN11
 
 /**
- * The RtlQueryProcessDebugInformation routine retrieves debug information, such as heaps, modules, and locks, for the specified process.
+ * The RtlQueryProcessDebugInformation routine retrieves debug information, such as heaps, modules, and locks,
+ * for the specified process.
  *
  * \param UniqueProcessId The unique process identifier of the process to query.
  * \param Flags Flags that specify which classes of debug information are collected.
- * \param Buffer A pointer to a debug buffer, allocated by RtlCreateQueryDebugBuffer, that receives the information.
+ * \param Buffer A pointer to a debug buffer, allocated by RtlCreateQueryDebugBuffer, that receives the
+ * information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks May perform substantially more work than a local data query, including target-process cooperation
+ * and helper-thread paths. Flags select different contracts and ownership. Manage debug-query buffers and
+ * target-process synchronization separately.
  */
 NTSYSAPI
 NTSTATUS
@@ -11909,8 +12257,12 @@ RtlQueryProcessDebugInformation(
  *
  * \param UniqueProcessId The unique process identifier of the target process.
  * \param Flags Flags that specify which classes of debug information are set.
- * \param Buffer A pointer to a debug buffer, allocated by RtlCreateQueryDebugBuffer, that contains the information.
+ * \param Buffer A pointer to a debug buffer, allocated by RtlCreateQueryDebugBuffer, that contains the
+ * information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks May perform substantially more work than a local data query, including target-process cooperation
+ * and helper-thread paths. Flags select different contracts and ownership. Manage debug-query buffers and
+ * target-process synchronization separately.
  */
 NTSYSAPI
 NTSTATUS
@@ -11962,6 +12314,24 @@ RtlDebugPrintTimes(
 //
 
 /**
+ * Opaque record owned by an RTL trace database. Returned records remain valid only
+ * while the database is alive; do not free them individually.
+ */
+typedef struct _RTL_TRACE_BLOCK RTL_TRACE_BLOCK, *PRTL_TRACE_BLOCK;
+
+/**
+ * Cursor for RtlTraceDatabaseEnumerate. Zero-initialize before the first call.
+ * The database and block pointers are borrowed; the cursor owns no allocation.
+ * The x64 layout is 24 bytes (0, 8, 16); x86 is 12 bytes (0, 4, 8).
+ */
+typedef struct _RTL_TRACE_ENUMERATE
+{
+    PRTL_TRACE_DATABASE Database;
+    ULONG Index;
+    PRTL_TRACE_BLOCK Block;
+} RTL_TRACE_ENUMERATE, *PRTL_TRACE_ENUMERATE;
+
+/**
  * The RtlTraceDatabaseAdd routine adds a stack trace to a trace database.
  *
  * \param Database The trace database to modify.
@@ -11969,6 +12339,7 @@ RtlDebugPrintTimes(
  * \param Trace An optional array of captured return addresses.
  * \param TraceBlock An optional pointer that receives the trace block that stores the trace.
  * \return TRUE if the trace was added; otherwise, FALSE.
+ * \remarks Count is the number of pointer-sized address entries, not bytes; the addresses are recorded values, not dereferenced target memory. Returned trace blocks are borrowed database records. Duplicate Add coalesces with an existing record. The Add path accepts at most 256 entries; rejection above that limit can preserve the output slot.
  */
 NTSYSAPI
 BOOLEAN
@@ -11976,8 +12347,8 @@ NTAPI
 RtlTraceDatabaseAdd(
     _In_ PRTL_TRACE_DATABASE Database,
     _In_ ULONG Count,
-    _In_opt_ PVOID Trace,
-    _Out_opt_ PVOID *TraceBlock
+    _In_reads_opt_(Count) PVOID *Trace,
+    _Out_opt_ PRTL_TRACE_BLOCK *TraceBlock
     );
 
 /**
@@ -11989,6 +12360,7 @@ RtlTraceDatabaseAdd(
  * \param Tag A tag value associated with the trace database.
  * \param HashFunction An optional hash function used to index trace entries.
  * \return PRTL_TRACE_DATABASE A pointer to the created trace database, or NULL on failure.
+ * \remarks Creates a privately owned trace database. The implementation rejects bucket counts above 1048576; internal insertion also assumes a usable bucket geometry, so use a conventional nonzero count such as 128 rather than treating all smaller values as validated. MaximumSize is not a hard byte-exact cap on committed data across segment growth.
  */
 NTSYSAPI
 PRTL_TRACE_DATABASE
@@ -12006,6 +12378,7 @@ RtlTraceDatabaseCreate(
  *
  * \param Database A pointer to the trace database to destroy.
  * \return `TRUE` if the trace database was destroyed, otherwise `FALSE`.
+ * \remarks Releases the database and all contained trace records, not the address values stored in the traces. Stop concurrent users and discard every borrowed record/cursor before destruction. A record pointer is not an allocation that can be freed individually.
  */
 NTSYSAPI
 BOOLEAN
@@ -12019,16 +12392,17 @@ RtlTraceDatabaseDestroy(
  *
  * \param Database The trace database to enumerate.
  * \param Enumerator An enumeration cursor advanced across calls.
- * \param TraceBlock An optional pointer that receives the current trace block.
+ * \param TraceBlock A required pointer slot that receives the current trace block.
  * \return TRUE if a trace was returned; FALSE when enumeration is complete.
+ * \remarks Zero-initialize RTL_TRACE_ENUMERATE for the first call. TraceBlock is a required pointer-sized output slot, not PULONGLONG. Success returns borrowed database data; FALSE does not uniformly clear the slot (an already exhausted/invalid cursor can leave it unchanged). The cursor is 24 bytes on x64 and 12 on x86 and must not outlive the database.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTraceDatabaseEnumerate(
     _In_ PRTL_TRACE_DATABASE Database,
-    _Inout_ PVOID Enumerator,
-    _Out_opt_ PULONGLONG TraceBlock
+    _Inout_ PRTL_TRACE_ENUMERATE Enumerator,
+    _Out_ PRTL_TRACE_BLOCK *TraceBlock
     );
 
 /**
@@ -12039,6 +12413,7 @@ RtlTraceDatabaseEnumerate(
  * \param Trace An optional array of captured return addresses to match.
  * \param TraceBlock An optional pointer that receives the matching trace block.
  * \return TRUE if the trace was found; otherwise, FALSE.
+ * \remarks Count is the number of pointer-sized address entries, not bytes; the addresses are recorded values, not dereferenced target memory. Returned trace blocks are borrowed database records. Duplicate Add coalesces with an existing record. The Add path accepts at most 256 entries; rejection above that limit can preserve the output slot.
  */
 NTSYSAPI
 BOOLEAN
@@ -12046,8 +12421,8 @@ NTAPI
 RtlTraceDatabaseFind(
     _In_ PRTL_TRACE_DATABASE Database,
     _In_ ULONG Count,
-    _In_opt_ PVOID Trace,
-    _Out_opt_ PVOID *TraceBlock
+    _In_reads_opt_(Count) PVOID *Trace,
+    _Out_opt_ PRTL_TRACE_BLOCK *TraceBlock
     );
 
 /**
@@ -12055,6 +12430,7 @@ RtlTraceDatabaseFind(
  *
  * \param Database A pointer to the trace database to lock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Serializes a multi-operation sequence on the same database; the implementation uses its recursive critical section. Balance the pair and avoid deletion while locked or in use. Do not infer general safe concurrent cursor snapshots from individually locked enumeration calls.
  */
 _Acquires_lock_(Database)
 NTSYSAPI
@@ -12069,6 +12445,7 @@ RtlTraceDatabaseLock(
  *
  * \param Database A pointer to the trace database to unlock.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Serializes a multi-operation sequence on the same database; the implementation uses its recursive critical section. Balance the pair and avoid deletion while locked or in use. Do not infer general safe concurrent cursor snapshots from individually locked enumeration calls.
  */
 _Releases_lock_(Database)
 NTSYSAPI
@@ -12083,6 +12460,8 @@ RtlTraceDatabaseUnlock(
  *
  * \param Database A pointer to the trace database to validate.
  * \return `TRUE` if the trace database is valid, otherwise `FALSE`.
+ * \remarks The export acquires/releases the database lock and returns TRUE without performing an integrity
+ * walk. Do not rely on that constant result to validate untrusted/corrupted database memory.
  */
 NTSYSAPI
 BOOLEAN
@@ -12123,12 +12502,17 @@ RtlFindMessage(
  * \param MaximumWidth The maximum line width, in characters, or zero for no limit.
  * \param IgnoreInserts A boolean that specifies whether insert sequences are left unexpanded.
  * \param ArgumentsAreAnsi A boolean that specifies whether the arguments are ANSI strings.
- * \param ArgumentsAreAnArray A boolean that specifies whether the arguments are supplied as an array rather than a va_list.
+ * \param ArgumentsAreAnArray A boolean that specifies whether the arguments are supplied as an array rather
+ * than a va_list.
  * \param Arguments A pointer to the insert arguments.
  * \param Buffer A buffer that receives the formatted message.
  * \param Length The size, in bytes, of the output buffer.
- * \param ReturnLength An optional pointer to a variable that receives the length, in bytes, of the formatted message.
+ * \param ReturnLength An optional pointer to a variable that receives the length, in bytes, of the formatted
+ * message.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Length and ReturnLength are byte counts. Formatting consumes a format language and possibly
+ * variadic/array arguments; use a trusted format and correctly typed argument storage. Formatting flags and
+ * insertion arguments determine wrapping, encoding, and termination behavior.
  */
 NTSYSAPI
 NTSTATUS
@@ -12167,19 +12551,26 @@ typedef struct _PARSE_MESSAGE_CONTEXT
 #define CLEAR_PARSE_MESSAGE_CONTEXT_FLAG(ctx, flag) ((ctx)->fFlags &= ~(flag))
 
 /**
- * The RtlFormatMessageEx routine formats a message string, substituting the supplied insert arguments, with an extended parse context.
+ * The RtlFormatMessageEx routine formats a message string, substituting the supplied insert arguments, with
+ * an extended parse context.
  *
  * \param MessageFormat A pointer to the message format string.
  * \param MaximumWidth The maximum line width, in characters, or zero for no limit.
  * \param IgnoreInserts A boolean that specifies whether insert sequences are left unexpanded.
  * \param ArgumentsAreAnsi A boolean that specifies whether the arguments are ANSI strings.
- * \param ArgumentsAreAnArray A boolean that specifies whether the arguments are supplied as an array rather than a va_list.
+ * \param ArgumentsAreAnArray A boolean that specifies whether the arguments are supplied as an array rather
+ * than a va_list.
  * \param Arguments A pointer to the insert arguments.
  * \param Buffer A buffer that receives the formatted message.
  * \param Length The size, in bytes, of the output buffer.
- * \param ReturnLength An optional pointer to a variable that receives the length, in bytes, of the formatted message.
- * \param ParseContext An optional pointer to a parse-message context that receives extended parse information.
+ * \param ReturnLength An optional pointer to a variable that receives the length, in bytes, of the formatted
+ * message.
+ * \param ParseContext An optional pointer to a parse-message context that receives extended parse
+ * information.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Length and ReturnLength are byte counts. Formatting consumes a format language and possibly
+ * variadic/array arguments; use a trusted format and correctly typed argument storage. Formatting flags and
+ * insertion arguments determine wrapping, encoding, and termination behavior.
  */
 NTSYSAPI
 NTSTATUS
@@ -12260,6 +12651,7 @@ RtlLoadString(
  * \param Status The NTSTATUS code to convert.
  * \return ULONG The corresponding Windows error code.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlntstatustodoserror
+ * \remarks Maps status values rather than testing NT_SUCCESS. The ordinary variant updates TEB.LastStatusValue; NoTeb does not. Neither alone is a general SetLastError operation. Customer-defined status bits and unmapped values have special mappings, so preserve the original status when diagnostics need it.
  */
 _When_(Status < 0, _Out_range_(>, 0))
 _When_(Status >= 0, _Out_range_(==, 0))
@@ -12275,6 +12667,7 @@ RtlNtStatusToDosError(
  *
  * \param Status The NTSTATUS code to convert.
  * \return ULONG The corresponding Windows error code.
+ * \remarks Maps status values rather than testing NT_SUCCESS. The ordinary variant updates TEB.LastStatusValue; NoTeb does not. Neither alone is a general SetLastError operation. Customer-defined status bits and unmapped values have special mappings, so preserve the original status when diagnostics need it.
  */
 _When_(Status < 0, _Out_range_(>, 0))
 _When_(Status >= 0, _Out_range_(==, 0))
@@ -12289,6 +12682,7 @@ RtlNtStatusToDosErrorNoTeb(
  * The RtlGetLastNtStatus routine returns the NTSTATUS code of the last error recorded for the calling thread.
  *
  * \return NTSTATUS The last NTSTATUS code recorded for the calling thread.
+ * \remarks Last NT status and last Win32 error are distinct per-thread fields. The combined setter maps status and updates both; SetLastWin32Error/RestoreLastWin32Error update the Win32 field. Read these immediately after the operation whose contract sets them, and preserve them around helper work that must not alter caller diagnostics.
  */
 NTSYSAPI
 NTSTATUS
@@ -12301,6 +12695,7 @@ RtlGetLastNtStatus(
  * The RtlGetLastWin32Error routine returns the Windows (Win32) error code of the last error recorded for the calling thread.
  *
  * \return LONG The last Windows error code recorded for the calling thread.
+ * \remarks Last NT status and last Win32 error are distinct per-thread fields. The combined setter maps status and updates both; SetLastWin32Error/RestoreLastWin32Error update the Win32 field. Read these immediately after the operation whose contract sets them, and preserve them around helper work that must not alter caller diagnostics.
  */
 _Check_return_
 _Post_equals_last_error_
@@ -12315,6 +12710,7 @@ RtlGetLastWin32Error(
  * The RtlSetLastWin32ErrorAndNtStatusFromNtStatus routine sets the calling thread's last error, recording both the specified NTSTATUS code and its equivalent Windows (Win32) error code.
  *
  * \param Status The NTSTATUS code to record as the last error.
+ * \remarks Last NT status and last Win32 error are distinct per-thread fields. The combined setter maps status and updates both; SetLastWin32Error/RestoreLastWin32Error update the Win32 field. Read these immediately after the operation whose contract sets them, and preserve them around helper work that must not alter caller diagnostics.
  */
 NTSYSAPI
 VOID
@@ -12327,6 +12723,7 @@ RtlSetLastWin32ErrorAndNtStatusFromNtStatus(
  * The RtlSetLastWin32Error routine sets the Windows (Win32) error code of the last error for the calling thread.
  *
  * \param Win32Error The Windows error code to record as the last error.
+ * \remarks Last NT status and last Win32 error are distinct per-thread fields. The combined setter maps status and updates both; SetLastWin32Error/RestoreLastWin32Error update the Win32 field. Read these immediately after the operation whose contract sets them, and preserve them around helper work that must not alter caller diagnostics.
  */
 NTSYSAPI
 VOID
@@ -12339,6 +12736,7 @@ RtlSetLastWin32Error(
  * The RtlRestoreLastWin32Error routine restores the calling thread's last Windows (Win32) error code without side effects.
  *
  * \param Win32Error The Windows error code to restore as the last error.
+ * \remarks Last NT status and last Win32 error are distinct per-thread fields. The combined setter maps status and updates both; SetLastWin32Error/RestoreLastWin32Error update the Win32 field. Read these immediately after the operation whose contract sets them, and preserve them around helper work that must not alter caller diagnostics.
  */
 NTSYSAPI
 VOID
@@ -12358,6 +12756,7 @@ RtlRestoreLastWin32Error(
  * The RtlGetThreadErrorMode routine returns the error mode for the calling thread.
  *
  * \return ULONG The current thread error mode flags.
+ * \remarks The native setter uses bits 0x10, 0x20 and 0x40, not the Win32 SetErrorMode bit encoding. Other bits return STATUS_INVALID_PARAMETER_1 before publishing old mode. Preserve/restore the previous thread value; no process-wide error-mode setter is implied.
  */
 NTSYSAPI
 ULONG
@@ -12372,6 +12771,7 @@ RtlGetThreadErrorMode(
  * \param NewMode The new thread error mode flags to set.
  * \param OldMode An optional pointer to a variable that receives the previous thread error mode.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native setter uses bits 0x10, 0x20 and 0x40, not the Win32 SetErrorMode bit encoding. Other bits return STATUS_INVALID_PARAMETER_1 before publishing old mode. Preserve/restore the previous thread value; no process-wide error-mode setter is implied.
  */
 NTSYSAPI
 NTSTATUS
@@ -12392,6 +12792,8 @@ RtlSetThreadErrorMode(
  * \param ContextRecord A pointer to the context record captured at the time of the exception.
  * \param Flags Flags that control how the exception is reported.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These can produce external error-reporting side effects, waits, process interaction or termination
+ * paths; they are not passive formatters.
  */
 NTSYSAPI
 NTSTATUS
@@ -12405,13 +12807,16 @@ RtlReportException(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
 /**
- * The RtlReportExceptionEx routine reports an exception to Windows Error Reporting (WER) with an optional timeout.
+ * The RtlReportExceptionEx routine reports an exception to Windows Error Reporting (WER) with an optional
+ * timeout.
  *
  * \param ExceptionRecord A pointer to the exception record describing the exception.
  * \param ContextRecord A pointer to the context record captured at the time of the exception.
  * \param Flags Flags that control how the exception is reported.
  * \param Timeout A pointer to the maximum time to wait for the report to complete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These can produce external error-reporting side effects, waits, process interaction or termination
+ * paths; they are not passive formatters.
  */
 NTSYSAPI
 NTSTATUS
@@ -12426,15 +12831,19 @@ RtlReportExceptionEx(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 /**
- * The RtlWerpReportException routine submits an exception report for the specified process to Windows Error Reporting (WER).
+ * The RtlWerpReportException routine submits an exception report for the specified process to Windows Error
+ * Reporting (WER).
  *
  * \param ProcessId The identifier of the process for which the exception is reported.
  * \param CrashReportSharedMem A handle to the shared memory section containing the crash report data.
  * \param Entries An optional array of crash report entry pointers.
  * \param EntryCount The number of entries in the Entries array.
  * \param Flags Flags that control how the exception is reported.
- * \param CrashVerticalProcessHandle A pointer to a variable that receives a handle to the WER vertical process.
+ * \param CrashVerticalProcessHandle A pointer to a variable that receives a handle to the WER vertical
+ * process.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These can produce external error-reporting side effects, waits, process interaction or termination
+ * paths; they are not passive formatters.
  */
 NTSYSAPI
 NTSTATUS
@@ -12455,6 +12864,8 @@ RtlWerpReportException(
  * \param ProcessHandle A handle to the process that is exiting.
  * \param ExitStatus The exit status of the process.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These can produce external error-reporting side effects, waits, process interaction or termination
+ * paths; they are not passive formatters.
  */
 NTSYSAPI
 NTSTATUS
@@ -12473,6 +12884,7 @@ RtlReportSilentProcessExit(
  *
  * \param Seed A pointer to the seed value, which is updated on each call.
  * \return ULONG The generated pseudo-random number.
+ * \remarks These are not cryptographic random-number APIs. RtlUniform updates the caller seed; the Random and RandomEx exports share an implementation that also uses mutable process state. Do not assume identical caller seeds imply isolated identical streams under concurrency.
  */
 NTSYSAPI
 ULONG
@@ -12487,6 +12899,7 @@ RtlUniform(
  * \param Seed A pointer to the seed value, which is updated on each call.
  * \return ULONG The generated pseudo-random number.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlrandom
+ * \remarks These are not cryptographic random-number APIs. RtlUniform updates the caller seed; the Random and RandomEx exports share an implementation that also uses mutable process state. Do not assume identical caller seeds imply isolated identical streams under concurrency.
  */
 _Ret_range_(<=, MAXLONG)
 NTSYSAPI
@@ -12502,6 +12915,7 @@ RtlRandom(
  * \param Seed A pointer to the seed value, which is updated on each call.
  * \return ULONG The generated pseudo-random number.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlrandomex
+ * \remarks These are not cryptographic random-number APIs. RtlUniform updates the caller seed; the Random and RandomEx exports share an implementation that also uses mutable process state. Do not assume identical caller seeds imply isolated identical streams under concurrency.
  */
 _Ret_range_(<=, MAXLONG)
 NTSYSAPI
@@ -12545,6 +12959,7 @@ RtlComputeImportTableHash(
  * \param OutputLength The size, in characters, of the output buffer. A negative value pads the result to the given width.
  * \param String A buffer that receives the converted character string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Accepted bases are 2, 8, 10 and 16; zero selects 10. Positive OutputLength permits exact-fit success without a terminator; only a larger buffer receives a trailing NUL. Negative OutputLength requests zero padding to its absolute width without a trailing NUL. Insufficient width returns STATUS_BUFFER_OVERFLOW; do not use LONG_MIN as a width.
  */
 NTSYSAPI
 NTSTATUS
@@ -12564,6 +12979,7 @@ RtlIntegerToChar(
  * \param Value A pointer to a variable that receives the converted integer value.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlchartointeger
+ * \remarks This is permissive numeric-prefix conversion, not strict whole-input validation: parsing stops at a non-digit, and ULONG accumulation can wrap without an overflow error. Validate separately when the entire string or a bounded mathematical value is required.
  */
 NTSYSAPI
 NTSTATUS
@@ -12582,6 +12998,7 @@ RtlCharToInteger(
  * \param OutputLength The size, in characters, of the output buffer. A negative value pads the result to the given width.
  * \param String A buffer that receives the converted character string.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Accepted bases are 2, 8, 10 and 16; zero selects 10. Positive OutputLength permits exact-fit success without a terminator; only a larger buffer receives a trailing NUL. Negative OutputLength requests zero padding to its absolute width without a trailing NUL. Insufficient width returns STATUS_BUFFER_OVERFLOW; do not use LONG_MIN as a width.
  */
 NTSYSAPI
 NTSTATUS
@@ -12662,6 +13079,7 @@ RtlInt64ToUnicodeString(
  * \param Value A pointer to a variable that receives the converted integer value.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlunicodestringtointeger
+ * \remarks This is permissive numeric-prefix conversion, not strict whole-input validation: parsing stops at a non-digit, and ULONG accumulation can wrap without an overflow error. Validate separately when the entire string or a bounded mathematical value is required.
  */
 NTSYSAPI
 NTSTATUS
@@ -13193,7 +13611,7 @@ RtlTimeFieldsToTime(
     );
 
 /**
- * Constants giving the number of seconds from 1970 to the start of 1980.
+ * Constants giving the number of seconds from January 1, 1601 to the starts of 1980 and 1970, respectively.
  */
 #define SecondsToStartOf1980 LONGLONG_C(11960006400)
 #define SecondsToStartOf1970 LONGLONG_C(11644473600)
@@ -13280,6 +13698,7 @@ RtlGetSystemTimePrecise(
  * \param TimeZoneBiasEffectiveStart An optional pointer to a variable that receives the time at which the current bias became effective.
  * \param TimeZoneBiasEffectiveEnd An optional pointer to a variable that receives the time at which the current bias ceases to be effective.
  * \return ULONGLONG The current system time, in 100-nanosecond intervals since January 1, 1601 (UTC).
+ * \remarks Returns the shared system-time snapshot, not the interpolated value from RtlGetSystemTimePrecise. Do not infer ordering between those APIs solely from call order. Bias effective-start and effective-end outputs may be NULL; TimeZoneBias is required.
  */
 NTSYSAPI
 ULONGLONG
@@ -13367,6 +13786,7 @@ typedef struct _RTL_MULTI_TIME_PRECISE
  * \param RequestedMask A bit mask selecting which time values to retrieve (for example, performance counter, hypervisor-correlated time, and shared user time).
  * \param ProvidedMask A pointer to a variable that receives the mask of time values that were actually provided.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Only fields selected by ProvidedMask are valid outputs; other fields are not initialized. RequestedMask zero succeeds, sets ProvidedMask to zero and leaves TimesOut untouched. The implementation ignores unrecognized bits; callers should request only documented bits 0x1, 0x2 and 0x4.
  */
 NTSYSAPI
 NTSTATUS
@@ -13624,6 +14044,7 @@ RtlTestBit(
  *
  * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlclearallbits
+ * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
 NTSYSAPI
 VOID
@@ -13637,6 +14058,7 @@ RtlClearAllBits(
  *
  * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsetallbits
+ * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
 NTSYSAPI
 VOID
@@ -13653,6 +14075,7 @@ RtlSetAllBits(
  * \param HintIndex Specifies a zero-based bit position from which to start looking for a clear bit range of the given size.
  * \return RtlFindClearBits either returns the zero-based starting bit index for a clear bit range of at least the requested size, or it returns 0xFFFFFFFF if it cannot find such a range within the given bitmap.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindclearbits
+ * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
 _Success_(return != -1)
 _Check_return_
@@ -13673,6 +14096,7 @@ RtlFindClearBits(
  * \param HintIndex Specifies a zero-based bit position around which to start looking for a set bit range of the given size.
  * \return RtlFindSetBits either returns the zero-based starting bit index for a set bit range of the requested size, or it returns 0xFFFFFFFF if it cannot find such a range within the given bitmap variable.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindsetbits
+ * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
 _Success_(return != -1)
 _Check_return_
@@ -13693,6 +14117,7 @@ RtlFindSetBits(
  * \param HintIndex Specifies a zero-based bit position from which to start looking for a clear bit range of the given size.
  * \return RtlFindClearBitsAndSet either returns the zero-based starting bit index for a clear bit range of the requested size that it set, or it returns 0xFFFFFFFF if it cannot find such a range within the given bitmap variable.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindclearbitsandset
+ * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
 _Success_(return != -1)
 NTSYSAPI
@@ -13712,6 +14137,7 @@ RtlFindClearBitsAndSet(
  * \param HintIndex Specifies a zero-based bit position around which to start looking for a set bit range of the given size.
  * \return RtlFindSetBitsAndClear either returns the zero-based starting bit index for a set bit range of the requested size that it cleared, or it returns 0xFFFFFFFF if it cannot find such a range within the given bitmap variable.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindsetbitsandclear
+ * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
 _Success_(return != -1)
 NTSYSAPI
@@ -13913,6 +14339,7 @@ RtlNumberOfSetBits(
  * \return RtlAreBitsClear returns TRUE if Length contiguous bits starting at StartingIndex are clear (that is, all the bits from StartingIndex to (StartingIndex + Length) -1). It returns FALSE if any bit in the given range is set, if the given range is not a proper subset of the bitmap, or if Length is zero.
  * \remarks Callers of RtlAreBitsClear must be running at IRQL <= APC_LEVEL if the memory that contains the bitmap variable is pageable or the memory at BitMapHeader is pageable. Otherwise, RtlAreBitsClear can be called at any IRQL.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlarebitsclear
+ * \remarks A zero-length range returns FALSE, as does an out-of-bounds range. This is not the vacuous-truth convention for an empty range. Nonempty ranges must fit entirely within SizeOfBitMap.
  */
 _Check_return_
 NTSYSAPI
@@ -13933,6 +14360,7 @@ RtlAreBitsClear(
  * \return RtlAreBitsSet returns TRUE if Length consecutive bits beginning at StartingIndex are set (that is, all the bits from StartingIndex to (StartingIndex + Length)). It returns FALSE if any bit in the given range is clear, if the given range is not a proper subset of the bitmap, or if the given Length is zero.
  * \remarks Callers of RtlAreBitsSet must be running at IRQL <= APC_LEVEL if the memory that contains the bitmap variable is pageable or the memory at BitMapHeader is pageable. Otherwise, RtlAreBitsSet can be called at any IRQL.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlarebitsset
+ * \remarks A zero-length range returns FALSE, as does an out-of-bounds range. This is not the vacuous-truth convention for an empty range. Nonempty ranges must fit entirely within SizeOfBitMap.
  */
 _Check_return_
 NTSYSAPI
@@ -14002,6 +14430,7 @@ RtlNumberOfSetBitsUlongPtr(
  * \param BitMapHeader A pointer to the RTL_BITMAP that describes the bitmap.
  * \param StartingIndex The zero-based index of the first bit to clear.
  * \param NumberToClear The number of consecutive bits to clear.
+ * \remarks Interlocked updates operate on individual 32-bit words. A range spanning multiple words is not changed as one indivisible transaction. The caller must provide an in-bounds range and coordinate higher-level allocation protocols.
  */
 NTSYSAPI
 VOID
@@ -14019,6 +14448,7 @@ RtlInterlockedClearBitRun(
  * \param BitMapHeader A pointer to the RTL_BITMAP that describes the bitmap.
  * \param StartingIndex The zero-based index of the first bit to set.
  * \param NumberToSet The number of consecutive bits to set.
+ * \remarks Interlocked updates operate on individual 32-bit words. A range spanning multiple words is not changed as one indivisible transaction. The caller must provide an in-bounds range and coordinate higher-level allocation protocols.
  */
 NTSYSAPI
 VOID
@@ -14037,6 +14467,7 @@ RtlInterlockedSetBitRun(
  * \param Source A pointer to the RTL_BITMAP to copy from.
  * \param Destination A pointer to the RTL_BITMAP to copy into.
  * \param TargetBit The zero-based index in the destination bitmap at which copying begins.
+ * \remarks Copies from the start of Source to TargetBit in Destination, limited by source size and remaining destination capacity. It writes destination storage without resizing or allocating the descriptor. TargetBit must be valid before the destination-size subtraction.
  */
 NTSYSAPI
 VOID
@@ -14054,6 +14485,7 @@ RtlCopyBitMap(
  * \param Destination A pointer to the RTL_BITMAP that receives the extracted bits.
  * \param TargetBit The zero-based index of the first bit to extract from the source bitmap.
  * \param NumberOfBits The number of bits to extract.
+ * \remarks Copies from TargetBit in Source to bit zero in Destination, clamping to NumberOfBits, remaining source size and destination capacity. It does not allocate or resize the destination; TargetBit must be valid before the source-size subtraction.
  */
 NTSYSAPI
 VOID
@@ -14072,6 +14504,7 @@ RtlExtractBitMap(
  * \param StartingIndex The zero-based index of the first bit in the range.
  * \param Length The number of bits in the range to examine.
  * \return ULONG The number of clear bits in the specified range.
+ * \remarks Returns 0xFFFFFFFF for a zero-length or out-of-range request; this sentinel is not a bit count. Check it before arithmetic or interpreting the result as success.
  */
 NTSYSAPI
 ULONG
@@ -14089,6 +14522,7 @@ RtlNumberOfClearBitsInRange(
  * \param StartingIndex The zero-based index of the first bit in the range.
  * \param Length The number of bits in the range to examine.
  * \return ULONG The number of set bits in the specified range.
+ * \remarks Returns 0xFFFFFFFF for a zero-length or out-of-range request; this sentinel is not a bit count. Check it before arithmetic or interpreting the result as success.
  */
 NTSYSAPI
 ULONG
@@ -14152,6 +14586,7 @@ RtlTestBitEx(
  * The RtlClearAllBitsEx routine clears every bit in an extended bitmap.
  *
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
+ * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
 NTSYSAPI
 VOID
@@ -14211,6 +14646,7 @@ RtlSetBitsEx(
  * The RtlSetAllBitsEx routine sets every bit in an extended bitmap.
  *
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
+ * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
 NTSYSAPI
 VOID
@@ -14227,6 +14663,7 @@ RtlSetAllBitsEx(
  * \param NumberToFind The number of consecutive set bits to locate.
  * \param HintIndex The zero-based index at which to begin the search.
  * \return ULONG64 The starting index of the located run, or -1 if no such run exists.
+ * \remarks On x64, NumberToFind zero returns the effective hint rounded down to an 8-bit boundary; an out-of-bounds hint becomes zero. Failed nonempty search returns 0xFFFFFFFFFFFFFFFF. These Ex exports are absent from matching x86 ntdll; check target-architecture availability. Search-and-modify is not an atomic allocator.
  */
 NTSYSAPI
 ULONG64
@@ -14244,6 +14681,7 @@ RtlFindSetBitsEx(
  * \param NumberToFind The number of consecutive set bits to locate and clear.
  * \param HintIndex The zero-based index at which to begin the search.
  * \return ULONG64 The starting index of the located run, or -1 if no such run exists.
+ * \remarks On x64, NumberToFind zero returns the effective hint rounded down to an 8-bit boundary; an out-of-bounds hint becomes zero. Failed nonempty search returns 0xFFFFFFFFFFFFFFFF. These Ex exports are absent from matching x86 ntdll; check target-architecture availability. Search-and-modify is not an atomic allocator.
  */
 NTSYSAPI
 ULONG64
@@ -14274,6 +14712,7 @@ RtlNumberOfClearBitsEx(
  * \param NumberToFind The number of consecutive clear bits to locate and set.
  * \param HintIndex The zero-based index at which to begin the search.
  * \return ULONGLONG The starting index of the located run, or -1 if no such run exists.
+ * \remarks On x64, NumberToFind zero returns the effective hint rounded down to an 8-bit boundary; an out-of-bounds hint becomes zero. Failed nonempty search returns 0xFFFFFFFFFFFFFFFF. These Ex exports are absent from matching x86 ntdll; check target-architecture availability. Search-and-modify is not an atomic allocator.
  */
 NTSYSAPI
 ULONGLONG
@@ -14291,6 +14730,7 @@ RtlFindClearBitsAndSetEx(
  * \param NumberToFind The number of consecutive clear bits to locate.
  * \param HintIndex The zero-based index at which to begin the search.
  * \return ULONGLONG The starting index of the located run, or -1 if no such run exists.
+ * \remarks On x64, NumberToFind zero returns the effective hint rounded down to an 8-bit boundary; an out-of-bounds hint becomes zero. Failed nonempty search returns 0xFFFFFFFFFFFFFFFF. These Ex exports are absent from matching x86 ntdll; check target-architecture availability. Search-and-modify is not an atomic allocator.
  */
 NTSYSAPI
 ULONGLONG
@@ -14330,8 +14770,6 @@ RtlNumberOfSetBitsEx(
     _In_ PRTL_BITMAP_EX BitMapHeader
     );
 
-#endif // PHNT_VERSION >= PHNT_WINDOWS_10
-
 // rev
 /**
  * The RtlInterlockedClearBitRunEx routine atomically clears a run of consecutive bits in an extended bitmap.
@@ -14339,6 +14777,7 @@ RtlNumberOfSetBitsEx(
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
  * \param StartingIndex The zero-based index of the first bit to clear.
  * \param NumberToClear The number of consecutive bits to clear.
+ * \remarks Interlocked updates operate on individual 32-bit words. A range spanning multiple words is not changed as one indivisible transaction. The caller must provide an in-bounds range and coordinate higher-level allocation protocols.
  */
 NTSYSAPI
 VOID
@@ -14393,6 +14832,7 @@ RtlLengthCurrentClearRunForwardEx(
  * \param StartingIndex The zero-based index of the first bit to examine.
  * \param Length The number of bits to check.
  * \return TRUE if all bits in the specified range are clear; otherwise, FALSE.
+ * \remarks A zero-length range returns FALSE, as does an out-of-bounds range. This is not the vacuous-truth convention for an empty range. Nonempty ranges must fit entirely within SizeOfBitMap.
  */
 NTSYSAPI
 BOOLEAN
@@ -14402,6 +14842,8 @@ RtlAreBitsClearEx(
     _In_ ULONGLONG StartingIndex,
     _In_ ULONGLONG Length
     );
+
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 //
 // Handle tables
@@ -14431,7 +14873,8 @@ typedef struct _RTL_HANDLE_TABLE
 {
     ULONG MaximumNumberOfHandles;
     ULONG SizeOfHandleTableEntry;
-    ULONG Reserved[2];
+    ULONG HeapAllocated; // rev: nonzero selects heap growth; initialized from entry-size bit 31
+    ULONG CommittedHandleCount; // rev: heap-mode capacity, increased by 8 entries on each growth
     PRTL_HANDLE_TABLE_ENTRY FreeHandles;
     PRTL_HANDLE_TABLE_ENTRY CommittedHandles;
     PRTL_HANDLE_TABLE_ENTRY UnCommittedHandles;
@@ -14444,6 +14887,7 @@ typedef struct _RTL_HANDLE_TABLE
  * \param MaximumNumberOfHandles The maximum number of handles the table can contain.
  * \param SizeOfHandleTableEntry The size, in bytes, of each handle table entry.
  * \param HandleTable A pointer to the RTL_HANDLE_TABLE to initialize.
+ * \remarks Entry-size bit 31 selects heap-backed growth; the remaining 31 bits are the entry stride. HeapAllocated records that mode and CommittedHandleCount records heap capacity in groups of 8 entries. VM-backed tables reserve/commit pages instead. Use suitably aligned power-of-two strides; heap addresses have only the allocator alignment guarantee (8 bytes on x86, 16 bytes on x64). Callers must serialize mutations.
  */
 NTSYSAPI
 VOID
@@ -14459,6 +14903,7 @@ RtlInitializeHandleTable(
  *
  * \param HandleTable A pointer to the RTL_HANDLE_TABLE to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases backing VM or heap storage according to HeapAllocated. The table descriptor is not reset and must not be reused or destroyed twice without reinitialization; all entry pointers become invalid.
  */
 NTSYSAPI
 NTSTATUS
@@ -14473,12 +14918,13 @@ RtlDestroyHandleTable(
  * \param HandleTable A pointer to the RTL_HANDLE_TABLE from which to allocate.
  * \param HandleIndex An optional pointer to a variable that receives the index of the allocated handle.
  * \return PRTL_HANDLE_TABLE_ENTRY A pointer to the allocated handle table entry, or `NULL` on failure.
+ * \remarks Removes and clears a free-list entry but does not set RTL_HANDLE_ALLOCATED. The caller must set that low bit before validation helpers accept the entry. HandleIndex is optional. Allocation may grow/reallocate a heap-backed table, invalidating earlier entry pointers; retain indexes and reacquire pointers after growth.
  */
 NTSYSAPI
 PRTL_HANDLE_TABLE_ENTRY
 NTAPI
 RtlAllocateHandle(
-    _In_ PRTL_HANDLE_TABLE HandleTable,
+    _Inout_ PRTL_HANDLE_TABLE HandleTable,
     _Out_opt_ PULONG HandleIndex
     );
 
@@ -14488,13 +14934,14 @@ RtlAllocateHandle(
  * \param HandleTable A pointer to the RTL_HANDLE_TABLE that owns the handle.
  * \param Handle A pointer to the handle table entry to free.
  * \return Returns `TRUE` if the handle was freed successfully, otherwise `FALSE`.
+ * \remarks Clears the entry stride and pushes the entry onto the table free list. The implementation returns TRUE without validating ownership or detecting a double free. Supply only a currently owned entry and serialize access; this is not an arbitrary-pointer validation API.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlFreeHandle(
-    _In_ PRTL_HANDLE_TABLE HandleTable,
-    _In_ PRTL_HANDLE_TABLE_ENTRY Handle
+    _Inout_ PRTL_HANDLE_TABLE HandleTable,
+    _Inout_ PRTL_HANDLE_TABLE_ENTRY Handle
     );
 
 /**
@@ -14503,6 +14950,7 @@ RtlFreeHandle(
  * \param HandleTable A pointer to the RTL_HANDLE_TABLE that owns the handle.
  * \param Handle A pointer to the handle table entry to validate.
  * \return Returns `TRUE` if the handle is valid, otherwise `FALSE`.
+ * \remarks Checks committed range, stride alignment and RTL_HANDLE_ALLOCATED; allocation alone does not set the bit. Index lookup leaves the output slot unchanged on FALSE. These checks do not provide synchronization or protection against concurrent table destruction.
  */
 NTSYSAPI
 BOOLEAN
@@ -14519,6 +14967,7 @@ RtlIsValidHandle(
  * \param HandleIndex The zero-based index of the handle to validate.
  * \param Handle A pointer to a variable that receives the handle table entry for the index.
  * \return Returns `TRUE` if the indexed handle is valid, otherwise `FALSE`.
+ * \remarks Checks committed range, stride alignment and RTL_HANDLE_ALLOCATED; allocation alone does not set the bit. Index lookup leaves the output slot unchanged on FALSE. These checks do not provide synchronization or protection against concurrent table destruction.
  */
 NTSYSAPI
 BOOLEAN
@@ -14548,6 +14997,7 @@ RtlIsValidIndexHandle(
  * \param NumberOfBuckets The number of hash buckets; zero selects a default.
  * \param AtomTableHandle Receives the newly created atom table.
  * \return NTSTATUS Successful or errant status.
+ * \remarks AtomTableHandle is input/output: initialize *AtomTableHandle to NULL to create a private table. A non-NULL slot produces success without replacing it. Bucket counts 0 and 1 both select 37. This table is separate from the system atom table used by NtAddAtom.
  */
 NTSYSAPI
 NTSTATUS
@@ -14562,6 +15012,7 @@ RtlCreateAtomTable(
  *
  * \param AtomTableHandle The atom table to destroy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Destroys the private atom table and its backing entries. The caller owns the table lifetime and must prevent concurrent use; the passed handle value is not cleared.
  */
 NTSYSAPI
 NTSTATUS
@@ -14576,6 +15027,7 @@ RtlDestroyAtomTable(
  * \param AtomTableHandle The atom table to empty.
  * \param IncludePinnedAtoms TRUE to also remove pinned atoms; FALSE to retain them.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Removes entries from this private table. IncludePinnedAtoms FALSE preserves pinned entries; TRUE removes them as well. Existing atom values for removed entries must no longer be used.
  */
 NTSYSAPI
 NTSTATUS
@@ -14592,6 +15044,7 @@ RtlEmptyAtomTable(
  * \param AtomName The name of the atom to add.
  * \param Atom On input may specify an integer atom; receives the resulting atom.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Private-table string matching is case-insensitive. Adding an existing name increments its reference count and returns the existing atom; lookup does not add a reference. Use the same table for queries, pinning and deletion. Integer atom encodings are handled separately from string entries.
  */
 NTSYSAPI
 NTSTATUS
@@ -14609,6 +15062,7 @@ RtlAddAtomToAtomTable(
  * \param AtomName The name of the atom to find.
  * \param Atom An optional pointer that receives the atom.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Private-table string matching is case-insensitive. Adding an existing name increments its reference count and returns the existing atom; lookup does not add a reference. Use the same table for queries, pinning and deletion. Integer atom encodings are handled separately from string entries.
  */
 NTSYSAPI
 NTSTATUS
@@ -14625,6 +15079,7 @@ RtlLookupAtomInAtomTable(
  * \param AtomTableHandle The atom table to modify.
  * \param Atom The atom to remove.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Drops a string-atom reference and removes an unpinned entry when the count reaches zero. Pinning changes deletion behavior; do not assume every successful delete makes lookup fail.
  */
 NTSYSAPI
 NTSTATUS
@@ -14640,6 +15095,7 @@ RtlDeleteAtomFromAtomTable(
  * \param AtomTableHandle The atom table containing the atom.
  * \param Atom The atom to pin.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Pins an existing private atom so ordinary reference deletion/empty-without-pinned removal does not discard it. This does not pin a system atom in another table.
  */
 NTSYSAPI
 NTSTATUS
@@ -14659,6 +15115,7 @@ RtlPinAtomInAtomTable(
  * \param AtomName An optional buffer that receives the atom name.
  * \param AtomNameLength On input specifies the buffer size; on output receives the name length.
  * \return NTSTATUS Successful or errant status.
+ * \remarks AtomNameLength is a required byte-capacity input/output even when AtomName is NULL. A short nonempty name buffer can succeed with a truncated NUL-terminated name; the returned count excludes NUL. With a non-NULL zero-capacity buffer, a string atom reports STATUS_BUFFER_TOO_SMALL and its visible-name byte length. A NULL name buffer queries metadata, not the full required name size. Reserve an extra WCHAR for NUL.
  */
 NTSYSAPI
 NTSTATUS
@@ -14669,7 +15126,7 @@ RtlQueryAtomInAtomTable(
     _Out_opt_ PULONG AtomUsage,
     _Out_opt_ PULONG AtomFlags,
     _Inout_updates_bytes_to_opt_(*AtomNameLength, *AtomNameLength) PWSTR AtomName,
-    _Inout_opt_ PULONG AtomNameLength
+    _Inout_ PULONG AtomNameLength
     );
 
 // rev
@@ -14679,6 +15136,7 @@ RtlQueryAtomInAtomTable(
  * \param AtomName A pointer to the null-terminated atom name to convert.
  * \param IntegerAtom An optional pointer to a variable that receives the integer atom value.
  * \return Returns `TRUE` if the name represents a valid integer atom, otherwise `FALSE`.
+ * \remarks Accepts low-valued pointer-encoded atoms and decimal #number strings. TRUE means the spelling is treated as an integer atom, not necessarily a usable atom: zero/out-of-range decimal strings can produce sentinel 0xC000. Inspect the output value as well; ordinary nondigit suffixes return FALSE.
  */
 NTSYSAPI
 BOOLEAN
@@ -14698,6 +15156,7 @@ RtlGetIntegerAtom(
  * \param Sid A pointer to the SID to validate.
  * \return Returns `TRUE` if the SID is structurally valid, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidsid
+ * \remarks This is a shallow header check, not a bounded-buffer validation or an identity/access check. It accepts a revision whose low nibble is 1 and at most 15 subauthorities; it does not prove that all subauthority storage is readable. String conversion additionally requires the exact revision byte 1.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -14714,6 +15173,7 @@ RtlValidSid(
  * \param Sid2 A pointer to the second SID to compare.
  * \return Returns `TRUE` if the two SIDs are equal, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlequalsid
+ * \remarks Compares the counted binary SID contents, without validating an external buffer length. Both SID buffers must be structurally valid and readable for their computed sizes. Equality does not establish that a token contains or enables the SID.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -14731,6 +15191,7 @@ RtlEqualSid(
  * \param Sid2 A pointer to the second SID to compare.
  * \return Returns `TRUE` if the SID prefixes are equal, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlequalprefixsid
+ * \remarks For ordinary SIDs, requires equal revision, authority and subauthority count, then compares all but the final subauthority. It is not an arbitrary-length prefix comparison. The implementation also has an authority-11, 11-subauthority special case; do not generalize ordinary domain-SID semantics to every authority.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -14747,6 +15208,7 @@ RtlEqualPrefixSid(
  * \param SubAuthorityCount The number of subauthorities the SID will contain.
  * \return ULONG The number of bytes required to hold the SID.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthrequiredsid
+ * \remarks Computes 8 + 4 * SubAuthorityCount bytes. The implementation returns 0xFFFFFFFF when the count exceeds 0x3FFFFFF7; this arithmetic helper does not enforce the structural limit of 15 subauthorities used by SID initialization.
  */
 NTSYSAPI
 ULONG
@@ -14760,6 +15222,7 @@ RtlLengthRequiredSid(
  *
  * \param Sid The SID to free.
  * \return NULL.
+ * \remarks Frees a SID allocated by the RTL SID allocation routines using the process heap. Returns NULL on successful release and the original pointer on failure; it does not clear any caller variable that holds the pointer.
  */
 NTSYSAPI
 PVOID
@@ -14784,6 +15247,7 @@ RtlFreeSid(
  * \param Sid A pointer to a variable that receives the allocated SID.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlallocateandinitializesid
+ * \remarks The fixed-argument form supports 0 through 8 subauthorities and returns STATUS_INVALID_SID for a larger count before allocating. Output is published only after successful allocation/initialization; release it with RtlFreeSid.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -14813,6 +15277,7 @@ RtlAllocateAndInitializeSid(
  * \param Sid A pointer to a variable that receives the allocated SID.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateandinitializesidex
+ * \remarks The array-based form supports 0 through 15 subauthorities; a larger count returns STATUS_INVALID_PARAMETER. Copies the supplied ULONG values into newly allocated storage of 8 + 4 * count bytes. Release the resulting SID with RtlFreeSid.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -14834,6 +15299,7 @@ RtlAllocateAndInitializeSidEx(
  * \param SubAuthorityCount The number of subauthorities the SID will contain.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlinitializesid
+ * \remarks Initializes only the 8-byte SID header, not the subauthority values. The caller must provide storage for 8 + 4 * SubAuthorityCount bytes and initialize each subauthority before using it. Counts above 15 return STATUS_INVALID_PARAMETER.
  */
 NTSYSAPI
 NTSTATUS
@@ -14853,6 +15319,7 @@ RtlInitializeSid(
  * \param SubAuthorityCount The number of subauthority arguments that follow.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlinitializesidex
+ * \remarks Initializes the header and copies the specified variadic ULONG subauthority values into caller storage; at most 15 are accepted. Supply storage for 8 + 4 * SubAuthorityCount bytes. The x86 variadic entry uses the C calling convention, as required for variadic calls.
  */
 NTSYSAPI
 NTSTATUS
@@ -14871,6 +15338,7 @@ RtlInitializeSidEx(
  * \param Sid A pointer to the SID to query.
  * \return PSID_IDENTIFIER_AUTHORITY A pointer to the SID_IDENTIFIER_AUTHORITY within the SID.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlidentifierauthoritysid
+ * \remarks Returns a borrowed pointer into the caller SID, not newly allocated storage. The accessor does not validate the SID or bounds; keep the owning buffer alive and validate any requested index before dereferencing it.
  */
 NTSYSAPI
 PSID_IDENTIFIER_AUTHORITY
@@ -14886,6 +15354,7 @@ RtlIdentifierAuthoritySid(
  * \param SubAuthority The zero-based index of the subauthority to retrieve.
  * \return PULONG A pointer to the requested subauthority value within the SID.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsubauthoritysid
+ * \remarks Returns a borrowed pointer into the caller SID, not newly allocated storage. The accessor does not validate the SID or bounds; keep the owning buffer alive and validate any requested index before dereferencing it.
  */
 NTSYSAPI
 PULONG
@@ -14901,6 +15370,7 @@ RtlSubAuthoritySid(
  * \param Sid A pointer to the SID to query.
  * \return PUCHAR A pointer to the subauthority count field within the SID.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsubauthoritycountsid
+ * \remarks Returns a borrowed pointer into the caller SID, not newly allocated storage. The accessor does not validate the SID or bounds; keep the owning buffer alive and validate any requested index before dereferencing it.
  */
 NTSYSAPI
 PUCHAR
@@ -14915,6 +15385,7 @@ RtlSubAuthorityCountSid(
  * \param Sid A pointer to the SID to measure.
  * \return ULONG The length of the SID, in bytes.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthsid
+ * \remarks Returns 8 + 4 * the stored SubAuthorityCount without validating a supplied buffer size. Do not use it as proof that an untrusted SID is contained within a packet or allocation.
  */
 NTSYSAPI
 ULONG
@@ -14931,6 +15402,7 @@ RtlLengthSid(
  * \param SourceSid A pointer to the SID to copy.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcopysid
+ * \remarks Copies the complete counted SID and returns STATUS_BUFFER_TOO_SMALL before copying if DestinationSidLength is insufficient. It does not allocate a destination or validate source buffer accessibility; both buffers remain caller-owned.
  */
 NTSYSAPI
 NTSTATUS
@@ -14953,16 +15425,17 @@ RtlCopySid(
  * \param RemainingSidArea A pointer to a variable that receives a pointer to the unused portion of the SID area.
  * \param RemainingSidAreaSize A pointer to a variable that receives the size, in bytes, of the unused portion of the SID area.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Writes the destination entries and caller-supplied SID area. A later shortage returns STATUS_BUFFER_TOO_SMALL after earlier entries may already have been copied; RemainingSidArea and RemainingSidAreaSize are only published after the entire loop succeeds. The operation is not transactional.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCopySidAndAttributesArray(
     _In_ ULONG Count,
-    _In_ PSID_AND_ATTRIBUTES Src,
+    _In_reads_(Count) PSID_AND_ATTRIBUTES Src,
     _In_ ULONG SidAreaSize,
-    _In_ PSID_AND_ATTRIBUTES Dest,
-    _In_ PSID SidArea,
+    _Out_writes_(Count) PSID_AND_ATTRIBUTES Dest,
+    _Out_writes_bytes_(SidAreaSize) PSID SidArea,
     _Out_ PSID *RemainingSidArea,
     _Out_ PULONG RemainingSidAreaSize
     );
@@ -14975,6 +15448,7 @@ RtlCopySidAndAttributesArray(
  * \param ServiceSidLength A pointer to a variable that on input specifies the buffer size and on output receives the required or written length, in bytes.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateservicesid
+ * \remarks Derives a SID in caller storage without creating a service or account. Requires 32 bytes and publishes that requirement through ServiceSidLength before returning STATUS_BUFFER_TOO_SMALL. The implementation hashes the uppercased counted name, so case variants derive the same SID.
  */
 NTSYSAPI
 NTSTATUS
@@ -14993,6 +15467,7 @@ RtlCreateServiceSid(
  * \param Sid2 A pointer to the second SID.
  * \param Dominates A pointer to a variable that receives `TRUE` if Sid1 dominates Sid2, otherwise `FALSE`.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Compares mandatory-label SID levels, not general authorization. Both authorities must be 16; invalid authority returns STATUS_INVALID_PARAMETER after clearing Dominates. A successful NTSTATUS is separate from the BOOLEAN comparison result.
  */
 NTSYSAPI
 NTSTATUS
@@ -15012,13 +15487,14 @@ RtlSidDominates(
  * \param Sid2 A pointer to the second SID.
  * \param DominatesTrust A pointer to a variable that receives `TRUE` if Sid1 dominates the trust SID, otherwise `FALSE`.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NULL represents an absent trust label. With Sid2 NULL the comparison succeeds as TRUE, provided a non-NULL Sid1 is a valid trust-label SID. With Sid1 NULL and Sid2 non-NULL, the implementation compares Sid2 to the absent-label baseline. Invalid non-NULL label SIDs return STATUS_INVALID_PARAMETER and clear the result; this does not query a process token.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSidDominatesForTrust(
-    _In_ PSID Sid1,
-    _In_ PSID Sid2,
+    _In_opt_ PSID Sid1,
+    _In_opt_ PSID Sid2,
     _Out_ PBOOLEAN DominatesTrust // TokenProcessTrustLevel
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
@@ -15031,6 +15507,7 @@ RtlSidDominatesForTrust(
  * \param Sid2 A pointer to the second SID.
  * \param EqualLevel A pointer to a variable that receives `TRUE` if the SIDs are at the same level, otherwise `FALSE`.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Compares mandatory-label SID values and requires authority 16. A successful NTSTATUS does not imply the BOOLEAN result is TRUE. Use structurally valid label SIDs with the required subauthority; this routine does not perform token access checks.
  */
 NTSYSAPI
 NTSTATUS
@@ -15049,6 +15526,7 @@ RtlSidEqualLevel(
  * \param Sid2 A pointer to the second SID.
  * \param HigherLevel A pointer to a variable that receives `TRUE` if Sid1 is at a higher level than Sid2, otherwise `FALSE`.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Compares mandatory-label SID values and requires authority 16. A successful NTSTATUS does not imply the BOOLEAN result is TRUE. Use structurally valid label SIDs with the required subauthority; this routine does not perform token access checks.
  */
 NTSYSAPI
 NTSTATUS
@@ -15067,6 +15545,7 @@ RtlSidIsHigherLevel(
  * \param Sid A pointer to a caller-allocated buffer that receives the virtual account SID.
  * \param SidLength A pointer to a variable that on input specifies the buffer size and on output receives the required or written length, in bytes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Derives a binary SID without creating an account. The implementation accepts BaseSubAuthority 80 through 111 inclusive and requires 32 bytes of output, publishing that size before returning STATUS_BUFFER_TOO_SMALL. Base 80 produces the service SID for the same uppercased counted name.
  */
 NTSYSAPI
 NTSTATUS
@@ -15087,6 +15566,7 @@ RtlCreateVirtualAccountSid(
  * \param NumChanges A pointer to a variable that receives the number of replacements performed.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlreplacesidinsd
+ * \remarks Rewrites matching SID subauthority prefixes in caller-owned security-descriptor storage; it does not change an operating-system object security descriptor. The implementation retains the destination SID header and copies OldSid-count subauthorities from NewSid, so supply compatible valid SIDs and sufficient replacement data. Earlier changes may persist if a later descriptor query fails; NumChanges reports applied replacements. Do not assume coverage of every ACE type.
  */
 NTSYSAPI
 NTSTATUS
@@ -15109,6 +15589,7 @@ RtlReplaceSidInSd(
  * \param Sid A pointer to the SID to measure.
  * \param StringLength A pointer to a variable that receives the required string length, in bytes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns a conservative byte-capacity estimate, not the exact formatted Length: the implementation uses 28 + 22 * count bytes for a 32-bit authority, or 36 + 22 * count when high authority bytes are nonzero. Check status before using the output.
  */
 NTSYSAPI
 NTSTATUS
@@ -15126,6 +15607,7 @@ RtlLengthSidAsUnicodeString(
  * \param AllocateDestinationString If `TRUE`, the routine allocates the destination string buffer; if `FALSE`, it uses the caller-supplied buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlconvertsidtounicodestring
+ * \remarks Requires an exact SID revision byte of 1 in addition to the shallow RtlValidSid check. The allocated form is released with RtlFreeUnicodeString. The nonallocating form requires room beyond the visible counted characters for termination and returns STATUS_BUFFER_OVERFLOW when capacity is insufficient.
  */
 NTSYSAPI
 NTSTATUS
@@ -15144,6 +15626,7 @@ RtlConvertSidToUnicodeString(
  * \param SidCount The number of entries in the SidAttr array.
  * \param SidAttrHash A pointer to the SID_AND_ATTRIBUTES_HASH structure to initialize.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Builds a borrowed index: it stores the original SID_AND_ATTRIBUTES array pointer and does not clone the array or SIDs. Keep those objects alive and stable while searching. The x64 implementation hashes the first 64 entries, x86 the first 32; remaining entries are retained for linear lookup.
  */
 NTSYSAPI
 NTSTATUS
@@ -15161,6 +15644,7 @@ RtlSidHashInitialize(
  * \param SidAttrHash A pointer to the SID_AND_ATTRIBUTES_HASH to search.
  * \param Sid A pointer to the SID to find.
  * \return PSID_AND_ATTRIBUTES A pointer to the matching SID_AND_ATTRIBUTES entry, or `NULL` if not found.
+ * \remarks Returns a pointer into the original SID_AND_ATTRIBUTES array, not an allocated copy. Entries after the first 64 on x64 or 32 on x86 are searched linearly; they are not dropped. NULL hash or SID returns NULL. The caller must preserve the indexed array and SID lifetimes.
  */
 NTSYSAPI
 PSID_AND_ATTRIBUTES
@@ -15176,6 +15660,7 @@ RtlSidHashLookup(
  *
  * \param SidAttr A pointer to the SID_AND_ATTRIBUTES entry to test.
  * \return Returns `TRUE` if the entry represents an elevated RID, otherwise `FALSE`.
+ * \remarks Tests a SID_AND_ATTRIBUTES entry against a built-in RID classification, not whether the current process is elevated. NULL returns FALSE; the implementation also excludes entries with attribute bits 0x10 or 0x20 and first subauthority 80 through 111. Do not substitute this helper for token elevation or access checks.
  */
 NTSYSAPI
 BOOLEAN
@@ -15193,14 +15678,15 @@ RtlIsElevatedRid(
  * \param CapabilityGroupSid A pointer to a caller-allocated buffer that receives the capability group SID.
  * \param CapabilitySid A pointer to a caller-allocated buffer that receives the capability SID.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Derives SIDs in caller-owned storage without granting a capability or changing any token. Always provide 44 bytes for CapabilityGroupSid and 48 bytes for CapabilitySid, including the legacy-name path: both output areas are cleared at those sizes before conversion. The input descriptor/string is read-only. NULL required arguments fast-fail rather than returning a recoverable NTSTATUS. Names are uppercased for derivation; allocated temporary storage is released internally.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeriveCapabilitySidsFromName(
-    _Inout_ PUNICODE_STRING UnicodeString,
-    _Out_ PSID CapabilityGroupSid,
-    _Out_ PSID CapabilitySid
+    _In_ PCUNICODE_STRING UnicodeString,
+    _Out_writes_bytes_(SECURITY_SID_SIZE(9)) PSID CapabilityGroupSid,
+    _Out_writes_bytes_(SECURITY_SID_SIZE(10)) PSID CapabilitySid
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
@@ -15216,6 +15702,7 @@ RtlDeriveCapabilitySidsFromName(
  * \param Revision Specifies the revision level to assign to the security descriptor. Set this parameter to SECURITY_DESCRIPTOR_REVISION.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcreatesecuritydescriptor
+ * \remarks Initializes an absolute descriptor in caller-owned storage and requires revision 1. It does not allocate or install security on an operating-system object. Keep any subsequently referenced owner/group/ACL storage alive.
  */
 NTSYSAPI
 NTSTATUS
@@ -15232,6 +15719,7 @@ RtlCreateSecurityDescriptor(
  * \return Returns TRUE if the security descriptor is valid, or FALSE otherwise.
  * \remarks The routine checks the validity of an absolute-format security descriptor. To check the validity of a self-relative security descriptor, use the \ref RtlValidRelativeSecurityDescriptor routine instead.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidsecuritydescriptor
+ * \remarks Checks descriptor structure without a caller buffer-length argument; it is not a safe arbitrary-memory probe or an authorization decision. For bounded serialized input, first establish a readable allocation and use the relative-descriptor validator with its length where applicable.
  */
 _Check_return_
 NTSYSAPI
@@ -15247,6 +15735,7 @@ RtlValidSecurityDescriptor(
  * \param SecurityDescriptor A pointer to a \ref SECURITY_DESCRIPTOR structure whose length the function retrieves.
  * \return Returns the length, in bytes, of the SECURITY_DESCRIPTOR structure.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthsecuritydescriptor
+ * \remarks The x64 implementation includes a 40-byte base for an absolute descriptor and a 20-byte base for self-relative form; x86 uses 20 bytes for either. It adds aligned component lengths, not necessarily the span of a sparse serialized buffer. Use the conversion sizing call for its actual required output capacity.
  */
 NTSYSAPI
 ULONG
@@ -15264,6 +15753,7 @@ RtlLengthSecurityDescriptor(
  * \param RequiredInformation A SECURITY_INFORMATION value that specifies the information that is required to be contained in the security descriptor.
  * \return RtlValidRelativeSecurityDescriptor returns TRUE if the security descriptor is valid and includes the information that the RequiredInformation parameter specifies. Otherwise, this routine returns FALSE.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidrelativesecuritydescriptor
+ * \remarks Requires a readable self-relative header of at least 20 bytes and validates component offsets/sizes against SecurityDescriptorLength. Requested owner/group presence is checked separately. Success validates structure, not whether access is granted or all possible policy semantics are acceptable.
  */
 _Check_return_
 NTSYSAPI
@@ -15301,6 +15791,7 @@ RtlGetControlSecurityDescriptor(
  * \param ControlBitsToSet The values to assign to the control bits identified by ControlBitsOfInterest.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetcontrolsecuritydescriptor
+ * \remarks Only supported control bits are mutable through these helpers; SetControl requires bits-to-set to be included in the bits-of-interest mask. They do not replace the ACL/owner setters or perform an operating-system access check. The attributes helper ORs selected supported attributes rather than replacing the entire control word.
  */
 NTSYSAPI
 NTSTATUS
@@ -15319,6 +15810,7 @@ RtlSetControlSecurityDescriptor(
  * \param Revision A pointer to a variable that receives the revision of the security descriptor.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetattributessecuritydescriptor
+ * \remarks Only supported control bits are mutable through these helpers; SetControl requires bits-to-set to be included in the bits-of-interest mask. They do not replace the ACL/owner setters or perform an operating-system access check. The attributes helper ORs selected supported attributes rather than replacing the entire control word.
  */
 NTSYSAPI
 NTSTATUS
@@ -15335,6 +15827,7 @@ RtlSetAttributesSecurityDescriptor(
  * \param SecurityDescriptor A pointer to the security descriptor to query.
  * \param RMControl A pointer to a variable that receives the resource manager control byte.
  * \return Returns `TRUE` if the security descriptor contains a resource manager control byte, otherwise `FALSE`.
+ * \remarks The getter returns a BOOLEAN indicating SE_RM_CONTROL_VALID, not NTSTATUS; when absent it writes a zero byte. A NULL setter byte pointer clears validity. These operations concern local descriptor metadata, not a transaction resource-manager object.
  */
 NTSYSAPI
 BOOLEAN
@@ -15349,6 +15842,7 @@ RtlGetSecurityDescriptorRMControl(
  *
  * \param SecurityDescriptor A pointer to the security descriptor to modify.
  * \param RMControl An optional pointer to the resource manager control byte to set. If `NULL`, the resource manager control is cleared.
+ * \remarks The getter returns a BOOLEAN indicating SE_RM_CONTROL_VALID, not NTSTATUS; when absent it writes a zero byte. A NULL setter byte pointer clears validity. These operations concern local descriptor metadata, not a transaction resource-manager object.
  */
 NTSYSAPI
 VOID
@@ -15367,6 +15861,7 @@ RtlSetSecurityDescriptorRMControl(
  * \param DaclDefaulted If `TRUE`, the DACL was obtained by a default mechanism.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsetdaclsecuritydescriptor
+ * \remarks These mutate a caller-owned absolute descriptor and store borrowed component pointers. They do not copy components or change an installed object security descriptor. The routine rejects self-relative input with STATUS_INVALID_SECURITY_DESCR; convert to an appropriate mutable form first.
  */
 NTSYSAPI
 NTSTATUS
@@ -15387,6 +15882,7 @@ RtlSetDaclSecurityDescriptor(
  * \param DaclDefaulted A pointer to a variable that receives `TRUE` if the DACL was obtained by a default mechanism.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlgetdaclsecuritydescriptor
+ * \remarks Check the Present output before using the ACL pointer or Defaulted output. When the component is absent only Present is written; the other outputs are unchanged. A present NULL ACL is distinct from an absent ACL. Returned component storage is borrowed.
  */
 NTSYSAPI
 NTSTATUS
@@ -15407,6 +15903,7 @@ RtlGetDaclSecurityDescriptor(
  * \param SaclDefaulted If `TRUE`, the SACL was obtained by a default mechanism.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetsaclsecuritydescriptor
+ * \remarks These mutate a caller-owned absolute descriptor and store borrowed component pointers. They do not copy components or change an installed object security descriptor. The routine rejects self-relative input with STATUS_INVALID_SECURITY_DESCR; convert to an appropriate mutable form first.
  */
 NTSYSAPI
 NTSTATUS
@@ -15427,6 +15924,7 @@ RtlSetSaclSecurityDescriptor(
  * \param SaclDefaulted A pointer to a variable that receives `TRUE` if the SACL was obtained by a default mechanism.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetsaclsecuritydescriptor
+ * \remarks Check the Present output before using the ACL pointer or Defaulted output. When the component is absent only Present is written; the other outputs are unchanged. A present NULL ACL is distinct from an absent ACL. Returned component storage is borrowed.
  */
 NTSYSAPI
 NTSTATUS
@@ -15450,6 +15948,7 @@ RtlGetSaclSecurityDescriptor(
  * \li \c If this parameter is FALSE, the SE_OWNER_DEFAULTED flag is cleared.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetownersecuritydescriptor
+ * \remarks These mutate a caller-owned absolute descriptor and store borrowed component pointers. They do not copy components or change an installed object security descriptor. The routine rejects self-relative input with STATUS_INVALID_SECURITY_DESCR; convert to an appropriate mutable form first.
  */
 NTSYSAPI
 NTSTATUS
@@ -15468,6 +15967,7 @@ RtlSetOwnerSecurityDescriptor(
  * \param OwnerDefaulted Pointer to a Boolean variable that receives TRUE if the owner information is derived from a default mechanism, FALSE otherwise. Valid only if Owner receives a non-NULL value.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetownersecuritydescriptor
+ * \remarks Returns borrowed component storage, resolving an offset for self-relative form. It does not allocate a SID or establish the lifetime of external storage referenced by an absolute descriptor. Check NTSTATUS before reading outputs.
  */
 NTSYSAPI
 NTSTATUS
@@ -15490,6 +15990,7 @@ RtlGetOwnerSecurityDescriptor(
  * \li \c If this parameter is FALSE, RtlSetGroupSecurityDescriptor clears the SE_GROUP_DEFAULTED flag.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetgroupsecuritydescriptor
+ * \remarks These mutate a caller-owned absolute descriptor and store borrowed component pointers. They do not copy components or change an installed object security descriptor. The routine rejects self-relative input with STATUS_INVALID_SECURITY_DESCR; convert to an appropriate mutable form first.
  */
 NTSYSAPI
 NTSTATUS
@@ -15508,6 +16009,7 @@ RtlSetGroupSecurityDescriptor(
  * \param GroupDefaulted Pointer to a Boolean variable that receives the value of the SE_GROUP_DEFAULTED flag.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetgroupsecuritydescriptor
+ * \remarks Returns borrowed component storage, resolving an offset for self-relative form. It does not allocate a SID or establish the lifetime of external storage referenced by an absolute descriptor. Check NTSTATUS before reading outputs.
  */
 NTSYSAPI
 NTSTATUS
@@ -15526,6 +16028,7 @@ RtlGetGroupSecurityDescriptor(
  * \param BufferLength A pointer to a variable that on input specifies the buffer size and on output receives the required length, in bytes.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlmakeselfrelativesd
+ * \remarks Copies components into caller-provided self-relative storage without allocating the destination. A too-small buffer updates the required byte count and returns STATUS_BUFFER_TOO_SMALL. AbsoluteToSelfRelativeSD rejects already-relative input; MakeSelfRelativeSD also accepts that source form. Preserve valid source storage throughout conversion.
  */
 NTSYSAPI
 NTSTATUS
@@ -15544,6 +16047,7 @@ RtlMakeSelfRelativeSD(
  * \param BufferLength A pointer to a variable that on input specifies the buffer size and on output receives the required length, in bytes.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlabsolutetoselfrelativesd
+ * \remarks Copies components into caller-provided self-relative storage without allocating the destination. A too-small buffer updates the required byte count and returns STATUS_BUFFER_TOO_SMALL. AbsoluteToSelfRelativeSD rejects already-relative input; MakeSelfRelativeSD also accepts that source form. Preserve valid source storage throughout conversion.
  */
 NTSYSAPI
 NTSTATUS
@@ -15570,6 +16074,7 @@ RtlAbsoluteToSelfRelativeSD(
  * \param PrimaryGroupSize A pointer to a variable specifying and receiving the size, in bytes, of the primary group SID.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlselfrelativetoabsolutesd
+ * \remarks Requires self-relative input and separate caller-owned storage/size variables for the absolute header, ACLs and SIDs. A sizing failure publishes the individual requirements. The header requirement is 40 bytes on x64 and 20 on x86; the relative header is 20 bytes on both. This is not an in-place conversion.
  */
 NTSYSAPI
 NTSTATUS
@@ -15595,6 +16100,7 @@ RtlSelfRelativeToAbsoluteSD(
  * \param SelfRelativeSecurityDescriptor A pointer to the self-relative security descriptor to convert in place.
  * \param BufferSize A pointer to a variable that on input specifies the buffer size and on output receives the size, in bytes, of the resulting descriptor.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Converts in place within writable caller-owned storage. On x64 the larger absolute header can require more capacity and relocation of components; allow the function to report its required size rather than assuming the relative allocation is sufficient. Successful output contains pointers and is not portable serialized data.
  */
 NTSYSAPI
 NTSTATUS
@@ -15642,6 +16148,7 @@ RtlNormalizeSecurityDescriptor(
  * \param GrantedAccess The access mask that specifies the granted accesses.
  * \param DesiredAccess The access mask that specifies the desired accesses.
  * \return Returns TRUE if all desired accesses are granted, otherwise FALSE.
+ * \remarks Performs bit-mask arithmetic only, not token/ACL authorization. For DesiredAccess zero, All returns TRUE and Any returns FALSE. Map generic rights as appropriate before comparing application masks.
  */
 FORCEINLINE
 BOOLEAN
@@ -15663,6 +16170,7 @@ RtlAreAllAccessesGranted(
  * \param GrantedAccess The access mask that specifies the granted access rights.
  * \param DesiredAccess The access mask that specifies the desired access rights.
  * \return Returns TRUE if any of the desired access rights are granted, otherwise FALSE.
+ * \remarks Performs bit-mask arithmetic only, not token/ACL authorization. For DesiredAccess zero, All returns TRUE and Any returns FALSE. Map generic rights as appropriate before comparing application masks.
  */
 FORCEINLINE
 BOOLEAN
@@ -15718,6 +16226,7 @@ RtlAreAnyAccessesGranted(
  * \param AccessMask A pointer to the access mask whose generic rights are mapped in place.
  * \param GenericMapping A pointer to the GENERIC_MAPPING that defines the mapping of generic rights.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlmapgenericmask
+ * \remarks Expands generic bits according to the caller mapping and clears the generic bit field in the supplied mask. This mutates caller storage; it does not query an object type or check any token.
  */
 NTSYSAPI
 VOID
@@ -15739,6 +16248,7 @@ RtlMapGenericMask(
  * \param AclRevision The revision level of the ACL to create.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateacl
+ * \remarks Initializes only the ACL header, not a populated policy. The routine accepts revision values 2 through 4 and size 8 through 65532 bytes, rounding stored capacity down to a 4-byte boundary. Supply backing storage for the declared capacity; this call does not allocate it.
  */
 NTSYSAPI
 NTSTATUS
@@ -15754,6 +16264,7 @@ RtlCreateAcl(
  *
  * \param Acl A pointer to the ACL to validate.
  * \return Returns `TRUE` if the ACL is structurally valid, otherwise `FALSE`.
+ * \remarks Uses the ACL stored length/count and ACE-specific validation but has no separate allocation-length parameter. Verify the backing buffer bounds before applying it to externally supplied data. It does not test canonical ordering or evaluate the resulting access policy.
  */
 NTSYSAPI
 BOOLEAN
@@ -15770,6 +16281,7 @@ RtlValidAcl(
  * \param AclInformationLength The size, in bytes, of the buffer.
  * \param AclInformationClass The class of information to retrieve.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Revision information requires at least 4 bytes; size information requires at least 12 bytes. Size information distinguishes bytes in use (including the 8-byte ACL header) from free capacity. Check status rather than treating partially written output as valid.
  */
 NTSYSAPI
 NTSTATUS
@@ -15809,6 +16321,7 @@ RtlSetInformationAcl(
  * \param AceList A buffer containing the ACEs to add.
  * \param AceListLength The size, in bytes, of AceList.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Edits caller-owned ACL storage in place, moving subsequent ACE bytes. Cached pointers into the ACL can be invalidated. These routines do not install security on an operating-system object or automatically canonicalize the entire policy.
  */
 NTSYSAPI
 NTSTATUS
@@ -15828,6 +16341,7 @@ RtlAddAce(
  * \param AceIndex The zero-based index of the ACE to delete.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldeleteace
+ * \remarks Edits caller-owned ACL storage in place, moving subsequent ACE bytes. Cached pointers into the ACL can be invalidated. These routines do not install security on an operating-system object or automatically canonicalize the entire policy.
  */
 NTSYSAPI
 NTSTATUS
@@ -15844,6 +16358,7 @@ RtlDeleteAce(
  * \param AceIndex The zero-based index of the ACE to retrieve.
  * \param Ace Receives a pointer to the ACE.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns a borrowed pointer inside the ACL. Mutation, movement or destruction of the ACL can invalidate it. FindAceByType uses Index as an inclusive input/output cursor; increment the returned index before searching for the next match, and do not assume it is initialized on a miss.
  */
 NTSYSAPI
 NTSTATUS
@@ -15861,6 +16376,7 @@ RtlGetAce(
  * \param Acl A pointer to the ACL to examine.
  * \param AcesBufferSize A pointer to a variable that receives the size, in bytes, of the ACEs.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns the sum of counted ACE lengths, excluding the 8-byte ACL header and unused capacity. The implementation is a size walk, not full validation; use a valid bounded ACL and check status before consuming the output.
  */
 NTSYSAPI
 NTSTATUS
@@ -15877,6 +16393,7 @@ RtlGetAcesBufferSize(
  * \param Acl The ACL to examine.
  * \param FirstFree Receives a pointer to the first free position within the ACL.
  * \return TRUE if the ACL is well-formed; otherwise, FALSE.
+ * \remarks TRUE with the output at the ACL end can mean structurally consistent but exactly full storage, not room for another ACE. Verify capacity for the intended ACE independently. Output pointers borrow the ACL allocation.
  */
 NTSYSAPI
 BOOLEAN
@@ -15886,22 +16403,23 @@ RtlFirstFreeAce(
     _Out_ PVOID *FirstFree
     );
 
+// private
 /**
  * The RtlFindAceByType routine finds the first ACE of the specified type in an access control list (ACL).
  *
  * \param Acl The ACL to search.
  * \param AceType The ACE type to find.
- * \param Index An optional pointer that receives the index of the matching ACE.
+ * \param Index Optional input/output index: search starts inclusively at this index and success replaces it with the matching index.
  * \return A pointer to the matching ACE, or NULL if none was found.
+ * \remarks Returns a borrowed pointer inside the ACL. Mutation, movement or destruction of the ACL can invalidate it. FindAceByType uses Index as an inclusive input/output cursor; increment the returned index before searching for the next match, and do not assume it is initialized on a miss.
  */
-// private
 NTSYSAPI
 PVOID
 NTAPI
 RtlFindAceByType(
     _In_ PACL Acl,
     _In_ UCHAR AceType,
-    _Out_opt_ PULONG Index
+    _Inout_opt_ PULONG Index
     );
 
 // private
@@ -15927,6 +16445,7 @@ RtlOwnerAcesPresent(
  * \param Sid A pointer to the SID to which access is granted.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessallowedace
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -15948,6 +16467,7 @@ RtlAddAccessAllowedAce(
  * \param Sid A pointer to the SID to which access is granted.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessallowedaceex
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -15969,6 +16489,7 @@ RtlAddAccessAllowedAceEx(
  * \param Sid A pointer to the SID to which access is denied.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessdeniedace
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -15990,6 +16511,7 @@ RtlAddAccessDeniedAce(
  * \param Sid A pointer to the SID to which access is denied.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessdeniedaceex
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -16013,6 +16535,7 @@ RtlAddAccessDeniedAceEx(
  * \param AuditFailure If `TRUE`, failed access attempts are audited.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdauditaccessace
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -16038,6 +16561,7 @@ RtlAddAuditAccessAce(
  * \param AuditFailure If `TRUE`, failed access attempts are audited.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdauditaccessaceex
+ * \remarks Appends an ACE to caller-owned ACL storage; it neither grows the allocation nor orders all ACEs into a canonical policy. Check SID, revision, flags and remaining capacity. Failure status distinguishes invalid SID/ACL from allotted-space exhaustion; success does not itself grant or audit access to an installed object.
  */
 NTSYSAPI
 NTSTATUS
@@ -16064,6 +16588,7 @@ RtlAddAuditAccessAceEx(
  * \param Sid A pointer to the SID to which access is granted.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessallowedobjectace
+ * \remarks When both optional GUID pointers are NULL, the entry falls back to an ordinary non-object ACE. A non-NULL GUID selects object-ACE construction and its revision requirements. Inspect the resulting AceType rather than assuming the API name guarantees an object ACE.
  */
 NTSYSAPI
 NTSTATUS
@@ -16090,6 +16615,7 @@ RtlAddAccessAllowedObjectAce(
  * \param Sid A pointer to the SID to which access is denied.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdaccessdeniedobjectace
+ * \remarks When both optional GUID pointers are NULL, the entry falls back to an ordinary non-object ACE. A non-NULL GUID selects object-ACE construction and its revision requirements. Inspect the resulting AceType rather than assuming the API name guarantees an object ACE.
  */
 NTSYSAPI
 NTSTATUS
@@ -16118,6 +16644,7 @@ RtlAddAccessDeniedObjectAce(
  * \param AuditFailure If `TRUE`, failed access attempts are audited.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtladdauditaccessobjectace
+ * \remarks When both optional GUID pointers are NULL, the entry falls back to an ordinary non-object ACE. A non-NULL GUID selects object-ACE construction and its revision requirements. Inspect the resulting AceType rather than assuming the API name guarantees an object ACE.
  */
 NTSYSAPI
 NTSTATUS
@@ -16188,6 +16715,7 @@ RtlAddCompoundAce(
  * \param AceType The mandatory ACE type.
  * \param AccessMask The mandatory policy access mask enforced by the ACE.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Builds the specific label ACE in local ACL storage and validates its SID authority/type, flags and mask. The requested AceType must match the routine (17 for mandatory label, 20 for process trust label). It does not elevate or relabel the calling process.
  */
 NTSYSAPI
 NTSTATUS
@@ -16260,6 +16788,7 @@ RtlAddScopedPolicyIDAce(
  * \param AceType The process trust label ACE type.
  * \param AccessMask The access mask enforced by the ACE.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Builds the specific label ACE in local ACL storage and validates its SID authority/type, flags and mask. The requested AceType must match the routine (17 for mandatory label, 20 for process trust label). It does not elevate or relabel the calling process.
  */
 NTSYSAPI
 NTSTATUS
@@ -16274,6 +16803,7 @@ RtlAddProcessTrustLabelAce(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
+// rev
 /**
  * The RtlAddAccessFilterAce routine adds an access-filter ACE to the specified access control list.
  *
@@ -16287,7 +16817,6 @@ RtlAddProcessTrustLabelAce(
  * \param BufferLength The length, in bytes, of Buffer.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16324,7 +16853,8 @@ RtlDefaultNpAcl(
 //
 
 /**
- * The RtlNewSecurityObject routine allocates and initializes a self-relative security descriptor for a new object, combining the parent and creator descriptors.
+ * The RtlNewSecurityObject routine allocates and initializes a self-relative security descriptor for a new
+ * object, combining the parent and creator descriptors.
  *
  * \param ParentDescriptor An optional pointer to the security descriptor of the parent object.
  * \param CreatorDescriptor An optional pointer to the security descriptor supplied by the creator.
@@ -16333,6 +16863,10 @@ RtlDefaultNpAcl(
  * \param Token An optional handle to the token representing the client that is creating the object.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16347,7 +16881,8 @@ RtlNewSecurityObject(
     );
 
 /**
- * The RtlNewSecurityObjectEx routine allocates and initializes a self-relative security descriptor for a new object, with support for object types and auto-inheritance.
+ * The RtlNewSecurityObjectEx routine allocates and initializes a self-relative security descriptor for a new
+ * object, with support for object types and auto-inheritance.
  *
  * \param ParentDescriptor An optional pointer to the security descriptor of the parent object.
  * \param CreatorDescriptor An optional pointer to the security descriptor supplied by the creator.
@@ -16358,6 +16893,10 @@ RtlNewSecurityObject(
  * \param Token An optional handle to the token representing the client that is creating the object.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16374,7 +16913,8 @@ RtlNewSecurityObjectEx(
     );
 
 /**
- * The RtlNewSecurityObjectWithMultipleInheritance routine allocates and initializes a self-relative security descriptor for a new object, supporting inheritance from multiple object types.
+ * The RtlNewSecurityObjectWithMultipleInheritance routine allocates and initializes a self-relative security
+ * descriptor for a new object, supporting inheritance from multiple object types.
  *
  * \param ParentDescriptor An optional pointer to the security descriptor of the parent object.
  * \param CreatorDescriptor An optional pointer to the security descriptor supplied by the creator.
@@ -16386,6 +16926,10 @@ RtlNewSecurityObjectEx(
  * \param Token An optional handle to the token representing the client that is creating the object.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16407,6 +16951,7 @@ RtlNewSecurityObjectWithMultipleInheritance(
  *
  * \param ObjectDescriptor A pointer to a variable that references the security descriptor to delete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases compatible process-heap descriptor storage through the pointer slot. The slot is not cleared, so discard or explicitly clear the dangling pointer after success. Never pass stack storage or a descriptor owned by a different allocator.
  */
 NTSYSAPI
 NTSTATUS
@@ -16424,6 +16969,7 @@ RtlDeleteSecurityObject(
  * \param DescriptorLength The length, in bytes, of the ResultantDescriptor buffer.
  * \param ReturnLength A pointer to a variable that receives the required or written length, in bytes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Extracts selected components into caller-owned self-relative output; ReturnLength reports the required size. NULL/insufficient output returns STATUS_BUFFER_TOO_SMALL. It operates on the supplied descriptor, not a named/handled operating-system object.
  */
 NTSYSAPI
 NTSTATUS
@@ -16441,10 +16987,15 @@ RtlQuerySecurityObject(
  *
  * \param SecurityInformation A SECURITY_INFORMATION value specifying which components to modify.
  * \param ModificationDescriptor A pointer to the security descriptor that supplies the new information.
- * \param ObjectsSecurityDescriptor A pointer to a variable that references the object's security descriptor, updated on success.
+ * \param ObjectsSecurityDescriptor A pointer to a variable that references the object's security descriptor,
+ * updated on success.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \param TokenHandle An optional handle to the token representing the client making the modification.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16458,15 +17009,21 @@ RtlSetSecurityObject(
     );
 
 /**
- * The RtlSetSecurityObjectEx routine applies a modification to an object's security descriptor, with control over auto-inheritance.
+ * The RtlSetSecurityObjectEx routine applies a modification to an object's security descriptor, with control
+ * over auto-inheritance.
  *
  * \param SecurityInformation A SECURITY_INFORMATION value specifying which components to modify.
  * \param ModificationDescriptor A pointer to the security descriptor that supplies the new information.
- * \param ObjectsSecurityDescriptor A pointer to a variable that references the object's security descriptor, updated on success.
+ * \param ObjectsSecurityDescriptor A pointer to a variable that references the object's security descriptor,
+ * updated on success.
  * \param AutoInheritFlags A combination of SEF_ flags controlling automatic inheritance.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \param TokenHandle An optional handle to the token representing the client making the modification.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16481,7 +17038,8 @@ RtlSetSecurityObjectEx(
     );
 
 /**
- * The RtlConvertToAutoInheritSecurityObject routine converts a security descriptor so that it uses automatic inheritance.
+ * The RtlConvertToAutoInheritSecurityObject routine converts a security descriptor so that it uses automatic
+ * inheritance.
  *
  * \param ParentDescriptor An optional pointer to the security descriptor of the parent object.
  * \param CurrentSecurityDescriptor A pointer to the security descriptor to convert.
@@ -16490,6 +17048,10 @@ RtlSetSecurityObjectEx(
  * \param IsDirectoryObject If `TRUE`, the object is a container that can contain other objects.
  * \param GenericMapping A pointer to the GENERIC_MAPPING for the object type.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Constructs or replaces an allocated user-mode security descriptor according to inheritance,
+ * mapping and token context. It does not directly install that descriptor on a file/process/other kernel
+ * object. Check status and preserve correct allocator/lifetime handling; inheritance and privilege-dependent
+ * paths have additional requirements.
  */
 NTSYSAPI
 NTSTATUS
@@ -16540,6 +17102,7 @@ RtlNewInstanceSecurityObject(
  * \param InputSecurityDescriptor A pointer to the security descriptor to copy.
  * \param OutputSecurityDescriptor A pointer to a variable that receives the newly allocated copy.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Allocates an independent self-relative descriptor on the process heap, copying components from either supported source form. Release the compatible allocated descriptor with RtlDeleteSecurityObject or the matching process-heap allocator. Check status before using the output; this is not a setter for a kernel object.
  */
 NTSYSAPI
 NTSTATUS
@@ -16617,6 +17180,7 @@ RtlCreateAndSetSD(
  *
  * \param Seed A pointer to the seed byte; the routine updates it with the seed actually used.
  * \param String A pointer to the UNICODE_STRING to encode in place.
+ * \remarks Reversibly transforms the counted bytes in the existing buffer. This is obfuscation, not cryptographic confidentiality or authentication; it does not allocate new storage. Keep the matching seed and do not include uncounted terminator bytes in assumptions about the transformation.
  */
 NTSYSAPI
 VOID
@@ -16631,6 +17195,7 @@ RtlRunEncodeUnicodeString(
  *
  * \param Seed The seed byte that was used to encode the string.
  * \param String A pointer to the UNICODE_STRING to decode in place.
+ * \remarks Reversibly transforms the counted bytes in the existing buffer. This is obfuscation, not cryptographic confidentiality or authentication; it does not allocate new storage. Keep the matching seed and do not include uncounted terminator bytes in assumptions about the transformation.
  */
 NTSYSAPI
 VOID
@@ -16747,6 +17312,7 @@ RtlRemovePrivileges(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
+// rev
 /**
  * The RtlIsUntrustedObject routine determines whether the specified object originates from an untrusted (lower-integrity) source.
  *
@@ -16755,7 +17321,6 @@ RtlRemovePrivileges(
  * \param IsUntrustedObject Receives TRUE if the object is untrusted.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16820,6 +17385,7 @@ RtlNewSecurityGrantedAccess(
  * \param Name A pointer to the Unicode string that names the boundary.
  * \param Flags Flags that control the creation of the boundary descriptor.
  * \return POBJECT_BOUNDARY_DESCRIPTOR A pointer to the created boundary descriptor, or `NULL` on failure.
+ * \remarks Creates/frees a process-heap boundary-description buffer, not a namespace handle. The creator requires a nonempty even-byte-length name and permits only flag bit 0x1. Creation alone does not create a private namespace or change token membership.
  */
 _Ret_maybenull_
 _Success_(return != NULL)
@@ -16835,6 +17401,7 @@ RtlCreateBoundaryDescriptor(
  * The RtlDeleteBoundaryDescriptor routine deletes a boundary descriptor and frees its resources.
  *
  * \param BoundaryDescriptor A pointer to the boundary descriptor to delete. The pointer is invalid after this call.
+ * \remarks Creates/frees a process-heap boundary-description buffer, not a namespace handle. The creator requires a nonempty even-byte-length name and permits only flag bit 0x1. Creation alone does not create a private namespace or change token membership.
  */
 NTSYSAPI
 VOID
@@ -16849,6 +17416,7 @@ RtlDeleteBoundaryDescriptor(
  * \param BoundaryDescriptor A pointer to a variable that references the boundary descriptor to modify.
  * \param RequiredSid A pointer to the SID to add to the boundary.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Updates the caller pointer slot because the descriptor buffer may be reallocated. Keep the returned current pointer and discard stale copies. The SID/label is copied into local descriptor storage; no identity change or namespace creation occurs.
  */
 NTSYSAPI
 NTSTATUS
@@ -16865,6 +17433,7 @@ RtlAddSIDToBoundaryDescriptor(
  * \param BoundaryDescriptor A pointer to a variable that references the boundary descriptor to modify.
  * \param IntegrityLabel A pointer to the SID that specifies the integrity label to add.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Updates the caller pointer slot because the descriptor buffer may be reallocated. Keep the returned current pointer and discard stale copies. The SID/label is copied into local descriptor storage; no identity change or namespace creation occurs.
  */
 NTSYSAPI
 NTSTATUS
@@ -16878,15 +17447,12 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 // Version
 //
 
+// rev
 /**
- * \brief Basic operating system version information returned by RtlGetVersion.
+ * Basic operating system version information returned by RtlGetVersion.
  *
  * \details This is the RTL equivalent of OSVERSIONINFOW. Callers must set
  * OSVersionInfoSize to sizeof(RTL_OSVERSIONINFO) before calling RtlGetVersion.
- */
-// rev
-/**
- * Contains operating system version information.
  */
 typedef struct _RTL_OSVERSIONINFO
 {
@@ -16898,17 +17464,14 @@ typedef struct _RTL_OSVERSIONINFO
     WCHAR CSDVersion[128];
 } RTL_OSVERSIONINFO, *PRTL_OSVERSIONINFO;
 
+// rev
 /**
- * \brief Extended operating system version information returned by RtlGetVersion.
+ * Extended operating system version information returned by RtlGetVersion.
  *
  * \details This is the RTL equivalent of OSVERSIONINFOEXW. In addition to the
  * basic version fields, it includes service-pack, suite-mask, and product-type
  * information. Callers must set OSVersionInfoSize to sizeof(RTL_OSVERSIONINFOEX)
  * before calling RtlGetVersion.
- */
-// rev
-/**
- * Contains extended operating system version information.
  */
 typedef struct _RTL_OSVERSIONINFOEX
 {
@@ -16926,10 +17489,6 @@ typedef struct _RTL_OSVERSIONINFOEX
 } RTL_OSVERSIONINFOEX, *PRTL_OSVERSIONINFOEX;
 
 // rev
-/**
- * Further-extended operating system version information used by newer
- * Windows builds.
- */
 typedef struct _RTL_OSVERSIONINFOEX2
 {
     ULONG OSVersionInfoSize;
@@ -17075,6 +17634,7 @@ typedef struct _RTL_OSVERSIONINFOEX3
  * major and minor version numbers alone are not a reliable feature test; use
  * RtlVerifyVersionInfo when checking for specific system features.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlgetversion
+ * \remarks Version query/comparison consumes the declared structure size and version-condition inputs. Do not interpret presence of an exported routine or a version comparison as proof that an optional feature is enabled. Current-process version observation does not cover all compatibility or product-policy paths.
  */
 NTSYSAPI
 NTSTATUS
@@ -17104,6 +17664,7 @@ RtlGetVersion(
  * To verify a version range, call RtlVerifyVersionInfo separately for the lower
  * and upper bounds.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlverifyversioninfo
+ * \remarks Version query/comparison consumes the declared structure size and version-condition inputs. Do not interpret presence of an exported routine or a version comparison as proof that an optional feature is enabled. Current-process version observation does not cover all compatibility or product-policy paths.
  */
 NTSYSAPI
 NTSTATUS
@@ -17121,6 +17682,7 @@ RtlVerifyVersionInfo(
  * \param NtMajorVersion An optional pointer to a variable that receives the major version number.
  * \param NtMinorVersion An optional pointer to a variable that receives the minor version number.
  * \param NtBuildNumber An optional pointer to a variable that receives the build number.
+ * \remarks Each output is optional. The ntdll obtains the PEB version and ORs 0xF0000000 into the build value. Mask the high nibble before comparing that value with a plain build number; the function has no meaningful return status.
  */
 NTSYSAPI
 VOID
@@ -17140,6 +17702,7 @@ RtlGetNtVersionNumbers(
  * The RtlGetNtGlobalFlags routine returns the NT global flags (NtGlobalFlag) for the current process.
  *
  * \return ULONG The value of the NT global flags.
+ * \remarks Returns the current process PEB NtGlobalFlag value, not a system-wide flag query. This is an observation, not a setter or a synchronized snapshot of unrelated debug state.
  */
 NTSYSAPI
 ULONG
@@ -17154,6 +17717,7 @@ RtlGetNtGlobalFlags(
  *
  * \param NtProductType A pointer to a variable that receives the NT_PRODUCT_TYPE value.
  * \return Returns `TRUE` if the product type was retrieved successfully, otherwise `FALSE`.
+ * \remarks Product/SKU information may come from shared process/session data or licensing/registry helpers. These results describe product policy, not whether the caller has a privilege or permission to perform a particular operation.
  */
 NTSYSAPI
 BOOLEAN
@@ -17172,6 +17736,7 @@ RtlGetNtProductType(
  * \param SpMinorVersion The minor version number of the service pack.
  * \param ReturnedProductType A pointer to a variable that receives the product type.
  * \return Returns `TRUE` if the product information was retrieved successfully, otherwise `FALSE`.
+ * \remarks Product/SKU information may come from shared process/session data or licensing/registry helpers. These results describe product policy, not whether the caller has a privilege or permission to perform a particular operation.
  */
 NTSYSAPI
 BOOLEAN
@@ -17190,6 +17755,7 @@ RtlGetProductInfo(
  * The RtlGetSuiteMask routine returns the suite mask that identifies the product suites available on the running system.
  *
  * \return ULONG The suite mask of the running system.
+ * \remarks Product/SKU information may come from shared process/session data or licensing/registry helpers. These results describe product policy, not whether the caller has a privilege or permission to perform a particular operation.
  */
 NTSYSAPI
 ULONG
@@ -17242,6 +17808,7 @@ typedef WAIT_CALLBACK_ROUTINE* PWAIT_CALLBACK_ROUTINE;
  * \remarks The wait thread queues the specified callback function to the thread pool
  * when the specified object is in the signaled state or the time-out interval elapses.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-registerwaitforsingleobject
+ * \remarks Registers a legacy wait callback. The waited handle and callback/context must remain valid until deregistration and callback drainage complete. A one-shot wait limits rearming, not ownership of those resources.
  */
 NTSYSAPI
 NTSTATUS
@@ -17261,6 +17828,7 @@ RtlRegisterWait(
  * \param WaitHandle The wait handle
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-unregisterwait
+ * \remarks Deregistration is not necessarily synchronous. The Ex completion-event convention distinguishes asynchronous notification and INVALID_HANDLE_VALUE synchronous drainage. Avoid waiting synchronously from a callback on its own registration; pending callbacks retain context/lifetime obligations.
  */
 NTSYSAPI
 NTSTATUS
@@ -17288,6 +17856,7 @@ RtlDeregisterWait(
  * for all callback functions to complete before returning.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/sync/unregisterwaitex
+ * \remarks Deregistration is not necessarily synchronous. The Ex completion-event convention distinguishes asynchronous notification and INVALID_HANDLE_VALUE synchronous drainage. Avoid waiting synchronously from a callback on its own registration; pending callbacks retain context/lifetime obligations.
  */
 NTSYSAPI
 NTSTATUS
@@ -17313,6 +17882,7 @@ typedef RTL_WORK_CALLBACK* PRTL_WORK_CALLBACK;
  * \param Context An optional context value passed to the callback.
  * \param Flags Flags controlling execution (for example, WT_EXECUTELONGFUNCTION).
  * \return NTSTATUS Successful or errant status.
+ * \remarks Queues a legacy callback with borrowed context. Success means accepted for execution, not completed. The caller must arrange completion notification and keep code/context alive until the callback returns.
  */
 NTSYSAPI
 NTSTATUS
@@ -17405,8 +17975,8 @@ RtlUserThreadStart(
 /**
  * The LdrInitializeThunk routine is the loader initialization routine invoked when a new thread begins execution.
  *
- * \param ContextRecord The initial thread context to resume after loader initialization.
- * \param Parameter The system startup argument for the thread.
+ * \param ContextRecord The initial thread context to resume (via NtContinue) after loader initialization; the routine does not return.
+ * \param Parameter The system startup argument for the thread (not read on x64).
  */
 NTSYSAPI
 VOID
@@ -17435,16 +18005,86 @@ LdrProcessInitializationComplete(
 /**
  * The RtlDelayExecution routine suspends the current thread for the specified interval.
  *
- * \param Alertable If `TRUE`, the delay can be interrupted by the delivery of an alert to the thread.
- * \param DelayInterval An optional pointer to the interval to wait, in 100-nanosecond units.
- * \return NTSTATUS Successful or errant status.
+ * \param Alertable If `TRUE`, the wait is alertable and may return early with STATUS_ALERTED or STATUS_USER_APC.
+ * \param DelayInterval A pointer to the interval to wait, in 100-nanosecond units.
+ * - A negative value specifies an interval relative to the current time.
+ * - A positive value specifies an absolute time.
+ * - A value of zero yields the remainder of the time slice to another ready thread.
+ * \return NTSTATUS Successful or errant status. STATUS_NO_YIELD_PERFORMED if DelayInterval is zero and no other thread was ready to run.
+ * \remarks When DelayInterval is zero and SMT delayed sleep is configured (Session Manager SmtDelayBaseYield/SmtFactorYield),
+ * repeated failed yields within SmtDelaySleepLoopWindowSize (after SmtDelaySpinCountThreshold calls) execute an increasing
+ * pause back-off, bounded by SmtDelayMaxYield, before the system call. State is tracked in TEB->SpinCallCount and
+ * TEB->LastSleepCounter; SpinCallCount is reset whenever the status is not STATUS_NO_YIELD_PERFORMED.
+ *
+ * At process start, LdrpInitializeSmtDelayedSleep reads five values from
+ * HKLM\\System\\CurrentControlSet\\Control\\Session Manager:
+ * - SmtDelaySleepLoopWindowSize: Only zero-length delays called within this many QPC ticks of the previous one count as a spin loop.
+ * - SmtDelaySpinCountThreshold: How many back-to-back failed yields before throttling starts.
+ * - SmtDelayBaseYield: Starting length of the pause.
+ * - SmtFactorYield: How much longer the pause gets with each further failed yield.
+ * - SmtDelayMaxYield: Upper limit on the pause.
+ *
+ * If both SmtDelayBaseYield and SmtFactorYield are 0 (absent), the feature is off and the function behaves like
+ * plain NtDelayExecution. The pause length is converted to a number of pause instructions using
+ * KUSER_SHARED_DATA->CyclesPerYield.
+ * \remarks Timing impact of the SMT yield backoff introduced on Windows 11 (derived from the RtlDelayExecution disassembly).
+ *
+ * Not affected:
+ * - Any non-zero delay (Sleep(n) with n > 0). The first test is *DelayInterval == 0;
+ * any other value goes straight to NtDelayExecution, so timing a Sleep(n) against QPC/RDTSC is unchanged.
+ * - Direct NtDelayExecution or NtYieldExecution calls. They go straight to the kernel and never reach the backoff.
+ * - Systems where SmtDelayBaseYield and SmtFactorYield are both zero/absent (plain pass-through).
+ *
+ * Affected (when the feature is enabled and only for zero-interval calls (Sleep(0), SwitchToThread, and wrappers that pass a zero interval):
+ * - Code that times Sleep(0)/SwitchToThread in a tight loop. After SmtDelaySpinCountThreshold consecutive failed
+ * yields inside the window, each call gets a growing run of pause instructions, up to SmtDelayMaxYield. Per-call
+ * latency rises and then levels off. Since the backoff only builds while yields keep failing, it mostly shows
+ * on an idle core with nothing else ready to run.
+ *
+ - Anti-debug, sandbox or VM checks that measure Sleep(0)/SwitchToThread timing may see inflated or uneven
+ * numbers and misread them as a debugger or emulator. On SMT hardware the pause bursts also change how much the
+ * sibling core runs, which can skew cross-core contention measurements.
+ *
+ * - Benchmarks that use Sleep(0) as a cheap yield inside the measured loop pick up extra latency on an idle core.
+ *
+ * - Spin-then-yield locks (.NET SpinWait/Thread.Yield, game-engine spin locks, lock-free retry loops). When the
+ * holder runs on another core the yield keeps failing, so the backoff builds; on release the waiter may be
+ * partway through a pause run of up to SmtDelayMaxYield, adding acquire latency that older Windows did not have.
+ *
+ * - Polling loops (audio, input, network) that poll with Sleep(0) get extra, machine-dependent jitter. The delay
+ * depends on TEB state (SpinCallCount, LastSleepCounter) left by earlier calls on the same thread.
+ *
+ * - Virtual machines: hypervisor pause-loop exiting (PLE) treats long pause bursts as a spinning vCPU and may
+ * deschedule it, so a short yield could become a latency spike far longer than the intended pause. Whether this
+ * happens depends on the PLE window/gap settings and CyclesPerYield.
+ *
+ * - CPU accounting and profiling: the pause loop runs in user mode, so it counts as user CPU time and thread
+ * cycle time attributed to ntdll!RtlDelayExecution, where older Windows showed mostly system-call/kernel time.
+ * Per-thread context-switch and system-call counts drop, so heuristics that use "many NtDelayExecution calls"
+ * as a busy-yield signal see different numbers. Thread CPU/cycle figures for processes stuck in yield loops
+ * will look higher on Windows 11 than on Windows 10 for the same behavior.
+ *
+ * - Priority starvation is unchanged: a zero-length delay still only yields to threads ready on the current
+ * processor, so a starved lower-priority lock holder is not helped, and each loop iteration now takes longer.
+ *
+ * - Inconsistent behavior: the settings are read once per process at ntdll initialization, so behavior differs
+ * across machines and only a process restart picks up a registry change. NtDelayExecution bypasses the backoff
+ * while Sleep/SwitchToThread do not, so two seemingly equivalent code paths can also time differently.
+ *
+ * Benefit: on SMT hardware, a thread repeatedly failing to yield used to issue a stream of system calls that took
+ * execution resources from its sibling core. The pause runs give those resources back and likely use less power
+ * than looping through the kernel.
+ *
+ * For a zero-length yield with no throttling (e.g. in a timing tool), call NtDelayExecution or
+ * NtYieldExecution directly instead of calling Sleep or RtlDelayExecution.
+ * \see NtDelayExecution
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDelayExecution(
     _In_ BOOLEAN Alertable,
-    _In_opt_ PLARGE_INTEGER DelayInterval
+    _In_ PLARGE_INTEGER DelayInterval
     );
 
 //
@@ -17458,6 +18098,7 @@ RtlDelayExecution(
  * \return NTSTATUS Successful or errant status.
  * \remarks Timer-queue timers are lightweight objects that enable you to specify a callback function to be called at a specified time.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoollegacyapiset/nf-threadpoollegacyapiset-createtimerqueue
+ * \remarks Creates caller-owned legacy timer-queue state or adds a timer callback to a queue. DueTime and Period are in milliseconds, unlike native TP timer LARGE_INTEGER due times. The RtlSetTimer forwards to RtlCreateTimer; it is not an in-place timer update.
  */
 NTSYSAPI
 NTSTATUS
@@ -17471,9 +18112,6 @@ VOID NTAPI RTL_TIMER_CALLBACK(
     _In_ PVOID Parameter,
     _In_ BOOLEAN TimerOrWaitFired
     );
-/**
- * Pointer to an RTL_TIMER_CALLBACK callback.
- */
 typedef RTL_TIMER_CALLBACK *PRTL_TIMER_CALLBACK;
 
 /**
@@ -17489,6 +18127,7 @@ typedef RTL_TIMER_CALLBACK *PRTL_TIMER_CALLBACK;
  * WT_EXECUTEDEFAULT, WT_EXECUTEONLYONCE, WT_EXECUTELONGFUNCTION, WT_EXECUTEINTIMERTHREAD, WT_EXECUTEINPERSISTENTTHREAD, WT_TRANSFER_IMPERSONATION.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoollegacyapiset/nf-threadpoollegacyapiset-createtimerqueuetimer
+ * \remarks Creates caller-owned legacy timer-queue state or adds a timer callback to a queue. DueTime and Period are in milliseconds, unlike native TP timer LARGE_INTEGER due times. The RtlSetTimer forwards to RtlCreateTimer; it is not an in-place timer update.
  */
 NTSYSAPI
 NTSTATUS
@@ -17509,6 +18148,7 @@ RtlCreateTimer(
  * \param TimerQueueHandle A handle to the timer queue that owns the timer.
  * \param Handle A handle to the timer to cancel.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletion/cancellation may require asynchronous completion. The Ex/delete completion-event convention must be honored before freeing callback context; a non-Ex forwarding wrapper does not guarantee synchronous drainage. Deleting a queue also governs its member timers.
  */
 NTSYSAPI
 NTSTATUS
@@ -17529,6 +18169,7 @@ RtlCancelTimer(
  * \param Period The period, in milliseconds, for recurring expiration; zero for one-shot.
  * \param Flags Flags controlling timer behavior.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates caller-owned legacy timer-queue state or adds a timer callback to a queue. DueTime and Period are in milliseconds, unlike native TP timer LARGE_INTEGER due times. The RtlSetTimer forwards to RtlCreateTimer; it is not an in-place timer update.
  */
 NTSYSAPI
 NTSTATUS
@@ -17551,6 +18192,7 @@ RtlSetTimer(
  * \param DueTime The new time, in milliseconds, before the timer first fires.
  * \param Period The new period, in milliseconds, between subsequent firings, or zero for a one-shot timer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Updates a legacy timer due time/period. This does not cancel a callback already running; queue/timer/context ownership persists until explicit deletion and drainage.
  */
 NTSYSAPI
 NTSTATUS
@@ -17574,6 +18216,7 @@ RtlUpdateTimer(
  * \param TimerToCancel A handle to the timer to delete.
  * \param Event An optional handle to an event signaled when the timer is deleted, or RTL_TIMER_DELETE_WAIT_FOR_COMPLETION to wait for completion.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletion/cancellation may require asynchronous completion. The Ex/delete completion-event convention must be honored before freeing callback context; a non-Ex forwarding wrapper does not guarantee synchronous drainage. Deleting a queue also governs its member timers.
  */
 NTSYSAPI
 NTSTATUS
@@ -17589,6 +18232,7 @@ RtlDeleteTimer(
  *
  * \param TimerQueueHandle A handle to the timer queue to delete.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletion/cancellation may require asynchronous completion. The Ex/delete completion-event convention must be honored before freeing callback context; a non-Ex forwarding wrapper does not guarantee synchronous drainage. Deleting a queue also governs its member timers.
  */
 NTSYSAPI
 NTSTATUS
@@ -17603,6 +18247,7 @@ RtlDeleteTimerQueue(
  * \param TimerQueueHandle A handle to the timer queue to delete.
  * \param Event An optional handle to an event signaled when the queue is deleted, or a sentinel value to wait for completion.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Deletion/cancellation may require asynchronous completion. The Ex/delete completion-event convention must be honored before freeing callback context; a non-Ex forwarding wrapper does not guarantee synchronous drainage. Deleting a queue also governs its member timers.
  */
 NTSYSAPI
 NTSTATUS
@@ -17947,6 +18592,7 @@ RtlGetNativeSystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
+// rev
 /**
  * The NtWow64GetNativeSystemInformation routine retrieves native (64-bit) system information from a WOW64 (32-bit) process.
  *
@@ -17956,7 +18602,6 @@ RtlGetNativeSystemInformation(
  * \param ReturnLength An optional pointer to a variable that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18105,6 +18750,7 @@ RtlWow64GetEquivalentMachineCHPE(
 //    _Out_opt_ PULONG ReturnLength
 //    );
 
+// rev
 /**
  * The RtlWow64LogMessageInEventLogger routine writes a WOW64 subsystem message to the system event logger.
  *
@@ -18112,7 +18758,6 @@ RtlWow64GetEquivalentMachineCHPE(
  * \param Strings An array of pointers to unicode strings to log.
  * \param EventId The event identifier to log.
  */
-// rev
 NTSYSAPI
 VOID
 NTAPI
@@ -18340,6 +18985,7 @@ RtlpWow64CtxFromAmd64(
  * \param Buffer Pointer to the buffer containing the data to compute the CRC32 for.
  * \param Length The length, in bytes, of the buffer.
  * \return The computed CRC32 value.
+ * \remarks Computes a CRC-32 over exactly Length bytes and supports continuation with the prior result. The 123456789 test vector yields 0xCBF43926 from zero. CRC is an error-detection checksum, not a cryptographic integrity or authentication mechanism.
  */
 NTSYSAPI
 ULONG32
@@ -18356,6 +19002,7 @@ RtlComputeCrc32(
  * \param Ptr The system pointer to be encoded.
  * \return The function returns the encoded pointer.
  * \sa https://learn.microsoft.com/en-us/previous-versions/bb432254(v=vs.85)
+ * \remarks Transforms a pointer-sized value using the applicable process or shared-system cookie. Encode/decode must be paired in the same cookie domain. This neither validates nor owns the pointer and is not encryption for secrets.
  */
 _Ret_maybenull_
 NTSYSAPI
@@ -18371,6 +19018,7 @@ RtlEncodePointer(
  * \param Ptr The system pointer to be decoded.
  * \return The function returns the decoded pointer.
  * \sa https://learn.microsoft.com/en-us/previous-versions/bb432242(v=vs.85)
+ * \remarks Transforms a pointer-sized value using the applicable process or shared-system cookie. Encode/decode must be paired in the same cookie domain. This neither validates nor owns the pointer and is not encryption for secrets.
  */
 _Ret_maybenull_
 NTSYSAPI
@@ -18387,6 +19035,7 @@ RtlDecodePointer(
  * \param Ptr The system pointer to be encoded.
  * \return The function returns the encoded pointer.
  * \sa https://learn.microsoft.com/en-us/previous-versions/bb432255(v=vs.85)
+ * \remarks Transforms a pointer-sized value using the applicable process or shared-system cookie. Encode/decode must be paired in the same cookie domain. This neither validates nor owns the pointer and is not encryption for secrets.
  */
 _Ret_maybenull_
 NTSYSAPI
@@ -18402,6 +19051,7 @@ RtlEncodeSystemPointer(
  * \param Ptr The pointer to be decoded.
  * \return The function returns the decoded pointer.
  * \sa https://learn.microsoft.com/en-us/previous-versions/bb432243(v=vs.85)
+ * \remarks Transforms a pointer-sized value using the applicable process or shared-system cookie. Encode/decode must be paired in the same cookie domain. This neither validates nor owns the pointer and is not encryption for secrets.
  */
 _Ret_maybenull_
 NTSYSAPI
@@ -18422,6 +19072,7 @@ RtlDecodeSystemPointer(
  * \param EncodedPointer The encoded pointer.
  * \return HRESULT Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/previous-versions/dn877135(v=vs.85)
+ * \remarks Queries the target process cookie and transforms a pointer-sized value; it does not read or write the memory to which the pointer refers. This helper returns an HRESULT-style error on a failed process query, unlike ordinary RtlEncodePointer.
  */
 NTSYSAPI
 HRESULT
@@ -18442,6 +19093,7 @@ RtlEncodeRemotePointer(
  * \param DecodedPointer The decoded pointer.
  * \return HRESULT Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)
+ * \remarks Queries the target process cookie and transforms a pointer-sized value; it does not read or write the memory to which the pointer refers. This helper returns an HRESULT-style error on a failed process query, unlike ordinary RtlEncodePointer.
  */
 NTSYSAPI
 HRESULT
@@ -18461,6 +19113,7 @@ RtlDecodeRemotePointer(
  * \param ProcessorFeature The processor feature to be tested.
  * \return If the feature is supported, the return value is a nonzero value.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-isprocessorfeaturepresent
+ * \remarks Checks a feature index in shared/process feature state, returning FALSE for unsupported/out-of-range indexes. CPU instruction support is not proof that an arbitrary XSTATE buffer or instruction sequence is safe.
  */
 NTSYSAPI
 BOOLEAN
@@ -18477,6 +19130,7 @@ RtlIsProcessorFeaturePresent(
  *
  * \return The function returns the current processor number.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessornumber
+ * \remarks Processor identity is a momentary observation and can change immediately if the thread migrates. The Ex routine writes a PROCESSOR_NUMBER and clears its Reserved byte; it is not the NTSTATUS-returning NtGetCurrentProcessorNumberEx contract.
  */
 NTSYSAPI
 ULONG
@@ -18494,6 +19148,7 @@ RtlGetCurrentProcessorNumber(
  * of the logical processor the calling thread is running.
  * \return This function does not return a value.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessornumberex
+ * \remarks Processor identity is a momentary observation and can change immediately if the thread migrates. The Ex routine writes a PROCESSOR_NUMBER and clears its Reserved byte; it is not the NTSTATUS-returning NtGetCurrentProcessorNumberEx contract.
  */
 NTSYSAPI
 VOID
@@ -18639,28 +19294,28 @@ RtlpCleanupRegistryKeys(
  */
 typedef struct _RTL_MUI_REGISTRY_INFO
 {
-    ULONG Flags;                                  // +0x00 ownership mask (0x400 = self-owned)
-    ULONG Reserved0;                              // +0x04
-    PVOID Reserved1;                              // +0x08
-    PVOID Reserved2;                              // +0x10
-    PVOID SerializedData;                         // +0x18 (0x001) RtlFreeHeap
-    PVOID StringPool;                             // +0x20 (0x002) RtlpMuiRegFreeStringPool
-    PVOID UserLanguageConfigList;                 // +0x28 (0x004) RtlpMuiRegFreeLanguageConfigList
-    PVOID MachineLanguageConfigList;              // +0x30 (0x008) RtlpMuiRegFreeLanguageConfigList
-    PVOID LanguageList10;                         // +0x38 (0x010) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList20;                         // +0x40 (0x020) RtlpMuiRegFreeLanguageList
-    PVOID Reserved3;                              // +0x48
-    PVOID LanguageList80;                         // +0x50 (0x080) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList40;                         // +0x58 (0x040) RtlpMuiRegFreeLanguageList
-    PVOID LanguageList200;                        // +0x60 (0x200) RtlpMuiRegFreeLanguageList
-    struct _RTL_MUI_REGISTRY_INFO *Alternate;     // +0x68 nested (recursive free + RtlFreeHeap)
-    PVOID Reserved4;                              // +0x70
-    PVOID Reserved5;                              // +0x78
-    PVOID Reserved6;                              // +0x80
-    PVOID FallbackData;                           // +0x88 (0x800) RtlFreeHeap
-    PVOID Reserved7;                              // +0x90
-    PVOID Reserved8;                              // +0x98
-    PVOID Reserved9;                              // +0xA0
+    ULONG Flags;                                  // ownership mask (0x400 = self-owned)
+    ULONG Reserved0;
+    PVOID Reserved1;
+    PVOID Reserved2;
+    PVOID SerializedData;                         // (0x001) RtlFreeHeap
+    PVOID StringPool;                             // (0x002) RtlpMuiRegFreeStringPool
+    PVOID UserLanguageConfigList;                 // (0x004) RtlpMuiRegFreeLanguageConfigList
+    PVOID MachineLanguageConfigList;              // (0x008) RtlpMuiRegFreeLanguageConfigList
+    PVOID LanguageList10;                         // (0x010) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList20;                         // (0x020) RtlpMuiRegFreeLanguageList
+    PVOID Reserved3;
+    PVOID LanguageList80;                         // (0x080) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList40;                         // (0x040) RtlpMuiRegFreeLanguageList
+    PVOID LanguageList200;                        // (0x200) RtlpMuiRegFreeLanguageList
+    struct _RTL_MUI_REGISTRY_INFO *Alternate;     // nested (recursive free + RtlFreeHeap)
+    PVOID Reserved4;
+    PVOID Reserved5;
+    PVOID Reserved6;
+    PVOID FallbackData;                           // (0x800) RtlFreeHeap
+    PVOID Reserved7;
+    PVOID Reserved8;
+    PVOID Reserved9;
 } RTL_MUI_REGISTRY_INFO, *PRTL_MUI_REGISTRY_INFO;
     
 // rev
@@ -18738,6 +19393,7 @@ RtlpGetDeviceFamilyInfoEnum(
     _Out_opt_ PULONG DeviceForm
     );
 
+// rev
 /**
  * The RtlpGetNameFromLangInfoNode routine retrieves the language name associated with a language-info node from the MUI registry information string pool.
  *
@@ -18746,7 +19402,6 @@ RtlpGetDeviceFamilyInfoEnum(
  * \param Name Receives the resolved language name.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18756,13 +19411,13 @@ RtlpGetNameFromLangInfoNode(
     _Inout_ PUNICODE_STRING Name
     );
 
+// rev
 /**
  * The RtlpInitializeLangRegistryInfo routine ensures the process MUI registry information cache is created and loaded, initializing it on first use.
  *
  * \param RegistryInfo On input points to the cache pointer; when the pointed-to value is NULL the cache is created and loaded.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18770,6 +19425,7 @@ RtlpInitializeLangRegistryInfo(
     _Inout_ PRTL_MUI_REGISTRY_INFO *RegistryInfo
     );
 
+// rev
 /**
  * The RtlpLoadMachineUIByPolicy routine loads the machine UI language list dictated by the MUI Group Policy settings.
  *
@@ -18778,7 +19434,6 @@ RtlpInitializeLangRegistryInfo(
  * \param LanguageList On input points to an existing language list (or NULL); receives the populated language list.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18788,6 +19443,7 @@ RtlpLoadMachineUIByPolicy(
     _Inout_ PVOID *LanguageList
     );
 
+// rev
 /**
  * The RtlpLoadUserUIByPolicy routine loads the per-user UI language list dictated by the MUI Group Policy settings.
  *
@@ -18796,7 +19452,6 @@ RtlpLoadMachineUIByPolicy(
  * \param LanguageList On input points to an existing language list (or NULL); receives the populated language list.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18806,6 +19461,7 @@ RtlpLoadUserUIByPolicy(
     _Inout_ PVOID *LanguageList
     );
 
+// rev
 /**
  * The RtlpMergeSecurityAttributeInformation routine merges the resource-attribute ACEs from two system access control lists (SACLs) into a newly allocated ACL.
  *
@@ -18816,7 +19472,6 @@ RtlpLoadUserUIByPolicy(
  * \return NTSTATUS Successful or errant status.
  * \remarks Prototype reconstructed from disassembly; the routine walks ACL structures (not raw security descriptors).
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18914,6 +19569,7 @@ RtlpNtOpenKey(
     _Inout_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+// rev
 /**
  * The RtlpNtQueryValueKey routine queries the type and data of a registry key value (internal helper for the Rtl registry APIs).
  *
@@ -18923,7 +19579,6 @@ RtlpNtOpenKey(
  * \param DataLength On input specifies the buffer size; on output receives the data size, in bytes.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -18934,6 +19589,7 @@ RtlpNtQueryValueKey(
     _Inout_opt_ PINT DataLength
     );
 
+// rev
 /**
  * The RtlpNtSetValueKey routine sets the type and data of a registry key value (internal helper for the Rtl registry APIs).
  *
@@ -18943,7 +19599,6 @@ RtlpNtQueryValueKey(
  * \param DataLength The size, in bytes, of Data.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19034,13 +19689,13 @@ RtlAbortRXact(
     _Inout_ PRTL_RXACT_CONTEXT RxactContext
     );
 
+// rev
 /**
  * The RtlActivateActivationContextUnsafeFast routine activates an activation context on the current thread using the fast, lock-free path.
  *
  * \param CallerFrame A 0x48-byte caller-allocated RTL_CALLER_ALLOCATED_ACTIVATION_CONTEXT_STACK_FRAME_EXTENDED that receives the frame state.
  * \param ActivationContext An optional activation context to activate.
  */
-// rev
 NTSYSAPI
 VOID
 FASTCALL
@@ -19115,6 +19770,7 @@ RtlAllocateActivationContextStack(
     _Inout_ PACTIVATION_CONTEXT_STACK* ActivationContextStack
     );
 
+// rev
 /**
  * The RtlApplicationVerifierStop routine reports an Application Verifier stop, breaking into the debugger with the supplied diagnostic parameters.
  *
@@ -19130,7 +19786,6 @@ RtlAllocateActivationContextStack(
  * \param Desc5 An optional description of the fifth value.
  * \return Implementation-defined; typically NULL.
  */
-// rev
 NTSYSAPI
 PVOID
 NTAPI
@@ -19195,6 +19850,7 @@ RtlAvlInsertNodeEx(
     _In_ PRTL_BALANCED_NODE Node
     );
 
+// rev
 /**
  * The RtlCallEnclave routine calls a routine inside a VBS enclave.
  *
@@ -19204,7 +19860,6 @@ RtlAvlInsertNodeEx(
  * \param ReturnValue Receives the value returned by the enclave routine.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19246,6 +19901,7 @@ RtlCanonicalizeDomainName(
     _In_ BOOLEAN AllowInvalidLabels
     );
 
+// rev
 /**
  * The RtlCapabilityCheckForSingleSessionSku routine determines whether a token holds the specified capability on a single-session SKU.
  *
@@ -19254,7 +19910,6 @@ RtlCanonicalizeDomainName(
  * \param IsCapable Receives TRUE if the token has the capability.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19264,13 +19919,13 @@ RtlCapabilityCheckForSingleSessionSku(
     _Out_ PBOOLEAN IsCapable
     );
 
+// rev
 /**
  * The RtlCheckSystemBootStatusIntegrity routine validates the integrity of the boot status data (BSD) context.
  *
  * \param BootStatusContext The boot status data context to validate.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19293,20 +19948,21 @@ RtlClearThreadWorkOnBehalfTicket(
 
 // rev
 /**
- * The RtlCmDecodeMemIoResource routine decodes a memory or I/O resource descriptor and returns its length and translated start address.
+ * RtlCmDecodeMemIoResource contract.
  *
- * \param ResourceDescriptor A pointer to the CM_PARTIAL_RESOURCE_DESCRIPTOR to decode.
- * \param TranslatedAddress An optional pointer to a variable that receives the start address of the resource.
- * \return ULONGLONG The length, in bytes, of the decoded resource.
+ * \param ResourceDescriptor Read-only resource descriptor.
+ * \param Start Optional output for the stored start address.
+ * \remarks Returns decoded resource length and optionally copies the descriptor Start field. This does not translate a bus address. The descriptor is read-only; provide a valid CM_PARTIAL_RESOURCE_DESCRIPTOR with the appropriate type/large-memory flags, not an arbitrary buffer.
  */
 NTSYSAPI
 ULONGLONG
 NTAPI
 RtlCmDecodeMemIoResource(
-    _In_ const VOID *ResourceDescriptor,
-    _Out_opt_ PULONGLONG TranslatedAddress
+    _In_ const CM_PARTIAL_RESOURCE_DESCRIPTOR *ResourceDescriptor,
+    _Out_opt_ PULONGLONG Start
     );
 
+// rev
 /**
  * The RtlCmEncodeMemIoResource routine encodes a memory or I/O resource descriptor for the configuration manager.
  *
@@ -19315,13 +19971,13 @@ RtlCmDecodeMemIoResource(
  * \param Length The length of the resource.
  * \param Start The start address of the resource.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The descriptor is input/output: existing non-large-memory flag bits and unrelated fields are preserved. Initialize it before the call. Large-memory flags 0x200, 0x400 and 0x800 encode shifts of 8, 16 and 32 bits. I/O-port lengths must fit ULONG; memory encoding can reject an unrepresentable length after partial writes. The IO variant can increase alignment while selecting an encoding. Do not treat failure as leaving the entire descriptor unchanged.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCmEncodeMemIoResource(
-    _Out_ PCM_PARTIAL_RESOURCE_DESCRIPTOR Descriptor,
+    _Inout_ PCM_PARTIAL_RESOURCE_DESCRIPTOR Descriptor,
     _In_ UCHAR Type,
     _In_ ULONGLONG Length,
     _In_ ULONGLONG Start
@@ -19382,12 +20038,12 @@ RtlConstructCrossVmMutexPath(
 //    _Out_opt_ PULONG DeviceForm
 //    );
 
+// rev
 /**
  * The RtlDeactivateActivationContextUnsafeFast routine deactivates the activation context previously activated on the current thread using the fast path.
  *
  * \param CallerFrame The 0x48-byte caller frame previously initialized by RtlActivateActivationContextUnsafeFast.
  */
-// rev
 NTSYSAPI
 VOID
 FASTCALL
@@ -19427,6 +20083,7 @@ RtlCreateSystemVolumeInformationFolder(
     _In_ PCUNICODE_STRING RootPath
     );
 
+// rev
 /**
  * The RtlCreateUserFiberShadowStack routine creates a shadow stack for a user-mode fiber (CET shadow-stack support).
  *
@@ -19435,7 +20092,6 @@ RtlCreateSystemVolumeInformationFolder(
  * \param ShadowStackOut Receives the base of the newly created shadow stack.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19445,6 +20101,7 @@ RtlCreateUserFiberShadowStack(
     _Out_ PVOID *ShadowStackOut
     );
 
+// rev
 /**
  * The RtlDeleteElementGenericTableAvlEx routine deletes the element matching the supplied key from an AVL generic table.
  *
@@ -19452,7 +20109,6 @@ RtlCreateUserFiberShadowStack(
  * \param Buffer A buffer containing the key that identifies the element to delete.
  * \return A pointer to the restart key of the parent, or NULL if the element was not found.
  */
-// rev
 NTSYSAPI
 PVOID
 NTAPI
@@ -19466,6 +20122,7 @@ RtlDeleteElementGenericTableAvlEx(
  * The RtlDisownModuleHeapAllocation routine relinquishes ownership of a module's heap allocation so that it is not freed when the module unloads.
  *
  * \return NTSTATUS Successful or errant status.
+ * \remarks The x64/x86 ntdll entry returns STATUS_SUCCESS without performing the operation suggested by its historical name. Treat it as a version-specific stub, not proof that a package, allocation-tracking or telemetry action occurred.
  */
 NTSYSAPI
 NTSTATUS
@@ -19482,6 +20139,7 @@ RtlDisownModuleHeapAllocation(
 //    _In_ PVOID NvToken
 //    );
 
+// rev
 /**
  * The RtlEnclaveCallDispatchReturn routine returns control from an enclave dispatch call back to the host.
  *
@@ -19491,7 +20149,6 @@ RtlDisownModuleHeapAllocation(
  * \param DispatchContext On input the current dispatch context; receives the updated context.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19544,6 +20201,7 @@ RtlEnclaveCallDispatchReturn(
 //    _Inout_ PVOID CorrelationVector
 //    );
 
+// rev
 /**
  * The RtlExtendMemoryZone routine extends a memory zone by committing an additional segment.
  *
@@ -19551,7 +20209,6 @@ RtlEnclaveCallDispatchReturn(
  * \param RequestedSize The number of additional bytes to make available.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19774,6 +20431,7 @@ RtlInitializeRXact(
  *
  * \param Callback An optional callback invoked by the atom package.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The x64/x86 ntdll entry returns STATUS_SUCCESS without performing the operation suggested by its historical name. Treat it as a version-specific stub, not proof that a package, allocation-tracking or telemetry action occurred.
  */
 NTSYSAPI
 NTSTATUS
@@ -19782,6 +20440,7 @@ RtlInitializeAtomPackage(
     _In_opt_ PVOID Callback
     );
 
+// rev
 /**
  * The RtlInitializeNtUserPfn routine registers the win32u/NtUser private function (PFN) dispatch tables with ntdll.
  *
@@ -19793,7 +20452,6 @@ RtlInitializeAtomPackage(
  * \param NtUserPfnTable3Size The size, in bytes, of the tertiary table.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19806,6 +20464,7 @@ RtlInitializeNtUserPfn(
     _In_ SIZE_T NtUserPfnTable3Size
     );
 
+// rev
 /**
  * The RtlInterlockedPushListSList routine atomically pushes a list of entries onto a singly linked interlocked list (SLIST).
  *
@@ -19815,7 +20474,6 @@ RtlInitializeNtUserPfn(
  * \param Count The number of entries in the list being inserted.
  * \return The previous first entry of the list.
  */
-// rev
 NTSYSAPI
 PSLIST_ENTRY
 FASTCALL
@@ -19826,26 +20484,27 @@ RtlInterlockedPushListSList(
     _In_ ULONG Count
     );
 
-/**
- * The RtlIoDecodeMemIoResource routine decodes a memory or I/O resource descriptor into its address and length components.
- *
- * \param ResourceDescriptor The partial resource descriptor to decode.
- * \param TranslatedAddress An optional pointer that receives the translated address.
- * \param StartAddress An optional pointer that receives the start address.
- * \param Length An optional pointer that receives the resource length.
- * \return The decoded resource length.
- */
 // rev
+/**
+ * RtlIoDecodeMemIoResource contract.
+ *
+ * \param ResourceDescriptor Read-only resource-requirement descriptor.
+ * \param Alignment Optional output for decoded alignment.
+ * \param MinimumAddress Optional output for the minimum address.
+ * \param MaximumAddress Optional output for the maximum address.
+ * \remarks Returns decoded length; optional outputs are Alignment, MinimumAddress and MaximumAddress, in that order. It does not return a translated address or an output length in the fourth argument. The input is a read-only IO_RESOURCE_DESCRIPTOR.
+ */
 NTSYSAPI
 ULONGLONG
 NTAPI
 RtlIoDecodeMemIoResource(
-    _In_ PVOID ResourceDescriptor,
-    _Out_opt_ PULONGLONG TranslatedAddress,
-    _Out_opt_ PULONGLONG StartAddress,
-    _Out_opt_ PULONGLONG Length
+    _In_ const IO_RESOURCE_DESCRIPTOR *ResourceDescriptor,
+    _Out_opt_ PULONGLONG Alignment,
+    _Out_opt_ PULONGLONG MinimumAddress,
+    _Out_opt_ PULONGLONG MaximumAddress
     );
 
+// rev
 /**
  * The RtlIoEncodeMemIoResource routine encodes address and length information into a memory or I/O resource descriptor.
  *
@@ -19856,13 +20515,13 @@ RtlIoDecodeMemIoResource(
  * \param MinimumAddress The minimum acceptable address.
  * \param MaximumAddress The maximum acceptable address.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The descriptor is input/output: existing non-large-memory flag bits and unrelated fields are preserved. Initialize it before the call. Large-memory flags 0x200, 0x400 and 0x800 encode shifts of 8, 16 and 32 bits. I/O-port lengths must fit ULONG; memory encoding can reject an unrepresentable length after partial writes. The IO variant can increase alignment while selecting an encoding. Do not treat failure as leaving the entire descriptor unchanged.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIoEncodeMemIoResource(
-    _Out_ PIO_RESOURCE_DESCRIPTOR Descriptor,
+    _Inout_ PIO_RESOURCE_DESCRIPTOR Descriptor,
     _In_ UCHAR Type,
     _In_ ULONGLONG Length,
     _In_ ULONGLONG Alignment,
@@ -19939,6 +20598,7 @@ RtlLogUnexpectedCodepath(
 //    _In_ ULONGLONG HistoryTable
 //    );
 
+// rev
 /**
  * The RtlpConvertAbsoluteToRelativeSecurityAttribute routine converts a security attribute from absolute to self-relative form.
  *
@@ -19947,7 +20607,6 @@ RtlLogUnexpectedCodepath(
  * \param RelativeSaLength On input specifies the buffer size; on output receives the required or written length, in bytes.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -19980,6 +20639,7 @@ RtlMapSecurityErrorToNtStatus(
 //     _In_ SIZE_T Length
 //     );
 
+// rev
 /**
  * The RtlOpenCrossProcessEmulatorWorkConnection routine opens a shared-memory connection used to exchange cross-process emulator work items.
  *
@@ -19988,7 +20648,6 @@ RtlMapSecurityErrorToNtStatus(
  * \param ViewBase Receives the base address of the mapped view.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20005,13 +20664,13 @@ RtlOpenCrossProcessEmulatorWorkConnection(
 //     _In_ ULONG Flags
 //     );
 
+// rev
 /**
  * The RtlQueryDynamicTimeZoneInformation routine retrieves the current dynamic time zone information for the system.
  *
  * \param DynamicTimeZoneInformation Receives the dynamic time zone information.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20019,6 +20678,7 @@ RtlQueryDynamicTimeZoneInformation(
     _Out_ PRTL_DYNAMIC_TIME_ZONE_INFORMATION DynamicTimeZoneInformation
     );
 
+// rev
 /**
  * The RtlQueryInternalFeatureConfiguration routine queries the configuration of an internal (velocity/feature-staging) feature.
  *
@@ -20028,7 +20688,6 @@ RtlQueryDynamicTimeZoneInformation(
  * \param FeatureConfiguration Receives the feature configuration.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20088,6 +20747,7 @@ RtlQueryResourcePolicy(
 //    _In_ PVOID TriggerConfig
 //    );
 
+// rev
 /**
  * The RtlRegisterForWnfMetaNotification routine registers a callback to receive WNF meta-notifications for state-name changes.
  *
@@ -20098,7 +20758,6 @@ RtlQueryResourcePolicy(
  * \param CallbackContext An optional context value passed to the callback.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20110,13 +20769,14 @@ RtlRegisterForWnfMetaNotification(
     _In_opt_ PVOID CallbackContext
     );
 
+// rev
 /**
  * The RtlReportSqmEscalation routine reports a Software Quality Metrics (SQM) escalation event.
  *
  * \param Callback A callback that supplies the escalation data.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The x64/x86 ntdll entry returns STATUS_SUCCESS without performing the operation suggested by its historical name. Treat it as a version-specific stub, not proof that a package, allocation-tracking or telemetry action occurred.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20124,12 +20784,12 @@ RtlReportSqmEscalation(
     _In_ PVOID Callback
     );
 
+// rev
 /**
  * The RtlResetNtUserPfn routine resets (unregisters) the win32u/NtUser private function (PFN) dispatch tables.
  *
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20169,6 +20829,7 @@ RtlSetDynamicTimeZoneInformation(
     _In_ PDYNAMIC_TIME_ZONE_INFORMATION DynamicTimeZoneInformation
     );
 
+// rev
 /**
  * The RtlSetSystemBootStatusEx routine sets extended boot status data (BSD) information.
  *
@@ -20177,7 +20838,6 @@ RtlSetDynamicTimeZoneInformation(
  * \param Reserved Reserved; must be NULL.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20201,13 +20861,13 @@ RtlSetThreadWorkOnBehalfTicket(
     _In_ PULONGLONG Ticket
     );
 
+// rev
 /**
  * The RtlStartRXact routine begins a registry transaction (RXact), allocating and initializing its context.
  *
  * \param RxactContext The RXact context whose transaction buffer is allocated and initialized.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20225,6 +20885,7 @@ RtlStartRXact(
 //    _In_ ULONGLONG ConditionMask
 //    );
 
+// rev
 /**
  * The RtlTestAndPublishWnfStateData routine publishes new WNF state data only if the current change stamp matches the expected value.
  *
@@ -20236,7 +20897,6 @@ RtlStartRXact(
  * \param MatchingChangeStamp The change stamp the current state must match for the publish to occur.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20255,6 +20915,7 @@ RtlTestAndPublishWnfStateData(
  *
  * \param SRWLock A pointer to the SRW lock to convert.
  * \return Returns `TRUE` if the lock was upgraded to exclusive mode, otherwise `FALSE`.
+ * \remarks Consumes the caller shared acquisition: TRUE retains the lock exclusively, while FALSE releases that shared acquisition rather than leaving it held. The caller must already hold the lock shared. A failed conversion must not be followed by another release of the consumed acquisition.
  */
 _Requires_shared_lock_held_(*SRWLock)
 NTSYSAPI
@@ -20273,6 +20934,7 @@ RtlTryConvertSRWLockSharedToExclusiveOrRelease(
  * \param Divisor The 64-bit divisor.
  * \param Remainder An optional pointer to a variable that receives the remainder.
  * \return ULONGLONG The 64-bit quotient of the division.
+ * \remarks Divides DividendHigh:DividendLow by Divisor and returns the 64-bit quotient, optionally storing an unsigned 64-bit remainder. Use a nonzero divisor and operands whose quotient fits 64 bits; the software division is not a checked arithmetic API.
  */
 NTSYSAPI
 ULONGLONG
@@ -20281,7 +20943,7 @@ RtlUdiv128(
     _In_ ULONGLONG DividendHigh,
     _In_ ULONGLONG DividendLow,
     _In_ ULONGLONG Divisor,
-    _Out_opt_ PLONGLONG Remainder
+    _Out_opt_ PULONGLONG Remainder
     );
 
 // rev
@@ -20358,6 +21020,7 @@ RtlUserFiberStart(
 //    _In_ ULONG Flags
 //    );
 
+// rev
 /**
  * The RtlWaitForWnfMetaNotification routine waits for a WNF meta-notification on the specified state name.
  *
@@ -20368,7 +21031,6 @@ RtlUserFiberStart(
  * \param ResultFlags Receives flags describing why the wait completed.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -20392,6 +21054,7 @@ RtlWaitForWnfMetaNotification(
 //    _In_ ULONG Flags
 //    );
 
+// rev
 /**
  * The RtlXRestore routine restores extended processor state (XSAVE area) for the specified feature mask.
  *
@@ -20399,7 +21062,6 @@ RtlWaitForWnfMetaNotification(
  * \param FeatureMask A bitmask of processor state components to restore.
  * \return The processor XState restore result.
  */
-// rev
 NTSYSAPI
 ULONGLONG
 NTAPI
@@ -20432,6 +21094,7 @@ RtlXSave(
  * The RtlPushFrame routine pushes an active frame onto the current thread's active frame stack.
  *
  * \param Frame A pointer to the TEB_ACTIVE_FRAME to push.
+ * \remarks Manages the current TEB active-frame chain. The caller owns frame storage and must keep it alive until popped; push/pop do not allocate/free frames. Pop requires the proper LIFO frame. The returned pointer is borrowed and thread-local.
  */
 NTSYSAPI
 VOID
@@ -20444,6 +21107,7 @@ RtlPushFrame(
  * The RtlPopFrame routine pops an active frame from the current thread's active frame stack.
  *
  * \param Frame A pointer to the TEB_ACTIVE_FRAME to pop.
+ * \remarks Manages the current TEB active-frame chain. The caller owns frame storage and must keep it alive until popped; push/pop do not allocate/free frames. Pop requires the proper LIFO frame. The returned pointer is borrowed and thread-local.
  */
 NTSYSAPI
 VOID
@@ -20456,6 +21120,7 @@ RtlPopFrame(
  * The RtlGetFrame routine returns the topmost active frame on the current thread's active frame stack.
  *
  * \return PTEB_ACTIVE_FRAME A pointer to the current active frame, or `NULL` if the stack is empty.
+ * \remarks Manages the current TEB active-frame chain. The caller owns frame storage and must keep it alive until popped; push/pop do not allocate/free frames. Pop requires the proper LIFO frame. The returned pointer is borrowed and thread-local.
  */
 NTSYSAPI
 PTEB_ACTIVE_FRAME
@@ -20473,6 +21138,7 @@ RtlGetFrame(
 #define RTL_WALK_VALID_FLAGS 0x00000006
 #define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 0x00000008
 
+// private
 /**
  * The RtlWalkFrameChain routine captures the current call stack as an array of return addresses.
  *
@@ -20480,8 +21146,8 @@ RtlGetFrame(
  * \param Count The maximum number of frames to capture.
  * \param Flags Flags controlling the walk, including the number of leading frames to skip.
  * \return The number of frames captured.
+ * \remarks Stack capture is bounded and can return fewer frames than requested. Captured addresses are observations, not retained module references; symbols/modules can change. Unwind, instrumentation and architecture paths are not interchangeable.
  */
-// private
 NTSYSAPI
 ULONG
 NTAPI
@@ -20498,6 +21164,7 @@ RtlWalkFrameChain(
  * \param CallersAddress A pointer that receives the caller's return address.
  * \param CallersCaller A pointer that receives the return address of the caller's caller.
  * \remarks This routine is deprecated. Callers should prefer the intrinsic _ReturnAddress.
+ * \remarks Stack capture is bounded and can return fewer frames than requested. Captured addresses are observations, not retained module references; symbols/modules can change. Unwind, instrumentation and architecture paths are not interchangeable.
  */
 DECLSPEC_DEPRECATED
 NTSYSAPI
@@ -20541,6 +21208,7 @@ RtlGetEnabledExtendedAndSupervisorFeatures(
     _In_ ULONG64 FeatureMask
     );
 
+// msdn
 /**
  * The RtlLocateSupervisorFeature routine locates the save area of a supervisor extended processor feature within an XSAVE header.
  *
@@ -20549,7 +21217,6 @@ RtlGetEnabledExtendedAndSupervisorFeatures(
  * \param Length An optional pointer that receives the length, in bytes, of the feature save area.
  * \return A pointer to the feature save area, or NULL if the feature is not present.
  */
-// msdn
 _Ret_maybenull_
 _Success_(return != NULL)
 NTSYSAPI
@@ -20597,6 +21264,7 @@ typedef struct _RTL_ELEVATION_FLAGS
  *
  * \param Flags A pointer to a variable that receives the RTL_ELEVATION_FLAGS.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Writes the runtime elevation-policy flags; success does not mean the caller token is elevated or that a requested privileged operation will be permitted.
  */
 NTSYSAPI
 NTSTATUS
@@ -20704,13 +21372,13 @@ RtlUnlockCurrentThread(
     VOID
     );
 
+// private
 /**
  * The RtlLockModuleSection routine locks the image section containing the specified address into the working set.
  *
  * \param Address An address within the module section to lock.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 _Acquires_lock_(Address)
 NTSYSAPI
 NTSTATUS
@@ -20719,13 +21387,13 @@ RtlLockModuleSection(
     _In_ PVOID Address
     );
 
+// private
 /**
  * The RtlUnlockModuleSection routine unlocks the image section containing the specified address.
  *
  * \param Address An address within the module section to unlock.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 _Releases_lock_(Address)
 NTSYSAPI
 NTSTATUS
@@ -20810,6 +21478,7 @@ RtlGetUnloadEventTraceEx(
  * \param BackTraceHash Optional value that can be used to organize hash tables. This hash value is calculated based on the values of the pointers returned in the BackTrace array. Two identical stack traces will generate identical hash values.
  * \return The number of captured frames.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcapturestackbacktrace
+ * \remarks Stack capture is bounded and can return fewer frames than requested. Captured addresses are observations, not retained module references; symbols/modules can change. Unwind, instrumentation and architecture paths are not interchangeable.
  */
 _Success_(return != 0)
 NTSYSAPI
@@ -21033,6 +21702,7 @@ RtlIsEcCode(
  * \param BaseOfImage The base address of the image containing the PC value. This value must be added to any relative addresses in the headers to locate the image.
  * \return If the PC value is found, returns the base address of the image that contains the PC value. If no image contains the PC value, the function returns NULL.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlpctofileheader
+ * \remarks Returns an image-base observation and writes the supplied base output using the runtime lookup path. It neither loads nor retains the module. Synchronize separately if module unload can race with later use.
  */
 NTSYSAPI
 PVOID
@@ -21049,6 +21719,7 @@ RtlPcToFileHeader(
  * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in counts.
  * \return Returns TRUE if the function succeeds, otherwise FALSE. On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ * \remarks Returns a LOGICAL success indication, not NTSTATUS. Counter values and frequency are for elapsed-time measurement; frequency is counts per second. Shared/hypervisor/native-query paths differ, so do not interpret counter ticks as wall-clock time.
  */
 NTSYSAPI
 LOGICAL
@@ -21065,6 +21736,7 @@ RtlQueryPerformanceCounter(
  * \param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second.
  * \return Returns TRUE if the function succeeds, otherwise FALSE. On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancefrequency
+ * \remarks Returns a LOGICAL success indication, not NTSTATUS. Counter values and frequency are for elapsed-time measurement; frequency is counts per second. Shared/hypervisor/native-query paths differ, so do not interpret counter ticks as wall-clock time.
  */
 NTSYSAPI
 LOGICAL
@@ -21324,6 +21996,7 @@ typedef enum _RTL_IMAGE_MITIGATION_OPTION_STATE
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 
+// rev
 /**
  * The RtlQueryImageMitigationPolicy routine queries an image mitigation policy for an executable image or the system-wide defaults.
  *
@@ -21334,7 +22007,6 @@ typedef enum _RTL_IMAGE_MITIGATION_OPTION_STATE
  * \param BufferSize The size, in bytes, of Buffer.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -21719,6 +22391,7 @@ RtlGetAppContainerSidType(
  * \param Callback An optional pointer to a callback invoked when an FLS slot is freed or a fiber is deleted.
  * \param FlsIndex A pointer to a variable that receives the allocated FLS index.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Allocates an FLS slot; a NULL callback is allowed. Store per-fiber values with RtlFlsSetValue and release the slot with RtlFlsFree. Callback code and any referenced state must remain valid while cleanup can occur.
  */
 NTSYSAPI
 NTSTATUS
@@ -21730,19 +22403,29 @@ RtlFlsAlloc(
 
 // rev
 /**
- * The RtlFlsAllocEx routine allocates a fiber local storage (FLS) index with extended output, optionally associating a cleanup callback.
+ * Cleanup callback for an extended FLS slot. Context is the non-NULL value passed
+ * to RtlFlsAllocEx; Data is the non-NULL per-fiber value being released.
+ */
+typedef VOID (NTAPI RTL_FLS_CALLBACK_EX)(
+    _In_ PVOID Context,
+    _In_ PVOID Data
+    );
+typedef RTL_FLS_CALLBACK_EX *PRTL_FLS_CALLBACK_EX;
+
+/**
+ * RtlFlsAllocEx contract.
  *
- * \param Callback An optional pointer to a callback invoked when an FLS slot is freed or a fiber is deleted.
- * \param Unused A pointer to a variable that receives an additional allocation output value.
- * \param FlsIndex A pointer to a variable that receives the allocated FLS index.
- * \return NTSTATUS Successful or errant status.
+ * \param Callback Required extended cleanup callback.
+ * \param Context Required non-NULL borrowed callback context.
+ * \param FlsIndex Receives the allocated FLS index.
+ * \remarks Requires both a non-NULL two-argument cleanup callback and a non-NULL Context. The second argument is borrowed callback context, not an unnamed PULONG output. Cleanup invokes Callback(Context, Data) for a non-NULL slot value. Only FlsIndex is an output. Keep callback/context alive until all relevant cleanup completes.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFlsAllocEx(
-    _In_opt_ PFLS_CALLBACK_FUNCTION Callback,
-    _Out_ PULONG,
+    _In_ PRTL_FLS_CALLBACK_EX Callback,
+    _In_ PVOID Context,
     _Out_ PULONG FlsIndex
     );
 
@@ -21751,6 +22434,7 @@ RtlFlsAllocEx(
  *
  * \param FlsIndex The FLS index to free.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Releases an allocated slot and invokes registered cleanup for non-NULL values found in the FLS data lists. Ordinary callbacks receive Data; extended callbacks receive Context then Data. A free is not merely clearing the current fiber value. Concurrent/reentrant cleanup requires independent lifetime discipline.
  */
 NTSYSAPI
 NTSTATUS
@@ -21765,6 +22449,7 @@ RtlFlsFree(
  * \param FlsIndex The FLS slot index.
  * \param FlsData Receives the value stored in the slot.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns NTSTATUS and writes one pointer-sized value on success. The valid index range is 1 through 4079; invalid index and absent FLS data paths can leave the output unchanged. This does not prove that a previously freed index is allocated.
  */
 NTSYSAPI
 NTSTATUS
@@ -21780,6 +22465,7 @@ RtlFlsGetValue(
  *
  * \param FlsIndex The FLS slot index.
  * \return The value stored in the slot.
+ * \remarks Returns the stored pointer directly; NULL also represents invalid index, absent FLS data or an empty slot. It cannot distinguish those cases as RtlFlsGetValue can through NTSTATUS.
  */
 NTSYSAPI
 PVOID
@@ -21795,6 +22481,7 @@ RtlFlsGetValue2(
  * \param FlsIndex The FLS slot index.
  * \param FlsData An optional value to store in the slot.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Sets the current fiber value; NULL is a valid empty value. This does not itself call the cleanup callback for the previous value. Preserve ownership of replaced objects and free the index separately.
  */
 NTSYSAPI
 NTSTATUS
@@ -21815,6 +22502,7 @@ RtlFlsSetValue(
  *
  * \param FlsData The FLS data block to process.
  * \param Flags Flags controlling how the FLS data is processed.
+ * \remarks Internal FLS teardown: flag bit 0 selects callback/list cleanup and bit 1 selects storage release. Do not apply it to an arbitrary pointer or casually tear down the current thread runtime FLS state.
  */
 NTSYSAPI
 VOID
@@ -21831,6 +22519,7 @@ RtlProcessFlsData(
  *
  * \param TlsIndex A pointer to a variable that receives the allocated TLS index.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These native helpers return NTSTATUS rather than the Win32 TLS return convention. The index range is 0 through 1087 (64 inline slots plus 1024 expansion slots). SetValue only performs range/storage handling, not ownership validation; use only an index allocated to the caller. NULL clears the value without freeing the index.
  */
 NTSYSAPI
 NTSTATUS
@@ -21845,6 +22534,7 @@ RtlTlsAlloc(
  *
  * \param TlsIndex The TLS index to free.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These native helpers return NTSTATUS rather than the Win32 TLS return convention. The index range is 0 through 1087 (64 inline slots plus 1024 expansion slots). SetValue only performs range/storage handling, not ownership validation; use only an index allocated to the caller. NULL clears the value without freeing the index.
  */
 NTSYSAPI
 NTSTATUS
@@ -21853,14 +22543,15 @@ RtlTlsFree(
     _In_ ULONG TlsIndex
     );
 
+// rev
 /**
  * The RtlTlsSetValue routine stores a value in the specified thread local storage (TLS) slot of the current thread.
  *
  * \param TlsIndex The TLS slot index.
  * \param TlsData An optional value to store in the slot.
  * \return NTSTATUS Successful or errant status.
+ * \remarks These native helpers return NTSTATUS rather than the Win32 TLS return convention. The index range is 0 through 1087 (64 inline slots plus 1024 expansion slots). SetValue only performs range/storage handling, not ownership validation; use only an index allocated to the caller. NULL clears the value without freeing the index.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -21938,6 +22629,7 @@ RtlGetPersistedStateLocation(
  * \param ReparseTag The reparse tag (or EaSize) of the file or directory.
  * \return Returns `TRUE` if the file or directory is a Cloud Files placeholder, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtliscloudfilesplaceholder
+ * \remarks Requires FILE_ATTRIBUTE_REPARSE_POINT (0x400) and (ReparseTag & 0xFFFF0FFF) == 0x9000001A. This is a pure attribute/tag classification, not a file-open or hydration operation.
  */
 NTSYSAPI
 BOOLEAN
@@ -21955,6 +22647,7 @@ RtlIsCloudFilesPlaceholder(
  * \param ReparseTag The reparse tag (or EaSize) of the file or directory.
  * \return Returns `TRUE` if the file or directory is a partial placeholder, otherwise `FALSE`.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlispartialplaceholder
+ * \remarks This tests FileAttributes bits 0x440000. The reparse-tag argument is not consumed. TRUE does not by itself validate a cloud provider or prove file contents are available.
  */
 NTSYSAPI
 BOOLEAN
@@ -21972,6 +22665,7 @@ RtlIsPartialPlaceholder(
  * \param IsPartialPlaceholder A pointer to a variable that receives whether the file is a partial placeholder.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlispartialplaceholderfilehandle
+ * \remarks Queries file attribute/tag information through the supplied handle and reports the placeholder classification. Check the query status before consuming the output; this does not hydrate the file.
  */
 NTSYSAPI
 NTSTATUS
@@ -21981,6 +22675,7 @@ RtlIsPartialPlaceholderFileHandle(
     _Out_ PBOOLEAN IsPartialPlaceholder
     );
 
+// msdn
 /**
  * The RtlIsPartialPlaceholderFileInfo routine determines whether file information describes a partial cloud-files placeholder.
  *
@@ -21988,8 +22683,8 @@ RtlIsPartialPlaceholderFileHandle(
  * \param InfoClass The file information class of the data in InfoBuffer.
  * \param IsPartialPlaceholder Receives TRUE if the file is a partial placeholder.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Reads attributes from the structure selected by FileInformationClass. Unsupported classes below 84 return STATUS_NOT_SUPPORTED; classes 84 and above return STATUS_INVALID_INFO_CLASS. Failure can preserve the output BOOLEAN. The routine has no buffer-length argument; the caller must supply a complete matching record.
  */
-// msdn
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -22018,6 +22713,7 @@ RtlIsPartialPlaceholderFileInfo(
  * The RtlQueryThreadPlaceholderCompatibilityMode routine returns the placeholder compatibility mode for the current thread.
  *
  * \return CHAR The current thread placeholder compatibility mode.
+ * \remarks These operate on thread/process compatibility state rather than a file. Signed sentinel return values are meaningful; do not treat them as NTSTATUS or as ordinary BOOLEAN results. Process-wide changes can affect unrelated file operations.
  */
 NTSYSAPI
 CHAR
@@ -22031,6 +22727,7 @@ RtlQueryThreadPlaceholderCompatibilityMode(
  *
  * \param Mode The placeholder compatibility mode to set.
  * \return CHAR The previous thread placeholder compatibility mode.
+ * \remarks These operate on thread/process compatibility state rather than a file. Signed sentinel return values are meaningful; do not treat them as NTSTATUS or as ordinary BOOLEAN results. Process-wide changes can affect unrelated file operations.
  */
 NTSYSAPI
 CHAR
@@ -22053,6 +22750,7 @@ RtlSetThreadPlaceholderCompatibilityMode(
  * The RtlQueryProcessPlaceholderCompatibilityMode routine returns the placeholder compatibility mode for the current process.
  *
  * \return CHAR The current process placeholder compatibility mode.
+ * \remarks These operate on thread/process compatibility state rather than a file. Signed sentinel return values are meaningful; do not treat them as NTSTATUS or as ordinary BOOLEAN results. Process-wide changes can affect unrelated file operations.
  */
 NTSYSAPI
 CHAR
@@ -22066,6 +22764,7 @@ RtlQueryProcessPlaceholderCompatibilityMode(
  *
  * \param Mode The placeholder compatibility mode to set.
  * \return CHAR The previous process placeholder compatibility mode.
+ * \remarks These operate on thread/process compatibility state rather than a file. Signed sentinel return values are meaningful; do not treat them as NTSTATUS or as ordinary BOOLEAN results. Process-wide changes can affect unrelated file operations.
  */
 NTSYSAPI
 CHAR
@@ -22082,6 +22781,7 @@ RtlSetProcessPlaceholderCompatibilityMode(
  *
  * \param ReparseTag The reparse tag to test.
  * \return Returns `TRUE` if the reparse tag is allowed on a non-empty directory, otherwise `FALSE`.
+ * \remarks The predicate accepts a tag with bit 0x10000000 or the specific tag 0x80000018. This classification does not grant filesystem access or guarantee that setting a reparse point will succeed.
  */
 NTSYSAPI
 BOOLEAN
@@ -22490,6 +23190,7 @@ RtlUnlockBootStatusData(
     _In_ HANDLE FileHandle
     );
 
+// ros
 /**
  * The RtlGetSetBootStatusData routine reads or writes an item of boot status data (BSD) using an open BSD file handle.
  *
@@ -22501,7 +23202,6 @@ RtlUnlockBootStatusData(
  * \param ReturnLength An optional pointer that receives the number of bytes transferred.
  * \return NTSTATUS Successful or errant status.
  */
-// ros
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -22560,6 +23260,7 @@ RtlRestoreSystemBootStatusDefaults(
     VOID
     );
 
+// rev
 /**
  * The RtlGetSystemBootStatus routine retrieves an item of boot status data (BSD).
  *
@@ -22568,7 +23269,6 @@ RtlRestoreSystemBootStatusDefaults(
  * \param DataLength The size, in bytes, of the buffer.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -22579,6 +23279,7 @@ RtlGetSystemBootStatus(
     _Out_opt_ PULONG ReturnLength
     );
 
+// rev
 /**
  * The RtlSetSystemBootStatus routine sets an item of boot status data (BSD).
  *
@@ -22587,7 +23288,6 @@ RtlGetSystemBootStatus(
  * \param DataLength The size, in bytes, of the buffer.
  * \return NTSTATUS Successful or errant status.
  */
-// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -22699,6 +23399,7 @@ RtlDeregisterSecureMemoryCacheCallback(
     _In_ PRTL_SECURE_MEMORY_CACHE_CALLBACK Callback
     );
 
+// ros
 /**
  * The RtlFlushSecureMemoryCache routine flushes a region from the secure memory cache.
  *
@@ -22706,7 +23407,6 @@ RtlDeregisterSecureMemoryCacheCallback(
  * \param MemoryLength An optional length, in bytes, of the region to flush.
  * \return TRUE if the cache was flushed; otherwise, FALSE.
  */
-// ros
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -23268,6 +23968,7 @@ RtlQueryAllInternalRuntimeFeatureConfigurations(
  * The RtlQueryFeatureConfigurationChangeStamp routine returns the current global feature configuration change stamp.
  *
  * \return RTL_FEATURE_CHANGE_STAMP The current feature configuration change stamp.
+ * \remarks Returns a change token for feature configuration, not a configuration value or a lock. A token observation does not provide a consistent snapshot across separate queries.
  */
 NTSYSAPI
 RTL_FEATURE_CHANGE_STAMP
@@ -23292,6 +23993,7 @@ RtlQueryFeatureUsageNotificationSubscriptions(
     _Inout_ PSIZE_T SubscriptionCount
     );
 
+// private
 /**
  * The RtlRegisterFeatureConfigurationChangeNotification routine registers a callback invoked when the feature configuration state changes.
  *
@@ -23301,7 +24003,6 @@ RtlQueryFeatureUsageNotificationSubscriptions(
  * \param RegistrationHandle Receives the registration handle.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -23404,6 +24105,7 @@ RtlNotifyFeatureToggleUsage(
  * The RtlGetFeatureTogglesChangeToken routine returns a token that changes whenever the feature toggle state changes.
  *
  * \return ULONG The current feature toggles change token.
+ * \remarks Returns a change token for feature configuration, not a configuration value or a lock. A token observation does not provide a consistent snapshot across separate queries.
  */
 NTSYSAPI
 ULONG
@@ -23459,6 +24161,7 @@ typedef union _RTL_RUN_ONCE
  *
  * \param RunOnce A pointer to the RTL_RUN_ONCE structure to initialize.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrunonceinitialize
+ * \remarks Zeroes caller-owned state. Initialize before publication; resetting a live or completed state without excluding all users is not a safe retry protocol. No handle or heap allocation is created by this operation.
  */
 NTSYSAPI
 VOID
@@ -23486,6 +24189,7 @@ typedef RTL_RUN_ONCE_INIT_FN *PRTL_RUN_ONCE_INIT_FN;
  * \param Parameter An optional parameter passed to the initialization routine.
  * \param Context An optional pointer that receives the context produced by initialization.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The callback returns nonzero for successful initialization, zero for failure; this is not an NTSTATUS callback. Successful initialization is cached, while a failed callback allows a later retry. The published context must satisfy the low-2-bit alignment rule. Completed-state calls return the same borrowed context without rerunning the callback.
  */
 _Maybe_raises_SEH_exception_
 NTSYSAPI
@@ -23505,6 +24209,7 @@ RtlRunOnceExecuteOnce(
  * \param Flags Flags controlling the initialization (for example, RTL_RUN_ONCE_CHECK_ONLY).
  * \param Context An optional pointer that receives the context associated with the completed initialization.
  * \return NTSTATUS Successful or errant status.
+ * \remarks STATUS_PENDING means the caller must perform initialization, not that initialization is complete. STATUS_SUCCESS means completed state and an optional published context. CHECK_ONLY (0x1) does not acquire initialization responsibility; ASYNC (0x2) has a distinct completion protocol. The entry rejects their combination and other bits.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -23523,6 +24228,7 @@ RtlRunOnceBeginInitialize(
  * \param Flags Flags controlling completion (for example, RTL_RUN_ONCE_INIT_FAILED).
  * \param Context An optional context value to associate with the completed initialization.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Publishes an aligned context or reports failed initialization. Context low 2 bits must be zero because they encode state. Failure completion uses RTL_RUN_ONCE_INIT_FAILED (0x4) with NULL context and permits retry; ASYNC (0x2) must match the begin protocol. Check the exact status rather than assuming any NT_SUCCESS-severity value means completion.
  */
 NTSYSAPI
 NTSTATUS
@@ -23550,6 +24256,7 @@ RtlRunOnceComplete(
  * \param ChangeStamp1 The first WNF change stamp to compare.
  * \param ChangeStamp2 The second WNF change stamp to compare.
  * \return Returns `TRUE` if the change stamps are equal, otherwise `FALSE`.
+ * \remarks Compares two change stamps for equality only. It does not establish chronological ordering, particularly across wraparound, and does not query or publish any WNF state.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -23737,6 +24444,7 @@ RtlQueryWnfMetaNotification(
     _In_opt_ PCSID ExplicitScope
     );
 
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 /**
  * The RtlQueryWnfStateDataWithExplicitScope routine retrieves the state data for a WNF state name within an explicit scope, decoding it with a caller-supplied type decoder.
  *
@@ -23759,6 +24467,7 @@ RtlQueryWnfStateDataWithExplicitScope(
     _In_opt_ PVOID CallbackContext,
     _In_opt_ PCWNF_TYPE_ID TypeId
     );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 /**
  * The RtlUnsubscribeWnfNotificationWaitForCompletion routine removes a WNF notification subscription and waits for any in-progress callbacks to complete.
@@ -23797,54 +24506,54 @@ RtlUnsubscribeWnfNotificationWithCompletionCallback(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 /**
- * The RtlQueryPropertyStore routine retrieves the value associated with a key in the process property store.
+ * RtlQueryPropertyStore contract.
  *
- * \param Key The key whose value is retrieved.
- * \param Context A pointer to a variable that receives the value associated with the key.
- * \return NTSTATUS Successful or errant status.
+ * \param Key Pointer to the GUID key.
+ * \param Value Receives the pointer-sized value on success.
+ * \remarks Key points to a readable 16-byte GUID, compared by value, not a pointer-sized integer key. On success Value receives a pointer-sized scalar. A missing key returns STATUS_NOT_FOUND and preserves the output. This is a process-local property store, distinct from the protected-policy store.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryPropertyStore(
-    _In_ ULONG_PTR Key,
-    _Out_ PULONG_PTR Context
+    _In_ PCGUID Key,
+    _Out_ PULONG_PTR Value
     );
 
 // rev
 /**
- * The RtlRemovePropertyStore routine removes a key and its value from the process property store.
+ * RtlRemovePropertyStore contract.
  *
- * \param Key The key to remove.
- * \param Context A pointer to a variable that receives the value that was associated with the key.
- * \return NTSTATUS Successful or errant status.
+ * \param Key Pointer to the GUID key.
+ * \param Value Receives the removed pointer-sized value on success.
+ * \remarks Removes the process-local GUID-keyed entry and returns its previous pointer-sized scalar through the required Value slot. STATUS_NOT_FOUND preserves the output. Removing a stored pointer value does not release the object to which it refers.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRemovePropertyStore(
-    _In_ ULONG_PTR Key,
-    _Out_ PULONG_PTR Context
+    _In_ PCGUID Key,
+    _Out_ PULONG_PTR Value
     );
 
 // rev
 /**
- * The RtlCompareExchangePropertyStore routine atomically compares and exchanges the value associated with a key in the process property store.
+ * RtlCompareExchangePropertyStore contract.
  *
- * \param Key The key whose value is exchanged.
- * \param Comperand A pointer to the value that the current value is compared against.
- * \param Exchange An optional pointer to the value to store if the comparison succeeds.
- * \param Context A pointer to a variable that receives the previous value associated with the key.
- * \return NTSTATUS Successful or errant status.
+ * \param Key Pointer to the GUID key.
+ * \param Value New pointer-sized value.
+ * \param CompareValue Optional pointer to the expected old value.
+ * \param PreviousValue Optional output for the value before comparison.
+ * \remarks Key points to a 16-byte GUID; Value is passed by value, not by pointer. NULL CompareValue means unconditional replacement; otherwise *CompareValue must match. PreviousValue is optional. A new entry returns STATUS_SUCCESS; an existing entry returns STATUS_OBJECT_NAME_EXISTS whether comparison succeeds or fails. On insertion the reported previous value is *CompareValue, or zero when omitted. Inspect PreviousValue, not NT_SUCCESS alone, to determine whether an existing value matched.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCompareExchangePropertyStore(
-    _In_ ULONG_PTR Key,
-    _In_ PULONG_PTR Comperand,
-    _In_opt_ PULONG_PTR Exchange,
-    _Out_ PULONG_PTR Context
+    _In_ PCGUID Key,
+    _In_ ULONG_PTR Value,
+    _In_opt_ PULONG_PTR CompareValue,
+    _Out_opt_ PULONG_PTR PreviousValue
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 

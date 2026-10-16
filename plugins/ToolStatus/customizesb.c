@@ -308,6 +308,12 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
 
+            context->DragListMessage = RegisterWindowMessage(DRAGLISTMSGSTRING);
+            context->DragItemIndex = LB_ERR;
+            context->DragInsertIndex = LB_ERR;
+            MakeDragList(context->AvailableListHandle);
+            MakeDragList(context->CurrentListHandle);
+
             CustomizeLoadStatusBarItems(context);
 
             PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
@@ -587,7 +593,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     break;
 
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
-                bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
+                bufferBitmap = PhCreateDIBSection(drawInfo->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
 
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
                 SelectFont(bufferDc, context->FontHandle);
@@ -627,6 +633,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     SRCCOPY
                     );
 
+                CustomizeDrawDragInsert(context, drawInfo);
+
                 SelectBitmap(bufferDc, oldBufferBitmap);
                 DeleteBitmap(bufferBitmap);
                 DeleteDC(bufferDc);
@@ -641,6 +649,20 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
         return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    if (context->DragListMessage && WindowMessage == context->DragListMessage)
+    {
+        static CUSTOMIZE_DRAG_CALLBACKS callbacks =
+        {
+            CustomizeAddStatusBarItem,
+            CustomizeRemoveStatusBarItem,
+            CustomizeMoveStatusBarItem
+        };
+        LRESULT result = CustomizeDragListNotify(context, (LPDRAGLISTINFO)lParam, &callbacks);
+
+        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, result);
+        return TRUE;
     }
 
     return FALSE;

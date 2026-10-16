@@ -107,9 +107,12 @@ FORCEINLINE VOID T___(PhAddItemCircularBuffer, T)(
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
     Buffer->Data[Buffer->Index = ((Buffer->Index - 1) & Buffer->SizeMinusOne)] = Value;
 #else
-    ULONG size;
+    LONG size;
 
-    size = Buffer->Size;
+    size = (LONG)Buffer->Size;
+    // Index can be -1 here (when Index is 0), so use a signed size to keep the
+    // modulo signed; otherwise the operands are promoted to unsigned and the wrap-around
+    // (((x % size) + size) % size) correction produces the wrong index. (dmex)
     Buffer->Data[Buffer->Index = (((Buffer->Index - 1) % size) + size) % size] = Value;
 #endif
 
@@ -128,9 +131,12 @@ FORCEINLINE T T___(PhAddItemCircularBuffer2, T)(
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
     index = ((Buffer->Index - 1) & Buffer->SizeMinusOne);
 #else
-    ULONG size;
+    LONG size;
 
-    size = Buffer->Size;
+    size = (LONG)Buffer->Size;
+    // Index can be -1 here (when Index is 0), so use a signed size to keep the
+    // modulo signed; otherwise the operands are promoted to unsigned and the wrap-around
+    // (((x % size) + size) % size) correction produces the wrong index. (dmex)
     index = (((Buffer->Index - 1) % size) + size) % size;
 #endif
 

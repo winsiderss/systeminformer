@@ -1468,6 +1468,13 @@ PhGetSystemDirectoryWin32Z(
 }
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetWindowsBuildString(
+    VOID
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhGetSystemRoot(
@@ -2041,6 +2048,22 @@ PhQueryRegistryUlong64Z(
 
     return PhQueryRegistryUlong64(KeyHandle, &valueName);
 }
+
+typedef enum _PH_WINLOGON_SETTING_TYPE
+{
+    PhWinlogonShellCritical,
+    PhWinlogonSiHostCritical,
+    PhWinlogonAutoRestartShell,
+    PhWinlogonWinStationsDisabled
+} PH_WINLOGON_SETTING_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryWinlogonSetting(
+    _In_ PH_WINLOGON_SETTING_TYPE Type,
+    _Out_ PBOOLEAN Value
+    );
 
 typedef struct _PH_FLAG_MAPPING
 {
@@ -2966,6 +2989,32 @@ PhTaskbarListSetOverlayIcon(
     _In_opt_ HICON IconHandle,
     _In_opt_ PCWSTR IconDescription
     );
+
+typedef enum _PH_TASKBAR_NOTIFY_EVENT
+{
+    PhTaskbarNotifyCreated,
+    PhTaskbarNotifyProgressValue,
+    PhTaskbarNotifyProgressState,
+    PhTaskbarNotifyDestroyed,
+    PhTaskbarNotifyMaximum
+} PH_TASKBAR_NOTIFY_EVENT;
+
+typedef struct _PH_TASKBAR_NOTIFY
+{
+    PH_TASKBAR_NOTIFY_EVENT Event;
+    HANDLE TaskbarHandle;
+    HWND WindowHandle;
+    ULONGLONG Completed;
+    ULONGLONG Total;
+    ULONG Flags;
+} PH_TASKBAR_NOTIFY, *PPH_TASKBAR_NOTIFY;
+
+//PHLIBAPI
+//PPH_CALLBACK
+//NTAPI
+//PhGetTaskbarListCallback(
+//    VOID
+//    );
 
 /**
  * Adds an offset to a pointer with overflow protection.

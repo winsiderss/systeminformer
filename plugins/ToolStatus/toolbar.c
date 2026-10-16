@@ -45,11 +45,12 @@ HWND ToolbarCreateWindow(
     _In_ HWND ParentWindowHandle
     )
 {
-    HWND toolbarHandle = PhCreateWindowEx(
+    HWND toolbarHandle;
+
+    toolbarHandle = PhCreateWindowEx(
         TOOLBARCLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER |
-        TBSTYLE_CUSTOMERASE |
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER |
         TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
         WS_EX_TOOLWINDOW,
         0, 0, 0, 0,
@@ -163,6 +164,81 @@ VOID ToolbarUpdateWindowStyle(
 }
 
 /**
+ * Retrieves the toolbar button (and band child) height for the current font and DPI.
+ * Other bands on the toolbar row use this instead of the current row height, which
+ * is stale after a DPI or font change and would keep the row from shrinking.
+ *
+ * \return The height, or 0 if the toolbar doesn't exist.
+ */
+LONG ToolbarGetCommandBarButtonHeight(
+    VOID
+    )
+{
+    LONG dpiValue;
+    LONG buttonHeight;
+    LONG contentHeight;
+
+    if (!ToolBarHandle)
+        return 0;
+
+    dpiValue = PhGetWindowDpi(ToolBarHandle);
+    buttonHeight = PhScaleToDisplay(24, dpiValue);
+    contentHeight = ToolBarImageSize.cy + PhScaleToDisplay(4, dpiValue);
+
+    if (ToolbarWindowFont)
+        contentHeight = __max(contentHeight, ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont));
+
+    return __max(buttonHeight, contentHeight);
+}
+
+VOID ToolbarUpdateBandSize(
+    VOID
+    )
+{
+    BAND_CHILD_SIZE bandSize;
+    ULONG toolbarButtonSize;
+    ULONG toolbarIndex;
+    LONG buttonHeight;
+    LONG bandChildHeight;
+    LONG commandBarHeight;
+    LONG dpiValue;
+
+    if (!ToolBarHandle || !RebarHandle)
+        return;
+
+    toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+
+    if (toolbarIndex == ULONG_MAX)
+        return;
+
+    dpiValue = PhGetWindowDpi(ToolBarHandle);
+    toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+    buttonHeight = ToolbarGetCommandBarButtonHeight();
+    commandBarHeight = PhScaleToDisplay(24, dpiValue);
+
+    // cyChild/cyMinChild describe the toolbar child, not the complete rebar
+    // decoration. The rebar adds its own band borders around this height.
+    bandChildHeight = __max(commandBarHeight, buttonHeight);
+
+    SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, buttonHeight));
+
+    if (RebarGetBandIndexChildSize(toolbarIndex, &bandSize))
+    {
+        bandSize.MinChildWidth = LOWORD(toolbarButtonSize);
+        bandSize.InitialChildHeight = bandChildHeight;
+        bandSize.MinChildHeight = bandChildHeight;
+        // Variable height bands never shrink below their current height unless
+        // capped, so pin the maximum to the child height (e.g. 144 -> 96 DPI).
+        bandSize.MaximumChildHeight = bandChildHeight;
+        RebarSetBandIndexChildSize(toolbarIndex, &bandSize);
+    }
+
+    // The toolbar is CCS_NORESIZE; the rebar sizes the child from the band info
+    // above, so don't resize the child here or it can overlap other bands.
+    SendMessage(RebarHandle, WM_SIZE, 0, 0);
+}
+
+/**
  * Creates the rebar control.
  */
 VOID RebarCreate(
@@ -187,7 +263,9 @@ static VOID MenuBarInitializeLayout(
     menuBarIndex = RebarBandToIndex(REBAR_BAND_ID_MENUBAR);
 
     if (menuBarIndex != ULONG_MAX && menuBarIndex != 0)
+    {
         RebarBandMove(menuBarIndex, 0);
+    }
 
     toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
 
@@ -205,32 +283,8 @@ static VOID MenuBarInitializeLayout(
 
     if (toolbarIndex != ULONG_MAX)
     {
-        BAND_CHILD_SIZE bandSize;
-
-        if (RebarGetBandIndexChildSize(toolbarIndex, &bandSize))
-        {
-            // Recompute the toolbar band width and height from the toolbar button size. Enabling
-            // the menu bar at runtime inserts the menu bar band onto the toolbar's row, which eats
-            // into the toolbar height; the RBBS_BREAK above moves the toolbar to its own row but
-            // the collapsed height persists. Mirror the canonical resize path (UpdateLayoutMetrics)
-            // by setting the control button height and the band child height to the same value,
-            // unconditionally, with the same 22px floor, so the toolbar reclaims its full height.
-            ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-            LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-            toolbarButtonHeight = __max((LONG)HIWORD(toolbarButtonSize), toolbarButtonHeight);
-            toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
-
-            SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-
-            bandSize.MinChildWidth = LOWORD(toolbarButtonSize);
-            bandSize.InitialChildHeight = toolbarButtonHeight;
-            bandSize.MinChildHeight = toolbarButtonHeight;
-            RebarSetBandIndexChildSize(toolbarIndex, &bandSize);
-        }
+        ToolbarUpdateBandSize();
     }
-
-    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
-    SendMessage(RebarHandle, WM_SIZE, 0, 0);
 }
 
 /**
@@ -246,12 +300,22 @@ VOID MenuBarCreate(
         return;
 
     if (ToolbarWindowFont)
+    {
         SetWindowFont(MenuBarHandle, ToolbarWindowFont, FALSE);
+    }
 
     if (ToolbarWindowFont && ToolStatusMenuBarLoadMenu(MenuBarHandle, MainMenu))
     {
         ULONG menuBarButtonSize = (ULONG)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0, 0);
         LONG menuBarButtonHeight = ToolStatusGetWindowFontSize(MenuBarHandle, ToolbarWindowFont);
+
+        // Apply the final button size before inserting the band so the band height
+        // matches the child and the child doesn't overlap the next row.
+        if ((LONG)HIWORD(menuBarButtonSize) < menuBarButtonHeight)
+        {
+            SendMessage(MenuBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, menuBarButtonHeight));
+            menuBarButtonSize = (ULONG)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        }
 
         RebarBandInsert(
             REBAR_BAND_ID_MENUBAR,
@@ -259,11 +323,6 @@ VOID MenuBarCreate(
             LOWORD(menuBarButtonSize),
             __max((LONG)HIWORD(menuBarButtonSize), menuBarButtonHeight)
             );
-
-        if ((LONG)HIWORD(menuBarButtonSize) < menuBarButtonHeight)
-        {
-            SendMessage(MenuBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, menuBarButtonHeight));
-        }
     }
     else
     {
@@ -286,37 +345,36 @@ VOID ToolBarCreate(
     ToolbarUpdateWindowStyle();
 
     if (ToolBarImageList)
-        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-
-    if (ToolbarWindowFont)
-        SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
-
-    ToolbarLoadButtonSettings();
-
-    if (EnableThemeSupport)
     {
-        HWND tooltipWindowHandle;
-
-        if (tooltipWindowHandle = (HWND)SendMessage(ToolBarHandle, TB_GETTOOLTIPS, 0, 0))
-        {
-            PhSetControlTheme(tooltipWindowHandle, L"DarkMode_Explorer");
-        }
+        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
     }
 
     if (ToolbarWindowFont)
     {
+        SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
+    }
+
+    ToolbarLoadButtonSettings();
+
+    //if (EnableThemeSupport)
+    //{
+    //    HWND tooltipWindowHandle;
+
+    //    if (tooltipWindowHandle = (HWND)SendMessage(ToolBarHandle, TB_GETTOOLTIPS, 0, 0))
+    //    {
+    //        PhSetControlTheme(tooltipWindowHandle, L"DarkMode_Explorer");
+    //    }
+    //}
+
+    if (ToolbarWindowFont)
+    {
         ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-        LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-        LONG height = (LONG)HIWORD(toolbarButtonSize);
-        LONG barheight = __max((LONG)HIWORD(toolbarButtonSize), toolbarButtonHeight);
+        LONG toolbarButtonHeight = ToolbarGetCommandBarButtonHeight();
         LONG barwidth = LOWORD(toolbarButtonSize);
 
-        if (height > toolbarButtonHeight)
-        {
-            SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, height));
-        }
-
-        RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, barwidth, barheight);
+        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+        RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, barwidth, toolbarButtonHeight);
+        ToolbarUpdateBandSize();
     }
 
 #if TOOLSTATUS_ENABLE_MENUBAR
@@ -372,10 +430,12 @@ VOID SearchBoxUpdateRebarBand(
         return;
 
     dpiValue = SystemInformer_GetWindowDpi();
-    height = RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
+    height = ToolbarGetCommandBarButtonHeight();
 
     if (height <= 0)
+    {
         height = PhScaleToDisplay(22, dpiValue);
+    }
 
     width = PhScaleToDisplay(255, dpiValue);
 
@@ -396,6 +456,7 @@ VOID SearchBoxUpdateRebarBand(
         {
             bandSize.InitialChildHeight = height;
             bandSize.MinChildHeight = height;
+            bandSize.MaximumChildHeight = height;
             bandSize.MinChildWidth = width;
             RebarSetBandIndexChildSize(bandIndex, &bandSize);
         }
@@ -421,7 +482,9 @@ VOID StatusBarCreate(
         );
 
     if (ToolbarWindowFont)
+    {
         SetWindowFont(StatusBarHandle, ToolbarWindowFont, FALSE);
+    }
 
     if (ToolbarWindowFont)
     {
@@ -431,7 +494,9 @@ VOID StatusBarCreate(
         if (PhGetClientRect(StatusBarHandle, &statusBarRect))
         {
             if (statusBarRect.bottom < height)
+            {
                 SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
+            }
         }
     }
 }
@@ -478,6 +543,9 @@ VOID MenuBarDestroy(
 {
     if (!MenuBarHandle)
         return;
+
+    // Close any open menu and release the menu bar message hook first.
+    ToolStatusMenuBarDeactivate(FALSE);
 
     DestroyWindow(MenuBarHandle);
     MenuBarHandle = NULL;
@@ -533,11 +601,47 @@ VOID MenuBarApplySettings(
     if (ToolbarWindowFont)
         SetWindowFont(MenuBarHandle, ToolbarWindowFont, FALSE);
 
+    // The toolbar only ever grows its button size, so reset it and re-add the
+    // buttons; autosize widths (text + padding) are only calculated when the
+    // buttons are added, using the current font.
+    // The menu bar is text-only; clear the default bitmap size, which the toolbar
+    // scales by the DPI at creation and would otherwise keep the minimum button
+    // height at the creation DPI (e.g. 144 -> 96 DPI).
+    SendMessage(MenuBarHandle, TB_SETBITMAPSIZE, 0, MAKELPARAM(0, 0));
+    // Rescale the item padding for the current DPI (no vertical padding; the
+    // button height is set from the font height below).
+    SendMessage(MenuBarHandle, TB_SETPADDING, 0, MAKELPARAM(PhScaleToDisplay(20, PhGetWindowDpi(MenuBarHandle)), 0));
+    SendMessage(MenuBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, 0));
     ToolStatusMenuBarLoadMenu(MenuBarHandle, MainMenu);
+
+    if (ToolbarWindowFont)
+    {
+        ULONG menuBarButtonSize = (ULONG)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        LONG menuBarButtonHeight = ToolStatusGetWindowFontSize(MenuBarHandle, ToolbarWindowFont);
+
+        if ((LONG)HIWORD(menuBarButtonSize) < menuBarButtonHeight)
+            SendMessage(MenuBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, menuBarButtonHeight));
+    }
+
     SendMessage(MenuBarHandle, TB_AUTOSIZE, 0, 0);
 
     if (RebarHandle && (index = RebarBandToIndex(REBAR_BAND_ID_MENUBAR)) != ULONG_MAX)
     {
+        BAND_CHILD_SIZE bandSize;
+        ULONG menuBarButtonSize = (ULONG)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0, 0);
+
+        // Update the band height so the row shrinks/grows with the new button size.
+        if (RebarGetBandIndexChildSize(index, &bandSize))
+        {
+            bandSize.MinChildWidth = LOWORD(menuBarButtonSize);
+            bandSize.MinChildHeight = HIWORD(menuBarButtonSize);
+            bandSize.InitialChildHeight = HIWORD(menuBarButtonSize);
+            // Variable height bands never shrink below their current height unless
+            // capped, so pin the maximum to the child height (e.g. 144 -> 96 DPI).
+            bandSize.MaximumChildHeight = HIWORD(menuBarButtonSize);
+            RebarSetBandIndexChildSize(index, &bandSize);
+        }
+
         if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
         {
             SIZE idealWidth = { 0, 0 };
@@ -575,12 +679,19 @@ VOID ToolBarApplySettings(
 
     if (DpiChanged)
     {
+        // Reset the image list so the toolbar picks up the new icon size
+        // (setting the same handle again doesn't update the cached bitmap size).
+        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, 0);
+
         if (ToolBarImageList)
         {
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         }
 
+        // The toolbar only ever grows its button size, so reset it before re-adding
+        // the buttons; autosize widths are calculated from the current font when added.
         ToolbarRemoveButtons();
+        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, 0));
         ToolbarLoadButtonSettings();
     }
 
@@ -601,7 +712,7 @@ VOID ToolBarApplySettings(
             continue;
 
         buttonInfo.dwMask |= TBIF_TEXT;
-        buttonInfo.pszText = ToolbarGetText(buttonInfo.idCommand);
+        buttonInfo.pszText = (PWSTR)ToolbarGetText(buttonInfo.idCommand);
 
         switch (DisplayStyle)
         {
@@ -657,6 +768,8 @@ VOID ToolBarApplySettings(
         SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&buttonInfo);
     }
 
+    SendMessage(RebarHandle, WM_SETREDRAW, FALSE, 0);
+
     SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 
     if (RebarHandle && (bandIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR)) != ULONG_MAX)
@@ -672,6 +785,9 @@ VOID ToolBarApplySettings(
             }
         }
     }
+
+    SendMessage(RebarHandle, WM_SETREDRAW, TRUE, 0);
+    //InvalidateRect(RebarHandle, NULL, TRUE);
 }
 
 /**
@@ -776,6 +892,7 @@ VOID ToolbarLoadSettings(
         MenuBarApplySettings();
 #endif
         ToolBarApplySettings(DpiChanged);
+        ToolbarUpdateBandSize();
 
         if (RebarHandle && !IsWindowVisible(RebarHandle))
             ShowWindow(RebarHandle, SW_SHOW);
@@ -879,7 +996,6 @@ VOID ToolbarResetSettings(
  *
  * \param CommandID The stable command identifier.
  * \return The corresponding live command identifier.
- *
  * \remarks The stable namespace is owned by this plugin and never changes, so the layout
  * survives shifts in the main application's auto-generated resource ids. Legacy on-disk values
  * (original historical ids, and raw PHAPP_ID_* from older builds) are migrated here too; the next
@@ -933,7 +1049,6 @@ static ULONG ToolbarMapStableToCommandId(
  *
  * \param CommandID The live command identifier.
  * \return The corresponding stable command identifier.
- *
  * \remarks TIDC_* and separators (0) pass through.
  */
 static ULONG ToolbarMapCommandIdToStable(
@@ -967,7 +1082,7 @@ static ULONG ToolbarMapCommandIdToStable(
  * \param CommandID The command identifier.
  * \return A pointer to the text string.
  */
-PWSTR ToolbarGetText(
+PCWSTR ToolbarGetText(
     _In_ ULONG CommandID
     )
 {
@@ -1270,8 +1385,26 @@ VOID ToolbarLoadButtonSettings(
         goto CleanupExit;
     }
 
+    // The count comes from settings and drives a stack allocation, so reject a
+    // value that cannot describe a real toolbar layout. Separators mean the saved
+    // layout can be longer than the button table, so allow a small multiple of it
+    // rather than an exact match. (dmex)
+    if (countInteger > (ULONG64)RTL_NUMBER_OF(ToolbarButtons) * 4)
+    {
+        ToolbarLoadDefaultButtonSettings();
+        goto CleanupExit;
+    }
+
     count = (ULONG)countInteger;
     dpiValue = SystemInformer_GetWindowDpi();
+
+    // Preserve the previous behaviour for an explicitly empty layout without
+    // performing a zero-sized stack allocation. (dmex)
+    if (count == 0)
+    {
+        ToolbarRemoveButtons();
+        goto CleanupExit;
+    }
 
     // Allocate the button array
     buttonArray = PhAllocateStack(count * sizeof(TBBUTTON));
@@ -1422,6 +1555,8 @@ VOID ReBarLoadLayoutSettings(
     if (!RebarGetBandCount(&count))
         return;
 
+    SendMessage(RebarHandle, WM_SETREDRAW, FALSE, 0);
+
     for (index = 0; index < count; index++)
     {
         PH_STRINGREF idPart;
@@ -1468,6 +1603,9 @@ VOID ReBarLoadLayoutSettings(
             RebarSetBandIndexStyleSize(index, &rebarBandInfo);
         }
     }
+
+    SendMessage(RebarHandle, WM_SETREDRAW, TRUE, 0);
+    //InvalidateRect(RebarHandle, NULL, TRUE);
 }
 
 /**
@@ -1486,6 +1624,8 @@ VOID ReBarSaveLayoutSettings(
 
     if (RebarGetBandCount(&count))
     {
+        SendMessage(RebarHandle, WM_SETREDRAW, FALSE, 0);
+
         for (index = 0; index < count; index++)
         {
             REBARBANDINFO rebarBandInfo =
@@ -1519,6 +1659,9 @@ VOID ReBarSaveLayoutSettings(
                 rebarBandInfo.fStyle
                 );
         }
+
+        SendMessage(RebarHandle, WM_SETREDRAW, TRUE, 0);
+        //InvalidateRect(RebarHandle, NULL, TRUE);
 
         if (stringBuilder.String->Length != 0)
             PhRemoveEndStringBuilder(&stringBuilder, 1);

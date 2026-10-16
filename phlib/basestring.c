@@ -3814,6 +3814,53 @@ PPH_STRING PhZeroExtendToUtf16Ex(
 }
 
 /**
+ * Converts a UTF-16 string to an ASCII string by truncating each character to 8 bits.
+ * This is the inverse of PhZeroExtendToUtf16Buffer().
+ *
+ * \param Input The original UTF-16 string.
+ * \param InputLength The length of \a Input, in characters.
+ * \param Output A buffer which will contain the converted string.
+ * \remarks No validation is performed. Characters above 0x7F are silently corrupted
+ * (e.g. U+0100 becomes 0x00), so the caller must ensure \a Input is pure ASCII.
+ * Use PhConvertUtf16ToAsciiEx() or RtlUnicodeToUTF8N() for untrusted input.
+ * The output is not null-terminated.
+ */
+VOID PhTruncateToAsciiBuffer(
+    _In_reads_(InputLength) PCWCH Input,
+    _In_ SIZE_T InputLength,
+    _Out_writes_bytes_(InputLength) PCH Output
+    )
+{
+    SIZE_T inputLength;
+
+    inputLength = InputLength & -4;
+
+    if (inputLength)
+    {
+        do
+        {
+            Output[0] = (CHAR)Input[0];
+            Output[1] = (CHAR)Input[1];
+            Output[2] = (CHAR)Input[2];
+            Output[3] = (CHAR)Input[3];
+            Input += 4;
+            Output += 4;
+            inputLength -= 4;
+        } while (inputLength != 0);
+    }
+
+    switch (InputLength & 3)
+    {
+    case 3:
+        *Output++ = (CHAR)*Input++;
+    case 2:
+        *Output++ = (CHAR)*Input++;
+    case 1:
+        *Output++ = (CHAR)*Input++;
+    }
+}
+
+/**
  * Converts a UTF-16 string to an ASCII byte array.
  *
  * \param Buffer Pointer to the UTF-16 string buffer to convert.

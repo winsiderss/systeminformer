@@ -15,44 +15,73 @@
 #define REG_MAX_KEY_NAME_LENGTH 512
 
 /**
- * The KEY_INFORMATION_CLASS structure represents the type of information to supply about a registry key.
+ * Selects metadata for NtQueryKey or NtEnumerateKey; use basic/node information
+ * to identify a key and full/cached information to size later enumeration buffers.
+ * Counts and maxima are observations, not reservations or stable snapshots.
+ * \remarks The native x64 and WoW64 paths accept query
+ * classes 0 through 8 and enumeration classes 0 through 2. Other classes return
+ * STATUS_INVALID_PARAMETER; MaxKeyInfoClass is a sentinel, not a request class.
+ * Enumeration requires KEY_ENUMERATE_SUB_KEYS. Queries require KEY_QUERY_VALUE
+ * except KeyNameInformation and KeyHandleTagsInformation: these require a valid
+ * key handle with any nonzero granted access mask, not a zero-access handle.
+ *
+ * Names, class strings, lengths and offsets use bytes, not WCHAR counts. Variable
+ * records can be partial on STATUS_BUFFER_OVERFLOW while retaining the full
+ * NameLength/ClassLength. ResultLength is then a required size, not a safe copy
+ * length. Fixed query records require at least 40 bytes for cached information,
+ * 12 for flags, and 4 for virtualization, handle tags and trust information.
+ * Prefer naturally aligned buffers; see each API for WoW64 realignment behavior.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_information_class
  */
 typedef enum _KEY_INFORMATION_CLASS
 {
-    KeyBasicInformation, // KEY_BASIC_INFORMATION
-    KeyNodeInformation, // KEY_NODE_INFORMATION
-    KeyFullInformation, // KEY_FULL_INFORMATION
-    KeyNameInformation, // KEY_NAME_INFORMATION
-    KeyCachedInformation, // KEY_CACHED_INFORMATION
-    KeyFlagsInformation, // KEY_FLAGS_INFORMATION
-    KeyVirtualizationInformation, // KEY_VIRTUALIZATION_INFORMATION
-    KeyHandleTagsInformation, // KEY_HANDLE_TAGS_INFORMATION
-    KeyTrustInformation, // KEY_TRUST_INFORMATION
-    KeyLayerInformation, // KEY_LAYER_INFORMATION
+    KeyBasicInformation, // q: KEY_BASIC_INFORMATION
+    KeyNodeInformation, // q: KEY_NODE_INFORMATION
+    KeyFullInformation, // q: KEY_FULL_INFORMATION
+    KeyNameInformation, // q: KEY_NAME_INFORMATION
+    KeyCachedInformation, // q: KEY_CACHED_INFORMATION
+    KeyFlagsInformation, // q: KEY_FLAGS_INFORMATION
+    KeyVirtualizationInformation, // q: KEY_VIRTUALIZATION_INFORMATION
+    KeyHandleTagsInformation, // q: KEY_HANDLE_TAGS_INFORMATION
+    KeyTrustInformation, // q: KEY_TRUST_INFORMATION
+    KeyLayerInformation, // q: KEY_LAYER_INFORMATION; rejected by NtQueryKey on build 26100
     MaxKeyInfoClass
 } KEY_INFORMATION_CLASS;
 
 /**
- * The KEY_BASIC_INFORMATION structure defines a subset of the full information that is available for a registry key.
+ * Identifies a queried key or an enumerated child by its final path component
+ * and last-write time. Name is not a full registry path and is not NUL-terminated.
+ * The fixed prefix is 16 bytes; the complete record requires 16 + NameLength.
+ * NameLength remains the full byte length on overflow, even when less is copied.
+ * Do not use sizeof(KEY_BASIC_INFORMATION) as the variable-record prefix size.
+ * The ordinary output sets TitleIndex to 0; ignore it as legacy metadata.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_basic_information
  */
 typedef struct _KEY_BASIC_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime;                    // Number of 100-nanosecond intervals since this key or any of its values changed.
-    ULONG TitleIndex;                               // Reserved // A legacy field originally intended for use with localization such as an index of a resource table.
+    LARGE_INTEGER LastWriteTime;                    // Absolute last-write time, in 100-nanosecond intervals since January 1, 1601 (UTC).
+    ULONG TitleIndex;                               // Legacy localization metadata; ordinary query/enumeration output sets this to 0.
     ULONG NameLength;                               // The size, in bytes, of the key name string in the Name array.
     _Field_size_bytes_(NameLength) WCHAR Name[1];   // The name of the registry key. This string is not null-terminated.
 } KEY_BASIC_INFORMATION, *PKEY_BASIC_INFORMATION;
 
 /**
- * The KEY_NODE_INFORMATION structure defines the basic information available for a registry (sub)key.
+ * Returns a key's final name component and optional class string. Both strings
+ * are counted bytes without NUL termination. ClassOffset is relative to the
+ * record start, not relative to Name. The fixed prefix before Name is 24 bytes.
+ *
+ * In the ordinary path, a nonempty class follows the name at
+ * align_up(24 + NameLength, 4); total size is ClassOffset + ClassLength.
+ * With no class, ClassLength = 0, ClassOffset = 0xFFFFFFFF, and total size is
+ * 24 + NameLength. Never dereference the absent-class sentinel.
+ * NameLength/ClassLength remain full lengths on overflow; bound both ranges by
+ * the supplied capacity before reading them. TitleIndex is 0 in ordinary output.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_node_information
  */
 typedef struct _KEY_NODE_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime;                    // Number of 100-nanosecond intervals since this key or any of its values changed.
-    ULONG TitleIndex;                               // Reserved // A legacy field originally intended for use with localization such as an index of a resource table.
+    LARGE_INTEGER LastWriteTime;                    // Absolute last-write time, in 100-nanosecond intervals since January 1, 1601 (UTC).
+    ULONG TitleIndex;                               // Legacy localization metadata; ordinary query/enumeration output sets this to 0.
     ULONG ClassOffset;                              // The byte offset from the start of this structure to the class name string. This string is not null-terminated.
     ULONG ClassLength;                              // The size, in bytes, in the class name string.
     ULONG NameLength;                               // The size, in bytes, of the key name string contained in the Name array.
@@ -62,7 +91,18 @@ typedef struct _KEY_NODE_INFORMATION
 } KEY_NODE_INFORMATION, *PKEY_NODE_INFORMATION;
 
 /**
- * The KEY_FULL_INFORMATION structure defines information available for a registry key, including subkeys, names and value entries.
+ * Returns the selected key's class, direct-subkey count, value count and maximum
+ * name/class/data byte lengths. Use these maxima to plan buffers, but still handle
+ * changes between calls. MaxNameLength/MaxClassLength describe direct subkeys;
+ * MaxValueNameLength/MaxValueDataLength describe values of this key.
+ * NtEnumerateKey returns these statistics for the selected child, not its parent.
+ *
+ * The fixed prefix before Class is 44 bytes. The ordinary path needs
+ * 44 + ClassLength bytes, with ClassOffset = 44 for a nonempty class and
+ * 0xFFFFFFFF when ClassLength = 0. Class is not NUL-terminated. No key name is
+ * included. Overflow retains the full ClassLength, so it is not a copied count.
+ * TitleIndex is 0 in ordinary output. LastWriteTime uses the absolute system-time
+ * format (100-nanosecond intervals since January 1, 1601 UTC).
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_full_information
  */
 typedef struct _KEY_FULL_INFORMATION
@@ -81,7 +121,11 @@ typedef struct _KEY_FULL_INFORMATION
 } KEY_FULL_INFORMATION, *PKEY_FULL_INFORMATION;
 
 /**
- * The KEY_NAME_INFORMATION structure holds the name and name length of the key.
+ * Returns a counted native registry path, rather than the final component used by KEY_BASIC_INFORMATION. The
+ * path is not an HKEY_* alias or a NUL-terminated string. The prefix is 4 bytes; the complete record needs 4
+ * + NameLength bytes. NameLength remains the full required name length when only a prefix is returned.
+ * Querying this class does not require KEY_QUERY_VALUE, but a zero-access handle is rejected. Virtualization
+ * can affect the path shown.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_key_name_information
  */
 typedef struct _KEY_NAME_INFORMATION
@@ -91,7 +135,15 @@ typedef struct _KEY_NAME_INFORMATION
 } KEY_NAME_INFORMATION, *PKEY_NAME_INFORMATION;
 
 /**
- * The KEY_CACHED_INFORMATION structure holds the cached information available for a registry key or subkey.
+ * Returns fixed-size cached key statistics without appending a name or class.
+ * Use the counts/maxima to plan value and direct-subkey enumeration, not as a
+ * guarantee that later calls see the same state. Lengths and maxima are bytes.
+ * \remarks The native/WoW64 query requires at least 40 bytes and
+ * returns ResultLength = 40. A shorter buffer returns STATUS_BUFFER_TOO_SMALL,
+ * not a partial cached record. NameLength at offset 32 describes the final key
+ * component, but no name follows it; query basic/name information for the text.
+ * Bytes 36 through 39 are trailing padding, not another field. Ordinary output
+ * sets TitleIndex to 0. Do not infer semantics from padding contents.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_key_cached_information
  */
 typedef struct _KEY_CACHED_INFORMATION
@@ -104,7 +156,6 @@ typedef struct _KEY_CACHED_INFORMATION
     ULONG MaxValueNameLength;
     ULONG MaxValueDataLength;
     ULONG NameLength;
-    _Field_size_bytes_(NameLength) WCHAR Name[1];
 } KEY_CACHED_INFORMATION, *PKEY_CACHED_INFORMATION;
 
 //
@@ -167,7 +218,12 @@ typedef struct _KEY_CACHED_INFORMATION
 #define REG_KEY_RECURSE_FLAG 0x0008
 
 /**
- * The KEY_FLAGS_INFORMATION structure contains various flags about a registry key or subkey.
+ * Returns three ULONGs of key metadata for KeyFlagsInformation (12 bytes).
+ * Wow64Flags is key metadata, not the KEY_WOW64_32KEY/KEY_WOW64_64KEY access mask;
+ * the ordinary nontransactional getter reads its low 4 bits. KeyFlags
+ * reports REG_FLAG_VOLATILE/REG_FLAG_LINK. ControlFlags contains REG_KEY_* bits
+ * from a separate low-4-bit control field. This query does not change key state.
+ * A short buffer returns STATUS_BUFFER_TOO_SMALL and required length 12.
  */
 typedef struct _KEY_FLAGS_INFORMATION
 {
@@ -186,6 +242,12 @@ typedef struct _KEY_FLAGS_INFORMATION
  * - VirtualStore: The key is a part of the virtual store path. Valid only on the virtual store key handles.
  * - VirtualSource: The key has ever been virtualized, can be 1 only if VirtualizationCandidate is 1.
  * - Reserved: Reserved bits.
+ *
+ * KeyVirtualizationInformation is a 4-byte fixed query record. A shorter buffer
+ * returns STATUS_BUFFER_TOO_SMALL with required length 4. The getter
+ * derives candidate/enabled state using the caller's security subject and the
+ * virtualization environment; it is not solely a persistent per-key property.
+ * Ignore reserved bits. Querying this record does not enable virtualization.
  */
 typedef struct _KEY_VIRTUALIZATION_INFORMATION
 {
@@ -198,12 +260,13 @@ typedef struct _KEY_VIRTUALIZATION_INFORMATION
 } KEY_VIRTUALIZATION_INFORMATION, *PKEY_VIRTUALIZATION_INFORMATION;
 
 /**
- * The KEY_TRUST_INFORMATION structure contains information about the trust status of a key.
- *
- * The flags include:
- * - TrustedKey: Indicates whether the key is trusted. When set, this flag signifies that the key is considered
- *   to be secure and reliable.
- * - Reserved: Reserved bits.
+ * Reports the registry trust classification associated with the containing hive.
+ * KeyTrustInformation requires at least 4 bytes and returns ResultLength = 4.
+ * TrustedKey occupies bit 0. The ordinary getter sets it when bit 0 of
+ * CMHIVE.Flags is clear and clears it when that hive flag is set. This is registry
+ * metadata, not a general statement that the key's contents are secure, authentic
+ * or safe to execute. Ignore the remaining 31 bits; this query does not grant
+ * access or change the hive's trust classification.
  */
 typedef struct _KEY_TRUST_INFORMATION
 {
@@ -239,36 +302,63 @@ typedef struct _KEY_LAYER_INFORMATION
 } KEY_LAYER_INFORMATION, *PKEY_LAYER_INFORMATION;
 
 /**
- * The KEY_SET_INFORMATION_CLASS enumeration type represents the type of information to set for a registry key.
+ * Selects metadata changed by NtSetInformationKey, not a value's REG_* data.
+ * Use write-time information to assign a key timestamp and the internal flag/tag
+ * classes only when their build-specific metadata semantics are required.
+ * \remarks The native x64 and WoW64 paths dispatch classes
+ * 0 through 5. KeyWriteTimeInformation (0) requires exactly 8 bytes; supported
+ * flag/tag classes (1 through 5) require exactly 4. Both shorter and longer inputs
+ * return STATUS_INFO_LENGTH_MISMATCH. Unsupported selectors, including
+ * KeySetLayerInformation (6) and MaxKeySetInfoClass (7), return
+ * STATUS_INVALID_INFO_CLASS, unlike the query APIs' invalid-selector status.
+ *
+ * The ordinary handle check requires KEY_SET_VALUE for classes 0 through 4.
+ * KeySetHandleTagsInformation requests no specific access and accepts a valid
+ * zero-access key handle in this implementation. Registry callbacks, read-only keys/hives,
+ * transactions and virtualization can affect the final outcome. Classes 0, 1 and
+ * 4 have an access-denied virtualization fallback; this is not a blanket exemption
+ * from the normal access requirement. MaxKeySetInfoClass is not a request class.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_set_information_class
  */
 typedef enum _KEY_SET_INFORMATION_CLASS
 {
-    KeyWriteTimeInformation, // KEY_WRITE_TIME_INFORMATION
-    KeyWow64FlagsInformation, // KEY_WOW64_FLAGS_INFORMATION
-    KeyControlFlagsInformation, // KEY_CONTROL_FLAGS_INFORMATION
-    KeySetVirtualizationInformation, // KEY_SET_VIRTUALIZATION_INFORMATION
-    KeySetDebugInformation, // KEY_SET_DEBUG_INFORMATION
-    KeySetHandleTagsInformation, // KEY_HANDLE_TAGS_INFORMATION
-    KeySetLayerInformation, // KEY_SET_LAYER_INFORMATION
+    KeyWriteTimeInformation, // s: KEY_WRITE_TIME_INFORMATION
+    KeyWow64FlagsInformation, // s: KEY_WOW64_FLAGS_INFORMATION
+    KeyControlFlagsInformation, // s: KEY_CONTROL_FLAGS_INFORMATION
+    KeySetVirtualizationInformation, // s: KEY_SET_VIRTUALIZATION_INFORMATION
+    KeySetDebugInformation, // s: KEY_SET_DEBUG_INFORMATION
+    KeySetHandleTagsInformation, // s: KEY_HANDLE_TAGS_INFORMATION
+    KeySetLayerInformation, // s: KEY_SET_LAYER_INFORMATION; rejected by NtSetInformationKey on build 26100
     MaxKeySetInfoClass
 } KEY_SET_INFORMATION_CLASS;
 
 /**
- * The KEY_WRITE_TIME_INFORMATION structure is used by the system to set the last write time for a registry key.
+ * Assigns a key's last-write timestamp through KeyWriteTimeInformation (0).
+ * Supply exactly 8 bytes. LastWriteTime is an absolute count of 100-nanosecond
+ * intervals since January 1, 1601 UTC, not a relative timeout or time-zone value.
+ * The ordinary setter stores the supplied value, including 0; zero is
+ * not a request to use the current time. It updates the key node and cached time.
+ *
+ * Later key/value changes can replace this timestamp. In particular, successful
+ * ordinary flag updates (classes 1 through 4) refresh last-write time even when
+ * the flag value is unchanged. A successful call does not imply a physical hive
+ * flush, and transactional/read-only/layered-key paths have additional rules.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_write_time_information
  */
 typedef struct _KEY_WRITE_TIME_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime; // Number of 100-nanosecond intervals since this key or any of its values changed.
+    LARGE_INTEGER LastWriteTime; // Absolute last-write time, in 100-nanosecond intervals since January 1, 1601 (UTC).
 } KEY_WRITE_TIME_INFORMATION, *PKEY_WRITE_TIME_INFORMATION;
 
 /**
- * The KEY_WOW64_FLAGS_INFORMATION structure contains information about the WOW64 flags for a key.
- *
- * The fields include:
- * - UserFlags: A set of user-defined flags associated with the key. These flags are used to store
- *   additional information about the key in the context of WOW64 (Windows 32-bit on Windows 64-bit).
+ * Supplies internal per-key metadata for KeyWow64FlagsInformation (1).
+ * The request is exactly 4 bytes. The ordinary handler accepts only
+ * UserFlags bits 0 through 3 (mask 0x0F); any higher bit returns
+ * STATUS_INVALID_PARAMETER rather than being silently discarded. Accepted bits
+ * replace the key's low-4-bit metadata field and can be queried using
+ * KEY_FLAGS_INFORMATION.Wow64Flags. They are not the KEY_WOW64_32KEY or
+ * KEY_WOW64_64KEY access flags and do not reopen the handle in another view.
+ * The successful ordinary update also refreshes the key's last-write time.
  */
 typedef struct _KEY_WOW64_FLAGS_INFORMATION
 {
@@ -276,10 +366,11 @@ typedef struct _KEY_WOW64_FLAGS_INFORMATION
 } KEY_WOW64_FLAGS_INFORMATION, *PKEY_WOW64_FLAGS_INFORMATION;
 
 /**
- * The KEY_SET_DEBUG_INFORMATION structure contains debug flags for a key.
- *
- * The fields include:
- * - Flags: A set of debug flags associated with the key.
+ * Supplies internal per-key diagnostic metadata for KeySetDebugInformation (4). The request is exactly 4
+ * bytes. The ordinary handler copies only Flags bits 0 through 7 into the key node and cached debug field;
+ * high bits are discarded. Individual debug-bit meanings are not established here, so do not treat this as a
+ * public logging configuration or enable arbitrary bits. The successful ordinary path refreshes last-write
+ * time. Nonzero diagnostic flags change registry diagnostic behavior.
  */
 typedef struct _KEY_SET_DEBUG_INFORMATION
 {
@@ -287,11 +378,19 @@ typedef struct _KEY_SET_DEBUG_INFORMATION
 } KEY_SET_DEBUG_INFORMATION, *PKEY_SET_DEBUG_INFORMATION;
 
 /**
- * The KEY_HANDLE_TAGS_INFORMATION structure contains information about the handle tags for a key.
+ * Supplies or retrieves metadata stored in the opened key body, not the key's persistent value data or access
+ * mask. KeySetHandleTagsInformation requires exactly 4 input bytes, but the setter stores only the low 16
+ * bits. KeyHandleTagsInformation query requires at least 4 bytes and zero-extends those stored bits into
+ * HandleTags; its ResultLength is 4.
  *
- * The fields include:
- * - HandleTags: A set of tags associated with the key handle. These tags are used to store additional
- *   metadata or state information about the key handle.
+ * The setter accepts a valid zero-access key handle. The query is deliberately different: it requires any
+ * nonzero granted access, though not specifically KEY_QUERY_VALUE. Duplicated handles referencing the same
+ * key body share tag changes; a separately opened handle has its own tag state. Initial tags need not be
+ * zero, especially through WoW64.
+ *
+ * Unlike ordinary key-flag updates, this setter does not refresh the key's last-write time. It remains
+ * subject to registry callbacks. Preserve existing tags unless intentionally changing their internal
+ * semantics.
  */
 typedef struct _KEY_HANDLE_TAGS_INFORMATION
 {
@@ -326,11 +425,15 @@ typedef struct _KEY_SET_LAYER_INFORMATION
 } KEY_SET_LAYER_INFORMATION, *PKEY_SET_LAYER_INFORMATION;
 
 /**
- * The KEY_CONTROL_FLAGS_INFORMATION structure contains control flags for a key.
+ * Supplies registry control metadata for KeyControlFlagsInformation (2).
+ * The request is exactly 4 bytes. The ordinary handler stores only
+ * the low 4 ControlFlags bits (mask 0x0F), unlike class 1 which rejects high bits.
+ * Query the resulting field using KEY_FLAGS_INFORMATION.ControlFlags.
  *
- * The fields include:
- * - ControlFlags: A set of control flags associated with the key. These flags are used to store
- *   additional control information about the key, which can affect its behavior or state.
+ * The REG_KEY_DONT_VIRTUALIZE bit (0x2) also clears the stored VirtualSource
+ * marker on this path; replacing the low control bits is not its only effect.
+ * These internal controls are not access rights or a request to change a key's
+ * security descriptor. A successful ordinary update refreshes last-write time.
  */
 typedef struct _KEY_CONTROL_FLAGS_INFORMATION
 {
@@ -338,14 +441,23 @@ typedef struct _KEY_CONTROL_FLAGS_INFORMATION
 } KEY_CONTROL_FLAGS_INFORMATION, *PKEY_CONTROL_FLAGS_INFORMATION;
 
 /**
- * The KEY_SET_VIRTUALIZATION_INFORMATION structure is used to set virtualization
- * related flags on a registry key.
+ * Supplies internal virtualization-state commands for KeySetVirtualizationInformation (3). The request is
+ * exactly 4 bytes; the input fields are not positioned like KEY_VIRTUALIZATION_INFORMATION's query bits.
  *
- * The fields include:
- * - VirtualTarget: When set, marks the key as a virtualization target.
- * - VirtualStore: When set, marks the key as part of the virtual store path.
- * - VirtualSource: True if the key has been virtualized at least once.
- * - Reserved: Reserved bits for future use.
+ * The ordinary handler is not a simple replacement of three flags:
+ * - VirtualSource (input bit 2, mask 0x4) sets the stored source marker and takes
+ * precedence: target/store inputs are not processed by that branch.
+ * - Otherwise VirtualTarget (bit 0, mask 0x1) sets both target and store markers;
+ * a clear target input clears the target marker but does not clear store.
+ * - VirtualStore (bit 1, mask 0x2) sets store; a clear input does not clear it.
+ * - Clearing VirtualSource in this request does not clear the stored source.
+ * The control-flags setter clears source when DONT_VIRTUALIZE is set. Thus a zero input is not a reset of all
+ * virtualization state. High input bits have no observed effect in this handler. These flags control
+ * virtualization metadata; they do not independently establish access to the key.
+ *
+ * This request does not create a virtual-store hierarchy or grant access. Query results also depend on the
+ * caller/environment. The successful ordinary update refreshes last-write time. Do not apply these internal
+ * controls as a general registry redirection switch.
  */
 typedef struct _KEY_SET_VIRTUALIZATION_INFORMATION
 {
@@ -356,22 +468,35 @@ typedef struct _KEY_SET_VIRTUALIZATION_INFORMATION
 } KEY_SET_VIRTUALIZATION_INFORMATION, *PKEY_SET_VIRTUALIZATION_INFORMATION;
 
 /**
- * The KEY_VALUE_INFORMATION_CLASS enumeration type specifies the type of information to supply about the value of a registry key.
+ * The KEY_VALUE_INFORMATION_CLASS enumeration selects information returned for a registry value.
+ * \remarks The kernel implementation accepts classes 0 through 4 in NtQueryValueKey and only classes 0 through 2
+ * in NtEnumerateValueKey. Other classes return STATUS_INVALID_PARAMETER. Both calls require KEY_QUERY_VALUE.
+ * Use 8-byte-aligned buffers for the documented portable Align64 contract. The x64
+ * entry checks only 4-byte alignment for all query classes; its WoW64 query thunk
+ * realigns non-8-byte-aligned output through temporary storage. Enumeration checks 4-byte alignment
+ * on both paths. These build-specific observations do not relax the portable Align64 recommendation.
+ * Names and data lengths are byte counts.
+ * STATUS_BUFFER_TOO_SMALL means the fixed header does not fit; STATUS_BUFFER_OVERFLOW can return a partial
+ * record. ResultLength reports the required total size, which can exceed the supplied Length.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_value_information_class
  */
 typedef enum _KEY_VALUE_INFORMATION_CLASS
 {
-    KeyValueBasicInformation, // KEY_VALUE_BASIC_INFORMATION
-    KeyValueFullInformation, // KEY_VALUE_FULL_INFORMATION
-    KeyValuePartialInformation, // KEY_VALUE_PARTIAL_INFORMATION
-    KeyValueFullInformationAlign64, // KEY_VALUE_FULL_INFORMATION_ALIGN64
-    KeyValuePartialInformationAlign64,  // KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
-    KeyValueLayerInformation, // KEY_VALUE_LAYER_INFORMATION
+    KeyValueBasicInformation, // q: KEY_VALUE_BASIC_INFORMATION
+    KeyValueFullInformation, // q: KEY_VALUE_FULL_INFORMATION
+    KeyValuePartialInformation, // q: KEY_VALUE_PARTIAL_INFORMATION
+    KeyValueFullInformationAlign64, // q: KEY_VALUE_FULL_INFORMATION_ALIGN64
+    KeyValuePartialInformationAlign64,  // q: KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
+    KeyValueLayerInformation, // q: KEY_VALUE_LAYER_INFORMATION; rejected by the query/enumeration syscalls on build 26100
     MaxKeyValueInfoClass
 } KEY_VALUE_INFORMATION_CLASS;
 
 /**
  * The KEY_VALUE_BASIC_INFORMATION structure defines a subset of the full information available for a value entry of a registry key.
+ * \remarks The fixed header ends at offset 0x0c. Required capacity is 12 + NameLength bytes, not
+ * sizeof(KEY_VALUE_BASIC_INFORMATION) + NameLength. Name is not null-terminated and no value data is included.
+ * TitleIndex is zero on the ordinary value path. NameLength is the full byte length even
+ * when STATUS_BUFFER_OVERFLOW returns only a prefix of the name; bound reads by caller capacity.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_basic_information
  */
 typedef struct _KEY_VALUE_BASIC_INFORMATION
@@ -384,6 +509,14 @@ typedef struct _KEY_VALUE_BASIC_INFORMATION
 
 /**
  * The KEY_VALUE_FULL_INFORMATION structure defines information available for a value entry of a registry key.
+ * \remarks Name begins at offset 0x14 and is not null-terminated. DataOffset is relative to the start
+ * of the returned record, not to Name. Use DataOffset and DataLength to locate data after name padding.
+ * On the native x64 and WoW64 paths, nonempty data is placed at an
+ * 8-byte-aligned offset for both Full classes. For empty data,
+ * DataLength is zero and DataOffset is 0xffffffff; do not dereference that offset.
+ * Required size is DataOffset + DataLength for nonempty data, or 20 + NameLength for empty data.
+ * On STATUS_BUFFER_OVERFLOW these offsets/lengths describe the complete record, not necessarily
+ * bytes present in the caller buffer. Check each range against the supplied capacity before reading.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_full_information
  */
 typedef struct _KEY_VALUE_FULL_INFORMATION
@@ -399,7 +532,10 @@ typedef struct _KEY_VALUE_FULL_INFORMATION
 } KEY_VALUE_FULL_INFORMATION, *PKEY_VALUE_FULL_INFORMATION;
 
 /**
- * The KEY_VALUE_FULL_INFORMATION_ALIGN64 structure defines information available for a value entry of a registry key.
+ * The KEY_VALUE_FULL_INFORMATION_ALIGN64 structure describes the 8-byte-aligned full-value query format.
+ * \remarks The field offsets match KEY_VALUE_FULL_INFORMATION, including Name at offset 0x14.
+ * KeyValueFullInformationAlign64 is supported by NtQueryValueKey, not NtEnumerateValueKey on build 26100.
+ * DataOffset is relative to the complete record; it is not a pointer and need not immediately follow Name.
  */
 typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_FULL_INFORMATION_ALIGN64
 {
@@ -414,7 +550,11 @@ typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_FULL_INFORMATION_ALIGN64
 } KEY_VALUE_FULL_INFORMATION_ALIGN64, *PKEY_VALUE_FULL_INFORMATION_ALIGN64;
 
 /**
- * The KEY_VALUE_PARTIAL_INFORMATION structure defines a subset of the value information available for a value entry of a registry key.
+ * The KEY_VALUE_PARTIAL_INFORMATION structure contains a value's type and data without its name.
+ * \remarks Data begins at offset 0x0c. Required capacity is 12 + DataLength bytes; the declaration's
+ * trailing array element and compiler padding are not an additional wire-format header.
+ * DataLength remains the full size on STATUS_BUFFER_OVERFLOW even when only a data prefix fits.
+ * Data is returned as stored; REG_SZ/REG_MULTI_SZ tags do not guarantee valid termination.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_partial_information
  */
 typedef struct _KEY_VALUE_PARTIAL_INFORMATION
@@ -426,7 +566,11 @@ typedef struct _KEY_VALUE_PARTIAL_INFORMATION
 } KEY_VALUE_PARTIAL_INFORMATION, *PKEY_VALUE_PARTIAL_INFORMATION;
 
 /**
- * The KEY_VALUE_PARTIAL_INFORMATION_ALIGN64 structure defines a subset of the value information available for a value entry of a registry key.
+ * The KEY_VALUE_PARTIAL_INFORMATION_ALIGN64 structure contains the 8-byte-aligned partial-value query format.
+ * \remarks Unlike KEY_VALUE_PARTIAL_INFORMATION, this format has no TitleIndex: Type is at offset 0,
+ * DataLength at offset 4, and Data at offset 8. Required capacity is 8 + DataLength bytes.
+ * KeyValuePartialInformationAlign64 is query-only. DataLength remains
+ * the complete data size on overflow; it is not a safe copy length without a capacity check.
  */
 typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
 {
@@ -448,8 +592,8 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
  * The CM_EXTENDED_PARAMETER_TYPE enumeration specifies the kind of extended
  * parameter contained in a CM_EXTENDED_PARAMETER structure.
  *
- * Values indicate how the union in CM_EXTENDED_PARAMETER should be interpreted
- * (for example, as a handle, pointer, size, access mask, etc.).
+ * NtLoadKey3 uses the Handle member for types 1 (trust-class key), 2 (event), and 3 (file access token).
+ * Type 0 and the maximum sentinel are invalid. Each supported type may occur at most once.
  */
 typedef enum _CM_EXTENDED_PARAMETER_TYPE
 {
@@ -465,8 +609,9 @@ typedef enum _CM_EXTENDED_PARAMETER_TYPE
 /**
  * The CM_EXTENDED_PARAMETER structure represents an extended parameter passed to registry APIs.
  *
- * It contains a type field and a union for the parameter value which may be a pointer, handle,
- * size or other scalar value.
+ * The structure occupies 16 bytes and is aligned to 8 bytes on x64 and x86. Type occupies the low
+ * 8 bits of the first ULONG64; the value union begins at offset 8. NtLoadKey3 consumes handles for
+ * its supported types. Duplicate or unsupported types return STATUS_INVALID_PARAMETER_4.
  */
 typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
 {
@@ -488,13 +633,22 @@ typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
 } CM_EXTENDED_PARAMETER, *PCM_EXTENDED_PARAMETER;
 
 /**
- * The KEY_VALUE_ENTRY structure describes a single value entry for registry queries.
+ * Describes one named value requested by NtQueryMultipleValueKey. Initialize
+ * ValueName to a readable counted UNICODE_STRING; its empty name selects the
+ * default value. ValueName remains caller-owned and is not replaced on return.
+ * DataLength, DataOffset and Type describe the returned data, not the name.
  *
- * The fields include:
- * - ValueName: The name of the value.
- * - DataLength: The length, in bytes, of the value data.
- * - DataOffset: The offset, in the returned buffer, to the value data.
- * - Type: The registry value type (REG_*) for the value data.
+ * DataOffset is a byte offset from ValueBuffer, not a pointer or an offset from
+ * this structure. Data starts at 4-byte boundaries even
+ * for REG_QWORD; copy such values to aligned storage instead of assuming 8-byte
+ * alignment. No string terminator is appended to the stored data.
+ *
+ * Native x64 entries occupy 24 bytes (field offsets 0, 8, 12, 16); x86 entries
+ * occupy 16 bytes (offsets 0, 4, 8, 12). WoW64 converts the entry array, not the
+ * packed data format. These are not interchangeable serialized layouts.
+ * On STATUS_BUFFER_OVERFLOW, entries after the fitting prefix are incomplete;
+ * zero output fields do not distinguish an omitted entry from an empty REG_NONE
+ * value. Retry with sufficient capacity before consuming the complete array.
  */
 typedef struct _KEY_VALUE_ENTRY
 {
@@ -640,16 +794,42 @@ typedef struct _REG_NOTIFY_INFORMATION
 #define REG_QWORD_LITTLE_ENDIAN         ( 11ul ) // 64-bit number (same as REG_QWORD)
 
 /**
- * Creates a new registry key routine or opens an existing one.
+ * Creates one registry key or opens it if it already exists. Use Disposition to
+ * distinguish those cases before initializing data or assuming ownership.
+ * This is not a recursive directory-creation routine for missing path components.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param[in] TitleIndex Reserved.
- * \param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
- * \param[in] CreateOptions The options to use when creating the key.
- * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle Required writable location receiving a caller-owned key
+ * handle on success. Close it with NtClose. Initialize it to NULL and check status;
+ * early failures need not initialize every output, and WoW64 copyback can differ.
+ * \param[in] DesiredAccess Access requested on the returned key. KEY_WOW64_32KEY
+ * (0x200) and KEY_WOW64_64KEY (0x100) select views, not granted key operation rights.
+ * Creation also requires appropriate access to the existing parent; requesting
+ * access on the child does not bypass parent or child security checks.
+ * \param[in] ObjectAttributes Initialized attributes containing a counted native
+ * path (normally beginning with \Registry) or a path relative to a key handle in
+ * RootDirectory. HKEY_* predefined aliases are not native RootDirectory handles.
+ * Request OBJ_CASE_INSENSITIVE when case-insensitive object lookup is intended.
+ * \param[in] TitleIndex Reserved; pass 0.
+ * \param[in, optional] Class Counted class string for a new key, or NULL. The
+ * user-mode path rejects odd byte lengths and requires 2-byte alignment
+ * for nonempty class data. Creating an already-existing key does not replace its
+ * class or values with the supplied creation metadata.
+ * \param[in] CreateOptions REG_OPTION_* creation options. REG_OPTION_NON_VOLATILE
+ * is 0; REG_OPTION_VOLATILE is 0x1 and does not convert an existing key's lifetime.
+ * Link and backup/restore options have separate semantics and security checks.
+ * \param[out, optional] Disposition Receives REG_CREATED_NEW_KEY (1) or
+ * REG_OPENED_EXISTING_KEY (2) on success. May be NULL. Do not consume a stale
+ * disposition after failure or delete an existing key as if this call created it.
+ * \return STATUS_SUCCESS when a handle is returned, or an NTSTATUS failure.
+ * Invalid creation-option bits return STATUS_INVALID_PARAMETER on the native
+ * path; missing parents are not silently created by ordinary native lookup.
+ * \remarks The native path captures Class before clearing KeyHandle:
+ * an invalid class can leave the output handle unchanged. Most later failures
+ * leave it NULL. WoW64 captures 32-bit descriptors, constructs a view-sensitive
+ * path and may set key-body tags; it is not just pointer-width conversion.
+ * Volatile keys still require explicit cleanup when used as temporary objects.
+ * Registry callbacks, layers, virtualization and backup privileges can alter
+ * ordinary behavior. Success is not a physical hive-flush guarantee.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatekey
  */
 _Kernel_entry_
@@ -667,17 +847,33 @@ NtCreateKey(
     );
 
 /**
- * Creates a new registry key or opens an existing one, and it associates the key with a transaction.
+ * Creates a registry key or opens an existing one in an explicit transaction. Use it to group registry
+ * changes for a later commit or rollback; closing the returned key handle is not itself a commit.
+ * NtSetValueKey/NtDeleteKey operations through the transacted handle participate in its transaction.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param[in] TitleIndex Reserved.
- * \param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
- * \param[in] CreateOptions The options to use when creating the key.
- * \param[in] TransactionHandle A handle to the transaction.
- * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle Required output receiving a caller-owned handle on success. Close every successful
+ * key handle with NtClose, independently of the transaction's outcome and transaction handle lifetime.
+ * \param[in] DesiredAccess Rights requested on the key, distinct from the rights on TransactionHandle.
+ * Creation still obeys parent and key security checks.
+ * \param[in] ObjectAttributes Initialized counted native/relative key name and attributes, as for
+ * NtCreateKey. Intermediate missing parents are not created by the ordinary native path.
+ * \param[in] TitleIndex Reserved; pass 0.
+ * \param[in, optional] Class Optional counted class string for a newly created key; ignored as replacement
+ * metadata when an existing key is opened.
+ * \param[in] CreateOptions Creation options as for NtCreateKey; options do not decide whether changes commit.
+ * REG_OPTION_VOLATILE (0x1) is supported by the ordinary KTM transaction path.
+ * \param[in] TransactionHandle Required active transaction handle. The entry requests access 0x4
+ * (TRANSACTION_ENLIST for a KTM transaction), first trying a registry-transaction object and then KTM on type
+ * mismatch. NULL is not a request for nontransactional creation; use NtCreateKey for that.
+ * \param[out, optional] Disposition REG_CREATED_NEW_KEY (1) or REG_OPENED_EXISTING_KEY (2) on success; this
+ * is not a transaction-outcome result.
+ * \return NTSTATUS for this create/open operation. A completed transaction cannot be reused for further key
+ * opens; commit/rollback errors need separate handling.
+ * \remarks Newly created keys are visible through matching transacted handles; ordinary opens do not see them
+ * until commit. Rollback removed them and restored staged changes to existing values/deletions. These
+ * observations are not a general concurrency or crash-recovery guarantee. Transaction validation precedes the
+ * native create helper, so early errors may preserve KeyHandle/Disposition. Initialize outputs and check
+ * status. WoW64 has its own NULL-transaction rejection and path/tag handling.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatekeytransacted
  */
 _Kernel_entry_
@@ -696,13 +892,24 @@ NtCreateKeyTransacted(
     );
 
 /**
- * Opens an existing registry key.
+ * Opens an existing registry key without creating missing keys. The native implementation forwards to NtOpenKeyEx with OpenOptions = 0.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \return NTSTATUS Successful or errant status.
- * \remarks NtOpenKey ignores the security information in the ObjectAttributes structure.
+ * \param[out] KeyHandle Required writable output receiving a caller-owned key
+ * handle on success; close it with NtClose. Initialize it to NULL and check the
+ * return status rather than assuming every failure clears the output.
+ * \param[in] DesiredAccess Requested rights on the opened key. View selectors
+ * KEY_WOW64_32KEY (0x200) / KEY_WOW64_64KEY (0x100) are not key operation rights.
+ * The ordinary open with DesiredAccess = 0 returns STATUS_ACCESS_DENIED;
+ * this differs from reducing an existing handle to zero access by duplication.
+ * \param[in] ObjectAttributes Initialized native absolute path or a counted name
+ * relative to the key handle in RootDirectory. Use OBJ_CASE_INSENSITIVE as needed.
+ * \return STATUS_SUCCESS or a failure such as STATUS_OBJECT_NAME_NOT_FOUND for
+ * an absent final component. Opening a key does not reserve its name/lifetime.
+ * \remarks Security information supplied in ObjectAttributes does not replace
+ * the existing key's security descriptor. WoW64 constructs the appropriate path
+ * and may attach key-body tags; don't assume the same numeric handle or tags
+ * across opens, views or architectures. See NtOpenKeyEx for option/probing details.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeyex
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -715,13 +922,24 @@ NtOpenKey(
     );
 
 /**
- * Opens an existing registry key and associates the key with a transaction.
+ * Opens an existing registry key in an explicit active transaction. It cannot create a missing key; use
+ * NtCreateKeyTransacted for create-or-open behavior. The native implementation forwards to
+ * NtOpenKeyTransactedEx with OpenOptions = 0, preserving the explicit transaction association.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param[in] TransactionHandle A handle to the transaction.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle Required output receiving a caller-owned key handle on success. Close it with
+ * NtClose; handle closure does not commit the transaction.
+ * \param[in] DesiredAccess Access requested on the key, separately checked from access to the transaction
+ * object and parent/name lookup requirements.
+ * \param[in] ObjectAttributes Initialized counted native or relative key name. Security information does not
+ * replace an existing key's security descriptor.
+ * \param[in] TransactionHandle Required active transaction. The KTM path requires TRANSACTION_ENLIST (0x4); a
+ * query-only transaction handle is insufficient. NULL returns STATUS_INVALID_HANDLE, not an ordinary open.
+ * \return NTSTATUS for the open. A missing key returns STATUS_OBJECT_NAME_NOT_FOUND in the transaction view;
+ * a completed transaction returns STATUS_TRANSACTION_NOT_ACTIVE in the KTM path.
+ * \remarks Operations through the returned handle participate in its transaction. The same key opened
+ * separately without that transaction is a different view. Initialize output and check status: transaction
+ * validation can fail before native output initialization. WoW64 adds descriptor/path/tag processing.
+ * Commit/rollback and closing the transaction handle are separate responsibilities.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeytransacted
  */
 _Kernel_entry_
@@ -736,13 +954,27 @@ NtOpenKeyTransacted(
     );
 
 /**
- * Opens an existing registry key with extended options.
+ * Opens an existing key with explicit open options; it does not create a missing key. OpenOptions = 0 is
+ * equivalent to NtOpenKey on the native path.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param[in] OpenOptions The options to use when opening the key.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle Required caller-owned output; close successful handles with NtClose. Initialize it to
+ * NULL before calling and consume it only on success.
+ * \param[in] DesiredAccess Requested key rights and optional WOW64 view selector, not a creation-option mask.
+ * Existing key security still controls granted access.
+ * \param[in] ObjectAttributes Initialized counted native or relative key path. The native user-mode path
+ * requires 4-byte alignment of this structure and 2-byte alignment of a nonempty name buffer. Prefer natural
+ * alignment. Security information here does not replace the existing key's security.
+ * \param[in] OpenOptions 0 or supported REG_OPTION_* open flags. The entry admits only bits 0x4
+ * (BACKUP_RESTORE), 0x8 (OPEN_LINK) and 0x10 (DONT_VIRTUALIZE), mask 0x1C. VOLATILE (0x1) and CREATE_LINK
+ * (0x2) are creation flags, not valid open options. Backup/restore requires its special privilege checks;
+ * admission by the bit mask does not guarantee success.
+ * \return STATUS_SUCCESS or failure. Invalid option bits return STATUS_INVALID_PARAMETER_4 before the native
+ * helper clears KeyHandle.
+ * \remarks Consequently native invalid-option failures can preserve the handle output, while the WoW64
+ * wrapper copies back its NULL temporary result. Missing-name failures with valid inputs leave NULL on
+ * ordinary paths. Do not generalize one failure's output behavior to all earlier capture errors. WoW64 path
+ * construction/tag updates and registry filters/layers/virtualization can affect lookup; view selection is
+ * not established solely by structure width.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeyex
  */
 _Kernel_entry_
@@ -757,14 +989,28 @@ NtOpenKeyEx(
     );
 
 /**
- * Opens an existing registry key in a transaction with extended options.
+ * Opens an existing registry key in an explicit transaction with open options. Use it for transactional
+ * access when OPEN_LINK, BACKUP_RESTORE or DONT_VIRTUALIZE behavior is specifically needed; it does not
+ * create missing keys.
  *
- * \param[out] KeyHandle A pointer to a handle that receives the key handle.
- * \param[in] DesiredAccess The access mask that specifies the desired access rights.
- * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * \param[in] OpenOptions The options to use when opening the key.
- * \param[in] TransactionHandle A handle to the transaction.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle Required output. A successful handle belongs to the caller and must be closed with
+ * NtClose independently of transaction outcome.
+ * \param[in] DesiredAccess Requested rights on the key and optional view selector.
+ * \param[in] ObjectAttributes Initialized counted native/relative key path; security information does not
+ * replace the existing key's security descriptor.
+ * \param[in] OpenOptions Same entry mask 0x1C as NtOpenKeyEx: BACKUP_RESTORE (0x4), OPEN_LINK (0x8),
+ * DONT_VIRTUALIZE (0x10), or 0. Other bits return STATUS_INVALID_PARAMETER_4 after a valid transaction is
+ * referenced. Special options remain subject to their own restrictions.
+ * \param[in] TransactionHandle Required active transaction with access 0x4; for KTM this is
+ * TRANSACTION_ENLIST. The entry also recognizes native registry-transaction objects before trying KTM on
+ * object-type mismatch.
+ * \return NTSTATUS. Invalid/wrong-type/insufficient-access transaction handles fail before the native open
+ * helper; do not expect a universal output reset.
+ * \remarks OpenOptions = 0 matches NtOpenKeyTransacted. Explicitly commit or roll back the transaction;
+ * closing a key does not commit. KTM transactions support volatile-key creation, queries, and deletion.
+ * NtRenameKey returns STATUS_NOT_IMPLEMENTED for an active transacted key handle. WoW64 converts descriptors
+ * and performs path/tag handling, not just a direct width-adjusted syscall. Filters/layers and
+ * recovery/concurrency paths differ.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeytransactedex
  */
 _Kernel_entry_
@@ -780,10 +1026,21 @@ NtOpenKeyTransactedEx(
     );
 
 /**
- * Deletes a registry key.
+ * Deletes an opened registry key, not merely a value and not a recursive subtree. Remove subkeys from the
+ * leaves upward before deleting their parent.
  *
- * \param[in] KeyHandle A handle to the key to be deleted.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Handle with DELETE (0x10000) access on the ordinary path. The handle remains
+ * caller-owned and must still be closed with NtClose, even after a successful deletion. Other open handles to
+ * the same key must also close.
+ * \return STATUS_SUCCESS, STATUS_ACCESS_DENIED, STATUS_INVALID_HANDLE, STATUS_CANNOT_DELETE or another
+ * registry error. In the ordinary path, a key with a live subkey returns STATUS_CANNOT_DELETE; a leaf
+ * containing values can be deleted without first deleting those values individually.
+ * \remarks Successful ordinary deletion removes the key from name lookup. Existing handles do not become
+ * usable handles to a replacement key: subsequent basic queries on them return STATUS_KEY_DELETED, yet
+ * NtClose remains required. Do not assume every operation on a deleted key has the same result, or that
+ * success implies a synchronous physical hive flush. Through an active transacted handle, deletion is staged:
+ * rollback preserves the original key and value; commit removes them. Registry filters, virtualization,
+ * read-only keys or hives, and protected special keys can affect deletion.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwdeletekey
  */
 _Kernel_entry_
@@ -795,12 +1052,27 @@ NtDeleteKey(
     );
 
 /**
- * Renames a registry key.
+ * Renames a key's final name component under its current parent. Existing values and subkeys are retained;
+ * this is not a move to another parent or a request to overwrite an existing sibling. Existing open handles
+ * continue referring to the renamed key/subtree on the ordinary path.
  *
- * \param[in] KeyHandle A handle to the key to be renamed.
- * \param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
- * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwrenamekey
+ * \param[in] KeyHandle Normally requires KEY_WRITE (0x20006) on the opened key. The core additionally checks
+ * KEY_CREATE_SUB_KEY on its parent and DELETE on the subtree's security descriptors. DELETE-only handle
+ * access is not a substitute for KEY_WRITE. Virtualization/layered paths have additional checks.
+ * \param[in] NewName Readable counted UNICODE_STRING containing one component, not a full path. The entry
+ * requires an even Length from 2 through 512 bytes inclusive (1 through 256 WCHARs), a non-NUL first WCHAR,
+ * no backslash anywhere in the counted name, and 2-byte alignment for nonempty name storage. Do not include a
+ * terminator in Length. The input remains caller-owned.
+ * \return STATUS_SUCCESS or an error. Empty/odd/oversized/backslash-containing names return
+ * STATUS_INVALID_PARAMETER. Collision with an existing live sibling returns STATUS_CANNOT_DELETE, not
+ * STATUS_OBJECT_NAME_COLLISION. The previous name remains intact on failure.
+ * \remarks Native and WoW64 paths accept a component name of at most 512 bytes; a 514-byte name is rejected.
+ * This is not a claim about every Win32 registry interface's documented name limit. The current core rejects
+ * rename through an active transacted key handle with STATUS_NOT_IMPLEMENTED. WoW64 widens the name
+ * descriptor but does not realign the underlying name data. Subtree security denial, callback overrides,
+ * read-only/layered-key behavior and concurrent changes can prevent the operation. Success is not a flush
+ * guarantee.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntrenamekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -812,11 +1084,20 @@ NtRenameKey(
     );
 
 /**
- * Deletes a value from a registry key.
+ * Removes a named value entry and its data, leaving the containing key and other
+ * values intact. This is different from setting a value to zero-length data.
  *
- * \param[in] KeyHandle A handle to the key that contains the value to be deleted.
- * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Key handle with KEY_SET_VALUE (0x2) in the ordinary path;
+ * DELETE access to the key is not required merely to delete one of its values.
+ * \param[in] ValueName Required readable counted UNICODE_STRING. An empty descriptor
+ * selects the default value. Matching is case-insensitive. The native
+ * path requires even Length and 2-byte-aligned nonempty user input, trims trailing
+ * WCHAR NULs and preserves embedded NULs as characters in the counted name.
+ * \return STATUS_SUCCESS if removed, STATUS_OBJECT_NAME_NOT_FOUND if absent,
+ * or an error such as STATUS_ACCESS_DENIED. Repeating deletion is not a successful no-op.
+ * \remarks Registry filters, transactions, virtualization and layered views can
+ * affect the result. This contract does not promise that a physical hive write is
+ * flushed to disk when the call returns.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwdeletevaluekey
  */
 _Kernel_entry_
@@ -829,14 +1110,36 @@ NtDeleteValueKey(
     );
 
 /**
- * Queries information about a registry key.
+ * Queries metadata for the supplied key itself. Use basic/node/name information
+ * to identify it, full/cached information for counts and buffer-planning maxima,
+ * and the fixed flag records for registry metadata. This does not read value data.
  *
- * \param[in] KeyHandle A handle to the key to be queried.
- * \param[in] KeyInformationClass The type of information to be queried.
- * \param[out] KeyInformation A pointer to a buffer that receives the key information.
- * \param[in] Length The size of the buffer.
- * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Normally requires KEY_QUERY_VALUE. KeyNameInformation
+ * and KeyHandleTagsInformation instead require any nonzero granted access mask
+ * on the ordinary path; a valid zero-access handle is still denied.
+ * \param[in] KeyInformationClass A KEY_INFORMATION_CLASS selector. The native/WoW64 paths accept 0 through 8; unsupported classes return
+ * STATUS_INVALID_PARAMETER, not STATUS_INVALID_INFO_CLASS.
+ * \param[out] KeyInformation Caller-owned output storage. NULL with Length = 0
+ * supports size discovery. Prefer natural alignment; the native entry probes
+ * nonempty buffers at 4-byte alignment, including records containing LARGE_INTEGER.
+ * \param[in] Length Output capacity in bytes. Preserve this for bounds checks.
+ * \param[out] ResultLength Required pointer receiving the complete required size
+ * on success, STATUS_BUFFER_TOO_SMALL or STATUS_BUFFER_OVERFLOW. On overflow it
+ * can exceed Length; embedded name/class lengths also remain full lengths.
+ * Do not use an unchanged ResultLength after unrelated failures as a valid size.
+ * \return STATUS_SUCCESS for a complete record; STATUS_BUFFER_TOO_SMALL when
+ * the fixed prefix/record cannot fit; STATUS_BUFFER_OVERFLOW for a partial
+ * variable record; or another NTSTATUS describing the failure.
+ * \remarks Returned names/class strings are not NUL-terminated. Counts/maxima
+ * can change before a later query; sizing does not reserve a registry snapshot.
+ * The WoW64 thunk realigns output not aligned to 8 bytes through
+ * temporary storage and copies the requested Length back regardless of status.
+ * Unlike its enumeration counterpart, it does not first copy the caller's buffer
+ * into that storage. Do not rely on failure-buffer or spare-byte preservation in
+ * that path, and consume only fields covered by a valid returned record.
+ * It still supports zero-length sizing with an unaligned non-NULL pointer.
+ * Registry filters, layered keys, transactions and virtualization have separate
+ * paths and can affect ordinary behavior.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwquerykey
  */
 _Kernel_entry_
@@ -852,13 +1155,31 @@ NtQueryKey(
     );
 
 /**
- * Sets information for a registry key.
+ * Changes metadata of an opened registry key: timestamp, internal flags or key- body tags. It does not
+ * create/replace a named value; use NtSetValueKey for that.
  *
- * \param[in] KeyHandle A handle to the key to be modified.
- * \param[in] KeySetInformationClass The type of information to be set.
- * \param[in] KeySetInformation A pointer to a buffer that contains the key information.
- * \param[in] KeySetInformationLength The size of the buffer.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Ordinarily requires KEY_SET_VALUE (0x2) for classes 0 through 4.
+ * KeySetHandleTagsInformation accepts a valid zero-access key handle; querying those tags through that handle
+ * is still denied.
+ * \param[in] KeySetInformationClass A KEY_SET_INFORMATION_CLASS selector. The native/WoW64 paths support 0
+ * through 5, returning STATUS_INVALID_INFO_CLASS for unsupported selectors, including class 6.
+ * \param[in] KeySetInformation Readable caller-owned input, captured before the ordinary handle access check.
+ * The caller's bytes are not modified or retained. NULL is not valid for a supported exact-sized request. The
+ * x64/WoW64 paths accept unaligned readable input, including the 8-byte time; naturally aligned structures
+ * remain preferable for portable callers.
+ * \param[in] KeySetInformationLength Exact byte count: 8 for class 0 and 4 for classes 1 through 5. Extra
+ * capacity is not accepted as a larger valid record.
+ * \return STATUS_SUCCESS, STATUS_INFO_LENGTH_MISMATCH for an incorrect size, STATUS_INVALID_INFO_CLASS for an
+ * unsupported selector, or another failure. Class 1 returns STATUS_INVALID_PARAMETER when UserFlags contains
+ * bits above 0x0F; other flag classes have different masking/transition rules.
+ * \remarks Selector and exact-length checks precede input capture and normal handle validation. A bad input
+ * pointer can therefore fail before access is checked; do not infer permissions from error precedence. WoW64
+ * forwards supported input pointers/lengths directly, with no record conversion or realignment. Input is
+ * logically read-only even for unaligned data. Ordinary classes 1 through 4 also refresh last-write time;
+ * class 5 does not. Tag changes are shared by duplicated handles, not independently stored in each
+ * handle-table entry. Registry filters, read-only keys/hives, transactions and access-denied virtualization
+ * fallback paths can change ordinary behavior. A successful update is not a durability/flush guarantee.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntsetinformationkey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -872,15 +1193,33 @@ NtSetInformationKey(
     );
 
 /**
- * Queries the value of a registry key.
+ * Retrieves one named value without changing its data. Supports size discovery by passing KeyValueInformation
+ * = NULL and Length = 0 with a valid ResultLength.
  *
- * \param[in] KeyHandle A handle to the key to be queried.
- * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be queried.
- * \param[in] KeyValueInformationClass The type of information to be queried.
- * \param[out] KeyValueInformation A pointer to a buffer that receives the value information.
- * \param[in] Length The size of the buffer.
- * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Key handle with KEY_QUERY_VALUE (0x1).
+ * \param[in] ValueName Required readable counted UNICODE_STRING, matched without case sensitivity. A
+ * zero-length descriptor selects the default value. Trailing WCHAR NULs are trimmed; embedded NULs remain
+ * name characters.
+ * \param[in] KeyValueInformationClass Classes 0 through 4 are accepted; class 5 (KeyValueLayerInformation)
+ * and other selectors return STATUS_INVALID_PARAMETER. Preserve newer class definitions for other OS targets.
+ * \param[out] KeyValueInformation Optional caller buffer, required when Length is nonzero. Native x64 checks
+ * 4-byte alignment for all accepted classes on this build; portable Align64 callers should still supply an
+ * 8-byte-aligned buffer.
+ * \param[in] Length Output capacity in bytes, not a number of records or WCHARs.
+ * \param[out] ResultLength Required ULONG receiving the total size needed on STATUS_SUCCESS,
+ * STATUS_BUFFER_OVERFLOW or STATUS_BUFFER_TOO_SMALL. It can exceed Length and must not be treated as the
+ * number of initialized bytes on overflow.
+ * \return STATUS_BUFFER_TOO_SMALL if the fixed prefix does not fit (no record copied), STATUS_BUFFER_OVERFLOW
+ * if the prefix fits but the complete record does not, STATUS_OBJECT_NAME_NOT_FOUND if absent, or another
+ * NTSTATUS.
+ * \remarks Returned NameLength/DataLength describe the full value even on overflow. Validate the available
+ * prefix and clamp all reads to Length before using offsets or lengths. Missing-value, invalid-class and
+ * access failures leave ResultLength unchanged on ordinary paths; do not use a stale output size. WoW64
+ * copies non-8-byte-aligned query output through a temporary native buffer, even for ordinary classes. That
+ * thunk copies the requested Length back, so do not rely on untouched buffer contents on failure or beyond
+ * the valid returned record. Size discovery and retrieval are separate snapshots; the value may change
+ * between them.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryvaluekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -896,15 +1235,33 @@ NtQueryValueKey(
     );
 
 /**
- * Sets the value of a registry key.
+ * Creates or replaces one value entry under a registry key, including its type
+ * and data. This does not create or rename the containing key.
  *
- * \param[in] KeyHandle A handle to the key to be modified.
- * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be set.
- * \param[in, optional] TitleIndex Reserved.
- * \param[in] Type The type of the value.
- * \param[in] Data A pointer to a buffer that contains the value data.
- * \param[in] DataSize The size of the buffer.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Key handle with KEY_SET_VALUE (0x2) in the ordinary path.
+ * Registry virtualization, layered keys and filter callbacks can affect the operation.
+ * \param[in] ValueName Required readable counted UNICODE_STRING. Use an empty
+ * descriptor (Length = 0, Buffer may be NULL) for the default value, not a NULL
+ * descriptor pointer. Names are case-insensitive. On x64, the name
+ * length must be even and at most 32766 bytes (16383 WCHARs); a nonempty user-mode
+ * name buffer must be 2-byte aligned. Captured trailing WCHAR NULs are trimmed,
+ * whereas embedded NULs are part of the counted name.
+ * \param[in, optional] TitleIndex Reserved; pass 0. The native path
+ * exposes it to registry callbacks but does not pass it to the core value writer.
+ * Basic/full/partial query records in the ordinary path return TitleIndex = 0.
+ * \param[in] Type REG_* data type. The caller is responsible for the type's format.
+ * \param[in, optional] Data Readable DataSize bytes; NULL is valid when DataSize = 0.
+ * The native operation copies the counted bytes, not a string inferred from Type.
+ * \param[in] DataSize Byte count, including any required string terminators.
+ * The native entry rejects values above 0x7FFFF000; this is an entry
+ * validation bound, not a guarantee that a value that large can be allocated/stored.
+ * \return NTSTATUS describing the update. Odd or oversized name lengths return
+ * STATUS_INVALID_PARAMETER in the ordinary path.
+ * \remarks A zero-length data value still exists; use NtDeleteValueKey to remove it.
+ * A REG_SZ input without its NUL can be stored as supplied, so do not assume the
+ * kernel repairs malformed strings. The WoW64 REG_SZ/REG_EXPAND_SZ path can rewrite
+ * recognized paths according to key tags; byte-for-byte passthrough is not universal.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwsetvaluekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -920,15 +1277,50 @@ NtSetValueKey(
     );
 
 /**
- * Queries multiple values of a registry key.
+ * Retrieves selected values from one registry key into a shared data buffer.
+ * Use this to read a known group of settings without issuing one query per name;
+ * it does not enumerate subkeys or values and does not reserve them for later use.
  *
- * \param[in] KeyHandle A handle to the key to be queried.
- * \param[in, out] ValueEntries A pointer to an array of KEY_VALUE_ENTRY structures that specify the values to be queried.
- * \param[in] EntryCount The number of entries in the array.
- * \param[out] ValueBuffer A pointer to a buffer that receives the value data.
- * \param[in, out] BufferLength A pointer to a variable that specifies the size of the buffer and receives the size of the data returned.
- * \param[out, optional] RequiredBufferLength A pointer to a variable that receives the size of the buffer required to hold the data.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A key handle with KEY_QUERY_VALUE access.
+ * \param[in, out] ValueEntries EntryCount KEY_VALUE_ENTRY records. Initialize each
+ * ValueName to a readable UNICODE_STRING. Empty names select the default value;
+ * duplicate names produce separate data slots. The native path rejects
+ * odd name lengths and trims trailing WCHAR NULs in its captured copy, without
+ * changing the caller's descriptor. Output fields are meaningful for a complete
+ * result only after success; ValueName pointers are preserved.
+ * \param[in] EntryCount Number of entries. The native user-mode entry
+ * rejects counts above 65536 with STATUS_INSUFFICIENT_RESOURCES. WoW64 allocates
+ * and converts the array before calling native code; this limit is not a promise
+ * of early validation or successful allocation in every calling environment.
+ * \param[out] ValueBuffer Receives value data at the returned byte offsets. Use
+ * 4-byte-aligned storage. NULL with an input BufferLength of 0 supports size
+ * discovery. Values are placed in request order at 4-byte-aligned offsets; string data is returned as stored, without an added NUL.
+ * \param[in, out] BufferLength Required pointer. On input, the available byte
+ * capacity; on successful nonempty queries, the packed span used, including
+ * alignment gaps. Preserve the original capacity for bounds checks. A short-buffer
+ * result is not a complete initialized array or an unrestricted copy length.
+ * \param[out, optional] RequiredBufferLength Receives the required packed byte
+ * span on success or STATUS_BUFFER_OVERFLOW; it is not an entry count. May be NULL.
+ * Do not use its value as a required size after unrelated failures.
+ * \return STATUS_SUCCESS for a complete result, STATUS_BUFFER_OVERFLOW if not
+ * all requested data fits, or an error such as STATUS_OBJECT_NAME_NOT_FOUND when
+ * any requested name is missing. A missing later name can supersede overflow.
+ * \remarks In the ordinary path, overflow copies only complete values
+ * from a fitting prefix, then stops copying further entries while computing the
+ * required size. Uncopied entry output fields are zero, so retry the whole query
+ * rather than interpreting zero fields as valid empty values. A zero-capacity
+ * query of existing nonempty values returns STATUS_BUFFER_OVERFLOW, not
+ * STATUS_BUFFER_TOO_SMALL. Empty data can succeed with zero capacity.
+ *
+ * With EntryCount = 0, the native/WoW64 paths accept a NULL entry array,
+ * still check key access, return RequiredBufferLength = 0, and leave BufferLength
+ * unchanged. Do not interpret that unchanged capacity as bytes initialized.
+ * WoW64 converts 16-byte entries to native 24-byte entries and copies output
+ * fields back even on errors; it forwards ValueBuffer without realigning it.
+ * Native requires 4-byte entry-array alignment; WoW64's conversion also accepts
+ * unaligned source entries. Prefer naturally aligned arrays.
+ * Registry callbacks, layered keys and virtualization can alter ordinary behavior.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerymultiplevaluekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -944,15 +1336,38 @@ NtQueryMultipleValueKey(
     );
 
 /**
- * Enumerates the subkeys of a registry key.
+ * Retrieves one direct subkey by index. This enumerates keys, not value entries;
+ * use NtEnumerateValueKey for values. Returned metadata belongs to the selected
+ * child, not the parent represented by KeyHandle.
  *
- * \param[in] KeyHandle A handle to the key to be enumerated.
- * \param[in] Index The index of the subkey to be enumerated.
- * \param[in] KeyInformationClass The type of information to be queried.
- * \param[out] KeyInformation A pointer to a buffer that receives the key information.
- * \param[in] Length The size of the buffer.
- * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Parent key handle with KEY_ENUMERATE_SUB_KEYS access.
+ * \param[in] Index Zero-based index. STATUS_NO_MORE_ENTRIES ends enumeration.
+ * Indices are not stable identifiers: mutations can change which child an index
+ * selects, and repeated calls need not return the same child.
+ * \param[in] KeyInformationClass KeyBasicInformation, KeyNodeInformation or
+ * KeyFullInformation (0 through 2). Other selectors return STATUS_INVALID_PARAMETER
+ * on the native/WoW64 paths, including classes accepted by NtQueryKey.
+ * \param[out] KeyInformation Caller-owned output buffer. NULL with Length = 0
+ * supports sizing for an existing index. Prefer naturally aligned storage;
+ * the native entry requires 4-byte alignment for a nonempty output buffer.
+ * \param[in] Length Output capacity in bytes, not WCHARs.
+ * \param[out] ResultLength Required pointer. Receives the complete required byte
+ * size on success or either short-buffer status. It can exceed Length, and
+ * NameLength/ClassLength remain full lengths on overflow. Bound every read by
+ * capacity; no terminator is appended. Enumeration end is not a sizing result.
+ * \return STATUS_SUCCESS, STATUS_BUFFER_TOO_SMALL if the fixed prefix cannot
+ * fit, STATUS_BUFFER_OVERFLOW for a partial record, STATUS_NO_MORE_ENTRIES at
+ * the end, or another error status. No key handle is returned or retained.
+ * \remarks The WoW64 thunk realigns output not aligned to 8 bytes by
+ * copying Length bytes from the caller into temporary storage before the native
+ * call, then copying Length bytes back regardless of status. This path therefore
+ * reads the caller's storage as well as writing it; use readable/writable storage.
+ * Unlike NtQueryKey's thunk, an unaligned non-NULL buffer with Length = 0 returns
+ * STATUS_NO_MEMORY before the syscall. Use NULL for zero-length size discovery.
+ * Do not generalize this behavior to the separate value-enumeration thunk.
+ * Registry filters, transactions, layered keys and virtualization can affect the
+ * enumeration; there is no stable multi-call snapshot guarantee.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwenumeratekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -968,15 +1383,28 @@ NtEnumerateKey(
     );
 
 /**
- * Enumerates the values of a registry key.
+ * Retrieves one value by index under a registry key. This enumerates values, not subkeys, and does not create
+ * a stable snapshot or reserve the returned value.
  *
- * \param[in] KeyHandle A handle to the key to be enumerated.
- * \param[in] Index The index of the value to be enumerated.
- * \param[in] KeyValueInformationClass The type of information to be queried.
- * \param[out] KeyValueInformation A pointer to a buffer that receives the value information.
- * \param[in] Length The size of the buffer.
- * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle Key handle with KEY_QUERY_VALUE (0x1); KEY_ENUMERATE_SUB_KEYS alone is not the access
+ * right for this operation.
+ * \param[in] Index Zero-based value index. Retry the same index after a short-buffer result;
+ * STATUS_NO_MORE_ENTRIES indicates the end. Do not assume a stable order or index-to-name mapping while
+ * another caller is adding or deleting values.
+ * \param[in] KeyValueInformationClass Classes 0, 1 and 2 (Basic, Full, Partial) on native x64 and WoW64.
+ * Classes 3 and 4 (Align64) and class 5 (Layer) return STATUS_INVALID_PARAMETER, even though query accepts
+ * the Align64 classes.
+ * \param[out] KeyValueInformation Optional caller output; NULL with Length = 0 requests the size. Nonempty
+ * output requires 4-byte alignment on the native and WoW64 paths; unlike query, enumeration does not realign
+ * the x86 buffer.
+ * \param[in] Length Output capacity in bytes.
+ * \param[out] ResultLength Required ULONG receiving total required bytes on success or either short-buffer
+ * status; it can exceed the supplied Length.
+ * \return STATUS_SUCCESS, STATUS_BUFFER_TOO_SMALL when the fixed prefix does not fit, STATUS_BUFFER_OVERFLOW
+ * for a partial record, STATUS_NO_MORE_ENTRIES, or an error.
+ * \remarks ResultLength is unchanged for end-of-enumeration, invalid-class, and access failures. On overflow,
+ * the returned name/data lengths remain full lengths: never read that many bytes without checking the
+ * caller-buffer capacity. The record formats and data-offset rules are shared with NtQueryValueKey.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1106,8 +1534,8 @@ NtLoadKeyEx(
  * \param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * \param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * \param[in] Flags The options to use when loading the key.
- * \param[in] ExtendedParameters A pointer to an array of extended parameters.
- * \param[in] ExtendedParameterCount The number of extended parameters.
+ * \param[in, optional] ExtendedParameters An 8-byte-aligned array of 16-byte CM_EXTENDED_PARAMETER entries; ignored when the count is zero.
+ * \param[in] ExtendedParameterCount Number of entries, 0 through 3. Each supported parameter type may appear only once.
  * \param[in, optional] DesiredAccess The access mask that specifies the desired access rights.
  * \param[out, optional] RootHandle A pointer to a handle that receives the root handle.
  * \param[in, reserved] Reserved Reserved.
@@ -1121,7 +1549,7 @@ NtLoadKey3(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ POBJECT_ATTRIBUTES SourceFile,
     _In_ ULONG Flags,
-    _In_reads_(ExtendedParameterCount) PCM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_reads_opt_(ExtendedParameterCount) PCM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount,
     _In_opt_ ACCESS_MASK DesiredAccess,
     _Out_opt_ PHANDLE RootHandle,
@@ -1267,17 +1695,21 @@ NtUnloadKeyEx(
 /**
  * Notifies of changes to a registry key.
  *
- * \param KeyHandle Handle to the registry key.
+ * \param KeyHandle Handle to the registry key with KEY_NOTIFY access.
  * \param Event Optional handle to an event to be signaled.
  * \param ApcRoutine Optional APC routine to be called.
  * \param ApcContext Optional context for the APC routine.
  * \param IoStatusBlock Pointer to an IO status block.
- * \param CompletionFilter Filter for the types of changes to notify.
+ * \param CompletionFilter REG_NOTIFY_CHANGE_* flags and optional REG_NOTIFY_THREAD_AGNOSTIC; valid mask 0x1000000f.
  * \param WatchTree Whether to watch the entire tree.
- * \param Buffer Optional buffer for change data.
- * \param BufferSize Size of the buffer.
+ * \param Buffer Reserved for system use; pass NULL.
+ * \param BufferSize Reserved for system use; pass zero.
  * \param Asynchronous Whether the operation is asynchronous.
  * \return NTSTATUS Successful or errant status.
+ * \remarks For an asynchronous event-based watch, STATUS_PENDING means the I/O status block and
+ * notification resources remain live. A successful wait on the event does not make IoStatusBlock.Status equal
+ * to STATUS_SUCCESS: an owned NULL/zero-buffer last-set watch completes with STATUS_NOTIFY_ENUM_DIR (0x10C).
+ * Re-query the state of interest and rearm as needed; do not treat the event as a complete change record.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1298,10 +1730,13 @@ NtNotifyChangeKey(
 
 /**
  * Requests notification when a registry key or any of its subkeys changes.
+ * \remarks REG_NOTIFY_THREAD_AGNOSTIC (0x10000000) requires a user-mode asynchronous event-based
+ * request: Asynchronous must be TRUE, Event non-NULL, and ApcRoutine NULL. The valid filter mask is
+ * 0x1000000f. Count greater than 1, a same-hive subordinate key, or an invalid filter returns STATUS_INVALID_PARAMETER.
  *
  * \param MasterKeyHandle A handle to an open key. The handle must be opened with the KEY_NOTIFY access right.
- * \param Count The number of subkeys under the key specified by the MasterKeyHandle parameter.
- * \param SubordinateObjects Pointer to an array of OBJECT_ATTRIBUTES structures, one for each subkey. This array can contain one OBJECT_ATTRIBUTES structure.
+ * \param Count Number of entries in SubordinateObjects, 0 or 1. Kernel-mode asynchronous requests require 0.
+ * \param SubordinateObjects Optional attributes for one additional key, which must be in a different hive from MasterKeyHandle.
  * \param Event A handle to an event created by the caller. If Event is not NULL, the caller waits until the operation succeeds, at which time the event is signaled.
  * \param ApcRoutine A pointer to an asynchronous procedure call (APC) function supplied by the caller. If ApcRoutine is not NULL, the specified APC function executes after the operation completes.
  * \param ApcContext A pointer to a context supplied by the caller for its APC function. This value is passed to the APC function when it is executed. The Asynchronous parameter must be TRUE. If ApcContext is specified, the Event parameter must be NULL.
@@ -1312,6 +1747,10 @@ NtNotifyChangeKey(
  * \param BufferSize Reserved for system use. This parameter must be zero.
  * \param Asynchronous Whether the operation is asynchronous.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native entry supports at most 1 subordinate key in addition to
+ * the master. Count zero is the single-master form used by NtNotifyChangeKey. Asynchronous completion uses
+ * the supplied event/APC and live I/O status storage; a NULL/zero-buffer last-set watch completes with
+ * STATUS_NOTIFY_ENUM_DIR (0x10C), requiring the caller to query the changed state.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1380,7 +1819,9 @@ typedef struct _KEY_OPEN_SUBKEYS_INFORMATION
  * \param Buffer Optional buffer to receive the subkey information.
  * \param RequiredSize Pointer to a variable to receive the required size.
  * \return NTSTATUS Successful or errant status.
- * \remarks Returns an array of KEY_OPEN_SUBKEYS_INFORMATION structures.
+ * \remarks Requires SeRestorePrivilege. Returns one KEY_OPEN_SUBKEYS_INFORMATION header containing
+ * Count KEY_PID_ARRAY entries, followed by name storage, not an array of headers. On x64 KeyArray
+ * begins at offset 8 and each entry occupies 24 bytes; KeyName.Buffer points into the returned buffer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1474,13 +1915,26 @@ NtThawRegistry(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
- * Creates a registry transaction.
+ * Creates a registry-only lightweight transaction object, distinct from a KTM transaction created by
+ * NtCreateTransaction. Pass it to the transacted key create/open APIs to group registry changes for explicit
+ * commit or rollback. Do not pass it to KTM query/set/commit/rollback routines: object types differ.
  *
- * \param RegistryTransactionHandle Pointer to a variable to receive the handle.
- * \param DesiredAccess Desired access mask.
- * \param ObjAttributes Optional pointer to object attributes.
- * \param CreateOptions Reserved for future use.
- * \return NTSTATUS Successful or errant status.
+ * \param RegistryTransactionHandle Required writable output receiving a caller- owned handle on success.
+ * Close it with NtClose. Last-handle close of an active transaction rolls back staged changes; closing a key
+ * handle alone does not end the transaction.
+ * \param DesiredAccess Requested transaction rights. The registry APIs use 0x4 for enlistment through
+ * transacted key operations, 0x8 for commit and 0x10 for rollback. These checks do not grant access to the
+ * keys themselves.
+ * \param ObjAttributes Optional object attributes, or NULL for an unnamed object. A named transaction lives
+ * in the Object Manager namespace, not the registry key namespace; NtOpenRegistryTransaction opens it by that
+ * object name.
+ * \param CreateOptions Reserved; must be 0. Every nonzero bit is rejected with STATUS_INVALID_PARAMETER on
+ * the native/WoW64 paths.
+ * \return STATUS_SUCCESS or an NTSTATUS failure. Initialize the output and consume it only on success: native
+ * nonzero-option rejection occurs before clearing it, while the WoW64 wrapper copies back a NULL temporary.
+ * \remarks The implementation is in ntoskrnl, not tm.sys. These APIs do not take KTM UOW identifiers,
+ * descriptions or timeouts. Named opens and registry transactions do not imply support for arbitrary
+ * resource-manager enlistments or KTM recovery semantics.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1496,12 +1950,22 @@ NtCreateRegistryTransaction(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
- * Opens a registry transaction.
+ * Opens an existing named registry-only lightweight transaction. This is object- name lookup, not lookup of a
+ * registry key or a KTM unit-of-work GUID.
  *
- * \param RegistryTransactionHandle Pointer to a variable to receive the handle.
- * \param DesiredAccess Desired access mask.
- * \param ObjAttributes Pointer to object attributes.
- * \return NTSTATUS Successful or errant status.
+ * \param RegistryTransactionHandle Required output receiving a separately owned handle on success; close it
+ * with NtClose. Other open/duplicate handles keep the same transaction object alive. Initialize this output
+ * and check status.
+ * \param DesiredAccess Requested rights, including 0x4 for transacted key association, 0x8 for commit or 0x10
+ * for rollback as needed.
+ * \param ObjAttributes Initialized attributes identifying the named transaction in the Object Manager
+ * namespace. An unnamed transaction cannot be reopened by inventing a registry path or by passing its handle
+ * as a UOW identifier.
+ * \return STATUS_SUCCESS or an error such as STATUS_OBJECT_NAME_NOT_FOUND. After the last transaction handle
+ * closes, the rolled-back key is no longer available under its former name.
+ * \remarks Registry and KTM transactions are different object types. To open a KTM transaction by its GUID
+ * use NtOpenTransaction instead. Opening another handle does not clone the transaction or reset a completed
+ * transaction.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1516,11 +1980,20 @@ NtOpenRegistryTransaction(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
- * Commits a registry transaction.
+ * Commits staged changes of a registry-only lightweight transaction. It is not the KTM NtCommitTransaction
+ * entry and does not accept a Boolean Wait argument.
  *
- * \param RegistryTransactionHandle Handle to the registry transaction.
- * \param Flags Reserved for future use.
- * \return NTSTATUS Successful or errant status.
+ * \param RegistryTransactionHandle Registry-transaction object handle with commit access 0x8. A KTM
+ * transaction handle returns STATUS_OBJECT_TYPE_MISMATCH even though the corresponding right has the same
+ * value.
+ * \param Flags Reserved; must be 0. Nonzero flags return STATUS_INVALID_PARAMETER before handle validation; 1
+ * is not a request for synchronous completion.
+ * \return STATUS_SUCCESS for completed ordinary commit, or an NTSTATUS failure. For sequential calls,
+ * committing again after commit returns STATUS_TRANSACTION_NOT_ACTIVE; committing after rollback returns
+ * STATUS_TRANSACTION_ALREADY_ABORTED. Do not substitute KTM's repeat-call rules.
+ * \remarks The handle remains caller-owned and must close. A completed transaction cannot be reused as a new
+ * active transaction. Bounded registry visibility and last-close cleanup do not establish crash-recovery or
+ * concurrent commit/rollback guarantees.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1534,11 +2007,19 @@ NtCommitRegistryTransaction(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
- * Rolls back a registry transaction.
+ * Rolls back staged changes of a registry-only lightweight transaction.
  *
- * \param RegistryTransactionHandle Handle to the registry transaction.
- * \param Flags Reserved for future use.
- * \return NTSTATUS Successful or errant status.
+ * \param RegistryTransactionHandle Registry-transaction object handle with rollback access 0x10. KTM handles
+ * are a different type and are rejected here.
+ * \param Flags Reserved; must be 0, not KTM's Boolean Wait. Nonzero flags return STATUS_INVALID_PARAMETER
+ * before ordinary handle validation.
+ * \return STATUS_SUCCESS for ordinary rollback. The sequential path returns
+ * STATUS_TRANSACTION_ALREADY_ABORTED on repeated rollback and STATUS_TRANSACTION_NOT_ACTIVE after commit. KTM
+ * repeated rollback differs.
+ * \remarks Close the transaction handle separately with NtClose. All opens and duplicates refer to the same
+ * outcome. Last-handle close of an active registry transaction also triggers rollback, but explicit outcome
+ * handling is preferable when the caller needs to detect errors. No general durability, multi-resource or
+ * concurrent-outcome guarantee is implied.
  */
 _Kernel_entry_
 NTSYSCALLAPI

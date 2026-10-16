@@ -47,14 +47,6 @@ VOID EtpUpdateProcessInformation(
 BOOLEAN EtDiskCountersEnabled = FALSE;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
-
-#define ET_UPDATE_PROCESS_STATISTICS_MINMAX(Minimum, Maximum, Difference, Value) \
-    if ((Value) != 0 && ((Minimum) == 0 || (Value) < (Minimum))) \
-        (Minimum) = (Value); \
-    if ((Value) != 0 && ((Maximum) == 0 || (Value) > (Maximum))) \
-        (Maximum) = (Value); \
-    (Difference) = (Maximum) - (Minimum);
-
 static PVOID EtpProcessInformation = NULL;
 static PH_QUEUED_LOCK EtpProcessInformationLock = PH_QUEUED_LOCK_INIT;
 
@@ -235,6 +227,126 @@ VOID EtProcessDiskEvent(
     }
 }
 
+PPH_NETWORK_ITEM EtpReferenceNetworkItem(
+    _In_ PET_ETW_NETWORK_EVENT Event
+    )
+{
+    PPH_NETWORK_ITEM networkItem;
+    PPH_NETWORK_ITEM *networkItems;
+    ULONG numberOfNetworkItems;
+    ULONG bestScore;
+    ULONG bestCount;
+    ULONG i;
+
+    // Keep the normal exact lookup fast. The fallback below is only needed when
+    // ETW and the network provider disagree about the local address representation.
+    networkItem = PhReferenceNetworkItem(
+        Event->ProtocolType,
+        &Event->LocalEndpoint,
+        &Event->RemoteEndpoint,
+        Event->ClientId.UniqueProcess
+        );
+
+    if (networkItem)
+        return networkItem;
+
+    networkItems = NULL;
+    numberOfNetworkItems = 0;
+    PhEnumNetworkItemsByProcessId(
+        Event->ClientId.UniqueProcess,
+        &networkItems,
+        &numberOfNetworkItems
+        );
+
+    if (!networkItems)
+        return NULL;
+
+    bestScore = 0;
+    bestCount = 0;
+    networkItem = NULL;
+
+    for (i = 0; i < numberOfNetworkItems; i++)
+    {
+        PPH_NETWORK_ITEM candidate = networkItems[i];
+        ULONG score = 0;
+
+        if (candidate->ProtocolType != Event->ProtocolType)
+            goto Continue;
+
+        if (candidate->LocalEndpoint.Port != Event->LocalEndpoint.Port)
+            goto Continue;
+
+        if (FlagOn(Event->ProtocolType, PH_PROTOCOL_TYPE_UDP))
+        {
+            // UDP tables do not expose a remote endpoint. Do not use the ETW
+            // peer endpoint to distinguish sockets, but require the inventory
+            // record to have the expected unconnected-UDP shape.
+            if (candidate->RemoteEndpoint.Address.Type != PH_NETWORK_TYPE_NONE ||
+                candidate->RemoteEndpoint.Port != 0)
+            {
+                goto Continue;
+            }
+        }
+        else
+        {
+            if (!PhEqualIpEndpoint(&candidate->RemoteEndpoint, &Event->RemoteEndpoint))
+                goto Continue;
+        }
+
+        if (candidate->LocalEndpoint.Address.Type != Event->LocalEndpoint.Address.Type)
+            goto Continue;
+
+        if (PhEqualIpAddress(
+            &candidate->LocalEndpoint.Address,
+            &Event->LocalEndpoint.Address
+            ))
+        {
+            score = 2;
+        }
+        else if (PhIsNullIpAddress(&candidate->LocalEndpoint.Address))
+        {
+            score = 1;
+        }
+        else
+        {
+            goto Continue;
+        }
+
+        if (score > bestScore)
+        {
+            if (networkItem)
+                PhDereferenceObject(networkItem);
+
+            networkItem = candidate;
+            bestScore = score;
+            bestCount = 1;
+            continue;
+        }
+
+        if (score == bestScore)
+        {
+            bestCount++;
+            PhDereferenceObject(candidate);
+            continue;
+        }
+
+Continue:
+        PhDereferenceObject(candidate);
+    }
+
+    PhFree(networkItems);
+
+    if (bestCount != 1)
+    {
+        if (networkItem)
+            PhDereferenceObject(networkItem);
+
+        return NULL;
+    }
+
+    return networkItem;
+}
+
 /**
  * Processes a network event and updates statistics.
  *
@@ -281,46 +393,7 @@ VOID EtProcessNetworkEvent(
         PhDereferenceObject(processItem);
     }
 
-    networkItem = PhReferenceNetworkItem(
-        Event->ProtocolType,
-        &Event->LocalEndpoint,
-        &Event->RemoteEndpoint,
-        Event->ClientId.UniqueProcess
-        );
-
-    if (!networkItem && FlagOn(Event->ProtocolType, PH_PROTOCOL_TYPE_UDP))
-    {
-        PH_IP_ENDPOINT networkEndpoint;
-
-        // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address
-        // of the local adapter the packet was sent or received but GetExtendedUdpTable
-        // returns some UDP connections with endpoints set to in4addr_any/in6addr_any (zero). (dmex)
-
-        memset(&networkEndpoint, 0, sizeof(PH_IP_ENDPOINT));
-        networkEndpoint.Address.Type = Event->LocalEndpoint.Address.Type;
-        networkEndpoint.Port = Event->LocalEndpoint.Port;
-
-        networkItem = PhReferenceNetworkItem(
-            Event->ProtocolType,
-            &networkEndpoint,
-            &Event->RemoteEndpoint,
-            Event->ClientId.UniqueProcess
-            );
-
-        if (!networkItem)
-        {
-            memset(&networkEndpoint, 0, sizeof(PH_IP_ENDPOINT));
-            networkEndpoint.Address.Type = Event->RemoteEndpoint.Address.Type;
-            networkEndpoint.Port = Event->RemoteEndpoint.Port;
-
-            networkItem = PhReferenceNetworkItem(
-                Event->ProtocolType,
-                &Event->LocalEndpoint,
-                &networkEndpoint,
-                Event->ClientId.UniqueProcess
-                );
-        }
-    }
+    networkItem = EtpReferenceNetworkItem(Event);
 
     if (networkItem)
     {
@@ -341,6 +414,12 @@ VOID EtProcessNetworkEvent(
     }
 }
 
+/**
+ * Callback for process provider updates.
+ *
+ * \param Parameter The update event parameters.
+ * \param Context Unused.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -540,6 +619,12 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     }
 }
 
+/**
+ * Callback for network item provider updates.
+ *
+ * \param Parameter The update event parameters.
+ * \param Context Unused.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -592,6 +677,9 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     }
 }
 
+/**
+ * Updates the internal process information cache.
+ */
 VOID EtpUpdateProcessInformation(
     VOID
     )

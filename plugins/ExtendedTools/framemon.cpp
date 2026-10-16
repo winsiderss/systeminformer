@@ -28,6 +28,17 @@ static VOID NTAPI EtFramesProcessesUpdatedCallback(
     EtFramesSignalUpdate();
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+static ULONG NTAPI EtFramesHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PET_FPS_COUNTER entry = static_cast<PET_FPS_COUNTER>(Entry);
+
+    return HandleToUlong(entry->ProcessId) / 4;
+}
+
+_Function_class_(PH_HASHTABLE_COMPARE_FUNCTION)
 static BOOLEAN NTAPI EtFramesEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -37,15 +48,6 @@ static BOOLEAN NTAPI EtFramesEqualFunction(
     PET_FPS_COUNTER entry2 = static_cast<PET_FPS_COUNTER>(Entry2);
 
     return entry1->ProcessId == entry2->ProcessId;
-}
-
-static ULONG NTAPI EtFramesHashFunction(
-    _In_ PVOID Entry
-    )
-{
-    PET_FPS_COUNTER entry = static_cast<PET_FPS_COUNTER>(Entry);
-
-    return HandleToUlong(entry->ProcessId) / 4;
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -106,10 +108,13 @@ VOID EtFramesMonitorStart(
     }
 }
 
-PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
-    _In_ HANDLE ProcessId
+_Success_(return)
+BOOLEAN EtLookupProcessGpuFrameEntry(
+    _In_ HANDLE ProcessId,
+    _Out_ PET_FPS_COUNTER Counter
     )
 {
+    BOOLEAN found;
     ET_FPS_COUNTER lookupEntry;
     PET_FPS_COUNTER entry;
 
@@ -117,9 +122,15 @@ PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
 
     PhAcquireQueuedLockShared(&EtFramesHashTableLock);
     entry = static_cast<PET_FPS_COUNTER>(PhFindEntryHashtable(EtFramesHashTable, &lookupEntry));
+
+    found = entry != NULL;
+
+    if (found)
+        *Counter = *entry;
+
     PhReleaseQueuedLockShared(&EtFramesHashTableLock);
 
-    return entry;
+    return found;
 }
 
 VOID EtLockGpuFrameHashTable(
@@ -233,20 +244,20 @@ VOID EtProcessFramesUpdateProcessBlock(
     _In_ struct _ET_PROCESS_BLOCK* ProcessBlock
     )
 {
-    PET_FPS_COUNTER entry;
+    ET_FPS_COUNTER counter;
 
-    if (entry = EtLookupProcessGpuFrameEntry(ProcessBlock->ProcessItem->ProcessId))
+    if (EtLookupProcessGpuFrameEntry(ProcessBlock->ProcessItem->ProcessId, &counter))
     {
-        ProcessBlock->FramesPerSecond = entry->FramesPerSecond;
-        ProcessBlock->FramesLatency = entry->FrameMs;
-        ProcessBlock->FramesMsBetweenPresents = entry->MsBetweenPresents;
-        ProcessBlock->FramesMsInPresentApi = entry->MsInPresentApi;
-        ProcessBlock->FramesMsUntilRenderComplete = entry->MsUntilRenderComplete;
-        ProcessBlock->FramesMsUntilDisplayed = entry->MsUntilDisplayed;
-        ProcessBlock->FramesDisplayLatency = entry->DisplayLatency;
-        //ProcessBlock->FramesDisplayFramesPerSecond = entry->DisplayFramesPerSecond;
-        ProcessBlock->FramesRuntime = entry->Runtime;
-        ProcessBlock->FramesPresentMode = entry->PresentMode;
+        ProcessBlock->FramesPerSecond = counter.FramesPerSecond;
+        ProcessBlock->FramesLatency = counter.FrameMs;
+        ProcessBlock->FramesMsBetweenPresents = counter.MsBetweenPresents;
+        ProcessBlock->FramesMsInPresentApi = counter.MsInPresentApi;
+        ProcessBlock->FramesMsUntilRenderComplete = counter.MsUntilRenderComplete;
+        ProcessBlock->FramesMsUntilDisplayed = counter.MsUntilDisplayed;
+        ProcessBlock->FramesDisplayLatency = counter.DisplayLatency;
+        //ProcessBlock->FramesDisplayFramesPerSecond = counter.DisplayFramesPerSecond;
+        ProcessBlock->FramesRuntime = counter.Runtime;
+        ProcessBlock->FramesPresentMode = counter.PresentMode;
 
         ET_CIRCULAR_BUFFER_ADD_FLOAT(&ProcessBlock->FramesPerSecondHistory, ProcessBlock->FramesPerSecond);
         ET_CIRCULAR_BUFFER_ADD_FLOAT(&ProcessBlock->FramesLatencyHistory, ProcessBlock->FramesLatency);

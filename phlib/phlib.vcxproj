@@ -179,10 +179,12 @@
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
+    <ClCompile Include="graphbar.c" />
     <ClCompile Include="graphscroll.c" />
     <ClCompile Include="guisup.c" />
     <ClCompile Include="guisuplistview.cpp" />
     <ClCompile Include="handle.c" />
+    <ClCompile Include="treehdr.c" />
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="http.c" />
@@ -220,6 +222,7 @@
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
     <ClCompile Include="searchbox.c" />
+    <ClCompile Include="searchmatch.c" />
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="secwmi.c" />
@@ -245,11 +248,13 @@
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
     <ClInclude Include="include\base64.h" />
+    <ClInclude Include="include\graphbar.h" />
     <ClInclude Include="include\graphscroll.h" />
     <ClInclude Include="include\phafd.h" />
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
+    <ClInclude Include="include\searchmatch.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />
@@ -303,6 +308,8 @@
     <ClInclude Include="include\graph.h" />
     <ClInclude Include="include\guisupp.h" />
     <ClInclude Include="include\handlep.h" />
+    <ClInclude Include="include\treehdr.h" />
+    <ClInclude Include="include\treehdrp.h" />
     <ClInclude Include="include\hexedit.h" />
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\filestreamp.h" />

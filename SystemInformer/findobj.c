@@ -1240,6 +1240,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
             context->TypeWindowFont = PhCreateApplicationFont(PhGetWindowDpi(hwndDlg));
+            SetWindowFont(context->TreeNewHandle, context->TypeWindowFont, FALSE);
             context->WindowText = PhGetWindowText(hwndDlg);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);

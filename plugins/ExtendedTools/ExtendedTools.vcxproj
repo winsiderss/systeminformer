@@ -127,6 +127,8 @@
     <ClCompile Include="npunodes.c" />
     <ClCompile Include="npuprprp.c" />
     <ClCompile Include="npusys.c" />
+    <ClCompile Include="objmgr.c" />
+    <ClCompile Include="objprp.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
     <ClCompile Include="pooldialogbig.c" />

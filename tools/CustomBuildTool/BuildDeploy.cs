@@ -33,7 +33,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(fileSign))
                 {
-                    Program.PrintColorMessage("[ERROR] File signature failed.", ConsoleColor.Red);
+                    Program.PrintErrorMessage("File signature failed.");
                     return null;
                 }
 
@@ -42,7 +42,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(fileHash))
                 {
-                    Program.PrintColorMessage("[ERROR] File hash failed.", ConsoleColor.Red);
+                    Program.PrintErrorMessage("File hash failed.");
                     return null;
                 }
 
@@ -116,7 +116,7 @@ namespace CustomBuildTool
 
             if (portable_zip == null || release_exe == null || canary_exe == null)
             {
-                Program.PrintColorMessage("[ERROR] CreateBuildDeployFile.", ConsoleColor.Red);
+                Program.PrintErrorMessage("CreateBuildDeployFile.");
                 return false;
             }
 
@@ -156,7 +156,7 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(canzipdownloadlink)
                 )
             {
-                Program.PrintColorMessage("[ERROR] GetDeployInfo failed.", ConsoleColor.Red);
+                Program.PrintErrorMessage("GetDeployInfo failed.");
                 return false;
             }
 
@@ -164,7 +164,7 @@ namespace CustomBuildTool
 
             if (!await BuildUploadServerConfig(portable_zip, release_exe, canary_exe, github_release_id))
             {
-                Program.PrintColorMessage("[ERROR] BuildUploadServerConfig failed.", ConsoleColor.Red);
+                Program.PrintErrorMessage("BuildUploadServerConfig failed.");
                 return false;
             }
 
@@ -393,7 +393,7 @@ namespace CustomBuildTool
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
                     using var httpClient = BuildHttpClient.CreateHttpClient();
-                    using var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
+                    using var httpResult = await BuildHttpClient.SendRequestMessage(httpClient, requestMessage);
 
                     if (httpResult == null)
                     {

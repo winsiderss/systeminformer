@@ -12,7 +12,7 @@
 namespace CustomBuildTool
 {
     /// <summary>
-    /// Provides methods for creating compressed ZIP archives from directories.
+    /// Provides methods for creating compressed archives from directories.
     /// </summary>
     /// <remarks>
     /// This class supports creating different types of archives:
@@ -20,7 +20,7 @@ namespace CustomBuildTool
     /// - SDK archives
     /// - PDB symbol archives
     /// </remarks>
-    public static unsafe partial class Zip
+    public static partial class Zip
     {
         private static readonly FrozenSet<string> SkipPathPrefixes = new[]
         {
@@ -55,7 +55,8 @@ namespace CustomBuildTool
 
             public bool TryGetReport(string EntryName, out ProgressReport Report)
             {
-                return this.Reports.TryGetValue(EntryName, out Report);
+                return this.Reports.TryGetValue(EntryName, out Report)
+                    || this.Reports.TryGetValue(EntryName.Replace('\\', '/'), out Report);
             }
         }
 
@@ -87,12 +88,14 @@ namespace CustomBuildTool
             return result;
         }
 
-        private static ZipWriterOptions CreateWriterOptions(CompressionProgressReporter ProgressReporter)
+        private static ZipWriterOptions CreateWriterOptions(CompressionType CompressionType, CompressionProgressReporter ProgressReporter)
         {
-            return new ZipWriterOptions(CompressionType.LZMA2)
+            return new ZipWriterOptions(CompressionType)
             {
                 LeaveStreamOpen = true,
-                ArchiveEncoding = new ArchiveEncoding { Default = Utils.UTF8NoBOM },
+                // SharpCompress only sets the ZIP UTF-8 flag (bit 11) for the Encoding.UTF8 instance;
+                // without it readers decode non-ASCII entry names with the OEM code page.
+                ArchiveEncoding = new ArchiveEncoding { Default = Encoding.UTF8 },
                 Progress = ProgressReporter
             };
         }
@@ -158,21 +161,22 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Creates a compressed ZIP archive from a source directory, excluding debug files and applying path transformations.
+        /// Enumerates the release files in a source directory, excluding debug files and applying path transformations.
         /// </summary>
-        /// <param name="SourceDirectoryName">The path to the directory to compress.</param>
-        /// <param name="DestinationArchiveFileName">The path where the ZIP archive will be created.</param>
-        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <param name="SourceDirectoryName">The path to the directory to enumerate.</param>
+        /// <param name="DestinationArchiveFileName">The archive being created, which is excluded from the results.</param>
+        /// <param name="Flags">Build flags used to select platforms.</param>
+        /// <param name="FilterPlatforms">True to exclude platform directories that are not selected by <paramref name="Flags"/>.</param>
+        /// <returns>The source file paths and their archive entry names.</returns>
         /// <remarks>
         /// This method:
         /// - Skips files in debug directories and files with debug/linker extensions
         /// - Transforms Release configuration paths to architecture names (e.g., Release64 to amd64)
-        /// - Uses optimal compression level
         /// </remarks>
-        public static void CreateCompressedFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None, bool FilterPlatforms = false)
+        private static List<(string FileName, string EntryName)> GetCompressedFolderEntries(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags, bool FilterPlatforms)
         {
             string destinationArchivePath = Path.GetFullPath(DestinationArchiveFileName);
-            var progressReporter = new CompressionProgressReporter();
+            var entries = new List<(string FileName, string EntryName)>();
             var pathReplacements = new[] // Path replacements for archive entry names
             {
                 ("Release32\\", "i386\\"),
@@ -180,128 +184,109 @@ namespace CustomBuildTool
                 ("ReleaseARM64\\", "arm64\\")
             };
 
-            using (var fileStream = new FileStream(DestinationArchiveFileName, FileMode.Create))
-            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
+            foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
             {
-                foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
+                var fileName = Path.GetFullPath(file);
+
+                if (string.Equals(fileName, destinationArchivePath, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                bool shouldSkip = false;
+                string name = GetEntryName(file, SourceDirectoryName, false);
+
+                if (FilterPlatforms && !IsSelectedPlatform(name, Flags))
+                    continue;
+
+                foreach (var prefix in SkipPathPrefixes)
                 {
-                    if (string.Equals(Path.GetFullPath(file), destinationArchivePath, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    bool shouldSkip = false;
-                    string name = GetEntryName(file, SourceDirectoryName, false);
-
-                    if (FilterPlatforms && !IsSelectedPlatform(name, Flags))
-                        continue;
-
-                    foreach (var prefix in SkipPathPrefixes)
+                    if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                        {
-                            shouldSkip = true;
-                            break;
-                        }
+                        shouldSkip = true;
+                        break;
                     }
-
-                    if (!shouldSkip)
-                    {
-                        if (SkipExtensions.Contains(Path.GetExtension(file)))
-                        {
-                            shouldSkip = true;
-                        }
-                    }
-
-                    if (shouldSkip)
-                        continue;
-
-                    foreach (var (from, to) in pathReplacements)
-                    {
-                        if (name.StartsWith(from, StringComparison.OrdinalIgnoreCase))
-                        {
-                            name = name.Replace(from, to, StringComparison.OrdinalIgnoreCase);
-                            break;
-                        }
-                    }
-
-                    WriteEntry(writer, fileStream, name, file, CompressionType.Deflate, progressReporter, Flags);
                 }
+
+                if (!shouldSkip)
+                {
+                    if (SkipExtensions.Contains(Path.GetExtension(file)))
+                    {
+                        shouldSkip = true;
+                    }
+                }
+
+                if (shouldSkip)
+                    continue;
+
+                foreach (var (from, to) in pathReplacements)
+                {
+                    if (name.StartsWith(from, StringComparison.OrdinalIgnoreCase))
+                    {
+                        name = name.Replace(from, to, StringComparison.OrdinalIgnoreCase);
+                        break;
+                    }
+                }
+
+                entries.Add((fileName, name));
             }
 
-            //using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            //using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
-            //{
-            //    for (int i = 0; i < filesToAdd.Length; i++)
-            //    {
-            //        bool shouldSkip = false;
-            //        string file = filesToAdd[i];
-            //        string name = entryNames[i];
-            //
-            //        foreach (var prefix in SkipPathPrefixes)
-            //        {
-            //            if (file.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            //            {
-            //                shouldSkip = true;
-            //                break;
-            //            }
-            //        }
-            //
-            //        if (!shouldSkip)
-            //        {
-            //            if (SkipExtensions.Contains(Path.GetExtension(file)))
-            //            {
-            //                shouldSkip = true;
-            //            }
-            //        }
-            //
-            //        if (shouldSkip)
-            //            continue;
-            //
-            //        foreach (var (from, to) in PathReplacements)
-            //        {
-            //            if (name.StartsWith(from, StringComparison.OrdinalIgnoreCase))
-            //            {
-            //                name = name.Replace(from, to, StringComparison.OrdinalIgnoreCase);
-            //                break;
-            //            }
-            //        }
-            //
-            //        var entry = archive.CreateEntryFromFile(file, name, System.IO.Compression.CompressionLevel.Optimal);
-            //
-            //        if (Flags.HasFlag(BuildFlags.BuildVerbose))
-            //            PrintCompressionVerboseLine(entry, name, Flags);
-            //    }
-            //}
+            return entries;
+        }
 
-            //using (var filestream = File.Create(destinationArchiveFileName))
-            //using (var archive = new SevenZipArchive(filestream, FileAccess.Write))
-            //using (var compressor = archive.Compressor())
-            //{
-            //    compressor.CompressHeader = true;
-            //    compressor.PreserveDirectoryStructure = true;
-            //    compressor.Solid = true;
-            //
-            //    for (int i = 0; i < filesToAdd.Length; i++)
-            //    {
-            //        string file = filesToAdd[i];
-            //
-            //        if (
-            //           file.StartsWith("Debug", StringComparison.OrdinalIgnoreCase) ||// Ignore directories (Debug32/Debug64)
-            //           file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||  // Ignore files
-            //           file.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-            //           file.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-            //           file.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-            //           file.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
-            //           )
-            //        {
-            //            continue;
-            //        }
-            //
-            //        var name = file.Replace(sourceDirectoryName, string.Empty);
-            //        compressor.AddFile(file, name);
-            //    }
-            //
-            //    compressor.Finalize();
-            //}
+        /// <summary>
+        /// Creates a Deflate-compressed ZIP archive from a source directory, excluding debug files and applying path transformations.
+        /// </summary>
+        /// <param name="SourceDirectoryName">The path to the directory to compress.</param>
+        /// <param name="DestinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <param name="FilterPlatforms">True to exclude platform directories that are not selected by <paramref name="Flags"/>.</param>
+        public static void CreateCompressedFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None, bool FilterPlatforms = false)
+        {
+            var entries = GetCompressedFolderEntries(SourceDirectoryName, DestinationArchiveFileName, Flags, FilterPlatforms);
+            var progressReporter = new CompressionProgressReporter();
+
+            using (var fileStream = File.Create(DestinationArchiveFileName))
+            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(CompressionType.Deflate, progressReporter)))
+            {
+                foreach (var (fileName, name) in entries)
+                {
+                    WriteEntry(writer, fileStream, name, fileName, CompressionType.Deflate, progressReporter, Flags);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates an LZMA2-compressed 7z archive from a source directory, excluding debug files and applying path transformations.
+        /// </summary>
+        /// <param name="SourceDirectoryName">The path to the directory to compress.</param>
+        /// <param name="DestinationArchiveFileName">The path where the 7z archive will be created.</param>
+        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <param name="FilterPlatforms">True to exclude platform directories that are not selected by <paramref name="Flags"/>.</param>
+        public static void CreateCompressed7zFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None, bool FilterPlatforms = false)
+        {
+            var entries = GetCompressedFolderEntries(SourceDirectoryName, DestinationArchiveFileName, Flags, FilterPlatforms);
+            var progressReporter = new CompressionProgressReporter();
+
+            using (var filestream = File.Create(DestinationArchiveFileName))
+            using (var archive = WriterFactory.OpenWriter(filestream, ArchiveType.SevenZip, new WriterOptions(CompressionType.LZMA2)
+            {
+                CompressionLevel = 0,
+                Progress = progressReporter
+            }))
+            {
+                foreach (var (fileName, name) in entries)
+                {
+                    // Exclude the initial 7z signature header from the entry size.
+                    long startPosition = Math.Max(filestream.Position, 32);
+
+                    using (var inputStream = File.OpenRead(fileName))
+                    {
+                        archive.Write(name, inputStream, File.GetLastWriteTimeUtc(fileName));
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                        PrintCompressionVerboseLine(name, filestream.Position - startPosition, progressReporter, Flags);
+                }
+            }
         }
 
         /// <summary>
@@ -318,7 +303,7 @@ namespace CustomBuildTool
             var progressReporter = new CompressionProgressReporter();
 
             using (var fileStream = File.Create(DestinationArchiveFileName))
-            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
+            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(CompressionType.Deflate, progressReporter)))
             {
                 foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {
@@ -371,7 +356,7 @@ namespace CustomBuildTool
             var progressReporter = new CompressionProgressReporter();
 
             using (var fileStream = new FileStream(DestinationArchiveFileName, FileMode.Create))
-            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
+            using (var writer = new ZipWriter(fileStream, CreateWriterOptions(CompressionType.Deflate, progressReporter)))
             {
                 foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {

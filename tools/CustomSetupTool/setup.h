@@ -12,7 +12,10 @@
 #ifndef _SETUP_H
 #define _SETUP_H
 
+#pragma comment(lib, "winhttp.lib")
+
 #include <ph.h>
+#include <mapimg.h>
 #include <base64.h>
 #include <guisup.h>
 #include <prsht.h>
@@ -21,6 +24,7 @@
 #include <json.h>
 #include <mapldr.h>
 #include <phnet.h>
+#include <thirdparty.h>
 
 #include <aclapi.h>
 #include <io.h>
@@ -49,7 +53,7 @@
 #define SETUP_MAX_DOWNLOAD_SIZE (2ULL * 1024 * 1024 * 1024)
 
 #ifdef DEBUG
-//#define FORCE_TEST_UPDATE_LOCAL_INSTALL 1
+#define FORCE_TEST_UPDATE_LOCAL_INSTALL 1
 #endif
 
 DECLSPEC_SELECTANY GUID FOLDERID_PublicDesktop = { 0xC4AA340D, 0xF20F, 0x4863, { 0xAF, 0xEF, 0xF8, 0x7E, 0xF2, 0xE6, 0xBA, 0x25 } };
@@ -86,7 +90,8 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG SetupCreateStartMenuShortcuts : 1;
             ULONG SetupCreateDesktopShortcut : 1;
             ULONG SetupShortcutOptionsInitialized : 1;
-            ULONG Spare : 21;
+            ULONG SetupDeferFinalize : 1; // keep the staged files' .bak backups until the caller finalizes/rolls back
+            ULONG Spare : 20;
         };
     };
 
@@ -106,6 +111,7 @@ typedef struct _PH_SETUP_CONTEXT
 
     PPH_STRING SessionId;
     PPH_STRING SetupBuildZipPath;
+    PPH_LIST SetupStagedFiles; // files committed by SetupExtractBuild (see SetupDeferFinalize)
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupParseCommandLine(
@@ -190,8 +196,16 @@ PPH_STRING SetupFindInstallDirectory(
     VOID
     );
 
+PPH_STRING SetupGetSessionId(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
 VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
+    );
+
+PPH_STRING SetupResolveInstallPath(
+    _In_ PPH_STRING DirectoryPath
     );
 
 NTSTATUS SetupUninstallDriver(
@@ -212,11 +226,23 @@ VOID SetupCreateWindowsOptions(
 VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
+VOID SetupDeleteAppCompatFlagsLayersEntry(
+    VOID
+    );
 BOOLEAN SetupHasTaskMgrDebuggerIfeo(
     VOID
     );
 NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
     _In_ PPH_SETUP_CONTEXT Context
+    );
+BOOLEAN SetupHasLaunchTMDebuggerIfeo(
+    VOID
+    );
+NTSTATUS SetupCreateLaunchTMDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+VOID SetupDeleteLaunchTMDebuggerIfeo(
+    VOID
     );
 BOOLEAN SetupHasAutoRunEntry(
     _Out_ PBOOLEAN Hidden
@@ -349,6 +375,18 @@ NTSTATUS SetupHashFile(
     _Out_writes_all_(256 / 8) PBYTE Buffer
     );
 
+NTSTATUS SetupCreateUpdateLock(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID SetupDeleteUpdateLock(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID SetupRecoverIncompleteUpdate(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
 // download.c
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
@@ -389,6 +427,14 @@ VOID SetupSetProgressValue(
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupExtractBuild(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID SetupFinalizeStagedFiles(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID SetupRollbackStagedFiles(
     _In_ PPH_SETUP_CONTEXT Context
     );
 

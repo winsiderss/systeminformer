@@ -184,6 +184,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOREADBYTES, FALSE, L"I/O read bytes", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOWRITEBYTES, FALSE, L"I/O write bytes", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOOTHERBYTES, FALSE, L"I/O other bytes", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOTOTALBYTES, FALSE, L"I/O total bytes", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOREADSDELTA, FALSE, L"I/O reads delta", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOWRITESDELTA, FALSE, L"I/O writes delta", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOOTHERDELTA, FALSE, L"I/O other delta", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
@@ -1949,10 +1950,7 @@ static VOID PhpUpdateProcessNodeShortUsername(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    if (sortResult == 0) \
-        sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId); \
-    \
-    return PhModifySort(sortResult, ProcessTreeListSortOrder); \
+    return PhpProcessTreeNewPostSortFunction(sortResult, node1, node2, ProcessTreeListSortOrder); \
 }
 
 _Function_class_(PH_CM_POST_SORT_FUNCTION)
@@ -1964,7 +1962,19 @@ LONG PhpProcessTreeNewPostSortFunction(
     )
 {
     if (Result == 0)
-        Result = intptrcmp((LONG_PTR)((PPH_PROCESS_NODE)Node1)->ProcessItem->ProcessId, (LONG_PTR)((PPH_PROCESS_NODE)Node2)->ProcessItem->ProcessId);
+    {
+        PPH_PROCESS_NODE node1 = Node1;
+        PPH_PROCESS_NODE node2 = Node2;
+
+        if (node1->ProcessItem->ProcessSequenceNumber && node2->ProcessItem->ProcessSequenceNumber)
+            Result = uint64cmp(node1->ProcessItem->ProcessSequenceNumber, node2->ProcessItem->ProcessSequenceNumber);
+
+        if (Result == 0 && node1->Node.Index != node2->Node.Index)
+            Result = uintcmp(node1->Node.Index, node2->Node.Index);
+
+        if (Result == 0)
+            Result = intptrcmp((LONG_PTR)node1->ProcessItem->ProcessId, (LONG_PTR)node2->ProcessItem->ProcessId);
+    }
 
     return PhModifySort(Result, SortOrder);
 }
@@ -1994,6 +2004,9 @@ BEGIN_SORT_FUNCTION(Cpu)
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeFloat, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number1);
     PhpAggregateFieldIfNeeded(node2, AggregateTypeFloat, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number2);
+
+    number1 = PhNormalizeCpuSortValue(number1 * 100);
+    number2 = PhNormalizeCpuSortValue(number2 * 100);
 
     sortResult = singlecmp(number1, number2);
 }
@@ -2537,13 +2550,29 @@ BEGIN_SORT_FUNCTION(IoOtherBytes)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(IoTotalBytes)
+{
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number2);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number2);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(IoReadsDelta)
 {
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
@@ -2554,8 +2583,8 @@ BEGIN_SORT_FUNCTION(IoWritesDelta)
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
@@ -2566,8 +2595,8 @@ BEGIN_SORT_FUNCTION(IoOtherDelta)
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
@@ -2817,7 +2846,16 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuCore)
 {
-    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+    FLOAT number1 = 0;
+    FLOAT number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeFloat, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeFloat, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number2);
+
+    number1 = PhNormalizeCpuSortValue(number1 * 100 * processItem1->AffinityPopulationCount);
+    number2 = PhNormalizeCpuSortValue(number2 * 100 * processItem2->AffinityPopulationCount);
+
+    sortResult = singlecmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2917,19 +2955,28 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuAverage)
 {
-    sortResult = singlecmp(processItem1->CpuAverageUsage, processItem2->CpuAverageUsage);
+    FLOAT number1 = PhNormalizeCpuSortValue(processItem1->CpuAverageUsage * 100);
+    FLOAT number2 = PhNormalizeCpuSortValue(processItem2->CpuAverageUsage * 100);
+
+    sortResult = singlecmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuKernel)
 {
-    sortResult = singlecmp(processItem1->CpuKernelUsage, processItem2->CpuKernelUsage);
+    FLOAT number1 = PhNormalizeCpuSortValue(processItem1->CpuKernelUsage * 100);
+    FLOAT number2 = PhNormalizeCpuSortValue(processItem2->CpuKernelUsage * 100);
+
+    sortResult = singlecmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuUser)
 {
-    sortResult = singlecmp(processItem1->CpuUserUsage, processItem2->CpuUserUsage);
+    FLOAT number1 = PhNormalizeCpuSortValue(processItem1->CpuUserUsage * 100);
+    FLOAT number2 = PhNormalizeCpuSortValue(processItem2->CpuUserUsage * 100);
+
+    sortResult = singlecmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -3203,6 +3250,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SORT_FUNCTION(MitigationPolicies),
                     SORT_FUNCTION(Services),
                     SORT_FUNCTION(ShortUserName),
+                    SORT_FUNCTION(IoTotalBytes),
                 };
                 _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
@@ -3308,7 +3356,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
                         PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
                         number *= 1000;
-                        number /= PhCsUpdateInterval;
+                        number /= PhProcessProviderElapsedMilliseconds;
                     }
 
                     if (number != 0)
@@ -3554,7 +3602,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
                         PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
                         number *= 1000;
-                        number /= PhCsUpdateInterval;
+                        number /= PhProcessProviderElapsedMilliseconds;
                     }
 
                     if (number != 0)
@@ -3576,7 +3624,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
                         number *= 1000;
-                        number /= PhCsUpdateInterval;
+                        number /= PhProcessProviderElapsedMilliseconds;
                     }
 
                     if (number != 0)
@@ -4004,6 +4052,21 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         PhMoveReference(&node->IoGroupText[5], PhFormatSize(value, ULONG_MAX));
                         getCellText->Text = node->IoGroupText[5]->sr;
+                    }
+                }
+                break;
+            case PHPRTLC_IOTOTALBYTES:
+                {
+                    ULONG64 value = 0;
+
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &value);
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &value);
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateProcessItem, processItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[9], PhFormatSize(value, ULONG_MAX));
+                        getCellText->Text = node->IoGroupText[9]->sr;
                     }
                 }
                 break;
@@ -4997,10 +5060,22 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         FLOAT total;
                         FLOAT max;
 
-                        for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                        if (PhCsEnableAvxSupport)
                         {
-                            node->PrivateGraphBuffers.Data1[i] =
-                                (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
+                            PhCopyConvertCircularBufferSizeT(&processItem->PrivateBytesHistory, node->PrivateGraphBuffers.Data1, drawInfo.LineDataCount);
+#ifdef DEBUG
+                            for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                            {
+                                assert(node->PrivateGraphBuffers.Data1[i] == (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i));
+                            }
+#endif
+                        }
+                        else
+                        {
+                            for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                            {
+                                node->PrivateGraphBuffers.Data1[i] = (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
+                            }
                         }
 
                         // This makes it easier for the user to see what processes are hogging memory.
@@ -5291,6 +5366,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IOREADBYTES:
             case PHPRTLC_IOWRITEBYTES:
             case PHPRTLC_IOOTHERBYTES:
+            case PHPRTLC_IOTOTALBYTES:
             case PHPRTLC_IOREADSDELTA:
             case PHPRTLC_IOWRITESDELTA:
             case PHPRTLC_IOOTHERDELTA:
@@ -5452,6 +5528,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 case PHPRTLC_IOOTHERBYTES:
                     PhpAggregateFieldTotal(node, AggregateTypeInt64, node->ProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number);
                     break;
+                case PHPRTLC_IOTOTALBYTES:
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, node->ProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, node->ProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, node->ProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number);
+                    break;
                 case PHPRTLC_IOREADSDELTA:
                     PhpAggregateFieldTotal(node, AggregateTypeInt64, node->ProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number);
                     break;
@@ -5529,7 +5610,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
 
                     number *= 1000;
-                    number /= PhCsUpdateInterval;
+                    number /= PhProcessProviderElapsedMilliseconds;
                     PhInitFormatSize(&format[0], number);
                     PhInitFormatS(&format[1], L"/s");
 
@@ -5550,6 +5631,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IOREADBYTES:
             case PHPRTLC_IOWRITEBYTES:
             case PHPRTLC_IOOTHERBYTES:
+            case PHPRTLC_IOTOTALBYTES:
             case PHPRTLC_PAGEDPOOL:
             case PHPRTLC_PEAKPAGEDPOOL:
             case PHPRTLC_NONPAGEDPOOL:

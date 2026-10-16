@@ -1,6 +1,11 @@
 #ifndef _FVEAPI_H
 #define _FVEAPI_H
 
+// Crypto handle and certificate types used by the FVE declarations below.
+#include <bcrypt.h>
+#include <ncrypt.h>
+#include <wincrypt.h>
+
 /**
  * Pointer to a constant byte.
  */

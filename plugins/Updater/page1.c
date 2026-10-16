@@ -60,12 +60,14 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
                 break;
             }
 
-            if (PhGetBuildReleaseChannel() != channel)
+            if (context->Channel != channel)
             {
                 context->Channel = channel;
-                context->SwitchingChannel = TRUE;
-                PhSetIntegerSetting(SETTING_RELEASE_CHANNEL, channel);
+                context->HaveData = FALSE; // drop update data cached for the previous channel
             }
+
+            context->SwitchingChannel = (PhGetBuildReleaseChannel() != channel);
+            PhSetIntegerSetting(SETTING_RELEASE_CHANNEL, channel);
         }
         break;
     }

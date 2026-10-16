@@ -24,8 +24,10 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 {
     PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
     NTSTATUS status;
+    BOOLEAN lockCreated = FALSE;
 
     context->SetupProgressActive = TRUE;
+    context->LastStatus = STATUS_SUCCESS; // clear any error from a previous attempt (Retry)
 
 #if !defined(PH_BUILD_API)
     SetupSetProgressText(context, L"Downloading update...", NULL);
@@ -38,7 +40,7 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 #endif
 
     //
-    // Create the folder.
+    // Create the target update folder.
     //
 
     SetupSetProgressMarquee(context, TRUE);
@@ -49,6 +51,21 @@ NTSTATUS CALLBACK SetupUpdateBuild(
         context->LastStatus = status;
         goto CleanupExit;
     }
+
+    //
+    // Roll back a previous interrupted update, then create the update lock. The lock stays until
+    // the update completes (or is rolled back) so a half-updated install can be detected.
+    //
+
+    SetupRecoverIncompleteUpdate(context);
+
+    if (!NT_SUCCESS(status = SetupCreateUpdateLock(context)))
+    {
+        context->LastStatus = status;
+        goto CleanupExit;
+    }
+
+    lockCreated = TRUE;
 
     //
     // Stop the application.
@@ -92,6 +109,16 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 
     SetupSetProgressText(context, L"Extracting updated files...", NULL);
 
+    //
+    // Keep the backups until the whole update succeeded so a later failure can still roll back.
+    //
+
+    context->SetupDeferFinalize = TRUE;
+
+    //
+    // Extract the update into the target directory.
+    //
+
     if (!NT_SUCCESS(status = SetupExtractBuild(context)))
     {
         context->LastStatus = status;
@@ -101,30 +128,41 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     //
     // Upgrade the settings file.
     //
+
     SetupSetProgressText(context, L"Updating settings...", NULL);
     SetupUpgradeSettingsFile();
 
     //
     // Convert the settings file.
     //
+
     SetupSetProgressText(context, L"Converting settings...", NULL);
     SetupConvertSettingsFile();
 
     //
     // Create the ARP uninstall config.
     //
+
     SetupSetProgressText(context, L"Updating uninstall registration...", NULL);
-    SetupCreateUninstallKey(Context);
+    if (!NT_SUCCESS(status = SetupCreateUninstallKey(Context)))
+    {
+        context->LastStatus = status;
+        goto CleanupExit;
+    }
+
+    SetupDeleteAppCompatFlagsLayersEntry();
 
     //
     // Create Windows Error Reporting config.
     //
+
     SetupSetProgressText(context, L"Updating LocalDumps configuration...", NULL);
     SetupCreateLocalDumpsKey();
 
     //
     // Create the application path config.
     //
+
     SetupSetProgressText(context, L"Updating Windows integration...", NULL);
     SetupCreateWindowsOptions(Context);
 
@@ -136,6 +174,17 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 
     SetupRepairAutoRunEntry(Context);
 
+    //
+    // The update succeeded: remove the backups, then the lock (last).
+    //
+
+    SetupFinalizeStagedFiles(context);
+    SetupDeleteUpdateLock(context);
+
+    //
+    // Show the update success page.
+    //
+
     SetupSetProgressText(context, L"Update complete.", NULL);
     SetupSetProgressValue(context, 100);
     context->SetupProgressActive = FALSE;
@@ -144,6 +193,15 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     return STATUS_SUCCESS;
 
 CleanupExit:
+
+    //
+    // Restore the previous version. The lock is removed only after the rollback.
+    //
+
+    SetupRollbackStagedFiles(context);
+
+    if (lockCreated)
+        SetupDeleteUpdateLock(context);
 
     SetupSetProgressText(context, L"Update failed.", NULL);
     context->SetupProgressActive = FALSE;
@@ -206,16 +264,33 @@ HRESULT CALLBACK SetupCompletedTaskDialogCallbackProc(
 )
 {
     PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
+    NTSTATUS status;
 
     switch (uMsg)
     {
-    case TDN_BUTTON_CLICKED:
+    case TDN_NAVIGATED:
         {
-            if ((INT)wParam == IDCLOSE)
+            SetupApplyDarkModeToPage(hwndDlg);
+
+            //
+            // Launch System Informer and close the setup. If the launch fails, show the
+            // error page (with Retry) instead of reporting success.
+            //
+
+            status = SetupExecuteApplication(context);
+
+            if (NT_SUCCESS(status))
             {
-                SetupExecuteApplication(context);
+                PostMessage(hwndDlg, TDM_CLICK_BUTTON, IDCLOSE, 0);
+            }
+            else
+            {
+                context->LastStatus = status;
+                PostMessage(hwndDlg, SETUP_SHOWUPDATEERROR, 0, 0);
             }
         }
+        break;
+    case TDN_BUTTON_CLICKED:
         break;
     }
 
@@ -254,6 +329,13 @@ HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
                 ShowUpdatePageDialog(context);
                 return S_FALSE;
             }
+
+            //
+            // The user closed the error page: the failed update was rolled back, so start the
+            // restored previous version.
+            //
+
+            SetupExecuteApplication(context);
         }
         break;
     }

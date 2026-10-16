@@ -14,6 +14,7 @@
 #include <mainwnd.h>
 
 #include <emenu.h>
+#include <phconsole.h>
 #include <verify.h>
 #include <phsettings.h>
 

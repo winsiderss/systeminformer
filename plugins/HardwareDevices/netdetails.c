@@ -527,13 +527,18 @@ VOID NetAdapterUpdateDetails(
         interfaceXmitSpeed = 0;
         Context->HaveFirstSample = TRUE;
     }
-    else
+    else if (NetRateIntervalMs != 0)
     {
         interfaceRcvSpeed *= 1000;
-        interfaceRcvSpeed /= NetUpdateInterval;
+        interfaceRcvSpeed /= NetRateIntervalMs;
 
         interfaceXmitSpeed *= 1000;
-        interfaceXmitSpeed /= NetUpdateInterval;
+        interfaceXmitSpeed /= NetRateIntervalMs;
+    }
+    else
+    {
+        interfaceRcvSpeed = 0;
+        interfaceXmitSpeed = 0;
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");

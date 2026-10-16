@@ -57,6 +57,13 @@ typedef struct _PH_TABNEW_CONTEXT
     HFONT Font;
     HIMAGELIST ImageList;
     HTHEME ThemeHandle;        // for PhTabNewSkinUxTheme
+    HDC BufferedContext;
+    HBITMAP BufferedOldBitmap;
+    HBITMAP BufferedBitmap;
+    RECT BufferedContextRect;
+    LONG EnableRedraw;
+    HRGN SuspendUpdateRegion;
+    HRGN UpdateScratchRegion; // scratch region reused while redraw is suspended (dmex)
     HBRUSH BackgroundBrush;
     HBRUSH ActiveBrush;
     HBRUSH WindowBackgroundBrush; // non-owned: theme window background (or BackgroundBrush fallback)
@@ -79,7 +86,8 @@ typedef struct _PH_TABNEW_CONTEXT
             ULONG HasFocus : 1;
             ULONG LayoutSuspended : 1;
             ULONG OwnFont : 1;
-            ULONG Spare : 24;
+            ULONG HasVirtualRect : 1;
+            ULONG Spare : 23;
         };
     };
 
@@ -102,7 +110,8 @@ typedef struct _PH_TABNEW_CONTEXT
     RECT DragInsertMarker;  // in client coords; empty when not shown
     HIMAGELIST DragImageList;
 
-    RECT CachedPageRect;       // last computed, in client coords
+    RECT VirtualRect;          // logical tab and page area, in caller coordinates
+    RECT CachedPageRect;       // last computed page area, in virtual or client coordinates
 } PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
 
 #define PH_TABNEW_DEFAULT_MIN_WIDTH     30
@@ -186,6 +195,24 @@ VOID PhTabNewPaint(
     _In_ PRECT ClientRect
     );
 
+VOID PhTabNewFillBackground(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PRECT ClientRect
+    );
+
+VOID PhTabNewOnPaint(
+    _In_ HWND WindowHandle,
+    _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+VOID PhTabNewOnPrintClient(
+    _In_ HWND WindowHandle,
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ ULONG Flags
+    );
+
 VOID PhTabNewPaintWin10(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
@@ -260,14 +287,6 @@ VOID PhTabNewUpdateDrag(
 VOID PhTabNewEndDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ BOOLEAN Cancel
-    );
-
-HBRUSH PhTabNewGetBackgroundBrush(
-    VOID
-    );
-
-VOID PhTabNewUpdateClassBackground(
-    _In_ HWND WindowHandle
     );
 
 COLORREF PhTabNewTextColor(

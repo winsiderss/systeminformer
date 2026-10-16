@@ -707,7 +707,7 @@ typedef struct _KPH_DYN_CONFIG
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Program.PrintErrorMessage(ex);
                 return false;
             }
 

@@ -4427,6 +4427,14 @@ PhGetFileIndexNumber(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileIsRemoteDevice(
+    _In_ HANDLE FileHandle,
+    _Out_ PBOOLEAN FileIsRemoteDevice
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetFileDelete(
     _In_ HANDLE FileHandle
     );

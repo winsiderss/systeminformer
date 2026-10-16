@@ -123,6 +123,11 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_CUSTOM_HEADERDRAW 0x400
 #define TN_STYLE_DRAG_REORDER_ROWS 0x800
 
+// Flags supported by the explicit runtime setter. Header implementation,
+// reordering, and custom-color changes remain creation-time choices.
+#define TN_STYLE_RUNTIME_MASK (TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | \
+    TN_STYLE_ANIMATE_DIVIDER | TN_STYLE_THIN_ROWS | TN_STYLE_ALWAYS_SHOW_SELECTION)
+
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
 #define TN_FLAG_NO_UNFOLDING_TOOLTIPS 0x2
@@ -185,6 +190,8 @@ typedef struct _PH_TREENEW_NODE
 
 // Auto-size flags
 #define TN_AUTOSIZE_REMAINING_SPACE 0x1
+#define TN_AUTOSIZE_VISIBLE_ROWS 0x2 // measure only rows intersecting the viewport
+#define TN_AUTOSIZE_SAMPLED_ROWS 0x4 // evenly sample at most 256 flattened rows
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
@@ -510,7 +517,21 @@ typedef struct _PH_TREENEW_GET_CELL_PARTS
 #define TNM_FOCUSMARKSELECT (WM_USER + 54)
 #define TNM_FOCUSVISIBLENODE (WM_USER + 55)
 #define TNM_GETCELLPARTS (WM_USER + 56)
-#define TNM_LAST (WM_USER + 57)
+#define TNM_SETSTYLEFLAGS (WM_USER + 57)
+#define TNM_GETSELECTEDNODES (WM_USER + 58)
+#define TNM_LAST (WM_USER + 58)
+
+typedef struct _PH_TREENEW_SELECTED_NODES
+{
+    ULONG Capacity;
+    ULONG Count; // total selected count, even when Capacity is insufficient
+    PPH_TREENEW_NODE *Nodes; // optional caller-owned array; pointers are borrowed
+} PH_TREENEW_SELECTED_NODES, *PPH_TREENEW_SELECTED_NODES;
+
+#define TreeNew_SetStyleFlags(hWnd, Mask, Value) \
+    ((BOOLEAN)SendMessage((hWnd), TNM_SETSTYLEFLAGS, (WPARAM)(Mask), (LPARAM)(Value)))
+#define TreeNew_GetSelectedNodes(hWnd, Snapshot) \
+    ((BOOLEAN)SendMessage((hWnd), TNM_GETSELECTEDNODES, 0, (LPARAM)(Snapshot)))
 
 #if defined(_PHLIB_)
 

@@ -1980,10 +1980,7 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
             dataBuffer = PhAllocatePageZero(dataLength);
 
             if (!dataBuffer)
-            {
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                break;
-            }
+                return STATUS_NO_MEMORY;
 
             if (RemoteMappedImage->ReadVirtualMemoryCallback)
             {
@@ -5191,7 +5188,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
                 return GetExceptionCode();
             }
 
-            richHeaderContentBuffer = PhAllocateZero(richHeaderContentLength);
+            richHeaderContentBuffer = PhAllocateZeroSafe(richHeaderContentLength);
 
             if (!richHeaderContentBuffer)
             {
@@ -8612,7 +8609,8 @@ NTSTATUS PhGetMappedImageSecurity(
     if (count == 0)
         return STATUS_NOT_FOUND;
 
-    entries = PhAllocate(count * sizeof(PH_IMAGE_SECURITY_ENTRY));
+    entries = PhAllocateSafe(count * sizeof(PH_IMAGE_SECURITY_ENTRY));
+    if (!entries) return STATUS_NO_MEMORY;
 
     // Second pass: fill the entry array.
 
@@ -8996,7 +8994,9 @@ NTSTATUS PhGetMappedImageWdacHash(
                 PVOID paddingBuffer;
 
                 paddingLength = PAGE_SIZE - offset;
-                paddingBuffer = PhAllocateZero(paddingLength);
+                paddingBuffer = PhAllocateZeroSafe(paddingLength);
+                if (!paddingBuffer)
+                    return STATUS_NO_MEMORY;
 
                 status = PhUpdateHash(&hashContext, paddingBuffer, paddingLength);
                 PhFree(paddingBuffer);

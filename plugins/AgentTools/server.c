@@ -26,12 +26,16 @@ static PPH_STRING AtpPipeName = NULL;
 static PSECURITY_DESCRIPTOR AtpPipeSecurityDescriptor = NULL;
 
 // S-1-15-2-1 ALL APPLICATION PACKAGES
-static struct
+static const union
 {
-    UCHAR Revision;
-    UCHAR SubAuthorityCount;
-    SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
-    ULONG SubAuthority[2];
+    struct
+    {
+        UCHAR Revision;
+        UCHAR SubAuthorityCount;
+        SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
+        ULONG SubAuthority[2];
+    };
+    SID Sid;
 } AtAllApplicationPackagesSid =
 {
     SID_REVISION,
@@ -109,12 +113,12 @@ NTSTATUS AtpCreatePipeSecurityDescriptor(
 
     labelSid = AllowSandboxedClients ? &AtpLowLabelSid : &AtpMediumLabelSid;
 
-    daclLength = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(accessSid);
+    daclLength = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(accessSid);
 
     if (AllowSandboxedClients)
-        daclLength += sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&AtAllApplicationPackagesSid);
+        daclLength += sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(&AtAllApplicationPackagesSid.Sid);
 
-    labelAceLength = FIELD_OFFSET(SYSTEM_MANDATORY_LABEL_ACE, SidStart) + RtlLengthSid(labelSid);
+    labelAceLength = FIELD_OFFSET(SYSTEM_MANDATORY_LABEL_ACE, SidStart) + PhLengthSid(labelSid);
     saclLength = sizeof(ACL) + labelAceLength;
 
     allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + daclLength + saclLength + labelAceLength;
@@ -123,27 +127,27 @@ NTSTATUS AtpCreatePipeSecurityDescriptor(
     sacl = PTR_ADD_OFFSET(dacl, daclLength);
     labelAce = PTR_ADD_OFFSET(sacl, saclLength);
 
-    if (!NT_SUCCESS(status = RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+    if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlCreateAcl(dacl, daclLength, ACL_REVISION)))
+    if (!NT_SUCCESS(status = PhCreateAcl(dacl, daclLength, ACL_REVISION)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_ALL_ACCESS, accessSid)))
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_ALL_ACCESS, accessSid)))
         goto CleanupExit;
 
     if (AllowSandboxedClients)
     {
-        if (!NT_SUCCESS(status = RtlAddAccessAllowedAce(
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(
             dacl,
             ACL_REVISION,
             FILE_GENERIC_READ | FILE_GENERIC_WRITE | SYNCHRONIZE,
-            &AtAllApplicationPackagesSid
+            &AtAllApplicationPackagesSid.Sid
             )))
         {
             goto CleanupExit;
         }
     }
 
-    if (!NT_SUCCESS(status = RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
+    if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
         goto CleanupExit;
 
     // Explicit label rather than relying on the default.
@@ -151,16 +155,16 @@ NTSTATUS AtpCreatePipeSecurityDescriptor(
     labelAce->Header.AceFlags = 0;
     labelAce->Header.AceSize = (USHORT)labelAceLength;
     labelAce->Mask = SYSTEM_MANDATORY_LABEL_NO_WRITE_UP;
-    memcpy(&labelAce->SidStart, labelSid, RtlLengthSid(labelSid));
+    memcpy(&labelAce->SidStart, labelSid, PhLengthSid(labelSid));
 
-    if (!NT_SUCCESS(status = RtlCreateAcl(sacl, saclLength, ACL_REVISION)))
+    if (!NT_SUCCESS(status = PhCreateAcl(sacl, saclLength, ACL_REVISION)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlAddAce(sacl, ACL_REVISION, MAXULONG, labelAce, labelAceLength)))
+    if (!NT_SUCCESS(status = PhAddAce(sacl, ACL_REVISION, MAXULONG, labelAce, labelAceLength)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlSetSaclSecurityDescriptor(securityDescriptor, TRUE, sacl, FALSE)))
+    if (!NT_SUCCESS(status = PhSetSaclSecurityDescriptor(securityDescriptor, TRUE, sacl, FALSE)))
         goto CleanupExit;
 
-    assert(RtlValidSecurityDescriptor(securityDescriptor));
+    assert(PhValidSecurityDescriptor(securityDescriptor));
 
 CleanupExit:
     if (NT_SUCCESS(status))
@@ -408,24 +412,21 @@ SIMCP_HELLO_STATUS AtpValidateBrokerImage(
     static CONST PH_STRINGREF brokerFileName = PH_STRINGREF_INIT(SIMCP_BROKER_FILE_NAME);
     SIMCP_HELLO_STATUS result = SimcpHelloRejectedInternal;
     PPH_STRING remoteFileName = NULL;
-    PPH_STRING directory = NULL;
     PPH_STRING expectedFileName = NULL;
 
-    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessHandle, &remoteFileName)))
+    if (!NT_SUCCESS(PhGetProcessImageFileName(ProcessHandle, &remoteFileName)))
         goto CleanupExit;
 
-    if (!(directory = PhGetApplicationDirectoryWin32()))
+    if (!(expectedFileName = PhGetApplicationDirectoryFileName(&brokerFileName, TRUE)))
         goto CleanupExit;
 
-    expectedFileName = PhConcatStringRef2(&directory->sr, &brokerFileName);
-
-    if (!PhEqualString(remoteFileName, expectedFileName, TRUE))
+    if (!PhEqualString(remoteFileName, expectedFileName, FALSE))
     {
         result = SimcpHelloRejectedImage;
         goto CleanupExit;
     }
 
-    if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, FALSE))
+    if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, TRUE))
     {
         result = SimcpHelloRejectedSignature;
         goto CleanupExit;
@@ -435,11 +436,12 @@ SIMCP_HELLO_STATUS AtpValidateBrokerImage(
 
     // The one image in the exchange that was checked rather than claimed.
     if (ImageName)
+    {
         *ImageName = PhReferenceObject(remoteFileName);
+    }
 
 CleanupExit:
     PhClearReference(&expectedFileName);
-    PhClearReference(&directory);
     PhClearReference(&remoteFileName);
 
     return result;
@@ -623,7 +625,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
         goto CleanupExit;
     }
 
-    if (!RtlEqualSid(clientUser.User.Sid, ownUser.User.Sid))
+    if (!PhEqualSid(clientUser.User.Sid, ownUser.User.Sid))
     {
         result = SimcpHelloRejectedUser;
         goto CleanupExit;

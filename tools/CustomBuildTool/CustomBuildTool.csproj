@@ -36,7 +36,7 @@
 		<SelfContained>true</SelfContained>
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<TrimUnusedDependencies>true</TrimUnusedDependencies>
-		<UseSystemResourceKeys>true</UseSystemResourceKeys>
+		<UseSystemResourceKeys>false</UseSystemResourceKeys>
 		<Version>5.0.0.0</Version>
 		<Nullable>disable</Nullable>
 		<EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
@@ -165,6 +165,7 @@
 		<Using Include="Windows.Win32.Security" />
 		<Using Include="Windows.Win32.Security.Cryptography" />
 		<Using Include="Windows.Win32.Storage.FileSystem" />
+		<Using Include="Windows.Win32.System.ApplicationInstallationAndServicing" />
 		<Using Include="Windows.Win32.System.Diagnostics.Debug" />
 		<Using Include="Windows.Win32.System.Memory" />
 		<Using Include="Windows.Win32.System.Registry" />

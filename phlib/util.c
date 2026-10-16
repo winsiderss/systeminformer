@@ -30,6 +30,10 @@
 #include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
+// devpkey.h has no include guard; some SDKs already include it via netioapi.h -> ntddndis.h
+#ifndef DEVPKEY_H_INCLUDED
+#include <devpkey.h>
+#endif
 
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
@@ -2069,24 +2073,65 @@ BOOLEAN PhGenerateRandomNumber(
  * \param Seed Receives the random seed.
  * \return TRUE if the random seed was generated, otherwise FALSE.
  */
+// clang requires the rdseed target feature for the intrinsic; callers must
+// check the processor feature before calling. (dmex)
+#if defined(__clang__) && !defined(_M_ARM64)
+__attribute__((target("rdseed")))
+#endif
 BOOLEAN PhGenerateRandomSeed(
     _Out_ PLARGE_INTEGER Seed
     )
 {
     memset(Seed, 0, sizeof(LARGE_INTEGER));
 
-//#ifndef _M_ARM64
-//    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
-//    {
-//#ifdef _M_X64
-//        if (_rdseed64_step(&Seed->QuadPart))
-//            return TRUE;
-//#else
-//        if (_rdseed32_step(&Seed->LowPart))
-//            return TRUE;
-//#endif
-//    }
-//#endif
+#ifdef _M_ARM64
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN randomSeedAvailable = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        // Detect instruction availability, even if entropy is temporarily unavailable.
+        __try
+        {
+            ULONG64 value;
+
+            PhArm64ReadRandomNumber64(&value);
+            randomSeedAvailable = TRUE;
+        }
+        __except (
+            GetExceptionCode() == STATUS_ILLEGAL_INSTRUCTION ||
+            GetExceptionCode() == STATUS_PRIVILEGED_INSTRUCTION
+            ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH
+            )
+        {
+            NOTHING;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (randomSeedAvailable)
+    {
+        ULONG64 value;
+
+        if (PhArm64ReadRandomNumber64(&value))
+        {
+            Seed->QuadPart = value;
+            return TRUE;
+        }
+    }
+#else
+    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+    {
+#ifdef _M_X64
+        if (_rdseed64_step(&Seed->QuadPart))
+            return TRUE;
+#else
+        if (_rdseed32_step(&Seed->LowPart))
+            return TRUE;
+#endif
+    }
+#endif
 
     return PhQueryPerformanceCounter(Seed);
 }
@@ -2201,6 +2246,7 @@ PPH_STRING PhIncrementCorrelationVector(
 
     return PhZeroExtendToUtf16(Context->Vector.Vector);
 #else
+    PH_FORMAT format[3];
     LONG newIndex;
 
     if (PhIsNullOrEmptyString(Context->BaseVector))
@@ -2208,11 +2254,11 @@ PPH_STRING PhIncrementCorrelationVector(
 
     newIndex = _InterlockedIncrement(&Context->CurrentIndex);
 
-    return PhFormatString(
-        L"%s.%lu",
-        Context->BaseVector->Buffer,
-        (ULONG)newIndex
-        );
+    PhInitFormatSR(&format[0], Context->BaseVector->sr);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], (ULONG)newIndex);
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 #endif
 }
 
@@ -4806,6 +4852,82 @@ PPH_STRING PhGetSystemDirectoryWin32(
     }
 
     return PhConcatStringRef2(&systemRootString, &system32String);
+}
+
+/**
+ * Retrieves the build string of the current operating system.
+ *
+ * \return A string in the format "Major.Minor.Build.UBR", or "Major.Minor.Build"
+ * if the update build revision is unavailable.
+ */
+PPH_STRING PhGetWindowsBuildString(
+    VOID
+    )
+{
+    RTL_OSVERSIONINFOEX3 versionInfo;
+    USHORT layerCount = 1;
+    BOOLEAN found = FALSE;
+    ULONG majorVersion = PhOsVersion.MajorVersion;
+    ULONG minorVersion = PhOsVersion.MinorVersion;
+    ULONG buildNumber = PhOsVersion.BuildNumber;
+    ULONG updateBuildRevision = 0;
+    PH_FORMAT format[7];
+    ULONG count = 0;
+
+    // Query the top-level build layer for current version information.
+    // RTL_OSVERSIONINFOEX3 is only supported on newer builds.
+    for (USHORT i = 0; i < layerCount; i++)
+    {
+        memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEX3));
+        versionInfo.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX3);
+        versionInfo.Input.LayerNumber = i;
+        versionInfo.Input.AttribSelector = RTL_OSVERSIONINFO_ATTRIB_LAYER_NAME;
+
+        if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
+            break;
+
+        if (versionInfo.IsTopLevel)
+        {
+            majorVersion = versionInfo.MajorVersion;
+            minorVersion = versionInfo.MinorVersion;
+            buildNumber = versionInfo.BuildNumber;
+            updateBuildRevision = versionInfo.QfeNumber;
+            found = TRUE;
+            break;
+        }
+
+        layerCount = versionInfo.LayerCount;
+    }
+
+    // Fall back to RTL_OSVERSIONINFOEX for major/minor/build (no UBR).
+    if (!found)
+    {
+        RTL_OSVERSIONINFOEX versionInfoEx;
+
+        memset(&versionInfoEx, 0, sizeof(RTL_OSVERSIONINFOEX));
+        versionInfoEx.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX);
+
+        if (NT_SUCCESS(RtlGetVersion(&versionInfoEx)))
+        {
+            majorVersion = versionInfoEx.MajorVersion;
+            minorVersion = versionInfoEx.MinorVersion;
+            buildNumber = versionInfoEx.BuildNumber;
+        }
+    }
+
+    PhInitFormatU(&format[count++], majorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], minorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], buildNumber);
+
+    if (updateBuildRevision)
+    {
+        PhInitFormatC(&format[count++], L'.');
+        PhInitFormatU(&format[count++], updateBuildRevision);
+    }
+
+    return PhFormat(format, count, 0);
 }
 
 /**
@@ -11223,13 +11345,75 @@ CleanupExit:
  *
  * RtlDelayExecution:
  * - Wraps NtDelayExecution/ZwDelayExecution and adds additional logic before and after the system call.
- * - Spin-Wait Optimization: If the delay interval is zero (i.e., a "yield" or very short sleep), and certain internal
- * configuration variables are set, it may perform a short spin-wait (using _mm_pause()) before calling the system call.
- * This is to avoid excessive context switches and improve performance for very short waits.
- * - Performance Counter Tracking: Uses RtlQueryPerformanceCounter to track the time since the last sleep and adjust spin-waiting accordingly.
- * - TEB State Tracking: Updates fields in the thread environment block (TEB), such as SpinCallCount and LastSleepCounter, to manage spin-wait heuristics.
- * - Adaptive Backoff: The amount of spin-waiting can increase if the thread is calling delay execution in rapid succession, up to a configured maximum.
- * - Resets Spin Count on Real Wait: if the delay was not interrupted (STATUS_ALERTED), resets the spin count.
+ * - SMT Yield Backoff: The _mm_pause() spin-wait before the system call is not a general optimization to avoid
+ * context switches. It only happens when the delay interval is zero (a yield), after N back-to-back failed yields
+ * (STATUS_NO_YIELD_PERFORMED) inside a time window, and only when the Session Manager Smt* registry values are set:
+ * SmtDelayBaseYield/SmtFactorYield (the feature is off when both are zero/absent), SmtDelaySpinCountThreshold (N),
+ * SmtDelaySleepLoopWindowSize (the QPC window since the previous call) and SmtDelayMaxYield.
+ * Its purpose is to stop a hyper-threaded (SMT) sibling core being starved by a thread that keeps retrying Sleep(0)
+ * or SwitchToThread. It does not replace the context switch: the system call is always made afterwards.
+ * - Adaptive Backoff: The pause count grows by SmtFactorYield per additional call, starting at SmtDelayBaseYield and
+ * bounded by SmtDelayMaxYield, scaled by KUSER_SHARED_DATA->CyclesPerYield.
+ * - TEB State Tracking: Uses TEB->SpinCallCount and TEB->LastSleepCounter (RtlQueryPerformanceCounter) for the heuristics.
+ * - Spin Count Reset: TEB->SpinCallCount is reset whenever the status is not STATUS_NO_YIELD_PERFORMED.
+ *
+ * At process start, LdrpInitializeSmtDelayedSleep reads five values from
+ * HKLM\\System\\CurrentControlSet\\Control\\Session Manager:
+ * - SmtDelaySleepLoopWindowSize: Only zero-length delays called within this many QPC ticks of the previous one count as a spin loop.
+ * - SmtDelaySpinCountThreshold: How many back-to-back failed yields before throttling starts.
+ * - SmtDelayBaseYield: Starting length of the pause.
+ * - SmtFactorYield: How much longer the pause gets with each further failed yield.
+ * - SmtDelayMaxYield: Upper limit on the pause.
+ *
+ * If both SmtDelayBaseYield and SmtFactorYield are 0 (absent), the feature is off and the function behaves like
+ * plain NtDelayExecution. The pause length is converted to a number of pause instructions using
+ * KUSER_SHARED_DATA->CyclesPerYield.
+ *
+ * \remarks Timing impact of the SMT yield backoff (derived from the RtlDelayExecution disassembly, not measured).
+ *
+ * Not affected:
+ * - Any non-zero delay (Sleep(n), RtlDelayExecution(n) with n > 0). The first test is *DelayInterval == 0;
+ * any other value goes straight to NtDelayExecution, so timing a Sleep(n) against QPC/RDTSC is unchanged.
+ * - Direct NtDelayExecution or NtYieldExecution calls. They go straight to the kernel and never reach the backoff.
+ * - Systems where SmtDelayBaseYield and SmtFactorYield are both zero/absent (plain pass-through).
+ *
+ * Affected, only when the feature is enabled and only for zero-interval calls (Sleep(0), SwitchToThread,
+ * PhSwitchToThread, PhDelayExecution(0)):
+ * - Code that times Sleep(0)/SwitchToThread in a tight loop. After SmtDelaySpinCountThreshold consecutive failed
+ * yields inside the window, each call gets a growing run of pause instructions, up to SmtDelayMaxYield. Per-call
+ * latency rises and then levels off. Since the backoff only builds while yields keep failing, it mostly shows
+ * on an idle core with nothing else ready to run.
+ * - Anti-debug, sandbox or VM checks that measure Sleep(0)/SwitchToThread timing may see inflated or uneven
+ * numbers and misread them as a debugger or emulator. On SMT hardware the pause bursts also change how much the
+ * sibling core runs, which can skew cross-core contention measurements.
+ * - Benchmarks that use Sleep(0) as a cheap yield inside the measured loop pick up extra time on an idle core.
+ * - Spin-then-yield locks (.NET SpinWait/Thread.Yield, game-engine spin locks, lock-free retry loops). When the
+ * holder runs on another core the yield keeps failing, so the backoff builds; on release the waiter may be
+ * partway through a pause run of up to SmtDelayMaxYield, adding acquire latency that older Windows did not have.
+ * - Polling loops (audio, input, network) that poll with Sleep(0) get extra, machine-dependent jitter. The delay
+ * depends on TEB state (SpinCallCount, LastSleepCounter) left by earlier calls on the same thread.
+ * - Virtual machines: hypervisor pause-loop exiting (PLE) treats long pause bursts as a spinning vCPU and may
+ * deschedule it, so a short yield could become a latency spike far longer than the intended pause. Whether this
+ * happens depends on the PLE window/gap settings and CyclesPerYield (unverified).
+ * - CPU accounting and profiling: the pause loop runs in user mode, so it counts as user CPU time and thread
+ * cycle time attributed to ntdll!RtlDelayExecution, where older Windows showed mostly system-call/kernel time.
+ * Per-thread context-switch and system-call counts drop, so heuristics that use "many NtDelayExecution calls"
+ * as a busy-yield signal see different numbers. Thread CPU/cycle figures for processes stuck in yield loops
+ * will look higher on Windows 11 than on Windows 10 for the same behavior.
+ * - Priority starvation is unchanged: a zero-length delay still only yields to threads ready on the current
+ * processor, so a starved lower-priority lock holder is not helped, and each loop iteration now takes longer.
+ * - Inconsistent behavior: the settings are read once per process at ntdll initialization, so behavior differs
+ * across machines and only a process restart picks up a registry change. NtDelayExecution bypasses the backoff
+ * while Sleep/SwitchToThread do not, so two seemingly equivalent code paths can time differently.
+ *
+ * Benefit: on SMT hardware, a thread repeatedly failing to yield used to issue a stream of system calls that took
+ * execution resources from its sibling core. The pause runs give those resources back and likely use less power
+ * than looping through the kernel.
+ *
+ * Within System Informer: clockdrift_test and the dbgcon lock benchmarks spin with YieldProcessor(), not Sleep(0),
+ * so they are unaffected. SwitchToThread can be throttled, but nothing measures its timing.
+ * For a zero-length yield with no throttling (e.g. in a timing tool), call NtDelayExecution or NtYieldExecution
+ * directly instead of RtlDelayExecution.
  */
 NTSTATUS PhDelayExecutionEx(
     _In_ BOOLEAN Alertable,
@@ -11251,11 +11435,9 @@ NTSTATUS PhDelayExecutionEx(
  * the thread is suspended indefinitely. Otherwise, the delay is converted to a negative relative interval
  * in 100-nanosecond units and passed to PhDelayExecutionEx.
  *
- * \note
- * On Windows 11 and later, PhDelayExecutionEx uses RtlDelayExecution, which provides improved behavior
- * for short waits and better compatibility with future Windows updates.
  * \param Milliseconds The number of milliseconds to delay. Use INFINITE to wait indefinitely.
  * \return An NTSTATUS code indicating success or failure of the delay operation.
+ * \note PhDelayExecution(0) behaves like SwitchToThread on Windows 11 and later (see PhDelayExecutionEx).
  */
 NTSTATUS PhDelayExecution(
     _In_ ULONG Milliseconds

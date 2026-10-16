@@ -22,7 +22,6 @@
 #include "updater.h"
 
 #include <roapi.h>
-#include <asyncinfo.h>
 #include <wrl.h>
 #include <windows.services.store.h>
 #include <windows.applicationmodel.h>
@@ -32,70 +31,6 @@ using Microsoft::WRL::ComPtr;
 // Single-flight stash of the pending Store update set between the check and the
 // installation step. The updater shows one modal flow at a time. (dmex)
 ComPtr<__FIVectorView_1_Windows__CServices__CStore__CStorePackageUpdate> UpdaterMsixStoreUpdates;
-
-/**
- * \brief Blocks the calling (worker) thread until a Windows Runtime asynchronous
- * operation completes, fails, or is cancelled.
- *
- * \param Context The updater context (for cancellation), or NULL.
- * \param AsyncOperation The IInspectable-derived async operation pointer.
- * \return HRESULT Successful or errant status.
- */
-HRESULT UpdaterMsixAwait(
-    _In_opt_ PPH_UPDATER_CONTEXT Context,
-    _In_ PVOID AsyncOperation
-    )
-{
-    HRESULT status;
-    ComPtr<IAsyncInfo> asyncInfo;
-    BOOLEAN requestedCancel = FALSE;
-
-    status = static_cast<IUnknown*>(AsyncOperation)->QueryInterface(IID_PPV_ARGS(&asyncInfo));
-
-    if (HR_FAILED(status))
-        return status;
-
-    while (TRUE)
-    {
-        AsyncStatus asyncStatus = Started;
-
-        status = asyncInfo->get_Status(&asyncStatus);
-
-        if (HR_FAILED(status))
-            break;
-
-        if (asyncStatus != Started)
-        {
-            if (asyncStatus == Completed)
-            {
-                status = S_OK;
-            }
-            else if (asyncStatus == Canceled)
-            {
-                status = HRESULT_FROM_WIN32(ERROR_CANCELLED);
-            }
-            else // Error
-            {
-                HRESULT errorCode = E_FAIL;
-
-                asyncInfo->get_ErrorCode(&errorCode);
-                status = HR_FAILED(errorCode) ? errorCode : E_FAIL;
-            }
-
-            break;
-        }
-
-        if (Context && Context->Cancel && !requestedCancel)
-        {
-            requestedCancel = TRUE;
-            asyncInfo->Cancel();
-        }
-
-        PhDelayExecution(100);
-    }
-
-    return status;
-}
 
 /**
  * \brief Clears the stashed Store update set.
@@ -152,6 +87,8 @@ HRESULT UpdaterMsixCheckStoreUpdates(
     ComPtr<__FIVectorView_1_Windows__CServices__CStore__CStorePackageUpdate> updates;
     UINT32 updateCount = 0;
 
+    UNREFERENCED_PARAMETER(Context);
+
     *UpdateAvailable = FALSE;
 
     status = PhGetActivationFactory(
@@ -174,12 +111,13 @@ HRESULT UpdaterMsixCheckStoreUpdates(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    status = UpdaterMsixAwait(Context, asyncOperation.Get());
-
-    if (HR_FAILED(status))
-        goto CleanupExit;
-
-    status = asyncOperation->GetResults(updates.GetAddressOf());
+    status = PhWaitForAsyncOperation(
+        asyncOperation.Get(),
+        __uuidof(__FIAsyncOperationCompletedHandler_1___FIVectorView_1_Windows__CServices__CStore__CStorePackageUpdate),
+        nullptr,
+        nullptr,
+        updates.GetAddressOf()
+        );
 
     if (HR_FAILED(status))
         goto CleanupExit;
@@ -220,6 +158,8 @@ static HRESULT UpdaterMsixCheckPackageUpdate(
     ComPtr<__x_ABI_CWindows_CApplicationModel_CIPackageUpdateAvailabilityResult> result;
     ABI::Windows::ApplicationModel::PackageUpdateAvailability availability = ABI::Windows::ApplicationModel::PackageUpdateAvailability::PackageUpdateAvailability_Unknown;
 
+    UNREFERENCED_PARAMETER(Context);
+
     *UpdateAvailable = FALSE;
 
     status = PhGetActivationFactory(
@@ -247,12 +187,13 @@ static HRESULT UpdaterMsixCheckPackageUpdate(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    status = UpdaterMsixAwait(Context, asyncOperation.Get());
-
-    if (HR_FAILED(status))
-        goto CleanupExit;
-
-    status = asyncOperation->GetResults(result.GetAddressOf());
+    status = PhWaitForAsyncOperation(
+        asyncOperation.Get(),
+        __uuidof(__FIAsyncOperationCompletedHandler_1_Windows__CApplicationModel__CPackageUpdateAvailabilityResult),
+        nullptr,
+        nullptr,
+        result.GetAddressOf()
+        );
 
     if (HR_FAILED(status))
         goto CleanupExit;
@@ -292,6 +233,7 @@ NTSTATUS UpdaterMsixCheckForUpdates(
 
     // Prefer the Store servicing path. If the package isn't Store-registered
     // (factory missing, no license, etc.) fall back to the AppInstaller query.
+
     status = UpdaterMsixCheckStoreUpdates(Context, &available);
 
     if (HR_FAILED(status))
@@ -323,6 +265,8 @@ NTSTATUS UpdaterMsixDownloadAndInstall(
     ComPtr<__FIAsyncOperationWithProgress_2_Windows__CServices__CStore__CStorePackageUpdateResult_Windows__CServices__CStore__CStorePackageUpdateStatus> asyncOperation;
     ComPtr<__x_ABI_CWindows_CServices_CStore_CIStorePackageUpdateResult> result;
     ABI::Windows::Services::Store::StorePackageUpdateState updateState = ABI::Windows::Services::Store::StorePackageUpdateState::StorePackageUpdateState_Pending;
+
+    UNREFERENCED_PARAMETER(Context);
 
     // No stashed Store update set means we came through the AppInstaller path;
     // Windows applies the .appinstaller update automatically on next launch.
@@ -365,12 +309,14 @@ NTSTATUS UpdaterMsixDownloadAndInstall(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    status = UpdaterMsixAwait(Context, asyncOperation.Get());
-
-    if (HR_FAILED(status))
-        goto CleanupExit;
-
-    status = asyncOperation->GetResults(result.GetAddressOf());
+    status = PhWaitForAsyncOperationWithProgress(
+        asyncOperation.Get(),
+        __uuidof(__FIAsyncOperationWithProgressCompletedHandler_2_Windows__CServices__CStore__CStorePackageUpdateResult_Windows__CServices__CStore__CStorePackageUpdateStatus),
+        nullptr,
+        nullptr,
+        nullptr,
+        result.GetAddressOf()
+        );
 
     if (HR_FAILED(status))
         goto CleanupExit;

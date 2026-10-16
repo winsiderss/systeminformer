@@ -27,7 +27,14 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLENPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLESYSINFOGRAPHS), PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFAHRENHEITTEMP), PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT) ? BST_CHECKED : BST_UNCHECKED);
+            {
+                static PCWSTR TemperatureUnitStrings[] = { L"Auto", L"Celsius", L"Fahrenheit" };
+                HWND temperatureUnitHandle = GetDlgItem(WindowHandle, IDC_TEMPERATUREUNIT);
+                ULONG temperatureUnit = PhGetIntegerSetting(SETTING_NAME_TEMPERATURE_UNIT);
+
+                PhAddComboBoxStrings(temperatureUnitHandle, TemperatureUnitStrings, RTL_NUMBER_OF(TemperatureUnitStrings));
+                ComboBox_SetCurSel(temperatureUnitHandle, temperatureUnit < RTL_NUMBER_OF(TemperatureUnitStrings) ? temperatureUnit : 0);
+            }
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFPSMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUADAPTERSTATS), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_ADAPTER_STATS) ? BST_CHECKED : BST_UNCHECKED);
         }
@@ -38,7 +45,11 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLENPUMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
-            PhSetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFAHRENHEITTEMP)) == BST_CHECKED);
+            {
+                INT temperatureUnit = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_TEMPERATUREUNIT));
+
+                PhSetIntegerSetting(SETTING_NAME_TEMPERATURE_UNIT, temperatureUnit != CB_ERR ? temperatureUnit : 0);
+            }
             PhSetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFPSMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_ADAPTER_STATS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUADAPTERSTATS)) == BST_CHECKED);
         }

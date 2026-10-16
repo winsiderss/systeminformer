@@ -683,6 +683,29 @@ PhfSetEvent(
     _Inout_ PPH_EVENT Event
     );
 
+/**
+ * Waits until an address no longer contains a specified value.
+ *
+ * \param Address Address of an aligned 1, 2, 4, or 8 byte value.
+ * \param CompareAddress Address of the undesired value, which is copied before waiting.
+ * \param AddressSize Size of the value in bytes.
+ * \param Timeout An optional NT relative or absolute timeout.
+ * \return STATUS_SUCCESS when the value differs, STATUS_TIMEOUT when the deadline
+ * expires while the value still matches, or an error from RtlWaitOnAddress.
+ * \remarks Spurious wakes are retried, and relative timeouts cover the entire
+ * wait rather than restarting after each wake. The caller must signal a change
+ * with RtlWakeAddressSingle or RtlWakeAddressAll.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitOnAddress(
+    _In_reads_bytes_(AddressSize) volatile VOID *Address,
+    _In_reads_bytes_(AddressSize) PVOID CompareAddress,
+    _In_ SIZE_T AddressSize,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
 PHLIBAPI
 BOOLEAN
 FASTCALL

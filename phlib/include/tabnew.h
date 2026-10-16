@@ -39,7 +39,6 @@ PhTabNewInitialization(
 
 // Runtime flags
 #define PHTNF_THIN_TABS   0x00000001  // use native common-control tab metrics
-#define PHTNF_MICA_STRIP  0x00000002  // leave the tab strip transparent for the Mica backdrop
                                       // (TNS_TOP only; the parent must extend the window frame
                                       // over the strip, see PhSetWindowFrameMargins)
 
@@ -239,6 +238,8 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((PPH_TABNEW_PAGE)PhTabNewSendMessage((hwnd), PHTNM_GETCURRENTPAGE, 0, 0))
 #define PhTabNew_SetFlags(hwnd, flags) \
     ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_SETFLAGS, (WPARAM)(flags), 0))
+#define PhTabNew_GetFlags(hwnd) \
+    ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_GETFLAGS, 0, 0))
 #define PhTabNew_SelectPage(hwnd, page) \
     ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SELECTPAGE, (WPARAM)(page), 0))
 

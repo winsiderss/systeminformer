@@ -32,10 +32,12 @@ PhCreateSearchControlEx(
     _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,
     _In_ PCWSTR SearchButtonActiveResource,
-    _In_ PCWSTR CaseButtonResource,
     _In_ PCWSTR RegexButtonResource,
+    _In_ PCWSTR CaseButtonResource,
+    _In_opt_ PCWSTR FuzzyButtonResource,
     _In_ PCWSTR RegexSetting,
     _In_ PCWSTR CaseSetting,
+    _In_ PCWSTR FuzzySetting,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );

@@ -782,6 +782,10 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
 #define IMAGE_DEBUG_TYPE_PERFMAP 21
 #endif
 
+#ifndef IMAGE_DEBUG_TYPE_REPRO
+#define IMAGE_DEBUG_TYPE_REPRO 16
+#endif
+
 typedef struct _IMAGE_DEBUG_TYPE_PERFMAPV1
 {
     ULONG Magic; // 0x4D523252
@@ -840,6 +844,12 @@ PhGetMappedImageDebugEntryByType(
     _Out_opt_ ULONG* DataLength,
     _Out_opt_ PVOID* DataBuffer
     );
+
+typedef struct _IMAGE_DEBUG_REPRO_ENTRY
+{
+    ULONG Length;
+    BYTE Buffer[1];
+} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
 
 // maplib
 

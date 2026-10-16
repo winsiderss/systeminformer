@@ -107,7 +107,7 @@ namespace CustomBuildTool
             try
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest"))
-                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
+                using (var response = await BuildHttpClient.SendRequestMessage(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -120,7 +120,7 @@ namespace CustomBuildTool
                 }
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/tags?per_page=1"))
-                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
+                using (var response = await BuildHttpClient.SendRequestMessage(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -157,7 +157,7 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(Lib.VersionPattern))
                 return null;
 
-            string headerPath = Path.Combine(ThirdPartyDirectory, Lib.HeaderFile);
+            string headerPath = Path.Join([ThirdPartyDirectory, Lib.HeaderFile]);
             if (!File.Exists(headerPath))
                 return null;
 

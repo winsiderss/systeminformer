@@ -4,6 +4,7 @@
 #include "../exttools.h"
 #include "../framemon.h"
 #include "PresentMon.hpp"
+#include <atomic>
 
 // Process terminations still presenting are considered stale after this long.
 #define ET_FPS_STALE_PROCESS_TIMEOUT (10 * 1000)
@@ -11,7 +12,7 @@
 static HANDLE OutputThreadHandle = nullptr;
 static HANDLE ConsumerThreadHandle = nullptr;
 static HANDLE OutputWakeEvent = nullptr;
-static LONG QuitOutputThread = 0;
+static std::atomic<bool> QuitOutputThread{ false };
 static std::unordered_map<ULONG, ProcessInfo> ProcessesHashTable;
 
 static ProcessInfo* GetProcessInfo(
@@ -429,7 +430,7 @@ NTSTATUS PresentMonOutputThread(
     presentEvents.reserve(4096);
     terminatedProcesses.reserve(16);
 
-    while (!QuitOutputThread)
+    while (!QuitOutputThread.load(std::memory_order_seq_cst))
     {
         // Copy and process all the collected events, and update the various tracking and statistics data structures.
         ProcessEvents(&presentEvents, &terminatedProcesses); // lostPresentEvents
@@ -438,14 +439,14 @@ NTSTATUS PresentMonOutputThread(
         EtClearGpuFrameHashTable();
         for (auto const& pair : ProcessesHashTable)
         {
-            if (QuitOutputThread)
+            if (QuitOutputThread.load(std::memory_order_seq_cst))
                 break;
 
             PresentMonUpdateProcessStats(pair.first, pair.second);
         }
         EtUnlockGpuFrameHashTable();
 
-        if (QuitOutputThread)
+        if (QuitOutputThread.load(std::memory_order_seq_cst))
             break;
 
         // Update tracking information.
@@ -454,7 +455,7 @@ NTSTATUS PresentMonOutputThread(
         // Report ETW event loss (DEBUG builds only).
         EtFramesQueryEtwStatus();
 
-        if (QuitOutputThread)
+        if (QuitOutputThread.load(std::memory_order_seq_cst))
             break;
 
         // Wait until the next process-provider update signals us (see
@@ -512,7 +513,7 @@ VOID SignalStopFpsThreads(
     VOID
     ) noexcept
 {
-    InterlockedExchange(&QuitOutputThread, 1);
+    QuitOutputThread.store(true, std::memory_order_seq_cst);
 
     // Wake the output thread so its wait returns immediately instead of running
     // out the one-second timeout.
@@ -526,14 +527,14 @@ BOOLEAN IsFpsTraceStopping(
     VOID
     )
 {
-    return QuitOutputThread != 0;
+    return QuitOutputThread.load(std::memory_order_seq_cst);
 }
 
 VOID EtFramesSignalUpdate(
     VOID
     )
 {
-    if (OutputWakeEvent && !QuitOutputThread)
+    if (OutputWakeEvent && !QuitOutputThread.load(std::memory_order_seq_cst))
     {
         NtSetEvent(OutputWakeEvent, nullptr);
     }
@@ -569,13 +570,13 @@ static NTSTATUS PresentMonTraceThread(
     PhSetThreadName(NtCurrentThread(), L"FpsEtwConsumerThread");
     PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
-    while (!QuitOutputThread)
+    while (!QuitOutputThread.load(std::memory_order_seq_cst))
     {
         // ProcessTrace blocks delivering events until the session is stopped
         // (CloseTrace unblocks it during shutdown) or the session is lost.
         ProcessTrace(&traceHandle, 1, nullptr, nullptr);
 
-        if (QuitOutputThread)
+        if (QuitOutputThread.load(std::memory_order_seq_cst))
             break;
 
         // The session ended unexpectedly (e.g. stopped by another controller).
@@ -584,7 +585,7 @@ static NTSTATUS PresentMonTraceThread(
         // without leaking the old trace handle.
         PhDelayExecution(1000);
 
-        if (QuitOutputThread)
+        if (QuitOutputThread.load(std::memory_order_seq_cst))
             break;
 
         traceHandle = RestartFpsTraceSession();
@@ -606,7 +607,7 @@ VOID StartConsumerThread(
 
         // Reset the shutdown flag here (before either worker thread is created)
         // so the monitor can be stopped and restarted without an app restart.
-        InterlockedExchange(&QuitOutputThread, 0);
+        QuitOutputThread.store(false, std::memory_order_seq_cst);
 
         if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(TraceHandle))))
         {
@@ -620,7 +621,7 @@ VOID WaitForConsumerThreadToExit(
     VOID
     )
 {
-    InterlockedExchange(&QuitOutputThread, 1);
+    QuitOutputThread.store(true, std::memory_order_seq_cst);
 
     if (ConsumerThreadHandle)
     {

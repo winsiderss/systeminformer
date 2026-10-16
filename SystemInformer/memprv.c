@@ -546,7 +546,7 @@ VOID PhpUpdateHeapRegions(
         numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
-    if ((SIZE_T)numberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    if ((SIZE_T)numberOfHeaps > (SIZE_MAX - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
     {
         RtlDestroyQueryDebugBuffer(debugBuffer);
         return;
@@ -1324,91 +1324,134 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhpUpdateMemoryWsCounters(
+static VOID PhpProcessMemoryWsExInformation(
+    _In_reads_(NumberOfEntries) PMEMORY_WORKING_SET_EX_INFORMATION Information,
+    _In_reads_(NumberOfEntries) PPH_MEMORY_ITEM *MemoryItems,
+    _In_ SIZE_T NumberOfEntries
+    )
+{
+    SIZE_T i;
+
+    for (i = 0; i < NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_EX_BLOCK block = &Information[i].VirtualAttributes;
+        PPH_MEMORY_ITEM memoryItem = MemoryItems[i];
+
+        if (!block->Valid)
+            continue;
+
+        if (block->Locked)
+            memoryItem->LockedWorkingSetPages++;
+        if (block->Priority > memoryItem->Priority)
+            memoryItem->Priority = block->Priority;
+
+        if (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE))
+        {
+            if (block->SharedOriginal)
+                memoryItem->SharedOriginalPages++;
+            else
+                memoryItem->ModifiedWorkingSetPages++;
+        }
+    }
+}
+
+NTSTATUS PhpUpdateMemoryWsCountersEx(
     _In_ PPH_MEMORY_ITEM_LIST List,
     _In_ HANDLE ProcessHandle
     )
 {
-    PLIST_ENTRY listEntry;
-    PMEMORY_WORKING_SET_EX_INFORMATION info;
+    NTSTATUS status;
+    PMEMORY_WORKING_SET_INFORMATION wsInfo;
+    PMEMORY_WORKING_SET_EX_INFORMATION exInfo;
+    PPH_MEMORY_ITEM *exMemoryItems;
+    PPH_MEMORY_ITEM memoryItem = NULL;
+    SIZE_T exCount = 0;
+    ULONG_PTR i;
 
-    info = PhAllocatePage(WS_REQUEST_COUNT * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
+    status = PhGetProcessWorkingSetInformation(ProcessHandle, &wsInfo);
 
-    if (!info)
-        return STATUS_NO_MEMORY;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
+    // Extended attributes are queried only for resident pages. We retain the
+    // extended query for all resident pages because Locked and Priority are
+    // not present in MEMORY_WORKING_SET_BLOCK; COW classification is limited
+    // to mapped and image regions in PhpProcessMemoryWsExInformation.
+    exInfo = PhAllocatePage(WS_REQUEST_COUNT * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
+    exMemoryItems = PhAllocatePage(WS_REQUEST_COUNT * sizeof(PPH_MEMORY_ITEM), NULL);
+
+    if (!exInfo || !exMemoryItems)
     {
-        PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
-        ULONG_PTR virtualAddress;
-        SIZE_T remainingPages;
-        SIZE_T requestPages;
-        SIZE_T i;
+        if (exInfo)
+            PhFreePage(exInfo);
+        if (exMemoryItems)
+            PhFreePage(exMemoryItems);
+        PhFree(wsInfo);
+        return STATUS_NO_MEMORY;
+    }
 
-        if (!(memoryItem->State & MEM_COMMIT))
+    for (i = 0; i < wsInfo->NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_BLOCK block = &wsInfo->WorkingSetInfo[i];
+        ULONG_PTR virtualAddress = block->VirtualPage * PAGE_SIZE;
+
+        if (!memoryItem || virtualAddress < (ULONG_PTR)memoryItem->BaseAddress ||
+            virtualAddress >= (ULONG_PTR)memoryItem->BaseAddress + memoryItem->RegionSize)
+        {
+            memoryItem = PhLookupMemoryItemList(List, (PVOID)virtualAddress);
+        }
+
+        if (!memoryItem)
             continue;
 
-        virtualAddress = (ULONG_PTR)memoryItem->BaseAddress;
-        remainingPages = memoryItem->RegionSize / PAGE_SIZE;
+        memoryItem->TotalWorkingSetPages++;
 
-        while (remainingPages != 0)
+        if (block->ShareCount > 1)
+            memoryItem->SharedWorkingSetPages++;
+        if (block->ShareCount == 0)
+            memoryItem->PrivateWorkingSetPages++;
+        if (block->Shared)
+            memoryItem->ShareableWorkingSetPages++;
+        exInfo[exCount].VirtualAddress = (PVOID)virtualAddress;
+        exMemoryItems[exCount] = memoryItem;
+        exCount++;
+
+        if (exCount == WS_REQUEST_COUNT)
         {
-            requestPages = min(remainingPages, WS_REQUEST_COUNT);
-
-            for (i = 0; i < requestPages; i++)
-            {
-                info[i].VirtualAddress = (PVOID)virtualAddress;
-                virtualAddress += PAGE_SIZE;
-            }
-
             if (NT_SUCCESS(NtQueryVirtualMemory(
                 ProcessHandle,
                 NULL,
                 MemoryWorkingSetExInformation,
-                info,
-                requestPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
+                exInfo,
+                exCount * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
                 NULL
                 )))
             {
-                for (i = 0; i < requestPages; i++)
-                {
-                    PMEMORY_WORKING_SET_EX_BLOCK block = &info[i].VirtualAttributes;
-
-                    if (block->Valid)
-                    {
-                        memoryItem->TotalWorkingSetPages++;
-
-                        if (block->ShareCount > 1)
-                            memoryItem->SharedWorkingSetPages++;
-                        if (block->ShareCount == 0)
-                            memoryItem->PrivateWorkingSetPages++;
-                        if (block->Shared)
-                            memoryItem->ShareableWorkingSetPages++;
-                        if (block->Locked)
-                            memoryItem->LockedWorkingSetPages++;
-
-                        if (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE) && block->SharedOriginal)
-                            memoryItem->SharedOriginalPages++;
-                        if (block->Priority > memoryItem->Priority)
-                            memoryItem->Priority = block->Priority;
-                    }
-                    else
-                    {
-                        if (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE) && block->Invalid.SharedOriginal)
-                            memoryItem->SharedOriginalPages++;
-
-                        // VMMap does this, but is it correct? (dmex)
-                        if (block->Invalid.Shared)
-                            memoryItem->ShareableWorkingSetPages++;
-                    }
-                }
+                PhpProcessMemoryWsExInformation(exInfo, exMemoryItems, exCount);
             }
 
-            remainingPages -= requestPages;
+            exCount = 0;
         }
     }
 
-    PhFreePage(info);
+    if (exCount)
+    {
+        if (NT_SUCCESS(NtQueryVirtualMemory(
+            ProcessHandle,
+            NULL,
+            MemoryWorkingSetExInformation,
+            exInfo,
+            exCount * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
+            NULL
+            )))
+        {
+            PhpProcessMemoryWsExInformation(exInfo, exMemoryItems, exCount);
+        }
+    }
+
+    PhFreePage(exInfo);
+    PhFreePage(exMemoryItems);
+    PhFree(wsInfo);
 
     return STATUS_SUCCESS;
 }
@@ -1453,6 +1496,21 @@ NTSTATUS PhpUpdateMemoryWsCountersOld(
     PhFree(info);
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhpUpdateMemoryWsCounters(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+
+    status = PhpUpdateMemoryWsCountersEx(List, ProcessHandle);
+
+    if (!NT_SUCCESS(status))
+        status = PhpUpdateMemoryWsCountersOld(List, ProcessHandle);
+
+    return status;
 }
 
 NTSTATUS PhQueryMemoryItemList(

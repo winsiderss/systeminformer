@@ -114,7 +114,7 @@ namespace CustomBuildTool
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                             requestAnalysisMessage.Headers.Add("x-apikey", _VirusTotalApiToken);
 
-                            using var upload = await BuildHttpClient.SendMessageResponse(VirusTotalHttpClient, requestAnalysisMessage);
+                            using var upload = await BuildHttpClient.SendRequestMessage(VirusTotalHttpClient, requestAnalysisMessage);
 
                             upload.EnsureSuccessStatusCode();
                         }

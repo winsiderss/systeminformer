@@ -295,6 +295,9 @@ typedef struct _AHC_SERVICE_DATA
  * \param[in] ServiceClass The application compatibility cache operation to perform.
  * \param[in, out, optional] ServiceContext Pointer to the operation-specific data buffer (AHC_SERVICE_DATA).
  * \return NTSTATUS Successful or errant status.
+ * \remarks The entry rejects selectors 12 and above and dispatches lower values
+ * to different apphelp/cache operations. This is not a read-only enumeration API simply because some selectors
+ * query information; cache mutation and driver forwarding require separate selector-specific contracts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -415,6 +418,9 @@ NtOpenSession(
  * \param[in, optional] Payload Pointer to an optional event-specific payload buffer.
  * \param[in] PayloadSize The size, in bytes, of the payload buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The entry rejects a payload length greater than 0x100 bytes before
+ * session lookup. This is a session-state notification path, not a passive subscription API; it can wait and
+ * signal session state, so it should not be invoked against unrelated sessions for discovery.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -461,10 +467,13 @@ ApiSetGetImplementationHost(
  *
  * \param[in] Namespace The API set namespace name to query.
  * \param[out] Present Pointer to a variable that receives TRUE if the API set is present.
- * \return LOGICAL TRUE if the operation succeeded; otherwise FALSE.
+ * \return NTSTATUS Successful or errant status; inspect the separate BOOLEAN outputs for presence.
+ * \remarks Queries whether an API-set contract resolves to a nonempty host in the current process schema; it
+ * does not load that host. The ntdll entry returns NTSTATUS (STATUS_SUCCESS is zero), not a
+ * Boolean success indicator. Present is a separate one-byte BOOLEAN output.
  */
 NTSYSAPI
-LOGICAL
+NTSTATUS
 NTAPI
 ApiSetQueryApiSetPresence(
     _In_ PCUNICODE_STRING Namespace,
@@ -477,10 +486,12 @@ ApiSetQueryApiSetPresence(
  * \param[in] Namespace The API set namespace name to query.
  * \param[out] IsInSchema Pointer to a variable that receives TRUE if the API set is defined in the schema.
  * \param[out] Present Pointer to a variable that receives TRUE if the API set is present.
- * \return LOGICAL TRUE if the operation succeeded; otherwise FALSE.
+ * \return NTSTATUS Successful or errant status; inspect the separate BOOLEAN outputs for presence.
+ * \remarks Distinguishes schema membership from a usable host mapping without loading a DLL. The native
+ * entry returns NTSTATUS; IsInSchema and Present are separate one-byte BOOLEAN outputs. Malformed contract syntax returns STATUS_INVALID_PARAMETER with both outputs FALSE.
  */
 NTSYSAPI
-LOGICAL
+NTSTATUS
 NTAPI
 ApiSetQueryApiSetPresenceEx(
     _In_ PCUNICODE_STRING Namespace,
@@ -607,6 +618,9 @@ NtAcquireCrossVmMutant(
  * \param[out, optional] OutputBuffer Pointer to the output buffer.
  * \param[out] ReturnLength Pointer to a variable that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native x64 service returns STATUS_NOT_IMPLEMENTED. The matching
+ * WoW64 wrapper forwards to that service. Do not infer availability of a graphics operation from the presence
+ * of this export or attempt to treat its opaque arguments as a stable graphics ABI.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1673,39 +1687,59 @@ DECLARE_HANDLE(HPCW_QUERY);
 DECLARE_HANDLE(HPCW_NOTIFIER);
 
 /**
- * PCW Callback Types  
- */  
+ * Selects the Performance Counters for Windows provider callback payload.
+ * The selector is the callback's first argument, not a member of its payload.
+ */
 typedef enum _PCW_CALLBACK_TYPE
-{  
-    PcwCallbackAddCounter = 0,  
-    PcwCallbackRemoveCounter = 1,  
-    PcwCallbackEnumerateEvents = 2,  
-    PcwCallbackCollectData = 3,  
+{
+    PcwCallbackAddCounter = 0,
+    PcwCallbackRemoveCounter = 1,
+    PcwCallbackEnumerateInstances = 2,
+    PcwCallbackCollectData = 3,
 } PCW_CALLBACK_TYPE;
 
+typedef struct _PCW_BUFFER PCW_BUFFER, *PPCW_BUFFER;
+typedef struct _KEVENT KEVENT, *PKEVENT;
+
 /**
- * The PCW_CALLBACK_INFORMATION structure contains the information passed to a Performance Counters for Windows (PCW) callback.
+ * Identifies the counters and instance-name pattern being added or removed.
+ * CounterMask selects counters; InstanceMask is a borrowed Unicode string.
+ * The x64 layout occupies 16 bytes.
  */
-typedef struct _PCW_CALLBACK_INFORMATION
-{  
-    PCW_CALLBACK_TYPE Type;  
-    union
-    {
-        struct
-        {
-            PUNICODE_STRING InstanceName;
-            PVOID InstanceData;
-            ULONG InstanceId;
-        } AddCounter;
-        struct
-        {
-            PVOID InstanceContext;
-        } RemoveCounter;
-        struct
-        {
-            PVOID CancelEvent;
-        } CollectData;  
-    } DUMMYUNIONNAME;
+typedef struct _PCW_COUNTER_INFORMATION
+{
+    ULONG64 CounterMask;
+    PCUNICODE_STRING InstanceMask;
+} PCW_COUNTER_INFORMATION, *PPCW_COUNTER_INFORMATION;
+
+/**
+ * Describes a provider enumeration/collection request. Buffer is the opaque
+ * collector buffer supplied to PcwAddInstance; CancelEvent is a kernel event
+ * pointer, not a user-mode HANDLE. These pointers are borrowed for the callback.
+ * Size is 40 bytes on x64; Buffer and CancelEvent are at 0x18 and 0x20.
+ */
+typedef struct _PCW_MASK_INFORMATION
+{
+    ULONG64 CounterMask;
+    PCUNICODE_STRING InstanceMask;
+    ULONG InstanceId;
+    BOOLEAN CollectMultiple;
+    PPCW_BUFFER Buffer;
+    PKEVENT CancelEvent;
+} PCW_MASK_INFORMATION, *PPCW_MASK_INFORMATION;
+
+/**
+ * Payload for a kernel PCW provider callback. All alternatives begin at offset
+ * zero; PCW_CALLBACK_TYPE is passed separately. The union occupies 40 bytes on x64.
+ * CollectData.Buffer is at offset 0x18 in the x64 layout.
+ * This is not the serialized buffer returned by PcwReadNotificationData.
+ */
+typedef union _PCW_CALLBACK_INFORMATION
+{
+    PCW_COUNTER_INFORMATION AddCounter;
+    PCW_COUNTER_INFORMATION RemoveCounter;
+    PCW_MASK_INFORMATION EnumerateInstances;
+    PCW_MASK_INFORMATION CollectData;
 } PCW_CALLBACK_INFORMATION, *PPCW_CALLBACK_INFORMATION;
 
 typedef _Function_class_(PCW_CALLBACK)

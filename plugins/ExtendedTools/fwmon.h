@@ -410,7 +410,7 @@ typedef struct FWPM_NET_EVENT_INTERNAL_
  *   R9  = &enumHandle        (local HANDLE, zero-initialised)
  * =========================================================================*/
 DECLSPEC_IMPORT
-DWORD
+ULONG
 WINAPI
 FwpmNetEventCreateEnumHandleEx(
     _In_ HANDLE EngineHandle,

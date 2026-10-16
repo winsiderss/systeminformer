@@ -854,7 +854,7 @@ BOOLEAN PhGetThreadIsTerminated2(
     NTSTATUS status;
     LARGE_INTEGER timeout;
 
-    memset(&timeout, 0, sizeof(LARGE_INTEGER));
+    RtlZeroMemory(&timeout, sizeof(LARGE_INTEGER));
 
     status = NtWaitForSingleObject(
         ThreadHandle,
@@ -1120,7 +1120,7 @@ NTSTATUS PhSetThreadName(
     if (WindowsVersion < WINDOWS_10)
         return STATUS_NOT_SUPPORTED;
 
-    memset(&threadNameInfo, 0, sizeof(THREAD_NAME_INFORMATION));
+    RtlZeroMemory(&threadNameInfo, sizeof(THREAD_NAME_INFORMATION));
 
     status = RtlInitUnicodeStringEx(
         &threadNameInfo.ThreadName,
@@ -1224,6 +1224,7 @@ NTSTATUS PhSetThreadBasePriorityClientId(
     NTSTATUS status;
     SYSTEM_THREAD_CID_PRIORITY_INFORMATION threadInfo;
 
+    RtlZeroMemory(&threadInfo, sizeof(SYSTEM_THREAD_CID_PRIORITY_INFORMATION));
     threadInfo.ClientId = ClientId;
     threadInfo.Priority = Increment;
 
@@ -1323,7 +1324,7 @@ NTSTATUS PhSetThreadPagePriority(
     NTSTATUS status;
     PAGE_PRIORITY_INFORMATION pagePriorityInfo;
 
-    memset(&pagePriorityInfo, 0, sizeof(PAGE_PRIORITY_INFORMATION));
+    RtlZeroMemory(&pagePriorityInfo, sizeof(PAGE_PRIORITY_INFORMATION));
     pagePriorityInfo.PagePriority = PagePriority;
 
     status = NtSetInformationThread(
@@ -1398,7 +1399,7 @@ NTSTATUS PhGetThreadPowerThrottlingState(
     NTSTATUS status;
     POWER_THROTTLING_THREAD_STATE threadPowerThrottlingState;
 
-    memset(&threadPowerThrottlingState, 0, sizeof(POWER_THROTTLING_THREAD_STATE));
+    RtlZeroMemory(&threadPowerThrottlingState, sizeof(POWER_THROTTLING_THREAD_STATE));
     threadPowerThrottlingState.Version = POWER_THROTTLING_THREAD_CURRENT_VERSION;
 
     status = NtQueryInformationThread(
@@ -1546,7 +1547,7 @@ NTSTATUS PhCreateImpersonationToken(
     if (!NT_SUCCESS(status))
         return status;
 
-    memset(&securityService, 0, sizeof(SECURITY_QUALITY_OF_SERVICE));
+    RtlZeroMemory(&securityService, sizeof(SECURITY_QUALITY_OF_SERVICE));
     securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
     securityService.ImpersonationLevel = SecurityImpersonation;
     securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
@@ -1610,7 +1611,7 @@ NTSTATUS PhImpersonateToken(
         OBJECT_ATTRIBUTES objectAttributes;
         HANDLE tokenHandle;
 
-        memset(&securityService, 0, sizeof(SECURITY_QUALITY_OF_SERVICE));
+        RtlZeroMemory(&securityService, sizeof(SECURITY_QUALITY_OF_SERVICE));
         securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
         securityService.ImpersonationLevel = SecurityImpersonation;
         securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
@@ -2209,7 +2210,7 @@ NTSTATUS PhGetThreadApartmentCallState(
                 );
         }
 
-        memset(ApartmentCallState, 0, sizeof(PH_COM_CALLSTATE));
+        RtlZeroMemory(ApartmentCallState, sizeof(PH_COM_CALLSTATE));
         ApartmentCallState->ServerPID = outgoingCallData.dwServerPID != 0 ? outgoingCallData.dwServerPID : ULONG_MAX;
         ApartmentCallState->ServerTID = outgoingCallData.dwServerTID != 0 ? outgoingCallData.dwServerTID : ULONG_MAX;
         ApartmentCallState->ClientPID = incomingCallData.dwClientPID != 0 ? incomingCallData.dwClientPID : ULONG_MAX;
@@ -2691,7 +2692,7 @@ NTSTATUS PhGetThreadStackSize(
     {
         MEMORY_BASIC_INFORMATION memoryBasicInformation;
 
-        memset(&memoryBasicInformation, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        RtlZeroMemory(&memoryBasicInformation, sizeof(MEMORY_BASIC_INFORMATION));
 
         status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -2785,7 +2786,7 @@ NTSTATUS PhGetThreadIsFiber(
  *
  * \remarks The operating system will not switch execution to another processor, even if that processor is idle or is running a thread of lower priority.
  * \return If calling the SwitchToThread function caused the operating system to switch execution to another thread, the return value is nonzero.
- * \rthere are no other threads ready to execute, the operating system does not switch execution to another thread, and the return value is zero.
+ * If there are no other threads ready to execute, the operating system does not switch execution to another thread, and the return value is zero.
  */
 BOOLEAN PhSwitchToThread(
     VOID
@@ -3509,7 +3510,7 @@ CleanupExit:
  * \param[in] ProcessHandle A handle to the process to be terminated.
  * \param[in] ExitStatus The exit status code to be used when terminating the process.
  * \param[in] Timeout Optional. The timeout, in milliseconds, to wait for the termination thread to complete.
- * If NULL, the function will wait indefinitely.
+ * If zero, the function will wait indefinitely.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function attempts to terminate the specified process by creating a remote thread
  * that calls RtlExitUserProcess. On Windows 8 and later, it creates an execution required power request

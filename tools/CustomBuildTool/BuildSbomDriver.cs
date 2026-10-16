@@ -102,7 +102,7 @@ namespace CustomBuildTool
 
             foreach (string name in new[] { InfName + ".spdx.json", InfName + ".vex.json" })
             {
-                string payload = Path.Join(sbomdir, name);
+                string payload = Path.Join([sbomdir, name]);
 
                 if (!File.Exists(payload))
                 {
@@ -168,8 +168,8 @@ namespace CustomBuildTool
             repo = Path.GetFullPath(repo);
             binaries = Path.GetFullPath(binaries);
 
-            string driverPath = Path.Join(binaries, "systeminformer.sys");
-            string ksiPath = Path.Join(binaries, "ksi.dll");
+            string driverPath = Path.Join([binaries, "systeminformer.sys"]);
+            string ksiPath = Path.Join([binaries, "ksi.dll"]);
 
             foreach (var file in new[] { driverPath, ksiPath })
             {
@@ -184,7 +184,7 @@ namespace CustomBuildTool
             string created = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
             string baseId = $"{RepositoryUrl}/spdx/{InfName}/{arch}/{version}/{Guid.NewGuid()}";
             string packagePurl = $"pkg:github/winsiderss/systeminformer@{version}#KSystemInformer?arch={arch}";
-            string sbomDir = Path.Join(Path.GetFullPath(output), "sbom");
+            string sbomDir = Path.Join([Path.GetFullPath(output), "sbom"]);
 
             Directory.CreateDirectory(sbomDir);
 
@@ -271,13 +271,13 @@ namespace CustomBuildTool
             // Reference the assessed package by its SBOM spdxId.
             vexGraph.Add(Package(packageId, InfName, version, packagePurl, RepositoryUrl, "deviceDriver"));
 
-            if (!AddVexStatements(vexGraph, vexIds, Path.Join(repo, "KSystemInformer", "vex.json"), packageId, created))
+            if (!AddVexStatements(vexGraph, vexIds, Path.Join([repo, "KSystemInformer", "vex.json"]), packageId, created))
                 return false;
 
             vexGraph.Add(Document(vexIds.Next("Document"), $"{InfName} ({arch}) VEX", packageId, ["core", "software", "security"]));
 
-            string sbomPath = Path.Join(sbomDir, InfName + ".spdx.json");
-            string vexPath = Path.Join(sbomDir, InfName + ".vex.json");
+            string sbomPath = Path.Join([sbomDir, InfName + ".spdx.json"]);
+            string vexPath = Path.Join([sbomDir, InfName + ".vex.json"]);
 
             Write(sbomPath, graph);
             Write(vexPath, vexGraph);
@@ -429,7 +429,7 @@ namespace CustomBuildTool
         {
             if (string.IsNullOrWhiteSpace(version))
             {
-                Console.WriteLine($"Warning: {name} version unavailable (run from a configured build environment); omitted from SBOM.");
+                Console.WriteLine($"SBOM: {name} version unavailable (run from a configured build environment); omitted from SBOM.");
                 return;
             }
 
@@ -531,7 +531,7 @@ namespace CustomBuildTool
 
         private static string SymCryptVersion(string repo)
         {
-            string header = Path.Join(repo, "tools", "thirdparty", "SymCrypt", "inc", "symcrypt_internal_shared.inc");
+            string header = Path.Join([repo, "tools", "thirdparty", "SymCrypt", "inc", "symcrypt_internal_shared.inc"]);
 
             if (!File.Exists(header))
                 return null;

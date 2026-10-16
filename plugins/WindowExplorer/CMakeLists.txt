@@ -23,6 +23,7 @@ set(SOURCES
     "prpsh.c"
     "utils.c"
     "wnddlg.c"
+    "wndprop.c"
     "wndprp.c"
     "wndprv.c"
     "wndtree.c"
@@ -39,6 +40,7 @@ si_add_plugin(WindowExplorer ${ALL_FILES})
 target_link_libraries(WindowExplorer PRIVATE
     delayimp
     comctl32
+    comdlg32
     gdi32
     ole32
     oleaut32
