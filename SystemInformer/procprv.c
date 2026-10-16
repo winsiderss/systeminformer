@@ -44,6 +44,7 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <hwprv.h>
 
 #include <appresolver.h>
 #include <hndlinfo.h>
@@ -2620,6 +2621,8 @@ VOID PhProcessProviderUpdate(
         PhpUpdateCpuInformation(TRUE, &sysTotalTime);
     }
 
+    PhHwProviderUpdate();
+
     if (runCount != 0)
     {
         PhTimeSequenceNumber++;
@@ -3632,6 +3635,7 @@ VOID PhProcessProviderUpdate(
             PhpUpdateCpuCycleUsageInformation(sysTotalCycleTime, sysIdleCycleTime);
 
         PhpUpdateSystemHistory();
+        PhHwProviderUpdateHistory();
 
         // Note that we need to add a reference to the records of these processes, to make it
         // possible for others to get the name of a max. CPU or I/O process.

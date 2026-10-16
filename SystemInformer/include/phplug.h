@@ -1015,4 +1015,108 @@ PhEnumeratePlugins(
     );
 // end_phapppub
 
+// begin_phapppub
+// Hardware sensor sources
+
+typedef enum _PH_HW_SENSOR_TYPE
+{
+    PhHwSensorTypeTemperature, // degrees Celsius
+    PhHwSensorTypePower, // watts
+    PhHwSensorTypeClock, // MHz
+    PhHwSensorTypeVoltage, // volts
+    PhHwSensorTypeCurrent, // amperes
+    PhHwSensorTypeFan, // RPM
+    PhHwSensorTypeControl, // percent (fan duty, load)
+    PhHwSensorTypeBandwidth, // MB/s (10^6 bytes)
+    PhHwSensorTypeMaximum
+} PH_HW_SENSOR_TYPE;
+
+#define PH_HW_SENSOR_REPORT_HISTORY 0x1 // keep a history graph; read on the first report
+
+/**
+ * \brief One sensor value. Names are copied on the first report (at most 128 characters).
+ *
+ * \details Ignored when Size is too small, Type or a Flags bit is unknown, a name is NULL or Value
+ * is not finite.
+ */
+typedef struct _PH_HW_SENSOR_REPORT
+{
+    ULONG Size; // sizeof(PH_HW_SENSOR_REPORT)
+    ULONG Flags; // PH_HW_SENSOR_REPORT_*
+    ULONG ComponentId; // chosen by the source; sensors with the same ID share a component
+    ULONG Type; // PH_HW_SENSOR_TYPE
+    PCWSTR ComponentName;
+    PCWSTR SensorName;
+    ULONG SensorId; // chosen by the source; unique within the component and type
+    FLOAT Value; // in the unit of Type
+} PH_HW_SENSOR_REPORT, *PPH_HW_SENSOR_REPORT;
+typedef const PH_HW_SENSOR_REPORT* PCPH_HW_SENSOR_REPORT;
+
+_Function_class_(PH_HW_SENSOR_REPORT_FUNCTION)
+typedef VOID (NTAPI PH_HW_SENSOR_REPORT_FUNCTION)(
+    _In_ PVOID ReportContext,
+    _In_ PCPH_HW_SENSOR_REPORT Report
+    );
+typedef PH_HW_SENSOR_REPORT_FUNCTION *PPH_HW_SENSOR_REPORT_FUNCTION;
+
+/**
+ * \brief Reports the current sensor values of a source.
+ *
+ * \details Called once per update on the process provider thread, never concurrently. Must return
+ * promptly (no blocking I/O or waits; over 10 ms is traced) and must not register or unregister a
+ * source or wait for the main thread. Report and ReportContext are valid only during the call; an
+ * unreported sensor shows no current value.
+ */
+_Function_class_(PH_HW_SENSOR_SOURCE_CALLBACK)
+typedef VOID (NTAPI PH_HW_SENSOR_SOURCE_CALLBACK)(
+    _In_ PPH_HW_SENSOR_REPORT_FUNCTION Report,
+    _In_ PVOID ReportContext,
+    _In_opt_ PVOID Context
+    );
+typedef PH_HW_SENSOR_SOURCE_CALLBACK *PPH_HW_SENSOR_SOURCE_CALLBACK;
+
+/**
+ * \brief Appends the state of a source to the hardware report, as plain text lines.
+ *
+ * \details Called on the main thread while a report is created, never concurrently with the source
+ * callback. The same restrictions apply.
+ */
+_Function_class_(PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK)
+typedef VOID (NTAPI PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK)(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_opt_ PVOID Context
+    );
+typedef PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK *PPH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK;
+
+// Rejected when Size does not reach Context; fields past Size are zero, extra fields of a larger Size are ignored.
+typedef struct _PH_HW_SENSOR_SOURCE
+{
+    ULONG Size; // sizeof(PH_HW_SENSOR_SOURCE)
+    ULONG Flags; // reserved, zero
+    PPH_HW_SENSOR_SOURCE_CALLBACK Callback;
+    PVOID Context;
+    PPH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK Diagnostics; // optional
+} PH_HW_SENSOR_SOURCE, *PPH_HW_SENSOR_SOURCE;
+typedef const PH_HW_SENSOR_SOURCE* PCPH_HW_SENSOR_SOURCE;
+
+// Owned by the plugin; unregister at the latest from PluginCallbackUnload.
+typedef struct _PH_HW_SENSOR_SOURCE_REGISTRATION *PPH_HW_SENSOR_SOURCE_REGISTRATION;
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhRegisterHardwareSensorSource(
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PCPH_HW_SENSOR_SOURCE Source,
+    _Out_ PPH_HW_SENSOR_SOURCE_REGISTRATION* Registration
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhUnregisterHardwareSensorSource(
+    _In_ _Post_invalid_ PPH_HW_SENSOR_SOURCE_REGISTRATION Registration
+    );
+// end_phapppub
+
 #endif
