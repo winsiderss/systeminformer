@@ -91,6 +91,9 @@
 #define IDC_GROUP_SENT                  1118
 #define IDC_GROUP_RECEIVE               1119
 #define IDC_REFRESH                     1120
+#define IDD_MOTHERBOARD_OPTIONS         1112
+#define IDC_MOTHERBOARD_ENABLE          1113
+#define IDC_MOTHERBOARD_STATUS          1121
 
 // Next default values for new objects
 // 
