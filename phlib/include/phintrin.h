@@ -65,6 +65,10 @@
 #define ARM64_NZCV ARM64_SYSREG(3, 3, 4, 2, 0)
 #endif
 
+#ifndef ARM64_PMUSERENR_EL0
+#define ARM64_PMUSERENR_EL0 ARM64_SYSREG(3, 3, 9, 14, 0)
+#endif
+
 #ifndef NZCV_Z
 #define NZCV_Z 0x40000000
 #endif

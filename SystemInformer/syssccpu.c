@@ -17,6 +17,7 @@
 #include <procprv.h>
 #include <phsettings.h>
 #include <phfirmware.h>
+#include <phintrin.h>
 #include <devguid.h>
 
 static PPH_SYSINFO_SECTION CpuSection;
@@ -1506,6 +1507,51 @@ PPH_STRING PhSipGetCpuBrandString(
     return brand;
 }
 
+#ifdef _ARM64_
+/**
+ * Selects the system register used to measure hypervisor intercept latency on ARM64.
+ *
+ * \return The ARM64_SYSREG encoding of the register to read, or 0 if none is usable.
+ *
+ * \remarks CPUID on x64 is an unconditional VM exit, but ARM64 has no EL0 instruction that
+ * is guaranteed to exit to EL2. The closest equivalent is an EL0-accessible system register
+ * whose only possible intercept is a hypervisor trap. PMUSERENR_EL0 is architecturally
+ * readable at EL0 whenever FEAT_PMUv3 is implemented (no SCTLR_EL1 or PMUSERENR_EL0.EN gate)
+ * and the only trap is to EL2 via MDCR_EL2.TPM. The read is UNDEFINED when the PMU is absent
+ * (e.g. a guest without a virtual PMU), so it is probed once under SEH and the result cached,
+ * keeping exceptions out of the timed path. Previously CurrentEL was used, which is only
+ * accessible at EL1 or above; Windows 11 emulates the EL0 read but Windows 10 does not, which
+ * raised STATUS_ILLEGAL_INSTRUCTION (#3110). CTR_EL0 is not a usable fallback because Windows
+ * leaves SCTLR_EL1.UCT clear, so EL0 reads of it fault as well.
+ */
+static ULONG PhSipGetCpuInterceptRegister(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static ULONG interceptRegister = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        volatile ULONG64 value;
+
+        __try
+        {
+            value = _ReadStatusReg(ARM64_PMUSERENR_EL0);
+            interceptRegister = ARM64_PMUSERENR_EL0;
+        }
+        __except (GetExceptionCode() == STATUS_ILLEGAL_INSTRUCTION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+        {
+            NOTHING;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return interceptRegister;
+}
+#endif
+
 LARGE_INTEGER PhSipGetCpuInterceptLatency(
     VOID
     )
@@ -1518,19 +1564,24 @@ LARGE_INTEGER PhSipGetCpuInterceptLatency(
     BOOLEAN counterValid = FALSE;
     volatile ULONG64 cpuInfoValid = 0;
 
-#ifdef _ARM64_
-    ULONG64 currentExceptionLevel;
-#else
+#ifndef _ARM64_
     LONG cpuInfo[4];
+#endif
+
+#ifdef _ARM64_
+    if (PhSipGetCpuInterceptRegister() == 0)
+    {
+        performanceCounterTicks.QuadPart = 0;
+        return performanceCounterTicks;
+    }
 #endif
 
     PhQueryPerformanceCounter(&performanceCounterStart);
     timeStampCounterStart = PhReadTimeStampCounter();
 
 #ifdef _ARM64_
-    currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
-    cpuInfoValid = currentExceptionLevel;
-    counterValid = cpuInfoValid != MAXULONG64;
+    cpuInfoValid = _ReadStatusReg(ARM64_PMUSERENR_EL0);
+    counterValid = TRUE;
 #else
     CpuIdEx(cpuInfo, 0, 0);
     cpuInfoValid = ((ULONG64)(ULONG)cpuInfo[0]) | ((ULONG64)(ULONG)cpuInfo[3] << 32);
