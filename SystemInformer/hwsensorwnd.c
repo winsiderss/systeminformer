@@ -41,6 +41,7 @@ typedef enum _PHP_HW_COMPONENT_KIND
     PhpHwComponentMemory, // one per package
     PhpHwComponentChipset,
     PhpHwComponentSystem,
+    PhpHwComponentWindows, // Windows performance counters
     PhpHwComponentSource, // published by a hardware sensor source
     PhpHwComponentMaximum
 } PHP_HW_COMPONENT_KIND;
@@ -101,6 +102,7 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorDimmTemperature, // named
     PhpHwSensorDimmPmicTemperature, // named
     PhpHwSensorAcpiTemperature, // named
+    PhpHwSensorZoneTemperature, // named
     PhpHwSensorPackagePower,
     PhpHwSensorCorePower,
     PhpHwSensorDramPower,
@@ -109,6 +111,7 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorSmuPower, // named
     PhpHwSensorDimmPower, // named
     PhpHwSensorAcpiPower, // named
+    PhpHwSensorMeterPower, // named
     PhpHwSensorPowerLimit1,
     PhpHwSensorPowerLimit2,
     PhpHwSensorSmuPowerLimit, // named
@@ -120,6 +123,7 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorSmuClock, // named
     PhpHwSensorEffectiveClock,
     PhpHwSensorActiveClock,
+    PhpHwSensorOsClock, // named
     PhpHwSensorMemoryClock,
     PhpHwSensorMemoryDataRate,
     PhpHwSensorMemoryGear,
@@ -140,6 +144,8 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorFanSpeed, // named
     PhpHwSensorFanControl, // named
     PhpHwSensorThrottle,
+    PhpHwSensorZonePassiveLimit, // named
+    PhpHwSensorOsPerformanceLimit, // named
     PhpHwSensorMaximum
 } PHP_HW_SENSOR_KIND;
 
@@ -184,6 +190,7 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhpHwComponentMemory, PhpHwGroupTemperatures, PH_HW_CAP_DIMM_TEMP, PhpHwUnitTemperature, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupTemperatures, PH_HW_CAP_DIMM_PMIC, PhpHwUnitTemperature, NULL, FALSE, FALSE },
     { PhpHwComponentSystem, PhpHwGroupTemperatures, PH_HW_CAP_ACPI_TEMP, PhpHwUnitTemperature, NULL, FALSE, TRUE },
+    { PhpHwComponentWindows, PhpHwGroupTemperatures, 0, PhpHwUnitTemperature, NULL, FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_PACKAGE, PhpHwUnitPower, L"Package", FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_CORE, PhpHwUnitPower, L"Core", FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_DRAM, PhpHwUnitPower, L"DRAM", FALSE, TRUE },
@@ -192,6 +199,7 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_SMU, PhpHwUnitPower, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupPowers, PH_HW_CAP_DIMM_PMIC, PhpHwUnitPower, NULL, FALSE, TRUE },
     { PhpHwComponentSystem, PhpHwGroupPowers, PH_HW_CAP_ACPI_POWER, PhpHwUnitPower, NULL, FALSE, TRUE },
+    { PhpHwComponentWindows, PhpHwGroupPowers, 0, PhpHwUnitPower, NULL, FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_POWER_LIMIT1, PhpHwUnitPower, L"PL1 (active)", FALSE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_POWER_LIMIT2, PhpHwUnitPower, L"PL2 (active)", FALSE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitPower, NULL, FALSE, FALSE },
@@ -203,6 +211,7 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_EFFECTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupActiveClocks, PH_HW_CAP_ACTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, FALSE },
+    { PhpHwComponentWindows, PhpHwGroupClocks, 0, PhpHwUnitClock, NULL, FALSE, FALSE },
     { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitClock, L"Memory clock", FALSE, FALSE },
     { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitDataRate, L"Data rate", FALSE, FALSE },
     { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitGear, L"Gear", FALSE, FALSE },
@@ -223,6 +232,8 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhpHwComponentSystem, PhpHwGroupFans, PH_HW_CAP_FAN_SPEED, PhpHwUnitFan, NULL, FALSE, TRUE },
     { PhpHwComponentSystem, PhpHwGroupControls, PH_HW_CAP_FAN_CONTROL, PhpHwUnitPercent, NULL, FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupThrottling, PH_HW_CAP_THROTTLE, PhpHwUnitThrottle, L"Package", FALSE, FALSE },
+    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, FALSE },
+    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, FALSE },
 };
 
 // Group and unit of each PH_HW_SENSOR_TYPE; source sensors use PhpHwSensorMaximum as their kind.
@@ -328,7 +339,7 @@ BOOLEAN PhHwSensorsWindowAvailable(
     VOID
     )
 {
-    return PhHwSensorsEnabled() || PhHwSourceSensorsPresent();
+    return PhHwSensorsEnabled() || PhHwSourceSensorsPresent() || PhHwCounterSensorsPresent();
 }
 
 VOID PhShowHardwareSensorsWindow(
@@ -507,6 +518,8 @@ static PPH_STRING PhpHwFormatComponentName(
         return PhCreateString(L"Chipset");
     case PhpHwComponentSystem:
         return PhCreateString(L"System");
+    case PhpHwComponentWindows:
+        return PhCreateString(L"Windows");
     }
 
     return PhReferenceEmptyString();
@@ -944,6 +957,11 @@ static VOID PhpHwCollectNamed(
         PhpHwSensorPowerLimit,
         PhpHwSensorPmtTemperature,
         PhpHwSensorAcpiVoltage,
+        PhpHwSensorZoneTemperature,
+        PhpHwSensorZonePassiveLimit,
+        PhpHwSensorMeterPower,
+        PhpHwSensorOsClock,
+        PhpHwSensorOsPerformanceLimit,
     };
     ULONG count = PhHwGetNamedSensorCount();
 
@@ -1208,8 +1226,9 @@ static VOID PhpHwSensorsUpdate(
         PhpHwCollectCpu(Context);
         PhpHwCollectMemory(Context);
         PhpHwCollectChipset(Context);
-        PhpHwCollectNamed(Context);
     }
+
+    PhpHwCollectNamed(Context);
 
     PhHwEnumerateSourceSensors(PhpHwCollectSourceSensor, Context);
 
