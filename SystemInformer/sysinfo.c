@@ -1331,6 +1331,34 @@ static VOID PhSipDeleteGraphFonts(
     DrawInfo->CachedFontDpi = 0;
 }
 
+// Blends Color toward white; Percent is how much of Color remains.
+static COLORREF PhpTintColor(
+    _In_ COLORREF Color,
+    _In_ ULONG Percent
+    )
+{
+    return RGB(
+        255 - (255 - GetRValue(Color)) * Percent / 100,
+        255 - (255 - GetGValue(Color)) * Percent / 100,
+        255 - (255 - GetBValue(Color)) * Percent / 100
+        );
+}
+
+// Maps the configured graph colors onto the fixed Task Manager palette.
+static COLORREF PhpTaskManagerGraphColor(
+    _In_ COLORREF Color
+    )
+{
+    if (Color == PhCsColorCpuKernel || Color == PhCsColorCpuUser)
+        return RGB(0x11, 0x7d, 0xbb); // CPU blue
+    if (Color == PhCsColorIoReadOther || Color == PhCsColorIoWrite)
+        return RGB(0x4d, 0xa6, 0x0c); // Disk green
+    if (Color == PhCsColorPrivate || Color == PhCsColorPhysical)
+        return RGB(0x8b, 0x12, 0xae); // Memory purple
+
+    return Color;
+}
+
 _Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -1370,6 +1398,26 @@ VOID PhSiSetColorsGraphDrawInfo(
     switch (PhCsGraphColorMode)
     {
     case 0: // New colors
+        if (PhCsGraphTaskManagerStyle)
+        {
+            // Task Manager style: white background, full-strength line, tinted fill.
+            BOOLEAN stacked = Color2 != 0;
+
+            Color1 = PhpTaskManagerGraphColor(Color1);
+            Color2 = stacked ? PhpTaskManagerGraphColor(Color2) : 0;
+
+            DrawInfo->BackColor = RGB(0xff, 0xff, 0xff);
+            DrawInfo->LineColor1 = Color1;
+            DrawInfo->LineBackColor1 = PhpTintColor(Color1, stacked ? 35 : 10); // stacked inner series gets the darker shade
+            DrawInfo->LineColor2 = Color2;
+            DrawInfo->LineBackColor2 = PhpTintColor(Color2, 10);
+            DrawInfo->GridColor = PhpTintColor(Color1, 16);
+            DrawInfo->LabelYColor = Color1;
+            DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
+            DrawInfo->TextBoxColor = RGB(0xff, 0xff, 0xff);
+            break;
+        }
+
         DrawInfo->BackColor = RGB(0xef, 0xef, 0xef);
         DrawInfo->LineColor1 = PhHalveColorBrightness(Color1);
         DrawInfo->LineBackColor1 = PhMakeColorBrighter(Color1, 125);
@@ -1601,7 +1649,7 @@ VOID PhSipUpdateColorParameters(
     switch (PhCsGraphColorMode)
     {
     case 0: // New colors
-        CurrentParameters.GraphBackColor = RGB(0xef, 0xef, 0xef);
+        CurrentParameters.GraphBackColor = PhCsGraphTaskManagerStyle ? RGB(0xff, 0xff, 0xff) : RGB(0xef, 0xef, 0xef);
         CurrentParameters.PanelForeColor = RGB(0x00, 0x00, 0x00);
         break;
     case 1: // Old colors
