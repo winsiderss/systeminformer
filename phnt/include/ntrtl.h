@@ -24401,13 +24401,15 @@ NTAPI
 RtlGetReturnAddressHijackTarget(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 /**
  * Flags for RtlCopyFileChunk.
  */
 #define COPY_FILE_CHUNK_DUPLICATE_EXTENTS 0x00000001L // 24H2
 #define VALID_COPY_FILE_CHUNK_FLAGS (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 //
 // WNF
@@ -24498,6 +24500,8 @@ RtlUnsubscribeWnfNotificationWithCompletionCallback(
     _In_opt_ PVOID CompletionCallback,
     _In_opt_ PVOID CompletionContext
     );
+
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 //
 // Property Store
