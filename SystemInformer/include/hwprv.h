@@ -171,6 +171,11 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
     PhHwNamedSensorPowerLimit, // PH_HW_CAP_PLATFORM_LIMITS, watts, CPU component
     PhHwNamedSensorPmtTemperature, // PH_HW_CAP_TPMI_POWER, degrees Celsius, CPU component: Intel PMT SoC and core telemetry
     PhHwNamedSensorAcpiVoltage, // PH_HW_CAP_ACPI_TEMP, volts, System component (ASUS ATK0110)
+    PhHwNamedSensorZoneTemperature, // Windows counters, degrees Celsius, Windows component: ACPI thermal zones
+    PhHwNamedSensorZonePassiveLimit, // Windows counters, percent, Windows component
+    PhHwNamedSensorMeterPower, // Windows counters, watts, Windows component: energy meters
+    PhHwNamedSensorOsClock, // Windows counters, MHz, Windows component; Id is the flat processor index
+    PhHwNamedSensorOsPerformanceLimit, // Windows counters, percent, Windows component
     PhHwNamedSensorMaximum
 } PH_HW_NAMED_SENSOR_KIND;
 
@@ -190,6 +195,10 @@ typedef struct _PH_HW_NAMED_SENSOR
 } PH_HW_NAMED_SENSOR, *PPH_HW_NAMED_SENSOR;
 
 ULONG PhHwGetNamedSensorCount(
+    VOID
+    );
+
+BOOLEAN PhHwCounterSensorsPresent(
     VOID
     );
 
