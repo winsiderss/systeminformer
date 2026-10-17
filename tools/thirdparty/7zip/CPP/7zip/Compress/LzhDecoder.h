@@ -43,7 +43,7 @@ class CCoder
   {
     CCoder *_coder;
   public:
-    CCoderReleaser(CCoder *coder): _coder(coder) {}
+    CCoderReleaser(CCoder *coder Z7_lifetimebound): _coder(coder) {}
     void Disable() { _coder = NULL; }
     ~CCoderReleaser() { if (_coder) _coder->_outWindow.Flush(); }
   };

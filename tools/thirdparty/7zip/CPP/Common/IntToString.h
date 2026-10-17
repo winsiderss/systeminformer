@@ -7,11 +7,11 @@
 
 // return: the pointer to the "terminating" null character after written characters
 
-char * ConvertUInt32ToString(UInt32 value, char *s) throw();
-char * ConvertUInt64ToString(UInt64 value, char *s) throw();
+char * ConvertUInt32ToString(UInt32 value, char *s Z7_lifetimebound) throw();
+char * ConvertUInt64ToString(UInt64 value, char *s Z7_lifetimebound) throw();
 
-wchar_t * ConvertUInt32ToString(UInt32 value, wchar_t *s) throw();
-wchar_t * ConvertUInt64ToString(UInt64 value, wchar_t *s) throw();
+wchar_t * ConvertUInt32ToString(UInt32 value, wchar_t *s Z7_lifetimebound) throw();
+wchar_t * ConvertUInt64ToString(UInt64 value, wchar_t *s Z7_lifetimebound) throw();
 void ConvertInt64ToString(Int64 value, char *s) throw();
 void ConvertInt64ToString(Int64 value, wchar_t *s) throw();
 
@@ -45,8 +45,8 @@ void ConvertUInt32ToHex8Digits(UInt32 value, char *s) throw();
 // void ConvertUInt32ToHex8Digits(UInt32 value, wchar_t *s) throw();
 
 // use RawLeGuid only for RAW bytes that contain stored GUID as Little-endian.
-char *RawLeGuidToString(const Byte *guid, char *s) throw();
-char *RawLeGuidToString_Braced(const Byte *guid, char *s) throw();
+char *RawLeGuidToString(const Byte *guid, char *s Z7_lifetimebound) throw();
+char *RawLeGuidToString_Braced(const Byte *guid, char *s Z7_lifetimebound) throw();
 
 void ConvertDataToHex_Lower(char *dest, const Byte *src, size_t size) throw();
 void ConvertDataToHex_Upper(char *dest, const Byte *src, size_t size) throw();

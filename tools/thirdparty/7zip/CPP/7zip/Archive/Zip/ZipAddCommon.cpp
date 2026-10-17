@@ -410,7 +410,7 @@ HRESULT CAddCommon::Compress(
               }
             }
           }
-          if (method == NCompressionMethod::kLZMA)
+          if (method == NCompressionMethod::kLZMA && _lzmaEncoder)
             _isLzmaEos = _lzmaEncoder->Encoder->IsWriteEndMark();
         }
 

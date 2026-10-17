@@ -59,7 +59,7 @@ public:
     OutSeqStream.Release();
   }
 
-  COutMemStream(CMemBlockManagerMt *memManager):
+  COutMemStream(CMemBlockManagerMt *memManager Z7_lifetimebound):
       _memManager(memManager)
   {
     /*

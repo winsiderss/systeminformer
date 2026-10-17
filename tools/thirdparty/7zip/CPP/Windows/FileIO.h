@@ -19,6 +19,27 @@
 #include <winioctl.h>
 #endif
 
+typedef enum
+{
+  Z7_WIN_FileDirectoryInformation = 1,
+  Z7_WIN_FileFullDirectoryInformation,
+  Z7_WIN_FileBothDirectoryInformation,
+  Z7_WIN_FileBasicInformation,
+  Z7_WIN_FileRenameInformation = 10
+} Z7_WIN_FILE_INFORMATION_CLASS;
+
+// FILE_BASIC_INFORMATION / FILE_BASIC_INFO
+typedef struct
+{
+  LARGE_INTEGER CreationTime;
+  LARGE_INTEGER LastAccessTime;
+  LARGE_INTEGER LastWriteTime;
+  LARGE_INTEGER ChangeTime;
+  ULONG FileAttributes;
+  ULONG Reserved; // it's expected dummy variable for alignment : optional
+}
+Z7_WIN_FILE_BASIC_INFORMATION;
+
 #else
 
 #include <sys/types.h>
@@ -31,7 +52,7 @@
 
 #include "../Windows/TimeUtils.h"
 
-#include "Defs.h"
+#include "WinDefs.h"
 
 HRESULT GetLastError_noZero_HRESULT();
 
@@ -205,6 +226,9 @@ public:
       return false;
     return file.GetFileInformation(info);
   }
+
+  DWORD Call_NtSetInformationFile_return_WinError(void *data, ULONG len,
+      Z7_WIN_FILE_INFORMATION_CLASS fileInformationClass) const;
 };
 
 #ifndef UNDER_CE
@@ -323,6 +347,8 @@ public:
   
   bool Create_ALWAYS_with_Attribs(CFSTR fileName, DWORD flagsAndAttributes);
 
+  bool Set_Time_and_WinAttrib(const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime, DWORD attrib) throw();
+
   bool SetTime(const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime) throw();
   bool SetMTime(const CFiTime *mTime) throw();
   bool WritePart(const void *data, UInt32 size, UInt32 &processedSize) throw();
@@ -338,6 +364,15 @@ public:
 
 #else // _WIN32
 
+namespace NDir {
+struct C_umask
+{
+  mode_t mask;
+  C_umask();
+};
+extern C_umask g_umask;
+}
+
 namespace NIO {
 
 bool GetReparseData(CFSTR path, CByteBuffer &reparseData);
@@ -347,6 +382,7 @@ bool GetReparseData(CFSTR path, CByteBuffer &reparseData);
 bool SetSymLink(CFSTR from, CFSTR to);
 bool SetSymLink_UString(CFSTR from, const UString &to);
 
+const mode_t k_OutFile_mode_default = 0666;
 
 class CFileBase
 {
@@ -359,7 +395,7 @@ protected:
   UInt64 Size; // it can be larger than real available size
   */
 
-  bool OpenBinary(const char *name, int flags, mode_t mode = 0666);
+  bool OpenBinary(const char *name, int flags, mode_t mode /* = k_OutFile_mode_default */);
 public:
   bool PreserveATime;
 #if 0
@@ -411,9 +447,11 @@ class COutFile: public CFileBase
   bool CTime_defined;
   bool ATime_defined;
   bool MTime_defined;
+  bool mode_for_Close_defined;
   CFiTime CTime;
   CFiTime ATime;
   CFiTime MTime;
+  mode_t mode_for_Close;
 
   AString Path;
   ssize_t write_part(const void *data, size_t size) throw();
@@ -425,9 +463,11 @@ public:
       CTime_defined(false),
       ATime_defined(false),
       MTime_defined(false),
-      mode_for_Create(0666)
+      mode_for_Close_defined(false),
+      mode_for_Create(k_OutFile_mode_default) // 0666
       {}
 
+  ~COutFile() { Close(); }
   bool Close();
 
   bool Open_EXISTING(CFSTR fileName);
@@ -454,6 +494,7 @@ public:
     return SetLength(length);
   }
   bool SetTime(const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime) throw();
+  bool Set_Time_and_WinAttrib(const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime, DWORD attrib) throw();
   bool SetMTime(const CFiTime *mTime) throw();
 };
 

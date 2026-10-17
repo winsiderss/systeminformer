@@ -481,25 +481,26 @@ public:
       if (len == 0)
         continue;
       const unsigned offset = counts[len]++;
-      {
-        Byte *dest = _lens + _limits[(size_t)len - 1]
-            + ((offset - _poses[len]) << (kNumBitsMax - len));
-        const unsigned num = (unsigned)1 << (kNumBitsMax - len);
-        const unsigned val = (i << 3) + len;
-        for (unsigned k = 0; k < num; k++)
-          dest[k] = (Byte)val;
-      }
+      const unsigned temp = (offset - _poses[len]) << (kNumBitsMax - len);
+      Byte *dest = _lens + _limits[(size_t)len - 1] + temp;
+      unsigned num = 1u << (kNumBitsMax - len);
+      const unsigned val = (i << 3) + len;
+      do
+        *dest++ = (Byte)val;
+      while (--num);
     }
 
     if (!full)
     {
       const unsigned limit = _limits[kNumBitsMax];
-      const unsigned num = ((unsigned)1 << kNumBitsMax) - limit;
-      Byte *dest = _lens + limit;
-      for (unsigned k = 0; k < num; k++)
-        dest[k] = (Byte)
-          // (0x1f << 3);
-          ((0x1f << 3) + 0x7);
+      unsigned num = (1u << kNumBitsMax) - limit;
+      if (num)
+      {
+        Byte *dest = _lens + limit;
+        do
+          *dest++ = (0x1f << 3) + 7;
+        while (--num);
+      }
     }
     
     return true;

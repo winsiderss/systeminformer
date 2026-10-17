@@ -130,10 +130,17 @@ struct CCdInfo
   UInt64 Size;
   UInt64 Offset;
 
-  CCdInfo() { memset(this, 0, sizeof(*this)); IsFromEcd64 = false; }
+  CCdInfo() { memset(this, 0, sizeof(*this)); /* IsFromEcd64 = false; */ }
 
   void ParseEcd32(const Byte *p);   // (p) includes signature
   void ParseEcd64e(const Byte *p);  // (p) exclude signature
+
+  bool AreOverflowValues() const
+  {
+    return (Size >= (UInt64)1 << 63)
+        || (Offset >= (UInt64)1 << 63)
+        || (Offset + Size >= (UInt64)1 << 63);
+  }
 
   bool IsEmptyArc() const
   {

@@ -98,7 +98,7 @@ bool CCommonMethodProps::SetCommonProperty(const UString &name, const PROPVARIAN
   
   if (name.IsPrefixedBy_Ascii_NoCase("memuse"))
   {
-    UInt64 v;
+    UInt64 v = 0;
     if (!ParseSizeString(name.Ptr(6), value, _memAvail, v))
       hres = E_INVALIDARG;
     _memUsage_Decompress = v;

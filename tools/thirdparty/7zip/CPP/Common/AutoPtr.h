@@ -24,7 +24,7 @@ template<class T> class CMyUniquePtr
     _p = p;
   }
 public:
-  CMyUniquePtr(T *p = NULL) : _p(p) {}
+  CMyUniquePtr(T *p Z7_lifetimebound = NULL) : _p(p) {}
   ~CMyUniquePtr() { delete _p; }
   T& operator*() const { return *_p; }
   T* operator->() const { return _p; }

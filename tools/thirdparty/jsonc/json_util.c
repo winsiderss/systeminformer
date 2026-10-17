@@ -38,7 +38,9 @@
 #endif /* HAVE_UNISTD_H */
 
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <io.h>
 #include <windows.h>
 #endif /* defined(_WIN32) */

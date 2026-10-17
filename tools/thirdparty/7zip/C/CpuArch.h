@@ -209,6 +209,17 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
 #endif
 
 
+#if  defined(__s390__)
+#if  defined(__s390x__) || defined(__LP64__) || (defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8)
+  #define MY_CPU_NAME "s390x"
+  #define MY_CPU_SIZEOF_POINTER 8
+#else
+  #define MY_CPU_NAME "s390"
+  #define MY_CPU_SIZEOF_POINTER 4
+#endif
+#endif
+
+
 // #undef MY_CPU_NAME
 // #undef MY_CPU_SIZEOF_POINTER
 // #define __e2k__
@@ -365,6 +376,16 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
        | (((UInt32)(v) >>  8) & (UInt32)0xff00  ) \
        | (((UInt32)(v) >> 24)                   ))
 
+#define Z7_BSWAP64_CONST(v) \
+       ( ( ( (UInt64)(v)                           ) << 8 * 7 ) \
+       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 1) ) << 8 * 5 ) \
+       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 2) ) << 8 * 3 ) \
+       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 3) ) << 8 * 1 ) \
+       | ( ( (UInt64)(v) >> 8 * 1 ) & ((UInt32)0xff << 8 * 3) ) \
+       | ( ( (UInt64)(v) >> 8 * 3 ) & ((UInt32)0xff << 8 * 2) ) \
+       | ( ( (UInt64)(v) >> 8 * 5 ) & ((UInt32)0xff << 8 * 1) ) \
+       | ( ( (UInt64)(v) >> 8 * 7 )                           ) \
+       )
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1300)
 
@@ -407,17 +428,7 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
        ))
 
 #define Z7_BSWAP32(v) Z7_BSWAP32_CONST(v)
-
-#define Z7_BSWAP64(v) \
-       ( ( ( (UInt64)(v)                           ) << 8 * 7 ) \
-       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 1) ) << 8 * 5 ) \
-       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 2) ) << 8 * 3 ) \
-       | ( ( (UInt64)(v) & ((UInt32)0xff << 8 * 3) ) << 8 * 1 ) \
-       | ( ( (UInt64)(v) >> 8 * 1 ) & ((UInt32)0xff << 8 * 3) ) \
-       | ( ( (UInt64)(v) >> 8 * 3 ) & ((UInt32)0xff << 8 * 2) ) \
-       | ( ( (UInt64)(v) >> 8 * 5 ) & ((UInt32)0xff << 8 * 1) ) \
-       | ( ( (UInt64)(v) >> 8 * 7 )                           ) \
-       )
+#define Z7_BSWAP64(v) Z7_BSWAP64_CONST(v)
 
 #endif
 
@@ -582,11 +593,15 @@ problem-4 : performace:
 #if defined(MY_CPU_BE)
 #define Z7_CONV_BE_TO_NATIVE_CONST32(v)  (v)
 #define Z7_CONV_LE_TO_NATIVE_CONST32(v)  Z7_BSWAP32_CONST(v)
+#define Z7_CONV_BE_TO_NATIVE_CONST64(v)  (v)
+#define Z7_CONV_LE_TO_NATIVE_CONST64(v)  Z7_BSWAP64_CONST(v)
 #define Z7_CONV_NATIVE_TO_BE_32(v)       (v)
 // #define Z7_GET_NATIVE16_FROM_2_BYTES(b0, b1)  ((b1) | ((b0) << 8))
 #elif defined(MY_CPU_LE)
 #define Z7_CONV_BE_TO_NATIVE_CONST32(v)  Z7_BSWAP32_CONST(v)
 #define Z7_CONV_LE_TO_NATIVE_CONST32(v)  (v)
+#define Z7_CONV_BE_TO_NATIVE_CONST64(v)  Z7_BSWAP64_CONST(v)
+#define Z7_CONV_LE_TO_NATIVE_CONST64(v)  (v)
 #define Z7_CONV_NATIVE_TO_BE_32(v)       Z7_BSWAP32(v)
 // #define Z7_GET_NATIVE16_FROM_2_BYTES(b0, b1)  ((b0) | ((b1) << 8))
 #else

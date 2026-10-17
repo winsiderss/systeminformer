@@ -82,6 +82,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_chartables.c"
     "pcre/pcre2_chkdint.c"
     "pcre/pcre2_compile.c"
+    "pcre/pcre2_compile_cgroup.c"
     "pcre/pcre2_compile_class.c"
     "pcre/pcre2_config.c"
     "pcre/pcre2_context.c"
@@ -94,6 +95,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_maketables.c"
     "pcre/pcre2_match.c"
     "pcre/pcre2_match_data.c"
+    "pcre/pcre2_match_next.c"
     "pcre/pcre2_newline.c"
     "pcre/pcre2_ord2utf.c"
     "pcre/pcre2_pattern_info.c"
@@ -105,7 +107,6 @@ set(SOURCES_PCRE
     "pcre/pcre2_substring.c"
     "pcre/pcre2_tables.c"
     "pcre/pcre2_ucd.c"
-    "pcre/pcre2_ucptables.c"
     "pcre/pcre2_valid_utf.c"
     "pcre/pcre2_xclass.c"
     "pcre/pcre2posix.c"
@@ -122,8 +123,11 @@ set(HEADERS_PCRE
     "pcre/pcre2_compile.h"
     "pcre/pcre2_util.h"
     "pcre/pcre2_jit_char_inc.h"
-    "pcre/pcre2_jit_neon_inc.h"
+    "pcre/pcre2_jit_match_inc.h"
+    "pcre/pcre2_jit_misc_inc.h"
     "pcre/pcre2_jit_simd_inc.h"
+    "pcre/pcre2_printint_inc.h"
+    "pcre/pcre2_ucptables_inc.h"
 )
 source_group("PCRE\\Headers" FILES ${HEADERS_PCRE})
 

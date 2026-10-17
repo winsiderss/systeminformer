@@ -1230,7 +1230,7 @@
     <ClInclude Include="CPP\Windows\Console.h">
       <Filter>CPP\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="CPP\Windows\Defs.h">
+    <ClInclude Include="CPP\Windows\WinDefs.h">
       <Filter>CPP\Windows</Filter>
     </ClInclude>
     <ClInclude Include="CPP\Windows\DLL.h">

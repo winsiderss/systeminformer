@@ -13,8 +13,6 @@
 #include "../Common/MyString.h"
 #include "../Common/MyWindows.h"
 
-#include "Defs.h"
-
 #include "FileIO.h"
 
 namespace NWindows {

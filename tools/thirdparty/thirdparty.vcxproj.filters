@@ -278,7 +278,10 @@
     <ClCompile Include="pcre\pcre2_compile_class.c">
       <Filter>PCRE</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcre2_ucptables.c">
+    <ClCompile Include="pcre\pcre2_compile_cgroup.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match_next.c">
       <Filter>PCRE</Filter>
     </ClCompile>
     <ClCompile Include="zydis\Zydis.c">
@@ -982,7 +985,16 @@
     <ClInclude Include="pcre\pcre2_jit_char_inc.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre2_jit_neon_inc.h">
+    <ClInclude Include="pcre\pcre2_jit_match_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_jit_misc_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_printint_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_ucptables_inc.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
     <ClInclude Include="pcre\pcre2_jit_simd_inc.h">

@@ -29,10 +29,10 @@ UInt64 ConvertHexStringToUInt64(const char *s, const char **end) throw();
   } \
 }
 
-const char *FindNonHexChar(const char *s) throw();
+const char *FindNonHexChar(const char *s Z7_lifetimebound) throw();
 
 // in: (dest != NULL)
 // returns: pointer in dest array after last written byte
-Byte *ParseHexString(const char *s, Byte *dest) throw();
+Byte *ParseHexString(const char *s, Byte *dest Z7_lifetimebound) throw();
 
 #endif

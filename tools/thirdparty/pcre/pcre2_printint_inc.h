@@ -47,6 +47,7 @@ that comprise the library. It can also optionally be included in
 pcre2_compile.c for detailed debugging in error situations. */
 
 
+
 /* Tables of operator names. The same 8-bit table is used for all code unit
 widths, so it must be defined only once. The list itself is defined in
 pcre2_internal.h, which is #included by pcre2test before this file. */
@@ -118,9 +119,14 @@ if (utf)
 
 if (one_code_unit)
   {
-  if (PRINTABLE(c)) fprintf(f, "%c", (char)c);
-  else if (c < 0x80) fprintf(f, "\\x%02x", c);
-  else fprintf(f, "\\x{%02x}", c);
+  if (PRINTABLE(c))
+    fprintf(f, "%c", CHAR_OUTPUT(c));
+  else
+    {
+    c = CHAR_OUTPUT_HEX(c);
+    if (c < 0x80) fprintf(f, "\\x%02x", c);
+    else fprintf(f, "\\x{%02x}", c);
+    }
   return 0;
   }
 
@@ -212,7 +218,8 @@ print_custring(FILE *f, PCRE2_SPTR ptr)
 while (*ptr != '\0')
   {
   uint32_t c = *ptr++;
-  if (PRINTABLE(c)) fprintf(f, "%c", c); else fprintf(f, "\\x{%x}", c);
+  if (PRINTABLE(c)) fprintf(f, "%c", CHAR_OUTPUT(c));
+  else fprintf(f, "\\x{%x}", CHAR_OUTPUT_HEX(c));
   }
 }
 
@@ -222,7 +229,8 @@ print_custring_bylen(FILE *f, PCRE2_SPTR ptr, PCRE2_UCHAR len)
 for (; len > 0; len--)
   {
   uint32_t c = *ptr++;
-  if (PRINTABLE(c)) fprintf(f, "%c", c); else fprintf(f, "\\x{%x}", c);
+  if (PRINTABLE(c)) fprintf(f, "%c", CHAR_OUTPUT(c));
+  else fprintf(f, "\\x{%x}", CHAR_OUTPUT_HEX(c));
   }
 }
 
@@ -462,7 +470,7 @@ print_map(FILE *f, const uint8_t *map, BOOL negated)
 {
 BOOL first = TRUE;
 uint8_t inverted_map[32];
-int i;
+int i, input;
 
 if (negated)
   {
@@ -471,26 +479,35 @@ if (negated)
   map = inverted_map;
   }
 
-for (i = 0; i < 256; i++)
+for (input = 0; input < 256; input++)
   {
+  i = CHAR_INPUT_HEX(input);
   if ((map[i/8] & (1u << (i&7))) != 0)
     {
-    int j;
-    for (j = i+1; j < 256; j++)
-      if ((map[j/8] & (1u << (j&7))) == 0) break;
-    if (i == '-' || i == '\\' || i == ']' || (first && i == '^'))
-      fprintf(f, "\\");
-    if (PRINTABLE(i)) fprintf(f, "%c", i);
-      else fprintf(f, "\\x%02x", i);
-    first = FALSE;
-    if (--j > i)
+    int j, jinput;
+    for (jinput = input; jinput+1 < 256; jinput++)
       {
-      if (j != i + 1) fprintf(f, "-");
-      if (j == '-' || j == '\\' || j == ']') fprintf(f, "\\");
-      if (PRINTABLE(j)) fprintf(f, "%c", j);
-        else fprintf(f, "\\x%02x", j);
+      j = CHAR_INPUT_HEX(jinput+1);
+      if ((map[j/8] & (1u << (j&7))) == 0) break;
       }
-    i = j;
+    j = CHAR_INPUT_HEX(jinput);
+    if (i == CHAR_MINUS || i == CHAR_BACKSLASH ||
+        i == CHAR_RIGHT_SQUARE_BRACKET ||
+        (first && i == CHAR_CIRCUMFLEX_ACCENT))
+      fprintf(f, "\\");
+    if (PRINTABLE(i)) fprintf(f, "%c", CHAR_OUTPUT(i));
+    else fprintf(f, "\\x%02x", CHAR_OUTPUT_HEX(i));
+    first = FALSE;
+    if (jinput > input)
+      {
+      if (jinput != input + 1) fprintf(f, "-");
+      if (j == CHAR_MINUS || j == CHAR_BACKSLASH ||
+          j == CHAR_RIGHT_SQUARE_BRACKET)
+        fprintf(f, "\\");
+      if (PRINTABLE(j)) fprintf(f, "%c", CHAR_OUTPUT(j));
+      else fprintf(f, "\\x%02x", CHAR_OUTPUT_HEX(j));
+      }
+    input = jinput;
     }
   }
 }
@@ -566,7 +583,7 @@ if (type == OP_XCLASS)
       {
       case XCL_NOTPROP:
       notch = "^";
-      /* Fall through */
+      PCRE2_FALLTHROUGH /* Fall through */
       case XCL_PROP:
         {
         unsigned int ptype = *ccode++;
@@ -717,31 +734,22 @@ for(;;)
     fprintf(f, "%s", OP_names[*code]);
     break;
 
-    case OP_REVERSE:
-    if (print_lengths) fprintf(f, "%3d ", GET2(code, 1));
-      else fprintf(f, "    ");
-    fprintf(f, "%s", OP_names[*code]);
-    break;
-
-    case OP_VREVERSE:
-    if (print_lengths) fprintf(f, "%3d %d ", GET2(code, 1),
-      GET2(code, 1 + IMM2_SIZE));
-    else fprintf(f, "    ");
-    fprintf(f, "%s", OP_names[*code]);
-    break;
-
     case OP_CLOSE:
     fprintf(f, "    %s %d", OP_names[*code], GET2(code, 1));
     break;
 
     case OP_CREF:
-    fprintf(f, "%3d %s", GET2(code,1), OP_names[*code]);
+    case OP_REVERSE:
+    case OP_VREVERSE:
+    fprintf(f, "%3d %s", GET2(code, 1), OP_names[*code]);
+    if (*code == OP_VREVERSE) fprintf(f, " %d", GET2(code, 1 + IMM2_SIZE));
     break;
 
     case OP_DNCREF:
+    case OP_DNRREF:
       {
       PCRE2_SPTR entry = nametable + (GET2(code, 1) * nesize) + IMM2_SIZE;
-      fprintf(f, " %s Capture ref <", flag);
+      fprintf(f, " %s %s<", flag, OP_names[*code]);
       print_custring(f, entry);
       fprintf(f, ">%d", GET2(code, 1 + IMM2_SIZE));
       }
@@ -750,26 +758,9 @@ for(;;)
     case OP_RREF:
     c = GET2(code, 1);
     if (c == RREF_ANY)
-      fprintf(f, "    Cond recurse any");
+      fprintf(f, "    %s any", OP_names[*code]);
     else
-      fprintf(f, "    Cond recurse %d", c);
-    break;
-
-    case OP_DNRREF:
-      {
-      PCRE2_SPTR entry = nametable + (GET2(code, 1) * nesize) + IMM2_SIZE;
-      fprintf(f, " %s Cond recurse <", flag);
-      print_custring(f, entry);
-      fprintf(f, ">%d", GET2(code, 1 + IMM2_SIZE));
-      }
-    break;
-
-    case OP_FALSE:
-    fprintf(f, "    Cond false");
-    break;
-
-    case OP_TRUE:
-    fprintf(f, "    Cond true");
+      fprintf(f, "    %s %d", OP_names[*code], c);
     break;
 
     case OP_STARI:
@@ -782,7 +773,7 @@ for(;;)
     case OP_MINQUERYI:
     case OP_POSQUERYI:
     flag = "/i";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
     case OP_STAR:
     case OP_MINSTAR:
     case OP_POSSTAR:
@@ -821,7 +812,7 @@ for(;;)
     case OP_MINUPTOI:
     case OP_POSUPTOI:
     flag = "/i";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
     case OP_EXACT:
     case OP_UPTO:
     case OP_MINUPTO:
@@ -854,7 +845,7 @@ for(;;)
 
     case OP_NOTI:
     flag = "/i";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
     case OP_NOT:
     fprintf(f, " %s [^", flag);
     extra = print_char(f, code + 1, utf);
@@ -871,7 +862,7 @@ for(;;)
     case OP_NOTMINQUERYI:
     case OP_NOTPOSQUERYI:
     flag = "/i";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
 
     case OP_NOTSTAR:
     case OP_NOTMINSTAR:
@@ -892,7 +883,7 @@ for(;;)
     case OP_NOTMINUPTOI:
     case OP_NOTPOSUPTOI:
     flag = "/i";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
 
     case OP_NOTEXACT:
     case OP_NOTUPTO:
@@ -917,25 +908,25 @@ for(;;)
 
     case OP_REFI:
     flag = "/i";
-    extra = code[1 + IMM2_SIZE];
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
     case OP_REF:
-    fprintf(f, " %s \\%d", flag, GET2(code,1));
-    if (extra != 0) fprintf(f, " 0x%02x", extra);
+    fprintf(f, " %s \\g{%d}", flag, GET2(code, 1));
+    i = (*code == OP_REFI)? code[1 + IMM2_SIZE] : 0;
+    if (i != 0) fprintf(f, " 0x%02x", i);
     ccode = code + OP_lengths[*code];
     goto CLASS_REF_REPEAT;
 
     case OP_DNREFI:
     flag = "/i";
-    extra = code[1 + 2*IMM2_SIZE];
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
     case OP_DNREF:
       {
       PCRE2_SPTR entry = nametable + (GET2(code, 1) * nesize) + IMM2_SIZE;
       fprintf(f, " %s \\k<", flag);
       print_custring(f, entry);
       fprintf(f, ">%d", GET2(code, 1 + IMM2_SIZE));
-      if (extra != 0) fprintf(f, " 0x%02x", extra);
+      i = (*code == OP_DNREFI)? code[1 + 2*IMM2_SIZE] : 0;
+      if (i != 0) fprintf(f, " 0x%02x", i);
       }
     ccode = code + OP_lengths[*code];
     goto CLASS_REF_REPEAT;
@@ -947,7 +938,7 @@ for(;;)
 
     case OP_CALLOUT_STR:
     c = code[1 + 4*LINK_SIZE];
-    fprintf(f, "    %s %c", OP_names[*code], c);
+    fprintf(f, "    %s %c", OP_names[*code], CHAR_OUTPUT(c));
     extra = GET(code, 1 + 2*LINK_SIZE);
     print_custring_bylen(f, code + 2 + 4*LINK_SIZE, extra - 3 - 4*LINK_SIZE);
     for (i = 0; PRIV(callout_start_delims)[i] != 0; i++)
@@ -956,8 +947,8 @@ for(;;)
         c = PRIV(callout_end_delims)[i];
         break;
         }
-    fprintf(f, "%c %d %d %d", c, GET(code, 1 + 3*LINK_SIZE), GET(code, 1),
-      GET(code, 1 + LINK_SIZE));
+    fprintf(f, "%c %d %d %d", CHAR_OUTPUT(c), GET(code, 1 + 3*LINK_SIZE),
+      GET(code, 1), GET(code, 1 + LINK_SIZE));
     break;
 
     case OP_PROP:
@@ -1087,14 +1078,10 @@ for(;;)
     extra += code[1];
     break;
 
-    case OP_THEN:
-    fprintf(f, "    %s", OP_names[*code]);
-    break;
-
     case OP_CIRCM:
     case OP_DOLLM:
     flag = "/m";
-    /* Fall through */
+    PCRE2_FALLTHROUGH /* Fall through */
 
     /* Anything else is just an item with no data, but possibly a flag. */
 
@@ -1104,8 +1091,8 @@ for(;;)
     }
 
   code += OP_lengths[*code] + extra;
-  fprintf(f, "\n");
+  putc('\n', f);
   }
 }
 
-/* End of pcre2_printint.c */
+/* End of pcre2_printint_inc.h */

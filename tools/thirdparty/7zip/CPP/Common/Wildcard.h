@@ -85,7 +85,7 @@ public:
       // , ExcludeDirItems(false)
       {}
 
-  CCensorNode(const UString &name, CCensorNode *parent):
+  CCensorNode(const UString &name, CCensorNode *parent Z7_lifetimebound):
       Parent(parent)
       // , ExcludeDirItems(false)
       , Name(name)

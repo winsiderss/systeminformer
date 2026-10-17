@@ -7,8 +7,8 @@
 #include <time.h>
 #endif
 
-#include "Defs.h"
 #include "TimeUtils.h"
+#include "WinDefs.h"
 
 namespace NWindows {
 namespace NTime {

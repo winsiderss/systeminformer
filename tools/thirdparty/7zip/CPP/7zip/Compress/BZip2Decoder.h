@@ -187,7 +187,7 @@ public:
 
   bool Finished() const { return _reps <= 0 && _blockSize == 0; }
 
-  Byte *Decode(Byte *data, size_t size) throw();
+  Byte *Decode(Byte *data Z7_lifetimebound, size_t size) throw();
 };
 
 
@@ -307,7 +307,7 @@ public:
   {
     CDecoder *_decoder;
   public:
-    CWaitScout_Releaser(CDecoder *decoder): _decoder(decoder) {}
+    CWaitScout_Releaser(CDecoder *decoder Z7_lifetimebound): _decoder(decoder) {}
     ~CWaitScout_Releaser() { _decoder->WaitScout(); }
   };
 

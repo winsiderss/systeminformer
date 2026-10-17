@@ -306,7 +306,7 @@ public:
     MadeByVersion.HostOS = 0;
   }
 
-  const CExtraBlock &GetMainExtra() const { return *(FromCentral ? &CentralExtra : &LocalExtra); }
+  const CExtraBlock &GetMainExtra() const Z7_lifetimebound { return *(FromCentral ? &CentralExtra : &LocalExtra); }
 
   bool IsDir() const;
   UInt32 GetWinAttrib() const;

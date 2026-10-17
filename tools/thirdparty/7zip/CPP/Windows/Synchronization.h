@@ -7,7 +7,7 @@
 
 #include "../Common/MyTypes.h"
 
-#include "Defs.h"
+#include "WinDefs.h"
 
 #ifdef _WIN32
 #include "Handle.h"
@@ -177,7 +177,7 @@ class CCriticalSectionLock  MY_UNCOPYABLE
   CCriticalSection *_object;
   void Unlock()  { _object->Leave(); }
 public:
-  CCriticalSectionLock(CCriticalSection &object): _object(&object) {_object->Enter(); }
+  CCriticalSectionLock(CCriticalSection &object Z7_lifetimebound): _object(&object) {_object->Enter(); }
   ~CCriticalSectionLock() { Unlock(); }
 };
 

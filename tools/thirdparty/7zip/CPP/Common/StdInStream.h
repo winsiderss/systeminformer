@@ -15,7 +15,7 @@ class CStdInStream
 public:
   int CodePage;
 
-  CStdInStream(FILE *stream = NULL):
+  CStdInStream(FILE *stream Z7_lifetimebound = NULL):
       _stream(stream),
       // _streamIsOpen(false),
       CodePage(-1)

@@ -436,7 +436,7 @@ void CThreadInfo::EncodeBlock(const Byte *block, UInt32 blockSize)
     WriteBits2(origPtr, kNumOrigBits + 1); // + 1 for additional high bit flag (Randomised = false)
   }
   Byte mtfBuf[256];
-  // memset(mtfBuf, 0, sizeof(mtfBuf)); // to disable MSVC warning
+  Z7_memset_0_ARRAY(mtfBuf); // to suppress MSVC warning in -analyze mode
   unsigned numInUse;
   {
     Byte inUse[256];

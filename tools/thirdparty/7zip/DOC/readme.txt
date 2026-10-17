@@ -1,4 +1,4 @@
-7-Zip 26.01 Sources
+7-Zip 26.04 Sources
 -------------------
 
 7-Zip is a file archiver for Windows.
@@ -12,7 +12,7 @@ License Info
 7-Zip is free software distributed under the GNU LGPL
 (except for unRar code). Also some  code
 is licensed under the "BSD 3-clause License".
-Read "License.txt" for more infomation about license.
+Read "License.txt" for more information about license.
 
 Notes about unRAR license:
 
@@ -111,8 +111,8 @@ Compiling 7-Zip for Unix/Linux
 ------------------------------
 
 There are several options to compile 7-Zip with different compilers: gcc and clang.
-Also 7-Zip code contains two versions for some parts of code: in C and in Assembeler.
-So if you compile the version with Assembeler code, you will get faster 7-Zip binary.
+Also 7-Zip code contains two versions for some parts of code: in C and in Assembler.
+So if you compile the version with Assembler code, you will get faster 7-Zip binary.
 
 7-Zip's assembler code uses the following syntax for different platforms:
 
@@ -144,7 +144,7 @@ Then you can compile `makefile.gcc` with the command:
   make -j -f makefile.gcc
 
 Also there are additional "*.mak" files in folder "CPP/7zip/" that can be used to compile
-7-Zip binaries with optimized code and optimzing options.
+7-Zip binaries with optimized code and optimizing options.
 
 To compile with GCC without assembler:
   cd CPP/7zip/Bundles/Alone2

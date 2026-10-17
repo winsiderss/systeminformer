@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif /* HAVE_LOCALE_H */
 
 #include "arraylist.h"
 #include "debug.h"
@@ -272,11 +275,15 @@ struct json_object *json_object_get(struct json_object *jso)
     return jso;
 }
 
-int json_object_put(struct json_object *jso)
-{
-    if (!jso)
-        return 0;
 
+/**
+  * Internal json_object_put function
+  * Returns 0 if we're done "freeing" the object, either because its memory
+  * was actually released, or we just needed to decrement the refcount.
+  * Returns 1 when the object is a non-empty container that still needs to be handled.
+  */
+static inline int _json_object_put_maybe_free(struct json_object *jso, int free_containers)
+{
     /* Avoid invalid free and crash explicitly instead of (silently)
      * segfaulting.
      */
@@ -290,21 +297,157 @@ int json_object_put(struct json_object *jso)
      * operating on an already-freed object.
      */
     if (__sync_sub_and_fetch(&jso->_ref_count, 1) > 0)
-        return 0;
 #else
     if (--jso->_ref_count > 0)
-        return 0;
 #endif
+    {
+        return 0;  // All done, caller doesn't need to do anything else
+    }
 
     if (jso->_user_delete)
         jso->_user_delete(jso, jso->_userdata);
+
     switch (jso->o_type)
     {
-    case json_type_object: json_object_object_delete(jso); break;
-    case json_type_array: json_object_array_delete(jso); break;
-    case json_type_string: json_object_string_delete(jso); break;
-    default: json_object_generic_delete(jso); break;
+    case json_type_object: 
+        if (free_containers || lh_table_length(JC_OBJECT(jso)->c_object) == 0)
+        {
+            json_object_object_delete(jso);
+            break;
+        }
+        return 1;
+    case json_type_array: 
+        // container objects are handled by the caller
+        if (free_containers || array_list_length(JC_ARRAY(jso)->c_array) == 0)
+        {
+            json_object_array_delete(jso);
+            break;
+        }
+        return 1;
+    case json_type_string:
+        json_object_string_delete(jso);
+        break;
+    default:
+        json_object_generic_delete(jso);
+        break;
     }
+    return 0;  // All done, caller doesn't need to do anything else
+}
+
+int json_object_put(struct json_object *jso)
+{
+    if (!jso)
+        return 0;
+
+    if (_json_object_put_maybe_free(jso, 0) == 0)
+        return 0;
+    // else, it's a non-empty container object, handle it below
+
+    // Note: jso is now a "zombie" object, _ref_count == 0 but memory not yet released
+
+    /*
+     * Handle container objects with minimal stack usage.
+     * Perform depth-first iteration, decrementing ref counts on way down
+     * and freeing actual memory on the way up.
+     * Iterate backwards through each container so we can use the tail
+     * pointer/array length to know where to pick up upon popping up to
+     * the parent.
+     */
+
+    while(jso != NULL)
+    {
+        size_t total_slots;
+        size_t slots_left;
+        struct lh_entry *cur_entry = NULL;
+        int retry_main_loop = 0;
+
+        if (jso->o_type == json_type_object)
+        {
+            total_slots = lh_table_length(JC_OBJECT(jso)->c_object);
+            cur_entry = JC_OBJECT(jso)->c_object->tail;
+        }
+        else
+        {
+            total_slots = array_list_length(JC_ARRAY(jso)->c_array);
+        }
+        slots_left = total_slots;
+
+        while (slots_left > 0)
+        {
+            size_t cur_slot = slots_left - 1;
+            json_object *child = NULL;
+
+            // First, clear the slot in the current jso object
+            // The slot itself will be freed when jso is freed, or
+            // if the child object in the slot is a container too and
+            // and we "recurse" into it.
+            switch (jso->o_type)
+            {
+            case json_type_object: 
+                child = (json_object *)lh_entry_v(cur_entry);
+                // We're going to free child, so detach it from the entry
+                lh_entry_set_val(cur_entry, NULL);
+                break;
+            case json_type_array:
+                child = (struct json_object *)array_list_get_idx(JC_ARRAY(jso)->c_array, cur_slot);
+                // We're going to free child, so detach it from the entry
+                array_list_set_idx(JC_ARRAY(jso)->c_array, cur_slot, NULL);
+                break;
+            default:
+                assert(!"jso->o_type is not object or array");
+                break;
+            }
+
+            // Now, handle actually freeing the json_object in that slot
+            if (!child || _json_object_put_maybe_free(child, 0) == 0)
+            {
+ 				// child is either freed, or still referenced somewhere else
+                // leave it as-is and handle the previous slot
+                slots_left--;
+                if (jso->o_type == json_type_object)
+                    cur_entry = cur_entry->prev;
+                continue;
+            }
+            // _ref_count == 0 now, and _user_delete has been called so we can re-use _userdata 
+            child->_delete_parent = jso;  // aka _userdata
+            child->_user_delete = NULL;   // make sure it's not called again
+
+            // Clear the slot entries whose json_object have been freed so when we pop
+            // back up to this jso we can continue where we left off.
+            // Note: since we set each entry to NULL above, clearing the slot
+            //  is a noop wrt releasing a json_object.
+            if (jso->o_type == json_type_object)
+            {
+                lh_table_delete_entry_to_tail(JC_OBJECT(jso)->c_object, cur_entry);
+            }
+            else // json_type_array
+            {
+                array_list_del_idx(JC_ARRAY(jso)->c_array, cur_slot, total_slots - cur_slot);
+            }
+            // Iterate down through the child, it will be freed once all 
+            // of *its* children are freed
+            jso = child;
+            retry_main_loop = 1;
+            break;
+        }
+
+        if (retry_main_loop)
+            // Iterating down, don't free jso yet
+            continue;
+
+        // All slots are cleared, now pop back up to the parent
+        {
+            json_object *parent = jso->_delete_parent;
+            // jso is a child that's already been detached from its parent
+            // so we need to actually free it now
+            assert(jso->_ref_count == 0);
+            jso->_ref_count++;   // We're the exclusive owner of jso, non-atomic add is ok.
+            assert(_json_object_put_maybe_free(jso, 1) == 0);
+            jso = parent;
+            // iteration will be reset at the top of the loop
+        }
+    }
+
     return 1;
 }
 
@@ -519,9 +662,11 @@ static size_t json_object_object_to_json_string(struct json_object *jso, struct 
 
 static void json_object_lh_entry_free(struct lh_entry *ent)
 {
+    struct json_object *jso = (struct json_object *)lh_entry_v(ent);
     if (!lh_entry_k_is_constant(ent))
         free(lh_entry_k(ent));
-    json_object_put((struct json_object *)lh_entry_v(ent));
+    if (jso) // micro-opt, skip func call on null object
+        json_object_put(jso);
 }
 
 static void json_object_object_delete(struct json_object *jso_base)
@@ -739,6 +884,7 @@ int32_t json_object_get_int(const struct json_object *jso)
     int64_t cint64 = 0;
     double cdouble;
     enum json_type o_type;
+    errno = 0;
 
     if (!jso)
         return 0;
@@ -774,17 +920,34 @@ int32_t json_object_get_int(const struct json_object *jso)
     {
     case json_type_int:
         /* Make sure we return the correct values for out of range numbers. */
-        if (cint64 <= INT32_MIN)
+        if (cint64 < INT32_MIN)
+        {
+            errno = ERANGE;
             return INT32_MIN;
-        if (cint64 >= INT32_MAX)
+        }
+        if (cint64 > INT32_MAX)
+        {
+            errno = ERANGE;
             return INT32_MAX;
+        }
         return (int32_t)cint64;
     case json_type_double:
         cdouble = JC_DOUBLE_C(jso)->c_double;
-        if (cdouble <= INT32_MIN)
+        if (cdouble < INT32_MIN)
+        {
+            errno = ERANGE;
             return INT32_MIN;
-        if (cdouble >= INT32_MAX)
+        }
+        if (cdouble > INT32_MAX)
+        {
+            errno = ERANGE;
             return INT32_MAX;
+        }
+        if (isnan(cdouble))
+        {
+            errno = EINVAL;
+            return INT32_MIN;
+        }
         return (int32_t)cdouble;
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     default: return 0;
@@ -819,6 +982,7 @@ struct json_object *json_object_new_uint64(uint64_t i)
 int64_t json_object_get_int64(const struct json_object *jso)
 {
     int64_t cint;
+    errno = 0;
 
     if (!jso)
         return 0;
@@ -831,8 +995,11 @@ int64_t json_object_get_int64(const struct json_object *jso)
         {
         case json_object_int_type_int64: return jsoint->cint.c_int64;
         case json_object_int_type_uint64:
-            if (jsoint->cint.c_uint64 >= INT64_MAX)
+            if (jsoint->cint.c_uint64 > INT64_MAX)
+            {
+                errno = ERANGE;
                 return INT64_MAX;
+            }
             return (int64_t)jsoint->cint.c_uint64;
         default: json_abort("invalid cint_type");
         }
@@ -840,10 +1007,21 @@ int64_t json_object_get_int64(const struct json_object *jso)
     case json_type_double:
         // INT64_MAX can't be exactly represented as a double
         // so cast to tell the compiler it's ok to round up.
-        if (JC_DOUBLE_C(jso)->c_double >= (double)INT64_MAX)
+        if (JC_DOUBLE_C(jso)->c_double > (double)INT64_MAX)
+        {
+            errno = ERANGE;
             return INT64_MAX;
-        if (JC_DOUBLE_C(jso)->c_double <= INT64_MIN)
+        }
+        if (JC_DOUBLE_C(jso)->c_double < (double)INT64_MIN)
+        {
+            errno = ERANGE;
             return INT64_MIN;
+        }
+        if (isnan(JC_DOUBLE_C(jso)->c_double))
+        {
+            errno = EINVAL;
+            return INT64_MIN;
+        }
         return (int64_t)JC_DOUBLE_C(jso)->c_double;
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
@@ -857,6 +1035,7 @@ int64_t json_object_get_int64(const struct json_object *jso)
 uint64_t json_object_get_uint64(const struct json_object *jso)
 {
     uint64_t cuint;
+    errno = 0;
 
     if (!jso)
         return 0;
@@ -869,7 +1048,10 @@ uint64_t json_object_get_uint64(const struct json_object *jso)
         {
         case json_object_int_type_int64:
             if (jsoint->cint.c_int64 < 0)
+            {
+                errno = ERANGE;
                 return 0;
+            }
             return (uint64_t)jsoint->cint.c_int64;
         case json_object_int_type_uint64: return jsoint->cint.c_uint64;
         default: json_abort("invalid cint_type");
@@ -878,10 +1060,21 @@ uint64_t json_object_get_uint64(const struct json_object *jso)
     case json_type_double:
         // UINT64_MAX can't be exactly represented as a double
         // so cast to tell the compiler it's ok to round up.
-        if (JC_DOUBLE_C(jso)->c_double >= (double)UINT64_MAX)
+        if (JC_DOUBLE_C(jso)->c_double > (double)UINT64_MAX)
+        {
+            errno = ERANGE;
             return UINT64_MAX;
+        }
         if (JC_DOUBLE_C(jso)->c_double < 0)
+        {
+            errno = ERANGE;
             return 0;
+        }
+        if (isnan(JC_DOUBLE_C(jso)->c_double))
+        {
+            errno = EINVAL;
+            return 0;
+        }
         return (uint64_t)JC_DOUBLE_C(jso)->c_double;
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
@@ -1205,9 +1398,6 @@ void json_object_free_userdata(struct json_object *jso, void *userdata)
 double json_object_get_double(const struct json_object *jso)
 {
     double cdouble;
-#ifndef JSONC_USE_FAST_NUMBER_CONVERSION
-    unsigned char *errPtr = NULL;
-#endif
 
     if (!jso)
         return 0.0;
@@ -1223,8 +1413,9 @@ double json_object_get_double(const struct json_object *jso)
         }
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
-        errno = 0;
+    {
 #ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+        errno = 0;
         if (json_c_parse_double_string(get_string_component(jso), &cdouble) != 0)
         {
             if (errno == ERANGE)
@@ -1236,11 +1427,42 @@ double json_object_get_double(const struct json_object *jso)
 
         return cdouble;
 #else
-        cdouble = strtod((const char *)get_string_component(jso), (char**)&errPtr);
+        const char *cstr = (const char *)get_string_component(jso);
+        const char *parse = cstr;
+        char *errPtr = NULL;
+        char *radixconv = NULL;
+#ifdef HAVE_LOCALE_H
+        /* A json_type_string holds the value with a '.' radix, as it
+         * appears in JSON, but strtod() honours the current locale.  In a
+         * locale whose decimal point is not '.' the '.' is treated as a
+         * stray character, so e.g. "19.95" is read as 0.  Parse a copy
+         * with the radix translated so the value comes back unchanged. */
+        const char *decimal_point = localeconv()->decimal_point;
+        if (decimal_point && decimal_point[0] != '.' && decimal_point[1] == '\0')
+        {
+            const char *dot = strchr(cstr, '.');
+            if (dot)
+            {
+                size_t slen = strlen(cstr);
+                radixconv = (char *)malloc(slen + 1);
+                if (radixconv == NULL)
+                {
+                    errno = ENOMEM;
+                    return 0.0;
+                }
+                memcpy(radixconv, cstr, slen + 1);
+                radixconv[dot - cstr] = decimal_point[0];
+                parse = radixconv;
+            }
+        }
+#endif
+        errno = 0;
+        cdouble = strtod(parse, &errPtr);
 
         /* if conversion stopped at the first character, return 0.0 */
-        if (errPtr == (unsigned char *)get_string_component(jso))
+        if (errPtr == parse)
         {
+            free(radixconv);
             errno = EINVAL;
             return 0.0;
         }
@@ -1252,6 +1474,7 @@ double json_object_get_double(const struct json_object *jso)
          */
         if (*errPtr != '\0')
         {
+            free(radixconv);
             errno = EINVAL;
             return 0.0;
         }
@@ -1269,8 +1492,10 @@ double json_object_get_double(const struct json_object *jso)
          */
         if ((HUGE_VAL == cdouble || -HUGE_VAL == cdouble) && (ERANGE == errno))
             cdouble = 0.0;
+        free(radixconv);
         return cdouble;
 #endif
+    }
     default: errno = EINVAL; return 0.0;
     }
 }
@@ -1494,7 +1719,9 @@ static size_t json_object_array_to_json_string(struct json_object *jso, struct p
 
 static void json_object_array_entry_free(void *data)
 {
-    json_object_put((struct json_object *)data);
+    struct json_object *jso = (struct json_object *)data;
+    if (jso) // micro-opt, skip func call on null object
+        json_object_put(jso);
 }
 
 static void json_object_array_delete(struct json_object *jso)

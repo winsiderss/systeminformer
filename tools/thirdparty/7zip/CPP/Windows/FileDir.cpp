@@ -34,7 +34,9 @@ using namespace NName;
 
 #ifndef _WIN32
 
-static bool FiTime_To_timespec(const CFiTime *ft, timespec &ts)
+extern
+bool FiTime_To_timespec(const CFiTime *ft, timespec &ts);
+bool FiTime_To_timespec(const CFiTime *ft, timespec &ts)
 {
   if (ft)
   {
@@ -51,7 +53,7 @@ static bool FiTime_To_timespec(const CFiTime *ft, timespec &ts)
     ts.tv_sec = 0;
     ts.tv_nsec =
     #ifdef UTIME_OMIT
-      UTIME_OMIT; // -2 keep old timesptamp
+      UTIME_OMIT; // -2 keep old timestamp
     #else
       // UTIME_NOW; -1 // set to the current time
       0;
@@ -170,6 +172,10 @@ bool SetLinkFileTime(CFSTR path, const CFiTime *cTime, const CFiTime *aTime, con
 
 bool SetFileAttrib(CFSTR path, DWORD attrib)
 {
+  /* win10:
+    if (attrib == 0), it sets (FILE_ATTRIBUTE_NORMAL) attribute
+    (FILE_ATTRIBUTE_DIRECTORY and some another attributes are ignored for files).
+  */
   #ifndef _UNICODE
   if (!g_IsNT)
   {
@@ -1078,7 +1084,7 @@ static BOOL My_CopyFile(CFSTR oldFile, CFSTR newFile, ICopyFileProgress *progres
   }
   // There is file IO error or process was interrupted by user.
   // We close output file and delete it.
-  // DeleteFileAlways doesn't change errno (if successed), but we restore errno.
+  // DeleteFileAlways doesn't change errno (if succeed), but we restore errno.
   const int errno_save = errno;
   DeleteFileAlways(newFile);
   errno = errno_save;
@@ -1240,26 +1246,34 @@ bool SetLinkFileTime(CFSTR path, const CFiTime *cTime, const CFiTime *aTime, con
 }
 
 
-struct C_umask
+C_umask::C_umask()
 {
-  mode_t mask;
+/*
+  For security purposes, we restrict the file (mode) attributes
+  using the process's file mode creation mask (umask).
+  System's umask is used by open(), mkdir(), and other system calls
+  that create files to modify the permissions placed on newly
+  created files or directories.
+  We use (g_umask.mask) for any function that changes the file's access
+  mode but is not affected by the system's umask.
+  We use additional mask restiction 0777 for security purposes.
+  So we don't create the following mode bits for files and directories:
+    S_ISUID  04000 set-user-ID bit
+    S_ISGID  02000 set-group-ID bit
+    S_ISVTX  01000 sticky bit
+  system's open(), mkdir() also can have similar 0777 restiction for some cases.
+*/
+  const mode_t um = umask(0); // um = 0022 (octal) is expected
+  mask = ~um
+      & 0777; // 0777 is our additional mode restruction : is secure
+      // & 07777; // for debug : 07777 to support all mode bits : is not secure
+  // mask = 07777; // for debug : to restore all mode bits
+  umask(um); // restore original umask that was changed by umask(0) in code above
+}
 
-  C_umask()
-  {
-    /* by security reasons we restrict attributes according
-       with process's file mode creation mask (umask) */
-    const mode_t um = umask(0); // octal :0022 is expected
-    mask = 0777 & (~um);        // octal: 0755 is expected
-    umask(um);  // restore the umask
-    // printf("\n umask = 0%03o mask = 0%03o\n", um, mask);
-    
-    // mask = 0777; // debug we can disable the restriction:
-  }
-};
+C_umask g_umask;
 
-static C_umask g_umask;
-
-// #define PRF(x) x;
+// #define PRF(x) x
 #define PRF(x)
 
 #define TRACE_SetFileAttrib(msg) \
@@ -1273,12 +1287,17 @@ int my_chown(CFSTR path, uid_t owner, gid_t group)
   return chown(path, owner, group);
 }
 
+int my_chown_Link(CFSTR path, uid_t owner, gid_t group)
+{
+  return lchown(path, owner, group);
+  // return fchownat(AT_FDCWD, path, owner, group, AT_SYMLINK_NOFOLLOW);
+}
+
 bool SetFileAttrib_PosixHighDetect(CFSTR path, DWORD attrib)
 {
   TRACE_SetFileAttrib("")
-
+  mode_t mode;
   struct stat st;
-
   bool use_lstat = true;
   if (use_lstat)
   {
@@ -1297,20 +1316,26 @@ bool SetFileAttrib_PosixHighDetect(CFSTR path, DWORD attrib)
       return false;
     }
   }
-  
+  mode = st.st_mode;
+
   if (attrib & FILE_ATTRIBUTE_UNIX_EXTENSION)
   {
     TRACE_SetFileAttrib("attrib & FILE_ATTRIBUTE_UNIX_EXTENSION")
-    st.st_mode = attrib >> 16;
-    if (S_ISDIR(st.st_mode))
+    mode = attrib >> 16;
+    if (S_ISDIR(mode))
     {
+      if (!S_ISDIR(st.st_mode))
+        return true;
       // user/7z must be able to create files in this directory
-      st.st_mode |= (S_IRUSR | S_IWUSR | S_IXUSR);
+      mode |= (S_IRUSR | S_IWUSR | S_IXUSR);
     }
-    else if (!S_ISREG(st.st_mode))
-      return true;
+    else
+    {
+      if (!S_ISREG(mode) || !S_ISREG(st.st_mode))
+        return true;
+    }
   }
-  else if (S_ISLNK(st.st_mode))
+  else if (S_ISLNK(mode))
   {
     /* for most systems: permissions for symlinks are fixed to rwxrwxrwx.
        so we don't need chmod() for symlinks. */
@@ -1322,27 +1347,28 @@ bool SetFileAttrib_PosixHighDetect(CFSTR path, DWORD attrib)
   {
     TRACE_SetFileAttrib("Only Windows Attributes")
     // Only Windows Attributes
-    if (S_ISDIR(st.st_mode)
+    if (S_ISDIR(mode)
         || (attrib & FILE_ATTRIBUTE_READONLY) == 0)
       return true;
-    st.st_mode &= ~(mode_t)(S_IWUSR | S_IWGRP | S_IWOTH); // octal: ~0222; // disable write permissions
+    mode &= ~(mode_t)(S_IWUSR | S_IWGRP | S_IWOTH); // octal: ~0222; // disable write permissions
   }
 
   int res;
+  mode &= g_umask.mask;
   /*
-  if (S_ISLNK(st.st_mode))
+  if (S_ISLNK(mode))
   {
     printf("\nfchmodat()\n");
-    TRACE_chmod(path, (st.st_mode) & g_umask.mask)
-    // AT_SYMLINK_NOFOLLOW is not implemted still in Linux.
-    res = fchmodat(AT_FDCWD, path, (st.st_mode) & g_umask.mask,
-        S_ISLNK(st.st_mode) ? AT_SYMLINK_NOFOLLOW : 0);
+    TRACE_chmod(path, (mode))
+    // AT_SYMLINK_NOFOLLOW is not implemented still in Linux.
+    res = fchmodat(AT_FDCWD, path, (mode),
+        S_ISLNK(mode) ? AT_SYMLINK_NOFOLLOW : 0);
   }
   else
   */
   {
-    TRACE_chmod(path, (st.st_mode) & g_umask.mask)
-    res = chmod(path, (st.st_mode) & g_umask.mask);
+    TRACE_chmod(path, mode)
+    res = chmod(path, mode);
   }
   // TRACE_SetFileAttrib("End")
   return (res == 0);

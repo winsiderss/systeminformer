@@ -12,7 +12,7 @@
 
 #include "../Common/MyString.h"
 
-#include "Defs.h"
+#include "WinDefs.h"
 
 namespace NWindows {
 namespace NShell {
@@ -44,7 +44,7 @@ public:
   }
   operator LPITEMIDLIST() { return m_Object;}
   operator LPCITEMIDLIST() const { return m_Object;}
-  LPITEMIDLIST* operator&() { return &m_Object; }
+  LPITEMIDLIST* operator&() Z7_lifetimebound { return &m_Object; }
   LPITEMIDLIST operator->() { return m_Object; }
 
   // CItemIDList& operator=(LPCITEMIDLIST object);
