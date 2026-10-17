@@ -6466,7 +6466,7 @@ typedef struct _ETW_UMGL_KEY
 #define PREPARE_ETW_TRACE_HEADER_GUID(Header, EventStruct, EventType, EventGuid, LoggerId) \
     (Header)->Size = sizeof(EventStruct); \
     (Header)->Class.Type = (EventType); \
-    RtlCopyMemory(&((Header)->Guid), (EventGuid), sizeof(*(EventGuid))); \
+    RtlCopyMemory(&((Header)->Guid), (EventGuid), sizeof(*(EventGuid)));
 
 // Used with OpenTrace(), prevents conversion of TimeStamps to UTC
 #define EVENT_TRACE_USE_RAWTIMESTAMP 0x00000002
