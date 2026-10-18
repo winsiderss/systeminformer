@@ -31,6 +31,7 @@ typedef struct _AT_CONSENT_REQUEST
     PPH_STRING Content;
     PPH_STRING Footer;
     PPH_STRING FooterUpdate;
+    ULONG FooterSeconds;
     BOOLEAN OfferPolicies;
     BOOLEAN OfferDelegate;
     BOOLEAN OfferHoldAnswer;
@@ -620,11 +621,16 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             }
             else
             {
+                ULONG seconds = (AT_CONSENT_TIMEOUT_MS - elapsed + 999) / 1000;
                 PH_FORMAT format[3];
                 PPH_STRING footer;
 
+                if (request->FooterSeconds == seconds)
+                    break;
+
+                request->FooterSeconds = seconds;
                 PhInitFormatS(&format[0], L"Automatically denied in ");
-                PhInitFormatU(&format[1], (AT_CONSENT_TIMEOUT_MS - elapsed + 999) / 1000);
+                PhInitFormatU(&format[1], seconds);
                 PhInitFormatS(&format[2], L" seconds.");
                 footer = PhFormat(format, RTL_NUMBER_OF(format), 64);
                 SendMessage(WindowHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_FOOTER, (LPARAM)footer->Buffer);

@@ -1,16 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-
-
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
-
 
  /* File created by MIDL compiler version 8.00.0601 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 #pragma warning( disable: 4049 )  /* more than 64k source lines */
-
 
 /* verify that the <rpcndr.h> version is high enough to compile this file*/
 #ifndef __REQUIRED_RPCNDR_H_VERSION__
@@ -54,7 +50,6 @@ typedef struct CorSymWriter_deprecated CorSymWriter_deprecated;
 
 #endif 	/* __CorSymWriter_deprecated_FWD_DEFINED__ */
 
-
 #ifndef __CorSymReader_deprecated_FWD_DEFINED__
 #define __CorSymReader_deprecated_FWD_DEFINED__
 
@@ -65,7 +60,6 @@ typedef struct CorSymReader_deprecated CorSymReader_deprecated;
 #endif /* __cplusplus */
 
 #endif 	/* __CorSymReader_deprecated_FWD_DEFINED__ */
-
 
 #ifndef __CorSymBinder_deprecated_FWD_DEFINED__
 #define __CorSymBinder_deprecated_FWD_DEFINED__
@@ -78,7 +72,6 @@ typedef struct CorSymBinder_deprecated CorSymBinder_deprecated;
 
 #endif 	/* __CorSymBinder_deprecated_FWD_DEFINED__ */
 
-
 #ifndef __CorSymWriter_SxS_FWD_DEFINED__
 #define __CorSymWriter_SxS_FWD_DEFINED__
 
@@ -89,7 +82,6 @@ typedef struct CorSymWriter_SxS CorSymWriter_SxS;
 #endif /* __cplusplus */
 
 #endif 	/* __CorSymWriter_SxS_FWD_DEFINED__ */
-
 
 #ifndef __CorSymReader_SxS_FWD_DEFINED__
 #define __CorSymReader_SxS_FWD_DEFINED__
@@ -102,7 +94,6 @@ typedef struct CorSymReader_SxS CorSymReader_SxS;
 
 #endif 	/* __CorSymReader_SxS_FWD_DEFINED__ */
 
-
 #ifndef __CorSymBinder_SxS_FWD_DEFINED__
 #define __CorSymBinder_SxS_FWD_DEFINED__
 
@@ -114,13 +105,11 @@ typedef struct CorSymBinder_SxS CorSymBinder_SxS;
 
 #endif 	/* __CorSymBinder_SxS_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedBinder_FWD_DEFINED__
 #define __ISymUnmanagedBinder_FWD_DEFINED__
 typedef interface ISymUnmanagedBinder ISymUnmanagedBinder;
 
 #endif 	/* __ISymUnmanagedBinder_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedBinder2_FWD_DEFINED__
 #define __ISymUnmanagedBinder2_FWD_DEFINED__
@@ -128,13 +117,11 @@ typedef interface ISymUnmanagedBinder2 ISymUnmanagedBinder2;
 
 #endif 	/* __ISymUnmanagedBinder2_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedBinder3_FWD_DEFINED__
 #define __ISymUnmanagedBinder3_FWD_DEFINED__
 typedef interface ISymUnmanagedBinder3 ISymUnmanagedBinder3;
 
 #endif 	/* __ISymUnmanagedBinder3_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedDispose_FWD_DEFINED__
 #define __ISymUnmanagedDispose_FWD_DEFINED__
@@ -142,13 +129,11 @@ typedef interface ISymUnmanagedDispose ISymUnmanagedDispose;
 
 #endif 	/* __ISymUnmanagedDispose_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedDocument_FWD_DEFINED__
 #define __ISymUnmanagedDocument_FWD_DEFINED__
 typedef interface ISymUnmanagedDocument ISymUnmanagedDocument;
 
 #endif 	/* __ISymUnmanagedDocument_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedDocumentWriter_FWD_DEFINED__
 #define __ISymUnmanagedDocumentWriter_FWD_DEFINED__
@@ -156,13 +141,11 @@ typedef interface ISymUnmanagedDocumentWriter ISymUnmanagedDocumentWriter;
 
 #endif 	/* __ISymUnmanagedDocumentWriter_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedMethod_FWD_DEFINED__
 #define __ISymUnmanagedMethod_FWD_DEFINED__
 typedef interface ISymUnmanagedMethod ISymUnmanagedMethod;
 
 #endif 	/* __ISymUnmanagedMethod_FWD_DEFINED__ */
-
 
 #ifndef __ISymENCUnmanagedMethod_FWD_DEFINED__
 #define __ISymENCUnmanagedMethod_FWD_DEFINED__
@@ -170,13 +153,11 @@ typedef interface ISymENCUnmanagedMethod ISymENCUnmanagedMethod;
 
 #endif 	/* __ISymENCUnmanagedMethod_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedNamespace_FWD_DEFINED__
 #define __ISymUnmanagedNamespace_FWD_DEFINED__
 typedef interface ISymUnmanagedNamespace ISymUnmanagedNamespace;
 
 #endif 	/* __ISymUnmanagedNamespace_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedReader_FWD_DEFINED__
 #define __ISymUnmanagedReader_FWD_DEFINED__
@@ -184,13 +165,11 @@ typedef interface ISymUnmanagedReader ISymUnmanagedReader;
 
 #endif 	/* __ISymUnmanagedReader_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedSourceServerModule_FWD_DEFINED__
 #define __ISymUnmanagedSourceServerModule_FWD_DEFINED__
 typedef interface ISymUnmanagedSourceServerModule ISymUnmanagedSourceServerModule;
 
 #endif 	/* __ISymUnmanagedSourceServerModule_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedENCUpdate_FWD_DEFINED__
 #define __ISymUnmanagedENCUpdate_FWD_DEFINED__
@@ -198,13 +177,11 @@ typedef interface ISymUnmanagedENCUpdate ISymUnmanagedENCUpdate;
 
 #endif 	/* __ISymUnmanagedENCUpdate_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedReaderSymbolSearchInfo_FWD_DEFINED__
 #define __ISymUnmanagedReaderSymbolSearchInfo_FWD_DEFINED__
 typedef interface ISymUnmanagedReaderSymbolSearchInfo ISymUnmanagedReaderSymbolSearchInfo;
 
 #endif 	/* __ISymUnmanagedReaderSymbolSearchInfo_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedScope_FWD_DEFINED__
 #define __ISymUnmanagedScope_FWD_DEFINED__
@@ -212,13 +189,11 @@ typedef interface ISymUnmanagedScope ISymUnmanagedScope;
 
 #endif 	/* __ISymUnmanagedScope_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedConstant_FWD_DEFINED__
 #define __ISymUnmanagedConstant_FWD_DEFINED__
 typedef interface ISymUnmanagedConstant ISymUnmanagedConstant;
 
 #endif 	/* __ISymUnmanagedConstant_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedScope2_FWD_DEFINED__
 #define __ISymUnmanagedScope2_FWD_DEFINED__
@@ -226,13 +201,11 @@ typedef interface ISymUnmanagedScope2 ISymUnmanagedScope2;
 
 #endif 	/* __ISymUnmanagedScope2_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedVariable_FWD_DEFINED__
 #define __ISymUnmanagedVariable_FWD_DEFINED__
 typedef interface ISymUnmanagedVariable ISymUnmanagedVariable;
 
 #endif 	/* __ISymUnmanagedVariable_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedSymbolSearchInfo_FWD_DEFINED__
 #define __ISymUnmanagedSymbolSearchInfo_FWD_DEFINED__
@@ -240,13 +213,11 @@ typedef interface ISymUnmanagedSymbolSearchInfo ISymUnmanagedSymbolSearchInfo;
 
 #endif 	/* __ISymUnmanagedSymbolSearchInfo_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedWriter_FWD_DEFINED__
 #define __ISymUnmanagedWriter_FWD_DEFINED__
 typedef interface ISymUnmanagedWriter ISymUnmanagedWriter;
 
 #endif 	/* __ISymUnmanagedWriter_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter2_FWD_DEFINED__
 #define __ISymUnmanagedWriter2_FWD_DEFINED__
@@ -254,13 +225,11 @@ typedef interface ISymUnmanagedWriter2 ISymUnmanagedWriter2;
 
 #endif 	/* __ISymUnmanagedWriter2_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedWriter3_FWD_DEFINED__
 #define __ISymUnmanagedWriter3_FWD_DEFINED__
 typedef interface ISymUnmanagedWriter3 ISymUnmanagedWriter3;
 
 #endif 	/* __ISymUnmanagedWriter3_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter4_FWD_DEFINED__
 #define __ISymUnmanagedWriter4_FWD_DEFINED__
@@ -268,13 +237,11 @@ typedef interface ISymUnmanagedWriter4 ISymUnmanagedWriter4;
 
 #endif 	/* __ISymUnmanagedWriter4_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedWriter5_FWD_DEFINED__
 #define __ISymUnmanagedWriter5_FWD_DEFINED__
 typedef interface ISymUnmanagedWriter5 ISymUnmanagedWriter5;
 
 #endif 	/* __ISymUnmanagedWriter5_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedReader2_FWD_DEFINED__
 #define __ISymUnmanagedReader2_FWD_DEFINED__
@@ -282,13 +249,11 @@ typedef interface ISymUnmanagedReader2 ISymUnmanagedReader2;
 
 #endif 	/* __ISymUnmanagedReader2_FWD_DEFINED__ */
 
-
 #ifndef __ISymNGenWriter_FWD_DEFINED__
 #define __ISymNGenWriter_FWD_DEFINED__
 typedef interface ISymNGenWriter ISymNGenWriter;
 
 #endif 	/* __ISymNGenWriter_FWD_DEFINED__ */
-
 
 #ifndef __ISymNGenWriter2_FWD_DEFINED__
 #define __ISymNGenWriter2_FWD_DEFINED__
@@ -296,13 +261,11 @@ typedef interface ISymNGenWriter2 ISymNGenWriter2;
 
 #endif 	/* __ISymNGenWriter2_FWD_DEFINED__ */
 
-
 #ifndef __ISymUnmanagedAsyncMethodPropertiesWriter_FWD_DEFINED__
 #define __ISymUnmanagedAsyncMethodPropertiesWriter_FWD_DEFINED__
 typedef interface ISymUnmanagedAsyncMethodPropertiesWriter ISymUnmanagedAsyncMethodPropertiesWriter;
 
 #endif 	/* __ISymUnmanagedAsyncMethodPropertiesWriter_FWD_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedAsyncMethod_FWD_DEFINED__
 #define __ISymUnmanagedAsyncMethod_FWD_DEFINED__
@@ -310,11 +273,9 @@ typedef interface ISymUnmanagedAsyncMethod ISymUnmanagedAsyncMethod;
 
 #endif 	/* __ISymUnmanagedAsyncMethod_FWD_DEFINED__ */
 
-
 #ifdef __cplusplus
 extern "C"{
 #endif 
-
 
 /* interface __MIDL_itf_corsym_0000_0000 */
 /* [local] */ 
@@ -358,17 +319,6 @@ EXTERN_GUID(CorSym_DocumentType_MC, 0xeb40cb65, 0x3c1f, 0x4352, 0x9d, 0x7b, 0xba
 EXTERN_GUID(CorSym_SourceHash_MD5,  0x406ea660, 0x64cf, 0x4c82, 0xb6, 0xf0, 0x42, 0xd4, 0x81, 0x72, 0xa7, 0x99);
 EXTERN_GUID(CorSym_SourceHash_SHA1, 0xff1816ec, 0xaa5e, 0x4d10, 0x87, 0xf7, 0x6f, 0x49, 0x63, 0x83, 0x34, 0x60);
 
-
-
-
-
-
-
-
-
-
-
-
 typedef 
 enum CorSymAddrKind
     {
@@ -390,18 +340,14 @@ enum CorSymVarFlag
         VAR_IS_COMP_GEN	= 1
     } 	CorSymVarFlag;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0000_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0000_v0_0_s_ifspec;
-
 
 #ifndef __CorSymLib_LIBRARY_DEFINED__
 #define __CorSymLib_LIBRARY_DEFINED__
 
 /* library CorSymLib */
 /* [helpstring][version][uuid] */ 
-
 
 EXTERN_C const IID LIBID_CorSymLib;
 
@@ -459,7 +405,6 @@ CorSymBinder_SxS;
 
 /* interface ISymUnmanagedBinder */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedBinder;
 
@@ -526,7 +471,6 @@ EXTERN_C const IID IID_ISymUnmanagedBinder;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedBinder_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -536,7 +480,6 @@ EXTERN_C const IID IID_ISymUnmanagedBinder;
 #define ISymUnmanagedBinder_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedBinder_GetReaderForFile(This,importer,fileName,searchPath,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderForFile(This,importer,fileName,searchPath,pRetVal) ) 
 
@@ -545,14 +488,9 @@ EXTERN_C const IID IID_ISymUnmanagedBinder;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedBinder_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_corsym_0000_0002 */
 /* [local] */ 
@@ -566,8 +504,6 @@ enum CorSymSearchPolicyAttributes
         AllowReferencePathAccess	= 0x8
     } 	CorSymSearchPolicyAttributes;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0002_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0002_v0_0_s_ifspec;
 
@@ -576,7 +512,6 @@ extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0002_v0_0_s_ifspec;
 
 /* interface ISymUnmanagedBinder2 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedBinder2;
 
@@ -647,7 +582,6 @@ EXTERN_C const IID IID_ISymUnmanagedBinder2;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedBinder2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -657,34 +591,26 @@ EXTERN_C const IID IID_ISymUnmanagedBinder2;
 #define ISymUnmanagedBinder2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedBinder2_GetReaderForFile(This,importer,fileName,searchPath,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderForFile(This,importer,fileName,searchPath,pRetVal) ) 
 
 #define ISymUnmanagedBinder2_GetReaderFromStream(This,importer,pstream,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderFromStream(This,importer,pstream,pRetVal) ) 
 
-
 #define ISymUnmanagedBinder2_GetReaderForFile2(This,importer,fileName,searchPath,searchPolicy,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderForFile2(This,importer,fileName,searchPath,searchPolicy,pRetVal) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedBinder2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedBinder3_INTERFACE_DEFINED__
 #define __ISymUnmanagedBinder3_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedBinder3 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedBinder3;
 
@@ -765,7 +691,6 @@ EXTERN_C const IID IID_ISymUnmanagedBinder3;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedBinder3_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -775,37 +700,28 @@ EXTERN_C const IID IID_ISymUnmanagedBinder3;
 #define ISymUnmanagedBinder3_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedBinder3_GetReaderForFile(This,importer,fileName,searchPath,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderForFile(This,importer,fileName,searchPath,pRetVal) ) 
 
 #define ISymUnmanagedBinder3_GetReaderFromStream(This,importer,pstream,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderFromStream(This,importer,pstream,pRetVal) ) 
 
-
 #define ISymUnmanagedBinder3_GetReaderForFile2(This,importer,fileName,searchPath,searchPolicy,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderForFile2(This,importer,fileName,searchPath,searchPolicy,pRetVal) ) 
-
 
 #define ISymUnmanagedBinder3_GetReaderFromCallback(This,importer,fileName,searchPath,searchPolicy,callback,pRetVal)	\
     ( (This)->lpVtbl -> GetReaderFromCallback(This,importer,fileName,searchPath,searchPolicy,callback,pRetVal) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedBinder3_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_corsym_0000_0004 */
 /* [local] */ 
 
 static const int E_SYM_DESTROYED = MAKE_HRESULT(1, FACILITY_ITF, 0xdead);
-
 
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0004_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0004_v0_0_s_ifspec;
@@ -815,7 +731,6 @@ extern RPC_IF_HANDLE __MIDL_itf_corsym_0000_0004_v0_0_s_ifspec;
 
 /* interface ISymUnmanagedDispose */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedDispose;
 
@@ -863,7 +778,6 @@ EXTERN_C const IID IID_ISymUnmanagedDispose;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedDispose_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -873,27 +787,20 @@ EXTERN_C const IID IID_ISymUnmanagedDispose;
 #define ISymUnmanagedDispose_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedDispose_Destroy(This)	\
     ( (This)->lpVtbl -> Destroy(This) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedDispose_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedDocument_INTERFACE_DEFINED__
 #define __ISymUnmanagedDocument_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedDocument */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedDocument;
 
@@ -1028,7 +935,6 @@ EXTERN_C const IID IID_ISymUnmanagedDocument;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedDocument_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1037,7 +943,6 @@ EXTERN_C const IID IID_ISymUnmanagedDocument;
 
 #define ISymUnmanagedDocument_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedDocument_GetURL(This,cchUrl,pcchUrl,szUrl)	\
     ( (This)->lpVtbl -> GetURL(This,cchUrl,pcchUrl,szUrl) ) 
@@ -1071,21 +976,15 @@ EXTERN_C const IID IID_ISymUnmanagedDocument;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedDocument_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedDocumentWriter_INTERFACE_DEFINED__
 #define __ISymUnmanagedDocumentWriter_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedDocumentWriter */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedDocumentWriter;
 
@@ -1148,7 +1047,6 @@ EXTERN_C const IID IID_ISymUnmanagedDocumentWriter;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedDocumentWriter_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1158,7 +1056,6 @@ EXTERN_C const IID IID_ISymUnmanagedDocumentWriter;
 #define ISymUnmanagedDocumentWriter_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedDocumentWriter_SetSource(This,sourceSize,source)	\
     ( (This)->lpVtbl -> SetSource(This,sourceSize,source) ) 
 
@@ -1167,21 +1064,15 @@ EXTERN_C const IID IID_ISymUnmanagedDocumentWriter;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedDocumentWriter_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedMethod_INTERFACE_DEFINED__
 #define __ISymUnmanagedMethod_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedMethod */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedMethod;
 
@@ -1336,7 +1227,6 @@ EXTERN_C const IID IID_ISymUnmanagedMethod;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedMethod_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1345,7 +1235,6 @@ EXTERN_C const IID IID_ISymUnmanagedMethod;
 
 #define ISymUnmanagedMethod_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedMethod_GetToken(This,pToken)	\
     ( (This)->lpVtbl -> GetToken(This,pToken) ) 
@@ -1379,21 +1268,15 @@ EXTERN_C const IID IID_ISymUnmanagedMethod;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedMethod_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymENCUnmanagedMethod_INTERFACE_DEFINED__
 #define __ISymENCUnmanagedMethod_INTERFACE_DEFINED__
 
 /* interface ISymENCUnmanagedMethod */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymENCUnmanagedMethod;
 
@@ -1495,7 +1378,6 @@ EXTERN_C const IID IID_ISymENCUnmanagedMethod;
 
 #ifdef COBJMACROS
 
-
 #define ISymENCUnmanagedMethod_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1504,7 +1386,6 @@ EXTERN_C const IID IID_ISymENCUnmanagedMethod;
 
 #define ISymENCUnmanagedMethod_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymENCUnmanagedMethod_GetFileNameFromOffset(This,dwOffset,cchName,pcchName,szName)	\
     ( (This)->lpVtbl -> GetFileNameFromOffset(This,dwOffset,cchName,pcchName,szName) ) 
@@ -1523,21 +1404,15 @@ EXTERN_C const IID IID_ISymENCUnmanagedMethod;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymENCUnmanagedMethod_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedNamespace_INTERFACE_DEFINED__
 #define __ISymUnmanagedNamespace_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedNamespace */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedNamespace;
 
@@ -1613,7 +1488,6 @@ EXTERN_C const IID IID_ISymUnmanagedNamespace;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedNamespace_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1622,7 +1496,6 @@ EXTERN_C const IID IID_ISymUnmanagedNamespace;
 
 #define ISymUnmanagedNamespace_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedNamespace_GetName(This,cchName,pcchName,szName)	\
     ( (This)->lpVtbl -> GetName(This,cchName,pcchName,szName) ) 
@@ -1635,21 +1508,15 @@ EXTERN_C const IID IID_ISymUnmanagedNamespace;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedNamespace_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedReader_INTERFACE_DEFINED__
 #define __ISymUnmanagedReader_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedReader */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedReader;
 
@@ -1887,7 +1754,6 @@ EXTERN_C const IID IID_ISymUnmanagedReader;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedReader_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1896,7 +1762,6 @@ EXTERN_C const IID IID_ISymUnmanagedReader;
 
 #define ISymUnmanagedReader_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedReader_GetDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> GetDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -1951,21 +1816,15 @@ EXTERN_C const IID IID_ISymUnmanagedReader;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedReader_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedSourceServerModule_INTERFACE_DEFINED__
 #define __ISymUnmanagedSourceServerModule_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedSourceServerModule */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedSourceServerModule;
 
@@ -2017,7 +1876,6 @@ EXTERN_C const IID IID_ISymUnmanagedSourceServerModule;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedSourceServerModule_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2027,20 +1885,14 @@ EXTERN_C const IID IID_ISymUnmanagedSourceServerModule;
 #define ISymUnmanagedSourceServerModule_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedSourceServerModule_GetSourceServerData(This,pDataByteCount,ppData)	\
     ( (This)->lpVtbl -> GetSourceServerData(This,pDataByteCount,ppData) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedSourceServerModule_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedENCUpdate_INTERFACE_DEFINED__
 #define __ISymUnmanagedENCUpdate_INTERFACE_DEFINED__
@@ -2053,7 +1905,6 @@ typedef struct _SYMLINEDELTA
     mdMethodDef mdMethod;
     INT32 delta;
     } 	SYMLINEDELTA;
-
 
 EXTERN_C const IID IID_ISymUnmanagedENCUpdate;
 
@@ -2145,7 +1996,6 @@ EXTERN_C const IID IID_ISymUnmanagedENCUpdate;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedENCUpdate_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2154,7 +2004,6 @@ EXTERN_C const IID IID_ISymUnmanagedENCUpdate;
 
 #define ISymUnmanagedENCUpdate_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedENCUpdate_UpdateSymbolStore2(This,pIStream,pDeltaLines,cDeltaLines)	\
     ( (This)->lpVtbl -> UpdateSymbolStore2(This,pIStream,pDeltaLines,cDeltaLines) ) 
@@ -2173,21 +2022,15 @@ EXTERN_C const IID IID_ISymUnmanagedENCUpdate;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedENCUpdate_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedReaderSymbolSearchInfo_INTERFACE_DEFINED__
 #define __ISymUnmanagedReaderSymbolSearchInfo_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedReaderSymbolSearchInfo */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedReaderSymbolSearchInfo;
 
@@ -2248,7 +2091,6 @@ EXTERN_C const IID IID_ISymUnmanagedReaderSymbolSearchInfo;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedReaderSymbolSearchInfo_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2258,7 +2100,6 @@ EXTERN_C const IID IID_ISymUnmanagedReaderSymbolSearchInfo;
 #define ISymUnmanagedReaderSymbolSearchInfo_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymUnmanagedReaderSymbolSearchInfo_GetSymbolSearchInfoCount(This,pcSearchInfo)	\
     ( (This)->lpVtbl -> GetSymbolSearchInfoCount(This,pcSearchInfo) ) 
 
@@ -2267,21 +2108,15 @@ EXTERN_C const IID IID_ISymUnmanagedReaderSymbolSearchInfo;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedReaderSymbolSearchInfo_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedScope_INTERFACE_DEFINED__
 #define __ISymUnmanagedScope_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedScope */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedScope;
 
@@ -2392,7 +2227,6 @@ EXTERN_C const IID IID_ISymUnmanagedScope;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedScope_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2401,7 +2235,6 @@ EXTERN_C const IID IID_ISymUnmanagedScope;
 
 #define ISymUnmanagedScope_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedScope_GetMethod(This,pRetVal)	\
     ( (This)->lpVtbl -> GetMethod(This,pRetVal) ) 
@@ -2429,21 +2262,15 @@ EXTERN_C const IID IID_ISymUnmanagedScope;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedScope_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedConstant_INTERFACE_DEFINED__
 #define __ISymUnmanagedConstant_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedConstant */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedConstant;
 
@@ -2515,7 +2342,6 @@ EXTERN_C const IID IID_ISymUnmanagedConstant;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedConstant_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2524,7 +2350,6 @@ EXTERN_C const IID IID_ISymUnmanagedConstant;
 
 #define ISymUnmanagedConstant_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedConstant_GetName(This,cchName,pcchName,szName)	\
     ( (This)->lpVtbl -> GetName(This,cchName,pcchName,szName) ) 
@@ -2537,21 +2362,15 @@ EXTERN_C const IID IID_ISymUnmanagedConstant;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedConstant_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedScope2_INTERFACE_DEFINED__
 #define __ISymUnmanagedScope2_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedScope2 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedScope2;
 
@@ -2650,7 +2469,6 @@ EXTERN_C const IID IID_ISymUnmanagedScope2;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedScope2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2659,7 +2477,6 @@ EXTERN_C const IID IID_ISymUnmanagedScope2;
 
 #define ISymUnmanagedScope2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedScope2_GetMethod(This,pRetVal)	\
     ( (This)->lpVtbl -> GetMethod(This,pRetVal) ) 
@@ -2685,7 +2502,6 @@ EXTERN_C const IID IID_ISymUnmanagedScope2;
 #define ISymUnmanagedScope2_GetNamespaces(This,cNameSpaces,pcNameSpaces,namespaces)	\
     ( (This)->lpVtbl -> GetNamespaces(This,cNameSpaces,pcNameSpaces,namespaces) ) 
 
-
 #define ISymUnmanagedScope2_GetConstantCount(This,pRetVal)	\
     ( (This)->lpVtbl -> GetConstantCount(This,pRetVal) ) 
 
@@ -2694,21 +2510,15 @@ EXTERN_C const IID IID_ISymUnmanagedScope2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedScope2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedVariable_INTERFACE_DEFINED__
 #define __ISymUnmanagedVariable_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedVariable */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedVariable;
 
@@ -2822,7 +2632,6 @@ EXTERN_C const IID IID_ISymUnmanagedVariable;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedVariable_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2831,7 +2640,6 @@ EXTERN_C const IID IID_ISymUnmanagedVariable;
 
 #define ISymUnmanagedVariable_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedVariable_GetName(This,cchName,pcchName,szName)	\
     ( (This)->lpVtbl -> GetName(This,cchName,pcchName,szName) ) 
@@ -2862,21 +2670,15 @@ EXTERN_C const IID IID_ISymUnmanagedVariable;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedVariable_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedSymbolSearchInfo_INTERFACE_DEFINED__
 #define __ISymUnmanagedSymbolSearchInfo_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedSymbolSearchInfo */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedSymbolSearchInfo;
 
@@ -2944,7 +2746,6 @@ EXTERN_C const IID IID_ISymUnmanagedSymbolSearchInfo;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedSymbolSearchInfo_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2953,7 +2754,6 @@ EXTERN_C const IID IID_ISymUnmanagedSymbolSearchInfo;
 
 #define ISymUnmanagedSymbolSearchInfo_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedSymbolSearchInfo_GetSearchPathLength(This,pcchPath)	\
     ( (This)->lpVtbl -> GetSearchPathLength(This,pcchPath) ) 
@@ -2966,21 +2766,15 @@ EXTERN_C const IID IID_ISymUnmanagedSymbolSearchInfo;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedSymbolSearchInfo_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter_INTERFACE_DEFINED__
 #define __ISymUnmanagedWriter_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedWriter */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedWriter;
 
@@ -3313,7 +3107,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedWriter_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -3322,7 +3115,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter;
 
 #define ISymUnmanagedWriter_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedWriter_DefineDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> DefineDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -3398,21 +3190,15 @@ EXTERN_C const IID IID_ISymUnmanagedWriter;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedWriter_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter2_INTERFACE_DEFINED__
 #define __ISymUnmanagedWriter2_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedWriter2 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedWriter2;
 
@@ -3665,7 +3451,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter2;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedWriter2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -3674,7 +3459,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter2;
 
 #define ISymUnmanagedWriter2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedWriter2_DefineDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> DefineDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -3748,7 +3532,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter2;
 #define ISymUnmanagedWriter2_Abort(This)	\
     ( (This)->lpVtbl -> Abort(This) ) 
 
-
 #define ISymUnmanagedWriter2_DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset)	\
     ( (This)->lpVtbl -> DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset) ) 
 
@@ -3760,21 +3543,15 @@ EXTERN_C const IID IID_ISymUnmanagedWriter2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedWriter2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter3_INTERFACE_DEFINED__
 #define __ISymUnmanagedWriter3_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedWriter3 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedWriter3;
 
@@ -4018,7 +3795,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter3;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedWriter3_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -4027,7 +3803,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter3;
 
 #define ISymUnmanagedWriter3_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedWriter3_DefineDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> DefineDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -4101,7 +3876,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter3;
 #define ISymUnmanagedWriter3_Abort(This)	\
     ( (This)->lpVtbl -> Abort(This) ) 
 
-
 #define ISymUnmanagedWriter3_DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset)	\
     ( (This)->lpVtbl -> DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset) ) 
 
@@ -4111,7 +3885,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter3;
 #define ISymUnmanagedWriter3_DefineConstant2(This,name,value,sigToken)	\
     ( (This)->lpVtbl -> DefineConstant2(This,name,value,sigToken) ) 
 
-
 #define ISymUnmanagedWriter3_OpenMethod2(This,method,isect,offset)	\
     ( (This)->lpVtbl -> OpenMethod2(This,method,isect,offset) ) 
 
@@ -4120,21 +3893,15 @@ EXTERN_C const IID IID_ISymUnmanagedWriter3;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedWriter3_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter4_INTERFACE_DEFINED__
 #define __ISymUnmanagedWriter4_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedWriter4 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedWriter4;
 
@@ -4384,7 +4151,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter4;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedWriter4_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -4393,7 +4159,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter4;
 
 #define ISymUnmanagedWriter4_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedWriter4_DefineDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> DefineDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -4467,7 +4232,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter4;
 #define ISymUnmanagedWriter4_Abort(This)	\
     ( (This)->lpVtbl -> Abort(This) ) 
 
-
 #define ISymUnmanagedWriter4_DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset)	\
     ( (This)->lpVtbl -> DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset) ) 
 
@@ -4477,34 +4241,26 @@ EXTERN_C const IID IID_ISymUnmanagedWriter4;
 #define ISymUnmanagedWriter4_DefineConstant2(This,name,value,sigToken)	\
     ( (This)->lpVtbl -> DefineConstant2(This,name,value,sigToken) ) 
 
-
 #define ISymUnmanagedWriter4_OpenMethod2(This,method,isect,offset)	\
     ( (This)->lpVtbl -> OpenMethod2(This,method,isect,offset) ) 
 
 #define ISymUnmanagedWriter4_Commit(This)	\
     ( (This)->lpVtbl -> Commit(This) ) 
 
-
 #define ISymUnmanagedWriter4_GetDebugInfoWithPadding(This,pIDD,cData,pcData,data)	\
     ( (This)->lpVtbl -> GetDebugInfoWithPadding(This,pIDD,cData,pcData,data) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedWriter4_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedWriter5_INTERFACE_DEFINED__
 #define __ISymUnmanagedWriter5_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedWriter5 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedWriter5;
 
@@ -4775,7 +4531,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter5;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedWriter5_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -4784,7 +4539,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter5;
 
 #define ISymUnmanagedWriter5_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedWriter5_DefineDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> DefineDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -4858,7 +4612,6 @@ EXTERN_C const IID IID_ISymUnmanagedWriter5;
 #define ISymUnmanagedWriter5_Abort(This)	\
     ( (This)->lpVtbl -> Abort(This) ) 
 
-
 #define ISymUnmanagedWriter5_DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset)	\
     ( (This)->lpVtbl -> DefineLocalVariable2(This,name,attributes,sigToken,addrKind,addr1,addr2,addr3,startOffset,endOffset) ) 
 
@@ -4868,17 +4621,14 @@ EXTERN_C const IID IID_ISymUnmanagedWriter5;
 #define ISymUnmanagedWriter5_DefineConstant2(This,name,value,sigToken)	\
     ( (This)->lpVtbl -> DefineConstant2(This,name,value,sigToken) ) 
 
-
 #define ISymUnmanagedWriter5_OpenMethod2(This,method,isect,offset)	\
     ( (This)->lpVtbl -> OpenMethod2(This,method,isect,offset) ) 
 
 #define ISymUnmanagedWriter5_Commit(This)	\
     ( (This)->lpVtbl -> Commit(This) ) 
 
-
 #define ISymUnmanagedWriter5_GetDebugInfoWithPadding(This,pIDD,cData,pcData,data)	\
     ( (This)->lpVtbl -> GetDebugInfoWithPadding(This,pIDD,cData,pcData,data) ) 
-
 
 #define ISymUnmanagedWriter5_OpenMapTokensToSourceSpans(This)	\
     ( (This)->lpVtbl -> OpenMapTokensToSourceSpans(This) ) 
@@ -4891,21 +4641,15 @@ EXTERN_C const IID IID_ISymUnmanagedWriter5;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedWriter5_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedReader2_INTERFACE_DEFINED__
 #define __ISymUnmanagedReader2_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedReader2 */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedReader2;
 
@@ -5093,7 +4837,6 @@ EXTERN_C const IID IID_ISymUnmanagedReader2;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedReader2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5102,7 +4845,6 @@ EXTERN_C const IID IID_ISymUnmanagedReader2;
 
 #define ISymUnmanagedReader2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedReader2_GetDocument(This,url,language,languageVendor,documentType,pRetVal)	\
     ( (This)->lpVtbl -> GetDocument(This,url,language,languageVendor,documentType,pRetVal) ) 
@@ -5155,7 +4897,6 @@ EXTERN_C const IID IID_ISymUnmanagedReader2;
 #define ISymUnmanagedReader2_GetMethodVersion(This,pMethod,version)	\
     ( (This)->lpVtbl -> GetMethodVersion(This,pMethod,version) ) 
 
-
 #define ISymUnmanagedReader2_GetMethodByVersionPreRemap(This,token,version,pRetVal)	\
     ( (This)->lpVtbl -> GetMethodByVersionPreRemap(This,token,version,pRetVal) ) 
 
@@ -5167,21 +4908,15 @@ EXTERN_C const IID IID_ISymUnmanagedReader2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedReader2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymNGenWriter_INTERFACE_DEFINED__
 #define __ISymNGenWriter_INTERFACE_DEFINED__
 
 /* interface ISymNGenWriter */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymNGenWriter;
 
@@ -5248,7 +4983,6 @@ EXTERN_C const IID IID_ISymNGenWriter;
 
 #ifdef COBJMACROS
 
-
 #define ISymNGenWriter_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5258,7 +4992,6 @@ EXTERN_C const IID IID_ISymNGenWriter;
 #define ISymNGenWriter_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymNGenWriter_AddSymbol(This,pSymbol,iSection,rva)	\
     ( (This)->lpVtbl -> AddSymbol(This,pSymbol,iSection,rva) ) 
 
@@ -5267,21 +5000,15 @@ EXTERN_C const IID IID_ISymNGenWriter;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymNGenWriter_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymNGenWriter2_INTERFACE_DEFINED__
 #define __ISymNGenWriter2_INTERFACE_DEFINED__
 
 /* interface ISymNGenWriter2 */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ISymNGenWriter2;
 
@@ -5394,7 +5121,6 @@ EXTERN_C const IID IID_ISymNGenWriter2;
 
 #ifdef COBJMACROS
 
-
 #define ISymNGenWriter2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5404,13 +5130,11 @@ EXTERN_C const IID IID_ISymNGenWriter2;
 #define ISymNGenWriter2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ISymNGenWriter2_AddSymbol(This,pSymbol,iSection,rva)	\
     ( (This)->lpVtbl -> AddSymbol(This,pSymbol,iSection,rva) ) 
 
 #define ISymNGenWriter2_AddSection(This,iSection,flags,offset,cb)	\
     ( (This)->lpVtbl -> AddSection(This,iSection,flags,offset,cb) ) 
-
 
 #define ISymNGenWriter2_OpenModW(This,wszModule,wszObjFile,ppmod)	\
     ( (This)->lpVtbl -> OpenModW(This,wszModule,wszObjFile,ppmod) ) 
@@ -5429,21 +5153,15 @@ EXTERN_C const IID IID_ISymNGenWriter2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymNGenWriter2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedAsyncMethodPropertiesWriter_INTERFACE_DEFINED__
 #define __ISymUnmanagedAsyncMethodPropertiesWriter_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedAsyncMethodPropertiesWriter */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedAsyncMethodPropertiesWriter;
 
@@ -5513,7 +5231,6 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethodPropertiesWriter;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedAsyncMethodPropertiesWriter_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5522,7 +5239,6 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethodPropertiesWriter;
 
 #define ISymUnmanagedAsyncMethodPropertiesWriter_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedAsyncMethodPropertiesWriter_DefineKickoffMethod(This,kickoffMethod)	\
     ( (This)->lpVtbl -> DefineKickoffMethod(This,kickoffMethod) ) 
@@ -5535,21 +5251,15 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethodPropertiesWriter;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedAsyncMethodPropertiesWriter_INTERFACE_DEFINED__ */
-
 
 #ifndef __ISymUnmanagedAsyncMethod_INTERFACE_DEFINED__
 #define __ISymUnmanagedAsyncMethod_INTERFACE_DEFINED__
 
 /* interface ISymUnmanagedAsyncMethod */
 /* [unique][uuid][object] */ 
-
 
 EXTERN_C const IID IID_ISymUnmanagedAsyncMethod;
 
@@ -5642,7 +5352,6 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethod;
 
 #ifdef COBJMACROS
 
-
 #define ISymUnmanagedAsyncMethod_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5651,7 +5360,6 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethod;
 
 #define ISymUnmanagedAsyncMethod_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ISymUnmanagedAsyncMethod_IsAsyncMethod(This,pRetVal)	\
     ( (This)->lpVtbl -> IsAsyncMethod(This,pRetVal) ) 
@@ -5673,14 +5381,9 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethod;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ISymUnmanagedAsyncMethod_INTERFACE_DEFINED__ */
-
 
 /* Additional Prototypes for ALL interfaces
 
