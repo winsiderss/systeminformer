@@ -542,7 +542,6 @@ VOID GraphicsDeviceNotifyDedicatedGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, Context->SysinfoSection->Parameters->WindowDpi);
@@ -562,12 +561,15 @@ VOID GraphicsDeviceNotifyDedicatedGraph(
                     max = (FLOAT)Context->DeviceEntry->DedicatedLimit;
                 }
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data = Context->DedicatedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->DeviceEntry->DedicatedHistory, i);
+                    FLOAT dataMax;
 
-                    if (max < data)
-                        max = data;
+                    PhCopyConvertCircularBufferULONG64(&Context->DeviceEntry->DedicatedHistory, Context->DedicatedGraphState.Data1, drawInfo->LineDataCount);
+
+                    dataMax = PhMaxMemorySingles(Context->DedicatedGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (max < dataMax)
+                        max = dataMax;
                 }
 
                 if (max != 0)
@@ -624,7 +626,6 @@ VOID GraphicsDeviceNotifySharedGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), Context->SysinfoSection->Parameters->WindowDpi);
@@ -639,15 +640,20 @@ VOID GraphicsDeviceNotifySharedGraph(
             {
                 FLOAT max = 1024 * 1024;
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data1 = Context->SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->DeviceEntry->SharedHistory, i);
-                    FLOAT data2 = Context->SharedGraphState.Data2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->DeviceEntry->CommitHistory, i);
+                    FLOAT max1;
+                    FLOAT max2;
 
-                    if (max < data1)
-                        max = data1;
-                    if (max < data2)
-                        max = data2;
+                    PhCopyConvertCircularBufferULONG64(&Context->DeviceEntry->SharedHistory, Context->SharedGraphState.Data1, drawInfo->LineDataCount);
+                    PhCopyConvertCircularBufferULONG64(&Context->DeviceEntry->CommitHistory, Context->SharedGraphState.Data2, drawInfo->LineDataCount);
+
+                    max1 = PhMaxMemorySingles(Context->SharedGraphState.Data1, drawInfo->LineDataCount);
+                    max2 = PhMaxMemorySingles(Context->SharedGraphState.Data2, drawInfo->LineDataCount);
+
+                    if (max < max1)
+                        max = max1;
+                    if (max < max2)
+                        max = max2;
                 }
 
                 max = max * 2;
