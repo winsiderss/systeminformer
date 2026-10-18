@@ -3379,6 +3379,14 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_ADVANCED), FALSE);
 
             PhUpdateHandleAuditingSecurity(context);
+
+            // Apply the same window theme initialization as the other handle
+            // properties pages. Without this, the auditing page keeps the
+            // default light dialog/control theme when dark mode is enabled.
+            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
+            else
+                PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
     case WM_DESTROY:
