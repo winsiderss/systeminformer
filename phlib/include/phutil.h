@@ -2444,6 +2444,14 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsCommandLineUnquotedPath(
+    _In_ PCPH_STRINGREF CommandLine,
+    _In_ BOOLEAN SearchFilePath
+    );
+
+PHLIBAPI
 PPH_LIST
 NTAPI
 PhCommandLineToList(

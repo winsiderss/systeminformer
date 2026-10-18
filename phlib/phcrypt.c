@@ -5506,7 +5506,7 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
  *
  * Allocates hash state arrays and scratch buffers required by SymCrypt's
  * parallel implementation. Caller retains ownership of the context structure
- * and must eventually call PhSymCryptCleanupParallelHash.
+ * and must eventually call PhSymCryptCleanupMultiHash.
  *
  * \param[out] ParallelHashContext Caller-allocated context structure.
  * \param[in] Algorithm Hash algorithm (SHA-256, SHA-384, or SHA-512).
@@ -5514,9 +5514,9 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
  * \return STATUS_SUCCESS on success; STATUS_INVALID_PARAMETER if NumberOfHashes
  *         exceeds algorithm limits; STATUS_INSUFFICIENT_RESOURCES on allocation failure.
  */
-NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
-    _Out_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
-    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+NTSTATUS NTAPI PhSymCryptInitializeMultiHash(
+    _Out_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext,
+    _In_ PH_SYMCRYPT_MULTI_HASH_ALGORITHM Algorithm,
     _In_ SIZE_T NumberOfHashes
     )
 {
@@ -5525,15 +5525,15 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
     if (!ParallelHashContext || NumberOfHashes == 0)
         return STATUS_INVALID_PARAMETER;
 
-    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_PARALLEL_HASH_CONTEXT));
+    memset(ParallelHashContext, 0, sizeof(PPH_SYMCRYPT_MULTI_HASH_CONTEXT));
 
     switch (Algorithm)
     {
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+    case PH_SYMCRYPT_MULTI_HASH_SHA256:
         {
             if (
-                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM ||
-                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
+                NumberOfHashes < PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM
                 )
             {
                 return STATUS_INVALID_PARAMETER;
@@ -5545,11 +5545,11 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
             ParallelHashContext->ResultSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+    case PH_SYMCRYPT_MULTI_HASH_SHA384:
         {
             if (
-                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM ||
-                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM
+                NumberOfHashes < PH_SYMCRYPT_MULTI_SHA384_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_MULTI_SHA384_MAX_PARALLELISM
                 )
             {
                 return STATUS_INVALID_PARAMETER;
@@ -5561,11 +5561,11 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
             ParallelHashContext->ResultSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+    case PH_SYMCRYPT_MULTI_HASH_SHA512:
         {
             if (
-                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM ||
-                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM
+                NumberOfHashes < PH_SYMCRYPT_MULTI_SHA512_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_MULTI_SHA512_MAX_PARALLELISM
                 )
             {
                 return STATUS_INVALID_PARAMETER;
@@ -5625,7 +5625,7 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
 
     switch (Algorithm)
     {
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+    case PH_SYMCRYPT_MULTI_HASH_SHA256:
         {
             SymCryptParallelSha256Init(
                 (PSYMCRYPT_SHA256_STATE)ParallelHashContext->pHashStates,
@@ -5633,7 +5633,7 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
                 );
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+    case PH_SYMCRYPT_MULTI_HASH_SHA384:
         {
             SymCryptParallelSha384Init(
                 (PSYMCRYPT_SHA384_STATE)ParallelHashContext->pHashStates,
@@ -5641,7 +5641,7 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
                 );
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+    case PH_SYMCRYPT_MULTI_HASH_SHA512:
         {
             SymCryptParallelSha512Init(
                 (PSYMCRYPT_SHA512_STATE)ParallelHashContext->pHashStates,
@@ -5668,14 +5668,14 @@ NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
  * \return STATUS_SUCCESS on success; STATUS_INVALID_PARAMETER if any operation
  *         references an invalid hash index or other parameter error.
  */
-NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
-    _In_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
-    _Inout_updates_(OperationCount) PPH_SYMCRYPT_PARALLEL_HASH_OPERATION Operations,
+NTSTATUS NTAPI PhSymCryptProcessMultiOperations(
+    _In_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext,
+    _Inout_updates_(OperationCount) PPH_SYMCRYPT_MULTI_HASH_OPERATION Operations,
     _In_ SIZE_T OperationCount
     )
 {
     SYMCRYPT_ERROR error;
-    SYMCRYPT_PARALLEL_HASH_OPERATION *symcryptOps;
+    SYMCRYPT_PARALLEL_HASH_OPERATION* symcryptOps;
     SIZE_T symcryptOpsSize;
     SIZE_T i;
 
@@ -5690,8 +5690,8 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
     {
         if (Operations[i].iHash >= ParallelHashContext->NumberOfHashes)
             return STATUS_INVALID_PARAMETER;
-        if (Operations[i].hashOperation != PH_SYMCRYPT_HASH_OPERATION_APPEND &&
-            Operations[i].hashOperation != PH_SYMCRYPT_HASH_OPERATION_RESULT)
+        if (Operations[i].HashOperation != PH_SYMCRYPT_HASH_OPERATION_APPEND &&
+            Operations[i].HashOperation != PH_SYMCRYPT_HASH_OPERATION_RESULT)
             return STATUS_INVALID_PARAMETER;
     }
 
@@ -5702,16 +5702,15 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
     // Convert operation array to SymCrypt format
     //
 
-    symcryptOps = (SYMCRYPT_PARALLEL_HASH_OPERATION *)PhAllocateSafe(symcryptOpsSize);
-    if (!symcryptOps)
-        return STATUS_INSUFFICIENT_RESOURCES;
+    symcryptOps = (SYMCRYPT_PARALLEL_HASH_OPERATION*)PhAllocateSafe(symcryptOpsSize);
+    if (!symcryptOps) return STATUS_INSUFFICIENT_RESOURCES;
 
     for (i = 0; i < OperationCount; i++)
     {
         symcryptOps[i].iHash = Operations[i].iHash;
-        symcryptOps[i].hashOperation = (SYMCRYPT_HASH_OPERATION_TYPE)Operations[i].hashOperation;
-        symcryptOps[i].pbBuffer = Operations[i].pbBuffer;
-        symcryptOps[i].cbBuffer = Operations[i].cbBuffer;
+        symcryptOps[i].hashOperation = (SYMCRYPT_HASH_OPERATION_TYPE)Operations[i].HashOperation;
+        symcryptOps[i].pbBuffer = Operations[i].Buffer;
+        symcryptOps[i].cbBuffer = Operations[i].Size;
     }
 
     //
@@ -5720,7 +5719,7 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
 
     switch (ParallelHashContext->Algorithm)
     {
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+    case PH_SYMCRYPT_MULTI_HASH_SHA256:
         {
             error = SymCryptParallelSha256Process(
                 (PSYMCRYPT_SHA256_STATE)ParallelHashContext->pHashStates,
@@ -5732,7 +5731,7 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
                 );
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+    case PH_SYMCRYPT_MULTI_HASH_SHA384:
         {
             error = SymCryptParallelSha384Process(
                 (PSYMCRYPT_SHA384_STATE)ParallelHashContext->pHashStates,
@@ -5744,7 +5743,7 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
                 );
         }
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+    case PH_SYMCRYPT_MULTI_HASH_SHA512:
         {
             error = SymCryptParallelSha512Process(
                 (PSYMCRYPT_SHA512_STATE)ParallelHashContext->pHashStates,
@@ -5772,8 +5771,8 @@ NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
  * that was never successfully initialized (checks for NULL pointers).
  * \param[in,out] ParallelHashContext Context to clean up.
  */
-VOID NTAPI PhSymCryptCleanupParallelHash(
-    _Inout_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext
+VOID NTAPI PhSymCryptCleanupMultiHash(
+    _Inout_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext
     )
 {
     if (!ParallelHashContext || !ParallelHashContext->pHashStates)
@@ -5789,13 +5788,13 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
         SIZE_T stateTotalSize;
         switch (ParallelHashContext->Algorithm)
         {
-        case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+        case PH_SYMCRYPT_MULTI_HASH_SHA256:
             stateSize = sizeof(SYMCRYPT_SHA256_STATE);
             break;
-        case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+        case PH_SYMCRYPT_MULTI_HASH_SHA384:
             stateSize = sizeof(SYMCRYPT_SHA384_STATE);
             break;
-        case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+        case PH_SYMCRYPT_MULTI_HASH_SHA512:
             stateSize = sizeof(SYMCRYPT_SHA512_STATE);
             break;
         }
@@ -5827,7 +5826,7 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
         ParallelHashContext->pbScratchBuffer = NULL;
     }
 
-    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_PARALLEL_HASH_CONTEXT));
+    memset(ParallelHashContext, 0, sizeof(PPH_SYMCRYPT_MULTI_HASH_CONTEXT));
 }
 
 /**
@@ -5841,30 +5840,30 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
  * \param[out] MaximumParallelism Receives maximum supported parallelism (optional).
  */
 VOID NTAPI PhSymCryptGetParallelHashCapabilities(
-    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _In_ PH_SYMCRYPT_MULTI_HASH_ALGORITHM Algorithm,
     _Out_opt_ PSIZE_T MinimumParallelism,
     _Out_opt_ PSIZE_T MaximumParallelism
     )
 {
     switch (Algorithm)
     {
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+    case PH_SYMCRYPT_MULTI_HASH_SHA256:
         if (MinimumParallelism)
-            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM;
+            *MinimumParallelism = PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM;
         if (MaximumParallelism)
-            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM;
+            *MaximumParallelism = PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM;
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+    case PH_SYMCRYPT_MULTI_HASH_SHA384:
         if (MinimumParallelism)
-            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM;
+            *MinimumParallelism = PH_SYMCRYPT_MULTI_SHA384_MIN_PARALLELISM;
         if (MaximumParallelism)
-            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM;
+            *MaximumParallelism = PH_SYMCRYPT_MULTI_SHA384_MAX_PARALLELISM;
         break;
-    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+    case PH_SYMCRYPT_MULTI_HASH_SHA512:
         if (MinimumParallelism)
-            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM;
+            *MinimumParallelism = PH_SYMCRYPT_MULTI_SHA512_MIN_PARALLELISM;
         if (MaximumParallelism)
-            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM;
+            *MaximumParallelism = PH_SYMCRYPT_MULTI_SHA512_MAX_PARALLELISM;
         break;
     default:
         if (MinimumParallelism)

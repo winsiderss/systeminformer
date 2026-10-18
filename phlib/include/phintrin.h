@@ -103,6 +103,7 @@ PhArm64ReadRandomNumber64(
 #define PhHasPopulationCount TRUE
 #define PhHasAVX FALSE
 #define PhHasAVX512 FALSE
+#define PhHasAVX512CD FALSE
 #define PhHasSSSE3 FALSE
 #define PhHasPCLMUL FALSE
 #define PhHasVPCLMUL FALSE
@@ -158,6 +159,33 @@ extern long __isa_enabled;
     FlagOn(__isa_enabled, ISA_ENABLED_AVX2)
 #define PhHasAVX512 \
     FlagOn(__isa_enabled, ISA_ENABLED_AVX512)
+
+/** AVX-512 conflict detection additionally requires CPUID.7.0:EBX[28]. */
+FORCEINLINE
+BOOLEAN
+PhpHasAVX512CDOnce(
+    VOID
+    )
+{
+    static ULONG state = 0;
+    ULONG current = ReadULongAcquire(&state);
+
+    if (current == 0)
+    {
+        int regs[4];
+        ULONG detected;
+        LONG previous;
+
+        __cpuidex(regs, 7, 0);
+        detected = (regs[1] & (1 << 28)) ? 1 : 2;
+        previous = InterlockedCompareExchange((volatile LONG*)&state, (LONG)detected, 0);
+        current = previous == 0 ? detected : (ULONG)previous;
+    }
+
+    return current == 1;
+}
+
+#define PhHasAVX512CD (PhHasAVX512 && PhpHasAVX512CDOnce())
 
 /**
  * @def PhHasSSSE3
@@ -1455,6 +1483,30 @@ PhUnpackHighINT128by8(
     return vzip2q_u8(A, B);
 #else
     return _mm_unpackhi_epi8(A, B);
+#endif
+}
+
+/**
+ * Truncates sixteen unsigned words to their low bytes, preserving lane order.
+ *
+ * \param Low The first eight words.
+ * \param High The last eight words.
+ * \return Sixteen bytes containing the low byte of each input word.
+ */
+FORCEINLINE
+PH_INT128
+PhTruncateINT128by16To8(
+    _In_ PH_INT128 Low,
+    _In_ PH_INT128 High
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_u8(vcombine_u8(
+        vmovn_u16(vreinterpretq_u16_s64(Low)),
+        vmovn_u16(vreinterpretq_u16_s64(High))));
+#else
+    const __m128i mask = _mm_set1_epi16(0xff);
+    return _mm_packus_epi16(_mm_and_si128(Low, mask), _mm_and_si128(High, mask));
 #endif
 }
 

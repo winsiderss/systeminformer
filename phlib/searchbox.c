@@ -406,18 +406,18 @@ VOID PhSearchControlCreateTooltip(
         SendMessage(Context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
         SendMessage(Context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
     }
-    //else
-    //{
-    //    toolInfo.cbSize = sizeof(TOOLINFO);
-    //    toolInfo.hwnd = ParentWindow;
-    //    toolInfo.uId = 1;
-    //    toolInfo.lpszText = TooltipText;
-    //    toolInfo.rect = *TooltipRect;
-    //    SendMessage(Context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
-    //    SendMessage(Context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
-    //}
+    else
+    {
+        memset(&toolInfo, 0, sizeof(TOOLINFO));
+        toolInfo.cbSize = sizeof(TOOLINFO);
+        toolInfo.hwnd = ParentWindow;
+        toolInfo.uId = 1;
+        toolInfo.lpszText = TooltipText;
+        toolInfo.rect = *TooltipRect;
+        SendMessage(Context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+        SendMessage(Context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+    }
 
-    //SendMessage(Context->TooltipHandle, TTM_UPDATE, 0, 0);
     SendMessage(Context->TooltipHandle, TTM_POPUP, 0, 0);
 }
 

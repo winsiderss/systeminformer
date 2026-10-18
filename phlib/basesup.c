@@ -4646,18 +4646,18 @@ VOID PhConvertCopyMemoryUlong64(
         {
             PULONG64 end = From + count;
 
-            // Convert 16 x uint64 → 16 x float in single iteration
+            // Convert 16 x uint64 -> 16 x float in single iteration
             while (From != end)
             {
                 // Load 16 x uint64 (2 x 512-bit loads = 128 bytes)
                 __m512i v0 = _mm512_load_si512((__m512i const*)From);       // 8 x uint64
                 __m512i v1 = _mm512_load_si512((__m512i const*)(From + 8)); // 8 x uint64
 
-                // Direct uint64 → double conversion (AVX-512 DQ)
+                // Direct uint64 -> double conversion (AVX-512 DQ)
                 __m512d d0 = _mm512_cvtepu64_pd(v0);  // 8 x double
                 __m512d d1 = _mm512_cvtepu64_pd(v1);  // 8 x double
 
-                // Double → float conversion with rounding
+                // Double -> float conversion with rounding
                 __m256 f0 = _mm512_cvtpd_ps(d0);  // 8 x float
                 __m256 f1 = _mm512_cvtpd_ps(d1);  // 8 x float
 
@@ -4840,7 +4840,7 @@ VOID PhConvertCopyMemoryUlong64(
                 __m128d d0 = _mm_add_pd(d0_lo, _mm_mul_pd(d0_hi, scale));
                 __m128d d1 = _mm_add_pd(d1_lo, _mm_mul_pd(d1_hi, scale));
 
-                // Double → float
+                // Double -> float
                 __m128 f0 = _mm_cvtpd_ps(d0);  // 2 floats in low 64 bits
                 __m128 f1 = _mm_cvtpd_ps(d1);  // 2 floats in low 64 bits
 
