@@ -198,6 +198,12 @@ EXT ULONG PhCsColorPhysical;
 EXT ULONG PhCsColorPowerUsage;
 EXT ULONG PhCsColorTemperature;
 EXT ULONG PhCsColorFanRpm;
+EXT ULONG PhCsColorClock;
+EXT ULONG PhCsColorMultiplier;
+EXT ULONG PhCsColorVoltage;
+EXT ULONG PhCsColorCurrent;
+EXT ULONG PhCsColorBandwidth;
+EXT ULONG PhCsColorPercentage;
 
 EXT ULONG PhCsUseColorUnknown;
 EXT ULONG PhCsColorUnknown;
@@ -714,6 +720,12 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_COLOR_POWER_USAGE                                   L"ColorPowerUsage"
 #define SETTING_COLOR_TEMPERATURE                                   L"ColorTemperature"
 #define SETTING_COLOR_FAN_RPM                                       L"ColorFanRpm"
+#define SETTING_COLOR_CLOCK                                         L"ColorClock"
+#define SETTING_COLOR_MULTIPLIER                                    L"ColorMultiplier"
+#define SETTING_COLOR_VOLTAGE                                       L"ColorVoltage"
+#define SETTING_COLOR_CURRENT                                       L"ColorCurrent"
+#define SETTING_COLOR_BANDWIDTH                                     L"ColorBandwidth"
+#define SETTING_COLOR_PERCENTAGE                                    L"ColorPercentage"
 
 #define SETTING_KSI_ENABLE                                          L"KsiEnable"
 #define SETTING_KSI_ENABLE_WARNINGS                                 L"KsiEnableWarnings"

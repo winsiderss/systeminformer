@@ -23,7 +23,6 @@
 
 #define WM_PH_HW_SENSORS_UPDATE (WM_APP + 1)
 #define PHP_HW_COLLAPSE_PROCESSOR_COUNT 16
-#define PHP_HW_POWER_GRAPH_MINIMUM 10.0f
 
 typedef enum _PHP_HW_SENSORS_COLUMN
 {
@@ -207,33 +206,33 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitCurrent, NULL, FALSE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitTemperature, NULL, FALSE, FALSE },
     { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_UNCORE_CLOCK, PhpHwUnitClock, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_EFFECTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupActiveClocks, PH_HW_CAP_ACTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, FALSE },
-    { PhpHwComponentWindows, PhpHwGroupClocks, 0, PhpHwUnitClock, NULL, FALSE, FALSE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitClock, L"Memory clock", FALSE, FALSE },
+    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_UNCORE_CLOCK, PhpHwUnitClock, NULL, FALSE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_EFFECTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupActiveClocks, PH_HW_CAP_ACTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, TRUE },
+    { PhpHwComponentWindows, PhpHwGroupClocks, 0, PhpHwUnitClock, NULL, FALSE, TRUE },
+    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitClock, L"Memory clock", FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitDataRate, L"Data rate", FALSE, FALSE },
     { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitGear, L"Gear", FALSE, FALSE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, FALSE },
+    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_MEMORY_BANDWIDTH, PhpHwUnitBandwidth, L"DRAM read", FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_MEMORY_BANDWIDTH, PhpHwUnitBandwidth, L"DRAM write", FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_SMU, PhpHwUnitPercent, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_SMU, PhpHwUnitBandwidth, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupMultipliers, PH_HW_CAP_MULTIPLIER, PhpHwUnitMultiplier, L"CPU ", TRUE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_VOLTAGE, PhpHwUnitVoltage, L"CPU ", TRUE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_SMU, PhpHwUnitVoltage, NULL, FALSE, FALSE },
+    { PhpHwComponentCpu, PhpHwGroupMultipliers, PH_HW_CAP_MULTIPLIER, PhpHwUnitMultiplier, L"CPU ", TRUE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_VOLTAGE, PhpHwUnitVoltage, L"CPU ", TRUE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_SMU, PhpHwUnitVoltage, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupVoltages, PH_HW_CAP_DIMM_VOLTAGE, PhpHwUnitVoltage, NULL, FALSE, FALSE },
-    { PhpHwComponentSystem, PhpHwGroupVoltages, PH_HW_CAP_ACPI_TEMP, PhpHwUnitVoltage, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupCurrents, PH_HW_CAP_SMU, PhpHwUnitCurrent, NULL, FALSE, FALSE },
+    { PhpHwComponentSystem, PhpHwGroupVoltages, PH_HW_CAP_ACPI_TEMP, PhpHwUnitVoltage, NULL, FALSE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupCurrents, PH_HW_CAP_SMU, PhpHwUnitCurrent, NULL, FALSE, TRUE },
     { PhpHwComponentMemory, PhpHwGroupCurrents, PH_HW_CAP_DIMM_PMIC, PhpHwUnitCurrent, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_SMU, PhpHwUnitPercent, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_RESIDENCY, PhpHwUnitPercent, NULL, FALSE, FALSE },
+    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_SMU, PhpHwUnitPercent, NULL, FALSE, TRUE },
+    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_RESIDENCY, PhpHwUnitPercent, NULL, FALSE, TRUE },
     { PhpHwComponentSystem, PhpHwGroupFans, PH_HW_CAP_FAN_SPEED, PhpHwUnitFan, NULL, FALSE, TRUE },
     { PhpHwComponentSystem, PhpHwGroupControls, PH_HW_CAP_FAN_CONTROL, PhpHwUnitPercent, NULL, FALSE, TRUE },
     { PhpHwComponentCpu, PhpHwGroupThrottling, PH_HW_CAP_THROTTLE, PhpHwUnitThrottle, L"Package", FALSE, FALSE },
-    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, FALSE },
-    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, FALSE },
+    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, TRUE },
+    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, TRUE },
 };
 
 // Group and unit of each PH_HW_SENSOR_TYPE; source sensors use PhpHwSensorMaximum as their kind.
@@ -1368,6 +1367,51 @@ static VOID PhpHwSensorsNeedGraphContext(
     Context->GraphHeight = Height;
 }
 
+static COLORREF PhpHwSensorGraphColor(
+    _In_ PHP_HW_SENSOR_UNIT Unit
+    )
+{
+    switch (Unit)
+    {
+    case PhpHwUnitTemperature:
+        return PhCsColorTemperature;
+    case PhpHwUnitClock:
+        return PhCsColorClock;
+    case PhpHwUnitMultiplier:
+        return PhCsColorMultiplier;
+    case PhpHwUnitVoltage:
+        return PhCsColorVoltage;
+    case PhpHwUnitCurrent:
+        return PhCsColorCurrent;
+    case PhpHwUnitFan:
+        return PhCsColorFanRpm;
+    case PhpHwUnitBandwidth:
+        return PhCsColorBandwidth;
+    case PhpHwUnitPercent:
+        return PhCsColorPercentage;
+    }
+
+    return PhCsColorPowerUsage;
+}
+
+// The smallest full scale of a graph scaled to its maximum, so that a near-zero history stays near the bottom.
+static FLOAT PhpHwSensorGraphMinimumScale(
+    _In_ PHP_HW_SENSOR_UNIT Unit
+    )
+{
+    switch (Unit)
+    {
+    case PhpHwUnitClock:
+        return 100.0f;
+    case PhpHwUnitMultiplier:
+    case PhpHwUnitVoltage:
+    case PhpHwUnitCurrent:
+        return 1.0f;
+    }
+
+    return 10.0f;
+}
+
 static VOID PhpHwSensorsDrawHistory(
     _In_ PPHP_HW_SENSORS_CONTEXT Context,
     _In_ PPH_TREENEW_CUSTOM_DRAW CustomDraw
@@ -1385,7 +1429,7 @@ static VOID PhpHwSensorsDrawHistory(
     if (rect.right - rect.left <= 1 || rect.bottom - rect.top <= 1)
         return;
 
-    color = node->Sensor.Unit == PhpHwUnitTemperature ? PhCsColorTemperature : PhCsColorPowerUsage;
+    color = PhpHwSensorGraphColor(node->Sensor.Unit);
 
     memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
     drawInfo.Width = rect.right - rect.left - 1; // leave a small gap
@@ -1426,10 +1470,7 @@ static VOID PhpHwSensorsDrawHistory(
         }
         else
         {
-            scale = PhMaxMemorySingles(node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount);
-
-            if (scale < PHP_HW_POWER_GRAPH_MINIMUM)
-                scale = PHP_HW_POWER_GRAPH_MINIMUM;
+            scale = max(PhMaxMemorySingles(node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount), PhpHwSensorGraphMinimumScale(node->Sensor.Unit));
         }
 
         PhDivideSinglesBySingle(node->Sensor.GraphBuffers.Data1, scale, drawInfo.LineDataCount);

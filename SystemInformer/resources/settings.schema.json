@@ -4927,6 +4927,90 @@
         }
       ]
     },
+    "ColorClock": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Clock in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorMultiplier": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Multiplier in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorVoltage": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Voltage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorCurrent": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Current in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorBandwidth": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Bandwidth in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorPercentage": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Percentage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
     "KsiEnable": {
       "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the Kernel System Informer (KSystemInformer) driver.",
       "anyOf": [
