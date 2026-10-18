@@ -4530,6 +4530,12 @@ static COLOR_ITEM PhpOptionsGraphColorItems[] =
     COLOR_ITEM(SETTING_COLOR_POWER_USAGE, 0, L"Power usage", L"Power usage"),
     COLOR_ITEM(SETTING_COLOR_TEMPERATURE, 0, L"Temperature", L"Temperature"),
     COLOR_ITEM(SETTING_COLOR_FAN_RPM, 0, L"Fan RPM", L"Fan RPM"),
+    COLOR_ITEM(SETTING_COLOR_CLOCK, 0, L"Clock", L"Clock"),
+    COLOR_ITEM(SETTING_COLOR_MULTIPLIER, 0, L"Multiplier", L"Multiplier"),
+    COLOR_ITEM(SETTING_COLOR_VOLTAGE, 0, L"Voltage", L"Voltage"),
+    COLOR_ITEM(SETTING_COLOR_CURRENT, 0, L"Current", L"Current"),
+    COLOR_ITEM(SETTING_COLOR_BANDWIDTH, 0, L"Bandwidth", L"Bandwidth"),
+    COLOR_ITEM(SETTING_COLOR_PERCENTAGE, 0, L"Percentage", L"Percentage"),
 };
 static HWND PhpGraphListViewHandle = NULL;
 

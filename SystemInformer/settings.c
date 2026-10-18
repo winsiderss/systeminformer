@@ -511,7 +511,13 @@ VOID PhAddDefaultSettings(
 
     PhpAddIntegerSetting(SETTING_COLOR_POWER_USAGE, L"33ff22");
     PhpAddIntegerSetting(SETTING_COLOR_TEMPERATURE, L"3322ff");
-    PhpAddIntegerSetting(SETTING_COLOR_FAN_RPM, L"ff0077");
+    PhpAddIntegerSetting(SETTING_COLOR_FAN_RPM, L"8cb400");
+    PhpAddIntegerSetting(SETTING_COLOR_CLOCK, L"ffff00");
+    PhpAddIntegerSetting(SETTING_COLOR_MULTIPLIER, L"00ffbf");
+    PhpAddIntegerSetting(SETTING_COLOR_VOLTAGE, L"c850ff");
+    PhpAddIntegerSetting(SETTING_COLOR_CURRENT, L"00beff");
+    PhpAddIntegerSetting(SETTING_COLOR_BANDWIDTH, L"ff9696");
+    PhpAddIntegerSetting(SETTING_COLOR_PERCENTAGE, L"c8c8c8");
 
     PhpAddIntegerSetting(SETTING_KSI_ENABLE, L"0");
     PhpAddIntegerSetting(SETTING_KSI_ENABLE_WARNINGS, L"1");
@@ -701,6 +707,12 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(ColorPowerUsage);
     PH_GET_INTEGER_CACHED_SETTING(ColorTemperature);
     PH_GET_INTEGER_CACHED_SETTING(ColorFanRpm);
+    PH_GET_INTEGER_CACHED_SETTING(ColorClock);
+    PH_GET_INTEGER_CACHED_SETTING(ColorMultiplier);
+    PH_GET_INTEGER_CACHED_SETTING(ColorVoltage);
+    PH_GET_INTEGER_CACHED_SETTING(ColorCurrent);
+    PH_GET_INTEGER_CACHED_SETTING(ColorBandwidth);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPercentage);
 
     PH_GET_INTEGER_CACHED_SETTING(ImageCoherencyScanLevel);
 
