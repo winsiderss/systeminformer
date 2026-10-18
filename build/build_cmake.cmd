@@ -10,11 +10,13 @@ REM ----------------------------------------------------------------------------
 REM Initialize script state, incoming arguments, and resolved build settings.
 set "ExitCode=0"
 set "IsCI=false"
+set "SkipPause=false"
 set "BuildTerminalLogger=auto"
 set "GENERATOR=%~1"
 set "CONFIG=%~2"
 set "TOOLCHAIN=%~3"
 set "ACTION=%~4"
+if /i "%~5"=="--no-pause" set "SkipPause=true"
 set "VSINSTALLPATH="
 set "PLATFORM="
 set "VCVARS_ARCH="
@@ -36,7 +38,7 @@ if errorlevel 1 set "ExitCode=%errorlevel%"
 
 :end
 REM Pause only for interactive, non-CI invocations before returning.
-if /i "%IsCI%"=="false" call :PauseIfInteractive
+if /i "%IsCI%"=="false" if /i "%SkipPause%"=="false" call :PauseIfInteractive
 endlocal & exit /b %ExitCode%
 
 REM -----------------------------------------------------------------------------
@@ -95,7 +97,7 @@ REM Description: Ensures all required positional arguments were provided.
 REM -----------------------------------------------------------------------------
 :ValidateArgs
 if not "%GENERATOR%"=="" if not "%CONFIG%"=="" if not "%TOOLCHAIN%"=="" if not "%ACTION%"=="" exit /b 0
-echo Usage: build_cmake.cmd [GENERATOR] [CONFIG] [TOOLCHAIN] [ACTION]
+echo Usage: build_cmake.cmd [GENERATOR] [CONFIG] [TOOLCHAIN] [ACTION] [--no-pause]
 echo Example: build_cmake.cmd "Ninja" "Debug" "msvc-amd64" "generate"
 exit /b 1
 
@@ -106,10 +108,12 @@ REM ----------------------------------------------------------------------------
 :ResolveConfig
 if /i "%CONFIG%"=="Debug" (
     set "BUILD_DIR_NAME=build-debug"
+    if defined SI_CMAKE_BUILD_SUFFIX set "BUILD_DIR_NAME=!BUILD_DIR_NAME!-%SI_CMAKE_BUILD_SUFFIX%"
     exit /b 0
 )
 if /i "%CONFIG%"=="Release" (
     set "BUILD_DIR_NAME=build-release"
+    if defined SI_CMAKE_BUILD_SUFFIX set "BUILD_DIR_NAME=!BUILD_DIR_NAME!-%SI_CMAKE_BUILD_SUFFIX%"
     exit /b 0
 )
 echo Error: Unsupported configuration: %CONFIG%
@@ -235,7 +239,7 @@ REM ----------------------------------------------------------------------------
 :RunGenerate
 echo Setting up Visual Studio environment for %VCVARS_ARCH%...
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-cmake -G "%GENERATOR%" -S "%SOURCE_DIR%" -B "%BUILD_DIR%" --toolchain "%TOOLCHAIN_FILE%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSI_WITH_CORE=ON -DSI_WITH_PLUGINS=ON %CMAKE_GEN_OPTS%
+cmake -G "%GENERATOR%" -S "%SOURCE_DIR%" -B "%BUILD_DIR%" --toolchain "%TOOLCHAIN_FILE%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSI_WITH_CORE=ON -DSI_WITH_PLUGINS=ON %CMAKE_GEN_OPTS% %SI_CMAKE_EXTRA_ARGS%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------

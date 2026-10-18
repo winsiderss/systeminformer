@@ -47,3 +47,8 @@ _si_set_init(MODULE_LINKER_FLAGS_RELEASE)
 _si_set_init(STATIC_LINKER_FLAGS)
 _si_set_init(STATIC_LINKER_FLAGS_DEBUG)
 _si_set_init(STATIC_LINKER_FLAGS_RELEASE)
+
+if(SI_WITH_UBSAN)
+    string(APPEND CMAKE_C_FLAGS_DEBUG " -fsanitize=undefined -fsanitize-trap=all -fno-sanitize-link-runtime")
+    string(APPEND CMAKE_CXX_FLAGS_DEBUG " -fsanitize=undefined -fsanitize-trap=all -fno-sanitize-link-runtime")
+endif()
