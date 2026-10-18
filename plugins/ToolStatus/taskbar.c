@@ -486,7 +486,6 @@ HICON PhUpdateIconCommitHistory(
     ULONG maxDataCount;
     ULONG lineDataCount;
     PFLOAT lineData1;
-    ULONG i;
     HBITMAP bitmap;
     PVOID bits;
     HDC hdc;
@@ -505,8 +504,7 @@ HICON PhUpdateIconCommitHistory(
 
     lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
-    for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->CommitHistory, i);
+    PhCopyConvertCircularBufferULONG(Statistics->CommitHistory, lineData1, lineDataCount);
 
     PhDivideSinglesBySingle(lineData1, (FLOAT)Statistics->Performance->CommitLimit, lineDataCount);
 
@@ -551,7 +549,6 @@ HICON PhUpdateIconPhysicalHistory(
     ULONG maxDataCount;
     ULONG lineDataCount;
     PFLOAT lineData1;
-    ULONG i;
     HBITMAP bitmap;
     PVOID bits;
     HDC hdc;
@@ -570,8 +567,7 @@ HICON PhUpdateIconPhysicalHistory(
 
     lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
-    for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->PhysicalHistory, i);
+    PhCopyConvertCircularBufferULONG(Statistics->PhysicalHistory, lineData1, lineDataCount);
 
     PhDivideSinglesBySingle(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
 
