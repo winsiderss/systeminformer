@@ -35,12 +35,38 @@
 /**
  * Determines the length of the specified string, in characters.
  *
- * \param String The string.
+ * \param String The null-terminated string. The pointer does not need to be aligned.
+ * \return The number of characters in the string, excluding the null terminator.
  */
 SIZE_T PhCountStringZ(
     _In_ PCWSTR PH_RESTRICT String
     )
 {
+    // Misaligned (odd address) WCHAR loads are undefined behavior (and can fault with strict alignment checking),
+    // aligned WCHAR/SIMD vector loads rely on alignment to never straddle a page boundary. (dmex)
+
+    if (!IS_ALIGNED(String, sizeof(WCHAR)))
+    {
+        const UCHAR* p = (const UCHAR*)String;
+        SIZE_T length = 0;
+
+        // The terminator is a pair of zero bytes at an even offset from the start,
+        // so a zero high byte (e.g. L'A' = 41 00) won't stop it. (dmex)
+
+        while (p[0] || p[1])
+        {
+            p += sizeof(WCHAR);
+            length++;
+        }
+
+        return length;
+    }
+
+    // String is WCHAR-aligned from here, so every 16-bit vector lane lines up with
+    // exactly one character. Each SIMD tier rounds down to its vector size and masks
+    // off the leading lanes before String ("unaligned != 0"), then continues with
+    // aligned loads that never cross a page boundary. (dmex)
+
 #ifndef _ARM64_
 #ifdef _WIN64
     if (PhHasAVX512)
@@ -69,6 +95,7 @@ SIZE_T PhCountStringZ(
 
             if (_BitScanForward(&index, mask))
             {
+                _mm256_zeroupper();
                 return index;
             }
 
@@ -82,6 +109,7 @@ SIZE_T PhCountStringZ(
 
             if (_BitScanForward(&index, mask))
             {
+                _mm256_zeroupper();
                 return (SIZE_T)(p - String) + index;
             }
 
@@ -107,7 +135,7 @@ SIZE_T PhCountStringZ(
         {
             b = _mm256_loadu_si256((__m256i const*)p);
             b = _mm256_cmpeq_epi16(b, z);
-            mask = _mm256_movemask_epi8(b) >> unaligned;
+            mask = (ULONG)_mm256_movemask_epi8(b) >> unaligned;
 
             if (_BitScanForward(&index, mask))
             {
@@ -5699,7 +5727,7 @@ PPH_STRING PhBufferToHexStringEx(
         Length,
         UpperCase,
         string->Buffer,
-        string->Length,
+        string->Length + sizeof(UNICODE_NULL),
         NULL
         );
 
@@ -5730,7 +5758,10 @@ BOOLEAN PhBufferToHexStringBuffer(
     PCCH table;
     ULONG i;
 
-    if (OutputLength < InputLength * sizeof(WCHAR) * 2)
+    if (InputLength > (SIZE_MAX - sizeof(WCHAR)) / (sizeof(WCHAR) * 2))
+        return FALSE;
+
+    if (OutputLength < InputLength * sizeof(WCHAR) * 2 + sizeof(WCHAR))
     {
         if (ReturnLength)
             *ReturnLength = InputLength * sizeof(WCHAR) * 2;
