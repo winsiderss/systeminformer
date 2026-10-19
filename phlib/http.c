@@ -902,6 +902,7 @@ NTSTATUS PhHttpReadDataToBuffer(
     SIZE_T allocatedLength;
     SIZE_T dataLength;
     ULONG returnLength;
+    NTSTATUS status;
     BYTE buffer[PAGE_SIZE];
 
     // Reject a declared length we would refuse to buffer anyway. (dmex)
@@ -921,9 +922,16 @@ NTSTATUS PhHttpReadDataToBuffer(
 
     dataLength = 0;
 
-    while (WinHttpReadData(RequestHandle, buffer, PAGE_SIZE, &returnLength))
+    while (TRUE)
     {
         SIZE_T requiredLength;
+
+        if (!WinHttpReadData(RequestHandle, buffer, PAGE_SIZE, &returnLength))
+        {
+            status = PhGetLastWinHttpErrorAsNtStatus();
+            PhFree(data);
+            return status;
+        }
 
         if (returnLength == 0)
             break;
