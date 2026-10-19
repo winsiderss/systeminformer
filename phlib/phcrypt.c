@@ -7780,7 +7780,7 @@ NTSTATUS NTAPI PhSymCryptMlDsaSign(
         ContextLength,
         0,
         (PBYTE)Signature,
-        SignatureCapacity
+        required
         ));
 }
 
@@ -7818,6 +7818,145 @@ NTSTATUS NTAPI PhSymCryptMlDsaVerify(
         key->Key,
         (PCBYTE)Message,
         MessageLength,
+        (PCBYTE)Context,
+        ContextLength,
+        (PCBYTE)Signature,
+        SignatureLength,
+        0
+        ));
+}
+
+/**
+ * Maps a phlib hash algorithm to a SymCrypt pre-hash identifier.
+ *
+ * \param[in] HashAlgorithm Hash algorithm.
+ * \param[out] HashId Receives the SymCrypt pre-hash identifier.
+ * \return TRUE on success, FALSE if the algorithm is not supported.
+ */
+static BOOLEAN PhpSymCryptGetPreHashId(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _Out_ SYMCRYPT_PQDSA_HASH_ID *HashId
+    )
+{
+    switch (HashAlgorithm)
+    {
+    case PH_SYMCRYPT_SHA256_ALGORITHM:
+        *HashId = SYMCRYPT_PQDSA_HASH_ID_SHA256;
+        return TRUE;
+    case PH_SYMCRYPT_SHA384_ALGORITHM:
+        *HashId = SYMCRYPT_PQDSA_HASH_ID_SHA384;
+        return TRUE;
+    case PH_SYMCRYPT_SHA512_ALGORITHM:
+        *HashId = SYMCRYPT_PQDSA_HASH_ID_SHA512;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Signs a precomputed message hash using pre-hash ML-DSA.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] HashAlgorithm Algorithm that produced the hash.
+ * \param[in] Hash Hash bytes.
+ * \param[in] HashLength Hash size.
+ * \param[in] Context Optional context string.
+ * \param[in] ContextLength Size of the context string.
+ * \param[out] Signature Output buffer for the signature.
+ * \param[in] SignatureCapacity Size of the signature buffer.
+ * \param[out] SignatureLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
+NTSTATUS NTAPI PhSymCryptMlDsaSignPreHash(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _Out_writes_bytes_to_(SignatureCapacity, *SignatureLength) PVOID Signature,
+    _In_ SIZE_T SignatureCapacity,
+    _Out_ PSIZE_T SignatureLength
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+    SYMCRYPT_PQDSA_HASH_ID hashId;
+    SIZE_T required;
+    SYMCRYPT_ERROR error;
+
+    if (!key || !SignatureLength)
+        return STATUS_INVALID_PARAMETER;
+
+    if (ContextLength > SYMCRYPT_MLDSA_CONTEXT_MAX_LENGTH)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptGetPreHashId(HashAlgorithm, &hashId))
+        return STATUS_NOT_SUPPORTED;
+
+    error = SymCryptMlDsaSizeofSignatureFromParams(key->Parameters, &required);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    *SignatureLength = required;
+
+    if (SignatureCapacity < required)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return PhSymCryptErrorToStatus(SymCryptHashMlDsaSign(
+        key->Key,
+        hashId,
+        (PCBYTE)Hash,
+        HashLength,
+        (PCBYTE)Context,
+        ContextLength,
+        0,
+        (PBYTE)Signature,
+        required
+        ));
+}
+
+/**
+ * Verifies a signature over a precomputed message hash using pre-hash ML-DSA.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] HashAlgorithm Algorithm that produced the hash.
+ * \param[in] Hash Hash bytes.
+ * \param[in] HashLength Hash size.
+ * \param[in] Context Optional context string.
+ * \param[in] ContextLength Size of the context string.
+ * \param[in] Signature Signature bytes.
+ * \param[in] SignatureLength Size of the signature.
+ * \return STATUS_SUCCESS on success.
+ */
+NTSTATUS NTAPI PhSymCryptMlDsaVerifyPreHash(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+    SYMCRYPT_PQDSA_HASH_ID hashId;
+
+    if (!key)
+        return STATUS_INVALID_PARAMETER;
+
+    if (ContextLength > SYMCRYPT_MLDSA_CONTEXT_MAX_LENGTH)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptGetPreHashId(HashAlgorithm, &hashId))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptHashMlDsaVerify(
+        key->Key,
+        hashId,
+        (PCBYTE)Hash,
+        HashLength,
         (PCBYTE)Context,
         ContextLength,
         (PCBYTE)Signature,

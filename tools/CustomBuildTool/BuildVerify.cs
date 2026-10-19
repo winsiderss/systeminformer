@@ -185,6 +185,23 @@ namespace CustomBuildTool
 
                 try
                 {
+                    if (string.Equals(KeyName, "kph", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string reason = KphKey.GetPrivateContainerError(keyMaterial);
+
+                        if (reason != null)
+                        {
+                            if (StrictChecks)
+                            {
+                                Program.PrintColorMessage($"[Invalid kph key] ({KeyName}): {reason}", ConsoleColor.Red);
+                                return false;
+                            }
+
+                            Program.PrintColorMessage($"[Invalid kph key, nothing signed] ({KeyName}): {reason}", ConsoleColor.Yellow);
+                            return true;
+                        }
+                    }
+
                     if (StrictChecks)
                     {
                         if (File.Exists(sigFileName) && Win32.GetFileSize(sigFileName) != 0)
@@ -194,7 +211,9 @@ namespace CustomBuildTool
                         }
                     }
 
-                    byte[] signature = SignFile(keyMaterial, FileName);
+                    byte[] signature = string.Equals(KeyName, "kph", StringComparison.OrdinalIgnoreCase)
+                        ? SignKphFile(keyMaterial, FileName)
+                        : SignFile(keyMaterial, FileName);
 
                     Utils.WriteAllBytes(sigFileName, signature);
                 }
@@ -210,6 +229,16 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks that a kph signature file exists with the hybrid signature length.
+        /// </summary>
+        /// <param name="SigFileName">The path to the signature file.</param>
+        /// <returns>True if the file exists and has the expected length; otherwise, false.</returns>
+        public static bool IsValidKphSigFile(string SigFileName)
+        {
+            return File.Exists(SigFileName) && Win32.GetFileSize(SigFileName) == (ulong)KphKey.SignatureLength;
         }
 
         /// <summary>
@@ -455,6 +484,182 @@ namespace CustomBuildTool
             }
 
             return buffer;
+        }
+
+        /// <summary>
+        /// Layout of the hybrid kph key containers and signature.
+        /// </summary>
+        private static class KphKey
+        {
+            public const int RsaPublicLength = 539, MlDsaPublicLength = 2592, PublicLength = 3131;
+            public const int RsaPrivateLength = 1051, MlDsaPrivateLength = 4896, PrivateLength = 5947;
+            public const int RsaSignatureLength = 512, MlDsaSignatureLength = 4627, SignatureLength = 5139;
+            public const string Sha512Oid = "2.16.840.1.101.3.4.2.3";
+
+            public static (byte[] Rsa, byte[] MlDsa) SplitPrivate(ReadOnlySpan<byte> Container)
+            {
+                return Split(Container, PrivateLength, RsaPrivateLength, true);
+            }
+
+            public static (byte[] Rsa, byte[] MlDsa) SplitPublic(ReadOnlySpan<byte> Container)
+            {
+                return Split(Container, PublicLength, RsaPublicLength, false);
+            }
+
+            public static string GetPrivateContainerError(ReadOnlySpan<byte> Container)
+            {
+                return GetContainerError(Container, PrivateLength, RsaPrivateLength, true);
+            }
+
+            private static string GetContainerError(ReadOnlySpan<byte> Container, int Total, int RsaLength, bool Private)
+            {
+                string kind = Private ? "private" : "public";
+
+                if (Container.Length != Total)
+                    return $"kph {kind} key container length {Container.Length}, expected {Total}.";
+
+                if (!ValidateRsaBlobHeader(Container[..RsaLength], Private))
+                    return $"kph {kind} key RSA blob header is invalid.";
+
+                return null;
+            }
+
+            private static (byte[] Rsa, byte[] MlDsa) Split(ReadOnlySpan<byte> Container, int Total, int RsaLength, bool Private)
+            {
+                string error = GetContainerError(Container, Total, RsaLength, Private);
+
+                if (error != null)
+                    throw new System.Security.Cryptography.CryptographicException(error);
+
+                return (Container[..RsaLength].ToArray(), Container[RsaLength..].ToArray());
+            }
+
+            public static bool ValidateRsaBlobHeader(ReadOnlySpan<byte> Blob, bool Private)
+            {
+                if (Blob.Length != (Private ? RsaPrivateLength : RsaPublicLength))
+                    return false;
+
+                uint magic = BinaryPrimitives.ReadUInt32LittleEndian(Blob);
+                uint bitLength = BinaryPrimitives.ReadUInt32LittleEndian(Blob[4..]);
+                uint cbPublicExp = BinaryPrimitives.ReadUInt32LittleEndian(Blob[8..]);
+                uint cbModulus = BinaryPrimitives.ReadUInt32LittleEndian(Blob[12..]);
+                uint cbPrime1 = BinaryPrimitives.ReadUInt32LittleEndian(Blob[16..]);
+                uint cbPrime2 = BinaryPrimitives.ReadUInt32LittleEndian(Blob[20..]);
+
+                if (magic != (Private ? 0x32415352u : 0x31415352u))
+                    return false;
+                if (bitLength != 4096 || cbPublicExp != 3 || cbModulus != 512)
+                    return false;
+                if (Private && (cbPrime1 != 256 || cbPrime2 != 256))
+                    return false;
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Signs a SHA-512 digest with the RSA-PSS and HashML-DSA-87 halves of a kph private container.
+        /// </summary>
+        private static byte[] SignKphDigest(byte[] PrivateContainer, ReadOnlySpan<byte> Sha512Digest)
+        {
+            if (!MLDsa.IsSupported)
+                throw new PlatformNotSupportedException("kph signing requires Windows 11 24H2 or Server 2025 (ML-DSA in CNG)");
+
+            (byte[] rsaKey, byte[] mldsaKey) = KphKey.SplitPrivate(PrivateContainer);
+
+            try
+            {
+                byte[] signature = new byte[KphKey.SignatureLength];
+                byte[] rsaPublic;
+                byte[] mldsaPublic;
+
+                using (CngKey cngkey = CngKey.Import(rsaKey, CngKeyBlobFormat.GenericPrivateBlob))
+                {
+                    if (cngkey.Algorithm != CngAlgorithm.Rsa)
+                        throw new System.Security.Cryptography.CryptographicException("kph private key is not RSA.");
+
+                    using (RSACng rsa = new RSACng(cngkey))
+                    {
+                        byte[] rsaSignature = rsa.SignHash(Sha512Digest.ToArray(), HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
+
+                        if (rsaSignature.Length != KphKey.RsaSignatureLength)
+                            throw new System.Security.Cryptography.CryptographicException($"RSA signature length {rsaSignature.Length}, expected {KphKey.RsaSignatureLength}.");
+
+                        rsaSignature.CopyTo(signature, 0);
+                    }
+
+                    rsaPublic = cngkey.Export(CngKeyBlobFormat.GenericPublicBlob);
+                }
+
+                using (MLDsa mldsa = MLDsa.ImportMLDsaPrivateKey(MLDsaAlgorithm.MLDsa87, mldsaKey))
+                {
+                    Span<byte> mldsaSignature = signature.AsSpan(KphKey.RsaSignatureLength);
+
+                    mldsa.SignPreHash(Sha512Digest, mldsaSignature, KphKey.Sha512Oid, default);
+
+                    mldsaPublic = mldsa.ExportMLDsaPublicKey();
+                }
+
+                byte[] publicContainer = new byte[KphKey.PublicLength];
+                rsaPublic.CopyTo(publicContainer, 0);
+                mldsaPublic.CopyTo(publicContainer, KphKey.RsaPublicLength);
+
+                if (!VerifyKphDigest(publicContainer, Sha512Digest, signature))
+                    throw new System.Security.Cryptography.CryptographicException("kph signature failed post-sign verification.");
+
+                return signature;
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(rsaKey);
+                CryptographicOperations.ZeroMemory(mldsaKey);
+            }
+        }
+
+        /// <summary>
+        /// Verifies both halves of a kph signature over a SHA-512 digest.
+        /// </summary>
+        private static bool VerifyKphDigest(byte[] PublicContainer, ReadOnlySpan<byte> Sha512Digest, ReadOnlySpan<byte> Signature)
+        {
+            if (!MLDsa.IsSupported)
+                throw new PlatformNotSupportedException("kph verification requires Windows 11 24H2 or Server 2025 (ML-DSA in CNG)");
+
+            if (Signature.Length != KphKey.SignatureLength || Sha512Digest.Length != SHA512.HashSizeInBytes)
+                return false;
+
+            (byte[] rsaKey, byte[] mldsaKey) = KphKey.SplitPublic(PublicContainer);
+
+            bool rsaOk;
+
+            using (CngKey cngkey = CngKey.Import(rsaKey, CngKeyBlobFormat.GenericPublicBlob))
+            using (RSACng rsa = new RSACng(cngkey))
+            {
+                rsaOk = rsa.VerifyHash(Sha512Digest, Signature[..KphKey.RsaSignatureLength], HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
+            }
+
+            bool mldsaOk;
+
+            using (MLDsa mldsa = MLDsa.ImportMLDsaPublicKey(MLDsaAlgorithm.MLDsa87, mldsaKey))
+            {
+                mldsaOk = mldsa.VerifyPreHash(Sha512Digest, Signature[KphKey.RsaSignatureLength..], KphKey.Sha512Oid, default);
+            }
+
+            return rsaOk & mldsaOk;
+        }
+
+        /// <summary>
+        /// Signs a file with the hybrid kph key container; the result is exactly 5139 bytes.
+        /// </summary>
+        private static byte[] SignKphFile(byte[] KeyMaterial, string FileName)
+        {
+            byte[] digest;
+
+            using (FileStream fileStream = File.OpenRead(FileName))
+            {
+                digest = SHA512.HashData(fileStream);
+            }
+
+            return SignKphDigest(KeyMaterial, digest);
         }
 
         /// <summary>
