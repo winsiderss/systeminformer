@@ -1509,7 +1509,6 @@ NTSTATUS KsiConnect(
     config.Flags.Flags = 0;
     config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION);
     config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(SETTING_KSI_RANDOMIZED_POOL_TAG);
-    config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED);
     config.Flags.DisableSystemProcess = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_SYSTEM_PROCESS);
     config.Flags.DisableThreadNames = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_THREAD_NAMES);
     config.EnableNativeLoad = KsiEnableLoadNative;

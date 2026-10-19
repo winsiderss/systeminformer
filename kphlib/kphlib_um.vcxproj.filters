@@ -47,9 +47,6 @@
     <ClCompile Include="kphmsg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kphdyn.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="kphdyndata.c">
       <Filter>Source Files</Filter>
     </ClCompile>

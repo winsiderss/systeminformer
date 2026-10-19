@@ -718,7 +718,6 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_KSI_UNLOAD_ON_EXIT                                  L"KsiUnloadOnExit"
 #define SETTING_KSI_RANDOMIZED_POOL_TAG                             L"KsiRandomizedPoolTag"
 #define SETTING_KSI_ENABLE_UNLOAD_PROTECTION                        L"KsiEnableUnloadProtection"
-#define SETTING_KSI_DYN_DATA_NO_EMBEDDED                            L"KsiDynDataNoEmbedded"
 #define SETTING_KSI_DISABLE_SYSTEM_PROCESS                          L"KsiDisableSystemProcess"
 #define SETTING_KSI_DISABLE_THREAD_NAMES                            L"KsiDisableThreadNames"
 #define SETTING_KSI_CLIENT_PROCESS_PROTECTION_LEVEL                 L"KsiClientProcessProtectionLevel"

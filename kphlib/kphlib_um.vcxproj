@@ -264,7 +264,6 @@ mc.exe -c -u -U -n -b -h "$(ProjectDir)bin\$(Configuration)$(PlatformArchitectur
     <ClCompile Include="kphdyndata.c" />
     <ClCompile Include="kphmsg.c" />
     <ClCompile Include="kphmsgdyn.c" />
-    <ClCompile Include="kphdyn.c" />
     <ClCompile Include="kphringbuff.c" />
   </ItemGroup>
   <ItemGroup>

@@ -397,7 +397,6 @@ typedef struct _KPH_DYN_CONFIG
         {
             string manifestFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.xml"]);
             string headerFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\kphdyn.h"]);
-            string sourceFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.c"]);
 
             // Check for new or modified content. We don't want to touch the file if it's unnecessary.
             {
@@ -407,12 +406,6 @@ typedef struct _KPH_DYN_CONFIG
             }
 
             byte[] config = GenerateConfig(manifestFile);
-
-            {
-                Utils.WriteTextIfChanged(sourceFile, writer => GenerateSource(writer, config));
-
-                Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
-            }
 
             if (string.IsNullOrWhiteSpace(OutDir))
                 return true;
@@ -466,35 +459,6 @@ typedef struct _KPH_DYN_CONFIG
             sb.WriteLine();
             sb.WriteLine(Includes);
             sb.WriteLine(DynConfigC);
-            sb.WriteLine();
-            sb.WriteLine("#ifdef _WIN64");
-            sb.WriteLine("extern CONST BYTE KphDynConfig[];");
-            sb.WriteLine("extern CONST ULONG KphDynConfigLength;");
-            sb.WriteLine("#endif");
-        }
-
-        /// <summary>
-        /// Generates the dynamic source file content.
-        /// </summary>
-        /// <param name="Config">The configuration data as a string.</param>
-        /// <returns>The source file content as a string.</returns>
-        private static void GenerateSource(
-            TextWriter sb,
-            byte[] Config
-            )
-        {
-            sb.WriteLine(FileHeader);
-            sb.WriteLine();
-            sb.WriteLine(Includes);
-            sb.WriteLine();
-            sb.WriteLine("#ifdef _WIN64");
-            sb.WriteLine("CONST BYTE KphDynConfig[] =");
-            sb.WriteLine("{");
-            WriteBytes(sb, Config);
-            sb.WriteLine("};");
-            sb.WriteLine();
-            sb.WriteLine("CONST ULONG KphDynConfigLength = ARRAYSIZE(KphDynConfig);");
-            sb.WriteLine("#endif");
         }
 
         /// <summary>
@@ -663,36 +627,6 @@ typedef struct _KPH_DYN_CONFIG
             fieldsStream.WrittenSpan.CopyTo(span);
 
             return result;
-        }
-
-        /// <summary>
-        /// Converts a byte array to a formatted C array string for source file output.
-        /// </summary>
-        /// <param name="Buffer">The byte array to convert.</param>
-        /// <returns>The formatted string.</returns>
-        private static void WriteBytes(TextWriter sb, byte[] Buffer)
-        {
-            if (Buffer == null || Buffer.Length == 0)
-                return;
-
-            // This method avoids intermediate string allocations using InterpolatedStringHandler
-            // and calculates exact or near-exact capacity to avoid reallocation. Each full line of 8 bytes is:
-            // "    " (4) + 8 * "0xXX, " (48) - 1 (trailing space) + \r\n (2) = 53-55 chars.
-
-            for (var i = 0; i < Buffer.Length; i++)
-            {
-                if (i % 8 == 0)
-                {
-                    sb.Write("    ");
-                }
-
-                sb.Write($"0x{Buffer[i]:x2},");
-
-                if (i % 8 == 7 || i == Buffer.Length - 1)
-                    sb.WriteLine();
-                else
-                    sb.Write(' ');
-            }
         }
 
         /// <summary>
