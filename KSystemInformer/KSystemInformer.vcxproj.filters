@@ -120,6 +120,9 @@
     <ClCompile Include="session_token.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="symcrypt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="lsa.c">
       <Filter>Source Files</Filter>
     </ClCompile>

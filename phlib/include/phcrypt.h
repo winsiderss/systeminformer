@@ -2102,6 +2102,35 @@ PhSymCryptMlDsaVerify(
     );
 
 EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptMlDsaSignPreHash(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _Out_writes_bytes_to_(SignatureCapacity, *SignatureLength) PVOID Signature,
+    _In_ SIZE_T SignatureCapacity,
+    _Out_ PSIZE_T SignatureLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptMlDsaVerifyPreHash(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+EXTERN_C
 VOID
 NTAPI
 PhSymCryptMlDsaDestroyKey(

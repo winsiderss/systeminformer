@@ -7,6 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KSystemInformer", "KSystemI
 	ProjectSection(ProjectDependencies) = postProject
 		{B1863396-A667-42DB-97AC-C5E033CEE321} = {B1863396-A667-42DB-97AC-C5E033CEE321}
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0} = {B385D394-19CC-48BC-827E-AF9ADCE559E0}
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21} = {7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kphlib", "..\kphlib\kphlib_km.vcxproj", "{B1863396-A667-42DB-97AC-C5E033CEE321}"
@@ -15,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ksidll", "ksidll.vcxproj", 
 	ProjectSection(ProjectDependencies) = postProject
 		{B1863396-A667-42DB-97AC-C5E033CEE321} = {B1863396-A667-42DB-97AC-C5E033CEE321}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "symcrypt_km", "..\tools\thirdparty\symcrypt_km.vcxproj", "{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,6 +63,14 @@ Global
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.ActiveCfg = Release|x64
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.Build.0 = Release|x64
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.Deploy.0 = Release|x64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Debug|ARM64.Build.0 = Debug|ARM64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Debug|x64.ActiveCfg = Debug|x64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Debug|x64.Build.0 = Debug|x64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|ARM64.ActiveCfg = Release|ARM64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|ARM64.Build.0 = Release|ARM64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|x64.ActiveCfg = Release|x64
+		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
