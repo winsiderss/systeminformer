@@ -14,6 +14,13 @@
 
 #include <trace.h>
 
+typedef struct _KPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM
+{
+    SLIST_ENTRY ListEntry;
+    PFLT_INSTANCE Instance;
+    PFILE_OBJECT FileObject;
+} KPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM, *PKPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM;
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpCachedFileNameTypeName, L"KphCachedFileName");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -28,6 +35,9 @@ KPH_PROTECTED_DATA_SECTION_POP();
 //
 static ALIGNED_EX_SPINLOCK KphpFileNameCacheLock = 0;
 static LIST_ENTRY KphpFileNameCacheList;
+
+static SLIST_HEADER KphpFileNameCachePopulateList;
+static KSI_WORK_QUEUE_ITEM KphpFileNameCachePopulateWorkItem;
 
 /**
  * \brief Retrieves file name information using the filter name cache.
@@ -74,40 +84,44 @@ NTSTATUS KphpFltGetFileNameInformation(
 }
 
 /**
- * \brief Retrieves the length of the file name from the related objects.
+ * \brief Retrieves the length of the file name for a file object.
  *
- * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Volume The volume of the file object.
+ * \param[in] FileObject The file object.
  *
  * \return The length of the file name.
  */
 _IRQL_requires_max_(APC_LEVEL)
 ULONG KphpFltNameCacheFileNameLength(
-    _In_ PCFLT_RELATED_OBJECTS FltObjects
+    _In_ PFLT_VOLUME Volume,
+    _In_ PFILE_OBJECT FileObject
     )
 {
     ULONG length;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
-
-    NT_VERIFY(FltGetVolumeName(FltObjects->Volume, NULL, &length)
-              == STATUS_BUFFER_TOO_SMALL);
-
-    length += FltObjects->FileObject->FileName.Length;
+    NT_VERIFY(FltGetVolumeName(Volume,
+                               NULL,
+                               &length) == STATUS_BUFFER_TOO_SMALL);
+    NT_VERIFY(NT_SUCCESS(RtlULongAdd(length,
+                                     FileObject->FileName.Length,
+                                     &length)));
 
     return length;
 }
 
 /**
- * \brief Copies the file name into the related objects.
+ * \brief Copies the file name of a file object.
  *
- * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Volume The volume of the file object.
+ * \param[in] FileObject The file object.
  * \param[in,out] FileName The file name to copy into.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpFltNameCacheCopyFileName(
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ PFLT_VOLUME Volume,
+    _In_ PFILE_OBJECT FileObject,
     _Inout_ PUNICODE_STRING FileName
     )
 {
@@ -115,19 +129,87 @@ VOID KphpFltNameCacheCopyFileName(
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
+    NT_VERIFY(NT_SUCCESS(FltGetVolumeName(Volume, FileName, NULL)));
 
-    NT_VERIFY(NT_SUCCESS(FltGetVolumeName(FltObjects->Volume, FileName, NULL)));
-
-    fileName = &FltObjects->FileObject->FileName;
+    fileName = &FileObject->FileName;
 
     NT_VERIFY(NT_SUCCESS(RtlAppendUnicodeStringToString(FileName, fileName)));
 }
 
 /**
+ * \brief Queues a worker to populate the file name cache outside of paging I/O.
+ *
+ * \param[in] Instance The filter instance.
+ * \param[in] FileObject The file object to populate the cache for.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpFltQueueFileNameCachePopulate(
+    _In_ PFLT_INSTANCE Instance,
+    _In_ PFILE_OBJECT FileObject
+    )
+{
+    NTSTATUS status;
+    PKPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM item;
+
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+
+    item = KphAllocateNPaged(sizeof(KPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM),
+                             KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE);
+    if (!item)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "Failed to allocate file name cache populate item.");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = FltObjectReference(Instance);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltObjectReference failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    ObReferenceObject(FileObject);
+
+    item->Instance = Instance;
+    item->FileObject = FileObject;
+
+    if (!InterlockedPushEntrySList(&KphpFileNameCachePopulateList,
+                                   &item->ListEntry))
+    {
+        KsiQueueWorkItem(&KphpFileNameCachePopulateWorkItem, DelayedWorkQueue);
+    }
+
+    item = NULL;
+
+Exit:
+
+    if (item)
+    {
+        KphFree(item, KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE);
+    }
+
+    return status;
+}
+
+/**
  * \brief Retrieves the file name, using the stream handle context as a cache.
  *
- * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Filter The filter.
+ * \param[in] Instance The filter instance.
+ * \param[in] Volume The volume of the file object.
+ * \param[in] FileObject The file object.
+ * \param[in] PagingIo TRUE if the operation is paging I/O.
  * \param[out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
@@ -135,7 +217,11 @@ VOID KphpFltNameCacheCopyFileName(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltGetFileNameUseContext(
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ PFLT_FILTER Filter,
+    _In_ PFLT_INSTANCE Instance,
+    _In_ PFLT_VOLUME Volume,
+    _In_ PFILE_OBJECT FileObject,
+    _In_ BOOLEAN PagingIo,
     _Out_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
@@ -145,14 +231,12 @@ NTSTATUS KphpFltGetFileNameUseContext(
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    NT_ASSERT(FltObjects->FileObject);
-
     //
     // Check if the context already exists.
     //
 
-    status = FltGetStreamHandleContext(FltObjects->Instance,
-                                       FltObjects->FileObject,
+    status = FltGetStreamHandleContext(Instance,
+                                       FileObject,
                                        &FltFileName->Context);
     if (NT_SUCCESS(status))
     {
@@ -160,13 +244,29 @@ NTSTATUS KphpFltGetFileNameUseContext(
         return status;
     }
 
+    if (PagingIo)
+    {
+        status = KphpFltQueueFileNameCachePopulate(Instance, FileObject);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "KphpFltQueueFileNameCachePopulate failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        return STATUS_FLT_NAME_CACHE_MISS;
+    }
+
     //
     // Try to create a new context.
     //
 
-    length = KphpFltNameCacheFileNameLength(FltObjects);
+    length = KphpFltNameCacheFileNameLength(Volume, FileObject);
 
-    status = FltAllocateContext(FltObjects->Filter,
+    status = FltAllocateContext(Filter,
                                 FLT_STREAMHANDLE_CONTEXT,
                                 length + sizeof(UNICODE_STRING),
                                 NonPagedPoolNx,
@@ -189,15 +289,15 @@ NTSTATUS KphpFltGetFileNameUseContext(
     FltFileName->FileName->Buffer = Add2Ptr(FltFileName->FileName,
                                             sizeof(UNICODE_STRING));
 
-    KphpFltNameCacheCopyFileName(FltObjects, FltFileName->FileName);
+    KphpFltNameCacheCopyFileName(Volume, FileObject, FltFileName->FileName);
 
     //
     // Set the new context.
     //
 
     oldContext = NULL;
-    status = FltSetStreamHandleContext(FltObjects->Instance,
-                                       FltObjects->FileObject,
+    status = FltSetStreamHandleContext(Instance,
+                                       FileObject,
                                        FLT_SET_CONTEXT_KEEP_IF_EXISTS,
                                        FltFileName->Context,
                                        &oldContext);
@@ -244,7 +344,10 @@ NTSTATUS KphpFltGetFileNameUseContext(
 /**
  * \brief Retrieves the file name, using the global name cache.
  *
- * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Instance The filter instance.
+ * \param[in] Volume The volume of the file object.
+ * \param[in] FileObject The file object.
+ * \param[in] PagingIo TRUE if the operation is paging I/O.
  * \param[out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
@@ -252,7 +355,10 @@ NTSTATUS KphpFltGetFileNameUseContext(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltGetFileNameUseNameCache(
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ PFLT_INSTANCE Instance,
+    _In_ PFLT_VOLUME Volume,
+    _In_ PFILE_OBJECT FileObject,
+    _In_ BOOLEAN PagingIo,
     _Out_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
@@ -263,8 +369,6 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     PKPH_FLT_FILE_NAME_CACHE_ENTRY existingCacheEntry;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
-
-    NT_ASSERT(FltObjects->FileObject);
 
     //
     // Check if the file object is already in the cache.
@@ -281,7 +385,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
                                         KPH_FLT_FILE_NAME_CACHE_ENTRY,
                                         ListEntry);
 
-        if (FltObjects->FileObject == cacheEntry->FileObject)
+        if (FileObject == cacheEntry->FileObject)
         {
             KphReferenceObject(cacheEntry);
             break;
@@ -302,11 +406,27 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
         return STATUS_SUCCESS;
     }
 
+    if (PagingIo)
+    {
+        status = KphpFltQueueFileNameCachePopulate(Instance, FileObject);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "KphpFltQueueFileNameCachePopulate failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        return STATUS_FLT_NAME_CACHE_MISS;
+    }
+
     //
     // Try to create new entry and insert it into the cache.
     //
 
-    length = KphpFltNameCacheFileNameLength(FltObjects);
+    length = KphpFltNameCacheFileNameLength(Volume, FileObject);
 
     status = KphCreateObject(KphpCachedFileNameType,
                              length + sizeof(KPH_FLT_FILE_NAME_CACHE_ENTRY),
@@ -322,14 +442,14 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
         return status;
     }
 
-    cacheEntry->FileObject = FltObjects->FileObject;
+    cacheEntry->FileObject = FileObject;
 
     cacheEntry->FileName.Length = 0;
     cacheEntry->FileName.MaximumLength = (USHORT)length;
     cacheEntry->FileName.Buffer = Add2Ptr(cacheEntry,
                                           sizeof(KPH_FLT_FILE_NAME_CACHE_ENTRY));
 
-    KphpFltNameCacheCopyFileName(FltObjects, &cacheEntry->FileName);
+    KphpFltNameCacheCopyFileName(Volume, FileObject, &cacheEntry->FileName);
 
     //
     // Insert it into the cache, and check if we've raced.
@@ -410,7 +530,8 @@ NTSTATUS KphpFltGetFileNameCopy(
     NT_ASSERT(FltObjects->Volume);
     NT_ASSERT(FltObjects->FileObject);
 
-    length = KphpFltNameCacheFileNameLength(FltObjects);
+    length = KphpFltNameCacheFileNameLength(FltObjects->Volume,
+                                            FltObjects->FileObject);
 
     FltFileName->FileName = KphAllocateNPaged(length + sizeof(UNICODE_STRING),
                                               KPH_TAG_FLT_FILE_NAME);
@@ -428,7 +549,9 @@ NTSTATUS KphpFltGetFileNameCopy(
     FltFileName->FileName->Buffer = Add2Ptr(FltFileName->FileName,
                                             sizeof(UNICODE_STRING));
 
-    KphpFltNameCacheCopyFileName(FltObjects, FltFileName->FileName);
+    KphpFltNameCacheCopyFileName(FltObjects->Volume,
+                                 FltObjects->FileObject,
+                                 FltFileName->FileName);
 
     FltFileName->Type = KphFltFileNameTypeFileName;
 
@@ -505,6 +628,7 @@ NTSTATUS KphpFltGetFileName(
     )
 {
     NTSTATUS status;
+    BOOLEAN pagingIo;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -538,17 +662,33 @@ NTSTATUS KphpFltGetFileName(
         return STATUS_OBJECT_NAME_NOT_FOUND;
     }
 
+    pagingIo = (FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO) ||
+                FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
+
     if (FltSupportsStreamHandleContexts(FltObjects->FileObject))
     {
-        status = KphpFltGetFileNameUseContext(FltObjects, FltFileName);
+        status = KphpFltGetFileNameUseContext(FltObjects->Filter,
+                                              FltObjects->Instance,
+                                              FltObjects->Volume,
+                                              FltObjects->FileObject,
+                                              pagingIo,
+                                              FltFileName);
     }
     else if (FsRtlIsPagingFile(FltObjects->FileObject))
     {
-        status = KphpFltGetFileNameUseNameCache(FltObjects, FltFileName);
+        status = KphpFltGetFileNameUseNameCache(FltObjects->Instance,
+                                                FltObjects->Volume,
+                                                FltObjects->FileObject,
+                                                pagingIo,
+                                                FltFileName);
+    }
+    else if (!pagingIo)
+    {
+        status = KphpFltGetFileNameCopy(FltObjects, FltFileName);
     }
     else
     {
-        status = KphpFltGetFileNameCopy(FltObjects, FltFileName);
+        status = STATUS_FLT_NAME_CACHE_MISS;
     }
 
     return status;
@@ -837,6 +977,153 @@ VOID KSIAPI KphpFltFreeCachedFileName(
 KPH_PAGED_FILE();
 
 /**
+ * \brief Populates the file name cache for a file object outside of paging
+ * I/O.
+ *
+ * \param[in] Instance The filter instance.
+ * \param[in] FileObject The file object to populate the cache for.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpFltPopulateFileNameCache(
+    _In_ PFLT_INSTANCE Instance,
+    _In_ PFILE_OBJECT FileObject
+    )
+{
+    NTSTATUS status;
+    PFLT_FILTER filter;
+    PFLT_VOLUME volume;
+    KPH_FLT_FILE_NAME fltFileName;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    filter = NULL;
+    volume = NULL;
+
+    status = FltGetFilterFromInstance(Instance, &filter);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltGetFilterFromInstance failed: %!STATUS!",
+                      status);
+
+        filter = NULL;
+        goto Exit;
+    }
+
+    status = FltGetVolumeFromInstance(Instance, &volume);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltGetVolumeFromInstance failed: %!STATUS!",
+                      status);
+
+        volume = NULL;
+        goto Exit;
+    }
+
+    KphpFltZeroFileName(&fltFileName);
+
+    if (FltSupportsStreamHandleContexts(FileObject))
+    {
+        status = KphpFltGetFileNameUseContext(filter,
+                                              Instance,
+                                              volume,
+                                              FileObject,
+                                              FALSE,
+                                              &fltFileName);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "KphpFltGetFileNameUseContext failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+    else if (FsRtlIsPagingFile(FileObject))
+    {
+        status = KphpFltGetFileNameUseNameCache(Instance,
+                                                volume,
+                                                FileObject,
+                                                FALSE,
+                                                &fltFileName);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "KphpFltGetFileNameUseNameCache failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "Unexpected file object for cache populate");
+
+        NT_ASSERT(FALSE);
+    }
+
+    KphpFltReleaseFileName(&fltFileName);
+
+Exit:
+
+    if (volume)
+    {
+        FltObjectDereference(volume);
+    }
+
+    if (filter)
+    {
+        FltObjectDereference(filter);
+    }
+}
+
+/**
+ * \brief Worker which populates the file name cache for misses during
+ * paging I/O.
+ *
+ * \param[in] Parameter Unused parameter.
+ */
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpFltFileNameCachePopulateWorker(
+    _In_opt_ PVOID Parameter
+    )
+{
+    PSLIST_ENTRY entry;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    entry = InterlockedFlushSList(&KphpFileNameCachePopulateList);
+
+    while (entry)
+    {
+        PKPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM item;
+
+        item = CONTAINING_RECORD(entry,
+                                 KPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM,
+                                 ListEntry);
+
+        entry = entry->Next;
+
+        KphpFltPopulateFileNameCache(item->Instance, item->FileObject);
+
+        ObDereferenceObject(item->FileObject);
+        FltObjectDereference(item->Instance);
+        KphFree(item, KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE);
+    }
+}
+
+/**
  * \brief Cleans up the file name cache.
  *
  * \details A global name cache is used in limited cases to cache the file name
@@ -854,6 +1141,8 @@ VOID KphpFltCleanupFileNameCache(
     {
         return;
     }
+
+    NT_ASSERT(!QueryDepthSList(&KphpFileNameCachePopulateList));
 
     while (!IsListEmpty(&KphpFileNameCacheList))
     {
@@ -884,6 +1173,11 @@ VOID KphpFltInitializeFileNameCache(
     KPH_PAGED_CODE_PASSIVE();
 
     InitializeListHead(&KphpFileNameCacheList);
+    InitializeSListHead(&KphpFileNameCachePopulateList);
+    KsiInitializeWorkItem(&KphpFileNameCachePopulateWorkItem,
+                          KphDriverObject,
+                          KphpFltFileNameCachePopulateWorker,
+                          NULL);
 
     typeInfo.Allocate = KphpFltAllocateCachedFileName;
     typeInfo.Initialize = NULL;
