@@ -4516,6 +4516,69 @@ FLOAT PhAddPlusMaxMemorySingles(
 }
 
 /**
+ * Adds two float arrays element-wise, storing the result in the first array.
+ *
+ * \param A The destination array; each element receives A[i] + B[i].
+ * \param B The array to add to \a A.
+ * \param Count The number of elements.
+ */
+VOID PhAddMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_reads_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+    if (Count == 0)
+        return;
+
+#ifndef _ARM64_
+    if (PhHasAVX && (IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32)))
+    {
+        SIZE_T count = Count & ~0x7;
+
+        if (count != 0)
+        {
+            PFLOAT end = A + count;
+
+            while (A != end)
+            {
+                _mm256_store_ps(A, _mm256_add_ps(_mm256_load_ps(A), _mm256_load_ps(B)));
+
+                A += 8;
+                B += 8;
+            }
+
+            _mm256_zeroupper();
+            Count &= 0x7;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
+    {
+        SIZE_T count = Count & ~0x3;
+
+        if (count != 0)
+        {
+            PFLOAT end = A + count;
+
+            while (A != end)
+            {
+                PhStoreFLOAT128(A, PhAddFLOAT128(PhLoadFLOAT128(A), PhLoadFLOAT128(B)));
+
+                A += 4;
+                B += 4;
+            }
+
+            Count &= 0x3;
+        }
+    }
+
+    while (Count--)
+        *A++ += *B++;
+}
+
+/**
  * Converts an array of integers to floats.
  *
  * \param From The source integers.
