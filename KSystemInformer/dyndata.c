@@ -603,7 +603,6 @@ VOID KphInitializeDynData(
     VOID
     )
 {
-    NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -618,27 +617,6 @@ VOID KphInitializeDynData(
     typeInfo.DeferDelete = TRUE;
 
     KphCreateObjectType(&KphpDynDataTypeName, &typeInfo, &KphpDynDataType);
-
-    if (KphParameterFlags.DynDataNoEmbedded)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "Embedded Dynamic Configuration disabled");
-    }
-    else
-    {
-        status = KphpActivateDynData((PBYTE)KphDynConfig,
-                                     KphDynConfigLength,
-                                     NULL,
-                                     0);
-
-        NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
-
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "Embedded Dynamic Configuration: %!STATUS!",
-                      status);
-    }
 }
 
 /**
