@@ -224,7 +224,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     NTSTATUS status;
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
-    BCRYPT_KEY_HANDLE sessionTokenPublicKeyHandle;
+    KPH_VERIFY_KEY_HANDLE sessionTokenPublicKeyHandle;
 
     KPH_PAGED_CODE_PASSIVE();
 

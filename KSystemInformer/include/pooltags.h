@@ -70,6 +70,8 @@
 // verify
 
 #define KPH_TAG_VERIFY_SIGNATURE                '0VpK'
+#define KPH_TAG_SYMCRYPT                        '1VpK'
+#define KPH_TAG_VERIFY_KEY                      '2VpK'
 
 // informer
 
