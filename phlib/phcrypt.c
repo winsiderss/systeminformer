@@ -201,7 +201,7 @@ NTSTATUS NTAPI PhOpenCryptoProvider(
         return STATUS_INVALID_PARAMETER;
 
     status = PhpQueryCryptoProvider(ProviderId, &information);
-    
+
     if (!NT_SUCCESS(status))
         return status;
     if (!information.Available)
@@ -2478,10 +2478,10 @@ NTSTATUS NTAPI PhSymCryptAesCcmEncrypt(
         return PhSymCryptErrorToStatus(error);
 
     error = SymCryptCcmValidateParameters(
-        SymCryptAesBlockCipher, 
-        NonceLength, 
+        SymCryptAesBlockCipher,
+        NonceLength,
         AuthDataLength,
-        DataLength, 
+        DataLength,
         TagLength
         );
 
@@ -2545,10 +2545,10 @@ NTSTATUS NTAPI PhSymCryptAesCcmDecrypt(
         return PhSymCryptErrorToStatus(error);
 
     error = SymCryptCcmValidateParameters(
-        SymCryptAesBlockCipher, 
-        NonceLength, 
-        AuthDataLength, 
-        DataLength, 
+        SymCryptAesBlockCipher,
+        NonceLength,
+        AuthDataLength,
+        DataLength,
         TagLength
         );
 
@@ -2612,9 +2612,9 @@ NTSTATUS NTAPI PhSymCryptGcmInit(
     state->Magic = PH_SYMCRYPT_GCM_STATE_MAGIC;
 
     error = SymCryptGcmExpandKey(
-        &state->ExpandedKey, 
-        SymCryptAesBlockCipher, 
-        (PCBYTE)Key, 
+        &state->ExpandedKey,
+        SymCryptAesBlockCipher,
+        (PCBYTE)Key,
         KeyLength
         );
 
@@ -3310,8 +3310,8 @@ NTSTATUS NTAPI PhSymCryptAesEcbEncrypt(
         return STATUS_INVALID_PARAMETER;
 
     error = SymCryptAesExpandKey(
-        &expandedKey, 
-        (PCBYTE)Key, 
+        &expandedKey,
+        (PCBYTE)Key,
         KeyLength
         );
 
@@ -3347,8 +3347,8 @@ NTSTATUS NTAPI PhSymCryptAesEcbDecrypt(
         return STATUS_INVALID_PARAMETER;
 
     error = SymCryptAesExpandKey(
-        &expandedKey, 
-        (PCBYTE)Key, 
+        &expandedKey,
+        (PCBYTE)Key,
         KeyLength
         );
 
@@ -3385,8 +3385,8 @@ NTSTATUS NTAPI PhSymCryptAesCtr(
     SYMCRYPT_ERROR error;
 
     error = SymCryptAesExpandKey(
-        &expandedKey, 
-        (PCBYTE)Key, 
+        &expandedKey,
+        (PCBYTE)Key,
         KeyLength
         );
 
@@ -3432,23 +3432,23 @@ static NTSTATUS PhpSymCryptAesCfb(
     {
         SymCryptCfbEncrypt(
             SymCryptAesBlockCipher,
-            ShiftLength, 
+            ShiftLength,
             &expandedKey,
-            chainingValue, 
-            (PCBYTE)Input, 
-            (PBYTE)Output, 
+            chainingValue,
+            (PCBYTE)Input,
+            (PBYTE)Output,
             DataLength
             );
     }
     else
     {
         SymCryptCfbDecrypt(
-            SymCryptAesBlockCipher, 
-            ShiftLength, 
-            &expandedKey, 
-            chainingValue, 
-            (PCBYTE)Input, 
-            (PBYTE)Output, 
+            SymCryptAesBlockCipher,
+            ShiftLength,
+            &expandedKey,
+            chainingValue,
+            (PCBYTE)Input,
+            (PBYTE)Output,
             DataLength
             );
     }
@@ -3537,10 +3537,10 @@ NTSTATUS NTAPI PhSymCryptXtsAesEncrypt(
     if (error == SYMCRYPT_NO_ERROR)
     {
         SymCryptXtsAesEncryptWith128bTweak(
-            &expandedKey, 
-            DataUnitLength, 
-            (PCBYTE)Tweak, 
-            (PCBYTE)Plaintext, 
+            &expandedKey,
+            DataUnitLength,
+            (PCBYTE)Tweak,
+            (PCBYTE)Plaintext,
             (PBYTE)Ciphertext,
             DataLength
             );
@@ -4231,12 +4231,12 @@ static NTSTATUS PhpSymCryptRsaPublicEncrypt(
         }
 
         error = SymCryptRsaRawEncrypt(
-            key, 
-            (PCBYTE)Plaintext, 
-            PlaintextLength, 
-            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
-            0, 
-            (PBYTE)Ciphertext, 
+            key,
+            (PCBYTE)Plaintext,
+            PlaintextLength,
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+            0,
+            (PBYTE)Ciphertext,
             modulusLength
             );
 
@@ -4246,13 +4246,13 @@ static NTSTATUS PhpSymCryptRsaPublicEncrypt(
     case 1:
         {
             error = SymCryptRsaPkcs1Encrypt(
-                key, 
-                (PCBYTE)Plaintext, 
-                PlaintextLength, 
-                0, 
-                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
-                (PBYTE)Ciphertext, 
-                CiphertextCapacity, 
+                key,
+                (PCBYTE)Plaintext,
+                PlaintextLength,
+                0,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                (PBYTE)Ciphertext,
+                CiphertextCapacity,
                 CiphertextLength);
         }
         break;
@@ -4271,16 +4271,16 @@ static NTSTATUS PhpSymCryptRsaPublicEncrypt(
             else
             {
                 error = SymCryptRsaOaepEncrypt(
-                    key, 
-                    (PCBYTE)Plaintext, 
-                    PlaintextLength, 
-                    hashAlgorithm, 
-                    (PCBYTE)Label, 
+                    key,
+                    (PCBYTE)Plaintext,
+                    PlaintextLength,
+                    hashAlgorithm,
+                    (PCBYTE)Label,
                     LabelLength,
-                    0, 
-                    SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
-                    (PBYTE)Ciphertext, 
-                    CiphertextCapacity, 
+                    0,
+                    SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                    (PBYTE)Ciphertext,
+                    CiphertextCapacity,
                     CiphertextLength
                     );
                 }
@@ -4321,7 +4321,7 @@ static NTSTATUS PhpSymCryptRsaPrivateDecrypt(
     *PlaintextLength = 0;
 
     status = PhSymCryptRsaImportPrivateKey(KeyBlob, KeyBlobLength, &key, &modulusLength);
-    
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -6581,8 +6581,8 @@ NTSTATUS NTAPI PhSymCryptImportKeyPair(
             if (header->Magic == BCRYPT_RSAPRIVATE_MAGIC || header->Magic == BCRYPT_RSAFULLPRIVATE_MAGIC)
             {
                 status = PhSymCryptRsaImportPrivateKey(
-                    Blob, 
-                    BlobLength, 
+                    Blob,
+                    BlobLength,
                     &key->RsaKey,
                     &modulusLength
                     );
@@ -6637,7 +6637,7 @@ NTSTATUS NTAPI PhSymCryptImportKeyPair(
                 }
 
                 status = PhSymCryptRsaImportPublicKey(
-                    modulus, 
+                    modulus,
                     header->cbModulus,
                     publicExponent,
                     &key->RsaKey
@@ -7156,7 +7156,7 @@ NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
         //
         // Big-endian encoding of public exponent
         //
-        
+
         for (ULONG i = 0; i < publicExpLength; i++)
         {
             expBuf[publicExpLength - 1 - i] = (BYTE)(extractedPubExp & 0xFF);
