@@ -19,6 +19,7 @@
 #include <fltKernel.h>
 #include <ntimage.h>
 #include <bcrypt.h>
+#include <symcrypt.h>
 #include <usermode_accessors.h>
 #pragma warning(pop)
 #include <pooltags.h>
@@ -824,6 +825,8 @@ PVOID KphGetRoutineAddress(
 
 // dyndata
 
+DECLARE_HANDLE(KPH_VERIFY_KEY_HANDLE);
+
 typedef struct _KPH_DYN_HW
 {
     PKPH_DYN_HW_SECTION Section;
@@ -879,7 +882,7 @@ typedef struct _KPH_DYN
     ULONG LxPicoThrdInfo;
     ULONG LxPicoThrdInfoTID;
 
-    BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
+    KPH_VERIFY_KEY_HANDLE SessionTokenPublicKeyHandle;
 
     KPH_DYN_HW Hardware;
 } KPH_DYN, *PKPH_DYN;
@@ -2385,21 +2388,21 @@ NTSTATUS KphCheckImageCoherency(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphVerifyCloseKey(
-    _In_ BCRYPT_KEY_HANDLE KeyHandle
+    _In_ KPH_VERIFY_KEY_HANDLE KeyHandle
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyCreateKey(
-    _Out_ BCRYPT_KEY_HANDLE* KeyHandle,
-    _In_ PBYTE KeyMaterial,
+    _Out_ KPH_VERIFY_KEY_HANDLE* KeyHandle,
+    _In_reads_bytes_(KeyMaterialLength) PCBYTE KeyMaterial,
     _In_ ULONG KeyMaterialLength
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyBufferEx(
-    _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
+    _In_opt_ KPH_VERIFY_KEY_HANDLE KeyHandle,
     _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
     _In_ PBYTE Signature,

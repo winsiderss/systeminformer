@@ -10,8 +10,8 @@
 #pragma once
 
 #include <kphlibbase.h>
-#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)17)
-#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG)539)
+#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)18)
+#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG)3131)
 #define KPH_DYN_CLASS_NTOSKRNL                  ((USHORT)0)
 #define KPH_DYN_CLASS_NTKRLA57                  ((USHORT)1)
 #define KPH_DYN_CLASS_LXCORE                    ((USHORT)2)

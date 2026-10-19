@@ -27,6 +27,15 @@
 #define CST_BLOB_PUBLIC          BCRYPT_RSAPUBLIC_BLOB
 #define CST_PADDING_FLAGS        BCRYPT_PAD_PSS
 #define CST_PADDING_INFO         &CstPaddingInfo
+#define CST_SIGNATURE_RSA_LENGTH     512
+#define CST_SIGNATURE_MLDSA_LENGTH   4627
+#define CST_SIGNATURE_LENGTH         5139
+#define CST_KEY_RSA_PUBLIC_LENGTH    539
+#define CST_KEY_MLDSA_PUBLIC_LENGTH  2592
+#define CST_KEY_PUBLIC_LENGTH        3131
+#define CST_KEY_RSA_PRIVATE_LENGTH   1051
+#define CST_KEY_MLDSA_PRIVATE_LENGTH 4896
+#define CST_KEY_PRIVATE_LENGTH       5947
 
 static BCRYPT_PSS_PADDING_INFO CstPaddingInfo =
 {
@@ -64,10 +73,15 @@ PWSTR CstHelpMessage =
     L"Usage: CustomSignTool.exe command ...\n"
     L"Commands:\n"
     L"createkeypair\tprivatekeyfile publickeyfile\n"
+    L"\t\t(Key files are hybrid containers: RSA-4096 followed by ML-DSA-87.\n"
+    L"\t\t Prints the public key container as a C array.)\n"
     L"encrypt\t\tinputfile outputfile secret base64salt iterations\n"
     L"decrypt\t\tinputfile outputfile secret base64salt iterations\n"
     L"sign\t\t-k privatekeyfile [-s outputsigfile] [-h] [-bcrypt|-symcrypt] inputfile\n"
+    L"\t\t(privatekeyfile is a hybrid container; the signature is RSA then ML-DSA,\n"
+    L"\t\t -bcrypt|-symcrypt selects the RSA provider only)\n"
     L"verify\t\t-k publickeyfile -s inputsigfile [-bcrypt|-symcrypt] inputfile\n"
+    L"\t\t(publickeyfile is a hybrid container; both signatures must verify)\n"
     L"testrun\t\t(No arguments needed. Generates and cross-verifies using both providers)\n"
     ;
 
@@ -460,7 +474,8 @@ static PVOID CstHashFile(
                 CstFailWithStatus(status, L"failed to read \"%ls\"", FileName);
             }
 
-            PhSymCryptHashAppend(&hashContext, buffer, (SIZE_T)iosb.Information);
+            if (!NT_SUCCESS(status = PhSymCryptHashData(&hashContext, buffer, (SIZE_T)iosb.Information)))
+                CstFailWithStatus(status, L"%ls", L"failed to hash the input");
         }
 
         PhFreePage(buffer);
@@ -469,7 +484,9 @@ static PVOID CstHashFile(
     NtClose(fileHandle);
 
     hash = PhAllocate(64); // SHA512 size
-    PhSymCryptHashResult(&hashContext, hash, 64);
+
+    if (!NT_SUCCESS(status = PhSymCryptHashFinal(&hashContext, hash, 64)))
+        CstFailWithStatus(status, L"%ls", L"failed to finalize the hash");
 
     *HashSize = 64;
 
@@ -519,20 +536,47 @@ NTSTATUS CstFinalizeKeyPair(
     }
 }
 
-static VOID CstExportKey(
+// SymCrypt exports the public exponent as a fixed 8 bytes; BCrypt uses the
+// minimal length (3 bytes for 65537). Strip leading zero bytes to match.
+static ULONG CstCanonicalizeRsaBlob(
+    _Inout_updates_bytes_(Length) PVOID Blob,
+    _In_ ULONG Length
+    )
+{
+    BCRYPT_RSAKEY_BLOB* header = Blob;
+    PBYTE exponent;
+    ULONG strip;
+
+    if (Length < sizeof(BCRYPT_RSAKEY_BLOB) || Length - sizeof(BCRYPT_RSAKEY_BLOB) < header->cbPublicExp)
+        return Length;
+
+    exponent = PTR_ADD_OFFSET(Blob, sizeof(BCRYPT_RSAKEY_BLOB));
+
+    for (strip = 0; strip + 1 < header->cbPublicExp && exponent[strip] == 0; strip++)
+        NOTHING;
+
+    if (strip)
+    {
+        memmove(exponent, exponent + strip, Length - sizeof(BCRYPT_RSAKEY_BLOB) - strip);
+        RtlSecureZeroMemory(PTR_ADD_OFFSET(Blob, Length - strip), strip);
+        header->cbPublicExp -= strip;
+        Length -= strip;
+    }
+
+    return Length;
+}
+
+static PVOID CstExportKey(
     _In_ CST_PROVIDER Provider,
     _In_ PVOID KeyHandle,
     _In_ PCWSTR BlobType,
-    _In_ PWSTR FileName,
-    _In_ PCWSTR Name
+    _In_ PCWSTR Name,
+    _Out_ PULONG BlobLength
     )
 {
     NTSTATUS status;
     ULONG blobSize;
     PVOID blob;
-    HANDLE fileHandle;
-    IO_STATUS_BLOCK iosb;
-    LARGE_INTEGER allocationSize;
 
     if (Provider == CstProviderSymCrypt)
         status = PhSymCryptExportKey(KeyHandle, (PWSTR)BlobType, NULL, 0, &blobSize);
@@ -556,38 +600,114 @@ static VOID CstExportKey(
         CstFailWithStatus(status, L"failed to export %ls", Name);
     }
 
-    allocationSize.QuadPart = blobSize;
+    *BlobLength = CstCanonicalizeRsaBlob(blob, blobSize);
 
-    if (!NT_SUCCESS(status = PhCreateFileWin32Ex(
-        &fileHandle,
-        FileName,
-        FILE_GENERIC_WRITE,
-        &allocationSize,
-        FILE_ATTRIBUTE_NORMAL,
-        0,
-        FILE_OVERWRITE_IF,
-        FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE,
-        NULL)))
+    return blob;
+}
+
+static BOOLEAN CstValidateRsaBlob(
+    _In_reads_bytes_(Length) PVOID Blob,
+    _In_ ULONG Length,
+    _In_ BOOLEAN Private
+    )
+{
+    BCRYPT_RSAKEY_BLOB* header = Blob;
+
+    if (Length < sizeof(BCRYPT_RSAKEY_BLOB))
+        return FALSE;
+
+    if (header->Magic != (Private ? BCRYPT_RSAPRIVATE_MAGIC : BCRYPT_RSAPUBLIC_MAGIC))
+        return FALSE;
+    if (header->BitLength != CST_SIGN_ALGORITHM_BITS)
+        return FALSE;
+    if (header->cbPublicExp != 3)
+        return FALSE;
+    if (header->cbModulus != CST_SIGN_ALGORITHM_BITS / 8)
+        return FALSE;
+
+    if (Private)
     {
-        CstFailWithStatus(status, L"failed to create \"%ls\"", FileName);
+        if (header->cbPrime1 != CST_SIGN_ALGORITHM_BITS / 16)
+            return FALSE;
+        if (header->cbPrime2 != CST_SIGN_ALGORITHM_BITS / 16)
+            return FALSE;
     }
 
-    if (!NT_SUCCESS(status = NtWriteFile(
-        fileHandle,
-        NULL,
-        NULL, NULL,
-        &iosb,
-        blob,
-        blobSize,
-        NULL,
-        NULL)))
-    {
-        CstFailWithStatus(status, L"failed to write %ls to \"%ls\"", Name, FileName);
-    }
-    NtClose(fileHandle);
+    return TRUE;
+}
 
-    RtlSecureZeroMemory(blob, blobSize);
-    PhFree(blob);
+static VOID CstSplitKeyContainer(
+    _In_reads_bytes_(Length) PVOID Container,
+    _In_ ULONG Length,
+    _In_ BOOLEAN Private,
+    _Out_ PVOID* Rsa,
+    _Out_ PULONG RsaLength,
+    _Out_ PVOID* MlDsa,
+    _Out_ PULONG MlDsaLength
+    )
+{
+    ULONG expectedLength;
+    ULONG rsaLength;
+    ULONG mlDsaLength;
+
+    if (Private)
+    {
+        expectedLength = CST_KEY_PRIVATE_LENGTH;
+        rsaLength = CST_KEY_RSA_PRIVATE_LENGTH;
+        mlDsaLength = CST_KEY_MLDSA_PRIVATE_LENGTH;
+    }
+    else
+    {
+        expectedLength = CST_KEY_PUBLIC_LENGTH;
+        rsaLength = CST_KEY_RSA_PUBLIC_LENGTH;
+        mlDsaLength = CST_KEY_MLDSA_PUBLIC_LENGTH;
+    }
+
+    if (Length != expectedLength)
+    {
+        CstFailWith(
+            L"invalid %ls key container length: expected %lu bytes, actual %lu bytes",
+            Private ? L"private" : L"public",
+            expectedLength,
+            Length
+            );
+    }
+
+    if (!CstValidateRsaBlob(Container, rsaLength, Private))
+    {
+        CstFailWith(
+            L"invalid RSA header in the %ls key container (expected RSA-%lu, %lu byte blob)",
+            Private ? L"private" : L"public",
+            (ULONG)CST_SIGN_ALGORITHM_BITS,
+            rsaLength
+            );
+    }
+
+    *Rsa = Container;
+    *RsaLength = rsaLength;
+    *MlDsa = PTR_ADD_OFFSET(Container, rsaLength);
+    *MlDsaLength = mlDsaLength;
+}
+
+static VOID CstPrintCArray(
+    _In_reads_bytes_(Length) PBYTE Buffer,
+    _In_ ULONG Length
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Length; i++)
+    {
+        if ((i % 12) == 0)
+            wprintf(L"            ");
+
+        wprintf(L"0x%02X,", Buffer[i]);
+
+        if ((i % 12) == 11 || i + 1 == Length)
+            wprintf(L"\n");
+        else
+            wprintf(L" ");
+    }
 }
 
 NTSTATUS CstImportKeyPair(
@@ -706,6 +826,14 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     if (PhEqualString2(CstCommand, L"createkeypair", TRUE))
     {
         PVOID keyHandle;
+        PVOID mlDsaHandle;
+        PVOID rsaPrivate;
+        PVOID rsaPublic;
+        PVOID privateContainer;
+        PVOID publicContainer;
+        ULONG rsaPrivateLength;
+        ULONG rsaPublicLength;
+        SIZE_T mlDsaLength;
 
         if (!CstArgument1 || !CstArgument2)
             CstFailWith(L"%ls", CstHelpMessage);
@@ -723,10 +851,85 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             CstFailWithStatus(status, L"%ls", L"failed to finalize the key pair");
         }
 
-        CstExportKey(CstProvider, keyHandle, CST_BLOB_PRIVATE, CstArgument1->Buffer, L"private key");
-        CstExportKey(CstProvider, keyHandle, CST_BLOB_PUBLIC, CstArgument2->Buffer, L"public key");
+        rsaPrivate = CstExportKey(CstProvider, keyHandle, CST_BLOB_PRIVATE, L"RSA private key", &rsaPrivateLength);
+        rsaPublic = CstExportKey(CstProvider, keyHandle, CST_BLOB_PUBLIC, L"RSA public key", &rsaPublicLength);
+
+        if (rsaPrivateLength != CST_KEY_RSA_PRIVATE_LENGTH)
+        {
+            CstFailWith(L"invalid RSA private key blob length: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_KEY_RSA_PRIVATE_LENGTH, rsaPrivateLength);
+        }
+        if (!CstValidateRsaBlob(rsaPrivate, rsaPrivateLength, TRUE))
+        {
+            CstFailWith(L"%ls", L"invalid RSA private key blob header");
+        }
+        if (rsaPublicLength != CST_KEY_RSA_PUBLIC_LENGTH)
+        {
+            CstFailWith(L"invalid RSA public key blob length: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_KEY_RSA_PUBLIC_LENGTH, rsaPublicLength);
+        }
+        if (!CstValidateRsaBlob(rsaPublic, rsaPublicLength, FALSE))
+        {
+            CstFailWith(L"%ls", L"invalid RSA public key blob header");
+        }
 
         CstDestroyKey(CstProvider, keyHandle);
+
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaGenerateKey(PH_SYMCRYPT_MLDSA_87, &mlDsaHandle)))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to create the ML-DSA key pair");
+        }
+
+        privateContainer = PhAllocate(CST_KEY_PRIVATE_LENGTH);
+        publicContainer = PhAllocate(CST_KEY_PUBLIC_LENGTH);
+        memcpy(privateContainer, rsaPrivate, CST_KEY_RSA_PRIVATE_LENGTH);
+        memcpy(publicContainer, rsaPublic, CST_KEY_RSA_PUBLIC_LENGTH);
+
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaExportKey(
+            mlDsaHandle,
+            PH_SYMCRYPT_MLDSA_PRIVATE_KEY,
+            PTR_ADD_OFFSET(privateContainer, CST_KEY_RSA_PRIVATE_LENGTH),
+            CST_KEY_MLDSA_PRIVATE_LENGTH,
+            &mlDsaLength
+            )))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to export the ML-DSA private key");
+        }
+        if (mlDsaLength != CST_KEY_MLDSA_PRIVATE_LENGTH)
+        {
+            CstFailWith(L"invalid ML-DSA private key: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_KEY_MLDSA_PRIVATE_LENGTH, (ULONG)mlDsaLength);
+        }
+
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaExportKey(
+            mlDsaHandle,
+            PH_SYMCRYPT_MLDSA_PUBLIC_KEY,
+            PTR_ADD_OFFSET(publicContainer, CST_KEY_RSA_PUBLIC_LENGTH),
+            CST_KEY_MLDSA_PUBLIC_LENGTH,
+            &mlDsaLength
+            )))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to export the ML-DSA public key");
+        }
+        if (mlDsaLength != CST_KEY_MLDSA_PUBLIC_LENGTH)
+        {
+            CstFailWith(L"invalid ML-DSA public key: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_KEY_MLDSA_PUBLIC_LENGTH, (ULONG)mlDsaLength);
+        }
+
+        PhSymCryptMlDsaDestroyKey(mlDsaHandle);
+
+        CstWriteFile(CstArgument1->Buffer, privateContainer, CST_KEY_PRIVATE_LENGTH);
+        CstWriteFile(CstArgument2->Buffer, publicContainer, CST_KEY_PUBLIC_LENGTH);
+
+        CstPrintCArray(publicContainer, CST_KEY_PUBLIC_LENGTH);
+
+        RtlSecureZeroMemory(rsaPrivate, rsaPrivateLength);
+        RtlSecureZeroMemory(privateContainer, CST_KEY_PRIVATE_LENGTH);
+        PhFree(rsaPrivate);
+        PhFree(rsaPublic);
+        PhFree(privateContainer);
+        PhFree(publicContainer);
     }
     else if (PhEqualString2(CstCommand, L"encrypt", TRUE))
     {
@@ -762,12 +965,15 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         PVOID buffer;
         ULONG hashSize;
         PVOID hash;
-        ULONG signatureSize;
-        PVOID signature;
-        HANDLE fileHandle;
-        IO_STATUS_BLOCK iosb;
-        LARGE_INTEGER allocationSize;
+        ULONG rsaSignatureSize;
+        PBYTE signature;
+        PVOID rsaKey;
+        ULONG rsaKeyLength;
+        PVOID mlDsaKey;
+        ULONG mlDsaKeyLength;
         PVOID keyHandle;
+        PVOID mlDsaHandle;
+        SIZE_T mlDsaSignatureSize;
 
         if (!CstKeyFileName)
             CstFailWith(L"%ls", L"no key file specified");
@@ -778,18 +984,33 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
         buffer = CstReadFile(CstKeyFileName->Buffer, 64 * 1024, &bufferSize);
 
+        CstSplitKeyContainer(buffer, bufferSize, TRUE, &rsaKey, &rsaKeyLength, &mlDsaKey, &mlDsaKeyLength);
+
         if (!NT_SUCCESS(status = CstImportKeyPair(
             CstProvider,
             &keyHandle,
             CST_BLOB_PRIVATE,
-            buffer,
-            bufferSize
+            rsaKey,
+            rsaKeyLength
             )))
         {
-            CstFailWithStatus(status, L"%ls", L"failed to import the private key");
+            CstFailWithStatus(status, L"%ls", L"failed to import the RSA private key");
+        }
+
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaImportKey(
+            PH_SYMCRYPT_MLDSA_87,
+            PH_SYMCRYPT_MLDSA_PRIVATE_KEY,
+            mlDsaKey,
+            mlDsaKeyLength,
+            &mlDsaHandle
+            )))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to import the ML-DSA private key");
         }
 
         hash = CstHashFile(CstArgument1->Buffer, &hashSize);
+
+        signature = PhAllocate(CST_SIGNATURE_LENGTH);
 
         if (!NT_SUCCESS(status = CstSignHash(
             CstProvider,
@@ -799,14 +1020,18 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             hashSize,
             NULL,
             0,
-            &signatureSize,
+            &rsaSignatureSize,
             CST_PADDING_FLAGS
             )))
         {
             CstFailWithStatus(status, L"%ls", L"failed to get signature size");
         }
 
-        signature = PhAllocate((ULONG)signatureSize);
+        if (rsaSignatureSize != CST_SIGNATURE_RSA_LENGTH)
+        {
+            CstFailWith(L"invalid RSA signature size: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_SIGNATURE_RSA_LENGTH, rsaSignatureSize);
+        }
 
         if (!NT_SUCCESS(status = CstSignHash(
             CstProvider,
@@ -815,55 +1040,57 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             hash,
             hashSize,
             signature,
-            signatureSize,
-            &signatureSize,
+            CST_SIGNATURE_RSA_LENGTH,
+            &rsaSignatureSize,
             CST_PADDING_FLAGS
             )))
         {
             CstFailWithStatus(status, L"%ls", L"failed to sign hash");
         }
 
-        allocationSize.QuadPart = signatureSize;
+        if (rsaSignatureSize != CST_SIGNATURE_RSA_LENGTH)
+        {
+            CstFailWith(L"invalid RSA signature size: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_SIGNATURE_RSA_LENGTH, rsaSignatureSize);
+        }
 
-        if (!NT_SUCCESS(status = PhCreateFileWin32Ex(
-            &fileHandle,
-            CstSigFileName->Buffer,
-            FILE_GENERIC_WRITE,
-            &allocationSize,
-            FILE_ATTRIBUTE_NORMAL,
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaSignPreHash(
+            mlDsaHandle,
+            PH_SYMCRYPT_SHA512_ALGORITHM,
+            hash,
+            hashSize,
+            NULL,
             0,
-            FILE_OVERWRITE_IF,
-            FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE,
-            NULL)))
+            signature + CST_SIGNATURE_RSA_LENGTH,
+            CST_SIGNATURE_MLDSA_LENGTH,
+            &mlDsaSignatureSize
+            )))
         {
-            CstFailWithStatus(status, L"failed to create \"%ls\"", CstSigFileName->Buffer);
+            CstFailWithStatus(status, L"%ls", L"failed to sign hash with ML-DSA");
         }
-        if (!NT_SUCCESS(status = NtWriteFile(
-            fileHandle,
-            NULL,
-            NULL, NULL,
-            &iosb,
-            signature,
-            (ULONG)signatureSize,
-            NULL,
-            NULL)))
+
+        if (mlDsaSignatureSize != CST_SIGNATURE_MLDSA_LENGTH)
         {
-            CstFailWithStatus(status, L"failed to write signature to \"%ls\"", CstSigFileName->Buffer);
+            CstFailWith(L"invalid ML-DSA signature size: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_SIGNATURE_MLDSA_LENGTH, (ULONG)mlDsaSignatureSize);
         }
-        NtClose(fileHandle);
+
+        CstWriteFile(CstSigFileName->Buffer, signature, CST_SIGNATURE_LENGTH);
 
         if (CstHex)
         {
             PPH_STRING hex;
 
-            hex = PhBufferToHexString(signature, (ULONG)signatureSize);
+            hex = PhBufferToHexString(signature, CST_SIGNATURE_LENGTH);
             wprintf(L"%ls\n", hex->Buffer);
             PhDereferenceObject(hex);
         }
 
         CstDestroyKey(CstProvider, keyHandle);
+        PhSymCryptMlDsaDestroyKey(mlDsaHandle);
         PhFree(signature);
         PhFree(hash);
+        RtlSecureZeroMemory(buffer, bufferSize);
         PhFree(buffer);
     }
     else if (PhEqualString2(CstCommand, L"verify", TRUE))
@@ -873,8 +1100,13 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         ULONG hashSize;
         PVOID hash;
         ULONG signatureSize;
-        PVOID signature;
+        PBYTE signature;
+        PVOID rsaKey;
+        ULONG rsaKeyLength;
+        PVOID mlDsaKey;
+        ULONG mlDsaKeyLength;
         PVOID keyHandle;
+        PVOID mlDsaHandle;
 
         if (!CstKeyFileName)
             CstFailWith(L"%ls", L"no key file specified");
@@ -885,18 +1117,37 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
         buffer = CstReadFile(CstKeyFileName->Buffer, 64 * 1024, &bufferSize);
 
+        CstSplitKeyContainer(buffer, bufferSize, FALSE, &rsaKey, &rsaKeyLength, &mlDsaKey, &mlDsaKeyLength);
+
         if (!NT_SUCCESS(status = CstImportKeyPair(
             CstProvider,
             &keyHandle,
             CST_BLOB_PUBLIC,
-            buffer,
-            bufferSize
+            rsaKey,
+            rsaKeyLength
             )))
         {
-            CstFailWithStatus(status, L"%ls", L"failed to import the public key");
+            CstFailWithStatus(status, L"%ls", L"failed to import the RSA public key");
+        }
+
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaImportKey(
+            PH_SYMCRYPT_MLDSA_87,
+            PH_SYMCRYPT_MLDSA_PUBLIC_KEY,
+            mlDsaKey,
+            mlDsaKeyLength,
+            &mlDsaHandle
+            )))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to import the ML-DSA public key");
         }
 
         signature = CstReadFile(CstSigFileName->Buffer, 64 * 1024, &signatureSize);
+
+        if (signatureSize != CST_SIGNATURE_LENGTH)
+        {
+            CstFailWith(L"invalid signature length: expected %lu bytes, actual %lu bytes",
+                (ULONG)CST_SIGNATURE_LENGTH, signatureSize);
+        }
 
         hash = CstHashFile(CstArgument1->Buffer, &hashSize);
 
@@ -907,18 +1158,31 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             hash,
             hashSize,
             signature,
-            signatureSize,
+            CST_SIGNATURE_RSA_LENGTH,
             CST_PADDING_FLAGS
             )))
         {
-            CstFailWithStatus(status, L"%ls", L"failed to verify signature");
-        }
-        else
-        {
-            wprintf(L"Signature is valid\n");
+            CstFailWithStatus(status, L"%ls", L"failed to verify RSA signature");
         }
 
+        if (!NT_SUCCESS(status = PhSymCryptMlDsaVerifyPreHash(
+            mlDsaHandle,
+            PH_SYMCRYPT_SHA512_ALGORITHM,
+            hash,
+            hashSize,
+            NULL,
+            0,
+            signature + CST_SIGNATURE_RSA_LENGTH,
+            CST_SIGNATURE_MLDSA_LENGTH
+            )))
+        {
+            CstFailWithStatus(status, L"%ls", L"failed to verify ML-DSA signature");
+        }
+
+        wprintf(L"Signature is valid\n");
+
         CstDestroyKey(CstProvider, keyHandle);
+        PhSymCryptMlDsaDestroyKey(mlDsaHandle);
         PhFree(hash);
         PhFree(signature);
         PhFree(buffer);
@@ -928,6 +1192,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         PVOID symKey = NULL;
         PVOID bcKey = NULL;
         ULONG pubSize, privSize;
+        ULONG symPubSize, bcPubSize;
         PVOID symPubBlob = NULL, symPrivBlob = NULL;
         PVOID bcPubBlob = NULL, bcPrivBlob = NULL;
         BYTE dummyHash[64] = { 0xAB }; // SHA512 size
@@ -942,22 +1207,23 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         // 1. Generate keys
         wprintf(L"[+] Generating keys with SymCrypt... ");
         if (!NT_SUCCESS(status = CstGenerateKeyPair(CstProviderSymCrypt, &symKey)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         if (!NT_SUCCESS(status = CstFinalizeKeyPair(CstProviderSymCrypt, symKey)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         wprintf(L"OK\n");
 
         wprintf(L"[+] Generating keys with BCrypt... ");
         if (!NT_SUCCESS(status = CstGenerateKeyPair(CstProviderBCrypt, &bcKey)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         if (!NT_SUCCESS(status = CstFinalizeKeyPair(CstProviderBCrypt, bcKey)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         wprintf(L"OK\n");
 
         // 2. Export keys
         PhSymCryptExportKey(symKey, CST_BLOB_PUBLIC, NULL, 0, &pubSize);
         symPubBlob = PhAllocate(pubSize);
         PhSymCryptExportKey(symKey, CST_BLOB_PUBLIC, symPubBlob, pubSize, &pubSize);
+        symPubSize = CstCanonicalizeRsaBlob(symPubBlob, pubSize);
 
         PhSymCryptExportKey(symKey, CST_BLOB_PRIVATE, NULL, 0, &privSize);
         symPrivBlob = PhAllocate(privSize);
@@ -966,8 +1232,9 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         BCryptExportKey(bcKey, NULL, CST_BLOB_PUBLIC, NULL, 0, &pubSize, 0);
         bcPubBlob = PhAllocate(pubSize);
         BCryptExportKey(bcKey, NULL, CST_BLOB_PUBLIC, bcPubBlob, pubSize, &pubSize, 0);
+        bcPubSize = pubSize;
 
-        BCryptExportKey(bcKey, NULL, CST_BLOB_PRIVATE, NULL, 0, &privSize);
+        BCryptExportKey(bcKey, NULL, CST_BLOB_PRIVATE, NULL, 0, &privSize, 0);
         bcPrivBlob = PhAllocate(privSize);
         BCryptExportKey(bcKey, NULL, CST_BLOB_PRIVATE, bcPrivBlob, privSize, &privSize, 0);
 
@@ -976,29 +1243,59 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         CstSignHash(CstProviderSymCrypt, symKey, CST_PADDING_INFO, dummyHash, 64, NULL, 0, &sigSize, CST_PADDING_FLAGS);
         symSignature = PhAllocate(sigSize);
         if (!NT_SUCCESS(status = CstSignHash(CstProviderSymCrypt, symKey, CST_PADDING_INFO, dummyHash, 64, symSignature, sigSize, &sigSize, CST_PADDING_FLAGS)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         wprintf(L"OK\n");
 
         wprintf(L"[+] Signing with BCrypt... ");
         CstSignHash(CstProviderBCrypt, bcKey, CST_PADDING_INFO, dummyHash, 64, NULL, 0, &sigSize, CST_PADDING_FLAGS);
         bcSignature = PhAllocate(sigSize);
         if (!NT_SUCCESS(status = CstSignHash(CstProviderBCrypt, bcKey, CST_PADDING_INFO, dummyHash, 64, bcSignature, sigSize, &sigSize, CST_PADDING_FLAGS)))
-            CstFailWithStatus(status, L"failed");
+            CstFailWithStatus(status, L"%ls", L"failed");
         wprintf(L"OK\n");
 
         // 4. Cross-Verify
         wprintf(L"[+] Cross-Verifying (BCrypt signature with SymCrypt public key)... ");
-        if (!NT_SUCCESS(status = CstImportKeyPair(CstProviderSymCrypt, &importBcKeyInSym, CST_BLOB_PUBLIC, bcPubBlob, pubSize)))
-            CstFailWithStatus(status, L"failed to import BCrypt public key into SymCrypt");
+        if (!NT_SUCCESS(status = CstImportKeyPair(CstProviderSymCrypt, &importBcKeyInSym, CST_BLOB_PUBLIC, bcPubBlob, bcPubSize)))
+            CstFailWithStatus(status, L"%ls", L"failed to import BCrypt public key into SymCrypt");
         if (!NT_SUCCESS(status = CstVerifyHash(CstProviderSymCrypt, importBcKeyInSym, CST_PADDING_INFO, dummyHash, 64, bcSignature, sigSize, CST_PADDING_FLAGS)))
-            CstFailWithStatus(status, L"failed verification");
+            CstFailWithStatus(status, L"%ls", L"failed verification");
         wprintf(L"OK\n");
 
         wprintf(L"[+] Cross-Verifying (SymCrypt signature with BCrypt public key)... ");
-        if (!NT_SUCCESS(status = CstImportKeyPair(CstProviderBCrypt, &importSymKeyInBc, CST_BLOB_PUBLIC, symPubBlob, pubSize)))
-            CstFailWithStatus(status, L"failed to import SymCrypt public key into BCrypt");
+        if (!NT_SUCCESS(status = CstImportKeyPair(CstProviderBCrypt, &importSymKeyInBc, CST_BLOB_PUBLIC, symPubBlob, symPubSize)))
+            CstFailWithStatus(status, L"%ls", L"failed to import SymCrypt public key into BCrypt");
         if (!NT_SUCCESS(status = CstVerifyHash(CstProviderBCrypt, importSymKeyInBc, CST_PADDING_INFO, dummyHash, 64, symSignature, sigSize, CST_PADDING_FLAGS)))
-            CstFailWithStatus(status, L"failed verification");
+            CstFailWithStatus(status, L"%ls", L"failed verification");
+        wprintf(L"OK\n");
+
+        // 5. ML-DSA-87 (HashML-DSA over the same SHA-512 digest)
+        wprintf(L"[+] ML-DSA-87 sign/verify... ");
+        {
+            PVOID mlDsaKey = NULL;
+            PBYTE mlDsaSignature;
+            SIZE_T mlDsaSignatureSize;
+
+            if (!NT_SUCCESS(status = PhSymCryptMlDsaGenerateKey(PH_SYMCRYPT_MLDSA_87, &mlDsaKey)))
+                CstFailWithStatus(status, L"%ls", L"failed to generate ML-DSA key");
+
+            mlDsaSignature = PhAllocate(CST_SIGNATURE_MLDSA_LENGTH);
+
+            if (!NT_SUCCESS(status = PhSymCryptMlDsaSignPreHash(mlDsaKey, PH_SYMCRYPT_SHA512_ALGORITHM, dummyHash, 64, NULL, 0, mlDsaSignature, CST_SIGNATURE_MLDSA_LENGTH, &mlDsaSignatureSize)))
+                CstFailWithStatus(status, L"%ls", L"failed to sign with ML-DSA");
+            if (mlDsaSignatureSize != CST_SIGNATURE_MLDSA_LENGTH)
+                CstFailWith(L"invalid ML-DSA signature size: expected %lu bytes, actual %lu bytes", (ULONG)CST_SIGNATURE_MLDSA_LENGTH, (ULONG)mlDsaSignatureSize);
+
+            if (!NT_SUCCESS(status = PhSymCryptMlDsaVerifyPreHash(mlDsaKey, PH_SYMCRYPT_SHA512_ALGORITHM, dummyHash, 64, NULL, 0, mlDsaSignature, mlDsaSignatureSize)))
+                CstFailWithStatus(status, L"%ls", L"ML-DSA verification failed");
+
+            mlDsaSignature[0] ^= 0x01;
+
+            if (NT_SUCCESS(PhSymCryptMlDsaVerifyPreHash(mlDsaKey, PH_SYMCRYPT_SHA512_ALGORITHM, dummyHash, 64, NULL, 0, mlDsaSignature, mlDsaSignatureSize)))
+                CstFailWith(L"%ls", L"ML-DSA accepted a corrupted signature");
+
+            PhSymCryptMlDsaDestroyKey(mlDsaKey);
+            PhFree(mlDsaSignature);
+        }
         wprintf(L"OK\n");
 
         wprintf(L"--- TestRun Successful ---\n");

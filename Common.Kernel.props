@@ -38,6 +38,8 @@
             <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\include\</AdditionalIncludeDirectories>
             <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\</AdditionalIncludeDirectories>
             <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(ProjectDir)include\</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)tools\thirdparty\SymCrypt\inc\</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">SYMCRYPT_IGNORE_PLATFORM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
             <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
             <AdditionalOptions Condition="'$(Platform)'=='x64'">/d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
             <AdditionalOptions Condition="'$(Platform)'=='ARM64'">/d2ImportCallOptimization %(AdditionalOptions)</AdditionalOptions>

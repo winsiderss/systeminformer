@@ -28,21 +28,25 @@
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-    <ImportGroup Label="ExtensionSettings">
-        <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
-        <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.props" />
-    </ImportGroup>
     <ImportGroup Label="PropertySheets">
         <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     </ImportGroup>
     <PropertyGroup Label="UserMacros" />
     <PropertyGroup>
+        <!-- SymCrypt has no WPP trace macros; keep tracewpp off. -->
+        <KsiNoWpp>true</KsiNoWpp>
+        <!-- Vendored code; PREfast/analysis is not ours to fix. -->
+        <RunCodeAnalysis>false</RunCodeAnalysis>
+        <!-- RunCodeAnalysis=true is a global from the prefast leg and overrides the line above; this disables the analysis target. -->
+        <EnableMicrosoftCodeAnalysis>false</EnableMicrosoftCodeAnalysis>
         <IntDir>$(SystemInformerRoot)KSystemInformer\obj\$(Configuration)$(PlatformArchitecture)\$(ProjectName)\</IntDir>
         <OutDir>$(SystemInformerRoot)KSystemInformer\bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
         <TargetName>symcrypt_km</TargetName>
     </PropertyGroup>
     <ItemDefinitionGroup>
         <ClCompile>
+            <!-- Vendored code is not W4 clean (C4456 shadowing etc.). -->
+            <WarningLevel>Level3</WarningLevel>
             <AdditionalIncludeDirectories>$(ProjectDir)SymCrypt\inc\;$(ProjectDir)SymCrypt\lib\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ClCompile>
     </ItemDefinitionGroup>
@@ -54,7 +58,6 @@
         <ClCompile Include="SymCrypt\lib\aes-default.c" />
         <ClCompile Include="SymCrypt\lib\aes-key.c" />
         <ClCompile Include="SymCrypt\lib\aes-neon.c" />
-        <ClCompile Include="SymCrypt\lib\aes-pattern.c" />
         <ClCompile Include="SymCrypt\lib\aes-selftest.c" />
         <ClCompile Include="SymCrypt\lib\aes-xmm.c" />
         <ClCompile Include="SymCrypt\lib\aes-ymm.c" />
@@ -74,7 +77,6 @@
         <ClCompile Include="SymCrypt\lib\cpuid.c" />
         <ClCompile Include="SymCrypt\lib\cpuid_notry.c" />
         <ClCompile Include="SymCrypt\lib\crt.c" />
-        <ClCompile Include="SymCrypt\lib\cshake_pattern.c" />
         <ClCompile Include="SymCrypt\lib\data_accessors.c" />
         <ClCompile Include="SymCrypt\lib\DesTables.c" />
         <ClCompile Include="SymCrypt\lib\desx.c" />
@@ -107,8 +109,6 @@
         <ClCompile Include="SymCrypt\lib\gen_int.c" />
         <ClCompile Include="SymCrypt\lib\ghash.c" />
         <ClCompile Include="SymCrypt\lib\hash.c" />
-        <ClCompile Include="SymCrypt\lib\hash_buffer_pattern.c" />
-        <ClCompile Include="SymCrypt\lib\hash_pattern.c" />
         <ClCompile Include="SymCrypt\lib\hkdf.c" />
         <ClCompile Include="SymCrypt\lib\hkdf_selftest.c" />
         <ClCompile Include="SymCrypt\lib\hmac.c" />
@@ -124,10 +124,8 @@
         <ClCompile Include="SymCrypt\lib\hmacsha512.c" />
         <ClCompile Include="SymCrypt\lib\hmacsha512_224.c" />
         <ClCompile Include="SymCrypt\lib\hmacsha512_256.c" />
-        <ClCompile Include="SymCrypt\lib\hmac_pattern.c" />
         <ClCompile Include="SymCrypt\lib\IEEE802_11SaeCustom.c" />
         <ClCompile Include="SymCrypt\lib\kmac.c" />
-        <ClCompile Include="SymCrypt\lib\kmac_pattern.c" />
         <ClCompile Include="SymCrypt\lib\libmain.c" />
         <ClCompile Include="SymCrypt\lib\lms.c" />
         <ClCompile Include="SymCrypt\lib\marvin32.c" />
@@ -175,7 +173,6 @@
         <ClCompile Include="SymCrypt\lib\sha512Par-ymm.c" />
         <ClCompile Include="SymCrypt\lib\sha512Par.c" />
         <ClCompile Include="SymCrypt\lib\shake.c" />
-        <ClCompile Include="SymCrypt\lib\shake_pattern.c" />
         <ClCompile Include="SymCrypt\lib\sp800_108.c" />
         <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha1.c" />
         <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha256.c" />
@@ -192,21 +189,12 @@
         <ClCompile Include="SymCrypt\lib\tlsprf_selftest.c" />
         <ClCompile Include="SymCrypt\lib\xmss.c" />
         <ClCompile Include="SymCrypt\lib\xtsaes.c" />
-        <ClCompile Include="SymCrypt\lib\xtsaes_pattern.c" />
     </ItemGroup>
     <ItemGroup>
-        <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
-        <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
-        <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
-        <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
-        <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+        <!-- x64 is intentionally generic C: no SymCryptAsm items. -->
+        <SymCryptAsm Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
+        <SymCryptAsm Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
+        <SymCryptAsm Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="SymCrypt\inc\symcrypt.h" />
@@ -215,8 +203,28 @@
         <ClInclude Include="SymCrypt\inc\symcrypt_low_level.h" />
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-    <ImportGroup Label="ExtensionTargets">
-        <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
-        <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.targets" />
-    </ImportGroup>
+    <!-- MASM/MARMASM customizations use XamlTaskFactory, which fails under msbuild -mt; assemble directly. -->
+    <PropertyGroup>
+        <ComputeLibInputsTargets>$(ComputeLibInputsTargets);SymCryptAsmAddObjs</ComputeLibInputsTargets>
+        <SymCryptAsmDir>$(IntDir)asm\</SymCryptAsmDir>
+        <!-- Resolve the assemblers from the VC toolset so IDE builds (no vcvars PATH) work; bare name is the fallback. -->
+        <SymCryptHostArch>x64</SymCryptHostArch>
+        <SymCryptHostArch Condition="'$(PreferredToolArchitecture)'!=''">$(PreferredToolArchitecture)</SymCryptHostArch>
+        <SymCryptArmAsm>$(VCToolsInstallDir)bin\Host$(SymCryptHostArch)\arm64\armasm64.exe</SymCryptArmAsm>
+        <SymCryptArmAsm Condition="!Exists('$(SymCryptArmAsm)')">armasm64.exe</SymCryptArmAsm>
+    </PropertyGroup>
+    <Target Name="SymCryptAsmBuild"
+            BeforeTargets="Lib"
+            Condition="'@(SymCryptAsm)'!=''"
+            Inputs="@(SymCryptAsm);$(MSBuildProjectFullPath)"
+            Outputs="@(SymCryptAsm->'$(SymCryptAsmDir)%(Filename).obj')">
+        <MakeDir Directories="$(SymCryptAsmDir)" />
+        <Exec Condition="'$(Platform)'=='ARM64'"
+              Command="&quot;$(SymCryptArmAsm)&quot; -nologo -g -o &quot;$(SymCryptAsmDir)%(SymCryptAsm.Filename).obj&quot; &quot;%(SymCryptAsm.FullPath)&quot;" />
+    </Target>
+    <Target Name="SymCryptAsmAddObjs" Condition="'@(SymCryptAsm)'!=''">
+        <ItemGroup>
+            <Lib Include="@(SymCryptAsm->'$(SymCryptAsmDir)%(Filename).obj')" />
+        </ItemGroup>
+    </Target>
 </Project>
