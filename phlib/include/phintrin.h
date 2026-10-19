@@ -45,6 +45,7 @@
 
 #if defined(_M_ARM64) && defined(__clang__)
 #include <arm_acle.h>
+#include <arm_neon.h>
 #endif
 
 #ifdef _M_ARM64
@@ -80,7 +81,14 @@ PhArm64ReadRandomNumber64(
     )
 {
 #if defined(__clang__) && defined(__ARM_FEATURE_RNG)
-    return !!__rndrrs(Number);
+    ULONG64 value;
+
+    // __rndrrs returns zero on success and non-zero when entropy is unavailable.
+    if (__rndrrs(&value) != 0)
+        return FALSE;
+
+    *Number = value;
+    return TRUE;
 #else
     ULONG64 value;
     ULONG flags;
@@ -401,7 +409,7 @@ PhSetZeroINT128(
     )
 {
 #ifdef _ARM64_
-    return vdupq_n_s32(0);
+    return vreinterpretq_s64_s32(vdupq_n_s32(0));
 #else
     return _mm_setzero_si128();
 #endif
@@ -424,7 +432,7 @@ PhLoadINT128U(
     )
 {
 #ifdef _ARM64_
-    return vld1q_s32(Memory);
+    return vreinterpretq_s64_s32(vld1q_s32((const int32_t*)Memory));
 #else
     return _mm_loadu_si128((__m128i const*)Memory);
 #endif
@@ -444,7 +452,7 @@ PhLoadINT128(
     )
 {
 #ifdef _ARM64_
-    return vld1q_s32(Memory);
+    return vreinterpretq_s64_s32(vld1q_s32((const int32_t*)Memory));
 #else
     return _mm_load_si128((__m128i const*)Memory);
 #endif
@@ -465,7 +473,7 @@ PhStoreINT128(
     )
 {
 #ifdef _ARM64_
-    vst1q_s32(Target, Value);
+    vst1q_s32((int32_t*)Target, vreinterpretq_s32_s64(Value));
 #else
     _mm_store_si128((__m128i*)Target, Value);
 #endif
@@ -476,7 +484,7 @@ PhStoreINT128(
  * without alignment requirements.
  *
  * \param[out] Target A pointer to a memory location where the 128-bit value will be stored.
- * The memory does not need to be aligned and must be at least 2 * sizeof(LONG) bytes.
+ * The memory does not need to be aligned and must be at least 4 * sizeof(LONG) bytes.
  * \param[in] Value The 128-bit integer value to store.
  */
 FORCEINLINE
@@ -487,7 +495,7 @@ PhStoreINT128U(
     )
 {
 #ifdef _ARM64_
-    vst1q_s32(Target, Value);
+    vst1q_s32((int32_t*)Target, vreinterpretq_s32_s64(Value));
 #else
     _mm_storeu_si128((__m128i*)Target, Value);
 #endif
@@ -549,8 +557,8 @@ PhStoreINT256U(
     )
 {
 #ifdef _ARM64_
-    vst1q_s32((int32_t*)Target, Value.Low);
-    vst1q_s32((int32_t*)Target + 4, Value.High);
+    vst1q_s32((int32_t*)Target, vreinterpretq_s32_s64(Value.Low));
+    vst1q_s32((int32_t*)Target + 4, vreinterpretq_s32_s64(Value.High));
 #else
     _mm256_storeu_si256((__m256i*)Target, Value);
 #endif
@@ -588,7 +596,7 @@ PhCompareEqINT128by16(
     )
 {
 #ifdef _ARM64_
-    return vceqq_s16(Left, Right);
+    return vreinterpretq_s64_u16(vceqq_s16(vreinterpretq_s16_s64(Left), vreinterpretq_s16_s64(Right)));
 #else
     return _mm_cmpeq_epi16(Left, Right);
 #endif
@@ -609,7 +617,7 @@ PhCompareEqINT128by32(
     )
 {
 #ifdef _ARM64_
-    return vceqq_s32(Left, Right);
+    return vreinterpretq_s64_u32(vceqq_s32(vreinterpretq_s32_s64(Left), vreinterpretq_s32_s64(Right)));
 #else
     return _mm_cmpeq_epi32(Left, Right);
 #endif
@@ -628,15 +636,14 @@ PhMoveMaskINT128by8(
     )
 {
 #ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
     uint8x16_t input = vreinterpretq_u8_s64(Value);
-    uint16x8_t high_bits = vshrq_n_u8(input, 7);
-    uint32x4_t paired16 = vsraq_n_u16(high_bits, high_bits, 7);
-    uint64x2_t paired32 = vsraq_n_u32(paired16, paired16, 14);
-    uint8x16_t paired64 = vsraq_n_u64(paired32, paired32, 28);
-    return vgetq_lane_u8(paired64, 0) | ((int) vgetq_lane_u8(paired64, 8) << 8);
+    uint16x8_t high_bits = vreinterpretq_u16_u8(vshrq_n_u8(input, 7));
+    uint32x4_t paired16 = vreinterpretq_u32_u16(vsraq_n_u16(high_bits, high_bits, 7));
+    uint64x2_t paired32 = vreinterpretq_u64_u32(vsraq_n_u32(paired16, paired16, 14));
+    uint8x16_t paired64 = vreinterpretq_u8_u64(vsraq_n_u64(paired32, paired32, 28));
+    return vgetq_lane_u8(paired64, 0) | ((ULONG)vgetq_lane_u8(paired64, 8) << 8);
 #else
-    return _mm_movemask_epi8(Value);
+    return (ULONG)_mm_movemask_epi8(Value);
 #endif
 }
 
@@ -793,7 +800,7 @@ PhSetReverseINT128by8(
 #ifdef _ARM64_
     const CHAR bytes[16] = { Byte0, Byte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7, Byte8, Byte9, Byte10, Byte11, Byte12, Byte13, Byte14, Byte15 };
 
-    return vreinterpretq_s64_s8(vld1q_s8(bytes));
+    return vreinterpretq_s64_s8(vld1q_s8((const int8_t*)bytes));
 #else
     return _mm_setr_epi8(Byte0, Byte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7, Byte8, Byte9, Byte10, Byte11, Byte12, Byte13, Byte14, Byte15);
 #endif
@@ -919,7 +926,7 @@ PhSetINT128by16(
     )
 {
 #ifdef _ARM64_
-    return vdupq_n_s16(Value);
+    return vreinterpretq_s64_s16(vdupq_n_s16(Value));
 #else
     return _mm_set1_epi16(Value);
 #endif
@@ -938,7 +945,7 @@ PhSetINT128by32(
     )
 {
 #ifdef _ARM64_
-    return vdupq_n_s32(Value);
+    return vreinterpretq_s64_s32(vdupq_n_s32(Value));
 #else
     return _mm_set1_epi32(Value);
 #endif
@@ -957,7 +964,7 @@ PhSetUINT128by32(
     )
 {
 #ifdef _ARM64_
-    return vdupq_n_u32(Value);
+    return vreinterpretq_s64_u32(vdupq_n_u32(Value));
 #else
     return _mm_set1_epi32(Value);
 #endif
@@ -1037,11 +1044,9 @@ PhDivideFLOAT128(
     )
 {
 #ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    float32x4_t recip = vrecpeq_f32(Dividend);
-    recip = vmulq_f32(recip, vrecpsq_f32(recip, Dividend));
-    recip = vmulq_f32(recip, vrecpsq_f32(recip, Dividend));
-    return vmulq_f32(Divisor, recip);
+    // AArch64 has a native IEEE divide, so results match _mm_div_ps exactly
+    // (the reciprocal-estimate form is only needed on ARMv7).
+    return vdivq_f32(Divisor, Dividend);
 #else
     return _mm_div_ps(Divisor, Dividend);
 #endif
@@ -1062,14 +1067,8 @@ PhMaxFLOAT128(
     )
 {
 #ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-#if SSE2NEON_PRECISE_MINMAX
-    float32x4_t _a = A;
-    float32x4_t _b = B;
-    return vbslq_f32(vcgtq_f32(_a, _b), _a, _b);
-#else
-    return vmaxq_f32(A, B);
-#endif
+    // Matches _mm_max_ps: B is returned when either lane is NaN (vmaxq_f32 returns NaN).
+    return vbslq_f32(vcgtq_f32(A, B), A, B);
 #else
     return _mm_max_ps(A, B);
 #endif
@@ -1105,7 +1104,7 @@ PhMultiplyFLOAT128(
 FORCEINLINE
 VOID
 PhStoreFLOAT128(
-    _Out_writes_bytes_(2 * sizeof(FLOAT)) PFLOAT Target,
+    _Out_writes_(4) PFLOAT Target,
     _In_ PH_FLOAT128 Value
     )
 {
@@ -1125,7 +1124,7 @@ PhStoreFLOAT128(
 FORCEINLINE
 VOID
 PhStoreFLOAT128LowSingle(
-    _Out_writes_bytes_(2 * sizeof(FLOAT)) PFLOAT Target,
+    _Out_writes_(1) PFLOAT Target,
     _In_ PH_FLOAT128 Value
     )
 {
@@ -1244,7 +1243,12 @@ PhShiftLeftINT128(
     )
 {
 #ifdef _ARM64_
-    return vshlq_s32(A, vdupq_n_s32(Count));
+    // vshlq uses the signed low byte of the count, so clamp to match
+    // _mm_slli_epi32, which zeroes the lanes for any count above 31.
+    if (Count > 31)
+        return PhSetZeroINT128();
+
+    return vreinterpretq_s64_s32(vshlq_s32(vreinterpretq_s32_s64(A), vdupq_n_s32(Count)));
 #else
     return _mm_slli_epi32(A, Count);
 #endif
@@ -1265,7 +1269,10 @@ PhShiftRightINT128(
     )
 {
 #ifdef _ARM64_
-    return vshlq_u32(A, vdupq_n_s32(-Count));
+    if (Count > 31)
+        return PhSetZeroINT128();
+
+    return vreinterpretq_s64_u32(vshlq_u32(vreinterpretq_u32_s64(A), vdupq_n_s32(-Count)));
 #else
     return _mm_srli_epi32(A, Count);
 #endif
@@ -1286,7 +1293,7 @@ PhCompareGtINT128by16(
     )
 {
 #ifdef _ARM64_
-    return vcgtq_s16(A, B);
+    return vreinterpretq_s64_u16(vcgtq_s16(vreinterpretq_s16_s64(A), vreinterpretq_s16_s64(B)));
 #else
     return _mm_cmpgt_epi16(A, B);
 #endif
@@ -1307,7 +1314,7 @@ PhAddINT128by16(
     )
 {
 #ifdef _ARM64_
-    return vaddq_s16(A, B);
+    return vreinterpretq_s64_s16(vaddq_s16(vreinterpretq_s16_s64(A), vreinterpretq_s16_s64(B)));
 #else
     return _mm_add_epi16(A, B);
 #endif
@@ -1328,7 +1335,7 @@ PhSubINT128by16(
     )
 {
 #ifdef _ARM64_
-    return vsubq_s16(A, B);
+    return vreinterpretq_s64_s16(vsubq_s16(vreinterpretq_s16_s64(A), vreinterpretq_s16_s64(B)));
 #else
     return _mm_sub_epi16(A, B);
 #endif
@@ -1349,7 +1356,7 @@ PhAndINT128(
     )
 {
 #ifdef _ARM64_
-    return vandq_s32(A, B);
+    return vandq_s64(A, B);
 #else
     return _mm_and_si128(A, B);
 #endif
@@ -1371,7 +1378,7 @@ PhAndNotINT128(
     )
 {
 #ifdef _ARM64_
-    return vbicq_s32(B, A);
+    return vbicq_s64(B, A);
 #else
     return _mm_andnot_si128(A, B);
 #endif
@@ -1392,7 +1399,7 @@ PhOrINT128(
     )
 {
 #ifdef _ARM64_
-    return vorrq_s32(A, B);
+    return vorrq_s64(A, B);
 #else
     return _mm_or_si128(A, B);
 #endif
@@ -1417,7 +1424,7 @@ PhShuffleINT128by8(
     )
 {
 #ifdef _ARM64_
-    return vqtbl1q_u8(Value, Indices);
+    return vreinterpretq_s64_u8(vqtbl1q_u8(vreinterpretq_u8_s64(Value), vreinterpretq_u8_s64(Indices)));
 #else
     return _mm_shuffle_epi8(Value, Indices);
 #endif
@@ -1438,7 +1445,7 @@ PhShiftRight4INT128by16(
     )
 {
 #ifdef _ARM64_
-    return vshrq_n_u16(Value, 4);
+    return vreinterpretq_s64_u16(vshrq_n_u16(vreinterpretq_u16_s64(Value), 4));
 #else
     return _mm_srli_epi16(Value, 4);
 #endif
@@ -1459,7 +1466,7 @@ PhUnpackLowINT128by8(
     )
 {
 #ifdef _ARM64_
-    return vzip1q_u8(A, B);
+    return vreinterpretq_s64_u8(vzip1q_u8(vreinterpretq_u8_s64(A), vreinterpretq_u8_s64(B)));
 #else
     return _mm_unpacklo_epi8(A, B);
 #endif
@@ -1480,7 +1487,7 @@ PhUnpackHighINT128by8(
     )
 {
 #ifdef _ARM64_
-    return vzip2q_u8(A, B);
+    return vreinterpretq_s64_u8(vzip2q_u8(vreinterpretq_u8_s64(A), vreinterpretq_u8_s64(B)));
 #else
     return _mm_unpackhi_epi8(A, B);
 #endif
@@ -1523,7 +1530,7 @@ PhSumBytesINT128(
     )
 {
 #ifdef _ARM64_
-    return vaddlvq_u8(Value);
+    return vaddlvq_u8(vreinterpretq_u8_s64(Value));
 #else
     // _mm_sad_epu8 against zero yields two 64-bit partial sums (bytes 0..7 and
     // 8..15); add the lanes. Store-based extraction keeps this valid on 32-bit
@@ -1547,7 +1554,8 @@ PhConvertFLOAT128ToUINT128(
     )
 {
 #ifdef _ARM64_
-    return vcvtq_u32_f32(A);
+    // Round to nearest even like _mm_cvtps_epu32 (vcvtq_u32_f32 truncates).
+    return vreinterpretq_s64_u32(vcvtnq_u32_f32(A));
 #else
     return _mm_cvtps_epu32(A); // _mm_cvtps_epi32
 #endif
@@ -1566,7 +1574,7 @@ PhConvertINT128ToFLOAT128(
     )
 {
 #ifdef _ARM64_
-    return vcvtq_f32_s32(A);
+    return vcvtq_f32_s32(vreinterpretq_s32_s64(A));
 #else
     return _mm_cvtepi32_ps(A);
 #endif
@@ -1585,19 +1593,20 @@ PhUppercaseLatin1INT128by16(
     )
 {
 #ifdef _ARM64_
-    // NEON: convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
-    uint16x8_t ge_a = vcgeq_u16(Input, vdupq_n_u16(0x0061));
-    uint16x8_t le_z = vcleq_u16(Input, vdupq_n_u16(0x007A));
+    // NEON: convert a-z (0x61-0x7A) and -> (0xE0-0xFE) excluding (0xF7)
+    uint16x8_t input = vreinterpretq_u16_s64(Input);
+    uint16x8_t ge_a = vcgeq_u16(input, vdupq_n_u16(0x0061));
+    uint16x8_t le_z = vcleq_u16(input, vdupq_n_u16(0x007A));
     uint16x8_t mask1 = vandq_u16(ge_a, le_z);
-    uint16x8_t ge_lat = vcgeq_u16(Input, vdupq_n_u16(0x00E0));
-    uint16x8_t le_lat = vcleq_u16(Input, vdupq_n_u16(0x00FE));
+    uint16x8_t ge_lat = vcgeq_u16(input, vdupq_n_u16(0x00E0));
+    uint16x8_t le_lat = vcleq_u16(input, vdupq_n_u16(0x00FE));
     uint16x8_t mask2 = vandq_u16(ge_lat, le_lat);
-    uint16x8_t not_div = vceqq_u16(Input, vdupq_n_u16(0x00F7));
+    uint16x8_t not_div = vceqq_u16(input, vdupq_n_u16(0x00F7));
     mask2 = vbicq_u16(mask2, not_div);
     uint16x8_t final_mask = vorrq_u16(mask1, mask2);
-    return vsubq_u16(Input, vandq_u16(final_mask, vdupq_n_u16(0x0020)));
+    return vreinterpretq_s64_u16(vsubq_u16(input, vandq_u16(final_mask, vdupq_n_u16(0x0020))));
 #else
-    // SSE2: convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
+    // SSE2: convert a-z (0x61-0x7A) and -> (0xE0-0xFE) excluding (0xF7)
     __m128i ge_a = _mm_cmpgt_epi16(Input, _mm_set1_epi16(0x0060));
     __m128i le_z = _mm_cmpgt_epi16(_mm_set1_epi16(0x007B), Input);
     __m128i mask1 = _mm_and_si128(ge_a, le_z);
@@ -1624,7 +1633,7 @@ PhUppercaseLatin1INT256by16(
     _In_ __m256i Input
     )
 {
-    // convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
+    // convert a-z (0x61-0x7A) and -> (0xE0-0xFE) excluding (0xF7)
     __m256i ge_a = _mm256_cmpgt_epi16(Input, _mm256_set1_epi16(0x0060));
     __m256i le_z = _mm256_cmpgt_epi16(_mm256_set1_epi16(0x007B), Input);
     __m256i mask1 = _mm256_and_si256(ge_a, le_z);
@@ -1685,10 +1694,11 @@ PhUppercaseASCIIINT128by16(
 {
 #ifdef _ARM64_
     // NEON:  convert a-z to A-Z
-    int16x8_t ge_a = vcgeq_s16(Input, vdupq_n_s16(L'a'));
-    int16x8_t le_z = vcleq_s16(Input, vdupq_n_s16(L'z'));
-    int16x8_t mask = vandq_s16(ge_a, le_z);
-    return vsubq_s16(Input, vandq_s16(mask, vdupq_n_s16(0x20)));
+    int16x8_t input = vreinterpretq_s16_s64(Input);
+    uint16x8_t ge_a = vcgeq_s16(input, vdupq_n_s16(L'a'));
+    uint16x8_t le_z = vcleq_s16(input, vdupq_n_s16(L'z'));
+    int16x8_t mask = vreinterpretq_s16_u16(vandq_u16(ge_a, le_z));
+    return vreinterpretq_s64_s16(vsubq_s16(input, vandq_s16(mask, vdupq_n_s16(0x20))));
 #else
     // SSE2: convert a-z to A-Z (8 UTF-16 chars)
     __m128i ge_a = _mm_cmpgt_epi16(Input, _mm_set1_epi16(L'a' - 1));
