@@ -519,7 +519,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_KSI_UNLOAD_ON_EXIT, L"0");
     PhpAddIntegerSetting(SETTING_KSI_RANDOMIZED_POOL_TAG, L"0");
     PhpAddIntegerSetting(SETTING_KSI_ENABLE_UNLOAD_PROTECTION, L"1");
-    PhpAddIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED, L"0");
     PhpAddIntegerSetting(SETTING_KSI_DISABLE_SYSTEM_PROCESS, L"0");
     PhpAddIntegerSetting(SETTING_KSI_DISABLE_THREAD_NAMES, L"0");
     PhpAddIntegerSetting(SETTING_KSI_CLIENT_PROCESS_PROTECTION_LEVEL, L"0");

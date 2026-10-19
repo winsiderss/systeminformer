@@ -24,7 +24,6 @@ set(RESOURCES
 source_group("Resource Files" FILES ${RESOURCES})
 
 set(SOURCES
-    "kphdyn.c"
     "kphdyndata.c"
     "kphmsg.c"
     "kphmsgdyn.c"
