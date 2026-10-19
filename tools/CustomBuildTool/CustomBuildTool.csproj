@@ -6,6 +6,7 @@
 		<CsWin32EnableWindowsTargeting>true</CsWin32EnableWindowsTargeting>
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>portable</DebugType>
+		<NoWarn>$(NoWarn);SYSLIB5006</NoWarn> <!-- SYSLIB5006: the post-quantum types (MLDsa) are marked experimental. -->
 		<Deterministic>true</Deterministic>
 		<DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
 		<DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
