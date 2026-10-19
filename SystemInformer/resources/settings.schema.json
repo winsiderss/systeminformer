@@ -4978,21 +4978,6 @@
         }
       ]
     },
-    "KsiDynDataNoEmbedded": {
-      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Disables the use of embedded dynamic data for kernel structures.",
-      "anyOf": [
-        {
-          "type": "string",
-          "enum": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "type": "boolean"
-        }
-      ]
-    },
     "KsiClientProcessProtectionLevel": {
       "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sets the protection level required for client processes.",
       "anyOf": [

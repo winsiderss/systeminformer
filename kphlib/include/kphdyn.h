@@ -97,8 +97,3 @@ typedef struct _KPH_DYN_CONFIG
 } KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
 
 #include <poppack.h>
-
-#ifdef _WIN64
-extern CONST BYTE KphDynConfig[];
-extern CONST ULONG KphDynConfigLength;
-#endif
