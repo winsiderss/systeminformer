@@ -1701,7 +1701,7 @@ VOID PhSipGetPoolLimits(
     SIZE_T paged = MAXSIZE_T;
     SIZE_T nonPaged = MAXSIZE_T;
 
-    if (MmSizeOfPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
+    if (MmSizeOfPagedPoolInBytes && (KsiLevel() == KphLevelMax))
     {
         KphReadVirtualMemory(
             NtCurrentProcess(),
@@ -1730,7 +1730,7 @@ VOID PhSipGetPoolLimits(
             nonPaged = (SIZE_T)(16ULL * 1024ULL * 1024ULL * 1024ULL);
         }
     }
-    else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
+    else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KsiLevel() == KphLevelMax))
     {
         KphReadVirtualMemory(
             NtCurrentProcess(),
