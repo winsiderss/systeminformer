@@ -1056,7 +1056,7 @@ NTSTATUS PhHttpDownloadToFileEx(
     if (MaximumLength > MAXLONGLONG)
         return STATUS_INVALID_PARAMETER;
 
-    PhQuerySystemTime(&timeStart);
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     // Content-Length is optional; servers using chunked transfer encoding omit it.
     // If absent, proceed without a pre-allocated file size hint.
@@ -1144,12 +1144,12 @@ NTSTATUS PhHttpDownloadToFileEx(
 
         if (Callback)
         {
-            PhQuerySystemTime(&timeNow);
-            timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+            PhQueryUnbiasedInterruptTime(&timeNow);
+            timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
 
             context.ReadLength = numberOfBytesReadTotal;
             context.TotalLength = numberOfBytesTotal;
-            context.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+            context.BitsPerSecond = timeTicks ? numberOfBytesReadTotal * PH_TICKS_PER_SEC / timeTicks : 0;
             context.Percent = numberOfBytesTotal ? (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100) : 0;
 
             if (!Callback(&context, Context))
@@ -1293,7 +1293,7 @@ NTSTATUS PhHttpDownloadUrl(
             goto CleanupExit;
     }
 
-    PhQuerySystemTime(&timeStart);
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     while (TRUE)
     {
@@ -1312,14 +1312,14 @@ NTSTATUS PhHttpDownloadUrl(
 
         numberOfBytesReadTotal += numberOfBytesRead;
 
-        PhQuerySystemTime(&timeNow);
-        timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+        PhQueryUnbiasedInterruptTime(&timeNow);
+        timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
 
         callbackContext.Buffer = buffer;
         callbackContext.BufferLength = numberOfBytesRead;
         callbackContext.ReadLength = numberOfBytesReadTotal;
         callbackContext.TotalLength = numberOfBytesTotal;
-        callbackContext.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+        callbackContext.BitsPerSecond = timeTicks ? numberOfBytesReadTotal * PH_TICKS_PER_SEC / timeTicks : 0;
         callbackContext.Percent = numberOfBytesTotal ? (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100) : 0;
 
         if (Options->DownloadCallback)
@@ -2954,7 +2954,9 @@ static typeof(&DnsQueryEx) DnsQueryEx_I = NULL;
 static typeof(&DnsCancelQuery) DnsCancelQuery_I = NULL;
 #endif
 static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
 static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
+#endif
 static typeof(&DnsFree) DnsFree_I = NULL;
 
 static BOOLEAN PhDnsApiInitialized(
@@ -2976,7 +2978,9 @@ static BOOLEAN PhDnsApiInitialized(
             DnsCancelQuery_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsCancelQuery", 0);
 #endif
             DnsExtractRecordsFromMessage_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsExtractRecordsFromMessage_W", 0);
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
             DnsWriteQuestionToBuffer_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsWriteQuestionToBuffer_W", 0);
+#endif
             DnsFree_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsFree", 0);
         }
 
@@ -2987,7 +2991,9 @@ static BOOLEAN PhDnsApiInitialized(
             DnsCancelQuery_I &&
 #endif
             DnsExtractRecordsFromMessage_W_I &&
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
             DnsWriteQuestionToBuffer_W_I &&
+#endif
             DnsFree_I
             )
         {
@@ -3000,10 +3006,242 @@ static BOOLEAN PhDnsApiInitialized(
     return initialized;
 }
 
+static BOOLEAN PhDnsIsWideStringAscii(
+    _In_ PCWSTR String
+    )
+{
+    while (*String)
+    {
+        if (*String >= 0x80)
+            return FALSE;
+        String++;
+    }
+
+    return TRUE;
+}
+
+static PUCHAR PhDnsWriteDottedNameToPacket(
+    _Out_writes_bytes_(BufferLength) PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_opt_ PCWSTR Name
+    )
+{
+    PUCHAR bufferEnd = Buffer + BufferLength;
+    UCHAR labelLength = 0;
+    ULONG totalLength = 0;
+    SIZE_T nameLength;
+    CHAR utf8Buffer[256];
+    PCSTR namePtr;
+
+    if (BufferLength == 0)
+        return NULL;
+
+    if (Name)
+    {
+        nameLength = PhCountStringZ(Name);
+
+        if (nameLength >= 256)
+            return NULL;
+
+        PCWCH sourceBuffer = Name;
+        ULONG sourceLength = (ULONG)(nameLength * sizeof(WCHAR));
+        ULONG utf8Length = 0;
+        WCHAR canonicalBuffer[256];
+
+        if (!PhDnsIsWideStringAscii(Name))
+        {
+            UNICODE_STRING sourceString;
+            UNICODE_STRING canonicalString;
+
+            sourceString.Buffer = (PWCH)Name;
+            sourceString.Length = (USHORT)sourceLength;
+            sourceString.MaximumLength = sourceString.Length;
+
+            canonicalString.Buffer = canonicalBuffer;
+            canonicalString.Length = 0;
+            canonicalString.MaximumLength = sizeof(canonicalBuffer);
+
+            if (!NT_SUCCESS(RtlDowncaseUnicodeString(&canonicalString, &sourceString, FALSE)))
+                return NULL;
+
+            sourceBuffer = canonicalString.Buffer;
+            sourceLength = canonicalString.Length;
+        }
+
+        if (!NT_SUCCESS(RtlUnicodeToUTF8N(
+            utf8Buffer,
+            sizeof(utf8Buffer) - 1,
+            &utf8Length,
+            sourceBuffer,
+            sourceLength
+            )))
+        {
+            return NULL;
+        }
+
+        utf8Buffer[utf8Length] = ANSI_NULL;
+        namePtr = utf8Buffer;
+
+        if (*namePtr != '.')
+        {
+            PUCHAR labelLengthPtr = Buffer;
+            PUCHAR dest = Buffer + 1;
+            UCHAR ch = (UCHAR)*namePtr;
+
+            while (ch != '\0')
+            {
+                namePtr++;
+
+                if (dest >= bufferEnd)
+                    return NULL;
+
+                if (ch == '.')
+                {
+                    if (labelLength == 0 || labelLength > 63 || totalLength > 255)
+                        return NULL;
+
+                    *labelLengthPtr = labelLength;
+                    totalLength++;
+                    labelLengthPtr = dest++;
+                    labelLength = 0;
+                }
+                else
+                {
+                    *dest++ = ch;
+                    labelLength++;
+                    totalLength++;
+                }
+
+                ch = (UCHAR)*namePtr;
+            }
+
+            if (totalLength <= 255 && labelLength <= 63)
+            {
+                if (labelLength != 0)
+                {
+                    *labelLengthPtr = labelLength;
+                    if (dest >= bufferEnd)
+                        return NULL;
+                    *dest++ = 0;
+                }
+                else
+                {
+                    *labelLengthPtr = 0;
+                }
+
+                return dest;
+            }
+
+            return NULL;
+        }
+
+        if (namePtr[1] != '\0')
+            return NULL;
+    }
+
+    *Buffer = 0;
+    return Buffer + 1;
+}
+
+static PUCHAR PhDnsWriteQuestionToPacket(
+    _Out_writes_bytes_(BufferLength) PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Class
+    )
+{
+    PUCHAR bufferEnd = Buffer + BufferLength;
+    PUCHAR current;
+    PDNS_WIRE_QUESTION question;
+
+    if (!(current = PhDnsWriteDottedNameToPacket(Buffer, BufferLength, Name)))
+        return NULL;
+
+    if ((SIZE_T)(bufferEnd - current) < sizeof(DNS_WIRE_QUESTION))
+        return NULL;
+
+    question = (PDNS_WIRE_QUESTION)current;
+    question->QuestionType = _byteswap_ushort(Type);
+    question->QuestionClass = _byteswap_ushort(Class);
+
+    return PTR_ADD_OFFSET(current, sizeof(DNS_WIRE_QUESTION));
+}
+
+// If the buffer is too small, BufferSize receives the required size and the function
+// returns FALSE (matches the dnsapi DnsWriteQuestionToBuffer_W resize protocol).
+BOOLEAN PhpDnsWriteQuestionToBuffer(
+    _Inout_ PDNS_MESSAGE_BUFFER DnsBuffer,
+    _Inout_ PULONG BufferSize,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Class,
+    _In_ USHORT Xid,
+    _In_ BOOLEAN RecursionDesired
+    )
+{
+    ULONG bufferSize;
+    PUCHAR current;
+
+    bufferSize = *BufferSize;
+
+    if (bufferSize < 0x5C0)
+    {
+        *BufferSize = 0x5C0;
+        return FALSE;
+    }
+
+    memset(&DnsBuffer->MessageHead, 0, sizeof(DNS_HEADER));
+
+    current = PhDnsWriteQuestionToPacket(
+        (PUCHAR)DnsBuffer + sizeof(DNS_HEADER),
+        bufferSize - (ULONG)sizeof(DNS_HEADER),
+        Name,
+        Type,
+        Class
+        );
+
+    if (current)
+    {
+        DnsBuffer->MessageHead.QuestionCount = _byteswap_ushort(1);
+        DnsBuffer->MessageHead.RecursionDesired = RecursionDesired ? 1 : 0;
+        DnsBuffer->MessageHead.Xid = _byteswap_ushort(Xid);
+
+        *BufferSize = RtlPointerToOffset(DnsBuffer, current);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Signature-compatible replacement for dnsapi DnsWriteQuestionToBuffer_W (class is always IN).
+// Used by the test projects to validate output against the OS implementation.
+BOOLEAN WINAPI PhDnsWriteQuestionToBuffer_W(
+    _Inout_ PDNS_MESSAGE_BUFFER DnsBuffer,
+    _Inout_ PULONG BufferSize,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Xid,
+    _In_ BOOLEAN RecursionDesired
+    )
+{
+    return PhpDnsWriteQuestionToBuffer(
+        DnsBuffer,
+        BufferSize,
+        Name,
+        Type,
+        DNS_CLASS_INTERNET,
+        Xid,
+        RecursionDesired
+        );
+}
+
+
 _Success_(return)
 static NTSTATUS PhCreateDnsMessageBuffer(
     _In_ PCWSTR Message,
     _In_ USHORT MessageType,
+    _In_ USHORT MessageClass,
     _In_ USHORT MessageId,
     _Outptr_opt_result_maybenull_ PVOID* Buffer,
     _Out_opt_ ULONG* BufferLength
@@ -3017,6 +3255,32 @@ static NTSTATUS PhCreateDnsMessageBuffer(
     buffer = PhAllocateSafe(dnsBufferLength);
     if (!buffer) return STATUS_NO_MEMORY;
 
+#ifndef PH_NATIVE_DNS_WRITE_QUESTION
+    if (!(status = PhpDnsWriteQuestionToBuffer(
+        buffer,
+        &dnsBufferLength,
+        Message,
+        MessageType,
+        MessageClass,
+        MessageId,
+        TRUE
+        )))
+    {
+        PhFree(buffer);
+        buffer = PhAllocateSafe(dnsBufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
+
+        status = PhpDnsWriteQuestionToBuffer(
+            buffer,
+            &dnsBufferLength,
+            Message,
+            MessageType,
+            MessageClass,
+            MessageId,
+            TRUE
+            );
+    }
+#else
     if (!(status = !!DnsWriteQuestionToBuffer_W_I(
         buffer,
         &dnsBufferLength,
@@ -3039,6 +3303,7 @@ static NTSTATUS PhCreateDnsMessageBuffer(
             TRUE
             );
     }
+#endif
 
     if (status)
     {
@@ -3131,6 +3396,23 @@ NTSTATUS PhHttpDnsQuery(
     _Out_ PDNS_RECORD* DnsQueryRecord
     )
 {
+    return PhHttpDnsQueryEx(
+        DnsServerAddress,
+        DnsQueryMessage,
+        DnsQueryMessageType,
+        DNS_CLASS_INTERNET,
+        DnsQueryRecord
+        );
+}
+
+NTSTATUS PhHttpDnsQueryEx(
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageClass,
+    _Out_ PDNS_RECORD* DnsQueryRecord
+    )
+{
     static volatile USHORT seed = 0;
     NTSTATUS status;
     HINTERNET httpConnectionHandle = NULL;
@@ -3150,6 +3432,7 @@ NTSTATUS PhHttpDnsQuery(
     status = PhCreateDnsMessageBuffer(
         DnsQueryMessage,
         DnsQueryMessageType,
+        DnsQueryMessageClass,
         dnsQueryId,
         &dnsSendBuffer,
         &dnsSendBufferLength
