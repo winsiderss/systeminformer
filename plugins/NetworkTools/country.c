@@ -28,6 +28,7 @@ typedef struct _GEODB_IPADDR_CACHE_ENTRY
     PH_IP_ADDRESS RemoteAddress;
     PPH_STRING CountryName;
     ULONG CountryCode;
+    LONG CountryIconIndex;
 } GEODB_IPADDR_CACHE_ENTRY, *PGEODB_IPADDR_CACHE_ENTRY;
 
 typedef struct _GEODB_GEONAME_CACHE_TABLE
@@ -654,14 +655,16 @@ ULONG NetworkToolsGeoDbCacheHashtableHashFunction(
 }
 
 _Success_(return)
-BOOLEAN LookupCountryCode(
+BOOLEAN LookupCountryCodeEx(
     _In_ PH_IP_ADDRESS RemoteAddress,
-    _Out_ ULONG* CountryCode,
-    _Out_ PPH_STRING* CountryName
+    _Out_opt_ PULONG CountryCode,
+    _Out_opt_ PPH_STRING* CountryName,
+    _Out_opt_ PLONG CountryIconIndex
     )
 {
     ULONG countryCode = 0;
     PPH_STRING countryName = NULL;
+    LONG countryIconIndex = INT_ERROR;
     GEODB_IPADDR_CACHE_ENTRY newEntry;
 
     PhAcquireQueuedLockShared(&NetworkToolsGeoDbCacheHashtableLock);
@@ -676,12 +679,25 @@ BOOLEAN LookupCountryCode(
 
         if (entry)
         {
-            if (CountryCode)
-                *CountryCode = entry->CountryCode;
+            countryCode = entry->CountryCode;
+            countryIconIndex = entry->CountryIconIndex;
+
             if (CountryName)
                 PhSetReference(CountryName, entry->CountryName);
 
             PhReleaseQueuedLockShared(&NetworkToolsGeoDbCacheHashtableLock);
+
+            if (CountryCode)
+                *CountryCode = countryCode;
+
+            if (CountryIconIndex)
+            {
+                // The image list didn't exist when the entry was cached. (dmex)
+                if (countryIconIndex == INT_ERROR && countryCode)
+                    countryIconIndex = LookupCountryIcon(countryCode);
+
+                *CountryIconIndex = countryIconIndex;
+            }
 
             return TRUE;
         }
@@ -696,6 +712,10 @@ BOOLEAN LookupCountryCode(
         // We flush every few hours so the cache doesn't waste memory or become state. (dmex)
     }
 
+    // Resolve the icon index once and cache it so lookups don't rescan the resource table. (dmex)
+    if (CountryIconIndex && countryCode)
+        countryIconIndex = LookupCountryIcon(countryCode);
+
     PhAcquireQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
 
     if (!NetworkToolsGeoDbCacheHashtable)
@@ -709,6 +729,7 @@ BOOLEAN LookupCountryCode(
     }
 
     newEntry.CountryCode = countryCode;
+    newEntry.CountryIconIndex = countryIconIndex;
     PhSetReference(&newEntry.CountryName, countryName);
     memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));
     PhAddEntryHashtable(NetworkToolsGeoDbCacheHashtable, &newEntry);
@@ -717,10 +738,24 @@ BOOLEAN LookupCountryCode(
         *CountryCode = countryCode;
     if (CountryName)
         *CountryName = countryName;
+    else
+        PhClearReference(&countryName);
+    if (CountryIconIndex)
+        *CountryIconIndex = countryIconIndex;
 
     PhReleaseQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
 
     return TRUE;
+}
+
+_Success_(return)
+BOOLEAN LookupCountryCode(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ ULONG* CountryCode,
+    _Out_ PPH_STRING* CountryName
+    )
+{
+    return LookupCountryCodeEx(RemoteAddress, CountryCode, CountryName, NULL);
 }
 
 VOID NetworkToolsGeoDbFlushCache(

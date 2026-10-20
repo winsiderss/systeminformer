@@ -545,6 +545,40 @@ VOID PhpNetworkItemToRow6(
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
+static VOID NetworkItemEnableStats(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    if (NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
+    {
+        MIB_TCPROW tcpRow;
+        TCP_ESTATS_DATA_RW_v0 dataRw;
+        TCP_ESTATS_PATH_RW_v0 pathRw;
+
+        dataRw.EnableCollection = TRUE;
+        pathRw.EnableCollection = TRUE;
+
+        PhpNetworkItemToRow(&tcpRow, NetworkItem);
+
+        PhSetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+        PhSetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+    }
+    else if (NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
+    {
+        MIB_TCP6ROW tcp6Row;
+        TCP_ESTATS_DATA_RW_v0 dataRw;
+        TCP_ESTATS_PATH_RW_v0 pathRw;
+
+        dataRw.EnableCollection = TRUE;
+        pathRw.EnableCollection = TRUE;
+
+        PhpNetworkItemToRow6(&tcp6Row, NetworkItem);
+
+        PhSetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+        PhSetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+    }
+}
+
 VOID NTAPI NetworkNodeCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -558,56 +592,25 @@ VOID NTAPI NetworkNodeCreateCallback(
     {
         ULONG remoteCountryCode;
         PPH_STRING remoteCountryName;
+        LONG remoteCountryIconIndex;
 
-        if (LookupCountryCode(
+        if (LookupCountryCodeEx(
             networkNode->NetworkItem->RemoteEndpoint.Address,
             &remoteCountryCode,
-            &remoteCountryName
+            &remoteCountryName,
+            &remoteCountryIconIndex
             ))
         {
             PhMoveReference(&extension->RemoteCountryName, remoteCountryName);
-            extension->CountryIconIndex = LookupCountryIcon(remoteCountryCode);
+            extension->CountryIconIndex = remoteCountryIconIndex;
         }
 
         extension->CountryValid = TRUE;
     }
 
-    if (!extension->StatsEnabled)
-    {
-        if (NetworkExtensionEnabled)
-        {
-            if (networkNode->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
-            {
-                MIB_TCPROW tcpRow;
-                TCP_ESTATS_DATA_RW_v0 dataRw;
-                TCP_ESTATS_PATH_RW_v0 pathRw;
-
-                dataRw.EnableCollection = TRUE;
-                pathRw.EnableCollection = TRUE;
-
-                PhpNetworkItemToRow(&tcpRow, networkNode->NetworkItem);
-
-                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
-                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
-            }
-            else if (networkNode->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
-            {
-                MIB_TCP6ROW tcp6Row;
-                TCP_ESTATS_DATA_RW_v0 dataRw;
-                TCP_ESTATS_PATH_RW_v0 pathRw;
-
-                dataRw.EnableCollection = TRUE;
-                pathRw.EnableCollection = TRUE;
-
-                PhpNetworkItemToRow6(&tcp6Row, networkNode->NetworkItem);
-
-                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
-                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
-            }
-        }
-
-        extension->StatsEnabled = TRUE;
-    }
+    // Note: Extended TCP statistics are enabled by ProcessesUpdatedCallback once the
+    // node exists. This avoids blocking the UI thread with syscalls during node creation. (dmex)
+    extension->NodePresent = TRUE;
 }
 
 VOID UpdateNetworkNode(
@@ -862,13 +865,21 @@ VOID ProcessesUpdatedCallback(
         PNETWORK_EXTENSION extension = CONTAINING_RECORD(listEntry, NETWORK_EXTENSION, ListEntry);
         PPH_NETWORK_ITEM networkItem;
 
-        if (!extension || !extension->StatsEnabled)
+        if (!extension || !extension->NodePresent)
             continue;
 
         networkItem = extension->NetworkItem;
 
         if (!networkItem)
             continue;
+
+        if (!extension->StatsEnabled)
+        {
+            // Enable here instead of the UI thread. (dmex)
+            NetworkItemEnableStats(networkItem);
+            extension->StatsEnabled = TRUE;
+            continue;
+        }
 
         // eStats is only valid for established TCP connections.
         if (networkItem->State != MIB_TCP_STATE_ESTAB)

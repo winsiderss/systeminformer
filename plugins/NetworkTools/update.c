@@ -374,7 +374,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         BYTE buffer[PAGE_SIZE];
 
         memset(buffer, 0, sizeof(buffer));
-        PhQuerySystemTime(&timeStart);
+        PhQueryUnbiasedInterruptTime(&timeStart);
 
         while (TRUE)
         {
@@ -420,12 +420,12 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
             PhUpdateHash(&hashContext, buffer, bytesDownloaded);
 
             // Query the current time
-            PhQuerySystemTime(&timeNow);
+            PhQueryUnbiasedInterruptTime(&timeNow);
 
             // Calculate the number of ticks
             bytesTotalDownloaded += (ULONG64)isb.Information;
             timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
-            timeBitsPerSecond = bytesTotalDownloaded * PH_TICKS_PER_SEC / __max(timeTicks, 1);
+            timeBitsPerSecond = timeTicks ? bytesTotalDownloaded * PH_TICKS_PER_SEC / timeTicks : 0;
 
             // Update download status (TODO: Update on timer callback)
             {
