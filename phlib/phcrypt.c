@@ -5525,7 +5525,7 @@ NTSTATUS NTAPI PhSymCryptInitializeMultiHash(
     if (!ParallelHashContext || NumberOfHashes == 0)
         return STATUS_INVALID_PARAMETER;
 
-    memset(ParallelHashContext, 0, sizeof(PPH_SYMCRYPT_MULTI_HASH_CONTEXT));
+    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_MULTI_HASH_CONTEXT));
 
     switch (Algorithm)
     {
@@ -5826,7 +5826,7 @@ VOID NTAPI PhSymCryptCleanupMultiHash(
         ParallelHashContext->pbScratchBuffer = NULL;
     }
 
-    memset(ParallelHashContext, 0, sizeof(PPH_SYMCRYPT_MULTI_HASH_CONTEXT));
+    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_MULTI_HASH_CONTEXT));
 }
 
 /**
