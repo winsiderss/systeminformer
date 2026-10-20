@@ -308,9 +308,9 @@ typedef struct _KEY_LAYER_INFORMATION
  * \remarks The native x64 and WoW64 paths dispatch classes
  * 0 through 5. KeyWriteTimeInformation (0) requires exactly 8 bytes; supported
  * flag/tag classes (1 through 5) require exactly 4. Both shorter and longer inputs
- * return STATUS_INFO_LENGTH_MISMATCH. Unsupported selectors, including
+ * return STATUS_INFO_LENGTH_MISMATCH. Unsupported infoclasses, including
  * KeySetLayerInformation (6) and MaxKeySetInfoClass (7), return
- * STATUS_INVALID_INFO_CLASS, unlike the query APIs' invalid-selector status.
+ * STATUS_INVALID_INFO_CLASS, unlike the query APIs' invalid-infoclass status.
  *
  * The ordinary handle check requires KEY_SET_VALUE for classes 0 through 4.
  * KeySetHandleTagsInformation requests no specific access and accepts a valid
@@ -897,7 +897,7 @@ NtCreateKeyTransacted(
  * \param[out] KeyHandle Required writable output receiving a caller-owned key
  * handle on success; close it with NtClose. Initialize it to NULL and check the
  * return status rather than assuming every failure clears the output.
- * \param[in] DesiredAccess Requested rights on the opened key. View selectors
+ * \param[in] DesiredAccess Requested rights on the opened key. View infoclasses
  * KEY_WOW64_32KEY (0x200) / KEY_WOW64_64KEY (0x100) are not key operation rights.
  * The ordinary open with DesiredAccess = 0 returns STATUS_ACCESS_DENIED;
  * this differs from reducing an existing handle to zero access by duplication.
@@ -959,7 +959,7 @@ NtOpenKeyTransacted(
  *
  * \param[out] KeyHandle Required caller-owned output; close successful handles with NtClose. Initialize it to
  * NULL before calling and consume it only on success.
- * \param[in] DesiredAccess Requested key rights and optional WOW64 view selector, not a creation-option mask.
+ * \param[in] DesiredAccess Requested key rights and optional WOW64 view infoclass, not a creation-option mask.
  * Existing key security still controls granted access.
  * \param[in] ObjectAttributes Initialized counted native or relative key path. The native user-mode path
  * requires 4-byte alignment of this structure and 2-byte alignment of a nonempty name buffer. Prefer natural
@@ -995,7 +995,7 @@ NtOpenKeyEx(
  *
  * \param[out] KeyHandle Required output. A successful handle belongs to the caller and must be closed with
  * NtClose independently of transaction outcome.
- * \param[in] DesiredAccess Requested rights on the key and optional view selector.
+ * \param[in] DesiredAccess Requested rights on the key and optional view infoclass.
  * \param[in] ObjectAttributes Initialized counted native/relative key path; security information does not
  * replace the existing key's security descriptor.
  * \param[in] OpenOptions Same entry mask 0x1C as NtOpenKeyEx: BACKUP_RESTORE (0x4), OPEN_LINK (0x8),
@@ -1117,7 +1117,7 @@ NtDeleteValueKey(
  * \param[in] KeyHandle Normally requires KEY_QUERY_VALUE. KeyNameInformation
  * and KeyHandleTagsInformation instead require any nonzero granted access mask
  * on the ordinary path; a valid zero-access handle is still denied.
- * \param[in] KeyInformationClass A KEY_INFORMATION_CLASS selector. The native/WoW64 paths accept 0 through 8; unsupported classes return
+ * \param[in] KeyInformationClass A KEY_INFORMATION_CLASS infoclass. The native/WoW64 paths accept 0 through 8; unsupported classes return
  * STATUS_INVALID_PARAMETER, not STATUS_INVALID_INFO_CLASS.
  * \param[out] KeyInformation Caller-owned output storage. NULL with Length = 0
  * supports size discovery. Prefer natural alignment; the native entry probes
@@ -1161,8 +1161,8 @@ NtQueryKey(
  * \param[in] KeyHandle Ordinarily requires KEY_SET_VALUE (0x2) for classes 0 through 4.
  * KeySetHandleTagsInformation accepts a valid zero-access key handle; querying those tags through that handle
  * is still denied.
- * \param[in] KeySetInformationClass A KEY_SET_INFORMATION_CLASS selector. The native/WoW64 paths support 0
- * through 5, returning STATUS_INVALID_INFO_CLASS for unsupported selectors, including class 6.
+ * \param[in] KeySetInformationClass A KEY_SET_INFORMATION_CLASS infoclass. The native/WoW64 paths support 0
+ * through 5, returning STATUS_INVALID_INFO_CLASS for unsupported infoclasses, including class 6.
  * \param[in] KeySetInformation Readable caller-owned input, captured before the ordinary handle access check.
  * The caller's bytes are not modified or retained. NULL is not valid for a supported exact-sized request. The
  * x64/WoW64 paths accept unaligned readable input, including the 8-byte time; naturally aligned structures
@@ -1170,9 +1170,9 @@ NtQueryKey(
  * \param[in] KeySetInformationLength Exact byte count: 8 for class 0 and 4 for classes 1 through 5. Extra
  * capacity is not accepted as a larger valid record.
  * \return STATUS_SUCCESS, STATUS_INFO_LENGTH_MISMATCH for an incorrect size, STATUS_INVALID_INFO_CLASS for an
- * unsupported selector, or another failure. Class 1 returns STATUS_INVALID_PARAMETER when UserFlags contains
+ * unsupported infoclass, or another failure. Class 1 returns STATUS_INVALID_PARAMETER when UserFlags contains
  * bits above 0x0F; other flag classes have different masking/transition rules.
- * \remarks Selector and exact-length checks precede input capture and normal handle validation. A bad input
+ * \remarks InfoClass and exact-length checks precede input capture and normal handle validation. A bad input
  * pointer can therefore fail before access is checked; do not infer permissions from error precedence. WoW64
  * forwards supported input pointers/lengths directly, with no record conversion or realignment. Input is
  * logically read-only even for unaligned data. Ordinary classes 1 through 4 also refresh last-write time;
@@ -1201,7 +1201,7 @@ NtSetInformationKey(
  * zero-length descriptor selects the default value. Trailing WCHAR NULs are trimmed; embedded NULs remain
  * name characters.
  * \param[in] KeyValueInformationClass Classes 0 through 4 are accepted; class 5 (KeyValueLayerInformation)
- * and other selectors return STATUS_INVALID_PARAMETER. Preserve newer class definitions for other OS targets.
+ * and other infoclasses return STATUS_INVALID_PARAMETER. Preserve newer class definitions for other OS targets.
  * \param[out] KeyValueInformation Optional caller buffer, required when Length is nonzero. Native x64 checks
  * 4-byte alignment for all accepted classes on this build; portable Align64 callers should still supply an
  * 8-byte-aligned buffer.
@@ -1345,7 +1345,7 @@ NtQueryMultipleValueKey(
  * Indices are not stable identifiers: mutations can change which child an index
  * selects, and repeated calls need not return the same child.
  * \param[in] KeyInformationClass KeyBasicInformation, KeyNodeInformation or
- * KeyFullInformation (0 through 2). Other selectors return STATUS_INVALID_PARAMETER
+ * KeyFullInformation (0 through 2). Other infoclasses return STATUS_INVALID_PARAMETER
  * on the native/WoW64 paths, including classes accepted by NtQueryKey.
  * \param[out] KeyInformation Caller-owned output buffer. NULL with Length = 0
  * supports sizing for an existing index. Prefer naturally aligned storage;
