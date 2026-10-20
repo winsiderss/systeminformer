@@ -114,7 +114,7 @@ VOID AtpFindHandles(
         return;
     }
 
-    context.Deadline = NtGetTickCount64() + seconds * 1000;
+    context.Deadline = PhQueryWaitTime() + seconds * PH_TICKS_PER_SEC;
 
     AtInitializeRows(&context.Rows, Call->Arguments);
     processHandles = PhCreateSimpleHashtable(16);
@@ -128,7 +128,7 @@ VOID AtpFindHandles(
         PPH_STRING objectName = NULL;
         PPH_STRING bestName = NULL;
 
-        if (NtGetTickCount64() > context.Deadline)
+        if (PhQueryWaitTime() > context.Deadline)
         {
             context.TimedOut = TRUE;
             break;
@@ -419,7 +419,7 @@ VOID AtpFindModules(
     if (AtGetArgumentUInt64(Call->Arguments, "max_seconds", &seconds))
         seconds = min(max(seconds, 1), AT_FIND_MAXIMUM_SECONDS);
 
-    context.Deadline = NtGetTickCount64() + seconds * 1000;
+    context.Deadline = PhQueryWaitTime() + seconds * PH_TICKS_PER_SEC;
     context.VerifyCache = PhCreateHashtable(sizeof(AT_VERIFY_ENTRY), AtpVerifyCacheCompare, AtpVerifyCacheHash, 64);
 
     AtInitializeRows(&context.Rows, Call->Arguments);
@@ -429,7 +429,7 @@ VOID AtpFindModules(
     {
         PPH_PROCESS_ITEM processItem = processItems[i];
 
-        if (NtGetTickCount64() > context.Deadline)
+        if (PhQueryWaitTime() > context.Deadline)
         {
             context.TimedOut = TRUE;
             break;
@@ -776,7 +776,7 @@ NTSTATUS NTAPI AtpObjectDirectoryCallback(
 
     // STATUS_NO_MORE_ENTRIES is the only status PhEnumDirectoryObjects stops on; anything else and
     // it keeps calling back over the rest of the directory.
-    if (NtGetTickCount64() > context->Deadline)
+    if (PhQueryWaitTime() > context->Deadline)
     {
         context->TimedOut = TRUE;
         return STATUS_NO_MORE_ENTRIES;
@@ -896,7 +896,7 @@ VOID AtpListObjectDirectory(
     if (AtGetArgumentUInt64(Call->Arguments, "max_seconds", &seconds))
         seconds = min(max(seconds, 1), AT_FIND_MAXIMUM_SECONDS);
 
-    context.Deadline = NtGetTickCount64() + seconds * 1000;
+    context.Deadline = PhQueryWaitTime() + seconds * PH_TICKS_PER_SEC;
     context.Path = path;
 
     AtInitializeRows(&context.Rows, Call->Arguments);
