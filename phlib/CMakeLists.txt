@@ -201,6 +201,7 @@ target_link_libraries(phlib PRIVATE
     kphlib_um
     thirdparty
     gdiplus
+    samlib
 )
 
 add_library(phlib_interface INTERFACE)
