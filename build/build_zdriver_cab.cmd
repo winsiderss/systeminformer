@@ -44,6 +44,9 @@ if errorlevel 1 exit /b %errorlevel%
 call :DeleteFile "%CabPath%"
 if errorlevel 1 exit /b %errorlevel%
 
+call :RestoreNugetPackages
+if errorlevel 1 exit /b %errorlevel%
+
 call "%~dp0build_zdriver.cmd" release rebuild nopause
 if errorlevel 1 (
     echo [-] Build failed, CAB was not generated.
@@ -106,6 +109,27 @@ signtool sign /fd sha256 /n "Winsider" "%CabPath%"
 if errorlevel 1 exit /b %errorlevel%
 
 echo [+] CAB Signed!
+exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: RestoreNugetPackages
+REM Description: Restores the pinned Windows SDK and WDK NuGet packages from
+REM              packages.config into .\packages. Directory.Build.props imports the
+REM              kits from there; without them the build silently falls back to
+REM              whatever kit is installed on the machine.
+REM -----------------------------------------------------------------------------
+:RestoreNugetPackages
+where nuget.exe >nul 2>&1
+if errorlevel 1 (
+    echo [-] nuget.exe not found on PATH.
+    exit /b 1
+)
+echo [.] Restoring NuGet packages...
+nuget restore "%~dp0..\packages.config" -PackagesDirectory "%~dp0..\packages" -NonInteractive -Verbosity quiet
+if errorlevel 1 (
+    echo [-] NuGet restore failed
+    exit /b 1
+)
 exit /b 0
 
 REM -----------------------------------------------------------------------------
