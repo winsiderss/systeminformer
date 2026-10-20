@@ -5481,11 +5481,140 @@ PPH_STRING PhGetLocalAppDataDirectory(
 }
 
 /**
+ * Gets the roaming application data directory of the user associated with the shadow
+ * administrator account of the current process (Administrator Protection).
+ *
+ * \return A pointer to a string containing the Win32 path, or NULL if the current process is not
+ * running as a shadow administrator account or the directory could not be determined.
+ * \remarks Under Administrator Protection, elevated processes run as a separate shadow administrator
+ * account with its own user profile. The returned string is cached and must not be dereferenced.
+ */
+PPH_STRING PhpGetShadowAdminRoamingAppDataDirectory(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING shadowAdminAppDataDirectory = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static CONST PH_STRINGREF profileListKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\");
+        static CONST PH_STRINGREF shellFoldersKeyName = PH_STRINGREF_INIT(L"\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders");
+        static CONST PH_STRINGREF userProfileVariable = PH_STRINGREF_INIT(L"%USERPROFILE%");
+        static CONST PH_STRINGREF defaultAppDataPath = PH_STRINGREF_INIT(L"\\AppData\\Roaming");
+        PH_TOKEN_ATTRIBUTES tokenAttributes;
+        PSID associatedSid;
+        PPH_STRING associatedSidString = NULL;
+        PPH_STRING profileDirectory = NULL;
+        PPH_STRING appDataDirectory = NULL;
+        PPH_STRING keyName;
+        HANDLE keyHandle;
+
+        tokenAttributes = PhGetOwnTokenAttributes();
+
+        if (tokenAttributes.TokenSid && NT_SUCCESS(PhGetShadowAdminAssociatedSid(tokenAttributes.TokenSid, &associatedSid, NULL)))
+        {
+            associatedSidString = PhSidToStringSid(associatedSid);
+            PhFree(associatedSid);
+        }
+
+        // Query the profile directory of the associated user. (dmex)
+
+        if (associatedSidString)
+        {
+            keyName = PhConcatStringRef2(&profileListKeyName, &associatedSidString->sr);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_LOCAL_MACHINE,
+                &keyName->sr,
+                0
+                )))
+            {
+                PPH_STRING profileImagePath;
+
+                if (profileDirectory = PhQueryRegistryStringZ(keyHandle, L"ProfileImagePath"))
+                {
+                    if (profileImagePath = PhExpandEnvironmentStrings(&profileDirectory->sr))
+                    {
+                        PhMoveReference(&profileDirectory, profileImagePath);
+                    }
+                }
+
+                NtClose(keyHandle);
+            }
+
+            PhDereferenceObject(keyName);
+        }
+
+        // Query the (possibly redirected) roaming application data directory of the associated user.
+        // Note: %USERPROFILE% must be resolved against the associated user and not the environment
+        // of the current process since that references the shadow administrator profile. (dmex)
+
+        if (associatedSidString && !PhIsNullOrEmptyString(profileDirectory))
+        {
+            keyName = PhConcatStringRef2(&associatedSidString->sr, &shellFoldersKeyName);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_USERS,
+                &keyName->sr,
+                0
+                )))
+            {
+                PPH_STRING appDataValue;
+
+                if (appDataValue = PhQueryRegistryStringZ(keyHandle, L"AppData"))
+                {
+                    if (PhStartsWithStringRef(&appDataValue->sr, &userProfileVariable, TRUE))
+                    {
+                        PH_STRINGREF remainingPath;
+
+                        remainingPath.Buffer = PTR_ADD_OFFSET(appDataValue->Buffer, userProfileVariable.Length);
+                        remainingPath.Length = appDataValue->Length - userProfileVariable.Length;
+
+                        appDataDirectory = PhConcatStringRef2(&profileDirectory->sr, &remainingPath);
+                    }
+                    else
+                    {
+                        appDataDirectory = PhExpandEnvironmentStrings(&appDataValue->sr);
+                    }
+
+                    PhDereferenceObject(appDataValue);
+                }
+
+                NtClose(keyHandle);
+            }
+
+            PhDereferenceObject(keyName);
+
+            if (PhIsNullOrEmptyString(appDataDirectory))
+            {
+                PhMoveReference(&appDataDirectory, PhConcatStringRef2(&profileDirectory->sr, &defaultAppDataPath));
+            }
+        }
+
+        shadowAdminAppDataDirectory = appDataDirectory;
+
+        PhClearReference(&profileDirectory);
+        PhClearReference(&associatedSidString);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return shadowAdminAppDataDirectory;
+}
+
+/**
  * Gets the roaming application data directory for System Informer, optionally appending a file name.
  *
  * \param FileName The file name to append, or NULL to return the directory only.
  * \param NativeFileName TRUE to use the native NT path, FALSE for Win32 path.
  * \return A pointer to a string containing the full path, or NULL if the directory could not be determined.
+ * \remarks When running as a shadow administrator account (Administrator Protection) the directory of
+ * the associated user is returned so settings are shared between elevated and non-elevated instances.
  */
 PPH_STRING PhGetRoamingAppDataDirectory(
     _In_opt_ PCPH_STRINGREF FileName,
@@ -5493,9 +5622,28 @@ PPH_STRING PhGetRoamingAppDataDirectory(
     )
 {
     PPH_STRING roamingAppDataFileName = NULL;
-    PPH_STRING roamingAppDataDirectory;
+    PPH_STRING roamingAppDataDirectory = NULL;
+#if !defined(PH_BUILD_MSIX)
+    PPH_STRING shadowAdminAppDataDirectory;
 
-    if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName))
+    if (shadowAdminAppDataDirectory = PhpGetShadowAdminRoamingAppDataDirectory())
+    {
+        static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemInformer\\");
+
+        roamingAppDataDirectory = PhConcatStringRef2(&shadowAdminAppDataDirectory->sr, &directoryName);
+
+        if (NativeFileName)
+        {
+            PhMoveReference(&roamingAppDataDirectory, PhDosPathNameToNtPathName(&roamingAppDataDirectory->sr));
+        }
+    }
+    else
+#endif
+    {
+        roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName);
+    }
+
+    if (roamingAppDataDirectory)
     {
         if (!FileName) return roamingAppDataDirectory;
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
