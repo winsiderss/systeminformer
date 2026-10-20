@@ -869,6 +869,17 @@ PhHttpDnsQuery(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpDnsQueryEx(
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageClass,
+    _Out_ PDNS_RECORD* DnsQueryRecord
+    );
+
+PHLIBAPI
 PDNS_RECORD
 NTAPI
 PhDnsQuery(
