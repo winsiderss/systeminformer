@@ -246,6 +246,26 @@ PhShowEMenu(
     _In_ ULONG Y
     );
 
+// Internal: DirectComposition menu (emenudx.cpp). Returns FALSE when the menu
+// could not be shown, in which case the caller falls back to TrackPopupMenu.
+// SelectedItem is always written (NULL on failure or cancel).
+BOOLEAN
+PhShowEMenuDX(
+    _In_ PPH_EMENU Menu,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Align,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _In_ BOOLEAN DarkMode,
+    _Out_ PPH_EMENU_ITEM* SelectedItem
+    );
+
+VOID
+PhEMenuDxUnregisterClass(
+    VOID
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI
