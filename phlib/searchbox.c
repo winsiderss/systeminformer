@@ -381,7 +381,7 @@ VOID PhSearchControlCreateTooltip(
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            ParentWindow,
+            NULL,
             NULL,
             NULL,
             NULL
@@ -391,7 +391,7 @@ VOID PhSearchControlCreateTooltip(
             Context->TooltipHandle,
             HWND_TOPMOST,
             0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
             );
 
         memset(&toolInfo, 0, sizeof(TOOLINFO));
