@@ -147,7 +147,7 @@ NTSTATUS
 NTAPI
 BcdSetLogging(
     _In_ BCD_MESSAGE_TYPE BcdLoggingLevel,
-    _In_ PBCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
+    _In_opt_ PBCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
     );
 
 /**
@@ -170,7 +170,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdGetSystemStorePath(
-    _Out_ PWSTR* BcdSystemStorePath // RtlFreeHeap(RtlProcessHeap(), 0, BcdSystemStorePath);
+    _Outptr_ PWSTR* BcdSystemStorePath // Free *BcdSystemStorePath with RtlFreeHeap(RtlProcessHeap(), 0, ...).
     );
 
 /**
@@ -341,7 +341,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStore(
-    _In_ PCUNICODE_STRING BcdFilePath,
+    _In_opt_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_OPEN_FLAGS BcdOpenFlags,
     _Out_ PHANDLE BcdStoreHandle
     );
