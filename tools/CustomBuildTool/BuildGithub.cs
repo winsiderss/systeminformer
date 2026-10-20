@@ -859,9 +859,15 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object Obj)
+        {
+            return Obj is DeployFile file && string.Equals(this.Name, file.Name, StringComparison.Ordinal);
+        }
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.Name.GetHashCode();
+            return this.Name?.GetHashCode(StringComparison.Ordinal) ?? 0;
         }
     }
 }
