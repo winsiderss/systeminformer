@@ -70,7 +70,7 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG_PTR WindowCallbackCookie = 0;
 static PH_INITONCE PhpBufferedPaintInitOnce = PH_INITONCE_INIT;
-static BOOLEAN PhpBufferedPaintUxThemeInitialized = FALSE;
+static ULONG PhpBufferedPaintUxThemeFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
