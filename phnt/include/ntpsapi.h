@@ -4874,13 +4874,15 @@ PssNtFreeRemoteSnapshot(
 
 // rev
 /**
- * The PssNtQuerySnapshot routine queries information from the specified snapshot.
+ * The PssNtQuerySnapshot routine retrieves information from a native snapshot after PssNtValidateDescriptor.
+ * The inspected client requires an exact class-specific BufferLength and returns STATUS_INFO_LENGTH_MISMATCH
+ * for a different size. Embedded handles and pointers are not newly allocated ownership transfers. NULL snapshot
+ * rejection occurs before output access; that limited path does not validate successful snapshot queries.
  *
- * \param SnapshotHandle Handle to the snapshot.
- * \param InformationClass The information class to query.
- * \param Buffer Pointer to a buffer that receives the queried information.
- * \param BufferLength Length of the buffer.
- * \return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Handle to the snapshot to query.
+ * \param InformationClass Type of information to retrieve.
+ * \param Buffer Receives the requested information.
+ * \param BufferLength Size of Buffer in bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -4893,6 +4895,18 @@ PssNtQuerySnapshot(
     );
 
 // rev
+/**
+ * Native PSS walk state: 16 bytes on x64, 8 bytes on x86; distinct from HPSSWALK.
+ * Zero-initialize before use. MappedBase owns a section view; Position is an
+ * entry index or byte offset according to the walk class. Release the view
+ * through PssNtFreeWalkMarker before discarding or changing the walk.
+ */
+typedef struct _PSSNT_WALK_MARKER
+{
+    PVOID MappedBase;
+    ULONG_PTR Position;
+} PSSNT_WALK_MARKER, *PPSSNT_WALK_MARKER;
+
 typedef struct _PSSNT_WALK_MARKER_INFO
 {
     ULONG Signature; // Win32: 0x4D575350 // 'PSSM'
@@ -4901,15 +4915,19 @@ typedef struct _PSSNT_WALK_MARKER_INFO
 
 // rev
 /**
- * The PssNtWalkSnapshot routine walks a process snapshot, retrieving information about threads, modules, or memory allocations.
+ * The PssNtWalkSnapshot routine walks native snapshot records using a caller-owned two-word marker, not a Win32
+ * HPSSWALK handle. Zero-initialize the marker and release its view with PssNtFreeWalkMarker. Position is an index
+ * for auxiliary pages and a byte offset for variable-length streams. NULL Buffer requests availability without
+ * advancing a record; the marker can still acquire a mapping, and STATUS_MORE_ENTRIES indicates an available record. Exact
+ * output sizes for classes 0/1/2/3 are 80/80/72/144 bytes on x64 and 48/52/48/112 bytes on x86 in the
+ * inspected build. Reuse a marker only with its original snapshot and class. Returned pointers can refer into
+ * the marker mapping.
  *
- * \param SnapshotHandle A handle to the process snapshot.
- * \param InformationClass The information class identifying the type of data to walk (PSS_WALK_INFORMATION_CLASS).
- * \param WalkMarkerHandle A handle to the walk marker tracking position within the snapshot.
- * \param Buffer A pointer to the buffer receiving the snapshot record.
- * \param BufferLength The size, in bytes, of the buffer pointed to by Buffer.
- * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalksnapshot
+ * \param SnapshotHandle Handle to the snapshot to walk.
+ * \param InformationClass Type of records to walk.
+ * \param WalkMarker Caller-owned walk state, initialized to zero before the first call.
+ * \param Buffer Receives a record, or NULL to check availability without advancing.
+ * \param BufferLength Size of Buffer in bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -4917,33 +4935,39 @@ NTAPI
 PssNtWalkSnapshot(
     _In_ HANDLE SnapshotHandle,
     _In_ ULONG InformationClass,
-    _In_ HANDLE WalkMarkerHandle,
-    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _Inout_ PPSSNT_WALK_MARKER WalkMarker,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
 
 // rev
 /**
- * The PssNtFreeWalkMarker routine frees a walk marker created for walking a process snapshot.
+ * The PssNtFreeWalkMarker routine unmaps the view held by a native PSS walk marker and clears both pointer-sized
+ * fields. The caller-owned marker itself is not freed. A non-NULL pointer to the full record is required even when
+ * MappedBase is NULL.
+ * There is no meaningful return value: the empty path leaves the return register unspecified, and the Win32
+ * caller ignores it. The inspected implementation clears the record even if an attempted unmap fails. Never
+ * supply arbitrary addresses or a single HANDLE slot.
  *
- * \param WalkMarkerHandle A pointer to the walk marker handle to free.
- * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalkmarkerfree
+ * \param WalkMarker Caller-owned marker whose mapped view is released and fields are cleared.
  */
 NTSYSAPI
-NTSTATUS
+VOID
 NTAPI
 PssNtFreeWalkMarker(
-    _Inout_ PHANDLE WalkMarkerHandle
+    _Inout_ PPSSNT_WALK_MARKER WalkMarker
     );
 
 // rev
 /**
- * The PssNtValidateDescriptor routine validates a process snapshot descriptor.
+ * The PssNtValidateDescriptor routine checks the signature at the start of a native snapshot descriptor. NULL
+ * returns STATUS_INVALID_HANDLE. A readable descriptor with a wrong signature raises an exception; an unreadable
+ * pointer may fault.
+ * ExceptionAddress supplies the diagnostic exception address. This is not a safe arbitrary-handle probe. A
+ * matching signature alone does not validate the rest of a snapshot.
  *
- * \param SnapshotHandle A handle to the process snapshot.
- * \param ExceptionAddress An optional return address where an exception occurred.
- * \return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Handle to the snapshot descriptor to validate.
+ * \param ExceptionAddress Optional diagnostic exception address.
  */
 NTSYSAPI
 NTSTATUS
