@@ -4530,7 +4530,6 @@ NTSTATUS PhInitializeImageVersionInfoCached(
     PH_IMAGE_VERSION_INFO versionInfo = { 0 };
     PH_FILE_VERSIONINFO_CACHE_ENTRY newEntry;
 
-    if (PhpImageVersionInfoCacheHashtable)
     {
         PPH_FILE_VERSIONINFO_CACHE_ENTRY entry;
         PH_FILE_VERSIONINFO_CACHE_ENTRY lookupEntry;
@@ -4538,17 +4537,20 @@ NTSTATUS PhInitializeImageVersionInfoCached(
         lookupEntry.FileName = FileName;
 
         PhAcquireQueuedLockShared(&PhpImageVersionInfoCacheLock);
-        entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
-        PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
-
-        if (entry)
+        if (PhpImageVersionInfoCacheHashtable)
         {
-            PhSetReference(&ImageVersionInfo->CompanyName, entry->CompanyName);
-            PhSetReference(&ImageVersionInfo->FileDescription, entry->FileDescription);
-            PhSetReference(&ImageVersionInfo->FileVersion, entry->FileVersion);
-            PhSetReference(&ImageVersionInfo->ProductName, entry->ProductName);
-            return STATUS_SUCCESS;
+            entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
+            if (entry)
+            {
+                PhSetReference(&ImageVersionInfo->CompanyName, entry->CompanyName);
+                PhSetReference(&ImageVersionInfo->FileDescription, entry->FileDescription);
+                PhSetReference(&ImageVersionInfo->FileVersion, entry->FileVersion);
+                PhSetReference(&ImageVersionInfo->ProductName, entry->ProductName);
+                PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
+                return STATUS_SUCCESS;
+            }
         }
+        PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
     }
 
     if (IsSubsystemProcess)
@@ -4572,6 +4574,13 @@ NTSTATUS PhInitializeImageVersionInfoCached(
         }
     }
 
+    PhSetReference(&newEntry.FileName, FileName);
+    PhSetReference(&newEntry.CompanyName, versionInfo.CompanyName);
+    PhSetReference(&newEntry.FileDescription, versionInfo.FileDescription);
+    PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
+    PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
+
+    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
     if (!PhpImageVersionInfoCacheHashtable)
     {
         PhpImageVersionInfoCacheHashtable = PhCreateHashtable(
@@ -4582,14 +4591,14 @@ NTSTATUS PhInitializeImageVersionInfoCached(
             );
     }
 
-    PhSetReference(&newEntry.FileName, FileName);
-    PhSetReference(&newEntry.CompanyName, versionInfo.CompanyName);
-    PhSetReference(&newEntry.FileDescription, versionInfo.FileDescription);
-    PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
-    PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
-
-    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
-    PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry);
+    if (!PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry))
+    {
+        PhDereferenceObject(newEntry.FileName);
+        if (newEntry.CompanyName) PhDereferenceObject(newEntry.CompanyName);
+        if (newEntry.FileDescription) PhDereferenceObject(newEntry.FileDescription);
+        if (newEntry.FileVersion) PhDereferenceObject(newEntry.FileVersion);
+        if (newEntry.ProductName) PhDereferenceObject(newEntry.ProductName);
+    }
     PhReleaseQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
 
     ImageVersionInfo->CompanyName = versionInfo.CompanyName;
