@@ -1409,4 +1409,174 @@ typedef struct _AFD_RIO_COMMAND_RESIZE_RQ_PAIR
     ULONGLONG ReceiveQueueBuffer;
 } AFD_RIO_COMMAND_RESIZE_RQ_PAIR, *PAFD_RIO_COMMAND_RESIZE_RQ_PAIR;
 
+/*
+ * =====================================================================
+ *  mswsock.dll WSPIoctl  --  Winsock control codes & AFD mapping
+ *  Reverse-engineered from mswsock.dll  WSPIoctl @ 0x1800191b0.
+ *  Machine-usable definitions. All Winsock-side codes are normally in
+ *  winsock2.h / ws2def.h / mstcpip.h / afunix.h; guarded to avoid
+ *  redefinition when those headers are also included.
+ * =====================================================================
+ */
+
+/* ---- Winsock IOCTL framework (winsock2.h) ------------------------- */
+#ifndef _WINSOCK2API_
+#ifndef MSWSOCK_IOC_FRAMEWORK_DEFINED
+#define MSWSOCK_IOC_FRAMEWORK_DEFINED
+#define IOCPARM_MASK    0x7fUL
+#define IOC_VOID        0x20000000UL
+#define IOC_OUT         0x40000000UL
+#define IOC_IN          0x80000000UL
+#define IOC_INOUT       (IOC_IN | IOC_OUT)          /* 0xC0000000 */
+
+#define IOC_UNIX        0x00000000UL
+#define IOC_WS2         0x08000000UL
+#define IOC_PROTOCOL    0x10000000UL
+#define IOC_VENDOR      0x18000000UL
+
+#define _WSAIO(x,y)     (IOC_VOID  | (x) | (y))
+#define _WSAIOR(x,y)    (IOC_OUT   | (x) | (y))
+#define _WSAIOW(x,y)    (IOC_IN    | (x) | (y))
+#define _WSAIORW(x,y)   (IOC_INOUT | (x) | (y))
+#endif /* MSWSOCK_IOC_FRAMEWORK_DEFINED */
+#endif /* _WINSOCK2API_ */
+
+/* ---- Berkeley/UNIX ioctls (winsock2.h) ---------------------------- */
+#ifndef MSWSOCK_BSD_IOCTLS_DEFINED
+#define MSWSOCK_BSD_IOCTLS_DEFINED
+#define AFD_FIONBIO       0x8004667EUL /* _IOW('f',126,u_long) set/clear non-blocking (local flag) */
+#define AFD_FIONREAD      0x4004667FUL /* _IOR('f',127,u_long) bytes readable -> base provider (0x20000001) */
+#define AFD_SIOCATMARK    0x40047307UL /* _IOR('s',7,u_long)   at OOB mark -> base provider */
+#endif /* MSWSOCK_BSD_IOCTLS_DEFINED */
+
+/* ---- Winsock2 SIO_* codes handled by WSPIoctl (ws2def.h/mstcpip.h)- */
+#ifndef MSWSOCK_WSPIOCTL_SIO_DEFINED
+#define MSWSOCK_WSPIOCTL_SIO_DEFINED
+#ifndef SIO_ENABLE_CIRCULAR_QUEUEING
+#define SIO_ENABLE_CIRCULAR_QUEUEING       0x28000002UL /* _WSAIO(IOC_WS2,2)   local toggle */
+#endif
+#define SIO_ADDRESS_LIST_CHANGE_           0x28000017UL /* _WSAIO(IOC_WS2,23)  -> AFD_ADDRESS_LIST_CHANGE 0x120B4 */
+#ifndef SIO_GET_BROADCAST_ADDRESS
+#define SIO_GET_BROADCAST_ADDRESS          0x48000005UL /* _WSAIOR(IOC_WS2,5) */
+#endif
+#define SIO_ADDRESS_LIST_QUERY_            0x48000016UL /* _WSAIOR(IOC_WS2,22) -> AFD_ADDRESS_LIST_QUERY 0x120B3 */
+#ifndef SIO_BSP_HANDLE
+#define SIO_BSP_HANDLE                     0x4800001BUL /* _WSAIOR(IOC_WS2,27) */
+#endif
+#ifndef SIO_BASE_HANDLE
+#define SIO_BASE_HANDLE                    0x48000022UL /* _WSAIOR(IOC_WS2,34) */
+#endif
+#ifndef SIO_EXT_SELECT
+#define SIO_EXT_SELECT                     0x48000026UL /* _WSAIOR(IOC_WS2,38) base/handle query (observed) */
+#endif
+#ifndef SIO_ASSOCIATE_HANDLE
+#define SIO_ASSOCIATE_HANDLE               0x88000001UL /* _WSAIOW(IOC_WS2,1) */
+#endif
+#define SIO_SET_QOS_                       0x8800000BUL /* _WSAIOW(IOC_WS2,11) -> AFD_SET_QOS 0x12094 */
+#define SIO_SET_GROUP_QOS_                 0x8800000CUL /* _WSAIOW(IOC_WS2,12) -> AFD_SET_QOS 0x12094 (group) */
+#define SIO_ROUTING_INTERFACE_CHANGE_      0x88000015UL /* _WSAIOW(IOC_WS2,21) -> AFD_ROUTING_INTERFACE_CHANGE 0x120AC */
+#ifndef SIO_GET_EXTENSION_FUNCTION_POINTER
+#define SIO_GET_EXTENSION_FUNCTION_POINTER 0xC8000006UL /* _WSAIORW(IOC_WS2,6)  GUID -> fn ptr (SockExtensions[8]) */
+#endif
+#define SIO_GET_QOS_                       0xC8000007UL /* _WSAIORW(IOC_WS2,7)  -> AFD_GET_QOS 0x12098 */
+#define SIO_GET_GROUP_QOS_                 0xC8000008UL /* _WSAIORW(IOC_WS2,8)  -> AFD_GET_QOS 0x12098 (group) */
+#ifndef SIO_TRANSLATE_HANDLE
+#define SIO_TRANSLATE_HANDLE               0xC800000DUL /* _WSAIORW(IOC_WS2,13) returns 10042 WSAENOPROTOOPT here */
+#endif
+#define SIO_ROUTING_INTERFACE_QUERY_       0xC8000014UL /* _WSAIORW(IOC_WS2,20) -> AFD_ROUTING_INTERFACE_QUERY 0x120AB */
+#define SIO_MSAFD_POLL                     0xC800001FUL /* _WSAIORW(IOC_WS2,31) mswsock private: MSAFD_WSPPoll (WSAPoll) */
+#define SIO_MSAFD_SENDMSG                  0xC8000020UL /* _WSAIORW(IOC_WS2,32) mswsock private: MSAFD_WSPSendMsg (WSASendMsg) */
+#define SIO_MSAFD_ROUTING_CHANGE           0xC8000021UL /* _WSAIORW(IOC_WS2,33) mswsock private: routing/address change */
+#define SIO_MSAFD_SOCKINFO                 0xC8000024UL /* _WSAIORW(IOC_WS2,36) mswsock private: socket-info query */
+#endif /* MSWSOCK_WSPIOCTL_SIO_DEFINED */
+
+/* ---- Vendor (IOC_VENDOR) codes handled by WSPIoctl ---------------- */
+#ifndef MSWSOCK_WSPIOCTL_VENDOR_DEFINED
+#define MSWSOCK_WSPIOCTL_VENDOR_DEFINED
+#define SIO_AFUNIX_TRANSPORT     0x98000000UL /* _WSAIOW(IOC_VENDOR,0)   AF_UNIX sun_path -> AFD_TRANSPORT_IOCTL 0x120BF */
+#define SIO_VENDOR_VOID_30       0x3800001EUL /* _WSAIO(IOC_VENDOR,30)   local vendor void ioctl */
+#define SIO_VENDOR_OPT11         0x9800000CUL /* _WSAIOW(IOC_VENDOR,12)  bool datagram transport opt idx 11 */
+#define SIO_VENDOR_OPT12         0x9800000FUL /* _WSAIOW(IOC_VENDOR,15)  bool datagram transport opt idx 12 */
+#define SIO_VENDOR_E6_NOTSUPP    0x980000E6UL /* _WSAIOW(IOC_VENDOR,230) stub -> 10045 WSAEOPNOTSUPP */
+#define SIO_VENDOR_101           0x98000101UL /* _WSAIOW(IOC_VENDOR,257) -> base provider (0x20000001) */
+#define SIO_VENDOR_102           0x98000102UL /* _WSAIOW(IOC_VENDOR,258) transfer/dup related */
+#define SIO_VENDOR_TRANSFER_BEGIN 0x9800012DUL /* _WSAIOW(IOC_VENDOR,301) -> AFD_TRANSFER_BEGIN 0x1211F */
+#define SIO_VENDOR_TRANSFER_END   0x9800012EUL /* _WSAIOW(IOC_VENDOR,302) -> AFD_TRANSFER_END   0x12123 */
+#endif /* MSWSOCK_WSPIOCTL_VENDOR_DEFINED */
+
+/* ---- Internal base-service-provider passthrough codes ------------- */
+#ifndef MSWSOCK_WSPIOCTL_INTERNAL_DEFINED
+#define MSWSOCK_WSPIOCTL_INTERNAL_DEFINED
+#define WSP_XPORT_QUERY_1        0x20000001UL /* base-provider WSPIoctl: FIONREAD-class query */
+#define WSP_XPORT_QUERY_2        0x20000002UL /* base-provider WSPIoctl: second transport query */
+#endif /* MSWSOCK_WSPIOCTL_INTERNAL_DEFINED */
+
+/*
+ * User Winsock code -> kernel AFD IOCTL (\Device\Afd) emitted by WSPIoctl.
+ * AFD_* request indices and IOCTL_AFD_* codes are defined above; listed
+ * here with their computed control-code values for reference:
+ *   SIO_SET_QOS_/SIO_SET_GROUP_QOS_       -> AFD_SET_QOS                  0x12094
+ *   SIO_GET_QOS_/SIO_GET_GROUP_QOS_       -> AFD_GET_QOS                  0x12098
+ *   (poll/select cancel, event-wait)      -> AFD_NO_OPERATION            0x1209F
+ *   SIO_ROUTING_INTERFACE_QUERY_          -> AFD_ROUTING_INTERFACE_QUERY  0x120AB
+ *   SIO_ROUTING_INTERFACE_CHANGE_         -> AFD_ROUTING_INTERFACE_CHANGE 0x120AC (73900)
+ *   SIO_ADDRESS_LIST_QUERY_               -> AFD_ADDRESS_LIST_QUERY       0x120B3
+ *   SIO_ADDRESS_LIST_CHANGE_              -> AFD_ADDRESS_LIST_CHANGE       0x120B4
+ *   SIO_AFUNIX_TRANSPORT (+ unknown 0x98) -> AFD_TRANSPORT_IOCTL          0x120BF
+ *   SIO_VENDOR_TRANSFER_BEGIN             -> AFD_TRANSFER_BEGIN            0x1211F
+ *   teardown / cleanup                    -> AFD_UNBIND                   0x12113
+ *   SIO_VENDOR_TRANSFER_END               -> AFD_TRANSFER_END             0x12123
+ */
+
+/* ---- AF_UNIX address (afunix.h) ----------------------------------- */
+#ifndef MSWSOCK_SOCKADDR_UN_DEFINED
+#define MSWSOCK_SOCKADDR_UN_DEFINED
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
+typedef struct _MSWSOCK_SOCKADDR_UN
+{
+    USHORT sun_family;                 /* AF_UNIX = 1 */
+    CHAR   sun_path[UNIX_PATH_MAX];    /* NUL-terminated filesystem path */
+} MSWSOCK_SOCKADDR_UN, *PMSWSOCK_SOCKADDR_UN;
+#endif /* MSWSOCK_SOCKADDR_UN_DEFINED */
+
+/*
+ * AF_UNIX transport request WSPIoctl builds for SIO_AFUNIX_TRANSPORT and
+ * hands to IOCTL_AFD_TRANSPORT_IOCTL. Layout matches AFD_TL_IO_CONTROL_INFO
+ * (defined above); shown as a fixed image of the 0x20-byte input buffer:
+ *   +0x00 Type            = TlSocketIoControlType (3)
+ *   +0x04 Level           = 0
+ *   +0x08 IoControlCode   = SIO_AFUNIX_TRANSPORT (0x98000000)
+ *   +0x0C EndpointIoctl   = TRUE
+ *   +0x10 InputBuffer     = &MSWSOCK_SOCKADDR_UN.sun_path payload
+ *   +0x18 InputBufferLength (SIZE_T)
+ */
+#ifndef MSWSOCK_AFUNIX_TL_REQUEST_DEFINED
+#define MSWSOCK_AFUNIX_TL_REQUEST_DEFINED
+typedef struct _MSWSOCK_AFUNIX_TL_REQUEST
+{
+    ULONG    Type;                 /* = TlSocketIoControlType (3) */
+    ULONG    Level;                /* = 0 */
+    ULONG    IoControlCode;        /* = SIO_AFUNIX_TRANSPORT (0x98000000) */
+    BOOLEAN  EndpointIoctl;        /* = TRUE */
+    UCHAR    Reserved[3];
+    PVOID    InputBuffer;          /* -> sun_path payload */
+    SIZE_T   InputBufferLength;
+} MSWSOCK_AFUNIX_TL_REQUEST, *PMSWSOCK_AFUNIX_TL_REQUEST; /* sizeof = 0x20 */
+#endif /* MSWSOCK_AFUNIX_TL_REQUEST_DEFINED */
+
+/*
+ * SIO_GET_EXTENSION_FUNCTION_POINTER lookup table entry (mswsock SockExtensions):
+ * 8 entries, 24 bytes each = { GUID; PVOID Function; }.
+ */
+#ifndef MSWSOCK_WSAEXT_ENTRY_DEFINED
+#define MSWSOCK_WSAEXT_ENTRY_DEFINED
+typedef struct _MSWSOCK_WSAEXT_ENTRY
+{
+    GUID   Guid;                   /* WSAID_ACCEPTEX, WSAID_CONNECTEX, ... */
+    PVOID  Function;               /* extension function pointer */
+} MSWSOCK_WSAEXT_ENTRY, *PMSWSOCK_WSAEXT_ENTRY;
+#endif /* MSWSOCK_WSAEXT_ENTRY_DEFINED */
+
 #endif

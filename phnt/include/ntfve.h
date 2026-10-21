@@ -1,6 +1,11 @@
 #ifndef _FVEAPI_H
 #define _FVEAPI_H
 
+// Crypto handle and certificate types used by the FVE declarations below.
+#include <bcrypt.h>
+#include <ncrypt.h>
+#include <wincrypt.h>
+
 /**
  * Pointer to a constant byte.
  */
@@ -1383,7 +1388,7 @@ NTAPI
 FveUnlockVolumeWithAccessMode(
     _In_ HANDLE FveVolumeHandle,
     _In_ PCFVE_AUTH_INFORMATION Information,
-    _In_ PBOOL ReadOnly
+    _Inout_opt_ PBOOL ReadOnly
     );
 
 /**
@@ -2220,9 +2225,9 @@ HRESULT
 NTAPI
 FveGetDescriptionW(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PWSTR VolumeDescription,
+    _Out_writes_opt_(BufferLength) PWSTR VolumeDescription,
     _In_ SIZE_T BufferLength,
-    _Out_ PSIZE_T RequiredSize
+    _Out_ PSIZE_T RequiredLength
     );
 
 /**
@@ -2254,9 +2259,9 @@ HRESULT
 NTAPI
 FveGetIdentificationFieldW(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PWSTR IdentificationField,
+    _Out_writes_opt_(BufferLength) PWSTR IdentificationField,
     _In_ SIZE_T BufferLength,
-    _Out_ PSIZE_T RequiredSize
+    _Out_ PSIZE_T RequiredLength
     );
 
 /**
@@ -3209,7 +3214,8 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveDecrementClearKeyCounter(
-    _In_ HANDLE FveVolumeHandle
+    _In_ HANDLE FveVolumeHandle,
+    _In_ FVE_SCENARIO_TYPE FveScenario
     );
 
 /**
@@ -3298,8 +3304,8 @@ FveGetAuthMethodSidInformation(
     _In_ HANDLE FveVolumeHandle,
     _In_ LPCGUID AuthMethodGuid,
     _Out_ PUSHORT Flags,
-    _Out_ PSID Sid,
-    _Out_ PULONG SidBufferSize
+    _Out_writes_bytes_opt_(*SidBufferSize) PSID Sid,
+    _Inout_ PULONG SidBufferSize
     );
 
 /**
@@ -3495,8 +3501,8 @@ HRESULT
 NTAPI
 FveGetDeviceLockoutData(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PBYTE PerUserData,
-    _Out_ PULONG PerUserSize
+    _Out_writes_bytes_opt_(*PerUserSize) PBYTE PerUserData,
+    _Inout_ PULONG PerUserSize
     );
 
 /**

@@ -38,12 +38,25 @@ typedef struct _COMMON_PAGE_CONTEXT
     HANDLE ProcessId;
     HWND WindowHandle;
     HWND ListViewHandle;
+    BOOLEAN ObjectManagerContext;
 
     // Handles tab
     ULONG TotalHandlesCount;
     ULONG OwnHandlesCount;
     BOOLEAN ColumnsAdded;
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
+
+typedef struct _ET_OBJECT_PROPERTIES_CONTEXT
+{
+    HWND ParentWindowHandle;
+    HANDLE ProcessId;
+    PPH_HANDLE_ITEM HandleItem;
+    BOOLEAN ObjectManagerContext;
+    BOOLEAN SelectHandlesPage;
+    PPH_OPEN_OBJECT SecurityOpenObject;
+    PPH_CLOSE_OBJECT SecurityCloseObject;
+    PVOID SecurityContext;
+} ET_OBJECT_PROPERTIES_CONTEXT, *PET_OBJECT_PROPERTIES_CONTEXT;
 
 typedef struct _ET_HANDLE_ENTRY
 {
@@ -55,12 +68,19 @@ typedef struct _ET_HANDLE_ENTRY
 } ET_HANDLE_ENTRY, *PET_HANDLE_ENTRY;
 
 HPROPSHEETPAGE EtpCommonCreatePage(
-    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
+    _In_ PET_OBJECT_PROPERTIES_CONTEXT Context,
     _In_ PWSTR Template,
     _In_ DLGPROC DlgProc
     );
 
-INT CALLBACK EtpCommonPropPageProc(
+INT_PTR CALLBACK EtpObjGeneralPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT CALLBACK EtCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -102,100 +122,10 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ LPARAM lParam
     );
 
-VOID EtUpdateHandleItem(
+VOID EtpUpdateHandleItem(
     _In_ HANDLE ProcessId,
     _Inout_ PPH_HANDLE_ITEM HandleItem
     );
-
-VOID EtHandlePropertiesInitializing(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
-    PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
-
-    if (PhIsNullOrEmptyString(context->HandleItem->TypeName))
-        return;
-
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        HPROPSHEETPAGE page = NULL;
-
-        if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
-        {
-            page = EtpCommonCreatePage(
-                context,
-                MAKEINTRESOURCE(IDD_OBJWINSTA),
-                EtpWinStaPageDlgProc
-                );
-
-            // Insert our page into the second slot.
-            if (page)
-            {
-                if (objectProperties->NumberOfPages > 1)
-                {
-                    memmove(
-                        &objectProperties->Pages[2],
-                        &objectProperties->Pages[1],
-                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE)
-                        );
-                }
-
-                objectProperties->Pages[1] = page;
-                objectProperties->NumberOfPages++;
-            }
-        }
-
-        // Object Manager
-        if (EtObjectManagerDialogHandle)
-        {
-            page = EtpCommonCreatePage(
-                context,
-                MAKEINTRESOURCE(IDD_OBJHANDLES),
-                EtpObjHandlesPageDlgProc
-                );
-
-            // Insert our page into the second slot.
-            if (page)
-            {
-                if (objectProperties->NumberOfPages > 1)
-                {
-                    memmove(
-                        &objectProperties->Pages[2],
-                        &objectProperties->Pages[1],
-                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE)
-                        );
-                }
-
-                objectProperties->Pages[1] = page;
-                objectProperties->NumberOfPages++;
-            }
-        }
-
-        // TpWorkerFactory unnamed, so it won't interact with Object Manager
-        if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
-        {
-            page = EtpCommonCreatePage(
-                context,
-                MAKEINTRESOURCE(IDD_OBJTPWORKERFACTORY),
-                EtpTpWorkerFactoryPageDlgProc
-                );
-
-            // Insert our page into the second slot.
-            if (page)
-            {
-                if (objectProperties->NumberOfPages > 1)
-                {
-                    memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
-                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
-                }
-
-                objectProperties->Pages[1] = page;
-                objectProperties->NumberOfPages++;
-            }
-        }
-    }
-}
 
 typedef enum _ET_OBJECT_GENERAL_CATEGORY
 {
@@ -265,82 +195,17 @@ typedef enum _ET_OBJECT_POOLTYPE
 } ET_OBJECT_POOLTYPE;
 
 #define OBJECT_CHILD_HANDLEPROP_WINDOW 1
-#define OBJECT_CORRECT_HANDLES_COUNT(real_count) ((ULONG)(real_count) - 1)
+#define OBJECT_CORRECT_HANDLES_COUNT(real_count) ((ULONG)(real_count) > 0 ? (ULONG)(real_count) - 1 : 0)
 
-typedef struct _ET_GENERAL_PAGE_CONTEXT
-{
-    WNDPROC OldWndProc;
-    HWND ParentWindow;
-    BOOLEAN PageSwitched;
-} ET_GENERAL_PAGE_CONTEXT, *PET_GENERAL_PAGE_CONTEXT;
-
-LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EtpObjectGeneralPageUpdate(
+    _In_ PCOMMON_PAGE_CONTEXT context
     )
 {
-    PET_GENERAL_PAGE_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    if (!(context = PhGetWindowContext(hWnd, 'OBJH')))
-        return FALSE;
-
-    oldWndProc = context->OldWndProc;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            PhSetWindowProcedure(hWnd, oldWndProc);
-            PhRemoveWindowContext(hWnd, 'OBJH');
-            PhFree(context);
-        }
-        break;
-    }
-
-    //if (uMsg == WM_NOTIFY && ((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
-    //{
-    //    if (!context->PageSwitched)
-    //    {
-    //        PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
-    //        context->PageSwitched = TRUE;
-    //    }
-    //}
-
-    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
-}
-
-VOID EtHandlePropertiesWindowInitialized(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT context = Parameter;
     WCHAR string[PH_INT64_STR_LEN_1];
 
-    if (EtObjectManagerDialogHandle)
+    if (context->ObjectManagerContext)
     {
-        // HACK
-        //if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
-        //    PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
-        //else
-        //    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
-
-        PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropIcon, NULL, 0);
-
-        // Open Handles page if needed
-        //if (EtObjectManagerShowHandlesPage)
-        //{
-        //    HWND generalPage = GetParent(context->ListViewHandle);  // HACK
-        //    PET_GENERAL_PAGE_CONTEXT pageContext = PhAllocateZero(sizeof(ET_GENERAL_PAGE_CONTEXT));
-        //    pageContext->OldWndProc = PhGetWindowProcedure(generalPage);
-        //    pageContext->ParentWindow = context->ParentWindow;
-        //    PhSetWindowContext(generalPage, 'OBJH', pageContext);
-        //    PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
-        //
-        //    EtObjectManagerShowHandlesPage = FALSE;
-        //}
+        PhSetWindowIcon(GetParent(context->WindowHandle), EtObjectManagerPropIcon, NULL, 0);
 
         // Show real handles count
         if (context->ProcessId == NtCurrentProcessId())
@@ -357,8 +222,10 @@ VOID EtHandlePropertiesWindowInitialized(
             }
 
             // HACK for \REGISTRY permissions
-            if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
-                PhEqualString2(context->HandleItem->ObjectName, L"\\REGISTRY", TRUE))
+            if (
+                PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
+                PhEqualString2(context->HandleItem->ObjectName, L"\\REGISTRY", TRUE)
+                )
             {
                 HANDLE registryHandle;
                 OBJECT_ATTRIBUTES objectAttributes;
@@ -373,12 +240,18 @@ VOID EtHandlePropertiesWindowInitialized(
                     NULL
                     );
 
-                if (NT_SUCCESS(NtOpenKey(&registryHandle, READ_CONTROL | WRITE_DAC, &objectAttributes)))
+                if (NT_SUCCESS(NtOpenKey(
+                    &registryHandle,
+                    READ_CONTROL | WRITE_DAC,
+                    &objectAttributes
+                    )))
                 {
+                    PhAcquireQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
                     PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
+                    PhAddItemList(EtObjectManagerOwnHandles, registryHandle);
+                    PhReleaseQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
                     NtClose(context->HandleItem->Handle);
                     context->HandleItem->Handle = registryHandle;
-                    PhAddItemList(EtObjectManagerOwnHandles, registryHandle);
                 }
             }
         }
@@ -386,7 +259,13 @@ VOID EtHandlePropertiesWindowInitialized(
         // Removing of row breaks cached indexes, so hide reference value instead
         //PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
 
-        PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, OBJECT_GENERAL_INDEX_ATTRIBUTES, L"Object attributes", NULL);
+        PhAddListViewGroupItem(
+            context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO,
+            OBJECT_GENERAL_INDEX_ATTRIBUTES,
+            L"Object attributes",
+            NULL
+            );
 
         {
             // Show object attributes
@@ -689,7 +568,7 @@ VOID EtHandlePropertiesWindowInitialized(
                             PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, 1, string);
                             PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
 
-                            PWSTR poolTypeString = L"";
+                            PCWSTR poolTypeString = L"";
                             switch (objectType->PoolType)
                             {
                                 case NonPagedPool: poolTypeString = L"Non Paged"; break;
@@ -898,30 +777,8 @@ PCWSTR EtMapSessionConnectState(
     return stateString;
 }
 
-VOID EtHandlePropertiesWindowUninitializing(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT context = Parameter;
-
-    if (context->HandleItem->Handle && context->ProcessId == NtCurrentProcessId())
-    {
-        PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
-        PhDereferenceObject(EtObjectManagerOwnHandles);
-
-        NtClose(context->HandleItem->Handle);
-    }
-
-    //PhRemoveItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow);
-    //PhDereferenceObject(EtObjectManagerPropWindows);
-
-    PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
-
-    PhDereferenceObject(context->HandleItem);
-}
-
-static HPROPSHEETPAGE EtpCommonCreatePage(
-    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
+HPROPSHEETPAGE EtpCommonCreatePage(
+    _In_ PET_OBJECT_PROPERTIES_CONTEXT Context,
     _In_ PWSTR Template,
     _In_ DLGPROC DlgProc
     )
@@ -934,6 +791,7 @@ static HPROPSHEETPAGE EtpCommonCreatePage(
     memset(pageContext, 0, sizeof(COMMON_PAGE_CONTEXT));
     pageContext->HandleItem = Context->HandleItem;
     pageContext->ProcessId = Context->ProcessId;
+    pageContext->ObjectManagerContext = Context->ObjectManagerContext;
 
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -942,7 +800,7 @@ static HPROPSHEETPAGE EtpCommonCreatePage(
     propSheetPage.pszTemplate = Template;
     propSheetPage.pfnDlgProc = DlgProc;
     propSheetPage.lParam = (LPARAM)pageContext;
-    propSheetPage.pfnCallback = EtpCommonPropPageProc;
+    propSheetPage.pfnCallback = EtCommonPropPageProc;
 
     propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
     PhDereferenceObject(pageContext); // already got a ref from above call
@@ -950,7 +808,7 @@ static HPROPSHEETPAGE EtpCommonCreatePage(
     return propSheetPageHandle;
 }
 
-INT CALLBACK EtpCommonPropPageProc(
+INT CALLBACK EtCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -1129,7 +987,7 @@ typedef struct _SEARCH_HANDLE_CONTEXT
     PPH_QUEUED_LOCK SearchResultsLock;
 } SEARCH_HANDLE_CONTEXT, * PSEARCH_HANDLE_CONTEXT;
 
-static NTSTATUS NTAPI EtpSearchHandleFunction(
+NTSTATUS NTAPI EtpSearchHandleFunction(
     _In_ PVOID Parameter
     )
 {
@@ -1160,14 +1018,13 @@ static NTSTATUS NTAPI EtpSearchHandleFunction(
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS NTAPI EtpUpdateHandleFunction(
+NTSTATUS NTAPI EtpUpdateHandleFunction(
     _In_ PVOID Parameter
     )
 {
     PET_HANDLE_ENTRY entry = Parameter;
 
-    EtUpdateHandleItem(entry->ProcessId, entry->HandleItem);
-
+    EtpUpdateHandleItem(entry->ProcessId, entry->HandleItem);
     return STATUS_SUCCESS;
 }
 
@@ -1175,8 +1032,6 @@ VOID EtpEnumObjectHandles(
     _In_ PCOMMON_PAGE_CONTEXT Context
     )
 {
-    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
-
     COLORREF colorOwnObject = PhGetIntegerSetting(SETTING_COLOR_OWN_PROCESSES);
     COLORREF colorInherit = PhGetIntegerSetting(SETTING_COLOR_INHERIT_HANDLES);
     COLORREF colorProtected = PhGetIntegerSetting(SETTING_COLOR_PROTECTED_HANDLES);
@@ -1195,6 +1050,8 @@ VOID EtpEnumObjectHandles(
 
     searchTypeIndex = Context->HandleItem->TypeIndex;
 
+    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
+
     if (isTypeObject)
     {
         PH_STRINGREF firstPart;
@@ -1202,8 +1059,12 @@ VOID EtpEnumObjectHandles(
         ULONG typeIndex;
 
         if (PhSplitStringRefAtLastChar(&Context->HandleItem->ObjectName->sr, OBJ_NAME_PATH_SEPARATOR, &firstPart, &typeName))
+        {
             if ((typeIndex = PhGetObjectTypeNumber(&typeName)) != ULONG_MAX)
+            {
                 findBySameTypeIndex = typeIndex;
+            }
+        }
     }
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
@@ -1220,7 +1081,7 @@ VOID EtpEnumObjectHandles(
 
         PPH_STRING objectName;
         BOOLEAN objectNameMatched;
-        BOOLEAN useWorkQueue = KsiLevel() < KphLevelMed && (isDevice || isTypeObject && (Context->HandleItem->TypeIndex == EtFileTypeIndex));
+        BOOLEAN useWorkQueue = KsiLevel() < KphLevelMed && (isDevice || (isTypeObject && findBySameTypeIndex == EtFileTypeIndex));
 
         if (useWorkQueue)
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
@@ -1330,7 +1191,13 @@ VOID EtpEnumObjectHandles(
 
         if (useWorkQueue)
         {
+            // PhWaitForWorkQueue can return while dequeued items are still executing;
+            // PhDeleteWorkQueue waits for rundown of all in-flight items. Ensure every
+            // search item finished before closing process handles and reading the
+            // results list, then recreate the queue for the update phase below.
             PhWaitForWorkQueue(&workQueue);
+            PhDeleteWorkQueue(&workQueue);
+            PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
         }
 
         while (PhEnumHashtable(processHandleHashtable, &procEntry, &j))
@@ -1352,10 +1219,16 @@ VOID EtpEnumObjectHandles(
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = searchResults->Items[i];
 
             // Skip Object Manager own handles
-            if (handleInfo->UniqueProcessId == NtCurrentProcessId() &&
-                PhFindItemList(EtObjectManagerOwnHandles, handleInfo->HandleValue) != ULONG_MAX)
+            if (handleInfo->UniqueProcessId == NtCurrentProcessId())
             {
-                continue;
+                BOOLEAN ownHandle;
+
+                PhAcquireQueuedLockShared(&EtObjectManagerOwnHandlesLock);
+                ownHandle = PhFindItemList(EtObjectManagerOwnHandles, handleInfo->HandleValue) != ULONG_MAX;
+                PhReleaseQueuedLockShared(&EtObjectManagerOwnHandlesLock);
+
+                if (ownHandle)
+                    continue;
             }
 
             entry = PhAllocateZero(sizeof(ET_HANDLE_ENTRY));
@@ -1415,12 +1288,12 @@ VOID EtpEnumObjectHandles(
                 }
                 else
                 {
-                    EtUpdateHandleItem(entry->ProcessId, entry->HandleItem);
+                    EtpUpdateHandleItem(entry->ProcessId, entry->HandleItem);
                 }
             }
             else if (entry->HandleItem->TypeIndex == EtSectionTypeIndex)
             {
-                EtUpdateHandleItem(entry->ProcessId, entry->HandleItem);
+                EtpUpdateHandleItem(entry->ProcessId, entry->HandleItem);
             }
         }
 
@@ -1451,12 +1324,15 @@ VOID EtpEnumObjectHandles(
     PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 }
 
-VOID EtUpdateHandleItem(
+VOID EtpUpdateHandleItem(
     _In_ HANDLE ProcessId,
     _Inout_ PPH_HANDLE_ITEM HandleItem
     )
 {
     HANDLE processHandle;
+    PPH_STRING typeName = NULL;
+    PPH_STRING objectName = NULL;
+    PPH_STRING bestObjectName = NULL;
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
@@ -1464,21 +1340,30 @@ VOID EtUpdateHandleItem(
         ProcessId
         )))
     {
-        PhGetHandleInformation(
+        // Query into locals; passing the live fields as _Out_ would leak the old
+        // strings on success and PhClearReference them on partial failure.
+        if (NT_SUCCESS(PhGetHandleInformation(
             processHandle,
             HandleItem->Handle,
             HandleItem->TypeIndex,
             NULL,
-            &HandleItem->TypeName,
-            &HandleItem->ObjectName,
-            &HandleItem->BestObjectName
-            );
+            &typeName,
+            &objectName,
+            &bestObjectName
+            )))
+        {
+            PhMoveReference(&HandleItem->TypeName, typeName);
+            PhMoveReference(&HandleItem->ObjectName, objectName);
+            PhMoveReference(&HandleItem->BestObjectName, bestObjectName);
+        }
 
         NtClose(processHandle);
     }
 
     if (PhIsNullOrEmptyString(HandleItem->TypeName))
-        HandleItem->TypeName = PhGetObjectTypeIndexName(HandleItem->TypeIndex);
+    {
+        PhMoveReference(&HandleItem->TypeName, PhGetObjectTypeIndexName(HandleItem->TypeIndex));
+    }
 }
 
 VOID EtpShowHandleProperties(
@@ -1486,9 +1371,9 @@ VOID EtpShowHandleProperties(
     _In_ PET_HANDLE_ENTRY Entry
     )
 {
-    EtUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
+    EtpUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
 
-    //PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, NULL, NULL);
+    EtShowObjectProperties(WindowHandle, Entry->ProcessId, Entry->HandleItem, FALSE, FALSE, NULL, NULL, NULL);
 }
 
 VOID EtpUpdateGeneralTab(
@@ -1498,8 +1383,10 @@ VOID EtpUpdateGeneralTab(
     WCHAR string[PH_INT64_STR_LEN_1];
     HANDLE processHandle = NtCurrentProcess();
     HWND generalPageList;
+    LONG lvItemIndex;
 
-    if (generalPageList = FindWindowEx(PropSheet_IndexToHwnd(GetParent(Context->WindowHandle), 0), NULL, WC_LISTVIEW, NULL))  // HACK
+    // The General page is always the first page of our property sheet.
+    if (generalPageList = GetDlgItem(PropSheet_IndexToHwnd(GetParent(Context->WindowHandle), 0), IDC_LIST))
     {
         if (Context->ProcessId == NtCurrentProcessId() ||
             NT_SUCCESS(PhOpenProcess(
@@ -1520,11 +1407,22 @@ VOID EtpUpdateGeneralTab(
                 NULL
                 )))
             {
-                PhPrintUInt32(string, basicInfo.PointerCount);
-                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                // Base rows carry their index as the item param since type-specific rows shift raw indexes.
+                lvItemIndex = PhFindListViewItemByParam(generalPageList, INT_ERROR, UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES + 1));
 
-                PhPrintUInt32(string, Context->ProcessId == NtCurrentProcessId() ? OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount) : basicInfo.HandleCount);
-                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
+                if (lvItemIndex != INT_ERROR)
+                {
+                    PhPrintUInt32(string, basicInfo.PointerCount);
+                    PhSetListViewSubItem(generalPageList, lvItemIndex, 1, string);
+                }
+
+                lvItemIndex = PhFindListViewItemByParam(generalPageList, INT_ERROR, UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES + 1));
+
+                if (lvItemIndex != INT_ERROR)
+                {
+                    PhPrintUInt32(string, Context->ProcessId == NtCurrentProcessId() ? OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount) : basicInfo.HandleCount);
+                    PhSetListViewSubItem(generalPageList, lvItemIndex, 1, string);
+                }
             }
 
             if (processHandle != NtCurrentProcess())
@@ -1564,7 +1462,7 @@ VOID EtpCloseObjectHandles(
     EtpUpdateGeneralTab(Context);
 }
 
-static COLORREF NTAPI EtpColorItemColorFunction(
+COLORREF NTAPI EtColorItemColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
@@ -1584,18 +1482,20 @@ typedef struct _ET_HANDLE_OPEN_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
 } ET_HANDLE_OPEN_CONTEXT, * PET_HANDLE_OPEN_CONTEXT;
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS EtpProcessHandleOpenCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PVOID Context
-)
+    )
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
     return EtDuplicateHandleFromProcessEx(Handle, DesiredAccess, context->ProcessId, NULL, context->HandleItem->Handle);
 }
 
-static NTSTATUS EtpProcessHandleCloseCallback(
+_Function_class_(PH_CLOSE_OBJECT)
+NTSTATUS EtpProcessHandleCloseCallback(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
@@ -1677,7 +1577,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             PhAddListViewColumn(context->ListViewHandle, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, LVCFMT_LEFT, 70, L"Attributes");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
-            ExtendedListView_SetItemColorFunction(context->ListViewHandle, EtpColorItemColorFunction);
+            ExtendedListView_SetItemColorFunction(context->ListViewHandle, EtColorItemColorFunction);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -1830,7 +1730,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             ULONG numberOfItems;
 
             if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
-                {
+            {
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU_ITEM item;
@@ -1992,7 +1892,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                             handleContext = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
                             handleContext->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
                             handleContext->ProcessId = listviewItems[0]->ProcessId;
-                            EtUpdateHandleItem(handleContext->ProcessId, handleContext->HandleItem);
+                            EtpUpdateHandleItem(handleContext->ProcessId, handleContext->HandleItem);
 
                             PhEditSecurity(
                                 !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : hwndDlg,
@@ -2034,8 +1934,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 EtpEnumObjectHandles(context);
 
                 ExtendedListView_GetSort(context->ListViewHandle, &sortColumn, &sortOrder);
+
                 if (sortOrder != NoSortOrder)
+                {
                     ExtendedListView_SortItems(context->ListViewHandle);
+                }
+
                 EtpUpdateGeneralTab(context);
             }
             break;
@@ -2094,6 +1998,7 @@ typedef struct _OPEN_DESKTOP_CONTEXT
     HWINSTA CurrentWinStation;
 } OPEN_DESKTOP_CONTEXT, * POPEN_DESKTOP_CONTEXT;
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS EtpOpenSecurityDesktopHandle(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -2126,6 +2031,7 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS EtpCloseSecurityDesktop(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,
@@ -2159,6 +2065,7 @@ VOID EtpOpenDesktopSecurity(
 
     OpenContext->DesktopName = PhReferenceObject(deskName);
     OpenContext->CurrentWinStation = GetProcessWindowStation();
+
     if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(
         (PHANDLE)&hWinStation,
         WINSTA_ENUMDESKTOPS,
@@ -2211,7 +2118,8 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWINSTA hWinStation;
+            //HWINSTA stationHandle;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -2228,23 +2136,27 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
-            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(
-                (PHANDLE)&hWinStation,
-                WINSTA_ENUMDESKTOPS,
-                context->ProcessId,
-                NULL,
-                context->HandleItem->Handle
-                )))
-            {
-                HWINSTA currentStation = GetProcessWindowStation();
-                NTSTATUS status = PhCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
-                if (status == STATUS_NOT_SAME_OBJECT)
-                    SetProcessWindowStation(hWinStation);
-                EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);
-                if (status == STATUS_NOT_SAME_OBJECT)
-                    SetProcessWindowStation(currentStation);
-                CloseWindowStation(hWinStation);
-            }
+            //if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(
+            //    (PHANDLE)&stationHandle,
+            //    WINSTA_ENUMDESKTOPS,
+            //    context->ProcessId,
+            //    NULL,
+            //    context->HandleItem->Handle
+            //    )))
+            //{
+            //    HWINSTA currentStation = GetProcessWindowStation();
+            //    NTSTATUS status = PhCompareObjects((HANDLE)currentStation, (HANDLE)stationHandle);
+            //
+            //    if (status == STATUS_NOT_SAME_OBJECT)
+            //        SetProcessWindowStation(stationHandle);
+            //    
+            //    EnumDesktops(stationHandle, EtpEnumDesktopsCallback, (LPARAM)context);
+            //    
+            //    if (status == STATUS_NOT_SAME_OBJECT)
+            //        SetProcessWindowStation(currentStation);
+            //    
+            //    CloseWindowStation(stationHandle);
+            //}
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
@@ -2380,4 +2292,355 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     }
 
     return FALSE;
+}
+
+INT_PTR CALLBACK EtpObjGeneralPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return TRUE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND propSheetWindow = GetParent(hwndDlg);
+            HANDLE processHandle = NtCurrentProcess();
+            WCHAR string[PH_INT64_STR_LEN_1];
+
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
+            PhAddListViewGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
+            PhAddListViewGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
+            PhAddListViewGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
+
+            // Insert the base rows in PH_PLUGIN_HANDLE_GENERAL_INDEX order so the raw indexes
+            // match the enumeration. The item param carries the index for lookups after
+            // front-inserted type-specific rows shift the raw positions.
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME, L"Name", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE, L"Type", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT, L"Object address", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK, L"Granted access", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, L"References", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, L"Handles", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA, PH_PLUGIN_HANDLE_GENERAL_INDEX_PAGED, L"Paged", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_PAGED + 1));
+            PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA, PH_PLUGIN_HANDLE_GENERAL_INDEX_NONPAGED, L"Non-paged", UlongToPtr(PH_PLUGIN_HANDLE_GENERAL_INDEX_NONPAGED + 1));
+
+            PhSetListViewSubItem(
+                context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME,
+                1,
+                PhGetStringOrEmpty(context->HandleItem->BestObjectName ? context->HandleItem->BestObjectName : context->HandleItem->ObjectName)
+                );
+            PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(context->HandleItem->TypeName));
+
+            if (context->HandleItem->Object)
+            {
+                PhPrintPointer(string, context->HandleItem->Object);
+                PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT, 1, string);
+            }
+
+            if (context->HandleItem->GrantedAccess)
+            {
+                PPH_STRING accessString = PH_AUTO(EtGetAccessString(context->HandleItem->TypeName, context->HandleItem->GrantedAccess));
+                PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, PhGetString(accessString));
+            }
+            else
+            {
+                PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, L"N/A");
+            }
+
+            if (context->ProcessId == NtCurrentProcessId() ||
+                NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+                context->ProcessId
+                )))
+            {
+                OBJECT_BASIC_INFORMATION basicInfo;
+
+                if (NT_SUCCESS(PhGetHandleInformation(
+                    processHandle,
+                    context->HandleItem->Handle,
+                    context->HandleItem->TypeIndex,
+                    &basicInfo,
+                    NULL,
+                    NULL,
+                    NULL
+                    )))
+                {
+                    PhPrintUInt32(string, basicInfo.PointerCount);
+                    PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+
+                    PhPrintUInt32(string, basicInfo.HandleCount);
+                    PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
+
+                    PhPrintUInt32(string, basicInfo.PagedPoolCharge);
+                    PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_PAGED, 1, string);
+
+                    PhPrintUInt32(string, basicInfo.NonPagedPoolCharge);
+                    PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_NONPAGED, 1, string);
+                }
+
+                if (processHandle != NtCurrentProcess())
+                    NtClose(processHandle);
+            }
+
+            EtpObjectGeneralPageUpdate(context);
+
+            if (context->ObjectManagerContext)
+            {
+                if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
+                    PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, propSheetWindow);
+                else
+                    PhCenterWindow(propSheetWindow, GetParent(propSheetWindow));
+            }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+            ListView_SetColumnWidth(context->ListViewHandle, 1, LVSCW_AUTOSIZE_USEHEADER);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
+            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            POINT point;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM item;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+
+            if (point.x == -1 && point.y == -1)
+                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+            menu = PhCreateEMenu();
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+            PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+
+            item = PhShowEMenu(
+                menu,
+                hwndDlg,
+                PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                point.x,
+                point.y
+                );
+
+            if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
+            {
+                switch (item->Id)
+                {
+                case IDC_COPY:
+                    {
+                        PhCopyListView(context->ListViewHandle);
+                    }
+                    break;
+                }
+            }
+
+            PhDestroyEMenu(menu);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+static NTSTATUS EtpShowObjectPropertiesThread(
+    _In_ PVOID Parameter
+    )
+{
+    PET_OBJECT_PROPERTIES_CONTEXT context = Parameter;
+    PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
+    HPROPSHEETPAGE pages[5];
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    propSheetHeader.dwFlags =
+        PSH_MODELESS |
+        PSH_NOAPPLYNOW |
+        PSH_NOCONTEXTHELP |
+        PSH_PROPTITLE;
+    propSheetHeader.hInstance = PluginInstance->DllBase;
+    propSheetHeader.hwndParent = !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->ParentWindowHandle;
+    propSheetHeader.pszCaption = !PhIsNullOrEmptyString(context->HandleItem->BestObjectName) ?
+        PhGetString(context->HandleItem->BestObjectName) :
+        PhGetStringOrDefault(context->HandleItem->TypeName, L"Object");
+    propSheetHeader.nPages = 0;
+    propSheetHeader.nStartPage = 0;
+    propSheetHeader.phpage = pages;
+
+    // General page
+    pages[propSheetHeader.nPages++] = EtpCommonCreatePage(
+        context,
+        MAKEINTRESOURCE(IDD_OBJGENERAL),
+        EtpObjGeneralPageDlgProc
+        );
+
+    if (!PhIsNullOrEmptyString(context->HandleItem->TypeName))
+    {
+        if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
+        {
+            pages[propSheetHeader.nPages++] = EtpCommonCreatePage(
+                context,
+                MAKEINTRESOURCE(IDD_OBJWINSTA),
+                EtpWinStaPageDlgProc
+                );
+        }
+
+        // TpWorkerFactory unnamed, so it won't interact with Object Manager
+        if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
+        {
+            pages[propSheetHeader.nPages++] = EtpCommonCreatePage(
+                context,
+                MAKEINTRESOURCE(IDD_OBJTPWORKERFACTORY),
+                EtpTpWorkerFactoryPageDlgProc
+                );
+        }
+    }
+
+    // Handles page (Object Manager)
+    if (context->ObjectManagerContext)
+    {
+        if (context->SelectHandlesPage)
+            propSheetHeader.nStartPage = propSheetHeader.nPages;
+
+        pages[propSheetHeader.nPages++] = EtpCommonCreatePage(
+            context,
+            MAKEINTRESOURCE(IDD_OBJHANDLES),
+            EtpObjHandlesPageDlgProc
+            );
+    }
+
+    // Security page (ACLUI)
+    {
+        PPH_OPEN_OBJECT securityOpenObject = context->SecurityOpenObject;
+        PPH_CLOSE_OBJECT securityCloseObject = context->SecurityCloseObject;
+        PVOID securityContext = context->SecurityContext;
+
+        if (!securityOpenObject)
+        {
+            PET_HANDLE_OPEN_CONTEXT handleContext;
+
+            handleContext = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
+            handleContext->ProcessId = context->ProcessId;
+            handleContext->HandleItem = PhReferenceObject(context->HandleItem);
+
+            securityOpenObject = EtpProcessHandleOpenCallback;
+            securityCloseObject = EtpProcessHandleCloseCallback;
+            securityContext = handleContext;
+        }
+
+        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
+            PhGetStringOrEmpty(context->HandleItem->ObjectName),
+            PhGetStringOrEmpty(context->HandleItem->TypeName),
+            securityOpenObject,
+            securityCloseObject,
+            securityContext
+            );
+    }
+
+    PhModalPropertySheet(&propSheetHeader);
+
+    if (context->ObjectManagerContext &&
+        context->HandleItem->Handle &&
+        context->ProcessId == NtCurrentProcessId())
+    {
+        ULONG index;
+
+        PhAcquireQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
+        if ((index = PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle)) != ULONG_MAX)
+        {
+            PhRemoveItemList(EtObjectManagerOwnHandles, index);
+            PhDereferenceObject(EtObjectManagerOwnHandles);
+        }
+        PhReleaseQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
+
+        NtClose(context->HandleItem->Handle);
+    }
+
+    PhDereferenceObject(context->HandleItem);
+    PhFree(context);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return STATUS_SUCCESS;
+}
+
+VOID EtShowObjectProperties(
+    _In_opt_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ BOOLEAN ObjectManagerContext,
+    _In_ BOOLEAN SelectHandlesPage,
+    _In_opt_ PPH_OPEN_OBJECT SecurityOpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT SecurityCloseObject,
+    _In_opt_ PVOID SecurityContext
+    )
+{
+    PET_OBJECT_PROPERTIES_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(ET_OBJECT_PROPERTIES_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->ProcessId = ProcessId;
+    context->HandleItem = PhReferenceObject(HandleItem);
+    context->ObjectManagerContext = ObjectManagerContext;
+    context->SelectHandlesPage = SelectHandlesPage;
+    context->SecurityOpenObject = SecurityOpenObject;
+    context->SecurityCloseObject = SecurityCloseObject;
+    context->SecurityContext = SecurityContext;
+
+    PhCreateThread2(EtpShowObjectPropertiesThread, context);
 }

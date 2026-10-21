@@ -17,6 +17,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS,
     PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER,
     PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT,
+    PHP_OPTIONS_INDEX_HIDE_INVALID_EXPORTS,
 } PHP_OPTIONS_GENERAL_INDEX;
 
 typedef struct _PVP_PE_OPTIONS_CONTEXT
@@ -139,6 +140,7 @@ VOID PvLoadGeneralPage(
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"Enable legacy properties window", NULL);
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"Enable view borders", NULL);
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
+    PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_HIDE_INVALID_EXPORTS, L"Hide exports with invalid RVA", NULL);
 
     //SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     //SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
@@ -148,6 +150,7 @@ VOID PvLoadGeneralPage(
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"EnableLegacyPropertiesDialog");
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"EnableTreeListBorder");
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowPageRestoreEnabled");
+    SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_HIDE_INVALID_EXPORTS, L"HideInvalidExports");
 }
 
 VOID PvGeneralPageSave(
@@ -176,8 +179,14 @@ VOID PvGeneralPageSave(
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowPageRestoreEnabled");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"EnableLegacyPropertiesDialog");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"EnableTreeListBorder");
+    SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_HIDE_INVALID_EXPORTS, L"HideInvalidExports");
 
     PvUpdateCachedSettings();
+
+    // Refresh the properties window chrome so a theme change is visible without
+    // waiting for the restart.
+    PvReapplyTheme(PvGetPePropertiesWindowHandle());
+
     PvSaveSettings();
 
     if (RestartRequired)

@@ -7,7 +7,7 @@
 // assembler ones. They are used on platforms that don't have assembler implementations
 // and for various testing purposes.
 //
-// This code derives from the orignal fast AES code that Niels Ferguson wrote
+// This code derives from the original fast AES code that Niels Ferguson wrote
 // for BitLocker in Windows Vista.
 // The C code is derived from the AES that was already in the RSA32 library,
 // the assembler code was created new at that time.
@@ -214,6 +214,8 @@ cleanup:
     return status;
 }
 
+// Temporarily disable rust usage until AES GCM is ready
+// #ifndef SYMCRUST_EXPERIMENTAL_BUILD
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptAesExpandKey(
@@ -224,6 +226,8 @@ SymCryptAesExpandKey(
 {
     return SymCryptAesExpandKeyInternal( pExpandedKey, pbKey, cbKey, TRUE );
 }
+// Temporarily disable rust usage until AES GCM is ready
+// #endif // SYMCRUST_EXPERIMENTAL_BUILD
 
 SYMCRYPT_ERROR
 SYMCRYPT_CALL

@@ -30,6 +30,9 @@ const PCSYMCRYPT_HASH SymCryptSha3_384Algorithm = &SymCryptSha3_384Algorithm_def
 //
 // SymCryptSha3_384
 //
+
+#ifndef SYMCRUST_EXPERIMENTAL_BUILD
+
 #define ALG     SHA3_384
 #define Alg     Sha3_384
 #include "hash_pattern.c"
@@ -78,6 +81,7 @@ SymCryptSha3_384Result(
     SymCryptKeccakExtract(&pState->ks, pbResult, SYMCRYPT_SHA3_384_RESULT_SIZE, TRUE);
 }
 
+#endif // SYMCRUST_EXPERIMENTAL_BUILD
 
 //
 // SymCryptSha3_384StateExport

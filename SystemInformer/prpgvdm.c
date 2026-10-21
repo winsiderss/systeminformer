@@ -290,6 +290,8 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                 );
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, context->ListViewHandle);
         }
         break;
     case WM_DESTROY:

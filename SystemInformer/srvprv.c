@@ -21,6 +21,9 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <mainwnd.h>
+#include <mainwndp.h>
+
 #include <trace.h>
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
@@ -803,6 +806,7 @@ VOID PhServiceProviderUpdate(
     static ULONG nameEntriesCount;
     static ULONG nameEntriesAllocated = 0;
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
+    ULONG elapsedMilliseconds;
     NTSTATUS status;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
@@ -1151,8 +1155,19 @@ UpdateStart:
     PhFree(services);
 
 UpdateEnd:
+    elapsedMilliseconds = PhGetProviderElapsedMilliseconds(&PhMwpServiceProviderRegistration);
+
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = PhCsUpdateInterval;
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = 1000;
+
     updatedEvent.RunCount = runCount;
     updatedEvent.UpdateInterval = PhCsUpdateInterval;
+    updatedEvent.ElapsedMilliseconds = elapsedMilliseconds;
+
+    if (!PhGetProviderElapsed(&PhMwpServiceProviderRegistration, &updatedEvent.Elapsed))
+        memset(&updatedEvent.Elapsed, 0, sizeof(PH_PROVIDER_ELAPSED));
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), &updatedEvent);
 

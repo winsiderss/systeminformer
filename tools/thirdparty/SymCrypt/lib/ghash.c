@@ -238,10 +238,10 @@ SymCryptGHashAppendDataXmm(
 VOID
 SYMCRYPT_CALL
 SymCryptGHashAppendDataNeon(
-    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE )     PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
-    _Inout_                                     PSYMCRYPT_GF128_ELEMENT     pState,
-    _In_reads_( cbData )                        PCBYTE                      pbData,
-                                                SIZE_T                      cbData )
+    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                    PCBYTE                      pbData,
+                                            SIZE_T                      cbData )
 {
     // Room for improvement: replace non-crypto NEON code below, based on a bit by bit lookup with
     // pmull on 8b elements - 8x(8bx8b) -> 8x(16b) pmull is NEON instruction since Armv7
@@ -501,8 +501,8 @@ with the modulo reduction.
 VOID
 SYMCRYPT_CALL
 SymCryptGHashExpandKeyPclmulqdq(
-    _Out_writes_( SYMCRYPT_GF128_FIELD_SIZE )   PSYMCRYPT_GF128_ELEMENT expandedKey,
-    _In_reads_( SYMCRYPT_GF128_BLOCK_SIZE )     PCBYTE                  pH )
+    _Out_writes_( 2*SYMCRYPT_GHASH_PCLMULQDQ_HPOWERS )  PSYMCRYPT_GF128_ELEMENT expandedKey,
+    _In_reads_( SYMCRYPT_GF128_BLOCK_SIZE )             PCBYTE                  pH )
 {
     int i;
     __m128i H, Hx, H2, H2x;
@@ -570,10 +570,10 @@ SymCryptGHashExpandKeyPclmulqdq(
 VOID
 SYMCRYPT_CALL
 SymCryptGHashAppendDataPclmulqdq(
-    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
-    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
-    _In_reads_( cbData )                    PCBYTE                      pbData,
-                                            SIZE_T                      cbData )
+    _In_reads_( 2*SYMCRYPT_GHASH_PCLMULQDQ_HPOWERS )    PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                             PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                                PCBYTE                      pbData,
+                                                        SIZE_T                      cbData )
 {
     __m128i state;
     __m128i data;
@@ -639,8 +639,8 @@ SymCryptGHashAppendDataPclmulqdq(
 VOID
 SYMCRYPT_CALL
 SymCryptGHashExpandKeyPmull(
-    _Out_writes_( SYMCRYPT_GF128_FIELD_SIZE )   PSYMCRYPT_GF128_ELEMENT expandedKey,
-    _In_reads_( SYMCRYPT_GF128_BLOCK_SIZE )    PCBYTE                  pH )
+    _Out_writes_( 2*SYMCRYPT_GHASH_PMULL_HPOWERS )  PSYMCRYPT_GF128_ELEMENT expandedKey,
+    _In_reads_( SYMCRYPT_GF128_BLOCK_SIZE )         PCBYTE                  pH )
 {
     int i;
     __n128 H, Hx, H2, H2x;
@@ -704,10 +704,10 @@ SymCryptGHashExpandKeyPmull(
 VOID
 SYMCRYPT_CALL
 SymCryptGHashAppendDataPmull(
-    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
-    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
-    _In_reads_( cbData )                    PCBYTE                      pbData,
-                                            SIZE_T                      cbData )
+    _In_reads_( 2*SYMCRYPT_GHASH_PMULL_HPOWERS )    PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                         PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                            PCBYTE                      pbData,
+                                                    SIZE_T                      cbData )
 {
     __n128 state;
     __n128 data, datax;
@@ -841,10 +841,10 @@ SymCryptGHashExpandKey(
 VOID
 SYMCRYPT_CALL
 SymCryptGHashAppendData(
-    _In_                              PCSYMCRYPT_GHASH_EXPANDED_KEY   expandedKey,
-    _Inout_                           PSYMCRYPT_GF128_ELEMENT         pState,
-    _In_reads_( cbData )              PCBYTE                          pbData,
-                                      SIZE_T                          cbData )
+    _In_                            PCSYMCRYPT_GHASH_EXPANDED_KEY   expandedKey,
+    _Inout_                         PSYMCRYPT_GF128_ELEMENT         pState,
+    _In_reads_( cbData )            PCBYTE                          pbData,
+                                    SIZE_T                          cbData )
 {
 #if SYMCRYPT_CPU_X86
     PCSYMCRYPT_GF128_ELEMENT pExpandedKeyTable;

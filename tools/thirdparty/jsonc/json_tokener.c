@@ -50,7 +50,7 @@
 #define jt_hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x)&7) + 9)
 
 #if !HAVE_STRNCASECMP && defined(_WIN32)
-/* Windows (MSVC and MinGW) have the version as _strnicmp */
+/* MSC has the version as _strnicmp */
 #define strncasecmp _strnicmp
 #elif !HAVE_STRNCASECMP
 #error You do not have strncasecmp on your system.
@@ -148,14 +148,17 @@ enum json_tokener_error json_tokener_get_error(struct json_tokener *tok)
 }
 
 /* Stuff for decoding unicode sequences */
-#define IS_HIGH_SURROGATE(uc) (((uc)&0xFC00) == 0xD800)
-#define IS_LOW_SURROGATE(uc) (((uc)&0xFC00) == 0xDC00)
+#define IS_HIGH_SURROGATE(uc) (((uc)&0xFFFFFC00) == 0xD800)
+#define IS_LOW_SURROGATE(uc) (((uc)&0xFFFFFC00) == 0xDC00)
 #define DECODE_SURROGATE_PAIR(hi, lo) ((((hi)&0x3FF) << 10) + ((lo)&0x3FF) + 0x10000)
 static unsigned char utf8_replacement_char[3] = {0xEF, 0xBF, 0xBD};
 
 struct json_tokener *json_tokener_new_ex(int depth)
 {
     struct json_tokener *tok;
+
+    if (depth < 1)
+        return NULL;
 
     tok = (struct json_tokener *)calloc(1, sizeof(struct json_tokener));
     if (!tok)
@@ -185,6 +188,8 @@ struct json_tokener *json_tokener_new(void)
 
 void json_tokener_free(struct json_tokener *tok)
 {
+    if (!tok)
+        return;
     json_tokener_reset(tok);
     if (tok->pb)
         printbuf_free(tok->pb);
@@ -343,6 +348,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsign
 
 #ifdef HAVE_USELOCALE
     {
+#ifdef HAVE_DUPLOCALE
         locale_t duploc = duplocale(oldlocale);
         if (duploc == NULL && errno == ENOMEM)
         {
@@ -350,16 +356,23 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsign
             return NULL;
         }
         newloc = newlocale(LC_NUMERIC_MASK, "C", duploc);
+#else
+        newloc = newlocale(LC_NUMERIC_MASK, "C", oldlocale);
+#endif
         if (newloc == NULL)
         {
             tok->err = json_tokener_error_memory;
+#ifdef HAVE_DUPLOCALE
             freelocale(duploc);
+#endif
             return NULL;
         }
 #ifdef NEWLOCALE_NEEDS_FREELOCALE
+#ifdef HAVE_DUPLOCALE
         // Older versions of FreeBSD (<12.4) don't free the locale
         // passed to newlocale(), so do it here
         freelocale(duploc);
+#endif
 #endif
         uselocale(newloc);
     }
@@ -681,7 +694,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsign
                     state = json_tokener_state_string_escape;
                     break;
                 }
-                else if ((tok->flags & JSON_TOKENER_STRICT) && c <= 0x1f)
+                else if ((tok->flags & JSON_TOKENER_STRICT) && (unsigned char)c <= 0x1f)
                 {
                     // Disallow control characters in strict mode
                     tok->err = json_tokener_error_parse_string;
@@ -1239,6 +1252,12 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsign
                     saved_state = json_tokener_state_object_field;
                     state = json_tokener_state_string_escape;
                     break;
+                }
+                else if ((tok->flags & JSON_TOKENER_STRICT) && (unsigned char)c <= 0x1f)
+                {
+                    // Disallow control characters in strict mode
+                    tok->err = json_tokener_error_parse_string;
+                    goto out;
                 }
                 if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                 {

@@ -1893,6 +1893,8 @@ HWND PhSelectWindowFromScreenTargeting(
 #define PH_WINDOW_SHADOW_MARGIN 16      // Width of the shadow margin at 96 DPI.
 #define PH_WINDOW_SHADOW_RADIUS 8       // Corner radius of the owner popup at 96 DPI.
 #define PH_WINDOW_SHADOW_OPACITY 0.30f  // Peak shadow alpha (0.0 to 1.0).
+#define PH_WINDOW_SHADOW_DARK_MARGIN 24 // Wider shadow margin in dark theme at 96 DPI.
+#define PH_WINDOW_SHADOW_DARK_OPACITY 0.60f // Stronger contrast against dark backgrounds.
 #define PH_WINDOW_SHADOW_PROPERTY ((ULONG)'shdw')
 #define PH_WINDOW_SHADOW_CONTEXT_PROPERTY ((ULONG)'shdc')
 #define PH_WINDOW_SHADOW_MAX_OCCLUDERS 8
@@ -1902,6 +1904,7 @@ typedef struct _PH_WINDOW_SHADOW_CONTEXT
     LONG ContentWidth;
     LONG ContentHeight;
     LONG Margin;
+    FLOAT Opacity;
     LONG Radius;
     PH_WINDOW_SHADOW_SIDE Sides;
     LONG MarginLeft;
@@ -2114,7 +2117,7 @@ VOID PhRenderWindowShadow(
                     // black so the pre-multiplied color channels stay zero.
 
                     FLOAT factor = 1.0f - (shadowDistance / shadowRadius);
-                    BYTE alpha = (BYTE)(factor * factor * PH_WINDOW_SHADOW_OPACITY * 255.0f);
+                    BYTE alpha = (BYTE)(factor * factor * Context->Opacity * 255.0f);
 
                     pixels[index] = (ULONG)alpha << 24;
                 }
@@ -2461,6 +2464,7 @@ VOID PhUpdateWindowShadow(
     LONG marginRight;
     LONG marginBottom;
     LONG margin;
+    FLOAT opacity;
     PH_WINDOW_SHADOW_OCCLUDERS occluders;
     RECT excludeRect[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
     LONG excludeRadius[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
@@ -2491,7 +2495,8 @@ VOID PhUpdateWindowShadow(
 
     windowDpi = PhGetWindowDpi(WindowHandle);
     backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_MENU);
-    margin = PhScaleToDisplay(PH_WINDOW_SHADOW_MARGIN, windowDpi);
+    margin = PhScaleToDisplay(PhEnableThemeSupport ? PH_WINDOW_SHADOW_DARK_MARGIN : PH_WINDOW_SHADOW_MARGIN, windowDpi);
+    opacity = PhEnableThemeSupport ? PH_WINDOW_SHADOW_DARK_OPACITY : PH_WINDOW_SHADOW_OPACITY;
 
     PhQueryWindowShadowOccluders(
         WindowHandle,
@@ -2536,6 +2541,8 @@ VOID PhUpdateWindowShadow(
         context->ContentWidth != contentWidth ||
         context->ContentHeight != contentHeight ||
         context->WindowDpi != windowDpi ||
+        context->Margin != margin ||
+        context->Opacity != opacity ||
         context->BackgroundColor != backgroundColor ||
         context->Sides != Sides ||
         memcmp(context->ExcludeRect, excludeRect, sizeof(excludeRect)) != 0 ||
@@ -2550,6 +2557,7 @@ VOID PhUpdateWindowShadow(
         memcpy(context->ExcludeRect, excludeRect, sizeof(excludeRect));
         memcpy(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius));
         context->Margin = margin;
+        context->Opacity = opacity;
         context->Radius = PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi);
         context->MarginLeft = marginLeft;
         context->MarginTop = marginTop;

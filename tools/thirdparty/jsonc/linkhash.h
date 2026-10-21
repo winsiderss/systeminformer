@@ -304,6 +304,17 @@ extern json_bool lh_table_lookup_ex(struct lh_table *t, const void *k, void **v)
 extern int lh_table_delete_entry(struct lh_table *t, struct lh_entry *e);
 
 /**
+ * Delete all entries from the specified one to the tail of the list.
+ * Same as calling lh_table_delete_entry() on each of them.
+ *
+ * @param t the table to delete from.
+ * @param e a pointer to the first entry to delete.
+ * @return 0 if the item was deleted.
+ * @return -1 if it was not found.
+ */
+extern int lh_table_delete_entry_to_tail(struct lh_table *t, struct lh_entry *e);
+
+/**
  * Delete a record from the table.
  *
  * If a callback free function is provided then it is called for the
@@ -334,8 +345,9 @@ int lh_table_resize(struct lh_table *t, int new_size);
 /**
  * @deprecated Don't use this outside of linkhash.h:
  */
-#if (defined(AIX_CC) || (defined(_MSC_VER) && (_MSC_VER <= 1800)) )
-/* VS2010 can't handle inline funcs, so skip it there */
+#if !defined (__STDC_VERSION__) || (__STDC_VERSION__ < 199901L)
+/* C89 compilers like VS2010 can't handle inline funcs, so skip it there,
+   note: this also applies to -std=c89 in GCC! */
 #define _LH_INLINE
 #else
 #define _LH_INLINE inline

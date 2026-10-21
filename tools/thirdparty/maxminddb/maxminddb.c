@@ -34,7 +34,49 @@ typedef ADDRESS_FAMILY sa_family_t;
 #endif
 
 #define MMDB_DATA_SECTION_SEPARATOR (16)
-#define MAXIMUM_DATA_STRUCTURE_DEPTH (512)
+// The maximum recursive decoder depth for a single entry. This stops unbounded
+// recursion, including a pointer cycle. See "Reader Resource Limits" in the
+// MaxMind DB specification.
+#ifndef MAXIMUM_DATA_STRUCTURE_DEPTH
+    #define MAXIMUM_DATA_STRUCTURE_DEPTH (512)
+#endif
+
+#if MAXIMUM_DATA_STRUCTURE_DEPTH < 1 || MAXIMUM_DATA_STRUCTURE_DEPTH > INT_MAX
+    #error "MAXIMUM_DATA_STRUCTURE_DEPTH must be between 1 and INT_MAX"
+#endif
+
+// The maximum number of data-section values decoded for a single entry. This
+// bounds a pointer fan-out, where nested pointers to shared targets would
+// otherwise cost 2**depth decode operations. The largest real records decode a
+// few hundred values, so this leaves a wide margin. See "Reader Resource
+// Limits" in the MaxMind DB specification.
+#ifndef MAXIMUM_DATA_STRUCTURE_VALUES
+    #define MAXIMUM_DATA_STRUCTURE_VALUES (1U << 16)
+#endif
+
+// The upper bound matters on platforms where size_t is narrower than the
+// preprocessor's integer arithmetic.
+#if MAXIMUM_DATA_STRUCTURE_VALUES < 1 ||                                       \
+    MAXIMUM_DATA_STRUCTURE_VALUES > SIZE_MAX
+    #error "MAXIMUM_DATA_STRUCTURE_VALUES must be between 1 and SIZE_MAX"
+#endif
+
+// The maximum total bytes of string and bytes payloads decoded for a single
+// entry. libmaxminddb borrows payload bytes (each node points into the data
+// section, it does not copy), so the value count above already bounds the
+// library's own memory. But a fan-out of pointers to one large value produces
+// many nodes that all reference it. A caller that copies each node into a
+// language string then materializes far more than the file holds. This bounds
+// that copied total. The largest real records hold about a kilobyte of
+// payload, so 2 MiB leaves a wide margin while stopping the amplification. It
+// can be raised at build time with -DMAXIMUM_DATA_STRUCTURE_BYTES=<n>.
+#ifndef MAXIMUM_DATA_STRUCTURE_BYTES
+    #define MAXIMUM_DATA_STRUCTURE_BYTES (1U << 21)
+#endif
+
+#if MAXIMUM_DATA_STRUCTURE_BYTES < 1
+    #error "MAXIMUM_DATA_STRUCTURE_BYTES must be at least 1"
+#endif
 
 #ifdef MMDB_DEBUG
     #define DEBUG_MSG(msg) fprintf(stderr, msg "\n")
@@ -131,6 +173,11 @@ typedef struct record_info_s {
     uint8_t right_record_offset;
 } record_info_s;
 
+typedef struct decode_state_s {
+    size_t values;
+    uint64_t bytes;
+} decode_state_s;
+
 #define METADATA_MARKER "\xab\xcd\xefMaxMind.com"
 /* This is 128kb */
 #define METADATA_BLOCK_MAX_SIZE 131072
@@ -193,7 +240,12 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
                                uint32_t offset,
                                MMDB_entry_data_list_s *const entry_data_list,
                                MMDB_data_pool_s *const pool,
+                               decode_state_s *const decode_state,
                                int depth);
+static int
+alloc_entry_data_list(MMDB_data_pool_s *const pool,
+                      decode_state_s *const decode_state,
+                      MMDB_entry_data_list_s **const entry_data_list);
 static float get_ieee754_float(const uint8_t *restrict p);
 static double get_ieee754_double(const uint8_t *restrict p);
 static uint32_t get_uint32(const uint8_t *p);
@@ -283,6 +335,10 @@ int MMDB_open(PCPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
     mmdb->metadata_section_size = metadata_size;
 
     status = read_metadata(mmdb);
+    if (MMDB_DECODER_LIMIT_ERROR == status) {
+        // Metadata that exceeds a decoder limit is invalid metadata.
+        status = MMDB_INVALID_METADATA_ERROR;
+    }
     if (MMDB_SUCCESS != status) {
         goto cleanup;
     }
@@ -310,16 +366,16 @@ int MMDB_open(PCPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
     }
     ssize_t data_section_size =
         mmdb->file_size - search_tree_size - MMDB_DATA_SECTION_SEPARATOR;
-    if (data_section_size > UINT32_MAX || data_section_size <= 0) {
+    if (data_section_size <= 0 || (uint64_t)data_section_size > UINT32_MAX) {
         status = MMDB_INVALID_METADATA_ERROR;
         goto cleanup;
     }
     mmdb->data_section_size = (uint32_t)data_section_size;
 
     // Although it is likely not possible to construct a database with valid
-    // valid metadata, as parsed above, and a data_section_size less than 3,
-    // we do this check as later we assume it is at least three when doing
-    // bound checks.
+    // metadata, as parsed above, and a data_section_size less than 3, we do
+    // this check as later we assume it is at least three when doing bound
+    // checks.
     if (mmdb->data_section_size < 3) {
         status = MMDB_INVALID_DATA_ERROR;
         goto cleanup;
@@ -550,7 +606,7 @@ static const uint8_t *find_metadata(const uint8_t *file_content,
         }
     } while (NULL != tmp);
 
-    if (search_area == start) {
+    if (search_area == start || max_size <= 0) {
         return NULL;
     }
 
@@ -967,9 +1023,16 @@ MMDB_lookup_result_s MMDB_lookup_sockaddr(const MMDB_s *const mmdb,
 
     uint8_t mapped_address[16];
     uint8_t const *address;
+    // Reject families other than AF_INET/AF_INET6 before casting to
+    // sockaddr_in/sockaddr_in6, which would otherwise read past the
+    // truncated struct sockaddr the caller passed in.
     if (mmdb->metadata.ip_version == 4) {
         if (sockaddr->sa_family == AF_INET6) {
             *mmdb_error = MMDB_IPV6_LOOKUP_IN_IPV4_DATABASE_ERROR;
+            return result;
+        }
+        if (sockaddr->sa_family != AF_INET) {
+            *mmdb_error = MMDB_INVALID_NETWORK_ADDRESS_ERROR;
             return result;
         }
         address = (uint8_t const *)&((struct sockaddr_in const *)sockaddr)
@@ -978,12 +1041,15 @@ MMDB_lookup_result_s MMDB_lookup_sockaddr(const MMDB_s *const mmdb,
         if (sockaddr->sa_family == AF_INET6) {
             address = (uint8_t const *)&((struct sockaddr_in6 const *)sockaddr)
                           ->sin6_addr.s6_addr;
-        } else {
+        } else if (sockaddr->sa_family == AF_INET) {
             address = mapped_address;
             memset(mapped_address, 0, 12);
             memcpy(mapped_address + 12,
                    &((struct sockaddr_in const *)sockaddr)->sin_addr.s_addr,
                    4);
+        } else {
+            *mmdb_error = MMDB_INVALID_NETWORK_ADDRESS_ERROR;
+            return result;
         }
     }
 
@@ -1031,12 +1097,12 @@ static int find_address_in_search_tree(const MMDB_s *const mmdb,
 
     result->netmask = current_bit;
 
-    if (value >= (uint64_t)node_count + mmdb->data_section_size) {
-        // The pointer points off the end of the database.
+    uint8_t type = record_type(mmdb, value);
+    if (type == MMDB_RECORD_TYPE_INVALID) {
         return MMDB_CORRUPT_SEARCH_TREE_ERROR;
     }
 
-    if (value == node_count) {
+    if (type == MMDB_RECORD_TYPE_EMPTY) {
         // record is empty
         result->found_entry = false;
         return MMDB_SUCCESS;
@@ -1124,7 +1190,14 @@ static uint8_t record_type(const MMDB_s *const mmdb, uint64_t record) {
         return MMDB_RECORD_TYPE_EMPTY;
     }
 
-    if (record - node_count < mmdb->data_section_size) {
+    uint64_t data_offset = record - node_count;
+    if (data_offset < MMDB_DATA_SECTION_SEPARATOR) {
+        DEBUG_MSG("record points into the data section separator");
+        return MMDB_RECORD_TYPE_INVALID;
+    }
+
+    data_offset -= MMDB_DATA_SECTION_SEPARATOR;
+    if (data_offset < mmdb->data_section_size) {
         return MMDB_RECORD_TYPE_DATA;
     }
 
@@ -1166,6 +1239,11 @@ int MMDB_read_node(const MMDB_s *const mmdb,
 
     node->left_record_type = record_type(mmdb, node->left_record);
     node->right_record_type = record_type(mmdb, node->right_record);
+
+    if (node->left_record_type == MMDB_RECORD_TYPE_INVALID ||
+        node->right_record_type == MMDB_RECORD_TYPE_INVALID) {
+        return MMDB_CORRUPT_SEARCH_TREE_ERROR;
+    }
 
     // Note that offset will be invalid if the record type is not
     // MMDB_RECORD_TYPE_DATA, but that's ok. Any use of the record entry
@@ -1387,7 +1465,7 @@ static int skip_map_or_array(const MMDB_s *const mmdb,
                              int depth) {
     if (depth >= MAXIMUM_DATA_STRUCTURE_DEPTH) {
         DEBUG_MSG("reached the maximum data structure depth");
-        return MMDB_INVALID_DATA_ERROR;
+        return MMDB_DECODER_LIMIT_ERROR;
     }
 
     if (entry_data->type == MMDB_DATA_TYPE_MAP) {
@@ -1461,6 +1539,13 @@ static int decode_one(const MMDB_s *const mmdb,
                       uint32_t offset,
                       MMDB_entry_data_s *entry_data) {
     const uint8_t *mem = mmdb->data_section;
+
+    if (mmdb->data_section_size == 0) {
+        // decode_one is also called with a fake mmdb whose data_section
+        // points at the metadata; either way an empty section is invalid.
+        DEBUG_MSG("decode_one called with an empty section");
+        return MMDB_INVALID_DATA_ERROR;
+    }
 
     // We subtract rather than add as it possible that offset + 1
     // could overflow for a corrupt database while an underflow
@@ -1700,19 +1785,23 @@ int MMDB_get_entry_data_list(MMDB_entry_s *start,
                              MMDB_entry_data_list_s **const entry_data_list) {
     *entry_data_list = NULL;
 
-    MMDB_data_pool_s *const pool = data_pool_new(MMDB_POOL_INIT_SIZE);
+    size_t const maximum_values = (size_t)(MAXIMUM_DATA_STRUCTURE_VALUES);
+    MMDB_data_pool_s *const pool =
+        data_pool_new(MMDB_POOL_INIT_SIZE, maximum_values);
     if (!pool) {
         return MMDB_OUT_OF_MEMORY_ERROR;
     }
 
-    MMDB_entry_data_list_s *const list = data_pool_alloc(pool);
-    if (!list) {
+    decode_state_s decode_state = {0};
+    MMDB_entry_data_list_s *list = NULL;
+    int status = alloc_entry_data_list(pool, &decode_state, &list);
+    if (MMDB_SUCCESS != status) {
         data_pool_destroy(pool);
-        return MMDB_OUT_OF_MEMORY_ERROR;
+        return status;
     }
 
-    int const status =
-        get_entry_data_list(start->mmdb, start->offset, list, pool, 0);
+    status = get_entry_data_list(
+        start->mmdb, start->offset, list, pool, &decode_state, 0);
     if (MMDB_SUCCESS != status) {
         data_pool_destroy(pool);
         return status;
@@ -1727,14 +1816,33 @@ int MMDB_get_entry_data_list(MMDB_entry_s *start,
     return status;
 }
 
+static int
+alloc_entry_data_list(MMDB_data_pool_s *const pool,
+                      decode_state_s *const decode_state,
+                      MMDB_entry_data_list_s **const entry_data_list) {
+    size_t const maximum_values = (size_t)(MAXIMUM_DATA_STRUCTURE_VALUES);
+    if (decode_state->values >= maximum_values) {
+        DEBUG_MSG("reached the maximum number of data structure values");
+        return MMDB_DECODER_LIMIT_ERROR;
+    }
+
+    *entry_data_list = data_pool_alloc(pool);
+    if (!*entry_data_list) {
+        return MMDB_OUT_OF_MEMORY_ERROR;
+    }
+    decode_state->values++;
+    return MMDB_SUCCESS;
+}
+
 static int get_entry_data_list(const MMDB_s *const mmdb,
                                uint32_t offset,
                                MMDB_entry_data_list_s *const entry_data_list,
                                MMDB_data_pool_s *const pool,
+                               decode_state_s *const decode_state,
                                int depth) {
     if (depth >= MAXIMUM_DATA_STRUCTURE_DEPTH) {
         DEBUG_MSG("reached the maximum data structure depth");
-        return MMDB_INVALID_DATA_ERROR;
+        return MMDB_DECODER_LIMIT_ERROR;
     }
     depth++;
     CHECKED_DECODE_ONE(mmdb, offset, &entry_data_list->entry_data);
@@ -1757,8 +1865,12 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
             if (entry_data_list->entry_data.type == MMDB_DATA_TYPE_ARRAY ||
                 entry_data_list->entry_data.type == MMDB_DATA_TYPE_MAP) {
 
-                int status = get_entry_data_list(
-                    mmdb, last_offset, entry_data_list, pool, depth);
+                int status = get_entry_data_list(mmdb,
+                                                 last_offset,
+                                                 entry_data_list,
+                                                 pool,
+                                                 decode_state,
+                                                 depth);
                 if (MMDB_SUCCESS != status) {
                     DEBUG_MSG("get_entry_data_list on pointer failed.");
                     return status;
@@ -1776,14 +1888,19 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
                 return MMDB_INVALID_DATA_ERROR;
             }
             while (array_size-- > 0) {
-                MMDB_entry_data_list_s *entry_data_list_to =
-                    data_pool_alloc(pool);
-                if (!entry_data_list_to) {
-                    return MMDB_OUT_OF_MEMORY_ERROR;
+                MMDB_entry_data_list_s *entry_data_list_to = NULL;
+                int status = alloc_entry_data_list(
+                    pool, decode_state, &entry_data_list_to);
+                if (MMDB_SUCCESS != status) {
+                    return status;
                 }
 
-                int status = get_entry_data_list(
-                    mmdb, array_offset, entry_data_list_to, pool, depth);
+                status = get_entry_data_list(mmdb,
+                                             array_offset,
+                                             entry_data_list_to,
+                                             pool,
+                                             decode_state,
+                                             depth);
                 if (MMDB_SUCCESS != status) {
                     DEBUG_MSG("get_entry_data_list on array element failed.");
                     return status;
@@ -1805,13 +1922,15 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
                 return MMDB_INVALID_DATA_ERROR;
             }
             while (size-- > 0) {
-                MMDB_entry_data_list_s *list_key = data_pool_alloc(pool);
-                if (!list_key) {
-                    return MMDB_OUT_OF_MEMORY_ERROR;
+                MMDB_entry_data_list_s *list_key = NULL;
+                int status =
+                    alloc_entry_data_list(pool, decode_state, &list_key);
+                if (MMDB_SUCCESS != status) {
+                    return status;
                 }
 
-                int status =
-                    get_entry_data_list(mmdb, offset, list_key, pool, depth);
+                status = get_entry_data_list(
+                    mmdb, offset, list_key, pool, decode_state, depth);
                 if (MMDB_SUCCESS != status) {
                     DEBUG_MSG("get_entry_data_list on map key failed.");
                     return status;
@@ -1819,13 +1938,14 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
 
                 offset = list_key->entry_data.offset_to_next;
 
-                MMDB_entry_data_list_s *list_value = data_pool_alloc(pool);
-                if (!list_value) {
-                    return MMDB_OUT_OF_MEMORY_ERROR;
+                MMDB_entry_data_list_s *list_value = NULL;
+                status = alloc_entry_data_list(pool, decode_state, &list_value);
+                if (MMDB_SUCCESS != status) {
+                    return status;
                 }
 
-                status =
-                    get_entry_data_list(mmdb, offset, list_value, pool, depth);
+                status = get_entry_data_list(
+                    mmdb, offset, list_value, pool, decode_state, depth);
                 if (MMDB_SUCCESS != status) {
                     DEBUG_MSG("get_entry_data_list on map element failed.");
                     return status;
@@ -1836,6 +1956,26 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
         } break;
         default:
             break;
+    }
+
+    // Charge the copied payload. Only string and bytes carry a variable-length
+    // payload that a caller copies. Integers are size-validated and tiny,
+    // floats are fixed width, and container data_size is an element count, not
+    // bytes. Pointers have been resolved to their target above, so a pointer to
+    // a string is charged here as the string. This runs once per node, so a
+    // fan-out that references one large value many times is charged each time.
+    // Check before adding so even an overridden maximum cannot make the
+    // uint64 counter wrap.
+    if (entry_data_list->entry_data.type == MMDB_DATA_TYPE_UTF8_STRING ||
+        entry_data_list->entry_data.type == MMDB_DATA_TYPE_BYTES) {
+        uint64_t const maximum_bytes = (uint64_t)(MAXIMUM_DATA_STRUCTURE_BYTES);
+        uint64_t const data_size = entry_data_list->entry_data.data_size;
+        if (data_size > maximum_bytes ||
+            decode_state->bytes > maximum_bytes - data_size) {
+            DEBUG_MSG("reached the maximum data structure bytes");
+            return MMDB_DECODER_LIMIT_ERROR;
+        }
+        decode_state->bytes += data_size;
     }
 
     return MMDB_SUCCESS;
@@ -2283,6 +2423,12 @@ const char *MMDB_strerror(int error_code) {
         case MMDB_IPV6_LOOKUP_IN_IPV4_DATABASE_ERROR:
             return "You attempted to look up an IPv6 address in an IPv4-only "
                    "database";
+        case MMDB_INVALID_NETWORK_ADDRESS_ERROR:
+            return "The sockaddr family is unsupported; only AF_INET and "
+                   "AF_INET6 are accepted";
+        case MMDB_DECODER_LIMIT_ERROR:
+            return "The decoded data structure exceeds the configured resource "
+                   "limits";
         default:
             return "Unknown error code";
     }

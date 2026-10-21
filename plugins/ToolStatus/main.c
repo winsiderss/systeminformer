@@ -540,23 +540,18 @@ BOOLEAN CheckRebarLastRedrawMessage(
     VOID
     )
 {
-    static LARGE_INTEGER lastUpdateTimeTicks = { 0 };
-    LARGE_INTEGER currentUpdateTimeTicks;
-    LARGE_INTEGER currentUpdateTimeFrequency;
+    static LARGE_INTEGER lastUpdateTime = { 0 };
+    LARGE_INTEGER currentUpdateTime;
 
-    PhQueryPerformanceCounter(&currentUpdateTimeTicks);
-    PhQueryPerformanceFrequency(&currentUpdateTimeFrequency);
+    PhQueryInterruptTime(&currentUpdateTime);
 
-    if (lastUpdateTimeTicks.QuadPart == 0)
-        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
-
-    if (((currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks.QuadPart) / currentUpdateTimeFrequency.QuadPart) > 1)
+    if (lastUpdateTime.QuadPart == 0 ||
+        currentUpdateTime.QuadPart - lastUpdateTime.QuadPart >= PH_TICKS_PER_SEC)
     {
-        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+        lastUpdateTime.QuadPart = currentUpdateTime.QuadPart;
         return TRUE;
     }
 
-    lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
     return FALSE;
 }
 
@@ -735,6 +730,66 @@ BOOLEAN NTAPI ToolStatusTargetingCallback(
     return ToolStatusIsValidTargetWindow(WindowHandle, NULL);
 }
 
+typedef struct _TOOLSTATUS_CONSOLE_WINDOW_CONTEXT
+{
+    HWND TerminalWindow;
+    CLIENT_ID ClientId;
+    ULONG Matches;
+} TOOLSTATUS_CONSOLE_WINDOW_CONTEXT, *PTOOLSTATUS_CONSOLE_WINDOW_CONTEXT;
+
+static BOOLEAN NTAPI EnumConsoleWindowCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PTOOLSTATUS_CONSOLE_WINDOW_CONTEXT context = Context;
+    WCHAR className[64];
+
+    if (GetAncestor(WindowHandle, GA_ROOTOWNER) != context->TerminalWindow)
+        return TRUE;
+
+    if (!NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)) ||
+        !PhEqualStringZ(className, L"PseudoConsoleWindow", FALSE))
+    {
+        return TRUE;
+    }
+
+    // Every tab can have a proxy with the same owner. Do not choose an arbitrary tab.
+    if (++context->Matches > 1)
+        return FALSE;
+
+    // Console hosts override the proxy's client ID with the console application.
+    ToolStatusIsValidTargetWindow(WindowHandle, &context->ClientId);
+    return TRUE;
+}
+
+static BOOLEAN ResolveConsoleWindowProcess(
+    _In_ HWND WindowHandle,
+    _Out_ PHANDLE ProcessId
+    )
+{
+    TOOLSTATUS_CONSOLE_WINDOW_CONTEXT context = { 0 };
+    WCHAR className[64];
+
+    context.TerminalWindow = GetAncestor(WindowHandle, GA_ROOT);
+
+    if (!context.TerminalWindow ||
+        !NT_SUCCESS(PhGetClassName(context.TerminalWindow, className, RTL_NUMBER_OF(className), NULL)) ||
+        !PhEqualStringZ(className, L"CASCADIA_HOSTING_WINDOW_CLASS", FALSE))
+    {
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(PhEnumWindowsEx(NULL, EnumConsoleWindowCallback, &context)) &&
+        context.Matches == 1 && context.ClientId.UniqueProcess)
+    {
+        *ProcessId = context.ClientId.UniqueProcess;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID ToolStatusHandleTargetingResult(
     _In_ HWND WindowHandle,
     _In_opt_ HWND TargetWindow,
@@ -757,6 +812,18 @@ VOID ToolStatusHandleTargetingResult(
     if (ToolStatusIsValidTargetWindow(TargetWindow, &clientId))
     {
         PPH_PROCESS_NODE processNode;
+        HANDLE processId = clientId.UniqueProcess;
+
+        if (TargetMode == TIDC_FINDWINDOW)
+        {
+            HANDLE consoleProcessId;
+
+            if (ResolveConsoleWindowProcess(TargetWindow, &consoleProcessId) &&
+                PhFindProcessNode(consoleProcessId))
+            {
+                processId = consoleProcessId;
+            }
+        }
 
         if (SearchboxHandle)
         {
@@ -765,7 +832,7 @@ VOID ToolStatusHandleTargetingResult(
             PhSearchControlClear(SearchboxHandle);
         }
 
-        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
+        if (processNode = PhFindProcessNode(processId))
         {
             SystemInformer_SelectTabPage(0);
             //SystemInformer_ToggleVisible(FALSE);
@@ -1613,7 +1680,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
             if (IsWindowMaximized != maximized)
             {
-                IsWindowMaximized = minimized;
+                IsWindowMaximized = maximized;
 
                 if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
                 {

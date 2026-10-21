@@ -76,9 +76,9 @@ typedef struct _PVP_CLR_FLAG_ENTRY
     PCWSTR Name;
 } PVP_CLR_FLAG_ENTRY, *PPVP_CLR_FLAG_ENTRY;
 
-#define PVP_CLR_BIT(Flag) { Flag, Flag, TEXT(#Flag) + 2 }
-#define PVP_CLR_ENUM(Mask, Flag) { Mask, Flag, TEXT(#Flag) + 2 }
-#define PVP_CLR_ENUM_EX(Mask, Flag, PrefixLength) { Mask, Flag, TEXT(#Flag) + (PrefixLength) }
+#define PVP_CLR_BIT(Flag) { Flag, Flag, &TEXT(#Flag)[2] }
+#define PVP_CLR_ENUM(Mask, Flag) { Mask, Flag, &TEXT(#Flag)[2] }
+#define PVP_CLR_ENUM_EX(Mask, Flag, PrefixLength) { Mask, Flag, &TEXT(#Flag)[PrefixLength] }
 
 // TypeDef.Flags (CorTypeAttr)
 static const PVP_CLR_FLAG_ENTRY PvClrTypeAttributes[] =

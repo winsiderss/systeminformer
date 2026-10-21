@@ -458,6 +458,20 @@ NTSTATUS GraphicsQueryAdapterVidPnSourceFrames(
     return status;
 }
 
+typedef struct _GX_PRESENT_STATS
+{
+    ULONG64 RedirectedFlipCount;
+    ULONG64 IndependentFlipCount;
+    ULONG64 FlipRestartCount;
+    ULONG64 VrrEligibleCount;
+    ULONG64 Interval0Count;
+    ULONG64 Interval1Count;
+    ULONG64 Interval2PlusCount;
+    ULONG64 RedirectedBltCount;
+    ULONG64 CompositionCount;
+    ULONG64 FlipManagerCount;
+} GX_PRESENT_STATS, *PGX_PRESENT_STATS;
+
 /**
  * Drains the adapter's present history ring buffer in batches and
  * accumulates per-VidPN-source and adapter-level token statistics.
@@ -606,6 +620,22 @@ static PPH_STRING GraphicsFormatDeviceProperty(
 
             return PhCreateStringEx((PWCHAR)Property->Buffer, length);
         }
+    case DEVPROP_TYPE_STRING_INDIRECT:
+        {
+            // Display adapter names (DEVPKEY_NAME/DEVPKEY_Device_DeviceDesc) are commonly
+            // returned by DevQuery as indirect strings (e.g. "@oem4.inf,%nvidia...%;NVIDIA
+            // GeForce RTX 3060"). Resolve them rather than discarding, otherwise callers fall
+            // back to the "GPU N" placeholder. (dmex)
+            PH_STRINGREF string;
+
+            if (Property->BufferSize < sizeof(UNICODE_NULL))
+                return NULL;
+
+            string.Buffer = (PWSTR)Property->Buffer;
+            string.Length = Property->BufferSize - sizeof(UNICODE_NULL);
+
+            return PhLoadIndirectString(&string);
+        }
     case DEVPROP_TYPE_FILETIME:
         {
             PFILETIME fileTime;
@@ -636,6 +666,29 @@ static PPH_STRING GraphicsFormatDeviceProperty(
 }
 
 /**
+ * Normalizes a device interface path for the device query APIs.
+ *
+ * \param DeviceInterface Device interface path in either \\?\ or \??\ form.
+ * \return Allocated path using the \\?\ prefix.
+ *         Caller must PhDereferenceObject the result.
+ */
+static PPH_STRING GraphicsNormalizeDeviceInterface(
+    _In_ PCWSTR DeviceInterface
+    )
+{
+    PPH_STRING normalizedDeviceInterface;
+
+    normalizedDeviceInterface = PhCreateString(DeviceInterface);
+
+    // Persisted settings and legacy callers store the NT object form, the device
+    // query APIs only accept the Win32 form. (dmex)
+    if (normalizedDeviceInterface->Length >= 2 * sizeof(WCHAR) && normalizedDeviceInterface->Buffer[1] == L'?')
+        normalizedDeviceInterface->Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
+
+    return normalizedDeviceInterface;
+}
+
+/**
  * Resolves a device interface to its parent device instance ID string.
  *
  * \param DeviceInterface Device interface path.
@@ -648,6 +701,7 @@ static PPH_STRING GraphicsQueryDeviceInterfaceInstanceId(
     )
 {
     PPH_STRING instanceId = NULL;
+    PPH_STRING normalizedDeviceInterface;
     DEVPROPCOMPKEY requestedProperties[] =
     {
         { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
@@ -655,9 +709,11 @@ static PPH_STRING GraphicsQueryDeviceInterfaceInstanceId(
     ULONG propertyCount = 0;
     const DEVPROPERTY* properties = NULL;
 
+    normalizedDeviceInterface = GraphicsNormalizeDeviceInterface(DeviceInterface);
+
     if (HR_SUCCESS(PhDevGetObjectProperties(
         DevObjectTypeDeviceInterface,
-        DeviceInterface,
+        PhGetString(normalizedDeviceInterface),
         DevQueryFlagNone,
         RTL_NUMBER_OF(requestedProperties),
         requestedProperties,
@@ -692,6 +748,8 @@ static PPH_STRING GraphicsQueryDeviceInterfaceInstanceId(
         PhDevFreeObjectProperties(propertyCount, properties);
     }
 
+    PhDereferenceObject(normalizedDeviceInterface);
+
     return instanceId;
 }
 
@@ -699,76 +757,90 @@ static PPH_STRING GraphicsQueryDeviceInterfaceInstanceId(
  * Queries a display adapter description from a device instance ID.
  *
  * \param DeviceInstanceId Device instance ID string.
- * \return Adapter description string.
+ * \return Adapter description string, or NULL when the device has no name.
  */
+_Success_(return != NULL)
 PPH_STRING GraphicsQueryDeviceDescription(
     _In_ PCWSTR DeviceInstanceId
     )
 {
-    static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
-    PPH_STRING string = NULL;
+    // Ordered by preference, the first non-empty value wins. Some adapters only
+    // publish a subset of these, so all three are queried together. (dmex)
+    static const DEVPROPKEY* nameKeys[] =
+    {
+        &DEVPKEY_NAME,
+        &DEVPKEY_Device_DeviceDesc,
+        &DEVPKEY_Device_FriendlyName,
+    };
     const DEVPROPCOMPKEY requestedProperties[] =
     {
-        { DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_NAME,                  DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DeviceDesc,     DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_FriendlyName,   DEVPROP_STORE_SYSTEM, NULL },
     };
+    PPH_STRING string = NULL;
     ULONG propertyCount = 0;
     const DEVPROPERTY* properties = NULL;
 
-    if (HR_SUCCESS(PhDevGetObjectProperties(
+    if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         DeviceInstanceId,
-        DevQueryFlagLocalize,
+        DevQueryFlagNone,
         RTL_NUMBER_OF(requestedProperties),
         requestedProperties,
         &propertyCount,
         &properties
         )))
     {
+        return NULL;
+    }
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(nameKeys); i++)
+    {
         string = GraphicsFormatDeviceProperty(PhDevFindProperty(
-            &DEVPKEY_Device_DeviceDesc,
+            nameKeys[i],
             DEVPROP_STORE_SYSTEM,
             propertyCount,
             properties
             ));
 
-        PhDevFreeObjectProperties(propertyCount, properties);
+        if (!PhIsNullOrEmptyString(string))
+            break;
+
+        PhClearReference(&string);
     }
 
-    if (PhIsNullOrEmptyString(string))
-    {
-        PhClearReference(&string);
-        string = PhCreateString2(&defaultName);
-    }
+    PhDevFreeObjectProperties(propertyCount, properties);
 
     return string;
 }
 
 /**
- * Queries a display adapter description from a device interface path.
+ * Queries a display adapter name from a device interface path.
  *
  * \param DeviceInterface Device interface path.
- * \return Adapter description string.
+ * \return Adapter name string, or NULL when the adapter could not be resolved.
+ * \remarks Callers supply their own fallback text, this never returns a placeholder.
  */
-PPH_STRING GraphicsQueryDeviceInterfaceDescription(
-    _In_opt_ PWSTR DeviceInterface
+_Success_(return != NULL)
+PPH_STRING GraphicsQueryAdapterName(
+    _In_opt_ PCWSTR DeviceInterface
     )
 {
-    if (DeviceInterface)
-    {
-        PPH_STRING instanceId = GraphicsQueryDeviceInterfaceInstanceId(DeviceInterface);
+    PPH_STRING instanceId;
+    PPH_STRING description;
 
-        if (instanceId)
-        {
-            PPH_STRING description = GraphicsQueryDeviceDescription(PhGetString(instanceId));
-            PhDereferenceObject(instanceId);
-            return description;
-        }
-    }
+    if (!DeviceInterface)
+        return NULL;
 
-    {
-        static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
-        return PhCreateString2(&defaultName);
-    }
+    if (!(instanceId = GraphicsQueryDeviceInterfaceInstanceId(DeviceInterface)))
+        return NULL;
+
+    description = GraphicsQueryDeviceDescription(PhGetString(instanceId));
+
+    PhDereferenceObject(instanceId);
+
+    return description;
 }
 
 /**
@@ -863,7 +935,7 @@ BOOLEAN GraphicsQueryDeviceProperties(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(instanceId),
-        DevQueryFlagLocalize,
+        DevQueryFlagNone,
         RTL_NUMBER_OF(requestedProperties),
         requestedProperties,
         &propertyCount,

@@ -59,6 +59,11 @@
 /**
  * The TOKEN_INFORMATION_CLASS enumeration contains values that specify the type of information
  * being assigned to or retrieved from an access token.
+ * \remarks The q/s annotations identify NtQueryInformationToken and NtSetInformationToken respectively.
+ * Query access is TOKEN_QUERY, except TokenSource requires TOKEN_QUERY_SOURCE. Set access is generally
+ * TOKEN_ADJUST_DEFAULT; TokenSessionId additionally requires TOKEN_ADJUST_SESSIONID and TokenLinkedToken
+ * additionally requires TOKEN_QUERY. Privilege requirements marked s: apply to setting, not querying.
+ * Individual classes can be unavailable or feature-gated even when their enum value is declared.
  *
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-token_information_class
  */
@@ -71,57 +76,57 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenPrimaryGroup,                    // qs: TOKEN_PRIMARY_GROUP
     TokenDefaultDacl,                     // qs: TOKEN_DEFAULT_DACL
     TokenSource,                          // q: TOKEN_SOURCE
-    TokenType,                            // q: TOKEN_TYPE
-    TokenImpersonationLevel,              // q: SECURITY_IMPERSONATION_LEVEL
+    TokenType,                            // q: TOKEN_TYPE_INFORMATION
+    TokenImpersonationLevel,              // q: TOKEN_IMPERSONATION_LEVEL_INFORMATION
     TokenStatistics,                      // q: TOKEN_STATISTICS // 10
     TokenRestrictedSids,                  // q: TOKEN_GROUPS
-    TokenSessionId,                       // qs: ULONG (requires SeTcbPrivilege)
+    TokenSessionId,                       // qs: TOKEN_SESSION_ID (s: requires SeTcbPrivilege)
     TokenGroupsAndPrivileges,             // q: TOKEN_GROUPS_AND_PRIVILEGES
-    TokenSessionReference,                // s: ULONG (requires SeTcbPrivilege)
-    TokenSandBoxInert,                    // q: ULONG
+    TokenSessionReference,                // s: TOKEN_SESSION_REFERENCE (requires SeTcbPrivilege)
+    TokenSandBoxInert,                    // q: TOKEN_SANDBOX_INERT
     TokenAuditPolicy,                     // qs: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
-    TokenOrigin,                          // qs: TOKEN_ORIGIN (requires SeTcbPrivilege)
-    TokenElevationType,                   // q: TOKEN_ELEVATION_TYPE
-    TokenLinkedToken,                     // qs: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
+    TokenOrigin,                          // qs: TOKEN_ORIGIN (s: requires SeTcbPrivilege)
+    TokenElevationType,                   // q: TOKEN_ELEVATION_TYPE_INFORMATION
+    TokenLinkedToken,                     // qs: TOKEN_LINKED_TOKEN (s: requires SeCreateTokenPrivilege)
     TokenElevation,                       // q: TOKEN_ELEVATION // 20
-    TokenHasRestrictions,                 // q: ULONG
+    TokenHasRestrictions,                 // q: TOKEN_RESTRICTION_INFORMATION (1 byte; ReturnLength = 1)
     TokenAccessInformation,               // q: TOKEN_ACCESS_INFORMATION
-    TokenVirtualizationAllowed,           // qs: ULONG (requires SeCreateTokenPrivilege)
-    TokenVirtualizationEnabled,           // qs: ULONG
+    TokenVirtualizationAllowed,           // qs: TOKEN_VIRTUALIZATION_ALLOWED (s: requires SeCreateTokenPrivilege)
+    TokenVirtualizationEnabled,           // qs: TOKEN_VIRTUALIZATION_ENABLED
     TokenIntegrityLevel,                  // qs: TOKEN_MANDATORY_LABEL
-    TokenUIAccess,                        // qs: ULONG (requires SeTcbPrivilege)
-    TokenMandatoryPolicy,                 // qs: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
+    TokenUIAccess,                        // qs: TOKEN_UI_ACCESS (s: requires SeTcbPrivilege)
+    TokenMandatoryPolicy,                 // qs: TOKEN_MANDATORY_POLICY (s: requires SeTcbPrivilege)
     TokenLogonSid,                        // q: TOKEN_GROUPS
-    TokenIsAppContainer,                  // q: ULONG // since WIN8
+    TokenIsAppContainer,                  // q: TOKEN_IS_APP_CONTAINER // since WIN8
     TokenCapabilities,                    // q: TOKEN_GROUPS // 30
     TokenAppContainerSid,                 // q: TOKEN_APPCONTAINER_INFORMATION
-    TokenAppContainerNumber,              // q: ULONG
+    TokenAppContainerNumber,              // q: TOKEN_APPCONTAINER_NUMBER
     TokenUserClaimAttributes,             // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenDeviceClaimAttributes,           // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenRestrictedUserClaimAttributes,   // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenRestrictedDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenDeviceGroups,                    // q: TOKEN_GROUPS
     TokenRestrictedDeviceGroups,          // q: TOKEN_GROUPS
-    TokenSecurityAttributes,              // qs: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
-    TokenIsRestricted,                    // q: ULONG // 40
+    TokenSecurityAttributes,              // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION; s: TOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION (requires SeTcbPrivilege)
+    TokenIsRestricted,                    // q: TOKEN_RESTRICTED_INFORMATION // 40; unsupported by the WoW64 thunk
     TokenProcessTrustLevel,               // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-    TokenPrivateNameSpace,                // qs: ULONG (requires SeTcbPrivilege) // since THRESHOLD
+    TokenPrivateNameSpace,                // qs: TOKEN_PRIVATE_NAMESPACE (s: requires SeTcbPrivilege) // since THRESHOLD
     TokenSingletonAttributes,             // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
     TokenBnoIsolation,                    // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
-    TokenChildProcessFlags,               // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
-    TokenIsLessPrivilegedAppContainer,    // q: ULONG // since REDSTONE5
-    TokenIsSandboxed,                     // q: ULONG // since 19H1
-    TokenIsAppSilo,                       // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
+    TokenChildProcessFlags,               // s: TOKEN_CHILD_PROCESS_FLAGS  (requires SeTcbPrivilege) // since REDSTONE3
+    TokenIsLessPrivilegedAppContainer,    // q: TOKEN_LESS_PRIVILEGED_APPCONTAINER_INFORMATION // since REDSTONE5
+    TokenIsSandboxed,                     // q: TOKEN_SANDBOXED_INFORMATION // since 19H1
+    TokenIsAppSilo,                       // q: TOKEN_APP_SILO_INFORMATION // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
     TokenLoggingInformation,              // q: TOKEN_LOGGING_INFORMATION // since 24H2
-    TokenLearningMode,                    // q: ULONG // since 25H2
-    TokenIsSystemManagedAdmin,            // q: ULONG
-    TokenIsInstaller,                     // q: ULONG
-    TokenHasTamperProtection,             // q: ULONG
+    TokenLearningMode,                    // q: TOKEN_LEARNING_MODE // since 25H2
+    TokenIsSystemManagedAdmin,            // q: TOKEN_SYSTEM_MANAGED_ADMIN_INFORMATION
+    TokenIsInstaller,                     // s: TOKEN_INSTALLER_INFORMATION (exactly 4 bytes; feature-gated); query not dispatched 
+    TokenHasTamperProtection,             // q: TOKEN_TAMPER_PROTECTION_INFORMATION
     TokenAppIdentitySid,                  // q: TOKEN_APPCONTAINER_INFORMATION
     TokenAppInstanceSid,                  // q: TOKEN_APPCONTAINER_INFORMATION
     TokenAppSuiteSid,                     // q: TOKEN_APPCONTAINER_INFORMATION
     TokenEntitlements,                    // q: not implemented (NTDDI 26200)
-    TokenAgentId,                         // q: WCHAR[] (AgentId provenance claim, null-terminated)
+    TokenAgentId,                         // qs: TOKEN_AGENT_ID (feature-gated); query is null-terminated, set is counted UTF-16 (even byte length 2..0xfffc)
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 
@@ -260,8 +265,8 @@ typedef struct _TOKEN_ELEVATION
 } TOKEN_ELEVATION, *PTOKEN_ELEVATION;
 
 /**
- * The TOKEN_MANDATORY_POLICY structure specifies the mandatory integrity policy for a token.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_mandatory_policy
+ * The TOKEN_MANDATORY_LABEL structure specifies the integrity SID and its attributes for a token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_mandatory_label
  */
 typedef struct _TOKEN_MANDATORY_LABEL
 {
@@ -284,6 +289,12 @@ typedef struct _TOKEN_MANDATORY_POLICY
 
 typedef PVOID PSECURITY_ATTRIBUTES_OPAQUE;
 
+/**
+ * The TOKEN_ACCESS_INFORMATION structure is the fixed header returned for TokenAccessInformation.
+ * \remarks The fixed layout is 0x58 bytes on x64 and 0x38 bytes on x86 and ends with SecurityAttributes.
+ * Query ReturnLength includes the additional SID hashes, SID arrays, privileges and attribute storage.
+ * The pointer members refer into the returned buffer. There is no trailing SECURITY_QUALITY_OF_SERVICE field.
+ */
 typedef struct _TOKEN_ACCESS_INFORMATION
 {
     PSID_AND_ATTRIBUTES_HASH SidHash;
@@ -299,7 +310,6 @@ typedef struct _TOKEN_ACCESS_INFORMATION
     PSID_AND_ATTRIBUTES_HASH CapabilitiesHash;
     PSID TrustLevelSid;
     PSECURITY_ATTRIBUTES_OPAQUE SecurityAttributes;
-    SECURITY_QUALITY_OF_SERVICE SecurityQualityOfService;
 } TOKEN_ACCESS_INFORMATION, *PTOKEN_ACCESS_INFORMATION;
 
 typedef struct _TOKEN_LOGGING_INFORMATION
@@ -320,6 +330,128 @@ typedef struct _TOKEN_LOGGING_INFORMATION
 } TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
 
 #endif // (PHNT_MODE == PHNT_MODE_KERNEL)
+
+//
+// Scalar token information wrappers. Each member preserves the native payload
+// type and size; these structures can be used in both user and kernel mode.
+// TOKEN_AGENT_ID contains inline UTF-16 data, with no length or pointer header.
+// Query buffers include a terminator; set lengths count the supplied UTF-16 bytes.
+//
+
+typedef struct _TOKEN_TYPE_INFORMATION
+{
+    TOKEN_TYPE TokenType;
+} TOKEN_TYPE_INFORMATION, *PTOKEN_TYPE_INFORMATION;
+
+typedef struct _TOKEN_IMPERSONATION_LEVEL_INFORMATION
+{
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+} TOKEN_IMPERSONATION_LEVEL_INFORMATION, *PTOKEN_IMPERSONATION_LEVEL_INFORMATION;
+
+typedef struct _TOKEN_SESSION_ID
+{
+    ULONG SessionId;
+} TOKEN_SESSION_ID, *PTOKEN_SESSION_ID;
+
+typedef struct _TOKEN_SESSION_REFERENCE
+{
+    ULONG SessionReference;
+} TOKEN_SESSION_REFERENCE, *PTOKEN_SESSION_REFERENCE;
+
+typedef struct _TOKEN_SANDBOX_INERT
+{
+    ULONG SandboxInert;
+} TOKEN_SANDBOX_INERT, *PTOKEN_SANDBOX_INERT;
+
+typedef struct _TOKEN_ELEVATION_TYPE_INFORMATION
+{
+    TOKEN_ELEVATION_TYPE ElevationType;
+} TOKEN_ELEVATION_TYPE_INFORMATION, *PTOKEN_ELEVATION_TYPE_INFORMATION;
+
+typedef struct _TOKEN_RESTRICTION_INFORMATION
+{
+    BOOLEAN HasRestrictions;
+} TOKEN_RESTRICTION_INFORMATION, *PTOKEN_RESTRICTION_INFORMATION;
+
+typedef struct _TOKEN_VIRTUALIZATION_ALLOWED
+{
+    ULONG VirtualizationAllowed;
+} TOKEN_VIRTUALIZATION_ALLOWED, *PTOKEN_VIRTUALIZATION_ALLOWED;
+
+typedef struct _TOKEN_VIRTUALIZATION_ENABLED
+{
+    ULONG VirtualizationEnabled;
+} TOKEN_VIRTUALIZATION_ENABLED, *PTOKEN_VIRTUALIZATION_ENABLED;
+
+typedef struct _TOKEN_UI_ACCESS
+{
+    ULONG UIAccess;
+} TOKEN_UI_ACCESS, *PTOKEN_UI_ACCESS;
+
+typedef struct _TOKEN_IS_APP_CONTAINER
+{
+    ULONG IsAppContainer;
+} TOKEN_IS_APP_CONTAINER, *PTOKEN_IS_APP_CONTAINER;
+
+typedef struct _TOKEN_APPCONTAINER_NUMBER
+{
+    ULONG AppContainerNumber;
+} TOKEN_APPCONTAINER_NUMBER, *PTOKEN_APPCONTAINER_NUMBER;
+
+typedef struct _TOKEN_RESTRICTED_INFORMATION
+{
+    ULONG IsRestricted;
+} TOKEN_RESTRICTED_INFORMATION, *PTOKEN_RESTRICTED_INFORMATION;
+
+typedef struct _TOKEN_PRIVATE_NAMESPACE
+{
+    ULONG PrivateNamespace;
+} TOKEN_PRIVATE_NAMESPACE, *PTOKEN_PRIVATE_NAMESPACE;
+
+typedef struct _TOKEN_CHILD_PROCESS_FLAGS
+{
+    ULONG ChildProcessFlags;
+} TOKEN_CHILD_PROCESS_FLAGS, *PTOKEN_CHILD_PROCESS_FLAGS;
+
+typedef struct _TOKEN_LESS_PRIVILEGED_APPCONTAINER_INFORMATION
+{
+    ULONG IsLessPrivilegedAppContainer;
+} TOKEN_LESS_PRIVILEGED_APPCONTAINER_INFORMATION, *PTOKEN_LESS_PRIVILEGED_APPCONTAINER_INFORMATION;
+
+typedef struct _TOKEN_SANDBOXED_INFORMATION
+{
+    ULONG IsSandboxed;
+} TOKEN_SANDBOXED_INFORMATION, *PTOKEN_SANDBOXED_INFORMATION;
+
+typedef struct _TOKEN_APP_SILO_INFORMATION
+{
+    ULONG IsAppSilo;
+} TOKEN_APP_SILO_INFORMATION, *PTOKEN_APP_SILO_INFORMATION;
+
+typedef struct _TOKEN_LEARNING_MODE
+{
+    ULONG LearningMode;
+} TOKEN_LEARNING_MODE, *PTOKEN_LEARNING_MODE;
+
+typedef struct _TOKEN_SYSTEM_MANAGED_ADMIN_INFORMATION
+{
+    ULONG IsSystemManagedAdmin;
+} TOKEN_SYSTEM_MANAGED_ADMIN_INFORMATION, *PTOKEN_SYSTEM_MANAGED_ADMIN_INFORMATION;
+
+typedef struct _TOKEN_INSTALLER_INFORMATION
+{
+    ULONG IsInstaller;
+} TOKEN_INSTALLER_INFORMATION, *PTOKEN_INSTALLER_INFORMATION;
+
+typedef struct _TOKEN_TAMPER_PROTECTION_INFORMATION
+{
+    ULONG HasTamperProtection;
+} TOKEN_TAMPER_PROTECTION_INFORMATION, *PTOKEN_TAMPER_PROTECTION_INFORMATION;
+
+typedef struct _TOKEN_AGENT_ID
+{
+    WCHAR AgentId[ANYSIZE_ARRAY];
+} TOKEN_AGENT_ID, *PTOKEN_AGENT_ID;
 
 //
 // Types
@@ -380,6 +512,12 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
 } TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
 
 // private
+/**
+ * Describes a native token security attribute. Name and string values are UNICODE_STRING descriptors,
+ * unlike the PWSTR-based CLAIM_SECURITY_ATTRIBUTE_V1 representation.
+ * \remarks The fixed structure is 40 bytes on x64 and 24 bytes on x86. ValueCount counts elements,
+ * not bytes; Values points to storage interpreted according to ValueType.
+ */
 typedef struct _TOKEN_SECURITY_ATTRIBUTE_V1
 {
     UNICODE_STRING Name;
@@ -443,6 +581,12 @@ typedef enum _TOKEN_SECURITY_ATTRIBUTE_OPERATION
 } TOKEN_SECURITY_ATTRIBUTE_OPERATION, *PTOKEN_SECURITY_ATTRIBUTE_OPERATION;
 
 // private
+/**
+ * Supplies attributes and operations when setting TokenSecurityAttributes (39).
+ * \remarks This two-pointer header is 16 bytes on x64 and 8 bytes on x86. It is not the query format,
+ * TOKEN_SECURITY_ATTRIBUTES_INFORMATION. The set operation requires TOKEN_ADJUST_DEFAULT and SeTcbPrivilege.
+ * Operations must not be NULL. A NULL Attributes pointer is accepted only for REPLACE_ALL.
+ */
 typedef struct _TOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION
 {
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes;
@@ -460,7 +604,7 @@ typedef struct _TOKEN_PROCESS_TRUST_LEVEL
     PSID TrustLevelSid;
 } TOKEN_PROCESS_TRUST_LEVEL, *PTOKEN_PROCESS_TRUST_LEVEL;
 
-#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+#if (PHNT_MODE != PHNT_MODE_KERNEL) && (!defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE))
 typedef struct _TOKEN_LOGGING_INFORMATION
 {
     TOKEN_TYPE TokenType;
@@ -477,7 +621,7 @@ typedef struct _TOKEN_LOGGING_INFORMATION
     ULONG GroupsLength;
     PSID_AND_ATTRIBUTES Groups;
 } TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
-#endif // !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL) && (!defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE))
 
 //
 // Tokens
@@ -500,6 +644,10 @@ typedef struct _TOKEN_LOGGING_INFORMATION
  * \param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
  * \param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
  * \return NTSTATUS code indicating success or failure.
+ * \remarks NtCreateToken forwards to NtCreateTokenEx with the four extended claim/device inputs absent. This is
+ * privileged token construction, not duplication of an ordinary process token. The Ex path checks
+ * SeCreateTokenPrivilege; callers must still supply valid token type, security QoS and captured
+ * SID/group/privilege data. Close a successfully returned token handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -536,6 +684,10 @@ NtCreateToken(
  * \param Handles Optional pointer to an array of handles to be associated with the token.
  * \return NTSTATUS code indicating success or failure.
  * \sa https://learn.microsoft.com/en-us/windows/win32/secauthz/ntcreatelowboxtoken
+ * \remarks Creates an AppContainer/lowbox token from an existing token, using TOKEN_DUPLICATE (0x2) on the source.
+ * Package SID, capability array and captured handle list have separate validation; this is not equivalent to
+ * lowering an integrity label alone. The implementation has a feature-gated
+ * AppContainer/integrity path, so successful entry capture does not establish every policy outcome.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -576,6 +728,11 @@ NtCreateLowBoxToken(
  * \param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
  * \param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
  * \return NTSTATUS code indicating success or failure.
+ * \remarks The entry checks SeCreateTokenPrivilege before token construction. User-mode TokenType is restricted to
+ * primary or impersonation; the latter requires captured security QoS. Pointer-bearing SID/group/default-DACL
+ * and claim inputs are captured independently. WoW64 converts these records rather than treating their 32-bit
+ * layouts as native buffers. Creation policy, claim semantics and privileged success paths require separate
+ * validation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -605,11 +762,15 @@ NtCreateTokenEx(
 /**
  * The NtOpenProcessToken routine opens the access token associated with a process, and returns a handle that can be used to access that token.
  *
- * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
  * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstoken
+ * \remarks Opens the process primary token, not a thread impersonation token. It forwards to NtOpenProcessTokenEx with
+ * HandleAttributes = 0. The process reference requires PROCESS_QUERY_LIMITED_INFORMATION (0x1000) on this
+ * build; DesiredAccess applies separately to the returned token. The token handle is caller-owned and must be
+ * closed.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -624,12 +785,16 @@ NtOpenProcessToken(
 /**
  * The NtOpenProcessTokenEx routine opens the access token associated with a process, and returns a handle that can be used to access that token.
  *
- * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * \param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * \param HandleAttributes Object-handle attributes. The kernel masks these with 0x1df2 for user-mode callers and 0x11ff2 for kernel-mode callers; OBJ_INHERIT is supported.
  * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstokenex
+ * \remarks The native implementation masks user HandleAttributes with 0x1DF2 before the token is opened. The process
+ * handle and requested token rights are checked separately. Native failures need not initialize TokenHandle,
+ * whereas the WoW64 thunk copies its zero-initialized temporary back after the native call. Consume the output
+ * only on success.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -645,12 +810,15 @@ NtOpenProcessTokenEx(
 /**
  * The NtOpenThreadToken routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
  *
- * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
  * \param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
  * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtoken
+ * \remarks Opens the thread impersonation token and returns STATUS_NO_TOKEN if the thread is not impersonating; it does
+ * not fall back to the process primary token. OpenAsSelf selects the security context for opening the token,
+ * not which token is returned. This wrapper uses the Ex path with handle attributes 0.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -666,13 +834,17 @@ NtOpenThreadToken(
 /**
  * The NtOpenThreadTokenEx routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
  *
- * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
  * \param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
- * \param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * \param HandleAttributes Object-handle attributes. The kernel masks these with 0x1df2 for user-mode callers and 0x11ff2 for kernel-mode callers; OBJ_INHERIT is supported.
  * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtokenex
+ * \remarks The native implementation references the thread with THREAD_QUERY_LIMITED_INFORMATION (0x800), then separately
+ * opens its impersonation token with DesiredAccess. No token and anonymous-level impersonation have distinct
+ * failures. OpenAsSelf changes access-check context; it does not install or replace impersonation. WoW64
+ * converts the handle output via a zero-initialized native temporary.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -697,6 +869,10 @@ NtOpenThreadTokenEx(
  * \param NewTokenHandle Pointer to a caller-allocated variable that receives a handle to the newly duplicated token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntduplicatetoken
+ * \remarks Requires TOKEN_DUPLICATE (0x2) on the source. DesiredAccess = 0 requests the source handle granted access,
+ * not a token handle with no rights. TokenType, EffectiveOnly and security-QoS impersonation level are
+ * separate choices. The result is a new token object; merely creating it does not attach it to a process or
+ * thread. Close the returned handle independently of the source handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -717,11 +893,16 @@ NtDuplicateToken(
  * \param TokenHandle A handle to an existing access token from which information is to be retrieved. If TokenInformationClass is set to TokenSource, the handle must have TOKEN_QUERY_SOURCE access.
  * For all other TokenInformationClass values, the handle must have TOKEN_QUERY access.
  * \param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
- * \param TokenInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * \param TokenInformation Caller-owned output buffer, probed with 4-byte alignment for user-mode callers. NULL with zero length can be used to obtain the required size.
  * \param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * \param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * \param ReturnLength Required writable pointer receiving the returned or required size in bytes. On STATUS_BUFFER_TOO_SMALL this can exceed TokenInformationLength.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ * \remarks Class sizing is not uniform. TokenHasRestrictions (21) writes a 1-byte BOOLEAN and sets
+ * ReturnLength = 1, leaving later bytes untouched even when 4 bytes were supplied. TokenElevation (20)
+ * requires exactly 4 bytes and returns STATUS_INFO_LENGTH_MISMATCH otherwise. TokenIsRestricted (40) supports
+ * a 4-byte native query but the matching WoW64 thunk returns STATUS_INVALID_INFO_CLASS without changing
+ * ReturnLength. Pointer-bearing classes have separate WoW64 conversion rules.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -738,12 +919,17 @@ NtQueryInformationToken(
 /**
  * The NtSetInformationToken routine modifies information in a specified token. The calling process must have appropriate access rights to set the information.
  *
- * \param TokenHandle A handle to an existing access token which information is to be modified.
+ * \param TokenHandle Token handle normally requiring TOKEN_ADJUST_DEFAULT. TokenSessionId also requires TOKEN_ADJUST_SESSIONID; TokenLinkedToken also requires TOKEN_QUERY.
  * \param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be modified.
  * \param TokenInformation Pointer to a caller-allocated buffer containing the information to be modified in the token.
- * \param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * \param TokenInformationLength Class-specific input length in bytes. On x64, owner, primary-group and default-DACL inputs require at least 8 bytes; linked-token input requires exactly 8 bytes and session-ID input exactly 4 bytes.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationtoken
+ * \remarks The information class selects independently validated input data and access. Most accepted selectors start
+ * with TOKEN_ADJUST_DEFAULT (0x80); TokenSessionId also requests TOKEN_ADJUST_SESSIONID (0x100), and
+ * additional privilege/policy checks still apply. TokenDefaultDacl expects a TOKEN_DEFAULT_DACL containing a
+ * pointer, not raw ACL bytes. Changing it affects the token default DACL, not the security descriptor
+ * protecting the token object itself.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -757,17 +943,21 @@ NtSetInformationToken(
     );
 
 /**
- * The NtAdjustPrivilegesToken routine enables or disables privileges in the specified access token.
+ * The NtAdjustPrivilegesToken routine enables, disables, or removes privileges in the specified access token.
  *
- * \param TokenHandle Handle to the token that contains the privileges to be modified. The handle must have TOKEN_ADJUST_PRIVILEGES access.
+ * \param TokenHandle Handle to the token that contains the privileges to be modified. The handle must have TOKEN_ADJUST_PRIVILEGES access and also TOKEN_QUERY when PreviousState is supplied.
  * \param DisableAllPrivileges Specifies whether the function disables all of the token's privileges. If this value is TRUE, the function disables all privileges and ignores the NewState parameter.
  * If it is FALSE, the function modifies privileges based on the information pointed to by the NewState parameter.
  * \param NewState A pointer to a TOKEN_PRIVILEGES structure that specifies an array of privileges and their attributes. If DisableAllPrivileges is TRUE, the function ignores this parameter.
  * \param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
  * \param PreviousState A pointer to a buffer that the function fills with a TOKEN_PRIVILEGES structure that contains the previous state of any privileges that the function modifies.
  * \param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
- * \return NTSTATUS Successful or errant status.
+ * \return STATUS_SUCCESS on complete adjustment; STATUS_NOT_ALL_ASSIGNED (0x00000106) can report partial adjustment even though NT_SUCCESS is true. STATUS_BUFFER_TOO_SMALL reports the required previous-state size without changing privileges.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+ * \remarks Use TOKEN_ADJUST_PRIVILEGES (0x20), plus TOKEN_QUERY (0x8) when PreviousState is requested. ReturnLength is
+ * required when PreviousState is non-NULL. An unknown privilege can produce STATUS_NOT_ALL_ASSIGNED (0x106)
+ * even though NT_SUCCESS is true. This operation cannot add privileges that the token does not possess. An empty previous-state result clears the first declared LUID_AND_ATTRIBUTES slot as well
+ * as PrivilegeCount; retain storage for the declared TOKEN_PRIVILEGES structure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -785,7 +975,7 @@ NtAdjustPrivilegesToken(
 /**
  * The NtAdjustGroupsToken routine enables or disables groups in the specified access token.
  *
- * \param TokenHandle Handle to the token that contains the groups to be modified. The handle must have TOKEN_ADJUST_GROUPS access.
+ * \param TokenHandle Handle to the token that contains the groups to be modified. The handle must have TOKEN_ADJUST_GROUPS access and also TOKEN_QUERY when PreviousState is supplied.
  * \param ResetToDefault Specifies whether the function resets the groups to the default state. If this value is TRUE, the function resets all groups to their default state and ignores the NewState parameter.
  * \param NewState A pointer to a TOKEN_GROUPS structure that specifies an array of groups and their attributes. If ResetToDefault is TRUE, the function ignores this parameter.
  * \param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
@@ -793,6 +983,10 @@ NtAdjustPrivilegesToken(
  * \param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokengroups
+ * \remarks Requires TOKEN_ADJUST_GROUPS (0x40), plus TOKEN_QUERY (0x8) when PreviousState is requested. Without
+ * ResetToDefault, NewState is required. Changes apply to eligible group attributes, not arbitrary new SIDs,
+ * and mandatory/deny-only constraints remain in the group helper. TOKEN_GROUPS contains pointer-sized SID
+ * entries and therefore requires WoW64 conversion unlike the fixed LUID_AND_ATTRIBUTES privilege entries.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -828,6 +1022,10 @@ NtAdjustGroupsToken(
  * \param DeviceReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousDeviceState parameter. This parameter can be NULL if PreviousDeviceState is NULL.
  * \param DeviceGroupsReturnBufferLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousDeviceGroups parameter. This parameter can be NULL if PreviousDeviceGroups is NULL.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The analyzed native implementation resolves to a shared STATUS_NOT_IMPLEMENTED (0xC0000002) stub. The
+ * declaration describes the intended extended interface, not a working claim/device-group mutation on this
+ * build. WoW64 still performs input/output conversion around the call; do not submit oversized arrays merely
+ * to test the stub.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -870,6 +1068,10 @@ NtAdjustTokenClaimsAndDeviceGroups(
  * \param NewTokenHandle The new restricted token. The new token is the same type, primary or impersonation, as the existing token.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-sefiltertoken
+ * \remarks Creates an independently owned filtered token using TOKEN_DUPLICATE (0x2), rather than modifying the source
+ * token in place. SID arrays and privilege-deletion arrays are captured separately; restricting SIDs are not
+ * equivalent to the deny-only SID list. A zero-flags/all-NULL-list call still creates a token and is not proof
+ * that any restriction was added. Close the resulting handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -903,6 +1105,10 @@ NtFilterToken(
  * \param RestrictedDeviceGroups The list of restricted device groups for the new token. This parameter is optional and can be NULL.
  * \param NewTokenHandle The new restricted token. The new token is the same type, primary or impersonation, as the existing token.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The analyzed native implementation is a shared STATUS_NOT_IMPLEMENTED (0xC0000002) stub, unlike the
+ * working ordinary NtFilterToken path. WoW64 can capture the supplied arrays and copy its temporary output
+ * handle despite native rejection. A present export or matching declaration is not evidence of supported
+ * claims filtering.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -934,6 +1140,11 @@ NtFilterTokenEx(
  * \param Equal Pointer to a BOOLEAN variable that receives TRUE if the tokens are equivalent, or FALSE otherwise.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/secauthz/ntcomparetokens
+ * \remarks Returns a comparison execution status separately from the BOOLEAN equality decision; STATUS_SUCCESS alone
+ * does not mean equal. Both handles require TOKEN_QUERY (0x8). The native entry recognizes identical
+ * handles/objects and otherwise calls SeCompareTokens with a live output pointer, even when decompiler
+ * inference omits that argument. Equality is not token-handle identity or necessarily equality of every
+ * mutable metadata field.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -949,10 +1160,14 @@ NtCompareTokens(
  * The NtPrivilegeCheck routine determines whether a specified set of privileges are enabled in the access token of a client.
  *
  * \param ClientToken Handle to the access token of the client whose privileges are to be checked. The handle must have TOKEN_QUERY access.
- * \param RequiredPrivileges Pointer to a PRIVILEGE_SET structure that specifies the set of privileges to be checked. On input, this structure contains the privileges to check.
- * \param Result Pointer to a BOOLEAN variable that receives TRUE if all specified privileges are enabled, or FALSE otherwise.
+ * \param RequiredPrivileges Pointer to a PRIVILEGE_SET structure that specifies the set of privileges to be checked. The array is input/output: privileges found enabled are marked SE_PRIVILEGE_USED_FOR_ACCESS (0x80000000).
+ * \param Result Pointer to a BOOLEAN variable that receives the privilege decision. PRIVILEGE_SET_ALL_NECESSARY (1) requires all listed privileges; otherwise, at least one must be enabled.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-privilegecheck
+ * \remarks Result is a BOOLEAN decision, separate from the NTSTATUS execution result. The privilege array is
+ * input/output and enabled matches can acquire SE_PRIVILEGE_USED_FOR_ACCESS (0x80000000). The native path
+ * requires 4-byte alignment and TOKEN_QUERY (0x8); an impersonation token below SecurityIdentification is
+ * rejected. It checks privileges already enabled, without enabling them.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -984,10 +1199,14 @@ NtImpersonateAnonymousToken(
  * \param TokenHandle Handle to the access token from which to retrieve security attributes. The handle must have TOKEN_QUERY access.
  * \param Attributes Pointer to an array of UNICODE_STRING structures specifying the names of the attributes to query. This parameter can be NULL if NumberOfAttributes is zero.
  * \param NumberOfAttributes The number of attributes specified in the Attributes array.
- * \param Buffer Pointer to a buffer that receives the security attribute information. The buffer receives a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure.
+ * \param Buffer Optional output buffer receiving TOKEN_SECURITY_ATTRIBUTES_INFORMATION and its variable data. Buffer must be NULL exactly when Length is zero.
  * \param Length The size, in bytes, of the Buffer parameter.
- * \param ReturnLength Pointer to a variable that receives the number of bytes required to store the complete security attribute information.
+ * \param ReturnLength Required writable pointer receiving the complete required size in bytes; use Buffer = NULL and Length = 0 for a sizing query.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native path captures an array of counted attribute names and references the token with TOKEN_QUERY
+ * (0x8). The result is TOKEN_SECURITY_ATTRIBUTES_INFORMATION plus variable data, not a flat array of values.
+ * WoW64 widens names and converts the pointer-bearing output; native required size and 32-bit packed output
+ * must not be assumed identical. Keep name-count and byte-capacity arithmetic separate.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -997,7 +1216,7 @@ NtQuerySecurityAttributesToken(
     _In_ HANDLE TokenHandle,
     _In_reads_opt_(NumberOfAttributes) PCUNICODE_STRING Attributes,
     _In_ ULONG NumberOfAttributes,
-    _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    _Out_writes_bytes_opt_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
     _In_ ULONG Length,
     _Out_ PULONG ReturnLength
     );
@@ -1011,14 +1230,19 @@ NtQuerySecurityAttributesToken(
  *
  * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
  * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param DesiredAccess Object-specific access mask to check. Map GENERIC_READ/WRITE/EXECUTE/ALL first; unmapped generic bits return STATUS_GENERIC_NOT_MAPPED.
  * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
  * \param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
  * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
  * \param GrantedAccess Pointer to an access mask that receives the granted access rights.
  * \param AccessStatus Pointer to a variable that receives the results of the access check.
- * \return NTSTATUS code indicating success or failure.
+ * \return NTSTATUS for execution of the check. A successful return does not itself grant access: inspect AccessStatus and GrantedAccess (or their result arrays).
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheck
+ * \remarks For an ordinary token handle, the user-mode path requires an impersonation token at SecurityIdentification
+ * or higher and TOKEN_QUERY (0x8); a primary token is rejected with STATUS_NO_IMPERSONATION_TOKEN.
+ * AccessStatus is itself NTSTATUS, not the Win32 BOOL result. An empty DACL can yield syscall STATUS_SUCCESS
+ * with AccessStatus = STATUS_ACCESS_DENIED and GrantedAccess = 0. Map generic bits before calling; do not
+ * equate successful execution with authorization.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1041,7 +1265,7 @@ NtAccessCheck(
  * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
  * \param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
  * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param DesiredAccess Object-specific access mask to check. Map GENERIC_READ/WRITE/EXECUTE/ALL first; unmapped generic bits return STATUS_GENERIC_NOT_MAPPED.
  * \param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
  * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
  * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
@@ -1049,8 +1273,12 @@ NtAccessCheck(
  * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
  * \param GrantedAccess Pointer to an access mask that receives the granted access rights.
  * \param AccessStatus Pointer to a variable that receives the results of the access check.
- * \return NTSTATUS code indicating success or failure.
+ * \return NTSTATUS for execution of the check. A successful return does not itself grant access: inspect AccessStatus and GrantedAccess (or their result arrays).
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytype
+ * \remarks Uses SeAccessCheckByType in scalar-result mode. ObjectTypeList describes a GUID hierarchy for
+ * object-specific ACE evaluation, not a list of handles to open. Supply an impersonation token, map generic
+ * access bits, and inspect the separate AccessStatus decision. The scalar output is not a per-entry result
+ * array; privilege-set byte sizing is independent of ObjectTypeListLength.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1076,7 +1304,7 @@ NtAccessCheckByType(
  * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
  * \param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
  * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param DesiredAccess Object-specific access mask to check. Map GENERIC_READ/WRITE/EXECUTE/ALL first; unmapped generic bits return STATUS_GENERIC_NOT_MAPPED.
  * \param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
  * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
  * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
@@ -1084,8 +1312,12 @@ NtAccessCheckByType(
  * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
  * \param GrantedAccess Pointer to an array of access masks that receive the granted access rights for each object type.
  * \param AccessStatus Pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
- * \return NTSTATUS code indicating success or failure.
+ * \return NTSTATUS for execution of the check. A successful return does not itself grant access: inspect AccessStatus and GrantedAccess (or their result arrays).
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytyperesultlist
+ * \remarks Uses the same access-check helper with result-list mode enabled. GrantedAccess and AccessStatus must each
+ * provide one element per ObjectTypeList entry; AccessStatus elements are NTSTATUS values.
+ * ObjectTypeListLength is a count while PrivilegeSetLength is bytes. A successful syscall does not mean all
+ * object-type decisions granted access.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1116,14 +1348,18 @@ NtAccessCheckByTypeResultList(
 /**
  * The NtGetCachedSigningLevel routine retrieves the cached signing level of a file.
  *
- * \param File Handle to a file.
+ * \param File File handle with FILE_READ_DATA access.
  * \param Flags Pointer to the flags set on the file.
  * \param SigningLevel Pointer to the signing level.
  * \param Thumbprint Pointer to the thumbprint.
- * \param ThumbprintSize Pointer to the thumbprint size.
+ * \param ThumbprintSize Optional input/output byte count: input capacity of Thumbprint, output required or returned size. A short buffer returns STATUS_BUFFER_TOO_SMALL.
  * \param ThumbprintAlgorithm Pointer to the thumbprint algorithm.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-getcachedsigninglevel
+ * \remarks Reads cached Code Integrity metadata; it is not a fresh signature-verification operation. The native path
+ * requires FILE_READ_DATA (0x1). Flags and the 1-byte SigningLevel are written after the policy callback
+ * succeeds; thumbprint copying has its own capacity check and can then return STATUS_BUFFER_TOO_SMALL. Do not
+ * assume all outputs stay unchanged on a later thumbprint-size failure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1141,8 +1377,8 @@ NtGetCachedSigningLevel(
 /**
  * The NtSetCachedSigningLevel routine sets the cached signing level of a file.
  *
- * \param Flags Pointer to the flags set on the file.
- * \param InputSigningLevel Pointer to the signing level.
+ * \param Flags Input signing-cache flags, passed by value.
+ * \param InputSigningLevel Requested signing level, passed by value.
  * \param SourceFiles Pointer to a set of source file handles.
  * \param SourceFileCount The source file count.
  * \param TargetFile The target file.
@@ -1182,8 +1418,8 @@ typedef struct _SE_SET_FILE_CACHE_INFORMATION
 /**
  * The NtSetCachedSigningLevel2 routine sets the cached signing level of a file.
  *
- * \param Flags Pointer to the flags set on the file.
- * \param InputSigningLevel Pointer to the signing level.
+ * \param Flags Input signing-cache flags, passed by value.
+ * \param InputSigningLevel Requested signing level, passed by value.
  * \param SourceFiles Pointer to a set of source file handles.
  * \param SourceFileCount The source file count.
  * \param TargetFile The target file.
@@ -1211,7 +1447,10 @@ NtSetCachedSigningLevel2(
  *
  * \param FirstSigningLevel The first signing level to compare.
  * \param SecondSigningLevel The second signing level to compare.
- * \return NTSTATUS Successful or errant status.
+ * \return STATUS_SUCCESS when the Code Integrity comparison accepts the levels; STATUS_INVALID_IMAGE_HASH (0xc0000428) otherwise. This is not a Boolean or three-way comparison result.
+ * \remarks Returns NTSTATUS from a Code Integrity comparison callback decision: success when accepted, otherwise
+ * STATUS_INVALID_IMAGE_HASH (0xC0000428), including when the callback is absent. The result is not a signed
+ * numeric ordering of the two level bytes, and comparing levels does not validate a file signature.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1231,10 +1470,10 @@ NtCompareSigningLevels(
  * The NtAccessCheckAndAuditAlarm routine determines whether a security descriptor grants a specified set of access rights to the client being impersonated by the calling thread.
  * If the security descriptor has a SACL with ACEs that apply to the client, the function generates any necessary audit messages in the security event log.
  *
- * \param SubsystemName A pointer to a null-terminated string specifying the name of the subsystem calling the function.
+ * \param SubsystemName A pointer to a counted UNICODE_STRING specifying the subsystem name.
  * \param HandleId A pointer to a unique value representing the client's handle to the object.
- * \param ObjectTypeName A pointer to a null-terminated string specifying the type of object being created or accessed.
- * \param ObjectName A pointer to a null-terminated string specifying the name of the object being created or accessed.
+ * \param ObjectTypeName A pointer to a counted UNICODE_STRING specifying the object type name.
+ * \param ObjectName A pointer to a counted UNICODE_STRING specifying the object name.
  * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
  * \param DesiredAccess Access mask that specifies the access rights to check. This mask must have been mapped by the MapGenericMask function to contain no generic access rights.
  * \param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
@@ -1470,6 +1709,9 @@ NtPrivilegeObjectAuditAlarm(
  * \param HandleId A pointer to a unique value representing the client's handle to the object.
  * \param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
  * \return NTSTATUS Successful or errant status.
+ * \remarks GenerateOnClose = FALSE is an immediate STATUS_SUCCESS no-op in the native entry. TRUE takes
+ * the audit-privilege/string-capture path. The routine reports an audit event and does not invoke NtClose on
+ * HandleId; object-handle ownership remains the caller responsibility.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1488,6 +1730,9 @@ NtCloseObjectAuditAlarm(
  * \param HandleId A pointer to a unique value representing the client's handle to the object.
  * \param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
  * \return NTSTATUS Successful or errant status.
+ * \remarks GenerateOnClose = FALSE is an immediate STATUS_SUCCESS no-op. TRUE performs audit
+ * privilege/context handling. It reports deletion to auditing; it does not delete the object or close the
+ * opaque HandleId correlation value.
  */
 _Kernel_entry_
 NTSYSCALLAPI

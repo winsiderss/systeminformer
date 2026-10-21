@@ -19,18 +19,19 @@ ULONG WINAPI DetourGetModuleSize(_In_opt_ PVOID hModule)
     if (!pDosHeader)
         return 0;
 
-    if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+    if (ReadUShortAcquire((UNALIGNED PUSHORT)&pDosHeader->e_magic) != IMAGE_DOS_SIGNATURE)
         return 0;
 
-    PIMAGE_NT_HEADERS pNtHeader = static_cast<PIMAGE_NT_HEADERS>(PTR_ADD_OFFSET(pDosHeader, pDosHeader->e_lfanew));
+    LONG e_lfanew = ReadInt32Acquire((UNALIGNED PINT32)&pDosHeader->e_lfanew);
+    PIMAGE_NT_HEADERS pNtHeader = static_cast<PIMAGE_NT_HEADERS>(PTR_ADD_OFFSET(pDosHeader, e_lfanew));
 
-    if (pNtHeader->Signature != IMAGE_NT_SIGNATURE)
+    if (ReadULongAcquire((UNALIGNED PULONG)&pNtHeader->Signature) != IMAGE_NT_SIGNATURE)
         return 0;
 
-    if (pNtHeader->FileHeader.SizeOfOptionalHeader == 0)
+    if (ReadUShortAcquire((UNALIGNED PUSHORT)&pNtHeader->FileHeader.SizeOfOptionalHeader) == 0)
         return 0;
 
-    return pNtHeader->OptionalHeader.SizeOfImage;
+    return ReadULongAcquire((UNALIGNED PULONG)&pNtHeader->OptionalHeader.SizeOfImage);
 }
 
 //  End of File

@@ -49,8 +49,9 @@
 #define PHMOTLC_ENCLAVE_BASE_ADDRESS 26
 #define PHMOTLC_ENCLAVE_SIZE 27
 #define PHMOTLC_ARCHITECTURE 28
+#define PHMOTLC_LDRFLAGS 29
 
-#define PHMOTLC_MAXIMUM 29
+#define PHMOTLC_MAXIMUM 30
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -78,6 +79,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING ImageCoherencyText;
     PPH_STRING ServiceText;
     PPH_STRING EnclaveSizeText;
+    PPH_STRING LdrFlagsText;
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;

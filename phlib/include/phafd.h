@@ -13,6 +13,7 @@
 #define _PH_PHAFD_H
 
 #include <ntafd.h>
+#include <workqueue.h>
 
 EXTERN_C_START
 
@@ -305,6 +306,250 @@ PhCallPhAfdQueryTdiHandleWithTimeout(
     _In_ HANDLE Handle,
     _In_ ULONG QueryMode,
     _Out_ PHANDLE TdiHandle
+    );
+
+typedef struct _PH_AFD_IO_OPERATION
+{
+    HANDLE EventHandle;
+    HANDLE SocketHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    IO_STATUS_BLOCK CancelIoStatusBlock;
+    BOOLEAN Active;
+    WSABUF Buffer;
+    ULONG AddressLength;
+    SOCKADDR_STORAGE Address;
+    DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) UCHAR Request[512];
+} PH_AFD_IO_OPERATION, *PPH_AFD_IO_OPERATION;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdInitializeOperation(
+    _Out_ PPH_AFD_IO_OPERATION Operation
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAfdDeleteOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdQueryOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _Out_opt_ PULONG_PTR Information
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdWaitOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG_PTR Information
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdCancelOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdCreateSocket(
+    _Out_ PHANDLE SocketHandle,
+    _In_ LONG AddressFamily,
+    _In_ LONG SocketType,
+    _In_ LONG Protocol,
+    _In_ ULONG EndpointFlags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdBeginSend(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdBeginReceive(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdBeginPoll(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_ ULONG PollEvents,
+    _In_ LONGLONG TimeoutMilliseconds
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdBind(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG ShareAccess,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdConnect(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdSetConnectData(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(Length) PVOID Data,
+    _In_ ULONG Length
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdGetUnacceptedConnectData(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _Out_writes_bytes_(Length) PVOID Data,
+    _In_ ULONG Length,
+    _Out_ PULONG BytesTransferred
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdQueryUnacceptedConnectDataLength(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _Out_ PULONG Length
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdListen(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG Backlog
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdWaitForListen(
+    _In_ HANDLE SocketHandle,
+    _Out_ PAFD_LISTEN_RESPONSE_INFO_TL Response
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdAccept(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _In_ HANDLE AcceptHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdSend(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdReceive(
+    _In_ HANDLE SocketHandle,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdSendTo(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdReceiveFrom(
+    _In_ HANDLE SocketHandle,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_writes_bytes_to_opt_(*AddressLength, *AddressLength) PSOCKADDR Address,
+    _Inout_opt_ PULONG AddressLength,
+    _Out_opt_ PULONG BytesTransferred
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdPoll(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG PollEvents,
+    _In_ LONGLONG TimeoutMilliseconds,
+    _Out_ PULONG ReturnedEvents
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdGetAddress(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG IoControlCode,
+    _Out_writes_bytes_to_(*AddressLength, *AddressLength) PSOCKADDR Address,
+    _Inout_ PULONG AddressLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdDisconnect(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG DisconnectMode
+    );
+
+PHLIBAPI
+PPH_WORK_QUEUE
+NTAPI
+PhAfdGetWorkQueue(
+    VOID
     );
 
 EXTERN_C_END

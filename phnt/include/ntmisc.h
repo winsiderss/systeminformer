@@ -295,6 +295,9 @@ typedef struct _AHC_SERVICE_DATA
  * \param[in] ServiceClass The application compatibility cache operation to perform.
  * \param[in, out, optional] ServiceContext Pointer to the operation-specific data buffer (AHC_SERVICE_DATA).
  * \return NTSTATUS Successful or errant status.
+ * \remarks The entry rejects infoclasses 12 and above and dispatches lower values
+ * to different apphelp/cache operations. This is not a read-only enumeration API simply because some infoclasses
+ * query information; cache mutation and driver forwarding require separate infoclass-specific contracts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -415,6 +418,9 @@ NtOpenSession(
  * \param[in, optional] Payload Pointer to an optional event-specific payload buffer.
  * \param[in] PayloadSize The size, in bytes, of the payload buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The entry rejects a payload length greater than 0x100 bytes before
+ * session lookup. This is a session-state notification path, not a passive subscription API; it can wait and
+ * signal session state, so it should not be invoked against unrelated sessions for discovery.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -461,10 +467,13 @@ ApiSetGetImplementationHost(
  *
  * \param[in] Namespace The API set namespace name to query.
  * \param[out] Present Pointer to a variable that receives TRUE if the API set is present.
- * \return LOGICAL TRUE if the operation succeeded; otherwise FALSE.
+ * \return NTSTATUS Successful or errant status; inspect the separate BOOLEAN outputs for presence.
+ * \remarks Queries whether an API-set contract resolves to a nonempty host in the current process schema; it
+ * does not load that host. The ntdll entry returns NTSTATUS (STATUS_SUCCESS is zero), not a
+ * Boolean success indicator. Present is a separate one-byte BOOLEAN output.
  */
 NTSYSAPI
-LOGICAL
+NTSTATUS
 NTAPI
 ApiSetQueryApiSetPresence(
     _In_ PCUNICODE_STRING Namespace,
@@ -477,10 +486,12 @@ ApiSetQueryApiSetPresence(
  * \param[in] Namespace The API set namespace name to query.
  * \param[out] IsInSchema Pointer to a variable that receives TRUE if the API set is defined in the schema.
  * \param[out] Present Pointer to a variable that receives TRUE if the API set is present.
- * \return LOGICAL TRUE if the operation succeeded; otherwise FALSE.
+ * \return NTSTATUS Successful or errant status; inspect the separate BOOLEAN outputs for presence.
+ * \remarks Distinguishes schema membership from a usable host mapping without loading a DLL. The native
+ * entry returns NTSTATUS; IsInSchema and Present are separate one-byte BOOLEAN outputs. Malformed contract syntax returns STATUS_INVALID_PARAMETER with both outputs FALSE.
  */
 NTSYSAPI
-LOGICAL
+NTSTATUS
 NTAPI
 ApiSetQueryApiSetPresenceEx(
     _In_ PCUNICODE_STRING Namespace,
@@ -607,6 +618,9 @@ NtAcquireCrossVmMutant(
  * \param[out, optional] OutputBuffer Pointer to the output buffer.
  * \param[out] ReturnLength Pointer to a variable that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The native x64 service returns STATUS_NOT_IMPLEMENTED. The matching
+ * WoW64 wrapper forwards to that service. Do not infer availability of a graphics operation from the presence
+ * of this export or attempt to treat its opaque arguments as a stable graphics ABI.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -942,12 +956,17 @@ GetPackageContext(
 
 // rev
 /**
- * The GetPackageProperty routine retrieves a property value from a package context.
+ * The GetPackageProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities.
  *
- * \param PackageContext The package context reference.
- * \param PropertyId The package property identifier to query.
- * \param BufferSize A pointer to a variable that specifies the buffer size and receives the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the property value.
+ * \param PackageContext The PACKAGE_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -957,17 +976,21 @@ GetPackageProperty(
     _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
     _In_ PackageProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer
     );
 
 // rev
 /**
- * The GetPackagePropertyString routine retrieves a string property value from a package context.
+ * The GetPackagePropertyString routine retrieves a string property into a caller-owned WCHAR buffer. BufferLength points to a 32-bit character
+ * capacity; the wrapper doubles it for the byte-oriented API and converts the reported length back to WCHARs.
+ * NULL buffer is permitted with zero capacity. Capacities above 0x7FFFFFFF return ERROR_INVALID_PARAMETER
+ * before doubling. Only string-valued infoclasses are accepted; this is not a generic binary-property
+ * conversion.
  *
- * \param PackageContext The package context reference.
- * \param PropertyId The package property identifier to query.
- * \param BufferLength A pointer to a variable that specifies the buffer length and receives the required or returned length in characters.
- * \param Buffer A pointer to the buffer receiving the string property.
+ * \param PackageContext The PACKAGE_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferLength On input, the WCHAR capacity; on output, the required or returned length.
+ * \param Buffer Receives the string property when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -977,7 +1000,7 @@ GetPackagePropertyString(
     _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
     _In_ PackageProperty PropertyId,
     _Inout_ PULONG BufferLength,
-    _Out_writes_(BufferLength) PWSTR Buffer
+    _Out_writes_opt_(*BufferLength) PWSTR Buffer
     );
 
 // rev
@@ -1040,12 +1063,17 @@ GetPackageApplicationContext(
 
 // rev
 /**
- * The GetPackageApplicationProperty routine retrieves a property value from a package application context.
+ * The GetPackageApplicationProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities.
  *
- * \param PackageApplicationContext The package application context reference.
- * \param PropertyId The package application property identifier to query.
- * \param BufferSize A pointer to a variable that specifies the buffer size and receives the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the property value.
+ * \param PackageApplicationContext The PACKAGE_APPLICATION_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1055,17 +1083,21 @@ GetPackageApplicationProperty(
     _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
     _In_ PackageApplicationProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer
     );
 
 // rev
 /**
- * The GetPackageApplicationPropertyString routine retrieves a string property value from a package application context.
+ * The GetPackageApplicationPropertyString routine retrieves a string property into a caller-owned WCHAR buffer. BufferLength points to a 32-bit character
+ * capacity; the wrapper doubles it for the byte-oriented API and converts the reported length back to WCHARs.
+ * NULL buffer is permitted with zero capacity. Capacities above 0x7FFFFFFF return ERROR_INVALID_PARAMETER
+ * before doubling. Only string-valued infoclasses are accepted; this is not a generic binary-property
+ * conversion.
  *
- * \param PackageApplicationContext The package application context reference.
- * \param PropertyId The package application property identifier to query.
- * \param BufferLength A pointer to a variable that specifies the buffer length and receives the required or returned length in characters.
- * \param Buffer A pointer to the buffer receiving the string property.
+ * \param PackageApplicationContext The PACKAGE_APPLICATION_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferLength On input, the WCHAR capacity; on output, the required or returned length.
+ * \param Buffer Receives the string property when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1075,7 +1107,7 @@ GetPackageApplicationPropertyString(
     _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
     _In_ PackageApplicationProperty PropertyId,
     _Inout_ PULONG BufferLength,
-    _Out_writes_(BufferLength) PWSTR Buffer
+    _Out_writes_opt_(*BufferLength) PWSTR Buffer
     );
 
 //
@@ -1160,13 +1192,18 @@ GetPackageApplicationResourcesContext(
 
 // rev
 /**
- * The GetPackageResourcesProperty routine retrieves a property value from a package resources context.
+ * The GetPackageResourcesProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities. Optional Flags may be written on insufficient-buffer failure as well as success.
  *
- * \param PackageResourcesContext The package resources context reference.
- * \param PropertyId The package resources property identifier to query.
- * \param BufferSize A pointer to a variable specifying the buffer size and receiving the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the resources property value.
- * \param Flags An optional pointer receiving property flags.
+ * \param PackageResourcesContext The PACKAGE_RESOURCES_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
+ * \param Flags Optionally receives resource property flags.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1176,7 +1213,7 @@ GetPackageResourcesProperty(
     _In_ PACKAGE_RESOURCES_CONTEXT_REFERENCE PackageResourcesContext,
     _In_ PackageResourcesProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
     _Out_opt_ PULONG Flags
     );
 
@@ -1220,12 +1257,17 @@ GetPackageSecurityContext(
 
 // rev
 /**
- * The GetPackageSecurityProperty routine retrieves a property value from a package security context.
+ * The GetPackageSecurityProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities.
  *
- * \param PackageSecurityContext The package security context reference.
- * \param PropertyId The package security property identifier to query.
- * \param BufferSize A pointer to a variable specifying the buffer size and receiving the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the security property value.
+ * \param PackageSecurityContext The PACKAGE_SECURITY_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1235,7 +1277,7 @@ GetPackageSecurityProperty(
     _In_ PACKAGE_SECURITY_CONTEXT_REFERENCE PackageSecurityContext,
     _In_ PackageSecurityProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
@@ -1282,12 +1324,17 @@ GetTargetPlatformContext(
 
 // rev
 /**
- * The GetPackageTargetPlatformProperty routine retrieves a property value from a target platform context.
+ * The GetPackageTargetPlatformProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities.
  *
- * \param TargetPlatformContext The target platform context reference.
- * \param PropertyId The target platform property identifier to query.
- * \param BufferSize A pointer to a variable specifying the buffer size and receiving the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the property value.
+ * \param TargetPlatformContext The TARGET_PLATFORM_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1297,7 +1344,7 @@ GetPackageTargetPlatformProperty(
     _In_ TARGET_PLATFORM_CONTEXT_REFERENCE TargetPlatformContext,
     _In_ TargetPlatformProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
@@ -1370,12 +1417,18 @@ GetPackageGlobalizationContext(
 
 // rev
 /**
- * The GetPackageGlobalizationProperty routine retrieves a property value from a package globalization context.
+ * The GetPackageGlobalizationProperty routine retrieves a property from the corresponding package context into caller-owned storage. BufferSize points to
+ * a 32-bit byte capacity, not the capacity value itself. NULL Buffer is permitted only when *BufferSize is
+ * zero. A recognized property with insufficient space reports its required byte size with
+ * ERROR_INSUFFICIENT_BUFFER (122). NULL context or size pointer, or NULL buffer with nonzero capacity, returns
+ * ERROR_INVALID_PARAMETER (87). Context validity and property-specific payload schemas remain caller
+ * responsibilities. InfoClasses 1 and 2 return a normalized 4-byte value. Success zeros the entire incoming
+ * capacity before storing the value and setting *BufferSize to 4.
  *
- * \param PackageGlobalizationContext The package globalization context reference.
- * \param PropertyId The package globalization property identifier to query.
- * \param BufferSize A pointer to a variable specifying the buffer size and receiving the required or returned size in bytes.
- * \param Buffer A pointer to the buffer receiving the property value.
+ * \param PackageGlobalizationContext The PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE to query.
+ * \param PropertyId The property to retrieve.
+ * \param BufferSize On input, the buffer capacity in bytes; on output, the required or returned size.
+ * \param Buffer Receives the property data when the buffer is large enough.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 WINBASEAPI
@@ -1385,7 +1438,7 @@ GetPackageGlobalizationProperty(
     _In_ PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE PackageGlobalizationContext,
     _In_ PackageGlobalizationProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
@@ -1425,9 +1478,11 @@ typedef struct _MTA_USAGE_GLOBALS
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // private // combase.dll, ordinal 70
 /**
- * The CoGetMTAUsageInfo routine retrieves the global multithreaded apartment (MTA) usage tracking structure.
- *
- * \return A pointer to the MTA_USAGE_GLOBALS structure if MTA usage information is available; otherwise, NULL.
+ * The CoGetMTAUsageInfo routine allocates a new MTA_USAGE_GLOBALS descriptor with CoTaskMemAlloc: 80 bytes on x64, 40 bytes on x86 in the
+ * inspected build. Release the outer allocation with CoTaskMemFree. Embedded counter and flag pointers are
+ * borrowed COM global storage; do not free or modify their targets or treat this as a synchronized snapshot.
+ * CompletionTimeOut is initialized to 10000 milliseconds. Allocation failure returns NULL. The inspected
+ * COMBASE entry is ordinal 70.
  */
 _Success_(return != 0)
 _Must_inspect_result_
@@ -1666,46 +1721,66 @@ static_assert(sizeof(APPCOMPAT_EXE_DATA) == 0xE98, "APPCOMPAT_EXE_DATA size mism
 //
 
 /**
- * PCW Handle Types  
+ * The PCW handle types identify registrations, queries, and notifiers.
  */
 DECLARE_HANDLE(HPCW_REGISTRATION);  
 DECLARE_HANDLE(HPCW_QUERY);
 DECLARE_HANDLE(HPCW_NOTIFIER);
 
 /**
- * PCW Callback Types  
- */  
+ * The PCW_CALLBACK_TYPE enumeration selects the Performance Counters for Windows provider callback payload.
+ * The infoclass is the callback's first argument, not a member of its payload.
+ */
 typedef enum _PCW_CALLBACK_TYPE
-{  
-    PcwCallbackAddCounter = 0,  
-    PcwCallbackRemoveCounter = 1,  
-    PcwCallbackEnumerateEvents = 2,  
-    PcwCallbackCollectData = 3,  
+{
+    PcwCallbackAddCounter = 0,
+    PcwCallbackRemoveCounter = 1,
+    PcwCallbackEnumerateInstances = 2,
+    PcwCallbackCollectData = 3,
 } PCW_CALLBACK_TYPE;
 
+typedef struct _PCW_BUFFER PCW_BUFFER, *PPCW_BUFFER;
+typedef struct _KEVENT KEVENT, *PKEVENT;
+
 /**
- * The PCW_CALLBACK_INFORMATION structure contains the information passed to a Performance Counters for Windows (PCW) callback.
+ * The PCW_COUNTER_INFORMATION structure identifies the counters and instance-name pattern being added or removed.
+ * CounterMask selects counters; InstanceMask is a borrowed Unicode string.
+ * The x64 layout occupies 16 bytes.
  */
-typedef struct _PCW_CALLBACK_INFORMATION
-{  
-    PCW_CALLBACK_TYPE Type;  
-    union
-    {
-        struct
-        {
-            PUNICODE_STRING InstanceName;
-            PVOID InstanceData;
-            ULONG InstanceId;
-        } AddCounter;
-        struct
-        {
-            PVOID InstanceContext;
-        } RemoveCounter;
-        struct
-        {
-            PVOID CancelEvent;
-        } CollectData;  
-    } DUMMYUNIONNAME;
+typedef struct _PCW_COUNTER_INFORMATION
+{
+    ULONG64 CounterMask;
+    PCUNICODE_STRING InstanceMask;
+} PCW_COUNTER_INFORMATION, *PPCW_COUNTER_INFORMATION;
+
+/**
+ * The PCW_MASK_INFORMATION structure describes a provider enumeration or collection request. Buffer is the opaque
+ * collector buffer supplied to PcwAddInstance; CancelEvent is a kernel event
+ * pointer, not a user-mode HANDLE. These pointers are borrowed for the callback.
+ * Size is 40 bytes on x64; Buffer and CancelEvent are at 0x18 and 0x20.
+ */
+typedef struct _PCW_MASK_INFORMATION
+{
+    ULONG64 CounterMask;
+    PCUNICODE_STRING InstanceMask;
+    ULONG InstanceId;
+    BOOLEAN CollectMultiple;
+    PPCW_BUFFER Buffer;
+    PKEVENT CancelEvent;
+} PCW_MASK_INFORMATION, *PPCW_MASK_INFORMATION;
+
+/**
+ * The PCW_CALLBACK_INFORMATION union contains the payload for a kernel PCW provider callback. All alternatives begin at offset
+ * zero; PCW_CALLBACK_TYPE is passed separately. The union occupies 40 bytes on x64.
+ * CollectData.Buffer is at offset 0x18 in the x64 layout.
+ * This is not the serialized buffer returned by PcwReadNotificationData.
+ */
+typedef union _PCW_CALLBACK_INFORMATION
+{
+    PCW_COUNTER_INFORMATION AddCounter;
+    PCW_COUNTER_INFORMATION RemoveCounter;
+    PCW_MASK_INFORMATION EnumerateInstances;
+    PCW_MASK_INFORMATION CollectData;
 } PCW_CALLBACK_INFORMATION, *PPCW_CALLBACK_INFORMATION;
 
 typedef _Function_class_(PCW_CALLBACK)
@@ -1717,7 +1792,7 @@ NTSTATUS NTAPI PCW_CALLBACK(
 typedef PCW_CALLBACK* PPCW_CALLBACK;
 
 /**
- * Creates a new Performance Counters for Windows (PCW) query object.
+ * The PcwCreateQuery routine creates a Performance Counters for Windows (PCW) query object.
  *
  * \param[out] QueryHandle Receives the created `HPCW_QUERY` handle on success.
  * \param[in,opt] CancelEventHandle Optional event handle that the kernel monitors to detect
@@ -2060,7 +2135,7 @@ PcwClearCounterSetSecurity(
 //
 
 /**
- * PCW query snapshot - represents a data collection snapshot
+ * The PCW_QUERY_SNAPSHOT structure represents a counter data collection snapshot.
  */
 typedef struct _PCW_QUERY_SNAPSHOT
 {
@@ -2071,7 +2146,7 @@ typedef struct _PCW_QUERY_SNAPSHOT
 } PCW_QUERY_SNAPSHOT, *PPCW_QUERY_SNAPSHOT;
 
 /**
- * Root header for PCW result data
+ * The PCW_RESULT_ROOT structure contains the root header for PCW result data.
  */
 typedef struct _PCW_RESULT_ROOT
 {
@@ -2080,7 +2155,7 @@ typedef struct _PCW_RESULT_ROOT
 } PCW_RESULT_ROOT, *PPCW_RESULT_ROOT;
 
 /**
- * Header describing PCW counter set results
+ * The PCW_RESULT_HEADER structure describes PCW counter set results.
  */
 typedef struct _PCW_RESULT_HEADER
 {
@@ -2090,7 +2165,7 @@ typedef struct _PCW_RESULT_HEADER
 } PCW_RESULT_HEADER, *PPCW_RESULT_HEADER;
 
 /**
- * PCW instance buffer - contains instance data and counter values
+ * The PCW_INSTANCE_BUFFER structure contains instance data and counter values.
  */
 typedef struct _PCW_INSTANCE_BUFFER
 {
@@ -2102,7 +2177,7 @@ typedef struct _PCW_INSTANCE_BUFFER
 } PCW_INSTANCE_BUFFER, *PPCW_INSTANCE_BUFFER;
 
 /**
- * PCW counter record - single counter value
+ * The PCW_COUNTER_RECORD structure contains a single counter value.
  */
 typedef struct _PCW_COUNTER_RECORD
 {
@@ -2120,7 +2195,7 @@ typedef struct _PCW_COUNTER_RECORD
 } PCW_COUNTER_RECORD, *PPCW_COUNTER_RECORD;
 
 /**
- * PCW counter trailer - metadata following counter data
+ * The PCW_COUNTER_TRAILER structure contains metadata following counter data.
  */
 typedef struct _PCW_COUNTER_TRAILER
 {
@@ -2138,7 +2213,7 @@ typedef struct _PCW_COUNTER_TRAILER
 } PCW_COUNTER_TRAILER, *PPCW_COUNTER_TRAILER;
 
 /**
- * PCW enumerate instances header
+ * The PCW_ENUMERATE_INSTANCES_HEADER structure contains the instance enumeration header.
  */
 typedef struct _PCW_ENUMERATE_INSTANCES_HEADER
 {
@@ -2147,7 +2222,7 @@ typedef struct _PCW_ENUMERATE_INSTANCES_HEADER
 } PCW_ENUMERATE_INSTANCES_HEADER, *PPCW_ENUMERATE_INSTANCES_HEADER;
 
 /**
- * PCW enumerated instance
+ * The PCW_ENUMERATE_INSTANCE structure contains an enumerated instance.
  */
 typedef struct _PCW_ENUMERATE_INSTANCE
 {
@@ -2161,7 +2236,10 @@ typedef struct _PCW_ENUMERATE_INSTANCE
 //
 
 /**
- * Retrieves the header from a PCW query snapshot buffer.
+ * The PcwQueryGetHeader routine retrieves the header from a PCW query snapshot buffer.
+ *
+ * \param Snapshot The PCW query snapshot.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_RESULT_HEADER
@@ -2177,7 +2255,10 @@ PcwQueryGetHeader(
 }
 
 /**
- * Retrieves the first instance from a PCW result header.
+ * The PcwHeaderGetFirstInstance routine retrieves the first instance from a PCW result header.
+ *
+ * \param Header The PCW result header.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_INSTANCE_BUFFER
@@ -2190,7 +2271,10 @@ PcwHeaderGetFirstInstance(
 }
 
 /**
- * Retrieves the next instance in a PCW instance sequence.
+ * The PcwInstanceGetNext routine retrieves the next instance in a PCW instance sequence.
+ *
+ * \param Instance The current PCW instance.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_INSTANCE_BUFFER
@@ -2203,7 +2287,10 @@ PcwInstanceGetNext(
 }
 
 /**
- * Retrieves the first counter record from a PCW instance.
+ * The PcwInstanceGetFirstCounter routine retrieves the first counter record from a PCW instance.
+ *
+ * \param Instance The PCW instance.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_COUNTER_RECORD
@@ -2216,7 +2303,10 @@ PcwInstanceGetFirstCounter(
 }
 
 /**
- * Retrieves the next counter record in a PCW counter sequence.
+ * The PcwCounterGetNext routine retrieves the next counter record in a PCW counter sequence.
+ *
+ * \param Counter The current PCW counter record.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_COUNTER_RECORD
@@ -2229,7 +2319,10 @@ PcwCounterGetNext(
 }
 
 /**
- * Retrieves the trailer following a PCW counter record.
+ * The PcwCounterGetTrailer routine retrieves the trailer following a PCW counter record.
+ *
+ * \param Counter The PCW counter record.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_COUNTER_TRAILER
@@ -2242,7 +2335,10 @@ PcwCounterGetTrailer(
 }
 
 /**
- * Retrieves the first enumerated instance from a PCW enumerate header.
+ * The PcwEnumerateHeaderGetFirstInstance routine retrieves the first enumerated instance from a PCW enumerate header.
+ *
+ * \param Header The PCW instance enumeration header.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_ENUMERATE_INSTANCE
@@ -2255,7 +2351,10 @@ PcwEnumerateHeaderGetFirstInstance(
 }
 
 /**
- * Retrieves the next enumerated instance.
+ * The PcwEnumerateInstanceGetNext routine retrieves the next enumerated instance.
+ *
+ * \param Instance The current enumerated PCW instance.
+ * \return A pointer to the requested PCW data.
  */
 FORCEINLINE
 PPCW_ENUMERATE_INSTANCE

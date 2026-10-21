@@ -32,10 +32,11 @@
 #define PHMMTLC_SIGNING_LEVEL 12
 #define PHMMTLC_ORIGINAL_PROTECTION 13
 #define PHMMTLC_ORIGINAL_PAGES 14
-#define PHMMTLC_REGIONTYPE 15
-#define PHMMTLC_PRIORITY 16
+#define PHMMTLC_MODIFIED_PAGES 15
+#define PHMMTLC_REGIONTYPE 16
+#define PHMMTLC_PRIORITY 17
 
-#define PHMMTLC_MAXIMUM 17
+#define PHMMTLC_MAXIMUM 18
 
 // begin_phapppub
 typedef struct _PH_MEMORY_NODE
@@ -66,6 +67,7 @@ typedef struct _PH_MEMORY_NODE
     PPH_STRING CommittedText;
     PPH_STRING PrivateText;
     PPH_STRING OriginalPagesText;
+    PPH_STRING ModifiedPagesText;
     PPH_STRING RegionTypeText;
     PPH_STRING PriorityText;
 // begin_phapppub
@@ -80,6 +82,7 @@ typedef struct _PH_MEMORY_NODE
 #define PH_MEMORY_FLAGS_EXECUTE_OPTION 6
 #define PH_MEMORY_FLAGS_GUARD_OPTION 7
 #define PH_MEMORY_FLAGS_ZERO_PAD_ADDRESSES 8
+#define PH_MEMORY_FLAGS_MODIFIED_OPTION 9
 
 typedef struct _PH_MEMORY_LIST_CONTEXT
 {
@@ -104,12 +107,14 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
             ULONG HighlightExecutePages : 1;
             ULONG HideGuardRegions : 1;
             ULONG ZeroPadAddresses : 1;
-            ULONG Spare : 24;
+            ULONG HighlightModifiedPages : 1;
+            ULONG Spare : 23;
         };
     };
 
     PPH_LIST AllocationBaseNodeList; // Allocation base nodes (list should always be sorted by base address)
     PPH_LIST RegionNodeList; // Memory region nodes
+    PPH_LIST RootNodeList; // Non-owning display roots (allocation bases or their sole region)
 } PH_MEMORY_LIST_CONTEXT, *PPH_MEMORY_LIST_CONTEXT;
 
 VOID PhInitializeMemoryList(

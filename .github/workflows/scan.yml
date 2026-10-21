@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
         with:
           path: |
             packages
@@ -46,7 +46,7 @@ jobs:
 
       - name: Initialize CodeQL
         id: init
-        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           languages: cpp
 
@@ -63,7 +63,7 @@ jobs:
       - name: Download Windows Driver Query Packs
         shell: pwsh
         run: |
-          & "${{ steps.init.outputs.codeql-path }}" pack download microsoft/windows-drivers microsoft/cpp-queries
+          & "${{ steps.init.outputs.codeql-path }}" pack download microsoft/windows-drivers microsoft/cpp-queries@0.0.5
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Windows Driver Analysis
@@ -72,8 +72,6 @@ jobs:
           $sarifOut = Join-Path "${{ runner.temp }}" "driver-analysis.sarif"
           & "${{ steps.init.outputs.codeql-path }}" database analyze "${{ runner.temp }}\codeql_databases\cpp" `
             microsoft/windows-drivers `
-            microsoft/cpp-queries `
-            codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls `
             --sarif-category=/driver `
             --format=sarifv2.1.0 `
             --output=$sarifOut
@@ -88,7 +86,7 @@ jobs:
             -packages/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
           category: /driver
@@ -108,7 +106,7 @@ jobs:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # 5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
         with:
           path: |
             packages
@@ -125,18 +123,16 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           languages: cpp
-          queries: security-and-quality
-          packs: microsoft/cpp-queries
 
       - name: Build Release
         shell: cmd
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           category: /language:cpp
           output: sarif-results
@@ -153,7 +149,7 @@ jobs:
             -tools/CustomBuildTool/obj/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           sarif_file: sarif-results/filtered.sarif
           category: /language:cpp
@@ -173,7 +169,7 @@ jobs:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # 5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
         with:
           path: |
             packages
@@ -186,7 +182,7 @@ jobs:
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           languages: csharp
           queries: security-and-quality
@@ -196,7 +192,7 @@ jobs:
         run: build\build_init.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           category: /language:csharp
           output: sarif-results
@@ -213,7 +209,7 @@ jobs:
             -tools/CustomBuildTool/obj/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           sarif_file: sarif-results/filtered.sarif
           category: /language:csharp
@@ -231,13 +227,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           languages: actions
           build-mode: none
           queries: security-and-quality
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           category: /language:actions

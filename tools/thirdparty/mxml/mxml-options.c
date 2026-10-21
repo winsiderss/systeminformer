@@ -210,8 +210,8 @@ mxmlOptionsSetCustomCallbacks(
 // }
 // ```
 //
-// Mini-XML automatically supports the "amp", "gt", "lt", and "quot" character
-// entities which are required by the base XML specification.
+// Mini-XML automatically supports the "amp", "apos", "gt", "lt", and "quot"
+// character entities which are required by the base XML specification.
 //
 
 void
@@ -442,6 +442,9 @@ _mxml_entity_string(int ch)		// I - Character
     case '&' :
         return ("&amp;");
 
+    case '\'' :
+        return ("&apos;");
+
     case '<' :
         return ("&lt;");
 
@@ -489,6 +492,11 @@ _mxml_entity_value(
   {
     // Ampersand
     ch = '&';
+  }
+  else if (!strcmp(name, "apos"))
+  {
+    // Apostrophe
+    ch = '\'';
   }
   else if (!strcmp(name, "gt"))
   {

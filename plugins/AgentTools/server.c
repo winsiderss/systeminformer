@@ -777,7 +777,7 @@ ULONG AtpExpireUnauthenticated(
     ULONG i;
 
     connections = AtServerSnapshotConnections();
-    now = NtGetTickCount64();
+    now = PhQueryWaitTime();
 
     for (i = 0; i < connections->Count; i++)
     {
@@ -786,7 +786,7 @@ ULONG AtpExpireUnauthenticated(
         if (ReadAcquire(&connection->Authenticated))
             continue;
 
-        if (now - connection->ConnectTick > AT_HANDSHAKE_TIMEOUT_MS)
+        if (now - connection->ConnectTick > UInt32x32To64(AT_HANDSHAKE_TIMEOUT_MS, PH_TIMEOUT_MS))
             AtConnectionClose(connection, SimcpCloseRejected, SimcpHelloRejectedInternal);
         else
             pending++;
@@ -897,7 +897,7 @@ PAT_CONNECTION AtpCreateConnection(
     PhInitializeEvent(&connection->StartedEvent);
     InitializeListHead(&connection->DeferredRequests);
     PhQuerySystemTime(&connection->ConnectTime);
-    connection->ConnectTick = NtGetTickCount64();
+    connection->ConnectTick = PhQueryWaitTime();
 
     return connection;
 }

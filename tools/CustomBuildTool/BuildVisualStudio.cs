@@ -953,6 +953,25 @@ namespace CustomBuildTool
 
             return string.Compare(this.Name, Obj.Name, StringComparison.OrdinalIgnoreCase);
         }
+
+        /// <summary>
+        /// Determines whether this instance has the same name as another object.
+        /// </summary>
+        /// <param name="Obj">The object to compare to.</param>
+        /// <returns>true if the instances have the same name; otherwise, false.</returns>
+        public override bool Equals(object Obj)
+        {
+            return Obj is VisualStudioInstance instance && string.Equals(this.Name, instance.Name, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns a hash code based on the instance name.
+        /// </summary>
+        /// <returns>The hash code.</returns>
+        public override int GetHashCode()
+        {
+            return this.Name == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(this.Name);
+        }
     }
 
     /// <summary>
@@ -1031,6 +1050,25 @@ namespace CustomBuildTool
                 return 1;
 
             return string.Compare(this.Id, obj.Id, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Determines whether this package has the same ID as another object.
+        /// </summary>
+        /// <param name="Obj">The object to compare to.</param>
+        /// <returns>true if the packages have the same ID; otherwise, false.</returns>
+        public override bool Equals(object Obj)
+        {
+            return Obj is VisualStudioPackage package && string.Equals(this.Id, package.Id, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns a hash code based on the package ID.
+        /// </summary>
+        /// <returns>The hash code.</returns>
+        public override int GetHashCode()
+        {
+            return this.Id == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(this.Id);
         }
     }
 

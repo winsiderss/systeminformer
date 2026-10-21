@@ -727,7 +727,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->HashListViewHandle = GetDlgItem(hwndDlg, IDC_LIST2);
+            context->HashListViewHandle = GetDlgItem(hwndDlg, IDC_HASHLIST);
 
             PhSetListViewStyle(context->HashListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->HashListViewHandle, L"explorer");

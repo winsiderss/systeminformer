@@ -390,6 +390,36 @@ typedef PS_PROCESS_START_ROUTINE* PPS_PROCESS_START_ROUTINE;
 #endif
 
 /**
+ * Process-wide USER client state referenced by PEB.Win32ClientProcInfo.
+ * \remarks The tag name is from USER32's gpClientProcInfo symbol. The layout and
+ * Flags member name are reverse-engineered: USER32 allocates an 8-byte zero-initialized 
+ * block on both x64 and x86 when Feature_UserModeMenus is enabled. Win32kbase accesses 
+ * the block as a 64-bit flags word. This is OS-managed process state, not TEB.Win32ClientInfo 
+ * or a callback table. Inspect it only when the PEB field is non-NULL; do not free or modify it.
+ */
+#define CLIENTPROCINFO_PER_MONITOR_MENU_SCALING 0x0000000000000001ULL
+
+typedef struct tagCLIENTPROCINFO
+{
+    union
+    {
+        ULONGLONG Flags;
+        struct
+        {
+            // Client mirror of PROCESSINFO flags mask 0x100000. The kernel flag
+            // enables menu DPI-message handling and invalidation of cached menu
+            // sizes when the DPI changes. xxxInitProcessInfo sets this client
+            // bit for immersive-broker type 2 when Feature_UserModeMenus is enabled.
+            // Descriptive name (rev), not a recovered private-symbol member name.
+            ULONGLONG PerMonitorMenuScalingEnabled : 1;
+            ULONGLONG UnknownFlags : 63; // No additional bit meanings established.
+        };
+    };
+} CLIENTPROCINFO, *PCLIENTPROCINFO;
+
+static_assert(sizeof(CLIENTPROCINFO) == 8, "Size of CLIENTPROCINFO is incorrect");
+
+/**
  * Process Environment Block (PEB) structure.
  *
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
@@ -980,14 +1010,22 @@ typedef struct _PEB
             ULONGLONG Reserved2 : 44;
         };
     };
+    //
+    // Optional USER client process flags (Feature_UserModeMenus); allocated by USER32.
+    // NULL when not initialized or the feature is disabled. OS-owned; do not free.
+    // PEB offset 0x7D0 on x64, 0x488 on x86 for the layout declared here.
+    //
+    PCLIENTPROCINFO Win32ClientProcInfo;
 } PEB, *PPEB;
 
 #ifdef _WIN64
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
-static_assert(sizeof(PEB) == 0x7d0, "Size of PEB is incorrect"); // WIN11
+static_assert(FIELD_OFFSET(PEB, Win32ClientProcInfo) == 0x7D0, "PEB.Win32ClientProcInfo offset is incorrect");
+static_assert(sizeof(PEB) == 0x7D8, "Size of PEB is incorrect");
 #else
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
-static_assert(sizeof(PEB) == 0x488, "Size of PEB is incorrect"); // WIN11
+static_assert(FIELD_OFFSET(PEB, Win32ClientProcInfo) == 0x488, "PEB.Win32ClientProcInfo offset is incorrect");
+static_assert(sizeof(PEB) == 0x490, "Size of PEB is incorrect"); // Matches the PEB32 declaration.
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310

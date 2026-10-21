@@ -3,7 +3,6 @@
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
-
  /* File created by MIDL compiler version 8.01.0626 */
 /* Compiler settings for clrdata.idl:
     Oicf, W1, Zp8, env=Win64 (32b run), target_arch=AMD64 8.01.0626 
@@ -16,7 +15,6 @@
 /* @@MIDL_FILE_HEADING(  ) */
 
 #pragma warning( disable: 4049 )  /* more than 64k source lines */
-
 
 #ifndef __clrdata_h__
 #define __clrdata_h__
@@ -41,13 +39,11 @@ typedef interface ICLRDataTarget ICLRDataTarget;
 
 #endif 	/* __ICLRDataTarget_FWD_DEFINED__ */
 
-
 #ifndef __ICLRDataTarget2_FWD_DEFINED__
 #define __ICLRDataTarget2_FWD_DEFINED__
 typedef interface ICLRDataTarget2 ICLRDataTarget2;
 
 #endif 	/* __ICLRDataTarget2_FWD_DEFINED__ */
-
 
 #ifndef __ICLRDataTarget3_FWD_DEFINED__
 #define __ICLRDataTarget3_FWD_DEFINED__
@@ -55,13 +51,11 @@ typedef interface ICLRDataTarget3 ICLRDataTarget3;
 
 #endif 	/* __ICLRDataTarget3_FWD_DEFINED__ */
 
-
 #ifndef __ICLRRuntimeLocator_FWD_DEFINED__
 #define __ICLRRuntimeLocator_FWD_DEFINED__
 typedef interface ICLRRuntimeLocator ICLRRuntimeLocator;
 
 #endif 	/* __ICLRRuntimeLocator_FWD_DEFINED__ */
-
 
 #ifndef __ICLRMetadataLocator_FWD_DEFINED__
 #define __ICLRMetadataLocator_FWD_DEFINED__
@@ -69,13 +63,11 @@ typedef interface ICLRMetadataLocator ICLRMetadataLocator;
 
 #endif 	/* __ICLRMetadataLocator_FWD_DEFINED__ */
 
-
 #ifndef __ICLRDataEnumMemoryRegionsCallback_FWD_DEFINED__
 #define __ICLRDataEnumMemoryRegionsCallback_FWD_DEFINED__
 typedef interface ICLRDataEnumMemoryRegionsCallback ICLRDataEnumMemoryRegionsCallback;
 
 #endif 	/* __ICLRDataEnumMemoryRegionsCallback_FWD_DEFINED__ */
-
 
 #ifndef __ICLRDataEnumMemoryRegionsCallback2_FWD_DEFINED__
 #define __ICLRDataEnumMemoryRegionsCallback2_FWD_DEFINED__
@@ -83,20 +75,17 @@ typedef interface ICLRDataEnumMemoryRegionsCallback2 ICLRDataEnumMemoryRegionsCa
 
 #endif 	/* __ICLRDataEnumMemoryRegionsCallback2_FWD_DEFINED__ */
 
-
 #ifndef __ICLRDataLoggingCallback_FWD_DEFINED__
 #define __ICLRDataLoggingCallback_FWD_DEFINED__
 typedef interface ICLRDataLoggingCallback ICLRDataLoggingCallback;
 
 #endif 	/* __ICLRDataLoggingCallback_FWD_DEFINED__ */
 
-
 #ifndef __ICLRDataEnumMemoryRegions_FWD_DEFINED__
 #define __ICLRDataEnumMemoryRegions_FWD_DEFINED__
 typedef interface ICLRDataEnumMemoryRegions ICLRDataEnumMemoryRegions;
 
 #endif 	/* __ICLRDataEnumMemoryRegions_FWD_DEFINED__ */
-
 
 /* header files for imported files */
 #include "unknwn.h"
@@ -105,22 +94,13 @@ typedef interface ICLRDataEnumMemoryRegions ICLRDataEnumMemoryRegions;
 extern "C"{
 #endif 
 
-
 /* interface __MIDL_itf_clrdata_0000_0000 */
 /* [local] */ 
-
-
-
-
-
-
-
 
 typedef ULONG64 CLRDATA_ADDRESS;
 
 STDAPI CLRDataCreateInstance(REFIID iid, ICLRDataTarget* target, void** iface);
 typedef HRESULT (STDAPICALLTYPE* PFN_CLRDataCreateInstance)(REFIID iid, ICLRDataTarget* target, void** iface);
-
 
 extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0000_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0000_v0_0_s_ifspec;
@@ -130,7 +110,6 @@ extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0000_v0_0_s_ifspec;
 
 /* interface ICLRDataTarget */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataTarget;
 
@@ -304,7 +283,6 @@ EXTERN_C const IID IID_ICLRDataTarget;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataTarget_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -313,7 +291,6 @@ EXTERN_C const IID IID_ICLRDataTarget;
 
 #define ICLRDataTarget_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ICLRDataTarget_GetMachineType(This,machineType)	\
     ( (This)->lpVtbl -> GetMachineType(This,machineType) ) 
@@ -350,21 +327,15 @@ EXTERN_C const IID IID_ICLRDataTarget;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataTarget_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRDataTarget2_INTERFACE_DEFINED__
 #define __ICLRDataTarget2_INTERFACE_DEFINED__
 
 /* interface ICLRDataTarget2 */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataTarget2;
 
@@ -513,7 +484,6 @@ EXTERN_C const IID IID_ICLRDataTarget2;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataTarget2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -522,7 +492,6 @@ EXTERN_C const IID IID_ICLRDataTarget2;
 
 #define ICLRDataTarget2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ICLRDataTarget2_GetMachineType(This,machineType)	\
     ( (This)->lpVtbl -> GetMachineType(This,machineType) ) 
@@ -557,7 +526,6 @@ EXTERN_C const IID IID_ICLRDataTarget2;
 #define ICLRDataTarget2_Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer)	\
     ( (This)->lpVtbl -> Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer) ) 
 
-
 #define ICLRDataTarget2_AllocVirtual(This,addr,size,typeFlags,protectFlags,virt)	\
     ( (This)->lpVtbl -> AllocVirtual(This,addr,size,typeFlags,protectFlags,virt) ) 
 
@@ -566,21 +534,15 @@ EXTERN_C const IID IID_ICLRDataTarget2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataTarget2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRDataTarget3_INTERFACE_DEFINED__
 #define __ICLRDataTarget3_INTERFACE_DEFINED__
 
 /* interface ICLRDataTarget3 */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataTarget3;
 
@@ -749,7 +711,6 @@ EXTERN_C const IID IID_ICLRDataTarget3;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataTarget3_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -758,7 +719,6 @@ EXTERN_C const IID IID_ICLRDataTarget3;
 
 #define ICLRDataTarget3_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define ICLRDataTarget3_GetMachineType(This,machineType)	\
     ( (This)->lpVtbl -> GetMachineType(This,machineType) ) 
@@ -793,13 +753,11 @@ EXTERN_C const IID IID_ICLRDataTarget3;
 #define ICLRDataTarget3_Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer)	\
     ( (This)->lpVtbl -> Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer) ) 
 
-
 #define ICLRDataTarget3_AllocVirtual(This,addr,size,typeFlags,protectFlags,virt)	\
     ( (This)->lpVtbl -> AllocVirtual(This,addr,size,typeFlags,protectFlags,virt) ) 
 
 #define ICLRDataTarget3_FreeVirtual(This,addr,size,typeFlags)	\
     ( (This)->lpVtbl -> FreeVirtual(This,addr,size,typeFlags) ) 
-
 
 #define ICLRDataTarget3_GetExceptionRecord(This,bufferSize,bufferUsed,buffer)	\
     ( (This)->lpVtbl -> GetExceptionRecord(This,bufferSize,bufferUsed,buffer) ) 
@@ -812,21 +770,15 @@ EXTERN_C const IID IID_ICLRDataTarget3;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataTarget3_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRRuntimeLocator_INTERFACE_DEFINED__
 #define __ICLRRuntimeLocator_INTERFACE_DEFINED__
 
 /* interface ICLRRuntimeLocator */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRRuntimeLocator;
 
@@ -880,7 +832,6 @@ EXTERN_C const IID IID_ICLRRuntimeLocator;
 
 #ifdef COBJMACROS
 
-
 #define ICLRRuntimeLocator_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -890,27 +841,20 @@ EXTERN_C const IID IID_ICLRRuntimeLocator;
 #define ICLRRuntimeLocator_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRRuntimeLocator_GetRuntimeBase(This,baseAddress)	\
     ( (This)->lpVtbl -> GetRuntimeBase(This,baseAddress) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRRuntimeLocator_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRMetadataLocator_INTERFACE_DEFINED__
 #define __ICLRMetadataLocator_INTERFACE_DEFINED__
 
 /* interface ICLRMetadataLocator */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRMetadataLocator;
 
@@ -980,7 +924,6 @@ EXTERN_C const IID IID_ICLRMetadataLocator;
 
 #ifdef COBJMACROS
 
-
 #define ICLRMetadataLocator_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -990,27 +933,20 @@ EXTERN_C const IID IID_ICLRMetadataLocator;
 #define ICLRMetadataLocator_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRMetadataLocator_GetMetadata(This,imagePath,imageTimestamp,imageSize,mvid,mdRva,flags,bufferSize,buffer,dataSize)	\
     ( (This)->lpVtbl -> GetMetadata(This,imagePath,imageTimestamp,imageSize,mvid,mdRva,flags,bufferSize,buffer,dataSize) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRMetadataLocator_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRDataEnumMemoryRegionsCallback_INTERFACE_DEFINED__
 #define __ICLRDataEnumMemoryRegionsCallback_INTERFACE_DEFINED__
 
 /* interface ICLRDataEnumMemoryRegionsCallback */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback;
 
@@ -1066,7 +1002,6 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataEnumMemoryRegionsCallback_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1076,27 +1011,20 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback;
 #define ICLRDataEnumMemoryRegionsCallback_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRDataEnumMemoryRegionsCallback_EnumMemoryRegion(This,address,size)	\
     ( (This)->lpVtbl -> EnumMemoryRegion(This,address,size) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataEnumMemoryRegionsCallback_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRDataEnumMemoryRegionsCallback2_INTERFACE_DEFINED__
 #define __ICLRDataEnumMemoryRegionsCallback2_INTERFACE_DEFINED__
 
 /* interface ICLRDataEnumMemoryRegionsCallback2 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback2;
 
@@ -1160,7 +1088,6 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback2;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataEnumMemoryRegionsCallback2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1170,31 +1097,23 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegionsCallback2;
 #define ICLRDataEnumMemoryRegionsCallback2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRDataEnumMemoryRegionsCallback2_EnumMemoryRegion(This,address,size)	\
     ( (This)->lpVtbl -> EnumMemoryRegion(This,address,size) ) 
-
 
 #define ICLRDataEnumMemoryRegionsCallback2_UpdateMemoryRegion(This,address,bufferSize,buffer)	\
     ( (This)->lpVtbl -> UpdateMemoryRegion(This,address,bufferSize,buffer) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataEnumMemoryRegionsCallback2_INTERFACE_DEFINED__ */
-
 
 #ifndef __ICLRDataLoggingCallback_INTERFACE_DEFINED__
 #define __ICLRDataLoggingCallback_INTERFACE_DEFINED__
 
 /* interface ICLRDataLoggingCallback */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataLoggingCallback;
 
@@ -1248,7 +1167,6 @@ EXTERN_C const IID IID_ICLRDataLoggingCallback;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataLoggingCallback_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1258,20 +1176,14 @@ EXTERN_C const IID IID_ICLRDataLoggingCallback;
 #define ICLRDataLoggingCallback_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRDataLoggingCallback_LogMessage(This,message)	\
     ( (This)->lpVtbl -> LogMessage(This,message) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataLoggingCallback_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_clrdata_0000_0008 */
 /* [local] */ 
@@ -1286,8 +1198,6 @@ enum CLRDataEnumMemoryFlags
         CLRDATA_ENUM_MEM_HEAP2	= 0x3
     } 	CLRDataEnumMemoryFlags;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0008_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0008_v0_0_s_ifspec;
 
@@ -1296,7 +1206,6 @@ extern RPC_IF_HANDLE __MIDL_itf_clrdata_0000_0008_v0_0_s_ifspec;
 
 /* interface ICLRDataEnumMemoryRegions */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_ICLRDataEnumMemoryRegions;
 
@@ -1354,7 +1263,6 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegions;
 
 #ifdef COBJMACROS
 
-
 #define ICLRDataEnumMemoryRegions_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1364,20 +1272,14 @@ EXTERN_C const IID IID_ICLRDataEnumMemoryRegions;
 #define ICLRDataEnumMemoryRegions_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define ICLRDataEnumMemoryRegions_EnumMemoryRegions(This,callback,miniDumpFlags,clrFlags)	\
     ( (This)->lpVtbl -> EnumMemoryRegions(This,callback,miniDumpFlags,clrFlags) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __ICLRDataEnumMemoryRegions_INTERFACE_DEFINED__ */
-
 
 /* Additional Prototypes for ALL interfaces */
 

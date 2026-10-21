@@ -1665,6 +1665,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
                 context->SearchWindowHandle,
                 L"Search Thread Stacks",
                 SETTING_SEARCH_THREAD_STACKS_REGEX,
+                SETTING_SEARCH_CONTROL_CASE_SENSITIVE,
                 PhpThreadStacksSearchControlCallback,
                 context
                 );

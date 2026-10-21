@@ -21,7 +21,7 @@
 // Functions
 
 BOOLEAN EtpNpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PETP_NPU_ADAPTER EtpAllocateNpuAdapter(

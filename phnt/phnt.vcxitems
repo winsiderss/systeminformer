@@ -31,6 +31,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntmisc.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntmmapi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnls.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnsi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntobapi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpebteb.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpfapi.h" />

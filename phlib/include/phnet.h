@@ -529,7 +529,19 @@ NTAPI
 PhHttpDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PPH_STRINGREF FileName,
-    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+// MaximumLength bounds both Content-Length and streamed bytes, including chunked responses.
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpDownloadToFileEx(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG64 MaximumLength,
+    _In_opt_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
@@ -616,7 +628,7 @@ VOID CALLBACK PH_HTTP_STATUS_CALLBACK(
     _In_ PVOID InternetHandle,
     _In_ ULONG_PTR Context,
     _In_ ULONG InternetStatus,
-    _In_opt_ LPVOID StatusInformation,
+    _In_opt_ PVOID StatusInformation,
     _In_ ULONG StatusInformationLength
     );
 typedef PH_HTTP_STATUS_CALLBACK* PPH_HTTP_STATUS_CALLBACK;
@@ -755,6 +767,47 @@ PhHttpSetEventCallback(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhIpv4AddressToStringEx(
+    _In_ PCIN_ADDR Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv4StringToAddressEx(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PIN_ADDR Address,
+    _Out_ PUSHORT Port
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv6AddressToStringEx(
+    _In_ PCIN6_ADDR Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv6StringToAddressEx(
+    _In_ PCWSTR AddressString,
+    _Out_ PIN6_ADDR Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhIpv4AddressToString(
     _In_ PCIN_ADDR Address,
     _In_ USHORT Port,
@@ -812,6 +865,17 @@ PhHttpDnsQuery(
     _In_opt_ PCWSTR DnsServerAddress,
     _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType,
+    _Out_ PDNS_RECORD* DnsQueryRecord
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpDnsQueryEx(
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageClass,
     _Out_ PDNS_RECORD* DnsQueryRecord
     );
 

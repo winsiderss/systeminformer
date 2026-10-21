@@ -305,7 +305,7 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         instanceIdProperty->Buffer,
-        DevQueryFlagLocalize,
+        DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
         deviceProperties,
         &devicePropertyCount,
@@ -770,7 +770,10 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             if (ListView_GetItemCount(context->ListViewHandle) == 0)
+            {
                 PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+                PhSetWindowFrameChanged(context->ListViewHandle);
+            }
 
             context->OptionsChanged = FALSE;
         }
@@ -816,6 +819,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
                     else
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
+
+                    PhSetWindowFrameChanged(context->ListViewHandle);
 
                     //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }

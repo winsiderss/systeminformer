@@ -356,7 +356,7 @@ VOID NetworkDeviceLayoutGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-VOID NetworkDeviceNotifyProcessorGraph(
+VOID NetworkDeviceNotifySendGraph(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
     )
@@ -442,7 +442,7 @@ VOID NetworkDeviceNotifyProcessorGraph(
     }
 }
 
-VOID NetworkDeviceNotifyPackageGraph(
+VOID NetworkDeviceNotifyReceiveGraph(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
     )
@@ -542,11 +542,11 @@ BOOLEAN NetworkDeviceGraphMessageCallback(
 
     if (WindowHandle == context->GraphSendHandle)
     {
-        NetworkDeviceNotifyProcessorGraph(context, header);
+        NetworkDeviceNotifySendGraph(context, header);
     }
     else if (WindowHandle == context->GraphReceiveHandle)
     {
-        NetworkDeviceNotifyPackageGraph(context, header);
+        NetworkDeviceNotifyReceiveGraph(context, header);
     }
 
     return TRUE;
@@ -665,7 +665,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), WindowHandle, NetworkDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
+            PhAddLayoutItemExLogical(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             NetworkDeviceInitializeDialogDpi(context);
             NetworkDeviceUpdateTitle(context);
@@ -760,10 +760,9 @@ BOOLEAN NetworkDeviceSectionCallback(
         {
             if (context->WindowHandle)
             {
-                if (context->AdapterEntry->JustProcessed)
+                if (InterlockedExchangeAcquire((volatile LONG*)&context->AdapterEntry->JustProcessed, FALSE))
                 {
                     NetworkDeviceUpdateTitle(context);
-                    InterlockedExchange((volatile LONG*)&context->AdapterEntry->JustProcessed, FALSE);
                 }
 
                 NetworkDeviceTickDialog(context);

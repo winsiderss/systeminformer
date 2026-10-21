@@ -13,11 +13,15 @@
 #include <peview.h>
 #include <workqueue.h>
 #include <verify.h>
+#include <wincrypt.h>
+#include <wintrust.h>
 #include <math.h>
+#include <base64.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
 #define PVM_ENTROPY_DONE (WM_APP + 3)
+#define PVM_ENTRYPOINT_DONE (WM_APP + 4)
 
 typedef enum _PVP_IMAGE_GENERAL_CATEGORY
 {
@@ -25,8 +29,22 @@ typedef enum _PVP_IMAGE_GENERAL_CATEGORY
     PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO,
     PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO,
+    PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
+
+// Accent per metadata category, indexed by PVP_IMAGE_GENERAL_CATEGORY and
+// terminated for PvThemeSetListViewGroupAccents. Static, because the theme keeps the
+// pointer rather than a copy.
+static CONST PV_THEME_ACCENT PvpImageGeneralCategoryAccents[PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM + 1] =
+{
+    PvThemeAccentInfo,      // PVP_IMAGE_GENERAL_CATEGORY_BASICINFO
+    PvThemeAccentInfo,      // PVP_IMAGE_GENERAL_CATEGORY_FILEINFO
+    PvThemeAccentDebug,     // PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO
+    PvThemeAccentInternal,  // PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO
+    PvThemeAccentTrust,     // PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO
+    PvThemeAccentMax
+};
 
 typedef enum _PVP_IMAGE_GENERAL_INDEX
 {
@@ -59,6 +77,11 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE,
     PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO,
 
+    PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO,
+    PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME,
+    PVP_IMAGE_GENERAL_INDEX_CERTSPKI,
+    PVP_IMAGE_GENERAL_INDEX_CERTSPC,
+
     PVP_IMAGE_GENERAL_INDEX_MAXIMUM
 } PVP_IMAGE_GENERAL_INDEX;
 
@@ -66,16 +89,15 @@ typedef struct _PVP_PE_GENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HICON FileIcon;
+    BOOLEAN FileIconShared;
+    HFONT TitleFont;                // bold title on the hero card, owned here
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     ULONG ListViewRowCache[PVP_IMAGE_GENERAL_INDEX_MAXIMUM];
 } PVP_PE_GENERAL_CONTEXT, *PPVP_PE_GENERAL_CONTEXT;
 
-typedef struct _IMAGE_DEBUG_REPRO_ENTRY
-{
-    ULONG Length;
-    BYTE Buffer[1];
-} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
+// IMAGE_DEBUG_REPRO_ENTRY is defined in mapimg.h. (dmex)
 
 typedef struct _IMAGE_DEBUG_VC_FEATURE_ENTRY
 {
@@ -216,6 +238,26 @@ VOID PvPeProperties(
                 &exportsPageContext
                 );
             PvAddPropPage(propContext, newPage);
+
+            // NativeAOT
+            {
+                PH_MAPPED_IMAGE_EXPORT_FUNCTION runtimeDebugFunction;
+
+                if (NT_SUCCESS(PhGetMappedImageExportFunction(
+                    &exports,
+                    "DotNetRuntimeDebugHeader",
+                    0,
+                    &runtimeDebugFunction
+                    )) && runtimeDebugFunction.Function)
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PERUNTIMEDEBUG),
+                        PvPeRuntimeDebugDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
+            }
         }
 
         if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
@@ -284,7 +326,7 @@ VOID PvPeProperties(
 
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PECLRTABLES),
-                    PvpPeClrTablesDlgProc,
+                    PvPeClrTablesDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
@@ -597,12 +639,12 @@ VOID PvPeProperties(
 
         // Text preview page
         {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEPREVIEW),
-                PvpPePreviewDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
+            //newPage = PvCreatePropPageContext(
+            //    MAKEINTRESOURCE(IDD_PEPREVIEW),
+            //    PvpPePreviewDlgProc,
+            //    NULL
+            //    );
+            //PvAddPropPage(propContext, newPage);
         }
 
         // Symbols page
@@ -688,12 +730,29 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     status = PhCreateFileWin32(
         &fileHandle,
         PhGetString(FileName),
-        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         );
+
+    // FILE_WRITE_ATTRIBUTES is only needed to stop the access time being updated, and
+    // standard users don't hold it on protected files (System32 is owned by
+    // TrustedInstaller). Failing the open there reported every inbox binary as
+    // unverified, so fall back to read-only access. (dmex)
+    if (status == STATUS_ACCESS_DENIED)
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            PhGetString(FileName),
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -701,9 +760,8 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
         numberOfSignatures = 0;
         return VrNoSignature;
     }
-    FILE_BASIC_INFORMATION basicInfo = { 0 };
-    basicInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    PhSetFileBasicInformation(fileHandle, &basicInfo);
+
+    PvDisableFileTimestampUpdates(fileHandle);
 
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
     info.FileHandle = fileHandle;
@@ -884,13 +942,174 @@ PPH_STRING PvpGetSectionCharacteristics(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+static VOID PvpUpdatePeImageIcon(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    HICON icon = NULL;
+    BOOLEAN iconShared = FALSE;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    if (!NT_SUCCESS(PhExtractIconEx(
+        &PvFileName->sr,
+        FALSE,
+        0,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        0,
+        0,
+        &icon,
+        NULL
+        )) || !icon)
+    {
+        PhGetStockApplicationIcon(NULL, &icon, dpiValue);
+        iconShared = TRUE;
+    }
+
+    if (icon)
+    {
+        Static_SetIcon(GetDlgItem(Context->WindowHandle, IDC_FILEICON), icon);
+
+        if (Context->FileIcon && !Context->FileIconShared)
+            DestroyIcon(Context->FileIcon);
+
+        Context->FileIcon = icon;
+        Context->FileIconShared = iconShared;
+    }
+}
+
+// The file name on the hero card is the loudest text on the page, so it gets a
+// larger semibold font while everything else keeps the dialog font. Re-created on a
+// DPI change because the height is scaled.
+// The hero card edits otherwise take a font-dependent left margin, which shifts the
+// larger title right of the company line, the signer link and the version. Runs after
+// every font change since WM_SETFONT recalculates the margins. (dmex)
+static VOID PvpUpdatePeImageTextMargins(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    static CONST ULONG controlIds[] = { IDC_NAME, IDC_COMPANYNAME, IDC_VERSION };
+    HWND controlHandle;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(controlIds); i++)
+    {
+        if (controlHandle = GetDlgItem(Context->WindowHandle, controlIds[i]))
+        {
+            SendMessage(controlHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(0, 0));
+        }
+    }
+}
+
+static VOID PvpUpdatePeImageTitleFont(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    HWND controlHandle;
+    HFONT fontHandle;
+    LONG dpiValue;
+
+    if (!(controlHandle = GetDlgItem(Context->WindowHandle, IDC_NAME)))
+        return;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    if (!PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
+        return;
+
+    metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-15, dpiValue);
+    metrics.lfMessageFont.lfWeight = FW_SEMIBOLD;
+
+    if (!(fontHandle = CreateFontIndirect(&metrics.lfMessageFont)))
+        return;
+
+    SetWindowFont(controlHandle, fontHandle, TRUE);
+
+    if (Context->TitleFont)
+        DeleteFont(Context->TitleFont);
+
+    Context->TitleFont = fontHandle;
+}
+
+// Paints the hero card behind the file icon, name, company and version. IDC_FILE is
+// kept as the layout anchor only - the frame it used to draw is replaced by this
+// rounded surface. (dmex)
+static VOID NTAPI PvpDrawPeImageHeroCard(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc
+    )
+{
+    PPVP_PE_GENERAL_CONTEXT Context;
+    PCPV_THEME_COLORS colors;
+    HWND controlHandle;
+    LONG dpiValue;
+    LONG radius;
+    LONG padding;
+    RECT cardRect;
+    RECT clipRect;
+    RECT visibleRect;
+
+    if (!PvThemeEnabled())
+        return;
+
+    // The shapes are anchored to controls, so they are drawn whole; the clip box only
+    // decides which of them the invalid region touches. (dmex)
+    if (GetClipBox(Hdc, &clipRect) <= NULLREGION)
+        return;
+
+    // Reached from the theme's erase callback rather than the dialog procedure, so the
+    // page context is picked up from the window here. (dmex)
+    if (!(Context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT)))
+        return;
+
+    if (!(controlHandle = GetDlgItem(Context->WindowHandle, IDC_FILE)))
+        return;
+
+    colors = PvGetThemeColors();
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+    radius = PhScaleToDisplay(PV_CARD_CORNER_RADIUS, dpiValue);
+    padding = PhScaleToDisplay(6, dpiValue);
+
+    if (!PhGetWindowRect(controlHandle, &cardRect))
+        return;
+
+    MapWindowRect(NULL, Context->WindowHandle, &cardRect);
+
+    if (PhIntersectRect(&visibleRect, &cardRect, &clipRect))
+        PvThemeFillRoundRect(Hdc, &cardRect, colors->CardBackground, colors->CardBorder, radius);
+
+    // A tile behind the file icon, one step off the card, so the icon has a seat
+    // rather than floating on the surface.
+    if (controlHandle = GetDlgItem(Context->WindowHandle, IDC_FILEICON))
+    {
+        RECT iconRect;
+
+        if (PhGetWindowRect(controlHandle, &iconRect))
+        {
+            MapWindowRect(NULL, Context->WindowHandle, &iconRect);
+            InflateRect(&iconRect, padding, padding);
+
+            if (PhIntersectRect(&visibleRect, &iconRect, &clipRect))
+            {
+                PvThemeFillRoundRect(
+                    Hdc,
+                    &iconRect,
+                    colors->ChipBackground,
+                    colors->ChipBackground,
+                    radius
+                    );
+            }
+        }
+    }
+}
+
 VOID PvpSetPeImageVersionInfo(
     _In_ HWND WindowHandle
     )
 {
     PPH_STRING string;
-
-    Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
 
     //if (PhGetIntegerSetting(L"EnableVersionSupport"))
     //    PhInitializeImageVersionInfo2(&PvImageVersionInfo, PvFileName->Buffer);
@@ -951,6 +1170,7 @@ VOID PvpSetPeImageTimeStamp(
     LARGE_INTEGER time;
     SYSTEMTIME timeFields;
     PPH_STRING string;
+    PPH_STRING reverseTimeStamp;
 
     PhSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
 
@@ -966,11 +1186,20 @@ VOID PvpSetPeImageTimeStamp(
 
         if (PvMappedImage.NtHeaders->FileHeader.TimeDateStamp)
         {
+            reverseTimeStamp = PhBufferToHexStringEx(
+                (PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                sizeof(ULONG),
+                FALSE
+                );
+
             PhMoveReference(&string, PhFormatString(
-                L"%s (0x%lx) (deterministic)",
+                L"%s (0x%lx) (0x%s) (deterministic)",
                 PhGetStringOrEmpty(string),
-                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
+                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                reverseTimeStamp->Buffer
                 ));
+
+            PhDereferenceObject(reverseTimeStamp);
         }
         else
         {
@@ -1180,21 +1409,23 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         break;
     }
 
-    PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, PhGetStringOrEmpty(string));
+    // The page owns the listview and is the shell's model, so the value goes back to
+    // the dialog thread rather than being written from here. (dmex)
+    PostMessage((HWND)Parameter, PVM_ENTRYPOINT_DONE, 0, (LPARAM)string);
 
-    PhClearReference(&string);
     PhClearReference(&symbolName);
     PhClearReference(&symbol);
     return STATUS_SUCCESS;
 }
 
 VOID PvpSetPeImageEntryPoint(
+    _In_ HWND WindowHandle,
     _In_ HWND ListViewHandle
     )
 {
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, L"Resolving...");
 
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, ListViewHandle);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, WindowHandle);
 }
 
 VOID PvpSetPeImageCheckSum(
@@ -1434,14 +1665,12 @@ VOID PvpSetPeImageFileProperties(
         PhGetString(PvFileName),
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
     {
-        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
-        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+        PvDisableFileTimestampUpdates(fileHandle);
 
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
@@ -1634,16 +1863,14 @@ VOID PvUpdatePeFileTimes(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
     {
-        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
-        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+        PvDisableFileTimestampUpdates(fileHandle);
 
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
@@ -1687,7 +1914,6 @@ VOID PvpSetPeImageDebugRepoHash(
     PIMAGE_DEBUG_REPRO_ENTRY debugEntry;
     ULONG debugEntryLength;
     PPH_STRING string = NULL;
-    PPH_STRING timeStamp;
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
@@ -1709,18 +1935,6 @@ VOID PvpSetPeImageDebugRepoHash(
             {
                 string = PhGetStatusMessage(GetExceptionCode(), 0);
             }
-
-            if (PvMappedImage.NtHeaders->FileHeader.TimeDateStamp)
-                timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
-            else
-                PhSetReference(&timeStamp, string); // MUI/Resource DLL
-
-            if (!PhEndsWithString(string, timeStamp, TRUE))
-            {
-                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (incorrect)"));
-            }
-
-            PhDereferenceObject(timeStamp);
         }
         else // CLR images
         {
@@ -1740,6 +1954,180 @@ VOID PvpSetPeImageDebugRepoHash(
     {
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO, 1, L"N/A");
     }
+}
+
+BOOLEAN NTAPI PvpDrawPeImageDebugRepoHash(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ HDC DeviceContext,
+    _In_ PRECT Rect,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    WCHAR buffer[128];
+    RECT textRect;
+    SIZE size;
+    LONG length;
+    LONG hashLength;
+    LONG firstLength;
+    LONG lastLength;
+    LONG middleLength;
+    ULONG i;
+    BOOLEAN selected;
+    BOOLEAN darkMode;
+    COLORREF guidColor;
+    COLORREF timestampColor;
+    LVITEM item;
+
+    if (SubItem != 1 || !Context)
+        return FALSE;
+
+    SetBkMode(DeviceContext, TRANSPARENT);
+
+    darkMode = PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+    guidColor = darkMode ? RGB(0, 180, 255) : RGB(0, 90, 180);
+    timestampColor = darkMode ? RGB(255, 180, 80) : RGB(200, 90, 0);
+
+    memset(&item, 0, sizeof(LVITEM));
+    item.iSubItem = SubItem;
+    item.pszText = buffer;
+    item.cchTextMax = RTL_NUMBER_OF(buffer);
+    length = (LONG)SendMessage((HWND)Context, LVM_GETITEMTEXT, Index, (LPARAM)&item);
+
+    if (Index == PVP_IMAGE_GENERAL_INDEX_DEBUGPDB || Index == PVP_IMAGE_GENERAL_INDEX_TIMESTAMP)
+    {
+        LONG openParenthesis = INT_ERROR;
+        LONG closeParenthesis = INT_ERROR;
+        LONG coloredStart;
+        LONG coloredLength;
+        LONG prefixLength;
+        LONG suffixStart;
+
+        for (i = 0; i < (ULONG)length; i++)
+        {
+            if (buffer[i] == L'(')
+            {
+                openParenthesis = i;
+                break;
+            }
+        }
+
+        if (openParenthesis < 0)
+            return FALSE;
+
+        for (i = (ULONG)openParenthesis + 1; i < (ULONG)length; i++)
+        {
+            if (buffer[i] == L')')
+            {
+                closeParenthesis = i;
+                break;
+            }
+        }
+
+        if (Index == PVP_IMAGE_GENERAL_INDEX_TIMESTAMP && closeParenthesis > 0)
+        {
+            openParenthesis = INT_ERROR;
+
+            for (i = (ULONG)closeParenthesis + 1; i < (ULONG)length; i++)
+            {
+                if (buffer[i] == L'(')
+                {
+                    openParenthesis = i;
+                    break;
+                }
+            }
+
+            if (openParenthesis < 0)
+                return FALSE;
+
+            closeParenthesis = INT_ERROR;
+
+            for (i = (ULONG)openParenthesis + 1; i < (ULONG)length; i++)
+            {
+                if (buffer[i] == L')')
+                {
+                    closeParenthesis = i;
+                    break;
+                }
+            }
+        }
+
+        if (closeParenthesis <= openParenthesis + 1)
+            return FALSE;
+
+        coloredStart = openParenthesis + 1;
+        coloredLength = closeParenthesis - coloredStart;
+        prefixLength = coloredStart;
+        suffixStart = closeParenthesis;
+        selected = !!ListView_GetItemState((HWND)Context, Index, LVIS_SELECTED);
+        RtlCopyMemory(&textRect, Rect, sizeof(RECT));
+        textRect.left += 4;
+
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer, prefixLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer, prefixLength, &size);
+        textRect.left += size.cx;
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : (Index == PVP_IMAGE_GENERAL_INDEX_DEBUGPDB ? guidColor : timestampColor));
+        DrawText(DeviceContext, buffer + coloredStart, coloredLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer + coloredStart, coloredLength, &size);
+        textRect.left += size.cx;
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + suffixStart, length - suffixStart, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+
+        return TRUE;
+    }
+
+    if (Index != PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO)
+        return FALSE;
+
+    hashLength = length;
+
+    for (i = 0; i < (ULONG)length; i++)
+    {
+        if (buffer[i] == L' ')
+        {
+            hashLength = i;
+            break;
+        }
+    }
+
+    if (hashLength < 40)
+        return FALSE;
+
+    firstLength = 32;
+    lastLength = 8;
+    selected = !!ListView_GetItemState((HWND)Context, Index, LVIS_SELECTED);
+    RtlCopyMemory(&textRect, Rect, sizeof(RECT));
+    textRect.left += 4;
+
+    SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : guidColor);
+    DrawText(DeviceContext, buffer, firstLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    GetTextExtentPoint32(DeviceContext, buffer, firstLength, &size);
+    textRect.left += size.cx;
+
+    if (hashLength > firstLength + lastLength)
+    {
+        middleLength = hashLength - firstLength - lastLength;
+
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + firstLength, middleLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer + firstLength, middleLength, &size);
+        textRect.left += size.cx;
+    }
+
+    SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : timestampColor);
+    DrawText(DeviceContext, buffer + hashLength - lastLength, lastLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    GetTextExtentPoint32(DeviceContext, buffer + hashLength - lastLength, lastLength, &size);
+    textRect.left += size.cx;
+
+    if (length > hashLength)
+    {
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + hashLength, length - hashLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    }
+
+    return TRUE;
 }
 
 VOID PvpSetPeImageDebugPdb(
@@ -1845,6 +2233,338 @@ VOID PvpSetPeImageDebugVCFeatures(
     }
 }
 
+BOOLEAN PvpGetSigningTimeFromAttributes(
+    _In_ PCRYPT_ATTRIBUTES Attributes,
+    _Out_ PLARGE_INTEGER SigningTime
+    )
+{
+    for (ULONG i = 0; i < Attributes->cAttr; i++)
+    {
+        PCRYPT_ATTRIBUTE attribute = &Attributes->rgAttr[i];
+        FILETIME fileTime;
+        ULONG fileTimeLength = sizeof(FILETIME);
+
+        if (!PhEqualBytesZ(attribute->pszObjId, szOID_RSA_signingTime, FALSE))
+            continue;
+        if (attribute->cValue == 0)
+            continue;
+
+        if (CryptDecodeObjectEx(
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            szOID_RSA_signingTime,
+            attribute->rgValue[0].pbData,
+            attribute->rgValue[0].cbData,
+            CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+            NULL,
+            &fileTime,
+            &fileTimeLength
+            ))
+        {
+            SigningTime->LowPart = fileTime.dwLowDateTime;
+            SigningTime->HighPart = fileTime.dwHighDateTime;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PvpGetSignerSigningTime(
+    _In_ PCMSG_SIGNER_INFO SignerInfo,
+    _Out_ PLARGE_INTEGER SigningTime
+    )
+{
+    for (ULONG i = 0; i < SignerInfo->UnauthAttrs.cAttr; i++)
+    {
+        PCRYPT_ATTRIBUTE attribute = &SignerInfo->UnauthAttrs.rgAttr[i];
+
+        if (attribute->cValue == 0)
+            continue;
+
+        if (PhEqualBytesZ(attribute->pszObjId, szOID_RFC3161_counterSign, FALSE))
+        {
+            PCRYPT_TIMESTAMP_CONTEXT timeStampContext;
+
+            if (CryptVerifyTimeStampSignature(
+                attribute->rgValue[0].pbData,
+                attribute->rgValue[0].cbData,
+                NULL,
+                0,
+                NULL,
+                &timeStampContext,
+                NULL,
+                NULL
+                ))
+            {
+                SigningTime->LowPart = timeStampContext->pTimeStamp->ftTime.dwLowDateTime;
+                SigningTime->HighPart = timeStampContext->pTimeStamp->ftTime.dwHighDateTime;
+                CryptMemFree(timeStampContext);
+                return TRUE;
+            }
+        }
+        else if (PhEqualBytesZ(attribute->pszObjId, szOID_RSA_counterSign, FALSE))
+        {
+            PCMSG_SIGNER_INFO counterSignerInfo;
+            ULONG counterSignerInfoLength = 0;
+
+            if (CryptDecodeObjectEx(
+                X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                PKCS7_SIGNER_INFO,
+                attribute->rgValue[0].pbData,
+                attribute->rgValue[0].cbData,
+                CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                NULL,
+                &counterSignerInfo,
+                &counterSignerInfoLength
+                ))
+            {
+                BOOLEAN found = PvpGetSigningTimeFromAttributes(&counterSignerInfo->AuthAttrs, SigningTime);
+
+                LocalFree(counterSignerInfo);
+
+                if (found)
+                    return TRUE;
+            }
+        }
+    }
+
+    // Fall back to the primary signer's authenticated signing time.
+    return PvpGetSigningTimeFromAttributes(&SignerInfo->AuthAttrs, SigningTime);
+}
+
+PPH_STRING PvpGetCertificateNameString(
+    _In_ PCCERT_CONTEXT CertificateContext,
+    _In_ ULONG Flags
+    )
+{
+    ULONG dataLength;
+
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, Flags, NULL, NULL, 0))
+    {
+        PPH_STRING data = PhCreateStringEx(NULL, dataLength * sizeof(WCHAR));
+
+        if (CertGetNameString(
+            CertificateContext,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            Flags,
+            NULL,
+            data->Buffer,
+            (ULONG)data->Length / sizeof(WCHAR)
+            ))
+        {
+            PhTrimToNullTerminatorString(data);
+            return data;
+        }
+
+        PhDereferenceObject(data);
+    }
+
+    return NULL;
+}
+
+VOID PvpSetPeImageCertificateInfo(
+    _In_ HWND ListViewHandle
+    )
+{
+    HCERTSTORE certStore = NULL;
+    HCRYPTMSG cryptMessage = NULL;
+    PCMSG_SIGNER_INFO signerInfo = NULL;
+    PCCERT_CONTEXT certificate = NULL;
+    ULONG signerInfoLength = 0;
+
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPC, 1, L"N/A");
+
+    if (!CryptQueryObject(
+        CERT_QUERY_OBJECT_FILE,
+        PhGetString(PvFileName),
+        CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+        CERT_QUERY_FORMAT_FLAG_BINARY,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        &certStore,
+        &cryptMessage,
+        NULL
+        ))
+    {
+        return;
+    }
+
+    if (
+        CryptMsgGetParam(cryptMessage, CMSG_SIGNER_INFO_PARAM, 0, NULL, &signerInfoLength) &&
+        signerInfoLength > 0
+        )
+    {
+        signerInfo = PhAllocateZero(signerInfoLength);
+
+        if (!CryptMsgGetParam(cryptMessage, CMSG_SIGNER_INFO_PARAM, 0, signerInfo, &signerInfoLength))
+        {
+            PhFree(signerInfo);
+            signerInfo = NULL;
+        }
+    }
+
+    if (signerInfo)
+    {
+        CERT_INFO certInfo;
+        LARGE_INTEGER signingTime;
+
+        memset(&certInfo, 0, sizeof(CERT_INFO));
+        certInfo.Issuer = signerInfo->Issuer;
+        certInfo.SerialNumber = signerInfo->SerialNumber;
+
+        for (ULONG i = 0; i < signerInfo->AuthAttrs.cAttr; i++)
+        {
+            if (PhEqualBytesZ(SPC_SP_OPUS_INFO_OBJID, signerInfo->AuthAttrs.rgAttr[i].pszObjId, TRUE))
+            {
+                PSPC_SP_OPUS_INFO opusInfo;
+                ULONG opusInfoLength = 0;
+
+                if (CryptDecodeObjectEx(
+                    X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                    SPC_SP_OPUS_INFO_OBJID,
+                    signerInfo->AuthAttrs.rgAttr[i].rgValue[0].pbData,
+                    signerInfo->AuthAttrs.rgAttr[i].rgValue[0].cbData,
+                    CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                    NULL,
+                    &opusInfo,
+                    &opusInfoLength
+                    ))
+                {
+                    PPH_STRING value = NULL;
+                    PPH_STRING publisherUrl = NULL;
+                    PPH_STRING moreInfoUrl = NULL;
+
+                    if (opusInfo->pwszProgramName)
+                        value = PhCreateString(opusInfo->pwszProgramName);
+
+                    if (opusInfo->pPublisherInfo && opusInfo->pPublisherInfo->dwLinkChoice == SPC_URL_LINK_CHOICE)
+                        publisherUrl = PhCreateString(opusInfo->pPublisherInfo->pwszUrl);
+
+                    if (opusInfo->pMoreInfo && opusInfo->pMoreInfo->dwLinkChoice == SPC_URL_LINK_CHOICE)
+                        moreInfoUrl = PhCreateString(opusInfo->pMoreInfo->pwszUrl);
+
+                    if (publisherUrl && PhIsNullOrEmptyString(publisherUrl))
+                        PhClearReference(&publisherUrl);
+                    if (moreInfoUrl && PhIsNullOrEmptyString(moreInfoUrl))
+                        PhClearReference(&moreInfoUrl);
+
+                    if (publisherUrl || moreInfoUrl)
+                    {
+                        PPH_STRING urls;
+
+                        if (publisherUrl && moreInfoUrl)
+                            urls = PhFormatString(L"%s/%s", publisherUrl->Buffer, moreInfoUrl->Buffer);
+                        else if (publisherUrl)
+                            urls = PhReferenceObject(publisherUrl);
+                        else
+                            urls = PhReferenceObject(moreInfoUrl);
+
+                        if (value)
+                            PhMoveReference(&value, PhFormatString(L"%s (%s)", value->Buffer, urls->Buffer));
+                        else
+                            value = urls;
+
+                        if (value != urls)
+                            PhDereferenceObject(urls);
+                    }
+
+                    if (value)
+                    {
+                        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPC, 1, value->Buffer);
+                        PhDereferenceObject(value);
+                    }
+
+                    if (publisherUrl)
+                        PhDereferenceObject(publisherUrl);
+                    if (moreInfoUrl)
+                        PhDereferenceObject(moreInfoUrl);
+
+                    LocalFree(opusInfo);
+                }
+
+                break;
+            }
+        }
+
+        certificate = CertFindCertificateInStore(
+            certStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_FIND_SUBJECT_CERT,
+            &certInfo,
+            NULL
+            );
+
+        if (certificate)
+        {
+            PPH_STRING issuedTo;
+
+            if (issuedTo = PvpGetCertificateNameString(certificate, 0))
+            {
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, 1, issuedTo->Buffer);
+                PhDereferenceObject(issuedTo);
+            }
+
+            {
+                PBYTE derBuffer = NULL;
+                ULONG derLength = 0;
+
+                if (CryptEncodeObjectEx(
+                    X509_ASN_ENCODING,
+                    X509_PUBLIC_KEY_INFO,
+                    &certificate->pCertInfo->SubjectPublicKeyInfo,
+                    CRYPT_ENCODE_ALLOC_FLAG,
+                    NULL,
+                    &derBuffer,
+                    &derLength
+                    ))
+                {
+                    PH_HASH_CONTEXT hashContext;
+                    UCHAR hash[PH_HASH_SHA256_LENGTH];
+                    CHAR base64Buffer[48];
+                    SIZE_T base64Length;
+
+                    if (
+                        NT_SUCCESS(PhInitializeHash(&hashContext, Sha256HashAlgorithm)) &&
+                        NT_SUCCESS(PhUpdateHash(&hashContext, derBuffer, derLength)) &&
+                        NT_SUCCESS(PhFinalHash(&hashContext, hash, sizeof(hash), NULL)) &&
+                        PhBase64Encode(hash, sizeof(hash), base64Buffer, sizeof(base64Buffer), &base64Length)
+                        )
+                    {
+                        PPH_STRING pin = PhZeroExtendToUtf16Ex(base64Buffer, base64Length);
+                        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, 1, pin->Buffer);
+                        PhDereferenceObject(pin);
+                    }
+
+                    LocalFree(derBuffer);
+                }
+            }
+        }
+
+        if (PvpGetSignerSigningTime(signerInfo, &signingTime))
+        {
+            PPH_STRING timeString = PvGetRelativeTimeString(&signingTime);
+
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, 1, timeString->Buffer);
+            PhDereferenceObject(timeString);
+        }
+    }
+
+    if (certificate)
+        CertFreeCertificateContext(certificate);
+    if (signerInfo)
+        PhFree(signerInfo);
+    if (cryptMessage)
+        CryptMsgClose(cryptMessage);
+    if (certStore)
+        CertCloseStore(certStore, 0);
+}
+
 VOID PvpSetPeImageProperties(
     _In_ PPVP_PE_GENERAL_CONTEXT Context
     )
@@ -1878,13 +2598,17 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEUSN, L"File last USN", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, L"Issued to", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, L"Signing time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, L"SPKI", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSPC, L"SPC", NULL);
 
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
     PvpSetPeImageBaseAddress(Context->ListViewHandle);
     PvpSetPeImageSize(Context->ListViewHandle);
     PvpSetPeImageEntropy(Context->WindowHandle, Context->ListViewHandle);
-    PvpSetPeImageEntryPoint(Context->ListViewHandle);
+    PvpSetPeImageEntryPoint(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageCheckSum(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageSpareHeaderBytes(Context->ListViewHandle);
     PvpSetPeImageSectionSlackBytes(Context->ListViewHandle);
@@ -1896,6 +2620,8 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageDebugPdb(Context->ListViewHandle);
     PvpSetPeImageDebugVCFeatures(Context->ListViewHandle);
     PvpSetPeImageDebugRepoHash(Context->ListViewHandle);
+    // Certificate information
+    PvpSetPeImageCertificateInfo(Context->ListViewHandle);
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
@@ -1911,10 +2637,12 @@ VOID PvPeAddImagePropertiesGroups(
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, L"Debug information");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, L"Internal information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, L"Certificate information");
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS PhpOpenFileSecurity(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1946,11 +2674,11 @@ NTSTATUS PhpOpenFileSecurity(
         status = PhCreateFileWin32(
             Handle,
             PhGetString(PvFileName),
-            DesiredAccess | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
+            DesiredAccess | FILE_WRITE_ATTRIBUTES | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
             );
 
         if (!NT_SUCCESS(status))
@@ -1965,6 +2693,11 @@ NTSTATUS PhpOpenFileSecurity(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
         }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PvDisableFileTimestampUpdates(*Handle);
     }
 
     return status;
@@ -2080,10 +2813,11 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
-            PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetContext(context->ListViewHandle, context->ListViewHandle);
+            ExtendedListView_SetSubItemDrawFunction(context->ListViewHandle, PvpDrawPeImageDebugRepoHash);
             //PhLoadListViewColumnsFromSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             //PhLoadListViewSortColumnsFromSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             PvPeAddImagePropertiesGroups(context);
@@ -2097,13 +2831,38 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_VERSION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
+            // The hero card replaces the group box frame, so IDC_FILE is only a layout
+            // anchor from here on. Themed group box drawing would paint a frame on top
+            // of the card. (dmex)
+            if (!PvThemeEnabled())
+            {
+                PhInitializeThemeWindowGroupBoxEx(GetDlgItem(hwndDlg, IDC_FILE));
+            }
+            else
+            {
+                ShowWindow(GetDlgItem(hwndDlg, IDC_FILE), SW_HIDE);
+            }
+
+            // Must run before PvThemeApplyListView: phlib's initializer resets the
+            // listview colors to its own palette. (dmex)
+            PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
+            PvThemeSetListViewGroupAccents(context->ListViewHandle, PvpImageGeneralCategoryAccents);
+            PvThemeSetPageEraseCallback(hwndDlg, PvpDrawPeImageHeroCard);
+            PvThemeApplyListView(context->ListViewHandle);
+
+            PvpUpdatePeImageTitleFont(context);
+            PvpUpdatePeImageTextMargins(context);
+
+            PvpUpdatePeImageIcon(context);
+
+            SendMessage(context->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+            ListView_SetItemState(context->ListViewHandle, -1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+            SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
+
             PvpSetPeImageVersionInfo(hwndDlg);
             PvpSetPeImageProperties(context);
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-
-            if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
@@ -2116,6 +2875,23 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PvThemeRemoveListViewGroupAccents(context->ListViewHandle);
+            PvThemeRemovePageEraseCallback(hwndDlg);
+
+            if (context->FileIcon)
+            {
+                Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), NULL);
+
+                if (!context->FileIconShared)
+                    DestroyIcon(context->FileIcon);
+            }
+
+            if (context->TitleFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_NAME), NULL, FALSE);
+                DeleteFont(context->TitleFont);
+                context->TitleFont = NULL;
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -2126,7 +2902,16 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            PvpUpdatePeImageIcon(context);
+            PvpUpdatePeImageTitleFont(context);
+            PvpUpdatePeImageTextMargins(context);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PvThemeApplyListView(context->ListViewHandle);
+            InvalidateRect(hwndDlg, NULL, TRUE);
         }
         break;
     case WM_SHOWWINDOW:
@@ -2142,9 +2927,17 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_SIZE:
         {
+            // This page is the only one that re-autosizes a column on every resize.
+            // The layout move repaints the listview once and the column autosize
+            // repaints it again, so a splitter drag paints it twice per mouse move.
+            // Hold redraw across both so they collapse into a single paint. (dmex)
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
             PhLayoutManagerLayout(&context->LayoutManager);
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;
     case PVM_CHECKSUM_DONE:
@@ -2218,6 +3011,17 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             string = PhFormatEntropy(result->ImageEntropy, 6, result->ImageAvgMean, 4, result->ImageVariance, 4);
             PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
             PhDereferenceObject(string);
+            PhFree(result);
+        }
+        break;
+    case PVM_ENTRYPOINT_DONE:
+        {
+            PPH_STRING string = (PPH_STRING)lParam;
+
+            PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, PhGetStringOrEmpty(string));
+
+            if (string)
+                PhDereferenceObject(string);
         }
         break;
     case WM_NOTIFY:
@@ -2266,11 +3070,35 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
+    case WM_CTLCOLOREDIT:
         {
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            SetTextColor((HDC)wParam, RGB(0, 0, 0));
-            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            PCPV_THEME_COLORS colors = PvGetThemeColors();
+            HWND controlHandle = (HWND)lParam;
+            HBRUSH brush;
+
+            // The hero card controls sit on the card surface, not the window
+            // background, and each carries its own place in the text hierarchy: the
+            // file name is primary, the company line is secondary and the version is
+            // chip text. (dmex)
+            if (PvThemeEnabled() && uMsg != WM_CTLCOLORDLG)
+            {
+                switch (GetDlgCtrlID(controlHandle))
+                {
+                case IDC_COMPANYNAME:
+                case IDC_VERSION:
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->SecondaryText, colors->CardBackground);
+                case IDC_FILEICON:
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->WindowText, colors->ChipBackground);
+                default:
+                    // Every remaining static and edit on this page is part of the hero
+                    // card, including the "Version:" label, so the card surface is the
+                    // right default here rather than the window background. (dmex)
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->WindowText, colors->CardBackground);
+                }
+            }
+
+            if (brush = PvThemeHandleCtlColor((HDC)wParam, uMsg != WM_CTLCOLOREDIT))
+                return (INT_PTR)brush;
         }
         break;
     }

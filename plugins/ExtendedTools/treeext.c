@@ -1264,9 +1264,7 @@ VOID EtProcessTreeNewMessage(
                 if (number == 0)
                     break;
 
-                value = number;
-                value *= 1000;
-                value /= EtUpdateInterval;
+                value = EtCalculateRate(number);
 
                 PhInitFormatSize(&format[0], value);
                 PhInitFormatS(&format[1], L"/s");

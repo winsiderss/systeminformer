@@ -118,39 +118,36 @@ typedef struct {
   regoff_t rm_eo;
 } regmatch_t;
 
+/* When an application links to a PCRE2 DLL in Windows, the symbols that are
+imported have to be identified as such. When building PCRE2, the appropriate
+export settings are needed, and are set in pcre2posix.c before including this
+file. So, we don't change existing definitions of PCRE2POSIX_EXP_DECL.
+
+By default, we use the standard "extern" declarations. */
+
+#ifndef PCRE2POSIX_EXP_DECL
+#  if defined(_WIN32) && defined(PCRE2POSIX_SHARED)
+#    define PCRE2POSIX_EXP_DECL  extern __declspec(dllimport)
+#  elif defined __cplusplus
+#    define PCRE2POSIX_EXP_DECL  extern "C"
+#  else
+#    define PCRE2POSIX_EXP_DECL  extern
+#  endif
+#endif
+
 /* When compiling with the MSVC compiler, it is sometimes necessary to include
-a "calling convention" before exported function names. (This is secondhand
-information; I know nothing about MSVC myself). For example, something like
+a "calling convention" before exported function names. For example:
 
   void __cdecl function(....)
 
 might be needed. In order to make this easy, all the exported functions have
-PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
-set, we ensure here that it has no effect. */
+PCRE2_CALL_CONVENTION just before their names.
+
+PCRE2 normally uses the platform's standard calling convention, so this should
+not be set unless you know you need it. */
 
 #ifndef PCRE2_CALL_CONVENTION
 #define PCRE2_CALL_CONVENTION
-#endif
-
-#ifndef PCRE2_EXPORT
-#define PCRE2_EXPORT
-#endif
-
-/* When an application links to a PCRE2 DLL in Windows, the symbols that are
-imported have to be identified as such. When building PCRE2, the appropriate
-export settings are needed, and are set in pcre2posix.c before including this
-file. */
-
-/* By default, we use the standard "extern" declarations. */
-
-#ifndef PCRE2POSIX_EXP_DECL
-#  if defined(_WIN32) && defined(PCRE2POSIX_SHARED) && !defined(PCRE2_STATIC)
-#    define PCRE2POSIX_EXP_DECL		extern __declspec(dllimport)
-#    define PCRE2POSIX_EXP_DEFN		__declspec(dllimport)
-#  else
-#    define PCRE2POSIX_EXP_DECL		extern PCRE2_EXPORT
-#    define PCRE2POSIX_EXP_DEFN
-#  endif
 #endif
 
 /* The functions. The actual code is in functions with pcre2_xxx names for

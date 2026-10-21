@@ -65,9 +65,12 @@ PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 /**
  * Initializes GPU monitoring functionality, allocating history buffers
  * and registering necessary callbacks if monitoring is supported.
+ *
+ * \param DiscoveredAdapterList The transient adapter discovery list owned by
+ * the load callback.
  */
 VOID EtGpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
@@ -79,7 +82,7 @@ VOID EtGpuMonitorInitialization(
 
         EtpGpuAdapterList = PhCreateList(4);
 
-        if (EtpGpuInitializeD3DStatistics())
+        if (EtpGpuInitializeD3DStatistics(DiscoveredAdapterList))
             EtGpuEnabled = TRUE;
     }
 
@@ -214,26 +217,25 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
 }
 
 /**
- * Discovers GPU adapters and initializes D3D statistics tracking.
+ * Initializes GPU D3D statistics from a previously discovered adapter list.
  *
+ * \param DiscoveredAdapterList The adapter discovery list to inspect.
  * \return TRUE if at least one adapter was successfully initialized, FALSE otherwise.
  */
 BOOLEAN EtpGpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
-    PPH_LIST discoveredAdapterList;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
     ULONG processedCount = 0;
 
-    discoveredAdapterList = EtInitializeGraphicsAdapters();
-    if (!discoveredAdapterList)
+    if (!DiscoveredAdapterList)
         return FALSE;
 
-    for (ULONG i = 0; i < discoveredAdapterList->Count; i++)
+    for (ULONG i = 0; i < DiscoveredAdapterList->Count; i++)
     {
-        PET_DISCOVERED_ADAPTER entry = discoveredAdapterList->Items[i];
+        PET_DISCOVERED_ADAPTER entry = DiscoveredAdapterList->Items[i];
         D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
@@ -396,8 +398,6 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
         if (EtGpuTemperatureLimit == 0)
             EtGpuTemperatureLimit = 100;
     }
-
-    EtUninitializeGraphicsAdapters(discoveredAdapterList);
 
     if (EtGpuTotalNodeCount == 0)
         return FALSE;

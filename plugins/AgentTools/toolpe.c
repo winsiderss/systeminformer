@@ -14,11 +14,57 @@
 #include <wincrypt.h>
 #include <phcrypt.h>
 #include <mapimg.h>
+#include <phintrin.h>
 
 #define AT_READ_MEMORY_MAX (64 * 1024)
 #define AT_SEARCH_DEFAULT_RESULTS 100
 #define AT_SEARCH_MAX_RESULTS 1000
 #define AT_SEARCH_MAX_PATTERN 256
+
+static SIZE_T AtpFindPatternCandidate(
+    _In_reads_bytes_(Count) PUCHAR Buffer,
+    _In_ SIZE_T Count,
+    _In_ SIZE_T Start,
+    _In_reads_bytes_(PatternLength) PUCHAR Pattern,
+    _In_ ULONG PatternLength
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX && Count - Start >= 32)
+    {
+        __m256i firstByte = _mm256_set1_epi8((CHAR)Pattern[0]);
+        __m256i lastByte = _mm256_set1_epi8((CHAR)Pattern[PatternLength - 1]);
+
+        while (Count - Start >= 32)
+        {
+            __m256i first = _mm256_loadu_si256((__m256i const*)(Buffer + Start));
+            __m256i last = _mm256_loadu_si256((__m256i const*)(Buffer + Start + PatternLength - 1));
+            ULONG mask = (ULONG)_mm256_movemask_epi8(_mm256_and_si256(
+                _mm256_cmpeq_epi8(first, firstByte),
+                _mm256_cmpeq_epi8(last, lastByte)));
+
+            if (mask)
+            {
+                ULONG index;
+
+                _BitScanForward(&index, mask);
+                _mm256_zeroupper();
+                return Start + index;
+            }
+
+            Start += 32;
+        }
+
+        _mm256_zeroupper();
+    }
+#endif
+
+    while (Start < Count &&
+        (Buffer[Start] != Pattern[0] || Buffer[Start + PatternLength - 1] != Pattern[PatternLength - 1]))
+        Start++;
+
+    return Start;
+}
 
 PCWSTR AtpVerifyResultText(
     _In_ VERIFY_RESULT Result
@@ -1207,8 +1253,12 @@ VOID AtpSearchProcessMemory(
                 unreadableBytes += chunk - read;
 
             {
-                for (i = 0; i + patternLength <= read; i++)
+                for (i = 0; i <= read - patternLength; i++)
                 {
+                    i = AtpFindPatternCandidate(buffer, read - patternLength + 1, i, pattern, patternLength);
+                    if (i > read - patternLength)
+                        break;
+
                     if (memcmp((PUCHAR)buffer + i, pattern, patternLength) == 0)
                     {
                         PH_FORMAT format[2];

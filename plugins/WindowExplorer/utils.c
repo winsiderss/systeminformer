@@ -18,6 +18,54 @@
 #define WE_HIGHLIGHT_OVERLAY_CLASS L"SystemInformerWindowExplorerHighlightOverlay"
 #define WE_HIGHLIGHT_OVERLAY_COLOR RGB(0xff, 0x00, 0xff)
 
+/**
+ * Converts a physical screen point into the logical coordinate space of a window.
+ *
+ * We run as per-monitor DPI aware, so screen coordinates are physical. Windows still virtualizes
+ * coordinates for DPI unaware windows, which lay out in a logical space that is scaled up to
+ * physical. This converts between the two so coordinates handed to (or shared with) another
+ * process line up.
+ *
+ * \param[in] WindowHandle The target window.
+ * \param[in,out] Point On input a physical screen point; on success the equivalent logical screen
+ * point in the DPI context of \a WindowHandle. Left unmodified on failure.
+ * \return TRUE if the point was converted, FALSE if it was left unmodified.
+ */
+static BOOLEAN WepPhysicalToLogicalPoint(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* PhysicalToLogicalPointForPerMonitorDPI_I)(_In_opt_ HWND WindowHandle, _Inout_ LPPOINT Point) = NULL;
+    POINT point;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            PhysicalToLogicalPointForPerMonitorDPI_I = PhGetProcedureAddress(baseAddress, "PhysicalToLogicalPointForPerMonitorDPI", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    // Windows 8.1+
+    if (!PhysicalToLogicalPointForPerMonitorDPI_I)
+        return FALSE;
+
+    point = *Point;
+
+    if (!PhysicalToLogicalPointForPerMonitorDPI_I(WindowHandle, &point))
+        return FALSE;
+
+    *Point = point;
+
+    return TRUE;
+}
+
 static LRESULT CALLBACK WeWindowHighlightOverlayWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -27,6 +75,10 @@ static LRESULT CALLBACK WeWindowHighlightOverlayWndProc(
 {
     switch (WindowMessage)
     {
+    case WM_NCHITTEST:
+        return HTTRANSPARENT;
+    case WM_MOUSEACTIVATE:
+        return MA_NOACTIVATE;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_PAINT:
@@ -42,11 +94,10 @@ static LRESULT CALLBACK WeWindowHighlightOverlayWndProc(
             hdc = BeginPaint(WindowHandle, &paintStruct);
             GetClientRect(WindowHandle, &rect);
             brush = CreateSolidBrush(WE_HIGHLIGHT_OVERLAY_COLOR);
-            pen = CreatePen(PS_SOLID, max(2, PhGetSystemMetrics(SM_CXBORDER, PhGetWindowDpi(WindowHandle)) * 3), RGB(0x00, 0x78, 0xd7));
+            pen = CreatePen(PS_INSIDEFRAME, max(2, PhGetSystemMetrics(SM_CXBORDER, PhGetWindowDpi(WindowHandle)) * 3), RGB(0x00, 0x78, 0xd7));
             oldBrush = SelectObject(hdc, brush);
             oldPen = SelectObject(hdc, pen);
-            FillRect(hdc, &rect, brush);
-            InflateRect(&rect, -1, -1);
+            FillRect(hdc, &paintStruct.rcPaint, brush);
             Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
             SelectObject(hdc, oldPen);
             SelectObject(hdc, oldBrush);
@@ -149,12 +200,115 @@ VOID WeHideWindowHighlightOverlay(
     }
 }
 
+VOID WeStopWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay
+    )
+{
+    RECT rect;
+
+    WeHideWindowHighlightOverlay(OverlayWindow);
+
+    if (
+        !*HighlightingOverlay &&
+        (*HighlightingWindowCount & 1) &&
+        IsWindow(*HighlightingWindow) &&
+        PhGetWindowRect(*HighlightingWindow, &rect)
+        )
+    {
+        WeInvertWindowBorder(*HighlightingWindow);
+    }
+
+    *HighlightingWindow = NULL;
+    *HighlightingWindowCount = 0;
+    *HighlightingOverlay = FALSE;
+}
+
+VOID WeStartWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay,
+    _In_ HWND TargetWindow
+    )
+{
+    RECT rect;
+
+    WeStopWindowHighlight(
+        OverlayWindow,
+        HighlightingWindow,
+        HighlightingWindowCount,
+        HighlightingOverlay
+        );
+
+    if (!IsWindow(TargetWindow) || !PhGetWindowRect(TargetWindow, &rect))
+        return;
+
+    *HighlightingWindow = TargetWindow;
+    *HighlightingWindowCount = 10;
+    *HighlightingOverlay = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED);
+
+    if (*HighlightingOverlay)
+        WeShowWindowHighlightOverlay(OverlayWindow, TargetWindow);
+}
+
+BOOLEAN WeUpdateWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay
+    )
+{
+    RECT rect;
+
+    if (*HighlightingWindowCount == 0)
+        return FALSE;
+
+    if (
+        !IsWindow(*HighlightingWindow) ||
+        !PhGetWindowRect(*HighlightingWindow, &rect)
+        )
+    {
+        WeStopWindowHighlight(
+            OverlayWindow,
+            HighlightingWindow,
+            HighlightingWindowCount,
+            HighlightingOverlay
+            );
+        return FALSE;
+    }
+
+    if (*HighlightingOverlay)
+    {
+        if (*HighlightingWindowCount & 1)
+            WeShowWindowHighlightOverlay(OverlayWindow, *HighlightingWindow);
+        else
+            WeHideWindowHighlightOverlay(OverlayWindow);
+    }
+    else
+    {
+        WeInvertWindowBorder(*HighlightingWindow);
+    }
+
+    if (--(*HighlightingWindowCount) == 0)
+    {
+        WeHideWindowHighlightOverlay(OverlayWindow);
+        *HighlightingWindow = NULL;
+        *HighlightingOverlay = FALSE;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 // {602D4995-B13A-429B-A66E-1935E44F4317}, 101
 static const PROPERTYKEY PKEY_ITaskbarList2 = { { 0x602D4995, 0xB13A, 0x429B, { 0xA6, 0x6E, 0x19, 0x35, 0xE4, 0x4F, 0x43, 0x17 } }, 101 };
 // {9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}, 4
 static const PROPERTYKEY PKEY_AppUserModel_RelaunchDisplayNameResource_Private = { { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 4 };
 
-BOOLEAN WeWindowEndTask(
+NTSTATUS WeWindowEndTask(
     _In_ HWND WindowHandle,
     _In_ BOOL Force
     )
@@ -171,15 +325,20 @@ BOOLEAN WeWindowEndTask(
         HANDLE moduleHandle;
 
         if (moduleHandle = PhLoadLibrary(L"user32.dll"))
+        {
             EndTask_I = PhGetProcedureAddress(moduleHandle, "EndTask", 0);
+        }
 
         PhEndInitOnce(&initOnce);
     }
 
     if (!EndTask_I)
-        return FALSE;
+        return STATUS_PROCEDURE_NOT_FOUND;
 
-    return !!EndTask_I(WindowHandle, FALSE, Force);
+    if (EndTask_I(WindowHandle, FALSE, Force))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 VOID WeSetWindowToDpiForTesting(
@@ -296,16 +455,16 @@ HICON WeGetWindowIcon(
     )
 {
     ULONG_PTR windowIcon = 0;
-    BOOLEAN status;
+    NTSTATUS status;
 
     status = PhSendMessageTimeout(WindowHandle, WM_GETICON, ICON_SMALL2, 0, 100, &windowIcon);
 
-    if (status == 0 || windowIcon == 0)
+    if (!NT_SUCCESS(status) || windowIcon == 0)
     {
         status = PhSendMessageTimeout(WindowHandle, WM_GETICON, 0, 0, 100, &windowIcon);
     }
 
-    if (status == 0 || windowIcon == 0)
+    if (!NT_SUCCESS(status) || windowIcon == 0)
     {
         windowIcon = GetClassLongPtr(WindowHandle, GCLP_HICONSM);
 
@@ -387,9 +546,9 @@ BOOLEAN WeIsWindowCloaked(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HRESULT (WINAPI *DwmGetWindowAttribute_I)(
         _In_ HWND WindowHandle,
-        _In_ DWORD dwAttribute,
+        _In_ ULONG dwAttribute,
         _Out_ PVOID pvAttribute,
-        _In_ DWORD cbAttribute
+        _In_ ULONG cbAttribute
         );
     BOOL windowCloaked = FALSE;
 
@@ -494,7 +653,9 @@ VOID WeInvertWindowBorder(
     HDC hdc;
     LONG dpiValue;
 
-    GetWindowRect(hWnd, &rect);
+    if (!PhGetWindowRect(hWnd, &rect))
+        return;
+
     hdc = GetWindowDC(hWnd);
 
     if (hdc)
@@ -505,9 +666,22 @@ VOID WeInvertWindowBorder(
         HPEN oldPen;
         HBRUSH brush;
         HBRUSH oldBrush;
+        POINT topLeft;
+        POINT bottomRight;
 
         dpiValue = PhGetWindowDpi(hWnd);
         penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
+
+        // The window DC uses the logical coordinate space of the target window, but the rectangle
+        // above is physical. Convert the corners so the border matches DPI virtualized windows.
+
+        topLeft.x = rect.left;
+        topLeft.y = rect.top;
+        bottomRight.x = rect.right;
+        bottomRight.y = rect.bottom;
+
+        WepPhysicalToLogicalPoint(hWnd, &topLeft);
+        WepPhysicalToLogicalPoint(hWnd, &bottomRight);
 
         oldDc = SaveDC(hdc);
 
@@ -521,7 +695,7 @@ VOID WeInvertWindowBorder(
         oldBrush = SelectBrush(hdc, brush);
 
         // Draw the rectangle.
-        Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
+        Rectangle(hdc, 0, 0, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
 
         // Cleanup.
         SelectBrush(hdc, oldBrush);
@@ -842,11 +1016,26 @@ static HWND WeWindowFromPointBelowSnapshot(
 
     while (windowHandle)
     {
+        POINT logicalPoint;
+        POINT clientOrigin;
         POINT clientPoint;
         HWND childWindowHandle;
 
-        clientPoint = Point;
-        ScreenToClient(windowHandle, &clientPoint);
+        // The point is physical, but ChildWindowFromPointEx walks child rectangles stored in the
+        // logical space of the target window. Convert both the point and the client origin into
+        // that space so the difference below is a valid logical client offset. Using ScreenToClient
+        // here would subtract a physical origin from a logical point.
+
+        logicalPoint = Point;
+        WepPhysicalToLogicalPoint(windowHandle, &logicalPoint);
+
+        clientOrigin.x = 0;
+        clientOrigin.y = 0;
+        ClientToScreen(windowHandle, &clientOrigin);
+        WepPhysicalToLogicalPoint(windowHandle, &clientOrigin);
+
+        clientPoint.x = logicalPoint.x - clientOrigin.x;
+        clientPoint.y = logicalPoint.y - clientOrigin.y;
 
         childWindowHandle = ChildWindowFromPointEx(
             windowHandle,
@@ -887,7 +1076,7 @@ static BOOLEAN WeCreateBlurredSnapshotBitmap(
     if (!Context->BlurredDC)
         return FALSE;
 
-    Context->BlurredBitmap = CreateCompatibleBitmap(ScreenDC, screenWidth, screenHeight);
+    Context->BlurredBitmap = PhCreateDIBSection(ScreenDC, PHBF_TOPDOWNDIB, screenWidth, screenHeight, NULL);
     if (!Context->BlurredBitmap)
     {
         DeleteDC(Context->BlurredDC);
@@ -917,7 +1106,7 @@ static BOOLEAN WeCreateBlurredSnapshotBitmap(
         return FALSE;
     }
 
-    smallBitmap = CreateCompatibleBitmap(ScreenDC, smallWidth, smallHeight);
+    smallBitmap = PhCreateDIBSection(ScreenDC, PHBF_TOPDOWNDIB, smallWidth, smallHeight, NULL);
     if (!smallBitmap)
     {
         DeleteDC(smallDC);
@@ -1043,22 +1232,24 @@ static LRESULT CALLBACK WeSnapshotWindowProc(
 
             if (hdc)
             {
-                RECT clientRect;
-                GetClientRect(WindowHandle, &clientRect);
+                RECT paintRect = ps.rcPaint;
+                LONG paintWidth = paintRect.right - paintRect.left;
+                LONG paintHeight = paintRect.bottom - paintRect.top;
 
                 // Draw the blurred snapshot first, then restore the hovered window region.
+                // Only copy the invalid region, the snapshot is 1:1 with the client area.
                 if (context->BlurredDC && context->BlurredBitmap)
                 {
-                    BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, context->BlurredDC, 0, 0, SRCCOPY);
+                    BitBlt(hdc, paintRect.left, paintRect.top, paintWidth, paintHeight, context->BlurredDC, paintRect.left, paintRect.top, SRCCOPY);
                 }
                 else if (context->MemoryDC && context->ScreenBitmap)
                 {
-                    BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, context->MemoryDC, 0, 0, SRCCOPY);
+                    BitBlt(hdc, paintRect.left, paintRect.top, paintWidth, paintHeight, context->MemoryDC, paintRect.left, paintRect.top, SRCCOPY);
                 }
                 else
                 {
                     // Fallback: just fill with black if bitmap failed
-                    FillRect(hdc, &clientRect, (HBRUSH)PhGetStockBrush(BLACK_BRUSH));
+                    FillRect(hdc, &paintRect, (HBRUSH)PhGetStockBrush(BLACK_BRUSH));
                 }
 
                 // Draw highlight if we have a window
@@ -1232,10 +1423,13 @@ BOOLEAN WeCreateSnapshotSelection(
         return FALSE;
     }
 
-    Context->ScreenBitmap = CreateCompatibleBitmap(
+    Context->ScreenBitmap = PhCreateDIBSection(
         screenDC,
+        PHBF_TOPDOWNDIB,
         screenRect.right - screenRect.left,
-        screenRect.bottom - screenRect.top);
+        screenRect.bottom - screenRect.top,
+        NULL
+        );
 
     if (!Context->ScreenBitmap)
     {

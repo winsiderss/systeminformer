@@ -156,7 +156,7 @@ VOID PhSearchControlInitializeColors(
     Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
     Context->WindowBorderInnerColor = PhSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
     Context->WindowBackgroundColor = PhSearchControlSelectColor(PhThemeWindowBackgroundColor, GetSysColor(COLOR_WINDOW));
-    Context->FrameDefaultColor = PhSearchControlSelectColor(PhThemeWindowBackground2Color, GetSysColor(COLOR_WINDOWFRAME));
+    Context->FrameDefaultColor = PhSearchControlSelectColor(PhThemeWindowWindowFrameColor, GetSysColor(COLOR_WINDOWFRAME));
     Context->ButtonPushedColor = PhSearchControlSelectColor(ButtonPushedThemeColor, ButtonPushedClassicColor);
     Context->ButtonHotActiveColor = PhSearchControlSelectColor(ButtonHotActiveThemeColor, ButtonHotActiveClassicColor);
     Context->ButtonHotColor = PhSearchControlSelectColor(ButtonHotThemeColor, ButtonHotClassicColor);
@@ -381,7 +381,7 @@ VOID PhSearchControlCreateTooltip(
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            ParentWindow,
+            NULL,
             NULL,
             NULL,
             NULL
@@ -391,7 +391,7 @@ VOID PhSearchControlCreateTooltip(
             Context->TooltipHandle,
             HWND_TOPMOST,
             0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
             );
 
         memset(&toolInfo, 0, sizeof(TOOLINFO));
@@ -406,18 +406,18 @@ VOID PhSearchControlCreateTooltip(
         SendMessage(Context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
         SendMessage(Context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
     }
-    //else
-    //{
-    //    toolInfo.cbSize = sizeof(TOOLINFO);
-    //    toolInfo.hwnd = ParentWindow;
-    //    toolInfo.uId = 1;
-    //    toolInfo.lpszText = TooltipText;
-    //    toolInfo.rect = *TooltipRect;
-    //    SendMessage(Context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
-    //    SendMessage(Context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
-    //}
+    else
+    {
+        memset(&toolInfo, 0, sizeof(TOOLINFO));
+        toolInfo.cbSize = sizeof(TOOLINFO);
+        toolInfo.hwnd = ParentWindow;
+        toolInfo.uId = 1;
+        toolInfo.lpszText = TooltipText;
+        toolInfo.rect = *TooltipRect;
+        SendMessage(Context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+        SendMessage(Context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+    }
 
-    //SendMessage(Context->TooltipHandle, TTM_UPDATE, 0, 0);
     SendMessage(Context->TooltipHandle, TTM_POPUP, 0, 0);
 }
 
@@ -622,7 +622,7 @@ VOID PhSearchControlPaintFrame(
     SetDCBrushColor(Hdc, PhSearchControlFrameColor(Context, WindowHandle));
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 
-    SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
+    SetDCBrushColor(Hdc, Context->CueBannerBackgroundColor);
     PhInflateRect(&frameRect, -1, -1);
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 }
@@ -833,7 +833,7 @@ VOID PhSearchControlPaintNonClient(
 {
     PhSearchControlExcludeClient(Context, WindowHandle, Hdc, WindowRect);
 
-    SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
+    SetDCBrushColor(Hdc, Context->CueBannerBackgroundColor);
     FillRect(Hdc, BufferRect, Context->DcBrush);
 
     PhSearchControlPaintFrame(Context, WindowHandle, Hdc, WindowRect);

@@ -271,86 +271,10 @@ PPH_STRING GraphicsDeviceQueryInterfaceName(
     _In_ PWSTR DeviceInterface
     )
 {
-    ULONG deviceInterfacePropertyCount = 0;
-    ULONG devicePropertyCount = 0;
-    const DEVPROPERTY* deviceInterfaceProperties = NULL;
-    const DEVPROPERTY* deviceProperties = NULL;
-    const DEVPROPERTY* instanceIdProperty;
-    const DEVPROPERTY* nameProperty;
-    PPH_STRING normalizedDeviceInterface;
-    DEVPROPCOMPKEY requestedInterfaceProperties[] =
-    {
-        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
-    };
-    DEVPROPCOMPKEY requestedDeviceProperties[] =
-    {
-        { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
-    };
+    PPH_STRING deviceName;
 
-    normalizedDeviceInterface = PhCreateString(DeviceInterface);
-
-    if (normalizedDeviceInterface->Length >= 2 * sizeof(WCHAR) && normalizedDeviceInterface->Buffer[1] == L'?')
-        normalizedDeviceInterface->Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
-
-    if (HR_SUCCESS(PhDevGetObjectProperties(
-        DevObjectTypeDeviceInterface,
-        PhGetString(normalizedDeviceInterface),
-        DevQueryFlagNone,
-        RTL_NUMBER_OF(requestedInterfaceProperties),
-        requestedInterfaceProperties,
-        &deviceInterfacePropertyCount,
-        &deviceInterfaceProperties
-        )))
-    {
-        instanceIdProperty = PhDevFindProperty(
-            &DEVPKEY_Device_InstanceId,
-            DEVPROP_STORE_SYSTEM,
-            deviceInterfacePropertyCount,
-            deviceInterfaceProperties
-            );
-
-        if (instanceIdProperty && instanceIdProperty->Type == DEVPROP_TYPE_STRING && instanceIdProperty->Buffer && instanceIdProperty->BufferSize >= sizeof(UNICODE_NULL))
-        {
-            if (HR_SUCCESS(PhDevGetObjectProperties(
-                DevObjectTypeDevice,
-                instanceIdProperty->Buffer,
-                DevQueryFlagLocalize,
-                RTL_NUMBER_OF(requestedDeviceProperties),
-                requestedDeviceProperties,
-                &devicePropertyCount,
-                &deviceProperties
-                )))
-            {
-                nameProperty = PhDevFindProperty(
-                    &DEVPKEY_NAME,
-                    DEVPROP_STORE_SYSTEM,
-                    devicePropertyCount,
-                    deviceProperties
-                    );
-
-                if (nameProperty && nameProperty->Type == DEVPROP_TYPE_STRING && nameProperty->Buffer && nameProperty->BufferSize >= sizeof(UNICODE_NULL))
-                {
-                    SIZE_T nameLength = nameProperty->BufferSize;
-                    PPH_STRING result;
-
-                    if (((PWSTR)nameProperty->Buffer)[(nameProperty->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
-                        nameLength -= sizeof(UNICODE_NULL);
-
-                    result = PhCreateStringEx((PWSTR)nameProperty->Buffer, nameLength);
-                    PhDevFreeObjectProperties(devicePropertyCount, deviceProperties);
-                    PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
-                    PhDereferenceObject(normalizedDeviceInterface);
-                    return result;
-                }
-
-                PhDevFreeObjectProperties(devicePropertyCount, deviceProperties);
-            }
-        }
-
-        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
-    }
-
-    PhDereferenceObject(normalizedDeviceInterface);
+    if (deviceName = GraphicsQueryAdapterName(DeviceInterface))
+        return deviceName;
 
     return PhCreateString(L"Unknown device");
 }
@@ -488,7 +412,7 @@ VOID FindGraphicsDevices(
                     string.Length = propertyList[0].BufferSize ? propertyList[0].BufferSize - sizeof(UNICODE_NULL) : 0;
                     entry->DeviceName = PhLoadIndirectString(&string);
 
-                    if (PhIsNullOrEmptyString(locationString) && propertyCount >= 2 && propertyList[2].BufferSize)
+                    if (PhIsNullOrEmptyString(locationString) && propertyCount >= 3 && propertyList[2].BufferSize >= sizeof(ULONG))
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
@@ -507,7 +431,7 @@ VOID FindGraphicsDevices(
                         }
                     }
 
-                    if (propertyCount >= 3 && propertyList[3].BufferSize >= sizeof(LUID))
+                    if (propertyCount >= 4 && propertyList[3].BufferSize >= sizeof(LUID))
                     {
                         entry->AdapterLuid = *(PLUID)propertyList[3].Buffer;
                     }
@@ -896,7 +820,10 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             if (ListView_GetItemCount(context->ListViewHandle) == 0)
+            {
                 PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+                PhSetWindowFrameChanged(context->ListViewHandle);
+            }
 
             context->OptionsChanged = FALSE;
         }
@@ -909,10 +836,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 GraphicsDevicesSaveList();
 
             FreeListViewGraphicsDeviceEntries(context);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
+
             PhRemoveDialogContext(WindowHandle);
             PhFree(context);
         }
@@ -942,6 +866,8 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
                     else
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
+
+                    PhSetWindowFrameChanged(context->ListViewHandle);
 
                     //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }

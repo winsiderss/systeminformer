@@ -29,12 +29,19 @@ struct json_pointer_get_result {
 int json_pointer_get_internal(struct json_object *obj, const unsigned char *path,
                               struct json_pointer_get_result *res);
 
-typedef int(*json_pointer_array_set_cb)(json_object *parent, size_t idx,
-                                        json_object *value, void *priv);
+// replaced by json_pointer_set_cb
+// typedef int(*json_pointer_array_set_cb)(json_object *parent, size_t idx,
+//                                         json_object *value, void *priv);
+typedef int(*json_pointer_set_cb)(json_object *parent, const unsigned char *key, size_t idx,
+                                    json_object *value, void *priv);
 
-int json_pointer_set_with_array_cb(struct json_object **obj, const unsigned char *path,
+// replaced by json_pointer_set_with_cb
+// int json_pointer_set_with_array_cb(struct json_object **obj, const unsigned char *path,
+//                                    struct json_object *value,
+//                                    json_pointer_array_set_cb array_set_cb, void *priv);
+int json_pointer_set_with_cb(struct json_object **obj, const unsigned char *path,
                                    struct json_object *value,
-                                   json_pointer_array_set_cb array_set_cb, void *priv);
+                                   json_pointer_set_cb set_cb, int cb_handles_obj, void *priv);
 
 #ifdef __cplusplus
 }

@@ -608,10 +608,19 @@ BOOLEAN GraphicsDeviceNodesMessageCallback(
 
                     if (PhIsNullOrEmptyString(context->Description))
                     {
-                        context->Description = GraphicsQueryDeviceInterfaceDescription(
-                            PhGetString(context->DeviceEntry->Id.DevicePath)
-                            );
+                        // Prefer the adapter name, fall back to the "GPU N" section text
+                        // rather than showing a placeholder. (dmex)
+                        PhMoveReference(&context->Description, GraphicsDeviceGetName(context->DeviceEntry));
+
+                        if (PhIsNullOrEmptyString(context->Description))
+                        {
+                            PhMoveReference(&context->Description, GraphicsDeviceGetAdapterDescription(
+                                context->DeviceEntry->Id.DevicePath
+                                ));
+                        }
                     }
+
+                    graphState->TooltipIndex = getTooltipText->Index;
 
                     if (!PhIsNullOrEmptyString(engineName) && !PhIsNullOrEmptyString(context->Description))
                     {
@@ -630,11 +639,26 @@ BOOLEAN GraphicsDeviceNodesMessageCallback(
 
                         PhMoveReference(&graphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
+                    else if (!PhIsNullOrEmptyString(context->Description))
+                    {
+                        PH_FORMAT format[7];
+
+                        // %.2f%%\nNode %lu on %s\n%s
+                        PhInitFormatF(&format[0], gpu * 100, 2);
+                        PhInitFormatS(&format[1], L"%\nNode ");
+                        PhInitFormatU(&format[2], index);
+                        PhInitFormatS(&format[3], L" on ");
+                        PhInitFormatSR(&format[4], context->Description->sr);
+                        PhInitFormatC(&format[5], L'\n');
+                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&graphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
                     else
                     {
                         PH_FORMAT format[5];
 
-                        // %.2f%%\nNode %lu on %s\n%s
+                        // %.2f%%\nNode %lu\n%s
                         PhInitFormatF(&format[0], gpu * 100, 2);
                         PhInitFormatS(&format[1], L"%\nNode ");
                         PhInitFormatU(&format[2], index);

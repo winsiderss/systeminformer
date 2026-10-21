@@ -66,6 +66,10 @@ typedef struct _PH_SERVICE_NODE
 // end_phapppub
     PPH_STRING TooltipText;
     ULONG ValidMask;
+    // Grouping (synthetic group-header nodes only)
+    BOOLEAN IsGroupNode;
+    PPH_LIST Children;
+    PPH_STRING GroupText;
     PH_STRINGREF TextCache[PHSVTLC_MAXIMUM];
 // begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
@@ -85,6 +89,14 @@ VOID PhLoadSettingsServiceTreeList(
 
 VOID PhSaveSettingsServiceTreeList(
     VOID
+    );
+
+ULONG PhGetServiceTreeListGroupMode(
+    VOID
+    );
+
+VOID PhSetServiceTreeListGroupMode(
+    _In_ ULONG GroupMode
     );
 
 // begin_phapppub

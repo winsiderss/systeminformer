@@ -390,6 +390,18 @@ C_ASSERT( (SYMCRYPT_ALIGN_VALUE & (SYMCRYPT_ALIGN_VALUE - 1 )) == 0 );
 
 #define SYMCRYPT_CPU_FEATURE_CMPXCHG16B         0x2000          // Compare and Swap 128b value
 
+//
+// In the Windows kernel, YMM and ZMM registers must be explicitly saved and restored, but we
+// have had problems with callers catching SEH exceptions thrown in between Save/Restore calls,
+// which prevents us from properly restoring the registers, resulting in invalid register states.
+// This can lead to data corruption. We cannot easily solve this in a cross-platform library,
+// so we normally only use YMM/ZMM registers when saving and restoring are done automatically for us
+// (i.e. in user mode).
+//
+
+#define SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL     0x4000          // if SymCryptSaveYmm() will never fail
+#define SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL     0x8000          // if SymCryptSaveZmm() will never fail
+
 #endif
 
 typedef UINT32 SYMCRYPT_CPU_FEATURES;
@@ -2119,6 +2131,8 @@ typedef SYMCRYPT_ALIGN_STRUCT _SYMCRYPT_RC4_STATE {
 // ChaCha20
 //
 
+#define SYMCRYPT_CHACHA20_POLY1305_MAX_DATA_SIZE    (((1ull << 32) - 1) * 64)
+
 typedef SYMCRYPT_ALIGN_STRUCT _SYMCRYPT_CHACHA20_STATE {
     UINT32      key[8];
     UINT32      nonce[3];
@@ -2194,6 +2208,8 @@ typedef const SYMCRYPT_MARVIN32_STATE *PCSYMCRYPT_MARVIN32_STATE;
 #define SYMCRYPT_SHA3_256_STATE_EXPORT_SIZE SYMCRYPT_KECCAK_STATE_EXPORT_SIZE
 #define SYMCRYPT_SHA3_384_STATE_EXPORT_SIZE SYMCRYPT_KECCAK_STATE_EXPORT_SIZE
 #define SYMCRYPT_SHA3_512_STATE_EXPORT_SIZE SYMCRYPT_KECCAK_STATE_EXPORT_SIZE
+#define SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE SYMCRYPT_KECCAK_STATE_EXPORT_SIZE
+#define SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE SYMCRYPT_KECCAK_STATE_EXPORT_SIZE
 
 
 //
@@ -2656,6 +2672,14 @@ SYMCRYPT_ASYM_ALIGN_STRUCT _SYMCRYPT_COMPOSITE_MLKEMKEY;
 typedef struct _SYMCRYPT_COMPOSITE_MLKEMKEY SYMCRYPT_COMPOSITE_MLKEMKEY;
 typedef       SYMCRYPT_COMPOSITE_MLKEMKEY * PSYMCRYPT_COMPOSITE_MLKEMKEY;
 typedef const SYMCRYPT_COMPOSITE_MLKEMKEY * PCSYMCRYPT_COMPOSITE_MLKEMKEY;
+
+//
+// Forward declarations for CompositeMlDsakey types
+//
+struct _SYMCRYPT_COMPOSITE_MLDSAKEY;
+typedef struct _SYMCRYPT_COMPOSITE_MLDSAKEY SYMCRYPT_COMPOSITE_MLDSAKEY;
+typedef       SYMCRYPT_COMPOSITE_MLDSAKEY * PSYMCRYPT_COMPOSITE_MLDSAKEY;
+typedef const SYMCRYPT_COMPOSITE_MLDSAKEY * PCSYMCRYPT_COMPOSITE_MLDSAKEY;
 
 //
 // RSA padding scratch definitions
@@ -3190,6 +3214,15 @@ typedef struct _SYMCRYPT_EXTENDED_SAVE_DATA      SYMCRYPT_EXTENDED_SAVE_DATA, *P
     VOID SYMCRYPT_CALL SymCryptRestoreYmm( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) \
         { SymCryptRestoreYmmEnv##envName( pSaveArea ); } \
 
+#define SYMCRYPT_ENVIRONMENT_DEFS_SAVEZMM( envName ) \
+    SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptSaveZmmEnv##envName( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ); \
+    SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptSaveZmm( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) \
+        { return SymCryptSaveZmmEnv##envName( pSaveArea ); } \
+    \
+    VOID SYMCRYPT_CALL SymCryptRestoreZmmEnv##envName( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ); \
+    VOID SYMCRYPT_CALL SymCryptRestoreZmm( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) \
+        { SymCryptRestoreZmmEnv##envName( pSaveArea ); } \
+
 #define SYMCRYPT_ENVIRONMENT_DEFS_SAVEXMM( envName ) \
     SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptSaveXmmEnv##envName( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ); \
     SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptSaveXmm( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) \
@@ -3202,8 +3235,10 @@ typedef struct _SYMCRYPT_EXTENDED_SAVE_DATA      SYMCRYPT_EXTENDED_SAVE_DATA, *P
 
 #else
 
-#define SYMCRYPT_ENVIRONMENT_DEFS_SAVEYMM( envName )
 #define SYMCRYPT_ENVIRONMENT_DEFS_SAVEXMM( envName )
+#define SYMCRYPT_ENVIRONMENT_DEFS_SAVEYMM( envName )
+#define SYMCRYPT_ENVIRONMENT_DEFS_SAVEZMM( envName )
+
 
 #endif
 
@@ -3233,6 +3268,7 @@ SYMCRYPT_EXTERN_C \
     \
     SYMCRYPT_ENVIRONMENT_DEFS_SAVEXMM( envName ) \
     SYMCRYPT_ENVIRONMENT_DEFS_SAVEYMM( envName ) \
+    SYMCRYPT_ENVIRONMENT_DEFS_SAVEZMM( envName ) \
     \
     VOID SYMCRYPT_CALL SymCryptTestInjectErrorEnv##envName( PBYTE pbBuf, SIZE_T cbBuf ); \
     VOID SYMCRYPT_CALL SymCryptInjectError( PBYTE pbBuf, SIZE_T cbBuf ) \
@@ -3256,6 +3292,7 @@ SYMCRYPT_EXTERN_C_END
 // But this is unlikely to be misused.
 //
 #define SYMCRYPT_ENVIRONMENT_WINDOWS_KERNELDEBUGGER             SYMCRYPT_ENVIRONMENT_DEFS( WindowsKernelDebugger )
+#define SYMCRYPT_ENVIRONMENT_ELEVATED_DEBUGGER                  SYMCRYPT_ENVIRONMENT_DEFS( ElevatedDebugger )
 
 
 
@@ -3622,8 +3659,6 @@ typedef enum _SYMCRYPT_SI_TYPE {
 #define SYMCRYPT_SI_HKDF                    SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 0)
 #define SYMCRYPT_SI_PBKDF                   SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 1)
 #define SYMCRYPT_SI_KDA_ONESTEP             SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 2)
-#define SYMCRYPT_SI_KDF_IKEV1               SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 3)
-#define SYMCRYPT_SI_KDF_IKEV2               SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 4)
 #define SYMCRYPT_SI_KDF_SP800_108_CTR       SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 5)
 #define SYMCRYPT_SI_KDF_SRTP                SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 6)
 #define SYMCRYPT_SI_KDF_SSH                 SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KDF, 7)
@@ -3677,6 +3712,7 @@ typedef enum _SYMCRYPT_SI_TYPE {
 #define SYMCRYPT_SI_XMSS_MT_KEYGEN          SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_ASYM_ALG, 36)
 #define SYMCRYPT_SI_XMSS_MT_SIGGEN          SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_ASYM_ALG, 37)
 #define SYMCRYPT_SI_XMSS_MT_SIGVER          SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_ASYM_ALG, 38)
+#define SYMCRYPT_SI_DSA_SIGGEN              SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_ASYM_ALG, 39)
 
 #define SYMCRYPT_SI_MLKEM_KEYGEN            SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KEM, 0)
 #define SYMCRYPT_SI_MLKEM_ENCAPS            SYMCRYPT_SI_CREATE_ID(SYMCRYPT_SI_TYPE_KEM, 1)
@@ -3753,6 +3789,7 @@ SymCryptDeprecatedServiceIndicator(
 //      SYMCRYPT_SI_SAFE_PRIME_KEYGEN   SYMCRYPT_SI_SPG_XXX                     Hash Alg Id
 //      SYMCRYPT_SI_HMAC_XXX            SYMCRYPT_SI_KEYBITS(int)                -
 //      SYMCRYPT_SI_KDA_ONESTEP         Hash Alg Id or MAC alg Id               -
+//      SYMCRYPT_SI_HKDF                MAC Alg Id                              SYMCRYPT_SI_KEYBITS(int)
 //      SYMCRYPT_SI_PBKDF               MAC Alg Id                              -
 //      SYMCRYPT_SI_KDF_SP800_108_CTR   MAC Alg Id                              -
 //      SYMCRYPT_SI_KDF_SSH             Hash Alg Id                             -
