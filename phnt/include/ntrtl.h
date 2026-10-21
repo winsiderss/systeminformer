@@ -6379,15 +6379,6 @@ RtlpSetInstallLanguage(
     );
 
 // rev
-/**
- * Applies a preferred UI language multi-string to the current process or thread scope selected by Flags.
- *
- * \param Flags Flags controlling the target scope and language format.
- * \param LanguagesMultiSz An optional null-null terminated multi-string of preferred UI languages.
- * \param LanguagesCount An optional pointer to a variable that receives the number of languages that were applied.
- * \param Reserved Reserved; must be NULL.
- * \return NTSTATUS Successful or errant status.
- */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -6715,13 +6706,9 @@ RtlCreateProcessParametersEx(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS4)
 // private
 /**
- * The RtlCreateProcessParametersWithTemplate routine creates a process parameters block for a new process using a redirection DLL template.
+ * The RtlCreateProcessParametersWithTemplate routine creates a process parameters block using an existing
+ * process parameters block as a template.
  *
- * \param ProcessParameters Receives the newly allocated process parameters block.
- * \param ImagePathName The image path name of the process.
- * \param DllPath An optional DLL search path.
- * \param CurrentDirectory An optional current directory.
- * \param CommandLine An optional command line.
  * \param ProcessParameters Receives a pointer to the created process parameters block.
  * \param Template Pointer to an existing process parameters block to use as a template.
  * \param Flags Pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized.
@@ -8239,7 +8226,8 @@ RtlFindActivationContextSectionGuid(
  *
  * \param Flags Reserved. Must be zero.
  * \param ActivationContext A pointer to the activation context to query.
- * \param SettingsNameSpace An optional pointer to the settings namespace URI.
+ * \param SettingsNameSpace An optional pointer to the settings namespace URI. If NULL,
+ * http://schemas.microsoft.com/SMI/2005/WindowsSettings is used.
  * \param SettingName A pointer to the name of the setting to query.
  * \param Buffer A buffer that receives the setting value.
  * \param BufferLength The size, in bytes, of the buffer.
@@ -8252,7 +8240,7 @@ NTAPI
 RtlQueryActivationContextApplicationSettings(
     _Reserved_ ULONG Flags,
     _In_ PACTIVATION_CONTEXT ActivationContext,
-    _In_ PCWSTR SettingsNameSpace,
+    _In_opt_ PCWSTR SettingsNameSpace,
     _In_ PCWSTR SettingName,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_ SIZE_T BufferLength,
@@ -12807,13 +12795,14 @@ RtlReportException(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
 /**
- * The RtlReportExceptionEx routine reports an exception to Windows Error Reporting (WER) with an optional
- * timeout.
+ * The RtlReportExceptionEx routine reports an exception to Windows Error Reporting (WER) for the specified
+ * process and thread.
  *
  * \param ExceptionRecord A pointer to the exception record describing the exception.
  * \param ContextRecord A pointer to the context record captured at the time of the exception.
  * \param Flags Flags that control how the exception is reported.
- * \param Timeout A pointer to the maximum time to wait for the report to complete.
+ * \param ProcessHandle An optional handle to the process for which the exception is reported.
+ * \param ThreadHandle An optional handle to the thread for which the exception is reported.
  * \return NTSTATUS Successful or errant status.
  * \remarks These can produce external error-reporting side effects, waits, process interaction or termination
  * paths; they are not passive formatters.
@@ -16813,7 +16802,7 @@ RtlAddProcessTrustLabelAce(
  * \param AccessFilterSid The SID identifying the access filter.
  * \param AceType The system filtering ACE type (SYSTEM_FILTERING_ACE_TYPE).
  * \param AccessMask The access mask for the ACE.
- * \param Buffer An optional buffer describing the SYSTEM_ACCESS_FILTER_ACE payload.
+ * \param Buffer A buffer describing the SYSTEM_ACCESS_FILTER_ACE payload.
  * \param BufferLength The length, in bytes, of Buffer.
  * \return NTSTATUS Successful or errant status.
  */
@@ -17800,7 +17789,7 @@ typedef WAIT_CALLBACK_ROUTINE* PWAIT_CALLBACK_ROUTINE;
  * Note that a wait handle cannot be used in functions that require an object handle.
  * \param Handle A handle to the object. If this handle is closed while the wait is
  * still pending, the function's behavior is undefined. The handle must have SYNCHRONIZE access.
- * \param Function Optional completion event for wait callback completion.
+ * \param Function A pointer to the callback routine invoked when the object is signaled or the wait times out.
  * \param Context Optional value that is passed to the callback function.
  * \param Milliseconds The time-out interval, in milliseconds.
  * \param Flags Flags that control the behavior of the wait handle.
@@ -19345,7 +19334,7 @@ RtlpCreateProcessRegistryInfo(
  * prior dynamic allocation is released with \c RtlpSysVolFree, and the
  * buffer is repointed. The buffer is never shrunk.
  * \param[in] Flags Bit 0 skips copying the existing contents on reallocation (RTL_SKIP_BUFFER_COPY); all other bits must be zero.
- * \param[in,out] Buffer The RTL_BUFFER to enlarge.
+ * \param[in,out] BufferState The RTL_BUFFER to enlarge.
  * \param[in] RequiredSize The minimum required capacity, in bytes.
  * \return STATUS_SUCCESS on success.
  */
