@@ -807,7 +807,7 @@ ZwChangeThreadState(
     _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadHandle,
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
-    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ PTHREAD_STATE_CHANGE_EXT ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_ ULONG Flags
     );

@@ -341,6 +341,10 @@ static LRESULT CALLBACK PhpScrollNewWndProc(
         break;
     case WM_ERASEBKGND:
         return TRUE;
+    case WM_PRINTCLIENT:
+        if (wParam && (lParam & PRF_CLIENT))
+            PhScrollNewDraw(context, (HDC)wParam);
+        return 0;
     case WM_PAINT:
         {
             PhpScrollNewOnPaint(WindowHandle, context);

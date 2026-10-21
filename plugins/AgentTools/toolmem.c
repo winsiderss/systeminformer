@@ -896,7 +896,7 @@ NTSTATUS NTAPI AtpMemoryStringsNextBuffer(
             return STATUS_SUCCESS;
         }
 
-        if (NtGetTickCount64() > context->Deadline)
+        if (PhQueryWaitTime() > context->Deadline)
         {
             context->TimedOut = TRUE;
             return STATUS_SUCCESS;
@@ -1077,7 +1077,7 @@ VOID AtpSearchProcessStrings(
     context.ProcessHandle = Target->ProcessHandle;
     context.List = &list;
     context.Entry = list.ListHead.Flink;
-    context.Deadline = NtGetTickCount64() + seconds * 1000;
+    context.Deadline = PhQueryWaitTime() + seconds * PH_TICKS_PER_SEC;
 
     AtInitializeRows(&context.Rows, Call->Arguments);
 

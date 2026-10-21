@@ -249,7 +249,7 @@ NtCreateTransaction(
  * \param DesiredAccess Nonzero requested transaction rights. Query, set, commit,
  * rollback and synchronous-wait requirements are independent rights.
  * \param ObjectAttributes Optional handle attributes, not a transaction-name
- * selector or a replacement security descriptor for an existing object.
+ * infoclass or a replacement security descriptor for an existing object.
  * \param Uow Required readable GUID identifying the existing transaction; NULL
  * returns STATUS_INVALID_PARAMETER. Native user-mode capture requires 4-byte
  * GUID alignment.
@@ -281,10 +281,10 @@ NtOpenTransaction(
  * registry-only lightweight transaction objects.
  *
  * \param TransactionHandle KTM handle with TRANSACTION_QUERY_INFORMATION (0x1).
- * \param TransactionInformationClass Selector. Native tm.sys accepts 0 (basic), 1 (properties), 2
+ * \param TransactionInformationClass InfoClass. Native tm.sys accepts 0 (basic), 1 (properties), 2
  * (enlistments), 3 (superior enlistment) and 5 (private DTC data); 4 (bind) is not a query class there. WoW64
  * dispatches only 0, 1 and 4, so its forwarded class 4 is rejected by native code and native classes 2/3/5
- * are unavailable through that thunk. Do not remove SDK selectors based on this.
+ * are unavailable through that thunk. Do not remove SDK infoclasses based on this.
  * \param TransactionInformation Caller-owned output. Use naturally aligned storage; the native public records
  * are probed at 4-byte alignment.
  * \param TransactionInformationLength Capacity in bytes. Basic requires exactly 24 bytes, not merely at least
@@ -306,7 +306,7 @@ NtOpenTransaction(
  * WoW64 properties rejects NULL output or capacity below 32 with STATUS_INFO_LENGTH_MISMATCH before native
  * query, and copies fields/description back only on NT_SUCCESS: overflow can update ReturnLength without
  * returning the native partial record. Its temporary buffer permits unaligned properties output, but basic
- * output is forwarded and still requires native alignment. Private DTC selectors are deprecated internal
+ * output is forwarded and still requires native alignment. Private DTC infoclasses are deprecated internal
  * interfaces. Query only complete, capacity-bounded returned fields.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryinformationtransaction
  */
@@ -327,7 +327,7 @@ NtQueryInformationTransaction(
  * description/deadline; do not use the Outcome field to commit/abort.
  *
  * \param TransactionHandle KTM handle with TRANSACTION_SET_INFORMATION (0x2).
- * \param TransactionInformationClass Public property selector 1. The native implementation additionally
+ * \param TransactionInformationClass Public property infoclass 1. The native implementation additionally
  * accepts private/deprecated bind (4) and DTC opaque data (5), not basic (0), enlistments (2) or superior
  * (3).
  * \param TransactionInformation Readable caller-owned input copied before normal handle access validation.

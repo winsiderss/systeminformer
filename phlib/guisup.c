@@ -70,7 +70,7 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG_PTR WindowCallbackCookie = 0;
 static PH_INITONCE PhpBufferedPaintInitOnce = PH_INITONCE_INIT;
-static BOOLEAN PhpBufferedPaintUxThemeInitialized = FALSE;
+static ULONG PhpBufferedPaintUxThemeFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
@@ -8495,11 +8495,21 @@ CleanupExit:
     return NULL;
 }
 
+#ifndef PHLIB_PAINT_BUFFER
+static VOID NTAPI PhpBufferedPaintUxThemeFlsCallback(
+    _In_opt_ PVOID Value
+    )
+{
+    if (Value)
+        BufferedPaintUnInit();
+}
+#endif
+
 /**
- * Initializes UxTheme buffered painting and allocates the process-wide FLS
- * index used by the custom buffered paint cache.
+ * Initializes UxTheme buffered painting on the calling thread. FLS indices
+ * are allocated once per process; their callbacks release thread state.
  *
- * \return TRUE on success. Safe to call multiple times.
+ * \return TRUE on success. Safe to call multiple times on a thread.
  */
 BOOLEAN PhBufferedPaintInit(
     VOID
@@ -8507,40 +8517,52 @@ BOOLEAN PhBufferedPaintInit(
 {
     if (PhBeginInitOnce(&PhpBufferedPaintInitOnce))
     {
-        PhpBufferedPaintUxThemeInitialized = HR_SUCCESS(BufferedPaintInit());
-#ifdef PHLIB_PAINT_BUFFER
+#ifndef PHLIB_PAINT_BUFFER
+        PhpBufferedPaintUxThemeFlsIndex = FlsAlloc(PhpBufferedPaintUxThemeFlsCallback);
+#else
         PhBufferedPaintFlsIndex = FlsAlloc(PhFreeBufferedPaintCache);
 #endif
         PhEndInitOnce(&PhpBufferedPaintInitOnce);
     }
 
 #ifndef PHLIB_PAINT_BUFFER
-    return PhpBufferedPaintUxThemeInitialized;
+    if (PhpBufferedPaintUxThemeFlsIndex == FLS_OUT_OF_INDEXES)
+        return FALSE;
+
+    if (FlsGetValue(PhpBufferedPaintUxThemeFlsIndex))
+        return TRUE;
+
+    if (!HR_SUCCESS(BufferedPaintInit()))
+        return FALSE;
+
+    if (!FlsSetValue(PhpBufferedPaintUxThemeFlsIndex, (PVOID)1))
+    {
+        BufferedPaintUnInit();
+        return FALSE;
+    }
+
+    return TRUE;
 #else
     return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
 #endif
 }
 
 /**
- * Frees the FLS index and all per-thread cache slots still alive, then
- * uninitializes UxTheme buffered painting. Call from DLL_PROCESS_DETACH or
- * application shutdown.
+ * Uninitializes UxTheme buffered painting on the calling thread. Other
+ * threads retain their state until they call this function or exit.
  */
 VOID PhBufferedPaintUnInit(
     VOID
     )
 {
-    if (PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES)
+#ifndef PHLIB_PAINT_BUFFER
+    if (PhpBufferedPaintUxThemeFlsIndex != FLS_OUT_OF_INDEXES &&
+        FlsGetValue(PhpBufferedPaintUxThemeFlsIndex))
     {
-        FlsFree(PhBufferedPaintFlsIndex);
-        PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
+        if (FlsSetValue(PhpBufferedPaintUxThemeFlsIndex, NULL))
+            BufferedPaintUnInit();
     }
-
-    if (PhpBufferedPaintUxThemeInitialized)
-    {
-        BufferedPaintUnInit();
-        PhpBufferedPaintUxThemeInitialized = FALSE;
-    }
+#endif
 }
 
 /**
@@ -8583,6 +8605,9 @@ BOOLEAN PhBeginBufferedPaint(
     {
         HPAINTBUFFER paintBuffer;
         HDC paintHdc;
+
+        if (!PhBufferedPaintInit())
+            return FALSE;
 
         if (!(paintBuffer = BeginBufferedPaint(
             TargetHdc,

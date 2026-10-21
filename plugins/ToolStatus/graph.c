@@ -773,11 +773,10 @@ BOOLEAN CpuHistoryGraphMessageCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             if (graph->GraphDpi == 0)
-            {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
-                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_CPU_USER);
-            }
+
+            graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
+            graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_CPU_USER);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, graph->GraphColor2, graph->GraphDpi);
@@ -881,10 +880,9 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             if (graph->GraphDpi == 0)
-            {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PHYSICAL);
-            }
+
+            graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PHYSICAL);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, 0, graph->GraphDpi);
@@ -988,10 +986,9 @@ BOOLEAN CommitHistoryGraphMessageCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             if (graph->GraphDpi == 0)
-            {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
-            }
+
+            graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, 0, graph->GraphDpi);
@@ -1095,11 +1092,10 @@ BOOLEAN IoHistoryGraphMessageCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             if (graph->GraphDpi == 0)
-            {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
-                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
-            }
+
+            graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+            graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, graph->GraphColor2, graph->GraphDpi);

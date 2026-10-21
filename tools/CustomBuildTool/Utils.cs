@@ -957,6 +957,7 @@ namespace CustomBuildTool
             }
 
             string vsDevCmd = Path.Join([instance.Path, "Common7\\Tools\\VsDevCmd.bat"]);
+            string hostArch = GetVsDevCmdHostArch(instance.Path);
             string arch = null;
 
             if (!File.Exists(vsDevCmd))
@@ -988,7 +989,9 @@ namespace CustomBuildTool
                 "\"",
                 " -arch=",
                 arch,
-                " -host_arch=amd64 && ",
+                " -host_arch=",
+                hostArch,
+                " && ",
                 QuoteCmdArgument(cmakeFile),
                 " ",
                 string.Join(" ", arguments.Select(QuoteCmdArgument)),
@@ -1002,6 +1005,34 @@ namespace CustomBuildTool
                 false,
                 false
                 );
+        }
+
+        /// <summary>
+        /// Determines the VsDevCmd host architecture to use for the current machine.
+        /// </summary>
+        /// <remarks>ARM64 machines use the ARM64-hosted toolset when Visual Studio has it installed
+        /// (VC\Tools\MSVC\&lt;version&gt;\bin\Hostarm64). Otherwise the x64-hosted toolset is used, which
+        /// runs under emulation on ARM64. The OS architecture is checked rather than the process architecture
+        /// so an emulated build tool still selects the native toolset.</remarks>
+        /// <param name="InstallPath">The Visual Studio installation path.</param>
+        /// <returns>The VsDevCmd -host_arch value: "arm64" or "amd64".</returns>
+        private static string GetVsDevCmdHostArch(string InstallPath)
+        {
+            if (RuntimeInformation.OSArchitecture != Architecture.Arm64)
+                return "amd64";
+
+            string msvcRoot = Path.Join([InstallPath, "VC\\Tools\\MSVC"]);
+
+            if (Directory.Exists(msvcRoot))
+            {
+                foreach (string toolsetPath in Directory.EnumerateDirectories(msvcRoot))
+                {
+                    if (Directory.Exists(Path.Join([toolsetPath, "bin\\Hostarm64"])))
+                        return "arm64";
+                }
+            }
+
+            return "amd64";
         }
 
         /// <summary>

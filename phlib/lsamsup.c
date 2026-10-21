@@ -559,6 +559,120 @@ NTSTATUS PhGetSamUserDescription(
 }
 
 /**
+ * Gets the account control flags of a SAM user.
+ *
+ * \param DomainName The name of the SAM domain that contains the user. Specify NULL for the local account domain.
+ * \param UserName The name of the user.
+ * \param UserAccountControl A variable which receives the account control flags (USER_*).
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Only domains hosted by the local SAM server can be queried.
+ */
+NTSTATUS PhGetSamUserAccountControl(
+    _In_opt_ PCPH_STRINGREF DomainName,
+    _In_ PCPH_STRINGREF UserName,
+    _Out_ PULONG UserAccountControl
+    )
+{
+    NTSTATUS status;
+    SAM_HANDLE serverHandle;
+    SAM_HANDLE domainHandle = NULL;
+    SAM_HANDLE userHandle;
+    PSID domainSid = NULL;
+    BOOLEAN closeDomainHandle = FALSE;
+    UNICODE_STRING domainName;
+    ULONG rid;
+    SID_NAME_USE use;
+    PUSER_CONTROL_INFORMATION controlInfo;
+
+    if (DomainName && DomainName->Length)
+    {
+        if (!PhStringRefToUnicodeString(DomainName, &domainName))
+            return STATUS_NAME_TOO_LONG;
+
+        status = PhGetSamServerHandle(&serverHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = SamLookupDomainInSamServer(
+            serverHandle,
+            &domainName,
+            &domainSid
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = SamOpenDomain(
+            serverHandle,
+            DOMAIN_LOOKUP,
+            domainSid,
+            &domainHandle
+            );
+
+        SamFreeMemory(domainSid);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        closeDomainHandle = TRUE;
+    }
+    else
+    {
+        status = PhGetSamDomainHandle(DOMAIN_LOOKUP, &domainHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    status = PhLookupSamName(
+        domainHandle,
+        (PPH_STRINGREF)UserName,
+        &rid,
+        &use
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (use != SidTypeUser)
+    {
+        status = STATUS_NONE_MAPPED;
+        goto CleanupExit;
+    }
+
+    status = SamOpenUser(
+        domainHandle,
+        USER_READ_ACCOUNT,
+        rid,
+        &userHandle
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = SamQueryInformationUser(
+        userHandle,
+        UserControlInformation,
+        &controlInfo
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *UserAccountControl = controlInfo->UserAccountControl;
+        SamFreeMemory(controlInfo);
+    }
+
+    SamCloseHandle(userHandle);
+
+CleanupExit:
+    if (closeDomainHandle)
+        SamCloseHandle(domainHandle);
+
+    return status;
+}
+
+/**
  * Gets the description of a SAM account (user, group or alias).
  *
  * \param Sid The SID of the account.

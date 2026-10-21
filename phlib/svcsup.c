@@ -14,6 +14,8 @@
 #include <subprocesstag.h>
 #include <svcsup.h>
 #include <mapldr.h>
+#include <ntsam.h>
+#include <lsamsup.h>
 
 static CONST PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
@@ -1680,6 +1682,250 @@ NTSTATUS PhGetServiceConfigFileName2(
     }
 
     return status;
+}
+
+/**
+ * Determines whether a service is configured with a path to an executable that contains
+ * spaces and is not surrounded by quotation marks (unquoted service path).
+ *
+ * \param ServiceType The service type flags.
+ * \param ServicePathName The service's binary path name.
+ * \return TRUE if the executable portion of the path contains spaces and is unquoted, otherwise FALSE.
+ * \remarks Only Win32 services are checked since driver image paths are not resolved by
+ * CreateProcess. When no ".exe" is present the executable portion is determined by
+ * searching for an existing file.
+ */
+BOOLEAN PhIsServiceUnquotedPath(
+    _In_ ULONG ServiceType,
+    _In_opt_ PCWSTR ServicePathName
+    )
+{
+    PH_STRINGREF commandLine;
+
+    if (!FlagOn(ServiceType, SERVICE_WIN32))
+        return FALSE;
+    if (!ServicePathName || !ServicePathName[0])
+        return FALSE;
+
+    PhInitializeStringRefLongHint(&commandLine, ServicePathName);
+
+    return PhIsCommandLineUnquotedPath(&commandLine, TRUE);
+}
+
+/**
+ * Retrieves the list of protected directories (with a trailing backslash) in which service
+ * executables are commonly stored.
+ *
+ * \return A list of PPH_STRING directory names. The list is cached and must not be freed.
+ */
+PPH_LIST PhpGetServiceProtectedDirectories(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_LIST protectedDirectories = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
+        static CONST PH_STRINGREF defenderPath = PH_STRINGREF_INIT(L"\\Microsoft\\Windows Defender\\");
+        static CONST PH_STRINGREF defenderAtpPath = PH_STRINGREF_INIT(L"\\Microsoft\\Windows Defender Advanced Threat Protection\\");
+        static CONST PCGUID programFilesFolders[] =
+        {
+            &FOLDERID_ProgramFiles,
+            &FOLDERID_ProgramFilesX86,
+            &FOLDERID_ProgramFilesX64,
+        };
+        PH_STRINGREF systemRoot;
+        PPH_STRING directory;
+
+        protectedDirectories = PhCreateList(8);
+
+        PhGetSystemRoot(&systemRoot);
+        PhAddItemList(protectedDirectories, PhConcatStringRef2(&systemRoot, &separator));
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(programFilesFolders); i++)
+        {
+            if (directory = PhGetKnownFolderPath(programFilesFolders[i], &separator))
+            {
+                PhAddItemList(protectedDirectories, directory);
+            }
+        }
+
+        // Microsoft Defender updates its platform binaries under ProgramData. (dmex)
+        if (directory = PhGetKnownFolderPath(&FOLDERID_ProgramData, &defenderPath))
+            PhAddItemList(protectedDirectories, directory);
+        if (directory = PhGetKnownFolderPath(&FOLDERID_ProgramData, &defenderAtpPath))
+            PhAddItemList(protectedDirectories, directory);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return protectedDirectories;
+}
+
+/**
+ * Determines whether a service executable is stored in an uncommon or unprotected directory.
+ *
+ * \param FileName The Win32 file name of the service executable or DLL.
+ * \return TRUE if the file is not located in a protected directory (Windows, Program Files
+ * or the Microsoft Defender platform directories), or is located in a well-known user-writable
+ * directory under the Windows directory, otherwise FALSE.
+ * \remarks Relative file names are ignored since their location cannot be determined.
+ */
+BOOLEAN PhIsServiceUncommonFileName(
+    _In_ PCPH_STRINGREF FileName
+    )
+{
+    // Directories under the Windows directory that standard users can write to.
+    static CONST PH_STRINGREF writableDirectories[] =
+    {
+        PH_STRINGREF_INIT(L"\\Temp\\"),
+        PH_STRINGREF_INIT(L"\\Tasks\\"),
+        PH_STRINGREF_INIT(L"\\Tracing\\"),
+        PH_STRINGREF_INIT(L"\\Registration\\CRMLog\\"),
+        PH_STRINGREF_INIT(L"\\System32\\Tasks\\"),
+        PH_STRINGREF_INIT(L"\\System32\\Com\\dmp\\"),
+        PH_STRINGREF_INIT(L"\\System32\\FxsTmp\\"),
+        PH_STRINGREF_INIT(L"\\System32\\spool\\PRINTERS\\"),
+        PH_STRINGREF_INIT(L"\\System32\\spool\\SERVERS\\"),
+        PH_STRINGREF_INIT(L"\\System32\\spool\\drivers\\color\\"),
+        PH_STRINGREF_INIT(L"\\SysWOW64\\Tasks\\"),
+        PH_STRINGREF_INIT(L"\\SysWOW64\\Com\\dmp\\"),
+        PH_STRINGREF_INIT(L"\\SysWOW64\\FxsTmp\\"),
+    };
+    static CONST PH_STRINGREF parentDirectory = PH_STRINGREF_INIT(L"\\..\\");
+    static CONST PH_STRINGREF currentDirectory = PH_STRINGREF_INIT(L"\\.\\");
+    PPH_STRING fullPath = NULL;
+    PH_STRINGREF fileName;
+    PH_STRINGREF systemRoot;
+    PPH_LIST protectedDirectories;
+    BOOLEAN uncommon = TRUE;
+
+    if (FileName->Length < 3 * sizeof(WCHAR))
+        return FALSE;
+
+    fileName = *FileName;
+
+    // Only absolute DOS (C:\) and UNC (\\server\) paths. UNC paths are always uncommon.
+    if (fileName.Buffer[0] == OBJ_NAME_PATH_SEPARATOR && fileName.Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
+        return TRUE;
+    if (fileName.Buffer[1] != L':' || fileName.Buffer[2] != OBJ_NAME_PATH_SEPARATOR)
+        return FALSE;
+
+    // Collapse relative components so that C:\Windows\..\Users\ isn't treated as protected.
+    if (
+        PhFindStringInStringRef(&fileName, &parentDirectory, FALSE) != SIZE_MAX ||
+        PhFindStringInStringRef(&fileName, &currentDirectory, FALSE) != SIZE_MAX
+        )
+    {
+        PPH_STRING string = PhCreateString2(&fileName);
+
+        if (NT_SUCCESS(PhGetFullPath(string->Buffer, &fullPath, NULL)))
+            fileName = fullPath->sr;
+
+        PhDereferenceObject(string);
+    }
+
+    protectedDirectories = PhpGetServiceProtectedDirectories();
+
+    for (ULONG i = 0; i < protectedDirectories->Count; i++)
+    {
+        if (PhStartsWithStringRef(&fileName, &((PPH_STRING)protectedDirectories->Items[i])->sr, TRUE))
+        {
+            uncommon = FALSE;
+            break;
+        }
+    }
+
+    if (!uncommon)
+    {
+        PhGetSystemRoot(&systemRoot);
+
+        if (PhStartsWithStringRef(&fileName, &systemRoot, TRUE))
+        {
+            PH_STRINGREF remainingPart;
+
+            remainingPart.Buffer = PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
+            remainingPart.Length = fileName.Length - systemRoot.Length;
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(writableDirectories); i++)
+            {
+                if (PhStartsWithStringRef(&remainingPart, &writableDirectories[i], TRUE))
+                {
+                    uncommon = TRUE;
+                    break;
+                }
+            }
+        }
+    }
+
+    PhClearReference(&fullPath);
+
+    return uncommon;
+}
+
+/**
+ * Determines whether a service is configured to run with an account that stores its password
+ * using reversible encryption in the registry (local SAM).
+ *
+ * \param ServiceType The service type flags.
+ * \param ServiceStartName The name of the account the service runs as.
+ * \return TRUE if the account has USER_ENCRYPTED_TEXT_PASSWORD_ALLOWED set, otherwise FALSE.
+ * \remarks Only Win32 services running as accounts hosted by the local SAM server are checked.
+ * Built-in, virtual and managed service accounts are ignored.
+ */
+BOOLEAN PhIsServiceAccountReversiblePassword(
+    _In_ ULONG ServiceType,
+    _In_opt_ PCWSTR ServiceStartName
+    )
+{
+    static CONST PH_STRINGREF localSystemName = PH_STRINGREF_INIT(L"LocalSystem");
+    static CONST PH_STRINGREF localDomainName = PH_STRINGREF_INIT(L".");
+    static CONST PH_STRINGREF ntAuthorityName = PH_STRINGREF_INIT(L"NT AUTHORITY");
+    static CONST PH_STRINGREF ntServiceName = PH_STRINGREF_INIT(L"NT SERVICE");
+    PH_STRINGREF accountName;
+    PH_STRINGREF domainName;
+    PH_STRINGREF userName;
+    ULONG userAccountControl;
+
+    if (!FlagOn(ServiceType, SERVICE_WIN32))
+        return FALSE;
+    if (!ServiceStartName || !ServiceStartName[0])
+        return FALSE;
+
+    PhInitializeStringRefLongHint(&accountName, ServiceStartName);
+
+    if (!PhSplitStringRefAtChar(&accountName, OBJ_NAME_PATH_SEPARATOR, &domainName, &userName))
+    {
+        // User principal names (user@domain) are not hosted by the local SAM.
+        if (PhFindCharInStringRef(&accountName, L'@', FALSE) != SIZE_MAX)
+            return FALSE;
+
+        PhInitializeEmptyStringRef(&domainName);
+        userName = accountName;
+    }
+
+    if (userName.Length == 0)
+        return FALSE;
+    if (PhEqualStringRef(&userName, &localSystemName, TRUE))
+        return FALSE;
+    if (PhEqualStringRef(&domainName, &ntAuthorityName, TRUE))
+        return FALSE;
+    if (PhEqualStringRef(&domainName, &ntServiceName, TRUE))
+        return FALSE;
+    if (userName.Buffer[userName.Length / sizeof(WCHAR) - 1] == L'$') // managed service account
+        return FALSE;
+    if (PhEqualStringRef(&domainName, &localDomainName, FALSE))
+        PhInitializeEmptyStringRef(&domainName);
+
+    if (NT_SUCCESS(PhGetSamUserAccountControl(&domainName, &userName, &userAccountControl)))
+    {
+        if (FlagOn(userAccountControl, USER_ENCRYPTED_TEXT_PASSWORD_ALLOWED))
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 /**

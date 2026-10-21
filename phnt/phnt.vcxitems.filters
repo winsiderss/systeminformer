@@ -49,6 +49,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnsi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntobapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>

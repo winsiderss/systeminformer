@@ -734,14 +734,27 @@ NTSTATUS PhLoadSettingsBin(
         PH_STRINGREF settingName;
         PH_STRINGREF settingValue;
 
-        if (pointer + sizeof(PH_SETTINGS_BIN_SETTING) > limit)
+        if ((SIZE_T)(limit - pointer) < sizeof(PH_SETTINGS_BIN_SETTING))
+        {
+            status = STATUS_FILE_CORRUPT_ERROR;
             break;
+        }
 
         entry = (PPH_SETTINGS_BIN_SETTING)pointer;
         pointer += sizeof(PH_SETTINGS_BIN_SETTING);
 
-        if (pointer + entry->NameLength + entry->ValueLength > limit)
+        if ((entry->NameLength & 1) || (entry->ValueLength & 1))
+        {
+            status = STATUS_FILE_CORRUPT_ERROR;
             break;
+        }
+
+        if (entry->NameLength > (SIZE_T)(limit - pointer) ||
+            entry->ValueLength > (SIZE_T)(limit - pointer) - entry->NameLength)
+        {
+            status = STATUS_FILE_CORRUPT_ERROR;
+            break;
+        }
 
         settingName.Buffer = (PWCH)pointer;
         settingName.Length = entry->NameLength;
@@ -774,7 +787,8 @@ NTSTATUS PhLoadSettingsBin(
         {
             setting = PhAllocateZero(sizeof(PH_SETTING));
             setting->Type = StringSettingType;
-            setting->Name.Buffer = PhAllocateCopy(settingName.Buffer, settingName.Length + sizeof(WCHAR));
+            setting->Name.Buffer = PhAllocate(settingName.Length + sizeof(WCHAR));
+            memcpy(setting->Name.Buffer, settingName.Buffer, settingName.Length);
             setting->Name.Length = settingName.Length;
             setting->Name.Buffer[settingName.Length / sizeof(WCHAR)] = 0;
             setting->u.Pointer = PhCreateString2(&settingValue);
@@ -787,7 +801,7 @@ NTSTATUS PhLoadSettingsBin(
 
     PhUnmapViewOfSection(NtCurrentProcess(), viewBase);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 NTSTATUS PhSaveSettingsBin(
@@ -1001,8 +1015,10 @@ static BOOLEAN NTAPI PhSettingsKeyCallback(
     {
         setting = PhAllocateZero(sizeof(PH_SETTING));
         setting->Type = StringSettingType;
-        setting->Name.Buffer = PhAllocateCopy(settingName.Buffer, settingName.Length + sizeof(WCHAR));
+        setting->Name.Buffer = PhAllocate(settingName.Length + sizeof(WCHAR));
+        memcpy(setting->Name.Buffer, settingName.Buffer, settingName.Length);
         setting->Name.Length = settingName.Length;
+        setting->Name.Buffer[settingName.Length / sizeof(WCHAR)] = UNICODE_NULL;
         setting->u.Pointer = PhCreateString2(&settingValue);
 
         PhAddItemList(PhIgnoredSettings, setting);
@@ -3492,7 +3508,7 @@ VOID PhSaveListViewGroupStatesToSetting(
         group.mask = LVGF_GROUPID | LVGF_STATE;
         group.stateMask = LVGS_NORMAL | LVGS_COLLAPSED;
 
-        if (ListView_GetGroupInfoByIndex(ListViewHandle, index, &group) == -1)
+        if (ListView_GetGroupInfoByIndex(ListViewHandle, index, &group) == INT_ERROR)
             continue;
 
         PhInitFormatD(&format[0], group.iGroupId);

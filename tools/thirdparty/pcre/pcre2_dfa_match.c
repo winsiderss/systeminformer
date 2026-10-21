@@ -462,7 +462,7 @@ else
     if (newsizeK > availableK)
       {
       newsize = (uint32_t)(availableK*(1024/sizeof(int)));
-      newsizeK = availableK;
+      newsizeK = (uint32_t)availableK;
       }
     }
 

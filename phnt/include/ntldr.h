@@ -1454,9 +1454,9 @@ typedef struct _LDR_FALLBACK_LANG_LIST_ENTRY
  */
 typedef struct _LDR_FALLBACK_LANG_LIST
 {
-    USHORT Count;                                   // +0x000 Number of valid Entries (max 64; building stops when full)
-    LDR_FALLBACK_LANG_LIST_ENTRY Entries[64];       // +0x004
-    BOOLEAN NoNeutralFallback;                      // +0x204 Set when a specific (non-neutral) language was requested or LDR_RES_SEARCH_SKIP_MUI was used;
+    USHORT Count;                                   // Number of valid Entries (max 64; building stops when full)
+    LDR_FALLBACK_LANG_LIST_ENTRY Entries[64];
+    BOOLEAN NoNeutralFallback;                      // Set when a specific (non-neutral) language was requested or LDR_RES_SEARCH_SKIP_MUI was used;
                                                     //        when FALSE and every entry misses, the directory search accepts any language (LDR_RES_SEARCH_MUI_RECURSIVE)
 } LDR_FALLBACK_LANG_LIST, *PLDR_FALLBACK_LANG_LIST;
 

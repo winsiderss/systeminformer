@@ -215,7 +215,7 @@
     <!-- Release|Win32 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
         <ClCompile>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /pathmap:"$(MSBuildThisFileDirectory)=." /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <Optimization>MaxSpeed</Optimization>
@@ -249,7 +249,7 @@
     <!-- Release|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /jumptablerdata /guard:xfg /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /jumptablerdata /guard:xfg /pathmap:"$(MSBuildThisFileDirectory)=." /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -285,7 +285,7 @@
     <!-- Release|ARM64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
         <ClCompile>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /pathmap:"$(MSBuildThisFileDirectory)=." /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
             <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

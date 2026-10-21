@@ -677,7 +677,6 @@ VOID EtpDiskIconUpdateCallback(
     PFLOAT lineData1;
     PFLOAT lineData2;
     FLOAT max;
-    ULONG i;
     HBITMAP bitmap;
     PVOID bits;
     HDC hdc;
@@ -705,13 +704,14 @@ VOID EtpDiskIconUpdateCallback(
     lineDataCount = min(maxDataCount, EtDiskReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
 
-    for (i = 0; i < lineDataCount; i++)
-    {
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, i);
-        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, i);
+    PhCopyConvertCircularBufferULONG(&EtDiskReadHistory, lineData1, lineDataCount);
+    PhCopyConvertCircularBufferULONG(&EtDiskWriteHistory, lineData2, lineDataCount);
 
-        if (max < lineData1[i] + lineData2[i])
-            max = lineData1[i] + lineData2[i];
+    {
+        FLOAT dataMax = PhAddPlusMaxMemorySingles(lineData1, lineData2, lineDataCount);
+
+        if (max < dataMax)
+            max = dataMax;
     }
 
     PhDivideSinglesBySingle(lineData1, max, lineDataCount);
@@ -1244,10 +1244,7 @@ VOID EtpGpuMemoryIconUpdateCallback(
     }
 
     lineDataCount = min(maxDataCount, EtGpuDedicatedHistory.Count);
-    for (ULONG i = 0; i < lineDataCount; i++)
-    {
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, i);
-    }
+    PhCopyConvertCircularBufferULONG64(&EtGpuDedicatedHistory, lineData1, lineDataCount);
     PhDivideSinglesBySingle(lineData1, (FLOAT)EtGpuDedicatedLimit, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;

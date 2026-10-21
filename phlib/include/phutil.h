@@ -2444,6 +2444,14 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsCommandLineUnquotedPath(
+    _In_ PCPH_STRINGREF CommandLine,
+    _In_ BOOLEAN SearchFilePath
+    );
+
+PHLIBAPI
 PPH_LIST
 NTAPI
 PhCommandLineToList(
@@ -3093,7 +3101,7 @@ PhPtrReadBytes(
 {
     PVOID next = *Pointer;
 
-    if (!PhPtrAdvance(&next, EndPointer, Size))
+    if (!PhPtrAddOffset(&next, Size) || next > EndPointer)
         return FALSE;
 
     memcpy(Buffer, *Pointer, Size);
@@ -3119,7 +3127,7 @@ PhPtrSkipBytes(
 {
     PVOID next = *Pointer;
 
-    if (!PhPtrAdvance(&next, EndPointer, Size))
+    if (!PhPtrAddOffset(&next, Size) || next > EndPointer)
         return FALSE;
 
     *Pointer = next;

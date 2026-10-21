@@ -628,7 +628,7 @@ VOID CALLBACK PH_HTTP_STATUS_CALLBACK(
     _In_ PVOID InternetHandle,
     _In_ ULONG_PTR Context,
     _In_ ULONG InternetStatus,
-    _In_opt_ LPVOID StatusInformation,
+    _In_opt_ PVOID StatusInformation,
     _In_ ULONG StatusInformationLength
     );
 typedef PH_HTTP_STATUS_CALLBACK* PPH_HTTP_STATUS_CALLBACK;
@@ -865,6 +865,17 @@ PhHttpDnsQuery(
     _In_opt_ PCWSTR DnsServerAddress,
     _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType,
+    _Out_ PDNS_RECORD* DnsQueryRecord
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpDnsQueryEx(
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageClass,
     _Out_ PDNS_RECORD* DnsQueryRecord
     );
 

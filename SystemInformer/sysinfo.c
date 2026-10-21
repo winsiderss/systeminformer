@@ -2641,7 +2641,7 @@ VOID PhSipEnterSectionView(
     InvalidateRect(NewSection->PanelHandle, NULL, TRUE);
 
     if (NewSection->DialogHandle)
-        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 VOID PhSipEnterSectionViewInner(
@@ -2666,7 +2666,7 @@ VOID PhSipEnterSectionViewInner(
     if (Section->DialogHandle)
     {
         if (Section == CurrentSection)
-            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY | SWP_NOREDRAW);
+            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
         else
             *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY | SWP_NOREDRAW);
     }

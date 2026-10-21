@@ -212,9 +212,9 @@ BOOLEAN WhoisExtractReferralServer(
 
 _Success_(return)
 BOOLEAN WhoisQueryServer(
-    _In_ PWSTR WhoisServerAddress,
+    _In_ PCWSTR WhoisServerAddress,
     _In_ USHORT WhoisServerPort,
-    _In_ PWSTR WhoisQueryAddress,
+    _In_ PCWSTR WhoisQueryAddress,
     _In_ BOOLEAN Ipv6Support,
     _Out_ PPH_STRING* WhoisQueryResponse
     );
@@ -298,7 +298,8 @@ typedef struct _NETWORK_EXTENSION
             BOOLEAN LocalValid : 1;
             BOOLEAN RemoteValid : 1;
             BOOLEAN StatsEnabled : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN NodePresent : 1;
+            BOOLEAN Spare : 3;
         };
     };
 
@@ -353,6 +354,14 @@ BOOLEAN NetToolsInitializeCountryImageList(
 
 VOID FreeGeoLiteDb(
     VOID
+    );
+
+_Success_(return)
+BOOLEAN LookupCountryCodeEx(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_opt_ PULONG CountryNameId,
+    _Out_opt_ PPH_STRING *CountryName,
+    _Out_opt_ PLONG CountryIconIndex
     );
 
 _Success_(return)

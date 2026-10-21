@@ -7686,12 +7686,15 @@ WmiQueryAllDataW(
     );
 
 /**
- * The WmiQueryAllDataMultipleA routine queries all data for multiple WMI data blocks (ANSI).
+ * The WmiQueryAllDataMultipleA routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * sizing request.
  *
- * \param HandleList An array of handles to WMI data blocks.
+ * \param HandleList An array of WMI data block handles.
  * \param HandleCount The number of handles in HandleList.
- * \param InOutBufferSize A pointer to a variable specifying buffer size and receiving required size.
- * \param OutBuffer A pointer to the buffer receiving the query results.
+ * \param InOutBufferSize Input buffer capacity and output required size, in bytes.
+ * \param OutBuffer Optional buffer that receives the queried data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7701,16 +7704,19 @@ WmiQueryAllDataMultipleA(
     _In_reads_(HandleCount) PHANDLE HandleList,
     _In_ ULONG HandleCount,
     _Inout_ PULONG InOutBufferSize,
-    _Out_writes_bytes_(*InOutBufferSize) PVOID OutBuffer
+    _Out_writes_bytes_opt_(*InOutBufferSize) PVOID OutBuffer
     );
 
 /**
- * The WmiQueryAllDataMultipleW routine queries all data for multiple WMI data blocks (Unicode).
+ * The WmiQueryAllDataMultipleW routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * sizing request.
  *
- * \param HandleList An array of handles to WMI data blocks.
+ * \param HandleList An array of WMI data block handles.
  * \param HandleCount The number of handles in HandleList.
- * \param InOutBufferSize A pointer to a variable specifying buffer size and receiving required size.
- * \param OutBuffer A pointer to the buffer receiving the query results.
+ * \param InOutBufferSize Input buffer capacity and output required size, in bytes.
+ * \param OutBuffer Optional buffer that receives the queried data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7720,7 +7726,7 @@ WmiQueryAllDataMultipleW(
     _In_reads_(HandleCount) PHANDLE HandleList,
     _In_ ULONG HandleCount,
     _Inout_ PULONG InOutBufferSize,
-    _Out_writes_bytes_(*InOutBufferSize) PVOID OutBuffer
+    _Out_writes_bytes_opt_(*InOutBufferSize) PVOID OutBuffer
     );
 
 /**
@@ -7804,13 +7810,16 @@ WmiQuerySingleInstanceMultipleA(
     );
 
 /**
- * The WmiSetSingleInstanceA routine sets the data for a single instance of a WMI data block (ANSI).
+ * The WmiSetSingleInstanceA routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new instance data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName ANSI name of the instance to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Instance data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7819,19 +7828,22 @@ NTAPI
 WmiSetSingleInstanceA(
     _In_ HANDLE DataBlockHandle,
     _In_ PCSTR InstanceName,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleInstanceW routine sets the data for a single instance of a WMI data block (Unicode).
+ * The WmiSetSingleInstanceW routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new instance data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName Unicode name of the instance to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Instance data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7840,20 +7852,23 @@ NTAPI
 WmiSetSingleInstanceW(
     _In_ HANDLE DataBlockHandle,
     _In_ PCWSTR InstanceName,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleItemA routine sets the value of a single data item in a WMI instance (ANSI).
+ * The WmiSetSingleItemA routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance containing the item.
- * \param DataItemId The identifier of the data item to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new item data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName ANSI name of the instance to update.
+ * \param DataItemId Identifier of the item to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Item data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7863,20 +7878,23 @@ WmiSetSingleItemA(
     _In_ HANDLE DataBlockHandle,
     _In_ PCSTR InstanceName,
     _In_ ULONG DataItemId,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleItemW routine sets the value of a single data item in a WMI instance (Unicode).
+ * The WmiSetSingleItemW routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance containing the item.
- * \param DataItemId The identifier of the data item to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new item data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName Unicode name of the instance to update.
+ * \param DataItemId Identifier of the item to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Item data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7886,21 +7904,24 @@ WmiSetSingleItemW(
     _In_ HANDLE DataBlockHandle,
     _In_ PCWSTR InstanceName,
     _In_ ULONG DataItemId,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiExecuteMethodA routine executes a method on a WMI instance (ANSI).
+ * The WmiExecuteMethodA routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
- * \param MethodDataBlockHandle A handle to the WMI data block containing the method.
- * \param MethodInstanceName The name of the instance executing the method.
- * \param MethodId The identifier of the method to execute.
- * \param InputBufferSize The size of the input parameters in bytes.
- * \param InputBuffer Optional pointer to input parameters for the method.
- * \param OutputBufferSize Optional pointer specifying buffer size and receiving required size.
- * \param OutputBuffer Optional pointer receiving method output data.
+ * \param MethodDataBlockHandle Handle to the WMI method data block.
+ * \param MethodInstanceName ANSI name of the method instance.
+ * \param MethodId Identifier of the method to execute.
+ * \param InputBufferSize Size of InputBuffer in bytes.
+ * \param InputBuffer Optional method input data.
+ * \param OutputBufferSize Optional input capacity and output required size in bytes.
+ * \param OutputBuffer Optional buffer that receives method output.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7917,15 +7938,18 @@ WmiExecuteMethodA(
     );
 
 /**
- * The WmiExecuteMethodW routine executes a method on a WMI instance (Unicode).
+ * The WmiExecuteMethodW routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
- * \param MethodDataBlockHandle A handle to the WMI data block containing the method.
- * \param MethodInstanceName The name of the instance executing the method.
- * \param MethodId The identifier of the method to execute.
- * \param InputBufferSize The size of the input parameters in bytes.
- * \param InputBuffer Optional pointer to input parameters for the method.
- * \param OutputBufferSize Optional pointer specifying buffer size and receiving required size.
- * \param OutputBuffer Optional pointer receiving method output data.
+ * \param MethodDataBlockHandle Handle to the WMI method data block.
+ * \param MethodInstanceName Unicode name of the method instance.
+ * \param MethodId Identifier of the method to execute.
+ * \param InputBufferSize Size of InputBuffer in bytes.
+ * \param InputBuffer Optional method input data.
+ * \param OutputBufferSize Optional input capacity and output required size in bytes.
+ * \param OutputBuffer Optional buffer that receives method output.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -8013,10 +8037,12 @@ WmiNotificationRegistrationW(
     );
 
 /**
- * The WmiEnumerateGuids routine enumerates all WMI GUIDs registered on the system.
+ * The WmiEnumerateGuids routine enumerates WMI data-block GUIDs. GuidCount is input capacity and output
+ * total count. NULL GuidList with nonzero capacity is rejected. On ERROR_MORE_DATA (234), a prefix may have
+ * been copied; retry rather than treating output total as initialized entries.
  *
- * \param GuidList Optional pointer to a buffer receiving the array of GUIDs.
- * \param GuidCount A pointer to a variable specifying buffer capacity in GUIDs and receiving the count of returned GUIDs.
+ * \param GuidList Optional buffer that receives data block GUIDs.
+ * \param GuidCount Input capacity and output total number of GUIDs.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -8056,35 +8082,41 @@ typedef struct _MOFRESOURCEINFOW
 } MOFRESOURCEINFOW, *PMOFRESOURCEINFOW;
 
 /**
- * The WmiMofEnumerateResourcesW routine enumerates MOF resources attached to an open WMI device or driver (Unicode).
+ * The WmiMofEnumerateResourcesW routine enumerates registered MOF resource metadata, not one caller-supplied
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
- * \param MofResourceHandle A handle to the MOF resource provider.
- * \param MofResourceCount Receives the count of MOF resource structures returned.
- * \param MofResourceInfo Receives a pointer to an array of MOFRESOURCEINFOW structures.
+ * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
+ * \param MofResourceCount Receives the number of resources.
+ * \param MofResourceInfo Receives WMI-owned resource information to release with WmiFreeBuffer.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WmiMofEnumerateResourcesW(
-    _In_ HANDLE MofResourceHandle,
+    _In_opt_ HANDLE MofResourceHandle,
     _Out_ PULONG MofResourceCount,
     _Outptr_result_buffer_(*MofResourceCount) PMOFRESOURCEINFOW *MofResourceInfo
     );
 
 /**
- * The WmiMofEnumerateResourcesA routine enumerates MOF resources attached to an open WMI device or driver (ANSI).
+ * The WmiMofEnumerateResourcesA routine enumerates registered MOF resource metadata, not one caller-supplied
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
- * \param MofResourceHandle A handle to the MOF resource provider.
- * \param MofResourceCount Receives the count of MOF resource structures returned.
- * \param MofResourceInfo Receives a pointer to an array of MOFRESOURCEINFOA structures.
+ * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
+ * \param MofResourceCount Receives the number of resources.
+ * \param MofResourceInfo Receives WMI-owned resource information to release with WmiFreeBuffer.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WmiMofEnumerateResourcesA(
-    _In_ HANDLE MofResourceHandle,
+    _In_opt_ HANDLE MofResourceHandle,
     _Out_ PULONG MofResourceCount,
     _Outptr_result_buffer_(*MofResourceCount) PMOFRESOURCEINFOA *MofResourceInfo
     );
@@ -8128,13 +8160,16 @@ WmiFileHandleToInstanceNameW(
     );
 
 /**
- * The WmiDevInstToInstanceNameA routine translates a device instance identifier to a WMI instance name (ANSI).
+ * The WmiDevInstToInstanceNameA routine builds an ANSI instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is the required character count INCLUDING NUL, not
+ * ERROR_SUCCESS. NULL or short output leaves storage unwritten while returning that count. Shutdown returns
+ * 1067 and sets last error.
  *
- * \param InstanceName Optional buffer receiving the translated instance name.
- * \param InstanceNameLength The size of InstanceName in characters.
- * \param DevInst The device instance identifier string.
- * \param InstanceIndex The instance index within the device.
- * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \param InstanceName Optional buffer that receives the instance name.
+ * \param InstanceNameLength Capacity of InstanceName in characters.
+ * \param DevInst Device instance name to extend.
+ * \param InstanceIndex Index appended to the device instance name.
+ * \return The required character count including NUL, or a shutdown error code.
  */
 NTSYSAPI
 ULONG
@@ -8147,13 +8182,15 @@ WmiDevInstToInstanceNameA(
     );
 
 /**
- * The WmiDevInstToInstanceNameW routine translates a device instance identifier to a WMI instance name (Unicode).
+ * The WmiDevInstToInstanceNameW routine builds a UTF-16 instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is required WCHAR count INCLUDING NUL, not a Win32
+ * success code. NULL or short output does not copy. Shutdown returns 1067 and sets last error.
  *
- * \param InstanceName Optional buffer receiving the translated instance name.
- * \param InstanceNameLength The size of InstanceName in characters.
- * \param DevInst The device instance identifier string.
- * \param InstanceIndex The instance index within the device.
- * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \param InstanceName Optional buffer that receives the instance name.
+ * \param InstanceNameLength Capacity of InstanceName in characters.
+ * \param DevInst Device instance name to extend.
+ * \param InstanceIndex Index appended to the device instance name.
+ * \return The required WCHAR count including NUL, or a shutdown error code.
  */
 NTSYSAPI
 ULONG
@@ -8251,15 +8288,17 @@ WmiReceiveNotificationsA(
     GetSystemTimeAsFileTime((PFILETIME)&((PWNODE_HEADER)(WnodeHeader))->TimeStamp)
 
 /**
- * The WmiFreeBuffer routine frees a buffer allocated by WMI routines.
+ * The WmiFreeBuffer routine releases WMI-owned allocated result storage by value from the process heap. NULL
+ * is ignored outside shutdown; shutdown skips release. No defined status result is exposed by this void API.
+ * Do not use it for caller-owned stack storage.
  *
- * \param Buffer A pointer to the buffer to free.
+ * \param Buffer Optional WMI-owned buffer to release.
  */
 NTSYSAPI
 VOID
 NTAPI
 WmiFreeBuffer(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 #endif // _NTWMI_H
