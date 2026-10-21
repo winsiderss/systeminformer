@@ -214,7 +214,11 @@ typedef ULONG64 CONTROLTRACE_ID;
 // LoggerMode flags on Win8 and above.
 //
 #define EVENT_TRACE_REALTIME_RELOG_MODE     0x00100000  // Private logger, relogging real-time events
-                                                        // This is same as EVENT_TRACE_MODE_RESERVED
+                                                        // This is same as EVENT_TRACE_MODE_RESERVED (evntrace.h).
+                                                        // Masked out of LoggerMode by nt!EtwpStartLogger. Consumers
+                                                        // (sechost!EtwpProcessLogHeader) treat it like
+                                                        // EVENT_TRACE_PRIVATE_LOGGER_MODE when it is set in the
+                                                        // TRACE_LOGFILE_HEADER LogFileMode.
 
 #define EVENT_TRACE_LOST_EVENTS_DEBUG_MODE  0x00200000  // Break on lost events
 #define EVENT_TRACE_COMPRESSED_MODE         0x04000000  // Compress relogged file
@@ -366,9 +370,8 @@ typedef struct _SYSTEM_TRACE_HEADER
 //
 typedef struct _WMI_TRACE_MESSAGE_PACKET
 {
-    USHORT  MessageNumber;                  // The message Number, index of messages by GUID
-                                            // Or ComponentID
-    USHORT  OptionFlags ;                   // Flags associated with the message
+    USHORT MessageNumber;         // The message Number, index of messages by GUID or ComponentID
+    USHORT OptionFlags;           // Flags associated with the message
 } WMI_TRACE_MESSAGE_PACKET, *PWMI_TRACE_MESSAGE_PACKET;
 
 static_assert(sizeof(WMI_TRACE_MESSAGE_PACKET) == sizeof(ULONG), "WMI_TRACE_MESSAGE_PACKET must equal sizeof(ULONG)");
@@ -380,14 +383,14 @@ typedef struct _MESSAGE_TRACE_HEADER
         ULONG Marker;
         struct
         {
-            USHORT Size;                           // Total Size of the message including header
+            USHORT Size;                  // Total Size of the message including header
             UCHAR Reserved;               // Unused and reserved
             UCHAR Version;                // The message structure type (TRACE_MESSAGE_FLAG)
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
     union
     {
-        ULONG Header;            // both sizes must be the same!
+        ULONG Header;
         WMI_TRACE_MESSAGE_PACKET Packet;
     } DUMMYUNIONNAME2;
 } MESSAGE_TRACE_HEADER, *PMESSAGE_TRACE_HEADER;
@@ -429,7 +432,10 @@ typedef enum _ETW_BUFFER_STATE
    EtwBufferStateGeneralLogging,
    EtwBufferStateCSwitch,
    EtwBufferStateFlush,
-   EtwBufferStateMaximum //MaxState should always be the last enum
+   EtwBufferStatePendingCompression = 4, // Awaiting compression, not available for logging.
+   EtwBufferStateCompressed = 5,         // Compressed buffer ready for the compressed path.
+   EtwBufferStatePlaceholder = 6,        // Placeholder buffer state.
+   EtwBufferStateMaximum = 7
 } ETW_BUFFER_STATE, *PETW_BUFFER_STATE;
 
 #define ETW_BUFFER_TYPE_GENERIC             0
@@ -586,7 +592,7 @@ typedef struct _PERFINFO_GROUPMASK
 #define PERF_GET_MASK_GROUP(GM) ((GM) & PERF_MASK_GROUP)
 
 // Event id packing in kernel system events is Group (bits 8..12) + Type (bits 0..7).
-// Disassembly evidence: EtwpLogKernelEvent indexes per-event state with (EventId & 0x1FFF).
+// EtwpLogKernelEvent indexes per-event state with (EventId & 0x1FFF).
 #define PERF_EVENT_TYPE_MASK    0x00FF
 #define PERF_EVENT_GROUP_MASK   0x1F00
 #define PERF_EVENT_ID_MASK      0x1FFF
@@ -2212,19 +2218,19 @@ typedef struct _WMI_JOB_SEND_NOTIFICATION_INFORMATION
 //
 // Process event payload (EVENT_TRACE_GROUP_PROCESS). The fixed part is 36
 // (0x24) bytes; a run of variable-length fields is appended after it. Layout
-// and EPROCESS field sources verified against nt!EtwpBuildProcessEvent
+// and EPROCESS field sources used by nt!EtwpBuildProcessEvent
 // (ntoskrnl).
 //
 typedef struct _WMI_PROCESS_INFORMATION
 {
-    ULONG_PTR UniqueProcessKey;     // +0x00  EPROCESS pointer (the object itself)
-    ULONG ProcessId;                // +0x08  EPROCESS.UniqueProcessId (0x1D0)
-    ULONG ParentId;                 // +0x0C  EPROCESS.InheritedFromUniqueProcessId (0x2D0)
-    ULONG SessionId;                // +0x10  PsGetSessionIdEx(Process)
-    NTSTATUS ExitStatus;            // +0x14  EPROCESS.ExitStatus (0x554)
-    ULONG_PTR DirectoryTableBase;   // +0x18  KPROCESS.DirectoryTableBase (0x28) & ~0xFFF
-    ULONG Flags;                    // +0x20  ETW_PROCESS_EVENT_FLAG_*
-    ULONG Sid;                      // +0x24  start of the variable data (see below)
+    ULONG_PTR UniqueProcessKey;     // EPROCESS pointer (the object itself)
+    ULONG ProcessId;                // EPROCESS.UniqueProcessId (0x1D0)
+    ULONG ParentId;                 // EPROCESS.InheritedFromUniqueProcessId (0x2D0)
+    ULONG SessionId;                // PsGetSessionIdEx(Process)
+    NTSTATUS ExitStatus;            // EPROCESS.ExitStatus (0x554)
+    ULONG_PTR DirectoryTableBase;   // KPROCESS.DirectoryTableBase (0x28) & ~0xFFF
+    ULONG Flags;                    // ETW_PROCESS_EVENT_FLAG_*
+    ULONG Sid;                      // start of the variable data (see below)
     // Variable-length trailer, in this exact order:
     //   Sid             - from the primary token's TOKEN_USER (SeQueryInformationToken)
     //   ImageFileName   - ANSI, NUL-terminated; EPROCESS.ImageFileName (0x338), or the
@@ -2268,7 +2274,7 @@ typedef signed char SCHAR;
 #define ETW_THREAD_FLAG_REGISTRY_NOTIFICATION 0x00000001
 
 //
-// Verified against ntoskrnl EtwTraceThread: the fixed body is 72 (0x48) bytes
+// EtwTraceThread emits a fixed body of 72 (0x48) bytes
 // on x64, laid out exactly as below. Event types 0x501 (create) / 0x502
 // (rundown/DCStart). A variable UNICODE ThreadName descriptor (from
 // ETHREAD.ThreadName) is appended after the fixed body. Source offsets:
@@ -2329,7 +2335,7 @@ typedef struct _WMI_EXTENDED_THREAD_INFORMATION64
 #define ETW_IMAGE_EMBEDDED_SIGNED  0x20
 
 //
-// Verified against ntoskrnl PerfLogImageLoad: fixed body is 56 (0x38) bytes on
+// PerfLogImageLoad emits a fixed body of 56 (0x38) bytes on
 // x64, followed by a variable UNICODE FileName descriptor. Event hook 0x30A
 // (Image group). Source: ImageChecksum = OptionalHeader.CheckSum,
 // TimeDateStamp = FileHeader.TimeDateStamp, DefaultBase = OptionalHeader.ImageBase
@@ -2568,7 +2574,7 @@ typedef struct _ETW_SPLITIO_INFO
 #include <poppack.h>
 
 //
-// Verified against ntoskrnl EtwpTraceRegistry: fixed body is 24 (0x18) bytes,
+// EtwpTraceRegistry emits a fixed body of 24 (0x18) bytes,
 // followed by a variable UNICODE Name descriptor. Event code = (type | 0x0900)
 // (Registry group). InitialTime is a per-CPU performance timestamp; Status is
 // the operation NTSTATUS; Index/InfoClass and Kcb are passed by the Cm caller.
@@ -2851,7 +2857,7 @@ static_assert(sizeof(WMI_UDP_V4) == 28, "WMI_UDP_V4 must equal 28");
 static_assert(sizeof(WMI_UDP_V6) == 52, "WMI_UDP_V6 must equal 52");
 
 //
-// Verified against ntoskrnl EtwTracePageFault: fixed body is 16 bytes (PageFault
+// EtwTracePageFault emits a fixed body of 16 bytes (PageFault
 // group mask 0x1000). VirtualAddress = faulting address; ProgramCounter =
 // KTRAP_FRAME.Rip (+0x168), or 0 when no trap frame. Event hooks (subtype):
 //   0x20A TransitionFault, 0x20B DemandZeroFault, 0x20C CopyOnWrite,
@@ -5182,7 +5188,7 @@ typedef struct _PERFINFO_CLOCK_INTERRUPT_INFORMATION
 
 //
 // Inter-processor interrupt PerfInfo events (PerfInfoGuid), group mask bit
-// 0x400000. Both bodies verified against ntoskrnl.
+// 0x400000. Both records are emitted by the kernel.
 //
 // Receive: PerfInfoLogIpiReceive (hook 0xF71 / 3953), emitted by
 // KiIpiProcessRequests via EtwTraceTimedEvent. Fixed 12-byte record:
@@ -5192,8 +5198,8 @@ typedef struct _PERFINFO_CLOCK_INTERRUPT_INFORMATION
 //
 typedef struct _PERFINFO_IPI_INFORMATION
 {
-    ULONG_PTR Routine;        // +0x00 generic-call worker routine, else 0
-    ULONG RequestType;        // +0x08 PERFINFO_IPI_TYPE_*
+    ULONG_PTR Routine;        // generic-call worker routine, else 0
+    ULONG RequestType;        // PERFINFO_IPI_TYPE_*
 } PERFINFO_IPI_INFORMATION, *PPERFINFO_IPI_INFORMATION;
 
 //
@@ -5206,10 +5212,10 @@ typedef struct _PERFINFO_IPI_INFORMATION
 //
 typedef struct _PERFINFO_IPI_SEND_INFORMATION
 {
-    ULONG_PTR Routine;        // +0x00 generic-call worker routine, else 0
-    ULONG RequestType;        // +0x08 request & 0xF (PERFINFO_IPI_TYPE_*)
-    ULONG SendType;           // +0x0C send flavor (0 = targeted, 1/2 = broadcast)
-    ULONG TargetCount;        // +0x10 number of trailing ULONG64 target-mask words
+    ULONG_PTR Routine;        // generic-call worker routine, else 0
+    ULONG RequestType;        // request & 0xF (PERFINFO_IPI_TYPE_*)
+    ULONG SendType;           // send flavor (0 = targeted, 1/2 = broadcast)
+    ULONG TargetCount;        // number of trailing ULONG64 target-mask words
     // ULONG64 TargetMask[TargetCount]; // variable KAFFINITY bitmap of targets
 } PERFINFO_IPI_SEND_INFORMATION, *PPERFINFO_IPI_SEND_INFORMATION;
 
@@ -5351,7 +5357,7 @@ typedef struct _PERFINFO_PAGECOMBINE_ITERATION_STAT
 // NOTE: Hard Fault event starts with InitialTime (LARGE_INTEGER)
 //       not shown in the structure.
 //
-// Verified against ntoskrnl. Emitted by PfHardFaultLog() ->
+// Emitted by PfHardFaultLog() ->
 // EtwTraceSiloTimedEvent(silo, HookId, SubType, &Record); the fixed MOF
 // descriptor length is 32 bytes (0x20). HookId = PERFINFO_LOG_TYPE_HARDFAULT
 // (0x220) for a normal hard fault, or 626/627 for prefetcher hard-fault
@@ -5366,11 +5372,11 @@ typedef struct _PERFINFO_PAGECOMBINE_ITERATION_STAT
 
 typedef struct _PERFINFO_HARDPAGEFAULT_INFORMATION
 {
-    LARGE_INTEGER ReadOffset;   // +0x00 file offset of the in-page read
-    PVOID VirtualAddress;       // +0x08 faulting VA
-    PVOID FileObject;           // +0x10 backing FILE_OBJECT
-    ULONG ThreadId;             // +0x18 faulting thread id
-    ULONG ByteCount;            // +0x1C bytes read
+    LARGE_INTEGER ReadOffset;   // file offset of the in-page read
+    PVOID VirtualAddress;       // faulting VA
+    PVOID FileObject;           // backing FILE_OBJECT
+    ULONG ThreadId;             // faulting thread id
+    ULONG ByteCount;            // bytes read
 } PERFINFO_HARDPAGEFAULT_INFORMATION, *PPERFINFO_HARDPAGEFAULT_INFORMATION;
 
 //
@@ -6258,25 +6264,19 @@ typedef struct _ETW_SYSTEM_LOGGER
     UCHAR ClockType;
 } ETW_SYSTEM_LOGGER, *PETW_SYSTEM_LOGGER;
 
-//
-// ETW per-silo driver state (partial reconstruction). The kernel group-mask
-// machinery lives deep inside _ETW_SILODRIVERSTATE; the offsets below are the
-// only ones verified against EtwpUpdateGlobalGroupMasks (ntoskrnl):
-//
-//   +0x010  ULONG  ActiveSystemLoggers;  // system-logger count; loop/index bound (LoggerId, GroupIndex both < 8)
-//   +0x2C8  PVOID  LoggerContext[8];     // per-logger context pointers; (entry & 1) => slot busy/reserved
-//   +0x11AC ETW_SYSTEM_LOGGER_SETTINGS SystemLoggerSettings;  // group-mask block, see below
-//
-// NOTE: the previous definition of this struct (masks at +0x14/+0x34, size 372)
-// was incorrect - EtwpUpdateGlobalGroupMasks reads the per-group masks from
-// silo+0x11CC and writes the accumulated mask to silo+0x11AC.
-//
-// Group-mask block, embedded at _ETW_SILODRIVERSTATE + 0x11AC:
-//
+/**
+ * ETW per-silo logger settings
+ * Maps eight system-logger slots to session IDs and clock types, tracks active
+ * slots, and stores each silo's aggregate and per-group trace masks.
+ * Size is 0x174 (372) bytes. EtwpActiveSystemLoggers is an active-slot bitmap;
+ * the ten per-group masks are each PERFINFO_GROUPMASK (32 bytes).
+ */
 typedef struct _ETW_SYSTEM_LOGGER_SETTINGS
 {
-    PERFINFO_GROUPMASK SiloGlobalGroupMask;         // +0x000 (silo +0x11AC) OR of this silo's EtwpGroupMasks[10]
-    PERFINFO_GROUPMASK EtwpGroupMasks[10];          // +0x020 (silo +0x11CC) per-group-index masks (10 x 32 bytes)
+    ETW_SYSTEM_LOGGER EtwpSystemLogger[8];         // (silo +0x1198)
+    volatile ULONG EtwpActiveSystemLoggers;       // (silo +0x11A8)
+    PERFINFO_GROUPMASK SiloGlobalGroupMask;       // (silo +0x11AC)
+    PERFINFO_GROUPMASK EtwpGroupMasks[10];        // (silo +0x11CC)
 } ETW_SYSTEM_LOGGER_SETTINGS, *PETW_SYSTEM_LOGGER_SETTINGS;
 
 //
@@ -6508,7 +6508,8 @@ typedef enum _ETW_NOTIFICATION_TYPE
     EtwNotificationTypeReserved,        // For internal use (test)
     EtwNotificationTypeCredentialUI,    // Private notification for media center elevation detection
     EtwNotificationTypeInProcSession,   // Private in-proc session related ETW notifications
-    EtwNotificationTypeMax
+    EtwNotificationTypeFilteredPrivateLogger = 11, // Filtered private-logger notification; kernel symbols.
+    EtwNotificationTypeMax = 12
 } ETW_NOTIFICATION_TYPE;
 
 #define ETW_MAX_DATA_BLOCK_BUFFER_SIZE (65536)
@@ -6602,6 +6603,8 @@ typedef const EVENT_DESCRIPTOR* PCEVENT_DESCRIPTOR;
  * \param MarkInfo A pointer to the mark information structure describing the mark to inject.
  * \param Size The size of the mark information structure in bytes.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6625,6 +6628,10 @@ typedef struct _EVENT_DATA_DESCRIPTOR EVENT_DATA_DESCRIPTOR, *PEVENT_DATA_DESCRI
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element 
+ * counts and payload lengths are bytes; user data pointers remain caller-owned for the call. 
+ * Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6657,16 +6664,20 @@ VOID NTAPI ENABLECALLBACK(
 typedef ENABLECALLBACK* PENABLECALLBACK;
 
 /**
- * Registers an ETW event provider.
+ * EtwEventRegister contract.
  *
- * \param ProviderId A pointer to the provider ID.
- * \param EnableCallback Optional. A pointer to the enable callback function.
- * \param CallbackContext Optional. A pointer to the callback context.
- * \param RegHandle A pointer to a variable that receives the registration handle.
- * \return NTSTATUS Successful or errant status.
+ * \param ProviderId Provider GUID.
+ * \param EnableCallback Optional enablement callback.
+ * \param CallbackContext Optional borrowed callback context.
+ * \param RegHandle Receives the registration handle on success.
+ * \remarks Returns a Win32 error code (ULONG), not NTSTATUS: 
+ * ERROR_SUCCESS is zero and ERROR_INVALID_PARAMETER is 87. 
+ * Registration alone does not enable a provider. On success 
+ * balance the registration with EtwEventUnregister and retain 
+ * callback/context for its registered lifetime.
  */
 NTSYSAPI
-NTSTATUS
+ULONG
 NTAPI
 EtwEventRegister(
     _In_ LPCGUID ProviderId,
@@ -6680,6 +6691,9 @@ EtwEventRegister(
  *
  * \param RegHandle The registration handle returned by EtwEventRegister.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Unregisters the provider/notification handle through the ETW runtime. 
+ * The result is a Win32 error code, not NTSTATUS. A registration handle is not a
+ * kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
  */
 NTSYSAPI
 ULONG
@@ -6698,6 +6712,11 @@ typedef enum _EVENT_INFO_CLASS EVENT_INFO_CLASS;
  * \param EventInformation A pointer to the buffer containing the configuration information.
  * \param InformationLength The size of the configuration information buffer in bytes.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns Win32 errors. Unsupported information
+ * classes return ERROR_NOT_SUPPORTED (50). Provider traits (class 2) 
+ * require non-NULL data and a length from 3 through 65535 bytes; 
+ * descriptor-type selection (class 3) requires exactly 1 byte. 
+ * Classes 0 and 4 require zero data length. Invalid class-specific payloads return ERROR_INVALID_PARAMETER (87).
  */
 NTSYSAPI
 ULONG
@@ -6713,6 +6732,8 @@ EtwEventSetInformation(
  * The EtwRegisterSecurityProvider routine registers the ETW user-mode security event provider.
  *
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6728,6 +6749,8 @@ EtwRegisterSecurityProvider(
  * \param Level The logging level to test.
  * \param Keyword The keyword bitmask to test.
  * \return TRUE if the provider is enabled for the specified level and keyword; otherwise, FALSE.
+ * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee. 
+ * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6744,6 +6767,8 @@ EtwEventProviderEnabled(
  * \param RegHandle The registration handle of the provider.
  * \param EventDescriptor A pointer to the descriptor of the event to test.
  * \return TRUE if the event is enabled; otherwise, FALSE.
+ * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee.
+ * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6761,6 +6786,9 @@ EtwEventEnabled(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: a disabled provider takes a successful no-delivery path. 
+ * Descriptor counts are element counts and payload lengths are bytes; user data pointers remain caller-owned for the call. 
+ * Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6782,6 +6810,9 @@ EtwEventWrite(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and payload lengths are bytes; 
+ * user data pointers remain caller-owned for the call. Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6803,6 +6834,10 @@ EtwEventWriteTransfer(
  * \param Keyword The keyword bitmask of the event.
  * \param String The null-terminated string to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and
+ * payload lengths are bytes; user data pointers remain caller-owned for the call. Full consumer/session
+ * delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6826,6 +6861,9 @@ EtwEventWriteString(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and payload lengths are bytes; 
+ * user data pointers remain caller-owned for the call. Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6849,6 +6887,8 @@ EtwEventWriteEx(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -6868,6 +6908,8 @@ EtwEventWriteStartScenario(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -6887,6 +6929,8 @@ EtwEventWriteEndScenario(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6906,6 +6950,8 @@ EtwWriteUMSecurityEvent(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6923,6 +6969,8 @@ EtwEventWriteNoRegistration(
  * \param ControlCode The activity identifier control code to perform.
  * \param ActivityId A pointer to a GUID that specifies or receives the activity identifier.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Controls the calling thread activity identifier. GET_ID, SET_ID and CREATE_ID have different input/output use of ActivityId; 
+ * preserve and restore an existing identifier around temporary instrumentation. The result is a Win32 error code, not NTSTATUS.
  */
 NTSYSAPI
 ULONG
@@ -6941,6 +6989,8 @@ EtwEventActivityIdControl(
  * \param Context Optional context value passed to the callback function.
  * \param RegHandle Receives the registration handle.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors. 
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -6959,6 +7009,8 @@ EtwNotificationRegister(
  * \param RegHandle The registration handle returned by EtwNotificationRegister.
  * \param Context Optional pointer receiving the context previously supplied during registration.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Unregisters the provider/notification handle through the ETW runtime. 
+ * The result is a Win32 error code, not NTSTATUS. A registration handle is not a kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
  */
 NTSYSAPI
 ULONG
@@ -6977,6 +7029,9 @@ EtwNotificationUnregister(
  * \param ReplyReceived Receives the size of the reply received in bytes.
  * \param ReplySizeNeeded Receives the required buffer size in bytes if ReceiveDataBlockSize was insufficient.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors.
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, 
+ * callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -6994,6 +7049,9 @@ EtwSendNotification(
  *
  * \param Notification A pointer to the notification header and reply data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors. 
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, 
+ * callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -7009,6 +7067,8 @@ EtwReplyNotification(
  * \param OutBufferSize The size of OutBuffer in bytes.
  * \param ReturnLength Receives the number of bytes written or required.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Enumerates process registrations, with Win32 sizing/error conventions. 
+ * This exposes registration metadata rather than captured events or a list of enabled consumers. Respect output capacity and the reported size/count.
  */
 NTSYSAPI
 ULONG
@@ -7545,6 +7605,7 @@ typedef struct _TELEMETRY_COVERAGE_POINT
  *
  * \param CoveragePoint A pointer to a TELEMETRY_COVERAGE_POINT structure.
  * \return BOOLEAN TRUE if the coverage point is covered, FALSE otherwise.
+ * \remarks Queries the runtime telemetry-coverage helper. A Boolean result here is not an ETW consumer health or event-delivery acknowledgement.
  */
 NTSYSAPI
 BOOLEAN
@@ -7625,12 +7686,15 @@ WmiQueryAllDataW(
     );
 
 /**
- * The WmiQueryAllDataMultipleA routine queries all data for multiple WMI data blocks (ANSI).
+ * The WmiQueryAllDataMultipleA routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * sizing request.
  *
- * \param HandleList An array of handles to WMI data blocks.
+ * \param HandleList An array of WMI data block handles.
  * \param HandleCount The number of handles in HandleList.
- * \param InOutBufferSize A pointer to a variable specifying buffer size and receiving required size.
- * \param OutBuffer A pointer to the buffer receiving the query results.
+ * \param InOutBufferSize Input buffer capacity and output required size, in bytes.
+ * \param OutBuffer Optional buffer that receives the queried data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7640,16 +7704,19 @@ WmiQueryAllDataMultipleA(
     _In_reads_(HandleCount) PHANDLE HandleList,
     _In_ ULONG HandleCount,
     _Inout_ PULONG InOutBufferSize,
-    _Out_writes_bytes_(*InOutBufferSize) PVOID OutBuffer
+    _Out_writes_bytes_opt_(*InOutBufferSize) PVOID OutBuffer
     );
 
 /**
- * The WmiQueryAllDataMultipleW routine queries all data for multiple WMI data blocks (Unicode).
+ * The WmiQueryAllDataMultipleW routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * sizing request.
  *
- * \param HandleList An array of handles to WMI data blocks.
+ * \param HandleList An array of WMI data block handles.
  * \param HandleCount The number of handles in HandleList.
- * \param InOutBufferSize A pointer to a variable specifying buffer size and receiving required size.
- * \param OutBuffer A pointer to the buffer receiving the query results.
+ * \param InOutBufferSize Input buffer capacity and output required size, in bytes.
+ * \param OutBuffer Optional buffer that receives the queried data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7659,7 +7726,7 @@ WmiQueryAllDataMultipleW(
     _In_reads_(HandleCount) PHANDLE HandleList,
     _In_ ULONG HandleCount,
     _Inout_ PULONG InOutBufferSize,
-    _Out_writes_bytes_(*InOutBufferSize) PVOID OutBuffer
+    _Out_writes_bytes_opt_(*InOutBufferSize) PVOID OutBuffer
     );
 
 /**
@@ -7743,13 +7810,16 @@ WmiQuerySingleInstanceMultipleA(
     );
 
 /**
- * The WmiSetSingleInstanceA routine sets the data for a single instance of a WMI data block (ANSI).
+ * The WmiSetSingleInstanceA routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new instance data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName ANSI name of the instance to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Instance data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7758,19 +7828,22 @@ NTAPI
 WmiSetSingleInstanceA(
     _In_ HANDLE DataBlockHandle,
     _In_ PCSTR InstanceName,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleInstanceW routine sets the data for a single instance of a WMI data block (Unicode).
+ * The WmiSetSingleInstanceW routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new instance data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName Unicode name of the instance to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Instance data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7779,20 +7852,23 @@ NTAPI
 WmiSetSingleInstanceW(
     _In_ HANDLE DataBlockHandle,
     _In_ PCWSTR InstanceName,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleItemA routine sets the value of a single data item in a WMI instance (ANSI).
+ * The WmiSetSingleItemA routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance containing the item.
- * \param DataItemId The identifier of the data item to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new item data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName ANSI name of the instance to update.
+ * \param DataItemId Identifier of the item to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Item data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7802,20 +7878,23 @@ WmiSetSingleItemA(
     _In_ HANDLE DataBlockHandle,
     _In_ PCSTR InstanceName,
     _In_ ULONG DataItemId,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiSetSingleItemW routine sets the value of a single data item in a WMI instance (Unicode).
+ * The WmiSetSingleItemW routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
- * \param DataBlockHandle A handle to a WMI data block.
- * \param InstanceName The name of the instance containing the item.
- * \param DataItemId The identifier of the data item to set.
- * \param Reserved Reserved; must be zero.
- * \param ValueBufferSize The size of ValueBuffer in bytes.
- * \param ValueBuffer A pointer to the buffer containing new item data.
+ * \param DataBlockHandle Handle to the WMI data block.
+ * \param InstanceName Unicode name of the instance to update.
+ * \param DataItemId Identifier of the item to update.
+ * \param Version Value copied into WNODE_HEADER.Version.
+ * \param ValueBufferSize Size of ValueBuffer in bytes.
+ * \param ValueBuffer Item data to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7825,21 +7904,24 @@ WmiSetSingleItemW(
     _In_ HANDLE DataBlockHandle,
     _In_ PCWSTR InstanceName,
     _In_ ULONG DataItemId,
-    _In_ ULONG Reserved,
+    _In_ ULONG Version,
     _In_ ULONG ValueBufferSize,
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
 /**
- * The WmiExecuteMethodA routine executes a method on a WMI instance (ANSI).
+ * The WmiExecuteMethodA routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
- * \param MethodDataBlockHandle A handle to the WMI data block containing the method.
- * \param MethodInstanceName The name of the instance executing the method.
- * \param MethodId The identifier of the method to execute.
- * \param InputBufferSize The size of the input parameters in bytes.
- * \param InputBuffer Optional pointer to input parameters for the method.
- * \param OutputBufferSize Optional pointer specifying buffer size and receiving required size.
- * \param OutputBuffer Optional pointer receiving method output data.
+ * \param MethodDataBlockHandle Handle to the WMI method data block.
+ * \param MethodInstanceName ANSI name of the method instance.
+ * \param MethodId Identifier of the method to execute.
+ * \param InputBufferSize Size of InputBuffer in bytes.
+ * \param InputBuffer Optional method input data.
+ * \param OutputBufferSize Optional input capacity and output required size in bytes.
+ * \param OutputBuffer Optional buffer that receives method output.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7856,15 +7938,18 @@ WmiExecuteMethodA(
     );
 
 /**
- * The WmiExecuteMethodW routine executes a method on a WMI instance (Unicode).
+ * The WmiExecuteMethodW routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
- * \param MethodDataBlockHandle A handle to the WMI data block containing the method.
- * \param MethodInstanceName The name of the instance executing the method.
- * \param MethodId The identifier of the method to execute.
- * \param InputBufferSize The size of the input parameters in bytes.
- * \param InputBuffer Optional pointer to input parameters for the method.
- * \param OutputBufferSize Optional pointer specifying buffer size and receiving required size.
- * \param OutputBuffer Optional pointer receiving method output data.
+ * \param MethodDataBlockHandle Handle to the WMI method data block.
+ * \param MethodInstanceName Unicode name of the method instance.
+ * \param MethodId Identifier of the method to execute.
+ * \param InputBufferSize Size of InputBuffer in bytes.
+ * \param InputBuffer Optional method input data.
+ * \param OutputBufferSize Optional input capacity and output required size in bytes.
+ * \param OutputBuffer Optional buffer that receives method output.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7952,10 +8037,12 @@ WmiNotificationRegistrationW(
     );
 
 /**
- * The WmiEnumerateGuids routine enumerates all WMI GUIDs registered on the system.
+ * The WmiEnumerateGuids routine enumerates WMI data-block GUIDs. GuidCount is input capacity and output
+ * total count. NULL GuidList with nonzero capacity is rejected. On ERROR_MORE_DATA (234), a prefix may have
+ * been copied; retry rather than treating output total as initialized entries.
  *
- * \param GuidList Optional pointer to a buffer receiving the array of GUIDs.
- * \param GuidCount A pointer to a variable specifying buffer capacity in GUIDs and receiving the count of returned GUIDs.
+ * \param GuidList Optional buffer that receives data block GUIDs.
+ * \param GuidCount Input capacity and output total number of GUIDs.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
@@ -7995,35 +8082,41 @@ typedef struct _MOFRESOURCEINFOW
 } MOFRESOURCEINFOW, *PMOFRESOURCEINFOW;
 
 /**
- * The WmiMofEnumerateResourcesW routine enumerates MOF resources attached to an open WMI device or driver (Unicode).
+ * The WmiMofEnumerateResourcesW routine enumerates registered MOF resource metadata, not one caller-supplied
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
- * \param MofResourceHandle A handle to the MOF resource provider.
- * \param MofResourceCount Receives the count of MOF resource structures returned.
- * \param MofResourceInfo Receives a pointer to an array of MOFRESOURCEINFOW structures.
+ * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
+ * \param MofResourceCount Receives the number of resources.
+ * \param MofResourceInfo Receives WMI-owned resource information to release with WmiFreeBuffer.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WmiMofEnumerateResourcesW(
-    _In_ HANDLE MofResourceHandle,
+    _In_opt_ HANDLE MofResourceHandle,
     _Out_ PULONG MofResourceCount,
     _Outptr_result_buffer_(*MofResourceCount) PMOFRESOURCEINFOW *MofResourceInfo
     );
 
 /**
- * The WmiMofEnumerateResourcesA routine enumerates MOF resources attached to an open WMI device or driver (ANSI).
+ * The WmiMofEnumerateResourcesA routine enumerates registered MOF resource metadata, not one caller-supplied
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
- * \param MofResourceHandle A handle to the MOF resource provider.
- * \param MofResourceCount Receives the count of MOF resource structures returned.
- * \param MofResourceInfo Receives a pointer to an array of MOFRESOURCEINFOA structures.
+ * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
+ * \param MofResourceCount Receives the number of resources.
+ * \param MofResourceInfo Receives WMI-owned resource information to release with WmiFreeBuffer.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WmiMofEnumerateResourcesA(
-    _In_ HANDLE MofResourceHandle,
+    _In_opt_ HANDLE MofResourceHandle,
     _Out_ PULONG MofResourceCount,
     _Outptr_result_buffer_(*MofResourceCount) PMOFRESOURCEINFOA *MofResourceInfo
     );
@@ -8067,13 +8160,16 @@ WmiFileHandleToInstanceNameW(
     );
 
 /**
- * The WmiDevInstToInstanceNameA routine translates a device instance identifier to a WMI instance name (ANSI).
+ * The WmiDevInstToInstanceNameA routine builds an ANSI instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is the required character count INCLUDING NUL, not
+ * ERROR_SUCCESS. NULL or short output leaves storage unwritten while returning that count. Shutdown returns
+ * 1067 and sets last error.
  *
- * \param InstanceName Optional buffer receiving the translated instance name.
- * \param InstanceNameLength The size of InstanceName in characters.
- * \param DevInst The device instance identifier string.
- * \param InstanceIndex The instance index within the device.
- * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \param InstanceName Optional buffer that receives the instance name.
+ * \param InstanceNameLength Capacity of InstanceName in characters.
+ * \param DevInst Device instance name to extend.
+ * \param InstanceIndex Index appended to the device instance name.
+ * \return The required character count including NUL, or a shutdown error code.
  */
 NTSYSAPI
 ULONG
@@ -8086,13 +8182,15 @@ WmiDevInstToInstanceNameA(
     );
 
 /**
- * The WmiDevInstToInstanceNameW routine translates a device instance identifier to a WMI instance name (Unicode).
+ * The WmiDevInstToInstanceNameW routine builds a UTF-16 instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is required WCHAR count INCLUDING NUL, not a Win32
+ * success code. NULL or short output does not copy. Shutdown returns 1067 and sets last error.
  *
- * \param InstanceName Optional buffer receiving the translated instance name.
- * \param InstanceNameLength The size of InstanceName in characters.
- * \param DevInst The device instance identifier string.
- * \param InstanceIndex The instance index within the device.
- * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \param InstanceName Optional buffer that receives the instance name.
+ * \param InstanceNameLength Capacity of InstanceName in characters.
+ * \param DevInst Device instance name to extend.
+ * \param InstanceIndex Index appended to the device instance name.
+ * \return The required WCHAR count including NUL, or a shutdown error code.
  */
 NTSYSAPI
 ULONG
@@ -8190,15 +8288,17 @@ WmiReceiveNotificationsA(
     GetSystemTimeAsFileTime((PFILETIME)&((PWNODE_HEADER)(WnodeHeader))->TimeStamp)
 
 /**
- * The WmiFreeBuffer routine frees a buffer allocated by WMI routines.
+ * The WmiFreeBuffer routine releases WMI-owned allocated result storage by value from the process heap. NULL
+ * is ignored outside shutdown; shutdown skips release. No defined status result is exposed by this void API.
+ * Do not use it for caller-owned stack storage.
  *
- * \param Buffer A pointer to the buffer to free.
+ * \param Buffer Optional WMI-owned buffer to release.
  */
 NTSYSAPI
 VOID
 NTAPI
 WmiFreeBuffer(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 #endif // _NTWMI_H

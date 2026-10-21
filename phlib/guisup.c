@@ -70,7 +70,7 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG_PTR WindowCallbackCookie = 0;
 static PH_INITONCE PhpBufferedPaintInitOnce = PH_INITONCE_INIT;
-static BOOLEAN PhpBufferedPaintUxThemeInitialized = FALSE;
+static ULONG PhpBufferedPaintUxThemeFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
@@ -673,7 +673,8 @@ HDC PhGetDC(
     _In_opt_ HWND WindowHandle
     )
 {
-    return GetDC(WindowHandle);
+    //return GetDC(WindowHandle);
+    return GetDCEx(WindowHandle, NULL, DCX_USESTYLE);
 }
 
 /**
@@ -1449,6 +1450,55 @@ LONG PhGetWindowDpi(
     }
 
     return USER_DEFAULT_SCREEN_DPI;
+}
+
+/**
+ * Retrieves the DPI user32 uses for the non-client area (caption, menu bar) of a window.
+ *
+ * Mirrors user32!NcGetWindowDPI: the window DPI is used only when the window receives
+ * non-client DPI scaling (top-level) or child DPI messages (child), otherwise the system DPI.
+ * Both conditions are approximated with per-monitor v2 awareness since the internal
+ * flags (EnableNonClientDpiScaling, EnableChildWindowDpiMessage) are not queryable.
+ *
+ * \param WindowHandle Window handle to query DPI for.
+ * \return Non-client DPI for the window.
+ */
+LONG PhGetWindowNcDpi(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&GetWindowDpiAwarenessContext) GetWindowDpiAwarenessContext_I = NULL;
+    static typeof(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (WindowsVersion >= WINDOWS_10_RS1 && (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
+        {
+            GetWindowDpiAwarenessContext_I = PhGetDllBaseProcedureAddress(baseAddress, "GetWindowDpiAwarenessContext", 0);
+            AreDpiAwarenessContextsEqual_I = PhGetDllBaseProcedureAddress(baseAddress, "AreDpiAwarenessContextsEqual", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (WindowHandle && GetWindowDpiAwarenessContext_I && AreDpiAwarenessContextsEqual_I)
+    {
+        DPI_AWARENESS_CONTEXT context;
+
+        if (context = GetWindowDpiAwarenessContext_I(WindowHandle))
+        {
+            if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+                return PhGetWindowDpi(WindowHandle);
+        }
+
+        return PhGetDpiValue(NULL, NULL);
+    }
+
+    // Windows 7, 8 and 10 TH: non-client area is always drawn at the system DPI.
+    return PhGetWindowDpi(WindowHandle);
 }
 
 /**
@@ -5194,57 +5244,63 @@ NTSTATUS PhBuildHwndList(
     )
 {
     NTSTATUS status;
-    PVOID buffer = NULL;
-    ULONG bufferSize = 0x1000;
-    ULONG returnLength = 0;
+    HWND *buffer;
+    ULONG entryCount = 0x1000 / sizeof(HWND);
+    ULONG returnCount;
+
+    *NumberOfHandles = 0;
+    *Handles = NULL;
 
     if (!NtUserBuildHwndList_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    buffer = PhAllocateZeroSafe(bufferSize);
-    if (!buffer) return STATUS_NO_MEMORY;
-        
     while (TRUE)
     {
+        if ((SIZE_T)entryCount > SIZE_MAX / sizeof(HWND))
+            return STATUS_INTEGER_OVERFLOW;
+
+        buffer = (HWND *)PhAllocateZeroSafe((SIZE_T)entryCount * sizeof(HWND));
+        if (!buffer)
+            return STATUS_NO_MEMORY;
+
+        returnCount = 0;
         status = NtUserBuildHwndList_Import()(
-            DesktopHandle,
+            (HDESK)DesktopHandle,
             ParentWindowHandle,
             IncludeChildren,
             ExcludeImmersive,
             HandleToUlong(ThreadId),
-            bufferSize,
+            entryCount,
             buffer,
-            &returnLength
+            &returnCount
             );
 
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            bufferSize = returnLength;
-            buffer = PhAllocateZeroSafe(bufferSize);
-            if (!buffer) return STATUS_NO_MEMORY;
+            if (returnCount <= entryCount)
+                return status;
+            entryCount = returnCount;
+            continue;
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
-            break;
+            PhFree(buffer);
+            return status;
         }
+
+        // The native count is in HWND elements and includes the (HWND)1 terminator.
+        if (returnCount == 0 || returnCount > entryCount || buffer[returnCount - 1] != (HWND)1)
+        {
+            PhFree(buffer);
+            return STATUS_DATA_ERROR;
+        }
+
+        *NumberOfHandles = returnCount - 1;
+        *Handles = buffer;
+        return STATUS_SUCCESS;
     }
-
-    if (!NT_SUCCESS(status) && status != STATUS_INVALID_HANDLE)
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    //if (returnLength < sizeof(HWND) || (returnLength % sizeof(HWND)) != 0)
-    //{
-    //    PhFree(buffer);
-    //    return STATUS_INVALID_THREAD;
-    //}
-
-    *NumberOfHandles = returnLength / sizeof(HWND);
-    *Handles = PTR_ADD_OFFSET(buffer, 0);
-    return STATUS_SUCCESS;
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
@@ -8439,11 +8495,21 @@ CleanupExit:
     return NULL;
 }
 
+#ifndef PHLIB_PAINT_BUFFER
+static VOID NTAPI PhpBufferedPaintUxThemeFlsCallback(
+    _In_opt_ PVOID Value
+    )
+{
+    if (Value)
+        BufferedPaintUnInit();
+}
+#endif
+
 /**
- * Initializes UxTheme buffered painting and allocates the process-wide FLS
- * index used by the custom buffered paint cache.
+ * Initializes UxTheme buffered painting on the calling thread. FLS indices
+ * are allocated once per process; their callbacks release thread state.
  *
- * \return TRUE on success. Safe to call multiple times.
+ * \return TRUE on success. Safe to call multiple times on a thread.
  */
 BOOLEAN PhBufferedPaintInit(
     VOID
@@ -8451,34 +8517,52 @@ BOOLEAN PhBufferedPaintInit(
 {
     if (PhBeginInitOnce(&PhpBufferedPaintInitOnce))
     {
-        PhpBufferedPaintUxThemeInitialized = HR_SUCCESS(BufferedPaintInit());
+#ifndef PHLIB_PAINT_BUFFER
+        PhpBufferedPaintUxThemeFlsIndex = FlsAlloc(PhpBufferedPaintUxThemeFlsCallback);
+#else
         PhBufferedPaintFlsIndex = FlsAlloc(PhFreeBufferedPaintCache);
+#endif
         PhEndInitOnce(&PhpBufferedPaintInitOnce);
     }
 
+#ifndef PHLIB_PAINT_BUFFER
+    if (PhpBufferedPaintUxThemeFlsIndex == FLS_OUT_OF_INDEXES)
+        return FALSE;
+
+    if (FlsGetValue(PhpBufferedPaintUxThemeFlsIndex))
+        return TRUE;
+
+    if (!HR_SUCCESS(BufferedPaintInit()))
+        return FALSE;
+
+    if (!FlsSetValue(PhpBufferedPaintUxThemeFlsIndex, (PVOID)1))
+    {
+        BufferedPaintUnInit();
+        return FALSE;
+    }
+
+    return TRUE;
+#else
     return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
+#endif
 }
 
 /**
- * Frees the FLS index and all per-thread cache slots still alive, then
- * uninitializes UxTheme buffered painting. Call from DLL_PROCESS_DETACH or
- * application shutdown.
+ * Uninitializes UxTheme buffered painting on the calling thread. Other
+ * threads retain their state until they call this function or exit.
  */
 VOID PhBufferedPaintUnInit(
     VOID
     )
 {
-    if (PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES)
+#ifndef PHLIB_PAINT_BUFFER
+    if (PhpBufferedPaintUxThemeFlsIndex != FLS_OUT_OF_INDEXES &&
+        FlsGetValue(PhpBufferedPaintUxThemeFlsIndex))
     {
-        FlsFree(PhBufferedPaintFlsIndex);
-        PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
+        if (FlsSetValue(PhpBufferedPaintUxThemeFlsIndex, NULL))
+            BufferedPaintUnInit();
     }
-
-    if (PhpBufferedPaintUxThemeInitialized)
-    {
-        BufferedPaintUnInit();
-        PhpBufferedPaintUxThemeInitialized = FALSE;
-    }
+#endif
 }
 
 /**
@@ -8504,7 +8588,9 @@ BOOLEAN PhBeginBufferedPaint(
 {
     LONG width;
     LONG height;
+#ifdef PHLIB_PAINT_BUFFER
     PPH_BP_CACHE cache;
+#endif
 
     memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
     *PaintHdc = NULL;
@@ -8515,77 +8601,104 @@ BOOLEAN PhBeginBufferedPaint(
     if (width <= 0 || height <= 0)
         return FALSE;
 
-    cache = PhGetBufferedPaintCache();
-
-#if defined(_DEBUG) || defined(DBG)
-    if (cache)
+#ifndef PHLIB_PAINT_BUFFER
     {
-        assert(!cache->InUse && "Nested PhBeginBufferedPaint on same thread!");
-    }
-#endif
+        HPAINTBUFFER paintBuffer;
+        HDC paintHdc;
 
-    if (cache)
-    {
-        cache->Hdc = CreateCompatibleDC(TargetHdc);
-        cache->Bitmap = PhCreateDIBSection(
+        if (!PhBufferedPaintInit())
+            return FALSE;
+
+        if (!(paintBuffer = BeginBufferedPaint(
             TargetHdc,
-            PHBF_TOPDOWNDIB,
-            width,
-            height,
-            &cache->Bits
-            );
+            TargetRect,
+            (BP_BUFFERFORMAT)Format,
+            (PBP_PAINTPARAMS)PaintParams,
+            &paintHdc
+            )))
+        {
+            return FALSE;
+        }
 
-        BufferedPaint->Cache = cache;
+        BufferedPaint->PaintBuffer = paintBuffer;
         BufferedPaint->TargetHdc = TargetHdc;
         BufferedPaint->TargetRect = *TargetRect;
         BufferedPaint->PaintWidth = width;
         BufferedPaint->PaintHeight = height;
-        BufferedPaint->OwnsDc = FALSE;
-        BufferedPaint->OwnsBitmap = FALSE;
         BufferedPaint->Valid = TRUE;
-        BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
-
-        // Shift the logical origin so GDI and GDI+ map our original RECT coordinates 
-        // down to (0,0) on the memory bitmap automatically.
-        SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
-
-        // Note: Copy the existing screen pixels into our buffer first.
-        // This ensures translucent overlays (like button hovers) don't draw over blackness.
-        BitBlt(
-            cache->Hdc,
-            TargetRect->left,
-            TargetRect->top,
-            width,
-            height,
-            TargetHdc,
-            TargetRect->left,
-            TargetRect->top,
-            SRCCOPY
-            );
-
-        // Note: The bitmap is a per-thread cache shared by every unrelated control that
-        // calls PhBeginBufferedPaint, and it is never reset between acquisitions. If the
-        // caller's paint routine doesn't cover its whole TargetRect (a clipped sub-region,
-        // a gap between fills, an early-out), the uncovered pixels are whatever a
-        // completely different control last painted there - visible as unrelated stale
-        // content (e.g. solid black blocks) bleeding through. Clear the whole DIB surface
-        // every time so callers always start from a deterministic blank canvas. Bits is a
-        // flat buffer (AllocWidth x AllocHeight, 32bpp) we own directly, so a straight
-        // memset is simpler and cheaper than a PatBlt and sidesteps any confusion between
-        // logical and device coordinates from the SetWindowOrgEx above. (dmex)
-        if (cache->Bits)
-        {
-            memset(cache->Bits, RGB(255, 0, 0), (SIZE_T)cache->AllocWidth * cache->AllocHeight * sizeof(ULONG));
-        }
-
-        cache->InUse = TRUE;
-        *PaintHdc = cache->Hdc;
+        *PaintHdc = paintHdc;
         return TRUE;
     }
+#else
+    cache = PhGetBufferedPaintCache();
 
-    // GDI failure - fall through to the transient path.
+    // Reuse the per-thread DC and DIB. Creating them on every call and storing them in the
+    // cache leaked one DC and one bitmap per paint until the process hit the GDI quota. (dmex)
+    if (cache && !cache->InUse)
+    {
+        if (!cache->Hdc)
+            cache->Hdc = CreateCompatibleDC(TargetHdc);
 
-    return FALSE;
+        // Snapshot the DC so End can undo whatever the caller selected into it (fonts,
+        // brushes, clip, origin); otherwise those objects stay selected in the reused DC
+        // and their owners can't delete them.
+        if (cache->Hdc && PhEnsureBufferedPaintBitmap(cache, TargetHdc, width, height) && SaveDC(cache->Hdc))
+        {
+            BufferedPaint->OwnsDc = FALSE;
+            BufferedPaint->OwnsBitmap = FALSE;
+            cache->InUse = TRUE;
+        }
+        else
+        {
+            cache = NULL;
+        }
+    }
+    else
+    {
+        cache = NULL;
+    }
+
+    // Nested paint on this thread or cache failure: use a transient buffer owned (and
+    // destroyed) by PhEndBufferedPaint.
+    if (!cache)
+    {
+        if (!(cache = PhAllocateTransientBufferedPaint(TargetHdc, width, height)))
+            return FALSE;
+
+        BufferedPaint->OwnsDc = TRUE;
+        BufferedPaint->OwnsBitmap = TRUE;
+    }
+
+    BufferedPaint->Cache = cache;
+    BufferedPaint->TargetHdc = TargetHdc;
+    BufferedPaint->TargetRect = *TargetRect;
+    BufferedPaint->PaintWidth = width;
+    BufferedPaint->PaintHeight = height;
+    BufferedPaint->Valid = TRUE;
+    BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
+
+    // Shift the logical origin so GDI and GDI+ map our original RECT coordinates
+    // down to (0,0) on the memory bitmap automatically.
+    SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+
+    // Copy the existing screen pixels into the buffer. This initializes the whole paint
+    // rectangle, so stale content from another control sharing the cached bitmap can't
+    // bleed through, and translucent overlays (like button hovers) don't draw over blackness.
+    BitBlt(
+        cache->Hdc,
+        TargetRect->left,
+        TargetRect->top,
+        width,
+        height,
+        TargetHdc,
+        TargetRect->left,
+        TargetRect->top,
+        SRCCOPY
+        );
+
+    *PaintHdc = cache->Hdc;
+    return TRUE;
+#endif
 }
 
 /**
@@ -8603,7 +8716,16 @@ VOID PhEndBufferedPaint(
     if (!BufferedPaint || !BufferedPaint->Valid)
         return;
 
-    if (UpdateTarget && BufferedPaint->PaintWidth > 0 && BufferedPaint->PaintHeight > 0)
+#ifndef PHLIB_PAINT_BUFFER
+    if (BufferedPaint->PaintBuffer)
+    {
+        EndBufferedPaint(BufferedPaint->PaintBuffer, UpdateTarget);
+        BufferedPaint->PaintBuffer = NULL;
+    }
+
+    BufferedPaint->Valid = FALSE;
+#else
+    if (UpdateTarget &&BufferedPaint->PaintWidth > 0 && BufferedPaint->PaintHeight > 0)
     {
         BitBlt(
             BufferedPaint->TargetHdc,
@@ -8620,6 +8742,10 @@ VOID PhEndBufferedPaint(
         SelectBitmap(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
         BufferedPaint->OldBitmap = NULL;
     }
+
+    // The cached DC is reused by the next paint on this thread; restore the state saved by Begin.
+    if (!BufferedPaint->OwnsDc)
+        RestoreDC(BufferedPaint->Cache->Hdc, -1);
 
     if (BufferedPaint->OwnsDc || BufferedPaint->OwnsBitmap)
     {
@@ -8642,6 +8768,7 @@ VOID PhEndBufferedPaint(
     {
         BufferedPaint->Cache->InUse = FALSE;
     }
+#endif
 }
 
 /**
@@ -8654,6 +8781,12 @@ BOOLEAN PhBufferedPaintClear(
     _In_opt_ const RECT* Rect
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    return HR_SUCCESS(BufferedPaintClear(BufferedPaint->PaintBuffer, Rect));
+#else
     RECT clearRect;
 
     if (!BufferedPaint || !BufferedPaint->Valid)
@@ -8697,6 +8830,7 @@ BOOLEAN PhBufferedPaintClear(
 
         return !!PatBlt(BufferedPaint->Cache->Hdc, x, y, width, height, BLACKNESS);
     }
+#endif
 }
 
 /**
@@ -8713,6 +8847,12 @@ BOOLEAN PhBufferedPaintSetAlpha(
     _In_ BYTE Alpha
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    return HR_SUCCESS(BufferedPaintSetAlpha(BufferedPaint->PaintBuffer, Rect, Alpha));
+#else
     RECT setRect;
     LONG x0, y0, x1, y1, row, col;
     PBYTE base;
@@ -8748,6 +8888,7 @@ BOOLEAN PhBufferedPaintSetAlpha(
     }
 
     return TRUE;
+#endif
 }
 
 /**
@@ -8769,6 +8910,20 @@ BOOLEAN PhGetBufferedPaintBits(
     *Bits = NULL;
     *WidthInPixels = 0;
 
+#ifndef PHLIB_PAINT_BUFFER
+    RGBQUAD* bits;
+    INT widthInPixels;
+
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    if (!HR_SUCCESS(GetBufferedPaintBits(BufferedPaint->PaintBuffer, &bits, &widthInPixels)))
+        return FALSE;
+
+    *Bits = bits;
+    *WidthInPixels = widthInPixels;
+    return TRUE;
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
         return FALSE;
 
@@ -8778,6 +8933,7 @@ BOOLEAN PhGetBufferedPaintBits(
     *Bits = BufferedPaint->Cache->Bits;
     *WidthInPixels = BufferedPaint->Cache->AllocWidth;
     return TRUE;
+#endif
 }
 
 /**
@@ -8809,6 +8965,26 @@ BOOLEAN PhGetBufferedPaintBitsEx(
     *WidthInBytes = 0;
     *FirstPaintPixel = NULL;
 
+#ifndef PHLIB_PAINT_BUFFER
+    {
+        RGBQUAD* bits;
+        INT widthInPixels;
+
+        if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+            return FALSE;
+
+        if (!HR_SUCCESS(GetBufferedPaintBits(BufferedPaint->PaintBuffer, &bits, &widthInPixels)))
+            return FALSE;
+
+        // UxTheme's buffer covers exactly the target rectangle, so the first
+        // paint pixel is the start of the bits.
+        *Bits = bits;
+        *WidthInPixels = widthInPixels;
+        *WidthInBytes = widthInPixels * 4;
+        *FirstPaintPixel = bits;
+        return TRUE;
+    }
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache || !BufferedPaint->Cache->Bits)
         return FALSE;
 
@@ -8821,6 +8997,7 @@ BOOLEAN PhGetBufferedPaintBitsEx(
     // the surface.
     *FirstPaintPixel = BufferedPaint->Cache->Bits;
     return TRUE;
+#endif
 }
 
 /**
@@ -8831,10 +9008,17 @@ HDC PhGetBufferedPaintDC(
     _In_ const PH_BUFFERED_PAINT* BufferedPaint
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return NULL;
+
+    return GetBufferedPaintDC(BufferedPaint->PaintBuffer);
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
         return NULL;
 
     return BufferedPaint->Cache->Hdc;
+#endif
 }
 
 /**
@@ -8844,10 +9028,17 @@ HDC PhGetBufferedPaintTargetDC(
     _In_ const PH_BUFFERED_PAINT* BufferedPaint
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return NULL;
+
+    return GetBufferedPaintTargetDC(BufferedPaint->PaintBuffer);
+#else
     if (!BufferedPaint || !BufferedPaint->Valid)
         return NULL;
 
     return BufferedPaint->TargetHdc;
+#endif
 }
 
 /**
@@ -8858,6 +9049,16 @@ BOOLEAN PhGetBufferedPaintTargetRect(
     _Out_ PRECT Rect
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer ||
+        !HR_SUCCESS(GetBufferedPaintTargetRect(BufferedPaint->PaintBuffer, Rect)))
+    {
+        memset(Rect, 0, sizeof(RECT));
+        return FALSE;
+    }
+
+    return TRUE;
+#else
     if (!BufferedPaint || !BufferedPaint->Valid)
     {
         memset(Rect, 0, sizeof(RECT));
@@ -8866,6 +9067,7 @@ BOOLEAN PhGetBufferedPaintTargetRect(
 
     *Rect = BufferedPaint->TargetRect;
     return TRUE;
+#endif
 }
 
 COLORREF NTAPI PhHeatMapColor(

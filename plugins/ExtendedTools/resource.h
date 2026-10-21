@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by ExtendedTools.rc
 //
@@ -67,7 +67,7 @@
 #define IDC_ENABLEETWMONITOR            1035
 #define IDC_ENABLE                      1036
 #define IDC_WSWATCHENABLED              1037
-#define IDC_ENABLEFAHRENHEITTEMP        1038
+#define IDC_TEMPERATUREUNIT             1038
 #define IDC_NODES                       1048
 #define IDC_ENABLEGPUMONITOR            1049
 #define IDC_ENABLESYSINFOGRAPHS         1050
@@ -183,7 +183,6 @@
 #define IDD_PIPEDIALOG                  6001
 #define IDC_ATOMLIST                    6002
 #define IDC_PIPELIST                    6002
-#define IDC_PIPESEARCH                  6003
 #define ID_REPARSE_POINTS               7000
 #define ID_REPARSE_OBJID                7001
 #define ID_REPARSE_SDDL                 7002
@@ -197,6 +196,7 @@
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
 #define IDD_OBJWINSTA                   8005
+#define IDD_OBJGENERAL                  8006
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define IDD_POWER_POLICIES              9000
@@ -213,10 +213,20 @@
 #define IDD_CACHE_LATENCY               9010
 #define IDC_CACHE_LATENCY_LIST          9011
 #define IDC_CACHE_LATENCY_STATUS        9012
-#define IDC_CACHE_LATENCY_L1            9013
-#define IDC_CACHE_LATENCY_L2            9014
-#define IDC_CACHE_LATENCY_L3            9015
-#define IDC_CACHE_LATENCY_DRAM          9016
+#define IDC_CACHE_LATENCY_TAB           9070
+#define IDC_CACHE_LATENCY_L1_GROUP      9071
+#define IDC_CACHE_LATENCY_L2_GROUP      9072
+#define IDC_CACHE_LATENCY_L3_GROUP      9073
+#define IDC_CACHE_LATENCY_DRAM_GROUP    9074
+#define IDC_CACHE_LATENCY_PANEL         9075
+#define IDC_CACHE_LATENCY_L1_INFO       9076
+#define IDC_CACHE_LATENCY_L1_VALUE      9077
+#define IDC_CACHE_LATENCY_L2_INFO       9078
+#define IDC_CACHE_LATENCY_L2_VALUE      9079
+#define IDC_CACHE_LATENCY_L3_INFO       9080
+#define IDC_CACHE_LATENCY_L3_VALUE      9081
+#define IDC_CACHE_LATENCY_DRAM_INFO     9082
+#define IDC_CACHE_LATENCY_DRAM_VALUE    9083
 #define IDD_SRUM                        9017
 #define IDC_SRUM_LIST                   9018
 #define IDC_SRUM_PROVIDER               9019
@@ -224,6 +234,42 @@
 #define IDC_SRUM_DURATION               9021
 #define IDC_SRUM_STATUS                 9022
 #define ID_SRUM                         9023
+#define IDD_PROCSRUM_CPU                9024
+#define IDD_PROCSRUM_NET                9034
+#define IDD_PROCSRUM_E3                 9035
+#define IDD_PROCSRUM_DISK               9036
+#define IDD_PROCSRUM_CPU_DCOMP          9037
+#define IDD_PROCSRUM_NET_DCOMP          9038
+#define IDD_PROCSRUM_E3_DCOMP           9039
+#define IDD_PROCSRUM_DISK_DCOMP         9040
+#define IDC_SRUMPRP_CONTAINER           9025
+#define IDC_SRUMPRP_MODE                9026
+#define IDC_SRUMPRP_RESET               9027
+#define IDC_SRUMPRP_ANNOT_MAX           9028
+#define IDC_SRUMPRP_ANNOT_MIN           9029
+#define IDC_SRUMPRP_ANNOT_SPIKE         9030
+#define IDC_SRUMPRP_PAUSE               9031
+#define IDC_SRUMPRP_STATUS              9032
+#define IDC_SRUMPRP_PLACEHOLDER         9033
+#define IDC_SRUMPRP_GRID                9034
+#define IDD_PROCWVCPU                   9050
+#define IDD_PROCWVSRUMCPU               9051
+#define IDD_PROCWVSRUMDISK              9052
+#define IDC_WEBVIEW_PLACEHOLDER         9053
+#define IDC_ENABLEWEBVIEW               9054
+#define IDC_WVSRUM_MODE                 9055
+#define IDC_WVCHART_LIB                 9056
+#define IDC_WVSRUM_SPLIT                9057
+#define IDC_WVSRUM_SYNC                 9058
+#define IDC_WVSRUM_RELATIVE             9059
+#define ID_TREEMAP                      9060
+#define IDD_WVTREEMAP                   9061
+#define IDD_PROCWVSRUMNET               9062
+#define IDD_PROCWVSRUMENERGY            9063
+#define IDD_PCASCAN                     9064
+#define IDC_PCA_SCAN                    9065
+#define IDC_PCA_SEARCH                  9066
+#define ID_PCA                          9067
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
@@ -239,14 +285,22 @@
 #define IDC_TPM_WRITE                   50008
 #define IDC_TPM_SAVE                    50009
 #define IDC_TPM_BYTESPERROW             50010
+#define ID_EXPLORER                     60001
 #define ID_CACHE_LATENCY                60002
+#define ID_STARTUP_TASKS                60003
 #define IDD_STARTUP_TASKS               60004
-#define ID_ENVIRONMENT_VARIABLES        60006
-#define IDD_ENVIRONMENTVARIABLES        60007
+#define IDC_STARTUP_TASKS_LIST          60005
 #define IDD_ENVEDIT_LIST                60008
 #define IDD_ENVEDIT                     60009
 #define IDD_FWEVENT_GENERAL             60010
 #define IDD_FWEVENT_LAYER               60011
+#define IDD_FWEVENT_FILTER              60012
+#define IDC_FWEDIT                      60013
+#define IDC_FW_FILE_GROUP               60014
+#define IDC_FW_FILE_ICON                60015
+#define IDC_FW_FILE_NAME                60016
+#define IDC_FW_FILE_DESC                60017
+#define IDC_FW_FILE_PATH                60018
 #define ID_ACPI                         60020
 #define IDD_ACPI                        60021
 #define IDC_ACPI_INFO                   60022
@@ -255,6 +309,27 @@
 #define IDC_WBCL_LIST                   60032
 #define IDC_WBCL_REFRESH                60033
 #define IDC_WBCL_OPENFILE               60034
+#define IDD_WBCL_GENERAL                60035
+#define IDD_WBCL_RAW                    60036
+#define IDC_WBCL_PROP_LIST              60037
+#define IDC_WBCL_PROP_TEXT              60038
+#define IDC_WBCL_BANK                   60039
+#define ID_FWCERT                       60060
+#define IDD_FIRMWARE_CERT               60061
+#define IDC_FWCERT_LIST                 60062
+#define IDC_FWCERT_REFRESH              60063
+#define IDD_FWCERT_GENERAL              60064
+#define IDD_FWCERT_RAW                  60065
+#define IDC_FWCERT_PROP_LIST            60066
+#define IDC_FWCERT_PROP_TEXT            60067
+#define ID_ATTESTATION                  60050
+#define IDD_ATTESTATION                 60051
+#define IDC_ATTESTATION_LIST            60052
+#define IDC_ATTESTATION_REFRESH         60053
+#define IDD_ATTESTATION_GENERAL         60054
+#define IDD_ATTESTATION_RAW             60055
+#define IDC_ATTESTATION_PROP_LIST       60056
+#define IDC_ATTESTATION_PROP_TEXT       60057
 #define IDC_ENV_ADD                     60035
 #define IDC_ENV_EDIT                    60036
 #define IDC_ENV_DELETE                  60037
@@ -265,14 +340,80 @@
 #define IDC_ENV_EDITTEXT                60042
 #define IDC_ENV_NAME                    60043
 #define IDC_ENV_VALUE                   60044
+#define ID_WER_REPORTS                  61000
+#define IDD_WER                         61001
+#define IDC_WER_LIST                    61002
+#define IDD_WER_GENERAL                 61003
+#define IDD_WER_SIGNATURE               61004
+#define IDD_WER_FILES                   61005
+#define IDD_WER_MODULES                 61006
+#define ID_SRUM_MONITOR                 61007
+#define IDD_SRUM_MONITOR                61008
+#define IDC_SRUM_MONITOR_TREE           61009
+#define IDC_SRUM_MONITOR_OPTIONS        61010
+#define IDC_SRUM_MONITOR_SEARCH         61011
+#define ID_PROCESS_HEAPTRACE            61015
+#define IDD_HEAPTRACE                   61016
+#define IDC_HEAPTRACE_VIEW              61017
+#define IDC_HEAPTRACE_SUMMARY           61018
+#define IDC_HEAPTRACE_LIST              61019
+#define IDC_HEAPTRACE_DETAILS           61020
+#define IDC_HEAPTRACE_STARTSTOP         61021
+#define IDD_PROCEVENTS                  61022
+#define IDC_EVENT_LIST                  61023
+#define IDC_EVENT_OPTIONS               61024
+#define IDC_EVENT_REFRESH               61025
+#define IDC_EVENT_SEARCH                61026
+#define IDC_EVENT_STATUS                61046
+#define ID_EVENT_COPY                   61027
+#define ID_EVENT_COPYMESSAGE            61028
+#define ID_EVENT_PROPERTIES             61029
+#define ID_EVENT_EVENTVIEWER            61030
+#define ID_EVENT_MATCHPROCESSID         61031
+#define ID_EVENT_MATCHIMAGENAME         61032
+#define ID_EVENT_HIDEBEFORECREATETIME   61033
+#define ID_EVENT_INCLUDEDISABLED        61034
+#define ID_EVENT_GROUP_CHANNEL          61035
+#define ID_EVENT_GROUP_PROVIDER         61036
+#define ID_EVENT_GROUP_NONE             61037
+#define ID_EVENT_RANGE_CREATETIME       61038
+#define ID_EVENT_RANGE_HOUR             61039
+#define ID_EVENT_RANGE_DAY              61040
+#define ID_EVENT_RANGE_WEEK             61041
+#define ID_EVENT_RANGE_ALL              61042
+#define ID_EVENT_MAX_1000               61043
+#define ID_EVENT_MAX_5000               61044
+#define ID_EVENT_MAX_20000              61045
+
+#define ID_ETW_SESSIONS                 61047
+#define IDD_ETW_SESSIONS                61048
+#define IDC_ETW_TOTALS                  61049
+#define IDC_ETW_SESSIONS                61050
+#define IDC_ETW_PROVIDER_LABEL          61051
+#define IDC_ETW_PROVIDERS               61052
+#define IDC_ETW_STATUS                  61053
+#define IDC_ETW_PAUSE                   61054
+#define IDC_ETW_STOP                    61055
+#define IDC_ETW_FLUSH                   61056
+#define IDC_ETW_COPY                    61057
+
+#define IDD_ETW_PROVIDERS                61058
+#define IDC_ETW_PROPERTIES               61059
+
+#define IDC_ETW_DETAILS                  61060
+#define IDC_PIPE_WATCH                   61061
+#define ID_OBJTYPES                      61062
+#define IDD_OBJTYPES                     61063
+#define IDC_OBJTYPES_LIST                61064
+#define IDC_OBJTYPES_DETAILS             61065
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        60043
-#define _APS_NEXT_COMMAND_VALUE         60043
-#define _APS_NEXT_CONTROL_VALUE         60043
+#define _APS_NEXT_RESOURCE_VALUE        61066
+#define _APS_NEXT_COMMAND_VALUE         61066
+#define _APS_NEXT_CONTROL_VALUE         61066
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

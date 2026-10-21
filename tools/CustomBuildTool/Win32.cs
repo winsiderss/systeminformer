@@ -382,7 +382,7 @@ namespace CustomBuildTool
                     }
 
                     InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
-                    Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                    InvokeWithFileRetry(() => Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly));
                     updated = true;
                 }
             }
@@ -390,7 +390,7 @@ namespace CustomBuildTool
             {
                 Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
                 InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
-                Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                InvokeWithFileRetry(() => Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly));
                 updated = true;
             }
 
@@ -444,7 +444,7 @@ namespace CustomBuildTool
                     }
 
                     InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
-                    SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
+                    InvokeWithFileRetry(() => SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false));
                     updated = true;
                 }
             }
@@ -452,7 +452,7 @@ namespace CustomBuildTool
             {
                 GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
                 InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
-                SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
+                InvokeWithFileRetry(() => SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false));
                 updated = true;
             }
 
@@ -872,28 +872,20 @@ namespace CustomBuildTool
             out FileAttributes Attributes
             )
         {
-            FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
-
             CreationTime = DateTime.MinValue;
             LastWriteDateTime = DateTime.MinValue;
+            Attributes = FileAttributes.None;
 
-            if (!File.Exists(FileName))
-            {
-                Attributes = FileAttributes.None;
+            // Query by path (GetFileAttributesEx) instead of opening a handle, so files
+            // concurrently being written by parallel SDK builds don't raise sharing violations.
+            var info = new FileInfo(FileName);
+
+            if (!info.Exists)
                 return false;
-            }
 
-            using (var fs = File.OpenRead(FileName))
-            {
-                var handle = new HANDLE(fs.SafeFileHandle!.DangerousGetHandle());
-
-                if (!PInvoke.GetFileInformationByHandleEx(handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
-
-                CreationTime = DateTime.FromFileTimeUtc(basicInfo.CreationTime);
-                LastWriteDateTime = DateTime.FromFileTimeUtc(basicInfo.LastWriteTime);
-                Attributes = (FileAttributes)basicInfo.FileAttributes;
-            }
+            CreationTime = info.CreationTimeUtc;
+            LastWriteDateTime = info.LastWriteTimeUtc;
+            Attributes = info.Attributes;
 
             return true;
         }

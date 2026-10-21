@@ -67,6 +67,7 @@
 #define IDC_GPU_L                       1077
 #define IDC_DEDICATED_L                 1078
 #define IDC_SHARED_L                    1079
+#define IDC_GPU_L2                      1080
 #define IDC_GPULIST                     1093
 #define IDC_POWER_USAGE_L               1094
 #define IDC_TEMPERATURE_L               1095
@@ -83,14 +84,21 @@
 #define IDC_DEVICE_INTERFACES_INFO      1109
 #define IDD_DEVICE_RESOURCES            1110
 #define IDC_DEVICE_RESOURCES_INFO       1111
+#define IDC_GRAPH_SENT                  1114
+#define IDC_GRAPH_RECEIVE               1115
+#define IDC_LABEL_SENT                  1116
+#define IDC_LABEL_RECEIVE               1117
+#define IDC_GROUP_SENT                  1118
+#define IDC_GROUP_RECEIVE               1119
+#define IDC_REFRESH                     1120
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        118
+#define _APS_NEXT_RESOURCE_VALUE        124
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1045
+#define _APS_NEXT_CONTROL_VALUE         1049
 #define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif

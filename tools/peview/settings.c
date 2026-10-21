@@ -24,7 +24,9 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableLegacyPropertiesDialog", L"0");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
-    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeSupport", L"1");
+    PhpAddIntegerSetting(L"FontQuality", L"6");
+    PhpAddIntegerSetting(L"PvThemeMode", L"0"); // PvThemeModeAutomatic
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
@@ -40,14 +42,21 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
     PhpAddIntegerSetting(L"SearchControlRegex", L"0");
     PhpAddIntegerSetting(L"SearchControlCaseSensitive", L"0");
+    PhpAddIntegerSetting(L"SearchControlFuzzy", L"0");
     PhpAddIntegerSetting(L"GraphColorMode", L"1");
     PhpAddIntegerSetting(L"HashAlgorithm", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddIntegerSetting(L"MainWindowPageRestoreEnabled", L"1");
+    PhpAddIntegerSetting(L"HideInvalidExports", L"0");
     PhpAddStringSetting(L"MainWindowPage", L"General");
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
+    PhpAddIntegerPairSetting(L"StartWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"StartWindowSize", L"@96|560,320");
+    PhpAddStringSetting(L"StartWindowListViewColumns", L"");
+    PhpAddStringSetting(L"RecentFiles", L"");
+    PhpAddIntegerSetting(L"PeViewSidebarWidth", L"145");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewSort", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewGroupStates", L"");
@@ -63,6 +72,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageResourcesTreeListColumns", L"");
     PhpAddStringSetting(L"ImageResourcesTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageLoadCfgListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageExceptionsIa32ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptionsAmd64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptionsArm64ListViewColumns", L"");
@@ -73,6 +83,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageClrListViewColumns", L"");
     PhpAddStringSetting(L"ImageClrImportsListViewColumns", L"");
     PhpAddStringSetting(L"ImageClrTablesListViewColumns", L"");
+    PhpAddStringSetting(L"ImageClrTablePreviewListViewColumns", L"");
     PhpAddStringSetting(L"ImageAttributesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageRelocationsListViewColumns", L"");
@@ -85,6 +96,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageSecurityCertColumns", L"");
     PhpAddIntegerPairSetting(L"ImageSecurityCertWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"ImageSecurityCertWindowSize", L"@96|0,0");
+    PhpAddStringSetting(L"ImageMappingsListViewColumns", L"");
     PhpAddStringSetting(L"ImageStreamsListViewColumns", L"");
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImageHashesListViewColumns", L"");
@@ -92,6 +104,8 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");
+    PhpAddStringSetting(L"ImageProdIdHashListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDebugListViewGroupColumns", L"");
     PhpAddStringSetting(L"ImageDebugCrtListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugPogoListViewColumns", L"");
     PhpAddStringSetting(L"ImageDisasmTreeColumns", L"");
@@ -125,6 +139,7 @@ VOID PvUpdateCachedSettings(
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhFontQuality = PhGetFontQualitySetting(PhGetIntegerSetting(L"FontQuality"));
     PhEnableWindowBorderColor = !!PhGetIntegerSetting(L"EnableWindowBorderColor");
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
@@ -132,7 +147,11 @@ VOID PvUpdateCachedSettings(
     PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
     PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
     PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
-    PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    // Always off: phlib's listview branch applies WS_BORDER *and* WS_EX_CLIENTEDGE
+    // together, which renders as two nested frames. peview owns listview border
+    // policy through PvConfigTreeBorders and the dialog templates, so the "Enable
+    // view borders" option drives those instead. (dmex)
+    PhEnableThemeListviewBorder = FALSE;
 }
 
 VOID PvInitializeSettings(
@@ -147,29 +166,34 @@ VOID PvInitializeSettings(
     // 1. Default locations (Portable, AppData or Registry)
     status = PhLoadSettingsAutoDetect(NULL, L"peview", &settingsPath, NULL, NULL);
 
-    if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_FILE_CORRUPT_ERROR)
+    if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND)
     {
-        // The file was loaded, will be created, or is corrupt and can be reset.
         PhMoveReference(&PvSettingsFileName, settingsPath);
     }
 
-    if (status == STATUS_FILE_CORRUPT_ERROR)
+    if (PvSettingsFileName)
     {
-        if (PhShowMessage2(
-            NULL,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-            TD_WARNING_ICON,
-            L"PE View's settings file is corrupt. Do you want to reset it?",
-            L"If you select No, the settings system will not function properly."
-            ) == IDYES)
+        // If we didn't find the file, it will be created. Otherwise,
+        // there was probably a parsing error and we don't want to
+        // change anything.
+        if (status == STATUS_FILE_CORRUPT_ERROR)
         {
-            if (PvSettingsFileName)
+            if (PhShowMessage2(
+                NULL,
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"PE View's settings file is corrupt. Do you want to reset it?",
+                L"If you select No, the settings system will not function properly."
+                ) == IDYES)
+            {
                 PhResetSettingsFile(&PvSettingsFileName->sr);
-        }
-        else
-        {
-            // Pretend we don't have a settings store so bad things don't happen.
-            PhClearReference(&PvSettingsFileName);
+            }
+            else
+            {
+                // Pretend we don't have a settings store so bad things don't happen.
+                PhDereferenceObject(PvSettingsFileName);
+                PvSettingsFileName = NULL;
+            }
         }
     }
 

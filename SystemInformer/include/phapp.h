@@ -787,6 +787,42 @@ VOID PhShowImagePageModifiedDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+// memcfg
+
+typedef enum _PH_CFG_TARGET_STATUS
+{
+    PhCfgTargetUnavailable,
+    PhCfgTargetDisabled,
+    PhCfgTargetInvalid,
+    PhCfgTargetValid
+} PH_CFG_TARGET_STATUS;
+
+typedef struct _PH_CFG_TARGET_CONTEXT
+{
+    ULONG_PTR BitmapBase;
+    ULONG64 BitmapSize;
+    ULONG_PTR Wow64BitmapBase;
+    ULONG64 Wow64BitmapSize;
+    BOOLEAN Enabled;
+} PH_CFG_TARGET_CONTEXT, *PPH_CFG_TARGET_CONTEXT;
+
+NTSTATUS PhInitializeProcessCfgTargetContext(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_CFG_TARGET_CONTEXT Context
+    );
+
+PH_CFG_TARGET_STATUS PhQueryProcessCfgTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_CFG_TARGET_CONTEXT Context,
+    _In_ PVOID Address,
+    _In_ BOOLEAN Wow64
+    );
+
+VOID PhShowProcessCfgBitmapDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // mtgndlg
 
 VOID PhShowProcessMitigationPolicyDialog(
@@ -994,8 +1030,8 @@ PhCreateSearchControl(
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
-// end_phapppub
 
+PHAPPAPI
 VOID
 NTAPI
 PhCreateSearchControl2(
@@ -1007,6 +1043,7 @@ PhCreateSearchControl2(
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
+// end_phapppub
 
 // sessmsg
 
@@ -1170,6 +1207,30 @@ VOID PhShowThreadStackDialog(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ PPH_THREAD_PROVIDER ThreadProvider
+    );
+
+// thrdctx
+
+VOID PhShowThreadContextDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
+    );
+
+VOID PhShowThreadFrameContextDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ USHORT Machine,
+    _In_ PVOID FrameContext,
+    _In_opt_ PCWSTR FrameTitle
+    );
+
+VOID PhShowSymbolsDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PVOID Address,
+    _In_ PCWSTR TypeName
     );
 
 // thrdstks

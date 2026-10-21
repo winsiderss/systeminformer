@@ -7,7 +7,6 @@
  **                                                                         **
  *****************************************************************************/
 
-
 #ifndef _COR_H_
 #define _COR_H_
 
@@ -30,11 +29,9 @@ EXTERN_GUID(CLSID_CLR_v1_MetaData, 0x005023ca, 0x72b1, 0x11d3, 0x9f, 0xc4, 0x0, 
 // CLSID_CLR_v2_MetaData: {EFEA471A-44FD-4862-9292-0C58D46E1F3A}
 EXTERN_GUID(CLSID_CLR_v2_MetaData, 0xefea471a, 0x44fd, 0x4862, 0x92, 0x92, 0xc, 0x58, 0xd4, 0x6e, 0x1f, 0x3a);
 
-
 // CLSID_CorMetaDataRuntime:
 // This will can always be used to generate the "latest" metadata available.
 #define CLSID_CorMetaDataRuntime CLSID_CLR_v2_MetaData
-
 
 // {30FE7BE8-D7D9-11D2-9F80-00C04F79A0A3}
 EXTERN_GUID(MetaDataCheckDuplicatesFor, 0x30fe7be8, 0xd7d9, 0x11d2, 0x9f, 0x80, 0x0, 0xc0, 0x4f, 0x79, 0xa0, 0xa3);
@@ -96,12 +93,10 @@ interface IMetaDataEmit;
 
 typedef UNALIGNED void const *UVCP_CONSTANT;
 
-
 // Constant for connection id and task id
 #define INVALID_CONNECTION_ID   0x0
 #define INVALID_TASK_ID         0x0
 #define MAX_CONNECTION_NAME     MAX_PATH
-
 
 #define MAIN_CLR_MODULE_NAME_W        W("coreclr")
 #define MAIN_CLR_MODULE_NAME_A         "coreclr"
@@ -119,7 +114,6 @@ typedef UNALIGNED void const *UVCP_CONSTANT;
 //
 //*****************************************************************************
 //*****************************************************************************
-
 
 #include <corhdr.h>
 
@@ -667,7 +661,6 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MemberDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
-
     STDMETHOD(EnumParams)(                  // S_OK, S_FALSE, or error.
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdMethodDef mb,                     // [IN] MethodDef to scope the enumeration.
@@ -1075,7 +1068,6 @@ DECLARE_INTERFACE_(IMetaDataFilter, IUnknown)
     STDMETHOD(IsTokenMarked)(mdToken tk, BOOL *pIsMarked) PURE;
 };
 
-
 //-------------------------------------
 //--- IHostFilter
 //-------------------------------------
@@ -1090,7 +1082,6 @@ DECLARE_INTERFACE_(IHostFilter, IUnknown)
     STDMETHOD(MarkToken)(mdToken tk) PURE;
 };
 
-
 //*****************************************************************************
 // Assembly Declarations
 //*****************************************************************************
@@ -1101,7 +1092,6 @@ typedef struct
     DWORD       dwOSMajorVersion;       // OS Major version.
     DWORD       dwOSMinorVersion;       // OS Minor version.
 } OSINFO;
-
 
 typedef struct
 {
@@ -1116,7 +1106,6 @@ typedef struct
     OSINFO      *rOS;                   // OSINFO array.
     ULONG       ulOS;                   // [IN/OUT]Size of the OSINFO array/Actual # of entries filled in.
 } ASSEMBLYMETADATA;
-
 
 // {211EF15B-5317-4438-B196-DEC87B887693}
 EXTERN_GUID(IID_IMetaDataAssemblyEmit, 0x211ef15b, 0x5317, 0x4438, 0xb1, 0x96, 0xde, 0xc8, 0x7b, 0x88, 0x76, 0x93);
@@ -1204,7 +1193,6 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwResourceFlags) PURE;  // [IN] Flags.
 
 };  // IMetaDataAssemblyEmit
-
 
 // {EE62470B-E94B-424e-9B7C-2F00C9249F93}
 EXTERN_GUID(IID_IMetaDataAssemblyImport, 0xee62470b, 0xe94b, 0x424e, 0x9b, 0x7c, 0x2f, 0x0, 0xc9, 0x24, 0x9f, 0x93);
@@ -1312,7 +1300,6 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         ULONG    *pcAssemblies) PURE;       // [OUT] The number of assemblies returned.
 };  // IMetaDataAssemblyImport
 
-
 //*****************************************************************************
 // End Assembly Declarations
 //*****************************************************************************
@@ -1332,7 +1319,6 @@ typedef enum
     ValidatorModuleTypeIncr         = 0x00000004,
     ValidatorModuleTypeMax          = 0x00000004,
 } CorValidatorModuleType;
-
 
 // {4709C9C6-81FF-11D3-9FC7-00C04F79A0A3}
 EXTERN_GUID(IID_IMetaDataValidate, 0x4709c9c6, 0x81ff, 0x11d3, 0x9f, 0xc7, 0x0, 0xc0, 0x4f, 0x79, 0xa0, 0xa3);
@@ -1636,7 +1622,6 @@ typedef enum
 #define COR_COMPILERSERVICE_DISCARDABLEATTRIBUTE L"System.Runtime.CompilerServices.DiscardableAttribute"
 #define COR_COMPILERSERVICE_DISCARDABLEATTRIBUTE_ASNI "System.Runtime.CompilerServices.DiscardableAttribute"
 
-
 #ifdef __cplusplus
 }
 
@@ -1647,7 +1632,6 @@ typedef enum
 //
 //*****************************************************************************
 //*****************************************************************************
-
 
 // We need a version that is FORCEINLINE on retail and NOINLINE on debug
 
@@ -1664,7 +1648,6 @@ FORCEINLINE int CorIsPrimitiveType(CorElementType elementtype)
 {
     return (elementtype < ELEMENT_TYPE_PTR || elementtype == ELEMENT_TYPE_I || elementtype == ELEMENT_TYPE_U);
 }
-
 
 // Return true if element type is a modifier, i.e. ELEMENT_TYPE_MODIFIER bits are
 // turned on. For now, it is checking for ELEMENT_TYPE_PTR and ELEMENT_TYPE_BYREF
@@ -1875,7 +1858,6 @@ inline ULONG CorSigUncompressData(      // return number of bytes of that compre
     return dwSizeOfData;
 }
 
-
 FORCEINLINE mdToken CorSigDecodeTokenType(int encoded)
 {
     static const mdToken s_tableTokenTypes[] = {mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType};
@@ -1894,7 +1876,6 @@ inline mdToken CorSigUncompressToken(   // return the token.
     tk = TokenFromRid(tk >> 2, tkType);
     return tk;
 }
-
 
 inline ULONG CorSigUncompressToken( // return number of bytes of that compressed data occupied in pData
     PCCOR_SIGNATURE pData,          // [IN] compressed data
@@ -1935,8 +1916,6 @@ inline HRESULT CorSigUncompressToken(
     return hr;
 }
 
-
-
 FORCEINLINE ULONG CorSigUncompressCallingConv(
     PCCOR_SIGNATURE & pData)    // [IN,OUT] Compressed data
 {
@@ -1959,7 +1938,6 @@ FORCEINLINE HRESULT CorSigUncompressCallingConv(
         return META_E_BAD_SIGNATURE;
     }
 }
-
 
 enum {
     SIGN_MASK_ONEBYTE  = 0xffffffc0,        // Mask the same size as the missing bits.
@@ -1999,7 +1977,6 @@ inline ULONG CorSigUncompressSignedInt( // return number of bytes of that compre
     return cb;
 }
 
-
 // uncompress encoded element type
 FORCEINLINE CorElementType CorSigUncompressElementType( // Element type
     PCCOR_SIGNATURE & pData)                            // [IN,OUT] Compressed data
@@ -2014,7 +1991,6 @@ inline ULONG CorSigUncompressElementType(   // Return number of bytes of that co
     *pElementType = (CorElementType)(*pData & 0x7f);
     return 1;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -2138,7 +2114,6 @@ inline ULONG CorSigCompressSignedInt(   // return number of bytes that compresse
     // Out of compressible range
     return (ULONG)-1;
 } // CorSigCompressSignedInt
-
 
 // uncompress encoded element type
 inline ULONG CorSigCompressElementType( // return number of bytes of that compressed data occupied in pData

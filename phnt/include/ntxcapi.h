@@ -13,6 +13,7 @@
  * \param ExceptionRecord A pointer to the exception record. The dispatcher can update its flags while processing the exception.
  * \param ContextRecord A pointer to the processor context for the exception. An exception handler can modify this context.
  * \return TRUE if the exception was handled; otherwise, FALSE.
+ * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
  */
 NTSYSAPI
 BOOLEAN
@@ -27,6 +28,7 @@ RtlDispatchException(
  *
  * \param Status The NTSTATUS value to raise as an exception.
  * \return This function does not return.
+ * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
  */
 _Analysis_noreturn_
 NTSYSAPI
@@ -44,6 +46,7 @@ RtlRaiseStatus(
  * \return This function does not return a value.
  * \remarks The routine returns to its caller only if an exception handler handles the exception and resumes execution.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-raiseexception
+ * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
  */
 NTSYSAPI
 VOID
@@ -119,6 +122,10 @@ typedef struct _KCONTINUE_ARGUMENT
  * \param ContextRecord A pointer to the processor context from which execution is to continue.
  * \param ContinueArgument Either a pointer to a KCONTINUE_ARGUMENT structure or a BOOLEAN value encoded as a pointer for the legacy TestAlert form.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Restores execution context through special syscall/trap-frame return machinery, not an
+ * ordinary function epilogue. The helper distinguishes a small second-argument value (at most 0xFF)
+ * from a continuation-argument pointer; user CONTEXT storage is 16-byte aligned and the pointer form is
+ * 8-byte aligned. Full context/XSTATE validation and APC delivery remain separate helper contracts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -154,6 +161,9 @@ NtContinue(
  * \param ContextRecord A pointer to the processor context at which the exception occurred.
  * \param FirstChance TRUE to process the exception as a first-chance exception; FALSE to process it as a second-chance exception.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The user-mode exception capture rejects NumberParameters above 15 and
+ * captures the variable exception information before context restoration and exception dispatch. It is not
+ * a harmless logging API: successful dispatch may transfer control to a handler or debugger rather than return normally.
  */
 _Kernel_entry_
 NTSYSCALLAPI

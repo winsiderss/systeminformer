@@ -80,15 +80,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 PhSetWindowExStyle(performanceContext->CpuGroupBox, WS_EX_TRANSPARENT, 0);
                 PhSetWindowExStyle(performanceContext->PrivateBytesGroupBox, WS_EX_TRANSPARENT, 0);
                 PhSetWindowExStyle(performanceContext->IoGroupBox, WS_EX_TRANSPARENT, 0);
-
-                PhSetWindowStyle(performanceContext->CpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-                PhSetWindowStyle(performanceContext->PrivateBytesGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-                PhSetWindowStyle(performanceContext->IoGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-
-                PhInitializeThemeWindowGroupBoxEx(performanceContext->CpuGroupBox);
-                PhInitializeThemeWindowGroupBoxEx(performanceContext->PrivateBytesGroupBox);
-                PhInitializeThemeWindowGroupBoxEx(performanceContext->IoGroupBox);
             }
+
+            // Subclass the group boxes the same as the General tab so the frame and caption are painted. (dmex)
+            PhSetWindowStyle(performanceContext->CpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(performanceContext->PrivateBytesGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(performanceContext->IoGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+            PhInitializeThemeWindowGroupBoxEx(performanceContext->CpuGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(performanceContext->PrivateBytesGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(performanceContext->IoGroupBox);
 
             PhInitializeGraphState(&performanceContext->CpuGraphState);
             PhInitializeGraphState(&performanceContext->PrivateGraphState);

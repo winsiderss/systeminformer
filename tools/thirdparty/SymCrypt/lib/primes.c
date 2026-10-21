@@ -7,15 +7,17 @@
 
 #include "precomp.h"
 
+static
 UINT32
 SYMCRYPT_CALL
-SymCryptIntMillerRabinPrimalityTest(
-    _In_                            PCSYMCRYPT_INT      piSrc,
-                                    UINT32              nBitsSrc,
-                                    UINT32              nIterations,
-                                    UINT32              flags,
-    _Out_writes_bytes_( cbScratch ) PBYTE               pbScratch,
-                                    SIZE_T              cbScratch )
+SymCryptIntMillerRabinPrimalityTestEx(
+    _In_                            PCSYMCRYPT_INT          piSrc,
+                                    UINT32                  nBitsSrc,
+                                    UINT32                  nIterations,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch )
 {
     BOOLEAN     innerLoop = TRUE;
     UINT32      borrow = 0;
@@ -117,7 +119,7 @@ SymCryptIntMillerRabinPrimalityTest(
     {
         // Pick a random X in [2, piSrc-2]
         // Therefore the flags parameter is 0 (default: not allowed 0, 1, -1 when modulus > 3)
-        SymCryptModSetRandom( pmModulus, peX, 0, pbScratch, cbScratch );
+        SymCryptModSetRandomEx( pmModulus, peX, 0, pRngState, pbScratch, cbScratch );
 
         // X^D mod piSrc
         // Notice that nBitsSrc is public in the call of SymCryptModExp
@@ -165,18 +167,39 @@ SymCryptIntMillerRabinPrimalityTest(
 
 #define SYMCRYPT_PRIME_GENERATION_MR_ITERATIONS (64)
 
-SYMCRYPT_ERROR
+UINT32
 SYMCRYPT_CALL
-SymCryptIntGenerateRandomPrime(
-    _In_                            PCSYMCRYPT_INT      piLow,
-    _In_                            PCSYMCRYPT_INT      piHigh,
-    _In_reads_opt_( nPubExp )       PCUINT64            pu64PubExp,
-                                    UINT32              nPubExp,
-                                    UINT32              nTries,
+SymCryptIntMillerRabinPrimalityTest(
+    _In_                            PCSYMCRYPT_INT      piSrc,
+                                    UINT32              nBitsSrc,
+                                    UINT32              nIterations,
                                     UINT32              flags,
-    _Inout_                         PSYMCRYPT_INT       piDst,
     _Out_writes_bytes_( cbScratch ) PBYTE               pbScratch,
                                     SIZE_T              cbScratch )
+{
+    return SymCryptIntMillerRabinPrimalityTestEx(
+        piSrc,
+        nBitsSrc,
+        nIterations,
+        flags,
+        NULL,
+        pbScratch,
+        cbScratch );
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptIntGenerateRandomPrimeEx(
+    _In_                            PCSYMCRYPT_INT          piLow,
+    _In_                            PCSYMCRYPT_INT          piHigh,
+    _In_reads_opt_( nPubExp )       PCUINT64                pu64PubExp,
+                                    UINT32                  nPubExp,
+                                    UINT32                  nTries,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Inout_                         PSYMCRYPT_INT           piDst,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch )
 {
     SYMCRYPT_ERROR  scError = SYMCRYPT_EXTERNAL_FAILURE;
     PSYMCRYPT_DIVISOR pdPubExp[ SYMCRYPT_RSAKEY_MAX_NUMOF_PUBEXPS ];
@@ -229,7 +252,15 @@ SymCryptIntGenerateRandomPrime(
     {
         cnt++;
 
-        scError = SymCryptCallbackRandom( pbScratch, nBytes );
+        if( pRngState != NULL )
+        {
+            SymCryptRngAesGenerate( pRngState, pbScratch, nBytes );
+            scError = SYMCRYPT_NO_ERROR;
+        }
+        else
+        {
+            scError = SymCryptCallbackRandom( pbScratch, nBytes );
+        }
         if (scError != SYMCRYPT_NO_ERROR)
         {
             goto exit;
@@ -287,7 +318,14 @@ SymCryptIntGenerateRandomPrime(
         }
 
         // Primality check
-        if (SymCryptIntMillerRabinPrimalityTest( piDst, nBitsHigh, SYMCRYPT_PRIME_GENERATION_MR_ITERATIONS, 0, pbScratch, cbScratch ))
+        if (SymCryptIntMillerRabinPrimalityTestEx(
+                piDst,
+                nBitsHigh,
+                SYMCRYPT_PRIME_GENERATION_MR_ITERATIONS,
+                0,
+                pRngState,
+                pbScratch,
+                cbScratch ))
         {
             scError = SYMCRYPT_NO_ERROR;
             break;
@@ -303,4 +341,30 @@ SymCryptIntGenerateRandomPrime(
 exit:
     SymCryptFreeTrialDivisionContext( pTrialDivisionContext );
     return scError;
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptIntGenerateRandomPrime(
+    _In_                            PCSYMCRYPT_INT      piLow,
+    _In_                            PCSYMCRYPT_INT      piHigh,
+    _In_reads_opt_( nPubExp )       PCUINT64            pu64PubExp,
+                                    UINT32              nPubExp,
+                                    UINT32              nTries,
+                                    UINT32              flags,
+    _Inout_                         PSYMCRYPT_INT       piDst,
+    _Out_writes_bytes_( cbScratch ) PBYTE               pbScratch,
+                                    SIZE_T              cbScratch )
+{
+    return SymCryptIntGenerateRandomPrimeEx(
+        piLow,
+        piHigh,
+        pu64PubExp,
+        nPubExp,
+        nTries,
+        flags,
+        NULL,
+        piDst,
+        pbScratch,
+        cbScratch );
 }

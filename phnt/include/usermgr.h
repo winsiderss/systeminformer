@@ -72,9 +72,9 @@ QueryUserToken(
     );
 
 /**
- * Reports that registration of a user token without Winlogon is unsupported.
- *
- * @return FALSE. GetLastError returns ERROR_NOT_SUPPORTED.
+ * Compatibility entry for systems without Winlogon. The x64 and x86 implementations return FALSE and
+ * set ERROR_NOT_SUPPORTED (50), without registering or retrieving any token. The zero-argument contract is
+ * confirmed; historical functional behavior is not established.
  */
 NTSYSAPI
 BOOL
@@ -88,9 +88,9 @@ RegisterUsertokenForNoWinlogon(
 //
 
 /**
- * Frees an array returned by UMgrEnumerateSessionUsers.
- *
- * @param SessionUsers The array to free. This parameter may be NULL.
+ * Releases the LocalAlloc-compatible array returned by a session-user enumeration. NULL is accepted. The
+ * caller pointer is passed by value and is not cleared; the public return is VOID even though the tail may
+ * leave LocalFree register contents. This routine only releases the enumeration result.
  */
 NTSYSAPI
 VOID
@@ -608,11 +608,10 @@ UMgrGetDefaultSignInAccount(
 //
 
 /**
- * Opens the token of a process for query access.
- *
- * @param ProcessId The process identifier.
- * @param TokenHandle Receives the token handle. The caller must close the handle.
- * @return An HRESULT indicating success or failure.
+ * Opens a query token for a process. The multi-session SKU path opens the process with
+ * PROCESS_QUERY_LIMITED_INFORMATION (0x1000), opens its token with TOKEN_QUERY (0x8), and closes the
+ * temporary process handle. Returns HRESULT; the output token is caller-owned and must be closed. Other SKUs
+ * dispatch RPC.
  */
 NTSYSAPI
 HRESULT
@@ -623,12 +622,11 @@ UMgrOpenProcessTokenForQuery(
     );
 
 /**
- * Opens a process with the requested access rights.
- *
- * @param DesiredAccess The requested process access mask.
- * @param ProcessId The process identifier.
- * @param ProcessHandle Receives the process handle. The caller must close the handle.
- * @return An HRESULT indicating success or failure.
+ * Opens a process with DesiredAccess and returns an owned HANDLE. On a multi-session SKU the client directly
+ * calls OpenProcess with inheritance FALSE, writes the returned handle (including NULL on failure), and
+ * returns S_OK or an HRESULT failure. Other SKUs use RPC. The local path queries the process with
+ * PROCESS_QUERY_LIMITED_INFORMATION (0x1000); remote access requires server authorization. Close a successful
+ * handle.
  */
 NTSYSAPI
 HRESULT
@@ -644,10 +642,9 @@ UMgrOpenProcessHandleForAccess(
 //
 
 /**
- * Securely erases and frees credentials returned by UMgrGetCachedCredentials.
- *
- * @param Credentials The credential record to erase and free.
- * @return An HRESULT indicating success or failure.
+ * Releases an owned credential-result allocation. The client zeroes the nested buffer using its stored byte
+ * length, LocalFree-s it, then frees the outer record; NULL returns E_FAIL (0x80004005) and a non-NULL record
+ * returns S_OK. The by-value pointer is not cleared.
  */
 NTSYSAPI
 HRESULT
@@ -689,15 +686,16 @@ UMgrSetCachedCredentials(
     );
 
 /**
- * Returns E_NOTIMPL; the current implementation accepts no arguments.
- *
- * @return E_NOTIMPL.
+ * Compatibility registry-location entry. Both bodies return E_NOTIMPL (0x80004001) without reading
+ * arguments. The x86 export consumes 8 argument bytes, requiring two ABI slots rather than VOID. The two
+ * ULONG_PTR placeholders do not establish historical argument types or meanings; pass zero for this stub.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 UMgrpGetRegistryLocation(
-    VOID
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10

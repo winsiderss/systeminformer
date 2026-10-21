@@ -431,7 +431,7 @@ SymCryptXmssSetParams(
         goto cleanup;
     }
 
-    if (cbPrefix == 0)
+    if (cbPrefix == 0 || cbPrefix > SYMCRYPT_XMSS_MAX_PREFIX_SIZE)
     {
         scError = SYMCRYPT_INVALID_ARGUMENT;
         goto cleanup;
@@ -738,7 +738,7 @@ SymCryptXmssPrfInit(
 {
     BYTE prefix[SYMCRYPT_XMSS_MAX_PREFIX_SIZE];
 
-    SYMCRYPT_ASSERT(prefixLength <= SYMCRYPT_XMSS_MAX_PREFIX_SIZE);
+    SYMCRYPT_ASSERT(prefixLength > 0 && prefixLength <= SYMCRYPT_XMSS_MAX_PREFIX_SIZE);
 
     SymCryptWipe(prefix, prefixLength);
     prefix[prefixLength - 1] = PrfType;
@@ -1675,7 +1675,9 @@ SymCryptXmssSignatureGetIdx(
 {
     UINT64 Idx = 0;
 
-    for (UINT8 i = 0; i < pParams->cbIdx; i++)
+    SYMCRYPT_ASSERT(pParams->cbIdx > 0 && pParams->cbIdx <= sizeof(UINT64));
+
+    for (UINT32 i = 0; i < pParams->cbIdx; i++)
     {
         Idx <<= 8;
         Idx |= (UINT64)pbSig[i];

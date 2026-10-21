@@ -35,12 +35,38 @@
 /**
  * Determines the length of the specified string, in characters.
  *
- * \param String The string.
+ * \param String The null-terminated string. The pointer does not need to be aligned.
+ * \return The number of characters in the string, excluding the null terminator.
  */
 SIZE_T PhCountStringZ(
     _In_ PCWSTR PH_RESTRICT String
     )
 {
+    // Misaligned (odd address) WCHAR loads are undefined behavior (and can fault with strict alignment checking),
+    // aligned WCHAR/SIMD vector loads rely on alignment to never straddle a page boundary. (dmex)
+
+    if (!IS_ALIGNED(String, sizeof(WCHAR)))
+    {
+        const UCHAR* p = (const UCHAR*)String;
+        SIZE_T length = 0;
+
+        // The terminator is a pair of zero bytes at an even offset from the start,
+        // so a zero high byte (e.g. L'A' = 41 00) won't stop it. (dmex)
+
+        while (p[0] || p[1])
+        {
+            p += sizeof(WCHAR);
+            length++;
+        }
+
+        return length;
+    }
+
+    // String is WCHAR-aligned from here, so every 16-bit vector lane lines up with
+    // exactly one character. Each SIMD tier rounds down to its vector size and masks
+    // off the leading lanes before String ("unaligned != 0"), then continues with
+    // aligned loads that never cross a page boundary. (dmex)
+
 #ifndef _ARM64_
 #ifdef _WIN64
     if (PhHasAVX512)
@@ -69,6 +95,7 @@ SIZE_T PhCountStringZ(
 
             if (_BitScanForward(&index, mask))
             {
+                _mm256_zeroupper();
                 return index;
             }
 
@@ -82,6 +109,7 @@ SIZE_T PhCountStringZ(
 
             if (_BitScanForward(&index, mask))
             {
+                _mm256_zeroupper();
                 return (SIZE_T)(p - String) + index;
             }
 
@@ -107,7 +135,7 @@ SIZE_T PhCountStringZ(
         {
             b = _mm256_loadu_si256((__m256i const*)p);
             b = _mm256_cmpeq_epi16(b, z);
-            mask = _mm256_movemask_epi8(b) >> unaligned;
+            mask = (ULONG)_mm256_movemask_epi8(b) >> unaligned;
 
             if (_BitScanForward(&index, mask))
             {
@@ -2177,6 +2205,7 @@ ULONG_PTR PhFindStringInStringRef(
         PH_STRINGREF sr1;
         PH_STRINGREF sr2;
         WCHAR c;
+        WCHAR lastChar;
         PWSTR haystack;
         SIZE_T haystackCount;
 
@@ -2189,10 +2218,12 @@ ULONG_PTR PhFindStringInStringRef(
         sr2.Buffer = SubString->Buffer + 1;
         sr2.Length = SubString->Length - sizeof(WCHAR);
         sr1.Length = sr2.Length;
+        lastChar = SubString->Buffer[length2 - 1];
 
         if (IgnoreCase)
         {
             c = PhUpcaseUnicodeChar(SubString->Buffer[0]);
+            lastChar = PhUpcaseUnicodeChar(lastChar);
 
             while (haystackCount > 0)
             {
@@ -2207,7 +2238,8 @@ ULONG_PTR PhFindStringInStringRef(
                 haystackCount -= offset;
 
                 sr1.Buffer = haystack + 1;
-                if (PhEqualStringRef(&sr1, &sr2, TRUE))
+                if (PhUpcaseUnicodeChar(haystack[length2 - 1]) == lastChar &&
+                    PhEqualStringRef(&sr1, &sr2, TRUE))
                     return (ULONG_PTR)(haystack - String->Buffer);
 
                 haystack++;
@@ -2231,7 +2263,8 @@ ULONG_PTR PhFindStringInStringRef(
                 haystackCount -= offset;
 
                 sr1.Buffer = haystack + 1;
-                if (PhEqualStringRef(&sr1, &sr2, FALSE))
+                if (haystack[length2 - 1] == lastChar &&
+                    PhEqualStringRef(&sr1, &sr2, FALSE))
                     return (ULONG_PTR)(haystack - String->Buffer);
 
                 haystack++;
@@ -3766,6 +3799,46 @@ VOID PhZeroExtendToUtf16Buffer(
 {
     SIZE_T inputLength;
 
+    // Overlapping buffers retain the original forward scalar traversal.
+    if ((ULONG_PTR)Output >= (ULONG_PTR)Input ?
+        (ULONG_PTR)Output - (ULONG_PTR)Input >= InputLength :
+        ((ULONG_PTR)Input - (ULONG_PTR)Output) / sizeof(WCHAR) >= InputLength)
+    {
+#ifdef _ARM64_
+        while (InputLength >= 16)
+        {
+            PhStoreINT256U(Output, PhZeroExtendINT128ToINT256(PhLoadINT128U((PLONG)Input)));
+            Input += 16;
+            Output += 16;
+            InputLength -= 16;
+        }
+#else
+        if (PhHasAVX && InputLength >= 16)
+        {
+            do
+            {
+                PhStoreINT256U(Output, PhZeroExtendINT128ToINT256(PhLoadINT128U((PLONG)Input)));
+                Input += 16;
+                Output += 16;
+                InputLength -= 16;
+            } while (InputLength >= 16);
+            PhZeroUpper();
+        }
+        if (PhHasIntrinsics)
+        {
+            while (InputLength >= 16)
+            {
+                PH_INT128 value = PhLoadINT128U((PLONG)Input);
+                PhStoreINT128U((PLONG)(Output), PhUnpackLowINT128by8(value, PhSetZeroINT128()));
+                PhStoreINT128U((PLONG)(Output + 8), PhUnpackHighINT128by8(value, PhSetZeroINT128()));
+                Input += 16;
+                Output += 16;
+                InputLength -= 16;
+            }
+        }
+#endif
+    }
+
     inputLength = InputLength & -4;
 
     if (inputLength)
@@ -3814,6 +3887,89 @@ PPH_STRING PhZeroExtendToUtf16Ex(
 }
 
 /**
+ * Converts a UTF-16 string to an ASCII string by truncating each character to 8 bits.
+ * This is the inverse of PhZeroExtendToUtf16Buffer().
+ *
+ * \param Input The original UTF-16 string.
+ * \param InputLength The length of \a Input, in characters.
+ * \param Output A buffer which will contain the converted string.
+ * \remarks No validation is performed. Characters above 0x7F are silently corrupted
+ * (e.g. U+0100 becomes 0x00), so the caller must ensure \a Input is pure ASCII.
+ * Use PhConvertUtf16ToAsciiEx() or RtlUnicodeToUTF8N() for untrusted input.
+ * The output is not null-terminated.
+ */
+VOID PhTruncateToAsciiBuffer(
+    _In_reads_(InputLength) PCWCH Input,
+    _In_ SIZE_T InputLength,
+    _Out_writes_bytes_(InputLength) PCH Output
+    )
+{
+    SIZE_T inputLength;
+
+    // Overlapping buffers retain the original forward scalar traversal.
+    if ((ULONG_PTR)Output >= (ULONG_PTR)Input ?
+        ((ULONG_PTR)Output - (ULONG_PTR)Input) / sizeof(WCHAR) >= InputLength :
+        (ULONG_PTR)Input - (ULONG_PTR)Output >= InputLength)
+    {
+#ifndef _ARM64_
+        if (PhHasAVX && InputLength >= 32)
+        {
+            do
+            {
+                __m256i mask = _mm256_set1_epi16(0xff);
+                __m256i low = _mm256_and_si256(_mm256_loadu_si256((const __m256i*)Input), mask);
+                __m256i high = _mm256_and_si256(_mm256_loadu_si256((const __m256i*)(Input + 16)), mask);
+                __m256i packed = _mm256_packus_epi16(low, high);
+                packed = _mm256_permute4x64_epi64(packed, _MM_SHUFFLE(3, 1, 2, 0));
+                _mm256_storeu_si256((__m256i*)Output, packed);
+                Input += 32;
+                Output += 32;
+                InputLength -= 32;
+            } while (InputLength >= 32);
+            PhZeroUpper();
+        }
+#endif
+        if (PhHasIntrinsics)
+        {
+            while (InputLength >= 16)
+            {
+                PhStoreINT128U((PLONG)(Output), PhTruncateINT128by16To8(
+                    PhLoadINT128U((PLONG)Input), PhLoadINT128U((PLONG)(Input + 8))));
+                Input += 16;
+                Output += 16;
+                InputLength -= 16;
+            }
+        }
+    }
+
+    inputLength = InputLength & -4;
+
+    if (inputLength)
+    {
+        do
+        {
+            Output[0] = (CHAR)Input[0];
+            Output[1] = (CHAR)Input[1];
+            Output[2] = (CHAR)Input[2];
+            Output[3] = (CHAR)Input[3];
+            Input += 4;
+            Output += 4;
+            inputLength -= 4;
+        } while (inputLength != 0);
+    }
+
+    switch (InputLength & 3)
+    {
+    case 3:
+        *Output++ = (CHAR)*Input++;
+    case 2:
+        *Output++ = (CHAR)*Input++;
+    case 1:
+        *Output++ = (CHAR)*Input++;
+    }
+}
+
+/**
  * Converts a UTF-16 string to an ASCII byte array.
  *
  * \param Buffer Pointer to the UTF-16 string buffer to convert.
@@ -3841,6 +3997,43 @@ PPH_BYTES PhConvertUtf16ToAsciiEx(
     inRemaining = Length / sizeof(WCHAR);
     out = bytes->Buffer;
     outLength = 0;
+
+    // Stop before the first non-ASCII block so decoder state remains untouched.
+#ifndef _ARM64_
+    if (PhHasAVX && inRemaining >= 16)
+    {
+        while (inRemaining >= 16)
+        {
+            __m256i value = _mm256_loadu_si256((const __m256i*)in);
+            if (!_mm256_testz_si256(value, _mm256_set1_epi16((SHORT)0xff80)))
+                break;
+            PhStoreINT128U((PLONG)(out), _mm_packus_epi16(
+                _mm256_castsi256_si128(value), _mm256_extracti128_si256(value, 1)));
+            in += 16;
+            inRemaining -= 16;
+            out += 16;
+            outLength += 16;
+        }
+        PhZeroUpper();
+    }
+#endif
+    if (PhHasIntrinsics)
+    {
+        while (inRemaining >= 16)
+        {
+            PH_INT128 low = PhLoadINT128U((PLONG)in);
+            PH_INT128 high = PhLoadINT128U((PLONG)(in + 8));
+            PH_INT128 mask = PhSetINT128by16((SHORT)0xff80);
+            if (PhMoveMaskINT128by8(PhCompareEqINT128by16(
+                PhAndINT128(PhOrINT128(low, high), mask), PhSetZeroINT128())) != 0xffff)
+                break;
+            PhStoreINT128U((PLONG)(out), PhTruncateINT128by16To8(low, high));
+            in += 16;
+            inRemaining -= 16;
+            out += 16;
+            outLength += 16;
+        }
+    }
 
     while (inRemaining != 0)
     {
@@ -5534,7 +5727,7 @@ PPH_STRING PhBufferToHexStringEx(
         Length,
         UpperCase,
         string->Buffer,
-        string->Length,
+        string->Length + sizeof(UNICODE_NULL),
         NULL
         );
 
@@ -5565,7 +5758,10 @@ BOOLEAN PhBufferToHexStringBuffer(
     PCCH table;
     ULONG i;
 
-    if (OutputLength < InputLength * sizeof(WCHAR) * 2)
+    if (InputLength > (SIZE_MAX - sizeof(WCHAR)) / (sizeof(WCHAR) * 2))
+        return FALSE;
+
+    if (OutputLength < InputLength * sizeof(WCHAR) * 2 + sizeof(WCHAR))
     {
         if (ReturnLength)
             *ReturnLength = InputLength * sizeof(WCHAR) * 2;
@@ -6608,6 +6804,39 @@ SIZE_T PhFindFirstOfCharsW(
     return Length;
 }
 
+static FORCEINLINE PH_INT128 ControlMask128(
+    _In_ PH_INT128 Value
+    )
+{
+    PH_INT128 mask;
+
+    // All ranges are below 0x8000; signed lower bounds exclude high words.
+    mask = PhAndINT128(PhCompareGtINT128by16(Value, PhSetINT128by16(-1)), PhCompareGtINT128by16(PhSetINT128by16(0x20), Value));
+    mask = PhOrINT128(mask, PhAndINT128(PhCompareGtINT128by16(Value, PhSetINT128by16(0x7e)), PhCompareGtINT128by16(PhSetINT128by16(0xa0), Value)));
+    mask = PhOrINT128(mask, PhAndINT128(PhCompareGtINT128by16(Value, PhSetINT128by16(0x200a)), PhCompareGtINT128by16(PhSetINT128by16(0x2010), Value)));
+    mask = PhOrINT128(mask, PhAndINT128(PhCompareGtINT128by16(Value, PhSetINT128by16(0x2029)), PhCompareGtINT128by16(PhSetINT128by16(0x202f), Value)));
+
+    return PhOrINT128(mask, PhCompareEqINT128by16(Value, PhSetINT128by16((SHORT)0xfeff)));
+}
+
+#ifndef _ARM64_
+static FORCEINLINE __m256i ControlMask256(
+    _In_ __m256i Value
+    )
+{
+    __m256i mask;
+
+    // All ranges are below 0x8000; signed lower bounds exclude high words.
+    mask = _mm256_and_si256(_mm256_cmpgt_epi16(Value, _mm256_set1_epi16(-1)), _mm256_cmpgt_epi16(_mm256_set1_epi16(0x20), Value));
+    mask = _mm256_or_si256(mask, _mm256_and_si256(_mm256_cmpgt_epi16(Value, _mm256_set1_epi16(0x7e)), _mm256_cmpgt_epi16(_mm256_set1_epi16(0xa0), Value)));
+    mask = _mm256_or_si256(mask, _mm256_and_si256(_mm256_cmpgt_epi16(Value, _mm256_set1_epi16(0x200a)), _mm256_cmpgt_epi16(_mm256_set1_epi16(0x2010), Value)));
+    mask = _mm256_or_si256(mask, _mm256_and_si256(_mm256_cmpgt_epi16(Value, _mm256_set1_epi16(0x2029)), _mm256_cmpgt_epi16(_mm256_set1_epi16(0x202f), Value)));
+
+    return _mm256_or_si256(mask, _mm256_cmpeq_epi16(Value, _mm256_set1_epi16((SHORT)0xfeff)));
+}
+
+#endif
+
 /**
  * Validate the string does not contain control or formatting content.
  *
@@ -6622,6 +6851,7 @@ BOOLEAN PhIsControlOrFormattingString(
     )
 {
     SIZE_T length;
+    SIZE_T i = 0;
     BOOLEAN hasVisibleContent = FALSE;
 
     if (!String || String->Length == 0)
@@ -6629,7 +6859,53 @@ BOOLEAN PhIsControlOrFormattingString(
 
     length = String->Length / sizeof(WCHAR);
 
-    for (SIZE_T i = 0; i < length; i++)
+    if (length == 0)
+        return FALSE;
+
+    // Preserve the cheap early rejection for control characters at the start.
+    if (PhIsControlOrFormattingUnicodeChar(String->Buffer[0]))
+        return FALSE;
+    hasVisibleContent = !PhIsWhiteSpaceUnicodeChar(String->Buffer[0]);
+    i = 1;
+
+#ifndef _ARM64_
+    if (PhHasAVX && length >= 16)
+    {
+        while (length - i >= 16)
+        {
+            __m256i value = _mm256_loadu_si256((const __m256i*)(String->Buffer + i));
+            __m256i mask = ControlMask256(value);
+            ULONG bits = (ULONG)_mm256_movemask_epi8(mask);
+            if (bits)
+            {
+                PhZeroUpper();
+                return FALSE;
+            }
+            if ((ULONG)_mm256_movemask_epi8(_mm256_cmpeq_epi16(value, _mm256_set1_epi16(L' '))) != 0xffffffff)
+                hasVisibleContent = TRUE;
+            i += 16;
+        }
+        PhZeroUpper();
+    }
+#endif
+    if (PhHasIntrinsics)
+    {
+        while (length - i >= 8)
+        {
+            PH_INT128 value = PhLoadINT128U((PLONG)(String->Buffer + i));
+            PH_INT128 mask = ControlMask128(value);
+            ULONG bits = (ULONG)PhMoveMaskINT128by8(mask);
+            if (bits)
+            {
+                return FALSE;
+            }
+            if ((ULONG)PhMoveMaskINT128by8(PhCompareEqINT128by16(value, PhSetINT128by16(L' '))) != 0xffff)
+                hasVisibleContent = TRUE;
+            i += 8;
+        }
+    }
+
+    for (; i < length; i++)
     {
         WCHAR c = String->Buffer[i];
 
@@ -6664,6 +6940,7 @@ ULONG PhFilterControlOrFormattingString(
     )
 {
     SIZE_T length;
+    SIZE_T i = 0;
     ULONG replaced = 0;
 
     if (!String || String->Length == 0)
@@ -6671,7 +6948,57 @@ ULONG PhFilterControlOrFormattingString(
 
     length = String->Length / sizeof(WCHAR);
 
-    for (SIZE_T i = 0; i < length; i++)
+#ifndef _ARM64_
+    if (PhHasAVX && length >= 16)
+    {
+        while (length - i >= 16)
+        {
+            __m256i value = _mm256_loadu_si256((const __m256i*)(String->Buffer + i));
+            __m256i mask = ControlMask256(value);
+            ULONG bits = (ULONG)_mm256_movemask_epi8(mask);
+            if (bits)
+            {
+                _mm256_storeu_si256((__m256i*)(String->Buffer + i), _mm256_or_si256(
+                    _mm256_and_si256(mask, _mm256_set1_epi16(PH_UNICODE_REPLACEMENT_CHARACTER)),
+                    _mm256_andnot_si256(mask, value)));
+                // One of the two mask bits per WCHAR is sufficient.
+                bits &= 0x55555555;
+                while (bits)
+                {
+                    bits &= bits - 1;
+                    replaced++;
+                }
+            }
+            i += 16;
+        }
+        PhZeroUpper();
+    }
+#endif
+    if (PhHasIntrinsics)
+    {
+        while (length - i >= 8)
+        {
+            PH_INT128 value = PhLoadINT128U((PLONG)(String->Buffer + i));
+            PH_INT128 mask = ControlMask128(value);
+            ULONG bits = (ULONG)PhMoveMaskINT128by8(mask);
+            if (bits)
+            {
+                PhStoreINT128U((PLONG)(String->Buffer + i), PhOrINT128(
+                    PhAndINT128(mask, PhSetINT128by16(PH_UNICODE_REPLACEMENT_CHARACTER)),
+                    PhAndNotINT128(mask, value)));
+                // One of the two mask bits per WCHAR is sufficient.
+                bits &= 0x55555555;
+                while (bits)
+                {
+                    bits &= bits - 1;
+                    replaced++;
+                }
+            }
+            i += 8;
+        }
+    }
+
+    for (; i < length; i++)
     {
         if (PhIsControlOrFormattingUnicodeChar(String->Buffer[i]))
         {

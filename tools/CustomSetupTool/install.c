@@ -27,14 +27,27 @@ NTSTATUS CALLBACK SetupProgressThread(
     BOOLEAN updateDesktopShortcut = TRUE;
     BOOLEAN desktopShortcutExists = FALSE;
     BOOLEAN removeStartMenuFolder = FALSE;
+#ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
     BOOLEAN autoRunEntry;
     BOOLEAN autoRunHidden;
     BOOLEAN taskMgrDebugger;
+    BOOLEAN launchTMDebugger;
+#endif
     PPH_STRING previousInstallPath;
     PPH_STRING currentInstallPath;
     PPH_STRING desktopShortcutPath;
 
     context->SetupProgressActive = TRUE;
+
+    //
+    // Roll back an interrupted update before touching the install directory.
+    //
+
+    SetupRecoverIncompleteUpdate(context);
+
+    //
+    // Determine the install location and filenames for shortcuts.
+    //
 
     previousInstallPath = GetApplicationInstallPath();
     currentInstallPath = SetupCreateFullPath(context->SetupInstallPath, L"");
@@ -125,11 +138,15 @@ NTSTATUS CALLBACK SetupProgressThread(
 
     autoRunEntry = SetupHasAutoRunEntry(&autoRunHidden);
     taskMgrDebugger = SetupHasTaskMgrDebuggerIfeo();
+    launchTMDebugger = SetupHasLaunchTMDebuggerIfeo();
 
     SetupSetProgressText(context, L"Removing previous Windows integration...", NULL);
     SetupDeleteWindowsOptions(Context);
+    SetupDeleteAppCompatFlagsLayersEntry();
 
+    //
     // Delete all shortcuts for cleanup
+    //
 
     SetupSetProgressText(context, L"Removing previous shortcuts...", NULL);
     SetupDeleteShortcuts(Context, updateDesktopShortcut, removeStartMenuFolder);
@@ -138,7 +155,7 @@ NTSTATUS CALLBACK SetupProgressThread(
     // Create the uninstaller.
     //
 
-    SetupSetProgressText(context, L"Creating the uninstaller...", NULL);
+    SetupSetProgressText(context, L"Creating uninstall files...", NULL);
 
     if (!NT_SUCCESS(status = SetupCreateUninstallFile(context)))
     {
@@ -151,7 +168,12 @@ NTSTATUS CALLBACK SetupProgressThread(
     //
 
     SetupSetProgressText(context, L"Creating uninstall registration...", NULL);
-    SetupCreateUninstallKey(Context);
+
+    if (!NT_SUCCESS(status = SetupCreateUninstallKey(Context)))
+    {
+        context->LastStatus = status;
+        goto CleanupExit;
+    }
 
     //
     // Create Windows Error Reporting LocalDumps key.
@@ -161,11 +183,15 @@ NTSTATUS CALLBACK SetupProgressThread(
     SetupCreateLocalDumpsKey();
 
     //
-    // Create autorun.
+    // Create autorun configuration.
     //
 
     SetupSetProgressText(context, L"Creating Windows integration...", NULL);
     SetupCreateWindowsOptions(Context);
+
+    //
+    // Create the autorun and default task manager configuration.
+    //
 
     if (autoRunEntry)
     {
@@ -175,6 +201,11 @@ NTSTATUS CALLBACK SetupProgressThread(
     if (taskMgrDebugger)
     {
         SetupCreateTaskMgrDebuggerIfeo(Context);
+    }
+
+    if (launchTMDebugger)
+    {
+        SetupCreateLaunchTMDebuggerIfeo(Context);
     }
 
     //

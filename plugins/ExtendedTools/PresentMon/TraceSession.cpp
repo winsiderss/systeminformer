@@ -408,16 +408,12 @@ BOOLEAN EtEstablishFpsTraceSession(
     sessionProps.LogFileNameOffset = 0;
     sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);  // Location of session name; will be written by StartTrace()
 
-    status = StartTrace(&mSessionHandle, L"SiPresentTraceSession", &sessionProps);
+    status = ControlTrace(0, L"SiPresentTraceSession", &sessionProps, EVENT_TRACE_CONTROL_QUERY);
 
-    if (status == ERROR_ALREADY_EXISTS)
+    if (status == ERROR_SUCCESS)
+        mSessionHandle = sessionProps.Wnode.HistoricalContext;
+    else
     {
-        // A session with this name already exists -- typically orphaned by a
-        // previous instance that crashed. Stop it and start fresh so our
-        // providers and keywords are applied to a known-clean session (reusing
-        // the inherited session cannot undo its stale configuration).
-        TraceSession_StopNamedSession();
-
         sessionProps.LogFileNameOffset = 0;
         status = StartTrace(&mSessionHandle, L"SiPresentTraceSession", &sessionProps);
     }

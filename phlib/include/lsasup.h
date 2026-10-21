@@ -267,6 +267,15 @@ PhIsServiceSid(
     _In_ PSID Sid
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetShadowAdminAssociatedSid(
+    _In_ PSID Sid,
+    _Out_ PSID *AssociatedSid,
+    _Out_opt_ PPH_STRING *AssociatedName
+    );
+
 #ifdef __cplusplus
 }
 #endif

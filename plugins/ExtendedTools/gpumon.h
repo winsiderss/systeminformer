@@ -20,7 +20,7 @@
 // Functions
 
 BOOLEAN EtpGpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PETP_GPU_ADAPTER EtpAllocateGpuAdapter(

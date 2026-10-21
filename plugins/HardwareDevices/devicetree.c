@@ -11,9 +11,7 @@
 
 #include "devices.h"
 #include <toolstatusintf.h>
-
 #include <devguid.h>
-
 #include <trace.h>
 
 typedef struct _DEVICE_NODE

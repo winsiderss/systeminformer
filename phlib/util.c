@@ -2073,24 +2073,65 @@ BOOLEAN PhGenerateRandomNumber(
  * \param Seed Receives the random seed.
  * \return TRUE if the random seed was generated, otherwise FALSE.
  */
+// clang requires the rdseed target feature for the intrinsic; callers must
+// check the processor feature before calling. (dmex)
+#if defined(__clang__) && !defined(_M_ARM64)
+__attribute__((target("rdseed")))
+#endif
 BOOLEAN PhGenerateRandomSeed(
     _Out_ PLARGE_INTEGER Seed
     )
 {
     memset(Seed, 0, sizeof(LARGE_INTEGER));
 
-//#ifndef _M_ARM64
-//    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
-//    {
-//#ifdef _M_X64
-//        if (_rdseed64_step(&Seed->QuadPart))
-//            return TRUE;
-//#else
-//        if (_rdseed32_step(&Seed->LowPart))
-//            return TRUE;
-//#endif
-//    }
-//#endif
+#ifdef _M_ARM64
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN randomSeedAvailable = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        // Detect instruction availability, even if entropy is temporarily unavailable.
+        __try
+        {
+            ULONG64 value;
+
+            PhArm64ReadRandomNumber64(&value);
+            randomSeedAvailable = TRUE;
+        }
+        __except (
+            GetExceptionCode() == STATUS_ILLEGAL_INSTRUCTION ||
+            GetExceptionCode() == STATUS_PRIVILEGED_INSTRUCTION
+            ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH
+            )
+        {
+            NOTHING;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (randomSeedAvailable)
+    {
+        ULONG64 value;
+
+        if (PhArm64ReadRandomNumber64(&value))
+        {
+            Seed->QuadPart = value;
+            return TRUE;
+        }
+    }
+#else
+    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+    {
+#ifdef _M_X64
+        if (_rdseed64_step(&Seed->QuadPart))
+            return TRUE;
+#else
+        if (_rdseed32_step(&Seed->LowPart))
+            return TRUE;
+#endif
+    }
+#endif
 
     return PhQueryPerformanceCounter(Seed);
 }
@@ -2136,7 +2177,11 @@ NTSTATUS PhInitializeCorrelationVector(
 
     memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT));
 
-    status = PhSymCryptGenRandom(randomBuffer, sizeof(randomBuffer), 0);
+    status = PhSymCryptGenRandom(
+        randomBuffer,
+        sizeof(randomBuffer),
+        0
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2152,12 +2197,19 @@ NTSTATUS PhInitializeCorrelationVector(
         return STATUS_UNSUCCESSFUL;
     }
 
+    //
     // Strip the trailing '=' padding the CV protocol disallows.
+    //
+
     while (base64Length > 0 && base64Buffer[base64Length - 1] == '=')
+    {
         base64Length--;
+    }
 
     if (base64Length == 0)
+    {
         return STATUS_UNSUCCESSFUL;
+    }
 
     Context->BaseVector = PhZeroExtendToUtf16Ex(base64Buffer, base64Length);
     Context->CurrentIndex = 0;
@@ -2205,6 +2257,7 @@ PPH_STRING PhIncrementCorrelationVector(
 
     return PhZeroExtendToUtf16(Context->Vector.Vector);
 #else
+    PH_FORMAT format[3];
     LONG newIndex;
 
     if (PhIsNullOrEmptyString(Context->BaseVector))
@@ -2212,11 +2265,11 @@ PPH_STRING PhIncrementCorrelationVector(
 
     newIndex = _InterlockedIncrement(&Context->CurrentIndex);
 
-    return PhFormatString(
-        L"%s.%lu",
-        Context->BaseVector->Buffer,
-        (ULONG)newIndex
-        );
+    PhInitFormatSR(&format[0], Context->BaseVector->sr);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], (ULONG)newIndex);
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 #endif
 }
 
@@ -3516,6 +3569,31 @@ NTSTATUS PhStringToGuid(
 }
 
 /**
+ * Validates the root node of a version information block against the buffer that holds it.
+ *
+ * \param VersionInfo The version information block.
+ * \param VersionInfoLength The length of the buffer, in bytes.
+ * \return TRUE if the block is a 32-bit version information block contained in the buffer.
+ * \remarks The node walkers bound every child by its parent, so the root must be bounded by the buffer.
+ */
+BOOLEAN PhpIsFileVersionInfoValid(
+    _In_ PVOID VersionInfo,
+    _In_ SIZE_T VersionInfoLength
+    )
+{
+    PVS_VERSION_INFO_STRUCT32 root = VersionInfo;
+
+    if (VersionInfoLength < RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT32, Key))
+        return FALSE;
+    if (root->Length < RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT32, Key))
+        return FALSE;
+    if (root->Length > VersionInfoLength)
+        return FALSE;
+
+    return PhIsFileVersionInfo32(VersionInfo);
+}
+
+/**
  * Retrieves image version information for a file.
  *
  * \param FileName The file name.
@@ -3530,6 +3608,7 @@ NTSTATUS PhGetFileVersionInfo(
     NTSTATUS status;
     PVOID libraryModule;
     PVOID versionInfo;
+    ULONG versionInfoLength;
 
     libraryModule = LoadLibraryEx(
         FileName,
@@ -3546,13 +3625,13 @@ NTSTATUS PhGetFileVersionInfo(
         libraryModule,
         MAKEINTRESOURCE(VS_VERSION_INFO),
         VS_FILE_INFO,
-        NULL,
+        &versionInfoLength,
         &versionInfo
         );
 
     if (NT_SUCCESS(status))
     {
-        if (PhIsFileVersionInfo32(versionInfo))
+        if (PhpIsFileVersionInfoValid(versionInfo, versionInfoLength))
         {
             PhFreeLibrary(libraryModule);
             *VersionInfo = versionInfo;
@@ -3586,6 +3665,7 @@ NTSTATUS PhGetFileVersionInfoEx(
     NTSTATUS status;
     PVOID imageBaseAddress;
     PVOID versionInfo;
+    ULONG versionInfoLength;
 
     status = PhLoadLibraryAsImageResource(FileName, TRUE, &imageBaseAddress);
 
@@ -3609,9 +3689,12 @@ NTSTATUS PhGetFileVersionInfoEx(
             LDR_RES_SEARCH_LOAD_IMAGE
             )))
         {
-            *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
-            PhFreeLibraryAsImageResource(imageBaseAddress);
-            return STATUS_SUCCESS;
+            if (PhpIsFileVersionInfoValid(resourceBuffer, resourceLength))
+            {
+                *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
+                PhFreeLibraryAsImageResource(imageBaseAddress);
+                return STATUS_SUCCESS;
+            }
         }
     }
 
@@ -3627,11 +3710,11 @@ NTSTATUS PhGetFileVersionInfoEx(
                 resourceDllBase,
                 MAKEINTRESOURCE(VS_VERSION_INFO),
                 VS_FILE_INFO,
-                NULL,
+                &versionInfoLength,
                 &versionInfo
                 )))
             {
-                if (PhIsFileVersionInfo32(versionInfo))
+                if (PhpIsFileVersionInfoValid(versionInfo, versionInfoLength))
                 {
                     LdrUnloadAlternateResourceModule(resourceDllBase);
                     PhFreeLibraryAsImageResource(imageBaseAddress);
@@ -3652,13 +3735,13 @@ NTSTATUS PhGetFileVersionInfoEx(
             imageBaseAddress,
             MAKEINTRESOURCE(VS_VERSION_INFO),
             VS_FILE_INFO,
-            NULL,
+            &versionInfoLength,
             &versionInfo
             );
 
         if (NT_SUCCESS(status))
         {
-            if (PhIsFileVersionInfo32(versionInfo))
+            if (PhpIsFileVersionInfoValid(versionInfo, versionInfoLength))
             {
                 PhFreeLibraryAsImageResource(imageBaseAddress);
                 *VersionInfo = versionInfo;
@@ -3687,9 +3770,60 @@ PVOID PhGetFileVersionInfoValue(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
     )
 {
-    const PCWSTR keyOffset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
+    SIZE_T maximumKeyLength;
+    SIZE_T keyLength;
+    SIZE_T valueOffset;
 
-    return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
+    // The node length has already been bounded by its parent (or by the buffer for the root),
+    // so the key must terminate and the value must start inside the node.
+    if (VersionInfo->Length < RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT32, Key))
+        return NULL;
+
+    maximumKeyLength = (VersionInfo->Length - UFIELD_OFFSET(VS_VERSION_INFO_STRUCT32, Key)) / sizeof(WCHAR);
+    keyLength = wcsnlen(VersionInfo->Key, maximumKeyLength);
+
+    if (keyLength == maximumKeyLength)
+        return NULL;
+
+    valueOffset = UFIELD_OFFSET(VS_VERSION_INFO_STRUCT32, Key) + (keyLength + 1) * sizeof(WCHAR);
+    valueOffset = ALIGN_UP(valueOffset, ULONG);
+
+    if (valueOffset > VersionInfo->Length)
+        return NULL;
+
+    return PTR_ADD_OFFSET(VersionInfo, valueOffset);
+}
+
+/**
+ * Gets the number of bytes between a node value and the end of the node.
+ *
+ * \param VersionInfo The version information node.
+ * \param Value The node value, from PhGetFileVersionInfoValue().
+ * \return The number of bytes available for the value and any child nodes.
+ */
+ULONG PhpGetFileVersionInfoValueSpace(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ PVOID Value
+    )
+{
+    return PtrToUlong(PTR_SUB_OFFSET(PTR_ADD_OFFSET(VersionInfo, VersionInfo->Length), Value));
+}
+
+/**
+ * Gets the length of a node value in bytes, clamped to the node.
+ *
+ * \param VersionInfo The version information node.
+ * \param Value The node value, from PhGetFileVersionInfoValue().
+ * \return The length of the value, in bytes.
+ */
+ULONG PhpGetFileVersionInfoValueSize(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ PVOID Value
+    )
+{
+    ULONG valueSize = VersionInfo->ValueLength * (VersionInfo->Type ? sizeof(WCHAR) : sizeof(CHAR));
+
+    return __min(valueSize, PhpGetFileVersionInfoValueSpace(VersionInfo, Value));
 }
 
 /**
@@ -3709,18 +3843,37 @@ NTSTATUS PhGetFileVersionInfoKey(
     )
 {
     PVOID value;
+    PVOID end;
     ULONG valueOffset;
     PVS_VERSION_INFO_STRUCT32 child;
 
     if (!(value = PhGetFileVersionInfoValue(VersionInfo)))
         return STATUS_NOT_FOUND;
 
-    valueOffset = VersionInfo->ValueLength * (VersionInfo->Type ? sizeof(WCHAR) : sizeof(CHAR));
+    end = PTR_ADD_OFFSET(VersionInfo, VersionInfo->Length);
+    valueOffset = PhpGetFileVersionInfoValueSize(VersionInfo, value);
     child = PTR_ADD_OFFSET(value, ALIGN_UP(valueOffset, ULONG));
 
-    while ((ULONG_PTR)child < (ULONG_PTR)PTR_ADD_OFFSET(VersionInfo, VersionInfo->Length))
+    // Length and ValueLength come from the file, so each child must lie inside its parent.
+    while (
+        (ULONG_PTR)child < (ULONG_PTR)end &&
+        (ULONG_PTR)end - (ULONG_PTR)child >= RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT32, Key)
+        )
     {
-        if (_wcsnicmp(child->Key, Key, KeyLength) == 0 && child->Key[KeyLength] == UNICODE_NULL)
+        SIZE_T maximumKeyLength;
+
+        if (child->Length < RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT32, Key))
+            break;
+        if (child->Length > (ULONG_PTR)end - (ULONG_PTR)child)
+            break;
+
+        maximumKeyLength = (child->Length - UFIELD_OFFSET(VS_VERSION_INFO_STRUCT32, Key)) / sizeof(WCHAR);
+
+        if (
+            KeyLength < maximumKeyLength &&
+            _wcsnicmp(child->Key, Key, KeyLength) == 0 &&
+            child->Key[KeyLength] == UNICODE_NULL
+            )
         {
             if (Buffer)
                 *Buffer = child;
@@ -3728,13 +3881,61 @@ NTSTATUS PhGetFileVersionInfoKey(
             return STATUS_SUCCESS;
         }
 
-        if (child->Length == 0)
-            break;
-
         child = PTR_ADD_OFFSET(child, ALIGN_UP(child->Length, ULONG));
     }
 
     return STATUS_NOT_FOUND;
+}
+
+/**
+ * Finds a node and its value in the VarFileInfo block in version information.
+ *
+ * \param VersionInfo The version information block.
+ * \param KeyName The VarFileInfo key to query.
+ * \param Node Receives the matching node.
+ * \param Value Receives a pointer to the node value.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhpGetFileVersionVarFileInfoNode(
+    _In_ PVOID VersionInfo,
+    _In_ PCPH_STRINGREF KeyName,
+    _Out_ PVS_VERSION_INFO_STRUCT32* Node,
+    _Out_ PVOID* Value
+    )
+{
+    static CONST PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
+    PVS_VERSION_INFO_STRUCT32 varfileBlockInfo;
+    PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
+    PVOID value;
+    NTSTATUS status;
+
+    status = PhGetFileVersionInfoKey(
+        VersionInfo,
+        varfileBlockName.Length / sizeof(WCHAR),
+        varfileBlockName.Buffer,
+        &varfileBlockInfo
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetFileVersionInfoKey(
+        varfileBlockInfo,
+        KeyName->Length / sizeof(WCHAR),
+        KeyName->Buffer,
+        &varfileBlockValue
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!(value = PhGetFileVersionInfoValue(varfileBlockValue)))
+        return STATUS_NOT_FOUND;
+
+    *Node = varfileBlockValue;
+    *Value = value;
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -3753,34 +3954,20 @@ NTSTATUS PhGetFileVersionVarFileInfoValue(
     _Out_opt_ PULONG BufferLength
     )
 {
-    static CONST PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
-    PVS_VERSION_INFO_STRUCT32 varfileBlockInfo;
-    PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
     NTSTATUS status;
+    PVS_VERSION_INFO_STRUCT32 node;
+    PVOID value;
 
-    status = PhGetFileVersionInfoKey(
-        VersionInfo,
-        varfileBlockName.Length / sizeof(WCHAR),
-        varfileBlockName.Buffer,
-        &varfileBlockInfo
-        );
+    status = PhpGetFileVersionVarFileInfoNode(VersionInfo, KeyName, &node, &value);
 
     if (NT_SUCCESS(status))
     {
-        status = PhGetFileVersionInfoKey(
-            varfileBlockInfo,
-            KeyName->Length / sizeof(WCHAR),
-            KeyName->Buffer,
-            &varfileBlockValue
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            if (BufferLength)
-                *BufferLength = varfileBlockValue->ValueLength;
-            if (Buffer)
-                *Buffer = PhGetFileVersionInfoValue(varfileBlockValue);
-        }
+        // ValueLength is in characters for text values and bytes for binary values;
+        // keep the caller's units but clamp the length to the node.
+        if (BufferLength)
+            *BufferLength = PhpGetFileVersionInfoValueSize(node, value) / (node->Type ? sizeof(WCHAR) : sizeof(CHAR));
+        if (Buffer)
+            *Buffer = value;
     }
 
     return status;
@@ -3798,9 +3985,12 @@ VS_FIXEDFILEINFO* PhGetFileVersionFixedInfo(
 {
     VS_FIXEDFILEINFO* fileInfo;
 
-    fileInfo = PhGetFileVersionInfoValue(VersionInfo);
+    if (!(fileInfo = PhGetFileVersionInfoValue(VersionInfo)))
+        return NULL;
+    if (PhpGetFileVersionInfoValueSpace(VersionInfo, fileInfo) < sizeof(VS_FIXEDFILEINFO))
+        return NULL;
 
-    if (fileInfo && fileInfo->dwSignature == VS_FFI_SIGNATURE)
+    if (fileInfo->dwSignature == VS_FFI_SIGNATURE)
     {
         return fileInfo;
     }
@@ -3825,7 +4015,8 @@ ULONG PhGetFileVersionInfoLangCodePage(
     if (NT_SUCCESS(PhGetFileVersionVarFileInfoValueZ(VersionInfo, L"Translation", &codePage, &codePageLength)))
     {
         //for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
-        return ((ULONG)codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
+        if (codePageLength >= sizeof(LANGANDCODEPAGE))
+            return ((ULONG)codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
     }
 
     return (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252;
@@ -3844,22 +4035,26 @@ PPH_STRING PhGetFileVersionInfoString(
 {
     NTSTATUS status;
     PH_STRINGREF name;
-    PWSTR buffer;
-    ULONG length;
+    PVS_VERSION_INFO_STRUCT32 node;
+    PVOID value;
 
     PhInitializeStringRefLongHint(&name, SubBlock);
 
-    status = PhGetFileVersionVarFileInfoValue(
+    status = PhpGetFileVersionVarFileInfoNode(
         VersionInfo,
         &name,
-        &buffer,
-        &length
+        &node,
+        &value
         );
 
     if (!NT_SUCCESS(status))
         return NULL;
 
-    return PhCreateStringZ2(buffer, length * sizeof(WCHAR));
+    // ValueLength comes from the file, so the string is bounded by the node.
+    return PhCreateStringZ2(
+        value,
+        __min((SIZE_T)node->ValueLength * sizeof(WCHAR), PhpGetFileVersionInfoValueSpace(node, value))
+        );
 }
 
 /**
@@ -3925,9 +4120,10 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
+    // ValueLength comes from the file, so the string is bounded by the node.
     return PhCreateStringZ2(
         stringNameBlockValue,
-        stringNameBlockInfo->ValueLength * sizeof(WCHAR)
+        __min((SIZE_T)stringNameBlockInfo->ValueLength * sizeof(WCHAR), PhpGetFileVersionInfoValueSpace(stringNameBlockInfo, stringNameBlockValue))
         );
 }
 
@@ -4334,7 +4530,6 @@ NTSTATUS PhInitializeImageVersionInfoCached(
     PH_IMAGE_VERSION_INFO versionInfo = { 0 };
     PH_FILE_VERSIONINFO_CACHE_ENTRY newEntry;
 
-    if (PhpImageVersionInfoCacheHashtable)
     {
         PPH_FILE_VERSIONINFO_CACHE_ENTRY entry;
         PH_FILE_VERSIONINFO_CACHE_ENTRY lookupEntry;
@@ -4342,17 +4537,20 @@ NTSTATUS PhInitializeImageVersionInfoCached(
         lookupEntry.FileName = FileName;
 
         PhAcquireQueuedLockShared(&PhpImageVersionInfoCacheLock);
-        entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
-        PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
-
-        if (entry)
+        if (PhpImageVersionInfoCacheHashtable)
         {
-            PhSetReference(&ImageVersionInfo->CompanyName, entry->CompanyName);
-            PhSetReference(&ImageVersionInfo->FileDescription, entry->FileDescription);
-            PhSetReference(&ImageVersionInfo->FileVersion, entry->FileVersion);
-            PhSetReference(&ImageVersionInfo->ProductName, entry->ProductName);
-            return STATUS_SUCCESS;
+            entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
+            if (entry)
+            {
+                PhSetReference(&ImageVersionInfo->CompanyName, entry->CompanyName);
+                PhSetReference(&ImageVersionInfo->FileDescription, entry->FileDescription);
+                PhSetReference(&ImageVersionInfo->FileVersion, entry->FileVersion);
+                PhSetReference(&ImageVersionInfo->ProductName, entry->ProductName);
+                PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
+                return STATUS_SUCCESS;
+            }
         }
+        PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
     }
 
     if (IsSubsystemProcess)
@@ -4376,6 +4574,13 @@ NTSTATUS PhInitializeImageVersionInfoCached(
         }
     }
 
+    PhSetReference(&newEntry.FileName, FileName);
+    PhSetReference(&newEntry.CompanyName, versionInfo.CompanyName);
+    PhSetReference(&newEntry.FileDescription, versionInfo.FileDescription);
+    PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
+    PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
+
+    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
     if (!PhpImageVersionInfoCacheHashtable)
     {
         PhpImageVersionInfoCacheHashtable = PhCreateHashtable(
@@ -4386,14 +4591,14 @@ NTSTATUS PhInitializeImageVersionInfoCached(
             );
     }
 
-    PhSetReference(&newEntry.FileName, FileName);
-    PhSetReference(&newEntry.CompanyName, versionInfo.CompanyName);
-    PhSetReference(&newEntry.FileDescription, versionInfo.FileDescription);
-    PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
-    PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
-
-    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
-    PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry);
+    if (!PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry))
+    {
+        PhDereferenceObject(newEntry.FileName);
+        if (newEntry.CompanyName) PhDereferenceObject(newEntry.CompanyName);
+        if (newEntry.FileDescription) PhDereferenceObject(newEntry.FileDescription);
+        if (newEntry.FileVersion) PhDereferenceObject(newEntry.FileVersion);
+        if (newEntry.ProductName) PhDereferenceObject(newEntry.ProductName);
+    }
     PhReleaseQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
 
     ImageVersionInfo->CompanyName = versionInfo.CompanyName;
@@ -4813,6 +5018,82 @@ PPH_STRING PhGetSystemDirectoryWin32(
 }
 
 /**
+ * Retrieves the build string of the current operating system.
+ *
+ * \return A string in the format "Major.Minor.Build.UBR", or "Major.Minor.Build"
+ * if the update build revision is unavailable.
+ */
+PPH_STRING PhGetWindowsBuildString(
+    VOID
+    )
+{
+    RTL_OSVERSIONINFOEX3 versionInfo;
+    USHORT layerCount = 1;
+    BOOLEAN found = FALSE;
+    ULONG majorVersion = PhOsVersion.MajorVersion;
+    ULONG minorVersion = PhOsVersion.MinorVersion;
+    ULONG buildNumber = PhOsVersion.BuildNumber;
+    ULONG updateBuildRevision = 0;
+    PH_FORMAT format[7];
+    ULONG count = 0;
+
+    // Query the top-level build layer for current version information.
+    // RTL_OSVERSIONINFOEX3 is only supported on newer builds.
+    for (USHORT i = 0; i < layerCount; i++)
+    {
+        memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEX3));
+        versionInfo.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX3);
+        versionInfo.Input.LayerNumber = i;
+        versionInfo.Input.AttribSelector = RTL_OSVERSIONINFO_ATTRIB_LAYER_NAME;
+
+        if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
+            break;
+
+        if (versionInfo.IsTopLevel)
+        {
+            majorVersion = versionInfo.MajorVersion;
+            minorVersion = versionInfo.MinorVersion;
+            buildNumber = versionInfo.BuildNumber;
+            updateBuildRevision = versionInfo.QfeNumber;
+            found = TRUE;
+            break;
+        }
+
+        layerCount = versionInfo.LayerCount;
+    }
+
+    // Fall back to RTL_OSVERSIONINFOEX for major/minor/build (no UBR).
+    if (!found)
+    {
+        RTL_OSVERSIONINFOEX versionInfoEx;
+
+        memset(&versionInfoEx, 0, sizeof(RTL_OSVERSIONINFOEX));
+        versionInfoEx.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX);
+
+        if (NT_SUCCESS(RtlGetVersion(&versionInfoEx)))
+        {
+            majorVersion = versionInfoEx.MajorVersion;
+            minorVersion = versionInfoEx.MinorVersion;
+            buildNumber = versionInfoEx.BuildNumber;
+        }
+    }
+
+    PhInitFormatU(&format[count++], majorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], minorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], buildNumber);
+
+    if (updateBuildRevision)
+    {
+        PhInitFormatC(&format[count++], L'.');
+        PhInitFormatU(&format[count++], updateBuildRevision);
+    }
+
+    return PhFormat(format, count, 0);
+}
+
+/**
  * Retrieves the Windows system root directory path.
  *
  * This function returns the system root directory path as a PH_STRINGREF.
@@ -5209,11 +5490,140 @@ PPH_STRING PhGetLocalAppDataDirectory(
 }
 
 /**
+ * Gets the roaming application data directory of the user associated with the shadow
+ * administrator account of the current process (Administrator Protection).
+ *
+ * \return A pointer to a string containing the Win32 path, or NULL if the current process is not
+ * running as a shadow administrator account or the directory could not be determined.
+ * \remarks Under Administrator Protection, elevated processes run as a separate shadow administrator
+ * account with its own user profile. The returned string is cached and must not be dereferenced.
+ */
+PPH_STRING PhpGetShadowAdminRoamingAppDataDirectory(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING shadowAdminAppDataDirectory = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static CONST PH_STRINGREF profileListKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\");
+        static CONST PH_STRINGREF shellFoldersKeyName = PH_STRINGREF_INIT(L"\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders");
+        static CONST PH_STRINGREF userProfileVariable = PH_STRINGREF_INIT(L"%USERPROFILE%");
+        static CONST PH_STRINGREF defaultAppDataPath = PH_STRINGREF_INIT(L"\\AppData\\Roaming");
+        PH_TOKEN_ATTRIBUTES tokenAttributes;
+        PSID associatedSid;
+        PPH_STRING associatedSidString = NULL;
+        PPH_STRING profileDirectory = NULL;
+        PPH_STRING appDataDirectory = NULL;
+        PPH_STRING keyName;
+        HANDLE keyHandle;
+
+        tokenAttributes = PhGetOwnTokenAttributes();
+
+        if (tokenAttributes.TokenSid && NT_SUCCESS(PhGetShadowAdminAssociatedSid(tokenAttributes.TokenSid, &associatedSid, NULL)))
+        {
+            associatedSidString = PhSidToStringSid(associatedSid);
+            PhFree(associatedSid);
+        }
+
+        // Query the profile directory of the associated user. (dmex)
+
+        if (associatedSidString)
+        {
+            keyName = PhConcatStringRef2(&profileListKeyName, &associatedSidString->sr);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_LOCAL_MACHINE,
+                &keyName->sr,
+                0
+                )))
+            {
+                PPH_STRING profileImagePath;
+
+                if (profileDirectory = PhQueryRegistryStringZ(keyHandle, L"ProfileImagePath"))
+                {
+                    if (profileImagePath = PhExpandEnvironmentStrings(&profileDirectory->sr))
+                    {
+                        PhMoveReference(&profileDirectory, profileImagePath);
+                    }
+                }
+
+                NtClose(keyHandle);
+            }
+
+            PhDereferenceObject(keyName);
+        }
+
+        // Query the (possibly redirected) roaming application data directory of the associated user.
+        // Note: %USERPROFILE% must be resolved against the associated user and not the environment
+        // of the current process since that references the shadow administrator profile. (dmex)
+
+        if (associatedSidString && !PhIsNullOrEmptyString(profileDirectory))
+        {
+            keyName = PhConcatStringRef2(&associatedSidString->sr, &shellFoldersKeyName);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_USERS,
+                &keyName->sr,
+                0
+                )))
+            {
+                PPH_STRING appDataValue;
+
+                if (appDataValue = PhQueryRegistryStringZ(keyHandle, L"AppData"))
+                {
+                    if (PhStartsWithStringRef(&appDataValue->sr, &userProfileVariable, TRUE))
+                    {
+                        PH_STRINGREF remainingPath;
+
+                        remainingPath.Buffer = PTR_ADD_OFFSET(appDataValue->Buffer, userProfileVariable.Length);
+                        remainingPath.Length = appDataValue->Length - userProfileVariable.Length;
+
+                        appDataDirectory = PhConcatStringRef2(&profileDirectory->sr, &remainingPath);
+                    }
+                    else
+                    {
+                        appDataDirectory = PhExpandEnvironmentStrings(&appDataValue->sr);
+                    }
+
+                    PhDereferenceObject(appDataValue);
+                }
+
+                NtClose(keyHandle);
+            }
+
+            PhDereferenceObject(keyName);
+
+            if (PhIsNullOrEmptyString(appDataDirectory))
+            {
+                PhMoveReference(&appDataDirectory, PhConcatStringRef2(&profileDirectory->sr, &defaultAppDataPath));
+            }
+        }
+
+        shadowAdminAppDataDirectory = appDataDirectory;
+
+        PhClearReference(&profileDirectory);
+        PhClearReference(&associatedSidString);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return shadowAdminAppDataDirectory;
+}
+
+/**
  * Gets the roaming application data directory for System Informer, optionally appending a file name.
  *
  * \param FileName The file name to append, or NULL to return the directory only.
  * \param NativeFileName TRUE to use the native NT path, FALSE for Win32 path.
  * \return A pointer to a string containing the full path, or NULL if the directory could not be determined.
+ * \remarks When running as a shadow administrator account (Administrator Protection) the directory of
+ * the associated user is returned so settings are shared between elevated and non-elevated instances.
  */
 PPH_STRING PhGetRoamingAppDataDirectory(
     _In_opt_ PCPH_STRINGREF FileName,
@@ -5221,9 +5631,28 @@ PPH_STRING PhGetRoamingAppDataDirectory(
     )
 {
     PPH_STRING roamingAppDataFileName = NULL;
-    PPH_STRING roamingAppDataDirectory;
+    PPH_STRING roamingAppDataDirectory = NULL;
+#if !defined(PH_BUILD_MSIX)
+    PPH_STRING shadowAdminAppDataDirectory;
 
-    if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName))
+    if (shadowAdminAppDataDirectory = PhpGetShadowAdminRoamingAppDataDirectory())
+    {
+        static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemInformer\\");
+
+        roamingAppDataDirectory = PhConcatStringRef2(&shadowAdminAppDataDirectory->sr, &directoryName);
+
+        if (NativeFileName)
+        {
+            PhMoveReference(&roamingAppDataDirectory, PhDosPathNameToNtPathName(&roamingAppDataDirectory->sr));
+        }
+    }
+    else
+#endif
+    {
+        roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName);
+    }
+
+    if (roamingAppDataDirectory)
     {
         if (!FileName) return roamingAppDataDirectory;
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
@@ -9865,6 +10294,82 @@ BOOLEAN PhParseCommandLineFuzzy(
 }
 
 /**
+ * Determines whether a command line starts with a path to an executable that contains
+ * spaces and is not surrounded by quotation marks (unquoted path).
+ *
+ * \param CommandLine The command line.
+ * \param SearchFilePath TRUE to search for an existing file to determine the executable portion
+ * when the command line does not contain ".exe", otherwise FALSE.
+ * \return TRUE if the executable portion of the command line contains spaces and is unquoted, otherwise FALSE.
+ * \remarks The executable portion is the text up to the first ".exe" followed by whitespace
+ * or the end of the command line.
+ */
+BOOLEAN PhIsCommandLineUnquotedPath(
+    _In_ PCPH_STRINGREF CommandLine,
+    _In_ BOOLEAN SearchFilePath
+    )
+{
+    static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
+    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".exe");
+    PH_STRINGREF commandLine;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF fileName;
+    PH_STRINGREF arguments;
+    BOOLEAN found = FALSE;
+
+    commandLine = *CommandLine;
+    PhTrimStringRef(&commandLine, &whitespace, 0);
+
+    if (commandLine.Length == 0 || commandLine.Buffer[0] == L'"')
+        return FALSE;
+    if (PhFindCharInStringRef(&commandLine, L' ', FALSE) == SIZE_MAX &&
+        PhFindCharInStringRef(&commandLine, L'\t', FALSE) == SIZE_MAX)
+        return FALSE;
+
+    remainingPart = commandLine;
+
+    while (remainingPart.Length != 0)
+    {
+        ULONG_PTR index;
+        SIZE_T fileNameLength;
+
+        index = PhFindStringInStringRef(&remainingPart, &extension, TRUE);
+
+        if (index == SIZE_MAX)
+            break;
+
+        fileNameLength = (SIZE_T)PTR_SUB_OFFSET(remainingPart.Buffer, commandLine.Buffer) + (index * sizeof(WCHAR)) + extension.Length;
+
+        if (fileNameLength == commandLine.Length ||
+            commandLine.Buffer[fileNameLength / sizeof(WCHAR)] == L' ' ||
+            commandLine.Buffer[fileNameLength / sizeof(WCHAR)] == L'\t')
+        {
+            fileName.Buffer = commandLine.Buffer;
+            fileName.Length = fileNameLength;
+            found = TRUE;
+            break;
+        }
+
+        PhSkipStringRef(&remainingPart, (index * sizeof(WCHAR)) + extension.Length);
+    }
+
+    if (!found)
+    {
+        if (!SearchFilePath)
+            return FALSE;
+        if (!PhParseCommandLineFuzzy(&commandLine, &fileName, &arguments, NULL))
+            return FALSE;
+    }
+
+    if (PhFindCharInStringRef(&fileName, L' ', FALSE) != SIZE_MAX)
+        return TRUE;
+    if (PhFindCharInStringRef(&fileName, L'\t', FALSE) != SIZE_MAX)
+        return TRUE;
+
+    return FALSE;
+}
+
+/**
  * Parses a Unicode command line string and returns an array of pointers to the command line arguments, along with a count of such arguments.
  *
  * \param CommandLine Pointer to a null-terminated Unicode string that contains the full command line. If this parameter is an empty string the function returns the path to the current executable file.
@@ -10095,7 +10600,7 @@ PPH_STRING PhCreateCacheFile(
 
     // Reject trailing dot/space: Win32 silently strips these, so the created name
     // would not match the returned string. (DOS device names such as CON or NUL
-    // are not rejected here; they fail later at file creation.)
+    // are not rejected here; they fail later at file creation.) (dmex)
     {
         WCHAR last = FileName->Buffer[FileName->Length / sizeof(WCHAR) - 1];
 
@@ -10423,6 +10928,7 @@ NTSTATUS PhGetFileData(
     ULONG allocatedLength;
     ULONG dataLength;
     ULONG returnLength;
+    ULONG requiredLength;
     IO_STATUS_BLOCK isb;
     BYTE buffer[PAGE_SIZE * 2];
 
@@ -10447,15 +10953,24 @@ NTSTATUS PhGetFileData(
         if (returnLength == 0)
             break;
 
-        if (allocatedLength < dataLength + returnLength)
+        // The length is returned as a ULONG and must leave room for the terminator.
+        if (!NT_SUCCESS(RtlULongAdd(dataLength, returnLength, &requiredLength)) || requiredLength == ULONG_MAX)
         {
-            allocatedLength *= 2;
+            status = STATUS_FILE_TOO_LARGE;
+            break;
+        }
+
+        if (allocatedLength < requiredLength)
+        {
+            if (!NT_SUCCESS(RtlULongMult(allocatedLength, 2, &allocatedLength)))
+                allocatedLength = ULONG_MAX;
+
             data = PhReAllocate(data, allocatedLength);
         }
 
         memcpy(data + dataLength, buffer, returnLength);
 
-        dataLength += returnLength;
+        dataLength = requiredLength;
     }
 
     if (status == STATUS_END_OF_FILE)

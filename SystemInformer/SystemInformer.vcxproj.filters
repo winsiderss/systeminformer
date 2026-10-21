@@ -75,9 +75,6 @@
     <ClCompile Include="itemtips.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="jobprp.c">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="log.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -91,6 +88,9 @@
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mdump.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memcfg.c">
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memedit.c">
@@ -165,10 +165,10 @@
     <ClCompile Include="thrdprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="thrdstk.c">
+    <ClCompile Include="thrdctx.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="tokprp.c">
+    <ClCompile Include="thrdstk.c">
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvctl.c">
@@ -270,10 +270,10 @@
     <ClCompile Include="prpgenv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="prpghndl.c">
+    <ClCompile Include="envdlg.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="prpgjob.c">
+    <ClCompile Include="prpghndl.c">
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgsrv.c">
@@ -355,6 +355,15 @@
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="runaspkg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgjob.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="tokprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="jobprp.c">
       <Filter>System Informer</Filter>
     </ClCompile>
   </ItemGroup>

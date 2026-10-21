@@ -87,7 +87,6 @@ typedef struct _AppDomainEnumerationIPCBlock_Wow64
 } AppDomainEnumerationIPCBlock_Wow64;
 #include <poppack.h>
 
-
 // Enforce the AppDomain IPC block binary layout.
 C_ASSERT(FIELD_OFFSET(AppDomainInfo_Wow64, Id) == 0x0);
 C_ASSERT(FIELD_OFFSET(AppDomainInfo_Wow64, NameLengthInBytes) == 0x4);

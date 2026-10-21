@@ -117,6 +117,43 @@ BOOLEAN PhMwpServicesPageCallback(
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (MicrosoftFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEMICROSOFTSERVICES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
+
+            {
+                PPH_EMENU groupMenu;
+                ULONG groupMode = PhGetServiceTreeListGroupMode();
+
+                groupMenu = PhCreateEMenuItem(0, 0, L"&Group services by", NULL, NULL);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, groupMenu, ULONG_MAX);
+
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_NONE, L"&None", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_TYPE, L"&Type", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_LOADORDER, L"&Load order group", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_SVCHOST, L"&Svchost group", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_STARTTYPE, L"Start t&ype", NULL, NULL), ULONG_MAX);
+
+                switch (groupMode)
+                {
+                case 1:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_TYPE);
+                    break;
+                case 2:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_LOADORDER);
+                    break;
+                case 3:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_SVCHOST);
+                    break;
+                case 4:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_STARTTYPE);
+                    break;
+                default:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_NONE);
+                    break;
+                }
+
+                if (menuItem)
+                    menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+            }
         }
         return TRUE;
     case MainTabPageLoadSettings:

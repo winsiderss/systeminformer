@@ -189,12 +189,7 @@ HWND PhGetConsoleWindow(
             // ConPTY applications expose a hidden PseudoConsoleWindow rather than their
             // visible top-level window. Resolve that proxy only when Windows Terminal owns it.
 
-            if (NT_SUCCESS(PhGetClassName(
-                windowHandle,
-                classWindowName,
-                RTL_NUMBER_OF(classWindowName),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetClassName(windowHandle, classWindowName, RTL_NUMBER_OF(classWindowName), NULL)))
             {
                 if (PhEqualStringZ(classWindowName, L"PseudoConsoleWindow", FALSE))
                 {
@@ -203,16 +198,11 @@ HWND PhGetConsoleWindow(
 
                     if ((terminalHandle = GetAncestor(windowHandle, GA_ROOTOWNER)))
                     {
-                        if (NT_SUCCESS(PhGetClassName(
-                            terminalHandle,
-                            classTerminalName,
-                            RTL_NUMBER_OF(classTerminalName),
-                            NULL
-                            )))
-                        {
-                            // Windows Terminal uses this class for the visible window that
-                            // hosts the pseudo console represented by PseudoConsoleWindow.
+                        // Windows Terminal uses this class for the visible window that
+                        // hosts the pseudo console represented by PseudoConsoleWindow.
 
+                        if (NT_SUCCESS(PhGetClassName(terminalHandle, classTerminalName, RTL_NUMBER_OF(classTerminalName), NULL)))
+                        {
                             if (PhEqualStringZ(classTerminalName, L"CASCADIA_HOSTING_WINDOW_CLASS", FALSE))
                             {
                                 return terminalHandle;

@@ -308,7 +308,7 @@ NTAPI
 PhWaitForAsyncOperationWithProgress(
     _In_ PVOID Operation,
     _In_ REFIID HandlerId,
-    _In_ PVOID ProgressHandler,
+    _In_opt_ PVOID ProgressHandler,
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_opt_ HANDLE CancelEvent,
     _Out_ PVOID Result

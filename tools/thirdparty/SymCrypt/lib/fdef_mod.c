@@ -319,7 +319,7 @@ SymCryptFdefDecideModulusType( PCSYMCRYPT_INT piSrc, UINT32 nDigits, UINT32 aver
             }
 
             // Detect if modulus value is the P256 field modulus (not currently used)
-            // if( nBitsizeOfValue == 256 && 
+            // if( nBitsizeOfValue == 256 &&
             //     SymCryptFdefRawGetValue(SYMCRYPT_FDEF_INT_PUINT32(piSrc), SYMCRYPT_FDEF_DIGITS_FROM_BITS(256), tempBuf, 64, SYMCRYPT_NUMBER_FORMAT_MSB_FIRST) == SYMCRYPT_NO_ERROR )
             // {
             //     // First 32 bytes are guaranteed to be zero because nBitsizeOfValue is 256
@@ -707,6 +707,25 @@ SymCryptFdefModSetRandomGeneric(
     _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
                                     SIZE_T                  cbScratch )
 {
+    SymCryptFdefModSetRandomGenericEx(
+        pmMod,
+        peDst,
+        flags,
+        NULL,
+        pbScratch,
+        cbScratch );
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptFdefModSetRandomGenericEx(
+    _In_                            PCSYMCRYPT_MODULUS      pmMod,
+    _Out_                           PSYMCRYPT_MODELEMENT    peDst,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch )
+{
     UINT32 offset;
     UINT32 ulimit;
     UINT32 nDigits = pmMod->nDigits;
@@ -765,7 +784,14 @@ SymCryptFdefModSetRandomGeneric(
     for(cntr=0; cntr<FDEF_MOD_SET_RANDOM_GENERIC_LIMIT; cntr++)
     {
         // Try random values until we get one we like
-        SymCryptCallbackRandom( (PBYTE)pDst, nUsedBytes );
+        if( pRngState != NULL )
+        {
+            SymCryptRngAesGenerate( pRngState, (PBYTE)pDst, nUsedBytes );
+        }
+        else
+        {
+            SymCryptCallbackRandom( (PBYTE)pDst, nUsedBytes );
+        }
         ((PBYTE)pDst)[nUsedBytes-1] &= (BYTE) mask;
 
         // Compare value to pMod-(offset+ulimit)
@@ -847,7 +873,7 @@ SymCryptFdefModDivSmallPow2(
     _In_range_(1, NATIVE_BITS)  UINT32                  exp,
     _Out_                       PSYMCRYPT_MODELEMENT    peDst )
 {
-    
+
 #if SYMCRYPT_CPU_AMD64
     if( SYMCRYPT_CPU_FEATURES_PRESENT( SYMCRYPT_CPU_FEATURES_FOR_MULX ) )
     {

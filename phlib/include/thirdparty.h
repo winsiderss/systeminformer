@@ -79,3 +79,8 @@
 #error "ThirdParty.lib is missing"
 #endif
 
+#if __has_include("../../tools/thirdparty/7zip/si_7zip.h")
+#include "../../tools/thirdparty/7zip/si_7zip.h"
+#else
+#error "ThirdParty.lib is missing"
+#endif

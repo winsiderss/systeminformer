@@ -3,7 +3,7 @@
 //
 // https://www.msweet.org/mxml
 //
-// Copyright © 2003-2024 by Michael R Sweet.
+// Copyright © 2003-2026 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -12,8 +12,51 @@
 #ifndef MXML_PRIVATE_H
 #  define MXML_PRIVATE_H
 #  include "config.h"
+
+#  if _WIN32
+//
+// Beginning with VC2005, Microsoft breaks ISO C and POSIX conformance
+// by deprecating a number of functions in the name of security, even
+// when many of the affected functions are otherwise completely secure.
+// The _CRT_SECURE_NO_DEPRECATE definition ensures that we won't get
+// warnings from their use...
+//
+// Then Microsoft decided that they should ignore this in VC2008 and use
+// yet another define (_CRT_SECURE_NO_WARNINGS) instead...
+//
+#    define _CRT_SECURE_NO_DEPRECATE
+//#    define _CRT_SECURE_NO_WARNINGS
+#  endif // _WIN32
+
 #  include "mxml.h"
+#  include <stdarg.h>
 #  include <locale.h>
+
+#  if _WIN32
+//
+// Microsoft also renames the POSIX functions to _name, and introduces
+// a broken compatibility layer using the original names.  As a result,
+// random crashes can occur when, for example, strdup() allocates memory
+// from a different heap than used by malloc() and free().
+//
+// To avoid moronic problems like this, we #define the POSIX function
+// names to the corresponding non-standard Microsoft names.
+//
+#    include <io.h>
+#    define close	_close
+#    define open	_open
+#    define read	_read
+#    define snprintf 	_snprintf
+#    define strdup	_strdup
+#    define vsnprintf 	_vsnprintf
+#    define write	_write
+
+#  else
+//
+// Linux/macOS/Unix are POSIX...
+//
+#    include <unistd.h>
+#  endif // _WIN32
 
 
 //

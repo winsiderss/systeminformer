@@ -7900,7 +7900,7 @@ PhGetFileMotw(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhCreateWaitableTimer(
+PhCreateHighResolutionTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ TIMER_TYPE TimerType
@@ -7909,13 +7909,10 @@ PhCreateWaitableTimer(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSetWaitableTimer(
+PhSetHighResolutionTimer(
     _In_ HANDLE TimerHandle,
     _In_ PLARGE_INTEGER DueTime,
-    _In_opt_ PLARGE_INTEGER Period,
-    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
-    _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer
+    _In_opt_ PLARGE_INTEGER Period
     );
 
 #define PH_WINDOW_TIMER_DEFAULT 0xF

@@ -218,14 +218,13 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
 }
 
 /**
- * \brief PvDoPropPageLayout
+ * \PvDoPropPageLayout
  *
  * \param WindowHandle
  */
-
 VOID PvDoPropPageLayout(
     _In_ HWND WindowHandle
     )
 {
-    PhPropSheetNewPageLayout(WindowHandle);
+    //PhPropSheetNPageLayout(WindowHandle);
 }

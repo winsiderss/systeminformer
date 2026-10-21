@@ -134,7 +134,7 @@ namespace CustomBuildTool
             "graphscroll.h",
             "guisup.h",
             "guisupview.h",
-            "headernew.h",
+            "treehdr.h",
             "hexedit.h",
             "hndlinfo.h",
             "json.h",

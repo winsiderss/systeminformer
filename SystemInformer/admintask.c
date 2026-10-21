@@ -14,6 +14,7 @@
 #include <taskschd.h>
 #include <secwmi.h>
 #include <phconsole.h>
+#include <svcsup.h>
 #include <trace.h>
 
 DEFINE_GUID(CLSID_TaskScheduler, 0x0f87369f, 0xa4e5, 0x4cfc, 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd);
@@ -443,6 +444,104 @@ CleanupExit:
     PhTraceFuncExit("Run as admin task: %!STATUS!", status);
 
     return status;
+}
+
+/**
+ * Determines whether the current process was launched by the Task Scheduler service.
+ *
+ * The parent process must be the svchost instance hosting the Schedule service.
+ * The parent handle is held for the duration of the check so the process identifier
+ * cannot be recycled, and the parent must have been created before the current
+ * process so a recycled identifier is rejected.
+ *
+ * \return TRUE if the parent process is the Task Scheduler service, otherwise FALSE.
+ */
+BOOLEAN PhIsLaunchedByTaskScheduler(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF svchostFileName = PH_STRINGREF_INIT(L"\\svchost.exe");
+    BOOLEAN result = FALSE;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    HANDLE parentProcessHandle = NULL;
+    SC_HANDLE serviceHandle = NULL;
+    SERVICE_STATUS_PROCESS serviceStatus;
+    ULONGLONG parentSequenceNumber;
+    ULONGLONG ownSequenceNumber;
+    PPH_STRING parentFileName = NULL;
+    PPH_STRING svchostPath = NULL;
+
+    if (!NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &basicInfo)))
+        goto CleanupExit;
+    if (!basicInfo.InheritedFromUniqueProcessId)
+        goto CleanupExit;
+
+    // Open the parent first. While the handle is held the identifier cannot be reused.
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &parentProcessHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        basicInfo.InheritedFromUniqueProcessId
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // The real parent was created before the current process. A recycled
+    // identifier belongs to a newer process with a higher sequence number.
+
+    if (NT_SUCCESS(PhGetProcessSequenceNumber(parentProcessHandle, &parentSequenceNumber)) &&
+        NT_SUCCESS(PhGetProcessSequenceNumber(NtCurrentProcess(), &ownSequenceNumber)))
+    {
+        if (parentSequenceNumber >= ownSequenceNumber)
+            goto CleanupExit;
+    }
+    else
+    {
+        KERNEL_USER_TIMES parentTimes;
+        KERNEL_USER_TIMES ownTimes;
+
+        if (!NT_SUCCESS(PhGetProcessTimes(parentProcessHandle, &parentTimes)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetProcessTimes(NtCurrentProcess(), &ownTimes)))
+            goto CleanupExit;
+        if (parentTimes.CreateTime.QuadPart > ownTimes.CreateTime.QuadPart)
+            goto CleanupExit;
+    }
+
+    // The parent must be the system svchost image.
+
+    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(parentProcessHandle, &parentFileName)))
+        goto CleanupExit;
+    if (!(svchostPath = PhGetSystemDirectoryWin32(&svchostFileName)))
+        goto CleanupExit;
+    if (!PhEqualString(parentFileName, svchostPath, TRUE))
+        goto CleanupExit;
+
+    // The parent must host the Schedule service.
+
+    if (!NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, L"Schedule")))
+        goto CleanupExit;
+    if (!NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &serviceStatus)))
+        goto CleanupExit;
+
+    if (serviceStatus.dwCurrentState == SERVICE_RUNNING &&
+        serviceStatus.dwProcessId == HandleToUlong(basicInfo.InheritedFromUniqueProcessId))
+    {
+        result = TRUE;
+    }
+
+CleanupExit:
+
+    if (serviceHandle)
+        PhCloseServiceHandle(serviceHandle);
+    if (parentProcessHandle)
+        NtClose(parentProcessHandle);
+
+    PhClearReference(&svchostPath);
+    PhClearReference(&parentFileName);
+
+    return result;
 }
 
 NTSTATUS PhRunAsAdminTaskUIAccess(

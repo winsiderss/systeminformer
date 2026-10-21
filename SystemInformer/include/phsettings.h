@@ -173,6 +173,8 @@ EXT ULONG PhCsUseColorMemoryCfgPages;
 EXT ULONG PhCsColorMemoryCfgPages;
 EXT ULONG PhCsUseColorMemoryExecutePages;
 EXT ULONG PhCsColorMemoryExecutePages;
+EXT ULONG PhCsUseColorMemoryModifiedPages;
+EXT ULONG PhCsColorMemoryModifiedPages;
 EXT ULONG PhCsUseColorRelocatedModules;
 EXT ULONG PhCsColorRelocatedModules;
 EXT ULONG PhCsUseColorProtectedHandles;
@@ -272,6 +274,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_STREAMER_MODE                                L"EnableStreamerMode"
 #define SETTING_ENABLE_START_AS_ADMIN                               L"EnableStartAsAdmin"
 #define SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP                 L"EnableStartAsAdminAlwaysOnTop"
+#define SETTING_ENABLE_START_AS_ADMIN_ISOLATED                      L"EnableStartAsAdminIsolated"
 #define SETTING_ENABLE_DEFAULT_SAFE_PLUGINS                         L"EnableDefaultSafePlugins"
 #define SETTING_ENABLE_SECURITY_ADVANCED_DIALOG                     L"EnableSecurityAdvancedDialog"
 #define SETTING_ENABLE_SHORT_RELATIVE_START_TIME                    L"EnableShortRelativeStartTime"
@@ -413,6 +416,10 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_MEMORY_MODIFIED_WINDOW_SIZE                         L"MemoryModifiedWindowSize"
 #define SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS                   L"MemoryModifiedListViewColumns"
 #define SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT                      L"MemoryModifiedListViewSort"
+#define SETTING_MEMORY_CFG_WINDOW_POSITION                          L"MemoryCfgWindowPosition"
+#define SETTING_MEMORY_CFG_WINDOW_SIZE                              L"MemoryCfgWindowSize"
+#define SETTING_MEMORY_CFG_LIST_VIEW_COLUMNS                        L"MemoryCfgListViewColumns"
+#define SETTING_MEMORY_CFG_LIST_VIEW_SORT                           L"MemoryCfgListViewSort"
 #define SETTING_MEM_STRINGS_TREE_LIST_COLUMNS                       L"MemStringsTreeListColumns"
 #define SETTING_MEM_STRINGS_TREE_LIST_SORT                          L"MemStringsTreeListSort"
 #define SETTING_MEM_STRINGS_TREE_LIST_FLAGS                         L"MemStringsTreeListFlags"
@@ -457,6 +464,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PROCESS_TREE_LIST_COLUMNS                           L"ProcessTreeListColumns"
 #define SETTING_PROCESS_TREE_LIST_SORT                              L"ProcessTreeListSort"
 #define SETTING_PROCESS_TREE_LIST_NAME_DEFAULT                      L"ProcessTreeListNameDefault"
+#define SETTING_PROCESS_TREE_LIST_HEATMAP                           L"ProcessTreeListHeatmap"
 #define SETTING_PROC_PROP_PAGE                                      L"ProcPropPage"
 #define SETTING_PROC_PROP_POSITION                                  L"ProcPropPosition"
 #define SETTING_PROC_PROP_SIZE                                      L"ProcPropSize"

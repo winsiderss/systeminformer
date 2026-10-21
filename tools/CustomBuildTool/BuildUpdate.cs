@@ -471,6 +471,26 @@ namespace CustomBuildTool
                 return string.Compare(Prerelease, Other.Prerelease, StringComparison.OrdinalIgnoreCase);
             }
 
+            /// <summary>
+            /// Determines whether this version is equal to another object using semantic versioning rules.
+            /// </summary>
+            /// <param name="Obj">Object to compare to.</param>
+            /// <returns>True if the versions compare equal; false otherwise.</returns>
+            public override bool Equals(object Obj)
+            {
+                return Obj is NugetSemVer other && CompareTo(other) == 0;
+            }
+
+            /// <summary>
+            /// Returns a hash code consistent with <see cref="CompareTo(NugetSemVer)"/>.
+            /// Extra numbers and prerelease are excluded since trailing zeros and casing compare equal.
+            /// </summary>
+            /// <returns>The hash code.</returns>
+            public override int GetHashCode()
+            {
+                return HashCode.Combine(Major, Minor, Patch);
+            }
+
             public override string ToString()
             {
                 return this.Original;

@@ -4,6 +4,8 @@
 // These curves are lazy-initialized. Currently only used
 // for composite algorithms to avoid per-key allocation overhead.
 //
+// Copyright (c) Microsoft Corporation. Licensed under the MIT license.
+//
 
 #include "precomp.h"
 

@@ -546,6 +546,28 @@ BOOLEAN PhGetDiaSymbolInformation(
     _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
     );
 
+_Success_(return)
+BOOLEAN PhGetSymbolProviderSourceLink(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID BaseOfDll,
+    _Out_ PPH_BYTES* SourceLink
+    );
+
+_Success_(return)
+BOOLEAN PhResolveSourceLinkUrl(
+    _In_ PPH_BYTES SourceLink,
+    _In_ PCPH_STRINGREF LocalPath,
+    _In_ ULONG LineNumber,
+    _Out_ PPH_STRING* Url
+    );
+
+_Success_(return)
+BOOLEAN PhGetSourceLinkUrlFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID Address,
+    _Out_ PPH_STRING* Url
+    );
+
 PHLIBAPI
 VOID
 NTAPI
@@ -577,6 +599,27 @@ EXTERN_C PPH_STRING PhGetStacktraceSymbolFromAddress(
 
 EXTERN_C PPH_STRING PhGetObjectTypeStacktraceToString(
     _In_ PVOID Object
+    );
+
+typedef struct _PH_SYMBOL_NODE
+{
+    ULONG Index;
+    ULONG64 Offset;
+    PPH_STRING Name;
+    PPH_STRING Value;
+    PPH_LIST Children;
+} PH_SYMBOL_NODE, *PPH_SYMBOL_NODE;
+
+EXTERN_C PPH_LIST PhSymbolsForAddress(
+    _In_ PCWSTR TypeName,
+    _In_ PVOID Address,
+    _In_ HANDLE ProcessId,
+    _In_opt_ PCWSTR SearchPath,
+    _Out_opt_ PPH_STRING* ErrorText
+    );
+
+EXTERN_C VOID PhFreeSymbolNodeList(
+    _In_opt_ PPH_LIST List
     );
 
 EXTERN_C_END

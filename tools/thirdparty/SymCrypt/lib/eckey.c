@@ -971,6 +971,107 @@ cleanup:
     return scError;
 }
 
+#define SYMCRYPT_ECKEY_DERIVE_MAX_TRIES             (256)
+#define SYMCRYPT_ECKEY_DERIVE_P521_SCALAR_SIZE      (66)
+#define SYMCRYPT_ECKEY_DERIVE_MAX_PRIVATE_KEY_SIZE  (SYMCRYPT_ECKEY_DERIVE_P521_SCALAR_SIZE)
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEckeyDerive(
+    _Inout_                     PSYMCRYPT_ECKEY         pEckey,
+    _In_reads_bytes_( cbSeed )  PCBYTE                  pbSeed,
+                                SIZE_T                  cbSeed,
+    _In_                        UINT32                  flags )
+{
+    SYMCRYPT_ERROR          scError = SYMCRYPT_NO_ERROR;
+    PCSYMCRYPT_ECURVE       pCurve  = pEckey->pCurve;
+    SYMCRYPT_RNG_AES_STATE  rngState;
+
+    UINT32  cbScalarSize = SymCryptEcurveSizeofScalarMultiplier( pCurve );
+
+    // Same flag set as SymCryptEckeySetRandom: NO_FIPS plus at least one usage flag.
+    UINT32  algorithmFlags = SYMCRYPT_FLAG_ECKEY_ECDSA | SYMCRYPT_FLAG_ECKEY_ECDH;
+    UINT32  allowedFlags   = SYMCRYPT_FLAG_KEY_NO_FIPS | algorithmFlags;
+
+    BYTE    abCandidate[SYMCRYPT_ECKEY_DERIVE_MAX_PRIVATE_KEY_SIZE];
+    UINT32  counter;
+    BOOLEAN fFoundValidScalar = FALSE;
+
+    if( ( pbSeed == NULL ) || ( cbSeed == 0 ) )
+    {
+        return SYMCRYPT_INVALID_ARGUMENT;
+    }
+
+    // Reject disallowed flags and require a usage flag. MINIMAL_VALIDATION is
+    // excluded: it would bypass the range check the rejection loop relies on.
+    if( ( ( flags & ~allowedFlags ) != 0 ) ||
+        ( ( flags & algorithmFlags ) == 0 ) )
+    {
+        return SYMCRYPT_INVALID_ARGUMENT;
+    }
+
+    if( pCurve->PrivateKeyDefaultFormat != SYMCRYPT_ECKEY_PRIVATE_FORMAT_CANONICAL )
+    {
+        return SYMCRYPT_NOT_IMPLEMENTED;
+    }
+
+    if( cbScalarSize > sizeof( abCandidate ) )
+    {
+        return SYMCRYPT_NOT_IMPLEMENTED;
+    }
+
+    scError = SymCryptRngAesInstantiate( &rngState, pbSeed, cbSeed );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
+
+    // Draw candidates until SetValue accepts one as a key in [1, order-1].
+    for( counter = 0; counter < SYMCRYPT_ECKEY_DERIVE_MAX_TRIES; counter++ )
+    {
+        SymCryptRngAesGenerate( &rngState, abCandidate, cbScalarSize );
+
+        if( cbScalarSize == SYMCRYPT_ECKEY_DERIVE_P521_SCALAR_SIZE )
+        {
+            abCandidate[0] &= 0x01;
+        }
+
+        scError = SymCryptEckeySetValue(
+                    abCandidate, cbScalarSize,
+                    NULL, 0,
+                    SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                    SYMCRYPT_ECPOINT_FORMAT_XY,
+                    flags,
+                    pEckey );
+        if( scError == SYMCRYPT_NO_ERROR )
+        {
+            fFoundValidScalar = TRUE;
+            break;
+        }
+
+        // INVALID_ARGUMENT is the expected out-of-range rejection. Any other error
+        // (e.g. allocation failure) would break deterministic derivation so must
+        // fail the whole call.
+        SYMCRYPT_ASSERT( scError == SYMCRYPT_INVALID_ARGUMENT );
+        if( scError != SYMCRYPT_INVALID_ARGUMENT )
+        {
+            goto cleanup;
+        }
+    }
+
+    if( !fFoundValidScalar )
+    {
+        scError = SYMCRYPT_INVALID_ARGUMENT;
+        goto cleanup;
+    }
+
+cleanup:
+    SymCryptRngAesUninstantiate( &rngState );
+    SymCryptWipeKnownSize( abCandidate, sizeof( abCandidate ) );
+
+    return scError;
+}
+
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptEckeyExtendKeyUsage(

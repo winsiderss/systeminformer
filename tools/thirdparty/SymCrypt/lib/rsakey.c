@@ -509,13 +509,15 @@ cleanup:
     return scError;
 }
 
+static
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
-SymCryptRsakeyGenerate(
-    _Inout_                     PSYMCRYPT_RSAKEY    pkRsakey,
-    _In_reads_opt_( nPubExp )   PCUINT64            pu64PubExp,
-                                UINT32              nPubExp,
-    _In_                        UINT32              flags )
+SymCryptRsakeyGenerateInternal(
+    _Inout_                     PSYMCRYPT_RSAKEY        pkRsakey,
+    _In_reads_opt_( nPubExp )   PCUINT64                pu64PubExp,
+                                UINT32                  nPubExp,
+    _Inout_opt_                 PSYMCRYPT_RNG_AES_STATE pRngState,
+    _In_                        UINT32                  flags )
 {
     SYMCRYPT_ERROR  scError = SYMCRYPT_NO_ERROR;
 
@@ -693,13 +695,14 @@ SymCryptRsakeyGenerate(
         // IntGenerateRandomPrime requirement:
         //      piLow > 3 since nBitsOfModulus is bounded by
         //      SYMCRYPT_RSAKEY_MIN_BITSIZE_MODULUS.
-        scError = SymCryptIntGenerateRandomPrime(
+        scError = SymCryptIntGenerateRandomPrimeEx(
                     piLow,
                     piHigh,
                     pu64PubExp,
                     nPubExp,
                     maxTries,
                     0,
+                    pRngState,
                     SymCryptIntFromModulus( pkRsakey->pmPrimes[i] ),
                     pbFnScratch,
                     cbFnScratch);
@@ -788,6 +791,52 @@ cleanup:
     }
 
     return scError;
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptRsakeyDerive(
+    _Inout_                         PSYMCRYPT_RSAKEY    pkRsakey,
+    _In_reads_bytes_( cbSeed )      PCBYTE              pbSeed,
+                                    SIZE_T              cbSeed,
+    _In_                            UINT32              flags )
+{
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    SYMCRYPT_RNG_AES_STATE rngState;
+
+    scError = SymCryptRngAesInstantiate( &rngState, pbSeed, cbSeed );
+    if ( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
+
+    scError = SymCryptRsakeyGenerateInternal(
+        pkRsakey,
+        NULL,
+        0,
+        &rngState,
+        flags );
+
+cleanup:
+    SymCryptRngAesUninstantiate( &rngState );
+
+    return scError;
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptRsakeyGenerate(
+    _Inout_                     PSYMCRYPT_RSAKEY    pkRsakey,
+    _In_reads_opt_( nPubExp )   PCUINT64            pu64PubExp,
+                                UINT32              nPubExp,
+    _In_                        UINT32              flags )
+{
+    return SymCryptRsakeyGenerateInternal(
+        pkRsakey,
+        pu64PubExp,
+        nPubExp,
+        NULL,
+        flags );
 }
 
 // The maximum number of iterations we use in probabilistic prime recovery method

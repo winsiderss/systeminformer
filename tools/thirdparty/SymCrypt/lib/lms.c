@@ -930,9 +930,9 @@ LmsComputeOtsPubKeyCandidate(
     UINT16                  nCksm                                   = 0;
     PCSYMCRYPT_HASH         pHash                                   = pSigParams->pLmsHashFunction;
     SYMCRYPT_HASH_STATE     state                                   = { 0 };
-    SYMCRYPT_HASH_STATE     stateKc                                  = { 0 };
+    SYMCRYPT_HASH_STATE     stateKc                                 = { 0 };
     BYTE                    en32LeafNumber[sizeof(UINT32)]          = { 0 };
-    BYTE                    en16Index[sizeof(UINT16)]                            = { 0 };
+    BYTE                    en16Index[sizeof(UINT16)]               = { 0 };
     BYTE                    abLmsHashedMsg[SYMCRYPT_LMS_MAX_N + sizeof(nCksm)]  = { 0 };
     BYTE                    abTmpRes[SYMCRYPT_LMS_MAX_N]            = { 0 };
     PCBYTE                  pbRandomizer                            = NULL;
@@ -968,17 +968,19 @@ LmsComputeOtsPubKeyCandidate(
     SymCryptHashInit(pHash, &state);
     for (UINT32 i = 0; i < nByteStringCount; i++)
     {
-        BYTE a = (BYTE)SymCryptHbsGetDigit(nWinternitzChainWidth, abLmsHashedMsg, cbHashOutput + sizeof(nCksm), i);
+        UINT32 a = SymCryptHbsGetDigit(nWinternitzChainWidth, abLmsHashedMsg, cbHashOutput + sizeof(nCksm), i);
         PCBYTE tmp = pbOtsSignature + (i * cbHashOutput);
 
         SYMCRYPT_STORE_MSBFIRST16(en16Index, (UINT16)i);
 
-        for (BYTE j = a; j < nMaxJ; j++)
+        for (UINT32 j = a; j < nMaxJ; j++)
         {
+            const BYTE bJ = (BYTE)j;
+
             SymCryptHashAppend(pHash, &state, pbId, SYMCRYPT_LMS_KEY_PAIR_IDENTIFIER_SIZE);
             SymCryptHashAppend(pHash, &state, en32LeafNumber, sizeof(UINT32));
             SymCryptHashAppend(pHash, &state, en16Index, sizeof(UINT16));
-            SymCryptHashAppend(pHash, &state, &j, 1);
+            SymCryptHashAppend(pHash, &state, &bJ, sizeof(bJ));
             SymCryptHashAppend(pHash, &state, tmp, cbHashOutput);
             SymCryptHashResult(pHash, &state, abTmpRes, cbHashOutput);
             tmp = abTmpRes;

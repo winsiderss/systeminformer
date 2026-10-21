@@ -2538,6 +2538,31 @@ BOOLEAN PhTnpOnNotify(
                 case CDDS_PREPAINT:
                     {
                         *Result = CDRF_NOTIFYITEMDRAW;
+                        if (Context->ThemeSupport)
+                            *Result |= CDRF_NOTIFYPOSTPAINT;
+                    }
+                    return TRUE;
+                case CDDS_POSTPAINT:
+                    {
+                        if (Context->ThemeSupport)
+                        {
+                            RECT trailingRect;
+                            RECT itemRect;
+                            INT itemCount = Header_GetItemCount(Header->hwndFrom);
+
+                            if (PhGetClientRect(Header->hwndFrom, &trailingRect))
+                            {
+                                for (INT i = 0; i < itemCount; i++)
+                                {
+                                    if (Header_GetItemRect(Header->hwndFrom, i, &itemRect))
+                                        trailingRect.left = max(trailingRect.left, itemRect.right);
+                                }
+
+                                SetDCBrushColor(customDraw->hdc, PhThemeWindowBackgroundColor);
+                                FillRect(customDraw->hdc, &trailingRect, PhGetStockBrush(DC_BRUSH));
+                            }
+                        }
+                        *Result = CDRF_DODEFAULT;
                     }
                     return TRUE;
                 case CDDS_ITEMPREPAINT:
@@ -3009,7 +3034,6 @@ LRESULT PhTnpOnUserMessage(
     case TNM_SETEMPTYTEXT:
         {
             PPH_STRINGREF text = (PPH_STRINGREF)LParam;
-            ULONG flags = (ULONG)WParam;
 
             Context->EmptyText = *text;
 
@@ -4182,6 +4206,13 @@ BOOLEAN PhTnpAddColumn(
         updateHeaders = FALSE;
 
         assert(Context->NumberOfColumnsByDisplay == (ULONG)Header_GetItemCount(Context->HeaderHandle));
+
+        // A visible column without a valid display index (e.g. ULONG_MAX) is appended, the same as
+        // PhTnpChangeColumn does. Otherwise the header item is created with iOrder -1, the index reads
+        // back as ULONG_MAX, PhTnpUpdateColumnMaps skips the column and the header no longer matches
+        // the display map. (dmex)
+        if (!realColumn->Fixed && realColumn->DisplayIndex > Context->NumberOfColumnsByDisplay)
+            realColumn->DisplayIndex = Context->NumberOfColumnsByDisplay;
         //if (!realColumn->Fixed && realColumn->DisplayIndex != Header_GetItemCount(Context->HeaderHandle))
         if (!realColumn->Fixed && realColumn->DisplayIndex != Context->NumberOfColumnsByDisplay)
             updateHeaders = TRUE;
@@ -7565,6 +7596,73 @@ BOOLEAN PhTnpCanScroll(
 }
 
 /**
+ * Creates a buffered device context and bitmap for double-buffered drawing.
+ *
+ * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
+ * \param Hdc Handle to the device context to be buffered.
+ */
+VOID PhTnpCreateBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
+    )
+{
+    Context->BufferedContext = CreateCompatibleDC(Hdc);
+
+    if (!Context->BufferedContext)
+        return;
+
+    Context->BufferedContextRect = Context->ClientRect;
+    Context->BufferedBitmap = PhCreateDIBSection(
+        Hdc,
+        PHBF_TOPDOWNDIB,
+        Context->BufferedContextRect.right + 1, // leave one extra pixel for divider animation
+        Context->BufferedContextRect.bottom,
+        NULL
+        );
+
+    if (!Context->BufferedBitmap)
+    {
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+        return;
+    }
+
+    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
+}
+
+/**
+ * Destroys the buffered device context and bitmap, cleaning up resources.
+ *
+ * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
+ */
+VOID PhTnpDestroyBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    // The original bitmap must be selected back into the context, otherwise the bitmap can't be
+    // deleted.
+
+    if (Context->BufferedOldBitmap)
+    {
+        SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
+        Context->BufferedOldBitmap = NULL;
+    }
+
+    if (Context->BufferedBitmap)
+    {
+        DeleteBitmap(Context->BufferedBitmap);
+        Context->BufferedBitmap = NULL;
+    }
+
+    if (Context->BufferedContext)
+    {
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+    }
+}
+
+
+/**
  * Paints the tree view control.
  *
  * This function handles the drawing of all visible rows, columns, and cells in the tree view,
@@ -9172,7 +9270,8 @@ BOOLEAN TnHeaderCustomPaint(
         {
             HBRUSH oldBrush;
 
-            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowHighlight2Color);
+            // Highlight2Color is too light for the header text color. (dmex)
+            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackground2Color);
             FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
             // PatBlt uses the brush selected into the device context, unlike FillRect. (dmex)
@@ -9870,7 +9969,8 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 SendMessage(context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
             }
 
-            if (!context->HeaderCustomDraw)
+            // Must match WM_MOUSEMOVE, which tracks the hot column for theme support too. (dmex)
+            if (!context->HeaderCustomDraw && !context->ThemeSupport)
                 break;
 
             result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);

@@ -169,6 +169,9 @@ VOID NetworkDevicesUpdate(
             entry->NetworkSendRaw = 0;
             PhInitializeDelta(&entry->NetworkSendDelta);
             PhInitializeDelta(&entry->NetworkReceiveDelta);
+            // Re-arm the first sample, otherwise the counters of the device we reconnect to are
+            // reported as a single tick's delta. (dmex)
+            entry->HaveFirstSample = FALSE;
         }
         else
         {
@@ -177,26 +180,31 @@ VOID NetworkDevicesUpdate(
             //if (entry->NetworkSendRaw < networkOutOctets)
             entry->NetworkSendRaw = networkOutOctets;
 
-            PhUpdateDelta(&entry->NetworkSendDelta, entry->NetworkSendRaw);
-            PhUpdateDelta(&entry->NetworkReceiveDelta, entry->NetworkReceiveRaw);
+            // Clamped: the adapter counters restart when the device is reset. (dmex)
+            PhUpdateDeltaClamped(&entry->NetworkSendDelta, entry->NetworkSendRaw);
+            PhUpdateDeltaClamped(&entry->NetworkReceiveDelta, entry->NetworkReceiveRaw);
         }
 
-        if (!entry->HaveFirstSample)
+        // Note: the DevicePresent check keeps the first sample armed across the ticks where the
+        // device is missing, so the counters of the device we reconnect to are not reported as a
+        // single tick's delta. (dmex)
+
+        if (entry->DevicePresent && !entry->HaveFirstSample)
         {
             entry->NetworkSendDelta.Delta = 0;
             entry->NetworkReceiveDelta.Delta = 0;
             entry->HaveFirstSample = TRUE;
         }
 
-        if (RunCount != 0)
+        if (RunCount != 0 && NetRateIntervalMs != 0)
         {
             entry->CurrentNetworkSend = entry->NetworkSendDelta.Delta;
             entry->CurrentNetworkReceive = entry->NetworkReceiveDelta.Delta;
 
             entry->CurrentNetworkSend *= 1000;
-            entry->CurrentNetworkSend /= NetUpdateInterval;
+            entry->CurrentNetworkSend /= NetRateIntervalMs;
             entry->CurrentNetworkReceive *= 1000;
-            entry->CurrentNetworkReceive /= NetUpdateInterval;
+            entry->CurrentNetworkReceive /= NetRateIntervalMs;
 
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, entry->CurrentNetworkSend);
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, entry->CurrentNetworkReceive);

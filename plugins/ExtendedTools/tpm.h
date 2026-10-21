@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -325,6 +325,7 @@ typedef ULONG TPM_CAP;
 // TPM Algorithm IDs
 //
 typedef USHORT TPM_ALG;
+#define TPM_ALG_SHA1   ((USHORT)0x0004)
 #define TPM_ALG_SHA256 ((USHORT)0x000B)
 
 //
@@ -909,6 +910,43 @@ typedef struct _TPM_HASH_CMD_REPLY
     TPM2B_DIGEST OutHash;
     TPMT_TK_HASHCHECK Validation;
 } TPM_HASH_CMD_REPLY;
+
+//
+// PCR_Read
+//
+// The TPM returns at most 8 digests per PCR_Read, so callers select a subset
+// of the 24 PCRs on each pass and repeat until every PCR has been read.
+//
+
+#define TPM_PCR_COUNT 24
+#define TPM_PCR_SELECT_SIZE 3
+#define TPM_PCR_READ_MAX_DIGESTS 8
+#define TPM_PCR_MAX_DIGEST_SIZE 64
+
+typedef struct _TPMS_PCR_SELECTION
+{
+    TPM_ALG HashAlg;
+    UCHAR SizeOfSelect;
+    UCHAR PcrSelect[TPM_PCR_SELECT_SIZE];
+} TPMS_PCR_SELECTION, *PTPMS_PCR_SELECTION;
+
+typedef struct _TPM_PCR_READ_CMD
+{
+    TPM_CMD_HEADER Header;
+    ULONG SelectionCount;
+    TPMS_PCR_SELECTION Selection;
+} TPM_PCR_READ_CMD, *PTPM_PCR_READ_CMD;
+
+//
+// The reply is variable length (the returned selection list is followed by a
+// variable count of variable sized TPM2B digests) so it is parsed by hand from
+// a byte buffer rather than overlaid with a structure.
+//
+
+#define TPM_PCR_READ_REPLY_MAX_LENGTH \
+    (sizeof(TPM_REPLY_HEADER) + sizeof(ULONG) + sizeof(ULONG) + \
+     sizeof(TPMS_PCR_SELECTION) + sizeof(ULONG) + \
+     TPM_PCR_READ_MAX_DIGESTS * (sizeof(USHORT) + TPM_PCR_MAX_DIGEST_SIZE))
 
 #include <poppack.h>
 

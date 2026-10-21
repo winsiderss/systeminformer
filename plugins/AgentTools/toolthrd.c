@@ -799,7 +799,7 @@ VOID AtpGetThreadStack(
         processHandle,
         &clientId,
         context.SymbolProvider,
-        PH_WALK_USER_STACK | PH_WALK_USER_WOW64_STACK | PH_WALK_KERNEL_STACK,
+        PH_WALK_USER_STACK | (Target->ProcessItem->IsWow64Process ? PH_WALK_USER_WOW64_STACK : 0) | PH_WALK_KERNEL_STACK,
         AtpStackFrameCallback,
         &context
         );
@@ -1029,7 +1029,7 @@ VOID AtpGetProcessStacks(
                 Target->ProcessHandle,
                 &clientId,
                 symbolProvider,
-                PH_WALK_USER_STACK | PH_WALK_USER_WOW64_STACK | PH_WALK_KERNEL_STACK,
+                PH_WALK_USER_STACK | (Target->ProcessItem->IsWow64Process ? PH_WALK_USER_WOW64_STACK : 0) | PH_WALK_KERNEL_STACK,
                 AtpStackFrameCallback,
                 &context
                 );

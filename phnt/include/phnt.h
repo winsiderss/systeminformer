@@ -120,6 +120,7 @@ EXTERN_C_START
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
+#include <ntnsi.h>
 #include <ntrtl.h>
 #include <ntmisc.h>
 #include <ntsam.h>

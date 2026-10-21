@@ -831,6 +831,68 @@ VOID PhQueryUnbiasedInterruptTime(
 #endif
 }
 
+/**
+ * Reads the tick count used for deadlines governing a wait.
+ *
+ * \return The elapsed time, in 100-nanosecond units, in the same time
+ * domain as the wait that it bounds. Scale millisecond bounds into this
+ * domain with UInt32x32To64(Milliseconds, PH_TIMEOUT_MS).
+ *
+ * \remarks There are three distinct time domains, and they are not
+ * interchangeable:
+ *
+ * - Biased time (PhQueryInterruptTime): boot-relative time that includes
+ * time spent suspended.
+ * - Unbiased time (QueryUnbiasedInterruptTime): time that the system
+ * has spent in the working state.
+ * - Wall-clock uptime (PhGetSystemUptime).
+ *
+ * This returns the native 100-nanosecond tick domain rather than
+ * milliseconds. The underlying counters already report ticks, so a
+ * millisecond-returning wrapper would have to divide by PH_TICKS_PER_MS on
+ * every read, discarding the sub-millisecond remainder and leaving each
+ * converted read up to one millisecond away from the true value. Returning
+ * ticks avoids that conversion altogether: callers compare at the full
+ * resolution the counter provides, and rounding occurs only where
+ * milliseconds are actually required, in the argument handed to a wait
+ * routine.
+ *
+ * Windows 7 and earlier (Biased Domain): Wait APIs (like NtWaitForSingleObject with relative timeouts)
+ * evaluate deadlines against the standard interrupt time, which continues to tick while the system is suspended or sleeping.
+ * Thus, PhQueryInterruptTime() (which tracks the biased domain) provides the correct baseline to prevent premature expiration upon resume.
+ *
+ * Windows 8 and later (Unbiased Domain): To support Connected Standby (Modern Standby), the kernel was updated and relative wait evaluations
+ * are paused during sleep states. Wait timeouts now operate strictly in the unbiased domain. If a thread waits for 10 seconds and the machine
+ * sleeps for 8, the thread still has 2 seconds remaining upon wake.
+ * Thus, PhQueryUnbiasedInterruptTime() (which tracks the unbiased domain) provides the correct baseline to prevent premature expiration upon resume.
+ *
+ * Exported (rather than inline) so that plugins, which cannot read WindowsVersion, share the same wait domain.
+ *
+ * Define PHNT_TICKWAIT to use NtGetTickCount64() on Windows 7 and earlier. It tracks the same biased
+ * domain but only advances once per clock tick (~15.6 ms by default).
+ */
+ULONG64 PhQueryWaitTime(
+    VOID
+    )
+{
+    LARGE_INTEGER interruptTime;
+
+    if (WindowsVersion < WINDOWS_8)
+    {
+#if defined(PHNT_TICKWAIT)
+        return NtGetTickCount64() * PH_TICKS_PER_MS;
+#else
+        PhQueryInterruptTime(&interruptTime);
+#endif
+    }
+    else
+    {
+        PhQueryUnbiasedInterruptTime(&interruptTime);
+    }
+
+    return (ULONG64)interruptTime.QuadPart;
+}
+
 #if (defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_ARM64)
 #define PH_ARM64_QPC_COUNTER_MIDPOINT_BIT 0x100000000ULL
 
@@ -4516,6 +4578,69 @@ FLOAT PhAddPlusMaxMemorySingles(
 }
 
 /**
+ * Adds two float arrays element-wise, storing the result in the first array.
+ *
+ * \param A The destination array; each element receives A[i] + B[i].
+ * \param B The array to add to \a A.
+ * \param Count The number of elements.
+ */
+VOID PhAddMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_reads_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+    if (Count == 0)
+        return;
+
+#ifndef _ARM64_
+    if (PhHasAVX && (IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32)))
+    {
+        SIZE_T count = Count & ~0x7;
+
+        if (count != 0)
+        {
+            PFLOAT end = A + count;
+
+            while (A != end)
+            {
+                _mm256_store_ps(A, _mm256_add_ps(_mm256_load_ps(A), _mm256_load_ps(B)));
+
+                A += 8;
+                B += 8;
+            }
+
+            _mm256_zeroupper();
+            Count &= 0x7;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
+    {
+        SIZE_T count = Count & ~0x3;
+
+        if (count != 0)
+        {
+            PFLOAT end = A + count;
+
+            while (A != end)
+            {
+                PhStoreFLOAT128(A, PhAddFLOAT128(PhLoadFLOAT128(A), PhLoadFLOAT128(B)));
+
+                A += 4;
+                B += 4;
+            }
+
+            Count &= 0x3;
+        }
+    }
+
+    while (Count--)
+        *A++ += *B++;
+}
+
+/**
  * Converts an array of integers to floats.
  *
  * \param From The source integers.
@@ -4646,18 +4771,18 @@ VOID PhConvertCopyMemoryUlong64(
         {
             PULONG64 end = From + count;
 
-            // Convert 16 x uint64 → 16 x float in single iteration
+            // Convert 16 x uint64 -> 16 x float in single iteration
             while (From != end)
             {
                 // Load 16 x uint64 (2 x 512-bit loads = 128 bytes)
                 __m512i v0 = _mm512_load_si512((__m512i const*)From);       // 8 x uint64
                 __m512i v1 = _mm512_load_si512((__m512i const*)(From + 8)); // 8 x uint64
 
-                // Direct uint64 → double conversion (AVX-512 DQ)
+                // Direct uint64 -> double conversion (AVX-512 DQ)
                 __m512d d0 = _mm512_cvtepu64_pd(v0);  // 8 x double
                 __m512d d1 = _mm512_cvtepu64_pd(v1);  // 8 x double
 
-                // Double → float conversion with rounding
+                // Double -> float conversion with rounding
                 __m256 f0 = _mm512_cvtpd_ps(d0);  // 8 x float
                 __m256 f1 = _mm512_cvtpd_ps(d1);  // 8 x float
 
@@ -4840,7 +4965,7 @@ VOID PhConvertCopyMemoryUlong64(
                 __m128d d0 = _mm_add_pd(d0_lo, _mm_mul_pd(d0_hi, scale));
                 __m128d d1 = _mm_add_pd(d1_lo, _mm_mul_pd(d1_hi, scale));
 
-                // Double → float
+                // Double -> float
                 __m128 f0 = _mm_cvtpd_ps(d0);  // 2 floats in low 64 bits
                 __m128 f1 = _mm_cvtpd_ps(d1);  // 2 floats in low 64 bits
 

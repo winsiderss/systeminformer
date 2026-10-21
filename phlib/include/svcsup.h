@@ -377,6 +377,29 @@ PhGetServiceConfigFileName(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsServiceUnquotedPath(
+    _In_ ULONG ServiceType,
+    _In_opt_ PCWSTR ServicePathName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsServiceUncommonFileName(
+    _In_ PCPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsServiceAccountReversiblePassword(
+    _In_ ULONG ServiceType,
+    _In_opt_ PCWSTR ServiceStartName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetServiceHandleFileName(

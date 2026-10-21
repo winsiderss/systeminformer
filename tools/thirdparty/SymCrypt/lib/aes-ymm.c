@@ -463,6 +463,7 @@ SymCryptAesGcmEncryptStitchedYmm_2048(
     _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
     _In_reads_( cbData )                    PCBYTE                      pbSrc,
     _Out_writes_( cbData )                  PBYTE                       pbDst,
+    _In_range_( GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE, SYMCRYPT_GCM_MAX_DATA_SIZE )
                                             SIZE_T                      cbData )
 {
     __m128i chain = _mm_loadu_si128( (__m128i *) pbChainingValue );
@@ -662,6 +663,7 @@ SymCryptAesGcmDecryptStitchedYmm_2048(
     _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
     _In_reads_( cbData )                    PCBYTE                      pbSrc,
     _Out_writes_( cbData )                  PBYTE                       pbDst,
+    _In_range_( GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE, SYMCRYPT_GCM_MAX_DATA_SIZE )
                                             SIZE_T                      cbData )
 {
     __m128i chain = _mm_loadu_si128( (__m128i *) pbChainingValue );
@@ -774,6 +776,119 @@ SymCryptAesGcmDecryptStitchedYmm_2048(
     if ( cbData >= SYMCRYPT_AES_BLOCK_SIZE )
     {
         SymCryptAesGcmDecryptStitchedXmm( pExpandedKey, pbChainingValue, expandedKeyTable, pState, pbSrc, pbDst, cbData);
+    }
+}
+
+//
+// AES-CBC Decrypt using YMM (VAES-256) intrinsics.
+// Processes 16 blocks (256 bytes) per iteration in the main loop.
+// Falls back to XMM for tail blocks.
+//
+VOID
+SYMCRYPT_CALL
+SymCryptAesCbcDecryptYmm(
+    _In_                                        PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _Inout_updates_( SYMCRYPT_AES_BLOCK_SIZE )  PBYTE                       pbChainingValue,
+    _In_reads_( cbData )                        PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                      PBYTE                       pbDst,
+    _In_range_( CBC_YMM_MINBLOCKS * SYMCRYPT_AES_BLOCK_SIZE, SIZE_MAX )
+                                                SIZE_T                      cbData )
+{
+    __m256i c0, c1, c2, c3, c4, c5, c6, c7;
+    __m256i d0, d1, d2, d3, d4, d5, d6, d7;
+    __m256i chainYmm;
+
+    SYMCRYPT_ASSERT( cbData >= CBC_YMM_MINBLOCKS * SYMCRYPT_AES_BLOCK_SIZE );
+    SYMCRYPT_ASSERT( (cbData & (SYMCRYPT_AES_BLOCK_SIZE - 1)) == 0 );
+
+    // Broadcast the initial chaining value into both halves of a YMM register.
+    // Only the high half is used — it feeds the permute2x128 with selector 0x21.
+    chainYmm = _mm256_broadcastsi128_si256( _mm_loadu_si128( (__m128i *) pbChainingValue ) );
+
+    //
+    // Main loop: process 16 blocks (8 YMM registers × 2 blocks each) per iteration
+    //
+    while( cbData >= 16 * SYMCRYPT_AES_BLOCK_SIZE )
+    {
+        // Load 16 ciphertext blocks into 8 YMM registers
+        d0 = c0 = _mm256_loadu_si256( (__m256i *) (pbSrc + (  0 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d1 = c1 = _mm256_loadu_si256( (__m256i *) (pbSrc + (  2 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d2 = c2 = _mm256_loadu_si256( (__m256i *) (pbSrc + (  4 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d3 = c3 = _mm256_loadu_si256( (__m256i *) (pbSrc + (  6 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d4 = c4 = _mm256_loadu_si256( (__m256i *) (pbSrc + (  8 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d5 = c5 = _mm256_loadu_si256( (__m256i *) (pbSrc + ( 10 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d6 = c6 = _mm256_loadu_si256( (__m256i *) (pbSrc + ( 12 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+        d7 = c7 = _mm256_loadu_si256( (__m256i *) (pbSrc + ( 14 * SYMCRYPT_AES_BLOCK_SIZE ) ) );
+
+        AES_DECRYPT_YMM_2048( pExpandedKey, c0, c1, c2, c3, c4, c5, c6, c7 );
+
+        //
+        // CBC chaining: XOR each decrypted block with the previous ciphertext block.
+        //
+        // The 16 ciphertext blocks are loaded into d0..d7 in memory order, two
+        // blocks per YMM (low 128 bits = lower address):
+        //
+        //     d0 = [ct0  | ct1 ]   d1 = [ct2  | ct3 ]   d2 = [ct4  | ct5 ]   d3 = [ct6  | ct7 ]
+        //     d4 = [ct8  | ct9 ]   d5 = [ct10 | ct11]   d6 = [ct12 | ct13]   d7 = [ct14 | ct15]
+        //
+        // After AES decryption, c0..c7 hold the matching dec(ctN) pairs. To
+        // produce plaintext we need to XOR each c_i with a YMM holding the two
+        // ciphertext blocks that immediately precede the blocks in c_i:
+        //
+        //     c0 ^= [chain | ct0 ]   -> [pt0  | pt1 ]
+        //     c1 ^= [ct1   | ct2 ]   -> [pt2  | pt3 ]
+        //     c2 ^= [ct3   | ct4 ]   -> [pt4  | pt5 ]
+        //     ...
+        //     c7 ^= [ct13  | ct14]   -> [pt14 | pt15]
+        //
+        // Each chaining YMM is therefore [prev.high | curr.low].
+        // _mm256_permute2x128_si256(a, b, 0x21) produces [a.high | b.low].
+        //
+        // The chaining value is maintained in the high half of chainYmm, so
+        // for c0 we get [chainYmm.high | d0.low] = [chain | ct0].
+        // After the XOR chain, chainYmm is set to d7, carrying ct15 in the
+        // high half for the next iteration (or final extract after the loop).
+        //
+
+        c0 = _mm256_xor_si256( c0, _mm256_permute2x128_si256( chainYmm, d0, 0x21 ) );
+        c1 = _mm256_xor_si256( c1, _mm256_permute2x128_si256( d0, d1, 0x21 ) );
+        c2 = _mm256_xor_si256( c2, _mm256_permute2x128_si256( d1, d2, 0x21 ) );
+        c3 = _mm256_xor_si256( c3, _mm256_permute2x128_si256( d2, d3, 0x21 ) );
+        c4 = _mm256_xor_si256( c4, _mm256_permute2x128_si256( d3, d4, 0x21 ) );
+        c5 = _mm256_xor_si256( c5, _mm256_permute2x128_si256( d4, d5, 0x21 ) );
+        c6 = _mm256_xor_si256( c6, _mm256_permute2x128_si256( d5, d6, 0x21 ) );
+        c7 = _mm256_xor_si256( c7, _mm256_permute2x128_si256( d6, d7, 0x21 ) );
+
+        // Carry d7 as the new chain; ct15 sits in the high half
+        chainYmm = d7;
+
+        // Store 16 plaintext blocks
+        _mm256_storeu_si256( (__m256i *) (pbDst +  0 * SYMCRYPT_AES_BLOCK_SIZE), c0 );
+        _mm256_storeu_si256( (__m256i *) (pbDst +  2 * SYMCRYPT_AES_BLOCK_SIZE), c1 );
+        _mm256_storeu_si256( (__m256i *) (pbDst +  4 * SYMCRYPT_AES_BLOCK_SIZE), c2 );
+        _mm256_storeu_si256( (__m256i *) (pbDst +  6 * SYMCRYPT_AES_BLOCK_SIZE), c3 );
+        _mm256_storeu_si256( (__m256i *) (pbDst +  8 * SYMCRYPT_AES_BLOCK_SIZE), c4 );
+        _mm256_storeu_si256( (__m256i *) (pbDst + 10 * SYMCRYPT_AES_BLOCK_SIZE), c5 );
+        _mm256_storeu_si256( (__m256i *) (pbDst + 12 * SYMCRYPT_AES_BLOCK_SIZE), c6 );
+        _mm256_storeu_si256( (__m256i *) (pbDst + 14 * SYMCRYPT_AES_BLOCK_SIZE), c7 );
+
+        pbSrc  += 16 * SYMCRYPT_AES_BLOCK_SIZE;
+        pbDst  += 16 * SYMCRYPT_AES_BLOCK_SIZE;
+        cbData -= 16 * SYMCRYPT_AES_BLOCK_SIZE;
+    }
+
+    //
+    // Extract the final chaining value (ct15 = d7.high) before zeroupper
+    //
+    {
+        __m128i chain = _mm256_extracti128_si256( chainYmm, 1 );
+        _mm256_zeroupper();
+        _mm_storeu_si128( (__m128i *) pbChainingValue, chain );
+    }
+
+    if( cbData >= SYMCRYPT_AES_BLOCK_SIZE )
+    {
+        SymCryptAesCbcDecryptXmm( pExpandedKey, pbChainingValue, pbSrc, pbDst, cbData );
     }
 }
 

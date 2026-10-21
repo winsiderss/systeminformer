@@ -1468,6 +1468,13 @@ PhGetSystemDirectoryWin32Z(
 }
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetWindowsBuildString(
+    VOID
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhGetSystemRoot(
@@ -2437,6 +2444,14 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsCommandLineUnquotedPath(
+    _In_ PCPH_STRINGREF CommandLine,
+    _In_ BOOLEAN SearchFilePath
+    );
+
+PHLIBAPI
 PPH_LIST
 NTAPI
 PhCommandLineToList(
@@ -2983,6 +2998,32 @@ PhTaskbarListSetOverlayIcon(
     _In_opt_ PCWSTR IconDescription
     );
 
+typedef enum _PH_TASKBAR_NOTIFY_EVENT
+{
+    PhTaskbarNotifyCreated,
+    PhTaskbarNotifyProgressValue,
+    PhTaskbarNotifyProgressState,
+    PhTaskbarNotifyDestroyed,
+    PhTaskbarNotifyMaximum
+} PH_TASKBAR_NOTIFY_EVENT;
+
+typedef struct _PH_TASKBAR_NOTIFY
+{
+    PH_TASKBAR_NOTIFY_EVENT Event;
+    HANDLE TaskbarHandle;
+    HWND WindowHandle;
+    ULONGLONG Completed;
+    ULONGLONG Total;
+    ULONG Flags;
+} PH_TASKBAR_NOTIFY, *PPH_TASKBAR_NOTIFY;
+
+//PHLIBAPI
+//PPH_CALLBACK
+//NTAPI
+//PhGetTaskbarListCallback(
+//    VOID
+//    );
+
 /**
  * Adds an offset to a pointer with overflow protection.
  *
@@ -3060,7 +3101,7 @@ PhPtrReadBytes(
 {
     PVOID next = *Pointer;
 
-    if (!PhPtrAdvance(&next, EndPointer, Size))
+    if (!PhPtrAddOffset(&next, Size) || next > EndPointer)
         return FALSE;
 
     memcpy(Buffer, *Pointer, Size);
@@ -3086,7 +3127,7 @@ PhPtrSkipBytes(
 {
     PVOID next = *Pointer;
 
-    if (!PhPtrAdvance(&next, EndPointer, Size))
+    if (!PhPtrAddOffset(&next, Size) || next > EndPointer)
         return FALSE;
 
     *Pointer = next;

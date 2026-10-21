@@ -1929,9 +1929,10 @@ HRESULT NTAPI PhWaitForAsyncOperation(
  * \param Operation The IAsyncOperationWithProgress<TResult, TProgress> pointer.
  * \param HandlerId The IID of
  * IAsyncOperationWithProgressCompletedHandler<TResult, TProgress>.
- * \param ProgressHandler The
+ * \param ProgressHandler An optional
  * AsyncOperationProgressHandler<TResult, TProgress> delegate to receive progress
- * updates.
+ * updates. If NULL, no progress handler is registered (put_Progress is skipped)
+ * and the function only waits for completion.
  * \param Timeout An optional timeout (NT relative/absolute format). NULL waits indefinitely.
  * \param CancelEvent An optional event that cancels the operation when signaled.
  * \param Result Receives the operation result on success.
@@ -1940,7 +1941,7 @@ HRESULT NTAPI PhWaitForAsyncOperation(
 HRESULT NTAPI PhWaitForAsyncOperationWithProgress(
     _In_ PVOID Operation,
     _In_ REFIID HandlerId,
-    _In_ PVOID ProgressHandler,
+    _In_opt_ PVOID ProgressHandler,
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_opt_ HANDLE CancelEvent,
     _Out_ PVOID Result
@@ -1956,7 +1957,10 @@ HRESULT NTAPI PhWaitForAsyncOperationWithProgress(
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_NT(status);
 
-    result = operation->lpVtbl->put_Progress(operation, ProgressHandler);
+    if (ProgressHandler)
+        result = operation->lpVtbl->put_Progress(operation, ProgressHandler);
+    else
+        result = S_OK;
 
     if (HR_SUCCESS(result))
     {
