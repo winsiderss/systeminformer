@@ -902,7 +902,7 @@ VOID ProcessesUpdatedCallback(
 
             PhpNetworkItemToRow(&tcpRow, networkItem);
 
-            if (GetPerTcpConnectionEStats(
+            if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsData,
                 (PUCHAR)&dataRw,
@@ -914,7 +914,7 @@ VOID ProcessesUpdatedCallback(
                 (PUCHAR)&dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (dataRw.EnableCollection)
                 {
@@ -923,7 +923,7 @@ VOID ProcessesUpdatedCallback(
                 }
             }
 
-            if (GetPerTcpConnectionEStats(
+            if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsPath,
                 (PUCHAR)&pathRw,
@@ -935,7 +935,7 @@ VOID ProcessesUpdatedCallback(
                 (PUCHAR)&pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (pathRw.EnableCollection)
                 {
@@ -960,7 +960,7 @@ VOID ProcessesUpdatedCallback(
 
             PhpNetworkItemToRow6(&tcp6Row, networkItem);
 
-            if (GetPerTcp6ConnectionEStats(
+            if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsData,
                 (PUCHAR)&dataRw,
@@ -972,7 +972,7 @@ VOID ProcessesUpdatedCallback(
                 (PUCHAR)&dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (dataRw.EnableCollection)
                 {
@@ -981,7 +981,7 @@ VOID ProcessesUpdatedCallback(
                 }
             }
 
-            if (GetPerTcp6ConnectionEStats(
+            if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsPath,
                 (PUCHAR)&pathRw,
@@ -993,7 +993,7 @@ VOID ProcessesUpdatedCallback(
                 (PUCHAR)&pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (pathRw.EnableCollection)
                 {

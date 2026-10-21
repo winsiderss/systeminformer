@@ -732,7 +732,8 @@ BOOLEAN LookupCountryCodeEx(
     newEntry.CountryIconIndex = countryIconIndex;
     PhSetReference(&newEntry.CountryName, countryName);
     memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));
-    PhAddEntryHashtable(NetworkToolsGeoDbCacheHashtable, &newEntry);
+    if (!PhAddEntryHashtable(NetworkToolsGeoDbCacheHashtable, &newEntry))
+        PhClearReference(&newEntry.CountryName);
 
     if (CountryCode)
         *CountryCode = countryCode;
