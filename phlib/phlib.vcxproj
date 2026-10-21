@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
+    <VCProjectVersion>18.0</VCProjectVersion>
     <ProjectGuid>{477D0215-F252-41A1-874B-F27E3EA1ED17}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>phlib</ProjectName>
@@ -170,6 +170,7 @@
     <ClCompile Include="directdraw.cpp" />
     <ClCompile Include="dspick.c" />
     <ClCompile Include="emenu.c" />
+    <ClCompile Include="emenudx.cpp" />
     <ClCompile Include="error.c" />
     <ClCompile Include="extlv.c" />
     <ClCompile Include="fastlock.c" />
