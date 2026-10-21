@@ -24,6 +24,17 @@
 // target and BeginDraw/EndDraw lifecycle. Drawing uses the supplied update
 // offset in DIPs and commits after the surface update is complete.
 //
+// The DirectComposition backend builds the following visual tree:
+//
+//   Root Visual
+//    `- Shadow Host Visual   (opacity + scale animation, shared by both children)
+//        |- Shadow Visual    (rounded-rect alpha mask + IDCompositionShadowEffect)
+//        `- Menu Visual      (D2D menu surface, offset by the shadow padding)
+//
+// The shadow visual is a sibling of the menu visual because an effect applies to
+// the visual and its whole subtree. Both visuals live under one host so a single
+// opacity/scale animation drives the shadow and the content in lock step.
+//
 // The optional WinRT backend supports backdrop brushes and drop shadows;
 // the optional swap-chain backend presents its own D2D target bitmap.
 
@@ -34,7 +45,6 @@
 //#define PH_EMENU_DX_ENABLE_DROPSHADOW_DEBUG
 //#define PH_EMENU_DX_ENABLE_D3D12
 #define PH_EMENU_DX_ENABLE_D3D11
-#define PH_EMENU_DX_ENABLE_BORDER
 
 #ifdef PH_EMENU_DX_ENABLE_D3D12
 #include <d3d12.h>
@@ -234,6 +244,26 @@ private:
     HRESULT SetBackfaceVisibilityOnDCompMenuVisual(VOID);
 
     HRESULT AddDCompMenuVisualToRootVisual(VOID);
+
+    VOID InitializeShadow(VOID);
+
+    LONG GetSurfacePaddingPixels(VOID);
+
+    HRESULT CreateDCompShadowTree(VOID);
+
+    VOID DestroyDCompShadowTree(VOID);
+
+    HRESULT DrawDCompShadowSurface(VOID);
+
+    VOID StartOpenAnimation(VOID);
+
+    VOID PlayCloseAnimation(VOID);
+
+    VOID ExcludeParentMenusFromShadow(VOID);
+
+    static BOOLEAN IsPointInMenuBody(
+        _In_ POINT Point
+        );
 
     HRESULT CommitDCompDevice(VOID);
 
@@ -519,7 +549,10 @@ private:
             ULONG IsAcrylic : 1;
             ULONG IsMica : 1;
             ULONG ExitLoop : 1;
-            ULONG Spare : 26;
+            ULONG ShadowEnabled : 1;
+            ULONG AnimationsEnabled : 1;
+            ULONG OpenAnimationPending : 1;
+            ULONG Spare : 23;
         };
     };
 
@@ -535,6 +568,7 @@ private:
 
     FLOAT Dpi{};
     FLOAT Scale{};
+    FLOAT SurfacePadding{}; // DIPs of transparent window area reserved around the menu for the shadow
 
     PPH_EMENU_ITEM SelectedItem{};
     PPH_EMENU_ITEM HoverItem{};
@@ -586,6 +620,12 @@ private:
     IDCompositionSurface* DCompSurface{};
     IDCompositionVisual2* RootVisual{};
     IDCompositionVisual2* MenuVisual{};
+    IDCompositionVisual2* HostVisual{};
+    IDCompositionVisual3* HostVisual3{};
+    IDCompositionScaleTransform* HostScaleTransform{};
+    IDCompositionVisual2* ShadowVisual{};
+    IDCompositionSurface* ShadowSurface{};
+    IDCompositionShadowEffect* ShadowEffect{};
     IDCompositionDesktopDevice* DesktopDevice{};
     IDCompositionDevice3* CompositionDevice3{};
 #endif
@@ -648,6 +688,31 @@ private:
 #define PH_EMENU_DX_SHADOW_COLOR D2D1::ColorF(D2D1::ColorF::Black)
 #define PH_EMENU_DX_SHADOW_PADDING 32.0f
 
+// DirectComposition shadow (DIPs). The effect's standard deviation is BLUR_RADIUS / 3,
+// so the Gaussian is effectively zero at BLUR_RADIUS from the menu edge. PADDING must
+// cover BLUR_RADIUS + OFFSET_Y so the shadow is never clipped by the window bounds.
+#define PH_EMENU_DX_DC_SHADOW_BLUR_RADIUS 28.0f
+#define PH_EMENU_DX_DC_SHADOW_OPACITY 0.80f
+#define PH_EMENU_DX_DC_SHADOW_OPACITY_DARK 1.00f
+#define PH_EMENU_DX_DC_SHADOW_OFFSET_Y 6.0f
+// A Gaussian blur of a large shape is only half the source alpha at the shape edge.
+// Growing the mask by SPREAD moves the 50% point outward so the shadow is dense
+// right at the menu edge. PADDING must cover BLUR_RADIUS + OFFSET_Y + SPREAD.
+#define PH_EMENU_DX_DC_SHADOW_SPREAD 4.0f
+#define PH_EMENU_DX_DC_SHADOW_PADDING 40.0f
+
+// Entrance/exit animation. Open: 98% -> 100% scale with a Fluent decelerate curve
+// while fading in; close: linear fade out.
+#define PH_EMENU_DX_OPEN_SCALE_FROM 0.98f
+#define PH_EMENU_DX_OPEN_SCALE_DURATION 0.167
+#define PH_EMENU_DX_OPEN_FADE_DURATION 0.083
+#define PH_EMENU_DX_CLOSE_FADE_DURATION 0.083
+#define PH_EMENU_DX_EASE_DECELERATE_X1 0.1
+#define PH_EMENU_DX_EASE_DECELERATE_Y1 0.9
+#define PH_EMENU_DX_EASE_DECELERATE_X2 0.2
+#define PH_EMENU_DX_EASE_DECELERATE_Y2 1.0
+#define PH_EMENU_DX_EASE_SEGMENTS 8
+
 #define PH_EMENU_DX_DARK_BACKGROUND D2D1::ColorF(0.12f, 0.12f, 0.12f, 1.0f)
 #define PH_EMENU_DX_LIGHT_BACKGROUND D2D1::ColorF(0.98f, 0.98f, 0.98f, 1.0f)
 
@@ -655,8 +720,8 @@ private:
 #define PH_EMENU_DX_SHORTCUT_BRUSH_OPACITY 1.0f
 #define PH_EMENU_DX_HOVER_DARK_OPACITY 0.25f
 #define PH_EMENU_DX_HOVER_LIGHT_OPACITY 0.15f
-#define PH_EMENU_DX_BORDER_DARK_OPACITY 0.18f
-#define PH_EMENU_DX_BORDER_LIGHT_OPACITY 0.12f
+#define PH_EMENU_DX_BORDER_DARK_OPACITY 0.12f
+#define PH_EMENU_DX_BORDER_LIGHT_OPACITY 0.08f
 #define PH_EMENU_DX_SEPARATOR_DARK_OPACITY 0.15f
 #define PH_EMENU_DX_SEPARATOR_LIGHT_OPACITY 0.15f
 
@@ -693,7 +758,8 @@ private:
 #define PH_EMENU_DX_SCROLL_TIMER_INTERVAL 50
 #define PH_EMENU_DX_MAX_TEXT_WIDTH 1000.0f
 #define PH_EMENU_DX_BORDER_WIDTH 2.0f
-#define PH_EMENU_DX_BORDER_OFFSET (PH_EMENU_DX_BORDER_WIDTH / PH_EMENU_DX_HALF_FACTOR)
+#define PH_EMENU_DX_HAIRLINE_WIDTH 1.0f
+#define PH_EMENU_DX_HAIRLINE_OFFSET (PH_EMENU_DX_HAIRLINE_WIDTH / PH_EMENU_DX_HALF_FACTOR)
 
 #define PH_EMENU_DX_CORNER_STYLE 2
 #define PH_EMENU_DX_INITIAL_LIST_SIZE 2
@@ -807,6 +873,23 @@ LRESULT CALLBACK PH_EMENU_DX::WindowProc(
             return TRUE;
         break;
     case WM_NCHITTEST:
+        {
+            // The shadow padding is visually empty; let input fall through it.
+            RECT windowRect;
+            POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            LONG paddingPixels = context->GetSurfacePaddingPixels();
+
+            if (paddingPixels && GetWindowRect(WindowHandle, &windowRect))
+            {
+                windowRect.left += paddingPixels;
+                windowRect.top += paddingPixels;
+                windowRect.right -= paddingPixels;
+                windowRect.bottom -= paddingPixels;
+
+                if (!PtInRect(&windowRect, point))
+                    return HTTRANSPARENT;
+            }
+        }
         return HTCLIENT;
     case WM_MOUSEWHEEL:
         context->OnMouseWheel(WindowHandle, GET_WHEEL_DELTA_WPARAM(wParam));
@@ -962,6 +1045,8 @@ HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
             MenuShowDelay = PH_EMENU_DX_DEFAULT_MENU_SHOW_DELAY;
     }
 
+    InitializeShadow();
+
     // Initialize DirectWrite formats and calculate final layout/position
     HRESULT status = InitializeTextFormats();
     if (HR_FAILED(status))
@@ -1069,26 +1154,24 @@ HRESULT PH_EMENU_DX::CreateMainWindow(
 
     // Create the menu window
     {
-        FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-        surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
-        FLOAT windowWidth = Width + surfacePadding * PH_EMENU_DX_HALF_FACTOR;
-        FLOAT windowHeight = Height + surfacePadding * PH_EMENU_DX_HALF_FACTOR;
+        LONG paddingPixels = GetSurfacePaddingPixels();
+        LONG windowWidth = (LONG)(Width * Scale) + paddingPixels * 2;
+        LONG windowHeight = (LONG)(Height * Scale) + paddingPixels * 2;
 
         WindowHandle = PhCreateWindowEx(
             MAKEINTATOM(windowAtom),
             NULL,
 #ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
-            WS_POPUP | WS_BORDER,
+            // The shadow padding is transparent; a frame would be drawn around it.
+            ShadowEnabled ? WS_POPUP : (WS_POPUP | WS_BORDER),
 #else
             WS_POPUP,
 #endif
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
             X,
             Y,
-            (LONG)(windowWidth * Scale),
-            (LONG)(windowHeight * Scale),
+            windowWidth,
+            windowHeight,
             OwnerWindowHandle,
             NULL,
             NULL,
@@ -1123,7 +1206,13 @@ HRESULT PH_EMENU_DX::ShowMainWindow(VOID)
     if (!IsSubMenu)
         MouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, MouseHookCallback, NULL, 0);
 
+    ExcludeParentMenusFromShadow();
+
     ShowWindow(WindowHandle, SW_SHOWNOACTIVATE);
+
+    // The tree was committed fully transparent; start the entrance only once the
+    // window is visible so no animation frames are spent on an unmapped window.
+    StartOpenAnimation();
     return S_OK;
 }
 
@@ -1131,6 +1220,8 @@ VOID PH_EMENU_DX::DestroyMainWindow(VOID)
 {
     if (WindowHandle)
     {
+        PlayCloseAnimation();
+
         ShowWindow(WindowHandle, SW_HIDE);
         DestroyWindow(WindowHandle);
         WindowHandle = NULL;
@@ -1614,11 +1705,7 @@ HRESULT PH_EMENU_DX::InitializeBrushes(VOID)
     if (HR_FAILED(result)) return result;
     result = D2DDeviceContext->CreateSolidColorBrush(IsDarkMode ? PH_EMENU_DX_HOVER_COLOR_DARK : PH_EMENU_DX_HOVER_COLOR_LIGHT, &HoverBrush);
     if (HR_FAILED(result)) return result;
-#ifdef PH_EMENU_DX_ENABLE_BORDER
-    result = D2DDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &BorderBrush);
-#else
     result = D2DDeviceContext->CreateSolidColorBrush(IsDarkMode ? PH_EMENU_DX_BORDER_COLOR_DARK : PH_EMENU_DX_BORDER_COLOR_LIGHT, &BorderBrush);
-#endif
     if (HR_FAILED(result)) return result;
     result = D2DDeviceContext->CreateSolidColorBrush(IsDarkMode ? PH_EMENU_DX_SEPARATOR_COLOR_DARK : PH_EMENU_DX_SEPARATOR_COLOR_LIGHT, &SeparatorBrush);
     return result;
@@ -1640,12 +1727,15 @@ HRESULT PH_EMENU_DX::CreateDCompVisualTree(VOID)
     if (HR_SUCCESS(status))
         status = SetBackfaceVisibilityOnDCompMenuVisual();
     if (HR_SUCCESS(status))
+        status = CreateDCompShadowTree();
+    if (HR_SUCCESS(status))
         status = AddDCompMenuVisualToRootVisual();
     return status;
 }
 
 VOID PH_EMENU_DX::DestroyDCompVisualTree(VOID)
 {
+    DestroyDCompShadowTree();
     DestroyDCompMenuSurface();
     DestroyDCompMenuVisual();
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
@@ -2015,12 +2105,9 @@ HRESULT PH_EMENU_DX::BindDCompMenuSurfaceToVisual(VOID)
 {
     HRESULT status = S_OK;
 
-    FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-    surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
-
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
+
     {
         ComPtr<ISpriteVisual> spriteVisual = MenuVisual;
         ComPtr<ICompositionSurfaceBrush> surfaceBrush;
@@ -2221,6 +2308,12 @@ HRESULT PH_EMENU_DX::BindDCompMenuSurfaceToVisual(VOID)
 #else
     status = MenuVisual->SetContent(DCompSurface);
 #endif
+
+    // Whole pixels keep the menu text crisp inside the padded window.
+    if (HR_SUCCESS(status))
+        status = MenuVisual->SetOffsetX(static_cast<FLOAT>(GetSurfacePaddingPixels()));
+    if (HR_SUCCESS(status))
+        status = MenuVisual->SetOffsetY(static_cast<FLOAT>(GetSurfacePaddingPixels()));
 #endif
 
     return status;
@@ -2247,7 +2340,592 @@ HRESULT PH_EMENU_DX::AddDCompMenuVisualToRootVisual(VOID)
         status = children->InsertAtTop(visual.Get());
     return status;
 #else
-    return RootVisual->AddVisual(MenuVisual, FALSE, NULL);
+    if (!HostVisual)
+        return RootVisual->AddVisual(MenuVisual, FALSE, NULL);
+
+    HRESULT status = RootVisual->AddVisual(HostVisual, FALSE, NULL);
+
+    // Z-order is explicit: with a NULL reference visual, insertAbove=TRUE means
+    // bottom-most and FALSE means top-most, so the menu is anchored to the shadow.
+    if (HR_SUCCESS(status) && ShadowVisual)
+        status = HostVisual->AddVisual(ShadowVisual, FALSE, NULL);
+    if (HR_SUCCESS(status))
+        status = HostVisual->AddVisual(MenuVisual, TRUE, ShadowVisual);
+    return status;
+#endif
+}
+
+VOID PH_EMENU_DX::InitializeShadow(VOID)
+{
+    SurfacePadding = 0.0f;
+    ShadowEnabled = FALSE;
+    AnimationsEnabled = FALSE;
+    OpenAnimationPending = FALSE;
+
+#ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
+    SurfacePadding = PH_EMENU_DX_SHADOW_PADDING;
+#endif
+#else
+    BOOL dropShadow = TRUE;
+    BOOL clientAnimations = TRUE;
+
+    // Performance Options: "Show shadows under windows".
+    if (!PhGetSystemParametersInfo(SPI_GETDROPSHADOW, 0, &dropShadow, 0))
+        dropShadow = TRUE;
+
+    if (dropShadow)
+    {
+        // The shadow effect lives on IDCompositionDevice3.
+        PhAcquireQueuedLockExclusive(&SharedLock);
+        if (HR_SUCCESS(InitializeSharedResources()))
+            ShadowEnabled = SharedCompositionDevice3 != NULL;
+        PhReleaseQueuedLockExclusive(&SharedLock);
+    }
+
+    if (ShadowEnabled)
+        SurfacePadding = PH_EMENU_DX_DC_SHADOW_PADDING;
+
+    // Settings: "Animation effects".
+    if (!PhGetSystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &clientAnimations, 0))
+        clientAnimations = TRUE;
+
+    AnimationsEnabled = !!clientAnimations;
+    OpenAnimationPending = AnimationsEnabled;
+#endif
+}
+
+LONG PH_EMENU_DX::GetSurfacePaddingPixels(VOID)
+{
+    return static_cast<LONG>(SurfacePadding * Scale);
+}
+
+// A submenu window overlaps its parent menus, so its shadow would be composited over
+// them and darken their edge. Cut the parent bodies out of this window (a window region
+// also routes input there). The part of this menu's own body that overlaps a parent is
+// kept so the menu still sits on top of it.
+VOID PH_EMENU_DX::ExcludeParentMenusFromShadow(VOID)
+{
+    RECT windowRect;
+    HRGN windowRegion;
+    HRGN bodyRegion;
+    HRGN parentRegion;
+    HRGN carveRegion;
+    LONG paddingPixels;
+    LONG width;
+    LONG height;
+    BOOLEAN modified = FALSE;
+
+    if (!IsSubMenu || !ParentContext || !SurfacePadding)
+        return;
+    if (!GetWindowRect(WindowHandle, &windowRect))
+        return;
+
+    paddingPixels = GetSurfacePaddingPixels();
+    width = windowRect.right - windowRect.left;
+    height = windowRect.bottom - windowRect.top;
+
+    windowRegion = CreateRectRgn(0, 0, width, height);
+    bodyRegion = CreateRectRgn(paddingPixels, paddingPixels, width - paddingPixels, height - paddingPixels);
+    parentRegion = CreateRectRgn(0, 0, 0, 0);
+    carveRegion = CreateRectRgn(0, 0, 0, 0);
+
+    if (windowRegion && bodyRegion && parentRegion && carveRegion)
+    {
+        for (PPH_EMENU_DX parent = ParentContext; parent; parent = parent->ParentContext)
+        {
+            RECT parentRect;
+            LONG parentPadding;
+
+            if (!parent->WindowHandle || !GetWindowRect(parent->WindowHandle, &parentRect))
+                continue;
+
+            parentPadding = parent->GetSurfacePaddingPixels();
+
+            SetRectRgn(
+                parentRegion,
+                parentRect.left + parentPadding - windowRect.left,
+                parentRect.top + parentPadding - windowRect.top,
+                parentRect.right - parentPadding - windowRect.left,
+                parentRect.bottom - parentPadding - windowRect.top
+                );
+
+            if (CombineRgn(carveRegion, parentRegion, bodyRegion, RGN_DIFF) != ERROR &&
+                CombineRgn(windowRegion, windowRegion, carveRegion, RGN_DIFF) != ERROR)
+            {
+                modified = TRUE;
+            }
+        }
+    }
+
+    // On success the system owns the region handle.
+    if (modified && windowRegion && SetWindowRgn(WindowHandle, windowRegion, FALSE))
+        windowRegion = NULL;
+
+    if (windowRegion)
+        DeleteObject(windowRegion);
+    if (bodyRegion)
+        DeleteObject(bodyRegion);
+    if (parentRegion)
+        DeleteObject(parentRegion);
+    if (carveRegion)
+        DeleteObject(carveRegion);
+}
+
+BOOLEAN PH_EMENU_DX::IsPointInMenuBody(
+    _In_ POINT Point
+    )
+{
+    ULONG currentThreadId = HandleToUlong(NtCurrentThreadId());
+    BOOLEAN result = FALSE;
+
+    PhAcquireQueuedLockShared(&MenuListLock);
+
+    if (MenuList)
+    {
+        for (ULONG i = 0; i < MenuList->Count; i++)
+        {
+            PPH_EMENU_DX menuContext = static_cast<PPH_EMENU_DX>(MenuList->Items[i]);
+            RECT windowRect;
+            LONG paddingPixels;
+
+            if (menuContext->ThreadId != currentThreadId || !menuContext->WindowHandle)
+                continue;
+            if (!GetWindowRect(menuContext->WindowHandle, &windowRect))
+                continue;
+
+            // The shadow padding belongs to the window but not to the menu.
+            paddingPixels = menuContext->GetSurfacePaddingPixels();
+            windowRect.left += paddingPixels;
+            windowRect.top += paddingPixels;
+            windowRect.right -= paddingPixels;
+            windowRect.bottom -= paddingPixels;
+
+            if (PtInRect(&windowRect, Point))
+            {
+                result = TRUE;
+                break;
+            }
+        }
+    }
+
+    PhReleaseQueuedLockShared(&MenuListLock);
+
+    return result;
+}
+
+#ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+// Cubic Bezier easing with implicit end points (0,0) and (1,1), as used by CSS and
+// the Fluent motion curves.
+static double EMenuBezierCoordinate(
+    _In_ double P1,
+    _In_ double P2,
+    _In_ double T
+    )
+{
+    double u = 1.0 - T;
+
+    return 3.0 * u * u * T * P1 + 3.0 * u * T * T * P2 + T * T * T;
+}
+
+static double EMenuBezierDerivative(
+    _In_ double P1,
+    _In_ double P2,
+    _In_ double T
+    )
+{
+    double u = 1.0 - T;
+
+    return 3.0 * u * u * P1 + 6.0 * u * T * (P2 - P1) + 3.0 * T * T * (1.0 - P2);
+}
+
+// Evaluates the easing curve and its slope (dy/dx) at the given progress X.
+static VOID EMenuEvaluateEase(
+    _In_ double X,
+    _Out_ double* Y,
+    _Out_ double* Slope
+    )
+{
+    const double x1 = PH_EMENU_DX_EASE_DECELERATE_X1;
+    const double y1 = PH_EMENU_DX_EASE_DECELERATE_Y1;
+    const double x2 = PH_EMENU_DX_EASE_DECELERATE_X2;
+    const double y2 = PH_EMENU_DX_EASE_DECELERATE_Y2;
+    double low = 0.0;
+    double high = 1.0;
+    double t = X;
+    double dx;
+    double dy;
+
+    for (ULONG i = 0; i < 40; i++)
+    {
+        t = (low + high) / 2.0;
+
+        if (EMenuBezierCoordinate(x1, x2, t) < X)
+            low = t;
+        else
+            high = t;
+    }
+
+    dx = EMenuBezierDerivative(x1, x2, t);
+    dy = EMenuBezierDerivative(y1, y2, t);
+
+    *Y = EMenuBezierCoordinate(y1, y2, t);
+    *Slope = dx > 1e-6 ? dy / dx : 0.0;
+}
+
+// DirectComposition animations are piecewise cubic polynomials in time. The Bezier
+// easing is sampled into Hermite segments (exact value and slope at each knot) so
+// the animation follows the real curve instead of a single-cubic approximation.
+static HRESULT EMenuBuildAnimation(
+    _In_ IDCompositionAnimation* Animation,
+    _In_ FLOAT From,
+    _In_ FLOAT To,
+    _In_ double Duration,
+    _In_ BOOLEAN Eased
+    )
+{
+    HRESULT status;
+    double delta = static_cast<double>(To) - static_cast<double>(From);
+
+    if (!Eased)
+    {
+        status = Animation->AddCubic(0.0, From, static_cast<FLOAT>(delta / Duration), 0.0f, 0.0f);
+    }
+    else
+    {
+        double segment = Duration / PH_EMENU_DX_EASE_SEGMENTS;
+        double y0;
+        double slope0;
+
+        status = S_OK;
+        EMenuEvaluateEase(0.0, &y0, &slope0);
+
+        for (ULONG i = 0; i < PH_EMENU_DX_EASE_SEGMENTS && HR_SUCCESS(status); i++)
+        {
+            double y1;
+            double slope1;
+            double v0;
+            double v1;
+            double m0;
+            double m1;
+
+            EMenuEvaluateEase(static_cast<double>(i + 1) / PH_EMENU_DX_EASE_SEGMENTS, &y1, &slope1);
+
+            v0 = From + delta * y0;
+            v1 = From + delta * y1;
+            m0 = delta * slope0 / Duration;
+            m1 = delta * slope1 / Duration;
+
+            status = Animation->AddCubic(
+                segment * i,
+                static_cast<FLOAT>(v0),
+                static_cast<FLOAT>(m0),
+                static_cast<FLOAT>(3.0 * (v1 - v0) / (segment * segment) - (2.0 * m0 + m1) / segment),
+                static_cast<FLOAT>(-2.0 * (v1 - v0) / (segment * segment * segment) + (m0 + m1) / (segment * segment))
+                );
+
+            y0 = y1;
+            slope0 = slope1;
+        }
+    }
+
+    if (HR_SUCCESS(status))
+        status = Animation->End(Duration, To);
+
+    return status;
+}
+#endif
+
+HRESULT PH_EMENU_DX::CreateDCompShadowTree(VOID)
+{
+#ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    return S_OK;
+#else
+    // Everything here is best effort: without the host or the shadow the menu
+    // visual still renders, just without the elevation effect or entrance motion.
+    LONG paddingPixels = GetSurfacePaddingPixels();
+    FLOAT windowWidth = static_cast<FLOAT>(static_cast<LONG>(Width * Scale) + paddingPixels * 2);
+    FLOAT windowHeight = static_cast<FLOAT>(static_cast<LONG>(Height * Scale) + paddingPixels * 2);
+
+    if (HR_FAILED(DCompDevice->CreateVisual(&HostVisual)))
+    {
+        HostVisual = NULL;
+        OpenAnimationPending = FALSE;
+        return S_OK;
+    }
+
+    HostVisual->QueryInterface(IID_PPV_ARGS(&HostVisual3));
+
+    if (OpenAnimationPending)
+    {
+        BOOLEAN prepared = FALSE;
+
+        // Start fully transparent and slightly small; StartOpenAnimation plays it
+        // once the window is on screen.
+        if (HostVisual3 && HR_SUCCESS(DCompDevice->CreateScaleTransform(&HostScaleTransform)))
+        {
+            prepared =
+                HR_SUCCESS(HostScaleTransform->SetCenterX(windowWidth / 2.0f)) &&
+                HR_SUCCESS(HostScaleTransform->SetCenterY(windowHeight / 2.0f)) &&
+                HR_SUCCESS(HostScaleTransform->SetScaleX(PH_EMENU_DX_OPEN_SCALE_FROM)) &&
+                HR_SUCCESS(HostScaleTransform->SetScaleY(PH_EMENU_DX_OPEN_SCALE_FROM)) &&
+                HR_SUCCESS(HostVisual->SetTransform(HostScaleTransform)) &&
+                HR_SUCCESS(HostVisual3->SetOpacity(0.0f));
+        }
+
+        if (!prepared)
+        {
+            if (HostVisual3)
+                HostVisual3->SetOpacity(1.0f);
+            if (HostScaleTransform)
+            {
+                HostVisual->SetTransform(static_cast<IDCompositionTransform*>(NULL));
+                HostScaleTransform->Release();
+                HostScaleTransform = NULL;
+            }
+
+            OpenAnimationPending = FALSE;
+        }
+    }
+
+    if (ShadowEnabled && CompositionDevice3)
+    {
+        HRESULT status;
+        LONG bodyWidth = static_cast<LONG>(Width * Scale);
+        LONG bodyHeight = static_cast<LONG>(Height * Scale);
+        // A dark desktop and dark menu swallow a light-theme shadow, so it needs more weight.
+        D2D1_VECTOR_4F shadowColor = { 0.0f, 0.0f, 0.0f, IsDarkMode ? PH_EMENU_DX_DC_SHADOW_OPACITY_DARK : PH_EMENU_DX_DC_SHADOW_OPACITY };
+
+        status = DCompDevice->CreateVisual(&ShadowVisual);
+
+        if (HR_SUCCESS(status))
+            status = CompositionDevice3->CreateShadowEffect(&ShadowEffect);
+
+        // The surface covers the menu plus the padding so the blurred output can
+        // never be clipped by the bounds of the visual.
+        if (HR_SUCCESS(status))
+        {
+            status = DCompDevice->CreateSurface(
+                static_cast<UINT>(bodyWidth + paddingPixels * 2),
+                static_cast<UINT>(bodyHeight + paddingPixels * 2),
+                DXGI_FORMAT_B8G8R8A8_UNORM,
+                DXGI_ALPHA_MODE_PREMULTIPLIED,
+                &ShadowSurface
+                );
+        }
+
+        if (HR_SUCCESS(status))
+            status = DrawDCompShadowSurface();
+        if (HR_SUCCESS(status))
+            status = ShadowEffect->SetStandardDeviation(PH_EMENU_DX_DC_SHADOW_BLUR_RADIUS * Scale / 3.0f);
+        if (HR_SUCCESS(status))
+            status = ShadowEffect->SetColor(shadowColor);
+        if (HR_SUCCESS(status))
+            status = ShadowVisual->SetContent(ShadowSurface);
+        if (HR_SUCCESS(status))
+            status = ShadowVisual->SetOffsetX(0.0f);
+        if (HR_SUCCESS(status))
+            status = ShadowVisual->SetOffsetY(static_cast<FLOAT>(static_cast<LONG>(PH_EMENU_DX_DC_SHADOW_OFFSET_Y * Scale)));
+        if (HR_SUCCESS(status))
+            status = ShadowVisual->SetEffect(ShadowEffect);
+
+        if (HR_FAILED(status))
+        {
+            dprintf("PhEMenuDx: Shadow setup failed with 0x%08x\n", status);
+
+            if (ShadowEffect)
+            {
+                ShadowEffect->Release();
+                ShadowEffect = NULL;
+            }
+            if (ShadowSurface)
+            {
+                ShadowSurface->Release();
+                ShadowSurface = NULL;
+            }
+            if (ShadowVisual)
+            {
+                ShadowVisual->Release();
+                ShadowVisual = NULL;
+            }
+        }
+    }
+
+    return S_OK;
+#endif
+}
+
+VOID PH_EMENU_DX::DestroyDCompShadowTree(VOID)
+{
+#ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    if (ShadowEffect)
+    {
+        ShadowEffect->Release();
+        ShadowEffect = NULL;
+    }
+    if (ShadowSurface)
+    {
+        ShadowSurface->Release();
+        ShadowSurface = NULL;
+    }
+    if (ShadowVisual)
+    {
+        ShadowVisual->Release();
+        ShadowVisual = NULL;
+    }
+    if (HostScaleTransform)
+    {
+        HostScaleTransform->Release();
+        HostScaleTransform = NULL;
+    }
+    if (HostVisual3)
+    {
+        HostVisual3->Release();
+        HostVisual3 = NULL;
+    }
+    if (HostVisual)
+    {
+        HostVisual->Release();
+        HostVisual = NULL;
+    }
+#endif
+}
+
+HRESULT PH_EMENU_DX::DrawDCompShadowSurface(VOID)
+{
+#ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    return S_OK;
+#else
+    HRESULT status;
+    ComPtr<ID2D1DeviceContext> drawingContext;
+    POINT offset;
+
+    status = ShadowSurface->BeginDraw(NULL, IID_PPV_ARGS(&drawingContext), &offset);
+
+    if (HR_FAILED(status))
+        return status;
+
+    {
+        ComPtr<ID2D1SolidColorBrush> maskBrush;
+        FLOAT paddingPixels = static_cast<FLOAT>(GetSurfacePaddingPixels());
+        FLOAT spreadPixels = static_cast<FLOAT>(static_cast<LONG>(PH_EMENU_DX_DC_SHADOW_SPREAD * Scale));
+        D2D1_RECT_F maskRect = D2D1::RectF(
+            paddingPixels - spreadPixels,
+            paddingPixels - spreadPixels,
+            paddingPixels + static_cast<FLOAT>(static_cast<LONG>(Width * Scale)) + spreadPixels,
+            paddingPixels + static_cast<FLOAT>(static_cast<LONG>(Height * Scale)) + spreadPixels
+            );
+
+        // Draw in device pixels: the visual offsets and the effect's standard
+        // deviation are pixel based too.
+        drawingContext->SetDpi(PH_EMENU_DX_DPI_BASE, PH_EMENU_DX_DPI_BASE);
+        drawingContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        drawingContext->SetTransform(D2D1::Matrix3x2F::Identity());
+        drawingContext->Clear(PH_EMENU_DX_COLOR_TRANSPARENT);
+        drawingContext->SetTransform(D2D1::Matrix3x2F::Translation(static_cast<FLOAT>(offset.x), static_cast<FLOAT>(offset.y)));
+
+        // Only the alpha channel feeds the shadow effect, so the mask is opaque
+        // and matches the menu geometry exactly.
+        if (HR_SUCCESS(drawingContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &maskBrush)))
+        {
+            if (FlagOn(Flags, PH_EMENU_SHOW_NO_ROUND_CORNERS))
+            {
+                drawingContext->FillRectangle(&maskRect, maskBrush.Get());
+            }
+            else
+            {
+                D2D1_ROUNDED_RECT maskRoundedRect = D2D1::RoundedRect(
+                    maskRect,
+                    PH_EMENU_DX_ROUNDED_CORNER * Scale + spreadPixels,
+                    PH_EMENU_DX_ROUNDED_CORNER * Scale + spreadPixels
+                    );
+
+                drawingContext->FillRoundedRectangle(&maskRoundedRect, maskBrush.Get());
+            }
+        }
+    }
+
+    status = ShadowSurface->EndDraw();
+
+    if (HR_FAILED(status))
+    {
+        dprintf("PhEMenuDx: ShadowSurface EndDraw failed with 0x%08x\n", status);
+    }
+
+    return status;
+#endif
+}
+
+VOID PH_EMENU_DX::StartOpenAnimation(VOID)
+{
+#ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    ComPtr<IDCompositionAnimation> opacityAnimation;
+    ComPtr<IDCompositionAnimation> scaleXAnimation;
+    ComPtr<IDCompositionAnimation> scaleYAnimation;
+    HRESULT status;
+
+    if (!OpenAnimationPending)
+        return;
+
+    OpenAnimationPending = FALSE;
+
+    if (!HostVisual3 || !HostScaleTransform)
+        return;
+
+    status = DCompDevice->CreateAnimation(&opacityAnimation);
+    if (HR_SUCCESS(status))
+        status = DCompDevice->CreateAnimation(&scaleXAnimation);
+    if (HR_SUCCESS(status))
+        status = DCompDevice->CreateAnimation(&scaleYAnimation);
+
+    // Opacity and scale are applied to the host, so the shadow and the menu
+    // content always fade and scale together.
+    if (HR_SUCCESS(status))
+        status = EMenuBuildAnimation(opacityAnimation.Get(), 0.0f, 1.0f, PH_EMENU_DX_OPEN_FADE_DURATION, TRUE);
+    if (HR_SUCCESS(status))
+        status = EMenuBuildAnimation(scaleXAnimation.Get(), PH_EMENU_DX_OPEN_SCALE_FROM, 1.0f, PH_EMENU_DX_OPEN_SCALE_DURATION, TRUE);
+    if (HR_SUCCESS(status))
+        status = EMenuBuildAnimation(scaleYAnimation.Get(), PH_EMENU_DX_OPEN_SCALE_FROM, 1.0f, PH_EMENU_DX_OPEN_SCALE_DURATION, TRUE);
+    if (HR_SUCCESS(status))
+        status = HostVisual3->SetOpacity(opacityAnimation.Get());
+    if (HR_SUCCESS(status))
+        status = HostScaleTransform->SetScaleX(scaleXAnimation.Get());
+    if (HR_SUCCESS(status))
+        status = HostScaleTransform->SetScaleY(scaleYAnimation.Get());
+
+    if (HR_FAILED(status))
+    {
+        // Never leave the menu invisible if the animation could not be set up.
+        HostVisual3->SetOpacity(1.0f);
+        HostScaleTransform->SetScaleX(1.0f);
+        HostScaleTransform->SetScaleY(1.0f);
+    }
+
+    DCompDevice->Commit();
+#endif
+}
+
+VOID PH_EMENU_DX::PlayCloseAnimation(VOID)
+{
+#ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
+    ComPtr<IDCompositionAnimation> opacityAnimation;
+
+    // Only the root plays the exit: submenus are torn down before it and stacking
+    // a fade per level would delay the selected command.
+    if (IsSubMenu || !AnimationsEnabled || !HostVisual3 || !DCompDevice || !WindowHandle)
+        return;
+    if (!IsWindowVisible(WindowHandle))
+        return;
+
+    if (HR_SUCCESS(DCompDevice->CreateAnimation(&opacityAnimation)) &&
+        HR_SUCCESS(EMenuBuildAnimation(opacityAnimation.Get(), 1.0f, 0.0f, PH_EMENU_DX_CLOSE_FADE_DURATION, FALSE)) &&
+        HR_SUCCESS(HostVisual3->SetOpacity(opacityAnimation.Get())) &&
+        HR_SUCCESS(DCompDevice->Commit()))
+    {
+        // The composition engine runs the animation; keep the window alive for its
+        // duration (plus a frame) so the shadow and content fade out together.
+        PhDelayExecution(static_cast<ULONG>(PH_EMENU_DX_CLOSE_FADE_DURATION * 1000.0) + 16);
+    }
 #endif
 }
 
@@ -2596,20 +3274,20 @@ VOID PH_EMENU_DX::Render(VOID)
 
     // Draw the final menu border
     D2D1_RECT_F borderRect = D2D1::RectF(
-        PH_EMENU_DX_BORDER_OFFSET,
-        PH_EMENU_DX_BORDER_OFFSET,
-        Width - PH_EMENU_DX_BORDER_OFFSET,
-        Height - PH_EMENU_DX_BORDER_OFFSET
+        PH_EMENU_DX_HAIRLINE_OFFSET,
+        PH_EMENU_DX_HAIRLINE_OFFSET,
+        Width - PH_EMENU_DX_HAIRLINE_OFFSET,
+        Height - PH_EMENU_DX_HAIRLINE_OFFSET
         );
 
     if (noRound)
     {
-        D2DDeviceContext->DrawRectangle(&borderRect, BorderBrush, PH_EMENU_DX_BORDER_WIDTH);
+        D2DDeviceContext->DrawRectangle(&borderRect, BorderBrush, PH_EMENU_DX_HAIRLINE_WIDTH);
     }
     else
     {
-        D2D1_ROUNDED_RECT roundedBorder = D2D1::RoundedRect(borderRect, PH_EMENU_DX_ROUNDED_CORNER, PH_EMENU_DX_ROUNDED_CORNER);
-        D2DDeviceContext->DrawRoundedRectangle(&roundedBorder, BorderBrush, PH_EMENU_DX_BORDER_WIDTH);
+        D2D1_ROUNDED_RECT roundedBorder = D2D1::RoundedRect(borderRect, PH_EMENU_DX_ROUNDED_CORNER - PH_EMENU_DX_HAIRLINE_OFFSET, PH_EMENU_DX_ROUNDED_CORNER - PH_EMENU_DX_HAIRLINE_OFFSET);
+        D2DDeviceContext->DrawRoundedRectangle(&roundedBorder, BorderBrush, PH_EMENU_DX_HAIRLINE_WIDTH);
     }
 }
 
@@ -2771,15 +3449,8 @@ VOID PH_EMENU_DX::CalculatePosition(
     _Out_ PLONG OutY
     )
 {
-    FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-    surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
-
     LONG menuWidth = (LONG)(Width * Scale);
     LONG menuHeight = (LONG)(Height * Scale);
-    LONG windowWidth = (LONG)((Width + surfacePadding * PH_EMENU_DX_HALF_FACTOR) * Scale);
-    LONG windowHeight = (LONG)((Height + surfacePadding * PH_EMENU_DX_HALF_FACTOR) * Scale);
     LONG baseX = X;
     LONG baseY = Y;
     HMONITOR monitor;
@@ -2898,8 +3569,8 @@ VOID PH_EMENU_DX::CalculatePosition(
             baseY -= menuHeight / 2;
     }
 
-    *OutX = baseX - (LONG)(surfacePadding * Scale);
-    *OutY = baseY - (LONG)(surfacePadding * Scale);
+    *OutX = baseX - GetSurfacePaddingPixels();
+    *OutY = baseY - GetSurfacePaddingPixels();
 }
 
 VOID PH_EMENU_DX::ReleaseCachedLayouts(VOID)
@@ -3251,10 +3922,7 @@ HRESULT PH_EMENU_DX::OpenSubMenu(VOID)
             itemY += FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? PH_EMENU_DX_SEPARATOR_HEIGHT : PH_EMENU_DX_ITEM_HEIGHT;
         }
 
-        FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-        surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
+        FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
 
         if (PH_EMENU_DX::ShowInternal(HoverItem, WindowHandle, Flags, PH_ALIGN_LEFT | PH_ALIGN_TOP, windowRect.left + (LONG)((surfacePadding + Width) * Scale) - (LONG)(PH_EMENU_DX_SUBMENU_X_OFFSET * Scale), windowRect.top + (LONG)((surfacePadding + itemY - ScrollOffset) * Scale) - (LONG)(PH_EMENU_DX_SUBMENU_Y_OFFSET * Scale), !!IsDarkMode, this, &selected))
         {
@@ -3291,10 +3959,7 @@ VOID PH_EMENU_DX::HandleMouseMove(
     _In_ POINT pt
     )
 {
-    FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-    surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
+    FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
 
     PPH_EMENU_ITEM oldHover = HoverItem;
     FLOAT pt_x = (FLOAT)pt.x / Scale - surfacePadding;
@@ -3408,7 +4073,9 @@ LRESULT PH_EMENU_DX::OnCreate(
     _In_ HWND WindowHandle
     )
 {
-    if (WindowsVersion >= WINDOWS_11)
+    // With the DirectComposition shadow the window is a transparent, padded surface
+    // and the menu draws its own rounded corners; DWM must not round the window.
+    if (WindowsVersion >= WINDOWS_11 && !ShadowEnabled)
     {
 #ifndef PH_EMENU_DX_ENABLE_DROPSHADOW
         ULONG ulongAttribute = PH_EMENU_DX_CORNER_STYLE;
@@ -3550,10 +4217,7 @@ VOID PH_EMENU_DX::OnTimer(
     else if (TimerId == PH_WINDOW_TIMER_SCROLL)
     {
         POINT pt;
-        FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-        surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
+        FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
 
         if (!PhGetClientPos(WindowHandle, &pt))
             return;
@@ -3590,10 +4254,7 @@ VOID PH_EMENU_DX::OnLButtonUp(
     _In_ LONG CursorY
     )
 {
-    FLOAT surfacePadding = 0.0f;
-#ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
-    surfacePadding = PH_EMENU_DX_SHADOW_PADDING;
-#endif
+    FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
 
     FLOAT pt_x = (FLOAT)CursorX / Scale - surfacePadding;
     FLOAT pt_y = (FLOAT)CursorY / Scale - surfacePadding;
@@ -3886,9 +4547,10 @@ LRESULT CALLBACK PH_EMENU_DX::MouseHookCallback(
     if (nCode == HC_ACTION && (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MBUTTONDOWN || wParam == WM_NCLBUTTONDOWN))
     {
         PMSLLHOOKSTRUCT hs = reinterpret_cast<PMSLLHOOKSTRUCT>(lParam);
-        HWND windowHandle = WindowFromPoint(hs->pt);
 
-        if (PH_EMENU_DX::IsWindowInMenuChain(windowHandle))
+        // Compare against the menu bodies, not the windows: the transparent shadow
+        // padding around a menu is part of its window but is not a menu click.
+        if (PH_EMENU_DX::IsPointInMenuBody(hs->pt))
             return CallNextHookEx(NULL, nCode, wParam, lParam);
 
         HWND* windows = NULL;
@@ -3971,7 +4633,9 @@ HRESULT PH_EMENU_DX::CompositionCreateDevice(
     )
 {
     static decltype(&DCompositionCreateDevice2) createDevice = NULL;
+    static decltype(&DCompositionCreateDevice2) createDevice3 = NULL;
     static PVOID compositionLibrary = NULL;
+    HRESULT status;
 
     if (!createDevice)
     {
@@ -3980,11 +4644,25 @@ HRESULT PH_EMENU_DX::CompositionCreateDevice(
         if (!compositionLibrary)
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
 
+        // DCompositionCreateDevice3 has the same signature as ...Device2.
+        createDevice3 = reinterpret_cast<decltype(&DCompositionCreateDevice2)>(
+            PhGetProcedureAddress(compositionLibrary, "DCompositionCreateDevice3", 0)
+            );
         createDevice = reinterpret_cast<decltype(&DCompositionCreateDevice2)>(
             PhGetProcedureAddress(compositionLibrary, "DCompositionCreateDevice2", 0)
             );
         if (!createDevice)
             return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+    }
+
+    // A device from ...Device2 cannot be queried for IDCompositionDevice3, which
+    // owns CreateShadowEffect. Prefer ...Device3 and fall back to ...Device2.
+    if (createDevice3)
+    {
+        status = createDevice3(RenderingDevice, Iid, DCompositionDevice);
+
+        if (HR_SUCCESS(status))
+            return status;
     }
 
     return createDevice(RenderingDevice, Iid, DCompositionDevice);
