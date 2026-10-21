@@ -15873,10 +15873,73 @@ GetDCompositionHwndBitmap(
 
 // rev
 /**
+ * The WINDOWCOMPOSITIONATTRIB enumeration identifies a DWM window composition attribute.
+ *
+ * Attributes marked "q" are queried with GetWindowCompositionAttribute, attributes marked "s" are set
+ * with SetWindowCompositionAttribute. Attributes 1, 5, 8, 12, 14, 18, 21 and 34 cannot be set.
+ */
+typedef enum _WINDOWCOMPOSITIONATTRIB
+{
+    WCA_UNDEFINED = 0,
+    WCA_NCRENDERING_ENABLED = 1,                // q: BOOL
+    WCA_NCRENDERING_POLICY = 2,                 // s: ULONG // DWMNCRENDERINGPOLICY
+    WCA_TRANSITIONS_FORCEDISABLED = 3,          // s: BOOL
+    WCA_ALLOW_NCPAINT = 4,                      // s: BOOL
+    WCA_CAPTION_BUTTON_BOUNDS = 5,              // q: RECT
+    WCA_NONCLIENT_RTL_LAYOUT = 6,               // s: BOOL
+    WCA_FORCE_ICONIC_REPRESENTATION = 7,        // s: BOOL
+    WCA_EXTENDED_FRAME_BOUNDS = 8,              // q: RECT
+    WCA_HAS_ICONIC_BITMAP = 9,                  // q: BOOL
+    WCA_THEME_ATTRIBUTES = 10,                  // s: ULONG
+    WCA_NCRENDERING_EXILED = 11,                // q: BOOL
+    WCA_NCADORNMENTINFO = 12,                   // q:
+    WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,         // s: BOOL
+    WCA_VIDEO_OVERLAY_ACTIVE = 14,              // q: BOOL
+    WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,     // s: BOOL
+    WCA_DISALLOW_PEEK = 16,                     // s: BOOL
+    WCA_CLOAK = 17,                             // s: ULONG
+    WCA_CLOAKED = 18,                           // q: ULONG // DWM_CLOAKED_*
+    WCA_ACCENT_POLICY = 19,                     // s: ACCENT_POLICY // since WIN11
+    WCA_FREEZE_REPRESENTATION = 20,             // s: BOOL
+    WCA_EVER_UNCLOAKED = 21,                    // q: BOOL
+    WCA_VISUAL_OWNER = 22,                      // s: HANDLE
+    WCA_HOLOGRAPHIC = 23,                       // q: BOOL
+    WCA_EXCLUDED_FROM_DDA = 24,                 // s: BOOL
+    WCA_PASSIVEUPDATEMODE = 25,                 // s: BOOL
+    WCA_USEDARKMODECOLORS = 26,                 // s: BOOL
+    WCA_CORNER_STYLE = 27,                      // s: ULONG // DWM_WINDOW_CORNER_PREFERENCE
+    WCA_PART_COLOR = 28,                        // s: { ULONG Part; COLORREF Color } // Part 0-2
+    WCA_DISABLE_MOVESIZE_FEEDBACK = 29,         // s: BOOL
+    WCA_SYSTEMBACKDROP_TYPE = 30,               // s: ULONG // DWM_SYSTEMBACKDROP_TYPE
+    WCA_SET_TAGGED_WINDOW_RECT = 31,            // s: RECT
+    WCA_CLEAR_TAGGED_WINDOW_RECT = 32,          // s: RECT
+    WCA_REMOTEAPP_POLICY = 33,                  // s: ULONG // since 24H2
+    WCA_HAS_ACCENT_POLICY = 34,                 // q: BOOL
+    WCA_REDIRECTIONBITMAP_FILL_COLOR = 35,      // s: ULONG // COLORREF
+    WCA_REDIRECTIONBITMAP_ALPHA = 36,           // s: BOOL
+    WCA_BORDER_MARGINS = 37,                    // s: USHORT[4] // each below 0x8000, all zero or all non-zero
+    WCA_LAST
+} WINDOWCOMPOSITIONATTRIB;
+
+// rev
+/**
+ * The WINDOWCOMPOSITIONATTRIBUTEDATA structure is the descriptor passed to the Get/SetWindowCompositionAttribute
+ * routines (24 bytes on x64). It describes the attribute and the caller buffer, not the attribute payload.
+ */
+typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA
+{
+    WINDOWCOMPOSITIONATTRIB Attribute;  // The attribute to query or set.
+    PVOID Data;                         // The input (set) or output (get) buffer.
+    SIZE_T Length;                      // The size of the buffer in bytes (must be at least the attribute minimum).
+} WINDOWCOMPOSITIONATTRIBUTEDATA, *PWINDOWCOMPOSITIONATTRIBUTEDATA;
+
+// rev
+/**
  * The GetWindowCompositionAttribute routine retrieves a DWM window composition attribute.
  *
  * \param WindowHandle Handle to the target window.
- * \param AttributeData Pointer to the composition attribute data buffer.
+ * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBUTEDATA descriptor describing the attribute
+ * and its output buffer.
  * \returns TRUE on success, FALSE otherwise.
  */
 NTSYSAPI
@@ -15884,25 +15947,7 @@ BOOL
 NTAPI
 GetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
-    _Inout_ PVOID AttributeData
-    );
-
-// rev
-/**
- * The GetWindowCompositionInfo routine retrieves Desktop Window Manager (DWM) composition
- * attributes for a window.
- *
- * \param WindowHandle Handle to the target window.
- * \param CompositionInfo Pointer to a structure receiving the window's composition information.
- * \returns LOGICAL Non-zero on success, zero otherwise.
- * \remarks Forwards to the NtUserGetWindowCompositionInfo system call.
- */
-NTSYSAPI
-LOGICAL
-NTAPI
-GetWindowCompositionInfo(
-    _In_ HWND WindowHandle,
-    _Out_ PVOID CompositionInfo
+    _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     );
 
 // rev
@@ -17618,7 +17663,8 @@ NtUserGetResizeDCompositionSynchronizationObject(
  * Returns a Boolean success value, not NTSTATUS (0x1401418cc-0x1401418d2).
  *
  * \param WindowHandle Handle to the window.
- * \param AttributeData The attribute data argument.
+ * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBUTEDATA descriptor describing the attribute
+ * and its output buffer.
  *
  * \returns The BOOL result described above.
  */
@@ -17628,25 +17674,7 @@ BOOL
 NTAPI
 NtUserGetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
-    _In_ PVOID AttributeData
-    );
-
-// rev
-/**
- * The NtUserGetWindowCompositionInfo routine retrieves Desktop Window Manager (DWM) composition
- * attributes for a window.
- *
- * \param Param1 Unconfirmed window handle parameter.
- * \param Param2 Pointer to a structure receiving window composition information.
- * \returns LOGICAL Non-zero on success, zero otherwise.
- */
-_Kernel_entry_
-NTSYSCALLAPI
-LOGICAL
-NTAPI
-NtUserGetWindowCompositionInfo(
-    _In_ ULONG_PTR Param1,
-    _In_ ULONG_PTR Param2
+    _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     );
 
 // rev
@@ -17654,16 +17682,19 @@ NtUserGetWindowCompositionInfo(
  * The SetWindowCompositionAttribute routine sets a DWM window composition attribute.
  *
  * \param WindowHandle Handle to the target window.
- * \param AttributeData Pointer to the composition attribute data buffer.
+ * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBUTEDATA descriptor describing the attribute
+ * and its input buffer.
  * \returns TRUE on success, FALSE otherwise.
- * \remarks Forwards to the NtUserSetWindowCompositionAttribute system call.
+ * \remarks Pure forwarder (user32 export 2391) that jumps to win32u!NtUserSetWindowCompositionAttribute
+ * with no client-side validation. Unlike GetWindowCompositionAttribute, it does not check the
+ * attribute range or buffer size in user mode.
  */
 NTSYSAPI
 BOOL
 NTAPI
 SetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
-    _In_ PVOID AttributeData
+    _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     );
 
 // rev
@@ -17671,8 +17702,27 @@ SetWindowCompositionAttribute(
  * The NtUserSetWindowCompositionAttribute routine sets Desktop Window Manager (DWM) composition
  * attributes for a window.
  *
+ * win32kfull: 0x140214030 (win32u syscall 0x1592) copies a 24-byte descriptor from argument 2.
+ * The descriptor contains the attribute (ULONG at +0), input buffer pointer (+8),
+ * and buffer size (SIZE_T at +16) on x64. AttributeData is the descriptor, not the payload.
+ * The payload buffer is probed for read and the per-attribute minimum number of bytes is copied.
+ *
+ * The attribute must be in the range 1 to 37 and the buffer size must be at least the minimum for
+ * the attribute, otherwise the call fails with STATUS_INVALID_PARAMETER or STATUS_BUFFER_TOO_SMALL.
+ * Minimum sizes are 4 bytes except: 16 (5, 8, 19, 31), 20 (12), 8 (22, 28, 37) and 0 (32).
+ * Attributes 1, 5, 8, 12, 14, 18, 21 and 34 are not settable (STATUS_INVALID_PARAMETER).
+ * Attribute 28 takes { ULONG Part (0-2); ULONG Color } and attribute 37 takes four USHORT margins,
+ * each below 0x8000, that are either all zero (clear) or all non-zero.
+ * The window must be a top-level window (STATUS_INVALID_HANDLE otherwise), except for attributes 17, 20 and 36
+ * which also accept layered child windows. Attributes 17, 23 and 37 return STATUS_ACCESS_DENIED
+ * when the caller does not own the window.
+ *
+ * Returns a Boolean success value, not NTSTATUS. On failure the status is converted with
+ * RtlNtStatusToDosError and stored as the last error.
+ *
  * \param WindowHandle A handle to the window to configure.
- * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBDATA structure containing the attribute to set.
+ * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBUTEDATA descriptor describing the attribute
+ * and its input buffer.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -17681,7 +17731,7 @@ LOGICAL
 NTAPI
 NtUserSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
-    _In_ PVOID AttributeData
+    _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     );
 
 // rev
