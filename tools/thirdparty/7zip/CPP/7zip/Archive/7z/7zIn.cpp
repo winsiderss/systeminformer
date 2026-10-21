@@ -297,7 +297,7 @@ UInt64 CInByte2::ReadUInt64()
     (return_ptr >= limit) : limit was reached or crossed. So no signature found before limit
 */
 Z7_NO_INLINE
-static const Byte *FindSignature_10(const Byte *p, const Byte *limit)
+static const Byte *FindSignature_10(const Byte *p Z7_lifetimebound, const Byte *limit Z7_lifetimebound)
 {
   for (;;)
   {
@@ -698,22 +698,24 @@ void CInArchive::ReadPackInfo(CFolders &f)
   
   WaitId(NID::kSize);
   f.PackPositions.Alloc(numPackStreams + 1);
+  UInt64 * const packPositions = f.PackPositions;
   f.NumPackStreams = numPackStreams;
   UInt64 sum = 0;
-  for (CNum i = 0; i < numPackStreams; i++)
+  for (CNum i = 0;;)
   {
-    f.PackPositions[i] = sum;
+    packPositions[i] = sum;
+    if (i == numPackStreams)
+      break;
+    i++;
     const UInt64 packSize = ReadNumber();
     sum += packSize;
     if (sum < packSize)
       ThrowIncorrect();
   }
-  f.PackPositions[numPackStreams] = sum;
 
-  UInt64 type;
   for (;;)
   {
-    type = ReadID();
+    const UInt64 type = ReadID();
     if (type == NID::kEnd)
       return;
     if (type == NID::kCRC)
@@ -857,19 +859,20 @@ void CInArchive::ReadUnpackInfo(
             StreamUsed[index] = true;
           }
           
-        for (i = 0; i < numCoders; i++)
+        for (i = 0;;)
+        {
           if (!CoderUsed[i])
-          {
-            indexOfMainStream = i;
             break;
-          }
-          
-        if (i == numCoders)
-          ThrowUnsupported();
+          if (++i == numCoders)
+            ThrowUnsupported();
+        }
+        indexOfMainStream = i;
       }
       
       folders.FoToCoderUnpackSizes[fo] = numCodersOutStreams;
       numCodersOutStreams += numCoders;
+      if (numCodersOutStreams < numCoders)
+        ThrowUnsupported();
       folders.FoStartPackStreamIndex[fo] = packStreamIndex;
       if (numPackStreams > folders.NumPackStreams - packStreamIndex)
         ThrowIncorrect();
@@ -880,7 +883,7 @@ void CInArchive::ReadUnpackInfo(
     const size_t dataSize = (size_t)(_inByteBack->GetPtr() - startBufPtr);
     folders.FoToCoderUnpackSizes[fo] = numCodersOutStreams;
     folders.FoStartPackStreamIndex[fo] = packStreamIndex;
-    folders.FoCodersDataOffset[fo] = (size_t)(_inByteBack->GetPtr() - startBufPtr);
+    folders.FoCodersDataOffset[fo] = dataSize;
     folders.CodersData.CopyFrom(startBufPtr, dataSize);
 
     // if (folders.NumPackStreams != packStreamIndex) ThrowUnsupported();
@@ -898,6 +901,8 @@ void CInArchive::ReadUnpackInfo(
       return;
     if (type == NID::kCRC)
     {
+      if (!folders.FolderCRCs.Defs.IsEmpty())
+        ThrowIncorrect();
       ReadHashDigests(numFolders, folders.FolderCRCs);
       continue;
     }
@@ -911,19 +916,35 @@ void CInArchive::ReadSubStreamsInfo(
     CUInt32DefVector &digests)
 {
   folders.NumUnpackStreamsVector.Alloc(folders.NumFolders);
-  CNum i;
-  for (i = 0; i < folders.NumFolders; i++)
-    folders.NumUnpackStreamsVector[i] = 1;
   
+  bool NumUnpackStream_isFilled = false;
   UInt64 type;
+
+  CNum numUnpackStreams = folders.NumFolders;
   
   for (;;)
   {
     type = ReadID();
     if (type == NID::kNumUnpackStream)
     {
-      for (i = 0; i < folders.NumFolders; i++)
-        folders.NumUnpackStreamsVector[i] = ReadNum();
+      if (NumUnpackStream_isFilled)
+        ThrowIncorrect();
+      NumUnpackStream_isFilled = true;
+      CNum numFolders = folders.NumFolders;
+      numUnpackStreams = 0;
+      if (numFolders)
+      {
+        UInt32 *dest = folders.NumUnpackStreamsVector.NonConstData();
+        do
+        {
+          const CNum num = ReadNum();
+          *dest++ = num;
+          numUnpackStreams += num;
+          if (numUnpackStreams < num)
+            ThrowUnsupported();
+        }
+        while (--numFolders);
+      }
       continue;
     }
     if (type == NID::kCRC || type == NID::kSize || type == NID::kEnd)
@@ -931,6 +952,20 @@ void CInArchive::ReadSubStreamsInfo(
     SkipData();
   }
 
+  if (!NumUnpackStream_isFilled)
+  {
+    CNum numFolders = folders.NumFolders;
+    if (numFolders)
+    {
+      UInt32 *dest = folders.NumUnpackStreamsVector.NonConstData();
+      do
+        *dest++ = 1;
+      while (--numFolders);
+    }
+  }
+
+  unpackSizes.ClearAndReserve(numUnpackStreams);
+  CNum i;
   if (type == NID::kSize)
   {
     for (i = 0; i < folders.NumFolders; i++)
@@ -943,16 +978,20 @@ void CInArchive::ReadSubStreamsInfo(
       UInt64 sum = 0;
       for (CNum j = 1; j < numSubstreams; j++)
       {
+        if (unpackSizes.Size() >= numUnpackStreams)
+          ThrowIncorrect(); // internal failure
         const UInt64 size = ReadNumber();
-        unpackSizes.Add(size);
+        unpackSizes.AddInReserved(size);
         sum += size;
         if (sum < size)
           ThrowIncorrect();
       }
+      if (unpackSizes.Size() >= numUnpackStreams)
+        ThrowIncorrect(); // internal failure
       const UInt64 folderUnpackSize = folders.GetFolderUnpackSize(i);
       if (folderUnpackSize < sum)
         ThrowIncorrect();
-      unpackSizes.Add(folderUnpackSize - sum);
+      unpackSizes.AddInReserved(folderUnpackSize - sum);
     }
     type = ReadID();
   }
@@ -966,9 +1005,16 @@ void CInArchive::ReadSubStreamsInfo(
       if (val > 1)
         ThrowIncorrect();
       if (val == 1)
-        unpackSizes.Add(folders.GetFolderUnpackSize(i));
+      {
+        if (unpackSizes.Size() >= numUnpackStreams)
+          ThrowIncorrect(); // internal failure
+        unpackSizes.AddInReserved(folders.GetFolderUnpackSize(i));
+      }
     }
   }
+
+  if (unpackSizes.Size() != numUnpackStreams)
+    ThrowIncorrect();
 
   unsigned numDigests = 0;
   for (i = 0; i < folders.NumFolders; i++)
@@ -984,6 +1030,8 @@ void CInArchive::ReadSubStreamsInfo(
       break;
     if (type == NID::kCRC)
     {
+      if (!digests.Defs.IsEmpty())
+        ThrowIncorrect();
       // CUInt32DefVector digests2;
       // ReadHashDigests(numDigests, digests2);
       CBoolVector digests2;
@@ -1092,10 +1140,13 @@ void CInArchive::ReadStreamsInfo(
        So we don't need to fill digests with values. */
     // digests.Vals.ClearAndSetSize(folders.NumFolders);
     // BoolVector_Fill_False(digests.Defs, folders.NumFolders);
+    unpackSizes.ClearAndSetSize(folders.NumFolders);
+    UInt64 * const unpackSizes2 = unpackSizes.NonConstData();
+    CNum * const numUnpackStreamsVector2 = folders.NumUnpackStreamsVector;
     for (CNum i = 0; i < folders.NumFolders; i++)
     {
-      folders.NumUnpackStreamsVector[i] = 1;
-      unpackSizes.Add(folders.GetFolderUnpackSize(i));
+      numUnpackStreamsVector2[i] = 1;
+      unpackSizes2[i] = folders.GetFolderUnpackSize(i);
       // digests.Vals[i] = 0;
     }
   }
@@ -1648,8 +1699,8 @@ HRESULT CInArchive::ReadDatabase2(
   db.PhySize = kHeaderSize;
 
   db.IsArc = false;
-  if ((Int64)nextHeaderOffset < 0 ||
-      nextHeaderSize > ((UInt64)1 << 62))
+  if (nextHeaderOffset >= (UInt64)1 << 62 ||
+      nextHeaderSize > ((UInt64)1 << 48))
     return S_FALSE;
 
   HeadersSize = kHeaderSize;

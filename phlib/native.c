@@ -9256,141 +9256,6 @@ NTSTATUS PhQueryEvent(
 }
 
 /**
- * Creates a waitable timer object.
- *
- * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
- * \param DesiredAccess The access mask that specifies the requested access to the timer object.
- * \param TimerType The type of the timer object (NotificationTimer or SynchronizationTimer).
- * \param HighResolution If TRUE and NtCreateTimer2 is available, creates a high-resolution timer;
- * otherwise falls back to NtCreateTimer.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhCreateWaitableTimer(
-    _Out_ PHANDLE TimerHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ TIMER_TYPE TimerType
-    )
-{
-    NTSTATUS status;
-    HANDLE timerHandle = NULL;
-
-    if (PhEnableHighResolution && NtCreateTimer2_Import())
-    {
-        status = NtCreateTimer2_Import()(
-            &timerHandle,
-            NULL,
-            NULL,
-            TIMER2_BUILD_ATTRIBUTES(TimerType, TRUE),
-            DesiredAccess
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *TimerHandle = timerHandle;
-            return status;
-        }
-    }
-
-    {
-        OBJECT_ATTRIBUTES objectAttributes;
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            NULL,
-            OBJ_EXCLUSIVE,
-            NULL,
-            NULL
-            );
-
-        status = NtCreateTimer(
-            &timerHandle,
-            DesiredAccess,
-            &objectAttributes,
-            TimerType
-            );
-    }
-
-    if (NT_SUCCESS(status))
-    {
-        *TimerHandle = timerHandle;
-    }
-
-    return status;
-}
-
-/**
- * Sets a waitable timer.
- *
- * \param TimerHandle A handle to the timer object.
- * \param DueTime The time at which the timer is to expire, in 100-nanosecond intervals.
- * Negative values specify a relative time; positive values specify an absolute time.
- * \param Period An optional pointer to the timer period in 100-nanosecond intervals.
- * If NULL the timer is non-periodic. When falling back to NtSetTimer, the period is
- * converted from 100-nanosecond intervals to milliseconds.
- * \param TimerApcRoutine An optional APC routine invoked when the timer expires.
- * Only used when NtSetTimer2 is unavailable.
- * \param TimerContext An optional context value passed to the APC routine.
- * Only used when NtSetTimer2 is unavailable.
- * \param ResumeTimer If TRUE, resumes the system from a low-power state on expiry.
- * Only used when NtSetTimer2 is unavailable.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhSetWaitableTimer(
-    _In_ HANDLE TimerHandle,
-    _In_ PLARGE_INTEGER DueTime,
-    _In_opt_ PLARGE_INTEGER Period,
-    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
-    _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer
-    )
-{
-    if (PhEnableHighResolution)
-    {
-        TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
-
-        if (NtSetTimer2_Import())
-        {
-            T2_SET_PARAMETERS timer2Parameters;
-
-            memset(&timer2Parameters, 0, sizeof(T2_SET_PARAMETERS));
-            timer2Parameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-            timer2Parameters.NoWakeTolerance = 0;
-
-            return NtSetTimer2_Import()(
-                TimerHandle,
-                DueTime,
-                Period,
-                &timer2Parameters
-                );
-        }
-
-        memset(&timerParameters, 0, sizeof(TIMER_SET_COALESCABLE_TIMER_INFO));
-        timerParameters.DueTime.QuadPart = DueTime->QuadPart;
-        timerParameters.Period = Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0;
-        timerParameters.TimerApcRoutine = TimerApcRoutine;
-        timerParameters.TimerContext = TimerContext;
-        timerParameters.TolerableDelay = 0;
-
-        return NtSetTimerEx(
-            TimerHandle,
-            TimerSetCoalescableTimer,
-            &timerParameters,
-            sizeof(TIMER_SET_COALESCABLE_TIMER_INFO)
-            );
-    }
-
-    return NtSetTimer(
-        TimerHandle,
-        DueTime,
-        TimerApcRoutine,
-        TimerContext,
-        ResumeTimer,
-        Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0,
-        NULL
-        );
-}
-
-/**
  * Creates a timer with the specified time-out value.
  *
  * \param WindowHandle A handle to the window to be associated with the timer.
@@ -9430,4 +9295,76 @@ BOOL PhKillTimer(
 {
     assert(WindowHandle);
     return KillTimer(WindowHandle, TimerID);
+}
+
+/**
+ * Creates a high-resolution timer object.
+ *
+ * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
+ * \param DesiredAccess The access mask that specifies the requested access to the timer object.
+ * \param TimerType The type of the timer object (NotificationTimer or SynchronizationTimer).
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The timer must be set with PhSetHighResolutionTimer. NtSetTimer and NtSetTimerEx
+ * do not accept handles created by this function, and this function does not fall back to
+ * NtCreateTimer. Callers that need a fallback should create a timer with NtCreateTimer.
+ */
+NTSTATUS PhCreateHighResolutionTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ TIMER_TYPE TimerType
+    )
+{
+    NTSTATUS status;
+    HANDLE timerHandle;
+
+    if (!NtCreateTimer2_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    status = NtCreateTimer2_Import()(
+        &timerHandle,
+        NULL,
+        NULL,
+        TIMER2_BUILD_ATTRIBUTES(TimerType, TRUE),
+        DesiredAccess
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *TimerHandle = timerHandle;
+    }
+
+    return status;
+}
+
+/**
+ * Sets a high-resolution timer.
+ *
+ * \param TimerHandle A handle to a timer object created by PhCreateHighResolutionTimer.
+ * \param DueTime The time at which the timer is to expire, in 100-nanosecond intervals.
+ * Negative values specify a relative time; positive values specify an absolute time.
+ * \param Period An optional pointer to the timer period in 100-nanosecond intervals.
+ * If NULL the timer is non-periodic.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhSetHighResolutionTimer(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PLARGE_INTEGER Period
+    )
+{
+    T2_SET_PARAMETERS timerParameters;
+
+    if (!NtSetTimer2_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
+    timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+    timerParameters.NoWakeTolerance = 0;
+
+    return NtSetTimer2_Import()(
+        TimerHandle,
+        DueTime,
+        Period,
+        &timerParameters
+        );
 }

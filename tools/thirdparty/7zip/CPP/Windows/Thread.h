@@ -5,7 +5,7 @@
 
 #include "../../C/Threads.h"
 
-#include "Defs.h"
+#include "WinDefs.h"
 
 namespace NWindows {
 

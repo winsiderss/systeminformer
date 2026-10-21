@@ -539,7 +539,7 @@ static size_t Utf16_To_Utf8_Calc(const wchar_t *src, const wchar_t *srcLim, unsi
 }
 
 
-static char *Utf16_To_Utf8(char *dest, const wchar_t *src, const wchar_t *srcLim, unsigned flags)
+static char *Utf16_To_Utf8(char *dest Z7_lifetimebound, const wchar_t *src, const wchar_t *srcLim, unsigned flags)
 {
   for (;;)
   {

@@ -742,6 +742,11 @@ D3DKMTNetDispQueryMiracastDisplayDeviceSupport(
 // rev
 // Equivalent to D3DKMTNetDispStartMiracastDisplayDevice2 with Flags = 1.
 // Returns a private 32-bit Miracast result code, not a documented NTSTATUS.
+/**
+ * Starts a Miracast display through the version-2 client wrapper with Flags=1. DeviceName must be a readable NUL-
+ * terminated string. The wrapper forwards EventHandle and returns the version-2 result; it is not a read-only
+ * display query. See D3DKMTNetDispStartMiracastDisplayDevice2 for the local length rejection.
+ */
 NTSYSAPI
 LONG
 NTAPI
@@ -753,6 +758,13 @@ D3DKMTNetDispStartMiracastDisplayDevice(
 // rev
 // DeviceName is copied into a 260-WCHAR field; Flags is passed through unchanged.
 // Returns a private 32-bit Miracast result code, not a documented NTSTATUS.
+/**
+ * Builds a Miracast start request and submits it to Win32u. The request size is 552 bytes on x64 and 548 bytes on
+ * x86. A readable NUL-terminated DeviceName of 261 or more WCHARs, excluding NUL, is rejected locally with
+ * 0x80000008 before the native request. Shorter strings reach a 260-WCHAR destination copy; this is not a promise
+ * that all shorter strings are valid device names. Flags and EventHandle are forwarded. Successful dispatch can
+ * change display state.
+ */
 NTSYSAPI
 LONG
 NTAPI
@@ -803,11 +815,17 @@ D3DKMTOpenSwapChain(
 
 // rev
 // Reads the legacy direct-flip parameter block: 16 bytes on x64, 12 bytes on x86.
+/**
+ * Pins the ResourceCount graphics resources in Resources->pResourceList for Resources->hDevice. Uses the SDK
+ * D3DKMT_PINDIRECTFLIPRESOURCES type. The client reads the device at offset 0, count at offset 4, and pointer at
+ * offset 8, then builds a private 32-byte request with pin flag bit 0 set and submits NtDxgkPinResources. It does
+ * not copy the request back to Resources. Kernel validation and resource lifetime remain separate contracts.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTPinDirectFlipResources(
-    _In_ PVOID Data
+    _In_ const D3DKMT_PINDIRECTFLIPRESOURCES *Resources
     );
 
 // rev
@@ -923,11 +941,17 @@ D3DKMTUnOrderedPresentSwapChain(
 
 // rev
 // Reads the legacy direct-flip parameter block: 16 bytes on x64, 12 bytes on x86.
+/**
+ * Unpins resources described by the SDK D3DKMT_UNPINDIRECTFLIPRESOURCES record. DXCore reads hDevice at offset
+ * 0, ResourceCount at offset 4 and pResourceList at offset 8, builds a private request with additional flag
+ * storage cleared, and calls NtDxgkUnpinResources without writing back to Resources. This changes resource
+ * pinning state; device and resource lifetimes must be valid.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTUnpinDirectFlipResources(
-    _In_ PVOID Data
+    _In_ const D3DKMT_UNPINDIRECTFLIPRESOURCES *Resources
     );
 
 // rev

@@ -1336,6 +1336,7 @@ VOID PhNetworkProviderUpdate(
                     if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
                     {
                         PhMoveReference(&networkItem->ProcessName, PhGetBaseName(fileName));
+                        PhDereferenceObject(fileName);
                     }
 
                     NtClose(processHandle);

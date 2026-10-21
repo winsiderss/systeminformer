@@ -39,7 +39,7 @@ typedef PROCESS_MEMORY_COUNTERS *PPROCESS_MEMORY_COUNTERS;
 
 #include "../Common/MyString.h"
 
-#include "Defs.h"
+#include "WinDefs.h"
 #include "Handle.h"
 
 namespace NWindows {

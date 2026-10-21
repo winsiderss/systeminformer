@@ -14,18 +14,18 @@ Z7_CLASS_IMP_COM_1(
   CLimitedSequentialInStream
   , ISequentialInStream
 )
+  bool _wasFinished;
   CMyComPtr<ISequentialInStream> _stream;
   UInt64 _size;
   UInt64 _pos;
-  bool _wasFinished;
 public:
   void SetStream(ISequentialInStream *stream) { _stream = stream; }
   void ReleaseStream() { _stream.Release(); }
   void Init(UInt64 streamSize)
   {
+    _wasFinished = false;
     _size = streamSize;
     _pos = 0;
-    _wasFinished = false;
   }
   UInt64 GetSize() const { return _pos; }
   UInt64 GetRem() const { return _size - _pos; }
@@ -53,7 +53,7 @@ public:
     _size = size;
     return SeekToPhys();
   }
-  HRESULT SeekToStart() { return Seek(0, STREAM_SEEK_SET, NULL); }
+  // HRESULT SeekToStart() { _virtPos = 0; }
 };
 
 HRESULT CreateLimitedInStream(IInStream *inStream, UInt64 pos, UInt64 size, ISequentialInStream **resStream);
@@ -79,9 +79,9 @@ public:
     _curRem = 0;
     _virtPos = 0;
     _physPos = StartOffset;
-    if (Vector.Size() > 0)
+    if (Vector.Size())
     {
-      _physPos = StartOffset + (Vector[0] << BlockSizeLog);
+      _physPos = StartOffset + ((UInt64)Vector[0] << BlockSizeLog);
       return SeekToPhys();
     }
     return S_OK;
@@ -105,9 +105,9 @@ struct CSeekExtent
 Z7_CLASS_IMP_IInStream(
   CExtentsStream
 )
+  unsigned _prevExtentIndex;
   UInt64 _virtPos;
   UInt64 _phyPos;
-  unsigned _prevExtentIndex;
 public:
   CMyComPtr<IInStream> Stream;
   CRecordVector<CSeekExtent> Extents;
@@ -115,9 +115,9 @@ public:
   void ReleaseStream() { Stream.Release(); }
   void Init()
   {
+    _prevExtentIndex = 0;
     _virtPos = 0;
     _phyPos = (UInt64)0 - 1; // we need Seek() for Stream
-    _prevExtentIndex = 0;
   }
 };
 
@@ -127,10 +127,10 @@ Z7_CLASS_IMP_COM_1(
   CLimitedSequentialOutStream
   , ISequentialOutStream
 )
-  CMyComPtr<ISequentialOutStream> _stream;
-  UInt64 _size;
   bool _overflow;
   bool _overflowIsAllowed;
+  CMyComPtr<ISequentialOutStream> _stream;
+  UInt64 _size;
 public:
   void SetStream(ISequentialOutStream *stream) { _stream = stream; }
   void ReleaseStream() { _stream.Release(); }

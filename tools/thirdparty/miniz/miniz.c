@@ -2145,6 +2145,11 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         *pLen_out = 0;
         if (!pComp)
             return NULL;
+        if (w <= 0 || h <= 0 || w > 0xFFFF || h > 0xFFFF || num_chans < 1 || num_chans > 4)
+        {
+            MZ_FREE(pComp);
+            return NULL;
+        }
         MZ_CLEAR_OBJ(out_buf);
         out_buf.m_expandable = MZ_TRUE;
         out_buf.m_capacity = 57 + MZ_MAX(64, (1 + bpl) * h);
@@ -2711,6 +2716,10 @@ extern "C"
                             counter = sym2;
                             bit_buf >>= code_len;
                             num_bits -= code_len;
+                            if (code_len == 0)
+                            {
+                                TINFL_CR_RETURN_FOREVER(40, TINFL_STATUS_FAILED);
+                            }
                             if (counter & 256)
                                 break;
 
@@ -2734,6 +2743,10 @@ extern "C"
                             }
                             bit_buf >>= code_len;
                             num_bits -= code_len;
+                            if (code_len == 0)
+                            {
+                                TINFL_CR_RETURN_FOREVER(54, TINFL_STATUS_FAILED);
+                            }
 
                             pOut_buf_cur[0] = (mz_uint8)counter;
                             if (sym2 & 256)
@@ -3809,7 +3822,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (cdir_size < (mz_uint64)pZip->m_total_files * MZ_ZIP_CENTRAL_DIR_HEADER_SIZE)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
-        if ((cdir_ofs + (mz_uint64)cdir_size) > pZip->m_archive_size)
+        if (cdir_size> pZip->m_archive_size || cdir_ofs > pZip->m_archive_size - cdir_size)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
         if (eocd_ofs < cdir_ofs + cdir_size)

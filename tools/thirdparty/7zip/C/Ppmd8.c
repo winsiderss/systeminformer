@@ -885,9 +885,9 @@ static PPMD8_CTX_PTR Ppmd8_CreateSuccessors(CPpmd8 *p, BoolInt skip, CPpmd_State
       if (s->Freq < MAX_FREQ - 9) { s->Freq++; c->Union2.SummFreq++; }
     }
     else
-    {
+    { const unsigned temp = !SUFFIX(c)->NumStats;
       s = ONE_STATE(c);
-      s->Freq = (Byte)(s->Freq + (!SUFFIX(c)->NumStats & (s->Freq < 24)));
+      s->Freq = (Byte)(s->Freq + (temp & (s->Freq < 24)));
     }
     successor = SUCCESSOR(s);
     if (successor != upBranch)

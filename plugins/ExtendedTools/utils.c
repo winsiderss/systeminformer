@@ -547,6 +547,22 @@ static PPH_STRING EtpFormatDeviceProperty(
 
             return PhCreateStringEx((PWCHAR)Property->Buffer, length);
         }
+    case DEVPROP_TYPE_STRING_INDIRECT:
+        {
+            // Display adapter names (DEVPKEY_NAME/DEVPKEY_Device_DeviceDesc) are commonly
+            // returned by DevQuery as indirect strings (e.g. "@oem4.inf,%nvidia...%;NVIDIA
+            // GeForce RTX 3060"). Resolve them rather than discarding, otherwise callers fall
+            // back to the "GPU N" placeholder. (dmex)
+            PH_STRINGREF string;
+
+            if (Property->BufferSize < sizeof(UNICODE_NULL))
+                return NULL;
+
+            string.Buffer = (PWSTR)Property->Buffer;
+            string.Length = Property->BufferSize - sizeof(UNICODE_NULL);
+
+            return PhLoadIndirectString(&string);
+        }
     case DEVPROP_TYPE_FILETIME:
         {
             PFILETIME fileTime;

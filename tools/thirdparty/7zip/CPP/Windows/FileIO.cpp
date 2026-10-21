@@ -6,6 +6,29 @@
 #include "../../C/Alloc.h"
 #endif
 
+#ifdef _WIN32
+#ifdef __MINGW32_VERSION
+// #if !defined(_MSC_VER) && (__GNUC__) && (__GNUC__ < 10)
+// for old mingw
+#include <ddk/ntddk.h>
+#else
+#ifndef Z7_OLD_WIN_SDK
+  #if !defined(_M_IA64)
+    #include <winternl.h>
+  #endif
+#else
+typedef LONG NTSTATUS;
+typedef struct _IO_STATUS_BLOCK {
+    union {
+        NTSTATUS Status;
+        PVOID Pointer;
+    };
+    ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+#endif
+#endif
+#endif // _WIN32
+
 // #include <stdio.h>
 
 /*
@@ -32,6 +55,48 @@ HRESULT GetLastError_noZero_HRESULT()
 #ifndef _UNICODE
 extern bool g_IsNT;
 #endif
+
+#if defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0500) && !defined(_M_IA64)
+#define Z7_WIN_NTSTATUS  NTSTATUS
+#define Z7_WIN_IO_STATUS_BLOCK  IO_STATUS_BLOCK
+#else
+typedef LONG Z7_WIN_NTSTATUS;
+typedef struct
+{
+  union
+  {
+    Z7_WIN_NTSTATUS Status;
+    PVOID Pointer;
+  } DUMMYUNIONNAME;
+  ULONG_PTR Information;
+} Z7_WIN_IO_STATUS_BLOCK;
+#endif
+
+typedef Z7_WIN_NTSTATUS (WINAPI *Func_NtSetInformationFile)(
+    HANDLE FileHandle,
+    Z7_WIN_IO_STATUS_BLOCK *IoStatusBlock,
+    PVOID FileInformation,
+    ULONG Length,
+    Z7_WIN_FILE_INFORMATION_CLASS FileInformationClass);
+// NTAPI
+typedef ULONG (WINAPI *Func_RtlNtStatusToDosError)(Z7_WIN_NTSTATUS Status);
+
+Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
+static Func_NtSetInformationFile g_NtSetInformationFile;
+static Func_RtlNtStatusToDosError g_RtlNtStatusToDosError;
+static struct C_Init_NtSetInformationFile
+{
+  C_Init_NtSetInformationFile()
+  {
+    const HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+         g_NtSetInformationFile = Z7_GET_PROC_ADDRESS(
+      Func_NtSetInformationFile, ntdll,
+          "NtSetInformationFile");
+         g_RtlNtStatusToDosError = Z7_GET_PROC_ADDRESS(
+      Func_RtlNtStatusToDosError, ntdll,
+          "RtlNtStatusToDosError");
+  }
+} g_C_Init_NtSetInformationFile;
 
 using namespace NWindows;
 using namespace NFile;
@@ -353,7 +418,7 @@ void CInFile::CalcDeviceSize(CFSTR s)
     WinXP 64-bit:
 
     HDD \\.\PhysicalDrive0 (MBR):
-      GetPartitionInfo == GeometryEx :  corrrect size? (includes tail)
+      GetPartitionInfo == GeometryEx :  correct size? (includes tail)
       Geometry   :  smaller than GeometryEx (no tail, maybe correct too?)
       MyGetDiskFreeSpace : FAIL
       Size correction is slow and block size (kClusterSize) must be small?
@@ -365,8 +430,8 @@ void CInFile::CalcDeviceSize(CFSTR s)
 
     CD-ROM drive (ISO):
       MyGetDiskFreeSpace   :  correct size. Same size can be calculated after correction
-      Geometry == CdRomGeometry  :  smaller than corrrect size
-      GetPartitionInfo == GeometryEx :  larger than corrrect size
+      Geometry == CdRomGeometry  :  smaller than correct size
+      GetPartitionInfo == GeometryEx :  larger than correct size
 
     Floppy \\.\a: (FAT):
       Geometry :  correct size.
@@ -539,6 +604,70 @@ bool COutFile::Open_Disposition(CFSTR fileName, DWORD creationDisposition)
 bool COutFile::Create_ALWAYS_with_Attribs(CFSTR fileName, DWORD flagsAndAttributes)
   { return Open(fileName, FILE_SHARE_READ, CREATE_ALWAYS, flagsAndAttributes); }
 
+DWORD CFileBase::Call_NtSetInformationFile_return_WinError(
+    void *data, ULONG len, Z7_WIN_FILE_INFORMATION_CLASS fileInformationClass) const
+{
+  if (!g_NtSetInformationFile)
+    return ERROR_PROC_NOT_FOUND;
+  Z7_WIN_IO_STATUS_BLOCK ioStatus;
+  Z7_memset_0_VAR(ioStatus); // optional
+  const Z7_WIN_NTSTATUS status = g_NtSetInformationFile(_handle,
+      &ioStatus, data, len, fileInformationClass);
+  if (status == 0) // MY_STATUS_SUCCESS
+    return 0;
+  if (g_RtlNtStatusToDosError)
+  {
+    const ULONG res = g_RtlNtStatusToDosError(status);
+    if (res != ERROR_MR_MID_NOT_FOUND)
+      return res;
+  }
+  return 1;
+}
+
+
+#define SET_TIME_FIELD_IF_DEFINED(dest, src) \
+{ if (src) { \
+    dest.LowPart = (src)->dwLowDateTime; \
+    dest.HighPart = (LONG)(src)->dwHighDateTime; \
+  } \
+}
+
+bool COutFile::Set_Time_and_WinAttrib(const FILETIME *cTime, const FILETIME *aTime, const FILETIME *mTime, DWORD attrib) throw()
+{
+#ifdef _WIN32
+  // similar to GetAttrib_PosixHighDetect(attrib)
+  if (attrib & 0xF0000000)
+    attrib &= 0x3FFF;
+#endif
+
+  Z7_WIN_FILE_BASIC_INFORMATION fbi;
+  Z7_memset_0_VAR(fbi);
+  SET_TIME_FIELD_IF_DEFINED (fbi.CreationTime, cTime)
+  SET_TIME_FIELD_IF_DEFINED (fbi.LastAccessTime, aTime)
+  SET_TIME_FIELD_IF_DEFINED (fbi.LastWriteTime, mTime)
+  // fbi.ChangeTime.QuadPart = 0;
+  /*
+    if (attrib == 0)
+      { win10: NtSetInformationFile() doesn't change file attribute
+    if (attrib & FILE_ATTRIBUTE_DIRECTORY)
+      { win10: NtSetInformationFile() returns (STATUS_INVALID_PARAMETER) }
+    we provide similar attribute processing as
+      SetFileAttributes():
+      - we ignore (FILE_ATTRIBUTE_DIRECTORY)
+      - we write (FILE_ATTRIBUTE_NORMAL) instead of (0)
+  */
+  attrib &= ~(DWORD)FILE_ATTRIBUTE_DIRECTORY;
+  if (attrib == 0)
+    attrib = FILE_ATTRIBUTE_NORMAL;
+  fbi.FileAttributes = attrib;
+  const DWORD wres = Call_NtSetInformationFile_return_WinError(
+      &fbi, sizeof(fbi), Z7_WIN_FileBasicInformation);
+  if (wres == 0)
+    return true;
+  SetLastError(wres);
+  return false;
+}
+
 bool COutFile::SetTime(const FILETIME *cTime, const FILETIME *aTime, const FILETIME *mTime) throw()
   { return BOOLToBool(::SetFileTime(_handle, cTime, aTime, mTime)); }
 
@@ -628,10 +757,16 @@ bool COutFile::SetLength_KeepPosition(UInt64 length) throw()
 #include <fcntl.h>
 #include <unistd.h>
 
+extern
+bool FiTime_To_timespec(const CFiTime *ft, timespec &ts);
+
 namespace NWindows {
 namespace NFile {
 
 namespace NDir {
+
+extern C_umask g_umask;
+
 bool SetDirTime(CFSTR path, const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime);
 }
 
@@ -644,6 +779,34 @@ bool CFileBase::OpenBinary(const char *name, int flags, mode_t mode)
   #endif
 
   Close();
+  /*
+    The mode argument specifies the file mode bits to be
+    applied when a new file is created. If neither O_CREAT nor
+    O_TMPFILE is specified in flags, then mode is ignored (and
+    can thus be specified as 0, or simply omitted).
+
+    The effective mode is modified by the process's umask in
+    the usual way: in the absence of a default ACL, the mode of
+    the created file is (mode & ~umask).
+
+    Note that mode applies only to future accesses of the newly
+    created file; the open() call that creates a read-only file
+    may well return a read/write file descriptor.
+
+    POSIX: if other bits (~0777) are set in mode : the effect is unspecified
+    Linux:
+        S_ISUID  04000 set-user-ID bit
+        S_ISGID  02000 set-group-ID bit
+        S_ISVTX  01000 sticky bit
+
+        S_ISVTX can be set, but it's useless for file in modern linux.
+        by security reasons:
+          open() ignores S_ISUID
+          open() ignores S_ISGID, if S_IXGRP is set.
+  */
+  // mode |= S_ISUID | S_ISGID | S_ISVTX; // for debug
+  // printf("\n open() mode=%o\n", (unsigned)(mode));
+
   _handle = ::open(name, flags, mode);
   return _handle != -1;
 
@@ -740,7 +903,7 @@ bool CFileBase::SeekToBegin() const throw()
 
 bool CInFile::Open(const char *name)
 {
-  return CFileBase::OpenBinary(name, O_RDONLY);
+  return CFileBase::OpenBinary(name, O_RDONLY, k_OutFile_mode_default);
 }
 
 bool CInFile::OpenShared(const char *name, bool)
@@ -903,11 +1066,64 @@ bool COutFile::SetLength(UInt64 length) throw()
   return (iret == 0);
 }
 
+// #define PRF(x) x
+#define PRF(x)
+
 bool COutFile::Close()
 {
-  const bool res = CFileBase::Close();
-  if (!res)
-    return res;
+  bool res = true;
+  if (_handle == -1)
+    return true;
+  {
+    // bool res2 = true;
+    if (mode_for_Close_defined)
+    {
+      PRF(printf("\n COutFile::Close() mode=%o\n", (unsigned)(mode_for_Close));)
+      // fchmod() function ignores the file creation mask set by umask()
+      // so we can restore any of (07777) mode bits
+      // mode_for_Close |= (0xffff << 12); // for debug
+      if (fchmod(_handle, mode_for_Close) == 0)
+      {
+        mode_for_Close_defined = false;
+        PRF(printf("\n COutFile::Close() fchmod() == 0\n");)
+      }
+      // else res2 = false;
+    }
+    {
+      if (MTime_defined || ATime_defined)
+      {
+        struct timespec times[2];
+        FiTime_To_timespec(ATime_defined ? &ATime : NULL, times[0]);
+        FiTime_To_timespec(MTime_defined ? &MTime : NULL, times[1]);
+        // futimens : POSIX.1-2008
+        if (futimens(_handle, times) == 0)
+        {
+          PRF(printf("\n futimens() OK \n");)
+          ATime_defined = false;
+          MTime_defined = false;
+        }
+        else
+        {
+          PRF(printf("\n futimens() ERROR: %d=%s\n", errno, strerror(errno));)
+        }
+      }
+    }
+    res = CFileBase::Close();
+    if (!res)
+      return res;
+    // res = res2;
+  }
+  if (mode_for_Close_defined)
+  {
+    // chmod() ignores the file creation mask set by umask()
+    // so we can restore any of (07777) mode bits
+    // const int res_chmod =
+    chmod(Path, mode_for_Close);
+    mode_for_Close_defined = false;
+    // if (res_chmod != 0 && res == true) res = false;
+    // PRF(printf("\n COutFile::Close() chmod res=%d\n", (int)res_chmod);)
+  }
+
   if (CTime_defined || ATime_defined || MTime_defined)
   {
     /* bool res2 = */ NWindows::NFile::NDir::SetDirTime(Path,
@@ -940,6 +1156,24 @@ bool COutFile::SetTime(const CFiTime *cTime, const CFiTime *aTime, const CFiTime
     return true;
   return futimens(_handle, times) == 0;
   */
+}
+
+bool COutFile::Set_Time_and_WinAttrib(
+    const CFiTime *cTime, const CFiTime *aTime, const CFiTime *mTime, DWORD attrib) throw()
+{
+  PRF(printf("\n Set_Time_and_WinAttrib() mode=%o\n", (unsigned)(attrib >> 16));)
+  SetTime(cTime, aTime, mTime);
+  // we will use fchmod() or chmod() later in Close() fucntion.
+  // fchmod() or chmod() are not limited by system umask.
+  // but for security reasons we use the system mask (g_umask.mask) derived from umask().
+  mode_t mode = k_OutFile_mode_default; // 0666
+  if (attrib & FILE_ATTRIBUTE_UNIX_EXTENSION)
+    mode = (attrib >> 16);
+  else if (attrib & FILE_ATTRIBUTE_READONLY)
+    mode &= ~(mode_t)(S_IWUSR | S_IWGRP | S_IWOTH); // octal: ~0222; // disable write permissions
+  mode_for_Close = mode & NDir::g_umask.mask;
+  mode_for_Close_defined = true;
+  return true;
 }
 
 bool COutFile::SetMTime(const CFiTime *mTime) throw()

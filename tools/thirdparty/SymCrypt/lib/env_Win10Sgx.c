@@ -76,9 +76,11 @@ SymCryptInitEnvWin10Sgx( UINT32 version )
     }
 
     //
-    // Our SaveXmm function never fails because it doesn't have to do anything in User mode.
+    // Saving extended register state never fails because it doesn't have to do anything in User mode.
     //
     g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEXMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL;
 
 #elif SYMCRYPT_CPU_ARM | SYMCRYPT_CPU_ARM64
 
@@ -144,6 +146,21 @@ SymCryptRestoreYmmEnvWin10Sgx(_Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea)
     // The compiler should inline this function and optimize it away.
     //
 
+    UNREFERENCED_PARAMETER(pSaveArea);
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmmEnvWin10Sgx(_Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea)
+{
+    UNREFERENCED_PARAMETER(pSaveArea);
+    return SYMCRYPT_NO_ERROR;
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmmEnvWin10Sgx(_Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea)
+{
     UNREFERENCED_PARAMETER(pSaveArea);
 }
 

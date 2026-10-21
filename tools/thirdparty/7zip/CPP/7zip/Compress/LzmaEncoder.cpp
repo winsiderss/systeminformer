@@ -43,7 +43,7 @@ CEncoder::~CEncoder()
 
 static inline wchar_t GetLowCharFast(wchar_t c)
 {
-  return c |= 0x20;
+  return (wchar_t)(c | 0x20);
 }
 
 static int ParseMatchFinder(const wchar_t *s, int *btMode, int *numHashBytes)

@@ -82,7 +82,8 @@ typedef struct _PH_PROVIDER_THREAD
         struct
         {
             ULONG UseHighResolution : 1;
-            ULONG Spare : 31;
+            ULONG HighResolutionTimer : 1; // TimerHandle was created by PhCreateHighResolutionTimer
+            ULONG Spare : 30;
         };
     };
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;

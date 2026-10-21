@@ -388,7 +388,7 @@ public:
     Z7_CLASS_NO_COPY(CReleaser)
     CCoderMT &_c;
   public:
-    CReleaser(CCoderMT &c): _c(c) {}
+    CReleaser(CCoderMT &c Z7_lifetimebound): _c(c) {}
     ~CReleaser() { _c.Release(); }
   };
 

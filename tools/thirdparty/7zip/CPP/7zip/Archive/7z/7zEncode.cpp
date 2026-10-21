@@ -323,20 +323,16 @@ HRESULT CEncoder::Encode1(
     ICompressProgressInfo *compressProgress)
 {
   RINOK(EncoderConstr())
-
   if (!_mixerRef)
   {
     RINOK(CreateMixerCoder(EXTERNAL_CODECS_LOC_VARS inSizeForReduce))
   }
-  
   RINOK(_mixer->ReInit2())
 
   CMyComPtr2<ICompressProgressInfo, CMtEncMultiProgress> mtProgress;
   CMyComPtr2<ISequentialOutStream, CSequentialOutMtNotify> mtOutStreamNotify;
-
   CRecordVector<CSequentialOutTempBufferImp2 *> tempBufferSpecs;
   CObjectVector<CMyComPtr<ISequentialOutStream> > tempBuffers;
-  
   unsigned i;
 
   for (i = 1; i < _bindInfo.PackStreams.Size(); i++)
@@ -348,34 +344,21 @@ HRESULT CEncoder::Encode1(
   }
 
   const unsigned numMethods = _bindInfo.Coders.Size();
-
   for (i = 0; i < numMethods; i++)
     _mixer->SetCoderInfo(i, NULL, NULL, false);
-
 
   /* inStreamSize can be used by BCJ2 to set optimal range of conversion.
      But current BCJ2 encoder uses also another way to check exact size of current file.
      So inStreamSize is not required. */
-
   /*
   if (inStreamSize)
     _mixer->SetCoderInfo(_bindInfo.UnpackCoder, inStreamSize, NULL);
   */
-
-  
-  /*
-  CSequentialInStreamSizeCount2 *inStreamSizeCountSpec = new CSequentialInStreamSizeCount2;
-  CMyComPtr<ISequentialInStream> inStreamSizeCount = inStreamSizeCountSpec;
-  */
-
-  CSequentialOutStreamSizeCount *outStreamSizeCountSpec = NULL;
-  CMyComPtr<ISequentialOutStream> outStreamSizeCount;
-
+  // CMyComPtr2_Create<ISequentialInStream, CSequentialInStreamSizeCount2> inStreamSizeCount;
+  CMyComPtr2_Create<ISequentialOutStream, CSequentialOutStreamSizeCount> outStreamSizeCount;
   // inStreamSizeCountSpec->Init(inStream);
-
   // ISequentialInStream *inStreamPointer = inStreamSizeCount;
   ISequentialInStream *inStreamPointer = inStream;
-
   CRecordVector<ISequentialOutStream *> outStreamPointers;
   
   SetFolder(folderItem);
@@ -466,11 +449,9 @@ HRESULT CEncoder::Encode1(
   
   if (_bindInfo.PackStreams.Size() != 0)
   {
-    outStreamSizeCountSpec = new CSequentialOutStreamSizeCount;
-    outStreamSizeCount = outStreamSizeCountSpec;
-    outStreamSizeCountSpec->SetStream(mtOutStreamNotify.IsDefined() ?
+    outStreamSizeCount->SetStream(mtOutStreamNotify.IsDefined() ?
         mtOutStreamNotify.Interface() : outStream);
-    outStreamSizeCountSpec->Init();
+    outStreamSizeCount->Init();
     outStreamPointers.Add(outStreamSizeCount);
   }
 
@@ -486,7 +467,7 @@ HRESULT CEncoder::Encode1(
         compressProgress, dataAfterEnd_Error))
   
   if (_bindInfo.PackStreams.Size() != 0)
-    packSizes.Add(outStreamSizeCountSpec->GetSize());
+    packSizes.Add(outStreamSizeCount->GetSize());
   
   for (i = 1; i < _bindInfo.PackStreams.Size(); i++)
   {

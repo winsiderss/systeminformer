@@ -12,16 +12,16 @@ class CMyComPtr
   T* _p;
 public:
   CMyComPtr(): _p(NULL) {}
-  CMyComPtr(T* p) throw() { if ((_p = p) != NULL) p->AddRef(); }
+  CMyComPtr(T* p Z7_lifetimebound) throw() { if ((_p = p) != NULL) p->AddRef(); }
   CMyComPtr(const CMyComPtr<T>& lp) throw() { if ((_p = lp._p) != NULL) _p->AddRef(); }
   ~CMyComPtr() { if (_p) _p->Release(); }
   void Release() { if (_p) { _p->Release(); _p = NULL; } }
   operator T*() const {  return (T*)_p;  }
   T* Interface() const {  return (T*)_p;  }
   // T& operator*() const {  return *_p; }
-  T** operator&() { return &_p; }
+  T** operator&() Z7_lifetimebound { return &_p; }
   T* operator->() const { return _p; }
-  T* operator=(T* p)
+  T* operator=(T* p Z7_lifetimebound)
   {
     if (p)
       p->AddRef();
@@ -194,7 +194,7 @@ class CMyComBSTR
 public:
   CMyComBSTR(): m_str(NULL) {}
   ~CMyComBSTR() { ::SysFreeString(m_str); }
-  BSTR* operator&() { return &m_str; }
+  BSTR* operator&() Z7_lifetimebound { return &m_str; }
   operator LPCOLESTR() const { return m_str; }
   // operator bool() const { return m_str != NULL; }
   // bool operator!() const { return m_str == NULL; }
@@ -688,6 +688,6 @@ EXTERN_C_END
   Z7_IFACES_IMP_UNK_2(ISequentialInStream, IInStream) \
 
 
-#define k_My_HRESULT_WritingWasCut 0x20000010
+#define k_My_HRESULT_WritingWasCut ((HRESULT)0x20000010)
 
 #endif

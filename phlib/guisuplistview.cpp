@@ -802,18 +802,7 @@ VOID PhSetStateAllListViewItems(
     _In_ ULONG Mask
     )
 {
-    LONG i;
-    LONG count;
-
-    count = ListView_GetItemCount(WindowHandle);
-
-    if (count <= 0)
-        return;
-
-    for (i = 0; i < count; i++)
-    {
-        ListView_SetItemState(WindowHandle, i, State, Mask);
-    }
+    ListView_SetItemState(WindowHandle, -1, State, Mask);
 }
 
 /**

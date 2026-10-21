@@ -19,7 +19,7 @@ public:
   CObjectVector<CXmlProp> Props;
   CObjectVector<CXmlItem> SubItems;
   
-  const char * ParseItem(const char *s, int numAllowedLevels);
+  const char * ParseItem(const char *s Z7_lifetimebound, int numAllowedLevels);
 
   bool IsTagged(const char *tag) const throw();
   int FindProp(const char *propName) const throw();

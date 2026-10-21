@@ -1680,7 +1680,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
             if (IsWindowMaximized != maximized)
             {
-                IsWindowMaximized = minimized;
+                IsWindowMaximized = maximized;
 
                 if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
                 {

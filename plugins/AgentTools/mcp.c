@@ -1513,18 +1513,6 @@ AT_CONSENT_RESULT AtpInterpretElicitResult(
     return result;
 }
 
-// PhQueryWaitTime is inline and references WindowsVersion, which the host does not export.
-static ULONG64 AtpQueryWaitTime(
-    VOID
-    )
-{
-    LARGE_INTEGER interruptTime;
-
-    PhQueryUnbiasedInterruptTime(&interruptTime);
-
-    return (ULONG64)interruptTime.QuadPart;
-}
-
 AT_CONSENT_RESULT AtpElicitLegacy(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
@@ -1543,7 +1531,7 @@ AT_CONSENT_RESULT AtpElicitLegacy(
 
     AtpSendRequest(connection, requestId, "elicitation/create", AtpCreateElicitationParams(Call, Action, Target, includeMode));
 
-    startTick = AtpQueryWaitTime();
+    startTick = PhQueryWaitTime();
 
     while (!AtConnectionIsClosing(connection))
     {
@@ -1553,7 +1541,7 @@ AT_CONSENT_RESULT AtpElicitLegacy(
         PVOID response = NULL;
         AT_INCOMING_RESULT incoming;
 
-        if (AtpQueryWaitTime() - startTick > UInt32x32To64(AT_ELICITATION_TIMEOUT_MS, PH_TIMEOUT_MS))
+        if (PhQueryWaitTime() - startTick > UInt32x32To64(AT_ELICITATION_TIMEOUT_MS, PH_TIMEOUT_MS))
             return AtConsentTimeout;
 
         if (!NT_SUCCESS(AtConnectionPeek(connection, &available)))
@@ -1628,7 +1616,7 @@ PAT_PENDING_CONSENT AtpAllocatePendingConsent(
     PAT_PENDING_CONSENT oldest = NULL;
     ULONG i;
 
-    PhQuerySystemTime(&now);
+    PhQueryUnbiasedInterruptTime(&now);
 
     for (i = 0; i < AT_MAX_PENDING_CONSENTS; i++)
     {
@@ -1669,7 +1657,7 @@ AT_CONSENT_RESULT AtpElicitModern(
     {
         BOOLEAN matches;
 
-        PhQuerySystemTime(&now);
+        PhQueryUnbiasedInterruptTime(&now);
 
         // Bind the state to this action and this exact target; consume it whatever the answer.
         matches =
@@ -1688,7 +1676,7 @@ AT_CONSENT_RESULT AtpElicitModern(
     }
 
     pending = AtpAllocatePendingConsent(connection);
-    PhQuerySystemTime(&now);
+    PhQueryUnbiasedInterruptTime(&now);
     pending->Used = TRUE;
     pending->Action = Action->Action;
     memcpy(pending->Identity, identity, sizeof(identity));

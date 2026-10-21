@@ -69,6 +69,7 @@
         <ClCompile Include="SymCrypt\lib\chacha20.c" />
         <ClCompile Include="SymCrypt\lib\chacha20_poly1305.c" />
         <ClCompile Include="SymCrypt\lib\composite_encoding.c" />
+        <ClCompile Include="SymCrypt\lib\composite_mldsa.c" />
         <ClCompile Include="SymCrypt\lib\composite_mlkem.c" />
         <ClCompile Include="SymCrypt\lib\cpuid.c" />
         <ClCompile Include="SymCrypt\lib\cpuid_notry.c" />
@@ -209,6 +210,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="SymCrypt\inc\symcrypt.h" />
+        <ClInclude Include="SymCrypt\inc\symcrypt_atomics.h" />
         <ClInclude Include="SymCrypt\inc\symcrypt_internal.h" />
         <ClInclude Include="SymCrypt\inc\symcrypt_low_level.h" />
     </ItemGroup>

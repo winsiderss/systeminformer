@@ -6,8 +6,7 @@
 #include "../../Common/MyString.h"
 #include "../../Common/Defs.h"
 
-#include "../../Windows/Defs.h"
-
+#include "../../Windows/WinDefs.h"
 #include "../../Windows/PropVariant.h"
 
 #include "../ICoder.h"

@@ -1700,11 +1700,16 @@ VERIFY_RESULT PhVerifyFileCached(
 
     PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
 
+    // The cache key is (FileName, USN). Without a USN (FAT/exFAT, SMB, NTFS with no active journal)
+    // replacing the file would not change the key, so the result is neither looked up nor cached.
+    if (!NT_SUCCESS(PhGetFileUsn(fileHandle, &sequenceNumber)))
+        sequenceNumber = 0;
+
+    if (sequenceNumber != 0)
     {
         PPH_VERIFY_CACHE_ENTRY entry;
         PH_VERIFY_CACHE_ENTRY lookupEntry;
 
-        PhGetFileUsn(fileHandle, &sequenceNumber);
         lookupEntry.FileName = FileName;
         lookupEntry.SequenceNumber = sequenceNumber;
 
@@ -1749,7 +1754,7 @@ VERIFY_RESULT PhVerifyFileCached(
             signerName = NULL;
         }
 
-        if (!CachedOnly) // if (result != VrUnknown)
+        if (!CachedOnly && sequenceNumber != 0) // if (result != VrUnknown)
         {
             PH_VERIFY_CACHE_ENTRY newEntry;
 

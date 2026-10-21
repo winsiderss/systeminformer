@@ -13,7 +13,7 @@ Z7_CLASS_IMP_COM_1(
   CStreamBinder *_binder;
 public:
   ~CBinderInStream() { _binder->CloseRead_CallOnce(); }
-  CBinderInStream(CStreamBinder *binder): _binder(binder) {}
+  CBinderInStream(CStreamBinder *binder Z7_lifetimebound): _binder(binder) {}
 };
 
 Z7_COM7F_IMF(CBinderInStream::Read(void *data, UInt32 size, UInt32 *processedSize))
@@ -27,7 +27,7 @@ Z7_CLASS_IMP_COM_1(
   CStreamBinder *_binder;
 public:
   ~CBinderOutStream() { _binder->CloseWrite(); }
-  CBinderOutStream(CStreamBinder *binder): _binder(binder) {}
+  CBinderOutStream(CStreamBinder *binder Z7_lifetimebound): _binder(binder) {}
 };
 
 Z7_COM7F_IMF(CBinderOutStream::Write(const void *data, UInt32 size, UInt32 *processedSize))

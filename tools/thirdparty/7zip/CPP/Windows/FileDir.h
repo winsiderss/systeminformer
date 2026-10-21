@@ -46,6 +46,7 @@ bool SetFileAttrib(CFSTR path, DWORD attrib);
 #else
 
 int my_chown(CFSTR path, uid_t owner, gid_t group);
+int my_chown_Link(CFSTR path, uid_t owner, gid_t group);
 
 #endif
 
@@ -118,7 +119,7 @@ class CTempFile  MY_UNCOPYABLE
 public:
   CTempFile(): _mustBeDeleted(false) {}
   ~CTempFile() { Remove(); }
-  const FString &GetPath() const { return _path; }
+  const FString &GetPath() const Z7_lifetimebound { return _path; }
   bool Create(CFSTR pathPrefix, NIO::COutFile *outFile); // pathPrefix is not folder prefix
   bool CreateRandomInTempFolder(CFSTR namePrefix, NIO::COutFile *outFile);
   bool Remove();
@@ -136,7 +137,7 @@ class CTempDir  MY_UNCOPYABLE
 public:
   CTempDir(): _mustBeDeleted(false) {}
   ~CTempDir() { Remove();  }
-  const FString &GetPath() const { return _path; }
+  const FString &GetPath() const Z7_lifetimebound { return _path; }
   void DisableDeleting() { _mustBeDeleted = false; }
   bool Create(CFSTR namePrefix) ;
   bool Remove();

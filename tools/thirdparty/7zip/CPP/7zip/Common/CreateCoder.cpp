@@ -2,7 +2,7 @@
 
 #include "StdAfx.h"
 
-#include "../../Windows/Defs.h"
+#include "../../Windows/WinDefs.h"
 #include "../../Windows/PropVariant.h"
 
 #include "CreateCoder.h"

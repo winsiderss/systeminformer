@@ -104,6 +104,23 @@ SymCryptRestoreYmmEnvWindowsKernelDebugger( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA
     UNREFERENCED_PARAMETER( pSaveArea );
 }
 
+SYMCRYPT_ERROR 
+SYMCRYPT_CALL 
+SymCryptSaveZmmEnvWindowsKernelDebugger( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
+{
+    UNREFERENCED_PARAMETER( pSaveArea );
+    SymCryptFatal( 'mmzs' );
+    return SYMCRYPT_NOT_IMPLEMENTED;
+}
+
+VOID 
+SYMCRYPT_CALL 
+SymCryptRestoreZmmEnvWindowsKernelDebugger( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
+{
+    SymCryptFatal( 'mmzs' );
+    UNREFERENCED_PARAMETER( pSaveArea );
+}
+
 #endif
 
 VOID 

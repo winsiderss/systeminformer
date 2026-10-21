@@ -204,6 +204,7 @@
         <ClCompile Include="pcre\pcre2_chartables.c" />
         <ClCompile Include="pcre\pcre2_chkdint.c" />
         <ClCompile Include="pcre\pcre2_compile.c" />
+        <ClCompile Include="pcre\pcre2_compile_cgroup.c" />
         <ClCompile Include="pcre\pcre2_compile_class.c" />
         <ClCompile Include="pcre\pcre2_config.c" />
         <ClCompile Include="pcre\pcre2_context.c" />
@@ -216,6 +217,7 @@
         <ClCompile Include="pcre\pcre2_maketables.c" />
         <ClCompile Include="pcre\pcre2_match.c" />
         <ClCompile Include="pcre\pcre2_match_data.c" />
+        <ClCompile Include="pcre\pcre2_match_next.c" />
         <ClCompile Include="pcre\pcre2_newline.c" />
         <ClCompile Include="pcre\pcre2_ord2utf.c" />
         <ClCompile Include="pcre\pcre2_pattern_info.c" />
@@ -227,7 +229,6 @@
         <ClCompile Include="pcre\pcre2_substring.c" />
         <ClCompile Include="pcre\pcre2_tables.c" />
         <ClCompile Include="pcre\pcre2_ucd.c" />
-        <ClCompile Include="pcre\pcre2_ucptables.c" />
         <ClCompile Include="pcre\pcre2_valid_utf.c" />
         <ClCompile Include="pcre\pcre2_xclass.c" />
         <ClCompile Include="ssdeep\fuzzy.c" />
@@ -283,18 +284,23 @@
         <ClInclude Include="pcre\pcre2_internal.h" />
         <ClInclude Include="pcre\pcre2_intmodedep.h" />
         <ClInclude Include="pcre\pcre2_jit_char_inc.h" />
-        <ClInclude Include="pcre\pcre2_jit_neon_inc.h" />
+        <ClInclude Include="pcre\pcre2_jit_match_inc.h" />
+        <ClInclude Include="pcre\pcre2_jit_misc_inc.h" />
         <ClInclude Include="pcre\pcre2_jit_simd_inc.h" />
+        <ClInclude Include="pcre\pcre2_printint_inc.h" />
         <ClInclude Include="pcre\pcre2_ucp.h" />
+        <ClInclude Include="pcre\pcre2_ucptables_inc.h" />
         <ClInclude Include="pcre\pcre2_util.h" />
         <ClInclude Include="ssdeep\fuzzy.h" />
         <ClInclude Include="SymCrypt\inc\buildInfo.h" />
         <ClInclude Include="SymCrypt\inc\symcrypt.h" />
+        <ClInclude Include="SymCrypt\inc\symcrypt_atomics.h" />
         <ClInclude Include="SymCrypt\inc\symcrypt_internal.h" />
         <ClInclude Include="SymCrypt\inc\symcrypt_low_level.h" />
         <ClInclude Include="SymCrypt\lib\ghash_definitions.h" />
         <ClInclude Include="SymCrypt\lib\precomp.h" />
         <ClInclude Include="SymCrypt\lib\sc_lib.h" />
+        <ClInclude Include="SymCrypt\lib\sc_lib_composite_mldsa.h" />
         <ClInclude Include="SymCrypt\lib\sc_lib_mldsa.h" />
         <ClInclude Include="SymCrypt\lib\sc_lib_mlkem.h" />
         <ClInclude Include="SymCrypt\lib\smallPrimes32.h" />
@@ -335,6 +341,7 @@
         <ClCompile Include="SymCrypt\lib\chacha20.c" />
         <ClCompile Include="SymCrypt\lib\chacha20_poly1305.c" />
         <ClCompile Include="SymCrypt\lib\composite_encoding.c" />
+        <ClCompile Include="SymCrypt\lib\composite_mldsa.c" />
         <ClCompile Include="SymCrypt\lib\composite_mlkem.c" />
         <ClCompile Include="SymCrypt\lib\cpuid.c" />
         <ClCompile Include="SymCrypt\lib\cpuid_notry.c" />

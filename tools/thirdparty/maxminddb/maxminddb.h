@@ -26,7 +26,7 @@ extern "C" {
 #include <winsock2.h>
 #include <ws2tcpip.h>
 /* libmaxminddb package version from configure */
-#define PACKAGE_VERSION "1.13.3"
+#define PACKAGE_VERSION "1.14.1"
 
 #if defined(_MSC_VER)
 /* MSVC doesn't define signed size_t, copy it from configure */
@@ -71,11 +71,11 @@ extern "C" {
 #define MMDB_RECORD_TYPE_DATA (2)
 #define MMDB_RECORD_TYPE_INVALID (3)
 
-/* flags for open */
+    /* flags for open */
 #define MMDB_MODE_MMAP (1)
 #define MMDB_MODE_MASK (7)
 
-/* error codes */
+    /* error codes */
 #define MMDB_SUCCESS (0)
 #define MMDB_FILE_OPEN_ERROR (1)
 #define MMDB_CORRUPT_SEARCH_TREE_ERROR (2)
@@ -88,6 +88,8 @@ extern "C" {
 #define MMDB_LOOKUP_PATH_DOES_NOT_MATCH_DATA_ERROR (9)
 #define MMDB_INVALID_NODE_NUMBER_ERROR (10)
 #define MMDB_IPV6_LOOKUP_IN_IPV4_DATABASE_ERROR (11)
+#define MMDB_INVALID_NETWORK_ADDRESS_ERROR (12)
+#define MMDB_DECODER_LIMIT_ERROR (13)
 
 #if !(MMDB_UINT128_IS_BYTE_ARRAY)
     #if MMDB_UINT128_USING_MODE

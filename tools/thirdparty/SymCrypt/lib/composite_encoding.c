@@ -520,3 +520,248 @@ SymCryptEckeySetValueCompositeEncodingSk(
 cleanup:
     return scError;
 }
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEcdsaSigValueCompositeEncode(
+    _In_reads_bytes_( cbRawSignature )          PCBYTE  pbRawSignature,
+                                                SIZE_T  cbRawSignature,
+    _Out_writes_bytes_( cbEncodedSignature )    PBYTE   pbEncodedSignature,
+                                                SIZE_T  cbEncodedSignature,
+    _Out_                                       SIZE_T* pcbResult )
+{
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    const SIZE_T cbRawInteger = cbRawSignature / 2;
+
+    *pcbResult = 0;
+
+    //
+    // Input is two concatenated raw integers
+    // Output is (SeqTag, BytesLength, (IntTag, BytesLength, Bytes..), (IntTag, BytesLength, Bytes..))
+    //
+    // Ecdsa-Sig-Value ::= SEQUENCE { r INTEGER, s INTEGER } per Section 2.2.3 of [RFC3279]
+    //
+    if( (cbEncodedSignature < 8) ||
+        ((cbRawSignature % 2) != 0) ||
+        (cbRawInteger < 1) )
+    {
+        scError = SYMCRYPT_WRONG_DATA_SIZE;
+        goto cleanup;
+    }
+
+    //
+    // Default size for two Integers (Tag, Length, Bytes) before pad/trim
+    //
+    SIZE_T cbSequence = 2 * (1 + 1 + cbRawInteger);
+    PCBYTE pbInteger[2] = { pbRawSignature, pbRawSignature + cbRawInteger };
+    SIZE_T cbInteger[2] = { cbRawInteger, cbRawInteger };
+    BOOL bPadInteger[2] = { FALSE, FALSE };
+    PBYTE pbWrite = pbEncodedSignature;
+
+    for( int i = 0; i < 2; i++ )
+    {
+        if( (pbInteger[i][0] & 0x80) != 0 )
+        {
+            //
+            // Integer must be unsigned, pad with a 0
+            //
+            bPadInteger[i] = TRUE;
+            cbSequence++;
+        }
+        else
+        {
+            //
+            // Trim any unnecessary leading 0s
+            //
+            PCBYTE pbIntegerOriginal = pbInteger[i];
+
+            for( SIZE_T b = 0; b < cbRawInteger - 1; b++ )
+            {
+                if( (pbIntegerOriginal[b] == 0) && ((pbIntegerOriginal[b + 1] & 0x80) == 0) )
+                {
+                    pbInteger[i]++;
+                    cbInteger[i]--;
+                    cbSequence--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    //
+    // Need room for sequence tag and byte length
+    //
+    if( cbSequence > cbEncodedSignature - 2 )
+    {
+        scError = SYMCRYPT_BUFFER_TOO_SMALL;
+        goto cleanup;
+    }
+    else if( cbSequence > MAX_SINGLE_BYTE_LENGTH )
+    {
+        scError = SYMCRYPT_INVALID_ARGUMENT;
+        goto cleanup;
+    }
+
+    *pbWrite++ = DER_TAG_SEQUENCE;
+    *pbWrite++ = (BYTE)cbSequence;
+
+    for( int i = 0; i < 2; i++ )
+    {
+        *pbWrite++ = DER_TAG_INTEGER;
+        if( bPadInteger[i] )
+        {
+            *pbWrite++ = (BYTE)(cbInteger[i] + 1);
+            *pbWrite++ = 0;
+        }
+        else
+        {
+            *pbWrite++ = (BYTE)cbInteger[i];
+        }
+        memcpy( pbWrite, pbInteger[i], cbInteger[i] );
+        pbWrite += cbInteger[i];
+    }
+
+    *pcbResult = pbWrite - pbEncodedSignature;
+
+cleanup:
+    return scError;
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEcdsaSigValueCompositeDecode(
+    _In_reads_bytes_( cbEncodedSignature )      PCBYTE  pbEncodedSignature,
+                                                SIZE_T  cbEncodedSignature,
+    _Out_writes_bytes_( cbRawSignature )        PBYTE   pbRawSignature,
+                                                SIZE_T  cbRawSignature )
+{
+    SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
+    const SIZE_T cbRawInteger = cbRawSignature / 2;
+
+    //
+    // Input is (SeqTag, BytesLength, (IntTag, BytesLength, Bytes..), (IntTag, BytesLength, Bytes..))
+    // Output is two concatenated raw integers
+    //
+    // Ecdsa-Sig-Value ::= SEQUENCE { r INTEGER, s INTEGER } per Section 2.2.3 of [RFC3279]
+    //
+    if( (cbEncodedSignature < 8) ||
+        ((cbRawSignature % 2) != 0) ||
+        (cbRawInteger < 1) )
+    {
+        scError = SYMCRYPT_WRONG_DATA_SIZE;
+        goto cleanup;
+    }
+
+    SIZE_T cbSequence = 0;
+    PCBYTE pbInteger[2] = { NULL, NULL };
+    SIZE_T cbInteger[2] = { 0, 0 };
+    BOOL bPadInteger[2] = { FALSE, FALSE };
+    PCBYTE pbRead = pbEncodedSignature;
+    SIZE_T cbReadRemaining = cbEncodedSignature;
+    PBYTE pbWrite = pbRawSignature;
+
+    if( *pbRead++ != DER_TAG_SEQUENCE )
+    {
+        scError = SYMCRYPT_INVALID_BLOB;
+        goto cleanup;
+    }
+
+    cbSequence = *pbRead++;
+    cbReadRemaining -= 2;
+
+    if( (cbSequence > MAX_SINGLE_BYTE_LENGTH) ||
+        (cbSequence > cbReadRemaining) )
+    {
+        scError = SYMCRYPT_INVALID_BLOB;
+        goto cleanup;
+    }
+
+    //
+    // Limit reading within the declared sequence length
+    //
+    cbReadRemaining = cbSequence;
+
+    for( int i = 0; i < 2; i++ )
+    {
+        if( cbReadRemaining < 3 )
+        {
+            scError = SYMCRYPT_INVALID_BLOB;
+            goto cleanup;
+        }
+
+        if( *pbRead++ != DER_TAG_INTEGER )
+        {
+            scError = SYMCRYPT_INVALID_BLOB;
+            goto cleanup;
+        }
+
+        cbInteger[i] = *pbRead++;
+        pbInteger[i] = pbRead;
+        cbReadRemaining -= 2;
+
+        if( (cbInteger[i] > cbReadRemaining) || // out of bounds
+            (cbInteger[i] > MAX_SINGLE_BYTE_LENGTH) || // too long
+            (cbInteger[i] < 1) || // too short
+            ((pbInteger[i][0] & 0x80) != 0) || // missing padding 0
+            (pbInteger[i][0] == 0 && ((cbInteger[i] < 2) || ((pbInteger[i][1] & 0x80) == 0))) ) // un-trimmed leading 0
+        {
+            scError = SYMCRYPT_INVALID_BLOB;
+            goto cleanup;
+        }
+
+        if( cbInteger[i] > cbRawInteger )
+        {
+            //
+            // Allow for a padding 0
+            //
+            if( (cbInteger[i] == (cbRawInteger + 1)) && (pbInteger[i][0] == 0) )
+            {
+                bPadInteger[i] = TRUE;
+            }
+            else
+            {
+                scError = SYMCRYPT_INVALID_BLOB;
+                goto cleanup;
+            }
+        }
+
+        pbRead += cbInteger[i];
+        cbReadRemaining -= cbInteger[i];
+    }
+
+    if( cbReadRemaining > 0 )
+    {
+        //
+        // Sequence declared a length longer than enclosed data
+        //
+        scError = SYMCRYPT_INVALID_BLOB;
+        goto cleanup;
+    }
+
+    for( int i = 0; i < 2; i++ )
+    {
+        if( bPadInteger[i] )
+        {
+            pbInteger[i]++;
+            cbInteger[i]--;
+        }
+
+        if( cbInteger[i] < cbRawInteger )
+        {
+            //
+            // Add leading 0s that were trimmed from the encoded integer
+            //
+            memset( pbWrite, 0, cbRawInteger - cbInteger[i] );
+            pbWrite += cbRawInteger - cbInteger[i];
+        }
+
+        memcpy( pbWrite, pbInteger[i], cbInteger[i] );
+        pbWrite += cbInteger[i];
+    }
+
+cleanup:
+    return scError;
+}

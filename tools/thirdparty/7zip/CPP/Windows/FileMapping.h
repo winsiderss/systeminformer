@@ -57,7 +57,7 @@ class CFileUnmapper
 {
   const void *_data;
 public:
-  CFileUnmapper(const void *data) : _data(data) {}
+  CFileUnmapper(const void *data Z7_lifetimebound) : _data(data) {}
   ~CFileUnmapper() { ::UnmapViewOfFile(_data); }
 };
 

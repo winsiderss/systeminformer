@@ -1026,6 +1026,7 @@ VOID PhShellExecuteUserString(
     static CONST PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
     PPH_STRING applicationDirectory;
     PPH_STRING executeString;
+    PPH_STRING expandedString;
     PH_STRINGREF stringBefore;
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
@@ -1060,11 +1061,15 @@ VOID PhShellExecuteUserString(
     }
 
     // Expand environment strings. (dmex)
-    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
+    if (expandedString = PhExpandEnvironmentStrings(&executeString->sr))
+    {
+        PhMoveReference(&executeString, expandedString);
+    }
 
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
     {
         PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
+        PhDereferenceObject(executeString);
         return;
     }
 

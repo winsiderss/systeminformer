@@ -568,7 +568,7 @@
     <ClInclude Include="CPP\Windows\COM.h" />
     <ClInclude Include="CPP\Windows\CommonDialog.h" />
     <ClInclude Include="CPP\Windows\Console.h" />
-    <ClInclude Include="CPP\Windows\Defs.h" />
+    <ClInclude Include="CPP\Windows\WinDefs.h" />
     <ClInclude Include="CPP\Windows\DLL.h" />
     <ClInclude Include="CPP\Windows\ErrorMsg.h" />
     <ClInclude Include="CPP\Windows\FileDir.h" />

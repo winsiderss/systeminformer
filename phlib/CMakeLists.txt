@@ -29,6 +29,8 @@ set(HEADERS
     "include/filestream.h"
     "include/filestreamp.h"
     "include/graph.h"
+    "include/graphbar.h"
+    "include/graphscroll.h"
     "include/guisup.h"
     "include/guisupp.h"
     "include/guisupview.h"
@@ -109,6 +111,7 @@ set(SOURCES
     "directdraw.cpp"
     "dspick.c"
     "emenu.c"
+    "emenudx.cpp"
     "error.c"
     "extlv.c"
     "fastlock.c"
@@ -119,6 +122,7 @@ set(SOURCES
     "format_std.cpp"
     "global.c"
     "graph.c"
+    "graphbar.c"
     "graphscroll.c"
     "guisup.c"
     "guisuplistview.cpp"
@@ -201,6 +205,7 @@ target_link_libraries(phlib PRIVATE
     kphlib_um
     thirdparty
     gdiplus
+    samlib
 )
 
 add_library(phlib_interface INTERFACE)

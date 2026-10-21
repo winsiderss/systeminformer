@@ -278,7 +278,10 @@
     <ClCompile Include="pcre\pcre2_compile_class.c">
       <Filter>PCRE</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcre2_ucptables.c">
+    <ClCompile Include="pcre\pcre2_compile_cgroup.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match_next.c">
       <Filter>PCRE</Filter>
     </ClCompile>
     <ClCompile Include="zydis\Zydis.c">
@@ -982,7 +985,16 @@
     <ClInclude Include="pcre\pcre2_jit_char_inc.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre2_jit_neon_inc.h">
+    <ClInclude Include="pcre\pcre2_jit_match_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_jit_misc_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_printint_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_ucptables_inc.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
     <ClInclude Include="pcre\pcre2_jit_simd_inc.h">
@@ -1012,6 +1024,9 @@
     <ClInclude Include="SymCrypt\lib\sc_lib.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="SymCrypt\lib\sc_lib_composite_mldsa.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
     <ClInclude Include="SymCrypt\lib\smallPrimes32.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
@@ -1022,6 +1037,9 @@
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
     <ClInclude Include="SymCrypt\inc\symcrypt.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\symcrypt_atomics.h">
       <Filter>SymCrypt\Headers</Filter>
     </ClInclude>
     <ClInclude Include="SymCrypt\lib\precomp.h">
@@ -1103,6 +1121,9 @@
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\composite_encoding.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\composite_mldsa.c">
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\composite_mlkem.c">

@@ -9,7 +9,6 @@
 #ifndef _DACPRIVATE_H_
 #define _DACPRIVATE_H_
 
-
 //#include <cor.h>
 #include "clrdata.h"
 #include "xclrdata.h"
@@ -51,14 +50,12 @@
 //
 //----------------------------------------------------------------------------
 
-
 // Private requests for DataModules
 enum
 {
     DACDATAMODULEPRIV_REQUEST_GET_MODULEPTR = 0xf0000000,
     DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA = 0xf0000001
 };
-
 
 // Private requests for stack walkers.
 enum
@@ -236,7 +233,6 @@ typedef struct MSLAYOUT DacpDomainLocalModuleData
 #endif
 } DacpDomainLocalModuleData;
 
-
 typedef struct MSLAYOUT DacpThreadLocalModuleData
 {
     // These two parameters are used as input params when calling the
@@ -328,7 +324,6 @@ typedef struct MSLAYOUT DacpMethodTableData
     }
 #endif
 } DacpMethodTableData;
-
 
 // Copied from util.hpp, for DacpThreadStoreData.fHostConfig below.
 #define CLRMEMORYHOSTED                             0x1
@@ -520,7 +515,6 @@ typedef struct MSLAYOUT DacpAssemblyData
 #endif
 } DacpAssemblyData;
 
-
 typedef struct MSLAYOUT DacpThreadData
 {
     DWORD corThreadId;
@@ -630,7 +624,6 @@ typedef struct MSLAYOUT DacpMethodDescData
 #endif
 } DacpMethodDescData;
 
-
 typedef struct MSLAYOUT DacpMethodDescTransparencyData
 {
     BOOL            bHasCriticalTransparentInfo;
@@ -736,7 +729,6 @@ typedef struct MSLAYOUT DacpHillClimbingLogEntry
 #endif
 } DacpHillClimbingLogEntry;
 
-
 // Used for CLR versions >= 4.0
 typedef struct MSLAYOUT DacpThreadpoolData
 {
@@ -774,7 +766,6 @@ typedef struct MSLAYOUT DacpThreadpoolData
 #endif
 } DacpThreadpoolData;
 
-
 typedef struct MSLAYOUT DacpGenerationData
 {
     CLRDATA_ADDRESS start_segment;
@@ -786,7 +777,6 @@ typedef struct MSLAYOUT DacpGenerationData
 } DacpGenerationData;
 
 #define DAC_NUMBERGENERATIONS 4
-
 
 typedef struct MSLAYOUT DacpAllocData
 {
@@ -996,7 +986,6 @@ typedef struct MSLAYOUT DacpGcHeapAnalyzeData
 #endif
 #endif
 } DacpGcHeapAnalyzeData;
-
 
 #define SYNCBLOCKDATA_COMFLAGS_CCW 1
 #define SYNCBLOCKDATA_COMFLAGS_RCW 2

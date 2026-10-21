@@ -342,7 +342,7 @@ class CMemRefs
 public:
   CMemBlockManagerMt *Manager;
   CObjectVector<CMemBlocks2> Refs;
-  CMemRefs(CMemBlockManagerMt *manager): Manager(manager) {}
+  CMemRefs(CMemBlockManagerMt *manager Z7_lifetimebound): Manager(manager) {}
   ~CMemRefs()
   {
     FOR_VECTOR (i, Refs)

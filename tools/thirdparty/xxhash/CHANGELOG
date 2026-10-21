@@ -1,3 +1,30 @@
+v0.8.4
+- perf : added RISC-V Vector extension (RVV) implementation, by @zijianli1234, @BoBoDai and @camel-cdr
+- perf : added LoongArch LASX implementation and improved LSX, by @24bit-xjkp
+- perf : prefer NEON over SVE on AArch64, improving XXH3 speed by 25-40%, by @Nicoshev
+- perf : improved XXH3 streaming speed for very small updates, suggested by @aleksazr
+- api  : `XXH_memcpy()`, `XXH_memset()` and `XXH_memcmp()` can be redirected at compile time
+- api  : new `XXH_NO_EXTERNC_GUARD` build macro for complex C++ integration
+- cli  : added 64-bit seed support (`-s`, `--seed`), by @d06i
+- cli  : options can appear after filenames; `--` terminates option parsing, #1098 reported by @unterkomplex
+- cli  : continue processing subsequent files after read errors, #1064 reported by @ZoomRmc
+- cli  : support long and special Windows paths, #1060, based on #1061 by @t-mat
+- cli  : improved benchmark accuracy, error handling and unit labels, #1051 reported by @calgray
+- fix  : unaligned reads could be miscompiled by GCC under strict aliasing, #1013 by @lassipulkkinen
+- fix  : `XXH_INLINE_ALL` compatibility with `XXH_NAMESPACE` and x86 runtime dispatch, by @pps83, #1071 reported by @Dr-Hex
+- fix  : avoid including system headers inside an `extern "C"` block, #1122 reported by @andreas-schwab
+- fix  : compilation with MSVC link-time optimization and warnings as errors, #1038 reported by @mi2think
+- build: improved runtime dispatch detection for cross-compilation and non-x86 targets, with help from @eworm-de, #1081 reported by @PotMJ
+- build: `LIBXXH_DISPATCH=1` now applies to static and dynamic libraries, #1058 reported by @xiota
+- build: Make builds now isolate objects by configuration and support parallel test builds
+- build: moved CMake integration to `build/cmake` and improved cross-compilation detection
+- install: improved package metadata and installation paths on Windows and FreeBSD, by @iwamatsu, @chitao1234 and @sunpoet
+- portability: fixed compilation on ARM with GCC < 8, by @mstorsjo
+- portability: fixed C++ compilation on Solaris and illumos, by @luqmana
+- portability: AVX-512 implementation no longer requires AVX-512BW, by @NexusXe
+- doc  : expanded `xxhsum` documentation and clarified the algorithm specification files
+- doc  : document non-cryptographic collision properties, notably for XXH3's mid-size path (#1127 by @thomasahle)
+
 v0.8.3
 - fix  : variant `XXH3_128bits_withSecretandSeed()` could produce an invalid result in some specific set of conditions, #894 by @hltj
 - cli  : vector extension detected at runtime on x86/x64, enabled by default

@@ -11,6 +11,9 @@
  */
 
 #include <ph.h>
+
+#include <ntafd.h>
+
 #include <phafd.h>
 #include <phnet.h>
 #include <hndlinfo.h>
@@ -20,7 +23,6 @@
 #include <hvsocketcontrol.h>
 #include <secedit.h>
 
-#include <mstcpip.h>
 
 /**
  * Determines if an object name represents an AFD socket handle.
@@ -488,6 +490,136 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
         return FALSE;
     }
 }
+//
+//NTSTATUS PhSocketConnect(
+//    _In_ HANDLE SocketHandle,
+//    _In_ PSOCKADDR RemoteAddress,
+//    _In_ ULONG RemoteAddressLength
+//    )
+//{
+//    SOCKET socketHandle;
+//    int error;
+//
+//    if (!RemoteAddress || RemoteAddressLength < sizeof(SOCKADDR))
+//        return STATUS_INVALID_PARAMETER;
+//
+//    socketHandle = (SOCKET)SocketHandle;
+//    error = WSAConnect(socketHandle, RemoteAddress, RemoteAddressLength, NULL, NULL, NULL, NULL);
+//
+//    return error == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
+//
+//NTSTATUS PhSocketSend(
+//    _In_ HANDLE SocketHandle,
+//    _In_reads_(BufferCount) LPWSABUF BufferArray,
+//    _In_ ULONG BufferCount,
+//    _Out_opt_ PULONG BytesSent
+//    )
+//{
+//    SOCKET socketHandle;
+//    DWORD bytesSent = 0;
+//    int error;
+//
+//    if (!BufferArray || !BufferCount)
+//        return STATUS_INVALID_PARAMETER;
+//      if (NT_SUCCESS(PhAfdDeviceIoControl(SocketHandle, IOCTL_AFD_SEND, NULL, 0, NULL, 0, NULL, NULL)))
+//            return STATUS_NOT_FOUND;
+//    socketHandle = (SOCKET)SocketHandle;
+//    error = WSASend(socketHandle, BufferArray, BufferCount, &bytesSent, 0, NULL, NULL);
+//
+//    if (BytesSent)
+//        *BytesSent = bytesSent;
+//
+//    return error == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
+//
+//NTSTATUS PhSocketReceive(
+//    _In_ HANDLE SocketHandle,
+//    _Out_writes_(BufferCount) LPWSABUF BufferArray,
+//    _In_ ULONG BufferCount,
+//    _Out_opt_ PULONG BytesReceived
+//    )
+//{
+//    SOCKET socketHandle;
+//    DWORD bytesReceived = 0;
+//    DWORD flags = 0;
+//    int error;
+//
+//    if (!BufferArray || !BufferCount)
+//        return STATUS_INVALID_PARAMETER;
+//
+//    socketHandle = (SOCKET)SocketHandle;
+//    error = WSARecv(socketHandle, BufferArray, BufferCount, &bytesReceived, &flags, NULL, NULL);
+//
+//    if (BytesReceived)
+//        *BytesReceived = bytesReceived;
+//
+//    return error == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
+//
+//NTSTATUS PhSocketUdpSend(
+//    _In_ HANDLE SocketHandle,
+//    _In_reads_(BufferCount) LPWSABUF BufferArray,
+//    _In_ ULONG BufferCount,
+//    _In_ PSOCKADDR RemoteAddress,
+//    _In_ ULONG RemoteAddressLength,
+//    _Out_opt_ PULONG BytesSent
+//    )
+//{
+//    SOCKET socketHandle;
+//    DWORD bytesSent = 0;
+//    int error;
+//
+//    if (!BufferArray || !BufferCount || !RemoteAddress || RemoteAddressLength < sizeof(SOCKADDR))
+//        return STATUS_INVALID_PARAMETER;
+//
+//    socketHandle = (SOCKET)SocketHandle;
+//    error = WSASendTo(socketHandle, BufferArray, BufferCount, &bytesSent, 0, RemoteAddress, RemoteAddressLength, NULL, NULL);
+//
+//    if (BytesSent)
+//        *BytesSent = bytesSent;
+//
+//    return error == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
+//
+//NTSTATUS PhSocketUdpReceive(
+//    _In_ HANDLE SocketHandle,
+//    _Out_writes_(BufferCount) LPWSABUF BufferArray,
+//    _In_ ULONG BufferCount,
+//    _Out_writes_bytes_opt_(*RemoteAddressLength) PSOCKADDR RemoteAddress,
+//    _Inout_opt_ PULONG RemoteAddressLength,
+//    _Out_opt_ PULONG BytesReceived
+//    )
+//{
+//    SOCKET socketHandle;
+//    DWORD bytesReceived = 0;
+//    DWORD flags = 0;
+//    int error;
+//
+//    if (!BufferArray || !BufferCount)
+//        return STATUS_INVALID_PARAMETER;
+//
+//    if (!RemoteAddressLength)
+//        return STATUS_INVALID_PARAMETER;
+//
+//    socketHandle = (SOCKET)SocketHandle;
+//    error = WSARecvFrom(socketHandle, BufferArray, BufferCount, &bytesReceived, &flags, RemoteAddress, RemoteAddressLength, NULL, NULL);
+//
+//    if (BytesReceived)
+//        *BytesReceived = bytesReceived;
+//
+//    return error == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
+//
+//NTSTATUS PhSocketClose(
+//    _In_ HANDLE SocketHandle
+//    )
+//{
+//    if (!SocketHandle)
+//        return STATUS_INVALID_HANDLE;
+//
+//    return closesocket((SOCKET)SocketHandle) == 0 ? STATUS_SUCCESS : RtlNtStatusFromWin32(WSAGetLastError());
+//}
 
 /**
  * Retrieves an address associated with an AFD socket.
@@ -1582,4 +1714,1153 @@ PPH_STRING PhAfdFormatSocketBestName(
     PhClearReference(&remoteAddressString);
 
     return string;
+}
+
+#ifndef TDI_RECEIVE_NORMAL
+#define TDI_RECEIVE_NORMAL 0x20
+#endif
+
+/**
+ * Captures the completion state of an AFD operation.
+ *
+ * \param[in,out] Operation The operation.
+ * \param[out] Information Optionally receives the number of bytes transferred.
+ * \return STATUS_PENDING if the operation is still in progress, otherwise its final status.
+ */
+NTSTATUS PhpAfdCompleteOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _Out_opt_ PULONG_PTR Information
+    )
+{
+    NTSTATUS status;
+
+    status = Operation->IoStatusBlock.Status;
+
+    if (status == STATUS_PENDING)
+        return status;
+
+    Operation->Active = FALSE;
+
+    if (Information && NT_SUCCESS(status))
+    {
+        *Information = Operation->IoStatusBlock.Information;
+    }
+
+    return status;
+}
+
+/**
+ * Initializes an AFD operation and creates its completion event.
+ *
+ * \param[out] Operation The operation to initialize.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdInitializeOperation(
+    _Out_ PPH_AFD_IO_OPERATION Operation
+    )
+{
+    NTSTATUS status;
+
+    if (!Operation)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
+
+    status = NtCreateEvent(
+        &Operation->EventHandle,
+        EVENT_ALL_ACCESS,
+        NULL,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        Operation->EventHandle = NULL;
+    }
+
+    return status;
+}
+
+/**
+ * Cancels any active request and releases the resources of an AFD operation.
+ *
+ * \param[in,out] Operation The operation.
+ */
+VOID PhAfdDeleteOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation
+    )
+{
+    if (!Operation)
+        return;
+
+    if (Operation->Active)
+    {
+        PhAfdCancelOperation(Operation);
+    }
+
+    if (Operation->EventHandle)
+    {
+        NtClose(Operation->EventHandle);
+    }
+
+    RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
+}
+
+/**
+ * Queries the state of an active AFD operation without waiting.
+ *
+ * \param[in,out] Operation The operation.
+ * \param[out] Information Optionally receives the number of bytes transferred.
+ * \return STATUS_PENDING if the operation is still in progress, otherwise its final status.
+ */
+NTSTATUS PhAfdQueryOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _Out_opt_ PULONG_PTR Information
+    )
+{
+    if (!Operation || !Operation->EventHandle || !Operation->Active)
+        return STATUS_INVALID_DEVICE_STATE;
+
+    return PhpAfdCompleteOperation(Operation, Information);
+}
+
+/**
+ * Waits for an active AFD operation to complete.
+ *
+ * \param[in,out] Operation The operation.
+ * \param[in] Timeout An optional timeout.
+ * \param[out] Information Optionally receives the number of bytes transferred.
+ * \return The final status of the operation, or STATUS_IO_TIMEOUT if the wait timed out.
+ */
+NTSTATUS PhAfdWaitOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG_PTR Information
+    )
+{
+    NTSTATUS status;
+
+    if (!Operation || !Operation->EventHandle || !Operation->Active)
+        return STATUS_INVALID_DEVICE_STATE;
+
+    status = PhpAfdCompleteOperation(Operation, Information);
+
+    if (status != STATUS_PENDING)
+        return status;
+
+    status = NtWaitForSingleObject(
+        Operation->EventHandle,
+        FALSE,
+        Timeout
+        );
+
+    if (status == STATUS_TIMEOUT)
+        return STATUS_IO_TIMEOUT;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return PhpAfdCompleteOperation(Operation, Information);
+}
+
+/**
+ * Cancels an active AFD operation and waits for the cancellation to complete.
+ *
+ * \param[in,out] Operation The operation.
+ * \return The final status of the operation.
+ */
+NTSTATUS PhAfdCancelOperation(
+    _Inout_ PPH_AFD_IO_OPERATION Operation
+    )
+{
+    NTSTATUS status;
+
+    if (!Operation || !Operation->EventHandle || !Operation->Active)
+        return STATUS_INVALID_DEVICE_STATE;
+
+    if (Operation->IoStatusBlock.Status != STATUS_PENDING)
+        return PhpAfdCompleteOperation(Operation, NULL);
+
+    RtlZeroMemory(&Operation->CancelIoStatusBlock, sizeof(IO_STATUS_BLOCK));
+
+    status = NtCancelIoFileEx(
+        Operation->SocketHandle,
+        &Operation->IoStatusBlock,
+        &Operation->CancelIoStatusBlock
+        );
+
+    if (!NT_SUCCESS(status) && status != STATUS_NOT_FOUND)
+        return status;
+
+    status = NtWaitForSingleObject(
+        Operation->EventHandle,
+        FALSE,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return PhpAfdCompleteOperation(Operation, NULL);
+}
+
+/**
+ * Creates an AFD socket endpoint.
+ *
+ * \param[out] SocketHandle Receives the socket handle.
+ * \param[in] AddressFamily The address family. Only AF_INET is supported.
+ * \param[in] SocketType The socket type, SOCK_STREAM or SOCK_DGRAM.
+ * \param[in] Protocol The protocol.
+ * \param[in] EndpointFlags AFD endpoint flags.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdCreateSocket(
+    _Out_ PHANDLE SocketHandle,
+    _In_ LONG AddressFamily,
+    _In_ LONG SocketType,
+    _In_ LONG Protocol,
+    _In_ ULONG EndpointFlags
+    )
+{
+    NTSTATUS status;
+    HANDLE socketHandle;
+    UNICODE_STRING deviceName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    AFD_OPEN_PACKET_FULL_EA ea;
+
+    if (!SocketHandle)
+        return STATUS_INVALID_PARAMETER;
+    if (AddressFamily != AF_INET)
+        return STATUS_INVALID_PARAMETER;
+    if (SocketType != SOCK_STREAM && SocketType != SOCK_DGRAM)
+        return STATUS_INVALID_PARAMETER;
+
+    *SocketHandle = NULL;
+
+    RtlInitUnicodeString(&deviceName, L"\\Device\\Afd\\Endpoint");
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &deviceName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    RtlZeroMemory(&ea, sizeof(AFD_OPEN_PACKET_FULL_EA));
+    ea.EaNameLength = sizeof(AfdOpenPacket) - sizeof(ANSI_NULL);
+    ea.EaValueLength = sizeof(AFD_OPEN_PACKET);
+    RtlCopyMemory(ea.EaName, AfdOpenPacket, sizeof(AfdOpenPacket));
+    ea.OpenPacket.__f.EndpointFlags = EndpointFlags;
+    ea.OpenPacket.GroupID = 0;
+    ea.OpenPacket.AddressFamily = AddressFamily;
+    ea.OpenPacket.SocketType = SocketType;
+    ea.OpenPacket.Protocol = Protocol;
+
+    status = NtCreateFile(
+        &socketHandle,
+        GENERIC_READ | GENERIC_WRITE | SYNCHRONIZE | READ_CONTROL,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN_IF,
+        0,
+        &ea,
+        sizeof(AFD_OPEN_PACKET_FULL_EA)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SocketHandle = socketHandle;
+    }
+
+    return status;
+}
+
+/**
+ * Starts an asynchronous IOCTL on an AFD socket using the operation's event.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in,out] Operation An initialized, inactive operation.
+ * \param[in] IoControlCode I/O control code.
+ * \param[in] InputBuffer Input buffer.
+ * \param[in] InputLength Input buffer size.
+ * \param[out] OutputBuffer Output buffer.
+ * \param[in] OutputLength Output buffer size.
+ * \return STATUS_PENDING if the request is in progress, otherwise its final status.
+ */
+NTSTATUS PhpAfdBeginControl(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputLength) PVOID InputBuffer,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID OutputBuffer,
+    _In_ ULONG OutputLength
+    )
+{
+    NTSTATUS status;
+
+    if (!SocketHandle || !Operation || !Operation->EventHandle || Operation->Active)
+        return STATUS_INVALID_PARAMETER;
+    if (InputLength && !InputBuffer)
+        return STATUS_INVALID_PARAMETER;
+    if (OutputLength && !OutputBuffer)
+        return STATUS_INVALID_PARAMETER;
+
+    NtClearEvent(Operation->EventHandle);
+
+    Operation->SocketHandle = SocketHandle;
+    Operation->IoStatusBlock.Status = STATUS_PENDING;
+    Operation->IoStatusBlock.Information = 0;
+    Operation->Active = TRUE;
+
+    status = NtDeviceIoControlFile(
+        SocketHandle,
+        Operation->EventHandle,
+        NULL,
+        NULL,
+        &Operation->IoStatusBlock,
+        IoControlCode,
+        InputBuffer,
+        InputLength,
+        OutputBuffer,
+        OutputLength
+        );
+
+    if (status != STATUS_PENDING)
+    {
+        if (Operation->IoStatusBlock.Status == STATUS_PENDING)
+        {
+            Operation->IoStatusBlock.Status = status;
+        }
+
+        Operation->Active = FALSE;
+    }
+
+    return status;
+}
+
+/**
+ * Starts an asynchronous send on a connected AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in,out] Operation An initialized, inactive operation.
+ * \param[in] Buffer The data to send. Must remain valid until the operation completes.
+ * \param[in] Length The length of the data.
+ * \return STATUS_PENDING if the request is in progress, otherwise its final status.
+ */
+NTSTATUS PhAfdBeginSend(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    PAFD_SEND_INFO sendInfo;
+
+    if (!Buffer || !Length)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(Operation->Request, sizeof(Operation->Request));
+    Operation->Buffer.buf = Buffer;
+    Operation->Buffer.len = Length;
+
+    sendInfo = (PAFD_SEND_INFO)Operation->Request;
+    sendInfo->BufferArray = &Operation->Buffer;
+    sendInfo->BufferCount = 1;
+
+    return PhpAfdBeginControl(
+        SocketHandle,
+        Operation,
+        IOCTL_AFD_SEND,
+        sendInfo,
+        sizeof(AFD_SEND_INFO),
+        NULL,
+        0
+        );
+}
+
+/**
+ * Starts an asynchronous receive on a connected AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in,out] Operation An initialized, inactive operation.
+ * \param[out] Buffer Receives the data. Must remain valid until the operation completes.
+ * \param[in] Length The size of the buffer.
+ * \return STATUS_PENDING if the request is in progress, otherwise its final status.
+ */
+NTSTATUS PhAfdBeginReceive(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    PAFD_RECV_INFO recvInfo;
+
+    if (!Buffer || !Length)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(Operation->Request, sizeof(Operation->Request));
+    Operation->Buffer.buf = Buffer;
+    Operation->Buffer.len = Length;
+
+    recvInfo = (PAFD_RECV_INFO)Operation->Request;
+    recvInfo->BufferArray = &Operation->Buffer;
+    recvInfo->BufferCount = 1;
+    recvInfo->TdiFlags = TDI_RECEIVE_NORMAL;
+
+    return PhpAfdBeginControl(
+        SocketHandle,
+        Operation,
+        IOCTL_AFD_RECEIVE,
+        recvInfo,
+        sizeof(AFD_RECV_INFO),
+        NULL,
+        0
+        );
+}
+
+/**
+ * Starts an asynchronous poll on a single AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in,out] Operation An initialized, inactive operation.
+ * \param[in] PollEvents A bit mask of AFD_POLL_* events to wait for.
+ * \param[in] TimeoutMilliseconds The poll timeout in milliseconds, or zero to poll without waiting.
+ * \return STATUS_PENDING if the request is in progress, otherwise its final status.
+ */
+NTSTATUS PhAfdBeginPoll(
+    _In_ HANDLE SocketHandle,
+    _Inout_ PPH_AFD_IO_OPERATION Operation,
+    _In_ ULONG PollEvents,
+    _In_ LONGLONG TimeoutMilliseconds
+    )
+{
+    PAFD_POLL_INFO pollInfo;
+    ULONG pollInfoLength;
+
+    if (!PollEvents || TimeoutMilliseconds < 0)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(Operation->Request, sizeof(Operation->Request));
+
+    pollInfo = (PAFD_POLL_INFO)Operation->Request;
+    pollInfoLength = FIELD_OFFSET(AFD_POLL_INFO, Handles) + sizeof(AFD_POLL_HANDLE_INFO);
+
+    pollInfo->Timeout.QuadPart = TimeoutMilliseconds ? -(TimeoutMilliseconds * PH_TIMEOUT_MS) : 0;
+    pollInfo->NumberOfHandles = 1;
+    pollInfo->Unique = FALSE;
+    pollInfo->Handles[0].Handle = SocketHandle;
+    pollInfo->Handles[0].PollEvents = PollEvents;
+
+    return PhpAfdBeginControl(
+        SocketHandle,
+        Operation,
+        IOCTL_AFD_POLL,
+        pollInfo,
+        pollInfoLength,
+        pollInfo,
+        pollInfoLength
+        );
+}
+
+/**
+ * Issues an IOCTL on an AFD socket and waits for its completion.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] IoControlCode I/O control code.
+ * \param[in] InputBuffer Input buffer.
+ * \param[in] InputLength Input buffer size.
+ * \param[out] OutputBuffer Output buffer.
+ * \param[in] OutputLength Output buffer size.
+ * \param[out] Information Optionally receives the number of bytes returned.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhpAfdRun(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputLength) PVOID InputBuffer,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID OutputBuffer,
+    _In_ ULONG OutputLength,
+    _Out_opt_ PULONG_PTR Information
+    )
+{
+    NTSTATUS status;
+    PH_AFD_IO_OPERATION operation;
+
+    status = PhAfdInitializeOperation(&operation);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhpAfdBeginControl(
+        SocketHandle,
+        &operation,
+        IoControlCode,
+        InputBuffer,
+        InputLength,
+        OutputBuffer,
+        OutputLength
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = PhAfdWaitOperation(&operation, NULL, Information);
+    }
+    else if (NT_SUCCESS(status) && Information)
+    {
+        *Information = operation.IoStatusBlock.Information;
+    }
+
+    PhAfdDeleteOperation(&operation);
+
+    return status;
+}
+
+/**
+ * Binds an AFD socket to a local address.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] ShareAccess An AFD_SHARE_* value controlling address reuse.
+ * \param[in] Address The local IPv4 address.
+ * \param[in] AddressLength The size of the address.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdBind(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG ShareAccess,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength
+    )
+{
+    UCHAR buffer[FIELD_OFFSET(AFD_BIND_INFO_TL, Address) + sizeof(SOCKADDR_STORAGE)] = { 0 };
+    PAFD_BIND_INFO_TL bindInfo = (PAFD_BIND_INFO_TL)buffer;
+    SOCKADDR_STORAGE boundAddress = { 0 };
+
+    if (!Address || Address->sa_family != AF_INET)
+        return STATUS_INVALID_PARAMETER;
+    if (AddressLength < sizeof(SOCKADDR_IN) || AddressLength > sizeof(SOCKADDR_STORAGE))
+        return STATUS_INVALID_PARAMETER;
+
+    bindInfo->ShareAccess = ShareAccess;
+    RtlCopyMemory(&bindInfo->Address, Address, AddressLength);
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_BIND,
+        buffer,
+        FIELD_OFFSET(AFD_BIND_INFO_TL, Address) + AddressLength,
+        &boundAddress,
+        sizeof(SOCKADDR_STORAGE),
+        NULL
+        );
+}
+
+/**
+ * Connects an AFD socket to a remote address.
+ *
+ * \param[in] SocketHandle A bound AFD socket handle.
+ * \param[in] Address The remote IPv4 address.
+ * \param[in] AddressLength The size of the address.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdConnect(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength
+    )
+{
+    UCHAR buffer[FIELD_OFFSET(AFD_CONNECT_JOIN_INFO_TL, RemoteAddress) + sizeof(SOCKADDR_STORAGE)] = { 0 };
+    PAFD_CONNECT_JOIN_INFO_TL connectInfo = (PAFD_CONNECT_JOIN_INFO_TL)buffer;
+
+    if (!Address || Address->sa_family != AF_INET)
+        return STATUS_INVALID_PARAMETER;
+    if (AddressLength < sizeof(SOCKADDR_IN) || AddressLength > sizeof(SOCKADDR_STORAGE))
+        return STATUS_INVALID_PARAMETER;
+
+    RtlCopyMemory(&connectInfo->RemoteAddress, Address, AddressLength);
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_CONNECT,
+        buffer,
+        FIELD_OFFSET(AFD_CONNECT_JOIN_INFO_TL, RemoteAddress) + AddressLength,
+        NULL,
+        0,
+        NULL
+        );
+}
+
+/**
+ * Sets the connect data sent with an outgoing connection request.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Data The connect data.
+ * \param[in] Length The length of the connect data.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdSetConnectData(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(Length) PVOID Data,
+    _In_ ULONG Length
+    )
+{
+    AFD_UNACCEPTED_CONNECT_DATA_INFO connectDataInfo = { 0 };
+
+    if (!Data || !Length)
+        return STATUS_INVALID_PARAMETER;
+
+    connectDataInfo.ConnectDataLength = Length;
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_SET_CONNECT_DATA,
+        &connectDataInfo,
+        sizeof(AFD_UNACCEPTED_CONNECT_DATA_INFO),
+        Data,
+        Length,
+        NULL
+        );
+}
+
+/**
+ * Retrieves the connect data of a pending (unaccepted) connection.
+ *
+ * \param[in] ListenHandle A listening AFD socket handle.
+ * \param[in] Sequence The connection sequence number from PhAfdWaitForListen.
+ * \param[out] Data Receives the connect data.
+ * \param[in] Length The size of the buffer.
+ * \param[out] BytesTransferred Receives the number of bytes returned.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdGetUnacceptedConnectData(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _Out_writes_bytes_(Length) PVOID Data,
+    _In_ ULONG Length,
+    _Out_ PULONG BytesTransferred
+    )
+{
+    NTSTATUS status;
+    AFD_UNACCEPTED_CONNECT_DATA_INFO connectDataInfo = { 0 };
+    ULONG_PTR information = 0;
+
+    if (!Data || !Length || !BytesTransferred)
+        return STATUS_INVALID_PARAMETER;
+
+    connectDataInfo.Sequence = Sequence;
+    connectDataInfo.ConnectDataLength = Length;
+
+    status = PhpAfdRun(
+        ListenHandle,
+        IOCTL_AFD_GET_UNACCEPTED_CONNECT_DATA,
+        &connectDataInfo,
+        sizeof(AFD_UNACCEPTED_CONNECT_DATA_INFO),
+        Data,
+        Length,
+        &information
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BytesTransferred = (ULONG)information;
+    }
+
+    return status;
+}
+
+/**
+ * Retrieves the length of the connect data of a pending (unaccepted) connection.
+ *
+ * \param[in] ListenHandle A listening AFD socket handle.
+ * \param[in] Sequence The connection sequence number from PhAfdWaitForListen.
+ * \param[out] Length Receives the length of the connect data.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdQueryUnacceptedConnectDataLength(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    AFD_UNACCEPTED_CONNECT_DATA_INFO inputInfo = { 0 };
+    AFD_UNACCEPTED_CONNECT_DATA_INFO outputInfo = { 0 };
+
+    if (!Length)
+        return STATUS_INVALID_PARAMETER;
+
+    inputInfo.Sequence = Sequence;
+    inputInfo.LengthOnly = TRUE;
+
+    status = PhpAfdRun(
+        ListenHandle,
+        IOCTL_AFD_GET_UNACCEPTED_CONNECT_DATA,
+        &inputInfo,
+        sizeof(AFD_UNACCEPTED_CONNECT_DATA_INFO),
+        &outputInfo,
+        sizeof(AFD_UNACCEPTED_CONNECT_DATA_INFO),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Length = outputInfo.ConnectDataLength;
+    }
+
+    return status;
+}
+
+/**
+ * Places a bound AFD socket into the listening state.
+ *
+ * \param[in] SocketHandle A bound AFD socket handle.
+ * \param[in] Backlog The maximum length of the pending connection queue.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdListen(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG Backlog
+    )
+{
+    AFD_LISTEN_INFO listenInfo = { 0 };
+
+    if (!Backlog || Backlog > LONG_MAX)
+        return STATUS_INVALID_PARAMETER;
+
+    listenInfo.MaximumConnectionQueue = Backlog;
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_START_LISTEN,
+        &listenInfo,
+        sizeof(AFD_LISTEN_INFO),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+/**
+ * Waits for an incoming connection on a listening AFD socket.
+ *
+ * \param[in] SocketHandle A listening AFD socket handle.
+ * \param[out] Response Receives the pending connection's sequence number and remote address.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdWaitForListen(
+    _In_ HANDLE SocketHandle,
+    _Out_ PAFD_LISTEN_RESPONSE_INFO_TL Response
+    )
+{
+    if (!Response)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_WAIT_FOR_LISTEN,
+        NULL,
+        0,
+        Response,
+        sizeof(AFD_LISTEN_RESPONSE_INFO_TL),
+        NULL
+        );
+}
+
+/**
+ * Accepts a pending connection onto a separate AFD socket.
+ *
+ * \param[in] ListenHandle A listening AFD socket handle.
+ * \param[in] Sequence The connection sequence number from PhAfdWaitForListen.
+ * \param[in] AcceptHandle An unbound AFD socket handle that receives the connection.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdAccept(
+    _In_ HANDLE ListenHandle,
+    _In_ LONG Sequence,
+    _In_ HANDLE AcceptHandle
+    )
+{
+    AFD_ACCEPT_INFO acceptInfo = { 0 };
+
+    if (!AcceptHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    acceptInfo.Sequence = Sequence;
+    acceptInfo.AcceptHandle = AcceptHandle;
+
+    return PhpAfdRun(
+        ListenHandle,
+        IOCTL_AFD_ACCEPT,
+        &acceptInfo,
+        sizeof(AFD_ACCEPT_INFO),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+/**
+ * Sends or receives data on a connected AFD socket and waits for completion.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Send TRUE to send, FALSE to receive.
+ * \param[in,out] Buffer The data buffer.
+ * \param[in] Length The size of the buffer.
+ * \param[out] BytesTransferred Optionally receives the number of bytes transferred.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhpAfdTransfer(
+    _In_ HANDLE SocketHandle,
+    _In_ BOOLEAN Send,
+    _Inout_updates_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    )
+{
+    NTSTATUS status;
+    PH_AFD_IO_OPERATION operation;
+    ULONG_PTR information = 0;
+
+    if (BytesTransferred)
+    {
+        *BytesTransferred = 0;
+    }
+
+    status = PhAfdInitializeOperation(&operation);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Send)
+        status = PhAfdBeginSend(SocketHandle, &operation, Buffer, Length);
+    else
+        status = PhAfdBeginReceive(SocketHandle, &operation, Buffer, Length);
+
+    if (status == STATUS_PENDING)
+    {
+        status = PhAfdWaitOperation(&operation, NULL, &information);
+    }
+    else if (NT_SUCCESS(status))
+    {
+        information = operation.IoStatusBlock.Information;
+    }
+
+    PhAfdDeleteOperation(&operation);
+
+    if (NT_SUCCESS(status) && BytesTransferred)
+    {
+        *BytesTransferred = (ULONG)information;
+    }
+
+    return status;
+}
+
+/**
+ * Sends data on a connected AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Buffer The data to send.
+ * \param[in] Length The length of the data.
+ * \param[out] BytesTransferred Optionally receives the number of bytes sent.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdSend(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    )
+{
+    return PhpAfdTransfer(SocketHandle, TRUE, Buffer, Length, BytesTransferred);
+}
+
+/**
+ * Receives data from a connected AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[out] Buffer Receives the data.
+ * \param[in] Length The size of the buffer.
+ * \param[out] BytesTransferred Optionally receives the number of bytes received.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdReceive(
+    _In_ HANDLE SocketHandle,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    )
+{
+    return PhpAfdTransfer(SocketHandle, FALSE, Buffer, Length, BytesTransferred);
+}
+
+/**
+ * Polls a single AFD socket and waits for the result.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] PollEvents A bit mask of AFD_POLL_* events to wait for.
+ * \param[in] TimeoutMilliseconds The poll timeout in milliseconds, or zero to poll without waiting.
+ * \param[out] ReturnedEvents Receives the AFD_POLL_* events that were signaled.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdPoll(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG PollEvents,
+    _In_ LONGLONG TimeoutMilliseconds,
+    _Out_ PULONG ReturnedEvents
+    )
+{
+    NTSTATUS status;
+    PH_AFD_IO_OPERATION operation;
+
+    if (!ReturnedEvents)
+        return STATUS_INVALID_PARAMETER;
+
+    *ReturnedEvents = 0;
+
+    status = PhAfdInitializeOperation(&operation);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhAfdBeginPoll(
+        SocketHandle,
+        &operation,
+        PollEvents,
+        TimeoutMilliseconds
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = PhAfdWaitOperation(&operation, NULL, NULL);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ReturnedEvents = ((PAFD_POLL_INFO)operation.Request)->Handles[0].PollEvents;
+    }
+
+    PhAfdDeleteOperation(&operation);
+
+    return status;
+}
+
+/**
+ * Retrieves the local or remote address of an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] IoControlCode IOCTL_AFD_GET_ADDRESS or IOCTL_AFD_GET_REMOTE_ADDRESS.
+ * \param[out] Address Receives the address.
+ * \param[in,out] AddressLength On input, the size of the buffer; on output, the size of the address.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdGetAddress(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG IoControlCode,
+    _Out_writes_bytes_to_(*AddressLength, *AddressLength) PSOCKADDR Address,
+    _Inout_ PULONG AddressLength
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR information = 0;
+
+    if (!Address || !AddressLength || !*AddressLength)
+        return STATUS_INVALID_PARAMETER;
+    if (IoControlCode != IOCTL_AFD_GET_ADDRESS && IoControlCode != IOCTL_AFD_GET_REMOTE_ADDRESS)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhpAfdRun(
+        SocketHandle,
+        IoControlCode,
+        NULL,
+        0,
+        Address,
+        *AddressLength,
+        &information
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *AddressLength = (ULONG)information;
+    }
+
+    return status;
+}
+
+/**
+ * Shuts down sending and/or receiving on an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] DisconnectMode A bit mask of AFD_PARTIAL_DISCONNECT_* / AFD_ABORTIVE_DISCONNECT flags.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdDisconnect(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG DisconnectMode
+    )
+{
+    AFD_PARTIAL_DISCONNECT_INFO disconnectInfo = { 0 };
+
+    disconnectInfo.DisconnectMode = DisconnectMode;
+
+    return PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_PARTIAL_DISCONNECT,
+        &disconnectInfo,
+        sizeof(AFD_PARTIAL_DISCONNECT_INFO),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+/**
+ * Sends a datagram to a remote address.
+ *
+ * \param[in] SocketHandle A datagram AFD socket handle.
+ * \param[in] Address The remote IPv4 address.
+ * \param[in] AddressLength The size of the address.
+ * \param[in] Buffer The data to send.
+ * \param[in] Length The length of the data.
+ * \param[out] BytesTransferred Optionally receives the number of bytes sent.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdSendTo(
+    _In_ HANDLE SocketHandle,
+    _In_reads_bytes_(AddressLength) PSOCKADDR Address,
+    _In_ ULONG AddressLength,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG BytesTransferred
+    )
+{
+    NTSTATUS status;
+    AFD_SEND_DATAGRAM_INFO datagramInfo = { 0 };
+    WSABUF wsaBuffer;
+    ULONG_PTR information = 0;
+
+    if (BytesTransferred)
+    {
+        *BytesTransferred = 0;
+    }
+
+    if (!Address || AddressLength < sizeof(SOCKADDR_IN) || Address->sa_family != AF_INET)
+        return STATUS_INVALID_PARAMETER;
+    if (!Buffer || !Length)
+        return STATUS_INVALID_PARAMETER;
+
+    wsaBuffer.buf = Buffer;
+    wsaBuffer.len = Length;
+
+    datagramInfo.BufferArray = &wsaBuffer;
+    datagramInfo.BufferCount = 1;
+    datagramInfo.TdiConnInfo.RemoteAddress = Address;
+    datagramInfo.TdiConnInfo.RemoteAddressLength = AddressLength;
+
+    status = PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_SEND_DATAGRAM,
+        &datagramInfo,
+        sizeof(AFD_SEND_DATAGRAM_INFO),
+        NULL,
+        0,
+        &information
+        );
+
+    if (NT_SUCCESS(status) && BytesTransferred)
+    {
+        *BytesTransferred = (ULONG)information;
+    }
+
+    return status;
+}
+
+/**
+ * Receives a datagram and optionally its source address.
+ *
+ * \param[in] SocketHandle A datagram AFD socket handle.
+ * \param[out] Buffer Receives the data.
+ * \param[in] Length The size of the buffer.
+ * \param[out] Address Optionally receives the source address.
+ * \param[in,out] AddressLength Required with Address. On input, the size of the address buffer; on output, the size of the address.
+ * \param[out] BytesTransferred Optionally receives the number of bytes received.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdReceiveFrom(
+    _In_ HANDLE SocketHandle,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_writes_bytes_to_opt_(*AddressLength, *AddressLength) PSOCKADDR Address,
+    _Inout_opt_ PULONG AddressLength,
+    _Out_opt_ PULONG BytesTransferred
+    )
+{
+    NTSTATUS status;
+    AFD_DATAGRAM_INFO datagramInfo = { 0 };
+    WSABUF wsaBuffer;
+    ULONG_PTR information = 0;
+
+    if (BytesTransferred)
+    {
+        *BytesTransferred = 0;
+    }
+
+    if (!Buffer || !Length)
+        return STATUS_INVALID_PARAMETER;
+    if (!!Address != !!AddressLength)
+        return STATUS_INVALID_PARAMETER;
+    if (AddressLength && *AddressLength < sizeof(SOCKADDR_IN))
+        return STATUS_INVALID_PARAMETER;
+
+    wsaBuffer.buf = Buffer;
+    wsaBuffer.len = Length;
+
+    datagramInfo.BufferArray = &wsaBuffer;
+    datagramInfo.BufferCount = 1;
+    datagramInfo.TdiFlags = TDI_RECEIVE_NORMAL;
+    datagramInfo.Address = Address;
+    datagramInfo.AddressLength = AddressLength;
+
+    status = PhpAfdRun(
+        SocketHandle,
+        IOCTL_AFD_RECEIVE_DATAGRAM,
+        &datagramInfo,
+        sizeof(AFD_DATAGRAM_INFO),
+        NULL,
+        0,
+        &information
+        );
+
+    if (NT_SUCCESS(status) && BytesTransferred)
+    {
+        *BytesTransferred = (ULONG)information;
+    }
+
+    return status;
+}
+
+static PH_WORK_QUEUE PhpAfdWorkQueue;
+static PH_INITONCE PhpAfdWorkQueueInitOnce = PH_INITONCE_INIT;
+
+/**
+ * Retrieves the shared work queue for AFD socket operations.
+ *
+ * \return A pointer to the work queue, created on first use.
+ */
+PPH_WORK_QUEUE PhAfdGetWorkQueue(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhpAfdWorkQueueInitOnce))
+    {
+        PhInitializeWorkQueue(&PhpAfdWorkQueue, 2, 4, ULONG_MAX);
+        PhEndInitOnce(&PhpAfdWorkQueueInitOnce);
+    }
+
+    return &PhpAfdWorkQueue;
 }

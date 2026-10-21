@@ -1,7 +1,7 @@
 // Windows/Defs.h
 
-#ifndef ZIP7_INC_WINDOWS_DEFS_H
-#define ZIP7_INC_WINDOWS_DEFS_H
+#ifndef ZIP7_INC_WINDOWS_WIN_DEFS_H
+#define ZIP7_INC_WINDOWS_WIN_DEFS_H
 
 #include "../Common/MyWindows.h"
 

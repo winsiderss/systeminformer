@@ -9,7 +9,7 @@
 #include <NTSecAPI.h>
 #endif
 
-#include "Defs.h"
+#include "WinDefs.h"
 
 #ifndef _UNICODE
 

@@ -18,7 +18,7 @@ Z7_CLASS_IMP_COM_1(
   UInt32 _pc;
   z7_Func_BranchConv BraFunc;
 public:
-  CCoder(z7_Func_BranchConv bra): _pc(0), BraFunc(bra) {}
+  CCoder(z7_Func_BranchConv bra Z7_lifetimebound): _pc(0), BraFunc(bra) {}
 };
 
 #ifndef Z7_EXTRACT_ONLY
@@ -34,7 +34,7 @@ Z7_CLASS_IMP_COM_3(
   UInt32 _alignment;
   z7_Func_BranchConv BraFunc;
 public:
-  CEncoder(z7_Func_BranchConv bra, UInt32 alignment):
+  CEncoder(z7_Func_BranchConv bra Z7_lifetimebound, UInt32 alignment):
       _pc(0), _pc_Init(0), _alignment(alignment), BraFunc(bra) {}
 };
 
@@ -50,7 +50,7 @@ Z7_CLASS_IMP_COM_2(
   UInt32 _alignment;
   z7_Func_BranchConv BraFunc;
 public:
-  CDecoder(z7_Func_BranchConv bra, UInt32 alignment):
+  CDecoder(z7_Func_BranchConv bra Z7_lifetimebound, UInt32 alignment):
       _pc(0), _pc_Init(0), _alignment(alignment), BraFunc(bra) {}
 };
 

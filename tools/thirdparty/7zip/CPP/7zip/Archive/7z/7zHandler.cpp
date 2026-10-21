@@ -108,7 +108,7 @@ static void ConvertMethodIdToString(AString &res, UInt64 id)
 }
 
 
-static char *GetStringForSizeValue(char *s, UInt32 val)
+static char *GetStringForSizeValue(char *s Z7_lifetimebound, UInt32 val)
 {
   for (unsigned i = 0; i < 32; i++)
     if (((UInt32)1 << i) == val)
@@ -170,7 +170,7 @@ static inline void AddHexToString(UString &res, Byte value)
 }
 */
 
-static char *AddProp32(char *s, const char *name, UInt32 v)
+static char *AddProp32(char *s Z7_lifetimebound, const char *name, UInt32 v)
 {
   *s++ = ':';
   s = MyStpCpy(s, name);
@@ -309,6 +309,11 @@ bool CHandler::IsFolderEncrypted(CNum folderIndex) const
     inByte.SkipDataNoCheck(idSize);
     if (id64 == k_AES)
       return true;
+    if ((mainByte & 0x10) != 0)
+    {
+      inByte.ReadNum(); // NumInStreams
+      inByte.ReadNum(); // NumOutStreams
+    }
     if ((mainByte & 0x20) != 0)
       inByte.SkipDataNoCheck(inByte.ReadNum());
   }
@@ -455,7 +460,7 @@ HRESULT CHandler::SetMethodToProp(CNum folderIndex, PROPVARIANT *prop) const
             const UInt32 lp = d % 5;
             if (lc != 3) dest = AddProp32(dest, "lc", lc);
             if (lp != 0) dest = AddProp32(dest, "lp", lp);
-            if (pb != 2) dest = AddProp32(dest, "pb", pb);
+            if (pb != 2) /* dest = */ AddProp32(dest, "pb", pb);
           }
         }
       }

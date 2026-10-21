@@ -356,6 +356,7 @@ EXPORTS
     PhAddItemsArray
     PhAddItemSimpleHashtable
     PhAddItemsList
+    PhAddMemorySingles
     PhAddPlusMaxMemorySingles
     PhAllocate
     PhAllocateExSafe
@@ -401,6 +402,7 @@ EXPORTS
     PhConvertUtf8ToUtf16Size
     PhCopyBytesZ
     PhCopyConvertCircularBufferULONG
+    PhCopyConvertCircularBufferULONG64
     PhCopyStringZ
     PhCopyStringZFromBytes
     PhCopyStringZFromMultiByte
@@ -515,6 +517,7 @@ EXPORTS
     PhQuerySystemTime
     PhQueryTimeZoneBias
     PhQueryUnbiasedInterruptTime
+    PhQueryWaitTime
     PhReadTimeStampCounter
     PhReAllocate
     PhReAllocateExSafe
@@ -721,6 +724,7 @@ EXPORTS
     PhListenNamedPipe
     PhLoadAppKey
     PhMapViewOfSection
+    PhMapViewOfEntireFile
     PhMoveFileWin32
     PhOpenDirectoryObject
     PhOpenDriver
@@ -930,15 +934,15 @@ EXPORTS
     PhShowStatus
     PhShowTaskDialog
     PhStringToGuid
-    PhSymCryptCleanupParallelHash
+    PhSymCryptCleanupMultiHash
     PhSymCryptDestroyHash
     PhSymCryptHashAlgorithmIdToAlgorithm
     PhSymCryptHashData
     PhSymCryptHashFinal
     PhSymCryptHashInit
     PhSymCryptHashSize
-    PhSymCryptInitializeParallelHash
-    PhSymCryptProcessParallelHashOperations
+    PhSymCryptInitializeMultiHash
+    PhSymCryptProcessMultiOperations
     PhSymCryptVerifySignature
     PhSystemTimeToLargeInteger
     PhSystemTimeToTzSpecificLocalTime

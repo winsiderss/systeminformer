@@ -82,6 +82,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_chartables.c"
     "pcre/pcre2_chkdint.c"
     "pcre/pcre2_compile.c"
+    "pcre/pcre2_compile_cgroup.c"
     "pcre/pcre2_compile_class.c"
     "pcre/pcre2_config.c"
     "pcre/pcre2_context.c"
@@ -94,6 +95,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_maketables.c"
     "pcre/pcre2_match.c"
     "pcre/pcre2_match_data.c"
+    "pcre/pcre2_match_next.c"
     "pcre/pcre2_newline.c"
     "pcre/pcre2_ord2utf.c"
     "pcre/pcre2_pattern_info.c"
@@ -105,7 +107,6 @@ set(SOURCES_PCRE
     "pcre/pcre2_substring.c"
     "pcre/pcre2_tables.c"
     "pcre/pcre2_ucd.c"
-    "pcre/pcre2_ucptables.c"
     "pcre/pcre2_valid_utf.c"
     "pcre/pcre2_xclass.c"
     "pcre/pcre2posix.c"
@@ -122,8 +123,11 @@ set(HEADERS_PCRE
     "pcre/pcre2_compile.h"
     "pcre/pcre2_util.h"
     "pcre/pcre2_jit_char_inc.h"
-    "pcre/pcre2_jit_neon_inc.h"
+    "pcre/pcre2_jit_match_inc.h"
+    "pcre/pcre2_jit_misc_inc.h"
     "pcre/pcre2_jit_simd_inc.h"
+    "pcre/pcre2_printint_inc.h"
+    "pcre/pcre2_ucptables_inc.h"
 )
 source_group("PCRE\\Headers" FILES ${HEADERS_PCRE})
 
@@ -429,6 +433,7 @@ set(SOURCES_SYMCRYPT
     "SymCrypt/lib/aes-selftest.c"
     "SymCrypt/lib/aes-xmm.c"
     "SymCrypt/lib/aes-ymm.c"
+    "SymCrypt/lib/aes-zmm.c"
     "SymCrypt/lib/aescmac.c"
     "SymCrypt/lib/aesCtrDrbg.c"
     "SymCrypt/lib/aeskw.c"
@@ -439,6 +444,7 @@ set(SOURCES_SYMCRYPT
     "SymCrypt/lib/chacha20.c"
     "SymCrypt/lib/chacha20_poly1305.c"
     "SymCrypt/lib/composite_encoding.c"
+    "SymCrypt/lib/composite_mldsa.c"
     "SymCrypt/lib/composite_mlkem.c"
     "SymCrypt/lib/cpuid.c"
     "SymCrypt/lib/cpuid_notry.c"
@@ -576,11 +582,13 @@ endif()
 set(HEADERS_SYMCRYPT
     "SymCrypt/inc/buildInfo.h"
     "SymCrypt/inc/symcrypt.h"
+    "SymCrypt/inc/symcrypt_atomics.h"
     "SymCrypt/inc/symcrypt_internal.h"
     "SymCrypt/inc/symcrypt_low_level.h"
     "SymCrypt/lib/ghash_definitions.h"
     "SymCrypt/lib/precomp.h"
     "SymCrypt/lib/sc_lib.h"
+    "SymCrypt/lib/sc_lib_composite_mldsa.h"
     "SymCrypt/lib/sc_lib_mldsa.h"
     "SymCrypt/lib/sc_lib_mlkem.h"
     "SymCrypt/lib/smallPrimes32.h"
@@ -680,6 +688,11 @@ if(MSVC_CLANG)
             $<$<COMPILE_LANGUAGE:C,CXX>:-mvaes>
             $<$<COMPILE_LANGUAGE:C,CXX>:-mvpclmulqdq>
             $<$<COMPILE_LANGUAGE:C,CXX>:-mrdseed>
+        )
+
+        # AVX-512 is only enabled for the ZMM file; it is runtime-dispatched by CPU feature checks.
+        set_source_files_properties("SymCrypt/lib/aes-zmm.c" PROPERTIES COMPILE_OPTIONS
+            "-mavx512f;-mavx512bw;-mavx512dq;-mavx512vl"
         )
     endif()
 endif()

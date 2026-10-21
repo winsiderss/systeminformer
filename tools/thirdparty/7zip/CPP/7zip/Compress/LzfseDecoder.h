@@ -29,7 +29,7 @@ Z7_CLASS_IMP_NOQIB_1(
     CDecoder *m_Coder;
   public:
     bool NeedFlush;
-    CCoderReleaser(CDecoder *coder): m_Coder(coder), NeedFlush(true) {}
+    CCoderReleaser(CDecoder *coder Z7_lifetimebound): m_Coder(coder), NeedFlush(true) {}
     ~CCoderReleaser()
     {
       if (NeedFlush)

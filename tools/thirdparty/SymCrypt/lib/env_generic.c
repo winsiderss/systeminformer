@@ -80,7 +80,7 @@ SymCryptSaveXmmEnvGeneric( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
     UNREFERENCED_PARAMETER( pSaveArea );
 
     SymCryptFatal( 'mmxs' );
-    return SYMCRYPT_NO_ERROR;
+    return SYMCRYPT_NOT_IMPLEMENTED;
 }
 
 VOID 
@@ -98,7 +98,7 @@ SymCryptSaveYmmEnvGeneric( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
     UNREFERENCED_PARAMETER( pSaveArea );
 
     SymCryptFatal( 'mmys' );
-    return SYMCRYPT_NO_ERROR;
+    return SYMCRYPT_NOT_IMPLEMENTED;
 }
 
 VOID 
@@ -106,6 +106,24 @@ SYMCRYPT_CALL
 SymCryptRestoreYmmEnvGeneric( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
 {
     SymCryptFatal( 'mmxs' );
+    UNREFERENCED_PARAMETER( pSaveArea );
+}
+
+SYMCRYPT_ERROR 
+SYMCRYPT_CALL 
+SymCryptSaveZmmEnvGeneric( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
+{
+    UNREFERENCED_PARAMETER( pSaveArea );
+
+    SymCryptFatal( 'mmzs' );
+    return SYMCRYPT_NOT_IMPLEMENTED;
+}
+
+VOID 
+SYMCRYPT_CALL 
+SymCryptRestoreZmmEnvGeneric( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
+{
+    SymCryptFatal( 'mmzs' );
     UNREFERENCED_PARAMETER( pSaveArea );
 }
 

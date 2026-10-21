@@ -36,13 +36,6 @@ struct CFilterMode
   UInt32 Offset; // for k_ARM64 / k_RISCV
   // UInt32 AlignSizeOpt; // for k_ARM64
 
-  CFilterMode():
-    Id(0),
-    Delta(0),
-    Offset(0)
-    // , AlignSizeOpt(0)
-    {}
-
   void ClearFilterMode()
   {
     Id = 0;
@@ -437,7 +430,11 @@ struct CFilterMode2: public CFilterMode
   bool Encrypted;
   unsigned GroupIndex;
   
-  CFilterMode2(): Encrypted(false) {}
+  void Construct()
+  {
+    ClearFilterMode();
+    Encrypted = false;
+  }
 
   int Compare(const CFilterMode2 &m) const
   {
@@ -546,6 +543,7 @@ static unsigned Get_FilterGroup_for_Folder(
     CRecordVector<CFilterMode2> &filters, const CFolderEx &f, bool extractFilter)
 {
   CFilterMode2 m;
+  m.Construct();
   // m.Id = 0;
   // m.Delta = 0;
   // m.Offset = 0;
@@ -795,14 +793,14 @@ struct CRefItem
   unsigned NamePos;
   unsigned ExtensionIndex;
   
-  CRefItem() {}
-  CRefItem(UInt32 index, const CUpdateItem &ui, bool sortByType):
-    UpdateItem(&ui),
-    Index(index),
-    ExtensionPos(0),
-    NamePos(0),
-    ExtensionIndex(0)
+  void Construct(UInt32 index, const CUpdateItem &ui, bool sortByType)
   {
+    UpdateItem = &ui;
+    Index = index;
+    ExtensionPos = 0;
+    NamePos = 0;
+    ExtensionIndex = 0;
+
     if (sortByType)
     {
       const int slashPos = ui.Name.ReverseFind_PathSepar();
@@ -2154,6 +2152,7 @@ HRESULT Update(
         continue;
 
       CFilterMode2 fm;
+      fm.Construct();
       if (useFilters)
       {
         // analysis.ATime_Defined = false;
@@ -2710,7 +2709,7 @@ HRESULT Update(
     unsigned i;
 
     for (i = 0; i < numFiles; i++)
-      refItems[i] = CRefItem(group.Indices[i], updateItems[group.Indices[i]], sortByType);
+      refItems[i].Construct(group.Indices[i], updateItems[group.Indices[i]], sortByType);
 
     CSortParam sortParam;
     // sortParam.TreeFolders = &treeFolders;

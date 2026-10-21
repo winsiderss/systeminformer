@@ -36,9 +36,14 @@ void CAlignedMidBuffer::AllocAligned(size_t size)
   Some filters (BCJ and others) don't process data at the end of stream in some cases.
   So the encoder and decoder write such last bytes without change.
 
-  Most filters process all data, if we send aligned size to filter.
-     But  BCJ filter can process up 4 bytes less than sent size.
-     And ARMT filter can process    2 bytes less than sent size.
+  Filters can process less data than is sent:
+  filter: max unprocessed size
+          aligned unaligned (data size)
+  ARM64 :   0         3
+  IA64  :   0        15
+  BCJ   :   4         4
+  ARMT  :   2         3
+  RISCV :   6         7
 */
 
 
@@ -52,8 +57,8 @@ HRESULT CFilterCoder::Alloc()
   UInt32 size = MyMin(_inBufSize, _outBufSize);
   /* minimal bufSize is 16 bytes for AES and IA64 filter.
      bufSize for AES must be aligned for 16 bytes.
-     We use (1 << 12) min size to support future aligned filters. */
-  const UInt32 kMinSize = 1 << 12;
+     We use (1 << 16) to support some external filters that require 64 KB buffer. */
+  const UInt32 kMinSize = 1 << 16;
   size &= ~(UInt32)(kMinSize - 1);
   if (size < kMinSize)
     size = kMinSize;

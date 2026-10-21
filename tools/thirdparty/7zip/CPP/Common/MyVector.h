@@ -48,6 +48,23 @@ public:
     ReAllocForNewCapacity(_capacity + add);
   }
 
+  void Reserve_for_AddSize(const unsigned addSize)
+  {
+    const unsigned size = Size();
+    const unsigned rem = k_VectorSizeMax - size;
+    if (size > k_VectorSizeMax || addSize > rem)
+      throw 2021;
+    if (size + addSize > _capacity)
+    {
+      unsigned extra = size >> 2;
+      if (extra < addSize)
+          extra = addSize;
+      if (extra > rem)
+          extra = rem;
+      ReAllocForNewCapacity(size + extra);
+    }
+  }
+
   CRecordVector(): _items(NULL), _size(0), _capacity(0) {}
   
   CRecordVector(const CRecordVector &v): _items(NULL), _size(0), _capacity(0)
@@ -89,6 +106,21 @@ public:
   void ChangeSize_KeepData(unsigned newSize)
   {
     Reserve(newSize);
+    _size = newSize;
+  }
+
+  void ChangeSize_KeepData_plus_AdditionalReserve(const unsigned newSize)
+  {
+    if (newSize > _capacity)
+    {
+      if (newSize > k_VectorSizeMax)
+        throw 2021;
+      const unsigned rem = k_VectorSizeMax - newSize;
+      unsigned add = newSize >> 2;
+      if (add > rem)
+          add = rem;
+      ReAllocForNewCapacity(newSize + add);
+    }
     _size = newSize;
   }
 
@@ -201,12 +233,9 @@ public:
     const unsigned size = v.Size();
     if (size != 0)
     {
-      if (_size >= k_VectorSizeMax || size > k_VectorSizeMax - _size)
-        throw 2021;
-      const unsigned newSize = _size + size;
-      Reserve(newSize);
+      Reserve_for_AddSize(size);
       memcpy(_items + _size, v._items, (size_t)size * sizeof(T));
-      _size = newSize;
+      _size += size;
     }
     return *this;
   }
@@ -380,12 +409,12 @@ public:
     return right;
   }
 
-  static void SortRefDown(T* p, unsigned k, unsigned size, int (*compare)(const T*, const T*, void *), void *param)
+  static void SortRefDown(T* const p, size_t k, const size_t size, int (*compare)(const T*, const T*, void *), void *param)
   {
     const T temp = p[k];
     for (;;)
     {
-      unsigned s = (k << 1);
+      size_t s = (k << 1) + 1;
       if (s > size)
         break;
       if (s < size && compare(p + s + 1, p + s, param) > 0)
@@ -400,35 +429,35 @@ public:
 
   void Sort(int (*compare)(const T*, const T*, void *), void *param)
   {
-    unsigned size = _size;
+    size_t size = _size;
     if (size <= 1)
       return;
-    T* p = _items - 1;
+    T* p = _items;
     {
-      unsigned i = size >> 1;
+      size_t i = size-- >> 1;
       do
-        SortRefDown(p, i, size, compare, param);
-      while (--i);
+        SortRefDown(p, --i, size, compare, param);
+      while (i);
     }
     do
     {
       const T temp = p[size];
-      p[size--] = p[1];
-      p[1] = temp;
-      SortRefDown(p, 1, size, compare, param);
+      p[size] = p[0];
+      p[0] = temp;
+      SortRefDown(p, 0, --size, compare, param);
     }
-    while (size > 1);
+    while (size);
   }
 
-  static void SortRefDown2(T* p, unsigned k, unsigned size)
+  static void SortRefDown2(T* const p, size_t k, const size_t size)
   {
     const T temp = p[k];
     for (;;)
     {
-      unsigned s = (k << 1);
+      size_t s = (k << 1) + 1;
       if (s > size)
         break;
-      if (s < size && p[(size_t)s + 1].Compare(p[s]) > 0)
+      if (s < size && p[s + 1].Compare(p[s]) > 0)
         s++;
       if (temp.Compare(p[s]) >= 0)
         break;
@@ -440,24 +469,24 @@ public:
 
   void Sort2()
   {
-    unsigned size = _size;
+    size_t size = _size;
     if (size <= 1)
       return;
-    T* p = _items - 1;
+    T* p = _items;
     {
-      unsigned i = size >> 1;
+      size_t i = size-- >> 1;
       do
-        SortRefDown2(p, i, size);
-      while (--i);
+        SortRefDown2(p, --i, size);
+      while (i);
     }
     do
     {
       const T temp = p[size];
-      p[size--] = p[1];
-      p[1] = temp;
-      SortRefDown2(p, 1, size);
+      p[size] = p[0];
+      p[0] = temp;
+      SortRefDown2(p, 0, --size);
     }
-    while (size > 1);
+    while (size);
   }
 };
 
@@ -503,10 +532,7 @@ public:
     const unsigned addSize = v.Size();
     if (addSize != 0)
     {
-      const unsigned size = Size();
-      if (size >= k_VectorSizeMax || addSize > k_VectorSizeMax - size)
-        throw 2021;
-      _v.Reserve(size + addSize);
+      _v.Reserve_for_AddSize(addSize);
       for (unsigned i = 0; i < addSize; i++)
         AddInReserved(v[i]);
     }
@@ -523,6 +549,20 @@ public:
         T& Back()        { return *(T *)_v.Back(); }
   
   void MoveToFront(unsigned index) { _v.MoveToFront(index); }
+
+
+  void MoveOneItem(unsigned destIndex, unsigned srcIndex)
+  {
+    if (destIndex != srcIndex)
+    {
+      delete (T *)_v[destIndex];
+      // _v[destIndex] = NULL;
+      _v[destIndex] = _v[srcIndex];
+      _v[srcIndex] = NULL;
+      /* we leave NULL pointer in array item. It's expected that
+         the caller will delete all NULL items by calling Delete() function. */
+    }
+  }
 
   unsigned Add(const T& item)
   {

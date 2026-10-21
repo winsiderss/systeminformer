@@ -564,7 +564,8 @@ UInt32 BlockSort(UInt32 *Indices, const Byte *data, size_t blockSize)
         const BoolInt finishedGroup = ((Indices[i] & 0x80000000) == 0);
         if (Indices[i] & 0x40000000)
         {
-          groupSize += ((Indices[(size_t)i + 1] >> kNumBitsMax) << kNumExtra0Bits);
+          const UInt32 temp = ((Indices[(size_t)i + 1] >> kNumBitsMax) << kNumExtra0Bits);
+          groupSize += temp;
           Indices[(size_t)i + 1] &= kIndexMask;
         }
         Indices[i] &= kIndexMask;
@@ -616,7 +617,8 @@ UInt32 BlockSort(UInt32 *Indices, const Byte *data, size_t blockSize)
     size_t groupSize = (Indices[i] & ~0xC0000000) >> kNumBitsMax;
     if (Indices[i] & 0x40000000)
     {
-      groupSize += (Indices[(size_t)i + 1] >> kNumBitsMax) << kNumExtra0Bits;
+      const UInt32 temp = (Indices[(size_t)i + 1] >> kNumBitsMax) << kNumExtra0Bits;
+      groupSize += temp;
       Indices[(size_t)i + 1] &= kIndexMask;
     }
     Indices[i] &= kIndexMask;

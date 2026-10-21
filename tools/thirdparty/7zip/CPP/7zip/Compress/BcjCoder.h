@@ -25,7 +25,7 @@ Z7_CLASS_IMP_COM_1(
   UInt32 _state;
   z7_Func_BranchConvSt _convFunc;
 public:
-  CCoder2(z7_Func_BranchConvSt convFunc):
+  CCoder2(z7_Func_BranchConvSt convFunc Z7_lifetimebound):
       _pc(0),
       _state(Z7_BRANCH_CONV_ST_X86_STATE_INIT_VAL),
       _convFunc(convFunc)

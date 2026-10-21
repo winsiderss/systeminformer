@@ -635,9 +635,9 @@ BEGIN_SORT_FUNCTION(StartType)
     sortResult = uintcmp(serviceItem1->StartType, serviceItem2->StartType);
 
     if (sortResult == 0)
-        sortResult = ucharcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
+        sortResult = ucharcmp(!!serviceItem1->DelayedStart, !!serviceItem2->DelayedStart);
     if (sortResult == 0)
-        sortResult = ucharcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
+        sortResult = ucharcmp(!!serviceItem1->HasTriggers, !!serviceItem2->HasTriggers);
 }
 END_SORT_FUNCTION
 

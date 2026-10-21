@@ -537,6 +537,34 @@ SymCryptModuleInit(
 // the macro SYMCRYPT_MODULE_INIT should be used to call it with the correct arguments.
 //
 
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptModuleInitEx(
+    _In_ UINT32 api,
+    _In_ UINT32 minor);
+
+#define SYMCRYPT_MODULE_INIT_EX() SymCryptModuleInitEx( SYMCRYPT_CODE_VERSION_API, SYMCRYPT_CODE_VERSION_MINOR )
+//
+// Initialize the SymCrypt shared object module/dynamic-link library. This function verifies
+// that the module version supports the version requested by the application.
+//
+// Returns SYMCRYPT_NO_ERROR on success, or SYMCRYPT_INVALID_ARGUMENT if the requested version
+// is not supported by this module (i.e. the requested api version does not match the module's
+// api version, or the api versions match but the requested minor version is greater than the
+// module's minor version).
+//
+// This function is intended for callers who need to fail gracefully when the module does not
+// support the requested version. It is NOT intended for dynamic feature selection based on
+// version probing.
+//
+// IMPORTANT: If this function returns an error, the caller MUST NOT use any SymCrypt
+// functionality. Doing so could result in broken functionality up to and including
+// catastrophic loss of security.
+//
+// This function is only available in user-mode (symcrypt.dll) and Posix shared library modules.
+// It is not exported from the kernel-mode module (symcryptk).
+//
+
 //==========================================================================
 //   DATA MANIPULATION
 //==========================================================================
@@ -1955,6 +1983,18 @@ SymCryptShake128StateCopy(_In_ PCSYMCRYPT_SHAKE128_STATE pSrc, _Out_ PSYMCRYPT_S
 
 VOID
 SYMCRYPT_CALL
+SymCryptShake128StateExport(
+    _In_                                                      PCSYMCRYPT_SHAKE128_STATE pState,
+    _Out_writes_bytes_(SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE)   PBYTE                     pbBlob);
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptShake128StateImport(
+    _Out_                                                   PSYMCRYPT_SHAKE128_STATE pState,
+    _In_reads_bytes_(SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE)   PCBYTE                   pbBlob);
+
+VOID
+SYMCRYPT_CALL
 SymCryptShake128Selftest(void);
 
 extern const PCSYMCRYPT_HASH SymCryptShake128HashAlgorithm;
@@ -2009,6 +2049,18 @@ SymCryptShake256Result(
 VOID
 SYMCRYPT_CALL
 SymCryptShake256StateCopy(_In_ PCSYMCRYPT_SHAKE256_STATE pSrc, _Out_ PSYMCRYPT_SHAKE256_STATE pDst);
+
+VOID
+SYMCRYPT_CALL
+SymCryptShake256StateExport(
+    _In_                                                      PCSYMCRYPT_SHAKE256_STATE pState,
+    _Out_writes_bytes_(SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE)   PBYTE                     pbBlob);
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptShake256StateImport(
+    _Out_                                                   PSYMCRYPT_SHAKE256_STATE pState,
+    _In_reads_bytes_(SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE)   PCBYTE                   pbBlob);
 
 VOID
 SYMCRYPT_CALL
@@ -4255,6 +4307,9 @@ SymCryptMarvin32Selftest(void);
 
 #define SYMCRYPT_AES_BLOCK_SIZE  (16)
 
+#if SYMCRUST_EXPERIMENTAL_BUILD
+extern
+#endif
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
 SymCryptAesExpandKey(
@@ -5138,9 +5193,8 @@ SymCryptGcmEncrypt(
 //      - pExpandedKey points to the expanded key for GCM.
 //      - pbNonce: Pointer to the nonce for this encryption. For a single key, each nonce
 //          value may be used at most once to encrypt data. Re-using nonce values leads
-//          to catastrophic loss of security. Only 12-byte nonces are supported,
-//          per the SP800-38D section 5.2.1.1 recommendation.
-//      - cbNonce: number of bytes in the nonce, must be 12.
+//          to catastrophic loss of security.
+//      - cbNonce: number of bytes in the nonce.
 //      - pbAuthData: pointer to the associated authentication data. This data is not encrypted
 //          but it is included in the authentication. Use NULL if not used.
 //      - cbAuthData: # bytes of associated authentication data. (0 if not used)
@@ -7698,6 +7752,37 @@ SymCryptRsakeyGenerate(
 
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
+SymCryptRsakeyDerive(
+    _Inout_                         PSYMCRYPT_RSAKEY    pkRsakey,
+    _In_reads_bytes_( cbSeed )      PCBYTE              pbSeed,
+                                    SIZE_T              cbSeed,
+    _In_                            UINT32              flags );
+//
+// Derive an RSA key using the default public exponent, caller-provided seed material,
+// and the information from the parameters passed to SymCryptRsaKeyAllocate/SymCryptRsaKeyCreate.
+//
+// Parameters:
+// - pkRsakey: Key object to populate with the derived key. Must already be
+//   created via SymCryptRsaKeyAllocate/SymCryptRsaKeyCreate with the desired key parameters.
+// - pbSeed: Pointer to seed material buffer.
+// - cbSeed: must be in [SYMCRYPT_RNG_AES_MIN_INSTANTIATE_SIZE, SYMCRYPT_RNG_AES_MAX_SEED_SIZE].
+// - flags: Same flags as SymCryptRsakeyGenerate.
+//
+// Remarks:
+// - Seed entropy is the caller's responsibility. SymCrypt does not add entropy and cannot assess 
+//   the quality of the seed. The caller must ensure the seed has sufficient entropy for the security 
+//   level of the RSA key being generated.
+//
+// - Determinism scope: for a fixed seed and key parameters, a given build of
+//   SymCrypt always produces the same key. This guarantee is frozen only within
+//   a SymCrypt version, and only for a fixed target architecture and build
+//   configuration. The byte stream consumed from the DRBG depends on internal
+//   representation choices that may differ across architectures (e.g. 32-bit vs
+//   64-bit) and may change across SymCrypt versions.
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
 SymCryptRsakeySetValue(
     _In_reads_bytes_( cbModulus )   PCBYTE                  pbModulus,
                                     SIZE_T                  cbModulus,
@@ -8436,6 +8521,46 @@ SymCryptEckeySetRandom(
 //      SYMCRYPT_FLAG_ECKEY_ECDH
 
 // Described in more detail in the "Flags for asymmetric key generation and import" section above
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEckeyDerive(
+    _Inout_                     PSYMCRYPT_ECKEY         pEckey,
+    _In_reads_bytes_( cbSeed )  PCBYTE                  pbSeed,
+                                SIZE_T                  cbSeed,
+    _In_                        UINT32                  flags );
+//
+// Derive a deterministic ECC public/private key pair from the caller-provided
+// seed material, using the curve the key object was created with.
+//
+// Only curves whose default private-key format is canonical (all NIST prime curves)
+// are supported. Other curves (e.g. Curve25519) return SYMCRYPT_NOT_IMPLEMENTED.
+//
+// Parameters:
+// - pEckey: Key object to populate with the derived key. Must already be
+//   created via SymCryptEckeyAllocate or SymCryptEckeyCreate with the desired key parameters.
+// - pbSeed: Pointer to seed material buffer.
+// - cbSeed: must be in [SYMCRYPT_RNG_AES_MIN_INSTANTIATE_SIZE, SYMCRYPT_RNG_AES_MAX_SEED_SIZE].
+//
+// Returns:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INVALID_ARGUMENT if pbSeed is NULL, cbSeed is 0, or no valid scalar is
+//   found within the candidate limit. The latter is statistically negligible.
+// - SYMCRYPT_NOT_IMPLEMENTED if the curve's private-key format is not canonical.
+//
+// Allowed flags (as for SymCryptEckeySetRandom):
+//
+// - SYMCRYPT_FLAG_KEY_NO_FIPS
+//   Opt-out of performing validation required for FIPS
+//
+// - At least one of the flags indicating what the Eckey is to be used for must be specified:
+//      SYMCRYPT_FLAG_ECKEY_ECDSA
+//      SYMCRYPT_FLAG_ECKEY_ECDH
+//
+// Remarks:
+// - Seed entropy is the caller's responsibility. SymCrypt does not add entropy and
+//   cannot assess the quality of the seed.
 //
 
 SYMCRYPT_ERROR
@@ -10007,6 +10132,8 @@ SymCryptMlKemkeyFree(
 // d and z are each 32 bytes
 #define SYMCRYPT_MLKEM_PRIVATE_SEED_SIZE    (2*32)
 
+#define SYMCRYPT_MLKEM_AGREED_SECRET_SIZE   (32)
+
 #define SYMCRYPT_MLKEM_ENCAPSULATION_KEY_SIZE_MLKEM512   (800)
 #define SYMCRYPT_MLKEM_ENCAPSULATION_KEY_SIZE_MLKEM768   (1184)
 #define SYMCRYPT_MLKEM_ENCAPSULATION_KEY_SIZE_MLKEM1024  (1568)
@@ -10185,13 +10312,13 @@ typedef enum _SYMCRYPT_COMPOSITE_MLKEMKEY_FORMAT {
     SYMCRYPT_COMPOSITE_MLKEMKEY_FORMAT_IRTF_PRIVATE_SEED = 1,
         // 32-byte seed for deriving Composite ML-KEM key, per irtf-cfrg-hybrid-kems CG framework
     SYMCRYPT_COMPOSITE_MLKEMKEY_FORMAT_LAMPS_PRIVATE_KEY = 2,
-        // Standard byte encoding of a Composite ML-KEM private key, per LAMPS composite ML-KEM draft 12.
+        // Standard byte encoding of a Composite ML-KEM private key, per draft-ietf-lamps-pq-composite-kem-12.
         // Concatenation of ML-KEM private seed and private key of the traditional component:
         //   mlkemSeed || tradSK
         // Size in bytes are MLKEM768_P256: 115, MLKEM768_X25519: 96, MLKEM1024_P384: 128
     SYMCRYPT_COMPOSITE_MLKEMKEY_FORMAT_PUBLIC_KEY        = 3,
         // Standard byte encoding of a Composite ML-KEM public key, per irtf-cfrg-hybrid-kems CG framework
-        // and LAMPS composite ML-KEM draft 12.
+        // and draft-ietf-lamps-pq-composite-kem-12.
         // Concatenation of ML-KEM encapsulation key and public key of the traditional component:
         //   mlkemPK || tradPK
         // Size in bytes are MLKEM768_P256: 1249, MLKEM768_X25519: 1216, MLKEM1024_P384: 1665
@@ -10380,12 +10507,8 @@ SymCryptCompositeMlKemDecapsulate(
 // - (pbAgreedSecret, cbAgreedSecret): a buffer into which the generated secret is written.
 //   Currently cbAgreedSecret must be 32 for all parameterizations of Composite ML-KEM.
 //
-// Note: Given an invalid, but correctly-sized, ciphertext, the Composite ML-KEM Decapsulation operation
-// will "implicitly reject" the ciphertext, by returning success in equal time to a valid
-// decapsulation operation, with pseudo-random agreed secret output. This forces higher
-// level protocols to fail later when symmetric keys of peers do not match.
-// So decapsulate will only ever return an error if there are programming errors (e.g. incorrect size),
-// or something fundamentally goes wrong with the environment (e.g. internal memory allocation fails).
+// Note: While ML-KEM decapsulation by itself is implicitly rejecting, Composite ML-KEM decapsulation
+// forwards any errors that can arise from its subcomponent calls (as per draft-ietf-lamps-pq-composite-kem).
 //
 
 ////////////////////////////////////////////////////////////
@@ -10432,12 +10555,26 @@ typedef enum _SYMCRYPT_PQDSA_HASH_ID {
     SYMCRYPT_PQDSA_HASH_ID_SHA3_512            = 7,
     SYMCRYPT_PQDSA_HASH_ID_SHAKE128            = 8,
     SYMCRYPT_PQDSA_HASH_ID_SHAKE256            = 9,
+    SYMCRYPT_PQDSA_HASH_ID_SHA224              = 10,
+    SYMCRYPT_PQDSA_HASH_ID_SHA512_224          = 11,
+    SYMCRYPT_PQDSA_HASH_ID_SHA3_224            = 12,
 } SYMCRYPT_PQDSA_HASH_ID;
 // Supported hash algorithms for use with Hash-ML-DSA
 
 //========================================================================
 // MLDSAKEY objects' API
 //
+
+#define SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE            (32)
+
+#define SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA44     (2560)
+#define SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA44      (1312)
+
+#define SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA65     (4032)
+#define SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA65      (1952)
+
+#define SYMCRYPT_MLDSA_PRIVATE_KEY_SIZE_MLDSA87     (4896)
+#define SYMCRYPT_MLDSA_PUBLIC_KEY_SIZE_MLDSA87      (2592)
 
 SYMCRYPT_ERROR
 SYMCRYPT_CALL
@@ -10661,17 +10798,16 @@ SymCryptHashMlDsaSign(
 // - SYMCRYPT_MEMORY_ALLOCATION_FAILURE if memory allocation fails.
 //
 // Remarks:
-//   The hash algorithm provided must meet the minimum required collision strength defined for the
-//   chosen ML-DSA parameter set. This is the lambda parameter in FIPS 204. This means that the
-//   following hash algorithms are supported:
+// Any hash algorithm defined in SYMCRYPT_PQDSA_HASH_ID may be used.
+//   For traditional hash algorithms (non-XOFs), cbHash must match the output length of the hash
+//   algorithm. For XOFs (SHAKE128, SHAKE256), cbHash must be at least the default output size
+//   of the XOF (32 bytes for SHAKE128, 64 bytes for SHAKE256).
+//   If this requirement is not met, the function returns SYMCRYPT_INVALID_ARGUMENT.
 //
-//   ML-DSA-44 (lambda = 128): SHA-256, SHA-384, SHA-512, SHA-512/256, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256
-//   ML-DSA-65 (lambda = 192): SHA-384, SHA-512, SHA3-384, SHA3-512, SHAKE256
-//   ML-DSA-87 (lambda = 256): SHA-512, SHA3-512, SHAKE256
-//
-//   Additionally, cbHash must match the output length of the hash algorithm.
-//   For XOFs, the any output length >= the minimum collision strength is acceptable. If this
-//   requirement is not met, the function returns SYMCRYPT_INVALID_ARGUMENT.
+//   Note: While FIPS 204 recommends that the hash algorithm meet the minimum required collision
+//   strength (lambda) for the chosen ML-DSA parameter set, this implementation does not enforce
+//   that restriction. Callers are responsible for choosing an appropriate hash algorithm for
+//   their security requirements.
 //
 //   As with SymCryptMlDsaSign, cbSignature must be equal to the cbKeyFormat returned from
 //   SymCryptMlDsaSizeofSignatureFromParams( params, &cbSignature ), though typically this
@@ -10758,6 +10894,273 @@ SymCryptMlDsaSelftest( void );
 //
 // FIPS selftest for ML-DSA
 //
+
+////////////////////////////////////////////////////////////////////////////////
+// Composite Module-Lattice-Based Digital Signature Algorithm (Composite-ML-DSA)
+////////////////////////////////////////////////////////////////////////////////
+
+// Maximum length of the context string used in signing and verification
+#define SYMCRYPT_COMPOSITE_MLDSA_CONTEXT_MAX_LENGTH             (255)
+
+// Indicate that the input was already hashed with the appropriate hash algorithm
+// that corresponds to the Composite-ML-DSA key's parameter set.
+#define SYMCRYPT_FLAG_COMPOSITE_MLDSA_PREHASHED                 (0x1)
+
+// The below formats apply **only to external formats**: When somebody is importing or exporting
+// a key. The internal format of the keys is not visible to the caller.
+typedef enum _SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT {
+    SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT_NULL                     = 0,
+    SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT_PRIVATE_KEY              = 1,
+        // Standard byte encoding of a Composite-ML-DSA private key, per draft-ietf-lamps-pq-composite-sigs.
+    SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT_PUBLIC_KEY               = 2,
+        // Standard byte encoding of a Composite-ML-DSA public key, per draft-ietf-lamps-pq-composite-sigs.
+} SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT;
+
+typedef enum _SYMCRYPT_COMPOSITE_MLDSA_PARAMS {
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS_NULL                        = 0,
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS_MLDSA44_ECDSA_P256_SHA256   = 1,
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS_MLDSA65_ECDSA_P256_SHA512   = 2,
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS_MLDSA65_ECDSA_P384_SHA512   = 3,
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS_MLDSA87_ECDSA_P384_SHA512   = 4,
+} SYMCRYPT_COMPOSITE_MLDSA_PARAMS;
+// Currently supported Composite-ML-DSA parameter sets are represented externally by this enum
+
+//
+// COMPOSITE_MLDSAKEY objects' API
+//
+
+#define SYMCRYPT_COMPOSITE_MLDSA_PRIVATE_KEY_SIZE_MLDSA44_ECDSA_P256_SHA256     (83)
+#define SYMCRYPT_COMPOSITE_MLDSA_PUBLIC_KEY_SIZE_MLDSA44_ECDSA_P256_SHA256      (1377)
+
+#define SYMCRYPT_COMPOSITE_MLDSA_PRIVATE_KEY_SIZE_MLDSA65_ECDSA_P256_SHA512     (83)
+#define SYMCRYPT_COMPOSITE_MLDSA_PUBLIC_KEY_SIZE_MLDSA65_ECDSA_P256_SHA512      (2017)
+
+#define SYMCRYPT_COMPOSITE_MLDSA_PRIVATE_KEY_SIZE_MLDSA65_ECDSA_P384_SHA512     (96)
+#define SYMCRYPT_COMPOSITE_MLDSA_PUBLIC_KEY_SIZE_MLDSA65_ECDSA_P384_SHA512      (2049)
+
+#define SYMCRYPT_COMPOSITE_MLDSA_PRIVATE_KEY_SIZE_MLDSA87_ECDSA_P384_SHA512     (96)
+#define SYMCRYPT_COMPOSITE_MLDSA_PUBLIC_KEY_SIZE_MLDSA87_ECDSA_P384_SHA512      (2689)
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsaSizeofKeyFormatFromParams(
+            SYMCRYPT_COMPOSITE_MLDSA_PARAMS     params,
+            SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT  compositeMlDsakeyFormat,
+    _Out_   SIZE_T*                             pcbKeyFormat );
+//
+// Gives the size in bytes of the blob of the given format for the given Composite-ML-DSA
+// parameters and the specified format via pcbKeyFormat output.
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INCOMPATIBLE_FORMAT if compositeMlDsakeyFormat is an unsupported value.
+// - SYMCRYPT_INVALID_ARGUMENT if other parameters are invalid.
+//
+
+#define SYMCRYPT_COMPOSITE_MLDSA_SIGNATURE_SIZE_MLDSA44_ECDSA_P256_SHA256       (2492)
+#define SYMCRYPT_COMPOSITE_MLDSA_SIGNATURE_SIZE_MLDSA65_ECDSA_P256_SHA512       (3381)
+#define SYMCRYPT_COMPOSITE_MLDSA_SIGNATURE_SIZE_MLDSA65_ECDSA_P384_SHA512       (3413)
+#define SYMCRYPT_COMPOSITE_MLDSA_SIGNATURE_SIZE_MLDSA87_ECDSA_P384_SHA512       (4731)
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsaSizeofSignatureFromParams(
+            SYMCRYPT_COMPOSITE_MLDSA_PARAMS params,
+    _Out_   SIZE_T*                         pcbSignature );
+//
+// Gives the maximum size in bytes of a signature for the given Composite-ML-DSA parameters.
+// Note that an actual signature's size may be lower than this value due to variations in Ecdsa-Sig-Value encoding.
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INVALID_ARGUMENT if parameters are invalid.
+//
+
+_Success_( return != NULL )
+PSYMCRYPT_COMPOSITE_MLDSAKEY
+SYMCRYPT_CALL
+SymCryptCompositeMlDsakeyAllocate(
+    SYMCRYPT_COMPOSITE_MLDSA_PARAMS params );
+//
+// Allocate a new Composite-ML-DSA key object sized according to the parameters.
+//
+// This call does not generate key material. It should be followed by a call to
+// SymCryptCompositeMlDsakeyGenerate or SymCryptCompositeMlDsakeySetValue.
+//
+// May return NULL if memory allocation fails or if params is an invalid value.
+//
+
+VOID
+SYMCRYPT_CALL
+SymCryptCompositeMlDsakeyFree(
+    _Post_invalid_  PSYMCRYPT_COMPOSITE_MLDSAKEY    pkCompositeMlDsakey );
+//
+// Free a Composite-ML-DSA key object that was allocated with SymCryptCompositeMlDsakeyAllocate.
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsakeyGenerate(
+    _Inout_ PSYMCRYPT_COMPOSITE_MLDSAKEY    pkCompositeMlDsakey,
+            UINT32                          flags );
+//
+// Generate a new random Composite-ML-DSA key using the information from the
+// parameters passed to SymCryptCompositeMlDsakeyAllocate.
+//
+// Parameters:
+// - pkCompositeMlDsakey: a pointer to a Composite-ML-DSA key object allocated with SymCryptCompositeMlDsakeyAllocate
+//
+// Allowed flags:
+//
+// - SYMCRYPT_FLAG_KEY_NO_FIPS
+//   Opt-out of performing per-component validation required for FIPS
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_MEMORY_ALLOCATION_FAILURE if memory allocation fails.
+// - SYMCRYPT_INVALID_ARGUMENT for invalid flags.
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsakeySetValue(
+    _In_reads_bytes_( cbSrc )   PCBYTE                              pbSrc,
+                                SIZE_T                              cbSrc,
+                                SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT  compositeMlDsakeyFormat,
+                                UINT32                              flags,
+    _Inout_                     PSYMCRYPT_COMPOSITE_MLDSAKEY        pkCompositeMlDsakey );
+//
+// Import key material to a Composite-ML-DSA key object from a byte blob.
+//
+// Parameters:
+// - (pbSrc, cbSrc): a buffer containing a representation of a Composite-ML-DSA key, in the format specified
+//   by the format parameter.
+// - compositeMlDsakeyFormat: format of the input
+// - pkCompositeMlDsakey: a pointer to a Composite-ML-DSA key object allocated with SymCryptCompositeMlDsakeyAllocate.
+//
+// Allowed flags:
+//
+// - SYMCRYPT_FLAG_KEY_NO_FIPS
+//   Opt-out of performing per-component validation required for FIPS
+//
+// Remarks:
+// - cbSrc must be equal to the cbKeyFormat returned from
+//   SymCryptCompositeMlDsaSizeofKeyFormatFromParams(params, format, &cbKeyFormat)
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INCOMPATIBLE_FORMAT if the key format is invalid.
+// - SYMCRYPT_INVALID_ARGUMENT if other arguments are invalid.
+// - SYMCRYPT_WRONG_KEY_SIZE if cbSrc does not match the expected size for the key format.
+// - SYMCRYPT_INVALID_BLOB if the encoded key is invalid.
+// - SYMCRYPT_MEMORY_ALLOCATION_FAILURE if memory allocation fails.
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsakeyGetValue(
+    _In_                        PCSYMCRYPT_COMPOSITE_MLDSAKEY       pkCompositeMlDsakey,
+    _Out_writes_bytes_( cbDst ) PBYTE                               pbDst,
+                                SIZE_T                              cbDst,
+                                SYMCRYPT_COMPOSITE_MLDSAKEY_FORMAT  compositeMlDsakeyFormat,
+                                UINT32                              flags );
+//
+// Export key material from a Composite-ML-DSA key object to a byte blob.
+//
+// Parameters:
+// - pkCompositeMlDsakey: pointer to a valid Composite-ML-DSA key object.
+// - (pbDst, cbDst): buffer for the exported Composite-ML-DSA key, in the format specified by the format
+//   parameter.
+// - compositeMlDsakeyFormat: format of the output
+// - flags: no flags are currently defined; must be set to 0
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INCOMPATIBLE_FORMAT if the key object does not have the information required to export
+//   the format specified by compositeMlDsakeyFormat.
+// - SYMCRYPT_INVALID_ARGUMENT if the output buffer size or other arguments are incorrect.
+//
+// Remarks:
+// - cbDst must be equal to the cbKeyFormat returned from
+//   SymCryptCompositeMlDsaSizeofKeyFormatFromParams(params, format, &cbKeyFormat)
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsaSign(
+    _In_                                                            PCSYMCRYPT_COMPOSITE_MLDSAKEY   pkCompositeMlDsakey,
+    _In_reads_bytes_( cbMessage )                                   PCBYTE                          pbMessage,
+                                                                    SIZE_T                          cbMessage,
+    _In_reads_bytes_opt_( cbContext )                               PCBYTE                          pbContext,
+    _In_range_( 0, SYMCRYPT_COMPOSITE_MLDSA_CONTEXT_MAX_LENGTH )    SIZE_T                          cbContext,
+                                                                    UINT32                          flags,
+    _Out_writes_to_( cbSignature, *pcbResult )                      PBYTE                           pbSignature,
+                                                                    SIZE_T                          cbSignature,
+    _Out_                                                           SIZE_T*                         pcbResult );
+//
+// Sign a message with Composite-ML-DSA. The message can be of arbitrary length, unless it is pre-hashed (see flag below)
+//
+// Parameters:
+// - pkCompositeMlDsakey: a Composite-ML-DSA key object. Must contain the private key material.
+// - (pbMessage, cbMessage): the message to sign. May be of arbitrary length, unless it is pre-hashed (see flag below)
+// - (pbContext, cbContext): an optional context string which will be included in the message
+//   representative to be signed. Length must be <= SYMCRYPT_COMPOSITE_MLDSA_CONTEXT_MAX_LENGTH.
+// - (pbSignature, cbSignature): the buffer into which the signature is written.
+// - pcbResult: the number of bytes written to the pbSignature buffer,
+//   which may be lower than cbSignature due to variations in Ecdsa-Sig-Value encoding.
+//
+// Allowed flags:
+//
+// - SYMCRYPT_FLAG_COMPOSITE_MLDSA_PREHASHED
+//   Indicate that pbMessage was pre-hashed with the algorithm corresponding to the Composite-ML-DSA key's parameters.
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR on success.
+// - SYMCRYPT_INVALID_ARGUMENT if the key object does not contain a private key, or if other parameters are invalid.
+// - SYMCRYPT_MEMORY_ALLOCATION_FAILURE if memory allocation fails.
+//
+// Remarks:
+//   cbSignature must be equal to the value returned from
+//   SymCryptCompositeMlDsaSizeofSignatureFromParams( params, &cbSignature )
+//
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptCompositeMlDsaVerify(
+    _In_                                                            PCSYMCRYPT_COMPOSITE_MLDSAKEY   pkCompositeMlDsakey,
+    _In_reads_bytes_( cbMessage )                                   PCBYTE                          pbMessage,
+                                                                    SIZE_T                          cbMessage,
+    _In_reads_bytes_opt_( cbContext )                               PCBYTE                          pbContext,
+    _In_range_( 0, SYMCRYPT_COMPOSITE_MLDSA_CONTEXT_MAX_LENGTH )    SIZE_T                          cbContext,
+    _In_reads_bytes_( cbSignature )                                 PCBYTE                          pbSignature,
+                                                                    SIZE_T                          cbSignature,
+                                                                    UINT32                          flags );
+//
+// Verify a Composite-ML-DSA signature. The message can be of arbitrary length, unless it is pre-hashed (see flag below)
+//
+// Parameters:
+// - pkCompositeMlDsakey: the Composite-ML-DSA key object used to verify the signature.
+// - (pbMessage, cbMessage): the message that the signature was generated from.
+// - (pbContext, cbContext): an optional context string which will be included in the message
+//   representative to be signed. Length must be <= SYMCRYPT_COMPOSITE_MLDSA_CONTEXT_MAX_LENGTH.
+// - (pbSignature, cbSignature): the signature to verify.
+//
+// Allowed flags:
+//
+// - SYMCRYPT_FLAG_COMPOSITE_MLDSA_PREHASHED
+//   Indicate that pbMessage was pre-hashed with the algorithm corresponding to the Composite-ML-DSA key's parameters.
+//
+// Return values:
+// - SYMCRYPT_NO_ERROR if the signature was verified successfully.
+// - SYMCRYPT_SIGNATURE_VERIFICATION_FAILURE if the signature is invalid.
+// - SYMCRYPT_INVALID_ARGUMENT if the parameters are invalid.
+// - SYMCRYPT_MEMORY_ALLOCATION_FAILURE if memory allocation fails.
+//
+// Remarks:
+//   cbSignature should be set to the pcbResult value as returned by SymCryptCompositeMlDsaSign for this pbSignature,
+//   but larger values up to the maximum returned by SymCryptCompositeMlDsaSizeofSignatureFromParams are also accepted.
+//
+
 
 _Analysis_noreturn_
 VOID

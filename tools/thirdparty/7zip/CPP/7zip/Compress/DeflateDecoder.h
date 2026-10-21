@@ -101,7 +101,7 @@ private:
     CCoder *_coder;
   public:
     bool NeedFlush;
-    CCoderReleaser(CCoder *coder): _coder(coder), NeedFlush(true) {}
+    CCoderReleaser(CCoder *coder Z7_lifetimebound): _coder(coder), NeedFlush(true) {}
     ~CCoderReleaser()
     {
       if (NeedFlush)

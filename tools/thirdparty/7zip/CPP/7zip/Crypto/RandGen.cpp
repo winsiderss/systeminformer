@@ -99,6 +99,7 @@ void CRandomGenerator::Init()
     const HMODULE hModule = ::LoadLibrary(TEXT("advapi32.dll"));
     if (hModule)
     {
+      Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
       // SystemFunction036() is real name of RtlGenRandom() function
       const
       Func_RtlGenRandom

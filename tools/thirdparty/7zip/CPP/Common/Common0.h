@@ -94,6 +94,17 @@ predefined macros defined in "Common.h".
 #endif
 */
 
+#if defined(__has_cpp_attribute)
+  #if __has_cpp_attribute(msvc::lifetimebound)
+    #define Z7_lifetimebound [[msvc::lifetimebound]]
+  #elif __has_cpp_attribute(clang::lifetimebound)
+    #define Z7_lifetimebound [[clang::lifetimebound]]
+  #else
+    #define Z7_lifetimebound
+  #endif
+#else
+  #define Z7_lifetimebound
+#endif
 
 #if defined(__clang__)
 
@@ -162,7 +173,7 @@ if compiled with new GCC libstdc++, GCC libstdc++ can use:
    So we can use Z7_ARRAY_NEW macro instead of new[] operator. */
 
 #if defined(_MSC_VER) && (_MSC_VER == 1200) && !defined(_WIN64)
-  #define Z7_ARRAY_NEW(p, T, size)  p = new T[((size) > 0xFFFFFFFFu / sizeof(T)) ? 0xFFFFFFFFu / sizeof(T) : (size)];
+  #define Z7_ARRAY_NEW(p, T, size)  p = new T[((size) > (0xFFFFFFFFu - 0x7fu) / sizeof(T)) ? (0xFFFFFFFFu - 0x7fu) / sizeof(T) : (size)];
 #else
   #define Z7_ARRAY_NEW(p, T, size)  p = new T[size];
 #endif

@@ -39,7 +39,7 @@ class CGlobalLock
   LPVOID _ptr;
 public:
   LPVOID GetPointer() const { return _ptr; }
-  CGlobalLock(HGLOBAL hGlobal): _global(hGlobal)
+  CGlobalLock(HGLOBAL hGlobal Z7_lifetimebound): _global(hGlobal)
   {
     _ptr = GlobalLock(hGlobal);
   }

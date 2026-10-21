@@ -270,13 +270,20 @@ NTSTATUS PhStartProviderThread(
     // Create the synchronization timer.
     //
 
+    ProviderThread->HighResolutionTimer = FALSE;
+
     if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
     {
-        status = PhCreateWaitableTimer(
+        status = PhCreateHighResolutionTimer(
             &ProviderThread->TimerHandle,
             TIMER_ALL_ACCESS,
             SynchronizationTimer
             );
+
+        if (NT_SUCCESS(status))
+        {
+            ProviderThread->HighResolutionTimer = TRUE;
+        }
     }
     else
     {
@@ -418,15 +425,13 @@ NTSTATUS PhSetIntervalProviderThread(
     interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
     period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
-    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
+    // The set API must match the object type of the timer that was created.
+    if (ProviderThread->HighResolutionTimer)
     {
-        return PhSetWaitableTimer(
+        return PhSetHighResolutionTimer(
             ProviderThread->TimerHandle,
             &interval,
-            &period,
-            NULL,
-            NULL,
-            FALSE
+            &period
             );
     }
 
@@ -684,6 +689,7 @@ VOID PhSetEnabledProvider(
  *
  * \param ProviderThread A pointer to the provider thread object.
  * \param UseHighResolutionTimer TRUE to use a high-resolution timer, otherwise FALSE.
+ * \remarks Takes effect the next time the provider thread is started.
  */
 VOID PhSetHighResolutionProvider(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,

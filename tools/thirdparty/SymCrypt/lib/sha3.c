@@ -588,6 +588,20 @@ SymCryptKeccakStateImport(
                 pState->paddingValue = blob.paddingValue;
             }
             break;
+        case SymCryptBlobTypeShake128State:
+            pState->inputBlockSize = SYMCRYPT_SHAKE128_INPUT_BLOCK_SIZE;
+            if (blob.paddingValue == SYMCRYPT_SHAKE_PADDING_VALUE)
+            {
+                pState->paddingValue = blob.paddingValue;
+            }
+            break;
+        case SymCryptBlobTypeShake256State:
+            pState->inputBlockSize = SYMCRYPT_SHAKE256_INPUT_BLOCK_SIZE;
+            if (blob.paddingValue == SYMCRYPT_SHAKE_PADDING_VALUE)
+            {
+                pState->paddingValue = blob.paddingValue;
+            }
+            break;
         default:
             scError = SYMCRYPT_INVALID_BLOB;
             goto cleanup;
