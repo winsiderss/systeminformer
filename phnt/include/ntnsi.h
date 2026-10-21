@@ -176,13 +176,13 @@ typedef struct _NPI_MODULEID
     CTL_CODE(FILE_DEVICE_NETWORK, 0x10, METHOD_BUFFERED, FILE_ANY_ACCESS) // 0x120040; in: HANDLE; out: none
 
 #define IOCTL_NSI_ENUMERATE_OBJECTS_ALL_PERSISTENT_PARAMETERS_WITH_MASK \
-    CTL_CODE(FILE_DEVICE_NETWORK, 0x11, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x120047; in: PHP_NSI_PERSISTENT_ENUMERATE_REQUEST; out: PHP_NSI_PERSISTENT_ENUMERATE_REQUEST
+    CTL_CODE(FILE_DEVICE_NETWORK, 0x11, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x120047; in: NSI_PERSISTENT_ENUMERATE_REQUEST; out: NSI_PERSISTENT_ENUMERATE_REQUEST
 
 #define IOCTL_NSI_GET_ALL_PERSISTENT_PARAMETERS_WITH_MASK \
-    CTL_CODE(FILE_DEVICE_NETWORK, 0x12, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004B; in: PHP_NSI_PERSISTENT_GET_REQUEST; out: PHP_NSI_PERSISTENT_GET_REQUEST
+    CTL_CODE(FILE_DEVICE_NETWORK, 0x12, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004B; in: NSI_PERSISTENT_GET_REQUEST; out: NSI_PERSISTENT_GET_REQUEST
 
 #define IOCTL_NSI_SET_ALL_PERSISTENT_PARAMETERS_WITH_MASK \
-    CTL_CODE(FILE_DEVICE_NETWORK, 0x13, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004F; in: PHP_NSI_PERSISTENT_SET_REQUEST; out: PHP_NSI_PERSISTENT_SET_REQUEST
+    CTL_CODE(FILE_DEVICE_NETWORK, 0x13, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004F; in: NSI_PERSISTENT_SET_REQUEST; out: NSI_PERSISTENT_SET_REQUEST
 
 #define NSI_ESTATS_SND_CONG_RW_VERSION 0
 #define TCP_ESTATS_DATA_ROD_VERSION 0
@@ -467,7 +467,8 @@ typedef enum _NSI_NDIS_OBJECT_ID
     NsiNdisObjectInterfaceRaw = 12,
     NsiNdisObjectIfStack = 14,
     NsiNdisObjectPersistentIsolation = 15,
-    NsiNdisObjectJobCompartment = 16
+    NsiNdisObjectJobCompartment = 16,
+    NsiNdisObjectTimestampConfigChange = 17
 } NSI_NDIS_OBJECT_ID;
 
 /**
@@ -511,6 +512,7 @@ typedef enum _NSI_TCP_APPLIED_SETTING
     NsiTcpAppliedSettingCompat = 2,
     NsiTcpAppliedSettingInternetCustom = 3,
     NsiTcpAppliedSettingDatacenterCustom = 4,
+    NsiTcpAppliedSettingUnspecified = 6, // IP Helper renders this value as an empty string.
 } NSI_TCP_APPLIED_SETTING;
 
 /**
@@ -544,7 +546,7 @@ typedef enum _MIB_TCP_ESTATS_TYPE
 
 /**
  * The NSI_TCP_OBJECT_ID values are the NSI object IDs of the TCP module (NPI_MS_TCP_MODULEID): global statistics and
- * settings, connections, and port reservations and exclusions.
+ * settings, connections, bound endpoints, and port reservations and exclusions.
  */
 typedef enum _NSI_TCP_OBJECT_ID
 {
@@ -554,7 +556,8 @@ typedef enum _NSI_TCP_OBJECT_ID
     NsiTcpObjectPortReservation = 20,
     NsiTcpObjectPortProperty = 25,
     NsiTcpObjectPortExclusionGranting = 29,
-    NsiTcpObjectPortExclusion = 34
+    NsiTcpObjectPortExclusion = 34,
+    NsiTcpObjectBoundEndpoint = 35         // Bound TCP endpoints (key/status/owner row layout matches connections)
 } NSI_TCP_OBJECT_ID;
 
 /**
@@ -633,6 +636,42 @@ typedef struct _NSI_SET_TCP_ENTRY
 } NSI_SET_TCP_ENTRY, *PNSI_SET_TCP_ENTRY;
 
 /**
+ * The NSI_IP_INTERFACE_RW structure is the read/write row of an IP interface (NPI_MS_IPV4_MODULEID or
+ * NPI_MS_IPV6_MODULEID, NsiIpObjectIpInterface; key: NET_LUID). The fields used by GetIpInterfaceEntry and
+ * GetIpInterfaceTable map to MIB_IPINTERFACE_ROW.
+ */
+typedef struct _NSI_IP_INTERFACE_RW
+{
+    UCHAR AdvertisingEnabled;
+    UCHAR ForwardingEnabled;
+    UCHAR Reserved2;
+    UCHAR WeakHostSend;
+    UCHAR WeakHostReceive;
+    UCHAR UseNeighborUnreachabilityDetection;
+    UCHAR UseAutomaticMetric;
+    UCHAR Reserved7[3];
+    UCHAR ManagedAddressConfigurationSupported;
+    UCHAR OtherStatefulConfigurationSupported;
+    UCHAR AdvertiseDefaultRoute;
+    UCHAR ReservedD[7];
+    ULONG RouterDiscoveryBehavior;
+    ULONG Reserved18;
+    ULONG Metric;
+    ULONG BaseReachableTime;
+    ULONG RetransmitTime;
+    ULONG PathMtuDiscoveryTimeout;
+    ULONG DadTransmits;
+    ULONG LinkLocalAddressBehavior;
+    ULONG LinkLocalAddressTimeout;
+    ULONG ZoneIndices[ScopeLevelCount];
+    ULONG NlMtu;
+    ULONG SitePrefixLength;
+    UCHAR Reserved80[0x18];
+    UCHAR DisableDefaultRoutes;
+    UCHAR Reserved99[0x57];
+} NSI_IP_INTERFACE_RW, *PNSI_IP_INTERFACE_RW;
+
+/**
  * The NSI_IP_INTERFACE_ROD structure is the read-only dynamic row of an IP interface (NPI_MS_IPV4_MODULEID or
  * NPI_MS_IPV6_MODULEID, NsiIpObjectIpInterface; key: NET_LUID). IP Helper reads it for GetIpInterfaceEntry and
  * GetIpInterfaceTable (MIB_IPINTERFACE_ROW) and for GetIpNetworkConnectionBandwidthEstimates.
@@ -655,6 +694,16 @@ typedef struct _NSI_IP_INTERFACE_ROD
     NL_BANDWIDTH_INFORMATION InboundBandwidthInformation;  // MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES.InboundBandwidthInformation.
     NL_BANDWIDTH_INFORMATION OutboundBandwidthInformation; // MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES.OutboundBandwidthInformation.
 } NSI_IP_INTERFACE_ROD, *PNSI_IP_INTERFACE_ROD;
+
+/**
+ * The NSI_IP_INTERFACE_ROS structure is the read-only static row of an IP interface.
+ */
+typedef struct _NSI_IP_INTERFACE_ROS
+{
+    UCHAR SupportsNeighborDiscovery;
+    UCHAR SupportsRouterDiscovery;
+    UCHAR Reserved[0x1e];
+} NSI_IP_INTERFACE_ROS, *PNSI_IP_INTERFACE_ROS;
 
 /**
  * The NETIO_TCP_STATS_DYNAMIC structure is the read-only dynamic parameter block of the TCP global object
@@ -751,8 +800,7 @@ typedef struct _NSI_TCP_GLOBAL_RW
 /**
  * The NETIO_UDP_STATS_DYNAMIC structure is the read-only dynamic parameter block of the UDP global object
  * (NPI_MS_UDP_MODULEID, NsiUdpObjectGlobal; key: ADDRESS_FAMILY). Tcpip sums its per-processor UDP statistics into it.
- * \remarks  SwSegments and HwSegments
- *          use the names of tcpip's "UDP: Endpoint segment message" ETW event.
+ * \remarks  SwSegments and HwSegments use the names of tcpip's "UDP: Endpoint segment message" ETW event.
  */
 typedef struct _NETIO_UDP_STATS_DYNAMIC
 {
@@ -783,8 +831,7 @@ typedef struct _NSI_UDP_GLOBAL_RW
  * The ICMP_ECHO_REQUEST_CONTEXT structure tracks one outstanding echo request on an ICMP handle until the
  * completion notification arrives. It holds the caller's completion mechanism (event, or APC routine and context run on a
  * duplicated thread handle) and the reply buffer the notification is decoded into.
- * \remarks Mirrors the 0x48-byte block iphlpapi.dll!IcmpSendEcho2Ex allocates and links into ICMP_HANDLE_INTERNAL.RequestList
- *          10.0.26100.
+ * \remarks Mirrors the 0x48-byte block iphlpapi.dll!IcmpSendEcho2Ex allocates and links into ICMP_HANDLE_INTERNAL.RequestList.
  */
 typedef struct _ICMP_ECHO_REQUEST_CONTEXT
 {
@@ -801,7 +848,7 @@ typedef struct _ICMP_ECHO_REQUEST_CONTEXT
  * The ICMP_HANDLE_INTERNAL structure is the object behind an ICMP handle (IcmpCreateFile/Icmp6CreateFile). It records
  * the owning process, the address family and NSI module used to submit echo requests, and the list of requests that are
  * still waiting for a reply.
- * \remarks Mirrors the 0x50-byte block iphlpapi.dll!IcmpCreateFileEx allocates 10.0.26100.
+ * \remarks Mirrors the 0x50-byte block iphlpapi.dll!IcmpCreateFileEx allocates.
  */
 typedef struct _ICMP_HANDLE_INTERNAL
 {
@@ -1122,6 +1169,82 @@ typedef struct _NSI_EX_REQUEST_COMMON
 } NSI_EX_REQUEST_COMMON, *PNSI_EX_REQUEST_COMMON;
 
 /**
+ * The NSI_PERSISTENT_GET_REQUEST structure is the IOCTL request for persistent parameter data and its mask.
+ */
+typedef struct _NSI_PERSISTENT_GET_REQUEST
+{
+    ULONGLONG MustBeZero;
+    ULONG ModuleHandle;
+    ULONG Reserved0C;
+    PNPI_MODULEID ModuleId;
+    NSI_OBJECT_ID ObjectId;
+    ULONG Reserved1C;
+    PVOID Key;
+    ULONG KeySize;
+    ULONG Reserved2C;
+    PVOID ParameterData;
+    PVOID ParameterMask;
+    ULONG ParameterDataSize;
+    ULONG Reserved44;
+} NSI_PERSISTENT_GET_REQUEST, *PNSI_PERSISTENT_GET_REQUEST;
+
+/**
+ * The NSI_PERSISTENT_SET_REQUEST structure is the IOCTL request to change persistent parameter data and its mask.
+ */
+typedef struct _NSI_PERSISTENT_SET_REQUEST
+{
+    ULONGLONG MustBeZero;
+    ULONG ModuleHandle;
+    ULONG Reserved0C;
+    PNPI_MODULEID ModuleId;
+    NSI_OBJECT_ID ObjectId;
+    ULONG Reserved1C;
+    NSI_SET_ACTION Action;
+    ULONG Reserved24;
+    PVOID Key;
+    ULONG KeySize;
+    ULONG Reserved34;
+    PVOID ParameterData;
+    PVOID ParameterMask;
+    ULONG ParameterDataSize;
+    ULONG Reserved4C;
+} NSI_PERSISTENT_SET_REQUEST, *PNSI_PERSISTENT_SET_REQUEST;
+
+/**
+ * The NSI_PERSISTENT_ENUMERATE_REQUEST structure is the IOCTL request to enumerate persistent parameter data and masks.
+ */
+typedef struct _NSI_PERSISTENT_ENUMERATE_REQUEST
+{
+    ULONGLONG MustBeZero;
+    ULONG ModuleHandle;
+    ULONG Reserved0C;
+    PNPI_MODULEID ModuleId;
+    NSI_OBJECT_ID ObjectId;
+    ULONG Reserved1C;
+    NSI_GET_ACTION Action;
+    ULONG Reserved24;
+    PVOID KeyTable;
+    ULONG KeyEntrySize;
+    ULONG Reserved34;
+    PVOID ParameterDataTable;
+    PVOID ParameterMaskTable;
+    ULONG ParameterDataEntrySize;
+    ULONG Reserved4C;
+    ULONG Count;
+    ULONG Reserved54;
+} NSI_PERSISTENT_ENUMERATE_REQUEST, *PNSI_PERSISTENT_ENUMERATE_REQUEST;
+
+#if defined(_WIN64)
+static_assert(sizeof(NSI_PERSISTENT_GET_REQUEST) == 0x48);
+static_assert(sizeof(NSI_PERSISTENT_SET_REQUEST) == 0x50);
+static_assert(sizeof(NSI_PERSISTENT_ENUMERATE_REQUEST) == 0x58);
+#else
+static_assert(sizeof(NSI_PERSISTENT_GET_REQUEST) == 0x38);
+static_assert(sizeof(NSI_PERSISTENT_SET_REQUEST) == 0x40);
+static_assert(sizeof(NSI_PERSISTENT_ENUMERATE_REQUEST) == 0x48);
+#endif
+
+/**
  * The NSI_GET_ALL_PARAMETERS_EX_REQUEST structure is the input of NsiGetAllParametersEx. It reads the read/write,
  * read-only dynamic and read-only static blocks of one object in a single call; any buffer may be NULL.
  * \remarks Nsi.dll fails the call with STATUS_INVALID_PARAMETER if the provider returns a read/write block smaller than
@@ -1430,8 +1553,7 @@ typedef struct _NDIS_OBJECT_HEADER
 /**
  * The NDIS_COMPARTMENT_FLAGS bits are stored in NDIS_NSI_COMPARTMENT_RW.Flags when a compartment is created through
  * NsiSetAllParameters(NPI_MS_NDIS_MODULEID, NdisNsiObjectCompartment) and copied into the ndis.sys compartment block.
- * \remarks  Ndis.sys copies Flags into the
- *          compartment block only when Header.Revision >= 2.
+ * \remarks Ndis.sys copies Flags into the compartment block only when Header.Revision >= 2.
  */
 typedef enum _NDIS_COMPARTMENT_FLAGS
 {
@@ -1981,23 +2103,145 @@ typedef struct _NETIO_UDP_STATISTICS_EX2
  * PNET_NETWORK_CONNECTIVITY_HINT_CHANGE_CALLBACK. It has the layout of NL_NETWORK_CONNECTIVITY_HINT
  * (GetNetworkConnectivityHint): the connectivity level and the cost of the current network.
  */
-typedef struct _NETIO_CONNECTIVITY_HINT
-{
-    LONG64 ConnectivityLevel;
-    ULONG ConnectivityCost;
-} NETIO_CONNECTIVITY_HINT, *PNETIO_CONNECTIVITY_HINT;
+typedef NL_NETWORK_CONNECTIVITY_HINT NETIO_CONNECTIVITY_HINT, *PNETIO_CONNECTIVITY_HINT;
 
 /**
- * The NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP structure is a correlated pair of system and NIC hardware clock readings,
- * with the hardware clock frequency, so packet timestamps from the adapter can be converted to system time. It has the
- * layout of INTERFACE_HARDWARE_CROSSTIMESTAMP (CaptureInterfaceHardwareCrossTimestamp).
+ * The NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP structure contains two system clock readings around one NIC hardware
+ * clock reading. It has the layout of INTERFACE_HARDWARE_CROSSTIMESTAMP (CaptureInterfaceHardwareCrossTimestamp).
  */
 typedef struct _NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP
 {
-    LONG64 SystemTimestamp;
-    LONG64 HardwareClockFrequency;
-    LONG64 HardwareTimestamp;
+    ULONG64 SystemTimestamp1;
+    ULONG64 HardwareClockTimestamp;
+    ULONG64 SystemTimestamp2;
 } NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP, *PNETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP;
+
+#define NETIO_NDIS_CROSSTIMESTAMP_REQUEST_TYPE 0xB9
+#define NETIO_NDIS_CROSSTIMESTAMP_REQUEST_REVISION 1
+#define NETIO_OID_TIMESTAMP_CAPABILITY 0x00A00001
+#define NETIO_OID_TIMESTAMP_CURRENT_CONFIG 0x00A00002
+#define NETIO_OID_TIMESTAMP_GET_CROSSTIMESTAMP 0x00A00003
+#define IOCTL_NETIO_NDIS_CROSSTIMESTAMP CTL_CODE(FILE_DEVICE_PHYSICAL_NETCARD, 0x27, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+/**
+ * The NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA structure is the NDIS_HARDWARE_CROSSTIMESTAMP payload returned for
+ * OID_TIMESTAMP_GET_CROSSTIMESTAMP. Its timestamp fields begin eight bytes after the payload header.
+ */
+#pragma pack(push, 4)
+typedef struct _NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA
+{
+    UCHAR Type;
+    UCHAR Revision;
+    USHORT Size;
+    ULONG Flags;
+    ULONG64 SystemTimestamp1;
+    ULONG64 HardwareClockTimestamp;
+    ULONG64 SystemTimestamp2;
+} NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA, *PNETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA;
+
+/**
+ * The NETIO_NDIS_CROSSTIMESTAMP_REQUEST structure is the in/out buffer used by IP Helper's hardware cross timestamp
+ * query. The observed buffer is 0x50 bytes on x64 and 0x4C bytes on x86; DataOffset points to Data at byte 0x2C.
+ */
+typedef struct _NETIO_NDIS_CROSSTIMESTAMP_REQUEST
+{
+    struct
+    {
+        UCHAR Type;
+        UCHAR Revision;
+        USHORT Size;
+    } Header;
+    ULONG Reserved04[2];
+    ULONG Oid;
+    UCHAR Reserved10[20];
+    ULONG Status;
+    USHORT DataOffset;
+    USHORT Reserved2A;
+    NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA Data;
+#if defined(_WIN64)
+    ULONG Reserved4C;
+#endif
+} NETIO_NDIS_CROSSTIMESTAMP_REQUEST, *PNETIO_NDIS_CROSSTIMESTAMP_REQUEST;
+#pragma pack(pop)
+
+static_assert(sizeof(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA) == 0x20);
+static_assert(sizeof(NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP) == 0x18);
+static_assert(FIELD_OFFSET(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA, SystemTimestamp1) == 0x08);
+static_assert(FIELD_OFFSET(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA, HardwareClockTimestamp) == 0x10);
+static_assert(FIELD_OFFSET(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA, SystemTimestamp2) == 0x18);
+static_assert(FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Oid) == 0x0C);
+static_assert(FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Status) == 0x24);
+static_assert(FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, DataOffset) == 0x28);
+static_assert(FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data) == 0x2C);
+#if defined(_WIN64)
+static_assert(sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST) == 0x50);
+#else
+static_assert(sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST) == 0x4C);
+#endif
+
+/**
+ * The NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA structure is the NDIS_TIMESTAMP_CAPABILITIES payload returned for
+ * OID_TIMESTAMP_CAPABILITY and OID_TIMESTAMP_CURRENT_CONFIG. TimestampFlags holds eleven hardware flags followed by
+ * three software flags (NDIS_TIMESTAMP_CAPABILITY_FLAGS).
+ */
+#pragma pack(push, 4)
+typedef struct _NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA
+{
+    UCHAR Type;
+    UCHAR Revision;
+    USHORT Size;
+    ULONG Reserved04;               // alignment padding; nothing reads or writes it
+    ULONG64 HardwareClockFrequencyHz;
+    BOOLEAN CrossTimestamp;
+    UCHAR Reserved11[7];            // alignment padding; nothing reads or writes it
+    ULONG64 Reserved1;
+    ULONG64 Reserved2;
+    BOOLEAN TimestampFlags[14];
+    UCHAR Reserved36[2];            // alignment padding; nothing reads or writes it
+} NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA, *PNETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA;
+
+#define NETIO_NDIS_TIMESTAMP_HARDWARE_FLAG_COUNT 11
+#define NETIO_NDIS_TIMESTAMP_SOFTWARE_FLAG_COUNT 3
+
+/**
+ * The NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST structure is the in/out buffer used by IP Helper's interface timestamp
+ * capability query (IOCTL_NETIO_NDIS_CROSSTIMESTAMP). It shares the NETIO_NDIS_CROSSTIMESTAMP_REQUEST header;
+ * the observed buffer is 0x68 bytes on x64.
+ */
+typedef struct _NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST
+{
+    struct
+    {
+        UCHAR Type;
+        UCHAR Revision;
+        USHORT Size;
+    } Header;
+    ULONG Reserved04[2];
+    ULONG Oid;
+    UCHAR Reserved10[20];
+    ULONG Status;
+    USHORT DataOffset;
+    USHORT Reserved2A;
+    NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA Data;
+#if defined(_WIN64)
+    ULONG Reserved64;
+#endif
+} NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST, *PNETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST;
+#pragma pack(pop)
+
+static_assert(sizeof(NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA) == 0x38);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA, HardwareClockFrequencyHz) == 0x08);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA, CrossTimestamp) == 0x10);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_DATA, TimestampFlags) == 0x28);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST, Oid) == 0x0C);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST, Status) == 0x24);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST, DataOffset) == 0x28);
+static_assert(FIELD_OFFSET(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST, Data) == 0x2C);
+#if defined(_WIN64)
+static_assert(sizeof(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST) == 0x68);
+#else
+static_assert(sizeof(NETIO_NDIS_TIMESTAMP_CAPABILITIES_REQUEST) == 0x64);
+#endif
 
 typedef VOID (NTAPI *PNET_NETWORK_CONNECTIVITY_HINT_CHANGE_CALLBACK)(
     _In_opt_ PVOID CallerContext,
@@ -2165,6 +2409,13 @@ typedef struct _NSI_FL_VIRTUAL_INTERFACE_ROS
     ULONG VirtualInterfaceType;             // Best-effort name: 2 for the default client interface.
     ULONG Reserved;                         // alignment padding; nothing reads or writes it
 } NSI_FL_VIRTUAL_INTERFACE_ROS, *PNSI_FL_VIRTUAL_INTERFACE_ROS;
+
+static_assert(sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW) == 0xC0);
+static_assert(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_ROW, IfLuid) == 0x08);
+static_assert(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_ROW, VirtualIfId) == 0x10);
+static_assert(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_ROW, AllowLocalNd) == 0x3C);
+static_assert(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_ROW, AttachedFlsnpiClients) == 0x40);
+static_assert(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_ROW, FlsnpiClientInjectErrors) == 0x48);
 
 /**
  * The NSI_IP_STATISTICS_ROD structure is the read-only dynamic parameter block of the IP global object
@@ -2581,8 +2832,13 @@ static_assert(FIELD_OFFSET(NDIS_NSI_INTERFACE_INFORMATION_ROS, PermanentPhysAddr
 static_assert(FIELD_OFFSET(NDIS_NSI_INTERFACE_INFORMATION_ROS, ifFlags) == 0x24C);
 static_assert(sizeof(NDIS_NSI_NETWORK_RW) == 0x210);
 static_assert(FIELD_OFFSET(NDIS_NSI_NETWORK_RW, NetworkName) == 0x0C);
+static_assert(sizeof(NSI_IP_INTERFACE_RW) == 0xf0);
+static_assert(FIELD_OFFSET(NSI_IP_INTERFACE_RW, Metric) == 0x1c);
+static_assert(FIELD_OFFSET(NSI_IP_INTERFACE_RW, ZoneIndices) == 0x38);
+static_assert(FIELD_OFFSET(NSI_IP_INTERFACE_RW, DisableDefaultRoutes) == 0x98);
 static_assert(sizeof(NSI_IP_INTERFACE_ROD) == 0x58);
 static_assert(FIELD_OFFSET(NSI_IP_INTERFACE_ROD, InboundBandwidthInformation) == 0x28);
+static_assert(sizeof(NSI_IP_INTERFACE_ROS) == 0x20);
 static_assert(sizeof(NETIO_TCP_STATS_DYNAMIC) == 104);
 static_assert(FIELD_OFFSET(NETIO_TCP_STATS_DYNAMIC, BytesBuffered) == 0x38);
 static_assert(FIELD_OFFSET(NETIO_TCP_STATS_DYNAMIC, FastopenActiveOpens) == 0x50);
@@ -3176,9 +3432,13 @@ NsiSetAllPersistentParametersWithMask(
     );
 
 /**
- * Submits an opaque NSI security request in place, using 48 bytes on x64 and 24 bytes on x86. The annotation
- * describes the request extent, not a six-pointer schema. Queries object security through IOCTL 0x120037. The
- * same buffer is input and output; kernel-side field validation and authorization are separate contracts.
+ * The NsiGetObjectSecurity routine submits an opaque NSI security request in place, using 48 bytes on x64
+ * and 24 bytes on x86. The annotation describes the request extent, not a six-pointer schema. Queries object
+ * security through IOCTL 0x120037. The same buffer is input and output; kernel-side field validation and
+ * authorization are separate contracts.
+ *
+ * \param ObjectSecurity Opaque input/output security request buffer.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
@@ -3188,9 +3448,13 @@ NsiGetObjectSecurity(
     );
 
 /**
- * Submits an opaque NSI security request in place, using 48 bytes on x64 and 24 bytes on x86. The annotation
- * describes the request extent, not a six-pointer schema. Changes object security through IOCTL 0x12003B. The
- * same buffer is input and output; kernel-side field validation and authorization are separate contracts.
+ * The NsiSetObjectSecurity routine submits an opaque NSI security request in place, using 48 bytes on x64
+ * and 24 bytes on x86. The annotation describes the request extent, not a six-pointer schema. Changes object
+ * security through IOCTL 0x12003B. The same buffer is input and output; kernel-side field validation and
+ * authorization are separate contracts.
+ *
+ * \param ObjectSecurity Opaque input/output security request buffer.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
@@ -3200,10 +3464,13 @@ NsiSetObjectSecurity(
     );
 
 /**
- * Creates and configures a local ncalrpc binding for NSI RPC calls. A non-NULL Reserved argument returns NULL
- * before binding creation without setting a new last error. Binding-creation failures do set last error.
- * Release successful bindings with NsiDisconnectFromServer. Binding creation alone does not query an NSI
- * table.
+ * The NsiConnectToServer routine creates and configures a local ncalrpc binding for NSI RPC calls. A
+ * non-NULL Reserved argument returns NULL before binding creation without setting a new last error.
+ * Binding-creation failures do set last error. Release successful bindings with NsiDisconnectFromServer.
+ * Binding creation alone does not query an NSI table.
+ *
+ * \param Reserved Must be NULL.
+ * \return An RPC binding handle, or NULL on failure.
  */
 NTSYSAPI
 PVOID
@@ -3213,8 +3480,12 @@ NsiConnectToServer(
     );
 
 /**
- * Releases the RPC binding value through RpcBindingFree using a temporary local slot. The caller variable is
- * not cleared; discard its value after successful cleanup. This releases a binding, not the remote server.
+ * The NsiDisconnectFromServer routine releases the RPC binding value through RpcBindingFree using a
+ * temporary local slot. The caller variable is not cleared; discard its value after successful cleanup. This
+ * releases a binding, not the remote server.
+ *
+ * \param RpcHandle Optional RPC binding handle to release.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
@@ -3224,9 +3495,13 @@ NsiDisconnectFromServer(
     );
 
 /**
- * Frees the key, data and mask allocations from the persistent-table allocator using the NSI heap. Each
- * pointer is optional. Pass allocation values, not output-slot addresses. Caller variables are not cleared,
- * and there is no status result.
+ * The NsiFreePersistentDataWithMaskTable routine frees the key, data and mask allocations from the
+ * persistent-table allocator using the NSI heap. Each pointer is optional. Pass allocation values, not
+ * output-slot addresses. Caller variables are not cleared, and there is no status result.
+ *
+ * \param KeyTable Optional key-table allocation to free.
+ * \param ParameterDataTable Optional parameter-data allocation to free.
+ * \param ParameterMaskTable Optional parameter-mask allocation to free.
  */
 NTSYSAPI
 VOID
@@ -3238,9 +3513,15 @@ NsiFreePersistentDataWithMaskTable(
     );
 
 /**
- * Frees up to four independent NSI table allocations using the NSI heap. NULL entries are skipped. Pass
- * allocation values returned by NsiAllocateAndGetTable, not output-slot addresses. Caller variables are not
- * cleared, and there is no status result. Repeated allocation values would cause repeated frees.
+ * The NsiFreeTable routine frees up to four independent NSI table allocations using the NSI heap. NULL
+ * entries are skipped. Pass allocation values returned by NsiAllocateAndGetTable, not output-slot addresses.
+ * Caller variables are not cleared, and there is no status result. Repeated allocation values would cause
+ * repeated frees.
+ *
+ * \param KeyTable Optional key-table allocation to free.
+ * \param RwTable Optional read/write table allocation to free.
+ * \param RodTable Optional read-only dynamic table allocation to free.
+ * \param RosTable Optional read-only static table allocation to free.
  */
 NTSYSAPI
 VOID
