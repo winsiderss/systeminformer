@@ -628,7 +628,7 @@ VOID CALLBACK PH_HTTP_STATUS_CALLBACK(
     _In_ PVOID InternetHandle,
     _In_ ULONG_PTR Context,
     _In_ ULONG InternetStatus,
-    _In_opt_ LPVOID StatusInformation,
+    _In_opt_ PVOID StatusInformation,
     _In_ ULONG StatusInformationLength
     );
 typedef PH_HTTP_STATUS_CALLBACK* PPH_HTTP_STATUS_CALLBACK;
