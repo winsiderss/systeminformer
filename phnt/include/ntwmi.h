@@ -7686,10 +7686,9 @@ WmiQueryAllDataW(
     );
 
 /**
- * The WmiQueryAllDataMultipleA routine queries multiple WMI blocks into caller storage. HandleCount must be 1
- * through 4095 on the
- * inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize is bytes.
- * Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * The WmiQueryAllDataMultipleA routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
  * sizing request.
  *
  * \param HandleList An array of WMI data block handles.
@@ -7709,10 +7708,9 @@ WmiQueryAllDataMultipleA(
     );
 
 /**
- * The WmiQueryAllDataMultipleW routine queries multiple WMI blocks into caller storage. HandleCount must be 1
- * through 4095 on the
- * inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize is bytes.
- * Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
+ * The WmiQueryAllDataMultipleW routine queries multiple WMI blocks into caller storage. HandleCount must be
+ * 1 through 4095 on the inspected client; zero or 4096 rejects before handle-array access. InOutBufferSize
+ * is bytes. Short storage uses an internal sizing buffer; NULL output is supported for a zero-capacity
  * sizing request.
  *
  * \param HandleList An array of WMI data block handles.
@@ -7812,11 +7810,10 @@ WmiQuerySingleInstanceMultipleA(
     );
 
 /**
- * The WmiSetSingleInstanceA routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at byte
- * offset 8 (the
- * ANSI wrapper forwards it), so it is not unused Reserved padding. Provider interpretation is not
- * established here. NULL instance name or value buffer is rejected; a non-NULL zero-length value
- * is distinct. Successful mutation was not exercised.
+ * The WmiSetSingleInstanceA routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
  * \param DataBlockHandle Handle to the WMI data block.
  * \param InstanceName ANSI name of the instance to update.
@@ -7837,11 +7834,10 @@ WmiSetSingleInstanceA(
     );
 
 /**
- * The WmiSetSingleInstanceW routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at byte
- * offset 8 (the
- * ANSI wrapper forwards it), so it is not unused Reserved padding. Provider interpretation is not
- * established here. NULL instance name or value buffer is rejected; a non-NULL zero-length value
- * is distinct. Successful mutation was not exercised.
+ * The WmiSetSingleInstanceW routine writes WMI instance data. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
  * \param DataBlockHandle Handle to the WMI data block.
  * \param InstanceName Unicode name of the instance to update.
@@ -7862,11 +7858,10 @@ WmiSetSingleInstanceW(
     );
 
 /**
- * The WmiSetSingleItemA routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at byte
- * offset 8 (the
- * ANSI wrapper forwards it), so it is not unused Reserved padding. Provider interpretation is not
- * established here. NULL instance name or value buffer is rejected; a non-NULL zero-length value
- * is distinct. Successful mutation was not exercised.
+ * The WmiSetSingleItemA routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
  * \param DataBlockHandle Handle to the WMI data block.
  * \param InstanceName ANSI name of the instance to update.
@@ -7889,11 +7884,10 @@ WmiSetSingleItemA(
     );
 
 /**
- * The WmiSetSingleItemW routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at byte
- * offset 8 (the
- * ANSI wrapper forwards it), so it is not unused Reserved padding. Provider interpretation is not
- * established here. NULL instance name or value buffer is rejected; a non-NULL zero-length value
- * is distinct. Successful mutation was not exercised.
+ * The WmiSetSingleItemW routine writes a WMI instance item. Version is copied into WNODE_HEADER.Version at
+ * byte offset 8 (the ANSI wrapper forwards it), so it is not unused Reserved padding. Provider
+ * interpretation is not established here. NULL instance name or value buffer is rejected; a non-NULL
+ * zero-length value is distinct. Successful mutation was not exercised.
  *
  * \param DataBlockHandle Handle to the WMI data block.
  * \param InstanceName Unicode name of the instance to update.
@@ -7916,11 +7910,10 @@ WmiSetSingleItemW(
     );
 
 /**
- * The WmiExecuteMethodA routine executes a WMI provider method. InputBuffer may be NULL only when InputBufferSize
- * is zero. Non-
- * NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000. The output size can
- * report a required count without copying all data; this operation is not a read-only size query
- * merely because output capacity is zero.
+ * The WmiExecuteMethodA routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
  * \param MethodDataBlockHandle Handle to the WMI method data block.
  * \param MethodInstanceName ANSI name of the method instance.
@@ -7945,11 +7938,10 @@ WmiExecuteMethodA(
     );
 
 /**
- * The WmiExecuteMethodW routine executes a WMI provider method. InputBuffer may be NULL only when InputBufferSize
- * is zero. Non-
- * NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000. The output size can
- * report a required count without copying all data; this operation is not a read-only size query
- * merely because output capacity is zero.
+ * The WmiExecuteMethodW routine executes a WMI provider method. InputBuffer may be NULL only when
+ * InputBufferSize is zero. Non- NULL OutputBuffer requires OutputBufferSize and a capacity below 0x80000000.
+ * The output size can report a required count without copying all data; this operation is not a read-only
+ * size query merely because output capacity is zero.
  *
  * \param MethodDataBlockHandle Handle to the WMI method data block.
  * \param MethodInstanceName Unicode name of the method instance.
@@ -8045,10 +8037,9 @@ WmiNotificationRegistrationW(
     );
 
 /**
- * The WmiEnumerateGuids routine enumerates WMI data-block GUIDs. GuidCount is input capacity and output total
- * count. NULL
- * GuidList with nonzero capacity is rejected. On ERROR_MORE_DATA (234), a prefix may have been
- * copied; retry rather than treating output total as initialized entries.
+ * The WmiEnumerateGuids routine enumerates WMI data-block GUIDs. GuidCount is input capacity and output
+ * total count. NULL GuidList with nonzero capacity is rejected. On ERROR_MORE_DATA (234), a prefix may have
+ * been copied; retry rather than treating output total as initialized entries.
  *
  * \param GuidList Optional buffer that receives data block GUIDs.
  * \param GuidCount Input capacity and output total number of GUIDs.
@@ -8092,9 +8083,9 @@ typedef struct _MOFRESOURCEINFOW
 
 /**
  * The WmiMofEnumerateResourcesW routine enumerates registered MOF resource metadata, not one caller-supplied
- * module. MofResourceHandle
- * must be NULL on the inspected implementation; non-NULL rejects with ERROR_INVALID_PARAMETER (87)
- * before enumeration. Successful output is a WMI-owned allocation released with WmiFreeBuffer.
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
  * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
  * \param MofResourceCount Receives the number of resources.
@@ -8112,9 +8103,9 @@ WmiMofEnumerateResourcesW(
 
 /**
  * The WmiMofEnumerateResourcesA routine enumerates registered MOF resource metadata, not one caller-supplied
- * module. MofResourceHandle
- * must be NULL on the inspected implementation; non-NULL rejects with ERROR_INVALID_PARAMETER (87)
- * before enumeration. Successful output is a WMI-owned allocation released with WmiFreeBuffer.
+ * module. MofResourceHandle must be NULL on the inspected implementation; non-NULL rejects with
+ * ERROR_INVALID_PARAMETER (87) before enumeration. Successful output is a WMI-owned allocation released with
+ * WmiFreeBuffer.
  *
  * \param MofResourceHandle Optional resource handle; must be NULL on the inspected implementation.
  * \param MofResourceCount Receives the number of resources.
@@ -8169,11 +8160,10 @@ WmiFileHandleToInstanceNameW(
     );
 
 /**
- * The WmiDevInstToInstanceNameA routine builds an ANSI instance name by appending underscore and the signed-decimal
- * InstanceIndex to
- * DevInst. Normal return is the required character count INCLUDING NUL, not ERROR_SUCCESS. NULL or
- * short output leaves storage unwritten while returning that count. Shutdown returns 1067 and sets
- * last error.
+ * The WmiDevInstToInstanceNameA routine builds an ANSI instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is the required character count INCLUDING NUL, not
+ * ERROR_SUCCESS. NULL or short output leaves storage unwritten while returning that count. Shutdown returns
+ * 1067 and sets last error.
  *
  * \param InstanceName Optional buffer that receives the instance name.
  * \param InstanceNameLength Capacity of InstanceName in characters.
@@ -8192,10 +8182,9 @@ WmiDevInstToInstanceNameA(
     );
 
 /**
- * The WmiDevInstToInstanceNameW routine builds a UTF-16 instance name by appending underscore and the signed-decimal
- * InstanceIndex to
- * DevInst. Normal return is required WCHAR count INCLUDING NUL, not a Win32 success code. NULL or
- * short output does not copy. Shutdown returns 1067 and sets last error.
+ * The WmiDevInstToInstanceNameW routine builds a UTF-16 instance name by appending underscore and the
+ * signed-decimal InstanceIndex to DevInst. Normal return is required WCHAR count INCLUDING NUL, not a Win32
+ * success code. NULL or short output does not copy. Shutdown returns 1067 and sets last error.
  *
  * \param InstanceName Optional buffer that receives the instance name.
  * \param InstanceNameLength Capacity of InstanceName in characters.
@@ -8299,8 +8288,8 @@ WmiReceiveNotificationsA(
     GetSystemTimeAsFileTime((PFILETIME)&((PWNODE_HEADER)(WnodeHeader))->TimeStamp)
 
 /**
- * The WmiFreeBuffer routine releases WMI-owned allocated result storage by value from the process heap. NULL is ignored
- * outside shutdown; shutdown skips release. No defined status result is exposed by this void API.
+ * The WmiFreeBuffer routine releases WMI-owned allocated result storage by value from the process heap. NULL
+ * is ignored outside shutdown; shutdown skips release. No defined status result is exposed by this void API.
  * Do not use it for caller-owned stack storage.
  *
  * \param Buffer Optional WMI-owned buffer to release.
