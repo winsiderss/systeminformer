@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2025
+ *     dmex    2025-2026
  *
  */
 
@@ -1290,8 +1290,22 @@ NTSTATUS PhNsiAllocateAndGetTable(
     for (attempt = 0; attempt < PHP_NSI_ENUMERATION_MAX_ATTEMPTS; attempt++)
     {
         count = 0;
-        result = PhNsiEnumerateObjectsAllParameters(Store, NsiGetFirst, ModuleId, ObjectId,
-            NULL, KeyEntrySize, NULL, RwEntrySize, NULL, RodEntrySize, NULL, RosEntrySize, &count);
+        result = PhNsiEnumerateObjectsAllParameters(
+            Store,
+            NsiGetFirst,
+            ModuleId,
+            ObjectId,
+            NULL,
+            KeyEntrySize,
+            NULL,
+            RwEntrySize,
+            NULL,
+            RodEntrySize,
+            NULL,
+            RosEntrySize,
+            &count
+            );
+
         if (!NT_SUCCESS(result) && result != STATUS_BUFFER_OVERFLOW)
             return result;
 
@@ -1317,9 +1331,21 @@ NTSTATUS PhNsiAllocateAndGetTable(
         }
 
         count = capacity;
-        result = PhNsiEnumerateObjectsAllParameters(Store, NsiGetFirst, ModuleId, ObjectId,
-            keyBuffer, KeyEntrySize, rwBuffer, RwEntrySize, rodBuffer, RodEntrySize,
-            rosBuffer, RosEntrySize, &count);
+        result = PhNsiEnumerateObjectsAllParameters(
+            Store,
+            NsiGetFirst,
+            ModuleId,
+            ObjectId,
+            keyBuffer,
+            KeyEntrySize,
+            rwBuffer,
+            RwEntrySize,
+            rodBuffer,
+            RodEntrySize,
+            rosBuffer,
+            RosEntrySize,
+            &count);
+
         if (result == STATUS_BUFFER_OVERFLOW && attempt + 1 < PHP_NSI_ENUMERATION_MAX_ATTEMPTS)
         {
             PhNsiFreeTable(keyBuffer, rwBuffer, rodBuffer, rosBuffer);
@@ -2975,7 +3001,7 @@ static NTSTATUS PhpNsiGetParameter(
  */
 static NTSTATUS PhpNsiSetAllParameters(
     _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
+    _In_ ULONG Action,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_opt_(KeySize) PVOID Key,
@@ -2989,7 +3015,7 @@ static NTSTATUS PhpNsiSetAllParameters(
     request.Header.ModuleId = ModuleId;
     request.Header.ObjectId = ObjectId;
     request.Header.Store = Store;
-    request.Header.SetAction = Action;
+    request.Header.SetAction = (NSI_SET_ACTION)Action;
     request.Key = Key;
     request.KeySize = KeySize;
     request.ReadWriteBuffer = Rw;
@@ -3924,12 +3950,6 @@ NTSTATUS PhGetInterfaceHandle(
 
         if (NT_SUCCESS(status))
             *InterfaceHandle = fileHandle;
-        else
-            status = status;
-    }
-    else
-    {
-        status = status;
     }
 
     RtlFreeUnicodeString(&guidString);
@@ -9732,7 +9752,7 @@ NTSTATUS PhGetIfTable2(
     if (result)
         return result;
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IF_TABLE2, Table)) / sizeof(MIB_IF_ROW2))
+    if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_IF_TABLE2, Table)) / sizeof(MIB_IF_ROW2))
     {
         PhNsiFreeTable(keys, rw, rod, ros);
         return STATUS_INTEGER_OVERFLOW;
@@ -11309,11 +11329,19 @@ NTSTATUS PhGetIpInterfaceTable(
         for (j = 0; j < families[i].Count; j++)
         {
             if (families[i].Rod[j].CompartmentId == compartmentId)
+            {
+                if (count == ULONG_MAX)
+                {
+                    result = STATUS_INTEGER_OVERFLOW;
+                    goto Cleanup;
+                }
+
                 count++;
+            }
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPINTERFACE_TABLE, Table)) / sizeof(MIB_IPINTERFACE_ROW))
+    if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_IPINTERFACE_TABLE, Table)) / sizeof(MIB_IPINTERFACE_ROW))
     {
         result = STATUS_INTEGER_OVERFLOW;
         goto Cleanup;
@@ -11663,7 +11691,7 @@ NTSTATUS PhGetIpForwardTable2(
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPFORWARD_TABLE2, Table)) / sizeof(MIB_IPFORWARD_ROW2))
+    if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_IPFORWARD_TABLE2, Table)) / sizeof(MIB_IPFORWARD_ROW2))
     {
         result = STATUS_INTEGER_OVERFLOW;
         goto Cleanup;
@@ -13258,7 +13286,7 @@ NTSTATUS PhGetIpPathTable(
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPPATH_TABLE, Table)) / sizeof(MIB_IPPATH_ROW))
+    if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_IPPATH_TABLE, Table)) / sizeof(MIB_IPPATH_ROW))
     {
         result = STATUS_INTEGER_OVERFLOW;
         goto Cleanup;
@@ -14839,7 +14867,7 @@ NTSTATUS PhGetFlVirtualInterfaceTable(
         count += families[i].Count;
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_TABLE, Table)) / sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW))
+    if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_TABLE, Table)) / sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW))
     {
         result = STATUS_INTEGER_OVERFLOW;
         goto Cleanup;
