@@ -47,6 +47,12 @@ if errorlevel 1 exit /b %errorlevel%
 call :RestoreNugetPackages
 if errorlevel 1 exit /b %errorlevel%
 
+call "%~dp0build_tools.cmd" INIT
+if errorlevel 1 (
+    echo [-] Tools build failed, CAB was not generated.
+    exit /b !errorlevel!
+)
+
 call "%~dp0build_zdriver.cmd" release rebuild nopause
 if errorlevel 1 (
     echo [-] Build failed, CAB was not generated.
