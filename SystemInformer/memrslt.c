@@ -133,6 +133,10 @@ static VOID FilterResults(
                     PWSTR upperDisplay;
 
                     upperDisplay = PhAllocateForMemorySearch(result->Display.Length + sizeof(WCHAR));
+
+                    if (!upperDisplay)
+                        continue;
+
                     // Copy the null terminator as well.
                     memcpy(upperDisplay, result->Display.Buffer, result->Display.Length + sizeof(WCHAR));
 

@@ -267,9 +267,22 @@ typedef struct _PH_PROCGENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND StartedLabelHandle;
+    PPH_STRING StartedText;
     BOOLEAN Enabled;
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
+
+static VOID PhpSetStartedText(
+    _Inout_ PPH_PROCGENERAL_CONTEXT Context,
+    _In_ PCWSTR Text
+    )
+{
+    if (Context->StartedText && PhEqualStringZ(Context->StartedText->Buffer, Text, FALSE))
+        return;
+
+    if (PhSetWindowText(Context->StartedLabelHandle, Text))
+        PhMoveReference(&Context->StartedText, PhCreateString(Text));
+}
 
 VOID PphProcessGeneralDlgUpdateIcons(
     _In_ HWND hwndDlg
@@ -581,7 +594,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                     startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                    PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                    PhpSetStartedText(context, PhaFormatString(
                         L"%s ago (%s)",
                         startTimeRelativeString->Buffer,
                         startTimeString->Buffer
@@ -589,12 +602,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                    PhpSetStartedText(context, L"N/A");
                 }
             }
             else
             {
-                PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                PhpSetStartedText(context, L"N/A");
             }
 
             // Parent
@@ -692,6 +705,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_NCDESTROY:
         {
+            PhClearReference(&context->StartedText);
             PhFree(context);
         }
         break;
@@ -1105,7 +1119,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                             startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                            PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                            PhpSetStartedText(context, PhaFormatString(
                                 L"%s ago (%s)",
                                 PhGetString(startTimeRelativeString),
                                 PhGetString(startTimeString)
@@ -1113,12 +1127,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         }
                         else
                         {
-                            PhSetWindowText(context->StartedLabelHandle, L"\u221E");
+                            PhpSetStartedText(context, L"\u221E");
                         }
                     }
                     else
                     {
-                        PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                        PhpSetStartedText(context, L"N/A");
                     }
                 }
                 break;

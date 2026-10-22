@@ -288,6 +288,7 @@ NTSTATUS PhpSessionNltestThreadStart(
     PPH_STRING systemDirectory;
     PPH_STRING fileName;
     PPH_STRING commandLine;
+    PPH_STRING quotedUserName;
     PPH_STRING commandOutput = NULL;
     PPH_LIST list = NULL;
     PSECURITY_DESCRIPTOR securityDescriptor = NULL;
@@ -306,11 +307,13 @@ NTSTATUS PhpSessionNltestThreadStart(
             goto CleanupExit;
         }
 
+        quotedUserName = PhQuoteCommandLine(&context->UserName->sr, TRUE);
         commandLine = PhFormatString(
             L"\"%s\" /USER:%s",
             fileName->Buffer,
-            context->UserName->Buffer
+            quotedUserName->Buffer
             );
+        PhDereferenceObject(quotedUserName);
 
         if (NT_SUCCESS(PhCreateProcessRedirection(&fileName->sr, &commandLine->sr, NULL, &commandOutput)) && commandOutput)
         {
