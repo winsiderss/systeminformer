@@ -10829,18 +10829,18 @@ HANDLE PhGetNamespaceHandle2(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        static CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"\\SystemInformer");
+        CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"\\SystemInformer");
         POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptor;
         NTSTATUS status;
 
         if (boundaryDescriptor = PhCreateBoundaryDescriptor(&namespaceName, BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID))
         {
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
-            //    goto CleanupExit;
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
-            //    goto CleanupExit;
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
-            //    goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
+                goto CleanupExit;
             if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeEveryoneSid)))
                 goto CleanupExit;
 
@@ -10866,7 +10866,7 @@ HANDLE PhGetNamespaceHandle2(
         CleanupExit:
             if (!NT_SUCCESS(status))
             {
-                namespaceHandle = NULL;
+                namespaceHandle = PhGetNamespaceHandle();
             }
 
             PhDeleteBoundaryDescriptor(boundaryDescriptor);
