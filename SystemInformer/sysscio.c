@@ -366,6 +366,7 @@ INT_PTR CALLBACK PhSipIoPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(hwndDlg);
             IoPanelReadsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADSDELTA_V);
             IoPanelWritesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITESDELTA_V);
             IoPanelOtherDeltaLabel = GetDlgItem(hwndDlg, IDC_ZOTHERDELTA_V);

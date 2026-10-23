@@ -819,6 +819,7 @@ EXPORTS
     PhCreateSaveFileDialog
     PhCreateUserProcess
     PhDeleteImageVersionInfo
+    PhDeleteMappedImageExports
     PhDevFreeObjectProperties
     PhDevFreeObjects
     PhDevGetObjectProperties
@@ -1134,6 +1135,7 @@ EXPORTS
     PhInitializeThemeWindowFrame
     PhInitializeThemeWindowGroupBox
     PhInitializeThemeWindowGroupBoxEx
+    PhInitializeThemeWindowGroupBoxes
     PhInitializeThemeWindowProgressBar
     PhInitializeWindowTheme
     PhIsThemeActive
@@ -1207,6 +1209,7 @@ EXPORTS
 
 ; mapimg
     PhGetMappedImageAuthenticodeHash
+    PhGetMappedImageAuthenticodeHashEx
     PhGetMappedImageDataDirectory
     PhGetMappedImageDebug
     PhGetMappedImageDebugEntryByType
