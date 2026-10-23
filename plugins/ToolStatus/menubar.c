@@ -743,6 +743,9 @@ HWND ToolStatusMenuBarCreateWindow(
     )
 {
     HWND windowHandle;
+    RECT windowRect;
+
+    ToolStatusGetBarWindowRect(ParentWindowHandle, FALSE, &windowRect);
 
     windowHandle = PhCreateWindowEx(
         TOOLBARCLASSNAME,
@@ -750,10 +753,10 @@ HWND ToolStatusMenuBarCreateWindow(
         WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER |
         TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
         WS_EX_TOOLWINDOW,
-        0,
-        0,
-        0,
-        0,
+        windowRect.left,
+        windowRect.top,
+        windowRect.right - windowRect.left,
+        windowRect.bottom - windowRect.top,
         ParentWindowHandle,
         NULL,
         NULL,

@@ -1029,16 +1029,19 @@ VOID NTAPI WepWindowPropertiesSheetInitialized(
     PWINDOW_PROPERTIES_CONTEXT context = Context;
     HWND closeButtonHandle;
     HFONT fontHandle;
+    RECT buttonRect;
+
+    WepGetWindowPropertiesOptionsButtonRect(HostHandle, &buttonRect);
 
     context->PropertySheetHandle = HostHandle;
     context->OptionsButtonHandle = PhCreateWindow(
         WC_BUTTON,
         L"Options",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-        0,
-        0,
-        0,
-        0,
+        buttonRect.left,
+        buttonRect.top,
+        buttonRect.right - buttonRect.left,
+        buttonRect.bottom - buttonRect.top,
         HostHandle,
         (HMENU)IDC_OPTIONS,
         PluginInstance->DllBase,

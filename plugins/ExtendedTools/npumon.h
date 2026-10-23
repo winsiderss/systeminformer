@@ -28,6 +28,14 @@ PETP_NPU_ADAPTER EtpAllocateNpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
+VOID EtpNpuResetAdapterNodeDeltas(
+    _In_ PETP_NPU_ADAPTER NpuAdapter
+    );
+
+VOID EtpNpuRefreshAdapterLuids(
+    VOID
+    );
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,

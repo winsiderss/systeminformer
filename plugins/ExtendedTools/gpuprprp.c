@@ -59,11 +59,115 @@ VOID GpuPropUpdateWindowDpi(
     Context->WindowDpi = PhGetWindowDpi(Context->WindowHandle);
 }
 
+VOID GpuPropGetGraphRects(
+    _In_ PET_GPU_CONTEXT Context,
+    _Out_writes_(4) RECT GroupRects[4],
+    _Out_writes_(4) RECT GraphRects[4]
+    )
+{
+    RECT clientRect;
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
+    ULONG graphWidth;
+    ULONG graphHeight;
+
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 3) / 4;
+
+    for (ULONG i = 0; i < 4; i++)
+    {
+        GroupRects[i].left = margin.left;
+        GroupRects[i].top = margin.top + (graphHeight + between) * i;
+        GroupRects[i].right = GroupRects[i].left + graphWidth;
+        GroupRects[i].bottom = GroupRects[i].top + graphHeight;
+
+        GraphRects[i].left = GroupRects[i].left + innerMargin.left;
+        GraphRects[i].top = GroupRects[i].top + innerMargin.top;
+        GraphRects[i].right = GroupRects[i].right - innerMargin.right;
+        GraphRects[i].bottom = GroupRects[i].bottom - innerMargin.bottom;
+    }
+}
+
 VOID GpuPropCreateGraphs(
     _In_ PET_GPU_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    HFONT fontHandle;
+    RECT groupRects[4];
+    RECT graphRects[4];
+
+    GpuPropGetGraphRects(Context, groupRects, graphRects);
+
+    fontHandle = GetWindowFont(Context->WindowHandle);
+
+    Context->GpuGroupBox = PhCreateWindow(
+        WC_BUTTON,
+        L"GPU",
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | BS_GROUPBOX,
+        groupRects[0].left,
+        groupRects[0].top,
+        groupRects[0].right - groupRects[0].left,
+        groupRects[0].bottom - groupRects[0].top,
+        Context->WindowHandle,
+        (HMENU)IDC_GROUPGPU,
+        NULL,
+        NULL
+        );
+    SetWindowFont(Context->GpuGroupBox, fontHandle, FALSE);
+
+    Context->MemGroupBox = PhCreateWindow(
+        WC_BUTTON,
+        L"Dedicated memory",
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | BS_GROUPBOX,
+        groupRects[1].left,
+        groupRects[1].top,
+        groupRects[1].right - groupRects[1].left,
+        groupRects[1].bottom - groupRects[1].top,
+        Context->WindowHandle,
+        (HMENU)IDC_GROUPMEM,
+        NULL,
+        NULL
+        );
+    SetWindowFont(Context->MemGroupBox, fontHandle, FALSE);
+
+    Context->SharedGroupBox = PhCreateWindow(
+        WC_BUTTON,
+        L"Shared memory",
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | BS_GROUPBOX,
+        groupRects[2].left,
+        groupRects[2].top,
+        groupRects[2].right - groupRects[2].left,
+        groupRects[2].bottom - groupRects[2].top,
+        Context->WindowHandle,
+        (HMENU)IDC_GROUPSHARED,
+        NULL,
+        NULL
+        );
+    SetWindowFont(Context->SharedGroupBox, fontHandle, FALSE);
+
+    Context->CommittedGroupBox = PhCreateWindow(
+        WC_BUTTON,
+        L"Commit memory",
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | BS_GROUPBOX,
+        groupRects[3].left,
+        groupRects[3].top,
+        groupRects[3].right - groupRects[3].left,
+        groupRects[3].bottom - groupRects[3].top,
+        Context->WindowHandle,
+        (HMENU)IDC_GROUPCOMMIT,
+        NULL,
+        NULL
+        );
+    SetWindowFont(Context->CommittedGroupBox, fontHandle, FALSE);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -74,10 +178,10 @@ VOID GpuPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -89,10 +193,10 @@ VOID GpuPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -104,10 +208,10 @@ VOID GpuPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -119,10 +223,10 @@ VOID GpuPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -176,20 +280,8 @@ VOID GpuPropLayoutGraphs(
     )
 {
     HDWP deferHandle;
-    RECT clientRect;
-    //RECT panelRect;
-    RECT margin;
-    RECT innerMargin;
-    LONG between;
-    ULONG graphWidth;
-    ULONG graphHeight;
-
-    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
-
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
-    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
-
-    between = PhScaleToDisplay(3, Context->WindowDpi);
+    RECT groupRects[4];
+    RECT graphRects[4];
 
     Context->GpuGraphState.Valid = FALSE;
     Context->GpuGraphState.TooltipIndex = ULONG_MAX;
@@ -200,64 +292,91 @@ VOID GpuPropLayoutGraphs(
     Context->GpuCommittedGraphState.Valid = FALSE;
     Context->GpuCommittedGraphState.TooltipIndex = ULONG_MAX;
 
-    //PhLayoutManagerLayout(&Context->LayoutManager);
-    PhGetClientRect(Context->WindowHandle, &clientRect);
-
-    // Limit the rectangle bottom to the top of the panel.
-    //GetWindowRect(Context->PanelHandle, &panelRect);
-    //MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
-    //clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
-
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 3) / 4;
+    GpuPropGetGraphRects(Context, groupRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(8);
 
-    deferHandle = DeferWindowPos(deferHandle, Context->GpuGroupBox, NULL, margin.left, margin.top, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->GpuGroupBox,
+        NULL,
+        groupRects[0].left,
+        groupRects[0].top,
+        groupRects[0].right - groupRects[0].left,
+        groupRects[0].bottom - groupRects[0].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->GpuGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->MemGroupBox, NULL, margin.left, margin.top + graphHeight + between, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->MemGroupBox,
+        NULL,
+        groupRects[1].left,
+        groupRects[1].top,
+        groupRects[1].right - groupRects[1].left,
+        groupRects[1].bottom - groupRects[1].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->MemGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + graphHeight + between + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->SharedGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 2, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->SharedGroupBox,
+        NULL,
+        groupRects[2].left,
+        groupRects[2].top,
+        groupRects[2].right - groupRects[2].left,
+        groupRects[2].bottom - groupRects[2].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->SharedGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 2 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->CommittedGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 3, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->CommittedGroupBox,
+        NULL,
+        groupRects[3].left,
+        groupRects[3].top,
+        groupRects[3].right - groupRects[3].left,
+        groupRects[3].bottom - groupRects[3].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->CommittedGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 3 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -363,10 +482,6 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
-            context->GpuGroupBox = GetDlgItem(WindowHandle, IDC_GROUPGPU);
-            context->MemGroupBox = GetDlgItem(WindowHandle, IDC_GROUPMEM);
-            context->SharedGroupBox = GetDlgItem(WindowHandle, IDC_GROUPSHARED);
-            context->CommittedGroupBox = GetDlgItem(WindowHandle, IDC_GROUPCOMMIT);
             propPageContext->Context = context;
 
             //PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
@@ -384,11 +499,6 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             SetWindowPos(context->MemGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             SetWindowPos(context->SharedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             SetWindowPos(context->CommittedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-
-            PhSetWindowStyle(context->GpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-            PhSetWindowStyle(context->MemGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-            PhSetWindowStyle(context->SharedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-            PhSetWindowStyle(context->CommittedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
 
             PhInitializeThemeWindowGroupBoxEx(context->GpuGroupBox);
             PhInitializeThemeWindowGroupBoxEx(context->MemGroupBox);
@@ -422,6 +532,14 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 DestroyWindow(context->SharedGraphHandle);
             if (context->CommittedGraphHandle)
                 DestroyWindow(context->CommittedGraphHandle);
+            if (context->GpuGroupBox)
+                DestroyWindow(context->GpuGroupBox);
+            if (context->MemGroupBox)
+                DestroyWindow(context->MemGroupBox);
+            if (context->SharedGroupBox)
+                DestroyWindow(context->SharedGroupBox);
+            if (context->CommittedGroupBox)
+                DestroyWindow(context->CommittedGroupBox);
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);

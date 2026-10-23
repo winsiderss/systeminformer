@@ -2537,43 +2537,6 @@ static BOOLEAN EtpCacheLatencyGetPageRect(
 }
 
 /**
- * Creates the overview tab graph controls.
- *
- * \param Context Cache latency dialog context.
- */
-VOID EtCacheLatencyCreateGraphs(
-    _Inout_ PET_CACHE_LATENCY_CONTEXT Context
-    )
-{
-    for (ULONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
-    {
-        // Visibility is owned by the tab selection, so WS_VISIBLE is not set here.
-        Context->GraphHandles[level] = PhCreateWindow(
-            ET_CACHE_GRAPH_CLASSNAME,
-            NULL,
-            WS_CHILD | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
-            Context->WindowHandle,
-            NULL,
-            NULL,
-            NULL
-            );
-
-        SendMessage(
-            Context->GraphHandles[level],
-            ET_CGM_SETCOLOR,
-            PhGetIntegerSetting(EtCacheLatencyLevelColorSetting(level)),
-            0
-            );
-        SendMessage(Context->GraphHandles[level], ET_CGM_SETDPI, Context->WindowDpi, 0);
-        PhBringWindowToTop(Context->GraphHandles[level]);
-    }
-}
-
-/**
  * Gets the line height of a window's font.
  *
  * \param WindowHandle Window handle.
@@ -2607,12 +2570,17 @@ LONG EtCacheLatencyGetTextHeight(
 }
 
 /**
- * Positions the overview tab controls inside the tab display area.
+ * Calculates the overview tab group box and graph rectangles.
  *
  * \param Context Cache latency dialog context.
+ * \param GroupRects The group box rectangles.
+ * \param GraphRects The graph rectangles.
+ * \return TRUE if the rectangles were calculated, otherwise FALSE.
  */
-VOID EtCacheLatencyLayoutOverview(
-    _Inout_ PET_CACHE_LATENCY_CONTEXT Context
+BOOLEAN EtCacheLatencyGetGraphRects(
+    _In_ PET_CACHE_LATENCY_CONTEXT Context,
+    _Out_writes_(ET_CACHE_LATENCY_LEVELS) RECT GroupRects[ET_CACHE_LATENCY_LEVELS],
+    _Out_writes_(ET_CACHE_LATENCY_LEVELS) RECT GraphRects[ET_CACHE_LATENCY_LEVELS]
     )
 {
     RECT clientRect;
@@ -2623,10 +2591,9 @@ VOID EtCacheLatencyLayoutOverview(
     LONG textHeight;
     LONG columns;
     LONG rows;
-    HDWP deferHandle;
 
     if (!EtpCacheLatencyGetPageRect(Context, &clientRect))
-        return;
+        return FALSE;
 
     margin = PhScaleToDisplay(6, Context->WindowDpi);
 
@@ -2646,9 +2613,89 @@ VOID EtCacheLatencyLayoutOverview(
     cellHeight = (clientRect.bottom - clientRect.top - margin * (rows - 1)) / rows;
 
     if (cellWidth <= 0 || cellHeight <= 0)
-        return;
+        return FALSE;
 
     if (cellHeight - captionHeight - margin <= 0)
+        return FALSE;
+
+    for (LONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
+    {
+        LONG x = clientRect.left + (level % columns) * (cellWidth + margin);
+        LONG y = clientRect.top + (level / columns) * (cellHeight + margin);
+
+        GroupRects[level].left = x;
+        GroupRects[level].top = y;
+        GroupRects[level].right = x + cellWidth;
+        GroupRects[level].bottom = y + cellHeight;
+
+        GraphRects[level].left = x + margin;
+        GraphRects[level].top = y + captionHeight;
+        GraphRects[level].right = x + cellWidth - margin;
+        GraphRects[level].bottom = y + cellHeight - margin;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Creates the overview tab graph controls.
+ *
+ * \param Context Cache latency dialog context.
+ */
+VOID EtCacheLatencyCreateGraphs(
+    _Inout_ PET_CACHE_LATENCY_CONTEXT Context
+    )
+{
+    RECT groupRects[ET_CACHE_LATENCY_LEVELS];
+    RECT graphRects[ET_CACHE_LATENCY_LEVELS];
+
+    if (!EtCacheLatencyGetGraphRects(Context, groupRects, graphRects))
+    {
+        memset(graphRects, 0, sizeof(graphRects));
+    }
+
+    for (ULONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
+    {
+        // Visibility is owned by the tab selection, so WS_VISIBLE is not set here.
+        Context->GraphHandles[level] = PhCreateWindow(
+            ET_CACHE_GRAPH_CLASSNAME,
+            NULL,
+            WS_CHILD | WS_CLIPSIBLINGS,
+            graphRects[level].left,
+            graphRects[level].top,
+            graphRects[level].right - graphRects[level].left,
+            graphRects[level].bottom - graphRects[level].top,
+            Context->WindowHandle,
+            NULL,
+            NULL,
+            NULL
+            );
+
+        SendMessage(
+            Context->GraphHandles[level],
+            ET_CGM_SETCOLOR,
+            PhGetIntegerSetting(EtCacheLatencyLevelColorSetting(level)),
+            0
+            );
+        SendMessage(Context->GraphHandles[level], ET_CGM_SETDPI, Context->WindowDpi, 0);
+        PhBringWindowToTop(Context->GraphHandles[level]);
+    }
+}
+
+/**
+ * Positions the overview tab controls inside the tab display area.
+ *
+ * \param Context Cache latency dialog context.
+ */
+VOID EtCacheLatencyLayoutOverview(
+    _Inout_ PET_CACHE_LATENCY_CONTEXT Context
+    )
+{
+    RECT groupRects[ET_CACHE_LATENCY_LEVELS];
+    RECT graphRects[ET_CACHE_LATENCY_LEVELS];
+    HDWP deferHandle;
+
+    if (!EtCacheLatencyGetGraphRects(Context, groupRects, graphRects))
         return;
 
     deferHandle = BeginDeferWindowPos(ET_CACHE_LATENCY_LEVELS * 2);
@@ -2658,18 +2705,16 @@ VOID EtCacheLatencyLayoutOverview(
 
     for (LONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
     {
-        LONG x = clientRect.left + (level % columns) * (cellWidth + margin);
-        LONG y = clientRect.top + (level / columns) * (cellHeight + margin);
         HDWP nextDefer;
 
         nextDefer = DeferWindowPos(
             deferHandle,
             Context->GroupBoxHandles[level],
             NULL,
-            x,
-            y,
-            cellWidth,
-            cellHeight,
+            groupRects[level].left,
+            groupRects[level].top,
+            groupRects[level].right - groupRects[level].left,
+            groupRects[level].bottom - groupRects[level].top,
             SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOCOPYBITS
             );
 
@@ -2681,10 +2726,10 @@ VOID EtCacheLatencyLayoutOverview(
             deferHandle,
             Context->GraphHandles[level],
             NULL,
-            x + margin,
-            y + captionHeight,
-            cellWidth - margin * 2,
-            cellHeight - captionHeight - margin,
+            graphRects[level].left,
+            graphRects[level].top,
+            graphRects[level].right - graphRects[level].left,
+            graphRects[level].bottom - graphRects[level].top,
             SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOCOPYBITS
             );
 

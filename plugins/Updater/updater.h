@@ -124,6 +124,7 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING Version;
     PPH_STRING RelDate;
     PPH_STRING SetupFileLength;
+    ULONG64 SetupFileLengthValue;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
@@ -475,6 +476,25 @@ VOID UpdaterDestroyHash(
 VOID UpdaterDestroyHashSymCrypt(
     _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     );
+
+// Payload transfers complete before the hash and signature are validated, so a
+// compromised endpoint could otherwise stream an unbounded amount to disk.  Cap
+// every backend at the declared length (plus slack) and never above the hard
+// maximum. (dmex)
+#define UPDATER_MAX_SETUP_LENGTH (512ULL * 1024 * 1024)
+#define UPDATER_SETUP_LENGTH_SLACK (1ULL * 1024 * 1024)
+
+FORCEINLINE ULONG64 UpdaterGetMaxDownloadLength(
+    _In_ struct _PH_UPDATER_CONTEXT* UpdaterContext
+    )
+{
+    ULONG64 declaredLength = UpdaterContext->SetupFileLengthValue;
+
+    if (declaredLength == 0 || declaredLength > UPDATER_MAX_SETUP_LENGTH)
+        return UPDATER_MAX_SETUP_LENGTH;
+
+    return declaredLength + UPDATER_SETUP_LENGTH_SLACK;
+}
 
 FORCEINLINE NTSTATUS UpdaterInitializeHashForContext(
     _Out_ PUPDATER_HASH_CONTEXT* Context,

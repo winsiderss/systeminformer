@@ -655,6 +655,8 @@ PPH_STRING NTAPI PhGetMemoryRegionUseText(
         return PhFormatString(L"LEAP_SECOND_DATA");
     case DesktopHeapRegion:
         return PhFormatString(L"Desktop heap");
+    case ShadowStackRegion:
+        return PhFormatString(L"Shadow stack (thread %lu)", HandleToUlong(MemoryItem->u.ShadowStack.ThreadId));
     default:
         return NULL;
     }

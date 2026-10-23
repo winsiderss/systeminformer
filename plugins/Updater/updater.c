@@ -759,11 +759,17 @@ NTSTATUS UpdateCheckSilentThread(
 
     PhClearCacheDirectory(!!context->PortableMode);
 
+    //
     // Query latest update information from the server.
+    //
+
     if (!QueryUpdateDataWithFailover(context))
         goto CleanupExit;
 
+    //
     // Compare the current version against the latest available version
+    //
+
     if (context->CurrentVersion < context->LatestVersion)
     {
         if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
@@ -1052,7 +1058,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
 
     // Start the clock.
-    PhQuerySystemTime(&timeStart);
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     while (TRUE)
     {
@@ -1069,6 +1075,14 @@ NTSTATUS UpdateDownloadThread(
         // Update was cancelled, cleanup and exit.
         if (context->Cancel)
             goto CleanupExit;
+
+        // A server that ignores its own Content-Length must not be able to keep
+        // streaming into the cache file. (dmex)
+        if (totalDownloaded + bytesDownloaded > UpdaterGetMaxDownloadLength(context))
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            goto CleanupExit;
+        }
 
         // Update the hash of bytes we downloaded.
         status = UpdaterHashDataForContext(hashContext, httpBuffer, bytesDownloaded);
@@ -1099,12 +1113,12 @@ NTSTATUS UpdateDownloadThread(
         PhDelayExecution(1);
 #endif
         // Query the current time
-        PhQuerySystemTime(&timeNow);
+        PhQueryUnbiasedInterruptTime(&timeNow);
 
         // Calculate the number of ticks
         totalDownloaded += bytesWritten;
-        timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
-        timeBitsPerSecond = timeTicks ? totalDownloaded / timeTicks : 0;
+        timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
+        timeBitsPerSecond = timeTicks ? (ULONG64)totalDownloaded * PH_TICKS_PER_SEC / timeTicks : 0;
 
 #ifdef FORCE_NO_STATUS_TIMER
         LONG percent = PhMultiplyDivide((LONG64)totalDownloaded, 100, (LONG64)contentLength);

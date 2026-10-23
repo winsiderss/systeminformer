@@ -559,17 +559,7 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     {
     case WM_INITDIALOG:
         {
-            //if (WindowsVersion >= WINDOWS_8)
-            //{
-            //    // TODO: The container background is drawn before child controls
-            //    // causing slight flickering when switching between sysinfo panels.
-            //    // We need to somehow exclude the container background drawing,
-            //    // setting the container window as composited works well but has
-            //    // slower drawing and should be considered a temporary workaround. (dmex)
-            //    PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
-            //}
-
-            //PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
         }
         break;
     case WM_ERASEBKGND:
@@ -745,9 +735,6 @@ VOID PhSipOnInitDialog(
         PhLoadWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
     else
         PhCenterWindow(PhSipWindow, NULL);
-
-    if (PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
-        ShowWindow(PhSipWindow, SW_MAXIMIZE);
 
     if (InitialSectionName)
         PhInitializeStringRefLongHint(&sectionName, InitialSectionName);
@@ -1230,6 +1217,9 @@ VOID PhSipOnUserMessage(
 
             if (IsMinimized(PhSipWindow))
                 ShowWindow(PhSipWindow, SW_RESTORE);
+            else if (!IsWindowVisible(PhSipWindow) &&
+                PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
+                ShowWindow(PhSipWindow, SW_SHOWMAXIMIZED);
             else
                 ShowWindow(PhSipWindow, SW_SHOW);
 
@@ -2585,6 +2575,24 @@ VOID PhSipEnterSectionView(
     deferHandle = DeferWindowPos(deferHandle, SeparatorControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
 
     EndDeferWindowPos(deferHandle);
+
+    if (!fromSummaryView && NewSection->DialogHandle)
+    {
+        // Keep the outgoing dialog visible until the incoming dialog has painted.
+        SetWindowPos(
+            NewSection->DialogHandle,
+            HWND_TOP,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_SHOWWINDOW
+            );
+        RedrawWindow(
+            NewSection->DialogHandle,
+            NULL,
+            NULL,
+            RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | (IsWindowVisible(PhSipWindow) ? RDW_UPDATENOW : 0)
+            );
+    }
+
     EndDeferWindowPos(containerDeferHandle);
 
     if (oldSection)
@@ -2592,7 +2600,7 @@ VOID PhSipEnterSectionView(
 
     InvalidateRect(NewSection->PanelHandle, NULL, TRUE);
 
-    if (NewSection->DialogHandle)
+    if (fromSummaryView && NewSection->DialogHandle)
         RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
@@ -2618,7 +2626,10 @@ VOID PhSipEnterSectionViewInner(
     if (Section->DialogHandle)
     {
         if (Section == CurrentSection)
-            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+        {
+            if (FromSummaryView)
+                *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+        }
         else
             *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY | SWP_NOREDRAW);
     }
