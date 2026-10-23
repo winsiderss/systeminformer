@@ -8682,6 +8682,9 @@ NTSTATUS PhMappedImageUpdateHashData(
 
     __try
     {
+#if defined(_WIN64)
+        status = PhUpdateHash(HashContext, Buffer, (SIZE_T)BufferLength);
+#else
         if (BufferLength >= ULONG_MAX)
         {
             PBYTE address;
@@ -8689,7 +8692,7 @@ NTSTATUS PhMappedImageUpdateHashData(
             ULONG blockSize;
 
             // Chunk the data into smaller blocks when the buffer length
-            // overflows the maximum length of the BCryptHashData function.
+            // overflows the 32-bit SIZE_T length of the PhUpdateHash function.
 
             address = (PBYTE)Buffer;
             numberOfBytes = BufferLength;
@@ -8711,8 +8714,9 @@ NTSTATUS PhMappedImageUpdateHashData(
         }
         else
         {
-            status = PhUpdateHash(HashContext, Buffer, (ULONG)BufferLength);
+            status = PhUpdateHash(HashContext, Buffer, (SIZE_T)BufferLength);
         }
+#endif
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
