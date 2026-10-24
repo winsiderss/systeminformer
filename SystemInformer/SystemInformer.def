@@ -90,6 +90,10 @@ EXPORTS
     PhGetGeneralCallback
     PhGetImageListIcon
     PhGetListViewContextMenuPoint
+    PhGetMemoryRegionUseText
+    PhGetNetworkConnections
+    PhGetPerTcp6ConnectionEStats
+    PhGetPerTcpConnectionEStats
     PhGetProcessBasicInformation
     PhGetProcessIsSuspended
     PhGetProcessKnownType
@@ -172,6 +176,8 @@ EXPORTS
     PhSelectWindowFromScreenTargeting
     PhSetApplicationWindowIcon
     PhSetApplicationWindowIconEx
+    PhSetPerTcp6ConnectionEStats
+    PhSetPerTcpConnectionEStats
     PhSetProcessItemAffinityMask
     PhSetProcessItemIoPriority
     PhSetProcessItemPagePriority
@@ -180,6 +186,7 @@ EXPORTS
     PhSetProcessItemThrottlingState
     PhSetSelectThreadIdProcessPropContext
     PhSetStaticWindowIcon
+    PhSetTcpEntry
     PhSetWindowIcon
     PhShellExecuteUserString
     PhShellOpenKey
