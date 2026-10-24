@@ -121,6 +121,7 @@ set(SOURCES
     "main.c"
     "mainwnd.c"
     "mdump.c"
+    "memcfg.c"
     "memedit.c"
     "memlist.c"
     "memlists.c"
