@@ -884,10 +884,6 @@ VOID NTAPI TaskbarInitialize(
     VOID
     );
 
-BOOLEAN TaskbarIsOwnNotify(
-    _In_ PPH_TASKBAR_NOTIFY Notify
-    );
-
 VOID NTAPI TaskbarUpdateEvents(
     VOID
     );

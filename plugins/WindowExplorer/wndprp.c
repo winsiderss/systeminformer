@@ -896,7 +896,7 @@ NTSTATUS WepPropertiesThreadStart(
             WepWindowPropStoreDlgProc,
             WepCreateWindowPropertiesPageContext(sizeof(WINDOW_PROPERTIES_PROPSTORE_PAGE_CONTEXT), context));
         PvAddPropPage(propContext, newPage);
-        
+
         // DWM attributes
         newPage = PvCreatePropPageContext(
             L"DwmAttributes",
@@ -942,8 +942,9 @@ NTSTATUS WepPropertiesThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID WepLayoutWindowPropertiesOptionsButton(
-    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+VOID WepGetWindowPropertiesOptionsButtonRect(
+    _In_ HWND PropertySheetHandle,
+    _Out_ PRECT ButtonRect
     )
 {
     RECT clientRect;
@@ -952,22 +953,38 @@ VOID WepLayoutWindowPropertiesOptionsButton(
     LONG buttonWidth;
     LONG buttonHeight;
 
-    if (!Context->PropertySheetHandle || !Context->OptionsButtonHandle)
-        return;
-
-    dpiValue = PhGetWindowDpi(Context->PropertySheetHandle);
+    dpiValue = PhGetWindowDpi(PropertySheetHandle);
     padding = MulDiv(8, dpiValue, USER_DEFAULT_SCREEN_DPI);
     buttonWidth = MulDiv(75, dpiValue, USER_DEFAULT_SCREEN_DPI);
     buttonHeight = MulDiv(23, dpiValue, USER_DEFAULT_SCREEN_DPI);
-    GetClientRect(Context->PropertySheetHandle, &clientRect);
+
+    if (!GetClientRect(PropertySheetHandle, &clientRect))
+        memset(&clientRect, 0, sizeof(RECT));
+
+    ButtonRect->left = padding;
+    ButtonRect->top = clientRect.bottom - padding - buttonHeight;
+    ButtonRect->right = ButtonRect->left + buttonWidth;
+    ButtonRect->bottom = ButtonRect->top + buttonHeight;
+}
+
+VOID WepLayoutWindowPropertiesOptionsButton(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    RECT buttonRect;
+
+    if (!Context->PropertySheetHandle || !Context->OptionsButtonHandle)
+        return;
+
+    WepGetWindowPropertiesOptionsButtonRect(Context->PropertySheetHandle, &buttonRect);
 
     SetWindowPos(
         Context->OptionsButtonHandle,
         NULL,
-        padding,
-        clientRect.bottom - padding - buttonHeight,
-        buttonWidth,
-        buttonHeight,
+        buttonRect.left,
+        buttonRect.top,
+        buttonRect.right - buttonRect.left,
+        buttonRect.bottom - buttonRect.top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 }
@@ -2522,10 +2539,10 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
 
                 HANDLE propValue;
                 NTSTATUS status;
-                
-                status = WeGetWindowPropertyInfo(context->TargetWindowHandle, PhGetString(context->WindowPropString), 
+
+                status = WeGetWindowPropertyInfo(context->TargetWindowHandle, PhGetString(context->WindowPropString),
                     NULL, &propValue, NULL, NULL);
-                
+
                 if (NT_SUCCESS(status))
                     PhPrintPointer(value, (PVOID)propValue);
                 else
@@ -2870,7 +2887,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                                 }
 
                                 HANDLE removedValue = WeRemoveWindowProperty(context->Parent->WindowHandle, PhGetString(listviewItems[0]));
-                                
+
                                 if (!removedValue && GetLastError() != ERROR_SUCCESS)
                                 {
                                     status = PhGetLastWin32ErrorAsNtStatus();
