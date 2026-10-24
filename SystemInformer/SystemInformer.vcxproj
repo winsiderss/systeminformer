@@ -339,6 +339,7 @@
         <ClCompile Include="thrdlist.c" />
         <ClCompile Include="thrdprv.c" />
         <ClCompile Include="thrdctx.c" />
+        <ClCompile Include="thrdshstk.c" />
         <ClCompile Include="thrdstk.c" />
         <ClCompile Include="thrdstks.c" />
         <ClCompile Include="tokprp.c" />

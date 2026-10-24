@@ -186,6 +186,8 @@ set(SOURCES
     "sysscmem.c"
     "thrdlist.c"
     "thrdprv.c"
+    "thrdctx.c"
+    "thrdshstk.c"
     "thrdstk.c"
     "thrdstks.c"
     "tokprp.c"
