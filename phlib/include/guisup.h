@@ -4580,6 +4580,13 @@ PhInitializeThemeWindowGroupBoxEx(
 PHLIBAPI
 VOID
 NTAPI
+PhInitializeThemeWindowGroupBoxes(
+    _In_ HWND ParentWindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhInitializeThemeWindowProgressBar(
     _In_ HWND ProgressBarHandle
     );
