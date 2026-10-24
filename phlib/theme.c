@@ -344,7 +344,7 @@ BOOLEAN PhEnableThemeListviewBorder = FALSE;
 BOOLEAN PhEnableWindowBorderColor = TRUE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
-COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
+COLORREF PhThemeWindowBackgroundColor = RGB(0, 0, 0); // RGB(43, 43, 43);
 COLORREF PhThemeWindowBackground2Color = RGB(65, 65, 65);
 COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
@@ -1041,8 +1041,6 @@ static VOID CALLBACK PhpThemePaintGroupBoxCallback(
     _In_opt_ PVOID Context
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-
     ThemeWindowRenderClippedGroupBoxControl(WindowHandle, PaintDc, ClientRect);
 }
 
@@ -1053,8 +1051,6 @@ static VOID CALLBACK PhpThemePaintProgressBarCallback(
     _In_opt_ PVOID Context
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-
     ThemeWindowRenderProgressBarControl(WindowHandle, PaintDc, ClientRect);
 }
 
@@ -2191,6 +2187,39 @@ VOID PhInitializeThemeWindowGroupBoxEx(
     //PhSetWindowStyle(GroupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
 
     //InvalidateRect(GroupBoxHandle, NULL, FALSE);
+}
+
+// Dialog templates commonly reuse IDC_STATIC for group boxes, so enumerate
+// the child windows rather than looking them up by ID. (dmex)
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN CALLBACK PhpInitializeThemeWindowGroupBoxesEnumCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    WCHAR windowClassName[16];
+
+    if (
+        NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)) &&
+        PhEqualStringZ(windowClassName, WC_BUTTON, TRUE) &&
+        (PhGetWindowStyle(WindowHandle) & BS_TYPEMASK) == BS_GROUPBOX
+        )
+    {
+        PhInitializeThemeWindowGroupBoxEx(WindowHandle);
+    }
+
+    return TRUE;
+}
+
+VOID PhInitializeThemeWindowGroupBoxes(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    PhpThemeEnumDirectChildWindows(
+        ParentWindowHandle,
+        PhpInitializeThemeWindowGroupBoxesEnumCallback,
+        NULL
+        );
 }
 
 VOID PhInitializeWindowThemeMainMenu(
@@ -4678,7 +4707,7 @@ VOID ThemeWindowRenderProgressBarControl(
 
         if (range.iHigh > range.iLow)
         {
-            LONG fillWidth = MulDiv(
+            LONG fillWidth = PhMultiplyDivideSigned(
                 fillRect.right - fillRect.left,
                 position - range.iLow,
                 range.iHigh - range.iLow
