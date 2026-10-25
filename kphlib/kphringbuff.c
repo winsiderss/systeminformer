@@ -12,13 +12,6 @@
 #include <kphlibbase.h>
 #include <kphringbuff.h>
 
-#ifndef _KERNEL_MODE
-#include <ntintsafe.h>
-#ifndef Add2Ptr
-#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
-#endif
-#endif
-
 /**
  * \brief Processes the ring buffer.
  *
