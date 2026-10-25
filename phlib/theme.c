@@ -5410,19 +5410,14 @@ VOID ThemeWindowRenderComboBox(
 
     if (Context->ThemeHandle)
     {
-        SIZE dropdownSize = { 0 };
+        COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
 
-        PhGetThemePartSize(
-            Context->ThemeHandle,
-            bufferDc,
-            CP_DROPDOWNBUTTONRIGHT,
-            CBXSR_NORMAL,
-            NULL,
-            THEMEPARTSIZE_TRUE,
-            &dropdownSize
-            );
-
-        bufferRect.left = clientRect->right - dropdownSize.cx;
+        // The theme part size of CP_DROPDOWNBUTTONRIGHT is only the image border (a few pixels),
+        // which clips the glyph against the frame. Draw into the native button rectangle instead.
+        if (CallWindowProc(WindowProcedure, WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
+            bufferRect.left = info.rcButton.left;
+        else
+            bufferRect.left = clientRect->right - PhGetSystemMetrics(SM_CXVSCROLL, Context->WindowDpi);
 
         PhDrawThemeBackground(
             Context->ThemeHandle,
