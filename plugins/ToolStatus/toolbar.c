@@ -404,10 +404,6 @@ VOID SearchBoxCreate(
     VOID
     )
 {
-    ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
-    ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
-    NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
-
     SearchboxHandle = PhCreateWindowEx(
         WC_EDIT,
         NULL,
@@ -427,6 +423,13 @@ VOID SearchBoxCreate(
         SearchControlCallback,
         NULL
         );
+
+    if (!SearchboxHandle)
+        return;
+
+    ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
+    ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
+    NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 }
 
 /**

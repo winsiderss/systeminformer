@@ -5534,6 +5534,42 @@ VOID PhSetWindowAlwaysOnTop(
         );
 }
 
+/**
+ * Determines whether the specified window is overlapped by other windows.
+ *
+ * \param WindowHandle Handle to the window to check for overlap.
+ * \return TRUE if the window is overlapped by other windows; FALSE otherwise.
+ */
+BOOLEAN PhIsWindowOverlapped(
+    _In_ HWND WindowHandle
+    )
+{
+    RECT rectThisWindow = { 0 };
+    RECT rectOtherWindow = { 0 };
+    RECT rectIntersection = { 0 };
+    HWND windowHandle = WindowHandle;
+
+    if (!PhGetWindowRect(WindowHandle, &rectThisWindow))
+        return FALSE;
+
+    while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
+    {
+        if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
+            continue;
+
+        if (!PhGetWindowRect(windowHandle, &rectOtherWindow))
+            continue;
+
+        if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
+            PhIntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 _Success_(return)
 NTSTATUS PhSendMessageTimeout(
     _In_ HWND WindowHandle,
@@ -7619,24 +7655,25 @@ NTSTATUS PhSetWindowCompositionAttribute(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* SetWindowCompositionAttribute_I)(
-        _In_ HWND WindowHandle,
-        _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
-        ) = NULL;
+    static typeof(&NtUserSetWindowCompositionAttribute) NtUserSetWindowCompositionAttribute_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        SetWindowCompositionAttribute_I = PhGetDllProcedureAddressZ(L"user32.dll", "SetWindowCompositionAttribute", 0);
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"win32u.dll"))
+        {
+            NtUserSetWindowCompositionAttribute_I = PhGetDllBaseProcedureAddress(baseAddress, "NtUserSetWindowCompositionAttribute", 0);
+        }
+
         PhEndInitOnce(&initOnce);
     }
 
-    if (SetWindowCompositionAttribute_I)
-    {
-        if (SetWindowCompositionAttribute_I(WindowHandle, AttributeData))
-        {
-            return STATUS_SUCCESS;
-        }
-    }
+    if (!NtUserSetWindowCompositionAttribute_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (NtUserSetWindowCompositionAttribute_I(WindowHandle, AttributeData))
+        return STATUS_SUCCESS;
 
     return PhGetLastWin32ErrorAsNtStatus();
 }

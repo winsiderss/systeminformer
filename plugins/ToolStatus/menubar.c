@@ -309,7 +309,10 @@ VOID ToolStatusMenuBarChangeDropdown(
     TsMenuBarPressedItemIndex = ItemIndex;
     TsMenuBarSelectFromKeyboard = FromKeyboard;
     TsMenuBarContinueHotTrack = TRUE;
-    SendMessage(TsMenuBarWindowHandle, WM_CANCELMODE, 0, 0);
+
+    // The DirectComposition menu runs its own message loop and ignores
+    // WM_CANCELMODE sent to the owner window, so cancel it directly. (dmex)
+    PhCancelEMenu();
 }
 
 /**

@@ -2821,6 +2821,13 @@ PhSetWindowAlwaysOnTop(
     _In_ BOOLEAN AlwaysOnTop
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsWindowOverlapped(
+    _In_ HWND WindowHandle
+    );
+
 _Success_(return)
 PHLIBAPI
 NTSTATUS
