@@ -12,13 +12,6 @@
 #include <kphlibbase.h>
 #include <kphmsgdyn.h>
 
-#ifndef _KERNEL_MODE
-#include <ntintsafe.h>
-#ifndef Add2Ptr
-#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
-#endif
-#endif
-
 /**
  * \brief Finds a dynamic message entry in the table.
  *
