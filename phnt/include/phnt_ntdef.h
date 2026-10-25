@@ -718,9 +718,11 @@ typedef struct _KSYSTEM_TIME
  * \param P The base pointer.
  * \param I The byte offset to add.
  * \return A pointer equal to @p P advanced by @p I bytes.
- * \remarks The addition is performed using `PUCHAR` arithmetic and cast to `PVOID`.
+ * \remarks Defined with integer arithmetic to avoid undefined behavior on pointer
+ * overflow. Clang elides comparisons that depend on it, MSVC does not. The result
+ * is otherwise identical to the WDK definition.
  */
-#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
+#define Add2Ptr(P,I) ((PVOID)((ULONG_PTR)(P) + (ULONG_PTR)(I)))
 #endif
 
 #ifndef PtrOffset
@@ -979,7 +981,12 @@ typedef struct _KSYSTEM_TIME
 #endif
 
 #ifndef Add2Ptr
-#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
+//
+// Defined with integer arithmetic to avoid undefined behavior on pointer
+// overflow. Clang elides comparisons that depend on it, MSVC does not. The
+// result is otherwise identical to the WDK definition.
+//
+#define Add2Ptr(P,I) ((PVOID)((ULONG_PTR)(P) + (ULONG_PTR)(I)))
 #endif
 #ifndef PtrOffset
 #define PtrOffset(B,O) ((ULONG)((ULONG_PTR)(O) - (ULONG_PTR)(B)))

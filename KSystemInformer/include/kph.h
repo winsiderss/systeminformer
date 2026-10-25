@@ -10,18 +10,11 @@
  */
 
 #pragma once
-#pragma warning(push)
-#pragma warning(disable: 5103) // invalid preprocessing token (/Zc:preprocessor)
-#include <ntifs.h>
-#include <ntintsafe.h>
-#include <minwindef.h>
-#include <ntstrsafe.h>
-#include <fltKernel.h>
+#include <kphlibbase.h>
 #include <ntimage.h>
 #include <bcrypt.h>
 #include <symcrypt.h>
 #include <usermode_accessors.h>
-#pragma warning(pop)
 #include <pooltags.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
 #include <phnt.h>
