@@ -170,7 +170,7 @@
     <ClCompile Include="directdraw.cpp" />
     <ClCompile Include="dspick.c" />
     <ClCompile Include="emenu.c" />
-    <ClCompile Include="emenudx.cpp" />
+    <ClCompile Include="controls\emenudx.cpp" />
     <ClCompile Include="error.c" />
     <ClCompile Include="extlv.c" />
     <ClCompile Include="fastlock.c" />
@@ -180,8 +180,8 @@
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
-    <ClCompile Include="graphbar.c" />
-    <ClCompile Include="graphscroll.c" />
+    <ClCompile Include="controls\graphbar.c" />
+    <ClCompile Include="controls\scrollbar.c" />
     <ClCompile Include="guisup.c" />
     <ClCompile Include="guisuplistview.cpp" />
     <ClCompile Include="handle.c" />
@@ -222,7 +222,7 @@
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
-    <ClCompile Include="searchbox.c" />
+    <ClCompile Include="controls\searchbox.c" />
     <ClCompile Include="searchmatch.c" />
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
@@ -237,7 +237,7 @@
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
     <ClCompile Include="tabnew.c" />
-    <ClCompile Include="graphprp.c" />
+    <ClCompile Include="controls\propwnd.c" />
     <ClCompile Include="treenew.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="workqueue.c" />

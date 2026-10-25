@@ -21,8 +21,9 @@
 //
 // Creating DirectComposition with the D2D device enables D2D batching. Each
 // surface update supplies an ID2D1DeviceContext; DirectComposition owns its
-// target and BeginDraw/EndDraw lifecycle. Drawing uses the supplied update
-// offset in DIPs and commits after the surface update is complete.
+// target and BeginDraw/EndDraw lifecycle. The menu is rendered at a fixed origin
+// into a cached bitmap, copied to the supplied update offset in device pixels and
+// committed after the surface update is complete.
 //
 // The DirectComposition backend builds the following visual tree:
 //
@@ -66,7 +67,9 @@
 #include <dwmapi.h>
 
 #include <wrl.h>
+#include <algorithm>
 #include <span>
+#include <utility>
 
 using Microsoft::WRL::ComPtr;
 
@@ -137,7 +140,7 @@ typedef struct _PH_EMENU_DX_METRICS
     BOOLEAN ShortcutColorIsText; // shortcuts in the label color instead of grey
 } PH_EMENU_DX_METRICS, *PPH_EMENU_DX_METRICS;
 
-typedef enum _PH_EMENU_DX_BACKDROP_TYPE
+typedef enum _PH_EMENU_DX_BACKDROP_TYPE : ULONG
 {
     PhEMenuDxBackdropNone,
     PhEMenuDxBackdropStandard, // CreateBackdropBrush (Win10 v1607+)
@@ -178,6 +181,8 @@ public:
 
     static VOID UnregisterWindowClass();
 
+    static VOID CancelThreadMenus();
+
     static HBITMAP CreateGlyphBitmap(
         _In_ PCWSTR Glyph,
         _In_ BOOLEAN ColorFont,
@@ -198,14 +203,14 @@ private:
         );
 
     BOOLEAN Run(
-        _In_ HWND OwnerWindowHandle,
+        _In_ HWND OwnerWindow,
         _In_ LONG X,
         _In_ LONG Y,
         _Out_ PPH_EMENU_ITEM* SelectedItem
         );
 
     HRESULT BeforeEnteringMessageLoop(
-        _In_ HWND OwnerWindowHandle,
+        _In_ HWND OwnerWindow,
         _In_ LONG X,
         _In_ LONG Y
         );
@@ -215,7 +220,7 @@ private:
     VOID AfterLeavingMessageLoop();
 
     HRESULT CreateMainWindow(
-        _In_ HWND OwnerWindowHandle,
+        _In_ HWND OwnerWindow,
         _In_ LONG X,
         _In_ LONG Y
         );
@@ -276,7 +281,7 @@ private:
 
     HRESULT DrawDCompShadowSurface();
 
-    VOID ExcludeParentMenusFromShadow(
+    VOID ExcludeOccludersFromShadow(
         _In_ ID2D1DeviceContext* DrawingContext,
         _In_ POINT Offset
         );
@@ -312,17 +317,17 @@ private:
         _In_ FLOAT MaxWidth,
         _In_ FLOAT MaxHeight,
         _Out_ IDWriteTextLayout** Layout
-        );
+        ) const;
 
     HRESULT CreateBitmapFromIcon(
         _In_ HICON Icon,
         _Out_ ID2D1Bitmap** Bitmap
-        );
+        ) const;
 
     HRESULT CreateBitmapFromHBitmap(
         _In_ HBITMAP BitmapHandle,
         _Out_ ID2D1Bitmap** Bitmap
-        );
+        ) const;
 
     VOID RebuildTextLayouts();
 
@@ -548,6 +553,7 @@ private:
     static PPH_LIST MenuList;
 
     HWND WindowHandle{};
+    HWND OwnerWindowHandle{}; // The window passed to PhShowEMenuDX (not GW_OWNER, which is the top-level ancestor).
     ULONG ThreadId{};
     ULONG ResourceGeneration{};
 
@@ -640,6 +646,7 @@ private:
     IDCompositionDevice2* DCompDevice{};
     IDCompositionTarget* DCompTarget{};
     IDCompositionSurface* DCompSurface{};
+    ID2D1Bitmap1* MenuBitmap{}; // menu rendered at a fixed origin, copied into DCompSurface
     IDCompositionVisual2* RootVisual{};
     IDCompositionVisual2* MenuVisual{};
     IDCompositionVisual2* HostVisual{};
@@ -835,45 +842,52 @@ BOOLEAN PhShowEMenuDX(
     _Out_ PPH_EMENU_ITEM* SelectedItem
     )
 {
-    *SelectedItem = NULL;
+    *SelectedItem = nullptr;
 
     // Let PhShowEMenu fall back to TrackPopupMenu for menus this renderer can't
     // reproduce (columns, right-to-left order, menu bars) and for empty menus.
     if (!PH_EMENU_DX::IsMenuSupported(Menu))
         return FALSE;
 
-    return PH_EMENU_DX::ShowInternal(Menu, WindowHandle, Flags, Align, X, Y, DarkMode, NULL, SelectedItem);
+    return PH_EMENU_DX::ShowInternal(Menu, WindowHandle, Flags, Align, X, Y, DarkMode, nullptr, SelectedItem);
+}
+
+VOID PhCancelEMenuDX(
+    VOID
+    )
+{
+    PH_EMENU_DX::CancelThreadMenus();
 }
 
 PH_QUEUED_LOCK PH_EMENU_DX::SharedLock = PH_QUEUED_LOCK_INIT;
 ULONG PH_EMENU_DX::SharedGeneration = 0;
 #ifdef PH_EMENU_DX_ENABLE_D3D12
-ID3D12Device* PH_EMENU_DX::SharedD3D12Device = NULL;
-ID3D12CommandQueue* PH_EMENU_DX::SharedD3D12CommandQueue = NULL;
-ID3D11Device* PH_EMENU_DX::SharedD3D11Device12 = NULL;
-ID3D11On12Device* PH_EMENU_DX::SharedD3D11On12Device = NULL;
+ID3D12Device* PH_EMENU_DX::SharedD3D12Device = nullptr;
+ID3D12CommandQueue* PH_EMENU_DX::SharedD3D12CommandQueue = nullptr;
+ID3D11Device* PH_EMENU_DX::SharedD3D11Device12 = nullptr;
+ID3D11On12Device* PH_EMENU_DX::SharedD3D11On12Device = nullptr;
 #endif
 #ifdef PH_EMENU_DX_ENABLE_D3D11
-ID3D11Device* PH_EMENU_DX::SharedD3D11Device = NULL;
+ID3D11Device* PH_EMENU_DX::SharedD3D11Device = nullptr;
 #endif
-ID3D10Device1* PH_EMENU_DX::SharedD3DDevice = NULL;
-ID2D1Factory1* PH_EMENU_DX::SharedD2DFactory = NULL;
-ID2D1Device* PH_EMENU_DX::SharedD2DDevice = NULL;
+ID3D10Device1* PH_EMENU_DX::SharedD3DDevice = nullptr;
+ID2D1Factory1* PH_EMENU_DX::SharedD2DFactory = nullptr;
+ID2D1Device* PH_EMENU_DX::SharedD2DDevice = nullptr;
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
-ICompositor* PH_EMENU_DX::SharedCompositor = NULL;
+ICompositor* PH_EMENU_DX::SharedCompositor = nullptr;
 #else
-IDCompositionDevice2* PH_EMENU_DX::SharedDCompDevice = NULL;
-IDCompositionDesktopDevice* PH_EMENU_DX::SharedDesktopDevice = NULL;
-IDCompositionDevice3* PH_EMENU_DX::SharedCompositionDevice3 = NULL;
+IDCompositionDevice2* PH_EMENU_DX::SharedDCompDevice = nullptr;
+IDCompositionDesktopDevice* PH_EMENU_DX::SharedDesktopDevice = nullptr;
+IDCompositionDevice3* PH_EMENU_DX::SharedCompositionDevice3 = nullptr;
 #endif
-IDWriteFactory* PH_EMENU_DX::SharedDWriteFactory = NULL;
-IWICImagingFactory* PH_EMENU_DX::SharedWicFactory = NULL;
+IDWriteFactory* PH_EMENU_DX::SharedDWriteFactory = nullptr;
+IWICImagingFactory* PH_EMENU_DX::SharedWicFactory = nullptr;
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
-ICompositionGraphicsDevice* PH_EMENU_DX::SharedCompositionGraphicsDevice = NULL;
+ICompositionGraphicsDevice* PH_EMENU_DX::SharedCompositionGraphicsDevice = nullptr;
 #endif
 
 PH_QUEUED_LOCK PH_EMENU_DX::MenuListLock = PH_QUEUED_LOCK_INIT;
-PPH_LIST PH_EMENU_DX::MenuList = NULL;
+PPH_LIST PH_EMENU_DX::MenuList = nullptr;
 
 LRESULT CALLBACK PH_EMENU_DX::WindowProc(
     _In_ HWND WindowHandle,
@@ -905,13 +919,13 @@ LRESULT CALLBACK PH_EMENU_DX::WindowProc(
         context->OnDestroy(WindowHandle);
         break;
     case WM_NCDESTROY:
-        context->WindowHandle = NULL;
+        context->WindowHandle = nullptr;
         PhRemoveWindowContextEx(WindowHandle);
         break;
     case WM_MOUSEACTIVATE:
         return MA_NOACTIVATE;
     case WM_SETCURSOR:
-        if (context->OnSetCursor(WindowHandle, (HWND)wParam, LOWORD(lParam), HIWORD(lParam)))
+        if (context->OnSetCursor(WindowHandle, reinterpret_cast<HWND>(wParam), LOWORD(lParam), HIWORD(lParam)))
             return TRUE;
         break;
     case WM_NCHITTEST:
@@ -943,7 +957,7 @@ LRESULT CALLBACK PH_EMENU_DX::WindowProc(
         context->OnMouseLeave(WindowHandle);
         break;
     case WM_TIMER:
-        context->OnTimer(WindowHandle, (ULONG)wParam);
+        context->OnTimer(WindowHandle, static_cast<ULONG>(wParam));
         break;
     case WM_LBUTTONUP:
         context->OnLButtonUp(WindowHandle, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -956,21 +970,21 @@ LRESULT CALLBACK PH_EMENU_DX::WindowProc(
         }
         break;
     case WM_KEYDOWN:
-        context->OnKeyDown(WindowHandle, (ULONG)wParam);
+        context->OnKeyDown(WindowHandle, static_cast<ULONG>(wParam));
         break;
     case WM_SYSKEYDOWN:
-        context->OnSysKeyDown(WindowHandle, (ULONG)wParam, !!(lParam & 0x40000000));
+        context->OnSysKeyDown(WindowHandle, static_cast<ULONG>(wParam), !!(lParam & 0x40000000));
         break;
     case WM_CHAR:
     case WM_SYSCHAR:
-        if (context->OnChar(WindowHandle, (WCHAR)wParam))
+        if (context->OnChar(WindowHandle, static_cast<WCHAR>(wParam)))
             return 0;
         break;
     case WM_ACTIVATEAPP:
-        context->OnActivateApp(WindowHandle, (BOOLEAN)wParam);
+        context->OnActivateApp(WindowHandle, static_cast<BOOLEAN>(wParam));
         break;
     case WM_ACTIVATE:
-        return context->OnActivate(WindowHandle, (ULONG)wParam, (HWND)lParam);
+        return context->OnActivate(WindowHandle, static_cast<ULONG>(wParam), reinterpret_cast<HWND>(lParam));
     case WM_CANCELMODE:
         context->OnCancelMode(WindowHandle);
         break;
@@ -998,7 +1012,7 @@ PH_EMENU_DX::PH_EMENU_DX(
     this->IsDarkMode = DarkMode;
     this->HoverIndex = -1;
     this->ParentContext = ParentContext;
-    this->IsSubMenu = ParentContext != NULL;
+    this->IsSubMenu = ParentContext != nullptr;
 
     // Submenus keep the metrics of their root so a chain never mixes the two sizes.
     if (ParentContext)
@@ -1013,7 +1027,7 @@ PH_EMENU_DX::~PH_EMENU_DX()
 }
 
 BOOLEAN PH_EMENU_DX::Run(
-    _In_ HWND OwnerWindowHandle,
+    _In_ HWND OwnerWindow,
     _In_ LONG X,
     _In_ LONG Y,
     _Out_ PPH_EMENU_ITEM* SelectedItem
@@ -1022,9 +1036,9 @@ BOOLEAN PH_EMENU_DX::Run(
     BOOLEAN result = FALSE;
 
     if (SelectedItem)
-        *SelectedItem = NULL;
+        *SelectedItem = nullptr;
 
-    if (HR_SUCCESS(this->BeforeEnteringMessageLoop(OwnerWindowHandle, X, Y)))
+    if (HR_SUCCESS(this->BeforeEnteringMessageLoop(OwnerWindow, X, Y)))
     {
         result = this->EnterMessageLoop();
 
@@ -1039,7 +1053,7 @@ BOOLEAN PH_EMENU_DX::Run(
 }
 
 HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
-    _In_ HWND OwnerWindowHandle,
+    _In_ HWND OwnerWindow,
     _In_ LONG X,
     _In_ LONG Y
     )
@@ -1048,7 +1062,7 @@ HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
     {
         RECT windowRect = { X, Y, X + 1, Y + 1 };
 
-        Dpi = (FLOAT)PhGetMonitorDpi(NULL, &windowRect);
+        Dpi = static_cast<FLOAT>(PhGetMonitorDpi(nullptr, &windowRect));
 
         if (Dpi == 0)
         {
@@ -1065,12 +1079,11 @@ HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
 
         if (GetMonitorInfo(MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST), &monitorInfo))
         {
-            FLOAT screenHeight = (FLOAT)(monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) / Scale;
+            FLOAT screenHeight = static_cast<FLOAT>(monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) / Scale;
 
             ScrollViewVisibleHeight = screenHeight * (IsSubMenu ? PH_EMENU_DX_SUBMENU_MAX_HEIGHT_PERCENT : PH_EMENU_DX_ROOT_MAX_HEIGHT_PERCENT);
 
-            if (ScrollViewVisibleHeight < PH_EMENU_DX_MIN_HEIGHT)
-                ScrollViewVisibleHeight = PH_EMENU_DX_MIN_HEIGHT;
+            ScrollViewVisibleHeight = std::max(ScrollViewVisibleHeight, PH_EMENU_DX_MIN_HEIGHT);
         }
     }
 
@@ -1103,6 +1116,8 @@ HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
     CalculateLayout();
     CalculatePosition(X, Y, &X, &Y);
 
+    this->OwnerWindowHandle = OwnerWindowHandle;
+
     status = CreateMainWindow(OwnerWindowHandle, X, Y);
     if (HR_SUCCESS(status))
         status = CreateResources();
@@ -1124,14 +1139,14 @@ BOOLEAN PH_EMENU_DX::EnterMessageLoop()
     {
         MSG msg;
 
-        BOOL result = GetMessage(&msg, NULL, 0, 0);
-        if (result == -1)
+        BOOL result = GetMessage(&msg, nullptr, 0, 0);
+        if (std::cmp_equal(result, -1))
             return FALSE;
 
-        if (result > 0)
+        if (std::cmp_greater(result, 0))
         {
             // Route keyboard messages specifically to the menu window
-            if (msg.message >= WM_KEYFIRST && msg.message <= WM_KEYLAST)
+            if (std::cmp_greater_equal(msg.message, WM_KEYFIRST) && std::cmp_less_equal(msg.message, WM_KEYLAST))
             {
                 msg.hwnd = WindowHandle;
             }
@@ -1169,7 +1184,7 @@ VOID PH_EMENU_DX::AfterLeavingMessageLoop()
     if (MouseHookHandle)
     {
         UnhookWindowsHookEx(MouseHookHandle);
-        MouseHookHandle = NULL;
+        MouseHookHandle = nullptr;
     }
 
     DestroySubMenuChain();
@@ -1177,7 +1192,7 @@ VOID PH_EMENU_DX::AfterLeavingMessageLoop()
 
     if (ParentContext && ParentContext->SubMenuContext == this)
     {
-        ParentContext->SubMenuContext = NULL;
+        ParentContext->SubMenuContext = nullptr;
     }
 
     if (Registered)
@@ -1191,24 +1206,25 @@ VOID PH_EMENU_DX::AfterLeavingMessageLoop()
 }
 
 HRESULT PH_EMENU_DX::CreateMainWindow(
-    _In_ HWND OwnerWindowHandle,
+    _In_ HWND OwnerWindow,
     _In_ LONG X,
     _In_ LONG Y
     )
 {
     RTL_ATOM windowAtom = PhRegisterMenuClass();
+
     if (windowAtom == RTL_ATOM_INVALID_ATOM)
         return E_FAIL;
 
     // Create the menu window
     {
         LONG paddingPixels = GetSurfacePaddingPixels();
-        LONG windowWidth = (LONG)(Width * Scale) + paddingPixels * 2;
-        LONG windowHeight = (LONG)(Height * Scale) + paddingPixels * 2;
+        LONG windowWidth = static_cast<LONG>(Width * Scale) + paddingPixels * 2;
+        LONG windowHeight = static_cast<LONG>(Height * Scale) + paddingPixels * 2;
 
         WindowHandle = PhCreateWindowEx(
             MAKEINTATOM(windowAtom),
-            NULL,
+            nullptr,
 #ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
             // The shadow padding is transparent; a frame would be drawn around it.
             ShadowEnabled ? WS_POPUP : (WS_POPUP | WS_BORDER),
@@ -1220,9 +1236,9 @@ HRESULT PH_EMENU_DX::CreateMainWindow(
             Y,
             windowWidth,
             windowHeight,
-            OwnerWindowHandle,
-            NULL,
-            NULL,
+            OwnerWindow,
+            nullptr,
+            NtCurrentImageBase(),
             this
             );
     }
@@ -1252,7 +1268,7 @@ HRESULT PH_EMENU_DX::ShowMainWindow()
         ParentContext->SubMenuContext = this;
 
     if (!IsSubMenu)
-        MouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, MouseHookCallback, NULL, 0);
+        MouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, MouseHookCallback, nullptr, 0);
 
 #ifndef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
     // Make sure the committed tree (menu and shadow) reached the compositor before
@@ -1277,7 +1293,7 @@ VOID PH_EMENU_DX::DestroyMainWindow()
 
         ShowWindow(WindowHandle, SW_HIDE);
         DestroyWindow(WindowHandle);
-        WindowHandle = NULL;
+        WindowHandle = nullptr;
     }
 }
 
@@ -1303,7 +1319,7 @@ HRESULT PH_EMENU_DX::CreateD3DDevice()
 
         if (HR_SUCCESS(status))
         {
-            status = D3D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12CommandAllocator, NULL, IID_PPV_ARGS(&D3D12CommandList));
+            status = D3D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12CommandAllocator, nullptr, IID_PPV_ARGS(&D3D12CommandList));
         }
 
         if (HR_SUCCESS(status))
@@ -1319,7 +1335,7 @@ HRESULT PH_EMENU_DX::CreateD3DDevice()
         if (HR_SUCCESS(status))
         {
             D3D12FenceValue = 1;
-            D3D12FenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+            D3D12FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
             if (!D3D12FenceEvent)
             {
@@ -1355,53 +1371,53 @@ VOID PH_EMENU_DX::DestroyD3DDevice()
     if (D3D12FenceEvent)
     {
         CloseHandle(D3D12FenceEvent);
-        D3D12FenceEvent = NULL;
+        D3D12FenceEvent = nullptr;
     }
     if (D3D12Fence)
     {
         D3D12Fence->Release();
-        D3D12Fence = NULL;
+        D3D12Fence = nullptr;
     }
     if (D3D12CommandList)
     {
         D3D12CommandList->Release();
-        D3D12CommandList = NULL;
+        D3D12CommandList = nullptr;
     }
     if (D3D12CommandAllocator)
     {
         D3D12CommandAllocator->Release();
-        D3D12CommandAllocator = NULL;
+        D3D12CommandAllocator = nullptr;
     }
     if (D3D12CommandQueue)
     {
         D3D12CommandQueue->Release();
-        D3D12CommandQueue = NULL;
+        D3D12CommandQueue = nullptr;
     }
     if (D3D11DeviceContext)
     {
         D3D11DeviceContext->Release();
-        D3D11DeviceContext = NULL;
+        D3D11DeviceContext = nullptr;
     }
     if (D3D11On12Device)
     {
         D3D11On12Device->Release();
-        D3D11On12Device = NULL;
+        D3D11On12Device = nullptr;
     }
     if (D3DDevice)
     {
         D3DDevice->Release();
-        D3DDevice = NULL;
+        D3DDevice = nullptr;
     }
     if (D3D12Device)
     {
         D3D12Device->Release();
-        D3D12Device = NULL;
+        D3D12Device = nullptr;
     }
 #else
     if (D3DDevice)
     {
         D3DDevice->Release();
-        D3DDevice = NULL;
+        D3DDevice = nullptr;
     }
 #endif
 }
@@ -1436,17 +1452,17 @@ VOID PH_EMENU_DX::DestroyD2DDevice()
     if (D2DDeviceContext)
     {
         D2DDeviceContext->Release();
-        D2DDeviceContext = NULL;
+        D2DDeviceContext = nullptr;
     }
     if (D2DDevice)
     {
         D2DDevice->Release();
-        D2DDevice = NULL;
+        D2DDevice = nullptr;
     }
     if (D2DFactory)
     {
         D2DFactory->Release();
-        D2DFactory = NULL;
+        D2DFactory = nullptr;
     }
 }
 
@@ -1481,17 +1497,17 @@ VOID PH_EMENU_DX::DestroyDWriteFactory()
     if (TextFormat)
     {
         TextFormat->Release();
-        TextFormat = NULL;
+        TextFormat = nullptr;
     }
     if (ShortcutFormat)
     {
         ShortcutFormat->Release();
-        ShortcutFormat = NULL;
+        ShortcutFormat = nullptr;
     }
     if (DWriteFactory)
     {
         DWriteFactory->Release();
-        DWriteFactory = NULL;
+        DWriteFactory = nullptr;
     }
 }
 
@@ -1527,23 +1543,23 @@ VOID PH_EMENU_DX::DestroyDCompDevice()
     if (Compositor)
     {
         Compositor->Release();
-        Compositor = NULL;
+        Compositor = nullptr;
     }
 #else
     if (CompositionDevice3)
     {
         CompositionDevice3->Release();
-        CompositionDevice3 = NULL;
+        CompositionDevice3 = nullptr;
     }
     if (DesktopDevice)
     {
         DesktopDevice->Release();
-        DesktopDevice = NULL;
+        DesktopDevice = nullptr;
     }
     if (DCompDevice)
     {
         DCompDevice->Release();
-        DCompDevice = NULL;
+        DCompDevice = nullptr;
     }
 #endif
 }
@@ -1590,7 +1606,7 @@ VOID PH_EMENU_DX::ReleaseResources()
     {
         UINT64 fenceValue = D3D12FenceValue++;
         D3D12CommandQueue->Signal(D3D12Fence, fenceValue);
-        if (D3D12Fence->GetCompletedValue() < fenceValue)
+        if (std::cmp_less(D3D12Fence->GetCompletedValue(), fenceValue))
         {
             D3D12Fence->SetEventOnCompletion(fenceValue, D3D12FenceEvent);
             WaitForSingleObject(D3D12FenceEvent, INFINITE);
@@ -1636,7 +1652,7 @@ HRESULT PH_EMENU_DX::CreateDrawingResources()
             description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
             description.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
-            status = dxgiFactory->CreateSwapChainForComposition(D3DDevice, &description, NULL, &SwapChain);
+            status = dxgiFactory->CreateSwapChainForComposition(D3DDevice, &description, nullptr, &SwapChain);
         }
     }
 
@@ -1649,7 +1665,7 @@ HRESULT PH_EMENU_DX::CreateDrawingResources()
 
         if (HR_SUCCESS(D2DFactory->CreateRoundedRectangleGeometry(&roundRect, &ClipGeometry)))
         {
-            // D2D 1.1: pass NULL to PushLayer; no pre-allocated layer needed
+            // D2D 1.1: pass nullptr to PushLayer; no pre-allocated layer needed
         }
     }
 
@@ -1661,48 +1677,48 @@ VOID PH_EMENU_DX::DestroyDrawingResources()
     if (TextBrush)
     {
         TextBrush->Release();
-        TextBrush = NULL;
+        TextBrush = nullptr;
     }
     if (ShortcutBrush)
     {
         ShortcutBrush->Release();
-        ShortcutBrush = NULL;
+        ShortcutBrush = nullptr;
     }
     if (HoverBrush)
     {
         HoverBrush->Release();
-        HoverBrush = NULL;
+        HoverBrush = nullptr;
     }
     if (BorderBrush)
     {
         BorderBrush->Release();
-        BorderBrush = NULL;
+        BorderBrush = nullptr;
     }
     if (SeparatorBrush)
     {
         SeparatorBrush->Release();
-        SeparatorBrush = NULL;
+        SeparatorBrush = nullptr;
     }
     if (ClipLayer)
     {
         ClipLayer->Release();
-        ClipLayer = NULL;
+        ClipLayer = nullptr;
     }
     if (ClipGeometry)
     {
         ClipGeometry->Release();
-        ClipGeometry = NULL;
+        ClipGeometry = nullptr;
     }
     if (WicFactory)
     {
         WicFactory->Release();
-        WicFactory = NULL;
+        WicFactory = nullptr;
     }
 #ifdef PH_EMENU_DX_ENABLE_SWAPCHAIN
     if (SwapChain)
     {
         SwapChain->Release();
-        SwapChain = NULL;
+        SwapChain = nullptr;
     }
 #endif
 }
@@ -1715,7 +1731,7 @@ HRESULT PH_EMENU_DX::InitializeTextFormats()
 
     hr = DWriteFactory->CreateTextFormat(
         PH_EMENU_DX_FONT_NAME,
-        NULL,
+        nullptr,
         DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH_NORMAL,
@@ -1728,7 +1744,7 @@ HRESULT PH_EMENU_DX::InitializeTextFormats()
 
     hr = DWriteFactory->CreateTextFormat(
         PH_EMENU_DX_FONT_NAME,
-        NULL,
+        nullptr,
         DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH_NORMAL,
@@ -1796,24 +1812,24 @@ VOID PH_EMENU_DX::DestroyDCompVisualTree()
     if (BackdropVisual)
     {
         BackdropVisual->Release();
-        BackdropVisual = NULL;
+        BackdropVisual = nullptr;
     }
     if (BackdropBrush)
     {
         BackdropBrush->Release();
-        BackdropBrush = NULL;
+        BackdropBrush = nullptr;
     }
 #endif
 #ifdef PH_EMENU_DX_ENABLE_DROPSHADOW
     if (ShadowVisual)
     {
         ShadowVisual->Release();
-        ShadowVisual = NULL;
+        ShadowVisual = nullptr;
     }
     if (DropShadow)
     {
         DropShadow->Release();
-        DropShadow = NULL;
+        DropShadow = nullptr;
     }
 #endif
 #endif
@@ -1842,13 +1858,13 @@ VOID PH_EMENU_DX::DestroyDCompTarget()
     if (CompositionTarget)
     {
         CompositionTarget->Release();
-        CompositionTarget = NULL;
+        CompositionTarget = nullptr;
     }
 #else
     if (DCompTarget)
     {
         DCompTarget->Release();
-        DCompTarget = NULL;
+        DCompTarget = nullptr;
     }
 #endif
 }
@@ -1871,7 +1887,7 @@ VOID PH_EMENU_DX::DestroyDCompRootVisual()
     if (RootVisual)
     {
         RootVisual->Release();
-        RootVisual = NULL;
+        RootVisual = nullptr;
     }
 }
 
@@ -1889,7 +1905,7 @@ VOID PH_EMENU_DX::DestroyDCompMenuVisual()
     if (MenuVisual)
     {
         MenuVisual->Release();
-        MenuVisual = NULL;
+        MenuVisual = nullptr;
     }
 }
 
@@ -1956,22 +1972,27 @@ VOID PH_EMENU_DX::DestroyDCompMenuSurface()
     if (CompositionSurface)
     {
         CompositionSurface->Release();
-        CompositionSurface = NULL;
+        CompositionSurface = nullptr;
     }
 #else
+    if (MenuBitmap)
+    {
+        MenuBitmap->Release();
+        MenuBitmap = nullptr;
+    }
     if (DCompSurface)
     {
         DCompSurface->Release();
-        DCompSurface = NULL;
+        DCompSurface = nullptr;
     }
 #endif
 }
 
 HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
 {
-    HRESULT status = S_OK;
+    HRESULT status;
 #if defined(PH_EMENU_DX_ENABLE_SWAPCHAIN) || defined(PH_EMENU_DX_ENABLE_WINRT_COMPOSITION)
-    IDXGISurface* dxgiSurface = NULL;
+    IDXGISurface* dxgiSurface = nullptr;
 #endif
 
 #ifdef PH_EMENU_DX_ENABLE_SWAPCHAIN
@@ -1982,14 +2003,14 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
 
         if (HR_SUCCESS(status))
         {
-            ID2D1Bitmap1* targetBitmap = NULL;
+            ID2D1Bitmap1* targetBitmap = nullptr;
             D2D1_BITMAP_PROPERTIES1 bitmapProperties =
             {
                 { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED },
                 0.0f,
                 0.0f,
                 D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                NULL
+                nullptr
             };
 
             status = D2DDeviceContext->CreateBitmapFromDxgiSurface(dxgiSurface, &bitmapProperties, &targetBitmap);
@@ -2012,7 +2033,7 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
                     dprintf("PhEMenuDx: D2D EndDraw failed with 0x%08x\n", status);
                 }
 
-                D2DDeviceContext->SetTarget(NULL);
+                D2DDeviceContext->SetTarget(nullptr);
                 targetBitmap->Release();
             }
             else
@@ -2049,7 +2070,7 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
         if (HR_SUCCESS(status))
         {
             // Begin drawing on the composition surface
-            status = surfaceInterop->BeginDraw(NULL, IID_PPV_ARGS(&dxgiSurface), &offset);
+            status = surfaceInterop->BeginDraw(nullptr, IID_PPV_ARGS(&dxgiSurface), &offset);
             if (HR_FAILED(status))
             {
                 dprintf("PhEMenuDx: BeginDraw (WinRT) failed with 0x%08x\n", status);
@@ -2058,14 +2079,14 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
 
         if (HR_SUCCESS(status))
         {
-            ID2D1Bitmap1* targetBitmap = NULL;
+            ID2D1Bitmap1* targetBitmap = nullptr;
             D2D1_BITMAP_PROPERTIES1 bitmapProperties =
             {
                 { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED },
                 0.0f,
                 0.0f,
                 D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                NULL
+                nullptr
             };
 
             // Wrap the DXGI surface in a D2D bitmap for rendering
@@ -2089,7 +2110,7 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
                     dprintf("PhEMenuDx: D2D EndDraw (WinRT) failed with 0x%08x\n", status);
                 }
 
-                D2DDeviceContext->SetTarget(NULL);
+                D2DDeviceContext->SetTarget(nullptr);
                 targetBitmap->Release();
             }
 
@@ -2105,8 +2126,60 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
     }
 #else
     ComPtr<ID2D1DeviceContext> drawingContext;
+    ComPtr<ID2D1Image> previousTarget;
+    D2D1_SIZE_U surfaceSize = D2D1::SizeU(static_cast<UINT32>(Width * Scale), static_cast<UINT32>(Height * Scale));
 
-    status = DCompSurface->BeginDraw(NULL, IID_PPV_ARGS(&drawingContext), &offset);
+    // DirectComposition places every update at a different atlas offset. Rendering
+    // at that offset translates the menu by offset / Scale DIPs, which is inexact at
+    // fractional scales, so glyph snapping rounds differently from one hover redraw
+    // to the next and the text jumps. Render at a fixed origin with the resource
+    // context instead and copy the pixels to the whole-pixel update offset.
+    if (MenuBitmap)
+    {
+        D2D1_SIZE_U bitmapSize = MenuBitmap->GetPixelSize();
+
+        if (bitmapSize.width != surfaceSize.width || bitmapSize.height != surfaceSize.height)
+        {
+            MenuBitmap->Release();
+            MenuBitmap = nullptr;
+        }
+    }
+
+    if (!MenuBitmap)
+    {
+        status = D2DDeviceContext->CreateBitmap(
+            surfaceSize,
+            nullptr,
+            0,
+            D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
+            &MenuBitmap
+            );
+
+        if (HR_FAILED(status))
+        {
+            dprintf("PhEMenuDx: Menu bitmap creation failed with 0x%08x\n", status);
+            return status;
+        }
+    }
+
+    D2DDeviceContext->GetTarget(&previousTarget);
+    D2DDeviceContext->SetTarget(MenuBitmap);
+    D2DDeviceContext->SetDpi(Dpi, Dpi);
+    D2DDeviceContext->BeginDraw();
+    D2DDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
+
+    Render();
+
+    status = D2DDeviceContext->EndDraw();
+    D2DDeviceContext->SetTarget(previousTarget.Get());
+
+    if (HR_FAILED(status))
+    {
+        dprintf("PhEMenuDx: Menu bitmap EndDraw failed with 0x%08x\n", status);
+        return status;
+    }
+
+    status = DCompSurface->BeginDraw(nullptr, IID_PPV_ARGS(&drawingContext), &offset);
     if (HR_FAILED(status))
     {
         dprintf("PhEMenuDx: BeginDraw (DComp) failed with 0x%08x\n", status);
@@ -2114,18 +2187,19 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
 
     if (HR_SUCCESS(status))
     {
-        // DirectComposition owns the target and the D2D drawing session.
-        // Cached brushes and bitmaps share the same D2D device.
-        ID2D1DeviceContext* resourceContext = D2DDeviceContext;
-        D2DDeviceContext = drawingContext.Get();
-        drawingContext->SetDpi(Dpi, Dpi);
-        drawingContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-        drawingContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-        drawingContext->SetTransform(D2D1::Matrix3x2F::Translation(offset.x / Scale, offset.y / Scale));
+        D2D1_POINT_2F targetOffset = D2D1::Point2F(static_cast<FLOAT>(offset.x), static_cast<FLOAT>(offset.y));
 
-        Render();
+        // Device pixels: a 1:1 copy that replaces the whole update rectangle.
+        drawingContext->SetDpi(PH_EMENU_DX_DPI_BASE, PH_EMENU_DX_DPI_BASE);
+        drawingContext->SetTransform(D2D1::Matrix3x2F::Identity());
+        drawingContext->DrawImage(
+            MenuBitmap,
+            &targetOffset,
+            nullptr,
+            D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+            D2D1_COMPOSITE_MODE_SOURCE_COPY
+            );
 
-        D2DDeviceContext = resourceContext;
         status = DCompSurface->EndDraw();
         if (HR_FAILED(status))
         {
@@ -2216,7 +2290,7 @@ HRESULT PH_EMENU_DX::BindDCompMenuSurfaceToVisual()
 #ifdef PH_EMENU_DX_ENABLE_HOSTBACKDROPBRUSH
                 if (BackdropType != PhEMenuDxBackdropNone)
                 {
-                    ICompositionBackdropBrush* backdropBrush = NULL;
+                    ICompositionBackdropBrush* backdropBrush = nullptr;
 
                     status = E_FAIL;
 
@@ -2394,14 +2468,14 @@ HRESULT PH_EMENU_DX::AddDCompMenuVisualToRootVisual()
     return status;
 #else
     if (!HostVisual)
-        return RootVisual->AddVisual(MenuVisual, FALSE, NULL);
+        return RootVisual->AddVisual(MenuVisual, FALSE, nullptr);
 
-    HRESULT status = RootVisual->AddVisual(HostVisual, FALSE, NULL);
+    HRESULT status = RootVisual->AddVisual(HostVisual, FALSE, nullptr);
 
-    // Z-order is explicit: with a NULL reference visual, insertAbove=TRUE means
+    // Z-order is explicit: with a nullptr reference visual, insertAbove=TRUE means
     // bottom-most and FALSE means top-most, so the menu is anchored to the shadow.
     if (HR_SUCCESS(status) && ShadowVisual)
-        status = HostVisual->AddVisual(ShadowVisual, FALSE, NULL);
+        status = HostVisual->AddVisual(ShadowVisual, FALSE, nullptr);
     if (HR_SUCCESS(status))
         status = HostVisual->AddVisual(MenuVisual, TRUE, ShadowVisual);
     return status;
@@ -2431,7 +2505,7 @@ VOID PH_EMENU_DX::InitializeShadow()
         // The shadow is pre-rendered with D2D, so any DirectComposition device works.
         PhAcquireQueuedLockExclusive(&SharedLock);
         if (HR_SUCCESS(InitializeSharedResources()))
-            ShadowEnabled = SharedDCompDevice != NULL;
+            ShadowEnabled = SharedDCompDevice != nullptr;
         PhReleaseQueuedLockExclusive(&SharedLock);
     }
 
@@ -2470,7 +2544,7 @@ BOOLEAN PH_EMENU_DX::IsPointInMenuBody(
 
     if (MenuList)
     {
-        for (ULONG i = 0; i < MenuList->Count; i++)
+        for (ULONG i = 0; std::cmp_less(i, MenuList->Count); i++)
         {
             PPH_EMENU_DX menuContext = static_cast<PPH_EMENU_DX>(MenuList->Items[i]);
             RECT windowRect;
@@ -2543,7 +2617,7 @@ static VOID EMenuEvaluateEase(
     double dx;
     double dy;
 
-    for (ULONG i = 0; i < 40; i++)
+    for (ULONG i = 0; std::cmp_less(i, 40); i++)
     {
         t = (low + high) / 2.0;
 
@@ -2587,7 +2661,7 @@ static HRESULT EMenuBuildAnimation(
         status = S_OK;
         EMenuEvaluateEase(0.0, &y0, &slope0);
 
-        for (ULONG i = 0; i < PH_EMENU_DX_EASE_SEGMENTS && HR_SUCCESS(status); i++)
+        for (ULONG i = 0; std::cmp_less(i, PH_EMENU_DX_EASE_SEGMENTS) && HR_SUCCESS(status); i++)
         {
             double y1;
             double slope1;
@@ -2634,7 +2708,7 @@ HRESULT PH_EMENU_DX::CreateDCompShadowTree()
 
     if (HR_FAILED(DCompDevice->CreateVisual(&HostVisual)))
     {
-        HostVisual = NULL;
+        HostVisual = nullptr;
         OpenAnimationPending = FALSE;
         return S_OK;
     }
@@ -2667,9 +2741,9 @@ HRESULT PH_EMENU_DX::CreateDCompShadowTree()
                 HostVisual3->SetOpacity(1.0f);
             if (HostScaleTransform)
             {
-                HostVisual->SetTransform(static_cast<IDCompositionTransform*>(NULL));
+                HostVisual->SetTransform(static_cast<IDCompositionTransform*>(nullptr));
                 HostScaleTransform->Release();
-                HostScaleTransform = NULL;
+                HostScaleTransform = nullptr;
             }
 
             OpenAnimationPending = FALSE;
@@ -2714,12 +2788,12 @@ HRESULT PH_EMENU_DX::CreateDCompShadowTree()
             if (ShadowSurface)
             {
                 ShadowSurface->Release();
-                ShadowSurface = NULL;
+                ShadowSurface = nullptr;
             }
             if (ShadowVisual)
             {
                 ShadowVisual->Release();
-                ShadowVisual = NULL;
+                ShadowVisual = nullptr;
             }
         }
     }
@@ -2734,27 +2808,27 @@ VOID PH_EMENU_DX::DestroyDCompShadowTree()
     if (ShadowSurface)
     {
         ShadowSurface->Release();
-        ShadowSurface = NULL;
+        ShadowSurface = nullptr;
     }
     if (ShadowVisual)
     {
         ShadowVisual->Release();
-        ShadowVisual = NULL;
+        ShadowVisual = nullptr;
     }
     if (HostScaleTransform)
     {
         HostScaleTransform->Release();
-        HostScaleTransform = NULL;
+        HostScaleTransform = nullptr;
     }
     if (HostVisual3)
     {
         HostVisual3->Release();
-        HostVisual3 = NULL;
+        HostVisual3 = nullptr;
     }
     if (HostVisual)
     {
         HostVisual->Release();
-        HostVisual = NULL;
+        HostVisual = nullptr;
     }
 #endif
 }
@@ -2797,7 +2871,7 @@ HRESULT PH_EMENU_DX::DrawDCompShadowSurface()
     // the visual offsets and the blur's standard deviation are pixel based too.
     status = D2DDeviceContext->CreateBitmap(
         D2D1::SizeU(static_cast<UINT32>(bodyWidth + paddingPixels * 2), static_cast<UINT32>(bodyHeight + paddingPixels * 2)),
-        NULL,
+        nullptr,
         0,
         D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
         &maskBitmap
@@ -2850,7 +2924,7 @@ HRESULT PH_EMENU_DX::DrawDCompShadowSurface()
     }
 
     // Blur the mask into the shadow surface.
-    status = ShadowSurface->BeginDraw(NULL, IID_PPV_ARGS(&drawingContext), &offset);
+    status = ShadowSurface->BeginDraw(nullptr, IID_PPV_ARGS(&drawingContext), &offset);
 
     if (HR_FAILED(status))
         return status;
@@ -2873,7 +2947,7 @@ HRESULT PH_EMENU_DX::DrawDCompShadowSurface()
     if (HR_SUCCESS(status))
     {
         drawingContext->DrawImage(shadowEffect.Get(), D2D1::Point2F(static_cast<FLOAT>(offset.x), static_cast<FLOAT>(offset.y)));
-        ExcludeParentMenusFromShadow(drawingContext.Get(), offset);
+        ExcludeOccludersFromShadow(drawingContext.Get(), offset);
     }
 
     endStatus = ShadowSurface->EndDraw();
@@ -2893,19 +2967,22 @@ HRESULT PH_EMENU_DX::DrawDCompShadowSurface()
 // The shadow is a static bitmap, so the parent bodies are cut out of the bitmap itself
 // (with their rounded corners) instead of with a window region, which DWM applies out
 // of step with the composition. The submenu's own body is a separate visual above the
-// shadow, so the part of it that overlaps a parent still sits on top.
-VOID PH_EMENU_DX::ExcludeParentMenusFromShadow(
+// shadow, so the part of it that overlaps a parent still sits on top. The surfaces the
+// menu was opened from (the menu bar, toolbar menu bar or button) are cut out the same
+// way, matching the shadow of the #32768 menu class (PhUpdateWindowShadow).
+VOID PH_EMENU_DX::ExcludeOccludersFromShadow(
     _In_ ID2D1DeviceContext* DrawingContext,
     _In_ POINT Offset
     )
 {
     ComPtr<ID2D1SolidColorBrush> clearBrush;
+    PPH_EMENU_DX rootContext;
+    RECT ownerRects[8];
+    ULONG ownerCount;
     RECT windowRect;
     FLOAT originX;
     FLOAT originY;
 
-    if (!IsSubMenu || !ParentContext)
-        return;
     if (!GetWindowRect(WindowHandle, &windowRect))
         return;
     if (HR_FAILED(DrawingContext->CreateSolidColorBrush(PH_EMENU_DX_COLOR_TRANSPARENT, &clearBrush)))
@@ -2919,6 +2996,31 @@ VOID PH_EMENU_DX::ExcludeParentMenusFromShadow(
     // Copy replaces the shadow pixels with transparency instead of blending over them.
     DrawingContext->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
     DrawingContext->SetTransform(D2D1::Matrix3x2F::Translation(originX, originY));
+
+    // Submenus are owned by their parent menu, so the surfaces come from the root
+    // menu's owner. The menu window never activates, so the button that opened the
+    // menu keeps the focus.
+    for (rootContext = this; rootContext->ParentContext; rootContext = rootContext->ParentContext)
+        NOTHING;
+
+    ownerCount = PhGetWindowShadowOwnerOccluders(
+        rootContext->OwnerWindowHandle,
+        GetFocus(),
+        ownerRects,
+        std::size(ownerRects)
+        );
+
+    for (ULONG i = 0; std::cmp_less(i, ownerCount); i++)
+    {
+        D2D1_RECT_F ownerRect = D2D1::RectF(
+            static_cast<FLOAT>(ownerRects[i].left),
+            static_cast<FLOAT>(ownerRects[i].top),
+            static_cast<FLOAT>(ownerRects[i].right),
+            static_cast<FLOAT>(ownerRects[i].bottom)
+            );
+
+        DrawingContext->FillRectangle(&ownerRect, clearBrush.Get());
+    }
 
     for (PPH_EMENU_DX parent = ParentContext; parent; parent = parent->ParentContext)
     {
@@ -3117,11 +3219,11 @@ VOID PH_EMENU_DX::Render()
 #endif
 
     D2D1_COLOR_F backgroundColor = IsDarkMode ? PH_EMENU_DX_DARK_BACKGROUND : PH_EMENU_DX_LIGHT_BACKGROUND;
-    backgroundColor.a = alpha;
     D2D1_RECT_F rect = D2D1::RectF(0.0f, 0.0f, Width, Height);
     D2D1_ROUNDED_RECT roundedRect = D2D1::RoundedRect(rect, Metrics->RoundedCorner, Metrics->RoundedCorner);
-
     BOOLEAN noRound = BooleanFlagOn(Flags, PH_EMENU_SHOW_NO_ROUND_CORNERS);
+
+    backgroundColor.a = alpha;
 
     // Clear the render target with transparency
     D2DDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
@@ -3129,7 +3231,7 @@ VOID PH_EMENU_DX::Render()
     D2DDeviceContext->SetTransform(baseTransform);
 
     // Draw the menu background
-    ID2D1SolidColorBrush* backgroundBrush = NULL;
+    ID2D1SolidColorBrush* backgroundBrush = nullptr;
     if (alpha > PH_EMENU_DX_ALPHA_THRESHOLD && HR_SUCCESS(D2DDeviceContext->CreateSolidColorBrush(backgroundColor, &backgroundBrush)))
     {
         if (noRound)
@@ -3142,7 +3244,7 @@ VOID PH_EMENU_DX::Render()
             {
                 // Use a layer for high-quality rounded clipping if available
                 D2D1_LAYER_PARAMETERS layerParams = D2D1::LayerParameters(D2D1::InfiniteRect(), ClipGeometry);
-                D2DDeviceContext->PushLayer(&layerParams, NULL);
+                D2DDeviceContext->PushLayer(&layerParams, nullptr);
                 D2DDeviceContext->FillRectangle(&rect, backgroundBrush);
             }
             else
@@ -3157,7 +3259,7 @@ VOID PH_EMENU_DX::Render()
     if (!noRound && ClipGeometry && !backgroundBrush)
     {
         D2D1_LAYER_PARAMETERS layerParams = D2D1::LayerParameters(D2D1::InfiniteRect(), ClipGeometry);
-        D2DDeviceContext->PushLayer(&layerParams, NULL);
+        D2DDeviceContext->PushLayer(&layerParams, nullptr);
     }
 
     // Set up clipping for the scrollable area
@@ -3182,7 +3284,7 @@ VOID PH_EMENU_DX::Render()
 
     // Render each menu item
 
-    for (ULONG i = 0; i < Menu->Items->Count; i++)
+    for (ULONG i = 0; std::cmp_less(i, Menu->Items->Count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
         FLOAT currentHeight = FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? SeparatorHeight : ItemHeight;
@@ -3215,7 +3317,7 @@ VOID PH_EMENU_DX::Render()
             {
                 // Handle icon/bitmap creation and rendering
 
-                if (i < LayoutCount && ItemBitmaps && !ItemBitmaps[i] && item->Bitmap)
+                if (std::cmp_less(i, LayoutCount) && ItemBitmaps && !ItemBitmaps[i] && item->Bitmap)
                 {
                     // Bitmap and Icon share storage in PH_EMENU_ITEM. PhShowEMenu callers
                     // supply HBITMAPs; anything that isn't a GDI bitmap is treated as an icon.
@@ -3229,7 +3331,7 @@ VOID PH_EMENU_DX::Render()
                     }
                 }
 
-                if (i < LayoutCount && ItemBitmaps && ItemBitmaps[i])
+                if (std::cmp_less(i, LayoutCount) && ItemBitmaps && ItemBitmaps[i])
                 {
                     D2D1_RECT_F iconRect = D2D1::RectF(Metrics->IconLeft, y + (currentHeight - Metrics->IconSize) / PH_EMENU_DX_HALF_FACTOR, Metrics->IconLeft + Metrics->IconSize, y + (currentHeight + Metrics->IconSize) / PH_EMENU_DX_HALF_FACTOR);
 
@@ -3280,7 +3382,7 @@ VOID PH_EMENU_DX::Render()
                 // Render item text and shortcut layouts
                 if (item->Text)
                 {
-                    if (i < LayoutCount && TextLayouts && TextLayouts[i])
+                    if (std::cmp_less(i, LayoutCount) && TextLayouts && TextLayouts[i])
                     {
                         D2D1_POINT_2F origin = D2D1::Point2F(Metrics->TextLeft, y + (currentHeight - TextMetrics[i].height) / PH_EMENU_DX_HALF_FACTOR);
 
@@ -3291,7 +3393,7 @@ VOID PH_EMENU_DX::Render()
                             );
                     }
 
-                    if (i < LayoutCount && ShortcutLayouts && ShortcutLayouts[i])
+                    if (std::cmp_less(i, LayoutCount) && ShortcutLayouts && ShortcutLayouts[i])
                     {
                         D2D1_POINT_2F origin = D2D1::Point2F(Width - Metrics->ShortcutRightMargin - MaxShortcutWidth,y + (currentHeight - ShortcutMetrics[i].height) / PH_EMENU_DX_HALF_FACTOR);
 
@@ -3305,7 +3407,7 @@ VOID PH_EMENU_DX::Render()
                 }
 
                 // Draw submenu indicator arrow
-                if (item->Items && item->Items->Count > 0 && !FlagOn(item->Flags, PH_EMENU_DISABLED))
+                if (item->Items && std::cmp_greater(item->Items->Count, 0) && !FlagOn(item->Flags, PH_EMENU_DISABLED))
                 {
                     ID2D1SolidColorBrush* arrowBrush = TextBrush;
                     D2D1_POINT_2F p1 = D2D1::Point2F(Width - Metrics->ArrowRightMargin, y + currentHeight / PH_EMENU_DX_HALF_FACTOR - PH_EMENU_DX_CHEVRON_SIZE);
@@ -3328,8 +3430,8 @@ VOID PH_EMENU_DX::Render()
     {
         const FLOAT arrowSize = PH_EMENU_DX_SCROLL_ARROW_SIZE;
         const FLOAT arrowPadding = PH_EMENU_DX_SCROLL_ARROW_PADDING;
-        ID2D1PathGeometry* pathGeometry = NULL;
-        ID2D1GeometrySink* geometrySink = NULL;
+        ID2D1PathGeometry* pathGeometry = nullptr;
+        ID2D1GeometrySink* geometrySink = nullptr;
 
         if (ScrollOffset > 0)
         {
@@ -3430,7 +3532,7 @@ VOID PH_EMENU_DX::CalculateLayout()
     // Clear existing layouts before recalculating
     ReleaseCachedLayouts();
 
-    if (!Menu || !Menu->Items || Menu->Items->Count == 0)
+    if (!Menu || !Menu->Items || std::cmp_equal(Menu->Items->Count, 0))
     {
         Width = Metrics->MinWidth;
         Height = ItemHeight;
@@ -3453,7 +3555,7 @@ VOID PH_EMENU_DX::CalculateLayout()
     std::span<DWRITE_TEXT_METRICS> shortcutMetrics(ShortcutMetrics, count);
 
     // Iterate through items to create text layouts and calculate maximum widths
-    for (ULONG i = 0; i < count; i++)
+    for (ULONG i = 0; std::cmp_less(i, count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
 
@@ -3462,7 +3564,7 @@ VOID PH_EMENU_DX::CalculateLayout()
 
         if (item->Text)
         {
-            IDWriteTextLayout* layout = NULL;
+            IDWriteTextLayout* layout = nullptr;
             PWSTR shortcut = wcschr(item->Text, L'\b');
             SIZE_T textLen = shortcut ? (shortcut - item->Text) : PhCountStringZ(item->Text);
 
@@ -3480,17 +3582,14 @@ VOID PH_EMENU_DX::CalculateLayout()
                 {
                     textLayouts[i] = layout;
 
-                    if (textMetrics[i].width > MaxTextWidth)
-                    {
-                        MaxTextWidth = textMetrics[i].width;
-                    }
+                    MaxTextWidth = std::max(MaxTextWidth, textMetrics[i].width);
                 }
                 else
                 {
                     layout->Release();
                 }
 
-                layout = NULL;
+                layout = nullptr;
             }
 
             // Create layout for the shortcut text if present (separated by \b)
@@ -3511,10 +3610,7 @@ VOID PH_EMENU_DX::CalculateLayout()
                     {
                         shortcutLayouts[i] = layout;
 
-                        if (shortcutMetrics[i].width > MaxShortcutWidth)
-                        {
-                            MaxShortcutWidth = shortcutMetrics[i].width;
-                        }
+                        MaxShortcutWidth = std::max(MaxShortcutWidth, shortcutMetrics[i].width);
                     }
                     else
                     {
@@ -3534,13 +3630,12 @@ VOID PH_EMENU_DX::CalculateLayout()
         Metrics->ShortcutRightMargin
         );
 
-    if (Width < Metrics->MinWidth)
-        Width = Metrics->MinWidth;
+    Width = std::max(Width, Metrics->MinWidth);
 
     // Calculate total height by summing up all items and separators
     Height = VerticalPadding * PH_EMENU_DX_HALF_FACTOR;
 
-    for (ULONG i = 0; i < count; i++)
+    for (ULONG i = 0; std::cmp_less(i, count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
 
@@ -3560,12 +3655,9 @@ VOID PH_EMENU_DX::CalculateLayout()
         Height = ScrollViewVisibleHeight;
     }
 
-    if (Height < PH_EMENU_DX_MIN_HEIGHT)
-    {
-        Height = PH_EMENU_DX_MIN_HEIGHT;
-    }
+    Height = std::max(Height, PH_EMENU_DX_MIN_HEIGHT);
 
-    HoverItem = NULL;
+    HoverItem = nullptr;
     HoverIndex = -1;
 }
 
@@ -3606,14 +3698,14 @@ VOID PH_EMENU_DX::CalculatePosition(
 
         // Flip edge-aligned menus to the other side of the point; centered
         // menus are shifted into the work area by PhAdjustRectangleToBounds.
-        if (baseX + menuWidth > workArea.Left + workArea.Width)
+        if (std::cmp_greater(baseX + menuWidth, workArea.Left + workArea.Width))
         {
             if (FlagOn(Align, PH_ALIGN_LEFT))
             {
                 if (IsSubMenu && ParentContext)
                 {
                     // Flip to the left side of the parent menu
-                    baseX = X - (LONG)(ParentContext->Width * Scale) - menuWidth + (LONG)(PH_EMENU_DX_SUBMENU_X_OFFSET * Scale * 2.0f);
+                    baseX = X - static_cast<LONG>(ParentContext->Width * Scale) - menuWidth + static_cast<LONG>((PH_EMENU_DX_SUBMENU_X_OFFSET * Scale * 2.0f));
                 }
                 else
                 {
@@ -3624,13 +3716,13 @@ VOID PH_EMENU_DX::CalculatePosition(
 
         if (IsSubMenu)
         {
-            if (baseY + menuHeight > workArea.Top + workArea.Height)
+            if (std::cmp_greater(baseY + menuHeight, workArea.Top + workArea.Height))
             {
-                LONG itemHeight = (LONG)(ItemHeight * Scale);
-                LONG offset_y = (LONG)(PH_EMENU_DX_SUBMENU_Y_OFFSET * Scale);
+                LONG itemHeight = static_cast<LONG>(ItemHeight * Scale);
+                LONG offset_y = static_cast<LONG>(PH_EMENU_DX_SUBMENU_Y_OFFSET * Scale);
                 LONG flippedY = baseY + itemHeight + (offset_y * 2) - menuHeight;
 
-                if (flippedY >= workArea.Top)
+                if (std::cmp_greater_equal(flippedY, workArea.Top))
                 {
                     baseY = flippedY;
                 }
@@ -3639,30 +3731,29 @@ VOID PH_EMENU_DX::CalculatePosition(
                     baseY = workArea.Top + workArea.Height - menuHeight;
                 }
 
-                if (baseY < workArea.Top)
-                    baseY = workArea.Top;
+                baseY = std::max(baseY, workArea.Top);
             }
-            else if (baseY < workArea.Top)
+            else if (std::cmp_less(baseY, workArea.Top))
             {
                 baseY = workArea.Top;
             }
         }
         else
         {
-            if (baseY + menuHeight > workArea.Top + workArea.Height)
+            if (std::cmp_greater(baseY + menuHeight, workArea.Top + workArea.Height))
             {
                 if (FlagOn(Align, PH_ALIGN_TOP))
                     baseY = Y - menuHeight;
             }
 
-            if (baseY < workArea.Top)
+            if (std::cmp_less(baseY, workArea.Top))
             {
                 if (FlagOn(Align, PH_ALIGN_BOTTOM))
                     baseY = Y;
             }
         }
 
-        if (baseX < workArea.Left)
+        if (std::cmp_less(baseX, workArea.Left))
         {
             if (FlagOn(Align, PH_ALIGN_RIGHT))
                 baseX = X;
@@ -3678,10 +3769,10 @@ VOID PH_EMENU_DX::CalculatePosition(
         baseX = rect.Left;
         baseY = rect.Top;
 
-        if (rect.Height < menuHeight)
-            Height = (FLOAT)rect.Height / Scale;
-        if (rect.Width < menuWidth)
-            Width = (FLOAT)rect.Width / Scale;
+        if (std::cmp_less(rect.Height, menuHeight))
+            Height = static_cast<FLOAT>(rect.Height) / Scale;
+        if (std::cmp_less(rect.Width, menuWidth))
+            Width = static_cast<FLOAT>(rect.Width) / Scale;
     }
     else
     {
@@ -3709,59 +3800,59 @@ VOID PH_EMENU_DX::ReleaseCachedLayouts()
 
     if (TextLayouts)
     {
-        for (ULONG i = 0; i < count; i++)
+        for (ULONG i = 0; std::cmp_less(i, count); i++)
         {
             if (TextLayouts[i])
             {
                 TextLayouts[i]->Release();
-                TextLayouts[i] = NULL;
+                TextLayouts[i] = nullptr;
             }
         }
 
         PhFree(TextLayouts);
-        TextLayouts = NULL;
+        TextLayouts = nullptr;
     }
 
     if (ShortcutLayouts)
     {
-        for (ULONG i = 0; i < count; i++)
+        for (ULONG i = 0; std::cmp_less(i, count); i++)
         {
             if (ShortcutLayouts[i])
             {
                 ShortcutLayouts[i]->Release();
-                ShortcutLayouts[i] = NULL;
+                ShortcutLayouts[i] = nullptr;
             }
         }
 
         PhFree(ShortcutLayouts);
-        ShortcutLayouts = NULL;
+        ShortcutLayouts = nullptr;
     }
 
     if (TextMetrics)
     {
         PhFree(TextMetrics);
-        TextMetrics = NULL;
+        TextMetrics = nullptr;
     }
 
     if (ShortcutMetrics)
     {
         PhFree(ShortcutMetrics);
-        ShortcutMetrics = NULL;
+        ShortcutMetrics = nullptr;
     }
 
     if (ItemBitmaps)
     {
-        for (ULONG i = 0; i < count; i++)
+        for (ULONG i = 0; std::cmp_less(i, count); i++)
         {
             if (ItemBitmaps[i])
             {
                 ItemBitmaps[i]->Release();
-                ItemBitmaps[i] = NULL;
+                ItemBitmaps[i] = nullptr;
             }
         }
 
         PhFree(ItemBitmaps);
-        ItemBitmaps = NULL;
+        ItemBitmaps = nullptr;
     }
 }
 
@@ -3772,7 +3863,7 @@ HRESULT PH_EMENU_DX::CreateTextLayout(
     _In_ FLOAT MaxWidth,
     _In_ FLOAT MaxHeight,
     _Out_ IDWriteTextLayout** Layout
-    )
+    ) const
 {
     HRESULT status;
     PH_STRING_BUILDER stringBuilder;
@@ -3782,16 +3873,16 @@ HRESULT PH_EMENU_DX::CreateTextLayout(
 
     PhInitializeStringBuilder(&stringBuilder, TextLen);
 
-    for (SIZE_T i = 0; i < TextLen; i++)
+    for (SIZE_T i = 0; std::cmp_less(i, TextLen); i++)
     {
         if (Text[i] == L'&')
         {
-            if (i + 1 < TextLen && Text[i + 1] == L'&')
+            if (std::cmp_less(i + 1, TextLen) && Text[i + 1] == L'&')
             {
                 PhAppendCharStringBuilder(&stringBuilder, L'&');
                 i++;
             }
-            else if (underlineIndex == -1 && i + 1 < TextLen)
+            else if (std::cmp_equal(underlineIndex, -1) && std::cmp_less(i + 1, TextLen))
             {
                 underlineIndex = static_cast<LONG>(stringBuilder.String->Length / sizeof(WCHAR));
             }
@@ -3817,7 +3908,7 @@ HRESULT PH_EMENU_DX::CreateTextLayout(
     if (HR_SUCCESS(status))
     {
         // Only show underlines if keyboard cues are enabled
-        if (underlineIndex != LONG_ERROR && ShowKeyboardCues)
+        if (std::cmp_not_equal(underlineIndex, LONG_ERROR) && ShowKeyboardCues)
         {
             DWRITE_TEXT_RANGE range =
             {
@@ -3836,10 +3927,10 @@ HRESULT PH_EMENU_DX::CreateTextLayout(
 HRESULT PH_EMENU_DX::CreateBitmapFromIcon(
     _In_ HICON Icon,
     _Out_ ID2D1Bitmap** Bitmap
-    )
+    ) const
 {
     HRESULT status;
-    IWICBitmap* wicBitmap = NULL;
+    IWICBitmap* wicBitmap = nullptr;
 
     // WicFactory is referenced from the shared factory in CreateResources.
     if (!WicFactory)
@@ -3859,10 +3950,10 @@ HRESULT PH_EMENU_DX::CreateBitmapFromIcon(
 HRESULT PH_EMENU_DX::CreateBitmapFromHBitmap(
     _In_ HBITMAP BitmapHandle,
     _Out_ ID2D1Bitmap** Bitmap
-    )
+    ) const
 {
     HRESULT status;
-    IWICBitmap* wicBitmap = NULL;
+    IWICBitmap* wicBitmap = nullptr;
 
     // WicFactory is referenced from the shared factory in CreateResources.
     if (!WicFactory)
@@ -3870,7 +3961,7 @@ HRESULT PH_EMENU_DX::CreateBitmapFromHBitmap(
 
     status = WicFactory->CreateBitmapFromHBITMAP(
         BitmapHandle,
-        NULL,
+        nullptr,
         WICBitmapUsePremultipliedAlpha,
         &wicBitmap
         );
@@ -3920,7 +4011,7 @@ FLOAT PH_EMENU_DX::GetItemTop(
 {
     FLOAT itemTop = VerticalPadding;
 
-    for (ULONG i = 0; i < Index && i < Menu->Items->Count; i++)
+    for (ULONG i = 0; std::cmp_less(i, Index) && std::cmp_less(i, Menu->Items->Count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
         itemTop += FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? SeparatorHeight : ItemHeight;
@@ -3938,7 +4029,7 @@ VOID PH_EMENU_DX::EnsureItemVisible(
     FLOAT itemTop;
     FLOAT itemBottom;
 
-    if (ScrollViewTotalHeight <= Height || Index >= Menu->Items->Count)
+    if (ScrollViewTotalHeight <= Height || std::cmp_greater_equal(Index, Menu->Items->Count))
         return;
 
     item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[Index]);
@@ -3952,10 +4043,7 @@ VOID PH_EMENU_DX::EnsureItemVisible(
     else if (itemBottom > ScrollOffset + Height - (CanScrollDown() ? ItemHeight : 0.0f))
         ScrollOffset = itemBottom + ItemHeight - Height;
 
-    if (ScrollOffset < 0)
-        ScrollOffset = 0;
-    if (ScrollOffset > maxOffset)
-        ScrollOffset = maxOffset;
+    ScrollOffset = std::clamp(ScrollOffset, 0.0f, maxOffset);
 }
 
 VOID PH_EMENU_DX::SetHoverIndex(
@@ -3977,7 +4065,7 @@ VOID PH_EMENU_DX::ActivateHoverItem()
     if (!HoverItem || FlagOn(HoverItem->Flags, PH_EMENU_DISABLED | PH_EMENU_SEPARATOR))
         return;
 
-    if (HoverItem->Items && HoverItem->Items->Count > 0)
+    if (HoverItem->Items && std::cmp_greater(HoverItem->Items->Count, 0))
     {
         OpenSubMenu();
     }
@@ -4030,9 +4118,9 @@ HRESULT PH_EMENU_DX::OpenSubMenu()
         return S_OK;
     }
 
-    while (HoverItem && HoverItem->Items && HoverItem->Items->Count > 0 && !FlagOn(HoverItem->Flags, PH_EMENU_DISABLED))
+    while (HoverItem && HoverItem->Items && std::cmp_greater(HoverItem->Items->Count, 0) && !FlagOn(HoverItem->Flags, PH_EMENU_DISABLED))
     {
-        PPH_EMENU_ITEM selected = NULL;
+        PPH_EMENU_ITEM selected = nullptr;
         RECT windowRect;
         FLOAT itemY = PH_EMENU_DX_SUBMENU_Y_OFFSET;
         BOOLEAN shown;
@@ -4044,7 +4132,7 @@ HRESULT PH_EMENU_DX::OpenSubMenu()
             return E_FAIL;
         }
 
-        for (LONG i = 0; i < HoverIndex; i++)
+        for (LONG i = 0; std::cmp_less(i, HoverIndex); i++)
         {
             PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
             itemY += FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? SeparatorHeight : ItemHeight;
@@ -4102,7 +4190,7 @@ VOID PH_EMENU_DX::DestroySubMenuChain()
         if (IsWindow(subContext->WindowHandle))
             DestroyWindow(subContext->WindowHandle);
 
-        SubMenuContext = NULL;
+        SubMenuContext = nullptr;
     }
 }
 
@@ -4128,18 +4216,18 @@ VOID PH_EMENU_DX::HandleMouseMove(
     if (CanScrollUp() && pt_y < ItemHeight)
     {
         HoverUpArrow = TRUE;
-        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_SCROLL, PH_EMENU_DX_SCROLL_TIMER_INTERVAL, NULL);
+        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_SCROLL, PH_EMENU_DX_SCROLL_TIMER_INTERVAL, nullptr);
     }
     else if (CanScrollDown() && pt_y > Height - ItemHeight)
     {
         HoverDownArrow = TRUE;
-        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_SCROLL, PH_EMENU_DX_SCROLL_TIMER_INTERVAL, NULL);
+        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_SCROLL, PH_EMENU_DX_SCROLL_TIMER_INTERVAL, nullptr);
     }
 
     if (oldHoverUp != HoverUpArrow || oldHoverDown != HoverDownArrow)
         CommitUpdate();
 
-    HoverItem = NULL;
+    HoverItem = nullptr;
     HoverIndex = -1;
 
     if (!HoverUpArrow && !HoverDownArrow &&
@@ -4149,7 +4237,7 @@ VOID PH_EMENU_DX::HandleMouseMove(
     {
         FLOAT currentY = VerticalPadding;
 
-        for (ULONG i = 0; i < Menu->Items->Count; i++)
+        for (ULONG i = 0; std::cmp_less(i, Menu->Items->Count); i++)
         {
             PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
             FLOAT h = FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? SeparatorHeight : ItemHeight;
@@ -4183,11 +4271,11 @@ VOID PH_EMENU_DX::HandleMouseMove(
         else if (SubMenuContext || (
             HoverItem &&
             HoverItem->Items &&
-            HoverItem->Items->Count > 0 &&
+            std::cmp_greater(HoverItem->Items->Count, 0) &&
             !FlagOn(HoverItem->Flags, PH_EMENU_DISABLED)
             ))
         {
-            PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, MenuShowDelay > 0 ? MenuShowDelay : 1, NULL);
+            PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, std::max(MenuShowDelay, 1UL), nullptr);
         }
         else
         {
@@ -4224,7 +4312,7 @@ LRESULT PH_EMENU_DX::OnCreate(
 {
     // With the DirectComposition shadow the window is a transparent, padded surface
     // and the menu draws its own rounded corners; DWM must not round the window.
-    if (WindowsVersion >= WINDOWS_11 && !ShadowEnabled)
+    if (std::cmp_greater_equal(WindowsVersion, WINDOWS_11) && !ShadowEnabled)
     {
 #ifndef PH_EMENU_DX_ENABLE_DROPSHADOW
         ULONG ulongAttribute = PH_EMENU_DX_CORNER_STYLE;
@@ -4287,7 +4375,7 @@ BOOLEAN PH_EMENU_DX::OnSetCursor(
 {
     if (HitTest == HTCLIENT)
     {
-        PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
+        PhSetCursor(PhLoadCursor(nullptr, IDC_ARROW));
         return TRUE;
     }
 
@@ -4301,16 +4389,13 @@ VOID PH_EMENU_DX::OnMouseWheel(
 {
     if (ScrollViewTotalHeight > Height)
     {
-        FLOAT steps = (FLOAT)WheelDelta / (FLOAT)WHEEL_DELTA;
+        FLOAT steps = static_cast<FLOAT>(WheelDelta) / static_cast<FLOAT>(WHEEL_DELTA);
         FLOAT scrollAmount = steps * ItemHeight * PH_EMENU_DX_SCROLL_STEP;
         POINT pt;
 
         ScrollOffset -= scrollAmount;
 
-        if (ScrollOffset < 0)
-            ScrollOffset = 0;
-        if (ScrollOffset > (ScrollViewTotalHeight - Height))
-            ScrollOffset = (ScrollViewTotalHeight - Height);
+        ScrollOffset = std::clamp(ScrollOffset, 0.0f, ScrollViewTotalHeight - Height);
 
         CommitUpdate();
 
@@ -4370,7 +4455,7 @@ VOID PH_EMENU_DX::OnMouseLeave(
         CloseSubMenuChain();
     }
 
-    HoverItem = NULL;
+    HoverItem = nullptr;
     HoverIndex = -1;
     CommitUpdate();
 }
@@ -4394,28 +4479,26 @@ VOID PH_EMENU_DX::OnTimer(
     }
     else if (TimerId == PH_WINDOW_TIMER_SCROLL)
     {
+        const FLOAT surfacePadding = static_cast<FLOAT>(GetSurfacePaddingPixels()) / Scale;
         POINT pt;
-        FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
 
         if (!PhGetClientPos(WindowHandle, &pt))
             return;
 
-        FLOAT pt_y = (FLOAT)pt.y / Scale - surfacePadding;
-        FLOAT scrollAmount = ItemHeight / PH_EMENU_DX_SCROLL_SPEED_DIVISOR;
+        const FLOAT pt_y = static_cast<FLOAT>(pt.y) / Scale - surfacePadding;
+        const FLOAT scrollAmount = ItemHeight / PH_EMENU_DX_SCROLL_SPEED_DIVISOR;
 
         if (pt_y < ItemHeight && ScrollOffset > 0)
         {
             ScrollOffset -= scrollAmount;
-            if (ScrollOffset < 0)
-                ScrollOffset = 0;
+            ScrollOffset = std::max(ScrollOffset, 0.0f);
             CommitUpdate();
             HandleMouseMove(WindowHandle, pt);
         }
         else if (pt_y > Height - ItemHeight && ScrollOffset < (ScrollViewTotalHeight - Height))
         {
             ScrollOffset += scrollAmount;
-            if (ScrollOffset > (ScrollViewTotalHeight - Height))
-                ScrollOffset = (ScrollViewTotalHeight - Height);
+            ScrollOffset = std::min(ScrollOffset, ScrollViewTotalHeight - Height);
             CommitUpdate();
             HandleMouseMove(WindowHandle, pt);
         }
@@ -4432,11 +4515,9 @@ VOID PH_EMENU_DX::OnLButtonUp(
     _In_ LONG CursorY
     )
 {
-    FLOAT surfacePadding = (FLOAT)GetSurfacePaddingPixels() / Scale;
-
-    FLOAT pt_x = (FLOAT)CursorX / Scale - surfacePadding;
-    FLOAT pt_y = (FLOAT)CursorY / Scale - surfacePadding;
-
+    FLOAT surfacePadding = static_cast<FLOAT>(GetSurfacePaddingPixels()) / Scale;
+    FLOAT pt_x = static_cast<FLOAT>(CursorX) / Scale - surfacePadding;
+    FLOAT pt_y = static_cast<FLOAT>(CursorY) / Scale - surfacePadding;
     FLOAT adjusted_pt_y = pt_y + ScrollOffset;
 
     // Ignore clicks on a visible scroll arrow.
@@ -4450,7 +4531,7 @@ VOID PH_EMENU_DX::OnLButtonUp(
     {
         FLOAT currentY = VerticalPadding;
 
-        for (ULONG i = 0; i < Menu->Items->Count; i++)
+        for (ULONG i = 0; std::cmp_less(i, Menu->Items->Count); i++)
         {
             PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
             FLOAT h = FlagOn(item->Flags, PH_EMENU_SEPARATOR) ? SeparatorHeight : ItemHeight;
@@ -4459,7 +4540,7 @@ VOID PH_EMENU_DX::OnLButtonUp(
             {
                 if (!FlagOn(item->Flags, PH_EMENU_DISABLED | PH_EMENU_SEPARATOR))
                 {
-                    if (item->Items && item->Items->Count > 0)
+                    if (item->Items && std::cmp_greater(item->Items->Count, 0))
                     {
                         if (!SubMenuContext)
                         {
@@ -4489,7 +4570,7 @@ VOID PH_EMENU_DX::OnKeyDown(
 {
     PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
-    if (Menu->Items->Count == 0)
+    if (std::cmp_equal(Menu->Items->Count, 0))
         return;
 
     switch (VirtualKey)
@@ -4505,7 +4586,7 @@ VOID PH_EMENU_DX::OnKeyDown(
             if (
                 HoverItem &&
                 HoverItem->Items &&
-                HoverItem->Items->Count > 0 &&
+                std::cmp_greater(HoverItem->Items->Count, 0) &&
                 !FlagOn(HoverItem->Flags, PH_EMENU_DISABLED)
                 )
             {
@@ -4526,7 +4607,7 @@ VOID PH_EMENU_DX::OnKeyDown(
         {
             LONG next = HoverIndex - 1;
 
-            if (next < 0)
+            if (std::cmp_less(next, 0L))
                 next = static_cast<LONG>(Menu->Items->Count) - 1;
 
             LONG start = next;
@@ -4534,9 +4615,9 @@ VOID PH_EMENU_DX::OnKeyDown(
             while (FlagOn((static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[next]))->Flags, PH_EMENU_SEPARATOR | PH_EMENU_DISABLED))
             {
                 next--;
-                if (next < 0)
+                if (std::cmp_less(next, 0L))
                     next = static_cast<LONG>(Menu->Items->Count) - 1;
-                if (next == start)
+                if (std::cmp_equal(next, start))
                     break;
             }
 
@@ -4547,7 +4628,7 @@ VOID PH_EMENU_DX::OnKeyDown(
         {
             LONG next = HoverIndex + 1;
 
-            if (next >= (LONG)Menu->Items->Count)
+            if (std::cmp_greater_equal(next, Menu->Items->Count))
                 next = 0;
 
             LONG start = next;
@@ -4555,9 +4636,9 @@ VOID PH_EMENU_DX::OnKeyDown(
             while (FlagOn((static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[next]))->Flags, PH_EMENU_SEPARATOR | PH_EMENU_DISABLED))
             {
                 next++;
-                if (next >= (LONG)Menu->Items->Count)
+                if (std::cmp_greater_equal(next, Menu->Items->Count))
                     next = 0;
-                if (next == start)
+                if (std::cmp_equal(next, start))
                     break;
             }
 
@@ -4606,14 +4687,14 @@ BOOLEAN PH_EMENU_DX::OnChar(
     LONG next = -1;
     WCHAR key;
 
-    if (count == 0 || Character < L' ')
+    if (std::cmp_equal(count, 0) || Character < L' ')
         return FALSE;
 
     key = PhUpcaseUnicodeChar(Character);
 
     // Mnemonic selection: a unique match activates the item; several matches
     // cycle the hover through them, starting after the current item.
-    for (ULONG i = 0; i < count; i++)
+    for (ULONG i = 0; std::cmp_less(i, count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
 
@@ -4624,22 +4705,22 @@ BOOLEAN PH_EMENU_DX::OnChar(
 
         matches++;
 
-        if (first == -1)
+        if (std::cmp_equal(first, -1))
             first = static_cast<LONG>(i);
-        if (next == -1 && static_cast<LONG>(i) > HoverIndex)
+        if (std::cmp_equal(next, -1) && std::cmp_greater(i, HoverIndex))
             next = static_cast<LONG>(i);
     }
 
-    if (matches == 0)
+    if (std::cmp_equal(matches, 0))
         return FALSE;
 
-    if (next == -1)
+    if (std::cmp_equal(next, -1))
         next = first;
 
     PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
     SetHoverIndex(static_cast<ULONG>(next));
 
-    if (matches == 1)
+    if (std::cmp_equal(matches, 1))
         ActivateHoverItem();
 
     return TRUE;
@@ -4666,7 +4747,7 @@ LRESULT PH_EMENU_DX::OnActivate(
     if (LOWORD(Type) == WA_INACTIVE)
     {
         HWND otherWnd = OtherWindow;
-        HWND popup = otherWnd ? GetLastActivePopup(otherWnd) : NULL;
+        HWND popup = otherWnd ? GetLastActivePopup(otherWnd) : nullptr;
 
         if (PH_EMENU_DX::IsWindowInMenuChain(otherWnd) || PH_EMENU_DX::IsWindowInMenuChain(popup))
             return 0;
@@ -4729,38 +4810,46 @@ LRESULT CALLBACK PH_EMENU_DX::MouseHookCallback(
         // Compare against the menu bodies, not the windows: the transparent shadow
         // padding around a menu is part of its window but is not a menu click.
         if (PH_EMENU_DX::IsPointInMenuBody(hs->pt))
-            return CallNextHookEx(NULL, nCode, wParam, lParam);
-
-        HWND* windows = NULL;
-        ULONG count = 0;
-        ULONG currentThreadId = HandleToUlong(NtCurrentThreadId());
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
         // Low-level hooks run on the installing thread. Cancel only that thread's
         // menus; a cross-thread SendMessage here could stall system-wide mouse input.
-        PhAcquireQueuedLockShared(&MenuListLock);
-        if (MenuList && MenuList->Count > 0)
-        {
-            windows = static_cast<HWND*>(PhAllocate(MenuList->Count * sizeof(HWND)));
-
-            for (ULONG i = 0; i < MenuList->Count; i++)
-            {
-                PPH_EMENU_DX menuContext = static_cast<PPH_EMENU_DX>(MenuList->Items[i]);
-
-                if (menuContext->ThreadId == currentThreadId && menuContext->WindowHandle)
-                    windows[count++] = menuContext->WindowHandle;
-            }
-        }
-        PhReleaseQueuedLockShared(&MenuListLock);
-
-        if (windows)
-        {
-            for (ULONG i = count; i > 0; i--)
-                SendMessage(windows[i - 1], WM_CANCELMODE, 0, 0);
-            PhFree(windows);
-        }
+        PH_EMENU_DX::CancelThreadMenus();
     }
 
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
+    return CallNextHookEx(nullptr, nCode, wParam, lParam);
+}
+
+/**
+ * Cancels every menu (including submenus) shown by the calling thread, innermost first.
+ */
+VOID PH_EMENU_DX::CancelThreadMenus()
+{
+    HWND* windows = nullptr;
+    ULONG count = 0;
+    ULONG currentThreadId = HandleToUlong(NtCurrentThreadId());
+
+    PhAcquireQueuedLockShared(&MenuListLock);
+    if (MenuList && std::cmp_greater(MenuList->Count, 0))
+    {
+        windows = static_cast<HWND*>(PhAllocate(MenuList->Count * sizeof(HWND)));
+
+        for (ULONG i = 0; std::cmp_less(i, MenuList->Count); i++)
+        {
+            PPH_EMENU_DX menuContext = static_cast<PPH_EMENU_DX>(MenuList->Items[i]);
+
+            if (menuContext->ThreadId == currentThreadId && menuContext->WindowHandle)
+                windows[count++] = menuContext->WindowHandle;
+        }
+    }
+    PhReleaseQueuedLockShared(&MenuListLock);
+
+    if (windows)
+    {
+        for (ULONG i = count; std::cmp_greater(i, 0); i--)
+            SendMessage(windows[i - 1], WM_CANCELMODE, 0, 0);
+        PhFree(windows);
+    }
 }
 
 BOOLEAN PH_EMENU_DX::IsMenuSupported(
@@ -4771,10 +4860,10 @@ BOOLEAN PH_EMENU_DX::IsMenuSupported(
 
     if (FlagOn(Menu->Flags, PH_EMENU_MAINMENU))
         return FALSE;
-    if (!Menu->Items || Menu->Items->Count == 0)
+    if (!Menu->Items || std::cmp_equal(Menu->Items->Count, 0))
         return FALSE;
 
-    for (ULONG i = 0; i < Menu->Items->Count; i++)
+    for (ULONG i = 0; std::cmp_less(i, Menu->Items->Count); i++)
     {
         PPH_EMENU_ITEM item = static_cast<PPH_EMENU_ITEM>(Menu->Items->Items[i]);
 
@@ -4782,7 +4871,7 @@ BOOLEAN PH_EMENU_DX::IsMenuSupported(
             return FALSE;
 
         // Empty submenus are drawn as plain items, so only recurse into populated ones.
-        if (item->Items && item->Items->Count != 0 && !IsMenuSupported(item))
+        if (item->Items && std::cmp_not_equal(item->Items->Count, 0) && !IsMenuSupported(item))
             return FALSE;
     }
 
@@ -4797,7 +4886,7 @@ VOID PH_EMENU_DX::UnregisterWindowClass()
     if (MenuList)
     {
         PhDereferenceObject(MenuList);
-        MenuList = NULL;
+        MenuList = nullptr;
     }
     PhReleaseQueuedLockExclusive(&MenuListLock);
 
@@ -4810,9 +4899,9 @@ HRESULT PH_EMENU_DX::CompositionCreateDevice(
     _COM_Outptr_ void** DCompositionDevice
     )
 {
-    static decltype(&DCompositionCreateDevice2) createDevice = NULL;
-    static decltype(&DCompositionCreateDevice2) createDevice3 = NULL;
-    static PVOID compositionLibrary = NULL;
+    static decltype(&DCompositionCreateDevice2) createDevice = nullptr;
+    static decltype(&DCompositionCreateDevice2) createDevice3 = nullptr;
+    static PVOID compositionLibrary = nullptr;
     HRESULT status;
 
     if (!createDevice)
@@ -4880,19 +4969,19 @@ HRESULT PH_EMENU_DX::DynamicD3D11CreateDevice(
     )
 {
     using D3D11_CREATE_DEVICE_FN = HRESULT (WINAPI*)(IDXGIAdapter*, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL*, UINT, UINT, ID3D11Device**, D3D_FEATURE_LEVEL*, ID3D11DeviceContext**);
-    static PVOID procedure = NULL;
+    static PVOID procedure = nullptr;
     D3D11_CREATE_DEVICE_FN createDevice;
 
-    *Device = NULL;
+    *Device = nullptr;
     if (ImmediateContext)
-        *ImmediateContext = NULL;
+        *ImmediateContext = nullptr;
 
     createDevice = reinterpret_cast<D3D11_CREATE_DEVICE_FN>(GetDynamicProcedure(&procedure, L"d3d11.dll", "D3D11CreateDevice"));
 
     if (!createDevice)
         return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
-    return createDevice(Adapter, DriverType, NULL, Flags, NULL, 0, D3D11_SDK_VERSION, Device, FeatureLevel, ImmediateContext);
+    return createDevice(Adapter, DriverType, nullptr, Flags, nullptr, 0, D3D11_SDK_VERSION, Device, FeatureLevel, ImmediateContext);
 }
 
 HRESULT PH_EMENU_DX::DynamicD3D10CreateDevice1(
@@ -4903,17 +4992,17 @@ HRESULT PH_EMENU_DX::DynamicD3D10CreateDevice1(
     )
 {
     using D3D10_CREATE_DEVICE1_FN = HRESULT (WINAPI*)(IDXGIAdapter*, D3D10_DRIVER_TYPE, HMODULE, UINT, D3D10_FEATURE_LEVEL1, UINT, ID3D10Device1**);
-    static PVOID procedure = NULL;
+    static PVOID procedure = nullptr;
     D3D10_CREATE_DEVICE1_FN createDevice;
 
-    *Device = NULL;
+    *Device = nullptr;
 
     createDevice = reinterpret_cast<D3D10_CREATE_DEVICE1_FN>(GetDynamicProcedure(&procedure, L"d3d10_1.dll", "D3D10CreateDevice1"));
 
     if (!createDevice)
         return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
-    return createDevice(NULL, DriverType, NULL, Flags, HardwareLevel, D3D10_1_SDK_VERSION, Device);
+    return createDevice(nullptr, DriverType, nullptr, Flags, HardwareLevel, D3D10_1_SDK_VERSION, Device);
 }
 
 HRESULT PH_EMENU_DX::DynamicD2D1CreateFactory(
@@ -4925,10 +5014,10 @@ HRESULT PH_EMENU_DX::DynamicD2D1CreateFactory(
 {
     // D2D1CreateFactory has C++ overloads in d2d1.h, so spell out the export's type.
     using D2D1_CREATE_FACTORY_FN = HRESULT (WINAPI*)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**);
-    static PVOID procedure = NULL;
+    static PVOID procedure = nullptr;
     D2D1_CREATE_FACTORY_FN createFactory;
 
-    *Factory = NULL;
+    *Factory = nullptr;
 
     createFactory = reinterpret_cast<D2D1_CREATE_FACTORY_FN>(GetDynamicProcedure(&procedure, L"d2d1.dll", "D2D1CreateFactory"));
 
@@ -4945,10 +5034,10 @@ HRESULT PH_EMENU_DX::DynamicDWriteCreateFactory(
     )
 {
     using DWRITE_CREATE_FACTORY_FN = HRESULT (WINAPI*)(DWRITE_FACTORY_TYPE, REFIID, IUnknown**);
-    static PVOID procedure = NULL;
+    static PVOID procedure = nullptr;
     DWRITE_CREATE_FACTORY_FN createFactory;
 
-    *Factory = NULL;
+    *Factory = nullptr;
 
     createFactory = reinterpret_cast<DWRITE_CREATE_FACTORY_FN>(GetDynamicProcedure(&procedure, L"dwrite.dll", "DWriteCreateFactory"));
 
@@ -4964,7 +5053,7 @@ HRESULT PH_EMENU_DX::DynamicDwmExtendFrameIntoClientArea(
     )
 {
     using DWM_EXTEND_FRAME_FN = HRESULT (WINAPI*)(HWND, const MARGINS*);
-    static PVOID procedure = NULL;
+    static PVOID procedure = nullptr;
     DWM_EXTEND_FRAME_FN extendFrame;
 
     extendFrame = reinterpret_cast<DWM_EXTEND_FRAME_FN>(GetDynamicProcedure(&procedure, L"dwmapi.dll", "DwmExtendFrameIntoClientArea"));
@@ -4990,83 +5079,83 @@ VOID PH_EMENU_DX::ReleaseSharedResources()
     if (SharedD3D11On12Device)
     {
         SharedD3D11On12Device->Release();
-        SharedD3D11On12Device = NULL;
+        SharedD3D11On12Device = nullptr;
     }
     if (SharedD3D11Device12)
     {
         SharedD3D11Device12->Release();
-        SharedD3D11Device12 = NULL;
+        SharedD3D11Device12 = nullptr;
     }
     if (SharedD3D12CommandQueue)
     {
         SharedD3D12CommandQueue->Release();
-        SharedD3D12CommandQueue = NULL;
+        SharedD3D12CommandQueue = nullptr;
     }
     if (SharedD3D12Device)
     {
         SharedD3D12Device->Release();
-        SharedD3D12Device = NULL;
+        SharedD3D12Device = nullptr;
     }
 #endif
 #ifdef PH_EMENU_DX_ENABLE_D3D11
     if (SharedD3D11Device)
     {
         SharedD3D11Device->Release();
-        SharedD3D11Device = NULL;
+        SharedD3D11Device = nullptr;
     }
 #endif
     if (SharedD3DDevice)
     {
         SharedD3DDevice->Release();
-        SharedD3DDevice = NULL;
+        SharedD3DDevice = nullptr;
     }
     if (SharedD2DDevice)
     {
         SharedD2DDevice->Release();
-        SharedD2DDevice = NULL;
+        SharedD2DDevice = nullptr;
     }
     if (SharedD2DFactory)
     {
         SharedD2DFactory->Release();
-        SharedD2DFactory = NULL;
+        SharedD2DFactory = nullptr;
     }
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
     if (SharedCompositionGraphicsDevice)
     {
         SharedCompositionGraphicsDevice->Release();
-        SharedCompositionGraphicsDevice = NULL;
+        SharedCompositionGraphicsDevice = nullptr;
     }
     if (SharedCompositor)
     {
         SharedCompositor->Release();
-        SharedCompositor = NULL;
+        SharedCompositor = nullptr;
     }
 #else
     if (SharedCompositionDevice3)
     {
         SharedCompositionDevice3->Release();
-        SharedCompositionDevice3 = NULL;
+        SharedCompositionDevice3 = nullptr;
     }
     if (SharedDesktopDevice)
     {
         SharedDesktopDevice->Release();
-        SharedDesktopDevice = NULL;
+        SharedDesktopDevice = nullptr;
     }
     if (SharedDCompDevice)
     {
         SharedDCompDevice->Release();
-        SharedDCompDevice = NULL;
+        SharedDCompDevice = nullptr;
     }
 #endif
     if (SharedWicFactory)
     {
         SharedWicFactory->Release();
-        SharedWicFactory = NULL;
+        SharedWicFactory = nullptr;
     }
     if (SharedDWriteFactory)
     {
         SharedDWriteFactory->Release();
-        SharedDWriteFactory = NULL;
+        SharedDWriteFactory = nullptr;
     }
 
     SharedGeneration++;
@@ -5094,7 +5183,7 @@ HRESULT PH_EMENU_DX::CreateSharedD3DDevice()
     {
         if (!SharedD3D12Device)
         {
-            status = D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&SharedD3D12Device));
+            status = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&SharedD3D12Device));
 
             if (HR_SUCCESS(status))
             {
@@ -5108,14 +5197,14 @@ HRESULT PH_EMENU_DX::CreateSharedD3DDevice()
                 status = D3D11On12CreateDevice(
                     SharedD3D12Device,
                     D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                    NULL,
+                    nullptr,
                     0,
                     commandQueues,
-                    _countof(commandQueues),
+                    std::size(commandQueues),
                     0,
                     &SharedD3D11Device12,
-                    NULL,
-                    NULL
+                    nullptr,
+                    nullptr
                     );
             }
 
@@ -5136,10 +5225,10 @@ HRESULT PH_EMENU_DX::CreateSharedD3DDevice()
         if (!SharedD3D11Device)
         {
             D3D_FEATURE_LEVEL featureLevel;
-            ID3D11DeviceContext* d3dContext = NULL;
+            ID3D11DeviceContext* d3dContext = nullptr;
 
             status = DynamicD3D11CreateDevice(
-                NULL,
+                nullptr,
                 D3D_DRIVER_TYPE_HARDWARE,
                 D3D11_CREATE_DEVICE_BGRA_SUPPORT,
                 &SharedD3D11Device,
@@ -5179,7 +5268,7 @@ HRESULT PH_EMENU_DX::CreateSharedD3DDevice()
 HRESULT PH_EMENU_DX::CreateSharedD2DDevice()
 {
     HRESULT status = S_OK;
-    IDXGIDevice* dxgiDevice = NULL;
+    IDXGIDevice* dxgiDevice = nullptr;
 
     if (HR_SUCCESS(status) && !SharedD2DFactory)
     {
@@ -5309,7 +5398,7 @@ HRESULT PH_EMENU_DX::InitializeSharedResources()
 
 #ifdef PH_EMENU_DX_ENABLE_WINRT_COMPOSITION
     {
-        PVOID controller = NULL;
+        PVOID controller = nullptr;
         PhCreateDispatcherQueueForCurrentThread(&controller);
     }
     RoInitialize(RO_INIT_MULTITHREADED);
@@ -5362,7 +5451,7 @@ BOOL PH_EMENU_DX::IsWindowInMenuChain(
 
     PhAcquireQueuedLockShared(&MenuListLock);
 
-    for (ULONG i = 0; i < MenuList->Count; i++)
+    for (ULONG i = 0; std::cmp_less(i, MenuList->Count); i++)
     {
         PPH_EMENU_DX cur = static_cast<PPH_EMENU_DX>(MenuList->Items[i]);
 
@@ -5396,7 +5485,7 @@ RTL_ATOM PH_EMENU_DX::PhRegisterMenuClass()
         wcex.lpfnWndProc = PH_EMENU_DX::WindowProc;
         wcex.cbWndExtra = sizeof(PVOID);
         wcex.hInstance = reinterpret_cast<HINSTANCE>(PhInstanceHandle);
-        wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+        wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
         wcex.lpszClassName = PH_EMENU_DX_CLASSNAME;
         windowAtom = RegisterClassEx(&wcex);
 
@@ -5439,8 +5528,8 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
     )
 {
     HRESULT status = E_FAIL;
-    HBITMAP bitmapHandle = NULL;
-    PVOID bits = NULL;
+    HBITMAP bitmapHandle = nullptr;
+    PVOID bits = nullptr;
     PCWSTR fontName = ColorFont ? PH_EMENU_DX_GLYPH_EMOJI_FONT_NAME : PH_EMENU_DX_GLYPH_FONT_NAME;
     ComPtr<ID2D1Factory1> d2dFactory;
     ComPtr<IDWriteFactory> dwriteFactory;
@@ -5453,8 +5542,8 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
     ComPtr<ID2D1RenderTarget> renderTarget;
     ComPtr<ID2D1SolidColorBrush> brush;
 
-    if (!Glyph || Glyph[0] == UNICODE_NULL || Size <= 0)
-        return NULL;
+    if (!Glyph || Glyph[0] == UNICODE_NULL || std::cmp_less_equal(Size, 0))
+        return nullptr;
 
     PhAcquireQueuedLockExclusive(&SharedLock);
     if (HR_SUCCESS(InitializeSharedResources()))
@@ -5467,7 +5556,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
     PhReleaseQueuedLockExclusive(&SharedLock);
 
     if (HR_FAILED(status))
-        return NULL;
+        return nullptr;
 
     // Windows 10 has the MDL2 assets font, which shares most code points. A glyph the
     // icon font doesn't have would be drawn from a fallback font as a box or a letter,
@@ -5485,7 +5574,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
             fontName = PH_EMENU_DX_GLYPH_FONT_NAME_LEGACY;
 
             if (HR_FAILED(fontCollection->FindFamilyName(fontName, &index, &exists)) || !exists)
-                return NULL;
+                return nullptr;
         }
 
         if (PH_UNICODE_UTF16_IS_HIGH_SURROGATE(Glyph[0]) && PH_UNICODE_UTF16_IS_LOW_SURROGATE(Glyph[1]))
@@ -5497,7 +5586,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
             exists = FALSE;
 
             if (HR_FAILED(font->HasCharacter(codePoint, &exists)) || !exists)
-                return NULL;
+                return nullptr;
         }
     }
 
@@ -5507,14 +5596,14 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
         // Two passes: measure the drawn glyph (its ink, not the line box) and, for
         // emoji, grow or shrink the font so the ink fills the box. Fluent glyphs keep
         // the font size Windows draws them at. The second pass builds the final layout.
-        for (ULONG pass = 0; pass < 2 && HR_SUCCESS(status); pass++)
+        for (ULONG pass = 0; std::cmp_less(pass, 2) && HR_SUCCESS(status); pass++)
         {
             textFormat.Reset();
             textLayout.Reset();
 
             status = dwriteFactory->CreateTextFormat(
                 fontName,
-                NULL,
+                nullptr,
                 DWRITE_FONT_WEIGHT_NORMAL,
                 DWRITE_FONT_STYLE_NORMAL,
                 DWRITE_FONT_STRETCH_NORMAL,
@@ -5542,11 +5631,11 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
             if (HR_SUCCESS(status))
                 status = textLayout->GetOverhangMetrics(&overhang);
 
-            if (HR_SUCCESS(status) && pass == 0)
+            if (HR_SUCCESS(status) && std::cmp_equal(pass, 0))
             {
                 FLOAT inkWidth = static_cast<FLOAT>(Size) + overhang.left + overhang.right;
                 FLOAT inkHeight = static_cast<FLOAT>(Size) + overhang.top + overhang.bottom;
-                FLOAT inkExtent = inkWidth > inkHeight ? inkWidth : inkHeight;
+                FLOAT inkExtent = std::max(inkWidth, inkHeight);
 
                 if (!ColorFont || inkExtent <= 0.0f)
                     break;
@@ -5614,7 +5703,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
 
     if (HR_SUCCESS(status))
     {
-        bitmapHandle = PhCreateDIBSection(NULL, PHBF_TOPDOWNDIB, Size, Size, &bits);
+        bitmapHandle = PhCreateDIBSection(nullptr, PHBF_TOPDOWNDIB, Size, Size, &bits);
 
         if (!bitmapHandle || !bits)
             status = E_OUTOFMEMORY;
@@ -5623,7 +5712,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
     if (HR_SUCCESS(status))
     {
         status = wicBitmap->CopyPixels(
-            NULL,
+            nullptr,
             static_cast<UINT>(Size) * sizeof(ULONG),
             static_cast<UINT>(Size) * static_cast<UINT>(Size) * sizeof(ULONG),
             static_cast<PBYTE>(bits)
@@ -5635,7 +5724,7 @@ HBITMAP PH_EMENU_DX::CreateGlyphBitmap(
         if (bitmapHandle)
         {
             DeleteBitmap(bitmapHandle);
-            bitmapHandle = NULL;
+            bitmapHandle = nullptr;
         }
 
         dprintf("PhEMenuDx: Glyph bitmap failed with 0x%08x\n", status);
