@@ -4561,21 +4561,24 @@ LRESULT CALLBACK PhThemeWindowGroupBoxExSubclassProc(
             HPEN framePen;
             HPEN oldPen;
             HBRUSH oldBrush;
-
-            hdc = BeginPaint(WindowHandle, &ps);
-            GetClientRect(WindowHandle, &clientRect);
-
             PH_BUFFERED_PAINT paintBuffer;
             PH_PAINTPARAMS paintParams;
+            BOOLEAN bufferedPaint;
+
+            if (!(hdc = BeginPaint(WindowHandle, &ps)))
+                return 0;
+
+            GetClientRect(WindowHandle, &clientRect);
 
             memset(&paintParams, 0, sizeof(PH_PAINTPARAMS));
             paintParams.Size = sizeof(PH_PAINTPARAMS);
             paintParams.Flags = BPPF_ERASE;
 
-            if (PhBeginBufferedPaint(hdc, &clientRect, PHBF_COMPATIBLEBITMAP, &paintParams, &paintBuffer, &memoryDc))
-            {
+            // Paint directly to the window DC when the buffer can't be created. (dmex)
+            bufferedPaint = PhBeginBufferedPaint(hdc, &clientRect, PHBF_COMPATIBLEBITMAP, &paintParams, &paintBuffer, &memoryDc);
 
-            }
+            if (!bufferedPaint)
+                memoryDc = hdc;
 
             SetBkMode(memoryDc, TRANSPARENT);
             FillRect(memoryDc, &clientRect, PhThemeWindowBackgroundBrush);
@@ -4643,7 +4646,8 @@ LRESULT CALLBACK PhThemeWindowGroupBoxExSubclassProc(
 
             SelectFont(memoryDc, oldFont);
 
-            PhEndBufferedPaint(&paintBuffer, TRUE);
+            if (bufferedPaint)
+                PhEndBufferedPaint(&paintBuffer, TRUE);
 
             EndPaint(WindowHandle, &ps);
         }
