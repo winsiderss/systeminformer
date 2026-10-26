@@ -994,6 +994,7 @@ EXPORTS
     PhGetTreeNewText
 
 ; emenu
+    PhCancelEMenu
     PhCreateEMenu
     PhCreateEMenuItem
     PhDeleteEMenuData
