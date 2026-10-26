@@ -4531,6 +4531,15 @@ PhSetWindowShadowDisplayAffinity(
     );
 
 PHLIBAPI
+ULONG
+PhGetWindowShadowOwnerOccluders(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_opt_ HWND FocusWindowHandle,
+    _Out_writes_to_(Count, return) PRECT Rects,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhApplyThemeMode(
