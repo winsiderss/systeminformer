@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>18.0</VCProjectVersion>
     <ProjectGuid>{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}</ProjectGuid>
     <RootNamespace>Updater</RootNamespace>
     <Keyword>Win32Proj</Keyword>

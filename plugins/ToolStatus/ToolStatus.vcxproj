@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>18.0</VCProjectVersion>
     <ProjectGuid>{60B43533-C75E-4741-9E19-C4D581BEF51C}</ProjectGuid>
     <RootNamespace>ToolStatus</RootNamespace>
     <Keyword>Win32Proj</Keyword>

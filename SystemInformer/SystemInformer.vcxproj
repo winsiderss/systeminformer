@@ -27,7 +27,6 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>18.0</VCProjectVersion>
         <Keyword>Win32Proj</Keyword>
         <ProjectGuid>{0271DD27-6707-4290-8DFE-285702B7115D}</ProjectGuid>
         <ProjectName>SystemInformer</ProjectName>

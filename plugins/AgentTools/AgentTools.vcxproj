@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>18.0</VCProjectVersion>
     <ProjectGuid>{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}</ProjectGuid>
     <RootNamespace>AgentTools</RootNamespace>
     <Keyword>Win32Proj</Keyword>
