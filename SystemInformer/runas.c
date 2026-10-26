@@ -729,18 +729,14 @@ VOID SetDefaultUserEntry(
     }
     else
     {
-        HANDLE processHandle;
+        PPH_PROCESS_ITEM processItem;
         HANDLE tokenHandle;
         PPH_STRING userName;
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            Context->ProcessId
-            )))
+        if (processItem = PhReferenceProcessItem(Context->ProcessId))
         {
-            if (NT_SUCCESS(PhOpenProcessToken(
-                processHandle,
+            if (processItem->QueryHandle && NT_SUCCESS(PhOpenProcessToken(
+                processItem->QueryHandle,
                 TOKEN_QUERY,
                 &tokenHandle
                 )))
@@ -754,7 +750,7 @@ VOID SetDefaultUserEntry(
                 NtClose(tokenHandle);
             }
 
-            NtClose(processHandle);
+            PhDereferenceObject(processItem);
         }
 
         EnableWindow(Context->UserComboBoxWindowHandle, FALSE);
