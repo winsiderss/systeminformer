@@ -1116,9 +1116,9 @@ HRESULT PH_EMENU_DX::BeforeEnteringMessageLoop(
     CalculateLayout();
     CalculatePosition(X, Y, &X, &Y);
 
-    this->OwnerWindowHandle = OwnerWindowHandle;
+    this->OwnerWindowHandle = OwnerWindow;
 
-    status = CreateMainWindow(OwnerWindowHandle, X, Y);
+    status = CreateMainWindow(OwnerWindow, X, Y);
     if (HR_SUCCESS(status))
         status = CreateResources();
     if (HR_SUCCESS(status))
