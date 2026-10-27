@@ -192,8 +192,6 @@ INT_PTR CALLBACK PhpNetworkStackDlgProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:

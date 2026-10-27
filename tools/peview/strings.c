@@ -273,7 +273,7 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
 
-    return !!Context->StopSearch;
+    return !!ReadBooleanAcquire(&Context->StopSearch);
 }
 
 static int __cdecl PvpStringsRegionSkipCompare(
@@ -548,6 +548,7 @@ VOID NTAPI PvpStringsSearchControlCallback(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPV_STRINGS_CONTEXT context = ((PPV_STRINGS_CONTEXT)_context); \
     PPV_STRINGS_NODE node1 = *(PPV_STRINGS_NODE *)_elem1; \
     PPV_STRINGS_NODE node2 = *(PPV_STRINGS_NODE *)_elem2; \
     int sortResult = 0;
@@ -556,7 +557,7 @@ VOID NTAPI PvpStringsSearchControlCallback(
     if (sortResult == 0) \
         sortResult = uintcmp(node1->Index, node2->Index); \
     \
-    return PhModifySort(sortResult, ((PPV_STRINGS_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 LONG PvpStringsTreeNewPostSortFunction(
@@ -604,7 +605,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(String)
 {
-    sortResult = PhCompareString(node1->String, node2->String, FALSE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->String, node2->String, context->TreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
@@ -780,14 +781,14 @@ VOID PvpDeleteStringsTree(
     _In_ PPV_STRINGS_CONTEXT Context
     )
 {
-    Context->StopSearch = TRUE;
+    WriteBooleanRelease(&Context->StopSearch, TRUE);
     if (Context->SearchThreadHandle)
     {
         NtWaitForSingleObject(Context->SearchThreadHandle, FALSE, NULL);
         NtClose(Context->SearchThreadHandle);
         Context->SearchThreadHandle = NULL;
     }
-    Context->StopSearch = FALSE;
+    WriteBooleanRelease(&Context->StopSearch, FALSE);
 
     PvpAddPendingStringsNodes(Context);
 
@@ -875,6 +876,7 @@ VOID PvpInitializeStringsTree(
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
+    TreeNew_SetRowHeight(TreeNewHandle, PvpGetTreeNewRowHeight(TreeNewHandle));
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM, PvpStringsTreeNewPostSortFunction);
 

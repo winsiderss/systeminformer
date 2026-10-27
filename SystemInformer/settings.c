@@ -68,6 +68,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_STREAMER_MODE, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_START_AS_ADMIN, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_START_AS_ADMIN_ISOLATED, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_DEFAULT_SAFE_PLUGINS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_SECURITY_ADVANCED_DIALOG, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_SHORT_RELATIVE_START_TIME, L"1");
@@ -81,8 +82,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_ANIMATION, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_WINDOW_BORDER_COLOR, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_SYMBOLS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_INLINE_SYMBOLS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_LINE_INFORMATION, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_DEFERRED_SYMBOLS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_TOKEN_REMOVED_PRIVILEGES, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_TOOLTIP_SUPPORT, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_UPDATE_DEFAULT_FIRMWARE_BOOT_ENTRY, L"1");
@@ -96,8 +99,42 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, L"@96|400,250");
     PhpAddStringSetting(SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerSetting(SETTING_SEARCH_THREADS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_THREADS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_THREAD_STACKS_REGEX, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_CONTROL_REGEX, L"0");
     PhpAddIntegerSetting(SETTING_SEARCH_CONTROL_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_COLUMNS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_COLUMNS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_FIND_OBJECTS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_FIND_OBJECTS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MONITOR_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MONITOR_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_STRINGS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_STRINGS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_OPTIONS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_OPTIONS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_CONTROL_FUZZY, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_ENVIRONMENT_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_ENVIRONMENT_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_HANDLES_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_HANDLES_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_STRINGS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MEMORY_STRINGS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MODULES_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_MODULES_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_THREADS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_THREADS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_PACKAGES_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_PACKAGES_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_USERS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_USERS_CASE_SENSITIVE, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_WMI_PROVIDERS_CASE_SENSITIVE, L"0");
     PhpAddStringSetting(SETTING_FIND_OBJ_TREE_LIST_COLUMNS, L"");
     PhpAddIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_SIZE, L"@96|550,420");
@@ -108,7 +145,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_FIRST_RUN, L"1");
     PhpAddStringSetting(SETTING_FONT, L""); // null
     PhpAddStringSetting(SETTING_FONT_MONOSPACE, L""); // null
-    PhpAddIntegerSetting(SETTING_FONT_QUALITY, L"0");
+    PhpAddIntegerSetting(SETTING_FONT_QUALITY, L"6"); // CLEARTYPE_NATURAL_QUALITY
     PhpAddIntegerSetting(SETTING_FORCE_NO_PARENT, L"1");
     PhpAddStringSetting(SETTING_HANDLE_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_HANDLE_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
@@ -179,6 +216,10 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(SETTING_MEMORY_MODIFIED_WINDOW_SIZE, L"@96|450,500");
     PhpAddStringSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS, L"");
     PhpAddStringSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerPairSetting(SETTING_MEMORY_CFG_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_MEMORY_CFG_WINDOW_SIZE, L"@96|550,520");
+    PhpAddStringSetting(SETTING_MEMORY_CFG_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_MEMORY_CFG_LIST_VIEW_SORT, L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(SETTING_MEM_STRINGS_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_MEM_STRINGS_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(SETTING_MEM_STRINGS_TREE_LIST_FLAGS, L"b"); // ANSI, Unicode, Private
@@ -237,6 +278,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(SETTING_RUN_AS_PACKAGE_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_RUN_AS_PACKAGE_WINDOW_SIZE, L"@96|500,300");
     PhpAddIntegerSetting(SETTING_RUN_FILE_DLG_STATE, L"0");
+    PhpAddScalableIntegerPairSetting(SETTING_RUN_FILE_DLG_SIZE, L"@96|0,0");
     PhpAddIntegerSetting(SETTING_SAMPLE_COUNT, L"200"); // 512
     PhpAddIntegerSetting(SETTING_SAMPLE_COUNT_AUTOMATIC, L"1");
     PhpAddIntegerSetting(SETTING_SCROLL_TO_NEW_PROCESSES, L"0");
@@ -252,6 +294,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(SETTING_SEGMENT_LOCKS_WINDOW_SIZE, L"@96|450,500");
     PhpAddIntegerPairSetting(SETTING_SERVICE_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_SERVICE_WINDOW_SIZE, L"@96|420,500");
+    PhpAddStringSetting(SETTING_SERVICE_WINDOW_PAGE, L"");
     PhpAddStringSetting(SETTING_SERVICE_LIST_VIEW_COLUMNS, L"");
     PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
@@ -281,6 +324,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR, L"808080"); // RGB(128, 128, 128)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR, L"8f8f8f"); // RGB(143, 143, 143)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR, L"ffffff"); // RGB(255, 255, 255)
+    PhpAddIntegerSetting(SETTING_THIN_TABS, L"0");
     PhpAddIntegerSetting(SETTING_THIN_ROWS, L"0");
     PhpAddStringSetting(SETTING_THREAD_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_THREAD_TREE_LIST_SORT, L"1,2"); // 1, DescendingSortOrder
@@ -380,6 +424,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_COLOR_TOKEN_DISABLED, L"f0e0e0");
     PhpAddIntegerSetting(SETTING_USE_COLOR_TOKEN_REMOVED, L"1");
     PhpAddIntegerSetting(SETTING_COLOR_TOKEN_REMOVED, L"c0c0c0");
+    PhpAddIntegerSetting(SETTING_USE_COLOR_TOKEN_ELEVATED, L"1");
+    PhpAddIntegerSetting(SETTING_COLOR_TOKEN_ELEVATED, L"00aaff");
     PhpAddIntegerSetting(SETTING_USE_COLOR_TOKEN_DANGEROUS_FLAG, L"1");
     PhpAddIntegerSetting(SETTING_COLOR_TOKEN_DANGEROUS_FLAG, L"c0f0c0");
     PhpAddIntegerSetting(SETTING_USE_COLOR_TOKEN_NORMAL_FLAG, L"1");
@@ -418,6 +464,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_COLOR_MEMORY_CFG_PAGES, L"ff8080");
     PhpAddIntegerSetting(SETTING_USE_COLOR_MEMORY_EXECUTE_PAGES, L"0");
     PhpAddIntegerSetting(SETTING_COLOR_MEMORY_EXECUTE_PAGES, L"9314ff");
+    PhpAddIntegerSetting(SETTING_USE_COLOR_MEMORY_MODIFIED_PAGES, L"1");
+    PhpAddIntegerSetting(SETTING_COLOR_MEMORY_MODIFIED_PAGES, L"ffcc00");
     PhpAddIntegerSetting(SETTING_USE_COLOR_RELOCATED_MODULES, L"1");
     PhpAddIntegerSetting(SETTING_COLOR_RELOCATED_MODULES, L"80c0ff");
     PhpAddIntegerSetting(SETTING_USE_COLOR_PROTECTED_HANDLES, L"1");
@@ -569,6 +617,8 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(ColorTokenDisabled);
     PH_GET_INTEGER_CACHED_SETTING(UseColorTokenRemoved);
     PH_GET_INTEGER_CACHED_SETTING(ColorTokenRemoved);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorTokenElevated);
+    PH_GET_INTEGER_CACHED_SETTING(ColorTokenElevated);
     PH_GET_INTEGER_CACHED_SETTING(UseColorTokenDangerousFlag);
     PH_GET_INTEGER_CACHED_SETTING(ColorTokenDangerousFlag);
     PH_GET_INTEGER_CACHED_SETTING(UseColorTokenNormalFlag);
@@ -611,6 +661,8 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(ColorMemoryCfgPages);
     PH_GET_INTEGER_CACHED_SETTING(UseColorMemoryExecutePages);
     PH_GET_INTEGER_CACHED_SETTING(ColorMemoryExecutePages);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorMemoryModifiedPages);
+    PH_GET_INTEGER_CACHED_SETTING(ColorMemoryModifiedPages);
     PH_GET_INTEGER_CACHED_SETTING(UseColorRelocatedModules);
     PH_GET_INTEGER_CACHED_SETTING(ColorRelocatedModules);
     PH_GET_INTEGER_CACHED_SETTING(UseColorProtectedHandles);

@@ -271,6 +271,10 @@ PPH_STRING PhFormat(
 
 #include "format_i.h"
 
+#undef ENSURE_BUFFER
+#undef OK_BUFFER
+#undef ADVANCE_BUFFER
+
     string->Length = usedLength;
     // Null-terminate the string.
     string->Buffer[usedLength / sizeof(WCHAR)] = UNICODE_NULL;
@@ -346,3 +350,7 @@ BOOLEAN PhFormatToBuffer(
 
     return OK_BUFFER;
 }
+
+#undef ENSURE_BUFFER
+#undef OK_BUFFER
+#undef ADVANCE_BUFFER

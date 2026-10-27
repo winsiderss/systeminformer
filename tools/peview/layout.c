@@ -98,7 +98,7 @@ VOID PvInitializeLayoutTree(
 
     //TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     //TreeNew_SetSort(Context->TreeNewHandle, PV_LAYOUT_TREE_COLUMN_NAME_NAME, NoSortOrder);
-    //TreeNew_SetRowHeight(Context->TreeNewHandle, 22);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PvpGetTreeNewRowHeight(Context->TreeNewHandle));
 
     settings = PhGetStringSetting(L"ImageLayoutTreeColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);

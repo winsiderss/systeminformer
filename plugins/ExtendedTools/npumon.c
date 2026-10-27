@@ -54,8 +54,15 @@ PH_CIRCULAR_BUFFER_FLOAT EtNpuPowerUsageHistory;
 PH_CIRCULAR_BUFFER_FLOAT EtNpuTemperatureHistory;
 PH_CIRCULAR_BUFFER_ULONG64 EtNpuFanRpmHistory;
 
+/**
+ * Initializes NPU monitoring functionality, allocating history buffers
+ * and registering necessary callbacks if monitoring is supported.
+ *
+ * \param DiscoveredAdapterList The transient adapter discovery list owned by
+ * the load callback.
+ */
 VOID EtNpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR))
@@ -65,7 +72,7 @@ VOID EtNpuMonitorInitialization(
 
         EtpNpuAdapterList = PhCreateList(4);
 
-        if (EtpNpuInitializeD3DStatistics())
+        if (EtpNpuInitializeD3DStatistics(DiscoveredAdapterList))
             EtNpuEnabled = TRUE;
     }
 
@@ -170,22 +177,27 @@ PETP_NPU_ADAPTER EtpAddNpuAdapter(
     return adapter;
 }
 
+/**
+ * Initializes NPU D3D statistics from a previously discovered adapter list.
+ *
+ * \param DiscoveredAdapterList The adapter discovery list to inspect. Only
+ * adapters identified as pure NPUs are processed.
+ * \return TRUE if at least one adapter was successfully initialized, FALSE otherwise.
+ */
 BOOLEAN EtpNpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
-    PPH_LIST discoveredAdapterList;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
     ULONG processedCount = 0;
 
-    discoveredAdapterList = EtInitializeGraphicsAdapters();
-    if (!discoveredAdapterList)
+    if (!DiscoveredAdapterList)
         return FALSE;
 
-    for (ULONG i = 0; i < discoveredAdapterList->Count; i++)
+    for (ULONG i = 0; i < DiscoveredAdapterList->Count; i++)
     {
-        PET_DISCOVERED_ADAPTER entry = discoveredAdapterList->Items[i];
+        PET_DISCOVERED_ADAPTER entry = DiscoveredAdapterList->Items[i];
         D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
@@ -253,10 +265,11 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
                 )))
             {
                 //
-                // This will be averaged below.
+                // Use the highest limit since we show one graph for all.
+                // The temperature caps are in deci-Celsius (1 = 0.1C).
                 //
-                EtNpuTemperatureLimit += max(perfCaps.TemperatureWarning, perfCaps.TemperatureMax);
-                EtNpuFanRpmLimit += perfCaps.MaxFanRPM;
+                EtNpuTemperatureLimit = max(EtNpuTemperatureLimit, (FLOAT)max(perfCaps.TemperatureWarning, perfCaps.TemperatureMax) / 10);
+                EtNpuFanRpmLimit = max(EtNpuFanRpmLimit, (ULONG64)perfCaps.MaxFanRPM);
             }
         }
 
@@ -329,18 +342,10 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
 
     if (EtNpuSupported && processedCount > 0)
     {
-        //
-        // Use the average as the limit since we show one graph for all.
-        //
-        EtNpuTemperatureLimit /= processedCount;
-        EtNpuFanRpmLimit /= processedCount;
-
         // Set limit at 100C (dmex)
         if (EtNpuTemperatureLimit == 0)
             EtNpuTemperatureLimit = 100;
     }
-
-    EtUninitializeGraphicsAdapters(discoveredAdapterList);
 
     if (EtNpuTotalNodeCount == 0)
         return FALSE;
@@ -595,6 +600,84 @@ VOID EtpNpuUpdateSystemNodeInformation(
     EtNpuSystemRunningTimeDelta = maxSystemDelta;
 }
 
+/**
+ * Resets the running time deltas after the node running times of an adapter restarted.
+ *
+ * \param NpuAdapter The adapter whose node running times restarted.
+ */
+VOID EtpNpuResetAdapterNodeDeltas(
+    _In_ PETP_NPU_ADAPTER NpuAdapter
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    if (EtNpuNodesTotalRunningTimeDelta && EtNpuNodesSystemRunningTimeDelta)
+    {
+        for (ULONG i = 0; i < NpuAdapter->NodeCount; i++)
+        {
+            PhInitializeDelta(&EtNpuNodesTotalRunningTimeDelta[NpuAdapter->FirstNodeIndex + i]);
+            PhInitializeDelta(&EtNpuNodesSystemRunningTimeDelta[NpuAdapter->FirstNodeIndex + i]);
+        }
+    }
+
+    //
+    // The process running time is a total of all adapters, so query it again with the
+    // new LUID as the baseline for the next delta. (#3115)
+    //
+    listEntry = EtProcessBlockListHead.Flink;
+
+    while (listEntry != &EtProcessBlockListHead)
+    {
+        PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+        EtpNpuUpdateProcessNodeInformation(block);
+        block->NpuRunningTimeDelta.Delta = 0;
+
+        listEntry = listEntry->Flink;
+    }
+}
+
+/**
+ * Refreshes the LUID of adapters that were restarted.
+ *
+ * \remarks The kernel assigns a new LUID when the adapter is restarted (driver update,
+ * disable/enable), and statistics queried with the previous LUID fail. The node and segment
+ * counts are not refreshed, the per-node buffers are allocated during initialization. (#3115)
+ */
+VOID EtpNpuRefreshAdapterLuids(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
+    {
+        PETP_NPU_ADAPTER npuAdapter = EtpNpuAdapterList->Items[i];
+        D3DKMT_QUERYSTATISTICS queryStatistics;
+        D3DKMT_HANDLE adapterHandle;
+        LUID adapterLuid;
+
+        if (!npuAdapter->DeviceInterface)
+            continue;
+
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+        queryStatistics.AdapterLuid = npuAdapter->AdapterLuid;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+            continue;
+
+        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(npuAdapter->DeviceInterface))))
+            continue;
+
+        EtCloseAdapterHandle(adapterHandle);
+
+        if (!RtlIsEqualLuid(&npuAdapter->AdapterLuid, &adapterLuid))
+        {
+            WriteNoFence64((PLONG64)&npuAdapter->AdapterLuid, *(PLONG64)&adapterLuid);
+            EtpNpuResetAdapterNodeDeltas(npuAdapter);
+        }
+    }
+}
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -617,6 +700,8 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
 
     if (runCount < 2)
         return;
+
+    EtpNpuRefreshAdapterLuids();
 
     if (EtNpuD3DEnabled)
     {
@@ -695,17 +780,21 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
                 sizeof(D3DKMT_ADAPTER_PERFDATA)
                 )))
             {
-                powerUsage += (((FLOAT)adapterPerfData.Power / 1000) * 100);
-                temperature += (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
-                fanRpm += adapterPerfData.FanRPM;
+                //
+                // Use the highest value since we show one graph for all and
+                // adapters without sensors report zero. (#3115)
+                //
+                powerUsage = max(powerUsage, (((FLOAT)adapterPerfData.Power / 1000) * 100));
+                temperature = max(temperature, (((FLOAT)adapterPerfData.Temperature / 1000) * 100));
+                fanRpm = max(fanRpm, (ULONG64)adapterPerfData.FanRPM);
             }
 
             EtCloseAdapterHandle(adapterHandle);
         }
 
-        EtNpuPowerUsage = powerUsage / EtpNpuAdapterList->Count;
-        EtNpuTemperature = temperature / EtpNpuAdapterList->Count;
-        EtNpuFanRpm = fanRpm / EtpNpuAdapterList->Count;
+        EtNpuPowerUsage = powerUsage;
+        EtNpuTemperature = temperature;
+        EtNpuFanRpm = fanRpm;
 
         //
         // Update the limits if we see higher values

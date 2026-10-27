@@ -2014,6 +2014,49 @@ FLOAT EtLookupProcessGpuUtilization(
     return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
+// EXTENDEDTOOLS_INTERFACE
+BOOLEAN EtLookupProcessGpuStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
+    )
+{
+    ULONG64 sharedUsage;
+    ULONG64 dedicatedUsage;
+    ULONG64 commitUsage;
+    ULONG64 dedicatedCommitted;
+    ULONG64 sharedCommitted;
+
+    if (!EtGpuEnabled)
+        return FALSE;
+
+    memset(Statistics, 0, sizeof(EXTENDEDTOOLS_PROCESS_GPU));
+
+    // Constant by the time we get here: the guard above returned already if it were not set, and
+    // reading the global again made it look as though this could still come back false.
+    Statistics->GpuEnabled = TRUE;
+    Statistics->PerformanceCountersEnabled = EtGpuD3DEnabled;
+    Statistics->Utilization = EtLookupProcessGpuUtilization(ProcessId);
+
+    if (EtLookupProcessGpuMemoryCounters(
+        ProcessId,
+        &sharedUsage,
+        &dedicatedUsage,
+        &commitUsage,
+        &dedicatedCommitted,
+        &sharedCommitted
+        ))
+    {
+        Statistics->SharedBytes = sharedUsage;
+        Statistics->DedicatedBytes = dedicatedUsage;
+        Statistics->CommitBytes = commitUsage;
+        Statistics->DedicatedCommittedBytes = dedicatedCommitted;
+        Statistics->SharedCommittedBytes = sharedCommitted;
+    }
+
+    return TRUE;
+}
+
+// EXTENDEDTOOLS_INTERFACE
 FLOAT EtLookupProcessGpuEngineUtilization(
     _In_ HANDLE ProcessId,
     _In_ LUID AdapterLuid,

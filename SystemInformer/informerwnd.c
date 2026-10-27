@@ -3647,10 +3647,12 @@ VOID PhpInformerInitializeDialog(
 
     PhpInformerInitializeColumns(Context, ColumnSettingName);
 
-    PhCreateSearchControl(
+    PhCreateSearchControl2(
         WindowHandle,
         Context->SearchboxHandle,
         L"Search Monitor (Ctrl+K)",
+        SETTING_SEARCH_MONITOR_REGEX,
+        SETTING_SEARCH_MONITOR_CASE_SENSITIVE,
         PhpInformerSearchCallback,
         Context
         );
@@ -3984,7 +3986,7 @@ INT_PTR CALLBACK PhpInformerDlgProc(
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Set initial focus to the TreeNew, not the search box
-            SetFocus(context->TreeNewHandle);
+            PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
         }
         return FALSE;  // We handled focus ourselves
 

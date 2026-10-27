@@ -176,10 +176,6 @@ typedef struct _FW_ITEM_QUERY_DATA
     PPH_STRING HostString;
 } FW_ITEM_QUERY_DATA, *PFW_ITEM_QUERY_DATA;
 
-VOID EtFwQueryHostnameForEntry(
-    _In_ PFW_EVENT_ITEM Entry
-    );
-
 /**
  * Compares two hostname resolve cache entries.
  *
@@ -404,40 +400,28 @@ VOID FwProcessFirewallEvent(
     entry->ProcessFileNameWin32 = firewallEvent->ProcessFileNameWin32;
     entry->ProcessBaseString = firewallEvent->ProcessBaseString;
     entry->ProcessItem = firewallEvent->ProcessItem;
+    entry->UserSid = firewallEvent->UserSid;
+    entry->RuleName = firewallEvent->RuleName;
+    entry->RuleDescription = firewallEvent->RuleDescription;
+    entry->CountryIconIndex = firewallEvent->CountryIconIndex;
+    entry->RemoteCountryName = firewallEvent->RemoteCountryName;
+    entry->InterfaceLuid = firewallEvent->InterfaceLuid;
+    entry->CompartmentId = firewallEvent->CompartmentId;
+    entry->ProcessId = firewallEvent->ProcessId;
+
+    PhSetReference(&entry->FilterOrigin, firewallEvent->FilterOrigin);
+    PhSetReference(&entry->PolicyAppId, firewallEvent->PolicyAppId);
+    PhSetReference(&entry->ServiceSids, firewallEvent->ServiceSids);
+    PhSetReference(&entry->FqbnName, firewallEvent->FqbnName);
+    PhSetReference(&entry->InterfaceLuidString, firewallEvent->InterfaceLuidString);
+    PhSetReference(&entry->CompartmentIdString, firewallEvent->CompartmentIdString);
+    PhSetReference(&entry->ProcessIdString, firewallEvent->ProcessIdString);
 
     if (entry->ProcessItem && !entry->ProcessIconValid && PhTestEvent(&entry->ProcessItem->Stage1Event))
     {
         entry->ProcessIconIndex = entry->ProcessItem->SmallIconIndex;
         entry->ProcessIconValid = TRUE;
     }
-
-    entry->UserSid = firewallEvent->UserSid;
-    entry->RuleName = firewallEvent->RuleName;
-    entry->RuleDescription = firewallEvent->RuleDescription;
-    entry->CountryIconIndex = firewallEvent->CountryIconIndex;
-    entry->RemoteCountryName = firewallEvent->RemoteCountryName;
-
-    if (firewallEvent->FilterOrigin)
-        entry->FilterOrigin = PhReferenceObject(firewallEvent->FilterOrigin);
-    entry->InterfaceLuid = firewallEvent->InterfaceLuid;
-    entry->CompartmentId = firewallEvent->CompartmentId;
-    if (firewallEvent->PolicyAppId)
-        entry->PolicyAppId = PhReferenceObject(firewallEvent->PolicyAppId);
-    if (firewallEvent->ServiceSids)
-        entry->ServiceSids = PhReferenceObject(firewallEvent->ServiceSids);
-    if (firewallEvent->FqbnName)
-        entry->FqbnName = PhReferenceObject(firewallEvent->FqbnName);
-
-    if (firewallEvent->InterfaceLuidString)
-        entry->InterfaceLuidString = PhReferenceObject(firewallEvent->InterfaceLuidString);
-    if (firewallEvent->CompartmentIdString)
-        entry->CompartmentIdString = PhReferenceObject(firewallEvent->CompartmentIdString);
-    if (firewallEvent->ProcessIdString)
-        entry->ProcessIdString = PhReferenceObject(firewallEvent->ProcessIdString);
-
-    entry->ProcessId = firewallEvent->ProcessId;
-    entry->InterfaceLuid = firewallEvent->InterfaceLuid;
-    entry->CompartmentId = firewallEvent->CompartmentId;
 
     // Add the item to the age list.
     entry->RunId = RunId;
@@ -470,6 +454,15 @@ BOOLEAN FwProcessEventType(
     _Out_ PUSHORT LayerId
     )
 {
+    if (IsLoopback)
+        *IsLoopback = FALSE;
+    if (Direction)
+        *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+    if (FilterId)
+        *FilterId = 0;
+    if (LayerId)
+        *LayerId = FWPS_BUILTIN_LAYER_MAX;
+
     switch ((ULONG)FwEvent->type)
     {
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
@@ -552,8 +545,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeMmFailureEvent->mmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
@@ -564,8 +555,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeQmFailureEvent->qmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
@@ -576,8 +565,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeEmFailureEvent->qmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
@@ -635,9 +622,6 @@ BOOLEAN FwProcessEventType(
                 *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
                 break;
             }
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
@@ -653,8 +637,6 @@ BOOLEAN FwProcessEventType(
                 *IsLoopback = !!fwCapabilityDropEvent->isLoopback;
             if (FilterId)
                 *FilterId = fwCapabilityDropEvent->filterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
@@ -670,8 +652,6 @@ BOOLEAN FwProcessEventType(
                 *IsLoopback = !!fwCapabilityAllowEvent->isLoopback;
             if (FilterId)
                 *FilterId = fwCapabilityAllowEvent->filterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
@@ -713,9 +693,6 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL:
         {
             *Direction = FW_EVENT_DIRECTION_INBOUND;
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_MM_ESTABLISHED:
@@ -728,9 +705,6 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_POLICY_CHANGE:
         {
             *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     }
@@ -867,9 +841,10 @@ NTSTATUS EtFwNetworkItemQueryWorker(
 
     PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
     cacheItem = EtFwLookupResolveCacheItem(&data->Address);
+    hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
     PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-    if (!cacheItem)
+    if (!hostString)
     {
         hostString = EtFwGetNameFromAddress(&data->Address);
 
@@ -898,8 +873,7 @@ NTSTATUS EtFwNetworkItemQueryWorker(
     }
     else
     {
-        PhReferenceObject(cacheItem->HostString);
-        data->HostString = cacheItem->HostString;
+        data->HostString = hostString;
     }
 
     RtlInterlockedPushEntrySList(&EtFwQueryListHead, &data->ListEntry);
@@ -1002,6 +976,7 @@ VOID EtFwQueryHostnameForEntry(
     )
 {
     PFW_RESOLVE_CACHE_ITEM cacheItem;
+    PPH_STRING hostString;
 
     if (!FlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
         return;
@@ -1012,12 +987,12 @@ VOID EtFwQueryHostnameForEntry(
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
         cacheItem = EtFwLookupResolveCacheItem(&Entry->LocalEndpoint.Address);
+        hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
         PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-        if (cacheItem)
+        if (hostString)
         {
-            PhReferenceObject(cacheItem->HostString);
-            Entry->LocalHostnameString = cacheItem->HostString;
+            Entry->LocalHostnameString = hostString;
             Entry->LocalHostnameResolved = TRUE;
         }
         else
@@ -1036,12 +1011,12 @@ VOID EtFwQueryHostnameForEntry(
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
         cacheItem = EtFwLookupResolveCacheItem(&Entry->RemoteEndpoint.Address);
+        hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
         PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-        if (cacheItem)
+        if (hostString)
         {
-            PhReferenceObject(cacheItem->HostString);
-            Entry->RemoteHostnameString = cacheItem->HostString;
+            Entry->RemoteHostnameString = hostString;
             Entry->RemoteHostnameResolved = TRUE;
         }
         else
@@ -1115,7 +1090,7 @@ PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
     {
         pluginInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
 
-        if (pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
+        if (pluginInterface && pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
             pluginInterface = NULL;
     }
 
@@ -1399,6 +1374,7 @@ BOOLEAN EtFwGetFilterDisplayData(
     )
 {
     PETFW_FILTER_DISPLAY_CONTEXT entry;
+    ETFW_FILTER_DISPLAY_CONTEXT newEntry;
     PPH_STRING filterName = NULL;
     PPH_STRING filterDescription = NULL;
     FWPM_FILTER* filter;
@@ -1438,15 +1414,19 @@ BOOLEAN EtFwGetFilterDisplayData(
     {
         PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
 
-        ETFW_FILTER_DISPLAY_CONTEXT newentry;
-        memset(&newentry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
-        newentry.FilterId = FilterId;
-        newentry.Name = filterName;
-        newentry.Description = filterDescription;
-        PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &newentry);
+        memset(&newEntry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
+        newEntry.FilterId = FilterId;
+        newEntry.Name = filterName;
+        newEntry.Description = filterDescription;
 
         *Name = PhReferenceObject(filterName);
         *Description = PhReferenceObject(filterDescription);
+
+        if (!PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &newEntry))
+        {
+            PhDereferenceObject(filterName);
+            PhDereferenceObject(filterDescription);
+        }
 
         PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
 
@@ -1835,18 +1815,9 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     _In_ PSID Sid
     )
 {
+    ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
     PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
     PPH_STRING fullName;
-
-    if (!EtFwSidFullNameCacheHashtable)
-    {
-        EtFwSidFullNameCacheHashtable = PhCreateHashtable(
-            sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
-            EtFwSidFullNameCacheHashtableEqualFunction,
-            EtFwSidFullNameCacheHashtableHashFunction,
-            16
-            );
-    }
 
     PhAcquireQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
 
@@ -1864,18 +1835,29 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     if (!fullName)
         return NULL;
 
-    if (EtFwSidFullNameCacheHashtable)
+    PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
+
+    if (!EtFwSidFullNameCacheHashtable)
     {
-        PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
-
-        ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
-        memset(&newEntry, 0, sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY));
-        newEntry.Sid = PhAllocateCopy(Sid, PhLengthSid(Sid));
-        newEntry.FullName = PhReferenceObject(fullName);
-        PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
-
-        PhReleaseQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
+        EtFwSidFullNameCacheHashtable = PhCreateHashtable(
+            sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
+            EtFwSidFullNameCacheHashtableEqualFunction,
+            EtFwSidFullNameCacheHashtableHashFunction,
+            16
+            );
     }
+
+    memset(&newEntry, 0, sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY));
+    newEntry.Sid = PhAllocateCopy(Sid, PhLengthSid(Sid));
+    newEntry.FullName = PhReferenceObject(fullName);
+
+    if (!PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry))
+    {
+        PhFree(newEntry.Sid);
+        PhDereferenceObject(newEntry.FullName);
+    }
+
+    PhReleaseQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
 
     return fullName;
 }
@@ -1890,21 +1872,18 @@ PPH_STRING EtFwGetSidFullNameCached(
     _In_ PSID Sid
     )
 {
-    if (EtFwSidFullNameCacheHashtable)
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
+
+    PhAcquireQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+
+    if (entry = EtFwSidLookupCacheItem(Sid))
     {
-        PhAcquireQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
-
-        PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
-
-        if (entry = EtFwSidLookupCacheItem(Sid))
-        {
-            PPH_STRING fullName = PhReferenceObject(entry->FullName);
-            PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
-            return fullName;
-        }
-
+        PPH_STRING fullName = PhReferenceObject(entry->FullName);
         PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+        return fullName;
     }
+
+    PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
 
     return NULL;
 }
@@ -2024,21 +2003,12 @@ PPH_PROCESS_ITEM EtFwGetFileNameProcessCachedSlow(
     _In_ PPH_STRING FileName
     )
 {
+    ETFW_NAME_PROCESS_CACHE_ENTRY newEntry;
     PETFW_NAME_PROCESS_CACHE_ENTRY entry;
     PPH_PROCESS_ITEM process;
 
     if (PhIsNullOrEmptyString(FileName))
         return NULL;
-
-    if (!EtFwFileNameProcessCacheHashTable)
-    {
-        EtFwFileNameProcessCacheHashTable = PhCreateHashtable(
-            sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY),
-            EtFwFileNameProcessCacheHashtableEqualFunction,
-            EtFwFileNameProcessCacheHashtableHashFunction,
-            16
-            );
-    }
 
     PhAcquireQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
 
@@ -2056,18 +2026,26 @@ PPH_PROCESS_ITEM EtFwGetFileNameProcessCachedSlow(
     if (!process)
         return NULL;
 
-    if (EtFwFileNameProcessCacheHashTable)
+    PhAcquireQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+
+    if (!EtFwFileNameProcessCacheHashTable)
     {
-        PhAcquireQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
-
-        ETFW_NAME_PROCESS_CACHE_ENTRY newEntry;
-        memset(&newEntry, 0, sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY));
-        newEntry.FileNameHash = PhHashStringRefEx(&FileName->sr, FALSE, PH_STRING_HASH_X65599);
-        newEntry.ProcessItem = PhReferenceObject(process);
-        PhAddEntryHashtable(EtFwFileNameProcessCacheHashTable, &newEntry);
-
-        PhReleaseQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+        EtFwFileNameProcessCacheHashTable = PhCreateHashtable(
+            sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY),
+            EtFwFileNameProcessCacheHashtableEqualFunction,
+            EtFwFileNameProcessCacheHashtableHashFunction,
+            16
+            );
     }
+
+    memset(&newEntry, 0, sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY));
+    newEntry.FileNameHash = PhHashStringRefEx(&FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    newEntry.ProcessItem = PhReferenceObject(process);
+
+    if (!PhAddEntryHashtable(EtFwFileNameProcessCacheHashTable, &newEntry))
+        PhDereferenceObject(newEntry.ProcessItem);
+
+    PhReleaseQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
 
     return process;
 }
@@ -2082,21 +2060,18 @@ PPH_PROCESS_ITEM EtFwGetFileNameProcessCached(
     _In_ PPH_STRING FileName
     )
 {
-    if (EtFwFileNameProcessCacheHashTable)
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry;
+
+    PhAcquireQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+
+    if (entry = EtFwFileNameProcessLookupCacheItem(FileName))
     {
-        PhAcquireQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
-
-        PETFW_NAME_PROCESS_CACHE_ENTRY entry;
-
-        if (entry = EtFwFileNameProcessLookupCacheItem(FileName))
-        {
-            PPH_PROCESS_ITEM processItem = PhReferenceObject(entry->ProcessItem);
-            PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
-            return processItem;
-        }
-
+        PPH_PROCESS_ITEM processItem = PhReferenceObject(entry->ProcessItem);
         PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+        return processItem;
     }
+
+    PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
 
     return NULL;
 }
@@ -2327,8 +2302,8 @@ VOID CALLBACK EtFwEventCallback(
     PPH_STRING ruleName;
     PPH_STRING ruleDescription;
 
-    if (!EtFwEnabled)
-        return;
+    //if (!EtFwEnabled)
+    //    return;
 
     if (!FwProcessEventType(
         FwEvent,

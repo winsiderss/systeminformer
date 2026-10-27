@@ -767,10 +767,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ListContext.BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(modulesContext->TreeNewHandle), FW_BOLD);
 
             // Initialize the search box. (dmex)
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 modulesContext->SearchboxHandle,
                 L"Search Modules (Ctrl+K)",
+                SETTING_SEARCH_MODULES_REGEX,
+                SETTING_SEARCH_MODULES_CASE_SENSITIVE,
                 PhpProcessModulesSearchControlCallback,
                 modulesContext
                 );

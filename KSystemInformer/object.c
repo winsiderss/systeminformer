@@ -26,7 +26,7 @@ typedef struct _KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT
 } KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPH_ENUMERATE_PROCESS_HANDLES_CONTEXT;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistration");
+DECLARE_CONST_UNICODE_STRING(KphpEtwRegistrationName, L"EtwRegistration");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 _IRQL_requires_max_(HIGH_LEVEL)
@@ -892,8 +892,15 @@ NTSTATUS KphpExtractNameFileObject(
         // around this, it's not perfect but we get value from this routine
         // for cases where extracting the full name is otherwise impossible.
         //
-        if ((ObGetObjectType(fileObject) != *IoFileObjectType) ||
-            FlagOn(fileObject->Flags, FO_CLEANUP_COMPLETE))
+        __try
+        {
+            if ((ObGetObjectType(fileObject) != *IoFileObjectType) ||
+                FlagOn(fileObject->Flags, FO_CLEANUP_COMPLETE))
+            {
+                break;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             break;
         }

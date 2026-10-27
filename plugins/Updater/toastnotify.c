@@ -46,7 +46,7 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
 
 NTSTATUS UpdateFinalizeWinHttpDownloadStage6(
     _In_ PPH_UPDATER_CONTEXT Context,
-    _Inout_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
+    _In_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
     _Out_ PUPDATER_DOWNLOAD_RESULT Result
     );
 
@@ -242,6 +242,16 @@ CleanupExit:
     UpdateReleaseWinHttpDownloadContext(&downloadContext);
     UpdateReleaseWinHttpDownloadStringsStage7(&downloadHostPath, &downloadUrlPath, &userAgent);
 
+    //
+    // The in-memory verification above proves the stream we received was genuine,
+    // but the installer is launched from the on-disk file. Now that the writable
+    // download handle is closed, re-read and re-verify the file from disk and
+    // retain a deny-write handle until the installer is launched, so the bytes
+    // that were verified are the bytes that are executed.
+    //
+    if (NT_SUCCESS(status))
+        status = UpdateVerifyCacheFileSignature(Context, Result);
+
     return status;
 }
 
@@ -266,6 +276,12 @@ NTSTATUS UpdateInitializeWinHttpDownloadStage3(
 {
     NTSTATUS status;
     USHORT port;
+
+    if (Context->SetupFileHandle)
+    {
+        NtClose(Context->SetupFileHandle);
+        Context->SetupFileHandle = NULL;
+    }
 
     if (Context->SetupFilePath)
     {
@@ -476,12 +492,11 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
  */
 NTSTATUS UpdateFinalizeWinHttpDownloadStage6(
     _In_ PPH_UPDATER_CONTEXT Context,
-    _Inout_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
+    _In_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
     _Out_ PUPDATER_DOWNLOAD_RESULT Result
     )
 {
     NTSTATUS status;
-    HANDLE setupFileHandle;
 
     if (NT_SUCCESS(status = UpdaterVerifyHashForContext(
         DownloadContext->HashContext,
@@ -502,20 +517,6 @@ NTSTATUS UpdateFinalizeWinHttpDownloadStage6(
     if (!(Result->HashSuccess && Result->SignatureSuccess))
         return STATUS_DATA_CHECKSUM_ERROR;
 
-    status = PhReOpenFile(
-        &setupFileHandle,
-        DownloadContext->FileHandle,
-        FILE_GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    Context->SetupFileHandle = setupFileHandle;
-    Result->DownloadSuccess = TRUE;
-
     return STATUS_SUCCESS;
 }
 
@@ -526,7 +527,7 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
 {
     NTSTATUS status;
     HANDLE fileHandle = NULL;
-    HANDLE setupFileHandle = NULL;
+    PPH_STRING fileName = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
     IO_STATUS_BLOCK iosb;
     LARGE_INTEGER fileSize;
@@ -536,14 +537,19 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
 
     memset(Result, 0, sizeof(UPDATER_DOWNLOAD_RESULT));
 
-    status = PhCreateFileWin32Ex(
+    fileName = PhDosPathNameToNtPathName(&Context->SetupFilePath->sr);
+    if (!fileName)
+    {
+        status = STATUS_OBJECT_PATH_INVALID;
+        goto CleanupExit;
+    }
+
+    status = PhOpenFile(
         &fileHandle,
-        PhGetString(Context->SetupFilePath),
+        &fileName->sr,
         FILE_GENERIC_READ,
         NULL,
-        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
-        FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
         );
@@ -614,19 +620,12 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
         goto CleanupExit;
     }
 
-    status = PhReOpenFile(
-        &setupFileHandle,
-        fileHandle,
-        FILE_GENERIC_READ,
-        FILE_SHARE_READ,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    Context->SetupFileHandle = setupFileHandle;
-    setupFileHandle = NULL;
+    //
+    // Retain the handle that was hashed. It denies write and delete access to
+    // the file until the installer has been launched (see UpdateShellExecute).
+    //
+    Context->SetupFileHandle = fileHandle;
+    fileHandle = NULL;
     Result->DownloadSuccess = TRUE;
 
 CleanupExit:
@@ -635,10 +634,10 @@ CleanupExit:
         PhFree(buffer);
     if (hashContext)
         UpdaterDestroyHashForContext(hashContext);
-    if (setupFileHandle)
-        NtClose(setupFileHandle);
     if (fileHandle)
         NtClose(fileHandle);
+    if (fileName)
+        PhDereferenceObject(fileName);
 
     return status;
 }

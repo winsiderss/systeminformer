@@ -253,6 +253,13 @@ LONGLONG PhGetJsonInt64Object(
     return json_object_get_int64(Object);
 }
 
+DOUBLE PhGetJsonDoubleObject(
+    _In_ PVOID Object
+    )
+{
+    return json_object_get_double(Object);
+}
+
 PVOID PhCreateJsonObject(
     VOID
     )
@@ -322,6 +329,14 @@ VOID PhAddJsonObjectValue(
     )
 {
     json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
+}
+
+VOID PhRemoveJsonObject(
+    _In_ PVOID Object,
+    _In_ PCSTR Key
+    )
+{
+    json_object_object_del(Object, Key);
 }
 
 VOID PhAddJsonObject(
@@ -504,6 +519,13 @@ NTSTATUS PhLoadJsonObjectFromFile(
 
     if (NT_SUCCESS(status = PhFileReadAllText(&content, FileName, FALSE)))
     {
+        if (content->Length == 0)
+        {
+            // A blank file is OK.
+            PhDereferenceObject(content);
+            return STATUS_END_OF_FILE;
+        }
+
         status = PhCreateJsonParserEx(JsonObject, content, FALSE);
         PhDereferenceObject(content);
     }
@@ -1084,6 +1106,7 @@ static PPH_BYTES PhXmlSaveString(
 {
     mxml_options_t* options;
     PPH_BYTES string;
+    char* buffer;
 
     options = mxmlOptionsNew();
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
@@ -1093,8 +1116,14 @@ static PPH_BYTES PhXmlSaveString(
         mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
     }
 
-    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
+    buffer = mxmlSaveAllocString(XmlRootObject, options);
     mxmlOptionsDelete(options);
+
+    if (!buffer)
+        return NULL;
+
+    string = PhCreateBytes(buffer);
+    free(buffer);
 
     return string;
 }

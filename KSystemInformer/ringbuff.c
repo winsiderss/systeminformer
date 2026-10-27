@@ -17,7 +17,7 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpRingBufferType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpRingBufferTypeName = RTL_CONSTANT_STRING(L"KphRingBuffer");
+DECLARE_CONST_UNICODE_STRING(KphpRingBufferTypeName, L"KphRingBuffer");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
@@ -213,7 +213,7 @@ VOID KphpSubmitRingBuffer(
     header.Busy = FALSE;
     header.Discard = !!Discard;
 
-    WriteULong64Release(&headerPointer->Value, header.Value);
+    InterlockedExchangeU64(&headerPointer->Value, header.Value);
 
     if (Ring->Event && !ReadULongAcquire(Ring->ConsumerProcessing))
     {

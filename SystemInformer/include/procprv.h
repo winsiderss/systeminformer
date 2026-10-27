@@ -22,6 +22,7 @@ extern PPH_LIST PhProcessRecordList;
 extern PH_QUEUED_LOCK PhProcessRecordListLock;
 
 extern ULONG PhStatisticsSampleCount;
+extern BOOLEAN PhEnableProcessExtension;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
 extern BOOLEAN PhEnableInterruptCpuUsage;
@@ -54,6 +55,15 @@ typedef enum _PH_PROCESS_PROVIDER_FLAG
 } PH_PROCESS_PROVIDER_FLAG;
 
 extern ULONG PhProcessProviderFlagsMask;
+
+// The time actually spanned by the last process provider run, in milliseconds. Use this instead of
+// PhCsUpdateInterval when converting per-update deltas into per-second rates: the provider can be
+// boosted (View -> Refresh), can overrun the interval, or can be paused, in which case the nominal
+// interval is not the time the delta covers. Guaranteed non-zero once the provider has run. (dmex)
+extern ULONG PhProcessProviderElapsedMilliseconds;
+
+// Defined in mainwnd.c; procprv.c reads the elapsed time actually spanned by the last provider run. (dmex)
+extern PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 
 extern PVOID PhProcessInformation; // only can be used if running on same thread as process provider
 extern ULONG PhProcessInformationSequenceNumber;

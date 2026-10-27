@@ -323,7 +323,7 @@ typedef struct _PH_HANDLES_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
-    HFONT TreeNewFont;
+    PPH_FONT TreeNewFont;
 
     union
     {
@@ -367,6 +367,7 @@ typedef struct _PH_MEMORY_CONTEXT
     };
     PH_MEMORY_ITEM_LIST MemoryItemList;
     BOOLEAN MemoryItemListValid;
+    BOOLEAN RefreshInProgress; // UI thread only; set when a worker starts, cleared on WM_PH_INVOKE
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
@@ -386,7 +387,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
-    HFONT TreeNewFont;
+    PPH_FONT TreeNewFont;
 
     PPH_LISTVIEW_CONTEXT ListViewContext;
 

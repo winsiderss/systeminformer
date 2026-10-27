@@ -11,6 +11,7 @@
  */
 
 #include "dn.h"
+#include "clrsup.h"
 
 #include <trace.h>
 
@@ -189,6 +190,133 @@ VOID NTAPI ThreadItemDeleteCallback(
     PhClearReference(&dnThread->AppDomainText);
 }
 
+
+// DOTNETTOOLS_INTERFACE
+
+DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
+    _In_ HANDLE ProcessId,
+    _In_ PDOTNETTOOLS_ASSEMBLY_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _Out_opt_ PULONG UnreadableAppDomains
+    )
+{
+    PCLR_PROCESS_SUPPORT support;
+    PPH_LIST appDomainList;
+    BOOLEAN isDotNet = FALSE;
+    ULONG unreadableAppDomains = 0;
+    ULONG i;
+    ULONG j;
+
+    if (UnreadableAppDomains)
+        *UnreadableAppDomains = 0;
+
+#ifdef _WIN64
+    {
+        HANDLE processHandle;
+        BOOLEAN isWow64 = FALSE;
+
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
+        {
+            PhGetProcessIsWow64(processHandle, &isWow64);
+            NtClose(processHandle);
+        }
+
+        if (isWow64)
+            return DotNetToolsAssembliesWow64;
+    }
+#endif
+
+    // Whether the data access layer attaches is the real test, so it is tried first and the
+    // detection is only used to explain a failure.
+    if (!(support = CreateClrProcessSupport(ProcessId)))
+    {
+        NTSTATUS sectionStatus;
+        NTSTATUS handleStatus;
+
+        sectionStatus = PhGetProcessIsDotNetEx(ProcessId, NULL, PH_CLR_USE_SECTION_CHECK, &isDotNet, NULL);
+
+        if (NT_SUCCESS(sectionStatus) && isDotNet)
+            return DotNetToolsAssembliesFailed;
+
+        handleStatus = PhGetProcessIsDotNetEx(ProcessId, NULL, 0, &isDotNet, NULL);
+
+        if (NT_SUCCESS(handleStatus) && isDotNet)
+            return DotNetToolsAssembliesFailed;
+
+        // Only a check that ran can say a process is not .NET. When neither could be made - both
+        // want access this caller may not have - that is a failure to tell, and reporting it as a
+        // finding told the user the process is not .NET when nobody had looked.
+        if (!NT_SUCCESS(sectionStatus) && !NT_SUCCESS(handleStatus))
+            return DotNetToolsAssembliesFailed;
+
+        return DotNetToolsAssembliesNotDotNet;
+    }
+
+    if (!(appDomainList = DnGetClrAppDomainAssemblyList(support)))
+    {
+        FreeClrProcessSupport(support);
+        return DotNetToolsAssembliesFailed;
+    }
+
+    for (i = 0; i < appDomainList->Count; i++)
+    {
+        PDN_PROCESS_APPDOMAIN_ENTRY appDomain = appDomainList->Items[i];
+
+        // The domain was enumerated but its assemblies could not be read, so what follows is not
+        // the whole list. Only the caller can decide what a partial answer is worth.
+        if (!appDomain->AssemblyList)
+        {
+            unreadableAppDomains++;
+            continue;
+        }
+
+        for (j = 0; j < appDomain->AssemblyList->Count; j++)
+        {
+            PDN_DOTNET_ASSEMBLY_ENTRY entry = appDomain->AssemblyList->Items[j];
+            DOTNETTOOLS_ASSEMBLY assembly;
+
+            memset(&assembly, 0, sizeof(DOTNETTOOLS_ASSEMBLY));
+            assembly.AppDomainType = appDomain->AppDomainType;
+            assembly.AppDomainNumber = appDomain->AppDomainNumber;
+            assembly.AppDomainId = appDomain->AppDomainID;
+            assembly.AppDomainName = appDomain->AppDomainName;
+            assembly.IsDynamic = !!entry->IsDynamicAssembly;
+            assembly.IsReflection = !!entry->IsReflection;
+            // CLRDataModuleFlag says how the module was loaded, and carries nothing about native
+            // images; NativeFileName is where a precompiled image shows up.
+            assembly.IsDynamicModule = !!FlagOn(entry->ModuleFlag, CLRDATA_MODULE_IS_DYNAMIC);
+            assembly.IsMemoryStream = !!FlagOn(entry->ModuleFlag, CLRDATA_MODULE_IS_MEMORY_STREAM);
+            assembly.IsMainModule = !!FlagOn(entry->ModuleFlag, CLRDATA_MODULE_IS_MAIN_MODULE);
+            assembly.BaseAddress = entry->BaseAddress;
+            assembly.AssemblyId = entry->AssemblyID;
+            assembly.ModuleId = entry->ModuleID;
+            assembly.AssemblyName = entry->AssemblyName;
+            assembly.DisplayName = entry->DisplayName;
+            assembly.ModuleName = entry->ModuleName;
+            assembly.NativeFileName = entry->NativeFileName;
+            assembly.Mvid = entry->Mvid;
+
+            if (!Callback(&assembly, Context))
+                goto CleanupExit;
+        }
+    }
+
+CleanupExit:
+    DnDestroyProcessDotNetAppDomainList(appDomainList);
+    FreeClrProcessSupport(support);
+
+    if (UnreadableAppDomains)
+        *UnreadableAppDomains = unreadableAppDomains;
+
+    return DotNetToolsAssembliesOk;
+}
+
+DOTNETTOOLS_INTERFACE PluginInterface =
+{
+    DOTNETTOOLS_INTERFACE_VERSION,
+    DotNetToolsEnumProcessAssemblies
+};
+
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -218,6 +346,7 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
+            info->Interface = &PluginInterface;
             info->DisplayName = L".NET Tools";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
 

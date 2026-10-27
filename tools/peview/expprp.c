@@ -16,6 +16,9 @@
 static PH_STRINGREF EmptyExportsText = PH_STRINGREF_INIT(L"There are no exports to display.");
 static PH_STRINGREF LoadingExportsText = PH_STRINGREF_INIT(L"Loading exports from image...");
 
+#define EXPORT_MENU_ITEM_HIGHLIGHT_FORWARDED 1
+#define EXPORT_MENU_ITEM_HIGHLIGHT_ORDINAL 2
+
 typedef enum _PV_EXPORT_TREE_COLUMN_ITEM
 {
     PV_EXPORT_TREE_COLUMN_ITEM_INDEX,
@@ -77,6 +80,10 @@ typedef struct _PV_EXPORT_CONTEXT
     PPH_LIST NodeList;
 
     ULONG ExportsFlags;
+    BOOLEAN HighlightForwarded;
+    BOOLEAN HighlightOrdinal;
+
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } PV_EXPORT_CONTEXT, *PPV_EXPORT_CONTEXT;
 
 BOOLEAN PvExportNodeHashtableCompareFunction(
@@ -215,6 +222,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
+    BOOLEAN hideInvalid = !!PhGetIntegerSetting(L"HideInvalidExports");
     ULONG i;
 
     if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, Context->ExportsFlags)))
@@ -228,6 +236,9 @@ NTSTATUS PvpPeExportsEnumerateThread(
             {
                 PPV_EXPORT_NODE exportNode;
                 WCHAR value[PH_INT64_STR_LEN_1];
+
+                if (hideInvalid && !exportFunction.Function)
+                    continue;
 
                 exportNode = PhAllocateZero(sizeof(PV_EXPORT_NODE));
                 exportNode->UniqueId = i + 1;
@@ -357,11 +368,13 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
             }
         }
+        PhDeleteMappedImageExports(&exports);
     }
 
     PhClearReference(&supressedHashTable);
 
     PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    PhReleaseRundownProtection(&Context->WorkerRundown);
     return STATUS_SUCCESS;
 }
 
@@ -397,6 +410,7 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
+        PhInitializeRundownProtection(&context->WorkerRundown);
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
         if (lParam)
@@ -460,13 +474,19 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCreateThread2(PvpPeExportsEnumerateThread, context);
+            PhAcquireRundownProtection(&context->WorkerRundown);
+
+            if (!NT_SUCCESS(PhCreateThread2(PvpPeExportsEnumerateThread, context)))
+                PhReleaseRundownProtection(&context->WorkerRundown);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            // The worker only posts, so waiting here cannot deadlock.
+            PhWaitForRundownProtection(&context->WorkerRundown);
+
             PhSaveSettingsExportList(context);
             PvDeleteExportTree(context);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
@@ -493,6 +513,52 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_ID(wParam, lParam) == IDC_SETTINGS)
+            {
+                RECT rect;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM forwardedItem;
+                PPH_EMENU_ITEM ordinalItem;
+                PPH_EMENU_ITEM selectedItem;
+
+                GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+                forwardedItem = PhCreateEMenuItem(0, EXPORT_MENU_ITEM_HIGHLIGHT_FORWARDED, L"Highlight forwarded exports", NULL, NULL);
+                ordinalItem = PhCreateEMenuItem(0, EXPORT_MENU_ITEM_HIGHLIGHT_ORDINAL, L"Highlight ordinal exports", NULL, NULL);
+
+                if (context->HighlightForwarded)
+                    forwardedItem->Flags |= PH_EMENU_CHECKED;
+                if (context->HighlightOrdinal)
+                    ordinalItem->Flags |= PH_EMENU_CHECKED;
+
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, forwardedItem, ULONG_MAX);
+                PhInsertEMenuItem(menu, ordinalItem, ULONG_MAX);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    rect.left,
+                    rect.bottom
+                    );
+
+                if (selectedItem)
+                {
+                    if (selectedItem->Id == EXPORT_MENU_ITEM_HIGHLIGHT_FORWARDED)
+                        context->HighlightForwarded = !context->HighlightForwarded;
+                    if (selectedItem->Id == EXPORT_MENU_ITEM_HIGHLIGHT_ORDINAL)
+                        context->HighlightOrdinal = !context->HighlightOrdinal;
+
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+                }
+
+                PhDestroyEMenu(menu);
+            }
         }
         break;
     case WM_NOTIFY:
@@ -920,7 +986,12 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
             node = (PPV_EXPORT_NODE)getNodeColor->Node;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            if (context->HighlightForwarded && node->ExportForwarded)
+                getNodeColor->BackColor = RGB(0xff, 0xe0, 0xa0);
+            else if (context->HighlightOrdinal && !node->NameString)
+                getNodeColor->BackColor = RGB(0xc0, 0xe0, 0xff);
+
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -1072,7 +1143,7 @@ VOID PvInitializeExportTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_UNDECORATED, TRUE, L"Undecorated name", 150, PH_ALIGN_LEFT, PV_EXPORT_TREE_COLUMN_ITEM_UNDECORATED, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_SUPPRESSION, TRUE, L"CFG export suppression", 80, PH_ALIGN_LEFT, PV_EXPORT_TREE_COLUMN_ITEM_SUPPRESSION, 0, 0);
 
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PvpGetTreeNewRowHeight());
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PvpGetTreeNewRowHeight(Context->TreeNewHandle));
 
     TreeNew_SetSort(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
     TreeNew_SetRedraw(TreeNewHandle, TRUE);

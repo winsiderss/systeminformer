@@ -11,6 +11,7 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprv.h>
 #include <kphuser.h>
 
 _Function_class_(PH_OPEN_OBJECT)
@@ -21,18 +22,18 @@ NTSTATUS NTAPI PhpOpenProcessJobForPage(
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
     HANDLE jobHandle = NULL;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        (HANDLE)Context
-        )))
-        return status;
+    if (!(processItem = PhReferenceProcessItem((HANDLE)Context)))
+        return STATUS_INVALID_HANDLE;
 
-    status = KphOpenProcessJob(processHandle, DesiredAccess, &jobHandle);
-    NtClose(processHandle);
+    if (processItem->QueryHandle)
+        status = KphOpenProcessJob(processItem->QueryHandle, DesiredAccess, &jobHandle);
+    else
+        status = STATUS_INVALID_HANDLE;
+
+    PhDereferenceObject(processItem);
 
     if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)
     {

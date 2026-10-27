@@ -1002,7 +1002,11 @@ NTSTATUS WeEnumerateWindows(
 
     enumContext.WindowList = PhCreateList(100);
     enumContext.EnumMessageOnly = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_MESSAGEONLY);
-    enumContext.EnumNonVisible = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE);
+    // Always enumerate non-visible windows internally. The provider needs the
+    // complete set to distinguish a tracked window becoming hidden from a
+    // window being destroyed. The user setting is applied below only when a
+    // newly discovered window is admitted to the provider.
+    enumContext.EnumNonVisible = TRUE;
     enumContext.Selector = Selector;
 
     // Enumerate top-level windows using PhEnumWindowsEx instead of EnumWindows
@@ -1051,8 +1055,12 @@ VOID WeWindowProviderUpdate(
     PWE_WINDOW_ENUM_ENTRY windows;
     ULONG numberOfWindows;
     ULONG i;
+    BOOLEAN enumNonVisible;
+    PPH_POINTER_LIST defaultImeWindows;
 
     PhTraceFuncEnter("Window provider run count: %lu", context->WindowProviderRunCount);
+
+    enumNonVisible = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE);
 
     // Enumerate all windows
     status = WeEnumerateWindows(&context->Selector, &windows, &numberOfWindows);
@@ -1061,6 +1069,21 @@ VOID WeWindowProviderUpdate(
     {
         PhTraceFuncExit("Failed to enumerate windows: %!STATUS!", status);
         return;
+    }
+
+    defaultImeWindows = PhCreatePointerList(numberOfWindows);
+
+    for (i = 0; i < numberOfWindows; i++)
+    {
+        HWND defaultImeWindow;
+
+        defaultImeWindow = (HWND)PhUserQueryWindow(
+            windows[i].WindowHandle,
+            WindowDefaultImeWindow
+            );
+
+        if (defaultImeWindow && !PhFindItemPointerList(defaultImeWindows, defaultImeWindow))
+            PhAddItemPointerList(defaultImeWindows, defaultImeWindow);
     }
 
     // Look for dead windows.
@@ -1125,12 +1148,19 @@ VOID WeWindowProviderUpdate(
 
         if (!windowItem)
         {
+            // Non-visible enumeration controls discovery only. Once a window is
+            // tracked, keep it in the provider so visibility changes are
+            // reported as modifications rather than removals.
+            if (!windowEntry->IsMessageOnly && !windowEntry->IsVisible && !enumNonVisible)
+                continue;
+
             // Create the window item and fill in basic information.
             windowItem = WeCreateWindowItem(windowEntry->WindowHandle);
 
             if (WepGetWindowInfo(windowEntry->WindowHandle, windowItem))
             {
                 windowItem->WindowMessageOnly = windowEntry->IsMessageOnly;
+                windowItem->WindowDefaultIme = !!PhFindItemPointerList(defaultImeWindows, windowEntry->WindowHandle);
 
                 // Add the window item to the hashtable.
                 PhAcquireQueuedLockExclusive(&provider->WindowHashtableLock);
@@ -1153,6 +1183,8 @@ VOID WeWindowProviderUpdate(
             if (WepGetWindowInfo(windowEntry->WindowHandle, &tempItem))
             {
                 BOOLEAN changed = FALSE;
+
+                tempItem.WindowDefaultIme = !!PhFindItemPointerList(defaultImeWindows, windowEntry->WindowHandle);
 
                 if (windowItem->ParentHandle != tempItem.ParentHandle)
                 {
@@ -1190,6 +1222,12 @@ VOID WeWindowProviderUpdate(
                     changed = TRUE;
                 }
 
+                if (windowItem->WindowDefaultIme != tempItem.WindowDefaultIme)
+                {
+                    windowItem->WindowDefaultIme = tempItem.WindowDefaultIme;
+                    changed = TRUE;
+                }
+
                 // Raise the window modified event.
                 if (changed)
                 {
@@ -1214,6 +1252,8 @@ VOID WeWindowProviderUpdate(
     // Free enumeration data
     if (windows)
         PhFree(windows);
+
+    PhDereferenceObject(defaultImeWindows);
 
     PhInvokeCallback(&provider->WindowUpdatedEvent, UlongToPtr(context->WindowProviderRunCount));
 

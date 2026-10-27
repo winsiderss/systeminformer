@@ -230,32 +230,40 @@ VOID PhpRefreshEnvironmentList(
         static CONST PH_STRINGREF environmentKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Session Manager\\Environment");
         HANDLE keyHandle;
 
-        PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE);
-
-        SIZE_T variableLength = 0;
-        PWSTR variableName = systemDefaultEnvironment;
-
-        while (*variableName)
+        if (NT_SUCCESS(PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE)))
         {
-            variableLength += PhCountStringZ(variableName);
-            variableName += variableLength + 1;
+            PWSTR variableName = systemDefaultEnvironment;
+            ULONG environmentBlockLength;
+
+            // Advance by each string's own length (plus its terminator), not the running
+            // total, and include the terminators in the block length. (dmex)
+            while (*variableName)
+            {
+                variableName += PhCountStringZ(variableName) + 1;
+            }
+
+            environmentBlockLength = (ULONG)((ULONG_PTR)variableName - (ULONG_PTR)systemDefaultEnvironment) + sizeof(UNICODE_NULL);
+
+            enumerationKey = 0;
+
+            while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+                systemDefaultEnvironment,
+                environmentBlockLength,
+                &enumerationKey,
+                &variable
+                )))
+            {
+                PH_ENVIRONMENT_ITEM entry;
+
+                entry.Name = PhCreateString2(&variable.Name);
+                entry.Value = PhCreateString2(&variable.Value);
+
+                PhAddItemArray(&Context->Items, &entry);
+            }
         }
-
-        enumerationKey = 0;
-
-        while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
-            systemDefaultEnvironment,
-            (ULONG)variableLength * sizeof(WCHAR),
-            &enumerationKey,
-            &variable
-            )))
+        else
         {
-            PH_ENVIRONMENT_ITEM entry;
-
-            entry.Name = PhCreateString2(&variable.Name);
-            entry.Value = PhCreateString2(&variable.Value);
-
-            PhAddItemArray(&Context->Items, &entry);
+            systemDefaultEnvironment = NULL;
         }
 
         status = PhOpenKey(
@@ -281,7 +289,7 @@ VOID PhpRefreshEnvironmentList(
         {
             PhpSetEnvironmentListStatusMessage(Context, status);
             TreeNew_NodesStructured(Context->TreeNewHandle);
-            return;
+            goto CleanupExit;
         }
 
     }
@@ -444,6 +452,7 @@ VOID PhpRefreshEnvironmentList(
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
+CleanupExit:
     if (systemDefaultEnvironment)
         PhDestroyEnvironmentBlock(systemDefaultEnvironment);
     if (userDefaultEnvironment)
@@ -794,7 +803,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                             }
                             else if (status == STATUS_TIMEOUT)
                             {
-                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
+                                PhShowStatus(hwndDlg, L"Unable to set the environment variable.", 0, WAIT_TIMEOUT);
                                 break;
                             }
 
@@ -994,7 +1003,10 @@ VOID PhpShowEnvironmentNodeContextMenu(
     if (!PhpGetSelectedEnvironmentNodes(Context, &nodes, &numberOfNodes))
         return;
     if (numberOfNodes == 0)
+    {
+        PhFree(nodes);
         return;
+    }
 
     menu = PhCreateEMenu();
     if (!PhpHasSelectedEnvironmentGroupNode(nodes, numberOfNodes))
@@ -1025,6 +1037,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
     }
 
     PhDestroyEMenu(menu);
+    PhFree(nodes);
 }
 
 VOID PhLoadSettingsEnvironmentList(
@@ -1125,6 +1138,8 @@ VOID PhpDestroyEnvironmentNode(
         PhDereferenceObject(Node->NameText);
     if (Node->ValueText)
         PhDereferenceObject(Node->ValueText);
+    if (Node->Children)
+        PhDereferenceObject(Node->Children);
 
     PhFree(Node);
 }
@@ -1624,6 +1639,7 @@ VOID PhpDeleteEnvironmentTree(
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
+    PhDereferenceObject(Context->NodeRootList);
 }
 
 _Function_class_(PH_TN_FILTER_FUNCTION)
@@ -1715,10 +1731,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
             context->ProcessItem = processItem;
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 context->SearchWindowHandle,
                 L"Search Environment (Ctrl+K)",
+                SETTING_SEARCH_ENVIRONMENT_REGEX,
+                SETTING_SEARCH_ENVIRONMENT_CASE_SENSITIVE,
                 PhpProcessEnvironmentSearchControlCallback,
                 context
                 );

@@ -990,6 +990,28 @@ SymCryptModMultiExp(
 SYMCRYPT_DISABLE_CFG
 VOID
 SYMCRYPT_CALL
+SymCryptModSetRandomEx(
+    _In_                            PCSYMCRYPT_MODULUS      pmMod,
+    _Out_                           PSYMCRYPT_MODELEMENT    peDst,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch )
+{
+    SymCryptFdefModSetRandomGenericEx(
+        pmMod,
+        peDst,
+        flags,
+        pRngState,
+        pbScratch,
+        cbScratch );
+
+    SYMCRYPT_MOD_CALL( pmMod ) modSetPost( pmMod, peDst, pbScratch, cbScratch );
+}
+
+SYMCRYPT_DISABLE_CFG
+VOID
+SYMCRYPT_CALL
 SymCryptModSetRandom(
     _In_                            PCSYMCRYPT_MODULUS      pmMod,
     _Out_                           PSYMCRYPT_MODELEMENT    peDst,
@@ -997,9 +1019,7 @@ SymCryptModSetRandom(
     _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
                                     SIZE_T                  cbScratch )
 {
-    SymCryptFdefModSetRandomGeneric( pmMod, peDst, flags, pbScratch, cbScratch );
-
-    SYMCRYPT_MOD_CALL( pmMod ) modSetPost( pmMod, peDst, pbScratch, cbScratch );
+    SymCryptModSetRandomEx( pmMod, peDst, flags, NULL, pbScratch, cbScratch );
 }
 
 PCSYMCRYPT_TRIALDIVISION_CONTEXT

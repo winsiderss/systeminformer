@@ -91,9 +91,9 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ObjectTypeInformation,          // q: OBJECT_TYPE_INFORMATION
     ObjectTypesInformation,         // q: OBJECT_TYPES_INFORMATION
     ObjectHandleFlagInformation,    // qs: OBJECT_HANDLE_FLAG_INFORMATION
-    ObjectSessionInformation,       // s: void // change object session // (requires SeTcbPrivilege)
-    ObjectSessionObjectInformation, // s: void // change object session // (requires SeTcbPrivilege)
-    ObjectSetRefTraceInformation,   // qs: OBJECT_SET_REF_TRACE_INFORMATION // since 25H2
+    ObjectSessionInformation,       // s: void; directory object; set current process session ID (requires SeTcbPrivilege)
+    ObjectSessionObjectInformation, // s: void; directory object; associate current session object (requires SeTcbPrivilege)
+    ObjectSetRefTraceInformation,   // newer-kernel class; support in NtQueryObject/NtSetInformationObject is implementation-dependent
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else
@@ -109,17 +109,23 @@ typedef enum _OBJECT_INFORMATION_CLASS
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
- * The OBJECT_BASIC_INFORMATION structure contains basic information about an object.
+ * The OBJECT_BASIC_INFORMATION structure contains basic information about an object and its queried handle.
+ * \remarks NtQueryObject(ObjectBasicInformation) requires exactly sizeof(OBJECT_BASIC_INFORMATION) (56 bytes).
+ * The handle need not grant a specific access mask. SecurityDescriptorSize is obtained only when the
+ * queried handle grants READ_CONTROL and the object has a security descriptor.
+ * An incorrect buffer length returns STATUS_INFO_LENGTH_MISMATCH without updating ReturnLength
+ * for native x64 calls; the WoW64 thunk instead writes 0.
+ * Do not use a zero-length call to discover this fixed size.
  */
 typedef struct _OBJECT_BASIC_INFORMATION
 {
-    ULONG Attributes;               // The attributes of the object include whether the object is permanent, can be inherited, and other characteristics.
-    ACCESS_MASK GrantedAccess;      // Specifies a mask that represents the granted access when the object was created.
+    ULONG Attributes;               // Handle attributes combined with OBJ_PERMANENT and OBJ_EXCLUSIVE object attributes.
+    ACCESS_MASK GrantedAccess;      // Access rights granted to the queried handle.
     ULONG HandleCount;              // The number of handles that are currently open for the object.
     ULONG PointerCount;             // The number of references to the object from both handles and other references, such as those from the system.
     ULONG PagedPoolCharge;          // The amount of paged pool memory that the object is using.
     ULONG NonPagedPoolCharge;       // The amount of non-paged pool memory that the object is using.
-    ULONG Reserved[3];              // Reserved for future use.
+    ULONG Reserved[3];              // Zero-filled reserved slots; do not interpret as usage counters.
     ULONG NameInfoSize;             // The size of the name information for the object.
     ULONG TypeInfoSize;             // The size of the type information for the object.
     ULONG SecurityDescriptorSize;   // The size of the security descriptor for the object.
@@ -138,29 +144,37 @@ typedef struct _OBJECT_NAME_INFORMATION
 
 /**
  * The OBJECT_TYPE_INFORMATION structure contains various statistics and properties about an object type.
+ * \remarks The fixed structure occupies 0x68 bytes on x64 and 0x60 bytes on x86, followed by the type name.
+ * TypeName.Length excludes the terminating WCHAR; TypeName.MaximumLength includes it.
+ * Each structure and its trailing name are rounded up to pointer alignment in ObjectTypesInformation output.
+ * On x64, ObQueryTypeInfo does not write the four Total*Usage fields
+ * or the four HighWater*Usage fields. Zero-initialize native output buffers, but do not
+ * interpret those compatibility fields as measured pool/name/handle-table usage. The
+ * WoW64 thunk copies them from an intermediate buffer, so even pre-zeroing the x86
+ * caller buffer does not establish meaningful values for these fields.
  */
 typedef struct _OBJECT_TYPE_INFORMATION
 {
     UNICODE_STRING TypeName;
     ULONG TotalNumberOfObjects;
     ULONG TotalNumberOfHandles;
-    ULONG TotalPagedPoolUsage;
-    ULONG TotalNonPagedPoolUsage;
-    ULONG TotalNamePoolUsage;
-    ULONG TotalHandleTableUsage;
+    ULONG TotalPagedPoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG TotalNonPagedPoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG TotalNamePoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG TotalHandleTableUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
     ULONG HighWaterNumberOfObjects;
     ULONG HighWaterNumberOfHandles;
-    ULONG HighWaterPagedPoolUsage;
-    ULONG HighWaterNonPagedPoolUsage;
-    ULONG HighWaterNamePoolUsage;
-    ULONG HighWaterHandleTableUsage;
+    ULONG HighWaterPagedPoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG HighWaterNonPagedPoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG HighWaterNamePoolUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
+    ULONG HighWaterHandleTableUsage; // Compatibility field; may be left unwritten by ObQueryTypeInfo.
     ULONG InvalidAttributes;
     GENERIC_MAPPING GenericMapping;
     ULONG ValidAccessMask;
     BOOLEAN SecurityRequired;
     BOOLEAN MaintainHandleCount;
     UCHAR TypeIndex; // since WINBLUE
-    CHAR ReservedByte;
+    CHAR ReservedByte; // Alignment padding, explicitly zeroed by ObQueryTypeInfo.
     ULONG PoolType;
     ULONG DefaultPagedPoolCharge;
     ULONG DefaultNonPagedPoolCharge;
@@ -168,6 +182,13 @@ typedef struct _OBJECT_TYPE_INFORMATION
 
 /**
  * The OBJECT_TYPES_INFORMATION structure contains the number of object types defined in the system.
+ * \remarks This 4-byte header is followed by pointer-aligned, variable-sized OBJECT_TYPE_INFORMATION records.
+ * The first record begins at offset 0x08 on x64 or 0x04 on x86. Advance past each record's fixed structure
+ * and TypeName.MaximumLength bytes, then round up to pointer alignment; do not index a fixed-size array.
+ * NtQueryObject(ObjectTypesInformation) ignores Handle. A buffer shorter than 4 bytes
+ * reports only the pointer-aligned header size (8 on x64), not the complete required
+ * size. Supply at least 4 bytes to obtain the complete required length; retry if the
+ * type list grows. Only parse complete records after a successful query.
  */
 typedef struct _OBJECT_TYPES_INFORMATION
 {
@@ -176,6 +197,8 @@ typedef struct _OBJECT_TYPES_INFORMATION
 
 /**
  * The OBJECT_HANDLE_FLAG_INFORMATION structure contains flag information for an object handle.
+ * \remarks The structure occupies 2 bytes: Inherit at offset 0 and ProtectFromClose at offset 1.
+ * NtQueryObject accepts a buffer of at least 2 bytes; NtSetInformationObject requires exactly 2 bytes.
  */
 typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
 {
@@ -185,27 +208,21 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11_25H2)
 /**
- * Controls runtime object reference-count tracing in the kernel Object Manager.
- *
- * Used with NtSetInformationObject(ObjectSetRefTraceInformation) to start or stop per-object
- * stack-capture tracing (ObfReferenceObject / ObfDereferenceObject). Requires SeDebugPrivilege.
- * The captured stacks land in the kernel's ObpStackTable / ObpObjectTable and are accessible
- * via the !obtrace WinDbg extension and the Object Reference Tracing verifier feature.
- *
- * Used with NtQueryObject(ObjectSetRefTraceInformation) to read back the current trace
- * configuration (whether tracing is active, the ETW mode flag, and the active filters).
- *
- * \remarks Minimum buffer size is sizeof(OBJECT_SET_REF_TRACE_INFORMATION) = 40 bytes.
- * ProcessName and PoolTags are optional filters; set Length=0/Buffer=NULL to trace all objects.
- * PoolTags is a semicolon-separated list of 4-character pool tags, e.g. L"ObTr;File" (max 16 tags).
+ * Reference-tracing buffer declaration retained for compatibility with newer object-information classes.
+ * \remarks The fixed layout is 40 bytes on x64 and 24 bytes on x86, with ProcessName at offset 0x08.
+ * PoolTags is at offset 0x18 on x64 and 0x10 on x86.
+ * Do not assume NtQueryObject or NtSetInformationObject implements
+ * ObjectSetRefTraceInformation. Their runtime reference-tracing helpers are instead reached through
+ * NtQuerySystemInformation/NtSetSystemInformation with SystemRefTraceInformation (86), using
+ * SYSTEM_REF_TRACE_INFORMATION. Do not assume this declaration establishes the newer class's contract.
  */
 typedef struct _OBJECT_SET_REF_TRACE_INFORMATION
 {
-    BOOLEAN Enable;              // TRUE = start tracing, FALSE = stop tracing
-    BOOLEAN EtwMode;             // TRUE = also emit reference events via ETW
-    UCHAR Reserved[6];           // reserved, must be zero
-    UNICODE_STRING ProcessName;  // optional: restrict tracing to objects owned by this process name
-    UNICODE_STRING PoolTags;     // optional: restrict tracing to objects with these pool tags (semicolon-delimited, e.g. L"ObTr;File")
+    BOOLEAN Enable;
+    BOOLEAN EtwMode;
+    UCHAR Reserved[6];
+    UNICODE_STRING ProcessName;
+    UNICODE_STRING PoolTags;
 } OBJECT_SET_REF_TRACE_INFORMATION, *POBJECT_SET_REF_TRACE_INFORMATION;
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11_25H2)
 
@@ -218,13 +235,18 @@ typedef struct _OBJECT_SET_REF_TRACE_INFORMATION
 /**
  * The NtQueryObject routine retrieves various kinds of object information.
  *
- * \param Handle The handle of the object for which information is being queried.
+ * \param Handle The handle of the object for which information is being queried; ignored for ObjectTypesInformation.
  * \param ObjectInformationClass The information class indicating the kind of object information to be retrieved.
  * \param ObjectInformation An optional pointer to a buffer where the requested information is to be returned.
  * \param ObjectInformationLength The size of the buffer pointed to by the ObjectInformation parameter, in bytes.
  * \param ReturnLength An optional pointer to a location where the function writes the actual size of the information requested.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject
+ * \remarks The implementation queries classes 0-4 only. Except for
+ * ObjectTypesInformation, the handle is referenced before class validation with no
+ * required access mask. Name/type buffers are variable sized; basic information is
+ * exactly 56 bytes and handle flags require at least 2 bytes. Name and type strings
+ * point into the caller-owned output buffer and become invalid when it is freed.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -239,13 +261,17 @@ NtQueryObject(
     );
 
 /**
- * The NtSetInformationObject routine changes various kinds of information about a object.
+ * The NtSetInformationObject routine changes various kinds of information about an object.
  *
  * \param Handle The handle of the object for which information is being changed.
  * \param ObjectInformationClass The type of information, supplied in the buffer pointed to by ObjectInformation, to set for the object.
- * \param ObjectInformation Pointer to a buffer that contains the information to set for the object.
- * \param ObjectInformationLength The size of the buffer pointed to by the ObjectInformation parameter, in bytes.
+ * \param ObjectInformation Pointer to the class-specific input. Ignored for ObjectSessionInformation and ObjectSessionObjectInformation.
+ * \param ObjectInformationLength The input size in bytes. Exactly 2 for ObjectHandleFlagInformation; ignored for the session classes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks ObjectHandleFlagInformation changes this handle, not the object or other handles.
+ * Nonzero BOOLEAN values request TRUE. Query again if the object type forbids inheritance:
+ * ObSetHandleAttributes can return success without applying either requested flag.
+ * For the two session classes, pass NULL/0; neither buffer argument is consumed.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -254,7 +280,8 @@ NTAPI
 NtSetInformationObject(
     _In_ HANDLE Handle,
     _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _When_(ObjectInformationClass == ObjectSessionInformation || ObjectInformationClass == ObjectSessionObjectInformation, _In_opt_)
+    _When_(ObjectInformationClass != ObjectSessionInformation && ObjectInformationClass != ObjectSessionObjectInformation, _In_reads_bytes_(ObjectInformationLength)) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength
     );
 
@@ -268,15 +295,22 @@ NtSetInformationObject(
 /**
  * The NtDuplicateObject routine creates a handle that is a duplicate of the specified source handle.
  *
- * \param SourceProcessHandle A handle to the source process for the handle being duplicated.
+ * \param SourceProcessHandle Source process handle with PROCESS_DUP_HANDLE access (0x40).
  * \param SourceHandle The handle to duplicate.
- * \param TargetProcessHandle A handle to the target process that is to receive the new handle. This parameter is optional and can be specified as NULL if the DUPLICATE_CLOSE_SOURCE flag is set in Options.
- * \param TargetHandle A pointer to a HANDLE variable into which the routine writes the new duplicated handle. The duplicated handle is valid in the specified target process. This parameter is optional and can be specified as NULL if no duplicate handle is to be created.
+ * \param TargetProcessHandle Target process handle with PROCESS_DUP_HANDLE access (0x40).
+ * Specify NULL with DUPLICATE_CLOSE_SOURCE for a close-only operation.
+ * \param TargetHandle Optional pointer receiving the new handle, which is valid in the target process.
+ * NULL suppresses only the returned value: if a target process is supplied, duplication
+ * still occurs and discarding the value can leak a handle in that process.
  * \param DesiredAccess An ACCESS_MASK value that specifies the desired access for the new handle.
  * \param HandleAttributes A ULONG that specifies the desired attributes for the new handle.
  * \param Options A set of flags to control the behavior of the duplication operation.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwduplicateobject
+ * \remarks Use NULL TargetProcessHandle with DUPLICATE_CLOSE_SOURCE to close without duplicating.
+ * Do not assume a failed duplication preserved the source when DUPLICATE_CLOSE_SOURCE was
+ * requested: several failure paths close it. A returned duplicate is owned by the target
+ * process and must be closed there. Closing the original does not close the duplicate.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -295,9 +329,11 @@ NtDuplicateObject(
 /**
  * The NtMakeTemporaryObject routine changes the attributes of an object to make it temporary.
  *
- * \param Handle Handle to an object of any type.
+ * \param Handle Handle to an object of any type, with DELETE access.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmaketemporaryobject
+ * \remarks Clears permanent-object lifetime semantics; it does not close Handle or immediately
+ * delete an object that still has references. The caller remains responsible for NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -308,11 +344,14 @@ NtMakeTemporaryObject(
     );
 
 /**
- * The NtMakePermanentObject routine changes the attributes of an object to make it permanent.
+ * The NtMakePermanentObject routine makes an object permanent. User-mode callers require SeCreatePermanentPrivilege.
  *
  * \param Handle Handle to an object of any type.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmaketemporaryobject
+ * \remarks No particular handle access mask is requested after the privilege check.
+ * Permanent-object changes are not a substitute for retaining a handle; use
+ * NtMakeTemporaryObject with DELETE access when removing permanent lifetime semantics.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -323,14 +362,32 @@ NtMakePermanentObject(
     );
 
 /**
- * The NtSignalAndWaitForSingleObject routine signals one object and waits on another object as a single operation.
+ * Signals or releases one object, then waits on another in one native call.
+ * This is not a transaction or an atomic handoff guarantee to other threads:
+ * a wait timeout or APC/alert does not roll back a completed signal operation.
  *
- * \param SignalHandle A handle to the object to be signaled.
- * \param WaitHandle A handle to the object to wait on. The SYNCHRONIZE access right is required.
- * \param Alertable If this parameter is TRUE, the function returns when the system queues an I/O completion routine or APC function, and the thread calls the function.
- * \param Timeout The time-out interval. The function returns if the interval elapses, even if the object's state is nonsignaled and no completion or APC objects are queued.
- * If zero, the function tests the object's state, checks for queued completion routines or APCs, and returns immediately.
- * \return NTSTATUS Successful or errant status.
+ * \param SignalHandle Event with EVENT_MODIFY_STATE (0x2), semaphore with
+ * SEMAPHORE_MODIFY_STATE (0x2), or a mutant owned by the calling thread. No specific
+ * granted access bit is required for the mutant's release, but ownership is required.
+ * \param WaitHandle Waitable-object handle requiring SYNCHRONIZE (0x00100000).
+ * \param Alertable TRUE permits an alert or ordinary user APC to interrupt the wait.
+ * \param Timeout Optional 100-nanosecond deadline: NULL for no deadline, pointed-to
+ * zero for polling, negative for a relative interval, positive for absolute NT system time.
+ * \return On a completed signal, the subsequent wait's status is returned. A signal
+ * failure such as STATUS_MUTANT_NOT_OWNED or STATUS_SEMAPHORE_LIMIT_EXCEEDED ends
+ * the call without waiting. Other signal-object types return STATUS_OBJECT_TYPE_MISMATCH.
+ * \remarks Both handles are referenced, and WaitHandle's SYNCHRONIZE access is
+ * checked, before signaling on x64. An invalid or inaccessible wait
+ * handle therefore does not signal the first object. Event signaling sets the event;
+ * semaphore signaling increments by 1; mutant signaling releases one acquisition.
+ *
+ * IMPORTANT: STATUS_ABANDONED (0x80) is ambiguous in this combined call. If the
+ * signal object is an abandoned mutant not owned by the caller, its release returns
+ * 0x80 and the wait is never entered: no ownership of the wait object is acquired.
+ * Alternatively, after a successful signal, waiting on an abandoned mutant returns
+ * 0x80 and DOES acquire that wait mutant. Do not infer wait-object acquisition from
+ * 0x80 without distinguishing these paths. STATUS_TIMEOUT (0x102), STATUS_USER_APC
+ * (0xC0) and STATUS_ALERTED (0x101) also do not prove wait-object acquisition.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-signalobjectandwait
  */
 _Kernel_entry_
@@ -345,14 +402,24 @@ NtSignalAndWaitForSingleObject(
     );
 
 /**
- * The NtWaitForSingleObject routine waits until the specified object is in the signaled state or the time-out interval elapses.
+ * Waits for a waitable object's dispatcher condition, optionally with a deadline.
+ * A successful wait applies that object's wait semantics: for example, it consumes
+ * a synchronization-event signal or semaphore count, or acquires mutant ownership.
  *
- * \param Handle The handle to the wait object.
- * \param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
- * \param Timeout A pointer to an absolute or relative time over which the wait is to occur. Can be null. If a timeout is specified,
- * and the object has not attained a state of signaled when the timeout expires, then the wait is automatically satisfied.
- * If an explicit timeout value of zero is specified, then no wait occurs if the wait cannot be satisfied immediately.
- * \return NTSTATUS Successful or errant status.
+ * \param Handle Waitable-object handle with SYNCHRONIZE access (0x00100000).
+ * \param Alertable TRUE permits interruption by an alert or ordinary user APC;
+ * the APC executes on the waiting thread, not on a new worker thread.
+ * \param Timeout Optional deadline in 100-nanosecond units. NULL means no deadline,
+ * a pointed-to zero polls, negative values are relative intervals, and positive
+ * values are absolute NT system times since January 1, 1601 (UTC).
+ * \return STATUS_WAIT_0 (0) for a satisfied ordinary wait, STATUS_ABANDONED (0x80)
+ * when acquiring an abandoned mutant, STATUS_USER_APC (0xC0) or STATUS_ALERTED
+ * (0x101) for interruption, STATUS_TIMEOUT (0x102) for expiration, or an error.
+ * \remarks Timeout ends the wait without satisfying the object's condition.
+ * NT_SUCCESS is not sufficient to establish acquisition: timeout and interruption
+ * are nonnegative too. Abandoned-mutant acquisition does grant ownership; validate
+ * the protected state before using it and release the mutant when finished.
+ * An already-satisfied object can complete even with an expired deadline.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntwaitforsingleobject
  */
 _Kernel_entry_
@@ -366,16 +433,34 @@ NtWaitForSingleObject(
     );
 
 /**
- * The NtWaitForMultipleObjects routine waits until one or all of the specified objects are in the signaled state, an I/O completion routine or asynchronous procedure call (APC) is queued to the thread, or the time-out interval elapses.
+ * Waits for one or all of an array of waitable objects. Use WaitAny to identify
+ * the satisfied object, or WaitAll to acquire the complete set without partially
+ * consuming available signals while other objects are not ready.
  *
- * \param Count The number of object handles to wait for in the array pointed to by lpHandles. The maximum number of object handles is MAXIMUM_WAIT_OBJECTS. This parameter cannot be zero.
- * \param Handles An array of object handles. The array can contain handles of objects of different types. It may not contain multiple copies of the same handle.
- * \param WaitType If this parameter is WaitAll, the function returns when the state of all objects in the Handles array is set to signaled.
- * \param Alertable f this parameter is TRUE and the thread is in the waiting state, the function returns when the system queues an I/O completion routine or APC, and the thread runs the routine or function.
- * \param Timeout A pointer to an absolute or relative time over which the wait is to occur. Can be null. If a timeout is specified,
- * and the object has not attained a state of signaled when the timeout expires, then the wait is automatically satisfied.
- * If an explicit timeout value of zero is specified, then no wait occurs if the wait cannot be satisfied immediately.
- * \return NTSTATUS Successful or errant status.
+ * \param Count Number of handles, from 1 through MAXIMUM_WAIT_OBJECTS (64).
+ * \param Handles Array of Count pointer-sized handles, each requiring SYNCHRONIZE
+ * (0x00100000). WaitAll rejects duplicate underlying dispatcher objects, including
+ * distinct handle values obtained by duplicating a handle to the same object.
+ * \param WaitType WaitAll (0) or WaitAny (1). WaitAny selects the lowest array
+ * index among objects simultaneously eligible when the wait is evaluated.
+ * \param Alertable TRUE permits an alert or ordinary user APC to interrupt the wait.
+ * \param Timeout Optional 100-nanosecond deadline: NULL for no deadline, pointed-to
+ * zero for polling, negative for a relative interval, positive for absolute NT system time.
+ * \return WaitAny returns STATUS_WAIT_0 plus the selected zero-based index, or
+ * STATUS_ABANDONED_WAIT_0 (0x80) plus that index when acquiring an abandoned mutant.
+ * WaitAll returns STATUS_SUCCESS (0), or STATUS_ABANDONED (0x80) when the set is
+ * acquired and includes an abandoned mutant; the latter does not identify an index.
+ * STATUS_TIMEOUT (0x102), STATUS_USER_APC (0xC0) and STATUS_ALERTED (0x101) do not
+ * establish acquisition. Test the status category, not just NT_SUCCESS.
+ * \remarks On the native x64 and WoW64 paths, invalid Count returns
+ * STATUS_INVALID_PARAMETER_1, invalid WaitType returns STATUS_INVALID_PARAMETER_3,
+ * and WaitAll with duplicate objects returns STATUS_INVALID_PARAMETER_MIX.
+ * All handles are referenced and access-checked before entering the dispatcher wait;
+ * an inaccessible later handle fails even if an earlier object is already signaled.
+ * A WaitAll timeout does not consume signals or acquire an abandoned mutant from
+ * an incomplete set. A completion-port handle is rejected for WaitAll with
+ * STATUS_INVALID_HANDLE. Cross-VM and special object paths
+ * have additional restrictions; this is not a promise that any handle is waitable.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjectsex
  */
 _Kernel_entry_
@@ -391,17 +476,27 @@ NtWaitForMultipleObjects(
     );
 
 /**
- * The NtWaitForMultipleObjects32 routine waits until one or all of the specified 32-bit handles are in the signaled state, an I/O completion routine or APC is queued to the thread, or the time-out interval elapses.
- * This is the WOW64 variant of NtWaitForMultipleObjects that accepts 32-bit handle values.
+ * Waits on an array of signed 32-bit handle values. The x64 kernel sign-extends
+ * each LONG into its native handle array and uses the same dispatcher path as
+ * NtWaitForMultipleObjects. The WoW64 NtWaitForMultipleObjects thunk calls this
+ * native entry; its name does not mean that the array contains 64-bit HANDLEs.
  *
- * \param Count The number of object handles to wait for in the array pointed to by Handles. The maximum number of object handles is MAXIMUM_WAIT_OBJECTS. This parameter cannot be zero.
- * \param Handles An array of 32-bit object handle values. The array can contain handles of objects of different types. It may not contain multiple copies of the same handle.
- * \param WaitType If this parameter is WaitAll, the function returns when the state of all objects in the Handles array is set to signaled.
- * \param Alertable If this parameter is TRUE and the thread is in the waiting state, the function returns when the system queues an I/O completion routine or APC, and the thread runs the routine or function.
- * \param Timeout A pointer to an absolute or relative time over which the wait is to occur. Can be null. If a timeout is specified,
- * and the object has not attained a state of signaled when the timeout expires, then the wait is automatically satisfied.
- * If an explicit timeout value of zero is specified, then no wait occurs if the wait cannot be satisfied immediately.
- * \return NTSTATUS Successful or errant status.
+ * \param Count Number of entries, from 1 through MAXIMUM_WAIT_OBJECTS (64).
+ * \param Handles Array of Count signed 32-bit handles, each with SYNCHRONIZE
+ * (0x00100000). On a 64-bit caller use LONG storage, not a cast of a HANDLE array.
+ * \param WaitType WaitAll (0) or WaitAny (1).
+ * \param Alertable TRUE permits an alert or ordinary user APC to interrupt the wait.
+ * \param Timeout Optional 100-nanosecond deadline: NULL for no deadline, pointed-to
+ * zero for polling, negative for a relative interval, positive for absolute NT system time.
+ * \return The same status categories as NtWaitForMultipleObjects: WaitAny returns
+ * the selected index added to STATUS_WAIT_0 or STATUS_ABANDONED_WAIT_0 (0x80);
+ * WaitAll returns 0 or STATUS_ABANDONED (0x80) without an index. Timeout (0x102)
+ * and APC/alert interruption (0xC0/0x101) are not evidence of acquisition.
+ * \remarks Invalid Count/WaitType return STATUS_INVALID_PARAMETER_1/_3 on x64. WaitAll rejects duplicate underlying objects
+ * with STATUS_INVALID_PARAMETER_MIX and does not partially consume signals on timeout.
+ * See NtWaitForMultipleObjects for access checks and object restrictions. Native x64
+ * invocation and the WoW64 forwarding path were checked separately; do not assume
+ * every architecture exposes a separate user-mode export with this name.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -423,6 +518,13 @@ NtWaitForMultipleObjects32(
  * \param SecurityDescriptor Pointer to the security descriptor to be set for the object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetsecurityobject
+ * \remarks For user-mode handles, OWNER/GROUP/LABEL selections require WRITE_OWNER (0x00080000);
+ * DACL/ATTRIBUTE/PROCESS_TRUST_LABEL/ACCESS_FILTER require WRITE_DAC (0x00040000);
+ * SACL/SCOPE require ACCESS_SYSTEM_SECURITY (0x01000000). BACKUP and SACL-protection
+ * flags can add further combined requirements. The descriptor is captured during the
+ * call; ownership is not transferred. Access rights alone do not ensure success:
+ * the object security method can reject the update, including STATUS_NO_SECURITY_ON_OBJECT
+ * for an object with no associated security descriptor.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -444,6 +546,12 @@ NtSetSecurityObject(
  * \param LengthNeeded Pointer to a caller-allocated variable that receives the number of bytes required to store the copied security descriptor.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerysecurityobject
+ * \remarks For user-mode handles, OWNER/GROUP/DACL/LABEL/ATTRIBUTE/SCOPE/PROCESS_TRUST_LABEL/
+ * ACCESS_FILTER queries require READ_CONTROL (0x00020000). SACL requires
+ * ACCESS_SYSTEM_SECURITY (0x01000000); BACKUP requests both. Requirements combine when
+ * multiple bits are selected. LengthNeeded is mandatory. Use NULL/0 to size the output
+ * and retry STATUS_BUFFER_TOO_SMALL; a handle-reference failure need not update it.
+ * The returned self-relative descriptor is a caller-owned byte buffer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -463,6 +571,10 @@ NtQuerySecurityObject(
  * \param Handle The handle being closed.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwclose
+ * \remarks Handle is invalidated only on successful closure. A protected handle is not closed.
+ * Invalid handles can raise a user exception under a debugger or handle-exception policy;
+ * callers must not use double-close behavior as a validity test. Pseudo-handle behavior is
+ * build-specific and does not release the pseudo-handle's underlying process or thread.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -478,8 +590,11 @@ NtClose(
  *
  * \param FirstObjectHandle The first object handle to compare.
  * \param SecondObjectHandle The second object handle to compare.
- * \return NTSTATUS Successful or errant status.
+ * \return STATUS_SUCCESS for the same object, STATUS_NOT_SAME_OBJECT for different objects, or a handle-reference error.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-compareobjecthandles
+ * \remarks Neither handle needs a particular access mask. The comparison uses object identity,
+ * not handle values, names, or matching object types; distinct objects return
+ * STATUS_NOT_SAME_OBJECT (0xC00001AC).
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -507,6 +622,9 @@ NtCompareObjects(
  * \param ObjectAttributes The attributes for the directory object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatedirectoryobject
+ * \remarks ObjectAttributes may be NULL to create an unnamed directory. This is useful as a
+ * private RootDirectory for subsequent relative object creation; the returned handle
+ * is owned by the caller and must be closed with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -515,10 +633,24 @@ NTAPI
 NtCreateDirectoryObject(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+/**
+ * The NtCreateDirectoryObjectEx routine creates or opens an object-directory object with extended options, such as shadow directories.
+ *
+ * \param DirectoryHandle A pointer to a HANDLE variable that receives the directory object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the directory object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and other attributes.
+ * \param ShadowDirectoryHandle An optional shadow directory handle with DIRECTORY_QUERY | DIRECTORY_TRAVERSE access.
+ * \param Flags Creation flags. The kernel implementation accepts only bits 0x1 and 0x2; bit 0x2 is kernel-mode only.
+ * User-mode callers can pass 0 or 0x1. Other values return STATUS_INVALID_PARAMETER_5.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks ObjectAttributes may be NULL to create an unnamed directory. This is useful as a
+ * private RootDirectory for subsequent relative object creation; the returned handle
+ * is owned by the caller and must be closed with NtClose.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -526,8 +658,8 @@ NTAPI
 NtCreateDirectoryObjectEx(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ HANDLE ShadowDirectoryHandle,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ HANDLE ShadowDirectoryHandle,
     _In_ ULONG Flags
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
@@ -540,6 +672,9 @@ NtCreateDirectoryObjectEx(
  * \param ObjectAttributes The attributes for the directory object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntopendirectoryobject
+ * \remarks Opens by ObjectAttributes.ObjectName, relative to RootDirectory when supplied, in
+ * the current silo's object namespace. The returned handle is caller-owned. No object
+ * is created if the name does not exist.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -552,7 +687,10 @@ NtOpenDirectoryObject(
     );
 
 /**
- * The OBJECT_DIRECTORY_INFORMATION structure contains information about the directory object.
+ * The OBJECT_DIRECTORY_INFORMATION structure describes a named entry in an object directory.
+ * \remarks NtQueryDirectoryObject returns an array of these records, followed by a zero-filled terminator
+ * and the name strings. Name.Buffer and TypeName.Buffer point into the caller's output buffer.
+ * The fixed record is 32 bytes on x64 and 16 bytes on x86; string lengths are measured in bytes.
  */
 typedef struct _OBJECT_DIRECTORY_INFORMATION
 {
@@ -563,7 +701,7 @@ typedef struct _OBJECT_DIRECTORY_INFORMATION
 /**
  * Retrieves information about the specified directory object.
  *
- * \param DirectoryHandle A handle to the directory object. This handle must have been opened with the appropriate access rights.
+ * \param DirectoryHandle A handle to the directory object with DIRECTORY_QUERY access.
  * \param Buffer A pointer to a buffer that receives the directory information.
  * \param Length The size, in bytes, of the buffer pointed to by the Buffer parameter.
  * \param ReturnSingleEntry A BOOLEAN value that specifies whether to return a single entry or multiple entries.
@@ -572,6 +710,15 @@ typedef struct _OBJECT_DIRECTORY_INFORMATION
  * \param ReturnLength An optional pointer to a variable that receives the number of bytes returned in the buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerydirectoryobject
+ * \remarks Context is required even when RestartScan is TRUE. It is an enumeration position,
+ * not a handle, and directory modifications can change what a later position denotes.
+ * On the native x64 path, a single-entry short buffer returns STATUS_BUFFER_TOO_SMALL
+ * and ReturnLength includes the required entry, terminator record and both strings.
+ * A multi-entry short buffer returns STATUS_MORE_ENTRIES, possibly with zero entries
+ * and an unchanged Context. In that case grow the buffer rather than retrying forever
+ * at the same size. WoW64 instead returns STATUS_BUFFER_TOO_SMALL when no converted
+ * entry fits, including multi-entry requests; its ReturnLength is the required converted
+ * batch size. STATUS_NO_MORE_ENTRIES ends enumeration; do not parse its buffer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -607,23 +754,28 @@ typedef enum _BOUNDARY_ENTRY_TYPE
 } BOUNDARY_ENTRY_TYPE;
 
 /**
- * The OBJECT_BOUNDARY_VALUE union contains the value associated with an object boundary entry.
+ * Provides views of the inline payload immediately following OBJECT_BOUNDARY_ENTRY.
+ * Name is variable-length WCHAR data; Sid and IntegrityLabel begin with an inline SID,
+ * not a stored pointer. SID.SubAuthority is variable length: obtain its actual byte
+ * size from the SID header, and use the entry Size for bounds and iteration.
+ * sizeof(OBJECT_BOUNDARY_VALUE) is not a serialized entry size.
  */
 typedef union _OBJECT_BOUNDARY_VALUE
 {
-    WCHAR Name[1];
-    PSID Sid;
-    PSID IntegrityLabel;
+    WCHAR Name[ANYSIZE_ARRAY];
+    SID Sid;
+    SID IntegrityLabel;
 } OBJECT_BOUNDARY_VALUE, *POBJECT_BOUNDARY_VALUE;
 
 /**
- * The OBJECT_BOUNDARY_ENTRY structure describes a single item in a boundary descriptor.
+ * The OBJECT_BOUNDARY_ENTRY structure is the 8-byte header of a variable-sized boundary entry.
+ * \remarks Size includes this header and its inline payload. NAME entries contain WCHAR data;
+ * SID and IL entries contain a SID, not a PSID. Advance by Size and round up to an 8-byte boundary.
  */
 typedef struct _OBJECT_BOUNDARY_ENTRY
 {
     BOUNDARY_ENTRY_TYPE Type;
     ULONG Size;
-    // OBJECT_BOUNDARY_VALUE Value;
 } OBJECT_BOUNDARY_ENTRY, *POBJECT_BOUNDARY_ENTRY;
 
 // rev
@@ -631,6 +783,14 @@ typedef struct _OBJECT_BOUNDARY_ENTRY
 
 /**
  * The OBJECT_BOUNDARY_DESCRIPTOR structure describes the boundary conditions for a private namespace.
+ * \remarks The fixed header is 16 bytes and Version must be OBJECT_BOUNDARY_DESCRIPTOR_VERSION (1).
+ * Items counts the trailing variable-sized entries; TotalSize covers the complete descriptor.
+ * Entry types 1 (name), 2 (SID), and 3 (integrity label) are accepted. At most one name and one integrity
+ * label entry are allowed; successive entries are aligned to 8-byte boundaries.
+ * ObpCaptureBoundaryDescriptor on x64 requires a user-mode TotalSize
+ * from 16 through 32767 (0x7FFF) bytes and a 4-byte-aligned descriptor. Flag bit 0
+ * requests adding the effective token's AppContainer SID when applicable. The caller
+ * retains ownership; the kernel captures a copy for each create/open request.
  */
 typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
 {
@@ -658,6 +818,11 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
  * \param BoundaryDescriptor A descriptor that defines how the namespace is to be isolated. The RtlCreateBoundaryDescriptor function creates a boundary descriptor.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprivatenamespacea
+ * \remarks The namespace is identified by the boundary descriptor, not an object-directory
+ * path. ObjectAttributes may be NULL; for creation, ObjectName must be NULL (a named
+ * object returns STATUS_OBJECT_NAME_INVALID). The boundary is captured, not retained
+ * as a user pointer. Release an Rtl-created descriptor with RtlDeleteBoundaryDescriptor
+ * and close the returned directory handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -679,6 +844,10 @@ NtCreatePrivateNamespace(
  * \param BoundaryDescriptor A descriptor that defines how the namespace is to be isolated. The RtlCreateBoundaryDescriptor function creates a boundary descriptor.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openprivatenamespacea
+ * \remarks Looks up the namespace by its captured boundary descriptor in the current silo.
+ * ObjectAttributes is optional and only its Attributes member is used by this entry
+ * point; ObjectName is not a path selector. No matching namespace returns
+ * STATUS_OBJECT_PATH_NOT_FOUND. The returned directory handle must be closed with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -692,11 +861,15 @@ NtOpenPrivateNamespace(
     );
 
 /**
- * Deletes an open namespace handle.
+ * Removes a private namespace from the namespace table without closing the supplied handle.
  *
- * \param NamespaceHandle A handle to the private namespace.
+ * \param NamespaceHandle A private namespace handle with DELETE access. The caller must also pass the namespace creator check.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/namespaceapi/nf-namespaceapi-closeprivatenamespace
+ * \remarks The creator check validates the effective token against the boundary (including
+ * SID/integrity constraints); it is not a comparison with the original creator PID.
+ * After successful removal, new opens by boundary fail, while existing handles remain
+ * valid and must still be closed. An ordinary directory handle is not a namespace handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -723,6 +896,12 @@ NtDeletePrivateNamespace(
  * \param LinkTarget A pointer to a UNICODE_STRING that specifies the target name.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatesymboliclinkobject
+ * \remarks ObjectAttributes and LinkTarget are required pointers.
+ * LinkTarget.Length must be even and no greater than MaximumLength after MaximumLength
+ * is rounded down to an even value; that rounded maximum must be nonzero. For user-mode
+ * callers the kernel copies MaximumLength bytes, not just Length: every advertised byte
+ * must be readable. A terminator is preserved only if supplied in those copied bytes.
+ * This creates an Object Manager link, not a file-system reparse point.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -743,6 +922,9 @@ NtCreateSymbolicLinkObject(
  * \param ObjectAttributes The attributes for the symbolic link object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopensymboliclinkobject
+ * \remarks Opens by ObjectAttributes.ObjectName, relative to RootDirectory when supplied, in
+ * the current silo's object namespace. The returned handle is caller-owned. No object
+ * is created if the name does not exist.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -757,11 +939,16 @@ NtOpenSymbolicLinkObject(
 /**
  * The NtQuerySymbolicLinkObject routine queries the target of a symbolic link object.
  *
- * \param LinkHandle Handle to the symbolic link object.
+ * \param LinkHandle Handle to the symbolic link object with SYMBOLIC_LINK_QUERY access.
  * \param LinkTarget Caller-allocated UNICODE_STRING that receives the target name.
- * \param ReturnedLength Optional pointer to a variable that receives the required or returned length.
+ * \param ReturnedLength Optional pointer receiving the target MaximumLength in bytes. When supplied, the output buffer
+ * must accommodate MaximumLength; otherwise, only Length bytes are required and copied, without a guaranteed terminator.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwquerysymboliclinkobject
+ * \remarks Only LinkTarget.Length and its caller-provided Buffer contents are updated; Buffer
+ * and MaximumLength remain caller-owned. Supplying ReturnedLength requests copying the
+ * stored MaximumLength bytes and reports that size on STATUS_BUFFER_TOO_SMALL. A copied
+ * terminator exists only if the original target data included one.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -775,23 +962,31 @@ NtQuerySymbolicLinkObject(
 
 /**
  * The SYMBOLIC_LINK_INFO_CLASS enumeration specifies symbolic link information classes.
+ * \remarks NtSetInformationSymbolicLink requires SYMBOLIC_LINK_SET access and SeTcbPrivilege.
+ * Both classes require exactly 4 bytes, aligned to 4 bytes for user-mode callers. Server-silo callers
+ * are rejected with STATUS_PRIVILEGE_NOT_HELD. An unsupported class returns STATUS_INVALID_INFO_CLASS;
+ * an incorrect length returns STATUS_INFO_LENGTH_MISMATCH after the handle has been referenced.
  */
 typedef enum _SYMBOLIC_LINK_INFO_CLASS
 {
-    SymbolicLinkGlobalInformation = 1, // s: ULONG
-    SymbolicLinkAccessMask, // s: ACCESS_MASK
-    MaxnSymbolicLinkInfoClass
+    SymbolicLinkGlobalInformation = 1, // s: ULONG; marks global, nonzero also sets an additional lookup flag (sticky).
+    SymbolicLinkAccessMask, // s: ACCESS_MASK used when checking traversal of this link, not a new handle GrantedAccess.
+    MaxSymbolicLinkInfoClass
 } SYMBOLIC_LINK_INFO_CLASS;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 /**
  * The NtSetInformationSymbolicLink routine sets information for a symbolic link object.
  *
- * \param LinkHandle Handle to the symbolic link object.
+ * \param LinkHandle Handle to the symbolic link object with SYMBOLIC_LINK_SET access.
  * \param SymbolicLinkInformationClass The information class indicating the kind of symbolic link information to be set.
  * \param SymbolicLinkInformation Pointer to a buffer that contains the information to set for the symbolic link object.
  * \param SymbolicLinkInformationLength The size of the buffer pointed to by the SymbolicLinkInformation parameter, in bytes.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The two implemented classes each consume 4 bytes. GlobalInformation always sets
+ * the global flag; a nonzero input additionally sets an internal lookup flag and zero
+ * does not clear a previously set flag. AccessMask stores a traversal-check mask; it
+ * does not rewrite the access rights already granted to LinkHandle.
  */
 _Kernel_entry_
 NTSYSCALLAPI

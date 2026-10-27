@@ -75,14 +75,26 @@ VOID PhpRefreshProcessMemoryList(
 {
     PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
 
+    // The worker owns MemoryItemList, LastRunStatus and MemoryItemListValid until it posts
+    // WM_PH_INVOKE. Never delete or restart while one is in flight.
+    if (memoryContext->RefreshInProgress)
+        return;
+
     if (memoryContext->MemoryItemListValid)
     {
         PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
         memoryContext->MemoryItemListValid = FALSE;
     }
 
+    memoryContext->RefreshInProgress = TRUE;
+
     PhReferenceObject(memoryContext);
-    PhCreateThread2(PhpRefreshProcessMemoryThread, memoryContext);
+
+    if (!NT_SUCCESS(PhCreateThread2(PhpRefreshProcessMemoryThread, memoryContext)))
+    {
+        memoryContext->RefreshInProgress = FALSE;
+        PhDereferenceObject(memoryContext);
+    }
 }
 
 VOID PhpInitializeMemoryMenu(
@@ -592,10 +604,12 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
             memoryContext->FilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 memoryContext->SearchboxHandle,
                 L"Search Memory (Ctrl+K)",
+                SETTING_SEARCH_MEMORY_REGEX,
+                SETTING_SEARCH_MEMORY_CASE_SENSITIVE,
                 PhpProcessMemorySearchControlCallback,
                 memoryContext
                 );
@@ -882,6 +896,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM cfgItem;
                     PPH_EMENU_ITEM typeItem;
+                    PPH_EMENU_ITEM modifiedItem;
                     PPH_EMENU_ITEM zeroPadItem;
                     PPH_EMENU_ITEM selectedItem;
 
@@ -896,12 +911,14 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED,
                         PH_MEMORY_FILTER_MENU_HIDE_GUARD,
                         // Non-standard PH_MEMORY_FLAG options.
                         PH_MEMORY_FILTER_MENU_READ_ADDRESS,
                         PH_MEMORY_FILTER_MENU_HEAPS,
                         PH_MEMORY_FILTER_MENU_MODIFIED,
                         PH_MEMORY_FILTER_MENU_STRINGS,
+                        PH_MEMORY_FILTER_MENU_CFG_BITMAP,
                         PH_MEMORY_FILTER_MENU_SAVE,
                         PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES
                     } PH_MEMORY_FILTER_MENU_ITEM;
@@ -915,6 +932,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM, L"Highlight system pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, cfgItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG, L"Highlight CFG pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, modifiedItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED, L"Highlight modified/COW pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, zeroPadItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES, L"Zero pad addresses", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -922,6 +940,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_MODIFIED, L"Modified...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), ULONG_MAX);
+#ifdef _WIN64
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_CFG_BITMAP, L"CFG bitmap...", NULL, NULL), ULONG_MAX);
+#endif
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_SAVE, L"Save...", NULL, NULL), ULONG_MAX);
 
                     if (memoryContext->ListContext.HideFreeRegions)
@@ -938,6 +959,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         cfgItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.HighlightExecutePages)
                         typeItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightModifiedPages)
+                        modifiedItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.ZeroPadAddresses)
                         zeroPadItem->Flags |= PH_EMENU_CHECKED;
 
@@ -958,7 +981,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG ||
-                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE)
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED)
                         {
                             ULONG id = ULONG_MAX;
 
@@ -985,11 +1009,14 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             case PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE:
                                 id = PH_MEMORY_FLAGS_EXECUTE_OPTION;
                                 break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED:
+                                id = PH_MEMORY_FLAGS_MODIFIED_OPTION;
+                                break;
                             }
 
                             if (id != ULONG_MAX)
                             {
-                                PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                                PhSetOptionsMemoryList(&memoryContext->ListContext, id);
                                 PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
                                 PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
@@ -1017,6 +1044,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                 PhShowMemoryStringTreeDialog(hwndDlg, processItem);
                             else
                                 PhShowMemoryStringDialog(hwndDlg, processItem);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_CFG_BITMAP)
+                        {
+                            PhShowProcessCfgBitmapDialog(hwndDlg, processItem);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_SAVE)
                         {
@@ -1098,6 +1129,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_PH_INVOKE:
         {
+            memoryContext->RefreshInProgress = FALSE;
+
             if (memoryContext->MemoryItemListValid)
             {
                 TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);

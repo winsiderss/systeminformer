@@ -945,7 +945,10 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             if (ListView_GetItemCount(context->ListViewHandle) == 0)
+            {
                 PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+                PhSetWindowFrameChanged(context->ListViewHandle);
+            }
 
             context->OptionsChanged = FALSE;
         }
@@ -1002,6 +1005,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     else
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
 
+                    PhSetWindowFrameChanged(context->ListViewHandle);
+
                     ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
                 break;
@@ -1019,6 +1024,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
                     else
                         PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
+
+                    PhSetWindowFrameChanged(context->ListViewHandle);
 
                     //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }

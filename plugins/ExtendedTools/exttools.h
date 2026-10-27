@@ -14,6 +14,7 @@
 #define EXTTOOLS_H
 
 #include <phdk.h>
+#include <extendedtoolsintf.h>
 #include <phappresource.h>
 #include <settings.h>
 #include <mapldr.h>
@@ -64,7 +65,11 @@ EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
 EXTERN_C BOOLEAN EtNpuFahrenheitEnabled;
 EXTERN_C ULONG EtSampleCount;
 EXTERN_C ULONG ProcessesUpdatedCount;
-EXTERN_C ULONG EtUpdateInterval;
+
+// The time actually spanned by the last process provider run, in milliseconds. Updated every tick
+// from the provider updated event, so it tracks the View -> Update Interval menu (which does not
+// raise the settings-updated callback) and out-of-band (boosted) provider runs. (dmex)
+EXTERN_C ULONG EtRateIntervalMs;
 EXTERN_C USHORT EtMaxPrecisionUnit;
 EXTERN_C BOOLEAN EtGraphShowText;
 EXTERN_C BOOLEAN EtEnableScaleGraph;
@@ -73,7 +78,6 @@ EXTERN_C BOOLEAN EtPropagateCpuUsage;
 EXTERN_C BOOLEAN EtEnableAvxSupport;
 
 #define PLUGIN_NAME L"ExtendedTools"
-#define SETTING_NAME_FIRST_RUN (PLUGIN_NAME L".FirstRun")
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
@@ -101,7 +105,7 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_WSWATCH_WINDOW_SIZE (PLUGIN_NAME L".WsWatchWindowSize")
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
 #define SETTING_NAME_TRAYICON_GUIDS (PLUGIN_NAME L".TrayIconGuids")
-#define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
+#define SETTING_NAME_TEMPERATURE_UNIT (PLUGIN_NAME L".TemperatureUnit")
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
@@ -121,6 +125,10 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_PIPE_ENUM_WINDOW_SIZE (PLUGIN_NAME L".PipeEnumWindowSize")
 #define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS (PLUGIN_NAME L".PipeEnumListViewColumns")
 #define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI (PLUGIN_NAME L".PipeEnumListViewColumnsWithKsi")
+#define SETTING_NAME_PIPE_ENUM_WATCH_CHANGES (PLUGIN_NAME L".PipeEnumWatchChanges")
+#define SETTING_NAME_OBJTYPES_WINDOW_POSITION (PLUGIN_NAME L".ObjectTypesWindowPosition")
+#define SETTING_NAME_OBJTYPES_WINDOW_SIZE (PLUGIN_NAME L".ObjectTypesWindowSize")
+#define SETTING_NAME_OBJTYPES_LISTVIEW_COLUMNS (PLUGIN_NAME L".ObjectTypesListViewColumns")
 #define SETTING_NAME_FIRMWARE_WINDOW_POSITION (PLUGIN_NAME L".FirmwareWindowPosition")
 #define SETTING_NAME_FIRMWARE_WINDOW_SIZE (PLUGIN_NAME L".FirmwareWindowSize")
 #define SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS (PLUGIN_NAME L".FirmwareListViewColumns")
@@ -131,6 +139,16 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerPropertiesWindowPosition")
 #define SETTING_NAME_OBJMGR_LAST_PATH (PLUGIN_NAME L".ObjectManagerLastPath")
 #define SETTING_NAME_OBJMGR_HISTORY (PLUGIN_NAME L".ObjectManagerHistory")
+#define SETTING_NAME_ETW_DETAILS_COLUMNS (PLUGIN_NAME L".EtwDetailsColumns")
+#define SETTING_NAME_ETW_PROPERTIES_POSITION (PLUGIN_NAME L".EtwPropertiesPosition")
+#define SETTING_NAME_ETW_PROPERTIES_SIZE (PLUGIN_NAME L".EtwPropertiesSize")
+#define SETTING_NAME_ETW_WINDOW_POSITION (PLUGIN_NAME L".EtwSessionsPosition")
+#define SETTING_NAME_ETW_WINDOW_SIZE (PLUGIN_NAME L".EtwSessionsSize")
+#define SETTING_NAME_ETW_SESSION_COLUMNS (PLUGIN_NAME L".EtwSessionColumns")
+#define SETTING_NAME_ETW_PROVIDER_COLUMNS (PLUGIN_NAME L".EtwProviderColumns")
+#define SETTING_NAME_ETW_SESSION_SORT (PLUGIN_NAME L".EtwSessionSort")
+#define SETTING_NAME_ETW_PROVIDER_SORT (PLUGIN_NAME L".EtwProviderSort")
+
 #define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
 #define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
@@ -143,6 +161,13 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_WBCL_WINDOW_POSITION (PLUGIN_NAME L".WbclWindowPosition")
 #define SETTING_NAME_WBCL_WINDOW_SIZE (PLUGIN_NAME L".WbclWindowSize")
 #define SETTING_NAME_WBCL_LISTVIEW_COLUMNS (PLUGIN_NAME L".WbclListViewColumns")
+#define SETTING_NAME_FIRMWARE_CERT_WINDOW_POSITION (PLUGIN_NAME L".FirmwareCertWindowPosition")
+#define SETTING_NAME_FIRMWARE_CERT_WINDOW_SIZE (PLUGIN_NAME L".FirmwareCertWindowSize")
+#define SETTING_NAME_FIRMWARE_CERT_LISTVIEW_COLUMNS (PLUGIN_NAME L".FirmwareCertListViewColumns")
+#define SETTING_NAME_FIRMWARE_CERT_LISTVIEW_GROUPS (PLUGIN_NAME L".FirmwareCertListViewGroups")
+#define SETTING_NAME_ATTESTATION_WINDOW_POSITION (PLUGIN_NAME L".AttestationWindowPosition")
+#define SETTING_NAME_ATTESTATION_WINDOW_SIZE (PLUGIN_NAME L".AttestationWindowSize")
+#define SETTING_NAME_ATTESTATION_LISTVIEW_COLUMNS (PLUGIN_NAME L".AttestationListViewColumns")
 #define SETTING_NAME_SMBIOS_WINDOW_POSITION (PLUGIN_NAME L".SMBIOSWindowPosition")
 #define SETTING_NAME_SMBIOS_WINDOW_SIZE (PLUGIN_NAME L".SMBIOSWindowSize")
 #define SETTING_NAME_SMBIOS_INFO_COLUMNS (PLUGIN_NAME L".SMBIOSListViewColumns")
@@ -162,6 +187,8 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_CACHE_LATENCY_WINDOW_POSITION (PLUGIN_NAME L".CacheLatencyWindowPosition")
 #define SETTING_NAME_CACHE_LATENCY_WINDOW_SIZE (PLUGIN_NAME L".CacheLatencyWindowSize")
 #define SETTING_NAME_CACHE_LATENCY_LISTVIEW_COLUMNS (PLUGIN_NAME L".CacheLatencyTableListViewColumns")
+#define SETTING_NAME_CACHE_LATENCY_WINDOW_TAB (PLUGIN_NAME L".CacheLatencyWindowTab")
+#define SETTING_NAME_CACHE_LATENCY_GRAPH_COLUMNS (PLUGIN_NAME L".CacheLatencyGraphColumns")
 #define SETTING_NAME_EXPLORER_WINDOW_POSITION (PLUGIN_NAME L".ExplorerWindowPosition")
 #define SETTING_NAME_EXPLORER_WINDOW_SIZE (PLUGIN_NAME L".ExplorerWindowSize")
 #define SETTING_NAME_STARTUP_TASKS_WINDOW_POSITION (PLUGIN_NAME L".StartupTasksWindowPosition")
@@ -202,6 +229,13 @@ NTSTATUS CallGetProcessUnloadedDlls(
     _In_ HANDLE ProcessId,
     _Out_ PPH_BYTES *UnloadedDlls
     );
+
+#define ET_UPDATE_PROCESS_STATISTICS_MINMAX(Minimum, Maximum, Difference, Value) \
+    if ((Value) != 0 && ((Minimum) == 0 || (Value) < (Minimum))) \
+        (Minimum) = (Value); \
+    if ((Value) != 0 && ((Maximum) == 0 || (Value) > (Maximum))) \
+        (Maximum) = (Value); \
+    (Difference) = (Maximum) - (Minimum);
 
 // Disk item
 
@@ -634,6 +668,8 @@ PET_NETWORK_BLOCK EtGetNetworkBlock(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
+// etwstat
+
 // utils
 
 VOID EtFormatInt64(
@@ -664,6 +700,10 @@ VOID EtFormatDouble(
     _In_ FLOAT Value,
     _In_ PET_PROCESS_BLOCK Block,
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+ULONG64 EtCalculateRate(
+    _In_ ULONG64 ValuePerPeriod
     );
 
 VOID EtFormatRate(
@@ -871,38 +911,39 @@ EXTERN_C BOOLEAN EtGpuD3DEnumProcesses;
 EXTERN_C BOOLEAN EtFramesEnabled;
 EXTERN_C PPH_LIST EtpGpuAdapterList;
 
-extern ULONG EtGpuTotalNodeCount;
-extern ULONG EtGpuTotalSegmentCount;
-extern ULONG64 EtGpuDedicatedLimit;
-extern ULONG64 EtGpuSharedLimit;
+EXTERN_C ULONG EtGpuTotalNodeCount;
+EXTERN_C ULONG EtGpuTotalSegmentCount;
+EXTERN_C ULONG64 EtGpuDedicatedLimit;
+EXTERN_C ULONG64 EtGpuSharedLimit;
 
-extern FLOAT EtGpuNodeUsage;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
-extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
-extern PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
+EXTERN_C FLOAT EtGpuNodeUsage;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
 
-extern PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
-extern PPH_UINT64_DELTA EtGpuNodesSystemRunningTimeDelta;
-extern ULONG64 EtGpuSystemRunningTimeDelta;
-extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
+EXTERN_C PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
+EXTERN_C PPH_UINT64_DELTA EtGpuNodesSystemRunningTimeDelta;
+EXTERN_C ULONG64 EtGpuSystemRunningTimeDelta;
+EXTERN_C PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
-extern ULONG64 EtGpuDedicatedUsage;
-extern ULONG64 EtGpuSharedUsage;
-extern FLOAT EtGpuPowerUsageLimit;
-extern FLOAT EtGpuPowerUsage;
-extern FLOAT EtGpuTemperatureLimit;
-extern FLOAT EtGpuTemperature;
-extern ULONG64 EtGpuFanRpmLimit;
-extern ULONG64 EtGpuFanRpm;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
+EXTERN_C ULONG64 EtGpuDedicatedUsage;
+EXTERN_C ULONG64 EtGpuSharedUsage;
+EXTERN_C FLOAT EtGpuPowerUsageLimit;
+EXTERN_C FLOAT EtGpuPowerUsage;
+EXTERN_C FLOAT EtGpuTemperatureLimit;
+EXTERN_C FLOAT EtGpuTemperature;
+EXTERN_C ULONG64 EtGpuFanRpmLimit;
+EXTERN_C ULONG64 EtGpuFanRpm;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 
 // Lazy-allocation helpers for per-process circular history buffers.
-// The buffer's Data is NULL until the first sample is added; processes
-// that never produce a sample never allocate the backing storage.
+// Data remains NULL until the first sample is added, so processes that
+// never produce a sample do not allocate backing storage. This can save
+// several hundred MB on systems with many running processes. (dmex)
 #define ET_CIRCULAR_BUFFER_ADD_ULONG64(CircularBuffer, Value) \
 do { \
     if (!(CircularBuffer)->Data) PhInitializeCircularBuffer_ULONG64((CircularBuffer), EtSampleCount); \
@@ -922,7 +963,7 @@ do { \
 } while (0)
 
 VOID EtGpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 typedef struct _ET_PROCESS_GPU_STATISTICS
@@ -1054,7 +1095,7 @@ extern PH_CIRCULAR_BUFFER_FLOAT EtNpuTemperatureHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 EtNpuFanRpmHistory;
 
 VOID EtNpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PPH_STRING EtGetDeviceInterfaceFromLuid(
@@ -1215,16 +1256,15 @@ VOID EtShowModuleServicesDialog(
 
 // objprp
 
-VOID EtHandlePropertiesInitializing(
-    _In_ PVOID Parameter
-    );
-
-VOID EtHandlePropertiesWindowInitialized(
-    _In_ PVOID Parameter
-    );
-
-VOID EtHandlePropertiesWindowUninitializing(
-    _In_ PVOID Parameter
+VOID EtShowObjectProperties(
+    _In_opt_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ BOOLEAN ObjectManagerContext,
+    _In_ BOOLEAN SelectHandlesPage,
+    _In_opt_ PPH_OPEN_OBJECT SecurityOpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT SecurityCloseObject,
+    _In_opt_ PVOID SecurityContext
     );
 
 // options
@@ -1357,6 +1397,18 @@ ULONG64 EtLookupTotalGpuAdapterDedicated(
 // EXTENDEDTOOLS_INTERFACE
 ULONG64 EtLookupTotalGpuAdapterShared(
     _In_ LUID AdapterLuid
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+BOOLEAN EtLookupProcessGpuStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+BOOLEAN EtLookupProcessIoStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics
     );
 
 // Firewall
@@ -1682,6 +1734,12 @@ typedef ULONG (WINAPI* _FwpmNetEventEnum5)(
     _Out_ UINT32* numEntriesReturned
     );
 
+// FwpmGetProcessHeap0 returns the fwpuclnt.dll heap
+// FwpmNetEventEnum allocations come from the same heap FwpmFreeMemory0 frees to. (dmex)
+typedef PVOID (WINAPI* _FwpmGetProcessHeap0)(
+    VOID
+    );
+
 // ETW Microsoft-Windows-WFP::DirectionMap
 #define FWP_DIRECTION_MAP_INBOUND 0x3900
 #define FWP_DIRECTION_MAP_OUTBOUND 0x3901
@@ -1885,8 +1943,8 @@ VOID EtShowFirmwareDialog(
 
 extern HWND EtObjectManagerDialogHandle;
 extern PPH_LIST EtObjectManagerOwnHandles;
+extern PH_QUEUED_LOCK EtObjectManagerOwnHandlesLock;
 extern HICON EtObjectManagerPropIcon;
-extern BOOLEAN EtObjectManagerShowHandlesPage;
 
 extern ULONG EtAlpcPortTypeIndex;
 extern ULONG EtDeviceTypeIndex;
@@ -1955,6 +2013,23 @@ VOID EtShowWbclDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// Microsoft SIPA tag decoding, shared with the runtime attestation report.
+
+PCWSTR EtWbclSipaTypeToString(
+    _In_ ULONG SipaType
+    );
+
+PPH_STRING EtWbclFormatLeaf(
+    _In_reads_bytes_(Size) PVOID Data,
+    _In_ ULONG Size
+    );
+
+// attestation
+
+VOID EtShowAttestationDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 _Must_inspect_result_
 NTSTATUS EtTpmOpen(
     _Out_ PTBS_HCONTEXT TbsContextHandle
@@ -1978,6 +2053,17 @@ NTSTATUS EtTpmRead(
     _In_ TPM_NV_INDEX Index,
     _Out_writes_bytes_all_(DataSize) PBYTE Data,
     _In_ USHORT DataSize
+    );
+
+// tpm pcr
+
+_Must_inspect_result_
+NTSTATUS EtTpmPcrRead(
+    _In_ TBS_HCONTEXT TbsContextHandle,
+    _In_ USHORT HashAlgorithm,
+    _Out_writes_bytes_all_(TPM_PCR_COUNT * DigestSize) PVOID PcrValues,
+    _In_ USHORT DigestSize,
+    _Out_ PULONG ValidPcrMask
     );
 
 // tpm_editor
@@ -2019,6 +2105,13 @@ EXTERN_C VOID EtShowSrumDialog(
 
 VOID EtShowCacheLatencyDialog(
     _In_ HWND ParentWindowHandle
+    );
+
+// This plugin's own instance of the interface it publishes.
+extern EXTENDEDTOOLS_INTERFACE PluginInterface;
+
+RTL_ATOM EtCacheGraphInitialization(
+    VOID
     );
 
 #endif

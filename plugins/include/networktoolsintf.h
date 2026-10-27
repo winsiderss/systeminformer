@@ -13,9 +13,10 @@
 #ifndef _NETWORKTOOLSINTF_H
 #define _NETWORKTOOLSINTF_H
 
-#define NETWORKTOOLS_PLUGIN_NAME L"ProcessHacker.NetworkTools"
-#define NETWORKTOOLS_INTERFACE_VERSION 2
+#define NETWORKTOOLS_PLUGIN_NAME L"NetworkTools"
+#define NETWORKTOOLS_INTERFACE_VERSION 3
 
+_Success_(return)
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ ULONG* CountryCode,
@@ -26,6 +27,7 @@ typedef LONG (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
     _In_ ULONG CountryCode
     );
 
+_Success_(return)
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_SERVICENAME)(
     _In_ ULONG Port,
     _In_ ULONG ProtocolType, // IPPROTO_TCP / IPPROTO_UDP
@@ -53,6 +55,12 @@ typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_WHOIS_QUERY)(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ PPH_STRING* Response
+    );
+
 typedef struct _NETWORKTOOLS_INTERFACE
 {
     ULONG Version;
@@ -63,6 +71,7 @@ typedef struct _NETWORKTOOLS_INTERFACE
     PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
     PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
     PNETWORKTOOLS_SHOWWINDOW_WHOIS ShowWhoisWindow;
+    PNETWORKTOOLS_WHOIS_QUERY QueryWhois; // Version 3
 } NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
 
 #endif

@@ -368,7 +368,7 @@ INT_PTR CALLBACK EtpNpuDialogProc(
 
             NpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NPUPANEL), WindowHandle, EtpNpuPanelDialogProc, NULL);
             ShowWindow(NpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
+            PhAddLayoutItemExLogical(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             EtpCreateNpuGraphs();
             EtpUpdateNpuGraphs();
@@ -437,6 +437,8 @@ INT_PTR CALLBACK EtpNpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
+
             NpuPanelDedicatedUsageLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDCURRENT_V);
             NpuPanelDedicatedLimitLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDLIMIT_V);
             NpuPanelSharedUsageLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDCURRENT_V);
@@ -506,11 +508,63 @@ BOOLEAN EtpNpuGraphMessageCallback(
     return TRUE;
 }
 
+VOID EtpGetNpuGraphRects(
+    _Out_writes_(6) RECT LabelRects[6],
+    _Out_writes_(6) RECT GraphRects[6]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphCount;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = NpuGraphMarginScaled;
+    graphPadding = PhScaleToDisplay(ET_NPU_PADDING, NpuDialogWindowDpi);
+    graphCount = EtNpuSupported ? 6 : 3;
+
+    PhGetClientRect(NpuDialog, &clientRect);
+    PhGetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * graphCount - graphPadding * (graphCount + 2)) / graphCount;
+
+    memset(LabelRects, 0, sizeof(RECT) * 6);
+    memset(GraphRects, 0, sizeof(RECT) * 6);
+    y = marginRect.top;
+
+    for (LONG i = 0; i < graphCount; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+
+    if (EtNpuSupported)
+    {
+        GraphRects[graphCount - 1].bottom = clientRect.bottom - marginRect.bottom;
+    }
+}
+
 VOID EtpCreateNpuGraphs(
     VOID
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[6];
+    RECT graphRects[6];
+
+    EtpGetNpuGraphRects(labelRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -520,10 +574,10 @@ VOID EtpCreateNpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         NpuDialog,
         NULL,
         NULL,
@@ -535,10 +589,10 @@ VOID EtpCreateNpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         NpuDialog,
         NULL,
         NULL,
@@ -550,10 +604,10 @@ VOID EtpCreateNpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         NpuDialog,
         NULL,
         NULL,
@@ -567,10 +621,10 @@ VOID EtpCreateNpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[3].left,
+            graphRects[3].top,
+            graphRects[3].right - graphRects[3].left,
+            graphRects[3].bottom - graphRects[3].top,
             NpuDialog,
             NULL,
             NULL,
@@ -582,10 +636,10 @@ VOID EtpCreateNpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[4].left,
+            graphRects[4].top,
+            graphRects[4].right - graphRects[4].left,
+            graphRects[4].bottom - graphRects[4].top,
             NpuDialog,
             NULL,
             NULL,
@@ -597,10 +651,10 @@ VOID EtpCreateNpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[5].left,
+            graphRects[5].top,
+            graphRects[5].right - graphRects[5].left,
+            graphRects[5].bottom - graphRects[5].top,
             NpuDialog,
             NULL,
             NULL,
@@ -614,14 +668,9 @@ VOID EtpLayoutNpuGraphs(
     _In_ HWND WindowHandle
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT marginRect;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    RECT labelRects[6];
+    RECT graphRects[6];
     HDWP deferHandle;
-    ULONG y;
-    LONG graphPadding;
 
     NpuGraphState.Valid = FALSE;
     NpuGraphState.TooltipIndex = ULONG_MAX;
@@ -640,92 +689,72 @@ VOID EtpLayoutNpuGraphs(
         FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = NpuGraphMarginScaled;
-    graphPadding = PhScaleToDisplay(ET_NPU_PADDING, NpuDialogWindowDpi);
-
-    PhGetClientRect(NpuDialog, &clientRect);
-    PhGetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);
-    graphWidth = clientRect.right - marginRect.left - marginRect.right;
-
-    if (EtNpuSupported)
-        graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 6 - graphPadding * 8) / 6;
-    else
-        graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 3 - graphPadding * 5) / 3;
+    EtpGetNpuGraphRects(labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(12);
-    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(NpuDialog, IDC_NPU_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         NpuGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(NpuDialog, IDC_DEDICATED_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         DedicatedGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(NpuDialog, IDC_SHARED_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[2].left,
+        labelRects[2].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         SharedGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     if (EtNpuSupported)
     {
@@ -733,70 +762,62 @@ VOID EtpLayoutNpuGraphs(
             deferHandle,
             GetDlgItem(NpuDialog, IDC_POWER_USAGE_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[3].left,
+            labelRects[3].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             PowerUsageGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            graphHeight,
+            graphRects[3].left,
+            graphRects[3].top,
+            graphRects[3].right - graphRects[3].left,
+            graphRects[3].bottom - graphRects[3].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += graphHeight + graphPadding;
 
         deferHandle = DeferWindowPos(
             deferHandle,
             GetDlgItem(NpuDialog, IDC_TEMPERATURE_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[4].left,
+            labelRects[4].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             TemperatureGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            graphHeight,
+            graphRects[4].left,
+            graphRects[4].top,
+            graphRects[4].right - graphRects[4].left,
+            graphRects[4].bottom - graphRects[4].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += graphHeight + graphPadding;
 
         deferHandle = DeferWindowPos(
             deferHandle,
             GetDlgItem(NpuDialog, IDC_FAN_RPM_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[5].left,
+            labelRects[5].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             FanRpmGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            clientRect.bottom - marginRect.bottom - y,
+            graphRects[5].left,
+            graphRects[5].top,
+            graphRects[5].right - graphRects[5].left,
+            graphRects[5].bottom - graphRects[5].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
     }

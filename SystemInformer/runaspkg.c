@@ -822,10 +822,12 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhRunAsPackageSetImagelist(context);
             PhRunAsPackageInitializeTree(context);
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 WindowHandle,
                 context->SearchBoxHandle,
                 L"Search Packages",
+                SETTING_SEARCH_PACKAGES_REGEX,
+                SETTING_SEARCH_PACKAGES_CASE_SENSITIVE,
                 PhpRunAsPackageSearchControlCallback,
                 context
                 );
@@ -836,7 +838,11 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
 
             EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
             PhReferenceObject(context);
-            PhCreateThread2(PhEnumPackageThreadCallback, context);
+            if (!NT_SUCCESS(PhCreateThread2(PhEnumPackageThreadCallback, context)))
+            {
+                PhDereferenceObject(context);
+                EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), TRUE);
+            }
         }
         break;
     case WM_DESTROY:
@@ -965,7 +971,10 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                             PH_STRINGREF arguments;
 
                             if (PhIsNullOrEmptyString(windowText))
+                            {
+                                PhDereferenceObject(windowText);
                                 break;
+                            }
 
                             if (!(commandString = PhExpandEnvironmentStrings(&windowText->sr)))
                                 commandString = PhCreateString2(&windowText->sr);
@@ -1000,13 +1009,14 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                             }
                             else
                             {
-                                PhShowStatus(WindowHandle, L"Unable to execute the command.", 0, status);
+                                PhShowStatus(WindowHandle, L"Unable to execute the command.", PhNtStatusFromHResult(status), 0);
                             }
 
                             PhClearReference(&directoryString);
                             PhClearReference(&argumentsString);
                             PhClearReference(&fullFileName);
                             PhClearReference(&commandString);
+                            PhDereferenceObject(windowText);
                         }
                     }
                 }
@@ -1019,7 +1029,11 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                     PhRunAsPackageSetImagelist(context);
 
                     PhReferenceObject(context);
-                    PhCreateThread2(PhEnumPackageThreadCallback, context);
+                    if (!NT_SUCCESS(PhCreateThread2(PhEnumPackageThreadCallback, context)))
+                    {
+                        PhDereferenceObject(context);
+                        EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), TRUE);
+                    }
                 }
                 break;
             }

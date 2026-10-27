@@ -48,10 +48,29 @@ namespace CustomBuildTool
         public static void WriteToolsId()
         {
             string directory = Path.GetDirectoryName(Environment.ProcessPath);
-            string filenameId = Path.Join([directory, "\\ToolsId.txt"]);
+            string parentDirectory = Path.GetDirectoryName(directory);
+            string processName = Path.GetFileName(Environment.ProcessPath);
             string currentHash = GetToolsId();
 
-            Utils.WriteAllText(filenameId, currentHash);
+            Utils.WriteAllText(Path.Join([directory, "\\ToolsId.txt"]), currentHash);
+
+            //
+            // Write the tools id for the other published architectures (x86, arm64)
+            // since the host can only execute the binary for its own architecture.
+            //
+
+            if (!string.IsNullOrWhiteSpace(parentDirectory) && Directory.Exists(parentDirectory))
+            {
+                foreach (string archDirectory in Directory.EnumerateDirectories(parentDirectory))
+                {
+                    if (string.Equals(archDirectory, directory, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (!File.Exists(Path.Join([archDirectory, processName])))
+                        continue;
+
+                    Utils.WriteAllText(Path.Join([archDirectory, "\\ToolsId.txt"]), currentHash);
+                }
+            }
 
             Program.PrintColorMessage("Tools Hash: ", ConsoleColor.Gray, false);
             Program.PrintColorMessage(currentHash, ConsoleColor.Green);

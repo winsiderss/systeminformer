@@ -76,10 +76,19 @@ VOID __attribute__((destructor)) SymCryptModuleDestructor(void)
     SymCryptRngUninit();
 }
 
-VOID SYMCRYPT_CALL SymCryptModuleInit( UINT32 api, UINT32 minor )
+SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptModuleInitEx( UINT32 api, UINT32 minor )
 {
     if( api != SYMCRYPT_CODE_VERSION_API ||
         (api == SYMCRYPT_CODE_VERSION_API && minor > SYMCRYPT_CODE_VERSION_MINOR) )
+    {
+        return SYMCRYPT_INVALID_ARGUMENT;
+    }
+    return SYMCRYPT_NO_ERROR;
+}
+
+VOID SYMCRYPT_CALL SymCryptModuleInit( UINT32 api, UINT32 minor )
+{
+    if( SymCryptModuleInitEx( api, minor ) != SYMCRYPT_NO_ERROR )
     {
         SymCryptFatal( 'vers' );
     }

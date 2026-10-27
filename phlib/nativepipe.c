@@ -371,6 +371,135 @@ NTSTATUS PhOpenNamedPipeProtectedPrefix(
 }
 
 /**
+ * Creates a named pipe with caller-supplied placement and security.
+ *
+ * \param[out] PipeHandle Receives the pipe read/write handle.
+ * \param[in] PipeName The pipe name. When \a RootDirectory is NULL the name is relative to the named
+ *        pipe device (\Device\NamedPipe\); otherwise it is relative to \a RootDirectory, an
+ *        open named-pipe directory handle.
+ * \param[in] RootDirectory Optional directory handle the name is relative to.
+ * \param[in] SecurityDescriptor Optional security descriptor for the pipe. When NULL the default
+ *        named pipe ACL is used, which grants read access to Everyone; callers creating a
+ *        privileged control channel must supply their own descriptor.
+ * \param[in] CreateDisposition FILE_CREATE to fail if the pipe already exists (squat detection),
+ *        or FILE_OPEN_IF to create an additional instance of an existing pipe.
+ * \param[in] PipeType FILE_PIPE_BYTE_STREAM_TYPE or FILE_PIPE_MESSAGE_TYPE. Remote clients are
+ *        always rejected. The read mode follows the pipe type.
+ * \param[in] MaximumInstances The maximum number of instances, or FILE_PIPE_UNLIMITED_INSTANCES.
+ * \return NTSTATUS Successful or error status.
+ *
+ * \remarks The pipe is full duplex and opened for synchronous I/O.
+ */
+NTSTATUS PhCreateNamedPipeEx(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCPH_STRINGREF PipeName,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG PipeType,
+    _In_ ULONG MaximumInstances
+    )
+{
+    static CONST PH_STRINGREF deviceName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    NTSTATUS status;
+    PACL pipeAcl = NULL;
+    HANDLE pipeHandle;
+    PPH_STRING pipeName;
+    UNICODE_STRING pipeNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK isb;
+    LARGE_INTEGER timeout;
+    SECURITY_DESCRIPTOR securityDescriptor;
+    ULONG readMode;
+    SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityAnonymous,
+        SECURITY_STATIC_TRACKING,
+        FALSE
+    };
+
+    if (RootDirectory)
+        pipeName = PhCreateString2(PipeName);
+    else
+        pipeName = PhConcatStringRef2(&deviceName, PipeName);
+
+    if (!PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs))
+    {
+        PhDereferenceObject(pipeName);
+        return STATUS_NAME_TOO_LONG;
+    }
+
+    InitializeObjectAttributesEx(
+        &objectAttributes,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        SecurityDescriptor,
+        &pipeSecurityQos
+        );
+
+    if (!SecurityDescriptor)
+    {
+        status = PhDefaultNpAcl(&pipeAcl);
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+
+                if (NT_SUCCESS(status))
+                {
+                    objectAttributes.SecurityDescriptor = &securityDescriptor;
+                }
+            }
+        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    if (PipeType & FILE_PIPE_MESSAGE_TYPE)
+        readMode = FILE_PIPE_MESSAGE_MODE;
+    else
+        readMode = FILE_PIPE_BYTE_STREAM_MODE;
+
+    status = NtCreateNamedPipeFile(
+        &pipeHandle,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | SYNCHRONIZE,
+        &objectAttributes,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        CreateDisposition,
+        FILE_PIPE_FULL_DUPLEX | FILE_SYNCHRONOUS_IO_NONALERT,
+        PipeType | FILE_PIPE_REJECT_REMOTE_CLIENTS,
+        readMode,
+        FILE_PIPE_QUEUE_OPERATION,
+        MaximumInstances,
+        PAGE_SIZE * 16,
+        PAGE_SIZE * 16,
+        PhTimeoutFromMilliseconds(&timeout, 1000)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PipeHandle = pipeHandle;
+    }
+
+CleanupExit:
+    if (pipeAcl)
+    {
+        PhFree(pipeAcl);
+    }
+
+    PhDereferenceObject(pipeName);
+    return status;
+}
+
+/**
  * Connects to a named pipe.
  *
  * \param[out] PipeHandle The pipe read/write handle.

@@ -26,7 +26,7 @@ static PKPH_OBJECT_TYPE KphpInformerStateType = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpInformerStateLookaside = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpInformerStateTypeName = RTL_CONSTANT_STRING(L"KphInformerState");
+DECLARE_CONST_UNICODE_STRING(KphpInformerStateTypeName, L"KphInformerState");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static KPH_INFORMER_STATE_ATOMIC KphpInformerState = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
 

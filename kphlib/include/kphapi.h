@@ -142,20 +142,18 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
         {
             ULONG CreateNotification : 1;
             ULONG ExitNotification : 1;
-            ULONG VerifiedProcess : 1;
-            ULONG SecurelyCreated : 1;
-            ULONG Protected : 1;
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG AllocatedImageName : 1;
-            ULONG Reserved : 24;
+            ULONG SystemAllocatedImageFileName : 1;
+            ULONG Reserved : 26;
         };
     };
 
     SIZE_T NumberOfThreads;
 
     //
-    // Only valid if Protected flag is set.
+    // Only valid if KPH_PROCESS_PROTECTED_PROCESS is set in ProcessState.
     //
     ACCESS_MASK ProcessAllowedMask;
     ACCESS_MASK ThreadAllowedMask;

@@ -724,7 +724,13 @@ PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
         return entry;
     }
 
-    if (appdomainAddressData.AssemblyCount)
+    // A domain that was read and holds no assemblies gets an empty list, so a null AssemblyList means
+    // the domain could not be read rather than that it holds nothing.
+    if (appdomainAddressData.AssemblyCount == 0)
+    {
+        entry->AssemblyList = PhCreateList(1);
+    }
+    else
     {
         appdomainAssemblyList = PhAllocateZero(sizeof(CLRDATA_ADDRESS) * appdomainAddressData.AssemblyCount);
 
@@ -1139,7 +1145,7 @@ static BOOLEAN NTAPI DnGetClrRuntimeCallback(
         entry->FileName = PhReferenceObject(Module->FileName);
         entry->DllBase = Module->BaseAddress;
 
-        if (PhInitializeImageVersionInfoEx(&versionInfo, &entry->FileName->sr, FALSE))
+        if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &entry->FileName->sr, FALSE)))
         {
             entry->RuntimeVersion = PhReferenceObject(versionInfo.FileVersion);
             PhDeleteImageVersionInfo(&versionInfo);
@@ -1460,13 +1466,13 @@ PVOID DnLoadMscordaccore(
         {
             PCLR_DEBUG_RESOURCE debugVersionInfo;
 
-            if (PhLoadResource(
+            if (NT_SUCCESS(PhLoadResource(
                 imageBaseAddress,
                 L"CLRDEBUGINFO",
                 RT_RCDATA,
                 NULL,
                 &debugVersionInfo
-                ))
+                )))
             {
                 if (
                     debugVersionInfo->Version == 0 &&
@@ -1571,7 +1577,7 @@ TryAppLocal:
     if (!mscordacBaseAddress && dataTargetDirectory)
     {
         PPH_STRING fileName;
- 
+
         // We couldn't find any compatible versions of the CLR installed. Try loading
         // the version of the CLR included with the application after checking the
         // digital signature was from Microsoft. (dmex)
@@ -1637,13 +1643,13 @@ TryAppLocal:
 
         if (NT_SUCCESS(PhLoadLibraryAsImageResource(&dataTargetFileName->sr, FALSE, &imageBaseAddress)))
         {
-            if (PhLoadResource(
+            if (NT_SUCCESS(PhLoadResource(
                 imageBaseAddress,
                 L"MINIDUMP_EMBEDDED_AUXILIARY_PROVIDER",
                 RT_RCDATA,
                 &mscordacResourceLength,
                 &mscordacResourceBuffer
-                ))
+                )))
             {
                 NTSTATUS status;
                 HANDLE fileHandle;

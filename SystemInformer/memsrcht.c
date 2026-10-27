@@ -220,7 +220,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBuffer(
     {
         SIZE_T length;
 
-        if (context->TreeContext->StopSearch)
+        if (ReadBooleanAcquire(&context->TreeContext->StopSearch))
             break;
         if (context->BasicInfo.State != MEM_COMMIT)
             continue;
@@ -277,7 +277,6 @@ static PWCHAR PhpAllocateStringData(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context, 
 static PPH_MEMSTRINGS_NODE PhpAllocateStringNode(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context);
 static VOID PhpFlushLocalStringsBatch(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context);
 
-
 _Function_class_(PH_STRING_SEARCH_CALLBACK)
 BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     _In_ PPH_STRING_SEARCH_RESULT Result,
@@ -293,11 +292,10 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     context = Context;
     treeContext = context->TreeContext;
 
-    InterlockedIncrement((volatile LONG*)&treeContext->StringsCount);
-
     node = PhpAllocateStringNode(context);
 
-    node->Index = treeContext->StringsCount;
+    // Note: Use the value returned by interlocked; other workers update the counter concurrently. (dmex)
+    node->Index = (ULONG)InterlockedIncrement((volatile LONG*)&treeContext->StringsCount);
     node->Unicode = Result->Encoding == PH_STRING_SEARCH_ENCODING_UTF16;
     node->BaseAddress = context->BasicInfo.BaseAddress;
     node->Address = PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
@@ -314,7 +312,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     if (context->LocalBatchCount >= RTL_NUMBER_OF(context->LocalBatch))
         PhpFlushLocalStringsBatch(context);
 
-    return !!treeContext->StopSearch;
+    return !!ReadBooleanAcquire(&treeContext->StopSearch);
 }
 
 #define MEMSTRINGS_STRING_BUFFER_CHARS (8 * 1024 * 1024)
@@ -327,6 +325,10 @@ static PWCHAR PhpAllocateStringData(
 {
     PPH_MEMSTRINGS_CONTEXT treeContext = Context->TreeContext;
     PWCHAR dest;
+
+    // N.B. PhSearchStrings caps each result at the size of its search buffer
+    // (far below the arena size), so a single string always fits in a new arena. (dmex)
+    assert(CharCount < MEMSTRINGS_STRING_BUFFER_CHARS);
 
     if (!Context->StringBuffer || Context->StringBufferUsed + CharCount + 1 > Context->StringBufferCapacity)
     {
@@ -442,7 +444,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBufferParallel(
             if (context->CurrentRegionIndex >= context->RegionEnd)
                 return STATUS_NO_MORE_ENTRIES;
 
-            if (context->TreeContext->StopSearch)
+            if (ReadBooleanAcquire(&context->TreeContext->StopSearch))
                 return STATUS_CANCELLED;
 
             context->BasicInfo = context->RegionArray[context->CurrentRegionIndex++];
@@ -562,7 +564,7 @@ NTSTATUS PhpMemorySearchStringsThread(
             NULL
             )))
         {
-            if (Context->StopSearch)
+            if (ReadBooleanAcquire(&Context->StopSearch))
                 break;
 
             if (basicInfo.State == MEM_COMMIT &&
@@ -581,9 +583,10 @@ NTSTATUS PhpMemorySearchStringsThread(
         }
     }
 
-    if (regionCount > 0 && !Context->StopSearch)
+    if (regionCount > 0 && !ReadBooleanAcquire(&Context->StopSearch))
     {
         ULONG threadCount;
+        ULONG threadsCreated = 0;
         PHANDLE threadHandles;
 
         if (Context->ThreadCount > 0)
@@ -607,13 +610,25 @@ NTSTATUS PhpMemorySearchStringsThread(
             worker->RegionStart = t * regionCount / threadCount;
             worker->RegionEnd = (t + 1) * regionCount / threadCount;
 
-            threadHandles[t] = PhCreateThread(0, PhpMemoryStringsWorkerThread, worker);
+            // N.B. Only wait on threads that were actually created, otherwise the wait fails
+            // immediately and regionArray is freed while workers still use it.
+            if (NT_SUCCESS(PhCreateThreadEx(&threadHandles[threadsCreated], PhpMemoryStringsWorkerThread, worker)))
+            {
+                threadsCreated++;
+            }
+            else
+            {
+                PhFree(worker);
+            }
         }
 
-        NtWaitForMultipleObjects(threadCount, threadHandles, WaitAll, FALSE, NULL);
+        if (threadsCreated)
+        {
+            NtWaitForMultipleObjects(threadsCreated, threadHandles, WaitAll, FALSE, NULL);
 
-        for (ULONG t = 0; t < threadCount; t++)
-            NtClose(threadHandles[t]);
+            for (ULONG t = 0; t < threadsCreated; t++)
+                NtClose(threadHandles[t]);
+        }
 
         PhFree(threadHandles);
     }
@@ -621,7 +636,7 @@ NTSTATUS PhpMemorySearchStringsThread(
     PhFree(regionArray);
 
 Finished:
-    if (!Context->StopSearch)
+    if (!ReadBooleanAcquire(&Context->StopSearch))
         PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, 0, 0);
 
     return STATUS_SUCCESS;
@@ -638,15 +653,16 @@ VOID PhpMemoryStringsCheckBackOff(
     // filtering updates. Logic elsewhere will check on the delay for the user
     // to stop typing. Then the next timer trigger the search will be updated
     // based on the current user input.
-    if (Context->NodeList->Count >= 150000)
-    {
-        Context->BackOffActive = TRUE;
-        PhSetTimer(Context->WindowHandle, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
-    }
-    else if (Context->NodeList->Count >= 500000)
+    // N.B. Test the larger threshold first, otherwise it is unreachable.
+    if (Context->NodeList->Count >= 500000)
     {
         Context->BackOffActive = TRUE;
         PhSetTimer(Context->WindowHandle, PH_WINDOW_TIMER_DEFAULT, 400, NULL);
+    }
+    else if (Context->NodeList->Count >= 150000)
+    {
+        Context->BackOffActive = TRUE;
+        PhSetTimer(Context->WindowHandle, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
     }
 }
 
@@ -870,14 +886,25 @@ VOID PhpDeleteMemoryStringsTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
-    Context->StopSearch = TRUE;
+    WriteBooleanRelease(&Context->StopSearch, TRUE);
     if (Context->SearchThreadHandle)
     {
         NtWaitForSingleObject(Context->SearchThreadHandle, FALSE, NULL);
         NtClose(Context->SearchThreadHandle);
         Context->SearchThreadHandle = NULL;
     }
-    Context->StopSearch = FALSE;
+
+    // The worker may have posted its completion before it observed the stop flag; drop it so
+    // it can't be mistaken for the completion of a search started after this call.
+    if (Context->WindowHandle)
+    {
+        MSG msg;
+
+        while (PeekMessage(&msg, Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, WM_PH_MEMSEARCH_FINISHED, PM_REMOVE))
+            NOTHING;
+    }
+
+    WriteBooleanRelease(&Context->StopSearch, FALSE);
 
     if (Context->CloneHandle)
     {
@@ -1558,10 +1585,12 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             PhpMemoryStringsSetWindowTitle(context);
             PhRegisterDialog(hwndDlg);
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 context->SearchHandle,
                 L"Search Strings (Ctrl+K)",
+                SETTING_SEARCH_MEMORY_STRINGS_REGEX,
+                SETTING_SEARCH_MEMORY_STRINGS_CASE_SENSITIVE,
                 PvpStringsSearchControlCallback,
                 context
                 );

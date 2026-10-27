@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{3437FD16-A3BF-4938-883A-EB0DF1584A2A}</ProjectGuid>
     <RootNamespace>ExtendedTools</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -127,6 +126,8 @@
     <ClCompile Include="npunodes.c" />
     <ClCompile Include="npuprprp.c" />
     <ClCompile Include="npusys.c" />
+    <ClCompile Include="objmgr.c" />
+    <ClCompile Include="objprp.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
     <ClCompile Include="pooldialogbig.c" />
@@ -162,7 +163,6 @@
     <ClInclude Include="etwmini.h" />
     <ClInclude Include="etwmon.h" />
     <ClInclude Include="etwsys.h" />
-    <ClInclude Include="extension\plugin.h" />
     <ClInclude Include="exttools.h" />
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />

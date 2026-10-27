@@ -51,7 +51,8 @@ if errorlevel 1 exit /b %errorlevel%
 call :CleanupPath "tools\CustomBuildTool\.vs"
 if errorlevel 1 exit /b %errorlevel%
 
-if /i "%VS_ARM64_SUPPORT%"=="true" set "VCVARS_ARCH=amd64_arm64"
+REM Target ARM64 when supported; the host toolset is picked from the machine arch.
+if /i "%VS_ARM64_SUPPORT%"=="true" (call :ResolveVcVarsArch arm64) else (call :ResolveVcVarsArch x64)
 if /i "%VS_ARM64_SUPPORT%"=="true" set "CBT_PLATFORMS=x86;x64;ARM64"
 call :SetupVcVars "%VCVARS_ARCH%"
 if errorlevel 1 exit /b %errorlevel%
@@ -98,9 +99,10 @@ REM   %~1 - Semicolon-separated platform list (e.g. "x86;x64;ARM64").
 REM   %~2 - Friendly label shown in output.
 REM -----------------------------------------------------------------------------
 :RunMsBuildPublish
+set "TargetPlatforms=%~1"
 echo:
 echo Building CustomBuildTool.sln [%~2]
-msbuild /m /graph -restore tools\CustomBuildTool\CustomBuildTool.sln -t:All -p:BuildAllTarget=Publish -p:TargetConfigurations="Release" -p:TargetPlatforms="%~1" -p:ContinuousIntegrationBuild=%TIB% -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG%
+dotnet msbuild -mt -p:UseClStructuredOutput=false -restore /m /graph tools\CustomBuildTool\CustomBuildTool.csproj -t:All -p:BuildAllTarget=Publish -p:Configuration=Release -p:Platform=x86 -p:BuildTargetConfigurations=Release -p:ContinuousIntegrationBuild=%TIB% -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -145,6 +147,37 @@ if /i "%EnterpriseWDK%"=="true" (
 if not exist "%VSWHERE%" exit /b 0
 for /f "usebackq tokens=*" %%a in (`call "%VSWHERE%" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
    set "VS_ARM64_SUPPORT=true"
+)
+exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: ResolveVcVarsArch
+REM Description: Resolves the vcvarsall argument for the requested target, using
+REM              the native host toolset (amd64 or arm64) when it is installed.
+REM Parameters:
+REM   %~1 - Target architecture (x86, x64, arm64).
+REM Sets:
+REM   VCVARS_HOST - Host toolset selected for vcvarsall (amd64 or arm64).
+REM   VCVARS_ARCH - vcvarsall architecture argument (e.g. amd64, arm64_x64).
+REM -----------------------------------------------------------------------------
+:ResolveVcVarsArch
+set "VCVARS_HOST=amd64"
+set "VCVARS_TARGET=%~1"
+if /i "%VCVARS_TARGET%"=="amd64" set "VCVARS_TARGET=x64"
+if /i "%VCVARS_TARGET%"=="win32" set "VCVARS_TARGET=x86"
+REM PROCESSOR_ARCHITEW6432 reports the real machine arch when the shell is emulated.
+set "VCVARS_MACHINE=%PROCESSOR_ARCHITECTURE%"
+if defined PROCESSOR_ARCHITEW6432 set "VCVARS_MACHINE=%PROCESSOR_ARCHITEW6432%"
+if /i "%VCVARS_MACHINE%"=="ARM64" (
+    REM Only select the ARM64-hosted toolset when Visual Studio has it installed.
+    for /d %%D in ("%VSINSTALLPATH%\VC\Tools\MSVC\*") do (
+        if exist "%%~D\bin\Hostarm64\" set "VCVARS_HOST=arm64"
+    )
+)
+if /i "%VCVARS_HOST%"=="arm64" (
+    if /i "%VCVARS_TARGET%"=="arm64" (set "VCVARS_ARCH=arm64") else (set "VCVARS_ARCH=arm64_%VCVARS_TARGET%")
+) else (
+    if /i "%VCVARS_TARGET%"=="x64" (set "VCVARS_ARCH=amd64") else (set "VCVARS_ARCH=amd64_%VCVARS_TARGET%")
 )
 exit /b 0
 
@@ -203,3 +236,4 @@ set "STDIN_REDIRECTED=False"
 for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
 if /i not "%STDIN_REDIRECTED%"=="True" pause
 exit /b 0
+

@@ -46,6 +46,30 @@ static PPH_HASHTABLE PhpVerifyCacheHashTable = NULL;
 static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
 #endif
 
+#if defined(PH_BUILD_API)
+#define PH_SIGNING_THUMBPRINT_LENGTH (256 / 8) // SHA-256
+typedef struct _PH_SIGNING_ANCHOR
+{
+    PH_STRINGREF Organization;
+    PH_STRINGREF CommonName;
+    BYTE RootThumbprint[PH_SIGNING_THUMBPRINT_LENGTH];
+} PH_SIGNING_ANCHOR, *PPH_SIGNING_ANCHOR;
+
+static CONST PH_SIGNING_ANCHOR PhpSigningAnchors[] =
+{
+    {
+        PH_STRINGREF_INIT(L"Winsider Seminars & Solutions Inc."),
+        PH_STRINGREF_INIT(L"Winsider Seminars & Solutions Inc."),
+        { // DigiCert Trusted Root G4
+            0x55, 0x2F, 0x7B, 0xDC, 0xF1, 0xA7, 0xAF, 0x9E,
+            0x6C, 0xE6, 0x72, 0x01, 0x7F, 0x4F, 0x12, 0xAB,
+            0xF7, 0x72, 0x40, 0xC7, 0x8E, 0x76, 0x1A, 0xC2,
+            0x03, 0xD1, 0xD9, 0xD2, 0x0A, 0xC8, 0x99, 0x88
+        }
+    },
+};
+#endif
+
 static VOID PhpVerifyInitialization(
     VOID
     )
@@ -501,6 +525,7 @@ NTSTATUS PhpCalculateFileHash(
     _Out_ HANDLE *CatAdminHandle
     )
 {
+    NTSTATUS status;
     HANDLE catAdminHandle;
     PUCHAR fileHash;
     ULONG fileHashLength;
@@ -534,9 +559,10 @@ NTSTATUS PhpCalculateFileHash(
 
             if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, &fileHashLength, fileHash, 0))
             {
+                status = PhGetLastWin32ErrorAsNtStatus();
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return PhGetLastWin32ErrorAsNtStatus();
+                return status;
             }
         }
     }
@@ -549,9 +575,10 @@ NTSTATUS PhpCalculateFileHash(
 
             if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, &fileHashLength, fileHash, 0))
             {
+                status = PhGetLastWin32ErrorAsNtStatus();
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return PhGetLastWin32ErrorAsNtStatus();
+                return status;
             }
         }
     }
@@ -584,6 +611,7 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     _Out_ HANDLE *CatAdminHandle
     )
 {
+    NTSTATUS status;
     HANDLE catAdminHandle;
     CERT_STRONG_SIGN_PARA strongSigPolicy;
 
@@ -610,23 +638,25 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     {
         if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            status = PhGetLastWin32ErrorAsNtStatus();
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+            return status;
         }
     }
     else
     {
         if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            status = PhGetLastWin32ErrorAsNtStatus();
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+            return status;
         }
     }
 
     if (!PhBufferToHexStringBuffer(FileHashBuffer, *FileHashLength, TRUE, HashTagBuffer, HashTagLength, NULL))
     {
         CryptCATAdminReleaseContext(catAdminHandle, 0);
-        return PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_BUFFER_TOO_SMALL;
     }
 
     *CatAdminHandle = catAdminHandle;
@@ -659,7 +689,6 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     ULONG fileSizeLimit;
     ULONG fileHashLength = 32; // bytes
     UCHAR fileHash[32];
-    ULONG fileHashTagLength = 128; // wchar
     WCHAR fileHashTag[64 + 1];
     HANDLE catAdminHandle;
     HANDLE catInfoHandle;
@@ -688,7 +717,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         FileHandle,
         HashAlgorithm,
         fileHashTag,
-        fileHashTagLength,
+        sizeof(fileHashTag),
         fileHash,
         &fileHashLength,
         &catAdminHandle
@@ -1204,6 +1233,282 @@ BOOLEAN PhVerifyFileIsChainedToMicrosoft(
 }
 
 /**
+ * Gets the thumbprint of the root certificate that a certificate chains to.
+ *
+ * \param Certificate The certificate context.
+ * \param Thumbprint A buffer which receives the SHA-256 thumbprint of the root certificate.
+ * \param ThumbprintLength On input, the size of the buffer in bytes. On output, the number
+ * of bytes written, or zero on failure.
+ * \return TRUE if the chain was built and terminates at a root certificate, FALSE otherwise.
+ */
+BOOLEAN PhpGetCertificateRootThumbprint(
+    _In_ PCCERT_CONTEXT Certificate,
+    _Out_writes_bytes_to_(*ThumbprintLength, *ThumbprintLength) PBYTE Thumbprint,
+    _Inout_ PULONG ThumbprintLength
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&CertGetCertificateChain) CertGetCertificateChain_I = NULL;
+    static typeof(&CertFreeCertificateChain) CertFreeCertificateChain_I = NULL;
+    static typeof(&CertGetCertificateContextProperty) CertGetCertificateContextProperty_I = NULL;
+    BOOLEAN status = FALSE;
+    CERT_CHAIN_PARA chainPara = { sizeof(CERT_CHAIN_PARA) };
+    PCCERT_CHAIN_CONTEXT chainContext;
+    PCERT_SIMPLE_CHAIN simpleChain;
+    PCCERT_CONTEXT rootCertificate;
+    ULONG thumbprintLength;
+
+    thumbprintLength = *ThumbprintLength;
+    *ThumbprintLength = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID crypt32;
+
+        if (crypt32 = PhLoadLibrary(L"crypt32.dll"))
+        {
+            CertGetCertificateChain_I = PhGetDllBaseProcedureAddress(crypt32, "CertGetCertificateChain", 0);
+            CertFreeCertificateChain_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateChain", 0);
+            CertGetCertificateContextProperty_I = PhGetDllBaseProcedureAddress(crypt32, "CertGetCertificateContextProperty", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(
+        CertGetCertificateChain_I &&
+        CertFreeCertificateChain_I &&
+        CertGetCertificateContextProperty_I
+        ))
+    {
+        return FALSE;
+    }
+
+    if (!CertGetCertificateChain_I(
+        HCCE_CURRENT_USER,
+        Certificate,
+        NULL,
+        Certificate->hCertStore,
+        &chainPara,
+        0,
+        NULL,
+        &chainContext
+        ))
+    {
+        return FALSE;
+    }
+
+    if (chainContext->cChain == 0)
+        goto CleanupExit;
+
+    simpleChain = chainContext->rgpChain[0];
+
+    if (simpleChain->cElement == 0)
+        goto CleanupExit;
+
+    if (FlagOn(simpleChain->TrustStatus.dwErrorStatus, CERT_TRUST_IS_PARTIAL_CHAIN))
+        goto CleanupExit;
+
+    rootCertificate = simpleChain->rgpElement[simpleChain->cElement - 1]->pCertContext;
+
+    if (!CertGetCertificateContextProperty_I(
+        rootCertificate,
+        CERT_SHA256_HASH_PROP_ID,
+        Thumbprint,
+        &thumbprintLength
+        ))
+    {
+        goto CleanupExit;
+    }
+
+    *ThumbprintLength = thumbprintLength;
+    status = TRUE;
+
+CleanupExit:
+    CertFreeCertificateChain_I(chainContext);
+
+    return status;
+}
+
+#if defined(PH_BUILD_API)
+/**
+ * Checks if a certificate is one of the System Informer signing certificates.
+ *
+ * \param Certificate The certificate context.
+ * \return TRUE if the certificate matches a pinned signing anchor, FALSE otherwise.
+ */
+BOOLEAN PhpIsSystemInformerCertificate(
+    _In_ PCERT_CONTEXT Certificate
+    )
+{
+    BOOLEAN result = FALSE;
+    PCERT_INFO certInfo;
+    PH_STRINGREF keyName;
+    PPH_STRING subject;
+    PPH_STRING organization;
+    PPH_STRING commonName;
+    BYTE rootThumbprint[PH_SIGNING_THUMBPRINT_LENGTH];
+    ULONG rootThumbprintLength;
+    BOOLEAN rootThumbprintValid = FALSE;
+
+    if (!(certInfo = Certificate->pCertInfo))
+        return FALSE;
+
+    if (!(subject = PhpGetCertNameString(&certInfo->Subject)))
+        return FALSE;
+
+    PhInitializeStringRef(&keyName, L"O");
+    organization = PhpGetX500Value(&subject->sr, &keyName);
+
+    PhInitializeStringRef(&keyName, L"CN");
+    commonName = PhpGetX500Value(&subject->sr, &keyName);
+
+    if (!organization || !commonName)
+        goto CleanupExit;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpSigningAnchors); i++)
+    {
+        CONST PH_SIGNING_ANCHOR *anchor = &PhpSigningAnchors[i];
+
+        if (!PhEqualStringRef(&organization->sr, &anchor->Organization, TRUE))
+            continue;
+        if (!PhEqualStringRef(&commonName->sr, &anchor->CommonName, TRUE))
+            continue;
+
+        rootThumbprintLength = sizeof(rootThumbprint);
+
+        if (!PhpGetCertificateRootThumbprint(Certificate, rootThumbprint, &rootThumbprintLength))
+            continue;
+        if (rootThumbprintLength != PH_SIGNING_THUMBPRINT_LENGTH)
+            continue;
+
+        if (RtlEqualMemory(rootThumbprint, anchor->RootThumbprint, PH_SIGNING_THUMBPRINT_LENGTH))
+        {
+            result = TRUE;
+            break;
+        }
+    }
+
+CleanupExit:
+    if (commonName)
+        PhDereferenceObject(commonName);
+    if (organization)
+        PhDereferenceObject(organization);
+
+    PhDereferenceObject(subject);
+
+    return result;
+}
+
+/**
+ * Verifies that a file is signed with a System Informer signing certificate.
+ *
+ * \param FileHandle A handle to the file. The handle must have FILE_READ_DATA access.
+ *
+ * \return STATUS_SUCCESS if the file carries a trusted signature from one of the pinned signing
+ * anchors, STATUS_INVALID_IMAGE_HASH if the file is unsigned or its signature is not trusted, or
+ * STATUS_TRUST_FAILURE if the signature is trusted but was not made by us.
+ */
+NTSTATUS PhpVerifyFileHandleIsSystemInformer(
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    PH_VERIFY_FILE_INFO info = { 0 };
+    VERIFY_RESULT verifyResult;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
+
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+    info.FileHandle = FileHandle;
+
+    status = PhVerifyFileEx(&info, &verifyResult, &signatures, &numberOfSignatures);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (verifyResult != VrTrusted)
+    {
+        PhFreeVerifySignatures(signatures, numberOfSignatures);
+        return STATUS_INVALID_IMAGE_HASH;
+    }
+
+    status = STATUS_TRUST_FAILURE;
+
+    for (ULONG i = 0; i < numberOfSignatures; i++)
+    {
+        if (PhpIsSystemInformerCertificate(signatures[i]))
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+    }
+
+    PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+    return status;
+}
+#endif
+
+/**
+ * Verifies that a file is signed with a System Informer signing certificate.
+ *
+ * \param FileName A file name.
+ * \param NativeFileName Specify TRUE if the file name is a native path.
+ *
+ * \return TRUE if the file carries a trusted signature from one of the pinned signing
+ * anchors, otherwise FALSE. See PhpVerifyFileHandleIsSystemInformer.
+ */
+BOOLEAN PhVerifyFileIsSystemInformer(
+    _In_ PCPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+#if !defined(PH_BUILD_API)
+    UNREFERENCED_PARAMETER(FileName);
+    UNREFERENCED_PARAMETER(NativeFileName);
+
+    return TRUE;
+#else
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    if (NativeFileName)
+    {
+        status = PhCreateFile(
+            &fileHandle,
+            FileName,
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+    else
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            PhGetStringRefZ(FileName),
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    status = PhpVerifyFileHandleIsSystemInformer(fileHandle);
+
+    NtClose(fileHandle);
+
+    return NT_SUCCESS(status);
+#endif
+}
+
+/**
  * Checks if two verification cache entries are equal.
  *
  * \param Entry1 The first entry.
@@ -1400,11 +1705,16 @@ VERIFY_RESULT PhVerifyFileCached(
 
     PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
 
+    // The cache key is (FileName, USN). Without a USN (FAT/exFAT, SMB, NTFS with no active journal)
+    // replacing the file would not change the key, so the result is neither looked up nor cached.
+    if (!NT_SUCCESS(PhGetFileUsn(fileHandle, &sequenceNumber)))
+        sequenceNumber = 0;
+
+    if (sequenceNumber != 0)
     {
         PPH_VERIFY_CACHE_ENTRY entry;
         PH_VERIFY_CACHE_ENTRY lookupEntry;
 
-        PhGetFileUsn(fileHandle, &sequenceNumber);
         lookupEntry.FileName = FileName;
         lookupEntry.SequenceNumber = sequenceNumber;
 
@@ -1449,7 +1759,7 @@ VERIFY_RESULT PhVerifyFileCached(
             signerName = NULL;
         }
 
-        if (!CachedOnly) // if (result != VrUnknown)
+        if (!CachedOnly && sequenceNumber != 0) // if (result != VrUnknown)
         {
             PH_VERIFY_CACHE_ENTRY newEntry;
 

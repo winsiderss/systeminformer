@@ -4,6 +4,7 @@
 # This file is part of System Informer.
 #
 
+add_subdirectory(AgentTools)
 add_subdirectory(DotNetTools)
 add_subdirectory(ExtendedNotifications)
 add_subdirectory(ExtendedServices)

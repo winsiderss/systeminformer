@@ -100,15 +100,32 @@ PPH_STRING PhGetProcessItemImageTypeText(
 #ifdef _ARM64_
         if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessItem->FileName->sr, NULL, &mappedImage)))
         {
-            architecture = mappedImage.NtHeaders->FileHeader.Machine;
-            if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
-                chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+            __try
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+                if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
+                    chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+                chpeVersion = 0;
+            }
+
             PhUnloadMappedImage(&mappedImage);
         }
 #else
         if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessItem->FileName->sr, NULL, &mappedImage)))
         {
-            architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            __try
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+            }
+
             PhUnloadMappedImage(&mappedImage);
         }
 #endif
@@ -181,18 +198,13 @@ VOID PhpUpdateProcessMitigationPolicies(
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
     PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
     PhSetDialogItemText(hwndDlg, IDC_MITIGATION, L"N/A");
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_INFORMATION,
-        ProcessItem->ProcessId
-        )))
+    if (ProcessItem->QueryHandle)
     {
-        if (NT_SUCCESS(status = PhGetProcessMitigationPolicyAllInformation(processHandle, &information)))
+        if (NT_SUCCESS(status = PhGetProcessMitigationPolicyAllInformation(ProcessItem->QueryHandle, &information)))
         {
             PH_STRING_BUILDER sb;
             PROCESS_MITIGATION_POLICY policy;
@@ -255,8 +267,10 @@ VOID PhpUpdateProcessMitigationPolicies(
 
             PhDeleteStringBuilder(&sb);
         }
-
-        NtClose(processHandle);
+    }
+    else
+    {
+        status = STATUS_INVALID_HANDLE;
     }
 
     if (!NT_SUCCESS(status))
@@ -267,9 +281,22 @@ typedef struct _PH_PROCGENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND StartedLabelHandle;
+    PPH_STRING StartedText;
     BOOLEAN Enabled;
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
+
+static VOID PhpSetStartedText(
+    _Inout_ PPH_PROCGENERAL_CONTEXT Context,
+    _In_ PCWSTR Text
+    )
+{
+    if (Context->StartedText && PhEqualStringZ(Context->StartedText->Buffer, Text, FALSE))
+        return;
+
+    if (PhSetWindowText(Context->StartedLabelHandle, Text))
+        PhMoveReference(&Context->StartedText, PhCreateString(Text));
+}
 
 VOID PphProcessGeneralDlgUpdateIcons(
     _In_ HWND hwndDlg
@@ -290,6 +317,7 @@ VOID PphProcessGeneralDlgUpdateIcons(
     SET_BUTTON_ICON(IDC_OPENFILENAME2, folder);
     SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
     SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
+    SET_BUTTON_ICON(IDC_VIEWPARENTCONSOLE, magnifier);
 }
 
 VOID PphProcessGeneralDlgUpdateProcessIcon(
@@ -387,6 +415,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
     switch (uMsg)
     {
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clipRect;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhThemeWindowBackgroundBrush ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_BTNFACE));
+
+            return TRUE;
+        }
     case WM_INITDIALOG:
         {
             HANDLE processHandle = NULL;
@@ -400,18 +442,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
+            if (PhEnableThemeSupport)
+                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
             PphProcessGeneralDlgUpdateIcons(hwndDlg);
 
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
             HWND fileGroupHandle = GetDlgItem(hwndDlg, IDC_FILE);
-            PhSetWindowExStyle(fileGroupHandle, WS_EX_TRANSPARENT, 0);
             PhSetWindowStyle(fileGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(fileGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             PhInitializeThemeWindowGroupBoxEx(fileGroupHandle);
 
             HWND processGroupHandle = GetDlgItem(hwndDlg, IDC_PROCESS);
-            PhSetWindowExStyle(processGroupHandle, WS_EX_TRANSPARENT, 0);
             PhSetWindowStyle(processGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(processGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             PhInitializeThemeWindowGroupBoxEx(processGroupHandle);
@@ -443,37 +484,30 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (processItem->QueryHandle)
             {
-                if (NT_SUCCESS(PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
-                {
-                    PH_AUTO(fileNameWin32);
-                }
+                PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32);
             }
 
-            if (PhIsNullOrEmptyString(fileNameWin32))
+            if (PhIsNullOrEmptyString(fileNameWin32) && processItem->FileName)
             {
-                fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
-                PH_AUTO(fileNameWin32);
+                PhMoveReference(&fileNameWin32, PhGetFileName(processItem->FileName));
             }
 
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(fileNameWin32));
             PhSetDialogItemText(hwndDlg, IDC_FILENAMEWIN32, PhpGetStringOrNa(processItem->FileName));
+            PhClearReference(&fileNameWin32);
+
+            // Inspect
 
             {
                 PPH_STRING inspectExecutables;
 
-                if (PhIsNullOrEmptyString(processItem->FileName))
+                if (PhIsNullOrEmptyString(processItem->FileName) || !PhDoesFileExist(&processItem->FileName->sr))
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME2), FALSE);
                     EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
-                }
-                else
-                {
-                    if (!PhDoesFileExist(&processItem->FileName->sr))
-                    {
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
-                    }
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT2), FALSE);
                 }
 
                 inspectExecutables = PhaGetStringSetting(SETTING_PROGRAM_INSPECT_EXECUTABLES);
@@ -481,8 +515,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (PhIsNullOrEmptyString(inspectExecutables))
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT2), FALSE);
                 }
             }
+
+            // Verify
 
             if (processItem->VerifyResult == VrTrusted)
             {
@@ -567,7 +604,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                     startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                    PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                    PhpSetStartedText(context, PhaFormatString(
                         L"%s ago (%s)",
                         startTimeRelativeString->Buffer,
                         startTimeString->Buffer
@@ -575,12 +612,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                    PhpSetStartedText(context, L"N/A");
                 }
             }
             else
             {
-                PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                PhpSetStartedText(context, L"N/A");
             }
 
             // Parent
@@ -623,6 +660,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (parentProcess->ProcessId == SYSTEM_IDLE_PROCESS_ID)
                 {
                     PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), FALSE);
                 }
                 else
                 {
@@ -641,6 +679,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             else
             {
                 PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
+                EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), FALSE);
             }
 
             // Mitigation policies
@@ -656,13 +695,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             // Image type
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
-
-            if (PhEnableThemeSupport)
-            {
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
-            }
-
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
+
+            // Focus
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS));
         }
         break;
     case WM_DESTROY:
@@ -677,6 +714,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_NCDESTROY:
         {
+            PhClearReference(&context->StartedText);
             PhFree(context);
         }
         break;
@@ -710,6 +748,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTCONSOLE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MITIGATION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
@@ -815,6 +854,22 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PPH_PROCESS_ITEM parentProcessItem;
 
                     if (parentProcessItem = PhReferenceProcessItem(processItem->ParentProcessId))
+                    {
+                        SystemInformer_ShowProcessProperties(parentProcessItem);
+                        PhDereferenceObject(parentProcessItem);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_NOT_FOUND, 0);
+                    }
+                }
+                break;
+            case IDC_VIEWPARENTCONSOLE:
+                {
+                    PPH_PROCESS_ITEM parentProcessItem;
+                    HANDLE consoleHostProcessId = (HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3);
+
+                    if (parentProcessItem = PhReferenceProcessItem(consoleHostProcessId))
                     {
                         SystemInformer_ShowProcessProperties(parentProcessItem);
                         PhDereferenceObject(parentProcessItem);
@@ -1073,7 +1128,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                             startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                            PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                            PhpSetStartedText(context, PhaFormatString(
                                 L"%s ago (%s)",
                                 PhGetString(startTimeRelativeString),
                                 PhGetString(startTimeString)
@@ -1081,12 +1136,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         }
                         else
                         {
-                            PhSetWindowText(context->StartedLabelHandle, L"\u221E");
+                            PhpSetStartedText(context, L"\u221E");
                         }
                     }
                     else
                     {
-                        PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                        PhpSetStartedText(context, L"N/A");
                     }
                 }
                 break;

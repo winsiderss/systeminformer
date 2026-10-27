@@ -183,6 +183,16 @@ with the modulo reduction.
 #define GHASH_H_POWER( ghashTable, ind )  ( (ghashTable)[  SYMCRYPT_GHASH_PCLMULQDQ_HPOWERS - (ind)].m128i )
 #define GHASH_Hx_POWER( ghashTable, ind ) ( (ghashTable)[2*SYMCRYPT_GHASH_PCLMULQDQ_HPOWERS - (ind)].m128i )
 
+// Macros for performing XOR with _mm_ternarylogic_epi64
+// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_ternarylogic_epi64
+// Any logical operation can by specified by the following steps:
+// 1. Make a logical expression using (1) (2) (3).
+// 2. Assign (1) = F0, (2) = CC, (3) = AA, and calculate the expression to get a 8-bit result.
+// 3. Specify the result of 2 for imm8.
+// For XOR, F0 ^ CC ^ AA = 0x96.
+#define TERNARY_XOR_128( a, b, c ) _mm_ternarylogic_epi64( (a), (b), (c), 0x96 )
+#define TERNARY_XOR_512( a, b, c ) _mm512_ternarylogic_epi64( (a), (b), (c), 0x96 )
+
 //
 // We define a few macros
 //
@@ -260,6 +270,38 @@ with the modulo reduction.
     resl = _mm256_xor_si256( resl, _tmpl ); \
     resm = _mm256_xor_si256( resm, _tmpm ); \
     resh = _mm256_xor_si256( resh, _tmph ); \
+};
+#define CLMUL_ACC_3_Zmm( opA, opB, opBx, resl, resm, resh ) \
+{\
+    __m512i _tmpl, _tmpm, _tmph;\
+    __m512i _tmpA; \
+    _tmpl = _mm512_clmulepi64_epi128( opA, opB, 0x00 ); \
+    _tmph = _mm512_clmulepi64_epi128( opA, opB, 0x11 ); \
+    _tmpA = _mm512_xor_si512( opA, _mm512_bsrli_epi128( opA, 8 ) ); \
+    _tmpm = _mm512_clmulepi64_epi128( _tmpA, opBx, 0x00 ); \
+    resl = _mm512_xor_si512( resl, _tmpl ); \
+    resm = _mm512_xor_si512( resm, _tmpm ); \
+    resh = _mm512_xor_si512( resh, _tmph ); \
+};
+//
+// Paired multiply-accumulate: two CLMUL_ACC_3_Zmm operations with vpternlogq
+// for the final 3-way XOR (resl ^= tmpl1 ^ tmpl2), saving one instruction per accumulator.
+//
+#define CLMUL_2ACC_3_Zmm( opA1, opB1, opBx1, opA2, opB2, opBx2, resl, resm, resh ) \
+{\
+    __m512i _tmpl1, _tmpm1, _tmph1, _tmpA1; \
+    __m512i _tmpl2, _tmpm2, _tmph2, _tmpA2; \
+    _tmpl1 = _mm512_clmulepi64_epi128( opA1, opB1, 0x00 ); \
+    _tmph1 = _mm512_clmulepi64_epi128( opA1, opB1, 0x11 ); \
+    _tmpA1 = _mm512_xor_si512( opA1, _mm512_bsrli_epi128( opA1, 8 ) ); \
+    _tmpm1 = _mm512_clmulepi64_epi128( _tmpA1, opBx1, 0x00 ); \
+    _tmpl2 = _mm512_clmulepi64_epi128( opA2, opB2, 0x00 ); \
+    _tmph2 = _mm512_clmulepi64_epi128( opA2, opB2, 0x11 ); \
+    _tmpA2 = _mm512_xor_si512( opA2, _mm512_bsrli_epi128( opA2, 8 ) ); \
+    _tmpm2 = _mm512_clmulepi64_epi128( _tmpA2, opBx2, 0x00 ); \
+    resl = TERNARY_XOR_512( resl, _tmpl1, _tmpl2 ); \
+    resm = TERNARY_XOR_512( resm, _tmpm1, _tmpm2 ); \
+    resh = TERNARY_XOR_512( resh, _tmph1, _tmph2 ); \
 };
 
 

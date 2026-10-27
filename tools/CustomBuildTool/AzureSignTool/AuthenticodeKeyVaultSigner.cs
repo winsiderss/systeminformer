@@ -129,7 +129,7 @@ namespace CustomBuildTool
 
             if (this.TimeStampConfiguration.Type.HasValue)
             {
-                if (string.IsNullOrEmpty(this.TimeStampConfiguration.Url))
+                if (string.IsNullOrWhiteSpace(this.TimeStampConfiguration.Url))
                 {
                     throw new InvalidOperationException("TimeStampConfiguration.Url is required when Type is specified.");
                 }
@@ -191,7 +191,7 @@ namespace CustomBuildTool
             ReadOnlySpan<char> FileName,
             ReadOnlySpan<char> Description = default,
             ReadOnlySpan<char> DescriptionUrl = default,
-            bool PageHashing = false
+            bool PageHashing = true
             )
         {
             if (this.InstanceDisposed)
@@ -390,7 +390,7 @@ namespace CustomBuildTool
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        private void Dispose(bool Disposing)
         {
             if (this.InstanceDisposed)
             {
@@ -423,7 +423,7 @@ namespace CustomBuildTool
                 this.InstanceHandle = default;
             }
 
-            if (disposing)
+            if (Disposing)
             {
                 if (this.CertificateChain != null)
                 {
@@ -475,7 +475,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Program.PrintErrorMessage(ex);
                 return HRESULT.E_FAIL;
             }
             finally
@@ -585,7 +585,7 @@ namespace CustomBuildTool
         //    }
         //}
 
-        internal static ALG_ID HashAlgorithmToAlgId(HashAlgorithmName hashAlgorithmName)
+        private static ALG_ID HashAlgorithmToAlgId(HashAlgorithmName hashAlgorithmName)
         {
             return hashAlgorithmName.Name switch
             {
@@ -597,7 +597,7 @@ namespace CustomBuildTool
             };
         }
 
-        internal static ReadOnlySpan<byte> HashAlgorithmToOidAsciiTerminated(HashAlgorithmName hashAlgorithmName)
+        private static ReadOnlySpan<byte> HashAlgorithmToOidAsciiTerminated(HashAlgorithmName hashAlgorithmName)
         {
             return hashAlgorithmName.Name switch
             {
@@ -621,7 +621,7 @@ namespace CustomBuildTool
             };
         }
 
-        internal static bool IsAppxFile(ReadOnlySpan<char> FileName)
+        private static bool IsAppxFile(ReadOnlySpan<char> FileName)
         {
             if (FileName.EndsWith(".appx", StringComparison.OrdinalIgnoreCase))
                 return true;

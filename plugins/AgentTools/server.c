@@ -1,0 +1,1238 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s   2026
+ *
+ */
+
+#include "agenttools.h"
+
+static PPH_OBJECT_TYPE AtpConnectionType = NULL;
+static LIST_ENTRY AtpConnectionList;
+static PH_QUEUED_LOCK AtpConnectionListLock = PH_QUEUED_LOCK_INIT;
+static ULONG AtpNextConnectionId = 1;
+
+static PH_QUEUED_LOCK AtpServerLock = PH_QUEUED_LOCK_INIT;
+static AT_SERVER_STATE AtpServerState = AtServerStopped;
+static NTSTATUS AtpServerStatus = STATUS_SUCCESS;
+static BOOLEAN AtpServerElevated = FALSE;
+static LONG AtpServerStopping = 0;
+static HANDLE AtpListenerThreadHandle = NULL;
+static PPH_STRING AtpPipeName = NULL;
+static PSECURITY_DESCRIPTOR AtpPipeSecurityDescriptor = NULL;
+
+// S-1-15-2-1 ALL APPLICATION PACKAGES
+static const union
+{
+    struct
+    {
+        UCHAR Revision;
+        UCHAR SubAuthorityCount;
+        SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
+        ULONG SubAuthority[2];
+    };
+    SID Sid;
+} AtAllApplicationPackagesSid =
+{
+    SID_REVISION,
+    2,
+    SECURITY_APP_PACKAGE_AUTHORITY,
+    { SECURITY_APP_PACKAGE_BASE_RID, SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE }
+};
+
+static SID AtpMediumLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_MEDIUM_RID } };
+static SID AtpLowLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_LOW_RID } };
+
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
+VOID NTAPI AtpConnectionDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PAT_CONNECTION connection = Object;
+
+    AtMcpDeleteConnectionState(connection);
+
+    PhClearReference(&connection->UserName);
+    PhClearReference(&connection->LauncherImageName);
+    PhClearReference(&connection->BrokerImageName);
+    PhClearReference(&connection->StdioClientIds);
+    PhClearReference(&connection->LauncherSignerName);
+    PhClearReference(&connection->ClientName);
+    PhClearReference(&connection->ClientVersion);
+    PhClearReference(&connection->ProtocolVersion);
+    PhClearReference(&connection->InFlightId);
+
+    if (connection->ThreadHandle)
+        NtClose(connection->ThreadHandle);
+    if (connection->PipeHandle)
+        NtClose(connection->PipeHandle);
+}
+
+NTSTATUS AtpCreatePipeSecurityDescriptor(
+    _In_ BOOLEAN AllowSandboxedClients,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PH_TOKEN_USER tokenUser;
+    UCHAR logonSidBuffer[sizeof(TOKEN_GROUPS) + SECURITY_MAX_SID_SIZE];
+    PTOKEN_GROUPS logonSidGroups = (PTOKEN_GROUPS)logonSidBuffer;
+    PSID accessSid;
+    PSID labelSid;
+    ULONG daclLength;
+    ULONG saclLength;
+    ULONG allocationLength;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    PACL dacl;
+    PACL sacl;
+    SYSTEM_MANDATORY_LABEL_ACE* labelAce;
+    ULONG labelAceLength;
+
+    status = PhGetTokenUser(NtCurrentProcessToken(), &tokenUser);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    accessSid = tokenUser.User.Sid;
+
+    if (NT_SUCCESS(NtQueryInformationToken(
+        NtCurrentProcessToken(),
+        TokenLogonSid,
+        logonSidBuffer,
+        sizeof(logonSidBuffer),
+        &(ULONG){ 0 }
+        )) && logonSidGroups->GroupCount == 1)
+    {
+        accessSid = logonSidGroups->Groups[0].Sid;
+    }
+
+    labelSid = AllowSandboxedClients ? &AtpLowLabelSid : &AtpMediumLabelSid;
+
+    daclLength = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(accessSid);
+
+    if (AllowSandboxedClients)
+        daclLength += sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(&AtAllApplicationPackagesSid.Sid);
+
+    labelAceLength = FIELD_OFFSET(SYSTEM_MANDATORY_LABEL_ACE, SidStart) + PhLengthSid(labelSid);
+    saclLength = sizeof(ACL) + labelAceLength;
+
+    allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + daclLength + saclLength + labelAceLength;
+    securityDescriptor = PhAllocateZero(allocationLength);
+    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    sacl = PTR_ADD_OFFSET(dacl, daclLength);
+    labelAce = PTR_ADD_OFFSET(sacl, saclLength);
+
+    if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhCreateAcl(dacl, daclLength, ACL_REVISION)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_ALL_ACCESS, accessSid)))
+        goto CleanupExit;
+
+    if (AllowSandboxedClients)
+    {
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(
+            dacl,
+            ACL_REVISION,
+            FILE_GENERIC_READ | FILE_GENERIC_WRITE | SYNCHRONIZE,
+            &AtAllApplicationPackagesSid.Sid
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+
+    if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
+        goto CleanupExit;
+
+    // Explicit label rather than relying on the default.
+    labelAce->Header.AceType = SYSTEM_MANDATORY_LABEL_ACE_TYPE;
+    labelAce->Header.AceFlags = 0;
+    labelAce->Header.AceSize = (USHORT)labelAceLength;
+    labelAce->Mask = SYSTEM_MANDATORY_LABEL_NO_WRITE_UP;
+    memcpy(&labelAce->SidStart, labelSid, PhLengthSid(labelSid));
+
+    if (!NT_SUCCESS(status = PhCreateAcl(sacl, saclLength, ACL_REVISION)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhAddAce(sacl, ACL_REVISION, MAXULONG, labelAce, labelAceLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSetSaclSecurityDescriptor(securityDescriptor, TRUE, sacl, FALSE)))
+        goto CleanupExit;
+
+    assert(PhValidSecurityDescriptor(securityDescriptor));
+
+CleanupExit:
+    if (NT_SUCCESS(status))
+        *SecurityDescriptor = securityDescriptor;
+    else
+        PhFree(securityDescriptor);
+
+    return status;
+}
+
+PPH_STRING AtpFormatPipeName(
+    _In_ BOOLEAN Elevated
+    )
+{
+    static CONST PH_STRINGREF protectedPrefix = PH_STRINGREF_INIT(SIMCP_PIPE_PROTECTED_PREFIX);
+    static CONST PH_STRINGREF namePrefix = PH_STRINGREF_INIT(SIMCP_PIPE_NAME_PREFIX);
+    PPH_STRING sessionName;
+    PPH_STRING pipeName;
+    PH_FORMAT format[1];
+
+    PhInitFormatU(&format[0], NtCurrentPeb()->SessionId);
+    sessionName = PhFormat(format, RTL_NUMBER_OF(format), 16);
+
+    if (Elevated)
+        pipeName = PhConcatStringRef3(&protectedPrefix, &namePrefix, &sessionName->sr);
+    else
+        pipeName = PhConcatStringRef2(&namePrefix, &sessionName->sr);
+
+    PhDereferenceObject(sessionName);
+    return pipeName;
+}
+
+NTSTATUS AtpCreatePipeInstance(
+    _In_ BOOLEAN FirstInstance,
+    _Out_ PHANDLE PipeHandle
+    )
+{
+    return PhCreateNamedPipeEx(
+        PipeHandle,
+        &AtpPipeName->sr,
+        NULL,
+        AtpPipeSecurityDescriptor,
+        FirstInstance ? FILE_CREATE : FILE_OPEN_IF,
+        FILE_PIPE_BYTE_STREAM_TYPE,
+        FILE_PIPE_UNLIMITED_INSTANCES
+        );
+}
+
+NTSTATUS AtpReadExact(
+    _In_ PAT_CONNECTION Connection,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    ULONG offset = 0;
+
+    while (offset < Length)
+    {
+        ULONG bytesRead = 0;
+
+        if (AtConnectionIsClosing(Connection))
+            return STATUS_CANCELLED;
+
+        status = PhReadFile(Connection->PipeHandle, PTR_ADD_OFFSET(Buffer, offset), Length - offset, NULL, &bytesRead);
+
+        if (!NT_SUCCESS(status))
+            return status;
+        if (bytesRead == 0)
+            return STATUS_PIPE_BROKEN;
+
+        offset += bytesRead;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS AtConnectionRead(
+    _In_ PAT_CONNECTION Connection,
+    _Out_ PSIMCP_HEADER Header,
+    _Outptr_result_maybenull_ PVOID* Payload
+    )
+{
+    NTSTATUS status;
+    PVOID payload = NULL;
+
+    status = AtpReadExact(Connection, Header, sizeof(SIMCP_HEADER));
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Header->Magic != SIMCP_MAGIC ||
+        Header->Version != SIMCP_VERSION ||
+        Header->Reserved != 0 ||
+        Header->PayloadLength > SIMCP_MAX_PAYLOAD_LENGTH)
+    {
+        return STATUS_INVALID_NETWORK_RESPONSE;
+    }
+
+    if (Header->PayloadLength)
+    {
+        payload = PhAllocate(Header->PayloadLength);
+        status = AtpReadExact(Connection, payload, Header->PayloadLength);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhFree(payload);
+            return status;
+        }
+    }
+
+    *Payload = payload;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS AtConnectionPeek(
+    _In_ PAT_CONNECTION Connection,
+    _Out_ PBOOLEAN MessageAvailable
+    )
+{
+    NTSTATUS status;
+    ULONG available = 0;
+
+    status = PhPeekNamedPipe(Connection->PipeHandle, NULL, 0, NULL, &available, NULL);
+
+    if (NT_SUCCESS(status))
+        *MessageAvailable = available >= sizeof(SIMCP_HEADER);
+
+    return status;
+}
+
+NTSTATUS AtConnectionSend(
+    _In_ PAT_CONNECTION Connection,
+    _In_ USHORT Type,
+    _In_reads_bytes_opt_(PayloadLength) PVOID Payload,
+    _In_ ULONG PayloadLength
+    )
+{
+    NTSTATUS status;
+    SIMCP_HEADER header;
+
+    memset(&header, 0, sizeof(SIMCP_HEADER));
+    header.Magic = SIMCP_MAGIC;
+    header.Version = SIMCP_VERSION;
+    header.Type = Type;
+    header.PayloadLength = PayloadLength;
+
+    // All pipe I/O happens on the connection thread: the handle is synchronous, so a write from
+    // another thread would block behind a pending read.
+    assert(NtCurrentThreadId() == Connection->ThreadId);
+
+    status = PhWriteFile(Connection->PipeHandle, &header, sizeof(SIMCP_HEADER), NULL, NULL);
+
+    if (NT_SUCCESS(status) && Payload && PayloadLength)
+    {
+        status = PhWriteFile(Connection->PipeHandle, Payload, PayloadLength, NULL, NULL);
+    }
+
+    return status;
+}
+
+VOID AtpSendClose(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    SIMCP_CLOSE close;
+
+    assert(NtCurrentThreadId() == Connection->ThreadId);
+
+    memset(&close, 0, sizeof(SIMCP_CLOSE));
+    close.Reason = (ULONG)ReadAcquire(&Connection->Closing);
+    close.Detail = Connection->CloseDetail;
+
+    AtConnectionSend(Connection, SimcpClose, &close, sizeof(SIMCP_CLOSE));
+    Connection->CloseSent = TRUE;
+}
+
+VOID AtConnectionClose(
+    _In_ PAT_CONNECTION Connection,
+    _In_ SIMCP_CLOSE_REASON Reason,
+    _In_ ULONG Detail
+    )
+{
+    IO_STATUS_BLOCK isb;
+
+    // The reason travels in the flag itself, so the first closer's reason is the one sent and a
+    // concurrent loser cannot overwrite it.
+    assert(Reason != 0);
+
+    if (InterlockedCompareExchange(&Connection->Closing, (LONG)Reason, 0) != 0)
+        return;
+
+    Connection->CloseDetail = Detail;
+
+    if (NtCurrentThreadId() == Connection->ThreadId)
+    {
+        AtpSendClose(Connection);
+    }
+    else if (Connection->ThreadHandle)
+    {
+        NtCancelSynchronousIoFile(Connection->ThreadHandle, NULL, &isb);
+    }
+}
+
+BOOLEAN AtpRegisterConnection(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    BOOLEAN registered = FALSE;
+
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
+
+    if (!ReadAcquire(&AtpServerStopping))
+    {
+        InsertTailList(&AtpConnectionList, &Connection->ListEntry);
+        Connection->Registered = TRUE;
+        registered = TRUE;
+    }
+
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
+
+    return registered;
+}
+
+VOID AtpUnregisterConnection(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
+
+    if (Connection->Registered)
+    {
+        RemoveEntryList(&Connection->ListEntry);
+        Connection->Registered = FALSE;
+    }
+
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
+}
+
+SIMCP_HELLO_STATUS AtpValidateBrokerImage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PPH_STRING *ImageName
+    )
+{
+    static CONST PH_STRINGREF brokerFileName = PH_STRINGREF_INIT(SIMCP_BROKER_FILE_NAME);
+    SIMCP_HELLO_STATUS result = SimcpHelloRejectedInternal;
+    PPH_STRING remoteFileName = NULL;
+    PPH_STRING expectedFileName = NULL;
+
+    if (!NT_SUCCESS(PhGetProcessImageFileName(ProcessHandle, &remoteFileName)))
+        goto CleanupExit;
+
+    if (!(expectedFileName = PhGetApplicationDirectoryFileName(&brokerFileName, TRUE)))
+        goto CleanupExit;
+
+    if (!PhEqualString(remoteFileName, expectedFileName, FALSE))
+    {
+        result = SimcpHelloRejectedImage;
+        goto CleanupExit;
+    }
+
+    if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, TRUE))
+    {
+        result = SimcpHelloRejectedSignature;
+        goto CleanupExit;
+    }
+
+    result = SimcpHelloAccepted;
+
+    // The one image in the exchange that was checked rather than claimed.
+    if (ImageName)
+    {
+        *ImageName = PhReferenceObject(remoteFileName);
+    }
+
+CleanupExit:
+    PhClearReference(&expectedFileName);
+    PhClearReference(&remoteFileName);
+
+    return result;
+}
+
+VOID AtpResolveStdioClient(
+    _Inout_ PAT_CONNECTION Connection
+    )
+{
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+    DEVICE_TYPE deviceType;
+    HANDLE processHandle;
+    HANDLE localHandle = NULL;
+    PVOID parameters;
+    HANDLE standardInput;
+    ULONG i;
+
+    Connection->StdioOrigin = AtStdioUnverified;
+
+    if (!Connection->BrokerProcessId)
+        return;
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE,
+        UlongToHandle(Connection->BrokerProcessId)
+        )))
+    {
+        return;
+    }
+
+    if (!NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) || !basicInfo.PebBaseAddress)
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhReadVirtualMemory(
+        processHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+        &parameters,
+        sizeof(PVOID),
+        NULL
+        )) || !parameters)
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhReadVirtualMemory(
+        processHandle,
+        PTR_ADD_OFFSET(parameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, StandardInput)),
+        &standardInput,
+        sizeof(HANDLE),
+        NULL
+        )) || !standardInput)
+    {
+        goto CleanupExit;
+    }
+
+    // The handle value is read out of the broker's own parameters rather than taken from anything it sent.
+    if (!NT_SUCCESS(NtDuplicateObject(
+        processHandle,
+        standardInput,
+        NtCurrentProcess(),
+        &localHandle,
+        0,
+        0,
+        DUPLICATE_SAME_ACCESS
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // A console is not a client. The device type answers this without asking the object for its name,
+    // which on a pipe is the query that can block.
+    if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), localHandle, &deviceType)) &&
+        deviceType != FILE_DEVICE_NAMED_PIPE)
+    {
+        Connection->StdioOrigin = AtStdioConsole;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhGetProcessIdsUsingFile(localHandle, &processIds)))
+        goto CleanupExit;
+
+    if (processIds->NumberOfProcessIdsInList != 0)
+    {
+        Connection->StdioClientIds = PhCreateList(processIds->NumberOfProcessIdsInList);
+
+        for (i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+            PhAddItemList(Connection->StdioClientIds, processIds->ProcessIdList[i]);
+
+        Connection->StdioOrigin = AtStdioResolved;
+    }
+
+    PhFree(processIds);
+
+CleanupExit:
+    if (localHandle)
+        NtClose(localHandle);
+
+    NtClose(processHandle);
+}
+
+VOID AtpResolveLauncher(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PSIMCP_HELLO Hello
+    )
+{
+    HANDLE processHandle;
+    KERNEL_USER_TIMES times;
+
+    Connection->LauncherProcessId = Hello->LauncherProcessId;
+
+    if (!Hello->LauncherProcessId)
+        return;
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        UlongToHandle(Hello->LauncherProcessId)
+        )))
+    {
+        return;
+    }
+
+    if (NT_SUCCESS(NtQueryInformationProcess(processHandle, ProcessTimes, &times, sizeof(times), NULL)) &&
+        times.CreateTime.QuadPart == Hello->LauncherStartTime.QuadPart)
+    {
+        PPH_STRING fileName;
+
+        // Neutralised while it is still private: the options page takes a reference to this the
+        // moment the connection is visible, and a shared string is not ours to edit.
+        if (NT_SUCCESS(PhGetProcessImageFileNameWin32(processHandle, &fileName)))
+        {
+            AtSanitizeDisplayString(fileName);
+            Connection->LauncherImageName = fileName;
+        }
+    }
+
+    NtClose(processHandle);
+}
+
+SIMCP_HELLO_STATUS AtpAuthenticateClient(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PSIMCP_HELLO Hello
+    )
+{
+    NTSTATUS status;
+    SIMCP_HELLO_STATUS result = SimcpHelloRejectedInternal;
+    HANDLE tokenHandle = NULL;
+    HANDLE processHandle = NULL;
+    PPH_STRING brokerImageName = NULL;
+    PPH_STRING userName;
+    HANDLE clientProcessId;
+    PH_TOKEN_USER clientUser;
+    PH_TOKEN_USER ownUser;
+    ULONG sessionId;
+    ULONG isAppContainer;
+    PWSTR integrityString = NULL;
+
+    if (Hello->BrokerVersion != SIMCP_VERSION)
+        return SimcpHelloRejectedVersion;
+
+    // Capture the token, then revert. The broker checks below come from the pipe's client process.
+
+    status = PhImpersonateClientOfNamedPipe(Connection->PipeHandle);
+
+    if (!NT_SUCCESS(status))
+        return SimcpHelloRejectedInternal;
+
+    status = NtOpenThreadToken(NtCurrentThread(), TOKEN_QUERY, TRUE, &tokenHandle);
+    PhRevertImpersonationToken(NtCurrentThread());
+
+    if (!NT_SUCCESS(status))
+        return SimcpHelloRejectedInternal;
+
+    // Same user as System Informer.
+
+    if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &clientUser)) ||
+        !NT_SUCCESS(PhGetTokenUser(NtCurrentProcessToken(), &ownUser)))
+    {
+        goto CleanupExit;
+    }
+
+    if (!PhEqualSid(clientUser.User.Sid, ownUser.User.Sid))
+    {
+        result = SimcpHelloRejectedUser;
+        goto CleanupExit;
+    }
+
+    // Same session as System Informer. Pipe names are global; the session in the name is
+    // a convention, not a boundary.
+
+    if (!NT_SUCCESS(NtQueryInformationToken(tokenHandle, TokenSessionId, &sessionId, sizeof(sessionId), &(ULONG){ 0 })) ||
+        sessionId != NtCurrentPeb()->SessionId)
+    {
+        result = SimcpHelloRejectedUser;
+        goto CleanupExit;
+    }
+
+    // Integrity level and AppContainer.
+
+    if (!NT_SUCCESS(PhGetTokenIntegrityLevelRID(tokenHandle, &Connection->IntegrityRid, &integrityString)))
+        goto CleanupExit;
+
+    Connection->IntegrityString = integrityString;
+
+    if (!NT_SUCCESS(NtQueryInformationToken(tokenHandle, TokenIsAppContainer, &isAppContainer, sizeof(isAppContainer), &(ULONG){ 0 })))
+        isAppContainer = 0;
+
+    Connection->IsAppContainer = !!isAppContainer;
+
+    if (!PhGetIntegerSetting(SETTING_NAME_ALLOW_SANDBOXED_CLIENTS))
+    {
+        if (Connection->IntegrityRid < SECURITY_MANDATORY_MEDIUM_RID)
+        {
+            result = SimcpHelloRejectedIntegrity;
+            goto CleanupExit;
+        }
+
+        if (Connection->IsAppContainer)
+        {
+            result = SimcpHelloRejectedAppContainer;
+            goto CleanupExit;
+        }
+    }
+
+    // The connecting binary is our own broker.
+
+    if (!NT_SUCCESS(PhGetNamedPipeClientProcessId(Connection->PipeHandle, &clientProcessId)))
+        goto CleanupExit;
+
+    if (HandleToUlong(clientProcessId) != Hello->BrokerProcessId)
+    {
+        result = SimcpHelloRejectedProcessId;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, clientProcessId)))
+        goto CleanupExit;
+
+    result = AtpValidateBrokerImage(processHandle, &brokerImageName);
+
+    if (result != SimcpHelloAccepted)
+        goto CleanupExit;
+
+    // Both are neutralised before they are published: the options page takes a reference as soon
+    // as the connection is visible, and a shared string is not ours to edit.
+    AtSanitizeDisplayString(brokerImageName);
+    userName = PhGetSidFullName(clientUser.User.Sid, TRUE, NULL);
+    AtSanitizeDisplayString(userName);
+
+    Connection->BrokerProcessId = Hello->BrokerProcessId;
+    Connection->BrokerImageName = brokerImageName;
+    Connection->UserName = userName;
+
+    AtpResolveLauncher(Connection, Hello);
+    AtpResolveStdioClient(Connection);
+
+    if (AtpLauncherContradictsStdio(Connection))
+    {
+        result = SimcpHelloRejectedLauncher;
+        AtAudit(Connection, &AtActionInfo[AtActionConnect], NULL,
+            L"refused (the named launcher does not hold the broker's standard handles)");
+    }
+
+CleanupExit:
+    if (processHandle)
+        NtClose(processHandle);
+    if (tokenHandle)
+        NtClose(tokenHandle);
+
+    return result;
+}
+
+BOOLEAN AtpHandshake(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    NTSTATUS status;
+    SIMCP_HEADER header;
+    PVOID payload = NULL;
+    SIMCP_HELLO hello;
+    SIMCP_HELLO_ACK helloAck;
+    SIMCP_HELLO_STATUS helloStatus;
+
+    status = AtConnectionRead(Connection, &header, &payload);
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    if (header.Type != SimcpHello || !payload || header.PayloadLength < sizeof(SIMCP_HELLO))
+    {
+        if (payload)
+            PhFree(payload);
+
+        AtConnectionClose(Connection, SimcpCloseProtocolViolation, 0);
+        return FALSE;
+    }
+
+    memcpy(&hello, payload, sizeof(SIMCP_HELLO));
+    PhFree(payload);
+
+    helloStatus = AtpAuthenticateClient(Connection, &hello);
+
+    if (helloStatus != SimcpHelloAccepted)
+    {
+        AtConnectionClose(Connection, SimcpCloseRejected, helloStatus);
+        return FALSE;
+    }
+
+    memset(&helloAck, 0, sizeof(SIMCP_HELLO_ACK));
+    helloAck.Status = SimcpHelloAccepted;
+    helloAck.ConnectionId = Connection->ConnectionId;
+    PhGetBuildVersionNumbers(
+        &helloAck.ServerVersion[0],
+        &helloAck.ServerVersion[1],
+        &helloAck.ServerVersion[2],
+        &helloAck.ServerVersion[3]
+        );
+
+    status = AtConnectionSend(Connection, SimcpHelloAck, &helloAck, sizeof(SIMCP_HELLO_ACK));
+
+    return NT_SUCCESS(status);
+}
+
+ULONG AtpExpireUnauthenticated(
+    VOID
+    )
+{
+    PPH_LIST connections;
+    ULONG64 now;
+    ULONG pending = 0;
+    ULONG i;
+
+    connections = AtServerSnapshotConnections();
+    now = PhQueryWaitTime();
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        if (ReadAcquire(&connection->Authenticated))
+            continue;
+
+        if (now - connection->ConnectTick > UInt32x32To64(AT_HANDSHAKE_TIMEOUT_MS, PH_TIMEOUT_MS))
+            AtConnectionClose(connection, SimcpCloseRejected, SimcpHelloRejectedInternal);
+        else
+            pending++;
+    }
+
+    for (i = 0; i < connections->Count; i++)
+        PhDereferenceObject(connections->Items[i]);
+
+    PhDereferenceObject(connections);
+
+    return pending;
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI AtpConnectionThread(
+    _In_ PVOID Parameter
+    )
+{
+    PAT_CONNECTION connection = Parameter;
+    PH_AUTO_POOL autoPool;
+
+    connection->ThreadId = NtCurrentThreadId();
+
+    PhInitializeAutoPool(&autoPool);
+
+    PhWaitForEvent(&connection->StartedEvent, NULL);
+
+    if (AtpRegisterConnection(connection) && AtpHandshake(connection))
+    {
+        WriteRelease(&connection->Authenticated, 1);
+
+        AtConsentRequestConnection(connection);
+
+        while (!AtConnectionIsClosing(connection))
+        {
+            NTSTATUS status;
+            SIMCP_HEADER header;
+            PVOID payload;
+
+            status = AtConnectionRead(connection, &header, &payload);
+
+            if (!NT_SUCCESS(status))
+            {
+                if (status == STATUS_INVALID_NETWORK_RESPONSE)
+                    AtConnectionClose(connection, SimcpCloseProtocolViolation, 0);
+                else if (status == STATUS_CANCELLED && AtConnectionIsClosing(connection))
+                    AtpSendClose(connection); // requested by another thread
+
+                break;
+            }
+
+            if (header.Type == SimcpMcp)
+            {
+                if (payload)
+                    AtMcpHandleMessage(connection, payload, header.PayloadLength);
+            }
+            else
+            {
+                if (payload)
+                    PhFree(payload);
+
+                AtConnectionClose(connection, SimcpCloseProtocolViolation, 0);
+                break;
+            }
+
+            if (payload)
+                PhFree(payload);
+
+            PhDrainAutoPool(&autoPool);
+        }
+
+        // A close requested by another thread while a message was being handled. One this
+        // thread issued itself (a protocol violation seen while pumping) already sent the frame.
+        if (AtConnectionIsClosing(connection) && !connection->CloseSent)
+            AtpSendClose(connection);
+    }
+
+    AtConsentReleaseConnection(connection);
+    AtpUnregisterConnection(connection);
+
+    // Disconnecting discards unread data; let the broker read the Close reason first.
+    if (AtConnectionIsClosing(connection))
+    {
+        IO_STATUS_BLOCK isb;
+
+        NtFlushBuffersFile(connection->PipeHandle, &isb);
+    }
+
+    PhDisconnectNamedPipe(connection->PipeHandle);
+
+    PhDeleteAutoPool(&autoPool);
+    PhDereferenceObject(connection);
+
+    return STATUS_SUCCESS;
+}
+
+PAT_CONNECTION AtpCreateConnection(
+    _In_ HANDLE PipeHandle
+    )
+{
+    PAT_CONNECTION connection;
+
+    connection = PhCreateObject(sizeof(AT_CONNECTION), AtpConnectionType);
+    memset(connection, 0, sizeof(AT_CONNECTION));
+    connection->PipeHandle = PipeHandle;
+    connection->ConnectionId = (ULONG)InterlockedIncrement((PLONG)&AtpNextConnectionId) - 1;
+    PhInitializeQueuedLock(&connection->Lock);
+    PhInitializeEvent(&connection->StartedEvent);
+    InitializeListHead(&connection->DeferredRequests);
+    PhQuerySystemTime(&connection->ConnectTime);
+    connection->ConnectTick = PhQueryWaitTime();
+
+    return connection;
+}
+
+VOID AtpListenerFailed(
+    _In_ NTSTATUS Status
+    )
+{
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
+
+    // A stop in progress already published Stopped; this thread is about to be joined.
+    if (!ReadAcquire(&AtpServerStopping))
+    {
+        AtpServerState = AtServerFailed;
+        AtpServerStatus = Status;
+    }
+
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI AtpListenerThread(
+    _In_ PVOID Parameter
+    )
+{
+    HANDLE pipeHandle = Parameter;
+
+    while (TRUE)
+    {
+        NTSTATUS status;
+        PAT_CONNECTION connection;
+
+        status = PhListenNamedPipe(pipeHandle);
+
+        if (ReadAcquire(&AtpServerStopping))
+        {
+            NtClose(pipeHandle);
+            break;
+        }
+
+        if (!NT_SUCCESS(status) && status != STATUS_PIPE_CONNECTED)
+        {
+            NtClose(pipeHandle);
+            PhDelayExecution(250);
+
+            if (!NT_SUCCESS(status = AtpCreatePipeInstance(FALSE, &pipeHandle)))
+            {
+                AtpListenerFailed(status);
+                break;
+            }
+
+            continue;
+        }
+
+        // A client that connects and never sends Hello would otherwise hold a thread and a pipe
+        // instance forever, so stale ones are dropped and the rest are capped.
+        if (AtpExpireUnauthenticated() >= AT_MAX_UNAUTHENTICATED)
+        {
+            PhDisconnectNamedPipe(pipeHandle);
+            NtClose(pipeHandle);
+
+            if (!NT_SUCCESS(status = AtpCreatePipeInstance(FALSE, &pipeHandle)))
+            {
+                AtpListenerFailed(status);
+                break;
+            }
+
+            continue;
+        }
+
+        connection = AtpCreateConnection(pipeHandle);
+
+        // The thread owns the reference created above; this one covers storing the thread
+        // handle after the thread has already started (it may even have finished).
+        PhReferenceObject(connection);
+
+        if (!NT_SUCCESS(PhCreateThreadEx(&connection->ThreadHandle, AtpConnectionThread, connection)))
+        {
+            PhDisconnectNamedPipe(pipeHandle);
+            PhDereferenceObject(connection);
+        }
+        else
+        {
+            // The thread waits for this. It must not reach the connection list before the handle
+            // that AtServerStop cancels and joins it by is stored.
+            PhSetEvent(&connection->StartedEvent);
+        }
+
+        PhDereferenceObject(connection);
+
+        if (!NT_SUCCESS(status = AtpCreatePipeInstance(FALSE, &pipeHandle)))
+        {
+            AtpListenerFailed(status);
+            break;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS AtServerStart(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HANDLE pipeHandle;
+    BOOLEAN elevated;
+
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
+
+    if (AtpServerState == AtServerRunning)
+    {
+        PhReleaseQueuedLockExclusive(&AtpServerLock);
+        return STATUS_SUCCESS;
+    }
+
+    if (!AtpConnectionType)
+    {
+        AtpConnectionType = PhCreateObjectType(L"AgentToolsConnection", 0, AtpConnectionDeleteProcedure);
+        InitializeListHead(&AtpConnectionList);
+    }
+
+    elevated = !!PhGetOwnTokenAttributes().Elevated;
+
+    PhClearReference(&AtpPipeName);
+    AtpPipeName = AtpFormatPipeName(elevated);
+
+    if (AtpPipeSecurityDescriptor)
+    {
+        PhFree(AtpPipeSecurityDescriptor);
+        AtpPipeSecurityDescriptor = NULL;
+    }
+
+    status = AtpCreatePipeSecurityDescriptor(
+        !!PhGetIntegerSetting(SETTING_NAME_ALLOW_SANDBOXED_CLIENTS),
+        &AtpPipeSecurityDescriptor
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // FILE_CREATE: a second instance of System Informer in this session, or a squatter, makes
+    // this fail and the options page says so.
+    status = AtpCreatePipeInstance(TRUE, &pipeHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    WriteRelease(&AtpServerStopping, 0);
+
+    status = PhCreateThreadEx(&AtpListenerThreadHandle, AtpListenerThread, pipeHandle);
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(pipeHandle);
+        goto CleanupExit;
+    }
+
+CleanupExit:
+    AtpServerStatus = status;
+    AtpServerElevated = elevated;
+
+    if (NT_SUCCESS(status))
+        AtpServerState = AtServerRunning;
+    else if (status == STATUS_OBJECT_NAME_COLLISION)
+        AtpServerState = AtServerFailedPipeExists;
+    else
+        AtpServerState = AtServerFailed;
+
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
+
+    return status;
+}
+
+VOID AtpCancelAndWaitForThread(
+    _In_ HANDLE ThreadHandle
+    )
+{
+    while (TRUE)
+    {
+        IO_STATUS_BLOCK isb;
+        MSG message;
+        ULONG wait;
+
+        NtCancelSynchronousIoFile(ThreadHandle, NULL, &isb);
+
+        // A consent dialog on the work queue sends messages to whatever thread owns the window it
+        // is raising over, which is the thread that stops the server from the options page. A plain
+        // wait would not answer them and both sides would hold.
+        wait = MsgWaitForMultipleObjects(1, &ThreadHandle, FALSE, 100, QS_SENDMESSAGE);
+
+        if (wait != WAIT_TIMEOUT && wait != WAIT_OBJECT_0 + 1)
+            break;
+
+        // Waking on QS_SENDMESSAGE does not deliver the message; PeekMessage does, and without it
+        // the flag stays set and this spins. PM_NOREMOVE leaves posted input queued, because this
+        // runs inside a dialog handler that must not be re-entered.
+        PeekMessage(&message, NULL, 0, 0, PM_NOREMOVE);
+    }
+}
+
+VOID AtServerStop(
+    _In_ SIMCP_CLOSE_REASON Reason
+    )
+{
+    PPH_LIST connections;
+    HANDLE listenerThreadHandle;
+    ULONG i;
+
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
+
+    if (AtpServerState == AtServerStopped)
+    {
+        PhReleaseQueuedLockExclusive(&AtpServerLock);
+        return;
+    }
+
+    WriteRelease(&AtpServerStopping, 1);
+
+    listenerThreadHandle = AtpListenerThreadHandle;
+    AtpListenerThreadHandle = NULL;
+    AtpServerState = AtServerStopped;
+    AtpServerStatus = STATUS_SUCCESS;
+
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
+
+    // Join the listener outside the lock: its failure path takes the lock to publish the failure.
+    if (listenerThreadHandle)
+    {
+        AtpCancelAndWaitForThread(listenerThreadHandle);
+        NtClose(listenerThreadHandle);
+    }
+
+    // Close every connection and wait for its thread; the plugin may be unloading.
+
+    connections = AtServerSnapshotConnections();
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        AtConnectionClose(connection, Reason, 0);
+    }
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        if (connection->ThreadHandle)
+            AtpCancelAndWaitForThread(connection->ThreadHandle);
+
+        PhDereferenceObject(connection);
+    }
+
+    PhDereferenceObject(connections);
+
+    // The next start rebuilds both from the settings in force then.
+    PhClearReference(&AtpPipeName);
+
+    if (AtpPipeSecurityDescriptor)
+    {
+        PhFree(AtpPipeSecurityDescriptor);
+        AtpPipeSecurityDescriptor = NULL;
+    }
+}
+
+AT_SERVER_STATE AtServerGetState(
+    _Out_opt_ PNTSTATUS Status,
+    _Out_opt_ PBOOLEAN Elevated
+    )
+{
+    AT_SERVER_STATE state;
+
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
+    state = AtpServerState;
+    if (Status) *Status = AtpServerStatus;
+    if (Elevated) *Elevated = AtpServerElevated;
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
+
+    return state;
+}
+
+PPH_LIST AtServerSnapshotConnections(
+    VOID
+    )
+{
+    PPH_LIST list;
+    PLIST_ENTRY entry;
+
+    list = PhCreateList(4);
+
+    if (!AtpConnectionType)
+        return list;
+
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
+
+    for (entry = AtpConnectionList.Flink; entry != &AtpConnectionList; entry = entry->Flink)
+    {
+        PAT_CONNECTION connection = CONTAINING_RECORD(entry, AT_CONNECTION, ListEntry);
+
+        PhReferenceObject(connection);
+        PhAddItemList(list, connection);
+    }
+
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
+
+    return list;
+}
+
+VOID AtServerDisconnect(
+    _In_ ULONG ConnectionId
+    )
+{
+    PPH_LIST connections;
+    ULONG i;
+
+    connections = AtServerSnapshotConnections();
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        if (connection->ConnectionId == ConnectionId)
+        {
+            AtConnectionClose(connection, SimcpCloseUserDisconnected, 0);
+
+            // Disconnecting voids every grant held by this session, per-action and class alike.
+            PhAcquireQueuedLockExclusive(&connection->Lock);
+            memset(connection->SessionPolicy, 0, sizeof(connection->SessionPolicy));
+            memset(connection->ClassPolicy, 0, sizeof(connection->ClassPolicy));
+            PhReleaseQueuedLockExclusive(&connection->Lock);
+        }
+
+        PhDereferenceObject(connection);
+    }
+
+    PhDereferenceObject(connections);
+}

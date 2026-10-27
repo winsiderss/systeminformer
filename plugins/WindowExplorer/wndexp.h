@@ -35,6 +35,8 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_NAME_WINDOW_ENUM_NONVISIBLE (PLUGIN_NAME L".EnumNonVisible")
 #define SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY (PLUGIN_NAME L".HighlightMessageOnly")
 #define SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY_COLOR (PLUGIN_NAME L".HighlightMessageOnlyColor")
+#define SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME (PLUGIN_NAME L".HighlightDefaultIme")
+#define SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME_COLOR (PLUGIN_NAME L".HighlightDefaultImeColor")
 #define SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED (PLUGIN_NAME L".HighlightLayered")
 #define SETTING_NAME_WINDOW_ENABLE_ICONS (PLUGIN_NAME L".EnableIcons")
 #define SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL (PLUGIN_NAME L".EnableIconsInternal")
@@ -82,6 +84,7 @@ typedef struct _WINDOWS_CONTEXT
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
     HWND HighlightingOverlayWindow;
+    BOOLEAN HighlightingOverlay;
 
     BOOLEAN TargetingWindow;
     BOOLEAN TargetingCurrentWindowDraw;
@@ -172,6 +175,7 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
     HWND HighlightingOverlayWindow;
+    BOOLEAN HighlightingOverlay;
 
     CLIENT_ID ClientId;
     PH_INITONCE SymbolProviderInitOnce;
@@ -230,7 +234,7 @@ BOOLEAN WepExecuteWindowCommand(
 
 typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA WINDOWCOMPOSITIONATTRIBDATA;
 
-typedef DWORD (WINAPI *PFN_GetWindowBand)(
+typedef ULONG (WINAPI *PFN_GetWindowBand)(
     _In_ HWND WindowHandle
     );
 
@@ -252,7 +256,7 @@ typedef BOOL (WINAPI *PFN_GetModernAppWindow)(
     _Out_ HWND *WindowHandle
     );
 
-BOOLEAN WeWindowEndTask(
+NTSTATUS WeWindowEndTask(
     _In_ HWND WindowHandle,
     _In_ BOOL Force
     );
@@ -321,6 +325,28 @@ VOID WeHideWindowHighlightOverlay(
     _Inout_ HWND *OverlayWindow
     );
 
+VOID WeStartWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay,
+    _In_ HWND TargetWindow
+    );
+
+BOOLEAN WeUpdateWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay
+    );
+
+VOID WeStopWindowHighlight(
+    _Inout_ HWND *OverlayWindow,
+    _Inout_ HWND *HighlightingWindow,
+    _Inout_ PULONG HighlightingWindowCount,
+    _Inout_ PBOOLEAN HighlightingOverlay
+    );
+
 NTSTATUS CallerIdentityIsHostedWindow(
     _In_ HWND WindowHandle,
     _Out_ PULONG IsHosted
@@ -375,6 +401,7 @@ typedef struct _WE_WINDOW_ITEM
 
     BOOLEAN WindowVisible;
     BOOLEAN WindowMessageOnly;
+    BOOLEAN WindowDefaultIme;
 
     USHORT WindowIndex;
     USHORT WindowGeneration;
@@ -423,6 +450,125 @@ VOID WeEnumWindowItems(
 _Function_class_(PH_PROVIDER_FUNCTION)
 VOID WeWindowProviderUpdate(
     _In_ PVOID Object
+    );
+
+// wndprop.c - Window Property Wrapper Functions
+
+typedef struct _WE_PROPERTY_INFO
+{
+    PPH_STRING Name;
+    HANDLE Value;
+    BOOLEAN IsAtom;
+    USHORT AtomValue;
+    PVOID TypeInfo; // For future extension
+} WE_PROPERTY_INFO, *PWE_PROPERTY_INFO;
+
+typedef struct _WE_PROPERTY_STATISTICS
+{
+    ULONG TotalProperties;
+    ULONG StringProperties;
+    ULONG AtomProperties;
+    ULONG UxthemeProperties;
+    SIZE_T TotalMemoryUsed;
+    ULONG MaxPropertyNameLength;
+} WE_PROPERTY_STATISTICS, *PWE_PROPERTY_STATISTICS;
+
+// Uxtheme atom values based on analysis
+// uxtheme.dll uses predefined atoms in the range 0xA910–0xA922
+// for theme state management window properties
+typedef enum _WE_UXTHEME_ATOM
+{
+    WeUxthemeAtomThemeWnd = 0xA910,    // Theme window object
+    WeUxthemeAtomThemeMetrics = 0xA914, // Theme metrics object
+    WeUxthemeAtomCShakeWnd = 0xA91A,   // CShakeWnd object
+    WeUxthemeAtomCThemeWnd = 0xA91C,   // CThemeWnd object
+    WeUxthemeAtomThemeProps = 0xA922,  // Theme properties object
+    // Additional uxtheme atoms in the 0xA910–0xA922 range
+    WeUxthemeAtomMin = 0xA910,
+    WeUxthemeAtomMax = 0xA922
+} WE_UXTHEME_ATOM;
+
+// Basic Property Access Wrappers
+HANDLE WeGetWindowProperty(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR PropertyNameOrAtom
+    );
+
+BOOL WeSetWindowProperty(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR PropertyNameOrAtom,
+    _In_ HANDLE PropertyValue
+    );
+
+HANDLE WeRemoveWindowProperty(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR PropertyNameOrAtom
+    );
+
+// Enhanced Property Information Functions
+NTSTATUS WeGetWindowPropertyInfo(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR PropertyNameOrAtom,
+    _Out_opt_ PPH_STRING *PropertyName,
+    _Out_opt_ PHANDLE PropertyValue,
+    _Out_opt_ PBOOLEAN IsAtom,
+    _Out_opt_ PUSHORT AtomValue
+    );
+
+// Property enumeration callback type
+typedef BOOL (CALLBACK *WE_PROPSENUMPROC)(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR PropertyName,
+    _In_ HANDLE PropertyValue,
+    _In_ BOOLEAN IsAtom,
+    _In_ USHORT AtomValue,
+    _In_opt_ PVOID Context
+    );
+
+NTSTATUS WeEnumWindowProperties(
+    _In_ HWND WindowHandle,
+    _In_ WE_PROPSENUMPROC Callback,
+    _In_opt_ PVOID Context
+    );
+
+// Uxtheme-specific Functions
+NTSTATUS WeGetUxthemeProperty(
+    _In_ HWND WindowHandle,
+    _In_ WE_UXTHEME_ATOM Atom,
+    _Out_opt_ PPH_STRING *ObjectType,
+    _Out_opt_ PHANDLE PropertyValue
+    );
+
+BOOLEAN WeWindowHasUxthemeProperties(
+    _In_ HWND WindowHandle
+    );
+
+// Property Analysis Functions
+NTSTATUS WeAnalyzeWindowProperties(
+    _In_ HWND WindowHandle,
+    _Out_ PPH_LIST *PropertyList,
+    _Out_opt_ PULONG UxthemePropertyCount,
+    _Out_opt_ PULONG StringPropertyCount,
+    _Out_opt_ PULONG AtomPropertyCount
+    );
+
+NTSTATUS WeGetWindowPropertyStatistics(
+    _In_ HWND WindowHandle,
+    _Out_ PWE_PROPERTY_STATISTICS Statistics
+    );
+
+// Utility Functions
+BOOLEAN WeIsPropertyAtom(
+    _In_ PCWSTR PropertyNameOrAtom,
+    _Out_opt_ PUSHORT AtomValue
+    );
+
+PPH_STRING WeFormatAtomString(
+    _In_ USHORT AtomValue
+    );
+
+PPH_STRING WeGetUxthemeAtomName(
+    _In_ WE_UXTHEME_ATOM Atom
     );
 
 #endif

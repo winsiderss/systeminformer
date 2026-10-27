@@ -213,7 +213,6 @@ VOID PhpAnalyzeWaitPassive(
         PhAppendStringBuilder2(&stringBuilder, L"Thread is waiting on system call: ");
         PhAppendStringBuilder(&stringBuilder, &lastSystemCallName->sr);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-        PhDereferenceObject(lastSystemCallName);
 
         if (
             PhEqualString2(lastSystemCallName, L"NtWaitForSingleObject", TRUE)
@@ -240,6 +239,22 @@ VOID PhpAnalyzeWaitPassive(
             PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for file I/O:\r\n");
             PhAppendStringBuilder(&stringBuilder, &string->sr);
         }
+        else if (
+            PhEqualString2(lastSystemCallName, L"NtUserDrainThreadCoreMessagingCompletions", TRUE) ||
+            PhEqualString2(lastSystemCallName, L"NtUserDrainThreadCoreMessagingCompletions2", TRUE)
+            )
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Thread is processing Win32k CoreMessaging queue completions.");
+        }
+        else if (
+            PhEqualString2(lastSystemCallName, L"NtRemoveIoCompletion", TRUE) ||
+            PhEqualString2(lastSystemCallName, L"NtRemoveIoCompletionEx", TRUE)
+            )
+        {
+            string = PhpaGetHandleString(processHandle, lastSystemCall.FirstArgument);
+            PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for an I/O completion port:\r\n");
+            PhAppendStringBuilder(&stringBuilder, &string->sr);
+        }
         else
         {
             string = PhpaGetSendMessageReceiver(ThreadId);
@@ -260,6 +275,8 @@ VOID PhpAnalyzeWaitPassive(
                 }
             }
         }
+
+        PhDereferenceObject(lastSystemCallName);
     }
     else
     {
@@ -324,6 +341,30 @@ CleanupExit:
     }
 }
 
+/**
+ * Checks whether a resolved symbol name refers to exactly the given function,
+ * i.e. the name is "Function" or "Function+offset".
+ *
+ * \param Name The resolved symbol name (e.g. "kernel32.dll!SleepEx+0x12").
+ * \param FunctionName The full function name (e.g. "kernel32.dll!Sleep").
+ * \return TRUE if the symbol is the function, otherwise FALSE.
+ */
+BOOLEAN PhpAnalyzeWaitMatchFunctionExact(
+    _In_ PPH_STRING Name,
+    _In_ PCWSTR FunctionName
+    )
+{
+    SIZE_T length = PhCountStringZ(FunctionName);
+
+    if (!PhStartsWithString2(Name, FunctionName, TRUE))
+        return FALSE;
+
+    if (Name->Length == length * sizeof(WCHAR))
+        return TRUE;
+
+    return Name->Buffer[length] == L'+';
+}
+
 _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
@@ -348,12 +389,15 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     context->Found = TRUE;
 
 #define FUNC_MATCH(Name) PhStartsWithString2(name, L##Name, TRUE)
+// Matches the whole function name ("module!Function" or "module!Function+0x..."), so that
+// e.g. "Sleep" does not match "SleepEx"/"SleepConditionVariableSRW".
+#define FUNC_MATCH_EXACT(Name) PhpAnalyzeWaitMatchFunctionExact(name, L##Name)
 #define NT_FUNC_MATCH(Name) ( \
     PhStartsWithString2(name, L"ntdll.dll!Nt" L##Name, TRUE) || \
     PhStartsWithString2(name, L"ntdll.dll!Zw" L##Name, TRUE) \
     )
 
-    if (FUNC_MATCH("kernel32.dll!Sleep"))
+    if (FUNC_MATCH_EXACT("kernel32.dll!Sleep"))
     {
         PhAppendFormatStringBuilder(
             &context->StringBuilder,
@@ -450,6 +494,13 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PhAppendStringBuilder(
             &context->StringBuilder,
             &PhpaGetHandleString(context->ProcessHandle, handle)->sr
+            );
+    }
+    else if (NT_FUNC_MATCH("DrainThreadCoreMessagingCompletions") || NT_FUNC_MATCH("DrainThreadCoreMessagingCompletions2"))
+    {
+        PhAppendStringBuilder2(
+            &context->StringBuilder,
+            L"Thread is processing Win32k CoreMessaging queue completions.\r\n"
             );
     }
     else if (NT_FUNC_MATCH("RemoveIoCompletion") || NT_FUNC_MATCH("RemoveIoCompletionEx"))
@@ -656,7 +707,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         BOOLEAN waitAllHandles = FALSE;
         BOOLEAN alertable = FALSE;
 
-        if (FUNC_MATCH("win32u.dll!NtUserMsgWaitForMultipleObjects"))
+        if (FUNC_MATCH_EXACT("win32u.dll!NtUserMsgWaitForMultipleObjects"))
         {
             numberOfHandles = PtrToUlong(StackFrame->Params[0]);
             addressOfHandles = StackFrame->Params[1];

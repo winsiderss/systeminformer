@@ -21,11 +21,19 @@
 // Functions
 
 BOOLEAN EtpNpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PETP_NPU_ADAPTER EtpAllocateNpuAdapter(
     _In_ ULONG NumberOfSegments
+    );
+
+VOID EtpNpuResetAdapterNodeDeltas(
+    _In_ PETP_NPU_ADAPTER NpuAdapter
+    );
+
+VOID EtpNpuRefreshAdapterLuids(
+    VOID
     );
 
 _Function_class_(PH_CALLBACK_FUNCTION)

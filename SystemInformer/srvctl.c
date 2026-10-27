@@ -108,7 +108,8 @@ VOID NTAPI PhServiceListModifiedHandler(
 
     copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 
-    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
+    if (!PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy))
+        PhFree(copy);
 }
 
 /**
@@ -375,7 +376,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
             if (context->NumberOfServices > 0)
             {
-                SetFocus(context->ListViewHandle);
+                PhSetDialogFocus(hwndDlg, context->ListViewHandle);
                 ListView_SetItemState(context->ListViewHandle, 0, LVNI_SELECTED, LVNI_SELECTED);
                 ListView_EnsureVisible(context->ListViewHandle, 0, FALSE);
                 PhpFixProcessServicesControls(hwndDlg, context->Services[0]);

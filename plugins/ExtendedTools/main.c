@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2024
+ *     dmex    2018-2026
  *
  */
 
 #include "exttools.h"
-#include "extension\plugin.h"
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance = NULL;
@@ -53,7 +52,7 @@ BOOLEAN EtNpuFahrenheitEnabled = FALSE;
 ULONG EtSampleCount = 0;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
-ULONG EtUpdateInterval = 0;
+ULONG EtRateIntervalMs = 1000;
 USHORT EtMaxPrecisionUnit = 2;
 BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
@@ -67,7 +66,10 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
     EtLookupTotalGpuAdapterUtilization,
     EtLookupTotalGpuAdapterDedicated,
     EtLookupTotalGpuAdapterShared,
-    EtLookupTotalGpuAdapterEngineUtilization
+    EtLookupTotalGpuAdapterEngineUtilization,
+    EtLookupProcessIoStatistics,
+    EtLookupProcessGpuStatistics,
+    EtLookupProcessGpuEngineUtilization
 };
 
 /**
@@ -83,6 +85,7 @@ VOID NTAPI LoadCallback(
     )
 {
     PPH_STARTUP_PARAMETERS StartupParameters = (PPH_STARTUP_PARAMETERS)Parameter;
+    PPH_LIST discoveredAdapterList = NULL;
 
     if (StartupParameters->PhSvc)
         return;
@@ -92,10 +95,24 @@ VOID NTAPI LoadCallback(
     EtSampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
 
     EtLoadSettings();
-
     EtEtwStatisticsInitialization();
-    EtGpuMonitorInitialization();
-    EtNpuMonitorInitialization();
+
+    // The GPU and NPU monitors synchronously consume this transient discovery
+    // list. LoadCallback owns the list and its adapter handles.
+    if (
+        PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ||
+        PhGetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR)
+        )
+    {
+        discoveredAdapterList = EtInitializeGraphicsAdapters();
+    }
+
+    EtGpuMonitorInitialization(discoveredAdapterList);
+    EtNpuMonitorInitialization(discoveredAdapterList);
+
+    if (discoveredAdapterList)
+        EtUninitializeGraphicsAdapters(discoveredAdapterList);
+
     EtFramesMonitorInitialization();
 }
 
@@ -226,7 +243,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_OBJMGR:
         {
-            //EtShowObjectManagerDialog(menuItem->OwnerWindow);
+            EtShowObjectManagerDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POOL_TABLE:
@@ -616,6 +633,18 @@ VOID NTAPI ProcessItemsUpdatedCallback(
 {
     PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
+
+    // Use the time actually spanned by the provider run for rate calculations, falling back to the
+    // nominal interval. Reading the event also keeps us in sync with the View -> Update Interval
+    // menu, which does not raise the settings-updated callback. (dmex)
+
+    if (updateEvent)
+    {
+        if (updateEvent->ElapsedMilliseconds != 0)
+            EtRateIntervalMs = updateEvent->ElapsedMilliseconds;
+        else if (updateEvent->UpdateInterval != 0)
+            EtRateIntervalMs = updateEvent->UpdateInterval;
+    }
 
     // Note: no lock is needed because we only ever modify the list on this same thread.
 
@@ -1335,28 +1364,10 @@ VOID NTAPI ProcessStatsEventCallback(
     }
 }
 
-VOID EtLoadSettingsFirstRun(
-    VOID
-    )
-{
-    if (PhGetIntegerSetting(SETTING_NAME_FIRST_RUN))
-    {
-        if (PhGetUserLocaleInfoBool(LOCALE_IMEASURE))
-        {
-            PhSetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT, TRUE);
-        }
-
-        PhSetIntegerSetting(SETTING_NAME_FIRST_RUN, FALSE);
-    }
-}
-
 VOID EtLoadSettings(
     VOID
     )
 {
-    EtLoadSettingsFirstRun();
-
-    EtUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
     EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(SETTING_MAX_PRECISION_UNIT);
     EtGraphShowText = !!PhGetIntegerSetting(SETTING_GRAPH_SHOW_TEXT);
     EtEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
@@ -1364,7 +1375,20 @@ VOID EtLoadSettings(
     EtPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
     EtEnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
     EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED);
-    EtGpuFahrenheitEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT);
+
+    switch (PhGetIntegerSetting(SETTING_NAME_TEMPERATURE_UNIT))
+    {
+    case 1: // Celsius
+        EtGpuFahrenheitEnabled = FALSE;
+        break;
+    case 2: // Fahrenheit
+        EtGpuFahrenheitEnabled = TRUE;
+        break;
+    default: // Auto (LOCALE_IMEASURE: 0 = metric, 1 = US)
+        EtGpuFahrenheitEnabled = PhGetUserLocaleInfoBool(LOCALE_IMEASURE);
+        break;
+    }
+
     EtNpuFahrenheitEnabled = EtGpuFahrenheitEnabled;
 }
 
@@ -1552,7 +1576,6 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_FIRST_RUN, L"1" },
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },
@@ -1580,7 +1603,7 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_SIZE, L"@96|325,266" },
                 { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_TRAYICON_GUIDS, L"" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" },
+                { IntegerSettingType, SETTING_NAME_TEMPERATURE_UNIT, L"0" }, // 0 = Auto, 1 = Celsius, 2 = Fahrenheit
                 { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
@@ -1600,6 +1623,10 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI, L"" },
+                { IntegerSettingType, SETTING_NAME_PIPE_ENUM_WATCH_CHANGES, L"0" },
+                { IntegerPairSettingType, SETTING_NAME_OBJTYPES_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_OBJTYPES_WINDOW_SIZE, L"@96|600,420" },
+                { StringSettingType, SETTING_NAME_OBJTYPES_LISTVIEW_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, L"" },
@@ -1615,6 +1642,15 @@ LOGICAL DllMain(
                     L"\\Device" ET_OBJMGR_HISTORY_SEPARATOR
                     L"\\KernelObjects" ET_OBJMGR_HISTORY_SEPARATOR
                     L"\\ObjectTypes" },
+                { StringSettingType, SETTING_NAME_ETW_DETAILS_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_ETW_PROPERTIES_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_ETW_PROPERTIES_SIZE, L"@96|1000,600" },
+                { IntegerPairSettingType, SETTING_NAME_ETW_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_ETW_WINDOW_SIZE, L"@96|1100,720" },
+                { StringSettingType, SETTING_NAME_ETW_SESSION_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_ETW_PROVIDER_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_ETW_SESSION_SORT, L"0,1" },
+                { StringSettingType, SETTING_NAME_ETW_PROVIDER_SORT, L"0,1" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },
@@ -1627,6 +1663,13 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_WBCL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WBCL_WINDOW_SIZE, L"@96|600,320" },
                 { StringSettingType, SETTING_NAME_WBCL_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_FIRMWARE_CERT_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_CERT_WINDOW_SIZE, L"@96|700,360" },
+                { StringSettingType, SETTING_NAME_FIRMWARE_CERT_LISTVIEW_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_FIRMWARE_CERT_LISTVIEW_GROUPS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_ATTESTATION_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_ATTESTATION_WINDOW_SIZE, L"@96|600,320" },
+                { StringSettingType, SETTING_NAME_ATTESTATION_LISTVIEW_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
@@ -1640,6 +1683,8 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_SIZE, L"@96|760,380" },
                 { StringSettingType, SETTING_NAME_CACHE_LATENCY_LISTVIEW_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_TAB, L"0" },
+                { IntegerSettingType, SETTING_NAME_CACHE_LATENCY_GRAPH_COLUMNS, L"2" },
                 { IntegerPairSettingType, SETTING_NAME_EXPLORER_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_EXPLORER_WINDOW_SIZE, L"@96|600,400" },
                 { IntegerPairSettingType, SETTING_NAME_STARTUP_TASKS_WINDOW_POSITION, L"0,0" },

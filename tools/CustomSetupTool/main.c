@@ -89,9 +89,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
         break;
     case SETUP_SHOWUPDATEFINAL:
         {
-            //ShowUpdateCompletedPageDialog(context);
-
-            PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDCANCEL, 0);
+            ShowUpdateCompletedPageDialog(context);
         }
         break;
     case SETUP_SHOWUPDATEERROR:
@@ -375,7 +373,9 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     PVOID object;
 
     stringLength = (ULONG)KsiSettingsBlob->Length / sizeof(WCHAR) / 2;
-    string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
+    string = PhAllocateZeroSafe(stringLength + sizeof(UNICODE_NULL));
+    if (!string)
+        return FALSE;
 
     if (PhHexStringToBufferEx(&KsiSettingsBlob->sr, stringLength, string))
     {
@@ -565,7 +565,7 @@ VOID SetupInitializeMutant(
         stringFormat.Buffer = formatBuffer;
         stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
 
-        PhCreateMutant(&mutantHandle, MUTANT_QUERY_STATE, PhGetNamespaceHandle(), &stringFormat, TRUE);
+        PhCreateMutant(&mutantHandle, MUTANT_QUERY_STATE, PhGetNamespaceHandle2(), &stringFormat, TRUE);
     }
 }
 
@@ -595,7 +595,10 @@ INT WINAPI wWinMain(
     SetupInitializeMutant();
     PhGuiSupportInitialization();
 
-    context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
+    context = PhAllocateZeroSafe(sizeof(PH_SETUP_CONTEXT));
+    if (!context)
+        return EXIT_FAILURE;
+
     context->SetupCreateStartMenuShortcuts = TRUE;
     context->SetupCreateDesktopShortcut = TRUE;
     context->SetupStartMenuFolderName = PhReferenceEmptyString();

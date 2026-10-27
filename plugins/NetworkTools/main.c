@@ -22,7 +22,7 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION NetworkProviderUpdatedCallbackRegistration;
 
 HWND NetworkTreeNewHandle = NULL;
 BOOLEAN NetworkExtensionEnabled = FALSE;
@@ -37,7 +37,8 @@ NETWORKTOOLS_INTERFACE PluginInterface =
     DrawCountryIcon,
     ShowPingWindowFromAddress,
     ShowTracertWindowFromAddress,
-    ShowWhoisWindowFromAddress
+    ShowWhoisWindowFromAddress,
+    NetworkToolsWhoisQuery
 };
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -544,6 +545,40 @@ VOID PhpNetworkItemToRow6(
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
+static VOID NetworkItemEnableStats(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    if (NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
+    {
+        MIB_TCPROW tcpRow;
+        TCP_ESTATS_DATA_RW_v0 dataRw;
+        TCP_ESTATS_PATH_RW_v0 pathRw;
+
+        dataRw.EnableCollection = TRUE;
+        pathRw.EnableCollection = TRUE;
+
+        PhpNetworkItemToRow(&tcpRow, NetworkItem);
+
+        PhSetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+        PhSetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+    }
+    else if (NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
+    {
+        MIB_TCP6ROW tcp6Row;
+        TCP_ESTATS_DATA_RW_v0 dataRw;
+        TCP_ESTATS_PATH_RW_v0 pathRw;
+
+        dataRw.EnableCollection = TRUE;
+        pathRw.EnableCollection = TRUE;
+
+        PhpNetworkItemToRow6(&tcp6Row, NetworkItem);
+
+        PhSetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+        PhSetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+    }
+}
+
 VOID NTAPI NetworkNodeCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -557,56 +592,25 @@ VOID NTAPI NetworkNodeCreateCallback(
     {
         ULONG remoteCountryCode;
         PPH_STRING remoteCountryName;
+        LONG remoteCountryIconIndex;
 
-        if (LookupCountryCode(
+        if (LookupCountryCodeEx(
             networkNode->NetworkItem->RemoteEndpoint.Address,
             &remoteCountryCode,
-            &remoteCountryName
+            &remoteCountryName,
+            &remoteCountryIconIndex
             ))
         {
             PhMoveReference(&extension->RemoteCountryName, remoteCountryName);
-            extension->CountryIconIndex = LookupCountryIcon(remoteCountryCode);
+            extension->CountryIconIndex = remoteCountryIconIndex;
         }
 
         extension->CountryValid = TRUE;
     }
 
-    if (!extension->StatsEnabled)
-    {
-        if (NetworkExtensionEnabled)
-        {
-            if (networkNode->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
-            {
-                MIB_TCPROW tcpRow;
-                TCP_ESTATS_DATA_RW_v0 dataRw;
-                TCP_ESTATS_PATH_RW_v0 pathRw;
-
-                dataRw.EnableCollection = TRUE;
-                pathRw.EnableCollection = TRUE;
-
-                PhpNetworkItemToRow(&tcpRow, networkNode->NetworkItem);
-
-                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
-                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
-            }
-            else if (networkNode->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
-            {
-                MIB_TCP6ROW tcp6Row;
-                TCP_ESTATS_DATA_RW_v0 dataRw;
-                TCP_ESTATS_PATH_RW_v0 pathRw;
-
-                dataRw.EnableCollection = TRUE;
-                pathRw.EnableCollection = TRUE;
-
-                PhpNetworkItemToRow6(&tcp6Row, networkNode->NetworkItem);
-
-                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
-                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
-            }
-        }
-
-        extension->StatsEnabled = TRUE;
-    }
+    // Note: Extended TCP statistics are enabled by NetworkProviderUpdatedCallback once the
+    // node exists. This avoids blocking the UI thread with syscalls during node creation. (dmex)
+    extension->NodePresent = TRUE;
 }
 
 VOID UpdateNetworkNode(
@@ -653,6 +657,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfBytesIn)
                 PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, ULONG_MAX));
+            else
+                PhClearReference(&Extension->BytesIn);
 
             if (!NetworkExtensionEnabled && !Extension->BytesIn && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -662,6 +668,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfBytesOut)
                 PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, ULONG_MAX));
+            else
+                PhClearReference(&Extension->BytesOut);
 
             if (!NetworkExtensionEnabled && !Extension->BytesOut && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -671,6 +679,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfLostPackets)
                 PhMoveReference(&Extension->LossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
+            else
+                PhClearReference(&Extension->LossText);
 
             if (!NetworkExtensionEnabled && !Extension->LossText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->LossText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -680,6 +690,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->VarianceRtt)
                 PhMoveReference(&Extension->JitterText, PhFormatUInt64(Extension->VarianceRtt, TRUE));
+            else
+                PhClearReference(&Extension->JitterText);
 
             if (!NetworkExtensionEnabled && !Extension->JitterText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->JitterText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -689,6 +701,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->SampleRtt)
                 PhMoveReference(&Extension->LatencyText, PhFormatUInt64(Extension->SampleRtt, TRUE));
+            else
+                PhClearReference(&Extension->LatencyText);
 
             if (!NetworkExtensionEnabled && !Extension->LatencyText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->LatencyText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -837,17 +851,18 @@ BOOLEAN NetworkToolsGeoIpFlushCache(
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
-VOID ProcessesUpdatedCallback(
+VOID NetworkProviderUpdatedCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
 
     if (!NetworkExtensionEnabled)
         return;
 
-    if (PtrToUlong(Parameter) < 3)
+    if (!updateEvent || updateEvent->RunCount < 3)
         return;
 
     NetworkToolsGeoIpFlushCache();
@@ -861,13 +876,21 @@ VOID ProcessesUpdatedCallback(
         PNETWORK_EXTENSION extension = CONTAINING_RECORD(listEntry, NETWORK_EXTENSION, ListEntry);
         PPH_NETWORK_ITEM networkItem;
 
-        if (!extension || !extension->StatsEnabled)
+        if (!extension || !extension->NodePresent)
             continue;
 
         networkItem = extension->NetworkItem;
 
         if (!networkItem)
             continue;
+
+        if (!extension->StatsEnabled)
+        {
+            // Enable here instead of the UI thread. (dmex)
+            NetworkItemEnableStats(networkItem);
+            extension->StatsEnabled = TRUE;
+            continue;
+        }
 
         // eStats is only valid for established TCP connections.
         if (networkItem->State != MIB_TCP_STATE_ESTAB)
@@ -890,19 +913,19 @@ VOID ProcessesUpdatedCallback(
 
             PhpNetworkItemToRow(&tcpRow, networkItem);
 
-            if (GetPerTcpConnectionEStats(
+            if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsData,
-                (PUCHAR)&dataRw,
+                &dataRw,
                 0,
                 sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&dataRod,
+                &dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (dataRw.EnableCollection)
                 {
@@ -911,19 +934,19 @@ VOID ProcessesUpdatedCallback(
                 }
             }
 
-            if (GetPerTcpConnectionEStats(
+            if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsPath,
-                (PUCHAR)&pathRw,
+                &pathRw,
                 0,
                 sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&pathRod,
+                &pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (pathRw.EnableCollection)
                 {
@@ -948,19 +971,19 @@ VOID ProcessesUpdatedCallback(
 
             PhpNetworkItemToRow6(&tcp6Row, networkItem);
 
-            if (GetPerTcp6ConnectionEStats(
+            if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsData,
-                (PUCHAR)&dataRw,
+                &dataRw,
                 0,
                 sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&dataRod,
+                &dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (dataRw.EnableCollection)
                 {
@@ -969,19 +992,19 @@ VOID ProcessesUpdatedCallback(
                 }
             }
 
-            if (GetPerTcp6ConnectionEStats(
+            if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsPath,
-                (PUCHAR)&pathRw,
+                &pathRw,
                 0,
                 sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&pathRod,
+                &pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
-                ) == ERROR_SUCCESS)
+                ) == STATUS_SUCCESS)
             {
                 if (pathRw.EnableCollection)
                 {
@@ -1023,6 +1046,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TRACERT_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_TREE_LIST_SORT, L"0,1" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"14" },
+                { IntegerSettingType, SETTING_NAME_TRACERT_PING_CONTINUOUS, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
                 { IntegerSettingType, SETTING_NAME_WHOIS_IPV6_SUPPORT, L"0" },
@@ -1088,10 +1112,10 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-                ProcessesUpdatedCallback,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
+                NetworkProviderUpdatedCallback,
                 NULL,
-                &ProcessesUpdatedCallbackRegistration
+                &NetworkProviderUpdatedCallbackRegistration
                 );
 
             PhPluginSetObjectExtension(

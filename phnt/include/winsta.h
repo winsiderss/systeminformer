@@ -96,15 +96,23 @@
 
 typedef RTL_TIME_ZONE_INFORMATION TS_TIME_ZONE_INFORMATION, *PTS_TIME_ZONE_INFORMATION;
 
+typedef CHAR WINSTATIONNAMEA[WINSTATIONNAME_LENGTH + 1];
 typedef WCHAR WINSTATIONNAME[WINSTATIONNAME_LENGTH + 1];
 
-// Variable length data descriptor (not needed)
+/**
+ * The VARDATA_WIRE structure defines the size and offset of the variable-length data.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/93e88241-d30d-407b-832c-3d440026e6f2
+ */
 typedef struct _VARDATA_WIRE
 {
     USHORT Size;
     USHORT Offset;
 } VARDATA_WIRE, *PVARDATA_WIRE;
 
+/**
+ * The WINSTATIONSTATECLASS enumeration specifies the connection state of a session.
+ */
 typedef enum _WINSTATIONSTATECLASS
 {
     State_Active = 0,
@@ -119,6 +127,29 @@ typedef enum _WINSTATIONSTATECLASS
     State_Init = 9
 } WINSTATIONSTATECLASS;
 
+/**
+ * The WINSTATION_CURRENT_SESSION_CAPABILITY_CLASS enumeration identifies a capability of the current session.
+ */
+typedef enum _WINSTATION_CURRENT_SESSION_CAPABILITY_CLASS
+{
+    /** Indicates whether the current session is a Remote Desktop session. */
+    WinStationCurrentSessionCapabilityRemoteDesktop = 1
+} WINSTATION_CURRENT_SESSION_CAPABILITY_CLASS;
+
+/**
+ * The WINSTATION_ENFORCEMENT_CORE_INFORMATION_CLASS enumeration identifies licensing-enforcement information.
+ */
+typedef enum _WINSTATION_ENFORCEMENT_CORE_INFORMATION_CLASS
+{
+    /** Retrieves the identifier of the session currently under licensing arbitration, or ULONG_MAX if no session is under arbitration. */
+    WinStationEnforcementCoreSessionUnderArbitration = 0,
+    /** Retrieves the maximum number of Remote Desktop sessions allowed by the applicable policy. */
+    WinStationEnforcementCoreMaximumSessions = 1
+} WINSTATION_ENFORCEMENT_CORE_INFORMATION_CLASS;
+
+/**
+ * The SESSIONIDW structure contains information about a session.
+ */
 typedef struct _SESSIONIDW
 {
     union
@@ -129,6 +160,66 @@ typedef struct _SESSIONIDW
     WINSTATIONNAME WinStationName;
     WINSTATIONSTATECLASS State;
 } SESSIONIDW, *PSESSIONIDW;
+
+typedef struct _SESSIONIDA
+{
+    union
+    {
+        ULONG SessionId;
+        ULONG LogonId;
+    };
+    WINSTATIONNAMEA WinStationName;
+    WINSTATIONSTATECLASS State;
+} SESSIONIDA, *PSESSIONIDA;
+
+/**
+ * The WINSTATION_PROPERTY_VALUE_TYPE enumeration identifies the representation of a connection property value.
+ */
+typedef enum _WINSTATION_PROPERTY_VALUE_TYPE
+{
+    WinStationPropertyValueInvalid = 0,
+    WinStationPropertyValueDword = 1,
+    WinStationPropertyValueString = 2,
+    WinStationPropertyValueBinary = 3,
+    WinStationPropertyValueGuid = 4
+} WINSTATION_PROPERTY_VALUE_TYPE;
+
+/**
+ * The WINSTATION_PROPERTY_VALUE structure contains a connection property value.
+ */
+typedef struct _WINSTATION_PROPERTY_VALUE
+{
+    USHORT Type;
+    USHORT Reserved;
+    union
+    {
+        ULONG Dword;
+        struct
+        {
+            ULONG Length;
+            PWSTR Buffer;
+        } String;
+        struct
+        {
+            ULONG Length;
+            PVOID Buffer;
+        } Binary;
+        GUID Guid;
+    };
+} WINSTATION_PROPERTY_VALUE, *PWINSTATION_PROPERTY_VALUE;
+
+/**
+ * The WINSTATION_USER_CERTIFICATE structure contains a user certificate returned by the Terminal Services service.
+ */
+typedef struct _WINSTATION_USER_CERTIFICATE
+{
+    ULONG Type;
+    ULONG DataLength;
+    PVOID Data;
+} WINSTATION_USER_CERTIFICATE, *PWINSTATION_USER_CERTIFICATE;
+
+// The complete CRED_PROV_CREDENTIAL definition is provided by usermgr.h.
+typedef struct _CRED_PROV_CREDENTIAL CRED_PROV_CREDENTIAL, *PCRED_PROV_CREDENTIAL;
 
 /**
  * The WINSTATIONINFOCLASS enumeration indicates the class of data for which to either query or set on the server.
@@ -194,6 +285,11 @@ typedef struct _WINSTATIONCREATE
     ULONG MaxInstanceCount;
 } WINSTATIONCREATE, *PWINSTATIONCREATE;
 
+/**
+ * The WINSTACONFIGWIRE structure defines the wire-format WinStation configuration data.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/7485038b-d5a2-4663-9fba-9646b971a80c
+ */
 typedef struct _WINSTACONFIGWIRE
 {
     WCHAR Comment[61]; // The WinStation descriptive comment.
@@ -202,6 +298,9 @@ typedef struct _WINSTACONFIGWIRE
     VARDATA_WIRE NewFields; // VARDATA_WIRE structure defining the size and offset of the variable-length new data succeeding it. This field is not used and is a placeholder for any new data, if and when added.
 } WINSTACONFIGWIRE, *PWINSTACONFIGWIRE;
 
+/**
+ * The CALLBACKCLASS enumeration specifies the callback configuration for a session.
+ */
 typedef enum _CALLBACKCLASS
 {
     Callback_Disable,
@@ -290,6 +389,9 @@ typedef struct _USERCONFIG
     WCHAR WFHomeDirDrive[4];
 } USERCONFIG, *PUSERCONFIG;
 
+/**
+ * The SDCLASS enumeration specifies the type of session device.
+ */
 typedef enum _SDCLASS
 {
     SdNone = 0,
@@ -312,6 +414,9 @@ typedef WCHAR CDNAME[CDNAME_LENGTH + 1];
 typedef WCHAR DLLNAME[DLLNAME_LENGTH + 1];
 typedef WCHAR PDNAME[PDNAME_LENGTH + 1];
 
+/**
+ * The NETWORKCONFIG structure defines the configuration for a network transport.
+ */
 typedef struct _NETWORKCONFIG
 {
     LONG LanAdapter;
@@ -319,6 +424,9 @@ typedef struct _NETWORKCONFIG
     ULONG Flags;
 } NETWORKCONFIG, *PNETWORKCONFIG;
 
+/**
+ * The FLOWCONTROLCLASS enumeration specifies the flow-control mode for an asynchronous transport.
+ */
 typedef enum _FLOWCONTROLCLASS
 {
     FlowControl_None,
@@ -326,6 +434,9 @@ typedef enum _FLOWCONTROLCLASS
     FlowControl_Software
 } FLOWCONTROLCLASS;
 
+/**
+ * The RECEIVEFLOWCONTROLCLASS enumeration specifies the signal used for receive flow control.
+ */
 typedef enum _RECEIVEFLOWCONTROLCLASS
 {
     ReceiveFlowControl_None,
@@ -333,6 +444,9 @@ typedef enum _RECEIVEFLOWCONTROLCLASS
     ReceiveFlowControl_DTR,
 } RECEIVEFLOWCONTROLCLASS;
 
+/**
+ * The TRANSMITFLOWCONTROLCLASS enumeration specifies the signal used for transmit flow control.
+ */
 typedef enum _TRANSMITFLOWCONTROLCLASS
 {
     TransmitFlowControl_None,
@@ -340,6 +454,9 @@ typedef enum _TRANSMITFLOWCONTROLCLASS
     TransmitFlowControl_DSR,
 } TRANSMITFLOWCONTROLCLASS;
 
+/**
+ * The ASYNCCONNECTCLASS enumeration specifies the condition used to establish an asynchronous connection.
+ */
 typedef enum _ASYNCCONNECTCLASS
 {
     Connect_CTS,
@@ -350,6 +467,9 @@ typedef enum _ASYNCCONNECTCLASS
     Connect_Perm,
 } ASYNCCONNECTCLASS;
 
+/**
+ * The FLOWCONTROLCONFIG structure defines the flow control configuration for an async transport.
+ */
 typedef struct _FLOWCONTROLCONFIG
 {
     ULONG fEnableSoftwareTx : 1;
@@ -363,12 +483,22 @@ typedef struct _FLOWCONTROLCONFIG
     TRANSMITFLOWCONTROLCLASS HardwareTransmit;
 } FLOWCONTROLCONFIG, *PFLOWCONTROLCONFIG;
 
+/**
+ * The CONNECTCONFIG structure defines the connection configuration for an async transport.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/5169a8e0-1996-4767-a2f2-1f4a974052f7
+ */
 typedef struct _CONNECTCONFIG
 {
     ASYNCCONNECTCLASS Type;
     ULONG fEnableBreakDisconnect : 1;
 } CONNECTCONFIG, *PCONNECTCONFIG;
 
+/**
+ * The ASYNCCONFIG structure defines the configuration for an async transport.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/9d04f2cf-3687-4632-9c4c-201736762395
+ */
 typedef struct _ASYNCCONFIG
 {
     DEVICENAME DeviceName;
@@ -383,6 +513,11 @@ typedef struct _ASYNCCONFIG
     CONNECTCONFIG Connect;
 } ASYNCCONFIG, *PASYNCCONFIG;
 
+/**
+ * The NASICONFIG structure defines the configuration for a NetWare Asynchronous Services Interface (NASI) transport.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/03332168-d6ea-4395-9706-e7118ce5f2be
+ */
 typedef struct _NASICONFIG
 {
     NASISPECIFICNAME SpecificName;
@@ -393,6 +528,11 @@ typedef struct _NASICONFIG
     BOOLEAN GlobalSession;
 } NASICONFIG, *PNASICONFIG;
 
+/**
+ * The OEMTDCONFIG structure defines the configuration for an OEM transport driver.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/60d78330-81f1-4df2-a9b0-951ee11b8b80
+ */
 typedef struct _OEMTDCONFIG
 {
     LONG Adapter;
@@ -507,11 +647,19 @@ typedef struct _WINSTATIONCLIENT
     ULONG ActiveInputLocale;
 } WINSTATIONCLIENT, *PWINSTATIONCLIENT;
 
+/**
+ * The TSHARE_COUNTERS structure is reserved.
+ */
 typedef struct _TSHARE_COUNTERS
 {
     ULONG Reserved;
 } TSHARE_COUNTERS, *PTSHARE_COUNTERS;
 
+/**
+ * The PROTOCOLCOUNTERS structure contains the counters for a protocol.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/921a5036-7c0b-4680-a94f-45cb1f1737e8
+ */
 typedef struct _PROTOCOLCOUNTERS
 {
     ULONG WdBytes;
@@ -537,6 +685,11 @@ typedef struct _PROTOCOLCOUNTERS
     } Specific;
 } PROTOCOLCOUNTERS, *PPROTOCOLCOUNTERS;
 
+/**
+ * The THINWIRECACHE structure contains statistics for a thinwire cache.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/21eb52ec-8178-4392-8096-7c9803001f2e
+ */
 typedef struct _THINWIRECACHE
 {
     ULONG CacheReads;
@@ -545,11 +698,21 @@ typedef struct _THINWIRECACHE
 
 #define MAX_THINWIRECACHE 4
 
+/**
+ * The RESERVED_CACHE structure contains an array of thinwire cache statistics.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/63e14457-372a-4661-8cf6-c30f40d3989c
+ */
 typedef struct _RESERVED_CACHE
 {
     THINWIRECACHE ThinWireCache[MAX_THINWIRECACHE];
 } RESERVED_CACHE, *PRESERVED_CACHE;
 
+/**
+ * The TSHARE_CACHE structure contains statistics for a TShare cache.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/d43f0692-263a-4a22-ae92-75ca335805e7
+ */
 typedef struct _TSHARE_CACHE
 {
     ULONG Reserved;
@@ -607,6 +770,41 @@ typedef struct _WINSTATIONINFORMATION
 } WINSTATIONINFORMATION, *PWINSTATIONINFORMATION;
 
 /**
+ * The WINSTATION_SESSION_INFO_1W structure contains level-1 information for a session returned by WinStationGetAllSessionsW.
+ */
+typedef struct _WINSTATION_SESSION_INFO_1W
+{
+    ULONG ExecEnvId;
+    WINSTATIONSTATECLASS State;
+    WINSTATIONNAME WinStationName;
+    ULONG SessionId;
+    WCHAR HostName[WINSTATIONNAME_LENGTH + 1];
+    WCHAR UserName[WINSTATIONNAME_LENGTH + 1];
+    WCHAR DomainName[WINSTATIONNAME_LENGTH + 1];
+    WCHAR FarmName[WINSTATIONNAME_LENGTH + 1];
+} WINSTATION_SESSION_INFO_1W, *PWINSTATION_SESSION_INFO_1W;
+
+/**
+ * The WINSTATION_SESSION_INFO_EXW structure contains a fixed-size extended Unicode session record returned by WinStationEnumerateExW.
+ *
+ * Fields whose semantics are not exposed by the current client wrapper retain neutral names; their offsets and sizes are part of the declared layout.
+ */
+typedef struct _WINSTATION_SESSION_INFO_EXW
+{
+    ULONG Value0;
+    ULONG Value4;
+    ULONG Value8;
+    UCHAR ValueC;
+    UCHAR ReservedD[3];
+    UCHAR Value10[16];
+    WCHAR WinStationName[WINSTATIONNAME_LENGTH + 1];
+    USHORT Reserved62;
+    UCHAR Level3Data[0x3F4];
+} WINSTATION_SESSION_INFO_EXW, *PWINSTATION_SESSION_INFO_EXW;
+
+C_ASSERT(sizeof(WINSTATION_SESSION_INFO_EXW) == 0x458);
+
+/**
  * The TS_TRACE structure specifies fields used for configuring tracing operations in TS binaries if they are checked.
  *
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/ad349575-5369-4830-a174-1920a7af8d5f
@@ -637,7 +835,6 @@ typedef struct _BEEPINPUT
 
 /**
  * The WINSTATIONUSERTOKEN structure retrieves the user's token for the session.
- *
  * \remarks Caller requires WINSTATION_ALL_ACCESS permission.
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/07f9831c-6331-43e5-ba27-d3d58772eb4c
  */
@@ -660,6 +857,9 @@ typedef struct _WINSTATIONVIDEODATA
     USHORT ColorDepth;  // Specifies the color depth.
 } WINSTATIONVIDEODATA, *PWINSTATIONVIDEODATA;
 
+/**
+ * The CDCLASS enumeration specifies the type of connection driver.
+ */
 typedef enum _CDCLASS
 {
     CdNone, // No connection driver.
@@ -685,12 +885,20 @@ typedef struct _CDCONFIG
 typedef CHAR CLIENTDATANAME[CLIENTDATANAME_LENGTH + 1];
 typedef CHAR* PCLIENTDATANAME;
 
+/**
+ * The WINSTATIONCLIENTDATA structure defines the client data for a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/89006ca0-681b-43a9-92c2-843813898144
+ */
 typedef struct _WINSTATIONCLIENTDATA
 {
     CLIENTDATANAME DataName; // Identifies the type of data sent in this WINSTATIONCLIENTDATA structure.
     BOOLEAN fUnicodeData; // TRUE indicates data is in Unicode format; FALSE otherwise.
 } WINSTATIONCLIENTDATA, *PWINSTATIONCLIENTDATA;
 
+/**
+ * The LOADFACTORTYPE enumeration identifies the resource constraint used to calculate a server load factor.
+ */
 typedef enum _LOADFACTORTYPE
 {
     ErrorConstraint, // An error occurred while obtaining constraint data.
@@ -734,7 +942,11 @@ typedef enum _SHADOWSTATECLASS
 #define PROTOCOL_OTHERS 1
 #define PROTOCOL_RDP 2
 
-// Retrieves the current shadow state of a session.
+/**
+ * The WINSTATIONSHADOW structure retrieves the current shadow state of a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/d9d020ca-a979-45e0-9ccb-3f044d18084a
+ */
 typedef struct _WINSTATIONSHADOW
 {
     SHADOWSTATECLASS ShadowState; // Specifies the current state of shadowing.
@@ -743,7 +955,11 @@ typedef struct _WINSTATIONSHADOW
     ULONG ProtocolType; // Specifies the type of protocol on the session. Can be one of PROTOCOL_* values.
 } WINSTATIONSHADOW, *PWINSTATIONSHADOW;
 
-// Retrieves the client product ID and current product ID of the session.
+/**
+ * The WINSTATIONPRODID structure retrieves the client product ID and current product ID of the session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/95c517f6-0428-4f81-ba5d-e0ec4e427771
+ */
 typedef struct _WINSTATIONPRODID
 {
     WCHAR DigProductId[CLIENT_PRODUCT_ID_LENGTH];
@@ -754,7 +970,11 @@ typedef struct _WINSTATIONPRODID
     ULONG OuterMostSessionId;
 } WINSTATIONPRODID, *PWINSTATIONPRODID;
 
-// Retrieves the remote IP address of the terminal server client in the session.
+/**
+ * The WINSTATIONREMOTEADDRESS structure retrieves the remote IP address of the terminal server client in the session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/f79be277-2f34-4340-9b37-23b08e2f070b
+ */
 typedef struct _WINSTATIONREMOTEADDRESS
 {
     USHORT sin_family;
@@ -776,7 +996,11 @@ typedef struct _WINSTATIONREMOTEADDRESS
     };
 } WINSTATIONREMOTEADDRESS, *PWINSTATIONREMOTEADDRESS;
 
-// rev
+/**
+ * The WINSTATIONEXECSRVSYSTEMPIPE structure defines the pipe name used for executing a process in a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/51e3f898-75b9-4a4b-974a-4648cc8187e1
+ */
 typedef struct _WINSTATIONEXECSRVSYSTEMPIPE
 {
     WCHAR PipeName[48];
@@ -786,7 +1010,11 @@ typedef struct _WINSTATIONEXECSRVSYSTEMPIPE
 // WinStationInformationEx
 //
 
-// private
+/**
+ * The WINSTATIONINFORMATIONEX_LEVEL1 structure contains extended information about a session (Level 1).
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/93e15720-3367-4638-842f-87d558d7124f
+ */
 typedef struct _WINSTATIONINFORMATIONEX_LEVEL1
 {
     ULONG SessionId;
@@ -803,7 +1031,11 @@ typedef struct _WINSTATIONINFORMATIONEX_LEVEL1
     PROTOCOLSTATUS ProtocolStatus;
 } WINSTATIONINFORMATIONEX_LEVEL1, *PWINSTATIONINFORMATIONEX_LEVEL1;
 
-// private
+/**
+ * The WINSTATIONINFORMATIONEX_LEVEL2 structure contains extended information about a session (Level 2).
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c2642a8b-3e5e-440f-90e8-07b469903b41
+ */
 typedef struct _WINSTATIONINFORMATIONEX_LEVEL2
 {
     ULONG SessionId;
@@ -822,14 +1054,20 @@ typedef struct _WINSTATIONINFORMATIONEX_LEVEL2
     WCHAR DomainName[256];
 } WINSTATIONINFORMATIONEX_LEVEL2, *PWINSTATIONINFORMATIONEX_LEVEL2;
 
-// private
+/**
+ * The WINSTATIONINFORMATIONEX_LEVEL union contains extended information about a session for various levels.
+ */
 typedef union _WINSTATIONINFORMATIONEX_LEVEL
 {
     WINSTATIONINFORMATIONEX_LEVEL1 WinStationInfoExLevel1;
     WINSTATIONINFORMATIONEX_LEVEL2 WinStationInfoExLevel2;
 } WINSTATIONINFORMATIONEX_LEVEL, *PWINSTATIONINFORMATIONEX_LEVEL;
 
-// private
+/**
+ * The WINSTATIONINFORMATIONEX structure defines the extended information for a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/3b334d70-3d7f-43b5-9f5b-10f54519504a
+ */
 typedef struct _WINSTATIONINFORMATIONEX
 {
     ULONG Level;
@@ -838,17 +1076,24 @@ typedef struct _WINSTATIONINFORMATIONEX
 
 #define TS_PROCESS_INFO_MAGIC_NT4 0x23495452
 
+/**
+ * The TS_PROCESS_INFORMATION_NT4 structure contains process information for NT4 terminal server.
+ */
 typedef struct _TS_PROCESS_INFORMATION_NT4
 {
     ULONG MagicNumber;
     ULONG LogonId;
-    PVOID ProcessSid;
+    PSID ProcessSid;
     ULONG Pad;
 } TS_PROCESS_INFORMATION_NT4, *PTS_PROCESS_INFORMATION_NT4;
 
 #define SIZEOF_TS4_SYSTEM_THREAD_INFORMATION 64
 #define SIZEOF_TS4_SYSTEM_PROCESS_INFORMATION 136
 
+/**
+ * The TS_SYS_PROCESS_INFORMATION structure contains information about a process in a terminal server session.
+ * This structure is similar to SYSTEM_PROCESS_INFORMATION.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _TS_SYS_PROCESS_INFORMATION
 {
@@ -881,6 +1126,9 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     SIZE_T PrivatePageCount;
 } TS_SYS_PROCESS_INFORMATION, *PTS_SYS_PROCESS_INFORMATION;
 
+/**
+ * The TS_ALL_PROCESSES_INFO structure contains a list of processes in a terminal server session.
+ */
 typedef struct _TS_ALL_PROCESSES_INFO
 {
     PTS_SYS_PROCESS_INFORMATION TsProcessInfo;
@@ -888,12 +1136,22 @@ typedef struct _TS_ALL_PROCESSES_INFO
     PSID Sid;
 } TS_ALL_PROCESSES_INFO, *PTS_ALL_PROCESSES_INFO;
 
+/**
+ * The TS_COUNTER_HEADER structure defines the header for a terminal services counter.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/15f606e7-1473-4f9e-8686-35c9a721df26
+ */
 typedef struct _TS_COUNTER_HEADER
 {
     ULONG CounterID;
     BOOLEAN Result;
 } TS_COUNTER_HEADER, *PTS_COUNTER_HEADER;
 
+/**
+ * The TS_COUNTER structure defines a terminal services counter.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/38c35d96-b04f-4638-963b-638062828694
+ */
 typedef struct _TS_COUNTER
 {
     TS_COUNTER_HEADER CounterHead;
@@ -943,22 +1201,45 @@ typedef struct _TS_COUNTER
 #define WNOTIFY_ALL_SESSIONS 0x1
 // end_rev
 
+// begin_rev
+// NotificationMask flags for WinStationRegisterConsoleNotificationEx(2) and
+// WinStationRegisterSessionNotificationEx. Each selected bit causes a
+// WM_WTSSESSION_CHANGE (0x02B1) message to be posted with the corresponding
+// WTS_* status code as wParam. Specify WNOTIFY_MASK_ALL (-1) for every event.
+// App-container callers are restricted to (WNOTIFY_MASK_CONSOLE_CONNECT |
+// WNOTIFY_MASK_CONSOLE_DISCONNECT | WNOTIFY_MASK_REMOTE_DISCONNECT |
+// WNOTIFY_MASK_REMOTE_CONNECT).
+#define WNOTIFY_MASK_SESSION_CREATE 0x0001    // WTS_SESSION_CREATE (10)
+#define WNOTIFY_MASK_REMOTE_CONNECT 0x0002    // WTS_REMOTE_CONNECT (3)
+#define WNOTIFY_MASK_REMOTE_DISCONNECT 0x0004 // WTS_REMOTE_DISCONNECT (4)
+#define WNOTIFY_MASK_SESSION_LOGON 0x0008     // WTS_SESSION_LOGON (5)
+#define WNOTIFY_MASK_SESSION_LOGOFF 0x0010    // WTS_SESSION_LOGOFF (6)
+#define WNOTIFY_MASK_REMOTE_CONTROL 0x0020    // WTS_SESSION_REMOTE_CONTROL (9)
+#define WNOTIFY_MASK_REMOTE_CONTROL2 0x0040   // WTS_SESSION_REMOTE_CONTROL (9)
+#define WNOTIFY_MASK_SESSION_TERMINATE 0x0080 // WTS_SESSION_TERMINATE (11)
+#define WNOTIFY_MASK_CONSOLE_CONNECT 0x0100   // WTS_CONSOLE_CONNECT (1)
+#define WNOTIFY_MASK_CONSOLE_DISCONNECT 0x0200 // WTS_CONSOLE_DISCONNECT (2)
+#define WNOTIFY_MASK_SESSION_LOCK 0x0400      // WTS_SESSION_LOCK (7)
+#define WNOTIFY_MASK_SESSION_UNLOCK 0x0800    // WTS_SESSION_UNLOCK (8)
+#define WNOTIFY_MASK_SESSION_STATE 0x1000     // status code 15 (0xF)
+#define WNOTIFY_MASK_ALL 0xffffffff
+// end_rev
+
 // In the functions below, memory returned can be freed using LocalFree. NULL can be specified for
 // server handles to indicate the local server. -1 can be specified for session IDs to indicate the
 // current session ID.
 
 // rev
 /**
- * The WinStationFreeMemory routine frees memory allocated by a Remote Desktop Services function.
- *
- * \param Buffer Pointer to the memory to free.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsfreememory
+ * Releases compatible WinStation result allocations using LocalFree. NULL is accepted and returns TRUE. The
+ * Boolean result is always TRUE and does not propagate LocalFree failure; pass only an owned
+ * compatible allocation. The by-value caller pointer is not cleared.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationFreeMemory(
-    _In_ PVOID Buffer
+    _Frees_ptr_opt_ PVOID Buffer
     );
 
 // rev
@@ -1008,6 +1289,12 @@ WinStationCloseServer(
     );
 
 // rev
+/**
+ * Tests whether a Remote Desktop Session Host server is reachable and responding.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \return BOOLEAN Nonzero if the server responds successfully, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1016,13 +1303,21 @@ WinStationServerPing(
     );
 
 // rev
+/**
+ * Retrieves terminal-services counter values from a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param Count The number of elements in the Counters array.
+ * \param Counters An array of counters. On input, set the CounterID member of each element to the requested counter identifier. On output, each element receives its result status, value, and start time.
+ * \return BOOLEAN Nonzero if the request succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetTermSrvCountersValue(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Count,
-    _Inout_ PTS_COUNTER Counters // set counter IDs before calling
+    _Inout_updates_(Count) PTS_COUNTER Counters
     );
 
 // rev
@@ -1044,24 +1339,31 @@ WinStationShutdownSystem(
     );
 
 // rev
+/**
+ * Waits for a terminal-services system event on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param EventMask A bitwise combination of WEVENT_* values that identifies the events for which to wait.
+ * \param EventFlags A pointer to a variable that receives the WEVENT_* flags for the events that occurred.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationWaitSystemEvent(
     _In_opt_ HANDLE ServerHandle,
-    _In_ ULONG EventMask, // WEVENT_*
+    _In_ ULONG EventMask,
     _Out_ PULONG EventFlags
     );
 
 // rev
 /**
- * The WinStationRegisterConsoleNotification routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ * The WinStationRegisterConsoleNotification routine registers a window to receive session-change notifications.
  *
- * \param ServerHandle Handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER .
- * \param WindowHandle Handle of the window to receive session change notifications.
- * \param Flags Specifies whether to receive notifications for all sessions (WNOTIFY_ALL_SESSIONS) or only for the console session.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
- * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the window that receives session-change notifications.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsregistersessionnotificationex
  */
 NTSYSAPI
@@ -1070,10 +1372,18 @@ NTAPI
 WinStationRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ ULONG Flags
+    _In_ ULONG NotificationScope
     );
 
 // rev
+/**
+ * Unregisters a window from receiving session-change notifications from a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param WindowHandle A handle to the window that was registered by WinStationRegisterConsoleNotification.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsunregistersessionnotificationex
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1083,6 +1393,14 @@ WinStationUnRegisterConsoleNotification(
     );
 
 // rev
+/**
+ * Enumerates the sessions on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionIds A pointer that receives an allocated array of SESSIONIDW structures.
+ * \param Count A pointer to a variable that receives the number of elements in the returned array.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1120,6 +1438,16 @@ WinStationQueryInformationW(
     );
 
 // rev
+/**
+ * Sets information for a session on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session to modify.
+ * \param WinStationInformationClass The class of information to set.
+ * \param WinStationInformation A pointer to a buffer containing the information to set. Its format depends on WinStationInformationClass.
+ * \param WinStationInformationLength The size of the WinStationInformation buffer, in bytes.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1132,15 +1460,33 @@ WinStationSetInformationW(
     );
 
 // rev
+/**
+ * Retrieves information about the session associated with the calling process.
+ *
+ * \param WinStationInformationClass The class of information to retrieve.
+ * \param WinStationInformation A caller-allocated buffer that receives the requested information. Its format depends on WinStationInformationClass.
+ * \param WinStationInformationLength The size of the WinStationInformation buffer, in bytes.
+ * \param ReturnLength A pointer to a variable that receives the number of bytes written or required.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationQueryCurrentSessionInformation(
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _In_reads_bytes_(WinStationInformationLength) PVOID WinStationInformation,
-    _In_ ULONG WinStationInformationLength
+    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG ReturnLength
     );
 
+/**
+ * Retrieves the WinStation name associated with a session identifier.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session.
+ * \param WinStationName A caller-allocated buffer that receives the null-terminated WinStation name.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1151,6 +1497,14 @@ WinStationNameFromLogonIdW(
     );
 
 // rev
+/**
+ * Retrieves the session identifier associated with a WinStation name.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param WinStationName The null-terminated WinStation name.
+ * \param SessionId A pointer to a variable that receives the session identifier.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1161,6 +1515,21 @@ LogonIdFromWinStationNameW(
     );
 
 // rev
+/**
+ * Displays a message box in a session on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session in which to display the message.
+ * \param Title The message-box title.
+ * \param TitleLength The length of Title, in bytes.
+ * \param Message The message-box text.
+ * \param MessageLength The length of Message, in bytes.
+ * \param Style The message-box style flags.
+ * \param Timeout The time, in seconds, before the message box times out.
+ * \param Response A pointer to a variable that receives the user response.
+ * \param DoNotWait TRUE to return without waiting for a response; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1177,6 +1546,16 @@ WinStationSendMessageW(
     _In_ BOOLEAN DoNotWait
     );
 
+/**
+ * Connects one session to another session on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the source session.
+ * \param TargetSessionId The identifier of the target session.
+ * \param Password An optional password for the target session.
+ * \param bWait TRUE to wait for the operation to complete; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1188,6 +1567,14 @@ WinStationConnectW(
     _In_ BOOLEAN bWait
     );
 
+/**
+ * Disconnects a session from a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session to disconnect.
+ * \param bWait TRUE to wait for the operation to complete; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1198,6 +1585,14 @@ WinStationDisconnect(
     );
 
 // rev
+/**
+ * Resets a session on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session to reset.
+ * \param bWait TRUE to wait for the operation to complete; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1208,6 +1603,16 @@ WinStationReset(
     );
 
 // rev
+/**
+ * Starts remote-control shadowing of a target session.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param TargetServerName The name of the server that hosts the target session.
+ * \param TargetSessionId The identifier of the session to shadow.
+ * \param HotKeyVk The virtual-key code used to stop shadowing.
+ * \param HotkeyModifiers A bitwise combination of KBD* modifier flags for the shadow-stop hot key.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1220,6 +1625,14 @@ WinStationShadow(
     );
 
 // rev
+/**
+ * Stops remote-control shadowing for a session.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session for which to stop shadowing.
+ * \param bWait Reserved. The current implementation ignores this parameter.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1232,6 +1645,13 @@ WinStationShadowStop(
 // Processes
 
 // rev
+/**
+ * Enumerates processes running in sessions on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param Processes A pointer that receives an allocated process-information buffer.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1243,6 +1663,15 @@ WinStationEnumerateProcesses(
 #define WINSTATION_PROCESS_LEVEL 0
 
 // rev
+/**
+ * Retrieves extended information about processes running on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param Level The information level of the requested process data.
+ * \param NumberOfProcesses A pointer to a variable that receives the number of process records.
+ * \param Processes A pointer that receives an allocated array of TS_ALL_PROCESSES_INFO structures.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1254,6 +1683,14 @@ WinStationGetAllProcesses(
     );
 
 // rev
+/**
+ * Frees process information returned by WinStationGetAllProcesses.
+ *
+ * \param Level The information level used to obtain the process data.
+ * \param Processes The process-information array to free.
+ * \param NumberOfProcesses The number of records in the process-information array.
+ * \return BOOLEAN Nonzero if the memory is released successfully, or zero otherwise.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1264,6 +1701,14 @@ WinStationFreeGAPMemory(
     );
 
 // rev
+/**
+ * Terminates a process on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param ProcessId The identifier of the process to terminate.
+ * \param ExitCode The exit code assigned to the terminated process.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1273,6 +1718,16 @@ WinStationTerminateProcess(
     _In_ ULONG ExitCode
     );
 
+/**
+ * The WinStationGetProcessSid routine retrieves the user SID for a process.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] ProcessId The process identifier.
+ * \param[in] ProcessStartTime The process creation time used to identify the process instance.
+ * \param[out] ProcessUserSid A caller-allocated buffer that receives the SID.
+ * \param[in,out] SidSize On input, the size of the SID buffer, in bytes. On output, receives the required or written size.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1280,8 +1735,8 @@ WinStationGetProcessSid(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
     _In_ FILETIME ProcessStartTime,
-    _Out_ PVOID ProcessUserSid,
-    _Inout_ PULONG dwSidSize
+    _Out_writes_bytes_(*SidSize) PSID ProcessUserSid,
+    _Inout_ PULONG SidSize
     );
 
 //
@@ -1289,6 +1744,11 @@ WinStationGetProcessSid(
 //
 
 // rev
+/**
+ * Switches the interactive desktop to the services session.
+ *
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1297,6 +1757,11 @@ WinStationSwitchToServicesSession(
     );
 
 // rev
+/**
+ * Reverts the interactive desktop from the services session.
+ *
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1305,6 +1770,11 @@ WinStationRevertFromServicesSession(
     );
 
 // Misc.
+/**
+ * Provides the legacy WinStation wait-for-connect operation.
+ *
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1313,16 +1783,32 @@ _WinStationWaitForConnect(
     );
 
 // rev
+/**
+ * Opens a legacy session virtual channel using an 8-byte name field. Native x64 reads all 8 bytes and forces
+ * byte 7 to NUL, even if an earlier NUL is present; supply 8 readable bytes. Empty names fail with
+ * ERROR_INVALID_PARAMETER (87). SessionId -1 selects the current session only for a local server. The public ABI
+ * remains 3 arguments (x86 ret 12); inferred extra worker parameters are not public parameters. No channel was
+ * opened.
+ */
 NTSYSAPI
 HANDLE
 NTAPI
 WinStationVirtualOpen(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ PCSTR Name
+    _In_reads_(8) PCSTR Name
     );
 
 // rev
+/**
+ * Opens a virtual channel in a session with additional channel options.
+ *
+ * \param[in] ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param[in] SessionId The identifier of the session.
+ * \param[in] Name The ANSI name of the virtual channel.
+ * \param[in] ChannelOptions Virtual-channel open options, using the same 32-bit option format as WTSVirtualChannelOpenEx.
+ * \return A handle to the virtual channel if the function succeeds, or NULL otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 HANDLE
 NTAPI
@@ -1330,10 +1816,16 @@ WinStationVirtualOpenEx(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ PCSTR Name,
-    _In_ ULONG Flags
+    _In_ ULONG ChannelOptions
     );
 
 // rev
+/**
+ * Determines whether the current session can be remotely controlled.
+ *
+ * \param IsRemoteable A pointer to a variable that receives TRUE if the current session is remoteable; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1344,6 +1836,9 @@ WinStationIsCurrentSessionRemoteable(
 EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_GET_MONITOR_CONFIG = { 0x865D5285, 0xF70A, 0x4ECF, { 0x8B, 0x28, 0x51, 0x2F, 0xE0, 0xAA, 0x2D, 0x53 } };
 EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_CORRELATIONID_GUID = { 0x9A363F8E, 0x1902, 0x40DA, { 0xA2, 0xCC, 0x56, 0x4F, 0x09, 0x40, 0xAD, 0xE3 } };
 
+/**
+ * The TS_PROPERTY_INFORMATION structure contains information about a terminal services property.
+ */
 typedef struct _TS_PROPERTY_INFORMATION
 {
     ULONG Length;
@@ -1351,24 +1846,45 @@ typedef struct _TS_PROPERTY_INFORMATION
 } TS_PROPERTY_INFORMATION, *PTS_PROPERTY_INFORMATION;
 
 // rev
+/**
+ * The WinStationGetConnectionProperty routine retrieves a connection property for a session.
+ *
+ * \param[in] SessionId The identifier of the session.
+ * \param[in] PropertyType A pointer to the GUID that identifies the property.
+ * \param[out] PropertyValue Receives a service-allocated property value. Free the value with WinStationFreePropertyValue.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetConnectionProperty(
     _In_ ULONG SessionId,
     _In_ PCGUID PropertyType,
-    _Out_ PTS_PROPERTY_INFORMATION PropertyBuffer
+    _Outptr_result_maybenull_ PWINSTATION_PROPERTY_VALUE *PropertyValue
     );
 
 // rev
+/**
+ * Frees a compatible WinStation property result. Type values 2 and 3 also cause LocalFree of the nested
+ * allocation before the outer record. NULL fails with ERROR_INVALID_DATA (13), unlike
+ * WinStationFreeMemory(NULL). The by-value caller pointer is not cleared.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationFreePropertyValue(
-    _In_ PVOID PropertyBuffer
+    _In_ PWINSTATION_PROPERTY_VALUE PropertyValue
     );
 
 // rev
+/**
+ * Determines whether a specified session can be remotely controlled.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session.
+ * \param IsRemote A pointer to a variable that receives TRUE if the session is remoteable; otherwise, FALSE.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1379,6 +1895,13 @@ WinStationIsSessionRemoteable(
     );
 
 // rev
+/**
+ * Stores an automatic-logon password for a WinStation configuration entry.
+ *
+ * \param KeyName The ANSI name of the configuration key.
+ * \param Password The ANSI password to store.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1387,7 +1910,9 @@ WinStationSetAutologonPassword(
     _In_ PCSTR Password
     );
 
-// private
+/**
+ * The EXECENVDATAEX_LEVEL1 structure contains information about an execution environment (Level 1).
+ */
 typedef struct _EXECENVDATAEX_LEVEL1
 {
     LONG ExecEnvId;
@@ -1400,6 +1925,9 @@ typedef struct _EXECENVDATAEX_LEVEL1
     PWSTR FarmName;
 } EXECENVDATAEX_LEVEL1, *PEXECENVDATAEX_LEVEL1;
 
+/**
+ * The EXECENVDATAEX_PAYLOAD union contains the payload for execution environment data.
+ */
 typedef union _EXECENVDATAEX_PAYLOAD
 {
     UCHAR Data[1];
@@ -1407,6 +1935,9 @@ typedef union _EXECENVDATAEX_PAYLOAD
     // define level 2/3/4 here
 } EXECENVDATAEX_PAYLOAD;
 
+/**
+ * The EXECENVDATAEX structure defines the execution environment data.
+ */
 typedef struct _EXECENVDATAEX
 {
     ULONG Level;
@@ -1423,6 +1954,15 @@ typedef struct _EXECENVDATAEX
 // } EXECENVDATAEX, *PEXECENVDATAEX;
 
 // rev
+/**
+ * Retrieves extended information for all sessions on a Remote Desktop Session Host server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param Level The requested information level. This parameter must be 1.
+ * \param SessionData A pointer that receives an allocated array of EXECENVDATAEX structures.
+ * \param Count A pointer to a variable that receives the number of session records.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1434,6 +1974,12 @@ WinStationGetAllSessionsEx(
     );
 
 // rev
+/**
+ * Frees session information returned by WinStationGetAllSessionsEx.
+ *
+ * \param SessionData The session-information array to free.
+ * \param Count The number of records in the session-information array.
+ */
 NTSYSAPI
 VOID
 WINAPI
@@ -1442,6 +1988,9 @@ WinStationFreeEXECENVDATAEX(
     _In_ ULONG Count
     );
 
+/**
+ * The SESSIONTYPE enumeration identifies the purpose of a session.
+ */
 typedef enum _SessionType
 {
     SESSIONTYPE_UNKNOWN = 0,
@@ -1453,28 +2002,41 @@ typedef enum _SessionType
     SESSIONTYPE_MEDIACENTEREXT
 } SESSIONTYPE;
 
-// rev
+/**
+ * The TS_USER_SESSION structure contains information about a user session.
+ */
 typedef struct _TS_USER_SESSION
 {
-    ULONG Version;
+    ULONG Version; // always 1
     ULONG SessionId;
-    ULONG Unknown;
-    SESSIONTYPE State;
-    ULONG field5;
+    ULONG State; // WTS connect state (WTS_CONNECTSTATE_CLASS)
+    SESSIONTYPE SessionType;
+    ULONG ChildSessionId; // child session id (parent session id for RemoteApp/agent session types); 0xFFFFFFFF if none
 } TS_USER_SESSION, *PTS_USER_SESSION;
 
 // rev
+/**
+ * The WinStationGetAllUserSessions routine retrieves session records associated with a user security identifier.
+ *
+ * \param[in] ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param[in] Sid The security identifier of the user whose sessions are requested.
+ * \param[out] Sessions Receives a LocalAlloc-allocated array of session records. Free the array with WinStationFreeUserSessionInfo or LocalFree.
+ * \param[out] Count Receives the number of returned records.
+ * \return Nonzero if the function succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetAllUserSessions(
     _In_opt_ HANDLE ServerHandle,
     _In_ PSID Sid,
-    _Out_ PVOID* Processes, // LocalFree
-    _Out_ PULONG NumberOfProcesses
+    _Outptr_result_buffer_(*Count) PTS_USER_SESSION *Sessions,
+    _Out_ PULONG Count
     );
 
-// rev
+/**
+ * The TS_SESSION_VIRTUAL_ADDRESS structure defines the virtual address for a session.
+ */
 typedef struct _TS_SESSION_VIRTUAL_ADDRESS
 {
   USHORT AddressFamily;
@@ -1484,6 +2046,15 @@ typedef struct _TS_SESSION_VIRTUAL_ADDRESS
 typedef USHORT ADDRESS_FAMILY;
 
 // rev
+/**
+ * Retrieves the virtual IP address assigned to a session.
+ *
+ * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
+ * \param SessionId The identifier of the session.
+ * \param Family The address family of the requested virtual address.
+ * \param SessionVirtualIP A pointer to a TS_SESSION_VIRTUAL_ADDRESS structure that receives the address.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1495,17 +2066,30 @@ WinStationQuerySessionVirtualIP(
     );
 
 // rev
+/**
+ * Queries device-ID data into caller storage, not a returned pointer. Both architectures forward Buffer
+ * directly to RpcQuerySessionData selector 4 and 2 * BufferLength as a 32-bit byte count. BufferLength counts
+ * 2-byte storage units, not bytes or SIZE_T; keep it <= ULONG_MAX / 2 to avoid multiplication wrapping.
+ * Encoding, termination and service-side maximum are unverified, so output remains opaque.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetDeviceId(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
-    _In_ SIZE_T BufferLength
+    _Out_writes_bytes_(2 * BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     );
 
 // rev
+/**
+ * Retrieves the numbers of logged-on users and devices.
+ *
+ * \param LoggedOnUserCount A pointer to a variable that receives the number of logged-on users.
+ * \param LoggedOnDeviceCount A pointer to a variable that receives the number of logged-on devices.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1543,17 +2127,2505 @@ WinStationSetRenderHint(
 
 // rev
 /**
- * The WinStationActiveSessionExists routine returns active sessions on the system without enumerating through the list of sessions.
- * It also does not obtain any extra information from Local Session Manager.
+ * The WinStationActiveSessionExists routine determines whether an active session exists without enumerating sessions or obtaining additional information from Local Session Manager.
  *
- * \return BOOLEAN Nonzero if an active session exists.
+ * \param[out] ActiveSessionExists Receives TRUE if an active session exists; otherwise, FALSE.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsactivesessionexists
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationActiveSessionExists(
+    _Out_ PBOOL ActiveSessionExists
+    );
+
+typedef PVOID HSERVERLICENSING;
+
+/**
+ * The LCPOLICYINFOGENERICA structure contains license policy information (ANSI).
+ */
+typedef struct _LCPOLICYINFOGENERICA
+{
+    ULONG Version;
+    PSTR Name;
+    PSTR Value;
+} LCPOLICYINFOGENERICA, *PLCPOLICYINFOGENERICA;
+
+/**
+ * The LCPOLICYINFOGENERICW structure contains license policy information (Unicode).
+ */
+typedef struct _LCPOLICYINFOGENERICW
+{
+    ULONG Version;
+    PWSTR Name;
+    PWSTR Value;
+} LCPOLICYINFOGENERICW, *PLCPOLICYINFOGENERICW;
+
+/**
+ * The SERVERLICENSING_AADINFOW structure contains AAD info for server licensing.
+ */
+typedef struct _SERVERLICENSING_AADINFOW
+{
+    PWSTR TenantId; // The tenant identifier.
+    PWSTR Token; // The token.
+    ULONG Data; // Data.
+} SERVERLICENSING_AADINFOW, *PSERVERLICENSING_AADINFOW;
+
+// Export declarations recovered from the current winsta.dll export table.
+// Deprecated compatibility exports retain their historical ABI; opaque legacy
+// payloads are intentionally typed as PVOID where neither side dereferences them.
+
+/**
+ * The LogonIdFromWinStationNameA routine is a deprecated entry point for resolving a session identifier from an ANSI WinStation name.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WinStationName The win station name.
+ * \param[out] SessionId The session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+LogonIdFromWinStationNameA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ PCSTR WinStationName,
+    _Out_ PULONG SessionId
+    );
+
+/**
+ * The RemoteAssistancePrepareSystemRestore routine is a deprecated entry point for preparing System Restore for a Remote Assistance operation.
+ *
+ * \param[in] RestoreInformation The restore information.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+RemoteAssistancePrepareSystemRestore(
+    _In_opt_ PVOID RestoreInformation
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerGetInternetConnectorStatus(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+/**
+ * The ServerLicensingClose routine closes a server-licensing context and releases its resources.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ */
+NTSYSAPI
+VOID
+NTAPI
+ServerLicensingClose(
+    _In_opt_ HSERVERLICENSING LicensingHandle
+    );
+
+/**
+ * The ServerLicensingDeactivateCurrentPolicy routine deactivates the policy currently active in a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingDeactivateCurrentPolicy(
+    _In_opt_ HSERVERLICENSING LicensingHandle
+    );
+
+/**
+ * Frees a compatible licensing-policy result through an optional pointer-to-pointer. NULL outer or inner
+ * pointers are ignored. Only version 1 records are freed; the two nested LocalAlloc
+ * pointers and outer allocation are released. The caller pointer slot is NOT cleared. The public return remains
+ * VOID; do not treat residual LocalFree register values as a return contract.
+ */
+NTSYSAPI
+VOID
+NTAPI
+ServerLicensingFreePolicyInformation(
+    _Inout_opt_ PLCPOLICYINFOGENERICW *PolicyInformation
+    );
+
+/**
+ * Compatibility AAD licensing query. The implementation returns E_NOTIMPL (0x80004001), clears each non-NULL
+ * TenantId and Token pointer slot and writes a 4-byte zero to optional Data. It does not retrieve tokens or
+ * tenant information. Output values can be overwritten even when the call fails.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+ServerLicensingGetAadInfo(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _Outptr_opt_result_maybenull_ PWSTR *TenantId,
+    _Outptr_opt_result_maybenull_ PWSTR *Token,
+    _Out_opt_ PULONG Data
+    );
+
+/**
+ * The ServerLicensingGetAvailablePolicyIds routine retrieves the identifiers of policies available from a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \param[out] PolicyIds Receives the policy ids.
+ * \param[out] PolicyCount Receives the policy count.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingGetAvailablePolicyIds(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _Outptr_result_buffer_(*PolicyCount) PULONG *PolicyIds,
+    _Out_ PULONG PolicyCount
+    );
+
+/**
+ * The ServerLicensingGetPolicy routine retrieves policy data from a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \param[in] PolicyId An optional pointer to the policy GUID. If NULL, the built-in GUID for the information class is used.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingGetPolicy(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _In_ ULONG PolicyId
+    );
+
+/**
+ * The ServerLicensingGetPolicyInformationA routine retrieves ANSI policy information from a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \param[in] PolicyId The numeric identifier of the policy to query.
+ * \param[in,out] PolicyInformationVersion On input, the requested policy-information format version (0 or 1); on output, the version used by the service. Values greater than 1 are reduced to 1.
+ * \param[out] PolicyInformation Receives the policy information.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingGetPolicyInformationA(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _In_ ULONG PolicyId,
+    _Inout_ PULONG PolicyInformationVersion,
+    _Outptr_result_maybenull_ PLCPOLICYINFOGENERICA *PolicyInformation
+    );
+
+/**
+ * The ServerLicensingGetPolicyInformationW routine retrieves Unicode policy information from a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \param[in] PolicyId The numeric identifier of the policy to query.
+ * \param[in,out] PolicyInformationVersion On input, the requested policy-information format version (0 or 1); on output, the version used by the service. Values greater than 1 are reduced to 1.
+ * \param[out] PolicyInformation Receives the policy information.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingGetPolicyInformationW(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _In_ ULONG PolicyId,
+    _Inout_ PULONG PolicyInformationVersion,
+    _Outptr_result_maybenull_ PLCPOLICYINFOGENERICW *PolicyInformation
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_CALL_NOT_IMPLEMENTED (120) without performing the named
+ * operation. The x86 public entry consumes 8 argument bytes, establishing 2 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingLoadPolicy(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2
+    );
+
+/**
+ * The ServerLicensingOpenA routine opens an ANSI server-licensing context for the specified server.
+ *
+ * \param[in] ServerName The server name.
+ * \return A server licensing handle if the operation succeeds; otherwise, NULL.
+ */
+NTSYSAPI
+HSERVERLICENSING
+NTAPI
+ServerLicensingOpenA(
+    _In_opt_ PCSTR ServerName
+    );
+
+/**
+ * Opens a local terminal-services licensing context. The public entry takes one pointer argument (x86 ret 4);
+ * non-NULL ServerName is rejected with RPC_S_SERVER_UNAVAILABLE (1722) before any RPC call. NULL follows a
+ * suite-mask 0x10 check and local RPC binding. The string is not dereferenced on the non-NULL rejection path.
+ * Close a successfully created context with ServerLicensingClose.
+ */
+NTSYSAPI
+HSERVERLICENSING
+NTAPI
+ServerLicensingOpenW(
+    _In_opt_ PCWSTR ServerName
+    );
+
+/**
+ * Legacy compatibility stub; returns E_NOTIMPL (0x80004001) without performing the named operation. The x86
+ * public entry consumes 16 argument bytes, establishing 4 machine-word ABI slots. The Parameter names
+ * preserve argument slots; historical parameter types and meanings are unspecified. No output buffer is
+ * populated and no real session/licensing operation is supported by this body.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+ServerLicensingSetAadInfo(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4
+    );
+
+/**
+ * The ServerLicensingSetPolicy routine sets policy data in a server-licensing context.
+ *
+ * \param[in] LicensingHandle A handle to the server licensing context.
+ * \param[in] PolicyId An optional pointer to the policy GUID. If NULL, the built-in GUID for the information class is used.
+ * \param[in] PolicyValue The policy value.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingSetPolicy(
+    _In_opt_ HSERVERLICENSING LicensingHandle,
+    _In_ ULONG PolicyId,
+    _In_ PULONG PolicyValue
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_CALL_NOT_IMPLEMENTED (120) without performing the named
+ * operation. The x86 public entry consumes 8 argument bytes, establishing 2 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerLicensingUnloadPolicy(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 16 argument bytes, establishing 4 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerQueryInetConnectorInformationA(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 16 argument bytes, establishing 4 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerQueryInetConnectorInformationW(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+ServerSetInternetConnectorStatus(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+/**
+ * The WTSRegisterSessionNotificationEx routine registers a window to receive session-change notifications from a specified server.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the notification window.
+ * \param[in] Flags Flags that control the operation.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOL
+WINAPI
+WTSRegisterSessionNotificationEx(
+    _In_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ DWORD Flags
+    );
+
+/**
+ * The WTSUnRegisterSessionNotificationEx routine unregisters a window from receiving session-change notifications from a specified server.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the notification window.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOL
+WINAPI
+WTSUnRegisterSessionNotificationEx(
+    _In_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+/**
+ * Legacy compatibility stub. Returns FALSE and sets ERROR_INVALID_FUNCTION (1), without reading its
+ * arguments. The x86 entry pops 16 argument bytes, requiring 4 ABI slots. Parameter1 through Parameter4
+ * preserve the argument slots; historical parameter types and meanings are unspecified. Do not use it for a
+ * real session or licensing operation. Legacy behavior may differ between Windows versions.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationActivateLicense(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4
+    );
+
+/**
+ * Legacy compatibility stub. Returns zero and sets ERROR_INVALID_FUNCTION (1), without performing the named
+ * operation or writing outputs. Existing ABI slots remain even though the stub does not consume them.
+ * Historical success semantics are not established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationAutoReconnect(
+    _In_opt_ PVOID ReconnectInformation
+    );
+
+/**
+ * The WinStationBroadcastSystemMessage routine broadcasts a system message to selected sessions on a Remote Desktop Session Host server.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] Message The message.
+ * \param[in] WParam The w param.
+ * \param[in] LParam The l param.
+ * \param[in,out] Recipients Supplies the initial recipients and receives the updated value.
+ * \param[in] RecipientCount The recipient count.
+ * \param[in] MessageData The message data.
+ * \param[in] Reserved A message-dependent input buffer (not actually reserved). It is marshalled by
+ * AllocateBSMRpcBuffer according to the Message value: for some messages it is a null-terminated
+ * wide string, for others a length-prefixed structure; the buffer is copied into the cross-session
+ * RPC request. May be NULL when the message carries no pointer payload.
+ * \param[out] Response Receives the response.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationBroadcastSystemMessage(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ULONG Message,
+    _In_ ULONG WParam,
+    _In_ ULONG LParam,
+    _Inout_ PULONG Recipients,
+    _In_ ULONG RecipientCount,
+    _In_opt_ PVOID MessageData,
+    _In_opt_ PVOID Reserved,
+    _Out_opt_ PULONG Response
+    );
+
+/**
+ * Legacy compatibility stub. Returns zero and sets ERROR_INVALID_FUNCTION (1), without performing the named
+ * operation or writing outputs. Existing ABI slots remain even though the stub does not consume them.
+ * Historical success semantics are not established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationCheckAccess(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+/**
+ * Legacy compatibility stub. Returns zero and sets ERROR_INVALID_FUNCTION (1), without performing the named
+ * operation or writing outputs. Existing ABI slots remain even though the stub does not consume them.
+ * Historical success semantics are not established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationCheckLoopBack(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SourceSessionId,
+    _In_ ULONG TargetSessionId,
+    _Out_opt_ PBOOLEAN LoopBack
+    );
+
+/**
+ * Legacy compatibility stub. Returns FALSE and sets ERROR_INVALID_FUNCTION (1), without reading its
+ * arguments. The x86 entry pops 20 argument bytes, requiring 5 ABI slots. Parameter1 through Parameter5
+ * preserve the argument slots; historical parameter types and meanings are unspecified. Do not use it for a
+ * real session or licensing operation. Legacy behavior may differ between Windows versions.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationConnectA(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5
+    );
+
+/**
+ * The WinStationConnectAndLockDesktop routine connects to a session and locks its desktop.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationConnectAndLockDesktop(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId
+    );
+
+/**
+ * Legacy compatibility stub. Returns zero and sets ERROR_INVALID_FUNCTION (1), without performing the named
+ * operation or writing outputs. Existing ABI slots remain even though the stub does not consume them.
+ * Historical success semantics are not established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationConnectCallback(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3,
+    _In_opt_ PVOID Parameter4,
+    _In_opt_ PVOID Parameter5
+    );
+
+/**
+ * Legacy compatibility stub. Sets ERROR_INVALID_FUNCTION (1) and returns 1, not zero, without performing a
+ * connection operation. Therefore Boolean truth is not proof of a successful connection. The x86 ABI consumes
+ * 8 argument bytes; the existing 2 opaque parameter slots are retained. Historical success semantics are not
+ * established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationConnectEx(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+/**
+ * The WinStationConsumeCacheSession routine consumes a cached session for use by the caller.
+ *
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationConsumeCacheSession(
     VOID
+    );
+
+/**
+ * The WinStationCreateAgentSessionTransport routine creates an agent-session transport and returns its named-pipe path.
+ *
+ * \param[out] TransportName A caller-allocated buffer that receives the null-terminated transport name.
+ * \param[in] TransportNameLength The capacity of TransportName, in WCHAR elements.
+ * \return An HRESULT indicating whether the transport was created.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationCreateAgentSessionTransport(
+    _Out_writes_z_(TransportNameLength) PWSTR TransportName,
+    _In_ ULONG TransportNameLength
+    );
+
+/**
+ * The WinStationCreateChildSessionTransport routine creates a child-session transport and returns its named-pipe path.
+ *
+ * \param[out] TransportName A caller-allocated buffer that receives the null-terminated transport name.
+ * \param[in] TransportNameLength The capacity of TransportName, in WCHAR elements.
+ * \return An HRESULT indicating whether the transport was created.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationCreateChildSessionTransport(
+    _Out_writes_z_(TransportNameLength) PWSTR TransportName,
+    _In_ ULONG TransportNameLength
+    );
+
+/**
+ * The WinStationEnableChildSessions routine enables or disables child-session support.
+ *
+ * \param[in] Enable The enable.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnableChildSessions(
+    _In_ BOOLEAN Enable
+    );
+
+/**
+ * The WinStationEnumerateA routine enumerates sessions on a Remote Desktop Session Host server and returns ANSI session records.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[out] SessionIds Receives the session ids.
+ * \param[out] Count Receives the number of returned entries.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerateA(
+    _In_opt_ HANDLE ServerHandle,
+    _Outptr_result_buffer_(*Count) PSESSIONIDA *SessionIds,
+    _Out_ PULONG Count
+    );
+
+/**
+ * The WinStationEnumerateContainerSessions routine enumerates sessions associated with a container.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[out] Sessions Receives the sessions.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerateContainerSessions(
+    _In_opt_ HANDLE ServerHandle,
+    _Outptr_result_maybenull_ PVOID *Sessions
+    );
+
+/**
+ * The WinStationEnumerateExW routine enumerates sessions on a Remote Desktop Session Host server and returns extended Unicode session records.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[out] Sessions Receives the sessions.
+ * \param[out] Count Receives the number of returned entries.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerateExW(
+    _In_opt_ HANDLE ServerHandle,
+    _Outptr_result_buffer_(*Count) PWINSTATION_SESSION_INFO_EXW *Sessions,
+    _Out_ PULONG Count
+    );
+
+/**
+ * Legacy compatibility stub. Returns zero and sets ERROR_INVALID_FUNCTION (1), without performing the named
+ * operation or writing outputs. Existing ABI slots remain even though the stub does not consume them.
+ * Historical success semantics are not established.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerateLicenses(
+    _In_opt_ HANDLE ServerHandle,
+    _Outptr_result_maybenull_ PVOID *Licenses,
+    _Out_opt_ PULONG Count
+    );
+
+/**
+ * Legacy compatibility stub. Returns FALSE and sets ERROR_INVALID_FUNCTION (1), without reading its
+ * arguments. The x86 entry pops 20 argument bytes, requiring 5 ABI slots. Parameter1 through Parameter5
+ * preserve the argument slots; historical parameter types and meanings are unspecified. Do not use it for a
+ * real session or licensing operation. Legacy behavior may differ between Windows versions.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerate_IndexedA(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5
+    );
+
+/**
+ * Legacy compatibility stub. Returns FALSE and sets ERROR_INVALID_FUNCTION (1), without reading its
+ * arguments. The x86 entry pops 20 argument bytes, requiring 5 ABI slots. Parameter1 through Parameter5
+ * preserve the argument slots; historical parameter types and meanings are unspecified. Do not use it for a
+ * real session or licensing operation. Legacy behavior may differ between Windows versions.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerate_IndexedW(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5
+    );
+
+/**
+ * The WinStationFreeConsoleNotification routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the notification window.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreeConsoleNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+/**
+ * The WinStationFreeSessionNotification routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the notification window.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreeSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+/**
+ * The WinStationFreeUserCertificates routine frees a user-certificate object returned by WinStationGetUserCertificates, including its certificate-data buffer.
+ *
+ * \param[in] Certificates The certificates.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreeUserCertificates(
+    _In_opt_ PWINSTATION_USER_CERTIFICATE Certificates
+    );
+
+/**
+ * The WinStationFreeUserCredentials routine securely clears and frees a credential object returned by WinStationGetUserCredentials.
+ *
+ * \param[in] Credentials The credentials.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationFreeUserCredentials(
+    _In_opt_ PCRED_PROV_CREDENTIAL Credentials
+    );
+
+/**
+ * Releases a user-session result allocation using LocalFree. The x86 ABI consumes 8 bytes: a second slot is
+ * required although neither body reads it. AdditionalParameter is an opaque ABI placeholder whose
+ * historical type/meaning is unverified; pass zero. NULL SessionInformation returns FALSE and
+ * ERROR_INVALID_PARAMETER (87). The by-value pointer is not cleared.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreeUserSessionInfo(
+    _Frees_ptr_ PTS_USER_SESSION SessionInformation,
+    _In_ ULONG_PTR AdditionalParameter
+    );
+
+/**
+ * Legacy compatibility stub. Returns FALSE and sets ERROR_INVALID_FUNCTION (1), without reading its
+ * arguments. The x86 entry pops 16 argument bytes, requiring 4 ABI slots. Parameter1 through Parameter4
+ * preserve the argument slots; historical parameter types and meanings are unspecified. Do not use it for a
+ * real session or licensing operation. Legacy behavior may differ between Windows versions.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGenerateLicense(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4
+    );
+
+/**
+ * The WinStationGetAllSessionsW routine retrieves Unicode information for all sessions on a Remote Desktop Session Host server.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in,out] Level On input, the requested information level; on output, the level accepted by the service.
+ * \param[out] Sessions Receives a LocalAlloc-allocated array of session records. Free the array with LocalFree.
+ * \param[out] Count Receives the number of returned entries.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetAllSessionsW(
+    _In_opt_ HANDLE ServerHandle,
+    _Inout_ PULONG Level,
+    _Outptr_result_buffer_(*Count) PWINSTATION_SESSION_INFO_1W *Sessions,
+    _Out_ PULONG Count
+    );
+
+/**
+ * The WinStationGetChildSessionId routine retrieves the child-session identifier associated with the current session.
+ *
+ * \param[out] SessionId The session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetChildSessionId(
+    _Out_ PULONG SessionId
+    );
+
+/**
+ * The WinStationGetCurrentSessionCapabilities routine queries a capability of the current session.
+ *
+ * \param[in] CapabilityClass The capability to query. The implementation accepts only WinStationCurrentSessionCapabilityRemoteDesktop.
+ * \param[out] CapabilityValue Receives TRUE if the current session has the requested capability; otherwise, FALSE.
+ * \return Nonzero if the operation succeeds; otherwise, zero. An unsupported capability class fails with ERROR_INVALID_PARAMETER.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionCapabilities(
+    _In_ WINSTATION_CURRENT_SESSION_CAPABILITY_CLASS CapabilityClass,
+    _Out_ PBOOL CapabilityValue
+    );
+
+/**
+ * The WinStationGetCurrentSessionConnectionProperty routine retrieves an allocated connection-property value for the current session.
+ *
+ * \param[in] PropertyId A pointer to the GUID that identifies the connection property.
+ * \param[out] PropertyValue Receives a service-allocated property value. Free the value with WinStationFreePropertyValue.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionConnectionProperty(
+    _In_ PCGUID PropertyId,
+    _Outptr_result_maybenull_ PWINSTATION_PROPERTY_VALUE *PropertyValue
+    );
+
+/**
+ * Retrieves a terminal name into 32 WCHARs including terminator space. The wrapper clears the first WCHAR
+ * before contacting the service and uses StringCchCopyW with capacity 32. NULL fails with
+ * ERROR_INVALID_PARAMETER (87); a service-not-started check reports 1352.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionTerminalName(
+    _Out_writes_(32) PWSTR TerminalName
+    );
+
+/**
+ * The WinStationGetInitialApplication routine retrieves the initial command line and working directory for a session.
+ *
+ * \param[in] SessionId The session identifier. Specify LOGONID_CURRENT for the caller's session.
+ * \param[out] CommandLine Receives a WinStation-allocated null-terminated command line.
+ * \param[out] WorkingDirectory Receives a WinStation-allocated null-terminated working directory.
+ * \param[out] ApplicationAllowed Receives whether the initial application is permitted by policy.
+ * \param[out] Maximize Receives whether the application should be maximized.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks Free CommandLine and WorkingDirectory with WinStationFreeMemory.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetInitialApplication(
+    _In_ ULONG SessionId,
+    _Outptr_result_z_ PWSTR *CommandLine,
+    _Outptr_result_z_ PWSTR *WorkingDirectory,
+    _Out_ PBOOL ApplicationAllowed,
+    _Out_ PBOOL Maximize
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 24 argument bytes, establishing 6 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLanAdapterNameA(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5,
+    _In_ ULONG_PTR Parameter6
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 24 argument bytes, establishing 6 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLanAdapterNameW(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5,
+    _In_ ULONG_PTR Parameter6
+    );
+
+/**
+ * The WinStationGetLastWinlogonNotification routine retrieves the Winlogon notification currently blocked by a subscriber in a session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[out] NotificationId Receives the Winlogon notification identifier.
+ * \param[out] SubscriberName Receives the null-terminated notification subscriber name. The caller supplies space for at least 260 WCHAR elements.
+ * \param[out] IsCritical Receives TRUE if the subscriber is marked as critical; otherwise, FALSE.
+ * \param[out] NotificationTickCount Receives the GetTickCount64 value recorded for the notification.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLastWinlogonNotification(
+    _In_ ULONG SessionId,
+    _Out_ PULONG NotificationId,
+    _Out_writes_z_(260) PWSTR SubscriberName,
+    _Out_ PBOOL IsCritical,
+    _Out_ PULONGLONG NotificationTickCount
+    );
+
+/**
+ * The WinStationGetMachinePolicy routine is a deprecated entry point for retrieving Terminal Services machine policy.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[out] Policy Receives the policy.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetMachinePolicy(
+    _In_opt_ HANDLE ServerHandle,
+    _Out_opt_ PVOID Policy
+    );
+
+/**
+ * The WinStationGetParentSessionId routine retrieves the parent-session identifier associated with the current session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[out] ParentSessionId Receives the parent session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetParentSessionId(
+    _In_ ULONG SessionId,
+    _Out_ PULONG ParentSessionId
+    );
+
+/**
+ * The WinStationGetRedirectAuthInfo routine retrieves certificate and symmetric-key material used to redirect a logon.
+ *
+ * \param[in] RedirectionGuid The redirection operation identifier.
+ * \param[out] CertificateLength Receives the certificate size, in bytes.
+ * \param[out] Certificate Receives a service-allocated certificate byte buffer. Free the buffer with WinStationFreeMemory.
+ * \param[out] SymmetricAlgorithm Receives a service-allocated null-terminated symmetric-algorithm identifier. Free the string with WinStationFreeMemory.
+ * \param[out] SymmetricKeyLength Receives the symmetric-key size, in bytes.
+ * \param[out] SymmetricKey Receives a service-allocated symmetric-key byte buffer. Free the buffer with WinStationFreeMemory.
+ * \return Zero if the operation succeeds; otherwise, an error status.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationGetRedirectAuthInfo(
+    _In_ const GUID *RedirectionGuid,
+    _Out_ PULONG CertificateLength,
+    _Outptr_result_bytebuffer_(*CertificateLength) PBYTE *Certificate,
+    _Outptr_result_z_ PWSTR *SymmetricAlgorithm,
+    _Out_ PULONG SymmetricKeyLength,
+    _Outptr_result_bytebuffer_(*SymmetricKeyLength) PBYTE *SymmetricKey
+    );
+
+/**
+ * The WinStationGetRestrictedLogonInfo routine determines whether restricted logon was requested for the calling session and returns the authentication identifier of its security-filter client token.
+ *
+ * \param[out] RestrictedLogonRequested Receives TRUE if restricted logon was requested; otherwise, FALSE.
+ * \param[out] AuthenticationId Receives the token authentication identifier. The value is zero when restricted logon was not requested.
+ * \return Zero if the operation succeeds; otherwise, a Win32 error code.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationGetRestrictedLogonInfo(
+    _Out_ PBOOL RestrictedLogonRequested,
+    _Out_ PLUID AuthenticationId
+    );
+
+/**
+ * The WinStationGetSessionIds routine retrieves session identifiers associated with the current session context.
+ *
+ * \param[in] State The state.
+ * \param[out] SessionIds Receives the session ids.
+ * \param[in,out] BufferLength The size of the buffer, in bytes.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetSessionIds(
+    _In_ ULONG State,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PULONG SessionIds,
+    _Inout_ PULONG BufferLength
+    );
+
+/**
+ * The WinStationGetSpecialSessionFlags routine retrieves special-session flags for the specified session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[out] Flags Flags that control the operation.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetSpecialSessionFlags(
+    _In_ ULONG SessionId,
+    _Out_ PULONG Flags
+    );
+
+/**
+ * The WinStationGetUserCertificates routine retrieves the user-certificate data associated with a session.
+ *
+ * \param[out] Certificates Receives the certificates.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetUserCertificates(
+    _Outptr_result_maybenull_ PWINSTATION_USER_CERTIFICATE *Certificates
+    );
+
+/**
+ * The WinStationGetUserCredentials routine retrieves the credential-provider credentials associated with a session.
+ *
+ * \param[out] Credentials Receives the credentials.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationGetUserCredentials(
+    _Outptr_result_maybenull_ PCRED_PROV_CREDENTIAL *Credentials
+    );
+
+/**
+ * The WinStationGetUserProfile routine retrieves the user-profile path associated with a session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[out] UserName Receives the user name.
+ * \param[out] Domain Receives the domain.
+ * \param[out] ProfilePath Receives the profile path.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationGetUserProfile(
+    _In_ ULONG SessionId,
+    _Outptr_result_maybenull_ PWSTR *UserName,
+    _Outptr_result_maybenull_ PWSTR *Domain,
+    _Outptr_result_maybenull_ PWSTR *ProfilePath
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationInstallLicense(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+/**
+ * The WinStationIsBoundToCacheTerminal routine determines whether a session is bound to a cache terminal.
+ *
+ * \param[in] SessionId The session identifier.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationIsBoundToCacheTerminal(
+    _In_ ULONG SessionId
+    );
+
+/**
+ * The WinStationIsChildSessionsEnabled routine determines whether child-session support is enabled.
+ *
+ * \param[out] Enabled Receives the enabled.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationIsChildSessionsEnabled(
+    _Out_ PBOOLEAN Enabled
+    );
+
+/**
+ * The WinStationIsHelpAssistantSession routine determines whether the specified session is a Help Assistant session.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationIsHelpAssistantSession(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId
+    );
+
+/**
+ * The WinStationIsSessionPermitted routine determines whether creation or use of a session is permitted.
+ *
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationIsSessionPermitted(
+    VOID
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationNameFromLogonIdA(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+/**
+ * The WinStationNegotiateSession routine retrieves session-negotiation values from the Remote Desktop Session Host service.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[out] NegotiationFlags Receives the negotiation flags returned by the service.
+ * \param[out] ValueCount Receives the number of ULONG elements in Values.
+ * \param[out] Values Receives a LocalAlloc-allocated array of ULONG values.
+ * \param[out] Result Receives the negotiation result returned by the service.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks Free Values with LocalFree.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationNegotiateSession(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_ PULONG NegotiationFlags,
+    _Out_ PULONG ValueCount,
+    _Outptr_result_buffer_(*ValueCount) PULONG *Values,
+    _Out_ PULONG Result
+    );
+
+/**
+ * The WinStationNtsdDebug routine is a deprecated entry point for starting or controlling NTSD debugging for a session process.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \param[in] Parameter4 An opaque operation-specific parameter.
+ * \param[in] Parameter5 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationNtsdDebug(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3,
+    _In_opt_ PVOID Parameter4,
+    _In_opt_ PVOID Parameter5
+    );
+
+/**
+ * The WinStationOpenServerA routine opens an ANSI handle to a Remote Desktop Session Host server.
+ *
+ * \param[in, optional] ServerName The server name.
+ * \return A handle if the operation succeeds; otherwise, NULL.
+ */
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationOpenServerA(
+    _In_opt_ PCSTR ServerName
+    );
+
+/**
+ * The WinStationOpenServerExA routine opens an extended ANSI handle to a Remote Desktop Session Host server.
+ *
+ * \param[in, optional] ServerName The server name.
+ * \return A handle if the operation succeeds; otherwise, NULL.
+ */
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationOpenServerExA(
+    _In_opt_ PCSTR ServerName
+    );
+
+/**
+ * The WinStationPreCreateGlassReplacementSession routine prepares creation of a glass-replacement session for an application.
+ *
+ * \param[in, optional] InitialCommand The initial command line.
+ * \param[in] Arg2 Operation-specific parameter.
+ * \param[out] SessionId Receives the session identifier.
+ * \return BOOLEAN TRUE if the operation succeeds; otherwise, FALSE.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationPreCreateGlassReplacementSession(
+    _In_opt_ PCWSTR InitialCommand,
+    _In_ ULONG Arg2,
+    _Out_ PULONG SessionId
+    );
+
+/**
+ * The WinStationPreCreateGlassReplacementSessionEx routine prepares creation of an extended glass-replacement session for an application.
+ *
+ * \param[in, optional] InitialCommand The initial command line.
+ * \param[in] Arg2 Operation-specific parameter.
+ * \param[in] Arg3 Operation-specific parameter.
+ * \param[out] SessionId Receives the session identifier.
+ * \return BOOLEAN TRUE if the operation succeeds; otherwise, FALSE.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationPreCreateGlassReplacementSessionEx(
+    _In_opt_ PCWSTR InitialCommand,
+    _In_ ULONG Arg2,
+    _In_ ULONG Arg3,
+    _Out_ PULONG SessionId
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 0 argument bytes, establishing 0 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryAllowConcurrentConnections(
+    VOID
+    );
+
+/**
+ * The WinStationQueryEnforcementCore routine queries a licensing-enforcement policy value.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] PolicyId An optional pointer to the policy GUID. If NULL, the built-in GUID for the information class is used.
+ * \param[in] InformationClass The licensing-enforcement information class to query.
+ * \param[out] Buffer Receives the 32-bit value selected by InformationClass.
+ * \param[in] BufferLength The size of the buffer, in bytes.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
+ * \return Nonzero if the operation succeeds; otherwise, zero. Unsupported information classes fail with ERROR_INVALID_PARAMETER; buffers smaller than sizeof(ULONG) fail with ERROR_INSUFFICIENT_BUFFER.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryEnforcementCore(
+    _In_opt_ HANDLE ServerHandle,
+    _In_opt_ PCGUID PolicyId,
+    _In_ WINSTATION_ENFORCEMENT_CORE_INFORMATION_CLASS InformationClass,
+    _Out_ PULONG Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength
+    );
+
+/**
+ * The WinStationQueryInformationA routine is a deprecated entry point for querying ANSI WinStation information.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] WinStationInformationClass The win station information class.
+ * \param[out] WinStationInformation Receives the win station information.
+ * \param[in] WinStationInformationLength The size of the win station information, in bytes.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryInformationA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG ReturnLength
+    );
+
+/**
+ * The WinStationQueryLicense routine is a deprecated entry point for querying Terminal Services license information.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[out] LicenseInformation Receives the license information.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryLicense(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_opt_ PVOID LicenseInformation
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 4 argument bytes, establishing 1 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryLogonCredentialsW(
+    _In_ ULONG_PTR Parameter1
+    );
+
+/**
+ * The WinStationQueryUpdateRequired routine is a deprecated entry point for querying whether a Terminal Services update is required.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[out] UpdateRequired Receives the update required.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryUpdateRequired(
+    _In_opt_ HANDLE ServerHandle,
+    _Out_opt_ PBOOLEAN UpdateRequired
+    );
+
+/**
+ * The WinStationRcmShadow2 routine creates a shadow invitation for a session.
+ *
+ * \param[in] SourceSessionId The source session identifier.
+ * \param[in] TargetSessionId The target session identifier.
+ * \param[in] ShadowOptions A 32-bit value passed to the shadow-invitation creation operation.
+ * \param[out] Response Receives the shadow invitation result.
+ * \param[out] Invitation Receives the null-terminated shadow invitation string.
+ * \param[in] InvitationLength The capacity of Invitation, in WCHAR elements.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRcmShadow2(
+    _In_ ULONG SourceSessionId,
+    _In_ ULONG TargetSessionId,
+    _In_ ULONG ShadowOptions,
+    _Out_ PULONG Response,
+    _Out_writes_z_(InvitationLength) PWSTR Invitation,
+    _In_ ULONG InvitationLength
+    );
+
+/**
+ * The WinStationRedirectErrorMessage routine reports an error message during redirected logon.
+ *
+ * \param[in] ErrorCode The error code.
+ * \param[in] MessageId The message id.
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationRedirectErrorMessage(
+    _In_ ULONG ErrorCode,
+    _In_ ULONG MessageId
+    );
+
+/**
+ * The WinStationRedirectLogonBeginPainting routine notifies redirected logon that the session can begin painting.
+ *
+ * \return An operation-specific status or result value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationRedirectLogonBeginPainting(
+    VOID
+    );
+
+/**
+ * The WinStationRedirectLogonError routine reports a redirected-logon error and optionally displays an associated message.
+ *
+ * \param[in] ErrorCode The primary error code.
+ * \param[in] SubErrorCode The secondary error code.
+ * \param[in, optional] Message A null-terminated Unicode error message.
+ * \param[in, optional] Caption A null-terminated Unicode caption for the message.
+ * \param[in] Type Flags controlling how the message is presented.
+ * \param[out, optional] Response Receives the response selected for the message.
+ * \return An HRESULT-style status value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationRedirectLogonError(
+    _In_ ULONG ErrorCode,
+    _In_ ULONG SubErrorCode,
+    _In_opt_ PCWSTR Message,
+    _In_opt_ PCWSTR Caption,
+    _In_ ULONG Type,
+    _Out_opt_ PULONG Response
+    );
+
+/**
+ * The WinStationRedirectLogonMessage routine displays a message during redirected logon.
+ *
+ * \param[in, optional] Message A null-terminated Unicode message.
+ * \param[in, optional] Caption A null-terminated Unicode caption for the message.
+ * \param[in] Type Flags controlling how the message is presented.
+ * \param[out, optional] Response Receives the response selected for the message.
+ * \return An HRESULT-style status value.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationRedirectLogonMessage(
+    _In_opt_ PCWSTR Message,
+    _In_opt_ PCWSTR Caption,
+    _In_ ULONG Type,
+    _Out_opt_ PULONG Response
+    );
+
+/**
+ * The WinStationRedirectLogonStatus routine reports a redirected-logon status message and retrieves the resulting status value.
+ *
+ * \param[in] StatusMessage A null-terminated Unicode status message.
+ * \param[out] Status Receives the resulting 32-bit status value.
+ * \return An HRESULT indicating whether the operation succeeded.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationRedirectLogonStatus(
+    _In_ PCWSTR StatusMessage,
+    _Out_ PULONG Status
+    );
+
+/**
+ * The WinStationRedirectShellExecute routine requests shell execution during redirected logon.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] CommandLine The command line.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRedirectShellExecute(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCWSTR CommandLine
+    );
+
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRemoveLicense(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+/**
+ * The WinStationRenameA routine is a deprecated entry point for renaming a WinStation using an ANSI name.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] NewName The new name.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRenameA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCSTR NewName
+    );
+
+/**
+ * The WinStationRenameW routine is a deprecated entry point for renaming a WinStation using a Unicode name.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] NewName The new name.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRenameW(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCWSTR NewName
+    );
+
+/**
+ * The WinStationSetPoolCount routine is a deprecated entry point for setting the configured WinStation pool count.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] PoolId The pool id.
+ * \param[in] PoolCount The pool count.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetPoolCount(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG PoolId,
+    _In_ ULONG PoolCount
+    );
+
+/**
+ * The WinStationRegisterConsoleNotificationEx routine registers a window to receive selected session-change notifications.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the window that receives session-change notifications.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterConsoleNotificationEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG NotificationScope,
+    _In_ ULONG NotificationMask
+    );
+
+/**
+ * The WinStationRegisterConsoleNotificationEx2 routine registers a window to receive selected session-change notifications.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the window that receives session-change notifications.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterConsoleNotificationEx2(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG NotificationScope,
+    _In_ ULONG NotificationMask
+    );
+
+// rev
+/**
+ * Registers a caller event for current-session notifications. The first argument is an EVENT handle, not a
+ * server binding. The implementation duplicates it within the current process; the final argument receives an
+ * opaque pointer-sized registration token on success, not an input handle. Release a successful token with
+ * WinStationUnRegisterNotificationEvent, never CloseHandle. EventMask is converted before the wait is
+ * registered.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterCurrentSessionNotificationEvent(
+    _In_ HANDLE EventHandle,
+    _In_ ULONG EventMask,
+    _Out_ PHANDLE NotificationHandle
+    );
+
+// rev
+/**
+ * Registers a caller event for a selected session. EventHandle is a required local event handle duplicated
+ * within the calling process; SessionId and EventMask are input scalars. NotificationHandle receives an
+ * opaque registration token on success and is not an input event. Use WinStationUnRegisterNotificationEvent
+ * to release it, not CloseHandle. The event handle must be non-NULL. Session access is subject to service
+ * authorization.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterNotificationEvent(
+    _In_ HANDLE EventHandle,
+    _In_ ULONG SessionId,
+    _In_ ULONG EventMask,
+    _Out_ PHANDLE NotificationHandle
+    );
+
+/**
+ * The WinStationRegisterSessionNotification routine registers a window to receive session-change notifications.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the window that receives session-change notifications.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG NotificationScope
+    );
+
+/**
+ * The WinStationRegisterSessionNotificationEx routine registers a window to receive selected session-change notifications.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the window that receives session-change notifications.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationRegisterSessionNotificationEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG NotificationScope,
+    _In_ ULONG NotificationMask
+    );
+
+/**
+ * The WinStationReportLoggedOnCompleted routine reports that the session logon sequence has completed.
+ *
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationReportLoggedOnCompleted(
+    VOID
+    );
+
+// begin_rev
+// UIResult values for WinStationReportUIResult. The call forwards a
+// TS_WINLOGON_REPLY (Result, SelectedSessionId) to the Local Session Manager
+// (lsm!RpcReportWinlogonReply), which routes it to the session-arbitration
+// reconnect or session-bumping dialog response handlers.
+/**
+ * WINSTATION_UIRESULT_CANCEL
+ *
+ * The user cancelled the dialog. The pending logon request is terminated
+ * (reconnect is abandoned / the other user is not bumped).
+ */
+#define WINSTATION_UIRESULT_CANCEL 0x0
+/**
+ * WINSTATION_UIRESULT_PROCEED
+ *
+ * The user confirmed the dialog. Session arbitration reconnects to (or logs
+ * off and bumps) the session identified by the Reserved/SelectedSessionId
+ * parameter.
+ */
+#define WINSTATION_UIRESULT_PROCEED 0x1
+// end_rev
+
+// rev
+/**
+ * Reports a logon/session-selection UI result to Local Session Manager. UIResult and SelectedSessionId are
+ * packed into an 8-byte input record; the third argument is consumed, not reserved. Returns a 32-bit Win32
+ * error code via ConvertHRESULT2WIN32 (zero success), or GetLastError on binding failure, not BOOLEAN.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationReportUIResult(
+    _In_ ULONG SessionId,
+    _In_ ULONG UIResult, // WINSTATION_UIRESULT_*
+    _In_ ULONG SelectedSessionId // or 0xFFFFFFFF for a new session
+    );
+
+// rev
+/**
+ * The WinStationSendMessageA routine displays an ANSI message box in a session on a Remote Desktop Session Host server.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] Title The title.
+ * \param[in] TitleLength The size of the title, in bytes.
+ * \param[in] Message The message.
+ * \param[in] MessageLength The size of the message, in bytes.
+ * \param[in] Style The style.
+ * \param[in] Timeout The timeout.
+ * \param[out] Response Receives the response.
+ * \param[in] DoNotWait The do not wait.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSendMessageA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_reads_bytes_(TitleLength) PSTR Title,
+    _In_ ULONG TitleLength,
+    _In_reads_bytes_(MessageLength) PSTR Message,
+    _In_ ULONG MessageLength,
+    _In_ ULONG Style,
+    _In_ ULONG Timeout,
+    _Out_ PULONG Response,
+    _In_ BOOLEAN DoNotWait
+    );
+
+// rev
+/**
+ * Sends a restricted session window-message request. MessageParameter is the fourth 32-bit argument forwarded
+ * to RPC, not unused storage; its detailed interpretation is not reconstructed. The local wrapper checks
+ * non-NULL lParam against message values 26, 27, 256, 257, 536, 537 and 793. For 26/27 it copies a
+ * NUL-terminated UTF-16 string only when its byte size including NUL is below 4096. Message-specific payload
+ * and timeout semantics are private.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSendWindowMessage(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ULONG WindowHandle,
+    _In_ ULONG MessageParameter,
+    _In_ ULONG Message,
+    _In_ ULONG wParam,
+    _In_opt_ PVOID lParam,
+    _In_ ULONG Timeout
+    );
+
+/**
+ * The WinStationSetInformationA routine is a deprecated entry point for setting ANSI WinStation information.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] WinStationInformationClass The win station information class.
+ * \param[in] WinStationInformation The win station information.
+ * \param[in] WinStationInformationLength The size of the win station information, in bytes.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetInformationA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _In_reads_bytes_(WinStationInformationLength) PVOID WinStationInformation,
+    _In_ ULONG WinStationInformationLength
+    );
+
+/**
+ * The WinStationSetLastWinlogonNotification routine records the Winlogon notification currently blocked by a subscriber.
+ *
+ * \param[in] NotificationId The Winlogon notification identifier.
+ * \param[in] SubscriberName The name of the notification subscriber.
+ * \param[in] IsCritical TRUE if the subscriber is marked as critical; otherwise, FALSE.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetLastWinlogonNotification(
+    _In_ ULONG NotificationId,
+    _In_ PCWSTR SubscriberName,
+    _In_ BOOL IsCritical
+    );
+
+// rev
+/**
+ * The WinStationShadowAccessCheck routine checks whether the caller is permitted to shadow a target session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[out] AccessGranted Receives the access granted.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationShadowAccessCheck(
+    _In_ ULONG SessionId,
+    _Out_ PBOOLEAN AccessGranted
+    );
+
+/**
+ * The WinStationShadowStop2 routine stops the current session-shadowing operation.
+ *
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationShadowStop2(
+    VOID
+    );
+
+// rev
+/**
+ * The WinStationSystemShutdownStarted routine notifies Terminal Services that system shutdown has started.
+ *
+ * \param[in] ShutdownFlags The shutdown flags.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSystemShutdownStarted(
+    _In_ ULONG ShutdownFlags
+    );
+
+// rev
+/**
+ * Waits for a system-shutdown notification with a millisecond timeout. Returns a 32-bit Win32 error code:
+ * zero is success, not Boolean failure. A supplied Result receives internal completion state when the wait
+ * object exists; a zero Result can normalize a failing wait status to success. Wait completion and shutdown
+ * completion are separate outcomes. Do not infer completion solely from a nonzero Boolean cast.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+WinStationSystemShutdownWait(
+    _In_ ULONG Milliseconds,
+    _Out_opt_ PULONG Result
+    );
+
+// rev
+/**
+ * The WinStationTerminateGlassReplacementSession routine terminates a glass-replacement session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationTerminateGlassReplacementSession(
+    _In_ ULONG SessionId
+    );
+
+// rev
+/**
+ * Releases the opaque token returned by a WinStation event-notification registration. It directly treats the
+ * token as a CWaitEventItem pointer, stops/releases its wait and removes list membership; it is not an NT
+ * kernel handle. Do not pass NULL, arbitrary values, a caller event handle or a previously released token.
+ * Only successful matching registration tokens are valid.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationUnRegisterNotificationEvent(
+    _In_ HANDLE NotificationHandle
+    );
+
+// rev
+/**
+ * The WinStationUnRegisterSessionNotification routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] WindowHandle A handle to the notification window.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationUnRegisterSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+/**
+ * Compatibility login-access stub. Clears all three required pointer-sized output slots and returns zero
+ * without performing an access check. The ClearedOutput names describe observed writes only, not historical
+ * object types or ownership. Initialize valid output storage; no authentication or authorization conclusion
+ * can be drawn from this stub.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationUserLoginAccessCheck(
+    _In_opt_ HANDLE ServerHandle,
+    _Out_ PVOID *ClearedOutput1,
+    _Out_ PVOID *ClearedOutput2,
+    _Out_ PVOID *ClearedOutput3
+    );
+
+// rev
+/**
+ * The WinStationVerify routine verifies connection properties for a session.
+ *
+ * \param[in] SessionId The session identifier.
+ * \param[in] VerificationType A GUID identifying the verification operation.
+ * \param[in] InputPropertyCount The number of input properties.
+ * \param[in, optional] InputProperties An array of input property values.
+ * \param[in] OutputPropertyCount The number of output property slots.
+ * \param[in,out, optional] OutputProperties An array that receives output property values.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationVerify(
+    _In_ ULONG SessionId,
+    _In_ const GUID *VerificationType,
+    _In_ ULONG InputPropertyCount,
+    _In_reads_opt_(InputPropertyCount) const WINSTATION_PROPERTY_VALUE *InputProperties,
+    _In_ ULONG OutputPropertyCount,
+    _Inout_updates_opt_(OutputPropertyCount) PWINSTATION_PROPERTY_VALUE OutputProperties
+    );
+
+// rev
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_NWLogonQueryAdmin(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+// rev
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 12 argument bytes, establishing 3 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_NWLogonSetAdmin(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationAnnoyancePopup routine is a deprecated entry point for displaying the legacy licensing reminder dialog.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationAnnoyancePopup(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+// rev
+/**
+ * The _WinStationBeepOpen routine provides the legacy WinStation beep-open compatibility entry point.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationBeepOpen(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationBreakPoint routine is a deprecated entry point for requesting a diagnostic breakpoint in Terminal Services.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationBreakPoint(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationCallback routine is a deprecated entry point for initiating a legacy WinStation callback operation.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationCallback(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationCheckForApplicationName routine is a deprecated entry point for checking a configured initial application name.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \param[in] Parameter4 An opaque operation-specific parameter.
+ * \param[in] Parameter5 An opaque operation-specific parameter.
+ * \param[in] Parameter6 An opaque operation-specific parameter.
+ * \param[in] Parameter7 An opaque operation-specific parameter.
+ * \param[in] Parameter8 An opaque operation-specific parameter.
+ * \param[in] Parameter9 An opaque operation-specific parameter.
+ * \param[in] Parameter10 An opaque operation-specific parameter.
+ * \param[in] Parameter11 An opaque operation-specific parameter.
+ * \param[in] Parameter12 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationCheckForApplicationName(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3,
+    _In_opt_ PVOID Parameter4,
+    _In_opt_ PVOID Parameter5,
+    _In_opt_ PVOID Parameter6,
+    _In_opt_ PVOID Parameter7,
+    _In_opt_ PVOID Parameter8,
+    _In_opt_ PVOID Parameter9,
+    _In_opt_ PVOID Parameter10,
+    _In_opt_ PVOID Parameter11,
+    _In_opt_ PVOID Parameter12
+    );
+
+// rev
+/**
+ * The _WinStationFUSCanRemoteUserDisconnect routine is a deprecated entry point for checking whether Fast User Switching permits disconnection of a remote user.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationFUSCanRemoteUserDisconnect(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationGetApplicationInfo routine is a deprecated entry point for retrieving application information for a session.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \param[in] Parameter4 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationGetApplicationInfo(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3,
+    _In_opt_ PVOID Parameter4
+    );
+
+// rev
+/**
+ * The _WinStationNotifyDisconnectPipe routine is a deprecated entry point for notifying Terminal Services that a session pipe disconnected.
+ *
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationNotifyDisconnectPipe(
+    VOID
+    );
+
+// rev
+/**
+ * The _WinStationNotifyLogoff routine is a deprecated entry point for notifying Terminal Services of session logoff.
+ *
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationNotifyLogoff(
+    VOID
+    );
+
+// rev
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 32 argument bytes, establishing 8 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationNotifyLogon(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2,
+    _In_ ULONG_PTR Parameter3,
+    _In_ ULONG_PTR Parameter4,
+    _In_ ULONG_PTR Parameter5,
+    _In_ ULONG_PTR Parameter6,
+    _In_ ULONG_PTR Parameter7,
+    _In_ ULONG_PTR Parameter8
+    );
+
+// rev
+/**
+ * The _WinStationNotifyNewSession routine is a deprecated entry point for notifying Terminal Services that a new session was created.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationNotifyNewSession(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+// rev
+/**
+ * Legacy compatibility stub; returns FALSE with ERROR_INVALID_FUNCTION (1) without performing the named
+ * operation. The x86 public entry consumes 8 argument bytes, establishing 2 machine-word ABI slots. The
+ * Parameter names preserve argument slots; historical parameter types and meanings are unspecified. No output
+ * buffer is populated and no real session/licensing operation is supported by this body.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationOpenSessionDirectory(
+    _In_ ULONG_PTR Parameter1,
+    _In_ ULONG_PTR Parameter2
+    );
+
+// rev
+/**
+ * The _WinStationReInitializeSecurity routine is a deprecated entry point for reinitializing Terminal Services security state.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationReInitializeSecurity(
+    _In_opt_ PVOID Parameter1
+    );
+
+// rev
+/**
+ * The _WinStationReadRegistry routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter (ignored).
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation ignores Parameter1 and unconditionally returns TRUE. It shares
+ * its code with _WinStationSessionInitialized.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationReadRegistry(
+    _In_opt_ PVOID Parameter1
+    );
+
+/**
+ * The _WinStationSessionInitialized routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationSessionInitialized(
+    VOID
+    );
+
+// rev: Terminal Services shadow-target structures. Both are passed across the
+// WinStation RPC interface (and forwarded winsta -> termsrv) purely as fixed-size,
+// size_is()-marshalled byte buffers; neither winsta.dll nor termsrv.dll dereferences
+// their members (the interior layout lives in RegWinStationQueryExW's registry mapping
+// and the WSX transport plugin), so byte-exact field offsets are NOT recoverable from
+// these binaries. They are declared here as correctly-sized named buffers.
+
+/**
+ * The ICA_STACK_ADDRESS structure holds a Terminal Services (ICA) transport stack address.
+ * Fixed length STACK_ADDRESS_LENGTH (0x80) bytes. Interior layout is transport-defined.
+ */
+typedef struct _ICA_STACK_ADDRESS
+{
+    UCHAR Address[STACK_ADDRESS_LENGTH];
+} ICA_STACK_ADDRESS, *PICA_STACK_ADDRESS;
+
+/**
+ * The WINSTATIONCONFIG2W structure is the in-memory ("2W") WinStation/listener
+ * configuration produced by winsta!RegWinStationQueryExW from the registry. It
+ * aggregates the documented sub-config blocks (USERCONFIGW, WDCONFIGW, PDCONFIG2W,
+ * CDCONFIGW, WINSTATIONCLIENTW, ...). Fixed length 0x28E8 bytes.
+ */
+#define WINSTATIONCONFIG2W_LENGTH 0x28E8 // 10472
+typedef struct _WINSTATIONCONFIG2W
+{
+    UCHAR Reserved[WINSTATIONCONFIG2W_LENGTH];
+} WINSTATIONCONFIG2W, *PWINSTATIONCONFIG2W;
+
+// rev
+/**
+ * The _WinStationShadowTarget routine configures the target side of a session-shadowing connection.
+ *
+ * \param[in] hServer The h server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] pConfig The p config.
+ * \param[in] pAddress The p address.
+ * \param[in] pModuleData The p module data.
+ * \param[in] ModuleDataLength The size of the module data, in bytes.
+ * \param[in] pThinwireData The p thinwire data.
+ * \param[in] ThinwireDataLength The size of the thinwire data, in bytes.
+ * \param[in] pClientName The p client name.
+ * \param[in] ClientNameLength The capacity associated with pClientName, in WCHAR elements.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationShadowTarget(
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_reads_bytes_(0x28E8) PWINSTATIONCONFIG2W pConfig,
+    _In_reads_bytes_(0x80) PICA_STACK_ADDRESS pAddress,
+    _In_reads_bytes_(ModuleDataLength) const BYTE *pModuleData,
+    _In_ ULONG ModuleDataLength,
+    _In_reads_bytes_(ThinwireDataLength) const BYTE *pThinwireData,
+    _In_ ULONG ThinwireDataLength,
+    _In_reads_opt_(ClientNameLength) PCWSTR pClientName,
+    _In_ ULONG ClientNameLength
+    );
+
+// rev
+/**
+ * The _WinStationShadowTarget2 routine configures the target side of a session-shadowing connection using extended shadow data.
+ *
+ * \param[in] hServer The h server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] pConfig The p config.
+ * \param[in] ConfigSize The size of the config, in bytes.
+ * \param[in] pAddress The p address.
+ * \param[in] AddressSize The size of the address, in bytes.
+ * \param[in] pModuleData The p module data.
+ * \param[in] ModuleDataLength The size of the module data, in bytes.
+ * \param[in] pThinwireData The p thinwire data.
+ * \param[in] ThinwireDataLength The size of the thinwire data, in bytes.
+ * \param[in] pClientName The p client name.
+ * \param[in] ClientNameLength The capacity associated with pClientName, in WCHAR elements.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationShadowTarget2(
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_reads_bytes_(ConfigSize) PWINSTATIONCONFIG2W pConfig,
+    _In_ ULONG ConfigSize,
+    _In_reads_bytes_(AddressSize) PICA_STACK_ADDRESS pAddress,
+    _In_ ULONG AddressSize,
+    _In_reads_bytes_(ModuleDataLength) const BYTE *pModuleData,
+    _In_ ULONG ModuleDataLength,
+    _In_reads_bytes_(ThinwireDataLength) const BYTE *pThinwireData,
+    _In_ ULONG ThinwireDataLength,
+    _In_reads_opt_(ClientNameLength) PCWSTR pClientName,
+    _In_ ULONG ClientNameLength
+    );
+
+// rev
+/**
+ * The _WinStationShadowTargetSetup routine provides an exported alias for a Terminal Services client operation.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationShadowTargetSetup(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+// rev
+/**
+ * The _WinStationUpdateClientCachedCredentials routine is a deprecated entry point for updating cached client credentials for a session.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \param[in] Parameter4 An opaque operation-specific parameter.
+ * \param[in] Parameter5 An opaque operation-specific parameter.
+ * \param[in] Parameter6 An opaque operation-specific parameter.
+ * \param[in] Parameter7 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationUpdateClientCachedCredentials(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3,
+    _In_opt_ PVOID Parameter4,
+    _In_opt_ PVOID Parameter5,
+    _In_opt_ PVOID Parameter6,
+    _In_opt_ PVOID Parameter7
+    );
+
+// rev
+/**
+ * The _WinStationUpdateSettings routine is a deprecated entry point for updating WinStation settings.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \param[in] Parameter2 An opaque operation-specific parameter.
+ * \param[in] Parameter3 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationUpdateSettings(
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Parameter3
+    );
+
+// rev
+/**
+ * The _WinStationUpdateUserConfig routine is a deprecated entry point for updating a user's WinStation configuration.
+ *
+ * \param[in] Parameter1 An opaque operation-specific parameter.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ */
+DECLSPEC_DEPRECATED
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationUpdateUserConfig(
+    _In_opt_ PVOID Parameter1
+    );
+
+// rev
+/**
+ * Waits for Local Session Manager startup and sends a terminal-connection request. ConnectionGuid is a
+ * 16-byte GUID passed BY VALUE: x86 copies four DWORDs from argument storage and returns with ret 16; x64
+ * uses the normal indirect aggregate ABI. It is not a public PGUID parameter. The operation can wait and
+ * modify connection state.
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+_WinStationWaitForConnectEx(
+    _In_ GUID ConnectionGuid
     );
 
 #endif

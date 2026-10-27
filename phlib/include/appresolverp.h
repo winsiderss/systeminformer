@@ -268,8 +268,8 @@ interface IDesktopAppXActivator
     ((This)->lpVtbl->ActivateWithOptions(This,AUMID,Exe,Args,Options,ParentPid,ProcessHandle))
 #define IDesktopAppXActivator_ActivateWithOptionsAndArgs(This,AUMID,Exe,Args,ParentPid,EventArgs,ProcessHandle) \
     ((This)->lpVtbl->ActivateWithOptionsAndArgs(This,AUMID,Exe,Args,ParentPid,EventArgs,ProcessHandle))
-#define IDesktopAppXActivator_ActivateWithOptionsArgsWorkingDirectoryShowWindow(This,AUMID,Exe,Args,Options,ParentPid,EventArgs,WorkingDir,ShowWindow,ProcessHandle) \
-    ((This)->lpVtbl->ActivateWithOptionsArgsWorkingDirectoryShowWindow(This,AUMID,Exe,Args,Options,ParentPid,EventArgs,WorkingDir,ShowWindow,ProcessHandle))
+#define IDesktopAppXActivator_ActivateWithOptionsArgsWorkingDirectoryShowWindow(This,AUMID,Exe,Args,Options,ParentPid,EventArgs,WorkingDir,ShowWindowFlag,ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptionsArgsWorkingDirectoryShowWindow(This,AUMID,Exe,Args,Options,ParentPid,EventArgs,WorkingDir,ShowWindowFlag,ProcessHandle))
 #endif // COBJMACROS
 
 #endif // __IDesktopAppXActivator_INTERFACE_DEFINED__

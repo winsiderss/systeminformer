@@ -32,6 +32,14 @@ NTSTATUS UpdateShellExecute(
     if (PhIsNullOrEmptyString(Context->SetupFilePath))
         return STATUS_FAIL_CHECK;
 
+    //
+    // Fail closed: never launch the installer unless the deny-write handle
+    // retained by UpdateVerifyCacheFileSignature is still held, otherwise
+    // the on-disk file may not be the one that was verified.
+    //
+    if (!Context->SetupFileHandle)
+        return STATUS_FAIL_CHECK;
+
     parameters = PH_AUTO(PhCreateKsiSettingsBlob());
     if (!parameters) parameters = PH_AUTO(PhReferenceEmptyString());
     parameters = PH_AUTO(PhQuoteCommandLine(&parameters->sr, TRUE));
@@ -49,6 +57,8 @@ NTSTATUS UpdateShellExecute(
         0,
         NULL
         );
+
+    PhDereferenceObject(parameters);
 
     if (Context->SetupFileHandle)
     {
@@ -101,7 +111,7 @@ BOOLEAN UpdateCheckDirectoryElevationRequired(
         &fileHandle,
         &fileName->sr,
         FILE_GENERIC_WRITE | DELETE,
-        FILE_ATTRIBUTE_NORMAL,
+        FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
@@ -391,7 +401,7 @@ BOOLEAN UpdateValidateFileName(
             return FALSE;
 
         // Reject Windows reserved characters
-        if (c == L':' || c == L'*' || c == L'?' || 
+        if (c == L':' || c == L'*' || c == L'?' ||
             c == L'"' || c == L'<' || c == L'>' || c == L'|')
             return FALSE;
 
@@ -414,9 +424,9 @@ BOOLEAN UpdateValidateFileName(
     for (i = 0; i < length; i++)
     {
         c = FileName->Buffer[i];
-        
-        if (!((c >= L'a' && c <= L'z') || 
-              (c >= L'A' && c <= L'Z') || 
+
+        if (!((c >= L'a' && c <= L'z') ||
+              (c >= L'A' && c <= L'Z') ||
               (c >= L'0' && c <= L'9') ||
               c == L'.' || c == L'-' || c == L'_'))
         {

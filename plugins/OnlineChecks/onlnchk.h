@@ -24,6 +24,8 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"OnlineChecks"
+
+#include <onlinechecksintf.h>
 #define SETTING_NAME_SCAN_ENABLED (PLUGIN_NAME L".EnableScanning")
 #define SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED (PLUGIN_NAME L".HybridAnalysisEnableLookups")
 #define SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED (PLUGIN_NAME L".HybridAnalysisEnableAutoSubmit")
@@ -163,6 +165,14 @@ VOID NTAPI OptionsSettingsUpdatedCallback(
     );
 
 // exclude.c
+
+VOID ScanNoteVirusTotalHttpStatus(
+    _In_ ULONG HttpStatus
+    );
+
+VOID ScanNoteHybridAnalysisHttpStatus(
+    _In_ ULONG HttpStatus
+    );
 
 VOID ScanLoadExclusions(
     VOID
@@ -438,6 +448,38 @@ NTSTATUS HybridAnalysisSubmitFinished(
 #define MENUITEM_HYBRIDANALYSIS_SCAN_MODULE 203
 #define MENUITEM_VIRUSTOTAL_SCAN_SERVICE 204
 #define MENUITEM_HYBRIDANALYSIS_SCAN_SERVICE 205
+
+BOOLEAN QueryDBVirusTotal(
+    _In_ PPH_STRING Hash,
+    _Out_ PULONG HttpStatus,
+    _Out_ PLARGE_INTEGER Expiry,
+    _Out_ PULONG64 Malicious,
+    _Out_ PULONG64 Undetected
+    );
+
+BOOLEAN QueryDBHybridAnalysis(
+    _In_ PPH_STRING Hash,
+    _Out_ PULONG HttpStatus,
+    _Out_ PLARGE_INTEGER Expiry,
+    _Out_ PULONG64 MultiscanResult,
+    _Out_ PPH_STRING* VxFamily
+    );
+
+VOID CacheVirusTotalReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 Malicious,
+    _In_ ULONG64 Undetected
+    );
+
+VOID CacheHybridAnalysisReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 MultiscanResult,
+    _In_opt_ PPH_STRING VxFamily,
+    _In_ ULONG64 ThreatScore,
+    _In_opt_ PPH_STRING Verdict
+    );
 
 BOOLEAN InitializeScanning(
     VOID

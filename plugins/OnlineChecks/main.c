@@ -43,6 +43,146 @@ BOOLEAN VirusTotalLookupsEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
+
+// ONLINECHECKS_INTERFACE
+
+ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedVirusTotal(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_VIRUSTOTAL_RESULT Result
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 malicious;
+    ULONG64 undetected;
+
+    if (!ScanningInitialized)
+        return OnlineChecksLookupUnavailable;
+
+    if (!QueryDBVirusTotal(Sha256, &httpStatus, &expiry, &malicious, &undetected))
+        return OnlineChecksLookupNotFound;
+
+    Result->HttpStatus = httpStatus;
+    Result->Expiry = expiry;
+    Result->Malicious = malicious;
+    Result->Undetected = undetected;
+
+    return OnlineChecksLookupFound;
+}
+
+ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_HYBRIDANALYSIS_RESULT Result
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 multiscanResult;
+    PPH_STRING vxFamily;
+
+    if (!ScanningInitialized)
+        return OnlineChecksLookupUnavailable;
+
+    if (!QueryDBHybridAnalysis(Sha256, &httpStatus, &expiry, &multiscanResult, &vxFamily))
+        return OnlineChecksLookupNotFound;
+
+    Result->HttpStatus = httpStatus;
+    Result->Expiry = expiry;
+    Result->MultiscanResult = multiscanResult;
+    Result->VxFamily = vxFamily;
+
+    return OnlineChecksLookupFound;
+}
+
+_Success_(NT_SUCCESS(return))
+NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_VIRUSTOTAL_REPORT Report
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiKey;
+    PVIRUSTOTAL_FILE_REPORT report;
+
+    apiKey = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
+    status = VirusTotalRequestFileReport(Sha256, apiKey, &report);
+    PhClearReference(&apiKey);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // The scanner shares this key, so what the service said about it is fed back even
+    // though this request was not the scanner's.
+    ScanNoteVirusTotalHttpStatus(report->HttpStatus);
+
+    Report->HttpStatus = report->HttpStatus;
+    Report->Malicious = report->Malicious;
+    Report->Undetected = report->Undetected;
+    Report->ScanDate = report->ScanDate ? PhReferenceObject(report->ScanDate) : NULL;
+
+    // Store it, so a repeat is answered from here rather than by asking again.
+    if (ScanningInitialized)
+        CacheVirusTotalReport(Sha256, report->HttpStatus, report->Malicious, report->Undetected);
+
+    VirusTotalFreeFileReport(report);
+
+    return STATUS_SUCCESS;
+}
+
+_Success_(NT_SUCCESS(return))
+NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_HYBRIDANALYSIS_REPORT Report
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiKey;
+    PHYBRIDANALYSIS_FILE_REPORT report;
+
+    apiKey = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
+    status = HybridAnalysisRequestFileReport(Sha256, apiKey, &report);
+    PhClearReference(&apiKey);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // The scanner shares this key, so what the service said about it is fed back even
+    // though this request was not the scanner's.
+    ScanNoteHybridAnalysisHttpStatus(report->HttpStatus);
+
+    Report->HttpStatus = report->HttpStatus;
+    Report->ThreatScore = report->ThreatScore;
+    Report->MultiscanResult = report->MultiscanResult;
+    Report->Verdict = report->Verdict ? PhReferenceObject(report->Verdict) : NULL;
+    Report->VxFamily = report->VxFamily ? PhReferenceObject(report->VxFamily) : NULL;
+
+    // As above.
+    if (ScanningInitialized)
+    {
+        CacheHybridAnalysisReport(
+            Sha256,
+            report->HttpStatus,
+            report->MultiscanResult,
+            report->VxFamily,
+            report->ThreatScore,
+            report->Verdict
+            );
+    }
+
+    HybridAnalysisFreeFileReport(report);
+
+    return STATUS_SUCCESS;
+}
+
+static ONLINECHECKS_INTERFACE PluginInterface =
+{
+    ONLINECHECKS_INTERFACE_VERSION,
+    OnlineChecksQueryCachedVirusTotal,
+    OnlineChecksQueryCachedHybridAnalysis,
+    OnlineChecksLookupVirusTotal,
+    OnlineChecksLookupHybridAnalysis,
+};
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
@@ -1056,6 +1196,7 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
+            info->Interface = &PluginInterface;
             info->DisplayName = L"Online Checks";
             info->Description = L"Allows files to be checked with online services.";
 

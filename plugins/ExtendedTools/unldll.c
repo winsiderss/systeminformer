@@ -21,7 +21,8 @@ typedef struct _UNLOADED_DLLS_CONTEXT
     PVOID CapturedEventTrace;
     HANDLE ProcessId;
     HANDLE QueryHandle;
-    HFONT WindowFont;
+    PPH_PROCESS_ITEM ProcessItem;
+    PPH_FONT WindowFont;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
 INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
@@ -36,28 +37,11 @@ VOID EtShowUnloadedDllsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    NTSTATUS status;
     PUNLOADED_DLLS_CONTEXT context;
-    HANDLE queryHandle;
 
-    status = PhOpenProcess(
-        &queryHandle,
-        PROCESS_QUERY_INFORMATION,
-        ProcessItem->ProcessId
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!ProcessItem->QueryHandle)
     {
-        status = PhOpenProcess(
-            &queryHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            ProcessItem->ProcessId
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", STATUS_INVALID_HANDLE, 0);
         return;
     }
 
@@ -65,7 +49,8 @@ VOID EtShowUnloadedDllsDialog(
     context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessId = ProcessItem->ProcessId;
     context->IsWow64Process = !!ProcessItem->IsWow64Process;
-    context->QueryHandle = queryHandle;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->QueryHandle = ProcessItem->QueryHandle;
 
     PhDialogBox(
         PluginInstance->DllBase,
@@ -482,13 +467,13 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             HWND lvHandle;
 
             context->ListViewHandle = lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
-            SetWindowFont(lvHandle, context->WindowFont, FALSE);
+            SetWindowFont(lvHandle, PhGetFontHandle(context->WindowFont), FALSE);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"No.");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Base Address");
@@ -535,13 +520,12 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->WindowFont)
-                DeleteFont(context->WindowFont);
+                PhDereferenceObject(context->WindowFont);
 
             if (context->CapturedEventTrace)
                 PhFree(context->CapturedEventTrace);
 
-            if (context->QueryHandle)
-                NtClose(context->QueryHandle);
+            PhDereferenceObject(context->ProcessItem);
 
             PhFree(context);
         }
@@ -572,10 +556,10 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
+            PPH_FONT windowFont;
 
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+            if (windowFont = PhCreateTreeWindowFontObject(LOWORD(wParam)))
+                PhSwapOwnedFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

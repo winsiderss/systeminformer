@@ -18,6 +18,8 @@
 #include <settings.h>
 
 #include "db.h"
+
+#include <usernotesintf.h>
 #include "resource.h"
 
 #define INTENT_PROCESS_COMMENT 0x1

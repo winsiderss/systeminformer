@@ -888,6 +888,9 @@ PPH_STRING PhHttpQueryOptionString(
     return stringBuffer;
 }
 
+// Upper bound for HTTP downloads and in-memory responses to avoid unbounded transfer sizes.
+#define PH_HTTP_MAX_DOWNLOAD_LENGTH (2ULL * 1024 * 1024 * 1024)
+
 NTSTATUS PhHttpReadDataToBuffer(
     _In_ PVOID RequestHandle,
     _In_opt_ ULONG TotalLength,
@@ -896,14 +899,19 @@ NTSTATUS PhHttpReadDataToBuffer(
     )
 {
     PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
+    SIZE_T allocatedLength;
+    SIZE_T dataLength;
     ULONG returnLength;
+    NTSTATUS status;
     BYTE buffer[PAGE_SIZE];
+
+    // Reject a declared length we would refuse to buffer anyway. (dmex)
+    if (TotalLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        return STATUS_BUFFER_OVERFLOW;
 
     if (TotalLength != 0)
     {
-        allocatedLength = TotalLength + 1;
+        allocatedLength = (SIZE_T)TotalLength + 1;
         data = (PSTR)PhAllocate(allocatedLength);
     }
     else
@@ -914,24 +922,45 @@ NTSTATUS PhHttpReadDataToBuffer(
 
     dataLength = 0;
 
-    while (WinHttpReadData(RequestHandle, buffer, PAGE_SIZE, &returnLength))
+    while (TRUE)
     {
+        SIZE_T requiredLength;
+
+        if (!WinHttpReadData(RequestHandle, buffer, PAGE_SIZE, &returnLength))
+        {
+            status = PhGetLastWinHttpErrorAsNtStatus();
+            PhFree(data);
+            return status;
+        }
+
         if (returnLength == 0)
             break;
 
-        if (allocatedLength < dataLength + returnLength)
+        // Checked growth against a hard ceiling instead of unbounded doubling. (dmex)
+        requiredLength = dataLength + returnLength;
+
+        if (requiredLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        {
+            PhFree(data);
+            return STATUS_BUFFER_OVERFLOW;
+        }
+
+        if (allocatedLength < requiredLength)
         {
             do
             {
                 allocatedLength *= 2;
-            } while (allocatedLength < dataLength + returnLength);
+            } while (allocatedLength < requiredLength);
+
+            if (allocatedLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+                allocatedLength = PH_HTTP_MAX_DOWNLOAD_LENGTH;
 
             data = PhReAllocate(data, allocatedLength);
         }
 
         memcpy(data + dataLength, buffer, returnLength);
 
-        dataLength += returnLength;
+        dataLength = requiredLength;
     }
 
     if (allocatedLength < dataLength + 1)
@@ -950,7 +979,7 @@ NTSTATUS PhHttpReadDataToBuffer(
             PhFree(data);
 
         if (BufferLength)
-            *BufferLength = dataLength;
+            *BufferLength = (ULONG)dataLength; // bounded by PH_HTTP_MAX_DOWNLOAD_LENGTH (dmex)
 
         return STATUS_SUCCESS;
     }
@@ -995,7 +1024,18 @@ NTSTATUS PhHttpDownloadString(
 NTSTATUS PhHttpDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PPH_STRINGREF FileName,
-    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    return PhHttpDownloadToFileEx(HttpContext, FileName, PH_HTTP_MAX_DOWNLOAD_LENGTH, Callback, Context);
+}
+
+NTSTATUS PhHttpDownloadToFileEx(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG64 MaximumLength,
+    _In_opt_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
@@ -1013,7 +1053,10 @@ NTSTATUS PhHttpDownloadToFile(
     IO_STATUS_BLOCK isb;
     BYTE buffer[PAGE_SIZE];
 
-    PhQuerySystemTime(&timeStart);
+    if (MaximumLength > MAXLONGLONG)
+        return STATUS_INVALID_PARAMETER;
+
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     // Content-Length is optional; servers using chunked transfer encoding omit it.
     // If absent, proceed without a pre-allocated file size hint.
@@ -1022,6 +1065,9 @@ NTSTATUS PhHttpDownloadToFile(
         PH_HTTP_QUERY_CONTENT_LENGTH,
         &numberOfBytesTotal
         );
+
+    if (numberOfBytesTotal > MaximumLength)
+        return STATUS_FILE_TOO_LARGE;
 
     fileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
@@ -1065,6 +1111,12 @@ NTSTATUS PhHttpDownloadToFile(
         if (numberOfBytesRead == 0)
             break;
 
+        if (numberOfBytesRead > MaximumLength - numberOfBytesReadTotal)
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            break;
+        }
+
         status = NtWriteFile(
             fileHandle,
             NULL,
@@ -1092,12 +1144,12 @@ NTSTATUS PhHttpDownloadToFile(
 
         if (Callback)
         {
-            PhQuerySystemTime(&timeNow);
-            timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+            PhQueryUnbiasedInterruptTime(&timeNow);
+            timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
 
             context.ReadLength = numberOfBytesReadTotal;
             context.TotalLength = numberOfBytesTotal;
-            context.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+            context.BitsPerSecond = timeTicks ? numberOfBytesReadTotal * PH_TICKS_PER_SEC / timeTicks : 0;
             context.Percent = numberOfBytesTotal ? (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100) : 0;
 
             if (!Callback(&context, Context))
@@ -1105,7 +1157,7 @@ NTSTATUS PhHttpDownloadToFile(
         }
     }
 
-    if (numberOfBytesTotal && numberOfBytesReadTotal != numberOfBytesTotal)
+    if (NT_SUCCESS(status) && numberOfBytesTotal && numberOfBytesReadTotal != numberOfBytesTotal)
     {
         status = STATUS_UNSUCCESSFUL;
     }
@@ -1226,6 +1278,12 @@ NTSTATUS PhHttpDownloadUrl(
     PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &statusCode);
     PhHttpQueryHeaderUlong64(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal);
 
+    if (numberOfBytesTotal > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+    {
+        status = STATUS_FILE_TOO_LARGE;
+        goto CleanupExit;
+    }
+
     callbackContext.StatusCode = statusCode;
     callbackContext.TotalLength = numberOfBytesTotal;
 
@@ -1235,7 +1293,7 @@ NTSTATUS PhHttpDownloadUrl(
             goto CleanupExit;
     }
 
-    PhQuerySystemTime(&timeStart);
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     while (TRUE)
     {
@@ -1246,16 +1304,22 @@ NTSTATUS PhHttpDownloadUrl(
         if (numberOfBytesRead == 0)
             break;
 
+        if (numberOfBytesReadTotal + numberOfBytesRead > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            goto CleanupExit;
+        }
+
         numberOfBytesReadTotal += numberOfBytesRead;
 
-        PhQuerySystemTime(&timeNow);
-        timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+        PhQueryUnbiasedInterruptTime(&timeNow);
+        timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
 
         callbackContext.Buffer = buffer;
         callbackContext.BufferLength = numberOfBytesRead;
         callbackContext.ReadLength = numberOfBytesReadTotal;
         callbackContext.TotalLength = numberOfBytesTotal;
-        callbackContext.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+        callbackContext.BitsPerSecond = timeTicks ? numberOfBytesReadTotal * PH_TICKS_PER_SEC / timeTicks : 0;
         callbackContext.Percent = numberOfBytesTotal ? (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100) : 0;
 
         if (Options->DownloadCallback)
@@ -2032,6 +2096,571 @@ NTSTATUS PhHttpErrorToNtStatus(
 // IPv4 and IPv6
 //
 
+static PWSTR PhIpAddressWriteUInt32(
+    _Out_ PWSTR Buffer,
+    _In_ ULONG Value,
+    _In_ ULONG Base
+    )
+{
+    WCHAR digits[16];
+    ULONG count = 0;
+
+    do
+    {
+        digits[count++] = L"0123456789abcdef"[Value % Base];
+        Value /= Base;
+    } while (Value);
+
+    while (count)
+    {
+        *Buffer++ = digits[--count];
+    }
+
+    return Buffer;
+}
+
+static BOOLEAN PhpParseIpComponent(
+    _Inout_ PCWSTR* AddressString,
+    _In_ ULONG Base,
+    _Out_ PULONG Value
+    )
+{
+    PCWSTR string = *AddressString;
+    ULONG value = 0;
+    ULONG digit;
+    BOOLEAN found = FALSE;
+
+    while (*string)
+    {
+        if (*string >= L'0' && *string <= L'9')
+            digit = *string - L'0';
+        else if (*string >= L'a' && *string <= L'f')
+            digit = *string - L'a' + 10;
+        else if (*string >= L'A' && *string <= L'F')
+            digit = *string - L'A' + 10;
+        else
+            break;
+
+        if (digit >= Base || value > (MAXULONG - digit) / Base)
+            return FALSE;
+
+        value = value * Base + digit;
+        found = TRUE;
+        string++;
+    }
+
+    if (!found)
+        return FALSE;
+
+    *AddressString = string;
+    *Value = value;
+    return TRUE;
+}
+
+static NTSTATUS PhpIpv4StringToAddress(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_opt_ PCWSTR* Terminator,
+    _Out_ PIN_ADDR Address,
+    _Out_opt_ PUSHORT Port
+    )
+{
+    PCWSTR string = AddressString;
+    ULONG fields[4];
+    ULONG count = 0;
+    ULONG base;
+    ULONG value;
+    IN_ADDR address;
+
+    if (!AddressString || !Address)
+        return STATUS_INVALID_PARAMETER;
+
+    for (;;)
+    {
+        base = 10;
+
+        if (*string == L'0')
+        {
+            if (string[1] == L'x' || string[1] == L'X')
+            {
+                if (Strict)
+                    goto InvalidAddress;
+
+                base = 16;
+                string += 2;
+            }
+            else if (string[1] >= L'0' && string[1] <= L'9')
+            {
+                if (Strict)
+                    goto InvalidAddress;
+
+                base = 8;
+                string++;
+            }
+        }
+
+        if (!PhpParseIpComponent(&string, base, &fields[count]))
+            goto InvalidAddress;
+
+        count++;
+
+        if (*string != L'.')
+            break;
+        if (count == RTL_NUMBER_OF(fields))
+            goto InvalidAddress;
+
+        string++;
+    }
+
+    if (Strict && count != 4)
+        goto InvalidAddress;
+
+    switch (count)
+    {
+    case 1:
+        value = fields[0];
+        address.S_un.S_un_b.s_b1 = (UCHAR)(value >> 24);
+        address.S_un.S_un_b.s_b2 = (UCHAR)(value >> 16);
+        address.S_un.S_un_b.s_b3 = (UCHAR)(value >> 8);
+        address.S_un.S_un_b.s_b4 = (UCHAR)value;
+        break;
+    case 2:
+        if (fields[0] > MAXUCHAR || fields[1] > 0xffffff)
+            goto InvalidAddress;
+        address.S_un.S_un_b.s_b1 = (UCHAR)fields[0];
+        address.S_un.S_un_b.s_b2 = (UCHAR)(fields[1] >> 16);
+        address.S_un.S_un_b.s_b3 = (UCHAR)(fields[1] >> 8);
+        address.S_un.S_un_b.s_b4 = (UCHAR)fields[1];
+        break;
+    case 3:
+        if (fields[0] > MAXUCHAR || fields[1] > MAXUCHAR || fields[2] > MAXUSHORT)
+            goto InvalidAddress;
+        address.S_un.S_un_b.s_b1 = (UCHAR)fields[0];
+        address.S_un.S_un_b.s_b2 = (UCHAR)fields[1];
+        address.S_un.S_un_b.s_b3 = (UCHAR)(fields[2] >> 8);
+        address.S_un.S_un_b.s_b4 = (UCHAR)fields[2];
+        break;
+    case 4:
+        if (fields[0] > MAXUCHAR || fields[1] > MAXUCHAR || fields[2] > MAXUCHAR || fields[3] > MAXUCHAR)
+            goto InvalidAddress;
+        address.S_un.S_un_b.s_b1 = (UCHAR)fields[0];
+        address.S_un.S_un_b.s_b2 = (UCHAR)fields[1];
+        address.S_un.S_un_b.s_b3 = (UCHAR)fields[2];
+        address.S_un.S_un_b.s_b4 = (UCHAR)fields[3];
+        break;
+    default:
+        goto InvalidAddress;
+    }
+
+    if (Terminator)
+        *Terminator = string;
+
+    if (Port)
+    {
+        *Port = 0;
+
+        if (*string == L':')
+        {
+            string++;
+
+            if (!PhpParseIpComponent(&string, 10, &value) || value == 0 || value > MAXUSHORT || *string)
+                goto InvalidAddress;
+
+            *Port = RtlUshortByteSwap((USHORT)value);
+        }
+        else if (*string)
+        {
+            goto InvalidAddress;
+        }
+    }
+
+    *Address = address;
+    return STATUS_SUCCESS;
+
+InvalidAddress:
+    if (Terminator)
+        *Terminator = string;
+    return STATUS_INVALID_PARAMETER;
+}
+
+static PWSTR PhpIpv4AddressToString(
+    _In_ PCIN_ADDR Address,
+    _Out_writes_(16) PWSTR AddressString
+    )
+{
+    PWSTR string = AddressString;
+
+    string = PhIpAddressWriteUInt32(string, Address->S_un.S_un_b.s_b1, 10); *string++ = L'.';
+    string = PhIpAddressWriteUInt32(string, Address->S_un.S_un_b.s_b2, 10); *string++ = L'.';
+    string = PhIpAddressWriteUInt32(string, Address->S_un.S_un_b.s_b3, 10); *string++ = L'.';
+    string = PhIpAddressWriteUInt32(string, Address->S_un.S_un_b.s_b4, 10); *string = UNICODE_NULL;
+
+    return string;
+}
+
+NTSTATUS PhIpv4AddressToStringEx(
+    _In_ PCIN_ADDR Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    )
+{
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    WCHAR buffer[22];
+    PWSTR string;
+    ULONG length;
+
+    if (!Address || !AddressString || !AddressStringLength)
+        return STATUS_INVALID_PARAMETER;
+
+    string = PhpIpv4AddressToString(Address, buffer);
+
+    if (Port)
+    {
+        *string++ = L':';
+        string = PhIpAddressWriteUInt32(string, RtlUshortByteSwap(Port), 10);
+        *string = UNICODE_NULL;
+    }
+
+    length = (ULONG)(string - buffer) + 1;
+
+    if (*AddressStringLength < length)
+    {
+        *AddressStringLength = length;
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    memcpy(AddressString, buffer, length * sizeof(WCHAR));
+    *AddressStringLength = length;
+    return STATUS_SUCCESS;
+#else
+    return RtlIpv4AddressToStringEx(Address, Port, AddressString, AddressStringLength);
+#endif
+}
+
+static PWSTR PhpIpv6AddressToString(
+    _In_ PCIN6_ADDR Address,
+    _Out_writes_(46) PWSTR AddressString
+    )
+{
+    USHORT words[8];
+    ULONG index;
+    ULONG bestStart = 8;
+    ULONG bestLength = 0;
+    ULONG currentStart;
+    ULONG currentLength;
+    ULONG ipv6End = 8;
+    BOOLEAN embeddedIpv4;
+    PWSTR string = AddressString;
+
+    for (index = 0; index < RTL_NUMBER_OF(words); index++)
+        words[index] = RtlUshortByteSwap(Address->u.Word[index]);
+
+    embeddedIpv4 =
+        (words[5] == 0x5efe && !(words[4] & ~0x200)) ||
+        (!words[0] && !words[1] && !words[2] && !words[3] &&
+            (!words[4] || words[4] == 0xffff) &&
+            ((!words[4] && (!words[5] || words[5] == 0xffff)) || (words[4] == 0xffff && !words[5])) &&
+            words[6]);
+
+    if (embeddedIpv4)
+        ipv6End = 6;
+
+    for (index = 0; index < ipv6End;)
+    {
+        if (words[index])
+        {
+            index++;
+            continue;
+        }
+
+        currentStart = index;
+        while (index < ipv6End && !words[index])
+            index++;
+        currentLength = index - currentStart;
+
+        if (currentLength > bestLength)
+        {
+            bestStart = currentStart;
+            bestLength = currentLength;
+        }
+    }
+
+    if (bestLength < 2)
+        bestStart = ipv6End;
+
+    for (index = 0; index < ipv6End; index++)
+    {
+        if (index == bestStart)
+        {
+            *string++ = L':';
+            *string++ = L':';
+            index += bestLength - 1;
+            continue;
+        }
+
+        if (index && index != bestStart + bestLength)
+            *string++ = L':';
+
+        string = PhIpAddressWriteUInt32(string, words[index], 16);
+    }
+
+    if (embeddedIpv4)
+    {
+        if (string != AddressString && string[-1] != L':')
+            *string++ = L':';
+        string = PhpIpv4AddressToString((PCIN_ADDR)&Address->u.Byte[12], string);
+    }
+
+    *string = UNICODE_NULL;
+    return string;
+}
+
+NTSTATUS PhIpv6AddressToStringEx(
+    _In_ PCIN6_ADDR Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    )
+{
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    WCHAR buffer[65];
+    PWSTR string = buffer;
+    ULONG length;
+
+    if (!Address || !AddressString || !AddressStringLength)
+        return STATUS_INVALID_PARAMETER;
+
+    if (Port)
+        *string++ = L'[';
+
+    string = PhpIpv6AddressToString(Address, string);
+
+    if (ScopeId)
+    {
+        *string++ = L'%';
+        string = PhIpAddressWriteUInt32(string, ScopeId, 10);
+    }
+
+    if (Port)
+    {
+        *string++ = L']';
+        *string++ = L':';
+        string = PhIpAddressWriteUInt32(string, RtlUshortByteSwap(Port), 10);
+    }
+
+    *string = UNICODE_NULL;
+    length = (ULONG)(string - buffer) + 1;
+
+    if (*AddressStringLength < length)
+    {
+        *AddressStringLength = length;
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    memcpy(AddressString, buffer, length * sizeof(WCHAR));
+    *AddressStringLength = length;
+    return STATUS_SUCCESS;
+#else
+    return RtlIpv6AddressToStringEx(Address, ScopeId, Port, AddressString, AddressStringLength);
+#endif
+}
+
+static NTSTATUS PhpIpv4StringToAddressBasic(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PCWSTR* Terminator,
+    _Out_ PIN_ADDR Address
+    )
+{
+    return PhpIpv4StringToAddress(AddressString, Strict, Terminator, Address, NULL);
+}
+
+NTSTATUS PhIpv4StringToAddressEx(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PIN_ADDR Address,
+    _Out_ PUSHORT Port
+    )
+{
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    if (!Port)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhpIpv4StringToAddress(AddressString, Strict, NULL, Address, Port);
+#else
+    return RtlIpv4StringToAddressEx(AddressString, Strict, Address, Port);
+#endif
+}
+
+static NTSTATUS PhpIpv6StringToAddress(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Extended,
+    _Out_opt_ PCWSTR* Terminator,
+    _Out_ PIN6_ADDR Address,
+    _Out_opt_ PULONG ScopeId,
+    _Out_opt_ PUSHORT Port
+    )
+{
+    PCWSTR string = AddressString;
+    IN6_ADDR address = { 0 };
+    UCHAR bytes[16];
+    ULONG byteCount = 0;
+    LONG gap = -1;
+    ULONG value;
+    ULONG digits;
+    PCWSTR component;
+    ULONG scope = 0;
+    USHORT port = 0;
+    BOOLEAN bracketed = FALSE;
+
+    if (!AddressString || !Address)
+        return STATUS_INVALID_PARAMETER;
+
+    if (*string == L'[')
+    {
+        if (!Extended)
+            goto InvalidAddress;
+        bracketed = TRUE;
+        string++;
+    }
+
+    if (*string == L':')
+    {
+        if (string[1] != L':')
+            goto InvalidAddress;
+        gap = 0;
+        string += 2;
+    }
+
+    while (*string && *string != L'%' && *string != L']')
+    {
+        component = string;
+        digits = 0;
+        value = 0;
+
+        while (((*string >= L'0' && *string <= L'9') || (*string >= L'a' && *string <= L'f') || (*string >= L'A' && *string <= L'F')) && digits < 8)
+        {
+            ULONG digit = *string <= L'9' ? *string - L'0' : ((*string | 0x20) - L'a' + 10);
+            value = value * 16 + digit;
+            string++;
+            digits++;
+        }
+
+        if (*string == L'.')
+        {
+            IN_ADDR address4;
+            PCWSTR terminator4;
+
+            if (byteCount > 12 || !NT_SUCCESS(PhpIpv4StringToAddress(component, TRUE, &terminator4, &address4, NULL)))
+                goto InvalidAddress;
+
+            memcpy(bytes + byteCount, &address4, sizeof(address4));
+            byteCount += sizeof(address4);
+            string = terminator4;
+            break;
+        }
+
+        if (!digits || digits > 4 || value > MAXUSHORT || byteCount > 14)
+            goto InvalidAddress;
+
+        bytes[byteCount++] = (UCHAR)(value >> 8);
+        bytes[byteCount++] = (UCHAR)value;
+
+        if (*string != L':')
+            break;
+
+        string++;
+        if (*string == L':')
+        {
+            if (gap != -1)
+                goto InvalidAddress;
+            gap = (LONG)byteCount;
+            string++;
+            if (!*string || *string == L'%' || *string == L']')
+                break;
+        }
+    }
+
+    if (gap >= 0)
+    {
+        ULONG tailLength;
+
+        if (byteCount >= sizeof(bytes))
+            goto InvalidAddress;
+
+        tailLength = byteCount - gap;
+        memmove(bytes + sizeof(bytes) - tailLength, bytes + gap, tailLength);
+        memset(bytes + gap, 0, sizeof(bytes) - byteCount);
+        byteCount = sizeof(bytes);
+    }
+
+    if (byteCount != sizeof(bytes))
+        goto InvalidAddress;
+
+    if (Extended && *string == L'%')
+    {
+        string++;
+        if (!PhpParseIpComponent(&string, 10, &scope))
+            goto InvalidAddress;
+    }
+
+    if (bracketed)
+    {
+        if (*string++ != L']')
+            goto InvalidAddress;
+
+        if (*string == L':')
+        {
+            string++;
+            if (!PhpParseIpComponent(&string, 10, &value) || value > MAXUSHORT)
+                goto InvalidAddress;
+            port = RtlUshortByteSwap((USHORT)value);
+        }
+    }
+
+    if (Extended && *string)
+        goto InvalidAddress;
+
+    memcpy(&address, bytes, sizeof(address));
+    *Address = address;
+    if (ScopeId) *ScopeId = scope;
+    if (Port) *Port = port;
+    if (Terminator) *Terminator = string;
+    return STATUS_SUCCESS;
+
+InvalidAddress:
+    if (Terminator) *Terminator = string;
+    return STATUS_INVALID_PARAMETER;
+}
+
+static NTSTATUS PhpIpv6StringToAddressBasic(
+    _In_ PCWSTR AddressString,
+    _Out_ PCWSTR* Terminator,
+    _Out_ PIN6_ADDR Address
+    )
+{
+    return PhpIpv6StringToAddress(AddressString, FALSE, Terminator, Address, NULL, NULL);
+}
+
+NTSTATUS PhIpv6StringToAddressEx(
+    _In_ PCWSTR AddressString,
+    _Out_ PIN6_ADDR Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
+    )
+{
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    if (!ScopeId || !Port)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhpIpv6StringToAddress(AddressString, TRUE, NULL, Address, ScopeId, Port);
+#else
+    return RtlIpv6StringToAddressEx(AddressString, Address, ScopeId, Port);
+#endif
+}
+
 NTSTATUS PhIpv4AddressToString(
     _In_ PCIN_ADDR Address,
     _In_ USHORT Port,
@@ -2039,7 +2668,11 @@ NTSTATUS PhIpv4AddressToString(
     _Inout_ PULONG AddressStringLength
     )
 {
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    return PhIpv4AddressToStringEx(Address, Port, AddressString, AddressStringLength);
+#else
     return RtlIpv4AddressToStringEx(Address, Port, AddressString, AddressStringLength);
+#endif
 }
 
 NTSTATUS PhIpv4StringToAddress(
@@ -2049,7 +2682,11 @@ NTSTATUS PhIpv4StringToAddress(
     _Out_ PUSHORT Port
     )
 {
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    return PhIpv4StringToAddressEx(AddressString, Strict, Address, Port);
+#else
     return RtlIpv4StringToAddressEx(AddressString, Strict, Address, Port);
+#endif
 }
 
 NTSTATUS PhIpv6AddressToString(
@@ -2060,7 +2697,11 @@ NTSTATUS PhIpv6AddressToString(
     _Inout_ PULONG AddressStringLength
     )
 {
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    return PhIpv6AddressToStringEx(Address, ScopeId, Port, AddressString, AddressStringLength);
+#else
     return RtlIpv6AddressToStringEx(Address, ScopeId, Port, AddressString, AddressStringLength);
+#endif
 }
 
 NTSTATUS PhIpv6StringToAddress(
@@ -2070,7 +2711,11 @@ NTSTATUS PhIpv6StringToAddress(
     _Out_ PUSHORT Port
     )
 {
+#ifndef PH_NATIVE_IPADDRESS_STRING
+    return PhIpv6StringToAddressEx(AddressString, Address, ScopeId, Port);
+#else
     return RtlIpv6StringToAddressEx(AddressString, Address, ScopeId, Port);
+#endif
 }
 
 //
@@ -2309,7 +2954,9 @@ static typeof(&DnsQueryEx) DnsQueryEx_I = NULL;
 static typeof(&DnsCancelQuery) DnsCancelQuery_I = NULL;
 #endif
 static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
 static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
+#endif
 static typeof(&DnsFree) DnsFree_I = NULL;
 
 static BOOLEAN PhDnsApiInitialized(
@@ -2331,7 +2978,9 @@ static BOOLEAN PhDnsApiInitialized(
             DnsCancelQuery_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsCancelQuery", 0);
 #endif
             DnsExtractRecordsFromMessage_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsExtractRecordsFromMessage_W", 0);
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
             DnsWriteQuestionToBuffer_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsWriteQuestionToBuffer_W", 0);
+#endif
             DnsFree_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsFree", 0);
         }
 
@@ -2342,7 +2991,9 @@ static BOOLEAN PhDnsApiInitialized(
             DnsCancelQuery_I &&
 #endif
             DnsExtractRecordsFromMessage_W_I &&
+#ifdef PH_NATIVE_DNS_WRITE_QUESTION
             DnsWriteQuestionToBuffer_W_I &&
+#endif
             DnsFree_I
             )
         {
@@ -2355,10 +3006,242 @@ static BOOLEAN PhDnsApiInitialized(
     return initialized;
 }
 
+static BOOLEAN PhDnsIsWideStringAscii(
+    _In_ PCWSTR String
+    )
+{
+    while (*String)
+    {
+        if (*String >= 0x80)
+            return FALSE;
+        String++;
+    }
+
+    return TRUE;
+}
+
+static PUCHAR PhDnsWriteDottedNameToPacket(
+    _Out_writes_bytes_(BufferLength) PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_opt_ PCWSTR Name
+    )
+{
+    PUCHAR bufferEnd = Buffer + BufferLength;
+    UCHAR labelLength = 0;
+    ULONG totalLength = 0;
+    SIZE_T nameLength;
+    CHAR utf8Buffer[256];
+    PCSTR namePtr;
+
+    if (BufferLength == 0)
+        return NULL;
+
+    if (Name)
+    {
+        nameLength = PhCountStringZ(Name);
+
+        if (nameLength >= 256)
+            return NULL;
+
+        PCWCH sourceBuffer = Name;
+        ULONG sourceLength = (ULONG)(nameLength * sizeof(WCHAR));
+        ULONG utf8Length = 0;
+        WCHAR canonicalBuffer[256];
+
+        if (!PhDnsIsWideStringAscii(Name))
+        {
+            UNICODE_STRING sourceString;
+            UNICODE_STRING canonicalString;
+
+            sourceString.Buffer = (PWCH)Name;
+            sourceString.Length = (USHORT)sourceLength;
+            sourceString.MaximumLength = sourceString.Length;
+
+            canonicalString.Buffer = canonicalBuffer;
+            canonicalString.Length = 0;
+            canonicalString.MaximumLength = sizeof(canonicalBuffer);
+
+            if (!NT_SUCCESS(RtlDowncaseUnicodeString(&canonicalString, &sourceString, FALSE)))
+                return NULL;
+
+            sourceBuffer = canonicalString.Buffer;
+            sourceLength = canonicalString.Length;
+        }
+
+        if (!NT_SUCCESS(RtlUnicodeToUTF8N(
+            utf8Buffer,
+            sizeof(utf8Buffer) - 1,
+            &utf8Length,
+            sourceBuffer,
+            sourceLength
+            )))
+        {
+            return NULL;
+        }
+
+        utf8Buffer[utf8Length] = ANSI_NULL;
+        namePtr = utf8Buffer;
+
+        if (*namePtr != '.')
+        {
+            PUCHAR labelLengthPtr = Buffer;
+            PUCHAR dest = Buffer + 1;
+            UCHAR ch = (UCHAR)*namePtr;
+
+            while (ch != '\0')
+            {
+                namePtr++;
+
+                if (dest >= bufferEnd)
+                    return NULL;
+
+                if (ch == '.')
+                {
+                    if (labelLength == 0 || labelLength > 63 || totalLength > 255)
+                        return NULL;
+
+                    *labelLengthPtr = labelLength;
+                    totalLength++;
+                    labelLengthPtr = dest++;
+                    labelLength = 0;
+                }
+                else
+                {
+                    *dest++ = ch;
+                    labelLength++;
+                    totalLength++;
+                }
+
+                ch = (UCHAR)*namePtr;
+            }
+
+            if (totalLength <= 255 && labelLength <= 63)
+            {
+                if (labelLength != 0)
+                {
+                    *labelLengthPtr = labelLength;
+                    if (dest >= bufferEnd)
+                        return NULL;
+                    *dest++ = 0;
+                }
+                else
+                {
+                    *labelLengthPtr = 0;
+                }
+
+                return dest;
+            }
+
+            return NULL;
+        }
+
+        if (namePtr[1] != '\0')
+            return NULL;
+    }
+
+    *Buffer = 0;
+    return Buffer + 1;
+}
+
+static PUCHAR PhDnsWriteQuestionToPacket(
+    _Out_writes_bytes_(BufferLength) PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Class
+    )
+{
+    PUCHAR bufferEnd = Buffer + BufferLength;
+    PUCHAR current;
+    PDNS_WIRE_QUESTION question;
+
+    if (!(current = PhDnsWriteDottedNameToPacket(Buffer, BufferLength, Name)))
+        return NULL;
+
+    if ((SIZE_T)(bufferEnd - current) < sizeof(DNS_WIRE_QUESTION))
+        return NULL;
+
+    question = (PDNS_WIRE_QUESTION)current;
+    question->QuestionType = _byteswap_ushort(Type);
+    question->QuestionClass = _byteswap_ushort(Class);
+
+    return PTR_ADD_OFFSET(current, sizeof(DNS_WIRE_QUESTION));
+}
+
+// If the buffer is too small, BufferSize receives the required size and the function
+// returns FALSE (matches the dnsapi DnsWriteQuestionToBuffer_W resize protocol).
+BOOLEAN PhpDnsWriteQuestionToBuffer(
+    _Inout_ PDNS_MESSAGE_BUFFER DnsBuffer,
+    _Inout_ PULONG BufferSize,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Class,
+    _In_ USHORT Xid,
+    _In_ BOOLEAN RecursionDesired
+    )
+{
+    ULONG bufferSize;
+    PUCHAR current;
+
+    bufferSize = *BufferSize;
+
+    if (bufferSize < 0x5C0)
+    {
+        *BufferSize = 0x5C0;
+        return FALSE;
+    }
+
+    memset(&DnsBuffer->MessageHead, 0, sizeof(DNS_HEADER));
+
+    current = PhDnsWriteQuestionToPacket(
+        (PUCHAR)DnsBuffer + sizeof(DNS_HEADER),
+        bufferSize - (ULONG)sizeof(DNS_HEADER),
+        Name,
+        Type,
+        Class
+        );
+
+    if (current)
+    {
+        DnsBuffer->MessageHead.QuestionCount = _byteswap_ushort(1);
+        DnsBuffer->MessageHead.RecursionDesired = RecursionDesired ? 1 : 0;
+        DnsBuffer->MessageHead.Xid = _byteswap_ushort(Xid);
+
+        *BufferSize = RtlPointerToOffset(DnsBuffer, current);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Signature-compatible replacement for dnsapi DnsWriteQuestionToBuffer_W (class is always IN).
+// Used by the test projects to validate output against the OS implementation.
+BOOLEAN WINAPI PhDnsWriteQuestionToBuffer_W(
+    _Inout_ PDNS_MESSAGE_BUFFER DnsBuffer,
+    _Inout_ PULONG BufferSize,
+    _In_opt_ PCWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Xid,
+    _In_ BOOLEAN RecursionDesired
+    )
+{
+    return PhpDnsWriteQuestionToBuffer(
+        DnsBuffer,
+        BufferSize,
+        Name,
+        Type,
+        DNS_CLASS_INTERNET,
+        Xid,
+        RecursionDesired
+        );
+}
+
+
 _Success_(return)
 static NTSTATUS PhCreateDnsMessageBuffer(
     _In_ PCWSTR Message,
     _In_ USHORT MessageType,
+    _In_ USHORT MessageClass,
     _In_ USHORT MessageId,
     _Outptr_opt_result_maybenull_ PVOID* Buffer,
     _Out_opt_ ULONG* BufferLength
@@ -2366,13 +3249,40 @@ static NTSTATUS PhCreateDnsMessageBuffer(
 {
     BOOLEAN status;
     ULONG dnsBufferLength;
-    PDNS_MESSAGE_BUFFER dnsBuffer;
+    PDNS_MESSAGE_BUFFER buffer;
 
     dnsBufferLength = PAGE_SIZE;
-    dnsBuffer = PhAllocate(dnsBufferLength);
+    buffer = PhAllocateSafe(dnsBufferLength);
+    if (!buffer) return STATUS_NO_MEMORY;
 
+#ifndef PH_NATIVE_DNS_WRITE_QUESTION
+    if (!(status = PhpDnsWriteQuestionToBuffer(
+        buffer,
+        &dnsBufferLength,
+        Message,
+        MessageType,
+        MessageClass,
+        MessageId,
+        TRUE
+        )))
+    {
+        PhFree(buffer);
+        buffer = PhAllocateSafe(dnsBufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
+
+        status = PhpDnsWriteQuestionToBuffer(
+            buffer,
+            &dnsBufferLength,
+            Message,
+            MessageType,
+            MessageClass,
+            MessageId,
+            TRUE
+            );
+    }
+#else
     if (!(status = !!DnsWriteQuestionToBuffer_W_I(
-        dnsBuffer,
+        buffer,
         &dnsBufferLength,
         Message,
         MessageType,
@@ -2380,11 +3290,12 @@ static NTSTATUS PhCreateDnsMessageBuffer(
         TRUE
         )))
     {
-        PhFree(dnsBuffer);
-        dnsBuffer = PhAllocate(dnsBufferLength);
+        PhFree(buffer);
+        buffer = PhAllocateSafe(dnsBufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = !!DnsWriteQuestionToBuffer_W_I(
-            dnsBuffer,
+            buffer,
             &dnsBufferLength,
             Message,
             MessageType,
@@ -2392,13 +3303,14 @@ static NTSTATUS PhCreateDnsMessageBuffer(
             TRUE
             );
     }
+#endif
 
     if (status)
     {
         if (Buffer)
-            *Buffer = dnsBuffer;
+            *Buffer = buffer;
         else
-            PhFree(dnsBuffer);
+            PhFree(buffer);
 
         if (BufferLength)
             *BufferLength = dnsBufferLength;
@@ -2407,8 +3319,8 @@ static NTSTATUS PhCreateDnsMessageBuffer(
     }
     else
     {
-        if (dnsBuffer)
-            PhFree(dnsBuffer);
+        if (buffer)
+            PhFree(buffer);
 
         return STATUS_UNSUCCESSFUL;
     }
@@ -2484,6 +3396,23 @@ NTSTATUS PhHttpDnsQuery(
     _Out_ PDNS_RECORD* DnsQueryRecord
     )
 {
+    return PhHttpDnsQueryEx(
+        DnsServerAddress,
+        DnsQueryMessage,
+        DnsQueryMessageType,
+        DNS_CLASS_INTERNET,
+        DnsQueryRecord
+        );
+}
+
+NTSTATUS PhHttpDnsQueryEx(
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageClass,
+    _Out_ PDNS_RECORD* DnsQueryRecord
+    )
+{
     static volatile USHORT seed = 0;
     NTSTATUS status;
     HINTERNET httpConnectionHandle = NULL;
@@ -2503,6 +3432,7 @@ NTSTATUS PhHttpDnsQuery(
     status = PhCreateDnsMessageBuffer(
         DnsQueryMessage,
         DnsQueryMessageType,
+        DnsQueryMessageClass,
         dnsQueryId,
         &dnsSendBuffer,
         &dnsSendBufferLength

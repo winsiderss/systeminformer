@@ -617,6 +617,10 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
     VOID
     );
 
+BOOLEAN PhIsLaunchedByTaskScheduler(
+    VOID
+    );
+
 // begin_phapppub
 PHAPPAPI
 BOOLEAN

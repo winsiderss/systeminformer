@@ -12,6 +12,7 @@ set(HEADERS
     "include/apiimport.h"
     "include/appresolver.h"
     "include/appresolverp.h"
+    "include/base64.h"
     "include/bcd.h"
     "include/circbuf.h"
     "include/circbuf_h.h"
@@ -28,11 +29,15 @@ set(HEADERS
     "include/filestream.h"
     "include/filestreamp.h"
     "include/graph.h"
+    "include/graphbar.h"
+    "include/graphscroll.h"
     "include/guisup.h"
     "include/guisupp.h"
     "include/guisupview.h"
     "include/handle.h"
     "include/handlep.h"
+    "include/treehdr.h"
+    "include/treehdrp.h"
     "include/hexedit.h"
     "include/hexeditp.h"
     "include/hndlinfo.h"
@@ -66,6 +71,7 @@ set(HEADERS
     "include/ref.h"
     "include/refp.h"
     "include/searchbox.h"
+    "include/searchmatch.h"
     "include/secedit.h"
     "include/seceditp.h"
     "include/secwmi.h"
@@ -103,6 +109,11 @@ set(SOURCES
     "cpysave.c"
     "data.c"
     "directdraw.cpp"
+    "controls/emenudx.cpp"
+    "controls/graphbar.c"
+    "controls/propwnd.c"
+    "controls/scrollbar.c"
+    "controls/searchbox.c"
     "dspick.c"
     "emenu.c"
     "error.c"
@@ -115,7 +126,6 @@ set(SOURCES
     "format_std.cpp"
     "global.c"
     "graph.c"
-    "graphscroll.c"
     "guisup.c"
     "guisuplistview.cpp"
     "handle.c"
@@ -153,7 +163,7 @@ set(SOURCES
     "provider.c"
     "queuedlock.c"
     "ref.c"
-    "searchbox.c"
+    "searchmatch.c"
     "secdata.c"
     "secedit.c"
     "secwmi.c"
@@ -164,8 +174,8 @@ set(SOURCES
     "symprv_std.cpp"
     "sync.c"
     "tabnew.c"
-    "graphprp.c"
     "theme.c"
+    "treehdr.c"
     "treenew.c"
     "phcrypt.c"
     "util.c"
@@ -195,6 +205,7 @@ target_link_libraries(phlib PRIVATE
     kphlib_um
     thirdparty
     gdiplus
+    samlib
 )
 
 add_library(phlib_interface INTERFACE)

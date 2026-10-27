@@ -22,6 +22,7 @@
 #include <mainwnd.h>
 #include <mainwndp.h>
 #include <netprv.h>
+#include <phconsole.h>
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
@@ -84,6 +85,7 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
+    PhConsoleSetForeground(NtCurrentProcess(), TRUE);
 
     PhInitializeAppSettings();
     PhInitializeCallbacks();
@@ -97,8 +99,7 @@ INT WINAPI wWinMain(
 
     PhInitializeCallbacks();
 
-    if (PhEnableKsiSupport &&
-        !PhStartupParameters.ShowOptions)
+    if (PhEnableKsiSupport && !PhStartupParameters.ShowOptions)
     {
         PhInitializeKsi();
     }
@@ -440,12 +441,11 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
                     WindowHandle
                     );
 
-                SendMessageTimeout(
+                PhSendMessageTimeout(
                     WindowHandle,
                     WM_PH_ACTIVATE,
                     PhStartupParameters.SelectPid,
                     0,
-                    SMTO_ABORTIFHUNG | SMTO_BLOCK,
                     5000,
                     &result
                     );
@@ -663,7 +663,7 @@ VOID PhActivatePreviousInstance(
 
     PhTraceFuncEnter("Activate previous instance");
 
-    status = PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+    status = PhEnumDirectoryObjects(PhGetNamespaceHandle2(), PhpPreviousInstancesCallback, NULL);
 
     //if (applicationFileName = PhGetApplicationFileName())
     //{
@@ -821,7 +821,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     WCHAR alphastring[16] = L"";
 
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-    directory = PhExpandEnvironmentStringsZ(L"\\??\\%USERPROFILE%\\Desktop\\");
+    directory = PhExpandEnvironmentStringsZ(L"\\??\\%PROGRAMDATA%\\SystemInformer\\CrashDumps\\");
     fileName = PhConcatStrings(5, PhGetString(directory), L"SystemInformer", L"_DumpFile_", alphastring, L".dmp");
     PhCreateDirectoryFullPath(&fileName->sr);
 
@@ -904,7 +904,7 @@ static LPTOP_LEVEL_EXCEPTION_FILTER PhpPreviousUnhandledExceptionFilter = NULL;
  *
  * This function is called when an unhandled exception occurs. It presents the user
  * with options to create a crash dump, restart, ignore, or exit. It also generates
- * a crash dump file on the desktop if requested.
+ * a crash dump file in ProgramData if requested.
  * \param ExceptionInfo Pointer to the exception information.
  * \return An exception disposition value.
  */
@@ -999,7 +999,7 @@ LONG CALLBACK PhpUnhandledExceptionCallback(
                 NULL,
                 MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
                 L"System Informer has crashed :(\r\n\r\n%s",
-                L"Do you want to create a minidump on the Desktop?"
+                L"Do you want to create a minidump in ProgramData\\SystemInformer\\CrashDumps?"
                 ) == IDYES)
             {
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
@@ -1128,7 +1128,7 @@ NTSTATUS PhInitializeNamespacePolicy(
     status = PhCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
-        PhGetNamespaceHandle(),
+        PhGetNamespaceHandle2(),
         &objectName,
         TRUE
         );
@@ -1237,8 +1237,8 @@ CleanupExit:
 /**
  * Initializes the execution policy for System Informer.
  *
- * This function checks if the Shift key is held down during startup. If so, it attempts
- * to launch Task Manager (`taskmgr.exe`) instead of System Informer.
+ * This function checks if the Shift key is held down, and the Control key is not, during
+ * startup. If so, it attempts to launch Task Manager (`taskmgr.exe`) instead of System Informer.
  * This provides a quick way for users to access Task Manager if needed, for example,
  * if System Informer is set as the default Task Manager replacement and the user
  * wants to access the original Task Manager without changing settings.
@@ -1252,11 +1252,29 @@ NTSTATUS PhInitializeExecutionPolicy(
     // handles, events or messages etc... The bitmask is also independent of any message loop or window.
     // We can call it extremely early but only the high bit (0x8000) of the key state is valid without a message loop.
 
-    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+    // Ctrl+Shift+Esc starts Task Manager, which starts us when we're the replacement, with Shift
+    // still held. Require Control to be up so that shortcut isn't mistaken for a deliberate Shift start.
+
+    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
     {
-        if (NT_SUCCESS(PhShellExecuteEx(NULL, L"taskmgr.exe", NULL, NULL, SW_SHOW, 0, 0, NULL)))
+        PPH_STRING fileName;
+
+        // Launch Task Manager while ignoring the IFEO Debugger value. When System Informer is the
+        // Task Manager replacement, a regular ShellExecute of taskmgr.exe would start another
+        // System Informer instance, which sees Shift still held and repeats the launch, looping
+        // until the key is released.
+
+        if (fileName = PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"))
         {
-            PhExitApplication(STATUS_SUCCESS);
+            BOOLEAN started;
+
+            started = PhCreateProcessIgnoreIfeoDebugger(PhGetString(fileName), NULL);
+            PhDereferenceObject(fileName);
+
+            if (started)
+            {
+                PhExitApplication(STATUS_SUCCESS);
+            }
         }
     }
 
@@ -1513,8 +1531,9 @@ VOID PhInitializeAppSettings(
         {
             status = PhLoadSettingsAutoDetect(NULL, L"settings", &settingsPath, NULL, &PhPortableEnabled);
 
-            if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND)
+            if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_FILE_CORRUPT_ERROR)
             {
+                // The file was loaded, will be created, or is corrupt and can be reset.
                 PhMoveReference(&PhSettingsFileName, settingsPath);
             }
         }
@@ -1535,8 +1554,7 @@ VOID PhInitializeAppSettings(
             }
             else
             {
-                PhDereferenceObject(PhSettingsFileName);
-                PhSettingsFileName = NULL;
+                PhClearReference(&PhSettingsFileName);
             }
         }
         else if (!NT_SUCCESS(status) && status != STATUS_OBJECT_NAME_NOT_FOUND)

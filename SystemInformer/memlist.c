@@ -24,6 +24,10 @@ VOID PhpClearMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
     );
 
+VOID PhpRebuildMemoryRootNodeList(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context
+    );
+
 VOID PhpDestroyMemoryNode(
     _In_ PPH_MEMORY_NODE MemoryNode
     );
@@ -55,6 +59,7 @@ VOID PhInitializeMemoryList(
     memset(Context, 0, sizeof(PH_MEMORY_LIST_CONTEXT));
     Context->AllocationBaseNodeList = PhCreateList(100);
     Context->RegionNodeList = PhCreateList(400);
+    Context->RootNodeList = PhCreateList(100);
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
 
@@ -79,6 +84,7 @@ VOID PhInitializeMemoryList(
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_SIGNING_LEVEL, FALSE, L"Signing level", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_ORIGINAL_PROTECTION, FALSE, L"Original protection", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_ORIGINAL_PAGES, FALSE, L"Original pages", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_MODIFIED_PAGES, TRUE, L"Modified pages", 90, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_REGIONTYPE, FALSE, L"Region type", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_PRIORITY, FALSE, L"Priority", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
@@ -103,6 +109,7 @@ VOID PhpClearMemoryList(
 
     PhClearList(Context->AllocationBaseNodeList);
     PhClearList(Context->RegionNodeList);
+    PhClearList(Context->RootNodeList);
 }
 
 VOID PhDeleteMemoryList(
@@ -117,6 +124,7 @@ VOID PhDeleteMemoryList(
 
     PhDereferenceObject(Context->AllocationBaseNodeList);
     PhDereferenceObject(Context->RegionNodeList);
+    PhDereferenceObject(Context->RootNodeList);
 }
 
 VOID PhLoadSettingsMemoryList(
@@ -181,6 +189,9 @@ VOID PhSetOptionsMemoryList(
     case PH_MEMORY_FLAGS_EXECUTE_OPTION:
         Context->HighlightExecutePages = !Context->HighlightExecutePages;
         break;
+    case PH_MEMORY_FLAGS_MODIFIED_OPTION:
+        Context->HighlightModifiedPages = !Context->HighlightModifiedPages;
+        break;
     case PH_MEMORY_FLAGS_GUARD_OPTION:
         Context->HideGuardRegions = !Context->HideGuardRegions;
         break;
@@ -214,6 +225,8 @@ VOID PhpDestroyMemoryNode(
         PhDereferenceObject(MemoryNode->CommittedText);
     if (MemoryNode->PrivateText)
         PhDereferenceObject(MemoryNode->PrivateText);
+    if (MemoryNode->ModifiedPagesText)
+        PhDereferenceObject(MemoryNode->ModifiedPagesText);
     if (MemoryNode->RegionTypeText)
         PhDereferenceObject(MemoryNode->RegionTypeText);
     if (MemoryNode->PriorityText)
@@ -315,6 +328,29 @@ VOID PhpCopyMemoryRegionTypeInfo(
         PhReferenceObject(Destination->u.MappedFile.FileName);
 }
 
+VOID PhpRebuildMemoryRootNodeList(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    PhClearList(Context->RootNodeList);
+
+    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE allocationBaseNode = Context->AllocationBaseNodeList->Items[i];
+
+        // An allocation base with a single region is displayed as that region, since the region
+        // node carries the complete information set (use, priority, region type, signing level)
+        // while the synthetic allocation base node does not.
+
+        if (allocationBaseNode->Children->Count == 1)
+            PhAddItemList(Context->RootNodeList, allocationBaseNode->Children->Items[0]);
+        else
+            PhAddItemList(Context->RootNodeList, allocationBaseNode);
+    }
+}
+
 VOID PhReplaceMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_opt_ PPH_MEMORY_ITEM_LIST List
@@ -348,11 +384,8 @@ VOID PhReplaceMemoryList(
 
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
-            if (!(memoryItem->State & MEM_FREE))
-            {
-                memoryNode->Parent = allocationBaseNode;
-                PhAddItemList(allocationBaseNode->Children, memoryNode);
-            }
+            memoryNode->Parent = allocationBaseNode;
+            PhAddItemList(allocationBaseNode->Children, memoryNode);
 
             // Aggregate various statistics.
             allocationBaseNode->MemoryItem->RegionSize += memoryItem->RegionSize;
@@ -363,6 +396,8 @@ VOID PhReplaceMemoryList(
             allocationBaseNode->MemoryItem->SharedWorkingSetPages += memoryItem->SharedWorkingSetPages;
             allocationBaseNode->MemoryItem->ShareableWorkingSetPages += memoryItem->ShareableWorkingSetPages;
             allocationBaseNode->MemoryItem->LockedWorkingSetPages += memoryItem->LockedWorkingSetPages;
+            allocationBaseNode->MemoryItem->ModifiedWorkingSetPages += memoryItem->ModifiedWorkingSetPages;
+            allocationBaseNode->MemoryItem->SharedOriginalPages += memoryItem->SharedOriginalPages;
 
             if (memoryItem->AllocationBaseItem == memoryItem)
             {
@@ -378,7 +413,7 @@ VOID PhReplaceMemoryList(
 
                 if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
                     allocationBaseNode->Node.Visible = FALSE;
-                if (Context->HideGuardRegions && (allocationBaseNode->MemoryItem->State & PAGE_GUARD))
+                if (Context->HideGuardRegions && (allocationBaseNode->MemoryItem->Protect & PAGE_GUARD))
                     allocationBaseNode->Node.Visible = FALSE;
             }
             else
@@ -391,6 +426,8 @@ VOID PhReplaceMemoryList(
         PhGetMemoryProtectionString(memoryItem->Protect, memoryNode->ProtectionText);
         PhGetMemoryProtectionString(memoryItem->AllocationProtect, memoryNode->OriginalProtectionText);
     }
+
+    PhpRebuildMemoryRootNodeList(Context);
 
     PhApplyTreeNewFilters(&Context->AllocationTreeFilterSupport);
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
@@ -412,16 +449,29 @@ VOID PhRemoveMemoryNode(
     if ((index = PhFindItemList(Context->RegionNodeList, MemoryNode)) != ULONG_MAX)
         PhRemoveItemList(Context->RegionNodeList, index);
 
-    if (MemoryNode->MemoryItem->AllocationBaseItem == MemoryNode->MemoryItem)
+    if (MemoryNode->Parent)
     {
-        if ((index = PhFindItemList(Context->AllocationBaseNodeList, MemoryNode->Parent)) != ULONG_MAX)
-            PhRemoveItemList(Context->AllocationBaseNodeList, index);
+        PPH_MEMORY_NODE allocationBaseNode = MemoryNode->Parent;
+
+        if ((index = PhFindItemList(allocationBaseNode->Children, MemoryNode)) != ULONG_MAX)
+            PhRemoveItemList(allocationBaseNode->Children, index);
+
+        // The allocation base node is synthetic, so destroy it once its last region is gone.
+
+        if (allocationBaseNode->Children->Count == 0)
+        {
+            if ((index = PhFindItemList(Context->AllocationBaseNodeList, allocationBaseNode)) != ULONG_MAX)
+                PhRemoveItemList(Context->AllocationBaseNodeList, index);
+
+            PhpDestroyMemoryNode(allocationBaseNode);
+        }
     }
+
+    PhpRebuildMemoryRootNodeList(Context);
 
     PhpDestroyMemoryNode(MemoryNode);
 
-    if (Context->TreeNewSortOrder != NoSortOrder)
-        TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhUpdateMemoryNode(
@@ -504,20 +554,12 @@ VOID PhExpandAllMemoryNodes(
     ULONG i;
     BOOLEAN needsRestructure = FALSE;
 
-    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    for (i = 0; i < Context->RootNodeList->Count; i++)
     {
-        PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
+        PPH_MEMORY_NODE node = Context->RootNodeList->Items[i];
 
-        if (node->Node.Expanded != Expand)
-        {
-            node->Node.Expanded = Expand;
-            needsRestructure = TRUE;
-        }
-    }
-
-    for (i = 0; i < Context->RegionNodeList->Count; i++)
-    {
-        PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
+        if (!node->Children || node->Children->Count == 0)
+            continue;
 
         if (node->Node.Expanded != Expand)
         {
@@ -534,7 +576,7 @@ extern PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     );
 
-PPH_STRING PhGetMemoryRegionUseText(
+PPH_STRING NTAPI PhGetMemoryRegionUseText(
     _In_ PPH_MEMORY_ITEM MemoryItem
     )
 {
@@ -613,6 +655,8 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"LEAP_SECOND_DATA");
     case DesktopHeapRegion:
         return PhFormatString(L"Desktop heap");
+    case ShadowStackRegion:
+        return PhFormatString(L"Shadow stack (thread %lu)", HandleToUlong(MemoryItem->u.ShadowStack.ThreadId));
     default:
         return NULL;
     }
@@ -782,6 +826,12 @@ BEGIN_SORT_FUNCTION(OriginalPages)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ModifiedPages)
+{
+    sortResult = uintptrcmp(memoryItem1->ModifiedWorkingSetPages, memoryItem2->ModifiedWorkingSetPages);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(RegionType)
 {
     PhpUpdateMemoryRegionTypeExText(node1);
@@ -821,8 +871,8 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             {
                 if (!node)
                 {
-                    getChildren->Children = (PPH_TREENEW_NODE *)context->AllocationBaseNodeList->Items;
-                    getChildren->NumberOfChildren = context->AllocationBaseNodeList->Count;
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->RootNodeList->Items;
+                    getChildren->NumberOfChildren = context->RootNodeList->Count;
                 }
                 else
                 {
@@ -851,6 +901,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SORT_FUNCTION(SigningLevel),
                         SORT_FUNCTION(OriginalProtection),
                         SORT_FUNCTION(OriginalPages),
+                        SORT_FUNCTION(ModifiedPages),
                         SORT_FUNCTION(RegionType),
                         SORT_FUNCTION(Priority),
                     };
@@ -1061,6 +1112,29 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                     }
                 }
                 break;
+            case PHMMTLC_MODIFIED_PAGES:
+                {
+                    SIZE_T committedPages;
+
+                    if (node->IsAllocationBase)
+                        break;
+
+                    committedPages = memoryItem->CommittedSize / PAGE_SIZE;
+
+                    if ((memoryItem->State & MEM_COMMIT) &&
+                        (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE)) && committedPages)
+                    {
+                        PH_FORMAT format[4];
+
+                        PhInitFormatF(&format[0], (memoryItem->ModifiedWorkingSetPages / (FLOAT)committedPages) * 100.f, 2);
+                        PhInitFormatS(&format[1], L"% (");
+                        PhInitFormatI64U(&format[2], memoryItem->ModifiedWorkingSetPages);
+                        PhInitFormatS(&format[3], L")");
+                        PhMoveReference(&node->ModifiedPagesText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        getCellText->Text = PhGetStringRef(node->ModifiedPagesText);
+                    }
+                }
+                break;
             case PHMMTLC_REGIONTYPE:
                 {
                     PhpUpdateMemoryRegionTypeExText(node);
@@ -1124,6 +1198,14 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 ))
             {
                 getNodeColor->BackColor = PhCsColorMemorySystemPages;
+            }
+            else if (
+                context->HighlightModifiedPages &&
+                (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE)) &&
+                memoryItem->ModifiedWorkingSetPages
+                )
+            {
+                getNodeColor->BackColor = PhCsColorMemoryModifiedPages;
             }
             else if (context->HighlightPrivatePages && memoryItem->Type & MEM_PRIVATE)
             {

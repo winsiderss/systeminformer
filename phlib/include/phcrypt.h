@@ -17,6 +17,69 @@
 EXTERN_C_START
 
 // ------------------------------------------------------------------------
+// Crypto provider selection and capability discovery
+// ------------------------------------------------------------------------
+
+typedef ULONG PH_CRYPTO_PROVIDER_ID, *PPH_CRYPTO_PROVIDER_ID;
+
+#define PhCryptoProviderDefault  0ul
+#define PhCryptoProviderBCrypt   1ul
+#define PhCryptoProviderSymCrypt 2ul
+
+typedef ULONG64 PH_CRYPTO_CAPABILITIES, *PPH_CRYPTO_CAPABILITIES;
+
+#define PH_CRYPTO_CAPABILITY_HASH       0x0000000000000001ull
+#define PH_CRYPTO_CAPABILITY_HMAC_KDF   0x0000000000000002ull
+#define PH_CRYPTO_CAPABILITY_SYMMETRIC  0x0000000000000004ull
+#define PH_CRYPTO_CAPABILITY_RSA        0x0000000000000008ull
+#define PH_CRYPTO_CAPABILITY_ECDSA      0x0000000000000010ull
+#define PH_CRYPTO_CAPABILITY_MLDSA      0x0000000000000020ull
+#define PH_CRYPTO_CAPABILITY_RANDOM     0x0000000000000040ull
+
+typedef struct _PH_CRYPTO_PROVIDER_INFO
+{
+    ULONG Size;
+    PH_CRYPTO_PROVIDER_ID ProviderId;
+    PH_CRYPTO_CAPABILITIES Capabilities;
+    BOOLEAN Available;
+    PCWSTR Name;
+} PH_CRYPTO_PROVIDER_INFO, *PPH_CRYPTO_PROVIDER_INFO;
+
+typedef PVOID PH_CRYPTO_PROVIDER_HANDLE, *PPH_CRYPTO_PROVIDER_HANDLE;
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhQueryCryptoProvider(
+    _In_ PH_CRYPTO_PROVIDER_ID ProviderId,
+    _Out_ PPH_CRYPTO_PROVIDER_INFO Information
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhOpenCryptoProvider(
+    _In_ PH_CRYPTO_PROVIDER_ID ProviderId,
+    _In_ PH_CRYPTO_CAPABILITIES RequiredCapabilities,
+    _Out_ PPH_CRYPTO_PROVIDER_HANDLE ProviderHandle
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhGetCryptoProviderInformation(
+    _In_ PH_CRYPTO_PROVIDER_HANDLE ProviderHandle,
+    _Out_ PPH_CRYPTO_PROVIDER_INFO Information
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhCloseCryptoProvider(
+    _In_opt_ PH_CRYPTO_PROVIDER_HANDLE ProviderHandle
+    );
+
+// ------------------------------------------------------------------------
 // One-time SymCrypt library initialization
 // ------------------------------------------------------------------------
 
@@ -163,6 +226,33 @@ NTAPI
 PhSymCryptDestroyHash(
     _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _In_ ULONG HashSize
+    );
+
+// New non-allocating incremental API (caller provides PH_SYMCRYPT_HASH_CONTEXT buffer)
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashInitEx(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_SYMCRYPT_HASH_CONTEXT Context
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashUpdateEx(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashFinalEx(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ ULONG ResultLength
     );
 
 EXTERN_C
@@ -431,14 +521,14 @@ PhSymCryptCShake256(
 // parallel implementations (SHA-256/384/512 up to 8-way parallel).
 //
 // Pattern:
-//   PH_SYMCRYPT_PARALLEL_HASH_CONTEXT ctx = {0};
-//   PhSymCryptInitializeParallelHash(&ctx, PH_SYMCRYPT_PARALLEL_HASH_SHA256, 4);
+//   PPH_SYMCRYPT_MULTI_HASH_CONTEXT ctx = {0};
+//   PhSymCryptInitializeMultiHash(&ctx, PH_SYMCRYPT_MULTI_HASH_SHA256, 4);
 //
 //   // Build operation array with arbitrary interleaving
-//   PH_SYMCRYPT_PARALLEL_HASH_OPERATION ops[8] = {...};
-//   PhSymCryptProcessParallelHashOperations(&ctx, ops, 8);
+//   PH_SYMCRYPT_MULTI_HASH_OPERATION ops[8] = {...};
+//   NTSTATUS NTAPI PhSymCryptProcessMultiOperations((&ctx, ops, 8);
 //
-//   PhSymCryptCleanupParallelHash(&ctx);
+//   PhSymCryptCleanupMultiHash(&ctx);
 //
 // Exposed structure allows stack allocation. Results are extracted via
 // HASH_OPERATION_RESULT operations.
@@ -451,79 +541,79 @@ PhSymCryptCShake256(
 // Wrapper macros for SymCrypt parallelism constants
 // x86/x64: 2-8 parallel hashes; ARM: 3-4 parallel hashes
 #if defined(_ARM_) || defined(_ARM64_) || defined(_ARM64EC_)
-#define PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM  (3)
-#define PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM  (4)
+#define PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM  (3)
+#define PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM  (4)
 #else
-#define PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM  (2)
-#define PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM  (8)
+#define PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM  (2)
+#define PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM  (8)
 #endif
 // SHA384 and SHA512 use same limits as SHA256
-#define PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM
-#define PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
-#define PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM
-#define PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
+#define PH_SYMCRYPT_MULTI_SHA384_MIN_PARALLELISM  PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM
+#define PH_SYMCRYPT_MULTI_SHA384_MAX_PARALLELISM  PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM
+#define PH_SYMCRYPT_MULTI_SHA512_MIN_PARALLELISM  PH_SYMCRYPT_MULTI_SHA256_MIN_PARALLELISM
+#define PH_SYMCRYPT_MULTI_SHA512_MAX_PARALLELISM  PH_SYMCRYPT_MULTI_SHA256_MAX_PARALLELISM
 
-typedef enum _PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM
+typedef enum _PH_SYMCRYPT_MULTI_HASH_ALGORITHM
 {
-    PH_SYMCRYPT_PARALLEL_HASH_SHA256 = 1,
-    PH_SYMCRYPT_PARALLEL_HASH_SHA384 = 2,
-    PH_SYMCRYPT_PARALLEL_HASH_SHA512 = 3,
-} PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM;
+    PH_SYMCRYPT_MULTI_HASH_SHA256 = 1,
+    PH_SYMCRYPT_MULTI_HASH_SHA384 = 2,
+    PH_SYMCRYPT_MULTI_HASH_SHA512 = 3,
+} PH_SYMCRYPT_MULTI_HASH_ALGORITHM;
 
-typedef enum _PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE
+typedef enum _PH_SYMCRYPT_MULTI_HASH_OPERATION_TYPE
 {
     PH_SYMCRYPT_HASH_OPERATION_APPEND = 1,
     PH_SYMCRYPT_HASH_OPERATION_RESULT = 2,
-} PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE;
+} PH_SYMCRYPT_MULTI_HASH_OPERATION_TYPE;
 
-typedef struct _PH_SYMCRYPT_PARALLEL_HASH_OPERATION
+typedef struct _PH_SYMCRYPT_MULTI_HASH_OPERATION
 {
     SIZE_T iHash;
-    PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE hashOperation;
-    _In_reads_bytes_(cbBuffer) PBYTE pbBuffer;
-    SIZE_T cbBuffer;
-} PH_SYMCRYPT_PARALLEL_HASH_OPERATION, *PPH_SYMCRYPT_PARALLEL_HASH_OPERATION;
+    PH_SYMCRYPT_MULTI_HASH_OPERATION_TYPE HashOperation;
+    _In_reads_bytes_(cbBuffer) PBYTE Buffer;
+    SIZE_T Size;
+} PH_SYMCRYPT_MULTI_HASH_OPERATION, *PPH_SYMCRYPT_MULTI_HASH_OPERATION;
 
-typedef struct _PH_SYMCRYPT_PARALLEL_HASH_CONTEXT
+typedef struct _PH_SYMCRYPT_MULTI_HASH_CONTEXT
 {
-    PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm;
+    PH_SYMCRYPT_MULTI_HASH_ALGORITHM Algorithm;
     SIZE_T NumberOfHashes;
     SIZE_T ResultSize;
     PVOID pHashStates;
     PBYTE pbScratchBuffer;
     SIZE_T cbScratchBuffer;
-} PH_SYMCRYPT_PARALLEL_HASH_CONTEXT, *PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT;
+} PH_SYMCRYPT_MULTI_HASH_CONTEXT, *PPH_SYMCRYPT_MULTI_HASH_CONTEXT;
 
 EXTERN_C
 NTSTATUS
 NTAPI
-PhSymCryptInitializeParallelHash(
-    _Out_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
-    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+PhSymCryptInitializeMultiHash(
+    _Out_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext,
+    _In_ PH_SYMCRYPT_MULTI_HASH_ALGORITHM Algorithm,
     _In_ SIZE_T NumberOfHashes
     );
 
 EXTERN_C
 NTSTATUS
 NTAPI
-PhSymCryptProcessParallelHashOperations(
-    _In_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
-    _Inout_updates_(OperationCount) PPH_SYMCRYPT_PARALLEL_HASH_OPERATION Operations,
+PhSymCryptProcessMultiOperations(
+    _In_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext,
+    _Inout_updates_(OperationCount) PPH_SYMCRYPT_MULTI_HASH_OPERATION Operations,
     _In_ SIZE_T OperationCount
     );
 
 EXTERN_C
 VOID
 NTAPI
-PhSymCryptCleanupParallelHash(
-    _Inout_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext
+PhSymCryptCleanupMultiHash(
+    _Inout_ PPH_SYMCRYPT_MULTI_HASH_CONTEXT ParallelHashContext
     );
 
 EXTERN_C
 VOID
 NTAPI
 PhSymCryptGetParallelHashCapabilities(
-    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _In_ PH_SYMCRYPT_MULTI_HASH_ALGORITHM Algorithm,
     _Out_opt_ PSIZE_T MinimumParallelism,
     _Out_opt_ PSIZE_T MaximumParallelism
     );
@@ -1945,6 +2035,14 @@ typedef ULONG PH_SYMCRYPT_MLDSA_KEY_FORMAT, *PPH_SYMCRYPT_MLDSA_KEY_FORMAT;
 #define PH_SYMCRYPT_MLDSA_PUBLIC_KEY   3ul
 
 typedef PVOID PH_SYMCRYPT_MLDSA_KEY_HANDLE, *PPH_SYMCRYPT_MLDSA_KEY_HANDLE;
+
+// FIPS 204 fixed encodings (PH_SYMCRYPT_MLDSA_PUBLIC_KEY format / signatures)
+#define PH_SYMCRYPT_MLDSA_44_PUBLIC_KEY_SIZE 1312ul
+#define PH_SYMCRYPT_MLDSA_44_SIGNATURE_SIZE  2420ul
+#define PH_SYMCRYPT_MLDSA_65_PUBLIC_KEY_SIZE 1952ul
+#define PH_SYMCRYPT_MLDSA_65_SIGNATURE_SIZE  3309ul
+#define PH_SYMCRYPT_MLDSA_87_PUBLIC_KEY_SIZE 2592ul
+#define PH_SYMCRYPT_MLDSA_87_SIGNATURE_SIZE  4627ul
 
 EXTERN_C
 NTSTATUS

@@ -136,10 +136,13 @@ VOID NTAPI BCD_MESSAGE_CALLBACK(
 typedef BCD_MESSAGE_CALLBACK* PBCD_MESSAGE_CALLBACK;
 
 /**
- * Sets the logging level and callback function for BCD messages.
+ * The BcdSetLogging routine installs a process-local BCD diagnostic callback, or removes it when
+ * BcdMessageCallbackRoutine is NULL. Installing over an existing callback and removing an absent callback
+ * return STATUS_INVALID_PARAMETER. Registration stores a borrowed callback address; keep its code alive
+ * until removal. No store is opened by this entry.
  *
- * \param BcdLoggingLevel The logging level to set.
- * \param BcdMessageCallbackRoutine The callback routine for BCD messages.
+ * \param BcdLoggingLevel Diagnostic message level to report.
+ * \param BcdMessageCallbackRoutine Optional diagnostic callback; NULL removes it.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -147,11 +150,13 @@ NTSTATUS
 NTAPI
 BcdSetLogging(
     _In_ BCD_MESSAGE_TYPE BcdLoggingLevel,
-    _In_ PBCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
+    _In_opt_ PBCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
     );
 
 /**
- * The BcdInitializeBcdSyncMutant function initializes the BCD synchronization mutant.
+ * The BcdInitializeBcdSyncMutant routine is a historical synchronization-initialization declaration that was
+ * not located in the inspected BCD client exports or symbols. Do not infer callable availability from this
+ * declaration or substitute a similarly named internal helper.
  */
 NTSYSAPI
 VOID
@@ -161,20 +166,23 @@ BcdInitializeBcdSyncMutant(
     );
 
 /**
- * The BcdGetSystemStorePath function retrieves the file name for the BCD.
+ * The BcdGetSystemStorePath routine returns an allocated, NUL-terminated system-store path through a
+ * required output slot. Free the returned string itself with RtlFreeHeap(RtlProcessHeap(),0,string), not the
+ * address of the output slot. Firmware/platform lookup failures can leave the slot unchanged; initialize it
+ * before calling.
  *
- * \param BcdSystemStorePath The pointer to receive the system store path.
+ * \param BcdSystemStorePath Receives an allocated system-store path.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdGetSystemStorePath(
-    _Out_ PWSTR* BcdSystemStorePath // RtlFreeHeap(RtlProcessHeap(), 0, BcdSystemStorePath);
+    _Outptr_ PWSTR* BcdSystemStorePath // Free *BcdSystemStorePath with RtlFreeHeap(RtlProcessHeap(), 0, ...).
     );
 
 /**
- * The BcdSetSystemStoreDevice function sets the device for the system BCD store.
+ * The BcdSetSystemStoreDevice routine sets the device for the system BCD store.
  *
  * \param SystemPartition The system partition to set.
  * \return NTSTATUS Successful or errant status.
@@ -187,9 +195,10 @@ BcdSetSystemStoreDevice(
     );
 
 /**
- * The BcdOpenSystemStore function opens the BCD system store.
+ * The BcdOpenSystemStore routine selects the system-store open path. Opening/closing can involve firmware
+ * synchronization or registry-store maintenance; do not treat this as a harmless existence probe.
  *
- * \param BcdStoreHandle The handle to receive the system store.
+ * \param BcdStoreHandle Receives the opened system-store handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -200,10 +209,12 @@ BcdOpenSystemStore(
     );
 
 /**
- * The BcdOpenStoreFromFile function opens a BCD store from a file.
+ * The BcdOpenStoreFromFile routine forwards the counted path to BcdOpenStore with flags zero. Opening can
+ * update store metadata; it is not a side-effect-free file query. The output is a BCD store handle, not an
+ * ordinary file handle.
  *
- * \param BcdFilePath The file path of the BCD store.
- * \param BcdStoreHandle The handle to receive the BCD store.
+ * \param BcdFilePath Path to the BCD store file.
+ * \param BcdStoreHandle Receives the opened store handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -215,9 +226,9 @@ BcdOpenStoreFromFile(
     );
 
 /**
- * The BcdCreateStore function creates a BCD store.
+ * The BcdCreateStore routine creates a BCD store.
  *
- * \param BcdFilePath The file path to create the BCD store.
+ * \param BcdFilePath The NT file path at which to create the BCD store.
  * \param BcdStoreHandle The handle to receive the BCD store.
  * \return NTSTATUS Successful or errant status.
  */
@@ -230,7 +241,7 @@ BcdCreateStore(
     );
 
 /**
- * The BcdExportStore function exports the BCD store to a file.
+ * The BcdExportStore routine exports the system BCD store to a file.
  *
  * \param BcdFilePath The file path to export the BCD store.
  * \return NTSTATUS Successful or errant status.
@@ -244,7 +255,7 @@ BcdExportStore(
 
 #if (PHNT_VERSION > PHNT_WINDOWS_11)
 /**
- * The BcdExportStoreEx function exports the BCD store to a file with additional flags.
+ * The BcdExportStoreEx routine exports the BCD store to a file with additional flags.
  *
  * \param BcdStoreHandle The handle to the BCD store.
  * \param Flags The flags for exporting the store.
@@ -262,7 +273,7 @@ BcdExportStoreEx(
 #endif // PHNT_VERSION > PHNT_WINDOWS_11
 
 /**
- * The BcdImportStore function imports a BCD store from a file.
+ * The BcdImportStore routine imports a BCD store from a file.
  *
  * \param BcdFilePath The file path to import the BCD store.
  * \return NTSTATUS Successful or errant status.
@@ -281,7 +292,7 @@ typedef enum _BCD_IMPORT_FLAGS
 } BCD_IMPORT_FLAGS;
 
 /**
- * The BcdImportStoreWithFlags function imports a BCD store from a file with additional flags.
+ * The BcdImportStoreWithFlags routine imports a BCD store from a file with additional flags.
  *
  * \param BcdFilePath The file path to import the BCD store.
  * \param BcdImportFlags The flags for importing the store.
@@ -296,7 +307,7 @@ BcdImportStoreWithFlags(
     );
 
 /**
- * The BcdDeleteObjectReferences function deletes object references in the BCD store.
+ * The BcdDeleteObjectReferences routine deletes object references in the BCD store.
  *
  * \param BcdStoreHandle The handle to the BCD store.
  * \param Identifier The identifier of the object to delete references for.
@@ -311,7 +322,7 @@ BcdDeleteObjectReferences(
     );
 
 /**
- * The BcdDeleteSystemStore function deletes the system store for BCD.
+ * The BcdDeleteSystemStore routine deletes the system store for BCD.
  *
  * \return NTSTATUS Successful or errant status.
  */
@@ -330,26 +341,31 @@ typedef enum _BCD_OPEN_FLAGS
 } BCD_OPEN_FLAGS;
 
 /**
- * The BcdOpenStore function opens a BCD store with additional flags.
+ * The BcdOpenStore routine opens an explicit BCD path or, when BcdFilePath is NULL and offline flag 0x1 is
+ * clear, the system store. NULL with offline flag 0x1 is rejected. Opening an explicit file can delete
+ * GuidCache and clear the system-store marker; this is not guaranteed to be a read-only operation. Close
+ * only with BcdCloseStore.
  *
- * \param BcdFilePath The file path of the BCD store.
- * \param BcdOpenFlags The flags for opening the store.
- * \param BcdStoreHandle The handle to receive the BCD store.
+ * \param BcdFilePath Optional path to the BCD store file.
+ * \param BcdOpenFlags Flags controlling how the store is opened.
+ * \param BcdStoreHandle Receives the opened store handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStore(
-    _In_ PCUNICODE_STRING BcdFilePath,
+    _In_opt_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_OPEN_FLAGS BcdOpenFlags,
     _Out_ PHANDLE BcdStoreHandle
     );
 
 /**
- * The BcdCloseStore function closes a BCD store.
+ * The BcdCloseStore routine closes a store using flags derived from system-store identity, handle tags and
+ * WinPE state. Close can perform store or firmware maintenance; it is not merely a kernel-handle close. Use
+ * only a handle returned by the BCD library.
  *
- * \param BcdStoreHandle The handle to the BCD store.
+ * \param BcdStoreHandle BCD store handle to close.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -360,7 +376,7 @@ BcdCloseStore(
     );
 
 /**
- * The BcdFlushStore function flushes a BCD store.
+ * The BcdFlushStore routine flushes a BCD store.
  *
  * \param BcdStoreHandle The handle to the BCD store.
  * \return NTSTATUS Successful or errant status.
@@ -373,7 +389,7 @@ BcdFlushStore(
     );
 
 /**
- * The BcdForciblyUnloadStore function forcibly unloads a BCD store.
+ * The BcdForciblyUnloadStore routine forcibly unloads a BCD store.
  *
  * \param BcdStoreHandle The handle to the BCD store.
  * \return NTSTATUS Successful or errant status.
@@ -386,7 +402,7 @@ BcdForciblyUnloadStore(
     );
 
 /**
- * The BcdMarkAsSystemStore function marks the specified BCD store as the system store
+ * The BcdMarkAsSystemStore routine marks the specified BCD store as the system store
  * and used by the boot manager and other boot components as the primary source of boot configuration data.
  *
  * \param BcdStoreHandle Handle to the BCD store to be marked as the system store.
@@ -397,6 +413,49 @@ NTSTATUS
 NTAPI
 BcdMarkAsSystemStore(
     _In_ HANDLE BcdStoreHandle
+    );
+
+//
+// System-partition discovery helpers exported by bcd.dll and used by bcdsrv.dll.
+//
+
+/**
+ * The SyspartGetSystemDisk routine retrieves the system-disk device name, first through a system-information
+ * query and then through a fallback when necessary. BufferSize and RequiredSize are bytes, including the
+ * UTF-16 terminator. Short storage returns STATUS_INFO_LENGTH_MISMATCH on the primary path; fallback
+ * behavior was not executed in this review.
+ *
+ * \param Buffer Optional buffer receiving the system-disk device name.
+ * \param BufferSize Capacity of Buffer in bytes.
+ * \param RequiredSize Receives the required buffer size in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SyspartGetSystemDisk(
+    _Out_writes_bytes_opt_(BufferSize) PWSTR Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG RequiredSize
+    );
+
+/**
+ * The SyspartGetSystemPartition routine retrieves the system-partition device name using
+ * system-information/fallback discovery. BufferSize and RequiredSize are byte counts rather than WCHAR
+ * counts. A sizing request is not an open BCD store and does not return a BCD handle.
+ *
+ * \param Buffer Optional buffer receiving the system-partition device name.
+ * \param BufferSize Capacity of Buffer in bytes.
+ * \param RequiredSize Receives the required buffer size in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SyspartGetSystemPartition(
+    _Out_writes_bytes_opt_(BufferSize) PWSTR Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG RequiredSize
     );
 
 /**
@@ -561,7 +620,9 @@ typedef struct _BCD_OBJECT_DESCRIPTION
 } BCD_OBJECT_DESCRIPTION, *PBCD_OBJECT_DESCRIPTION;
 
 /**
- * The BCD_OBJECT structure contains the identifier and description of a BCD object.
+ * An entry in the BcdEnumerateObjects result. Description points into the caller
+ * supplied result buffer; it is not separately allocated. Copy the description
+ * before releasing or relocating that buffer. The entry size is 24 bytes on x64.
  */
 typedef struct _BCD_OBJECT
 {
@@ -570,13 +631,17 @@ typedef struct _BCD_OBJECT
 } BCD_OBJECT, *PBCD_OBJECT;
 
 /**
- * The BcdEnumerateObjects function enumerates BCD objects in the specified BCD store.
+ * The BcdEnumerateObjects routine enumerates matching object GUID/description pairs into caller storage.
+ * BufferSize is bytes, ObjectCount is elements. NULL Buffer requires input size zero; descriptor version
+ * zero is rejected. The x64 output contains 24-byte object records plus 8-byte descriptions referenced
+ * inside the same buffer. Retry on STATUS_INFO_LENGTH_MISMATCH; retain the allocation while using embedded
+ * pointers.
  *
  * \param BcdStoreHandle Handle to the BCD store.
- * \param BcdEnumDescriptor Pointer to a BCD_OBJECT_DESCRIPTION structure that specifies the type of objects to enumerate.
- * \param Buffer Optional pointer to a buffer that receives an array of BCD_OBJECT structures.
- * \param BufferSize On input, the size of the buffer in bytes. On output, the required or actual size.
- * \param ObjectCount Receives the number of objects returned.
+ * \param BcdEnumDescriptor Descriptor selecting objects to enumerate.
+ * \param Buffer Optional buffer receiving object records and descriptions.
+ * \param BufferSize Input capacity and output required size in bytes.
+ * \param ObjectCount Receives the number of objects.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -591,7 +656,7 @@ BcdEnumerateObjects(
     );
 
 /**
- * The BcdOpenObject function opens a BCD object by its identifier.
+ * The BcdOpenObject routine opens a BCD object by its identifier.
  *
  * \param BcdStoreHandle Handle to the BCD store.
  * \param Identifier Pointer to the GUID of the object to open.
@@ -608,10 +673,11 @@ BcdOpenObject(
     );
 
 /**
- * The BcdCreateObject function creates a new BCD object in the specified store.
+ * The BcdCreateObject routine creates a new BCD object in the specified store.
  *
  * \param BcdStoreHandle Handle to the BCD store.
- * \param Identifier Pointer to the GUID for the new object.
+ * \param Identifier Optional GUID for the new object. Pass NULL to generate an identifier.
+ * Retrieve the generated identifier with BcdQueryObject.
  * \param Description Pointer to a BCD_OBJECT_DESCRIPTION structure describing the object.
  * \param BcdObjectHandle Receives the handle to the created BCD object.
  * \return NTSTATUS Successful or errant status.
@@ -621,13 +687,13 @@ NTSTATUS
 NTAPI
 BcdCreateObject(
     _In_ HANDLE BcdStoreHandle,
-    _In_ PCGUID Identifier,
+    _In_opt_ PCGUID Identifier,
     _In_ PBCD_OBJECT_DESCRIPTION Description,
     _Out_ PHANDLE BcdObjectHandle
     );
 
 /**
- * The BcdDeleteObject function deletes a BCD object.
+ * The BcdDeleteObject routine deletes a BCD object.
  *
  * \param BcdObjectHandle Handle to the BCD object to delete.
  * \return NTSTATUS Successful or errant status.
@@ -640,9 +706,11 @@ BcdDeleteObject(
     );
 
 /**
- * The BcdCloseObject function closes a handle to a BCD object.
+ * The BcdCloseObject routine closes the object key under BCD synchronization. The inspected wrapper returns
+ * the synchronization-release result after BiCloseKey; it is not an independent validity test for arbitrary
+ * handles. Do not substitute NtClose for this BCD lifecycle operation.
  *
- * \param BcdObjectHandle Handle to the BCD object to close.
+ * \param BcdObjectHandle BCD object handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -669,7 +737,7 @@ typedef _Enum_is_bitflag_ enum _BCD_COPY_FLAGS
 DEFINE_ENUM_FLAG_OPERATORS(BCD_COPY_FLAGS);
 
 /**
- * The BcdCopyObject function copies a BCD object from one store to another.
+ * The BcdCopyObject routine copies a BCD object from one store to another.
  *
  * \param BcdStoreHandle Handle to the source BCD store.
  * \param BcdObjectHandle Handle to the BCD object to copy.
@@ -690,7 +758,7 @@ BcdCopyObject(
     );
 
 /**
- * The BcdCopyObjectEx function copies a BCD object from one store to another, specifying the target object identifier.
+ * The BcdCopyObjectEx routine copies a BCD object from one store to another, specifying the target object identifier.
  *
  * \param BcdStoreHandle Handle to the source BCD store.
  * \param BcdObjectHandle Handle to the BCD object to copy.
@@ -713,7 +781,7 @@ BcdCopyObjectEx(
     );
 
 /**
- * The BcdCopyObjects function copies multiple BCD objects from one store to another based on specified characteristics.
+ * The BcdCopyObjects routine copies multiple BCD objects from one store to another based on specified characteristics.
  *
  * \param BcdStoreHandle Handle to the source BCD store.
  * \param Characteristics Pointer to a BCD_OBJECT_DESCRIPTION structure specifying the objects to copy.
@@ -732,7 +800,7 @@ BcdCopyObjects(
     );
 
 /**
- * The BcdMigrateObjectElementValues function migrates element values from a source BCD object to a target BCD object using a template.
+ * The BcdMigrateObjectElementValues routine migrates element values from a source BCD object to a target BCD object using a template.
  *
  * \param TemplateObjectHandle Handle to the template BCD object.
  * \param SourceObjectHandle Handle to the source BCD object.
@@ -749,12 +817,14 @@ BcdMigrateObjectElementValues(
     );
 
 /**
- * The BcdQueryObject function queries a BCD object for its description and identifier.
+ * The BcdQueryObject routine reads an object description and/or GUID. At least one output is required.
+ * BcdVersion must equal 1 when Description is requested; identifier-only queries bypass that version check.
+ * Both outputs NULL reject before acquiring the synchronization mutant or using the object handle.
  *
- * \param BcdObjectHandle Handle to the BCD object to query.
- * \param BcdVersion The version of the BCD object description structure (use BCD_OBJECT_DESCRIPTION_VERSION).
- * \param Description Receives the BCD_OBJECT_DESCRIPTION structure for the object.
- * \param Identifier Receives the GUID identifier of the object.
+ * \param BcdObjectHandle BCD object handle.
+ * \param BcdVersion Object description version.
+ * \param Description Optional output for the object description.
+ * \param Identifier Optional output for the object identifier.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -763,8 +833,8 @@ NTAPI
 BcdQueryObject(
     _In_ HANDLE BcdObjectHandle,
     _In_ ULONG BcdVersion, // BCD_OBJECT_DESCRIPTION_VERSION
-    _Out_ BCD_OBJECT_DESCRIPTION Description,
-    _Out_ PGUID Identifier
+    _Out_opt_ PBCD_OBJECT_DESCRIPTION Description,
+    _Out_opt_ PGUID Identifier
     );
 
 /**
@@ -869,13 +939,15 @@ typedef union _BCD_ELEMENT_DATATYPE
 static_assert(sizeof(BCD_ELEMENT_DATATYPE) == sizeof(ULONG), "sizeof(BCD_ELEMENT_DATATYPE) is invalid.");
 
 /**
- * The BcdEnumerateElementTypes function enumerates the element types present in a specified BCD object.
+ * The BcdEnumerateElementTypes routine enumerates 32-bit BCD element type values. BufferSize is bytes and
+ * becomes 4 times ElementCount. A short buffer can receive a prefix before STATUS_BUFFER_TOO_SMALL
+ * (0xC0000023); the returned count is not proof that every element was copied. NULL Buffer requires input
+ * size zero.
  *
- * \param BcdObjectHandle Handle to the BCD object whose element types are to be enumerated.
- * \param Buffer Optional pointer to a buffer that receives an array of BCD_ELEMENT_DATATYPE values.
- * If this parameter is NULL, the function will return the required buffer size in BufferSize.
- * \param BufferSize On input, specifies the size of the buffer in bytes. On output, receives the required or actual size of the buffer.
- * \param ElementCount Receives the number of element types returned in the buffer.
+ * \param BcdObjectHandle BCD object handle.
+ * \param Buffer Optional buffer receiving element data types.
+ * \param BufferSize Input capacity and output required size in bytes.
+ * \param ElementCount Receives the number of elements.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -889,20 +961,40 @@ BcdEnumerateElementTypes(
     );
 
 /**
- * The BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION structure contains information about a qualified partition.
+ * Native locate-device selector, as decoded by bcdsrv.dll. Type 0 selects an
+ * element; ParentOffset = 0 uses that element directly, while a nonzero offset
+ * supplies a nested device (used for VHD boot). Type 1 selects Path and requires
+ * ParentOffset = 0. The COM locate-element-child discriminator 2 is not stored
+ * in this field.
+ */
+typedef enum _BCD_ELEMENT_DEVICE_LOCATE_TYPE
+{
+    BCD_ELEMENT_DEVICE_LOCATE_TYPE_ELEMENT = 0,
+    BCD_ELEMENT_DEVICE_LOCATE_TYPE_STRING = 1
+} BCD_ELEMENT_DEVICE_LOCATE_TYPE;
+
+// Serialized device payloads can contain nested devices at unaligned offsets.
+#include <pshpack1.h>
+
+/**
+ * Identifies a partition by disk identity and partition identity rather than by
+ * its current device path. PartitionStyle 0 selects MBR (disk signature plus
+ * partition byte offset); PartitionStyle 1 selects GPT (disk and partition GUIDs).
+ * The 40-byte payload follows the 20-byte BCD_ELEMENT_DEVICE prefix. MBR fields
+ * are consecutive, not alternatives; the MBR and GPT representations overlap.
  */
 typedef struct _BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION
 {
     ULONG PartitionStyle;
-    ULONG Reserved;
-    struct
+    ULONG Reserved; // Zero when writing.
+    union
     {
-        union
+        struct
         {
             ULONG DiskSignature;
-            ULONG64 PartitionOffset;
+            ULONG64 PartitionOffset; // Bytes from the start of the disk.
         } Mbr;
-        union
+        struct
         {
             GUID DiskSignature;
             GUID PartitionSignature;
@@ -911,44 +1003,69 @@ typedef struct _BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION
 } BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION, *PBCD_ELEMENT_DEVICE_QUALIFIED_PARTITION;
 
 /**
- * The BCD_ELEMENT_DEVICE structure contains information about a BCD device element.
+ * Serialized device-format element data passed to BcdSetElementData and returned
+ * by BcdGetElementData. DeviceType selects the serialized payload layout.
+ * DeviceType selects the payload at byte offset 20. AdditionalOptions identifies
+ * a device-options object, or is GUID_NULL when there is no such object.
+ *
+ * ParentOffset is a byte offset from the start of the containing device, not
+ * from the File/Locate member. It locates another BCD_ELEMENT_DEVICE inside the
+ * same buffer. Validate offsets and variable-length paths against DataSize before
+ * dereferencing them. ANYSIZE_ARRAY is a placeholder, not the payload capacity.
+ * A fixed boot/qualified-partition device occupies 60 bytes; partition/file/locate
+ * records use their actual variable payload length, not sizeof this structure.
  */
 typedef struct _BCD_ELEMENT_DEVICE
 {
-    ULONG DeviceType;
+    ULONG DeviceType; // BCD_ELEMENT_DEVICE_TYPE
     GUID AdditionalOptions;
-    struct
+    union
     {
-        union
+        struct
         {
             ULONG ParentOffset;
-            WCHAR Path[ANYSIZE_ARRAY];
+            WCHAR Path[ANYSIZE_ARRAY]; // NUL-terminated; starts at device offset 24.
         } File;
-        union
+        struct
         {
-            WCHAR Path[ANYSIZE_ARRAY];
+            WCHAR Path[ANYSIZE_ARRAY]; // NUL-terminated; starts at device offset 20.
         } Partition;
-        union
+        struct
         {
-            ULONG Type;
+            ULONG Type; // BCD_ELEMENT_DEVICE_LOCATE_TYPE
             ULONG ParentOffset;
-            ULONG ElementType;
-            WCHAR Path[ANYSIZE_ARRAY];
+            ULONG ElementType; // Packed BCD_ELEMENT_DATATYPE for Type 0.
+            WCHAR Path[ANYSIZE_ARRAY]; // Type 1; starts at device offset 32.
         } Locate;
-        union
+        struct
         {
             GUID InterfaceInstance;
         } Vmbus;
-        union
+        struct
         {
-            ULONG Data[ANYSIZE_ARRAY];
+            UCHAR Data[ANYSIZE_ARRAY]; // Opaque bytes after the 20-byte prefix.
         } Unknown;
         BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION QualifiedPartition;
     };
 } BCD_ELEMENT_DEVICE, *PBCD_ELEMENT_DEVICE;
 
+#include <poppack.h>
+
+static_assert(sizeof(BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION) == 40, "Invalid qualified partition size.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION, Mbr.PartitionOffset) == 12, "Invalid MBR offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION, Gpt.PartitionSignature) == 24, "Invalid GPT offset.");
+static_assert(sizeof(BCD_ELEMENT_DEVICE) == 60, "Invalid device size.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, AdditionalOptions) == 4, "Invalid options offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, QualifiedPartition) == 20, "Invalid device payload offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, File.Path) == 24, "Invalid file path offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, Partition.Path) == 20, "Invalid partition path offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, Locate.ParentOffset) == 24, "Invalid locate parent offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, Locate.ElementType) == 28, "Invalid locate element offset.");
+static_assert(FIELD_OFFSET(BCD_ELEMENT_DEVICE, Locate.Path) == 32, "Invalid locate path offset.");
+
 /**
- * The BCD_ELEMENT_STRING structure contains a string value for a BCD element.
+ * A NUL-terminated UTF-16 element payload. When setting the value, include the
+ * terminating WCHAR in BufferSize; bcdsrv.dll passes 2 * (character count + 1).
  */
 typedef struct _BCD_ELEMENT_STRING
 {
@@ -964,7 +1081,9 @@ typedef struct _BCD_ELEMENT_OBJECT
 } BCD_ELEMENT_OBJECT, *PBCD_ELEMENT_OBJECT;
 
 /**
- * The BCD_ELEMENT_OBJECT_LIST structure contains a list of GUIDs for a BCD object list element.
+ * A contiguous array of object GUIDs, used for ordered boot entries and other
+ * object references. There is no embedded count: divide the payload byte count
+ * by sizeof(GUID) (16). Each GUID can be passed to BcdOpenObject.
  */
 typedef struct _BCD_ELEMENT_OBJECT_LIST
 {
@@ -980,7 +1099,8 @@ typedef struct _BCD_ELEMENT_INTEGER
 } BCD_ELEMENT_INTEGER, *PBCD_ELEMENT_INTEGER;
 
 /**
- * The BCD_ELEMENT_INTEGER_LIST structure contains a list of 64-bit integers for a BCD element.
+ * A contiguous array of unsigned 64-bit values. There is no embedded count:
+ * divide the payload byte count by sizeof(ULONG64) (8).
  */
 typedef struct _BCD_ELEMENT_INTEGER_LIST
 {
@@ -988,18 +1108,26 @@ typedef struct _BCD_ELEMENT_INTEGER_LIST
 } BCD_ELEMENT_INTEGER_LIST, *PBCD_ELEMENT_INTEGER_LIST;
 
 /**
- * The BCD_ELEMENT_BOOLEAN structure contains a boolean value for a BCD element.
+ * Boolean payload written by bcdsrv.dll: Value is normalized to 0 or 1 and
+ * Pad is zero, for a 2-byte BcdSetElementData buffer. The COM getter reads only
+ * the first byte; do not confuse this serialized payload with BOOL or the
+ * one-byte COM boolean argument. Honor the returned DataSize when reading.
  */
 typedef struct _BCD_ELEMENT_BOOLEAN
 {
     BOOLEAN Value;
-    //BOOLEAN Pad; // sym
+    BOOLEAN Pad; // Zero when writing the 2-byte payload.
 } BCD_ELEMENT_BOOLEAN, *PBCD_ELEMENT_BOOLEAN;
+
+static_assert(sizeof(BCD_ELEMENT_BOOLEAN) == 2, "sizeof(BCD_ELEMENT_BOOLEAN) is invalid.");
 
 #define BCD_ELEMENT_DESCRIPTION_VERSION 0x1
 
 /**
- * The BCD_ELEMENT_DESCRIPTION structure contains information about a BCD element.
+ * Describes an element payload for enumeration and decoding. Version is 1,
+ * Type is the packed BCD_ELEMENT_DATATYPE, and DataSize is the payload size in
+ * bytes. This 12-byte descriptor is separate from the payload returned by
+ * BcdGetElementData; that function does not prepend a description.
  */
 typedef struct BCD_ELEMENT_DESCRIPTION
 {
@@ -1009,7 +1137,10 @@ typedef struct BCD_ELEMENT_DESCRIPTION
 } BCD_ELEMENT_DESCRIPTION, *PBCD_ELEMENT_DESCRIPTION;
 
 /**
- * The BCD_ELEMENT structure contains information about a BCD element.
+ * An entry in the BcdEnumerateElements result. Description and Data point into
+ * the caller supplied result buffer and must not be freed individually. DataSize
+ * in the description is the payload byte count, not the size of this entry.
+ * Copy any needed metadata and payload before releasing or relocating the buffer.
  */
 typedef struct _BCD_ELEMENT
 {
@@ -1018,7 +1149,7 @@ typedef struct _BCD_ELEMENT
 } BCD_ELEMENT, *PBCD_ELEMENT;
 
 /**
- * The BcdEnumerateElements function enumerates the elements present in a specified BCD object.
+ * The BcdEnumerateElements routine enumerates the elements present in a specified BCD object.
  *
  * \param BcdObjectHandle Handle to the BCD object whose elements are to be enumerated.
  * \param Buffer Optional pointer to a buffer that receives an array of BCD_ELEMENT structures.
@@ -1026,6 +1157,9 @@ typedef struct _BCD_ELEMENT
  * \param BufferSize On input, specifies the size of the buffer in bytes. On output, receives the required or actual size of the buffer.
  * \param ElementCount Receives the number of elements returned in the buffer.
  * \return NTSTATUS Successful or errant status.
+ * \remarks To query the size, pass Buffer = NULL and *BufferSize = 0. On
+ * STATUS_BUFFER_TOO_SMALL, allocate *BufferSize bytes and retry. The buffer
+ * remains caller-owned; it is not allocated by the BCD library.
  */
 NTSYSAPI
 NTSTATUS
@@ -1055,7 +1189,7 @@ typedef enum _BCD_FLAGS
 } BCD_FLAGS;
 
 /**
- * The BcdEnumerateElementsWithFlags function enumerates the elements present in a specified BCD object, using additional flags to control enumeration behavior.
+ * The BcdEnumerateElementsWithFlags routine enumerates the elements present in a specified BCD object, using additional flags to control enumeration behavior.
  *
  * \param BcdObjectHandle Handle to the BCD object whose elements are to be enumerated.
  * \param BcdFlags Flags that control the enumeration behavior (see BCD_FLAGS).
@@ -1077,7 +1211,7 @@ BcdEnumerateElementsWithFlags(
     );
 
 /**
- * The BcdEnumerateAndUnpackElements function enumerates and unpacks the elements of a specified BCD object from a BCD store, using additional flags.
+ * The BcdEnumerateAndUnpackElements routine enumerates and unpacks the elements of a specified BCD object from a BCD store, using additional flags.
  *
  * \param BcdStoreHandle Handle to the BCD store.
  * \param BcdObjectHandle Handle to the BCD object whose elements are to be enumerated and unpacked.
@@ -1101,13 +1235,14 @@ BcdEnumerateAndUnpackElements(
     );
 
 /**
- * The BcdGetElementData function retrieves the data for a specified element in a BCD object.
+ * The BcdGetElementData routine reads an element through BcdGetElementDataWithFlags with flags zero.
+ * BufferSize is a required input/output byte count; NULL Buffer is valid only with initial size zero.
+ * Returned representation depends on the element format, not solely the registry value type.
  *
- * \param BcdObjectHandle Handle to the BCD object.
- * \param BcdElement The element type to retrieve (BCD_ELEMENT_DATATYPE).
- * \param Buffer Optional pointer to a buffer that receives the element data.
- * If this parameter is NULL, the function will return the required buffer size in BufferSize.
- * \param BufferSize On input, specifies the size of the buffer in bytes. On output, receives the required or actual size of the buffer.
+ * \param BcdObjectHandle BCD object handle.
+ * \param BcdElement BCD element data type to query.
+ * \param Buffer Optional buffer receiving element data.
+ * \param BufferSize Input capacity and output required size in bytes.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1121,14 +1256,16 @@ BcdGetElementData(
     );
 
 /**
- * The BcdGetElementDataWithFlags function retrieves the data for a specified element in a BCD object, using additional flags.
+ * The BcdGetElementDataWithFlags routine reads and converts registry-backed element data according to
+ * BcdFlags. A missing BufferSize or NULL Buffer with nonzero input size returns STATUS_INVALID_PARAMETER
+ * before object access. Do not interpret uninitialized storage after failure or assume all element formats
+ * have the same layout.
  *
- * \param BcdObjectHandle Handle to the BCD object.
- * \param BcdElement The element type to retrieve (BCD_ELEMENT_DATATYPE).
- * \param BcdFlags Flags that control the retrieval behavior.
- * \param Buffer Optional pointer to a buffer that receives the element data.
- * If this parameter is NULL, the function will return the required buffer size in BufferSize.
- * \param BufferSize On input, specifies the size of the buffer in bytes. On output, receives the required or actual size of the buffer.
+ * \param BcdObjectHandle BCD object handle.
+ * \param BcdElement BCD element data type to query.
+ * \param BcdFlags Flags controlling element data conversion.
+ * \param Buffer Optional buffer receiving converted element data.
+ * \param BufferSize Input capacity and output required size in bytes.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1143,7 +1280,7 @@ BcdGetElementDataWithFlags(
     );
 
 /**
- * The BcdSetElementData function sets the data for a specified element in a BCD object.
+ * The BcdSetElementData routine sets the data for a specified element in a BCD object.
  *
  * \param BcdObjectHandle Handle to the BCD object.
  * \param BcdElement The element type to set (BCD_ELEMENT_DATATYPE).
@@ -1162,7 +1299,7 @@ BcdSetElementData(
     );
 
 /**
- * The BcdSetElementDataWithFlags function sets the data for a specified element in a BCD object, using additional flags.
+ * The BcdSetElementDataWithFlags routine sets the data for a specified element in a BCD object, using additional flags.
  *
  * \param BcdObjectHandle Handle to the BCD object.
  * \param BcdElement The element type to set (BCD_ELEMENT_DATATYPE).
@@ -1183,7 +1320,7 @@ BcdSetElementDataWithFlags(
     );
 
 /**
- * The BcdDeleteElement function deletes a specified element from a BCD object.
+ * The BcdDeleteElement routine deletes a specified element from a BCD object.
  *
  * \param BcdObjectHandle Handle to the BCD object.
  * \param BcdElement The element type to delete (BCD_ELEMENT_DATATYPE).
@@ -1212,17 +1349,19 @@ typedef enum BcdDeviceObjectElementTypes
     // The IP port number to be used for Trivial File Transfer Protocol (TFTP) reads. The element data format is BcdIntegerElement.
     BcdDeviceInteger_TftpClientPort = 0x35000002,
     // The device that contains the SDI object. The element data format is BcdDeviceElement.
-    BcdDeviceInteger_SdiDevice = 0x31000003,
+    BcdDeviceDevice_SdiDevice = 0x31000003,
+    BcdDeviceInteger_SdiDevice = BcdDeviceDevice_SdiDevice, // Historical alias; device format, not integer.
     // The path from the root of the SDI device to the RAM disk file. The element data format is BcdStringElement.
-    BcdDeviceInteger_SdiPath = 0x32000004,
+    BcdDeviceString_SdiPath = 0x32000004,
+    BcdDeviceInteger_SdiPath = BcdDeviceString_SdiPath, // Historical alias; string format, not integer.
     // The length of the image for the RAM disk. The element data format is BcdIntegerElement.
     BcdDeviceInteger_RamdiskImageLength = 0x35000005,
     // Enables exporting the RAM disk as a CD. The element data format is BcdBooleanElement.
     BcdDeviceBoolean_RamdiskExportAsCd = 0x36000006,
     // Defines the TFTP block size for the RAM disk Windows Imaging (WIM) file. The element data format is BcdIntegerElement.
-    BcdDeviceInteger_RamdiskTftpBlockSize = 0x36000007,
+    BcdDeviceInteger_RamdiskTftpBlockSize = 0x35000007,
     // Defines the TFTP window size for the RAM disk WIM file. The element data format is BcdIntegerElement.
-    BcdDeviceInteger_RamdiskTftpWindowSize = 0x36000008,
+    BcdDeviceInteger_RamdiskTftpWindowSize = 0x35000008,
     // Enables or disables multicast for the RAM disk WIM file. The element data format is BcdBooleanElement.
     BcdDeviceBoolean_RamdiskMulticastEnabled = 0x36000009,
     // Enables fallback to TFTP if multicast fails. The element data format is BcdBooleanElement.
@@ -1831,14 +1970,15 @@ typedef enum _BcdLibraryElementTypes
     /// <summary>
     /// This setting is used to configure Secure Boot policies at a low level.
     /// </summary>
-    /// <remarks>0x15000076</remarks>
+    /// <remarks>0x15000076. The bcdsrv.dll 10.0.26100.1 type library instead
+    /// reports 0x18000076 (binary); the native value is not resolved by its callers.</remarks>
     BcdLibraryInteger_SecurebootRawPolicy = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 118),
     /// <summary>
     /// Indicates whether or not an in-memory BCD setting passed between boot apps will trigger BitLocker recovery.
     /// This value should not be modified as it could trigger a BitLocker recovery action.
     /// </summary>
     /// <remarks>0x17000077</remarks>
-    BcdLibraryIntegerList_AllowedInMemorySettings = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 119),
+    BcdLibraryIntegerList_AllowedInMemorySettings = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGERLIST, 119),
     /// <summary>
     /// Specifies the duration in milliseconds for the Boot UX bitmap transition effect.
     /// </summary>
@@ -1851,7 +1991,8 @@ typedef enum _BcdLibraryElementTypes
     BcdLibraryBoolean_TwoBootImages = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 122),
     /// <summary>
     /// Force the use of FIPS cryptography checks on boot applications.
-    /// BcdLibraryBoolean_ForceFipsCrypto is documented with wrong value 0x16000079
+    /// The bcdsrv.dll 10.0.26100.1 type library also reports the documented
+    /// value 0x16000079; that metadata is not proof of the native boot-element value.
     /// </summary>
     /// <remarks>0x1600007B</remarks>
     BcdLibraryBoolean_ForceFipsCrypto = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 123),
@@ -2460,8 +2601,8 @@ typedef enum _BcdOSLoaderElementTypes
     /// Specifies the root processor configuration for the hypervisor.
     /// Used for advanced processor topology settings.
     /// </summary>
-    /// <remarks>0x22000113</remarks>
-    BcdOSLoaderInteger_HypervisorRootProc = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 275),
+    /// <remarks>0x25000113</remarks>
+    BcdOSLoaderInteger_HypervisorRootProc = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 275),
     /// <summary>
     /// Indicates whether DHCP should be used for the hypervisor debugger network connection.
     /// TRUE enables DHCP; FALSE requires manual configuration.
@@ -2701,7 +2842,8 @@ typedef enum _BcdOSLoaderElementTypes
     /// Specifies the launch type for Virtual Secure Mode (VSM).
     /// Used for configuring virtualization-based security.
     /// </summary>
-    /// <remarks>0x25000142</remarks>
+    /// <remarks>0x25000142. The bcdsrv.dll 10.0.26100.1 type library instead
+    /// reports 0x25000140; the native value is not resolved by its callers.</remarks>
     BcdOSLoaderInteger_VsmLaunchType = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 322),
     /// <summary>
     /// Specifies the code integrity enforcement policy for the hypervisor.

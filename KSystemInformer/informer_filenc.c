@@ -15,7 +15,7 @@
 #include <trace.h>
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static UNICODE_STRING KphpCachedFileNameTypeName = RTL_CONSTANT_STRING(L"KphCachedFileName");
+DECLARE_CONST_UNICODE_STRING(KphpCachedFileNameTypeName, L"KphCachedFileName");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpCachedFileNameType = NULL;

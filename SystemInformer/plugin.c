@@ -76,6 +76,7 @@ static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
 static CONST PH_STRINGREF DefaultPluginName[] =
 {
+    PH_STRINGREF_INIT(L"AgentTools.dll"),
     PH_STRINGREF_INIT(L"DotNetTools.dll"),
     PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
     PH_STRINGREF_INIT(L"ExtendedServices.dll"),

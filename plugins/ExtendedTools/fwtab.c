@@ -104,6 +104,7 @@ BOOLEAN FwTabPageCallback(
             ULONG treelistBorder;
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+            RECT clientRect = { 0 };
 
             FwTreeColorNew = PhGetIntegerSetting(L"ColorNew");
             FwTreeColorRemoved = PhGetIntegerSetting(L"ColorRemoved");
@@ -120,14 +121,18 @@ BOOLEAN FwTabPageCallback(
                 treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
+            // Create the tree with the tab page container client area so the first layout
+            // and paint use the final size.
+            PhGetClientRect(Parameter2, &clientRect);
+
             FwTreeNewHandle = PhCreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-                0,
-                0,
-                0,
-                0,
+                clientRect.left,
+                clientRect.top,
+                clientRect.right - clientRect.left,
+                clientRect.bottom - clientRect.top,
                 Parameter2,
                 NULL,
                 NULL,
@@ -285,6 +290,7 @@ VOID EtInitializeFirewallTab(
     VOID
     )
 {
+    PTOOLSTATUS_TAB_INFO tabInfo;
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
@@ -294,11 +300,11 @@ VOID EtInitializeFirewallTab(
 
     if (EtFwToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
-        PTOOLSTATUS_TAB_INFO tabInfo;
-
-        tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index, &FwTreeBannerText);
-        tabInfo->ActivateContent = FwToolStatusActivateContent;
-        tabInfo->GetTreeNewHandle = FwToolStatusGetTreeNewHandle;
+        if (tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index, &FwTreeBannerText))
+        {
+            tabInfo->ActivateContent = FwToolStatusActivateContent;
+            tabInfo->GetTreeNewHandle = FwToolStatusGetTreeNewHandle;
+        }
     }
 }
 
@@ -554,7 +560,7 @@ VOID UpdateFwNode(
     memset(FwNode->TextCache, 0, sizeof(PH_STRINGREF) * FW_COLUMN_MAXIMUM);
 
     PhInvalidateTreeNewNode(&FwNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(FwTreeNewHandle);
+    TreeNew_InvalidateNode(FwTreeNewHandle, &FwNode->Node);
 }
 
 VOID FwTickNodes(
@@ -1957,7 +1963,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowPingWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
+                EtFwShowPingWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1967,7 +1973,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowTracerWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
+                EtFwShowTracerWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1977,7 +1983,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowWhoisWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
+                EtFwShowWhoisWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;

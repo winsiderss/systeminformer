@@ -202,44 +202,6 @@ NTSTATUS PhSvcApiRequestThreadStart(
     PhDeleteAutoPool(&autoPool);
 }
 
-BOOLEAN PhSvcHandleVerify(
-    _In_ PCPH_STRINGREF FileName
-    )
-{
-    BOOLEAN status = FALSE;
-    HANDLE fileHandle;
-
-    if (NT_SUCCESS(PhCreateFile(
-        &fileHandle,
-        FileName,
-        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
-        VERIFY_RESULT result;
-        PH_VERIFY_FILE_INFO info;
-
-        memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-        info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
-        info.FileHandle = fileHandle;
-
-        if (NT_SUCCESS(PhVerifyFileEx(&info, &result, NULL, NULL)))
-        {
-            if (result == VrTrusted)
-            {
-                status = TRUE;
-            }
-        }
-
-        NtClose(fileHandle);
-    }
-
-    return status;
-}
-
 BOOLEAN PhSvcHandleClientIntegrity(
     _In_ HANDLE ProcessHandle
     )
@@ -294,17 +256,33 @@ BOOLEAN PhSvcHandleClientFileName(
 
     if (IsWow64Client)
     {
-        if (!PhIsNullOrEmptyString(referenceFileName))
+        static CONST PH_STRINGREF wow64DirectoryName = PH_STRINGREF_INIT(L"\\x86\\");
+        PPH_STRING referenceBaseName;
+
+        if (!PhIsNullOrEmptyString(referenceFileName) &&
+            !PhIsNullOrEmptyString(remoteFileName))
         {
             referenceDirectory = PhGetBaseDirectory(referenceFileName);
             PH_AUTO(referenceDirectory);
-        }
+            referenceBaseName = PhGetBaseName(referenceFileName);
+            PH_AUTO(referenceBaseName);
 
-        if (!PhIsNullOrEmptyString(referenceDirectory) &&
-            !PhIsNullOrEmptyString(remoteFileName) &&
-            PhStartsWithString2(remoteFileName, PhGetString(referenceDirectory), TRUE))
-        {
-            status = TRUE;
+            if (referenceDirectory && referenceBaseName)
+            {
+                PPH_STRING expectedFileName;
+
+                expectedFileName = PhConcatStringRef3(
+                    &referenceDirectory->sr,
+                    &wow64DirectoryName,
+                    &referenceBaseName->sr
+                    );
+                PH_AUTO(expectedFileName);
+
+                if (PhEqualString(remoteFileName, expectedFileName, TRUE))
+                {
+                    status = TRUE;
+                }
+            }
         }
     }
     else
@@ -373,14 +351,12 @@ VOID PhSvcHandleConnectionRequest(
 
         PH_AUTO(remoteFileName);
 
-#if defined(PH_BUILD_API)
-        if (!PhSvcHandleVerify(&remoteFileName->sr))
+        if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, TRUE))
         {
             NtClose(processHandle);
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
-#endif // PH_BUILD_API
     }
     else
     {
@@ -410,14 +386,12 @@ VOID PhSvcHandleConnectionRequest(
 
         PH_AUTO(remoteFileName);
 
-#if defined(PH_BUILD_API)
-        if (!PhSvcHandleVerify(&remoteFileName->sr))
+        if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, TRUE))
         {
             NtClose(processHandle);
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
-#endif // PH_BUILD_API
     }
 
     client = PhSvcCreateClient(&clientId, processHandle);

@@ -10,7 +10,14 @@
  */
 
 #include "setup.h"
-#pragma comment(lib, "uxtheme.lib")
+
+typedef struct _SETUP_WIZARD_FONT_CONTEXT
+{
+    HFONT PageFont;
+    HFONT TitleFont;
+    HFONT LargeTitleFont;
+    HFONT ButtonFont;
+} SETUP_WIZARD_FONT_CONTEXT, *PSETUP_WIZARD_FONT_CONTEXT;
 
  // Win32 PropertySheet Control IDs
 #define IDD_PROPSHEET_ID            1006  // ID of the propsheet dialog template in comctl32.dll
@@ -30,17 +37,12 @@
 #define SETUP_WIZARD_COMPLETED_PAGE_INDEX 5
 #define SETUP_WIZARD_ERROR_PAGE_INDEX 6
 
-typedef BOOL (WINAPI* SETUP_SHOULDAPPSUSEDARKMODE)(VOID);
-typedef BOOL (WINAPI* SETUP_ALLOWDARKMODEFORWINDOW)(_In_ HWND WindowHandle, _In_ BOOL Allow);
-typedef HRESULT (WINAPI* SETUP_DWMSETWINDOWATTRIBUTE)(_In_ HWND hwnd, _In_ DWORD dwAttribute, _In_reads_bytes_(cbAttribute) LPCVOID pvAttribute, _In_ DWORD cbAttribute);
-
 #define SETUP_DARKMODE_SUBCLASS_ID 1
 #define SETUP_DWM_USE_IMMERSIVE_DARK_MODE 20
 #define SETUP_DWM_BORDER_COLOR 34
 #define SETUP_WINDOW_CONTEXT_LARGE_TITLE UCHAR_MAX
 
 static BOOLEAN SetupWizardDarkMode = FALSE;
-static SETUP_DWMSETWINDOWATTRIBUTE SetupDwmSetWindowAttribute_I = NULL;
 static HBRUSH SetupWizardBrushWindow = NULL;
 static HBRUSH SetupWizardBrushControl = NULL;
 
@@ -54,13 +56,25 @@ static COLORREF SetupWizardColorPressed = RGB(72, 72, 72);
 static COLORREF SetupWizardColorEditActiveBorder = RGB(91, 157, 217);
 static COLORREF SetupWizardColorWindowInactiveBorder = RGB(90, 90, 90);
 
-typedef struct _SETUP_WIZARD_FONT_CONTEXT
-{
-    HFONT PageFont;
-    HFONT TitleFont;
-    HFONT LargeTitleFont;
-    HFONT ButtonFont;
-} SETUP_WIZARD_FONT_CONTEXT, *PSETUP_WIZARD_FONT_CONTEXT;
+typedef HRESULT (WINAPI* SETUP_DWMSETWINDOWATTRIBUTE)(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Attribute,
+    _In_reads_bytes_(AttributeLength) PVOID AttributeData,
+    _In_ ULONG AttributeLength
+    );
+
+typedef BOOL (WINAPI* SETUP_SHOULDAPPSUSEDARKMODE)(
+    VOID
+    );
+
+typedef BOOL (WINAPI* SETUP_ALLOWDARKMODEFORWINDOW)(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Allow
+    );
+
+static SETUP_DWMSETWINDOWATTRIBUTE SetupDwmSetWindowAttribute_I = NULL;
+static SETUP_SHOULDAPPSUSEDARKMODE ShouldAppsUseDarkMode_I = NULL;
+static SETUP_ALLOWDARKMODEFORWINDOW AllowDarkModeForWindow_I = NULL;
 
 /**
  * Queries whether Windows is using dark app mode.
@@ -72,7 +86,6 @@ BOOLEAN SetupQueryDarkMode(
     )
 {
     HMODULE uxthemeModule;
-    SETUP_SHOULDAPPSUSEDARKMODE shouldAppsUseDarkMode;
 
     if (!(uxthemeModule = PhGetDllHandle(L"uxtheme.dll")))
         uxthemeModule = PhLoadLibrary(L"uxtheme.dll");
@@ -80,9 +93,9 @@ BOOLEAN SetupQueryDarkMode(
     if (!uxthemeModule)
         return FALSE;
 
-    shouldAppsUseDarkMode = (SETUP_SHOULDAPPSUSEDARKMODE)PhGetProcedureAddress(uxthemeModule, NULL, 132);
+    ShouldAppsUseDarkMode_I = (SETUP_SHOULDAPPSUSEDARKMODE)PhGetProcedureAddress(uxthemeModule, NULL, 132);
 
-    if (shouldAppsUseDarkMode && shouldAppsUseDarkMode())
+    if (ShouldAppsUseDarkMode_I && ShouldAppsUseDarkMode_I())
         return TRUE;
 
     return FALSE;
@@ -99,7 +112,6 @@ VOID SetupAllowDarkModeForWindow(
 {
     HMODULE uxthemeModule;
     HMODULE dwmapiModule;
-    SETUP_ALLOWDARKMODEFORWINDOW allowDarkModeForWindow;
     BOOL value;
 
     if (!SetupWizardDarkMode)
@@ -107,10 +119,10 @@ VOID SetupAllowDarkModeForWindow(
 
     if (uxthemeModule = PhGetDllHandle(L"uxtheme.dll"))
     {
-        allowDarkModeForWindow = (SETUP_ALLOWDARKMODEFORWINDOW)PhGetProcedureAddress(uxthemeModule, NULL, 133);
+        AllowDarkModeForWindow_I = (SETUP_ALLOWDARKMODEFORWINDOW)PhGetProcedureAddress(uxthemeModule, NULL, 133);
 
-        if (allowDarkModeForWindow)
-            allowDarkModeForWindow(WindowHandle, TRUE);
+        if (AllowDarkModeForWindow_I)
+            AllowDarkModeForWindow_I(WindowHandle, TRUE);
     }
 
     if (dwmapiModule = PhLoadLibrary(L"dwmapi.dll"))
@@ -550,6 +562,13 @@ VOID SetupPaintControlBorder(
     ReleaseDC(WindowHandle, dcHandle);
 }
 
+static LRESULT CALLBACK SetupProgressSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Message,
+    _In_ WPARAM WParam,
+    _In_ LPARAM LParam
+    );
+
 /**
  * Subclass procedure for dark control border painting.
  */
@@ -643,11 +662,90 @@ VOID SetupApplyDarkModeToControl(
         }
         else if (PhEqualStringZ(className, L"msctls_progress32", TRUE))
         {
-            //SetWindowTheme(WindowHandle, L"", L"");
+            SetWindowTheme(WindowHandle, L"", L"");
+            if (!PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT))
+            {
+                WNDPROC previousProcedure = PhGetWindowProcedure(WindowHandle);
+                PhSetWindowProcedure(WindowHandle, SetupProgressSubclassProc);
+                PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, previousProcedure);
+            }
             SendMessage(WindowHandle, PBM_SETBKCOLOR, 0, SetupWizardColorControl);
             SendMessage(WindowHandle, PBM_SETBARCOLOR, 0, RGB(0, 120, 215));
+            InvalidateRect(WindowHandle, NULL, TRUE);
         }
     }
+}
+
+static VOID SetupPaintDarkProgress(
+    _In_ HWND WindowHandle,
+    _In_ HDC DcHandle,
+    _In_ PRECT ProgressRect
+    )
+{
+    RECT trackRect = *ProgressRect;
+    RECT barRect = trackRect;
+    PBRANGE range = { 0 };
+    INT position = (INT)SendMessage(WindowHandle, PBM_GETPOS, 0, 0);
+    LONG width;
+
+    SetDCBrushColor(DcHandle, SetupWizardColorControl);
+    FillRect(DcHandle, &trackRect, GetStockBrush(DC_BRUSH));
+
+    SendMessage(WindowHandle, PBM_GETRANGE, 0, (LPARAM)&range);
+
+    if (range.iHigh > range.iLow && position > range.iLow)
+    {
+        width = (trackRect.right - trackRect.left) * (position - range.iLow) / (range.iHigh - range.iLow);
+        barRect.right = barRect.left + width;
+        SetDCBrushColor(DcHandle, RGB(0, 120, 215));
+        FillRect(DcHandle, &barRect, GetStockBrush(DC_BRUSH));
+    }
+
+    SetDCBrushColor(DcHandle, RGB(70, 70, 70));
+    FrameRect(DcHandle, &trackRect, GetStockBrush(DC_BRUSH));
+}
+
+static LRESULT CALLBACK SetupProgressSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Message,
+    _In_ WPARAM WParam,
+    _In_ LPARAM LParam
+    )
+{
+    WNDPROC previousProcedure = (WNDPROC)PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+    if (Message == WM_NCDESTROY)
+    {
+        PhSetWindowProcedure(WindowHandle, previousProcedure);
+        PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+    else if (Message == WM_ERASEBKGND)
+    {
+        return TRUE;
+    }
+    else if (Message == WM_PAINT)
+    {
+        PAINTSTRUCT paint;
+        PH_BUFFERED_PAINT bufferedPaint;
+        HDC bufferDc;
+        RECT clientRect;
+
+        BeginPaint(WindowHandle, &paint);
+        GetClientRect(WindowHandle, &clientRect);
+        if (PhBeginBufferedPaint(paint.hdc, &paint.rcPaint, BPBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
+        {
+            SetupPaintDarkProgress(WindowHandle, bufferDc, &clientRect);
+            PhEndBufferedPaint(&bufferedPaint, TRUE);
+        }
+        else
+        {
+            SetupPaintDarkProgress(WindowHandle, paint.hdc, &clientRect);
+        }
+        EndPaint(WindowHandle, &paint);
+        return 0;
+    }
+
+    return CallWindowProc(previousProcedure, WindowHandle, Message, WParam, LParam);
 }
 
 LRESULT SetupHandleControlCustomDraw(
@@ -722,10 +820,14 @@ VOID SetupPaintDarkBackground(
     _In_ HDC DcHandle
     )
 {
-    RECT clientRect;
+    RECT clipRect;
 
-    GetClientRect(WindowHandle, &clientRect);
-    FillRect(DcHandle, &clientRect, SetupWizardBrushWindow);
+    UNREFERENCED_PARAMETER(WindowHandle);
+
+    if (GetClipBox(DcHandle, &clipRect) <= NULLREGION)
+        return;
+
+    FillRect(DcHandle, &clipRect, SetupWizardBrushWindow);
 }
 
 /**
@@ -1092,14 +1194,14 @@ VOID SetupShowWizardButton(
 VOID SetupEnableWizardButton(
     _In_ HWND ParentWindowHandle,
     _In_ INT ControlId,
-    _In_ BOOLEAN ShowButton
-)
+    _In_ BOOLEAN EnableButton
+    )
 {
     HWND buttonHandle;
 
     if (buttonHandle = GetDlgItem(ParentWindowHandle, ControlId))
     {
-        EnableWindow(buttonHandle, ShowButton);
+        EnableWindow(buttonHandle, EnableButton);
     }
 }
 
@@ -1145,16 +1247,13 @@ BOOLEAN SetupCancelWizard(
  *
  * \param WindowHandle The wizard page window handle.
  * \param Buttons The property sheet wizard button mask.
- * \param ShowBack TRUE to show the Back button.
- * \param ShowNext TRUE to show the Next button.
+ *        Enables the Back, Next and Finish buttons.
  * \param ShowFinish TRUE to show the Finish button.
- * \param ShowCancel TRUE to show the Cancel button.
+ * \param ShowCancel TRUE to show and enable the Cancel button.
  */
 VOID SetupSetWizardButtons(
     _In_ HWND WindowHandle,
     _In_ DWORD Buttons,
-    _In_ BOOLEAN ShowBack,
-    _In_ BOOLEAN ShowNext,
     _In_ BOOLEAN ShowFinish,
     _In_ BOOLEAN ShowCancel
     )
@@ -1165,9 +1264,6 @@ VOID SetupSetWizardButtons(
     PropSheet_SetWizButtons(parentWindowHandle, Buttons);
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_BACK, L"< &Back");
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_NEXT, L"&Next >");
-    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_BACK, ShowBack);
-    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_NEXT, ShowNext);
-    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_CANCEL, ShowCancel);
     SetupShowWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
     SetupShowWizardButton(parentWindowHandle, IDC_PROPSHEET_CANCEL, ShowCancel);
@@ -1232,7 +1328,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
             SetupLoadWelcomeBitmap(WindowHandle);
             SetupApplyDarkModeToPage(WindowHandle);
 
-            SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE, FALSE, TRUE);
+            SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE);
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
@@ -1256,7 +1352,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE, FALSE, TRUE);
+                SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE);
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
@@ -1302,7 +1398,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                                 {
                                     PhExitApplication(status);
                                 }
-                                else
+                                else if (status != STATUS_CANCELLED)
                                 {
                                     PhShowStatus(WindowHandle, L"Unable to restart the application.", status, 0);
                                 }
@@ -1310,6 +1406,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                                 PhDereferenceObject(applicationFileName);
                             }
                         }
+
                         SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
@@ -1338,7 +1435,9 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
     case WM_CTLCOLOREDIT:
         {
             if (SetupWizardDarkMode)
+            {
                 return SetupHandleDarkControlColor(wParam, lParam);
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -1347,6 +1446,257 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
     }
 
     return FALSE;
+}
+
+/**
+ * Callback that stops at the first directory entry, used to test whether a directory is empty.
+ */
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN SetupIsDirectoryEmptyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PH_STRINGREF fileName;
+
+    fileName.Buffer = Information->FileName;
+    fileName.Length = Information->FileNameLength;
+
+    if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
+        return TRUE;
+
+    *(PBOOLEAN)Context = FALSE;
+    return FALSE;
+}
+
+/**
+ * Determines whether a directory is empty.
+ *
+ * \param DirectoryPath The directory path.
+ * \return TRUE if the directory has no entries, otherwise FALSE.
+ */
+static BOOLEAN SetupIsDirectoryEmpty(
+    _In_ PPH_STRING DirectoryPath
+    )
+{
+    HANDLE directoryHandle;
+    BOOLEAN empty = TRUE;
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(DirectoryPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+        )))
+    {
+        PhEnumDirectoryFile(directoryHandle, NULL, SetupIsDirectoryEmptyCallback, &empty);
+        NtClose(directoryHandle);
+    }
+
+    return empty;
+}
+
+/**
+ * Determines whether a path is a volume root or a protected shell folder
+ * (or inside the Windows directory). Uninstall deletes the install directory
+ * recursively, so these must never be used as the install path.
+ *
+ * \param Path A full path without a trailing separator.
+ * \return TRUE if the path is protected, otherwise FALSE.
+ */
+static BOOLEAN SetupIsProtectedInstallPath(
+    _In_ PPH_STRING Path
+    )
+{
+    static CONST GUID protectedFolders[] =
+    {
+        { 0xF38BF404, 0x1D43, 0x42F2, { 0x93, 0x05, 0x67, 0xDE, 0x0B, 0x28, 0xFC, 0x23 } }, // Windows
+        { 0x1AC14E77, 0x02E7, 0x4E5D, { 0xB7, 0x44, 0x2E, 0xB1, 0xAE, 0x51, 0x98, 0xB7 } }, // System
+        { 0x905E63B6, 0xC1BF, 0x494E, { 0xB2, 0x9C, 0x65, 0xB7, 0x32, 0xD3, 0xD2, 0x1A } }, // ProgramFiles
+        { 0x7C5A40EF, 0xA0FB, 0x4BFC, { 0x87, 0x4A, 0xC0, 0xF2, 0xE0, 0xB9, 0xFA, 0x8E } }, // ProgramFilesX86
+        { 0xF7F1ED05, 0x9F6D, 0x47A2, { 0xAA, 0xAE, 0x29, 0xD3, 0x17, 0xC6, 0xF0, 0x66 } }, // ProgramFilesCommon
+        { 0x62AB5D82, 0xFDC1, 0x4DC3, { 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97 } }, // ProgramData
+        { 0x0762D272, 0xC50A, 0x4BB0, { 0xA3, 0x82, 0x69, 0x7D, 0xCD, 0x72, 0x9B, 0x80 } }, // UserProfiles
+        { 0x5E6C858F, 0x0E22, 0x4760, { 0x9A, 0xFE, 0xEA, 0x33, 0x17, 0xB6, 0x71, 0x73 } }, // Profile
+        { 0xB4BFCC3A, 0xDB2C, 0x424C, { 0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41 } }, // Desktop
+        { 0xFDD39AD0, 0x238F, 0x46AF, { 0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7 } }, // Documents
+        { 0x374DE290, 0x123F, 0x4565, { 0x91, 0x64, 0x39, 0xC4, 0x92, 0x5E, 0x46, 0x7B } }, // Downloads
+    };
+    BOOLEAN result = FALSE;
+
+    // Volume root (e.g. "C:").
+    if (Path->Length <= 2 * sizeof(WCHAR))
+        return TRUE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(protectedFolders) && !result; i++)
+    {
+        PPH_STRING folderPath;
+
+        if (!(folderPath = PhGetKnownFolderPath(&protectedFolders[i], NULL)))
+            continue;
+
+        if (PhEndsWithStringRef(&folderPath->sr, &PhNtPathSeparatorString, FALSE))
+            folderPath->Length -= sizeof(WCHAR);
+
+        if (PhEqualStringRef(&Path->sr, &folderPath->sr, TRUE))
+        {
+            result = TRUE;
+        }
+        else if (i == 0) // Anything inside the Windows directory.
+        {
+            PH_STRINGREF remaining;
+
+            if (PhStartsWithStringRef(&Path->sr, &folderPath->sr, TRUE))
+            {
+                remaining.Buffer = Path->Buffer + folderPath->Length / sizeof(WCHAR);
+                remaining.Length = Path->Length - folderPath->Length;
+
+                if (PhStartsWithStringRef(&remaining, &PhNtPathSeparatorString, FALSE))
+                    result = TRUE;
+            }
+        }
+
+        PhDereferenceObject(folderPath);
+    }
+
+    return result;
+}
+
+/**
+ * Validates the install path chosen on the configuration page. Uninstall deletes
+ * the install directory recursively, so the path must be absolute, must not be a
+ * volume root or shell folder, and links are resolved and confirmed with the user.
+ *
+ * \param WindowHandle The configuration page window handle.
+ * \param InputPath The path entered by the user.
+ * \param InstallPath Receives the normalized install path.
+ * \return TRUE if the path can be used, otherwise FALSE.
+ */
+static BOOLEAN SetupValidateInstallPath(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING InputPath,
+    _Out_ PPH_STRING *InstallPath
+    )
+{
+    static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t\"");
+    PH_STRINGREF inputPath;
+    RTL_PATH_TYPE pathType;
+    PPH_STRING fullPath;
+    PPH_STRING inputString;
+
+    inputPath = InputPath->sr;
+    PhTrimStringRef(&inputPath, &whitespace, 0);
+
+    if (inputPath.Length == 0)
+        return FALSE;
+
+    inputString = PhCreateString2(&inputPath);
+    pathType = RtlDetermineDosPathNameType_U(PhGetString(inputString));
+
+    if (pathType != RtlPathTypeDriveAbsolute && pathType != RtlPathTypeUncAbsolute)
+    {
+        PhShowError2(WindowHandle, L"Invalid install location.", L"%s", L"Enter a full path, for example C:\\Program Files\\SystemInformer.");
+        PhDereferenceObject(inputString);
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(PhGetFullPath(PhGetString(inputString), &fullPath, NULL)))
+    {
+        PhShowError2(WindowHandle, L"Invalid install location.", L"%s", PhGetString(inputString));
+        PhDereferenceObject(inputString);
+        return FALSE;
+    }
+
+    PhDereferenceObject(inputString);
+
+    if (PhEndsWithStringRef(&fullPath->sr, &PhNtPathSeparatorString, FALSE))
+    {
+        fullPath->Length -= sizeof(WCHAR);
+        fullPath->Buffer[fullPath->Length / sizeof(WCHAR)] = UNICODE_NULL;
+    }
+
+    if (SetupIsProtectedInstallPath(fullPath))
+    {
+        PhShowError2(
+            WindowHandle,
+            L"This location can't be used.",
+            L"%s\r\n\r\nUninstalling removes the entire install folder. Choose a dedicated folder, for example C:\\Program Files\\SystemInformer.",
+            PhGetString(fullPath)
+            );
+        PhDereferenceObject(fullPath);
+        return FALSE;
+    }
+
+    if (PhDoesDirectoryExistWin32(PhGetString(fullPath)))
+    {
+        PPH_STRING realPath;
+
+        // Resolve junctions/symlinks; uninstall deletes the real target directory.
+        if (!(realPath = SetupResolveInstallPath(fullPath)))
+        {
+            PhShowError2(WindowHandle, L"This location can't be used.", L"%s\r\n\r\nThe folder could not be resolved, or it points to the root of a drive.", PhGetString(fullPath));
+            PhDereferenceObject(fullPath);
+            return FALSE;
+        }
+
+        if (!PhEqualString(realPath, fullPath, TRUE))
+        {
+            if (SetupIsProtectedInstallPath(realPath))
+            {
+                PhShowError2(WindowHandle, L"This location can't be used.", L"%s\r\n\r\nThis folder is a link to %s, which is a protected folder.", PhGetString(fullPath), PhGetString(realPath));
+                PhDereferenceObject(realPath);
+                PhDereferenceObject(fullPath);
+                return FALSE;
+            }
+
+            if (PhShowMessage2(
+                WindowHandle,
+                TD_YES_BUTTON | TD_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"The install folder is a link.",
+                L"%s\r\n\r\npoints to\r\n\r\n%s\r\n\r\nSystem Informer will be installed into the target folder, and uninstalling will delete the target folder and everything in it. Continue?",
+                PhGetString(fullPath),
+                PhGetString(realPath)
+                ) != IDYES)
+            {
+                PhDereferenceObject(realPath);
+                PhDereferenceObject(fullPath);
+                return FALSE;
+            }
+        }
+
+        // Existing non-empty folder that isn't a previous install: everything in it is removed on uninstall.
+        if (!SetupIsDirectoryEmpty(realPath))
+        {
+            PPH_STRING exePath = PhConcatStringRefZ(&realPath->sr, L"\\SystemInformer.exe");
+            BOOLEAN previousInstall = PhDoesFileExistWin32(PhGetString(exePath));
+
+            PhDereferenceObject(exePath);
+
+            if (!previousInstall && PhShowMessage2(
+                WindowHandle,
+                TD_YES_BUTTON | TD_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"The install folder is not empty.",
+                L"%s\r\n\r\nUninstalling System Informer will delete this folder and everything in it, including files that were not installed by setup. Continue?",
+                PhGetString(realPath)
+                ) != IDYES)
+            {
+                PhDereferenceObject(realPath);
+                PhDereferenceObject(fullPath);
+                return FALSE;
+            }
+        }
+
+        PhDereferenceObject(realPath);
+    }
+
+    *InstallPath = fullPath;
+    return TRUE;
 }
 
 /**
@@ -1403,10 +1753,12 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
                         {
                             PPH_STRING fileDialogFolderPath;
 
-                            fileDialogFolderPath = PhGetFileDialogFileName(fileDialog);
-                            PhTrimToNullTerminatorString(fileDialogFolderPath);
-                            PhSwapReference(&context->SetupInstallPath, fileDialogFolderPath);
-                            PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
+                            if (fileDialogFolderPath = PhGetFileDialogFileName(fileDialog))
+                            {
+                                PhTrimToNullTerminatorString(fileDialogFolderPath);
+                                PhMoveReference(&context->SetupInstallPath, fileDialogFolderPath);
+                                PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
+                            }
                         }
 
                         PhFreeFileDialog(fileDialog);
@@ -1432,23 +1784,32 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
+                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, FALSE, TRUE);
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZNEXT:
                 {
-                    WCHAR path[MAX_PATH];
+                    PPH_STRING inputPath;
+                    PPH_STRING installPath;
+                    BOOLEAN valid;
 
-                    PhGetWindowTextToBuffer(GetDlgItem(WindowHandle, IDC_PATH), 0, path, RTL_NUMBER_OF(path), NULL);
+                    valid = FALSE;
 
-                    PhSwapReference(&context->SetupInstallPath, PhCreateString(path));
+                    if (inputPath = PhGetWindowText(GetDlgItem(WindowHandle, IDC_PATH)))
+                    {
+                        valid = SetupValidateInstallPath(WindowHandle, inputPath, &installPath);
+                        PhDereferenceObject(inputPath);
+                    }
 
-                    if (PhIsNullOrEmptyString(context->SetupInstallPath))
+                    if (!valid)
                     {
                         SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
+
+                    //PhMoveReference(&context->SetupInstallPath, installPath);
+                    PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetString(context->SetupInstallPath));
 
                     if (context->SetupMode == SetupCommandInstall)
                     {
@@ -1634,7 +1995,7 @@ INT_PTR CALLBACK SetupShortcutsPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
+                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, FALSE, TRUE);
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
@@ -1779,7 +2140,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
             {
             case PSN_SETACTIVE:
                 {
-                    SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
+                    SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, FALSE, TRUE);
                     SetupSetWizardButtonText(context->ParentWindowHandle, IDC_PROPSHEET_NEXT, L"&Uninstall");
 
                     if (!PhGetOwnTokenAttributes().Elevated)
@@ -1884,7 +2245,7 @@ VOID SetupStartWizardProgress(
     if (!Context->ParentWindowHandle)
         Context->ParentWindowHandle = GetParent(WindowHandle);
 
-    SetupSetWizardButtons(WindowHandle, 0, FALSE, FALSE, FALSE, TRUE);
+    SetupSetWizardButtons(WindowHandle, 0, FALSE, TRUE);
 
     Context->DialogHandle = WindowHandle;
 
@@ -2103,7 +2464,7 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_FINISH, FALSE, FALSE, TRUE, FALSE);
+                SetupSetWizardButtons(WindowHandle, PSWIZB_FINISH, TRUE, FALSE);
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
@@ -2216,7 +2577,7 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
                         PhSetDialogItemText(WindowHandle, IDC_STATUS, L"An unknown error occurred.");
                     }
 
-                    SetupSetWizardButtons(WindowHandle, PSWIZB_BACK, TRUE, FALSE, FALSE, TRUE);
+                    SetupSetWizardButtons(WindowHandle, PSWIZB_BACK, FALSE, TRUE);
                     SetupSetWizardButtonText(context->ParentWindowHandle, IDC_PROPSHEET_BACK, L"Retry");
                 }
                 break;
@@ -2422,7 +2783,9 @@ INT CALLBACK SetupPropSheetProc(
             SetupApplyDarkModeToControl(GetDlgItem(WindowHandle, IDC_PROPSHEET_NEXT));
             SetupApplyDarkModeToControl(GetDlgItem(WindowHandle, IDC_PROPSHEET_FINISH));
             SetupApplyDarkModeToControl(GetDlgItem(WindowHandle, IDC_PROPSHEET_CANCEL));
-            context = PhAllocateZero(sizeof(PV_PROPSHEETCONTEXT));
+            context = PhAllocateZeroSafe(sizeof(PV_PROPSHEETCONTEXT));
+            if (!context)
+                break;
             //PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
             context->DialogDpi = PhGetWindowDpi(WindowHandle);

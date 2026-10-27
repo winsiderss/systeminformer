@@ -183,6 +183,9 @@
     <ClCompile Include="tpm_editor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="acpitable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="smbios.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -244,9 +247,6 @@
     </ClInclude>
     <ClInclude Include="PresentMon\TraceConsumer.hpp">
       <Filter>Header Files\PresentMon</Filter>
-    </ClInclude>
-    <ClInclude Include="extension\plugin.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="efi_guid_list.h">
       <Filter>Header Files</Filter>

@@ -35,6 +35,7 @@
 #define SETTING_NAME_TRACERT_TREE_LIST_COLUMNS (PLUGIN_NAME L".TracertTreeColumns")
 #define SETTING_NAME_TRACERT_TREE_LIST_SORT (PLUGIN_NAME L".TracertTreeSort")
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
+#define SETTING_NAME_TRACERT_PING_CONTINUOUS (PLUGIN_NAME L".TracertPingContinuous")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
 #define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocolSupport")
@@ -149,6 +150,26 @@ VOID ShowPingWindowFromAddress(
 
 // whois.c
 
+typedef VOID (NTAPI* PNETWORKTOOLS_WHOIS_PROGRESS)(
+    _In_ PCWSTR Message,
+    _In_opt_ PVOID Context
+    );
+
+_Success_(return)
+BOOLEAN NetworkToolsQueryWhois(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _In_opt_ PNETWORKTOOLS_WHOIS_PROGRESS Progress,
+    _In_opt_ PVOID Context,
+    _Out_ PPH_STRING* Response
+    );
+
+BOOLEAN NTAPI NetworkToolsWhoisQuery(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ PPH_STRING* Response
+    );
+
 typedef struct _NETWORK_WHOIS_CONTEXT
 {
     HWND WindowHandle;
@@ -191,9 +212,9 @@ BOOLEAN WhoisExtractReferralServer(
 
 _Success_(return)
 BOOLEAN WhoisQueryServer(
-    _In_ PWSTR WhoisServerAddress,
+    _In_ PCWSTR WhoisServerAddress,
     _In_ USHORT WhoisServerPort,
-    _In_ PWSTR WhoisQueryAddress,
+    _In_ PCWSTR WhoisQueryAddress,
     _In_ BOOLEAN Ipv6Support,
     _Out_ PPH_STRING* WhoisQueryResponse
     );
@@ -234,6 +255,8 @@ typedef struct _NETWORK_TRACERT_CONTEXT
 
     ULONG PingIndex;
     LONG WindowDpi;
+    volatile BOOLEAN PingContinuous;
+    volatile BOOLEAN TracingActive;
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 VOID ShowTracertWindow(
@@ -275,7 +298,8 @@ typedef struct _NETWORK_EXTENSION
             BOOLEAN LocalValid : 1;
             BOOLEAN RemoteValid : 1;
             BOOLEAN StatsEnabled : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN NodePresent : 1;
+            BOOLEAN Spare : 3;
         };
     };
 
@@ -330,6 +354,14 @@ BOOLEAN NetToolsInitializeCountryImageList(
 
 VOID FreeGeoLiteDb(
     VOID
+    );
+
+_Success_(return)
+BOOLEAN LookupCountryCodeEx(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_opt_ PULONG CountryNameId,
+    _Out_opt_ PPH_STRING *CountryName,
+    _Out_opt_ PLONG CountryIconIndex
     );
 
 _Success_(return)

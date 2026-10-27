@@ -30,7 +30,7 @@ typedef struct _WS_WATCH_CONTEXT
     ULONG BufferSize;
 
     PH_LAYOUT_MANAGER LayoutManager;
-    HFONT WindowFont;
+    PPH_FONT WindowFont;
 
     PPH_SYMBOL_PROVIDER SymbolProvider;
     HANDLE LoadingSymbolsForProcessId;
@@ -160,7 +160,7 @@ static NTSTATUS EtpSymbolLookupFunction(
     PSYMBOL_LOOKUP_RESULT result = Parameter;
 
     // Don't bother looking up the symbol if the window has already closed.
-    if (result->Context->Destroying)
+    if (ReadBooleanAcquire(&result->Context->Destroying))
     {
         EtpDereferenceWsWatchContext(result->Context);
         PhFree(result);
@@ -461,13 +461,13 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             context->WindowHandle = WindowHandle;
             context->ListViewHandle = GetDlgItem(WindowHandle, IDC_LIST);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+            SetWindowFont(context->ListViewHandle, PhGetFontHandle(context->WindowFont), FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Instruction");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Filename");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Count");
@@ -526,7 +526,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-            context->Destroying = TRUE;
+            WriteBooleanRelease(&context->Destroying, TRUE);
 
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
@@ -534,7 +534,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, WindowHandle);
 
             if (context->WindowFont)
-                DeleteFont(context->WindowFont);
+                PhDereferenceObject(context->WindowFont);
 
             PhDereferenceObject(context->Hashtable);
 
@@ -594,10 +594,10 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
+            PPH_FONT windowFont;
 
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+            if (windowFont = PhCreateTreeWindowFontObject(LOWORD(wParam)))
+                PhSwapOwnedFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

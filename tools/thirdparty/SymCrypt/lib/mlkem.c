@@ -871,6 +871,8 @@ SymCryptMlKemEncapsulateInternal(
     SymCryptShake256Init( pShakeBaseState );
     SymCryptShake256Append( pShakeBaseState, CBDSampleBuffer+cbAgreedSecret, 32 );
 
+    SYMCRYPT_ASSERT( nRows >= 2 && nRows <= 4 );
+
     // Expand rInner vector
     for( i=0; i<nRows; i++ )
     {

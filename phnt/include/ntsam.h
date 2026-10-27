@@ -16,48 +16,84 @@
 #define SAM_MAX_PASSWORD_LENGTH (256)
 #define SAM_PASSWORD_ENCRYPTION_SALT_LEN (16)
 
+/**
+ * A handle to a SAM object (server, domain, user, group, alias, etc.).
+ *
+ * Use PSAM_HANDLE for a pointer to a SAM_HANDLE.
+ */
 typedef PVOID SAM_HANDLE, *PSAM_HANDLE;
+
+/**
+ * A SAM enumeration handle used to continue enumeration operations.
+ */
 typedef ULONG SAM_ENUMERATE_HANDLE, *PSAM_ENUMERATE_HANDLE;
 
+/**
+ * The SAM_RID_ENUMERATION structure associates a relative identifier (RID)
+ * with a name. It is used when enumerating accounts by RID.
+ */
 typedef struct _SAM_RID_ENUMERATION
 {
     ULONG RelativeId;
     UNICODE_STRING Name;
 } SAM_RID_ENUMERATION, *PSAM_RID_ENUMERATION;
 
+/**
+ * The SAM_SID_ENUMERATION structure associates a SID with a name. It is used
+ * when enumerating accounts by SID.
+ */
 typedef struct _SAM_SID_ENUMERATION
 {
     PSID Sid;
     UNICODE_STRING Name;
 } SAM_SID_ENUMERATION, *PSAM_SID_ENUMERATION;
 
+/**
+ * The SAM_BYTE_ARRAY structure holds a variable-length byte array returned by SAM APIs.
+ *
+ * Size specifies the number of valid bytes in Data.
+ */
 typedef struct _SAM_BYTE_ARRAY
 {
     ULONG Size;
     _Field_size_bytes_(Size) PUCHAR Data;
 } SAM_BYTE_ARRAY, *PSAM_BYTE_ARRAY;
 
+/**
+ * The SAM_BYTE_ARRAY_32K structure holds up to 32 KiB of data. Size gives the valid byte count in Data.
+ */
 typedef struct _SAM_BYTE_ARRAY_32K
 {
     ULONG Size;
     _Field_size_bytes_(Size) PUCHAR Data;
 } SAM_BYTE_ARRAY_32K, *PSAM_BYTE_ARRAY_32K;
 
+/**
+ * Alias for SAM_BYTE_ARRAY_32K used for shell object properties.
+ */
 typedef SAM_BYTE_ARRAY_32K SAM_SHELL_OBJECT_PROPERTIES, *PSAM_SHELL_OBJECT_PROPERTIES;
 
 //
 // Basic
 //
 
+/**
+ * The SamFreeMemory function releases a buffer returned by a SAM function. NULL is accepted and returns
+ * STATUS_SUCCESS; the pointer is not cleared.
+ *
+ * \param Buffer The buffer to free.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 SamFreeMemory(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 /**
- * The SamCloseHandle method closes (that is, releases server-side resources used by) any handle.
+ * The SamCloseHandle function closes a SAM client context, not a kernel handle. The client frees its
+ * wrapper during teardown even if remote close fails; do not retry with the old handle.
  *
  * \param SamHandle The object handle.
  * \return NTSTATUS Successful or errant status.
@@ -70,6 +106,14 @@ SamCloseHandle(
     _In_ SAM_HANDLE SamHandle
     );
 
+/**
+ * The SamSetSecurityObject function sets security information for a SAM object.
+ *
+ * \param ObjectHandle A handle to the SAM object.
+ * \param SecurityInformation The security descriptor components to set.
+ * \param SecurityDescriptor The security descriptor containing the requested information.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -115,14 +159,6 @@ SamRidToSid(
     _Outptr_ PSID *Sid
     );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-SamQueryLapsManagedAccount(
-    _In_ SAM_HANDLE ObjectHandle,
-    _Outptr_ PSID *AccountSid
-    );
-
 //
 // Server
 //
@@ -154,6 +190,9 @@ SamQueryLapsManagedAccount(
     SAM_SERVER_CONNECT | \
     SAM_SERVER_LOOKUP_DOMAIN)
 
+/**
+ * The PRPC_AUTH_IDENTITY_HANDLE type is an opaque RPC identity pointer passed to SamConnectWithCreds.
+ */
 typedef struct _RPC_AUTH_IDENTITY_HANDLE *PRPC_AUTH_IDENTITY_HANDLE;
 
 //
@@ -161,12 +200,13 @@ typedef struct _RPC_AUTH_IDENTITY_HANDLE *PRPC_AUTH_IDENTITY_HANDLE;
 //
 
 /**
- * The SamConnect method returns a handle to a server.
+ * The SamConnect function opens a SAM client context; NULL ServerName selects the local server.
+ * ObjectAttributes is an unused compatibility argument. Close the context with SamCloseHandle.
  *
- * \param ServerName The NETBIOS name of the server; this parameter MAY be ignored on receipt.
+ * \param ServerName The server name, or NULL for the local server.
  * \param ServerHandle A handle representing a server.
  * \param DesiredAccess The access requested for ServerHandle upon output. 
- * \param ObjectAttributes The OBJECT_ATTRIBUTES structure that specifies the properties of the server handle to be opened.
+ * \param ObjectAttributes Unused compatibility argument; may be NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/47492d59-e095-4398-b03e-8a062b989123
  */
@@ -177,9 +217,22 @@ SamConnect(
     _In_opt_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The SamConnectWithCreds function borrows the supplied RPC identity and service principal name while
+ * connecting, then clears them from temporary client storage.
+ *
+ * \param ServerName The name of the server to connect to.
+ * \param ServerHandle Receives a handle to the server.
+ * \param DesiredAccess The access requested for the returned server handle.
+ * \param ObjectAttributes Unused compatibility argument; may be NULL.
+ * \param Creds The RPC authentication identity containing the connection credentials.
+ * \param Spn The service principal name, or NULL.
+ * \param DestinationIsWindows2K Receives the destination's Windows 2000 compatibility indicator.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -187,12 +240,19 @@ SamConnectWithCreds(
     _In_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ PRPC_AUTH_IDENTITY_HANDLE Creds,
-    _In_ PWCHAR Spn,
+    _In_opt_ PWCHAR Spn,
     _Out_ PBOOL DestinationIsWindows2K
     );
 
+/**
+ * The SamShutdownSamServer function is unsupported by the inspected client: valid handles return
+ * STATUS_NOT_SUPPORTED and invalid handles return STATUS_INVALID_HANDLE.
+ *
+ * \param ServerHandle A handle to the server to shut down.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -253,6 +313,11 @@ SamShutdownSamServer(
 // SamQueryInformationDomain/SamSetInformationDomain types
 //
 
+/**
+ * The DOMAIN_INFORMATION_CLASS enumeration specifies the type of information
+ * returned or set by SamQueryInformationDomain / SamSetInformationDomain.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 typedef enum _DOMAIN_INFORMATION_CLASS
 {
     DomainPasswordInformation = 1,      // qs: DOMAIN_PASSWORD_INFORMATION
@@ -271,18 +336,30 @@ typedef enum _DOMAIN_INFORMATION_CLASS
     DomainMaxInformation
 } DOMAIN_INFORMATION_CLASS;
 
+/**
+ * The DOMAIN_SERVER_ENABLE_STATE enumeration indicates whether the domain server is enabled
+ * or disabled.
+ */
 typedef enum _DOMAIN_SERVER_ENABLE_STATE
 {
     DomainServerEnabled = 1,
     DomainServerDisabled
 } DOMAIN_SERVER_ENABLE_STATE, *PDOMAIN_SERVER_ENABLE_STATE;
 
+/**
+ * The DOMAIN_SERVER_ROLE enumeration indicates whether the server is primary or backup for
+ * the domain.
+ */
 typedef enum _DOMAIN_SERVER_ROLE
 {
     DomainServerRoleBackup = 2,
     DomainServerRolePrimary
 } DOMAIN_SERVER_ROLE, *PDOMAIN_SERVER_ROLE;
 
+/**
+ * The DOMAIN_GENERAL_INFORMATION structure reports domain identity, replication source, server role and
+ * state, modification count, and account counts.
+ */
 typedef struct _DOMAIN_GENERAL_INFORMATION
 {
     LARGE_INTEGER ForceLogoff;
@@ -298,6 +375,10 @@ typedef struct _DOMAIN_GENERAL_INFORMATION
     ULONG AliasCount;
 } DOMAIN_GENERAL_INFORMATION, *PDOMAIN_GENERAL_INFORMATION;
 
+/**
+ * The DOMAIN_GENERAL_INFORMATION2 structure extends general domain information with lockout duration,
+ * observation window, and threshold.
+ */
 typedef struct _DOMAIN_GENERAL_INFORMATION2
 {
     DOMAIN_GENERAL_INFORMATION I1;
@@ -306,6 +387,9 @@ typedef struct _DOMAIN_GENERAL_INFORMATION2
     USHORT LockoutThreshold;
 } DOMAIN_GENERAL_INFORMATION2, *PDOMAIN_GENERAL_INFORMATION2;
 
+/**
+ * The DOMAIN_UAS_INFORMATION structure indicates whether UAS compatibility is required for the domain.
+ */
 typedef struct _DOMAIN_UAS_INFORMATION
 {
     BOOLEAN UasCompatibilityRequired;
@@ -314,6 +398,10 @@ typedef struct _DOMAIN_UAS_INFORMATION
 #ifndef _DOMAIN_PASSWORD_INFORMATION_DEFINED // defined in ntsecapi.h
 #define _DOMAIN_PASSWORD_INFORMATION_DEFINED
 
+/**
+ * The DOMAIN_PASSWORD_INFORMATION structure defines password length, history depth, age limits, and policy flags.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 typedef struct _DOMAIN_PASSWORD_INFORMATION
 {
     USHORT MinPasswordLength;
@@ -326,7 +414,6 @@ typedef struct _DOMAIN_PASSWORD_INFORMATION
 //
 // PasswordProperties flags
 //
-
 #define DOMAIN_PASSWORD_COMPLEX 0x00000001L
 #define DOMAIN_PASSWORD_NO_ANON_CHANGE 0x00000002L
 #define DOMAIN_PASSWORD_NO_CLEAR_CHANGE 0x00000004L
@@ -337,43 +424,67 @@ typedef struct _DOMAIN_PASSWORD_INFORMATION
 
 #endif // _DOMAIN_PASSWORD_INFORMATION_DEFINED
 
+/**
+ * The DOMAIN_PASSWORD_CONSTRUCTION enumeration indicates password complexity requirements.
+ */
 typedef enum _DOMAIN_PASSWORD_CONSTRUCTION
 {
     DomainPasswordSimple = 1,
     DomainPasswordComplex
 } DOMAIN_PASSWORD_CONSTRUCTION;
 
+/**
+ * The DOMAIN_LOGOFF_INFORMATION structure specifies force logoff time used by the domain.
+ */
 typedef struct _DOMAIN_LOGOFF_INFORMATION
 {
     LARGE_INTEGER ForceLogoff;
 } DOMAIN_LOGOFF_INFORMATION, *PDOMAIN_LOGOFF_INFORMATION;
 
+/**
+ * The DOMAIN_OEM_INFORMATION structure carries OEM-specific information for the domain.
+ */
 typedef struct _DOMAIN_OEM_INFORMATION
 {
     UNICODE_STRING OemInformation;
 } DOMAIN_OEM_INFORMATION, *PDOMAIN_OEM_INFORMATION;
 
+/**
+ * The DOMAIN_NAME_INFORMATION structure contains the domain's name.
+ */
 typedef struct _DOMAIN_NAME_INFORMATION
 {
     UNICODE_STRING DomainName;
 } DOMAIN_NAME_INFORMATION, *PDOMAIN_NAME_INFORMATION;
 
+/**
+ * The DOMAIN_SERVER_ROLE_INFORMATION structure reports the server role for the domain.
+ */
 typedef struct _DOMAIN_SERVER_ROLE_INFORMATION
 {
     DOMAIN_SERVER_ROLE DomainServerRole;
 } DOMAIN_SERVER_ROLE_INFORMATION, *PDOMAIN_SERVER_ROLE_INFORMATION;
 
+/**
+ * The DOMAIN_REPLICATION_INFORMATION structure contains the replication source node name.
+ */
 typedef struct _DOMAIN_REPLICATION_INFORMATION
 {
     UNICODE_STRING ReplicaSourceNodeName;
 } DOMAIN_REPLICATION_INFORMATION, *PDOMAIN_REPLICATION_INFORMATION;
 
+/**
+ * The DOMAIN_MODIFIED_INFORMATION structure reports the domain creation time and modification count.
+ */
 typedef struct _DOMAIN_MODIFIED_INFORMATION
 {
     LARGE_INTEGER DomainModifiedCount;
     LARGE_INTEGER CreationTime;
 } DOMAIN_MODIFIED_INFORMATION, *PDOMAIN_MODIFIED_INFORMATION;
 
+/**
+ * The DOMAIN_MODIFIED_INFORMATION2 structure adds the modification count recorded at the last promotion.
+ */
 typedef struct _DOMAIN_MODIFIED_INFORMATION2
 {
     LARGE_INTEGER DomainModifiedCount;
@@ -381,11 +492,18 @@ typedef struct _DOMAIN_MODIFIED_INFORMATION2
     LARGE_INTEGER ModifiedCountAtLastPromotion;
 } DOMAIN_MODIFIED_INFORMATION2, *PDOMAIN_MODIFIED_INFORMATION2;
 
+/**
+ * The DOMAIN_STATE_INFORMATION structure reports the enabled/disabled state of the domain server.
+ */
 typedef struct _DOMAIN_STATE_INFORMATION
 {
     DOMAIN_SERVER_ENABLE_STATE DomainServerState;
 } DOMAIN_STATE_INFORMATION, *PDOMAIN_STATE_INFORMATION;
 
+/**
+ * The DOMAIN_LOCKOUT_INFORMATION structure specifies failed-logon threshold, lockout duration, and
+ * observation window. A zero threshold disables lockout.
+ */
 typedef struct _DOMAIN_LOCKOUT_INFORMATION
 {
     LARGE_INTEGER LockoutDuration; // delta time
@@ -397,6 +515,9 @@ typedef struct _DOMAIN_LOCKOUT_INFORMATION
 // SamQueryDisplayInformation types
 //
 
+/**
+ * The DOMAIN_DISPLAY_INFORMATION enumeration selects the account record format used by display-information queries.
+ */
 typedef enum _DOMAIN_DISPLAY_INFORMATION
 {
     DomainDisplayUser = 1,      // DOMAIN_DISPLAY_USER
@@ -408,6 +529,9 @@ typedef enum _DOMAIN_DISPLAY_INFORMATION
     DomainDisplayMax
 } DOMAIN_DISPLAY_INFORMATION, *PDOMAIN_DISPLAY_INFORMATION;
 
+/**
+ * The DOMAIN_DISPLAY_USER structure returns a user RID, account flags, names, and a paged-query index.
+ */
 typedef struct _DOMAIN_DISPLAY_USER
 {
     ULONG Index;
@@ -418,6 +542,10 @@ typedef struct _DOMAIN_DISPLAY_USER
     UNICODE_STRING FullName;
 } DOMAIN_DISPLAY_USER, *PDOMAIN_DISPLAY_USER;
 
+/**
+ * The DOMAIN_DISPLAY_MACHINE structure returns a machine account RID, account flags, display strings,
+ * and a paged-query index.
+ */
 typedef struct _DOMAIN_DISPLAY_MACHINE
 {
     ULONG Index;
@@ -427,6 +555,9 @@ typedef struct _DOMAIN_DISPLAY_MACHINE
     UNICODE_STRING Comment;
 } DOMAIN_DISPLAY_MACHINE, *PDOMAIN_DISPLAY_MACHINE;
 
+/**
+ * The DOMAIN_DISPLAY_GROUP structure returns a group RID, attributes, name, comment, and a paged-query index.
+ */
 typedef struct _DOMAIN_DISPLAY_GROUP
 {
     ULONG Index;
@@ -436,12 +567,18 @@ typedef struct _DOMAIN_DISPLAY_GROUP
     UNICODE_STRING Comment;
 } DOMAIN_DISPLAY_GROUP, *PDOMAIN_DISPLAY_GROUP;
 
+/**
+ * The DOMAIN_DISPLAY_OEM_USER structure returns an OEM-encoded user name and its display index.
+ */
 typedef struct _DOMAIN_DISPLAY_OEM_USER
 {
     ULONG Index;
     OEM_STRING User;
 } DOMAIN_DISPLAY_OEM_USER, *PDOMAIN_DISPLAY_OEM_USER;
 
+/**
+ * The DOMAIN_DISPLAY_OEM_GROUP structure returns an OEM-encoded group name and its display index.
+ */
 typedef struct _DOMAIN_DISPLAY_OEM_GROUP
 {
     ULONG Index;
@@ -452,11 +589,18 @@ typedef struct _DOMAIN_DISPLAY_OEM_GROUP
 // SamQueryLocalizableAccountsInDomain types
 //
 
+/**
+ * The DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION enumeration selects the result format for localizable-account queries.
+ */
 typedef enum _DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION
 {
     DomainLocalizableAccountsBasic = 1,
 } DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION, *PDOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION;
 
+/**
+ * The DOMAIN_LOCALIZABLE_ACCOUNT_ENTRY structure identifies a localizable account by RID, account type,
+ * localized name, and comment.
+ */
 typedef struct _DOMAIN_LOCALIZABLE_ACCOUNTS_ENTRY
 {
     ULONG Rid;
@@ -465,12 +609,19 @@ typedef struct _DOMAIN_LOCALIZABLE_ACCOUNTS_ENTRY
     UNICODE_STRING AdminComment;
 } DOMAIN_LOCALIZABLE_ACCOUNT_ENTRY, *PDOMAIN_LOCALIZABLE_ACCOUNT_ENTRY;
 
+/**
+ * The DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC structure returns a count and array of localizable-account entries.
+ */
 typedef struct _DOMAIN_LOCALIZABLE_ACCOUNTS
 {
     ULONG Count;
     _Field_size_(Count) DOMAIN_LOCALIZABLE_ACCOUNT_ENTRY *Entries;
 } DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC, *PDOMAIN_LOCALIZABLE_ACCOUNTS_BASIC;
 
+/**
+ * The DOMAIN_LOCALIZABLE_ACCOUNTS_INFO_BUFFER union contains the localizable-account result selected by
+ * the information class.
+ */
 typedef union _DOMAIN_LOCALIZABLE_INFO_BUFFER
 {
     DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC Basic;
@@ -499,7 +650,8 @@ SamLookupDomainInSamServer(
     );
 
 /**
- * The SamEnumerateDomainsInSamServer method obtains a listing of all domains hosted by the server side of this protocol.
+ * The SamEnumerateDomainsInSamServer method obtains a listing of all domains hosted by the server side
+ * of this protocol.
  *
  * \param ServerHandle A handle representing a server.
  * \param EnumerationContext An opaque value that the server can use to continue an enumeration on a subsequent call.
@@ -597,6 +749,16 @@ SamLookupNamesInDomain(
     _Out_ _Deref_post_count_(Count) PSID_NAME_USE *Use
     );
 
+/**
+ * The SamLookupNamesInDomain2 function translates account names in a domain into SIDs.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param Count The number of account names in Names.
+ * \param Names The account names to look up.
+ * \param Sids Receives the SIDs corresponding to Names.
+ * \param Use Receives the account types corresponding to Names.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -646,6 +808,16 @@ SamRemoveMemberFromForeignDomain(
     _In_ PSID MemberId
     );
 
+/**
+ * The SamQueryLocalizableAccountsInDomain function queries localizable account information in a domain.
+ *
+ * \param Domain A handle to the domain.
+ * \param Flags Flags controlling the query.
+ * \param LanguageId The language identifier for the requested account information.
+ * \param Class The class of localizable account information to retrieve.
+ * \param Buffer Receives a pointer to the information selected by Class.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -685,6 +857,13 @@ SamQueryLocalizableAccountsInDomain(
 #define GROUP_EXECUTE (STANDARD_RIGHTS_EXECUTE | \
     GROUP_READ_INFORMATION)
 
+/**
+ * The GROUP_MEMBERSHIP structure describes a single membership entry for a group.
+ *
+ * Fields:
+ * - RelativeId: The RID of the member account.
+ * - Attributes: Membership attributes (group-specific flags).
+ */
 typedef struct _GROUP_MEMBERSHIP
 {
     ULONG RelativeId;
@@ -695,6 +874,11 @@ typedef struct _GROUP_MEMBERSHIP
 // SamQueryInformationGroup/SamSetInformationGroup types
 //
 
+/**
+ * The GROUP_INFORMATION_CLASS enumeration specifies information classes
+ * returned or set by SamQueryInformationGroup / SamSetInformationGroup.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 typedef enum _GROUP_INFORMATION_CLASS
 {
     GroupGeneralInformation = 1,        // q: GROUP_GENERAL_INFORMATION
@@ -705,6 +889,15 @@ typedef enum _GROUP_INFORMATION_CLASS
     GroupMaxInformation
 } GROUP_INFORMATION_CLASS;
 
+/**
+ * The GROUP_GENERAL_INFORMATION structure reports a group name, attributes, member count, and administrative comment.
+ *
+ * Fields:
+ * - Name: Group name.
+ * - Attributes: Group attribute flags.
+ * - MemberCount: Number of members in the group.
+ * - AdminComment: Administrative comment string.
+ */
 typedef struct _GROUP_GENERAL_INFORMATION
 {
     UNICODE_STRING Name;
@@ -713,21 +906,33 @@ typedef struct _GROUP_GENERAL_INFORMATION
     UNICODE_STRING AdminComment;
 } GROUP_GENERAL_INFORMATION, *PGROUP_GENERAL_INFORMATION;
 
+/**
+ * The GROUP_NAME_INFORMATION structure supplies or returns a SAM group name.
+ */
 typedef struct _GROUP_NAME_INFORMATION
 {
     UNICODE_STRING Name;
 } GROUP_NAME_INFORMATION, *PGROUP_NAME_INFORMATION;
 
+/**
+ * The GROUP_ATTRIBUTE_INFORMATION structure supplies or returns SAM group attribute flags.
+ */
 typedef struct _GROUP_ATTRIBUTE_INFORMATION
 {
     ULONG Attributes;
 } GROUP_ATTRIBUTE_INFORMATION, *PGROUP_ATTRIBUTE_INFORMATION;
 
+/**
+ * The GROUP_ADM_COMMENT_INFORMATION structure supplies or returns a group administrative comment.
+ */
 typedef struct _GROUP_ADM_COMMENT_INFORMATION
 {
     UNICODE_STRING AdminComment;
 } GROUP_ADM_COMMENT_INFORMATION, *PGROUP_ADM_COMMENT_INFORMATION;
 
+/**
+ * The GROUP_REPLICATION_INFORMATION structure reports the last-write time used for group replication.
+ */
 typedef struct _GROUP_REPLICATION_INFORMATION
 {
     LARGE_INTEGER LastWriteTime;
@@ -744,7 +949,7 @@ typedef struct _GROUP_REPLICATION_INFORMATION
  * \param EnumerationContext An opaque value that the server can use to continue an enumeration on a subsequent call.
  * \param Buffer A listing of group information.
  * \param PreferedMaximumLength The requested maximum number of bytes to return in Buffer.
- * \param CountReturned The count of domain elements returned in Buffer.
+ * \param CountReturned The number of group entries returned in Buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e0b7a4b7-ecfc-405f-9d7d-32b3cd2cd6c8
  */
@@ -759,6 +964,17 @@ SamEnumerateGroupsInDomain(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The SamCreateGroupInDomain method creates a new group account in the specified domain.
+ *
+ * \param DomainHandle A handle representing the domain.
+ * \param AccountName The name of the group to create.
+ * \param DesiredAccess The requested access for the output group handle.
+ * \param GroupHandle Receives the handle for the created group.
+ * \param RelativeId Receives the RID of the created group.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -770,6 +986,16 @@ SamCreateGroupInDomain(
     _Out_ PULONG RelativeId
     );
 
+/**
+ * The SamOpenGroup method opens an existing group account by RID.
+ *
+ * \param DomainHandle A handle representing the domain containing the group.
+ * \param DesiredAccess The access requested for GroupHandle.
+ * \param GroupId The RID of the group to open.
+ * \param GroupHandle Receives a handle to the opened group.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -780,6 +1006,13 @@ SamOpenGroup(
     _Out_ PSAM_HANDLE GroupHandle
     );
 
+/**
+ * The SamDeleteGroup method deletes a group account represented by GroupHandle.
+ *
+ * \param GroupHandle A handle to the group to delete.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -787,6 +1020,15 @@ SamDeleteGroup(
     _In_ SAM_HANDLE GroupHandle
     );
 
+/**
+ * The SamQueryInformationGroup method queries information about a group.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param GroupInformationClass The information class to retrieve.
+ * \param Buffer Receives a pointer to the returned information structure.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -796,6 +1038,15 @@ SamQueryInformationGroup(
     _Outptr_ PVOID *Buffer
     );
 
+/**
+ * The SamSetInformationGroup method sets information for a group.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param GroupInformationClass The information class to set.
+ * \param Buffer Pointer to the information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -805,6 +1056,15 @@ SamSetInformationGroup(
     _In_ PVOID Buffer
     );
 
+/**
+ * The SamAddMemberToGroup method adds a member to a group.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param MemberId The RID of the member to add.
+ * \param Attributes Membership attributes for the member.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -814,6 +1074,14 @@ SamAddMemberToGroup(
     _In_ ULONG Attributes
     );
 
+/**
+ * The SamRemoveMemberFromGroup method removes a member from a group.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param MemberId The RID of the member to remove.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -822,6 +1090,16 @@ SamRemoveMemberFromGroup(
     _In_ ULONG MemberId
     );
 
+/**
+ * The SamGetMembersInGroup method retrieves the members of a group.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param MemberIds Receives an array of member RIDs (allocated by the server).
+ * \param Attributes Receives member attributes array parallel to MemberIds.
+ * \param MemberCount Receives the number of members returned.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -832,6 +1110,15 @@ SamGetMembersInGroup(
     _Out_ PULONG MemberCount
     );
 
+/**
+ * The SamSetMemberAttributesOfGroup method sets membership attributes for a group member.
+ *
+ * \param GroupHandle A handle to the group.
+ * \param MemberId The RID of the member.
+ * \param Attributes The new membership attributes.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -873,6 +1160,11 @@ SamSetMemberAttributesOfGroup(
 // SamQueryInformationAlias/SamSetInformationAlias types
 //
 
+/**
+ * The ALIAS_INFORMATION_CLASS enumeration specifies information classes
+ * returned or set by SamQueryInformationAlias / SamSetInformationAlias.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 typedef enum _ALIAS_INFORMATION_CLASS
 {
     AliasGeneralInformation = 1,        // q: ALIAS_GENERAL_INFORMATION
@@ -883,6 +1175,9 @@ typedef enum _ALIAS_INFORMATION_CLASS
     AliasMaxInformation
 } ALIAS_INFORMATION_CLASS;
 
+/**
+ * The ALIAS_GENERAL_INFORMATION structure reports an alias name, member count, and administrative comment.
+ */
 typedef struct _ALIAS_GENERAL_INFORMATION
 {
     UNICODE_STRING Name;
@@ -890,16 +1185,25 @@ typedef struct _ALIAS_GENERAL_INFORMATION
     UNICODE_STRING AdminComment;
 } ALIAS_GENERAL_INFORMATION, *PALIAS_GENERAL_INFORMATION;
 
+/**
+ * The ALIAS_NAME_INFORMATION structure supplies or returns a SAM alias name.
+ */
 typedef struct _ALIAS_NAME_INFORMATION
 {
     UNICODE_STRING Name;
 } ALIAS_NAME_INFORMATION, *PALIAS_NAME_INFORMATION;
 
+/**
+ * The ALIAS_ADM_COMMENT_INFORMATION structure supplies or returns an alias administrative comment.
+ */
 typedef struct _ALIAS_ADM_COMMENT_INFORMATION
 {
     UNICODE_STRING AdminComment;
 } ALIAS_ADM_COMMENT_INFORMATION, *PALIAS_ADM_COMMENT_INFORMATION;
 
+/**
+ * The ALIAS_REPLICATION_INFORMATION structure reports the last-write time used for alias replication.
+ */
 typedef struct _ALIAS_REPLICATION_INFORMATION
 {
     LARGE_INTEGER LastWriteTime;
@@ -910,6 +1214,11 @@ typedef struct _ALIAS_REPLICATION_INFORMATION
 #define ALIAS_ALL_ADMIN_COMMENT (0x00000004L)
 #define ALIAS_ALL_SHELL_ADMIN_OBJECT_PROPERTIES (0x00000008L)
 
+/**
+ * The ALIAS_EXTENDED_INFORMATION structure contains optional extended fields for an alias.
+ *
+ * WhichFields indicates which of the extended fields are present.
+ */
 typedef struct _ALIAS_EXTENDED_INFORMATION
 {
     ULONG WhichFields;
@@ -920,6 +1229,17 @@ typedef struct _ALIAS_EXTENDED_INFORMATION
 // Functions
 //
 
+/**
+ * The SamEnumerateAliasesInDomain method enumerates aliases in a domain.
+ *
+ * \param DomainHandle A handle representing the domain.
+ * \param EnumerationContext Opaque continuation value for enumeration.
+ * \param Buffer Receives an array of SAM_RID_ENUMERATION entries.
+ * \param PreferedMaximumLength Preferred maximum bytes to return.
+ * \param CountReturned Receives the number of entries returned.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -931,6 +1251,17 @@ SamEnumerateAliasesInDomain(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The SamCreateAliasInDomain method creates an alias in the specified domain.
+ *
+ * \param DomainHandle A handle representing the domain.
+ * \param AccountName The alias name to create.
+ * \param DesiredAccess Requested access for the output alias handle.
+ * \param AliasHandle Receives the created alias handle.
+ * \param RelativeId Receives the RID of the new alias.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -942,6 +1273,16 @@ SamCreateAliasInDomain(
     _Out_ PULONG RelativeId
     );
 
+/**
+ * The SamOpenAlias method opens an existing alias by RID.
+ *
+ * \param DomainHandle A handle representing the domain.
+ * \param DesiredAccess Requested access for the returned alias handle.
+ * \param AliasId The RID of the alias to open.
+ * \param AliasHandle Receives the opened alias handle.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -952,6 +1293,13 @@ SamOpenAlias(
     _Out_ PSAM_HANDLE AliasHandle
     );
 
+/**
+ * The SamDeleteAlias method deletes an alias identified by AliasHandle.
+ *
+ * \param AliasHandle A handle to the alias to delete.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -959,6 +1307,15 @@ SamDeleteAlias(
     _In_ SAM_HANDLE AliasHandle
     );
 
+/**
+ * The SamQueryInformationAlias method queries information about an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param AliasInformationClass The information class to query.
+ * \param Buffer Receives a pointer to the returned information structure.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -968,6 +1325,15 @@ SamQueryInformationAlias(
     _Outptr_ PVOID *Buffer
     );
 
+/**
+ * The SamSetInformationAlias method sets information for an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param AliasInformationClass The information class to set.
+ * \param Buffer Pointer to the information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -977,6 +1343,14 @@ SamSetInformationAlias(
     _In_ PVOID Buffer
     );
 
+/**
+ * The SamAddMemberToAlias method adds a security principal to an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param MemberId The SID of the member to add.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -985,6 +1359,15 @@ SamAddMemberToAlias(
     _In_ PSID MemberId
     );
 
+/**
+ * The SamAddMultipleMembersToAlias method adds multiple members to an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param MemberIds Array of member SIDs to add.
+ * \param MemberCount Number of members in MemberIds.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -994,6 +1377,14 @@ SamAddMultipleMembersToAlias(
     _In_ ULONG MemberCount
     );
 
+/**
+ * The SamRemoveMemberFromAlias method removes a member from an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param MemberId The SID of the member to remove.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1002,6 +1393,15 @@ SamRemoveMemberFromAlias(
     _In_ PSID MemberId
     );
 
+/**
+ * The SamRemoveMultipleMembersFromAlias method removes multiple members from an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param MemberIds Array of member SIDs to remove.
+ * \param MemberCount Number of members in MemberIds.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1011,6 +1411,15 @@ SamRemoveMultipleMembersFromAlias(
     _In_ ULONG MemberCount
     );
 
+/**
+ * The SamGetMembersInAlias method retrieves the members of an alias.
+ *
+ * \param AliasHandle A handle to the alias.
+ * \param MemberIds Receives an allocated array of member SIDs.
+ * \param MemberCount Receives the number of members returned.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1020,6 +1429,17 @@ SamGetMembersInAlias(
     _Out_ PULONG MemberCount
     );
 
+/**
+ * The SamGetAliasMembership method determines alias membership for a set of SIDs.
+ *
+ * \param DomainHandle A handle representing the domain.
+ * \param PassedCount Number of SIDs in the Sids array.
+ * \param Sids Array of SIDs to check for membership.
+ * \param MembershipCount Receives the number of alias entries returned.
+ * \param Aliases Receives an array of alias RIDs for which membership applies.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1030,6 +1450,7 @@ SamGetAliasMembership(
     _Out_ PULONG MembershipCount,
     _Out_ _Deref_post_count_(*MembershipCount) PULONG *Aliases
     );
+
 //
 // Group types
 //
@@ -1142,6 +1563,13 @@ SamGetAliasMembership(
 #define SAM_HOURS_PER_WEEK (24 * SAM_DAYS_PER_WEEK)
 #define SAM_MINUTES_PER_WEEK (60 * SAM_HOURS_PER_WEEK)
 
+/**
+ * The LOGON_HOURS structure specifies weekly logon time windows using a bitmask.
+ *
+ * UnitsPerWeek is the number of equal-length time units the week is divided into.
+ * LogonHours is a bit map where each bit represents a time unit in the week. A
+ * NULL LogonHours pointer indicates DONT_CHANGE when used with SamSetInformationUser().
+ */
 typedef struct _LOGON_HOURS
 {
     USHORT UnitsPerWeek;
@@ -1176,6 +1604,11 @@ typedef struct _SR_SECURITY_DESCRIPTOR
 // SamQueryInformationUser/SamSetInformationUser types
 //
 
+/**
+ * The USER_INFORMATION_CLASS enumeration specifies information classes
+ * for SamQueryInformationUser / SamSetInformationUser.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/
+ */
 typedef enum _USER_INFORMATION_CLASS
 {
     UserGeneralInformation = 1,     // q: USER_GENERAL_INFORMATION
@@ -1213,6 +1646,16 @@ typedef enum _USER_INFORMATION_CLASS
     UserMaxInformation
 } USER_INFORMATION_CLASS, *PUSER_INFORMATION_CLASS;
 
+/**
+ * The USER_GENERAL_INFORMATION structure contains basic user account properties.
+ *
+ * Fields:
+ * - UserName: The account name.
+ * - FullName: The full display name.
+ * - PrimaryGroupId: RID of the primary group.
+ * - AdminComment: Administrative comment string.
+ * - UserComment: User-provided comment string.
+ */
 typedef struct _USER_GENERAL_INFORMATION
 {
     UNICODE_STRING UserName;
@@ -1222,6 +1665,9 @@ typedef struct _USER_GENERAL_INFORMATION
     UNICODE_STRING UserComment;
 } USER_GENERAL_INFORMATION, *PUSER_GENERAL_INFORMATION;
 
+/**
+ * The USER_PREFERENCES_INFORMATION structure reports a user comment and account locale settings.
+ */
 typedef struct _USER_PREFERENCES_INFORMATION
 {
     UNICODE_STRING UserComment;
@@ -1230,6 +1676,10 @@ typedef struct _USER_PREFERENCES_INFORMATION
     USHORT CodePage;
 } USER_PREFERENCES_INFORMATION, *PUSER_PREFERENCES_INFORMATION;
 
+/**
+ * The USER_LOGON_INFORMATION structure reports names, paths, allowed workstations and hours, and
+ * account logon timestamps.
+ */
 typedef struct _USER_LOGON_INFORMATION
 {
     UNICODE_STRING UserName;
@@ -1252,11 +1702,18 @@ typedef struct _USER_LOGON_INFORMATION
     ULONG UserAccountControl;
 } USER_LOGON_INFORMATION, *PUSER_LOGON_INFORMATION;
 
+/**
+ * The USER_LOGON_HOURS_INFORMATION structure supplies or returns the hours when a user may log on.
+ */
 typedef struct _USER_LOGON_HOURS_INFORMATION
 {
     LOGON_HOURS LogonHours;
 } USER_LOGON_HOURS_INFORMATION, *PUSER_LOGON_HOURS_INFORMATION;
 
+/**
+ * The USER_ACCOUNT_INFORMATION structure contains the account identity, profile paths,
+ * logon restrictions and history, password timestamps, and account-control flags.
+ */
 typedef struct _USER_ACCOUNT_INFORMATION
 {
     UNICODE_STRING UserName;
@@ -1279,64 +1736,100 @@ typedef struct _USER_ACCOUNT_INFORMATION
     ULONG UserAccountControl;
 } USER_ACCOUNT_INFORMATION, *PUSER_ACCOUNT_INFORMATION;
 
+/**
+ * The USER_NAME_INFORMATION structure supplies or returns both the account name and full name.
+ */
 typedef struct _USER_NAME_INFORMATION
 {
     UNICODE_STRING UserName;
     UNICODE_STRING FullName;
 } USER_NAME_INFORMATION, *PUSER_NAME_INFORMATION;
 
+/**
+ * The USER_ACCOUNT_NAME_INFORMATION structure contains the account name only.
+ */
 typedef struct _USER_ACCOUNT_NAME_INFORMATION
 {
     UNICODE_STRING UserName;
 } USER_ACCOUNT_NAME_INFORMATION, *PUSER_ACCOUNT_NAME_INFORMATION;
 
+/**
+ * The USER_FULL_NAME_INFORMATION structure contains the full display name for the user.
+ */
 typedef struct _USER_FULL_NAME_INFORMATION
 {
     UNICODE_STRING FullName;
 } USER_FULL_NAME_INFORMATION, *PUSER_FULL_NAME_INFORMATION;
 
+/**
+ * The USER_PRIMARY_GROUP_INFORMATION structure specifies the user's primary group RID.
+ */
 typedef struct _USER_PRIMARY_GROUP_INFORMATION
 {
     ULONG PrimaryGroupId;
 } USER_PRIMARY_GROUP_INFORMATION, *PUSER_PRIMARY_GROUP_INFORMATION;
 
+/**
+ * The USER_HOME_INFORMATION structure supplies or returns the home directory and mapped drive.
+ */
 typedef struct _USER_HOME_INFORMATION
 {
     UNICODE_STRING HomeDirectory;
     UNICODE_STRING HomeDirectoryDrive;
 } USER_HOME_INFORMATION, *PUSER_HOME_INFORMATION;
 
+/**
+ * The USER_SCRIPT_INFORMATION structure contains the login script path.
+ */
 typedef struct _USER_SCRIPT_INFORMATION
 {
     UNICODE_STRING ScriptPath;
 } USER_SCRIPT_INFORMATION, *PUSER_SCRIPT_INFORMATION;
 
+/**
+ * The USER_PROFILE_INFORMATION structure contains the profile path for the user.
+ */
 typedef struct _USER_PROFILE_INFORMATION
 {
     UNICODE_STRING ProfilePath;
 } USER_PROFILE_INFORMATION, *PUSER_PROFILE_INFORMATION;
 
+/**
+ * The USER_ADMIN_COMMENT_INFORMATION structure contains administrative comment text.
+ */
 typedef struct _USER_ADMIN_COMMENT_INFORMATION
 {
     UNICODE_STRING AdminComment;
 } USER_ADMIN_COMMENT_INFORMATION, *PUSER_ADMIN_COMMENT_INFORMATION;
 
+/**
+ * The USER_WORKSTATIONS_INFORMATION structure contains a list of allowed workstations.
+ */
 typedef struct _USER_WORKSTATIONS_INFORMATION
 {
     UNICODE_STRING WorkStations;
 } USER_WORKSTATIONS_INFORMATION, *PUSER_WORKSTATIONS_INFORMATION;
 
+/**
+ * The USER_SET_PASSWORD_INFORMATION structure supplies a new password and its expiration setting.
+ */
 typedef struct _USER_SET_PASSWORD_INFORMATION
 {
     UNICODE_STRING Password;
     BOOLEAN PasswordExpired;
 } USER_SET_PASSWORD_INFORMATION, *PUSER_SET_PASSWORD_INFORMATION;
 
+/**
+ * The USER_CONTROL_INFORMATION structure supplies or returns user account-control flags.
+ */
 typedef struct _USER_CONTROL_INFORMATION
 {
     ULONG UserAccountControl;
 } USER_CONTROL_INFORMATION, *PUSER_CONTROL_INFORMATION;
 
+/**
+ * The USER_EXPIRES_INFORMATION structure contains the account expiration time.
+ */
 typedef struct _USER_EXPIRES_INFORMATION
 {
     LARGE_INTEGER AccountExpires;
@@ -1344,21 +1837,34 @@ typedef struct _USER_EXPIRES_INFORMATION
 
 #define CYPHER_BLOCK_LENGTH 8
 
+/**
+ * The CYPHER_BLOCK structure stores one eight-byte block used by encrypted password-hash records.
+ */
 typedef struct _CYPHER_BLOCK
 {
     CHAR data[CYPHER_BLOCK_LENGTH];
 } CYPHER_BLOCK, *PCYPHER_BLOCK;
 
+/**
+ * The ENCRYPTED_NT_OWF_PASSWORD structure stores an encrypted NT password hash in two cipher blocks.
+ */
 typedef struct _ENCRYPTED_NT_OWF_PASSWORD
 {
     CYPHER_BLOCK data[2];
 } ENCRYPTED_NT_OWF_PASSWORD, *PENCRYPTED_NT_OWF_PASSWORD;
 
+/**
+ * The ENCRYPTED_LM_OWF_PASSWORD structure stores an encrypted LM password hash in two cipher blocks.
+ */
 typedef struct _ENCRYPTED_LM_OWF_PASSWORD
 {
     CYPHER_BLOCK data[2];
 } ENCRYPTED_LM_OWF_PASSWORD, *PENCRYPTED_LM_OWF_PASSWORD;
 
+/**
+ * The USER_INTERNAL1_INFORMATION structure carries encrypted NT and LM password hashes with presence
+ * and expiration flags.
+ */
 typedef struct _USER_INTERNAL1_INFORMATION
 {
     ENCRYPTED_NT_OWF_PASSWORD EncryptedNtOwfPassword;
@@ -1368,6 +1874,10 @@ typedef struct _USER_INTERNAL1_INFORMATION
     BOOLEAN PasswordExpired;
 } USER_INTERNAL1_INFORMATION, *PUSER_INTERNAL1_INFORMATION;
 
+/**
+ * The USER_INTERNAL2_INFORMATION structure carries logon counts and times; StatisticsToApply selects
+ * the fields to update.
+ */
 typedef struct _USER_INTERNAL2_INFORMATION
 {
     ULONG StatisticsToApply;
@@ -1377,6 +1887,9 @@ typedef struct _USER_INTERNAL2_INFORMATION
     USHORT LogonCount;
 } USER_INTERNAL2_INFORMATION, *PUSER_INTERNAL2_INFORMATION;
 
+/**
+ * The USER_PARAMETERS_INFORMATION structure carries the account Parameters string.
+ */
 typedef struct _USER_PARAMETERS_INFORMATION
 {
     UNICODE_STRING Parameters;
@@ -1419,8 +1932,9 @@ typedef struct _USER_PARAMETERS_INFORMATION
 
 #define USER_ALL_UNDEFINED_MASK 0xc0000000
 
+//
 // Fields that require USER_READ_GENERAL access to read.
-
+//
 #define USER_ALL_READ_GENERAL_MASK \
     (USER_ALL_USERNAME | \
     USER_ALL_FULLNAME | \
@@ -1429,8 +1943,9 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_ADMINCOMMENT | \
     USER_ALL_USERCOMMENT)
 
+//
 // Fields that require USER_READ_LOGON access to read.
-
+//
 #define USER_ALL_READ_LOGON_MASK \
    (USER_ALL_HOMEDIRECTORY | \
     USER_ALL_HOMEDIRECTORYDRIVE | \
@@ -1445,21 +1960,24 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_PASSWORDCANCHANGE | \
     USER_ALL_PASSWORDMUSTCHANGE)
 
+//
 // Fields that require USER_READ_ACCOUNT access to read.
-
+//
 #define USER_ALL_READ_ACCOUNT_MASK \
     (USER_ALL_PASSWORDLASTSET | \
     USER_ALL_ACCOUNTEXPIRES | \
     USER_ALL_USERACCOUNTCONTROL | \
     USER_ALL_PARAMETERS)
 
+//
 // Fields that require USER_READ_PREFERENCES access to read.
-
+//
 #define USER_ALL_READ_PREFERENCES_MASK \
     (USER_ALL_COUNTRYCODE | USER_ALL_CODEPAGE)
 
+//
 // Fields that can only be read by trusted clients.
-
+//
 #define USER_ALL_READ_TRUSTED_MASK \
     (USER_ALL_NTPASSWORDPRESENT | \
     USER_ALL_LMPASSWORDPRESENT | \
@@ -1467,12 +1985,14 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_SECURITYDESCRIPTOR | \
     USER_ALL_PRIVATEDATA)
 
+//
 // Fields that can't be read.
-
+//
 #define USER_ALL_READ_CANT_MASK USER_ALL_UNDEFINED_MASK
 
+//
 // Fields that require USER_WRITE_ACCOUNT access to write.
-
+//
 #define USER_ALL_WRITE_ACCOUNT_MASK \
     (USER_ALL_USERNAME | \
     USER_ALL_FULLNAME | \
@@ -1488,8 +2008,9 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_USERACCOUNTCONTROL | \
     USER_ALL_PARAMETERS)
 
+//
 // Fields that require USER_WRITE_PREFERENCES access to write.
-
+//
 #define USER_ALL_WRITE_PREFERENCES_MASK \
     (USER_ALL_USERCOMMENT | USER_ALL_COUNTRYCODE | USER_ALL_CODEPAGE)
 
@@ -1505,8 +2026,9 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_LMPASSWORDPRESENT | \
     USER_ALL_PASSWORDEXPIRED)
 
+//
 // Fields that can only be written by trusted clients.
-
+//
 #define USER_ALL_WRITE_TRUSTED_MASK \
     (USER_ALL_LASTLOGON | \
     USER_ALL_LASTLOGOFF | \
@@ -1516,14 +2038,21 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_SECURITYDESCRIPTOR | \
     USER_ALL_PRIVATEDATA)
 
+//
 // Fields that can't be written.
-
+//
 #define USER_ALL_WRITE_CANT_MASK \
     (USER_ALL_USERID | \
     USER_ALL_PASSWORDCANCHANGE | \
     USER_ALL_PASSWORDMUSTCHANGE | \
     USER_ALL_UNDEFINED_MASK)
 
+#pragma pack(push, 4)
+/**
+ * The USER_ALL_INFORMATION structure holds the fields selected by WhichFields for user queries and updates.
+ * The outer record uses 4-byte packing; nested strings, security descriptors, and logon hours
+ * retain their own layouts. The structure is 0x13C bytes on x64, with PrivateDataSensitive at 0x13B.
+ */
 typedef struct _USER_ALL_INFORMATION
 {
     LARGE_INTEGER LastLogon;
@@ -1560,47 +2089,73 @@ typedef struct _USER_ALL_INFORMATION
     BOOLEAN PasswordExpired;
     BOOLEAN PrivateDataSensitive;
 } USER_ALL_INFORMATION, *PUSER_ALL_INFORMATION;
+#pragma pack(pop)
 
+/**
+ * The USER_INTERNAL3_INFORMATION structure extends a full user record with the last bad-password time.
+ */
 typedef struct _USER_INTERNAL3_INFORMATION
 {
     USER_ALL_INFORMATION I1;
     LARGE_INTEGER LastBadPasswordTime;
 } USER_INTERNAL3_INFORMATION, *PUSER_INTERNAL3_INFORMATION;
 
+/**
+ * The ENCRYPTED_USER_PASSWORD structure holds a fixed-size encrypted password buffer for password changes.
+ */
 typedef struct _ENCRYPTED_USER_PASSWORD
 {
     UCHAR Buffer[(SAM_MAX_PASSWORD_LENGTH * 2) + 4];
 } ENCRYPTED_USER_PASSWORD, *PENCRYPTED_USER_PASSWORD;
 
+/**
+ * The USER_INTERNAL4_INFORMATION structure combines a full user record with an encrypted password buffer.
+ */
 typedef struct _USER_INTERNAL4_INFORMATION
 {
     USER_ALL_INFORMATION I1;
     ENCRYPTED_USER_PASSWORD UserPassword;
 } USER_INTERNAL4_INFORMATION, *PUSER_INTERNAL4_INFORMATION;
 
+/**
+ * The USER_INTERNAL5_INFORMATION structure carries an encrypted password and its expiration flag.
+ */
 typedef struct _USER_INTERNAL5_INFORMATION
 {
     ENCRYPTED_USER_PASSWORD UserPassword;
     BOOLEAN PasswordExpired;
 } USER_INTERNAL5_INFORMATION, *PUSER_INTERNAL5_INFORMATION;
 
+/**
+ * The ENCRYPTED_USER_PASSWORD_NEW structure extends the encrypted-password buffer with room for a salt.
+ */
 typedef struct _ENCRYPTED_USER_PASSWORD_NEW
 {
     UCHAR Buffer[(SAM_MAX_PASSWORD_LENGTH * 2) + 4 + SAM_PASSWORD_ENCRYPTION_SALT_LEN];
 } ENCRYPTED_USER_PASSWORD_NEW, *PENCRYPTED_USER_PASSWORD_NEW;
 
+/**
+ * The USER_INTERNAL4_INFORMATION_NEW structure combines a full user record with the salted encrypted-password format.
+ */
 typedef struct _USER_INTERNAL4_INFORMATION_NEW
 {
     USER_ALL_INFORMATION I1;
     ENCRYPTED_USER_PASSWORD_NEW UserPassword;
 } USER_INTERNAL4_INFORMATION_NEW, *PUSER_INTERNAL4_INFORMATION_NEW;
 
+/**
+ * The USER_INTERNAL5_INFORMATION_NEW structure carries a salted encrypted password and its expiration flag.
+ */
 typedef struct _USER_INTERNAL5_INFORMATION_NEW
 {
     ENCRYPTED_USER_PASSWORD_NEW UserPassword;
     BOOLEAN PasswordExpired;
 } USER_INTERNAL5_INFORMATION_NEW, *PUSER_INTERNAL5_INFORMATION_NEW;
 
+/**
+ * The USER_ALLOWED_TO_DELEGATE_TO_LIST structure contains a variable-length list of service principal
+ * names permitted for delegation; NumSPNs is the entry count.
+ */
 typedef struct _USER_ALLOWED_TO_DELEGATE_TO_LIST
 {
     ULONG Size;
@@ -1611,6 +2166,10 @@ typedef struct _USER_ALLOWED_TO_DELEGATE_TO_LIST
 #define USER_EXTENDED_FIELD_UPN 0x00000001L
 #define USER_EXTENDED_FIELD_A2D2 0x00000002L
 
+/**
+ * The USER_INTERNAL6_INFORMATION structure extends a full user record with bad-password time, user
+ * principal name, and delegation data; ExtendedFields selects optional fields.
+ */
 typedef struct _USER_INTERNAL6_INFORMATION
 {
     USER_ALL_INFORMATION I1;
@@ -1630,6 +2189,10 @@ typedef SAM_BYTE_ARRAY_32K SAM_USER_TILE, *PSAM_USER_TILE;
 #define USER_EXTENDED_FIELD_DONT_SHOW_IN_LOGON_UI (0x00004000L)
 #define USER_EXTENDED_FIELD_SHELL_ADMIN_OBJECT_PROPERTIES (0x00008000L)
 
+/**
+ * The USER_EXTENDED_INFORMATION structure carries optional user tile, password hint, logon-UI
+ * visibility, and shell properties; ExtendedWhichFields selects valid fields.
+ */
 typedef struct _USER_EXTENDED_INFORMATION
 {
     ULONG ExtendedWhichFields;
@@ -1640,17 +2203,27 @@ typedef struct _USER_EXTENDED_INFORMATION
 } USER_EXTENDED_INFORMATION, *PUSER_EXTENDED_INFORMATION;
 
 // For local callers only.
+/**
+ * The USER_LOGON_UI_INFORMATION structure reports whether a local account has a blank password or is disabled.
+ */
 typedef struct _USER_LOGON_UI_INFORMATION
 {
     BOOLEAN PasswordIsBlank;
     BOOLEAN AccountIsDisabled;
 } USER_LOGON_UI_INFORMATION, *PUSER_LOGON_UI_INFORMATION;
 
+/**
+ * The USER_AUTH_INFORMATION structure carries account authentication data in a bounded byte array.
+ */
 typedef struct _USER_AUTH_INFORMATION
 {
     SAM_BYTE_ARRAY_32K AuthData;
 } USER_AUTH_INFORMATION, *PUSER_AUTH_INFORMATION;
 
+/**
+ * The ENCRYPTED_PASSWORD_AES structure describes an AES-encrypted password using authentication data,
+ * salt, ciphertext, and PBKDF2 iteration count.
+ */
 typedef struct _ENCRYPTED_PASSWORD_AES
 {
     UCHAR AuthData[64];
@@ -1660,12 +2233,18 @@ typedef struct _ENCRYPTED_PASSWORD_AES
     ULONGLONG PBKDF2Iterations;
 } ENCRYPTED_PASSWORD_AES, *PENCRYPTED_PASSWORD_AES;
 
+/**
+ * The USER_INTERNAL7_INFORMATION structure carries an AES-encrypted password and its expiration flag.
+ */
 typedef struct _USER_INTERNAL7_INFORMATION
 {
     ENCRYPTED_PASSWORD_AES UserPassword;
     BOOLEAN PasswordExpired;
 } USER_INTERNAL7_INFORMATION, *PUSER_INTERNAL7_INFORMATION;
 
+/**
+ * The USER_INTERNAL8_INFORMATION structure combines a full user record with an AES-encrypted password.
+ */
 typedef struct _USER_INTERNAL8_INFORMATION
 {
     USER_ALL_INFORMATION I1;
@@ -1674,15 +2253,10 @@ typedef struct _USER_INTERNAL8_INFORMATION
 
 // SamChangePasswordUser3 types
 
-// Error values:
-// * SAM_PWD_CHANGE_NO_ERROR
-// * SAM_PWD_CHANGE_PASSWORD_TOO_SHORT
-// * SAM_PWD_CHANGE_PWD_IN_HISTORY
-// * SAM_PWD_CHANGE_USERNAME_IN_PASSWORD
-// * SAM_PWD_CHANGE_FULLNAME_IN_PASSWORD
-// * SAM_PWD_CHANGE_MACHINE_PASSWORD_NOT_DEFAULT
-// * SAM_PWD_CHANGE_FAILED_BY_FILTER
-
+/**
+ * The USER_PWD_CHANGE_FAILURE_INFORMATION structure reports an extended password-change failure reason
+ * and the rejecting filter module.
+ */
 typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
 {
     ULONG ExtendedFailureReason;
@@ -1708,6 +2282,17 @@ typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
 // Functions
 //
 
+/**
+ * The SamEnumerateUsersInDomain function enumerates user accounts in a domain.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param EnumerationContext The enumeration continuation value. Set to zero for the first call and reuse the returned value for subsequent calls.
+ * \param UserAccountControl The account control flags used to filter users, or zero to enumerate all users.
+ * \param Buffer Receives an array of SAM_RID_ENUMERATION entries.
+ * \param PreferedMaximumLength The preferred maximum number of bytes to return in Buffer.
+ * \param CountReturned Receives the number of entries returned in Buffer.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1721,6 +2306,18 @@ SamEnumerateUsersInDomain(
     );
 
 // rev
+/**
+ * The SamEnumerateUsersInDomain2 function enumerates user accounts in a domain with additional enumeration flags.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param EnumerationContext The enumeration continuation value. Set to zero for the first call and reuse the returned value for subsequent calls.
+ * \param UserAccountControl The account control flags used to filter users.
+ * \param Flags Flags controlling the enumeration.
+ * \param Buffer Receives an array of SAM_RID_ENUMERATION entries.
+ * \param PreferedMaximumLength The preferred maximum number of bytes to return in Buffer.
+ * \param CountReturned Receives the number of entries returned in Buffer.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1734,6 +2331,16 @@ SamEnumerateUsersInDomain2(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The SamCreateUserInDomain function creates a user account in a domain.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param AccountName The name of the user account to create.
+ * \param DesiredAccess The access requested for the returned user handle.
+ * \param UserHandle Receives a handle to the created user.
+ * \param RelativeId Receives the RID of the created user.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1745,6 +2352,18 @@ SamCreateUserInDomain(
     _Out_ PULONG RelativeId
     );
 
+/**
+ * The SamCreateUser2InDomain function creates a user account of the specified type and returns the granted access.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param AccountName The name of the user account to create.
+ * \param AccountType The user account type to create.
+ * \param DesiredAccess The access requested for the returned user handle.
+ * \param UserHandle Receives a handle to the created user.
+ * \param GrantedAccess Receives the access granted to UserHandle.
+ * \param RelativeId Receives the RID of the created user.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1758,6 +2377,15 @@ SamCreateUser2InDomain(
     _Out_ PULONG RelativeId
     );
 
+/**
+ * The SamOpenUser function opens an existing user account by RID.
+ *
+ * \param DomainHandle A handle to the domain containing the user.
+ * \param DesiredAccess The access requested for the returned user handle.
+ * \param UserId The RID of the user to open.
+ * \param UserHandle Receives a handle to the opened user.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1768,6 +2396,12 @@ SamOpenUser(
     _Out_ PSAM_HANDLE UserHandle
     );
 
+/**
+ * The SamDeleteUser function deletes a user account.
+ *
+ * \param UserHandle A handle to the user to delete.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1775,6 +2409,14 @@ SamDeleteUser(
     _In_ SAM_HANDLE UserHandle
     );
 
+/**
+ * The SamQueryInformationUser function queries information about a user account.
+ *
+ * \param UserHandle A handle to the user.
+ * \param UserInformationClass The user information class to retrieve.
+ * \param Buffer Receives a pointer to the requested information structure.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1784,6 +2426,14 @@ SamQueryInformationUser(
     _Outptr_ PVOID *Buffer
     );
 
+/**
+ * The SamSetInformationUser function sets information for a user account.
+ *
+ * \param UserHandle A handle to the user.
+ * \param UserInformationClass The user information class to set.
+ * \param Buffer The information structure to apply.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1793,6 +2443,14 @@ SamSetInformationUser(
     _In_ PVOID Buffer
     );
 
+/**
+ * The SamGetGroupsForUser function retrieves the group memberships of a user account.
+ *
+ * \param UserHandle A handle to the user.
+ * \param Groups Receives an array of GROUP_MEMBERSHIP entries containing group RIDs and membership attributes.
+ * \param MembershipCount Receives the number of entries in Groups.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1802,6 +2460,14 @@ SamGetGroupsForUser(
     _Out_ PULONG MembershipCount
     );
 
+/**
+ * The SamChangePasswordUser function changes a user account password using a user handle.
+ *
+ * \param UserHandle A handle to the user.
+ * \param OldPassword The current password.
+ * \param NewPassword The new password.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1811,6 +2477,15 @@ SamChangePasswordUser(
     _In_ PCUNICODE_STRING NewPassword
     );
 
+/**
+ * The SamChangePasswordUser2 function changes a user account password using the server and account names.
+ *
+ * \param ServerName The name of the SAM server.
+ * \param UserName The name of the user account.
+ * \param OldPassword The current password.
+ * \param NewPassword The new password.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1821,6 +2496,17 @@ SamChangePasswordUser2(
     _In_ PCUNICODE_STRING NewPassword
     );
 
+/**
+ * The SamChangePasswordUser3 function changes a user account password and provides password policy failure information.
+ *
+ * \param ServerName The name of the SAM server.
+ * \param UserName The name of the user account.
+ * \param OldPassword The current password.
+ * \param NewPassword The new password.
+ * \param EffectivePasswordPolicy Receives password policy information when supplied by the server.
+ * \param PasswordChangeFailureInfo Receives additional information about a rejected password change when supplied by the server.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1833,6 +2519,21 @@ SamChangePasswordUser3(
     _Outptr_ PUSER_PWD_CHANGE_FAILURE_INFORMATION *PasswordChangeFailureInfo
     );
 
+/**
+ * The SamQueryDisplayInformation function retrieves account display information in ascending account name order.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param DisplayInformation The class of account display information to retrieve.
+ * \param Index The index at which to begin retrieving entries.
+ * \param EntryCount The requested maximum number of entries.
+ * \param PreferredMaximumLength The preferred maximum size of the returned information, in bytes.
+ * \param TotalAvailable Receives the number of bytes required for the complete listing.
+ * \param TotalReturned Receives the number of bytes returned.
+ * \param ReturnedEntryCount Receives the number of entries in SortedBuffer.
+ * \param SortedBuffer Receives the sorted array of entries selected by DisplayInformation.
+ * \return NTSTATUS indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c1458942-f2d5-4317-a888-abd27abad504
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1852,7 +2553,7 @@ SamQueryDisplayInformation(
  * The SamGetDisplayEnumerationIndex method obtains an index into an ascending account-name–sorted list of accounts.
  *
  * \param DomainHandle A handle representing a domain.
- * \param DisplayInformation An enumeration indicating which set of objects to return an index.
+ * \param DisplayInformation An enumeration indicating the set of objects for which to return an index.
  * \param Prefix A string matched against the account name to find a starting point for an enumeration.
  * \param Index A value to use as input to SamQueryDisplayInformation in order to control the accounts that are returned from that method.
  * \return NTSTATUS Successful or errant status.
@@ -1872,6 +2573,10 @@ SamGetDisplayEnumerationIndex(
 // Database replication
 //
 
+/**
+ * The SECURITY_DB_DELTA_TYPE enumeration identifies the kind of account-database change reported to a
+ * delta notification routine.
+ */
 typedef enum _SECURITY_DB_DELTA_TYPE
 {
     SecurityDbNew = 1,
@@ -1884,6 +2589,9 @@ typedef enum _SECURITY_DB_DELTA_TYPE
     SecurityDbChangePassword
 } SECURITY_DB_DELTA_TYPE, *PSECURITY_DB_DELTA_TYPE;
 
+/**
+ * The SECURITY_DB_OBJECT_TYPE enumeration identifies the SAM or LSA object class involved in a database change.
+ */
 typedef enum _SECURITY_DB_OBJECT_TYPE
 {
     SecurityDbObjectSamDomain = 1,
@@ -1896,6 +2604,9 @@ typedef enum _SECURITY_DB_OBJECT_TYPE
     SecurityDbObjectLsaSecret
 } SECURITY_DB_OBJECT_TYPE, *PSECURITY_DB_OBJECT_TYPE;
 
+/**
+ * The SAM_ACCOUNT_TYPE enumeration distinguishes user, group, and alias objects.
+ */
 typedef enum _SAM_ACCOUNT_TYPE
 {
     SamObjectUser = 1,
@@ -1907,16 +2618,25 @@ typedef enum _SAM_ACCOUNT_TYPE
 #define SAM_GLOBAL_GROUP_ACCOUNT (0x00000002)
 #define SAM_LOCAL_GROUP_ACCOUNT (0x00000004)
 
+/**
+ * The SAM_GROUP_MEMBER_ID structure identifies a group member by RID.
+ */
 typedef struct _SAM_GROUP_MEMBER_ID
 {
     ULONG MemberRid;
 } SAM_GROUP_MEMBER_ID, *PSAM_GROUP_MEMBER_ID;
 
+/**
+ * The SAM_ALIAS_MEMBER_ID structure identifies an alias member by SID.
+ */
 typedef struct _SAM_ALIAS_MEMBER_ID
 {
     PSID MemberSid;
 } SAM_ALIAS_MEMBER_ID, *PSAM_ALIAS_MEMBER_ID;
 
+/**
+ * The SAM_DELTA_DATA union carries change-specific group membership, alias membership, or account-control data.
+ */
 typedef union _SAM_DELTA_DATA
 {
     SAM_GROUP_MEMBER_ID GroupMemberId;
@@ -1924,6 +2644,18 @@ typedef union _SAM_DELTA_DATA
     ULONG AccountControl;
 } SAM_DELTA_DATA, *PSAM_DELTA_DATA;
 
+/**
+ * Notifies a consumer of a change to an object in a security database.
+ *
+ * \param DomainSid The SID of the domain containing the changed object.
+ * \param DeltaType The type of change.
+ * \param ObjectType The type of object that changed.
+ * \param ObjectRid The RID of the changed object.
+ * \param ObjectName The name of the changed object, if supplied.
+ * \param ModifiedCount The database modification count associated with the change.
+ * \param DeltaData Additional information specific to the change, if supplied.
+ * \return NTSTATUS indicating success or failure.
+ */
 typedef _Function_class_(SAM_DELTA_NOTIFICATION_ROUTINE)
 NTSTATUS NTAPI SAM_DELTA_NOTIFICATION_ROUTINE(
     _In_ PSID DomainSid,
@@ -1938,6 +2670,13 @@ typedef SAM_DELTA_NOTIFICATION_ROUTINE* PSAM_DELTA_NOTIFICATION_ROUTINE;
 
 #define SAM_DELTA_NOTIFY_ROUTINE "DeltaNotify"
 
+/**
+ * The SamRegisterObjectChangeNotification function registers an event for notifications of SAM object changes.
+ *
+ * \param ObjectType The type of object to monitor.
+ * \param NotificationEventHandle The event to signal when a matching object changes.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1946,6 +2685,13 @@ SamRegisterObjectChangeNotification(
     _In_ HANDLE NotificationEventHandle
     );
 
+/**
+ * The SamUnregisterObjectChangeNotification function unregisters an event previously registered for SAM object changes.
+ *
+ * \param ObjectType The object type specified when registering the event.
+ * \param NotificationEventHandle The event previously registered for notifications.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1962,6 +2708,14 @@ SamUnregisterObjectChangeNotification(
 #define SAM_SID_COMPATIBILITY_LAX 1
 #define SAM_SID_COMPATIBILITY_STRICT 2
 
+/**
+ * The SamGetCompatibilityMode function reads local compatibility metadata from a validated SAM client
+ * context rather than querying server policy.
+ *
+ * \param ObjectHandle A handle to the SAM object.
+ * \param Mode Receives a SAM_SID_COMPATIBILITY_* value.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1974,6 +2728,10 @@ SamGetCompatibilityMode(
 // Password validation
 //
 
+/**
+ * The PASSWORD_POLICY_VALIDATION_TYPE enumeration selects authentication, password-change, or
+ * password-reset validation.
+ */
 typedef enum _PASSWORD_POLICY_VALIDATION_TYPE
 {
     SamValidateAuthentication = 1,
@@ -1981,6 +2739,9 @@ typedef enum _PASSWORD_POLICY_VALIDATION_TYPE
     SamValidatePasswordReset
 } PASSWORD_POLICY_VALIDATION_TYPE;
 
+/**
+ * The SAM_VALIDATE_PASSWORD_HASH structure describes a password hash and its byte length.
+ */
 typedef struct _SAM_VALIDATE_PASSWORD_HASH
 {
     ULONG Length;
@@ -1996,6 +2757,10 @@ typedef struct _SAM_VALIDATE_PASSWORD_HASH
 #define SAM_VALIDATE_PASSWORD_HISTORY_LENGTH 0x00000010
 #define SAM_VALIDATE_PASSWORD_HISTORY 0x00000020
 
+/**
+ * The SAM_VALIDATE_PERSISTED_FIELDS structure carries stored password and lockout state; PresentFields
+ * selects valid fields.
+ */
 typedef struct _SAM_VALIDATE_PERSISTED_FIELDS
 {
     ULONG PresentFields;
@@ -2007,6 +2772,10 @@ typedef struct _SAM_VALIDATE_PERSISTED_FIELDS
     _Field_size_bytes_(PasswordHistoryLength) PSAM_VALIDATE_PASSWORD_HASH PasswordHistory;
 } SAM_VALIDATE_PERSISTED_FIELDS, *PSAM_VALIDATE_PERSISTED_FIELDS;
 
+/**
+ * The SAM_VALIDATE_VALIDATION_STATUS enumeration reports the password-policy outcome separately from
+ * the API return status.
+ */
 typedef enum _SAM_VALIDATE_VALIDATION_STATUS
 {
     SamValidateSuccess = 0,
@@ -2022,18 +2791,28 @@ typedef enum _SAM_VALIDATE_VALIDATION_STATUS
     SamValidatePasswordFilterError
 } SAM_VALIDATE_VALIDATION_STATUS, *PSAM_VALIDATE_VALIDATION_STATUS;
 
+/**
+ * The SAM_VALIDATE_STANDARD_OUTPUT_ARG structure returns a policy outcome and any stored fields changed by validation.
+ */
 typedef struct _SAM_VALIDATE_STANDARD_OUTPUT_ARG
 {
     SAM_VALIDATE_PERSISTED_FIELDS ChangedPersistedFields;
     SAM_VALIDATE_VALIDATION_STATUS ValidationStatus;
 } SAM_VALIDATE_STANDARD_OUTPUT_ARG, *PSAM_VALIDATE_STANDARD_OUTPUT_ARG;
 
+/**
+ * The SAM_VALIDATE_AUTHENTICATION_INPUT_ARG structure supplies stored account state and whether the password matched.
+ */
 typedef struct _SAM_VALIDATE_AUTHENTICATION_INPUT_ARG
 {
     SAM_VALIDATE_PERSISTED_FIELDS InputPersistedFields;
     BOOLEAN PasswordMatched;
 } SAM_VALIDATE_AUTHENTICATION_INPUT_ARG, *PSAM_VALIDATE_AUTHENTICATION_INPUT_ARG;
 
+/**
+ * The SAM_VALIDATE_PASSWORD_CHANGE_INPUT_ARG structure supplies stored state, proposed password and
+ * hash, account name, and whether the old password matched.
+ */
 typedef struct _SAM_VALIDATE_PASSWORD_CHANGE_INPUT_ARG
 {
     SAM_VALIDATE_PERSISTED_FIELDS InputPersistedFields;
@@ -2043,6 +2822,10 @@ typedef struct _SAM_VALIDATE_PASSWORD_CHANGE_INPUT_ARG
     BOOLEAN PasswordMatch; // denotes if the old password supplied by user matched or not
 } SAM_VALIDATE_PASSWORD_CHANGE_INPUT_ARG, *PSAM_VALIDATE_PASSWORD_CHANGE_INPUT_ARG;
 
+/**
+ * The SAM_VALIDATE_PASSWORD_RESET_INPUT_ARG structure supplies a proposed password and hash plus
+ * next-logon-change and lockout-clearing options.
+ */
 typedef struct _SAM_VALIDATE_PASSWORD_RESET_INPUT_ARG
 {
     SAM_VALIDATE_PERSISTED_FIELDS InputPersistedFields;
@@ -2050,9 +2833,12 @@ typedef struct _SAM_VALIDATE_PASSWORD_RESET_INPUT_ARG
     UNICODE_STRING UserAccountName;
     SAM_VALIDATE_PASSWORD_HASH HashedPassword;
     BOOLEAN PasswordMustChangeAtNextLogon; // looked at only for password reset
-    BOOLEAN ClearLockout; // can be used clear user account lockout
+    BOOLEAN ClearLockout; // can be used to clear user account lockout
 } SAM_VALIDATE_PASSWORD_RESET_INPUT_ARG, *PSAM_VALIDATE_PASSWORD_RESET_INPUT_ARG;
 
+/**
+ * The SAM_VALIDATE_INPUT_ARG union holds the input selected by PASSWORD_POLICY_VALIDATION_TYPE.
+ */
 typedef union _SAM_VALIDATE_INPUT_ARG
 {
     SAM_VALIDATE_AUTHENTICATION_INPUT_ARG ValidateAuthenticationInput;
@@ -2060,6 +2846,9 @@ typedef union _SAM_VALIDATE_INPUT_ARG
     SAM_VALIDATE_PASSWORD_RESET_INPUT_ARG ValidatePasswordResetInput;
 } SAM_VALIDATE_INPUT_ARG, *PSAM_VALIDATE_INPUT_ARG;
 
+/**
+ * The SAM_VALIDATE_OUTPUT_ARG union holds the result selected by PASSWORD_POLICY_VALIDATION_TYPE.
+ */
 typedef union _SAM_VALIDATE_OUTPUT_ARG
 {
     SAM_VALIDATE_STANDARD_OUTPUT_ARG ValidateAuthenticationOutput;
@@ -2067,6 +2856,16 @@ typedef union _SAM_VALIDATE_OUTPUT_ARG
     SAM_VALIDATE_STANDARD_OUTPUT_ARG ValidatePasswordResetOutput;
 } SAM_VALIDATE_OUTPUT_ARG, *PSAM_VALIDATE_OUTPUT_ARG;
 
+/**
+ * The SamValidatePassword function requests password-policy validation through a SAM client binding.
+ * The API status and returned ValidationStatus are distinct.
+ *
+ * \param ServerName The name of the server, or NULL for the local server.
+ * \param ValidationType The type of validation to perform.
+ * \param InputArg The input union member corresponding to ValidationType.
+ * \param OutputArg Receives the validation result, including the policy validation status and changed persisted fields.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2081,11 +2880,18 @@ SamValidatePassword(
 // Generic operation
 //
 
+/**
+ * The SAM_GENERIC_OPERATION_TYPE enumeration selects the generic SAM operation and corresponding union members.
+ */
 typedef enum _SAM_GENERIC_OPERATION_TYPE
 {
     SamObjectChangeNotificationOperation
 } SAM_GENERIC_OPERATION_TYPE, *PSAM_GENERIC_OPERATION_TYPE;
 
+/**
+ * The SAM_OPERATION_OBJCHG_INPUT structure specifies object-change event registration, event handle,
+ * object type, and process.
+ */
 typedef struct _SAM_OPERATION_OBJCHG_INPUT
 {
     BOOLEAN Register;
@@ -2094,21 +2900,40 @@ typedef struct _SAM_OPERATION_OBJCHG_INPUT
     ULONG ProcessID;
 } SAM_OPERATION_OBJCHG_INPUT, *PSAM_OPERATION_OBJCHG_INPUT;
 
+/**
+ * The SAM_OPERATION_OBJCHG_OUTPUT structure is the object-change notification output record; Reserved
+ * has no documented result value.
+ */
 typedef struct _SAM_OPERATION_OBJCHG_OUTPUT
 {
     ULONG Reserved;
 } SAM_OPERATION_OBJCHG_OUTPUT, *PSAM_OPERATION_OBJCHG_OUTPUT;
 
+/**
+ * The SAM_GENERIC_OPERATION_INPUT union contains input for the selected generic SAM operation.
+ */
 typedef union _SAM_GENERIC_OPERATION_INPUT
 {
     SAM_OPERATION_OBJCHG_INPUT ObjChangeIn;
 } SAM_GENERIC_OPERATION_INPUT, *PSAM_GENERIC_OPERATION_INPUT;
 
+/**
+ * The SAM_GENERIC_OPERATION_OUTPUT union contains the result of the selected generic SAM operation.
+ */
 typedef union _SAM_GENERIC_OPERATION_OUTPUT
 {
     SAM_OPERATION_OBJCHG_OUTPUT ObjChangeOut;
 } SAM_GENERIC_OPERATION_OUTPUT, *PSAM_GENERIC_OPERATION_OUTPUT;
 
+/**
+ * The SamPerformGenericOperation function performs a SAM operation selected by its operation type.
+ *
+ * \param ServerName The name of the server, or NULL for the local server.
+ * \param OperationType The operation to perform.
+ * \param OperationIn The input union member corresponding to OperationType.
+ * \param OperationOut Receives the output for the selected operation.
+ * \return NTSTATUS indicating success or failure.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2117,6 +2942,381 @@ SamPerformGenericOperation(
     _In_ SAM_GENERIC_OPERATION_TYPE OperationType,
     _In_ PSAM_GENERIC_OPERATION_INPUT OperationIn,
     _Out_ PSAM_GENERIC_OPERATION_OUTPUT *OperationOut
+    );
+
+//
+// Private SAM exports
+//
+
+// rev
+// Windows LAPS Managed Account Information Flags
+// Standard/manually managed account (e.g. built-in Administrator RID 500 or custom account name).
+#define SAM_LAPS_MANAGED_ACCOUNT_FLAG_NONE 0x00000000
+// The account was automatically provisioned and managed by the Windows LAPS automatic account management engine.
+#define SAM_LAPS_MANAGED_ACCOUNT_FLAG_AUTO_MANAGED 0x00000001
+
+/**
+ * The SamQueryLapsManagedAccount function queries the local LAPS-managed account through an internally
+ * opened SAM connection. It clears both outputs before connecting; free a returned SID with
+ * SamFreeMemory.
+ *
+ * \param AccountInformation Receives flags describing the managed account (e.g. SAM_LAPS_MANAGED_ACCOUNT_FLAG_AUTO_MANAGED).
+ * \param AccountSid Receives a pointer to the managed account SID. Must be freed with SamFreeMemory when no longer needed.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamQueryLapsManagedAccount(
+    _Out_ PULONG AccountInformation,
+    _Outptr_ PSID *AccountSid
+    );
+
+// rev
+/**
+ * The SamLapsSysprepCleanup function performs local Windows LAPS cleanup for Sysprep.
+ *
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamLapsSysprepCleanup(
+    VOID
+    );
+
+// rev
+/**
+ * The SamTestPrivateFunctionsDomain function returns STATUS_NOT_IMPLEMENTED on the inspected client
+ * without changing the domain.
+ *
+ * \param DomainHandle The domain handle passed to the test entry point.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks The implementation returns STATUS_NOT_IMPLEMENTED.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamTestPrivateFunctionsDomain(
+    _In_ SAM_HANDLE DomainHandle
+    );
+
+// rev
+/**
+ * The SamTestPrivateFunctionsUser function returns STATUS_NOT_IMPLEMENTED on the inspected client
+ * without changing the user.
+ *
+ * \param UserHandle The user handle passed to the test entry point.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks The implementation returns STATUS_NOT_IMPLEMENTED.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamTestPrivateFunctionsUser(
+    _In_ SAM_HANDLE UserHandle
+    );
+
+// rev
+/**
+ * The SamiAccountIsDelegateManagedServiceAccount function checks whether an account is a delegated
+ * managed service account and whether the caller is authorized to use it.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param AccountName The account name to query.
+ * \param Result Receives whether the account is a delegated managed service account.
+ * \param Authorized Receives whether the caller is authorized to use the account.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks Both output values are initialized to FALSE, including on failure.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/38d8c44c-292a-4a2e-a6a7-75450ab6439f
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiAccountIsDelegateManagedServiceAccount(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _In_ PCUNICODE_STRING AccountName,
+    _Out_ PBOOLEAN Result,
+    _Out_ PBOOLEAN Authorized
+    );
+
+// rev
+/**
+ * The SamiChangeKeys function performs local SAM boot-key maintenance and can update persistent key state.
+ *
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiChangeKeys(
+    VOID
+    );
+
+// rev
+/**
+ * The SamiChangePasswordUser function changes a user password using LM and NT one-way function (OWF) password hashes.
+ *
+ * \param UserHandle A handle to the user account.
+ * \param LmPresent Whether LM password hashes are supplied.
+ * \param OldLmOwfPassword The 16-byte old LM password hash, required when LmPresent is TRUE.
+ * \param NewLmOwfPassword The 16-byte new LM password hash, required when LmPresent is TRUE.
+ * \param NtPresent Whether NT password hashes are supplied.
+ * \param OldNtOwfPassword The 16-byte old NT password hash, required when NtPresent is TRUE.
+ * \param NewNtOwfPassword The 16-byte new NT password hash, required when NtPresent is TRUE.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiChangePasswordUser(
+    _In_ SAM_HANDLE UserHandle,
+    _In_ BOOLEAN LmPresent,
+    _In_reads_bytes_opt_(16) PCVOID OldLmOwfPassword,
+    _In_reads_bytes_opt_(16) PCVOID NewLmOwfPassword,
+    _In_ BOOLEAN NtPresent,
+    _In_reads_bytes_opt_(16) PCVOID OldNtOwfPassword,
+    _In_reads_bytes_opt_(16) PCVOID NewNtOwfPassword
+    );
+
+// rev
+/**
+ * The SamiChangePasswordUser2 function changes a user password using encrypted password buffers.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param UserName The user account name.
+ * \param NewPasswordEncryptedWithOldNt The new password encrypted with the old NT password hash.
+ * \param OldNtOwfPasswordEncryptedWithNewNt The old NT password hash encrypted with the new NT password hash.
+ * \param LmPresent Whether the LM password buffers are supplied.
+ * \param NewPasswordEncryptedWithOldLm The new password encrypted with the old LM password hash, required when LmPresent is TRUE.
+ * \param OldLmOwfPasswordEncryptedWithNewNt The old LM password hash encrypted with the new NT password hash, required when LmPresent is TRUE.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiChangePasswordUser2(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _In_ PCUNICODE_STRING UserName,
+    _In_ PENCRYPTED_USER_PASSWORD NewPasswordEncryptedWithOldNt,
+    _In_ PENCRYPTED_NT_OWF_PASSWORD OldNtOwfPasswordEncryptedWithNewNt,
+    _In_ BOOLEAN LmPresent,
+    _In_opt_ PENCRYPTED_USER_PASSWORD NewPasswordEncryptedWithOldLm,
+    _In_opt_ PENCRYPTED_LM_OWF_PASSWORD OldLmOwfPasswordEncryptedWithNewNt
+    );
+
+// rev
+/**
+ * The SamiEncryptPasswords function prepares encrypted password buffers for SamiChangePasswordUser2.
+ *
+ * \param OldPassword The current password.
+ * \param NewPassword The new password, limited to SAM_MAX_PASSWORD_LENGTH characters.
+ * \param NewPasswordEncryptedWithOldNt Receives the new password encrypted with the old NT password hash.
+ * \param OldNtOwfPasswordEncryptedWithNewNt Receives the old NT password hash encrypted with the new NT password hash.
+ * \param LmPresent Receives whether LM password buffers were generated.
+ * \param NewPasswordEncryptedWithOldLm Receives the new password encrypted with the old LM password hash when LmPresent is TRUE.
+ * \param OldLmOwfPasswordEncryptedWithNewNt Receives the old LM password hash encrypted with the new NT password hash when LmPresent is TRUE.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks Output buffers and LmPresent may be modified on failure. LM buffers are only valid when LmPresent is TRUE.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiEncryptPasswords(
+    _In_ PCUNICODE_STRING OldPassword,
+    _In_ PCUNICODE_STRING NewPassword,
+    _Out_ PENCRYPTED_USER_PASSWORD NewPasswordEncryptedWithOldNt,
+    _Out_ PENCRYPTED_NT_OWF_PASSWORD OldNtOwfPasswordEncryptedWithNewNt,
+    _Out_ PBOOLEAN LmPresent,
+    _Out_ PENCRYPTED_USER_PASSWORD NewPasswordEncryptedWithOldLm,
+    _Out_ PENCRYPTED_LM_OWF_PASSWORD OldLmOwfPasswordEncryptedWithNewNt
+    );
+
+// rev
+/**
+ * The SamiFindOrCreateShadowAdminAccount function finds or creates the local shadow administrator
+ * account associated with a user SID.
+ *
+ * \param UserSid The SID of the user whose shadow administrator account is requested.
+ * \param AccountName Receives the allocated account name. Free with SamFreeMemory.
+ * \param AccountSid Receives the allocated account SID. Free with SamFreeMemory.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks Both output pointers are initialized to NULL, including on failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiFindOrCreateShadowAdminAccount(
+    _In_ PSID UserSid,
+    _Outptr_ PWSTR *AccountName,
+    _Outptr_ PSID *AccountSid
+    );
+
+// rev
+/**
+ * The SamiGetBadPasswordErrorMessage function builds a localized message describing the server's
+ * password policy requirements.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param ErrorMessage Receives the allocated message. Free with SamFreeMemory.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks ErrorMessage is initialized to NULL, including on failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiGetBadPasswordErrorMessage(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _Outptr_ PWSTR *ErrorMessage
+    );
+
+// rev
+/**
+ * The SamiIsShadowAdminAccount function checks whether a SID identifies a local shadow administrator account.
+ *
+ * \param AccountSid The account SID to check.
+ * \param IsShadowAdmin Receives whether the SID identifies a shadow administrator account.
+ * \param AssociatedAccountName Receives the allocated associated account name. Free with SamFreeMemory.
+ * \param AssociatedAccountSid Receives the allocated associated account SID. Free with SamFreeMemory.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks The Boolean output is initialized to FALSE and both output pointers to NULL, including on failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiIsShadowAdminAccount(
+    _In_ PSID AccountSid,
+    _Out_ PBOOLEAN IsShadowAdmin,
+    _Outptr_ PWSTR *AssociatedAccountName,
+    _Outptr_ PSID *AssociatedAccountSid
+    );
+
+// rev
+/**
+ * The SamiLmChangePasswordUser function changes a user's LM password using mutually encrypted LM password hashes.
+ *
+ * \param UserHandle A handle to the user account.
+ * \param OldLmOwfPasswordEncryptedWithNewLm The old LM password hash encrypted with the new LM password hash.
+ * \param NewLmOwfPasswordEncryptedWithOldLm The new LM password hash encrypted with the old LM password hash.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiLmChangePasswordUser(
+    _In_ SAM_HANDLE UserHandle,
+    _In_ PENCRYPTED_LM_OWF_PASSWORD OldLmOwfPasswordEncryptedWithNewLm,
+    _In_ PENCRYPTED_LM_OWF_PASSWORD NewLmOwfPasswordEncryptedWithOldLm
+    );
+
+// rev
+/**
+ * The SamiSetBootKeyInformation function submits boot key information for a SAM domain.
+ *
+ * \param DomainHandle A handle to the domain.
+ * \param Operation The boot key operation selector.
+ * \param OldBootKey The counted byte buffer containing the old boot key.
+ * \param NewBootKey The counted byte buffer containing the new boot key.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks The string descriptors contain binary key data rather than text.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiSetBootKeyInformation(
+    _In_ SAM_HANDLE DomainHandle,
+    _In_ BOOLEAN Operation,
+    _In_ PCUNICODE_STRING OldBootKey,
+    _In_ PCUNICODE_STRING NewBootKey
+    );
+
+// rev
+/**
+ * The SamiSetDSRMPassword function sets a Directory Services Restore Mode account password.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param UserId The RID of the account whose password is set.
+ * \param NewPassword The new password.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiSetDSRMPassword(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _In_ ULONG UserId,
+    _In_ PCUNICODE_STRING NewPassword
+    );
+
+// rev
+/**
+ * The SamiSetDSRMPasswordOWF function sets a Directory Services Restore Mode account password from its NT OWF hash.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param UserId The RID of the account whose password is set.
+ * \param NewPasswordOwf The 16-byte NT password hash.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiSetDSRMPasswordOWF(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _In_ ULONG UserId,
+    _In_reads_bytes_(16) PCVOID NewPasswordOwf
+    );
+
+// rev
+/**
+ * The SamiSyncDSRMPasswordFromAccount function synchronizes the local Directory Services Restore Mode
+ * password from an account.
+ *
+ * \param UserId The RID of the account supplying the password.
+ * \return NTSTATUS indicating success or failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiSyncDSRMPasswordFromAccount(
+    _In_ ULONG UserId
+    );
+
+// rev
+/**
+ * The SamiValidateComputerAccountReuseAttempt function checks whether the caller may reuse a computer account.
+ *
+ * \param ServerName The server name, or NULL for the local server.
+ * \param ComputerSid The SID of the computer account.
+ * \param CompatibilityVersion The required server account reuse validation version, 1 or 2.
+ * \param Result Receives whether account reuse is permitted.
+ * \return NTSTATUS indicating success or failure.
+ * \remarks Result is initialized to FALSE, including on failure.
+ */
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamiValidateComputerAccountReuseAttempt(
+    _In_opt_ PCUNICODE_STRING ServerName,
+    _In_ PSID ComputerSid,
+    _In_ ULONG CompatibilityVersion,
+    _Out_ PBOOLEAN Result
+    );
+
+// rev
+/**
+ * The OnMachineUILanguageInit function refreshes localized SAM account names for a machine UI language.
+ *
+ * \param Language The null-terminated hexadecimal language identifier.
+ * \param Flags Initialization flags. Bit 0 skips the refresh.
+ * \return Zero on success or one on failure.
+ * \remarks Returns zero on success or one on failure. The last error is set from the localization status when a refresh is attempted.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+OnMachineUILanguageInit(
+    _In_ PCWSTR Language,
+    _In_ ULONG Flags
     );
 
 #endif // _NTSAM_H

@@ -193,6 +193,10 @@ NTSTATUS PhInitializeWindowsInformation(
         {
             WindowsVersion = WINDOWS_11_26H1;
         }
+        else if (buildVersion >= 26300)
+        {
+            WindowsVersion = WINDOWS_11_26H2;
+        }
         else if (buildVersion >= 26200)
         {
             WindowsVersion = WINDOWS_11_25H2;
@@ -343,10 +347,11 @@ NTSTATUS PhInitializeProcessorInformation(
     )
 {
     if (
+        WindowsVersion != WINDOWS_NEW && (
         USER_SHARED_DATA->ActiveGroupCount == 1 && // optimization (dmex)
         USER_SHARED_DATA->ActiveProcessorCount > 0 &&
         USER_SHARED_DATA->ActiveProcessorCount <= MAXIMUM_PROC_PER_GROUP
-        )
+        ))
     {
         PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;

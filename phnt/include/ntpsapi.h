@@ -163,11 +163,12 @@ typedef struct _INITIAL_TEB
     PVOID StackAllocationBase;  // Pointer to the base address where the stack was allocated.
 } INITIAL_TEB, *PINITIAL_TEB;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 //
 // NtQueryInformationProcess/NtSetInformationProcess types
 //
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
     ProcessBasicInformation,                        // q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
@@ -175,133 +176,131 @@ typedef enum _PROCESSINFOCLASS
     ProcessIoCounters,                              // q: IO_COUNTERS
     ProcessVmCounters,                              // q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
     ProcessTimes,                                   // q: KERNEL_USER_TIMES // since VISTA
-    ProcessBasePriority,                            // s: KPRIORITY
+    ProcessBasePriority,                            // s: KPRIORITY (raising priority requires SeIncreaseBasePriorityPrivilege)
     ProcessRaisePriority,                           // s: PROCESS_RAISE_PRIORITY
     ProcessDebugPort,                               // q: HANDLE
-    ProcessExceptionPort,                           // s: PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
+    ProcessExceptionPort,                           // s: HANDLE or PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
     ProcessAccessToken,                             // s: PROCESS_ACCESS_TOKEN
     ProcessLdtInformation,                          // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize,                                 // s: PROCESS_LDT_SIZE
     ProcessDefaultHardErrorMode,                    // qs: PROCESS_DEFAULT_HARD_ERROR_MODE
     ProcessIoPortHandlers,                          // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
     ProcessPooledUsageAndLimits,                    // q: POOLED_USAGE_AND_LIMITS
-    ProcessWorkingSetWatch,                         // qs: PROCESS_WS_WATCH_INFORMATION[]; s: void
+    ProcessWorkingSetWatch,                         // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL,                            // s: PROCESS_USER_MODE_IOPL (requires SeTcbPrivilege)
     ProcessEnableAlignmentFaultFixup,               // s: BOOLEAN
     ProcessPriorityClass,                           // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information,                         // qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
     ProcessHandleCount,                             // q: ULONG, PROCESS_HANDLE_INFORMATION // 20
-    ProcessAffinityMask,                            // qs: KAFFINITY, qs: GROUP_AFFINITY
+    ProcessAffinityMask,                            // qs: KAFFINITY, GROUP_AFFINITY
     ProcessPriorityBoost,                           // qs: PROCESS_PRIORITY_BOOST
-    ProcessDeviceMap,                               // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
-    ProcessSessionInformation,                      // qs: PROCESS_SESSION_INFORMATION
+    ProcessDeviceMap,                               // q: PROCESS_DEVICEMAP_INFORMATION.Query, PROCESS_DEVICEMAP_INFORMATION_EX; s: PROCESS_DEVICEMAP_INFORMATION.Set
+    ProcessSessionInformation,                      // qs: PROCESS_SESSION_INFORMATION (s: requires SeTcbPrivilege)
     ProcessForegroundInformation,                   // s: PROCESS_FOREGROUND_BACKGROUND
     ProcessWow64Information,                        // q: ULONG_PTR
     ProcessImageFileName,                           // q: UNICODE_STRING
     ProcessLUIDDeviceMapsEnabled,                   // q: PROCESS_LUID_DEVICE_MAPS_ENABLED
-    ProcessBreakOnTermination,                      // qs: ULONG
+    ProcessBreakOnTermination,                      // qs: ULONG (s: requires SeDebugPrivilege)
     ProcessDebugObjectHandle,                       // q: HANDLE // 30
     ProcessDebugFlags,                              // qs: PROCESS_DEBUG_FLAGS
-    ProcessHandleTracing,                           // qs: PROCESS_HANDLE_TRACING_QUERY; s: PROCESS_HANDLE_TRACING_ENABLE[_EX] or void to disable
-    ProcessIoPriority,                              // qs: IO_PRIORITY_HINT (s: requires SeIncreaseBasePriorityPrivilege)
-    ProcessExecuteFlags,                            // qs: PROCESS_EXECUTE_FLAGS
-    ProcessTlsInformation,                          // s: PROCESS_TLS_INFORMATION // ProcessResourceManagement
+    ProcessHandleTracing,                           // q: PROCESS_HANDLE_TRACING_QUERY; s: PROCESS_HANDLE_TRACING_ENABLE[_EX] or void to disable
+    ProcessIoPriority,                              // qs: IO_PRIORITY_HINT; s: PROCESS_IO_PRIORITY_INFORMATION (IoPriorityHigh requires SeIncreaseBasePriorityPrivilege)
+    ProcessExecuteFlags,                            // qs: PROCESS_EXECUTE_FLAGS (s: NtCurrentProcess only)
+    ProcessTlsInformation,                          // s: PROCESS_TLS_INFORMATION (NtCurrentProcess, user-mode only) // ProcessResourceManagement
     ProcessCookie,                                  // q: ULONG
     ProcessImageInformation,                        // q: SECTION_IMAGE_INFORMATION
     ProcessCycleTime,                               // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
     ProcessPagePriority,                            // qs: PAGE_PRIORITY_INFORMATION
     ProcessInstrumentationCallback,                 // s: PVOID or PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
-    ProcessThreadStackAllocation,                   // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
-    ProcessWorkingSetWatchEx,                       // qs: PROCESS_WS_WATCH_INFORMATION_EX[]; s: void
+    ProcessThreadStackAllocation,                   // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX (NtCurrentProcess only)
+    ProcessWorkingSetWatchEx,                       // q: PROCESS_WS_WATCH_INFORMATION_EX[]; s: void
     ProcessImageFileNameWin32,                      // q: UNICODE_STRING
     ProcessImageFileMapping,                        // q: HANDLE (input)
-    ProcessAffinityUpdateMode,                      // qs: PROCESS_AFFINITY_UPDATE_MODE
+    ProcessAffinityUpdateMode,                      // qs: PROCESS_AFFINITY_UPDATE_MODE (s: NtCurrentProcess only)
     ProcessMemoryAllocationMode,                    // qs: PROCESS_MEMORY_ALLOCATION_MODE
-    ProcessGroupInformation,                        // q: PROCESS_GROUP_INFORMATION
+    ProcessGroupInformation,                        // q: USHORT[] (group numbers; ReturnLength required)
     ProcessTokenVirtualizationEnabled,              // s: ULONG
-    ProcessConsoleHostProcess,                      // qs: PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
+    ProcessConsoleHostProcess,                      // qs: PROCESS_CONSOLE_HOST_PROCESS_INFORMATION (s: NtCurrentProcess only)
     ProcessWindowInformation,                       // q: PROCESS_WINDOW_INFORMATION // 50
     ProcessHandleInformation,                       // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
-    ProcessMitigationPolicy,                        // s: PROCESS_MITIGATION_POLICY_INFORMATION
-    ProcessDynamicFunctionTableInformation,         // s: PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
-    ProcessHandleCheckingMode,                      // qs: PROCESS_HANDLE_CHECKING_MODE; s: 0 disables, otherwise enables
+    ProcessMitigationPolicy,                        // qs: PROCESS_MITIGATION_POLICY_INFORMATION
+    ProcessDynamicFunctionTableInformation,         // s: PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION (NtCurrentProcess only)
+    ProcessHandleCheckingMode,                      // qs: PROCESS_HANDLE_CHECKING_MODE; s: 0 disables, 1 enables, other values invalid
     ProcessKeepAliveCount,                          // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles,                       // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     ProcessWorkingSetControl,                       // s: PROCESS_WORKING_SET_CONTROL
     ProcessHandleTable,                             // q: ULONG[] // since WINBLUE
-    ProcessCheckStackExtentsMode,                   // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
+    ProcessCheckStackExtentsMode,                   // qs: ULONG (s: remote process only, requires SeDebugPrivilege) // KPROCESS->CheckStackExtents (CFG)
     ProcessCommandLineInformation,                  // q: UNICODE_STRING // 60
     ProcessProtectionInformation,                   // q: PS_PROTECTION
     ProcessMemoryExhaustion,                        // s: PROCESS_MEMORY_EXHAUSTION_INFO // since THRESHOLD
     ProcessFaultInformation,                        // s: PROCESS_FAULT_INFORMATION
     ProcessTelemetryIdInformation,                  // q: PROCESS_TELEMETRY_ID_INFORMATION
     ProcessCommitReleaseInformation,                // qs: PROCESS_COMMIT_RELEASE_INFORMATION
-    ProcessDefaultCpuSetsInformation,               // qs: SYSTEM_CPU_SET_INFORMATION[5] // ProcessReserved1Information
-    ProcessAllowedCpuSetsInformation,               // qs: SYSTEM_CPU_SET_INFORMATION[5] // ProcessReserved2Information
+    ProcessDefaultCpuSetsInformation,               // qs: ULONG64[] (CPU-set masks; length 0..256 bytes, multiple of 8) // ProcessReserved1Information
+    ProcessAllowedCpuSetsInformation,               // qs: ULONG64[] (CPU-set masks; length 0..256 bytes, multiple of 8; s: CPU-set resource-manager access check) // ProcessReserved2Information
     ProcessSubsystemProcess,                        // s: void // EPROCESS->SubsystemProcess
     ProcessJobMemoryInformation,                    // q: PROCESS_JOB_MEMORY_INFO
-    ProcessInPrivate,                               // qs: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
-    ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: PROCESS_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE; s: 0 disables, otherwise enables
+    ProcessInPrivate,                               // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
+    ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: PROCESS_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE; s: 0 disables, 1 enables, other values leave unchanged
     ProcessIumChallengeResponse,                    // qs: PROCESS_IUM_CHALLENGE_RESPONSE
     ProcessChildProcessInformation,                 // q: PROCESS_CHILD_PROCESS_INFORMATION
-    ProcessHighGraphicsPriorityInformation,         // qs: BOOLEAN; s: BOOLEAN (requires SeTcbPrivilege)
+    ProcessHighGraphicsPriorityInformation,         // qs: BOOLEAN (s: requires SeTcbPrivilege)
     ProcessSubsystemInformation,                    // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ProcessEnergyValues,                            // q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES_V1
     ProcessPowerThrottlingState,                    // qs: POWER_THROTTLING_PROCESS_STATE
     ProcessActivityThrottlePolicy,                  // qs: Obsolete // PROCESS_ACTIVITY_THROTTLE_POLICY // ProcessReserved3Information
     ProcessWin32kSyscallFilterInformation,          // q: WIN32K_SYSCALL_FILTER
-    ProcessDisableSystemAllowedCpuSets,             // s: BOOLEAN // 80
+    ProcessDisableSystemAllowedCpuSets,             // s: BOOLEAN (CPU-set resource-manager access check) // 80
     ProcessWakeInformation,                         // q: PROCESS_WAKE_INFORMATION // (kernel-mode only)
     ProcessEnergyTrackingState,                     // qs: PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory,          // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ProcessCaptureTrustletLiveDump,                 // q: ULONG
-    ProcessTelemetryCoverage,                       // qs: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
+    ProcessTelemetryCoverage,                       // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
     ProcessEnclaveInformation,                      // qs: Obsolete
-    ProcessEnableReadWriteVmLogging,                // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
+    ProcessEnableReadWriteVmLogging,                // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION (s: requires SeDebugPrivilege or SeTcbPrivilege, and security-logger access)
     ProcessUptimeInformation,                       // q: PROCESS_UPTIME_INFORMATION
-    ProcessImageSection,                            // q: HANDLE
+    ProcessImageSection,                            // q: HANDLE (NtCurrentProcess, not attached to another process)
     ProcessDebugAuthInformation,                    // s: PROCESS_DEBUG_AUTH_INFORMATION // CiTool.exe -- device-id // PplDebugAuthorization // since RS4 // 90
-    ProcessSystemResourceManagement,                // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT
+    ProcessSystemResourceManagement,                // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT (requires SeTcbPrivilege)
     ProcessSequenceNumber,                          // q: ULONGLONG
     ProcessLoaderDetour,                            // qs: Obsolete // since RS5
     ProcessSecurityDomainInformation,               // q: PROCESS_SECURITY_DOMAIN_INFORMATION
     ProcessCombineSecurityDomainsInformation,       // s: PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
-    ProcessEnableLogging,                           // q: PROCESS_LOGGING_INFORMATION
-    ProcessLeapSecondInformation,                   // qs: PROCESS_LEAP_SECOND_INFORMATION
-    ProcessFiberShadowStackAllocation,              // s: PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
-    ProcessFreeFiberShadowStackAllocation,          // s: PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
+    ProcessEnableLogging,                           // qs: PROCESS_LOGGING_INFORMATION (s: requires SeDebugPrivilege or SeTcbPrivilege, and security-logger access)
+    ProcessLeapSecondInformation,                   // qs: PROCESS_LEAP_SECOND_INFORMATION (NtCurrentProcess only)
+    ProcessFiberShadowStackAllocation,              // s: PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION (NtCurrentProcess, user-mode only) // since 19H1
+    ProcessFreeFiberShadowStackAllocation,          // s: PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION (NtCurrentProcess, user-mode only)
     ProcessAltSystemCallInformation,                // s: PROCESS_SYSCALL_PROVIDER_INFORMATION // since 20H1 // 100
     ProcessDynamicEHContinuationTargets,            // s: PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
     ProcessDynamicEnforcedCetCompatibleRanges,      // s: PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
     ProcessCreateStateChange,                       // qs: Obsolete // since WIN11
     ProcessApplyStateChange,                        // qs: Obsolete
-    ProcessEnableOptionalXStateFeatures,            // s: ULONG64 // EnableProcessOptionalXStateFeatures
+    ProcessEnableOptionalXStateFeatures,            // s: ULONG64 (current process, user-mode only) // EnableProcessOptionalXStateFeatures
     ProcessAltPrefetchParam,                        // qs: OVERRIDE_PREFETCH_PARAMETER // App Launch Prefetch (ALPF) // since 22H1
-    ProcessAssignCpuPartitions,                     // s: HANDLE[]
+    ProcessAssignCpuPartitions,                     // s: PROCESS_ASSIGN_CPU_PARTITIONS_INFORMATION
     ProcessPriorityClassEx,                         // s: PROCESS_PRIORITY_CLASS_EX
     ProcessMembershipInformation,                   // q: PROCESS_MEMBERSHIP_INFORMATION
     ProcessEffectiveIoPriority,                     // q: IO_PRIORITY_HINT // 110
     ProcessEffectivePagePriority,                   // q: ULONG
-    ProcessSchedulerSharedData,                     // s: PROCESS_SCHEDULER_SHARED_DATA_SLOT_INFORMATION // since 24H2
-    ProcessSlistRollbackInformation,                // qs: no input buffer, length 0 on set, current process only
+    ProcessSchedulerSharedData,                     // s: PROCESS_SCHEDULER_SHARED_DATA_SLOT_INFORMATION (output) // since 24H2
+    ProcessSlistRollbackInformation,                // s: void (length 0, NtCurrentProcess only)
     ProcessNetworkIoCounters,                       // q: PROCESS_NETWORK_COUNTERS
     ProcessFindFirstThreadByTebValue,               // q: PROCESS_TEB_VALUE_INFORMATION // NtCurrentProcess
     ProcessEnclaveAddressSpaceRestriction,          // qs: Obsolete // since 25H2
     ProcessAvailableCpus,                           // qs: Obsolete // PROCESS_AVAILABLE_CPUS_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // NtQueryInformationThread/NtSetInformationThread types
 //
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _THREADINFOCLASS
 {
     ThreadBasicInformation,                         // q: THREAD_BASIC_INFORMATION
     ThreadTimes,                                    // q: KERNEL_USER_TIMES // since VISTA
-    ThreadPriority,                                 // s: KPRIORITY (requires SeIncreaseBasePriorityPrivilege)
+    ThreadPriority,                                 // s: KPRIORITY (16 through 31 require SeIncreaseBasePriorityPrivilege)
     ThreadBasePriority,                             // s: KPRIORITY
     ThreadAffinityMask,                             // s: KAFFINITY
     ThreadImpersonationToken,                       // s: HANDLE
@@ -309,61 +308,58 @@ typedef enum _THREADINFOCLASS
     ThreadEnableAlignmentFaultFixup,                // s: BOOLEAN
     ThreadEventPair,                                // q: Obsolete
     ThreadQuerySetWin32StartAddress,                // q: PVOID
-    ThreadZeroTlsCell,                              // s: ULONG // TlsIndex // 10
-    ThreadPerformanceCount,                         // q: LARGE_INTEGER
-    ThreadAmILastThread,                            // q: ULONG
-    ThreadIdealProcessor,                           // s: ULONG
+    ThreadZeroTlsCell,                              // s: ULONG // TlsIndex; current thread only // 10
+    ThreadPerformanceCount,                         // q: LARGE_INTEGER (returns zero)
+    ThreadAmILastThread,                            // q: ULONG (current process; ThreadHandle is ignored)
+    ThreadIdealProcessor,                           // s: ULONG; returns the previous ideal processor in NTSTATUS
     ThreadPriorityBoost,                            // qs: ULONG
-    ThreadSetTlsArrayAddress,                       // s: ULONG_PTR
+    ThreadSetTlsArrayAddress,                       // s: ULONG_PTR // STATUS_NOT_IMPLEMENTED on 26100
     ThreadIsIoPending,                              // q: ULONG
-    ThreadHideFromDebugger,                         // qs: BOOLEAN
-    ThreadBreakOnTermination,                       // qs: ULONG
+    ThreadHideFromDebugger,                         // q: BOOLEAN; s: void (ThreadInformationLength must be zero)
+    ThreadBreakOnTermination,                       // qs: ULONG (s: requires SeDebugPrivilege)
     ThreadSwitchLegacyState,                        // s: void // NtCurrentThread // NPX/FPU
     ThreadIsTerminated,                             // q: ULONG // 20
     ThreadLastSystemCall,                           // q: THREAD_LAST_SYSCALL_INFORMATION
-    ThreadIoPriority,                               // qs: IO_PRIORITY_HINT (s: requires SeIncreaseBasePriorityPrivilege)
+    ThreadIoPriority,                               // qs: IO_PRIORITY_HINT; s: THREAD_IO_PRIORITY_INFORMATION (IoPriorityHigh requires SeIncreaseBasePriorityPrivilege)
     ThreadCycleTime,                                // q: THREAD_CYCLE_TIME_INFORMATION (requires THREAD_QUERY_LIMITED_INFORMATION)
     ThreadPagePriority,                             // qs: PAGE_PRIORITY_INFORMATION
-    ThreadActualBasePriority,                       // q: LONG
+    ThreadActualBasePriority,                       // qs: LONG (s: 1 through 31; 16 through 31 require SeIncreaseBasePriorityPrivilege unless the process is real-time)
     ThreadTebInformation,                           // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,                               // q: Obsolete
     ThreadCSwitchPmu,                               // q: Obsolete
     ThreadWow64Context,                             // qs: WOW64_CONTEXT, ARM_NT_CONTEXT since 20H1
     ThreadGroupInformation,                         // qs: GROUP_AFFINITY // 30
     ThreadUmsInformation,                           // q: THREAD_UMS_INFORMATION // Obsolete
-    ThreadCounterProfiling,                         // qs: THREAD_PROFILING_INFORMATION
+    ThreadCounterProfiling,                         // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION (current thread only)
     ThreadIdealProcessorEx,                         // qs: PROCESSOR_NUMBER; s: previous PROCESSOR_NUMBER on return
-    ThreadCpuAccountingInformation,                 // s: HANDLE // since WIN8
+    ThreadCpuAccountingInformation,                 // q: BOOLEAN; s: HANDLE (session object; NtCurrentThread only) // since WIN8
     ThreadSuspendCount,                             // q: ULONG // since WINBLUE
-    ThreadHeterogeneousCpuPolicy,                   // qs: KHETERO_CPU_POLICY // since THRESHOLD
-    ThreadContainerId,                              // q: GUID
-    ThreadNameInformation,                          // qs: THREAD_NAME_INFORMATION (requires THREAD_SET_LIMITED_INFORMATION)
-    ThreadSelectedCpuSets,                          // qs: ULONG[]
+    ThreadHeterogeneousCpuPolicy,                   // q: KHETERO_CPU_POLICY; s: STATUS_NOT_SUPPORTED on 26100 // since THRESHOLD
+    ThreadContainerId,                              // q: GUID // NtCurrentThread only
+    ThreadNameInformation,                          // qs: THREAD_NAME_INFORMATION (q: THREAD_QUERY_LIMITED_INFORMATION; s: THREAD_SET_LIMITED_INFORMATION)
+    ThreadSelectedCpuSets,                          // qs: ULONGLONG[] (per-group masks; length must be a multiple of 8, at most 256 bytes on 26100)
     ThreadSystemThreadInformation,                  // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity,                      // q: GROUP_AFFINITY // since THRESHOLD2
-    ThreadDynamicCodePolicyInfo,                    // qs: ULONG // NtCurrentThread
-    ThreadExplicitCaseSensitivity,                  // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
+    ThreadDynamicCodePolicyInfo,                    // qs: ULONG (s: 0 or 1; NtCurrentThread only)
+    ThreadExplicitCaseSensitivity,                  // qs: ULONG; s: 0 disables, otherwise enables (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
     ThreadWorkOnBehalfTicket,                       // q: RTL_WORK_ON_BEHALF_TICKET_EX; s: ALPC_WORK_ON_BEHALF_TICKET // NtCurrentThread
     ThreadSubsystemInformation,                     // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,                      // s: ULONG
     ThreadAttachContainer,                          // s: HANDLE (job object) // NtCurrentThread
-    ThreadManageWritesToExecutableMemory,           // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ThreadManageWritesToExecutableMemory,           // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // STATUS_NOT_SUPPORTED on 26100 // since REDSTONE3
     ThreadPowerThrottlingState,                     // qs: POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
-    ThreadWorkloadClass,                            // qs: THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
+    ThreadWorkloadClass,                            // s: THREAD_WORKLOAD_CLASS (kernel-mode, NtCurrentThread only) // since REDSTONE5 // 50
     ThreadCreateStateChange,                        // s: Obsolete // since WIN11
     ThreadApplyStateChange,                         // s: Obsolete
-    ThreadStrongerBadHandleChecks,                  // qs: ULONG // NtCurrentThread // since 22H1
+    ThreadStrongerBadHandleChecks,                  // s: ULONG (0 or 1; NtCurrentThread only) // since 22H1
     ThreadEffectiveIoPriority,                      // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority,                    // q: ULONG
-    ThreadUpdateLockOwnership,                      // s: THREAD_LOCK_OWNERSHIP // since 24H2
-    ThreadSchedulerSharedDataSlot,                  // qs: THREAD_SCHEDULER_SHARED_DATA_SLOT_INFORMATION
-    ThreadTebInformationAtomic,                     // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_QUERY_INFORMATION)
+    ThreadUpdateLockOwnership,                      // s: THREAD_LOCK_OWNERSHIP (current thread only) // since 24H2
+    ThreadSchedulerSharedDataSlot,                  // q: PVOID; s: THREAD_SCHEDULER_SHARED_DATA_SLOT_INFORMATION
+    ThreadTebInformationAtomic,                     // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT | THREAD_SET_CONTEXT; same process; aligned 1, 2, 4 or 8-byte read)
     ThreadIndexInformation,                         // q: THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Use with both ProcessPagePriority and ThreadPagePriority
 typedef struct _PAGE_PRIORITY_INFORMATION
@@ -377,7 +373,6 @@ typedef struct _PAGE_PRIORITY_INFORMATION
 
 /**
  * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
  */
 typedef struct _PROCESS_BASIC_INFORMATION
@@ -432,7 +427,6 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 
 /**
  * The VM_COUNTERS structure contains various memory usage statistics for a process.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
  */
 typedef struct _VM_COUNTERS
@@ -452,7 +446,6 @@ typedef struct _VM_COUNTERS
 
 /**
  * The VM_COUNTERS_EX structure extends VM_COUNTERS to include private memory usage.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX
@@ -473,7 +466,6 @@ typedef struct _VM_COUNTERS_EX
 
 /**
  * The VM_COUNTERS_EX2 structure extends VM_COUNTERS_EX to include private working set size and shared commit usage.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX2
@@ -503,7 +495,6 @@ typedef struct _VM_COUNTERS_EX2
 
 /**
  * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
  */
 typedef struct _KERNEL_USER_TIMES
@@ -530,6 +521,9 @@ typedef struct _POOLED_USAGE_AND_LIMITS
     SIZE_T PagefileLimit;            // The limit on pagefile usage.
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
+/**
+ * Flags used to manage exception ports for a process.
+ */
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_BITS 0x00000003
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS ((ULONG_PTR)((1UL << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1))
 
@@ -576,6 +570,9 @@ typedef struct _PROCESS_ACCESS_TOKEN
 
 #ifndef _LDT_ENTRY_DEFINED
 #define _LDT_ENTRY_DEFINED
+/**
+ * The PROCESS_EXCEPTION_PORT structure is used to manage exception ports for a process.
+ */
 typedef struct _LDT_ENTRY
 {
     USHORT LimitLow;
@@ -626,7 +623,6 @@ typedef struct _PROCESS_LDT_SIZE
 
 /**
  * The PROCESS_WS_WATCH_INFORMATION structure is used to store information about working set watch events for a process.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION
@@ -639,7 +635,6 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
 
 /**
  * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
@@ -800,10 +795,13 @@ typedef struct _PROCESS_LUID_DEVICE_MAPS_ENABLED
 
 /**
  * The PROCESS_GROUP_INFORMATION structure is used to query the group numbers associated with a process.
+ *
+ * The buffer is an array of USHORT group numbers without a count prefix.
+ * NtQueryInformationProcess requires ReturnLength, which receives the required byte count.
  */
 typedef struct _PROCESS_GROUP_INFORMATION
 {
-    _Field_size_(GroupCount) USHORT Groups[1];
+    USHORT Groups[ANYSIZE_ARRAY];
 } PROCESS_GROUP_INFORMATION, *PPROCESS_GROUP_INFORMATION;
 
 // Console host information masks (ProcessConsoleHostProcess)
@@ -850,6 +848,21 @@ typedef struct _PROCESS_PRIORITY_BOOST
 {
     ULONG PriorityBoost;
 } PROCESS_PRIORITY_BOOST, *PPROCESS_PRIORITY_BOOST;
+
+// rev
+/**
+ * Extended set input for ProcessIoPriority.
+ *
+ * The legacy IO_PRIORITY_HINT input is 4 bytes; this input is 8 bytes.
+ * IoPriority accepts values 0 through 3. IoPriorityHigh (3) requires
+ * SeIncreaseBasePriorityPrivilege. When BoostThreads is TRUE (1), threads
+ * whose I/O priority is lower than the requested priority are also boosted.
+ */
+typedef struct _PROCESS_IO_PRIORITY_INFORMATION
+{
+    ULONG IoPriority; // IO_PRIORITY_HINT
+    BOOLEAN BoostThreads;
+} PROCESS_IO_PRIORITY_INFORMATION, *PPROCESS_IO_PRIORITY_INFORMATION;
 
 /**
  * The PROCESS_DEBUG_FLAGS structure is used to query or set process debug inheritance behavior.
@@ -1195,7 +1208,6 @@ typedef struct _PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
 
 /**
  * The PROCESS_MITIGATION_POLICY_INFORMATION structure represents the different process mitigation policies.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-process_mitigation_policy
  */
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
@@ -1267,13 +1279,13 @@ typedef enum _PROCESS_WORKING_SET_OPERATION
 } PROCESS_WORKING_SET_OPERATION;
 
 /**
- * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag selects the private-page emptying path.
- * On this build, it must be paired with PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES.
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag selects the private-page emptying path. It must be
+ * paired with PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES.
  */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES 0x01
 /**
  * The PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES flag is required together with PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES
- * for the private-page emptying path on this build.
+ * for the private-page emptying path.
  */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES  0x02
 /**
@@ -1295,7 +1307,7 @@ typedef enum _PROCESS_WORKING_SET_OPERATION
 typedef struct _PROCESS_WORKING_SET_CONTROL
 {
     ULONG Version; // PROCESS_WORKING_SET_CONTROL_VERSION
-    PROCESS_WORKING_SET_OPERATION Operation; // < ProcessWorkingSetOperationMax on this build
+    PROCESS_WORKING_SET_OPERATION Operation; // < ProcessWorkingSetOperationMax 
     union
     {
         ULONG Flags; // For ProcessWorkingSetSwap: 0 or 1. For ProcessWorkingSetEmpty: only bits 0..5 are accepted.
@@ -1487,7 +1499,6 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
 
 /**
  * The PROCESS_JOB_MEMORY_INFO structure represents app memory usage at a single point in time.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
  */
 typedef struct _PROCESS_JOB_MEMORY_INFO
@@ -1647,50 +1658,28 @@ typedef struct _PROCESS_WAKE_INFORMATION
     JOBOBJECT_WAKE_FILTER WakeFilter;
 } PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
 
-//
-// PROCESS_ENERGY_TRACKING_STATE flags.
-//
-// ProcessEnergyTrackingState can be used to query the current energy-tracking
-// state.
-//
-// - NtQueryInformationProcess(ProcessEnergyTrackingState) gives you the current
-//   tracked state flags.
-// - NtQueryInformationProcess(ProcessEnergyValues) gives you the actual
-//   accumulated durations/counters.
-// - When you call NtQueryInformationProcess(ProcessEnergyTrackingState), the
-//   returned state field is not limited to 0x10.
-// - The kernel may report a state word containing 0x4, 0x8, and 0x10.
-//
-// Disassembly of ntoskrnl!PoSetProcessEnergyTrackingState shows that only
-// PROCESS_ENERGY_STATE_PSM_FOREGROUND is accepted in StateUpdateMask /
-// StateDesiredValue for NtSetInformationProcess(ProcessEnergyTrackingState).
-// The API only lets you toggle one bit, PROCESS_ENERGY_STATE_PSM_FOREGROUND.
-// Changes how the process contributes to energy duration buckets.
-//
-// So these defines describe the bits that can appear in the queried state:
-//
-// - 0x4: process is in the foreground state.
-// - 0x8: process is desktop-visible.
-// - 0x10: process is in PSM foreground.
-//
-// Important distinction:
-//
-// - NtSetInformationProcess(ProcessEnergyTrackingState) only accepts 0x10.
-// - NtQueryInformationProcess(ProcessEnergyTrackingState) may return
-//   0x4 | 0x8 | 0x10 combinations.
-//
-// The kernel also returns 0x4 and 0x8 in the queried state word. Those two
-// bits are correlated with the three base duration buckets in
-// PROCESS_ENERGY_VALUES:
-// foreground, desktop visible, and PSM foreground.
-//
-// The 0x4 and 0x8 names below are therefore best-effort and grounded in
-// disassembly plus structure correlation, not public symbol names.
-//
-#define PROCESS_ENERGY_STATE_FOREGROUND        0x00000004UL
-#define PROCESS_ENERGY_STATE_DESKTOP_VISIBLE   0x00000008UL
-#define PROCESS_ENERGY_STATE_PSM_FOREGROUND    0x00000010UL
+// rev
+// PROCESS_ENERGY_TRACKING_STATE flags; also used by energy-tracker process-entry StateFlags.
+// Names for bits 0x1 through 0x8 follow the duration fields updated by the kernel.
+#define PROCESS_ENERGY_STATE_FOREGROUND         0x00000001UL
+#define PROCESS_ENERGY_STATE_DESKTOP_VISIBLE    0x00000002UL
+#define PROCESS_ENERGY_STATE_PSM_FOREGROUND     0x00000004UL
+#define PROCESS_ENERGY_STATE_PSM_BACKGROUND     0x00000008UL
 
+// Accepted by PoSetProcessEnergyTrackingState; semantic meaning not established.
+// This is not the PSM foreground bit.
+#define PROCESS_ENERGY_STATE_USER_SETTABLE_MASK 0x00000010UL
+
+/**
+ * The PROCESS_ENERGY_TRACKING_STATE structure queries or updates process energy-tracking state.
+ *
+ * Query returns the current bits in StateDesiredValue and the state sequence in StateSequence.
+ * Bits 0x1 and 0x2 track foreground and desktop visibility. Bits 0x4 and 0x8 control
+ * PSMForegroundDuration and PSMBackgroundDuration, respectively. Query is not restricted to 0x10.
+ * For set operations, StateSequence must be zero, StateUpdateMask may contain only
+ * PROCESS_ENERGY_STATE_USER_SETTABLE_MASK (0x10), and StateDesiredValue must be a subset of StateUpdateMask.
+ * The accepted set mask does not establish a duration-bucket meaning for bit 0x10.
+ */
 typedef struct _PROCESS_ENERGY_TRACKING_STATE
 {
     ULONG StateUpdateMask;
@@ -1719,7 +1708,6 @@ typedef struct _MANAGE_WRITES_TO_EXECUTABLE_MEMORY
 
 /**
  * The POWER_THROTTLING_THREAD_STATE structure contains the throttling policies of a thread subject to power management.
- *
  * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_power_throttling_thread_state
  */
 typedef struct _POWER_THROTTLING_THREAD_STATE
@@ -1879,7 +1867,6 @@ typedef struct _PROCESS_LOGGING_INFORMATION
 
 /**
  * The PROCESS_LEAP_SECOND_INFORMATION structure contains information about leap second adjustments for a process.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_leap_second_info
  */
 typedef struct _PROCESS_LEAP_SECOND_INFORMATION
@@ -1933,7 +1920,6 @@ typedef struct _PROCESS_SYSCALL_PROVIDER_INFORMATION
 
 /**
  * The PROCESS_MEMBERSHIP_INFORMATION structure contains the Silo identifier of the process.
- *
  * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-process_membership_information
  */
 typedef struct _PROCESS_MEMBERSHIP_INFORMATION
@@ -1953,9 +1939,31 @@ typedef struct _PROCESS_NETWORK_COUNTERS
 #endif
 
 // rev
+#define PROCESS_ASSIGN_CPU_PARTITIONS_REPLACE 0x00000001
+
+/**
+ * Variable-length input for ProcessAssignCpuPartitions.
+ *
+ * Flags may contain only PROCESS_ASSIGN_CPU_PARTITIONS_REPLACE, which removes
+ * existing CPU-partition assignments before adding the supplied partitions.
+ * CpuPartitionCount must be in the range 1 through 2048.
+ * On x64, the buffer has an 8-byte header followed by CpuPartitionCount handles;
+ * its length must be a multiple of 8 and at least 16 bytes.
+ */
+typedef struct _PROCESS_ASSIGN_CPU_PARTITIONS_INFORMATION
+{
+    ULONG Flags; // PROCESS_ASSIGN_CPU_PARTITIONS_*
+    ULONG CpuPartitionCount;
+    _Field_size_(CpuPartitionCount) HANDLE CpuPartitionHandles[ANYSIZE_ARRAY];
+} PROCESS_ASSIGN_CPU_PARTITIONS_INFORMATION, *PPROCESS_ASSIGN_CPU_PARTITIONS_INFORMATION;
+
+// rev
+/**
+ * Output buffer returned by NtSetInformationProcess for ProcessSchedulerSharedData.
+ */
 typedef struct _PROCESS_SCHEDULER_SHARED_DATA_SLOT_INFORMATION
 {
-    PVOID SchedulerSharedDataHandle;
+    HANDLE SchedulerSharedDataHandle;
 } PROCESS_SCHEDULER_SHARED_DATA_SLOT_INFORMATION, *PPROCESS_SCHEDULER_SHARED_DATA_SLOT_INFORMATION;
 
 /**
@@ -1978,9 +1986,12 @@ typedef struct _PROCESS_AVAILABLE_CPUS_INFORMATION
 } PROCESS_AVAILABLE_CPUS_INFORMATION, *PPROCESS_AVAILABLE_CPUS_INFORMATION;
 
 /**
- * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
+ * The NtQueryPortInformationProcess function queries legacy process exception-port availability.
  *
- * \return LOGICAL If TRUE, the process exception port is valid.
+ * \return LOGICAL Legacy availability result. See the build-specific constant-return behavior below.
+ * \remarks The NtQueryPortInformationProcess function is a constant LOGICAL TRUE (1) stub. It does not inspect the
+ * calling process exception port on recent builds; a nonzero result is therefore not proof of an installed
+ * exception handler or debugger.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2028,12 +2039,38 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
     ULONG64 CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
-// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
+// rev
+/**
+ * Extended input for ThreadIoPriority. The legacy IO_PRIORITY_HINT input is 4 bytes;
+ * this input is 8 bytes. IoPriority accepts values 0 through 3. IoPriorityHigh (3)
+ * requires SeIncreaseBasePriorityPrivilege. BoostThread equal to TRUE (1) also
+ * boosts the thread when its current I/O priority is lower than the requested value.
+ */
+typedef struct _THREAD_IO_PRIORITY_INFORMATION
+{
+    ULONG IoPriority; // IO_PRIORITY_HINT
+    BOOLEAN BoostThread;
+} THREAD_IO_PRIORITY_INFORMATION, *PTHREAD_IO_PRIORITY_INFORMATION;
+
+// rev: RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
+/**
+ * Input for ThreadUpdateLockOwnership, reconstructed from AMD64 build 26100.9549.
+ * The input is 16 bytes. The low 32 bits of LockEntryIndex identify the user-mode
+ * AutoBoost entry to release. Reserved must be zero. The target must be the current
+ * thread and the handle must grant THREAD_SET_INFORMATION.
+ */
 typedef struct _THREAD_LOCK_OWNERSHIP
 {
-    ULONG SrwLock[1];
+    union
+    {
+        ULONG64 LockEntryIndex;
+        ULONG SrwLock[1]; // Legacy alias for the low 32 bits of LockEntryIndex.
+    };
+    ULONG Reserved;
 } THREAD_LOCK_OWNERSHIP, *PTHREAD_LOCK_OWNERSHIP;
 
+// rev: NtSetInformationThread accepts Assign (0) and Free (1) on 26100.9549.
+// Query (2) is not supported as a set action; NtQueryInformationThread returns PVOID.
 typedef enum _THREAD_SCHEDULER_SHARED_DATA_SLOT_ACTION
 {
     SchedulerSharedSlotAssign,
@@ -2074,7 +2111,6 @@ typedef struct _COUNTER_READING
 
 /**
  * The THREAD_PERFORMANCE_DATA structure aggregates various performance metrics for a thread.
- *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
 _Struct_size_bytes_(Size)
@@ -2179,9 +2215,8 @@ typedef struct _THREAD_UMS_INFORMATION
 
 /**
  * The THREAD_NAME_INFORMATION structure assigns a description to a thread.
- *
  * \remarks The handle must have THREAD_SET_LIMITED_INFORMATION access.
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
@@ -2331,6 +2366,10 @@ typedef struct _THREAD_INDEX_INFORMATION
  * \param DebugPort Optional. A handle to a debug port to be used for the new process.
  * \param TokenHandle Optional. A handle to an access token to be used for the new process.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy process-object creation does not also return an initial thread. The wrapper translates
+ * InheritObjectTable into creation flag 0x4 and forwards to NtCreateProcessEx. A NULL ParentProcess is
+ * rejected with STATUS_INVALID_PARAMETER. Use NtCreateUserProcess for the combined process/initial-thread
+ * contract; creating a process object alone does not establish loader initialization.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2346,6 +2385,43 @@ NtCreateProcess(
     _In_opt_ HANDLE DebugPort,
     _In_opt_ HANDLE TokenHandle
     );
+
+typedef enum _PROCESS_CREATE_FLAGS_EX
+{
+    PROCESS_CREATE_FLAGS_NONE                             = 0x00000000,
+    PROCESS_CREATE_FLAGS_BREAKAWAY                        = 0x00000001, // NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT                 = 0x00000002, // NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_INHERIT_HANDLES                  = 0x00000004, // NtCreateProcessEx & NtCreateUserProcess
+
+    // NtCreateProcessEx only (kernel-mode or elevated)
+    PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE           = 0x00000008,
+    PROCESS_CREATE_FLAGS_LARGE_PAGES                      = 0x00000010,  // Requires SeLockMemoryPrivilege
+    PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL            = 0x00000020,  // Requires SeLockMemoryPrivilege
+
+    // Protected/Session
+    PROCESS_CREATE_FLAGS_PROTECTED_PROCESS                = 0x00000040,  // NtCreateUserProcess only
+    PROCESS_CREATE_FLAGS_CREATE_SESSION                   = 0x00000080,  // Requires SeLoadDriverPrivilege
+
+    // Inheritance & Suspension
+    PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT              = 0x00000100,
+    PROCESS_CREATE_FLAGS_CREATE_SUSPENDED                 = 0x00000200,
+    PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY                  = 0x00000400,  // Requires SeTcbPrivilege
+
+    // Minimal/Clone
+    PROCESS_CREATE_FLAGS_MINIMAL_PROCESS                  = 0x00000800,  // NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_RELEASE_SECTION                  = 0x00001000,
+    PROCESS_CREATE_FLAGS_CLONE_MINIMAL                    = 0x00002000,  // NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT     = 0x00004000,  // NtCreateProcessEx only
+
+    // Auxiliary/Store
+    PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS                = 0x00008000,  // Requires SeTcbPrivilege
+    PROCESS_CREATE_FLAGS_CREATE_STORE                     = 0x00020000,  // AppContainer
+    PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT        = 0x00040000,  // AppContainer
+
+    // Modern additions (Win10/11)
+    PROCESS_CREATE_FLAGS_IMAGE_EXPANSION_MITIGATION_DISABLE= 0x00080000,
+    PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY   = 0x00400000,  // Requires SeLockMemoryPrivilege
+} PROCESS_CREATE_FLAGS_EX;
 
 // begin_rev
 #define PROCESS_CREATE_FLAGS_NONE 0x00000000
@@ -2384,6 +2460,10 @@ NtCreateProcess(
  * \param TokenHandle Optional. A handle to an access token to be used for the new process.
  * \param Reserved Reserved for future use. Must be zero.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The wrapper requires a non-NULL ParentProcess and forwards the creation arguments to
+ * PspCreateProcess. Its abbreviated inferred helper signature does not remove the section, debug, token or
+ * final scalar arguments from this ABI. A successful output is an owned process handle, not a ready-to-run
+ * thread; close it with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2410,6 +2490,10 @@ NtCreateProcessEx(
  * \param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the process to be opened.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess
+ * \remarks Opens an existing process through PsOpenProcess, with access and protection checks rather than creating one.
+ * CLIENT_ID identifiers are not handles. Initialize ObjectAttributes even when selecting a process by
+ * ClientId, and close the returned handle with NtClose. WoW64 captures the 32-bit CLIENT_ID and object
+ * attributes into native temporaries.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2429,6 +2513,10 @@ NtOpenProcess(
  * \param ExitStatus The exit status to be used by the process and the process's termination status.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess
+ * \remarks Requests termination using PROCESS_TERMINATE access (0x1); a successful request is not a substitute for
+ * waiting on a SYNCHRONIZE-capable process handle when completion matters. NULL is a special current-process
+ * path, not an innocuous invalid-handle probe. Do not use this routine as ordinary handle cleanup; NtClose
+ * releases the handle without requesting termination.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2445,6 +2533,9 @@ NtTerminateProcess(
  * \param ProcessHandle A handle to the process to be suspended.
  * \return NTSTATUS Successful or errant status.
  * \remarks Use NtCreateProcessStateChange instead.
+ * \remarks Requires PROCESS_SUSPEND_RESUME (0x800) and applies process suspension through PsSuspendProcess. This is not
+ * an atomic snapshot of all process state and can stop a thread while it owns a lock. Balance suspension with
+ * NtResumeProcess; never suspend the process responsible for issuing the matching resume.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2460,6 +2551,9 @@ NtSuspendProcess(
  * \param ProcessHandle A handle to the process to be resumed.
  * \return NTSTATUS Successful or errant status.
  * \remarks Use NtCreateProcessStateChange instead.
+ * \remarks Requires PROCESS_SUSPEND_RESUME (0x800) and uses PsMultiResumeProcess. Resuming does not prove every thread
+ * is runnable: individual suspension counts, process freezing and ordinary waits are separate state. The WoW64
+ * suspend path uses RtlWow64SuspendProcess, whereas this resume wrapper forwards directly.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2549,6 +2643,9 @@ NtWow64QueryInformationProcess64(
  * \param ProcessInformation A pointer to a buffer that contains the process information.
  * \param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The class determines the input contract and effects. ProcessPriorityBoost takes exactly 4 bytes :
+ * nonzero disables dynamic priority boosting, rather than enabling it. Other selectors have separate
+ * security, mitigation, accounting, and lifecycle requirements.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2582,6 +2679,11 @@ NtSetInformationProcess(
  * - \ref PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS (0x00000001): Retrieve the previous process in the system.
  * \param NewProcessHandle A pointer to a variable that receives the handle to the next process.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Enumerates accessible process objects by returning a new owned handle. NULL ProcessHandle starts
+ * enumeration; it does not select the current process. The only flag bit 0x1 is accepted (reverse traversal),
+ * and unsupported bits return STATUS_INVALID_PARAMETER after the output is cleared. Close each returned handle;
+ * keep the cursor handle alive while obtaining the next result. Access-denied candidates can be skipped, 
+ * so this is not an exhaustive process census.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2605,6 +2707,9 @@ NtGetNextProcess(
  * \param Flags Flags that modify the behavior of the function. Unused and should be zero.
  * \param NewThreadHandle A pointer to a variable that receives the handle to the next thread.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Enumerates threads belonging to ProcessHandle, which requires PROCESS_QUERY_INFORMATION (0x400). A non-NULL ThreadHandle is a cursor and must belong to that process. Flags must be 0. Each
+ * successful output is a separately owned handle with DesiredAccess; closing it is independent of closing the
+ * cursor and process handles.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2640,6 +2745,10 @@ typedef enum _PROCESS_STATE_CHANGE_TYPE
  * \param ProcessHandle A handle to the process.
  * \param Reserved Reserved for future use.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates a state-change object bound to one process; creation itself does not suspend it. The process handle
+ * requires PROCESS_SET_INFORMATION (0x200), while transitions separately require PROCESS_SUSPEND_RESUME
+ * (0x800). Reserved must be 0. Close the returned state-change handle with NtClose; destruction balances
+ * outstanding freezes recorded by that object.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2663,6 +2772,10 @@ NtCreateProcessStateChange(
  * \param ExtendedInformationLength The length of the extended information.
  * \param Reserved Reserved for future use.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The state-change object and ProcessHandle must refer to the same process. State-change access is 0x1;
+ * suspend/resume transitions require PROCESS_SUSPEND_RESUME (0x800). The selectors are 0 (suspend) and 1 (resume),
+ * ExtendedInformation must be NULL, its length 0, and Reserved 0. Resume without an outstanding freeze owned 
+ * by this state object returns STATUS_INVALID_PARAMETER.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2688,6 +2801,10 @@ NtChangeProcessState(
  * \param ThreadHandle A handle to the thread.
  * \param Reserved Reserved for future use.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates an owned state-change object bound to one thread; it does not suspend the thread on creation. The
+ * thread handle requires THREAD_SET_INFORMATION (0x20) here, distinct from THREAD_SUSPEND_RESUME (0x2)
+ * required for transitions. Reserved must be 0. Destruction resumes outstanding suspensions tracked by this
+ * object, not unrelated ordinary suspend counts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2708,6 +2825,21 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
     ThreadStateChangeMax,
 } THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
+// rev
+typedef struct _THREAD_STATE_CHANGE_EXT_ENTRY 
+{
+    ULONGLONG Key;
+    ULONGLONG Value;
+} THREAD_STATE_CHANGE_EXT_ENTRY, *PTTHREAD_STATE_CHANGE_EXT_ENTRY;
+
+// rev
+typedef struct _THREAD_STATE_CHANGE_EXT
+{
+    ULONG Mask;
+    ULONG Reserved;
+    ULONGLONG Value;
+} THREAD_STATE_CHANGE_EXT, *PTHREAD_STATE_CHANGE_EXT;
+
 /**
  * Changes the suspension state of a thread.
  *
@@ -2716,8 +2848,13 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
  * \param StateChangeType The type of state change.
  * \param ExtendedInformation Optional extended information.
  * \param ExtendedInformationLength The length of the extended information.
- * \param Reserved Reserved for future use.
+ * \param Flags Suspension flags. Use zero for the basic contract; nonzero support is feature-dependent.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The state object must match ThreadHandle and grant access 0x1; ordinary transitions require
+ * THREAD_SUSPEND_RESUME (0x2). Resume without a suspension tracked by this object returns
+ * STATUS_INVALID_PARAMETER. Flags is consumed, not reserved: the feature-gated suspend path accepts bit 0x1 and 
+ * parses 16-byte extended records, while other paths require zero. Use NULL/0/0 for the established basic contract; 
+ * feature availability and extended-record semantics require separate validation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2727,9 +2864,9 @@ NtChangeThreadState(
     _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadHandle,
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
-    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ PTHREAD_STATE_CHANGE_EXT ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
-    _In_opt_ ULONG Reserved
+    _In_ ULONG Flags
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
@@ -2750,6 +2887,11 @@ NtChangeThreadState(
  * \param InitialTeb A pointer to an INITIAL_TEB structure that specifies the initial stack limits of the new thread.
  * \param CreateSuspended If TRUE, the thread is created in a suspended state.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Legacy creation consumes a caller-prepared architecture-specific CONTEXT and INITIAL_TEB rather than a
+ * start-routine argument. The native user path checks 16-byte CONTEXT alignment and captures stack state
+ * before PspCreateThread. WoW64 uses Wow64NtCreateThread and its own context conversion. Do not substitute the
+ * NtCreateThreadEx parameter model or assume a context captured from a running thread is a valid initial
+ * stack/context pair.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2774,6 +2916,9 @@ NtCreateThread(
  * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
  * \param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the thread to be opened.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Opens an existing thread through PsOpenThread; DesiredAccess controls later operations. A CLIENT_ID names
+ * process/thread identifiers, not an already-open handle. The returned handle is caller-owned and must be
+ * closed with NtClose. Selecting an ID does not bypass thread security or protected-object checks.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2792,6 +2937,9 @@ NtOpenThread(
  * \param ThreadHandle Optional. A handle to the thread to be terminated. If this parameter is NULL, the calling thread is terminated.
  * \param ExitStatus The exit status to be used by the thread and the thread's termination status.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires THREAD_TERMINATE (0x1) for an ordinary thread handle. NULL and NtCurrentThread() have special
+ * current-thread behavior and must not be used for harmless negative testing. Termination does not run normal
+ * application cleanup; wait for the thread object when teardown completion matters, then close the handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2808,6 +2956,10 @@ NtTerminateThread(
  * \param ThreadHandle A handle to the thread to be suspended.
  * \param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Increments suspension through PsSuspendThread, using THREAD_SUSPEND_RESUME (0x2). PreviousSuspendCount is an
+ * optional 4-byte output reporting the count before this operation. Balance the count with resume calls; do
+ * not assume a successful call is a safe application-level pause point or that one resume removes multiple
+ * suspensions.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2824,6 +2976,9 @@ NtSuspendThread(
  * \param ThreadHandle A handle to the thread to be resumed.
  * \param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The handle check requests THREAD_RESUME (0x1000), not the 0x2 mask used by NtSuspendThread and NtAlertResumeThread. 
+ * PreviousSuspendCount reports the pre-resume count through an optional 4-byte output. A successful call does not imply 
+ * that the thread is runnable if another suspension or wait remains.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2839,6 +2994,10 @@ NtResumeThread(
  *
  * \return ULONG The number of the current processor.
  * \sa https://learn.microsoft.com/en-us/windows/win32/procthread/ntgetcurrentprocessornumber
+ * \remarks Returns a processor number, not NTSTATUS. The implementation applies the thread primary-group
+ * affinity and masks the result to 5 bits for supported 32-bit processes. The answer can become stale
+ * immediately after migration; use the Ex output when the processor group is needed, and do not equate two
+ * unsynchronized queries.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2849,18 +3008,21 @@ NtGetCurrentProcessorNumber(
     );
 
 /**
- * Retrieves the number of the current processor.
+ * Retrieves the current processor group and number.
  *
- * \param ProcessorNumber An optional pointer to a PROCESSOR_NUMBER structure that receives the processor number.
- * \return ULONG The number of the current processor.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-kegetcurrentprocessornumberex
+ * \param ProcessorNumber A required pointer to a PROCESSOR_NUMBER structure that receives the processor number.
+ * \return NTSTATUS Successful or errant status; the processor identity is returned through ProcessorNumber.
+ * \remarks Unlike KeGetCurrentProcessorNumberEx, this system service returns NTSTATUS and requires ProcessorNumber. It
+ * probes/writes 4 bytes with 1-byte alignment and returns STATUS_SUCCESS after writing Group, Number and a zero final byte; 
+ * NULL returns STATUS_ACCESS_VIOLATION. The WoW64 wrapper additionally masks Number with 0x1F.
+ * The return value is not a processor index.
  */
 _Kernel_entry_
 NTSYSCALLAPI
-ULONG
+NTSTATUS
 NTAPI
 NtGetCurrentProcessorNumberEx(
-    _Out_opt_ PPROCESSOR_NUMBER ProcessorNumber
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
     );
 
 /**
@@ -2869,6 +3031,10 @@ NtGetCurrentProcessorNumberEx(
  * \param ThreadHandle A handle to the thread.
  * \param ThreadContext A pointer to a CONTEXT structure that receives the thread context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires THREAD_GET_CONTEXT (0x8); ContextFlags selects the register groups. The context representation and
+ * alignment depend on the architecture, with a distinct Wow64NtGetContextThread path for 32-bit callers. A
+ * live running thread context is not a stable snapshot; synchronize or suspend an owned target before
+ * inspecting execution state.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2885,6 +3051,10 @@ NtGetContextThread(
  * \param ThreadHandle A handle to the thread.
  * \param ThreadContext A pointer to a CONTEXT structure that specifies the thread context.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires THREAD_SET_CONTEXT (0x10) and applies architecture/security validation before changing registers.
+ * WoW64 uses Wow64NtSetContextThread rather than copying a native CONTEXT. ContextFlags determines which state
+ * is replaced; supplying the wrong architecture or changing an instruction/stack pointer is not equivalent to
+ * updating descriptive thread metadata.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2904,6 +3074,10 @@ NtSetContextThread(
  * \param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
  * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
+ * \remarks ThreadBasicInformation requires exactly 48 bytes natively and 28 bytes under WoW64. ThreadPriorityBoost
+ * takes a 4-byte output whose nonzero value means boosting is disabled. ThreadNameInformation returns a
+ * counted UNICODE_STRING and inline bytes; check ReturnLength and the returned pointer/length against actual
+ * capacity rather than assuming a NUL terminator.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2925,6 +3099,10 @@ NtQueryInformationThread(
  * \param ThreadInformation A pointer to a buffer that contains the thread information.
  * \param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Each selector has independent size/access and effect. ThreadPriorityBoost uses exactly 4 bytes, with nonzero
+ * disabling dynamic boosts. ThreadNameInformation captures a counted Unicode name; it is not a pointer to a
+ * raw NUL-terminated string. Security, context, TLS and lifecycle selectors must not be inferred from the
+ * name/boost cases.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2942,6 +3120,9 @@ NtSetInformationThread(
  *
  * \param[in] ThreadHandle A handle to the thread to be alerted.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires THREAD_ALERT (0x4) and sets the target alert state for the caller mode. This is distinct from
+ * suspension, APC queueing and the alert-by-thread-ID mechanism. Success does not guarantee that the target
+ * has executed a user APC or has left every wait.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2957,6 +3138,9 @@ NtAlertThread(
  * \param[in] ThreadHandle A handle to the thread to be resumed and alerted.
  * \param[out, optional] PreviousSuspendCount An optional pointer to a variable that receives the thread's previous suspend count.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Combines a user alert with a resume and requires THREAD_SUSPEND_RESUME (0x2), not the 0x1000-only handle
+ * sufficient for NtResumeThread. PreviousSuspendCount is an optional 4-byte output. An
+ * alert/resume request does not itself prove that an APC callback ran.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2972,6 +3156,10 @@ NtAlertResumeThread(
  * and executes asynchronous procedure calls (APCs) queued to the current thread.
  *
  * \return NTSTATUS Successful or errant status.
+ * \remarks Tests/consumes the calling thread alert state and provides an opportunity for its pending user APC delivery.
+ * The service returns STATUS_ALERTED (0x101) when KeTestAlertThread reports an alert, otherwise
+ * STATUS_SUCCESS. It does not dispatch another thread APC merely because some unrelated process calls this
+ * service.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2988,6 +3176,9 @@ NtTestAlert(
  *
  * \param ThreadId The thread ID of the thread to be alerted.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Uses a thread identifier, not a thread handle, and forwards to NtAlertThreadByThreadIdEx with a NULL lock.
+ * This wakes the alert-by-ID waiting mechanism; it is not equivalent to NtAlertThread or arbitrary user-APC
+ * execution. Identifier reuse and target lifetime must be considered when coordinating a wake.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3005,6 +3196,9 @@ NtAlertThreadByThreadId(
  * \param ThreadId The thread ID of the thread to be alerted.
  * \param Lock An optional pointer to an SRW lock to be used during the alert.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Extends the alert-by-ID operation with an optional lock argument passed into the wake implementation. It is
+ * not a thread-handle access-mask API or a general-purpose APC dispatcher. WoW64 has both native forwarding
+ * and an event-emulation path; lock handoff details are separate from the NULL-lock wake contract.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3085,6 +3279,10 @@ typedef struct _PS_ALERT_THREAD_EXTENDED_PARAMETER
  * - Only PS_ALERT_THREAD_EXTENDED_PARAMETER.Type == 0 is currently accepted.
  * - If multiple extended parameters are provided, the implementation consumes them in order and
  *   the *last* parameter's payload is the one forwarded to the internal alert logic.
+ * \remarks The native entry captures pointer-sized thread IDs and verifies all referenced targets belong to the current
+ * process before issuing the batch alert. Up to 64 references fit in its local array; larger counts allocate
+ * temporary storage. WoW64 first widens its 4-byte IDs to 8-byte entries. Avoid unbounded counts:
+ * conversion/allocation can occur before native target validation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3112,6 +3310,10 @@ NtAlertMultipleThreadByThreadId(
  * \return STATUS_SUCCESS if alerted successfully.
  * \return STATUS_TIMEOUT if the timeout expired before being alerted.
  * \return STATUS_ALERTED if woken by NtAlertThreadByThreadId.
+ * \remarks Waits on the calling thread alert-by-ID state. Address is passed as wait-associated metadata, not a HANDLE
+ * identifying a different target thread. A zero timeout permits a nonblocking check: STATUS_TIMEOUT when no
+ * alert is pending, STATUS_ALERTED (0x101) when an alert is consumed. NULL Timeout can wait indefinitely; pair
+ * waits with a lifetime-safe wake protocol.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3124,12 +3326,16 @@ NtWaitForAlertByThreadId(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 /**
- * Impersonates a client thread.
+ * The NtImpersonateThread routine impersonates a client thread.
  *
  * \param ServerThreadHandle A handle to the server thread.
  * \param ClientThreadHandle A handle to the client thread.
  * \param SecurityQos A pointer to a SECURITY_QUALITY_OF_SERVICE structure that specifies the impersonation level and context tracking mode.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates client security from ClientThreadHandle with THREAD_DIRECT_IMPERSONATION (0x200), then applies it to
+ * ServerThreadHandle with THREAD_IMPERSONATE (0x100). SECURITY_QUALITY_OF_SERVICE controls the requested
+ * impersonation properties. This changes security context; it does not merely copy thread metadata. Token
+ * policy and impersonation restrictions remain applicable after handle access checks.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3146,6 +3352,10 @@ NtImpersonateThread(
  *
  * \param PortHandle A handle to the port to be registered.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Registers an LPC port for notification when the calling thread terminates; it does not terminate the thread
+ * or create the port. The entry references LpcPortObjectType with access 0x1 and retains a
+ * registration in the current thread. Port message delivery/rundown is a separate lifecycle contract; an
+ * arbitrary event or completion port is not interchangeable.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3165,6 +3375,8 @@ NtRegisterThreadTerminatePort(
  * \param Entry1Low The low part of the second entry.
  * \param Entry1Hi The high part of the second entry.
  * \return NTSTATUS Successful or errant status.
+ * \remarks NtSetLdtEntries resolves to a STATUS_NOT_IMPLEMENTED (0xC0000002) stub.
+ * The WoW64 wrapper still forwards the request; export availability does not establish a usable LDT update facility.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3237,8 +3449,10 @@ typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
  * \param ApcArgument2 Optional second argument to be passed to the APC routine.
  * \param ApcArgument3 Optional third argument to be passed to the APC routine.
  * \return NTSTATUS Successful or errant status.
- * \remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or when any
- * process calls the NtTestAlert, NtAlertThread, NtAlertResumeThread or NtAlertThreadByThreadId functions.
+ * \remarks Queues a normal user APC with three arguments and THREAD_SET_CONTEXT (0x10) access. Delivery occurs in the
+ * target thread, normally at an alertable wait or its own NtTestAlert opportunity. The WoW64 thunk encodes the
+ * 32-bit routine for native dispatch. Queue success means accepted, not executed; keep callback code and
+ * referenced argument data alive until delivery or target rundown.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3267,8 +3481,10 @@ NtQueueApcThread(
  * \param ApcArgument2 Optional second argument to be passed to the APC routine.
  * \param ApcArgument3 Optional third argument to be passed to the APC routine.
  * \return NTSTATUS Successful or errant status.
- * \remarks The APC will be executed in the context of the specified thread after the thread enters an alertable wait state or immediately
- * when QUEUE_USER_APC_SPECIAL_USER_APC is used or NtTestAlert, NtAlertThread, NtAlertResumeThread or NtAlertThreadByThreadId are called.
+ * \remarks NULL ReserveHandle selects ordinary allocation; an APC memory reserve is distinct from an I/O-completion
+ * reserve. Native ReserveHandle value 1 selects special-user-APC handling, but the matching WoW64 thunk
+ * rejects that value with STATUS_INVALID_HANDLE. A normal reserve can be in use while its APC is queued; this
+ * is not a way to reuse arbitrary object handles.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3310,9 +3526,10 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
  * \param ApcArgument2 An optional argument to be passed to the APC routine.
  * \param ApcArgument3 An optional argument to be passed to the APC routine.
  * \return NTSTATUS Successful or errant status.
- * \remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or immediately
- * when QUEUE_USER_APC_SPECIAL_USER_APC is used or any process calls the NtTestAlert, NtAlertThread,
- * NtAlertResumeThread or NtAlertThreadByThreadId functions.
+ * \remarks The native flag mask accepts only 0x1 and 0x10000, and special-user-APC bit 0x1 cannot be combined
+ * with a non-NULL reserve. The matching WoW64 thunk rejects bit 0x1 with STATUS_NOT_SUPPORTED before native
+ * dispatch. Special APC delivery is not a guarantee of immediate execution at the call site. Normal queue
+ * success must still be distinguished from eventual callback delivery.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3524,8 +3741,12 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeComponentFilter,                 // in COMPONENT_FILTER
     PsAttributeEnableOptionalXStateFeatures,    // in ULONG64 // since WIN11 // 30
     PsAttributeSupportedMachines,               // in ULONG (bits 0..2 only) // since 24H2
-    PsAttributeSveVectorLength,                 // in PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
-    PsAttributeMax
+    PsAttributeSveVectorLength,                 // in PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH (4 bytes; full attribute 0x60020)
+    PsAttributeReserved0 = 33,
+    PsAttributeHeapFeatures,                    // 8-byte input; full attribute 0xA0022;
+    PsAttributeContainmentConfiguration,        // 32-byte input; full attribute 0x20023;
+    PsAttributeIsolationConfiguration,          // 16-byte input; full attribute 0x20024;
+    PsAttributeMax = 37
 } PS_ATTRIBUTE_NUM;
 
 // private
@@ -3607,7 +3828,7 @@ typedef enum _PS_ATTRIBUTE_NUM
 #define PS_ATTRIBUTE_SUPPORTED_MACHINES \
     PsAttributeValue(PsAttributeSupportedMachines, FALSE, TRUE, TRUE) // ULONG, low 3 bits only
 #define PS_ATTRIBUTE_SVE_VECTOR_LENGTH \
-    PsAttributeValue(PsAttributeSveVectorLength, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeSveVectorLength, FALSE, TRUE, TRUE) // PspGetFullAttribute: 0x60020
 
 // end_rev
 
@@ -3666,14 +3887,22 @@ typedef struct _PS_STD_HANDLE_INFO
     ULONG StdHandleSubsystemType;
 } PS_STD_HANDLE_INFO, *PPS_STD_HANDLE_INFO;
 
+/**
+ * Access flags embedded in a trustlet creation attribute's high byte.
+ * The kernel places Trustlet/Ntos/WriteHandle/ReadHandle in bits 0/1/2/3 of this byte.
+ * IsTrustletCreateAttributeWellFormed rejects the high four bits; they must remain zero.
+ */
 typedef union _PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS
 {
-    UCHAR Trustlet : 1;
-    UCHAR Ntos : 1;
-    UCHAR WriteHandle : 1;
-    UCHAR ReadHandle : 1;
-    UCHAR Reserved : 4;
     UCHAR AccessRights;
+    struct
+    {
+        UCHAR Trustlet : 1;
+        UCHAR Ntos : 1;
+        UCHAR WriteHandle : 1;
+        UCHAR ReadHandle : 1;
+        UCHAR Reserved : 4; // Validated as zero, not additional access rights.
+    } DUMMYSTRUCTNAME;
 } PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS, *PPS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS;
 
 typedef union _PS_TRUSTLET_ATTRIBUTE_TYPE
@@ -3717,13 +3946,28 @@ typedef struct _PS_BNO_ISOLATION_PARAMETERS
 } PS_BNO_ISOLATION_PARAMETERS, *PPS_BNO_ISOLATION_PARAMETERS;
 
 // private
+/**
+ * Packs the existing ARM64 SVE process-creation attribute into one ULONG.
+ * VectorLength and FlagsReserved are consecutive fields, not independent
+ * union alternatives. ARM64 runtime acceptance is architecture-dependent.
+ */
 typedef union _PS_PROCESS_CREATION_SVE_VECTOR_LENGTH
 {
-    ULONG VectorLength : 24;
-    ULONG FlagsReserved : 8;
+    ULONG Value;
+    struct
+    {
+        ULONG VectorLength : 24;
+        ULONG FlagsReserved : 8;
+    } DUMMYSTRUCTNAME;
 } PS_PROCESS_CREATION_SVE_VECTOR_LENGTH, *PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH;
 
 // private
+/**
+ * Indices into the process mitigation option map, not PROCESS_MITIGATION_POLICY selectors.
+ * Values 34-39 retain their kernel-defined indices. Preserving
+ * the retired XFG slot prevents CET, redirection, core-sharing and FSCTL options
+ * from addressing the wrong policy bits.
+ */
 typedef enum _PS_MITIGATION_OPTION
 {
     PS_MITIGATION_OPTION_NX,
@@ -3760,7 +4004,9 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_CET_USER_SHADOW_STACKS,
     PS_MITIGATION_OPTION_USER_CET_SET_CONTEXT_IP_VALIDATION, // since 21H1
     PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES,
-    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY,
+    PS_MITIGATION_OPTION_RESERVED_WAS_XFG = 34, // Retired slot; do not renumber later options.
+    PS_MITIGATION_OPTION_POINTER_AUTH_USER_IP = 35,
+    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY = 36,
     PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 22H1
     PS_MITIGATION_OPTION_RESTRICT_CORE_SHARING,
     PS_MITIGATION_OPTION_FSCTL_SYSTEM_CALL_DISABLE, // since 24H2
@@ -3872,6 +4118,11 @@ typedef struct _PS_CREATE_INFO
  * \param CreateInfo A pointer to a PS_CREATE_INFO structure that specifies additional information for the process creation.
  * \param AttributeList Optional. A pointer to a list of attributes for the process and thread.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates a process and initial thread together, with separate desired access masks and owned output handles.
+ * ProcessParameters, PS_CREATE_INFO and PS_ATTRIBUTE_LIST have different roles; CreateInfo is an input/output
+ * state record, not just a size. The native thread-creation flag prefilter accepts only bit 0x1 here, unlike
+ * NtCreateThreadEx. WoW64 converts pointer-bearing creation records and attributes; do not forward a 32-bit
+ * layout as an x64 structure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3928,6 +4179,11 @@ typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
  * \param MaximumStackSize The maximum size of the thread's stack, in bytes.
  * \param AttributeList Optional. A pointer to a list of attributes for the thread.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates a thread at StartRoutine with Argument, allocating its initial stack rather than consuming
+ * INITIAL_TEB. Requires PROCESS_CREATE_THREAD (0x2) on the target process.
+ * THREAD_CREATE_FLAGS_CREATE_SUSPENDED keeps the new thread from executing until resumed. Stack sizes are byte
+ * quantities; zero requests defaults. Keep the callback valid for the thread lifetime and close the owned
+ * thread handle after the required completion synchronization.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4003,7 +4259,7 @@ NtCreateThreadEx(
 #define JobObjectMemoryPartitionInformation 43                      // s: JOBOBJECT_MEMORY_PARTITION_INFORMATION // q: BOOLEAN (TRUE if a partition is assigned)
 #define JobObjectContainerTelemetryId 44                            // qs: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
 #define JobObjectSiloSystemRoot 45                                  // s: UNICODE_STRING
-#define JobObjectEnergyTrackingState 46                             // q: JOBOBJECT_ENERGY_TRACKING_STATE
+#define JobObjectEnergyTrackingState 46                             // qs: JOBOBJECT_ENERGY_TRACKING_STATE (8 bytes)
 #define JobObjectThreadImpersonationInformation 47                  // qs: BOOLEAN
 #define JobObjectIoPriorityLimit 48                                 // qs: JOBOBJECT_IO_PRIORITY_LIMIT
 #define JobObjectPagePriorityLimit 49                               // qs: JOBOBJECT_PAGE_PRIORITY_LIMIT
@@ -4185,11 +4441,21 @@ typedef struct _SERVERSILO_INIT_INFORMATION
 } SERVERSILO_INIT_INFORMATION, *PSERVERSILO_INIT_INFORMATION;
 
 // private
-typedef struct _JOBOBJECT_ENERGY_TRACKING_STATE
+/**
+ * Queries or updates energy tracking for a job hierarchy (JobObjectEnergyTrackingState, 46).
+ * The value is exactly 8 bytes: UpdateMask in the low ULONG and DesiredState in
+ * the high ULONG. PspSetEnergyTrackingStateJobTree accepts only UpdateMask bits
+ * 0x4 and 0x8, requires DesiredState to be a subset of UpdateMask, and checks
+ * administrative access.
+ */
+typedef union _JOBOBJECT_ENERGY_TRACKING_STATE
 {
     ULONG64 Value;
-    ULONG UpdateMask;
-    ULONG DesiredState;
+    struct
+    {
+        ULONG UpdateMask;
+        ULONG DesiredState;
+    } DUMMYSTRUCTNAME;
 } JOBOBJECT_ENERGY_TRACKING_STATE, *PJOBOBJECT_ENERGY_TRACKING_STATE;
 
 // private
@@ -4245,6 +4511,10 @@ typedef struct _JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
  * \param DesiredAccess The access rights desired for the thread object.
  * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Creates a job for grouping process accounting and limits; a fresh job has no assigned processes.
+ * ObjectAttributes may be NULL for an unnamed job. The returned handle grants requested access and is
+ * caller-owned. Ordinary handle closure and JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE have different process-lifetime
+ * consequences.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4263,6 +4533,9 @@ NtCreateJobObject(
  * \param DesiredAccess The access rights desired for the thread object.
  * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Opens an existing named job with DesiredAccess through object-manager access checks and current-silo lookup.
+ * It does not create a missing job or automatically grant all job rights. Close the returned handle with
+ * NtClose; a query-only handle cannot set limits or terminate member processes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4280,6 +4553,10 @@ NtOpenJobObject(
  * \param JobHandle A handle to the job object to which the process will be associated. The handle must have the JOB_OBJECT_ASSIGN_PROCESS access right.
  * \param ProcessHandle A handle to the process to associate with the job object. The handle must have the PROCESS_SET_QUOTA and PROCESS_TERMINATE access rights.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires JOB_OBJECT_ASSIGN_PROCESS (0x1) on the job and PROCESS_SET_QUOTA | PROCESS_TERMINATE (0x101) on an
+ * ordinary process handle. Assignment affects process lifetime/accounting and can be constrained by nesting
+ * and existing job state. Closing a handle is not a general mechanism for removing an assigned process from
+ * its job.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4296,6 +4573,10 @@ NtAssignProcessToJobObject(
  * \param JobHandle A handle to the job whose processes will be terminated. The handle must have the JOB_OBJECT_TERMINATE access right.
  * \param ExitStatus The exit status to be used by all processes and threads in the job object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Requires JOB_OBJECT_TERMINATE (0x8) and requests termination of member processes with ExitStatus. This is
+ * not the same as closing a job handle. To verify completion for a particular process, wait on an owned
+ * SYNCHRONIZE-capable process handle and inspect its exit status; do not infer completion solely from
+ * submission success.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4313,6 +4594,10 @@ NtTerminateJobObject(
  * \param JobHandle An optional handle to the job object. If this parameter is NULL, the function checks if the process is associated with any job object.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function can be used to determine if a process is running within a job object, which can be useful for managing process resources and constraints.
+ * \remarks Returns STATUS_PROCESS_IN_JOB (0x124) or STATUS_PROCESS_NOT_IN_JOB (0x123), both successful NTSTATUS values.
+ * NT_SUCCESS alone cannot distinguish membership. A non-NULL job handle requires JOB_OBJECT_QUERY (0x4); NULL
+ * asks about association with any job. Explicit job membership also accounts for the parent-job
+ * chain.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4333,6 +4618,11 @@ NtIsProcessInJob(
  * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function can be used to query various types of information about a job object, such as accounting information, limit information, and process ID list.
+ * \remarks The information class controls size, alignment and native/WoW64 conversion.
+ * JobObjectBasicAccountingInformation is a 48-byte record; JobObjectExtendedLimitInformation contains
+ * pointer-sized members and therefore differs by architecture. NULL JobHandle has current-job semantics for
+ * supported classes, not the same behavior as an invalid non-NULL handle. Use a query-capable handle and bound
+ * variable process-ID lists by returned capacity/counts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4355,6 +4645,10 @@ NtQueryInformationJobObject(
  * \param JobObjectInformationLength The size of the buffer pointed to by the JobObjectInformation parameter.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function can be used to set various types of information for a job object, such as limit information, UI restrictions, and security limit information.
+ * \remarks Changes limits or associations on the selected job, not on an arbitrary single process. Ordinary limit
+ * updates require JOB_OBJECT_SET_ATTRIBUTES (0x2); class-specific rights and constraints can add requirements.
+ * JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE makes closing the last job handle terminate associated processes, so
+ * setting it is a lifecycle decision. Native and WoW64 pointer-bearing limit records are not layout-identical.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4375,6 +4669,10 @@ NtSetInformationJobObject(
  * \param Flags Reserved for future use. Must be zero.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function can be used to create a set of job objects, which can be useful for managing groups of related processes.
+ * \remarks This legacy service can resolve to a shared STATUS_NOT_SUPPORTED (0xC00000BB) stub. WoW64 nevertheless
+ * converts a supplied JOB_SET_ARRAY before forwarding; do not use large counts merely to test
+ * unsupported-service behavior. This legacy job-set call is not how modern nested-job assignment is
+ * established.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4387,6 +4685,15 @@ NtCreateJobSet(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * The NtRevertContainerImpersonation routine reverts container impersonation on the current thread.
+ *
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Reverts current-thread container/work-on-behalf impersonation through PspRevertContainerImpersonation, not
+ * the ordinary thread token impersonation API. Absence of the associated container state
+ * returns STATUS_UNSUCCESSFUL. Do not treat it as a universal replacement for clearing
+ * ThreadImpersonationToken.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -4407,18 +4714,26 @@ NtRevertContainerImpersonation(
 // private
 typedef enum _MEMORY_RESERVE_TYPE
 {
-    MemoryReserveUserApc,
-    MemoryReserveIoCompletion,
+    MemoryReserveUserApc, // 0: user APC reserve.
+    MemoryReserveIoCompletion, // 1: reusable packet reserve for NtSetIoCompletionEx, not a wait-completion packet.
     MemoryReserveTypeMax
 } MEMORY_RESERVE_TYPE;
 
 /**
- * Allocates a memory reserve object.
+ * Allocates a typed reserve that can back a user APC or a reusable completion packet.
+ * MemoryReserveIoCompletion is used with NtSetIoCompletionEx, not with the
+ * NtAssociateWaitCompletionPacket family.
  *
- * \param MemoryReserveHandle Pointer to a variable that receives the memory reserve object handle.
- * \param ObjectAttributes Pointer to an object attributes structure.
- * \param Type The type of memory reserve.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] MemoryReserveHandle Receives a caller-owned handle; close with NtClose.
+ * On x64, the inserted handle requests access 0x000F0003.
+ * \param[in, optional] ObjectAttributes Optional name and object attributes. NULL
+ * creates an unnamed reserve; it is a supported input on native x64 and WoW64.
+ * \param[in] Type MemoryReserveUserApc (0) or MemoryReserveIoCompletion (1).
+ * Other selectors return STATUS_INVALID_PARAMETER.
+ * \return NTSTATUS describing allocation, not an APC or completion's eventual status.
+ * \remarks A completion reserve can be in use for only one outstanding packet.
+ * Removing that packet releases the in-use state for reuse. It is not a raw buffer
+ * returned to user mode, and the APC and completion reserve types are not interchangeable.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4426,7 +4741,7 @@ NTSTATUS
 NTAPI
 NtAllocateReserveObject(
     _Out_ PHANDLE MemoryReserveHandle,
-    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
 
@@ -4559,13 +4874,15 @@ PssNtFreeRemoteSnapshot(
 
 // rev
 /**
- * The PssNtQuerySnapshot routine queries information from the specified snapshot.
+ * The PssNtQuerySnapshot routine retrieves information from a native snapshot after PssNtValidateDescriptor.
+ * The inspected client requires an exact class-specific BufferLength and returns STATUS_INFO_LENGTH_MISMATCH
+ * for a different size. Embedded handles and pointers are not newly allocated ownership transfers. NULL snapshot
+ * rejection occurs before output access; that limited path does not validate successful snapshot queries.
  *
- * \param SnapshotHandle Handle to the snapshot.
- * \param InformationClass The information class to query.
- * \param Buffer Pointer to a buffer that receives the queried information.
- * \param BufferLength Length of the buffer.
- * \return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Handle to the snapshot to query.
+ * \param InformationClass Type of information to retrieve.
+ * \param Buffer Receives the requested information.
+ * \param BufferLength Size of Buffer in bytes.
  */
 NTSYSAPI
 NTSTATUS
@@ -4578,6 +4895,18 @@ PssNtQuerySnapshot(
     );
 
 // rev
+/**
+ * Native PSS walk state: 16 bytes on x64, 8 bytes on x86; distinct from HPSSWALK.
+ * Zero-initialize before use. MappedBase owns a section view; Position is an
+ * entry index or byte offset according to the walk class. Release the view
+ * through PssNtFreeWalkMarker before discarding or changing the walk.
+ */
+typedef struct _PSSNT_WALK_MARKER
+{
+    PVOID MappedBase;
+    ULONG_PTR Position;
+} PSSNT_WALK_MARKER, *PPSSNT_WALK_MARKER;
+
 typedef struct _PSSNT_WALK_MARKER_INFO
 {
     ULONG Signature; // Win32: 0x4D575350 // 'PSSM'
@@ -4585,26 +4914,61 @@ typedef struct _PSSNT_WALK_MARKER_INFO
 } PSSNT_WALK_MARKER_INFO, *PPSSNT_WALK_MARKER_INFO;
 
 // rev
+/**
+ * The PssNtWalkSnapshot routine walks native snapshot records using a caller-owned two-word marker, not a Win32
+ * HPSSWALK handle. Zero-initialize the marker and release its view with PssNtFreeWalkMarker. Position is an index
+ * for auxiliary pages and a byte offset for variable-length streams. NULL Buffer requests availability without
+ * advancing a record; the marker can still acquire a mapping, and STATUS_MORE_ENTRIES indicates an available record. Exact
+ * output sizes for classes 0/1/2/3 are 80/80/72/144 bytes on x64 and 48/52/48/112 bytes on x86 in the
+ * inspected build. Reuse a marker only with its original snapshot and class. Returned pointers can refer into
+ * the marker mapping.
+ *
+ * \param SnapshotHandle Handle to the snapshot to walk.
+ * \param InformationClass Type of records to walk.
+ * \param WalkMarker Caller-owned walk state, initialized to zero before the first call.
+ * \param Buffer Receives a record, or NULL to check availability without advancing.
+ * \param BufferLength Size of Buffer in bytes.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 PssNtWalkSnapshot(
     _In_ HANDLE SnapshotHandle,
     _In_ ULONG InformationClass,
-    _In_ HANDLE WalkMarkerHandle,
-    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _Inout_ PPSSNT_WALK_MARKER WalkMarker,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
 
 // rev
+/**
+ * The PssNtFreeWalkMarker routine unmaps the view held by a native PSS walk marker and clears both pointer-sized
+ * fields. The caller-owned marker itself is not freed. A non-NULL pointer to the full record is required even when
+ * MappedBase is NULL.
+ * There is no meaningful return value: the empty path leaves the return register unspecified, and the Win32
+ * caller ignores it. The inspected implementation clears the record even if an attempted unmap fails. Never
+ * supply arbitrary addresses or a single HANDLE slot.
+ *
+ * \param WalkMarker Caller-owned marker whose mapped view is released and fields are cleared.
+ */
 NTSYSAPI
-NTSTATUS
+VOID
 NTAPI
 PssNtFreeWalkMarker(
-    _Inout_ PHANDLE WalkMarkerHandle
+    _Inout_ PPSSNT_WALK_MARKER WalkMarker
     );
 
 // rev
+/**
+ * The PssNtValidateDescriptor routine checks the signature at the start of a native snapshot descriptor. NULL
+ * returns STATUS_INVALID_HANDLE. A readable descriptor with a wrong signature raises an exception; an unreadable
+ * pointer may fault.
+ * ExceptionAddress supplies the diagnostic exception address. This is not a safe arbitrary-handle probe. A
+ * matching signature alone does not validate the rest of a snapshot.
+ *
+ * \param SnapshotHandle Handle to the snapshot descriptor to validate.
+ * \param ExceptionAddress Optional diagnostic exception address.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI

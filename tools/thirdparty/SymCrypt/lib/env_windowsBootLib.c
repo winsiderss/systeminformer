@@ -33,15 +33,16 @@ BlStatusError (
 
 SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsBootlibrary()
 {
-#if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
-    //
-    // We disable AVX2 for X86 (including X86-64)
-    // This reduces codesize for bootmgr on PCAT which is codesize-constrained,
-    // and is simpler than creating a separate PCAT-bootlib SymCrypt environment.
-    //
-    return SYMCRYPT_CPU_FEATURE_AVX2;
-#elif SYMCRYPT_CPU_ARM | SYMCRYPT_CPU_ARM64
-    return 0;
+    // We explicitly opt-out of using CPU features besides those related to AES, SHA-2 and
+    // RDRAND/RDSEED. This ensures that new features requiring new state will not be used
+    // unintentionally, and reduces code size for the boot library environment, which is
+    // size-constrained on some devices.
+#if SYMCRYPT_CPU_AMD64 | SYMCRYPT_CPU_X86
+    return (SYMCRYPT_CPU_FEATURES) ~(SYMCRYPT_CPU_FEATURES_FOR_AESNI_PCLMULQDQ_CODE | SYMCRYPT_CPU_FEATURES_FOR_SHANI_CODE |
+            SYMCRYPT_CPU_FEATURE_RDRAND | SYMCRYPT_CPU_FEATURE_RDSEED);
+#elif SYMCRYPT_CPU_ARM64 | SYMCRYPT_CPU_ARM
+    return (SYMCRYPT_CPU_FEATURES) ~(SYMCRYPT_CPU_FEATURE_NEON | SYMCRYPT_CPU_FEATURE_NEON_AES |
+            SYMCRYPT_CPU_FEATURE_NEON_PMULL | SYMCRYPT_CPU_FEATURE_NEON_SHA256);
 #endif
 }
 
@@ -138,7 +139,7 @@ SYMCRYPT_CALL
 SymCryptSaveYmmEnvWindowsBootlibrary( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
 {
     //
-    // In Bootlibrary there is no need to save XMM registers.
+    // In Bootlibrary there is no need to save YMM registers.
     // The compiler should inline this function and optimize it away.
     //
 
@@ -152,10 +153,27 @@ SYMCRYPT_CALL
 SymCryptRestoreYmmEnvWindowsBootlibrary( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
 {
     //
-    // In Bootlibrary there is no need to save XMM registers.
+    // In Bootlibrary there is no need to save YMM registers.
     // The compiler should inline this function and optimize it away.
     //
 
+    UNREFERENCED_PARAMETER( pSaveArea );
+}
+
+SYMCRYPT_ERROR 
+SYMCRYPT_CALL 
+SymCryptSaveZmmEnvWindowsBootlibrary( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
+{
+    UNREFERENCED_PARAMETER( pSaveArea );
+    SymCryptFatal( 'mmzs' );
+    return SYMCRYPT_NOT_IMPLEMENTED;
+}
+
+VOID 
+SYMCRYPT_CALL 
+SymCryptRestoreZmmEnvWindowsBootlibrary( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
+{
+    SymCryptFatal( 'mmzs' );
     UNREFERENCED_PARAMETER( pSaveArea );
 }
 

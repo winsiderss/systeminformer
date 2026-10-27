@@ -681,6 +681,7 @@ VOID PvInitializeSymbolTree(
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, NoSortOrder);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetRowHeight(TreeNewHandle, PvpGetTreeNewRowHeight(TreeNewHandle));
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, TREE_COLUMN_ITEM_MAXIMUM, PvSymbolsTreeNewPostSortFunction);
 
@@ -826,8 +827,10 @@ VOID PvAddPendingSymbolNodes(
 
     PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
+    // N.B. This runs on a timer-queue thread as well as the UI thread. It must post: WM_DESTROY
+    // waits for the timer callback to finish, which would deadlock against a blocking send.
     //if (needsFullUpdate)
-        SendMessage(Context->WindowHandle, WM_PV_SEARCH_NODESSTRUCTURED, 0, 0);
+        PostMessage(Context->WindowHandle, WM_PV_SEARCH_NODESSTRUCTURED, 0, 0);
    // TreeNew_SetRedraw(Context->WindowHandle, TRUE);
 }
 
@@ -875,6 +878,21 @@ VOID NTAPI PvpSymbolsSearchControlCallback(
     PhApplyTreeNewFilters(GetSymbolListFilterSupport(context));
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS PvpSymbolsWorkerThread(
+    _In_ PPDB_SYMBOL_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+
+    status = PeDumpFileSymbols(Context);
+
+    // The worker only posts to the window, so WM_DESTROY can safely wait on this.
+    PhReleaseRundownProtection(&Context->WorkerRundown);
+
+    return status;
+}
+
 INT_PTR CALLBACK PvpSymbolsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -887,6 +905,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PDB_SYMBOL_CONTEXT));
+        PhInitializeRundownProtection(&context->WorkerRundown);
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
         if (lParam)
@@ -932,7 +951,10 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCreateThread2(PeDumpFileSymbols, context);
+            PhAcquireRundownProtection(&context->WorkerRundown);
+
+            if (!NT_SUCCESS(PhCreateThread2(PvpSymbolsWorkerThread, context)))
+                PhReleaseRundownProtection(&context->WorkerRundown);
 
             RtlCreateTimer(
                 PvSymbolGetGlobalTimerQueue(),
@@ -951,9 +973,12 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                // INVALID_HANDLE_VALUE blocks until a running callback has finished.
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, INVALID_HANDLE_VALUE);
                 context->UpdateTimerHandle = NULL;
             }
+
+            PhWaitForRundownProtection(&context->WorkerRundown);
 
             PvSaveSettingsSymbolsList(context);
             PvDeleteSymbolTree(context);
@@ -1092,7 +1117,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                // Wait for a running callback so it can't add nodes concurrently with the call below.
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, INVALID_HANDLE_VALUE);
                 context->UpdateTimerHandle = NULL;
             }
 

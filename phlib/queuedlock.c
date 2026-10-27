@@ -231,9 +231,7 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
  * Finds the last wait block in the waiters list.
  *
  * \param Value The current value of the queued lock.
- *
  * \return A pointer to the last wait block.
- *
  * \remarks The function assumes the following flags are set:
  * \ref PH_QUEUED_LOCK_WAITERS,
  * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED or
@@ -922,7 +920,6 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
  * Wakes one thread sleeping on a condition variable.
  *
  * \param Condition A condition variable.
- *
  * \remarks The associated lock must be acquired before calling the function.
  */
 _Use_decl_annotations_
@@ -940,7 +937,6 @@ VOID FASTCALL PhfPulseCondition(
  * Wakes all threads sleeping on a condition variable.
  *
  * \param Condition A condition variable.
- *
  * \remarks The associated lock must be acquired before calling the function.
  */
 _Use_decl_annotations_
@@ -960,7 +956,6 @@ VOID FASTCALL PhfPulseAllCondition(
  * \param Condition A condition variable.
  * \param Lock A queued lock to release/acquire in exclusive mode.
  * \param Timeout Not implemented.
- *
  * \remarks The associated lock must be acquired before calling the function.
  */
 _Use_decl_annotations_
@@ -1212,7 +1207,6 @@ VOID FASTCALL PhfSetWakeEvent(
  * \param WaitBlock A wait block previously queued to the wake event using PhfQueueWakeEvent().
  * \param Spin TRUE to spin on the wake event before blocking, FALSE to block immediately.
  * \param Timeout A timeout value.
- *
  * \remarks Wake events are subject to spurious wakeups. You should call this function in a loop
  * which checks a predicate.
  */
@@ -1234,6 +1228,6 @@ NTSTATUS FASTCALL PhfWaitForWakeEvent(
         // everyone.
         PhSetWakeEvent(WakeEvent, WaitBlock);
     }
-
+    
     return status;
 }

@@ -740,9 +740,12 @@ JSON_EXPORT struct json_object *json_object_new_uint64(uint64_t i);
 /** Get the int value of a json_object
  *
  * The type is coerced to a int if the passed object is not a int.
- * double objects will return their integer conversion. Strings will be
- * parsed as an integer. If no conversion exists then 0 is returned
- * and errno is set to EINVAL. null is equivalent to 0 (no error values set)
+ * double objects will return their integer conversion except for NaN values
+ * which return INT32_MIN and the errno is set to EINVAL.
+ * Strings will be parsed as an integer. If no conversion exists then 0 is
+ * returned and errno is set to EINVAL. null is equivalent to 0 (no error values
+ * set).
+ * Sets errno to ERANGE if the value exceeds the range of int.
  *
  * Note that integers are stored internally as 64-bit values.
  * If the value of too big or too small to fit into 32-bit, INT32_MAX or
@@ -784,8 +787,12 @@ JSON_EXPORT int json_object_int_inc(struct json_object *obj, int64_t val);
 /** Get the int value of a json_object
  *
  * The type is coerced to a int64 if the passed object is not a int64.
- * double objects will return their int64 conversion. Strings will be
- * parsed as an int64. If no conversion exists then 0 is returned.
+ * double objects will return their int64 conversion except for NaN values
+ * which return INT64_MIN and the errno is set to EINVAL.
+ * Strings will be parsed as an int64. If no conversion exists then 0 is
+ * returned and errno is set to EINVAL. null is equivalent to 0 (no error values
+ * set).
+ * Sets errno to ERANGE if the value exceeds the range of int64.
  *
  * NOTE: Set errno to 0 directly before a call to this function to determine
  * whether or not conversion was successful (it does not clear the value for
@@ -799,8 +806,12 @@ JSON_EXPORT int64_t json_object_get_int64(const struct json_object *obj);
 /** Get the uint value of a json_object
  *
  * The type is coerced to a uint64 if the passed object is not a uint64.
- * double objects will return their uint64 conversion. Strings will be
- * parsed as an uint64. If no conversion exists then 0 is returned.
+ * double objects will return their uint64 conversion except for NaN values
+ * which return 0 and the errno is set to EINVAL.
+ * Strings will be parsed as an uint64. If no conversion exists then 0 is
+ * returned and errno is set to EINVAL. null is equivalent to 0 (no error values
+ * set).
+ * Sets errno to ERANGE if the value exceeds the range of uint64.
  *
  * NOTE: Set errno to 0 directly before a call to this function to determine
  * whether or not conversion was successful (it does not clear the value for

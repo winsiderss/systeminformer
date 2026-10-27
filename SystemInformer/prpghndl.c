@@ -333,23 +333,27 @@ NTSTATUS PhpProcessHandleOpenCallback(
 
     if (KsiLevel() >= KphLevelMax)
     {
-        // Try limited-information first when allowed by KSI.
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            context->ProcessId
-            )))
+        PPH_PROCESS_ITEM processItem;
+
+        // Try the process item query handle first when allowed by KSI.
+        if (processItem = PhReferenceProcessItem(context->ProcessId))
         {
-            status = NtDuplicateObject(
-                processHandle,
-                context->HandleItem->Handle,
-                NtCurrentProcess(),
-                Handle,
-                DesiredAccess,
-                0,
-                0
-                );
-            NtClose(processHandle);
+            status = STATUS_INVALID_HANDLE;
+
+            if (processItem->QueryHandle)
+            {
+                status = NtDuplicateObject(
+                    processItem->QueryHandle,
+                    context->HandleItem->Handle,
+                    NtCurrentProcess(),
+                    Handle,
+                    DesiredAccess,
+                    0,
+                    0
+                    );
+            }
+
+            PhDereferenceObject(processItem);
 
             if (NT_SUCCESS(status))
                 return status;
@@ -491,8 +495,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (PhTreeWindowFont)
             {
-                handlesContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-                SetWindowFont(handlesContext->TreeNewHandle, handlesContext->TreeNewFont, FALSE);
+                handlesContext->TreeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg));
+                SetWindowFont(handlesContext->TreeNewHandle, PhGetFontHandle(handlesContext->TreeNewFont), FALSE);
             }
 
             TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
@@ -501,10 +505,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             handlesContext->ErrorMessage = NULL;
             handlesContext->FilterEntry = PhAddTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, PhpHandleTreeFilterCallback, handlesContext);
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 handlesContext->SearchWindowHandle,
                 L"Search Handles (Ctrl+K)",
+                SETTING_SEARCH_HANDLES_REGEX,
+                SETTING_SEARCH_HANDLES_CASE_SENSITIVE,
                 PhpProcessHandlessSearchControlCallback,
                 handlesContext
                 );
@@ -570,7 +576,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhDeleteProviderEventQueue(&handlesContext->EventQueue);
 
             if (handlesContext->TreeNewFont)
-                DeleteFont(handlesContext->TreeNewFont);
+                PhDereferenceObject(handlesContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {
@@ -603,10 +609,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         {
             if (PhTreeWindowFont)
             {
-                HFONT treeNewFont;
+                PPH_FONT treeNewFont;
 
-                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
-                    PhSwapReferenceFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
+                if (treeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg)))
+                    PhSwapOwnedFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
             }
         }
         break;

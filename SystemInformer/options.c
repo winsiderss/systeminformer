@@ -314,10 +314,22 @@ static VOID PhpApplyThemeSupportSetting(
     )
 {
     BOOLEAN enableThemeSupport;
+    BOOLEAN themeSupportWasEnabled;
 
+    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
     enableThemeSupport = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETHEME)) == BST_CHECKED;
     PhSetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, enableThemeSupport);
+
+    // Enabling theme support forces dark graph backgrounds (GraphColorMode); undo that
+    // override when theme support is turned off so the graphs return to the light colors.
+    if (themeSupportWasEnabled && !enableThemeSupport)
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0);
+
     PhUpdateCachedSettings();
+
+    // The General page also lists this setting and saves its check state when the options
+    // dialog closes, so reload it or the stale state would revert the change made here.
+    PhReloadGeneralSection();
 
     // The theme mode combo is only meaningful while theme support is enabled.
     EnableWindow(GetDlgItem(hwndDlg, IDC_THEMEMODE), enableThemeSupport);
@@ -472,7 +484,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 }
 
                 TreeView_SelectItem(OptionsTreeControl, section->TreeItemHandle);
-                SetFocus(OptionsTreeControl);
+                PhSetDialogFocus(hwndDlg, OptionsTreeControl);
                 //PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
             }
@@ -976,9 +988,10 @@ static VOID ReadCurrentUserRun(
             {
                 if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
+                    // The full path is compared since an entry that starts another copy of the
+                    // application is not this application's startup entry.
 
-                    if (fullFileName && PhEndsWithString(fullFileName, applicationFileName, TRUE))
+                    if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
                     {
                         CurrentUserRunPresent = TRUE;
                     }
@@ -1004,6 +1017,11 @@ static VOID WriteCurrentUserRun(
     )
 {
     HANDLE keyHandle;
+
+    // The entry is re-read here since the state cached when the dialog opened doesn't reflect
+    // the entry being changed or removed while the dialog was open.
+
+    ReadCurrentUserRun();
 
     if (CurrentUserRunPresent == Present)
         return;
@@ -1046,6 +1064,8 @@ static VOID WriteCurrentUserRun(
         {
             PhDeleteValueKey(keyHandle, &valueName);
         }
+
+        CurrentUserRunPresent = Present;
 
         NtClose(keyHandle);
     }
@@ -1790,9 +1810,12 @@ static VOID PhpAdvancedPageSave(
 {
     HWND listViewHandle;
     ULONG sampleCount;
+    BOOLEAN themeSupportWasEnabled;
 
     if (!hwndDlg)
         return;
+
+    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
     sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
@@ -1865,6 +1888,10 @@ static VOID PhpAdvancedPageSave(
     if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // PhGetIntegerSetting required (dmex)
     {
         PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1); // HACK switch to dark theme. (dmex)
+    }
+    else if (themeSupportWasEnabled)
+    {
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0); // Undo the override above when theme support is turned off.
     }
 
     WriteCurrentUserRun(
@@ -2191,7 +2218,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(ListViewHandle, &lvHitInfo) != -1)
+                    if (ListView_HitTest(ListViewHandle, &lvHitInfo) != INT_ERROR)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))
@@ -2695,7 +2722,7 @@ static VOID OptionsAdvancedLoadSchema(
     PPH_STRING fileName;
     PVOID object;
 
-    if (fileName = PhGetApplicationDirectoryFileNameZ(L"settings.schema.json", TRUE))
+    if (fileName = PhGetApplicationDirectoryFileNameZ(L"resources\\settings.schema.json", TRUE))
     {
         if (NT_SUCCESS(PhLoadJsonObjectFromFile(&object, &fileName->sr)))
         {
@@ -3562,10 +3589,12 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 context->SearchBoxHandle,
                 L"Search settings...",
+                SETTING_SEARCH_OPTIONS_REGEX,
+                SETTING_SEARCH_OPTIONS_CASE_SENSITIVE,
                 PhpOptionsAdvancedSearchControlCallback,
                 context
                 );
@@ -3866,6 +3895,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED_DEFAULT, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled by default", L"Token groups or privileges that are disabled but enabled by default."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled", L"Token groups or privileges that are disabled."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_REMOVED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Removed privilege", L"Token privileges that have been removed."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_ELEVATED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Elevated", L"Token groups or privileges that cause the token to report as elevated."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_DANGEROUS_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Dangerous flag", L"Token dangerous flags that are enabled."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_NORMAL_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Normal flag", L"Token dangerous flags that are disabled."),
     COLOR_ITEM(SETTING_COLOR_MEMORY_PRIVATE_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"Private pages", L"Highlight private pages in the Memory list."),

@@ -48,6 +48,7 @@ typedef struct _PH_EXTLV_CONTEXT
 
     // Color and Font
     PPH_EXTLV_GET_ITEM_COLOR ItemColorFunction;
+    PPH_EXTLV_DRAW_SUBITEM SubItemDrawFunction;
     PPH_EXTLV_GET_ITEM_FONT ItemFontFunction;
     HFONT FontHandle;
 
@@ -347,6 +348,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             return CDRF_NOTIFYITEMDRAW;
                         case CDDS_ITEMPREPAINT:
                             {
+                                if (context->SubItemDrawFunction)
+                                    return CDRF_NOTIFYSUBITEMDRAW;
+
                                 BOOLEAN colorChanged = FALSE;
                                 BOOLEAN selected = FALSE;
                                 HFONT newFont = NULL;
@@ -423,6 +427,17 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 else
                                     return CDRF_DODEFAULT;
                             }
+                            break;
+                        case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
+                            if (context->SubItemDrawFunction && context->SubItemDrawFunction(
+                                (LONG)customDraw->nmcd.dwItemSpec,
+                                customDraw->iSubItem,
+                                customDraw->nmcd.hdc,
+                                &customDraw->nmcd.rc,
+                                (PVOID)customDraw->nmcd.lItemlParam,
+                                context->Context
+                                ))
+                                return CDRF_SKIPDEFAULT;
                             break;
                         }
                     }
@@ -614,6 +629,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;
         }
+        return TRUE;
+    case ELVM_SETSUBITEMDRAWFUNCTION:
+        context->SubItemDrawFunction = (PPH_EXTLV_DRAW_SUBITEM)lParam;
         return TRUE;
     case ELVM_SETITEMFONTFUNCTION:
         {

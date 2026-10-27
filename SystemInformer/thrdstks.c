@@ -63,6 +63,7 @@ typedef struct _PH_THREAD_STACKS_PROCESS_NODE
     PPH_STRING FileName;
     PH_STRINGREF Architecture;
     PPH_LIST Threads;
+    BOOLEAN IsWow64Process;
 } PH_THREAD_STACKS_PROCESS_NODE, *PPH_THREAD_STACKS_PROCESS_NODE;
 
 typedef struct _PH_THREAD_STACKS_THREAD_NODE
@@ -76,6 +77,7 @@ typedef struct _PH_THREAD_STACKS_THREAD_NODE
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
     WCHAR StartAddressString[PH_PTR_STR_LEN_1];
     PPH_STRING StartAddressSymbol;
+    PPH_STRING InitialSymbol; // Keeps the original node symbol alive; the UI may still be reading it when the worker replaces it.
     PPH_STRING FileName;
     PPH_LIST Frames;
     BOOLEAN FramesComplete;
@@ -124,7 +126,7 @@ typedef struct _PH_THREAD_STACKS_NODE
 
 typedef struct _PH_THREAD_STACKS_WORKER_CONTEXT
 {
-    volatile LONG Stop;
+    LONG Stop;
     PVOID Context;
     ULONG TotalThreads;
     ULONG WalkedThreads;
@@ -215,6 +217,7 @@ VOID NTAPI PhpThreadStacksNodeDeleteProcedure(
             PhClearReference(&node->Thread.ThreadName);
             PhDereferenceObject(node->Thread.Frames);
             PhClearReference(&node->Thread.StartAddressSymbol);
+            PhClearReference(&node->Thread.InitialSymbol);
             PhClearReference(&node->Thread.FileName);
         }
         break;
@@ -331,7 +334,7 @@ VOID PhpThreadStacksMessage(
     PPH_STRING message;
     va_list args;
 
-    if (Context->Stop)
+    if (ReadAcquire(&Context->Stop))
         return;
 
     va_start(args, Format);
@@ -352,13 +355,17 @@ VOID PhpThreadStacksPublish(
 {
     PPH_THREAD_STACKS_CONTEXT context = Context->Context;
 
-    if (Context->Stop)
+    if (ReadAcquire(&Context->Stop))
         return;
 
     if (Node)
         PhReferenceObject(Node);
 
-    PostMessage(context->WindowHandle, WM_PH_THREAD_STACKS_PUBLISH, (WPARAM)Restructure, (LPARAM)Node);
+    if (!PostMessage(context->WindowHandle, WM_PH_THREAD_STACKS_PUBLISH, (WPARAM)Restructure, (LPARAM)Node))
+    {
+        if (Node)
+            PhDereferenceObject(Node);
+    }
 }
 
 VOID PhpThreadStacksCreateThreadNode(
@@ -403,7 +410,10 @@ VOID PhpThreadStacksCreateThreadNode(
     if (!PhIsNullOrEmptyString(node->Thread.ThreadName))
         node->Symbol = PhReferenceObject(node->Thread.ThreadName);
     else
+    {
         node->Symbol = PhCreateString(node->Thread.StartAddressString);
+        node->Thread.InitialSymbol = PhReferenceObject(node->Symbol);
+    }
 
     node->Thread.Frames = PhCreateList(10);
 
@@ -431,6 +441,11 @@ VOID PhpThreadStacksCreateProcessNode(
     node->Process.SymbolProvider = PhCreateSymbolProvider(node->Process.ProcessId);
 
     PhLoadSymbolProviderOptions(node->Process.SymbolProvider);
+
+#if defined(_WIN64)
+    if (node->Process.SymbolProvider->ProcessHandle)
+        PhGetProcessIsWow64(node->Process.SymbolProvider->ProcessHandle, &node->Process.IsWow64Process);
+#endif
 
     if (node->Process.ProcessId != SYSTEM_IDLE_PROCESS_ID)
         node->Process.ProcessName = PhCreateStringFromUnicodeString(&ProcessInfo->ImageName);
@@ -598,6 +613,8 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     }
 
     FrameNode->StackFrame = *StackFrame;
+    FrameNode->StackFrame.ContextRecord = NULL; // Only valid during the walk callback.
+    ClearFlag(FrameNode->StackFrame.Flags, PH_THREAD_STACK_FRAME_CONTEXT_PRESENT);
 
     if (symbol &&
         (FrameNode->StackFrame.Machine == IMAGE_FILE_MACHINE_I386) &&
@@ -740,7 +757,7 @@ BOOLEAN NTAPI PhpThreadStacksWalkCallback(
 {
     PPH_THREAD_STACKS_WALK_CONTEXT context = Context;
 
-    if (context->Context->Stop)
+    if (ReadAcquire(&context->Context->Stop))
         return FALSE;
 
     PhpThreadStacksCreateFrameNode(context->Context, context->ThreadNode, StackFrame);
@@ -770,7 +787,7 @@ VOID PhpThreadStacksThreadPhase2(
         ThreadNode->Process->SymbolProvider->ProcessHandle,
         &clientId,
         ThreadNode->Process->SymbolProvider,
-        PH_WALK_USER_WOW64_STACK | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK,
+        (ThreadNode->Process->IsWow64Process ? PH_WALK_USER_WOW64_STACK : 0) | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK,
         PhpThreadStacksWalkCallback,
         &context
         );
@@ -811,7 +828,13 @@ VOID PhpThreadStacksProcessPhase2(
         }
         else if (node->Thread.StartAddressSymbol)
         {
-            PhMoveReference(&node->Symbol, PhReferenceObject(node->Thread.StartAddressSymbol));
+            // The node is already published and the UI thread may be painting node->Symbol.
+            // Swap the pointer, then drop the node's reference; InitialSymbol keeps the old
+            // string alive until the node is deleted.
+            PPH_STRING oldSymbol = node->Symbol;
+
+            node->Symbol = PhReferenceObject(node->Thread.StartAddressSymbol);
+            PhDereferenceObject(oldSymbol);
         }
 
         PhpThreadStacksThreadPhase2(Context, &node->Thread);
@@ -821,7 +844,7 @@ VOID PhpThreadStacksProcessPhase2(
 
         PhpThreadStacksPublish(Context, TRUE, NULL);
 
-        if (Context->Stop)
+        if (ReadAcquire(&Context->Stop))
             break;
     }
 }
@@ -849,7 +872,7 @@ VOID PhpThreadStacksWorkerPhase2(
         // Clean up the symbol provider as soon as possible.
         PhClearReference(&node->Process.SymbolProvider);
 
-        if (Context->Stop)
+        if (ReadAcquire(&Context->Stop))
             break;
     }
 }
@@ -1652,10 +1675,12 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
             PhRegisterDialog(hwndDlg);
-            PhCreateSearchControl(
+            PhCreateSearchControl2(
                 hwndDlg,
                 context->SearchWindowHandle,
                 L"Search Thread Stacks",
+                SETTING_SEARCH_THREAD_STACKS_REGEX,
+                SETTING_SEARCH_CONTROL_CASE_SENSITIVE,
                 PhpThreadStacksSearchControlCallback,
                 context
                 );

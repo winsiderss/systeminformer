@@ -49,6 +49,9 @@ typedef struct _TRACERT_ROOT_NODE
     PPH_STRING IpAddressString;
     PPH_STRING RemoteCountryName;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
+    BOOLEAN HasAddress;
+    SOCKADDR_STORAGE SocketAddress;
+    ULONG PingCount;
 } TRACERT_ROOT_NODE, *PTRACERT_ROOT_NODE;
 
 typedef struct _TRACERT_RESOLVE_WORKITEM

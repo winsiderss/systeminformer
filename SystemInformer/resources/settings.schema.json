@@ -1032,6 +1032,426 @@
         }
       ]
     },
+    "SearchColumnsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the column chooser search boxes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchColumnsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the column chooser search boxes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchFindObjectsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the Find Handles or DLLs search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchFindObjectsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the Find Handles or DLLs search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMonitorRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the monitor search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMonitorCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the monitor search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMemoryStringsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the memory strings search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMemoryStringsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the memory strings search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchOptionsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the options search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchOptionsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the options search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchEnvironmentRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the environment search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchEnvironmentCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the environment search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchHandlesRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the handles search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchHandlesCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the handles search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMemoryRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the memory search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchMemoryCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the memory search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchModulesRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the modules search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchModulesCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the modules search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchThreadsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the threads search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchThreadsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the threads search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchWmiProvidersRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the WMI providers search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchWmiProvidersCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the WMI providers search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchPackagesRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the packages search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchPackagesCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the packages search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchThreadStacksRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the thread stacks search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchThreadStacksCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the thread stacks search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchUsersRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the users search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchUsersCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the users search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "FindObjTreeListColumns": {
       "type": "string",
       "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the Find Handles/DLLs list."

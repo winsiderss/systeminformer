@@ -49,7 +49,7 @@ VOID PhInitializeProviderThread(
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
     ProviderThread->Interval = Interval;
-    ProviderThread->State = ProviderThreadStopped;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopped);
 
     PhInitializeQueuedLock(&ProviderThread->Lock);
     InitializeListHead(&ProviderThread->ListHead);
@@ -111,7 +111,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    while (providerThread->State != ProviderThreadStopping)
+    while (ReadULongAcquire((PULONG)&providerThread->State) != ProviderThreadStopping)
     {
         // Keep removing and executing providers from the list until there are no more. Each removed
         // provider will be placed on the temporary list. After this is done, all providers on the
@@ -192,6 +192,22 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
             if (PhAcquireRundownProtection(&registration->RundownProtect))
             {
+                LARGE_INTEGER performanceCounter;
+
+                // Measure the time actually spanned by this run. The nominal interval is not
+                // usable as a divisor for rates because providers can be boosted (run out of
+                // band), can overrun the interval, or can be paused. (dmex)
+
+                if (PhQueryPerformanceCounter(&performanceCounter))
+                {
+                    if (registration->LastRunTime.QuadPart != 0)
+                        WriteULong64NoFence(&registration->ElapsedTicks, (ULONG64)(performanceCounter.QuadPart - registration->LastRunTime.QuadPart));
+                    else
+                        WriteULong64NoFence(&registration->ElapsedTicks, 0);
+
+                    registration->LastRunTime = performanceCounter;
+                }
+
                 providerFunction(object);
 
                 PhReleaseRundownProtection(&registration->RundownProtect);
@@ -247,20 +263,27 @@ NTSTATUS PhStartProviderThread(
 {
     NTSTATUS status;
 
-    if (ProviderThread->State != ProviderThreadStopped)
+    if (ReadULongAcquire((PULONG)&ProviderThread->State) != ProviderThreadStopped)
         return STATUS_PENDING;
 
     //
     // Create the synchronization timer.
     //
 
+    ProviderThread->HighResolutionTimer = FALSE;
+
     if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
     {
-        status = PhCreateWaitableTimer(
+        status = PhCreateHighResolutionTimer(
             &ProviderThread->TimerHandle,
             TIMER_ALL_ACCESS,
             SynchronizationTimer
             );
+
+        if (NT_SUCCESS(status))
+        {
+            ProviderThread->HighResolutionTimer = TRUE;
+        }
     }
     else
     {
@@ -327,7 +350,7 @@ NTSTATUS PhStartProviderThread(
         return status;
     }
 
-    ProviderThread->State = ProviderThreadRunning;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadRunning);
     return STATUS_SUCCESS;
 }
 
@@ -340,7 +363,7 @@ VOID PhStopProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
-    if (ProviderThread->State != ProviderThreadRunning)
+    if (ReadULongAcquire((PULONG)&ProviderThread->State) != ProviderThreadRunning)
         return;
 
 #ifdef DEBUG
@@ -359,7 +382,7 @@ VOID PhStopProviderThread(
 #endif
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
-    ProviderThread->State = ProviderThreadStopping;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopping);
     NtAlertThread(ProviderThread->ThreadHandle); // wake it up
     NtWaitForSingleObject(ProviderThread->ThreadHandle, FALSE, NULL);
 
@@ -370,7 +393,7 @@ VOID PhStopProviderThread(
     NtClose(ProviderThread->TimerHandle);
     ProviderThread->TimerHandle = NULL;
 
-    ProviderThread->State = ProviderThreadStopped;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopped);
 }
 
 /**
@@ -402,15 +425,13 @@ NTSTATUS PhSetIntervalProviderThread(
     interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
     period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
-    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
+    // The set API must match the object type of the timer that was created.
+    if (ProviderThread->HighResolutionTimer)
     {
-        return PhSetWaitableTimer(
+        return PhSetHighResolutionTimer(
             ProviderThread->TimerHandle,
             &interval,
-            &period,
-            NULL,
-            NULL,
-            FALSE
+            &period
             );
     }
 
@@ -450,6 +471,8 @@ VOID PhRegisterProvider(
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
     Registration->Boosting = FALSE;
+    Registration->LastRunTime.QuadPart = 0;
+    Registration->ElapsedTicks = 0;
 
     if (Object)
         PhReferenceObject(Object);
@@ -530,7 +553,7 @@ BOOLEAN PhBoostProvider(
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
     // Abort if the provider is already being boosted, unregistering, or the provider thread is stopping/stopped.
-    if (Registration->Unregistering || Registration->Boosting || providerThread->State != ProviderThreadRunning)
+    if (Registration->Unregistering || Registration->Boosting || ReadULongAcquire((PULONG)&providerThread->State) != ProviderThreadRunning)
     {
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
         return FALSE;
@@ -564,7 +587,60 @@ ULONG PhGetRunIdProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    return Registration->RunId;
+    return ReadULongNoFence(&Registration->RunId);
+}
+
+/**
+ * Gets the time actually spanned by the last provider run, in milliseconds.
+ *
+ * \param Registration A pointer to the registration object for a provider.
+ * \return The elapsed time in milliseconds, or 0 when the provider has only run once
+ * (or the performance counter is unavailable).
+ */
+ULONG PhGetProviderElapsedMilliseconds(
+    _In_ PPH_PROVIDER_REGISTRATION Registration
+    )
+{
+    PH_PROVIDER_ELAPSED elapsed;
+
+    if (!PhGetProviderElapsed(Registration, &elapsed))
+        return 0;
+
+    return (ULONG)(elapsed.Ticks * 1000 / elapsed.Frequency);
+}
+
+/**
+ * Gets the time actually spanned by the last provider run, in performance counter ticks.
+ *
+ * \param Registration A pointer to the registration object for a provider.
+ * \param Elapsed A variable which receives the elapsed ticks and the performance counter
+ * frequency. Rates are computed as Delta * Elapsed->Frequency / Elapsed->Ticks.
+ * \return TRUE if the elapsed time is available, FALSE when the provider has only run once
+ * (or the performance counter is unavailable).
+ */
+_Success_(return)
+BOOLEAN PhGetProviderElapsed(
+    _In_ PPH_PROVIDER_REGISTRATION Registration,
+    _Out_ PPH_PROVIDER_ELAPSED Elapsed
+    )
+{
+    LARGE_INTEGER performanceFrequency;
+    ULONG64 elapsedTicks;
+
+    elapsedTicks = ReadULong64NoFence(&Registration->ElapsedTicks);
+
+    if (elapsedTicks == 0)
+        return FALSE;
+
+    if (!PhQueryPerformanceFrequency(&performanceFrequency))
+        return FALSE;
+
+    if (performanceFrequency.QuadPart == 0)
+        return FALSE;
+
+    Elapsed->Ticks = elapsedTicks;
+    Elapsed->Frequency = (ULONG64)performanceFrequency.QuadPart;
+    return TRUE;
 }
 
 /**
@@ -613,6 +689,7 @@ VOID PhSetEnabledProvider(
  *
  * \param ProviderThread A pointer to the provider thread object.
  * \param UseHighResolutionTimer TRUE to use a high-resolution timer, otherwise FALSE.
+ * \remarks Takes effect the next time the provider thread is started.
  */
 VOID PhSetHighResolutionProvider(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,

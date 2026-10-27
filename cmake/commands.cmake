@@ -13,6 +13,10 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-c23-extensions
     -Wno-incompatible-pointer-types
     -Wno-missing-braces
+    # With CONST_VTABLE defined, DECLARE_INTERFACE_ expands to
+    # 'const struct IFooVtbl { ... };' - a const with no declarator. MSVC accepts
+    # it silently; clang reports 'const ignored on this declaration'.
+    -Wno-missing-declarations
     -Wno-parentheses
     -Wno-pointer-sign
     -Wno-switch
@@ -43,6 +47,16 @@ function(_si_set_target_defaults target)
         target_link_options(${target} PRIVATE /NATVIS:${SI_ROOT}/SystemInformer.natvis)
     endif()
 
+    if(MSVC_NOT_CLANG)
+        target_compile_options(${target} PRIVATE
+            $<$<COMPILE_LANGUAGE:C>:/std:clatest>
+            $<$<COMPILE_LANGUAGE:CXX>:/std:c++latest>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/Zc:preprocessor>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/permissive->
+            $<$<COMPILE_LANGUAGE:C,CXX>:/utf-8>
+        )
+    endif()
+
     if(NOT SI_OUTPUT_DIR STREQUAL "" AND NOT SI_OUTPUT_DIR STREQUAL "OFF")
         if(arg_PLUGIN)
             set_target_properties(${target} PROPERTIES
@@ -62,6 +76,36 @@ function(_si_set_target_defaults target)
     get_target_property(_target_sources ${target} SOURCES)
     if(NOT _target_sources)
         set(_target_sources "")
+    endif()
+
+    #
+    # User-mode preprocessor definitions. These mirror the shared definitions in
+    # Common.User.props, which is canonical for MSBuild; keep the two in sync.
+    # CONST_VTABLE makes MIDL-generated C interfaces declare lpVtbl as a pointer
+    # to const, as required by the const vtables in phlib/webview.
+    #
+    # thirdparty.vcxproj inherits Common.User.props through tools/Directory.Build.props
+    # and preserves its definitions alongside the project-specific architecture macros.
+    # Apply the shared definitions to thirdparty here as well. The user-mode clang
+    # options above suppress the CONST_VTABLE-related SDK declaration warning.
+    if(arg_TYPE MATCHES "^UM_")
+        if(SI_PLATFORM STREQUAL "Win32")
+            set(_si_um_bitness WIN32)
+        else()
+            set(_si_um_bitness WIN64)
+        endif()
+        target_compile_definitions(${target} PRIVATE
+            ${_si_um_bitness}
+            _WINDOWS
+            _USRDLL
+            ENABLE_RESTRICTED
+            CONST_VTABLE
+            $<$<CONFIG:Debug>:DEBUG>
+            $<$<CONFIG:Debug>:_DEBUG>
+            $<$<CONFIG:Debug>:_DBG_MEMCPY_INLINE_>
+            $<$<CONFIG:Release>:NDEBUG>
+        )
+        unset(_si_um_bitness)
     endif()
 
     if(arg_TYPE STREQUAL "UM_LIB")

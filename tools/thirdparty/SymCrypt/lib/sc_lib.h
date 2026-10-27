@@ -231,15 +231,6 @@ struct _SYMCRYPT_EXTENDED_SAVE_DATA {
                     SYMCRYPT_MAGIC_FIELD
 } SYMCRYPT_EXTENDED_SAVE_DATA, *PSYMCRYPT_EXTENDED_SAVE_DATA;
 
-
-//
-// Two functions to save/restore the XMM registers.
-// These must ALWAYS be called in pairs, even if the SaveXmm function returned an error.
-// XMM registers cannot be used if the save function returned an error.
-// If the SYMCRYPT_CPU_FEATURE_SAVEXMM_NOFAIL feature is present, then the
-// SymCryptSaveXmm function will never return an error.
-//
-
 //
 // Functions to save/restore the XMM or YMM registers.
 // If the Save*mm function is called and succeeds, then the corresponding
@@ -263,6 +254,15 @@ SymCryptSaveYmm( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData );
 VOID
 SYMCRYPT_CALL
 SymCryptRestoreYmm( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData );
+
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmm( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData );
+
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmm( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData );
 #endif
 
 
@@ -1072,6 +1072,8 @@ typedef enum _SYMCRYPT_BLOB_TYPE {
     SymCryptBlobTypeSha512_224State = SymCryptBlobTypeHashState + 12,
     SymCryptBlobTypeSha512_256State = SymCryptBlobTypeHashState + 13,
     SymCryptBlobTypeSha3_224State = SymCryptBlobTypeHashState + 14,
+    SymCryptBlobTypeShake128State = SymCryptBlobTypeHashState + 15,
+    SymCryptBlobTypeShake256State = SymCryptBlobTypeHashState + 16,
 } SYMCRYPT_BLOB_TYPE;
 
 #define SYMCRYPT_BLOB_MAGIC ('cmys')
@@ -1179,16 +1181,23 @@ typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHA3_224_STATE_EXPORT_BLOB;
 typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHA3_256_STATE_EXPORT_BLOB;
 typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHA3_384_STATE_EXPORT_BLOB;
 typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHA3_512_STATE_EXPORT_BLOB;
+typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHAKE128_STATE_EXPORT_BLOB;
+typedef SYMCRYPT_KECCAK_STATE_EXPORT_BLOB SYMCRYPT_SHAKE256_STATE_EXPORT_BLOB;
 
 C_ASSERT(sizeof(SYMCRYPT_SHA3_224_STATE_EXPORT_BLOB) == SYMCRYPT_SHA3_224_STATE_EXPORT_SIZE);
 C_ASSERT(sizeof(SYMCRYPT_SHA3_256_STATE_EXPORT_BLOB) == SYMCRYPT_SHA3_256_STATE_EXPORT_SIZE);
 C_ASSERT(sizeof(SYMCRYPT_SHA3_384_STATE_EXPORT_BLOB) == SYMCRYPT_SHA3_384_STATE_EXPORT_SIZE);
 C_ASSERT(sizeof(SYMCRYPT_SHA3_512_STATE_EXPORT_BLOB) == SYMCRYPT_SHA3_512_STATE_EXPORT_SIZE);
+C_ASSERT(sizeof(SYMCRYPT_SHAKE128_STATE_EXPORT_BLOB) == SYMCRYPT_SHAKE128_STATE_EXPORT_SIZE);
+C_ASSERT(sizeof(SYMCRYPT_SHAKE256_STATE_EXPORT_BLOB) == SYMCRYPT_SHAKE256_STATE_EXPORT_SIZE);
 
 #pragma pack(pop)
 
 /////////////////////////////////////////////
 // AES internal functions
+
+#define GCM_YMM_MINBLOCKS 16
+#define CBC_YMM_MINBLOCKS 16
 
 extern const SYMCRYPT_BLOCKCIPHER SymCryptAesBlockCipherNoOpt;
 
@@ -1256,6 +1265,9 @@ SymCryptAesEncryptAsm(
     _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PCBYTE                      pbSrc,
     _Out_writes_( SYMCRYPT_AES_BLOCK_SIZE ) PBYTE                       pbDst );
 
+#if SYMCRUST_EXPERIMENTAL_BUILD
+extern
+#endif
 VOID
 SYMCRYPT_CALL
 SymCryptAesEncryptXmm(
@@ -1263,6 +1275,9 @@ SymCryptAesEncryptXmm(
     _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PCBYTE                      pbSrc,
     _Out_writes_( SYMCRYPT_AES_BLOCK_SIZE ) PBYTE                       pbDst );
 
+#if SYMCRUST_EXPERIMENTAL_BUILD
+extern
+#endif
 VOID
 SYMCRYPT_CALL
 SymCryptAesEncryptNeon(
@@ -1284,6 +1299,9 @@ SymCryptAesDecryptAsm(
     _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PCBYTE                      pbSrc,
     _Out_writes_( SYMCRYPT_AES_BLOCK_SIZE ) PBYTE                       pbDst );
 
+#if SYMCRUST_EXPERIMENTAL_BUILD
+extern
+#endif
 VOID
 SYMCRYPT_CALL
 SymCryptAesDecryptXmm(
@@ -1291,6 +1309,9 @@ SymCryptAesDecryptXmm(
     _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PCBYTE                      pbSrc,
     _Out_writes_( SYMCRYPT_AES_BLOCK_SIZE ) PBYTE                       pbDst );
 
+#if SYMCRUST_EXPERIMENTAL_BUILD
+extern
+#endif
 VOID
 SYMCRYPT_CALL
 SymCryptAesDecryptNeon(
@@ -1387,6 +1408,16 @@ SymCryptAesCbcDecryptNeon(
     _Inout_updates_( SYMCRYPT_AES_BLOCK_SIZE )  PBYTE                       pbChainingValue,
     _In_reads_( cbData )                        PCBYTE                      pbSrc,
     _Out_writes_( cbData )                      PBYTE                       pbDst,
+                                                SIZE_T                      cbData );
+
+VOID
+SYMCRYPT_CALL
+SymCryptAesCbcDecryptYmm(
+    _In_                                        PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _Inout_updates_( SYMCRYPT_AES_BLOCK_SIZE )  PBYTE                       pbChainingValue,
+    _In_reads_( cbData )                        PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                      PBYTE                       pbDst,
+    _In_range_( CBC_YMM_MINBLOCKS * SYMCRYPT_AES_BLOCK_SIZE, SIZE_MAX )
                                                 SIZE_T                      cbData );
 
 VOID
@@ -1608,9 +1639,6 @@ SymCryptAesGcmDecryptStitchedXmm(
     _Out_writes_( cbData )                  PBYTE                       pbDst,
                                             SIZE_T                      cbData );
 
-#define GCM_YMM_MINBLOCKS 16
-
-// Caller must check cbData >= GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE
 VOID
 SYMCRYPT_CALL
 SymCryptAesGcmEncryptStitchedYmm_2048(
@@ -1620,12 +1648,67 @@ SymCryptAesGcmEncryptStitchedYmm_2048(
     _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
     _In_reads_( cbData )                    PCBYTE                      pbSrc,
     _Out_writes_( cbData )                  PBYTE                       pbDst,
+    _In_range_( GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE, SYMCRYPT_GCM_MAX_DATA_SIZE )
                                             SIZE_T                      cbData );
 
-// Caller must check cbData >= GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE
 VOID
 SYMCRYPT_CALL
 SymCryptAesGcmDecryptStitchedYmm_2048(
+    _In_                                    PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PBYTE                       pbChainingValue,
+    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                    PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                  PBYTE                       pbDst,
+    _In_range_( GCM_YMM_MINBLOCKS * SYMCRYPT_GCM_BLOCK_SIZE, SYMCRYPT_GCM_MAX_DATA_SIZE )
+                                            SIZE_T                      cbData );
+
+// Minimum number of AES blocks to dispatch through the ZMM AES-GCM encrypt path. Below this
+// threshold the ZMM path's overhead outweighs its throughput advantage over YMM. The decrypt
+// path has a lower floor because it lacks the 1-iteration AES-only lag that encrypt incurs,
+// so it is competitive with YMM down to a small number of blocks. Note that these thresholds may
+// vary between microarchitectures, but the chosen values should be a reasonable baseline.
+// Note: `cbData` on the ZMM functions has no SAL annotation for range beacause unlike YMM, the
+// ZMM implementations still work on smaller sizes; they just do not perform as well.
+#define GCM_ZMM_ENCRYPT_MINBLOCKS 32
+#define GCM_ZMM_DECRYPT_MINBLOCKS 8
+
+VOID
+SYMCRYPT_CALL
+SymCryptAesGcmEncryptStitchedZmm(
+    _In_                                    PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PBYTE                       pbChainingValue,
+    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                    PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                  PBYTE                       pbDst,
+                                            SIZE_T                      cbData );
+
+VOID
+SYMCRYPT_CALL
+SymCryptAesGcmDecryptStitchedZmm(
+    _In_                                    PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PBYTE                       pbChainingValue,
+    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                    PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                  PBYTE                       pbDst,
+                                            SIZE_T                      cbData );
+
+VOID
+SYMCRYPT_CALL
+SymCryptAesGcmEncryptStitchedZmm(
+    _In_                                    PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
+    _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PBYTE                       pbChainingValue,
+    _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
+    _Inout_                                 PSYMCRYPT_GF128_ELEMENT     pState,
+    _In_reads_( cbData )                    PCBYTE                      pbSrc,
+    _Out_writes_( cbData )                  PBYTE                       pbDst,
+                                            SIZE_T                      cbData );
+
+VOID
+SYMCRYPT_CALL
+SymCryptAesGcmDecryptStitchedZmm(
     _In_                                    PCSYMCRYPT_AES_EXPANDED_KEY pExpandedKey,
     _In_reads_( SYMCRYPT_AES_BLOCK_SIZE )   PBYTE                       pbChainingValue,
     _In_reads_( SYMCRYPT_GF128_FIELD_SIZE ) PCSYMCRYPT_GF128_ELEMENT    expandedKeyTable,
@@ -3326,6 +3409,40 @@ SymCryptModMultiExpGeneric(
     _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
                                     SIZE_T                  cbScratch );
 
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptIntGenerateRandomPrimeEx(
+    _In_                            PCSYMCRYPT_INT          piLow,
+    _In_                            PCSYMCRYPT_INT          piHigh,
+    _In_reads_opt_( nPubExp )       PCUINT64                pu64PubExp,
+                                    UINT32                  nPubExp,
+                                    UINT32                  nTries,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Inout_                         PSYMCRYPT_INT           piDst,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch );
+
+VOID
+SYMCRYPT_CALL
+SymCryptModSetRandomEx(
+    _In_                            PCSYMCRYPT_MODULUS      pmMod,
+    _Out_                           PSYMCRYPT_MODELEMENT    peDst,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch );
+
+VOID
+SYMCRYPT_CALL
+SymCryptFdefModSetRandomGenericEx(
+    _In_                            PCSYMCRYPT_MODULUS      pmMod,
+    _Out_                           PSYMCRYPT_MODELEMENT    peDst,
+                                    UINT32                  flags,
+    _Inout_opt_                     PSYMCRYPT_RNG_AES_STATE pRngState,
+    _Out_writes_bytes_( cbScratch ) PBYTE                   pbScratch,
+                                    SIZE_T                  cbScratch );
+
 VOID
 SYMCRYPT_CALL
 SymCryptFdefModSetRandomGeneric(
@@ -4321,14 +4438,15 @@ SymCryptPositiveWidthNafRecoding(
 // based on the Learning-With-Errors problem over Module Lattices (or the hardness of the M-LWE
 // problem).
 //
-// A Module is a Vector Space over a Ring. That is, elements of the vector spaces are elements in
-// the underlying ring.
+// A Module is a generalization of a Vector Space, where the scalars are defined over a Ring
+// instead of a Field.
 // We refer to Module as MLWE in the below types to avoid naming confusion with Module as in
 // "FIPS module". Though technically components acting on MLWE types could be used outside of the
 // MLWE problem, these types are SymCrypt-internal, and are only currently intended for use in
 // these MLWE-based algorithms.
 //
-// In ML-KEM and ML-DSA, Polynomial Rings are used. That is, a ring defined over polynomials.
+// In ML-KEM and ML-DSA, the underlying Ring of the Module is a Polynomial Ring. That is, elements
+// of the vectors and matrices of the modules are polynomials.
 // For both schemes, the polynomial ring is defined modulo the polynomial (X^256 + 1). This means
 // there is a representative of each polynomial ring element with 256 coefficients
 // (c_255*X^255 + c_254*X^254 + ... + c_0). The coefficients themselves are modulo a small prime
@@ -4416,6 +4534,23 @@ SymCryptEckeySetValueCompositeEncodingSk(
                                 UINT32                      flags,
     _Inout_                     PSYMCRYPT_ECKEY             pEckey );
 
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEcdsaSigValueCompositeEncode(
+    _In_reads_bytes_( cbRawSignature )          PCBYTE  pbRawSignature,
+                                                SIZE_T  cbRawSignature,
+    _Out_writes_bytes_( cbEncodedSignature )    PBYTE   pbEncodedSignature,
+                                                SIZE_T  cbEncodedSignature,
+    _Out_                                       SIZE_T* pcbResult );
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptEcdsaSigValueCompositeDecode(
+    _In_reads_bytes_( cbEncodedSignature )      PCBYTE  pbEncodedSignature,
+                                                SIZE_T  cbEncodedSignature,
+    _Out_writes_bytes_( cbRawSignature )        PBYTE   pbRawSignature,
+                                                SIZE_T  cbRawSignature );
+
 //
 // Composite ML-KEM definitions
 //
@@ -4459,6 +4594,8 @@ SymCryptCompositeMlKemGetRandomScalarForEcKeyEx(
                                     SIZE_T                      cbSeed,
     _Out_writes_bytes_( cbScalar )  PBYTE                       pbScalar,
                                     SIZE_T                      cbScalar );
+
+#include "sc_lib_composite_mldsa.h"
 
 //
 // XMSS
@@ -4750,178 +4887,8 @@ SymCryptLmsVerifyInternal(
 //
 
 
-// Atomics.
-//
-// We define all our SymCrypt atomics below. Different compilers/environments have different
-// intrinsics to handle atomics in different environments.
-//
-// The SymCrypt atomics take the form SYMCRYPT_ATOMIC_<Operation><Bitsize>_<Return>_<Ordering>
-//
-// <Operation> is the atomic operation (i.e. LOAD, OR, XOR, AND, ADD, INC, etc.)
-// <Bitsize> indicates the bitsize of the values that the atomic operation operates on. Pointers to
-// values which atomics operate on must be aligned to the size of the value.
-// <Return> takes the value PRE or POST, indicating whether the return value of the atomic is the
-// value of the destination before (PRE) or after (POST) the operation was performed. Not used when
-// operation is LOAD!
-// <Ordering> specifies the memory ordering of the atomic operation in relation to other loads/stores
-// and can take one of the following values:
-//   RELAXED corresponds to relaxed memory ordering in C++11
-//   SEQ_CST corresponds to sequentially consistent memory ordering in C++11
-//   ACQUIRE corresponds to acquire memory ordering in C++11
-//   RELEASE corresponds to release memory ordering in C++11
-//
-
-#if SYMCRYPT_MS_VC
-#include <intrin.h>
-
-#if SYMCRYPT_CPU_ARM64
-// 64b loads are naturally atomic on Arm64
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           SYMCRYPT_FORCE_READ64(_dest)
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   _InterlockedOr_nf( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  _InterlockedExchangeAdd_nf( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) _InterlockedAdd64_nf( (volatile LONG64 *)(_dest), (LONG64)(_val) )
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) _InterlockedAdd( (volatile LONG *)(_dest), (LONG)(_val) )
-
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)__ldar64( (volatile UINT64 *)(_dest) ))
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   __stlr64( (volatile UINT64 *)(_dest), (UINT64)(_val) )
-
-// For ARM/ARM64, MSVC does not have a dedicated acquire-release CAS intrinsic.
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    _InterlockedCompareExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_exchange), (PVOID)(_comp) )
-
-#elif SYMCRYPT_CPU_ARM
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           _InterlockedOr64_nf( (volatile LONG64 *)(_dest), 0 )
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   _InterlockedOr_nf( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  _InterlockedExchangeAdd_nf( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) _InterlockedAdd64_nf( (volatile LONG64 *)(_dest), (LONG64)(_val) )
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) _InterlockedAdd( (volatile LONG *)(_dest), (LONG)(_val) )
-
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)_InterlockedOr32_acq( (volatile LONG *)(_dest), 0 ))
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   _InterlockedExchangePointer_rel( (volatile PVOID *)(_dest), (PVOID)(_val) )
-
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    _InterlockedCompareExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_exchange), (PVOID)(_comp) )
-
-#elif SYMCRYPT_CPU_AMD64
-// For MSVC on AMD64, there are no _nf atomic intrinsics
-// 64b loads are naturally atomic on AMD64
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           SYMCRYPT_FORCE_READ64(_dest)
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   _InterlockedOr( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  _InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) (_InterlockedExchangeAdd64( (volatile LONG64 *)(_dest), (LONG64)(_val) ) + (LONG64)(_val))
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) (_InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) ) + (LONG)(_val))
-
-// Volatile load / store are sufficient for acquire-release semantics on AMD64
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)SYMCRYPT_FORCE_READ64(_dest))
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   SYMCRYPT_FORCE_WRITE64(_dest, ((UINT64)(_val)))
-
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    _InterlockedCompareExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_exchange), (PVOID)(_comp) )
-
-#elif SYMCRYPT_CPU_X86
-// For MSVC on x86, there is no 64b atomic load intrinsic - use expected to fail CAS, attempting to set from 0 to 0
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           _InterlockedCompareExchange64( (volatile LONG64 *)(_dest), 0, 0 )
-// For MSVC on x86, there are no _nf atomic intrinsics
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   _InterlockedOr( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  _InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) )
-// For MSVC on x86, there is no 64b atomic add intrinsic
-// We could use InterlockedAdd64 function from windows.h if we are using MSVC for Windows, but
-// to remove dependency we just define our own inline function using _InterlockedCompareExchange64
-FORCEINLINE
-LONG64
-SymCryptInlineInterlockedAdd64( volatile LONG64* destination, LONG64 value )
-{
-    LONG64 preValue;
-    do {
-        preValue = *destination;
-    } while (_InterlockedCompareExchange64(destination, preValue + value, preValue) != preValue);
-
-    return preValue + value;
-}
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) SymCryptInlineInterlockedAdd64( (volatile LONG64 *)(_dest), (LONG64)(_val) )
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) (_InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) ) + (LONG)(_val))
-
-// Volatile load / store are sufficient for acquire-release semantics on x86
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)SYMCRYPT_FORCE_READ32(_dest))
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   SYMCRYPT_FORCE_WRITE32(_dest, ((UINT32)(_val)))
-
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    _InterlockedCompareExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_exchange), (PVOID)(_comp) )
-
-#else
-
-// Fallback intended to generically work across all supported platforms for cases where
-// we do not make decisions based on CPU architecture, such as no ASM builds. For the most
-// part the same as x86 except in cases where the underlying definition relies on pointer size.
-
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           _InterlockedCompareExchange64( (volatile LONG64 *)(_dest), 0, 0 )
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   _InterlockedOr( (volatile LONG *)(_dest), (LONG)(_val) )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  _InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) )
-
-FORCEINLINE
-LONG64
-SymCryptInlineInterlockedAdd64( volatile LONG64* destination, LONG64 value )
-{
-    LONG64 preValue;
-    do {
-        preValue = *destination;
-    } while (_InterlockedCompareExchange64(destination, preValue + value, preValue) != preValue);
-
-    return preValue + value;
-}
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) SymCryptInlineInterlockedAdd64( (volatile LONG64 *)(_dest), (LONG64)(_val) )
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) (_InterlockedExchangeAdd( (volatile LONG *)(_dest), (LONG)(_val) ) + (LONG)(_val))
-
-#if defined(_WIN64)
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)_InterlockedOr64( (volatile LONG64 *)(_dest), 0 ))
-#else
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          ((PVOID)_InterlockedOr( (volatile LONG *)(_dest), 0 ))
-#endif
-
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   _InterlockedExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_val) )
-
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    _InterlockedCompareExchangePointer( (volatile PVOID *)(_dest), (PVOID)(_exchange), (PVOID)(_comp) )
-
-#endif
-
-#elif SYMCRYPT_GNUC
-#define SYMCRYPT_ATOMIC_LOAD64_RELAXED(_dest)           __atomic_load_n( (volatile uint64_t *)(_dest), __ATOMIC_RELAXED )
-#define SYMCRYPT_ATOMIC_OR32_PRE_RELAXED(_dest, _val)   __atomic_fetch_or( (volatile uint32_t *)(_dest), (uint32_t)(_val), __ATOMIC_RELAXED )
-#define SYMCRYPT_ATOMIC_ADD32_PRE_RELAXED(_dest, _val)  __atomic_fetch_add( (volatile uint32_t *)(_dest), (uint32_t)(_val), __ATOMIC_RELAXED )
-#define SYMCRYPT_ATOMIC_ADD64_POST_RELAXED(_dest, _val) __atomic_add_fetch( (volatile uint64_t *)(_dest), (uint64_t)(_val), __ATOMIC_RELAXED )
-
-#define SYMCRYPT_ATOMIC_ADD32_POST_SEQ_CST(_dest, _val) __atomic_add_fetch( (volatile uint32_t *)(_dest), (uint32_t)(_val), __ATOMIC_ACQ_REL )
-
-#define SYMCRYPT_ATOMIC_LOADPTR_ACQUIRE(_dest)          __atomic_load_n( (volatile void* *)(_dest), __ATOMIC_ACQUIRE )
-#define SYMCRYPT_ATOMIC_STOREPTR_RELEASE(_dest, _val)   __atomic_store_n( (volatile void* *)(_dest), (void*)(_val), __ATOMIC_RELEASE )
-
-FORCEINLINE
-void*
-SymCryptAtomicCasPtrAcqRel(
-    void** dest,
-    void* desired,
-    void* expected)
-{
-    __atomic_compare_exchange_n(
-        dest,               // ptr
-        &expected,
-        desired,
-        FALSE,              // weak (set to FALSE => strong)
-        __ATOMIC_RELEASE,   // success_memorder
-        __ATOMIC_ACQUIRE ); // failure_memorder
-    return expected;
-}
-
-#define SYMCRYPT_ATOMIC_CAS_PTR_ACQUIRE_RELEASE( _dest, _exchange, _comp ) \
-    SymCryptAtomicCasPtrAcqRel( (volatile void **)(_dest), (void *)(_exchange), (void *)(_comp) )
-
-#endif
+// Atomics - defined in shared header for use by both lib/ and lib_plus/
+#include "..\inc\symcrypt_atomics.h"
 
 // Inline CAS-128 functions
 

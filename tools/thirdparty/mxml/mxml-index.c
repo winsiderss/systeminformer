@@ -3,7 +3,7 @@
 //
 // https://www.msweet.org/mxml
 //
-// Copyright © 2003-2024 by Michael R Sweet.
+// Copyright © 2003-2026 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -411,7 +411,7 @@ index_sort(mxml_index_t *ind,		// I - Index to sort
     }
 
     // Recursively sort the left partition as needed...
-    if (left < (tempr - 1))
+    if (tempr > 0 && left < (tempr - 1))
       index_sort(ind, left, tempr - 1);
   }
   while (right > (left = tempr + 1));

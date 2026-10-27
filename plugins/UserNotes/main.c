@@ -369,15 +369,22 @@ PPH_STRING ShowFileDialog(
 
         if (NT_SUCCESS(status))
         {
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            __try
             {
-                if (!FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_DLL))
-                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                {
+                    if (!FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_DLL))
+                        status = STATUS_INVALID_IMAGE_NOT_MZ;
+                }
+                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                {
+                    if (!FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_DLL))
+                        status = STATUS_INVALID_IMAGE_NOT_MZ;
+                }
             }
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                if (!FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_DLL))
-                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+                status = GetExceptionCode();
             }
 
             PhUnloadMappedImage(&mappedImage);
@@ -2354,6 +2361,7 @@ VOID ProcessMenuInitializingCallback(
     _In_ PVOID Context
     )
 {
+    BOOLEAN realProcess;
     BOOLEAN highlightPresent = FALSE;
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
@@ -2367,8 +2375,10 @@ VOID ProcessMenuInitializingCallback(
         return;
 
     processItem = menuInfo->u.Process.Processes[0];
+    realProcess = !PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) &&
+        processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
+        processItem->ProcessId != SYSTEM_PROCESS_ID;
 
-    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) && processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID && processItem->ProcessId != SYSTEM_PROCESS_ID)
         AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
 
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_MISCELLANEOUS)))
@@ -2686,9 +2696,9 @@ VOID ProcessesUpdatedCallback(
 
                 if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled)))
                 {
-                    if (priorityBoostDisabled != object->Boost)
+                    if (priorityBoostDisabled)
                     {
-                        if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, object->Boost)))
+                        if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, FALSE)))
                         {
                             extension->SkipBoostPriority = TRUE;
                         }
@@ -2851,6 +2861,110 @@ VOID ServiceItemDeleteCallback(
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
+
+// USERNOTES_INTERFACE
+
+BOOLEAN NTAPI UserNotesGetProcessNotes(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PUSERNOTES_PROCESS_NOTES Notes
+    )
+{
+    PDB_OBJECT object;
+    BOOLEAN found = FALSE;
+
+    LockDb();
+
+    // No intent: any saved entry answers, not only one carrying a particular setting. The command
+    // line entry is looked up first, which is the order the plugin itself applies them in.
+    if (object = FindDbObjectForProcess(ProcessItem, 0))
+    {
+        memset(Notes, 0, sizeof(USERNOTES_PROCESS_NOTES));
+
+        Notes->MatchedCommandLine = object->Tag == COMMAND_LINE_TAG;
+        Notes->Collapse = object->Collapse;
+        Notes->Boost = object->Boost;
+        Notes->Efficiency = object->Efficiency;
+        Notes->PriorityClass = object->PriorityClass;
+        Notes->IoPriorityPlusOne = object->IoPriorityPlusOne;
+        Notes->PagePriorityPlusOne = object->PagePriorityPlusOne;
+        Notes->BackColor = object->BackColor;
+        Notes->AffinityMask = object->AffinityMask;
+
+        if (object->Comment && object->Comment->Length != 0)
+            PhSetReference(&Notes->Comment, object->Comment);
+
+        found = TRUE;
+    }
+
+    UnlockDb();
+
+    return found;
+}
+
+BOOLEAN NTAPI UserNotesSetProcessComment(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PCPH_STRINGREF Comment,
+    _In_ BOOLEAN MatchCommandLine
+    )
+{
+    PDB_OBJECT object;
+    PCPH_STRINGREF key;
+
+    if (MatchCommandLine)
+    {
+        if (!ProcessItem->CommandLine)
+            return FALSE;
+
+        key = &ProcessItem->CommandLine->sr;
+    }
+    else
+    {
+        if (!ProcessItem->ProcessName)
+            return FALSE;
+
+        key = &ProcessItem->ProcessName->sr;
+    }
+
+    LockDb();
+
+    if (Comment && Comment->Length != 0)
+    {
+        PPH_STRING comment = PhCreateString2(Comment);
+
+        CreateDbObject(MatchCommandLine ? COMMAND_LINE_TAG : FILE_TAG, key, comment);
+        PhDereferenceObject(comment);
+    }
+    else if (object = FindDbObject(MatchCommandLine ? COMMAND_LINE_TAG : FILE_TAG, key))
+    {
+        // Emptying the comment does not throw away the priority or colour saved beside it; the
+        // entry only goes when nothing is left in it.
+        PhMoveReference(&object->Comment, PhReferenceEmptyString());
+        DeleteDbObjectForProcessIfUnused(object);
+    }
+    else
+    {
+        UnlockDb();
+        return FALSE;
+    }
+
+    UnlockDb();
+
+    // The comment is only set as far as the caller is concerned once it has reached the file.
+    if (!NT_SUCCESS(SaveDb()))
+        return FALSE;
+
+    InvalidateProcessComments();
+
+    return TRUE;
+}
+
+USERNOTES_INTERFACE PluginInterface =
+{
+    USERNOTES_INTERFACE_VERSION,
+    UserNotesGetProcessNotes,
+    UserNotesSetProcessComment
+};
+
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -2873,6 +2987,7 @@ LOGICAL DllMain(
         if (!PluginInstance)
             return FALSE;
 
+        info->Interface = &PluginInterface;
         info->DisplayName = L"User Notes";
         info->Description = L"Allows the user to add comments for processes and services,"
             L" save process priority and affinity, highlight individual processes and show processes collapsed by default.";

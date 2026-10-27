@@ -40,10 +40,82 @@ CONST PH_STRINGREF UninstallKeyNames[] =
 };
 CONST PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
 CONST PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+CONST PH_STRINGREF LaunchTMIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\LaunchTM.exe");
 CONST PH_STRINGREF SystemInformerIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\SystemInformer.exe");
 CONST PH_STRINGREF AppCompatFlagsLayersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers");
 CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 CONST PH_STRINGREF LocalDumpsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps");
+
+/**
+ * Joins an array of string references into a single registry path string.
+ *
+ * \param Strings An array of PH_STRINGREF structures to join.
+ * \param Count The number of elements in the Strings array.
+ *
+ * \return A newly allocated PPH_STRING containing the joined path.
+ * The caller is responsible for freeing it with PhDereferenceObject.
+ */
+PPH_STRING PhBuildRegistryPath(
+    _In_reads_(Count) PPH_STRINGREF Strings,
+    _In_ ULONG Count
+    )
+{
+    CONST PH_STRINGREF baseKeyNames[] =
+    {
+        PH_STRINGREF_INIT(L"Software"),
+        PH_STRINGREF_INIT(L"Microsoft"),
+        PH_STRINGREF_INIT(L"Windows"),
+        PH_STRINGREF_INIT(L"CurrentVersion")
+    };
+    CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
+    PPH_STRING string;
+    SIZE_T length;
+    SIZE_T i;
+    PCHAR buffer;
+
+    if (Count == 0)
+    {
+        return PhReferenceEmptyString();
+    }
+
+    length = 0;
+
+    // Calculate total buffer size required (in bytes)
+    for (i = 0; i < Count; i++)
+    {
+        length += Strings[i].Length;
+    }
+
+    // Add size for the separators
+
+    if (Count > 1)
+    {
+        length += separator.Length * (Count - 1);
+    }
+
+    // Allocate the string directly
+
+    string = PhCreateStringEx(NULL, length);
+    buffer = (PCHAR)string->Buffer;
+
+    // Construct the final string
+
+    for (i = 0; i < Count; i++)
+    {
+        memcpy(buffer, Strings[i].Buffer, Strings[i].Length);
+        buffer += Strings[i].Length;
+
+        // Append separator if not the last element
+
+        if (i != Count - 1)
+        {
+            memcpy(buffer, separator.Buffer, separator.Length);
+            buffer += separator.Length;
+        }
+    }
+
+    return string;
+}
 
 PPH_STRING SetupGetRegisteredStartMenuFolder(
     _Out_ PBOOLEAN CreateShortcuts
@@ -68,7 +140,9 @@ PPH_STRING SetupGetRegisteredStartMenuFolder(
             folderName = PhQueryRegistryStringZ(keyHandle, L"StartMenuFolder");
 
             if (folderName)
+            {
                 *CreateShortcuts = !!PhQueryRegistryUlongZ(keyHandle, L"CreateStartMenuShortcuts");
+            }
 
             NtClose(keyHandle);
             break;
@@ -140,7 +214,7 @@ VOID SetupDeleteUninstallKey(
     {
         HANDLE keyHandle;
 
-        if (NT_SUCCESS(PhOpenKey(
+        if (i != PH_RELEASE_CHANNEL_ID && NT_SUCCESS(PhOpenKey(
             &keyHandle,
             DELETE | KEY_WOW64_64KEY,
             PH_KEY_LOCAL_MACHINE,
@@ -166,8 +240,27 @@ NTSTATUS SetupCreateUninstallKey(
 {
     NTSTATUS status;
     HANDLE keyHandle;
+    PH_IMAGE_VERSION_INFO versionInfo = { 0 };
+    PPH_STRING applicationPath;
 
     SetupDeleteUninstallKey();
+
+    applicationPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+
+    if (!applicationPath)
+        return STATUS_NO_MEMORY;
+
+    status = PhInitializeImageVersionInfoEx(&versionInfo, &applicationPath->sr, FALSE);
+    PhDereferenceObject(applicationPath);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!versionInfo.FileVersion)
+    {
+        PhDeleteImageVersionInfo(&versionInfo);
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    }
 
     status = PhCreateKey(
         &keyHandle,
@@ -182,7 +275,6 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
-        PH_FORMAT format[7];
 
         PhSetValueKeyString2Z(keyHandle, L"DisplayName", L"System Informer");
         PhSetValueKeyString2Z(keyHandle, L"HelpLink", L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
@@ -190,19 +282,12 @@ NTSTATUS SetupCreateUninstallKey(
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
         PhSetValueKeyStringZ(keyHandle, L"DisplayIcon", &string->sr);
-
-        PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
-        PhInitFormatC(&format[1], L'.');
-        PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
-        PhInitFormatC(&format[3], L'.');
-        PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
-        PhInitFormatC(&format[5], L'.');
-        PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
-        string = PhFormat(format, RTL_NUMBER_OF(format), 10);
-        PhSetValueKeyStringZ(keyHandle, L"DisplayVersion", &string->sr);
+        PhSetValueKeyStringZ(keyHandle, L"DisplayVersion", &versionInfo.FileVersion->sr);
+        PhClearReference(&string);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
         PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
+        PhClearReference(&string);
 
         PhSetValueKeyStringZ(keyHandle, L"StartMenuFolder", &Context->SetupStartMenuFolderName->sr);
         PhSetValueKeyUlong(keyHandle, L"CreateStartMenuShortcuts", Context->SetupCreateStartMenuShortcuts);
@@ -211,12 +296,15 @@ NTSTATUS SetupCreateUninstallKey(
         PhMoveReference(&string, PhQuoteCommandLine(&string->sr, TRUE));
         PhMoveReference(&string, PhConcatStrings2(PhGetString(string), L" -uninstall"));
         PhSetValueKeyStringZ(keyHandle, L"UninstallString", &string->sr);
+        PhClearReference(&string);
 
         PhSetValueKeyUlong(keyHandle, L"NoModify", TRUE);
         PhSetValueKeyUlong(keyHandle, L"NoRepair", TRUE);
 
         NtClose(keyHandle);
     }
+
+    PhDeleteImageVersionInfo(&versionInfo);
 
     return status;
 }
@@ -732,6 +820,7 @@ VOID SetupDeleteWindowsOptions(
         NtClose(keyHandle);
     }
 
+    SetupDeleteLaunchTMDebuggerIfeo();
     SetupDeleteAppCompatFlagsLayersEntry();
 
     if (NT_SUCCESS(PhOpenKey(
@@ -748,12 +837,13 @@ VOID SetupDeleteWindowsOptions(
 }
 
 /**
- * Checks if the Task Manager Image File Execution Options key has a debugger value.
+ * Checks if an Image File Execution Options key has a System Informer debugger value.
  *
- * \return TRUE if a debugger value exists, otherwise FALSE.
+ * \param KeyName The IFEO key name.
+ * \return TRUE if a System Informer debugger value exists, otherwise FALSE.
  */
-BOOLEAN SetupHasTaskMgrDebuggerIfeo(
-    VOID
+BOOLEAN SetupHasDebuggerIfeo(
+    _In_ PCPH_STRINGREF KeyName
     )
 {
     BOOLEAN hasDebugger = FALSE;
@@ -763,22 +853,92 @@ BOOLEAN SetupHasTaskMgrDebuggerIfeo(
         &keyHandle,
         KEY_READ | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
-        &TaskmgrIfeoKeyName,
+        KeyName,
         0
         )))
     {
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
         PPH_STRING debuggerValue;
 
         debuggerValue = PhQueryRegistryStringZ(keyHandle, L"Debugger");
 
+        // A debugger belonging to another application is not ours to report or re-create.
+
         if (!PhIsNullOrEmptyString(debuggerValue))
-            hasDebugger = TRUE;
+            hasDebugger = PhFindStringInStringRef(&debuggerValue->sr, &fileName, TRUE) != SIZE_MAX;
 
         PhClearReference(&debuggerValue);
         NtClose(keyHandle);
     }
 
     return hasDebugger;
+}
+
+/**
+ * Creates an Image File Execution Options debugger value pointing to System Informer.
+ *
+ * \param Context The setup context.
+ * \param KeyName The IFEO key name.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PCPH_STRINGREF KeyName
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_ALL_ACCESS | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        KeyName,
+        OBJ_OPENIF,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING clientPathString;
+        PPH_STRING commandLineString;
+
+        if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
+        {
+            if (commandLineString = PhQuoteCommandLine(&clientPathString->sr, TRUE))
+            {
+                status = PhSetValueKeyStringZ(keyHandle, L"Debugger", &commandLineString->sr);
+                PhDereferenceObject(commandLineString);
+            }
+            else
+            {
+                status = STATUS_NO_MEMORY;
+            }
+
+            PhDereferenceObject(clientPathString);
+        }
+        else
+        {
+            status = STATUS_NO_MEMORY;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    return status;
+}
+
+/**
+ * Checks if the Task Manager Image File Execution Options key has a debugger value.
+ *
+ * \return TRUE if a debugger value exists, otherwise FALSE.
+ */
+BOOLEAN SetupHasTaskMgrDebuggerIfeo(
+    VOID
+    )
+{
+    return SetupHasDebuggerIfeo(&TaskmgrIfeoKeyName);
 }
 
 /**
@@ -791,14 +951,157 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    return SetupCreateDebuggerIfeo(Context, &TaskmgrIfeoKeyName);
+}
+
+/**
+ * Checks if the LaunchTM Image File Execution Options key has a debugger value.
+ *
+ * \remarks LaunchTM.exe is started by Ctrl+Shift+Esc and the secure attention
+ * sequence menu and in turn launches taskmgr.exe.
+ * \return TRUE if a debugger value exists, otherwise FALSE.
+ */
+BOOLEAN SetupHasLaunchTMDebuggerIfeo(
+    VOID
+    )
+{
+    return SetupHasDebuggerIfeo(&LaunchTMIfeoKeyName);
+}
+
+/**
+ * Creates the LaunchTM Image File Execution Options debugger value.
+ *
+ * \param Context The setup context.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateLaunchTMDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    return SetupCreateDebuggerIfeo(Context, &LaunchTMIfeoKeyName);
+}
+
+/**
+ * Deletes the LaunchTM Image File Execution Options debugger value.
+ *
+ * \remarks Only the System Informer debugger value is removed, the key itself
+ * and any other options or third-party debuggers are left intact.
+ */
+VOID SetupDeleteLaunchTMDebuggerIfeo(
+    VOID
+    )
+{
+    HANDLE keyHandle;
+
+    if (!SetupHasDebuggerIfeo(&LaunchTMIfeoKeyName))
+        return;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_SET_VALUE | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        &LaunchTMIfeoKeyName,
+        0
+        )))
+    {
+        PhDeleteValueKeyZ(keyHandle, L"Debugger");
+        NtClose(keyHandle);
+    }
+}
+
+typedef struct _SETUP_AUTORUN_QUERY_CONTEXT
+{
+    BOOLEAN Found;
+    BOOLEAN Hidden;
+} SETUP_AUTORUN_QUERY_CONTEXT, *PSETUP_AUTORUN_QUERY_CONTEXT;
+
+/**
+ * Callback for enumerating auto-run keys.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The key value full information.
+ * \param Context The query context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI SetupQueryAutoRunKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Context && Information->Type == REG_SZ)
+    {
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
+        static CONST PH_STRINGREF hidden = PH_STRINGREF_INIT(L"-hide");
+        PSETUP_AUTORUN_QUERY_CONTEXT context = Context;
+        PH_STRINGREF value;
+
+        value.Length = Information->DataLength;
+        value.Buffer = PTR_ADD_OFFSET(Information, Information->DataOffset);
+
+        if (PhFindStringInStringRef(&value, &fileName, TRUE) != SIZE_MAX)
+        {
+            context->Found = TRUE;
+            context->Hidden = PhFindStringInStringRef(&value, &hidden, TRUE) != SIZE_MAX;
+
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Checks if the startup entry that starts System Informer when the user logs on exists.
+ *
+ * \param Hidden Set to TRUE when the entry starts the application hidden.
+ * \return TRUE if a startup entry exists, otherwise FALSE.
+ */
+BOOLEAN SetupHasAutoRunEntry(
+    _Out_ PBOOLEAN Hidden
+    )
+{
+    SETUP_AUTORUN_QUERY_CONTEXT context = { 0 };
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        )))
+    {
+        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, SetupQueryAutoRunKeyCallback, &context);
+        NtClose(keyHandle);
+    }
+
+    *Hidden = context.Hidden;
+
+    return context.Found;
+}
+
+/**
+ * Creates the startup entry that starts System Informer when the user logs on.
+ *
+ * \param Context The setup context.
+ * \param Hidden TRUE to start the application hidden.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateAutoRunEntry(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN Hidden
+    )
+{
     NTSTATUS status;
     HANDLE keyHandle;
 
     status = PhCreateKey(
         &keyHandle,
-        KEY_ALL_ACCESS | KEY_WOW64_64KEY,
-        PH_KEY_LOCAL_MACHINE,
-        &TaskmgrIfeoKeyName,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
         OBJ_OPENIF,
         0,
         NULL
@@ -806,6 +1109,7 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
 
     if (NT_SUCCESS(status))
     {
+        static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
         PPH_STRING clientPathString;
         PPH_STRING value;
 
@@ -824,9 +1128,14 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
             return STATUS_NO_MEMORY;
         }
 
-        status = PhSetValueKeyZ(
+        if (Hidden)
+        {
+            PhMoveReference(&value, PhConcatStringRefZ(&value->sr, L" -hide"));
+        }
+
+        status = PhSetValueKey(
             keyHandle,
-            L"Debugger",
+            &valueName,
             REG_SZ,
             value->Buffer,
             (ULONG)value->Length + sizeof(UNICODE_NULL)
@@ -836,6 +1145,131 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
         PhDereferenceObject(clientPathString);
         NtClose(keyHandle);
     }
+
+    return status;
+}
+
+typedef struct _SETUP_AUTORUN_REPAIR_CONTEXT
+{
+    PPH_STRING FileName;
+} SETUP_AUTORUN_REPAIR_CONTEXT, *PSETUP_AUTORUN_REPAIR_CONTEXT;
+
+/**
+ * Callback for enumerating and re-pointing auto-run keys.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The key value full information.
+ * \param Context The repair context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI SetupRepairAutoRunKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
+    static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+    PSETUP_AUTORUN_REPAIR_CONTEXT context = Context;
+    PH_STRINGREF entryFileName;
+    PH_STRINGREF entryArguments;
+    PPH_STRING entryFullFileName;
+    PPH_STRING entryValue;
+    PH_STRINGREF name;
+    PH_STRINGREF value;
+
+    if (!Context || Information->Type != REG_SZ)
+        return TRUE;
+
+    value.Length = Information->DataLength;
+    value.Buffer = PTR_ADD_OFFSET(Information, Information->DataOffset);
+
+    if (value.Length >= sizeof(UNICODE_NULL) &&
+        value.Buffer[value.Length / sizeof(WCHAR) - 1] == UNICODE_NULL)
+    {
+        value.Length -= sizeof(UNICODE_NULL);
+    }
+
+    if (PhFindStringInStringRef(&value, &fileName, TRUE) == SIZE_MAX)
+        return TRUE;
+    if (!PhParseCommandLineFuzzy(&value, &entryFileName, &entryArguments, &entryFullFileName))
+        return TRUE;
+
+    if (entryFullFileName)
+    {
+        BOOLEAN current;
+
+        current = PhEqualString(entryFullFileName, context->FileName, TRUE);
+        PhDereferenceObject(entryFullFileName);
+
+        if (current)
+            return FALSE;
+    }
+
+    // The entry starts an executable that is no longer the installed one. Re-point it at the
+    // installation directory and keep the arguments the entry was created with.
+
+    entryValue = PhQuoteCommandLine(&context->FileName->sr, TRUE);
+
+    if (!entryValue)
+        return FALSE;
+
+    if (entryArguments.Length)
+    {
+        PhMoveReference(&entryValue, PhConcatStringRef3(&entryValue->sr, &space, &entryArguments));
+    }
+
+    name.Length = Information->NameLength;
+    name.Buffer = Information->Name;
+
+    PhSetValueKey(
+        RootDirectory,
+        &name,
+        REG_SZ,
+        entryValue->Buffer,
+        (ULONG)entryValue->Length + sizeof(UNICODE_NULL)
+        );
+
+    PhDereferenceObject(entryValue);
+
+    return FALSE;
+}
+
+/**
+ * Re-points an existing startup entry at the current installation directory.
+ *
+ * \param Context The setup context.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupRepairAutoRunEntry(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    SETUP_AUTORUN_REPAIR_CONTEXT context;
+    HANDLE keyHandle;
+
+    context.FileName = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+
+    if (!context.FileName)
+        return STATUS_NO_MEMORY;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ | KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumerateValueKey(keyHandle, KeyValueFullInformation, SetupRepairAutoRunKeyCallback, &context);
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(context.FileName);
 
     return status;
 }
@@ -880,8 +1314,8 @@ NTSTATUS SetupCreateLocalDumpsKey(
         {
             // Set DumpCount (REG_DWORD) = 10
             PhSetValueKeyUlong(keyLocalHandle, L"DumpCount", 10);
-            // Set DumpFolder (REG_EXPAND_SZ) = %APPDATA%\SystemInformer\CrashDumps
-            PhSetExpandKeyString(keyLocalHandle, L"DumpFolder", L"%APPDATA%\\SystemInformer\\CrashDumps");
+            // Set DumpFolder (REG_EXPAND_SZ) = %PROGRAMDATA%\SystemInformer\CrashDumps
+            PhSetExpandKeyString(keyLocalHandle, L"DumpFolder", L"%PROGRAMDATA%\\SystemInformer\\CrashDumps");
             // Set DumpType (REG_DWORD) = 1 (mini dump)
             PhSetValueKeyUlong(keyLocalHandle, L"DumpType", 1);
 
@@ -1238,14 +1672,16 @@ NTSTATUS SetupUpgradeSettingsFile(
 
     // Current SystemInformer settings.xml path
     settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-    if (PhIsNullOrEmptyString(settingsFilePath)) {
+    if (PhIsNullOrEmptyString(settingsFilePath))
+    {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
     // If a SystemInformer settings.xml already exists, we assume it's up-to-date
     // and don't need to copy any legacy XML.
-    if (PhDoesFileExistWin32(PhGetString(settingsFilePath))) {
+    if (PhDoesFileExistWin32(PhGetString(settingsFilePath)))
+    {
         status = STATUS_SUCCESS; // Already upgraded or current, nothing to do.
         goto CleanupExit;
     }
@@ -1480,12 +1916,11 @@ BOOLEAN ConnectionAvailable(VOID)
 {
     INetworkListManager* networkListManager = NULL;
 
-    if (SUCCEEDED(CoCreateInstance(
+    if (SUCCEEDED(PhGetClassObject(
+        L"netprofm.dll",
         &CLSID_NetworkListManager,
-        NULL,
-        CLSCTX_ALL,
         &IID_INetworkListManager,
-        &networkListManager
+        (PVOID*)&networkListManager
         )))
     {
         VARIANT_BOOL isConnected = VARIANT_FALSE;
@@ -1529,7 +1964,7 @@ HRESULT SetupCreateLink(
     IPropertyStore* propertyStorePtr = NULL; // Initialize to NULL for safety
     LPWSTR pwszVal = NULL; // Initialize to NULL for safety
 
-    status = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLinkW, &shellLinkPtr);
+    status = PhGetClassObject(L"shell32.dll", &CLSID_ShellLink, &IID_IShellLinkW, (PVOID*)&shellLinkPtr);
     if (FAILED(status))
         goto CleanupExit;
 
@@ -1975,7 +2410,25 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
 
                     if (baseDirectory = PhGetBaseDirectory(fileName))
                     {
-                        if (PhStartsWithString(context->SetupInstallPath, baseDirectory, TRUE))
+                        PPH_STRING installPath;
+
+                        // PhGetBaseDirectory strips the trailing separator, so append one to
+                        // both paths before the prefix test. Otherwise a process running from
+                        // "...\SystemInformer" matches an install path of "...\SystemInformerOld".
+
+                        if (!PhEndsWithString2(baseDirectory, L"\\", TRUE))
+                        {
+                            PhMoveReference(&baseDirectory, PhConcatStrings2(PhGetString(baseDirectory), L"\\"));
+                        }
+
+                        installPath = PhReferenceObject(context->SetupInstallPath);
+
+                        if (!PhEndsWithString2(installPath, L"\\", TRUE))
+                        {
+                            PhMoveReference(&installPath, PhConcatStrings2(PhGetString(installPath), L"\\"));
+                        }
+
+                        if (PhStartsWithString(installPath, baseDirectory, TRUE))
                         {
                             HANDLE processHandle;
 
@@ -2009,6 +2462,7 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
                             }
                         }
 
+                        PhDereferenceObject(installPath);
                         PhDereferenceObject(baseDirectory);
                     }
 
@@ -2029,7 +2483,6 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
  * Shuts down all running instances of the application.
  *
  * \param Context The setup context.
- *
  * \return Successful or errant status.
  */
 NTSTATUS SetupShutdownApplication(
@@ -2038,13 +2491,6 @@ NTSTATUS SetupShutdownApplication(
 {
     NTSTATUS status;
     HANDLE directoryHandle;
-
-    //
-    // N.B. Since the current Canary build (3.2.25136.1352) doesn't create the
-    // mutants we need to do both methods to shut down the application. (jxy-s)
-    // 1. Enumerate the mutants.
-    // 2. Enumerate directory with PhGetProcessIdsUsingFile.
-    //
 
     PhEnumDirectoryObjects(
         PhGetNamespaceHandle(),
@@ -2440,12 +2886,17 @@ NTSTATUS SetupRollbackFile(
     PPH_STRING sessionId;
     PPH_STRING stagingName;
     PPH_STRING backupName;
+    BOOLEAN stagingExisted;
 
     if (!(sessionId = SetupGetSessionId(Context)))
         return STATUS_NO_MEMORY;
 
     stagingName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".new");
     backupName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".bak");
+
+    // A file whose .new still exists was never committed: its final name is still the original
+    // and must not be touched. (Checked before the delete below.)
+    stagingExisted = PhDoesFileExistWin32(PhGetString(stagingName));
 
     // Delete .new
     PhDeleteFileWin32(PhGetString(stagingName));
@@ -2471,10 +2922,9 @@ NTSTATUS SetupRollbackFile(
             NtClose(backupHandle);
         }
     }
-    else if (!PhDoesFileExistWin32(PhGetString(stagingName)) &&
-             PhDoesFileExistWin32(PhGetString(FinalName)))
+    else if (!stagingExisted && PhDoesFileExistWin32(PhGetString(FinalName)))
     {
-        // No staged file or backup means this file was newly created directly.
+        // Committed without a backup means this file was newly created by the update.
         PhDeleteFileWin32(PhGetString(FinalName));
     }
 
@@ -2512,12 +2962,229 @@ NTSTATUS SetupFinalizeFile(
     backupName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".bak");
 
     // Delete .bak (best effort)
-    if (!PhDeleteFileWin32(PhGetString(backupName)))
+    if (PhDoesFileExistWin32(PhGetString(backupName)) &&
+        !NT_SUCCESS(PhDeleteFileWin32(PhGetString(backupName))))
     {
+        // The old file is still in use (e.g. a loaded ksi.dll).
         MoveFileEx(PhGetString(backupName), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+        Context->NeedsReboot = TRUE;
     }
 
+    PhDereferenceObject(backupName);
+
     return STATUS_SUCCESS;
+}
+
+#define SETUP_UPDATE_LOCK_FILE L"\\update.lock"
+
+/**
+ * Creates the update lock file in the installation directory.
+ *
+ * The lock contains the setup session identifier so that an interrupted update
+ * can be detected and its .new/.bak files found again (see SetupRecoverIncompleteUpdate).
+ *
+ * \param Context The setup context.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateUpdateLock(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    PPH_STRING sessionId;
+    PPH_STRING lockFileName;
+
+    if (!(sessionId = SetupGetSessionId(Context)))
+        return STATUS_NO_MEMORY;
+
+    lockFileName = SetupCreateFullPath(Context->SetupInstallPath, SETUP_UPDATE_LOCK_FILE);
+    status = SetupOverwriteFile(lockFileName, sessionId->Buffer, (ULONG)sessionId->Length);
+    PhDereferenceObject(lockFileName);
+
+    return status;
+}
+
+/**
+ * Removes the update lock file from the installation directory.
+ *
+ * \param Context The setup context.
+ */
+VOID SetupDeleteUpdateLock(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    PPH_STRING lockFileName;
+
+    lockFileName = SetupCreateFullPath(Context->SetupInstallPath, SETUP_UPDATE_LOCK_FILE);
+
+    if (PhDoesFileExistWin32(PhGetString(lockFileName)) &&
+        !NT_SUCCESS(PhDeleteFileWin32(PhGetString(lockFileName))))
+    {
+        MoveFileEx(PhGetString(lockFileName), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+    }
+
+    PhDereferenceObject(lockFileName);
+}
+
+typedef struct _SETUP_RECOVER_CONTEXT
+{
+    PPH_STRING Directory; // with a trailing separator
+    PPH_STRING BackupSuffix; // ".<sid>.bak"
+    PPH_STRING StagingSuffix; // ".<sid>.new"
+} SETUP_RECOVER_CONTEXT, *PSETUP_RECOVER_CONTEXT;
+
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN SetupRecoverDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PSETUP_RECOVER_CONTEXT context = Context;
+    PH_STRINGREF fileName;
+    PPH_STRING fullPath;
+
+    fileName.Buffer = Information->FileName;
+    fileName.Length = Information->FileNameLength;
+
+    if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
+        return TRUE;
+
+    fullPath = PhConcatStringRef2(&context->Directory->sr, &fileName);
+
+    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+    {
+        if (!FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_REPARSE_POINT))
+        {
+            SETUP_RECOVER_CONTEXT child = *context;
+            HANDLE directoryHandle;
+
+            child.Directory = PhConcatStringRef2(&fullPath->sr, &PhNtPathSeparatorString);
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &directoryHandle,
+                PhGetString(fullPath),
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                FILE_ATTRIBUTE_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                )))
+            {
+                PhEnumDirectoryFile(directoryHandle, NULL, SetupRecoverDirectoryCallback, &child);
+                NtClose(directoryHandle);
+            }
+
+            PhDereferenceObject(child.Directory);
+        }
+    }
+    else if (PhEndsWithString(fullPath, context->BackupSuffix, TRUE))
+    {
+        // file.<sid>.bak -> file (replaces the partially committed new file, if any)
+        PPH_STRING finalName = PhSubstring(fullPath, 0, fullPath->Length / sizeof(WCHAR) - context->BackupSuffix->Length / sizeof(WCHAR));
+
+        PhMoveFileWin32(PhGetString(fullPath), PhGetString(finalName), FALSE);
+        PhDereferenceObject(finalName);
+    }
+    else if (PhEndsWithString(fullPath, context->StagingSuffix, TRUE))
+    {
+        PhDeleteFileWin32(PhGetString(fullPath));
+    }
+
+    PhDereferenceObject(fullPath);
+
+    return TRUE;
+}
+
+/**
+ * Detects a half-updated installation (update.lock present) and rolls it back.
+ *
+ * Restores every file.<sid>.bak and removes every file.<sid>.new and the staging directory
+ * left by an interrupted update, then removes the lock. Files that were newly created by the
+ * interrupted update (no backup exists) can't be identified and are left in place.
+ *
+ * \param Context The setup context.
+ */
+VOID SetupRecoverIncompleteUpdate(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    PPH_STRING lockFileName;
+    HANDLE lockHandle;
+    WCHAR buffer[64];
+    ULONG bytesRead = 0;
+    SETUP_RECOVER_CONTEXT recover;
+    HANDLE directoryHandle;
+    PPH_STRING sessionId;
+    PPH_STRING stagingDirectory;
+
+    if (PhIsNullOrEmptyString(Context->SetupInstallPath))
+        return;
+
+    lockFileName = SetupCreateFullPath(Context->SetupInstallPath, SETUP_UPDATE_LOCK_FILE);
+
+    if (!PhDoesFileExistWin32(PhGetString(lockFileName)))
+    {
+        PhDereferenceObject(lockFileName);
+        return;
+    }
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &lockHandle,
+        PhGetString(lockFileName),
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PhReadFile(lockHandle, buffer, sizeof(buffer) - sizeof(UNICODE_NULL), NULL, &bytesRead);
+        NtClose(lockHandle);
+    }
+
+    PhDereferenceObject(lockFileName);
+
+    // The session id is 8 hex characters; ignore anything else (never build a name from junk).
+    if (bytesRead != 8 * sizeof(WCHAR))
+    {
+        SetupDeleteUpdateLock(Context);
+        return;
+    }
+
+    sessionId = PhCreateStringEx(buffer, bytesRead);
+    recover.Directory = SetupCreateFullPath(Context->SetupInstallPath, L"");
+
+    if (!PhEndsWithStringRef(&recover.Directory->sr, &PhNtPathSeparatorString, FALSE))
+        PhMoveReference(&recover.Directory, PhConcatStringRef2(&recover.Directory->sr, &PhNtPathSeparatorString));
+
+    recover.BackupSuffix = PhFormatString(L".%s.bak", PhGetString(sessionId));
+    recover.StagingSuffix = PhFormatString(L".%s.new", PhGetString(sessionId));
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(recover.Directory),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+        )))
+    {
+        PhEnumDirectoryFile(directoryHandle, NULL, SetupRecoverDirectoryCallback, &recover);
+        NtClose(directoryHandle);
+    }
+
+    stagingDirectory = PhFormatString(L"%supdate.%s.staging", PhGetString(recover.Directory), PhGetString(sessionId));
+    PhDeleteDirectoryWin32(&stagingDirectory->sr);
+    PhDereferenceObject(stagingDirectory);
+
+    SetupDeleteUpdateLock(Context);
+
+    PhDereferenceObject(recover.StagingSuffix);
+    PhDereferenceObject(recover.BackupSuffix);
+    PhDereferenceObject(recover.Directory);
+    PhDereferenceObject(sessionId);
 }
 
 /**

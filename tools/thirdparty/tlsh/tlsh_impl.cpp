@@ -786,8 +786,8 @@ void TlshImpl::final(int fc_cons_option)
     }
     
     this->lsh_bin.Lvalue = l_capturing(this->data_len);
-    this->lsh_bin.Q.QR.Q1ratio = (unsigned int) ((float)(q1*100)/(float) q3) % 16;
-    this->lsh_bin.Q.QR.Q2ratio = (unsigned int) ((float)(q2*100)/(float) q3) % 16;
+    this->lsh_bin.Q.QR.Q1ratio = (unsigned int) ((unsigned long long) q1 * 100 / q3) % 16;
+    this->lsh_bin.Q.QR.Q2ratio = (unsigned int) ((unsigned long long) q2 * 100 / q3) % 16;
     this->lsh_code_valid = true;   
 }
 

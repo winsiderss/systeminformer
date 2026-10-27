@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{80E791B8-AC98-407E-8FF9-5154AF50E887}</ProjectGuid>
     <RootNamespace>ExtendedNotifications</RootNamespace>
     <Keyword>Win32Proj</Keyword>

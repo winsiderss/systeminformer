@@ -198,9 +198,11 @@ BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 BOOLEAN PhEnablePackageIconSupport = FALSE;
 ULONG PhProcessProviderFlagsMask = 0;
+ULONG PhProcessProviderElapsedMilliseconds = 1000;
 LONG PhProcessImageListWindowDpi = 96;
 
 PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
+PH_QUEUED_LOCK PhpProcessInformationLock = PH_QUEUED_LOCK_INIT; // guards replacement vs. PhDuplicateProcessInformation
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation = NULL;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
@@ -564,6 +566,16 @@ VOID PhEnumProcessItems(
     PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
     numberOfProcessItems = PhProcessHashSetCount;
+
+    if (numberOfProcessItems == 0)
+    {
+        PhReleaseQueuedLockShared(&PhProcessHashSetLock);
+
+        *ProcessItems = NULL;
+        *NumberOfProcessItems = 0;
+        return;
+    }
+
     processItems = PhAllocate(sizeof(PPH_PROCESS_ITEM) * numberOfProcessItems);
 
     for (i = 0; i < PH_HASH_SET_SIZE(PhProcessHashSet); i++)
@@ -2547,6 +2559,7 @@ VOID PhProcessProviderUpdate(
     static ULONG runCount = 0;
     static PSYSTEM_PROCESS_INFORMATION pidBuckets[PROCESS_ID_BUCKETS];
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
+    ULONG elapsedMilliseconds;
 
     // Note about locking:
     //
@@ -3602,10 +3615,14 @@ VOID PhProcessProviderUpdate(
         }
     }
 
+    PhAcquireQueuedLockExclusive(&PhpProcessInformationLock);
+
     if (PhProcessInformation)
         PhFree(PhProcessInformation);
 
     PhProcessInformation = processes;
+
+    PhReleaseQueuedLockExclusive(&PhpProcessInformationLock);
 
     // History cannot be updated on the first run because the deltas are invalid. For example, the
     // I/O "deltas" will be huge because they are currently the raw accumulated values.
@@ -3665,8 +3682,21 @@ VOID PhProcessProviderUpdate(
         }
     }
 
+    elapsedMilliseconds = PhGetProviderElapsedMilliseconds(&PhMwpProcessProviderRegistration);
+
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = PhCsUpdateInterval;
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = 1000;
+
+    PhProcessProviderElapsedMilliseconds = elapsedMilliseconds;
+
     updatedEvent.RunCount = runCount;
     updatedEvent.UpdateInterval = PhCsUpdateInterval;
+    updatedEvent.ElapsedMilliseconds = elapsedMilliseconds;
+
+    if (!PhGetProviderElapsed(&PhMwpProcessProviderRegistration, &updatedEvent.Elapsed))
+        memset(&updatedEvent.Elapsed, 0, sizeof(PH_PROVIDER_ELAPSED));
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &updatedEvent);
 
@@ -4272,7 +4302,7 @@ VOID PhProcessImageListInitialization(
 
                     if (process->FileName && PhEqualString(process->FileName, filename, FALSE))
                     {
-                        process->IconEntry = PhReferenceObject(iconEntry);
+                        PhSwapReference(&process->IconEntry, iconEntry);
                         process->SmallIconIndex = iconEntry->SmallIconIndex;
                         process->LargeIconIndex = iconEntry->LargeIconIndex;
                     }
@@ -4401,6 +4431,35 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             32
             );
     }
+    else
+    {
+        // Another thread may have inserted the entry while we were extracting
+        // the icons without the lock held. Return that entry instead of adding
+        // a duplicate that would leak the object and its image-list slots.
+        PH_IMAGELIST_ITEM lookupEntry;
+        PPH_IMAGELIST_ITEM lookupEntryPtr = &lookupEntry;
+        PPH_IMAGELIST_ITEM* entry;
+
+        lookupEntry.FileName = FileName;
+
+        entry = (PPH_IMAGELIST_ITEM*)PhFindEntryHashtable(PhImageListCacheHashtable, &lookupEntryPtr);
+
+        if (entry)
+        {
+            PPH_IMAGELIST_ITEM foundEntry = *entry;
+
+            PhReferenceObject(foundEntry);
+
+            PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+            if (smallIcon)
+                DestroyIcon(smallIcon);
+            if (largeIcon)
+                DestroyIcon(largeIcon);
+
+            return foundEntry;
+        }
+    }
 
     newentry = PhCreateObject(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
     newentry->FileName = PhReferenceObject(FileName);
@@ -4417,7 +4476,12 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     }
 
     PhReferenceObject(newentry);
-    PhAddEntryHashtable(PhImageListCacheHashtable, &newentry);
+
+    if (!PhAddEntryHashtable(PhImageListCacheHashtable, &newentry))
+    {
+        // Can't happen after the recheck above, but don't leak the cache reference.
+        PhDereferenceObject(newentry);
+    }
 
     PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
 
@@ -4543,15 +4607,25 @@ BOOLEAN PhDuplicateProcessInformation(
 {
     SIZE_T infoLength;
 
+    PhAcquireQueuedLockShared(&PhpProcessInformationLock);
+
     if (!PhProcessInformation)
+    {
+        PhReleaseQueuedLockShared(&PhpProcessInformationLock);
         return FALSE;
+    }
 
     infoLength = PhSizeHeap(PhProcessInformation);
 
     if (!infoLength)
+    {
+        PhReleaseQueuedLockShared(&PhpProcessInformationLock);
         return FALSE;
+    }
 
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
+
+    PhReleaseQueuedLockShared(&PhpProcessInformationLock);
 
     return TRUE;
 }
@@ -4572,7 +4646,12 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
     UCHAR priorityClass;
 
     if (processItem = PhReferenceProcessItem(ProcessId))
+    {
+        // Ownership of ProcessHandle transfers to us on success; since the
+        // existing item already has its own handle, close the supplied one.
+        NtClose(ProcessHandle);
         return processItem;
+    }
 
     processItem = PhCreateProcessItem(ProcessId);
     processItem->QueryHandle = ProcessHandle;
@@ -4587,6 +4666,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
     {
         processItem->Record = idleProcessItem->Record;
         PhReferenceProcessRecord(processItem->Record);
+        PhDereferenceObject(idleProcessItem);
     }
     else
     {

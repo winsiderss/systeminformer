@@ -436,50 +436,25 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
         {
             for (ULONG i = 1; i <= assemblyRefCount; i++)
             {
-                PPH_STRING name = nullptr;
-                BOOLEAN runtime = FALSE;
-                BOOLEAN framework = FALSE;
-                ULONG majorVersion = 0;
-                ULONG minorVersion = 0;
-                ULONG buildVersion = 0;
-                ULONG revisionVersion = 0;
+                PH_MAPPED_CLR_ASSEMBLY_PROPS properties;
+                BOOLEAN runtime;
+                BOOLEAN framework;
 
-                if (name = PhGetMappedClrTableString(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, i, PH_CLR_ASSEMBLYREF_REC_COL_NAME))
-                {
-                    if (PhEqualString2(name, L"System.Runtime", TRUE))
-                    {
-                        runtime = TRUE;
-                    }
-                    else if (PhEqualString2(name, L"mscorlib", TRUE))
-                    {
-                        framework = TRUE;
-                    }
+                if (!NT_SUCCESS(PhGetMappedClrAssemblyRefProps(&clrMetadata,
+                    TokenFromRid(i, mdtAssemblyRef), &properties)))
+                    continue;
 
-                    PhDereferenceObject(name);
-                }
-
+                runtime = PhEqualString2(properties.Name, L"System.Runtime", TRUE);
+                framework = PhEqualString2(properties.Name, L"mscorlib", TRUE);
                 if (runtime || framework)
                 {
-                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MAJORVERSION, i, &majorVersion)))
-                        break;
-                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MINORVERSION, i, &minorVersion)))
-                        break;
-                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_BUILDNUMBER, i, &buildVersion)))
-                        break;
-                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_REVISIONNUMBER, i, &revisionVersion)))
-                        break;
-
-                    if (runtime)
-                    {
-                        version = PhFormatString(L".NET Core %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
-                        break;
-                    }
-                    else if (framework)
-                    {
-                        version = PhFormatString(L".NET Framework %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
-                        break;
-                    }
+                    version = PhFormatString(runtime ? L".NET Core %lu.%lu.%lu.%lu" : L".NET Framework %lu.%lu.%lu.%lu",
+                        properties.MajorVersion, properties.MinorVersion,
+                        properties.BuildNumber, properties.RevisionNumber);
                 }
+                PhDeleteMappedClrAssemblyProps(&properties);
+                if (version)
+                    break;
             }
         }
         PhDeleteMappedClrMetadata(&clrMetadata);
@@ -645,10 +620,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
                 if (NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_IMPLMAP, PH_CLR_IMPLMAP_REC_COL_IMPORTNAME, i, &importNameValue)))
                 {
-                    const char* importNameA = nullptr;
-
-                    if (NT_SUCCESS(PhGetMappedClrString(&clrMetadata, importNameValue, &importNameA)))
-                        importName = PhConvertUtf8ToUtf16(importNameA);
+                    PhGetMappedClrStringEx(&clrMetadata, importNameValue, &importName);
                 }
 
                 if (NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_IMPLMAP, PH_CLR_IMPLMAP_REC_COL_IMPORTSCOPE, i, &moduleTokenValue)))

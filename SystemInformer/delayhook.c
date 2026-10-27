@@ -13,6 +13,7 @@
 #include <apiimport.h>
 #include <mapldr.h>
 #include <thirdparty.h>
+#include <dwmapi.h>
 #include <vsstyle.h>
 #include <uxtheme.h>
 #include <Vssym32.h>
@@ -33,6 +34,15 @@ static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
+/**
+ * Window hook procedure for superclassed menu windows (#32768).
+ *
+ * \param WindowHandle A handle to the menu window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -63,9 +73,19 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         {
             //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
 
+            if (WindowsVersion >= WINDOWS_11)
+            {
+                // CS_DROPSHADOW is no longer honored for the menu class on Windows 11
+                // and DWM non-client rendering doesn't apply to these windows, so
+                // composite the shadow ourselves. The shadow is positioned and shown
+                // from WM_WINDOWPOSCHANGED once the menu has been sized. (dmex)
+                PhCreateWindowShadow(WindowHandle);
+            }
+
             if (PhDefaultEnableStreamerMode)
             {
                 SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                PhSetWindowShadowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
             if (PhEnableThemeSupport)
@@ -76,6 +96,11 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
             }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDestroyWindowShadow(WindowHandle);
         }
         break;
     case WM_NCDESTROY:
@@ -94,11 +119,29 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             }
         }
         break;
+    case WM_WINDOWPOSCHANGED:
+        {
+            LRESULT result = CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+
+            // Track the menu after the default procedure has sized and placed it. (dmex)
+            PhUpdateWindowShadow(WindowHandle, PhWindowShadowSideAll);
+
+            return result;
+        }
     }
 
     return CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed dialog windows (#32770).
+ *
+ * \param WindowHandle A handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhDialogWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -128,11 +171,35 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
             }
         }
         break;
+    case WM_ERASEBKGND:
+        {
+            RECT clipRect;
+            HDC hdc = (HDC)wParam;
+
+            // The clipped parent cannot erase this child window. Clear the
+            // status bar with the same brush used by WM_PAINT so an exposed
+            // area does not show stale or white pixels before the buffered paint.
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhThemeWindowBackgroundBrush);
+
+            return TRUE;
+        }
     }
 
     return CallWindowProc(PhDefaultDialogWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed rebar controls (ReBarWindow32).
+ *
+ * \param WindowHandle A handle to the rebar control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhRebarWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -161,8 +228,8 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
-            //PH_BUFFERED_PAINT paintBuffer;
-            //HDC bufferDc;
+            PH_BUFFERED_PAINT paintBuffer;
+            HDC bufferDc;
             HDC hdc;
 
             if (!PhEnableThemeSupport)
@@ -177,13 +244,13 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
                 return 0;
             }
 
-            //if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
-            //{
-            //    FillRect(bufferDc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
-            //    CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)bufferDc, PRF_CLIENT);
-            //    PhEndBufferedPaint(&paintBuffer, TRUE);
-            //}
-            //else
+            if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, PHBF_TOPDOWNDIB, NULL, &paintBuffer, &bufferDc))
+            {
+                FillRect(bufferDc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
+                CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)bufferDc, PRF_CLIENT);
+                PhEndBufferedPaint(&paintBuffer, TRUE);
+            }
+            else
             {
                 FillRect(hdc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
                 CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)hdc, PRF_CLIENT);
@@ -197,6 +264,15 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed combo box controls (ComboBox).
+ *
+ * \param WindowHandle A handle to the combo box window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhComboBoxWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -227,6 +303,15 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
     return result;
 }
 
+/**
+ * Window hook procedure for superclassed static controls (Static).
+ *
+ * \param WindowHandle A handle to the static control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhStaticWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -238,7 +323,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
     {
         ULONG style = PhGetWindowStyle(WindowHandle);
 
-        if ((style & SS_ICON) == SS_ICON)
+        if ((style & SS_TYPEMASK) == SS_ICON)
         {
             PhSetWindowContext(WindowHandle, SCHAR_MAX, UlongToPtr(TRUE));
         }
@@ -253,7 +338,20 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
         break;
     case WM_ERASEBKGND:
-        return TRUE;
+        {
+            RECT clipRect;
+            HDC hdc = (HDC)wParam;
+
+            // The clipped parent cannot erase this child window. Clear the
+            // status bar with the same brush used by WM_PAINT so an exposed
+            // area does not show stale or white pixels before the buffered paint.
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhThemeWindowBackgroundBrush);
+
+            return TRUE;
+        }
     case WM_KILLFOCUS:
         {
             WCHAR windowClassName[MAX_PATH];
@@ -294,8 +392,11 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                     BOOLEAN buffered;
                     HDC bufferDc;
 
+                    if (!hdc)
+                        return 0;
+
                     GetClientRect(WindowHandle, &clientRect);
-                    buffered = PhBeginBufferedPaint(hdc, &clientRect, &bufferedPaint, &bufferDc);
+                    buffered = PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc);
 
                     if (!buffered)
                         bufferDc = hdc;
@@ -341,13 +442,21 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                             PhEndInitOnce(&initOnce);
                         }
 
-                        SetBkMode(hdc, TRANSPARENT);
-                        SetTextColor(hdc, checkType == check ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
-                        SelectFont(hdc, hCheckFont);
-                        //HFONT hFontOriginal = SelectFont(hdc, hCheckFont);
-                        FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
-                        DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
-                        //SelectFont(hdc, hFontOriginal);
+                        HFONT oldFont;
+                        INT oldBkMode;
+                        COLORREF oldTextColor;
+
+                        // Draw into the surface that will be committed. In the
+                        // fallback path bufferDc is hdc, so both paths match.
+                        oldBkMode = SetBkMode(bufferDc, TRANSPARENT);
+                        oldTextColor = SetTextColor(bufferDc, checkType == check ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
+                        oldFont = hCheckFont ? SelectFont(bufferDc, hCheckFont) : NULL;
+                        FillRect(bufferDc, &clientRect, PhThemeWindowBackgroundBrush);
+                        DrawText(bufferDc, L"V", 1, &clientRect, DT_CENTER | DT_VCENTER);
+                        if (oldFont)
+                            SelectFont(bufferDc, oldFont);
+                        SetTextColor(bufferDc, oldTextColor);
+                        SetBkMode(bufferDc, oldBkMode);
                     }
 
                     if (buffered)
@@ -408,9 +517,18 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
     };
 
     HTHEME ThemeHandle;
-    POINT CursorPos;
+    LONG HotIndex;
 } PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
 
+/**
+ * Finds the status bar part index matching an update rectangle.
+ *
+ * \param WindowHandle A handle to the status bar window.
+ * \param WindowProcedure The status bar window procedure.
+ * \param UpdateRect A pointer to the update rectangle.
+ * \param Count The number of status bar parts.
+ * \return LONG The matching part index, or INT_ERROR if not found.
+ */
 LONG ThemeWindowStatusBarUpdateRectToIndex(
     _In_ HWND WindowHandle,
     _In_ WNDPROC WindowProcedure,
@@ -439,6 +557,15 @@ LONG ThemeWindowStatusBarUpdateRectToIndex(
     return INT_ERROR;
 }
 
+/**
+ * Renders a single status bar part with theme support.
+ *
+ * \param Context A pointer to the status bar theme context.
+ * \param WindowHandle A handle to the status bar window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ * \param Index The index of the status bar part to draw.
+ */
 VOID ThemeWindowStatusBarDrawPart(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -448,18 +575,25 @@ VOID ThemeWindowStatusBarDrawPart(
     )
 {
     RECT blockRect = { 0 };
-    WCHAR text[0x80] = { 0 };
+    WCHAR textBuffer[0x80] = { 0 };
+    PWSTR text = textBuffer;
+    ULONG_PTR result;
+    ULONG textLength;
+    ULONG textStyle;
+    HICON iconHandle;
 
     if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)Index, (WPARAM)&blockRect))
+    if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)Index, (LPARAM)&blockRect))
         return;
     if (!RectVisible(bufferDc, &blockRect))
         return;
-    if (CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXTLENGTH, (WPARAM)Index, 0) >= RTL_NUMBER_OF(text))
-        return;
-    if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text))
-        return;
 
-    if (PhPtInRect(&blockRect, &Context->CursorPos))
+    // SB_GETTEXTLENGTH returns the length in the LOWORD and the SBT_* drawing type in the HIWORD.
+    result = (ULONG_PTR)CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXTLENGTH, (WPARAM)Index, 0);
+    textLength = LOWORD(result);
+    textStyle = HIWORD(result);
+
+    if (Index == Context->HotIndex)
     {
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
@@ -480,17 +614,152 @@ VOID ThemeWindowStatusBarDrawPart(
         FillRect(bufferDc, &separator, PhGetStockBrush(DC_BRUSH));
     }
 
+    if (textStyle & SBT_OWNERDRAW)
+    {
+        DRAWITEMSTRUCT drawItem;
+
+        // Owner-drawn parts store application data instead of text and are painted by the parent.
+        memset(&drawItem, 0, sizeof(DRAWITEMSTRUCT));
+        drawItem.CtlID = GetDlgCtrlID(WindowHandle);
+        drawItem.itemID = Index;
+        drawItem.itemAction = ODA_DRAWENTIRE;
+        drawItem.hwndItem = WindowHandle;
+        drawItem.hDC = bufferDc;
+        drawItem.rcItem = blockRect;
+        drawItem.itemData = (ULONG_PTR)CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)textBuffer);
+
+        SendMessage(GetParent(WindowHandle), WM_DRAWITEM, drawItem.CtlID, (LPARAM)&drawItem);
+        return;
+    }
+
+    if (iconHandle = (HICON)CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETICON, (WPARAM)Index, 0))
+    {
+        LONG iconSize = blockRect.bottom - blockRect.top;
+
+        DrawIconEx(bufferDc, blockRect.left + 2, blockRect.top, iconHandle, iconSize, iconSize, 0, NULL, DI_NORMAL);
+        blockRect.left += iconSize + 2;
+    }
+
+    if (textLength == 0)
+        return;
+
+    // SB_GETTEXT has no buffer length; allocate when the text exceeds the stack buffer.
+    if (textLength >= RTL_NUMBER_OF(textBuffer))
+        text = PhAllocateZero((textLength + 1) * sizeof(WCHAR));
+
+    CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text);
+
     blockRect.left += 2, blockRect.bottom -= 1;
     DrawText(
         bufferDc,
         text,
         (UINT)PhCountStringZ(text),
         &blockRect,
-        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | ((textStyle & SBT_RTLREADING) ? DT_RTLREADING : 0)
         );
     blockRect.left -= 2, blockRect.bottom += 1;
+
+    if (text != textBuffer)
+        PhFree(text);
 }
 
+/**
+ * Returns the number of drawable status bar parts.
+ *
+ * \param WindowHandle A handle to the status bar window.
+ * \return LONG The part count; 1 when the status bar is in simple mode.
+ */
+LONG ThemeWindowStatusBarGetPartCount(
+    _In_ HWND WindowHandle
+    )
+{
+    // In simple mode index 0 maps to the simple part for SB_GETRECT and SB_GETTEXT.
+    if (CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_ISSIMPLE, 0, 0))
+        return 1;
+
+    return (LONG)CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETPARTS, 0, 0);
+}
+
+/**
+ * Refreshes the cached DPI and theme handle of a status bar.
+ *
+ * \param Context A pointer to the status bar theme context.
+ * \param WindowHandle A handle to the status bar window.
+ */
+VOID ThemeWindowStatusBarUpdateTheme(
+    _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
+    _In_ HWND WindowHandle
+    )
+{
+    if (Context->ThemeHandle)
+    {
+        PhCloseThemeData(Context->ThemeHandle);
+        Context->ThemeHandle = NULL;
+    }
+
+    Context->WindowDpi = PhGetWindowDpi(WindowHandle);
+    Context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, Context->WindowDpi);
+}
+
+/**
+ * Finds the status bar part under a client point.
+ *
+ * \param WindowHandle A handle to the status bar window.
+ * \param Point The point in client coordinates.
+ * \return LONG The part index, or INT_ERROR if no part contains the point.
+ */
+LONG ThemeWindowStatusBarHitTest(
+    _In_ HWND WindowHandle,
+    _In_ PPOINT Point
+    )
+{
+    LONG count = ThemeWindowStatusBarGetPartCount(WindowHandle);
+
+    for (LONG i = 0; i < count; i++)
+    {
+        RECT blockRect = { 0 };
+
+        if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)i, (LPARAM)&blockRect))
+            continue;
+
+        if (PhPtInRect(&blockRect, Point))
+            return i;
+    }
+
+    return INT_ERROR;
+}
+
+/**
+ * Invalidates a single status bar part, including the hot highlight margin.
+ *
+ * \param WindowHandle A handle to the status bar window.
+ * \param Index The part index, or INT_ERROR for none.
+ */
+VOID ThemeWindowStatusBarInvalidatePart(
+    _In_ HWND WindowHandle,
+    _In_ LONG Index
+    )
+{
+    RECT blockRect = { 0 };
+
+    if (Index == INT_ERROR)
+        return;
+    if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)Index, (LPARAM)&blockRect))
+        return;
+
+    // ThemeWindowStatusBarDrawPart extends the hot fill 3px left and 1px up.
+    blockRect.left -= 3, blockRect.top -= 1;
+    InvalidateRect(WindowHandle, &blockRect, FALSE);
+}
+
+/**
+ * Renders all status bar parts and background with theme support.
+ *
+ * \param Context A pointer to the status bar theme context.
+ * \param WindowHandle A handle to the status bar window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ */
 VOID ThemeWindowRenderStatusBar(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -499,16 +768,11 @@ VOID ThemeWindowRenderStatusBar(
     )
 {
     SetBkMode(bufferDc, TRANSPARENT);
-    SelectFont(bufferDc, GetWindowFont(WindowHandle));
+    //SelectFont(bufferDc, GetWindowFont(WindowHandle));
 
     FillRect(bufferDc, clientRect, PhThemeWindowBackgroundBrush);
 
-    LONG blockCount = (LONG)CallWindowProc(
-        PhDefaultStatusbarWindowProcedure,
-        WindowHandle,
-        SB_GETPARTS,
-        0, 0
-        );
+    LONG blockCount = ThemeWindowStatusBarGetPartCount(WindowHandle);
 
     //INT index = ThemeWindowStatusBarUpdateRectToIndex( // used with BeginBufferedPaint (dmex)
     //    WindowHandle,
@@ -519,32 +783,36 @@ VOID ThemeWindowRenderStatusBar(
     //
     //if (index == UINT_MAX)
     {
-        RECT sizeGripRect;
-        LONG dpi;
-
-        dpi = Context->WindowDpi;
-        sizeGripRect.left = clientRect->right - PhGetSystemMetrics(SM_CXHSCROLL, dpi);
-        sizeGripRect.top = clientRect->bottom - PhGetSystemMetrics(SM_CYVSCROLL, dpi);
-        sizeGripRect.right = clientRect->right;
-        sizeGripRect.bottom = clientRect->bottom;
-
-        if (Context->ThemeHandle)
-        {
-            //if (IsThemeBackgroundPartiallyTransparent(Context->ThemeHandle, SP_GRIPPER, 0))
-            //    DrawThemeParentBackground(WindowHandle, bufferDc, NULL);
-
-            PhDrawThemeBackground(Context->ThemeHandle, bufferDc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
-        }
-        else
-        {
-            DrawFrameControl(bufferDc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
-        }
-
         // Top statusbar border will be drawn by bottom tabcontrol border
 
         for (LONG i = 0; i < blockCount; i++)
         {
             ThemeWindowStatusBarDrawPart(Context, WindowHandle, bufferDc, clientRect, i);
+        }
+
+        // Draw the gripper last: the final part extends underneath it.
+        if ((PhGetWindowStyle(WindowHandle) & SBARS_SIZEGRIP) && !IsZoomed(GetParent(WindowHandle)))
+        {
+            RECT sizeGripRect;
+            LONG dpi;
+
+            dpi = Context->WindowDpi;
+            sizeGripRect.left = clientRect->right - PhGetSystemMetrics(SM_CXHSCROLL, dpi);
+            sizeGripRect.top = clientRect->bottom - PhGetSystemMetrics(SM_CYVSCROLL, dpi);
+            sizeGripRect.right = clientRect->right;
+            sizeGripRect.bottom = clientRect->bottom;
+
+            if (Context->ThemeHandle)
+            {
+                //if (IsThemeBackgroundPartiallyTransparent(Context->ThemeHandle, SP_GRIPPER, 0))
+                //    DrawThemeParentBackground(WindowHandle, bufferDc, NULL);
+
+                PhDrawThemeBackground(Context->ThemeHandle, bufferDc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
+            }
+            else
+            {
+                DrawFrameControl(bufferDc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
+            }
         }
     }
     //else
@@ -553,6 +821,15 @@ VOID ThemeWindowRenderStatusBar(
     //}
 }
 
+/**
+ * Window hook procedure for superclassed status bar controls (msctls_statusbar32).
+ *
+ * \param WindowHandle A handle to the status bar control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -565,10 +842,8 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     if (WindowMessage == WM_NCCREATE)
     {
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
-        context->WindowDpi = PhGetWindowDpi(WindowHandle);
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
-        context->CursorPos.x = LONG_MIN;
-        context->CursorPos.y = LONG_MIN;
+        context->HotIndex = INT_ERROR;
+        ThemeWindowStatusBarUpdateTheme(context, WindowHandle);
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
     }
     else
@@ -590,22 +865,26 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
                 }
 
                 PhFree(context);
+                context = NULL;
             }
             break;
         case WM_THEMECHANGED:
             {
-                if (context->ThemeHandle)
-                {
-                    PhCloseThemeData(context->ThemeHandle);
-                    context->ThemeHandle = NULL;
-                }
-
-                context->WindowDpi = PhGetWindowDpi(WindowHandle);
-                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
+                ThemeWindowStatusBarUpdateTheme(context, WindowHandle);
+            }
+            break;
+        case WM_DPICHANGED_AFTERPARENT:
+            {
+                ThemeWindowStatusBarUpdateTheme(context, WindowHandle);
+                InvalidateRect(WindowHandle, NULL, FALSE);
             }
             break;
         case WM_ERASEBKGND:
-            return TRUE;
+            {
+                // WM_PAINT fills the entire update region (buffered), so erasing here
+                // only causes a visible background flash before the buffered blit.
+                return TRUE;
+            }
         case WM_MOUSEMOVE:
             {
                 if (!context->MouseActive)
@@ -622,19 +901,24 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
                     context->MouseActive = TRUE;
                 }
 
-                context->CursorPos.x = GET_X_LPARAM(lParam);
-                context->CursorPos.y = GET_Y_LPARAM(lParam);
+                POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                LONG hotIndex = ThemeWindowStatusBarHitTest(WindowHandle, &point);
 
-                InvalidateRect(WindowHandle, NULL, FALSE);
+                // Repaint only the parts whose hot state changed.
+                if (context->HotIndex != hotIndex)
+                {
+                    ThemeWindowStatusBarInvalidatePart(WindowHandle, context->HotIndex);
+                    ThemeWindowStatusBarInvalidatePart(WindowHandle, hotIndex);
+                    context->HotIndex = hotIndex;
+                }
             }
             break;
         case WM_MOUSELEAVE:
             {
                 context->MouseActive = FALSE;
-                context->CursorPos.x = LONG_MIN;
-                context->CursorPos.y = LONG_MIN;
 
-                InvalidateRect(WindowHandle, NULL, FALSE);
+                ThemeWindowStatusBarInvalidatePart(WindowHandle, context->HotIndex);
+                context->HotIndex = INT_ERROR;
             }
             break;
         case WM_PAINT:
@@ -656,7 +940,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
 
                 // Buffer only the invalidated region; ThemeWindowRenderStatusBar still
                 // lays out using the full client rect and is clipped to the rcPaint buffer.
-                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
+                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, PHBF_TOPDOWNDIB, NULL, &paintBuffer, &bufferDc))
                 {
                     ThemeWindowRenderStatusBar(context, WindowHandle, bufferDc, &clientRect);
                     PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -675,6 +959,15 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     return CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed edit controls (Edit).
+ *
+ * \param WindowHandle A handle to the edit control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhEditWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -701,6 +994,12 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
                 break;
 
             updateRegion = (HRGN)wParam;
+
+            if (updateRegion != HRGN_FULL && updateRegion != NULL)
+            {
+                if (!RectInRegion(updateRegion, &windowRect))
+                    return FALSE;   // frame area isn't dirty at all — skip GetDCEx entirely
+            }
 
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
@@ -744,6 +1043,14 @@ typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
     POINT CursorPos;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
+/**
+ * Renders a themed header control including columns, dividers, and sort indicators.
+ *
+ * \param Context A pointer to the header theme context.
+ * \param WindowHandle A handle to the header control window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ */
 VOID ThemeWindowRenderHeaderControl(
     _In_ PPHP_THEME_WINDOW_HEADER_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -751,6 +1058,8 @@ VOID ThemeWindowRenderHeaderControl(
     _In_ PRECT clientRect
     )
 {
+    HIMAGELIST imageList;
+
     SetBkMode(bufferDc, TRANSPARENT);
     SelectFont(bufferDc, GetWindowFont(WindowHandle));
 
@@ -761,6 +1070,13 @@ VOID ThemeWindowRenderHeaderControl(
         PhDefaultHeaderWindowProcedure,
         WindowHandle,
         HDM_GETITEMCOUNT,
+        0, 0
+        );
+
+    imageList = (HIMAGELIST)CallWindowProc(
+        PhDefaultHeaderWindowProcedure,
+        WindowHandle,
+        HDM_GETIMAGELIST,
         0, 0
         );
 
@@ -780,43 +1096,29 @@ VOID ThemeWindowRenderHeaderControl(
             continue;
         }
 
+        if (!RectVisible(bufferDc, &headerRect))
+            continue;
+
         if (PhPtInRect(&headerRect, &Context->CursorPos))
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
             FillRect(bufferDc, &headerRect, PhGetStockBrush(DC_BRUSH));
-            //FrameRect(bufferDc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
         }
         else
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             FillRect(bufferDc, &headerRect, PhThemeWindowBackgroundBrush);
-
-            //FrameRect(hdc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-            //SetDCPenColor(hdc, RGB(0, 255, 0));
-            //SetDCBrushColor(hdc, RGB(0, 255, 0));
-            //DrawEdge(hdc, &headerRect, BDR_RAISEDOUTER | BF_FLAT, BF_RIGHT);
-
-            //RECT frameRect;
-            //frameRect.bottom = headerRect.bottom - 2;
-            //frameRect.left = headerRect.right - 1;
-            //frameRect.right = headerRect.right;
-            //frameRect.top = headerRect.top;
-            //SetDCBrushColor(hdc, RGB(68, 68, 68)); // RGB(0x77, 0x77, 0x77));
-            //FrameRect(hdc, &headerRect, PhGetStockBrush(DC_BRUSH));
-
-            //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.right - 1, DrawInfo->rcItem.top, 1, DrawInfo->rcItem.bottom - DrawInfo->rcItem.top, PATCOPY);
-            //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.left, DrawInfo->rcItem.bottom - 1, DrawInfo->rcItem.right - DrawInfo->rcItem.left, 1, PATCOPY);
             DrawEdge(bufferDc, &headerRect, BDR_RAISEDOUTER, BF_RIGHT);
         }
 
-        INT drawTextFlags = DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS;
+        INT drawTextFlags = DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_VCENTER;
         WCHAR headerText[0x80] = { 0 };
         HDITEM headerItem;
 
         ZeroMemory(&headerItem, sizeof(HDITEM));
-        headerItem.mask = HDI_TEXT | HDI_FORMAT;
-        headerItem.cchTextMax = MAX_PATH;
+        headerItem.mask = HDI_TEXT | HDI_FORMAT | HDI_IMAGE | HDI_LPARAM;
+        headerItem.cchTextMax = RTL_NUMBER_OF(headerText);
         headerItem.pszText = headerText;
 
         //Header_GetItem(WindowHandle, i, &headerItem);
@@ -828,13 +1130,33 @@ VOID ThemeWindowRenderHeaderControl(
             (LPARAM)&headerItem
             ))
         {
-            break;
+            continue;
         }
 
-        if (headerItem.fmt & HDF_SORTUP)
+        if (headerItem.fmt & HDF_OWNERDRAW)
+        {
+            DRAWITEMSTRUCT drawItem;
+
+            // Owner-drawn items are painted by the parent over our background.
+            memset(&drawItem, 0, sizeof(DRAWITEMSTRUCT));
+            drawItem.CtlType = ODT_HEADER;
+            drawItem.CtlID = GetDlgCtrlID(WindowHandle);
+            drawItem.itemID = i;
+            drawItem.itemAction = ODA_DRAWENTIRE;
+            drawItem.hwndItem = WindowHandle;
+            drawItem.hDC = bufferDc;
+            drawItem.rcItem = headerRect;
+            drawItem.itemData = (ULONG_PTR)headerItem.lParam;
+
+            SendMessage(GetParent(WindowHandle), WM_DRAWITEM, drawItem.CtlID, (LPARAM)&drawItem);
+            continue;
+        }
+
+        if (headerItem.fmt & (HDF_SORTUP | HDF_SORTDOWN))
         {
             if (Context->ThemeHandle)
             {
+                INT sortArrowState = (headerItem.fmt & HDF_SORTUP) ? HSAS_SORTEDUP : HSAS_SORTEDDOWN;
                 RECT sortArrowRect = headerRect;
                 SIZE sortArrowSize;
 
@@ -842,7 +1164,7 @@ VOID ThemeWindowRenderHeaderControl(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
-                    HSAS_SORTEDUP,
+                    sortArrowState,
                     NULL,
                     THEMEPARTSIZE_TRUE,
                     &sortArrowSize
@@ -855,50 +1177,53 @@ VOID ThemeWindowRenderHeaderControl(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
-                    HSAS_SORTEDUP,
+                    sortArrowState,
                     &sortArrowRect,
                     NULL
                     );
             }
         }
-        else if (headerItem.fmt & HDF_SORTDOWN)
-        {
-            if (Context->ThemeHandle)
-            {
-                RECT sortArrowRect = headerRect;
-                SIZE sortArrowSize;
-
-                if (PhGetThemePartSize(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDDOWN,
-                    NULL,
-                    THEMEPARTSIZE_TRUE,
-                    &sortArrowSize
-                    ))
-                {
-                    sortArrowRect.bottom = sortArrowSize.cy;
-                }
-
-                PhDrawThemeBackground(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDDOWN,
-                    &sortArrowRect,
-                    NULL
-                    );
-            }
-        }
-
-        if (headerItem.fmt & HDF_RIGHT)
-            drawTextFlags |= DT_VCENTER | DT_RIGHT;
-        else
-            drawTextFlags |= DT_VCENTER | DT_LEFT;
 
         headerRect.left += 4;
         headerRect.right -= 8;
+
+        if ((headerItem.fmt & HDF_IMAGE) && imageList && headerItem.iImage >= 0)
+        {
+            LONG iconWidth;
+            LONG iconHeight;
+
+            if (PhImageListGetIconSize(imageList, &iconWidth, &iconHeight))
+            {
+                PhImageListDrawIcon(
+                    imageList,
+                    headerItem.iImage,
+                    bufferDc,
+                    headerRect.left,
+                    headerRect.top + ((headerRect.bottom - headerRect.top) - iconHeight) / 2,
+                    ILD_NORMAL,
+                    FALSE
+                    );
+
+                headerRect.left += iconWidth + 4;
+            }
+        }
+
+        switch (headerItem.fmt & HDF_JUSTIFYMASK)
+        {
+        case HDF_RIGHT:
+            drawTextFlags |= DT_RIGHT;
+            break;
+        case HDF_CENTER:
+            drawTextFlags |= DT_CENTER;
+            break;
+        default:
+            drawTextFlags |= DT_LEFT;
+            break;
+        }
+
+        if (headerItem.fmt & HDF_RTLREADING)
+            drawTextFlags |= DT_RTLREADING;
+
         DrawText(
             bufferDc,
             headerText,
@@ -909,6 +1234,62 @@ VOID ThemeWindowRenderHeaderControl(
     }
 }
 
+/**
+ * Invalidates only header items whose hover state changed.
+ */
+static VOID PhpHeaderInvalidateHoverChange(
+    _In_ HWND WindowHandle,
+    _In_ POINT OldPoint,
+    _In_ POINT NewPoint
+    )
+{
+    INT count = (INT)CallWindowProc(PhDefaultHeaderWindowProcedure,
+        WindowHandle, HDM_GETITEMCOUNT, 0, 0);
+
+    // Use the same rectangles as the painter, including divider pixels; native
+    // hit-test flags do not exactly match its point-in-rectangle hover rule.
+    for (INT i = 0; i < count; i++)
+    {
+        RECT rect;
+        if (!CallWindowProc(PhDefaultHeaderWindowProcedure,
+            WindowHandle, HDM_GETITEMRECT, (WPARAM)i, (LPARAM)&rect))
+            continue;
+
+        if (!!PhPtInRect(&rect, &OldPoint) != !!PhPtInRect(&rect, &NewPoint))
+            InvalidateRect(WindowHandle, &rect, FALSE);
+    }
+}
+
+/**
+ * Refreshes the cached DPI and theme handle of a header control.
+ *
+ * \param Context A pointer to the header theme context.
+ * \param WindowHandle A handle to the header control window.
+ */
+static VOID PhpHeaderUpdateTheme(
+    _In_ PPHP_THEME_WINDOW_HEADER_CONTEXT Context,
+    _In_ HWND WindowHandle
+    )
+{
+    if (Context->ThemeHandle)
+    {
+        PhCloseThemeData(Context->ThemeHandle);
+        Context->ThemeHandle = NULL;
+    }
+
+    Context->WindowDpi = PhGetWindowDpi(WindowHandle);
+    Context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, Context->WindowDpi);
+}
+
+/**
+ * Window hook procedure for superclassed header controls (SysHeader32).
+ *
+ * \param WindowHandle A handle to the header control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhHeaderWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -943,10 +1324,9 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         }
 
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-        context->WindowDpi = PhGetWindowDpi(WindowHandle);
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
+        PhpHeaderUpdateTheme(context, WindowHandle);
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
         PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
@@ -972,18 +1352,18 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 }
 
                 PhFree(context);
+                context = NULL;
             }
             break;
         case WM_THEMECHANGED:
             {
-                if (context->ThemeHandle)
-                {
-                    PhCloseThemeData(context->ThemeHandle);
-                    context->ThemeHandle = NULL;
-                }
-
-                context->WindowDpi = PhGetWindowDpi(WindowHandle);
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
+                PhpHeaderUpdateTheme(context, WindowHandle);
+            }
+            break;
+        case WM_DPICHANGED_AFTERPARENT:
+            {
+                PhpHeaderUpdateTheme(context, WindowHandle);
+                InvalidateRect(WindowHandle, NULL, FALSE);
             }
             break;
         case WM_ERASEBKGND:
@@ -1007,17 +1387,30 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     context->MouseActive = TRUE;
                 }
 
+                POINT oldPoint = context->CursorPos;
                 context->CursorPos.x = GET_X_LPARAM(lParam);
                 context->CursorPos.y = GET_Y_LPARAM(lParam);
 
-                InvalidateRect(WindowHandle, NULL, FALSE);
+                PhpHeaderInvalidateHoverChange(WindowHandle, oldPoint, context->CursorPos);
+            }
+            break;
+        case WM_CAPTURECHANGED:
+            {
+                POINT oldPoint = context->CursorPos;
+
+                // Hover updates are suspended during a resize/drag capture; drop the
+                // stale hot item so it does not linger until the next mouse move.
+                context->CursorPos.x = LONG_MIN;
+                context->CursorPos.y = LONG_MIN;
+
+                PhpHeaderInvalidateHoverChange(WindowHandle, oldPoint, context->CursorPos);
             }
             break;
         case WM_CONTEXTMENU:
             {
                 LRESULT result = CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
-                InvalidateRect(WindowHandle, NULL, TRUE);
+                InvalidateRect(WindowHandle, NULL, FALSE);
 
                 return result;
             }
@@ -1026,11 +1419,12 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             {
                 LRESULT result = CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
+                POINT oldPoint = context->CursorPos;
                 context->MouseActive = FALSE;
                 context->CursorPos.x = LONG_MIN;
                 context->CursorPos.y = LONG_MIN;
 
-                InvalidateRect(WindowHandle, NULL, TRUE);
+                PhpHeaderInvalidateHoverChange(WindowHandle, oldPoint, context->CursorPos);
 
                 return result;
             }
@@ -1044,6 +1438,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     if (context->ThemeHandle)
                         PhCloseThemeData(context->ThemeHandle);
                     PhFree(context);
+                    context = NULL;
                     PhSetControlTheme(WindowHandle, L"Explorer");
                     break;
                 }
@@ -1066,7 +1461,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
                     // Buffer only the invalidated region; ThemeWindowRenderHeaderControl
                     // lays out using the full client rect and is clipped to the rcPaint buffer.
-                    if (PhBeginBufferedPaint(hdc, &ps.rcPaint, &paintBuffer, &bufferDc))
+                    if (PhBeginBufferedPaint(hdc, &ps.rcPaint, PHBF_TOPDOWNDIB, NULL, &paintBuffer, &bufferDc))
                     {
                         ThemeWindowRenderHeaderControl(context, WindowHandle, bufferDc, &clientRect);
                         PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -1086,6 +1481,9 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Superclasses the standard Windows dialog class (#32770).
+ */
 VOID PhRegisterDialogSuperClass(
     VOID
     )
@@ -1106,6 +1504,9 @@ VOID PhRegisterDialogSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard Windows menu class (#32768).
+ */
 VOID PhRegisterMenuSuperClass(
     VOID
     )
@@ -1117,7 +1518,12 @@ VOID PhRegisterMenuSuperClass(
 
     PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhMenuWindowHookProcedure;
-    wcex.style = wcex.style | CS_GLOBALCLASS;
+    wcex.style |= CS_GLOBALCLASS;
+
+    // Windows 11 ignores CS_DROPSHADOW for this class and uses the layered
+    // shadow window created from WM_CREATE instead. (dmex)
+    if (WindowsVersion < WINDOWS_11)
+        wcex.style |= CS_DROPSHADOW;
 
     UnregisterClass(L"#32768", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1126,6 +1532,9 @@ VOID PhRegisterMenuSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard rebar control class (ReBarWindow32).
+ */
 VOID PhRegisterRebarSuperClass(
     VOID
     )
@@ -1146,6 +1555,9 @@ VOID PhRegisterRebarSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard combo box control class (ComboBox).
+ */
 VOID PhRegisterComboBoxSuperClass(
     VOID
     )
@@ -1166,6 +1578,9 @@ VOID PhRegisterComboBoxSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard static control class (Static).
+ */
 VOID PhRegisterStaticSuperClass(
     VOID
     )
@@ -1186,6 +1601,9 @@ VOID PhRegisterStaticSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard status bar control class (msctls_statusbar32).
+ */
 VOID PhRegisterStatusBarSuperClass(
     VOID
     )
@@ -1206,6 +1624,9 @@ VOID PhRegisterStatusBarSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard edit control class (Edit).
+ */
 VOID PhRegisterEditSuperClass(
     VOID
     )
@@ -1226,6 +1647,9 @@ VOID PhRegisterEditSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard header control class (SysHeader32).
+ */
 VOID PhRegisterHeaderSuperClass(
     VOID
     )
@@ -1308,6 +1732,17 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_opt_ PVOID Context
     );
 
+/**
+ * Detour hook for DrawThemeBackground to provide custom theme rendering.
+ *
+ * \param Theme Theme data handle.
+ * \param Hdc Device context used for drawing.
+ * \param PartId The theme part to draw.
+ * \param StateId The state of the theme part.
+ * \param Rect A pointer to the destination drawing rectangle.
+ * \param ClipRect A pointer to the clipping rectangle.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhDrawThemeBackgroundHook(
     _In_ HTHEME Theme,
     _In_ HDC Hdc,
@@ -1327,6 +1762,16 @@ HRESULT PhDrawThemeBackgroundHook(
             if (PartId == MENU_POPUPGUTTER || PartId == MENU_POPUPBORDERS)
             {
                 FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
+
+                if (PartId == MENU_POPUPBORDERS)
+                {
+                    COLORREF oldBrushColor;
+
+                    oldBrushColor = SetDCBrushColor(Hdc, PhThemeWindowBorderColor);
+                    FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
+                    SetDCBrushColor(Hdc, oldBrushColor);
+                }
+
                 return S_OK;
             }
         }
@@ -1347,6 +1792,17 @@ HRESULT PhDrawThemeBackgroundHook(
     return DefaultDrawThemeBackground(Theme, Hdc, PartId, StateId, Rect, ClipRect);
 }
 
+/**
+ * Detour hook for DrawThemeBackgroundEx to provide custom theme rendering.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part to draw.
+ * \param iStateId The state of the theme part.
+ * \param pRect A pointer to the destination drawing rectangle.
+ * \param pOptions A pointer to drawing options.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeBackgroundExHook(
     _In_ HTHEME         hTheme,
     _In_ HDC            hdc,
@@ -1434,7 +1890,24 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     return DefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
 }
 
-HWND PhCreateWindowExHook(
+/**
+ * Detour hook for CreateWindowExW to apply streamer mode, acrylic backdrop, and theme settings.
+ *
+ * \param ExStyle The extended window style.
+ * \param ClassName The window class name.
+ * \param WindowName The window title text.
+ * \param Style The window style flags.
+ * \param X The initial horizontal position.
+ * \param Y The initial vertical position.
+ * \param Width The initial window width.
+ * \param Height The initial window height.
+ * \param Parent A handle to the parent or owner window.
+ * \param Menu A handle to a menu, or child-window identifier.
+ * \param Instance A handle to the module instance.
+ * \param Param Pointer to window creation data.
+ * \return HWND Handle to the created window, or NULL if creation failed.
+ */
+HWND WINAPI PhCreateWindowExHook(
     _In_ ULONG ExStyle,
     _In_opt_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
@@ -1464,19 +1937,27 @@ HWND PhCreateWindowExHook(
         Param
         );
 
-    if (Parent == NULL)
+    // Preserve the creation error and never pass a failed HWND to helpers.
+    if (!windowHandle)
+        return NULL;
+
+    // An owned popup is top-level too. A message-only window is not visual.
+    if (!(Style & WS_CHILD) && Parent != HWND_MESSAGE)
     {
         if (PhDefaultEnableStreamerMode)
         {
             SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+        // Preserve the prior acrylic policy for unowned top-level windows;
+        // owned menus/tooltips/popups must not acquire a generic backdrop.
+        if (!Parent && !(ExStyle & (WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP)) &&
+            PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
     }
-    else if (PhEnableThemeSupport)
+    else if ((Style & WS_CHILD) && PhEnableThemeSupport)
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
         if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ(ClassName, WC_LINK, TRUE))
@@ -1493,6 +1974,15 @@ HWND PhCreateWindowExHook(
     return windowHandle;
 }
 
+/**
+ * Detour hook for SystemParametersInfoW to disable animations when theme animation is disabled.
+ *
+ * \param uiAction The system parameter action to query or set.
+ * \param uiParam Parameter dependent on the action.
+ * \param pvParam Parameter dependent on the action.
+ * \param fWinIni User profile update flags.
+ * \return BOOL TRUE if successful, FALSE otherwise.
+ */
 BOOL WINAPI PhSystemParametersInfoHook(
     _In_ UINT uiAction,
     _In_ UINT uiParam,
@@ -1593,6 +2083,20 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //#define RGB_FROM_COLOREF(cref) \
 //    ((((cref) & 0x000000FF) << 16) | (((cref) & 0x0000FF00)) | (((cref) & 0x00FF0000) >> 16))
 
+/**
+ * Detour hook for DrawThemeText to provide custom text coloring for theme controls.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param pszText The string to draw.
+ * \param cchText The character count in the string.
+ * \param dwTextFlags Text formatting flags.
+ * \param dwTextFlags2 Additional text formatting flags.
+ * \param pRect A pointer to the text layout rectangle.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
@@ -1619,6 +2123,20 @@ HRESULT WINAPI PhDrawThemeTextHook(
     return DefaultDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, dwTextFlags2, pRect);
 }
 
+/**
+ * Detour hook for DrawThemeTextEx to provide custom text coloring for themed buttons and command links.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param pszText The string to draw.
+ * \param cchText The character count in the string.
+ * \param dwTextFlags Text formatting flags.
+ * \param pRect A pointer to the text layout rectangle.
+ * \param pOptions A pointer to text drawing options.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeTextExHook(
     _In_      HTHEME        hTheme,
     _In_      HDC           hdc,
@@ -1650,6 +2168,16 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     return DefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, pRect, pOptions);
 }
 
+/**
+ * Detour import hook for DrawTextW in Comctl32.dll to adjust hyperlink text colors in dark mode.
+ *
+ * \param hdc Device context used for drawing.
+ * \param lpchText The string to draw.
+ * \param cchText The character count in the string.
+ * \param lprc A pointer to the text layout rectangle.
+ * \param format Text formatting flags.
+ * \return int The height of the text drawn.
+ */
 int PhDetoursComCtl32DrawTextW(
     _In_      HDC     hdc,
     _Inout_   LPCWSTR lpchText,
@@ -1698,6 +2226,16 @@ int PhDetoursComCtl32DrawTextW(
     return DefaultComCtl32DrawTextW(hdc, lpchText, cchText, lprc, format);
 }
 
+/**
+ * Detour hook for GetThemeColor to override theme colors for task dialog elements in dark mode.
+ *
+ * \param hTheme Theme data handle.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param iPropId The property identifier.
+ * \param pColor Receives the color value.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhGetThemeColorHook(
     _In_  HTHEME   hTheme,
     _In_  int      iPartId,
@@ -1730,6 +2268,13 @@ HRESULT PhGetThemeColorHook(
     return retVal;
 }
 
+/**
+ * Detour hook for OpenNcThemeData to apply dark scrollbar themes.
+ *
+ * \param hwnd A handle to the window.
+ * \param pszClassList The theme class list.
+ * \return HTHEME Theme data handle.
+ */
 HTHEME PhOpenNcThemeDataHook(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
@@ -1744,6 +2289,13 @@ HTHEME PhOpenNcThemeDataHook(
     return DefaultOpenNcThemeData(hwnd, pszClassList);
 }
 
+/**
+ * Window enumeration callback to initialize theme subclasses and controls for task dialogs.
+ *
+ * \param WindowHandle A handle to the window being processed.
+ * \param CallbackData Optional task dialog callback wrapper structure.
+ * \return BOOLEAN TRUE to continue window enumeration.
+ */
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
@@ -1808,6 +2360,15 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     return TRUE;
 }
 
+/**
+ * Subclass window procedure for task dialogs and child controls.
+ *
+ * \param hwnd A handle to the window.
+ * \param uMsg The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -1840,9 +2401,11 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
                 // Avoid erasing the background for links, as they will blink white on the extender and during page switches.
                 if (!PhEqualStringZ(windowClassName, WC_LINK, FALSE))
                 {
-                    GetClipBox(hdc, &rect);
-                    SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                    FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+                    if (GetClipBox(hdc, &rect) > NULLREGION)
+                    {
+                        SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+                        FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+                    }
                 }
             }
         }
@@ -1897,6 +2460,16 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     return result;
 }
 
+/**
+ * Task dialog callback hook used to apply theme initialization on page construction.
+ *
+ * \param hwndDlg A handle to the task dialog window.
+ * \param uMsg The notification message.
+ * \param wParam Notification parameter.
+ * \param lParam Notification parameter.
+ * \param dwRefData User reference data pointer.
+ * \return HRESULT Callback result.
+ */
 HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1921,6 +2494,15 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
 }
 
 // https://github.com/SFTRS/DarkTaskDialog
+/**
+ * Detour hook for TaskDialogIndirect to enable theme support and custom styling.
+ *
+ * \param pTaskConfig A pointer to the task dialog configuration structure.
+ * \param pnButton Optional receives the selected button ID.
+ * \param pnRadioButton Optional receives the selected radio button ID.
+ * \param pfVerificationFlagChecked Optional receives the verification checkbox state.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhTaskDialogIndirectHook(
     _In_      const TASKDIALOGCONFIG* pTaskConfig,
     _Out_opt_ int* pnButton,
@@ -1938,6 +2520,9 @@ HRESULT PhTaskDialogIndirectHook(
     return DefaultTaskDialogIndirect(&myConfig, pnButton, pnRadioButton, pfVerificationFlagChecked);
 }
 
+/**
+ * Installs Microsoft Detours API hooks for theming, transparency, and window creation.
+ */
 VOID PhRegisterDetoursHooks(
     VOID
     )
@@ -2014,6 +2599,11 @@ CleanupExit:
     }
 }
 
+/**
+ * Checks if system-wide transparency effects are enabled in Windows Personalization settings.
+ *
+ * \return BOOLEAN TRUE if transparency effects are enabled, FALSE otherwise.
+ */
 BOOLEAN PhIsThemeTransparencyEnabled(
     VOID
     )
@@ -2037,6 +2627,9 @@ BOOLEAN PhIsThemeTransparencyEnabled(
     return themesEnableTransparency;
 }
 
+/**
+ * Initializes superclassed control window classes and registers detour hooks.
+ */
 VOID PhInitializeSuperclassControls(
     VOID
     )
@@ -2048,6 +2641,8 @@ VOID PhInitializeSuperclassControls(
     if (PhEnableThemeAcrylicSupport)
         PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
 
+    PhRegisterMenuSuperClass();
+
     if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
         if (WindowsVersion >= WINDOWS_11)
@@ -2058,7 +2653,6 @@ VOID PhInitializeSuperclassControls(
         PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ANIMATION);
 
         PhRegisterDialogSuperClass();
-        PhRegisterMenuSuperClass();
         PhRegisterRebarSuperClass();
         PhRegisterComboBoxSuperClass();
         PhRegisterStaticSuperClass();

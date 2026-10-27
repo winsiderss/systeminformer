@@ -69,6 +69,7 @@ VOID PhMwpInitializeProviders(
     );
 
 VOID PhMwpShowWindow(
+    _In_ HWND WindowHandle,
     _In_ LONG ShowCommand
     );
 
@@ -278,7 +279,8 @@ VOID PhMwpOnDeviceChanged(
 
 VOID PhMwpOnDpiChanged(
     _In_ HWND WindowHandle,
-    _In_ LONG WindowDpi
+    _In_ LONG WindowDpi,
+    _In_opt_ PRECT SuggestedRect
     );
 
 LRESULT PhMwpOnUserMessage(
@@ -452,6 +454,11 @@ NTSTATUS NTAPI INVOKE_START_ROUTINE(
     _In_ PVOID ThreadParameter
     );
 typedef INVOKE_START_ROUTINE* PINVOKE_START_ROUTINE;
+
+NTSTATUS PhInvokeOnMainThread(
+    _In_opt_ PINVOKE_START_ROUTINE Command,
+    _In_opt_ PVOID Parameter
+    );
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _PH_INVOKE_ENTRY
 {
