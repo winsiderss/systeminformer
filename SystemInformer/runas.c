@@ -61,6 +61,7 @@
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>
+#include <procprv.h>
 #include <settings.h>
 #include <svcsup.h>
 #include <mainwnd.h>
