@@ -1096,6 +1096,21 @@ static VOID PhpUpdateProcessNodeWindow(
 
         if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
+            if (ProcessNode->WindowHandle)
+            {
+                CLIENT_ID clientId;
+
+                // HWNDs are recycled; drop the cached window when it is gone or no longer
+                // belongs to this process so the next query picks up the new main window.
+                if (!IsWindow(ProcessNode->WindowHandle) ||
+                    !NT_SUCCESS(PhGetWindowClientId(ProcessNode->WindowHandle, &clientId)) ||
+                    clientId.UniqueProcess != ProcessNode->ProcessId)
+                {
+                    ProcessNode->WindowHandle = NULL;
+                    ProcessNode->WindowHung = FALSE;
+                }
+            }
+
             if (!ProcessNode->WindowHandle)
             {
                 ProcessNode->WindowHandle = PhGetProcessMainWindow(
@@ -1277,26 +1292,50 @@ static VOID PhpUpdateProcessNodeImage(
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
 #endif
             {
-                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
-
-                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                {
-                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                }
-                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                {
-                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                }
-
+                USHORT imageMachine;
+                ULONG imageTimeDateStamp;
+                USHORT imageCharacteristics;
+                USHORT imageSubsystem = IMAGE_SUBSYSTEM_UNKNOWN;
+                USHORT imageDllCharacteristics = 0;
 #ifdef _ARM64_
-                if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
-                    ProcessNode->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+                ULONG imageCHPEVersion = 0;
 #endif
+                __try
+                {
+                    imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                    imageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                    imageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+    
+                    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    {
+                        imageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                        imageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                    }
+                    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    {
+                        imageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                        imageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                    }            
+#ifdef _ARM64_
+                    if (imageMachine == IMAGE_FILE_MACHINE_AMD64 || imageMachine == IMAGE_FILE_MACHINE_ARM64)
+                    {
+                        imageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+                    }
+#endif
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    NOTHING;
+                }
 
+                ProcessNode->ImageMachine = imageMachine;
+                ProcessNode->ImageTimeDateStamp = imageTimeDateStamp;
+                ProcessNode->ImageCharacteristics = imageCharacteristics;
+                ProcessNode->ImageSubsystem = imageSubsystem;
+                ProcessNode->ImageDllCharacteristics = imageDllCharacteristics;
+#ifdef _ARM64_
+                ProcessNode->ImageCHPEVersion = imageCHPEVersion;
+#endif
                 PhUnloadMappedImage(&mappedImage);
             }
         }
