@@ -117,562 +117,591 @@ PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 static VERIFY_RESULT PvImageVerifyResult;
 static PPH_STRING PvImageSignerName;
 
+static NTSTATUS CopyPeHeaders(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Inout_ PIMAGE_NT_HEADERS64 Headers
+    )
+{
+    __try
+    {
+        memcpy(Headers, MappedImage->NtHeaders, UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader));
+        memcpy(&Headers->OptionalHeader, &MappedImage->NtHeaders->OptionalHeader,
+            min(Headers->FileHeader.SizeOfOptionalHeader, sizeof(Headers->OptionalHeader)));
+        return STATUS_SUCCESS;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+}
+
 VOID PvPeProperties(
     VOID
     )
 {
-    PPV_PROPCONTEXT propContext;
+    PPV_PROPCONTEXT propContext = NULL;
+    PPH_STRING fileName = NULL;
     PH_MAPPED_IMAGE_IMPORTS imports;
-    PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORTS exports = { 0 };
     PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
     PIMAGE_DATA_DIRECTORY entry;
 
-    if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
+    __try
     {
-        PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon, USER_DEFAULT_SCREEN_DPI);
-    }
-
-    if (PvpLoadDbgHelp(&PvSymbolProvider))
-    {
-        PPH_STRING fileName;
-
-        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PvMappedImage.ViewBase, &fileName)))
+        if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
         {
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                PhLoadModuleSymbolProvider(
-                    PvSymbolProvider,
-                    fileName,
-                    (PVOID)(ULONG_PTR)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
-                    PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
-                    );
-            }
-            else
-            {
-                PhLoadModuleSymbolProvider(
-                    PvSymbolProvider,
-                    fileName,
-                    (PVOID)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
-                    PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
-                    );
-            }
-
-            PhDereferenceObject(fileName);
+            PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon, USER_DEFAULT_SCREEN_DPI);
         }
-
-        PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId(), NtCurrentProcess());
-    }
-
-    if (propContext = PvCreatePropContext(PvFileName))
-    {
-        PPV_PROPPAGECONTEXT newPage;
-
-        // General page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PEGENERAL),
-            PvPeGeneralDlgProc,
-            NULL
-            );
-        PvAddPropPage(propContext, newPage);
-
-        // Headers page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PEHEADERS),
-            PvPeHeadersDlgProc,
-            NULL
-            );
-        PvAddPropPage(propContext, newPage);
-
-        // Load Config page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
+    
+        if (PvpLoadDbgHelp(&PvSymbolProvider))
         {
+    
+            if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PvMappedImage.ViewBase, &fileName)))
+            {
+                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                {
+                    PhLoadModuleSymbolProvider(
+                        PvSymbolProvider,
+                        fileName,
+                        (PVOID)(ULONG_PTR)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
+                        PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
+                        );
+                }
+                else
+                {
+                    PhLoadModuleSymbolProvider(
+                        PvSymbolProvider,
+                        fileName,
+                        (PVOID)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+                        PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
+                        );
+                }
+    
+                PhClearReference(&fileName);
+            }
+    
+            PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId(), NtCurrentProcess());
+        }
+    
+        if (propContext = PvCreatePropContext(PvFileName))
+        {
+            PPV_PROPPAGECONTEXT newPage;
+    
+            // General page
             newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PELOADCONFIG),
-                PvPeLoadConfigDlgProc,
+                MAKEINTRESOURCE(IDD_PEGENERAL),
+                PvPeGeneralDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
-        }
-
-        // Sections page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PESECTIONS),
-            PvPeSectionsDlgProc,
-            NULL
-            );
-        PvAddPropPage(propContext, newPage);
-
-        // Directories page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PEDIRECTORY),
-            PvPeDirectoryDlgProc,
-            NULL
-            );
-        PvAddPropPage(propContext, newPage);
-
-        // Imports page
-        if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
-            (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
-        {
+    
+            // Headers page
             newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEIMPORTS),
-                PvPeImportsDlgProc,
+                MAKEINTRESOURCE(IDD_PEHEADERS),
+                PvPeHeadersDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
-        }
-
-        // Exports page
-        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
-        {
-            PV_EXPORTS_PAGECONTEXT exportsPageContext;
-
-            memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
-            exportsPageContext.FreePropPageContext = FALSE;
-            exportsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExportsEx with no flags
-
+    
+            // Load Config page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PELOADCONFIG),
+                    PvPeLoadConfigDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Sections page
             newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEEXPORTS),
-                PvPeExportsDlgProc,
-                &exportsPageContext
+                MAKEINTRESOURCE(IDD_PESECTIONS),
+                PvPeSectionsDlgProc,
+                NULL
                 );
             PvAddPropPage(propContext, newPage);
-
-            // NativeAOT
+    
+            // Directories page
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEDIRECTORY),
+                PvPeDirectoryDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+    
+            // Imports page
+            if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
+                (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
             {
-                PH_MAPPED_IMAGE_EXPORT_FUNCTION runtimeDebugFunction;
-
-                if (NT_SUCCESS(PhGetMappedImageExportFunction(
-                    &exports,
-                    "DotNetRuntimeDebugHeader",
-                    0,
-                    &runtimeDebugFunction
-                    )) && runtimeDebugFunction.Function)
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEIMPORTS),
+                    PvPeImportsDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Exports page
+            if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
+            {
+                PV_EXPORTS_PAGECONTEXT exportsPageContext;
+    
+                memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                exportsPageContext.FreePropPageContext = FALSE;
+                exportsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExportsEx with no flags
+    
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEXPORTS),
+                    PvPeExportsDlgProc,
+                    &exportsPageContext
+                    );
+                PvAddPropPage(propContext, newPage);
+    
+                // NativeAOT
+                {
+                    PH_MAPPED_IMAGE_EXPORT_FUNCTION runtimeDebugFunction;
+    
+                    if (NT_SUCCESS(PhGetMappedImageExportFunction(
+                        &exports,
+                        "DotNetRuntimeDebugHeader",
+                        0,
+                        &runtimeDebugFunction
+                        )) && runtimeDebugFunction.Function)
+                    {
+                        newPage = PvCreatePropPageContext(
+                            MAKEINTRESOURCE(IDD_PERUNTIMEDEBUG),
+                            PvPeRuntimeDebugDlgProc,
+                            NULL
+                            );
+                        PvAddPropPage(propContext, newPage);
+                    }
+                }
+                PhDeleteMappedImageExports(&exports);
+            }
+    
+            if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
+            {
+                PV_EXPORTS_PAGECONTEXT exportsPageContext;
+    
+                memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                exportsPageContext.FreePropPageContext = FALSE;
+                exportsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64X);
+    
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEXPORTS),
+                    PvPeExportsDlgProc,
+                    &exportsPageContext
+                    );
+                PvAddPropPage(propContext, newPage);
+                PhDeleteMappedImageExports(&exports);
+            }
+    
+            // Resources page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PERESOURCES),
+                    PvPeResourcesDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // CLR page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
+                NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, (PVOID *)&PvImageCor20Header)))
+            {
+                NTSTATUS status = STATUS_SUCCESS;
+    
+                __try
+                {
+                    PhProbeAddress(
+                        PvImageCor20Header,
+                        sizeof(IMAGE_COR20_HEADER),
+                        PvMappedImage.ViewBase,
+                        PvMappedImage.ViewSize,
+                        4
+                        );
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+    
+                if (NT_SUCCESS(status))
                 {
                     newPage = PvCreatePropPageContext(
-                        MAKEINTRESOURCE(IDD_PERUNTIMEDEBUG),
-                        PvPeRuntimeDebugDlgProc,
+                        MAKEINTRESOURCE(IDD_PECLR),
+                        PvpPeClrDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+    
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PECLRIMPORTS),
+                        PvpPeClrImportsDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+    
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PECLRTABLES),
+                        PvPeClrTablesDlgProc,
                         NULL
                         );
                     PvAddPropPage(propContext, newPage);
                 }
             }
-            PhDeleteMappedImageExports(&exports);
-        }
-
-        if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
-        {
-            PV_EXPORTS_PAGECONTEXT exportsPageContext;
-
-            memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
-            exportsPageContext.FreePropPageContext = FALSE;
-            exportsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64X);
-
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEEXPORTS),
-                PvPeExportsDlgProc,
-                &exportsPageContext
-                );
-            PvAddPropPage(propContext, newPage);
-            PhDeleteMappedImageExports(&exports);
-        }
-
-        // Resources page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PERESOURCES),
-                PvPeResourcesDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // CLR page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
-            NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, (PVOID *)&PvImageCor20Header)))
-        {
-            NTSTATUS status = STATUS_SUCCESS;
-
-            __try
-            {
-                PhProbeAddress(
-                    PvImageCor20Header,
-                    sizeof(IMAGE_COR20_HEADER),
-                    PvMappedImage.ViewBase,
-                    PvMappedImage.ViewSize,
-                    4
-                    );
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
-
-            if (NT_SUCCESS(status))
+    
+            // CFG page
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PECLR),
-                    PvpPeClrDlgProc,
-                    NULL
-                    );
-                PvAddPropPage(propContext, newPage);
-
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PECLRIMPORTS),
-                    PvpPeClrImportsDlgProc,
-                    NULL
-                    );
-                PvAddPropPage(propContext, newPage);
-
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PECLRTABLES),
-                    PvPeClrTablesDlgProc,
+                    MAKEINTRESOURCE(IDD_PECFG),
+                    PvpPeCgfDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
-        }
-
-        // CFG page
-        if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PECFG),
-                PvpPeCgfDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // TLS page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_TLS),
-                PvpPeTlsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // ProdId page
-        {
-            ULONG imageDosStubLength = ((PIMAGE_DOS_HEADER)PvMappedImage.ViewBase)->e_lfanew - RTL_SIZEOF_THROUGH_FIELD(IMAGE_DOS_HEADER, e_lfanew);
-
-            if (imageDosStubLength != 0 && imageDosStubLength != 64)
+    
+            // TLS page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEPRODID),
-                    PvpPeProdIdDlgProc,
+                    MAKEINTRESOURCE(IDD_TLS),
+                    PvpPeTlsDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
-        }
-
-        {
-            BOOLEAN hasExceptions = FALSE;
-            BOOLEAN hasExceptionsArm64X = FALSE;
-
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    
+            // ProdId page
             {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                    RTL_CONTAINS_FIELD(config32, config32->Size, SEHandlerCount))
+                ULONG imageDosStubLength = ((PIMAGE_DOS_HEADER)PvMappedImage.ViewBase)->e_lfanew - RTL_SIZEOF_THROUGH_FIELD(IMAGE_DOS_HEADER, e_lfanew);
+    
+                if (imageDosStubLength != 0 && imageDosStubLength != 64)
                 {
-                    if (config32->SEHandlerCount && config32->SEHandlerTable)
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEPRODID),
+                        PvpPeProdIdDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
+            }
+    
+            {
+                BOOLEAN hasExceptions = FALSE;
+                BOOLEAN hasExceptionsArm64X = FALSE;
+    
+                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                {
+                    if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                        RTL_CONTAINS_FIELD(config32, config32->Size, SEHandlerCount))
+                    {
+                        if (config32->SEHandlerCount && config32->SEHandlerTable)
+                            hasExceptions = TRUE;
+                    }
+                }
+                else
+                {
+                    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
+                    {
+                        IMAGE_DATA_DIRECTORY entryArm64X;
+    
                         hasExceptions = TRUE;
+    
+                        if (NT_SUCCESS(PhRelocateMappedImageDataEntryARM64X(&PvMappedImage, entry, &entryArm64X)))
+                            hasExceptionsArm64X = TRUE;
+                    }
                 }
-            }
-            else
-            {
-                if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
+    
+                // Exceptions page
+                if (hasExceptions)
                 {
-                    IMAGE_DATA_DIRECTORY entryArm64X;
-
-                    hasExceptions = TRUE;
-
-                    if (NT_SUCCESS(PhRelocateMappedImageDataEntryARM64X(&PvMappedImage, entry, &entryArm64X)))
-                        hasExceptionsArm64X = TRUE;
+                    PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+    
+                    memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                    exceptionsPageContext.FreePropPageContext = FALSE;
+                    exceptionsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExceptionsEx with no flags
+    
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
+                        PvpPeExceptionDlgProc,
+                        &exceptionsPageContext
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
+    
+                // Exceptions ARM64X page
+                if (hasExceptionsArm64X)
+                {
+                    PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+    
+                    memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                    exceptionsPageContext.FreePropPageContext = FALSE;
+                    exceptionsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXCEPTIONS_ARM64X);
+    
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
+                        PvpPeExceptionDlgProc,
+                        &exceptionsPageContext
+                        );
+                    PvAddPropPage(propContext, newPage);
                 }
             }
-
-            // Exceptions page
-            if (hasExceptions)
+    
+            // Relocations page
             {
-                PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
-
-                memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
-                exceptionsPageContext.FreePropPageContext = FALSE;
-                exceptionsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExceptionsEx with no flags
-
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
-                    PvpPeExceptionDlgProc,
-                    &exceptionsPageContext
-                    );
-                PvAddPropPage(propContext, newPage);
+                if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PERELOCATIONS),
+                        PvpPeRelocationDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
             }
-
-            // Exceptions ARM64X page
-            if (hasExceptionsArm64X)
-            {
-                PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
-
-                memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
-                exceptionsPageContext.FreePropPageContext = FALSE;
-                exceptionsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXCEPTIONS_ARM64X);
-
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
-                    PvpPeExceptionDlgProc,
-                    &exceptionsPageContext
-                    );
-                PvAddPropPage(propContext, newPage);
-            }
-        }
-
-        // Relocations page
-        {
-            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
+    
+            // Certificates page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PERELOCATIONS),
-                    PvpPeRelocationDlgProc,
+                    MAKEINTRESOURCE(IDD_PESECURITY),
+                    PvpPeSecurityDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
-        }
-
-        // Certificates page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PESECURITY),
-                PvpPeSecurityDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Debug page
-        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEDEBUG),
-                PvpPeDebugDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Volatile page
-        {
-            BOOLEAN valid = FALSE;
-
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                    RTL_CONTAINS_FIELD(config32, config32->Size, VolatileMetadataPointer))
-                {
-                    if (config32->VolatileMetadataPointer)
-                        valid = TRUE;
-                }
-            }
-            else
-            {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
-                    RTL_CONTAINS_FIELD(config64, config64->Size, VolatileMetadataPointer))
-                {
-                    if (config64->VolatileMetadataPointer)
-                        valid = TRUE;
-                }
-            }
-
-            if (valid)
+    
+            // Debug page
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEVOLATILE),
-                    PvpPeVolatileDlgProc,
+                    MAKEINTRESOURCE(IDD_PEDEBUG),
+                    PvpPeDebugDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
-        }
-
-        // EH continuation page
-        {
-            BOOLEAN has_ehcont = FALSE;
-
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    
+            // Volatile page
             {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                    RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
+                BOOLEAN valid = FALSE;
+    
+                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 {
-                    if (config32->GuardEHContinuationTable && config32->GuardEHContinuationCount)
-                        has_ehcont = TRUE;
+                    if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                        RTL_CONTAINS_FIELD(config32, config32->Size, VolatileMetadataPointer))
+                    {
+                        if (config32->VolatileMetadataPointer)
+                            valid = TRUE;
+                    }
+                }
+                else
+                {
+                    if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                        RTL_CONTAINS_FIELD(config64, config64->Size, VolatileMetadataPointer))
+                    {
+                        if (config64->VolatileMetadataPointer)
+                            valid = TRUE;
+                    }
+                }
+    
+                if (valid)
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEVOLATILE),
+                        PvpPeVolatileDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
                 }
             }
-            else
+    
+            // EH continuation page
             {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
-                    RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
+                BOOLEAN has_ehcont = FALSE;
+    
+                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 {
-                    if (config64->GuardEHContinuationTable && config64->GuardEHContinuationCount)
-                        has_ehcont = TRUE;
+                    if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                        RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
+                    {
+                        if (config32->GuardEHContinuationTable && config32->GuardEHContinuationCount)
+                            has_ehcont = TRUE;
+                    }
+                }
+                else
+                {
+                    if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                        RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
+                    {
+                        if (config64->GuardEHContinuationTable && config64->GuardEHContinuationCount)
+                            has_ehcont = TRUE;
+                    }
+                }
+    
+                if (has_ehcont)
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEEHCONT),
+                        PvpPeEhContDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
                 }
             }
-
-            if (has_ehcont)
+    
+            // Debug POGO page
+            {
+                BOOLEAN debugPogoValid = FALSE;
+                PVOID debugEntry;
+    
+                if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
+                    &PvMappedImage,
+                    IMAGE_DEBUG_TYPE_POGO,
+                    NULL,
+                    &debugEntry
+                    )))
+                {
+                    debugPogoValid = TRUE;
+                }
+    
+                if (debugPogoValid)
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEDEBUGPOGO),
+                        PvpPeDebugPogoDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+    
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PEDEBUGCRT),
+                        PvpPeDebugCrtDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
+            }
+    
+            // Properties page
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEEHCONT),
-                    PvpPeEhContDlgProc,
+                    MAKEINTRESOURCE(IDD_PEPROPSTORAGE),
+                    PvpPePropStoreDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
-        }
-
-        // Debug POGO page
-        {
-            BOOLEAN debugPogoValid = FALSE;
-            PVOID debugEntry;
-
-            if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
-                &PvMappedImage,
-                IMAGE_DEBUG_TYPE_POGO,
-                NULL,
-                &debugEntry
-                )))
-            {
-                debugPogoValid = TRUE;
-            }
-
-            if (debugPogoValid)
+    
+            // Extended attributes page
             {
                 newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEDEBUGPOGO),
-                    PvpPeDebugPogoDlgProc,
-                    NULL
-                    );
-                PvAddPropPage(propContext, newPage);
-
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEDEBUGCRT),
-                    PvpPeDebugCrtDlgProc,
+                    MAKEINTRESOURCE(IDD_PEATTR),
+                    PvpPeExtendedAttributesDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
             }
+    
+            // Streams page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PESTREAMS),
+                    PvpPeStreamsDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Layout page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PELAYOUT),
+                    PvpPeLayoutDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Links page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PELINKS),
+                    PvpPeLinksDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Processes page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PIDS),
+                    PvpPeProcessesDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Hashes page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEHASHES),
+                    PvpPeHashesDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Text preview page
+            {
+                //newPage = PvCreatePropPageContext(
+                //    MAKEINTRESOURCE(IDD_PEPREVIEW),
+                //    PvpPePreviewDlgProc,
+                //    NULL
+                //    );
+                //PvAddPropPage(propContext, newPage);
+            }
+    
+            // Symbols page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PESYMBOLS),
+                    PvpSymbolsDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            // Strings page
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_STRINGS),
+                    PvStringsDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+    
+            PhModalPropertySheet(&propContext->PropSheetHeader);
+    
+    
         }
-
-        // Properties page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEPROPSTORAGE),
-                PvpPePropStoreDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Extended attributes page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEATTR),
-                PvpPeExtendedAttributesDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Streams page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PESTREAMS),
-                PvpPeStreamsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Layout page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PELAYOUT),
-                PvpPeLayoutDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Links page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PELINKS),
-                PvpPeLinksDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Processes page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PIDS),
-                PvpPeProcessesDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Hashes page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEHASHES),
-                PvpPeHashesDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Text preview page
-        {
-            //newPage = PvCreatePropPageContext(
-            //    MAKEINTRESOURCE(IDD_PEPREVIEW),
-            //    PvpPePreviewDlgProc,
-            //    NULL
-            //    );
-            //PvAddPropPage(propContext, newPage);
-        }
-
-        // Symbols page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PESYMBOLS),
-                PvpSymbolsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Strings page
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_STRINGS),
-                PvStringsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        PhModalPropertySheet(&propContext->PropSheetHeader);
-
-        PhDereferenceObject(propContext);
     }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        PhShowStatus(NULL, L"Unable to read the mapped image.", GetExceptionCode(), 0);
+    }
+
+    PhClearReference(&fileName);
+    PhDeleteMappedImageExports(&exports);
+    if (propContext) PhDereferenceObject(propContext);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -1132,21 +1161,29 @@ VOID PvpSetPeImageMachineType(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     ULONG machine;
     PWSTR type;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        machine = PvMappedImage.NtHeaders32->FileHeader.Machine;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        machine = mappedImage.NtHeaders32->FileHeader.Machine;
     else
-        machine = PvMappedImage.NtHeaders->FileHeader.Machine;
+        machine = mappedImage.NtHeaders->FileHeader.Machine;
 
     switch (machine)
     {
     case IMAGE_FILE_MACHINE_I386:
-        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"i386 (CHPE)" : L"i386";
+        type = PhGetMappedImageCHPEVersion(&mappedImage) ? L"i386 (CHPE)" : L"i386";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
-        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"AMD64 (ARM64X)" : L"AMD64";
+        type = PhGetMappedImageCHPEVersion(&mappedImage) ? L"AMD64 (ARM64X)" : L"AMD64";
         break;
     case IMAGE_FILE_MACHINE_IA64:
         type = L"IA64";
@@ -1155,7 +1192,7 @@ VOID PvpSetPeImageMachineType(
         type = L"ARM Thumb-2";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
-        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"ARM64 (ARM64X)" : L"ARM64";
+        type = PhGetMappedImageCHPEVersion(&mappedImage) ? L"ARM64 (ARM64X)" : L"ARM64";
         break;
     default:
         type = L"Unknown";
@@ -1169,15 +1206,23 @@ VOID PvpSetPeImageTimeStamp(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     LARGE_INTEGER time;
     SYSTEMTIME timeFields;
     PPH_STRING string;
     PPH_STRING reverseTimeStamp;
 
-    PhSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
+    PhSecondsSince1970ToTime(mappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
-        &PvMappedImage,
+        &mappedImage,
         IMAGE_DEBUG_TYPE_REPRO,
         NULL,
         NULL
@@ -1186,10 +1231,10 @@ VOID PvpSetPeImageTimeStamp(
         PhLargeIntegerToLocalSystemTime(&timeFields, &time);
         string = PhFormatDateTime(&timeFields);
 
-        if (PvMappedImage.NtHeaders->FileHeader.TimeDateStamp)
+        if (mappedImage.NtHeaders->FileHeader.TimeDateStamp)
         {
             reverseTimeStamp = PhBufferToHexStringEx(
-                (PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                (PBYTE)&mappedImage.NtHeaders->FileHeader.TimeDateStamp,
                 sizeof(ULONG),
                 FALSE
                 );
@@ -1197,7 +1242,7 @@ VOID PvpSetPeImageTimeStamp(
             PhMoveReference(&string, PhFormatString(
                 L"%s (0x%lx) (0x%s) (deterministic)",
                 PhGetStringOrEmpty(string),
-                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                mappedImage.NtHeaders->FileHeader.TimeDateStamp,
                 reverseTimeStamp->Buffer
                 ));
 
@@ -1224,13 +1269,21 @@ VOID PvpSetPeImageBaseAddress(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     ULONGLONG imagebase;
     PPH_STRING string;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        imagebase = PvMappedImage.NtHeaders32->OptionalHeader.ImageBase;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        imagebase = mappedImage.NtHeaders32->OptionalHeader.ImageBase;
     else
-        imagebase = PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
+        imagebase = mappedImage.NtHeaders->OptionalHeader.ImageBase;
 
     string = PhFormatString(L"0x%llx", imagebase);
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGEBASE, 1, string->Buffer);
@@ -1352,6 +1405,16 @@ static NTSTATUS PvpEntryPointImageThreadStart(
     _In_ PVOID Parameter
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    NTSTATUS mappedReadStatus = CopyPeHeaders(&PvMappedImage, &headers);
+
+    if (!NT_SUCCESS(mappedReadStatus))
+        return mappedReadStatus;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     ULONG addressOfEntryPoint;
     PPH_STRING string;
     PPH_STRING symbol = NULL;
@@ -1360,18 +1423,18 @@ static NTSTATUS PvpEntryPointImageThreadStart(
     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
     ULONG64 displacement = 0;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        addressOfEntryPoint = mappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
     else
-        addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
+        addressOfEntryPoint = mappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
 
     if (addressOfEntryPoint)
     {
-        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         {
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), addressOfEntryPoint),
+                PTR_ADD_OFFSET(UlongToPtr(mappedImage.NtHeaders32->OptionalHeader.ImageBase), addressOfEntryPoint),
                 &symbolResolveLevel,
                 &fileName,
                 &symbolName,
@@ -1382,7 +1445,7 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         {
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
+                PTR_ADD_OFFSET(mappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
                 &symbolResolveLevel,
                 &fileName,
                 &symbolName,
@@ -1435,9 +1498,17 @@ VOID PvpSetPeImageCheckSum(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     PPH_STRING string;
 
-    string = PhFormatString(L"0x%I32x (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
+    string = PhFormatString(L"0x%I32x (verifying...)", mappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, 1, string->Buffer);
 
@@ -1450,23 +1521,32 @@ VOID PvpSetPeImageSpareHeaderBytes(
     _In_ HWND ListViewHandle
     )
 {
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+    ULONG ntHeadersOffset = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders, PvMappedImage.ViewBase));
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32, PvMappedImage.ViewBase));
-        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + PvMappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
-        ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
+        ULONG nativeHeadersLength = ntHeadersOffset;
+        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + mappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
+        ULONG sectionsLength = mappedImage.NtHeaders32->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = (PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders - totalLength);
+        ULONG spareLength = (mappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }
-    else if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders, PvMappedImage.ViewBase));
-        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + PvMappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
-        ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
+        ULONG nativeHeadersLength = ntHeadersOffset;
+        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + mappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
+        ULONG sectionsLength = mappedImage.NtHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = (PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders - totalLength);
+        ULONG spareLength = (mappedImage.NtHeaders->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }
@@ -1478,12 +1558,19 @@ VOID PvpSetPeImageSectionSlackBytes(
 {
     ULONG64 slackLength = 0;
 
-    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    __try
     {
-        PIMAGE_SECTION_HEADER section = &PvMappedImage.Sections[i];
+        for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+        {
+            PIMAGE_SECTION_HEADER section = &PvMappedImage.Sections[i];
 
-        if (section->SizeOfRawData > section->Misc.VirtualSize)
-            slackLength += UInt32Sub32To64(section->SizeOfRawData, section->Misc.VirtualSize);
+            if (section->SizeOfRawData > section->Misc.VirtualSize)
+                slackLength += UInt32Sub32To64(section->SizeOfRawData, section->Misc.VirtualSize);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return;
     }
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_SECTIONSLACK, 1, PhaFormatSize(slackLength, ULONG_MAX)->Buffer);
@@ -1493,13 +1580,21 @@ VOID PvpSetPeImageSubsystem(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     ULONG subsystem;
     PWSTR type;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        subsystem = PvMappedImage.NtHeaders32->OptionalHeader.Subsystem;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        subsystem = mappedImage.NtHeaders32->OptionalHeader.Subsystem;
     else
-        subsystem = PvMappedImage.NtHeaders->OptionalHeader.Subsystem;
+        subsystem = mappedImage.NtHeaders->OptionalHeader.Subsystem;
 
     switch (subsystem)
     {
@@ -1547,8 +1642,8 @@ VOID PvpSetPeImageSubsystem(
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEM, 1, type);
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION, 1, PhaFormatString(
         L"%u.%u",
-        PvMappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion, // same for 32-bit and 64-bit images
-        PvMappedImage.NtHeaders->OptionalHeader.MinorSubsystemVersion
+        mappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion, // same for 32-bit and 64-bit images
+        mappedImage.NtHeaders->OptionalHeader.MinorSubsystemVersion
         )->Buffer);
 }
 
@@ -1556,6 +1651,14 @@ VOID PvpSetPeImageCharacteristics(
     _In_ HWND ListViewHandle
     )
 {
+    IMAGE_NT_HEADERS64 headers = { 0 };
+    PH_MAPPED_IMAGE mappedImage = PvMappedImage;
+
+    if (!NT_SUCCESS(CopyPeHeaders(&PvMappedImage, &headers)))
+        return;
+
+    mappedImage.NtHeaders = (PIMAGE_NT_HEADERS)&headers;
+
     ULONG characteristics;
     ULONG characteristicsDll;
     PH_STRING_BUILDER stringBuilder;
@@ -1563,15 +1666,15 @@ VOID PvpSetPeImageCharacteristics(
     PVOID debugEntry;
     //WCHAR pointer[PH_PTR_STR_LEN_1];
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        characteristics = PvMappedImage.NtHeaders32->FileHeader.Characteristics;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        characteristics = mappedImage.NtHeaders32->FileHeader.Characteristics;
     else
-        characteristics = PvMappedImage.NtHeaders->FileHeader.Characteristics;
+        characteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        characteristicsDll = PvMappedImage.NtHeaders32->OptionalHeader.DllCharacteristics;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        characteristicsDll = mappedImage.NtHeaders32->OptionalHeader.DllCharacteristics;
     else
-        characteristicsDll = PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics;
+        characteristicsDll = mappedImage.NtHeaders->OptionalHeader.DllCharacteristics;
 
     PhInitializeStringBuilder(&stringBuilder, 10);
 
@@ -1614,7 +1717,7 @@ VOID PvpSetPeImageCharacteristics(
         PhAppendStringBuilder2(&stringBuilder, L"Terminal server aware, ");
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
-        &PvMappedImage,
+        &mappedImage,
         IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
         &debugEntryLength,
         &debugEntry
@@ -1916,6 +2019,7 @@ VOID PvpSetPeImageDebugRepoHash(
     PIMAGE_DEBUG_REPRO_ENTRY debugEntry;
     ULONG debugEntryLength;
     PPH_STRING string = NULL;
+    PVOID copy = NULL;
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
@@ -1924,26 +2028,42 @@ VOID PvpSetPeImageDebugRepoHash(
         &debugEntry
         )))
     {
-        if (debugEntryLength > 0)
+        if (debugEntryLength >= sizeof(ULONG))
         {
+            ULONG length = debugEntryLength - sizeof(ULONG);
+
+            copy = PhAllocate(length);
             __try
             {
-                if (debugEntry->Length == debugEntryLength - sizeof(ULONG))
-                    string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
-                else
-                    string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntryLength - sizeof(ULONG), FALSE);
+                PhMappedImageProbe(&PvMappedImage, debugEntry->Buffer, length);
+                memcpy(copy, debugEntry->Buffer, length);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
+                PhFree(copy);
+                copy = NULL;
                 string = PhGetStatusMessage(GetExceptionCode(), 0);
             }
+
+            if (copy)
+            {
+                string = PhBufferToHexStringEx(copy, length, FALSE);
+                PhFree(copy);
+            }
         }
-        else // CLR images
+        else if (debugEntryLength == 0) // CLR images
         {
-            string = PhFormatString(
-                L"0x%lx",
-                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
-                );
+            ULONG timeDateStamp;
+
+            __try
+            {
+                timeDateStamp = PvMappedImage.NtHeaders->FileHeader.TimeDateStamp;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return;
+            }
+            string = PhFormatString(L"0x%lx", timeDateStamp);
         }
     }
 
@@ -2963,7 +3083,14 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             ULONG headerCheckSum;
             ULONG realCheckSum;
 
-            headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum; // same for 32-bit and 64-bit images
+            __try
+            {
+                headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum; // same for 32-bit and 64-bit images
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                break;
+            }
             realCheckSum = (ULONG)wParam;
 
             if (headerCheckSum == 0)

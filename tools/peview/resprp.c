@@ -457,6 +457,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
     PvpPeEnumAlternateMappedImageResources(Context, PvFileName);
 
     PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    PhReleaseRundownProtection(&Context->WorkerRundown);
     return STATUS_SUCCESS;
 }
 
@@ -493,6 +494,7 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PV_RESOURCES_CONTEXT));
+        PhInitializeRundownProtection(&context->WorkerRundown);
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
         if (lParam)
@@ -537,13 +539,19 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCreateThread2(PvpPeResourcesEnumerateThread, context);
+            PhAcquireRundownProtection(&context->WorkerRundown);
+
+            if (!NT_SUCCESS(PhCreateThread2(PvpPeResourcesEnumerateThread, context)))
+                PhReleaseRundownProtection(&context->WorkerRundown);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            // The worker only posts, so waiting here cannot deadlock.
+            PhWaitForRundownProtection(&context->WorkerRundown);
+
             //if (context->MuiMappedImage.ViewBase)
             //    PhUnloadMappedImage(&context->MuiMappedImage);
 

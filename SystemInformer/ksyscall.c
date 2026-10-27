@@ -219,6 +219,33 @@ static BOOLEAN PhpGetWin32uSystemCallNumber(
     return decoded;
 }
 
+static PPH_STRING CopyMappedExportName(
+    _In_opt_ PCSTR Name,
+    _In_opt_ PCSTR Prefix
+    )
+{
+    PPH_STRING name = NULL;
+
+    __try
+    {
+        if (Name && (!Prefix || strncmp(Name, Prefix, strlen(Prefix)) == 0))
+        {
+            SIZE_T length = strlen(Name);
+
+            name = PhCreateStringEx(NULL, length * sizeof(WCHAR));
+
+            for (SIZE_T i = 0; i < length; i++)
+                name->Buffer[i] = (UCHAR)Name[i];
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        PhClearReference(&name);
+    }
+
+    return name;
+}
+
 VOID PhGenerateSyscallLists(
     _Out_ PPH_LIST* NtdllSystemCallList,
     _Out_ PPH_LIST* Win32kSystemCallList
@@ -244,16 +271,21 @@ VOID PhGenerateSyscallLists(
             {
                 if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
                 {
-                    if (!(exportEntry.Name && strncmp(exportEntry.Name, "Zw", 2) == 0))
+                    if (!exportEntry.Name)
                         continue;
 
                     if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
                     {
                         PPH_SYSCALL_NAME_ENTRY entry;
 
+                        PPH_STRING name = CopyMappedExportName(exportEntry.Name, "Zw");
+
+                        if (!name)
+                            continue;
+
                         entry = PhAllocate(sizeof(PH_SYSCALL_NAME_ENTRY));
                         entry->Address = (ULONG_PTR)exportFunction.Function;
-                        entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                        entry->Name = name;
                         entry->Name->Buffer[0] = L'N';
                         entry->Name->Buffer[1] = L't';
 
@@ -295,16 +327,21 @@ VOID PhGenerateSyscallLists(
                 {
                     if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
                     {
-                        if (!(exportEntry.Name && strncmp(exportEntry.Name, "__win32kstub_", 13) == 0))
-                            continue;
+                        if (!exportEntry.Name)
+                        continue;
 
                         if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
                         {
                             PPH_SYSCALL_NAME_ENTRY entry;
 
+                            PPH_STRING name = CopyMappedExportName(exportEntry.Name, "__win32kstub_");
+
+                            if (!name)
+                                continue;
+
                             entry = PhAllocate(sizeof(PH_SYSCALL_NAME_ENTRY));
                             entry->Address = (ULONG_PTR)exportFunction.Function;
-                            entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                            entry->Name = name;
                             PhSkipStringRef(&entry->Name->sr, 13 * sizeof(WCHAR));
 
                             PhAddItemList(list, entry);
@@ -345,16 +382,21 @@ VOID PhGenerateSyscallLists(
                 {
                     if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
                     {
-                        if (!(exportEntry.Name && strncmp(exportEntry.Name, "Nt", 2) == 0))
-                            continue;
+                        if (!exportEntry.Name)
+                        continue;
 
                         if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
                         {
                             PPH_SYSCALL_NAME_ENTRY entry;
 
+                            PPH_STRING name = CopyMappedExportName(exportEntry.Name, "Nt");
+
+                            if (!name)
+                                continue;
+
                             entry = PhAllocate(sizeof(PH_SYSCALL_NAME_ENTRY));
                             entry->Address = (ULONG_PTR)exportFunction.Function;
-                            entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                            entry->Name = name;
 
                             // NOTE: When system calls are deleted from win32k.sys the win32u.dll interface gets
                             // replaced with stubs that call RaiseFailFastException. This breaks the sorting via
@@ -541,9 +583,14 @@ static PPH_LIST PhpGenerateSecureServiceList(
                 {
                     PPH_SYSCALL_NAME_ENTRY entry;
 
+                    PPH_STRING name = CopyMappedExportName(exportEntry.Name, NULL);
+
+                    if (!name)
+                        continue;
+
                     entry = PhAllocate(sizeof(PH_SYSCALL_NAME_ENTRY));
                     entry->Address = serviceIndex;
-                    entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                    entry->Name = name;
 
                     PhAddItemList(list, entry);
                 }

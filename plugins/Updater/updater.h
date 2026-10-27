@@ -105,7 +105,6 @@ typedef struct _PH_UPDATER_CONTEXT
         {
             ULONG StartupCheck : 1;
             ULONG HaveData : 1;
-            ULONG Cancel : 1;
             ULONG Cleanup : 1;
             ULONG ElevationRequired : 1;
             ULONG ProgressMarquee : 1;
@@ -115,6 +114,7 @@ typedef struct _PH_UPDATER_CONTEXT
         };
     };
     BOOLEAN ProgressFinalizing;
+    BOOLEAN Cancel; // Standalone: set by the UI thread and read by workers; must not share a bitfield word.
 
     ULONG UpdateStatus;
     ULONG64 CurrentVersion;

@@ -1434,9 +1434,12 @@ BOOLEAN PvGetMappedImageImphash(
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvPeFileHashThread(
-    _In_ PPV_PE_HASHWND_CONTEXT Context
+    _In_ PVOID Parameter
     )
 {
+    // N.B. The worker gets only the window handle, never the page context: hashing can run for
+    // a long time and the context is freed as soon as the page is destroyed.
+    HWND windowHandle = Parameter;
     HANDLE fileHandle;
     BOOLEAN checkImports = !!PhGetMappedImageDirectoryEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_IMPORT);
     PPH_LIST pagehashesList = NULL;
@@ -1588,7 +1591,7 @@ NTSTATUS PvPeFileHashThread(
         free(ssdeepHashStringUtf8);
         free(tlshHashString);
 
-        PostMessage(Context->WindowHandle, WM_PV_HASH_FINISHED, 0, (LPARAM)results);
+        PostMessage(windowHandle, WM_PV_HASH_FINISHED, 0, (LPARAM)results);
     }
 
     return STATUS_SUCCESS;
@@ -1681,7 +1684,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhAddListViewGroup(context->ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, L"Page hashes (WDAC)");
             PhAddListViewGroup(context->ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, L"Page hashes (Authenticode)");
 
-            PhCreateThread2(PvPeFileHashThread, context);
+            PhCreateThread2(PvPeFileHashThread, hwndDlg);
 
             // Must run before PvThemeApplyListView: phlib's initializer resets the
             // listview colors to its own palette. (dmex)

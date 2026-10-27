@@ -22,6 +22,50 @@ typedef struct _PH_LIVE_DUMP_CONFIG
     HANDLE EventHandle;
 } PH_LIVE_DUMP_CONFIG, *PPH_LIVE_DUMP_CONFIG;
 
+static PPH_OBJECT_TYPE PhLiveDumpConfigType = NULL;
+
+/**
+ * Frees the resources owned by a live dump configuration when the last reference is released.
+ *
+ * \param Object A pointer to the live dump configuration structure.
+ * \param Flags Reserved.
+ */
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
+VOID NTAPI PhpLiveDumpConfigDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_LIVE_DUMP_CONFIG context = Object;
+
+    if (context->EventHandle)
+        NtClose(context->EventHandle);
+    if (context->FileHandle)
+        NtClose(context->FileHandle);
+
+    PhClearReference(&context->FileName);
+}
+
+/**
+ * Creates a reference-counted live dump configuration.
+ *
+ * \return PPH_LIVE_DUMP_CONFIG A zeroed configuration with a single reference.
+ */
+PPH_LIVE_DUMP_CONFIG PhpCreateLiveDumpConfig(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhLiveDumpConfigType = PhCreateObjectType(L"LiveDumpConfig", 0, PhpLiveDumpConfigDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    return PhCreateObjectZero(sizeof(PH_LIVE_DUMP_CONFIG), PhLiveDumpConfigType);
+}
+
 /**
  * Captures a live kernel dump using NtSystemDebugControl.
  *
@@ -89,9 +133,11 @@ NTSTATUS PhpCreateLiveKernelDump(
         );
 
     Context->LastStatus = status;
-    Context->KernelDumpActive = FALSE;
+    WriteBooleanRelease(&Context->KernelDumpActive, FALSE);
 
     PostMessage(Context->WindowHandle, TDM_CLICK_BUTTON, IDIGNORE, 0);
+
+    PhDereferenceObject(Context);
 
     return status;
 }
@@ -136,6 +182,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
     )
 {
     PPH_LIVE_DUMP_CONFIG context = (PPH_LIVE_DUMP_CONFIG)dwRefData;
+    NTSTATUS status;
 
     switch (uMsg)
     {
@@ -155,7 +202,16 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 FALSE
                 );
 
-            PhCreateThread2(PhpCreateLiveKernelDump, context);
+            PhReferenceObject(context);
+
+            if (!NT_SUCCESS(status = PhCreateThread2(PhpCreateLiveKernelDump, context)))
+            {
+                PhDereferenceObject(context);
+
+                context->LastStatus = status;
+                WriteBooleanRelease(&context->KernelDumpActive, FALSE);
+                PostMessage(hwndDlg, TDM_CLICK_BUTTON, IDIGNORE, 0);
+            }
         }
         break;
     case TDN_TIMER:
@@ -247,7 +303,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 return S_FALSE;
             }
 
-            if (context->KernelDumpActive)
+            if (ReadBooleanAcquire(&context->KernelDumpActive))
             {
                 if (context->EventHandle)
                     NtSetEvent(context->EventHandle, NULL);
@@ -289,6 +345,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     if (!NT_SUCCESS(status))
     {
         PhShowStatus(NULL, L"Unable to save the live kernel dump.", status, 0);
+        PhDereferenceObject(context);
         return status;
     }
 
@@ -306,12 +363,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 
     PhShowTaskDialog(&config, NULL, NULL, NULL);
 
-    if (context->EventHandle)
-        NtClose(context->EventHandle);
-    if (context->FileName)
-        PhDereferenceObject(context->FileName);
-
-    PhFree(context);
+    PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
 }
@@ -380,19 +432,15 @@ VOID PhUiCreateLiveDump(
 {
     PPH_LIVE_DUMP_CONFIG dumpConfig;
 
-    dumpConfig = PhAllocateZero(sizeof(PH_LIVE_DUMP_CONFIG));
+    dumpConfig = PhpCreateLiveDumpConfig();
     dumpConfig->Options = *Options;
     dumpConfig->FileName = PhpLiveDumpFileDialogFileName(ParentWindowHandle);
 
-    if (!PhIsNullOrEmptyString(dumpConfig->FileName))
+    // The initial reference is owned by the dialog thread.
+    if (PhIsNullOrEmptyString(dumpConfig->FileName) ||
+        !NT_SUCCESS(PhCreateThread2(PhpLiveDumpTaskDialogThread, dumpConfig)))
     {
-        PhCreateThread2(PhpLiveDumpTaskDialogThread, dumpConfig);
-    }
-    else
-    {
-        if (dumpConfig->FileName)
-            PhDereferenceObject(dumpConfig->FileName);
-        PhFree(dumpConfig);
+        PhDereferenceObject(dumpConfig);
     }
 }
 

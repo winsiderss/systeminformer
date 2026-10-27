@@ -273,7 +273,7 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
 
-    return !!Context->StopSearch;
+    return !!ReadBooleanAcquire(&Context->StopSearch);
 }
 
 static int __cdecl PvpStringsRegionSkipCompare(
@@ -781,14 +781,14 @@ VOID PvpDeleteStringsTree(
     _In_ PPV_STRINGS_CONTEXT Context
     )
 {
-    Context->StopSearch = TRUE;
+    WriteBooleanRelease(&Context->StopSearch, TRUE);
     if (Context->SearchThreadHandle)
     {
         NtWaitForSingleObject(Context->SearchThreadHandle, FALSE, NULL);
         NtClose(Context->SearchThreadHandle);
         Context->SearchThreadHandle = NULL;
     }
-    Context->StopSearch = FALSE;
+    WriteBooleanRelease(&Context->StopSearch, FALSE);
 
     PvpAddPendingStringsNodes(Context);
 

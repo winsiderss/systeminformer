@@ -1073,7 +1073,7 @@ NTSTATUS UpdateDownloadThread(
             break;
 
         // Update was cancelled, cleanup and exit.
-        if (context->Cancel)
+        if (ReadBooleanAcquire(&context->Cancel))
             goto CleanupExit;
 
         // A server that ignores its own Content-Length must not be able to keep
@@ -1243,7 +1243,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            context->Cancel = TRUE;
+            WriteBooleanRelease(&context->Cancel, TRUE);
 
             PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, UCHAR_MAX);

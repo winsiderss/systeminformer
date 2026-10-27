@@ -79,6 +79,8 @@ typedef struct _PV_RESOURCES_CONTEXT
     PPH_LIST NodeList;
 
     PH_MAPPED_IMAGE MuiMappedImage;
+
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } PV_RESOURCES_CONTEXT, *PPV_RESOURCES_CONTEXT;
 
 VOID PvpPeResourceSaveToFile(
