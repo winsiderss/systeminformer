@@ -95,7 +95,6 @@ CONST NPIID NPI_FL_SWITCHING_ID = NPI_FL_SWITCHING_ID_INIT;
 #define PHP_NSI_ENUMERATION_MAX_ATTEMPTS 3
 #define PHP_NSI_ENUMERATION_GROWTH_DIVISOR 8
 #define PHP_NSI_ENUMERATION_MIN_GROWTH 10
-#define PHP_NSI_OBJECT_SECURITY_POINTER_COUNT 6
 #define PHP_CONNECTIVITY_CALLBACK_PROCESSING 2
 #define PHP_TIMESTAMP_CONFIG_CHANGE_TAG 0x656D6974 // "time"
 
@@ -260,7 +259,6 @@ static const ULONG Ipv4Mask[sizeof(IN_ADDR) * CHAR_BIT + 1] =
 };
 
 static PH_QUEUED_LOCK NotificationCriticalSection = PH_QUEUED_LOCK_INIT;
-static PH_INITONCE NotificationInitOnce = PH_INITONCE_INIT;
 static PVOID NotificationRpcHandle;
 
 typedef struct _PHP_MIB_NOTIFICATION_HANDLE
@@ -284,7 +282,7 @@ typedef struct _PHP_CONNECTIVITY_HINT_CONTEXT
 } PHP_CONNECTIVITY_HINT_CONTEXT, * PPHP_CONNECTIVITY_HINT_CONTEXT;
 
 static PH_QUEUED_LOCK PhpConnectivityHintLock = PH_QUEUED_LOCK_INIT;
-static LIST_ENTRY PhpConnectivityHintListHead;
+static LIST_ENTRY PhpConnectivityHintListHead = { &PhpConnectivityHintListHead, &PhpConnectivityHintListHead };
 static PVOID PhpConnectivitySubscriptionHandle;
 static ULONG PhpConnectivityLevel;
 static ULONG PhpConnectivityCost;
@@ -530,11 +528,15 @@ NTSTATUS PhNsiSetAllPersistentParametersWithMask(
     );
 
 NTSTATUS PhNsiGetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
     );
 
 NTSTATUS PhNsiSetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
+    );
+
+VOID PhNsiDumpObjectSecurityDescriptors(
+    VOID
     );
 
 PVOID PhNsiConnectToServer(
@@ -1801,13 +1803,15 @@ NTSTATUS PhNsiGetParameterEx(
     )
 {
 #if !defined(PH_INLINE_NSI)
+    ULONG returnedLength;
+
     return PhpNsiDeviceIoControl(
         IOCTL_NSI_GET_PARAMETER,
         GetParameterRequest,
         sizeof(*GetParameterRequest),
         GetParameterRequest,
-        GetParameterRequest->BufferLength,
-        &GetParameterRequest->BufferLength
+        sizeof(*GetParameterRequest),
+        &returnedLength
         );
 #else
     if (!PhNsiApiInitialized() || !NsiGetParameterEx_I)
@@ -1993,13 +1997,15 @@ NTSTATUS PhNsiSetParameterEx(
     )
 {
 #if !defined(PH_INLINE_NSI)
+    ULONG returnedLength;
+
     return PhpNsiDeviceIoControl(
         IOCTL_NSI_SET_PARAMETER,
         SetParameterRequest,
         sizeof(*SetParameterRequest),
         SetParameterRequest,
-        SetParameterRequest->ParameterBufferSize,
-        &SetParameterRequest->ParameterBufferSize
+        sizeof(*SetParameterRequest),
+        &returnedLength
         );
 #else
     if (!PhNsiApiInitialized() || !NsiSetParameterEx_I)
@@ -2344,16 +2350,16 @@ NTSTATUS PhNsiSetAllPersistentParametersWithMask(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetObjectSecurity(
-    _Inout_updates_bytes_(PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
     )
 {
 #if !defined(PH_INLINE_NSI)
     return PhpNsiDeviceIoControl(
         IOCTL_NSI_GET_OBJECT_SECURITY,
         ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        sizeof(*ObjectSecurity),
         ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        sizeof(*ObjectSecurity),
         NULL
         );
 #else
@@ -2374,16 +2380,16 @@ NTSTATUS PhNsiGetObjectSecurity(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetObjectSecurity(
-    _Inout_updates_bytes_(PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
     )
 {
 #if !defined(PH_INLINE_NSI)
     return PhpNsiDeviceIoControl(
         IOCTL_NSI_SET_OBJECT_SECURITY,
         ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        sizeof(*ObjectSecurity),
         ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        sizeof(*ObjectSecurity),
         NULL
         );
 #else
@@ -3066,6 +3072,10 @@ NTSTATUS PhSetTcpEntry(
         memcpy(&NsiSetTcpEntryData.RemoteAddressIPv6, &NetworkItem->RemoteEndpoint.Address.In6Addr, sizeof(IN6_ADDR));
         NsiSetTcpEntryData.RemoteScopeID = NetworkItem->RemoteScopeId;
     }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
 
     status = PhNsiSetAllParameters(
         NsiActive,
@@ -3494,7 +3504,7 @@ NTSTATUS PhConvertCompartmentIdToGuid(
 /**
  * Retrieves the network compartment identifier of the current thread.
  *
- * \return The compartment identifier, or NET_IF_COMPARTMENT_ID_UNSPECIFIED on failure.
+ * \return The compartment identifier, or NET_IF_COMPARTMENT_ID_PRIMARY on failure.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getcurrentthreadcompartmentid
  */
 NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
@@ -3505,7 +3515,7 @@ NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
 
     current = NET_IF_COMPARTMENT_ID_UNSPECIFIED;
 
-    if (!PhpNsiGetParameter(
+    if (NT_SUCCESS(PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectCurrentThreadCompartment,
@@ -3515,7 +3525,7 @@ NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
         &current,
         sizeof(NET_IF_COMPARTMENT_ID),
         NsiNdisCurrentThreadCompartmentType0Id
-        ))
+        )))
     {
         return current;
     }
@@ -3613,10 +3623,8 @@ NTSTATUS PhConvertInterfaceAliasToLuid(
     DynamicTable = NULL;
     Count = 0;
 
-    //if (InterfaceAlias == NULL || InterfaceLuid == NULL || !NT_SUCCESS(RtlStringCchLengthW(InterfaceAlias, MAXIMUM_FILENAME_LENGTH, AliasLength)))
-    //{
-    //    return STATUS_INVALID_PARAMETER;
-    //}
+    if (!InterfaceAlias || !InterfaceLuid || PhCountStringZ(InterfaceAlias) > MAXIMUM_FILENAME_LENGTH)
+        return STATUS_INVALID_PARAMETER;
 
     Status = PhNsiAllocateAndGetTable(
         NsiActive,
@@ -3655,22 +3663,6 @@ NTSTATUS PhConvertInterfaceAliasToLuid(
         {
             InterfaceLuid->Value = KeyTable[Index].Value;
             PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-            return STATUS_SUCCESS;
-        }
-    }
-
-    for (Index = 0; Index < Count; ++Index)
-    {
-        PH_STRINGREF aliasSr;
-
-        PhInitializeStringRef(&aliasSr, DynamicTable[Index].ifAlias.String);
-
-        if (PhStartsWithStringRef2(&aliasSr, InterfaceAlias, TRUE))
-        {
-            InterfaceLuid->Value = KeyTable[Index].Value;
-
-            PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-
             return STATUS_SUCCESS;
         }
     }
@@ -3737,12 +3729,12 @@ NTSTATUS PhConvertInterfaceGuidToLuid(
 
     for (Index = 0; Index < Count; ++Index)
     {
-        //if (PhTcpipGuidEquals(&StaticTable[Index].InterfaceGuid, InterfaceGuid))
-        //{
-        //    InterfaceLuid->Value = KeyTable[Index].Value;
-        //    Status = STATUS_SUCCESS;
-        //    break;
-        //}
+        if (PhTcpipGuidEquals(&StaticTable[Index].InterfaceGuid, InterfaceGuid))
+        {
+            InterfaceLuid->Value = KeyTable[Index].Value;
+            Status = STATUS_SUCCESS;
+            break;
+        }
     }
 
     PhNsiFreeTable(KeyTable, NULL, NULL, StaticTable);
@@ -3812,6 +3804,9 @@ NTSTATUS PhConvertInterfaceLuidToAlias(
     NSI_STRING_256 Alias;
     ULONG CurrentLength;
 
+    if (!InterfaceLuid || !InterfaceAlias)
+        return STATUS_INVALID_PARAMETER;
+
     ZeroMemory(&Alias, sizeof(NSI_STRING_256));
     Key = *InterfaceLuid;
 
@@ -3839,7 +3834,7 @@ NTSTATUS PhConvertInterfaceLuidToAlias(
     }
 
     Alias.Buffer[CurrentLength] = UNICODE_NULL;
-    return 0;// PhTcpipResolveNetioStringStatus(StringCchPrintfW(InterfaceAlias, Length, L"%s", Alias.Buffer));
+    return PhCopyStringZ(Alias.Buffer, CurrentLength, InterfaceAlias, Length, NULL);
 }
 
 /**
@@ -4206,21 +4201,22 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
     Separator = LocalName + index;
 
     PhInitializeStringRef(&indexSr, Separator + 1);
-    if (PhStringToInteger64(&indexSr, 10, &value))
-        InterfaceLuid->Info.NetLuidIndex = (ULONG)value;
-    else
-        InterfaceLuid->Info.NetLuidIndex = 0;
+    if (!PhStringToInteger64(&indexSr, 10, &value) || value > 0xFFFFFF)
+        return STATUS_OBJECT_NAME_INVALID;
+
+    InterfaceLuid->Info.NetLuidIndex = (ULONG)value;
 
     if (wcsncmp(LocalName, Prefix, PhCountStringZ(Prefix)) == 0)
     {
         PH_STRINGREF typeSr;
 
         PhInitializeStringRef(&typeSr, LocalName + PhCountStringZ(Prefix));
+        typeSr.Length = (SIZE_T)((PBYTE)Separator - (PBYTE)typeSr.Buffer);
 
-        if (PhStringToInteger64(&typeSr, 10, &value))
+        if (PhStringToInteger64(&typeSr, 10, &value) && value <= MAXUSHORT)
             InterfaceLuid->Info.IfType = (USHORT)value;
         else
-            InterfaceLuid->Info.IfType = 0;
+            return STATUS_OBJECT_NAME_INVALID;
 
         return STATUS_SUCCESS;
     }
@@ -4229,7 +4225,8 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
     {
         size_t PrefixLength = (size_t)(Separator - LocalName);
 
-        if (wcsncmp(LocalName, IfTypeStringTable[Index].Name, PrefixLength) == 0)
+        if (PrefixLength == PhCountStringZ(IfTypeStringTable[Index].Name) &&
+            wcsncmp(LocalName, IfTypeStringTable[Index].Name, PrefixLength) == 0)
         {
             InterfaceLuid->Info.IfType = IfTypeStringTable[Index].IfType;
             return STATUS_SUCCESS;
@@ -4440,18 +4437,6 @@ NTSTATUS PhConvertRemoteInterfaceAliasToLuid(
         }
     }
 
-    for (Index = 0; Index < Count; ++Index)
-    {
-        PH_STRINGREF aliasSr;
-        PhInitializeStringRef(&aliasSr, DynamicTable[Index].ifAlias.String);
-        if (PhStartsWithStringRef2(&aliasSr, InterfaceAlias, TRUE))
-        {
-            InterfaceLuid->Value = KeyTable[Index].Value;
-            PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-            return STATUS_SUCCESS;
-        }
-    }
-
     InterfaceLuid->Value = 0;
     PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
     return STATUS_INVALID_PARAMETER;
@@ -4638,7 +4623,9 @@ NTSTATUS PhConvertRemoteInterfaceLuidToAlias(
 
     if (!NT_SUCCESS(Status))
     {
-        return PhCopyStringZ(AliasString, SIZE_MAX, InterfaceAlias, Length, NULL);
+        if (Length)
+            InterfaceAlias[0] = UNICODE_NULL;
+        return Status;
     }
 
     return PhCopyStringZ(AliasString, SIZE_MAX, InterfaceAlias, Length, NULL);
@@ -5042,12 +5029,6 @@ PVOID PhNsiNotificationConnectToServer(
     ULONG lastError;
 
     lastError = ERROR_SUCCESS;
-    if (PhBeginInitOnce(&NotificationInitOnce))
-    {
-        InitializeListHead(&PhpConnectivityHintListHead);
-        PhEndInitOnce(&NotificationInitOnce);
-    }
-
     PhAcquireQueuedLockExclusive(&NotificationCriticalSection);
     if (NotificationRpcHandle == NULL)
     {
@@ -5523,7 +5504,7 @@ ULONG PhIcmp6ParseReplies(
 {
     NTSTATUS status;
 
-    if (ReplyBuffer == NULL || ReplySize == 0)
+    if (ReplyBuffer == NULL || ReplySize < sizeof(ICMPV6_ECHO_REPLY))
     {
         PhSetLastError(ERROR_GEN_FAILURE);
         return 0;
@@ -5584,7 +5565,7 @@ ULONG PhIcmp6SendEcho2(
     }
 
     handle = (ICMP_HANDLE_INTERNAL*)(IcmpHandle);
-    if (handle->IsIpv4)
+    if (handle->IsIpv4 || ReplySize < sizeof(ICMPV6_ECHO_REPLY))
     {
         PhSetLastError(ERROR_INVALID_PARAMETER);
         return 0;
@@ -6288,12 +6269,9 @@ NTSTATUS PhGetPerTcpConnectionEStats(
                 {
                     if (RodVersion) { status = STATUS_NOT_SUPPORTED; break; }
                     if (RodSize != sizeof(TCP_ESTATS_REC_ROD_v0)) { status = STATUS_INVALID_USER_BUFFER; break; }
-                    *(PTCP_ESTATS_REC_ROD_v0)Rod = *(PTCP_ESTATS_REC_ROD_v0)rodBuffer;
 
                     NSI_ESTATS_REC_ROD_INTERNAL* src;
                     PTCP_ESTATS_REC_ROD_v0 dst;
-                    if (RodVersion) { status = STATUS_NOT_SUPPORTED; break; }
-                    if (RodSize != sizeof(TCP_ESTATS_REC_ROD_v0)) { status = STATUS_INVALID_USER_BUFFER; break; }
                     src = (NSI_ESTATS_REC_ROD_INTERNAL*)rodBuffer;
                     dst = (PTCP_ESTATS_REC_ROD_v0)Rod;
                     dst->CurRwinSent = src->CurRwinSent;
@@ -6850,7 +6828,7 @@ NTSTATUS PhGetTcpTable(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
     status = PhNsiAllocateAndGetTable(
@@ -6869,7 +6847,7 @@ NTSTATUS PhGetTcpTable(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
     {
         PhNsiFreeTable(firstKeyTable, NULL, firstStatusTable, firstOwnerTable);
         return status;
@@ -7367,7 +7345,7 @@ NTSTATUS PhGetIfEntry2(
 
         result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
 
-        if (result)
+        if (!NT_SUCCESS(result))
             return result;
     }
 
@@ -7384,7 +7362,7 @@ NTSTATUS PhGetIfEntry2(
         &ros,
         sizeof(ros));
 
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     if (rod.CompartmentId != PhGetCurrentThreadCompartmentId())
@@ -7487,6 +7465,7 @@ NTSTATUS PhGetMulticastIpAddressTable(
 /**
  * Checks that a caller buffer can hold a table with a count header and the specified rows.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param Table The caller buffer.
@@ -7495,6 +7474,7 @@ NTSTATUS PhGetMulticastIpAddressTable(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getiftable
  */
 static NTSTATUS PhpNetioMibCheckTableBufferSize(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_opt_ PVOID Table,
@@ -7510,7 +7490,7 @@ static NTSTATUS PhpNetioMibCheckTableBufferSize(
     if (RtlULongMult(RowCount, RowSize, &rowBytes) != STATUS_SUCCESS)
         return STATUS_INTEGER_OVERFLOW;
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), rowBytes, &requiredSize) != STATUS_SUCCESS)
+    if (RtlULongAdd(HeaderSize, rowBytes, &requiredSize) != STATUS_SUCCESS)
         return STATUS_INTEGER_OVERFLOW;
 
     if (!Table || *SizePointer < requiredSize)
@@ -7526,6 +7506,7 @@ static NTSTATUS PhpNetioMibCheckTableBufferSize(
 /**
  * Determines whether a buffer can hold the specified rows without overflow.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param BufferSize The size, in bytes, of the buffer.
@@ -7533,6 +7514,7 @@ static NTSTATUS PhpNetioMibCheckTableBufferSize(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-freemibtable
  */
 static BOOLEAN PhpNetioMibTableHasCapacity(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_ ULONG BufferSize
@@ -7543,7 +7525,7 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
     if (RtlULongMult(RowCount, RowSize, &requiredSize) != STATUS_SUCCESS)
         return FALSE;
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), requiredSize, &requiredSize) != STATUS_SUCCESS)
+    if (RtlULongAdd(HeaderSize, requiredSize, &requiredSize) != STATUS_SUCCESS)
         return FALSE;
 
     return BufferSize >= requiredSize;
@@ -7552,6 +7534,7 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
 /**
  * Computes the size of a MIB table with a count header followed by rows.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param IncludeOneEntry TRUE if the header already includes one row (ANY_SIZE array).
@@ -7560,6 +7543,7 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-freemibtable
  */
 static BOOLEAN PhpNetioMibSizeofTable(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_ BOOLEAN IncludeOneEntry,
@@ -7577,10 +7561,67 @@ static BOOLEAN PhpNetioMibSizeofTable(
     if (RtlULongMult(rows, RowSize, &tableSize) != STATUS_SUCCESS)
         return FALSE;
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), tableSize, Size) != STATUS_SUCCESS)
+    if (RtlULongAdd(HeaderSize, tableSize, Size) != STATUS_SUCCESS)
         return FALSE;
 
     return TRUE;
+}
+
+// N.B. Tables whose rows contain 8-byte fields put the row array at offset 8, not 4.
+static_assert(FIELD_OFFSET(MIB_TCPTABLE_OWNER_MODULE, table) == 8, "MIB_TCPTABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) == 8, "MIB_TCP6TABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_UDPTABLE_OWNER_MODULE, table) == 8, "MIB_UDPTABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_UDP6TABLE_OWNER_MODULE, table) == 8, "MIB_UDP6TABLE_OWNER_MODULE header size");
+
+// N.B. qsort_s requires a comparator; passing NULL invokes the invalid parameter handler.
+static int __cdecl PhpCompareMibTcp6Row2(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    );
+
+/**
+ * Sort routine that orders MIB_TCP6ROW entries by local and remote endpoint.
+ */
+int __cdecl PhpCompareMibTcp6Row(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    // State comes first in MIB_TCP6ROW; compare LocalAddr through the end of the row.
+    return memcmp(
+        &((PMIB_TCP6ROW)Row1)->LocalAddr,
+        &((PMIB_TCP6ROW)Row2)->LocalAddr,
+        sizeof(MIB_TCP6ROW) - FIELD_OFFSET(MIB_TCP6ROW, LocalAddr)
+        );
+}
+
+/**
+ * Sort routine that orders MIB_UDP6ROW entries by local endpoint.
+ */
+int __cdecl PhpCompareMibUdp6Row(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    return memcmp(Row1, Row2, sizeof(MIB_UDP6ROW));
+}
+
+/**
+ * Sort routine that orders MIB_IFROW entries by interface index.
+ */
+int __cdecl PhpCompareMibIfRow(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    ULONG index1 = ((PMIB_IFROW)Row1)->dwIndex;
+    ULONG index2 = ((PMIB_IFROW)Row2)->dwIndex;
+
+    return (index1 > index2) - (index1 < index2);
 }
 
 /**
@@ -7657,9 +7698,17 @@ static VOID PhpFillIfEntry(
     IfRow->dwOutNUcastPkts = (DWORD)(rod->ifHCOutMulticastPkts + rod->ifHCOutBroadcastPkts);
     IfRow->dwOutDiscards = (DWORD)rod->ifOutDiscards;
     IfRow->dwOutErrors = (DWORD)rod->ifOutErrors;
-    descriptionLength = min(ros->ifDescr.Length, sizeof(IfRow->bDescr));
-    memcpy(IfRow->bDescr, ros->ifDescr.String, descriptionLength);
-    IfRow->dwDescrLen = (DWORD)descriptionLength;
+    PPH_BYTES description = PhConvertUtf16ToMultiByteEx(
+        ros->ifDescr.String,
+        ros->ifDescr.Length
+        );
+    if (description)
+    {
+        descriptionLength = min(description->Length, sizeof(IfRow->bDescr));
+        memcpy(IfRow->bDescr, description->Buffer, descriptionLength);
+        IfRow->dwDescrLen = (DWORD)descriptionLength;
+        PhDereferenceObject(description);
+    }
 }
 
 /**
@@ -7685,6 +7734,7 @@ static NTSTATUS PhpGetTcpTableInternal(
 {
     NTSTATUS result;
     ULONG rowSize;
+    ULONG headerSize;
     NSI_TCP_KEY_ROW* keyTable = NULL;
     NSI_TCP_STATUS_ROW* statusTable = NULL;
     NSI_TCP_OWNER_ROW* ownerTable = NULL;
@@ -7700,15 +7750,19 @@ static NTSTATUS PhpGetTcpTableInternal(
     {
     case PhpTcpOwnerBasic:
         rowSize = sizeof(MIB_TCPROW);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE, table);
         break;
     case PhpTcpOwnerBasic2:
         rowSize = sizeof(MIB_TCPROW2);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE2, table);
         break;
     case PhpTcpOwnerModule:
         rowSize = sizeof(MIB_TCPROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE_OWNER_MODULE, table);
         break;
     case PhpTcpOwnerPid:
         rowSize = sizeof(MIB_TCPROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE_OWNER_PID, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
@@ -7733,7 +7787,7 @@ static NTSTATUS PhpGetTcpTableInternal(
     if (!NT_SUCCESS(result))
         return result;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -7773,6 +7827,7 @@ static NTSTATUS PhpGetTcpTableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             tcpTable->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -7858,6 +7913,7 @@ static NTSTATUS PhpGetTcpTableInternal(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + tcpTable->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8285,6 +8341,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
 {
     NTSTATUS result;
     ULONG rowSize;
+    ULONG headerSize;
     NSI_TCP_KEY_ROW* keyTable = NULL;
     NSI_TCP_STATUS_ROW* statusTable = NULL;
     NSI_TCP_OWNER_ROW* ownerTable = NULL;
@@ -8300,15 +8357,19 @@ static NTSTATUS PhpGetTcp6TableInternal(
     {
     case PhpTcpOwnerBasic:
         rowSize = sizeof(MIB_TCP6ROW);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE, table);
         break;
     case PhpTcpOwnerBasic2:
         rowSize = sizeof(MIB_TCP6ROW2);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE2, table);
         break;
     case PhpTcpOwnerModule:
         rowSize = sizeof(MIB_TCP6ROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table);
         break;
     case PhpTcpOwnerPid:
         rowSize = sizeof(MIB_TCP6ROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_PID, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
@@ -8333,7 +8394,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
     if (!NT_SUCCESS(result))
         return result;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8378,6 +8439,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             tcp6Table->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8463,6 +8525,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + tcp6Table->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8501,6 +8564,7 @@ static NTSTATUS PhGetUdp6TableInternal(
 {
     NTSTATUS result;
     ULONG rowSize;
+    ULONG headerSize;
     PNSI_UDP_KEY_ROW keyTable = NULL;
     PNSI_UDP_OWNER_ROW ownerTable = NULL;
     ULONG count = 0;
@@ -8515,12 +8579,15 @@ static NTSTATUS PhGetUdp6TableInternal(
     {
     case UDP_TABLE_BASIC:
         rowSize = sizeof(MIB_UDP6ROW);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE, table);
         break;
     case UDP_TABLE_OWNER_PID:
         rowSize = sizeof(MIB_UDP6ROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE_OWNER_PID, table);
         break;
     case UDP_TABLE_OWNER_MODULE:
         rowSize = sizeof(MIB_UDP6ROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE_OWNER_MODULE, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
@@ -8545,7 +8612,7 @@ static NTSTATUS PhGetUdp6TableInternal(
     if (!NT_SUCCESS(result))
         return result;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8574,6 +8641,7 @@ static NTSTATUS PhGetUdp6TableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             udp6Table->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8630,6 +8698,7 @@ static NTSTATUS PhGetUdp6TableInternal(
     PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + udp6Table->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8668,6 +8737,7 @@ static NTSTATUS PhGetUdpTableInternal(
 {
     NTSTATUS result;
     ULONG rowSize;
+    ULONG headerSize;
     PNSI_UDP_KEY_ROW keyTable = NULL;
     PNSI_UDP_OWNER_ROW ownerTable = NULL;
     ULONG count = 0;
@@ -8682,12 +8752,15 @@ static NTSTATUS PhGetUdpTableInternal(
     {
     case UDP_TABLE_BASIC:
         rowSize = sizeof(MIB_UDPROW);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE, table);
         break;
     case UDP_TABLE_OWNER_PID:
         rowSize = sizeof(MIB_UDPROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE_OWNER_PID, table);
         break;
     case UDP_TABLE_OWNER_MODULE:
         rowSize = sizeof(MIB_UDPROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE_OWNER_MODULE, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
@@ -8712,7 +8785,7 @@ static NTSTATUS PhGetUdpTableInternal(
     if (!NT_SUCCESS(result))
         return result;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8736,6 +8809,7 @@ static NTSTATUS PhGetUdpTableInternal(
             continue;
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             udpTable->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8789,6 +8863,7 @@ static NTSTATUS PhGetUdpTableInternal(
     PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + udpTable->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8911,6 +8986,9 @@ static VOID PhpAddDnsServerAddressInfo(
     static const IN_ADDR broadcastAddress = { .S_un = { .S_addr = INADDR_NONE } }; // 255.255.255.255
     PIP_ADDR_STRING tail = DnsServerList;
 
+    if (!DnsServers->AddrCount)
+        return;
+
     PhpSetAddressString(DnsServerList, (PIN_ADDR)&DnsServers->AddrArray[0], (PIN_ADDR)&broadcastAddress);
 
     for (ULONG i = 1; i < DnsServers->AddrCount; i++)
@@ -8919,115 +8997,115 @@ static VOID PhpAddDnsServerAddressInfo(
     }
 }
 
-//static ULONG PhAllocateAndGetFixedInfo(
-//    _Outptr_result_maybenull_ PVOID *FixedInfo
-//    )
-//{
-//    PFIXED_INFO fixedInfo;
-//    ULONG pBufLen;
-//    HLOCAL hMem;
-//
-//    if (!FixedInfo)
-//        return ERROR_INVALID_PARAMETER;
-//
-//    *FixedInfo = NULL;
-//
-//    fixedInfo = PhAllocateZero(sizeof(FIXED_INFO));
-//    if (!fixedInfo)
-//        return ERROR_NOT_ENOUGH_MEMORY;
-//
-//    pBufLen = sizeof(IP4_ARRAY);
-//    hMem = NULL;
-//
-//    if (DnsQueryConfig(DnsConfigDnsServerList, DNS_CONFIG_FLAG_ALLOC, NULL, NULL, &hMem, &pBufLen) == ERROR_SUCCESS)
-//    {
-//        PhpAddDnsServerAddressInfo(&fixedInfo->DnsServerList, (PIP4_ARRAY)hMem);
-//        LocalFree(hMem);
-//    }
-//
-//    pBufLen = sizeof(fixedInfo->HostName);
-//    DnsQueryConfig(DnsConfigHostName_A, 0, NULL, NULL, fixedInfo->HostName, &pBufLen);
-//
-//    pBufLen = sizeof(fixedInfo->DomainName);
-//    DnsQueryConfig(DnsConfigPrimaryDomainName_A, 0, NULL, NULL, fixedInfo->DomainName, &pBufLen);
-//
-//    // NetBT Parameters
-//    HANDLE keyHandle;
-//    PH_STRINGREF keyName;
-//
-//    PhInitializeStringRef(&keyName, L"SYSTEM\\CurrentControlSet\\Services\\NetBT\\Parameters");
-//
-//    if (NT_SUCCESS(PhOpenKey(
-//        &keyHandle,
-//        KEY_QUERY_VALUE,
-//        PH_KEY_LOCAL_MACHINE,
-//        &keyName,
-//        0
-//        )))
-//    {
-//        ULONG nodeType = PhQueryRegistryUlongZ(keyHandle, L"NodeType");
-//        if (nodeType == ULONG_MAX)
-//            nodeType = PhQueryRegistryUlongZ(keyHandle, L"DhcpNodeType");
-//        if (nodeType == ULONG_MAX)
-//            nodeType = 8;
-//
-//        fixedInfo->NodeType = nodeType;
-//
-//        PPH_STRING scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"ScopeId");
-//        if (!scopeIdStr)
-//            scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"DhcpScopeId");
-//
-//        if (scopeIdStr)
-//        {
-//            PhConvertUtf16ToUtf8Buffer(
-//                fixedInfo->ScopeId,
-//                sizeof(fixedInfo->ScopeId),
-//                NULL,
-//                scopeIdStr->Buffer,
-//                scopeIdStr->Length
-//            );
-//            PhDereferenceObject(scopeIdStr);
-//        }
-//        else
-//        {
-//            fixedInfo->ScopeId[0] = UNICODE_NULL;
-//        }
-//
-//        ULONG enableProxy = PhQueryRegistryUlongZ(keyHandle, L"EnableProxy");
-//        if (enableProxy != ULONG_MAX)
-//            fixedInfo->EnableProxy = enableProxy;
-//        else
-//            fixedInfo->EnableProxy = 0;
-//
-//        ULONG enableDns = PhQueryRegistryUlongZ(keyHandle, L"EnableDns");
-//        if (enableDns != ULONG_MAX)
-//            fixedInfo->EnableDns = enableDns;
-//        else
-//            fixedInfo->EnableDns = 0;
-//
-//        NtClose(keyHandle);
-//    }
-//    else
-//    {
-//        fixedInfo->NodeType = 8;
-//        fixedInfo->ScopeId[0] = UNICODE_NULL;
-//        fixedInfo->EnableProxy = 0;
-//        fixedInfo->EnableDns = 0;
-//    }
-//
-//    MIB_IPSTATS stats;
-//    if (PhGetIpStatisticsEx(&stats, AF_INET) == NO_ERROR)
-//    {
-//        fixedInfo->EnableRouting = (stats.dwForwarding == MIB_IP_FORWARDING);
-//    }
-//    else
-//    {
-//        fixedInfo->EnableRouting = 0;
-//    }
-//
-//    *FixedInfo = fixedInfo;
-//    return ERROR_SUCCESS;
-//}
+NTSTATUS PhpAllocateAndGetFixedInfo(
+    _Outptr_result_maybenull_ PVOID *FixedInfo
+    )
+{
+    PFIXED_INFO fixedInfo;
+    ULONG pBufLen;
+    HLOCAL hMem;
+
+    if (!FixedInfo)
+        return STATUS_INVALID_PARAMETER;
+
+    *FixedInfo = NULL;
+
+    fixedInfo = PhAllocateZero(sizeof(FIXED_INFO));
+    if (!fixedInfo)
+        return STATUS_NO_MEMORY;
+
+    pBufLen = sizeof(IP4_ARRAY);
+    hMem = NULL;
+
+    if (DnsQueryConfig(DnsConfigDnsServerList, DNS_CONFIG_FLAG_ALLOC, NULL, NULL, &hMem, &pBufLen) == ERROR_SUCCESS)
+    {
+        PhpAddDnsServerAddressInfo(&fixedInfo->DnsServerList, (PIP4_ARRAY)hMem);
+        LocalFree(hMem);
+    }
+
+    pBufLen = sizeof(fixedInfo->HostName);
+    DnsQueryConfig(DnsConfigHostName_A, 0, NULL, NULL, fixedInfo->HostName, &pBufLen);
+
+    pBufLen = sizeof(fixedInfo->DomainName);
+    DnsQueryConfig(DnsConfigPrimaryDomainName_A, 0, NULL, NULL, fixedInfo->DomainName, &pBufLen);
+
+    // NetBT Parameters
+    HANDLE keyHandle;
+    PH_STRINGREF keyName;
+
+    PhInitializeStringRef(&keyName, L"SYSTEM\\CurrentControlSet\\Services\\NetBT\\Parameters");
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        ULONG nodeType = PhQueryRegistryUlongZ(keyHandle, L"NodeType");
+        if (nodeType == ULONG_MAX)
+            nodeType = PhQueryRegistryUlongZ(keyHandle, L"DhcpNodeType");
+        if (nodeType == ULONG_MAX)
+            nodeType = 8;
+
+        fixedInfo->NodeType = nodeType;
+
+        PPH_STRING scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"ScopeId");
+        if (!scopeIdStr)
+            scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"DhcpScopeId");
+
+        if (scopeIdStr)
+        {
+            PhConvertUtf16ToUtf8Buffer(
+                fixedInfo->ScopeId,
+                sizeof(fixedInfo->ScopeId),
+                NULL,
+                scopeIdStr->Buffer,
+                scopeIdStr->Length
+            );
+            PhDereferenceObject(scopeIdStr);
+        }
+        else
+        {
+            fixedInfo->ScopeId[0] = UNICODE_NULL;
+        }
+
+        ULONG enableProxy = PhQueryRegistryUlongZ(keyHandle, L"EnableProxy");
+        if (enableProxy != ULONG_MAX)
+            fixedInfo->EnableProxy = enableProxy;
+        else
+            fixedInfo->EnableProxy = 0;
+
+        ULONG enableDns = PhQueryRegistryUlongZ(keyHandle, L"EnableDns");
+        if (enableDns != ULONG_MAX)
+            fixedInfo->EnableDns = enableDns;
+        else
+            fixedInfo->EnableDns = 0;
+
+        NtClose(keyHandle);
+    }
+    else
+    {
+        fixedInfo->NodeType = 8;
+        fixedInfo->ScopeId[0] = UNICODE_NULL;
+        fixedInfo->EnableProxy = 0;
+        fixedInfo->EnableDns = 0;
+    }
+
+    MIB_IPSTATS stats;
+    if (PhGetIpStatisticsEx(&stats, AF_INET) == NO_ERROR)
+    {
+        fixedInfo->EnableRouting = (stats.dwForwarding == MIB_IP_FORWARDING);
+    }
+    else
+    {
+        fixedInfo->EnableRouting = 0;
+    }
+
+    *FixedInfo = fixedInfo;
+    return STATUS_SUCCESS;
+}
 
 /**
  * Computes the size of the additional entries of an IP_ADDR_STRING list.
@@ -9694,7 +9772,7 @@ NTSTATUS PhGetIfEntry(
         NsiNdisInterfaceIndexToLuid
     );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         result = PhNsiGetAllParameters(
             NsiActive,
@@ -9710,7 +9788,7 @@ NTSTATUS PhGetIfEntry(
             sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS)
             );
         
-        if (!result)
+        if (NT_SUCCESS(result))
         {
             PhpFillIfEntry(IfRow, &readWriteRow, &dynamicRow, &staticRow);
             return STATUS_SUCCESS;
@@ -9749,7 +9827,7 @@ NTSTATUS PhGetIfTable2(
         &keys, sizeof(NET_LUID), &rw, sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW),
         &rod, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD),
         &ros, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS), &count, 0);
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     if ((SIZE_T)count > (SIZE_MAX - FIELD_OFFSET(MIB_IF_TABLE2, Table)) / sizeof(MIB_IF_ROW2))
@@ -9815,7 +9893,7 @@ NTSTATUS PhGetNetworkInformation(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         networkNameLength = networkInformation.NetworkName.Length >> 1;
 
@@ -9959,6 +10037,7 @@ NTSTATUS PhGetTcp6Table(
         return result;
 
     result = PhpNetioMibCheckTableBufferSize(
+        FIELD_OFFSET(MIB_TCP6TABLE, table),
         statistics.dwNumConns,
         sizeof(MIB_TCP6ROW),
         TcpTable,
@@ -9995,7 +10074,7 @@ NTSTATUS PhGetTcp6Table(
             if (key->Family == AF_INET6 &&
                 !IN6_IS_ADDR_V4MAPPED(&key->LocalAddress))
             {
-                if (PhpNetioMibTableHasCapacity(TcpTable->dwNumEntries + 1, sizeof(MIB_TCP6ROW), *SizePointer))
+                if (PhpNetioMibTableHasCapacity(FIELD_OFFSET(MIB_TCP6TABLE, table), TcpTable->dwNumEntries + 1, sizeof(MIB_TCP6ROW), *SizePointer))
                 {
                     const ULONG idx = TcpTable->dwNumEntries;
 
@@ -10020,6 +10099,7 @@ NTSTATUS PhGetTcp6Table(
         ULONG requiredSize = 0;
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_TCP6TABLE, table),
             errorCount + TcpTable->dwNumEntries,
             sizeof(MIB_TCP6ROW),
             errorCount != 0,
@@ -10036,7 +10116,7 @@ NTSTATUS PhGetTcp6Table(
             {
                 if (Order && TcpTable->dwNumEntries > 0)
                 {
-                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW), NULL, NULL);
+                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW), PhpCompareMibTcp6Row, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10081,7 +10161,7 @@ NTSTATUS PhGetTcp6Table2(
     if (!NT_SUCCESS(result))
         return result;
 
-    result = PhpNetioMibCheckTableBufferSize(statistics.dwNumConns, sizeof(MIB_TCP6ROW2), TcpTable, SizePointer);
+    result = PhpNetioMibCheckTableBufferSize(FIELD_OFFSET(MIB_TCP6TABLE2, table), statistics.dwNumConns, sizeof(MIB_TCP6ROW2), TcpTable, SizePointer);
     if (!NT_SUCCESS(result))
         return result;
 
@@ -10113,6 +10193,7 @@ NTSTATUS PhGetTcp6Table2(
                 !IN6_IS_ADDR_V4MAPPED(&key->LocalAddress))
             {
                 if (PhpNetioMibTableHasCapacity(
+                    FIELD_OFFSET(MIB_TCP6TABLE2, table),
                     TcpTable->dwNumEntries + 1,
                     sizeof(MIB_TCP6ROW2),
                     *SizePointer
@@ -10143,6 +10224,7 @@ NTSTATUS PhGetTcp6Table2(
         ULONG requiredSize = 0;
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_TCP6TABLE2, table),
             errorCount + TcpTable->dwNumEntries,
             sizeof(MIB_TCP6ROW2),
             errorCount != 0,
@@ -10159,7 +10241,7 @@ NTSTATUS PhGetTcp6Table2(
             {
                 if (Order && TcpTable->dwNumEntries > 0)
                 {
-                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW2), NULL, NULL);
+                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10205,6 +10287,7 @@ NTSTATUS PhGetUdp6Table(
         return result;
 
     result = PhpNetioMibCheckTableBufferSize(
+        FIELD_OFFSET(MIB_UDP6TABLE, table),
         statistics.dwNumAddrs,
         sizeof(MIB_UDP6ROW),
         Udp6Table,
@@ -10241,7 +10324,7 @@ NTSTATUS PhGetUdp6Table(
             if (row->Family == AF_INET6 &&
                 !IN6_IS_ADDR_V4MAPPED(&row->Address))
             {
-                if (PhpNetioMibTableHasCapacity(Udp6Table->dwNumEntries + 1, sizeof(MIB_UDP6ROW), *SizePointer))
+                if (PhpNetioMibTableHasCapacity(FIELD_OFFSET(MIB_UDP6TABLE, table), Udp6Table->dwNumEntries + 1, sizeof(MIB_UDP6ROW), *SizePointer))
                 {
                     ULONG idx = Udp6Table->dwNumEntries;
                     Udp6Table->table[idx].dwLocalAddr = row->Address;
@@ -10259,6 +10342,7 @@ NTSTATUS PhGetUdp6Table(
         PhNsiFreeTable(keyTable, NULL, NULL, NULL);
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_UDP6TABLE, table),
             errorCount + Udp6Table->dwNumEntries,
             sizeof(MIB_UDP6ROW),
             errorCount != 0,
@@ -10275,7 +10359,7 @@ NTSTATUS PhGetUdp6Table(
             {
                 if (Order && Udp6Table->dwNumEntries > 0)
                 {
-                    qsort_s(Udp6Table->table, Udp6Table->dwNumEntries, sizeof(MIB_UDP6ROW), NULL, NULL);
+                    qsort_s(Udp6Table->table, Udp6Table->dwNumEntries, sizeof(MIB_UDP6ROW), PhpCompareMibUdp6Row, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10457,7 +10541,7 @@ NTSTATUS PhNotifyRouteChange2(
             result = (!NT_SUCCESS(ipv4Result) && !NT_SUCCESS(result)) ? ipv4Result : STATUS_SUCCESS;
     }
 
-    if (result)
+    if (!NT_SUCCESS(result))
     {
         PhCancelMibChangeNotify2(registration);
         return result;
@@ -10671,12 +10755,13 @@ NTSTATUS PhGetNumberOfInterfaces(
         &count
         );
 
-    *NumberOfInterfaces = count;
+    if (NT_SUCCESS(result) || result == STATUS_BUFFER_OVERFLOW || result == STATUS_BUFFER_TOO_SMALL)
+    {
+        *NumberOfInterfaces = count;
+        return STATUS_SUCCESS;
+    }
 
-    if (result != STATUS_BUFFER_TOO_SMALL)
-        return result;
-
-    return STATUS_SUCCESS;
+    return result;
 }
 
 /**
@@ -10836,9 +10921,10 @@ NTSTATUS PhGetIfTable(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         entryCount = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(MIB_IFTABLE, table),
             count,
             sizeof(MIB_IFROW),
             IfTable,
@@ -10869,7 +10955,7 @@ NTSTATUS PhGetIfTable(
 
             if (Order)
             {
-                qsort_s(IfTable->table, entryCount, sizeof(MIB_IFROW), NULL, NULL);
+                qsort_s(IfTable->table, entryCount, sizeof(MIB_IFROW), PhpCompareMibIfRow, NULL);
             }
             
             entryCount = (entryCount == 0) ? STATUS_NO_MORE_ENTRIES : 0;
@@ -11093,7 +11179,7 @@ NTSTATUS PhGetIpStatisticsEx(
         sizeof(ULONG)
         );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         compartmentKey = PhGetCurrentThreadCompartmentId();
         result = PhNsiGetAllParameters(
@@ -11110,7 +11196,7 @@ NTSTATUS PhGetIpStatisticsEx(
             0
             );
 
-        if (!result)
+        if (NT_SUCCESS(result))
         {
             forwarding = compartmentRw.Forwarding == 1;
             Statistics->dwInReceives = (ULONG)statistics.InReceives;
@@ -11231,7 +11317,7 @@ NTSTATUS PhGetIpInterfaceEntry(
             return STATUS_INVALID_PARAMETER;
 
         result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
-        if (result)
+        if (!NT_SUCCESS(result))
             return result;
     }
 
@@ -11249,7 +11335,7 @@ NTSTATUS PhGetIpInterfaceEntry(
         sizeof(NSI_IP_INTERFACE_ROS)
         );
 
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     if (rod.CompartmentId != PhGetCurrentThreadCompartmentId())
@@ -11323,7 +11409,7 @@ NTSTATUS PhGetIpInterfaceTable(
         if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(result))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
@@ -11587,7 +11673,7 @@ NTSTATUS PhGetIpNetworkConnectionBandwidthEstimates(
         NsiNdisInterfaceIndexToLuid
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
     status = PhNsiGetAllParameters(
@@ -11604,7 +11690,7 @@ NTSTATUS PhGetIpNetworkConnectionBandwidthEstimates(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
     memset(BandwidthEstimates, 0, sizeof(MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES));
@@ -11680,7 +11766,7 @@ NTSTATUS PhGetIpForwardTable2(
         if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(result))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
@@ -11749,7 +11835,7 @@ NTSTATUS PhNhGetGuidFromInterfaceName(
 
     InterfaceLuid.Value = 0;
     result = PhConvertInterfaceAliasToLuid(InterfaceName, &InterfaceLuid);
-    if (!result)
+    if (NT_SUCCESS(result))
         return PhConvertInterfaceLuidToGuid(&InterfaceLuid, InterfaceGuid);
 
     return result;
@@ -11776,7 +11862,7 @@ NTSTATUS PhNhGetInterfaceNameFromGuid(
 
     InterfaceLuid.Value = 0;
     result = PhConvertInterfaceGuidToLuid(InterfaceGuid, &InterfaceLuid);
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         result = PhConvertInterfaceLuidToAlias(&InterfaceLuid, InterfaceName, *InterfaceNameLength >> 1);
         if (result == STATUS_NO_MEMORY)
@@ -11826,10 +11912,10 @@ NTSTATUS PhGetPerTcpConnectionStats(
         ObjectId,
         &key,
         sizeof(NSI_TCP_KEY_ROW),
-        DynamicBuffer,
-        DynamicBufferSize,
         ReadWriteBuffer,
         ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
         StaticBuffer,
         StaticBufferSize
         );
@@ -11877,10 +11963,10 @@ NTSTATUS PhGetPerTcp6ConnectionStats(
         ObjectId,
         &key,
         sizeof(NSI_TCP_KEY_ROW),
-        DynamicBuffer,
-        DynamicBufferSize,
         ReadWriteBuffer,
         ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
         StaticBuffer,
         StaticBufferSize
         );
@@ -11894,7 +11980,7 @@ NTSTATUS PhGetPerTcp6ConnectionStats(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getifstacktable
  */
 NTSTATUS PhGetIfStackTable(
-    _In_ PMIB_IFSTACK_TABLE *Table
+    _Outptr_ PMIB_IFSTACK_TABLE *Table
     )
 {
     NTSTATUS status;
@@ -11905,6 +11991,8 @@ NTSTATUS PhGetIfStackTable(
 
     if (!Table)
         return STATUS_INVALID_PARAMETER;
+
+    *Table = NULL;
 
     status = PhNsiAllocateAndGetTable(
         NsiActive,
@@ -11928,7 +12016,7 @@ NTSTATUS PhGetIfStackTable(
         {
             dwBytes = 0;
 
-            if (PhpNetioMibSizeofTable(count, sizeof(MIB_IFSTACK_ROW), FALSE, &dwBytes))
+            if (PhpNetioMibSizeofTable(FIELD_OFFSET(MIB_IFSTACK_TABLE, Table), count, sizeof(MIB_IFSTACK_ROW), FALSE, &dwBytes))
             {
                 memory = PhAllocate(dwBytes);
                 if (memory)
@@ -11971,10 +12059,29 @@ NTSTATUS PhGetIfStackTable(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getinvertedifstacktable
  */
 NTSTATUS PhGetInvertedIfStackTable(
-    _In_ PMIB_INVERTEDIFSTACK_TABLE *Table
+    _Outptr_ PMIB_INVERTEDIFSTACK_TABLE *Table
     )
 {
-    return PhGetIfStackTable((PMIB_IFSTACK_TABLE *)Table);
+    NTSTATUS status;
+    PMIB_IFSTACK_TABLE stackTable;
+
+    if (!Table)
+        return STATUS_INVALID_PARAMETER;
+
+    *Table = NULL;
+    status = PhGetIfStackTable(&stackTable);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG index = 0; index < stackTable->NumEntries; index++)
+    {
+        NET_IFINDEX higherIndex = stackTable->Table[index].HigherLayerInterfaceIndex;
+        stackTable->Table[index].HigherLayerInterfaceIndex = stackTable->Table[index].LowerLayerInterfaceIndex;
+        stackTable->Table[index].LowerLayerInterfaceIndex = higherIndex;
+    }
+
+    *Table = (PMIB_INVERTEDIFSTACK_TABLE)stackTable;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -12030,7 +12137,7 @@ NTSTATUS PhGetIpForwardEntry2(
             return STATUS_INVALID_PARAMETER;
 
         result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
-        if (result)
+        if (!NT_SUCCESS(result))
             return result;
     }
 
@@ -12048,7 +12155,7 @@ NTSTATUS PhGetIpForwardEntry2(
         keyV4.NextHop = Row->NextHop.Ipv4.sin_addr;
         result = PhNsiGetAllParameters(NsiActive, moduleId, NsiIpObjectRoute,
             &keyV4, sizeof(keyV4), &rw, sizeof(rw), &rodV4, sizeof(rodV4), &ros, sizeof(ros));
-        if (!result)
+        if (NT_SUCCESS(result))
             PhpFillRouteEntry(AF_INET, Row, &keyV4, &rw, &rodV4, &ros);
     }
     else
@@ -12065,7 +12172,7 @@ NTSTATUS PhGetIpForwardEntry2(
         keyV6.NextHop = Row->NextHop.Ipv6.sin6_addr;
         result = PhNsiGetAllParameters(NsiActive, moduleId, NsiIpObjectRoute,
             &keyV6, sizeof(keyV6), &rw, sizeof(rw), &rodV6, sizeof(rodV6), &ros, sizeof(ros));
-        if (!result)
+        if (NT_SUCCESS(result))
             PhpFillRouteEntry(AF_INET6, Row, &keyV6, &rw, &rodV6, &ros);
     }
 
@@ -12369,9 +12476,9 @@ BOOL PhGetRTTAndHopCount(
 
     requestOptions.Tos = 0;
     
-    for (UCHAR ttl = 1; ttl <= MaxHops; ttl++)
+    for (ULONG ttl = 1; ttl <= min(MaxHops, MAXUCHAR); ttl++)
     {
-        requestOptions.Ttl = ttl;
+        requestOptions.Ttl = (UCHAR)ttl;
         
         if (PhIcmpSendEcho2Ex(fileHandle, NULL, NULL, NULL, 0, DestIpAddress, requestData, sizeof(requestData), &requestOptions, replyBuffer, PHP_ICMP_ECHO_REPLY_BUFFER_SIZE, PHP_ICMP_ECHO_TIMEOUT))
         {
@@ -12653,7 +12760,7 @@ NTSTATUS PhGetInterfaceInfo(
             {
                 if (PhpIsIpv4Interface(&keyTable[i], rosTable[i].ifType))
                 {
-                    if (IfTable && PhpNetioMibTableHasCapacity(outputCount + 1, sizeof(IP_ADAPTER_INDEX_MAP), *SizePointer))
+                    if (IfTable && PhpNetioMibTableHasCapacity(FIELD_OFFSET(IP_INTERFACE_INFO, Adapter), outputCount + 1, sizeof(IP_ADAPTER_INDEX_MAP), *SizePointer))
                     {
                         PIP_ADAPTER_INDEX_MAP dest = &IfTable->Adapter[outputCount];
                         dest->Index = rosTable[i].ifIndex;
@@ -12682,6 +12789,7 @@ NTSTATUS PhGetInterfaceInfo(
         }
 
         result = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(IP_INTERFACE_INFO, Adapter),
             outputCount,
             sizeof(IP_ADAPTER_INDEX_MAP),
             IfTable,
@@ -12972,7 +13080,7 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
         tagInformation.InParams.ProcessId = ProcessId;
         tagInformation.InParams.ServiceTag = (ULONG)Info[0];
         result = PhpNetioDosErrorToNtStatus(queryTagInformation(NULL, eTagInfoLevelNameFromTag, &tagInformation));
-        if (result)
+        if (!NT_SUCCESS(result))
             return result;
         if (!tagInformation.OutParams.Name)
             return STATUS_NOT_FOUND;
@@ -13275,7 +13383,7 @@ NTSTATUS PhGetIpPathTable(
         if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(result))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
@@ -13341,22 +13449,30 @@ NTSTATUS PhGetIpErrorString(
 {
     ULONG length;
     PWSTR message = NULL;
+    HMODULE iphlpapiModule;
+    ULONG lastError;
 
     if (!Size)
         return STATUS_INVALID_PARAMETER;
 
+    iphlpapiModule = LoadLibraryExW(L"iphlpapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!iphlpapiModule)
+        return PhpNetioDosErrorToNtStatus(PhGetLastError());
+
     length = FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS,
+        iphlpapiModule,
         ErrorCode,
         0,
         (PWSTR)&message,
         0,
         NULL
         );
+    lastError = PhGetLastError();
+    FreeLibrary(iphlpapiModule);
 
     if (!length)
-        return PhpNetioDosErrorToNtStatus(PhGetLastError());
+        return PhpNetioDosErrorToNtStatus(lastError);
 
     if (!Buffer || *Size <= length)
     {
@@ -13468,9 +13584,9 @@ NTSTATUS PhGetNetworkConnectivityHintForInterface(
     memset(ConnectivityHint, 0, sizeof(*ConnectivityHint));
 
     result = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
-    if (result) return result;
+    if (!NT_SUCCESS(result)) return result;
     result = PhConvertInterfaceLuidToGuid(&interfaceLuid, &interfaceGuid);
-    if (result) return result;
+    if (!NT_SUCCESS(result)) return result;
 
     hr = CoCreateInstance(
         &networkListClass,
@@ -13695,50 +13811,48 @@ static NTSTATUS NTAPI PhpConnectivityStateChangeCallback(
  */
 static NTSTATUS PhpMonitorConnectivityState(void)
 {
-    //WNF_STATE_NAME stateName = { .Value = PHP_WNF_CONNECTIVITY_STATE_NAME };
-    //WNF_CHANGE_STAMP changeStamp = 0;
-    //ULONG64 stateData = 0;
-    //ULONG stateDataLength = sizeof(stateData);
-    //NETIO_CONNECTIVITY_HINT hint;
-    //NTSTATUS status;
-    //
-    //if (PhpConnectivitySubscriptionHandle)
-    //    return STATUS_SUCCESS;
-    //
-    //// A failed query leaves the state zeroed, which maps to an unknown level (as iphlpapi does).
-    //status = NtQueryWnfStateData(
-    //    &stateName,
-    //    NULL,
-    //    NULL,
-    //    &changeStamp,
-    //    &stateData,
-    //    &stateDataLength
-    //    );
-    //
-    //if (!NT_SUCCESS(status) || stateDataLength != sizeof(stateData))
-    //    stateData = 0;
-    //
-    //PhpConnectivityHintFromConnectivityState(&stateData, &hint);
-    //PhpConnectivityLevel = (ULONG)hint.ConnectivityLevel;
-    //PhpConnectivityCost = hint.ConnectivityCost;
-    //
-    //// Subscribing from the queried change stamp delivers only later changes.
-    //status = RtlSubscribeWnfStateChangeNotification(
-    //    (PWNF_USER_SUBSCRIPTION*)&PhpConnectivitySubscriptionHandle,
-    //    stateName,
-    //    changeStamp,
-    //    PhpConnectivityStateChangeCallback,
-    //    NULL,
-    //    NULL,
-    //    0,
-    //    0
-    //    );
-    //
-    //if (!NT_SUCCESS(status))
-    //{
-    //    PhpConnectivitySubscriptionHandle = NULL;
-    //    return status;
-    //}
+    WNF_STATE_NAME stateName = { .Value = PHP_WNF_CONNECTIVITY_STATE_NAME };
+    WNF_CHANGE_STAMP changeStamp = 0;
+    ULONG64 stateData = 0;
+    ULONG stateDataLength = sizeof(stateData);
+    NETIO_CONNECTIVITY_HINT hint;
+    NTSTATUS status;
+
+    if (PhpConnectivitySubscriptionHandle)
+        return STATUS_SUCCESS;
+
+    status = NtQueryWnfStateData(
+        &stateName,
+        NULL,
+        NULL,
+        &changeStamp,
+        &stateData,
+        &stateDataLength
+        );
+
+    if (!NT_SUCCESS(status) || stateDataLength != sizeof(stateData))
+        stateData = 0;
+
+    PhpConnectivityHintFromConnectivityState(&stateData, &hint);
+    PhpConnectivityLevel = (ULONG)hint.ConnectivityLevel;
+    PhpConnectivityCost = hint.ConnectivityCost;
+
+    status = RtlSubscribeWnfStateChangeNotification(
+        (PWNF_USER_SUBSCRIPTION*)&PhpConnectivitySubscriptionHandle,
+        stateName,
+        changeStamp,
+        PhpConnectivityStateChangeCallback,
+        NULL,
+        NULL,
+        0,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpConnectivitySubscriptionHandle = NULL;
+        return status;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -13766,7 +13880,7 @@ NTSTATUS NTAPI PhNotifyNetworkConnectivityHintChange(
 
     *NotificationHandle = NULL;
 
-    handle = PhAllocate(sizeof(PHP_MIB_NOTIFICATION_HANDLE));
+    handle = PhAllocateZero(sizeof(PHP_MIB_NOTIFICATION_HANDLE));
     if (!handle)
         return STATUS_NO_MEMORY;
 
@@ -13929,7 +14043,7 @@ NTSTATUS PhNotifyTeredoPortChange(
         &registration->Header.TeredoNotificationHandle
         );
 
-    if (result)
+    if (!NT_SUCCESS(result))
     {
         PhFree(registration);
         return result;
@@ -14248,7 +14362,7 @@ NTSTATUS PhGetUniDirectionalAdapterInfo(
         &addresses,
         NULL);
 
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     count = 0;
@@ -14347,53 +14461,54 @@ NTSTATUS PhGetNetworkParams(
     _Inout_ PULONG SizePointer
     )
 {
-    //ULONG status;
-    //PVOID memory = NULL;
-    //
-    //if (!SizePointer)
-    //    return STATUS_INVALID_PARAMETER;
-    //
-    //status = PhAllocateAndGetFixedInfo(&memory);
-    //if (!NT_SUCCESS(status))
-    //    return status;
-    //
-    //PFIXED_INFO sourceFixedInfo = (PFIXED_INFO)memory;
-    //PIP_ADDR_STRING dnsListHead = &sourceFixedInfo->DnsServerList;
-    //
-    //ULONG dnsListSize = PhGetSizeofAddressStringList(dnsListHead);
-    //ULONG sizeRequired = sizeof(FIXED_INFO) + dnsListSize;
-    //
-    //if (!FixedInfo || *SizePointer < sizeRequired)
-    //{
-    //    *SizePointer = sizeRequired;
-    //    PhFreeAddressStringList(dnsListHead);
-    //    PhFree(memory);
-    //    return STATUS_BUFFER_TOO_SMALL;
-    //}
-    //
-    //memset(FixedInfo, 0, *SizePointer);
-    //memcpy(FixedInfo, memory, sizeof(FIXED_INFO));
-    //
-    //PIP_ADDR_STRING dest = (PIP_ADDR_STRING)(FixedInfo + 1);
-    //PIP_ADDR_STRING src = dnsListHead->Next;
-    //PIP_ADDR_STRING tail = &FixedInfo->DnsServerList;
-    //
-    //FixedInfo->DnsServerList.Next = NULL;
-    //
-    //while (src)
-    //{
-    //    tail->Next = dest;
-    //    memcpy(dest, src, sizeof(IP_ADDR_STRING));
-    //    tail = dest;
-    //    dest = (PIP_ADDR_STRING)((PCHAR)dest + sizeof(IP_ADDR_STRING));
-    //    src = src->Next;
-    //}
-    //
-    //if (tail)
-    //    tail->Next = NULL;
-    //
-    //PhFreeAddressStringList(dnsListHead);
-    //PhFree(memory);
+    NTSTATUS status;
+    PVOID memory = NULL;
+    
+    if (!SizePointer)
+        return STATUS_INVALID_PARAMETER;
+    
+    status = PhpAllocateAndGetFixedInfo(&memory);
+    if (!NT_SUCCESS(status))
+        return status;
+    
+    PFIXED_INFO sourceFixedInfo = (PFIXED_INFO)memory;
+    PIP_ADDR_STRING dnsListHead = &sourceFixedInfo->DnsServerList;
+    
+    ULONG dnsListSize = PhGetSizeofAddressStringList(dnsListHead);
+    ULONG sizeRequired = sizeof(FIXED_INFO) + dnsListSize;
+    
+    if (!FixedInfo || *SizePointer < sizeRequired)
+    {
+        *SizePointer = sizeRequired;
+        PhFreeAddressStringList(dnsListHead);
+        PhFree(memory);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    
+    memset(FixedInfo, 0, *SizePointer);
+    memcpy(FixedInfo, memory, sizeof(FIXED_INFO));
+    
+    PIP_ADDR_STRING dest = (PIP_ADDR_STRING)(FixedInfo + 1);
+    PIP_ADDR_STRING src = dnsListHead->Next;
+    PIP_ADDR_STRING tail = &FixedInfo->DnsServerList;
+    
+    FixedInfo->DnsServerList.Next = NULL;
+    
+    while (src)
+    {
+        tail->Next = dest;
+        memcpy(dest, src, sizeof(IP_ADDR_STRING));
+        tail = dest;
+        dest = (PIP_ADDR_STRING)((PCHAR)dest + sizeof(IP_ADDR_STRING));
+        src = src->Next;
+    }
+    
+    if (tail)
+        tail->Next = NULL;
+    
+    PhFreeAddressStringList(dnsListHead);
+    PhFree(memory);
+    *SizePointer = sizeRequired;
     return STATUS_SUCCESS;
 }
 
@@ -14408,15 +14523,21 @@ NTSTATUS PhGetNetworkConnectivityHint(
     _Out_ PNETIO_CONNECTIVITY_HINT ConnectivityHint
     )
 {
+    NTSTATUS status;
+
     if (!ConnectivityHint)
         return STATUS_INVALID_PARAMETER;
 
     PhAcquireQueuedLockExclusive(&PhpConnectivityHintLock);
-    ConnectivityHint->ConnectivityLevel = PhpConnectivityLevel;
-    ConnectivityHint->ConnectivityCost = PhpConnectivityCost;
+    status = PhpMonitorConnectivityState();
+    if (NT_SUCCESS(status))
+    {
+        ConnectivityHint->ConnectivityLevel = PhpConnectivityLevel;
+        ConnectivityHint->ConnectivityCost = PhpConnectivityCost;
+    }
     PhReleaseQueuedLockExclusive(&PhpConnectivityHintLock);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -14481,12 +14602,12 @@ NTSTATUS PhCaptureInterfaceHardwareCrossTimestamp(
     deviceHandle = NULL;
     result = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
 
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     result = PhGetInterfaceHandle(&interfaceLuid, &deviceHandle);
 
-    if (result)
+    if (!NT_SUCCESS(result))
         return result;
 
     RtlZeroMemory(Timestamp, sizeof(*Timestamp));
@@ -14522,7 +14643,7 @@ NTSTATUS PhCaptureInterfaceHardwareCrossTimestamp(
     {
         result = PhConvertNdisStatusToError(request.Status);
 
-        if (!result)
+        if (NT_SUCCESS(result))
         {
             if (request.DataOffset < FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data) ||
                 request.DataOffset > sizeof(request) - sizeof(crossTimestamp))
@@ -14626,7 +14747,7 @@ NTSTATUS NTAPI PhRegisterInterfaceTimestampConfigChange(
     if (!rpcHandle)
     {
         result = PhpNetioDosErrorToNtStatus(PhGetLastError());
-        if (!result)
+        if (NT_SUCCESS(result))
             result = STATUS_UNSUCCESSFUL;
     }
     else
@@ -14728,25 +14849,22 @@ NTSTATUS PhNhGetInterfaceDescriptionFromGuid(
         description.Buffer[length] = UNICODE_NULL;
     }
 
+    if (!NT_SUCCESS(status))
+        return status;
+
+    ULONG requiredLength = ((ULONG)PhCountStringZ(description.Buffer) + 1) * sizeof(WCHAR);
     NTSTATUS copyStatus = PhCopyStringZ(
-        (NT_SUCCESS(status)) ? description.Buffer : L"",
+        description.Buffer,
         SIZE_MAX,
         InterfaceDescription,
         *InterfaceDescriptionLength / sizeof(WCHAR),
         NULL
         );
 
-    if (NT_SUCCESS(status))
-    {
-        ULONG stringStatus = PhStringResultToStatus(copyStatus);
-        if (stringStatus == STATUS_BUFFER_TOO_SMALL)
-        {
-            *InterfaceDescriptionLength = sizeof(description.Buffer);
-        }
-        return stringStatus;
-    }
+    if (copyStatus == STATUS_BUFFER_TOO_SMALL)
+        *InterfaceDescriptionLength = requiredLength;
 
-    return status;
+    return copyStatus;
 }
 
 /**
@@ -14798,7 +14916,7 @@ NTSTATUS PhGetFlVirtualInterface(
         sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS)
         );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         PhFillVirtualInterfaceRow(InterfaceRow, family, &key, &readWrite, &readOnlyDynamic, &readOnlyStatic);
         return 0;
@@ -14856,7 +14974,7 @@ NTSTATUS PhGetFlVirtualInterfaceTable(
             &families[i].Ros, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS), &families[i].Count, 0);
         if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
             continue;
-        if (result)
+        if (!NT_SUCCESS(result))
             goto Cleanup;
 
         if (count > ULONG_MAX - families[i].Count)
@@ -14948,9 +15066,10 @@ NTSTATUS PhGetIpNetTable(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(result))
     {
         tableResult = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(MIB_IPNETTABLE, table),
             neighborCount,
             sizeof(MIB_IPNETROW),
             IpNetTable,
@@ -15553,7 +15672,10 @@ NTSTATUS NTAPI PhCancelMibChangeNotify2(
         PhReleaseQueuedLockExclusive(&PhpConnectivityHintLock);
 
         if (context->ThreadpoolWork)
+        {
+            TpWaitForWork(context->ThreadpoolWork, TRUE);
             TpReleaseWork(context->ThreadpoolWork);
+        }
         PhFree(context);
     }
 
@@ -16121,17 +16243,20 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     // InternalGetTable always requests a sorted table.
+    // N.B. This is the only write of dwNumEntries and the heap block is not zeroed.
 
-    //if (Family == AF_INET)
-    //{
-    //    ((PMIB_TCPTABLE2)table)->dwNumEntries = numberOfEntries;
-    //    qsort_s(((PMIB_TCPTABLE2)table)->table, numberOfEntries, sizeof(MIB_TCPROW2), PhpCompareMibTcpRow2, NULL);
-    //}
-    //else
-    //{
-    //    ((PMIB_TCP6TABLE2)table)->dwNumEntries = numberOfEntries;
-    //    qsort_s(((PMIB_TCP6TABLE2)table)->table, numberOfEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
-    //}
+    if (Family == AF_INET)
+    {
+        ((PMIB_TCPTABLE2)table)->dwNumEntries = numberOfEntries;
+        if (numberOfEntries > 1)
+            qsort_s(((PMIB_TCPTABLE2)table)->table, numberOfEntries, sizeof(MIB_TCPROW2), PhpCompareMibTcpRow2, NULL);
+    }
+    else
+    {
+        ((PMIB_TCP6TABLE2)table)->dwNumEntries = numberOfEntries;
+        if (numberOfEntries > 1)
+            qsort_s(((PMIB_TCP6TABLE2)table)->table, numberOfEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
+    }
 
     *Table = table;
     return STATUS_SUCCESS;

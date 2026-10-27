@@ -442,6 +442,8 @@ PCWSTR AtpMemoryRegionTypeString(
         return L"leap_second_data";
     case DesktopHeapRegion:
         return L"desktop_heap";
+    case ShadowStackRegion:
+        return L"shadow_stack";
     }
 
     return NULL;
@@ -552,6 +554,12 @@ VOID AtpAddRegionDetail(
         AtJsonAddNull(Row, "mapped_file");
         AtJsonAddNull(Row, "signing_level");
         PhAddJsonObjectUInt64(Row, "thread_id", HandleToUlong(Item->u.Stack.ThreadId));
+        AtJsonAddNull(Row, "heap");
+        break;
+    case ShadowStackRegion:
+        AtJsonAddNull(Row, "mapped_file");
+        AtJsonAddNull(Row, "signing_level");
+        PhAddJsonObjectUInt64(Row, "thread_id", HandleToUlong(Item->u.ShadowStack.ThreadId));
         AtJsonAddNull(Row, "heap");
         break;
     case HeapRegion:

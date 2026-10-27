@@ -58,11 +58,16 @@ NTSTATUS UpdateShellExecute(
         NULL
         );
 
-    if (NT_SUCCESS(status))
+    PhDereferenceObject(parameters);
+
+    if (Context->SetupFileHandle)
     {
         NtClose(Context->SetupFileHandle);
         Context->SetupFileHandle = NULL;
+    }
 
+    if (NT_SUCCESS(status))
+    {
         Context->Cleanup = FALSE;
 
         SystemInformer_Destroy();
@@ -106,7 +111,7 @@ BOOLEAN UpdateCheckDirectoryElevationRequired(
         &fileHandle,
         &fileName->sr,
         FILE_GENERIC_WRITE | DELETE,
-        FILE_ATTRIBUTE_NORMAL,
+        FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE

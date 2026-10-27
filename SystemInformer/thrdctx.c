@@ -26,6 +26,9 @@ typedef struct _PH_THREAD_CONTEXT_DIALOG_CONTEXT
     USHORT FrameMachine;
     PVOID FrameContext;
     PCWSTR FrameTitle;
+    PPH_THREAD_FRAME_CONTEXT PriorFrames;
+    ULONG PriorFrameCount;
+    LONG ValueColumn;
 } PH_THREAD_CONTEXT_DIALOG_CONTEXT, *PPH_THREAD_CONTEXT_DIALOG_CONTEXT;
 
 // ListView group identifiers.
@@ -37,6 +40,7 @@ typedef struct _PH_THREAD_CONTEXT_DIALOG_CONTEXT
 #define PH_CONTEXT_GROUP_XMM        5
 #define PH_CONTEXT_GROUP_YMM        6
 #define PH_CONTEXT_GROUP_AVX512     7
+#define PH_CONTEXT_GROUP_CET        8
 
 // The SDK only defines the combined XSTATE_MASK_AVX512.
 #ifndef XSTATE_MASK_AVX512_KMASK
@@ -105,8 +109,22 @@ LONG PhThreadFrameContextAddItem(
 {
     LONG index;
 
-    index = PhAddListViewGroupItem(Context->ListViewHandle, GroupId, MAXINT, Name, NULL);
-    PhSetListViewSubItem(Context->ListViewHandle, index, 1, Value);
+    LVFINDINFO findInfo = { 0 };
+
+    findInfo.flags = LVFI_STRING;
+    findInfo.psz = Name;
+    index = ListView_FindItem(Context->ListViewHandle, -1, &findInfo);
+
+    if (index == -1)
+    {
+        index = PhAddListViewGroupItem(Context->ListViewHandle, GroupId, MAXINT, Name, NULL);
+
+        // A register may exist only in another architecture's context.
+        for (LONG column = 1; column < Context->ValueColumn; column++)
+            PhSetListViewSubItem(Context->ListViewHandle, index, column, L"Unavailable");
+    }
+
+    PhSetListViewSubItem(Context->ListViewHandle, index, Context->ValueColumn, Value);
 
     return index;
 }
@@ -214,12 +232,18 @@ VOID PhAddNativeContextItems(
     WCHAR name[16];
 
     ListView_EnableGroupView(lvHandle, TRUE);
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_SEGMENTS, L"Segments");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_DEBUG, L"Debug registers");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_X87, L"x87 floating point");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"SSE (XMM)");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_SEGMENTS, L"Segments");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_DEBUG, L"Debug registers");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_X87, L"x87 floating point");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"SSE (XMM)");
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(generalRegisters); i++)
     {
@@ -281,7 +305,8 @@ VOID PhAddNativeContextItems(
             (avx = RtlLocateExtendedFeature_I((PCONTEXT_EX)ContextEx, XSTATE_AVX, &avxLength)) &&
             avxLength >= 16 * sizeof(M128A))
         {
-            PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_YMM, L"AVX (YMM)");
+            if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_YMM, L"AVX (YMM)");
 
             for (ULONG i = 0; i < 16; i++)
             {
@@ -304,7 +329,8 @@ VOID PhAddNativeContextItems(
             ULONG zmmHighLength = 0;
             ULONG zmmFullLength = 0;
 
-            PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_AVX512, L"AVX-512");
+            if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_AVX512, L"AVX-512");
 
             if ((kmask = RtlLocateExtendedFeature_I((PCONTEXT_EX)ContextEx, XSTATE_AVX512_KMASK, &kmaskLength)) &&
                 kmaskLength >= 8 * sizeof(ULONG64))
@@ -349,6 +375,64 @@ VOID PhAddNativeContextItems(
     }
 }
 
+PPH_STRING PhThreadFrameContextFormatCetUMsr(
+    _In_ ULONG64 CetUMsr
+    )
+{
+    static const struct { ULONG64 Bit; PCWSTR Name; } flags[] =
+    {
+        { PH_CET_U_SH_STK_EN, L"SH_STK_EN" },
+        { PH_CET_U_WR_SHSTK_EN, L"WR_SHSTK_EN" },
+        { PH_CET_U_ENDBR_EN, L"ENDBR_EN" },
+        { PH_CET_U_LEG_IW_EN, L"LEG_IW_EN" },
+        { PH_CET_U_NO_TRACK_EN, L"NO_TRACK_EN" },
+        { PH_CET_U_SUPPRESS_DIS, L"SUPPRESS_DIS" },
+        { PH_CET_U_SUPPRESS, L"SUPPRESS" },
+        { PH_CET_U_TRACKER, L"TRACKER" },
+    };
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 64);
+    PhAppendFormatStringBuilder(&stringBuilder, L"0x%016I64x (", CetUMsr);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(flags); i++)
+    {
+        if (CetUMsr & flags[i].Bit)
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"%s ", flags[i].Name);
+        }
+    }
+
+    if (CetUMsr & PH_CET_U_LEG_BITMAP_BASE_MASK)
+    {
+        PhAppendFormatStringBuilder(&stringBuilder, L"Bitmap=0x%I64x ", CetUMsr & PH_CET_U_LEG_BITMAP_BASE_MASK);
+    }
+
+    if (PhEndsWithStringRef2(&stringBuilder.String->sr, L" ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    PhAppendCharStringBuilder(&stringBuilder, L')');
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+VOID PhAddNativeCetContextItems(
+    _In_ PPH_THREAD_CONTEXT_DIALOG_CONTEXT Context,
+    _In_ PXSAVE_CET_U_FORMAT CetUserState
+    )
+{
+    PPH_STRING string;
+
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(Context->ListViewHandle, PH_CONTEXT_GROUP_CET, L"CET shadow stack");
+
+    PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_CET, L"Ssp", PhaFormatString(L"0x%016I64x", CetUserState->Ia32Pl3SspMsr)->Buffer);
+
+    string = PhThreadFrameContextFormatCetUMsr(CetUserState->Ia32CetUMsr);
+    PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_CET, L"CetUMsr", string->Buffer);
+    PhDereferenceObject(string);
+}
+
 VOID PhAddWow64ContextItems(
     _In_ PPH_THREAD_CONTEXT_DIALOG_CONTEXT Context,
     _In_ PWOW64_CONTEXT ThreadContext
@@ -359,12 +443,18 @@ VOID PhAddWow64ContextItems(
     WCHAR name[16];
 
     ListView_EnableGroupView(lvHandle, TRUE);
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose (WOW64)");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_SEGMENTS, L"Segments");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_DEBUG, L"Debug registers");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_X87, L"x87 floating point");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"SSE (XMM)");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose (WOW64)");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_SEGMENTS, L"Segments");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_DEBUG, L"Debug registers");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_X87, L"x87 floating point");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"SSE (XMM)");
 
     PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_GENERAL, L"Eax", PhaFormatString(L"0x%08lx", ThreadContext->Eax)->Buffer);
     PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_GENERAL, L"Ebx", PhaFormatString(L"0x%08lx", ThreadContext->Ebx)->Buffer);
@@ -428,9 +518,12 @@ VOID PhAddNativeContextItems(
     WCHAR name[16];
 
     ListView_EnableGroupView(lvHandle, TRUE);
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
-    PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"NEON (V)");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_GENERAL, L"General purpose");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_CONTROL, L"Control and flags");
+    if (Context->ValueColumn == 1)
+        PhAddListViewGroup(lvHandle, PH_CONTEXT_GROUP_XMM, L"NEON (V)");
 
     for (ULONG i = 0; i < 29; i++)
     {
@@ -483,17 +576,13 @@ NTSTATUS PhQueryThreadFrameContext(
 
 #if defined(_M_X64)
     {
-        HANDLE processHandle;
+        PPH_PROCESS_ITEM processItem;
         BOOLEAN isWow64 = FALSE;
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            Context->ProcessId
-            )))
+        if (processItem = PhReferenceProcessItem(Context->ProcessId))
         {
-            PhGetProcessIsWow64(processHandle, &isWow64);
-            NtClose(processHandle);
+            isWow64 = !!processItem->IsWow64Process;
+            PhDereferenceObject(processItem);
         }
 
         if (isWow64)
@@ -511,6 +600,8 @@ NTSTATUS PhQueryThreadFrameContext(
             NtClose(threadHandle);
             return status;
         }
+
+        status = STATUS_NOT_SUPPORTED;
 
         if (PhInitializeThreadXStateImports() && RtlGetEnabledExtendedFeatures_I(MAXULONG64))
         {
@@ -539,17 +630,12 @@ NTSTATUS PhQueryThreadFrameContext(
                 }
 
                 PhFree(buffer);
-
-                if (NT_SUCCESS(status))
-                {
-                    NtClose(threadHandle);
-                    return status;
-                }
             }
         }
 
-        // Fall back to the legacy context when extended (XState) support is unavailable.
+        if (!NT_SUCCESS(status))
         {
+            // Fall back to the legacy context when extended (XState) support is unavailable.
             CONTEXT threadContext;
 
             memset(&threadContext, 0, sizeof(CONTEXT));
@@ -559,6 +645,15 @@ NTSTATUS PhQueryThreadFrameContext(
 
             if (NT_SUCCESS(status))
                 PhAddNativeContextItems(Context, &threadContext, NULL);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            XSAVE_CET_U_FORMAT cetUserState;
+
+            if (NT_SUCCESS(PhGetThreadCetUserState(threadHandle, &cetUserState)) &&
+                FlagOn(cetUserState.Ia32CetUMsr, PH_CET_U_SH_STK_EN))
+                PhAddNativeCetContextItems(Context, &cetUserState);
         }
     }
 #elif defined(_M_ARM64)
@@ -668,6 +763,13 @@ INT_PTR CALLBACK PhThreadContextDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Register");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 380, L"Value");
+            context->ValueColumn = 1;
+
+            for (ULONG i = 0; i < context->PriorFrameCount; i++)
+            {
+                PhAddListViewColumn(context->ListViewHandle, i + 2, i + 2, i + 2, LVCFMT_LEFT, 380,
+                    PhaFormatString(L"Frame #%lu", context->PriorFrames[i].Index)->Buffer);
+            }
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -682,6 +784,21 @@ INT_PTR CALLBACK PhThreadContextDlgProc(
             if (!NT_SUCCESS(status))
             {
                 PhShowStatus(hwndDlg, L"Unable to query the thread context.", status, 0);
+            }
+
+            for (ULONG i = 0; i < context->PriorFrameCount; i++)
+            {
+                PH_THREAD_CONTEXT_DIALOG_CONTEXT frameContext = *context;
+
+                frameContext.FrameMachine = context->PriorFrames[i].Machine;
+                frameContext.FrameContext = context->PriorFrames[i].ContextRecord;
+                frameContext.ValueColumn = i + 2;
+
+                for (LONG row = 0; row < ListView_GetItemCount(context->ListViewHandle); row++)
+                    PhSetListViewSubItem(context->ListViewHandle, row, frameContext.ValueColumn, L"Unavailable");
+
+                if (frameContext.FrameContext)
+                    PhAddFrameContextItems(&frameContext);
             }
 
             PhSetDialogFocus(hwndDlg, context->ListViewHandle);
@@ -806,6 +923,8 @@ VOID PhShowThreadContextDialog(
  * \param Machine The machine type of the frame (PH_THREAD_STACK_FRAME::Machine).
  * \param FrameContext The captured context record matching \a Machine.
  * \param FrameTitle An optional description of the frame.
+ * \param PriorFrames Captured contexts for frames preceding the selected frame.
+ * \param PriorFrameCount The number of preceding frames.
  */
 VOID PhShowThreadFrameContextDialog(
     _In_ HWND ParentWindowHandle,
@@ -813,7 +932,9 @@ VOID PhShowThreadFrameContextDialog(
     _In_ HANDLE ThreadId,
     _In_ USHORT Machine,
     _In_ PVOID FrameContext,
-    _In_opt_ PCWSTR FrameTitle
+    _In_opt_ PCWSTR FrameTitle,
+    _In_reads_(PriorFrameCount) PPH_THREAD_FRAME_CONTEXT PriorFrames,
+    _In_ ULONG PriorFrameCount
     )
 {
     PH_THREAD_CONTEXT_DIALOG_CONTEXT context;
@@ -824,6 +945,8 @@ VOID PhShowThreadFrameContextDialog(
     context.FrameMachine = Machine;
     context.FrameContext = FrameContext;
     context.FrameTitle = FrameTitle;
+    context.PriorFrames = PriorFrames;
+    context.PriorFrameCount = PriorFrameCount;
 
     PhDialogBox(
         PhInstanceHandle,

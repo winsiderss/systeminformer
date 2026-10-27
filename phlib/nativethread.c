@@ -668,6 +668,139 @@ CleanupExit:
 }
 
 /**
+ * Retrieves the CET user-mode shadow stack state (XSTATE_CET_U) for a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread.
+ * \param[out] XStateCetUserState A pointer to a structure that receives the IA32_U_CET and IA32_PL3_SSP values.
+ * Both values are zero when shadow stacks are not active for the thread.
+ * \return Successful or errant status.
+ * \remarks The handle must have THREAD_GET_CONTEXT access. CET_U is a user-visible supervisor
+ * state component and is only available on x64 with hardware-enforced stack protection enabled.
+ */
+NTSTATUS PhGetThreadCetUserState(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PXSAVE_CET_U_FORMAT XStateCetUserState
+    )
+{
+#if defined(_M_X64)
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&RtlGetExtendedContextLength2) RtlGetExtendedContextLength2_I = NULL;
+    static typeof(&RtlInitializeExtendedContext2) RtlInitializeExtendedContext2_I = NULL;
+    static typeof(&RtlGetEnabledExtendedAndSupervisorFeatures) RtlGetEnabledExtendedAndSupervisorFeatures_I = NULL;
+    NTSTATUS status;
+    ULONG64 featureMask;
+    ULONG contextFlags;
+    ULONG contextLength;
+    PVOID buffer;
+    PCONTEXT_EX contextEx;
+    PCONTEXT context;
+    PXSAVE_CET_U_FORMAT xStateUserCet;
+    ULONG xStateUserCetLength = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
+        {
+            RtlGetExtendedContextLength2_I = PhGetDllBaseProcedureAddress(baseAddress, "RtlGetExtendedContextLength2", 0);
+            RtlInitializeExtendedContext2_I = PhGetDllBaseProcedureAddress(baseAddress, "RtlInitializeExtendedContext2", 0);
+            RtlGetEnabledExtendedAndSupervisorFeatures_I = PhGetDllBaseProcedureAddress(baseAddress, "RtlGetEnabledExtendedAndSupervisorFeatures", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RtlGetExtendedContextLength2_I || !RtlInitializeExtendedContext2_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    featureMask = RtlGetEnabledExtendedFeatures(XSTATE_MASK_CET_U);
+
+    if (!featureMask && RtlGetEnabledExtendedAndSupervisorFeatures_I)
+    {
+        featureMask = RtlGetEnabledExtendedAndSupervisorFeatures_I(XSTATE_MASK_CET_U);
+    }
+
+    if (!featureMask)
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    contextFlags = CONTEXT_CONTROL | CONTEXT_XSTATE;
+
+    status = RtlGetExtendedContextLength2_I(
+        contextFlags,
+        &contextLength,
+        featureMask
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    buffer = PhAllocateZero(contextLength);
+    contextEx = NULL;
+
+    status = RtlInitializeExtendedContext2_I(
+        buffer,
+        contextFlags,
+        &contextEx,
+        featureMask
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    context = RtlLocateLegacyContext(contextEx, NULL);
+
+    if (!context)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto CleanupExit;
+    }
+
+    RtlSetExtendedFeaturesMask(contextEx, featureMask);
+
+    status = NtGetContextThread(
+        ThreadHandle,
+        context
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // A feature bit clear in the post-get mask means the component is in its INIT (all zero) state.
+
+    if (FlagOn(RtlGetExtendedFeaturesMask(contextEx), XSTATE_MASK_CET_U))
+    {
+        xStateUserCet = RtlLocateExtendedFeature(
+            contextEx, 
+            XSTATE_CET_U, 
+            &xStateUserCetLength
+            );
+
+        if (!xStateUserCet || xStateUserCetLength < sizeof(XSAVE_CET_U_FORMAT))
+        {
+            status = STATUS_INFO_LENGTH_MISMATCH;
+            goto CleanupExit;
+        }
+
+        *XStateCetUserState = *xStateUserCet;
+    }
+    else
+    {
+        memset(XStateCetUserState, 0, sizeof(XSAVE_CET_U_FORMAT));
+    }
+
+CleanupExit:
+    PhFree(buffer);
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
+}
+
+/**
  * Retrieves the break on termination state for a thread.
  *
  * \param[in] ThreadHandle A handle to the thread.

@@ -99,9 +99,12 @@
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
 #define IDI_MAGNIFIER                   219
+#define IDD_ENVIRONMENTEDIT             221
 #define IDD_ENVEDIT                     221
+#define IDD_ENVIRONMENTEDIT_LIST        293
 #define IDD_ENVEDIT_LIST                293
 #define IDD_ENVIRONMENTVARIABLES        294
+#define IDD_ENVIRONMENTADD              295
 #define IDD_ENVADD                      295
 #define IDB_SEARCH_ACTIVE               223
 #define IDB_SEARCH_INACTIVE             224
@@ -691,18 +694,31 @@
 #define IDC_CONNECTIONTYPE              1513
 #define IDC_SHOWALLUSERS                1514
 #define IDC_LISTMODE                    1515
+#define IDC_ENVIRONMENT_ADD             1530
 #define IDC_ENV_ADD                     1530
+#define IDC_ENVIRONMENT_EDIT            1531
 #define IDC_ENV_EDIT                    1531
+#define IDC_ENVIRONMENT_DELETE          1532
 #define IDC_ENV_DELETE                  1532
+#define IDC_ENVIRONMENT_NEW             1533
 #define IDC_ENV_NEW                     1533
+#define IDC_ENVIRONMENT_BROWSE          1534
 #define IDC_ENV_BROWSE                  1534
+#define IDC_ENVIRONMENT_MOVEUP          1535
 #define IDC_ENV_MOVEUP                  1535
+#define IDC_ENVIRONMENT_MOVEDOWN        1536
 #define IDC_ENV_MOVEDOWN                1536
+#define IDC_ENVIRONMENT_EDITTEXT        1537
 #define IDC_ENV_EDITTEXT                1537
+#define IDC_ENVIRONMENT_NAME            1538
 #define IDC_ENV_NAME                    1538
+#define IDC_ENVIRONMENT_VALUE           1539
 #define IDC_ENV_VALUE                   1539
+#define IDC_ENVIRONMENT_USER            1540
 #define IDC_ENV_USER                    1540
+#define IDC_ENVIRONMENT_SYSTEM          1541
 #define IDC_ENV_SYSTEM                  1541
+#define IDC_ENVIRONMENT_SCOPE           1542
 #define IDC_ENV_SCOPE                   1542
 #define IDC_TREEMODE                    1516
 #define IDC_SUPPORTED                   1517
@@ -909,9 +925,9 @@
 #define ID_MISCELLANEOUS_PAGESMODIFIED  10231
 #define ID_VIEW_HIDEPROCESSESFROMOTHERUSERS 10232
 #define ID_MISCELLANEOUS_FLUSHHEAPS     10233
-#define ID_THREAD_AFFINITY              10233
+#define ID_THREAD_AFFINITY              10346
 #define ID_THREAD_BOOST                 10234
-#define ID_VIEW_HIDESIGNEDPROCESSES     10234
+#define ID_VIEW_HIDESIGNEDPROCESSES     10347
 #define ID_VIEW_UPDATEAUTOMATICALLY     10235
 #define ID_HACKER_RUNASLIMITEDUSER      10236
 #define ID_USER_REMOTECONTROL           10237
@@ -951,17 +967,17 @@
 #define ID_COMPUTER_RESTARTBOOTOPTIONS  10280
 #define ID_COMPUTER_RESTARTFWOPTIONS    10281
 #define ID_COMPUTER_RESTARTFWDEVICE     10282
-#define ID_HANDLE_OBJECTPROPERTIES1     10282
+#define ID_HANDLE_OBJECTPROPERTIES1     10349
 #define ID_COMPUTER_RESTARTBOOTDEVICE   10283
-#define ID_HANDLE_OBJECTPROPERTIES2     10283
+#define ID_HANDLE_OBJECTPROPERTIES2     10350
 #define ID_OBJECT_GOTOOWNINGPROCESS     10284
-#define ID_COMPUTER_RESTARTWDOSCAN      10284
+#define ID_COMPUTER_RESTARTWDOSCAN      10351
 #define ID_NETWORK_GOTOSERVICE          10285
 #define ID_SERVICE_OPENFILELOCATION     10286
 #define ID_PROCESS_GOTOPROCESS          10287
 #define ID_MINIINFO_REFRESH             10288
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 10289
-#define ID_TOOLS_STARTRESOURCEMONITOR   10289
+#define ID_TOOLS_STARTRESOURCEMONITOR   10352
 #define ID_TOOLS_STARTPERFORMANCEMONITOR 10290
 #define ID_TOOLS_SHUTDOWNWSLPROCESSES   10291
 #define ID_HANDLE_GOTOOWNINGPROCESS     10292
@@ -969,7 +985,7 @@
 #define ID_TOOLS_GAMES                  10294
 #define ID_PRIVILEGE_RESET              10296
 #define ID_GROUP_ENABLE                 10297
-#define ID_THREAD_CRITICAL              10297
+#define ID_THREAD_CRITICAL              10353
 #define ID_GROUP_DISABLE                10298
 #define ID_GROUP_RESET                  10299
 #define ID_TOOLS_SCM_PERMISSIONS        10300
@@ -1010,6 +1026,7 @@
 #define ID_MENUBAR_DRIVERSTATUS         10335
 #define ID_MENUBAR_ELEVATE              10336
 
+#define IDD_THRDSHADOWSTACK             298
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -1017,9 +1034,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        296
-#define _APS_NEXT_COMMAND_VALUE         10337
-#define _APS_NEXT_CONTROL_VALUE         1543
+#define _APS_NEXT_RESOURCE_VALUE        299
+#define _APS_NEXT_COMMAND_VALUE         10355
+#define _APS_NEXT_CONTROL_VALUE         1570
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

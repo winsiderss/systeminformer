@@ -2871,6 +2871,7 @@ BOOLEAN PhUiRestartProcess(
                         );
 
                     NtClose(processHandle);
+                    processHandle = NULL;
 
                     if (NT_SUCCESS(status))
                         goto CleanupExit;
@@ -2915,7 +2916,7 @@ BOOLEAN PhUiRestartProcess(
         &environmentBuffer,
         &environmentLength
         )))
-        goto CleanupExit;
+        environmentBuffer = NULL;
 
     NtClose(processHandle);
     processHandle = NULL;
@@ -3127,6 +3128,10 @@ CleanupExit:
     if (environmentBuffer && environmentAllocated)
     {
         PhDestroyEnvironmentBlock(environmentBuffer);
+    }
+    else if (environmentBuffer)
+    {
+        PhFreePage(environmentBuffer);
     }
 
     if (tokenSecurityDescriptor)

@@ -1830,6 +1830,8 @@ VOID PhpUpdateHandleGeneral(
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SECTIONTYPE, 1, sectionType);
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SECTIONSIZE, 1, PhGetStringOrDefault(sectionSize, L"Unknown"));
         }
+
+        PhClearReference(&fileName);
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Mutant", TRUE))
     {

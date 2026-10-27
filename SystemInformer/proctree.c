@@ -5385,6 +5385,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 return FALSE;
             }
 
+            getHeaderText->Flags = TN_CACHE;
+
             // NOTE: Windows Task Manager doesn't loop subitems when summing the totals but instead just returns the system totals.
             // We should do the same for some columns like CPU when/if the below loop/aggregate fields becomes a performance issue. (dmex)
 

@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{50F7AED7-4094-51B2-B2C9-445398060C83}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>7zip</ProjectName>

@@ -852,7 +852,8 @@ NTSTATUS PhpCreateProcessItemForZombieProcess(
             return STATUS_SUCCESS;
         }
 
-        NtClose(processHandle);
+        // N.B. PhCreateProcessItemFromHandle always takes ownership of processHandle.
+        status = STATUS_UNSUCCESSFUL;
     }
 
     return status;

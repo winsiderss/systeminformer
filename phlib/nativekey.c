@@ -636,10 +636,11 @@ NTSTATUS PhEnumerateKey(
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize;
+    ULONG returnLength;
     ULONG index = 0;
 
     bufferSize = 0x100;
-    buffer = PhAllocateStack(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
     if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
@@ -650,7 +651,7 @@ NTSTATUS PhEnumerateKey(
             InformationClass,
             buffer,
             bufferSize,
-            &bufferSize
+            &returnLength
             );
 
         if (status == STATUS_NO_MORE_ENTRIES)
@@ -661,8 +662,9 @@ NTSTATUS PhEnumerateKey(
 
         if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
         {
-            PhFreeStack(buffer);
-            buffer = PhAllocateStack(bufferSize);
+            PhFree(buffer);
+            bufferSize = returnLength;
+            buffer = PhAllocateSafe(bufferSize);
             if (!buffer) return STATUS_NO_MEMORY;
 
             status = NtEnumerateKey(
@@ -671,7 +673,7 @@ NTSTATUS PhEnumerateKey(
                 InformationClass,
                 buffer,
                 bufferSize,
-                &bufferSize
+                &returnLength
                 );
         }
 
@@ -684,7 +686,7 @@ NTSTATUS PhEnumerateKey(
         index++;
     }
 
-    PhFreeStack(buffer);
+    PhFree(buffer);
 
     return status;
 }
@@ -708,10 +710,11 @@ NTSTATUS PhEnumerateValueKey(
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize;
+    ULONG returnLength;
     ULONG index = 0;
 
     bufferSize = 0x100;
-    buffer = PhAllocateStack(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
     if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
@@ -722,7 +725,7 @@ NTSTATUS PhEnumerateValueKey(
             InformationClass,
             buffer,
             bufferSize,
-            &bufferSize
+            &returnLength
             );
 
         if (status == STATUS_NO_MORE_ENTRIES)
@@ -733,8 +736,9 @@ NTSTATUS PhEnumerateValueKey(
 
         if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
         {
-            PhFreeStack(buffer);
-            buffer = PhAllocateStack(bufferSize);
+            PhFree(buffer);
+            bufferSize = returnLength;
+            buffer = PhAllocateSafe(bufferSize);
             if (!buffer) return STATUS_NO_MEMORY;
 
             status = NtEnumerateValueKey(
@@ -743,7 +747,7 @@ NTSTATUS PhEnumerateValueKey(
                 InformationClass,
                 buffer,
                 bufferSize,
-                &bufferSize
+                &returnLength
                 );
         }
 
@@ -756,7 +760,7 @@ NTSTATUS PhEnumerateValueKey(
         index++;
     }
 
-    PhFreeStack(buffer);
+    PhFree(buffer);
 
     return status;
 }
@@ -783,7 +787,8 @@ NTSTATUS PhEnumerateValueKeyEx(
     ULONG returnLength;
 
     bufferSize = 256;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtEnumerateValueKey(
         KeyHandle,
@@ -798,7 +803,8 @@ NTSTATUS PhEnumerateValueKeyEx(
     {
         PhFree(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtEnumerateValueKey(
             KeyHandle,

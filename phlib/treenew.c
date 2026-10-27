@@ -9198,41 +9198,50 @@ BOOLEAN PhTnpGetColumnHeaderText(
     _Out_ PPH_STRINGREF Text
     )
 {
-    if (Column->Id > Context->HeaderColumnCacheMax)
-        return FALSE;
+    BOOLEAN controlCache = Column->Id < Context->HeaderColumnCacheMax;
+    PH_TREENEW_GET_HEADER_TEXT getHeaderText;
 
-    if (Context->HeaderStringCache && Context->HeaderStringCache[Column->Id].Length)
+    if (controlCache && Context->HeaderStringCache && Context->HeaderStringCache[Column->Id].Length)
     {
         *Text = Context->HeaderStringCache[Column->Id];
         return TRUE;
     }
 
-    if (Context->HeaderTextCache)
-    {
-        PH_TREENEW_GET_HEADER_TEXT getHeaderText;
+    PhInitializeEmptyStringRef(&getHeaderText.Text);
+    getHeaderText.Column = Column;
+    getHeaderText.Flags = 0;
 
-        PhInitializeEmptyStringRef(&getHeaderText.Text);
-        getHeaderText.Column = Column;
+    if (Column->HeaderTextCache)
+    {
+        getHeaderText.TextCache = Column->HeaderTextCache->Text;
+        getHeaderText.TextCacheSize = sizeof(Column->HeaderTextCache->Text);
+    }
+    else if (controlCache && Context->HeaderTextCache)
+    {
         getHeaderText.TextCache = (PWSTR)&((WCHAR(*)[PH_TREENEW_HEADER_TEXT_SIZE_MAX])Context->HeaderTextCache)[Column->Id]; // HACK (dmex)
         getHeaderText.TextCacheSize = PH_TREENEW_HEADER_TEXT_SIZE_MAX * sizeof(WCHAR);
+    }
+    else
+    {
+        return FALSE;
+    }
 
-        if (Context->Callback(
-            Context->Handle,
-            TreeNewGetHeaderText,
-            &getHeaderText,
-            NULL,
-            Context->CallbackContext
-            ) && getHeaderText.Text.Buffer)
+    if (Context->Callback(
+        Context->Handle,
+        TreeNewGetHeaderText,
+        &getHeaderText,
+        NULL,
+        Context->CallbackContext
+        ) && getHeaderText.Text.Buffer)
+    {
+        *Text = getHeaderText.Text;
+
+        if (controlCache && Context->HeaderStringCache && (getHeaderText.Flags & TN_CACHE))
         {
-            *Text = getHeaderText.Text;
-
-            if (Context->HeaderStringCache) // (getHeaderText.Flags & TN_CACHE)
-            {
-                Context->HeaderStringCache[Column->Id] = getHeaderText.Text;
-            }
-
-            return TRUE;
+            Context->HeaderStringCache[Column->Id] = getHeaderText.Text;
         }
+
+        return TRUE;
     }
 
     return FALSE;
