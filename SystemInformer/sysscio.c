@@ -366,6 +366,7 @@ INT_PTR CALLBACK PhSipIoPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(hwndDlg);
             IoPanelReadsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADSDELTA_V);
             IoPanelWritesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITESDELTA_V);
             IoPanelOtherDeltaLabel = GetDlgItem(hwndDlg, IDC_ZOTHERDELTA_V);
@@ -404,7 +405,7 @@ VOID PhSipCreateIoGraph(
     IoReadGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -423,7 +424,7 @@ VOID PhSipCreateIoGraph(
     IoWriteGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -442,7 +443,7 @@ VOID PhSipCreateIoGraph(
     IoOtherGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,

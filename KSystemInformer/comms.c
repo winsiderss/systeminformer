@@ -47,6 +47,7 @@ static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
 static ALIGNED_EX_SPINLOCK KphpConnectedClientsLock = 0;
 static ULONG KphpConnectedClientsCount = 0;
 static PKPH_CLIENT KphpConnectedClients[KPH_COMMS_MAX_CLIENTS] = { NULL };
+static ULONG KphpInformerClientCount = 0;
 static KQUEUE KphpMessageQueue;
 static PETHREAD* KphpMessageQueueThreads = NULL;
 static ULONG KphpMessageQueueThreadsCount = 0;
@@ -145,49 +146,9 @@ ULONG KphGetInformerClientCount(
     VOID
     )
 {
-    ULONG count;
-    KIRQL oldIrql;
-
     KPH_NPAGED_CODE_HIGH_MAX();
 
-    count = 0;
-
-    if (KeGetCurrentIrql() >= DISPATCH_LEVEL)
-    {
-        oldIrql = HIGH_LEVEL;
-#pragma warning(suppress: 28121)
-        ExAcquireSpinLockSharedAtDpcLevel(&KphpConnectedClientsLock);
-    }
-    else
-    {
-        oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
-    }
-
-    for (ULONG i = 0; i < KphpConnectedClientsCount; i++)
-    {
-        PKPH_CLIENT client;
-        PKPH_CLIENT_INFORMER_STATE state;
-
-        client = KphpConnectedClients[i];
-        state = KphAtomicReferenceObject(&client->InformerState.Atomic);
-        if (state)
-        {
-            count++;
-            KphDereferenceObjectDeferDelete(state);
-        }
-    }
-
-    if (oldIrql == HIGH_LEVEL)
-    {
-#pragma warning(suppress: 28121)
-        ExReleaseSpinLockSharedFromDpcLevel(&KphpConnectedClientsLock);
-    }
-    else
-    {
-        ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
-    }
-
-    return count;
+    return ReadULongNoFence(&KphpInformerClientCount);
 }
 
 /**
@@ -802,6 +763,8 @@ NTSTATUS KSIAPI KphpInitializeClient(
     client->Process = Parameter;
     KphReferenceObject(client->Process);
 
+    KphInitializeRWLock(&client->DriverUnloadProtectionLock);
+
     return STATUS_SUCCESS;
 }
 
@@ -818,12 +781,13 @@ VOID KSIAPI KphpDeleteClient(
 {
     NTSTATUS status;
     PKPH_CLIENT client;
+    PKPH_CLIENT_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
     client = Object;
 
-    if (client->DriverUnloadProtectionRef.Count)
+    if (client->DriverUnloadProtectionCount)
     {
         //
         // The client is being destroyed while it has acquired driver unload
@@ -841,6 +805,8 @@ VOID KSIAPI KphpDeleteClient(
         }
     }
 
+    KphDeleteRWLock(&client->DriverUnloadProtectionLock);
+
     KphDereferenceObject(client->Process);
 
     if (client->Port)
@@ -853,7 +819,12 @@ VOID KSIAPI KphpDeleteClient(
         KphDereferenceObject(client->RingBuffer);
     }
 
-    KphAtomicAssignObjectReference(&client->InformerState.Atomic, NULL);
+    state = KphAtomicMoveObjectReference(&client->InformerState.Atomic, NULL);
+    if (state)
+    {
+        InterlockedDecrement((LONG*)&KphpInformerClientCount);
+        KphDereferenceObject(state);
+    }
 }
 
 /**
@@ -1617,6 +1588,7 @@ NTSTATUS KphSetInformerClientSettings(
     NTSTATUS status;
     PKPH_INFORMER_CLIENT_SETTINGS settings;
     PKPH_CLIENT_INFORMER_STATE state;
+    PKPH_CLIENT_INFORMER_STATE previous;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -1659,7 +1631,18 @@ NTSTATUS KphSetInformerClientSettings(
         goto Exit;
     }
 
-    KphAtomicAssignObjectReference(&Client->InformerState.Atomic, state);
+    previous = KphAtomicMoveObjectReference(&Client->InformerState.Atomic,
+                                            state);
+    state = NULL;
+
+    if (previous)
+    {
+        KphDereferenceObject(previous);
+    }
+    else
+    {
+        InterlockedIncrement((LONG*)&KphpInformerClientCount);
+    }
 
     status = STATUS_SUCCESS;
 

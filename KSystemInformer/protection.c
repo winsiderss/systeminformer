@@ -43,7 +43,8 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpImageLoadApcType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
-static KPH_REFERENCE KphpDriverUnloadProtectionRef = { 0 };
+static KPH_RWLOCK KphpDriverUnloadProtectionLock;
+static LONG KphpDriverUnloadProtectionCount = 0;
 static PVOID KphpDriverUnloadPreviousRoutine = NULL;
 static KSI_WORK_QUEUE_ITEM KphpVerifyAndProtectWorkItem;
 static SLIST_HEADER KphpVerifyAndProtectList;
@@ -2220,26 +2221,37 @@ NTSTATUS KphAcquireDriverUnloadProtection(
 {
     NTSTATUS status;
     LONG previousCount;
+    LONG count;
 
     KPH_PAGED_CODE();
 
-    status = KphAcquireReference(&KphpDriverUnloadProtectionRef,
-                                 &previousCount);
-    if (!NT_SUCCESS(status))
+    KphAcquireRWLockExclusive(&KphpDriverUnloadProtectionLock);
+
+    previousCount = KphpDriverUnloadProtectionCount;
+
+    if (previousCount == LONG_MAX)
     {
+        status = STATUS_INTEGER_OVERFLOW;
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphAcquireReference failed: %!STATUS!",
+                      "Driver unload protection overflow: %!STATUS!",
                       status);
 
         previousCount = 0;
         goto Exit;
     }
 
+    count = previousCount + 1;
+
+    KphpDriverUnloadProtectionCount = count;
+
+    status = STATUS_SUCCESS;
+
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   PROTECTION,
                   "Acquired driver unload protection (%ld)",
-                  previousCount + 1);
+                  count);
 
     if (previousCount == 0)
     {
@@ -2265,6 +2277,8 @@ NTSTATUS KphAcquireDriverUnloadProtection(
 
 Exit:
 
+    KphReleaseRWLock(&KphpDriverUnloadProtectionLock);
+
     if (PreviousCount)
     {
         *PreviousCount = previousCount;
@@ -2289,28 +2303,38 @@ NTSTATUS KphReleaseDriverUnloadProtection(
 {
     NTSTATUS status;
     LONG previousCount;
+    LONG count;
 
     KPH_PAGED_CODE();
 
-    status = KphReleaseReference(&KphpDriverUnloadProtectionRef,
-                                 &previousCount);
-    if (!NT_SUCCESS(status))
+    KphAcquireRWLockExclusive(&KphpDriverUnloadProtectionLock);
+
+    previousCount = KphpDriverUnloadProtectionCount;
+
+    if (previousCount == 0)
     {
+        status = STATUS_INTEGER_OVERFLOW;
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphReleaseReference failed: %!STATUS!",
+                      "Driver unload protection underflow: %!STATUS!",
                       status);
 
-        previousCount = 0;
         goto Exit;
     }
+
+    count = previousCount - 1;
+
+    KphpDriverUnloadProtectionCount = count;
+
+    status = STATUS_SUCCESS;
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   PROTECTION,
                   "Released driver unload protection (%ld)",
-                  previousCount - 1);
+                  count);
 
-    if (previousCount == 1)
+    if (count == 0)
     {
 #pragma prefast(push)
 #pragma prefast(disable : 28175)
@@ -2333,6 +2357,8 @@ NTSTATUS KphReleaseDriverUnloadProtection(
     }
 
 Exit:
+
+    KphReleaseRWLock(&KphpDriverUnloadProtectionLock);
 
     if (PreviousCount)
     {
@@ -2359,7 +2385,11 @@ LONG KphGetDriverUnloadProtectionCount(
 
     KPH_PAGED_CODE();
 
-    count = ReadAcquire(&KphpDriverUnloadProtectionRef.Count);
+    KphAcquireRWLockShared(&KphpDriverUnloadProtectionLock);
+
+    count = KphpDriverUnloadProtectionCount;
+
+    KphReleaseRWLock(&KphpDriverUnloadProtectionLock);
 
     return count;
 }
@@ -2551,6 +2581,8 @@ VOID KphInitializeProtection(
     KphCreateObjectType(&KphpImageLoadApcTypeName,
                         &typeInfo,
                         &KphpImageLoadApcType);
+
+    KphInitializeRWLock(&KphpDriverUnloadProtectionLock);
 
     InitializeSListHead(&KphpVerifyAndProtectList);
     KsiInitializeWorkItem(&KphpVerifyAndProtectWorkItem,

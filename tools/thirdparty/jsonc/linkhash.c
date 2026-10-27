@@ -25,7 +25,9 @@
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h> /* Get InterlockedCompareExchange */
 #endif
 
@@ -666,6 +668,8 @@ int lh_table_delete_entry(struct lh_table *t, struct lh_entry *e)
     /* CAW: fixed to be 64bit nice, still need the crazy negative case... */
     ptrdiff_t n = (ptrdiff_t)(e - t->table);
 
+    assert(n >= 0 && n < t->size);
+
     /* CAW: this is bad, really bad, maybe stack goes other direction on this machine... */
     if (n < 0)
     {
@@ -699,6 +703,22 @@ int lh_table_delete_entry(struct lh_table *t, struct lh_entry *e)
         t->table[n].next->prev = t->table[n].prev;
     }
     t->table[n].next = t->table[n].prev = NULL;
+    return 0;
+}
+
+int lh_table_delete_entry_to_tail(struct lh_table *t, struct lh_entry *first_entry)
+{
+    struct lh_entry *del_entry = t->tail;
+    do
+    {
+        struct lh_entry *prev = del_entry->prev;
+        // Could probably micro-optimize this, but better to avoid code duplication for now
+        if (lh_table_delete_entry(t, del_entry) != 0)
+            return -1;
+        if (del_entry == first_entry)
+            break;
+        del_entry = prev;
+    } while (del_entry != NULL);
     return 0;
 }
 

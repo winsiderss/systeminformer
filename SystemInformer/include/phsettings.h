@@ -129,6 +129,8 @@ EXT ULONG PhCsUseColorTokenDisabled;
 EXT ULONG PhCsColorTokenDisabled;
 EXT ULONG PhCsUseColorTokenRemoved;
 EXT ULONG PhCsColorTokenRemoved;
+EXT ULONG PhCsUseColorTokenElevated;
+EXT ULONG PhCsColorTokenElevated;
 EXT ULONG PhCsUseColorTokenDangerousFlag;
 EXT ULONG PhCsColorTokenDangerousFlag;
 EXT ULONG PhCsUseColorTokenNormalFlag;
@@ -171,6 +173,8 @@ EXT ULONG PhCsUseColorMemoryCfgPages;
 EXT ULONG PhCsColorMemoryCfgPages;
 EXT ULONG PhCsUseColorMemoryExecutePages;
 EXT ULONG PhCsColorMemoryExecutePages;
+EXT ULONG PhCsUseColorMemoryModifiedPages;
+EXT ULONG PhCsColorMemoryModifiedPages;
 EXT ULONG PhCsUseColorRelocatedModules;
 EXT ULONG PhCsColorRelocatedModules;
 EXT ULONG PhCsUseColorProtectedHandles;
@@ -255,6 +259,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_MEM_STRINGS_BULK_SEARCH                      L"EnableMemStringsBulkSearch"
 #define SETTING_ENABLE_PACKAGE_ICON_SUPPORT                         L"EnablePackageIconSupport"
 #define SETTING_ENABLE_PROCESS_HANDLE_PNP_DEVICE_NAME_SUPPORT       L"EnableProcessHandlePnPDeviceNameSupport"
+#define SETTING_ENABLE_PROCESS_PROGRESS_DIALOG                      L"EnableProcessProgressDialog"
 #define SETTING_ENABLE_PLUGINS                                      L"EnablePlugins"
 #define SETTING_ENABLE_PLUGINS_NATIVE                               L"EnablePluginsNative"
 #define SETTING_ENABLE_GRAPH_MAX_SCALE                              L"EnableGraphMaxScale"
@@ -269,6 +274,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_STREAMER_MODE                                L"EnableStreamerMode"
 #define SETTING_ENABLE_START_AS_ADMIN                               L"EnableStartAsAdmin"
 #define SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP                 L"EnableStartAsAdminAlwaysOnTop"
+#define SETTING_ENABLE_START_AS_ADMIN_ISOLATED                      L"EnableStartAsAdminIsolated"
 #define SETTING_ENABLE_DEFAULT_SAFE_PLUGINS                         L"EnableDefaultSafePlugins"
 #define SETTING_ENABLE_SECURITY_ADVANCED_DIALOG                     L"EnableSecurityAdvancedDialog"
 #define SETTING_ENABLE_SHORT_RELATIVE_START_TIME                    L"EnableShortRelativeStartTime"
@@ -284,8 +290,10 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_THEME_ANIMATION                              L"EnableThemeAnimation"
 #define SETTING_ENABLE_THEME_NATIVE_BUTTONS                         L"EnableThemeNativeButtons"
 #define SETTING_ENABLE_WINDOW_BORDER_COLOR                          L"EnableWindowBorderColor"
+#define SETTING_ENABLE_THREAD_STACK_SYMBOLS                         L"EnableThreadStackSymbols"
 #define SETTING_ENABLE_THREAD_STACK_INLINE_SYMBOLS                  L"EnableThreadStackInlineSymbols"
 #define SETTING_ENABLE_THREAD_STACK_LINE_INFORMATION                L"EnableThreadStackLineInformation"
+#define SETTING_ENABLE_THREAD_STACK_DEFERRED_SYMBOLS                L"EnableThreadStackDeferredSymbols"
 #define SETTING_ENABLE_TOKEN_REMOVED_PRIVILEGES                     L"EnableTokenRemovedPrivileges"
 #define SETTING_ENABLE_TOOLTIP_SUPPORT                              L"EnableTooltipSupport"
 #define SETTING_ENABLE_UPDATE_DEFAULT_FIRMWARE_BOOT_ENTRY           L"EnableUpdateDefaultFirmwareBootEntry"
@@ -408,6 +416,10 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_MEMORY_MODIFIED_WINDOW_SIZE                         L"MemoryModifiedWindowSize"
 #define SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS                   L"MemoryModifiedListViewColumns"
 #define SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT                      L"MemoryModifiedListViewSort"
+#define SETTING_MEMORY_CFG_WINDOW_POSITION                          L"MemoryCfgWindowPosition"
+#define SETTING_MEMORY_CFG_WINDOW_SIZE                              L"MemoryCfgWindowSize"
+#define SETTING_MEMORY_CFG_LIST_VIEW_COLUMNS                        L"MemoryCfgListViewColumns"
+#define SETTING_MEMORY_CFG_LIST_VIEW_SORT                           L"MemoryCfgListViewSort"
 #define SETTING_MEM_STRINGS_TREE_LIST_COLUMNS                       L"MemStringsTreeListColumns"
 #define SETTING_MEM_STRINGS_TREE_LIST_SORT                          L"MemStringsTreeListSort"
 #define SETTING_MEM_STRINGS_TREE_LIST_FLAGS                         L"MemStringsTreeListFlags"
@@ -452,6 +464,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PROCESS_TREE_LIST_COLUMNS                           L"ProcessTreeListColumns"
 #define SETTING_PROCESS_TREE_LIST_SORT                              L"ProcessTreeListSort"
 #define SETTING_PROCESS_TREE_LIST_NAME_DEFAULT                      L"ProcessTreeListNameDefault"
+#define SETTING_PROCESS_TREE_LIST_HEATMAP                           L"ProcessTreeListHeatmap"
 #define SETTING_PROC_PROP_PAGE                                      L"ProcPropPage"
 #define SETTING_PROC_PROP_POSITION                                  L"ProcPropPosition"
 #define SETTING_PROC_PROP_SIZE                                      L"ProcPropSize"
@@ -469,6 +482,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_RUN_AS_PACKAGE_WINDOW_POSITION                      L"RunAsPackageWindowPosition"
 #define SETTING_RUN_AS_PACKAGE_WINDOW_SIZE                          L"RunAsPackageWindowSize"
 #define SETTING_RUN_FILE_DLG_STATE                                  L"RunFileDlgState"
+#define SETTING_RUN_FILE_DLG_SIZE                                   L"RunFileDlgSize"
 #define SETTING_SAMPLE_COUNT                                        L"SampleCount"
 #define SETTING_SAMPLE_COUNT_AUTOMATIC                              L"SampleCountAutomatic"
 #define SETTING_SCROLL_TO_NEW_PROCESSES                             L"ScrollToNewProcesses"
@@ -484,9 +498,11 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SEGMENT_LOCKS_WINDOW_SIZE                           L"SegmentLocksWindowSize"
 #define SETTING_SERVICE_WINDOW_POSITION                             L"ServiceWindowPosition"
 #define SETTING_SERVICE_WINDOW_SIZE                                 L"ServiceWindowSize"
+#define SETTING_SERVICE_WINDOW_PAGE                                 L"ServiceWindowPage"
 #define SETTING_SERVICE_LIST_VIEW_COLUMNS                           L"ServiceListViewColumns"
 #define SETTING_SERVICE_TREE_LIST_COLUMNS                           L"ServiceTreeListColumns"
 #define SETTING_SERVICE_TREE_LIST_SORT                              L"ServiceTreeListSort"
+#define SETTING_SERVICE_TREE_LIST_GROUP_MODE                        L"ServiceTreeListGroupMode"
 #define SETTING_SESSION_SHADOW_HOTKEY                               L"SessionShadowHotkey"
 #define SETTING_SHOW_PLUGIN_LOAD_ERRORS                             L"ShowPluginLoadErrors"
 #define SETTING_SHOW_COMMIT_IN_SUMMARY                              L"ShowCommitInSummary"
@@ -513,6 +529,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_THEME_WINDOW_HIGHLIGHT_COLOR                        L"ThemeWindowHighlightColor"
 #define SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR                       L"ThemeWindowHighlight2Color"
 #define SETTING_THEME_WINDOW_TEXT_COLOR                             L"ThemeWindowTextColor"
+#define SETTING_THIN_TABS                                           L"ThinTabs"
 #define SETTING_THIN_ROWS                                           L"ThinRows"
 #define SETTING_THREAD_TREE_LIST_COLUMNS                            L"ThreadTreeListColumns"
 #define SETTING_THREAD_TREE_LIST_SORT                               L"ThreadTreeListSort"
@@ -609,6 +626,8 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_COLOR_TOKEN_DISABLED                                L"ColorTokenDisabled"
 #define SETTING_USE_COLOR_TOKEN_REMOVED                             L"UseColorTokenRemoved"
 #define SETTING_COLOR_TOKEN_REMOVED                                 L"ColorTokenRemoved"
+#define SETTING_USE_COLOR_TOKEN_ELEVATED                            L"UseColorTokenElevated"
+#define SETTING_COLOR_TOKEN_ELEVATED                                L"ColorTokenElevated"
 #define SETTING_USE_COLOR_TOKEN_DANGEROUS_FLAG                      L"UseColorTokenDangerousFlag"
 #define SETTING_COLOR_TOKEN_DANGEROUS_FLAG                          L"ColorTokenDangerousFlag"
 #define SETTING_USE_COLOR_TOKEN_NORMAL_FLAG                         L"UseColorTokenNormalFlag"
@@ -647,6 +666,8 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_COLOR_MEMORY_CFG_PAGES                              L"ColorMemoryCfgPages"
 #define SETTING_USE_COLOR_MEMORY_EXECUTE_PAGES                      L"UseColorMemoryExecutePages"
 #define SETTING_COLOR_MEMORY_EXECUTE_PAGES                          L"ColorMemoryExecutePages"
+#define SETTING_USE_COLOR_MEMORY_MODIFIED_PAGES                     L"UseColorMemoryModifiedPages"
+#define SETTING_COLOR_MEMORY_MODIFIED_PAGES                         L"ColorMemoryModifiedPages"
 #define SETTING_USE_COLOR_RELOCATED_MODULES                         L"UseColorRelocatedModules"
 #define SETTING_COLOR_RELOCATED_MODULES                             L"ColorRelocatedModules"
 #define SETTING_USE_COLOR_PROTECTED_HANDLES                         L"UseColorProtectedHandles"

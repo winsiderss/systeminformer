@@ -81,6 +81,43 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
+VOID GraphicsDeviceNodesGetGraphRect(
+    _In_ PDV_GPU_NODES_WINDOW_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Index,
+    _Out_ PRECT GraphRect
+    )
+{
+    RECT clientRect;
+    LONG numberOfRows;
+    LONG numberOfColumns;
+    LONG row;
+    LONG column;
+    LONG cellWidth;
+    LONG cellHeight;
+
+    numberOfRows = (LONG)sqrt(Context->NumberOfNodes);
+    numberOfColumns = ((LONG)Context->NumberOfNodes + numberOfRows - 1) / numberOfRows;
+    row = (LONG)Index / numberOfColumns;
+    column = (LONG)Index % numberOfColumns;
+
+    PhGetClientRect(WindowHandle, &clientRect);
+    cellWidth = (clientRect.right - Context->LayoutMargin.left - Context->LayoutMargin.right - GRAPH_PADDING * (numberOfColumns - 1)) / numberOfColumns;
+    cellHeight = (clientRect.bottom - Context->LayoutMargin.top - Context->LayoutMargin.bottom - GRAPH_PADDING * (numberOfRows - 1)) / numberOfRows;
+
+    GraphRect->left = Context->LayoutMargin.left + (cellWidth + GRAPH_PADDING) * column;
+    GraphRect->top = Context->LayoutMargin.top + (cellHeight + GRAPH_PADDING) * row;
+    GraphRect->right = GraphRect->left + cellWidth;
+    GraphRect->bottom = GraphRect->top + cellHeight;
+
+    // Give the last row and column the remaining space; the size we calculated might be off
+    // by a few pixels due to integer division.
+    if (column == numberOfColumns - 1)
+        GraphRect->right = clientRect.right - Context->LayoutMargin.right;
+    if (row == numberOfRows - 1)
+        GraphRect->bottom = clientRect.bottom - Context->LayoutMargin.bottom;
+}
+
 VOID GraphicsDeviceShowNodesDialog(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context,
     _In_ HWND ParentWindowHandle
@@ -202,20 +239,23 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             for (i = 0; i < context->NumberOfNodes; i++)
             {
                 PH_GRAPH_CREATEPARAMS graphCreateParams;
+                RECT graphRect;
 
                 memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
                 graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
                 graphCreateParams.Callback = GraphicsDeviceNodesMessageCallback;
                 graphCreateParams.Context = context;
 
+                GraphicsDeviceNodesGetGraphRect(context, WindowHandle, i, &graphRect);
+
                 context->GraphHandle[i] = PhCreateWindow(
                     PH_GRAPH_CLASSNAME,
                     NULL,
                     WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-                    0,
-                    0,
-                    0,
-                    0,
+                    graphRect.left,
+                    graphRect.top,
+                    graphRect.right - graphRect.left,
+                    graphRect.bottom - graphRect.top,
                     WindowHandle,
                     UlongToPtr(i),
                     NULL,
@@ -309,21 +349,12 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
     case WM_SIZE:
         {
             HDWP deferHandle;
-            RECT clientRect;
-            ULONG numberOfRows = (ULONG)sqrt(context->NumberOfNodes);
-            ULONG numberOfColumns = (context->NumberOfNodes + numberOfRows - 1) / numberOfRows;
-            ULONG numberOfYPaddings = numberOfRows - 1;
-            ULONG numberOfXPaddings = numberOfColumns - 1;
-            ULONG cellHeight;
-            ULONG y;
-            ULONG cellWidth;
-            ULONG x;
-            ULONG i;
+            RECT graphRect;
 
             if (!(context->GraphState && context->GraphHandle))
                 break;
 
-            for (i = 0; i < context->NumberOfNodes; i++)
+            for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
                 context->GraphState[i].Valid = FALSE;
                 context->GraphState[i].TooltipIndex = ULONG_MAX;
@@ -333,46 +364,20 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(context->NumberOfNodes);
 
-            PhGetClientRect(WindowHandle, &clientRect);
-            cellHeight = (clientRect.bottom - context->LayoutMargin.top - context->LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
-            y = context->LayoutMargin.top;
-            i = 0;
-
-            for (ULONG row = 0; row < numberOfRows; ++row)
+            for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
-                // Give the last row the remaining space; the height we calculated might be off by a few
-                // pixels due to integer division.
-                if (row == numberOfRows - 1)
-                    cellHeight = clientRect.bottom - context->LayoutMargin.bottom - y;
+                GraphicsDeviceNodesGetGraphRect(context, WindowHandle, i, &graphRect);
 
-                cellWidth = (clientRect.right - context->LayoutMargin.left - context->LayoutMargin.right - GRAPH_PADDING * numberOfXPaddings) / numberOfColumns;
-                x = context->LayoutMargin.left;
-
-                for (ULONG column = 0; column < numberOfColumns; column++)
-                {
-                    // Give the last cell the remaining space; the width we calculated might be off by a few
-                    // pixels due to integer division.
-                    if (column == numberOfColumns - 1)
-                        cellWidth = clientRect.right - context->LayoutMargin.right - x;
-
-                    if (i < context->NumberOfNodes)
-                    {
-                        deferHandle = DeferWindowPos(
-                            deferHandle,
-                            context->GraphHandle[i],
-                            NULL,
-                            x,
-                            y,
-                            cellWidth,
-                            cellHeight,
-                            SWP_NOACTIVATE | SWP_NOZORDER
-                            );
-                        i++;
-                    }
-                    x += cellWidth + GRAPH_PADDING;
-                }
-
-                y += cellHeight + GRAPH_PADDING;
+                deferHandle = DeferWindowPos(
+                    deferHandle,
+                    context->GraphHandle[i],
+                    NULL,
+                    graphRect.left,
+                    graphRect.top,
+                    graphRect.right - graphRect.left,
+                    graphRect.bottom - graphRect.top,
+                    SWP_NOACTIVATE | SWP_NOZORDER
+                    );
             }
 
             EndDeferWindowPos(deferHandle);
@@ -608,10 +613,19 @@ BOOLEAN GraphicsDeviceNodesMessageCallback(
 
                     if (PhIsNullOrEmptyString(context->Description))
                     {
-                        context->Description = GraphicsQueryDeviceInterfaceDescription(
-                            PhGetString(context->DeviceEntry->Id.DevicePath)
-                            );
+                        // Prefer the adapter name, fall back to the "GPU N" section text
+                        // rather than showing a placeholder. (dmex)
+                        PhMoveReference(&context->Description, GraphicsDeviceGetName(context->DeviceEntry));
+
+                        if (PhIsNullOrEmptyString(context->Description))
+                        {
+                            PhMoveReference(&context->Description, GraphicsDeviceGetAdapterDescription(
+                                context->DeviceEntry->Id.DevicePath
+                                ));
+                        }
                     }
+
+                    graphState->TooltipIndex = getTooltipText->Index;
 
                     if (!PhIsNullOrEmptyString(engineName) && !PhIsNullOrEmptyString(context->Description))
                     {
@@ -630,11 +644,26 @@ BOOLEAN GraphicsDeviceNodesMessageCallback(
 
                         PhMoveReference(&graphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
+                    else if (!PhIsNullOrEmptyString(context->Description))
+                    {
+                        PH_FORMAT format[7];
+
+                        // %.2f%%\nNode %lu on %s\n%s
+                        PhInitFormatF(&format[0], gpu * 100, 2);
+                        PhInitFormatS(&format[1], L"%\nNode ");
+                        PhInitFormatU(&format[2], index);
+                        PhInitFormatS(&format[3], L" on ");
+                        PhInitFormatSR(&format[4], context->Description->sr);
+                        PhInitFormatC(&format[5], L'\n');
+                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&graphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
                     else
                     {
                         PH_FORMAT format[5];
 
-                        // %.2f%%\nNode %lu on %s\n%s
+                        // %.2f%%\nNode %lu\n%s
                         PhInitFormatF(&format[0], gpu * 100, 2);
                         PhInitFormatS(&format[1], L"%\nNode ");
                         PhInitFormatU(&format[2], index);

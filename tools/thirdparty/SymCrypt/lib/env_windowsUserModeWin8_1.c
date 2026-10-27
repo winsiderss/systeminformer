@@ -52,9 +52,11 @@ SymCryptInitEnvWindowsUsermodeWin8_1nLater( UINT32 version )
     }
 
     //
-    // Our SaveXmm function never fails because it doesn't have to do anything in User mode.
+    // Saving extended register state never fails because it doesn't have to do anything in User mode.
     //
     g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEXMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL;
 
 #elif SYMCRYPT_CPU_ARM 
 
@@ -140,7 +142,7 @@ SYMCRYPT_CALL
 SymCryptSaveYmmEnvWindowsUsermodeWin8_1nLater( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
 {
     //
-    // In usermode there is no need to save XMM registers.
+    // In usermode there is no need to save YMM registers.
     // The compiler should inline this function and optimize it away.
     //
 
@@ -154,10 +156,26 @@ SYMCRYPT_CALL
 SymCryptRestoreYmmEnvWindowsUsermodeWin8_1nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
 {
     //
-    // In usermode there is no need to save XMM registers.
+    // In usermode there is no need to save YMM registers.
     // The compiler should inline this function and optimize it away.
     //
 
+    UNREFERENCED_PARAMETER( pSaveArea );
+}
+
+
+SYMCRYPT_ERROR 
+SYMCRYPT_CALL 
+SymCryptSaveZmmEnvWindowsUsermodeWin8_1nLater( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea ) 
+{
+    UNREFERENCED_PARAMETER( pSaveArea );
+    return SYMCRYPT_NO_ERROR;
+}
+
+VOID 
+SYMCRYPT_CALL 
+SymCryptRestoreZmmEnvWindowsUsermodeWin8_1nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveArea )
+{
     UNREFERENCED_PARAMETER( pSaveArea );
 }
 

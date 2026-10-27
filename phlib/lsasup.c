@@ -1168,8 +1168,8 @@ VOID PhInitializeCapabilityGuidCache(
     _Inout_ PPH_ARRAY CapabilityGuidArrayList
     )
 {
-    static CONST PH_STRINGREF accessManagerKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\Capabilities");
-    static CONST PH_STRINGREF deviceAccessKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\CapabilityMappings");
+    CONST PH_STRINGREF accessManagerKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\Capabilities");
+    CONST PH_STRINGREF deviceAccessKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\CapabilityMappings");
     HANDLE keyHandle;
 
     PhInitializeArray(CapabilityGuidArrayList, sizeof(PH_CAPABILITY_GUID_ENTRY), 100);
@@ -1639,7 +1639,8 @@ BOOLEAN PhIsServiceSid(
     _In_ PSID Sid
     )
 {
-    if (!Sid || !RtlValidSid(Sid)) return FALSE;
+    if (!Sid || !PhValidSid(Sid)) 
+        return FALSE;
 
     if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY))
     {
@@ -1667,7 +1668,7 @@ PPH_STRING PhGetSidAuthorityName(
     PSID_IDENTIFIER_AUTHORITY authority;
     UCHAR authorityValue;
 
-    if (!Sid || !RtlValidSid(Sid))
+    if (!Sid || !PhValidSid(Sid))
         return NULL;
 
     authority = PhIdentifierAuthoritySid(Sid);
@@ -1702,4 +1703,92 @@ PPH_STRING PhGetSidAuthorityName(
     default:
         return PhFormatString(L"Authority %u", authorityValue);
     }
+}
+
+/**
+ * Gets the user account associated with a shadow administrator account.
+ *
+ * \param Sid The SID of the account to check.
+ * \param AssociatedSid A variable which receives the SID of the associated user account.
+ * You must free the SID using PhFree() when you no longer need it.
+ * \param AssociatedName A variable which receives the name of the associated user account.
+ * You must free the string using PhDereferenceObject() when you no longer need it.
+ * \return STATUS_SUCCESS if the SID identifies a shadow administrator account,
+ * STATUS_NOT_FOUND if it does not, or STATUS_NOT_SUPPORTED if Administrator Protection
+ * is not enabled or not available.
+ * \remarks Under Administrator Protection, elevated processes run as a system-managed shadow
+ * administrator account (with a separate user profile) that is linked to the signed-in user.
+ */
+NTSTATUS PhGetShadowAdminAssociatedSid(
+    _In_ PSID Sid,
+    _Out_ PSID *AssociatedSid,
+    _Out_opt_ PPH_STRING *AssociatedName
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (NTAPI* SamiIsShadowAdminAccount_I)(
+        _In_ PSID AccountSid,
+        _Out_ PBOOLEAN IsShadowAdmin,
+        _Outptr_ PWSTR *AssociatedAccountName,
+        _Outptr_ PSID *AssociatedAccountSid
+        ) = NULL;
+    static NTSTATUS (NTAPI* SamFreeMemory_I)(
+        _In_ PVOID Buffer
+        ) = NULL;
+    NTSTATUS status;
+    BOOLEAN isShadowAdmin = FALSE;
+    PWSTR associatedAccountName = NULL;
+    PSID associatedAccountSid = NULL;
+
+    if (!(USER_SHARED_DATA->SharedDataFlags & SHARED_GLOBAL_FLAGS_SHADOW_ADMIN_ENABLED))
+        return STATUS_NOT_SUPPORTED;
+    if (!Sid || !PhValidSid(Sid))
+        return STATUS_INVALID_PARAMETER;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"samlib.dll"))
+        {
+            SamiIsShadowAdminAccount_I = PhGetDllBaseProcedureAddress(baseAddress, "SamiIsShadowAdminAccount", 0);
+            SamFreeMemory_I = PhGetDllBaseProcedureAddress(baseAddress, "SamFreeMemory", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(SamiIsShadowAdminAccount_I && SamFreeMemory_I))
+        return STATUS_NOT_SUPPORTED;
+
+    status = SamiIsShadowAdminAccount_I(
+        Sid,
+        &isShadowAdmin,
+        &associatedAccountName,
+        &associatedAccountSid
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (isShadowAdmin && associatedAccountSid && PhValidSid(associatedAccountSid))
+        {
+            *AssociatedSid = PhAllocateCopy(associatedAccountSid, PhLengthSid(associatedAccountSid));
+
+            if (AssociatedName)
+            {
+                *AssociatedName = associatedAccountName ? PhCreateString(associatedAccountName) : NULL;
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+    }
+
+    if (associatedAccountName)
+        SamFreeMemory_I(associatedAccountName);
+    if (associatedAccountSid)
+        SamFreeMemory_I(associatedAccountSid);
+
+    return status;
 }

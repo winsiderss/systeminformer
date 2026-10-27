@@ -35,16 +35,39 @@
 #include <shlobj.h>
 
 #include "colmgr.h"
+#include "pvtheme.h"
 
 #include "..\resource.h"
 
 EXTERN_C PPH_STRING PvFileName;
 EXTERN_C PH_MAPPED_IMAGE PvMappedImage;
-extern PIMAGE_COR20_HEADER PvImageCor20Header;
-extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
-extern HICON PvImageSmallIcon;
-extern HICON PvImageLargeIcon;
-extern PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+EXTERN_C PIMAGE_COR20_HEADER PvImageCor20Header;
+EXTERN_C PPH_SYMBOL_PROVIDER PvSymbolProvider;
+EXTERN_C HICON PvImageSmallIcon;
+EXTERN_C HICON PvImageLargeIcon;
+EXTERN_C PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+
+HWND PvGetPePropertiesWindowHandle(
+    VOID
+    );
+
+// start
+
+BOOLEAN PvShowStartPage(
+    _In_ LONG ShowCommand
+    );
+
+VOID PvStartPageFinishLoading(
+    VOID
+    );
+
+BOOLEAN PvSelectFile(
+    VOID
+    );
+
+VOID PvAddRecentFile(
+    _In_ PPH_STRING FileName
+    );
 
 FORCEINLINE PCWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
@@ -54,17 +77,24 @@ FORCEINLINE PCWSTR PvpGetStringOrNa(
 }
 
 FORCEINLINE LONG PvpGetTreeNewRowHeight(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     LONG rowHeight;
 
     rowHeight = (LONG)PhGetIntegerSetting(L"TreeListCustomRowSize");
 
-    if (rowHeight && rowHeight < 15)
-        rowHeight = 15;
+    if (rowHeight)
+    {
+        if (rowHeight < 15)
+            rowHeight = 15;
 
-    return rowHeight;
+        return rowHeight;
+    }
+
+    // Unset means "control default", which is shorter than the listview pages. Match
+    // them instead so a treenew page and a listview page line up. (dmex)
+    return PhScaleToDisplay(PV_LISTVIEW_ROW_HEIGHT, PhGetWindowDpi(WindowHandle));
 }
 
 BOOLEAN PvpLoadDbgHelp(
@@ -134,11 +164,11 @@ VOID PvCopyListView(
     _In_ HWND ListViewHandle
     );
 
-BOOLEAN PvHandleCopyListViewEMenuItem(
+EXTERN_C BOOLEAN PvHandleCopyListViewEMenuItem(
     _In_ struct _PH_EMENU_ITEM* SelectedItem
     );
 
-BOOLEAN PvInsertCopyListViewEMenuItem(
+EXTERN_C BOOLEAN PvInsertCopyListViewEMenuItem(
     _In_ struct _PH_EMENU_ITEM* Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
@@ -189,6 +219,10 @@ PPH_STRING PvHashBuffer(
     _In_ ULONG Length
     );
 
+NTSTATUS PvDisableFileTimestampUpdates(
+    _In_ HANDLE FileHandle
+    );
+
 // settings
 
 VOID PvInitializeSettings(
@@ -203,7 +237,7 @@ VOID PvUpdateCachedSettings(
     VOID
     );
 
-VOID PvShowOptionsWindow(
+EXTERN_C VOID PvShowOptionsWindow(
     _In_ HWND ParentWindow
     );
 
@@ -633,7 +667,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
     _In_ LPARAM lParam
     );
 
-INT_PTR CALLBACK PvpPeClrTablesDlgProc(
+INT_PTR CALLBACK PvPeClrTablesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -776,6 +810,13 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeDebugDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvPeRuntimeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

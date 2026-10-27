@@ -465,6 +465,7 @@ VOID AtpAddImageExports(
         static CONST AT_ROWS_KEYS keys = AT_ROWS_KEYS_FOR("exports_");
 
         AtAddRowsNamed(Structured, "exports", &keys, &rows);
+        PhDeleteMappedImageExports(&exports);
     }
     AtDeleteRows(&rows);
 }
@@ -1142,6 +1143,7 @@ PPH_HASHTABLE AtpImphashOrdinalTable(
                     PhAddItemSimpleHashtable(Ordinals->Tables[Index], UlongToPtr(entry.Ordinal), name);
             }
         }
+        PhDeleteMappedImageExports(&exports);
     }
 
     PhUnloadMappedImage(&mappedImage);

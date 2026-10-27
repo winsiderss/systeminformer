@@ -39,9 +39,11 @@ SymCryptInitEnvOpteeTa( UINT32 version )
     SymCryptDetectCpuFeaturesByCpuid( SYMCRYPT_CPUID_DETECT_FLAG_CHECK_OS_SUPPORT_FOR_YMM );
 
     //
-    // Our SaveXmm function never fails because it doesn't have to do anything in User mode.
+    // Saving extended register state never fails because it doesn't have to do anything in User mode.
     //
     g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEXMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL;
+    g_SymCryptCpuFeaturesNotPresent &= ~SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL;
 
 #else
     
@@ -124,6 +126,21 @@ SymCryptSaveYmmEnvOpteeTa( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
 VOID
 SYMCRYPT_CALL
 SymCryptRestoreYmmEnvOpteeTa( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    UNREFERENCED_PARAMETER( pSaveData );
+}
+
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmmEnvOpteeTa( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    UNREFERENCED_PARAMETER( pSaveData );
+    return SYMCRYPT_NO_ERROR;
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmmEnvOpteeTa( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
 {
     UNREFERENCED_PARAMETER( pSaveData );
 }

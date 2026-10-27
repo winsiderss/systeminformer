@@ -23,6 +23,39 @@ typedef struct _PH_WSL_ENUM_CONTEXT
 } PH_WSL_ENUM_CONTEXT, *PPH_WSL_ENUM_CONTEXT;
 
 /**
+ * Determines whether a file name is located under a directory path.
+ *
+ * \param FileName The file name to test.
+ * \param DirectoryName The directory path. A trailing separator is optional.
+ *
+ * \return TRUE when \a FileName resides under \a DirectoryName, otherwise FALSE.
+ */
+static BOOLEAN PhpFileNameStartsWithDirectory(
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF DirectoryName
+    )
+{
+    PH_STRINGREF remainingPart;
+
+    if (DirectoryName->Length == 0)
+        return FALSE;
+
+    if (!PhStartsWithStringRef(FileName, DirectoryName, TRUE))
+        return FALSE;
+
+    if (DirectoryName->Buffer[DirectoryName->Length / sizeof(WCHAR) - 1] == OBJ_NAME_PATH_SEPARATOR)
+        return TRUE;
+
+    // The directory has no trailing separator, so require one in the remainder.
+    // Otherwise "\lxss\Ubuntu" would match a file under "\lxss\Ubuntu2".
+
+    remainingPart = *FileName;
+    PhSkipStringRef(&remainingPart, DirectoryName->Length);
+
+    return remainingPart.Length != 0 && remainingPart.Buffer[0] == OBJ_NAME_PATH_SEPARATOR;
+}
+
+/**
  * Callback function for enumerating WSL distribution names.
  *
  * \param RootDirectory The root directory handle.
@@ -59,7 +92,7 @@ BOOLEAN NTAPI PhWslDistributionNamesCallback(
         {
             PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
 
-            if (lxssBasePathName && PhStartsWithStringRef(context->FileName, &lxssBasePathName->sr, TRUE))
+            if (lxssBasePathName && PhpFileNameStartsWithDirectory(context->FileName, &lxssBasePathName->sr))
             {
                 PPH_STRING lxssDistributionName;
 

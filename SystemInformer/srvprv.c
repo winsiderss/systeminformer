@@ -21,6 +21,9 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <mainwnd.h>
+#include <mainwndp.h>
+
 #include <trace.h>
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
@@ -275,6 +278,56 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     PhReleaseQueuedLockShared(&PhServiceHashtableLock);
 
     return serviceItem;
+}
+
+/**
+ * Enumerates the service items.
+ *
+ * \param[out] ServiceItems A variable which receives an array of pointers to service items. You must
+ * free the buffer with PhFree() when you no longer need it.
+ * \param[out] NumberOfServiceItems A variable which receives the number of service items.
+ */
+VOID PhEnumServiceItems(
+    _Out_opt_ PPH_SERVICE_ITEM **ServiceItems,
+    _Out_ PULONG NumberOfServiceItems
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SERVICE_ITEM *serviceItems;
+    PPH_SERVICE_ITEM *serviceItem;
+    ULONG numberOfServiceItems;
+    ULONG count = 0;
+
+    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
+
+    numberOfServiceItems = PhServiceHashtable->Count;
+
+    if (!ServiceItems || numberOfServiceItems == 0)
+    {
+        PhReleaseQueuedLockShared(&PhServiceHashtableLock);
+
+        if (ServiceItems) *ServiceItems = NULL;
+        *NumberOfServiceItems = numberOfServiceItems;
+        return;
+    }
+
+    serviceItems = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfServiceItems);
+
+    PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
+
+    while (serviceItem = PhNextEnumHashtable(&enumContext))
+    {
+        if (count >= numberOfServiceItems)
+            break;
+
+        PhReferenceObject(*serviceItem);
+        serviceItems[count++] = *serviceItem;
+    }
+
+    PhReleaseQueuedLockShared(&PhServiceHashtableLock);
+
+    *ServiceItems = serviceItems;
+    *NumberOfServiceItems = count;
 }
 
 VOID PhpResetServiceNonPollGate(
@@ -753,6 +806,7 @@ VOID PhServiceProviderUpdate(
     static ULONG nameEntriesCount;
     static ULONG nameEntriesAllocated = 0;
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
+    ULONG elapsedMilliseconds;
     NTSTATUS status;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
@@ -984,6 +1038,8 @@ UpdateStart:
             }
             else
             {
+                BOOLEAN justProcessed = !!InterlockedExchangeAcquire(&serviceItem->JustProcessed, FALSE);
+
                 if (
                     serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
@@ -992,7 +1048,7 @@ UpdateStart:
                     serviceItem->ServiceSpecificExitCode != serviceEntry->ServiceStatusProcess.dwServiceSpecificExitCode ||
                     serviceItem->ProcessId != UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId) ||
                     serviceItem->NeedsConfigUpdate ||
-                    serviceItem->JustProcessed
+                    justProcessed
                     )
                 {
                     PH_SERVICE_MODIFIED_DATA serviceModifiedData;
@@ -1088,7 +1144,6 @@ UpdateStart:
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
 
-                    InterlockedExchange(&serviceItem->JustProcessed, FALSE);
 
                     // Raise the service modified event.
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &serviceModifiedData);
@@ -1100,8 +1155,19 @@ UpdateStart:
     PhFree(services);
 
 UpdateEnd:
+    elapsedMilliseconds = PhGetProviderElapsedMilliseconds(&PhMwpServiceProviderRegistration);
+
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = PhCsUpdateInterval;
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = 1000;
+
     updatedEvent.RunCount = runCount;
     updatedEvent.UpdateInterval = PhCsUpdateInterval;
+    updatedEvent.ElapsedMilliseconds = elapsedMilliseconds;
+
+    if (!PhGetProviderElapsed(&PhMwpServiceProviderRegistration, &updatedEvent.Elapsed))
+        memset(&updatedEvent.Elapsed, 0, sizeof(PH_PROVIDER_ELAPSED));
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), &updatedEvent);
 

@@ -16,10 +16,12 @@ set "VCVARS_ARCH=amd64"
 set "PublishProfile="
 set "CompileCommandsLogger="
 set "BuildPlatform=x64"
+set "MSBUILD_EXTRA_ARGS=-restore -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500"
 
 REM Run the main script flow and capture the final exit code.
 call :DetectCi
 call :ConfigureTerminalLogger
+call :ConfigureMsBuildOptions
 call :Main
 if errorlevel 1 set "ExitCode=%errorlevel%"
 
@@ -75,7 +77,7 @@ REM   %~2 - MSBuild Platform (x64, ARM64). Required under .NET SDK 10+ where the
 REM         pubxml's <Platform> no longer propagates through solution-level publish.
 REM -----------------------------------------------------------------------------
 :RunDotnetPublish
-dotnet publish tools\CompileCommandsJson\CompileCommandsJson.sln -c Release /p:Platform=%~2 /p:PublishProfile=%~1
+dotnet publish -mt -p:UseClStructuredOutput=false tools\CompileCommandsJson\CompileCommandsJson.sln -c Release /p:Platform=%~2 /p:PublishProfile=%~1
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -87,7 +89,7 @@ REM   %~2 - Platform name.
 REM -----------------------------------------------------------------------------
 :RunMsBuild
 echo:
-msbuild /m %~1 -t:rebuild -p:Configuration=Debug;Platform=%~2 -logger:%CompileCommandsLogger% -terminalLogger:%TLG%
+msbuild -mt -p:UseClStructuredOutput=false -t:rebuild -p:Configuration=Debug;Platform=%~2 -p:ContinuousIntegrationBuild=%IsCI% %MSBUILD_EXTRA_ARGS% -logger:%CompileCommandsLogger% -terminalLogger:%TLG% /m /graph %~1
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -142,6 +144,13 @@ REM Description: Disables the terminal logger when running under CI.
 REM -----------------------------------------------------------------------------
 :ConfigureTerminalLogger
 if /i "%IsCI%"=="true" set "TLG=off"
+exit /b 0
+
+:ConfigureMsBuildOptions
+set "MSBUILD_EXTRA_ARGS=-restore -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500"
+if /i "%IsCI%"=="true" set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% -p:ContinuousIntegrationBuild=true"
+if /i "%SI_MSBUILD_LOW_PRIORITY%"=="true" if /i "%IsCI%"=="false" set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% -lowPriority"
+if defined SI_MSBUILD_BINLOG set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% /bl:%SI_MSBUILD_BINLOG%"
 exit /b 0
 
 REM -----------------------------------------------------------------------------

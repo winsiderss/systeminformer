@@ -892,8 +892,15 @@ NTSTATUS KphpExtractNameFileObject(
         // around this, it's not perfect but we get value from this routine
         // for cases where extracting the full name is otherwise impossible.
         //
-        if ((ObGetObjectType(fileObject) != *IoFileObjectType) ||
-            FlagOn(fileObject->Flags, FO_CLEANUP_COMPLETE))
+        __try
+        {
+            if ((ObGetObjectType(fileObject) != *IoFileObjectType) ||
+                FlagOn(fileObject->Flags, FO_CLEANUP_COMPLETE))
+            {
+                break;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             break;
         }

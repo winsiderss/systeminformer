@@ -89,7 +89,7 @@ namespace CustomBuildTool
                 var content = await BuildHttpClient.SendMessage(DevOpsHttpClient, requestMessage, BuildInfoResponseContext.Default.BuildInfo);
                 if (content == null)
                 {
-                    Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
+                    Program.PrintErrorMessage("Failed to deserialize the response.");
                     ArgumentNullException.ThrowIfNull((BuildInfo)null);
                 }
 
@@ -104,7 +104,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET} (TickCount)");
+                Program.PrintErrorMessage(ex, "TickCount");
                 queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
                 return (false, queueTime);
             }
@@ -121,25 +121,41 @@ namespace CustomBuildTool
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
             requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
 
-            using var response = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, requestMessage, CancellationToken);
+            using var response = await BuildHttpClient.SendRequestMessage(DevOpsHttpClient, requestMessage, CancellationToken);
             if (response == null || !response.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] download page failed", ConsoleColor.Red);
                 yield break;
             }
 
-            var pageContent = await response.Content.ReadAsStringAsync(CancellationToken);
-            var match = AzureServiceTagsRegex().Match(pageContent);
-            if (!match.Success)
+            await using var pageStream = await response.Content.ReadAsStreamAsync(CancellationToken);
+            using var pageReader = new StreamReader(pageStream);
+            char[] pageBuffer = new char[8192];
+            string window = string.Empty;
+            string downloadUrl = null;
+            int pageCount;
+            while ((pageCount = await pageReader.ReadAsync(pageBuffer.AsMemory(), CancellationToken)) != 0)
+            {
+                window += new string(pageBuffer, 0, pageCount);
+                var match = AzureServiceTagsRegex().Match(window);
+                if (match.Success)
+                {
+                    downloadUrl = match.Value;
+                    break;
+                }
+                if (window.Length > 16384)
+                    window = window[^16384..];
+            }
+            if (string.IsNullOrWhiteSpace(downloadUrl))
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] download url not found", ConsoleColor.Red);
                 yield break;
             }
 
-            using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, match.Value);
+            using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
             jsonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest, CancellationToken);
+            using var jsonResponse = await BuildHttpClient.SendRequestMessage(DevOpsHttpClient, jsonRequest, CancellationToken);
             if (jsonResponse == null || !jsonResponse.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] json download failed", ConsoleColor.Red);

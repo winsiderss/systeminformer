@@ -49,7 +49,6 @@ typedef struct _TRICOUNT_IL
     ULONG Total;                            // Total, has only +
 } TRICOUNT_IL;
 
-
 //.............................................................................
 // Dual Counter. Support for the (Total and Instantaneous (rate)). Helpful in cases
 // where the current value is always same as the total value. ie. the counter is never
@@ -74,7 +73,6 @@ typedef struct _DUALCOUNT
 //-----------------------------------------------------------------------------
 
 #define MAX_TRACKED_GENS   3  // number of generations we track
-
 
 #ifndef _WIN64
 #include <pshpack4.h>
@@ -128,8 +126,6 @@ typedef struct _Perf_GC_Wow64
 } Perf_GC_Wow64;
 #include <poppack.h>
 
-
-
 #ifndef _WIN64
 #include <pshpack4.h>
 #endif
@@ -161,7 +157,6 @@ typedef struct Perf_Loading_Wow64
     DUALCOUNT cAppDomainsUnloaded;          // Rate at which app domains are unloaded
 } Perf_Loading_Wow64;
 #include <poppack.h>
-
 
 #ifndef _WIN64
 #include <pshpack4.h>
@@ -225,7 +220,6 @@ typedef struct Perf_LocksAndThreads
 #include <poppack.h>
 #endif
 
-
 // IMPORTANT!!!!!!!: The first two fields in the struct have to be together
 // and be the first two fields in the struct. The managed code in ChannelServices.cs
 // depends on this.
@@ -245,7 +239,6 @@ typedef struct Perf_Contexts
 #ifndef _WIN64
 #include <poppack.h>
 #endif
-
 
 #ifndef _WIN64
 #include <pshpack4.h>
@@ -274,7 +267,6 @@ typedef struct Perf_Security_Wow64
     ULONG stackWalkDepth;                   // depth of stack for security checks
 } Perf_Security_Wow64;
 #include <poppack.h>
-
 
 #ifndef _WIN64
 #include <pshpack4.h>
@@ -317,6 +309,5 @@ typedef struct _PerfCounterIPCControlBlock_Wow64
     Perf_Security_Wow64     Security;
 } PerfCounterIPCControlBlock_Wow64;
 #include <poppack.h>
-
 
 #endif // _PERF_COUNTERS_H_

@@ -20,11 +20,13 @@ set "BUILD_CONFIGURATION=Debug;Release"
 set "BUILD_PLATFORMS=x64;ARM64"
 set "BUILD_TARGET=Build"
 set "PREFAST_ANALYSIS="
+set "MSBUILD_EXTRA_ARGS="
 
 REM Parse environment and command-line options before running the build.
 call :DetectCi
 call :ConfigureTerminalLogger
 call :ParseArgs %*
+call :ConfigureMsBuildOptions
 if errorlevel 1 (
     set "ExitCode=%errorlevel%"
     goto end
@@ -53,8 +55,8 @@ REM Detect if ARM64 toolchain is available in the current Visual Studio installa
 call :DetectArm64Support
 if errorlevel 1 exit /b %errorlevel%
 
-REM If ARM64 support is available, set up cross-compiling (amd64_arm64).
-if /i "%VS_ARM64_SUPPORT%"=="true" set "VCVARS_ARCH=amd64_arm64"
+REM Target ARM64 when supported; the host toolset is picked from the machine arch.
+if /i "%VS_ARM64_SUPPORT%"=="true" (call :ResolveVcVarsArch arm64) else (call :ResolveVcVarsArch x64)
 
 REM Set up the Visual C++ compiler environment for the target architecture.
 REM Configures PATH, INCLUDE, and LIB variables needed by the compiler and MSBuild.
@@ -79,7 +81,7 @@ REM   %~1 - Semicolon-separated platform list (e.g. "x64" or "x64;ARM64").
 REM   %~2 - BuildAll target such as Clean, Build, or Rebuild.
 REM -----------------------------------------------------------------------------
 :RunDriverBuild
-msbuild /m /graph KSystemInformer\KSystemInformer.sln -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild -mt -p:UseClStructuredOutput=false -restore -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:ContinuousIntegrationBuild=%IsCI% -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS% %MSBUILD_EXTRA_ARGS% /m /graph KSystemInformer\KSystemInformer.sln
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -96,6 +98,9 @@ if /i "%~1"=="build" set "BUILD_TARGET=Build" & shift & goto parseArgs
 if /i "%~1"=="rebuild" set "BUILD_TARGET=Rebuild" & shift & goto parseArgs
 if /i "%~1"=="clean" set "BUILD_TARGET=Clean" & shift & goto parseArgs
 if /i "%~1"=="prefast" set "BUILD_CONFIGURATION=Debug" & set "PREFAST_ANALYSIS=-p:RunCodeAnalysis=true -p:CodeAnalysisTreatWarningsAsErrors=true" & shift & goto parseArgs
+if /i "%~1"=="low" set "SI_MSBUILD_LOW_PRIORITY=true" & shift & goto parseArgs
+if /i "%~1"=="lowpriority" set "SI_MSBUILD_LOW_PRIORITY=true" & shift & goto parseArgs
+if /i "%~1"=="binlog" set "SI_MSBUILD_BINLOG=artifacts\msbuild-zdriver.binlog" & shift & goto parseArgs
 if /i "%~1"=="nopause" set "SuppressPause=true" & shift & goto parseArgs
 shift
 goto parseArgs
@@ -127,6 +132,37 @@ if not defined VSINSTALLPATH if defined WindowsSdkDir set "VSINSTALLPATH=%Window
 if defined VSINSTALLPATH exit /b 0
 echo [-] Visual Studio not found
 exit /b 1
+
+REM -----------------------------------------------------------------------------
+REM Function: ResolveVcVarsArch
+REM Description: Resolves the vcvarsall argument for the requested target, using
+REM              the native host toolset (amd64 or arm64) when it is installed.
+REM Parameters:
+REM   %~1 - Target architecture (x86, x64, arm64).
+REM Sets:
+REM   VCVARS_HOST - Host toolset selected for vcvarsall (amd64 or arm64).
+REM   VCVARS_ARCH - vcvarsall architecture argument (e.g. amd64, arm64_x64).
+REM -----------------------------------------------------------------------------
+:ResolveVcVarsArch
+set "VCVARS_HOST=amd64"
+set "VCVARS_TARGET=%~1"
+if /i "%VCVARS_TARGET%"=="amd64" set "VCVARS_TARGET=x64"
+if /i "%VCVARS_TARGET%"=="win32" set "VCVARS_TARGET=x86"
+REM PROCESSOR_ARCHITEW6432 reports the real machine arch when the shell is emulated.
+set "VCVARS_MACHINE=%PROCESSOR_ARCHITECTURE%"
+if defined PROCESSOR_ARCHITEW6432 set "VCVARS_MACHINE=%PROCESSOR_ARCHITEW6432%"
+if /i "%VCVARS_MACHINE%"=="ARM64" (
+    REM Only select the ARM64-hosted toolset when Visual Studio has it installed.
+    for /d %%D in ("%VSINSTALLPATH%\VC\Tools\MSVC\*") do (
+        if exist "%%~D\bin\Hostarm64\" set "VCVARS_HOST=arm64"
+    )
+)
+if /i "%VCVARS_HOST%"=="arm64" (
+    if /i "%VCVARS_TARGET%"=="arm64" (set "VCVARS_ARCH=arm64") else (set "VCVARS_ARCH=arm64_%VCVARS_TARGET%")
+) else (
+    if /i "%VCVARS_TARGET%"=="x64" (set "VCVARS_ARCH=amd64") else (set "VCVARS_ARCH=amd64_%VCVARS_TARGET%")
+)
+exit /b 0
 
 REM -----------------------------------------------------------------------------
 REM Function: SetupVcVars
@@ -185,6 +221,11 @@ REM ----------------------------------------------------------------------------
 if /i "%IsCI%"=="true" set "TLG=off"
 exit /b 0
 
+:ConfigureMsBuildOptions
+if /i "%SI_MSBUILD_LOW_PRIORITY%"=="true" if /i "%IsCI%"=="false" set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% -lowPriority"
+if defined SI_MSBUILD_BINLOG set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% /bl:%SI_MSBUILD_BINLOG%"
+exit /b 0
+
 REM -----------------------------------------------------------------------------
 REM Function: PauseIfInteractive
 REM Description: Pauses only when stdin is attached to an interactive console.
@@ -194,3 +235,4 @@ set "STDIN_REDIRECTED=False"
 for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
 if /i not "%STDIN_REDIRECTED%"=="True" pause
 exit /b 0
+

@@ -354,7 +354,7 @@ PBYTE CDetourDis::CopyInstruction(PBYTE pbDst, PBYTE pbSrc)
     // Figure out how big the instruction is, do the appropriate copy,
     // and figure out what the target of the instruction is if any.
     //
-    REFCOPYENTRY pEntry = &s_rceCopyTable[pbSrc[0]];
+    REFCOPYENTRY pEntry = &s_rceCopyTable[ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0])];
     return (this->*pEntry->pfCopy)(pEntry, pbDst, pbSrc);
 }
 
@@ -391,13 +391,13 @@ PBYTE CDetourDis::CopyBytes(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
     UINT cbTarget = nBytes - nRelOffset;
     if (nModOffset > 0) {
         ASSERT(nRelOffset == 0);
-        BYTE const bModRm = pbSrc[nModOffset];
+        BYTE const bModRm = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[nModOffset]);
         BYTE const bFlags = s_rbModRm[bModRm];
 
         nBytes += bFlags & NOTSIB;
 
         if (bFlags & SIB) {
-            BYTE const bSib = pbSrc[nModOffset + 1];
+            BYTE const bSib = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[nModOffset + 1]);
 
             if ((bSib & 0x07) == 0x05) {
                 if ((bModRm & 0xc0) == 0x00) {
@@ -442,19 +442,19 @@ PBYTE CDetourDis::CopyBytes(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 PBYTE CDetourDis::CopyBytesPrefix(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 {
     pbDst[0] = pbSrc[0];
-    pEntry = &s_rceCopyTable[pbSrc[1]];
+    pEntry = &s_rceCopyTable[ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1])];
     return (this->*pEntry->pfCopy)(pEntry, pbDst + 1, pbSrc + 1);
 }
 
 PBYTE CDetourDis::CopyBytesSegment(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
 {
-    m_nSegmentOverride = pbSrc[0];
+    m_nSegmentOverride = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0]);
     return CopyBytesPrefix(0, pbDst, pbSrc);
 }
 
 PBYTE CDetourDis::CopyBytesRax(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
 { // AMD64 only
-    if (pbSrc[0] & 0x8) {
+    if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0]) & 0x8) {
         m_bRaxOverride = TRUE;
     }
     return CopyBytesPrefix(0, pbDst, pbSrc);
@@ -471,7 +471,7 @@ PBYTE CDetourDis::CopyBytesJump(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 
     *m_ppbTarget = pbSrc + 2 + nOldOffset;
 
-    if (pbSrc[0] == 0xeb) {
+    if (ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0]) == 0xeb) {
         pbDst[0] = 0xe9;
         pvDstAddr = &pbDst[1];
         nNewOffset = nOldOffset - ((pbDst - pbSrc) + 3);
@@ -481,10 +481,11 @@ PBYTE CDetourDis::CopyBytesJump(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
         return pbSrc + 2;
     }
 
-    ASSERT(pbSrc[0] >= 0x70 && pbSrc[0] <= 0x7f);
+    BYTE bOpcode = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0]);
+    ASSERT(bOpcode >= 0x70 && bOpcode <= 0x7f);
 
     pbDst[0] = 0x0f;
-    pbDst[1] = 0x80 | (pbSrc[0] & 0xf);
+    pbDst[1] = 0x80 | (bOpcode & 0xf);
     pvDstAddr = &pbDst[2];
     nNewOffset = nOldOffset - ((pbDst - pbSrc) + 4);
     *(UNALIGNED LONG*&)pvDstAddr = (LONG)nNewOffset;
@@ -586,7 +587,7 @@ PBYTE CDetourDis::Invalid(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 PBYTE CDetourDis::Copy0F(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 {
     pbDst[0] = pbSrc[0];
-    pEntry = &s_rceCopyTable0F[pbSrc[1]];
+    pEntry = &s_rceCopyTable0F[ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1])];
     return (this->*pEntry->pfCopy)(pEntry, pbDst + 1, pbSrc + 1);
 }
 
@@ -616,7 +617,7 @@ PBYTE CDetourDis::Copy0F00(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
     static const COPYENTRY other = /* B8 */ ENTRY_CopyBytes2Mod; // sldt/0 str/1 lldt/2 ltr/3 err/4 verw/5 jmpe/6 invalid/7
     static const COPYENTRY jmpe = /* B8 */ ENTRY_CopyBytes2ModDynamic; // jmpe/6 x86-on-IA64 syscalls
 
-    REFCOPYENTRY const pEntry = (((6 << 3) == ((7 << 3) & pbSrc[1])) ?  &jmpe : &other);
+    REFCOPYENTRY const pEntry = (((6 << 3) == ((7 << 3) & ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]))) ?  &jmpe : &other);
     return (this->*pEntry->pfCopy)(pEntry, pbDst, pbSrc);
 }
 
@@ -659,7 +660,7 @@ PBYTE CDetourDis::CopyF6(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
     (void)pEntry;
 
     // TEST BYTE /0
-    if (0x00 == (0x38 & pbSrc[1])) {    // reg(bits 543) of ModR/M == 0
+    if (0x00 == (0x38 & ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]))) {    // reg(bits 543) of ModR/M == 0
         static const COPYENTRY ce = /* f6 */ ENTRY_CopyBytes2Mod1;
         return (this->*ce.pfCopy)(&ce, pbDst, pbSrc);
     }
@@ -679,7 +680,7 @@ PBYTE CDetourDis::CopyF7(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
     (void)pEntry;
 
     // TEST WORD /0
-    if (0x00 == (0x38 & pbSrc[1])) {    // reg(bits 543) of ModR/M == 0
+    if (0x00 == (0x38 & ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]))) {    // reg(bits 543) of ModR/M == 0
         static const COPYENTRY ce = /* f7 */ ENTRY_CopyBytes2ModOperand;
         return (this->*ce.pfCopy)(&ce, pbDst, pbSrc);
     }
@@ -708,7 +709,7 @@ PBYTE CDetourDis::CopyFF(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
     static const COPYENTRY ce = /* ff */ ENTRY_CopyBytes2Mod;
     PBYTE pbOut = (this->*ce.pfCopy)(&ce, pbDst, pbSrc);
 
-    BYTE const b1 = pbSrc[1];
+    BYTE const b1 = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]);
 
     if (0x15 == b1 || 0x25 == b1) {         // CALL [], JMP []
 #ifdef DETOURS_X64
@@ -719,10 +720,10 @@ PBYTE CDetourDis::CopyFF(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
 #endif
         {
 #ifdef DETOURS_X64
-            INT32 offset = *(UNALIGNED INT32*)&pbSrc[2];
+            INT32 offset = ReadInt32Acquire((UNALIGNED PINT32)&pbSrc[2]);
             PBYTE *ppbTarget = (PBYTE *)(pbSrc + 6 + offset);
 #else
-            PBYTE *ppbTarget = (PBYTE *)(SIZE_T)*(UNALIGNED ULONG*)&pbSrc[2];
+            PBYTE *ppbTarget = (PBYTE *)(SIZE_T)ReadULongAcquire((UNALIGNED PULONG)&pbSrc[2]);
 #endif
             if (s_fLimitReferencesToModule &&
                 (ppbTarget < (PVOID)s_pbModuleBeg || ppbTarget >= (PVOID)s_pbModuleEnd)) {
@@ -731,7 +732,7 @@ PBYTE CDetourDis::CopyFF(REFCOPYENTRY pEntry, PBYTE pbDst, PBYTE pbSrc)
             }
             else {
                 // This can access violate on random bytes. Use DetourSetCodeModule.
-                *m_ppbTarget = *ppbTarget;
+                *m_ppbTarget = (PBYTE)ReadPointerAcquire((volatile const PVOID *)(UNALIGNED PVOID *)ppbTarget);
             }
         }
         else {
@@ -765,7 +766,7 @@ PBYTE CDetourDis::CopyVexEvexCommon(BYTE m, PBYTE pbDst, PBYTE pbSrc, BYTE p, BY
     // see https://software.intel.com/content/www/us/en/develop/download/intel-avx512-fp16-architecture-specification.html
     switch (m | fp16) {
     default: return Invalid(&ceInvalid, pbDst, pbSrc);
-    case 1:  pEntry = &s_rceCopyTable0F[pbSrc[0]];
+    case 1:  pEntry = &s_rceCopyTable0F[ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[0])];
              return (this->*pEntry->pfCopy)(pEntry, pbDst, pbSrc);
     case 5:  // fallthrough
     case 6:  // fallthrough
@@ -779,7 +780,7 @@ PBYTE CDetourDis::CopyVexCommon(BYTE m, PBYTE pbDst, PBYTE pbSrc)
 // passed along efficiently in the registers they were already in.
 {
     m_bVex = TRUE;
-    BYTE const p = (BYTE)(pbSrc[-1] & 3); // p in last byte
+    BYTE const p = (BYTE)(ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[-1]) & 3); // p in last byte
     return CopyVexEvexCommon(m, pbDst, pbSrc, p);
 }
 
@@ -789,7 +790,7 @@ PBYTE CDetourDis::CopyVex3(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
 {
 #ifdef DETOURS_X86
     const static COPYENTRY ceLES = /* C4 */ ENTRY_CopyBytes2Mod;
-    if ((pbSrc[1] & 0xC0) != 0xC0) {
+    if ((ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]) & 0xC0) != 0xC0) {
         REFCOPYENTRY pEntry = &ceLES;
         return (this->*pEntry->pfCopy)(pEntry, pbDst, pbSrc);
     }
@@ -798,7 +799,7 @@ PBYTE CDetourDis::CopyVex3(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
     pbDst[1] = pbSrc[1];
     pbDst[2] = pbSrc[2];
 #ifdef DETOURS_X64
-    m_bRaxOverride |= !!(pbSrc[2] & 0x80); // w in last byte, see CopyBytesRax
+    m_bRaxOverride |= !!(ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[2]) & 0x80); // w in last byte, see CopyBytesRax
 #else
     //
     // TODO
@@ -826,7 +827,7 @@ PBYTE CDetourDis::CopyVex3(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
     // VFMADD132PS xmm0, xmm1, xmm2/m128
     //
 #endif
-    return CopyVexCommon(pbSrc[1] & 0x1F, pbDst + 3, pbSrc + 3);
+    return CopyVexCommon(ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]) & 0x1F, pbDst + 3, pbSrc + 3);
 }
 
 PBYTE CDetourDis::CopyVex2(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
@@ -834,7 +835,7 @@ PBYTE CDetourDis::CopyVex2(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
 {
 #ifdef DETOURS_X86
     const static COPYENTRY ceLDS = /* C5 */ ENTRY_CopyBytes2Mod;
-    if ((pbSrc[1] & 0xC0) != 0xC0) {
+    if ((ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]) & 0xC0) != 0xC0) {
         REFCOPYENTRY pEntry = &ceLDS;
         return (this->*pEntry->pfCopy)(pEntry, pbDst, pbSrc);
     }
@@ -851,7 +852,7 @@ PBYTE CDetourDis::CopyEvex(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
     // NOTE: Intel and Wikipedia number these differently.
     // Intel says 0-2, Wikipedia says 1-3.
 
-    BYTE const p0 = pbSrc[1];
+    BYTE const p0 = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]);
 
 #ifdef DETOURS_X86
     const static COPYENTRY ceBound = /* 62 */ ENTRY_CopyBytes2Mod;
@@ -867,13 +868,13 @@ PBYTE CDetourDis::CopyEvex(REFCOPYENTRY, PBYTE pbDst, PBYTE pbSrc)
     if (p0 & 8u)
         return Invalid(&ceInvalid, pbDst, pbSrc);
 
-    BYTE const p1 = pbSrc[2];
+    BYTE const p1 = ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[2]);
 
     if ((p1 & 0x04) != 0x04)
         return Invalid(&ceInvalid, pbDst, pbSrc);
 
     // Copy 4 byte prefix.
-    *(UNALIGNED ULONG *)pbDst = *(UNALIGNED ULONG*)pbSrc;
+    *(UNALIGNED ULONG *)pbDst = ReadULongAcquire((UNALIGNED PULONG)pbSrc);
 
     m_bEvex = TRUE;
 
@@ -900,7 +901,7 @@ pp is like VEX but only instructions with 0 are defined
     const static COPYENTRY ceXop1 = /* 8F */ ENTRY_CopyBytesXop1;
     const static COPYENTRY ceXop4 = /* 8F */ ENTRY_CopyBytesXop4;
 
-    BYTE const m = (BYTE)(pbSrc[1] & 0x1F);
+    BYTE const m = (BYTE)(ReadUCharAcquire((UNALIGNED PUCHAR)&pbSrc[1]) & 0x1F);
     ASSERT(m <= 10);
     switch (m)
     {
@@ -2863,13 +2864,13 @@ BYTE CDetourDis::EmitLongBranch(PUSHORT& pDest, PVOID pTarget)
 
 BYTE CDetourDis::PureCopy16(BYTE* pSource, BYTE* pDest)
 {
-    *(USHORT *)pDest = *(USHORT *)pSource;
+    *(USHORT *)pDest = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
     return sizeof(USHORT);
 }
 
 BYTE CDetourDis::PureCopy32(BYTE* pSource, BYTE* pDest)
 {
-    *(UNALIGNED ULONG *)pDest = *(UNALIGNED ULONG*)pSource;
+    *(UNALIGNED ULONG *)pDest = ReadULongAcquire((UNALIGNED PULONG)pSource);
     return sizeof(DWORD);
 }
 
@@ -2881,7 +2882,7 @@ USHORT CDetourDis::CalculateExtra(BYTE sourceLength, BYTE* pDestStart, BYTE* pDe
 
 BYTE CDetourDis::CopyMiscellaneous16(BYTE* pSource, BYTE* pDest)
 {
-    USHORT instruction = *(PUSHORT)(pSource);
+    USHORT instruction = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
 
     // Compare and branch imm5 (CBZ, CBNZ)
     if ((instruction & 0x100) && !(instruction & 0x400)) { // (1011x0x1xxxxxxxx)
@@ -2919,7 +2920,7 @@ BYTE CDetourDis::CopyMiscellaneous16(BYTE* pSource, BYTE* pDest)
         // Invert the CBZ/CBNZ instruction to move past our 'long branch' if the inverse comparison succeeds
         // Write the CBZ/CBNZ instruction *before* the long branch we emitted above
         // This had to be done out of order, since the size of a long branch can vary due to alignment restrictions
-        instruction = EncodeBranch5(*(PUSHORT)(pSource), longBranchSize - c_PCAdjust + sizeof(USHORT));
+        instruction = EncodeBranch5(ReadUShortAcquire((UNALIGNED PUSHORT)pSource), longBranchSize - c_PCAdjust + sizeof(USHORT));
         Branch5& branch = (Branch5&)(instruction);
         branch.OpCode = (branch.OpCode & 0x02) ? 0x2C : 0x2E; // Invert the CBZ/CBNZ comparison
         *pConditionalBranchInstruction = instruction;
@@ -2942,7 +2943,7 @@ BYTE CDetourDis::CopyMiscellaneous16(BYTE* pSource, BYTE* pDest)
 
 BYTE CDetourDis::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
 {
-    USHORT instruction = *(PUSHORT)(pSource);
+    USHORT instruction = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
 
     // Could be a conditional branch, an Undefined instruction or a Service System Call
     // Only the former needs special logic
@@ -2972,7 +2973,7 @@ BYTE CDetourDis::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
         //
 
         // First, reuse the existing conditional branch to, if successful, branch down to a 'long branch' that we will emit below
-        USHORT newInstruction = EncodeBranch8(*(PUSHORT)(pSource), 0); // Due to the size of c_PCAdjust a zero-length branch moves 4 bytes forward, past the following unconditional branch
+        USHORT newInstruction = EncodeBranch8(ReadUShortAcquire((UNALIGNED PUSHORT)pSource), 0); // Due to the size of c_PCAdjust a zero-length branch moves 4 bytes forward, past the following unconditional branch
         ASSERT(newInstruction);
         PUSHORT pDstInst = (PUSHORT)(pDest);
         *pDstInst++ = newInstruction;
@@ -3000,7 +3001,7 @@ BYTE CDetourDis::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
 
 BYTE CDetourDis::CopyUnConditionalBranch16(BYTE* pSource, BYTE* pDest)
 {
-    ULONG instruction = *(PUSHORT)(pSource);
+    ULONG instruction = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
 
     LONG oldDelta = DecodeBranch11(instruction);
     PBYTE pTarget = CalculateTarget(pSource, oldDelta);
@@ -3045,7 +3046,7 @@ BYTE CDetourDis::CopyUnConditionalBranch16(BYTE* pSource, BYTE* pDest)
 BYTE CDetourDis::CopyLiteralLoad16(BYTE* pSource, BYTE* pDest)
 {
     PBYTE pStart = pDest;
-    USHORT instruction = *(PUSHORT)(pSource);
+    USHORT instruction = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
 
     LONG oldDelta = DecodeLiteralLoad8(instruction);
     PBYTE pTarget = CalculateTarget(Align4(pSource), oldDelta);
@@ -3064,7 +3065,7 @@ BYTE CDetourDis::CopyLiteralLoad16(BYTE* pSource, BYTE* pDest)
 
 BYTE CDetourDis::CopyBranchExchangeOrDataProcessing16(BYTE* pSource, BYTE* pDest)
 {
-    ULONG instruction = *(PUSHORT)(pSource);
+    ULONG instruction = ReadUShortAcquire((UNALIGNED PUSHORT)pSource);
 
     // BX
     if ((instruction & 0xff80) == 0x4700) {
@@ -3915,7 +3916,7 @@ class CDetourDis
   protected:
     ULONG GetInstruction(BYTE* pSource)
     {
-        return ((PULONG)pSource)[0];
+        return ReadULongAcquire((UNALIGNED PULONG)pSource);
     }
 
     BYTE EmitInstruction(PULONG& pDstInst, ULONG instruction)
@@ -3931,7 +3932,7 @@ class CDetourDis
 
 BYTE CDetourDis::PureCopy32(BYTE* pSource, BYTE* pDest)
 {
-    *(ULONG *)pDest = *(ULONG*)pSource;
+    *(ULONG *)pDest = ReadULongAcquire((UNALIGNED PULONG)pSource);
     return sizeof(DWORD);
 }
 
@@ -4243,9 +4244,9 @@ BYTE CDetourDis::CopyLdrLiteral(BYTE* pSource, BYTE* pDest, ULONG instruction)
         UINT64 value = 0;
         switch (decoded.s.Size)
         {
-            case 0: value = *(ULONG*)pTarget;       break;
-            case 1: value = *(UINT64*)pTarget;   break;
-            case 2: value = *(LONG*)pTarget;        break;
+            case 0: value = ReadULongAcquire((UNALIGNED PULONG)pTarget); break;
+            case 1: value = ReadULong64Acquire((UNALIGNED PULONG64)pTarget); break;
+            case 2: value = (LONG)ReadULongAcquire((UNALIGNED PULONG)pTarget); break;
         }
         EmitMovImmediate(pDstInst, decoded.s.Rt, value);
     }

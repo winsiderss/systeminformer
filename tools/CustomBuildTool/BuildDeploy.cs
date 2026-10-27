@@ -33,7 +33,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(fileSign))
                 {
-                    Program.PrintColorMessage("[ERROR] File signature failed.", ConsoleColor.Red);
+                    Program.PrintErrorMessage("File signature failed.");
                     return null;
                 }
 
@@ -42,7 +42,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(fileHash))
                 {
-                    Program.PrintColorMessage("[ERROR] File hash failed.", ConsoleColor.Red);
+                    Program.PrintErrorMessage("File hash failed.");
                     return null;
                 }
 
@@ -62,7 +62,7 @@ namespace CustomBuildTool
         /// Uploads a list of build artifacts to GitHub as release assets and returns the release information.
         /// </summary>
         /// <returns>True if the server configuration is updated successfully; otherwise, false.</returns>
-        public static async Task<bool> BuildUpdateServerConfig()
+        public static async Task<bool> BuildUpdateServerConfig(BuildFlags Flags)
         {
             if (!Build.BuildCanary)
                 return true;
@@ -80,6 +80,31 @@ namespace CustomBuildTool
                 //["systeminformer-build-release-setup.exe"] = true,
             };
 
+            bool toolchainClang = !string.IsNullOrEmpty(Build.GetToolchainSuffix(Flags));
+
+            // Include the clang toolchain artifacts as extra assets when they exist.
+            if (toolchainClang)
+            {
+                var Build_Toolchain_Files = new Dictionary<string, bool>(8, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["systeminformer-build-clang-win32-bin.zip"] = true,
+                    ["systeminformer-build-clang-win64-bin.zip"] = true,
+                    ["systeminformer-build-clang-arm64-bin.zip"] = true,
+                    ["systeminformer-build-clang-bin.zip"] = true,
+                    ["systeminformer-build-clang-pdb.zip"] = false,
+                    ["systeminformer-build-clang-release-setup.exe"] = true,
+                    ["systeminformer-build-clang-canary-setup.exe"] = true,
+                };
+
+                foreach (var file in Build_Toolchain_Files)
+                {
+                    if (File.Exists(Path.Join([Build.BuildOutputFolder, file.Key])))
+                    {
+                        Build_Upload_Files.TryAdd(file.Key, file.Value);
+                    }
+                }
+            }
+
             List<DeployFile> deployFiles = new List<DeployFile>();
 
             // N.B. HACK we only produce a "release" (default setting) build for the binary (portable).
@@ -91,7 +116,7 @@ namespace CustomBuildTool
 
             if (portable_zip == null || release_exe == null || canary_exe == null)
             {
-                Program.PrintColorMessage("[ERROR] CreateBuildDeployFile.", ConsoleColor.Red);
+                Program.PrintErrorMessage("CreateBuildDeployFile.");
                 return false;
             }
 
@@ -101,8 +126,11 @@ namespace CustomBuildTool
 
             foreach (var file in Build_Upload_Files)
             {
+                // The canary setup is signed with the canary key; everything else uses the release key.
+                string channel = file.Key.EndsWith("-canary-setup.exe", StringComparison.OrdinalIgnoreCase) ? "canary" : "release";
+
                 deployFiles.Add(CreateBuildDeployFile(
-                    "release",
+                    channel,
                     file.Key,
                     Path.Join([Build.BuildOutputFolder, file.Key]),
                     file.Value
@@ -128,7 +156,7 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(canzipdownloadlink)
                 )
             {
-                Program.PrintColorMessage("[ERROR] GetDeployInfo failed.", ConsoleColor.Red);
+                Program.PrintErrorMessage("GetDeployInfo failed.");
                 return false;
             }
 
@@ -136,7 +164,7 @@ namespace CustomBuildTool
 
             if (!await BuildUploadServerConfig(portable_zip, release_exe, canary_exe, github_release_id))
             {
-                Program.PrintColorMessage("[ERROR] BuildUploadServerConfig failed.", ConsoleColor.Red);
+                Program.PrintErrorMessage("BuildUploadServerConfig failed.");
                 return false;
             }
 
@@ -365,7 +393,7 @@ namespace CustomBuildTool
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
                     using var httpClient = BuildHttpClient.CreateHttpClient();
-                    using var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
+                    using var httpResult = await BuildHttpClient.SendRequestMessage(httpClient, requestMessage);
 
                     if (httpResult == null)
                     {

@@ -29,7 +29,8 @@ typedef struct _KPH_CLIENT
 {
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
-    KPH_REFERENCE DriverUnloadProtectionRef;
+    KPH_RWLOCK DriverUnloadProtectionLock;
+    LONG DriverUnloadProtectionCount;
     KPH_CLIENT_INFORMER_STATE_ATOMIC InformerState;
     PKPH_RING_BUFFER RingBuffer;
 } KPH_CLIENT, *PKPH_CLIENT;

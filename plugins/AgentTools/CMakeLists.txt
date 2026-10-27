@@ -69,12 +69,16 @@ set(ALL_FILES
 si_add_plugin(AgentTools ${ALL_FILES})
 
 target_include_directories(AgentTools PRIVATE
+    "${SI_ROOT}/phlib/include"
     "${SI_ROOT}/tools/simcp/include"
 )
 
 target_link_libraries(AgentTools PRIVATE
+    delayimp
     user32
     gdi32
+    advapi32
+    oleaut32
     winsta
     cfgmgr32
 )

@@ -27,8 +27,8 @@ static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 
 HWND EtObjectManagerDialogHandle = NULL;
 PPH_LIST EtObjectManagerOwnHandles = NULL;
+PH_QUEUED_LOCK EtObjectManagerOwnHandlesLock = PH_QUEUED_LOCK_INIT;
 HICON EtObjectManagerPropIcon = NULL;
-BOOLEAN EtObjectManagerShowHandlesPage = FALSE;
 
 // Cached type indexes
 ULONG EtAlpcPortTypeIndex = ULONG_MAX;
@@ -104,7 +104,9 @@ typedef struct _ET_OBJECT_CONTEXT
     volatile PPH_LIST CurrentDirectoryList;
     BOOLEAN DisableSelChanged;
 
-    PBOOLEAN BreakResolverThread;
+    struct _RESOLVER_THREAD_CONTEXT* ResolverThreadContext;
+    ULONG ResolverGeneration;
+    SLIST_HEADER ResolvedListHead;
 
     BOOLEAN UseAddressColumn;
 } ET_OBJECT_CONTEXT, * PET_OBJECT_CONTEXT;
@@ -152,7 +154,20 @@ typedef struct _RESOLVER_THREAD_CONTEXT
     PET_OBJECT_CONTEXT Context;
     volatile BOOLEAN Break;
     PPH_LIST EntryToResolve;
+    HANDLE ThreadHandle;
+    ULONG Generation;
 } RESOLVER_THREAD_CONTEXT, *PRESOLVER_THREAD_CONTEXT;
+
+typedef struct _ET_RESOLVED_ENTRY
+{
+    SLIST_ENTRY ListEntry;
+    PET_OBJECT_ENTRY Entry;
+} ET_RESOLVED_ENTRY, *PET_RESOLVED_ENTRY;
+
+// Posted by resolver worker threads; entry references travel through
+// ET_OBJECT_CONTEXT.ResolvedListHead, never inside the message itself.
+#define ET_OBJMGR_RESOLVE_DONE (WM_APP + 801)
+#define ET_OBJMGR_RESOLVER_FINISHED (WM_APP + 802)
 
 NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ HWND TreeViewHandle,
@@ -274,6 +289,43 @@ PPH_STRING EtGetSelectedTreeViewPath(
     }
 
     return PhCreateString2(&EtObjectManagerRootDirectoryObject);
+}
+
+/**
+ * Determines whether a directory path is the target object path or one of its ancestors.
+ *
+ * \param Target The full object path the tree view is navigating to.
+ * \param DirectoryPath A directory path from EtGetSelectedTreeViewPath.
+ *
+ * \return TRUE when \a Target is \a DirectoryPath or resides under it, otherwise FALSE.
+ */
+static BOOLEAN EtpIsObjectPathAncestor(
+    _In_ PPH_STRING Target,
+    _In_ PPH_STRING DirectoryPath
+    )
+{
+    PH_STRINGREF remainingPart;
+
+    if (DirectoryPath->Length == 0)
+        return FALSE;
+
+    if (PhEqualStringRef(&Target->sr, &DirectoryPath->sr, TRUE))
+        return TRUE;
+
+    if (!PhStartsWithStringRef(&Target->sr, &DirectoryPath->sr, TRUE))
+        return FALSE;
+
+    // The root directory is "\" and already ends with a separator. Any other
+    // directory must be followed by one, so that a walk which stopped on
+    // "\Sessions" is not accepted as an ancestor of "\Sessions2\Foo".
+
+    if (DirectoryPath->Buffer[DirectoryPath->Length / sizeof(WCHAR) - 1] == OBJ_NAME_PATH_SEPARATOR)
+        return TRUE;
+
+    remainingPart = Target->sr;
+    PhSkipStringRef(&remainingPart, DirectoryPath->Length);
+
+    return remainingPart.Length != 0 && remainingPart.Buffer[0] == OBJ_NAME_PATH_SEPARATOR;
 }
 
 FORCEINLINE
@@ -778,17 +830,9 @@ NTSTATUS EtpTargetResolverThreadStart(
 {
     PRESOLVER_THREAD_CONTEXT threadContext = Parameter;
     PET_OBJECT_CONTEXT context = threadContext->Context;
-
     NTSTATUS status = STATUS_SUCCESS;
     PET_OBJECT_ENTRY entry;
     PH_WORK_QUEUE workQueue;
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
-    PH_AUTO_POOL autoPool;
-
-    PhInitializeAutoPool(&autoPool);
-
-    ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
     PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
 
@@ -804,7 +848,6 @@ NTSTATUS EtpTargetResolverThreadStart(
 
         if (status != STATUS_ABANDONED)
         {
-            entry->ItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);    // need to update index
             PhQueueItemWorkQueue(&workQueue, EtpTargetResolverWorkThreadStart, entry);
         }
         else
@@ -818,37 +861,11 @@ NTSTATUS EtpTargetResolverThreadStart(
 
     if (status != STATUS_ABANDONED && !ReadAcquire8(&threadContext->Break))
     {
-        // Reapply sort and filter after done resolving and ensure selected item is visible
-        PPH_STRING currentfilter = PhGetWindowText(context->SearchBoxHandle);
-        if (!PhIsNullOrEmptyString(currentfilter))
-        {
-            EtpObjectManagerSearchControlCallback((ULONG_PTR)PhGetWindowContext(context->SearchBoxHandle, SHRT_MAX), context);  // HACK
-        }
-        else
-        {
-            ExtendedListView_GetSort(context->ListViewHandle, &sortColumn, &sortOrder);
-            if (sortOrder != NoSortOrder && sortColumn == 2)
-            {
-                ExtendedListView_SortItems(context->ListViewHandle);
-
-                INT index = ListView_GetNextItem(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
-                if (index != INT_ERROR)
-                    ListView_EnsureVisible(context->ListViewHandle, index, TRUE);
-            }
-        }
-        if (currentfilter)
-            PhDereferenceObject(currentfilter);
-
-#pragma warning(push)
-#pragma warning(disable : 6387)
-        WritePointerRelease(&context->BreakResolverThread, NULL);
-#pragma warning(pop)
+        // Let the dialog thread reapply sort/filter and reap this thread.
+        PostMessage(context->WindowHandle, ET_OBJMGR_RESOLVER_FINISHED, 0, (LPARAM)threadContext->Generation);
     }
 
     PhDereferenceObject(threadContext->EntryToResolve);
-    PhFree(threadContext);
-
-    PhDeleteAutoPool(&autoPool);
 
     return status;
 }
@@ -945,8 +962,15 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                     if (devicePdoName = PhGetPnPDeviceName(deviceName))
                     {
                         ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
-                        devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
-                        devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
+                        if (column_pos != SIZE_MAX && column_pos >= 4)
+                        {
+                            devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
+                            devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
+                        }
+                        else
+                        {
+                            devicePdoName2 = PhReferenceObject(devicePdoName);
+                        }
                         PhDereferenceObject(devicePdoName);
 
                         entry->TargetIsInfoOnly = TRUE;
@@ -1005,6 +1029,9 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                                 entry->TargetClientId.UniqueThread = clientId.UniqueThread;
                             }
                         }
+
+                        NtClose(processHandle);
+                        processHandle = NULL;
                     }
                 }
             }
@@ -1354,34 +1381,111 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
         NtClose(processHandle);
     }
 
-    // Target was successfully resolved, redraw list entry
+    // Target was resolved, queue the entry so the dialog thread redraws it.
     entry->TargetIsResolving = FALSE;
-    ListView_RedrawItems(entry->Context->ListViewHandle, entry->ItemIndex, entry->ItemIndex);
+
+    {
+        PET_RESOLVED_ENTRY resolvedEntry;
+
+        resolvedEntry = PhAllocateZero(sizeof(ET_RESOLVED_ENTRY));
+        resolvedEntry->Entry = PhReferenceObject(entry);
+        RtlInterlockedPushEntrySList(&entry->Context->ResolvedListHead, &resolvedEntry->ListEntry);
+        PostMessage(entry->Context->WindowHandle, ET_OBJMGR_RESOLVE_DONE, 0, 0);
+    }
 
     PhDereferenceObject(entry);
 
     return STATUS_SUCCESS;
 }
 
+VOID EtpObjectManagerReapResolver(
+    _In_ PET_OBJECT_CONTEXT Context
+    )
+{
+    PRESOLVER_THREAD_CONTEXT threadContext;
+
+    if (threadContext = InterlockedExchangePointer((PVOID*)&Context->ResolverThreadContext, NULL))
+    {
+        NtWaitForSingleObject(threadContext->ThreadHandle, FALSE, NULL);
+        NtClose(threadContext->ThreadHandle);
+        PhFree(threadContext);
+    }
+}
+
+VOID EtpObjectManagerDrainResolvedEntries(
+    _In_ PET_OBJECT_CONTEXT Context,
+    _In_ BOOLEAN UpdateListView
+    )
+{
+    PSLIST_ENTRY listEntry = RtlInterlockedFlushSList(&Context->ResolvedListHead);
+
+    while (listEntry)
+    {
+        PET_RESOLVED_ENTRY resolvedEntry = CONTAINING_RECORD(listEntry, ET_RESOLVED_ENTRY, ListEntry);
+        listEntry = listEntry->Next;
+
+        if (UpdateListView)
+        {
+            INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, resolvedEntry->Entry);
+            if (index != INT_ERROR)
+                ListView_RedrawItems(Context->ListViewHandle, index, index);
+        }
+
+        PhDereferenceObject(resolvedEntry->Entry);
+        PhFree(resolvedEntry);
+    }
+}
+
 NTSTATUS EtpObjectManagerStartResolver(
     _In_ PET_OBJECT_CONTEXT Context
     )
 {
-    PRESOLVER_THREAD_CONTEXT threadContext = PhAllocateZero(sizeof(RESOLVER_THREAD_CONTEXT));
-    threadContext->Context = Context;
-    Context->BreakResolverThread = (PBOOLEAN)&threadContext->Break;
-    threadContext->EntryToResolve = PhCreateList(Context->CurrentDirectoryList->Count);
+    NTSTATUS status;
+    PRESOLVER_THREAD_CONTEXT threadContext;
+    PPH_LIST entryToResolve;
+
+    assert(!Context->ResolverThreadContext);
+
+    ExtendedListView_SetColumnWidth(Context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
+    entryToResolve = PhCreateList(Context->CurrentDirectoryList->Count);
 
     for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
     {
         PET_OBJECT_ENTRY entry = Context->CurrentDirectoryList->Items[i];
         if (entry->TargetIsResolving)
         {
-            PhAddItemList(threadContext->EntryToResolve, PhReferenceObject(entry));
+            PhAddItemList(entryToResolve, PhReferenceObject(entry));
         }
     }
 
-    return PhCreateThread2(EtpTargetResolverThreadStart, threadContext);
+    if (entryToResolve->Count == 0)
+    {
+        PhDereferenceObject(entryToResolve);
+        return STATUS_SUCCESS;
+    }
+
+    threadContext = PhAllocateZero(sizeof(RESOLVER_THREAD_CONTEXT));
+    threadContext->Context = Context;
+    threadContext->EntryToResolve = entryToResolve;
+    threadContext->Generation = ++Context->ResolverGeneration;
+
+    if (NT_SUCCESS(status = PhCreateThreadEx(&threadContext->ThreadHandle, EtpTargetResolverThreadStart, threadContext)))
+    {
+        Context->ResolverThreadContext = threadContext;
+    }
+    else
+    {
+        for (ULONG i = 0; i < entryToResolve->Count; i++)
+        {
+            PhDereferenceObject(entryToResolve->Items[i]);
+        }
+
+        PhDereferenceObject(entryToResolve);
+        PhFree(threadContext);
+    }
+
+    return status;
 }
 
 NTSTATUS EtEnumCurrentDirectoryObjects(
@@ -1443,14 +1547,16 @@ VOID EtObjectManagerFreeListViewItems(
     _In_ PET_OBJECT_CONTEXT Context
     )
 {
-    if (ReadPointerAcquire(&Context->BreakResolverThread))
+    if (Context->ResolverThreadContext)
     {
-        WriteRelease8(Context->BreakResolverThread, TRUE);
-#pragma warning(push)
-#pragma warning(disable : 6387)
-        WritePointerRelease(&Context->BreakResolverThread, NULL);
-#pragma warning(pop)
+        // Cancel the resolver and wait for it (and its work queue) to finish
+        // before releasing entries the resolver threads may still reference.
+        WriteRelease8(&Context->ResolverThreadContext->Break, TRUE);
+        EtpObjectManagerReapResolver(Context);
     }
+
+    // Release resolved entries the dialog thread hasn't consumed yet.
+    EtpObjectManagerDrainResolvedEntries(Context, FALSE);
 
     PhClearReference(&Context->CurrentPath);
 
@@ -2220,8 +2326,9 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
     return status;
 }
 
-VOID NTAPI EtpObjectManagerObjectProperties(
-    _In_ PET_OBJECT_ENTRY Entry
+VOID NTAPI EtpObjectManagerShowObjectProperties(
+    _In_ PET_OBJECT_ENTRY Entry,
+    _In_ BOOLEAN SelectHandlesPage
     )
 {
     PET_OBJECT_CONTEXT context = Entry->Context;
@@ -2263,15 +2370,10 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     handleItem->Handle = objectHandle;
     handleItem->TypeIndex = ULONG_MAX;
 
-    switch (Entry->EtObjectType)
-    {
-        case EtObjectDirectory:
-            handleItem->TypeName = Entry->TypeName = objectContext.Object->TypeName;
-            break;
-        default:
-            handleItem->TypeName = PhReferenceObject(Entry->TypeName);
-            break;
-    }
+    // For directories the type name was assigned to the entry above (objectContext.Object
+    // aliases Entry); reference it in both cases so the entry keeps its own reference when
+    // the handle item is destroyed by the properties window.
+    handleItem->TypeName = PhReferenceObject(Entry->TypeName);
 
     handleItem->ObjectName = objectName;
     handleItem->BestObjectName = PhReferenceObject(objectName);
@@ -2311,7 +2413,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
                 NULL
                 )))
             {
-                // We will remove access row in EtHandlePropertiesWindowInitialized callback
+                // The General page shows N/A for the access row when GrantedAccess is zero
                 if (!NT_SUCCESS(subStatus) || KsiLevel() < KphLevelMed)
                 {
                     handleItem->Attributes = basicInfo.Attributes;
@@ -2325,7 +2427,9 @@ VOID NTAPI EtpObjectManagerObjectProperties(
         if (processId == NtCurrentProcessId())
         {
             PhReferenceObject(EtObjectManagerOwnHandles);
+            PhAcquireQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
             PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
+            PhReleaseQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
         }
     }
 
@@ -2337,8 +2441,29 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     EtObjectManagerPropIcon = PhImageListGetIcon(context->ListImageList, Entry->EtObjectType, ILD_NORMAL | ILD_TRANSPARENT);
 
     // Object Manager plugin window
-    //PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
+    {
+        PET_HANDLE_OPEN_CONTEXT securityContext;
 
+        securityContext = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
+        securityContext->CurrentPath = PhReferenceObject(context->CurrentPath);
+        securityContext->Object = PhReferenceObject(Entry);
+        securityContext->FullName = PhReferenceObject(handleItem->ObjectName);
+
+        EtShowObjectProperties(
+            context->WindowHandle,
+            processId,
+            handleItem,
+            TRUE,
+            SelectHandlesPage,
+            EtObjectManagerHandleOpenCallback,
+            EtObjectManagerHandleCloseCallback,
+            securityContext
+            );
+    }
+
+    PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
+
+    PhDereferenceObject(handleItem);
     PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
@@ -2347,9 +2472,7 @@ VOID NTAPI EtpObjectManagerObjectHandles(
     _In_ PET_OBJECT_ENTRY Entry
     )
 {
-    EtObjectManagerShowHandlesPage = TRUE;
-
-    EtpObjectManagerObjectProperties(Entry);
+    EtpObjectManagerShowObjectProperties(Entry, TRUE);
 }
 
 BOOLEAN EtListViewFindAndSelectItem(
@@ -2386,7 +2509,8 @@ BOOLEAN NTAPI EtpObjectManagerOpenTarget(
     HTREEITEM directoryItem;
     BOOLEAN targetFound = FALSE;
 
-    remainingPart = PhGetStringRef(PhReferenceObject(Target));
+    PhReferenceObject(Target);  // balanced by the dereference at the end of this function
+    remainingPart = PhGetStringRef(Target);
     Context->SelectedTreeItem = Context->RootTreeObject;
     ListView_SetItemState(Context->ListViewHandle, -1, 0, LVIS_SELECTED);
 
@@ -2439,7 +2563,7 @@ start_scan:
                     startFromRoot = FALSE;
             }
 
-            if (!reverseScan && !PhStartsWithString(Target, PH_AUTO_T(PH_STRING, EtGetSelectedTreeViewPath(Context)), TRUE))
+            if (!reverseScan && !EtpIsObjectPathAncestor(Target, PH_AUTO_T(PH_STRING, EtGetSelectedTreeViewPath(Context))))
             {
                 remainingPart = PhGetStringRef(Target);
                 Context->SelectedTreeItem = Context->RootTreeObject;
@@ -2544,7 +2668,7 @@ start_scan:
         }
     }
 
-    if (!reverseScan && !PhStartsWithString(currentPath, PH_AUTO_T(PH_STRING, EtGetSelectedTreeViewPath(Context)), TRUE))
+    if (!reverseScan && !EtpIsObjectPathAncestor(currentPath, PH_AUTO_T(PH_STRING, EtGetSelectedTreeViewPath(Context))))
     {
         reverseScan = TRUE;
         goto start_scan;
@@ -2846,6 +2970,44 @@ VOID EtpSaveComboBoxHistoryToSettings(
     PhDeleteStringBuilder(&savedChoices);
 }
 
+VOID EtpObjectManagerGetStatusBarRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT StatusBarRect
+    )
+{
+    RECT clientRect;
+    TEXTMETRIC textMetrics;
+    HFONT oldFont;
+    LONG dpiValue;
+    LONG height;
+    HDC hdc;
+
+    if (!PhGetClientRect(WindowHandle, &clientRect))
+        SetRectEmpty(&clientRect);
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+    height = PhScaleToDisplay(16, dpiValue);
+
+    // The status bar height follows the dialog font plus its border padding.
+    if (hdc = GetDC(WindowHandle))
+    {
+        oldFont = SelectFont(hdc, GetWindowFont(WindowHandle));
+
+        if (GetTextMetrics(hdc, &textMetrics))
+            height = textMetrics.tmHeight;
+
+        SelectFont(hdc, oldFont);
+        ReleaseDC(WindowHandle, hdc);
+    }
+
+    height += PhScaleToDisplay(6, dpiValue);
+
+    StatusBarRect->left = clientRect.left;
+    StatusBarRect->top = clientRect.bottom - height;
+    StatusBarRect->right = clientRect.right;
+    StatusBarRect->bottom = clientRect.bottom;
+}
+
 INT_PTR CALLBACK WinObjDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2895,9 +3057,11 @@ INT_PTR CALLBACK WinObjDlgProc(
     case WM_INITDIALOG:
         {
             COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+            RECT statusBarRect;
 
             context->WindowHandle = hwndDlg;
             context->ParentWindowHandle = (HWND)lParam;
+            RtlInitializeSListHead(&context->ResolvedListHead);
             context->TreeViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_TREE);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_SEARCH);
@@ -2910,8 +3074,10 @@ INT_PTR CALLBACK WinObjDlgProc(
             }
 
             context->CurrentDirectoryList = PhCreateList(100);
+            PhAcquireQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
             if (!EtObjectManagerOwnHandles || !PhReferenceObjectUnsafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
+            PhReleaseQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -2963,14 +3129,16 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context
                 );
 
+            EtpObjectManagerGetStatusBarRect(hwndDlg, &statusBarRect);
+
             context->StatusBarHandle = CreateWindow(
                 STATUSCLASSNAME,
                 NULL,
                 WS_VISIBLE | WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP, // SBARS_TOOLTIPS
-                0,
-                0,
-                0,
-                0,
+                statusBarRect.left,
+                statusBarRect.top,
+                statusBarRect.right - statusBarRect.left,
+                statusBarRect.bottom - statusBarRect.top,
                 hwndDlg,
                 NULL,
                 NULL,
@@ -3030,8 +3198,10 @@ INT_PTR CALLBACK WinObjDlgProc(
                 PhImageListDestroy(context->ListImageList);
             if (context->CurrentDirectoryList)
                 PhDereferenceObject(context->CurrentDirectoryList);
+            PhAcquireQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
             if (EtObjectManagerOwnHandles)
                 PhDereferenceObject(EtObjectManagerOwnHandles);
+            PhReleaseQueuedLockExclusive(&EtObjectManagerOwnHandlesLock);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
@@ -3055,6 +3225,43 @@ INT_PTR CALLBACK WinObjDlgProc(
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+        }
+        break;
+    case ET_OBJMGR_RESOLVE_DONE:
+        {
+            EtpObjectManagerDrainResolvedEntries(context, TRUE);
+        }
+        break;
+    case ET_OBJMGR_RESOLVER_FINISHED:
+        {
+            // Ignore notifications from resolvers that were already canceled and reaped.
+            if (context->ResolverThreadContext && context->ResolverThreadContext->Generation == (ULONG)lParam)
+            {
+                ULONG sortColumn;
+                PH_SORT_ORDER sortOrder;
+
+                EtpObjectManagerReapResolver(context);
+                EtpObjectManagerDrainResolvedEntries(context, TRUE);
+
+                // Reapply sort and filter after done resolving and ensure selected item is visible
+                PPH_STRING currentFilter = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
+                if (!PhIsNullOrEmptyString(currentFilter))
+                {
+                    EtpObjectManagerSearchControlCallback((ULONG_PTR)PhGetWindowContext(context->SearchBoxHandle, SHRT_MAX), context);  // HACK
+                }
+                else
+                {
+                    ExtendedListView_GetSort(context->ListViewHandle, &sortColumn, &sortOrder);
+                    if (sortOrder != NoSortOrder && sortColumn == ETOBLVC_TARGET)
+                    {
+                        ExtendedListView_SortItems(context->ListViewHandle);
+
+                        INT index = ListView_GetNextItem(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                        if (index != INT_ERROR)
+                            ListView_EnsureVisible(context->ListViewHandle, index, TRUE);
+                    }
+                }
+            }
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -3199,7 +3406,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                         }
                         else
                         {
-                            EtpObjectManagerObjectProperties(entry);
+                            EtpObjectManagerShowObjectProperties(entry, FALSE);
                         }
                     }
                 }
@@ -3429,7 +3636,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                             {
                             case IDC_PROPERTIES:
                                 {
-                                    EtpObjectManagerObjectProperties(entry);
+                                    EtpObjectManagerShowObjectProperties(entry, FALSE);
                                 }
                                 break;
                             case IDC_OPENLINK:
@@ -3583,7 +3790,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                             {
                             case IDC_PROPERTIES:
                                 {
-                                    EtpObjectManagerObjectProperties(&entry);
+                                    EtpObjectManagerShowObjectProperties(&entry, FALSE);
                                 }
                                 break;
                             case IDC_SECURITY:
@@ -3648,7 +3855,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         if (listviewItems[0]->EtObjectType == EtObjectSymLink && GetKeyState(VK_SHIFT) < 0)
                         {
-                            EtpObjectManagerObjectProperties(listviewItems[0]);
+                            EtpObjectManagerShowObjectProperties(listviewItems[0], FALSE);
                         }
                         else if (GetKeyState(VK_CONTROL) < 0)
                         {
@@ -3665,7 +3872,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                             }
                             else
                             {
-                                EtpObjectManagerObjectProperties(listviewItems[0]);
+                                EtpObjectManagerShowObjectProperties(listviewItems[0], FALSE);
                             }
                         }
 
@@ -3681,7 +3888,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                         if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
                         {
                             ET_CREATE_DIRECTORY_OBJECT_ENTRY(directory, context, entry);
-                            EtpObjectManagerObjectProperties(&entry);
+                            EtpObjectManagerShowObjectProperties(&entry, FALSE);
                             return TRUE;
                         }
                     }
@@ -3740,11 +3947,12 @@ NTSTATUS EtShowObjectManagerDialogThread(
 {
     BOOL result;
     MSG message;
+    HWND windowHandle;
     PH_AUTO_POOL autoPool;
 
     PhInitializeAutoPool(&autoPool);
 
-    EtObjectManagerDialogHandle = PhCreateDialog(
+    windowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OBJMGR),
         NULL,
@@ -3752,33 +3960,40 @@ NTSTATUS EtShowObjectManagerDialogThread(
         Parameter
         );
 
+    EtObjectManagerDialogHandle = windowHandle;
+
     PhSetEvent(&EtObjectManagerDialogInitializedEvent);
 
-    while (result = GetMessage(&message, NULL, 0, 0))
+    if (windowHandle)
     {
-        if (result == INT_ERROR)
-            break;
-
-        if (!IsDialogMessage(EtObjectManagerDialogHandle, &message))
+        while (result = GetMessage(&message, NULL, 0, 0))
         {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
+            if (result == INT_ERROR)
+                break;
 
-        PhDrainAutoPool(&autoPool);
+            if (!IsDialogMessage(windowHandle, &message))
+            {
+                TranslateMessage(&message);
+                DispatchMessage(&message);
+            }
+
+            PhDrainAutoPool(&autoPool);
+        }
     }
 
     PhDeleteAutoPool(&autoPool);
+
+    // Clear the dialog state before opening the creation gate (the thread handle) so a
+    // concurrent EtShowObjectManagerDialog can't observe stale state from this instance.
+    EtObjectManagerDialogHandle = NULL;
+
+    PhResetEvent(&EtObjectManagerDialogInitializedEvent);
 
     if (EtObjectManagerDialogThreadHandle)
     {
         NtClose(EtObjectManagerDialogThreadHandle);
         EtObjectManagerDialogThreadHandle = NULL;
     }
-
-    EtObjectManagerDialogHandle = NULL;
-
-    PhResetEvent(&EtObjectManagerDialogInitializedEvent);
 
     return STATUS_SUCCESS;
 }
@@ -3787,6 +4002,8 @@ VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    HWND windowHandle;
+
     if (!EtObjectManagerDialogThreadHandle)
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&EtObjectManagerDialogThreadHandle, EtShowObjectManagerDialogThread, ParentWindowHandle)))
@@ -3798,5 +4015,6 @@ VOID EtShowObjectManagerDialog(
         PhWaitForEvent(&EtObjectManagerDialogInitializedEvent, NULL);
     }
 
-    PostMessage(EtObjectManagerDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
+    if (windowHandle = ReadPointerAcquire(&EtObjectManagerDialogHandle))
+        PostMessage(windowHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

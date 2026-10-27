@@ -30,6 +30,9 @@ const PCSYMCRYPT_HASH SymCryptSha3_512Algorithm = &SymCryptSha3_512Algorithm_def
 //
 // SymCryptSha3_512
 //
+
+#ifndef SYMCRUST_EXPERIMENTAL_BUILD
+
 #define ALG     SHA3_512
 #define Alg     Sha3_512
 #include "hash_pattern.c"
@@ -78,6 +81,7 @@ SymCryptSha3_512Result(
     SymCryptKeccakExtract(&pState->ks, pbResult, SYMCRYPT_SHA3_512_RESULT_SIZE, TRUE);
 }
 
+#endif // SYMCRUST_EXPERIMENTAL_BUILD
 
 //
 // SymCryptSha3_512StateExport

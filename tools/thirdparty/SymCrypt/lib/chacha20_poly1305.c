@@ -6,11 +6,9 @@
 
 #include "precomp.h"
 
-#define CHACHA20_POLY1305_MAX_DATA_SIZE    (((1ull << 32) - 1) * 64)
-
-// Compile time BOOL statically determines if we need to check cbData > CHACHA20_POLY1305_MAX_DATA_SIZE
+// Compile time BOOL statically determines if we need to check cbData > SYMCRYPT_CHACHA20_POLY1305_MAX_DATA_SIZE
 // Used to suppress MSVC C4127 and clang Wtautological-constant-out-of-range-compare on 32b platforms
-const BOOL fcbDataLteMaxDataSizeStatic = SIZE_T_MAX <= CHACHA20_POLY1305_MAX_DATA_SIZE;
+const BOOL fcbDataLteMaxDataSizeStatic = SIZE_T_MAX <= SYMCRYPT_CHACHA20_POLY1305_MAX_DATA_SIZE;
 
 VOID
 SYMCRYPT_CALL
@@ -83,7 +81,7 @@ SymCryptChaCha20Poly1305Encrypt(
     SYMCRYPT_POLY1305_STATE Poly1305State;
     SYMCRYPT_ALIGN BYTE     key[SYMCRYPT_POLY1305_KEY_SIZE];
 
-    if ( !fcbDataLteMaxDataSizeStatic && cbData > CHACHA20_POLY1305_MAX_DATA_SIZE )
+    if ( !fcbDataLteMaxDataSizeStatic && cbData > SYMCRYPT_CHACHA20_POLY1305_MAX_DATA_SIZE )
     {
         status = SYMCRYPT_WRONG_DATA_SIZE;
         goto cleanup;
@@ -154,7 +152,7 @@ SymCryptChaCha20Poly1305Decrypt(
     SYMCRYPT_ALIGN BYTE     buf[SYMCRYPT_POLY1305_RESULT_SIZE];
     SYMCRYPT_ALIGN BYTE     key[SYMCRYPT_POLY1305_KEY_SIZE];
 
-    if ( !fcbDataLteMaxDataSizeStatic && cbData > CHACHA20_POLY1305_MAX_DATA_SIZE )
+    if ( !fcbDataLteMaxDataSizeStatic && cbData > SYMCRYPT_CHACHA20_POLY1305_MAX_DATA_SIZE )
     {
         status = SYMCRYPT_WRONG_DATA_SIZE;
         goto cleanup;

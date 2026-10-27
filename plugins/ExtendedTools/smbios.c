@@ -279,6 +279,20 @@ VOID EtAddSMBIOSEnum(
 #define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), v)
 #define ET_SMBIOS_ENUM(n, v, e)         EtAddSMBIOSEnum(Context, group, n, e, sizeof(e), v);
 
+// Count fields are firmware controlled and are not guaranteed to agree with the
+// formatted section they index into. PH_SMBIOS_CONTAINS_FIELD only validates the
+// count field itself, so derive the maximum representable element count from
+// Header.Length and the array offset, then clamp the declared count. (COR-02)
+#define ET_SMBIOS_ARRAY_MAX_COUNT(Entry, Array) \
+    (((ULONG)(Entry)->Header.Length > (ULONG)((ULONG_PTR)(Array) - (ULONG_PTR)(Entry))) ? \
+     (((ULONG)(Entry)->Header.Length - (ULONG)((ULONG_PTR)(Array) - (ULONG_PTR)(Entry))) / (ULONG)sizeof((Array)[0])) : 0)
+
+// TRUE when a variable-length record of Size bytes starting at Pointer lies
+// wholly inside the formatted section that ends at End. (COR-02)
+#define ET_SMBIOS_RECORD_FITS(Pointer, Size, End) \
+    (((ULONG_PTR)(Pointer) < (ULONG_PTR)(End)) && \
+     ((ULONG_PTR)(End) - (ULONG_PTR)(Pointer) >= (ULONG_PTR)(Size)))
+
 VOID EtSMBIOSFirmware(
     _In_ ULONG_PTR EnumHandle,
     _In_ PPH_SMBIOS_ENTRY Entry,
@@ -522,10 +536,15 @@ VOID EtSMBIOSBaseboard(
     {
         PH_STRING_BUILDER sb;
         PPH_STRING string;
+        ULONG count;
+
+        // Clamp the firmware-declared count to the formatted section. (COR-02)
+        count = min((ULONG)Entry->Baseboard.NumberOfHandles,
+            ET_SMBIOS_ARRAY_MAX_COUNT(Entry, Entry->Baseboard.Handles));
 
         PhInitializeStringBuilder(&sb, 10);
 
-        for (ULONG i = 0; i < Entry->Baseboard.NumberOfHandles; i++)
+        for (ULONG i = 0; i < count; i++)
         {
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
@@ -715,7 +734,7 @@ VOID EtSMBIOSProcessor(
     {
         ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_UNKNOWN, L"Unknown"),
         ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_64_BIT_CAPABLE, L"64-bit capable"),
-        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_MILT_CORE, L"Multi-core"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_MULTI_CORE, L"Multi-core"),
         ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_HARDWARE_THREADED, L"Hardware threaded"),
         ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_EXECUTE_PROTECTION, L"Execute protection"),
         ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_ENHANCED_VIRTUALIZATION, L"Enhanced virtualization"),
@@ -992,10 +1011,15 @@ VOID EtSMBIOSMemoryController(
     {
         PH_STRING_BUILDER sb;
         PPH_STRING string;
+        ULONG count;
+
+        // Clamp the firmware-declared count to the formatted section. (COR-02)
+        count = min((ULONG)Entry->MemoryController.NumberOfSlots,
+            ET_SMBIOS_ARRAY_MAX_COUNT(Entry, Entry->MemoryController.SlotHandles));
 
         PhInitializeStringBuilder(&sb, 10);
 
-        for (ULONG i = 0; i < Entry->MemoryController.NumberOfSlots; i++)
+        for (ULONG i = 0; i < count; i++)
         {
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
@@ -3369,7 +3393,7 @@ VOID EtSMBIOSIPMIDevice(
 {
     static const PH_KEY_VALUE_PAIR types[] =
     {
-        SIP(L"Unknown", SMBIOS_IPMI_INTERFACE_TYPE_UNKONWN),
+        SIP(L"Unknown", SMBIOS_IPMI_INTERFACE_TYPE_UNKNOWN),
         SIP(L"KCS", SMBIOS_IPMI_INTERFACE_TYPE_KCS),
         SIP(L"SMIC", SMBIOS_IPMI_INTERFACE_TYPE_SMIC),
         SIP(L"BT", SMBIOS_IPMI_INTERFACE_TYPE_BT),
@@ -3560,6 +3584,16 @@ VOID EtSMBIOSAdditionalInformation(
             PH_FORMAT format[3];
             PPH_STRING name;
 
+            // The fixed part of the record must lie inside the formatted section
+            // before any of its fields are read. (COR-02)
+            if (!ET_SMBIOS_RECORD_FITS(entry, FIELD_OFFSET(SMBIOS_ADDITIONAL_ENTRY, Value), end))
+                break;
+
+            // A zero or short length would also stall the walk below. (COR-02)
+            if (entry->Length < FIELD_OFFSET(SMBIOS_ADDITIONAL_ENTRY, Value) ||
+                !ET_SMBIOS_RECORD_FITS(entry, entry->Length, end))
+                break;
+
             PhInitFormatC(&format[0], L'#');
             PhInitFormatU(&format[1], i + 1);
 
@@ -3621,7 +3655,7 @@ VOID EtSMBIOSOnboardDevice(
         SIP(L"Bluetooth", SMBIOS_ONBOARD_DEVICE_TYPE_BLUETOOTH),
         SIP(L"WWAN", SMBIOS_ONBOARD_DEVICE_TYPE_WWAN),
         SIP(L"eMMC", SMBIOS_ONBOARD_DEVICE_TYPE_EMMC),
-        SIP(L"NVMe", SMBIOS_ONBOARD_DEIVCE_TYPE_NVME),
+        SIP(L"NVMe", SMBIOS_ONBOARD_DEVICE_TYPE_NVME),
         SIP(L"UFS", SMBIOS_ONBOARD_DEVICE_TYPE_UFS),
     };
 
@@ -3718,6 +3752,13 @@ VOID EtSMBIOSMCHInterface(
         PH_FORMAT format[3];
         PPH_STRING name;
 
+        // Bound each variable-length record by the formatted section. (COR-02)
+        if (!ET_SMBIOS_RECORD_FITS(record, FIELD_OFFSET(SMBIOS_MCHI_PROTOCOL_RECORD, Data), end))
+            break;
+
+        if (!ET_SMBIOS_RECORD_FITS(record->Data, record->Length, end))
+            break;
+
         PhInitFormatC(&format[0], L'#');
         PhInitFormatU(&format[1], i + 1);
 
@@ -3741,8 +3782,11 @@ VOID EtSMBIOSMCHInterface(
             PhDereferenceObject(data);
         }
 
+        // The record is Type, Length, then Length bytes of data, so advance past
+        // the fixed part and the data (this previously advanced one byte short,
+        // desynchronizing every record after the first). (COR-02)
         pointer = PTR_ADD_OFFSET(pointer, record->Length);
-        pointer = PTR_ADD_OFFSET(pointer, FIELD_OFFSET(SMBIOS_MCHI_PROTOCOL_RECORD, Length));
+        pointer = PTR_ADD_OFFSET(pointer, FIELD_OFFSET(SMBIOS_MCHI_PROTOCOL_RECORD, Data));
         record = pointer;
     }
 }
@@ -3859,6 +3903,13 @@ VOID EtSMBIOSProcessorAdditional(
             PH_FORMAT format[3];
             PPH_STRING name;
 
+            // Bound each variable-length block by the formatted section. (COR-02)
+            if (!ET_SMBIOS_RECORD_FITS(block, FIELD_OFFSET(SMBIOS_PROCESSOR_SPECIFIC_BLOCK, Data), end))
+                break;
+
+            if (!ET_SMBIOS_RECORD_FITS(block->Data, block->Length, end))
+                break;
+
             PhInitFormatC(&format[0], L'#');
             PhInitFormatU(&format[1], ++count);
 
@@ -3957,10 +4008,15 @@ VOID EtSMBIOSFirmwareInventory(
     {
         PH_STRING_BUILDER sb;
         PPH_STRING string;
+        ULONG count;
+
+        // Clamp the firmware-declared count to the formatted section. (COR-02)
+        count = min((ULONG)Entry->FirmwareInventory.AssociatedComponents,
+            ET_SMBIOS_ARRAY_MAX_COUNT(Entry, Entry->FirmwareInventory.AssociatedComponentHandles));
 
         PhInitializeStringBuilder(&sb, 10);
 
-        for (UCHAR i = 0; i < Entry->FirmwareInventory.AssociatedComponents; i++)
+        for (ULONG i = 0; i < count; i++)
         {
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
@@ -3990,7 +4046,7 @@ VOID EtSMBIOSStringProperty(
     static const PH_KEY_VALUE_PAIR identifiers[] =
     {
         SIP(L"Reserved", SMBIOS_STRING_PROPERTY_ID_RESERVED),
-        SIP(L"UEFI device path", SMBIOS_STRING_PROPERTY_ID_UEIF_DEVICE_PATH),
+        SIP(L"UEFI device path", SMBIOS_STRING_PROPERTY_ID_UEFI_DEVICE_PATH),
     };
 
     ET_SMBIOS_GROUP(L"String property");

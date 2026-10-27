@@ -4,7 +4,7 @@ cd /d "%~dp0\.."
 
 REM -----------------------------------------------------------------------------
 REM Script: build_zsign.cmd
-REM Description: Signs a specified driver or package file through CustomBuildTool.
+REM Description: Signs build outputs through CustomBuildTool.
 REM -----------------------------------------------------------------------------
 
 REM Initialize script state and tool paths.
@@ -24,27 +24,69 @@ endlocal & exit /b %ExitCode%
 
 REM -----------------------------------------------------------------------------
 REM Function: Main
-REM Description: Validates arguments and signs the requested file.
+REM Description: Signs a file, or all executable files in a directory tree.
 REM Parameters:
-REM   %~1 - Path to the file that should be signed.
+REM   %~1 - Optional file or directory path. Defaults to the bin directory.
 REM -----------------------------------------------------------------------------
 :Main
-if "%~1"=="" (
-    echo:
-    echo Usage: build_zsign.cmd [FILE_PATH]
-    echo:
+set "TargetPath=%~1"
+if not defined TargetPath set "TargetPath=bin"
+
+if not exist "%TargetPath%" (
+    echo Path not found: %TargetPath%
     exit /b 1
 )
 
 call :CheckCustomBuildTool
 if errorlevel 1 exit /b %errorlevel%
 
+REM Use the directory attribute; "file.exe\." normalizes to "file.exe" so "if exist path\." matches files too.
+set "TargetAttr="
+for %%A in ("%TargetPath%") do set "TargetAttr=%%~aA"
+
 echo:
-call :RunCustomBuildTool "-kphsign" "%~1"
-if errorlevel 1 exit /b %errorlevel%
+if /i "%TargetAttr:~0,1%"=="d" (
+    call :SignDirectory "%TargetPath%"
+) else (
+    call :SignFile "%TargetPath%"
+)
+if errorlevel 1 exit /b !errorlevel!
 echo:
 
 exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: SignDirectory
+REM Description: Recursively signs executable and library files in a directory.
+REM Parameters:
+REM   %~1 - Directory containing the files that should be signed.
+REM -----------------------------------------------------------------------------
+:SignDirectory
+set "SignedFiles=0"
+for /r "%~1" %%F in (*.exe *.dll) do (
+    call :SignFile "%%~fF"
+    if errorlevel 1 exit /b !errorlevel!
+    set /a SignedFiles+=1 >nul
+)
+
+if !SignedFiles! equ 0 (
+    echo No executable or library files found in %~1
+    exit /b 1
+)
+
+echo Signed !SignedFiles! files.
+exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: SignFile
+REM Description: Creates a KPH signature for one file.
+REM Parameters:
+REM   %~1 - File to sign.
+REM -----------------------------------------------------------------------------
+:SignFile
+echo Signing %~1
+call :RunCustomBuildTool "-kphsign" "%~1"
+exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
 REM Function: CheckCustomBuildTool

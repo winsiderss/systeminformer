@@ -48,6 +48,7 @@ typedef enum _PH_MEMORY_REGION_TYPE
     ProcessParametersRegion,
     LeapSecondDataRegion,
     DesktopHeapRegion,
+    ShadowStackRegion,
 } PH_MEMORY_REGION_TYPE;
 
 typedef enum _PH_ACTIVATION_CONTEXT_DATA_TYPE
@@ -121,6 +122,7 @@ typedef struct _PH_MEMORY_ITEM
     SIZE_T SharedWorkingSetPages;
     SIZE_T ShareableWorkingSetPages;
     SIZE_T LockedWorkingSetPages;
+    SIZE_T ModifiedWorkingSetPages;
 
     SIZE_T SharedOriginalPages;
 
@@ -148,6 +150,10 @@ typedef struct _PH_MEMORY_ITEM
         {
             HANDLE ThreadId;
         } Stack;
+        struct
+        {
+            HANDLE ThreadId;
+        } ShadowStack;
         struct
         {
             ULONG Index;

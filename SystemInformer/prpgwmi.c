@@ -97,11 +97,6 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
     _In_ PPH_WMI_ENTRY Entry
     );
 
-PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
-    _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PPH_STRING RelativePath
-    );
-
 VOID PhpClearWmiProviderTree(
     _In_ PPH_PROCESS_WMI_CONTEXT Context
     );
@@ -240,7 +235,7 @@ PhpCreateMiSession(
 
     status = PhpInitializeMiApplication(Application);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         return status;
 
     miResult = MI_Application_NewSession(
@@ -320,6 +315,69 @@ PhpCreateMiOperationOptions(
     *Created = TRUE;
     return S_OK;
 }
+
+/**
+ * Cancels an operation and consumes any remaining results. MI_Operation_Close blocks
+ * until the final result of a synchronous operation has been read.
+ */
+static
+VOID
+PhpCancelMiOperation(
+    _Inout_ MI_Operation* Operation,
+    _In_ MI_Boolean MoreResults
+    )
+{
+    const MI_Instance* instance;
+    const MI_Instance* completionDetails;
+    const MI_Char* errorMessage;
+    MI_Result operationResult;
+
+    if (!MoreResults || !Operation->ft)
+        return;
+
+    MI_Operation_Cancel(Operation, MI_REASON_NONE);
+
+    while (MoreResults && MI_Operation_GetInstance(
+        Operation,
+        &instance,
+        &MoreResults,
+        &operationResult,
+        &errorMessage,
+        &completionDetails
+        ) == MI_RESULT_OK)
+    {
+        NOTHING;
+    }
+}
+
+/**
+ * Escapes a value for use inside a single-quoted WQL string literal (backslash is the escape character).
+ */
+static
+PPH_STRING
+PhpEscapeWqlString(
+    _In_opt_ PPH_STRING String
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    if (PhIsNullOrEmptyString(String))
+        return PhReferenceEmptyString();
+
+    PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) + 8);
+
+    for (SIZE_T i = 0; i < String->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = String->Buffer[i];
+
+        if (c == L'\\' || c == L'\'')
+            PhAppendCharStringBuilder(&stringBuilder, L'\\');
+
+        PhAppendCharStringBuilder(&stringBuilder, c);
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
 #endif
 
 #if defined(PHLIB_WBEM_DEPRECATED)
@@ -345,7 +403,7 @@ HRESULT PhpWmiProviderExecMethod(
         &wbemLocator
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     wbemResourceString = PhStringRefToBSTR(&wbemResource);
@@ -361,7 +419,7 @@ HRESULT PhpWmiProviderExecMethod(
         &wbemServices
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = PhCoSetProxyBlanket(
@@ -385,7 +443,7 @@ HRESULT PhpWmiProviderExecMethod(
     wbemLanguageString = PhStringRefToBSTR(&wbemLanguage);
     wbemQueryString = PhStringRefToBSTR(&querySelectString->sr);
 
-    if (FAILED(status = IWbemServices_ExecQuery(
+    if (HR_FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
         wbemLanguageString,
         wbemQueryString,
@@ -491,31 +549,32 @@ HRESULT PhpWmiProviderExecMethod(
     MI_Result miResult;
     MI_Result operationResult = MI_RESULT_OK;
     ULONG matchCount = 0;
+    PPH_STRING namespaceString;
+    PPH_STRING providerString;
+    PPH_STRING userString;
 
     status = PhpCreateMiSession(
         &application,
         &session
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
+    namespaceString = PhpEscapeWqlString(Entry->ProviderNamespace);
+    providerString = PhpEscapeWqlString(Entry->ProviderName);
+    userString = PhpEscapeWqlString(Entry->UserName);
     queryString = PhFormatString(
-        L"%s %s %s %s %s %s = %s %s %s = '%s' %s %s = '%s' %s %s = '%s'",
-        L"SELECT",
+        L"SELECT %s FROM Msft_Providers WHERE HostProcessIdentifier = %s AND Namespace = '%s' AND Provider = '%s' AND User = '%s'",
         L"Namespace,Provider,User,__RELPATH",
-        L"FROM",
-        L"Msft_Providers",
-        L"WHERE",
-        L"HostProcessIdentifier",
         ProcessIdString,
-        L"AND Namespace",
-        PhGetStringOrEmpty(Entry->ProviderNamespace),
-        L"AND Provider",
-        PhGetStringOrEmpty(Entry->ProviderName),
-        L"AND User",
-        PhGetStringOrEmpty(Entry->UserName)
+        PhGetString(namespaceString),
+        PhGetString(providerString),
+        PhGetString(userString)
         );
+    PhDereferenceObject(userString);
+    PhDereferenceObject(providerString);
+    PhDereferenceObject(namespaceString);
 
     MI_Session_QueryInstances(
         &session,
@@ -580,6 +639,7 @@ HRESULT PhpWmiProviderExecMethod(
             for (;;)
             {
                 MI_Value value;
+                MI_Type type;
 
                 miResult = MI_Operation_GetInstance(
                     &methodOperation,
@@ -603,32 +663,38 @@ HRESULT PhpWmiProviderExecMethod(
                     methodInstance,
                     L"ReturnValue",
                     &value,
-                    NULL,
+                    &type,
                     NULL,
                     NULL
                     ) == MI_RESULT_OK &&
+                    type == MI_UINT32 &&
                     value.uint32 != ERROR_SUCCESS)
                 {
                     status = HRESULT_FROM_WIN32(value.uint32);
                 }
 
-                if (FAILED(status) || !methodMoreResults)
+                if (HR_FAILED(status) || !methodMoreResults)
                     break;
             }
 
-            if (SUCCEEDED(status) && methodOperationResult != MI_RESULT_OK)
+            if (HR_SUCCESS(status) && methodOperationResult != MI_RESULT_OK)
             {
                 status = PhpMiResultToHresult(methodOperationResult);
             }
 
+            if (miResult == MI_RESULT_OK)
+                PhpCancelMiOperation(&methodOperation, methodMoreResults);
             MI_Operation_Close(&methodOperation);
         }
 
-        if (FAILED(status) || !moreResults)
+        if (HR_FAILED(status) || !moreResults)
             break;
     }
 
-    if (SUCCEEDED(status))
+    if (miResult == MI_RESULT_OK)
+        PhpCancelMiOperation(&operation, moreResults);
+
+    if (HR_SUCCESS(status))
     {
         if (matchCount == 0)
             status = HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
@@ -676,7 +742,7 @@ HRESULT PhpQueryWmiProviderFileName(
         &wbemLocator
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     wbemResourceString = PhStringRefToBSTR(&ProviderNameSpace->sr);
@@ -692,7 +758,7 @@ HRESULT PhpQueryWmiProviderFileName(
         &wbemServices
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = PhCoSetProxyBlanket(
@@ -716,7 +782,7 @@ HRESULT PhpQueryWmiProviderFileName(
     wbemLanguageString = PhStringRefToBSTR(&wbemLanguage);
     wbemQueryString = PhStringRefToBSTR(&querySelectString->sr);
 
-    if (FAILED(status = IWbemServices_ExecQuery(
+    if (HR_FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
         wbemLanguageString,
         wbemQueryString,
@@ -728,7 +794,7 @@ HRESULT PhpQueryWmiProviderFileName(
         goto CleanupExit;
     }
 
-    if (SUCCEEDED(status = IEnumWbemClassObject_Next(
+    if (HR_SUCCESS(status = IEnumWbemClassObject_Next(
         wbemEnumerator,
         WBEM_INFINITE,
         1,
@@ -755,7 +821,7 @@ HRESULT PhpQueryWmiProviderFileName(
             L"InprocServer32"
             );
 
-        if (SUCCEEDED(status = HRESULT_FROM_NT(PhOpenKey(
+        if (HR_SUCCESS(status = HRESULT_FROM_NT(PhOpenKey(
             &keyHandle,
             KEY_QUERY_VALUE,
             PH_KEY_CLASSES_ROOT,
@@ -797,7 +863,7 @@ CleanupExit:
     if (wbemLocator)
         IWbemLocator_Release(wbemLocator);
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *FileName = fileName;
     }
@@ -830,19 +896,25 @@ HRESULT PhpQueryWmiProviderFileName(
         &session
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
-    queryString = PhFormatString(
-        L"%s %s %s %s %s %s = '%s'",
-        L"SELECT",
-        L"clsid",
-        L"FROM",
-        L"__Win32Provider",
-        L"WHERE",
-        L"Name",
-        PhGetString(ProviderName)
-        );
+    {
+        PPH_STRING providerString = PhpEscapeWqlString(ProviderName);
+
+        queryString = PhFormatString(
+            L"%s %s %s %s %s %s = '%s'",
+            L"SELECT",
+            L"clsid",
+            L"FROM",
+            L"__Win32Provider",
+            L"WHERE",
+            L"Name",
+            PhGetString(providerString)
+            );
+
+        PhDereferenceObject(providerString);
+    }
 
     MI_Session_QueryInstances(
         &session,
@@ -875,11 +947,13 @@ HRESULT PhpQueryWmiProviderFileName(
         clsidString = PhGetMiClassObjectString(instance, L"CLSID");
     }
 
-    if (SUCCEEDED(status) && operationResult != MI_RESULT_OK)
+    if (!moreResults && operationResult != MI_RESULT_OK)
     {
         status = PhpMiResultToHresult(operationResult);
         goto CleanupExit;
     }
+
+    PhpCancelMiOperation(&operation, moreResults);
 
     if (clsidString)
     {
@@ -894,7 +968,7 @@ HRESULT PhpQueryWmiProviderFileName(
             L"InprocServer32"
             );
 
-        if (SUCCEEDED(status = HRESULT_FROM_NT(PhOpenKey(
+        if (HR_SUCCESS(status = HRESULT_FROM_NT(PhOpenKey(
             &keyHandle,
             KEY_QUERY_VALUE,
             PH_KEY_CLASSES_ROOT,
@@ -931,7 +1005,7 @@ CleanupExit:
     if (application.ft)
         MI_Application_Close(&application);
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *FileName = fileName;
     }
@@ -964,7 +1038,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         &wbemLocator
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     wbemResourceString = PhStringRefToBSTR(&wbemResource);
@@ -980,7 +1054,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         &wbemServices
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = PhCoSetProxyBlanket(
@@ -1004,7 +1078,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
     wbemLanguageString = PhStringRefToBSTR(&wbemLanguage);
     wbemQueryString = PhStringRefToBSTR(&querySelectString->sr);
 
-    if (FAILED(status = IWbemServices_ExecQuery(
+    if (HR_FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
         wbemLanguageString,
         wbemQueryString,
@@ -1040,7 +1114,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         {
             PPH_STRING fileName = NULL;
 
-            if (SUCCEEDED(PhpQueryWmiProviderFileName(entry->ProviderNamespace, entry->ProviderName, &fileName)))
+            if (HR_SUCCESS(PhpQueryWmiProviderFileName(entry->ProviderNamespace, entry->ProviderName, &fileName)))
             {
                 entry->FileName = fileName;
             }
@@ -1065,7 +1139,7 @@ CleanupExit:
     if (wbemLocator)
         IWbemLocator_Release(wbemLocator);
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *ProviderList = providerList;
     }
@@ -1099,7 +1173,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         &session
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = PhpCreateMiOperationOptions(
@@ -1109,13 +1183,13 @@ HRESULT PhpQueryWmiProviderHostProcess(
         &optionsCreated
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     queryString = PhFormatString(
         L"%s %s %s %s %s %s = %s",
         L"SELECT",
-        L"Namespace,Provider,User,__RELPATH",
+        L"Namespace,Provider,User",
         L"FROM",
         L"Msft_Providers",
         L"WHERE",
@@ -1162,13 +1236,12 @@ HRESULT PhpQueryWmiProviderHostProcess(
         entry->ProviderNamespace = PhGetMiClassObjectString(instance, L"Namespace");
         entry->ProviderName = PhGetMiClassObjectString(instance, L"Provider");
         entry->UserName = PhGetMiClassObjectString(instance, L"User");
-        entry->RelativePath = PhGetMiClassObjectString(instance, L"__RELPATH");
 
         if (entry->ProviderNamespace && entry->ProviderName)
         {
             PPH_STRING fileName = NULL;
 
-            if (SUCCEEDED(PhpQueryWmiProviderFileName(entry->ProviderNamespace, entry->ProviderName, &fileName)))
+            if (HR_SUCCESS(PhpQueryWmiProviderFileName(entry->ProviderNamespace, entry->ProviderName, &fileName)))
             {
                 entry->FileName = fileName;
             }
@@ -1180,7 +1253,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
             break;
     }
 
-    if (SUCCEEDED(status) && operationResult != MI_RESULT_OK)
+    if (HR_SUCCESS(status) && operationResult != MI_RESULT_OK)
         status = PhpMiResultToHresult(operationResult);
 
 CleanupExit:
@@ -1196,7 +1269,7 @@ CleanupExit:
     if (application.ft)
         MI_Application_Close(&application);
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *ProviderList = providerList;
     }
@@ -1224,7 +1297,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
         &wbemLocator
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     wbemResourceString = PhStringRefToBSTR(&wbemResource);
@@ -1240,7 +1313,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
         &wbemServices
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = PhCoSetProxyBlanket(
@@ -1259,7 +1332,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
         NULL
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         PPH_STRING string;
         PH_STRING_BUILDER stringBuilder;
@@ -1528,25 +1601,27 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     MI_Result operationResult = MI_RESULT_OK;
     ULONG matchCount = 0;
 
-    if (FAILED(PhpCreateMiSession(&application, &session)))
+    if (HR_FAILED(PhpCreateMiSession(&application, &session)))
         goto CleanupExit;
 
-    queryString = PhFormatString(
-        L"%s %s %s %s %s %s = %s %s %s = '%s' %s %s = '%s' %s %s = '%s'",
-        L"SELECT",
-        L"*",
-        L"FROM",
-        L"Msft_Providers",
-        L"WHERE",
-        L"HostProcessIdentifier",
-        ProcessIdString,
-        L"AND Namespace",
-        PhGetStringOrEmpty(Entry->ProviderNamespace),
-        L"AND Provider",
-        PhGetStringOrEmpty(Entry->ProviderName),
-        L"AND User",
-        PhGetStringOrEmpty(Entry->UserName)
-    );
+    {
+        PPH_STRING namespaceString = PhpEscapeWqlString(Entry->ProviderNamespace);
+        PPH_STRING providerNameString = PhpEscapeWqlString(Entry->ProviderName);
+        PPH_STRING userString = PhpEscapeWqlString(Entry->UserName);
+
+        queryString = PhFormatString(
+            L"SELECT %s FROM Msft_Providers WHERE HostProcessIdentifier = %s AND Namespace = '%s' AND Provider = '%s' AND User = '%s'",
+            L"*",
+            ProcessIdString,
+            PhGetString(namespaceString),
+            PhGetString(providerNameString),
+            PhGetString(userString)
+            );
+
+        PhDereferenceObject(userString);
+        PhDereferenceObject(providerNameString);
+        PhDereferenceObject(namespaceString);
+    }
 
     MI_Session_QueryInstances(
         &session,
@@ -1620,6 +1695,9 @@ PPH_STRING PhpQueryWmiProviderStatistics(
         PhClearReference(&providerString);
     }
 
+    if (miResult == MI_RESULT_OK)
+        PhpCancelMiOperation(&operation, moreResults);
+
 CleanupExit:
     //if (instance)
     //    MI_Instance_Delete((MI_Instance*)instance);
@@ -1670,7 +1748,7 @@ VOID PhQueryWmiHostProcessString(
     // Note: We use a timeout value of 1 to avoid deadlocks when
     // the wmiprvse.exe process is suspended. Fixes GH#713 (dmex)
 
-    if (SUCCEEDED(PhpQueryWmiProviderHostProcess(ProcessItem, 1, &providerList)))
+    if (HR_SUCCESS(PhpQueryWmiProviderHostProcess(ProcessItem, 1, &providerList)))
     {
         for (ULONG i = 0; i < providerList->Count; i++)
         {
@@ -1739,7 +1817,7 @@ VOID PhpRefreshWmiProvidersList(
         &providerList
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         for (ULONG i = 0; i < providerList->Count; i++)
         {
@@ -1815,7 +1893,10 @@ VOID PhpShowWmiProviderNodeContextMenu(
     if (!PhpGetSelectedWmiProviderNodes(Context, &nodes, &numberOfNodes))
         return;
     if (numberOfNodes == 0)
+    {
+        PhFree(nodes);
         return;
+    }
 
     menu = PhCreateEMenu();
 
@@ -1857,7 +1938,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
 
                     status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Suspend"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
 
-                    if (FAILED(status))
+                    if (HR_FAILED(status))
                     {
                         PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
                     }
@@ -1869,7 +1950,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
 
                     status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Resume"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
 
-                    if (FAILED(status))
+                    if (HR_FAILED(status))
                     {
                         PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
                     }
@@ -1881,7 +1962,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
 
                     status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Unload"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
 
-                    if (FAILED(status))
+                    if (HR_FAILED(status))
                     {
                         PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
                     }
@@ -1940,6 +2021,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
     }
 
     PhDestroyEMenu(menu);
+    PhFree(nodes);
 }
 
 VOID PhLoadSettingsWmiProviderList(
@@ -2095,33 +2177,6 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
         node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
 
     return node;
-}
-
-PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
-    _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PPH_STRING RelativePath
-    )
-{
-    PHP_PROCESS_WMI_TREENODE lookupNode;
-    PH_WMI_ENTRY lookupProvider;
-    PPHP_PROCESS_WMI_TREENODE lookupNodePtr = &lookupNode;
-    PPHP_PROCESS_WMI_TREENODE *node;
-
-    memset(&lookupNode, 0, sizeof(PHP_PROCESS_WMI_TREENODE));
-    memset(&lookupProvider, 0, sizeof(PH_WMI_ENTRY));
-
-    lookupProvider.RelativePath = RelativePath;
-    lookupNode.Provider = &lookupProvider;
-
-    node = (PPHP_PROCESS_WMI_TREENODE*)PhFindEntryHashtable(
-        Context->NodeHashtable,
-        &lookupNodePtr
-        );
-
-    if (node)
-        return *node;
-    else
-        return NULL;
 }
 
 VOID PhpRemoveWmiProviderNode(

@@ -177,6 +177,7 @@ INT_PTR CALLBACK NetworkDevicePanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
             context->NetAdapterPanelSentLabel = GetDlgItem(WindowHandle, IDC_STAT_BSENT);
             context->NetAdapterPanelReceivedLabel = GetDlgItem(WindowHandle, IDC_STAT_BRECEIVED);
             context->NetAdapterPanelTotalLabel = GetDlgItem(WindowHandle, IDC_STAT_BTOTAL);
@@ -218,11 +219,57 @@ VOID NetworkDeviceInitializeDialogDpi(
     Context->GraphPadding = PhScaleToDisplay(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
+VOID NetworkDeviceGetGraphRects(
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = Context->GraphMarginScaled;
+    graphPadding = Context->GraphPadding;
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->LabelSendHandle, &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    y = marginRect.top;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+}
+
 VOID NetworkDeviceCreateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[2];
+    RECT graphRects[2];
+
+    Context->LabelSendHandle = GetDlgItem(Context->WindowHandle, IDC_UP_L);
+    Context->LabelReceiveHandle = GetDlgItem(Context->WindowHandle, IDC_DOWN_L);
+
+    NetworkDeviceGetGraphRects(Context, labelRects, graphRects);
 
     PhInitializeGraphState(&Context->GraphSendState);
     PhInitializeGraphState(&Context->GraphReceiveState);
@@ -235,10 +282,10 @@ VOID NetworkDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -250,19 +297,16 @@ VOID NetworkDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
         &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphReceiveHandle, TRUE);
-
-    Context->LabelSendHandle = GetDlgItem(Context->WindowHandle, IDC_UP_L);
-    Context->LabelReceiveHandle = GetDlgItem(Context->WindowHandle, IDC_DOWN_L);
 }
 
 VOID NetworkDeviceUpdateGraphs(
@@ -282,81 +326,65 @@ VOID NetworkDeviceLayoutGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT margin;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    RECT labelRects[2];
+    RECT graphRects[2];
     HDWP deferHandle;
-    ULONG y;
 
     Context->GraphSendState.Valid = FALSE;
     Context->GraphSendState.TooltipIndex = ULONG_MAX;
     Context->GraphReceiveState.Valid = FALSE;
     Context->GraphReceiveState.TooltipIndex = ULONG_MAX;
 
-    margin = Context->GraphMarginScaled;
-
-    PhGetClientRect(Context->WindowHandle, &clientRect);
-    PhGetClientRect(Context->LabelSendHandle, &labelRect);
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 2 - Context->GraphPadding * 3) / 2;
+    NetworkDeviceGetGraphRects(Context, labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
-    y = margin.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->LabelSendHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->GraphSendHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->LabelReceiveHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->GraphReceiveHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     EndDeferWindowPos(deferHandle);
 }
 
-VOID NetworkDeviceNotifyProcessorGraph(
+VOID NetworkDeviceNotifySendGraph(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
     )
@@ -379,18 +407,15 @@ VOID NetworkDeviceNotifyProcessorGraph(
 
             if (!Context->GraphSendState.Valid)
             {
-                ULONG i;
                 FLOAT max = 4 * 1024; // Minimum scaling 4KB
+                FLOAT dataMax;
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
-                {
-                    FLOAT data1;
+                PhCopyConvertCircularBufferULONG64(&Context->AdapterEntry->OutboundBuffer, Context->GraphSendState.Data1, drawInfo->LineDataCount);
 
-                    Context->GraphSendState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->AdapterEntry->OutboundBuffer, i);
+                dataMax = PhMaxMemorySingles(Context->GraphSendState.Data1, drawInfo->LineDataCount);
 
-                    if (max < data1)
-                        max = data1;
-                }
+                if (max < dataMax)
+                    max = dataMax;
 
                 if (max != 0)
                 {
@@ -442,7 +467,7 @@ VOID NetworkDeviceNotifyProcessorGraph(
     }
 }
 
-VOID NetworkDeviceNotifyPackageGraph(
+VOID NetworkDeviceNotifyReceiveGraph(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
     )
@@ -465,18 +490,15 @@ VOID NetworkDeviceNotifyPackageGraph(
 
             if (!Context->GraphReceiveState.Valid)
             {
-                ULONG i;
                 FLOAT max = 4 * 1024; // Minimum scaling 4KB
+                FLOAT dataMax;
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
-                {
-                    FLOAT data1;
+                PhCopyConvertCircularBufferULONG64(&Context->AdapterEntry->InboundBuffer, Context->GraphReceiveState.Data1, drawInfo->LineDataCount);
 
-                    Context->GraphReceiveState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->AdapterEntry->InboundBuffer, i);
+                dataMax = PhMaxMemorySingles(Context->GraphReceiveState.Data1, drawInfo->LineDataCount);
 
-                    if (max < data1)
-                        max = data1;
-                }
+                if (max < dataMax)
+                    max = dataMax;
 
                 if (max != 0)
                 {
@@ -542,11 +564,11 @@ BOOLEAN NetworkDeviceGraphMessageCallback(
 
     if (WindowHandle == context->GraphSendHandle)
     {
-        NetworkDeviceNotifyProcessorGraph(context, header);
+        NetworkDeviceNotifySendGraph(context, header);
     }
     else if (WindowHandle == context->GraphReceiveHandle)
     {
-        NetworkDeviceNotifyPackageGraph(context, header);
+        NetworkDeviceNotifyReceiveGraph(context, header);
     }
 
     return TRUE;
@@ -665,7 +687,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), WindowHandle, NetworkDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
+            PhAddLayoutItemExLogical(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             NetworkDeviceInitializeDialogDpi(context);
             NetworkDeviceUpdateTitle(context);
@@ -760,10 +782,9 @@ BOOLEAN NetworkDeviceSectionCallback(
         {
             if (context->WindowHandle)
             {
-                if (context->AdapterEntry->JustProcessed)
+                if (InterlockedExchangeAcquire((volatile LONG*)&context->AdapterEntry->JustProcessed, FALSE))
                 {
                     NetworkDeviceUpdateTitle(context);
-                    InterlockedExchange((volatile LONG*)&context->AdapterEntry->JustProcessed, FALSE);
                 }
 
                 NetworkDeviceTickDialog(context);
@@ -814,18 +835,15 @@ BOOLEAN NetworkDeviceSectionCallback(
             if (!Section->GraphState.Valid)
             {
                 FLOAT max = 4 * 1024; // Minimum scaling 4KB
+                FLOAT dataMax;
 
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                {
-                    FLOAT data1;
-                    FLOAT data2;
+                PhCopyConvertCircularBufferULONG64(&context->AdapterEntry->InboundBuffer, Section->GraphState.Data1, drawInfo->LineDataCount);
+                PhCopyConvertCircularBufferULONG64(&context->AdapterEntry->OutboundBuffer, Section->GraphState.Data2, drawInfo->LineDataCount);
 
-                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->InboundBuffer, i);
-                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->OutboundBuffer, i);
+                dataMax = PhAddPlusMaxMemorySingles(Section->GraphState.Data1, Section->GraphState.Data2, drawInfo->LineDataCount);
 
-                    if (max < data1 + data2)
-                        max = data1 + data2;
-                }
+                if (max < dataMax)
+                    max = dataMax;
 
                 if (max != 0)
                 {

@@ -20,6 +20,10 @@
 #define AfdRioRDOpenPacket "AfdRioRDOpenPacket" // void // rev
 
 // private
+/**
+ * The AFD_ENDPOINT_FLAGS structure describes the transport characteristics of an AFD socket endpoint as a set of bit flags.
+ * It is supplied in the AFD_OPEN_PACKET when a socket is created and selects behaviors such as connectionless, message-mode, raw, multipoint and RIO operation.
+ */
 typedef struct _AFD_ENDPOINT_FLAGS
 {
     union
@@ -56,6 +60,10 @@ typedef struct _AFD_ENDPOINT_FLAGS
 #define DD_RAW_IPV6_DEVICE_NAME L"\\Device\\RawIp6"
 
 // private
+/**
+ * The AFD_OPEN_PACKET structure describes the parameters used to create (open) an AFD socket endpoint.
+ * It is passed as the value of the AfdOpenPacket extended attribute when opening the \\Device\\Afd device with NtCreateFile.
+ */
 typedef struct _AFD_OPEN_PACKET
 {
     _In_ AFD_ENDPOINT_FLAGS __f;
@@ -68,6 +76,10 @@ typedef struct _AFD_OPEN_PACKET
 } AFD_OPEN_PACKET, *PAFD_OPEN_PACKET;
 
 // rev (FILE_FULL_EA_INFORMATION + AfdOpenPacket + AFD_OPEN_PACKET)
+/**
+ * The AFD_OPEN_PACKET_FULL_EA structure is the FILE_FULL_EA_INFORMATION wrapper that carries an AFD_OPEN_PACKET in the extended attributes passed to NtCreateFile when opening an AFD socket.
+ * The EaName field holds the AfdOpenPacket tag and OpenPacket holds the socket creation parameters.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _AFD_OPEN_PACKET_FULL_EA
 {
@@ -80,6 +92,9 @@ typedef struct _AFD_OPEN_PACKET_FULL_EA
 } AFD_OPEN_PACKET_FULL_EA, *PAFD_OPEN_PACKET_FULL_EA;
 
 // private
+/**
+ * The AFD_SWITCH_OPEN_PACKET structure describes the completion port and event supplied when opening an AFD switch (SAN) endpoint via the AfdSwOpenPacket extended attribute.
+ */
 typedef struct _AFD_SWITCH_OPEN_PACKET
 {
     HANDLE CompletionPort;
@@ -255,6 +270,9 @@ typedef struct _AFD_SWITCH_OPEN_PACKET
 #include <pshpack1.h>
 
 // rev - a union for TLI/TDI socket addresses
+/**
+ * The AFD_ADDRESS union represents a socket address in either TLI (SOCKADDR_STORAGE) or TDI (TDI_ADDRESS_INFO) form, matching the transport mode selected for the socket.
+ */
 typedef union _AFD_ADDRESS
 {
     SOCKADDR_STORAGE TliAddress;
@@ -293,6 +311,9 @@ typedef union _AFD_ADDRESS
 #define AFD_EXCLUSIVEADDRUSE 3
 
 // private
+/**
+ * The AFD_BIND_INFO structure describes the local address and share access used to bind a TDI/hybrid AFD socket (IOCTL_AFD_BIND).
+ */
 typedef struct _AFD_BIND_INFO
 {
     ULONG ShareAccess;
@@ -300,6 +321,9 @@ typedef struct _AFD_BIND_INFO
 } AFD_BIND_INFO, *PAFD_BIND_INFO;
 
 // private
+/**
+ * The AFD_BIND_INFO_TL structure is the TLI variant of AFD_BIND_INFO that carries a SOCKADDR local address for IOCTL_AFD_BIND.
+ */
 typedef struct _AFD_BIND_INFO_TL
 {
     ULONG ShareAccess;
@@ -307,6 +331,9 @@ typedef struct _AFD_BIND_INFO_TL
 } AFD_BIND_INFO_TL, *PAFD_BIND_INFO_TL;
 
 // private
+/**
+ * The AFD_CONNECT_JOIN_INFO structure describes the parameters for connecting a TDI/hybrid AFD socket or joining a multipoint leaf (IOCTL_AFD_CONNECT / IOCTL_AFD_JOIN_LEAF).
+ */
 typedef struct _AFD_CONNECT_JOIN_INFO
 {
     BOOLEAN SanActive;
@@ -316,6 +343,9 @@ typedef struct _AFD_CONNECT_JOIN_INFO
 } AFD_CONNECT_JOIN_INFO, *PAFD_CONNECT_JOIN_INFO;
 
 // private
+/**
+ * The AFD_CONNECT_JOIN_INFO_TL structure is the TLI variant of AFD_CONNECT_JOIN_INFO that carries a SOCKADDR remote address.
+ */
 typedef struct _AFD_CONNECT_JOIN_INFO_TL
 {
     BOOLEAN SanActive;
@@ -325,6 +355,9 @@ typedef struct _AFD_CONNECT_JOIN_INFO_TL
 } AFD_CONNECT_JOIN_INFO_TL, *PAFD_CONNECT_JOIN_INFO_TL;
 
 // private
+/**
+ * The AFD_LISTEN_INFO structure describes the parameters used to place an AFD socket into the listening state (IOCTL_AFD_START_LISTEN).
+ */
 typedef struct _AFD_LISTEN_INFO
 {
     BOOLEAN SanActive;
@@ -333,6 +366,9 @@ typedef struct _AFD_LISTEN_INFO
 } AFD_LISTEN_INFO, *PAFD_LISTEN_INFO;
 
 // private
+/**
+ * The AFD_LISTEN_RESPONSE_INFO structure receives the sequence number and remote address of an incoming connection reported to a listening TDI/hybrid AFD socket (IOCTL_AFD_WAIT_FOR_LISTEN).
+ */
 typedef struct _AFD_LISTEN_RESPONSE_INFO
 {
     LONG Sequence;
@@ -340,6 +376,9 @@ typedef struct _AFD_LISTEN_RESPONSE_INFO
 } AFD_LISTEN_RESPONSE_INFO, *PAFD_LISTEN_RESPONSE_INFO;
 
 // private
+/**
+ * The AFD_LISTEN_RESPONSE_INFO_TL structure is the TLI variant of AFD_LISTEN_RESPONSE_INFO that reports the remote address as a SOCKADDR.
+ */
 typedef struct _AFD_LISTEN_RESPONSE_INFO_TL
 {
     LONG Sequence;
@@ -347,6 +386,9 @@ typedef struct _AFD_LISTEN_RESPONSE_INFO_TL
 } AFD_LISTEN_RESPONSE_INFO_TL, *PAFD_LISTEN_RESPONSE_INFO_TL;
 
 // private
+/**
+ * The AFD_ACCEPT_INFO structure describes the parameters used to accept a pending connection on a listening AFD socket (IOCTL_AFD_ACCEPT).
+ */
 typedef struct _AFD_ACCEPT_INFO
 {
     BOOLEAN SanActive;
@@ -359,6 +401,9 @@ typedef struct _AFD_ACCEPT_INFO
 #define AFD_OVERLAPPED 0x0002
 
 // private
+/**
+ * The AFD_RECV_INFO structure describes the buffers and flags for a stream receive operation on an AFD socket (IOCTL_AFD_RECEIVE).
+ */
 typedef struct _AFD_RECV_INFO
 {
     _Field_size_(BufferCount) LPWSABUF BufferArray;
@@ -368,6 +413,9 @@ typedef struct _AFD_RECV_INFO
 } AFD_RECV_INFO, *PAFD_RECV_INFO;
 
 // private
+/**
+ * The AFD_DATAGRAM_INFO structure describes the buffers, flags and source-address storage for a datagram receive operation on an AFD socket (IOCTL_AFD_RECEIVE_DATAGRAM).
+ */
 typedef struct _AFD_DATAGRAM_INFO
 {
     _Field_size_(BufferCount) LPWSABUF BufferArray;
@@ -379,6 +427,9 @@ typedef struct _AFD_DATAGRAM_INFO
 } AFD_DATAGRAM_INFO, *PAFD_DATAGRAM_INFO;
 
 // private
+/**
+ * The AFD_SEND_INFO structure describes the buffers and flags for a stream send operation on an AFD socket (IOCTL_AFD_SEND).
+ */
 typedef struct _AFD_SEND_INFO
 {
     _Field_size_(BufferCount) LPWSABUF BufferArray;
@@ -388,6 +439,9 @@ typedef struct _AFD_SEND_INFO
 } AFD_SEND_INFO, *PAFD_SEND_INFO;
 
 // private
+/**
+ * The AFD_SEND_DATAGRAM_INFO structure describes the buffers, flags and destination address for a datagram send operation on an AFD socket (IOCTL_AFD_SEND_DATAGRAM).
+ */
 typedef struct _AFD_SEND_DATAGRAM_INFO
 {
     _Field_size_(BufferCount) LPWSABUF BufferArray;
@@ -431,6 +485,9 @@ typedef struct _AFD_SEND_DATAGRAM_INFO
 #define AFD_POLL_SANCOUNTS_UPDATED   0x80000000
 
 // private
+/**
+ * The AFD_POLL_HANDLE_INFO structure describes a single socket handle together with the poll events being requested for or reported on it within an AFD_POLL_INFO.
+ */
 typedef struct _AFD_POLL_HANDLE_INFO
 {
     HANDLE Handle;
@@ -439,6 +496,9 @@ typedef struct _AFD_POLL_HANDLE_INFO
 } AFD_POLL_HANDLE_INFO, *PAFD_POLL_HANDLE_INFO;
 
 // private
+/**
+ * The AFD_POLL_INFO structure describes a poll (select) request over one or more AFD socket handles (IOCTL_AFD_POLL); it is used for both input and output.
+ */
 typedef struct _AFD_POLL_INFO
 {
     LARGE_INTEGER Timeout;
@@ -454,6 +514,9 @@ typedef struct _AFD_POLL_INFO
 #define AFD_UNCONNECT_DATAGRAM         0x08
 
 // private
+/**
+ * The AFD_PARTIAL_DISCONNECT_INFO structure describes a partial or abortive shutdown of an AFD socket (IOCTL_AFD_PARTIAL_DISCONNECT).
+ */
 typedef struct _AFD_PARTIAL_DISCONNECT_INFO
 {
     ULONG DisconnectMode;
@@ -461,6 +524,9 @@ typedef struct _AFD_PARTIAL_DISCONNECT_INFO
 } AFD_PARTIAL_DISCONNECT_INFO, *PAFD_PARTIAL_DISCONNECT_INFO;
 
 // private
+/**
+ * The AFD_RECEIVE_INFORMATION structure receives the number of normal and expedited bytes available to read on an AFD socket (IOCTL_AFD_QUERY_RECEIVE_INFO).
+ */
 typedef struct _AFD_RECEIVE_INFORMATION
 {
     ULONG BytesAvailable;
@@ -472,6 +538,9 @@ typedef struct _AFD_RECEIVE_INFORMATION
 #define AFD_QUERY_CONNECTION_HANDLE 0x02
 
 // private
+/**
+ * The AFD_HANDLE_INFO structure receives the underlying TDI address and connection object handles for an AFD socket (IOCTL_AFD_QUERY_HANDLES).
+ */
 typedef struct _AFD_HANDLE_INFO
 {
     HANDLE TdiAddressHandle;
@@ -495,6 +564,9 @@ typedef struct _AFD_HANDLE_INFO
 #define AFD_CANCEL_TL                  15 // s: void // rev
 
 // private
+/**
+ * The AFD_GROUP_TYPE enumeration specifies the constraint type of a Winsock socket group.
+ */
 typedef enum _AFD_GROUP_TYPE
 {
     GroupTypeNeither = 0,
@@ -503,6 +575,9 @@ typedef enum _AFD_GROUP_TYPE
 } AFD_GROUP_TYPE, *PAFD_GROUP_TYPE;
 
 // private
+/**
+ * The AFD_GROUP_INFO structure describes the identifier and type of the socket group an AFD socket belongs to.
+ */
 typedef struct _AFD_GROUP_INFO
 {
     GROUP GroupID;
@@ -510,6 +585,9 @@ typedef struct _AFD_GROUP_INFO
 } AFD_GROUP_INFO, *PAFD_GROUP_INFO;
 
 // private
+/**
+ * The SIO_DELIVERY_STATUS structure receives the delivery availability and pended receive count reported by the AFD_DELIVERY_STATUS information query.
+ */
 typedef struct _SIO_DELIVERY_STATUS
 {
     BOOLEAN DeliveryAvailable;
@@ -517,6 +595,9 @@ typedef struct _SIO_DELIVERY_STATUS
 } SIO_DELIVERY_STATUS, *PSIO_DELIVERY_STATUS;
 
 // private
+/**
+ * The AFD_INFORMATION structure describes a single AFD socket information item to query or set (IOCTL_AFD_GET_INFORMATION / IOCTL_AFD_SET_INFORMATION); the InformationType selects the active union member.
+ */
 typedef struct _AFD_INFORMATION
 {
     ULONG InformationType;
@@ -531,6 +612,9 @@ typedef struct _AFD_INFORMATION
 } AFD_INFORMATION, *PAFD_INFORMATION;
 
 // private
+/**
+ * The SOCKET_STATE enumeration specifies the lifecycle state of an AFD socket.
+ */
 typedef enum _SOCKET_STATE
 {
   SocketStateInitializing = -1,
@@ -542,6 +626,9 @@ typedef enum _SOCKET_STATE
 } SOCKET_STATE, *PSOCKET_STATE;
 
 // private
+/**
+ * The SOCK_SHARED_INFO structure holds the shared Winsock socket context that AFD maintains for a socket and exchanges with user mode (IOCTL_AFD_GET_CONTEXT / IOCTL_AFD_SET_CONTEXT).
+ */
 typedef struct _SOCK_SHARED_INFO
 {
     SOCKET_STATE State;
@@ -599,6 +686,9 @@ typedef struct _SOCK_SHARED_INFO
 } SOCK_SHARED_INFO, *PSOCK_SHARED_INFO;
 
 // private
+/**
+ * The AFD_UNACCEPTED_CONNECT_DATA_INFO structure describes a request to get, set or size the connect/disconnect data and options associated with an unaccepted connection.
+ */
 typedef struct _AFD_UNACCEPTED_CONNECT_DATA_INFO
 {
     LONG Sequence;
@@ -616,6 +706,9 @@ typedef struct _AFD_UNACCEPTED_CONNECT_DATA_INFO
 #define AFD_TF_WORKER_KIND_MASK   0x30
 
 // private
+/**
+ * The AFD_TRANSMIT_FILE_INFO structure describes a TransmitFile operation that sends the contents of a file, optionally framed by head and tail buffers, over an AFD socket (IOCTL_AFD_TRANSMIT_FILE).
+ */
 typedef struct _AFD_TRANSMIT_FILE_INFO
 {
     LARGE_INTEGER Offset;
@@ -630,6 +723,9 @@ typedef struct _AFD_TRANSMIT_FILE_INFO
 } AFD_TRANSMIT_FILE_INFO, *PAFD_TRANSMIT_FILE_INFO;
 
 // private
+/**
+ * The AFD_SUPER_ACCEPT_INFO structure describes an AcceptEx-style accept that also receives the initial data and the local and remote addresses in a single operation (IOCTL_AFD_SUPER_ACCEPT).
+ */
 typedef struct _AFD_SUPER_ACCEPT_INFO
 {
     BOOLEAN SanActive;
@@ -641,6 +737,9 @@ typedef struct _AFD_SUPER_ACCEPT_INFO
 } AFD_SUPER_ACCEPT_INFO, *PAFD_SUPER_ACCEPT_INFO;
 
 // private
+/**
+ * The AFD_EVENT_SELECT_INFO structure associates an event object with a set of poll events on an AFD socket (IOCTL_AFD_EVENT_SELECT).
+ */
 typedef struct _AFD_EVENT_SELECT_INFO
 {
     HANDLE Event;
@@ -648,6 +747,9 @@ typedef struct _AFD_EVENT_SELECT_INFO
 } AFD_EVENT_SELECT_INFO, *PAFD_EVENT_SELECT_INFO;
 
 // private
+/**
+ * The AFD_ENUM_NETWORK_EVENTS_INFO structure receives the network events that have occurred on an AFD socket and the per-event status codes (IOCTL_AFD_ENUM_NETWORK_EVENTS).
+ */
 typedef struct _AFD_ENUM_NETWORK_EVENTS_INFO
 {
     ULONG PollEvents; // AFD_POLL_*
@@ -655,6 +757,9 @@ typedef struct _AFD_ENUM_NETWORK_EVENTS_INFO
 } AFD_ENUM_NETWORK_EVENTS_INFO, *PAFD_ENUM_NETWORK_EVENTS_INFO;
 
 // private
+/**
+ * The AFD_DEFER_ACCEPT_INFO structure describes a request to defer or reject a pending connection identified by its sequence number (IOCTL_AFD_DEFER_ACCEPT).
+ */
 typedef struct _AFD_DEFER_ACCEPT_INFO
 {
     LONG Sequence;
@@ -662,6 +767,9 @@ typedef struct _AFD_DEFER_ACCEPT_INFO
 } AFD_DEFER_ACCEPT_INFO, *PAFD_DEFER_ACCEPT_INFO;
 
 // private
+/**
+ * The AFD_QOS_INFO structure describes the quality-of-service parameters to set or retrieve on an AFD socket (IOCTL_AFD_SET_QOS / IOCTL_AFD_GET_QOS).
+ */
 typedef struct _AFD_QOS_INFO
 {
     QOS Qos;
@@ -669,6 +777,9 @@ typedef struct _AFD_QOS_INFO
 } AFD_QOS_INFO, *PAFD_QOS_INFO;
 
 // private
+/**
+ * The AFD_VALIDATE_GROUP_INFO structure describes a socket group and remote address to validate (IOCTL_AFD_VALIDATE_GROUP).
+ */
 typedef struct _AFD_VALIDATE_GROUP_INFO
 {
     GROUP GroupID;
@@ -676,6 +787,9 @@ typedef struct _AFD_VALIDATE_GROUP_INFO
 } AFD_VALIDATE_GROUP_INFO, *PAFD_VALIDATE_GROUP_INFO;
 
 // private
+/**
+ * The AFD_TRANSPORT_IOCTL_INFO structure describes a transport-level IOCTL to forward to the underlying TDI transport (IOCTL_AFD_TRANSPORT_IOCTL and the routing-interface / address-list change requests).
+ */
 typedef struct _AFD_TRANSPORT_IOCTL_INFO
 {
     HANDLE Handle;
@@ -690,6 +804,9 @@ typedef struct _AFD_TRANSPORT_IOCTL_INFO
 #define HVSOCKET_CONTAINER_PASSTHRU     0x02 // q: ULONG
 
 // private
+/**
+ * The TL_IO_CONTROL_TYPE enumeration specifies the class of transport-layer I/O control carried by an AFD_TL_IO_CONTROL_INFO (setsockopt, getsockopt or ioctlsocket).
+ */
 typedef enum TL_IO_CONTROL_TYPE
 {
     TlEndpointIoControlType = 0,   // not supported
@@ -699,6 +816,9 @@ typedef enum TL_IO_CONTROL_TYPE
 } TL_IO_CONTROL_TYPE, *PTL_IO_CONTROL_TYPE;
 
 // private
+/**
+ * The AFD_TL_IO_CONTROL_INFO structure describes a transport-layer socket option or control operation applied to a TLI AFD socket.
+ */
 typedef struct _AFD_TL_IO_CONTROL_INFO
 {
     TL_IO_CONTROL_TYPE Type;
@@ -710,6 +830,9 @@ typedef struct _AFD_TL_IO_CONTROL_INFO
 } AFD_TL_IO_CONTROL_INFO, *PAFD_TL_IO_CONTROL_INFO;
 
 // private
+/**
+ * The AFD_TPACKETS_INFO structure describes a TransmitPackets operation that sends an array of buffer/file elements over an AFD socket (IOCTL_AFD_TRANSMIT_PACKETS).
+ */
 typedef struct _AFD_TPACKETS_INFO
 {
     _Field_size_(ElementCount) PTRANSMIT_PACKETS_ELEMENT ElementArray;
@@ -719,6 +842,9 @@ typedef struct _AFD_TPACKETS_INFO
 } AFD_TPACKETS_INFO, *PAFD_TPACKETS_INFO;
 
 // private
+/**
+ * The AFD_SUPER_CONNECT_INFO structure describes a ConnectEx-style connect on a TDI/hybrid AFD socket (IOCTL_AFD_SUPER_CONNECT).
+ */
 typedef struct _AFD_SUPER_CONNECT_INFO
 {
     BOOLEAN SanActive;
@@ -726,6 +852,9 @@ typedef struct _AFD_SUPER_CONNECT_INFO
 } AFD_SUPER_CONNECT_INFO, *PAFD_SUPER_CONNECT_INFO;
 
 // rev
+/**
+ * The AFD_SUPER_CONNECT_INFO_TL structure is the TLI variant of AFD_SUPER_CONNECT_INFO that carries a SOCKADDR remote address.
+ */
 typedef struct _AFD_SUPER_CONNECT_INFO_TL
 {
     BOOLEAN SanActive;
@@ -733,12 +862,18 @@ typedef struct _AFD_SUPER_CONNECT_INFO_TL
 } AFD_SUPER_CONNECT_INFO_TL, *PAFD_SUPER_CONNECT_INFO_TL;
 
 // private
+/**
+ * The AFD_SUPER_DISCONNECT_INFO structure describes a DisconnectEx-style disconnect on an AFD socket (IOCTL_AFD_SUPER_DISCONNECT).
+ */
 typedef struct _AFD_SUPER_DISCONNECT_INFO
 {
     ULONG Flags; // same as partial disconnect
 } AFD_SUPER_DISCONNECT_INFO, *PAFD_SUPER_DISCONNECT_INFO;
 
 // private
+/**
+ * The AFD_MESSAGE_INFO structure describes a WSARecvMsg/WSASendMsg-style message operation that carries ancillary control data alongside the datagram buffers (IOCTL_AFD_RECEIVE_MESSAGE / IOCTL_AFD_SEND_MESSAGE).
+ */
 typedef struct _AFD_MESSAGE_INFO
 {
     AFD_DATAGRAM_INFO dgi;
@@ -748,6 +883,9 @@ typedef struct _AFD_MESSAGE_INFO
 } AFD_MESSAGE_INFO, *PAFD_MESSAGE_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_CONTEXT structure holds the shared event and counter state used by an AFD switch (SAN) provider for a socket.
+ */
 typedef struct _AFD_SWITCH_CONTEXT
 {
     LONG EventsActive;
@@ -758,6 +896,9 @@ typedef struct _AFD_SWITCH_CONTEXT
 } AFD_SWITCH_CONTEXT, *PAFD_SWITCH_CONTEXT;
 
 // private
+/**
+ * The AFD_SWITCH_CONTEXT_INFO structure associates a socket handle with its AFD switch context and is used by several AFD switch IOCTLs.
+ */
 typedef struct _AFD_SWITCH_CONTEXT_INFO
 {
     HANDLE SocketHandle;
@@ -765,6 +906,9 @@ typedef struct _AFD_SWITCH_CONTEXT_INFO
 } AFD_SWITCH_CONTEXT_INFO, *PAFD_SWITCH_CONTEXT_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_EVENT_INFO structure describes a poll event to set or reset on an AFD switch socket (IOCTL_AFD_SWITCH_SET_EVENTS / IOCTL_AFD_SWITCH_RESET_EVENTS).
+ */
 typedef struct _AFD_SWITCH_EVENT_INFO
 {
     HANDLE SocketHandle;
@@ -774,6 +918,9 @@ typedef struct _AFD_SWITCH_EVENT_INFO
 } AFD_SWITCH_EVENT_INFO, *PAFD_SWITCH_EVENT_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_CONNECT_INFO structure describes an incoming connection indicated to an AFD switch listen socket (IOCTL_AFD_SWITCH_CONNECT_IND).
+ */
 typedef struct _AFD_SWITCH_CONNECT_INFO
 {
     HANDLE ListenHandle;
@@ -782,6 +929,9 @@ typedef struct _AFD_SWITCH_CONNECT_INFO
 } AFD_SWITCH_CONNECT_INFO, *PAFD_SWITCH_CONNECT_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_ACCEPT_INFO structure receives the accepted handle and initial receive length produced by an AFD switch connect indication.
+ */
 typedef struct _AFD_SWITCH_ACCEPT_INFO
 {
     HANDLE AcceptHandle;
@@ -789,6 +939,9 @@ typedef struct _AFD_SWITCH_ACCEPT_INFO
 } AFD_SWITCH_ACCEPT_INFO, *PAFD_SWITCH_ACCEPT_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_REQUEST_INFO structure describes the completion of an AFD switch request, carrying its context, status and data offset (IOCTL_AFD_SWITCH_CMPL_REQUEST).
+ */
 typedef struct _AFD_SWITCH_REQUEST_INFO
 {
     HANDLE SocketHandle;
@@ -799,6 +952,9 @@ typedef struct _AFD_SWITCH_REQUEST_INFO
 } AFD_SWITCH_REQUEST_INFO, *PAFD_SWITCH_REQUEST_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_ACQUIRE_CTX_INFO structure describes a request to acquire the socket context buffer from an AFD switch endpoint (IOCTL_AFD_SWITCH_ACQUIRE_CTX).
+ */
 typedef struct _AFD_SWITCH_ACQUIRE_CTX_INFO
 {
     HANDLE SocketHandle;
@@ -808,6 +964,9 @@ typedef struct _AFD_SWITCH_ACQUIRE_CTX_INFO
 } AFD_SWITCH_ACQUIRE_CTX_INFO, *PAFD_SWITCH_ACQUIRE_CTX_INFO;
 
 // private
+/**
+ * The AFD_SWITCH_TRANSFER_CTX_INFO structure describes a request to transfer a socket context and any buffered receive data between AFD switch endpoints (IOCTL_AFD_SWITCH_TRANSFER_CTX).
+ */
 typedef struct _AFD_SWITCH_TRANSFER_CTX_INFO
 {
     HANDLE SocketHandle;
@@ -821,6 +980,9 @@ typedef struct _AFD_SWITCH_TRANSFER_CTX_INFO
 } AFD_SWITCH_TRANSFER_CTX_INFO, *PAFD_SWITCH_TRANSFER_CTX_INFO;
 
 // private
+/**
+ * The AFD_UNBIND_INFO structure describes a request to unbind an AFD socket from its address family and protocol (IOCTL_AFD_UNBIND).
+ */
 typedef struct _AFD_UNBIND_INFO
 {
     LONG AddressFamily; // AF_*
@@ -832,12 +994,18 @@ typedef struct _AFD_UNBIND_INFO
 #define AFD_SQM_CONTROL_CODE_SWEEP -1
 
 // private
+/**
+ * The AFD_SQM_CONTROL structure carries the control code that selects the SQM (Software Quality Metrics) telemetry operation.
+ */
 typedef struct _AFD_SQM_CONTROL
 {
     ULONG Code; // AFD_SQM_CONTROL_CODE_*
 } AFD_SQM_CONTROL, *PAFD_SQM_CONTROL;
 
 // private
+/**
+ * The WINSOCK_SQM_SOCKTYPE_DESC structure is a bit field describing which socket and provider types were used, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_SOCKTYPE_DESC
 {
     ULONG StreamTCP : 1;
@@ -857,6 +1025,9 @@ typedef struct _WINSOCK_SQM_SOCKTYPE_DESC
 } WINSOCK_SQM_SOCKTYPE_DESC, *PWINSOCK_SQM_SOCKTYPE_DESC;
 
 // private
+/**
+ * The WINSOCK_SQM_SOCKTYPE_COUNTS structure records the peak concurrent counts of each socket type, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_SOCKTYPE_COUNTS
 {
     ULONG MaxStreamSocketsConn;
@@ -867,6 +1038,9 @@ typedef struct _WINSOCK_SQM_SOCKTYPE_COUNTS
 } WINSOCK_SQM_SOCKTYPE_COUNTS, *PWINSOCK_SQM_SOCKTYPE_COUNTS;
 
 // private
+/**
+ * The WINSOCK_SQM_NONCORE_FUNC structure is a bit field describing which non-core Winsock functions were used, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_NONCORE_FUNC
 {
     ULONG Select : 1;
@@ -901,6 +1075,9 @@ typedef struct _WINSOCK_SQM_NONCORE_FUNC
 } WINSOCK_SQM_NONCORE_FUNC, *PWINSOCK_SQM_NONCORE_FUNC;
 
 // private
+/**
+ * The WINSOCK_SQM_DEPRECATION_LIST structure is a bit field describing which deprecated Winsock functions were used, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_DEPRECATION_LIST
 {
     ULONG bEnumProtocols : 1;
@@ -933,6 +1110,9 @@ typedef struct _WINSOCK_SQM_DEPRECATION_LIST
 } WINSOCK_SQM_DEPRECATION_LIST, *PWINSOCK_SQM_DEPRECATION_LIST;
 
 // private
+/**
+ * The WINSOCK_SQM_SOCK_OPTIONS structure is a bit field describing which socket options and ioctls were used, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_SOCK_OPTIONS
 {
     ULONG SoSndBuf : 1;
@@ -970,6 +1150,9 @@ typedef struct _WINSOCK_SQM_SOCK_OPTIONS
 } WINSOCK_SQM_SOCK_OPTIONS, *PWINSOCK_SQM_SOCK_OPTIONS;
 
 // private
+/**
+ * The WINSOCK_SQM_MISC_BEHAVIOR structure is a bit field describing miscellaneous socket behaviors observed, reported in Winsock SQM telemetry.
+ */
 typedef struct _WINSOCK_SQM_MISC_BEHAVIOR
 {
     ULONG SendEverPended : 1;
@@ -980,6 +1163,9 @@ typedef struct _WINSOCK_SQM_MISC_BEHAVIOR
 } WINSOCK_SQM_MISC_BEHAVIOR, *PWINSOCK_SQM_MISC_BEHAVIOR;
 
 // private
+/**
+ * The AFD_SQM_INFO structure aggregates the Winsock SQM (Software Quality Metrics) telemetry reported for an application (IOCTL_AFD_SQM).
+ */
 typedef struct _AFD_SQM_INFO
 {
     AFD_SQM_CONTROL Control;
@@ -995,6 +1181,9 @@ typedef struct _AFD_SQM_INFO
 } AFD_SQM_INFO, *PAFD_SQM_INFO;
 
 // private
+/**
+ * The AFD_RIO_COMMAND enumeration identifies the Registered I/O (RIO) command carried by an AFD_RIO_COMMAND_HEADER (IOCTL_AFD_RIO).
+ */
 typedef enum _AFD_RIO_COMMAND
 {
     AfdRioCommandIdCreateCq = 0,         // in: AFD_RIO_COMMAND_CREATE_CQ; out: AFD_RIO_COMMAND_CREATE_CQ_RESULT
@@ -1011,12 +1200,18 @@ typedef enum _AFD_RIO_COMMAND
 } AFD_RIO_COMMAND, *PAFD_RIO_COMMAND;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_HEADER structure is the common header that identifies the Registered I/O command in every AFD RIO command buffer.
+ */
 typedef struct _AFD_RIO_COMMAND_HEADER
 {
     AFD_RIO_COMMAND Command;
 } AFD_RIO_COMMAND_HEADER, *PAFD_RIO_COMMAND_HEADER;
 
 // private
+/**
+ * The AFD_RIO_NOTIFICATION_COMPLETION_TYPE enumeration specifies how completion of a Registered I/O completion queue is signaled (none, event, or I/O completion port).
+ */
 typedef enum _AFD_RIO_NOTIFICATION_COMPLETION_TYPE
 {
     AfdRioNoCompletion = 0,
@@ -1025,6 +1220,9 @@ typedef enum _AFD_RIO_NOTIFICATION_COMPLETION_TYPE
 } AFD_RIO_NOTIFICATION_COMPLETION_TYPE, *PAFD_RIO_NOTIFICATION_COMPLETION_TYPE;
 
 // private
+/**
+ * The AFD_RIO_COMPLETION_QUEUE structure is the user-mode-visible ring buffer that holds Registered I/O completion results (RIORESULT entries).
+ */
 typedef struct _AFD_RIO_COMPLETION_QUEUE
 {
     ULONG QHead;
@@ -1034,6 +1232,9 @@ typedef struct _AFD_RIO_COMPLETION_QUEUE
 } AFD_RIO_COMPLETION_QUEUE, *PAFD_RIO_COMPLETION_QUEUE;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_CREATE_CQ structure describes a request to create a Registered I/O completion queue (AfdRioCommandIdCreateCq).
+ */
 typedef struct _AFD_RIO_COMMAND_CREATE_CQ
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1047,12 +1248,18 @@ typedef struct _AFD_RIO_COMMAND_CREATE_CQ
 } AFD_RIO_COMMAND_CREATE_CQ, *PAFD_RIO_COMMAND_CREATE_CQ;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_CREATE_CQ_RESULT structure receives the identifier of a newly created Registered I/O completion queue.
+ */
 typedef struct _AFD_RIO_COMMAND_CREATE_CQ_RESULT
 {
     ULONG CqId;
 } AFD_RIO_COMMAND_CREATE_CQ_RESULT, *PAFD_RIO_COMMAND_CREATE_CQ_RESULT;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_DESTROY_CQ structure describes a request to destroy a Registered I/O completion queue (AfdRioCommandIdDestroyCq).
+ */
 typedef struct _AFD_RIO_COMMAND_DESTROY_CQ
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1060,6 +1267,9 @@ typedef struct _AFD_RIO_COMMAND_DESTROY_CQ
 } AFD_RIO_COMMAND_DESTROY_CQ, *PAFD_RIO_COMMAND_DESTROY_CQ;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_NOTIFY_CQ structure describes a request to arm completion notification on a Registered I/O completion queue (AfdRioCommandIdNotifyCq).
+ */
 typedef struct _AFD_RIO_COMMAND_NOTIFY_CQ
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1067,6 +1277,9 @@ typedef struct _AFD_RIO_COMMAND_NOTIFY_CQ
 } AFD_RIO_COMMAND_NOTIFY_CQ, *PAFD_RIO_COMMAND_NOTIFY_CQ;
 
 // private
+/**
+ * The AFD_RIO_BUF structure references a region within a registered Registered I/O buffer by buffer id, offset and length.
+ */
 typedef struct _AFD_RIO_BUF
 {
     ULONG BufferId;
@@ -1075,6 +1288,9 @@ typedef struct _AFD_RIO_BUF
 } AFD_RIO_BUF, *PAFD_RIO_BUF;
 
 // private
+/**
+ * The AFD_RIO_REQUEST_QUEUE_ENTRY structure describes a single Registered I/O send or receive request and its associated data, address and control buffers.
+ */
 typedef struct _AFD_RIO_REQUEST_QUEUE_ENTRY
 {
     AFD_RIO_BUF Data;
@@ -1087,6 +1303,9 @@ typedef struct _AFD_RIO_REQUEST_QUEUE_ENTRY
 } AFD_RIO_REQUEST_QUEUE_ENTRY, *PAFD_RIO_REQUEST_QUEUE_ENTRY;
 
 // private
+/**
+ * The AFD_RIO_REQUEST_QUEUE structure is the user-mode-visible ring buffer of Registered I/O request queue entries for a send or receive queue.
+ */
 typedef struct _AFD_RIO_REQUEST_QUEUE
 {
     ULONG Start;
@@ -1096,6 +1315,9 @@ typedef struct _AFD_RIO_REQUEST_QUEUE
 } AFD_RIO_REQUEST_QUEUE, *PAFD_RIO_REQUEST_QUEUE;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_CREATE_RQ_PAIR structure describes a request to create a paired Registered I/O send/receive request queue bound to completion queues (AfdRioCommandIdCreateRqPair).
+ */
 typedef struct _AFD_RIO_COMMAND_CREATE_RQ_PAIR
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1112,6 +1334,9 @@ typedef struct _AFD_RIO_COMMAND_CREATE_RQ_PAIR
 } AFD_RIO_COMMAND_CREATE_RQ_PAIR, *PAFD_RIO_COMMAND_CREATE_RQ_PAIR;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_REGISTER_BUFFER structure describes a request to register a user-mode buffer for Registered I/O (AfdRioCommandIdRegisterBuffer).
+ */
 typedef struct _AFD_RIO_COMMAND_REGISTER_BUFFER
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1120,12 +1345,18 @@ typedef struct _AFD_RIO_COMMAND_REGISTER_BUFFER
 } AFD_RIO_COMMAND_REGISTER_BUFFER, *PAFD_RIO_COMMAND_REGISTER_BUFFER;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_REGISTER_BUFFER_RESULT structure receives the buffer identifier assigned to a newly registered Registered I/O buffer.
+ */
 typedef struct _AFD_RIO_COMMAND_REGISTER_BUFFER_RESULT
 {
     ULONG BufferId;
 } AFD_RIO_COMMAND_REGISTER_BUFFER_RESULT, *PAFD_RIO_COMMAND_REGISTER_BUFFER_RESULT;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_DEREGISTER_BUFFER structure describes a request to deregister a previously registered Registered I/O buffer (AfdRioCommandIdDeregisterBuffer).
+ */
 typedef struct _AFD_RIO_COMMAND_DEREGISTER_BUFFER
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1133,18 +1364,27 @@ typedef struct _AFD_RIO_COMMAND_DEREGISTER_BUFFER
 } AFD_RIO_COMMAND_DEREGISTER_BUFFER, *PAFD_RIO_COMMAND_DEREGISTER_BUFFER;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_POKE_SEND structure describes a request to notify AFD that new entries were posted to a Registered I/O send queue (AfdRioCommandIdPokeSend).
+ */
 typedef struct _AFD_RIO_COMMAND_POKE_SEND
 {
     AFD_RIO_COMMAND_HEADER Header;
 } AFD_RIO_COMMAND_POKE_SEND, *PAFD_RIO_COMMAND_POKE_SEND;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_POKE_RECEIVE structure describes a request to notify AFD that new entries were posted to a Registered I/O receive queue (AfdRioCommandIdPokeReceive).
+ */
 typedef struct _AFD_RIO_COMMAND_POKE_RECEIVE
 {
     AFD_RIO_COMMAND_HEADER Header;
 } AFD_RIO_COMMAND_POKE_RECEIVE, *PAFD_RIO_COMMAND_POKE_RECEIVE;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_RESIZE_CQ structure describes a request to resize a Registered I/O completion queue (AfdRioCommandIdResizeCq).
+ */
 typedef struct _AFD_RIO_COMMAND_RESIZE_CQ
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1155,6 +1395,9 @@ typedef struct _AFD_RIO_COMMAND_RESIZE_CQ
 } AFD_RIO_COMMAND_RESIZE_CQ, *PAFD_RIO_COMMAND_RESIZE_CQ;
 
 // private
+/**
+ * The AFD_RIO_COMMAND_RESIZE_RQ_PAIR structure describes a request to resize a paired Registered I/O send/receive request queue (AfdRioCommandIdResizeRqPair).
+ */
 typedef struct _AFD_RIO_COMMAND_RESIZE_RQ_PAIR
 {
     AFD_RIO_COMMAND_HEADER Header;
@@ -1165,5 +1408,175 @@ typedef struct _AFD_RIO_COMMAND_RESIZE_RQ_PAIR
     ULONG ReceiveQueueBufferSize;
     ULONGLONG ReceiveQueueBuffer;
 } AFD_RIO_COMMAND_RESIZE_RQ_PAIR, *PAFD_RIO_COMMAND_RESIZE_RQ_PAIR;
+
+/*
+ * =====================================================================
+ *  mswsock.dll WSPIoctl  --  Winsock control codes & AFD mapping
+ *  Reverse-engineered from mswsock.dll  WSPIoctl @ 0x1800191b0.
+ *  Machine-usable definitions. All Winsock-side codes are normally in
+ *  winsock2.h / ws2def.h / mstcpip.h / afunix.h; guarded to avoid
+ *  redefinition when those headers are also included.
+ * =====================================================================
+ */
+
+/* ---- Winsock IOCTL framework (winsock2.h) ------------------------- */
+#ifndef _WINSOCK2API_
+#ifndef MSWSOCK_IOC_FRAMEWORK_DEFINED
+#define MSWSOCK_IOC_FRAMEWORK_DEFINED
+#define IOCPARM_MASK    0x7fUL
+#define IOC_VOID        0x20000000UL
+#define IOC_OUT         0x40000000UL
+#define IOC_IN          0x80000000UL
+#define IOC_INOUT       (IOC_IN | IOC_OUT)          /* 0xC0000000 */
+
+#define IOC_UNIX        0x00000000UL
+#define IOC_WS2         0x08000000UL
+#define IOC_PROTOCOL    0x10000000UL
+#define IOC_VENDOR      0x18000000UL
+
+#define _WSAIO(x,y)     (IOC_VOID  | (x) | (y))
+#define _WSAIOR(x,y)    (IOC_OUT   | (x) | (y))
+#define _WSAIOW(x,y)    (IOC_IN    | (x) | (y))
+#define _WSAIORW(x,y)   (IOC_INOUT | (x) | (y))
+#endif /* MSWSOCK_IOC_FRAMEWORK_DEFINED */
+#endif /* _WINSOCK2API_ */
+
+/* ---- Berkeley/UNIX ioctls (winsock2.h) ---------------------------- */
+#ifndef MSWSOCK_BSD_IOCTLS_DEFINED
+#define MSWSOCK_BSD_IOCTLS_DEFINED
+#define AFD_FIONBIO       0x8004667EUL /* _IOW('f',126,u_long) set/clear non-blocking (local flag) */
+#define AFD_FIONREAD      0x4004667FUL /* _IOR('f',127,u_long) bytes readable -> base provider (0x20000001) */
+#define AFD_SIOCATMARK    0x40047307UL /* _IOR('s',7,u_long)   at OOB mark -> base provider */
+#endif /* MSWSOCK_BSD_IOCTLS_DEFINED */
+
+/* ---- Winsock2 SIO_* codes handled by WSPIoctl (ws2def.h/mstcpip.h)- */
+#ifndef MSWSOCK_WSPIOCTL_SIO_DEFINED
+#define MSWSOCK_WSPIOCTL_SIO_DEFINED
+#ifndef SIO_ENABLE_CIRCULAR_QUEUEING
+#define SIO_ENABLE_CIRCULAR_QUEUEING       0x28000002UL /* _WSAIO(IOC_WS2,2)   local toggle */
+#endif
+#define SIO_ADDRESS_LIST_CHANGE_           0x28000017UL /* _WSAIO(IOC_WS2,23)  -> AFD_ADDRESS_LIST_CHANGE 0x120B4 */
+#ifndef SIO_GET_BROADCAST_ADDRESS
+#define SIO_GET_BROADCAST_ADDRESS          0x48000005UL /* _WSAIOR(IOC_WS2,5) */
+#endif
+#define SIO_ADDRESS_LIST_QUERY_            0x48000016UL /* _WSAIOR(IOC_WS2,22) -> AFD_ADDRESS_LIST_QUERY 0x120B3 */
+#ifndef SIO_BSP_HANDLE
+#define SIO_BSP_HANDLE                     0x4800001BUL /* _WSAIOR(IOC_WS2,27) */
+#endif
+#ifndef SIO_BASE_HANDLE
+#define SIO_BASE_HANDLE                    0x48000022UL /* _WSAIOR(IOC_WS2,34) */
+#endif
+#ifndef SIO_EXT_SELECT
+#define SIO_EXT_SELECT                     0x48000026UL /* _WSAIOR(IOC_WS2,38) base/handle query (observed) */
+#endif
+#ifndef SIO_ASSOCIATE_HANDLE
+#define SIO_ASSOCIATE_HANDLE               0x88000001UL /* _WSAIOW(IOC_WS2,1) */
+#endif
+#define SIO_SET_QOS_                       0x8800000BUL /* _WSAIOW(IOC_WS2,11) -> AFD_SET_QOS 0x12094 */
+#define SIO_SET_GROUP_QOS_                 0x8800000CUL /* _WSAIOW(IOC_WS2,12) -> AFD_SET_QOS 0x12094 (group) */
+#define SIO_ROUTING_INTERFACE_CHANGE_      0x88000015UL /* _WSAIOW(IOC_WS2,21) -> AFD_ROUTING_INTERFACE_CHANGE 0x120AC */
+#ifndef SIO_GET_EXTENSION_FUNCTION_POINTER
+#define SIO_GET_EXTENSION_FUNCTION_POINTER 0xC8000006UL /* _WSAIORW(IOC_WS2,6)  GUID -> fn ptr (SockExtensions[8]) */
+#endif
+#define SIO_GET_QOS_                       0xC8000007UL /* _WSAIORW(IOC_WS2,7)  -> AFD_GET_QOS 0x12098 */
+#define SIO_GET_GROUP_QOS_                 0xC8000008UL /* _WSAIORW(IOC_WS2,8)  -> AFD_GET_QOS 0x12098 (group) */
+#ifndef SIO_TRANSLATE_HANDLE
+#define SIO_TRANSLATE_HANDLE               0xC800000DUL /* _WSAIORW(IOC_WS2,13) returns 10042 WSAENOPROTOOPT here */
+#endif
+#define SIO_ROUTING_INTERFACE_QUERY_       0xC8000014UL /* _WSAIORW(IOC_WS2,20) -> AFD_ROUTING_INTERFACE_QUERY 0x120AB */
+#define SIO_MSAFD_POLL                     0xC800001FUL /* _WSAIORW(IOC_WS2,31) mswsock private: MSAFD_WSPPoll (WSAPoll) */
+#define SIO_MSAFD_SENDMSG                  0xC8000020UL /* _WSAIORW(IOC_WS2,32) mswsock private: MSAFD_WSPSendMsg (WSASendMsg) */
+#define SIO_MSAFD_ROUTING_CHANGE           0xC8000021UL /* _WSAIORW(IOC_WS2,33) mswsock private: routing/address change */
+#define SIO_MSAFD_SOCKINFO                 0xC8000024UL /* _WSAIORW(IOC_WS2,36) mswsock private: socket-info query */
+#endif /* MSWSOCK_WSPIOCTL_SIO_DEFINED */
+
+/* ---- Vendor (IOC_VENDOR) codes handled by WSPIoctl ---------------- */
+#ifndef MSWSOCK_WSPIOCTL_VENDOR_DEFINED
+#define MSWSOCK_WSPIOCTL_VENDOR_DEFINED
+#define SIO_AFUNIX_TRANSPORT     0x98000000UL /* _WSAIOW(IOC_VENDOR,0)   AF_UNIX sun_path -> AFD_TRANSPORT_IOCTL 0x120BF */
+#define SIO_VENDOR_VOID_30       0x3800001EUL /* _WSAIO(IOC_VENDOR,30)   local vendor void ioctl */
+#define SIO_VENDOR_OPT11         0x9800000CUL /* _WSAIOW(IOC_VENDOR,12)  bool datagram transport opt idx 11 */
+#define SIO_VENDOR_OPT12         0x9800000FUL /* _WSAIOW(IOC_VENDOR,15)  bool datagram transport opt idx 12 */
+#define SIO_VENDOR_E6_NOTSUPP    0x980000E6UL /* _WSAIOW(IOC_VENDOR,230) stub -> 10045 WSAEOPNOTSUPP */
+#define SIO_VENDOR_101           0x98000101UL /* _WSAIOW(IOC_VENDOR,257) -> base provider (0x20000001) */
+#define SIO_VENDOR_102           0x98000102UL /* _WSAIOW(IOC_VENDOR,258) transfer/dup related */
+#define SIO_VENDOR_TRANSFER_BEGIN 0x9800012DUL /* _WSAIOW(IOC_VENDOR,301) -> AFD_TRANSFER_BEGIN 0x1211F */
+#define SIO_VENDOR_TRANSFER_END   0x9800012EUL /* _WSAIOW(IOC_VENDOR,302) -> AFD_TRANSFER_END   0x12123 */
+#endif /* MSWSOCK_WSPIOCTL_VENDOR_DEFINED */
+
+/* ---- Internal base-service-provider passthrough codes ------------- */
+#ifndef MSWSOCK_WSPIOCTL_INTERNAL_DEFINED
+#define MSWSOCK_WSPIOCTL_INTERNAL_DEFINED
+#define WSP_XPORT_QUERY_1        0x20000001UL /* base-provider WSPIoctl: FIONREAD-class query */
+#define WSP_XPORT_QUERY_2        0x20000002UL /* base-provider WSPIoctl: second transport query */
+#endif /* MSWSOCK_WSPIOCTL_INTERNAL_DEFINED */
+
+/*
+ * User Winsock code -> kernel AFD IOCTL (\Device\Afd) emitted by WSPIoctl.
+ * AFD_* request indices and IOCTL_AFD_* codes are defined above; listed
+ * here with their computed control-code values for reference:
+ *   SIO_SET_QOS_/SIO_SET_GROUP_QOS_       -> AFD_SET_QOS                  0x12094
+ *   SIO_GET_QOS_/SIO_GET_GROUP_QOS_       -> AFD_GET_QOS                  0x12098
+ *   (poll/select cancel, event-wait)      -> AFD_NO_OPERATION            0x1209F
+ *   SIO_ROUTING_INTERFACE_QUERY_          -> AFD_ROUTING_INTERFACE_QUERY  0x120AB
+ *   SIO_ROUTING_INTERFACE_CHANGE_         -> AFD_ROUTING_INTERFACE_CHANGE 0x120AC (73900)
+ *   SIO_ADDRESS_LIST_QUERY_               -> AFD_ADDRESS_LIST_QUERY       0x120B3
+ *   SIO_ADDRESS_LIST_CHANGE_              -> AFD_ADDRESS_LIST_CHANGE       0x120B4
+ *   SIO_AFUNIX_TRANSPORT (+ unknown 0x98) -> AFD_TRANSPORT_IOCTL          0x120BF
+ *   SIO_VENDOR_TRANSFER_BEGIN             -> AFD_TRANSFER_BEGIN            0x1211F
+ *   teardown / cleanup                    -> AFD_UNBIND                   0x12113
+ *   SIO_VENDOR_TRANSFER_END               -> AFD_TRANSFER_END             0x12123
+ */
+
+/* ---- AF_UNIX address (afunix.h) ----------------------------------- */
+#ifndef MSWSOCK_SOCKADDR_UN_DEFINED
+#define MSWSOCK_SOCKADDR_UN_DEFINED
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
+typedef struct _MSWSOCK_SOCKADDR_UN
+{
+    USHORT sun_family;                 /* AF_UNIX = 1 */
+    CHAR   sun_path[UNIX_PATH_MAX];    /* NUL-terminated filesystem path */
+} MSWSOCK_SOCKADDR_UN, *PMSWSOCK_SOCKADDR_UN;
+#endif /* MSWSOCK_SOCKADDR_UN_DEFINED */
+
+/*
+ * AF_UNIX transport request WSPIoctl builds for SIO_AFUNIX_TRANSPORT and
+ * hands to IOCTL_AFD_TRANSPORT_IOCTL. Layout matches AFD_TL_IO_CONTROL_INFO
+ * (defined above); shown as a fixed image of the 0x20-byte input buffer:
+ *   +0x00 Type            = TlSocketIoControlType (3)
+ *   +0x04 Level           = 0
+ *   +0x08 IoControlCode   = SIO_AFUNIX_TRANSPORT (0x98000000)
+ *   +0x0C EndpointIoctl   = TRUE
+ *   +0x10 InputBuffer     = &MSWSOCK_SOCKADDR_UN.sun_path payload
+ *   +0x18 InputBufferLength (SIZE_T)
+ */
+#ifndef MSWSOCK_AFUNIX_TL_REQUEST_DEFINED
+#define MSWSOCK_AFUNIX_TL_REQUEST_DEFINED
+typedef struct _MSWSOCK_AFUNIX_TL_REQUEST
+{
+    ULONG    Type;                 /* = TlSocketIoControlType (3) */
+    ULONG    Level;                /* = 0 */
+    ULONG    IoControlCode;        /* = SIO_AFUNIX_TRANSPORT (0x98000000) */
+    BOOLEAN  EndpointIoctl;        /* = TRUE */
+    UCHAR    Reserved[3];
+    PVOID    InputBuffer;          /* -> sun_path payload */
+    SIZE_T   InputBufferLength;
+} MSWSOCK_AFUNIX_TL_REQUEST, *PMSWSOCK_AFUNIX_TL_REQUEST; /* sizeof = 0x20 */
+#endif /* MSWSOCK_AFUNIX_TL_REQUEST_DEFINED */
+
+/*
+ * SIO_GET_EXTENSION_FUNCTION_POINTER lookup table entry (mswsock SockExtensions):
+ * 8 entries, 24 bytes each = { GUID; PVOID Function; }.
+ */
+#ifndef MSWSOCK_WSAEXT_ENTRY_DEFINED
+#define MSWSOCK_WSAEXT_ENTRY_DEFINED
+typedef struct _MSWSOCK_WSAEXT_ENTRY
+{
+    GUID   Guid;                   /* WSAID_ACCEPTEX, WSAID_CONNECTEX, ... */
+    PVOID  Function;               /* extension function pointer */
+} MSWSOCK_WSAEXT_ENTRY, *PMSWSOCK_WSAEXT_ENTRY;
+#endif /* MSWSOCK_WSAEXT_ENTRY_DEFINED */
 
 #endif

@@ -162,6 +162,28 @@ VOID EtFormatDouble(
     }
 }
 
+/**
+ * Converts a per-update-period value into a per-second rate.
+ *
+ * \param ValuePerPeriod The value accumulated during the last provider run.
+ * \return The per-second rate, or 0 when the elapsed time is unknown.
+ */
+ULONG64 EtCalculateRate(
+    _In_ ULONG64 ValuePerPeriod
+    )
+{
+    ULONG64 number;
+
+    if (EtRateIntervalMs == 0)
+        return 0;
+
+    number = ValuePerPeriod;
+    number *= 1000;
+    number /= EtRateIntervalMs;
+
+    return number;
+}
+
 VOID EtFormatRate(
     _In_ ULONG64 ValuePerPeriod,
     _In_ PET_PROCESS_BLOCK Block,
@@ -170,9 +192,7 @@ VOID EtFormatRate(
 {
     ULONG64 number;
 
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= EtUpdateInterval;
+    number = EtCalculateRate(ValuePerPeriod);
 
     if (number != 0)
     {
@@ -197,9 +217,7 @@ VOID EtFormatNetworkRate(
 {
     ULONG64 number;
 
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= EtUpdateInterval;
+    number = EtCalculateRate(ValuePerPeriod);
 
     if (number != 0)
     {
@@ -529,6 +547,22 @@ static PPH_STRING EtpFormatDeviceProperty(
 
             return PhCreateStringEx((PWCHAR)Property->Buffer, length);
         }
+    case DEVPROP_TYPE_STRING_INDIRECT:
+        {
+            // Display adapter names (DEVPKEY_NAME/DEVPKEY_Device_DeviceDesc) are commonly
+            // returned by DevQuery as indirect strings (e.g. "@oem4.inf,%nvidia...%;NVIDIA
+            // GeForce RTX 3060"). Resolve them rather than discarding, otherwise callers fall
+            // back to the "GPU N" placeholder. (dmex)
+            PH_STRINGREF string;
+
+            if (Property->BufferSize < sizeof(UNICODE_NULL))
+                return NULL;
+
+            string.Buffer = (PWSTR)Property->Buffer;
+            string.Length = Property->BufferSize - sizeof(UNICODE_NULL);
+
+            return PhLoadIndirectString(&string);
+        }
     case DEVPROP_TYPE_FILETIME:
         {
             PFILETIME fileTime;
@@ -664,7 +698,7 @@ BOOLEAN EtQueryDeviceProperties(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(instanceIdString),
-        DevQueryFlagLocalize,
+        DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
         deviceProperties,
         &devicePropertyCount,

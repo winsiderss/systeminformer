@@ -902,16 +902,25 @@ VOID EtAcpiDispatchTable(
     PET_ACPI_HEADER header;
     ULONG length;
 
-    if (BufferLength < RTL_SIZEOF_THROUGH_FIELD(ET_ACPI_HEADER, Length))
+    // Every decoder below calls EtAcpiDescriptionHeader, which reads all of the
+    // common header, so require the complete header and not just the signature
+    // and length fields. (dmex)
+    if (BufferLength < sizeof(ET_ACPI_HEADER))
         return;
 
     header = (PET_ACPI_HEADER)Buffer;
 
     // The header Length is authoritative, but firmware can lie. Clamp it to the
-    // buffer the kernel actually returned before reading any fields.
-    length = header->Length;
-    if (length > BufferLength || length == 0)
-        length = BufferLength;
+    // buffer the kernel actually returned before reading any fields, and reject
+    // a declared length that cannot even cover the common header. (dmex)
+    {
+        length = header->Length;
+
+        if (length > BufferLength || length < sizeof(ET_ACPI_HEADER))
+        {
+            length = BufferLength;
+        }
+    }
 
     switch (header->Signature)
     {
@@ -962,7 +971,7 @@ NTSTATUS EtGetAcpiTable(
 
     length = sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION) + 0x1000;
 
-    if (!(info = PhAllocate(length)))
+    if (!(info = PhAllocateSafe(length)))
         return STATUS_NO_MEMORY;
 
     RtlZeroMemory(info, length);
@@ -982,7 +991,7 @@ NTSTATUS EtGetAcpiTable(
     {
         PhFree(info);
 
-        if (!(info = PhAllocate(length)))
+        if (!(info = PhAllocateSafe(length)))
             return STATUS_NO_MEMORY;
 
         RtlZeroMemory(info, length);
@@ -1024,7 +1033,7 @@ NTSTATUS EtEnumerateAcpiTables(
 
     length = sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION) + 0x400;
 
-    if (!(info = PhAllocate(length)))
+    if (!(info = PhAllocateSafe(length)))
         return STATUS_NO_MEMORY;
 
     RtlZeroMemory(info, length);
@@ -1044,7 +1053,7 @@ NTSTATUS EtEnumerateAcpiTables(
     {
         PhFree(info);
 
-        if (!(info = PhAllocate(length)))
+        if (!(info = PhAllocateSafe(length)))
             return STATUS_NO_MEMORY;
 
         RtlZeroMemory(info, length);

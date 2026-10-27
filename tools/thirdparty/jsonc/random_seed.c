@@ -46,7 +46,7 @@ static void do_cpuid(int regs[], int h)
     /* clang-format on */
 }
 
-#elif defined _MSC_VER
+#elif defined _MSC_VER && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
 
 #define HAS_X86_CPUID 1
 #define do_cpuid __cpuid
@@ -129,7 +129,7 @@ static int get_rdrand_seed(void)
 
 #endif
 
-#if defined _MSC_VER
+#if defined _MSC_VER && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
 
 #if _MSC_VER >= 1700
 #define HAVE_RDRAND 1

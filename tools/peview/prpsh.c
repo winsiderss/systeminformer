@@ -115,7 +115,6 @@ VOID NTAPI PvpPropContextDeleteProcedure(
 static HWND OptionsButton = NULL;
 static HWND SecurityButton = NULL;
 static WNDPROC OldOptionsWndProc = NULL;
-static WNDPROC OldSecurityWndProc = NULL;
 
 LRESULT CALLBACK PvpButtonWndProc(
     _In_ HWND hwndDlg,
@@ -157,16 +156,20 @@ static HWND PvpCreateOptionsButton(
     if (!OptionsButton)
     {
         HWND optionsWindow;
+        HWND cancelButtonHandle;
         RECT clientRect;
         RECT rect;
 
         optionsWindow = hwndDlg;
-        OldOptionsWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+        cancelButtonHandle = GetDlgItem(optionsWindow, IDCANCEL);
+        if (!cancelButtonHandle)
+            return NULL;
+        if (!PhGetClientRect(optionsWindow, &clientRect))
+            return NULL;
+        if (!PhGetWindowRect(cancelButtonHandle, &rect))
+            return NULL;
 
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
+        // Create the Options button.
         MapWindowRect(NULL, optionsWindow, &rect);
         OptionsButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
@@ -182,7 +185,13 @@ static HWND PvpCreateOptionsButton(
             PhInstanceHandle,
             NULL
             );
-        SetWindowFont(OptionsButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+        if (!OptionsButton)
+            return NULL;
+
+        // Hook only after creation succeeds so failed attempts remain retryable.
+        OldOptionsWndProc = PhGetWindowProcedure(optionsWindow);
+        PhSetWindowProcedure(optionsWindow, PvpButtonWndProc);
+        SetWindowFont(OptionsButton, GetWindowFont(cancelButtonHandle), TRUE);
     }
 
     return OptionsButton;
@@ -195,16 +204,13 @@ static HWND PvpCreateSecurityButton(
     if (!SecurityButton)
     {
         HWND optionsWindow;
-        RECT clientRect;
         RECT rect;
 
         optionsWindow = hwndDlg;
-        OldSecurityWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+        if (!OptionsButton || !PhGetWindowRect(OptionsButton, &rect))
+            return NULL;
 
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(OptionsButton, &rect);
+        // The Options button already installed the shared command hook.
         MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
 
         SecurityButton = CreateWindowEx(
@@ -221,42 +227,17 @@ static HWND PvpCreateSecurityButton(
             PhInstanceHandle,
             NULL
             );
-        SetWindowFont(SecurityButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+        if (SecurityButton)
+            SetWindowFont(SecurityButton, GetWindowFont(OptionsButton), TRUE);
     }
 
     return SecurityButton;
-}
-
-static HFONT PvpCreateFont(
-    _In_ PWSTR Name,
-    _In_ LONG Size,
-    _In_ LONG Weight,
-    _In_ LONG Dpi
-    )
-{
-    return CreateFont(
-        PhMultiplyDivideSigned(-Size, Dpi, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        DEFAULT_PITCH,
-        Name
-        );
 }
 
 VOID PvpInitializeFont(
     _In_ HWND hwnd
 )
 {
-    NONCLIENTMETRICS metrics = { sizeof(metrics) };
     LONG dpiValue;
 
     dpiValue = PhGetWindowDpi(hwnd);
@@ -264,16 +245,10 @@ VOID PvpInitializeFont(
     if (PhApplicationFont)
         DeleteFont(PhApplicationFont);
 
-    if (
-        !(PhApplicationFont = PvpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, dpiValue)) &&
-        !(PhApplicationFont = PvpCreateFont(L"Tahoma", 8, FW_NORMAL, dpiValue))
-        )
-    {
-        if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
-            PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
-        else
-            PhApplicationFont = NULL;
-    }
+    // Prefer the shell message font (Segoe UI). PhCreateMessageFont also applies
+    // PhFontQuality, which the previous local font factory ignored. (dmex)
+    if (!(PhApplicationFont = PhCreateMessageFont(dpiValue)))
+        PhApplicationFont = PhCreateApplicationFont(dpiValue);
 }
 
 INT CALLBACK PvpPropSheetProc(
@@ -452,8 +427,10 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PropSheetContext->TabPageItem = tabPageItem;
 
         PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-        PhAddLayoutItem(&PropSheetContext->LayoutManager, PvpCreateOptionsButton(hwnd), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-        PhAddLayoutItem(&PropSheetContext->LayoutManager, PvpCreateSecurityButton(hwnd), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+        if (PvpCreateOptionsButton(hwnd))
+            PhAddLayoutItem(&PropSheetContext->LayoutManager, OptionsButton, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+        if (PvpCreateSecurityButton(hwnd))
+            PhAddLayoutItem(&PropSheetContext->LayoutManager, SecurityButton, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);

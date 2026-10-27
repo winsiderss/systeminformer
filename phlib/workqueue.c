@@ -101,11 +101,14 @@ VOID PhDeleteWorkQueue(
 
     // Wait for all worker threads to exit.
 
-    WorkQueue->Terminating = TRUE;
-    MemoryBarrier();
+    WriteBooleanRelease(&WorkQueue->Terminating, TRUE);
 
-    if (WorkQueue->SemaphoreHandle)
-        NtReleaseSemaphore(WorkQueue->SemaphoreHandle, WorkQueue->CurrentThreads, NULL);
+    {
+        HANDLE semaphoreHandle = ReadPointerAcquire(&WorkQueue->SemaphoreHandle);
+
+        if (semaphoreHandle)
+            NtReleaseSemaphore(semaphoreHandle, ReadULongNoFence(&WorkQueue->CurrentThreads), NULL);
+    }
 
     PhWaitForRundownProtection(&WorkQueue->RundownProtect);
 
@@ -190,8 +193,8 @@ VOID PhQueueItemWorkQueueEx(
     PHLIB_INC_STATISTIC(WqWorkItemsQueued);
 
     // Check if all worker threads are currently busy, and if we can create more threads.
-    if (WorkQueue->BusyCount >= WorkQueue->CurrentThreads &&
-        WorkQueue->CurrentThreads < WorkQueue->MaximumThreads)
+    if (ReadULongNoFence(&WorkQueue->BusyCount) >= ReadULongNoFence(&WorkQueue->CurrentThreads) &&
+        ReadULongNoFence(&WorkQueue->CurrentThreads) < WorkQueue->MaximumThreads)
     {
         // Lock and re-check.
         PhAcquireQueuedLockExclusive(&WorkQueue->StateLock);
@@ -327,7 +330,7 @@ HANDLE PhpGetSemaphoreWorkQueue(
 {
     HANDLE semaphoreHandle;
 
-    semaphoreHandle = WorkQueue->SemaphoreHandle;
+    semaphoreHandle = ReadPointerAcquire(&WorkQueue->SemaphoreHandle);
 
     if (!semaphoreHandle)
     {
@@ -359,7 +362,7 @@ HANDLE PhpGetSemaphoreWorkQueue(
         {
             // Someone else created the semaphore before we did.
             NtClose(semaphoreHandle);
-            semaphoreHandle = WorkQueue->SemaphoreHandle;
+            semaphoreHandle = ReadPointerAcquire(&WorkQueue->SemaphoreHandle);
         }
     }
 
@@ -416,7 +419,7 @@ NTSTATUS PhpWorkQueueThreadStart(
         PPH_WORK_QUEUE_ITEM workQueueItem = NULL;
 
         // Check if we have more threads than the limit.
-        if (workQueue->CurrentThreads > workQueue->MaximumThreads)
+        if (ReadULongNoFence(&workQueue->CurrentThreads) > workQueue->MaximumThreads)
         {
             BOOLEAN terminate = FALSE;
 
@@ -439,7 +442,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 
         semaphoreHandle = PhpGetSemaphoreWorkQueue(workQueue);
 
-        if (!workQueue->Terminating)
+        if (!ReadBooleanAcquire(&workQueue->Terminating))
         {
             // Wait for work.
             status = NtWaitForSingleObject(
@@ -453,7 +456,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             status = STATUS_UNSUCCESSFUL;
         }
 
-        if (status == STATUS_WAIT_0 && !workQueue->Terminating)
+        if (status == STATUS_WAIT_0 && !ReadBooleanAcquire(&workQueue->Terminating))
         {
             PLIST_ENTRY listEntry;
 
@@ -489,7 +492,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 
             PhAcquireQueuedLockExclusive(&workQueue->StateLock);
 
-            if (workQueue->Terminating || workQueue->CurrentThreads > workQueue->MinimumThreads)
+            if (ReadBooleanAcquire(&workQueue->Terminating) || workQueue->CurrentThreads > workQueue->MinimumThreads)
             {
                 workQueue->CurrentThreads--;
                 terminate = TRUE;

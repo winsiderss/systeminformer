@@ -39,6 +39,10 @@ VOID EtStartEtwSession(
     VOID
     );
 
+VOID EtFlushEtwSession(
+    VOID
+    );
+
 VOID EtStopEtwSession(
     VOID
     );

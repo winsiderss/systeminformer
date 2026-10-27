@@ -1,4 +1,47 @@
-0.18 (up to commit 6bfab90, 2023-09-15)
+
+0.19 (up to commit 3c1cf2b, 2026-06-27)
+========================================
+
+Deprecated and removed features:
+--------------------------------
+* none
+
+New features
+------------
+* Add support for Commodore Amiga and MorphOS
+* Allow builds with CMake 4 - sync minimum version across all CMakeLists.txt files
+* Update openssl command to work for newer versions of openssl.
+* Add support for building json-c with meson
+* Support MSVC in packages that use GNU Autoconf.
+* Add VERSIONINFO to libjson-c.dll
+* Make json_tokener_free(NULL) a no-op, to simplify cleanup paths.
+* Explicitly handle NaN values when converting to int
+* Set errno=RANGE in json_object_get_int/int64/uint64() when the source value can't be represented in the target type.
+* Make json_parse a bit more useful by adding -u (validate UTF8) and -P (specify arbitrary tokener parse flags), and read from stdin if no filename is provided.
+* Fix the apps/json_parse "-s" (strict) option so it actually does something, and default to non-strict.
+
+
+Significant changes and bug fixes
+---------------------------------
+* Issue #867 - also disallow control characters in keys in JSON_TOKENER_STRICT mode
+* Issue #875: cast to unsigned char so bytes above 0x7f aren't interpreted as negative, which was causing the strict-mode control characters check to incorrectly trigger.
+* Issue #881: don't allow json_tokener_new_ex() with a depth < 1
+* Fix linkhash breaking -std=c89
+* Fixing Cmake build when using clang-cl, avoids errors about redefining existing symbols
+* Fix AIX build failure - Add CMake detection for getopt.h
+* Fix bug involving supplemental code points that look like high surrogates
+* Fix runtime issue with test_util_file.c in Windows (add O_BINARY)
+* Fix macro WIN32_LEAN_AND_MEAN redefined
+* Issue #914: Fix Memory usage regression due to newlocale() on macOS
+* Issue #916: Fix OOM via large array index in json_pointer_set
+* Issue #923: Avoid stack recursion in json_object_put()
+* Issue #927: CVE-2026-9146 - update json_object_iterator documentation
+* Issue #929: CVE-2026-11322 - fix information disclosure bug in apps/json_parse (not installed by default)
+* Issue #930: fix locale-dependent strtod in json_object_get_double
+* Issue #931: deep copy values in json_patch copy op to avoid aliasing and cycles
+
+
+0.18 (up to commit 6bfab90, 2024-09-15)
 ========================================
 
 Deprecated and removed features:

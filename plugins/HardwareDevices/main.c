@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2024
+ *     dmex    2015-2026
  *
  */
 
@@ -20,6 +20,7 @@ PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
 ULONG NetWindowsVersion = WINDOWS_ANCIENT;
 ULONG NetUpdateInterval = 0;
+ULONG NetRateIntervalMs = 1000;
 
 PPH_OBJECT_TYPE NetworkDeviceEntryType = NULL;
 PPH_LIST NetworkDevicesList = NULL;
@@ -49,8 +50,8 @@ VOID NTAPI LoadSettings(
     VOID
     )
 {
-    NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetWindowsVersion = PhWindowsVersion;
+    NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
 }
 
@@ -143,6 +144,15 @@ VOID NTAPI ProcessesUpdatedCallback(
 {
     PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     ULONG runCount = updateEvent->RunCount;
+
+    // Use the time actually spanned by the provider run for rate calculations, falling back to the
+    // nominal interval. Reading the event also keeps us in sync with the View -> Update Interval
+    // menu, which does not raise the settings-updated callback. (dmex)
+
+    if (updateEvent->ElapsedMilliseconds != 0)
+        NetRateIntervalMs = updateEvent->ElapsedMilliseconds;
+    else if (updateEvent->UpdateInterval != 0)
+        NetRateIntervalMs = updateEvent->UpdateInterval;
 
     GraphicsDevicesUpdate(runCount);
     DiskDevicesUpdate(runCount);
@@ -841,6 +851,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"000000" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"6d6d6d" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_PHYSICAL_COLOR, L"aaddff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_INTERFACE_COLOR, L"ffccaa" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_INTERFACE_COLOR, L"886644" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },

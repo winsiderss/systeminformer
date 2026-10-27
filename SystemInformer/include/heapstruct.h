@@ -190,7 +190,6 @@ typedef struct _HEAP
     HEAP_TUNING_PARAMETERS TuningParameters;
 } HEAP;
 
-
 #define SEGMENT_HEAP_SIGNATURE 0xddeeddee
 
 // Windows 8.1 and above

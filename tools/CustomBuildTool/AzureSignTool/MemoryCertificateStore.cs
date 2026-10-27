@@ -28,11 +28,11 @@ namespace CustomBuildTool
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="handle"></param>
-        private MemoryCertificateStore(HCERTSTORE handle)
+        /// <param name="Handle"></param>
+        private MemoryCertificateStore(HCERTSTORE Handle)
         {
-            this.StoreHandle = handle;
-            this.CertStore = new X509Store(handle);
+            this.StoreHandle = Handle;
+            this.CertStore = new X509Store(Handle);
         }
 
         /// <summary>

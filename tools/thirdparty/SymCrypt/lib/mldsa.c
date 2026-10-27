@@ -72,7 +72,7 @@ SymCryptMlDsaKeyGenerateEx(
 {
     UNREFERENCED_PARAMETER( flags );
 
-    SYMCRYPT_ASSERT( cbRootSeed == SYMCRYPT_MLDSA_ROOT_SEED_SIZE );
+    SYMCRYPT_ASSERT( cbRootSeed == SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE );
 
     SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
 
@@ -107,14 +107,22 @@ SymCryptMlDsaKeyGenerateEx(
         SymCryptShake256Extract( pShakeState, pkMlDsakey->privateSigningSeed, sizeof(pkMlDsakey->privateSigningSeed), FALSE); // Wiped when pTemps is freed
     }
 
-    SymCryptMlDsaExpandA( pkMlDsakey->publicSeed, sizeof(pkMlDsakey->publicSeed), pkMlDsakey->pmA );
+    scError = SymCryptMlDsaExpandA( pkMlDsakey->publicSeed, sizeof(pkMlDsakey->publicSeed), pkMlDsakey->pmA );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
 
-    SymCryptMlDsaExpandS(
+    scError = SymCryptMlDsaExpandS(
         pkMlDsakey->pParams,
         privateVectorSeed,
         sizeof(privateVectorSeed),
         pkMlDsakey->pvs1,
         pkMlDsakey->pvs2 );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
 
     // Convert s1 and s2 to NTT form
     SymCryptMlDsaVectorNTT( pkMlDsakey->pvs1 );
@@ -167,7 +175,7 @@ SymCryptMlDsakeyGenerate(
     UINT32              flags)
 {
     SYMCRYPT_ERROR scError = SYMCRYPT_NO_ERROR;
-    BYTE random[SYMCRYPT_MLDSA_ROOT_SEED_SIZE];
+    BYTE random[SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE];
     PBYTE  pbPctSignature = NULL;
     SIZE_T cbPctSignature = 0;
 
@@ -281,7 +289,7 @@ SymCryptMlDsakeySetValue(
     switch( mlDsakeyFormat )
     {
         case SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_SEED:
-            if( cbSrc != SYMCRYPT_MLDSA_ROOT_SEED_SIZE )
+            if( cbSrc != SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE )
             {
                 scError = SYMCRYPT_WRONG_KEY_SIZE;
                 goto cleanup;
@@ -337,7 +345,7 @@ SymCryptMlDsakeyGetValue(
                 cbDst );
             break;
         case SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_SEED:
-            if( cbDst < SYMCRYPT_MLDSA_ROOT_SEED_SIZE )
+            if( cbDst < SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE )
             {
                 scError = SYMCRYPT_BUFFER_TOO_SMALL;
                 goto cleanup;
@@ -349,7 +357,7 @@ SymCryptMlDsakeyGetValue(
                 goto cleanup;
             }
 
-            memcpy( pbDst, pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_ROOT_SEED_SIZE );
+            memcpy( pbDst, pkMlDsakey->rootSeed, SYMCRYPT_MLDSA_PRIVATE_SEED_SIZE );
             
             break;
         default:
@@ -394,7 +402,7 @@ SymCryptMlDsaSignEx(
 
     const UINT32 beta = (UINT32) pParams->nChallengeNonZeroCoeffs * pParams->privateKeyRange;
 
-    BOOL bExternalMu = (flags & SYMCRYPT_FLAG_MLDSA_EXTERNALMU) != 0;
+    BOOLEAN bExternalMu = (flags & SYMCRYPT_FLAG_MLDSA_EXTERNALMU) != 0;
     UINT8 modeId = (pbHashOid == NULL) ? 0 : 1; // 0 for ML-DSA, 1 for HashML-DSA
     UINT8 cbContextByte = (UINT8) cbContext;
     BYTE messageRepresentative[SYMCRYPT_SHAKE256_RESULT_SIZE];
@@ -458,21 +466,24 @@ SymCryptMlDsaSignEx(
 
     PBYTE pbW1Encoded = pTemps->pbScratch;
 
-    UINT16 k = 0;
-    while( TRUE )
+    // kappa is the counter for ExpandMask, incremented by nCols (l in FIPS 204) each iteration.
+    // Since kappa increments by nCols each iteration, the upper bound on kappa is
+    // SYMCRYPT_MLDSA_SIGN_INTERNAL_MAX_ITERATIONS * nCols.
+    //
+    // It's okay to leak how many iterations this loop takes because the SHAKE inputs and
+    // outputs are still unpredictable; this does not leak information about the private key
+    const UINT32 kappaLimit = (SYMCRYPT_MLDSA_SIGN_INTERNAL_MAX_ITERATIONS * pParams->nCols);
+    SYMCRYPT_ASSERT( kappaLimit <= UINT16_MAX );
+
+    for( UINT16 kappa = 0;  kappa < (UINT16) kappaLimit; kappa += (UINT16) pParams->nCols )
     {
         SymCryptMlDsaExpandMask(
             pParams,
             pShakeState,
             privateRandom,
             sizeof(privateRandom),
-            k,
+            kappa,
             pvMask );
-
-        // Increment k early so we can continue to the next loop iteration when validity checks fail
-        // It's okay to leak how many iterations this loop takes because the SHAKE inputs and
-        // outputs are still unpredictable; this does not leak information about the private key
-        k += (UINT16) pParams->nCols;
 
         SymCryptMlDsaMatrixVectorMontMul( pkMlDsakey->pmA, pvMask, pvW, pTemps->pePolyElements[0] );
 
@@ -498,7 +509,11 @@ SymCryptMlDsaSignEx(
         // Calculate challenge
         // Reusing poly element 0 for challenge (previously temp space for multiplication)
         PSYMCRYPT_MLDSA_POLYELEMENT peC = pTemps->pePolyElements[0];
-        SymCryptMlDsaSampleInBall( pParams, commitmentHash, pParams->cbCommitmentHash, peC );
+        scError = SymCryptMlDsaSampleInBall( pParams, commitmentHash, pParams->cbCommitmentHash, peC );
+        if( scError != SYMCRYPT_NO_ERROR )
+        {
+            goto cleanup;
+        }
 
         SymCryptMlDsaPolyElementNTT( peC );
         SymCryptMlDsaPolyElementMulR( peC );
@@ -568,7 +583,12 @@ SymCryptMlDsaSignEx(
         break;
     }
 
-    SYMCRYPT_ASSERT( pvHint != NULL );
+    if( pvHint == NULL )
+    {
+        // If we do not have a hint here, we exceeded the maximum number of iterations
+        scError = SYMCRYPT_EXTERNAL_FAILURE;
+        goto cleanup;
+    }
 
     SymCryptMlDsaSigEncode(
         pParams,
@@ -730,7 +750,6 @@ SymCryptHashMlDsaSign(
     }
 
     scError = SymCryptHashMlDsaValidateHashAlgAndGetOid(
-        pkMlDsakey->pParams,
         hashAlg,
         cbHash,
         &pHashOid );
@@ -794,7 +813,7 @@ SymCryptMlDsaVerifyEx(
 
     const UINT32 beta = (UINT32) pParams->nChallengeNonZeroCoeffs * pParams->privateKeyRange;
 
-    BOOL bExternalMu = (flags & SYMCRYPT_FLAG_MLDSA_EXTERNALMU) != 0;
+    BOOLEAN bExternalMu = (flags & SYMCRYPT_FLAG_MLDSA_EXTERNALMU) != 0;
     UINT8 modeId = (pbHashOid == NULL) ? 0 : 1; // 0 for ML-DSA, 1 for HashML-DSA
     UINT8 cbContextByte = (UINT8) cbContext;
     BYTE messageRepresentative[SYMCRYPT_SHAKE256_RESULT_SIZE];
@@ -855,11 +874,15 @@ SymCryptMlDsaVerifyEx(
         goto cleanup;
     }
 
-    SymCryptMlDsaSampleInBall(
+    scError = SymCryptMlDsaSampleInBall(
         pParams,
         commitmentHash,
         pParams->cbCommitmentHash,
         peC );
+    if( scError != SYMCRYPT_NO_ERROR )
+    {
+        goto cleanup;
+    }
 
     SymCryptMlDsaVectorNTT( pvResponse );
 
@@ -1066,7 +1089,6 @@ SymCryptHashMlDsaVerify(
     }
 
     scError = SymCryptHashMlDsaValidateHashAlgAndGetOid(
-        pkMlDsakey->pParams,
         hashAlg,
         cbHash,
         &pHashOid );

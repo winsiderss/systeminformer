@@ -145,9 +145,17 @@ NTSTATUS PhCreateFileWin32Ex(
         status == STATUS_SHARING_VIOLATION &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION &&
-        KsiLevel() >= KphLevelMed
+        KsiLevel() == KphLevelMax
         )
     {
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
         status = KphCreateFile(
             &fileHandle,
             DesiredAccess,
@@ -251,9 +259,20 @@ NTSTATUS PhCreateFileWin32ExAlt(
         status == STATUS_SHARING_VIOLATION &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION &&
-        KsiLevel() >= KphLevelMed
+        KsiLevel() == KphLevelMax
         )
     {
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
+        memset(&extendedInfo, 0, sizeof(EXTENDED_CREATE_INFORMATION));
+        extendedInfo.ExtendedCreateFlags = CreateFlags;
+
         status = KphCreateFile(
             &fileHandle,
             DesiredAccess,
@@ -349,9 +368,17 @@ NTSTATUS PhCreateFile(
         status == STATUS_SHARING_VIOLATION &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION &&
-        KsiLevel() >= KphLevelMed
+        KsiLevel() == KphLevelMax
         )
     {
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
         status = KphCreateFile(
             &fileHandle,
             DesiredAccess,
@@ -460,9 +487,17 @@ NTSTATUS PhCreateFileEx(
         status == STATUS_SHARING_VIOLATION &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION &&
-        KsiLevel() >= KphLevelMed
+        KsiLevel() == KphLevelMax
         )
     {
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            RootDirectory,
+            NULL
+            );
+
         status = KphCreateFile(
             &fileHandle,
             DesiredAccess,
@@ -728,6 +763,12 @@ NTSTATUS PhOpenFileById(
 /**
  * Reopens the specified file handle with different access rights, sharing mode, and flags.
  * Note: This function creates new FILE_OBJECTs compared to other functions simply referencing the existing object.
+ * Note: The reopen is relative to the original handle (RootDirectory with an empty name), so the new handle
+ * refers to the same file and stream as the original handle (including after a rename) and not the original path.
+ * Note: Unlike ReOpenFile, FILE_NON_DIRECTORY_FILE is not implied, so directory handles can be reopened
+ * (ReOpenFile always fails directory handles with STATUS_FILE_IS_A_DIRECTORY/ERROR_ACCESS_DENIED
+ * regardless of FILE_FLAG_BACKUP_SEMANTICS, see https://github.com/MicrosoftDocs/sdk-api/pull/2262).
+ * Pass FILE_NON_DIRECTORY_FILE or FILE_DIRECTORY_FILE in OpenOptions to restrict the handle type.
  *
  * \param FileHandle A variable that receives the file handle.
  * \param OriginalFileHandle A handle to the object to be reopened.
@@ -776,10 +817,19 @@ NTSTATUS PhReOpenFile(
     if (
         status == STATUS_SHARING_VIOLATION &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
-        KsiLevel() >= KphLevelMed
+        KsiLevel() == KphLevelMax
         )
     {
         assert(KPH_FILE_READ_DISPOSITION == FILE_OPEN);
+
+        RtlInitEmptyUnicodeString(&fileName, NULL, 0);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            OriginalFileHandle,
+            NULL
+            );
 
         status = KphCreateFile(
             &fileHandle,
@@ -1224,16 +1274,9 @@ BOOLEAN PhDoesFileExistWin32(
 
     status = PhQueryAttributesFileWin32(FileName, &basicInfo);
 
-    if (
-        NT_SUCCESS(status) ||
+    return NT_SUCCESS(status) ||
         status == STATUS_SHARING_VIOLATION ||
-        status == STATUS_ACCESS_DENIED
-        )
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+        status == STATUS_ACCESS_DENIED;
 }
 
 /**
@@ -1497,24 +1540,32 @@ NTSTATUS PhCreateDirectory(
     PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
 
+    //
     // Check if the target directory already exists.
+    //
 
     if (PhDoesDirectoryExist(DirectoryPath))
         return STATUS_SUCCESS;
 
+    //
     // Resolve the longest existing path prefix to determine where to start creating subdirectories.
+    //
 
     directoryPath = PhGetExistingPathPrefix(DirectoryPath);
 
     if (PhIsNullOrEmptyString(directoryPath))
         return STATUS_UNSUCCESSFUL;
 
+    //
     // Calculate the remaining part of the path that needs to be created.
+    //
 
     remainingPart.Length = DirectoryPath->Length - directoryPath->Length - sizeof(OBJ_NAME_PATH_SEPARATOR);
     remainingPart.Buffer = PTR_ADD_OFFSET(DirectoryPath->Buffer, directoryPath->Length + sizeof(OBJ_NAME_PATH_SEPARATOR));
 
+    //
     // Iterate through each component of the remaining path.
+    //
 
     while (remainingPart.Length != 0)
     {
@@ -1522,7 +1573,9 @@ NTSTATUS PhCreateDirectory(
 
         if (directoryPart.Length != 0)
         {
+            //
             // Construct the full path for the current component.
+            //
 
             directoryName = PhConcatStringRef3(
                 &directoryPath->sr,
@@ -1530,13 +1583,17 @@ NTSTATUS PhCreateDirectory(
                 &directoryPart
                 );
 
+            //
             // Verify the directory does not already exist before attempting creation.
+            //
 
             if (!PhDoesDirectoryExist(&directoryName->sr))
             {
                 HANDLE directoryHandle;
 
+                //
                 // Attempt to create the directory component.
+                //
 
                 if (NT_SUCCESS(PhCreateFile(
                     &directoryHandle,
@@ -1552,7 +1609,9 @@ NTSTATUS PhCreateDirectory(
                 }
             }
 
+            //
             // Update the current path prefix and move to the next component.
+            //
 
             PhMoveReference(&directoryPath, directoryName);
         }
@@ -1581,24 +1640,32 @@ NTSTATUS PhCreateDirectoryWin32(
     PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
 
+    //
     // Check if the target directory already exists.
+    //
 
     if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
+    //
     // Resolve the longest existing path prefix to determine where to start creating subdirectories.
+    //
 
     directoryPath = PhGetExistingPathPrefixWin32(DirectoryPath);
 
     if (PhIsNullOrEmptyString(directoryPath))
         return STATUS_UNSUCCESSFUL;
 
+    //
     // Calculate the remaining part of the path that needs to be created.
+    //
 
     remainingPart.Length = DirectoryPath->Length - directoryPath->Length - sizeof(OBJ_NAME_PATH_SEPARATOR);
     remainingPart.Buffer = PTR_ADD_OFFSET(DirectoryPath->Buffer, directoryPath->Length + sizeof(OBJ_NAME_PATH_SEPARATOR));
 
+    //
     // Iterate through each component of the remaining path.
+    //
 
     while (remainingPart.Length != 0)
     {
@@ -1612,17 +1679,23 @@ NTSTATUS PhCreateDirectoryWin32(
             }
             else
             {
+                //
                 // Construct the full path for the current component.
+                //
 
                 directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeparatorString, &directoryPart);
 
+                //
                 // Verify the directory does not already exist before attempting creation.
+                //
 
                 if (!PhDoesDirectoryExistWin32(PhGetString(directoryName)))
                 {
                     HANDLE directoryHandle;
 
+                    //
                     // Attempt to create the directory component.
+                    //
 
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &directoryHandle,
@@ -1732,6 +1805,33 @@ static BOOLEAN PhDeleteDirectoryCallback(
         if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
             return TRUE;
 
+        //
+        // Delete junctions and directory symlinks themselves. Never follow them,
+        // otherwise the contents of the target (outside this tree) get deleted. (dmex)
+        //
+
+        if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_REPARSE_POINT))
+        {
+            if (NT_SUCCESS(PhCreateFileEx(
+                &fileHandle,
+                &fileName,
+                FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+                RootDirectory,
+                NULL,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT,
+                NULL
+                )))
+            {
+                PhSetFileDelete(fileHandle);
+                NtClose(fileHandle);
+            }
+
+            return TRUE;
+        }
+
         if (NT_SUCCESS(PhCreateFileEx(
             &fileHandle,
             &fileName,
@@ -1754,6 +1854,17 @@ static BOOLEAN PhDeleteDirectoryCallback(
     }
     else
     {
+        ULONG openOptions = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT;
+
+        //
+        // Delete file symlinks (and other reparse points) themselves, not their targets. (dmex)
+        //
+
+        if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_REPARSE_POINT))
+        {
+            SetFlag(openOptions, FILE_OPEN_REPARSE_POINT);
+        }
+
         if (NT_SUCCESS(PhCreateFileEx(
             &fileHandle,
             &fileName,
@@ -1763,7 +1874,7 @@ static BOOLEAN PhDeleteDirectoryCallback(
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, // | FILE_OPEN_REPARSE_POINT
+            openOptions,
             NULL
             )))
         {
@@ -1799,7 +1910,10 @@ NTSTATUS PhDeleteDirectory(
     NTSTATUS status;
     HANDLE directoryHandle;
 
+    //
     // Open the directory with permissions required for deletion and enumeration.
+    //
+
     status = PhCreateFile(
         &directoryHandle,
         DirectoryPath,
@@ -1812,7 +1926,10 @@ NTSTATUS PhDeleteDirectory(
 
     if (NT_SUCCESS(status))
     {
+        //
         // Enumerate the directory content and remove files and sub-directories.
+        //
+
         status = PhEnumDirectoryFile(
             directoryHandle,
             NULL,
@@ -1822,15 +1939,24 @@ NTSTATUS PhDeleteDirectory(
 
         if (NT_SUCCESS(status))
         {
+            //
             // Remove the now-empty directory.
+            //
+
             status = PhSetFileDelete(directoryHandle);
         }
 
+        //
         // Close the handle to the directory.
+        //
+
         NtClose(directoryHandle);
     }
 
+    //
     // Verify if the directory was actually deleted.
+    //
+
     if (!PhDoesDirectoryExist(DirectoryPath))
         return STATUS_SUCCESS;
 
@@ -2986,12 +3112,12 @@ NTSTATUS PhSetFileExtendedAttributes(
     info->Flags = 0;
     info->EaNameLength = eaNameLength;
     info->EaValueLength = eaValueLength;
-    memcpy(info->EaName, Name->Buffer, nameLength);
+    RtlCopyMemory(info->EaName, Name->Buffer, nameLength);
     info->EaName[eaNameLength] = ANSI_NULL;
 
     if (Value)
     {
-        memcpy(
+        RtlCopyMemory(
             PTR_ADD_OFFSET(info->EaName, eaNameLength + sizeof(ANSI_NULL)),
             Value->Buffer,
             valueLength
@@ -4097,12 +4223,12 @@ NTSTATUS PhGetFileUsn(
 {
     NTSTATUS status;
     ULONG recordLength;
-    PUSN_RECORD_V2 recordBuffer; // USN_RECORD_UNION
-    UCHAR buffer[sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR)];
+    PUSN_RECORD_COMMON_HEADER recordBuffer; // USN_RECORD_UNION
+    UCHAR buffer[sizeof(USN_RECORD_V3) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR)];
     IO_STATUS_BLOCK ioStatusBlock;
 
     recordLength = sizeof(buffer);
-    recordBuffer = (PUSN_RECORD_V2)buffer;
+    recordBuffer = (PUSN_RECORD_COMMON_HEADER)buffer;
 
     status = NtFsControlFile(
         FileHandle,
@@ -4117,25 +4243,43 @@ NTSTATUS PhGetFileUsn(
         recordLength
         );
 
-    if (NT_SUCCESS(status))
-    {
-        *Usn = recordBuffer->Usn;
+    if (!NT_SUCCESS(status))
+        return status;
+    if (ioStatusBlock.Information < sizeof(USN_RECORD_COMMON_HEADER))
+        return STATUS_INFO_LENGTH_MISMATCH;
 
-        //switch (recordBuffer->Header.MajorVersion)
-        //{
-        //case 2:
-        //    *Usn = recordBuffer->V2.Usn;
-        //    break;
-        //case 3:
-        //    *Usn = recordBuffer->V3.Usn;
-        //    break;
-        //case 4:
-        //    *Usn = recordBuffer->V4.Usn;
-        //    break;
-        //}
+    // ReFS returns version 3 records, where the USN is at a different offset than in version 2.
+    switch (recordBuffer->MajorVersion)
+    {
+    case 2:
+        {
+            if (ioStatusBlock.Information < RTL_SIZEOF_THROUGH_FIELD(USN_RECORD_V2, Usn))
+                return STATUS_INFO_LENGTH_MISMATCH;
+
+            *Usn = ((PUSN_RECORD_V2)recordBuffer)->Usn;
+        }
+        break;
+    case 3:
+        {
+            if (ioStatusBlock.Information < RTL_SIZEOF_THROUGH_FIELD(USN_RECORD_V3, Usn))
+                return STATUS_INFO_LENGTH_MISMATCH;
+
+            *Usn = ((PUSN_RECORD_V3)recordBuffer)->Usn;
+        }
+        break;
+    case 4:
+        {
+            if (ioStatusBlock.Information < RTL_SIZEOF_THROUGH_FIELD(USN_RECORD_V4, Usn))
+                return STATUS_INFO_LENGTH_MISMATCH;
+
+            *Usn = ((PUSN_RECORD_V4)recordBuffer)->Usn;
+        }
+        break;
+    default:
+        return STATUS_UNKNOWN_REVISION;
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**

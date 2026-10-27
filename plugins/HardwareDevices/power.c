@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -10,6 +10,7 @@
  */
 
 #include "devices.h"
+#include <devguid.h>
 #include <emi.h>
 
 /**
@@ -21,7 +22,7 @@
  * \param ChannelName EMI channel name.
  * \return TRUE if the channel name starts with the RAPL package prefix.
  */
-static BOOLEAN RaplChannelNameStartsWithPackage(
+BOOLEAN RaplChannelNameStartsWithPackage(
     _In_ PCWSTR ChannelName
     )
 {
@@ -44,7 +45,7 @@ static BOOLEAN RaplChannelNameStartsWithPackage(
  * \param Suffix Expected channel suffix.
  * \return TRUE if the channel is a RAPL package channel with the requested suffix.
  */
-static BOOLEAN RaplChannelNameMatchesSuffix(
+BOOLEAN RaplChannelNameMatchesSuffix(
     _In_ PCWSTR ChannelName,
     _In_ PCWSTR Suffix
     )
@@ -68,7 +69,7 @@ static BOOLEAN RaplChannelNameMatchesSuffix(
  * \param ChannelName EMI channel name.
  * \return TRUE if the channel is a package power channel.
  */
-static BOOLEAN RaplChannelNameIsPackage(
+BOOLEAN RaplChannelNameIsPackage(
     _In_ PCWSTR ChannelName
     )
 {
@@ -76,19 +77,79 @@ static BOOLEAN RaplChannelNameIsPackage(
 }
 
 /**
- * Determines whether a channel exposes the aggregate core domain.
+ * Determines whether an EMI channel record lies wholly inside the metadata the
+ * device returned, and whether its name is usable as a string.
  *
- * Intel systems typically expose the core/package subdomain as `PP0`, for
- * example `RAPL_Package0_PP0`.
+ * EMI metadata is variable length and the channel name size is device supplied,
+ * so neither the record nor the name can be trusted to stay inside the returned
+ * bytes. (dmex)
+ *
+ * \param Channel The channel record to validate.
+ * \param End One past the last valid metadata byte.
+ * \return TRUE if the record and its terminated name are within bounds.
+ */
+BOOLEAN RaplChannelFitsMetadata(
+    _In_ EMI_CHANNEL_V2* Channel,
+    _In_ PVOID End
+    )
+{
+    SIZE_T remaining;
+    ULONG nameSize;
+
+    if ((ULONG_PTR)Channel >= (ULONG_PTR)End)
+        return FALSE;
+
+    remaining = (ULONG_PTR)End - (ULONG_PTR)Channel;
+
+    if (remaining < (SIZE_T)FIELD_OFFSET(EMI_CHANNEL_V2, ChannelName))
+        return FALSE;
+
+    nameSize = Channel->ChannelNameSize;
+
+    if (nameSize < sizeof(WCHAR) || (nameSize % sizeof(WCHAR)) != 0)
+        return FALSE;
+
+    if (remaining < EMI_CHANNEL_V2_LENGTH(nameSize))
+        return FALSE;
+
+    // The name is passed to string routines, so require a terminator. (dmex)
+    if (Channel->ChannelName[nameSize / sizeof(WCHAR) - 1] != UNICODE_NULL)
+        return FALSE;
+
+    return TRUE;
+}
+//
+///**
+// * Determines whether a channel exposes the aggregate core domain.
+// *
+// * Intel systems typically expose the core/package subdomain as `PP0`, for
+// * example `RAPL_Package0_PP0`.
+// *
+// * \param ChannelName EMI channel name.
+// * \return TRUE if the channel is the PP0 aggregate core channel.
+// */
+//BOOLEAN RaplChannelNameIsCoreAggregate(
+//    _In_ PCWSTR ChannelName
+//    )
+//{
+//    return RaplChannelNameMatchesSuffix(ChannelName, L"_PP0");
+//}
+
+/**
+ * Determines whether a channel represents a core-power domain.
+ *
+ * This accepts both Intel-style `PP0` names and AMD-style per-core `_CORE`
+ * names during device enumeration.
  *
  * \param ChannelName EMI channel name.
- * \return TRUE if the channel is the PP0 aggregate core channel.
+ * \return TRUE if the channel represents core power.
  */
-static BOOLEAN RaplChannelNameIsCoreAggregate(
+BOOLEAN RaplChannelNameIsCore(
     _In_ PCWSTR ChannelName
     )
 {
-    return RaplChannelNameMatchesSuffix(ChannelName, L"_PP0");
+    return RaplChannelNameMatchesSuffix(ChannelName, L"_PP0") ||
+        RaplChannelNameMatchesSuffix(ChannelName, L"_CORE");
 }
 
 /**
@@ -102,7 +163,7 @@ static BOOLEAN RaplChannelNameIsCoreAggregate(
  * \param ChannelName EMI channel name.
  * \return TRUE if the channel name ends with the per-core suffix.
  */
-static BOOLEAN RaplChannelNameIsPerCore(
+BOOLEAN RaplChannelNameIsPerCore(
     _In_ PCWSTR ChannelName
     )
 {
@@ -117,7 +178,7 @@ static BOOLEAN RaplChannelNameIsPerCore(
  * \param ChannelName EMI channel name.
  * \return TRUE if the channel is the PP1 discrete GPU channel.
  */
-static BOOLEAN RaplChannelNameIsDiscreteGpu(
+BOOLEAN RaplChannelNameIsDiscreteGpu(
     _In_ PCWSTR ChannelName
     )
 {
@@ -132,7 +193,7 @@ static BOOLEAN RaplChannelNameIsDiscreteGpu(
  * \param ChannelName EMI channel name.
  * \return TRUE if the channel is the DRAM channel.
  */
-static BOOLEAN RaplChannelNameIsDram(
+BOOLEAN RaplChannelNameIsDram(
     _In_ PCWSTR ChannelName
     )
 {
@@ -147,7 +208,7 @@ static BOOLEAN RaplChannelNameIsDram(
  * \param ChannelData Cached absolute energy/time values for the channel.
  * \return The sampled channel power in watts.
  */
-static FLOAT RaplDeviceSampleSingleChannel(
+FLOAT RaplDeviceSampleSingleChannel(
     _In_ PVOID MeasurementData,
     _In_ ULONG ChannelIndex,
     _Inout_ EV_MEASUREMENT_DATA* ChannelData
@@ -189,11 +250,48 @@ static FLOAT RaplDeviceSampleSingleChannel(
 }
 
 /**
+ * Releases the resources owned by one underlying EMI interface source.
+ *
+ * \param Source RAPL source to release.
+ */
+VOID DeleteRaplDeviceSource(
+    _Inout_ PDV_RAPL_SOURCE Source
+    )
+{
+    if (Source->DeviceHandle)
+    {
+        NtClose(Source->DeviceHandle);
+        Source->DeviceHandle = NULL;
+    }
+
+    if (Source->ChannelDataBuffer)
+    {
+        PhFree(Source->ChannelDataBuffer);
+        Source->ChannelDataBuffer = NULL;
+    }
+
+    if (Source->CoreChannelIndexes)
+    {
+        PhFree(Source->CoreChannelIndexes);
+        Source->CoreChannelIndexes = NULL;
+    }
+
+    if (Source->CoreChannelData)
+    {
+        PhFree(Source->CoreChannelData);
+        Source->CoreChannelData = NULL;
+    }
+
+    PhClearReference(&Source->DevicePath);
+}
+
+/**
  * Deletes a RAPL device entry and releases its resources.
  *
  * \param Object RAPL device entry object.
  * \param Flags Object deletion flags.
  */
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID RaplDeviceEntryDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -208,28 +306,17 @@ VOID RaplDeviceEntryDeleteProcedure(
     DeleteRaplDeviceId(&entry->Id);
     PhClearReference(&entry->DeviceName);
 
-    if (entry->DeviceHandle)
+    if (entry->DeviceSources)
     {
-        NtClose(entry->DeviceHandle);
-        entry->DeviceHandle = NULL;
-    }
+        for (ULONG i = 0; i < entry->DeviceSources->Count; i++)
+        {
+            PDV_RAPL_SOURCE source = entry->DeviceSources->Items[i];
 
-    if (entry->ChannelDataBuffer)
-    {
-        PhFree(entry->ChannelDataBuffer);
-        entry->ChannelDataBuffer = NULL;
-    }
+            DeleteRaplDeviceSource(source);
+            PhFree(source);
+        }
 
-    if (entry->CoreChannelIndexes)
-    {
-        PhFree(entry->CoreChannelIndexes);
-        entry->CoreChannelIndexes = NULL;
-    }
-
-    if (entry->CoreChannelData)
-    {
-        PhFree(entry->CoreChannelData);
-        entry->CoreChannelData = NULL;
+        PhDereferenceObject(entry->DeviceSources);
     }
 
     PhDeleteCircularBuffer_FLOAT(&entry->PackageBuffer);
@@ -247,6 +334,268 @@ VOID RaplDeviceInitialize(
 {
     RaplDevicesList = PhCreateList(1);
     RaplDeviceEntryType = PhCreateObjectType(L"RaplDeviceEntry", 0, RaplDeviceEntryDeleteProcedure);
+}
+
+VOID ResetRaplSourceSample(
+    _Inout_ PDV_RAPL_SOURCE Source
+    )
+{
+    Source->CurrentProcessorPower = 0.0f;
+    Source->CurrentCorePower = 0.0f;
+    Source->CurrentDramPower = 0.0f;
+    Source->CurrentDiscreteGpuPower = 0.0f;
+}
+
+VOID ResetRaplEntrySample(
+    _Inout_ PDV_RAPL_ENTRY Entry
+    )
+{
+    Entry->CurrentProcessorPower = 0.0f;
+    Entry->CurrentCorePower = 0.0f;
+    Entry->CurrentDramPower = 0.0f;
+    Entry->CurrentDiscreteGpuPower = 0.0f;
+    Entry->CurrentComponentPower = 0.0f;
+    Entry->CurrentTotalPower = 0.0f;
+    Entry->DevicePresent = FALSE;
+}
+
+PDV_RAPL_SOURCE FindRaplDeviceSource(
+    _In_ PDV_RAPL_ENTRY Entry,
+    _In_ PPH_STRING DevicePath
+    )
+{
+    if (!Entry->DeviceSources)
+        return NULL;
+
+    for (ULONG i = 0; i < Entry->DeviceSources->Count; i++)
+    {
+        PDV_RAPL_SOURCE source = Entry->DeviceSources->Items[i];
+
+        if (PhEqualString(source->DevicePath, DevicePath, TRUE))
+            return source;
+    }
+
+    return NULL;
+}
+
+PDV_RAPL_SOURCE AddRaplDeviceSource(
+    _Inout_ PDV_RAPL_ENTRY Entry,
+    _In_ PPH_STRING DevicePath
+    )
+{
+    PDV_RAPL_SOURCE source;
+
+    source = PhAllocateZero(sizeof(DV_RAPL_SOURCE));
+    memset(source->ChannelIndex, ULONG_MAX, sizeof(source->ChannelIndex));
+    PhSetReference(&source->DevicePath, DevicePath);
+    PhAddItemList(Entry->DeviceSources, source);
+
+    return source;
+}
+
+VOID ResolveRaplDeviceAggregateIdentity(
+    _Inout_ PDV_RAPL_ENTRY Entry
+    )
+{
+    DV_RAPL_ID resolvedId;
+    PPH_STRING deviceDescription;
+
+    if (!Entry->Id.DevicePath || Entry->Id.DeviceInstance)
+        return;
+
+    memset(&resolvedId, 0, sizeof(resolvedId));
+    deviceDescription = NULL;
+
+    if (QueryRaplDeviceInterfaceInfo(PhGetString(Entry->Id.DevicePath), &resolvedId, &deviceDescription))
+    {
+        if (resolvedId.DeviceInstance)
+            PhSetReference(&Entry->Id.DeviceInstance, resolvedId.DeviceInstance);
+
+        if (!Entry->DeviceName && deviceDescription)
+            PhSetReference(&Entry->DeviceName, deviceDescription);
+
+        if (!Entry->Id.DevicePath && resolvedId.DevicePath)
+            PhSetReference(&Entry->Id.DevicePath, resolvedId.DevicePath);
+    }
+
+    DeleteRaplDeviceId(&resolvedId);
+    PhClearReference(&deviceDescription);
+}
+
+VOID RefreshRaplDeviceSources(
+    _Inout_ PDV_RAPL_ENTRY Entry
+    )
+{
+    ULONG deviceCount = 0;
+    const DEV_OBJECT* deviceObjects = NULL;
+    const DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
+    {
+        { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVICE_ENERGY_METER } }
+    };
+
+    ResolveRaplDeviceAggregateIdentity(Entry);
+
+    if (HR_FAILED(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
+    {
+        if (Entry->Id.DevicePath && !FindRaplDeviceSource(Entry, Entry->Id.DevicePath))
+            AddRaplDeviceSource(Entry, Entry->Id.DevicePath);
+
+        return;
+    }
+
+    for (ULONG i = 0; i < deviceCount; i++)
+    {
+        DV_RAPL_ID deviceId;
+        PPH_STRING deviceDescription;
+
+        memset(&deviceId, 0, sizeof(deviceId));
+        deviceDescription = NULL;
+
+        if (!QueryRaplDeviceInterfaceInfo((PWSTR)deviceObjects[i].pszObjectId, &deviceId, &deviceDescription))
+            continue;
+
+        if (EquivalentRaplDeviceId(&Entry->Id, &deviceId))
+        {
+            if (!FindRaplDeviceSource(Entry, deviceId.DevicePath))
+                AddRaplDeviceSource(Entry, deviceId.DevicePath);
+
+            if (!Entry->Id.DevicePath && deviceId.DevicePath)
+                PhSetReference(&Entry->Id.DevicePath, deviceId.DevicePath);
+
+            if (!Entry->DeviceName && deviceDescription)
+                PhSetReference(&Entry->DeviceName, deviceDescription);
+        }
+
+        DeleteRaplDeviceId(&deviceId);
+        PhClearReference(&deviceDescription);
+    }
+
+    PhDevFreeObjects(deviceCount, deviceObjects);
+
+    if (Entry->Id.DevicePath && !FindRaplDeviceSource(Entry, Entry->Id.DevicePath))
+        AddRaplDeviceSource(Entry, Entry->Id.DevicePath);
+}
+
+VOID RefreshRaplSourceSupport(
+    _Inout_ PDV_RAPL_SOURCE Source
+    )
+{
+    EMI_METADATA_SIZE metadataSize;
+    EMI_METADATA_V2* metadata;
+    ULONG returnLength;
+
+    memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
+
+    if (!NT_SUCCESS(PhDeviceIoControlFile(
+        Source->DeviceHandle,
+        IOCTL_EMI_GET_METADATA_SIZE,
+        NULL,
+        0,
+        &metadataSize,
+        sizeof(EMI_METADATA_SIZE),
+        NULL
+        )))
+    {
+        Source->CheckedDeviceSupport = TRUE;
+        return;
+    }
+
+    // The device reports the metadata size; require it to cover the fixed fields
+    // and refuse an implausibly large allocation. (dmex)
+    if (metadataSize.MetadataSize < (ULONG)FIELD_OFFSET(EMI_METADATA_V2, Channels) ||
+        metadataSize.MetadataSize > EV_EMI_MAX_METADATA_SIZE)
+    {
+        Source->CheckedDeviceSupport = TRUE;
+        return;
+    }
+
+    metadata = PhAllocate(metadataSize.MetadataSize);
+    memset(metadata, 0, metadataSize.MetadataSize);
+
+    returnLength = 0;
+
+    if (NT_SUCCESS(PhDeviceIoControlFile(
+        Source->DeviceHandle,
+        IOCTL_EMI_GET_METADATA,
+        NULL,
+        0,
+        metadata,
+        metadataSize.MetadataSize,
+        &returnLength
+        )) &&
+        returnLength >= (ULONG)FIELD_OFFSET(EMI_METADATA_V2, Channels) &&
+        returnLength <= metadataSize.MetadataSize)
+    {
+        EMI_CHANNEL_V2* channels = metadata->Channels;
+        PVOID end = PTR_ADD_OFFSET(metadata, returnLength);
+        ULONG channelCount;
+
+        // The bytes actually returned bound the channel chain, so clamp the
+        // declared count to the number of records that can possibly fit. (dmex)
+        channelCount = min((ULONG)metadata->ChannelCount,
+            (returnLength - (ULONG)FIELD_OFFSET(EMI_METADATA_V2, Channels)) / (ULONG)EMI_CHANNEL_V2_LENGTH(sizeof(WCHAR)));
+
+        if (
+            channelCount &&
+            RaplChannelFitsMetadata(channels, end) &&
+            channels->MeasurementUnit == EmiMeasurementUnitPicowattHours
+            )
+        {
+            Source->ChannelDataBufferLength = sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * channelCount;
+
+            if (!Source->CoreChannelIndexes)
+                Source->CoreChannelIndexes = PhAllocateZero(sizeof(ULONG) * channelCount);
+            if (!Source->CoreChannelData)
+                Source->CoreChannelData = PhAllocateZero(sizeof(EV_MEASUREMENT_DATA) * channelCount);
+
+            Source->NumberOfCoreChannels = 0;
+
+            for (ULONG j = 0; j < channelCount; j++)
+            {
+                // Stop at the first record that does not lie wholly inside the
+                // returned bytes. (dmex)
+                if (!RaplChannelFitsMetadata(channels, end))
+                    break;
+
+                if (RaplChannelNameIsPackage(channels->ChannelName))
+                    Source->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = j;
+                if (RaplChannelNameIsCore(channels->ChannelName))
+                    Source->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = j;
+                if (RaplChannelNameIsDiscreteGpu(channels->ChannelName))
+                    Source->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = j;
+                if (RaplChannelNameIsDram(channels->ChannelName))
+                    Source->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = j;
+                if (Source->CoreChannelIndexes && RaplChannelNameIsPerCore(channels->ChannelName))
+                    Source->CoreChannelIndexes[Source->NumberOfCoreChannels++] = j;
+
+                channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
+            }
+
+            if (
+                Source->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] != ULONG_MAX &&
+                (Source->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] != ULONG_MAX || Source->NumberOfCoreChannels != 0)
+                )
+            {
+                Source->DeviceSupported = TRUE;
+            }
+        }
+    }
+
+    PhFree(metadata);
+    Source->CheckedDeviceSupport = TRUE;
 }
 
 /**
@@ -274,138 +623,91 @@ VOID RaplDevicesUpdate(
         if (!entry)
             continue;
 
-        if (!entry->DeviceHandle)
+        ResetRaplEntrySample(entry);
+        RefreshRaplDeviceSources(entry);
+
+        if (entry->DeviceSources)
         {
-            HANDLE deviceHandle;
-
-            if (NT_SUCCESS(PhCreateFile(
-                &deviceHandle,
-                &entry->Id.DevicePath->sr,
-                FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                )))
+            for (ULONG j = 0; j < entry->DeviceSources->Count; j++)
             {
-                entry->DeviceHandle = deviceHandle;
-            }
+                PDV_RAPL_SOURCE source = entry->DeviceSources->Items[j];
 
-            if (entry->DeviceHandle && !entry->CheckedDeviceSupport)
-            {
-                EMI_METADATA_SIZE metadataSize;
-                EMI_METADATA_V2* metadata;
+                ResetRaplSourceSample(source);
 
-                memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
-
-                if (NT_SUCCESS(PhDeviceIoControlFile(
-                    entry->DeviceHandle,
-                    IOCTL_EMI_GET_METADATA_SIZE,
-                    NULL,
-                    0,
-                    &metadataSize,
-                    sizeof(EMI_METADATA_SIZE),
-                    NULL
-                    )))
+                if (!source->DeviceHandle && source->DevicePath)
                 {
-                    metadata = PhAllocate(metadataSize.MetadataSize);
-                    memset(metadata, 0, metadataSize.MetadataSize);
+                    HANDLE deviceHandle;
 
-                    if (NT_SUCCESS(PhDeviceIoControlFile(
-                        entry->DeviceHandle,
-                        IOCTL_EMI_GET_METADATA,
-                        NULL,
-                        0,
-                        metadata,
-                        metadataSize.MetadataSize,
-                        NULL
+                    if (NT_SUCCESS(PhCreateFile(
+                        &deviceHandle,
+                        &source->DevicePath->sr,
+                        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        FILE_OPEN,
+                        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                         )))
                     {
-                        EMI_CHANNEL_V2* channels = metadata->Channels;
+                        source->DeviceHandle = deviceHandle;
+                    }
+                }
 
-                        if (
-                            metadata->ChannelCount &&
-                            channels->MeasurementUnit == EmiMeasurementUnitPicowattHours
-                            )
+                if (source->DeviceHandle && !source->CheckedDeviceSupport)
+                    RefreshRaplSourceSupport(source);
+
+                if (source->DeviceHandle)
+                {
+                    entry->DevicePresent = TRUE;
+                    source->DevicePresent = TRUE;
+
+                    if (source->DeviceSupported)
+                    {
+                        if (!source->ChannelDataBuffer)
+                            source->ChannelDataBuffer = PhAllocateZero(source->ChannelDataBufferLength);
+
+                        if (source->ChannelDataBuffer && NT_SUCCESS(PhDeviceIoControlFile(
+                            source->DeviceHandle,
+                            IOCTL_EMI_GET_MEASUREMENT,
+                            NULL,
+                            0,
+                            source->ChannelDataBuffer,
+                            source->ChannelDataBufferLength,
+                            NULL
+                            )))
                         {
-                            entry->ChannelDataBufferLength = sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * metadata->ChannelCount;
+                            RaplDeviceSampleData(source, source->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_PACKAGE);
+                            RaplDeviceSampleData(source, source->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_CORE);
+                            RaplDeviceSampleData(source, source->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_GPUDISCRETE);
+                            RaplDeviceSampleData(source, source->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_DIMM);
 
-                            if (!entry->CoreChannelIndexes)
-                                entry->CoreChannelIndexes = PhAllocateZero(sizeof(ULONG) * metadata->ChannelCount);
-                            if (!entry->CoreChannelData)
-                                entry->CoreChannelData = PhAllocateZero(sizeof(EV_MEASUREMENT_DATA) * metadata->ChannelCount);
-
-                            for (ULONG j = 0; j < metadata->ChannelCount; j++)
-                            {
-                                if (RaplChannelNameIsPackage(channels->ChannelName))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = j;
-                                if (RaplChannelNameIsCoreAggregate(channels->ChannelName))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = j;
-                                if (RaplChannelNameIsDiscreteGpu(channels->ChannelName))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = j;
-                                if (RaplChannelNameIsDram(channels->ChannelName))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = j;
-                                if (entry->CoreChannelIndexes && RaplChannelNameIsPerCore(channels->ChannelName))
-                                    entry->CoreChannelIndexes[entry->NumberOfCoreChannels++] = j;
-
-                                channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
-                            }
-                        }
-
-                        if (
-                            entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] != ULONG_MAX &&
-                            (entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] != ULONG_MAX || entry->NumberOfCoreChannels != 0)
-                            )
-                        {
-                            entry->DeviceSupported = TRUE;
+                            entry->CurrentProcessorPower += source->CurrentProcessorPower;
+                            entry->CurrentCorePower += source->CurrentCorePower;
+                            entry->CurrentDramPower += source->CurrentDramPower;
+                            entry->CurrentDiscreteGpuPower += source->CurrentDiscreteGpuPower;
                         }
                     }
-
-                    PhFree(metadata);
                 }
-
-                entry->CheckedDeviceSupport = TRUE;
+                else
+                {
+                    source->DevicePresent = FALSE;
+                }
             }
         }
 
-        if (entry->DeviceHandle)
         {
-            if (entry->DeviceSupported)
-            {
-                if (!entry->ChannelDataBuffer)
-                {
-                    entry->ChannelDataBuffer = PhAllocateZero(entry->ChannelDataBufferLength);
-                }
+            FLOAT accountedPower;
 
-                if (entry->ChannelDataBuffer && NT_SUCCESS(PhDeviceIoControlFile(
-                    entry->DeviceHandle,
-                    IOCTL_EMI_GET_MEASUREMENT,
-                    NULL,
-                    0,
-                    entry->ChannelDataBuffer,
-                    entry->ChannelDataBufferLength,
-                    NULL
-                    )))
-                {
-                    RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_PACKAGE);
-                    RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_CORE);
-                    RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_GPUDISCRETE);
-                    RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_DIMM);
-                    RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_MAX);
-                }
-            }
+            accountedPower = entry->CurrentCorePower + entry->CurrentDiscreteGpuPower;
 
-            entry->DevicePresent = TRUE;
-        }
-        else
-        {
-            entry->CurrentProcessorPower = 0.f;
-            entry->CurrentCorePower = 0.f;
-            entry->CurrentDramPower = 0.f;
-            entry->CurrentDiscreteGpuPower = 0.f;
-            entry->CurrentComponentPower = 0.f;
-            entry->CurrentTotalPower = 0.f;
-            entry->DevicePresent = FALSE;
+            if (entry->CurrentProcessorPower > accountedPower && accountedPower > 0.0f)
+                entry->CurrentComponentPower = (entry->CurrentProcessorPower - accountedPower);
+            else
+                entry->CurrentComponentPower = 0.0f;
+
+            entry->CurrentTotalPower =
+                entry->CurrentProcessorPower +
+                entry->CurrentDiscreteGpuPower +
+                entry->CurrentDramPower;
         }
 
         if (RunCount != 0)
@@ -429,10 +731,12 @@ VOID RaplDevicesUpdate(
  */
 VOID InitializeRaplDeviceId(
     _Out_ PDV_RAPL_ID Id,
-    _In_ PPH_STRING DevicePath
+    _In_opt_ PPH_STRING DevicePath,
+    _In_opt_ PPH_STRING DeviceInstance
     )
 {
     PhSetReference(&Id->DevicePath, DevicePath);
+    PhSetReference(&Id->DeviceInstance, DeviceInstance);
 }
 
 /**
@@ -447,7 +751,8 @@ VOID CopyRaplDeviceId(
 {
     InitializeRaplDeviceId(
         Destination,
-        Source->DevicePath
+        Source->DevicePath,
+        Source->DeviceInstance
         );
 }
 
@@ -460,6 +765,7 @@ VOID DeleteRaplDeviceId(
     )
 {
     PhClearReference(&Id->DevicePath);
+    PhClearReference(&Id->DeviceInstance);
 }
 
 /**
@@ -467,13 +773,16 @@ VOID DeleteRaplDeviceId(
  *
  * \param Id1 First identifier.
  * \param Id2 Second identifier.
- * \return TRUE if both identifiers refer to the same device path.
+ * \return TRUE if both identifiers refer to the same logical RAPL package.
  */
 BOOLEAN EquivalentRaplDeviceId(
     _In_ PDV_RAPL_ID Id1,
     _In_ PDV_RAPL_ID Id2
     )
 {
+    if (Id1->DeviceInstance && Id2->DeviceInstance)
+        return PhEqualString(Id1->DeviceInstance, Id2->DeviceInstance, TRUE);
+
     return PhEqualString(Id1->DevicePath, Id2->DevicePath, TRUE);
 }
 
@@ -491,9 +800,8 @@ PDV_RAPL_ENTRY CreateRaplDeviceEntry(
     ULONG sampleCount;
 
     entry = PhCreateObjectZero(sizeof(DV_RAPL_ENTRY), RaplDeviceEntryType);
-    memset(entry->ChannelIndex, ULONG_MAX, sizeof(entry->ChannelIndex));
-
     CopyRaplDeviceId(&entry->Id, Id);
+    entry->DeviceSources = PhCreateList(1);
 
     sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_FLOAT(&entry->PackageBuffer, sampleCount);
@@ -515,88 +823,69 @@ PDV_RAPL_ENTRY CreateRaplDeviceEntry(
  * is read from a single `PP0` channel, while AMD-style `CoreN_CORE` channels
  * are summed to produce the logical core-power value shown by the UI.
  *
- * \param DeviceEntry Target RAPL device entry.
+ * \param DeviceSource Target RAPL device source.
  * \param MeasurementData Raw EMI measurement buffer.
  * \param DeviceIndex Logical RAPL domain to sample.
  */
 VOID RaplDeviceSampleData(
-    _In_ PDV_RAPL_ENTRY DeviceEntry,
+    _In_ PDV_RAPL_SOURCE DeviceSource,
     _In_ PVOID MeasurementData,
     _In_ EV_EMI_DEVICE_INDEX DeviceIndex
     )
 {
-    if (DeviceIndex == EV_EMI_DEVICE_INDEX_MAX)
-    {
-        FLOAT accountedPower;
-
-        accountedPower = DeviceEntry->CurrentCorePower + DeviceEntry->CurrentDiscreteGpuPower;
-
-        if (DeviceEntry->CurrentProcessorPower > accountedPower && accountedPower > 0.0f)
-            DeviceEntry->CurrentComponentPower = (DeviceEntry->CurrentProcessorPower - accountedPower);
-        else
-            DeviceEntry->CurrentComponentPower = 0.0f;
-
-        DeviceEntry->CurrentTotalPower =
-            DeviceEntry->CurrentProcessorPower +
-            //DeviceEntry->CurrentCorePower +
-            DeviceEntry->CurrentDiscreteGpuPower +
-            DeviceEntry->CurrentDramPower;
-        return;
-    }
-
     if (
         DeviceIndex == EV_EMI_DEVICE_INDEX_CORE &&
-        DeviceEntry->ChannelIndex[DeviceIndex] == ULONG_MAX &&
-        DeviceEntry->NumberOfCoreChannels != 0 &&
-        DeviceEntry->CoreChannelData
+        DeviceSource->ChannelIndex[DeviceIndex] == ULONG_MAX &&
+        DeviceSource->NumberOfCoreChannels != 0 &&
+        DeviceSource->CoreChannelData
         )
     {
         FLOAT totalCorePower = 0.0f;
 
-        for (ULONG i = 0; i < DeviceEntry->NumberOfCoreChannels; i++)
+        for (ULONG i = 0; i < DeviceSource->NumberOfCoreChannels; i++)
         {
             totalCorePower += RaplDeviceSampleSingleChannel(
                 MeasurementData,
-                DeviceEntry->CoreChannelIndexes[i],
-                &DeviceEntry->CoreChannelData[i]
+                DeviceSource->CoreChannelIndexes[i],
+                &DeviceSource->CoreChannelData[i]
                 );
         }
 
-        DeviceEntry->CurrentCorePower = totalCorePower;
+        DeviceSource->CurrentCorePower = totalCorePower;
         return;
     }
 
-    if (DeviceEntry->ChannelIndex[DeviceIndex] == ULONG_MAX)
+    if (DeviceSource->ChannelIndex[DeviceIndex] == ULONG_MAX)
         return;
 
     switch (DeviceIndex)
     {
     case EV_EMI_DEVICE_INDEX_PACKAGE:
-        DeviceEntry->CurrentProcessorPower = RaplDeviceSampleSingleChannel(
+        DeviceSource->CurrentProcessorPower = RaplDeviceSampleSingleChannel(
             MeasurementData,
-            DeviceEntry->ChannelIndex[DeviceIndex],
-            &DeviceEntry->ChannelData[DeviceIndex]
+            DeviceSource->ChannelIndex[DeviceIndex],
+            &DeviceSource->ChannelData[DeviceIndex]
             );
         break;
     case EV_EMI_DEVICE_INDEX_CORE:
-        DeviceEntry->CurrentCorePower = RaplDeviceSampleSingleChannel(
+        DeviceSource->CurrentCorePower = RaplDeviceSampleSingleChannel(
             MeasurementData,
-            DeviceEntry->ChannelIndex[DeviceIndex],
-            &DeviceEntry->ChannelData[DeviceIndex]
+            DeviceSource->ChannelIndex[DeviceIndex],
+            &DeviceSource->ChannelData[DeviceIndex]
             );
         break;
     case EV_EMI_DEVICE_INDEX_DIMM:
-        DeviceEntry->CurrentDramPower = RaplDeviceSampleSingleChannel(
+        DeviceSource->CurrentDramPower = RaplDeviceSampleSingleChannel(
             MeasurementData,
-            DeviceEntry->ChannelIndex[DeviceIndex],
-            &DeviceEntry->ChannelData[DeviceIndex]
+            DeviceSource->ChannelIndex[DeviceIndex],
+            &DeviceSource->ChannelData[DeviceIndex]
             );
         break;
     case EV_EMI_DEVICE_INDEX_GPUDISCRETE:
-        DeviceEntry->CurrentDiscreteGpuPower = RaplDeviceSampleSingleChannel(
+        DeviceSource->CurrentDiscreteGpuPower = RaplDeviceSampleSingleChannel(
             MeasurementData,
-            DeviceEntry->ChannelIndex[DeviceIndex],
-            &DeviceEntry->ChannelData[DeviceIndex]
+            DeviceSource->ChannelIndex[DeviceIndex],
+            &DeviceSource->ChannelData[DeviceIndex]
             );
         break;
     }

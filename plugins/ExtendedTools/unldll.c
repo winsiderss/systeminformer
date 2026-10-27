@@ -21,7 +21,7 @@ typedef struct _UNLOADED_DLLS_CONTEXT
     PVOID CapturedEventTrace;
     HANDLE ProcessId;
     HANDLE QueryHandle;
-    HFONT WindowFont;
+    PPH_FONT WindowFont;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
 INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
@@ -482,13 +482,13 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             HWND lvHandle;
 
             context->ListViewHandle = lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
-            SetWindowFont(lvHandle, context->WindowFont, FALSE);
+            SetWindowFont(lvHandle, PhGetFontHandle(context->WindowFont), FALSE);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"No.");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Base Address");
@@ -535,7 +535,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->WindowFont)
-                DeleteFont(context->WindowFont);
+                PhDereferenceObject(context->WindowFont);
 
             if (context->CapturedEventTrace)
                 PhFree(context->CapturedEventTrace);
@@ -572,10 +572,10 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
+            PPH_FONT windowFont;
 
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+            if (windowFont = PhCreateTreeWindowFontObject(LOWORD(wParam)))
+                PhSwapOwnedFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

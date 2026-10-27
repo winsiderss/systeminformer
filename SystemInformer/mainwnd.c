@@ -134,35 +134,7 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    // Initialize window metrics.
-    PhMwpInitializeMetrics(PhMainWndHandle, PhGetWindowDpi(PhMainWndHandle));
-
-    // Initialize window controls.
-    PhMwpInitializeControls(PhMainWndHandle);
-
-    // Initialize window fonts.
-    PhMwpOnSettingChange(PhMainWndHandle, 0, NULL);
-
-    // Initialize window settings.
-    PhMwpLoadSettings(PhMainWndHandle);
-
-    // Initialize window theme.
-    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
-
-    // Initialize window menu.
-    PhMwpInitializeMainMenu(PhMainWndHandle);
-
-    // Initialize providers.
-    PhMwpInitializeProviders();
-
-    // Perform window layout.
-    PhMwpSelectionChangedTabControl(INT_ERROR);
-
-    // Perform main window showing.
-    PhMwpShowWindow(ShowCommand);
-
-    // Queue delayed init functions.
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, PhMainWndHandle);
+    PhMwpShowWindow(PhMainWndHandle, SW_SHOWDEFAULT);
 
     return TRUE;
 }
@@ -185,6 +157,38 @@ LRESULT CALLBACK PhMwpWndProc(
 {
     switch (WindowMessage)
     {
+    case WM_CREATE:
+        {
+            PhMainWndHandle = WindowHandle;
+
+            // Initialize window metrics.
+            PhMwpInitializeMetrics(WindowHandle, PhGetWindowDpi(WindowHandle));
+
+            // Initialize window controls.
+            PhMwpInitializeControls(WindowHandle);
+
+            // Initialize window fonts.
+            PhMwpOnSettingChange(WindowHandle, 0, NULL);
+
+            // Initialize window settings.
+            PhMwpLoadSettings(WindowHandle);
+
+            // Initialize window theme.
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+
+            // Initialize window menu.
+            PhMwpInitializeMainMenu(WindowHandle);
+
+            // Initialize providers.
+            PhMwpInitializeProviders();
+
+            // Perform window layout.
+            PhMwpSelectionChangedTabControl(INT_ERROR);
+
+            // Queue delayed init functions.
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, WindowHandle);
+        }
+        break;
     case WM_DESTROY:
         {
             PhMwpOnDestroy(WindowHandle);
@@ -261,7 +265,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhMwpOnDpiChanged(WindowHandle, LOWORD(wParam));
+            PhMwpOnDpiChanged(WindowHandle, LOWORD(wParam), (PRECT)lParam);
         }
         break;
     case WM_NCPAINT:
@@ -307,10 +311,12 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhMainWndProc;
     wcex.hInstance = NtCurrentImageBase();
     className = PhaGetStringSetting(SETTING_MAIN_WINDOW_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(className, SETTING_MAIN_WINDOW_CLASS_NAME);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     if (PhEnableWindowText)
@@ -422,6 +428,7 @@ VOID PhMwpInitializeProviders(
  * \param ShowCommand The show command (e.g., SW_SHOW, SW_HIDE, SW_MAXIMIZE).
  */
 VOID PhMwpShowWindow(
+    _In_ HWND WindowHandle,
     _In_ LONG ShowCommand
     )
 {
@@ -569,6 +576,11 @@ VOID PhMwpInitializeControls(
     _In_ HWND WindowHandle
     )
 {
+    RECT rect;
+    LONG x;
+    LONG y;
+    LONG width;
+    LONG height;
     ULONG thinRows;
     ULONG treelistBorder;
     ULONG treelistCustomColors;
@@ -594,14 +606,43 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.RowHeight = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE);
     }
 
+    // Create the controls with their initial client geometry. Some controls
+    // perform sizing-dependent initialization during WM_CREATE, so leaving
+    // them at 0x0 until the first layout pass can produce an invalid first
+    // paint/layout.
+
+    if (PhGetClientRect(WindowHandle, &rect))
+    {
+        if (!LayoutPaddingValid)
+        {
+            PhMwpUpdateLayoutPadding();
+            LayoutPaddingValid = TRUE;
+        }
+
+        PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
+        x = rect.left;
+        y = rect.top;
+        width = rect.right - rect.left;
+        height = rect.bottom - rect.top;
+    }
+    else
+    {
+        x = 0;
+        y = 0;
+        width = 3;
+        height = 3;
+    }
+
+    // Create controls for the main window
+
     TabControlHandle = PhCreateWindow(
         MAKEINTATOM(PhTabNewWindowAtom),
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP | TNS_TOP | TNS_MULTILINE | TNS_REORDER | TNS_FIXEDWIDTH,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | TNS_TOP | TNS_MULTILINE | TNS_FIXEDWIDTH | TNS_REORDER,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -613,10 +654,10 @@ VOID PhMwpInitializeControls(
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER |
         thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw | treelistCustomDragReorder,
-        0,
-        0,
-        0,
-        0,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -626,11 +667,11 @@ VOID PhMwpInitializeControls(
     PhMwpServiceTreeNewHandle = PhCreateWindow(
         MAKEINTATOM(PhTreeWindowAtom),
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -640,11 +681,11 @@ VOID PhMwpInitializeControls(
     PhMwpNetworkTreeNewHandle = PhCreateWindow(
         MAKEINTATOM(PhTreeWindowAtom),
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -3058,11 +3099,14 @@ VOID PhMwpOnDeviceChanged(
  * Handles the DPI change event for the specified window.
  *
  * \param WindowHandle Handle to the window whose DPI has changed.
- * \param WindowDpi The new DPI value for the window.
+ * \param WindowDpi The new DPI value for the window, or zero to query the current DPI.
+ * \param SuggestedRect The suggested window rectangle, or NULL when the message was sent
+ * to refresh the window metrics (e.g. by a plugin) rather than by the system.
  */
 VOID PhMwpOnDpiChanged(
     _In_ HWND WindowHandle,
-    _In_ LONG WindowDpi
+    _In_ LONG WindowDpi,
+    _In_opt_ PRECT SuggestedRect
     )
 {
     PhMwpInitializeMetrics(WindowHandle, WindowDpi);
@@ -3092,7 +3136,20 @@ VOID PhMwpOnDpiChanged(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
     }
 
-    InvalidateRect(WindowHandle, NULL, TRUE);
+    if (SuggestedRect)
+    {
+        SetWindowPos(
+            WindowHandle,
+            NULL,
+            SuggestedRect->left,
+            SuggestedRect->top,
+            SuggestedRect->right - SuggestedRect->left,
+            SuggestedRect->bottom - SuggestedRect->top,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
+            );
+    }
+
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 /**
@@ -3235,8 +3292,8 @@ LRESULT PhMwpOnUserMessage(
         break;
     case WM_PH_INVOKE:
         {
-            PhProcessInvokeQueue();
             InterlockedExchange(&PhMainThreadInvokePending, 0);
+            PhProcessInvokeQueue();
         }
         break;
     case WM_PH_UPDATE_FONT:
@@ -3536,42 +3593,6 @@ BOOLEAN PhMwpExecuteComputerCommand(
 }
 
 /**
- * Determines whether the specified window is overlapped by other windows.
- *
- * \param WindowHandle Handle to the window to check for overlap.
- * \return TRUE if the window is overlapped by other windows; FALSE otherwise.
- */
-BOOLEAN PhMwpIsWindowOverlapped(
-    _In_ HWND WindowHandle
-    )
-{
-    RECT rectThisWindow = { 0 };
-    RECT rectOtherWindow = { 0 };
-    RECT rectIntersection = { 0 };
-    HWND windowHandle = WindowHandle;
-
-    if (!PhGetWindowRect(WindowHandle, &rectThisWindow))
-        return FALSE;
-
-    while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
-    {
-        if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
-            continue;
-
-        if (!PhGetWindowRect(windowHandle, &rectOtherWindow))
-            continue;
-
-        if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
-            IntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
-        {
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-/**
  * Activates the specified window.
  *
  * \param WindowHandle Handle to the window to be activated.
@@ -3589,7 +3610,7 @@ VOID PhMwpActivateWindow(
     }
     else if (IsWindowVisible(WindowHandle))
     {
-        if (Toggle && !PhMwpIsWindowOverlapped(WindowHandle))
+        if (Toggle && !PhIsWindowOverlapped(WindowHandle))
             ShowWindow(WindowHandle, SW_HIDE);
         else
             SetForegroundWindow(WindowHandle);
@@ -4513,8 +4534,17 @@ VOID PhMwpInitializeSectionMenuItems(
         PhRemoveEMenuItem(Menu, NULL, StartIndex);
 }
 
-_Function_class_(PH_TABNEW_LAYOUT_CALLBACK)
-BOOLEAN NTAPI PhpMwpTabLayoutCallback(
+/**
+ * Supplies the persistent identifier for a tab item during layout save/restore.
+ *
+ * \param WindowHandle Handle to the tab control.
+ * \param ItemParam The application-defined value associated with the item.
+ * \param Identifier Receives the identifier of the item.
+ * \param Context Unused.
+ * \return TRUE if an identifier was returned, otherwise FALSE.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhMwpTabLayoutCallback(
     _In_ HWND WindowHandle,
     _In_ LPARAM ItemParam,
     _Out_ PPH_STRINGREF Identifier,
@@ -4539,12 +4569,11 @@ VOID PhMwpSaveTabLayoutSetting(
     if (!TabControlHandle)
         return;
 
-    layout = PhTabNew_SaveLayout(TabControlHandle, PhpMwpTabLayoutCallback, NULL);
-    if (!layout)
-        return;
-
-    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
-    PhDereferenceObject(layout);
+    if (layout = PhTabNew_SaveLayout(TabControlHandle, PhMwpTabLayoutCallback, NULL))
+    {
+        PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
+        PhDereferenceObject(layout);
+    }
 }
 
 VOID PhMwpSyncTabPageIndexes(
@@ -4574,9 +4603,7 @@ VOID PhMwpUpdateTabRestoreState(
     LONG selectedIndex;
     PPH_MAIN_TAB_PAGE page;
 
-    if (!TabControlHandle ||
-        !IsWindowVisible(TabControlHandle) ||
-        !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
+    if (!TabControlHandle || !IsWindowVisible(TabControlHandle) || !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
         return;
 
     selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
@@ -4601,10 +4628,17 @@ VOID PhMwpRestoreTabLayout(
         return;
 
     layout = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT);
-    if (layout->Length == 0)
+
+    if (PhIsNullOrEmptyString(layout))
         return;
 
-    PhTabNew_RestoreLayout(TabControlHandle, &layout->sr, PhpMwpTabLayoutCallback, NULL);
+    if (PhTabNew_RestoreLayout(TabControlHandle, &layout->sr, PhMwpTabLayoutCallback, NULL))
+    {
+        // The strip order changed, so every cached page index is stale.
+        PhMwpSyncTabPageIndexes();
+
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
+    }
 }
 
 /**
@@ -4615,29 +4649,16 @@ VOID PhMwpLayoutTabControl(
     _Inout_ HDWP *DeferHandle
     )
 {
-    RECT clientRect;
     RECT tabRect;
 
-    if (!LayoutPaddingValid)
-    {
-        PhMwpUpdateLayoutPadding();
-        LayoutPaddingValid = TRUE;
-    }
-
-    if (!PhGetClientRect(PhMainWndHandle, &clientRect))
+    if (!TabControlHandle)
         return;
 
-    PhMwpApplyLayoutPadding(&clientRect, &LayoutPadding);
-    tabRect = clientRect;
-    {
-        RECT pageRect;
-        if (PhTabNew_GetPageRect(TabControlHandle, &pageRect))
-        {
-            // PhTabNew_GetPageRect returns parent client coords; remap into
-            // mainwnd client coords (TabControl is a direct child of mainwnd).
-            tabRect = pageRect;
-        }
-    }
+    // The tab control returns the page rectangle already mapped to the parent
+    // (main window) client coordinates.
+
+    if (!PhTabNew_GetPageRect(TabControlHandle, &tabRect))
+        return;
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
@@ -4646,11 +4667,11 @@ VOID PhMwpLayoutTabControl(
             *DeferHandle,
             CurrentPage->WindowHandle,
             HWND_TOP,
-            clientRect.left,
+            tabRect.left,
             tabRect.top - LayoutBorderSize,
-            clientRect.right - clientRect.left,
-            (tabRect.bottom - tabRect.top) + (clientRect.bottom - tabRect.bottom),
-            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+            tabRect.right - tabRect.left,
+            tabRect.bottom - tabRect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER //| SWP_NOOWNERZORDER
             );
     }
 }
@@ -4672,17 +4693,24 @@ VOID PhMwpNotifyTabControl(
         PhMwpSelectionChangedTabControl(OldTabIndex);
         OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
     }
-    else if (Header->code == PHTNN_LAYOUT)
-    {
-        HDWP deferHandle = BeginDeferWindowPos(1);
-        PhMwpLayoutTabControl(&deferHandle);
-        EndDeferWindowPos(deferHandle);
-    }
     else if (Header->code == PHTNN_REORDERED)
     {
         PhMwpSyncTabPageIndexes();
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
+
+        // Persist immediately so a reorder survives an abnormal termination.
         PhMwpSaveTabLayoutSetting();
-        PhMwpUpdateTabRestoreState();
+    }
+    else if (Header->code == PHTNN_LAYOUT)
+    {
+        HDWP deferHandle;
+
+        // The strip may have gained or lost a row, so the page rectangle changed.
+
+        deferHandle = BeginDeferWindowPos(1);
+        PhMwpLayoutTabControl(&deferHandle);
+        EndDeferWindowPos(deferHandle);
+
     }
 }
 
@@ -4799,7 +4827,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
 
     name = PhCreateString2(&page->Name);
     item.Text = name->Buffer;
-    item.ImageIndex = LONG_ERROR;
+    item.ImageIndex = INT_ERROR;
     item.Param = (LPARAM)page;
 
     page->Index = PhTabNew_InsertItem(TabControlHandle, MAXINT, &item);
@@ -4829,6 +4857,16 @@ VOID PhMwpSelectPage(
     _In_ ULONG Index
     )
 {
+    LONG oldIndex;
+
+    oldIndex = PhTabNew_GetCurSel(TabControlHandle);
+
+    if (oldIndex == (LONG)Index)
+        return;
+
+    // Unlike the stock tab control, PHTNM_SETCURSEL sends PHTNN_SELCHANGING and
+    // PHTNN_SELCHANGED, so PhMwpNotifyTabControl performs the page switch. (dmex)
+
     PhTabNew_SetCurSel(TabControlHandle, Index);
 }
 
@@ -5197,7 +5235,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi), PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi));
+            iconBitmap = PhIconToBitmap(icon, PhScaleToDisplay(16, taskbarDpi), PhScaleToDisplay(16, taskbarDpi));
             DestroyIcon(icon);
         }
 
@@ -5655,7 +5693,8 @@ NTSTATUS PhInvokeOnMainThread(
     // still ensuring the queue is processed (one message drains all items).
     if (InterlockedCompareExchange(&PhMainThreadInvokePending, 1, 0) == 0)
     {
-        PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0);
+        if (!PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0))
+            InterlockedExchange(&PhMainThreadInvokePending, 0);
     }
 
     return STATUS_SUCCESS;
@@ -5672,9 +5711,21 @@ VOID PhProcessInvokeQueue(
     )
 {
     PSLIST_ENTRY listEntry;
+    PSLIST_ENTRY nextEntry;
+    PSLIST_ENTRY orderedEntries = NULL;
     PPH_INVOKE_ENTRY entry;
 
     listEntry = RtlInterlockedFlushSList(&PhMainThreadInvokeQueue);
+
+    while (listEntry)
+    {
+        nextEntry = listEntry->Next;
+        listEntry->Next = orderedEntries;
+        orderedEntries = listEntry;
+        listEntry = nextEntry;
+    }
+
+    listEntry = orderedEntries;
 
     while (listEntry)
     {

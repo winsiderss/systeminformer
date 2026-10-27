@@ -381,6 +381,7 @@ typedef struct _PH_MAPPED_IMAGE_EXPORTS
     PULONG AddressTable;
     PULONG NamePointerTable;
     PUSHORT OrdinalTable;
+    PULONG NameIndexByOrdinal; // Call PhDeleteMappedImageExports after a successful initialization.
 } PH_MAPPED_IMAGE_EXPORTS, *PPH_MAPPED_IMAGE_EXPORTS;
 
 typedef struct _PH_MAPPED_IMAGE_EXPORT_ENTRY
@@ -405,6 +406,13 @@ PhGetMappedImageExportsEx(
     _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Flags
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteMappedImageExports(
+    _Inout_ PPH_MAPPED_IMAGE_EXPORTS Exports
     );
 
 PHLIBAPI
@@ -782,6 +790,10 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
 #define IMAGE_DEBUG_TYPE_PERFMAP 21
 #endif
 
+#ifndef IMAGE_DEBUG_TYPE_REPRO
+#define IMAGE_DEBUG_TYPE_REPRO 16
+#endif
+
 typedef struct _IMAGE_DEBUG_TYPE_PERFMAPV1
 {
     ULONG Magic; // 0x4D523252
@@ -840,6 +852,12 @@ PhGetMappedImageDebugEntryByType(
     _Out_opt_ ULONG* DataLength,
     _Out_opt_ PVOID* DataBuffer
     );
+
+typedef struct _IMAGE_DEBUG_REPRO_ENTRY
+{
+    ULONG Length;
+    BYTE Buffer[1];
+} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
 
 // maplib
 
@@ -1386,6 +1404,20 @@ NTAPI
 PhGetMappedImageAuthenticodeHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING* AuthenticodeHash
+    );
+
+// Append zero bytes to the hash stream after the file regions to align the file
+// size to 8 bytes when either security directory field is zero (Windows PE SIP).
+#define PH_GET_IMAGE_AUTHENTICODE_PADDED 0x00000001
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageAuthenticodeHashEx(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _In_ ULONG Flags,
     _Out_ PPH_STRING* AuthenticodeHash
     );
 

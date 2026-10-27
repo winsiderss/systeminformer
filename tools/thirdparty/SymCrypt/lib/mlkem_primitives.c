@@ -445,7 +445,7 @@ SymCryptMlKemPolyElementINTTLayerVec128(
             VEC128_MOD_ADD_UINT16( vTmp2, vc0, vc1, vQ, vTmp0 );
             // c1 = c1 - c0 mod Q
             VEC128_MOD_SUB_UINT16( vc1, vc1, vc0, vQ, vZero, vTmp1 );
-            // c1 = twiddleFactor * c1;
+            // c1 = twiddleFactor * c1 mod Q
             VEC128_MONTGOMERY_MUL_UINT16( vc1, vc1, vTwiddleFactor, vTwiddleFactorMont, vQ, vZero, vOne, vTmp0, vTmp1 );
 
             if( len >= 8 )
@@ -765,16 +765,16 @@ SymCryptMlKemMontgomeryReduceAndAddPolyElementAccumulatorToPolyElement(
 
         // montgomery reduce sum of products
         inv = (a * SYMCRYPT_MLKEM_NegQInvModR) & SYMCRYPT_MLKEM_Rmask;
-        a = (a + (inv * SYMCRYPT_MLKEM_Q)) >> SYMCRYPT_MLKEM_Rlog2; // in range [0, 4711]
-        SYMCRYPT_ASSERT( a <= 4711 );
+        a = (a + (inv * SYMCRYPT_MLKEM_Q)) >> SYMCRYPT_MLKEM_Rlog2; // in range [0, 4698]
+        SYMCRYPT_ASSERT( a <= 4698 );
 
         // add destination
         c += a;
-        SYMCRYPT_ASSERT( c <= 8039 );
+        SYMCRYPT_ASSERT( c <= 8026 );
 
         // subtraction and conditional additions for constant time range reduction
-        c -= 2*SYMCRYPT_MLKEM_Q;           // in range [-2Q, 1381]
-        SYMCRYPT_ASSERT( (c >= ((UINT32)(-2*SYMCRYPT_MLKEM_Q))) || (c < 1381) );
+        c -= 2*SYMCRYPT_MLKEM_Q;           // in range [-2Q, 1368]
+        SYMCRYPT_ASSERT( (c >= ((UINT32)(-2*SYMCRYPT_MLKEM_Q))) || (c <= 1368) );
         c += SYMCRYPT_MLKEM_Q & (c >> 16); // in range [-Q, Q-1]
         SYMCRYPT_ASSERT( (c >= ((UINT32)-SYMCRYPT_MLKEM_Q)) || (c < SYMCRYPT_MLKEM_Q) );
         c += SYMCRYPT_MLKEM_Q & (c >> 16); // in range [0, Q-1]
@@ -1260,58 +1260,6 @@ SymCryptMlKemVectorMulR(
         SymCryptMlKemPolyElementMulR(
             SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvSrc ),
             SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvDst ) );
-    }
-}
-
-VOID
-SYMCRYPT_CALL
-SymCryptMlKemVectorAdd(
-    _In_    PCSYMCRYPT_MLKEM_VECTOR pvSrc1,
-    _In_    PCSYMCRYPT_MLKEM_VECTOR pvSrc2,
-    _Out_   PSYMCRYPT_MLKEM_VECTOR  pvDst )
-{
-    UINT32 i;
-    const UINT32 nRows = pvSrc1->nRows;
-    PCSYMCRYPT_MLKEM_POLYELEMENT peSrc1, peSrc2;
-    PSYMCRYPT_MLKEM_POLYELEMENT  peDst;
-
-    SYMCRYPT_ASSERT( nRows >  0 );
-    SYMCRYPT_ASSERT( nRows <= SYMCRYPT_MLKEM_MATRIX_MAX_NROWS );
-    SYMCRYPT_ASSERT( pvSrc2->nRows == nRows );
-    SYMCRYPT_ASSERT( pvDst->nRows == nRows );
-
-    for( i=0; i<nRows; i++ )
-    {
-        peSrc1 = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvSrc1 );
-        peSrc2 = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvSrc2 );
-        peDst  = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvDst );
-        SymCryptMlKemPolyElementAdd( peSrc1, peSrc2, peDst );
-    }
-}
-
-VOID
-SYMCRYPT_CALL
-SymCryptMlKemVectorSub(
-    _In_    PCSYMCRYPT_MLKEM_VECTOR pvSrc1,
-    _In_    PCSYMCRYPT_MLKEM_VECTOR pvSrc2,
-    _Out_   PSYMCRYPT_MLKEM_VECTOR  pvDst )
-{
-    UINT32 i;
-    const UINT32 nRows = pvSrc1->nRows;
-    PCSYMCRYPT_MLKEM_POLYELEMENT peSrc1, peSrc2;
-    PSYMCRYPT_MLKEM_POLYELEMENT  peDst;
-
-    SYMCRYPT_ASSERT( nRows >  0 );
-    SYMCRYPT_ASSERT( nRows <= SYMCRYPT_MLKEM_MATRIX_MAX_NROWS );
-    SYMCRYPT_ASSERT( pvSrc2->nRows == nRows );
-    SYMCRYPT_ASSERT( pvDst->nRows == nRows );
-
-    for( i=0; i<nRows; i++ )
-    {
-        peSrc1 = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvSrc1 );
-        peSrc2 = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvSrc2 );
-        peDst  = SYMCRYPT_INTERNAL_MLKEM_VECTOR_ELEMENT( i, pvDst );
-        SymCryptMlKemPolyElementSub( peSrc1, peSrc2, peDst );
     }
 }
 

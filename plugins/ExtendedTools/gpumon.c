@@ -65,9 +65,12 @@ PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 /**
  * Initializes GPU monitoring functionality, allocating history buffers
  * and registering necessary callbacks if monitoring is supported.
+ *
+ * \param DiscoveredAdapterList The transient adapter discovery list owned by
+ * the load callback.
  */
 VOID EtGpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
@@ -79,7 +82,7 @@ VOID EtGpuMonitorInitialization(
 
         EtpGpuAdapterList = PhCreateList(4);
 
-        if (EtpGpuInitializeD3DStatistics())
+        if (EtpGpuInitializeD3DStatistics(DiscoveredAdapterList))
             EtGpuEnabled = TRUE;
     }
 
@@ -175,14 +178,16 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
     {
         EtOpenAdapterFromDeviceName(&adapter->CachedAdapterHandle, NULL, PhGetString(DeviceInterface));
     }
-
-    if (!adapter->CachedAdapterHandle)
+    else
     {
         adapter->CachedAdapterHandle = AdapterHandle;
     }
 
     if (EtGpuSupported)
     {
+        // The caller's handle is still valid here, use it when ours could not be opened.
+        D3DKMT_HANDLE adapterHandle = adapter->CachedAdapterHandle ? adapter->CachedAdapterHandle : AdapterHandle;
+
         adapter->NodeNameList = PhCreateList(adapter->NodeCount);
 
         for (ULONG i = 0; i < adapter->NodeCount; i++)
@@ -192,8 +197,8 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
             memset(&metaDataInfo, 0, sizeof(D3DKMT_NODEMETADATA));
             metaDataInfo.NodeOrdinalAndAdapterIndex = MAKEWORD(i, 0);
 
-            if (adapter->CachedAdapterHandle && NT_SUCCESS(EtQueryAdapterInformation(
-                adapter->CachedAdapterHandle,
+            if (adapterHandle && NT_SUCCESS(EtQueryAdapterInformation(
+                adapterHandle,
                 KMTQAITYPE_NODEMETADATA,
                 &metaDataInfo,
                 sizeof(D3DKMT_NODEMETADATA)
@@ -214,26 +219,25 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
 }
 
 /**
- * Discovers GPU adapters and initializes D3D statistics tracking.
+ * Initializes GPU D3D statistics from a previously discovered adapter list.
  *
+ * \param DiscoveredAdapterList The adapter discovery list to inspect.
  * \return TRUE if at least one adapter was successfully initialized, FALSE otherwise.
  */
 BOOLEAN EtpGpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
-    PPH_LIST discoveredAdapterList;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
     ULONG processedCount = 0;
 
-    discoveredAdapterList = EtInitializeGraphicsAdapters();
-    if (!discoveredAdapterList)
+    if (!DiscoveredAdapterList)
         return FALSE;
 
-    for (ULONG i = 0; i < discoveredAdapterList->Count; i++)
+    for (ULONG i = 0; i < DiscoveredAdapterList->Count; i++)
     {
-        PET_DISCOVERED_ADAPTER entry = discoveredAdapterList->Items[i];
+        PET_DISCOVERED_ADAPTER entry = DiscoveredAdapterList->Items[i];
         D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
@@ -310,10 +314,11 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
                 )))
             {
                 //
-                // This will be averaged below.
+                // Use the highest limit since we show one graph for all.
+                // The temperature caps are in deci-Celsius (1 = 0.1C).
                 //
-                EtGpuTemperatureLimit += max(perfCaps.TemperatureWarning, perfCaps.TemperatureMax);
-                EtGpuFanRpmLimit += perfCaps.MaxFanRPM;
+                EtGpuTemperatureLimit = max(EtGpuTemperatureLimit, (FLOAT)max(perfCaps.TemperatureWarning, perfCaps.TemperatureMax) / 10);
+                EtGpuFanRpmLimit = max(EtGpuFanRpmLimit, (ULONG64)perfCaps.MaxFanRPM);
             }
         }
 
@@ -386,18 +391,10 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
     if (EtGpuSupported && processedCount > 0)
     {
-        //
-        // Use the average as the limit since we show one graph for all.
-        //
-        EtGpuTemperatureLimit /= processedCount;
-        EtGpuFanRpmLimit /= processedCount;
-
         // Set limit at 100C (dmex)
         if (EtGpuTemperatureLimit == 0)
             EtGpuTemperatureLimit = 100;
     }
-
-    EtUninitializeGraphicsAdapters(discoveredAdapterList);
 
     if (EtGpuTotalNodeCount == 0)
         return FALSE;
@@ -893,6 +890,102 @@ PPH_LIST EtpBuildGpuProcessList(
 }
 
 /**
+ * Resets the running time deltas for the nodes of an adapter.
+ *
+ * \param GpuAdapter The adapter whose node running times restarted.
+ */
+VOID EtpGpuResetAdapterNodeDeltas(
+    _In_ PETP_GPU_ADAPTER GpuAdapter
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    if (EtGpuNodesTotalRunningTimeDelta && EtGpuNodesSystemRunningTimeDelta)
+    {
+        for (ULONG i = 0; i < GpuAdapter->NodeCount; i++)
+        {
+            PhInitializeDelta(&EtGpuNodesTotalRunningTimeDelta[GpuAdapter->FirstNodeIndex + i]);
+            PhInitializeDelta(&EtGpuNodesSystemRunningTimeDelta[GpuAdapter->FirstNodeIndex + i]);
+        }
+    }
+
+    listEntry = EtProcessBlockListHead.Flink;
+
+    while (listEntry != &EtProcessBlockListHead)
+    {
+        PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+        if (block->GpuNodesRunningTimeDelta)
+        {
+            ULONG64 adapterRunningTime = 0;
+
+            for (ULONG i = 0; i < GpuAdapter->NodeCount; i++)
+            {
+                PPH_UINT64_DELTA nodeDelta = &block->GpuNodesRunningTimeDelta[GpuAdapter->FirstNodeIndex + i];
+
+                adapterRunningTime += nodeDelta->Value;
+                PhInitializeDelta(nodeDelta);
+            }
+
+            //
+            // The total includes the other adapters, remove only the running time of this
+            // adapter so the next delta doesn't wrap. (dmex)
+            //
+            if (block->GpuRunningTimeDelta.Value > adapterRunningTime)
+                block->GpuRunningTimeDelta.Value -= adapterRunningTime;
+            else
+                block->GpuRunningTimeDelta.Value = 0;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+}
+
+/**
+ * Refreshes the LUID of adapters that were restarted.
+ *
+ * \remarks The kernel assigns a new LUID when the adapter is restarted (driver update,
+ * disable/enable), and statistics queried with the previous LUID fail. The node and segment
+ * counts are not refreshed, the per-node buffers are allocated during initialization. (#3115)
+ */
+VOID EtpGpuRefreshAdapterLuids(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[i];
+        D3DKMT_QUERYSTATISTICS queryStatistics;
+        D3DKMT_HANDLE adapterHandle;
+        LUID adapterLuid;
+
+        if (!gpuAdapter->DeviceInterface)
+            continue;
+
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+            continue;
+
+        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(gpuAdapter->DeviceInterface))))
+            continue;
+
+        if (gpuAdapter->CachedAdapterHandle)
+            EtCloseAdapterHandle(gpuAdapter->CachedAdapterHandle);
+
+        gpuAdapter->CachedAdapterHandle = adapterHandle;
+
+        if (!RtlIsEqualLuid(&gpuAdapter->AdapterLuid, &adapterLuid))
+        {
+            WriteNoFence64((PLONG64)&gpuAdapter->AdapterLuid, *(PLONG64)&adapterLuid);
+            EtpGpuResetAdapterNodeDeltas(gpuAdapter);
+        }
+    }
+}
+
+/**
  * Callback function triggered when process provider updates.
  * Updates GPU statistics for all running processes and global counters.
  *
@@ -918,6 +1011,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         return;
 
     runCount = updateEvent->RunCount;
+
+    EtpGpuRefreshAdapterLuids();
 
     if (EtGpuD3DEnabled)
     {
@@ -1017,22 +1112,28 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 //powerUsage += (((FLOAT)adapterPerfData.Power / 1000) * 100);
                 //temperature += (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
 
+                //
+                // Use the highest value since we show one graph for all and
+                // adapters without sensors report zero. (#3115)
                 // Value * 100 / 1000 is equivalent to dividing by 10. (dmex)
-                powerUsage += (FLOAT)adapterPerfData.Power / 10;
-                temperature += (FLOAT)adapterPerfData.Temperature / 10;
-
-                fanRpm += adapterPerfData.FanRPM;
+                //
+                powerUsage = max(powerUsage, (FLOAT)adapterPerfData.Power / 10);
+                temperature = max(temperature, (FLOAT)adapterPerfData.Temperature / 10);
+                fanRpm = max(fanRpm, (ULONG64)adapterPerfData.FanRPM);
             }
             else
             {
-                // If query fails, invalidate the cached handle so we try to reopen next time
+                // If query fails, invalidate the cached handle so we try to reopen next time.
+                // We only own the handle when it was opened from the device interface.
+                if (gpuAdapter->DeviceInterface)
+                    EtCloseAdapterHandle(adapterHandle);
                 gpuAdapter->CachedAdapterHandle = 0;
             }
         }
 
-        EtGpuPowerUsage = powerUsage / EtpGpuAdapterList->Count;
-        EtGpuTemperature = temperature / EtpGpuAdapterList->Count;
-        EtGpuFanRpm = fanRpm / EtpGpuAdapterList->Count;
+        EtGpuPowerUsage = powerUsage;
+        EtGpuTemperature = temperature;
+        EtGpuFanRpm = fanRpm;
 
         //
         // Update the limits if we see higher values

@@ -31,6 +31,7 @@ typedef struct _AT_CONSENT_REQUEST
     PPH_STRING Content;
     PPH_STRING Footer;
     PPH_STRING FooterUpdate;
+    ULONG FooterSeconds;
     BOOLEAN OfferPolicies;
     BOOLEAN OfferDelegate;
     BOOLEAN OfferHoldAnswer;
@@ -560,7 +561,7 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             SetWindowPos(WindowHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
             // The countdown and the waiter's bound both run from here, not from submission.
-            request->ShownTick = NtGetTickCount64();
+            request->ShownTick = PhQueryWaitTime();
             WriteRelease(&request->Shown, 1);
 
             if (request->OfferPolicies)
@@ -620,11 +621,16 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             }
             else
             {
+                ULONG seconds = (AT_CONSENT_TIMEOUT_MS - elapsed + 999) / 1000;
                 PH_FORMAT format[3];
                 PPH_STRING footer;
 
+                if (request->FooterSeconds == seconds)
+                    break;
+
+                request->FooterSeconds = seconds;
                 PhInitFormatS(&format[0], L"Automatically denied in ");
-                PhInitFormatU(&format[1], (AT_CONSENT_TIMEOUT_MS - elapsed + 999) / 1000);
+                PhInitFormatU(&format[1], seconds);
                 PhInitFormatS(&format[2], L" seconds.");
                 footer = PhFormat(format, RTL_NUMBER_OF(format), 64);
                 SendMessage(WindowHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_FOOTER, (LPARAM)footer->Buffer);
@@ -1001,7 +1007,7 @@ VOID AtpSubmitConsentRequest(
     _In_ PAT_CONSENT_REQUEST Request
     )
 {
-    Request->SubmitTick = NtGetTickCount64();
+    Request->SubmitTick = PhQueryWaitTime();
     PhQueueItemWorkQueueEx(&AtpConsentWorkQueue, AtpConsentDialogWorker, Request, AtpConsentDialogDeleteItem, NULL);
 }
 
@@ -1050,8 +1056,8 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
         // The dialog denies itself at the bound once shown; until then it may be queued behind
         // other requests, so the wait is bounded from submission as well.
         if (ReadAcquire(&Request->Shown) ?
-            NtGetTickCount64() - Request->ShownTick > AT_CONSENT_TIMEOUT_MS + 5000 :
-            NtGetTickCount64() - Request->SubmitTick > AT_CONSENT_QUEUE_TIMEOUT_MS)
+            PhQueryWaitTime() - Request->ShownTick > UInt32x32To64(AT_CONSENT_TIMEOUT_MS + 5000, PH_TIMEOUT_MS) :
+            PhQueryWaitTime() - Request->SubmitTick > UInt32x32To64(AT_CONSENT_QUEUE_TIMEOUT_MS, PH_TIMEOUT_MS))
         {
             Request->TimedOut = TRUE;
             WriteRelease(&Request->Abandoned, 1);

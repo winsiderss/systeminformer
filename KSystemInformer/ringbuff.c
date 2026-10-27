@@ -213,7 +213,7 @@ VOID KphpSubmitRingBuffer(
     header.Busy = FALSE;
     header.Discard = !!Discard;
 
-    WriteULong64Release(&headerPointer->Value, header.Value);
+    InterlockedExchangeU64(&headerPointer->Value, header.Value);
 
     if (Ring->Event && !ReadULongAcquire(Ring->ConsumerProcessing))
     {

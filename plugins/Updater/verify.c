@@ -392,59 +392,6 @@ NTSTATUS UpdaterInitializeSigning(
 }
 
 /**
- * Initializes signing information for the updater (SymCrypt backend).
- *
- * \param Signing The signing structure to initialize.
- * \param PublicKey The public key material.
- * \param PublicKeySize The size of the public key material.
- * \param SignAlgId The signature algorithm ID.
- * \param SignBlobType The signature blob type.
- * \param HashAlgId The hash algorithm ID.
- * \param PaddingInfo Optional padding information.
- * \param PaddingFlags Padding flags.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS UpdaterInitializeSigningSymCrypt(
-    _Inout_ PUPDATER_SIGNING Signing,
-    _In_ CONST UCHAR* PublicKey,
-    _In_ ULONG PublicKeySize,
-    _In_ PCWSTR SignAlgId,
-    _In_ PCWSTR SignBlobType,
-    _In_ PCWSTR HashAlgId,
-    _In_opt_ PVOID PaddingInfo,
-    _In_ ULONG PaddingFlags
-    )
-{
-    NTSTATUS status;
-    PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
-
-    Signing->PaddingInfo = PaddingInfo;
-    Signing->PaddingFlags = PaddingFlags;
-    Signing->SymCryptBlobType = SignBlobType;
-    Signing->SymCryptKeyBlob = PublicKey;
-    Signing->SymCryptKeyBlobLength = PublicKeySize;
-
-    status = PhSymCryptHashAlgorithmIdToAlgorithm(
-        HashAlgId,
-        &hashAlgorithm,
-        &Signing->HashSize
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PhSymCryptHashInit(
-        hashAlgorithm,
-        &Signing->HashContext
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    return STATUS_SUCCESS;
-}
-
-/**
  * Resolves the public-key blobs for a release channel.
  */
 NTSTATUS UpdaterGetPublicKeysForChannel(
@@ -605,6 +552,78 @@ CleanupExit:
     }
 
     return status;
+}
+
+/**
+ * Initializes signing information for the updater (SymCrypt backend).
+ *
+ * \param Signing The signing structure to initialize.
+ * \param PublicKey The public key material. The caller must keep the buffer valid for the
+ * lifetime of the signing structure, it is referenced and not copied.
+ * \param PublicKeySize The size of the public key material.
+ * \param SignAlgId The signature algorithm ID. The key blob type identifies the algorithm
+ * for the SymCrypt backend, this is retained for parity with the BCrypt backend.
+ * \param SignBlobType The signature blob type.
+ * \param HashAlgId The hash algorithm ID.
+ * \param PaddingInfo Optional padding information.
+ * \param PaddingFlags Padding flags.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterInitializeSigningSymCrypt(
+    _Inout_ PUPDATER_SIGNING Signing,
+    _In_ CONST UCHAR* PublicKey,
+    _In_ ULONG PublicKeySize,
+    _In_ PCWSTR SignAlgId,
+    _In_ PCWSTR SignBlobType,
+    _In_ PCWSTR HashAlgId,
+    _In_opt_ PVOID PaddingInfo,
+    _In_ ULONG PaddingFlags
+    )
+{
+    NTSTATUS status;
+    PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+
+    UNREFERENCED_PARAMETER(SignAlgId);
+
+    // Retain the trusted public key. SymCrypt parses the blob during verification.
+
+    Signing->SymCryptBlobType = SignBlobType;
+    Signing->SymCryptKeyBlob = PublicKey;
+    Signing->SymCryptKeyBlobLength = PublicKeySize;
+    Signing->PaddingInfo = PaddingInfo;
+    Signing->PaddingFlags = PaddingFlags;
+
+    // Initialize the hash used for the signature.
+
+    status = PhSymCryptHashAlgorithmIdToAlgorithm(
+        HashAlgId,
+        &hashAlgorithm,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhSymCryptHashInit(
+        hashAlgorithm,
+        &Signing->HashContext
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhSymCryptHashSize(
+        &Signing->HashContext,
+        &Signing->HashSize
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Signing->HashSize > sizeof(Signing->HashBuffer))
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return STATUS_SUCCESS;
 }
 
 /**

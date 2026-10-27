@@ -34,6 +34,15 @@ static BOOLEAN ServiceTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftFilterEntry = NULL;
 
+/**
+ * Services tab page callback function.
+ *
+ * \param Page The tab page.
+ * \param Message The tab page message.
+ * \param Parameter1 The first message parameter.
+ * \param Parameter2 The second message parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpServicesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
@@ -108,6 +117,43 @@ BOOLEAN PhMwpServicesPageCallback(
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (MicrosoftFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEMICROSOFTSERVICES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
+
+            {
+                PPH_EMENU groupMenu;
+                ULONG groupMode = PhGetServiceTreeListGroupMode();
+
+                groupMenu = PhCreateEMenuItem(0, 0, L"&Group services by", NULL, NULL);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, groupMenu, ULONG_MAX);
+
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_NONE, L"&None", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_TYPE, L"&Type", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_LOADORDER, L"&Load order group", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_SVCHOST, L"&Svchost group", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(groupMenu, PhCreateEMenuItem(0, ID_SERVICE_GROUP_STARTTYPE, L"Start t&ype", NULL, NULL), ULONG_MAX);
+
+                switch (groupMode)
+                {
+                case 1:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_TYPE);
+                    break;
+                case 2:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_LOADORDER);
+                    break;
+                case 3:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_SVCHOST);
+                    break;
+                case 4:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_STARTTYPE);
+                    break;
+                default:
+                    menuItem = PhFindEMenuItem(groupMenu, 0, NULL, ID_SERVICE_GROUP_NONE);
+                    break;
+                }
+
+                if (menuItem)
+                    menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+            }
         }
         return TRUE;
     case MainTabPageLoadSettings:
@@ -150,6 +196,9 @@ BOOLEAN PhMwpServicesPageCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the service tree list if it has not been loaded.
+ */
 VOID PhMwpNeedServiceTreeList(
     VOID
     )
@@ -161,6 +210,9 @@ VOID PhMwpNeedServiceTreeList(
     }
 }
 
+/**
+ * Toggles the driver service filter for the service tree list.
+ */
 VOID PhMwpToggleDriverServiceTreeFilter(
     VOID
     )
@@ -180,6 +232,9 @@ VOID PhMwpToggleDriverServiceTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_DRIVER_SERVICES, !!DriverFilterEntry);
 }
 
+/**
+ * Toggles the Microsoft service filter for the service tree list.
+ */
 VOID PhMwpToggleMicrosoftServiceTreeFilter(
     VOID
     )
@@ -199,6 +254,13 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_DEFAULT_SERVICES, !!MicrosoftFilterEntry);
 }
 
+/**
+ * Driver service filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -213,6 +275,13 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
     return TRUE;
 }
 
+/**
+ * Microsoft service filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -227,6 +296,13 @@ BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     return TRUE;
 }
 
+/**
+ * Initializes the service context menu.
+ *
+ * \param Menu The menu to initialize.
+ * \param Services An array of service items.
+ * \param NumberOfServices The number of items in the array.
+ */
 VOID PhMwpInitializeServiceMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_SERVICE_ITEM *Services,
@@ -304,6 +380,11 @@ VOID PhMwpInitializeServiceMenu(
     }
 }
 
+/**
+ * Shows the service context menu.
+ *
+ * \param ContextMenu The context menu information.
+ */
 VOID PhShowServiceContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
@@ -374,6 +455,14 @@ VOID PhShowServiceContextMenu(
     PhFree(services);
 }
 
+/**
+ * Inserts service context menu items.
+ *
+ * \param ParentWindow The parent window handle.
+ * \param Menu The menu to modify.
+ * \param Services An array of service items.
+ * \param NumberOfServices The number of items in the array.
+ */
 VOID PhServiceListInsertContextMenu(
     _In_ HWND ParentWindow,
     _In_ PPH_EMENU Menu,
@@ -409,6 +498,12 @@ VOID PhServiceListInsertContextMenu(
     }
 }
 
+/**
+ * Service added event handler.
+ *
+ * \param Parameter The service item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceAddedHandler(
     _In_ PVOID Parameter,
@@ -421,6 +516,12 @@ VOID NTAPI PhMwpServiceAddedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+/**
+ * Service modified event handler.
+ *
+ * \param Parameter The modified data.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceModifiedHandler(
     _In_ PVOID Parameter,
@@ -435,6 +536,12 @@ VOID NTAPI PhMwpServiceModifiedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderModifiedEvent, copy, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+/**
+ * Service removed event handler.
+ *
+ * \param Parameter The service item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceRemovedHandler(
     _In_ PVOID Parameter,
@@ -446,6 +553,12 @@ VOID NTAPI PhMwpServiceRemovedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+/**
+ * Services updated event handler.
+ *
+ * \param Parameter The updated items parameter.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_ PVOID Parameter,
@@ -455,6 +568,12 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     SystemInformer_Invoke(PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+/**
+ * Processes a service added event.
+ *
+ * \param ServiceItem The service item.
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnServiceAdded(
     _In_ _Assume_refs_(1) PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG RunId
@@ -503,6 +622,12 @@ VOID PhMwpOnServiceAdded(
     PhDereferenceObject(ServiceItem);
 }
 
+/**
+ * Processes a service modified event.
+ *
+ * \param ServiceModifiedData The service modification data.
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnServiceModified(
     _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData,
     _In_ ULONG RunId
@@ -638,6 +763,11 @@ VOID PhMwpOnServiceModified(
     PhFree(ServiceModifiedData);
 }
 
+/**
+ * Processes a service removed event.
+ *
+ * \param ServiceItem The service item.
+ */
 VOID PhMwpOnServiceRemoved(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -677,6 +807,11 @@ VOID PhMwpOnServiceRemoved(
     PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
 }
 
+/**
+ * Flushes the service event queue and updates the service tree list.
+ *
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnServicesUpdated(
     _In_ ULONG RunId
     )

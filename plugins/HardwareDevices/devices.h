@@ -43,6 +43,7 @@
 #define SETTING_NAME_DEVICE_DISABLED_COLOR (PLUGIN_NAME L".ColorDeviceDisabled")
 #define SETTING_NAME_DEVICE_DISCONNECTED_COLOR (PLUGIN_NAME L".ColorDeviceDisconnected")
 #define SETTING_NAME_DEVICE_HIGHLIGHT_COLOR (PLUGIN_NAME L".ColorDeviceHighlight")
+#define SETTING_NAME_DEVICE_PHYSICAL_COLOR (PLUGIN_NAME L".ColorDevicePhysical")
 #define SETTING_NAME_DEVICE_INTERFACE_COLOR (PLUGIN_NAME L".ColorDeviceInterface")
 #define SETTING_NAME_DEVICE_DISABLED_INTERFACE_COLOR (PLUGIN_NAME L".ColorDisabledDeviceInterface")
 #define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
@@ -69,6 +70,7 @@
 
 #include <cfgmgr32.h>
 #include <nvme.h>
+#include <emi.h>
 
 #include <phnet.h>
 
@@ -98,6 +100,11 @@ EXTERN_C PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
 extern ULONG NetWindowsVersion;
 extern ULONG NetUpdateInterval;
+
+// The time actually spanned by the last process provider run, in milliseconds. Updated every tick
+// from the provider updated event, so it tracks the View -> Update Interval menu (which does not
+// raise the settings-updated callback) and out-of-band (boosted) provider runs. (dmex)
+extern ULONG NetRateIntervalMs;
 
 extern PPH_OBJECT_TYPE NetworkDeviceEntryType;
 extern PPH_LIST NetworkDevicesList;
@@ -610,6 +617,10 @@ typedef struct _DV_DISK_ENTRY
     PH_UINT32_DELTA ReadCountDelta;
     PH_UINT32_DELTA WriteCountDelta;
     PH_UINT64_DELTA QueryTimeDelta;
+
+    // Per-second rates, scaled from the deltas above by the elapsed time. (dmex)
+    ULONG64 CurrentBytesRead;
+    ULONG64 CurrentBytesWritten;
 
     FLOAT ResponseTime;
     FLOAT ActiveTime;
@@ -1203,10 +1214,8 @@ typedef struct _DV_RAPL_ID
     PPH_STRING DeviceInstance;
 } DV_RAPL_ID, *PDV_RAPL_ID;
 
-typedef struct _DV_RAPL_ENTRY
+typedef struct _DV_RAPL_SOURCE
 {
-    DV_RAPL_ID Id;
-    PPH_STRING DeviceName;
     HANDLE DeviceHandle;
 
     union
@@ -1222,6 +1231,39 @@ typedef struct _DV_RAPL_ENTRY
         };
     };
 
+    PPH_STRING DevicePath;
+
+    FLOAT CurrentProcessorPower;
+    FLOAT CurrentCorePower;
+    FLOAT CurrentDramPower;
+    FLOAT CurrentDiscreteGpuPower;
+
+    PVOID ChannelDataBuffer;
+    ULONG ChannelDataBufferLength;
+    ULONG ChannelIndex[EV_EMI_DEVICE_INDEX_MAX];
+    EV_MEASUREMENT_DATA ChannelData[EV_EMI_DEVICE_INDEX_MAX];
+    ULONG NumberOfCoreChannels;
+    PULONG CoreChannelIndexes;
+    EV_MEASUREMENT_DATA* CoreChannelData;
+} DV_RAPL_SOURCE, *PDV_RAPL_SOURCE;
+
+typedef struct _DV_RAPL_ENTRY
+{
+    DV_RAPL_ID Id;
+    PPH_STRING DeviceName;
+    PPH_LIST DeviceSources;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN UserReference : 1;
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
+
     PH_CIRCULAR_BUFFER_FLOAT PackageBuffer;
     PH_CIRCULAR_BUFFER_FLOAT CoreBuffer;
     PH_CIRCULAR_BUFFER_FLOAT DimmBuffer;
@@ -1233,14 +1275,6 @@ typedef struct _DV_RAPL_ENTRY
     FLOAT CurrentDiscreteGpuPower;
     FLOAT CurrentComponentPower;
     FLOAT CurrentTotalPower;
-
-    PVOID ChannelDataBuffer;
-    ULONG ChannelDataBufferLength;
-    ULONG ChannelIndex[EV_EMI_DEVICE_INDEX_MAX];
-    EV_MEASUREMENT_DATA ChannelData[EV_EMI_DEVICE_INDEX_MAX];
-    ULONG NumberOfCoreChannels;
-    PULONG CoreChannelIndexes;
-    EV_MEASUREMENT_DATA* CoreChannelData;
 } DV_RAPL_ENTRY, *PDV_RAPL_ENTRY;
 
 typedef struct _DV_RAPL_SYSINFO_CONTEXT
@@ -1297,9 +1331,47 @@ VOID RaplDevicesUpdate(
     _In_ ULONG RunCount
     );
 
+BOOLEAN RaplChannelNameStartsWithPackage(
+    _In_ PCWSTR ChannelName
+    );
+
+BOOLEAN RaplChannelNameMatchesSuffix(
+    _In_ PCWSTR ChannelName,
+    _In_ PCWSTR Suffix
+    );
+
+BOOLEAN RaplChannelNameIsPackage(
+    _In_ PCWSTR ChannelName
+    );
+
+// Upper bound for device-reported EMI metadata. (dmex)
+#define EV_EMI_MAX_METADATA_SIZE (1 * 1024 * 1024)
+
+BOOLEAN RaplChannelFitsMetadata(
+    _In_ EMI_CHANNEL_V2* Channel,
+    _In_ PVOID End
+    );
+
+BOOLEAN RaplChannelNameIsCore(
+    _In_ PCWSTR ChannelName
+    );
+
+BOOLEAN RaplChannelNameIsPerCore(
+    _In_ PCWSTR ChannelName
+    );
+
+BOOLEAN RaplChannelNameIsDiscreteGpu(
+    _In_ PCWSTR ChannelName
+    );
+
+BOOLEAN RaplChannelNameIsDram(
+    _In_ PCWSTR ChannelName
+    );
+
 VOID InitializeRaplDeviceId(
     _Out_ PDV_RAPL_ID Id,
-    _In_ PPH_STRING DevicePath
+    _In_opt_ PPH_STRING DevicePath,
+    _In_opt_ PPH_STRING DeviceInstance
     );
 
 VOID CopyRaplDeviceId(
@@ -1321,7 +1393,7 @@ PDV_RAPL_ENTRY CreateRaplDeviceEntry(
     );
 
 VOID RaplDeviceSampleData(
-    _In_ PDV_RAPL_ENTRY DeviceEntry,
+    _In_ PDV_RAPL_SOURCE DeviceSource,
     _In_ PVOID MeasurementData,
     _In_ EV_EMI_DEVICE_INDEX DeviceIndex
     );
@@ -1329,14 +1401,15 @@ VOID RaplDeviceSampleData(
 // poweroptions.c
 
 _Success_(return)
-BOOLEAN QueryRaplDeviceInterfaceDescription(
+BOOLEAN QueryRaplDeviceInterfaceInfo(
     _In_ PCWSTR DeviceInterface,
+    _Out_opt_ PDV_RAPL_ID DeviceId,
     _Out_ PPH_STRING* DeviceDescription
     );
 
 INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -1352,47 +1425,6 @@ VOID RaplDeviceSysInfoInitializing(
 
 // gpu.c
 
-// Maximum VidPN sources supported for per-source present tracking
-#define GX_PRESENT_STATS_SOURCE_MAX 16
-
-// Number of detail-dialog rows emitted per VidPN display source
-#define GX_DISPLAY_ROWS_PER_SOURCE  4
-#define GX_DISPLAY_ROW_FPS          0
-#define GX_DISPLAY_ROW_PRESENT_MODE 1
-#define GX_DISPLAY_ROW_DIRECT_FLIP  2
-#define GX_DISPLAY_ROW_DROPPED_FLIP 3
-
-// Row index in the details list view for source S, row type R
-#define GX_DISPLAY_ROW_IDX(S, R) \
-    (GPUADAPTER_DETAILS_INDEX_COUNT + (S) * GX_DISPLAY_ROWS_PER_SOURCE + (R))
-
-// Batch size (in tokens) used for each D3DKMTGetPresentHistory call
-#define GX_PRESENT_HISTORY_BATCH_TOKENS 512
-
-/**
- * Per-VidPN-source (or per-adapter) present token statistics.
- * All fields are ULONG64 monotonically increasing accumulators;
- * take a delta snapshot each sample interval to obtain rates.
- */
-typedef struct _GX_PRESENT_STATS
-{
-    // Present model counts
-    ULONG64 RedirectedFlipCount;  // D3DKMT_PM_REDIRECTED_FLIP tokens
-    ULONG64 RedirectedBltCount;   // PM_REDIRECTED_BLT / GDI / GDI_SYSMEM / VISTABLT
-    ULONG64 CompositionCount;     // PM_REDIRECTED_COMPOSITION + PM_SURFACECOMPLETE
-    ULONG64 FlipManagerCount;     // PM_FLIPMANAGER (DX12 / DirectComposition)
-
-    // Flip-token flag breakdown (subset of flip tokens)
-    ULONG64 IndependentFlipCount; // Flags.IndependentFlip set — DWM bypassed
-    ULONG64 FlipRestartCount;     // Flags.FlipRestart set — frame cancelled/restarted
-    ULONG64 VrrEligibleCount;     // Flags.VariableRefreshOverrideEligible — VRR candidate
-
-    // Flip interval distribution (subset of flip tokens)
-    ULONG64 Interval0Count;       // D3DDDI_FLIPINTERVAL_IMMEDIATE / ALLOW_TEARING
-    ULONG64 Interval1Count;       // D3DDDI_FLIPINTERVAL_ONE (standard vsync)
-    ULONG64 Interval2PlusCount;   // Interval >= 2 (throttled, e.g. 30fps cap on 60Hz)
-} GX_PRESENT_STATS, * PGX_PRESENT_STATS;
-
 typedef struct _DV_GPU_ID
 {
     PPH_STRING DevicePath;
@@ -1401,6 +1433,7 @@ typedef struct _DV_GPU_ID
 typedef struct _DV_GPU_ENTRY
 {
     DV_GPU_ID Id;
+    PPH_STRING DeviceName; // resolved on demand, see GraphicsDeviceGetName()
 
     ULONG64 CommitLimit;
     ULONG64 DedicatedLimit;
@@ -1420,7 +1453,6 @@ typedef struct _DV_GPU_ENTRY
         };
     };
 
-    PH_UINT64_DELTA TotalRunningTimeDelta;
     PPH_UINT64_DELTA TotalRunningTimeNodesDelta;
     PPH_UINT64_DELTA SystemRunningTimeNodesDelta;
     PPH_CIRCULAR_BUFFER_FLOAT GpuNodesHistory;
@@ -1553,6 +1585,11 @@ PDV_GPU_ENTRY CreateGraphicsDeviceEntry(
     _In_ PDV_GPU_ID Id
     );
 
+_Success_(return != NULL)
+PPH_STRING GraphicsDeviceGetName(
+    _In_ PDV_GPU_ENTRY Entry
+    );
+
 FLOAT GraphicsDevicePluginInterfaceGetGpuAdapterUtilization(
     _In_ LUID AdapterLuid
     );
@@ -1588,6 +1625,10 @@ VOID GraphicsDeviceSysInfoInitializing(
     _In_ PDV_GPU_ENTRY DiskEntry
     );
 
+PPH_STRING GraphicsDeviceGetAdapterDescription(
+    _In_ PPH_STRING DevicePath
+    );
+
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN GraphicsDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -1618,12 +1659,14 @@ VOID GraphicsDeviceUpdatePanel(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     );
 
+_Success_(return != NULL)
 PPH_STRING GraphicsQueryDeviceDescription(
     _In_ PCWSTR DeviceInstanceId
     );
 
-PPH_STRING GraphicsQueryDeviceInterfaceDescription(
-    _In_opt_ PWSTR DeviceInterface
+_Success_(return != NULL)
+PPH_STRING GraphicsQueryAdapterName(
+    _In_opt_ PCWSTR DeviceInterface
     );
 
 _Success_(return)

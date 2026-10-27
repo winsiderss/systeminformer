@@ -172,6 +172,14 @@ int array_list_put_idx(struct array_list *arr, size_t idx, void *data)
     return 0;
 }
 
+int array_list_set_idx(struct array_list *arr, size_t idx, void *data)
+{
+    if (idx >= arr->length)
+        return -1;
+    arr->array[idx] = data;
+    return 0;
+}
+
 int array_list_add(struct array_list *arr, void *data)
 {
     /* Repeat some of array_list_put_idx() so we can skip several
