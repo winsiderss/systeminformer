@@ -56,6 +56,8 @@ typedef struct _PV_PE_HASH_RESULTS
     PPH_STRING Sha512HashString;
     PPH_STRING AuthentihashSha1String;
     PPH_STRING AuthentihashSha256String;
+    PPH_STRING AuthentihashMsftSha1String;
+    PPH_STRING AuthentihashMsftSha256String;
     PPH_STRING WdaghashSha1String;
     PPH_STRING WdaghashSha256String;
     PPH_STRING ImphashString;
@@ -112,6 +114,8 @@ typedef enum _PV_HASHLIST_INDEX
     PV_HASHLIST_INDEX_LSHASH,
     PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1,
     PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256,
+    PV_HASHLIST_INDEX_AUTHENTIHASH_MSFT_SHA1,
+    PV_HASHLIST_INDEX_AUTHENTIHASH_MSFT_SHA256,
     PV_HASHLIST_INDEX_WDACPAGEHASH_SHA1,
     PV_HASHLIST_INDEX_WDACPAGEHASH_SHA256,
     PV_HASHLIST_INDEX_MAXIMUM
@@ -1152,6 +1156,7 @@ PPH_HASHTABLE PvGenerateOrdinalHashtableStringRef(
                     }
                 }
             }
+            PhDeleteMappedImageExports(&exports);
         }
 
         PhUnloadMappedImage(&mappedImage);
@@ -1444,6 +1449,8 @@ NTSTATUS PvPeFileHashThread(
     PPH_STRING sha512HashString = NULL;
     PPH_STRING authentihashSha1String = NULL;
     PPH_STRING authentihashSha256String = NULL;
+    PPH_STRING authentihashMsftSha1String = NULL;
+    PPH_STRING authentihashMsftSha256String = NULL;
     PPH_STRING wdaghashSha1String = NULL;
     PPH_STRING wdaghashSha256String = NULL;
     PPH_STRING imphashString = NULL;
@@ -1528,6 +1535,13 @@ NTSTATUS PvPeFileHashThread(
         PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha256HashAlgorithm, &authentihashSha256String);
     }
 
+    // Authentihash (Microsoft/padded)
+    // Always computed in user mode: there is no padded KPH algorithm, and the
+    // kernel/VirusTotal value above is unpadded. (dmex)
+
+    PhGetMappedImageAuthenticodeHashEx(&PvMappedImage, Sha1HashAlgorithm, PH_GET_IMAGE_AUTHENTICODE_PADDED, &authentihashMsftSha1String);
+    PhGetMappedImageAuthenticodeHashEx(&PvMappedImage, Sha256HashAlgorithm, PH_GET_IMAGE_AUTHENTICODE_PADDED, &authentihashMsftSha256String);
+
     // Page hash (WDAC)
 
     if (!wdaghashSha1String)
@@ -1559,6 +1573,8 @@ NTSTATUS PvPeFileHashThread(
         results->Sha512HashString = sha512HashString;
         results->AuthentihashSha1String = authentihashSha1String;
         results->AuthentihashSha256String = authentihashSha256String;
+        results->AuthentihashMsftSha1String = authentihashMsftSha1String;
+        results->AuthentihashMsftSha256String = authentihashMsftSha256String;
         results->WdaghashSha1String = wdaghashSha1String;
         results->WdaghashSha256String = wdaghashSha256String;
         results->ImphashString = imphashString;
@@ -1787,8 +1803,10 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
 
             // Authentihash (Authenticode)
 
-            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1, &count, TRUE, NULL, L"Authentihash (SHA-1)", results->AuthentihashSha1String);
-            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256, &count, TRUE, NULL, L"Authentihash (SHA-256)", results->AuthentihashSha256String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1, &count, TRUE, NULL, L"Authentihash (VirusTotal, SHA-1)", results->AuthentihashSha1String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256, &count, TRUE, NULL, L"Authentihash (VirusTotal, SHA-256)", results->AuthentihashSha256String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_MSFT_SHA1, &count, TRUE, NULL, L"Authentihash (Microsoft, SHA-1)", results->AuthentihashMsftSha1String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_MSFT_SHA256, &count, TRUE, NULL, L"Authentihash (Microsoft, SHA-256)", results->AuthentihashMsftSha256String);
 
             // Page hash (WDAC)
 

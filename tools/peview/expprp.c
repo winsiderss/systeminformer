@@ -366,6 +366,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
             }
         }
+        PhDeleteMappedImageExports(&exports);
     }
 
     PhClearReference(&supressedHashTable);

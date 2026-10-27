@@ -258,6 +258,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
                     }
                 }
             }
+            PhDeleteMappedImageExports(&exports);
         }
 
         PhUnloadMappedImage(&mappedImage);

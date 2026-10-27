@@ -446,7 +446,7 @@ NTSTATUS PvpPeGetProdIdHash(
 
     if (NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
     {
-        if (NT_SUCCESS(status = PhUpdateHash(&hashContext, bytes->Buffer, (ULONG)bytes->Length)))
+        if (NT_SUCCESS(status = PhUpdateHash(&hashContext, bytes->Buffer, bytes->Length)))
         {
             status = PhFinalHashString(&hashContext, HashString);
         }

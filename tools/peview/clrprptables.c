@@ -1044,7 +1044,7 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
 
     if (Rows && RowCount > 0 && NT_SUCCESS(PhInitializeHash(&hashContext, hashAlgorithm)))
     {
-        PhUpdateHash(&hashContext, Rows, (ULONG64)RowCount * RowSize);
+        PhUpdateHash(&hashContext, Rows, (SIZE_T)RowCount * RowSize);
 
         hashResultSize = sizeof(hashResult);
 

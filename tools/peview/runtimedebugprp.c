@@ -321,6 +321,7 @@ INT_PTR CALLBACK PvPeRuntimeDebugDlgProc(
         {
             PH_MAPPED_IMAGE_EXPORTS exports;
             PH_MAPPED_IMAGE_EXPORT_FUNCTION function;
+            NTSTATUS exportStatus;
             PVOID mappedAddress = NULL;
             PIMAGE_SECTION_HEADER section = NULL;
             ULONG_PTR rva;
@@ -347,7 +348,9 @@ INT_PTR CALLBACK PvPeRuntimeDebugDlgProc(
 
             PvRuntimeDebugAddNativeBuildInfo(context->ListViewHandle);
 
-            if (!NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) ||
+            exportStatus = PhGetMappedImageExports(&exports, &PvMappedImage);
+
+            if (!NT_SUCCESS(exportStatus) ||
                 !NT_SUCCESS(PhGetMappedImageExportFunction(&exports, "DotNetRuntimeDebugHeader", 0, &function)) ||
                 !function.Function)
             {
@@ -496,6 +499,9 @@ INT_PTR CALLBACK PvPeRuntimeDebugDlgProc(
                     PvRuntimeDebugAdd(context->ListViewHandle, L"Status", L"Export address is outside the mapped image.");
                 }
             }
+
+            if (NT_SUCCESS(exportStatus))
+                PhDeleteMappedImageExports(&exports);
 
             PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
             PvThemeApplyListView(context->ListViewHandle);

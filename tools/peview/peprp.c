@@ -258,6 +258,7 @@ VOID PvPeProperties(
                     PvAddPropPage(propContext, newPage);
                 }
             }
+            PhDeleteMappedImageExports(&exports);
         }
 
         if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
@@ -274,6 +275,7 @@ VOID PvPeProperties(
                 &exportsPageContext
                 );
             PvAddPropPage(propContext, newPage);
+            PhDeleteMappedImageExports(&exports);
         }
 
         // Resources page
@@ -2934,6 +2936,21 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            // The hero card spans the page width with rounded corners, so a resize
+            // that only exposes a strip leaves the previous right edge (and its
+            // corners) behind. Repaint the whole card after the layout. (dmex)
+            if (PvThemeEnabled())
+            {
+                HWND cardHandle;
+                RECT cardRect;
+
+                if ((cardHandle = GetDlgItem(hwndDlg, IDC_FILE)) && PhGetWindowRect(cardHandle, &cardRect))
+                {
+                    MapWindowRect(NULL, hwndDlg, &cardRect);
+                    RedrawWindow(hwndDlg, &cardRect, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+                }
+            }
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
