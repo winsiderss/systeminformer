@@ -383,7 +383,7 @@ PVOID AtpCreateThreadsResult(
 
     // One process handle for the whole walk; the service tag query needs it.
     if (includeDetails && PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
-        PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
+        processHandle = ProcessItem->QueryHandle;
 
     if (!Summary && AtJsonGetObjectBoolean(Call->Arguments, "resolve_start_addresses"))
         symbolProvider = AtCreateSymbolProvider(ProcessItem->ProcessId);
@@ -486,9 +486,6 @@ PVOID AtpCreateThreadsResult(
 
         AtAddRow(&rows, row);
     }
-
-    if (processHandle)
-        NtClose(processHandle);
 
     if (moduleList)
         AtpDestroyThreadModuleList(moduleList);
@@ -1112,33 +1109,42 @@ PPH_SYMBOL_PROVIDER AtpCreateFileSymbolProvider(
     NTSTATUS status;
     PH_MAPPED_IMAGE mappedImage;
     PPH_SYMBOL_PROVIDER symbolProvider;
-    PVOID imageBase;
-    ULONG imageSize;
+    PVOID imageBase = NULL;
+    ULONG imageSize = 0;
 
     status = PhLoadMappedImageEx(&FileName->sr, NULL, &mappedImage);
 
     if (!NT_SUCCESS(status))
         return NULL;
 
-    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    __try
     {
-        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader;
-
-        imageBase = (PVOID)optionalHeader->ImageBase;
-        imageSize = optionalHeader->SizeOfImage;
+        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        {
+            PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader;
+    
+            imageBase = (PVOID)optionalHeader->ImageBase;
+            imageSize = optionalHeader->SizeOfImage;
+        }
+        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            imageBase = (PVOID)(ULONG_PTR)mappedImage.NtHeaders32->OptionalHeader.ImageBase;
+            imageSize = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
+        }
+        else
+        {
+            status = STATUS_INVALID_IMAGE_FORMAT;
+        }
     }
-    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        imageBase = (PVOID)(ULONG_PTR)mappedImage.NtHeaders32->OptionalHeader.ImageBase;
-        imageSize = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
-    }
-    else
-    {
-        PhUnloadMappedImage(&mappedImage);
-        return NULL;
+        status = GetExceptionCode();
     }
 
     PhUnloadMappedImage(&mappedImage);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
 
     if (!(symbolProvider = PhCreateSymbolProvider(NULL)))
         return NULL;

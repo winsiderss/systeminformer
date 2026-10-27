@@ -77,6 +77,7 @@ typedef struct _PH_THREAD_STACKS_THREAD_NODE
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
     WCHAR StartAddressString[PH_PTR_STR_LEN_1];
     PPH_STRING StartAddressSymbol;
+    PPH_STRING InitialSymbol; // Keeps the original node symbol alive; the UI may still be reading it when the worker replaces it.
     PPH_STRING FileName;
     PPH_LIST Frames;
     BOOLEAN FramesComplete;
@@ -216,6 +217,7 @@ VOID NTAPI PhpThreadStacksNodeDeleteProcedure(
             PhClearReference(&node->Thread.ThreadName);
             PhDereferenceObject(node->Thread.Frames);
             PhClearReference(&node->Thread.StartAddressSymbol);
+            PhClearReference(&node->Thread.InitialSymbol);
             PhClearReference(&node->Thread.FileName);
         }
         break;
@@ -359,7 +361,11 @@ VOID PhpThreadStacksPublish(
     if (Node)
         PhReferenceObject(Node);
 
-    PostMessage(context->WindowHandle, WM_PH_THREAD_STACKS_PUBLISH, (WPARAM)Restructure, (LPARAM)Node);
+    if (!PostMessage(context->WindowHandle, WM_PH_THREAD_STACKS_PUBLISH, (WPARAM)Restructure, (LPARAM)Node))
+    {
+        if (Node)
+            PhDereferenceObject(Node);
+    }
 }
 
 VOID PhpThreadStacksCreateThreadNode(
@@ -404,7 +410,10 @@ VOID PhpThreadStacksCreateThreadNode(
     if (!PhIsNullOrEmptyString(node->Thread.ThreadName))
         node->Symbol = PhReferenceObject(node->Thread.ThreadName);
     else
+    {
         node->Symbol = PhCreateString(node->Thread.StartAddressString);
+        node->Thread.InitialSymbol = PhReferenceObject(node->Symbol);
+    }
 
     node->Thread.Frames = PhCreateList(10);
 
@@ -819,7 +828,13 @@ VOID PhpThreadStacksProcessPhase2(
         }
         else if (node->Thread.StartAddressSymbol)
         {
-            PhMoveReference(&node->Symbol, PhReferenceObject(node->Thread.StartAddressSymbol));
+            // The node is already published and the UI thread may be painting node->Symbol.
+            // Swap the pointer, then drop the node's reference; InitialSymbol keeps the old
+            // string alive until the node is deleted.
+            PPH_STRING oldSymbol = node->Symbol;
+
+            node->Symbol = PhReferenceObject(node->Thread.StartAddressSymbol);
+            PhDereferenceObject(oldSymbol);
         }
 
         PhpThreadStacksThreadPhase2(Context, &node->Thread);

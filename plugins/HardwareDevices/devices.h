@@ -728,6 +728,7 @@ typedef struct _DV_DISK_PAGE_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    BOOLEAN RefreshPending;
 
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
@@ -1504,6 +1505,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     HWND NodeWindowHandle;
     HANDLE NodeWindowThreadHandle;
     PH_EVENT NodeWindowInitializedEvent;
+    PH_RUNDOWN_PROTECT NodeWindowRundown;
 
     HWND GpuDialog;
     PH_LAYOUT_MANAGER GpuLayoutManager;

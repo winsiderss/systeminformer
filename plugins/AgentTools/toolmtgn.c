@@ -155,10 +155,8 @@ VOID AtpGetProcessMitigations(
     )
 {
     AT_TARGET target;
-    HANDLE processHandle;
     PVOID structured;
     PVOID mitigations;
-    NTSTATUS status;
 
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
         return;
@@ -170,14 +168,9 @@ VOID AtpGetProcessMitigations(
         return;
     }
 
-    status = PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, target.ProcessItem->ProcessId);
-
-    if (!NT_SUCCESS(status))
-        status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, target.ProcessItem->ProcessId);
-
-    if (!NT_SUCCESS(status))
+    if (!target.ProcessItem->QueryHandle)
     {
-        AtSetToolStatusError(Result, status, L"Opening the process");
+        AtSetToolStatusError(Result, STATUS_INVALID_HANDLE, L"Opening the process");
         AtDeleteTarget(&target);
         return;
     }
@@ -186,14 +179,13 @@ VOID AtpGetProcessMitigations(
     AtFillProcessIdentity(structured, target.ProcessItem);
 
     mitigations = PhCreateJsonObject();
-    AtpAddMitigations(mitigations, processHandle);
+    AtpAddMitigations(mitigations, target.ProcessItem->QueryHandle);
     PhAddJsonObjectValue(structured, "mitigations", mitigations);
 
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
 
-    NtClose(processHandle);
     AtDeleteTarget(&target);
 }
 

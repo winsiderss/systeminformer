@@ -608,7 +608,7 @@ VOID NTAPI NetworkNodeCreateCallback(
         extension->CountryValid = TRUE;
     }
 
-    // Note: Extended TCP statistics are enabled by ProcessesUpdatedCallback once the
+    // Note: Extended TCP statistics are enabled by NetworkProviderUpdatedCallback once the
     // node exists. This avoids blocking the UI thread with syscalls during node creation. (dmex)
     extension->NodePresent = TRUE;
 }
@@ -657,6 +657,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfBytesIn)
                 PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, ULONG_MAX));
+            else
+                PhClearReference(&Extension->BytesIn);
 
             if (!NetworkExtensionEnabled && !Extension->BytesIn && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -666,6 +668,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfBytesOut)
                 PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, ULONG_MAX));
+            else
+                PhClearReference(&Extension->BytesOut);
 
             if (!NetworkExtensionEnabled && !Extension->BytesOut && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -675,6 +679,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfLostPackets)
                 PhMoveReference(&Extension->LossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
+            else
+                PhClearReference(&Extension->LossText);
 
             if (!NetworkExtensionEnabled && !Extension->LossText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->LossText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -684,6 +690,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->VarianceRtt)
                 PhMoveReference(&Extension->JitterText, PhFormatUInt64(Extension->VarianceRtt, TRUE));
+            else
+                PhClearReference(&Extension->JitterText);
 
             if (!NetworkExtensionEnabled && !Extension->JitterText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->JitterText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -693,6 +701,8 @@ VOID UpdateNetworkNode(
         {
             if (Extension->SampleRtt)
                 PhMoveReference(&Extension->LatencyText, PhFormatUInt64(Extension->SampleRtt, TRUE));
+            else
+                PhClearReference(&Extension->LatencyText);
 
             if (!NetworkExtensionEnabled && !Extension->LatencyText && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->LatencyText, PhCreateString(L"Extended TCP statistics are disabled"));
@@ -841,17 +851,18 @@ BOOLEAN NetworkToolsGeoIpFlushCache(
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
-VOID ProcessesUpdatedCallback(
+VOID NetworkProviderUpdatedCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
 
     if (!NetworkExtensionEnabled)
         return;
 
-    if (PtrToUlong(Parameter) < 3)
+    if (!updateEvent || updateEvent->RunCount < 3)
         return;
 
     NetworkToolsGeoIpFlushCache();
@@ -905,13 +916,13 @@ VOID ProcessesUpdatedCallback(
             if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsData,
-                (PUCHAR)&dataRw,
+                &dataRw,
                 0,
                 sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&dataRod,
+                &dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
                 ) == STATUS_SUCCESS)
@@ -926,13 +937,13 @@ VOID ProcessesUpdatedCallback(
             if (PhGetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsPath,
-                (PUCHAR)&pathRw,
+                &pathRw,
                 0,
                 sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&pathRod,
+                &pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == STATUS_SUCCESS)
@@ -963,13 +974,13 @@ VOID ProcessesUpdatedCallback(
             if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsData,
-                (PUCHAR)&dataRw,
+                &dataRw,
                 0,
                 sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&dataRod,
+                &dataRod,
                 0,
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
                 ) == STATUS_SUCCESS)
@@ -984,13 +995,13 @@ VOID ProcessesUpdatedCallback(
             if (PhGetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsPath,
-                (PUCHAR)&pathRw,
+                &pathRw,
                 0,
                 sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
-                (PUCHAR)&pathRod,
+                &pathRod,
                 0,
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == STATUS_SUCCESS)
@@ -1101,10 +1112,10 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-                ProcessesUpdatedCallback,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
+                NetworkProviderUpdatedCallback,
                 NULL,
-                &ProcessesUpdatedCallbackRegistration
+                &NetworkProviderUpdatedCallbackRegistration
                 );
 
             PhPluginSetObjectExtension(

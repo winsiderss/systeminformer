@@ -40,11 +40,29 @@ typedef struct _AT_IMAGE_SECTION_NAME
     ULONG Flag;
 } AT_IMAGE_SECTION_NAME;
 
+static BOOLEAN CopyImageData(
+    _Inout_updates_bytes_(Length) PVOID Buffer,
+    _In_reads_bytes_(Length) PVOID Address,
+    _In_ SIZE_T Length
+    )
+{
+    __try
+    {
+        memcpy(Buffer, Address, Length);
+        return TRUE;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+}
+
 PPH_STRING AtpCreateImageString(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_opt_ PSTR String
     )
 {
+    PPH_STRING string = NULL;
     PSTR end;
     PSTR current;
 
@@ -61,16 +79,24 @@ PPH_STRING AtpCreateImageString(
     {
         while (current < end && *current)
             current++;
+
+        if (current == end)
+            return NULL;
+
+        string = PhCreateStringEx(NULL, (current - String) * sizeof(WCHAR));
+
+        for (SIZE_T i = 0; i < (SIZE_T)(current - String); i++)
+            string->Buffer[i] = (UCHAR)String[i];
+
+        return string;
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
+        PhClearReference(&string);
         return NULL;
     }
 
-    if (current == end)
-        return NULL;
-
-    return PhZeroExtendToUtf16Ex(String, current - String);
+    return NULL;
 }
 
 ULONG AtpParseImageSections(
@@ -157,13 +183,32 @@ VOID AtpAddImageHeaders(
     };
     PVOID headers;
     PVOID entry;
+    IMAGE_NT_HEADERS64 header = { 0 };
+    PH_MAPPED_IMAGE image = *MappedImage;
+    ULONG_PTR ntHeadersOffset = (ULONG_PTR)PTR_SUB_OFFSET(MappedImage->NtHeaders, MappedImage->ViewBase);
+
+    __try
+    {
+        memcpy(&header, MappedImage->NtHeaders, UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader));
+        memcpy(&header.OptionalHeader, &MappedImage->NtHeaders->OptionalHeader,
+            min(header.FileHeader.SizeOfOptionalHeader, sizeof(header.OptionalHeader)));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        AtJsonAddNull(Structured, "headers");
+        return;
+    }
+
+    image.NtHeaders = (PIMAGE_NT_HEADERS)&header;
+    MappedImage = &image;
+
     PIMAGE_NT_HEADERS ntHeaders = MappedImage->NtHeaders;
     BOOLEAN is64 = MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
     headers = PhCreateJsonObject();
 
     entry = PhCreateJsonObject();
-    PhAddJsonObjectUInt64(entry, "e_lfanew", (ULONG_PTR)PTR_SUB_OFFSET(ntHeaders, MappedImage->ViewBase));
+    PhAddJsonObjectUInt64(entry, "e_lfanew", ntHeadersOffset);
     PhAddJsonObjectValue(headers, "dos", entry);
 
     entry = PhCreateJsonObject();
@@ -252,6 +297,24 @@ VOID AtpAddImageDirectories(
     PIMAGE_DATA_DIRECTORY directories;
     ULONG count;
     ULONG i;
+
+    IMAGE_NT_HEADERS64 header = { 0 };
+    PH_MAPPED_IMAGE image = *MappedImage;
+
+    __try
+    {
+        memcpy(&header, MappedImage->NtHeaders, UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader));
+        memcpy(&header.OptionalHeader, &MappedImage->NtHeaders->OptionalHeader,
+            min(header.FileHeader.SizeOfOptionalHeader, sizeof(header.OptionalHeader)));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        AtJsonAddNull(Structured, "directories");
+        return;
+    }
+
+    image.NtHeaders = (PIMAGE_NT_HEADERS)&header;
+    MappedImage = &image;
 
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
@@ -502,6 +565,7 @@ VOID AtpAddImageLoadConfig(
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY64 config;
+        IMAGE_LOAD_CONFIG_DIRECTORY64 configCopy;
 
         if (!NT_SUCCESS(PhGetMappedImageLoadConfig64(MappedImage, &config)))
         {
@@ -509,6 +573,14 @@ VOID AtpAddImageLoadConfig(
             AtJsonAddNull(Structured, "load_config");
             return;
         }
+
+        if (!CopyImageData(&configCopy, config, sizeof(configCopy)))
+        {
+            PhFreeJsonObject(entry);
+            AtJsonAddNull(Structured, "load_config");
+            return;
+        }
+        config = &configCopy;
 
         PhAddJsonObjectUInt64(entry, "size", config->Size);
         AtJsonAddHex(entry, "security_cookie", config->SecurityCookie);
@@ -523,6 +595,7 @@ VOID AtpAddImageLoadConfig(
     else
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY32 config;
+        IMAGE_LOAD_CONFIG_DIRECTORY32 configCopy;
 
         if (!NT_SUCCESS(PhGetMappedImageLoadConfig32(MappedImage, &config)))
         {
@@ -530,6 +603,14 @@ VOID AtpAddImageLoadConfig(
             AtJsonAddNull(Structured, "load_config");
             return;
         }
+
+        if (!CopyImageData(&configCopy, config, sizeof(configCopy)))
+        {
+            PhFreeJsonObject(entry);
+            AtJsonAddNull(Structured, "load_config");
+            return;
+        }
+        config = &configCopy;
 
         PhAddJsonObjectUInt64(entry, "size", config->Size);
         AtJsonAddHex(entry, "security_cookie", config->SecurityCookie);
@@ -566,7 +647,13 @@ VOID AtpAddImageManifest(
         PhAddJsonObjectBoolean(entry, "truncated", length > AT_IMAGE_MANIFEST_MAX_SIZE);
 
         // A manifest is UTF-8 by contract, whatever it declares in its own prologue.
-        xml = PhConvertUtf8ToUtf16Ex(buffer, min(length, AT_IMAGE_MANIFEST_MAX_SIZE));
+        ULONG copyLength = min(length, AT_IMAGE_MANIFEST_MAX_SIZE);
+        PVOID copy = PhAllocate(copyLength);
+
+        xml = NULL;
+        if (CopyImageData(copy, buffer, copyLength))
+            xml = PhConvertUtf8ToUtf16Ex(copy, copyLength);
+        PhFree(copy);
         AtJsonAddString(entry, "xml", xml);
         PhClearReference(&xml);
     }
@@ -692,14 +779,15 @@ VOID AtpAddImageDebug(
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(MappedImage, IMAGE_DEBUG_TYPE_CODEVIEW, &codeViewLength, &codeView)) &&
         codeViewLength >= sizeof(CODEVIEW_INFO_PDB70))
     {
-        PCODEVIEW_INFO_PDB70 pdb = codeView;
+        CODEVIEW_INFO_PDB70 pdbCopy;
+        PCODEVIEW_INFO_PDB70 pdb = &pdbCopy;
         BOOLEAN readable = FALSE;
 
         // The record is at an image chosen offset that the query does not probe.
         __try
         {
             PhMappedImageProbe(MappedImage, codeView, sizeof(CODEVIEW_INFO_PDB70));
-            readable = TRUE;
+            readable = CopyImageData(&pdbCopy, codeView, sizeof(pdbCopy));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -710,7 +798,7 @@ VOID AtpAddImageDebug(
         {
             PVOID pdbEntry = PhCreateJsonObject();
             PPH_STRING guid = PhFormatGuid(&pdb->PdbGuid);
-            PPH_STRING name = AtpCreateImageString(MappedImage, pdb->ImageName);
+            PPH_STRING name = AtpCreateImageString(MappedImage, ((PCODEVIEW_INFO_PDB70)codeView)->ImageName);
 
             AtJsonAddString(pdbEntry, "guid", guid);
             PhAddJsonObjectUInt64(pdbEntry, "age", pdb->PdbAge);
@@ -755,6 +843,7 @@ VOID AtpAddImageCertificates(
     )
 {
     PIMAGE_DATA_DIRECTORY directory;
+    IMAGE_DATA_DIRECTORY directoryCopy;
     PVOID array;
     ULONG64 offset;
     ULONG64 end;
@@ -770,13 +859,26 @@ VOID AtpAddImageCertificates(
         return;
     }
 
+    if (!CopyImageData(&directoryCopy, directory, sizeof(directoryCopy)))
+    {
+        PhFreeJsonObject(array);
+        AtJsonAddNull(Structured, "certificates");
+        return;
+    }
+    directory = &directoryCopy;
+
     offset = directory->VirtualAddress;
     end = (ULONG64)directory->VirtualAddress + directory->Size;
 
     while (offset + sizeof(WIN_CERTIFICATE) <= end && offset + sizeof(WIN_CERTIFICATE) <= MappedImage->ViewSize)
     {
         LPWIN_CERTIFICATE certificate = PTR_ADD_OFFSET(MappedImage->ViewBase, (SIZE_T)offset);
+        WIN_CERTIFICATE certificateCopy;
         PVOID row;
+
+        if (!CopyImageData(&certificateCopy, certificate, sizeof(certificateCopy)))
+            break;
+        certificate = &certificateCopy;
 
         if (certificate->dwLength < sizeof(WIN_CERTIFICATE) || offset + certificate->dwLength > end)
             break;
@@ -954,15 +1056,20 @@ VOID AtpAddResourceIdentifier(
         PTR_ADD_OFFSET(Value, sizeof(IMAGE_RESOURCE_DIR_STRING_U)) <= PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize))
     {
         PIMAGE_RESOURCE_DIR_STRING_U string = (PIMAGE_RESOURCE_DIR_STRING_U)Value;
-        SIZE_T length = string->Length * sizeof(WCHAR);
+        USHORT characters;
+        SIZE_T length;
+
+        if (!CopyImageData(&characters, &string->Length, sizeof(characters)))
+            return;
+        length = characters * sizeof(WCHAR);
 
         if (PTR_ADD_OFFSET(string->NameString, length) <= PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize))
         {
-            PH_STRINGREF name;
+            PPH_STRING name = PhCreateStringEx(NULL, length);
 
-            name.Buffer = string->NameString;
-            name.Length = length;
-            AtJsonAddStringRef(Row, NameKey, &name);
+            if (CopyImageData(name->Buffer, string->NameString, length))
+                AtJsonAddString(Row, NameKey, name);
+            PhDereferenceObject(name);
         }
     }
 }
@@ -1026,6 +1133,7 @@ VOID AtpAddImageClr(
         L"track_debug_data", L"32bit_preferred"
     };
     PIMAGE_COR20_HEADER cor20;
+    IMAGE_COR20_HEADER cor20Copy;
     PVOID entry;
     BOOLEAN readable = FALSE;
 
@@ -1039,7 +1147,7 @@ VOID AtpAddImageClr(
         __try
         {
             PhMappedImageProbe(MappedImage, cor20, sizeof(IMAGE_COR20_HEADER));
-            readable = TRUE;
+            readable = CopyImageData(&cor20Copy, cor20, sizeof(cor20Copy));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -1053,6 +1161,7 @@ VOID AtpAddImageClr(
         return;
     }
 
+    cor20 = &cor20Copy;
     entry = PhCreateJsonObject();
     PhAddJsonObjectUInt64(entry, "runtime_version_major", cor20->MajorRuntimeVersion);
     PhAddJsonObjectUInt64(entry, "runtime_version_minor", cor20->MinorRuntimeVersion);
@@ -1367,21 +1476,28 @@ PIMAGE_SECTION_HEADER AtpSectionFromFileOffset(
     _In_ ULONG_PTR Offset
     )
 {
-    USHORT i;
-
-    for (i = 0; i < MappedImage->NumberOfSections; i++)
+    __try
     {
-        PIMAGE_SECTION_HEADER section = &MappedImage->Sections[i];
-
-        if (section->SizeOfRawData != 0 &&
-            Offset >= section->PointerToRawData &&
-            Offset < (ULONG_PTR)section->PointerToRawData + section->SizeOfRawData)
+        USHORT i;
+    
+        for (i = 0; i < MappedImage->NumberOfSections; i++)
         {
-            return section;
+            PIMAGE_SECTION_HEADER section = &MappedImage->Sections[i];
+    
+            if (section->SizeOfRawData != 0 &&
+                Offset >= section->PointerToRawData &&
+                Offset < (ULONG_PTR)section->PointerToRawData + section->SizeOfRawData)
+            {
+                return section;
+            }
         }
+    
+        return NULL;
     }
-
-    return NULL;
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return NULL;
+    }
 }
 
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
@@ -1419,6 +1535,7 @@ BOOLEAN NTAPI AtpStringSearchCallback(
 {
     PAT_STRINGS_CONTEXT context = Context;
     PIMAGE_SECTION_HEADER section;
+    IMAGE_SECTION_HEADER sectionCopy;
     ULONG_PTR offset;
     PVOID row;
 
@@ -1446,6 +1563,14 @@ BOOLEAN NTAPI AtpStringSearchCallback(
 
     offset = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, context->MappedImage->ViewBase);
     section = AtpSectionFromFileOffset(context->MappedImage, offset);
+
+    if (section)
+    {
+        if (CopyImageData(&sectionCopy, section, sizeof(sectionCopy)))
+            section = &sectionCopy;
+        else
+            section = NULL;
+    }
 
     row = PhCreateJsonObject();
     AtJsonAddStringRef(row, "string", &Result->String);
@@ -1554,13 +1679,23 @@ VOID AtpGetImageStrings(
     context.MappedImage = &mappedImage;
     AtInitializeRows(&context.Rows, Call->Arguments);
 
-    PhSearchStrings(
+    status = PhSearchStrings(
         (ULONG)minimumLength,
         AtJsonGetObjectBoolean(Call->Arguments, "extended_char_set"),
         AtpStringSearchNextBuffer,
         AtpStringSearchCallback,
         &context
         );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtDeleteRows(&context.Rows);
+        PhUnloadMappedImage(&mappedImage);
+        PhClearReference(&context.Contains);
+        PhDereferenceObject(path);
+        AtSetToolStatusError(Result, status, L"Reading image strings");
+        return;
+    }
 
     structured = PhCreateJsonObject();
     AtJsonAddString(structured, "path", path);

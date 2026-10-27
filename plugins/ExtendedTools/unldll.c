@@ -21,6 +21,7 @@ typedef struct _UNLOADED_DLLS_CONTEXT
     PVOID CapturedEventTrace;
     HANDLE ProcessId;
     HANDLE QueryHandle;
+    PPH_PROCESS_ITEM ProcessItem;
     PPH_FONT WindowFont;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
@@ -36,28 +37,11 @@ VOID EtShowUnloadedDllsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    NTSTATUS status;
     PUNLOADED_DLLS_CONTEXT context;
-    HANDLE queryHandle;
 
-    status = PhOpenProcess(
-        &queryHandle,
-        PROCESS_QUERY_INFORMATION,
-        ProcessItem->ProcessId
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!ProcessItem->QueryHandle)
     {
-        status = PhOpenProcess(
-            &queryHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            ProcessItem->ProcessId
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", STATUS_INVALID_HANDLE, 0);
         return;
     }
 
@@ -65,7 +49,8 @@ VOID EtShowUnloadedDllsDialog(
     context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessId = ProcessItem->ProcessId;
     context->IsWow64Process = !!ProcessItem->IsWow64Process;
-    context->QueryHandle = queryHandle;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->QueryHandle = ProcessItem->QueryHandle;
 
     PhDialogBox(
         PluginInstance->DllBase,
@@ -540,8 +525,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             if (context->CapturedEventTrace)
                 PhFree(context->CapturedEventTrace);
 
-            if (context->QueryHandle)
-                NtClose(context->QueryHandle);
+            PhDereferenceObject(context->ProcessItem);
 
             PhFree(context);
         }

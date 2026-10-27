@@ -75,14 +75,26 @@ VOID PhpRefreshProcessMemoryList(
 {
     PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
 
+    // The worker owns MemoryItemList, LastRunStatus and MemoryItemListValid until it posts
+    // WM_PH_INVOKE. Never delete or restart while one is in flight.
+    if (memoryContext->RefreshInProgress)
+        return;
+
     if (memoryContext->MemoryItemListValid)
     {
         PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
         memoryContext->MemoryItemListValid = FALSE;
     }
 
+    memoryContext->RefreshInProgress = TRUE;
+
     PhReferenceObject(memoryContext);
-    PhCreateThread2(PhpRefreshProcessMemoryThread, memoryContext);
+
+    if (!NT_SUCCESS(PhCreateThread2(PhpRefreshProcessMemoryThread, memoryContext)))
+    {
+        memoryContext->RefreshInProgress = FALSE;
+        PhDereferenceObject(memoryContext);
+    }
 }
 
 VOID PhpInitializeMemoryMenu(
@@ -1117,6 +1129,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_PH_INVOKE:
         {
+            memoryContext->RefreshInProgress = FALSE;
+
             if (memoryContext->MemoryItemListValid)
             {
                 TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);

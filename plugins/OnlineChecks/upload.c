@@ -492,20 +492,33 @@ NTSTATUS UploadFileThreadStart(
             goto CleanupExit;
         }
 
-        switch (mappedImage.Signature)
+        __try
         {
-        case IMAGE_DOS_SIGNATURE:
-            machineType = mappedImage.NtHeaders->FileHeader.Machine;
-            break;
-        case IMAGE_ELF_SIGNATURE:
-            machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
-            break;
-        default:
-            machineType = 0;
-            break;
+            switch (mappedImage.Signature)
+            {
+            case IMAGE_DOS_SIGNATURE:
+                machineType = mappedImage.NtHeaders->FileHeader.Machine;
+                break;
+            case IMAGE_ELF_SIGNATURE:
+                machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
+                break;
+            default:
+                machineType = 0;
+                break;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
         }
 
         PhUnloadMappedImage(&mappedImage);
+
+        if (!NT_SUCCESS(status))
+        {
+            RaiseUploadError(context, L"Unable to read the image.", status);
+            goto CleanupExit;
+        }
 
         switch (machineType)
         {

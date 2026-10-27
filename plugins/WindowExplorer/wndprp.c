@@ -1312,7 +1312,7 @@ VOID WepRefreshWindowGeneralInfo(
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
     PPH_STRING fileName = NULL;
     PPH_STRING appIdText;
     HMENU menuHandle = NULL;
@@ -1373,15 +1373,15 @@ VOID WepRefreshWindowGeneralInfo(
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_NORMALRECT, 1, L"N/A");
     }
 
-    if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, Context->ClientId.UniqueProcess)))
+    if (processItem = PhReferenceProcessItem(Context->ClientId.UniqueProcess))
     {
-        if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+        if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessMappedFileName(processItem->QueryHandle, instanceHandle, &fileName)))
         {
             PhMoveReference(&fileName, PhGetFileName(fileName));
             PhMoveReference(&fileName, PhGetBaseName(fileName));
         }
 
-        NtClose(processHandle);
+        PhDereferenceObject(processItem);
     }
 
     if (fileName)
@@ -1844,19 +1844,19 @@ VOID WepRefreshClassModule(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
-    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
     PPH_STRING fileName = NULL;
     PVOID instanceHandle = (PVOID)GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE);
 
-    if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, Context->ClientId.UniqueProcess)))
+    if (processItem = PhReferenceProcessItem(Context->ClientId.UniqueProcess))
     {
-        if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+        if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessMappedFileName(processItem->QueryHandle, instanceHandle, &fileName)))
         {
             PhMoveReference(&fileName, PhGetFileName(fileName));
             PhMoveReference(&fileName, PhGetBaseName(fileName));
         }
 
-        NtClose(processHandle);
+        PhDereferenceObject(processItem);
     }
 
     if (fileName)

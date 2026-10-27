@@ -369,15 +369,22 @@ PPH_STRING ShowFileDialog(
 
         if (NT_SUCCESS(status))
         {
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            __try
             {
-                if (!FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_DLL))
-                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                {
+                    if (!FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_DLL))
+                        status = STATUS_INVALID_IMAGE_NOT_MZ;
+                }
+                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                {
+                    if (!FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_DLL))
+                        status = STATUS_INVALID_IMAGE_NOT_MZ;
+                }
             }
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                if (!FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_DLL))
-                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+                status = GetExceptionCode();
             }
 
             PhUnloadMappedImage(&mappedImage);
@@ -2354,6 +2361,7 @@ VOID ProcessMenuInitializingCallback(
     _In_ PVOID Context
     )
 {
+    BOOLEAN realProcess;
     BOOLEAN highlightPresent = FALSE;
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
@@ -2367,8 +2375,10 @@ VOID ProcessMenuInitializingCallback(
         return;
 
     processItem = menuInfo->u.Process.Processes[0];
+    realProcess = !PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) &&
+        processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
+        processItem->ProcessId != SYSTEM_PROCESS_ID;
 
-    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) && processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID && processItem->ProcessId != SYSTEM_PROCESS_ID)
         AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
 
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_MISCELLANEOUS)))

@@ -42,6 +42,9 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
+    // The previous dialog thread (if any) completed the rundown before exiting; re-arm it.
+    PhInitializeRundownProtection(&Context->NodeWindowRundown);
+
     Context->NodeWindowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_GPUDEVICE_NODES),
@@ -72,6 +75,9 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
         NtClose(Context->NodeWindowThreadHandle);
 
     Context->NodeWindowThreadHandle = NULL;
+
+    // Wait for in-flight posters before clearing the handle they read.
+    PhWaitForRundownProtection(&Context->NodeWindowRundown);
     Context->NodeWindowHandle = NULL;
 
     PhResetEvent(&Context->NodeWindowInitializedEvent);
@@ -123,6 +129,8 @@ VOID GraphicsDeviceShowNodesDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    HWND windowHandle;
+
     if (Context->DeviceEntry->NumberOfNodes == 0)
     {
         PhShowError2(ParentWindowHandle, L"There are no graphics nodes to display.", L"%s", L"");
@@ -143,7 +151,17 @@ VOID GraphicsDeviceShowNodesDialog(
         PhWaitForEvent(&Context->NodeWindowInitializedEvent, NULL);
     }
 
-    PostMessage(Context->NodeWindowHandle, WM_PH_SHOW_DIALOG, 0, 0);
+    // The dialog thread waits for the rundown before clearing NodeWindowHandle, so the
+    // handle is stable while it is held. If the thread already exited, skip the post.
+    if (PhAcquireRundownProtection(&Context->NodeWindowRundown))
+    {
+        windowHandle = Context->NodeWindowHandle;
+
+        if (windowHandle)
+            PostMessage(windowHandle, WM_PH_SHOW_DIALOG, 0, 0);
+
+        PhReleaseRundownProtection(&Context->NodeWindowRundown);
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

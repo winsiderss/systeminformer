@@ -93,6 +93,8 @@ typedef struct _WCT_CONTEXT
     PPH_STRING StatusMessage;
     PPH_LIST WaitChainList;
     PPH_LIST DeadLockList;
+
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } WCT_CONTEXT, *PWCT_CONTEXT;
 
 #define ID_WCT_MENU_GOTOTHREAD (WM_APP + 1)
@@ -194,7 +196,12 @@ PVOID EtWaitChainContextCreate(
         PhEndInitOnce(&initOnce);
     }
 
-    return PhCreateObjectZero(sizeof(WCT_CONTEXT), EtWaitChainContextType);
+    PWCT_CONTEXT context;
+
+    context = PhCreateObjectZero(sizeof(WCT_CONTEXT), EtWaitChainContextType);
+    PhInitializeRundownProtection(&context->WorkerRundown);
+
+    return context;
 }
 
 static PH_STRINGREF WaitChainUnknownString = PH_STRINGREF_INIT(L"Unknown");
@@ -356,11 +363,12 @@ NTSTATUS WaitChainCallbackThread(
         PhFreeLibrary(Context->Ole32ModuleHandle);
     }
 
-    if (Context->WindowHandle)
-    {
-        SendMessage(Context->WindowHandle, ID_WCT_UPDATE_RESULTS, 0, 0);
-    }
+    // The window handle is only cleared after the rundown wait in WM_DESTROY, so it is
+    // stable while this worker holds the rundown protection. Post (never send) so the
+    // destroy path can wait for this thread without deadlocking.
+    PostMessage(Context->WindowHandle, ID_WCT_UPDATE_RESULTS, 0, 0);
 
+    PhReleaseRundownProtection(&Context->WorkerRundown);
     PhDereferenceObject(Context);
     return STATUS_SUCCESS;
 }
@@ -413,12 +421,17 @@ INT_PTR CALLBACK WaitChainDlgProc(
 
             EtWaitChainSetTreeStatusMessage(context, FALSE);
 
+            // One worker at a time: it owns the session handle and result lists until it posts.
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
+
+            PhAcquireRundownProtection(&context->WorkerRundown);
             PhReferenceObject(context);
             PhCreateThread2(WaitChainCallbackThread, context);
         }
         break;
     case WM_DESTROY:
         {
+            PhWaitForRundownProtection(&context->WorkerRundown);
             context->WindowHandle = NULL;
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, WindowHandle);
@@ -449,6 +462,9 @@ INT_PTR CALLBACK WaitChainDlgProc(
 
                     EtWaitChainSetTreeStatusMessage(context, FALSE);
 
+                    EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
+
+                    PhAcquireRundownProtection(&context->WorkerRundown);
                     PhReferenceObject(context);
                     PhCreateThread2(WaitChainCallbackThread, context);
                 }
@@ -551,6 +567,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
             EtWaitChainUpdateResults(context);
             TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
             TreeNew_NodesStructured(context->TreeNewHandle);
+
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), TRUE);
         }
         break;
     case WM_CTLCOLORBTN:

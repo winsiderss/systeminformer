@@ -237,18 +237,27 @@ BOOLEAN AtpHasEmbeddedSignature(
 
     *Known = TRUE;
 
-    if (mappedImage.Signature == IMAGE_DOS_SIGNATURE)
+    __try
     {
-        *IsImage = TRUE;
+        if (mappedImage.Signature == IMAGE_DOS_SIGNATURE)
+        {
+            *IsImage = TRUE;
 
-        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-        {
-            embedded = mappedImage.NtHeaders64->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
+            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                embedded = mappedImage.NtHeaders64->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
+            }
+            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                embedded = mappedImage.NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
+            }
         }
-        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        {
-            embedded = mappedImage.NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
-        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        *Known = FALSE;
+        *IsImage = FALSE;
+        embedded = FALSE;
     }
 
     PhUnloadMappedImage(&mappedImage);
@@ -810,7 +819,7 @@ VOID AtpGetImageInfo(
     USHORT dllCharacteristics;
     VERIFY_RESULT verifyResult;
     PPH_STRING signer = NULL;
-    PVOID structured;
+    PVOID structured = NULL;
     PVOID sectionArray;
     ULONG sections;
     USHORT i;
@@ -888,40 +897,48 @@ VOID AtpGetImageInfo(
         return;
     }
 
-    ntHeaders = mappedImage.NtHeaders;
-    is64 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
-
-    structured = PhCreateJsonObject();
-    AtJsonAddString(structured, "path", path);
-    AtJsonAddStringZ(structured, "machine", AtMachineString(ntHeaders->FileHeader.Machine));
-    PhAddJsonObjectBoolean(structured, "is_64bit", is64);
-
-    if (is64)
+    __try
     {
-        PIMAGE_OPTIONAL_HEADER64 opt = &mappedImage.NtHeaders64->OptionalHeader;
+        ntHeaders = mappedImage.NtHeaders;
+        is64 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
-        subsystem = opt->Subsystem;
-        dllCharacteristics = opt->DllCharacteristics;
-        entryPoint = opt->AddressOfEntryPoint;
-        imageBase = opt->ImageBase;
-        sizeOfImage = opt->SizeOfImage;
-        checkSum = opt->CheckSum;
+        structured = PhCreateJsonObject();
+        AtJsonAddString(structured, "path", path);
+        AtJsonAddStringZ(structured, "machine", AtMachineString(ntHeaders->FileHeader.Machine));
+        PhAddJsonObjectBoolean(structured, "is_64bit", is64);
+
+        if (is64)
+        {
+            PIMAGE_OPTIONAL_HEADER64 opt = &mappedImage.NtHeaders64->OptionalHeader;
+
+            subsystem = opt->Subsystem;
+            dllCharacteristics = opt->DllCharacteristics;
+            entryPoint = opt->AddressOfEntryPoint;
+            imageBase = opt->ImageBase;
+            sizeOfImage = opt->SizeOfImage;
+            checkSum = opt->CheckSum;
+        }
+        else
+        {
+            PIMAGE_OPTIONAL_HEADER32 opt = &mappedImage.NtHeaders32->OptionalHeader;
+
+            subsystem = opt->Subsystem;
+            dllCharacteristics = opt->DllCharacteristics;
+            entryPoint = opt->AddressOfEntryPoint;
+            imageBase = opt->ImageBase;
+            sizeOfImage = opt->SizeOfImage;
+            checkSum = opt->CheckSum;
+        }
+
+        timeStamp = ntHeaders->FileHeader.TimeDateStamp;
     }
-    else
+    __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        PIMAGE_OPTIONAL_HEADER32 opt = &mappedImage.NtHeaders32->OptionalHeader;
-
-        subsystem = opt->Subsystem;
-        dllCharacteristics = opt->DllCharacteristics;
-        entryPoint = opt->AddressOfEntryPoint;
-        imageBase = opt->ImageBase;
-        sizeOfImage = opt->SizeOfImage;
-        checkSum = opt->CheckSum;
+        status = GetExceptionCode();
+        goto CleanupImage;
     }
 
     AtJsonAddStringZ(structured, "subsystem", AtSubsystemString(subsystem));
-
-    timeStamp = ntHeaders->FileHeader.TimeDateStamp;
 
     if (timeStamp)
     {
@@ -944,10 +961,22 @@ VOID AtpGetImageInfo(
     AtJsonAddFlagStrings(structured, "dll_characteristics", dllCharacteristics, dllFlags, (CONST PWSTR*)dllNames, RTL_NUMBER_OF(dllFlags));
 
     sectionArray = PhCreateJsonArray();
+    PhAddJsonObjectValue(structured, "sections", sectionArray);
 
     for (i = 0; i < mappedImage.NumberOfSections; i++)
     {
-        PIMAGE_SECTION_HEADER section = &mappedImage.Sections[i];
+        IMAGE_SECTION_HEADER sectionCopy;
+        PIMAGE_SECTION_HEADER section = &sectionCopy;
+
+        __try
+        {
+            memcpy(&sectionCopy, &mappedImage.Sections[i], sizeof(sectionCopy));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto CleanupImage;
+        }
         CHAR name[IMAGE_SIZEOF_SHORT_NAME + 1];
         PVOID row;
 
@@ -963,13 +992,10 @@ VOID AtpGetImageInfo(
         PhAddJsonArrayObject(sectionArray, row);
     }
 
-    PhAddJsonObjectValue(structured, "sections", sectionArray);
     PhAddJsonObjectUInt64(structured, "section_count", mappedImage.NumberOfSections);
 
     // Everything past the summary, and only what was asked for.
     AtAddImageSections(structured, &mappedImage, path, sections, Call);
-
-    PhUnloadMappedImage(&mappedImage);
 
     verifyResult = PhVerifyFile(PhGetString(path), &signer);
     AtJsonAddStringZ(structured, "verify_result", AtpVerifyResultText(verifyResult));
@@ -977,7 +1003,12 @@ VOID AtpGetImageInfo(
     PhClearReference(&signer);
 
     Result->StructuredContent = structured;
+    structured = NULL;
 
+CleanupImage:
+    PhUnloadMappedImage(&mappedImage);
+    if (structured) PhFreeJsonObject(structured);
+    if (!NT_SUCCESS(status)) AtSetToolStatusError(Result, status, L"Reading the image");
     PhDereferenceObject(path);
 }
 
