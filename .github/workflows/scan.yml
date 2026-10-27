@@ -50,6 +50,10 @@ jobs:
         with:
           languages: cpp
 
+      - name: Github Annotations
+        shell: cmd
+        run: echo ::add-matcher::.github/msvc-matcher.json
+
       - name: Build Driver
         shell: cmd
         run: build\build_zdriver.cmd
@@ -126,6 +130,10 @@ jobs:
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # 4.38.3
         with:
           languages: cpp
+
+      - name: Github Annotations
+        shell: cmd
+        run: echo ::add-matcher::.github/msvc-matcher.json
 
       - name: Build Release
         shell: cmd

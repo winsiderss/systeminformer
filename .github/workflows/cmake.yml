@@ -67,6 +67,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.configuration }} ${{ matrix.toolchain }} generate
 
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build
       shell: cmd
       working-directory: ${{github.workspace}}

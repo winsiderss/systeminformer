@@ -55,6 +55,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
 
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -110,6 +114,10 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_exports.cmd reflow
+
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
 
     - name: Build Solution
       shell: cmd
@@ -168,6 +176,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
 
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -211,6 +223,10 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
 
     - name: Build Driver
       shell: cmd
