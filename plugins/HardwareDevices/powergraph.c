@@ -57,6 +57,7 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
             context->RaplDeviceProcessorUsageLabel = GetDlgItem(WindowHandle, IDC_PACKAGE_L);
             context->RaplDeviceCoreUsageLabel = GetDlgItem(WindowHandle, IDC_CORE_L);
             context->RaplDeviceDimmUsageLabel = GetDlgItem(WindowHandle, IDC_DIMM_L);
@@ -113,11 +114,61 @@ VOID RaplDeviceInitializeGraphStates(
  *
  * \param Context RAPL sysinfo context.
  */
+VOID RaplDeviceGetGraphRects(
+    _In_ PDV_RAPL_SYSINFO_CONTEXT Context,
+    _Out_writes_(4) RECT LabelRects[4],
+    _Out_writes_(4) RECT GraphRects[4]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = Context->GraphMarginScaled;
+    graphPadding = Context->GraphPadding;
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->PackageGraphLabelHandle, &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 4 - graphPadding * 5) / 4;
+    y = marginRect.top;
+
+    for (ULONG i = 0; i < 4; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+
+    GraphRects[3].bottom = clientRect.bottom - marginRect.bottom;
+}
+
 VOID RaplDeviceCreateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[4];
+    RECT graphRects[4];
+
+    Context->PackageGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L);
+    Context->CoreGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_CORE_L);
+    Context->DimmGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_DIMM_L);
+    Context->TotalGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_TOTAL_L);
+
+    RaplDeviceGetGraphRects(Context, labelRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -128,10 +179,10 @@ VOID RaplDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -143,10 +194,10 @@ VOID RaplDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -158,10 +209,10 @@ VOID RaplDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -173,21 +224,16 @@ VOID RaplDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         Context->WindowHandle,
         NULL,
         NULL,
         &graphCreateParams
         );
     Graph_SetTooltip(Context->TotalGraphHandle, TRUE);
-
-    Context->PackageGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L);
-    Context->CoreGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_CORE_L);
-    Context->DimmGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_DIMM_L);
-    Context->TotalGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_TOTAL_L);
 }
 
 /**
@@ -286,13 +332,9 @@ VOID RaplDeviceLayoutGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT margin;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    RECT labelRects[4];
+    RECT graphRects[4];
     HDWP deferHandle;
-    ULONG y;
 
     Context->ProcessorGraphState.Valid = FALSE;
     Context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
@@ -303,111 +345,93 @@ VOID RaplDeviceLayoutGraphs(
     Context->TotalGraphState.Valid = FALSE;
     Context->TotalGraphState.TooltipIndex = ULONG_MAX;
 
-    margin = Context->GraphMarginScaled;
-
-    PhGetClientRect(Context->WindowHandle, &clientRect);
-    PhGetClientRect(Context->PackageGraphLabelHandle, &labelRect);
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - Context->GraphPadding * 5) / 4;
+    RaplDeviceGetGraphRects(Context, labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(8);
-    y = margin.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->PackageGraphLabelHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->ProcessorGraphHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->CoreGraphLabelHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->CoreGraphHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->DimmGraphLabelHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[2].left,
+        labelRects[2].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->DimmGraphHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->TotalGraphLabelHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[3].left,
+        labelRects[3].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->TotalGraphHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        clientRect.bottom - margin.bottom - y,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     EndDeferWindowPos(deferHandle);
 }

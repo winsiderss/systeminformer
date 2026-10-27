@@ -2970,6 +2970,44 @@ VOID EtpSaveComboBoxHistoryToSettings(
     PhDeleteStringBuilder(&savedChoices);
 }
 
+VOID EtpObjectManagerGetStatusBarRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT StatusBarRect
+    )
+{
+    RECT clientRect;
+    TEXTMETRIC textMetrics;
+    HFONT oldFont;
+    LONG dpiValue;
+    LONG height;
+    HDC hdc;
+
+    if (!PhGetClientRect(WindowHandle, &clientRect))
+        SetRectEmpty(&clientRect);
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+    height = PhScaleToDisplay(16, dpiValue);
+
+    // The status bar height follows the dialog font plus its border padding.
+    if (hdc = GetDC(WindowHandle))
+    {
+        oldFont = SelectFont(hdc, GetWindowFont(WindowHandle));
+
+        if (GetTextMetrics(hdc, &textMetrics))
+            height = textMetrics.tmHeight;
+
+        SelectFont(hdc, oldFont);
+        ReleaseDC(WindowHandle, hdc);
+    }
+
+    height += PhScaleToDisplay(6, dpiValue);
+
+    StatusBarRect->left = clientRect.left;
+    StatusBarRect->top = clientRect.bottom - height;
+    StatusBarRect->right = clientRect.right;
+    StatusBarRect->bottom = clientRect.bottom;
+}
+
 INT_PTR CALLBACK WinObjDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3019,6 +3057,7 @@ INT_PTR CALLBACK WinObjDlgProc(
     case WM_INITDIALOG:
         {
             COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+            RECT statusBarRect;
 
             context->WindowHandle = hwndDlg;
             context->ParentWindowHandle = (HWND)lParam;
@@ -3090,14 +3129,16 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context
                 );
 
+            EtpObjectManagerGetStatusBarRect(hwndDlg, &statusBarRect);
+
             context->StatusBarHandle = CreateWindow(
                 STATUSCLASSNAME,
                 NULL,
                 WS_VISIBLE | WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP, // SBARS_TOOLTIPS
-                0,
-                0,
-                0,
-                0,
+                statusBarRect.left,
+                statusBarRect.top,
+                statusBarRect.right - statusBarRect.left,
+                statusBarRect.bottom - statusBarRect.top,
                 hwndDlg,
                 NULL,
                 NULL,

@@ -326,11 +326,10 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             PPH_LAYOUT_ITEM panelItem;
             RECT margin;
 
+            DiskDialog = WindowHandle;
+
             EtpInitializeDiskDialog();
 
-            DiskDialog = WindowHandle;
-            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
- 
             PhInitializeLayoutManager(&DiskLayoutManager, WindowHandle);
             graphItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -428,7 +427,7 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
             groupBoxHandle = GetDlgItem(WindowHandle, IDC_ZGROUPBOX_V);
             PhSetWindowStyle(groupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(groupBoxHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-            PhInitializeThemeWindowGroupBoxEx(groupBoxHandle);
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
 
             DiskPanelReadsDeltaLabel = GetDlgItem(WindowHandle, IDC_ZREADSDELTA_V);
             DiskPanelReadBytesDeltaLabel = GetDlgItem(WindowHandle, IDC_ZREADBYTESDELTA_V);
@@ -471,6 +470,54 @@ BOOLEAN EtpDiskGraphMessageCallback(
 }
 
 /**
+ * Calculates the label and graph rectangles for the disk dialog.
+ *
+ * \param WindowHandle The disk dialog window handle.
+ * \param LabelRects The label rectangles.
+ * \param GraphRects The graph rectangles.
+ */
+VOID EtpGetDiskGraphRects(
+    _In_ HWND WindowHandle,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = DiskGraphMarginScaled;
+    graphPadding = PhScaleToDisplay(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
+
+    PhGetClientRect(WindowHandle, &clientRect);
+    PhGetClientRect(GetDlgItem(WindowHandle, IDC_DISKREAD_L), &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    y = marginRect.top;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+
+    GraphRects[1].bottom = clientRect.bottom - marginRect.bottom;
+}
+
+/**
  * Creates the graphs for the disk dialog.
  */
 VOID EtpCreateDiskGraph(
@@ -478,6 +525,10 @@ VOID EtpCreateDiskGraph(
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[2];
+    RECT graphRects[2];
+
+    EtpGetDiskGraphRects(DiskDialog, labelRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -487,10 +538,10 @@ VOID EtpCreateDiskGraph(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         DiskDialog,
         NULL,
         NULL,
@@ -502,10 +553,10 @@ VOID EtpCreateDiskGraph(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         DiskDialog,
         NULL,
         NULL,
@@ -523,70 +574,53 @@ VOID EtpLayoutDiskGraphs(
     _In_ HWND WindowHandle
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT marginRect;
-    LONG graphWidth;
-    LONG graphHeight;
+    RECT labelRects[2];
+    RECT graphRects[2];
     HDWP deferHandle;
-    LONG y;
-    LONG graphPadding;
 
-    marginRect = DiskGraphMarginScaled;
-    graphPadding = PhScaleToDisplay(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
-
-    PhGetClientRect(WindowHandle, &clientRect);
-    PhGetClientRect(GetDlgItem(WindowHandle, IDC_DISKREAD_L), &labelRect);
-    graphWidth = clientRect.right - marginRect.left - marginRect.right;
-    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    EtpGetDiskGraphRects(WindowHandle, labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
-    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(WindowHandle, IDC_DISKREAD_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         DiskReadGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(WindowHandle, IDC_DISKWRITE_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         DiskWriteGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        clientRect.bottom - marginRect.bottom - y,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -1188,10 +1222,9 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             PPH_LAYOUT_ITEM panelItem;
             RECT margin;
 
-            EtpInitializeNetworkDialog();
-
             NetworkDialog = WindowHandle;
-            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
+
+            EtpInitializeNetworkDialog();
 
             PhInitializeLayoutManager(&NetworkLayoutManager, WindowHandle);
             graphItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
@@ -1285,6 +1318,7 @@ INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
             NetworkPanelReceiveDeltaLabel = GetDlgItem(WindowHandle, IDC_ZRECEIVESDELTA_V);
             NetworkPanelReceiveBytesDeltaLabel = GetDlgItem(WindowHandle, IDC_ZRECEIVEBYTESDELTA_V);
             NetworkPanelSendsDeltaLabel = GetDlgItem(WindowHandle, IDC_ZSENDSDELTA_V);
@@ -1326,6 +1360,54 @@ BOOLEAN EtpNetworkGraphMessageCallback(
 }
 
 /**
+ * Calculates the label and graph rectangles for the network dialog.
+ *
+ * \param WindowHandle The network dialog window handle.
+ * \param LabelRects The label rectangles.
+ * \param GraphRects The graph rectangles.
+ */
+VOID EtpGetNetworkGraphRects(
+    _In_ HWND WindowHandle,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = NetworkGraphMarginScaled;
+    graphPadding = PhScaleToDisplay(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
+
+    PhGetClientRect(WindowHandle, &clientRect);
+    PhGetClientRect(GetDlgItem(WindowHandle, IDC_NETRECEIVE_L), &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    y = marginRect.top;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+
+    GraphRects[1].bottom = clientRect.bottom - marginRect.bottom;
+}
+
+/**
  * Creates the graphs for the network dialog.
  */
 VOID EtpCreateNetworkGraph(
@@ -1333,6 +1415,10 @@ VOID EtpCreateNetworkGraph(
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[2];
+    RECT graphRects[2];
+
+    EtpGetNetworkGraphRects(NetworkDialog, labelRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -1342,10 +1428,10 @@ VOID EtpCreateNetworkGraph(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         NetworkDialog,
         NULL,
         NULL,
@@ -1357,10 +1443,10 @@ VOID EtpCreateNetworkGraph(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         NetworkDialog,
         NULL,
         NULL,
@@ -1378,70 +1464,53 @@ VOID EtpLayoutNetworkGraphs(
     _In_ HWND WindowHandle
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT marginRect;
-    LONG graphWidth;
-    LONG graphHeight;
+    RECT labelRects[2];
+    RECT graphRects[2];
     HDWP deferHandle;
-    LONG y;
-    LONG graphPadding;
 
-    marginRect = NetworkGraphMarginScaled;
-    graphPadding = PhScaleToDisplay(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
-
-    PhGetClientRect(WindowHandle, &clientRect);
-    PhGetClientRect(GetDlgItem(WindowHandle, IDC_NETRECEIVE_L), &labelRect);
-    graphWidth = clientRect.right - marginRect.left - marginRect.right;
-    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    EtpGetNetworkGraphRects(WindowHandle, labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
-    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(WindowHandle, IDC_NETRECEIVE_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         NetworkReceiveGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(WindowHandle, IDC_NETSEND_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         NetworkSendGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        clientRect.bottom - marginRect.bottom - y,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 

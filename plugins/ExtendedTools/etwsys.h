@@ -49,6 +49,12 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
     _In_ LPARAM lParam
     );
 
+VOID EtpGetDiskGraphRects(
+    _In_ HWND WindowHandle,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    );
+
 VOID EtpCreateDiskGraph(
     VOID
     );
@@ -115,6 +121,12 @@ INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+VOID EtpGetNetworkGraphRects(
+    _In_ HWND WindowHandle,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
     );
 
 VOID EtpCreateNetworkGraph(

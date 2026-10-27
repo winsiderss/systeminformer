@@ -116,6 +116,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     tnColumn.Alignment = Column->Alignment;
     tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : ULONG_MAX;
     tnColumn.TextFlags = Column->TextFlags;
+    tnColumn.HeaderTextCache = Column->HeaderTextCache;
     TreeNew_AddColumn(Manager->Handle, &tnColumn);
 
     return column;

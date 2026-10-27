@@ -27,7 +27,6 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>17.0</VCProjectVersion>
         <ProjectGuid>{60F7AED7-5094-41B2-A2C9-545398060C83}</ProjectGuid>
         <Keyword>Win32Proj</Keyword>
         <ProjectName>thirdparty</ProjectName>

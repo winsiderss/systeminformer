@@ -277,6 +277,7 @@ VOID PhGenerateSyscallLists(
             }
 
             PhDereferenceObject(list);
+            PhDeleteMappedImageExports(&exports);
         }
 
         PhUnloadMappedImage(&mappedImage);
@@ -326,6 +327,7 @@ VOID PhGenerateSyscallLists(
                 }
 
                 PhDereferenceObject(list);
+                PhDeleteMappedImageExports(&exports);
             }
 
             PhUnloadMappedImage(&mappedImage);
@@ -404,6 +406,7 @@ VOID PhGenerateSyscallLists(
                 }
 
                 PhDereferenceObject(list);
+                PhDeleteMappedImageExports(&exports);
             }
 
             PhUnloadMappedImage(&mappedImage);
@@ -562,6 +565,7 @@ static PPH_LIST PhpGenerateSecureServiceList(
         }
 
         PhDereferenceObject(list);
+        PhDeleteMappedImageExports(&exports);
     }
 
     PhUnloadMappedImage(&mappedImage);

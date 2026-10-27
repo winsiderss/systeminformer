@@ -33,6 +33,7 @@ TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
     // Available toolbar buttons (hidden)
     { I_IMAGECALLBACK, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { I_IMAGECALLBACK, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { I_IMAGECALLBACK, TIDC_FINDDIALOG, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
 };
 
 /**
@@ -46,6 +47,9 @@ HWND ToolbarCreateWindow(
     )
 {
     HWND toolbarHandle;
+    RECT toolbarRect;
+
+    ToolStatusGetBarWindowRect(ParentWindowHandle, FALSE, &toolbarRect);
 
     toolbarHandle = PhCreateWindowEx(
         TOOLBARCLASSNAME,
@@ -53,7 +57,10 @@ HWND ToolbarCreateWindow(
         WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER |
         TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
         WS_EX_TOOLWINDOW,
-        0, 0, 0, 0,
+        toolbarRect.left,
+        toolbarRect.top,
+        toolbarRect.right - toolbarRect.left,
+        toolbarRect.bottom - toolbarRect.top,
         ParentWindowHandle,
         NULL,
         NULL,
@@ -80,11 +87,19 @@ HWND RebarCreateWindow(
     _In_ HWND ParentWindowHandle
     )
 {
-    HWND rebarHandle = PhCreateWindow(
+    HWND rebarHandle;
+    RECT rebarRect;
+
+    ToolStatusGetBarWindowRect(ParentWindowHandle, FALSE, &rebarRect);
+
+    rebarHandle = PhCreateWindow(
         REBARCLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT,
-        0, 0, 0, 0,
+        rebarRect.left,
+        rebarRect.top,
+        rebarRect.right - rebarRect.left,
+        rebarRect.bottom - rebarRect.top,
         ParentWindowHandle,
         NULL,
         NULL,
@@ -389,10 +404,6 @@ VOID SearchBoxCreate(
     VOID
     )
 {
-    ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
-    ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
-    NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
-
     SearchboxHandle = PhCreateWindowEx(
         WC_EDIT,
         NULL,
@@ -412,6 +423,13 @@ VOID SearchBoxCreate(
         SearchControlCallback,
         NULL
         );
+
+    if (!SearchboxHandle)
+        return;
+
+    ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
+    ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
+    NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 }
 
 /**
@@ -470,11 +488,18 @@ VOID StatusBarCreate(
     VOID
     )
 {
+    RECT statusBarRect;
+
+    ToolStatusGetBarWindowRect(MainWindowHandle, TRUE, &statusBarRect);
+
     StatusBarHandle = PhCreateWindow(
         STATUSCLASSNAME,
         NULL,
         WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
-        0, 0, 0, 0,
+        statusBarRect.left,
+        statusBarRect.top,
+        statusBarRect.right - statusBarRect.left,
+        statusBarRect.bottom - statusBarRect.top,
         MainWindowHandle,
         NULL,
         NULL,
@@ -1108,6 +1133,8 @@ PCWSTR ToolbarGetText(
         return L"Computer";
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         return L"Show details for all processes";
+    case TIDC_FINDDIALOG:
+        return L"Find";
     }
 
     return L"ERROR";
@@ -1182,6 +1209,7 @@ HBITMAP ToolbarGetImage(
         }
         break;
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+    case TIDC_FINDDIALOG:
         {
             if (ToolStatusConfig.ModernIcons)
             {
@@ -1737,4 +1765,43 @@ LONG ToolStatusGetWindowFontSize(
     height += 5; // Add magic padding
 
     return height;
+}
+
+/**
+ * Calculates the initial rectangle of a bar docked to the parent client area.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param Bottom TRUE to dock the bar to the bottom of the parent, FALSE for the top.
+ * \param BarRect The bar rectangle, in parent client coordinates.
+ */
+VOID ToolStatusGetBarWindowRect(
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN Bottom,
+    _Out_ PRECT BarRect
+    )
+{
+    RECT clientRect;
+    LONG height;
+
+    if (!PhGetClientRect(ParentWindowHandle, &clientRect))
+        SetRectEmpty(&clientRect);
+
+    if (ToolbarWindowFont)
+        height = ToolStatusGetWindowFontSize(ParentWindowHandle, ToolbarWindowFont);
+    else
+        height = PhScaleToDisplay(24, PhGetWindowDpi(ParentWindowHandle));
+
+    BarRect->left = clientRect.left;
+    BarRect->right = clientRect.right;
+
+    if (Bottom)
+    {
+        BarRect->top = clientRect.bottom - height;
+        BarRect->bottom = clientRect.bottom;
+    }
+    else
+    {
+        BarRect->top = clientRect.top;
+        BarRect->bottom = clientRect.top + height;
+    }
 }

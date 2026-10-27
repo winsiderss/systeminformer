@@ -44,13 +44,15 @@
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
 #define MAX_DEFAULT_IMAGELIST_ITEMS 1
-#define MAX_TOOLBAR_ITEMS 13
+#define MAX_TOOLBAR_ITEMS 14
 #define MAX_STATUSBAR_ITEMS 17
 
 #define TIDC_FINDWINDOW (WM_APP + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
 #define TIDC_FINDWINDOWKILL (WM_APP + 3)
 #define TIDC_POWERMENUDROPDOWN (WM_APP + 4)
+#define TIDC_SEARCHBOX_CASE_SENSITIVE (WM_APP + 5)
+#define TIDC_FINDDIALOG (WM_APP + 6)
 
 // Stable, plugin-owned toolbar IDs used ONLY for persistence (settings serialization).
 // Never tied to PHAPP_ID_* (which may change between builds). Never reuse/renumber a value.
@@ -80,6 +82,7 @@ typedef enum _TOOLBAR_COMMAND_ID
     COMMAND_ID_TOOLBAR_LOCKUNLOCK,
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
     COMMAND_ID_GRAPHS_CUSTOMIZE,
+    COMMAND_ID_FIND_DIALOG,
 } TOOLBAR_COMMAND_ID;
 
 //typedef enum _TOOLBAR_THEME
@@ -456,6 +459,12 @@ LONG ToolbarGetCommandBarButtonHeight(
 LONG ToolStatusGetWindowFontSize(
     _In_ HWND WindowHandle,
     _In_ HFONT WindowFont
+    );
+
+VOID ToolStatusGetBarWindowRect(
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN Bottom,
+    _Out_ PRECT BarRect
     );
 
 #if TOOLSTATUS_ENABLE_MENUBAR
@@ -873,10 +882,6 @@ extern BOOLEAN TaskbarMainWndExiting;
 
 VOID NTAPI TaskbarInitialize(
     VOID
-    );
-
-BOOLEAN TaskbarIsOwnNotify(
-    _In_ PPH_TASKBAR_NOTIFY Notify
     );
 
 VOID NTAPI TaskbarUpdateEvents(

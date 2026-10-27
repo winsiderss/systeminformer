@@ -164,10 +164,10 @@ typedef struct _NPI_MODULEID
     CTL_CODE(FILE_DEVICE_NETWORK, 0x8, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x120023; in: NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST; out: NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST
 
 #define IOCTL_NSI_GET_OBJECT_SECURITY \
-    CTL_CODE(FILE_DEVICE_NETWORK, 0xD, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x120037; in: PVOID[6]; out: PVOID[6]
+    CTL_CODE(FILE_DEVICE_NETWORK, 0xD, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x120037; in/out: NSI_OBJECT_SECURITY_REQUEST
 
 #define IOCTL_NSI_SET_OBJECT_SECURITY \
-    CTL_CODE(FILE_DEVICE_NETWORK, 0xE, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x12003B; in: PVOID[6]; out: PVOID[6]
+    CTL_CODE(FILE_DEVICE_NETWORK, 0xE, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x12003B; in/out: NSI_OBJECT_SECURITY_REQUEST
 
 #define IOCTL_NSI_REQUEST_CHANGE_NOTIFICATION_EX \
     CTL_CODE(FILE_DEVICE_NETWORK, 0xF, METHOD_NEITHER, FILE_ANY_ACCESS)    // 0x12003F; in: NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST; out: NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST
@@ -1033,6 +1033,25 @@ typedef enum _NET_IF_INTERFACE_FLAGS
 } NET_IF_INTERFACE_FLAGS;
 
 typedef NSI_COUNTED_WCHAR_PARAMETER NSI_STRING_256, *PNSI_STRING_256;
+
+/**
+ * The NSI_OBJECT_SECURITY_REQUEST structure selects an NSI information object and supplies its security descriptor.
+ * NsiGetObjectSecurity writes SecurityDescriptorLength and, when the buffer is large enough, SecurityDescriptor.
+ * NsiSetObjectSecurity reads SecurityDescriptor; a zero SecurityInformation selects DACL_SECURITY_INFORMATION.
+ */
+typedef struct _NSI_OBJECT_SECURITY_REQUEST
+{
+    ULONG ModuleHandle;             // 0 = look the module up by ModuleId
+    PNPI_MODULEID ModuleId;
+    NSI_OBJECT_ID ObjectId;
+#ifdef _WIN64
+    ULONG Padding;                  // alignment padding in the x64 IOCTL buffer
+#endif
+    SECURITY_INFORMATION SecurityInformation;
+    PSECURITY_DESCRIPTOR SecurityDescriptor;
+    ULONG SecurityDescriptorLength;
+} NSI_OBJECT_SECURITY_REQUEST, *PNSI_OBJECT_SECURITY_REQUEST;
+static_assert(sizeof(NSI_OBJECT_SECURITY_REQUEST) == 6 * sizeof(PVOID));
 
 /**
  * The NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST structure is the input of NsiDeregisterChangeNotificationEx. It
@@ -3432,35 +3451,29 @@ NsiSetAllPersistentParametersWithMask(
     );
 
 /**
- * The NsiGetObjectSecurity routine submits an opaque NSI security request in place, using 48 bytes on x64
- * and 24 bytes on x86. The annotation describes the request extent, not a six-pointer schema. Queries object
- * security through IOCTL 0x120037. The same buffer is input and output; kernel-side field validation and
- * authorization are separate contracts.
+ * The NsiGetObjectSecurity routine queries an NSI information object's security descriptor through IOCTL 0x120037.
  *
- * \param ObjectSecurity Opaque input/output security request buffer.
+ * \param ObjectSecurity The input/output security request.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 NsiGetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
     );
 
 /**
- * The NsiSetObjectSecurity routine submits an opaque NSI security request in place, using 48 bytes on x64
- * and 24 bytes on x86. The annotation describes the request extent, not a six-pointer schema. Changes object
- * security through IOCTL 0x12003B. The same buffer is input and output; kernel-side field validation and
- * authorization are separate contracts.
+ * The NsiSetObjectSecurity routine changes an NSI information object's security descriptor through IOCTL 0x12003B.
  *
- * \param ObjectSecurity Opaque input/output security request buffer.
+ * \param ObjectSecurity The input/output security request.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 NsiSetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST ObjectSecurity
     );
 
 /**

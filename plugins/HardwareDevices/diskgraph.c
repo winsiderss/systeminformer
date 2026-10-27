@@ -173,6 +173,7 @@ INT_PTR CALLBACK DiskDevicePanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
             context->DiskDevicePanelReadLabel = GetDlgItem(WindowHandle, IDC_STAT_BREAD);
             context->DiskDevicePanelWriteLabel = GetDlgItem(WindowHandle, IDC_STAT_BWRITE);
             context->DiskDevicePanelTotalLabel = GetDlgItem(WindowHandle, IDC_STAT_BTOTAL);
@@ -214,11 +215,57 @@ VOID DiskDeviceUpdateDialogDpi(
     Context->GraphPadding = PhScaleToDisplay(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
+VOID DiskDeviceGetGraphRects(
+    _In_ PDV_DISK_SYSINFO_CONTEXT Context,
+    _Out_writes_(2) RECT LabelRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = Context->GraphMarginScaled;
+    graphPadding = Context->GraphPadding;
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->LabelWriteHandle, &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
+    y = marginRect.top;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+}
+
 VOID DiskDeviceCreateGraphs(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[2];
+    RECT graphRects[2];
+
+    Context->LabelReadHandle = GetDlgItem(Context->WindowHandle, IDC_UP_L);
+    Context->LabelWriteHandle = GetDlgItem(Context->WindowHandle, IDC_DOWN_L);
+
+    DiskDeviceGetGraphRects(Context, labelRects, graphRects);
 
     PhInitializeGraphState(&Context->GraphReadState);
     PhInitializeGraphState(&Context->GraphWriteState);
@@ -232,10 +279,10 @@ VOID DiskDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -247,19 +294,16 @@ VOID DiskDeviceCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
         &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphWriteHandle, TRUE);
-
-    Context->LabelReadHandle = GetDlgItem(Context->WindowHandle, IDC_UP_L);
-    Context->LabelWriteHandle = GetDlgItem(Context->WindowHandle, IDC_DOWN_L);
 }
 
 VOID DiskDeviceUpdateGraphs(
@@ -279,76 +323,60 @@ VOID DiskDeviceLayoutGraphs(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT margin;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    RECT labelRects[2];
+    RECT graphRects[2];
     HDWP deferHandle;
-    ULONG y;
 
     Context->GraphReadState.Valid = FALSE;
     Context->GraphReadState.TooltipIndex = ULONG_MAX;
     Context->GraphWriteState.Valid = FALSE;
     Context->GraphWriteState.TooltipIndex = ULONG_MAX;
 
-    margin = Context->GraphMarginScaled;
-
-    PhGetClientRect(Context->WindowHandle, &clientRect);
-    PhGetClientRect(Context->LabelWriteHandle, &labelRect);
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 2 - Context->GraphPadding * 3) / 2;
+    DiskDeviceGetGraphRects(Context, labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
-    y = margin.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->LabelReadHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->GraphReadHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->LabelWriteHandle,
         NULL,
-        margin.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + Context->GraphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->GraphWriteHandle,
         NULL,
-        margin.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + Context->GraphPadding;
 
     EndDeferWindowPos(deferHandle);
 }

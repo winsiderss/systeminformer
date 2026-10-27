@@ -532,52 +532,51 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ BOOLEAN SetPagePriority
     )
 {
-    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
     UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
     ULONG id = 0;
 
-    if (NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        ProcessId
-        )))
+    if (processItem = PhReferenceProcessItem(ProcessId))
     {
-        if (SetPriority)
+        if (processItem->QueryHandle)
         {
-            if (!NT_SUCCESS(PhGetProcessPriorityClass(
-                processHandle,
-                &priorityClass
-                )))
+            if (SetPriority)
             {
-                priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+                if (!NT_SUCCESS(PhGetProcessPriorityClass(
+                    processItem->QueryHandle,
+                    &priorityClass
+                    )))
+                {
+                    priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+                }
+            }
+
+            if (SetIoPriority)
+            {
+                if (!NT_SUCCESS(PhGetProcessIoPriority(
+                    processItem->QueryHandle,
+                    &ioPriority
+                    )))
+                {
+                    ioPriority = ULONG_MAX;
+                }
+            }
+
+            if (SetPagePriority)
+            {
+                if (!NT_SUCCESS(PhGetProcessPagePriority(
+                    processItem->QueryHandle,
+                    &pagePriority
+                    )))
+                {
+                    pagePriority = ULONG_MAX;
+                }
             }
         }
 
-        if (SetIoPriority)
-        {
-            if (!NT_SUCCESS(PhGetProcessIoPriority(
-                processHandle,
-                &ioPriority
-                )))
-            {
-                ioPriority = ULONG_MAX;
-            }
-        }
-
-        if (SetPagePriority)
-        {
-            if (!NT_SUCCESS(PhGetProcessPagePriority(
-                processHandle,
-                &pagePriority
-                )))
-            {
-                pagePriority = ULONG_MAX;
-            }
-        }
-
-        NtClose(processHandle);
+        PhDereferenceObject(processItem);
     }
 
     if (SetPriority && priorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
