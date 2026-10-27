@@ -100,15 +100,32 @@ PPH_STRING PhGetProcessItemImageTypeText(
 #ifdef _ARM64_
         if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessItem->FileName->sr, NULL, &mappedImage)))
         {
-            architecture = mappedImage.NtHeaders->FileHeader.Machine;
-            if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
-                chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+            __try
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+                if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
+                    chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+                chpeVersion = 0;
+            }
+
             PhUnloadMappedImage(&mappedImage);
         }
 #else
         if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessItem->FileName->sr, NULL, &mappedImage)))
         {
-            architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            __try
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+            }
+
             PhUnloadMappedImage(&mappedImage);
         }
 #endif
