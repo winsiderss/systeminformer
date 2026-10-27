@@ -31,6 +31,7 @@ EXTERN_C_START
 
 // Per-page flags
 #define PH_PROPSHEETNEW_PAGE_EAGER       0x00000001  // create dialog at startup, not lazily
+#define PH_PROPSHEETNEW_PAGE_NOCLIP      0x00000002  // create dialog without WS_CLIPCHILDREN / WS_CLIPSIBLINGS
 
 typedef enum _PH_PROPSHEETNEW_LAYOUT
 {

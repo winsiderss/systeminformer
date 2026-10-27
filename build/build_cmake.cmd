@@ -10,14 +10,17 @@ REM ----------------------------------------------------------------------------
 REM Initialize script state, incoming arguments, and resolved build settings.
 set "ExitCode=0"
 set "IsCI=false"
+set "SkipPause=false"
 set "BuildTerminalLogger=auto"
 set "GENERATOR=%~1"
 set "CONFIG=%~2"
 set "TOOLCHAIN=%~3"
 set "ACTION=%~4"
+if /i "%~5"=="--no-pause" set "SkipPause=true"
 set "VSINSTALLPATH="
 set "PLATFORM="
 set "VCVARS_ARCH="
+set "VCVARS_TARGET="
 set "TOOLCHAIN_FILE="
 set "BUILD_DIR="
 set "BUILD_DIR_NAME="
@@ -31,11 +34,11 @@ call :DetectCi
 call :ConfigureBuildLogger
 call :ConfigureMsBuildOptions
 call :Main
-if errorlevel 1 set "ExitCode=%errorlevel%"
+if !errorlevel! neq 0 set "ExitCode=!errorlevel!"
 
 :end
 REM Pause only for interactive, non-CI invocations before returning.
-if /i "%IsCI%"=="false" call :PauseIfInteractive
+if /i "%IsCI%"=="false" if /i "%SkipPause%"=="false" call :PauseIfInteractive
 endlocal & exit /b %ExitCode%
 
 REM -----------------------------------------------------------------------------
@@ -44,30 +47,35 @@ REM Description: Validates inputs, resolves toolchain settings, and dispatches t
 REM -----------------------------------------------------------------------------
 :Main
 call :ValidateArgs
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ResolveConfig
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ResolveToolchain
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ConfigureGeneratorOptions
-if errorlevel 1 exit /b %errorlevel%
-
-call :PrintBanner
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 if /i "%ACTION%"=="clean" (
+    set "VCVARS_ARCH=not required"
+    call :PrintBanner
     call :RunClean
     exit /b !errorlevel!
 )
 
 call :FindVisualStudio
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
+
+call :ResolveVcVarsArch "%VCVARS_TARGET%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+
+call :PrintBanner
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :SetupVcVars "%VCVARS_ARCH%"
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 if /i "%ACTION%"=="generate" (
     call :RunGenerate
@@ -89,7 +97,7 @@ REM Description: Ensures all required positional arguments were provided.
 REM -----------------------------------------------------------------------------
 :ValidateArgs
 if not "%GENERATOR%"=="" if not "%CONFIG%"=="" if not "%TOOLCHAIN%"=="" if not "%ACTION%"=="" exit /b 0
-echo Usage: build_cmake.cmd [GENERATOR] [CONFIG] [TOOLCHAIN] [ACTION]
+echo Usage: build_cmake.cmd [GENERATOR] [CONFIG] [TOOLCHAIN] [ACTION] [--no-pause]
 echo Example: build_cmake.cmd "Ninja" "Debug" "msvc-amd64" "generate"
 exit /b 1
 
@@ -100,10 +108,12 @@ REM ----------------------------------------------------------------------------
 :ResolveConfig
 if /i "%CONFIG%"=="Debug" (
     set "BUILD_DIR_NAME=build-debug"
+    if defined SI_CMAKE_BUILD_SUFFIX set "BUILD_DIR_NAME=!BUILD_DIR_NAME!-%SI_CMAKE_BUILD_SUFFIX%"
     exit /b 0
 )
 if /i "%CONFIG%"=="Release" (
     set "BUILD_DIR_NAME=build-release"
+    if defined SI_CMAKE_BUILD_SUFFIX set "BUILD_DIR_NAME=!BUILD_DIR_NAME!-%SI_CMAKE_BUILD_SUFFIX%"
     exit /b 0
 )
 echo Error: Unsupported configuration: %CONFIG%
@@ -112,47 +122,47 @@ exit /b 1
 
 REM -----------------------------------------------------------------------------
 REM Function: ResolveToolchain
-REM Description: Resolves the requested toolchain to platform, vcvars, and CMake paths.
+REM Description: Resolves the requested toolchain to platform, vcvars target, and CMake paths.
 REM -----------------------------------------------------------------------------
 :ResolveToolchain
 if /i "%TOOLCHAIN%"=="msvc-x86" (
     set "PLATFORM=Win32"
-    set "VCVARS_ARCH=amd64_x86"
+    set "VCVARS_TARGET=x86"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-msvc-32"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\msvc-x86.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="msvc-amd64" (
     set "PLATFORM=x64"
-    set "VCVARS_ARCH=amd64"
+    set "VCVARS_TARGET=x64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-msvc-64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\msvc-amd64.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="msvc-arm64" (
     set "PLATFORM=ARM64"
-    set "VCVARS_ARCH=amd64_arm64"
+    set "VCVARS_TARGET=arm64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-msvc-arm64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\msvc-arm64.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="clang-msvc-x86" (
     set "PLATFORM=Win32"
-    set "VCVARS_ARCH=amd64_x86"
+    set "VCVARS_TARGET=x86"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-msvc-32"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-msvc-x86.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="clang-msvc-amd64" (
     set "PLATFORM=x64"
-    set "VCVARS_ARCH=amd64"
+    set "VCVARS_TARGET=x64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-msvc-64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-msvc-amd64.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="clang-msvc-arm64" (
     set "PLATFORM=ARM64"
-    set "VCVARS_ARCH=amd64_arm64"
+    set "VCVARS_TARGET=arm64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-msvc-arm64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-msvc-arm64.cmake"
     exit /b 0
@@ -161,21 +171,21 @@ REM clang-lld-* are DEBUG-only. lld-link cannot emit XFG or EHCONT, so Release
 REM builds must use a clang-msvc-* or msvc-* toolchain. See cmake\toolchain\clang-lld.cmake.
 if /i "%TOOLCHAIN%"=="clang-lld-x86" (
     set "PLATFORM=Win32"
-    set "VCVARS_ARCH=amd64_x86"
+    set "VCVARS_TARGET=x86"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-32"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-x86.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="clang-lld-amd64" (
     set "PLATFORM=x64"
-    set "VCVARS_ARCH=amd64"
+    set "VCVARS_TARGET=x64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-amd64.cmake"
     exit /b 0
 )
 if /i "%TOOLCHAIN%"=="clang-lld-arm64" (
     set "PLATFORM=ARM64"
-    set "VCVARS_ARCH=amd64_arm64"
+    set "VCVARS_TARGET=arm64"
     set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-arm64"
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-arm64.cmake"
     exit /b 0
@@ -229,7 +239,7 @@ REM ----------------------------------------------------------------------------
 :RunGenerate
 echo Setting up Visual Studio environment for %VCVARS_ARCH%...
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-cmake -G "%GENERATOR%" -S "%SOURCE_DIR%" -B "%BUILD_DIR%" --toolchain "%TOOLCHAIN_FILE%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSI_WITH_CORE=ON -DSI_WITH_PLUGINS=ON %CMAKE_GEN_OPTS%
+cmake -G "%GENERATOR%" -S "%SOURCE_DIR%" -B "%BUILD_DIR%" --toolchain "%TOOLCHAIN_FILE%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSI_WITH_CORE=ON -DSI_WITH_PLUGINS=ON %CMAKE_GEN_OPTS% %SI_CMAKE_EXTRA_ARGS%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -259,6 +269,37 @@ if not defined VSINSTALLPATH if defined WindowsSdkDir set "VSINSTALLPATH=%Window
 if defined VSINSTALLPATH exit /b 0
 echo No Visual Studio installation detected.
 exit /b 1
+
+REM -----------------------------------------------------------------------------
+REM Function: ResolveVcVarsArch
+REM Description: Resolves the vcvarsall argument for the requested target, using
+REM              the native host toolset (amd64 or arm64) when it is installed.
+REM Parameters:
+REM   %~1 - Target architecture (x86, x64, arm64).
+REM Sets:
+REM   VCVARS_HOST - Host toolset selected for vcvarsall (amd64 or arm64).
+REM   VCVARS_ARCH - vcvarsall architecture argument (e.g. amd64, arm64_x64).
+REM -----------------------------------------------------------------------------
+:ResolveVcVarsArch
+set "VCVARS_HOST=amd64"
+set "VCVARS_TARGET=%~1"
+if /i "%VCVARS_TARGET%"=="amd64" set "VCVARS_TARGET=x64"
+if /i "%VCVARS_TARGET%"=="win32" set "VCVARS_TARGET=x86"
+REM PROCESSOR_ARCHITEW6432 reports the real machine arch when the shell is emulated.
+set "VCVARS_MACHINE=%PROCESSOR_ARCHITECTURE%"
+if defined PROCESSOR_ARCHITEW6432 set "VCVARS_MACHINE=%PROCESSOR_ARCHITEW6432%"
+if /i "%VCVARS_MACHINE%"=="ARM64" (
+    REM Only select the ARM64-hosted toolset when Visual Studio has it installed.
+    for /d %%D in ("%VSINSTALLPATH%\VC\Tools\MSVC\*") do (
+        if exist "%%~D\bin\Hostarm64\" set "VCVARS_HOST=arm64"
+    )
+)
+if /i "%VCVARS_HOST%"=="arm64" (
+    if /i "%VCVARS_TARGET%"=="arm64" (set "VCVARS_ARCH=arm64") else (set "VCVARS_ARCH=arm64_%VCVARS_TARGET%")
+) else (
+    if /i "%VCVARS_TARGET%"=="x64" (set "VCVARS_ARCH=amd64") else (set "VCVARS_ARCH=amd64_%VCVARS_TARGET%")
+)
+exit /b 0
 
 REM -----------------------------------------------------------------------------
 REM Function: SetupVcVars

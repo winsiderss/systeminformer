@@ -86,6 +86,7 @@ BOOLEAN EtpDiskPageCallback(
             ULONG treelistBorder;
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+            RECT clientRect = { 0 };
 
             thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
             treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE)) ? WS_BORDER : 0;
@@ -98,14 +99,18 @@ BOOLEAN EtpDiskPageCallback(
                 treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
+            // Create the tree with the tab page container client area so the first layout
+            // and paint use the final size.
+            PhGetClientRect(Parameter2, &clientRect);
+
             WindowHandle = PhCreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-                0,
-                0,
-                0,
-                0,
+                clientRect.left,
+                clientRect.top,
+                clientRect.right - clientRect.left,
+                clientRect.bottom - clientRect.top,
                 Parameter2,
                 NULL,
                 NULL,
@@ -493,7 +498,7 @@ VOID EtUpdateDiskNode(
     PhClearReference(&DiskNode->TooltipText);
 
     PhInvalidateTreeNewNode(&DiskNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(DiskTreeNewHandle);
+    TreeNew_InvalidateNode(DiskTreeNewHandle, &DiskNode->Node);
 }
 
 /**
@@ -739,12 +744,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->ReadAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->ReadAverage);
 
                     if (number != 0)
                     {
@@ -766,12 +766,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->WriteAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->WriteAverage);
 
                     if (number != 0)
                     {
@@ -793,12 +788,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->ReadAverage + diskItem->WriteAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->ReadAverage + diskItem->WriteAverage);
 
                     if (number != 0)
                     {
@@ -820,12 +810,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->ReadHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->ReadHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {
@@ -847,12 +833,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->WriteHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->WriteHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {
@@ -874,12 +856,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->ReadHistory[diskItem->HistoryPosition] + diskItem->WriteHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->ReadHistory[diskItem->HistoryPosition] +
+                        diskItem->WriteHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {

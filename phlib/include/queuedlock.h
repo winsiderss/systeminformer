@@ -126,6 +126,10 @@ PhAcquireQueuedLockExclusive(
         // Owned bit was already set. Slow path.
         PhfAcquireQueuedLockExclusive(QueuedLock);
     }
+    else
+    {
+        _Analysis_assume_lock_acquired_(*QueuedLock);
+    }
 }
 
 _Acquires_shared_lock_(*QueuedLock)
@@ -157,6 +161,10 @@ PhAcquireQueuedLockShared(
     {
         PhfAcquireQueuedLockShared(QueuedLock);
     }
+    else
+    {
+        _Analysis_assume_lock_acquired_(*QueuedLock);
+    }
 }
 
 /**
@@ -175,6 +183,7 @@ PhTryAcquireQueuedLockExclusive(
 {
     if (!_InterlockedBitTestAndSetPointer((PLONG_PTR)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
     {
+        _Analysis_assume_lock_acquired_(*QueuedLock);
         return TRUE;
     }
     else
@@ -215,11 +224,14 @@ PhReleaseQueuedLockExclusive(
 {
     ULONG_PTR value;
 
+    _Analysis_assume_lock_held_(*QueuedLock);
+
     value = (ULONG_PTR)_InterlockedExchangeAddPointer((PLONG_PTR)&QueuedLock->Value, -(LONG_PTR)PH_QUEUED_LOCK_OWNED);
+
+    _Analysis_assume_lock_released_(*QueuedLock);
 
     if ((value & (PH_QUEUED_LOCK_WAITERS | PH_QUEUED_LOCK_TRAVERSING)) == PH_QUEUED_LOCK_WAITERS)
     {
-        _Analysis_assume_lock_not_held_(*QueuedLock);
         PhfWakeForReleaseQueuedLock(QueuedLock, value - PH_QUEUED_LOCK_OWNED);
     }
 }
@@ -247,6 +259,8 @@ PhReleaseQueuedLockShared(
 {
     ULONG_PTR value;
 
+    _Analysis_assume_lock_held_(*QueuedLock);
+
     value = PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC;
 
     if ((ULONG_PTR)(PULONG_PTR)_InterlockedCompareExchangePointer(
@@ -256,6 +270,10 @@ PhReleaseQueuedLockShared(
         ) != value)
     {
         PhfReleaseQueuedLockShared(QueuedLock);
+    }
+    else
+    {
+        _Analysis_assume_lock_released_(*QueuedLock);
     }
 }
 

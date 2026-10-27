@@ -73,6 +73,11 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                 EnableWindow(context->MatchCommandlineHandle, FALSE);
 
             PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+
+            if (!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
+            {
+                PhInitializeWindowThemeEditControl(context->CommentHandle);
+            }
         }
         break;
     case WM_DESTROY:
@@ -207,6 +212,12 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -243,8 +254,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
+            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
             PDB_OBJECT object;
             PPH_STRING comment;
 
@@ -273,6 +283,17 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            // The new tabnew host has no OK/Apply; drive the existing PSN_APPLY
+            // save path on close. (dmex)
+            {
+                PSHNOTIFY pshNotify;
+
+                memset(&pshNotify, 0, sizeof(PSHNOTIFY));
+                pshNotify.hdr.hwndFrom = GetParent(WindowHandle);
+                pshNotify.hdr.code = PSN_APPLY;
+                SendMessage(WindowHandle, WM_NOTIFY, 0, (LPARAM)&pshNotify);
+            }
+
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
         }

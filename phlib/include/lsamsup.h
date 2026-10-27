@@ -92,6 +92,15 @@ PhGetSamUserDescription(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSamUserAccountControl(
+    _In_opt_ PCPH_STRINGREF DomainName,
+    _In_ PCPH_STRINGREF UserName,
+    _Out_ PULONG UserAccountControl
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetSamAccountDescription(

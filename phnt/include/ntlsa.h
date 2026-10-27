@@ -165,10 +165,12 @@ typedef enum _LSA_LOOKUP_DOMAIN_INFO_CLASS
 typedef PVOID LSA_LOOKUP_HANDLE, *PLSA_LOOKUP_HANDLE;
 
 /**
- * The LsaLookupOpenLocalPolicy routine opens a context handle to the local security lookup policy.
+ * The LsaLookupOpenLocalPolicy routine opens the local SID/name lookup policy. Clears PolicyHandle before
+ * RPC and writes NULL to ObjectAttributes.RootDirectory, so ObjectAttributes must be writable. The returned
+ * lookup context is closed with LsaLookupClose, not a kernel handle close.
  *
- * \param ObjectAttributes Pointer to structure specifying lookup policy attributes.
- * \param AccessMask Access mask specifying desired access rights.
+ * \param ObjectAttributes Object attributes used to open the policy; RootDirectory may be cleared.
+ * \param AccessMask Access rights requested for the lookup policy.
  * \param PolicyHandle Receives the opened lookup policy handle.
  * \return NTSTATUS Successful or errant status.
  */
@@ -176,15 +178,17 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LsaLookupOpenLocalPolicy(
-    _In_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
+    _Inout_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK AccessMask,
-    _Inout_ PLSA_LOOKUP_HANDLE PolicyHandle
+    _Out_ PLSA_LOOKUP_HANDLE PolicyHandle
     );
 
 /**
- * The LsaLookupClose routine closes an open LSA lookup policy handle.
+ * The LsaLookupClose routine closes a lookup RPC context. On remote-close failure the client can destroy its
+ * local RPC context; do not assume failure makes the old handle reusable. The by-value caller variable is
+ * not cleared.
  *
- * \param ObjectHandle The LSA lookup handle to close.
+ * \param ObjectHandle Lookup context to close.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -195,13 +199,16 @@ LsaLookupClose(
     );
 
 /**
- * The LsaLookupTranslateSids routine translates an array of security identifiers (SIDs) to account names.
+ * The LsaLookupTranslateSids routine translates a counted array of Count SID pointers to allocated names and
+ * referenced-domain data. Count is elements, not bytes. Use the API status and each translation result; an
+ * unmapped or partially mapped request is not a complete identity resolution. Release returned allocations
+ * with the matching LSA free routine.
  *
- * \param PolicyHandle Handle to an LSA lookup policy.
- * \param Count The number of SIDs in the Sids array.
- * \param Sids Array of pointers to SIDs to translate.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Names Receives an array of translated names.
+ * \param PolicyHandle Handle to the lookup policy.
+ * \param Count Number of entries in the input array.
+ * \param Sids Array of Count SID pointers to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Names Receives allocated name translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -210,20 +217,23 @@ NTAPI
 LsaLookupTranslateSids(
     _In_ LSA_LOOKUP_HANDLE PolicyHandle,
     _In_ ULONG Count,
-    _In_ PSID *Sids,
+    _In_reads_(Count) PSID *Sids,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST *ReferencedDomains,
     _Out_ PLSA_TRANSLATED_NAME *Names
     );
 
 /**
- * The LsaLookupTranslateNames routine translates an array of account names to security identifiers (SIDs).
+ * The LsaLookupTranslateNames routine translates Count counted Unicode names to allocated SID/RID
+ * translation records and referenced- domain data. Names is an array of Count descriptors, not a single
+ * string. Partial-mapping status requires per-entry interpretation. Full lookup-policy/remote behavior is
+ * not established by client ABI verification.
  *
- * \param PolicyHandle Handle to an LSA lookup policy.
- * \param Flags Flags controlling lookup translation.
- * \param Count The number of names in the Names array.
- * \param Names Array of account names to translate.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Sids Receives an array of translated SIDs.
+ * \param PolicyHandle Handle to the lookup policy.
+ * \param Flags Lookup flags.
+ * \param Count Number of entries in the input array.
+ * \param Names Array of Count Unicode names to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Sids Receives allocated SID translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -233,7 +243,7 @@ LsaLookupTranslateNames(
     _In_ LSA_LOOKUP_HANDLE PolicyHandle,
     _In_ ULONG Flags,
     _In_ ULONG Count,
-    _In_ PLSA_UNICODE_STRING Names,
+    _In_reads_(Count) PLSA_UNICODE_STRING Names,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST *ReferencedDomains,
     _Out_ PLSA_TRANSLATED_SID2 *Sids
     );
@@ -256,16 +266,18 @@ LsaLookupGetDomainInfo(
     );
 
 /**
- * The LsaLookupFreeMemory routine frees memory allocated by LSA lookup routines.
+ * The LsaLookupFreeMemory routine releases a lookup allocation using the LSA client allocator. Shares the
+ * inspected implementation with LsaFreeMemory: NULL is accepted and STATUS_SUCCESS is returned. Pass the
+ * allocation by value, not the address of the pointer.
  *
- * \param Buffer Pointer to the buffer to free.
+ * \param Buffer LSA lookup allocation to release.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LsaLookupFreeMemory(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 //
@@ -1209,9 +1221,11 @@ LsaLookupAuthenticationPackage(
     );
 
 /**
- * The LsaFreeReturnBuffer routine frees memory allocated by LSA authentication functions.
+ * The LsaFreeReturnBuffer routine releases an authentication-package/profile return buffer using the
+ * security-client release path. The normal path calls NtFreeVirtualMemory with MEM_RELEASE; a configured
+ * security-device path differs. Do not substitute LsaFreeMemory or infer NULL is a successful no-op.
  *
- * \param Buffer Pointer to the buffer to free.
+ * \param Buffer Authentication-package return buffer to release.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1222,15 +1236,18 @@ LsaFreeReturnBuffer(
     );
 
 /**
- * The LsaCallAuthenticationPackage routine sends a message to a specific authentication package.
+ * The LsaCallAuthenticationPackage routine dispatches a package request through the security client. The
+ * function status and optional ProtocolStatus represent different layers. Optional return-buffer, length and
+ * protocol-status slots are copied only after successful transport; on transport failure they may remain
+ * unchanged. Release owned return storage with LsaFreeReturnBuffer.
  *
- * \param LsaHandle Handle from LsaRegisterLogonProcess or LsaConnectUntrusted.
- * \param AuthenticationPackage Identifier of the authentication package to call.
- * \param ProtocolSubmitBuffer Protocol-specific request buffer.
- * \param SubmitBufferLength Length of request buffer in bytes.
- * \param ProtocolReturnBuffer Receives pointer to protocol response buffer.
- * \param ReturnBufferLength Receives length of response buffer in bytes.
- * \param ProtocolStatus Receives protocol completion status code.
+ * \param LsaHandle Security-client connection handle.
+ * \param AuthenticationPackage Authentication package identifier.
+ * \param ProtocolSubmitBuffer Request data submitted to the authentication package.
+ * \param SubmitBufferLength Size of ProtocolSubmitBuffer in bytes.
+ * \param ProtocolReturnBuffer Optional output slot for package return data.
+ * \param ReturnBufferLength Optional output slot for the return-buffer size in bytes.
+ * \param ProtocolStatus Optional status returned by the authentication package.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1247,9 +1264,11 @@ LsaCallAuthenticationPackage(
     );
 
 /**
- * The LsaDeregisterLogonProcess routine closes a logon connection to the LSA server.
+ * The LsaDeregisterLogonProcess routine disconnects the security-client connection, including a connection
+ * obtained from LsaConnectUntrusted. This is a client/RPC lifecycle operation, not a generic CloseHandle
+ * replacement.
  *
- * \param LsaHandle Handle from LsaRegisterLogonProcess.
+ * \param LsaHandle Security-client connection handle to close.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1260,9 +1279,11 @@ LsaDeregisterLogonProcess(
     );
 
 /**
- * The LsaConnectUntrusted routine establishes an untrusted connection to the LSA server.
+ * The LsaConnectUntrusted routine creates an untrusted security-client connection without registering a
+ * trusted logon process. Close it with LsaDeregisterLogonProcess. This alone neither authenticates a user
+ * nor returns a user token.
  *
- * \param LsaHandle Receives an LSA logon handle.
+ * \param LsaHandle Receives the untrusted security-client connection handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1273,33 +1294,43 @@ LsaConnectUntrusted(
     );
 
 /**
- * The LsaInsertProtectedProcessAddress routine registers a protected memory range for an LSA process.
+ * The LsaInsertProtectedProcessAddress routine is an internal SSPICLI helper located in symbols but not in
+ * the inspected PE export table. Used around protected-process package buffers; declaration visibility does
+ * not imply GetProcAddress availability. No protected-process registration was executed. The inspected x86
+ * implementation and callers use ECX/EDX with no stack arguments despite stdcall-looking symbol decoration;
+ * FASTCALL models this optimized internal ABI.
  *
- * \param BufferAddress Starting virtual address of the buffer.
- * \param BufferSize Size of the buffer in bytes.
+ * \param BufferAddress Address of the protected-process buffer.
+ * \param BufferSize Size of BufferAddress in bytes.
  * \return NTSTATUS Successful or errant status.
  */
+// x86 internal ABI: ECX/EDX arguments; symbol decoration is not the calling convention.
 NTSYSAPI
 NTSTATUS
-NTAPI
+FASTCALL
 LsaInsertProtectedProcessAddress(
-    __in PVOID BufferAddress,
-    __in ULONG BufferSize
+    _In_ PVOID BufferAddress,
+    _In_ ULONG BufferSize
     );
 
 /**
- * The LsaRemoveProtectedProcessAddress routine deregisters a protected memory range for an LSA process.
+ * The LsaRemoveProtectedProcessAddress routine is an internal SSPICLI helper located in symbols but not in
+ * the inspected PE export table. Used around protected-process package buffers; declaration visibility does
+ * not imply GetProcAddress availability. No protected-process registration was executed. The inspected x86
+ * implementation and callers use ECX/EDX with no stack arguments despite stdcall-looking symbol decoration;
+ * FASTCALL models this optimized internal ABI.
  *
- * \param BufferAddress Starting virtual address of the buffer.
- * \param BufferSize Size of the buffer in bytes.
+ * \param BufferAddress Address of the protected-process buffer.
+ * \param BufferSize Size of BufferAddress in bytes.
  * \return NTSTATUS Successful or errant status.
  */
+// x86 internal ABI: ECX/EDX arguments; symbol decoration is not the calling convention.
 NTSYSAPI
 NTSTATUS
-NTAPI
+FASTCALL
 LsaRemoveProtectedProcessAddress(
-    __in PVOID BufferAddress,
-    __in ULONG BufferSize
+    _In_ PVOID BufferAddress,
+    _In_ ULONG BufferSize
     );
 
 /////////////////////////////////////////////////////////////////////////
@@ -2707,9 +2738,11 @@ typedef struct _LSA_ENUMERATION_INFORMATION
 ////////////////////////////////////////////////////////////////////////////
 
 /**
- * The LsaFreeMemory routine frees memory allocated by LSA policy API functions.
+ * The LsaFreeMemory routine releases an LSA policy/lookup allocation using LocalFree in the inspected
+ * implementation and returns STATUS_SUCCESS. NULL is accepted. It is not interchangeable with
+ * LsaFreeReturnBuffer, whose allocation family differs.
  *
- * \param Buffer Optional pointer to the buffer to free.
+ * \param Buffer LSA policy or lookup allocation to release.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -2883,12 +2916,14 @@ LsaGetLogonSessionData(
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * The LsaOpenPolicy routine opens a handle to the Policy object on a local or remote system.
+ * The LsaOpenPolicy routine opens an LSA policy client context. Clears PolicyHandle first, rejects NULL
+ * ObjectAttributes, and overwrites ObjectAttributes.RootDirectory with NULL. ObjectAttributes is
+ * input/output even though other fields are captured as inputs. Close successful output with LsaClose.
  *
- * \param SystemName Optional name of the target system.
- * \param ObjectAttributes Object attributes for the policy connection.
- * \param DesiredAccess Access mask specifying desired access rights.
- * \param PolicyHandle Receives the opened Policy handle.
+ * \param SystemName Optional target system name.
+ * \param ObjectAttributes Policy object attributes; RootDirectory is cleared.
+ * \param DesiredAccess Access rights requested for the policy.
+ * \param PolicyHandle Receives the opened policy handle.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -2896,7 +2931,7 @@ NTSTATUS
 NTAPI
 LsaOpenPolicy(
     _In_opt_ PLSA_UNICODE_STRING SystemName,
-    _In_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
+    _Inout_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE PolicyHandle
     );
@@ -3272,13 +3307,16 @@ LsaEnumeratePrivileges(
     );
 
 /**
- * The LsaLookupNames routine translates an array of user, group, or local group names to SIDs.
+ * The LsaLookupNames routine translates Count counted Unicode names to allocated SID/RID translation records
+ * and referenced- domain data. Names is an array of Count descriptors, not a single string. Partial-mapping
+ * status requires per-entry interpretation. Full lookup-policy/remote behavior is not established by client
+ * ABI verification.
  *
- * \param PolicyHandle Handle to an open Policy object.
- * \param Count The number of names to translate.
- * \param Names Array of account names.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Sids Receives an array of translated SIDs.
+ * \param PolicyHandle Handle to the LSA policy.
+ * \param Count Number of entries in the input array.
+ * \param Names Array of Count Unicode names to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Sids Receives allocated SID translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -3287,20 +3325,23 @@ NTAPI
 LsaLookupNames(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ ULONG Count,
-    _In_ PLSA_UNICODE_STRING Names,
+    _In_reads_(Count) PLSA_UNICODE_STRING Names,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST* ReferencedDomains,
     _Out_ PLSA_TRANSLATED_SID* Sids
     );
 
 /**
- * The LsaLookupNames2 routine translates an array of names to SIDs with extended options.
+ * The LsaLookupNames2 routine translates Count counted Unicode names to allocated SID/RID translation
+ * records and referenced- domain data. Names is an array of Count descriptors, not a single string.
+ * Partial-mapping status requires per-entry interpretation. Full lookup-policy/remote behavior is not
+ * established by client ABI verification.
  *
- * \param PolicyHandle Handle to an open Policy object.
- * \param Flags Reserved; must be zero.
- * \param Count The number of names to translate.
- * \param Names Array of account names.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Sids Receives an array of translated SIDs.
+ * \param PolicyHandle Handle to the LSA policy.
+ * \param Flags Lookup flags.
+ * \param Count Number of entries in the input array.
+ * \param Names Array of Count Unicode names to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Sids Receives allocated SID translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -3310,19 +3351,22 @@ LsaLookupNames2(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ ULONG Flags, // Reserved
     _In_ ULONG Count,
-    _In_ PLSA_UNICODE_STRING Names,
+    _In_reads_(Count) PLSA_UNICODE_STRING Names,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST* ReferencedDomains,
     _Out_ PLSA_TRANSLATED_SID2* Sids
     );
 
 /**
- * The LsaLookupSids routine translates an array of security identifiers (SIDs) to account names.
+ * The LsaLookupSids routine translates a counted array of Count SID pointers to allocated names and
+ * referenced-domain data. Count is elements, not bytes. Use the API status and each translation result; an
+ * unmapped or partially mapped request is not a complete identity resolution. Release returned allocations
+ * with the matching LSA free routine.
  *
- * \param PolicyHandle Handle to an open Policy object.
- * \param Count The number of SIDs to translate.
- * \param Sids Array of pointers to SIDs.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Names Receives an array of translated names.
+ * \param PolicyHandle Handle to the LSA policy.
+ * \param Count Number of entries in the input array.
+ * \param Sids Array of Count SID pointers to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Names Receives allocated name translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -3331,20 +3375,23 @@ NTAPI
 LsaLookupSids(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ ULONG Count,
-    _In_ PSID* Sids,
+    _In_reads_(Count) PSID* Sids,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST* ReferencedDomains,
     _Out_ PLSA_TRANSLATED_NAME* Names
     );
 
 /**
- * The LsaLookupSids2 routine translates an array of SIDs to names with lookup options.
+ * The LsaLookupSids2 routine translates a counted array of Count SID pointers to allocated names and
+ * referenced-domain data. Count is elements, not bytes. Use the API status and each translation result; an
+ * unmapped or partially mapped request is not a complete identity resolution. Release returned allocations
+ * with the matching LSA free routine.
  *
- * \param PolicyHandle Handle to an open Policy object.
- * \param LookupOptions Lookup options controlling search scope.
- * \param Count The number of SIDs to translate.
- * \param Sids Array of pointers to SIDs.
- * \param ReferencedDomains Receives a pointer to referenced domain list.
- * \param Names Receives an array of translated names.
+ * \param PolicyHandle Handle to the LSA policy.
+ * \param LookupOptions SID lookup options.
+ * \param Count Number of entries in the input array.
+ * \param Sids Array of Count SID pointers to translate.
+ * \param ReferencedDomains Receives an allocated referenced-domain list.
+ * \param Names Receives allocated name translations.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -3354,7 +3401,7 @@ LsaLookupSids2(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ ULONG LookupOptions,
     _In_ ULONG Count,
-    _In_ PSID* Sids,
+    _In_reads_(Count) PSID* Sids,
     _Out_ PLSA_REFERENCED_DOMAIN_LIST* ReferencedDomains,
     _Out_ PLSA_TRANSLATED_NAME* Names
     );

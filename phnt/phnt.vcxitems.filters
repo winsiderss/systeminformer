@@ -49,6 +49,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnsi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntobapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -133,7 +136,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\winsta.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntfve.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntfve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

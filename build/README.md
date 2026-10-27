@@ -5,6 +5,14 @@ After running `build_init.cmd` you generally don't need to run it again unless t
 to the tools or third party libraries. If you're having trouble, when in doubt, run
 `build_init.cmd`. You may also build the solutions directly in Visual Studio.
 
+For a Clang undefined behavior sanitizer build of the user-mode Debug targets, run
+`build_ubsan.cmd` from this directory. It requires CMake, Ninja, and `clang-cl` in a
+Visual Studio installation. The script configures and builds an isolated
+`build-debug-ubsan-clang-msvc-64` tree, with binaries in `bin-cmake-ubsan`.
+Pass `generate` or `build` to run only one step. Kernel targets are not part of
+the CMake build. UBSan uses trap mode: a detected violation stops the process
+without requiring the Clang UBSan reporting runtime.
+
 ## Errors, Problems, Gotchas
 
 This section contains common errors, problems, and gotchas when building System Informer.

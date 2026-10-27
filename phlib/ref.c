@@ -542,12 +542,10 @@ PH_CLANG_DIAGNOSTIC_IGNORED("-Wsingle-bit-bitfield-constant-conversion");
     ObjectHeader->DeferDelete = 1;
 PH_CLANG_DIAGNOSTIC_POP();
 
-    MemoryBarrier();
     ObjectHeader->SavedTypeIndex = ObjectHeader->TypeIndex;
     ObjectHeader->SavedFlags = ObjectHeader->Flags;
 
-    oldFirstEntry = RtlFirstEntrySList(&PhObjectDeferDeleteListHead);
-    RtlInterlockedPushEntrySList(&PhObjectDeferDeleteListHead, &ObjectHeader->DeferDeleteListEntry);
+    oldFirstEntry = RtlInterlockedPushEntrySList(&PhObjectDeferDeleteListHead, &ObjectHeader->DeferDeleteListEntry);
     REF_STAT_UP(RefObjectsDeleteDeferred);
 
     // Was the to-free list empty before? If so, we need to queue a work item.

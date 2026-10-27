@@ -36,7 +36,11 @@
 
 SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsKernelmodeWin7nLater()
 {
-    return 0;
+    #if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
+        return (SYMCRYPT_CPU_FEATURE_SAVEYMM_NOFAIL | SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL);
+    #else
+        return 0;
+    #endif
 }
 
 
@@ -246,9 +250,22 @@ SymCryptRestoreYmmEnvWindowsKernelmodeWin7nLater( _Inout_ PSYMCRYPT_EXTENDED_SAV
     SYMCRYPT_WIPE_MAGIC( pSaveData );
 }
 
-#endif
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmmEnvWindowsKernelmodeWin7nLater( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    UNREFERENCED_PARAMETER( pSaveData );
+    SymCryptFatal( 'mmzs' );
+    return SYMCRYPT_NOT_IMPLEMENTED;
+}
 
-#if SYMCRYPT_CPU_AMD64 | SYMCRYPT_CPU_X86
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmmEnvWindowsKernelmodeWin7nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    SymCryptFatal( 'mmzs' );
+    UNREFERENCED_PARAMETER( pSaveData );
+}
 
 VOID
 SYMCRYPT_CALL

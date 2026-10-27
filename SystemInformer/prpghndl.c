@@ -491,8 +491,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (PhTreeWindowFont)
             {
-                handlesContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-                SetWindowFont(handlesContext->TreeNewHandle, handlesContext->TreeNewFont, FALSE);
+                handlesContext->TreeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg));
+                SetWindowFont(handlesContext->TreeNewHandle, PhGetFontHandle(handlesContext->TreeNewFont), FALSE);
             }
 
             TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
@@ -572,7 +572,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhDeleteProviderEventQueue(&handlesContext->EventQueue);
 
             if (handlesContext->TreeNewFont)
-                DeleteFont(handlesContext->TreeNewFont);
+                PhDereferenceObject(handlesContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {
@@ -605,10 +605,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         {
             if (PhTreeWindowFont)
             {
-                HFONT treeNewFont;
+                PPH_FONT treeNewFont;
 
-                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
-                    PhSwapReferenceFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
+                if (treeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg)))
+                    PhSwapOwnedFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
             }
         }
         break;

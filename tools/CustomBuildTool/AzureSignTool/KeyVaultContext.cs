@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -35,7 +35,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Returns true if properly constructed. If default, then false.
         /// </summary>
-        public bool IsValid => !string.IsNullOrEmpty(this.AccessToken) && this.KeyIdentifier != null;
+        public bool IsValid => !string.IsNullOrWhiteSpace(this.AccessToken) && this.KeyIdentifier != null;
 
         /// <summary>
         /// Creates a new Key Vault context using an access token and a public certificate.
@@ -201,7 +201,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Get,
-                KeyId.ToString().TrimEnd('/') + "?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -251,7 +251,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Post,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/keys/{Uri.EscapeDataString(KeyName)}/create?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/keys/{Uri.EscapeDataString(KeyName)}/create?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(Request, AzureJsonContext.Default.KeyVaultKeyCreateRequest),
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -269,7 +269,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Put,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/keys/{Uri.EscapeDataString(KeyName)}?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/keys/{Uri.EscapeDataString(KeyName)}?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(Request, AzureJsonContext.Default.KeyVaultKeyImportRequest),
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -286,7 +286,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Patch,
-                KeyId.ToString().TrimEnd('/') + "?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(Request, AzureJsonContext.Default.KeyVaultKeyUpdateRequest),
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -303,7 +303,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Delete,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/keys/{Uri.EscapeDataString(KeyName)}?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/keys/{Uri.EscapeDataString(KeyName)}?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -320,7 +320,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Get,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/deletedkeys/{Uri.EscapeDataString(KeyName)}?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/deletedkeys/{Uri.EscapeDataString(KeyName)}?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -353,7 +353,7 @@ namespace CustomBuildTool
 
             return this.Send(
                 HttpMethod.Delete,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/deletedkeys/{Uri.EscapeDataString(KeyName)}?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/deletedkeys/{Uri.EscapeDataString(KeyName)}?api-version={AzureClient.ApiVersion}",
                 null,
                 CancellationToken
                 );
@@ -369,7 +369,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Post,
-                VaultBaseUrl.ToString().TrimEnd('/') + $"/deletedkeys/{Uri.EscapeDataString(KeyName)}/recover?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/deletedkeys/{Uri.EscapeDataString(KeyName)}/recover?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -389,7 +389,7 @@ namespace CustomBuildTool
             {
                 backupResponse = await this.SendJson(
                     HttpMethod.Post,
-                    KeyId.ToString().TrimEnd('/') + "/backup?api-version=2025-07-01",
+                    $"{KeyId.ToString().TrimEnd('/')}/backup?api-version={AzureClient.ApiVersion}",
                     null,
                     AzureJsonContext.Default.KeyVaultBackupResponse,
                     CancellationToken
@@ -418,7 +418,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Post,
-                VaultBaseUrl.ToString().TrimEnd('/') + "/keys/restore?api-version=2025-07-01",
+                $"{VaultBaseUrl.ToString().TrimEnd('/')}/keys/restore?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(request, AzureJsonContext.Default.KeyVaultRestoreRequest),
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -435,7 +435,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Post,
-                KeyId.ToString().TrimEnd('/') + "/release?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}/release?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(Request, AzureJsonContext.Default.KeyVaultKeyReleaseRequest),
                 AzureJsonContext.Default.KeyVaultKeyReleaseResponse,
                 CancellationToken
@@ -451,7 +451,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Post,
-                KeyId.ToString().TrimEnd('/') + "/rotate?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}/rotate?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyResponse,
                 CancellationToken
@@ -467,7 +467,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Get,
-                KeyId.ToString().TrimEnd('/') + "/rotationpolicy?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}/rotationpolicy?api-version={AzureClient.ApiVersion}",
                 null,
                 AzureJsonContext.Default.KeyVaultKeyRotationPolicy,
                 CancellationToken
@@ -484,7 +484,7 @@ namespace CustomBuildTool
 
             return this.SendJson(
                 HttpMethod.Put,
-                KeyId.ToString().TrimEnd('/') + "/rotationpolicy?api-version=2025-07-01",
+                $"{KeyId.ToString().TrimEnd('/')}/rotationpolicy?api-version={AzureClient.ApiVersion}",
                 CreateJsonContent(Policy, AzureJsonContext.Default.KeyVaultKeyRotationPolicy),
                 AzureJsonContext.Default.KeyVaultKeyRotationPolicy,
                 CancellationToken
@@ -949,13 +949,13 @@ namespace CustomBuildTool
             CancellationToken CancellationToken
             )
         {
-            string requestUrl = KeyId.ToString().TrimEnd('/') + $"/{Operation}?api-version=2025-07-01";
+            string requestUrl = $"{KeyId.ToString().TrimEnd('/')}/{Operation}?api-version={AzureClient.ApiVersion}";
 
             using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             requestMessage.Content = CreateJsonContent(OperationRequest, AzureJsonContext.Default.KeyVaultOperationRequest);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.AccessToken);
 
-            using HttpResponseMessage responseMessage = await this.HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, CancellationToken);
+            using HttpResponseMessage responseMessage = await BuildHttpClient.SendWithRetry(this.HttpClient, requestMessage, CancellationToken);
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
@@ -981,13 +981,13 @@ namespace CustomBuildTool
             CancellationToken CancellationToken
             )
         {
-            string requestUrl = KeyId.ToString().TrimEnd('/') + "/verify?api-version=2025-07-01";
+            string requestUrl = $"{KeyId.ToString().TrimEnd('/')}/verify?api-version={AzureClient.ApiVersion}";
 
             using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             requestMessage.Content = CreateJsonContent(OperationRequest, AzureJsonContext.Default.KeyVaultVerifyRequest);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.AccessToken);
 
-            using HttpResponseMessage responseMessage = await this.HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, CancellationToken);
+            using HttpResponseMessage responseMessage = await BuildHttpClient.SendWithRetry(this.HttpClient, requestMessage, CancellationToken);
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
@@ -1021,7 +1021,7 @@ namespace CustomBuildTool
             requestMessage.Content = Content;
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.AccessToken);
 
-            using HttpResponseMessage responseMessage = await this.HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, CancellationToken);
+            using HttpResponseMessage responseMessage = await BuildHttpClient.SendWithRetry(this.HttpClient, requestMessage, CancellationToken);
             responseMessage.EnsureSuccessStatusCode();
         }
 
@@ -1051,7 +1051,7 @@ namespace CustomBuildTool
             requestMessage.Content = Content;
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.AccessToken);
 
-            using HttpResponseMessage responseMessage = await this.HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, CancellationToken);
+            using HttpResponseMessage responseMessage = await BuildHttpClient.SendWithRetry(this.HttpClient, requestMessage, CancellationToken);
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
@@ -1089,7 +1089,7 @@ namespace CustomBuildTool
         /// maximum results parameter.</returns>
         private static string CreateVaultRequestUrl(Uri VaultBaseUrl, string Path, int? MaxResults)
         {
-            string requestUrl = VaultBaseUrl.ToString().TrimEnd('/') + $"/{Path}?api-version=2025-07-01";
+            string requestUrl = $"{VaultBaseUrl.ToString().TrimEnd('/')}/{Path}?api-version={AzureClient.ApiVersion}";
 
             if (MaxResults.HasValue)
             {
@@ -1113,7 +1113,7 @@ namespace CustomBuildTool
         /// <returns>A string containing the constructed key request URL with the specified parameters.</returns>
         private static string CreateKeyRequestUrl(Uri KeyId, string Path, int? MaxResults)
         {
-            string requestUrl = KeyId.ToString().TrimEnd('/') + $"/{Path}?api-version=2025-07-01";
+            string requestUrl = $"{KeyId.ToString().TrimEnd('/')}/{Path}?api-version={AzureClient.ApiVersion}";
 
             if (MaxResults.HasValue)
             {

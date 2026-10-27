@@ -65,6 +65,9 @@ VOID EtpAddTreeNewColumn(
     column.Alignment = Alignment;
     column.TextFlags = TextFlags;
 
+    if (SortFunction == EtpProcessTreeNewSortFunction)
+        column.HeaderTextCache = PhAllocateZero(sizeof(PH_TREENEW_HEADER_TEXT_CACHE));
+
     PhPluginAddTreeNewColumn(
         PluginInstance,
         TreeNewInfo->CmData,
@@ -921,6 +924,11 @@ VOID EtProcessTreeNewMessage(
         FLOAT decimal = 0;
         ULONG64 number = 0;
 
+        getHeaderText->Flags = TN_CACHE;
+
+        if (!getHeaderText->TextCache)
+            return;
+
         if ((message->SubId >= ETPRTNC_GPUADAPTER_FIRST &&
             message->SubId < ETPRTNC_GPUADAPTER_FIRST + EtGetGpuAdapterCount()) ||
             (message->SubId >= ETPRTNC_GPUNODE_FIRST &&
@@ -1264,9 +1272,7 @@ VOID EtProcessTreeNewMessage(
                 if (number == 0)
                     break;
 
-                value = number;
-                value *= 1000;
-                value /= EtUpdateInterval;
+                value = EtCalculateRate(number);
 
                 PhInitFormatSize(&format[0], value);
                 PhInitFormatS(&format[1], L"/s");

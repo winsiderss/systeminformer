@@ -7,8 +7,11 @@
 #ifndef _PH_BASE64_H
 #define _PH_BASE64_H
 
+_Success_(return)
+EXTERN_C
 PHLIBAPI
 BOOLEAN
+NTAPI
 PhBase64Encode(
     _In_reads_bytes_(InputLength) const UCHAR* Input,
     _In_ SIZE_T InputLength,
@@ -17,8 +20,11 @@ PhBase64Encode(
     _Out_opt_ PSIZE_T ResultLength
     );
 
+_Success_(return)
+EXTERN_C
 PHLIBAPI
 BOOLEAN
+NTAPI
 PhBase64Decode(
     _In_reads_(InputLength) PCSTR Input,
     _In_ SIZE_T InputLength,

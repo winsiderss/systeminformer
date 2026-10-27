@@ -41,8 +41,10 @@ VOID EtFramesMonitorStart(
     VOID
     );
 
-PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
-    _In_ HANDLE ProcessId
+_Success_(return)
+BOOLEAN EtLookupProcessGpuFrameEntry(
+    _In_ HANDLE ProcessId,
+    _Out_ PET_FPS_COUNTER Counter
     );
 
 VOID EtAddGpuFrameToHashTable(

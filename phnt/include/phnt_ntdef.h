@@ -603,7 +603,8 @@ typedef enum _SUITE_TYPE
     ComputeServer,
     WHServer,
     PhoneNT,
-    MaxSuiteType
+    MultiUserTS = 17, // Multi-user Terminal Services suite index.
+    MaxSuiteType = 18
 } SUITE_TYPE;
 
 //

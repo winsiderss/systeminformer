@@ -97,7 +97,7 @@ namespace {
 
 struct WaitOnAddressShim
 {
-    using WaitOnAddressFn = BOOL(WINAPI*)(volatile VOID* Address, PVOID CompareAddress, SIZE_T AddressSize, DWORD dwMilliseconds);
+    using WaitOnAddressFn = BOOL(WINAPI*)(volatile VOID* Address, PVOID CompareAddress, SIZE_T AddressSize, ULONG dwMilliseconds);
     using WakeByAddressAllFn = VOID(WINAPI*)(PVOID Address);
 
     WaitOnAddressFn Wait = nullptr;
@@ -2310,13 +2310,17 @@ VOID ResetPresentTrackingData(
         QueryPerformanceFrequency(&freq);
         LARGE_INTEGER startQpc;
         QueryPerformanceCounter(&startQpc);
-        const DWORD timeoutMs = 2000;
+        const ULONG timeoutMs = 2000;
 
         while (InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0) != 0)
         {
             LARGE_INTEGER nowQpc;
+            ULONGLONG elapsed;
+
             QueryPerformanceCounter(&nowQpc);
-            ULONGLONG elapsed = (nowQpc.QuadPart - startQpc.QuadPart) * 1000 / freq.QuadPart;
+
+            if (!PhMultiplyDivide64(nowQpc.QuadPart - startQpc.QuadPart, 1000, freq.QuadPart, &elapsed))
+                elapsed = ULONG64_MAX;
 
             if (elapsed >= timeoutMs)
             {
@@ -2324,7 +2328,7 @@ VOID ResetPresentTrackingData(
                 return;
             }
 
-            DWORD remaining = timeoutMs - static_cast<DWORD>(elapsed);
+            ULONG remaining = timeoutMs - static_cast<ULONG>(elapsed);
 
             if (shim.Available())
             {

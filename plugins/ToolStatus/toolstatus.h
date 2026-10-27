@@ -44,13 +44,15 @@
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
 #define MAX_DEFAULT_IMAGELIST_ITEMS 1
-#define MAX_TOOLBAR_ITEMS 13
+#define MAX_TOOLBAR_ITEMS 14
 #define MAX_STATUSBAR_ITEMS 17
 
 #define TIDC_FINDWINDOW (WM_APP + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
 #define TIDC_FINDWINDOWKILL (WM_APP + 3)
 #define TIDC_POWERMENUDROPDOWN (WM_APP + 4)
+#define TIDC_SEARCHBOX_CASE_SENSITIVE (WM_APP + 5)
+#define TIDC_FINDDIALOG (WM_APP + 6)
 
 // Stable, plugin-owned toolbar IDs used ONLY for persistence (settings serialization).
 // Never tied to PHAPP_ID_* (which may change between builds). Never reuse/renumber a value.
@@ -76,12 +78,11 @@ typedef enum _TOOLBAR_COMMAND_ID
 {
     COMMAND_ID_ENABLE_MENU = 1,
     COMMAND_ID_ENABLE_SEARCHBOX,
-#if TOOLSTATUS_ENABLE_MENUBAR
     COMMAND_ID_ENABLE_MENUBAR,
-#endif
     COMMAND_ID_TOOLBAR_LOCKUNLOCK,
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
     COMMAND_ID_GRAPHS_CUSTOMIZE,
+    COMMAND_ID_FIND_DIALOG,
 } TOOLBAR_COMMAND_ID;
 
 //typedef enum _TOOLBAR_THEME
@@ -141,46 +142,46 @@ typedef union _TOOLSTATUS_CONFIG
     };
 } TOOLSTATUS_CONFIG;
 
-extern TOOLSTATUS_CONFIG ToolStatusConfig;
-extern HWND ProcessTreeNewHandle;
-extern HWND ServiceTreeNewHandle;
-extern HWND NetworkTreeNewHandle;
-extern LONG SelectedTabIndex;
-extern BOOLEAN UpdateAutomatically;
-extern BOOLEAN UpdateGraphs;
-extern BOOLEAN EnableThemeSupport;
-extern BOOLEAN EnableAvxSupport;
-extern BOOLEAN EnableGraphMaxScale;
-extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
-extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
-extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
+EXTERN_C TOOLSTATUS_CONFIG ToolStatusConfig;
+EXTERN_C HWND ProcessTreeNewHandle;
+EXTERN_C HWND ServiceTreeNewHandle;
+EXTERN_C HWND NetworkTreeNewHandle;
+EXTERN_C LONG SelectedTabIndex;
+EXTERN_C BOOLEAN UpdateAutomatically;
+EXTERN_C BOOLEAN UpdateGraphs;
+EXTERN_C BOOLEAN EnableThemeSupport;
+EXTERN_C BOOLEAN EnableAvxSupport;
+EXTERN_C BOOLEAN EnableGraphMaxScale;
+EXTERN_C TOOLBAR_DISPLAY_STYLE DisplayStyle;
+EXTERN_C SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
+EXTERN_C REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 
-extern HWND RebarHandle;
+EXTERN_C HWND RebarHandle;
 #if TOOLSTATUS_ENABLE_MENUBAR
-extern HWND MenuBarHandle;
+EXTERN_C HWND MenuBarHandle;
 #endif
-extern HWND ToolBarHandle;
-extern HWND SearchboxHandle;
-extern HWND MainWindowHandle;
-extern HMENU MainMenu;
-extern HACCEL AcceleratorTable;
-extern ULONG_PTR SearchMatchHandle;
-extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
+EXTERN_C HWND ToolBarHandle;
+EXTERN_C HWND SearchboxHandle;
+EXTERN_C HWND MainWindowHandle;
+EXTERN_C HMENU MainMenu;
+EXTERN_C HACCEL AcceleratorTable;
+EXTERN_C ULONG_PTR SearchMatchHandle;
+EXTERN_C PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
-extern SIZE ToolBarImageSize;
-extern HIMAGELIST ToolBarImageList;
-extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
-extern HFONT ToolbarWindowFont;
-extern BOOLEAN ToolbarInitialized;
+EXTERN_C SIZE ToolBarImageSize;
+EXTERN_C HIMAGELIST ToolBarImageList;
+EXTERN_C TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
+EXTERN_C HFONT ToolbarWindowFont;
+EXTERN_C BOOLEAN ToolbarInitialized;
 
-extern PPH_PLUGIN PluginInstance;
-extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
-extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
-extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
+EXTERN_C PPH_PLUGIN PluginInstance;
+EXTERN_C PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
+EXTERN_C PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
+EXTERN_C PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 
 // plugin.cpp
 
-extern CONST TOOLSTATUS_INTERFACE PluginInterface;
+EXTERN_C CONST TOOLSTATUS_INTERFACE PluginInterface;
 
 VOID PluginInterfaceInitialize(
     VOID
@@ -197,6 +198,39 @@ HWND GetTabIndexTreeNewHandle(
 PPH_STRING GetTabIndexBannerText(
     _In_ LONG TabIndex,
     _In_opt_ PCPH_STRINGREF AppendString
+    );
+
+// command bar drawing (menubar.c)
+
+BOOLEAN ToolbarIsDarkTheme(
+    VOID
+    );
+
+EXTERN_C VOID ToolbarDrawRebarBackground(
+    _In_ HWND ToolbarHandle,
+    _In_ HDC Hdc,
+    _In_ PRECT Rect
+    );
+
+EXTERN_C VOID ToolbarDrawBackground(
+    _In_ HDC Hdc,
+    _In_ PRECT Rect,
+    _In_ ULONG Variant
+    );
+
+EXTERN_C LRESULT CALLBACK ToolbarDrawToolbar(
+    _In_ LPNMTBCUSTOMDRAW DrawInfo
+    );
+
+EXTERN_C VOID ToolbarDrawItemBackground(
+    _In_ HWND ToolbarHandle,
+    _In_ HDC Hdc,
+    _In_ PRECT Rect,
+    _In_ BOOLEAN Pressed
+    );
+
+EXTERN_C COLORREF ToolbarGetItemTextColor(
+    _In_ BOOLEAN Enabled
     );
 
 // toolbar.c
@@ -307,6 +341,10 @@ VOID ToolbarUpdateWindowStyle(
     VOID
     );
 
+VOID ToolbarUpdateBandSize(
+    VOID
+    );
+
 VOID RebarCreate(
     VOID
     );
@@ -381,7 +419,7 @@ VOID ToolbarResetSettings(
     VOID
     );
 
-PWSTR ToolbarGetText(
+PCWSTR ToolbarGetText(
     _In_ ULONG CommandID
     );
 
@@ -414,9 +452,19 @@ VOID RebarAdjustBandHeightLayout(
     _In_ LONG Height
     );
 
+LONG ToolbarGetCommandBarButtonHeight(
+    VOID
+    );
+
 LONG ToolStatusGetWindowFontSize(
     _In_ HWND WindowHandle,
     _In_ HFONT WindowFont
+    );
+
+VOID ToolStatusGetBarWindowRect(
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN Bottom,
+    _Out_ PRECT BarRect
     );
 
 #if TOOLSTATUS_ENABLE_MENUBAR
@@ -424,6 +472,10 @@ LONG ToolStatusGetWindowFontSize(
 
 HWND ToolStatusMenuBarCreateWindow(
     _In_ HWND ParentWindowHandle
+    );
+
+VOID ToolStatusMenuBarDeactivate(
+    _In_ BOOLEAN RestoreFocus
     );
 
 BOOLEAN ToolStatusMenuBarLoadMenu(
@@ -752,7 +804,53 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND MoveDownButtonHandle;
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
+
+    UINT DragListMessage;
+    HWND DragSourceHandle;
+    LONG DragItemIndex;
+    LONG DragInsertIndex;
+    HIMAGELIST DragImageList;
+    POINT DragImageHotspot;
+    LONG DragImageWidth;
+    LONG DragImageHeight;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
+
+typedef VOID (*PCUSTOMIZE_DRAG_ADD)(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ LONG IndexFrom,
+    _In_ LONG IndexTo
+    );
+
+typedef VOID (*PCUSTOMIZE_DRAG_REMOVE)(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ LONG IndexFrom
+    );
+
+typedef VOID (*PCUSTOMIZE_DRAG_MOVE)(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ LONG IndexFrom,
+    _In_ LONG IndexTo
+    );
+
+typedef struct _CUSTOMIZE_DRAG_CALLBACKS
+{
+    PCUSTOMIZE_DRAG_ADD AddItem;
+    PCUSTOMIZE_DRAG_REMOVE RemoveItem;
+    PCUSTOMIZE_DRAG_MOVE MoveItem;
+} CUSTOMIZE_DRAG_CALLBACKS, *PCUSTOMIZE_DRAG_CALLBACKS;
+
+// customizetb.c (shared drag and drop support for the customize dialogs)
+
+VOID CustomizeDrawDragInsert(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ LPDRAWITEMSTRUCT DrawInfo
+    );
+
+LRESULT CustomizeDragListNotify(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ LPDRAGLISTINFO DragInfo,
+    _In_ PCUSTOMIZE_DRAG_CALLBACKS Callbacks
+    );
 
 HICON CustomizeGetToolbarIcon(
     _In_ PCUSTOMIZE_CONTEXT Context,

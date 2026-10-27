@@ -206,6 +206,7 @@ JSON_EXPORT struct json_tokener *json_tokener_new(void);
 
 /**
  * Allocate a new json_tokener with a custom max nesting depth.
+ * The depth must be at least 1.
  * @see JSON_TOKENER_DEFAULT_DEPTH
  */
 JSON_EXPORT struct json_tokener *json_tokener_new_ex(int depth);

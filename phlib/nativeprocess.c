@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 
 /**
@@ -180,6 +181,105 @@ NTSTATUS PhTerminateProcess(
         );
 
     return status;
+}
+
+/**
+ * Attempts to tear down a process by closing its handles.
+ *
+ * \param ProcessHandle A handle to another process. The handle must have PROCESS_DUP_HANDLE and
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \return The status of querying the process and enumerating its handles. Individual handle failures
+ * are ignored; success does not indicate that all handles were closed or that the process exited.
+ * \remarks This function runs synchronously and does not call NtTerminateProcess. File handles are
+ * closed only when they refer to non-remote disk or pipe devices. Callers should run this function on
+ * a worker thread because file queries and handle closure can block. Handle values may be reused
+ * between enumeration and closure, so this operation is best-effort.
+ */
+NTSTATUS PhTerminateProcessCloseHandles(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PSYSTEM_HANDLE_INFORMATION_EX handles;
+    ULONG fileTypeIndex;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (basicInfo.UniqueProcessId == NtCurrentProcessId())
+        return STATUS_INVALID_PARAMETER;
+
+    fileTypeIndex = PhGetObjectTypeNumberZ(L"File");
+
+    // Do not close file handles without being able to identify and filter them.
+    if (fileTypeIndex == ULONG_MAX)
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhEnumHandlesEx(&handles);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG_PTR i = 0; i < handles->NumberOfHandles; i++)
+    {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = &handles->Handles[i];
+        HANDLE duplicateHandle;
+
+        if (entry->UniqueProcessId != basicInfo.UniqueProcessId)
+            continue;
+
+        if (entry->ObjectTypeIndex == fileTypeIndex)
+        {
+            BOOLEAN isRemote;
+            BOOLEAN closeHandle = FALSE;
+
+            if (!NT_SUCCESS(NtDuplicateObject(
+                ProcessHandle,
+                entry->HandleValue,
+                NtCurrentProcess(),
+                &duplicateHandle,
+                0,
+                0,
+                0
+                )))
+            {
+                continue;
+            }
+
+            if (NT_SUCCESS(PhGetFileIsRemoteDevice(duplicateHandle, &isRemote)) && !isRemote)
+            {
+                ULONG fileType;
+
+                fileType = GetFileType(duplicateHandle);
+                closeHandle = fileType == FILE_TYPE_DISK || fileType == FILE_TYPE_PIPE;
+            }
+
+            NtClose(duplicateHandle);
+
+            if (!closeHandle)
+                continue;
+        }
+
+        if (NT_SUCCESS(NtDuplicateObject(
+            ProcessHandle,
+            entry->HandleValue,
+            NtCurrentProcess(),
+            &duplicateHandle,
+            0,
+            0,
+            DUPLICATE_CLOSE_SOURCE
+            )))
+        {
+            NtClose(duplicateHandle);
+        }
+    }
+
+    PhFree(handles);
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1149,7 +1249,9 @@ NTSTATUS PhpQueryProcessVariableSize(
         return status;
     }
 
-    buffer = PhAllocate(returnLength);
+    buffer = PhAllocateSafe(returnLength);
+    if (!buffer) return STATUS_NO_MEMORY;
+
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessInformationClass,
@@ -1942,7 +2044,8 @@ NTSTATUS PhGetProcessWindowTitle(
     ULONG returnLength = 0;
 
     bufferLength = UFIELD_OFFSET(PROCESS_WINDOW_INFORMATION, WindowTitle[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
-    windowInfo = PhAllocate(bufferLength);
+    windowInfo = PhAllocateSafe(bufferLength);
+    if (!windowInfo) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -1956,7 +2059,8 @@ NTSTATUS PhGetProcessWindowTitle(
     {
         PhFree(windowInfo);
         bufferLength = returnLength;
-        windowInfo = PhAllocate(bufferLength);
+        windowInfo = PhAllocateSafe(bufferLength);
+        if (!windowInfo) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -2188,7 +2292,9 @@ NTSTATUS PhGetProcessEnvironment(
         )))
         return status;
 
+    //
     // Check environment address is valid for the region. (dmex)
+    //
 
     status = RtlULongPtrSub(
         (ULONG_PTR)environmentRemote,
@@ -2202,7 +2308,7 @@ NTSTATUS PhGetProcessEnvironment(
     if ((ULONG_PTR)environmenOffset > (ULONG_PTR)basicInfo.RegionSize)
         return STATUS_FAIL_CHECK;
 
-    status = RtlSizeTSub(
+    status = RtlSIZETSub(
         (SIZE_T)basicInfo.RegionSize,
         (SIZE_T)environmenOffset,
         &environmentLength
@@ -2212,11 +2318,11 @@ NTSTATUS PhGetProcessEnvironment(
         return status;
 
     environment = PhAllocatePage(environmentLength, NULL);
+    if (!environment) return STATUS_NO_MEMORY;
 
-    if (!environment)
-        return STATUS_NO_MEMORY;
-
+    //
     // Read in the entire region of memory.
+    //
 
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
@@ -2487,7 +2593,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     ULONG attempts = 0;
 
     bufferSize = 0x8000;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQueryVirtualMemory(
         ProcessHandle,
@@ -2502,7 +2609,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     {
         bufferSize = UFIELD_OFFSET(MEMORY_WORKING_SET_INFORMATION, WorkingSetInfo[buffer->NumberOfEntries]);
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -2520,7 +2628,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     {
         // Fall back to using the previous code that we've used since Windows 7 (dmex)
         bufferSize = 0x8000;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         while ((status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -2538,7 +2647,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
             if (bufferSize > PH_LARGE_BUFFER_SIZE)
                 return STATUS_INSUFFICIENT_RESOURCES;
 
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
     }
 
@@ -3849,7 +3959,8 @@ NTSTATUS PhGetProcessTelemetryIdInformation(
     ULONG attempts;
 
     telemetryLength = sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + SECURITY_MAX_SID_SIZE + (DOS_MAX_PATH_LENGTH * sizeof(WCHAR)) + (DOS_MAX_PATH_LENGTH * sizeof(WCHAR));
-    telemetryBuffer = PhAllocateZero(telemetryLength);
+    telemetryBuffer = PhAllocateZeroSafe(telemetryLength);
+    if (!telemetryBuffer) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -3863,7 +3974,8 @@ NTSTATUS PhGetProcessTelemetryIdInformation(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         telemetryLength = returnLength;
-        telemetryBuffer = PhReAllocate(telemetryBuffer, telemetryLength);
+        telemetryBuffer = PhReAllocateZeroSafe(telemetryBuffer, telemetryLength);
+        if (!telemetryBuffer) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,

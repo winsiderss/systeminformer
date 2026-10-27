@@ -62,7 +62,6 @@ typedef struct IPCEntry
 #define IPC_ENTRY_OFFSET_BASE_X86 0x14
 #define IPC_ENTRY_OFFSET_BASE_X64 0x0
 
-
 /******************************************************************************
  * The CLR opens memory mapped files to expose perfcounter values and other
  * information to other processes. Historically there have been three memory
@@ -179,7 +178,6 @@ typedef struct IPCControlBlockTable_Wow64
 static_assert(sizeof(IPCControlBlockTable) == IPC_BLOCK_TABLE_SIZE);
 static_assert(sizeof(IPCControlBlockTable_Wow64) == IPC_BLOCK_TABLE_SIZE);
 
-
 #ifndef _WIN64
 #include <pshpack4.h>
 #endif
@@ -262,7 +260,6 @@ typedef struct FullIPCHeaderLegacyPublic_Wow64
 } FullIPCHeaderLegacyPublic_Wow64;
 #include <poppack.h>
 
-
 //-----------------------------------------------------------------------------
 // LegacyPrivate (per process) IPC Block for COM+ apps
 //-----------------------------------------------------------------------------
@@ -294,7 +291,6 @@ typedef struct _LegacyPrivateIPCControlBlock_Wow64
 } LegacyPrivateIPCControlBlock_Wow64;
 #include <poppack.h>
 
-
 //-----------------------------------------------------------------------------
 // LegacyPublic (per process) IPC Block for CLR apps
 //-----------------------------------------------------------------------------
@@ -321,7 +317,6 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
     PerfCounterIPCControlBlock_Wow64 PerfIpcBlock;
 } LegacyPublicIPCControlBlock_Wow64;
 #include <poppack.h>
-
 
 //class IPCHeaderLockHolder
 //{

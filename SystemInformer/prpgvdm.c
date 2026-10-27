@@ -9,7 +9,6 @@
  *
  */
 
-#ifdef _M_IX86
 #include <phapp.h>
 #include <phplug.h>
 #include <phsettings.h>
@@ -18,6 +17,8 @@
 #include <settings.h>
 #include <emenu.h>
 #include <mapldr.h>
+
+#if defined(_M_IX86)
 
 #include <vdmdbg.h>
 
@@ -289,6 +290,8 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                 );
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, context->ListViewHandle);
         }
         break;
     case WM_DESTROY:
@@ -370,20 +373,13 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                         point.x,
                         point.y
                         );
-                    PhDestroyEMenu(menu);
 
-                    if (selectedItem && selectedItem->Id != ULONG_MAX)
+                    if (selectedItem && selectedItem->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(selectedItem))
                     {
                         PPH_NTVDM_ENTRY entry;
-                        BOOLEAN handled;
-
-                        handled = PhHandleCopyListViewEMenuItem(selectedItem);
 
                         //if (!handled && PhPluginsEnabled)
                         //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
-
-                        if (handled)
-                            break;
 
                         entry = context->VdmHostProcessList->Items[PtrToUlong(index) - 1];
 
@@ -432,6 +428,8 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                             break;
                         }
                     }
+
+                    PhDestroyEMenu(menu);
                 }
             }
         }
@@ -452,4 +450,4 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     return FALSE;
 }
 
-#endif
+#endif // #if defined(_M_IX86)

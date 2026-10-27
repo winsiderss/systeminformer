@@ -1301,11 +1301,12 @@ NTSTATUS PhGetObjectSecurityWithTimeout(
     ULONG bufferSize;
     PVOID buffer;
 
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
-    // This is required (especially for File objects) because some drivers don't seem to handle
+    // Zeroing is required (especially for File objects) because some drivers don't seem to handle
     // QuerySecurity properly. (wj32)
-    memset(buffer, 0, bufferSize);
+    bufferSize = 0x100;
+    status = PhAllocateHeap(bufferSize, &buffer);
+    if (!NT_SUCCESS(status))
+        return status;
 
     status = PhCallNtQuerySecurityObjectWithTimeout(
         Handle,
@@ -1318,8 +1319,10 @@ NTSTATUS PhGetObjectSecurityWithTimeout(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
-        memset(buffer, 0, bufferSize);
+
+        status = PhAllocateHeap(bufferSize, &buffer);
+        if (!NT_SUCCESS(status))
+            return status;
 
         status = PhCallNtQuerySecurityObjectWithTimeout(
             Handle,
@@ -1689,29 +1692,27 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, defaultDacl->DefaultDacl->AclSize, &allocationLength)))
             goto CleanupExit;
 
-        if (!(securityDescriptor = PhAllocateZeroSafe(allocationLength)))
-        {
-            status = STATUS_NO_MEMORY;
+        status = PhAllocateHeap(allocationLength, &securityDescriptor);
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
         status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
+
         status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
-        status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
+
+        status = PhAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
         if (status != STATUS_BUFFER_TOO_SMALL)
             goto CleanupExit;
 
-        if (!(securityRelative = PhAllocateZeroSafe(allocationLengthRelative)))
-        {
-            status = STATUS_NO_MEMORY;
+        status = PhAllocateHeap(allocationLengthRelative, &securityRelative);
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
-        status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
+        status = PhAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 

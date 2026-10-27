@@ -160,6 +160,8 @@ NtCallbackReturn(
  * \param ComponentId The identifier of the component whose debug filter state is being queried.
  * \param Level The debug filter level being queried.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Returns the filter-state predicate as status value 0 or 1, not solely STATUS_SUCCESS. Levels 0 through 31 are converted to bit positions; higher
+ * values are treated as masks. Querying filter state does not change debugger output policy.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -177,6 +179,9 @@ NtQueryDebugFilterState(
  * \param Level The debug filter level being set.
  * \param State TRUE to enable the debug filter, FALSE to disable it.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Mutates debugger filtering; the native user-mode entry checks SeDebugPrivilege
+ * and returns STATUS_ACCESS_DENIED when the privilege check fails. Use NtQueryDebugFilterState for inspection
+ * rather than toggling a filter merely to test availability.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -189,9 +194,18 @@ NtSetDebugFilterState(
     );
 
 /**
- * The NtYieldExecution routine yields execution of the current thread to another thread.
+ * Offers the current thread's processor execution opportunity to an eligible
+ * ready thread. This is a scheduler hint, not a delay of a specified duration,
+ * an alertable object wait, or a synchronization operation.
  *
- * \return NTSTATUS Successful or errant status.
+ * \return STATUS_SUCCESS (0) if the yield path succeeds, or the informational
+ * STATUS_NO_YIELD_PERFORMED (0x40000024) if no yield is performed. Neither status
+ * establishes that a particular other thread ran or completed work.
+ * \remarks The x64 entry calls KeYieldExecution with flags 0
+ * and returns its status. The scheduler inspects both the current processor's
+ * ready summary and its shared ready queue; a no-yield result is not proof that
+ * there are no runnable threads anywhere in the system. Use an actual waitable
+ * object or another synchronization primitive when another thread's progress matters.
  */
 _Kernel_entry_
 NTSYSCALLAPI

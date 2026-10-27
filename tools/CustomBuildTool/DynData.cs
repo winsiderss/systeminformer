@@ -401,13 +401,7 @@ typedef struct _KPH_DYN_CONFIG
 
             // Check for new or modified content. We don't want to touch the file if it's unnecessary.
             {
-                string headerUpdateText = GenerateHeader();
-                string headerCurrentText = Utils.ReadAllText(headerFile);
-
-                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
-                {
-                    Utils.WriteAllText(headerFile, headerUpdateText);
-                }
+                Utils.WriteTextIfChanged(headerFile, GenerateHeader);
 
                 Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
             }
@@ -415,13 +409,7 @@ typedef struct _KPH_DYN_CONFIG
             byte[] config = GenerateConfig(manifestFile);
 
             {
-                var headerUpdateText = GenerateSource(BytesToString(config));
-                var headerCurrentText = Utils.ReadAllText(sourceFile);
-
-                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
-                {
-                    Utils.WriteAllText(sourceFile, headerUpdateText);
-                }
+                Utils.WriteTextIfChanged(sourceFile, writer => GenerateSource(writer, config));
 
                 Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
             }
@@ -470,23 +458,19 @@ typedef struct _KPH_DYN_CONFIG
         /// Generates and writes dynamic configuration files and headers.
         /// </summary>
         /// <returns>True if successful; otherwise, false.</returns>
-        private static string GenerateHeader()
+        private static void GenerateHeader(TextWriter sb)
         {
-            StringBuilder sb = new StringBuilder(8192);
-
-            sb.AppendLine(FileHeader);
-            sb.AppendLine();
-            sb.AppendLine("#pragma once");
-            sb.AppendLine();
-            sb.AppendLine(Includes);
-            sb.AppendLine(DynConfigC);
-            sb.AppendLine();
-            sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("extern CONST BYTE KphDynConfig[];");
-            sb.AppendLine("extern CONST ULONG KphDynConfigLength;");
-            sb.AppendLine("#endif");
-
-            return sb.ToString();
+            sb.WriteLine(FileHeader);
+            sb.WriteLine();
+            sb.WriteLine("#pragma once");
+            sb.WriteLine();
+            sb.WriteLine(Includes);
+            sb.WriteLine(DynConfigC);
+            sb.WriteLine();
+            sb.WriteLine("#ifdef _WIN64");
+            sb.WriteLine("extern CONST BYTE KphDynConfig[];");
+            sb.WriteLine("extern CONST ULONG KphDynConfigLength;");
+            sb.WriteLine("#endif");
         }
 
         /// <summary>
@@ -494,26 +478,23 @@ typedef struct _KPH_DYN_CONFIG
         /// </summary>
         /// <param name="Config">The configuration data as a string.</param>
         /// <returns>The source file content as a string.</returns>
-        private static string GenerateSource(
-            string Config
+        private static void GenerateSource(
+            TextWriter sb,
+            byte[] Config
             )
         {
-            StringBuilder sb = new StringBuilder(16348);
-
-            sb.AppendLine(FileHeader);
-            sb.AppendLine();
-            sb.AppendLine(Includes);
-            sb.AppendLine();
-            sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("CONST BYTE KphDynConfig[] =");
-            sb.AppendLine("{");
-            sb.Append(Config);
-            sb.AppendLine("};");
-            sb.AppendLine();
-            sb.AppendLine("CONST ULONG KphDynConfigLength = ARRAYSIZE(KphDynConfig);");
-            sb.AppendLine("#endif");
-
-            return sb.ToString();
+            sb.WriteLine(FileHeader);
+            sb.WriteLine();
+            sb.WriteLine(Includes);
+            sb.WriteLine();
+            sb.WriteLine("#ifdef _WIN64");
+            sb.WriteLine("CONST BYTE KphDynConfig[] =");
+            sb.WriteLine("{");
+            WriteBytes(sb, Config);
+            sb.WriteLine("};");
+            sb.WriteLine();
+            sb.WriteLine("CONST ULONG KphDynConfigLength = ARRAYSIZE(KphDynConfig);");
+            sb.WriteLine("#endif");
         }
 
         /// <summary>
@@ -689,34 +670,29 @@ typedef struct _KPH_DYN_CONFIG
         /// </summary>
         /// <param name="Buffer">The byte array to convert.</param>
         /// <returns>The formatted string.</returns>
-        private static string BytesToString(byte[] Buffer)
+        private static void WriteBytes(TextWriter sb, byte[] Buffer)
         {
             if (Buffer == null || Buffer.Length == 0)
-                return null;
+                return;
 
             // This method avoids intermediate string allocations using InterpolatedStringHandler
             // and calculates exact or near-exact capacity to avoid reallocation. Each full line of 8 bytes is:
             // "    " (4) + 8 * "0xXX, " (48) - 1 (trailing space) + \r\n (2) = 53-55 chars.
 
-            var lines = (Buffer.Length + 7) / 8;
-            var sb = new StringBuilder(lines * 55);
-
             for (var i = 0; i < Buffer.Length; i++)
             {
                 if (i % 8 == 0)
                 {
-                    sb.Append("    ");
+                    sb.Write("    ");
                 }
 
-                sb.Append($"0x{Buffer[i]:x2},");
+                sb.Write($"0x{Buffer[i]:x2},");
 
                 if (i % 8 == 7 || i == Buffer.Length - 1)
-                    sb.AppendLine();
+                    sb.WriteLine();
                 else
-                    sb.Append(' ');
+                    sb.Write(' ');
             }
-
-            return sb.ToString();
         }
 
         /// <summary>
@@ -731,7 +707,7 @@ typedef struct _KPH_DYN_CONFIG
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Program.PrintErrorMessage(ex);
                 return false;
             }
 

@@ -130,31 +130,6 @@ PhGetProcessIsCetEnabled(
 
 FORCEINLINE
 NTSTATUS
-NTAPI
-PhGetSystemHypervisorSharedPageInformation(
-    _Out_ PSYSTEM_HYPERVISOR_USER_SHARED_DATA* HypervisorSharedUserVa
-    )
-{
-    NTSTATUS status;
-    SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION HypervisorSharedPageInfo;
-
-    status = NtQuerySystemInformation(
-        SystemHypervisorSharedPageInformation,
-        &HypervisorSharedPageInfo,
-        sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *HypervisorSharedUserVa = HypervisorSharedPageInfo.HypervisorSharedUserVa;
-    }
-
-    return status;
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetSystemShadowStackInformation(
     _Out_ PSYSTEM_SHADOW_STACK_INFORMATION ShadowStackInformation
     )

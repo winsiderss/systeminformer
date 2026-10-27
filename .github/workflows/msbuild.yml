@@ -18,10 +18,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: |
           packages
@@ -36,7 +36,7 @@ jobs:
 
     - name: BuildTools Cache
       id: custombuildtool-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/CustomBuildTool/bin/Release/**
         key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
@@ -44,11 +44,10 @@ jobs:
 
     - name: BuildThirdParty Cache
       id: thirdparty-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/thirdparty/**
         key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-        restore-keys: thirdparty-${{ runner.os }}-
 
     - name: Build Tools
       if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
@@ -70,10 +69,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: |
           packages
@@ -88,7 +87,7 @@ jobs:
 
     - name: BuildTools Cache
       id: custombuildtool-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/CustomBuildTool/bin/Release/**
         key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
@@ -96,11 +95,10 @@ jobs:
 
     - name: BuildThirdParty Cache
       id: thirdparty-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/thirdparty/**
         key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-        restore-keys: thirdparty-${{ runner.os }}-
 
     - name: Build Tools
       if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
@@ -108,10 +106,28 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
 
+    - name: Reflow Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd reflow
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
+
+    - name: Check Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd validate
+
+    - name: Upload Build Zips
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # 7.0.2
+      with:
+        name: systeminformer-build-${{ github.sha }}
+        path: build/output/*.zip
+        if-no-files-found: error
+        retention-days: 7
 
   build-driver:
     permissions:
@@ -122,10 +138,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: |
           packages
@@ -140,7 +156,7 @@ jobs:
 
     - name: BuildTools Cache
       id: custombuildtool-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/CustomBuildTool/bin/Release/**
         key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
@@ -166,10 +182,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: |
           packages
@@ -184,7 +200,7 @@ jobs:
 
     - name: BuildTools Cache
       id: custombuildtool-cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: tools/CustomBuildTool/bin/Release/**
         key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}

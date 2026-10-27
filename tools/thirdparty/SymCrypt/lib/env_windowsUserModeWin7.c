@@ -30,7 +30,7 @@ SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsUse
     // As AVX2 is only used in parallel hashing, it isn't worth the effort to use it in earlier Windows versions.
     // We only use AVX2 if the binary is targeted at Win8.1 and later.
     //
-    return SYMCRYPT_CPU_FEATURE_AVX2;
+    return (SYMCRYPT_CPU_FEATURE_AVX2 | SYMCRYPT_CPU_FEATURE_AVX512 | SYMCRYPT_CPU_FEATURE_SAVEZMM_NOFAIL);
 #endif
 
     return 0;
@@ -164,6 +164,30 @@ SymCryptRestoreYmmEnvWindowsUsermodeWin7nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_
     UNREFERENCED_PARAMETER( pSaveArea );
 }
 
+SYMCRYPT_ERROR
+SYMCRYPT_CALL
+SymCryptSaveZmmEnvWindowsUsermodeWin7nLater( _Out_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    UNREFERENCED_PARAMETER( pSaveData );
+    SymCryptFatal( 'mmzs' );
+    return SYMCRYPT_NOT_IMPLEMENTED;
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptRestoreZmmEnvWindowsUsermodeWin7nLater( _Inout_ PSYMCRYPT_EXTENDED_SAVE_DATA pSaveData )
+{
+    SymCryptFatal( 'mmzs' );
+    UNREFERENCED_PARAMETER( pSaveData );
+}
+
+VOID
+SYMCRYPT_CALL
+SymCryptCpuidExFuncEnvWindowsUsermodeWin7nLater( int cpuInfo[4], int function_id, int subfunction_id )
+{
+    __cpuidex( cpuInfo, function_id, subfunction_id );
+}
+ 
 #endif
 
 VOID 
@@ -177,15 +201,3 @@ SymCryptTestInjectErrorEnvWindowsUsermodeWin7nLater( PBYTE pbBuf, SIZE_T cbBuf )
     UNREFERENCED_PARAMETER( pbBuf );
     UNREFERENCED_PARAMETER( cbBuf );
 }
-
-#if SYMCRYPT_CPU_AMD64 | SYMCRYPT_CPU_X86
-
-VOID
-SYMCRYPT_CALL
-SymCryptCpuidExFuncEnvWindowsUsermodeWin7nLater( int cpuInfo[4], int function_id, int subfunction_id )
-{
-    __cpuidex( cpuInfo, function_id, subfunction_id );
-}
- 
-#endif    
- 

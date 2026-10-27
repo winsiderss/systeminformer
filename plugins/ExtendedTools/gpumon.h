@@ -20,11 +20,19 @@
 // Functions
 
 BOOLEAN EtpGpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
+    );
+
+VOID EtpGpuResetAdapterNodeDeltas(
+    _In_ PETP_GPU_ADAPTER GpuAdapter
+    );
+
+VOID EtpGpuRefreshAdapterLuids(
+    VOID
     );
 
 _Function_class_(PH_CALLBACK_FUNCTION)

@@ -740,21 +740,17 @@ VOID PhLoadResourceEMenuItem(
 }
 
 /**
- * Displays a menu.
+ * Displays a menu using TrackPopupMenu.
  *
  * \param Menu A menu.
  * \param WindowHandle The window that owns the popup menu.
- * \param Flags A combination of the following:
- * \li \c PH_EMENU_SHOW_SEND_COMMAND A WM_COMMAND message is sent to the window when the user clicks
- * on a menu item.
- * \li \c PH_EMENU_SHOW_LEFTRIGHT The user can select menu items with both the left and right mouse
- * buttons.
+ * \param Flags A combination of PH_EMENU_SHOW_* flags.
  * \param Align The alignment of the menu.
  * \param X The horizontal location of the menu.
  * \param Y The vertical location of the menu.
  * \return The selected menu item, or NULL if the menu was cancelled.
  */
-PPH_EMENU_ITEM PhShowEMenu(
+PPH_EMENU_ITEM PhpShowEMenuTrackPopupMenu(
     _In_ PPH_EMENU Menu,
     _In_ HWND WindowHandle,
     _In_ ULONG Flags,
@@ -768,6 +764,8 @@ PPH_EMENU_ITEM PhShowEMenu(
     ULONG flags;
     PH_EMENU_DATA data;
     HMENU popupMenu;
+    
+    SetForegroundWindow(WindowHandle);
 
     selectedItem = NULL;
     flags = TPM_RETURNCMD | TPM_NONOTIFY;
@@ -819,10 +817,78 @@ PPH_EMENU_ITEM PhShowEMenu(
 
     PhDeleteEMenuData(&data);
 
-    if ((Flags & PH_EMENU_SHOW_SEND_COMMAND) && selectedItem && selectedItem->Id != 0)
+    return selectedItem;
+}
+
+/**
+ * Displays a menu.
+ *
+ * \param Menu A menu.
+ * \param WindowHandle The window that owns the popup menu.
+ * \param Flags A combination of the following:
+ * \li \c PH_EMENU_SHOW_SEND_COMMAND A WM_COMMAND message is sent to the window when the user clicks
+ * on a menu item.
+ * \li \c PH_EMENU_SHOW_LEFTRIGHT The user can select menu items with both the left and right mouse
+ * buttons.
+ * \param Align The alignment of the menu.
+ * \param X The horizontal location of the menu.
+ * \param Y The vertical location of the menu.
+ * \return The selected menu item, or NULL if the menu was cancelled.
+ */
+PPH_EMENU_ITEM PhShowEMenu(
+    _In_ PPH_EMENU Menu,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Align,
+    _In_ ULONG X,
+    _In_ ULONG Y
+    )
+{
+    PPH_EMENU_ITEM selectedItem;
+
+    // Prefer the DirectComposition menu. It returns FALSE without showing anything
+    // when it can't render this menu or initialize its devices, so fall back to
+    // the native menu in that case.
+    if (!PhShowEMenuDX(Menu, WindowHandle, Flags, Align, (LONG)X, (LONG)Y, PhEnableThemeSupport, &selectedItem))
+    {
+        selectedItem = PhpShowEMenuTrackPopupMenu(Menu, WindowHandle, Flags, Align, X, Y);
+    }
+
+    if (FlagOn(Flags, PH_EMENU_SHOW_SEND_COMMAND) && selectedItem && selectedItem->Id != 0)
+    {
         SendMessage(WindowHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
+    }
 
     return selectedItem;
+}
+
+/**
+ * Cancels the menu shown by PhShowEMenu on the calling thread.
+ *
+ * \remarks The DirectComposition menu runs its own message loop, so sending
+ * WM_CANCELMODE to the owner window (which ends a TrackPopupMenu menu) doesn't
+ * close it. Use this function instead.
+ */
+VOID PhCancelEMenu(
+    VOID
+    )
+{
+#ifdef PH_EMENU_NO_ENDMENU
+    GUITHREADINFO threadInfo;
+#endif
+
+    PhCancelEMenuDX();
+#ifndef PH_EMENU_NO_ENDMENU
+    EndMenu();
+#else
+    memset(&threadInfo, 0, sizeof(GUITHREADINFO));
+    threadInfo.cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(HandleToUlong(NtCurrentThreadId()), &threadInfo) && threadInfo.hwndMenuOwner)
+    {
+        SendMessage(threadInfo.hwndMenuOwner, WM_CANCELMODE, 0, 0);
+    }
+#endif
 }
 
 /**

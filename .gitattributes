@@ -12,16 +12,21 @@
 
 # Project files
 *.appinstaller  text
+*.asm           text
 *.bat           text
+*.build         text
 *.c             text
 *.cs            text
 *.cpp           text
+*.cppasm        text
 *.config        text
 *.cmake         text
 *.cmd           text
 *.csproj        text
 *.def           text
 *.ddf           text
+*.dockerfile    text
+*.dockerignore  text
 *.editorconfig  text
 *.gitattributes text
 *.gitignore     text
@@ -40,11 +45,15 @@
 *.pubxml        text
 *.resx          text
 *.rc            text
+*.ruleset       text
 *.sh            text eol=lf
 *.sln           text
 *.slnx          text
+*.symcryptasm   text
+*.targets       text
 *.txt           text
 *.vsconfig      text
+*.vcxitems      text
 *.vcxproj       text
 *.filters       text
 *.xml           text

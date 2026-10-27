@@ -47,13 +47,14 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
         {
             BOOLEAN IsWow64Process : 1;
             BOOLEAN IsProcessSnapshot : 1;
-            BOOLEAN Stop : 1;
             BOOLEAN Succeeded : 1;
             BOOLEAN EnableProcessSnapshot : 1;
             BOOLEAN EnableKernelSnapshot : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN Spare : 3;
         };
     };
+
+    BOOLEAN Stop;
 
     ULONG64 LastTickCount;
     WNDPROC DefaultTaskDialogWindowProc;
@@ -280,7 +281,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     {
     case CancelCallback:
         {
-            if (context->Stop)
+            if (ReadBooleanAcquire(&context->Stop))
                 CallbackOutput->Cancel = TRUE;
 
             CallbackOutput->CheckCancel = TRUE;
@@ -610,7 +611,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             case IDCANCEL:
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
-                    context->Stop = TRUE;
+                    WriteBooleanRelease(&context->Stop, TRUE);
                 }
                 break;
             }
@@ -701,7 +702,7 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
             TASKDIALOGCONFIG config;
             PPH_STRING statusMessage;
 
-            if (context->Stop)
+            if (ReadBooleanAcquire(&context->Stop))
             {
                 SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
                 break;
@@ -786,8 +787,12 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
 
             if (buttonId == IDCANCEL)
             {
-                context->Stop = TRUE;
-                SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Cancelling...");
+                PPH_STRING message;
+
+                WriteBooleanRelease(&context->Stop, TRUE);
+                message = PhFormatString(L"Cancelling... (%lu%%)", context->Progress);
+                SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)message->Buffer);
+                PhDereferenceObject(message);
                 return S_FALSE;
             }
         }

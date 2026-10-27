@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{37488DC1-E45F-4626-A87C-3A854A153D1A}</ProjectGuid>
     <RootNamespace>WindowExplorer</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -66,38 +65,38 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;SystemInformer.exe;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;SystemInformer.exe;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
-      <DelayLoadDLLs>comctl32.dll;gdi32.dll;ole32.dll;SystemInformer.exe;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>gdi32.dll;ole32.dll;oleaut32.dll;SystemInformer.exe;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>oleaut32.lib;propsys.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -108,6 +107,7 @@
     <ClCompile Include="wndprp.c" />
     <ClCompile Include="wndprv.c" />
     <ClCompile Include="wndtree.c" />
+    <ClCompile Include="wndprop.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="prpsh.h" />

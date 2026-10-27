@@ -464,24 +464,26 @@ VOID PhpUpdateThreadNodeNameText(
     _In_ PPH_THREAD_NODE ThreadNode
     )
 {
-    if (!FlagOn(ThreadNode->ValidMask, PHTN_NAME))
+    if (ThreadNode->ValidMask & PHTHN_NAME)
+        return;
+
+    // The tree list caches a non-owning reference to the string, so the cached
+    // entry must be invalidated before the buffer is released.
+    memset(&ThreadNode->TextCache[PH_THREAD_TREELIST_COLUMN_NAME], 0, sizeof(PH_STRINGREF));
+
+    PhClearReference(&ThreadNode->NameText);
+
+    if (WindowsVersion >= WINDOWS_10_RS1 && ThreadNode->ThreadItem->ThreadHandle)
     {
-        // The tree list caches a non-owning reference to NameText, drop it before releasing the string.
-        PhInitializeEmptyStringRef(&ThreadNode->TextCache[PH_THREAD_TREELIST_COLUMN_NAME]);
-        PhClearReference(&ThreadNode->NameText);
+        PPH_STRING threadName;
 
-        if (WindowsVersion >= WINDOWS_10_RS1 && ThreadNode->ThreadItem->ThreadHandle)
+        if (NT_SUCCESS(PhGetThreadName(ThreadNode->ThreadItem->ThreadHandle, &threadName)))
         {
-            PPH_STRING threadName;
-
-            if (NT_SUCCESS(PhGetThreadName(ThreadNode->ThreadItem->ThreadHandle, &threadName)))
-            {
-                PhMoveReference(&ThreadNode->NameText, threadName);
-            }
+            PhMoveReference(&ThreadNode->NameText, threadName);
         }
-
-        SetFlag(ThreadNode->ValidMask, PHTN_NAME);
     }
+
+    ThreadNode->ValidMask |= PHTHN_NAME;
 }
 
 VOID PhpUpdateThreadNodeStartedText(
@@ -1001,9 +1003,23 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Cpu)
 {
-    sortResult = singlecmp(threadItem1->CpuUsage, threadItem2->CpuUsage);
+    FLOAT cpuUsage1;
+    FLOAT cpuUsage2;
 
-    if (sortResult == 0)
+    cpuUsage1 = PhNormalizeCpuSortValue(threadItem1->CpuUsage * 100);
+    cpuUsage2 = PhNormalizeCpuSortValue(threadItem2->CpuUsage * 100);
+
+    sortResult = singlecmp(cpuUsage1, cpuUsage2);
+
+    if (sortResult == 0 && cpuUsage1 == 0)
+    {
+        sortResult = PhCompareTreeNewBlankCpuSortOrder(node1, node2);
+
+        if (sortResult != 0)
+            return sortResult;
+    }
+
+    if (sortResult == 0 && cpuUsage1 != 0)
     {
         if (context->UseCycleTime)
             sortResult = uint64cmp(threadItem1->CyclesDelta.Delta, threadItem2->CyclesDelta.Delta);
@@ -1197,6 +1213,17 @@ BEGIN_SORT_FUNCTION(CpuCore)
     cpuUsage2 = threadItem2->CpuUsage * 100;
     cpuUsage2 *= PhSystemProcessorInformation.NumberOfProcessors;
 
+    cpuUsage1 = PhNormalizeCpuSortValue(cpuUsage1);
+    cpuUsage2 = PhNormalizeCpuSortValue(cpuUsage2);
+
+    if (cpuUsage1 == 0 && cpuUsage2 == 0)
+    {
+        sortResult = PhCompareTreeNewBlankCpuSortOrder(node1, node2);
+
+        if (sortResult != 0)
+            return sortResult;
+    }
+
     sortResult = singlecmp(cpuUsage1, cpuUsage2);
 }
 END_SORT_FUNCTION
@@ -1281,13 +1308,35 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuUser)
 {
-    sortResult = singlecmp(threadItem1->CpuUserUsage, threadItem2->CpuUserUsage);
+    FLOAT cpuUsage1 = PhNormalizeCpuSortValue(threadItem1->CpuUserUsage * 100);
+    FLOAT cpuUsage2 = PhNormalizeCpuSortValue(threadItem2->CpuUserUsage * 100);
+
+    if (cpuUsage1 == 0 && cpuUsage2 == 0)
+    {
+        sortResult = PhCompareTreeNewBlankCpuSortOrder(node1, node2);
+
+        if (sortResult != 0)
+            return sortResult;
+    }
+
+    sortResult = singlecmp(cpuUsage1, cpuUsage2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuKernel)
 {
-    sortResult = singlecmp(threadItem1->CpuKernelUsage, threadItem2->CpuKernelUsage);
+    FLOAT cpuUsage1 = PhNormalizeCpuSortValue(threadItem1->CpuKernelUsage * 100);
+    FLOAT cpuUsage2 = PhNormalizeCpuSortValue(threadItem2->CpuKernelUsage * 100);
+
+    if (cpuUsage1 == 0 && cpuUsage2 == 0)
+    {
+        sortResult = PhCompareTreeNewBlankCpuSortOrder(node1, node2);
+
+        if (sortResult != 0)
+            return sortResult;
+    }
+
+    sortResult = singlecmp(cpuUsage1, cpuUsage2);
 }
 END_SORT_FUNCTION
 

@@ -246,8 +246,7 @@ namespace CustomBuildTool
             foreach (string name in Files)
             {
                 string file = Path.Join([BaseDirectory, name]);
-                string[] allLines = File.ReadAllLines(file);
-                headerFiles.Add(name, new HeaderFile(name, [..allLines]));
+                headerFiles.Add(name, new HeaderFile(name, [..File.ReadLines(file)]));
             }
 
             // Dependency resolution and Line Filtering:
@@ -301,46 +300,24 @@ namespace CustomBuildTool
                 h.Lines = ProcessHeaderLines(h.Lines);
             }
 
-            // Write out the result using a pre-sized StringBuilder to reduce re-allocations.
-            StringBuilder sw = new StringBuilder(1024 * 512);
-            sw.Append(Notice);
-            sw.Append(Header);
-
-            foreach (HeaderFile h in orderedHeaderFiles)
-            {
-                sw.AppendLine();
-                sw.AppendLine("//");
-                sw.AppendLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
-                sw.AppendLine("//");
-                sw.AppendLine();
-
-                foreach (string line in h.Lines)
-                {
-                    sw.AppendLine(line);
-                }
-            }
-
-            sw.Append(Footer);
-
             string headerFileName = Path.Join([BaseDirectory, OutputFile]);
-            string headerUpdateText = sw.ToString();
-
-            // Only update the file if the content has changed to preserve timestamps and prevent unnecessary rebuilds.
-            if (File.Exists(headerFileName))
+            if (Utils.WriteTextIfChanged(headerFileName, sw =>
             {
-                string headerCurrentText = Utils.ReadAllText(headerFileName);
-
-                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                sw.Write(Notice);
+                sw.Write(Header);
+                foreach (HeaderFile h in orderedHeaderFiles)
                 {
-                    Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
-                    Utils.WriteAllText(headerFileName, headerUpdateText);
+                    sw.WriteLine();
+                    sw.WriteLine("//");
+                    sw.WriteLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
+                    sw.WriteLine("//");
+                    sw.WriteLine();
+                    foreach (string line in h.Lines)
+                        sw.WriteLine(line);
                 }
-            }
-            else
-            {
+                sw.Write(Footer);
+            }))
                 Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
-                Utils.WriteAllText(headerFileName, headerUpdateText);
-            }
         }
     }
 
@@ -456,23 +433,36 @@ namespace CustomBuildTool
                 if (File.Exists("phnt\\include\\nt.h"))
                     File.Delete("phnt\\include\\nt.h");
 
-                var config = File.ReadAllLines("phnt\\include\\phnt.h");
+                string configPath = "phnt\\include\\phnt.h";
+                int startIndex = -1;
+                int endIndex = -1;
+                int lineIndex = 0;
+                foreach (string line in File.ReadLines(configPath))
+                {
+                    if (startIndex < 0 && line.StartsWith("EXTERN_C_START", StringComparison.OrdinalIgnoreCase))
+                        startIndex = lineIndex;
+                    if (line.StartsWith("#endif", StringComparison.OrdinalIgnoreCase))
+                        endIndex = lineIndex;
+                    lineIndex++;
+                }
 
                 using (var output = new StreamWriter("phnt\\include\\nt.h"))
                 {
                     output.WriteLine("/*\r\n * This file was automatically generated. Do not edit.\r\n */");
 
                     {
-                        int startIndex = Array.FindIndex(config, L => L.StartsWith("EXTERN_C_START", StringComparison.OrdinalIgnoreCase));
-                        int endIndex = Array.FindLastIndex(config, L => L.StartsWith("#endif", StringComparison.OrdinalIgnoreCase));
-
-                        for (long i = 0; i < config.LongLength; i++)
+                        long i = 0;
+                        foreach (string line in File.ReadLines(configPath))
                         {
                             // Skip everything between startIndex and endIndex (inclusive)
                             if (startIndex != -1 && endIndex != -1 && i >= startIndex && i < endIndex)
+                            {
+                                i++;
                                 continue;
+                            }
 
-                            output.WriteLine(config[i]);
+                            output.WriteLine(line);
+                            i++;
                         }
                     }
 
@@ -486,11 +476,11 @@ namespace CustomBuildTool
                             continue;
                         }
 
-                        string[] content;
+                        string headerPath;
 
                         if (File.Exists($"phnt\\include\\{file}"))
                         {
-                            content = File.ReadAllLines($"phnt\\include\\{file}");
+                            headerPath = $"phnt\\include\\{file}";
                         }
                         else
                         {
@@ -498,51 +488,54 @@ namespace CustomBuildTool
                             var sdk_include_path = Utils.GetWindowsSdkIncludePath();
                             if (string.IsNullOrWhiteSpace(sdk_include_path))
                             {
-                                Console.WriteLine("[ERROR] Could not find Windows SDK include paths.");
+                                Program.PrintErrorMessage("Could not find Windows SDK include paths.");
                                 continue;
                             }
 
                             var found = Directory.EnumerateFiles(sdk_include_path, file, SearchOption.AllDirectories).FirstOrDefault();
                             if (string.IsNullOrWhiteSpace(found))
                             {
-                                Console.WriteLine($"[ERROR] Could not find {file} in phnt or Windows SDK include paths.");
+                                Program.PrintErrorMessage($"Could not find {file} in phnt or Windows SDK include paths.");
                                 continue;
                             }
 
-                            content = File.ReadAllLines(found);
+                            headerPath = found;
                         }
 
-                        if (content.LongLength == 0)
-                            continue;
-
-                        long startIndex = 0;
+                        long headerStartIndex = 0;
 
                         // Skip the /* ... */ block
                         {
-                            if (content.LongLength > 0 && content[0].Contains("/*", StringComparison.OrdinalIgnoreCase))
+                            using var headerReader = new StreamReader(headerPath);
+                            string firstLine = headerReader.ReadLine();
+                            if (firstLine != null && firstLine.Contains("/*", StringComparison.OrdinalIgnoreCase))
                             {
                                 bool foundBlockEnd = false;
-
-                                for (long i = 0; i < content.LongLength; i++)
+                                long headerLineIndex = 0;
+                                string currentLine = firstLine;
+                                do
                                 {
-                                    if (content[i].Contains("*/", StringComparison.OrdinalIgnoreCase))
+                                    if (currentLine.Contains("*/", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        startIndex = i + 1; // skip through the end of the block
+                                        headerStartIndex = headerLineIndex + 1;
                                         foundBlockEnd = true;
                                         break;
                                     }
-                                }
+                                    headerLineIndex++;
+                                } while ((currentLine = headerReader.ReadLine()) != null);
 
                                 if (!foundBlockEnd)
                                 {
-                                    startIndex = 0; // unexpected comment block, dont skip anything
+                                    headerStartIndex = 0;
                                 }
                             }
                         }
 
-                        for (long i = startIndex; i < content.LongLength; i++)
+                        long currentIndex = 0;
+                        foreach (string line in File.ReadLines(headerPath))
                         {
-                            string line = content[i];
+                            if (currentIndex++ < headerStartIndex)
+                                continue;
 
                             if (
                                 line.Equals("#include <ntpebteb.h>", StringComparison.OrdinalIgnoreCase) ||

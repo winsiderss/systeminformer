@@ -928,7 +928,7 @@ NTSTATUS AtpWaitForServiceStop(
     _In_ SC_HANDLE ServiceHandle
     )
 {
-    ULONG64 startTick = NtGetTickCount64();
+    ULONG64 startTick = PhQueryWaitTime();
     SERVICE_STATUS_PROCESS status;
     NTSTATUS queryStatus;
 
@@ -938,7 +938,7 @@ NTSTATUS AtpWaitForServiceStop(
             return STATUS_SUCCESS;
 
         // STATUS_TIMEOUT is a success code; the caller must be able to test this one.
-        if (NtGetTickCount64() - startTick > AT_SERVICE_STOP_WAIT_MS)
+        if (PhQueryWaitTime() - startTick > UInt32x32To64(AT_SERVICE_STOP_WAIT_MS, PH_TIMEOUT_MS))
             return STATUS_IO_TIMEOUT;
 
         PhDelayExecution(AT_SERVICE_STOP_POLL_MS);

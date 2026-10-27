@@ -235,6 +235,10 @@ VOID PhPinMiniInformation(
         PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport);
         MipSetActiveBorderColor();
 
+        // Refresh the class brush before showing; the brush captured at registration
+        // is deleted on palette changes made while the container is hidden. (dmex)
+        PhUpdateWindowClassBackground(PhMipContainerWindow);
+
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
     else if (adjustPinResult == HideAdjustPinResult)
@@ -430,7 +434,7 @@ RTL_ATOM PhMipContainerInitializeWindowClass(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = PhThemeWindowBackgroundBrush;// (HBRUSH)(COLOR_BTNFACE + 1);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     name = PhaGetStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(name, SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
 
@@ -906,14 +910,14 @@ VOID PhMipCalculateWindowRectangle(
         sourceTop = SourcePoint->y;
         sourceBottom = SourcePoint->y;
 
-        if ((sourceWindow = WindowFromPoint(*SourcePoint)) &&
-            PhGetWindowRect(sourceWindow, &sourceWindowRect))
+        sourceWindow = WindowFromPoint(*SourcePoint);
+        if (sourceWindow && PhGetWindowRect(sourceWindow, &sourceWindowRect))
         {
             sourceTop = sourceWindowRect.top;
             sourceBottom = sourceWindowRect.bottom;
         }
 
-        gap = MulDiv(4, PhGetWindowDpi(PhMipContainerWindow), USER_DEFAULT_SCREEN_DPI);
+        gap = PhMultiplyDivideSigned(4, PhGetWindowDpi(PhMipContainerWindow), USER_DEFAULT_SCREEN_DPI);
         top = sourceTop - windowRectangle.Height - gap;
 
         if (haveBounds && top < bounds.Top)
@@ -1242,7 +1246,7 @@ VOID PhMipSetPinned(
     if (Update)
     {
         PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
-        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        PhSetWindowFrameChanged(PhMipContainerWindow);
     }
 
     PhMipPinned = Pinned;

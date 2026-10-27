@@ -81,6 +81,24 @@ static LONG SummaryGraphSpacing;
 VOID PhSipLayoutSummaryView(VOID);
 VOID PhSipLayoutSectionView(VOID);
 
+static VOID PhSipFillContainerBackground(
+    _In_ HDC hdc,
+    _In_ PRECT rect
+    )
+{
+    switch (PhCsGraphColorMode)
+    {
+    case 0: // New colors
+        SetDCBrushColor(hdc, GetSysColor(COLOR_WINDOW));
+        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        break;
+    case 1: // Old colors
+        SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
+        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        break;
+    }
+}
+
 VOID PhSipSaveSectionOrder(
     VOID
     )
@@ -261,8 +279,19 @@ VOID PhShowSystemInformationDialog(
 {
     InitialSectionName = SectionName;
 
+    // The sysinfo thread clears PhSipWindow (WM_NCDESTROY) before its message
+    // loop exits; if the window is gone, reap the old thread before recreating.
+    if (PhSipThread && !ReadPointerAcquire(&PhSipWindow))
+    {
+        NtWaitForSingleObject(PhSipThread, FALSE, NULL);
+        NtClose(PhSipThread);
+        PhSipThread = NULL;
+    }
+
     if (!PhSipThread)
     {
+        PhResetEvent(&InitializedEvent);
+
         if (!NT_SUCCESS(PhCreateThreadEx(&PhSipThread, PhSipSysInfoThreadStart, NULL)))
         {
             PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
@@ -285,16 +314,19 @@ NTSTATUS PhSipSysInfoThreadStart(
     MSG message;
     HACCEL acceleratorTable;
     BOOLEAN processed;
+    HWND windowHandle;
 
     PhInitializeAutoPool(&autoPool);
 
-    PhSipWindow = PhCreateDialog(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SYSINFO),
         NULL,
         PhSipSysInfoDialogProc,
         NULL
         );
+
+    PhSipWindow = windowHandle;
 
     PhSetEvent(&InitializedEvent);
 
@@ -308,11 +340,11 @@ NTSTATUS PhSipSysInfoThreadStart(
         processed = FALSE;
 
         if (
-            message.hwnd == PhSipWindow ||
-            IsChild(PhSipWindow, message.hwnd)
+            message.hwnd == windowHandle ||
+            IsChild(windowHandle, message.hwnd)
             )
         {
-            if (TranslateAccelerator(PhSipWindow, acceleratorTable, &message))
+            if (TranslateAccelerator(windowHandle, acceleratorTable, &message))
                 processed = TRUE;
         }
 
@@ -332,7 +364,7 @@ NTSTATUS PhSipSysInfoThreadStart(
 
         if (!processed)
         {
-            if (!IsDialogMessage(PhSipWindow, &message))
+            if (!IsDialogMessage(windowHandle, &message))
             {
                 TranslateMessage(&message);
                 DispatchMessage(&message);
@@ -343,11 +375,10 @@ NTSTATUS PhSipSysInfoThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    PhResetEvent(&InitializedEvent);
-    NtClose(PhSipThread);
 
-    PhSipWindow = NULL;
-    PhSipThread = NULL;
+    // Note: PhSipWindow is cleared during WM_NCDESTROY, and PhSipThread is
+    // reaped by PhShowSystemInformationDialog on the main thread. Clearing
+    // them here would race the main thread's create/reuse path. (dmex)
 
     if (PhSipDialogList)
     {
@@ -528,17 +559,21 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     {
     case WM_INITDIALOG:
         {
-            //if (WindowsVersion >= WINDOWS_8)
-            //{
-            //    // TODO: The container background is drawn before child controls
-            //    // causing slight flickering when switching between sysinfo panels.
-            //    // We need to somehow exclude the container background drawing,
-            //    // setting the container window as composited works well but has
-            //    // slower drawing and should be considered a temporary workaround. (dmex)
-            //    PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
-            //}
-
             PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            RECT clipRect;
+
+            SetBkMode((HDC)wParam, TRANSPARENT);
+
+            if (GetClipBox((HDC)wParam, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            PhSipFillContainerBackground((HDC)wParam, &clipRect);
+
+            return TRUE;
         }
         break;
     case WM_CTLCOLORBTN:
@@ -637,7 +672,7 @@ VOID PhSipOnInitDialog(
     SeparatorControl = PhCreateWindow(
         WC_STATIC,
         NULL,
-        WS_CHILD | SS_OWNERDRAW,
+        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW,
         0,
         0,
         0,
@@ -650,7 +685,7 @@ VOID PhSipOnInitDialog(
     RestoreSummaryControl = PhCreateWindow(
         WC_STATIC,
         NULL,
-        WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
         0,
@@ -700,9 +735,6 @@ VOID PhSipOnInitDialog(
         PhLoadWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
     else
         PhCenterWindow(PhSipWindow, NULL);
-
-    if (PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
-        ShowWindow(PhSipWindow, SW_MAXIMIZE);
 
     if (InitialSectionName)
         PhInitializeStringRefLongHint(&sectionName, InitialSectionName);
@@ -764,6 +796,11 @@ VOID PhSipOnNcDestroy(
         PhCloseThemeData(ThemeData);
         ThemeData = NULL;
     }
+
+    // Publish the window teardown last so the main thread's
+    // PhShowSystemInformationDialog reaps this thread and recreates the
+    // window instead of activating a destroyed handle. (dmex)
+    WritePointerRelease(&PhSipWindow, NULL);
 }
 
 BOOLEAN PhSipOnSysCommand(
@@ -1180,6 +1217,9 @@ VOID PhSipOnUserMessage(
 
             if (IsMinimized(PhSipWindow))
                 ShowWindow(PhSipWindow, SW_RESTORE);
+            else if (!IsWindowVisible(PhSipWindow) &&
+                PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
+                ShowWindow(PhSipWindow, SW_SHOWMAXIMIZED);
             else
                 ShowWindow(PhSipWindow, SW_SHOW);
 
@@ -1695,7 +1735,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     };
 
     bufferDc = CreateCompatibleDC(DrawItemStruct->hDC);
-    bufferBitmap = CreateCompatibleBitmap(DrawItemStruct->hDC, bufferRect.right, bufferRect.bottom);
+    bufferBitmap = PhCreateDIBSection(DrawItemStruct->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetBkMode(bufferDc, TRANSPARENT);
@@ -1710,6 +1750,7 @@ VOID PhSipDrawRestoreSummaryPanel(
             FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             break;
         case 1: // Old colors
+        default:
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
             FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
@@ -1776,7 +1817,7 @@ VOID PhSipDrawSeparator(
     };
 
     bufferDc = CreateCompatibleDC(DrawItemStruct->hDC);
-    bufferBitmap = CreateCompatibleBitmap(DrawItemStruct->hDC, bufferRect.right, bufferRect.bottom);
+    bufferBitmap = PhCreateDIBSection(DrawItemStruct->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetBkMode(bufferDc, TRANSPARENT);
@@ -1848,6 +1889,7 @@ VOID PhSipDrawPanel(
                 FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
+            default:
                 SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
                 FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
@@ -2533,6 +2575,24 @@ VOID PhSipEnterSectionView(
     deferHandle = DeferWindowPos(deferHandle, SeparatorControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
 
     EndDeferWindowPos(deferHandle);
+
+    if (!fromSummaryView && NewSection->DialogHandle)
+    {
+        // Keep the outgoing dialog visible until the incoming dialog has painted.
+        SetWindowPos(
+            NewSection->DialogHandle,
+            HWND_TOP,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_SHOWWINDOW
+            );
+        RedrawWindow(
+            NewSection->DialogHandle,
+            NULL,
+            NULL,
+            RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | (IsWindowVisible(PhSipWindow) ? RDW_UPDATENOW : 0)
+            );
+    }
+
     EndDeferWindowPos(containerDeferHandle);
 
     if (oldSection)
@@ -2540,8 +2600,8 @@ VOID PhSipEnterSectionView(
 
     InvalidateRect(NewSection->PanelHandle, NULL, TRUE);
 
-    if (NewSection->DialogHandle)
-        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+    if (fromSummaryView && NewSection->DialogHandle)
+        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 VOID PhSipEnterSectionViewInner(
@@ -2566,7 +2626,10 @@ VOID PhSipEnterSectionViewInner(
     if (Section->DialogHandle)
     {
         if (Section == CurrentSection)
-            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY | SWP_NOREDRAW);
+        {
+            if (FromSummaryView)
+                *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+        }
         else
             *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY | SWP_NOREDRAW);
     }
@@ -2620,7 +2683,7 @@ VOID PhSipCreateSectionDialog(
         {
             Section->DialogHandle = PhCreateDialogFromTemplate(
                 ContainerControl,
-                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
+                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPCHILDREN,
                 createDialog.Instance,
                 createDialog.Template,
                 createDialog.DialogProc,
@@ -2670,7 +2733,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
             else
             {
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
         }
         break;
@@ -2685,7 +2748,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
             else
             {
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
         }
         break;
@@ -2748,8 +2811,8 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
 
             Graph_Draw(section->GraphHandle);
-            InvalidateRect(section->GraphHandle, NULL, TRUE);
-            InvalidateRect(section->PanelHandle, NULL, TRUE);
+            InvalidateRect(section->GraphHandle, NULL, FALSE);
+            InvalidateRect(section->PanelHandle, NULL, FALSE);
         }
         break;
     case WM_MOUSELEAVE:
@@ -2757,7 +2820,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             if (!section->PanelHot)
             {
                 section->GraphHot = FALSE;
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
             else
             {
@@ -2838,7 +2901,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             if (!section)
             {
                 RestoreSummaryControlHasFocus = TRUE;
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
         }
         break;
@@ -2847,7 +2910,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             if (!section)
             {
                 RestoreSummaryControlHasFocus = FALSE;
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
         }
         break;
@@ -2895,7 +2958,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
                 if (!(section->GraphHot || section->PanelHot))
                 {
                     section->PanelHot = TRUE;
-                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                    InvalidateRect(section->PanelHandle, NULL, FALSE);
                 }
                 else
                 {
@@ -2905,7 +2968,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             else
             {
                 RestoreSummaryControlHot = TRUE;
-                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+                InvalidateRect(RestoreSummaryControl, NULL, FALSE);
             }
         }
         break;
@@ -2918,7 +2981,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
                 if (!section->GraphHot)
                 {
                     section->PanelHot = FALSE;
-                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                    InvalidateRect(section->PanelHandle, NULL, FALSE);
                 }
                 else
                 {
@@ -2929,7 +2992,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             {
                 RestoreSummaryControlHasFocus = FALSE;
                 RestoreSummaryControlHot = FALSE;
-                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+                InvalidateRect(RestoreSummaryControl, NULL, FALSE);
             }
         }
         break;

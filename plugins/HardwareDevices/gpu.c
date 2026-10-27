@@ -36,6 +36,7 @@ VOID GraphicsDeviceEntryDeleteProcedure(
     PhReleaseQueuedLockExclusive(&GraphicsDevicesListLock);
 
     DeleteGraphicsDeviceId(&entry->Id);
+    PhClearReference(&entry->DeviceName);
 
     PhDeleteCircularBuffer_FLOAT(&entry->GpuUsageHistory);
     PhDeleteCircularBuffer_ULONG64(&entry->DedicatedHistory);
@@ -72,6 +73,58 @@ VOID GraphicsDeviceInitialize(
     GraphicsEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
     GraphicsEnableScaleText = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT);
     GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
+}
+
+/**
+ * Returns the friendly name of a graphics device.
+ *
+ * \param Entry Graphics device entry.
+ * \return Referenced name string, or NULL when the adapter could not be resolved.
+ * \remarks The name is resolved once and cached on the entry. Entries restored from
+ * settings are created before the device has been enumerated, so an unresolved name
+ * is retried on the next call. (dmex)
+ */
+_Success_(return != NULL)
+PPH_STRING GraphicsDeviceGetName(
+    _In_ PDV_GPU_ENTRY Entry
+    )
+{
+    PPH_STRING deviceName;
+
+    deviceName = ReadPointerAcquire(&Entry->DeviceName);
+
+    if (!deviceName)
+    {
+        PPH_STRING newDeviceName;
+
+        newDeviceName = GraphicsQueryAdapterName(PhGetString(Entry->Id.DevicePath));
+
+        if (newDeviceName)
+        {
+            // Try to install the resolved name. (dmex)
+            deviceName = InterlockedCompareExchangePointer(
+                &Entry->DeviceName,
+                newDeviceName,
+                NULL
+                );
+
+            if (!deviceName)
+            {
+                // We stored the name; the cache now owns our reference.
+                deviceName = newDeviceName;
+            }
+            else
+            {
+                // Another thread won the race; discard our copy.
+                PhDereferenceObject(newDeviceName);
+            }
+        }
+    }
+
+    if (deviceName)
+        PhReferenceObject(deviceName);
+
+    return deviceName;
 }
 
 /**

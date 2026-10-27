@@ -148,10 +148,6 @@ VOID WepRefreshWindows(
     _In_ PWINDOWS_CONTEXT Context
     )
 {
-    // The tree is rebuilt below using the synchronous enumeration, which does not necessarily
-    // cover the same windows as the provider. Make the provider re-raise every window so the
-    // tree ends up with the same contents as an initial population.
-    WeResetWindowProvider(Context->WindowProvider);
     PhBoostProvider(&Context->ProviderRegistration, NULL);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
@@ -165,24 +161,7 @@ VOID WepRefreshWindows(
     }
     TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-}
-
-VOID WepToggleProviderPaused(
-    _In_ PWINDOWS_CONTEXT Context
-    )
-{
-    Context->ProviderPaused = !Context->ProviderPaused;
-
-    PhSetEnabledProvider(&Context->ProviderRegistration, !Context->ProviderPaused);
-
-    if (Context->ProviderPaused)
-    {
-        SetWindowText(Context->PauseResumeButtonHandle, L"Resume");
-    }
-    else
-    {
-        SetWindowText(Context->PauseResumeButtonHandle, L"Pause");
-    }
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
 }
 
 //VOID WepEnumerateParentChildWindows(
@@ -505,103 +484,24 @@ VOID WepToggleProviderPaused(
 //}
 //
 
-// Forward declaration
-LRESULT CALLBACK OverlayWndProc(HWND WindowHandle, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// Handle to the overlay window (global or static as needed)
-static HWND g_OverlayWnd = NULL;
-
-/**
- * Create the overlay window and show a border at the given rect (screen coordinates)
- *
- * \param rect
- */
-void ShowScreenOverlayBox(const RECT* rect)
+static VOID SelectDefaultImeWindowColor(
+    _In_ HWND WindowHandle,
+    _Inout_ PWE_WINDOW_TREE_CONTEXT TreeContext
+    )
 {
-    //if (g_OverlayWnd)
-    //    DestroyWindow(g_OverlayWnd);
+    static COLORREF customColors[16] = { 0 };
+    CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
 
-    //// Register window class once
-    //static ATOM overlayClass = 0;
-    //if (!overlayClass)
-    //{
-    //    WNDCLASS wc = { 0 };
-    //    wc.lpfnWndProc = OverlayWndProc;
-    //    wc.hInstance = (HINSTANCE)PhInstanceHandle;
-    //    wc.lpszClassName = L"ScreenOverlayBox";
-    //    wc.hCursor = LoadCursor(NULL, IDC_CROSS);
-    //    overlayClass = RegisterClass(&wc);
-    //}
+    chooseColor.hwndOwner = WindowHandle;
+    chooseColor.rgbResult = TreeContext->DefaultImeWindowColor;
+    chooseColor.lpCustColors = customColors;
+    chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_RGBINIT;
 
-    //int width = rect->right - rect->left;
-    //int height = rect->bottom - rect->top;
-
-    //g_OverlayWnd = CreateWindowEx(
-    //    WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-    //    L"ScreenOverlayBox", L"",
-    //    WS_POPUP,
-    //    rect->left, rect->top, width, height,
-    //    NULL, NULL, (HINSTANCE)PhInstanceHandle, NULL
-    //);
-
-    //// Set transparency (0=fully transparent, 255=opaque)
-    //SetLayeredWindowAttributes(g_OverlayWnd, 0, 1, LWA_ALPHA);
-
-    //ShowWindow(g_OverlayWnd, SW_SHOWNOACTIVATE);
-    //UpdateWindow(g_OverlayWnd);
-}
-
-/**
- * Destroy the overlay window when done
- *
- */
-void HideScreenOverlayBox()
-{
-    if (g_OverlayWnd)
+    if (ChooseColor(&chooseColor))
     {
-        DestroyWindow(g_OverlayWnd);
-        g_OverlayWnd = NULL;
-    }
-}
-
-/**
- * Window procedure for the overlay
- *
- * \param WindowHandle
- * \param msg
- * \param wParam
- * \param lParam
- * \return
- */
-LRESULT CALLBACK OverlayWndProc(HWND WindowHandle, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    switch (msg)
-    {
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(WindowHandle, &ps);
-            RECT rc;
-            GetClientRect(WindowHandle, &rc);
-
-            // Draw a thick border (e.g., 3px, color: red)
-            HPEN pen = CreatePen(PS_SOLID, 3, RGB(255, 0, 0));
-            HBRUSH brush = (HBRUSH)PhGetStockBrush(NULL_BRUSH);
-            HGDIOBJ oldPen = SelectPen(hdc, pen);
-            HGDIOBJ oldBrush = SelectBrush(hdc, brush);
-
-            Rectangle(hdc, 0, 0, rc.right, rc.bottom);
-
-            SelectPen(hdc, oldPen);
-            SelectBrush(hdc, oldBrush);
-            DeletePen(pen);
-            EndPaint(WindowHandle, &ps);
-            return 0;
-        }
-    case WM_DESTROY:
-        return 0;
-    default:
-        return DefWindowProc(WindowHandle, msg, wParam, lParam);
+        PhSetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME_COLOR, chooseColor.rgbResult);
+        TreeContext->DefaultImeWindowColor = chooseColor.rgbResult;
+        WeInvalidateWindowTreeColors(TreeContext);
     }
 }
 
@@ -1014,6 +914,7 @@ VOID WeSnapshotModeStart(
     _In_ PWINDOWS_CONTEXT Context
     )
 {
+    CLIENT_ID clientId;
     PWE_WINDOW_NODE windowNode;
     HWND selectedWindow;
 
@@ -1030,16 +931,20 @@ VOID WeSnapshotModeStart(
         if (hungWindow)
             selectedWindow = hungWindow;
 
-        // Find and select the window node in the tree. Windows belonging to this process are
-        // valid targets too (for example when viewing System Informer's own windows).
-        if (windowNode = WeFindWindowNode(&Context->TreeContext, selectedWindow))
+        // Check if it's not our own process
+        if (NT_SUCCESS(PhGetWindowClientId(selectedWindow, &clientId)) &&
+            clientId.UniqueProcess != NtCurrentProcessId())
         {
-            WeSelectAndEnsureVisibleWindowNodes(&Context->TreeContext, &windowNode, 1);
-            SetFocus(Context->TreeNewHandle);
-        }
-        else
-        {
-            WeDeselectAllWindowNodes(&Context->TreeContext);
+            // Find and select the window node in the tree
+            if (windowNode = WeFindWindowNode(&Context->TreeContext, selectedWindow))
+            {
+                WeSelectAndEnsureVisibleWindowNodes(&Context->TreeContext, &windowNode, 1);
+                SetFocus(Context->TreeNewHandle);
+            }
+            else
+            {
+                WeDeselectAllWindowNodes(&Context->TreeContext);
+            }
         }
     }
 }
@@ -1306,7 +1211,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             }
 
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
-            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+            WeStopWindowHighlight(
+                &context->HighlightingOverlayWindow,
+                &context->HighlightingWindow,
+                &context->HighlightingWindowCount,
+                &context->HighlightingOverlay
+                );
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, WindowHandle);
 
@@ -1356,7 +1266,11 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                     case ProviderAddedEvent:
                         {
-                            if (!WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle))
+                            PWE_WINDOW_NODE windowNode;
+
+                            if (windowNode = WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle))
+                                WeUpdateWindowNode(windowNode, windowItem, &context->TreeContext);
+                            else
                                 WeAddWindowNode(&context->TreeContext, windowItem, events[i].RunId);
 
                             PhDereferenceObject(windowItem);
@@ -1367,7 +1281,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             PWE_WINDOW_NODE windowNode = WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle);
 
                             if (windowNode)
-                                WeUpdateWindowNode(windowNode, &context->TreeContext);
+                                WeUpdateWindowNode(windowNode, windowItem, &context->TreeContext);
 
                             PhDereferenceObject(windowItem);
                         }
@@ -1437,6 +1351,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PPH_EMENU_ITEM enumMessageOnlyItem;
                     PPH_EMENU_ITEM enumNonVisibleItem;
                     PPH_EMENU_ITEM highlightMessageOnlyItem;
+                    PPH_EMENU_ITEM highlightDefaultImeItem;
                     PPH_EMENU_ITEM iconsItem;
                     PPH_EMENU_ITEM desktopItem;
                     PPH_EMENU_ITEM parentChildItem;
@@ -1452,6 +1367,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PhInsertEMenuItem(menu, enumNonVisibleItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_ENUM_NONVISIBLE, L"Enumerate non-visible windows", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightMessageOnlyItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_MESSAGEONLY, L"Highlight message-only windows", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightDefaultImeItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME, L"Highlight default IME windows", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME_COLOR, L"Default IME highlight color...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, iconsItem = PhCreateEMenuItem(0, 1, L"Enable icons", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1469,6 +1386,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         enumNonVisibleItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY))
                         highlightMessageOnlyItem->Flags |= PH_EMENU_CHECKED;
+                    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME))
+                        highlightDefaultImeItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS))
                         iconsItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_SHOW_DESKTOP_WINDOWS))
@@ -1509,9 +1428,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                                 BOOLEAN value = !PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE);
                                 PhSetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE, value);
                                 context->TreeContext.EnableWindowVisible = value;
-                                // Let the background provider reconcile the tree so newly-included windows flash the
-                                // "new item" highlight (and now-excluded windows are removed) instead of an instant
-                                // clear + repopulate via WepRefreshWindows.
+                                // Let the background provider discover newly-included windows so they receive the
+                                // "new item" highlight. Already-tracked windows remain tracked if they become hidden.
                                 PhBoostProvider(&context->ProviderRegistration, NULL);
                             }
                             break;
@@ -1522,6 +1440,17 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                                 context->TreeContext.HighlightMessageOnly = value;
                                 WeInvalidateWindowTreeColors(&context->TreeContext);
                             }
+                            break;
+                        case ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME:
+                            {
+                                BOOLEAN value = !PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME);
+                                PhSetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME, value);
+                                context->TreeContext.HighlightDefaultIme = value;
+                                WeInvalidateWindowTreeColors(&context->TreeContext);
+                            }
+                            break;
+                        case ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME_COLOR:
+                            SelectDefaultImeWindowColor(WindowHandle, &context->TreeContext);
                             break;
                         case ID_WINDOW_OPTIONS_FIND_SNAPSHOT:
                             {
@@ -1617,9 +1546,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_BRINGTOFRONT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
 
@@ -1637,9 +1564,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_RESTORE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
                     }
@@ -1647,9 +1572,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_MINIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         ShowWindowAsync(selectedNode->WindowHandle, SW_MINIMIZE);
                     }
@@ -1657,9 +1580,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_MAXIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         ShowWindowAsync(selectedNode->WindowHandle, SW_MAXIMIZE);
                     }
@@ -1667,9 +1588,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_CLOSE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         //WeWindowEndTask(selectedNode->WindowHandle, TRUE);
                         PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
@@ -1677,83 +1596,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     }
                 }
                 break;
-                case ID_WINDOW_VISIBLE:
-                    {
-                        PWE_WINDOW_NODE selectedNode;
-                        HWND currentWindow;
-
-                        if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        {
-                            currentWindow = selectedNode->WindowHandle;
-
-                            if (WeIsWindowEffectivelyVisible(currentWindow)) // If it's effectively visible, hide it.
-                            {
-                                selectedNode->WindowItem->WindowVisible = FALSE;
-                                ShowWindowAsync(currentWindow, SW_HIDE);
-                            }
-                            else // If not effectively visible, make it and its parents visible.
-                            {
-                                BOOL invisibleParentFound = FALSE;
-                                HWND tempParent = GetParent(currentWindow);
-
-                                while (tempParent && tempParent != GetDesktopWindow())
-                                {
-                                    if (!IsWindowVisible(tempParent))
-                                    {
-                                        invisibleParentFound = TRUE;
-                                        break;
-                                    }
-                                    tempParent = GetParent(tempParent);
-                                }
-
-                                if (invisibleParentFound)
-                                {
-                                    if (MessageBoxW(
-                                        context->WindowHandle, // Parent window for the message box
-                                        L"The parent window(s) of this window are currently invisible.\n\n"
-                                        L"Do you want to make the parent window(s) visible along with this window?",
-                                        L"Confirm Parent Visibility Change",
-                                        MB_YESNO | MB_ICONQUESTION
-                                    ) == IDNO)
-                                    {
-                                        // User chose not to make parents visible, so just make the current window visible (current behavior)
-                                        selectedNode->WindowItem->WindowVisible = TRUE;
-                                        ShowWindowAsync(currentWindow, SW_SHOW);
-                                    }
-                                    else
-                                    {
-                                        // User confirmed, make current window and its parents visible
-                                        selectedNode->WindowItem->WindowVisible = TRUE;
-                                        ShowWindowAsync(currentWindow, SW_SHOW);
-
-                                        HWND parent = GetParent(currentWindow);
-                                        while (parent && parent != GetDesktopWindow())
-                                        {
-                                            if (!IsWindowVisible(parent))
-                                            {
-                                                ShowWindowAsync(parent, SW_SHOW);
-                                            }
-                                            parent = GetParent(parent);
-                                        }
-                                    }
-                                }
-                                else // No invisible parents found, just make current window visible
-                                {
-                                    selectedNode->WindowItem->WindowVisible = TRUE;
-                                    ShowWindowAsync(currentWindow, SW_SHOW);
-                                }
-                            }
-
-                            PhInvalidateTreeNewNode(&selectedNode->Node, TN_CACHE_COLOR);
-                            TreeNew_InvalidateNode(context->TreeNewHandle, &selectedNode->Node);
-                        }
-                    }
-                    break;
             case ID_WINDOW_ENABLED:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         EnableWindow(selectedNode->WindowHandle, !IsWindowEnabled(selectedNode->WindowHandle));
                     }
@@ -1761,15 +1606,17 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_ALWAYSONTOP:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         LOGICAL topMost;
 
-                        topMost = GetWindowLong(selectedNode->WindowHandle, GWL_EXSTYLE) & WS_EX_TOPMOST;
-                        SetWindowPos(selectedNode->WindowHandle, topMost ? HWND_NOTOPMOST : HWND_TOPMOST,
-                            0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                        topMost = GetWindowLongPtr(selectedNode->WindowHandle, GWL_EXSTYLE) & WS_EX_TOPMOST;
+                        SetWindowPos(
+                            selectedNode->WindowHandle,
+                            topMost ? HWND_NOTOPMOST : HWND_TOPMOST,
+                            0, 0, 0, 0,
+                            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+                            );
                     }
                 }
                 break;
@@ -1784,8 +1631,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             case ID_OPACITY_90:
             case ID_OPACITY_OPAQUE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
                         ULONG opacity;
@@ -1809,33 +1654,27 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_HIGHLIGHT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
-                        if (context->HighlightingOverlayWindow)
-                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
-                        else if (context->HighlightingWindow)
-                        {
-                            if (context->HighlightingWindowCount & 1)
-                                WeInvertWindowBorder(context->HighlightingWindow);
-                        }
+                        WeStartWindowHighlight(
+                            &context->HighlightingOverlayWindow,
+                            &context->HighlightingWindow,
+                            &context->HighlightingWindowCount,
+                            &context->HighlightingOverlay,
+                            selectedNode->WindowHandle
+                            );
 
-                        context->HighlightingWindow = selectedNode->WindowHandle;
-                        context->HighlightingWindowCount = 10;
-                        if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
-                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
-                        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
+                        if (context->HighlightingWindowCount != 0)
+                            PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
             case ID_WINDOW_GOTOTHREAD:
                 {
-                    PWE_WINDOW_NODE selectedNode;
                     PPH_PROCESS_ITEM processItem;
                     PPH_PROCESS_PROPCONTEXT propContext;
 
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->WindowItem->ClientId.UniqueProcess))
                         {
@@ -1857,11 +1696,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_GOTOPROCESS:
                 {
-                    PWE_WINDOW_NODE selectedNode;
                     PPH_PROCESS_ITEM processItem;
                     PPH_PROCESS_NODE processNode;
 
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->WindowItem->ClientId.UniqueProcess))
                         {
@@ -1883,9 +1721,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_INSPECT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
@@ -1905,9 +1741,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_OPENFILELOCATION:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
@@ -1927,9 +1761,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_PROPERTIES:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         WeShowWindowProperties(
                             WindowHandle,
@@ -1949,9 +1781,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_SETDPI:
                 {
-                    PWE_WINDOW_NODE selectedNode;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    if (selectedNode)
                     {
                         PPH_STRING selectedChoice = NULL;
 
@@ -1984,7 +1814,18 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_PAUSERESUME:
                 {
-                    WepToggleProviderPaused(context);
+                    context->ProviderPaused = !context->ProviderPaused;
+
+                    PhSetEnabledProvider(&context->ProviderRegistration, !context->ProviderPaused);
+
+                    if (context->ProviderPaused)
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Resume");
+                    }
+                    else
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Pause");
+                    }
                 }
                 break;
             }
@@ -2008,13 +1849,17 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             {
             case PH_WINDOW_TIMER_DEFAULT:
                 {
-                    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED) && context->HighlightingWindowCount > 0)
+                    if (
+                        context->HighlightingWindowCount > 0 &&
+                        !WeUpdateWindowHighlight(
+                            &context->HighlightingOverlayWindow,
+                            &context->HighlightingWindow,
+                            &context->HighlightingWindowCount,
+                            &context->HighlightingOverlay
+                            )
+                        )
                     {
-                        if (context->HighlightingWindow && IsWindow(context->HighlightingWindow))
-                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
-
-                        if (--context->HighlightingWindowCount == 0)
-                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+                        PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
                     }
 
                     //if (context->TreeContext.EnableStateHighlighting)
@@ -2443,7 +2288,12 @@ INT_PTR CALLBACK WepWindowsPageProc(
     case WM_DESTROY:
         {
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
-            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+            WeStopWindowHighlight(
+                &context->HighlightingOverlayWindow,
+                &context->HighlightingWindow,
+                &context->HighlightingWindowCount,
+                &context->HighlightingOverlay
+                );
 
             PhSetEnabledProvider(&context->ProviderRegistration, FALSE);
             PhUnregisterProvider(&context->ProviderRegistration);
@@ -2512,7 +2362,11 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                     case ProviderAddedEvent:
                         {
-                            if (!WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle))
+                            PWE_WINDOW_NODE node;
+
+                            if (node = WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle))
+                                WeUpdateWindowNode(node, windowItem, &context->TreeContext);
+                            else
                                 WeAddWindowNode(&context->TreeContext, windowItem, events[i].RunId);
 
                             PhDereferenceObject(windowItem);
@@ -2524,7 +2378,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                             if (node = WeFindWindowNode(&context->TreeContext, windowItem->WindowHandle))
                             {
-                                WeUpdateWindowNode(node, &context->TreeContext);
+                                WeUpdateWindowNode(node, windowItem, &context->TreeContext);
                             }
 
                             PhDereferenceObject(windowItem);
@@ -2586,11 +2440,6 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
                 }
                 break;
-            case IDC_PAUSERESUME:
-                {
-                    WepToggleProviderPaused(context);
-                }
-                break;
             case IDC_OPTIONS:
                 {
                     RECT rect;
@@ -2598,6 +2447,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PPH_EMENU_ITEM enumMessageOnlyItem;
                     PPH_EMENU_ITEM enumNonVisibleItem;
                     PPH_EMENU_ITEM highlightMessageOnlyItem;
+                    PPH_EMENU_ITEM highlightDefaultImeItem;
                     PPH_EMENU_ITEM iconsItem;
                     PPH_EMENU_ITEM desktopItem;
                     PPH_EMENU_ITEM parentChildItem;
@@ -2612,6 +2462,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PhInsertEMenuItem(menu, enumNonVisibleItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_ENUM_NONVISIBLE, L"Enumerate non-visible windows", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightMessageOnlyItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_MESSAGEONLY, L"Highlight message-only windows", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightDefaultImeItem = PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME, L"Highlight default IME windows", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME_COLOR, L"Default IME highlight color...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, iconsItem = PhCreateEMenuItem(0, 1, L"Enable icons", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -2627,6 +2479,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         enumNonVisibleItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY))
                         highlightMessageOnlyItem->Flags |= PH_EMENU_CHECKED;
+                    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME))
+                        highlightDefaultImeItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS))
                         iconsItem->Flags |= PH_EMENU_CHECKED;
                     if (PhGetIntegerSetting(SETTING_NAME_SHOW_DESKTOP_WINDOWS))
@@ -2665,9 +2519,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
                                 BOOLEAN value = !PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE);
                                 PhSetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE, value);
                                 context->TreeContext.EnableWindowVisible = value;
-                                // Let the background provider reconcile the tree so newly-included windows flash the
-                                // "new item" highlight (and now-excluded windows are removed) instead of an instant
-                                // clear + repopulate via WepRefreshWindows.
+                                // Let the background provider discover newly-included windows so they receive the
+                                // "new item" highlight. Already-tracked windows remain tracked if they become hidden.
                                 PhBoostProvider(&context->ProviderRegistration, NULL);
                             }
                             break;
@@ -2678,6 +2531,17 @@ INT_PTR CALLBACK WepWindowsPageProc(
                                 context->TreeContext.HighlightMessageOnly = value;
                                 WeInvalidateWindowTreeColors(&context->TreeContext);
                             }
+                            break;
+                        case ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME:
+                            {
+                                BOOLEAN value = !PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME);
+                                PhSetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME, value);
+                                context->TreeContext.HighlightDefaultIme = value;
+                                WeInvalidateWindowTreeColors(&context->TreeContext);
+                            }
+                            break;
+                        case ID_WINDOW_OPTIONS_HIGHLIGHT_DEFAULTIME_COLOR:
+                            SelectDefaultImeWindowColor(WindowHandle, &context->TreeContext);
                             break;
                         case 1:
                             {
@@ -2842,77 +2706,6 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     }
                 }
                 break;
-            case ID_WINDOW_VISIBLE:
-                {
-                    PWE_WINDOW_NODE selectedNode;
-                    HWND currentWindow;
-
-                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                    {
-                        currentWindow = selectedNode->WindowHandle;
-
-                        if (WeIsWindowEffectivelyVisible(currentWindow)) // If it's effectively visible, hide it.
-                        {
-                            selectedNode->WindowItem->WindowVisible = FALSE;
-                            ShowWindowAsync(currentWindow, SW_HIDE);
-                        }
-                        else // If not effectively visible, make it and its parents visible.
-                        {
-                            BOOL invisibleParentFound = FALSE;
-                            HWND tempParent = GetParent(currentWindow);
-                            while (tempParent && tempParent != GetDesktopWindow())
-                            {
-                                if (!IsWindowVisible(tempParent))
-                                {
-                                    invisibleParentFound = TRUE;
-                                    break;
-                                }
-                                tempParent = GetParent(tempParent);
-                            }
-
-                            if (invisibleParentFound)
-                            {
-                                if (MessageBoxW(
-                                    context->WindowHandle, // Parent window for the message box
-                                    L"The parent window(s) of this window are currently invisible.\n\n"
-                                    L"Do you want to make the parent window(s) visible along with this window?",
-                                    L"Confirm Parent Visibility Change",
-                                    MB_YESNO | MB_ICONQUESTION
-                                ) == IDNO)
-                                {
-                                    // User chose not to make parents visible, so just make the current window visible (current behavior)
-                                    selectedNode->WindowItem->WindowVisible = TRUE;
-                                    ShowWindowAsync(currentWindow, SW_SHOW);
-                                }
-                                else
-                                {
-                                    // User confirmed, make current window and its parents visible
-                                    selectedNode->WindowItem->WindowVisible = TRUE;
-                                    ShowWindowAsync(currentWindow, SW_SHOW);
-
-                                    HWND parent = GetParent(currentWindow);
-                                    while (parent && parent != GetDesktopWindow())
-                                    {
-                                        if (!IsWindowVisible(parent))
-                                        {
-                                            ShowWindowAsync(parent, SW_SHOW);
-                                        }
-                                        parent = GetParent(parent);
-                                    }
-                                }
-                            }
-                            else // No invisible parents found, just make current window visible
-                            {
-                                selectedNode->WindowItem->WindowVisible = TRUE;
-                                ShowWindowAsync(currentWindow, SW_SHOW);
-                            }
-                        }
-
-                        PhInvalidateTreeNewNode(&selectedNode->Node, TN_CACHE_COLOR);
-                        TreeNew_InvalidateNode(context->TreeNewHandle, &selectedNode->Node);
-                    }
-                }
-                break;
             case ID_WINDOW_ENABLED:
                 {
                     PWE_WINDOW_NODE selectedNode;
@@ -2977,19 +2770,16 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (context->HighlightingOverlayWindow)
-                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
-                        else if (context->HighlightingWindow)
-                        {
-                            if (context->HighlightingWindowCount & 1)
-                                WeInvertWindowBorder(context->HighlightingWindow);
-                        }
+                        WeStartWindowHighlight(
+                            &context->HighlightingOverlayWindow,
+                            &context->HighlightingWindow,
+                            &context->HighlightingWindowCount,
+                            &context->HighlightingOverlay,
+                            selectedNode->WindowHandle
+                            );
 
-                        context->HighlightingWindow = selectedNode->WindowHandle;
-                        context->HighlightingWindowCount = 10;
-                        if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
-                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
-                        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
+                        if (context->HighlightingWindowCount != 0)
+                            PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
@@ -3120,6 +2910,22 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     }
                 }
                 break;
+            case IDC_PAUSERESUME:
+                {
+                    context->ProviderPaused = !context->ProviderPaused;
+
+                    PhSetEnabledProvider(&context->ProviderRegistration, !context->ProviderPaused);
+
+                    if (context->ProviderPaused)
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Resume");
+                    }
+                    else
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Pause");
+                    }
+                }
+                break;
             }
         }
         break;
@@ -3129,6 +2935,22 @@ INT_PTR CALLBACK WepWindowsPageProc(
             {
             case PH_WINDOW_TIMER_DEFAULT:
                 {
+                    if (context->HighlightingWindowCount > 0)
+                    {
+                        if (
+                            !WeUpdateWindowHighlight(
+                                &context->HighlightingOverlayWindow,
+                                &context->HighlightingWindow,
+                                &context->HighlightingWindowCount,
+                                &context->HighlightingOverlay
+                                ) &&
+                            !context->TreeContext.EnableStateHighlighting
+                            )
+                        {
+                            PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
+                        }
+                    }
+
                     //if (context->TreeContext.EnableStateHighlighting)
                     //{
                     //    PH_TICK_SH_STATE_TN(

@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-
-
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
-
 
  /* File created by MIDL compiler version 8.00.0603 */
 /* @@MIDL_FILE_HEADING(  ) */
@@ -26,13 +23,11 @@ typedef interface IXCLRDataTarget3 IXCLRDataTarget3;
 
 #endif 	/* __IXCLRDataTarget3_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRLibrarySupport_FWD_DEFINED__
 #define __IXCLRLibrarySupport_FWD_DEFINED__
 typedef interface IXCLRLibrarySupport IXCLRLibrarySupport;
 
 #endif 	/* __IXCLRLibrarySupport_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDisassemblySupport_FWD_DEFINED__
 #define __IXCLRDisassemblySupport_FWD_DEFINED__
@@ -40,13 +35,11 @@ typedef interface IXCLRDisassemblySupport IXCLRDisassemblySupport;
 
 #endif 	/* __IXCLRDisassemblySupport_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataDisplay_FWD_DEFINED__
 #define __IXCLRDataDisplay_FWD_DEFINED__
 typedef interface IXCLRDataDisplay IXCLRDataDisplay;
 
 #endif 	/* __IXCLRDataDisplay_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataProcess_FWD_DEFINED__
 #define __IXCLRDataProcess_FWD_DEFINED__
@@ -54,13 +47,11 @@ typedef interface IXCLRDataProcess IXCLRDataProcess;
 
 #endif 	/* __IXCLRDataProcess_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataProcess2_FWD_DEFINED__
 #define __IXCLRDataProcess2_FWD_DEFINED__
 typedef interface IXCLRDataProcess2 IXCLRDataProcess2;
 
 #endif 	/* __IXCLRDataProcess2_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataAppDomain_FWD_DEFINED__
 #define __IXCLRDataAppDomain_FWD_DEFINED__
@@ -68,13 +59,11 @@ typedef interface IXCLRDataAppDomain IXCLRDataAppDomain;
 
 #endif 	/* __IXCLRDataAppDomain_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataAssembly_FWD_DEFINED__
 #define __IXCLRDataAssembly_FWD_DEFINED__
 typedef interface IXCLRDataAssembly IXCLRDataAssembly;
 
 #endif 	/* __IXCLRDataAssembly_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataModule_FWD_DEFINED__
 #define __IXCLRDataModule_FWD_DEFINED__
@@ -82,13 +71,11 @@ typedef interface IXCLRDataModule IXCLRDataModule;
 
 #endif 	/* __IXCLRDataModule_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataModule2_FWD_DEFINED__
 #define __IXCLRDataModule2_FWD_DEFINED__
 typedef interface IXCLRDataModule2 IXCLRDataModule2;
 
 #endif 	/* __IXCLRDataModule2_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataTypeDefinition_FWD_DEFINED__
 #define __IXCLRDataTypeDefinition_FWD_DEFINED__
@@ -96,13 +83,11 @@ typedef interface IXCLRDataTypeDefinition IXCLRDataTypeDefinition;
 
 #endif 	/* __IXCLRDataTypeDefinition_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataTypeInstance_FWD_DEFINED__
 #define __IXCLRDataTypeInstance_FWD_DEFINED__
 typedef interface IXCLRDataTypeInstance IXCLRDataTypeInstance;
 
 #endif 	/* __IXCLRDataTypeInstance_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataMethodDefinition_FWD_DEFINED__
 #define __IXCLRDataMethodDefinition_FWD_DEFINED__
@@ -110,13 +95,11 @@ typedef interface IXCLRDataMethodDefinition IXCLRDataMethodDefinition;
 
 #endif 	/* __IXCLRDataMethodDefinition_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataMethodInstance_FWD_DEFINED__
 #define __IXCLRDataMethodInstance_FWD_DEFINED__
 typedef interface IXCLRDataMethodInstance IXCLRDataMethodInstance;
 
 #endif 	/* __IXCLRDataMethodInstance_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataTask_FWD_DEFINED__
 #define __IXCLRDataTask_FWD_DEFINED__
@@ -124,13 +107,11 @@ typedef interface IXCLRDataTask IXCLRDataTask;
 
 #endif 	/* __IXCLRDataTask_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataStackWalk_FWD_DEFINED__
 #define __IXCLRDataStackWalk_FWD_DEFINED__
 typedef interface IXCLRDataStackWalk IXCLRDataStackWalk;
 
 #endif 	/* __IXCLRDataStackWalk_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataFrame_FWD_DEFINED__
 #define __IXCLRDataFrame_FWD_DEFINED__
@@ -138,13 +119,11 @@ typedef interface IXCLRDataFrame IXCLRDataFrame;
 
 #endif 	/* __IXCLRDataFrame_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataFrame2_FWD_DEFINED__
 #define __IXCLRDataFrame2_FWD_DEFINED__
 typedef interface IXCLRDataFrame2 IXCLRDataFrame2;
 
 #endif 	/* __IXCLRDataFrame2_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionState_FWD_DEFINED__
 #define __IXCLRDataExceptionState_FWD_DEFINED__
@@ -152,13 +131,11 @@ typedef interface IXCLRDataExceptionState IXCLRDataExceptionState;
 
 #endif 	/* __IXCLRDataExceptionState_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataValue_FWD_DEFINED__
 #define __IXCLRDataValue_FWD_DEFINED__
 typedef interface IXCLRDataValue IXCLRDataValue;
 
 #endif 	/* __IXCLRDataValue_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification_FWD_DEFINED__
 #define __IXCLRDataExceptionNotification_FWD_DEFINED__
@@ -166,13 +143,11 @@ typedef interface IXCLRDataExceptionNotification IXCLRDataExceptionNotification;
 
 #endif 	/* __IXCLRDataExceptionNotification_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataExceptionNotification2_FWD_DEFINED__
 #define __IXCLRDataExceptionNotification2_FWD_DEFINED__
 typedef interface IXCLRDataExceptionNotification2 IXCLRDataExceptionNotification2;
 
 #endif 	/* __IXCLRDataExceptionNotification2_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification3_FWD_DEFINED__
 #define __IXCLRDataExceptionNotification3_FWD_DEFINED__
@@ -180,13 +155,11 @@ typedef interface IXCLRDataExceptionNotification3 IXCLRDataExceptionNotification
 
 #endif 	/* __IXCLRDataExceptionNotification3_FWD_DEFINED__ */
 
-
 #ifndef __IXCLRDataExceptionNotification4_FWD_DEFINED__
 #define __IXCLRDataExceptionNotification4_FWD_DEFINED__
 typedef interface IXCLRDataExceptionNotification4 IXCLRDataExceptionNotification4;
 
 #endif 	/* __IXCLRDataExceptionNotification4_FWD_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification5_FWD_DEFINED__
 #define __IXCLRDataExceptionNotification5_FWD_DEFINED__
@@ -201,7 +174,6 @@ typedef interface IXCLRDataExceptionNotification5 IXCLRDataExceptionNotification
 extern "C"{
 #endif 
 
-
 /* interface __MIDL_itf_xclrdata_0000_0000 */
 /* [local] */ 
 
@@ -213,8 +185,6 @@ typedef ULONG CorElementType;
 
 #pragma warning(push)
 #pragma warning(disable:28718)    
-
-
 
 #pragma warning(pop)
 typedef /* [public][public][public] */ struct __MIDL___MIDL_itf_xclrdata_0000_0000_0001
@@ -289,8 +259,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0000_0005
         CLRDATA_VALUE_IS_BOXED	= 0x1000
     } 	CLRDataValueFlag;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0000_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0000_v0_0_s_ifspec;
 
@@ -299,7 +267,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0000_v0_0_s_ifspec;
 
 /* interface IXCLRDataTarget3 */
 /* [unique][uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataTarget3;
 
@@ -443,7 +410,6 @@ EXTERN_C const IID IID_IXCLRDataTarget3;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataTarget3_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -452,7 +418,6 @@ EXTERN_C const IID IID_IXCLRDataTarget3;
 
 #define IXCLRDataTarget3_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataTarget3_GetMachineType(This,machineType)	\
     ( (This)->lpVtbl -> GetMachineType(This,machineType) ) 
@@ -487,27 +452,20 @@ EXTERN_C const IID IID_IXCLRDataTarget3;
 #define IXCLRDataTarget3_Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer)	\
     ( (This)->lpVtbl -> Request(This,reqCode,inBufferSize,inBuffer,outBufferSize,outBuffer) ) 
 
-
 #define IXCLRDataTarget3_AllocVirtual(This,addr,size,typeFlags,protectFlags,virt)	\
     ( (This)->lpVtbl -> AllocVirtual(This,addr,size,typeFlags,protectFlags,virt) ) 
 
 #define IXCLRDataTarget3_FreeVirtual(This,addr,size,typeFlags)	\
     ( (This)->lpVtbl -> FreeVirtual(This,addr,size,typeFlags) ) 
 
-
 #define IXCLRDataTarget3_GetMetaData(This,imagePath,imageTimestamp,imageSize,mvid,mdRva,flags,bufferSize,buffer,dataSize)	\
     ( (This)->lpVtbl -> GetMetaData(This,imagePath,imageTimestamp,imageSize,mvid,mdRva,flags,bufferSize,buffer,dataSize) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataTarget3_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0001 */
 /* [local] */ 
@@ -631,7 +589,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0001_0010
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0001_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0001_v0_0_s_ifspec;
 
@@ -640,7 +597,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0001_v0_0_s_ifspec;
 
 /* interface IXCLRLibrarySupport */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRLibrarySupport;
 
@@ -709,7 +665,6 @@ EXTERN_C const IID IID_IXCLRLibrarySupport;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRLibrarySupport_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -719,7 +674,6 @@ EXTERN_C const IID IID_IXCLRLibrarySupport;
 #define IXCLRLibrarySupport_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define IXCLRLibrarySupport_LoadHardboundDependency(This,name,mvid,loadedBase)	\
     ( (This)->lpVtbl -> LoadHardboundDependency(This,name,mvid,loadedBase) ) 
 
@@ -728,18 +682,12 @@ EXTERN_C const IID IID_IXCLRLibrarySupport;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
-
-
-
 
 #endif 	/* __IXCLRLibrarySupport_INTERFACE_DEFINED__ */
 
-
 /* interface __MIDL_itf_xclrdata_0000_0002 */
 /* [local] */ 
-
 
 typedef SIZE_T ( __stdcall *CDSTranslateAddrCB )( 
     IXCLRDisassemblySupport *__MIDL____MIDL_itf_xclrdata_0000_00020000,
@@ -770,8 +718,6 @@ typedef SIZE_T ( __stdcall *CDSTranslateRegrelCB )(
     SIZE_T __MIDL____MIDL_itf_xclrdata_0000_00020021,
     DWORD *__MIDL____MIDL_itf_xclrdata_0000_00020022);
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0002_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0002_v0_0_s_ifspec;
 
@@ -780,7 +726,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0002_v0_0_s_ifspec;
 
 /* interface IXCLRDisassemblySupport */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDisassemblySupport;
 
@@ -900,7 +845,6 @@ EXTERN_C const IID IID_IXCLRDisassemblySupport;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDisassemblySupport_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -909,7 +853,6 @@ EXTERN_C const IID IID_IXCLRDisassemblySupport;
 
 #define IXCLRDisassemblySupport_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDisassemblySupport_SetTranslateAddrCallback(This,cb)	\
     ( (This)->lpVtbl -> SetTranslateAddrCallback(This,cb) ) 
@@ -946,21 +889,15 @@ EXTERN_C const IID IID_IXCLRDisassemblySupport;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDisassemblySupport_INTERFACE_DEFINED__ */
-
 
 #ifndef __IXCLRDataDisplay_INTERFACE_DEFINED__
 #define __IXCLRDataDisplay_INTERFACE_DEFINED__
 
 /* interface IXCLRDataDisplay */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataDisplay;
 
@@ -1493,7 +1430,6 @@ EXTERN_C const IID IID_IXCLRDataDisplay;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataDisplay_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -1502,7 +1438,6 @@ EXTERN_C const IID IID_IXCLRDataDisplay;
 
 #define IXCLRDataDisplay_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataDisplay_ErrorPrintF(This,fmt,...)	\
     ( (This)->lpVtbl -> ErrorPrintF(This,fmt,...) ) 
@@ -1656,21 +1591,15 @@ EXTERN_C const IID IID_IXCLRDataDisplay;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataDisplay_INTERFACE_DEFINED__ */
-
 
 #ifndef __IXCLRDataProcess_INTERFACE_DEFINED__
 #define __IXCLRDataProcess_INTERFACE_DEFINED__
 
 /* interface IXCLRDataProcess */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataProcess;
 
@@ -2177,7 +2106,6 @@ EXTERN_C const IID IID_IXCLRDataProcess;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataProcess_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2186,7 +2114,6 @@ EXTERN_C const IID IID_IXCLRDataProcess;
 
 #define IXCLRDataProcess_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataProcess_Flush(This)	\
     ( (This)->lpVtbl -> Flush(This) ) 
@@ -2328,14 +2255,9 @@ EXTERN_C const IID IID_IXCLRDataProcess;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataProcess_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0005 */
 /* [local] */ 
@@ -2357,8 +2279,6 @@ typedef /* [public][public][public][public] */ struct __MIDL___MIDL_itf_xclrdata
         } 	;
     } 	GcEvtArgs;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0005_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0005_v0_0_s_ifspec;
 
@@ -2367,7 +2287,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0005_v0_0_s_ifspec;
 
 /* interface IXCLRDataProcess2 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataProcess2;
 
@@ -2679,7 +2598,6 @@ EXTERN_C const IID IID_IXCLRDataProcess2;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataProcess2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2688,7 +2606,6 @@ EXTERN_C const IID IID_IXCLRDataProcess2;
 
 #define IXCLRDataProcess2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataProcess2_Flush(This)	\
     ( (This)->lpVtbl -> Flush(This) ) 
@@ -2828,7 +2745,6 @@ EXTERN_C const IID IID_IXCLRDataProcess2;
 #define IXCLRDataProcess2_DumpNativeImage(This,loadedBase,name,display,libSupport,dis)	\
     ( (This)->lpVtbl -> DumpNativeImage(This,loadedBase,name,display,libSupport,dis) ) 
 
-
 #define IXCLRDataProcess2_GetGcNotification(This,gcEvtArgs)	\
     ( (This)->lpVtbl -> GetGcNotification(This,gcEvtArgs) ) 
 
@@ -2837,14 +2753,9 @@ EXTERN_C const IID IID_IXCLRDataProcess2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataProcess2_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0006 */
 /* [local] */ 
@@ -2858,7 +2769,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0006_0001
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0006_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0006_v0_0_s_ifspec;
 
@@ -2867,7 +2777,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0006_v0_0_s_ifspec;
 
 /* interface IXCLRDataAppDomain */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataAppDomain;
 
@@ -2971,7 +2880,6 @@ EXTERN_C const IID IID_IXCLRDataAppDomain;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataAppDomain_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -2980,7 +2888,6 @@ EXTERN_C const IID IID_IXCLRDataAppDomain;
 
 #define IXCLRDataAppDomain_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataAppDomain_GetProcess(This,process)	\
     ( (This)->lpVtbl -> GetProcess(This,process) ) 
@@ -3005,14 +2912,9 @@ EXTERN_C const IID IID_IXCLRDataAppDomain;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataAppDomain_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0007 */
 /* [local] */ 
@@ -3027,7 +2929,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0007_0001
 #pragma warning(push)
 #pragma warning(disable:28718)
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0007_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0007_v0_0_s_ifspec;
 
@@ -3036,7 +2937,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0007_v0_0_s_ifspec;
 
 /* interface IXCLRDataAssembly */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataAssembly;
 
@@ -3187,7 +3087,6 @@ EXTERN_C const IID IID_IXCLRDataAssembly;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataAssembly_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -3196,7 +3095,6 @@ EXTERN_C const IID IID_IXCLRDataAssembly;
 
 #define IXCLRDataAssembly_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataAssembly_StartEnumModules(This,handle)	\
     ( (This)->lpVtbl -> StartEnumModules(This,handle) ) 
@@ -3236,14 +3134,9 @@ EXTERN_C const IID IID_IXCLRDataAssembly;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataAssembly_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0008 */
 /* [local] */ 
@@ -3293,7 +3186,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0008_0005
 #pragma warning(push)
 #pragma warning(disable:28718)
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0008_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0008_v0_0_s_ifspec;
 
@@ -3302,7 +3194,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0008_v0_0_s_ifspec;
 
 /* interface IXCLRDataModule */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataModule;
 
@@ -3681,7 +3572,6 @@ EXTERN_C const IID IID_IXCLRDataModule;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataModule_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -3690,7 +3580,6 @@ EXTERN_C const IID IID_IXCLRDataModule;
 
 #define IXCLRDataModule_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataModule_StartEnumAssemblies(This,handle)	\
     ( (This)->lpVtbl -> StartEnumAssemblies(This,handle) ) 
@@ -3808,20 +3697,14 @@ EXTERN_C const IID IID_IXCLRDataModule;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataModule_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0009 */
 /* [local] */ 
 
 #pragma warning(pop)
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0009_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0009_v0_0_s_ifspec;
@@ -3831,7 +3714,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0009_v0_0_s_ifspec;
 
 /* interface IXCLRDataModule2 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataModule2;
 
@@ -3881,7 +3763,6 @@ EXTERN_C const IID IID_IXCLRDataModule2;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataModule2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -3891,27 +3772,20 @@ EXTERN_C const IID IID_IXCLRDataModule2;
 #define IXCLRDataModule2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define IXCLRDataModule2_SetJITCompilerFlags(This,dwFlags)	\
     ( (This)->lpVtbl -> SetJITCompilerFlags(This,dwFlags) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataModule2_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0010 */
 /* [local] */ 
 
 #pragma warning(push)
 #pragma warning(disable:28718)	
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0010_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0010_v0_0_s_ifspec;
@@ -3921,7 +3795,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0010_v0_0_s_ifspec;
 
 /* interface IXCLRDataTypeDefinition */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataTypeDefinition;
 
@@ -4290,7 +4163,6 @@ EXTERN_C const IID IID_IXCLRDataTypeDefinition;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataTypeDefinition_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -4299,7 +4171,6 @@ EXTERN_C const IID IID_IXCLRDataTypeDefinition;
 
 #define IXCLRDataTypeDefinition_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataTypeDefinition_GetModule(This,mod)	\
     ( (This)->lpVtbl -> GetModule(This,mod) ) 
@@ -4399,14 +4270,9 @@ EXTERN_C const IID IID_IXCLRDataTypeDefinition;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataTypeDefinition_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0011 */
 /* [local] */ 
@@ -4414,7 +4280,6 @@ EXTERN_C const IID IID_IXCLRDataTypeDefinition;
 #pragma warning(pop)
 #pragma warning(push)
 #pragma warning(disable:28718)
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0011_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0011_v0_0_s_ifspec;
@@ -4424,7 +4289,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0011_v0_0_s_ifspec;
 
 /* interface IXCLRDataTypeInstance */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataTypeInstance;
 
@@ -4786,7 +4650,6 @@ EXTERN_C const IID IID_IXCLRDataTypeInstance;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataTypeInstance_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -4795,7 +4658,6 @@ EXTERN_C const IID IID_IXCLRDataTypeInstance;
 
 #define IXCLRDataTypeInstance_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataTypeInstance_StartEnumMethodInstances(This,handle)	\
     ( (This)->lpVtbl -> StartEnumMethodInstances(This,handle) ) 
@@ -4892,14 +4754,9 @@ EXTERN_C const IID IID_IXCLRDataTypeInstance;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataTypeInstance_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0012 */
 /* [local] */ 
@@ -4951,7 +4808,6 @@ typedef /* [public][public] */ struct __MIDL___MIDL_itf_xclrdata_0000_0012_0006
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0012_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0012_v0_0_s_ifspec;
 
@@ -4960,7 +4816,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0012_v0_0_s_ifspec;
 
 /* interface IXCLRDataMethodDefinition */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataMethodDefinition;
 
@@ -5144,7 +4999,6 @@ EXTERN_C const IID IID_IXCLRDataMethodDefinition;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataMethodDefinition_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5153,7 +5007,6 @@ EXTERN_C const IID IID_IXCLRDataMethodDefinition;
 
 #define IXCLRDataMethodDefinition_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataMethodDefinition_GetTypeDefinition(This,typeDefinition)	\
     ( (This)->lpVtbl -> GetTypeDefinition(This,typeDefinition) ) 
@@ -5208,14 +5061,9 @@ EXTERN_C const IID IID_IXCLRDataMethodDefinition;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataMethodDefinition_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0013 */
 /* [local] */ 
@@ -5223,7 +5071,6 @@ EXTERN_C const IID IID_IXCLRDataMethodDefinition;
 #pragma warning(pop)
 #pragma warning(push)
 #pragma warning(disable:28718)	
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0013_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0013_v0_0_s_ifspec;
@@ -5233,7 +5080,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0013_v0_0_s_ifspec;
 
 /* interface IXCLRDataMethodInstance */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataMethodInstance;
 
@@ -5431,7 +5277,6 @@ EXTERN_C const IID IID_IXCLRDataMethodInstance;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataMethodInstance_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5440,7 +5285,6 @@ EXTERN_C const IID IID_IXCLRDataMethodInstance;
 
 #define IXCLRDataMethodInstance_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataMethodInstance_GetTypeInstance(This,typeInstance)	\
     ( (This)->lpVtbl -> GetTypeInstance(This,typeInstance) ) 
@@ -5495,14 +5339,9 @@ EXTERN_C const IID IID_IXCLRDataMethodInstance;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataMethodInstance_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0014 */
 /* [local] */ 
@@ -5518,7 +5357,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0014_0001
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0014_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0014_v0_0_s_ifspec;
 
@@ -5527,7 +5365,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0014_v0_0_s_ifspec;
 
 /* interface IXCLRDataTask */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataTask;
 
@@ -5704,7 +5541,6 @@ EXTERN_C const IID IID_IXCLRDataTask;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataTask_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5713,7 +5549,6 @@ EXTERN_C const IID IID_IXCLRDataTask;
 
 #define IXCLRDataTask_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataTask_GetProcess(This,process)	\
     ( (This)->lpVtbl -> GetProcess(This,process) ) 
@@ -5765,14 +5600,9 @@ EXTERN_C const IID IID_IXCLRDataTask;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataTask_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0015 */
 /* [local] */ 
@@ -5821,8 +5651,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0015_0004
         CLRDATA_STACK_SET_CURRENT_CONTEXT	= 0x1
     } 	CLRDataStackSetContextFlag;
 
-
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0015_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0015_v0_0_s_ifspec;
 
@@ -5831,7 +5659,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0015_v0_0_s_ifspec;
 
 /* interface IXCLRDataStackWalk */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataStackWalk;
 
@@ -5950,7 +5777,6 @@ EXTERN_C const IID IID_IXCLRDataStackWalk;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataStackWalk_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -5959,7 +5785,6 @@ EXTERN_C const IID IID_IXCLRDataStackWalk;
 
 #define IXCLRDataStackWalk_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataStackWalk_GetContext(This,contextFlags,contextBufSize,contextSize,contextBuf)	\
     ( (This)->lpVtbl -> GetContext(This,contextFlags,contextBufSize,contextSize,contextBuf) ) 
@@ -5987,21 +5812,15 @@ EXTERN_C const IID IID_IXCLRDataStackWalk;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataStackWalk_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0016 */
 /* [local] */ 
 
 #pragma warning(push)
 #pragma warning(disable:28718)	
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0016_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0016_v0_0_s_ifspec;
@@ -6011,7 +5830,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0016_v0_0_s_ifspec;
 
 /* interface IXCLRDataFrame */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataFrame;
 
@@ -6178,7 +5996,6 @@ EXTERN_C const IID IID_IXCLRDataFrame;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataFrame_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -6187,7 +6004,6 @@ EXTERN_C const IID IID_IXCLRDataFrame;
 
 #define IXCLRDataFrame_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataFrame_GetFrameType(This,simpleType,detailedType)	\
     ( (This)->lpVtbl -> GetFrameType(This,simpleType,detailedType) ) 
@@ -6227,20 +6043,14 @@ EXTERN_C const IID IID_IXCLRDataFrame;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataFrame_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0017 */
 /* [local] */ 
 
 #pragma warning(pop)
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0017_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0017_v0_0_s_ifspec;
@@ -6250,7 +6060,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0017_v0_0_s_ifspec;
 
 /* interface IXCLRDataFrame2 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataFrame2;
 
@@ -6300,7 +6109,6 @@ EXTERN_C const IID IID_IXCLRDataFrame2;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataFrame2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -6310,20 +6118,14 @@ EXTERN_C const IID IID_IXCLRDataFrame2;
 #define IXCLRDataFrame2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
-
 #define IXCLRDataFrame2_GetExactGenericArgsToken(This,genericToken)	\
     ( (This)->lpVtbl -> GetExactGenericArgsToken(This,genericToken) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataFrame2_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0018 */
 /* [local] */ 
@@ -6354,7 +6156,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0018_0003
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0018_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0018_v0_0_s_ifspec;
 
@@ -6363,7 +6164,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0018_v0_0_s_ifspec;
 
 /* interface IXCLRDataExceptionState */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionState;
 
@@ -6498,7 +6298,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionState;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionState_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -6507,7 +6306,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionState;
 
 #define IXCLRDataExceptionState_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionState_GetFlags(This,flags)	\
     ( (This)->lpVtbl -> GetFlags(This,flags) ) 
@@ -6541,14 +6339,9 @@ EXTERN_C const IID IID_IXCLRDataExceptionState;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataExceptionState_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0019 */
 /* [local] */ 
@@ -6564,7 +6357,6 @@ enum __MIDL___MIDL_itf_xclrdata_0000_0019_0001
 #pragma warning(push)
 #pragma warning(disable:28718)	
 
-
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0019_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0019_v0_0_s_ifspec;
 
@@ -6573,7 +6365,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0019_v0_0_s_ifspec;
 
 /* interface IXCLRDataValue */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataValue;
 
@@ -6919,7 +6710,6 @@ EXTERN_C const IID IID_IXCLRDataValue;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataValue_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -6928,7 +6718,6 @@ EXTERN_C const IID IID_IXCLRDataValue;
 
 #define IXCLRDataValue_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataValue_GetFlags(This,flags)	\
     ( (This)->lpVtbl -> GetFlags(This,flags) ) 
@@ -7013,20 +6802,14 @@ EXTERN_C const IID IID_IXCLRDataValue;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataValue_INTERFACE_DEFINED__ */
-
 
 /* interface __MIDL_itf_xclrdata_0000_0020 */
 /* [local] */ 
 
 #pragma warning(pop)
-
 
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0020_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0020_v0_0_s_ifspec;
@@ -7036,7 +6819,6 @@ extern RPC_IF_HANDLE __MIDL_itf_xclrdata_0000_0020_v0_0_s_ifspec;
 
 /* interface IXCLRDataExceptionNotification */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionNotification;
 
@@ -7137,7 +6919,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionNotification_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -7146,7 +6927,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification;
 
 #define IXCLRDataExceptionNotification_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionNotification_OnCodeGenerated(This,method)	\
     ( (This)->lpVtbl -> OnCodeGenerated(This,method) ) 
@@ -7174,21 +6954,15 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataExceptionNotification_INTERFACE_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification2_INTERFACE_DEFINED__
 #define __IXCLRDataExceptionNotification2_INTERFACE_DEFINED__
 
 /* interface IXCLRDataExceptionNotification2 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionNotification2;
 
@@ -7285,7 +7059,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification2;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionNotification2_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -7294,7 +7067,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification2;
 
 #define IXCLRDataExceptionNotification2_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionNotification2_OnCodeGenerated(This,method)	\
     ( (This)->lpVtbl -> OnCodeGenerated(This,method) ) 
@@ -7320,7 +7092,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification2;
 #define IXCLRDataExceptionNotification2_OnTypeUnloaded(This,typeInst)	\
     ( (This)->lpVtbl -> OnTypeUnloaded(This,typeInst) ) 
 
-
 #define IXCLRDataExceptionNotification2_OnAppDomainLoaded(This,domain)	\
     ( (This)->lpVtbl -> OnAppDomainLoaded(This,domain) ) 
 
@@ -7332,21 +7103,15 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification2;
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataExceptionNotification2_INTERFACE_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification3_INTERFACE_DEFINED__
 #define __IXCLRDataExceptionNotification3_INTERFACE_DEFINED__
 
 /* interface IXCLRDataExceptionNotification3 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionNotification3;
 
@@ -7441,7 +7206,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification3;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionNotification3_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -7450,7 +7214,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification3;
 
 #define IXCLRDataExceptionNotification3_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionNotification3_OnCodeGenerated(This,method)	\
     ( (This)->lpVtbl -> OnCodeGenerated(This,method) ) 
@@ -7476,7 +7239,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification3;
 #define IXCLRDataExceptionNotification3_OnTypeUnloaded(This,typeInst)	\
     ( (This)->lpVtbl -> OnTypeUnloaded(This,typeInst) ) 
 
-
 #define IXCLRDataExceptionNotification3_OnAppDomainLoaded(This,domain)	\
     ( (This)->lpVtbl -> OnAppDomainLoaded(This,domain) ) 
 
@@ -7486,27 +7248,20 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification3;
 #define IXCLRDataExceptionNotification3_OnException(This,exception)	\
     ( (This)->lpVtbl -> OnException(This,exception) ) 
 
-
 #define IXCLRDataExceptionNotification3_OnGcEvent(This,gcEvtArgs)	\
     ( (This)->lpVtbl -> OnGcEvent(This,gcEvtArgs) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
 
-
-
-
 #endif 	/* __IXCLRDataExceptionNotification3_INTERFACE_DEFINED__ */
-
 
 #ifndef __IXCLRDataExceptionNotification4_INTERFACE_DEFINED__
 #define __IXCLRDataExceptionNotification4_INTERFACE_DEFINED__
 
 /* interface IXCLRDataExceptionNotification4 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionNotification4;
 
@@ -7607,7 +7362,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification4;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionNotification4_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -7616,7 +7370,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification4;
 
 #define IXCLRDataExceptionNotification4_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionNotification4_OnCodeGenerated(This,method)	\
     ( (This)->lpVtbl -> OnCodeGenerated(This,method) ) 
@@ -7642,7 +7395,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification4;
 #define IXCLRDataExceptionNotification4_OnTypeUnloaded(This,typeInst)	\
     ( (This)->lpVtbl -> OnTypeUnloaded(This,typeInst) ) 
 
-
 #define IXCLRDataExceptionNotification4_OnAppDomainLoaded(This,domain)	\
     ( (This)->lpVtbl -> OnAppDomainLoaded(This,domain) ) 
 
@@ -7652,26 +7404,21 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification4;
 #define IXCLRDataExceptionNotification4_OnException(This,exception)	\
     ( (This)->lpVtbl -> OnException(This,exception) ) 
 
-
 #define IXCLRDataExceptionNotification4_OnGcEvent(This,gcEvtArgs)	\
     ( (This)->lpVtbl -> OnGcEvent(This,gcEvtArgs) ) 
-
 
 #define IXCLRDataExceptionNotification4_ExceptionCatcherEnter(This,catchingMethod,catcherNativeOffset)	\
     ( (This)->lpVtbl -> ExceptionCatcherEnter(This,catchingMethod,catcherNativeOffset) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif 	/* C style interface */
-
 
 #ifndef __IXCLRDataExceptionNotification5_INTERFACE_DEFINED__
 #define __IXCLRDataExceptionNotification5_INTERFACE_DEFINED__
 
 /* interface IXCLRDataExceptionNotification5 */
 /* [uuid][local][object] */ 
-
 
 EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 
@@ -7777,7 +7524,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 
 #ifdef COBJMACROS
 
-
 #define IXCLRDataExceptionNotification5_QueryInterface(This,riid,ppvObject) \
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
@@ -7786,7 +7532,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 
 #define IXCLRDataExceptionNotification5_Release(This)   \
     ( (This)->lpVtbl -> Release(This) ) 
-
 
 #define IXCLRDataExceptionNotification5_OnCodeGenerated(This,method)    \
     ( (This)->lpVtbl -> OnCodeGenerated(This,method) ) 
@@ -7812,7 +7557,6 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 #define IXCLRDataExceptionNotification5_OnTypeUnloaded(This,typeInst)   \
     ( (This)->lpVtbl -> OnTypeUnloaded(This,typeInst) ) 
 
-
 #define IXCLRDataExceptionNotification5_OnAppDomainLoaded(This,domain)  \
     ( (This)->lpVtbl -> OnAppDomainLoaded(This,domain) ) 
 
@@ -7822,33 +7566,22 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 #define IXCLRDataExceptionNotification5_OnException(This,exception) \
     ( (This)->lpVtbl -> OnException(This,exception) ) 
 
-
 #define IXCLRDataExceptionNotification5_OnGcEvent(This,gcEvtArgs)   \
     ( (This)->lpVtbl -> OnGcEvent(This,gcEvtArgs) ) 
 
-
 #define IXCLRDataExceptionNotification5_ExceptionCatcherEnter(This,catchingMethod,catcherNativeOffset)  \
     ( (This)->lpVtbl -> ExceptionCatcherEnter(This,catchingMethod,catcherNativeOffset) ) 
-
 
 #define IXCLRDataExceptionNotification5_OnCodeGenerated2(This,method,nativeCodeLocation)    \
     ( (This)->lpVtbl -> OnCodeGenerated2(This,method,nativeCodeLocation) ) 
 
 #endif /* COBJMACROS */
 
-
 #endif  /* C style interface */
-
-
-
 
 #endif  /* __IXCLRDataExceptionNotification5_INTERFACE_DEFINED__ */
 
-
-
-
 #endif 	/* __IXCLRDataExceptionNotification4_INTERFACE_DEFINED__ */
-
 
 /* Additional Prototypes for ALL interfaces */
 
@@ -7859,5 +7592,4 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 #endif
 
 #endif
-
 

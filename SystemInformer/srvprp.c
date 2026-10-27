@@ -25,6 +25,7 @@
 
 #define PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT 0xF
 #define PH_SERVICE_PROP_CONTEXT 0xE
+#define PH_SERVICE_PROP_PLACED_CONTEXT 0xD
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {
@@ -56,6 +57,9 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     HWND UserNameWindowHandle;
     HWND PassBoxWindowHandle;
     HWND PassCheckBoxWindowHandle;
+    PPH_STRING OriginalGroup;
+    PPH_STRING OriginalBinaryPath;
+    PPH_STRING OriginalUserAccount;
     HWND ServiceDllWindowHandle;
     HFONT WindowFont;
     LONG WindowDpi;
@@ -203,11 +207,33 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            // Save here while the sheet window is still valid (the page is destroyed later).
+            PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwnd);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            // The common controls sheet can reposition itself after PSCB_INITIALIZED, so apply the
+            // saved position again right before the first show (still invisible, no flash).
+            if (wParam && !lParam && !PhGetWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT))
+            {
+                PhSetWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT, hwnd);
+
+                if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                    PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwnd);
+                else
+                    PhCenterWindow(hwnd, PhMainWndHandle);
+            }
+        }
+        break;
     case WM_NCDESTROY:
         {
             PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT);
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_CONTEXT);
+            PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT);
 
             if (context)
             {
@@ -314,6 +340,12 @@ INT CALLBACK PhpPropSheetSrvProc(
         {
             PhSetWindowContext(hwndDlg, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT, PhGetWindowProcedure(hwndDlg));
             PhSetWindowProcedure(hwndDlg, PhpPropSheetSrvWndProc);
+
+            // Position the sheet before it is first shown to avoid flashing at the default location.
+            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
         }
         break;
     }
@@ -383,6 +415,10 @@ NTSTATUS PhpShowServicePropertiesThread(
     }
 
     PhModalPropertySheet(&propSheetHeader);
+
+    PhClearReference(&context.OriginalGroup);
+    PhClearReference(&context.OriginalBinaryPath);
+    PhClearReference(&context.OriginalUserAccount);
 
     PhDereferenceObject(serviceItem);
 
@@ -547,6 +583,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PhSetWindowText(context->GroupWindowHandle, config->lpLoadOrderGroup);
                     PhSetWindowText(context->BinaryPathWindowHandle, config->lpBinaryPathName);
                     PhSetWindowText(context->UserNameWindowHandle, config->lpServiceStartName);
+                    context->OriginalGroup = PhCreateString(config->lpLoadOrderGroup ? config->lpLoadOrderGroup : L"");
+                    context->OriginalBinaryPath = PhCreateString(config->lpBinaryPathName ? config->lpBinaryPathName : L"");
+                    context->OriginalUserAccount = PhCreateString(config->lpServiceStartName ? config->lpServiceStartName : L"");
 
                     if (startType != config->dwStartType || errorControl != config->dwErrorControl)
                     {
@@ -606,7 +645,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+            // The position is saved by the property sheet window procedure (WM_DESTROY).
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
@@ -622,11 +661,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 context->LayoutInitialized = TRUE;
-
-                if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
-                    PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
-                else
-                    PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             }
         }
         break;
@@ -761,6 +795,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PPH_STRING newServiceBinaryPath = NULL;
                     PPH_STRING newServiceUserAccount = NULL;
                     PPH_STRING newServicePassword = NULL;
+                    PCWSTR serviceGroup = NULL;
+                    PCWSTR serviceBinaryPath = NULL;
+                    PCWSTR serviceUserAccount = NULL;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
@@ -783,12 +820,16 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     if (PhEqualStringRef(PhGetServiceErrorControlString(serviceItem->ErrorControl), &newServiceErrorControlString->sr, TRUE))
                         newServiceErrorControl = SERVICE_NO_CHANGE;
 
-                    if (PhGetWindowTextLength(context->GroupWindowHandle))
-                        newServiceGroup = PH_AUTO(PhGetWindowText(context->GroupWindowHandle));
-                    if (PhGetWindowTextLength(context->BinaryPathWindowHandle))
-                        newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
-                    if (PhGetWindowTextLength(context->UserNameWindowHandle))
-                        newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
+                    newServiceGroup = PH_AUTO(PhGetWindowText(context->GroupWindowHandle));
+                    newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
+                    newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
+
+                    if (context->OriginalGroup && !PhEqualStringRef(&newServiceGroup->sr, &context->OriginalGroup->sr, FALSE))
+                        serviceGroup = newServiceGroup->Buffer;
+                    if (context->OriginalBinaryPath && !PhEqualStringRef(&newServiceBinaryPath->sr, &context->OriginalBinaryPath->sr, FALSE))
+                        serviceBinaryPath = newServiceBinaryPath->Buffer;
+                    if (context->OriginalUserAccount && !PhEqualStringRef(&newServiceUserAccount->sr, &context->OriginalUserAccount->sr, FALSE))
+                        serviceUserAccount = newServiceUserAccount->Buffer;
 
                     if (Button_GetCheck(context->PassCheckBoxWindowHandle) == BST_CHECKED)
                         newServicePassword = PhGetWindowText(context->PassBoxWindowHandle);
@@ -802,11 +843,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             newServiceType,
                             newServiceStartType,
                             newServiceErrorControl,
-                            PhGetString(newServiceBinaryPath),
-                            PhGetString(newServiceGroup),
+                            serviceBinaryPath,
+                            serviceGroup,
                             NULL,
                             NULL,
-                            PhGetString(newServiceUserAccount),
+                            serviceUserAccount,
                             PhGetString(newServicePassword),
                             NULL
                             );
@@ -844,11 +885,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                     newServiceType,
                                     newServiceStartType,
                                     newServiceErrorControl,
-                                    PhGetString(newServiceBinaryPath),
-                                    PhGetString(newServiceGroup),
+                                    serviceBinaryPath,
+                                    serviceGroup,
                                     NULL,
                                     NULL,
-                                    PhGetString(newServiceUserAccount),
+                                    serviceUserAccount,
                                     PhGetString(newServicePassword),
                                     NULL
                                     );
@@ -900,6 +941,13 @@ ErrorCase:
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
 
 Cleanup:
+                    if (NT_SUCCESS(status))
+                    {
+                        PhSetReference(&context->OriginalGroup, newServiceGroup);
+                        PhSetReference(&context->OriginalBinaryPath, newServiceBinaryPath);
+                        PhSetReference(&context->OriginalUserAccount, newServiceUserAccount);
+                    }
+
                     if (newServicePassword)
                     {
                         RtlSecureZeroMemory(newServicePassword->Buffer, newServicePassword->Length);

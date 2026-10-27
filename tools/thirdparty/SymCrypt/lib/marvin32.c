@@ -199,34 +199,14 @@ SymCryptMarvin32AppendBlocks(
     UINT32 s0 = pChain->s[0];
     UINT32 s1 = pChain->s[1];
 
-    SIZE_T bytesInFirstBlock = cbData & 0xc;        // 0, 4, 8, or 12
-
     SYMCRYPT_ASSERT( (cbData & 3) == 0 );
 
-
-    pbData += bytesInFirstBlock;
-    cbData -= bytesInFirstBlock;
-
-    switch( bytesInFirstBlock )
+    while( cbData > 0 )
     {
-    case 0: // This handles the cbData == 0 case too
-        while( cbData > 0 )
-        {
-            pbData += 16;
-            cbData -= 16;
-
-            s0 += SYMCRYPT_LOAD_LSBFIRST32( pbData - 16 );
-            BLOCK( s0, s1 );
-    case 12:
-            s0 += SYMCRYPT_LOAD_LSBFIRST32( pbData - 12 );
-            BLOCK( s0, s1 );
-    case 8:
-            s0 += SYMCRYPT_LOAD_LSBFIRST32( pbData -  8 );
-            BLOCK( s0, s1 );
-    case 4:
-            s0 += SYMCRYPT_LOAD_LSBFIRST32( pbData -  4 );
-            BLOCK( s0, s1 );
-        }
+        s0 += SYMCRYPT_LOAD_LSBFIRST32( pbData );
+        BLOCK( s0, s1 );
+        pbData += 4;
+        cbData -= 4;
     }
 
     pChain->s[0] = s0;

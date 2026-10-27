@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{B5E0DA09-EA01-4D5A-A9D6-5B22DB0C306E}</ProjectGuid>
     <RootNamespace>NetworkTools</RootNamespace>
     <Keyword>Win32Proj</Keyword>

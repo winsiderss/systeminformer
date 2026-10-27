@@ -11,6 +11,8 @@
  */
 
 #include <peview.h>
+#include <shellapi.h>
+#include <treehdr.h>
 
 PPH_STRING PvFileName = NULL;
 
@@ -42,31 +44,14 @@ NTSTATUS PvpConnectKph(
 
     // TODO: get the current configured port name from the main binary, settings aren't shared.
     //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
-        PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-
+    portName = PhCreateString(KPH_PORT_NAME);
     status = KphCommsStart(&portName->sr, NULL, 0);
-
     PhDereferenceObject(portName);
 
     return status;
 }
 
-VOID PvpInitializeFileBasicInfo(
-    _In_ HANDLE FileHandle
-    )
-{
-    FILE_BASIC_INFORMATION basicInfo;
-
-    ZeroMemory(&basicInfo, sizeof(FILE_BASIC_INFORMATION));
-    basicInfo.CreationTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.LastWriteTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.ChangeTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-
-    PhSetFileBasicInformation(FileHandle, &basicInfo);
-}
-
-NTSTATUS PvpInitializeMutant(
+NTSTATUS PvInitializeMutant(
     VOID
     )
 {
@@ -124,7 +109,7 @@ INT WINAPI wWinMain(
     if (!PvInitializeExceptionPolicy())
         return 1;
 
-    PvpInitializeMutant();
+    PvInitializeMutant();
 
 #ifndef DEBUG
     if (PhIsExecutingInWow64())
@@ -148,8 +133,10 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
     PhSettingsInitialization();
     PvInitializeSettings();
+    PvInitializeTheme();
     PvPropInitialization();
     PhScrollNewWindowInitialization();
+    PhHeaderNewInitialization();
     PhTreeNewInitialization();
     PvInitializeSuperclassControls();
     PvpConnectKph();
@@ -168,58 +155,18 @@ INT WINAPI wWinMain(
 
     if (!PvFileName)
     {
-        static PH_FILETYPE_FILTER filters[] =
-        {
-            { L"Supported files (*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb)", L"*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb" },
-            { L"All files (*.*)", L"*.*" }
-        };
-        PVOID fileDialog;
-
         if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
             return 1;
 
-        fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_SHOWHIDDEN | PH_FILEDIALOG_NOPATHVALIDATE);
-        PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-
-        if (PhShowFileDialog(NULL, fileDialog))
-        {
-            if (PvFileName = PhGetFileDialogFileName(fileDialog))
-            {
-#ifndef DEBUG
-                PPH_STRING applicationFileName;
-
-                if (applicationFileName = PhGetApplicationFileNameWin32())
-                {
-                    PhMoveReference(&PvFileName, PhQuoteCommandLine(&PvFileName->sr, TRUE));
-
-                    AllowSetForegroundWindow(ASFW_ANY);
-
-                    if (NT_SUCCESS(PhShellExecuteEx(
-                        NULL,
-                        PhGetString(applicationFileName),
-                        PvFileName->Buffer,
-                        NULL,
-                        SW_SHOWNORMAL,
-                        PH_SHELL_EXECUTE_DEFAULT,
-                        0,
-                        NULL
-                        )))
-                    {
-                        PhExitApplication(STATUS_SUCCESS);
-                    }
-
-                    PhDereferenceObject(applicationFileName);
-                }
-#endif
-            }
-        }
-
-        PhFreeFileDialog(fileDialog);
+        if (!PvShowStartPage(nCmdShow))
+            return 1;
     }
 
     if (PhIsNullOrEmptyString(PvFileName))
+    {
+        PvStartPageFinishLoading();
         return 1;
+    }
 
     // Note: Resolve the filename when we're passed a native device prefix (dmex)
     PhMoveReference(&PvFileName, PhGetFileName(PvFileName));
@@ -249,10 +196,18 @@ INT WINAPI wWinMain(
             PhMoveReference(&PvFileName, targetFileName);
     }
 
+    PvAddRecentFile(PvFileName);
+
     if (PhEndsWithString2(PvFileName, L".lib", TRUE))
+    {
+        PvStartPageFinishLoading();
         PvLibProperties();
+    }
     else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
+    {
+        PvStartPageFinishLoading();
         PvPdbProperties();
+    }
     else
     {
         NTSTATUS status;
@@ -261,12 +216,25 @@ INT WINAPI wWinMain(
         status = PhCreateFileWin32(
             &fileHandle,
             PhGetString(PvFileName),
-            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
             );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhCreateFileWin32(
+                &fileHandle,
+                PhGetString(PvFileName),
+                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                );
+        }
 
         if (status == STATUS_IO_REPARSE_TAG_NOT_HANDLED)
         {
@@ -280,16 +248,31 @@ INT WINAPI wWinMain(
             status = PhCreateFileWin32(
                 &fileHandle,
                 PhGetString(PvFileName),
-                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                 FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
                 );
+
+            if (!NT_SUCCESS(status))
+            {
+                status = PhCreateFileWin32(
+                    &fileHandle,
+                    PhGetString(PvFileName),
+                    FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    FILE_OPEN,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                    );
+            }
         }
 
         if (NT_SUCCESS(status))
         {
+            PvDisableFileTimestampUpdates(fileHandle);
+
             status = PhLoadMappedImageEx(
                 NULL,
                 fileHandle,
@@ -304,12 +287,16 @@ INT WINAPI wWinMain(
                 case IMAGE_DOS_SIGNATURE:
                     {
                         if (PhGetIntegerSetting(L"EnableLegacyPropertiesDialog"))
+                        {
+                            PvStartPageFinishLoading();
                             PvPeProperties();
+                        }
                         else
                             PvShowPePropertiesWindow();
                     }
                     break;
                 case IMAGE_ELF_SIGNATURE:
+                    PvStartPageFinishLoading();
                     PvExlfProperties();
                     break;
                 default:
@@ -323,6 +310,7 @@ INT WINAPI wWinMain(
 
         if (!NT_SUCCESS(status))
         {
+            PvStartPageFinishLoading();
             if (status == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT)
                 PhShowError2(NULL, L"Unable to load the file.", L"%s", L"PE Viewer does not support this image type.");
             else
@@ -330,6 +318,7 @@ INT WINAPI wWinMain(
         }
     }
 
+    PvStartPageFinishLoading();
     PvSaveSettings();
 
     return 0;

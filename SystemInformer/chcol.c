@@ -11,7 +11,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <settings.h>
 
 typedef struct _COLUMNS_DIALOG_CONTEXT
@@ -47,6 +46,12 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     UINT DragListMessage;
     HWND DragSourceHandle;
     LONG DragItemIndex;
+    HIMAGELIST DragImageList;
+    POINT DragImageHotspot;
+    LONG DragImageWidth;
+    LONG DragImageHeight;
+    HWND DragInsertHandle;
+    LONG DragInsertIndex;
 } COLUMNS_DIALOG_CONTEXT, *PCOLUMNS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
@@ -119,8 +124,8 @@ static int __cdecl PhpColumnsCompareDisplayIndexTn(
  * \param elem2 Second string pointer.
  * \return Comparison result.
  */
-static long __cdecl PhpInactiveColumnsCompareNameTn(
-    _In_ const void* Context,
+static int __cdecl PhpInactiveColumnsCompareNameTn(
+    _In_ void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
     )
@@ -188,6 +193,357 @@ static VOID PhpColumnsSetHotItem(
 }
 
 /**
+ * Gets the drag insert rectangle for a list box item.
+ *
+ * \param ListBoxHandle The handle to the list box.
+ * \param ItemIndex The index of the item.
+ * \param ItemRect A pointer to a RECT structure that receives the coordinates.
+ * \return TRUE if successful, FALSE otherwise.
+ */
+static BOOLEAN PhpColumnsGetDragInsertRect(
+    _In_ HWND ListBoxHandle,
+    _In_ LONG ItemIndex,
+    _Out_ PRECT ItemRect
+    )
+{
+    LONG count;
+
+    if (!ListBoxHandle || !IsWindow(ListBoxHandle))
+        return FALSE;
+
+    count = ListBox_GetCount(ListBoxHandle);
+
+    if (count <= 0 || ItemIndex < 0)
+        return FALSE;
+
+    if (ItemIndex >= count)
+        ItemIndex = count - 1;
+
+    return ListBox_GetItemRect(ListBoxHandle, ItemIndex, ItemRect) != LB_ERR;
+}
+
+/**
+ * Sets the drag insert position and updates the display.
+ *
+ * \param Context The columns dialog context.
+ * \param ListBoxHandle The handle to the list box, or NULL to clear the insert position.
+ * \param ItemIndex The index of the item.
+ */
+static VOID PhpColumnsSetDragInsert(
+    _In_ PCOLUMNS_DIALOG_CONTEXT Context,
+    _In_opt_ HWND ListBoxHandle,
+    _In_ LONG ItemIndex
+    )
+{
+    RECT itemRect;
+    HWND oldListBoxHandle;
+    BOOLEAN dragImageActive;
+
+    // Only hide the drag image when the insert position changes. (Hiding and showing it on every DL_DRAGGING causes flicker.)
+    if (Context->DragInsertHandle == ListBoxHandle && Context->DragInsertIndex == ItemIndex)
+        return;
+
+    dragImageActive = !!Context->DragImageList;
+    oldListBoxHandle = Context->DragInsertHandle;
+
+    if (dragImageActive)
+        PhImageListDragShowNolock(FALSE);
+
+    if (PhpColumnsGetDragInsertRect(Context->DragInsertHandle, Context->DragInsertIndex, &itemRect))
+        InvalidateRect(Context->DragInsertHandle, &itemRect, FALSE);
+
+    Context->DragInsertHandle = ListBoxHandle;
+    Context->DragInsertIndex = ItemIndex;
+
+    if (PhpColumnsGetDragInsertRect(Context->DragInsertHandle, Context->DragInsertIndex, &itemRect))
+        InvalidateRect(Context->DragInsertHandle, &itemRect, FALSE);
+
+    if (oldListBoxHandle)
+        UpdateWindow(oldListBoxHandle);
+
+    if (Context->DragInsertHandle && Context->DragInsertHandle != oldListBoxHandle)
+        UpdateWindow(Context->DragInsertHandle);
+
+    if (dragImageActive)
+        PhImageListDragShowNolock(TRUE);
+}
+
+/**
+ * Creates a drag image for a list box item.
+ *
+ * \param ListBoxHandle The handle to the list box.
+ * \param ItemIndex The index of the item.
+ * \param CursorPosition The cursor position.
+ * \param Hotspot A pointer to a POINT structure that receives the hotspot coordinates.
+ * \param ImageWidth A pointer to a LONG that receives the image width.
+ * \param ImageHeight A pointer to a LONG that receives the image height.
+ * \return The handle to the created image list, or NULL on failure.
+ */
+static HIMAGELIST PhpColumnsCreateDragImage(
+    _In_ HWND ListBoxHandle,
+    _In_ LONG ItemIndex,
+    _In_ POINT CursorPosition,
+    _Out_ PPOINT Hotspot,
+    _Out_ PLONG ImageWidth,
+    _Out_ PLONG ImageHeight
+    )
+{
+    RECT itemRect;
+    POINT clientPoint;
+    LONG width;
+    LONG height;
+    HDC windowDc;
+    HDC bufferDc;
+    HBITMAP bitmap;
+    HBITMAP oldBitmap;
+    HIMAGELIST imageList;
+
+    Hotspot->x = 0;
+    Hotspot->y = 0;
+    *ImageWidth = 0;
+    *ImageHeight = 0;
+
+    if (!ListBoxHandle || ItemIndex < 0 ||
+        ListBox_GetItemRect(ListBoxHandle, ItemIndex, &itemRect) == LB_ERR)
+    {
+        return NULL;
+    }
+
+    width = itemRect.right - itemRect.left;
+    height = itemRect.bottom - itemRect.top;
+
+    if (width <= 0 || height <= 0)
+        return NULL;
+
+    *ImageWidth = width;
+    *ImageHeight = height;
+
+    clientPoint = CursorPosition;
+
+    if (!ScreenToClient(ListBoxHandle, &clientPoint))
+        return NULL;
+
+    Hotspot->x = clientPoint.x - itemRect.left;
+    Hotspot->y = clientPoint.y - itemRect.top;
+
+    windowDc = GetDC(ListBoxHandle);
+
+    if (!windowDc)
+        return NULL;
+
+    bufferDc = CreateCompatibleDC(windowDc);
+    bitmap = PhCreateDIBSection(windowDc, PHBF_TOPDOWNDIB, width, height, NULL);
+
+    if (!bufferDc || !bitmap)
+    {
+        if (bitmap)
+            DeleteBitmap(bitmap);
+        if (bufferDc)
+            DeleteDC(bufferDc);
+
+        ReleaseDC(ListBoxHandle, windowDc);
+        return NULL;
+    }
+
+    oldBitmap = SelectBitmap(bufferDc, bitmap);
+
+    BitBlt(
+        bufferDc,
+        0,
+        0,
+        width,
+        height,
+        windowDc,
+        itemRect.left,
+        itemRect.top,
+        SRCCOPY
+        );
+
+    SelectBitmap(bufferDc, oldBitmap);
+    DeleteDC(bufferDc);
+    ReleaseDC(ListBoxHandle, windowDc);
+
+    imageList = PhImageListCreate(width, height, ILC_COLOR32, 1, 0);
+
+    if (!imageList || PhImageListAddBitmap(imageList, bitmap, NULL) == INT_ERROR)
+    {
+        if (imageList)
+            PhImageListDestroy(imageList);
+
+        DeleteBitmap(bitmap);
+        return NULL;
+    }
+
+    DeleteBitmap(bitmap);
+
+    return imageList;
+}
+
+/**
+ * Converts a screen point to a window point.
+ *
+ * \param WindowHandle The handle to the window.
+ * \param ScreenPoint The screen point to convert.
+ * \param WindowPoint A pointer to a POINT structure that receives the converted coordinates.
+ * \return TRUE if successful, FALSE otherwise.
+ */
+static BOOLEAN PhpColumnsGetDragWindowPoint(
+    _In_ HWND WindowHandle,
+    _In_ POINT ScreenPoint,
+    _Out_ PPOINT WindowPoint
+    )
+{
+    RECT windowRect;
+
+    if (!GetWindowRect(WindowHandle, &windowRect))
+        return FALSE;
+
+    WindowPoint->x = ScreenPoint.x - windowRect.left;
+    WindowPoint->y = ScreenPoint.y - windowRect.top;
+
+    return TRUE;
+}
+
+/**
+ * Constrains a drag window point to the bounds of a window.
+ *
+ * \param WindowHandle The handle to the window.
+ * \param ImageWidth The width of the drag image.
+ * \param ImageHeight The height of the drag image.
+ * \param Hotspot The hotspot coordinates.
+ * \param WindowPoint A pointer to a POINT structure that receives the constrained coordinates.
+ */
+static VOID PhpColumnsConstrainDragWindowPoint(
+    _In_ HWND WindowHandle,
+    _In_ LONG ImageWidth,
+    _In_ LONG ImageHeight,
+    _In_ POINT Hotspot,
+    _Inout_ PPOINT WindowPoint
+    )
+{
+    RECT windowRect;
+    RECT clientRect;
+    POINT clientOrigin = { 0, 0 };
+    LONG minimumX;
+    LONG maximumX;
+    LONG minimumY;
+    LONG maximumY;
+    LONG clientWidth;
+    LONG clientHeight;
+
+    if (!GetWindowRect(WindowHandle, &windowRect) ||
+        !GetClientRect(WindowHandle, &clientRect) ||
+        !ClientToScreen(WindowHandle, &clientOrigin))
+    {
+        return;
+    }
+
+    clientWidth = clientRect.right - clientRect.left;
+    clientHeight = clientRect.bottom - clientRect.top;
+    clientRect.left = clientOrigin.x - windowRect.left;
+    clientRect.right = clientRect.left + clientWidth;
+    clientRect.top = clientOrigin.y - windowRect.top;
+    clientRect.bottom = clientRect.top + clientHeight;
+
+    minimumX = clientRect.left + Hotspot.x;
+    maximumX = clientRect.right - ImageWidth + Hotspot.x;
+    minimumY = clientRect.top + Hotspot.y;
+    maximumY = clientRect.bottom - ImageHeight + Hotspot.y;
+
+    if (maximumX < minimumX)
+        WindowPoint->x = minimumX;
+    else if (WindowPoint->x < minimumX)
+        WindowPoint->x = minimumX;
+    else if (WindowPoint->x > maximumX)
+        WindowPoint->x = maximumX;
+
+    if (maximumY < minimumY)
+        WindowPoint->y = minimumY;
+    else if (WindowPoint->y < minimumY)
+        WindowPoint->y = minimumY;
+    else if (WindowPoint->y > maximumY)
+        WindowPoint->y = maximumY;
+}
+
+/**
+ * Destroys the drag image list and ends the drag operation.
+ *
+ * \param Context The columns dialog context.
+ * \param LockWindowHandle The handle to the lock window.
+ */
+static VOID PhpColumnsDestroyDragImage(
+    _In_ PCOLUMNS_DIALOG_CONTEXT Context,
+    _In_ HWND LockWindowHandle
+    )
+{
+    HIMAGELIST imageList;
+
+    if (!(imageList = Context->DragImageList))
+        return;
+
+    Context->DragImageList = NULL;
+    Context->DragImageHotspot.x = 0;
+    Context->DragImageHotspot.y = 0;
+    Context->DragImageWidth = 0;
+    Context->DragImageHeight = 0;
+
+    PhImageListDragLeave(LockWindowHandle);
+    PhImageListEndDrag();
+    PhImageListDestroy(imageList);
+}
+
+/**
+ * Draws the drag insert indicator.
+ *
+ * \param Context The columns dialog context.
+ * \param DrawInfo A pointer to a DRAWITEMSTRUCT structure containing drawing information.
+ */
+static VOID PhpColumnsDrawDragInsert(
+    _In_ PCOLUMNS_DIALOG_CONTEXT Context,
+    _In_ LPDRAWITEMSTRUCT DrawInfo
+    )
+{
+    LONG count;
+    LONG lineThickness;
+    RECT lineRect;
+    COLORREF oldColor;
+
+    if (DrawInfo->hwndItem != Context->DragInsertHandle || Context->DragInsertIndex < 0)
+        return;
+
+    count = ListBox_GetCount(DrawInfo->hwndItem);
+
+    if (count <= 0)
+        return;
+
+    if (Context->DragInsertIndex < count)
+    {
+        if ((LONG)DrawInfo->itemID != Context->DragInsertIndex)
+            return;
+
+        lineThickness = PhScaleToDisplay(2, PhGetWindowDpi(DrawInfo->hwndItem));
+        lineRect = DrawInfo->rcItem;
+        lineRect.bottom = lineRect.top + lineThickness;
+    }
+    else
+    {
+        if ((LONG)DrawInfo->itemID != count - 1)
+            return;
+
+        lineThickness = PhScaleToDisplay(2, PhGetWindowDpi(DrawInfo->hwndItem));
+        lineRect = DrawInfo->rcItem;
+        lineRect.top = lineRect.bottom - lineThickness;
+    }
+
+    oldColor = SetDCBrushColor(
+        DrawInfo->hDC,
+        PhEnableThemeSupport ? PhThemeWindowHighlightColor : GetSysColor(COLOR_HIGHLIGHT)
+        );
+    FillRect(DrawInfo->hDC, &lineRect, PhGetStockBrush(DC_BRUSH));
+    SetDCBrushColor(DrawInfo->hDC, oldColor);
+}
+
+/**
  * Resets a list box and populates it with items, optionally sorting and filtering them.
  *
  * \param ListBoxHandle The handle to the list box control.
@@ -199,7 +555,7 @@ VOID PhpColumnsResetListBox(
     _In_ HWND ListBoxHandle,
     _In_ ULONG_PTR MatchHandle,
     _In_ PPH_LIST Array,
-    _In_opt_ PVOID CompareFunction
+    _In_opt_ _CoreCrtSecureSearchSortCompareFunction CompareFunction
     )
 {
     SendMessage(ListBoxHandle, WM_SETREDRAW, FALSE, 0);
@@ -207,7 +563,9 @@ VOID PhpColumnsResetListBox(
     ListBox_ResetContent(ListBoxHandle);
 
     if (CompareFunction)
+    {
         qsort_s(Array->Items, Array->Count, sizeof(ULONG_PTR), CompareFunction, NULL);
+    }
 
     if (!MatchHandle)
     {
@@ -569,8 +927,15 @@ static LRESULT CALLBACK PhpColumnsListBoxWndProc(
         break;
     case WM_MOUSEMOVE:
         {
-            LRESULT result = SendMessage(WindowHandle, LB_ITEMFROMPOINT, 0, lParam);
-            LONG index = HIWORD(result) == 0 ? (LONG)(SHORT)LOWORD(result) : LB_ERR;
+            LRESULT result;
+            LONG index;
+
+            // Repainting items while the drag image is shown leaves artifacts. (The drag list captures the mouse.)
+            if (context->DragItemIndex != LB_ERR)
+                break;
+
+            result = SendMessage(WindowHandle, LB_ITEMFROMPOINT, 0, lParam);
+            index = HIWORD(result) == 0 ? (LONG)(SHORT)LOWORD(result) : LB_ERR;
 
             PhpColumnsSetHotItem(context, WindowHandle, index);
 
@@ -651,22 +1016,18 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->ActiveListArray = PhCreateList(1);
             context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg))
 
-            PhCreateSearchControl2(
+            PhCreateSearchControl(
                 hwndDlg,
                 context->SearchInactiveHandle,
                 L"Inactive columns...",
-                SETTING_SEARCH_COLUMNS_REGEX,
-                SETTING_SEARCH_COLUMNS_CASE_SENSITIVE,
                 PhpInactiveColumnsSearchControlCallback,
                 context
                 );
 
-            PhCreateSearchControl2(
+            PhCreateSearchControl(
                 hwndDlg,
                 context->SearchActiveHandle,
                 L"Active columns...",
-                SETTING_SEARCH_COLUMNS_REGEX,
-                SETTING_SEARCH_COLUMNS_CASE_SENSITIVE,
                 PhpActiveColumnsSearchControlCallback,
                 context
                 );
@@ -676,6 +1037,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             context->DragListMessage = RegisterWindowMessage(DRAGLISTMSGSTRING);
             context->DragItemIndex = LB_ERR;
+            context->DragInsertIndex = INT_ERROR;
             MakeDragList(context->InactiveWindowHandle);
             MakeDragList(context->ActiveWindowHandle);
 
@@ -784,6 +1146,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhpColumnsSetDragInsert(context, NULL, INT_ERROR);
+            PhpColumnsDestroyDragImage(context, hwndDlg);
+
             for (ULONG i = 0; i < context->Columns->Count; i++)
                 PhFree(context->Columns->Items[i]);
 
@@ -988,7 +1353,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  }
 
                  bufferDc = CreateCompatibleDC(drawInfo->hDC);
-                 bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
+                 bufferBitmap = PhCreateDIBSection(drawInfo->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
                  oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
                  SelectFont(bufferDc, context->ControlFont);
@@ -1034,6 +1399,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      SRCCOPY
                      );
 
+                 PhpColumnsDrawDragInsert(context, drawInfo);
+
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
                  DeleteDC(bufferDc);
@@ -1064,9 +1431,65 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                 if (index != INT_ERROR)
                 {
+                    POINT dialogPoint;
+                    POINT hotspot;
+                    HIMAGELIST imageList;
+                    LONG imageWidth;
+                    LONG imageHeight;
+                    BOOLEAN dragStarted = FALSE;
+
+                    // Clear the hot item before the drag image is shown so nothing repaints underneath it.
+                    PhpColumnsSetHotItem(context, NULL, LB_ERR);
+
                     context->DragSourceHandle = dragInfo->hWnd;
                     context->DragItemIndex = index;
                     ListBox_SetCurSel(dragInfo->hWnd, index);
+
+                    UpdateWindow(dragInfo->hWnd);
+                    UpdateWindow(context->InactiveWindowHandle);
+                    UpdateWindow(context->ActiveWindowHandle);
+
+                    if ((imageList = PhpColumnsCreateDragImage(
+                        dragInfo->hWnd,
+                        index,
+                        dragInfo->ptCursor,
+                        &hotspot,
+                        &imageWidth,
+                        &imageHeight
+                        )))
+                    {
+                        if (PhpColumnsGetDragWindowPoint(hwndDlg, dragInfo->ptCursor, &dialogPoint))
+                        {
+                            PhpColumnsConstrainDragWindowPoint(
+                                hwndDlg,
+                                imageWidth,
+                                imageHeight,
+                                hotspot,
+                                &dialogPoint
+                                );
+
+                            if (PhImageListBeginDrag(imageList, 0, hotspot.x, hotspot.y))
+                            {
+                                dragStarted = TRUE;
+
+                                if (PhImageListDragEnter(hwndDlg, dialogPoint.x, dialogPoint.y))
+                                {
+                                    context->DragImageList = imageList;
+                                    context->DragImageHotspot = hotspot;
+                                    context->DragImageWidth = imageWidth;
+                                    context->DragImageHeight = imageHeight;
+                                }
+                            }
+                        }
+                        if (!context->DragImageList)
+                        {
+                            if (dragStarted)
+                                PhImageListEndDrag();
+
+                            PhImageListDestroy(imageList);
+                        }
+                    }
+
                     result = TRUE;
                 }
             }
@@ -1078,19 +1501,36 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                 if (activeIndex != INT_ERROR)
                 {
-                    DrawInsert(hwndDlg, context->ActiveWindowHandle, activeIndex);
+                    PhpColumnsSetDragInsert(context, context->ActiveWindowHandle, activeIndex);
                     result = DL_MOVECURSOR;
                 }
                 else if (inactiveIndex != INT_ERROR && context->DragSourceHandle == context->ActiveWindowHandle)
                 {
                     // The inactive list is sorted, so there's no insert position to show.
-                    DrawInsert(hwndDlg, context->ActiveWindowHandle, INT_ERROR);
+                    PhpColumnsSetDragInsert(context, NULL, INT_ERROR);
                     result = DL_MOVECURSOR;
                 }
                 else
                 {
-                    DrawInsert(hwndDlg, context->ActiveWindowHandle, INT_ERROR);
+                    PhpColumnsSetDragInsert(context, NULL, INT_ERROR);
                     result = DL_STOPCURSOR;
+                }
+
+                if (context->DragImageList)
+                {
+                    POINT dialogPoint;
+
+                    if (PhpColumnsGetDragWindowPoint(hwndDlg, dragInfo->ptCursor, &dialogPoint))
+                    {
+                        PhpColumnsConstrainDragWindowPoint(
+                            hwndDlg,
+                            context->DragImageWidth,
+                            context->DragImageHeight,
+                            context->DragImageHotspot,
+                            &dialogPoint
+                            );
+                        PhImageListDragMove(dialogPoint.x, dialogPoint.y);
+                    }
                 }
             }
             break;
@@ -1099,7 +1539,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 LONG activeIndex = PhpColumnsDragTargetIndex(context->ActiveWindowHandle, dragInfo->ptCursor, FALSE);
                 LONG inactiveIndex = PhpColumnsDragTargetIndex(context->InactiveWindowHandle, dragInfo->ptCursor, FALSE);
 
-                DrawInsert(hwndDlg, context->ActiveWindowHandle, INT_ERROR);
+                PhpColumnsSetDragInsert(context, NULL, INT_ERROR);
+                PhpColumnsDestroyDragImage(context, hwndDlg);
 
                 if (context->DragItemIndex != LB_ERR)
                 {
@@ -1126,7 +1567,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             break;
         case DL_CANCELDRAG:
             {
-                DrawInsert(hwndDlg, context->ActiveWindowHandle, INT_ERROR);
+                PhpColumnsSetDragInsert(context, NULL, INT_ERROR);
+                PhpColumnsDestroyDragImage(context, hwndDlg);
                 context->DragSourceHandle = NULL;
                 context->DragItemIndex = LB_ERR;
             }

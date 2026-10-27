@@ -102,7 +102,7 @@ FORCEINLINE T* PTR_SUB_OFFSET(
 {
     return reinterpret_cast<T*>(
         static_cast<const unsigned char*>(Pointer) -
-        static_cast<const unsigned long long>(Pointer)
+        static_cast<const unsigned long long>(Offset)
         );
 }
 #else
@@ -167,23 +167,42 @@ FORCEINLINE T* PTR_SUB_OFFSET(
 // Time
 //
 
-#define PH_TICKS_PER_NS   (LONG64_C(1)       * LONG64_C(10))   // 10 ticks (1 tick = 0.1 ns = 100 picoseconds)
-#define PH_TICKS_PER_MS   (PH_TICKS_PER_NS   * LONG64_C(1000)) // 10 * 1,000 = 10,000 ticks/ms
+#define PH_TICKS_PER_US   (LONG64_C(1)       * LONG64_C(10))   // 10 ticks (1 tick = 100 ns = 0.1 us)
+#define PH_TICKS_PER_MS   (PH_TICKS_PER_US   * LONG64_C(1000)) // 10 * 1,000 = 10,000 ticks/ms
 #define PH_TICKS_PER_SEC  (PH_TICKS_PER_MS   * LONG64_C(1000)) // 10,000 * 1,000 = 10,000,000 ticks/s
 #define PH_TICKS_PER_MIN  (PH_TICKS_PER_SEC  * LONG64_C(60))   // 10,000,000 * 60
 #define PH_TICKS_PER_HOUR (PH_TICKS_PER_MIN  * LONG64_C(60))   // previous * 60
 #define PH_TICKS_PER_DAY  (PH_TICKS_PER_HOUR * LONG64_C(24))   // previous * 24
 
-#define PH_TICKS_PARTIAL_NS(Ticks)    ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_NS))   % ULONG64_C(1000000))
+#define PH_TICKS_PARTIAL_US(Ticks)    ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_US))   % ULONG64_C(1000))
 #define PH_TICKS_PARTIAL_MS(Ticks)    ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_MS))   % ULONG64_C(1000))
 #define PH_TICKS_PARTIAL_SEC(Ticks)   ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_SEC))  % ULONG64_C(60))
 #define PH_TICKS_PARTIAL_MIN(Ticks)   ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_MIN))  % ULONG64_C(60))
 #define PH_TICKS_PARTIAL_HOURS(Ticks) ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_HOUR)) % ULONG64_C(24))
 #define PH_TICKS_PARTIAL_DAYS(Ticks)   (((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_DAY))
 
+#define PH_TICKS_TO_US(Ticks)    (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_US)
+#define PH_TICKS_TO_MS(Ticks)    (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_MS)
+#define PH_TICKS_TO_SEC(Ticks)   (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_SEC)
+#define PH_TICKS_TO_MIN(Ticks)   (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_MIN)
+#define PH_TICKS_TO_HOURS(Ticks) (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_HOUR)
+#define PH_TICKS_TO_DAYS(Ticks)  (((ULONG64)(Ticks)) / (ULONG64)PH_TICKS_PER_DAY)
+
+// Generate negative LONGLONG values for relative NT waits
+#define PH_TIMEOUT_US(Us)        ((LONGLONG)(Us)   * -((LONGLONG)PH_TICKS_PER_US))
+//#define PH_TIMEOUT_MS(Ms)        ((LONGLONG)(Ms)   * -((LONGLONG)PH_TICKS_PER_MS))
+//#define PH_TIMEOUT_SEC(Sec)      ((LONGLONG)(Sec)  * -((LONGLONG)PH_TICKS_PER_SEC))
+#define PH_TIMEOUT_MIN(Min)      ((LONGLONG)(Min)  * -((LONGLONG)PH_TICKS_PER_MIN))
 
 #define PH_TIMEOUT_MS PH_TICKS_PER_MS
 #define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
+
+// 116444736000000000 ticks between 1601-01-01 and 1970-01-01
+#define PH_TICKS_TO_UNIX_EPOCH   (LONG64_C(11644473600) * PH_TICKS_PER_SEC)
+// Convert Windows NT Ticks to UNIX Epoch (Milliseconds)
+#define PH_TICKS_TO_UNIX_MS(Ticks) ((((ULONG64)(Ticks)) - PH_TICKS_TO_UNIX_EPOCH) / (ULONG64)PH_TICKS_PER_MS)
+// Convert UNIX Epoch (Milliseconds) to Windows NT Ticks
+#define PH_UNIX_MS_TO_TICKS(UnixMs) ((((ULONG64)(UnixMs)) * (ULONG64)PH_TICKS_PER_MS) + PH_TICKS_TO_UNIX_EPOCH)
 
 //
 // Annotations
@@ -912,6 +931,156 @@ PhMultiplyDivideSigned(
         return (LONG)PhMultiplyDivide(Number, Numerator, Denominator);
     else
         return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
+}
+
+FORCEINLINE
+ULONG64
+PhMultiply128(
+    _In_ CONST ULONG64 Multiplicand,
+    _In_ CONST ULONG64 Multiplier,
+    _Out_ PULONG64 ProductHigh
+    )
+{
+#if !defined(WIDEMATHAPI)
+    ULONG64 productHigh;
+    ULONG64 productLow;
+
+#if defined(_M_X64) && !defined(_M_ARM64EC)
+
+    productLow = UnsignedMultiply128(Multiplicand, Multiplier, &productHigh);
+
+#elif defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
+
+    productLow = Multiplicand * Multiplier;
+    productHigh = UnsignedMultiplyHigh(Multiplicand, Multiplier);
+
+#else
+    {
+        ULONG64 multiplicandLow = (ULONG)Multiplicand;
+        ULONG64 multiplicandHigh = Multiplicand >> 32;
+        ULONG64 multiplierLow = (ULONG)Multiplier;
+        ULONG64 multiplierHigh = Multiplier >> 32;
+        ULONG64 productLowLow = multiplicandLow * multiplierLow;
+        ULONG64 productLowHigh = multiplicandLow * multiplierHigh;
+        ULONG64 productHighLow = multiplicandHigh * multiplierLow;
+        ULONG64 productHighHigh = multiplicandHigh * multiplierHigh;
+        ULONG64 previousLow;
+
+        productLow = productLowLow;
+        productHigh = productHighHigh + (productLowHigh >> 32) + (productHighLow >> 32);
+
+        previousLow = productLow;
+        productLow += productLowHigh << 32;
+        productHigh += productLow < previousLow;
+
+        previousLow = productLow;
+        productLow += productHighLow << 32;
+        productHigh += productLow < previousLow;
+    }
+#endif
+
+    *ProductHigh = productHigh;
+    return productLow;
+#else
+    return UMUL128(Multiplicand, Multiplier, ProductHigh);
+#endif
+}
+
+FORCEINLINE
+ULONG64
+PhDivide128(
+    _In_ CONST ULONG64 DividendHigh,
+    _In_ CONST ULONG64 DividendLow,
+    _In_ CONST ULONG64 Divisor,
+    _Out_ PULONG64 Remainder
+    )
+{
+#if !defined(WIDEMATHAPI)
+    ULONG64 remainder;
+    ULONG64 quotient;
+    LONG shift;
+
+    remainder = DividendHigh;
+    quotient = 0;
+
+    for (shift = 63; shift >= 0; shift--)
+    {
+        BOOLEAN carry = !!(remainder & (1ULL << 63));
+
+        remainder = (remainder << 1) | ((DividendLow >> shift) & 1);
+
+        if (carry || remainder >= Divisor)
+        {
+            remainder -= Divisor;
+            quotient |= 1ULL << shift;
+        }
+    }
+
+    *Remainder = remainder;
+    return quotient;
+#else
+    return UDIV128(DividendHigh, DividendLow, Divisor, Remainder);
+#endif
+}
+
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhMultiplyDivide128(
+    _In_ CONST ULONG64 Number,
+    _In_ CONST ULONG64 Numerator,
+    _In_ CONST ULONG64 Denominator,
+    _In_ CONST ULONG64 Addend,
+    _Out_ PULONG64 Result
+    )
+{
+    ULONG64 productHigh;
+    ULONG64 productLow;
+    ULONG64 remainder;
+
+    if (Denominator == 0)
+        return FALSE;
+
+    productLow = PhMultiply128(Number, Numerator, &productHigh);
+
+    if (Addend != 0)
+    {
+        ULONG64 previousLow = productLow;
+
+        productLow += Addend;
+        productHigh += productLow < previousLow;
+    }
+
+    if (productHigh >= Denominator)
+        return FALSE;
+
+    *Result = PhDivide128(productHigh, productLow, Denominator, &remainder);
+    return TRUE;
+}
+
+/**
+ * Multiplies two 64-bit numbers and divides the full 128-bit product.
+ *
+ * This function computes (Number * Numerator) / Denominator without losing
+ * the high half of the multiplication. The quotient is truncated.
+ *
+ * \param Number The base number to multiply.
+ * \param Numerator The numerator for multiplication.
+ * \param Denominator The denominator for division.
+ * \param Result Receives the quotient. The value is not modified on failure.
+ * \return TRUE if the operation succeeded; FALSE if the denominator is zero
+ * or the quotient does not fit in 64 bits.
+ */
+FORCEINLINE
+BOOLEAN
+PhMultiplyDivide64(
+    _In_ CONST ULONG64 Number,
+    _In_ CONST ULONG64 Numerator,
+    _In_ CONST ULONG64 Denominator,
+    _Out_ PULONG64 Result
+    )
+{
+    return PhMultiplyDivide128(Number, Numerator, Denominator, 0, Result);
 }
 
 /**

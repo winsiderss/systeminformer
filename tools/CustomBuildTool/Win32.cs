@@ -279,6 +279,57 @@ namespace CustomBuildTool
             return null;
         }
 
+        //
+        // Number of times, and delay between, retries for a transiently-locked file operation.
+        //
+        private const int FileRetryAttempts = 10;
+        private const int FileRetryDelay = 200;
+
+        /// <summary>
+        /// Determines whether the exception represents a transient file lock (a sharing or lock
+        /// violation) that is expected to clear once another process releases the file.
+        /// </summary>
+        /// <param name="Exception">The IO exception to inspect.</param>
+        /// <returns>True if the failure is a transient sharing/lock violation; otherwise false.</returns>
+        private static bool IsTransientFileLock(IOException Exception)
+        {
+            int code = Exception.HResult & 0xffff;
+            return code == 32 /* ERROR_SHARING_VIOLATION */ || code == 33 /* ERROR_LOCK_VIOLATION */;
+        }
+
+        /// <summary>
+        /// Invokes a file operation, retrying briefly when the file is transiently locked by another
+        /// process. During parallel multi-platform builds the linker for one architecture can still
+        /// hold a binary that another architecture's post-build step needs to read (for example the
+        /// WOW64 payload copied into the x64/ARM64 output); the lock clears once the linker finishes.
+        /// </summary>
+        /// <typeparam name="T">The return type of the operation.</typeparam>
+        /// <param name="Operation">The file operation to invoke.</param>
+        /// <returns>The result of the operation.</returns>
+        private static T InvokeWithFileRetry<T>(Func<T> Operation)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return Operation();
+                }
+                catch (IOException exception) when (attempt < FileRetryAttempts && IsTransientFileLock(exception))
+                {
+                    Thread.Sleep(FileRetryDelay);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Invokes a file operation, retrying briefly when the file is transiently locked by another process.
+        /// </summary>
+        /// <param name="Operation">The file operation to invoke.</param>
+        private static void InvokeWithFileRetry(Action Operation)
+        {
+            InvokeWithFileRetry<object>(() => { Operation(); return null; });
+        }
+
         /// <summary>
         /// Copies the source file to the destination file if the source is newer or the destination does not exist.
         /// Preserves creation and last write times, and optionally sets the read-only attribute.
@@ -330,16 +381,16 @@ namespace CustomBuildTool
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
 
-                    File.Copy(SourceFile, DestinationFile, true);
-                    Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                    InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                    InvokeWithFileRetry(() => Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly));
                     updated = true;
                 }
             }
             else
             {
                 Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
-                File.Copy(SourceFile, DestinationFile, true);
-                Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                InvokeWithFileRetry(() => Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly));
                 updated = true;
             }
 
@@ -374,7 +425,7 @@ namespace CustomBuildTool
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
 
-                if (string.IsNullOrEmpty(directory) || string.IsNullOrWhiteSpace(directory))
+                if (string.IsNullOrWhiteSpace(directory))
                     return;
 
                 CreateDirectory(directory);
@@ -392,16 +443,16 @@ namespace CustomBuildTool
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
 
-                    File.Copy(SourceFile, DestinationFile, true);
-                    SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
+                    InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                    InvokeWithFileRetry(() => SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false));
                     updated = true;
                 }
             }
             else
             {
                 GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
-                File.Copy(SourceFile, DestinationFile, true);
-                SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
+                InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                InvokeWithFileRetry(() => SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false));
                 updated = true;
             }
 
@@ -461,14 +512,18 @@ namespace CustomBuildTool
 
                 using (var buffer = new SecureBuffer((int)size))
                 {
-                    fixed (char* pBuffer = buffer.Buffer)
+                    fixed (char* pBuffer = buffer.WritableSpan)
                     {
                         uint length = PInvoke.GetEnvironmentVariable(pName, pBuffer, size);
                         if (length == 0 || length >= size)
                             return false;
 
-                        Value = new SecureBuffer((int)length);
-                        buffer.Span.Slice(0, (int)length).CopyTo(Value.Buffer);
+                        ReadOnlySpan<char> value = buffer.Span.Slice(0, (int)length).Trim();
+                        if (value.IsEmpty)
+                            return false;
+
+                        Value = new SecureBuffer(value.Length);
+                        value.CopyTo(Value.WritableSpan);
                     }
                 }
             }
@@ -748,7 +803,7 @@ namespace CustomBuildTool
                     Environment.SetEnvironmentVariable("PATH", filteredPath, EnvironmentVariableTarget.Process);
                 }
 
-                //Program.PrintColorMessage($"[PATH] filtered: {pathEntries.Length} entries -> {allowedPaths.Count} entries", ConsoleColor.DarkGray);
+                //Program.PrintColorMessage($"[PATH] filtered: {filteredPath.Length} entries -> {allowedPaths.Count} entries", ConsoleColor.DarkGray, );
             }
         }
 
@@ -817,28 +872,20 @@ namespace CustomBuildTool
             out FileAttributes Attributes
             )
         {
-            FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
-
             CreationTime = DateTime.MinValue;
             LastWriteDateTime = DateTime.MinValue;
+            Attributes = FileAttributes.None;
 
-            if (!File.Exists(FileName))
-            {
-                Attributes = FileAttributes.None;
+            // Query by path (GetFileAttributesEx) instead of opening a handle, so files
+            // concurrently being written by parallel SDK builds don't raise sharing violations.
+            var info = new FileInfo(FileName);
+
+            if (!info.Exists)
                 return false;
-            }
 
-            using (var fs = File.OpenRead(FileName))
-            {
-                var handle = new HANDLE(fs.SafeFileHandle!.DangerousGetHandle());
-
-                if (!PInvoke.GetFileInformationByHandleEx(handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
-
-                CreationTime = DateTime.FromFileTimeUtc(basicInfo.CreationTime);
-                LastWriteDateTime = DateTime.FromFileTimeUtc(basicInfo.LastWriteTime);
-                Attributes = (FileAttributes)basicInfo.FileAttributes;
-            }
+            CreationTime = info.CreationTimeUtc;
+            LastWriteDateTime = info.LastWriteTimeUtc;
+            Attributes = info.Attributes;
 
             return true;
         }
@@ -850,6 +897,12 @@ namespace CustomBuildTool
         /// This method lists all running processes, identifies those with executables in
         /// temporary folders (containing "\Temp\"), and attempts to lower their integrity level
         /// to Untrusted (S-1-16-0). This is a security mitigation technique.
+        /// <para>
+        /// Each matching image is additionally blocked from launching again by creating an
+        /// Image File Execution Options (IFEO) key with a <c>Debugger</c> value of <c>*</c>,
+        /// which is not a valid file name and therefore always fails the launch.
+        /// Requires elevation; failures are reported and otherwise ignored.
+        /// </para>
         /// </remarks>
         public static void SetLowIntegrityForProcesses()
         {
@@ -861,6 +914,7 @@ namespace CustomBuildTool
             const int TokenIntegrityLevel = 25;
 
             var processesToModify = new List<Process>();
+            var imagesToBlock = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -871,11 +925,12 @@ namespace CustomBuildTool
                     try
                     {
                         var filename = process.MainModule?.FileName;
-                        if (!string.IsNullOrEmpty(filename) &&
+                        if (!string.IsNullOrWhiteSpace(filename) &&
                             filename.Contains("\\Temp\\", StringComparison.OrdinalIgnoreCase))
                         {
                             Program.PrintColorMessage($"Process: {filename}", ConsoleColor.DarkGray);
                             processesToModify.Add(process);
+                            imagesToBlock.Add(Path.GetFileName(filename));
                         }
                         else
                         {
@@ -913,10 +968,46 @@ namespace CustomBuildTool
                         process.Dispose();
                     }
                 }
+
+                foreach (var imageName in imagesToBlock)
+                {
+                    BlockImageFileExecution(imageName);
+                }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"Error enumerating processes: {ex.Message}", ConsoleColor.Red);
+            }
+        }
+
+        /// <summary>
+        /// Blocks an executable from launching by creating an Image File Execution Options (IFEO)
+        /// key for the image and setting its <c>Debugger</c> value.
+        /// </summary>
+        /// <param name="ImageName">The file name (without path) of the executable to block.</param>
+        private static void BlockImageFileExecution(string ImageName)
+        {
+            if (string.IsNullOrWhiteSpace(ImageName))
+                return;
+
+            try
+            {
+                using (var key = Microsoft.Win32.Registry.LocalMachine.CreateSubKey($"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\{ImageName}", true))
+                {
+                    if (key == null)
+                    {
+                        Program.PrintColorMessage($"Failed to create IFEO key for {ImageName}", ConsoleColor.Yellow);
+                        return;
+                    }
+
+                    key.SetValue("Debugger", "*", Microsoft.Win32.RegistryValueKind.String);
+                }
+
+                Program.PrintColorMessage($"Blocked execution: {ImageName}", ConsoleColor.DarkGray);
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Failed to block {ImageName}: {ex.Message}", ConsoleColor.Yellow);
             }
         }
 

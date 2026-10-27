@@ -82,9 +82,27 @@ typedef struct _STRING_INTEGER_PAIR
     ULONG Integer;
 } STRING_INTEGER_PAIR, *PSTRING_INTEGER_PAIR;
 
+typedef struct _STRING_STYLE_PAIR
+{
+    PWSTR String;
+    ULONG Value;
+    ULONG Mask; // Equal to Value for plain flags, the field mask for enumerated sub-fields.
+} STRING_STYLE_PAIR, *PSTRING_STYLE_PAIR;
+
+typedef struct _WE_CONTROL_STYLE_CLASS
+{
+    PWSTR ClassName;
+    PSTRING_STYLE_PAIR Pairs;
+    ULONG PairsCount;
+    BOOLEAN CommonControlStyles; // Also decode the shared CCS_* styles.
+} WE_CONTROL_STYLE_CLASS, *PWE_CONTROL_STYLE_CLASS;
+
 typedef enum _WINDOW_PROPERTIES_CATEGORY
 {
-    WINDOW_PROPERTIES_CATEGORY_GENERAL,
+    WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY,
+    WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY,
+    WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR,
+    WINDOW_PROPERTIES_CATEGORY_GENERAL_ACCESSIBILITY,
     WINDOW_PROPERTIES_CATEGORY_CLASS
 } WINDOW_PROPERTIES_CATEGORY;
 
@@ -110,6 +128,7 @@ typedef enum _WINDOW_PROPERTIES_INDEX
     WINDOW_PROPERTIES_INDEX_FONTNAME,
     WINDOW_PROPERTIES_INDEX_STYLES,
     WINDOW_PROPERTIES_INDEX_EXSTYLES,
+    WINDOW_PROPERTIES_INDEX_CONTROLSTYLES,
     WINDOW_PROPERTIES_INDEX_AUTOMATION,
     WINDOW_PROPERTIES_INDEX_DPICONTEXT,
     WINDOW_PROPERTIES_INDEX_MONITOR,
@@ -203,6 +222,8 @@ VOID WepLayoutWindowPropertiesOptionsButton(
     );
 
 #define DEFINE_PAIR(Symbol) { TEXT(#Symbol), Symbol }
+#define DEFINE_STYLE(Symbol) { TEXT(#Symbol), Symbol, Symbol }
+#define DEFINE_STYLE_MASK(Symbol, Mask) { TEXT(#Symbol), Symbol, Mask }
 
 #define WS_EX_DRAGDETECT 0x00000002
 #define WS_EX_VISIBLEWHENOTGHOSTED 0x00000800
@@ -285,6 +306,440 @@ static STRING_INTEGER_PAIR WepClassStylePairs[] =
     DEFINE_PAIR(CS_GLOBALCLASS),
     DEFINE_PAIR(CS_IME),
     DEFINE_PAIR(CS_DROPSHADOW)
+};
+
+// Control specific styles. These occupy the low word of the window style, the generic WS_* styles
+// occupy the high word, so the two can be decoded independently. (dmex)
+
+// Richedit styles that overlap the low word (avoids pulling in richedit.h).
+#define ES_DISABLENOSCROLL 0x00002000
+#define ES_SUNKEN 0x00004000
+#define ES_SAVESEL 0x00008000
+
+#define CCS_ALIGNMASK 0x00000003
+
+static STRING_STYLE_PAIR WepCommonControlStylePairs[] =
+{
+    DEFINE_STYLE_MASK(CCS_TOP, CCS_ALIGNMASK),
+    DEFINE_STYLE_MASK(CCS_NOMOVEY, CCS_ALIGNMASK),
+    DEFINE_STYLE_MASK(CCS_BOTTOM, CCS_ALIGNMASK),
+    DEFINE_STYLE(CCS_NORESIZE),
+    DEFINE_STYLE(CCS_NOPARENTALIGN),
+    DEFINE_STYLE(CCS_ADJUSTABLE),
+    DEFINE_STYLE(CCS_NODIVIDER),
+    DEFINE_STYLE(CCS_VERT)
+};
+
+static STRING_STYLE_PAIR WepButtonStylePairs[] =
+{
+    DEFINE_STYLE_MASK(BS_PUSHBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_DEFPUSHBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_CHECKBOX, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_AUTOCHECKBOX, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_RADIOBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_3STATE, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_AUTO3STATE, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_GROUPBOX, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_USERBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_AUTORADIOBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_PUSHBOX, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_OWNERDRAW, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_SPLITBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_DEFSPLITBUTTON, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_COMMANDLINK, BS_TYPEMASK),
+    DEFINE_STYLE_MASK(BS_DEFCOMMANDLINK, BS_TYPEMASK),
+    DEFINE_STYLE(BS_LEFTTEXT),
+    DEFINE_STYLE(BS_ICON),
+    DEFINE_STYLE(BS_BITMAP),
+    DEFINE_STYLE_MASK(BS_LEFT, BS_CENTER),
+    DEFINE_STYLE_MASK(BS_RIGHT, BS_CENTER),
+    DEFINE_STYLE_MASK(BS_CENTER, BS_CENTER),
+    DEFINE_STYLE_MASK(BS_TOP, BS_VCENTER),
+    DEFINE_STYLE_MASK(BS_BOTTOM, BS_VCENTER),
+    DEFINE_STYLE_MASK(BS_VCENTER, BS_VCENTER),
+    DEFINE_STYLE(BS_PUSHLIKE),
+    DEFINE_STYLE(BS_MULTILINE),
+    DEFINE_STYLE(BS_NOTIFY),
+    DEFINE_STYLE(BS_FLAT)
+};
+
+static STRING_STYLE_PAIR WepEditStylePairs[] =
+{
+    DEFINE_STYLE_MASK(ES_LEFT, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE_MASK(ES_CENTER, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE_MASK(ES_RIGHT, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE(ES_MULTILINE),
+    DEFINE_STYLE(ES_UPPERCASE),
+    DEFINE_STYLE(ES_LOWERCASE),
+    DEFINE_STYLE(ES_PASSWORD),
+    DEFINE_STYLE(ES_AUTOVSCROLL),
+    DEFINE_STYLE(ES_AUTOHSCROLL),
+    DEFINE_STYLE(ES_NOHIDESEL),
+    DEFINE_STYLE(ES_OEMCONVERT),
+    DEFINE_STYLE(ES_READONLY),
+    DEFINE_STYLE(ES_WANTRETURN),
+    DEFINE_STYLE(ES_NUMBER)
+};
+
+static STRING_STYLE_PAIR WepRichEditStylePairs[] =
+{
+    DEFINE_STYLE_MASK(ES_LEFT, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE_MASK(ES_CENTER, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE_MASK(ES_RIGHT, ES_CENTER | ES_RIGHT),
+    DEFINE_STYLE(ES_MULTILINE),
+    DEFINE_STYLE(ES_UPPERCASE),
+    DEFINE_STYLE(ES_LOWERCASE),
+    DEFINE_STYLE(ES_PASSWORD),
+    DEFINE_STYLE(ES_AUTOVSCROLL),
+    DEFINE_STYLE(ES_AUTOHSCROLL),
+    DEFINE_STYLE(ES_NOHIDESEL),
+    DEFINE_STYLE(ES_OEMCONVERT),
+    DEFINE_STYLE(ES_READONLY),
+    DEFINE_STYLE(ES_WANTRETURN),
+    DEFINE_STYLE(ES_DISABLENOSCROLL),
+    DEFINE_STYLE(ES_SUNKEN),
+    DEFINE_STYLE(ES_SAVESEL)
+};
+
+static STRING_STYLE_PAIR WepStaticStylePairs[] =
+{
+    DEFINE_STYLE_MASK(SS_LEFT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_CENTER, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_RIGHT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_ICON, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_BLACKRECT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_GRAYRECT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_WHITERECT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_BLACKFRAME, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_GRAYFRAME, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_WHITEFRAME, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_USERITEM, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_SIMPLE, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_LEFTNOWORDWRAP, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_OWNERDRAW, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_BITMAP, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_ENHMETAFILE, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_ETCHEDHORZ, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_ETCHEDVERT, SS_TYPEMASK),
+    DEFINE_STYLE_MASK(SS_ETCHEDFRAME, SS_TYPEMASK),
+    DEFINE_STYLE(SS_REALSIZECONTROL),
+    DEFINE_STYLE(SS_NOPREFIX),
+    DEFINE_STYLE(SS_NOTIFY),
+    DEFINE_STYLE(SS_CENTERIMAGE),
+    DEFINE_STYLE(SS_RIGHTJUST),
+    DEFINE_STYLE(SS_REALSIZEIMAGE),
+    DEFINE_STYLE(SS_SUNKEN),
+    DEFINE_STYLE(SS_EDITCONTROL),
+    DEFINE_STYLE_MASK(SS_ENDELLIPSIS, SS_ELLIPSISMASK),
+    DEFINE_STYLE_MASK(SS_PATHELLIPSIS, SS_ELLIPSISMASK),
+    DEFINE_STYLE_MASK(SS_WORDELLIPSIS, SS_ELLIPSISMASK)
+};
+
+static STRING_STYLE_PAIR WepListBoxStylePairs[] =
+{
+    DEFINE_STYLE(LBS_NOTIFY),
+    DEFINE_STYLE(LBS_SORT),
+    DEFINE_STYLE(LBS_NOREDRAW),
+    DEFINE_STYLE(LBS_MULTIPLESEL),
+    DEFINE_STYLE(LBS_OWNERDRAWFIXED),
+    DEFINE_STYLE(LBS_OWNERDRAWVARIABLE),
+    DEFINE_STYLE(LBS_HASSTRINGS),
+    DEFINE_STYLE(LBS_USETABSTOPS),
+    DEFINE_STYLE(LBS_NOINTEGRALHEIGHT),
+    DEFINE_STYLE(LBS_MULTICOLUMN),
+    DEFINE_STYLE(LBS_WANTKEYBOARDINPUT),
+    DEFINE_STYLE(LBS_EXTENDEDSEL),
+    DEFINE_STYLE(LBS_DISABLENOSCROLL),
+    DEFINE_STYLE(LBS_NODATA),
+    DEFINE_STYLE(LBS_NOSEL),
+    DEFINE_STYLE(LBS_COMBOBOX)
+};
+
+static STRING_STYLE_PAIR WepComboBoxStylePairs[] =
+{
+    DEFINE_STYLE_MASK(CBS_SIMPLE, CBS_DROPDOWNLIST),
+    DEFINE_STYLE_MASK(CBS_DROPDOWN, CBS_DROPDOWNLIST),
+    DEFINE_STYLE_MASK(CBS_DROPDOWNLIST, CBS_DROPDOWNLIST),
+    DEFINE_STYLE(CBS_OWNERDRAWFIXED),
+    DEFINE_STYLE(CBS_OWNERDRAWVARIABLE),
+    DEFINE_STYLE(CBS_AUTOHSCROLL),
+    DEFINE_STYLE(CBS_OEMCONVERT),
+    DEFINE_STYLE(CBS_SORT),
+    DEFINE_STYLE(CBS_HASSTRINGS),
+    DEFINE_STYLE(CBS_NOINTEGRALHEIGHT),
+    DEFINE_STYLE(CBS_DISABLENOSCROLL),
+    DEFINE_STYLE(CBS_UPPERCASE),
+    DEFINE_STYLE(CBS_LOWERCASE)
+};
+
+static STRING_STYLE_PAIR WepScrollBarStylePairs[] =
+{
+    DEFINE_STYLE_MASK(SBS_HORZ, SBS_VERT),
+    DEFINE_STYLE_MASK(SBS_VERT, SBS_VERT),
+    DEFINE_STYLE(SBS_TOPALIGN),
+    DEFINE_STYLE(SBS_BOTTOMALIGN),
+    DEFINE_STYLE(SBS_SIZEBOX),
+    DEFINE_STYLE(SBS_SIZEGRIP)
+};
+
+static STRING_STYLE_PAIR WepDialogStylePairs[] =
+{
+    DEFINE_STYLE(DS_ABSALIGN),
+    DEFINE_STYLE(DS_SYSMODAL),
+    DEFINE_STYLE(DS_3DLOOK),
+    DEFINE_STYLE(DS_FIXEDSYS),
+    DEFINE_STYLE(DS_NOFAILCREATE),
+    DEFINE_STYLE(DS_LOCALEDIT),
+    DEFINE_STYLE(DS_SETFONT),
+    DEFINE_STYLE(DS_MODALFRAME),
+    DEFINE_STYLE(DS_NOIDLEMSG),
+    DEFINE_STYLE(DS_SETFOREGROUND),
+    DEFINE_STYLE(DS_CONTROL),
+    DEFINE_STYLE(DS_CENTER),
+    DEFINE_STYLE(DS_CENTERMOUSE),
+    DEFINE_STYLE(DS_CONTEXTHELP)
+};
+
+static STRING_STYLE_PAIR WepStatusBarStylePairs[] =
+{
+    DEFINE_STYLE(SBARS_SIZEGRIP),
+    DEFINE_STYLE(SBARS_TOOLTIPS)
+};
+
+static STRING_STYLE_PAIR WepProgressBarStylePairs[] =
+{
+    DEFINE_STYLE(PBS_SMOOTH),
+    DEFINE_STYLE(PBS_VERTICAL),
+    DEFINE_STYLE(PBS_MARQUEE),
+    DEFINE_STYLE(PBS_SMOOTHREVERSE)
+};
+
+static STRING_STYLE_PAIR WepTrackBarStylePairs[] =
+{
+    DEFINE_STYLE(TBS_AUTOTICKS),
+    DEFINE_STYLE(TBS_VERT),
+    DEFINE_STYLE(TBS_LEFT),
+    DEFINE_STYLE(TBS_BOTH),
+    DEFINE_STYLE(TBS_NOTICKS),
+    DEFINE_STYLE(TBS_ENABLESELRANGE),
+    DEFINE_STYLE(TBS_FIXEDLENGTH),
+    DEFINE_STYLE(TBS_NOTHUMB),
+    DEFINE_STYLE(TBS_TOOLTIPS),
+    DEFINE_STYLE(TBS_REVERSED),
+    DEFINE_STYLE(TBS_DOWNISLEFT),
+    DEFINE_STYLE(TBS_NOTIFYBEFOREMOVE),
+    DEFINE_STYLE(TBS_TRANSPARENTBKGND)
+};
+
+static STRING_STYLE_PAIR WepUpDownStylePairs[] =
+{
+    DEFINE_STYLE(UDS_WRAP),
+    DEFINE_STYLE(UDS_SETBUDDYINT),
+    DEFINE_STYLE(UDS_ALIGNRIGHT),
+    DEFINE_STYLE(UDS_ALIGNLEFT),
+    DEFINE_STYLE(UDS_AUTOBUDDY),
+    DEFINE_STYLE(UDS_ARROWKEYS),
+    DEFINE_STYLE(UDS_HORZ),
+    DEFINE_STYLE(UDS_NOTHOUSANDS),
+    DEFINE_STYLE(UDS_HOTTRACK)
+};
+
+static STRING_STYLE_PAIR WepListViewStylePairs[] =
+{
+    DEFINE_STYLE_MASK(LVS_ICON, LVS_TYPEMASK),
+    DEFINE_STYLE_MASK(LVS_REPORT, LVS_TYPEMASK),
+    DEFINE_STYLE_MASK(LVS_SMALLICON, LVS_TYPEMASK),
+    DEFINE_STYLE_MASK(LVS_LIST, LVS_TYPEMASK),
+    DEFINE_STYLE(LVS_SINGLESEL),
+    DEFINE_STYLE(LVS_SHOWSELALWAYS),
+    DEFINE_STYLE(LVS_SORTASCENDING),
+    DEFINE_STYLE(LVS_SORTDESCENDING),
+    DEFINE_STYLE(LVS_SHAREIMAGELISTS),
+    DEFINE_STYLE(LVS_NOLABELWRAP),
+    DEFINE_STYLE(LVS_AUTOARRANGE),
+    DEFINE_STYLE(LVS_EDITLABELS),
+    DEFINE_STYLE(LVS_OWNERDRAWFIXED),
+    DEFINE_STYLE_MASK(LVS_ALIGNTOP, LVS_ALIGNLEFT),
+    DEFINE_STYLE_MASK(LVS_ALIGNLEFT, LVS_ALIGNLEFT),
+    DEFINE_STYLE(LVS_OWNERDATA),
+    DEFINE_STYLE(LVS_NOSCROLL),
+    DEFINE_STYLE(LVS_NOCOLUMNHEADER),
+    DEFINE_STYLE(LVS_NOSORTHEADER)
+};
+
+static STRING_STYLE_PAIR WepTreeViewStylePairs[] =
+{
+    DEFINE_STYLE(TVS_HASBUTTONS),
+    DEFINE_STYLE(TVS_HASLINES),
+    DEFINE_STYLE(TVS_LINESATROOT),
+    DEFINE_STYLE(TVS_EDITLABELS),
+    DEFINE_STYLE(TVS_DISABLEDRAGDROP),
+    DEFINE_STYLE(TVS_SHOWSELALWAYS),
+    DEFINE_STYLE(TVS_RTLREADING),
+    DEFINE_STYLE(TVS_NOTOOLTIPS),
+    DEFINE_STYLE(TVS_CHECKBOXES),
+    DEFINE_STYLE(TVS_TRACKSELECT),
+    DEFINE_STYLE(TVS_SINGLEEXPAND),
+    DEFINE_STYLE(TVS_INFOTIP),
+    DEFINE_STYLE(TVS_FULLROWSELECT),
+    DEFINE_STYLE(TVS_NOSCROLL),
+    DEFINE_STYLE(TVS_NONEVENHEIGHT),
+    DEFINE_STYLE(TVS_NOHSCROLL)
+};
+
+static STRING_STYLE_PAIR WepHeaderStylePairs[] =
+{
+    DEFINE_STYLE(HDS_BUTTONS),
+    DEFINE_STYLE(HDS_HOTTRACK),
+    DEFINE_STYLE(HDS_HIDDEN),
+    DEFINE_STYLE(HDS_DRAGDROP),
+    DEFINE_STYLE(HDS_FULLDRAG),
+    DEFINE_STYLE(HDS_FILTERBAR),
+    DEFINE_STYLE(HDS_FLAT),
+    DEFINE_STYLE(HDS_CHECKBOXES),
+    DEFINE_STYLE(HDS_NOSIZING),
+    DEFINE_STYLE(HDS_OVERFLOW)
+};
+
+static STRING_STYLE_PAIR WepTabControlStylePairs[] =
+{
+    DEFINE_STYLE(TCS_SCROLLOPPOSITE),
+    DEFINE_STYLE(TCS_BOTTOM),
+    DEFINE_STYLE(TCS_MULTISELECT),
+    DEFINE_STYLE(TCS_FLATBUTTONS),
+    DEFINE_STYLE(TCS_FORCEICONLEFT),
+    DEFINE_STYLE(TCS_FORCELABELLEFT),
+    DEFINE_STYLE(TCS_HOTTRACK),
+    DEFINE_STYLE(TCS_VERTICAL),
+    DEFINE_STYLE(TCS_BUTTONS),
+    DEFINE_STYLE(TCS_MULTILINE),
+    DEFINE_STYLE(TCS_FIXEDWIDTH),
+    DEFINE_STYLE(TCS_RAGGEDRIGHT),
+    DEFINE_STYLE(TCS_FOCUSONBUTTONDOWN),
+    DEFINE_STYLE(TCS_OWNERDRAWFIXED),
+    DEFINE_STYLE(TCS_TOOLTIPS),
+    DEFINE_STYLE(TCS_FOCUSNEVER)
+};
+
+static STRING_STYLE_PAIR WepAnimateStylePairs[] =
+{
+    DEFINE_STYLE(ACS_CENTER),
+    DEFINE_STYLE(ACS_TRANSPARENT),
+    DEFINE_STYLE(ACS_AUTOPLAY),
+    DEFINE_STYLE(ACS_TIMER)
+};
+
+static STRING_STYLE_PAIR WepMonthCalStylePairs[] =
+{
+    DEFINE_STYLE(MCS_DAYSTATE),
+    DEFINE_STYLE(MCS_MULTISELECT),
+    DEFINE_STYLE(MCS_WEEKNUMBERS),
+    DEFINE_STYLE(MCS_NOTODAYCIRCLE),
+    DEFINE_STYLE(MCS_NOTODAY),
+    DEFINE_STYLE(MCS_NOTRAILINGDATES),
+    DEFINE_STYLE(MCS_SHORTDAYSOFWEEK),
+    DEFINE_STYLE(MCS_NOSELCHANGEONNAV)
+};
+
+static STRING_STYLE_PAIR WepDateTimePickStylePairs[] =
+{
+    DEFINE_STYLE(DTS_UPDOWN),
+    DEFINE_STYLE(DTS_SHOWNONE),
+    DEFINE_STYLE_MASK(DTS_SHORTDATEFORMAT, DTS_LONGDATEFORMAT | 0x8),
+    DEFINE_STYLE_MASK(DTS_LONGDATEFORMAT, DTS_LONGDATEFORMAT | 0x8),
+    DEFINE_STYLE_MASK(DTS_SHORTDATECENTURYFORMAT, DTS_LONGDATEFORMAT | 0x8),
+    DEFINE_STYLE_MASK(DTS_TIMEFORMAT, DTS_TIMEFORMAT),
+    DEFINE_STYLE(DTS_APPCANPARSE),
+    DEFINE_STYLE(DTS_RIGHTALIGN)
+};
+
+static STRING_STYLE_PAIR WepSysLinkStylePairs[] =
+{
+    DEFINE_STYLE(LWS_TRANSPARENT),
+    DEFINE_STYLE(LWS_IGNORERETURN),
+    DEFINE_STYLE(LWS_NOPREFIX),
+    DEFINE_STYLE(LWS_USEVISUALSTYLE),
+    DEFINE_STYLE(LWS_USECUSTOMTEXT),
+    DEFINE_STYLE(LWS_RIGHT)
+};
+
+static STRING_STYLE_PAIR WepPagerStylePairs[] =
+{
+    DEFINE_STYLE_MASK(PGS_VERT, PGS_HORZ),
+    DEFINE_STYLE_MASK(PGS_HORZ, PGS_HORZ),
+    DEFINE_STYLE(PGS_AUTOSCROLL),
+    DEFINE_STYLE(PGS_DRAGNDROP)
+};
+
+static STRING_STYLE_PAIR WepToolBarStylePairs[] =
+{
+    DEFINE_STYLE(TBSTYLE_TOOLTIPS),
+    DEFINE_STYLE(TBSTYLE_WRAPABLE),
+    DEFINE_STYLE(TBSTYLE_ALTDRAG),
+    DEFINE_STYLE(TBSTYLE_FLAT),
+    DEFINE_STYLE(TBSTYLE_LIST),
+    DEFINE_STYLE(TBSTYLE_CUSTOMERASE),
+    DEFINE_STYLE(TBSTYLE_REGISTERDROP),
+    DEFINE_STYLE(TBSTYLE_TRANSPARENT)
+};
+
+static STRING_STYLE_PAIR WepToolTipsStylePairs[] =
+{
+    DEFINE_STYLE(TTS_ALWAYSTIP),
+    DEFINE_STYLE(TTS_NOPREFIX),
+    DEFINE_STYLE(TTS_NOANIMATE),
+    DEFINE_STYLE(TTS_NOFADE),
+    DEFINE_STYLE(TTS_BALLOON),
+    DEFINE_STYLE(TTS_CLOSE),
+    DEFINE_STYLE(TTS_USEVISUALSTYLE)
+};
+
+static STRING_STYLE_PAIR WepReBarStylePairs[] =
+{
+    DEFINE_STYLE(RBS_TOOLTIPS),
+    DEFINE_STYLE(RBS_VARHEIGHT),
+    DEFINE_STYLE(RBS_BANDBORDERS),
+    DEFINE_STYLE(RBS_FIXEDORDER),
+    DEFINE_STYLE(RBS_REGISTERDROP),
+    DEFINE_STYLE(RBS_AUTOSIZE),
+    DEFINE_STYLE(RBS_VERTICALGRIPPER),
+    DEFINE_STYLE(RBS_DBLCLKTOGGLE)
+};
+
+#define DEFINE_STYLE_CLASS(Name, Pairs, CommonStyles) \
+    { (Name), (Pairs), RTL_NUMBER_OF(Pairs), (CommonStyles) }
+
+static WE_CONTROL_STYLE_CLASS WepControlStyleClasses[] =
+{
+    DEFINE_STYLE_CLASS(L"Button", WepButtonStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"Edit", WepEditStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"Static", WepStaticStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ListBox", WepListBoxStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ComboLBox", WepListBoxStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ComboBox", WepComboBoxStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ComboBoxEx32", WepComboBoxStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ScrollBar", WepScrollBarStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"#32770", WepDialogStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"RichEdit", WepRichEditStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"RichEdit20A", WepRichEditStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"RichEdit20W", WepRichEditStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"RichEdit50W", WepRichEditStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"msctls_statusbar32", WepStatusBarStylePairs, TRUE),
+    DEFINE_STYLE_CLASS(L"msctls_progress32", WepProgressBarStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"msctls_trackbar32", WepTrackBarStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"msctls_updown32", WepUpDownStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysListView32", WepListViewStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysTreeView32", WepTreeViewStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysHeader32", WepHeaderStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysTabControl32", WepTabControlStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysAnimate32", WepAnimateStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysMonthCal32", WepMonthCalStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysDateTimePick32", WepDateTimePickStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysLink", WepSysLinkStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"SysPager", WepPagerStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ToolbarWindow32", WepToolBarStylePairs, TRUE),
+    DEFINE_STYLE_CLASS(L"tooltips_class32", WepToolTipsStylePairs, FALSE),
+    DEFINE_STYLE_CLASS(L"ReBarWindow32", WepReBarStylePairs, TRUE)
 };
 
 PPH_OBJECT_TYPE WeWindowItemType = NULL;
@@ -441,7 +896,7 @@ NTSTATUS WepPropertiesThreadStart(
             WepWindowPropStoreDlgProc,
             WepCreateWindowPropertiesPageContext(sizeof(WINDOW_PROPERTIES_PROPSTORE_PAGE_CONTEXT), context));
         PvAddPropPage(propContext, newPage);
-        
+
         // DWM attributes
         newPage = PvCreatePropPageContext(
             L"DwmAttributes",
@@ -487,8 +942,9 @@ NTSTATUS WepPropertiesThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID WepLayoutWindowPropertiesOptionsButton(
-    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+VOID WepGetWindowPropertiesOptionsButtonRect(
+    _In_ HWND PropertySheetHandle,
+    _Out_ PRECT ButtonRect
     )
 {
     RECT clientRect;
@@ -497,22 +953,38 @@ VOID WepLayoutWindowPropertiesOptionsButton(
     LONG buttonWidth;
     LONG buttonHeight;
 
-    if (!Context->PropertySheetHandle || !Context->OptionsButtonHandle)
-        return;
-
-    dpiValue = PhGetWindowDpi(Context->PropertySheetHandle);
+    dpiValue = PhGetWindowDpi(PropertySheetHandle);
     padding = MulDiv(8, dpiValue, USER_DEFAULT_SCREEN_DPI);
     buttonWidth = MulDiv(75, dpiValue, USER_DEFAULT_SCREEN_DPI);
     buttonHeight = MulDiv(23, dpiValue, USER_DEFAULT_SCREEN_DPI);
-    GetClientRect(Context->PropertySheetHandle, &clientRect);
+
+    if (!GetClientRect(PropertySheetHandle, &clientRect))
+        memset(&clientRect, 0, sizeof(RECT));
+
+    ButtonRect->left = padding;
+    ButtonRect->top = clientRect.bottom - padding - buttonHeight;
+    ButtonRect->right = ButtonRect->left + buttonWidth;
+    ButtonRect->bottom = ButtonRect->top + buttonHeight;
+}
+
+VOID WepLayoutWindowPropertiesOptionsButton(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    RECT buttonRect;
+
+    if (!Context->PropertySheetHandle || !Context->OptionsButtonHandle)
+        return;
+
+    WepGetWindowPropertiesOptionsButtonRect(Context->PropertySheetHandle, &buttonRect);
 
     SetWindowPos(
         Context->OptionsButtonHandle,
         NULL,
-        padding,
-        clientRect.bottom - padding - buttonHeight,
-        buttonWidth,
-        buttonHeight,
+        buttonRect.left,
+        buttonRect.top,
+        buttonRect.right - buttonRect.left,
+        buttonRect.bottom - buttonRect.top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 }
@@ -546,18 +1018,16 @@ VOID WepShowWindowPropertiesOptionsMenu(
     {
         if (selectedItem->Id == ID_WINDOW_HIGHLIGHT)
         {
-            if (Context->HighlightingOverlayWindow)
-                WeHideWindowHighlightOverlay(&Context->HighlightingOverlayWindow);
-            else if (Context->HighlightingWindow && (Context->HighlightingWindowCount & 1))
-                WeInvertWindowBorder(Context->HighlightingWindow);
+            WeStartWindowHighlight(
+                &Context->HighlightingOverlayWindow,
+                &Context->HighlightingWindow,
+                &Context->HighlightingWindowCount,
+                &Context->HighlightingOverlay,
+                Context->WindowHandle
+                );
 
-            Context->HighlightingWindow = Context->WindowHandle;
-            Context->HighlightingWindowCount = 10;
-
-            if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
-                WeShowWindowHighlightOverlay(&Context->HighlightingOverlayWindow, Context->HighlightingWindow);
-
-            SetTimer(Context->PropertySheetHandle, WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER, 100, NULL);
+            if (Context->HighlightingWindowCount != 0)
+                PhSetTimer(Context->PropertySheetHandle, WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER, 100, NULL);
         }
         else
         {
@@ -576,16 +1046,19 @@ VOID NTAPI WepWindowPropertiesSheetInitialized(
     PWINDOW_PROPERTIES_CONTEXT context = Context;
     HWND closeButtonHandle;
     HFONT fontHandle;
+    RECT buttonRect;
+
+    WepGetWindowPropertiesOptionsButtonRect(HostHandle, &buttonRect);
 
     context->PropertySheetHandle = HostHandle;
     context->OptionsButtonHandle = PhCreateWindow(
         WC_BUTTON,
         L"Options",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-        0,
-        0,
-        0,
-        0,
+        buttonRect.left,
+        buttonRect.top,
+        buttonRect.right - buttonRect.left,
+        buttonRect.bottom - buttonRect.top,
         HostHandle,
         (HMENU)IDC_OPTIONS,
         PluginInstance->DllBase,
@@ -635,24 +1108,14 @@ LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
     case WM_TIMER:
         if (wParam == WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER && context->HighlightingWindowCount != 0)
         {
-            if (!IsWindow(context->HighlightingWindow))
+            if (!WeUpdateWindowHighlight(
+                &context->HighlightingOverlayWindow,
+                &context->HighlightingWindow,
+                &context->HighlightingWindowCount,
+                &context->HighlightingOverlay
+                ))
             {
                 KillTimer(WindowHandle, WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER);
-                context->HighlightingWindow = NULL;
-                context->HighlightingWindowCount = 0;
-                return 0;
-            }
-
-            if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
-                WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
-            else
-                WeInvertWindowBorder(context->HighlightingWindow);
-
-            if (--context->HighlightingWindowCount == 0)
-            {
-                KillTimer(WindowHandle, WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER);
-                context->HighlightingWindow = NULL;
-                WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
             }
 
             return 0;
@@ -668,9 +1131,12 @@ LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
         }
     case WM_NCDESTROY:
         {
-            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
-            if (context->HighlightingWindow && (context->HighlightingWindowCount & 1))
-                WeInvertWindowBorder(context->HighlightingWindow);
+            WeStopWindowHighlight(
+                &context->HighlightingOverlayWindow,
+                &context->HighlightingWindow,
+                &context->HighlightingWindowCount,
+                &context->HighlightingOverlay
+                );
 
             KillTimer(WindowHandle, WE_WINDOW_PROPERTIES_HIGHLIGHT_TIMER);
             PhRemoveWindowContext(WindowHandle, WE_WINDOW_PROPERTIES_CONTEXT_SLOT);
@@ -801,30 +1267,6 @@ VOID PhD3DKMTQueryVidPnExclusiveOwnership(
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_D3DKMT_EXCLUSIVE, 1, L"N/A");
     }
 }
-
-
-typedef enum _WINDOW_BAND
-{
-    ZBID_DEFAULT = 0,
-    ZBID_DESKTOP = 1,
-    ZBID_UIACCESS = 2,
-    ZBID_IMMERSIVE_IHM = 3,
-    ZBID_IMMERSIVE_NOTIFICATION = 4,
-    ZBID_IMMERSIVE_APPCHROME = 5,
-    ZBID_IMMERSIVE_MOGO = 6,
-    ZBID_IMMERSIVE_EDGY = 7,
-    ZBID_IMMERSIVE_INACTIVEMOBODY = 8,
-    ZBID_IMMERSIVE_INACTIVEDOCK = 9,
-    ZBID_IMMERSIVE_ACTIVEMOBODY = 10,
-    ZBID_IMMERSIVE_ACTIVEDOCK = 11,
-    ZBID_IMMERSIVE_BACKGROUND = 12,
-    ZBID_IMMERSIVE_SEARCH = 13,
-    ZBID_GENUINE_WINDOWS = 14,
-    ZBID_IMMERSIVE_RESTRICTED = 15,
-    ZBID_SYSTEM_TOOLS = 16,
-    ZBID_LOCK = 17,
-    ZBID_ABOVELOCK_UX = 18,
-} WINDOW_BAND;
 
 PPH_STRING WepFormatRect(
     _In_ PRECT Rect
@@ -977,7 +1419,7 @@ VOID WepRefreshWindowGeneralInfo(
     {
         ULONG_PTR result;
 
-        if (PhSendMessageTimeout(Context->WindowHandle, WM_GETFONT, 0, 0, 1000, &result))
+        if (NT_SUCCESS(PhSendMessageTimeout(Context->WindowHandle, WM_GETFONT, 0, 0, 1000, &result)))
         {
             LOGFONT logFont;
 
@@ -1162,6 +1604,116 @@ VOID WepRefreshWindowGeneralInfo(
     }
 }
 
+_Ret_maybenull_
+PWE_CONTROL_STYLE_CLASS WepFindControlStyleClass(
+    _In_ PCWSTR ClassName
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < RTL_NUMBER_OF(WepControlStyleClasses); i++)
+    {
+        if (PhEqualStringZ(WepControlStyleClasses[i].ClassName, ClassName, TRUE))
+            return &WepControlStyleClasses[i];
+    }
+
+    return NULL;
+}
+
+VOID WepAppendControlStyles(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ ULONG ControlStyle,
+    _In_reads_(Count) PSTRING_STYLE_PAIR Pairs,
+    _In_ ULONG Count
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Count; i++)
+    {
+        if (Pairs[i].Mask && (ControlStyle & Pairs[i].Mask) == Pairs[i].Value)
+        {
+            PhAppendStringBuilder2(StringBuilder, Pairs[i].String);
+            PhAppendStringBuilder2(StringBuilder, L", ");
+        }
+    }
+}
+
+VOID WepRefreshControlStyles(
+    _In_ HWND ListViewHandle,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context,
+    _In_ ULONG WindowStyle
+    )
+{
+    PWE_CONTROL_STYLE_CLASS styleClass;
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR className[256];
+    ULONG controlStyle;
+
+    // The control specific styles occupy the low word of the window style. (dmex)
+    controlStyle = WindowStyle & 0xffff;
+
+    // Prefer the base class name so superclassed controls are still decoded. (dmex)
+    if (RealGetWindowClassW(Context->WindowHandle, className, RTL_NUMBER_OF(className)))
+        styleClass = WepFindControlStyleClass(className);
+    else
+        styleClass = NULL;
+
+    if (!styleClass)
+    {
+        if (NT_SUCCESS(PhGetClassName(Context->WindowHandle, className, RTL_NUMBER_OF(className), NULL)))
+            styleClass = WepFindControlStyleClass(className);
+    }
+
+    if (!styleClass)
+    {
+        PPH_STRING string;
+
+        if (controlStyle)
+            string = PhFormatString(L"0x%x (unknown)", controlStyle);
+        else
+            string = PhFormatString(L"0x%x", controlStyle);
+
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CONTROLSTYLES, 1, string->Buffer);
+        PhDereferenceObject(string);
+        return;
+    }
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhAppendFormatStringBuilder(&stringBuilder, L"0x%x (", controlStyle);
+
+    if (styleClass->CommonControlStyles)
+    {
+        WepAppendControlStyles(
+            &stringBuilder,
+            controlStyle,
+            WepCommonControlStylePairs,
+            RTL_NUMBER_OF(WepCommonControlStylePairs)
+            );
+    }
+
+    WepAppendControlStyles(
+        &stringBuilder,
+        controlStyle,
+        styleClass->Pairs,
+        styleClass->PairsCount
+        );
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+    {
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+        PhAppendCharStringBuilder(&stringBuilder, ')');
+    }
+    else
+    {
+        // No styles. Remove the brackets.
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+    }
+
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CONTROLSTYLES, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
+    PhDeleteStringBuilder(&stringBuilder);
+}
+
 VOID WepRefreshWindowStyles(
     _In_ HWND ListViewHandle,
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
@@ -1238,11 +1790,14 @@ VOID WepRefreshWindowStyles(
 
         PhDeleteStringBuilder(&styleStringBuilder);
         PhDeleteStringBuilder(&styleExStringBuilder);
+
+        WepRefreshControlStyles(ListViewHandle, Context, windowInfo.dwStyle);
     }
     else
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_STYLES, 1, L"N/A");
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_EXSTYLES, 1, L"N/A");
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CONTROLSTYLES, 1, L"N/A");
     }
 }
 
@@ -1573,37 +2128,44 @@ VOID WepGeneralAddListViewItemGroups(
     )
 {
     ListView_EnableGroupView(ListViewHandle, TRUE);
-    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, L"General");
-    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, L"Class");
+    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, L"Identity");
+    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, L"Geometry and state");
+    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, L"Behavior and styles");
+    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_ACCESSIBILITY, L"Automation and accessibility");
+    PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, L"Class metadata");
 
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_APPID, L"AppId", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_THREAD, L"Thread", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_RECT, L"Rectangle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_NORMALRECT, L"Normal rectangle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_CLIENTRECT, L"Client rectangle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_INSTANCE, L"Instance handle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MENUHANDLE, L"Menu handle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_USERDATA, L"User data", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_UNICODE, L"Unicode", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDTEXT, L"Window text", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDHANDLE, L"Window handle", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDUNIQID, L"Window unique id", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, L"Window message-only", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDEXTRA, L"Window extra bytes", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDPROC, L"Window procedure", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGPROC, L"Dialog procedure", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGCTLID, L"Dialog control ID", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_FONTNAME, L"Font", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_STYLES, L"Styles", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MONITOR, L"Monitor", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_TOPLEVEL, L"Top level", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_CLOAKED, L"Cloaked", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_IAMID, L"Band", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_IMEWND, L"IME Window", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_D3DKMT_EXCLUSIVE, L"Exclusive ownership", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_APPID, L"AppId", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_THREAD, L"Thread", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_INSTANCE, L"Instance handle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_MENUHANDLE, L"Menu handle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_USERDATA, L"User data", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_UNICODE, L"Unicode", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_WNDTEXT, L"Window text", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_WNDHANDLE, L"Window handle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_IDENTITY, WINDOW_PROPERTIES_INDEX_WNDUNIQID, L"Window unique id", NULL);
+
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_RECT, L"Rectangle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_NORMALRECT, L"Normal rectangle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_CLIENTRECT, L"Client rectangle", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_TOPLEVEL, L"Top level", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_CLOAKED, L"Cloaked", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_MONITOR, L"Monitor", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_IAMID, L"Band", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_IMEWND, L"IME Window", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_GEOMETRY, WINDOW_PROPERTIES_INDEX_D3DKMT_EXCLUSIVE, L"Exclusive ownership", NULL);
+
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, L"Window message-only", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_WNDEXTRA, L"Window extra bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_WNDPROC, L"Window procedure", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_DLGPROC, L"Dialog procedure", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_DLGCTLID, L"Dialog control ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_FONTNAME, L"Font", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_STYLES, L"Styles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_BEHAVIOR, WINDOW_PROPERTIES_INDEX_CONTROLSTYLES, L"Control styles", NULL);
+
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL_ACCESSIBILITY, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, L"Base name", NULL);
@@ -1924,22 +2486,13 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORLISTBOX:
-        {
-            HBRUSH brush;
-
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            SetTextColor((HDC)wParam, RGB(0, 0, 0));
-
-            brush = PhGetStockBrush(DC_BRUSH);
-            SelectBrush((HDC)wParam, brush);
-            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-
-            return (INT_PTR)brush;
-        }
-        break;
+        return HANDLE_WM_CTLCOLORLISTBOX(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -1984,7 +2537,16 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
             {
                 WCHAR value[PH_INT64_STR_LEN_1];
 
-                PhPrintPointer(value, (PVOID)GetProp(context->TargetWindowHandle, PhGetString(context->WindowPropString)));
+                HANDLE propValue;
+                NTSTATUS status;
+
+                status = WeGetWindowPropertyInfo(context->TargetWindowHandle, PhGetString(context->WindowPropString),
+                    NULL, &propValue, NULL, NULL);
+
+                if (NT_SUCCESS(status))
+                    PhPrintPointer(value, (PVOID)propValue);
+                else
+                    value[0] = L'\0';
                 PhSetDialogItemText(WindowHandle, IDC_NAME, PhGetString(context->WindowPropString));
                 PhSetDialogItemText(WindowHandle, IDC_VALUE, value);
 
@@ -2038,7 +2600,7 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
 
                     if (context->WindowPropCreate)
                     {
-                        if (!SetProp(context->TargetWindowHandle, PhGetString(windowPropName), (HANDLE)value))
+                        if (!WeSetWindowProperty(context->TargetWindowHandle, PhGetString(windowPropName), (HANDLE)value))
                         {
                             PhShowStatus(WindowHandle, L"Unable to create the window property.", 0, GetLastError());
                             break;
@@ -2046,7 +2608,7 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
                     }
                     else
                     {
-                        if (!SetProp(context->TargetWindowHandle, PhGetString(context->WindowPropString), (HANDLE)value))
+                        if (!WeSetWindowProperty(context->TargetWindowHandle, PhGetString(context->WindowPropString), (HANDLE)value))
                         {
                             PhShowStatus(WindowHandle, L"Unable to update the window property.", 0, GetLastError());
                             break;
@@ -2091,11 +2653,13 @@ VOID WepFreeListViewWindowProps(
     }
 }
 
-BOOL CALLBACK WepEnumPropsExCallback(
+BOOL CALLBACK WepPropertyEnumCallback(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Name,
-    _In_ HANDLE Value,
-    _In_ ULONG_PTR Context
+    _In_ PCWSTR PropertyName,
+    _In_ HANDLE PropertyValue,
+    _In_ BOOLEAN IsAtom,
+    _In_ USHORT AtomValue,
+    _In_opt_ PVOID Context
     )
 {
     PWINDOW_PROPERTIES_PROPLIST_PAGE_CONTEXT context = (PWINDOW_PROPERTIES_PROPLIST_PAGE_CONTEXT)Context;
@@ -2104,23 +2668,20 @@ BOOL CALLBACK WepEnumPropsExCallback(
     PPH_STRING propName;
     WCHAR value[PH_INT64_STR_LEN_1];
 
-    if (IS_INTRESOURCE(Name))
-        propName = PhFormatString(L"#%hu", PtrToUshort(Name));
+    if (IsAtom)
+        propName = WeFormatAtomString(AtomValue);
     else
-        propName = PhCreateString(Name);
+        propName = PhCreateString(PropertyName);
 
     PhPrintUInt32(value, ++parentContext->PropsListCount);
     lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, propName);
 
-    if (IS_INTRESOURCE(Name)) // This is an integer atom.
-        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PhGetString(propName));
-    else
-        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, Name);
+    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PhGetString(propName));
 
-    PhPrintPointer(value, (PVOID)Value);
+    PhPrintPointer(value, (PVOID)PropertyValue);
     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
 
-    if (!IS_INTRESOURCE(Name))
+    if (!IsAtom)
     {
         PROPERTYKEY propkey;
         PWSTR propKeyName;
@@ -2150,7 +2711,7 @@ VOID WepRefreshWindowProps(
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
-    EnumPropsEx(parentContext->WindowHandle, WepEnumPropsExCallback, (LPARAM)Context);
+    WeEnumWindowProperties(parentContext->WindowHandle, WepPropertyEnumCallback, Context);
 
     ExtendedListView_SortItems(Context->ListViewHandle);
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
@@ -2325,11 +2886,14 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                                     break;
                                 }
 
-                                RemoveProp(context->Parent->WindowHandle, PhGetString(listviewItems[0]));
+                                HANDLE removedValue = WeRemoveWindowProperty(context->Parent->WindowHandle, PhGetString(listviewItems[0]));
 
-                                status = PhGetLastWin32ErrorAsNtStatus();
-                                if (status != STATUS_CANCELLED)
-                                    PhShowStatus(WindowHandle, L"Unable to remove the window property.", status, 0);
+                                if (!removedValue && GetLastError() != ERROR_SUCCESS)
+                                {
+                                    status = PhGetLastWin32ErrorAsNtStatus();
+                                    if (status != STATUS_CANCELLED)
+                                        PhShowStatus(WindowHandle, L"Unable to remove the window property.", status, 0);
+                                }
 
                                 //WepRefreshWindowProps(context);
                                 PvRefreshChildWindows(WindowHandle);
@@ -3383,14 +3947,8 @@ static BOOLEAN WepEnumerateWindowChildrenRecursive(
 {
     HWND windowHandle = NULL;
 
-    if (!IsWindow(ParentWindowHandle))
-        return TRUE;
-
     while ((windowHandle = FindWindowEx(ParentWindowHandle, windowHandle, NULL, NULL)) != NULL)
     {
-        if (!IsWindow(windowHandle))
-            continue;
-
         if (!WepEnumWindowChildrenProc(windowHandle, Context))
             return FALSE;
 

@@ -11,6 +11,15 @@
 
 #include "toolstatus.h"
 
+/**
+ * Inserts a new band into the rebar control.
+ *
+ * \param BandID The identifier for the band.
+ * \param ChildWindowHandle A handle to the child window.
+ * \param ChildMinimumWidth The minimum width of the child window.
+ * \param ChildMinimumHeight The minimum height of the child window.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN RebarBandInsert(
     _In_ REBAR_BAND BandID,
     _In_ HWND ChildWindowHandle,
@@ -44,7 +53,8 @@ BOOLEAN RebarBandInsert(
 
         rebarBandInfo.fMask |= RBBIM_COLORS;
         rebarBandInfo.clrFore = palette->TextColor;
-        rebarBandInfo.clrBack = palette->BackgroundColor;
+        // Light theme: match the white command bar background drawn by the menu bar/toolbar.
+        rebarBandInfo.clrBack = ToolbarIsDarkTheme() ? palette->BackgroundColor : GetSysColor(COLOR_WINDOW);
     }
 
     ULONG index = SearchboxHandle ? RebarBandToIndex(REBAR_BAND_ID_SEARCHBOX) : ULONG_MAX;
@@ -87,7 +97,7 @@ VOID RebarUpdateBandColors(
             const PH_WINDOW_THEME_PALETTE* palette = PhGetWindowThemePalette();
 
             rebarBandInfo.clrFore = palette->TextColor;
-            rebarBandInfo.clrBack = palette->BackgroundColor;
+            rebarBandInfo.clrBack = ToolbarIsDarkTheme() ? palette->BackgroundColor : GetSysColor(COLOR_WINDOW);
         }
         else
         {
@@ -101,6 +111,11 @@ VOID RebarUpdateBandColors(
     InvalidateRect(RebarHandle, NULL, TRUE);
 }
 
+/**
+ * Removes a band from the rebar control.
+ *
+ * \param BandID The identifier of the band to remove.
+ */
 VOID RebarBandRemove(
     _In_ REBAR_BAND BandID
     )
@@ -113,6 +128,13 @@ VOID RebarBandRemove(
     SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)index, 0);
 }
 
+/**
+ * Moves a band from one index to another in the rebar control.
+ *
+ * \param OldIndex The zero-based index of the band to be moved.
+ * \param NewIndex The zero-based index of the new position for the band.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN RebarBandMove(
     _In_ ULONG OldIndex,
     _In_ ULONG NewIndex
@@ -123,6 +145,12 @@ BOOLEAN RebarBandMove(
     return FALSE;
 }
 
+/**
+ * Retrieves the index of a rebar band based on its identifier.
+ *
+ * \param BandID The identifier of the band.
+ * \return The zero-based index of the band, or ULONG_MAX if the band was not found.
+ */
 ULONG RebarBandToIndex(
     _In_ REBAR_BAND BandID
     )
@@ -135,6 +163,12 @@ ULONG RebarBandToIndex(
     return (ULONG)index;
 }
 
+/**
+ * Retrieves the count of bands in the rebar control.
+ *
+ * \param Count A variable that receives the band count.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN RebarGetBandCount(
     _Out_ PULONG Count
@@ -149,6 +183,12 @@ BOOLEAN RebarGetBandCount(
     return TRUE;
 }
 
+/**
+ * Retrieves the height of a specified rebar band's row.
+ *
+ * \param BandID The identifier of the band.
+ * \return The height of the row, in pixels, or 0 if the band was not found.
+ */
 LONG RebarGetRowHeight(
     _In_ REBAR_BAND BandID
     )
@@ -163,6 +203,9 @@ LONG RebarGetRowHeight(
     return (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, index, 0);
 }
 
+/**
+ * Sets the characteristics of the rebar control.
+ */
 VOID RebarSetBarInfo(
     VOID
     )
@@ -176,6 +219,13 @@ VOID RebarSetBarInfo(
     SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 }
 
+/**
+ * Retrieves the style for a specified band in the rebar control.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param Style A variable that receives the band style.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN RebarGetBandIndexStyle(
     _In_ ULONG BandIndex,
@@ -197,6 +247,13 @@ BOOLEAN RebarGetBandIndexStyle(
     return FALSE;
 }
 
+/**
+ * Sets the style for a specified band in the rebar control.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param Style The new style to apply to the band.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN RebarSetBandIndexStyle(
     _In_ ULONG BandIndex,
     _In_ ULONG Style
@@ -215,6 +272,13 @@ BOOLEAN RebarSetBandIndexStyle(
     return FALSE;
 }
 
+/**
+ * Retrieves the child size limits and characteristics of a specified rebar band.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param BandSize A structure that receives the child size characteristics of the band.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN RebarGetBandIndexChildSize(
     _In_ ULONG BandIndex,
@@ -241,6 +305,13 @@ BOOLEAN RebarGetBandIndexChildSize(
     return FALSE;
 }
 
+/**
+ * Sets the child size limits and characteristics of a specified rebar band.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param BandSize A structure that contains the child size characteristics to set.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN RebarSetBandIndexChildSize(
     _In_ ULONG BandIndex,
     _In_ PBAND_CHILD_SIZE BandSize
@@ -263,6 +334,13 @@ BOOLEAN RebarSetBandIndexChildSize(
     return FALSE;
 }
 
+/**
+ * Retrieves the style and width of a specified rebar band.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param BandStyleSize A structure that receives the style and width of the band.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN RebarGetBandIndexStyleSize(
     _In_ ULONG BandIndex,
@@ -286,6 +364,13 @@ BOOLEAN RebarGetBandIndexStyleSize(
     return FALSE;
 }
 
+/**
+ * Sets the style and width of a specified rebar band.
+ *
+ * \param BandIndex The zero-based index of the band.
+ * \param RebarBandInfo A structure that contains the style and width to set.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN RebarSetBandIndexStyleSize(
     _In_ ULONG BandIndex,
     _In_ PBAND_STYLE_SIZE RebarBandInfo

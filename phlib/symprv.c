@@ -23,6 +23,7 @@
 #include <mapimg.h>
 #include <mapldr.h>
 #include <thirdparty.h>
+#include <json.h>
 
 #if defined(_ARM64_)
 #define PH_THREAD_STACK_NATIVE_MACHINE IMAGE_FILE_MACHINE_ARM64
@@ -314,6 +315,7 @@ static VOID PhpSymbolProviderEventCallback(
         }
         break;
     case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
+    case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
         {
             PhClearReference(&PhSymbolProviderEventMessageText);
             PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_LOAD_END, NULL, 0);
@@ -2392,16 +2394,18 @@ HRESULT PhWriteMiniDumpProcess(
  * \param StackFrame A pointer to the STACKFRAME64 structure to convert.
  * \param Machine Machine to set in the resulting structure.
  * \param Flags Flags to set in the resulting structure.
+ * \param ContextRecord The unwound register context for the frame (optional).
  * \param ThreadStackFrame A pointer to the resulting PH_THREAD_STACK_FRAME structure.
  */
 VOID PhConvertStackFrame(
     _In_ CONST STACKFRAME_EX *StackFrame,
     _In_ USHORT Machine,
     _In_ USHORT Flags,
+    _In_opt_ PVOID ContextRecord,
     _Out_ PPH_THREAD_STACK_FRAME ThreadStackFrame
     )
 {
-    memset(ThreadStackFrame, 0, sizeof(ThreadStackFrame->Params));
+    memset(ThreadStackFrame, 0, sizeof(PH_THREAD_STACK_FRAME));
     ThreadStackFrame->PcAddress = (PVOID)StackFrame->AddrPC.Offset;
     ThreadStackFrame->ReturnAddress = (PVOID)StackFrame->AddrReturn.Offset;
     ThreadStackFrame->FrameAddress = (PVOID)StackFrame->AddrFrame.Offset;
@@ -2418,6 +2422,12 @@ VOID PhConvertStackFrame(
         ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT;
 
     ThreadStackFrame->InlineFrameContext = StackFrame->InlineFrameContext;
+
+    if (ContextRecord)
+    {
+        ThreadStackFrame->ContextRecord = ContextRecord;
+        ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_CONTEXT_PRESENT;
+    }
 }
 
 /**
@@ -2458,6 +2468,13 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN isSystemThread = FALSE;
     THREAD_BASIC_INFORMATION basicInfo;
     HANDLE stateChangeHandle = NULL;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+
+    // When the caller asked for raw frames only, drop the symbol provider so
+    // PhStackWalk does not register it (which would trigger SymInitialize and
+    // on-demand PDB downloads). Out-of-process pdata unwind via
+    // PhFunctionTableAccess64/PhGetModuleBase64 continues to work. (dmex)
+    symbolProvider = (Flags & PH_WALK_NO_SYMBOL_LOOKUP) ? NULL : SymbolProvider;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
@@ -2644,7 +2661,7 @@ NTSTATUS PhWalkThreadStack(
                 ThreadHandle,
                 &stackFrame,
                 contextRecord,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2686,7 +2703,7 @@ CheckFinalARM64VirtualFrame:
                 {
                     // Convert the stack frame and execute the callback.
 
-                    PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                    PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, NULL, &threadStackFrame);
 
                     if (!Callback(&threadStackFrame, Context))
                         goto ResumeExit;
@@ -2712,7 +2729,7 @@ CheckFinalARM64VirtualFrame:
             //   known to be affected, other arches on ARM64 need tested too. Seems to be a bug in
             //   dbghelp.dll because dbgeng.dll (e.g. windbg.exe) seems to be broken here too.
 
-            frameMachine = PhpGetMachineForAddress(SymbolProvider, ProcessHandle, (PVOID)stackFrame.AddrPC.Offset);
+            frameMachine = PhpGetMachineForAddress(symbolProvider, ProcessHandle, (PVOID)stackFrame.AddrPC.Offset);
 
             if (machine != frameMachine)
             {
@@ -2738,7 +2755,7 @@ CheckFinalARM64VirtualFrame:
 
                 // Convert the stack frame and execute the callback.
 
-                PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, NULL, &threadStackFrame);
 
                 if (!Callback(&threadStackFrame, Context))
                     goto ResumeExit;
@@ -2759,7 +2776,7 @@ CheckFinalARM64VirtualFrame:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, (USHORT)machine, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, (USHORT)machine, 0, contextRecord, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2787,8 +2804,7 @@ SkipUserStack:
         WOW64_CONTEXT context;
 
         memset(&context, 0, sizeof(WOW64_CONTEXT));
-        context.ContextFlags = WOW64_CONTEXT_ALL;
-        context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
+        context.ContextFlags = WOW64_CONTEXT_ALL | CONTEXT_EXCEPTION_REQUEST;
 
         if (!NT_SUCCESS(status = PhGetThreadWow64Context(ThreadHandle, &context)))
             goto SkipI386Stack;
@@ -2810,7 +2826,7 @@ SkipUserStack:
                 ThreadHandle,
                 &stackFrame,
                 &context,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2832,7 +2848,7 @@ SkipUserStack:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &context, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2870,8 +2886,17 @@ SkipI386Stack:
         context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
 
         // ThreadWow64Context ARM_NT_CONTEXT
-        if (!NT_SUCCESS(status = PhGetThreadArm32Context(ThreadHandle, &context)))
-            goto SkipARMStack;
+        // Don't overwrite the native walk status; only report this failure when it was the only walk requested.
+        {
+            NTSTATUS arm32Status = PhGetThreadArm32Context(ThreadHandle, &context);
+
+            if (!NT_SUCCESS(arm32Status))
+            {
+                if (!(Flags & PH_WALK_USER_STACK))
+                    status = arm32Status;
+                goto SkipARMStack;
+            }
+        }
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
         stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
@@ -2890,7 +2915,7 @@ SkipI386Stack:
                 ThreadHandle,
                 &stackFrame,
                 &context,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2906,7 +2931,7 @@ SkipI386Stack:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &context, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -4029,6 +4054,403 @@ BOOLEAN PhGetDiaSymbolInformation(
     memcpy(SymbolInformation, &symbolInfo, sizeof(PH_DIA_SYMBOL_INFORMATION));
 
     return TRUE;
+}
+
+static CONST GUID PhpIID_IDiaSymbol10 = { 0x9034a70b, 0xb0b7, 0x4605, { 0x8a, 0x97, 0x33, 0x77, 0x2f, 0x3a, 0x7b, 0x8c } };
+
+/**
+ * Gets the Source Link JSON document embedded in a module's PDB.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param BaseOfDll The base address of the module.
+ * \param SourceLink A pointer to a variable that receives the UTF-8 Source Link document.
+ * \return TRUE on success, FALSE otherwise.
+ */
+_Success_(return)
+BOOLEAN PhGetSymbolProviderSourceLink(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID BaseOfDll,
+    _Out_ PPH_BYTES* SourceLink
+    )
+{
+    BOOLEAN result = FALSE;
+    IDiaSession* datasession;
+    IDiaSymbol* globalScope;
+    IDiaSymbol10* symbol10;
+    DWORD length = 0;
+
+    if (!PhGetSymbolProviderDiaSession(SymbolProvider, BaseOfDll, &datasession))
+        return FALSE;
+
+    if (IDiaSession_get_globalScope(datasession, &globalScope) == S_OK)
+    {
+        if (IDiaSymbol_QueryInterface(globalScope, &PhpIID_IDiaSymbol10, (PVOID*)&symbol10) == S_OK)
+        {
+            if (
+                IDiaSymbol10_get_sourceLink(symbol10, 0, &length, NULL) == S_OK &&
+                length != 0 && length <= 0x1000000
+                )
+            {
+                PPH_BYTES buffer = PhCreateBytesEx(NULL, length);
+
+                if (IDiaSymbol10_get_sourceLink(symbol10, length, &length, (BYTE*)buffer->Buffer) == S_OK &&
+                    length <= buffer->Length)
+                {
+                    while (length != 0 && buffer->Buffer[length - 1] == ANSI_NULL)
+                        length--;
+
+                    if (length != 0)
+                    {
+                        buffer->Length = length;
+                        buffer->Buffer[length] = ANSI_NULL;
+                        *SourceLink = buffer;
+                        buffer = NULL;
+                        result = TRUE;
+                    }
+                }
+
+                if (buffer)
+                    PhDereferenceObject(buffer);
+            }
+
+            IDiaSymbol10_Release(symbol10);
+        }
+
+        IDiaSymbol_Release(globalScope);
+    }
+
+    IDiaSession_Release(datasession);
+
+    return result;
+}
+
+typedef struct _PHP_SOURCELINK_MATCH_CONTEXT
+{
+    PH_STRINGREF LocalPath;
+    BOOLEAN Found;
+    BOOLEAN Exact;
+    SIZE_T MatchLength;
+    PPH_STRING Url;
+} PHP_SOURCELINK_MATCH_CONTEXT, *PPHP_SOURCELINK_MATCH_CONTEXT;
+
+static VOID PhpAppendSourceLinkPath(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PCPH_STRINGREF Path
+    )
+{
+    for (SIZE_T i = 0; i < Path->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Path->Buffer[i];
+
+        if (c == L'\\')
+            PhAppendCharStringBuilder(StringBuilder, L'/');
+        else if (c == L' ')
+            PhAppendStringBuilder2(StringBuilder, L"%20");
+        else if (c == L'#')
+            PhAppendStringBuilder2(StringBuilder, L"%23");
+        else
+            PhAppendCharStringBuilder(StringBuilder, c);
+    }
+}
+
+static BOOLEAN NTAPI PhpSourceLinkDocumentCallback(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PVOID Value,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_SOURCELINK_MATCH_CONTEXT context = Context;
+    PPH_STRING key;
+    PPH_STRING value;
+
+    if (!context || context->Exact)
+        return FALSE;
+    if (PhGetJsonObjectType(Value) != PH_JSON_OBJECT_TYPE_STRING)
+        return TRUE;
+    if (!(key = PhConvertUtf8ToUtf16(Key)))
+        return TRUE;
+    if (!(value = PhGetJsonObjectString(Value)))
+    {
+        PhDereferenceObject(key);
+        return TRUE;
+    }
+
+    if (key->Length != 0 && key->Buffer[key->Length / sizeof(WCHAR) - 1] == L'*')
+    {
+        PH_STRINGREF prefix;
+
+        prefix.Buffer = key->Buffer;
+        prefix.Length = key->Length - sizeof(WCHAR);
+
+        if (
+            PhStartsWithStringRef(&context->LocalPath, &prefix, TRUE) &&
+            (!context->Found || prefix.Length > context->MatchLength)
+            )
+        {
+            PH_STRINGREF valueBefore;
+            PH_STRINGREF valueAfter;
+            PH_STRINGREF remainder;
+
+            remainder.Buffer = PTR_ADD_OFFSET(context->LocalPath.Buffer, prefix.Length);
+            remainder.Length = context->LocalPath.Length - prefix.Length;
+
+            if (PhSplitStringRefAtChar(&value->sr, L'*', &valueBefore, &valueAfter))
+            {
+                PH_STRING_BUILDER stringBuilder;
+
+                PhInitializeStringBuilder(&stringBuilder, 0x100);
+                PhAppendStringBuilder(&stringBuilder, &valueBefore);
+                PhpAppendSourceLinkPath(&stringBuilder, &remainder);
+                PhAppendStringBuilder(&stringBuilder, &valueAfter);
+
+                PhMoveReference(&context->Url, PhFinalStringBuilderString(&stringBuilder));
+                context->Found = TRUE;
+                context->MatchLength = prefix.Length;
+            }
+        }
+    }
+    else if (PhEqualStringRef(&key->sr, &context->LocalPath, TRUE))
+    {
+        PhSetReference(&context->Url, value);
+        context->Found = TRUE;
+        context->Exact = TRUE;
+    }
+
+    PhDereferenceObject(value);
+    PhDereferenceObject(key);
+    return !context->Exact;
+}
+
+static BOOLEAN PhpGetSourceLinkQueryParameter(
+    _In_ PCPH_STRINGREF Query,
+    _In_ PCWSTR Name,
+    _Out_ PPH_STRINGREF Value
+    )
+{
+    PH_STRINGREF remaining = *Query;
+    PH_STRINGREF part;
+    PH_STRINGREF name;
+    PH_STRINGREF value;
+
+    while (remaining.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remaining, L'&', &part, &remaining);
+
+        if (PhSplitStringRefAtChar(&part, L'=', &name, &value) && PhEqualStringRef2(&name, Name, TRUE))
+        {
+            *Value = value;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static PPH_STRING PhpGetBrowsableSourceLinkUrl(
+    _In_ PPH_STRING Url,
+    _In_ ULONG LineNumber
+    )
+{
+    static CONST PH_STRINGREF githubRawPrefix = PH_STRINGREF_INIT(L"https://raw.githubusercontent.com/");
+    static CONST PH_STRINGREF azureApiSeparator = PH_STRINGREF_INIT(L"/_apis/git/repositories/");
+    PH_STRINGREF remaining;
+    PH_STRINGREF before;
+    PH_STRINGREF after;
+
+    if (PhStartsWithStringRef(&Url->sr, &githubRawPrefix, TRUE))
+    {
+        PH_STRINGREF owner;
+        PH_STRINGREF repo;
+        PH_STRINGREF commit;
+        PH_STRINGREF path;
+
+        // https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}
+        remaining.Buffer = PTR_ADD_OFFSET(Url->Buffer, githubRawPrefix.Length);
+        remaining.Length = Url->Length - githubRawPrefix.Length;
+
+        if (
+            PhSplitStringRefAtChar(&remaining, L'/', &owner, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'/', &repo, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'/', &commit, &path) &&
+            owner.Length && repo.Length && commit.Length && path.Length
+            )
+        {
+            if (LineNumber)
+            {
+                return PhFormatString(
+                    L"https://github.com/%.*s/%.*s/blob/%.*s/%.*s#L%lu",
+                    (ULONG)(owner.Length / sizeof(WCHAR)), owner.Buffer,
+                    (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                    (ULONG)(commit.Length / sizeof(WCHAR)), commit.Buffer,
+                    (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                    LineNumber
+                    );
+            }
+
+            return PhFormatString(
+                L"https://github.com/%.*s/%.*s/blob/%.*s/%.*s",
+                (ULONG)(owner.Length / sizeof(WCHAR)), owner.Buffer,
+                (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                (ULONG)(commit.Length / sizeof(WCHAR)), commit.Buffer,
+                (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer
+                );
+        }
+    }
+    else if (PhSplitStringRefAtString(&Url->sr, &azureApiSeparator, TRUE, &before, &after))
+    {
+        PH_STRINGREF repo;
+        PH_STRINGREF query;
+        PH_STRINGREF path;
+        PH_STRINGREF version;
+
+        // {org}/{project}/_apis/git/repositories/{repo}/items?path={path}&versionType=commit&version={commit}
+        if (
+            PhSplitStringRefAtChar(&after, L'/', &repo, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'?', &remaining, &query) &&
+            PhpGetSourceLinkQueryParameter(&query, L"path", &path) &&
+            PhpGetSourceLinkQueryParameter(&query, L"version", &version) &&
+            repo.Length && path.Length && version.Length
+            )
+        {
+            if (LineNumber)
+            {
+                return PhFormatString(
+                    L"%.*s/_git/%.*s?path=%.*s&version=GC%.*s&line=%lu&lineEnd=%lu&lineStartColumn=1&lineEndColumn=1",
+                    (ULONG)(before.Length / sizeof(WCHAR)), before.Buffer,
+                    (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                    (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                    (ULONG)(version.Length / sizeof(WCHAR)), version.Buffer,
+                    LineNumber,
+                    LineNumber
+                    );
+            }
+
+            return PhFormatString(
+                L"%.*s/_git/%.*s?path=%.*s&version=GC%.*s",
+                (ULONG)(before.Length / sizeof(WCHAR)), before.Buffer,
+                (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                (ULONG)(version.Length / sizeof(WCHAR)), version.Buffer
+                );
+        }
+    }
+
+    return PhReferenceObject(Url);
+}
+
+static BOOLEAN PhpIsSafeSourceLinkUrl(
+    _In_ PPH_STRING Url
+    )
+{
+    static CONST PH_STRINGREF httpsPrefix = PH_STRINGREF_INIT(L"https://");
+
+    // Source Link documents come from untrusted PDBs; only allow plain https URLs
+    if (!PhStartsWithStringRef(&Url->sr, &httpsPrefix, TRUE))
+        return FALSE;
+    if (Url->Length <= httpsPrefix.Length)
+        return FALSE;
+
+    for (SIZE_T i = 0; i < Url->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Url->Buffer[i];
+
+        if (c <= L' ' || c == L'"' || c == L'<' || c == L'>' || c == L'\\' || c == L'^' || c == L'`' || c == L'|' || c == 0x7f)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Resolves a local source file path to a browsable URL using a Source Link document.
+ *
+ * \param SourceLink The UTF-8 Source Link JSON document.
+ * \param LocalPath The local source file path recorded in the PDB.
+ * \param LineNumber The line number, or zero to omit the line anchor.
+ * \param Url A pointer to a variable that receives the URL.
+ * \return TRUE on success, FALSE otherwise.
+ */
+_Success_(return)
+BOOLEAN PhResolveSourceLinkUrl(
+    _In_ PPH_BYTES SourceLink,
+    _In_ PCPH_STRINGREF LocalPath,
+    _In_ ULONG LineNumber,
+    _Out_ PPH_STRING* Url
+    )
+{
+    PHP_SOURCELINK_MATCH_CONTEXT context;
+    PVOID rootObject;
+    PVOID documentsObject;
+    PPH_STRING url;
+
+    if (!NT_SUCCESS(PhCreateJsonParserEx(&rootObject, SourceLink, FALSE)))
+        return FALSE;
+
+    memset(&context, 0, sizeof(PHP_SOURCELINK_MATCH_CONTEXT));
+    context.LocalPath = *LocalPath;
+
+    if (documentsObject = PhGetJsonObject(rootObject, "documents"))
+    {
+        PhEnumJsonArrayObject(documentsObject, PhpSourceLinkDocumentCallback, &context);
+    }
+
+    PhFreeJsonObject(rootObject);
+
+    if (!context.Url)
+        return FALSE;
+
+    url = PhpGetBrowsableSourceLinkUrl(context.Url, LineNumber);
+    PhDereferenceObject(context.Url);
+
+    if (!PhpIsSafeSourceLinkUrl(url))
+    {
+        PhDereferenceObject(url);
+        return FALSE;
+    }
+
+    *Url = url;
+    return TRUE;
+}
+
+/**
+ * Gets a browsable Source Link URL for the source line at an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address.
+ * \param Url A pointer to a variable that receives the URL.
+ * \return TRUE on success, FALSE otherwise.
+ * \remarks The Source Link document is not cached; callers resolving many frames should cache
+ * the result of PhGetSymbolProviderSourceLink per module.
+ */
+_Success_(return)
+BOOLEAN PhGetSourceLinkUrlFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID Address,
+    _Out_ PPH_STRING* Url
+    )
+{
+    BOOLEAN result = FALSE;
+    PVOID baseAddress;
+    PPH_STRING fileName;
+    PH_SYMBOL_LINE_INFORMATION lineInfo;
+    PPH_BYTES sourceLink;
+
+    if (!(baseAddress = PhGetModuleFromAddress(SymbolProvider, Address, NULL)))
+        return FALSE;
+
+    if (!PhGetLineFromAddress(SymbolProvider, Address, &fileName, NULL, &lineInfo))
+        return FALSE;
+
+    if (PhGetSymbolProviderSourceLink(SymbolProvider, baseAddress, &sourceLink))
+    {
+        result = PhResolveSourceLinkUrl(sourceLink, &fileName->sr, lineInfo.LineNumber, Url);
+        PhDereferenceObject(sourceLink);
+    }
+
+    PhDereferenceObject(fileName);
+
+    return result;
 }
 
 /**

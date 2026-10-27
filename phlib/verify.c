@@ -525,6 +525,7 @@ NTSTATUS PhpCalculateFileHash(
     _Out_ HANDLE *CatAdminHandle
     )
 {
+    NTSTATUS status;
     HANDLE catAdminHandle;
     PUCHAR fileHash;
     ULONG fileHashLength;
@@ -558,9 +559,10 @@ NTSTATUS PhpCalculateFileHash(
 
             if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, &fileHashLength, fileHash, 0))
             {
+                status = PhGetLastWin32ErrorAsNtStatus();
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return PhGetLastWin32ErrorAsNtStatus();
+                return status;
             }
         }
     }
@@ -573,9 +575,10 @@ NTSTATUS PhpCalculateFileHash(
 
             if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, &fileHashLength, fileHash, 0))
             {
+                status = PhGetLastWin32ErrorAsNtStatus();
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return PhGetLastWin32ErrorAsNtStatus();
+                return status;
             }
         }
     }
@@ -608,6 +611,7 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     _Out_ HANDLE *CatAdminHandle
     )
 {
+    NTSTATUS status;
     HANDLE catAdminHandle;
     CERT_STRONG_SIGN_PARA strongSigPolicy;
 
@@ -634,23 +638,25 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     {
         if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            status = PhGetLastWin32ErrorAsNtStatus();
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+            return status;
         }
     }
     else
     {
         if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            status = PhGetLastWin32ErrorAsNtStatus();
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+            return status;
         }
     }
 
     if (!PhBufferToHexStringBuffer(FileHashBuffer, *FileHashLength, TRUE, HashTagBuffer, HashTagLength, NULL))
     {
         CryptCATAdminReleaseContext(catAdminHandle, 0);
-        return PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_BUFFER_TOO_SMALL;
     }
 
     *CatAdminHandle = catAdminHandle;
@@ -683,7 +689,6 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     ULONG fileSizeLimit;
     ULONG fileHashLength = 32; // bytes
     UCHAR fileHash[32];
-    ULONG fileHashTagLength = 128; // wchar
     WCHAR fileHashTag[64 + 1];
     HANDLE catAdminHandle;
     HANDLE catInfoHandle;
@@ -712,7 +717,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         FileHandle,
         HashAlgorithm,
         fileHashTag,
-        fileHashTagLength,
+        sizeof(fileHashTag),
         fileHash,
         &fileHashLength,
         &catAdminHandle
@@ -1700,11 +1705,16 @@ VERIFY_RESULT PhVerifyFileCached(
 
     PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
 
+    // The cache key is (FileName, USN). Without a USN (FAT/exFAT, SMB, NTFS with no active journal)
+    // replacing the file would not change the key, so the result is neither looked up nor cached.
+    if (!NT_SUCCESS(PhGetFileUsn(fileHandle, &sequenceNumber)))
+        sequenceNumber = 0;
+
+    if (sequenceNumber != 0)
     {
         PPH_VERIFY_CACHE_ENTRY entry;
         PH_VERIFY_CACHE_ENTRY lookupEntry;
 
-        PhGetFileUsn(fileHandle, &sequenceNumber);
         lookupEntry.FileName = FileName;
         lookupEntry.SequenceNumber = sequenceNumber;
 
@@ -1749,7 +1759,7 @@ VERIFY_RESULT PhVerifyFileCached(
             signerName = NULL;
         }
 
-        if (!CachedOnly) // if (result != VrUnknown)
+        if (!CachedOnly && sequenceNumber != 0) // if (result != VrUnknown)
         {
             PH_VERIFY_CACHE_ENTRY newEntry;
 

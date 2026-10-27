@@ -37,23 +37,37 @@ NTSTATUS PhFormatSingleToUtf8(
     )
 {
 #if defined(PH_TOCHARS_BUFFER)
-    chars_format format = chars_format::fixed;
-    to_chars_result result;
+    std::chars_format format;
+    std::to_chars_result result;
     SIZE_T returnLength;
     CHAR buffer[_CVTBUFSIZE + 1];
 
-    if (Type & FormatStandardForm)
-        format = chars_format::general;
-    else if (Type & FormatHexadecimalForm)
-        format = chars_format::hex;
+    if (Precision < 0)
+    {
+        // This overload finds the shortest string that converts back to the exact same value.
+        result = std::to_chars(
+            buffer,
+            buffer + sizeof(buffer) - sizeof(ANSI_NULL),
+            Value
+            );
+    }
+    else
+    {
+        if (FlagOn(Type, FormatStandardForm))
+            format = std::chars_format::general;
+        else if (FlagOn(Type, FormatHexadecimalForm))
+            format = std::chars_format::hex;
+        else
+            format = std::chars_format::fixed;
 
-    result = std::to_chars(
-        buffer,
-        Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator // end(buffer)
-        Value,
-        format,
-        Precision
-        );
+        result = std::to_chars(
+            buffer,
+            buffer + sizeof(buffer) - sizeof(ANSI_NULL),
+            Value,
+            format,
+            Precision
+            );
+    }
 
     if (result.ec != static_cast<std::errc>(0))
         return PhErrcToNtStatus(result.ec);
@@ -62,10 +76,11 @@ NTSTATUS PhFormatSingleToUtf8(
 
     if (returnLength == 0)
         return STATUS_UNSUCCESSFUL;
+    if (returnLength >= BufferLength)
+        return STATUS_BUFFER_TOO_SMALL;
 
-    // This could be removed in favor of directly passing the input buffer to std:to_chars but
-    // for now use memcpy so that failures writing a value don't touch the input buffer (dmex)
-    memcpy_s(Buffer, BufferLength, buffer, returnLength);
+    // Format into the local buffer so that failures writing a value don't touch the input buffer (dmex)
+    memcpy(Buffer, buffer, returnLength);
     Buffer[returnLength] = ANSI_NULL;
 
     if (ReturnLength)
@@ -142,8 +157,8 @@ NTSTATUS PhFormatDoubleToUtf8(
     )
 {
 #if defined(PH_TOCHARS_BUFFER)
-    chars_format format = chars_format::fixed;
-    to_chars_result result;
+    std::chars_format format;
+    std::to_chars_result result;
     SIZE_T returnLength;
     CHAR buffer[_CVTBUFSIZE + 1];
 
@@ -152,8 +167,8 @@ NTSTATUS PhFormatDoubleToUtf8(
         // This overload finds the shortest string that converts back to the exact same double.
         // It is roughly 2x faster than the version with explicit precision.
         result = std::to_chars(
-            Buffer,
-            Buffer + BufferLength - sizeof(ANSI_NULL),
+            buffer,
+            buffer + sizeof(buffer) - sizeof(ANSI_NULL),
             Value
             );
     }
@@ -166,9 +181,9 @@ NTSTATUS PhFormatDoubleToUtf8(
         else
             format = std::chars_format::fixed;
 
-        result = to_chars(
+        result = std::to_chars(
             buffer,
-            Buffer + BufferLength - sizeof(ANSI_NULL), // end(buffer)
+            buffer + sizeof(buffer) - sizeof(ANSI_NULL),
             Value,
             format,
             Precision
@@ -176,16 +191,17 @@ NTSTATUS PhFormatDoubleToUtf8(
     }
 
     if (result.ec != static_cast<std::errc>(0))
-        return STATUS_UNSUCCESSFUL;
+        return PhErrcToNtStatus(result.ec);
 
     returnLength = result.ptr - buffer;
 
     if (returnLength == 0)
         return STATUS_UNSUCCESSFUL;
+    if (returnLength >= BufferLength)
+        return STATUS_BUFFER_TOO_SMALL;
 
-    // This could be removed in favor of directly passing the input buffer to std:to_chars but
-    // for now use memcpy so that failures writing a value don't touch the input buffer (dmex)
-    memcpy_s(Buffer, BufferLength, buffer, returnLength);
+    // Format into the local buffer so that failures writing a value don't touch the input buffer (dmex)
+    memcpy(Buffer, buffer, returnLength);
     Buffer[returnLength] = ANSI_NULL;
 
     if (ReturnLength)

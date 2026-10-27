@@ -286,14 +286,14 @@ VOID PhpMoveListViewItem(
     WCHAR buffer2[MAX_PATH];
 
     item1.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
-    item1.stateMask = (UINT)-1;
+    item1.stateMask = UINT_MAX;
     item1.iItem = ItemIndex1;
     item1.iSubItem = 0;
     item1.cchTextMax = sizeof(buffer1);
     item1.pszText = buffer1;
 
     item2.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
-    item2.stateMask = (UINT)-1;
+    item2.stateMask = UINT_MAX;
     item2.iItem = ItemIndex2;
     item2.iSubItem = 0;
     item2.cchTextMax = sizeof(buffer2);
@@ -544,7 +544,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
                     count = ListView_GetItemCount(context->ListViewHandle);
 
-                    if (count == 0 || index == -1 || lvItemIndex == -1)
+                    if (count == 0 || index == INT_ERROR || lvItemIndex == INT_ERROR)
                     {
                         Button_Enable(context->RenameButtonHandle, FALSE);
                         Button_Enable(context->MoveUpButtonHandle, FALSE);
@@ -591,7 +591,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 {
                     LV_DISPINFO* lvinfo = (LV_DISPINFO*)lParam;
 
-                    if (lvinfo->item.iItem != -1 && lvinfo->item.pszText)
+                    if (lvinfo->item.iItem != INT_ERROR && lvinfo->item.pszText)
                     {
                         BOOLEAN found = FALSE;
                         PPH_COLUMN_SET_ENTRY entry;
@@ -612,7 +612,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                         {
                             index = PhFindItemList(context->ColumnSetList, entry);
 
-                            if (index != -1)
+                            if (index != ULONG_MAX)
                             {
                                 PhMoveReference(&entry->Name, PhCreateString(lvinfo->item.pszText));
                                 ListView_SetItemText(context->ListViewHandle, lvinfo->item.iItem, 0, lvinfo->item.pszText);

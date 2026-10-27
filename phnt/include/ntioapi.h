@@ -469,6 +469,12 @@ typedef IO_APC_ROUTINE* PIO_APC_ROUTINE;
 
 /**
  * The FILE_INFORMATION_CLASS enumeration type specifies the type of file information to be queried or set.
+ * \remarks Query and set support is specific to the information class and the target file system.
+ * Directory enumeration uses NtQueryDirectoryFile or NtQueryDirectoryFileEx and requires FILE_LIST_DIRECTORY.
+ * NtQueryInformationFile and NtSetInformationFile reject unsupported user-mode classes with STATUS_INVALID_INFO_CLASS
+ * and buffers shorter than the class-specific minimum with STATUS_INFO_LENGTH_MISMATCH.
+ * FileMaximumInformation is an exclusive upper bound, not a valid information class.
+ * Access annotations describe the I/O manager's handle checks; the file system can impose additional restrictions.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class
  */
 typedef enum _FILE_INFORMATION_CLASS
@@ -479,24 +485,24 @@ typedef enum _FILE_INFORMATION_CLASS
     FileBasicInformation,                           // qs: FILE_BASIC_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
     FileStandardInformation,                        // q: FILE_STANDARD_INFORMATION, FILE_STANDARD_INFORMATION_EX
     FileInternalInformation,                        // q: FILE_INTERNAL_INFORMATION
-    FileEaInformation,                              // q: FILE_EA_INFORMATION (requires FILE_READ_EA)
+    FileEaInformation,                              // q: FILE_EA_INFORMATION
     FileAccessInformation,                          // q: FILE_ACCESS_INFORMATION
     FileNameInformation,                            // q: FILE_NAME_INFORMATION
     FileRenameInformation,                          // s: FILE_RENAME_INFORMATION (requires DELETE) // 10
     FileLinkInformation,                            // s: FILE_LINK_INFORMATION
     FileNamesInformation,                           // q: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
     FileDispositionInformation,                     // s: FILE_DISPOSITION_INFORMATION (requires DELETE)
-    FilePositionInformation,                        // qs: FILE_POSITION_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileFullEaInformation,                          // q: FILE_FULL_EA_INFORMATION (requires FILE_READ_EA)
-    FileModeInformation,                            // qs: FILE_MODE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FilePositionInformation,                        // qs: FILE_POSITION_INFORMATION
+    FileFullEaInformation,                          // FILE_FULL_EA_INFORMATION (NtQueryEaFile: FILE_READ_EA; NtSetEaFile: FILE_WRITE_EA; not NtQueryInformationFile/NtSetInformationFile)
+    FileModeInformation,                            // qs: FILE_MODE_INFORMATION
     FileAlignmentInformation,                       // q: FILE_ALIGNMENT_INFORMATION
-    FileAllInformation,                             // q: FILE_ALL_INFORMATION
+    FileAllInformation,                             // q: FILE_ALL_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileAllocationInformation,                      // s: FILE_ALLOCATION_INFORMATION (requires FILE_WRITE_DATA)
     FileEndOfFileInformation,                       // s: FILE_END_OF_FILE_INFORMATION (requires FILE_WRITE_DATA) // 20
     FileAlternateNameInformation,                   // q: FILE_NAME_INFORMATION
     FileStreamInformation,                          // q: FILE_STREAM_INFORMATION
     FilePipeInformation,                            // qs: FILE_PIPE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FilePipeLocalInformation,                       // q: FILE_PIPE_LOCAL_INFORMATION
+    FilePipeLocalInformation,                       // q: FILE_PIPE_LOCAL_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FilePipeRemoteInformation,                      // qs: FILE_PIPE_REMOTE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
     FileMailslotQueryInformation,                   // q: FILE_MAILSLOT_QUERY_INFORMATION
     FileMailslotSetInformation,                     // s: FILE_MAILSLOT_SET_INFORMATION
@@ -506,25 +512,25 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMoveClusterInformation,                     // s: FILE_MOVE_CLUSTER_INFORMATION (requires FILE_WRITE_DATA)
     FileQuotaInformation,                           // q: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
     FileReparsePointInformation,                    // q: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileNetworkOpenInformation,                     // q: FILE_NETWORK_OPEN_INFORMATION
-    FileAttributeTagInformation,                    // q: FILE_ATTRIBUTE_TAG_INFORMATION
+    FileNetworkOpenInformation,                     // q: FILE_NETWORK_OPEN_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileAttributeTagInformation,                    // q: FILE_ATTRIBUTE_TAG_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileTrackingInformation,                        // s: FILE_TRACKING_INFORMATION (requires FILE_WRITE_DATA)
     FileIdBothDirectoryInformation,                 // q: FILE_ID_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
     FileIdFullDirectoryInformation,                 // q: FILE_ID_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
     FileValidDataLengthInformation,                 // s: FILE_VALID_DATA_LENGTH_INFORMATION (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
     FileShortNameInformation,                       // s: FILE_NAME_INFORMATION (requires DELETE) // 40
-    FileIoCompletionNotificationInformation,        // qs: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since VISTA
+    FileIoCompletionNotificationInformation,        // qs: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES) // since VISTA
     FileIoStatusBlockRangeInformation,              // s: FILE_IOSTATUSBLOCK_RANGE_INFORMATION (requires SeLockMemoryPrivilege)
     FileIoPriorityHintInformation,                  // qs: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX (q: requires FILE_READ_DATA)
     FileSfioReserveInformation,                     // qs: FILE_SFIO_RESERVE_INFORMATION (q: requires FILE_READ_DATA)
-    FileSfioVolumeInformation,                      // q: FILE_SFIO_VOLUME_INFORMATION
+    FileSfioVolumeInformation,                      // q: FILE_SFIO_VOLUME_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileHardLinkInformation,                        // q: FILE_LINKS_INFORMATION
-    FileProcessIdsUsingFileInformation,             // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileProcessIdsUsingFileInformation,             // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileNormalizedNameInformation,                  // q: FILE_NAME_INFORMATION
     FileNetworkPhysicalNameInformation,             // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
     FileIdGlobalTxDirectoryInformation,             // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since WIN7 // 50
-    FileIsRemoteDeviceInformation,                  // q: FILE_IS_REMOTE_DEVICE_INFORMATION
-    FileUnusedInformation,                          // q:
+    FileIsRemoteDeviceInformation,                  // q: FILE_IS_REMOTE_DEVICE_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileUnusedInformation,                          // Reserved; rejected by user-mode NtQueryInformationFile/NtSetInformationFile.
     FileNumaNodeInformation,                        // q: FILE_NUMA_NODE_INFORMATION
     FileStandardLinkInformation,                    // q: FILE_STANDARD_LINK_INFORMATION
     FileRemoteProtocolInformation,                  // q: FILE_REMOTE_PROTOCOL_INFORMATION
@@ -534,28 +540,28 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdInformation,                              // q: FILE_ID_INFORMATION
     FileIdExtdDirectoryInformation,                 // q: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // 60
     FileReplaceCompletionInformation,               // s: FILE_COMPLETION_INFORMATION // since WINBLUE
-    FileHardLinkFullIdInformation,                  // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
+    FileHardLinkFullIdInformation,                  // q: FILE_LINKS_FULL_ID_INFORMATION
     FileIdExtdBothDirectoryInformation,             // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since THRESHOLD
     FileDispositionInformationEx,                   // s: FILE_DISPOSITION_INFO_EX (requires DELETE) // since REDSTONE
-    FileRenameInformationEx,                        // s: FILE_RENAME_INFORMATION_EX
+    FileRenameInformationEx,                        // s: FILE_RENAME_INFORMATION_EX (requires DELETE)
     FileRenameInformationExBypassAccessCheck,       // s: FILE_RENAME_INFORMATION_EX // (kernel-mode only)
-    FileDesiredStorageClassInformation,             // qs: FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
-    FileStatInformation,                            // q: FILE_STAT_INFORMATION
+    FileDesiredStorageClassInformation,             // qs: FILE_DESIRED_STORAGE_CLASS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since REDSTONE2
+    FileStatInformation,                            // q: FILE_STAT_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileMemoryPartitionInformation,                 // s: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
     FileStatLxInformation,                          // q: FILE_STAT_LX_INFORMATION (requires FILE_READ_ATTRIBUTES and FILE_READ_EA) // since REDSTONE4 // 70
     FileCaseSensitiveInformation,                   // qs: FILE_CASE_SENSITIVE_INFORMATION
     FileLinkInformationEx,                          // s: FILE_LINK_INFORMATION_EX // since REDSTONE5
     FileLinkInformationExBypassAccessCheck,         // s: FILE_LINK_INFORMATION_EX // (kernel-mode only)
-    FileStorageReserveIdInformation,                // qs: FILE_STORAGE_RESERVE_ID_INFORMATION
+    FileStorageReserveIdInformation,                // qs: FILE_STORAGE_RESERVE_ID_INFORMATION (q: requires FILE_READ_ATTRIBUTES)
     FileCaseSensitiveInformationForceAccessCheck,   // qs: FILE_CASE_SENSITIVE_INFORMATION
-    FileKnownFolderInformation,                     // qs: FILE_KNOWN_FOLDER_INFORMATION // since WIN11
-    FileStatBasicInformation,                       // qs: FILE_STAT_BASIC_INFORMATION // since 23H2
-    FileId64ExtdDirectoryInformation,               // q: FILE_ID_64_EXTD_DIR_INFORMATION
-    FileId64ExtdBothDirectoryInformation,           // q: FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
-    FileIdAllExtdDirectoryInformation,              // q: FILE_ID_ALL_EXTD_DIR_INFORMATION
-    FileIdAllExtdBothDirectoryInformation,          // q: FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
-    FileStreamReservationInformation,               // q: FILE_STREAM_RESERVATION_INFORMATION // since 24H2
-    FileMupProviderInfo,                            // qs: MUP_PROVIDER_INFORMATION
+    FileKnownFolderInformation,                     // qs: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
+    FileStatBasicInformation,                       // q: FILE_STAT_BASIC_INFORMATION (requires FILE_READ_ATTRIBUTES) // since 23H2
+    FileId64ExtdDirectoryInformation,               // q: FILE_ID_64_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileId64ExtdBothDirectoryInformation,           // q: FILE_ID_64_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileIdAllExtdDirectoryInformation,              // q: FILE_ID_ALL_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileIdAllExtdBothDirectoryInformation,          // q: FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileStreamReservationInformation,               // q: FILE_STREAM_RESERVATION_INFORMATION (requires FILE_READ_ATTRIBUTES) // since 24H2
+    FileMupProviderInfo,                            // qs: MUP_PROVIDER_INFORMATION (not accepted from user mode)
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -1284,23 +1290,31 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
 }
 
 /**
- * The FILE_ID_INFORMATION structure is used to query file identification information.
+ * The FILE_ID_INFORMATION structure contains the identification information returned by
+ * NtQueryInformationFile with FileIdInformation (59).
+ * \remarks This is a query-only information class. The buffer must be at least 24 bytes; the I/O manager
+ * probes user-mode buffers with 4-byte alignment. The structure has 8-byte alignment under default packing.
+ * VolumeSerialNumber is at offset 0x00 and the 16-byte FileId is at offset 0x08; the total size is 0x18 bytes.
+ * Compare both the volume serial number and the complete 128-bit file identifier when comparing file identities.
+ * The file system defines the identifier. The FileInternal and low/high-part members are overlapping views
+ * of its bytes, not additional returned fields; interpreting FileInternal as the FileInternalInformation result
+ * requires knowledge of the target file system.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-file_id_information
  */
 typedef struct _FILE_ID_INFORMATION
 {
-    ULONGLONG VolumeSerialNumber;
+    ULONGLONG VolumeSerialNumber; // Serial number of the volume containing the file.
     union
     {
-        FILE_ID_128 FileId;
+        FILE_ID_128 FileId; // Complete 128-bit identifier generated by the file system.
         struct
         {
             union
             {
-                FILE_INTERNAL_INFORMATION FileInternal; // rev
-                LONGLONG FileIdLowPart; // rev
+                FILE_INTERNAL_INFORMATION FileInternal; // rev: overlays FileId.Identifier[0..7].
+                LONGLONG FileIdLowPart; // rev: overlays FileId.Identifier[0..7].
             } DUMMYUNIONNAME;
-            LONGLONG FileIdHighPart; // rev
+            LONGLONG FileIdHighPart; // rev: overlays FileId.Identifier[8..15].
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
 } FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
@@ -2012,21 +2026,26 @@ typedef struct _FILE_QUOTA_INFORMATION
 } FILE_QUOTA_INFORMATION, *PFILE_QUOTA_INFORMATION;
 
 /**
- * The FS_INFORMATION_CLASS enumeration type is used to specify the type of volume information to be queried or set.
+ * The FSINFOCLASS enumeration specifies the type of volume information queried by NtQueryVolumeInformationFile
+ * or set by NtSetVolumeInformationFile.
+ * \remarks FileFsMaximumInformation is an exclusive upper bound, not a valid information class.
+ * Unsupported user-mode query or set classes return STATUS_INVALID_INFO_CLASS; buffers shorter than the
+ * class-specific minimum return STATUS_INFO_LENGTH_MISMATCH. Individual file systems can impose additional
+ * restrictions and privilege checks beyond the I/O manager's handle access checks.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_fsinfoclass
  */
 typedef enum _FSINFOCLASS
 {
     FileFsVolumeInformation = 1,            // q: FILE_FS_VOLUME_INFORMATION
-    FileFsLabelInformation,                 // s: FILE_FS_LABEL_INFORMATION // SeManageVolumePrivilege
+    FileFsLabelInformation,                 // s: FILE_FS_LABEL_INFORMATION (requires FILE_WRITE_DATA) // SeManageVolumePrivilege
     FileFsSizeInformation,                  // q: FILE_FS_SIZE_INFORMATION
     FileFsDeviceInformation,                // q: FILE_FS_DEVICE_INFORMATION
     FileFsAttributeInformation,             // q: FILE_FS_ATTRIBUTE_INFORMATION
-    FileFsControlInformation,               // qs: FILE_FS_CONTROL_INFORMATION // SeManageVolumePrivilege
+    FileFsControlInformation,               // qs: FILE_FS_CONTROL_INFORMATION (q: requires FILE_READ_DATA; s: requires FILE_WRITE_DATA) // s: SeManageVolumePrivilege
     FileFsFullSizeInformation,              // q: FILE_FS_FULL_SIZE_INFORMATION
-    FileFsObjectIdInformation,              // qs: FILE_FS_OBJECTID_INFORMATION // SeRestorePrivilege
-    FileFsDriverPathInformation,            // q: FILE_FS_DRIVER_PATH_INFORMATION
-    FileFsVolumeFlagsInformation,           // qs: FILE_FS_VOLUME_FLAGS_INFORMATION // SeManageVolumePrivilege // 10
+    FileFsObjectIdInformation,              // qs: FILE_FS_OBJECTID_INFORMATION (s: requires FILE_WRITE_DATA) // s: SeRestorePrivilege
+    FileFsDriverPathInformation,            // q: FILE_FS_DRIVER_PATH_INFORMATION (input: DriverName and DriverNameLength)
+    FileFsVolumeFlagsInformation,           // qs: FILE_FS_VOLUME_FLAGS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // s: SeManageVolumePrivilege // 10
     FileFsSectorSizeInformation,            // q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
     FileFsDataCopyInformation,              // q: FILE_FS_DATA_COPY_INFORMATION
     FileFsMetadataSizeInformation,          // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
@@ -2266,6 +2285,10 @@ typedef struct _FILE_FS_GUID_INFORMATION
  * \param[in] EaLength Length of the EaBuffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/Winternl/nf-winternl-ntcreatefile
+ * \remarks Use CreateDisposition to distinguish creation from opening; on success IoStatusBlock.Information reports the
+ * create/open result, not a transferred-byte count. FILE_SYNCHRONOUS_IO_ALERT or FILE_SYNCHRONOUS_IO_NONALERT
+ * requires SYNCHRONIZE access. FILE_NO_INTERMEDIATE_BUFFERING cannot be combined with FILE_APPEND_DATA in
+ * DesiredAccess. Close a successfully returned handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2290,8 +2313,10 @@ NtCreateFile(
  *
  * \param[out] FileHandle Pointer to a variable that receives a handle to the pipe.
  * \param[in] DesiredAccess The requested access to the object.
- * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the object attributes, including pipe name.
- * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the final completion status and information about the operation.
+ * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the object attributes,
+ * including pipe name.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the final completion status
+ * and information about the operation.
  * \param[in] ShareAccess Specifies the type of share access for the file.
  * \param[in] CreateDisposition Specifies how the file should be handled when the file already exists.
  * \param[in] CreateOptions Specifies the options to be applied when creating or opening the file.
@@ -2299,11 +2324,19 @@ NtCreateFile(
  * \param[in] ReadMode Mode in which to read the pipe (byte-type or message-type).
  * \param[in] CompletionMode Specifies blocking or non-blocking mode of the pipe.
  * \param[in] MaximumInstances Maximum number of simultaneous instances of the named pipe.
- * \param[in] InboundQuota Specifies the pool quota that is reserved for writes to the inbound side of the named pipe.
- * \param[in] OutboundQuota Specifies the pool quota that is reserved for writes to the inbound side of the named pipe.
- * \param[in] DefaultTimeout An optional pointer to a timeout value that is used if a timeout value is not specified when waiting for an instance of a named pipe.
+ * \param[in] InboundQuota Specifies the pool quota that is reserved for writes to the inbound side of the
+ * named pipe.
+ * \param[in] OutboundQuota Specifies the pool quota that is reserved for writes to the outbound side of the
+ * named pipe.
+ * \param[in] DefaultTimeout Pointer to the default timeout used when waiting for a named-pipe instance. See
+ * the NULL-timeout restriction below.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/nt-create-named-pipe-file
+ * \remarks Creates the server end of a named-pipe instance for local or remote clients, rather than
+ * connecting a client. Supply a DefaultTimeout: although the native entry point captures a NULL pointer,
+ * creating a new pipe with NULL can return STATUS_INVALID_PARAMETER on native and WoW64 paths. InboundQuota
+ * and OutboundQuota are byte quotas for their respective directions; they are not a message count. Close the
+ * returned server handle with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2336,9 +2369,13 @@ NtCreateNamedPipeFile(
  * \param[in] CreateOptions Specifies the options to be applied when creating the mailslot.
  * \param[in] MailslotQuota Specifies the amount of memory that the mailslot can use for its messages.
  * \param[in] MaximumMessageSize Specifies the maximum size of a message that can be written to the mailslot.
- * \param[in] ReadTimeout Specifies the maximum time a read operation can wait for a message to be written to the mailslot.
+ * \param[in, optional] ReadTimeout Optional maximum wait for a mailslot read; NULL leaves timeout selection to the mailslot implementation.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createmailslotw
+ * \remarks Creates the receiving endpoint of a mailslot. MailslotQuota and MaximumMessageSize are byte counts.
+ * ReadTimeout may be NULL; the native wrapper records whether a timeout was supplied and fresh
+ * native/WoW64 creation accepts NULL. A supplied LARGE_INTEGER is captured with 4-byte alignment in the native
+ * user-mode entry. Close the returned endpoint with NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2352,7 +2389,7 @@ NtCreateMailslotFile(
     _In_ ULONG CreateOptions,
     _In_ ULONG MailslotQuota,
     _In_ ULONG MaximumMessageSize,
-    _In_ PLARGE_INTEGER ReadTimeout
+    _In_opt_ PLARGE_INTEGER ReadTimeout
     );
 
 /**
@@ -2366,6 +2403,10 @@ NtCreateMailslotFile(
  * \param[in] OpenOptions Specifies the options to apply when opening the file.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenfile
+ * \remarks Opens an existing file or directory; this is the FILE_OPEN disposition, not create-if-missing. Choose
+ * FILE_DIRECTORY_FILE or FILE_NON_DIRECTORY_FILE to constrain the object kind. Synchronous open options
+ * require SYNCHRONIZE in DesiredAccess. The returned handle is owned by the caller and must be closed with
+ * NtClose.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2386,6 +2427,9 @@ NtOpenFile(
  * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the file's attributes, including file name.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwdeletefile
+ * \remarks Deletes by object name without returning a handle. Name lookup requests DELETE access (0x00010000); normal
+ * sharing and file-system deletion rules still apply. This is distinct from closing a handle or setting delete
+ * disposition on an already-open handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2402,6 +2446,9 @@ NtDeleteFile(
  * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the final completion status and information about the operation.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwflushbuffersfile
+ * \remarks Uses the same implementation as NtFlushBuffersFileEx with Flags = 0, Parameters = NULL, and ParametersSize =
+ * 0. Use it to request flushing writes for this file; successful completion is not an independent guarantee
+ * about a storage device's power-loss behavior.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2478,6 +2525,10 @@ NtFlushBuffersFile(
  * \param IoStatusBlock Address of the caller's I/O status block. This parameter is required and cannot be NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntflushbuffersfileex
+ * \remarks Parameters must be NULL and ParametersSize must be 0; the shared helper rejects other
+ * combinations with STATUS_INVALID_PARAMETER. Flags select the flush request sent to the file system. The
+ * wrapper forwards all five arguments; an inferred helper prototype that omits flags or the parameter buffer
+ * does not mean those inputs are ignored.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2502,6 +2553,11 @@ NtFlushBuffersFileEx(
  * \param FileInformationClass Specifies the type of information to be returned about the file, in the buffer that FileInformation points to.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile
+ * \remarks The information class selects its own minimum size, alignment and access check. Example minimum buffer sizes
+ * are FileBasicInformation: 40 bytes, FileStandardInformation: 24, FileInternalInformation: 8,
+ * FileAccessInformation: 4, FilePositionInformation: 8, FileModeInformation: 4, and FileAlignmentInformation:
+ * 4. A shorter buffer for these classes returns STATUS_INFO_LENGTH_MISMATCH. Do not interpret all output
+ * classes using one fixed record size or assume the entire caller buffer was initialized.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2526,8 +2582,13 @@ NtQueryInformationFile(
  * \param FileInformationClass Specifies the type of information to be returned about the file, in the buffer that FileInformation points to.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationbyname
- * \remarks NtQueryInformationByName queries and returns the requested information without opening the actual file,
- * making it more efficient than NtQueryInformationFile, which requires a file open and subsequent file close.
+ * \remarks NtQueryInformationByName avoids returning a file handle to the caller.
+ * It still performs name lookup and file-system processing; this is not a guarantee of greater performance.
+ * \remarks This is a restricted name-based query, not every NtQueryInformationFile class without a handle. The
+ * helper admits user-mode classes 68 (FileStatInformation), 70 (FileStatLxInformation), 71
+ * (FileCaseSensitiveInformation), and 77 (FileStatBasicInformation), with minimum buffers of 72, 96, 4, and
+ * 104 bytes respectively. It requests FILE_READ_ATTRIBUTES (0x80) during name lookup. FileBasicInformation is
+ * rejected with STATUS_INVALID_PARAMETER even with a correctly sized buffer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2552,6 +2613,10 @@ NtQueryInformationByName(
  * \param FileInformationClass The type of information, supplied in the buffer pointed to by FileInformation, to set for the file.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationfile
+ * \remarks Use class-specific input records and required access. FilePositionInformation changes the current byte
+ * offset of the open file object; FileEndOfFileInformation changes file length and requires write access. Both
+ * have an 8-byte minimum. The class length/access/alignment tables and file-system handlers
+ * are independent; acceptance of one class does not imply support for another.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2581,6 +2646,10 @@ NtSetInformationFile(
  * \param[in] RestartScan Set to TRUE if the scan is to start at the first entry in the directory. Set to FALSE if resuming the scan from a previous call.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerydirectoryfile
+ * \remarks Enumerates entries using the directory file object's search state. ReturnSingleEntry and RestartScan map to
+ * flag bits 0x2 and 0x1. IoStatusBlock.Information bounds the returned bytes; check each NextEntryOffset and
+ * FileNameLength against that bound before reading variable-length records. A successful first result is not
+ * evidence that enumeration is complete; continue until the file system reports no more entries.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2648,6 +2717,11 @@ NtQueryDirectoryFile(
  * \param[in] FileName An optional pointer to a Unicode string search expression containing the name of a file (or multiple files, if wildcards are used) within the directory.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerydirectoryfileex
+ * \remarks Uses the same directory IRP builder as NtQueryDirectoryFile. The builder forwards
+ * QueryFlags & 0x1B (restart, single entry, on-disk entries only, and no cursor update); this does not make
+ * arbitrary other bits supported. The ULONG parameter is not a byte-sized public ABI even when the final IRP
+ * field is a byte. Parse records only within IoStatusBlock.Information and retain output storage until pending
+ * I/O completes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2681,6 +2755,10 @@ NtQueryDirectoryFileEx(
  * \param[in] RestartScan Set to TRUE if the scan is to start at the first entry in the extended-attribute list.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwqueryeafile
+ * \remarks Queries file extended attributes into a FILE_FULL_EA_INFORMATION chain; EaList, when supplied, is a
+ * FILE_GET_EA_INFORMATION chain. EaListLength and Length are byte counts. A nonempty requested-name list takes
+ * precedence over EaIndex. The native user output is probed with 4-byte alignment. File-system EA support and
+ * continuation state determine the result; do not treat an unsupported-EA status as an empty successful list.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2707,6 +2785,10 @@ NtQueryEaFile(
  * \param[in] Length Size, in bytes, of the buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwseteafile
+ * \remarks Supplies a byte-sized FILE_FULL_EA_INFORMATION chain to the file system. The I/O manager checks its record
+ * layout with IoCheckEaBufferValidity before dispatch; valid memory and length alone do not establish a
+ * well-formed EA chain. Validate NextEntryOffset, name termination and value extent when constructing records.
+ * This is file metadata, not registry-value storage.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2733,6 +2815,10 @@ NtSetEaFile(
  * \param[in] RestartScan Set to TRUE if the scan is to start at the first entry in the quota information list.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwqueryquotainformationfile
+ * \remarks Queries FILE_QUOTA_INFORMATION records, optionally selecting SIDs with a FILE_GET_QUOTA_INFORMATION list.
+ * The entry validates the SID/list representation before dispatch; ReturnSingleEntry and RestartScan control
+ * the scan. Quota support and authorization are volume/file-system contracts, not consequences of a
+ * syntactically valid SID. Use IoStatusBlock.Information to bound any returned chain.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2759,6 +2845,10 @@ NtQueryQuotaInformationFile(
  * \param[in] Length Size, in bytes, of the buffer.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetquotainformationfile
+ * \remarks Passes FILE_QUOTA_INFORMATION quota-policy records to the shared EA/quota setter and file-system handler.
+ * Length is the total byte extent, not the number of records. This can change volume quota policy for the
+ * supplied SIDs; it is not the setter for a file's ordinary size. Permission and file-system policy checks
+ * remain applicable after entry validation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2781,6 +2871,10 @@ NtSetQuotaInformationFile(
  * \param[in] FsInformationClass The type of information to be returned about the volume.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryvolumeinformationfile
+ * \remarks The file handle identifies the containing volume, while FsInformationClass selects a FILE_FS_* output
+ * record. Each class has independent minimum length, alignment and access requirements. For example,
+ * FileFsDeviceInformation returns the 8-byte device-type/characteristics record; it is not a device-control
+ * output buffer.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2804,6 +2898,10 @@ NtQueryVolumeInformationFile(
  * \param[in] FsInformationClass The type of information to set about the volume.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetvolumeinformationfile
+ * \remarks Changes volume information selected by FsInformationClass through its FILE_FS_* input record. This can have
+ * volume-wide effects rather than effects confined to FileHandle. The entry has class-specific
+ * length/alignment/access checks before dispatch; ordinary file write access is not a universal authorization
+ * to change volume metadata.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2824,6 +2922,11 @@ NtSetVolumeInformationFile(
  * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelio
+ * \remarks Cancels I/O associated with this file and the calling thread; use NtCancelIoFileEx when selecting a
+ * particular request or cancellation beyond the issuing thread is required. A valid file
+ * with no outstanding requests still returns STATUS_SUCCESS and writes cancellation IoStatusBlock.Status =
+ * STATUS_SUCCESS and Information = 0. This cancellation status block is not the final status block of each
+ * original request.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2842,6 +2945,11 @@ NtCancelIoFile(
  * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelioex
+ * \remarks A non-NULL IoRequestToCancel identifies the original request by its IO_STATUS_BLOCK address; NULL selects
+ * matching requests without that address filter. The helper searches the current process's file and
+ * thread request lists and returns STATUS_NOT_FOUND when nothing matches. Cancellation can race normal
+ * completion: retain the original request buffers and status block until that request's completion is
+ * observed. The separate cancellation IoStatusBlock has Information = 0, not a count of canceled requests.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2861,6 +2969,10 @@ NtCancelIoFileEx(
  * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelsynchronousio
+ * \remarks ThreadHandle must identify a thread, with THREAD_TERMINATE access (0x1); it is not a
+ * file handle. STATUS_NOT_FOUND means no matching synchronous request was found for cancellation. The output
+ * status block reports the cancellation request, not the final outcome of the target I/O. Do not substitute
+ * the NtCancelIoFileEx request-pointer conversion for this API's distinct WoW64 thunk.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2887,6 +2999,10 @@ NtCancelSynchronousIoFile(
  * \param[in] OutputBufferLength Size, in bytes, of the buffer at OutputBuffer. This value is ignored if OutputBuffer is NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwdeviceiocontrolfile
+ * \remarks Dispatches a device-control request, distinct from NtFsControlFile's file-system-control request. The
+ * control code determines its access bits, transfer method, and input/output layouts; the PVOID parameters do
+ * not define a universal structure. If the call returns STATUS_PENDING, keep both buffers and IoStatusBlock
+ * alive until completion and use the final IoStatusBlock.Status.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2920,6 +3036,10 @@ NtDeviceIoControlFile(
  * \param[in] OutputBufferLength Size, in bytes, of the buffer at OutputBuffer. This value is ignored if OutputBuffer is NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwfscontrolfile
+ * \remarks Dispatches a file-system control code through the same control helper used by NtDeviceIoControlFile, but
+ * with the file-system selector. Access and buffer transfer rules come from the specific FSCTL and target file
+ * system. For pending requests, retain buffers and IoStatusBlock until completion; a dispatch return is not
+ * necessarily the final operation result.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2952,6 +3072,11 @@ NtFsControlFile(
  * \param[in] Key Device and intermediate drivers should set this pointer to NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwreadfile
+ * \remarks The file must grant FILE_READ_DATA. Length and ByteOffset are byte quantities; successful transfer length is
+ * IoStatusBlock.Information, which can be smaller than Length. For STATUS_PENDING, wait for the requested
+ * completion mechanism before consuming the buffer or releasing its storage. WoW64 status-block/APC conversion
+ * is handled by the thunk and I/O manager, not by reinterpreting a 32-bit IO_STATUS_BLOCK as the native
+ * structure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2983,6 +3108,10 @@ NtReadFile(
  * \param[in] Key Device and intermediate drivers should set this pointer to NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwwritefile
+ * \remarks Write/append access, byte-offset semantics and synchronous/nonbuffered options are checked independently.
+ * Preserve Buffer and IoStatusBlock while the request is pending; submission success alone is not a completed
+ * write. IoStatusBlock.Information reports the completed byte count. NtFlushBuffersFile is a separate request
+ * when the caller needs a flush after writing.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3014,6 +3143,11 @@ NtWriteFile(
  * \param[in, optional] Key Device and intermediate drivers should set this pointer to NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfilescatter
+ * \remarks Use an asynchronous file opened with FILE_NO_INTERMEDIATE_BUFFERING, page-aligned destination segments, and
+ * device-sector-aligned transfer length and offset. On x64, segments cover
+ * 4096-byte pages and the consumed count is (Length >> 12) + ((Length & 0xFFF) != 0). FILE_SEGMENT_ELEMENT
+ * remains an 8-byte descriptor under WoW64; initialize its full-width address, not only the low pointer word.
+ * Keep all destination pages alive until completion.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3045,6 +3179,11 @@ NtReadFileScatter(
  * \param[in, optional] Key Device and intermediate drivers should set this pointer to NULL.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefilegather
+ * \remarks Use an asynchronous, nonbuffered file and page-aligned source segments. The implementation
+ * consumes (Length >> 12) + ((Length & 0xFFF) != 0) descriptors for 4096-byte pages and also checks
+ * device-sector alignment. Do not request FILE_APPEND_DATA when opening with FILE_NO_INTERMEDIATE_BUFFERING. A
+ * zero access mask at the wrapper's reference call does not bypass write authorization: the helper checks the
+ * handle's granted access. Keep the source pages alive until completion.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3077,6 +3216,11 @@ NtWriteFileGather(
  * \param[in] ExclusiveLock If TRUE, the routine requests an exclusive lock.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfile
+ * \remarks Locks the byte range described by ByteOffset and Length, not the entire file object. FailImmediately avoids
+ * waiting for a conflicting lock; ExclusiveLock selects an exclusive rather than shared range lock. Key
+ * participates in lock identity and must be preserved for the matching unlock. If Event is supplied, the
+ * entry requests EVENT_MODIFY_STATE (0x2). Pending requests still require completion observation
+ * before reusing IoStatusBlock.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3105,6 +3249,9 @@ NtLockFile(
  * \param[in] Key The value specified for the lock.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-unlockfile
+ * \remarks Releases the range lock identified by this file object, ByteOffset, Length and Key. Preserve the lock
+ * identity used by NtLockFile; this is not a general unlock-all operation. Lock ownership and conflict
+ * semantics are enforced by the fast-I/O or file-system path after the initial file-object reference.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3125,6 +3272,10 @@ NtUnlockFile(
  * \param[out] FileInformation A pointer to a FILE_BASIC_INFORMATION structure to receive the returned file attribute information.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile
+ * \remarks Performs a name-based FILE_READ_ATTRIBUTES (0x80) lookup without returning a file handle. The native
+ * entry probes a 40-byte FILE_BASIC_INFORMATION buffer at 8-byte alignment. Its WoW64 wrapper
+ * uses a native temporary and copies fields back, so native pointer-alignment observations cannot simply be
+ * imposed on the 32-bit caller.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3142,6 +3293,10 @@ NtQueryAttributesFile(
  * \param[out] FileInformation A pointer to a FILE_NETWORK_OPEN_INFORMATION structure that receives the returned file attributes information.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile
+ * \remarks Performs a name-based FILE_READ_ATTRIBUTES (0x80) lookup and returns FILE_NETWORK_OPEN_INFORMATION,
+ * including allocation size and end of file. The native output is 56 bytes and requires 8-byte
+ * alignment. The WoW64 wrapper uses a native temporary and copyback. This query does not return or transfer
+ * ownership of a file handle.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3197,6 +3352,11 @@ NtQueryFullAttributesFile(
  * \param[in] WatchTree If TRUE, the routine monitors the directory tree.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesw
+ * \remarks Requests asynchronous directory-change records in FILE_NOTIFY_INFORMATION format; internally it selects
+ * DirectoryNotifyInformation (1). CompletionFilter must be nonzero and use supported FILE_NOTIFY_CHANGE_*
+ * bits. Retain the output buffer and original IoStatusBlock until completion, including after requesting
+ * cancellation with NtCancelIoFileEx. A successful cancellation request does not by itself permit freeing
+ * pending notification storage.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3318,6 +3478,11 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
  * \param[in, optional] DirectoryNotifyInformationClass The type of information to return.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesexw
+ * \remarks The information class determines the change-notification record format, independently of
+ * CompletionFilter. The entry rejects a zero filter or bits outside 0xFFF, probes nonempty output at 4-byte
+ * alignment, and requests FILE_LIST_DIRECTORY (0x1). An optional event requires EVENT_MODIFY_STATE (0x2).
+ * Event, APC and completion-port delivery have different lifetime rules; consume the record only after the
+ * request actually completes.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3343,6 +3508,11 @@ NtNotifyChangeDirectoryFileEx(
  * \param[in] DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwloaddriver
+ * \remarks DriverServiceName is a counted native registry-key path under
+ * \Registry\Machine\System\CurrentControlSet\Services, not the driver's image filename. The user-mode helper
+ * requires SeLoadDriverPrivilege before loading. This changes kernel system state; opening an ordinary file or
+ * an arbitrary service key is not equivalent. A successful status need not prove that an image was loaded in
+ * every environment (for example, safe-mode policy can suppress loading).
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3358,6 +3528,10 @@ NtLoadDriver(
  * \param[in] DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunloaddriver
+ * \remarks Uses the driver's service registry-key path, not its image pathname. User-mode callers require
+ * SeLoadDriverPrivilege. The ordinary unload path also checks the driver object's unload support,
+ * legacy-driver eligibility, and unload state; privilege alone does not make every driver unloadable. This is
+ * a system-wide operation, not cleanup for a handle returned by NtLoadDriver.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3385,31 +3559,40 @@ NtUnloadDriver(
 
 /**
  * The IO_COMPLETION_INFORMATION_CLASS enumeration type specifies the type of I/O completion information to be queried.
+ * \remarks NtQueryIoCompletion accepts only IoCompletionBasicInformation (0). The buffer must be exactly
+ * sizeof(IO_COMPLETION_BASIC_INFORMATION) (4 bytes) and must be aligned to a 4-byte boundary for user-mode callers.
+ * The completion port handle must have IO_COMPLETION_QUERY_STATE access. Other classes return STATUS_INVALID_INFO_CLASS;
+ * an incorrect buffer length returns STATUS_INFO_LENGTH_MISMATCH. On success, ReturnLength, if supplied, receives 4.
  */
 typedef enum _IO_COMPLETION_INFORMATION_CLASS
 {
-    IoCompletionBasicInformation
+    IoCompletionBasicInformation // q: IO_COMPLETION_BASIC_INFORMATION
 } IO_COMPLETION_INFORMATION_CLASS;
 
 /**
- * The IO_COMPLETION_BASIC_INFORMATION structure contains the depth of an I/O completion port.
+ * A 4-byte snapshot of queued packet depth, not the port concurrency limit or
+ * the number of running worker threads. Querying does not reserve or remove a packet.
  */
 typedef struct _IO_COMPLETION_BASIC_INFORMATION
 {
-    LONG Depth;
+    LONG Depth; // Number of packets currently queued; can change immediately after querying.
 } IO_COMPLETION_BASIC_INFORMATION, *PIO_COMPLETION_BASIC_INFORMATION;
 
 /**
- * The NtCreateIoCompletion routine creates an I/O completion port and associates it with a specified file handle,
- * or creates an I/O completion port that is not yet associated with a file handle, allowing association at a later time.
+ * Creates an empty I/O completion port. This native call neither accepts nor
+ * associates a file handle; file association is a separate operation. It can also
+ * be used as a packet queue without issuing file I/O.
  *
- * \param[out] IoCompletionHandle Pointer to a variable that receives a handle to the I/O completion port.
- * \param[in] DesiredAccess The requested access to the object.
- * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the name to an existing I/O completion port or NULL.
- * \param[out] NumberOfConcurrentThreads The maximum number of threads that the operating system can allow to concurrently process
- * I/O completion packets for the I/O completion port. This parameter is ignored if the ExistingCompletionPort parameter is not NULL.
- * If this parameter is zero, the system allows as many concurrently running threads as there are processors in the system.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] IoCompletionHandle Receives a caller-owned handle; close with NtClose.
+ * \param[in] DesiredAccess Requested access. IO_COMPLETION_QUERY_STATE (0x1)
+ * permits depth queries; IO_COMPLETION_MODIFY_STATE (0x2) permits posting/removing.
+ * \param[in, optional] ObjectAttributes Optional name, root directory and security attributes.
+ * \param[in] NumberOfConcurrentThreads Concurrency limit for active queue consumers,
+ * not a packet-capacity limit. Zero selects the active processor count; on x64
+ * KeInitializeQueue queries all processor groups (0xFFFF).
+ * \return STATUS_SUCCESS for a new port. OBJ_OPENIF can return
+ * STATUS_OBJECT_NAME_EXISTS for an existing named port without clearing its queue
+ * or replacing its concurrency setting.
  * \sa https://learn.microsoft.com/en-us/windows/win32/fileio/createiocompletionport
  */
 _Kernel_entry_
@@ -3424,13 +3607,16 @@ NtCreateIoCompletion(
     );
 
 /**
- * The NtOpenIoCompletion routine opens an existing I/O completion port object.
+ * Opens an existing named I/O completion port without removing queued packets.
  *
- * \param[out] IoCompletionHandle Pointer to a variable that receives a handle to the I/O completion port.
- * \param[in] DesiredAccess The requested access to the object.
- * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that specifies the name and other attributes.
- * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/fileio/createiocompletionport
+ * \param[out] IoCompletionHandle Receives a caller-owned handle; close with NtClose.
+ * \param[in] DesiredAccess Requested access: IO_COMPLETION_QUERY_STATE (0x1)
+ * for depth queries and IO_COMPLETION_MODIFY_STATE (0x2) for posting/removing.
+ * \param[in] ObjectAttributes Identifies the port by name and optional root directory.
+ * \return NTSTATUS indicating whether a handle was opened.
+ * \remarks Native name-lookup failure leaves the output handle
+ * unchanged; WoW64 copies its zero-initialized local after the native call, including
+ * on this failure. Do not depend on failure-output preservation across architectures.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3443,14 +3629,18 @@ NtOpenIoCompletion(
     );
 
 /**
- * The NtQueryIoCompletion routine queries information about an I/O completion port.
+ * Retrieves a snapshot of the number of packets queued on an I/O completion port. Querying does not remove a
+ * packet; the result is not a reservation for a later dequeue.
  *
- * \param[in] IoCompletionHandle Handle to the I/O completion port.
- * \param[in] IoCompletionInformationClass The type of information to query.
- * \param[out] IoCompletionInformation Pointer to a buffer that receives the information.
- * \param[in] IoCompletionInformationLength The size of the buffer.
- * \param[out, optional] ReturnLength Pointer to a variable that receives the number of bytes returned.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] IoCompletionHandle Handle with IO_COMPLETION_QUERY_STATE (0x1).
+ * \param[in] IoCompletionInformationClass IoCompletionBasicInformation (0).
+ * \param[out] IoCompletionInformation Writable IO_COMPLETION_BASIC_INFORMATION. User-mode output must be
+ * 4-byte aligned on native x64 and WoW64.
+ * \param[in] IoCompletionInformationLength Exactly 4 bytes.
+ * \param[out, optional] ReturnLength Receives 4 on success; invalid class, size, alignment and access checks
+ * leave it unchanged.
+ * \return STATUS_INVALID_INFO_CLASS for unsupported classes, STATUS_INFO_LENGTH_MISMATCH for incorrect size,
+ * or the query's NTSTATUS. A NULL/zero-size call is not a supported size-discovery protocol.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3465,14 +3655,20 @@ NtQueryIoCompletion(
     );
 
 /**
- * The NtSetIoCompletion routine queues an I/O completion packet to an I/O completion port.
+ * Posts a caller-defined packet to an I/O completion port, without issuing file I/O.
+ * Useful for notifying workers through the same queue used for I/O completions.
  *
- * \param[in] IoCompletionHandle Handle to the I/O completion port.
- * \param[in, optional] KeyContext The value specified when the port was associated with a file handle.
- * \param[in, optional] ApcContext The value specified when the I/O operation was issued.
- * \param[in] IoStatus The completion status for the I/O operation.
- * \param[in] IoStatusInformation The number of bytes transferred or other information.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] IoCompletionHandle Handle with IO_COMPLETION_MODIFY_STATE (0x2).
+ * \param[in, optional] KeyContext Opaque pointer-sized value returned to the consumer.
+ * \param[in, optional] ApcContext Opaque pointer-sized value returned to the consumer;
+ * it is not an APC routine and this call does not dispatch a user callback.
+ * \param[in] IoStatus Status value stored in the packet, independent of this call's status.
+ * \param[in] IoStatusInformation Pointer-sized packet information, often a byte count.
+ * \return NTSTATUS describing posting, not the supplied IoStatus. A negative
+ * IoStatus can be posted successfully and later dequeued with STATUS_SUCCESS.
+ * \remarks Context values may be NULL and are not dereferenced or copied as buffers.
+ * The call does not require prior file association. Use NtSetIoCompletionEx with a
+ * separately allocated memory reserve when a reusable packet allocation is needed.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-postqueuedcompletionstatus
  */
 _Kernel_entry_
@@ -3488,15 +3684,23 @@ NtSetIoCompletion(
     );
 
 /**
- * The NtSetIoCompletionEx routine queues an I/O completion packet to an I/O completion port using a completion packet.
+ * Posts a packet using a reusable MemoryReserveIoCompletion object allocated by
+ * NtAllocateReserveObject. This is not a wait-completion packet handle from
+ * NtCreateWaitCompletionPacket; the two object types are not interchangeable.
  *
- * \param[in] IoCompletionHandle Handle to the I/O completion port.
- * \param[in] IoCompletionPacketHandle Handle to a completion packet.
- * \param[in, optional] KeyContext The value specified when the port was associated with a file handle.
- * \param[in, optional] ApcContext The value specified when the I/O operation was issued.
- * \param[in] IoStatus The completion status for the I/O operation.
- * \param[in] IoStatusInformation The number of bytes transferred or other information.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] IoCompletionHandle Port handle with IO_COMPLETION_MODIFY_STATE (0x2).
+ * \param[in] IoCompletionPacketHandle MemoryReserveIoCompletion reserve handle
+ * with access bit 0x2. The reserve can back only one outstanding packet at a time.
+ * \param[in, optional] KeyContext Opaque pointer-sized value returned to the consumer.
+ * \param[in, optional] ApcContext Opaque pointer-sized value, not a callback address.
+ * \param[in] IoStatus Status stored in the packet, independent of posting status.
+ * \param[in] IoStatusInformation Pointer-sized information stored in the packet.
+ * \return STATUS_SUCCESS when posted. An in-use reserve returns
+ * STATUS_INVALID_PARAMETER_2; a UserApc reserve or wait-completion packet is the
+ * wrong object type and returns STATUS_OBJECT_TYPE_MISMATCH.
+ * \remarks The queued packet holds a reference to the reserve. Dequeuing releases
+ * its in-use state and permits reuse. Closing the caller's reserve handle after
+ * posting does not invalidate the queued packet, but forfeits that handle for reuse.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3512,14 +3716,23 @@ NtSetIoCompletionEx(
     );
 
 /**
- * The NtRemoveIoCompletion routine removes an entry from an I/O completion port.
+ * Removes one packet from an I/O completion port, waiting nonalertably if necessary.
+ * Dequeue status and the packet's own I/O status are separate results.
  *
- * \param[in] IoCompletionHandle Handle to the I/O completion port.
- * \param[out] KeyContext Pointer to a variable that receives the key context.
- * \param[out] ApcContext Pointer to a variable that receives the APC context.
- * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the completion status.
- * \param[in, optional] Timeout Optional pointer to a timeout value.
- * \return NTSTATUS Successful or errant status.
+ * \param[in] IoCompletionHandle Handle with IO_COMPLETION_MODIFY_STATE (0x2),
+ * not merely SYNCHRONIZE or IO_COMPLETION_QUERY_STATE.
+ * \param[out] KeyContext Required writable pointer-sized output for the packet key.
+ * \param[out] ApcContext Required writable pointer-sized output for its opaque context.
+ * \param[out] IoStatusBlock Required writable output containing the packet's status
+ * and pointer-sized Information. A failing packet status does not make dequeue fail.
+ * \param[in, optional] Timeout In 100-nanosecond units: negative relative interval,
+ * nonnegative absolute deadline, zero to poll, or NULL for no deadline.
+ * \return STATUS_SUCCESS when a packet was removed; STATUS_TIMEOUT means none was
+ * obtained. STATUS_ABANDONED can report queue rundown. Do not use NT_SUCCESS alone
+ * to decide that outputs describe a packet.
+ * \remarks On the native x64 and WoW64 paths, timeout preserves
+ * KeyContext, ApcContext and IoStatusBlock. Use outputs only on STATUS_SUCCESS.
+ * Context values are data, not kernel pointers to free or callback routines to invoke.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntremoveiocompletion
  */
 _Kernel_entry_
@@ -3536,7 +3749,10 @@ NtRemoveIoCompletion(
 
 // private
 /**
- * The FILE_IO_COMPLETION_INFORMATION structure describes an I/O completion entry removed from an I/O completion port.
+ * One dequeued completion: 32 bytes on x64, 16 bytes on x86. KeyContext and
+ * ApcContext are opaque pointer-sized data; IoStatusBlock contains the packet
+ * payload status and Information, not the status of NtRemoveIoCompletionEx.
+ * A successfully dequeued packet may itself contain a failing I/O status.
  */
 typedef struct _FILE_IO_COMPLETION_INFORMATION
 {
@@ -3546,16 +3762,30 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
 /**
- * The NtRemoveIoCompletionEx routine removes multiple entries from an I/O completion port.
+ * Removes up to Count packets from an I/O completion port in one operation. It can return fewer packets than
+ * requested; Count is output capacity, not a requirement to wait until that many packets have arrived.
  *
- * \param[in] IoCompletionHandle Handle to the I/O completion port.
- * \param[out] IoCompletionInformation Pointer to an array of FILE_IO_COMPLETION_INFORMATION structures.
- * \param[in] Count The number of entries to remove.
- * \param[out] NumEntriesRemoved Pointer to a variable that receives the number of entries removed.
- * \param[in, optional] Timeout Optional pointer to a timeout value.
- * \param[in] Alertable Whether the wait is alertable.
- * \return NTSTATUS Successful or errant status.
- * \remarks If Count > 16, allocates temp kernel buffer (ExAllocatePool2) and caps fallback behavior if allocation fails.
+ * \param[in] IoCompletionHandle Handle with IO_COMPLETION_MODIFY_STATE (0x2).
+ * \param[out] IoCompletionInformation Array of Count caller-owned records. Each
+ * FILE_IO_COMPLETION_INFORMATION is 32 bytes on x64 and 16 bytes on x86. Native x64 user output must be
+ * 8-byte aligned; WoW64 converts an aligned temporary native array to the x86 output, accepting an unaligned
+ * original x86 buffer.
+ * \param[in] Count Nonzero array capacity. The native x64 entry rejects values above 0x07FFFFFF with
+ * STATUS_INVALID_PARAMETER before probing the array.
+ * \param[out] NumEntriesRemoved Required ULONG output for the number returned. Timeout or an alertable
+ * interruption writes 0; negative handle/access errors leave it unchanged. Only that many array entries are
+ * valid.
+ * \param[in, optional] Timeout In 100-nanosecond units: negative relative interval, nonnegative absolute
+ * deadline, zero to poll, or NULL for no deadline.
+ * \param[in] Alertable Whether a blocking dequeue can return for a user APC or alert.
+ * \return STATUS_SUCCESS for removed packets, STATUS_TIMEOUT for no packet, STATUS_USER_APC or STATUS_ALERTED
+ * for interruption, or another NTSTATUS. Each returned IoStatusBlock.Status is the packet's independent
+ * completion status.
+ * \remarks For native Count greater than 16, the kernel attempts to allocate 8 * Count bytes for packet
+ * pointers. If allocation fails it falls back to a 16-pointer stack buffer and limits that removal to 16
+ * entries. WoW64 additionally allocates a 32 * Count-byte native-record conversion buffer before the syscall;
+ * do not assume native allocation-failure behavior applies unchanged to WoW64. The unused output-array suffix
+ * remains untouched s.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-getqueuedcompletionstatusex
  */
 _Kernel_entry_
@@ -3586,18 +3816,18 @@ NtRemoveIoCompletionEx(
 #endif
 
 /**
- * The NtCreateWaitCompletionPacket routine creates a wait completion packet object.
+ * Creates a reusable object for a one-shot association between a waitable target
+ * and an I/O completion port. Associate it with NtAssociateWaitCompletionPacket;
+ * creation alone does not queue a notification or begin waiting on a target.
  *
- * A wait completion packet is a kernel object that can be associated with wait
- * or I/O completion sources and later queried via I/O completion mechanisms.
- *
- * \param WaitCompletionPacketHandle Pointer to a variable that receives a handle
- *        to the newly created wait completion packet object.
- * \param DesiredAccess The access mask that specifies the requested access to
- *        the wait completion packet object.
- * \param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure that
- *        supplies the object name and other attributes. May be NULL.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] WaitCompletionPacketHandle Receives a caller-owned handle; close with NtClose.
+ * \param[in] DesiredAccess WAIT_COMPLETION_PACKET_SET_STATE (0x1) permits association
+ * and cancellation. WAIT_COMPLETION_PACKET_ALL_ACCESS is 0x000F0001, without SYNCHRONIZE.
+ * \param[in, optional] ObjectAttributes Optional name and object attributes; NULL
+ * creates an unnamed packet, suitable for process-owned completion notifications.
+ * \return NTSTATUS indicating whether the object was created.
+ * \remarks This object is distinct from the MemoryReserveIoCompletion object
+ * accepted by NtSetIoCompletionEx; do not substitute one handle type for the other.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcreatewaitcompletionpacket
  */
 _Kernel_entry_
@@ -3611,33 +3841,29 @@ NtCreateWaitCompletionPacket(
     );
 
 /**
- * The NtAssociateWaitCompletionPacket routine associates a wait completion packet
- * with an I/O completion port or other target object so that a completion packet
- * will be queued when the target object becomes signaled or an I/O completes.
+ * Arranges one completion-port notification when a waitable target is satisfied.
+ * If the target is already signaled, a packet is queued during association.
+ * After the packet is removed, call this function again to establish another wait.
  *
- * This routine links the specified wait completion packet with the target
- * completion object so the packet will carry the supplied context and status
- * information when it is delivered.
- *
- * \param[in] WaitCompletionPacketHandle Handle to the wait completion packet object.
- * \param[in] IoCompletionHandle Handle to an I/O completion port (or compatible object)
- *        with which the wait completion packet should be associated.
- * \param[in] TargetObjectHandle Handle to the object to watch for completion or
- *        signalling (for example, a waitable kernel object).
- * \param[in] KeyContext Optional pointer to caller-specified context that will be
- *        stored in the completion packet and returned to the consumer.
- * \param[in] ApcContext Optional pointer to caller-specified APC/context value that
- *        will be stored in the completion packet and returned to the consumer.
- * \param[in] IoStatus The NTSTATUS value to be placed in the completion packet.
- * \param[in] IoStatusInformation Additional information ( ULONG_PTR ) to be placed
- *        in the completion packet (commonly used for number of bytes transferred).
- * \param[out] AlreadySignaled Optional pointer to a BOOLEAN that, on return, is set
- *        to TRUE if the packet was already signaled at the time of association;
- *        otherwise FALSE. May be NULL.
- * \return NTSTATUS Successful or errant status.
- * \remarks Use this routine to arrange for notification of a target object's
- *          completion by queuing a wait completion packet containing the
- *          supplied context and status.
+ * \param[in] WaitCompletionPacketHandle Idle wait-packet handle with
+ * WAIT_COMPLETION_PACKET_SET_STATE (0x1). An already-associated packet returns
+ * STATUS_INVALID_PARAMETER_1 including while queued for removal.
+ * \param[in] IoCompletionHandle I/O completion port with IO_COMPLETION_MODIFY_STATE (0x2).
+ * \param[in] TargetObjectHandle Supported waitable target with SYNCHRONIZE (0x00100000).
+ * Mutants and queue objects are rejected with STATUS_INVALID_PARAMETER_3; an arbitrary handle is not necessarily a supported wait target.
+ * \param[in, optional] KeyContext Opaque pointer-sized key to store in the notification.
+ * \param[in, optional] ApcContext Opaque pointer-sized context, not a callback address.
+ * \param[in] IoStatus Status value to store in the notification, not association status.
+ * \param[in] IoStatusInformation Pointer-sized information value to store in the packet.
+ * \param[out, optional] AlreadySignaled Receives TRUE if the target object, not the
+ * wait-packet object, was already signaled when the association was established.
+ * \return NTSTATUS describing association. A TRUE AlreadySignaled does not mean
+ * that the packet has already been removed; consume it from the completion port.
+ * \remarks Satisfying the wait consumes a synchronization event's signal or one
+ * semaphore count; it does not clear a notification event. The association is
+ * one-shot, not a persistent subscription. The kernel retains references to the
+ * packet, target and port while the association is outstanding. Synchronize reuse
+ * with dequeue or completed cancellation, not simply an NT_SUCCESS cancellation status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntassociatewaitcompletionpacket
  */
 _Kernel_entry_
@@ -3656,16 +3882,20 @@ NtAssociateWaitCompletionPacket(
     );
 
 /**
- * The NtCancelWaitCompletionPacket routine cancels a previously associated wait
- * completion packet or removes a signaled packet from its queue.
+ * Attempts to cancel a wait-completion association or remove its queued notification.
  *
- * \param[in] WaitCompletionPacketHandle Handle to the wait completion packet object to cancel.
- * \param[in] RemoveSignaledPacket If TRUE and the packet is already signaled, remove
- *        the signaled packet from the target queue; if FALSE, cancellation will
- *        prevent future signaling but will not remove an already queued packet.
- * \return NTSTATUS Successful or errant status.
- * \remarks After successful cancellation, the wait completion packet will no
- *          longer be delivered as a result of the previously associated target.
+ * \param[in] WaitCompletionPacketHandle Wait-packet handle with
+ * WAIT_COMPLETION_PACKET_SET_STATE (0x1).
+ * \param[in] RemoveSignaledPacket TRUE also attempts to remove an already queued
+ * notification. FALSE cancels an unsatisfied wait but leaves a queued packet in place.
+ * \return STATUS_SUCCESS when canceled; STATUS_PENDING (0x00000103) if the
+ * notification may still be pending and the packet cannot immediately be reused;
+ * STATUS_CANCELLED (0xC0000120) if already completed or never associated.
+ * \remarks STATUS_PENDING is nonnegative, so NT_SUCCESS does not prove cancellation
+ * completed or that no packet will be delivered. Coordinate with the completion
+ * consumer before reusing the wait packet. Even TRUE cannot retract a notification
+ * that another thread has already picked up. These are cancellation statuses, not
+ * the IoStatus payload supplied when the association was created.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcancelwaitcompletionpacket
  */
 _Kernel_entry_
@@ -3705,6 +3935,11 @@ NtCancelWaitCompletionPacket(
  * \remarks The exact meaning and required privileges for `Flags` and keys may
  *          depend on the Windows version and file system. Consumers should
  *          verify handle access rights and the platform's support for this call.
+ * \remarks Copies Length bytes between explicit source and destination offsets without exposing the intermediate data
+ * buffer to the caller. The entry rejects Flags bits outside 0x1; this is not a promise
+ * that bit 0 is supported by every file system. SourceOffset and DestOffset are required captured
+ * LARGE_INTEGER inputs with 4-byte native user alignment. If STATUS_PENDING is returned, keep IoStatusBlock
+ * alive and observe completion before inspecting its transferred-byte count.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3739,6 +3974,11 @@ NtCopyFileChunk(
  * \param[out] OutputParameters Pointer to a buffer that receives the output parameters.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-createioring
+ * \remarks This is the native handle/buffer interface, not the Win32 CreateIoRing/HIORING interface. The
+ * create input minimum is 20 bytes and output minimum is 48 bytes; WoW64 forwards these buffers rather than
+ * substituting a 32-bit Win32 wrapper layout. Queue sizes are rounded to powers of two: submission defaults
+ * to 32 for zero, has minimum 8 and maximum 65536; completion is at least twice submission and at most
+ * 131072. Opaque shared-queue layouts and cleanup must not be inferred solely from these size checks.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3761,6 +4001,11 @@ NtCreateIoRing(
  * \param[in, optional] Timeout Optional pointer to a timeout value.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-submitioring
+ * \remarks Submits already-published native ring entries; the return status is not a substitute for inspecting each
+ * operation's completion entry. WaitOperations controls completion waiting, and the entry captures
+ * Timeout only when WaitOperations is nonzero. The producer/consumer indices and queue capacities are
+ * validated and submission is serialized. Use Flags = 0 unless a flag's contract has been established;
+ * acceptance of high bits by a particular build is not a public feature declaration.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3780,6 +4025,10 @@ NtSubmitIoRing(
  * \param[out] IoRingCapabilities Pointer to a buffer that receives the capabilities.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-queryioringcapabilities
+ * \remarks The native interface requires at least 20 bytes and writes five ULONG values: 400, 9, 2,
+ * 65536, and 131072. Output alignment is 1 byte in this implementation. These are native capability words, not
+ * permission to cast the buffer to the Win32 IORING_CAPABILITIES structure or treat its version encoding as
+ * identical. Extra caller capacity is not necessarily initialized.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -3799,6 +4048,11 @@ NtQueryIoRingCapabilities(
  * \param[in] IoRingInformation Pointer to a buffer that contains the information to set.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-setioringcompletionevent
+ * \remarks Information class 1 updates the completion user event using an 8-byte native HANDLE
+ * input; other classes are rejected. The matching WoW64 thunk accepts a 4-byte length but zero-extends the
+ * input handle by writing 8 bytes IN PLACE before forwarding, even if the ring handle is invalid. Therefore a
+ * WoW64 caller must provide at least 8 bytes of writable backing storage, not a standalone 4-byte HANDLE or
+ * read-only input. This is a build-specific thunk behavior, not the Win32 SetIoRingCompletionEvent interface.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4471,6 +4725,11 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 //
 // Filter manager
 //
+// rev: User-mode control interface for FltMgr.sys
+// and the native/WOW64 FltLib connection builders. These are device IOCTLs
+// (NtDeviceIoControlFile), not file-system controls (NtFsControlFile).
+// The private buffers below are not kernel FLT_FILTER/FLT_INSTANCE objects.
+// Use the default structure packing.
 
 #define FLT_PORT_CONNECT 0x0001
 #define FLT_PORT_ALL_ACCESS (FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL)
@@ -4484,6 +4743,14 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 // private
 /**
  * The FLT_CONNECT_CONTEXT structure contains the connection context passed when connecting to a filter communication port.
+ *
+ * Supply this as the value of the FLTPORT EA when opening FLT_MSG_DEVICE_NAME.
+ * Both pointers are caller-sized addresses: PortName64 points to a UNICODE_STRING64,
+ * but is not itself a 64-bit pointer in a 32-bit process. The WOW64 path reads
+ * PortName64; the native x64 path reads PortName. Keep both descriptors and their
+ * string buffers valid until NtCreateFile completes. Context is copied inline
+ * and delivered to the minifilter's connection callback. Its offset is 24 bytes
+ * on x64 and 16 bytes on x86; sizeof(FLT_CONNECT_CONTEXT) includes tail padding.
  */
 typedef struct _FLT_CONNECT_CONTEXT
 {
@@ -4496,11 +4763,25 @@ typedef struct _FLT_CONNECT_CONTEXT
 
 // rev
 #define FLT_PORT_EA_NAME "FLTPORT"
+// Exclusive upper bound used by FilterConnectCommunicationPort.
+// Maximum accepted context: 0xFFE7 bytes on x64, 0xFFEF bytes on x86.
+#ifdef _WIN64
 #define FLT_PORT_CONTEXT_MAX 0xFFE8
+#else
+#define FLT_PORT_CONTEXT_MAX 0xFFF0
+#endif
 
 // combined FILE_FULL_EA_INFORMATION and FLT_CONNECT_CONTEXT
 /**
  * The FLT_PORT_FULL_EA structure is the full extended attribute buffer used to open a filter communication port.
+ *
+ * EaValue starts at byte 16 on both x86 and x64. EaValueLength excludes the
+ * EA header and name and equals FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext.
+ * Pass FLT_PORT_FULL_EA_SIZE + EaValueLength as NtCreateFile's EaLength.
+ * Open with FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE and FILE_OPEN_IF;
+ * use FILE_SYNCHRONOUS_IO_NONALERT only for a synchronous connection handle.
+ * The server port's security descriptor controls access. Close the returned
+ * file handle with NtClose to release the connection.
  */
 typedef struct _FLT_PORT_FULL_EA
 {
@@ -4512,26 +4793,54 @@ typedef struct _FLT_PORT_FULL_EA
     FLT_CONNECT_CONTEXT EaValue;
 } FLT_PORT_FULL_EA, *PFLT_PORT_FULL_EA;
 
+// Use exact EA sizing by default. Define PHNT_FLT_PORT_USE_LEGACY_EA_SIZE before
+// including this header to use the same allocation sizing as FltLib instead.
+#if !defined(PHNT_FLT_PORT_USE_LEGACY_EA_SIZE) && !defined(PHNT_FLT_PORT_USE_EXACT_EA_SIZE)
+#define PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+#endif
+
+#ifndef PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+// Original FltLib-compatible sizing: 19-byte allocation overhead, including
+// three trailing slack bytes. The actual EaValue offset remains 16 bytes.
 #define FLT_PORT_FULL_EA_SIZE \
     (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
 #define FLT_PORT_FULL_EA_VALUE_SIZE \
     RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding)
+#else
+// Exact wire prefixes, excluding the tail padding.
+#define FLT_PORT_FULL_EA_SIZE \
+    FIELD_OFFSET(FLT_PORT_FULL_EA, EaValue)
+#define FLT_PORT_FULL_EA_VALUE_SIZE \
+    FIELD_OFFSET(FLT_CONNECT_CONTEXT, Context)
+#endif
 
 // begin_rev
 
-// IOCTLs for unlinked FltMgr handles
+// Management IOCTLs for FltMgr handles. LINK_HANDLE requires an unlinked handle;
+// load/unload and attach/detach do not consume the handle's linked-object state.
+// Load/unload additionally check SeLoadDriverPrivilege.
 #define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK // specializes the handle
-#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH
+#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH; optional out: NUL-terminated WCHAR instance name
 #define FLT_CTL_DETACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_INSTANCE_PARAMETERS
 
 // IOCTLs for port-specific FltMgrMsg handles (opened using the extended attribute)
 #define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in, out: filter-specific
-#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: filter-specific
-#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: filter-specific
+#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: FILTER_MESSAGE_HEADER followed by filter-specific payload
+#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: FILTER_REPLY_HEADER followed by filter-specific payload
+// Include fltUser.h for the fltUserStructures.h message types. Each header is 16 bytes;
+// MessageId is at offset 8. GET_MESSAGE can pend: keep the output buffer and
+// IO_STATUS_BLOCK alive until completion. REPLY_MESSAGE uses the received MessageId;
+// SEND_MESSAGE passes the filter-specific buffers directly, without either header.
 
 // IOCTLs for linked FltMgr handles; depend on previously used FLT_LINK_TYPE
+//
+// Input is a 4-byte information-class selector, not a structure containing a pointer.
+// FIND_FIRST resets the per-handle index; successful enumeration advances it.
+// A failed query does not advance the index. Close the handle with NtClose.
+// Buffer-too-small results are mapped to STATUS_FLT_BUFFER_TOO_SMALL; use
+// IO_STATUS_BLOCK.Information for the size returned by the information routine.
 //
 // Find first/next:
 //   FILTER                - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
@@ -4552,6 +4861,12 @@ typedef struct _FLT_PORT_FULL_EA
 // private
 /**
  * The FLT_LOAD_PARAMETERS structure contains the parameters used to load a minifilter driver.
+ *
+ * Input to FLT_CTL_LOAD and FLT_CTL_UNLOAD. FilterName is a counted UTF-16
+ * service name, not a driver image path; FilterNameSize is in bytes, excluding
+ * any terminator, and must not exceed 0x1FE. The input must contain at least
+ * 4 bytes and cover FIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName) + FilterNameSize.
+ * Both operations require SeLoadDriverPrivilege.
  */
 typedef struct _FLT_LOAD_PARAMETERS
 {
@@ -4562,6 +4877,9 @@ typedef struct _FLT_LOAD_PARAMETERS
 // private
 /**
  * The FLT_LINK_TYPE enumeration specifies the type of a filter manager link operation.
+ *
+ * Selects the object or enumeration scope associated with an existing FltMgr
+ * file handle. FILTER_INSTANCE supports GET_INFORMATION, not FIND_FIRST/NEXT.
  */
 typedef enum _FLT_LINK_TYPE
 {
@@ -4575,6 +4893,12 @@ typedef enum _FLT_LINK_TYPE
 // private
 /**
  * The FLT_LINK structure contains the parameters describing a filter manager link operation.
+ *
+ * Input to FLT_CTL_LINK_HANDLE; this header is 8 bytes on x86 and x64.
+ * For FILTER, FILTER_INSTANCE and FILTER_VOLUME, place the corresponding
+ * parameter block immediately after this header and set ParametersOffset to 8.
+ * String offsets are relative to that parameter block, not to FLT_LINK.
+ * The two manager scopes need no parameter block. A handle cannot be linked twice.
  */
 typedef struct _FLT_LINK
 {
@@ -4585,6 +4909,10 @@ typedef struct _FLT_LINK
 // rev
 /**
  * The FLT_FILTER_PARAMETERS structure contains the parameters describing a registered minifilter.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER. The counted UTF-16
+ * name selects the filter to query or whose instances to enumerate.
+ * FilterNameSize is in bytes, excluding a terminator, and is at most 0x1FE.
  */
 typedef struct _FLT_FILTER_PARAMETERS
 {
@@ -4595,6 +4923,12 @@ typedef struct _FLT_FILTER_PARAMETERS
 // private
 /**
  * The FLT_INSTANCE_PARAMETERS structure contains the parameters describing a minifilter instance.
+ *
+ * The 12-byte parameter block for FLT_LINK.Type == FILTER_INSTANCE, also used
+ * directly as input to FLT_CTL_DETACH. All sizes and offsets are byte counts;
+ * strings are counted UTF-16 without required terminators. Filter and instance
+ * names are limited to 0x1FE bytes each; the volume name to 0x800 bytes.
+ * InstanceNameSize == 0 passes no instance name to the underlying operation.
  */
 typedef struct _FLT_INSTANCE_PARAMETERS
 {
@@ -4609,6 +4943,10 @@ typedef struct _FLT_INSTANCE_PARAMETERS
 // rev
 /**
  * The FLT_VOLUME_PARAMETERS structure contains the parameters describing a volume known to the filter manager.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER_VOLUME, used to
+ * enumerate instances on the named volume. VolumeNameSize is a nonzero byte
+ * count, at most 0x800, for a counted UTF-16 name without a required terminator.
  */
 typedef struct _FLT_VOLUME_PARAMETERS
 {
@@ -4619,6 +4957,9 @@ typedef struct _FLT_VOLUME_PARAMETERS
 // private
 /**
  * The ATTACH_TYPE enumeration specifies the type of a minifilter instance attachment.
+ *
+ * AltitudeBased uses the supplied altitude (FilterAttachAtAltitude);
+ * InstanceNameBased uses the configured instance altitude (FilterAttach).
  */
 typedef enum _ATTACH_TYPE
 {
@@ -4629,6 +4970,14 @@ typedef enum _ATTACH_TYPE
 // private
 /**
  * The FLT_ATTACH structure contains the parameters used to attach a minifilter instance to a volume.
+ *
+ * Input to FLT_CTL_ATTACH; the fixed header is 20 bytes on x86 and x64.
+ * All sizes and offsets are byte counts relative to this structure. Strings
+ * are counted UTF-16; filter/instance names are limited to 0x1FE bytes each,
+ * volume names to 0x800 bytes, and altitude strings to 0xFFFE bytes.
+ * InstanceNameSize == 0 omits the instance name. Altitude is used only for
+ * AltitudeBased. An optional output buffer receives the resulting instance
+ * name with a NUL terminator; IoStatus.Information includes that terminator.
  */
 typedef struct _FLT_ATTACH
 {
@@ -4648,33 +4997,98 @@ typedef struct _FLT_ATTACH
 //
 
 // rev // FSCTLs for \Device\Mup
+// MUP control interface (x64). Send with NtFsControlFile.
+// Query buffers contain counted UTF-16 strings and relative byte offsets, not pointers.
+// The three cache/provider queries accept no input. With at least 4 output bytes,
+// STATUS_BUFFER_OVERFLOW returns the required allocation size in the first ULONG
+// and IoStatus.Information == 4; discard other output and retry with a larger buffer.
+// The hardening-table query uses a different, linked-record output contract below.
+//
+// rev: descriptive names for the additional branches in MupFsControl.
+// Registration is kernel-only; user-mode requests return STATUS_ACCESS_DENIED.
+// Its native x64 input contains UNICODE_STRING at 0, a provider device-object
+// pointer at 16, and a registration-descriptor pointer at 24. These are kernel
+// pointers, not a user-mode serialized request. Prefer FsRtlRegisterUncProviderEx2.
+#define FSCTL_MUP_REGISTER_UNC_PROVIDER             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 1, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT (kernel mode only)
+// Flush a cached prefix using a counted WCHAR input, without a terminating NUL.
+// Input length must be even and less than 0xFFFF bytes. A single L'*' (2 bytes)
+// flushes the whole cache for the handle's silo; no output. Requires write access.
+// This changes routing-cache state; it is not a diagnostic query.
+#define FSCTL_MUP_FLUSH_UNC_CACHE                   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 10, METHOD_BUFFERED, FILE_WRITE_ACCESS)
 #define FSCTL_MUP_GET_UNC_CACHE_INFO                CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 11, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_CACHE_INFORMATION
 #define FSCTL_MUP_GET_UNC_PROVIDER_LIST             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 12, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST       CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 13, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 14, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY[]
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH  CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 15, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN; out: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 
+// Forward declarations allow the kernel-only request layout to be described
+// without importing WDK device-object or registration definitions into user mode.
+struct _DEVICE_OBJECT;
+struct _FSRTL_UNC_PROVIDER_REGISTRATION;
+
+// rev
+/**
+ * Input to FSCTL_MUP_REGISTER_UNC_PROVIDER for registering a UNC redirector.
+ *
+ * This is a native, pointer-bearing kernel request, not an offset-based user-mode
+ * buffer. MupFsControl rejects user-mode callers with STATUS_ACCESS_DENIED.
+ * RedirDevName names the redirector device, DeviceObject identifies its device
+ * object, and Registration points to the versioned registration descriptor
+ * declared as FSRTL_UNC_PROVIDER_REGISTRATION in the WDK ntifs.h header.
+ * The descriptor is separate from this request; its Size and Version describe
+ * the descriptor, not this wrapper. Keep the name buffer and descriptor valid
+ * for the duration of the request. Prefer FsRtlRegisterUncProviderEx2 in drivers.
+ *
+ * The x64 layout places RedirDevName at 0, DeviceObject at
+ * 16, Registration at 24; the wrapper is 32 bytes with default packing.
+ * The declaration uses native pointer widths; an x86 compiler produces 16 bytes,
+ * but the x86 kernel layout may differ. There is no WOW64 user-mode
+ * registration contract. Type and member names are descriptive reconstructions.
+ */
+typedef struct _MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT
+{
+    UNICODE_STRING RedirDevName;
+    struct _DEVICE_OBJECT *DeviceObject;
+    const struct _FSRTL_UNC_PROVIDER_REGISTRATION *Registration;
+} MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT, *PMUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT;
+
 // private
 /**
  * The MUP_FSCTL_UNC_CACHE_ENTRY structure describes a single entry in the MUP UNC provider cache.
+ *
+ * Identifies the provider selected for a cached UNC prefix, useful for diagnosing
+ * routing and expiration. Strings begins at byte 36. All three name offsets are
+ * relative to Strings, NOT to this structure; names are not NUL-terminated.
+ * Advance by TotalLength (rounded to 4 bytes), not sizeof this structure.
+ * Flags occupies the previously implicit padding at byte 26; the writer
+ * emits 0 or 1. Its internal-state meaning is not established here.
  */
 typedef struct _MUP_FSCTL_UNC_CACHE_ENTRY
 {
     ULONG TotalLength;
-    ULONG UncNameOffset; // to WCHAR[] from this struct
+    ULONG UncNameOffset; // byte offset from Strings
     USHORT UncNameLength; // in bytes
-    ULONG ProviderNameOffset; // to WCHAR[] from this struct
+    ULONG ProviderNameOffset; // byte offset from Strings
     USHORT ProviderNameLength; // in bytes
-    ULONG SurrogateNameOffset; // to WCHAR[] from this struct
+    ULONG SurrogateNameOffset; // byte offset from Strings
     USHORT SurrogateNameLength; // in bytes
+    USHORT Flags; // rev: 0 or 1; formerly implicit padding
     ULONG ProviderPriority;
-    ULONG EntryTtl;
+    ULONG EntryTtl; // remaining lifetime in seconds
     WCHAR Strings[ANYSIZE_ARRAY];
 } MUP_FSCTL_UNC_CACHE_ENTRY, *PMUP_FSCTL_UNC_CACHE_ENTRY;
 
 // private
 /**
  * The MUP_FSCTL_UNC_CACHE_INFORMATION structure contains information about the MUP UNC provider cache.
+ *
+ * Output of FSCTL_MUP_GET_UNC_CACHE_INFO. The fixed prefix is 16 bytes and
+ * EntryTimeout is in seconds. Walk TotalEntries variable-length records using
+ * each entry's TotalLength, not C array indexing. An empty result has
+ * TotalEntries == 0 but still includes a 40-byte zeroed placeholder entry
+ * (TotalLength == 40), making its returned size 56 bytes. Do not enumerate
+ * that placeholder. On STATUS_BUFFER_OVERFLOW the first ULONG instead holds
+ * the required total buffer size; it is not MaxCacheSize in that case.
  */
 typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 {
@@ -4688,6 +5102,12 @@ typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 // private
 /**
  * The MUP_FSCTL_UNC_PROVIDER_ENTRY structure describes a single MUP UNC provider entry.
+ *
+ * One registered redirector in FSCTL_MUP_GET_UNC_PROVIDER_LIST. ProviderName
+ * starts at byte 22 and is counted UTF-16 without a required terminator.
+ * TotalLength includes the name and rounds the record to 4-byte alignment.
+ * ReferenceCount and ProviderState are snapshots of internal provider state,
+ * not handles or references owned by the caller.
  */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
 {
@@ -4703,6 +5123,13 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
 // private
 /**
  * The MUP_FSCTL_UNC_PROVIDER_INFORMATION structure contains information about the registered MUP UNC providers.
+ *
+ * Output of FSCTL_MUP_GET_UNC_PROVIDER_LIST, for inspecting registered UNC
+ * redirectors and their routing priorities. The fixed prefix is 4 bytes.
+ * Walk TotalEntries records by TotalLength. When TotalEntries == 0, a 24-byte
+ * placeholder follows the count (28 output bytes total); do not enumerate it.
+ * On STATUS_BUFFER_OVERFLOW the first ULONG is the required buffer size
+ * rather than an entry count, and IoStatus.Information is 4.
  */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 {
@@ -4713,6 +5140,11 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 // private
 /**
  * The MUP_FSCTL_SURROGATE_PROVIDER_ENTRY structure describes a single MUP surrogate provider entry.
+ *
+ * One surrogate in FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST. SurrogateName
+ * starts at byte 22 and is counted UTF-16. TotalLength rounds each record to
+ * 4-byte alignment. SurrogatePriority is written as zero;
+ * its presence does not establish a usable priority value.
  */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
 {
@@ -4728,6 +5160,12 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
 // private
 /**
  * The MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION structure contains information about the registered MUP surrogate providers.
+ *
+ * Output of FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST, for inspecting registered
+ * surrogate providers. The fixed prefix is 4 bytes. Walk TotalEntries records
+ * by TotalLength. An empty list includes a 24-byte placeholder after the count
+ * (28 output bytes total). On STATUS_BUFFER_OVERFLOW the first ULONG instead
+ * contains the required buffer size, with IoStatus.Information == 4.
  */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 {
@@ -4738,6 +5176,17 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 // private
 /**
  * The MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY structure describes a single entry in the MUP UNC hardening prefix table.
+ *
+ * Output records for FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION. There is no
+ * leading count. The fixed record is 24 bytes, followed by the counted UTF-16
+ * prefix at PrefixNameOffset relative to this record. Records begin at offsets
+ * aligned to 16 bytes within the output buffer. NextOffset == 0 ends the list.
+ * The capability bits are 0x1 mutual authentication, 0x2 integrity, 0x4 privacy.
+ * OpenCount reports the prefix's open count; this query does not acquire opens.
+ * STATUS_BUFFER_OVERFLOW can return a partial linked list; grow the buffer and
+ * restart to obtain the complete table. STATUS_BUFFER_TOO_SMALL is returned
+ * when no entry fits; do not apply the cache/provider first-ULONG size convention.
+ * An empty table succeeds with IoStatus.Information == 0.
  */
 typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
 {
@@ -4760,6 +5209,14 @@ typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
 // private
 /**
  * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN structure is the input used to query the MUP UNC hardening configuration.
+ *
+ * Input to FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH, for resolving
+ * hardening requirements for one UNC path. Set Size to sizeof this structure
+ * (12 bytes with default packing), append the counted UTF-16 path, and set
+ * UncPathOffset accordingly. The path must be WCHAR-aligned, start with two
+ * backslashes, and be longer than 4 bytes; its offset plus length must fit the
+ * input buffer. Size must be at least 10 bytes and no greater than the input
+ * length. Supply at least 8 output bytes. No remote file is opened by this query.
  */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 {
@@ -4771,6 +5228,11 @@ typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 // private
 /**
  * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT structure is the output containing the MUP UNC hardening configuration.
+ *
+ * Successful output of FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH:
+ * Size == 8 and IoStatus.Information == 8. RequiredHardeningCapabilities uses
+ * 0x1 for mutual authentication, 0x2 for integrity, and 0x4 for privacy.
+ * These are required protections, not the negotiated capabilities of a connection.
  */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 {

@@ -247,6 +247,60 @@ PhShowEMenu(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhCancelEMenu(
+    VOID
+    );
+
+// Internal: DirectComposition menu (emenudx.cpp). TRUE uses the dimensions of the
+// built-in Windows 11 menu instead of the default, more spacious emenudx layout.
+extern BOOLEAN PhEnableEMenuDxCompact;
+
+// Internal: DirectComposition menu (emenudx.cpp). Returns FALSE when the menu
+// could not be shown, in which case the caller falls back to TrackPopupMenu.
+// SelectedItem is always written (NULL on failure or cancel).
+BOOLEAN
+NTAPI
+PhShowEMenuDX(
+    _In_ PPH_EMENU Menu,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Align,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _In_ BOOLEAN DarkMode,
+    _Out_ PPH_EMENU_ITEM* SelectedItem
+    );
+
+// Internal: DirectComposition menu (emenudx.cpp). Cancels the menus shown by the
+// calling thread.
+VOID
+NTAPI
+PhCancelEMenuDX(
+    VOID
+    );
+
+VOID
+NTAPI
+PhEMenuDxUnregisterClass(
+    VOID
+    );
+
+// Internal: renders a font glyph into a 32bpp premultiplied menu bitmap (Size x Size
+// pixels) for PH_EMENU_ITEM::Bitmap. ColorFont uses the color emoji font and ignores
+// Color; otherwise the Fluent icon font is drawn in Color. Returns NULL on failure,
+// including when the installed icon font doesn't have the glyph.
+HBITMAP
+NTAPI
+PhCreateEMenuGlyphBitmap(
+    _In_ PCWSTR Glyph,
+    _In_ BOOLEAN ColorFont,
+    _In_ COLORREF Color,
+    _In_ LONG Size
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhSetFlagsEMenuItem(

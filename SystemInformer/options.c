@@ -484,7 +484,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 }
 
                 TreeView_SelectItem(OptionsTreeControl, section->TreeItemHandle);
-                SetFocus(OptionsTreeControl);
+                PhSetDialogFocus(hwndDlg, OptionsTreeControl);
                 //PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
             }
@@ -2218,7 +2218,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(ListViewHandle, &lvHitInfo) != -1)
+                    if (ListView_HitTest(ListViewHandle, &lvHitInfo) != INT_ERROR)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))
@@ -2722,7 +2722,7 @@ static VOID OptionsAdvancedLoadSchema(
     PPH_STRING fileName;
     PVOID object;
 
-    if (fileName = PhGetApplicationDirectoryFileNameZ(L"settings.schema.json", TRUE))
+    if (fileName = PhGetApplicationDirectoryFileNameZ(L"resources\\settings.schema.json", TRUE))
     {
         if (NT_SUCCESS(PhLoadJsonObjectFromFile(&object, &fileName->sr)))
         {
@@ -3895,6 +3895,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED_DEFAULT, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled by default", L"Token groups or privileges that are disabled but enabled by default."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled", L"Token groups or privileges that are disabled."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_REMOVED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Removed privilege", L"Token privileges that have been removed."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_ELEVATED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Elevated", L"Token groups or privileges that cause the token to report as elevated."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_DANGEROUS_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Dangerous flag", L"Token dangerous flags that are enabled."),
     COLOR_ITEM(SETTING_COLOR_TOKEN_NORMAL_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Normal flag", L"Token dangerous flags that are disabled."),
     COLOR_ITEM(SETTING_COLOR_MEMORY_PRIVATE_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"Private pages", L"Highlight private pages in the Memory list."),

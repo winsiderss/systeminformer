@@ -178,7 +178,6 @@ INT_PTR CALLBACK PvpPeVolatileDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
-            PhSetControlTheme(context->ListViewHandle, L"explorer");
             PvConfigListViewFont(hwndDlg, context->ListViewHandle);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"RVA");
@@ -195,7 +194,15 @@ INT_PTR CALLBACK PvpPeVolatileDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Volatile RVA Table");
             PvEnumerateVolatileEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            // Must run before PvThemeApplyListView: phlib's initializer resets the
+            // listview colors to its own palette. (dmex)
+            PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
+            PvThemeApplyListView(context->ListViewHandle);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PvThemeApplyListView(context->ListViewHandle);
         }
         break;
     case WM_DESTROY:

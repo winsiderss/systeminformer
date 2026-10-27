@@ -57,7 +57,7 @@ VOID PluginInterfaceInitialize(
     )
 {
     TabInfoHashtable = PhCreateHashtable(
-        sizeof(TOOLSTATUS_TAB_INFO),
+        sizeof(PTOOLSTATUS_TAB_INFO),
         PluginInterfaceTabInfoHashtableEqualFunction,
         PluginInterfaceTabInfoHashtableHashFunction,
         3
@@ -70,8 +70,8 @@ BOOLEAN PluginInterfaceTabInfoHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PTOOLSTATUS_TAB_INFO entry1 = (PTOOLSTATUS_TAB_INFO)Entry1;
-    PTOOLSTATUS_TAB_INFO entry2 = (PTOOLSTATUS_TAB_INFO)Entry2;
+    PTOOLSTATUS_TAB_INFO entry1 = *(PTOOLSTATUS_TAB_INFO *)Entry1;
+    PTOOLSTATUS_TAB_INFO entry2 = *(PTOOLSTATUS_TAB_INFO *)Entry2;
 
     return entry1->Index == entry2->Index;
 }
@@ -81,7 +81,7 @@ ULONG PluginInterfaceTabInfoHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    PTOOLSTATUS_TAB_INFO entry = (PTOOLSTATUS_TAB_INFO)Entry;
+    PTOOLSTATUS_TAB_INFO entry = *(PTOOLSTATUS_TAB_INFO *)Entry;
 
     return PhHashInt32(entry->Index);
 }
@@ -113,16 +113,17 @@ PTOOLSTATUS_TAB_INFO PluginInterfaceRegisterTabInfo(
     _In_opt_ PCPH_STRINGREF BannerText
     )
 {
-    TOOLSTATUS_TAB_INFO lookupEntry;
     PTOOLSTATUS_TAB_INFO entry;
 
-    RtlZeroMemory(&lookupEntry, sizeof(TOOLSTATUS_TAB_INFO));
-    lookupEntry.Index = TabIndex;
-    lookupEntry.BannerText = BannerText;
+    // Keep published tab information at a stable address for the process lifetime. (dmex)
+    entry = PhAllocateZero(sizeof(TOOLSTATUS_TAB_INFO));
+    entry->Index = TabIndex;
+    entry->BannerText = BannerText;
 
-    if (entry = PhAddEntryHashtable(TabInfoHashtable, &lookupEntry))
+    if (PhAddEntryHashtable(TabInfoHashtable, &entry))
         return entry;
 
+    PhFree(entry);
     return NULL;
 }
 
@@ -131,12 +132,13 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
     )
 {
     TOOLSTATUS_TAB_INFO lookupEntry;
-    PTOOLSTATUS_TAB_INFO entry;
+    PTOOLSTATUS_TAB_INFO lookupEntryPtr = &lookupEntry;
+    PTOOLSTATUS_TAB_INFO *entry;
 
     lookupEntry.Index = TabIndex;
 
-    if (entry = PhFindEntryHashtable(TabInfoHashtable, &lookupEntry))
-        return entry;
+    if (entry = PhFindEntryHashtable(TabInfoHashtable, &lookupEntryPtr))
+        return *entry;
 
     return NULL;
 }

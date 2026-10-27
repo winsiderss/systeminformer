@@ -18,6 +18,16 @@ EXTERN_C_START
 PHLIBAPI
 PVOID
 NTAPI
+PhImageDirectoryEntryToData(
+    _In_ PVOID BaseOfImage,
+    _In_ BOOLEAN MappedAsImage,
+    _In_ USHORT DirectoryEntry,
+    _Out_ PULONG Size
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhLoadLibrary(
     _In_ PCWSTR FileName
     );

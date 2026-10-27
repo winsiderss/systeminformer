@@ -224,6 +224,45 @@ VOID DiskDriveCloseMountPointHandles(
 }
 
 /**
+ * Converts one of the offset-addressed strings in a storage device descriptor.
+ *
+ * The descriptor comes from the device stack and its offsets are not guaranteed
+ * to be inside the bytes the IOCTL actually returned, so the offset is validated
+ * and a terminator is required within the remaining span. (dmex)
+ *
+ * \param Descriptor The device descriptor.
+ * \param BufferLength The number of bytes the IOCTL returned.
+ * \param Offset The descriptor-relative offset of the string, or zero.
+ * \return A trimmed string, or an empty string when the offset is absent or invalid.
+ */
+PPH_STRING DiskDriveQueryDescriptorString(
+    _In_reads_bytes_(BufferLength) PSTORAGE_DEVICE_DESCRIPTOR Descriptor,
+    _In_ ULONG BufferLength,
+    _In_ ULONG Offset
+    )
+{
+    PPH_STRING string;
+    PPH_STRING trimmed;
+    PSTR start;
+    SIZE_T length;
+
+    if (Offset == 0 || Offset >= BufferLength)
+        return PhReferenceEmptyString();
+
+    start = PTR_ADD_OFFSET(Descriptor, Offset);
+    length = BufferLength - Offset;
+
+    if (!memchr(start, ANSI_NULL, length))
+        return PhReferenceEmptyString();
+
+    string = PhConvertUtf8ToUtf16(start);
+    trimmed = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
+    PhDereferenceObject(string);
+
+    return trimmed;
+}
+
+/**
  * Queries device information.
  *
  * \param DeviceHandle A handle to the device.
@@ -243,8 +282,10 @@ NTSTATUS DiskDriveQueryDeviceInformation(
 {
     NTSTATUS status;
     ULONG bufferLength;
+    ULONG returnLength;
     STORAGE_PROPERTY_QUERY query;
     PSTORAGE_DESCRIPTOR_HEADER buffer;
+    PSTORAGE_DEVICE_DESCRIPTOR deviceDescriptor;
 
     query.QueryType = PropertyStandardQuery;
     query.PropertyId = StorageDeviceProperty;
@@ -253,6 +294,8 @@ NTSTATUS DiskDriveQueryDeviceInformation(
     buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
 
+    returnLength = 0;
+
     status = PhDeviceIoControlFile(
         DeviceHandle,
         IOCTL_STORAGE_QUERY_PROPERTY,
@@ -260,19 +303,33 @@ NTSTATUS DiskDriveQueryDeviceInformation(
         sizeof(query),
         buffer,
         bufferLength,
-        NULL
+        &returnLength
         );
 
     if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
         return status;
+    }
+
+    if (returnLength < sizeof(STORAGE_DESCRIPTOR_HEADER))
+    {
+        PhFree(buffer);
+        return STATUS_INFO_LENGTH_MISMATCH;
     }
 
     bufferLength = buffer->Size;
     PhFree(buffer);
+
+    // The device reports the descriptor size; it must at least cover the fields
+    // read below. (dmex)
+    if (bufferLength < sizeof(STORAGE_DEVICE_DESCRIPTOR))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
     buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
+
+    returnLength = 0;
 
     status = PhDeviceIoControlFile(
         DeviceHandle,
@@ -281,7 +338,7 @@ NTSTATUS DiskDriveQueryDeviceInformation(
         sizeof(query),
         buffer,
         bufferLength,
-        NULL
+        &returnLength
         );
 
     if (!NT_SUCCESS(status))
@@ -290,71 +347,27 @@ NTSTATUS DiskDriveQueryDeviceInformation(
         return status;
     }
 
-    PSTORAGE_DEVICE_DESCRIPTOR deviceDescriptor = (PSTORAGE_DEVICE_DESCRIPTOR)buffer;
+    // The bytes actually returned are authoritative for the offset checks below,
+    // not the size the device declared. (dmex)
+    if (returnLength < sizeof(STORAGE_DEVICE_DESCRIPTOR) || returnLength > bufferLength)
+    {
+        PhFree(buffer);
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    deviceDescriptor = (PSTORAGE_DEVICE_DESCRIPTOR)buffer;
 
     if (DiskVendor)
-    {
-        if (deviceDescriptor->VendorIdOffset != 0)
-        {
-            PPH_STRING string;
-
-            string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->VendorIdOffset));
-            *DiskVendor = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
-            PhDereferenceObject(string);
-        }
-        else
-        {
-            *DiskVendor = PhReferenceEmptyString();
-        }
-    }
+        *DiskVendor = DiskDriveQueryDescriptorString(deviceDescriptor, returnLength, deviceDescriptor->VendorIdOffset);
 
     if (DiskModel)
-    {
-        if (deviceDescriptor->ProductIdOffset != 0)
-        {
-            PPH_STRING string;
-
-            string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->ProductIdOffset));
-            *DiskModel = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
-            PhDereferenceObject(string);
-        }
-        else
-        {
-            *DiskModel = PhReferenceEmptyString();
-        }
-    }
+        *DiskModel = DiskDriveQueryDescriptorString(deviceDescriptor, returnLength, deviceDescriptor->ProductIdOffset);
 
     if (DiskRevision)
-    {
-        if (deviceDescriptor->ProductRevisionOffset != 0)
-        {
-            PPH_STRING string;
-
-            string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->ProductRevisionOffset));
-            *DiskRevision = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
-            PhDereferenceObject(string);
-        }
-        else
-        {
-            *DiskRevision = PhReferenceEmptyString();
-        }
-    }
+        *DiskRevision = DiskDriveQueryDescriptorString(deviceDescriptor, returnLength, deviceDescriptor->ProductRevisionOffset);
 
     if (DiskSerial)
-    {
-        if (deviceDescriptor->SerialNumberOffset != 0)
-        {
-            PPH_STRING string;
-
-            string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->SerialNumberOffset));
-            *DiskSerial = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
-            PhDereferenceObject(string);
-        }
-        else
-        {
-            *DiskSerial = PhReferenceEmptyString();
-        }
-    }
+        *DiskSerial = DiskDriveQueryDescriptorString(deviceDescriptor, returnLength, deviceDescriptor->SerialNumberOffset);
 
     PhFree(buffer);
 

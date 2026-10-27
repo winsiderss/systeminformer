@@ -9,20 +9,27 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-// Allocate an MMDB_data_pool_s. It initially has space for size
-// MMDB_entry_data_list_s structs.
-MMDB_data_pool_s *data_pool_new(size_t const size) {
+// Allocate an MMDB_data_pool_s. It initially has space for up to size
+// MMDB_entry_data_list_s structs. Its total capacity will not exceed max_size.
+MMDB_data_pool_s *data_pool_new(size_t const size, size_t const max_size) {
     MMDB_data_pool_s *const pool = calloc(1, sizeof(MMDB_data_pool_s));
     if (!pool) {
         return NULL;
     }
 
-    if (size == 0 ||
-        !can_multiply(SIZE_MAX, size, sizeof(MMDB_entry_data_list_s))) {
+    if (size == 0 || max_size == 0) {
         data_pool_destroy(pool);
         return NULL;
     }
-    pool->size = size;
+    size_t initial_size = size;
+    if (initial_size > max_size) {
+        initial_size = max_size;
+    }
+    if (!can_multiply(SIZE_MAX, initial_size, sizeof(MMDB_entry_data_list_s))) {
+        data_pool_destroy(pool);
+        return NULL;
+    }
+    pool->size = initial_size;
     pool->blocks[0] = calloc(pool->size, sizeof(MMDB_entry_data_list_s));
     if (!pool->blocks[0]) {
         data_pool_destroy(pool);
@@ -30,7 +37,9 @@ MMDB_data_pool_s *data_pool_new(size_t const size) {
     }
     pool->blocks[0]->pool = pool;
 
-    pool->sizes[0] = size;
+    pool->sizes[0] = initial_size;
+    pool->capacity = initial_size;
+    pool->max_size = max_size;
 
     pool->block = pool->blocks[0];
 
@@ -62,8 +71,9 @@ void data_pool_destroy(MMDB_data_pool_s *const pool) {
     free(pool);
 }
 
-// Claim a new struct from the pool. Doing this may cause the pool's size to
-// grow.
+// Claim a new struct from the pool. Doing this may grow the pool. NULL means an
+// allocation failed or the pool reached its maximum capacity. Decoder callers
+// check their logical limit before reaching the capacity limit.
 MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
     if (!pool) {
         return NULL;
@@ -75,6 +85,10 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
         return element;
     }
 
+    if (pool->capacity == pool->max_size) {
+        return NULL;
+    }
+
     // Take it from a new block of memory.
 
     size_t const new_index = pool->index + 1;
@@ -83,10 +97,11 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
         return NULL;
     }
 
-    if (!can_multiply(SIZE_MAX, pool->size, 2)) {
-        return NULL;
+    size_t const remaining = pool->max_size - pool->capacity;
+    size_t new_size = remaining;
+    if (pool->size <= remaining / 2) {
+        new_size = pool->size * 2;
     }
-    size_t const new_size = pool->size * 2;
 
     if (!can_multiply(SIZE_MAX, new_size, sizeof(MMDB_entry_data_list_s))) {
         return NULL;
@@ -104,6 +119,7 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
 
     pool->size = new_size;
     pool->sizes[pool->index] = pool->size;
+    pool->capacity += new_size;
 
     MMDB_entry_data_list_s *const element = pool->block;
     pool->used = 1;
