@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{37488DC1-E45F-4626-A87C-3A854A153D1A}</ProjectGuid>
     <RootNamespace>WindowExplorer</RootNamespace>
     <Keyword>Win32Proj</Keyword>

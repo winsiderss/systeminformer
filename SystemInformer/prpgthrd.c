@@ -1062,8 +1062,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             // open the process, since cycle time information requires sufficient access to the
             // threads. (wj32)
             {
-                HANDLE processHandle;
-
                 // We make a distinction between PROCESS_QUERY_INFORMATION and PROCESS_QUERY_LIMITED_INFORMATION since
                 // the latter can be used when opening audiodg.exe even though we can't access its threads using
                 // THREAD_QUERY_LIMITED_INFORMATION. (wj32)
@@ -1072,12 +1070,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     threadsContext->ListContext.UseCycleTime = TRUE;
                 }
-                else if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId)))
+                else if (processItem->IsHandleValid)
                 {
                     threadsContext->ListContext.UseCycleTime = TRUE;
-                    NtClose(processHandle);
                 }
-                else if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId)))
+                else if (processItem->QueryHandle)
                 {
                     threadsContext->ListContext.UseCycleTime = TRUE;
 
@@ -1090,8 +1087,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadsContext->ListContext.UseCycleTime = FALSE;
                         }
                     }
-
-                    NtClose(processHandle);
                 }
             }
 

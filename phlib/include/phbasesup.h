@@ -4714,6 +4714,16 @@ DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
+PhAddMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_reads_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    );
+
+DECLSPEC_NOALIAS
+PHLIBAPI
+VOID
+NTAPI
 PhConvertCopyMemoryUlong(
     _Inout_updates_(Count) PULONG From,
     _Inout_updates_(Count) PFLOAT To,

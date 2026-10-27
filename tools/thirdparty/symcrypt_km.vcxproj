@@ -19,7 +19,6 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>17.0</VCProjectVersion>
         <ProjectGuid>{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}</ProjectGuid>
         <TemplateGuid>{dd38f7fc-d7bd-488b-9242-7d8754cde80d}</TemplateGuid>
         <ConfigurationType>StaticLibrary</ConfigurationType>

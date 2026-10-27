@@ -9499,9 +9499,13 @@ NTSTATUS PhInitializeHash(
 NTSTATUS PhUpdateHash(
     _In_ PPH_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
-    _In_ ULONG Length
+    _In_ SIZE_T Length
     )
 {
+#ifdef PH_NATIVE_CRYPT
+    ULONG blockSize;
+#endif
+
     switch (Context->Algorithm)
     {
     case Crc32HashAlgorithm:
@@ -9511,14 +9515,33 @@ NTSTATUS PhUpdateHash(
         Context->Context[0] = PhCrc32C(Context->Context[0], (PUCHAR)Buffer, Length);
         return STATUS_SUCCESS;
 #ifdef PH_NATIVE_CRYPT
+    // The native hash implementations take a 32-bit length, so chunk the data.
     case Md5HashAlgorithm:
-        MD5Update((MD5_CTX *)Context->Context, (PUCHAR)Buffer, Length);
+        while (Length)
+        {
+            blockSize = (ULONG)min(Length, ULONG_MAX);
+            MD5Update((MD5_CTX *)Context->Context, (PUCHAR)Buffer, blockSize);
+            Buffer = PTR_ADD_OFFSET(Buffer, blockSize);
+            Length -= blockSize;
+        }
         return STATUS_SUCCESS;
     case Sha1HashAlgorithm:
-        A_SHAUpdate((A_SHA_CTX *)Context->Context, (PUCHAR)Buffer, Length);
+        while (Length)
+        {
+            blockSize = (ULONG)min(Length, ULONG_MAX);
+            A_SHAUpdate((A_SHA_CTX *)Context->Context, (PUCHAR)Buffer, blockSize);
+            Buffer = PTR_ADD_OFFSET(Buffer, blockSize);
+            Length -= blockSize;
+        }
         return STATUS_SUCCESS;
     case Sha256HashAlgorithm:
-        sha256_update((sha256_context *)Context->Context, (PUCHAR)Buffer, Length);
+        while (Length)
+        {
+            blockSize = (ULONG)min(Length, ULONG_MAX);
+            sha256_update((sha256_context *)Context->Context, (PUCHAR)Buffer, blockSize);
+            Buffer = PTR_ADD_OFFSET(Buffer, blockSize);
+            Length -= blockSize;
+        }
         return STATUS_SUCCESS;
 #else
     case Md5HashAlgorithm:
@@ -10829,18 +10852,18 @@ HANDLE PhGetNamespaceHandle2(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        static CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"\\SystemInformer");
+        CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"\\SystemInformer");
         POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptor;
         NTSTATUS status;
 
         if (boundaryDescriptor = PhCreateBoundaryDescriptor(&namespaceName, BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID))
         {
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
-            //    goto CleanupExit;
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
-            //    goto CleanupExit;
-            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
-            //    goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
+                goto CleanupExit;
             if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeEveryoneSid)))
                 goto CleanupExit;
 
@@ -10866,7 +10889,7 @@ HANDLE PhGetNamespaceHandle2(
         CleanupExit:
             if (!NT_SUCCESS(status))
             {
-                namespaceHandle = NULL;
+                namespaceHandle = PhGetNamespaceHandle();
             }
 
             PhDeleteBoundaryDescriptor(boundaryDescriptor);

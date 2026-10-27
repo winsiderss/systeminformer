@@ -707,11 +707,52 @@ BOOLEAN FramesPropGraphMessageCallback(
     return TRUE;
 }
 
+VOID FramesPropGetGraphRects(
+    _In_ PET_FRAMES_CONTEXT Context,
+    _Out_writes_(7) RECT GroupRects[7],
+    _Out_writes_(7) RECT GraphRects[7]
+    )
+{
+    RECT clientRect;
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
+    LONG graphWidth;
+    LONG graphHeight;
+
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 6) / 7;
+
+    for (ULONG i = 0; i < 7; i++)
+    {
+        GroupRects[i].left = margin.left;
+        GroupRects[i].top = margin.top + (graphHeight + between) * i;
+        GroupRects[i].right = GroupRects[i].left + graphWidth;
+        GroupRects[i].bottom = GroupRects[i].top + graphHeight;
+
+        GraphRects[i].left = GroupRects[i].left + innerMargin.left;
+        GraphRects[i].top = GroupRects[i].top + innerMargin.top;
+        GraphRects[i].right = GroupRects[i].right - innerMargin.right;
+        GraphRects[i].bottom = GroupRects[i].bottom - innerMargin.bottom;
+    }
+}
+
 VOID FramesPropCreateGraphs(
     _In_ PET_FRAMES_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT groupRects[7];
+    RECT graphRects[7];
+
+    FramesPropGetGraphRects(Context, groupRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -722,10 +763,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -737,10 +778,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -752,10 +793,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -767,10 +808,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -782,10 +823,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[4].left,
+        graphRects[4].top,
+        graphRects[4].right - graphRects[4].left,
+        graphRects[4].bottom - graphRects[4].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -797,10 +838,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[5].left,
+        graphRects[5].top,
+        graphRects[5].right - graphRects[5].left,
+        graphRects[5].bottom - graphRects[5].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -812,10 +853,10 @@ VOID FramesPropCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[6].left,
+        graphRects[6].top,
+        graphRects[6].right - graphRects[6].left,
+        graphRects[6].bottom - graphRects[6].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -844,13 +885,8 @@ VOID FramesPropLayoutGraphs(
     )
 {
     HDWP deferHandle;
-    RECT clientRect;
-    //RECT panelRect;
-    RECT margin;
-    RECT innerMargin;
-    LONG between;
-    LONG graphWidth;
-    LONG graphHeight;
+    RECT groupRects[7];
+    RECT graphRects[7];
 
     Context->FramesPerSecondGraphState.Valid = FALSE;
     Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
@@ -867,100 +903,154 @@ VOID FramesPropLayoutGraphs(
     Context->FramesDisplayLatencyGraphState.Valid = FALSE;
     Context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
 
-    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
-
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
-    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
-
-    between = PhScaleToDisplay(3, Context->WindowDpi);
-
-    PhGetClientRect(Context->WindowHandle, &clientRect);
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 6) / 7;
+    FramesPropGetGraphRects(Context, groupRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(14);
 
-    deferHandle = DeferWindowPos(deferHandle, Context->FramesPerSecondGroupBox, NULL, margin.left, margin.top, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->FramesPerSecondGroupBox,
+        NULL,
+        groupRects[0].left,
+        groupRects[0].top,
+        groupRects[0].right - groupRects[0].left,
+        groupRects[0].bottom - groupRects[0].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->FramesPerSecondGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->FramesLatencyGroupBox, NULL, margin.left, margin.top + graphHeight + between, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->FramesLatencyGroupBox,
+        NULL,
+        groupRects[1].left,
+        groupRects[1].top,
+        groupRects[1].right - groupRects[1].left,
+        groupRects[1].bottom - groupRects[1].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->FramesLatencyGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + graphHeight + between + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->PresentIntervalGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 2, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->PresentIntervalGroupBox,
+        NULL,
+        groupRects[2].left,
+        groupRects[2].top,
+        groupRects[2].right - groupRects[2].left,
+        groupRects[2].bottom - groupRects[2].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->PresentIntervalGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 2 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->PresentDurationGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 3, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->PresentDurationGroupBox,
+        NULL,
+        groupRects[3].left,
+        groupRects[3].top,
+        groupRects[3].right - groupRects[3].left,
+        groupRects[3].bottom - groupRects[3].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->PresentDurationGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 3 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[3].left,
+        graphRects[3].top,
+        graphRects[3].right - graphRects[3].left,
+        graphRects[3].bottom - graphRects[3].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->FramesRenderTimeGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 4, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->FramesRenderTimeGroupBox,
+        NULL,
+        groupRects[4].left,
+        groupRects[4].top,
+        groupRects[4].right - groupRects[4].left,
+        groupRects[4].bottom - groupRects[4].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->FramesRenderTimeGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 4 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[4].left,
+        graphRects[4].top,
+        graphRects[4].right - graphRects[4].left,
+        graphRects[4].bottom - graphRects[4].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->FramesDisplayTimeGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 5, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->FramesDisplayTimeGroupBox,
+        NULL,
+        groupRects[5].left,
+        groupRects[5].top,
+        groupRects[5].right - groupRects[5].left,
+        groupRects[5].bottom - groupRects[5].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->FramesDisplayTimeGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 5 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[5].left,
+        graphRects[5].top,
+        graphRects[5].right - graphRects[5].left,
+        graphRects[5].bottom - graphRects[5].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->FramesDisplayLatencyGroupBox, NULL, margin.left, margin.top + (graphHeight + between) * 6, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->FramesDisplayLatencyGroupBox,
+        NULL,
+        groupRects[6].left,
+        groupRects[6].top,
+        groupRects[6].right - groupRects[6].left,
+        groupRects[6].bottom - groupRects[6].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->FramesDisplayLatencyGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + (graphHeight + between) * 6 + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[6].left,
+        graphRects[6].top,
+        graphRects[6].right - graphRects[6].left,
+        graphRects[6].bottom - graphRects[6].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 

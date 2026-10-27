@@ -1893,8 +1893,13 @@ HWND PhSelectWindowFromScreenTargeting(
 #define PH_WINDOW_SHADOW_MARGIN 16      // Width of the shadow margin at 96 DPI.
 #define PH_WINDOW_SHADOW_RADIUS 8       // Corner radius of the owner popup at 96 DPI.
 #define PH_WINDOW_SHADOW_OPACITY 0.30f  // Peak shadow alpha (0.0 to 1.0).
-#define PH_WINDOW_SHADOW_DARK_MARGIN 24 // Wider shadow margin in dark theme at 96 DPI.
-#define PH_WINDOW_SHADOW_DARK_OPACITY 0.60f // Stronger contrast against dark backgrounds.
+#define PH_WINDOW_SHADOW_FALLOFF 2.0f   // Falloff exponent (higher concentrates the shadow near the edge).
+#define PH_WINDOW_SHADOW_DARK_MARGIN 14 // Shadow margin in dark theme at 96 DPI.
+#define PH_WINDOW_SHADOW_DARK_OPACITY 0.75f // Stronger contrast against dark backgrounds.
+// The black shadow scales the pixels beneath it, so a wide gradual falloff is
+// invisible over the dark background but visibly dims bright text. A steep
+// falloff keeps the darkening at the edge, like the native Windows 11 shadow. (dmex)
+#define PH_WINDOW_SHADOW_DARK_FALLOFF 3.5f
 #define PH_WINDOW_SHADOW_PROPERTY ((ULONG)'shdw')
 #define PH_WINDOW_SHADOW_CONTEXT_PROPERTY ((ULONG)'shdc')
 #define PH_WINDOW_SHADOW_MAX_OCCLUDERS 8
@@ -1905,6 +1910,7 @@ typedef struct _PH_WINDOW_SHADOW_CONTEXT
     LONG ContentHeight;
     LONG Margin;
     FLOAT Opacity;
+    FLOAT Falloff;
     LONG Radius;
     PH_WINDOW_SHADOW_SIDE Sides;
     LONG MarginLeft;
@@ -2113,11 +2119,11 @@ VOID PhRenderWindowShadow(
 
                 if (shadowDistance < shadowRadius)
                 {
-                    // Quadratic falloff for a soft shadow edge. The shadow is
+                    // Power falloff for a soft shadow edge. The shadow is
                     // black so the pre-multiplied color channels stay zero.
 
                     FLOAT factor = 1.0f - (shadowDistance / shadowRadius);
-                    BYTE alpha = (BYTE)(factor * factor * Context->Opacity * 255.0f);
+                    BYTE alpha = (BYTE)(powf(factor, Context->Falloff) * Context->Opacity * 255.0f);
 
                     pixels[index] = (ULONG)alpha << 24;
                 }
@@ -2381,6 +2387,44 @@ VOID PhAddWindowShadowButtonOccluder(
 }
 
 /**
+ * Adds the surfaces of the window that opened the menu: its menu bar, the
+ * toolbar menu bar (coolbar) and the button the drop-down was opened from.
+ */
+VOID PhAddWindowShadowOwnerOccluders(
+    _Inout_ PPH_WINDOW_SHADOW_OCCLUDERS Occluders,
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_opt_ HWND FocusWindowHandle
+    )
+{
+    if (OwnerWindowHandle && IsWindowVisible(OwnerWindowHandle))
+    {
+        MENUBARINFO menuBarInfo;
+
+        // The menu bar the drop-down was opened from.
+
+        memset(&menuBarInfo, 0, sizeof(MENUBARINFO));
+        menuBarInfo.cbSize = sizeof(MENUBARINFO);
+
+        if (GetMenuBarInfo(OwnerWindowHandle, OBJID_MENU, 0, &menuBarInfo))
+        {
+            PhAddWindowShadowOccluder(Occluders, &menuBarInfo.rcBar, 0);
+        }
+
+        // The toolbar menu bar (coolbar) the drop-down was opened from.
+
+        PhAddWindowShadowToolbarOccluder(Occluders, OwnerWindowHandle);
+    }
+
+    // The button the drop-down was opened from. TrackPopupMenu is owned by the
+    // dialog rather than the button, so use the button that has focus after the click.
+
+    if (FocusWindowHandle && FocusWindowHandle != OwnerWindowHandle)
+    {
+        PhAddWindowShadowButtonOccluder(Occluders, FocusWindowHandle);
+    }
+}
+
+/**
  * Collects the surfaces the shadow shouldn't be cast onto. The #32768 popups
  * aren't owned by the window or menu that opened them, so the menu owner comes
  * from the thread's menu mode state rather than GW_OWNER. (dmex)
@@ -2409,34 +2453,41 @@ VOID PhQueryWindowShadowOccluders(
     else
         ownerHandle = GetWindow(WindowHandle, GW_OWNER);
 
-    if (ownerHandle && IsWindowVisible(ownerHandle))
-    {
-        MENUBARINFO menuBarInfo;
-
-        // The menu bar the drop-down was opened from.
-
-        memset(&menuBarInfo, 0, sizeof(MENUBARINFO));
-        menuBarInfo.cbSize = sizeof(MENUBARINFO);
-
-        if (GetMenuBarInfo(ownerHandle, OBJID_MENU, 0, &menuBarInfo))
-        {
-            PhAddWindowShadowOccluder(Occluders, &menuBarInfo.rcBar, 0);
-        }
-
-        // The toolbar menu bar (coolbar) the drop-down was opened from.
-
-        PhAddWindowShadowToolbarOccluder(Occluders, ownerHandle);
-    }
-
-    // The button the drop-down was opened from. TrackPopupMenu is owned by the
-    // dialog rather than the button, so use the button that has focus after the click.
-
-    if (threadInfo.hwndFocus && threadInfo.hwndFocus != ownerHandle)
-    {
-        PhAddWindowShadowButtonOccluder(Occluders, threadInfo.hwndFocus);
-    }
+    PhAddWindowShadowOwnerOccluders(Occluders, ownerHandle, threadInfo.hwndFocus);
 
     EnumThreadWindows(threadId, PhEnumWindowShadowMenuOccluders, reinterpret_cast<LPARAM>(Occluders));
+}
+
+/**
+ * Retrieves the surfaces of the window that opened a menu (its menu bar, the
+ * toolbar menu bar and rebar band, or the button) so a menu that composites its
+ * own shadow can keep it off them.
+ *
+ * \param OwnerWindowHandle The window the menu was opened from.
+ * \param FocusWindowHandle The window with the keyboard focus, used to find the
+ * button the menu was opened from.
+ * \param Rects An array that receives the screen rectangles of the surfaces.
+ * \param Count The number of elements in the Rects array.
+ * \return The number of rectangles written to the Rects array.
+ */
+ULONG PhGetWindowShadowOwnerOccluders(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_opt_ HWND FocusWindowHandle,
+    _Out_writes_to_(Count, return) PRECT Rects,
+    _In_ ULONG Count
+    )
+{
+    PH_WINDOW_SHADOW_OCCLUDERS occluders;
+    ULONG count;
+
+    memset(&occluders, 0, sizeof(PH_WINDOW_SHADOW_OCCLUDERS));
+
+    PhAddWindowShadowOwnerOccluders(&occluders, OwnerWindowHandle, FocusWindowHandle);
+
+    count = std::min(occluders.Count, Count);
+    memcpy(Rects, occluders.Rect, count * sizeof(RECT));
+
+    return count;
 }
 
 /**
@@ -2465,6 +2516,7 @@ VOID PhUpdateWindowShadow(
     LONG marginBottom;
     LONG margin;
     FLOAT opacity;
+    FLOAT falloff;
     PH_WINDOW_SHADOW_OCCLUDERS occluders;
     RECT excludeRect[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
     LONG excludeRadius[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
@@ -2497,6 +2549,7 @@ VOID PhUpdateWindowShadow(
     backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_MENU);
     margin = PhScaleToDisplay(PhEnableThemeSupport ? PH_WINDOW_SHADOW_DARK_MARGIN : PH_WINDOW_SHADOW_MARGIN, windowDpi);
     opacity = PhEnableThemeSupport ? PH_WINDOW_SHADOW_DARK_OPACITY : PH_WINDOW_SHADOW_OPACITY;
+    falloff = PhEnableThemeSupport ? PH_WINDOW_SHADOW_DARK_FALLOFF : PH_WINDOW_SHADOW_FALLOFF;
 
     PhQueryWindowShadowOccluders(
         WindowHandle,
@@ -2543,6 +2596,7 @@ VOID PhUpdateWindowShadow(
         context->WindowDpi != windowDpi ||
         context->Margin != margin ||
         context->Opacity != opacity ||
+        context->Falloff != falloff ||
         context->BackgroundColor != backgroundColor ||
         context->Sides != Sides ||
         memcmp(context->ExcludeRect, excludeRect, sizeof(excludeRect)) != 0 ||
@@ -2558,6 +2612,7 @@ VOID PhUpdateWindowShadow(
         memcpy(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius));
         context->Margin = margin;
         context->Opacity = opacity;
+        context->Falloff = falloff;
         context->Radius = PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi);
         context->MarginLeft = marginLeft;
         context->MarginTop = marginTop;

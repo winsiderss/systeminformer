@@ -34,7 +34,7 @@ call :DetectCi
 call :ConfigureBuildLogger
 call :ConfigureMsBuildOptions
 call :Main
-if errorlevel 1 set "ExitCode=%errorlevel%"
+if !errorlevel! neq 0 set "ExitCode=!errorlevel!"
 
 :end
 REM Pause only for interactive, non-CI invocations before returning.
@@ -47,16 +47,16 @@ REM Description: Validates inputs, resolves toolchain settings, and dispatches t
 REM -----------------------------------------------------------------------------
 :Main
 call :ValidateArgs
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ResolveConfig
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ResolveToolchain
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ConfigureGeneratorOptions
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 if /i "%ACTION%"=="clean" (
     set "VCVARS_ARCH=not required"
@@ -66,16 +66,16 @@ if /i "%ACTION%"=="clean" (
 )
 
 call :FindVisualStudio
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :ResolveVcVarsArch "%VCVARS_TARGET%"
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :PrintBanner
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :SetupVcVars "%VCVARS_ARCH%"
-if errorlevel 1 exit /b %errorlevel%
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 if /i "%ACTION%"=="generate" (
     call :RunGenerate

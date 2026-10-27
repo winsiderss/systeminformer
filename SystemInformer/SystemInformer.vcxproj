@@ -27,7 +27,6 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>18.0</VCProjectVersion>
         <Keyword>Win32Proj</Keyword>
         <ProjectGuid>{0271DD27-6707-4290-8DFE-285702B7115D}</ProjectGuid>
         <ProjectName>SystemInformer</ProjectName>
@@ -339,6 +338,7 @@
         <ClCompile Include="thrdlist.c" />
         <ClCompile Include="thrdprv.c" />
         <ClCompile Include="thrdctx.c" />
+        <ClCompile Include="thrdshstk.c" />
         <ClCompile Include="thrdstk.c" />
         <ClCompile Include="thrdstks.c" />
         <ClCompile Include="tokprp.c" />

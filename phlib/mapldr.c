@@ -848,6 +848,8 @@ NTSTATUS PhGetProcedureAddressRemote(
             *DllBase = context.DllBase;
     }
 
+    PhDeleteMappedImageExports(&exports);
+
 CleanupExit:
     PhUnloadMappedImage(&mappedImage);
     PhClearReference(&fileName);

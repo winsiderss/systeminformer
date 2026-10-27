@@ -347,10 +347,11 @@ NTSTATUS PhInitializeProcessorInformation(
     )
 {
     if (
+        WindowsVersion != WINDOWS_NEW && (
         USER_SHARED_DATA->ActiveGroupCount == 1 && // optimization (dmex)
         USER_SHARED_DATA->ActiveProcessorCount > 0 &&
         USER_SHARED_DATA->ActiveProcessorCount <= MAXIMUM_PROC_PER_GROUP
-        )
+        ))
     {
         PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;

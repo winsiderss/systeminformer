@@ -201,6 +201,12 @@ VOID PhTabNewFillBackground(
     _In_ PRECT ClientRect
     );
 
+VOID PhTabNewPaintBuffered(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PRECT UpdateRect
+    );
+
 VOID PhTabNewOnPaint(
     _In_ HWND WindowHandle,
     _In_ PPH_TABNEW_CONTEXT Context

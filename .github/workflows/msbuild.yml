@@ -106,10 +106,20 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
 
+    - name: Reflow Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd reflow
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
+
+    - name: Check Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd validate
 
     - name: Upload Build Zips
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # 7.0.2

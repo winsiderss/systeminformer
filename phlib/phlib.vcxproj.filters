@@ -119,7 +119,7 @@
     <ClCompile Include="tabnew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="graphprp.c">
+    <ClCompile Include="Controls\propwnd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="treenew.c">
@@ -257,7 +257,7 @@
     <ClCompile Include="base64.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="graphbar.c">
+    <ClCompile Include="Controls\graphbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="graphscroll.c">
