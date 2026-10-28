@@ -31,7 +31,7 @@ jobs:
     - name: Check batch file line endings
       shell: pwsh
       run: |
-        $failed = $false
+        $failedCount = 0
         $count = 0
         # Check all batch files, even though automatic triggers are build-scoped.
         $files = Get-ChildItem -LiteralPath . -Recurse -File -Force -Include *.cmd,*.bat
@@ -47,28 +47,36 @@ jobs:
           # Read raw bytes to avoid normalizing line endings during inspection.
           $bytes = [IO.File]::ReadAllBytes($file.FullName)
           $line = 1
+          $reason = $null
           # Escape filenames for GitHub Actions error annotation properties.
           $annotationPath = $path.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A').Replace(':', '%3A').Replace(',', '%2C')
 
-          # Require paired CR (13) and LF (10), rejecting either byte alone.
+          # Stop at the first unpaired CR (13) or LF (10) in each file.
           for ($i = 0; $i -lt $bytes.Length; $i++) {
             if ($bytes[$i] -eq 10) {
               if ($i -eq 0 -or $bytes[$i - 1] -ne 13) {
-                Write-Output "::error file=$annotationPath,line=$line::LF without preceding CR. Save this file with CRLF line endings."
-                $failed = $true
+                $reason = 'LF without preceding CR'
+                break
               }
               $line++
             } elseif ($bytes[$i] -eq 13 -and ($i + 1 -eq $bytes.Length -or $bytes[$i + 1] -ne 10)) {
-              Write-Output "::error file=$annotationPath,line=$line::CR without following LF. Save this file with CRLF line endings."
-              $failed = $true
-              $line++
+              $reason = 'CR without following LF'
+              break
             }
+          }
+
+          # Include the filename in the log message, not just annotation metadata.
+          if ($reason) {
+            $messagePath = $path.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error file=$annotationPath,line=$line::${messagePath}:${line}: $reason. Save this file with CRLF line endings."
+            $failedCount++
           }
         }
 
-        # Report every violation before failing; do not rewrite any files.
-        if ($failed) {
-          throw 'Batch line-ending check failed.'
+        # Report once per affected file, then fail without a PowerShell stack trace.
+        if ($failedCount) {
+          Write-Output "Batch line-ending check failed: $failedCount of $count files need CRLF line endings."
+          exit 1
         }
 
         Write-Output "Verified CRLF line endings in $count batch files."
