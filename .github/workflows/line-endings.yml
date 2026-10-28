@@ -1,0 +1,74 @@
+# CMD label parsing can fail with LF-only batch files.
+# The .gitattributes -text rules preserve stored bytes during checkout
+# so this check also covers the line endings shipped in source ZIPs.
+name: 'batch-line-endings'
+
+# Run automatically for build or workflow changes, or manually for any branch.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+    - 'build/**'
+    - '.github/workflows/line-endings.yml'
+  pull_request:
+    paths:
+    - 'build/**'
+    - '.github/workflows/line-endings.yml'
+
+permissions:
+  # The check only reads repository files.
+  contents: read
+
+jobs:
+  line-endings:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Check batch file line endings
+      shell: pwsh
+      run: |
+        $failed = $false
+        $count = 0
+        # Check all batch files, even though automatic triggers are build-scoped.
+        $files = Get-ChildItem -LiteralPath . -Recurse -File -Force -Include *.cmd,*.bat
+
+        foreach ($file in $files) {
+          $path = [IO.Path]::GetRelativePath($PWD.Path, $file.FullName).Replace('\', '/')
+          # Exclude checkout metadata from repository content validation.
+          if ($path.StartsWith('.git/')) {
+            continue
+          }
+
+          $count++
+          # Read raw bytes to avoid normalizing line endings during inspection.
+          $bytes = [IO.File]::ReadAllBytes($file.FullName)
+          $line = 1
+          # Escape filenames for GitHub Actions error annotation properties.
+          $annotationPath = $path.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A').Replace(':', '%3A').Replace(',', '%2C')
+
+          # Require paired CR (13) and LF (10), rejecting either byte alone.
+          for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 10) {
+              if ($i -eq 0 -or $bytes[$i - 1] -ne 13) {
+                Write-Output "::error file=$annotationPath,line=$line::LF without preceding CR. Save this file with CRLF line endings."
+                $failed = $true
+              }
+              $line++
+            } elseif ($bytes[$i] -eq 13 -and ($i + 1 -eq $bytes.Length -or $bytes[$i + 1] -ne 10)) {
+              Write-Output "::error file=$annotationPath,line=$line::CR without following LF. Save this file with CRLF line endings."
+              $failed = $true
+              $line++
+            }
+          }
+        }
+
+        # Report every violation before failing; do not rewrite any files.
+        if ($failed) {
+          throw 'Batch line-ending check failed.'
+        }
+
+        Write-Output "Verified CRLF line endings in $count batch files."

@@ -19,6 +19,8 @@ set "CustomBuildTool=tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\
 set "BUILD_CONFIGURATION=Debug;Release"
 set "BUILD_PLATFORMS=x64;ARM64"
 set "BUILD_TARGET=Build"
+set "WDK_VERSION=10.0.28000"
+set "WDK_PACKAGE_VERSION=10.0.28000.2526"
 set "PREFAST_ANALYSIS="
 set "MSBUILD_EXTRA_ARGS="
 
@@ -46,6 +48,9 @@ REM Description: Validates prerequisites and builds both supported driver target
 REM -----------------------------------------------------------------------------
 :Main
 call :CheckCustomBuildTool
+if errorlevel 1 exit /b %errorlevel%
+
+call :CheckWdk
 if errorlevel 1 exit /b %errorlevel%
 
 call :FindVisualStudio
@@ -112,6 +117,36 @@ REM ----------------------------------------------------------------------------
 :CheckCustomBuildTool
 if exist "%CustomBuildTool%" exit /b 0
 echo Build tool not found. Run build\build_init.cmd first.
+exit /b 1
+
+REM -----------------------------------------------------------------------------
+REM Function: CheckWdk
+REM Description: Ensures WDK %WDK_VERSION% is available for every build platform,
+REM              either as the restored NuGet packages (preferred, imported by
+REM              Directory.Build.props) or as an installed/EWDK kit.
+REM -----------------------------------------------------------------------------
+:CheckWdk
+set "WDK_MISSING="
+for %%P in (%BUILD_PLATFORMS%) do (
+    if not exist "packages\Microsoft.Windows.WDK.%%P.%WDK_PACKAGE_VERSION%\build\native\Microsoft.Windows.WDK.%%P.props" set "WDK_MISSING=!WDK_MISSING! %%P"
+)
+if not defined WDK_MISSING (
+    echo [+] WDK %WDK_PACKAGE_VERSION% NuGet packages found
+    exit /b 0
+)
+REM The NuGet imports are conditional, so without them MSBuild silently falls back to the kit.
+set "WDK_ROOT="
+if defined WDKContentRoot set "WDK_ROOT=%WDKContentRoot%"
+if not defined WDK_ROOT (
+    for /f "tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" /v KitsRoot10 2^>nul') do set "WDK_ROOT=%%B"
+)
+if defined WDK_ROOT if exist "!WDK_ROOT!\Include\%WDK_VERSION%.0\km\ntddk.h" (
+    echo [+] WDK %WDK_VERSION% kit found: !WDK_ROOT!
+    exit /b 0
+)
+echo [-] WDK %WDK_VERSION% not found. Missing NuGet packages for:%WDK_MISSING%
+echo     Run: nuget restore .\packages.config -PackagesDirectory .\packages\
+echo     Or install WDK %WDK_VERSION%: https://learn.microsoft.com/windows-hardware/drivers/download-the-wdk
 exit /b 1
 
 REM -----------------------------------------------------------------------------
@@ -195,6 +230,7 @@ REM ----------------------------------------------------------------------------
 :DetectCi
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
+if /i "%GITLAB_CI%"=="true" set "IsCI=true"
 exit /b 0
 
 REM -----------------------------------------------------------------------------
