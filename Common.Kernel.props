@@ -9,6 +9,12 @@
         <SignMode>Off</SignMode>
         <!-- WindowsTargetPlatformVersion left unset: the SDK.CPP package sets it; pinning it to the installed kit skews against the NuGet packages. -->
     </PropertyGroup>
+    <!-- Pin VCToolsVersion to the newest installed KsiVCToolsVersion. The EWDK bundles its own matched toolset. -->
+    <PropertyGroup Condition="'$(EnterpriseWDK)'!='true'" Label="Toolset">
+        <KsiVCToolsRoot>$(VsInstallRoot)\VC\Tools\MSVC</KsiVCToolsRoot>
+        <KsiVCToolsDirs Condition="Exists('$(KsiVCToolsRoot)')">$([System.IO.Directory]::GetDirectories('$(KsiVCToolsRoot)', '$(KsiVCToolsVersion).*'))</KsiVCToolsDirs>
+        <VCToolsVersion Condition="'$(KsiVCToolsDirs)'!=''">$([System.IO.Path]::GetFileName($(KsiVCToolsDirs.Substring($([MSBuild]::Add($(KsiVCToolsDirs.LastIndexOf(';')), 1))))))</VCToolsVersion>
+    </PropertyGroup>
     <PropertyGroup Label="Configuration">
         <CharacterSet>Unicode</CharacterSet>
         <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
@@ -93,6 +99,11 @@
             <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ResourceCompile>
     </ItemDefinitionGroup>
+  <Target Name="KsiCheckVCTools"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(EnterpriseWDK)'!='true' and '$(KsiVCToolsDirs)'==''">
+      <Error Text="MSVC v$(KsiVCToolsVersion) build tools not found under $(KsiVCToolsRoot)." />
+  </Target>
   <!-- WPP Trace
       - Set KSI_NO_WPP to disable WPP trace compile entirely.
   -->
