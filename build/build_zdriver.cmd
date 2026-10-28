@@ -122,7 +122,7 @@ REM ----------------------------------------------------------------------------
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
 if exist "%VSWHERE%" (
-    for /f "usebackq tokens=*" %%A in (`call "%VSWHERE%" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+    for /f "usebackq tokens=*" %%A in (`call "%VSWHERE%" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
         set "VSINSTALLPATH=%%A"
     )
 )
@@ -208,7 +208,7 @@ if /i "%EnterpriseWDK%"=="true" (
     exit /b 0
 )
 if not exist "%VSWHERE%" exit /b 0
-for /f "usebackq tokens=*" %%a in (`call "%VSWHERE%" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
+for /f "usebackq tokens=*" %%a in (`call "%VSWHERE%" -latest -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
    set "VS_ARM64_SUPPORT=true"
 )
 exit /b 0
