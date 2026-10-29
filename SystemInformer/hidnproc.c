@@ -154,10 +154,7 @@ _Function_class_(USER_THREAD_START_ROUTINE)
 {
     NTSTATUS status;
     PPH_LIST processList;
-
-    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, FALSE);
-    ListView_DeleteAllItems(PhZombieProcessesListViewHandle);
-    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
+    HWND windowHandle = Context;
 
     processList = PhCreateList(100);
 
@@ -167,9 +164,9 @@ _Function_class_(USER_THREAD_START_ROUTINE)
         processList
         );
 
-    if (PhZombieProcessesWindowHandle)
-        PostMessage(PhZombieProcessesWindowHandle, WM_PH_UPDATE_DIALOG, status, (LPARAM)processList);
-    else
+    // The window handle is captured when the scan starts. The global is cleared by WM_DESTROY
+    // and may be read concurrently, so it is never used here; a dead window fails the post.
+    if (!PostMessage(windowHandle, WM_PH_UPDATE_DIALOG, status, (LPARAM)processList))
         PhZombieProcessesCleanupList(processList);
 
     return STATUS_SUCCESS;
@@ -256,6 +253,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_ZOMBIE_PROCESSES_LIST_VIEW_COLUMNS, PhZombieProcessesListViewHandle);
 
             PhZombieProcessesCleanupList(ProcessesList);
+            ProcessesList = NULL;
 
             PhZombieProcessesWindowHandle = NULL;
         }
@@ -276,7 +274,12 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
                     method = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_METHOD)));
 
-                    PhZombieProcessesCleanupList(NULL);
+                    // The list view items reference the entries, remove them before freeing the list.
+                    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, FALSE);
+                    ListView_DeleteAllItems(PhZombieProcessesListViewHandle);
+                    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
+
+                    PhZombieProcessesCleanupList(ProcessesList);
 
                     ProcessesList = PhCreateList(40);
 
@@ -296,9 +299,15 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                     NumberOfZombieProcesses = 0;
                     NumberOfTerminatedProcesses = 0;
 
+                    PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhaFormatString(
+                        L"Scanning (%s)...",
+                        PhGetStringOrEmpty(method)
+                        )->Buffer);
+                    InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);
+
                     EnableWindow(GetDlgItem(hwndDlg, IDC_SCAN), FALSE);
 
-                    PhCreateThread2(PhZombieProcessesThread, NULL);
+                    PhCreateThread2(PhZombieProcessesThread, hwndDlg);
                 }
                 break;
             case IDC_TERMINATE:
@@ -602,6 +611,9 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             ExtendedListView_SortItems(PhZombieProcessesListViewHandle);
             ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
 
+            // The entries are now owned by ProcessesList.
+            PhDereferenceObject(list);
+
             if (NT_SUCCESS(status))
             {
                 PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhaFormatString(
@@ -613,6 +625,9 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             }
             else
             {
+                PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, L"Scan failed.");
+                InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);
+
                 PhShowStatus(hwndDlg, L"Unable to perform the scan", status, 0);
             }
 
