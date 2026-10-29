@@ -233,19 +233,21 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
 
     if (!NT_SUCCESS(status) && KsiLevel() >= KphLevelMax)
     {
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            context->ProcessId
-            )))
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(context->ProcessId))
         {
-            status = KphDuplicateObject(
-                processHandle,
-                context->HandleItem->Handle,
-                DesiredAccess,
-                Handle
-                );
-            NtClose(processHandle);
+            if (processItem->QueryHandle)
+            {
+                status = KphDuplicateObject(
+                    processItem->QueryHandle,
+                    context->HandleItem->Handle,
+                    DesiredAccess,
+                    Handle
+                    );
+            }
+
+            PhDereferenceObject(processItem);
         }
     }
 
@@ -721,6 +723,13 @@ VOID PhpUpdateHandleGeneral(
     )
 {
     HANDLE processHandle;
+    HANDLE queryHandle = NULL;
+    PPH_PROCESS_ITEM processItem;
+
+    if (processItem = PhReferenceProcessItem(Context->ProcessId))
+    {
+        queryHandle = processItem->QueryHandle;
+    }
 
     // Name, FullName
 
@@ -914,12 +923,9 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
         NTSTATUS status;
+        BOOLEAN kphQueried = FALSE;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
+        if (KsiLevel() >= KphLevelMed && (processHandle = queryHandle))
         {
             KPH_ALPC_BASIC_INFORMATION basicInfo;
             PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION connectionNames;
@@ -1098,100 +1104,104 @@ VOID PhpUpdateHandleGeneral(
                     PhDereferenceObject(name);
                 }
 
-                if (connectionNames)
-                    PhFree(connectionNames);
+                kphQueried = TRUE;
+            }
 
+            // N.B. Always release the names; previously the fallback path reopened
+            // processHandle over this one and leaked both.
+            if (connectionNames)
+                PhFree(connectionNames);
+        }
+
+        // N.B. The non-KPH fallback also runs when KSI is not available.
+        if (!kphQueried)
+        {
+            HANDLE alpcPortHandle = NULL;
+
+            if (NT_SUCCESS(status = PhOpenProcess(
+                &processHandle,
+                PROCESS_DUP_HANDLE,
+                Context->ProcessId
+                )))
+            {
+                status = NtDuplicateObject(
+                    processHandle,
+                    Context->HandleItem->Handle,
+                    NtCurrentProcess(),
+                    &alpcPortHandle,
+                    READ_CONTROL,
+                    0,
+                    0
+                    );
                 NtClose(processHandle);
             }
-            else
-            {
-                HANDLE alpcPortHandle = NULL;
 
-                if (NT_SUCCESS(status = PhOpenProcess(
-                    &processHandle,
-                    PROCESS_DUP_HANDLE,
-                    Context->ProcessId
+            if (NT_SUCCESS(status) && alpcPortHandle)
+            {
+                ALPC_BASIC_INFORMATION alpcBasicInfo;
+
+                if (NT_SUCCESS(NtAlpcQueryInformation(
+                    alpcPortHandle,
+                    AlpcBasicInformation,
+                    &alpcBasicInfo,
+                    sizeof(ALPC_BASIC_INFORMATION),
+                    NULL
                     )))
                 {
-                    status = NtDuplicateObject(
-                        processHandle,
-                        Context->HandleItem->Handle,
-                        NtCurrentProcess(),
-                        &alpcPortHandle,
-                        READ_CONTROL,
-                        0,
-                        0
+                    PH_FORMAT format[5];
+                    PPH_STRING alpcFlagsString;
+                    WCHAR string[PH_INT64_STR_LEN_1];
+
+                    alpcFlagsString = PhGetAccessString(
+                        alpcBasicInfo.Flags,
+                        (PPH_ACCESS_ENTRY)AlpcFlags,
+                        RTL_NUMBER_OF(AlpcFlags)
                         );
-                    NtClose(processHandle);
+
+                    PhInitFormatS(&format[0], L"0x");
+                    PhInitFormatX(&format[1], alpcBasicInfo.Flags);
+                    PhInitFormatS(&format[2], L" (");
+                    PhInitFormatSR(&format[3], alpcFlagsString->sr);
+                    PhInitFormatS(&format[4], L")");
+
+                    PhMoveReference(&alpcFlagsString, PhFormat(format, RTL_NUMBER_OF(format), 40));
+
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhGetString(alpcFlagsString));
+
+                    PhDereferenceObject(alpcFlagsString);
+
+                    PhPrintUInt32(string, alpcBasicInfo.SequenceNo);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);
+
+                    PhPrintPointer(string, alpcBasicInfo.PortContext);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
                 }
 
-                if (NT_SUCCESS(status) && alpcPortHandle)
+                if (WindowsVersion >= WINDOWS_10_19H2)
                 {
-                    ALPC_BASIC_INFORMATION alpcBasicInfo;
+                    ALPC_SERVER_SESSION_INFORMATION serverInfo;
 
                     if (NT_SUCCESS(NtAlpcQueryInformation(
                         alpcPortHandle,
-                        AlpcBasicInformation,
-                        &alpcBasicInfo,
-                        sizeof(ALPC_BASIC_INFORMATION),
+                        AlpcServerSessionInformation,
+                        &serverInfo,
+                        sizeof(ALPC_SERVER_SESSION_INFORMATION),
                         NULL
                         )))
                     {
-                        PH_FORMAT format[5];
-                        PPH_STRING alpcFlagsString;
-                        WCHAR string[PH_INT64_STR_LEN_1];
+                        CLIENT_ID clientId;
+                        PPH_STRING name;
 
-                        alpcFlagsString = PhGetAccessString(
-                            alpcBasicInfo.Flags,
-                            (PPH_ACCESS_ENTRY)AlpcFlags,
-                            RTL_NUMBER_OF(AlpcFlags)
-                            );
+                        clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
+                        clientId.UniqueThread = NULL;
 
-                        PhInitFormatS(&format[0], L"0x");
-                        PhInitFormatX(&format[1], alpcBasicInfo.Flags);
-                        PhInitFormatS(&format[2], L" (");
-                        PhInitFormatSR(&format[3], alpcFlagsString->sr);
-                        PhInitFormatS(&format[4], L")");
-
-                        PhMoveReference(&alpcFlagsString, PhFormat(format, RTL_NUMBER_OF(format), 40));
-
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhGetString(alpcFlagsString));
-
-                        PhDereferenceObject(alpcFlagsString);
-
-                        PhPrintUInt32(string, basicInfo.SequenceNo);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);
-
-                        PhPrintPointer(string, basicInfo.PortContext);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
+                        name = PhGetClientIdName(&clientId);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);
+                        PhDereferenceObject(name);
                     }
-
-                    if (WindowsVersion >= WINDOWS_10_19H2)
-                    {
-                        ALPC_SERVER_SESSION_INFORMATION serverInfo;
-
-                        if (NT_SUCCESS(NtAlpcQueryInformation(
-                            alpcPortHandle,
-                            AlpcServerSessionInformation,
-                            &serverInfo,
-                            sizeof(ALPC_SERVER_SESSION_INFORMATION),
-                            NULL
-                            )))
-                        {
-                            CLIENT_ID clientId;
-                            PPH_STRING name;
-
-                            clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
-                            clientId.UniqueThread = NULL;
-
-                            name = PhGetClientIdName(&clientId);
-                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);
-                            PhDereferenceObject(name);
-                        }
-                    }
-
-                    NtClose(alpcPortHandle);
                 }
+
+                NtClose(alpcPortHandle);
             }
         }
     }
@@ -1203,11 +1213,7 @@ VOID PhpUpdateHandleGeneral(
     {
         NTSTATUS status;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
+        if (KsiLevel() >= KphLevelMed && (processHandle = queryHandle))
         {
             BOOLEAN isFileOrDirectory = FALSE;
             BOOLEAN isConsoleHandle = FALSE;
@@ -1421,8 +1427,6 @@ VOID PhpUpdateHandleGeneral(
 
                 NtClose(fileObjectDriver);
             }
-
-            NtClose(processHandle);
         }
         else
         {
@@ -1700,11 +1704,7 @@ VOID PhpUpdateHandleGeneral(
         SECTION_BASIC_INFORMATION basicInfo = { NULL };
         PPH_STRING fileName = NULL;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
+        if (KsiLevel() >= KphLevelMed && (processHandle = queryHandle))
         {
             ULONG bufferSize;
             ULONG returnLength;
@@ -1754,7 +1754,6 @@ VOID PhpUpdateHandleGeneral(
             }
 
             PhFree(buffer);
-            NtClose(processHandle);
         }
         else
         {
@@ -1891,11 +1890,7 @@ VOID PhpUpdateHandleGeneral(
         KERNEL_USER_TIMES times;
         BOOLEAN haveTimes = FALSE;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            Context->ProcessId
-            )))
+        if (KsiLevel() >= KphLevelMed && (processHandle = queryHandle))
         {
             ULONG bufferSize;
             ULONG returnLength;
@@ -1956,8 +1951,6 @@ VOID PhpUpdateHandleGeneral(
                 fileName = PhCreateStringFromUnicodeString(buffer);
                 PhMoveReference(&fileName, PhGetFileName(fileName));
             }
-
-            NtClose(processHandle);
         }
         else
         {
@@ -2040,11 +2033,7 @@ VOID PhpUpdateHandleGeneral(
         KERNEL_USER_TIMES times;
         NTSTATUS exitStatus = STATUS_PENDING;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
+        if (KsiLevel() >= KphLevelMed && (processHandle = queryHandle))
         {
             PPH_STRING threadName;
             ULONG threadIsTerminated;
@@ -2091,8 +2080,6 @@ VOID PhpUpdateHandleGeneral(
                 sizeof(times),
                 NULL
                 );
-
-            NtClose(processHandle);
         }
         else
         {
@@ -2181,6 +2168,11 @@ VOID PhpUpdateHandleGeneral(
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK, 1, PhGetStringOrEmpty(linkTarget));
             PhDereferenceObject(linkTarget);
         }
+    }
+
+    if (processItem)
+    {
+        PhDereferenceObject(processItem);
     }
 }
 

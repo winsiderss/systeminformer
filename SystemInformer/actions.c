@@ -1641,7 +1641,6 @@ static BOOLEAN PhpShowContinueMessageProcesses(
 
     for (i = 0; i < NumberOfProcesses; i++)
     {
-        HANDLE processHandle;
         BOOLEAN breakOnTermination = FALSE;
 
         if (PhIsDangerousProcess(Processes[i]->ProcessId))
@@ -1651,10 +1650,9 @@ static BOOLEAN PhpShowContinueMessageProcesses(
             break;
         }
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, Processes[i]->ProcessId)))
+        if (Processes[i]->QueryHandle)
         {
-            PhGetProcessBreakOnTermination(processHandle, &breakOnTermination);
-            NtClose(processHandle);
+            PhGetProcessBreakOnTermination(Processes[i]->QueryHandle, &breakOnTermination);
         }
 
         if (breakOnTermination)
@@ -3219,7 +3217,54 @@ static PPH_STRING PhFindDebuggerPath(
 
     if (PhIsNullOrEmptyString(debuggerPath))
     {
-        PhMoveReference(&debuggerPath, PhSearchFilePath(DebuggerName, L".exe"));
+        PPH_STRING suffix = PhFormatString(L"\\%s", DebuggerName);
+        PPH_STRING systemPath = PhGetSystemDirectoryWin32(&suffix->sr);
+
+        if (systemPath && PhDoesFileExistWin32(PhGetString(systemPath)))
+            debuggerPath = systemPath;
+        else
+            PhClearReference(&systemPath);
+
+        PhDereferenceObject(suffix);
+    }
+
+    if (!debuggerPath && PhEqualStringZ(DebuggerName, L"windbgx.exe", TRUE))
+    {
+        PPH_STRING aliasPath = PhGetKnownFolderPath(&FOLDERID_LocalAppData, SREF(L"\\Microsoft\\WindowsApps\\windbgx.exe"));
+
+        if (aliasPath)
+        {
+            HANDLE aliasHandle;
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &aliasHandle,
+                aliasPath->Buffer,
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT
+                )))
+            {
+                IO_STATUS_BLOCK ioStatusBlock;
+                FILE_ATTRIBUTE_TAG_INFORMATION tagInformation;
+
+                if (NT_SUCCESS(NtQueryInformationFile(
+                    aliasHandle,
+                    &ioStatusBlock,
+                    &tagInformation,
+                    sizeof(tagInformation),
+                    FileAttributeTagInformation
+                    )) && tagInformation.ReparseTag == IO_REPARSE_TAG_APPEXECLINK)
+                {
+                    debuggerPath = PhReferenceObject(aliasPath);
+                }
+
+                NtClose(aliasHandle);
+            }
+
+            PhDereferenceObject(aliasPath);
+        }
     }
 
     return debuggerPath;
@@ -3316,7 +3361,6 @@ BOOLEAN PhUiDebugProcess(
     PH_STRINGREF dummy;
     LONG debuggerChoice = 0;
     PPH_STRING registryDebuggerPath = NULL;
-    PPH_STRING registryDebuggerName = NULL;
 
     //if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     //{
@@ -3352,11 +3396,9 @@ BOOLEAN PhUiDebugProcess(
     {
         if (debugger = PhQueryRegistryStringZ(keyHandle, L"Debugger"))
         {
-            if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
-                PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
+            if (PhParseCommandLineFuzzy(&debugger->sr, &commandPart, &dummy, NULL))
             {
                 registryDebuggerPath = PhCreateString2(&commandPart);
-                registryDebuggerName = PhGetFileName(registryDebuggerPath);
             }
 
             PhDereferenceObject(debugger);
@@ -3372,40 +3414,49 @@ BOOLEAN PhUiDebugProcess(
         //PPH_STRING vs2026Path = NULL;
         //PPH_STRING vs2022Path = NULL;
         PPH_STRING cdbPath = NULL;
-        PPH_STRING kdPath = NULL;
         PPH_STRING ntsdPath = NULL;
+        PPH_STRING windbgButtonText = NULL;
+        PPH_STRING windbgPreviewButtonText = NULL;
+        PPH_STRING cdbButtonText = NULL;
+        PPH_STRING ntsdButtonText = NULL;
         TASKDIALOGCONFIG config;
         TASKDIALOG_BUTTON buttons[11];
         ULONG buttonCount = 0;
         PPH_STRING registryButtonText = NULL;
 
         if (windbgPath = PhFindDebuggerPath(L"windbg.exe"))
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 101, L"\U0001FA9F WinDbg\nGraphical debugger for both user-mode and kernel-mode debugging." };
+        {
+            windbgButtonText = PhFormatString(L"\U0001FA9F WinDbg\n%s", windbgPath->Buffer);
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 101, windbgButtonText->Buffer };
+        }
         if (windbgPreviewPath = PhFindDebuggerPath(L"windbgx.exe"))
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 102, L"\U0001FA9F WinDbg (Preview)\nModern graphical debugger for both user-mode and kernel-mode debugging." };
+        {
+            windbgPreviewButtonText = PhFormatString(L"\U0001FA9F WinDbg (Preview)\n%s", windbgPreviewPath->Buffer);
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 102, windbgPreviewButtonText->Buffer };
+        }
         //if (vs2026Path = PhFindVisualStudioDebugger(SREF(L"[18.0,19.0)")))
         //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 107, L"\U0001F4D8 Visual Studio 2026\nFull-featured IDE with integrated debugging." };
         //if (vs2022Path = PhFindVisualStudioDebugger(SREF(L"[16.0,17.0)")))
         //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 108, L"\U0001F4D8 Visual Studio 2022\nFull-featured IDE with integrated debugging." };
         if (cdbPath = PhFindDebuggerPath(L"cdb.exe"))
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 103, L"\U0001F4FA CDB\nCommand-line debugger for user-mode applications." };
-        if (kdPath = PhFindDebuggerPath(L"kd.exe"))
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 104, L"\U0001F4FA KD\nKernel debugger for low-level system debugging." };
+        {
+            cdbButtonText = PhFormatString(L"\U0001F4FA CDB\n%s", cdbPath->Buffer);
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 103, cdbButtonText->Buffer };
+        }
         if (ntsdPath = PhFindDebuggerPath(L"ntsd.exe"))
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 105, L"\U0001F4FA NTSD\nLegacy command-line debugger similar to CDB." };
+        {
+            ntsdButtonText = PhFormatString(L"\U0001F4FA NTSD\n%s", ntsdPath->Buffer);
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 105, ntsdButtonText->Buffer };
+        }
 
         // Always add registry debugger option
-        if (registryDebuggerPath && registryDebuggerName)
+        if (registryDebuggerPath)
         {
             registryButtonText = PhFormatString(
                 L"\U00002699 (System Default)\n%s",
-                registryDebuggerName->Buffer
+                registryDebuggerPath->Buffer
                 );
             buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, registryButtonText->Buffer };
-        }
-        else
-        {
-            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, L"\U00002699 System Default\nNo debugger configured in AeDebug registry key." };
         }
 
         memset(&config, 0, sizeof(TASKDIALOGCONFIG));
@@ -3436,10 +3487,6 @@ BOOLEAN PhUiDebugProcess(
                 debuggerCommand = cdbPath;
                 cdbPath = NULL;
                 break;
-            case 104:
-                debuggerCommand = kdPath;
-                kdPath = NULL;
-                break;
             case 105:
                 debuggerCommand = ntsdPath;
                 ntsdPath = NULL;
@@ -3464,12 +3511,14 @@ BOOLEAN PhUiDebugProcess(
         //PhClearReference(&vs2026Path);
         //PhClearReference(&vs2022Path);
         PhClearReference(&cdbPath);
-        PhClearReference(&kdPath);
         PhClearReference(&ntsdPath);
+        PhClearReference(&windbgButtonText);
+        PhClearReference(&windbgPreviewButtonText);
+        PhClearReference(&cdbButtonText);
+        PhClearReference(&ntsdButtonText);
         PhClearReference(&registryButtonText);
     }
 
-    PhClearReference(&registryDebuggerName);
     PhClearReference(&registryDebuggerPath);
 
     if (!debuggerCommand || debuggerChoice == 0)
@@ -3488,7 +3537,6 @@ BOOLEAN PhUiDebugProcess(
     case 101:
     case 102:
     case 103:
-    case 104:
     case 105:
     case 106:
         PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
@@ -3762,7 +3810,6 @@ BOOLEAN PhUiSetVirtualizationProcess(
 {
     NTSTATUS status;
     BOOLEAN cont = FALSE;
-    HANDLE processHandle;
     HANDLE tokenHandle;
 
     if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
@@ -3784,14 +3831,10 @@ BOOLEAN PhUiSetVirtualizationProcess(
     if (!cont)
         return FALSE;
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        Process->ProcessId
-        )))
+    if (Process->QueryHandle)
     {
         if (NT_SUCCESS(status = PhOpenProcessToken(
-            processHandle,
+            Process->QueryHandle,
             TOKEN_WRITE,
             &tokenHandle
             )))
@@ -3799,8 +3842,10 @@ BOOLEAN PhUiSetVirtualizationProcess(
             status = PhSetTokenIsVirtualizationEnabled(tokenHandle, Enable);
             NtClose(tokenHandle);
         }
-
-        NtClose(processHandle);
+    }
+    else
+    {
+        status = STATUS_INVALID_HANDLE;
     }
 
     if (!NT_SUCCESS(status))
@@ -4505,10 +4550,10 @@ typedef struct _PH_UI_ACTION_PROGRESS_DIALOG
     PPH_LIST ResultList;
 
     volatile LONG RequireElevation;
-    struct
+    union
     {
         BOOLEAN Flags;
-        union
+        struct
         {
             BOOLEAN Warning : 1;
             BOOLEAN NoConfirmation : 1;
@@ -4901,8 +4946,13 @@ NTSTATUS PhpUiActionPendingStartCallback(
             message = PhFormatString(L"Unable to %s one or more %s:", Context->Verb, Context->Vtable->ObjectCollection);
             content = PhFinalStringBuilderString(&stringBuilder);
 
-            InterlockedExchangePointer(&Context->StatusMessage, message);
-            InterlockedExchangePointer(&Context->StatusContent, content);
+            {
+                PPH_STRING oldMessage = InterlockedExchangePointer(&Context->StatusMessage, message);
+                PPH_STRING oldContent = InterlockedExchangePointer(&Context->StatusContent, content);
+
+                PhClearReference(&oldMessage);
+                PhClearReference(&oldContent);
+            }
 
             PhUiNavigateActionErrorDialogPageFromThread(Context);
         }
@@ -5246,6 +5296,9 @@ static VOID PhActionProgressContextDeleteProcedure(
 {
     PPH_UI_ACTION_PROGRESS_DIALOG context = Object;
 
+    PhClearReference(&context->StatusMessage);
+    PhClearReference(&context->StatusContent);
+
     if (context->ResultList)
     {
         for (ULONG i = 0; i < context->ResultList->Count; i++)
@@ -5574,6 +5627,7 @@ BOOLEAN PhUiStartServices(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN allSucceeded = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
@@ -5657,9 +5711,11 @@ BOOLEAN PhUiStartServices(
                     break;
             }
         }
+
+        allSucceeded &= success;
     }
 
-    return success;
+    return allSucceeded && success;
 
     //BOOLEAN result = TRUE;
     //ULONG i;
@@ -5780,6 +5836,7 @@ BOOLEAN PhUiContinueServices(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN allSucceeded = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
@@ -5863,9 +5920,11 @@ BOOLEAN PhUiContinueServices(
                     break;
             }
         }
+
+        allSucceeded &= success;
     }
 
-    return success;
+    return allSucceeded && success;
 
     //BOOLEAN result = TRUE;
     //ULONG i;
@@ -6009,6 +6068,7 @@ BOOLEAN PhUiPauseServices(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN allSucceeded = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
@@ -6092,9 +6152,11 @@ BOOLEAN PhUiPauseServices(
                     break;
             }
         }
+
+        allSucceeded &= success;
     }
 
-    return success;
+    return allSucceeded && success;
 
     //BOOLEAN result = TRUE;
     //ULONG i;
@@ -6238,6 +6300,7 @@ BOOLEAN PhUiStopServices(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN allSucceeded = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
@@ -6321,9 +6384,11 @@ BOOLEAN PhUiStopServices(
                     break;
             }
         }
+
+        allSucceeded &= success;
     }
 
-    return success;
+    return allSucceeded && success;
 
     //BOOLEAN result = TRUE;
     //ULONG i;
@@ -7860,12 +7925,16 @@ BOOLEAN PhUiCloseHandles(
         }
 
         if (!result)
+        {
+            NtClose(processHandle);
             return FALSE;
+        }
 
         for (ULONG i = 0; i < NumberOfHandles; i++)
         {
             if (FlagOn(Handles[i]->Attributes, OBJ_PROTECT_CLOSE))
             {
+                success = FALSE;
                 if (!PhpShowErrorHandle(
                     WindowHandle,
                     L"close",
@@ -7877,6 +7946,8 @@ BOOLEAN PhUiCloseHandles(
                 {
                     break;
                 }
+
+                continue;
             }
 
             status = NtDuplicateObject(
