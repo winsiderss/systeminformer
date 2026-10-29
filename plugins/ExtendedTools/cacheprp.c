@@ -3235,7 +3235,7 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             if (context->TabIndex != ET_CACHE_LATENCY_TAB_TABLE)
                 context->TabIndex = ET_CACHE_LATENCY_TAB_OVERVIEW;
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
             // The double-buffered group box painter avoids caption artifacts while
             // the overview cells are moved during a resize.
@@ -3243,7 +3243,7 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
                 PhInitializeThemeWindowGroupBoxEx(context->GroupBoxHandles[level]);
             PhInitializeThemeWindowGroupBoxEx(context->PanelHandle);
 
-            PhTabNew_SetThemeDark(context->TabControlHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            SendMessage(context->TabControlHandle, WM_THEMECHANGED, 0, 0);
             SetWindowPos(
                 context->TabControlHandle,
                 HWND_BOTTOM,
@@ -3324,7 +3324,7 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
         break;
     case WM_THEMECHANGED:
         {
-            PhTabNew_SetThemeDark(context->TabControlHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            SendMessage(context->TabControlHandle, WM_THEMECHANGED, 0, 0);
 
             for (ULONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
                 InvalidateRect(context->GraphHandles[level], NULL, FALSE);
