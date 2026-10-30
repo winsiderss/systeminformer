@@ -70,21 +70,35 @@ VOID PhSaveSettingsColumnList(
     )
 {
     ULONG index;
+    ULONG serializedCount = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (index = 0; index < ColumnSetList->Count; index++)
+    {
+        PPH_COLUMN_SET_ENTRY entry = ColumnSetList->Items[index];
+
+        if (!PhIsNullOrEmptyString(entry->Name) &&
+            PhFindCharInStringRef(&entry->Name->sr, L'-', FALSE) == SIZE_MAX)
+        {
+            serializedCount++;
+        }
+    }
+
     PhAppendFormatStringBuilder(
         &stringBuilder,
         L"%lu-",
-        ColumnSetList->Count
+        serializedCount
         );
 
     for (index = 0; index < ColumnSetList->Count; index++)
     {
         PPH_COLUMN_SET_ENTRY entry = ColumnSetList->Items[index];
 
-        if (PhIsNullOrEmptyString(entry->Name))
+        if (PhIsNullOrEmptyString(entry->Name) ||
+            PhFindCharInStringRef(&entry->Name->sr, L'-', FALSE) != SIZE_MAX)
             continue;
 
         PhAppendFormatStringBuilder(

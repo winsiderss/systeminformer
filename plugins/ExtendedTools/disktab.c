@@ -85,7 +85,7 @@ BOOLEAN EtpDiskPageCallback(
             ULONG thinRows;
             ULONG treelistBorder;
             ULONG treelistCustomColors;
-            PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+            PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
             RECT clientRect = { 0 };
 
             thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;

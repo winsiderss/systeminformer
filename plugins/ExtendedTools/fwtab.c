@@ -103,7 +103,7 @@ BOOLEAN FwTabPageCallback(
             ULONG thinRows;
             ULONG treelistBorder;
             ULONG treelistCustomColors;
-            PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+            PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
             RECT clientRect = { 0 };
 
             FwTreeColorNew = PhGetIntegerSetting(L"ColorNew");

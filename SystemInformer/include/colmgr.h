@@ -46,6 +46,7 @@ typedef struct _PH_CM_COLUMN
     ULONG SubId;
     PVOID Context;
     PVOID SortFunction;
+    PPH_TREENEW_HEADER_TEXT_CACHE HeaderTextCache; // Owned and freed by the column manager.
 } PH_CM_COLUMN, *PPH_CM_COLUMN;
 
 VOID PhCmInitializeManager(
