@@ -1504,7 +1504,7 @@ PVOID PhAllocate(
     )
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return malloc(Size);
 #else
     return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
@@ -1524,7 +1524,7 @@ PVOID PhAllocateSafe(
     )
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return malloc(Size);
 #else
     return RtlAllocateHeap(PhHeapHandle, 0, Size);
@@ -1546,7 +1546,7 @@ PVOID PhAllocateExSafe(
     )
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return FlagOn(Flags, HEAP_ZERO_MEMORY) ? calloc(1, Size) : malloc(Size);
 #else
     return RtlAllocateHeap(PhHeapHandle, Flags, Size);
@@ -1587,7 +1587,7 @@ VOID PhFree(
     _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     )
 {
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     free(Memory);
 #else
     RtlFreeHeap(PhHeapHandle, 0, Memory);
@@ -1610,7 +1610,7 @@ PVOID PhReAllocate(
     )
 {
     assert(Size > 0);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return realloc(Memory, Size);
 #else
     if (Size == 0)
@@ -1643,7 +1643,7 @@ PVOID PhReAllocateSafe(
     )
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return realloc(Memory, Size);
 #else
     if (Size == 0)
@@ -1679,7 +1679,7 @@ PVOID PhReAllocateExSafe(
     )
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     if (FlagOn(Flags, HEAP_ZERO_MEMORY))
     {
         SIZE_T oldSize;
@@ -1721,7 +1721,7 @@ SIZE_T PhSizeHeap(
     _In_ PVOID Memory
     )
 {
-#if defined(PH_DEBUG_HEAP)
+#if defined(DEBUG)
     return _msize(Memory);
 #else
     return RtlSizeHeap(PhHeapHandle, 0, Memory);
