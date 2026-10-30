@@ -3235,7 +3235,7 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             if (context->TabIndex != ET_CACHE_LATENCY_TAB_TABLE)
                 context->TabIndex = ET_CACHE_LATENCY_TAB_OVERVIEW;
 
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             // The double-buffered group box painter avoids caption artifacts while
             // the overview cells are moved during a resize.
