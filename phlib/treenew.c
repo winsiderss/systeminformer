@@ -2295,7 +2295,7 @@ static LONG PhpTnpClampColumnWidth(
     HDITEM item;
 
     // Header windows cannot move left of -32768, and mouse coordinates in header
-    // messages are signed 16-bit values. Keep the entire header within that range.
+    // messages are signed 16-bit values. Keep the whole header within that range.
     if (Column->Fixed)
         return min(max(Width, Context->FixedWidthMinimum + 1), SHRT_MAX);
 
