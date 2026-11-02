@@ -159,7 +159,7 @@ typedef struct _SYSTEM_POWER_POLICY_ACDC // SYSTEM_POWER_POLICY
 //
 // PopInitializePowerPolicySimulate initializes the power-manager simulation
 //
-// - HKLM\System\CurrentControlSet\Control\Session Manager\ DWORD PowerPolicySimulate = 1
+// - HKLM\System\CurrentControlSet\Control\Session Manager\ ULONG PowerPolicySimulate = 1
 // - later NtPowerInformation handlers check bits in PowerPolicySimulate
 // - those bits unlock test-only behavior such as accepting synthetic capability/policy input
 //
@@ -1361,7 +1361,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalGetVmPerfControlConfig,                      // in: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT_V1 (Version 0/1) or POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT (Version 2), out: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_OUTPUT // 70
     PowerInternalSleepDetailedDiagUpdate,                     // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT, out: none (ignored) // user LocalSystem; Version ignored
     PowerInternalProcessorClassFrequencyBandsStats,           // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT // cycle counters
-    PowerInternalHostGlobalUserPresenceStateUpdate,           // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT, out: NULL/0 // both modes; raw presence DWORD; Version ignored
+    PowerInternalHostGlobalUserPresenceStateUpdate,           // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT, out: NULL/0 // both modes; raw presence ULONG; Version ignored
     PowerInternalCpuNodeIdleIntervalStats,                    // in: POWER_INTERNAL_CPU_NODE_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_PACKAGE // durations in 100-ns units
     PowerInternalClassIdleIntervalStats,                      // in: POWER_INTERNAL_CLASS_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT // 100-ns units
     PowerInternalCpuNodeConcurrencyStats,                     // in: POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_INPUT, out: POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_OUTPUT // raw QPC ticks
@@ -1994,7 +1994,7 @@ typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT
 /**
  * The POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT struct receives the new terminal's handle and session-local numeric identifier.
  * \remarks Selector 4097 returns 0x10 bytes on AMD64: handle at +0, TerminalId at +8,
- * and a zero-initialized trailing DWORD. Use the ID when correlating terminal events;
+ * and a zero-initialized trailing ULONG. Use the ID when correlating terminal events;
  * use the owned handle for operations and release it with NtClose. Do not use either
  * field as a new result on failure. TerminalId is not a process or Windows session ID.
  * \sa POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT
@@ -2156,7 +2156,7 @@ typedef struct _POWER_INTERNAL_TTM_DISPLAY_STATE_EVENT_DATA
 /**
  * The POWER_INTERNAL_TTM_TERMINAL_EVENT struct carries one terminal/device notification consumed from a TTM event queue.
  * \remarks Selector 4100 returns the complete 0x220-byte record. EventType at +0 selects the payload at +8;
- * the intervening DWORD is zero in producers. Types 0/3 use Device, type 4 uses DeviceAssigned, type 5 uses
+ * the intervening ULONG is zero in producers. Types 0/3 use Device, type 4 uses DeviceAssigned, type 5 uses
  * DeviceDeparted, and type 2 uses DisplayStateChanged. Type 1 marks enumeration complete. Type 6 reports an
  * updated display-required power request; its raw Payload is retained because its identifier/context
  * semantics were not fully recovered. Do not decode every event as Device. Consume the result only on
@@ -2231,7 +2231,7 @@ typedef struct _POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT
  * \remarks Select PowerInternalTtmSetDisplayStateV2 (4103), not legacy infoclass 16.
  * Supply at least 0x18 input bytes and NULL/0 output. TerminalHandle requires access
  * 0x00000002; either default or nondefault terminal is accepted. DisplayOn at +0x10
- * and the DWORD RequestReason at +0x14 are forwarded to TtmiSetPendingOnOffRequest.
+ * and the ULONG RequestReason at +0x14 are forwarded to TtmiSetPendingOnOffRequest.
  * Success means the request was submitted, not that the physical display has changed.
  * Observe display-state-change events for subsequent state reporting.
  * Use outer PowerInformationInternal; the V2 name is a descriptive alias, not a recovered
@@ -2256,7 +2256,7 @@ typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT
  * The POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT struct updates terminal dim/off inactivity timeouts and schedules reevaluation.
  * \remarks Select PowerInternalTtmSetDisplayTimeoutsV2 (4104), not legacy infoclass 17.
  * Supply at least 0x18 input bytes and NULL/0 output. TerminalHandle requires access
- * 0x00000002; either default or nondefault terminal is accepted. The DWORD fields at
+ * 0x00000002; either default or nondefault terminal is accepted. The ULONG fields at
  * +0x10 and +0x14 are seconds, multiplied by 10000000 into 100-ns durations internally.
  * If both are nonzero and DimTimeoutSeconds >= OffTimeoutSeconds, the internal dim
  * timeout becomes zero. No maximum beyond the ULONG input width is checked here.
@@ -2328,7 +2328,7 @@ typedef struct _POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
  * \remarks Selector 24 accepts only user-mode LocalSystem; kernel-mode
  * callers receive STATUS_NOT_SUPPORTED. Supply at least 0x28 input bytes and NULL/0 output.
  * The 32 bytes at +8 are forwarded unchanged via PopBroadcastSessionInfo, information
- * class 4. A DWORD at +0x0C is compared with 0xFFFFFFFF: a different value enables the
+ * class 4. A ULONG at +0x0C is compared with 0xFFFFFFFF: a different value enables the
  * high-precision path and publishes basic-brightness-engine-disabled if not already enabled;
  * 0xFFFFFFFF is rejected with STATUS_NOT_SUPPORTED once the high-precision path is enabled.
  *
@@ -2418,7 +2418,7 @@ typedef struct _POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
 // rev
 /**
  * The POWER_INTERNAL_INPUT_CONTROLLER_STATE struct notifies the kernel power policy of the adaptive input-controller state.
- * \remarks Kernel-only infoclass 28 requires exactly 12 input bytes. The DWORD at offset 8
+ * \remarks Kernel-only infoclass 28 requires exactly 12 input bytes. The ULONG at offset 8
  * is written through PopSetPowerSettingValueAcDc to GUID_ADAPTIVE_INPUT_CONTROLLER_STATE
  * for both AC and DC. It is a setting update, not a controller enumeration or state query.
  * Use NULL/0 output: a supplied output is ignored, not filled or explicitly rejected.
@@ -2505,7 +2505,7 @@ typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
  * \remarks Query infoclass 30 with an 8-byte POWER_INFORMATION_INTERNAL_HEADER and at
  * least 3 output bytes. The three bytes are independent fields, not a bitmask or ULONG.
  * QosSupportedAndConfigured and SchedulerDirectedPerfStatesSupported copy the corresponding
- * kernel Boolean globals; QosGroupPolicyDisable normalizes its DWORD global to Boolean.
+ * kernel Boolean globals; QosGroupPolicyDisable normalizes its ULONG global to Boolean.
  *
  * Use this diagnostic result to distinguish hardware/configuration support from policy
  * blocking when investigating QoS behavior. It does not expose the disable reference count
@@ -2872,7 +2872,7 @@ typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
  * The POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT struct selects the kernel inbox-PEP constraint override diagnostic query.
  * \remarks Selector 67 uses at least this 8-byte header and a 4-byte output. Initialize
  * Version to0 by convention; the route does NOT validate it. User mode receives
- * STATUS_ACCESS_DENIED. The returned DWORD is an override value, not a feature-bit list.
+ * STATUS_ACCESS_DENIED. The returned ULONG is an override value, not a feature-bit list.
  * No direct output is technically required by the branch, but omit it only when no result
  * is wanted; successful status alone does not reveal the value.
  * \sa POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
@@ -3021,7 +3021,7 @@ typedef struct _POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
  *
  * Kernel mode only; user mode receives STATUS_ACCESS_DENIED. Version is not checked.
  * Use NULL/0 output: a supplied output is ignored rather than filled or rejected. Do not
- * put Block immediately after the 8-byte header, where the required-zero DWORD belongs.
+ * put Block immediately after the 8-byte header, where the required-zero ULONG belongs.
  * \sa POWER_INFORMATION_INTERNAL_HEADER
  */
 typedef struct _POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT
@@ -3312,11 +3312,11 @@ typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT
  * value and pass no output buffer. This changes reported state; it is not a presence-detection or statistics
  * query.
  *
- * Updates host global user presence with a DWORD state, not a BOOLEAN.
+ * Updates host global user presence with a ULONG state, not a BOOLEAN.
  * Input length must be >= 12; output must be absent. No range check is performed.
  * \remarks Selector 73 needs input >=12 bytes and NULL/0 output; a supplied output
  * is rejected. Both caller modes are accepted with no additional infoclass-specific privilege
- * gate. Version is ignored and the raw DWORD at +8 is not range-checked. Under PopAdpmLock,
+ * gate. Version is ignored and the raw ULONG at +8 is not range-checked. Under PopAdpmLock,
  * a changed value updates host presence and reevaluates global user status. This reports
  * host state; it is not input injection, a lock/unlock operation or a presence query.
  */
@@ -3350,7 +3350,7 @@ typedef struct _POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
     ULONG Version;
     USHORT Node; // Passed to PpmParkGetParkNode; not a logical processor index.
-    USHORT Reserved; // The high WORD of the original DWORD infoclass is ignored.
+    USHORT Reserved; // The high WORD of the original ULONG infoclass is ignored.
 } POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, *PPOWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT;
 
 /**
@@ -3644,7 +3644,7 @@ typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_INPUT
  * Bucket 0 is stopped; 1..N are RPM ranges; N+1 is above the last RPM bound.
  * Exactly one eligible fan is required, otherwise STATUS_UNSUCCESSFUL is returned.
  * The entries are durations, not impact samples, dB values, or speed-change counts.
- * \remarks Selector 84 copies the fixed 160-byte result: count DWORD at 0, zero padding
+ * \remarks Selector 84 copies the fixed 160-byte result: count ULONG at 0, zero padding
  * at 4, and room for 19 QWORD durations at 8. BucketCountPlusTwo is the number of active entries,
  * not a count to which the caller should add another 2. Ignore zero-filled unused slots.
  * Bin 0 accounts RPM 0, bins 1..N use the fan's inclusive RPM upper bounds, and bin N+1
@@ -3751,7 +3751,7 @@ typedef POWER_INFORMATION_INTERNAL_HEADER POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM
  * \remarks Selector 89 returns exactly 20 bytes under the policy lock. The producer sends
  * IOCTL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES (0x29421C) with a 20-byte result, matching the SDK
  * ACPI_TIME_AND_ALARM_CAPABILITIES layout: seven Boolean bytes at 0..6, deepest wake state
- * DWORD at 8, real-time-feature Boolean at 12 and resolution DWORD at 16. Resolution 0 means
+ * ULONG at 8, real-time-feature Boolean at 12 and resolution ULONG at 16. Resolution 0 means
  * milliseconds and 1 means seconds. Reserved padding is not a capability bitset.
  *
  * Use these flags to distinguish supported wake sources/states and clock resolution, not to
@@ -3901,7 +3901,7 @@ typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
  * The POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT struct adds a counted device-instance path to the directed-power test-device list.
  * \remarks Selector 53 accepts a user-mode administrator and requires directed-DRIPS
  * state bit 0 to be enabled; otherwise STATUS_NOT_SUPPORTED. This adds an AVL-list entry,
- * not a new hardware device or a caller-owned device handle. Version and the DWORD at +8
+ * not a new hardware device or a caller-owned device handle. Version and the ULONG at +8
  * are not consumed here; Reserved/Flags is not an established flag mask. Initialize both
  * to zero for this unversioned path and use NULL/0 output; supplied output is ignored.
  *
@@ -4414,7 +4414,7 @@ typedef struct _POWER_INTERNAL_CONCURRENCY_STATS_OUTPUT
  * active processors. The response has an 8-byte prefix and ProcessorCount+1 QWORD counters, for 8 + 8 *
  * (ProcessorCount + 1) bytes. Values are raw QPC ticks copied without forcing a fresh sample; matched deltas can
  * help diagnose sustained versus bursty concurrency without implying which application caused it.
- * \remarks Selector 76 returns 8+8*(ProcessorCount+1) bytes, with the unused DWORD
+ * \remarks Selector 76 returns 8+8*(ProcessorCount+1) bytes, with the unused ULONG
  * at +4 zero from allocation. Bin 0 is the idle active-count state, not an idle-duration
  * range. POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_SIZE uses 64-bit arithmetic for sizing;
  * validate total capacity and ULONG limits before allocating or walking the array.
@@ -4512,7 +4512,7 @@ typedef struct _POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
  * does not guarantee a later values query will succeed.
  *
  * The POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT structure contains the available provider mask.
- * \remarks The infoclass 78 wire result is exactly one DWORD. Capability-bit meaning
+ * \remarks The infoclass 78 wire result is exactly one ULONG. Capability-bit meaning
  * belongs to the selected provider; the kernel dispatcher does not impose a universal mask.
  * Existing Intel package masks are provider-specific, not portable to every processor driver.
  */
@@ -4718,7 +4718,7 @@ typedef struct _POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_READ_LAYOUT64
  * The POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT struct pushes or pops a diagnostic record attributing a blocked power-state transition.
  * \remarks Selector 88 requires at least 56 input bytes on AMD64, correcting the former
  * 48-byte layout. Action at 8 is 0 (push) or 1 (pop). Process/thread values are at 16/24,
- * the opaque ReasonValue QWORD at 32, CallbackType DWORD at 40 and CallbackContext at 48.
+ * the opaque ReasonValue QWORD at 32, CallbackType ULONG at 40 and CallbackContext at 48.
  * The old Reason member remains the low 32-bit view; callback members now have correct offsets.
  * Header.Version is ignored. Use NULL/0 output; supplied output is ignored rather than filled.
  *
@@ -4822,7 +4822,7 @@ typedef struct _POWER_INTERNAL_ENERGY_ESTIMATION_ENTRY
 // rev
 /**
  * The POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT struct receives the fixed two-entry capacity of processor energy-estimation model weights.
- * \remarks Selector 91 returns 36 bytes: EntryCount DWORD at 0 and two 16-byte entries
+ * \remarks Selector 91 returns 36 bytes: EntryCount ULONG at 0 and two 16-byte entries
  * at 4 and 20, each with four ULONG weights. Only EntryCount entries are valid, up to the
  * 2-entry capacity; unused result storage is zeroed by allocation. Validate the count before
  * indexing captured data. This is model configuration, not accumulated energy or a live power
@@ -4842,7 +4842,7 @@ typedef struct _POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT
 /**
  * The POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT struct balances queued/completed notifications for one Win32k power-request category.
  * \remarks Kernel-only infoclasses 95/96 require exactly 12 input bytes, Version 0,
- * NULL/0 output and RequestIndex in 0..31. Queued increments a per-index DWORD counter;
+ * NULL/0 output and RequestIndex in 0..31. Queued increments a per-index ULONG counter;
  * completed decrements it. Transitions to 1 on queue or to 0 on completion can queue a worker
  * when its consumer is registered. No underflow/overflow guard is visible in this path.
  *
@@ -4892,7 +4892,7 @@ typedef struct _POWER_INTERNAL_QUERY_VELOCITY_FEATURE_ENABLEMENT_OUTPUT
 /**
  * The POWER_INTERNAL_SESSION_CONNECTION_INFO_V2 struct describes connection state and console/remote classification for session power accounting.
  * \remarks The 8-byte inline record is at offset 8 of infoclass 98: Connected Boolean at 0 and ConnectionType
- * DWORD at 4; three padding bytes are not consumed. Zero connection type selects console, nonzero selects
+ * ULONG at 4; three padding bytes are not consumed. Zero connection type selects console, nonzero selects
  * remote in consumer; no finer enum is established. The current process supplies the session ID, not this
  * record. This notifies the power manager and does not establish a network connection or authenticate a user.
  */
