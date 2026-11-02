@@ -503,7 +503,7 @@ VOID EtpObjectGeneralPageUpdate(
                 UCHAR buffer[SECURITY_MAX_SID_SIZE];
                 PSID UserSid = (PSID)buffer;
 
-                if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+                if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(ULONG), NULL))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DESKTOPIO, 1, !!vInfo ? L"True" : L"False");
                 }
@@ -514,7 +514,7 @@ VOID EtpObjectGeneralPageUpdate(
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DESKTOPSID, 1, PhGetString(sid));
                 }
 
-                if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+                if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(ULONG), NULL))
                 {
                     PPH_STRING size = PH_AUTO(PhFormatSize(vInfo * 1024, ULONG_MAX));
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DESKTOPHEAP, 1, PhGetString(size));
@@ -1974,13 +1974,13 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
         }
 
-        if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+        if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(ULONG), NULL))
         {
             PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_HEAP, PhGetString(size));
         }
 
-        if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+        if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(ULONG), NULL))
         {
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_IO, !!vInfo ? L"True" : L"False");
         }

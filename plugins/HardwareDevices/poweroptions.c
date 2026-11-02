@@ -173,7 +173,7 @@ VOID RaplDevicesLoadList(
                 DV_RAPL_ID resolvedId;
                 PPH_STRING deviceDescription;
 
-                memset(&resolvedId, 0, sizeof(resolvedId));
+                memset(&resolvedId, 0, sizeof(DV_RAPL_ID));
                 deviceDescription = NULL;
 
                 if (QueryRaplDeviceInterfaceInfo(PhGetString(entry->Id.DevicePath), &resolvedId, &deviceDescription))
@@ -628,7 +628,7 @@ VOID FindRaplDevices(
 
         deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
 
-        memset(&deviceId, 0, sizeof(deviceId));
+        memset(&deviceId, 0, sizeof(DV_RAPL_ID));
 
         if (!QueryRaplDeviceInterfaceInfo(deviceInterface, &deviceId, &deviceDescription))
             continue;

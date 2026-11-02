@@ -178,7 +178,7 @@ NTSTATUS NetworkAdapterQueryNdisVersion(
         &objectIdQuery,
         sizeof(NDIS_OID),
         &versionResult,
-        sizeof(versionResult),
+        sizeof(ULONG),
         NULL
         );
 
@@ -510,9 +510,9 @@ NTSTATUS NetworkAdapterQueryMediaType(
         DeviceHandle,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &objectIdQuery,
-        sizeof(objectIdQuery),
+        sizeof(NDIS_OID),
         &adapterMediaType,
-        sizeof(adapterMediaType),
+        sizeof(NDIS_PHYSICAL_MEDIUM),
         NULL
         );
 
@@ -529,9 +529,9 @@ NTSTATUS NetworkAdapterQueryMediaType(
         DeviceHandle,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &objectIdQuery,
-        sizeof(objectIdQuery),
+        sizeof(NDIS_OID),
         &adapterMediaType,
-        sizeof(adapterMediaType),
+        sizeof(NDIS_PHYSICAL_MEDIUM),
         NULL
         );
 
@@ -548,9 +548,9 @@ NTSTATUS NetworkAdapterQueryMediaType(
         DeviceHandle,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &objectIdQuery,
-        sizeof(objectIdQuery),
+        sizeof(NDIS_OID),
         &adapterType,
-        sizeof(adapterType),
+        sizeof(NDIS_MEDIUM),
         NULL
         );
 
@@ -635,7 +635,7 @@ ULONG64 NetworkAdapterQueryValue(
         &OpCode,
         sizeof(NDIS_OID),
         &result,
-        sizeof(result),
+        sizeof(ULONG64),
         NULL
         )))
     {

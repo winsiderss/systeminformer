@@ -2346,7 +2346,7 @@ VOID EtWbclShowEntryProperties(_In_ HWND ParentWindowHandle, _In_ PWBCL_ENTRY En
 {
     PROPSHEETPAGE pages[2] = { 0 };
     HPROPSHEETPAGE handles[2];
-    PROPSHEETHEADER header = { sizeof(header) };
+    PROPSHEETHEADER header = { sizeof(PROPSHEETHEADER) };
     for (ULONG i = 0; i < 2; i++) { pages[i].dwSize = sizeof(PROPSHEETPAGE); pages[i].hInstance = PluginInstance->DllBase; pages[i].lParam = (LPARAM)Entry; }
     pages[0].pszTemplate = MAKEINTRESOURCE(IDD_WBCL_GENERAL); pages[0].pfnDlgProc = EtWbclGeneralDlgProc;
     pages[1].pszTemplate = MAKEINTRESOURCE(IDD_WBCL_RAW); pages[1].pfnDlgProc = EtWbclRawDlgProc;

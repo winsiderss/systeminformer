@@ -31,9 +31,9 @@ VOID WhoisConfigureSocketTimeouts(
     ULONG timeout = WHOIS_SOCKET_TIMEOUT_MS;
     ULONG connectTimeout = WHOIS_CONNECT_TIMEOUT_SECONDS;
 
-    setsockopt(SocketHandle, SOL_SOCKET, SO_RCVTIMEO, (PCSTR)&timeout, sizeof(timeout));
-    setsockopt(SocketHandle, SOL_SOCKET, SO_SNDTIMEO, (PCSTR)&timeout, sizeof(timeout));
-    setsockopt(SocketHandle, IPPROTO_TCP, TCP_MAXRT, (PCSTR)&connectTimeout, sizeof(connectTimeout));
+    setsockopt(SocketHandle, SOL_SOCKET, SO_RCVTIMEO, (PCSTR)&timeout, sizeof(ULONG));
+    setsockopt(SocketHandle, SOL_SOCKET, SO_SNDTIMEO, (PCSTR)&timeout, sizeof(ULONG));
+    setsockopt(SocketHandle, IPPROTO_TCP, TCP_MAXRT, (PCSTR)&connectTimeout, sizeof(ULONG));
 }
 
 /**

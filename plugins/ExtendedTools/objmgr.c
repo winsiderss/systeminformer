@@ -1012,7 +1012,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                             objectHandle,
                             KphAlpcCommunicationInformation,
                             &connectionInfo,
-                            sizeof(connectionInfo),
+                            sizeof(KPH_ALPC_COMMUNICATION_INFORMATION),
                             NULL
                             )))
                         {
@@ -1163,7 +1163,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                                     objectHandle,
                                     KphObjectSectionBasicInformation,
                                     &basicInfo,
-                                    sizeof(basicInfo),
+                                    sizeof(SECTION_BASIC_INFORMATION),
                                     NULL
                                     );
                             }
@@ -2263,7 +2263,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
                 ObjectHandle,
                 KphObjectAttributesInformation,
                 &extendedInfo,
-                sizeof(extendedInfo),
+                sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION),
                 NULL
                 )))
             {
