@@ -2499,7 +2499,7 @@ WINAPI
 WTSRegisterSessionNotificationEx(
     _In_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ DWORD Flags
+    _In_ ULONG Flags
     );
 
 /**
