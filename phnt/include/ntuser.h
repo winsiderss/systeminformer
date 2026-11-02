@@ -97,17 +97,17 @@ typedef BOOL(NTAPI* PRIM_DEVICE_CHANGE_CALLBACK)(
 #define SFI_ENABLEPERMONITORMENUSCALING             43 // NtUserCallNoParam
 #define SFI_BEGINDEFERWINDOWPOS                     44 // NtUserCallOneParam(int NumWindows)
 #define SFI_GETSENDMESSAGERECEIVER                  45 // NtUserCallOneParam
-#define SFI_ALLOWSETFOREGROUNDWINDOW                46 // NtUserCallOneParam(DWORD ProcessId)
+#define SFI_ALLOWSETFOREGROUNDWINDOW                46 // NtUserCallOneParam(ULONG ProcessId)
 #define SFI_CSDDEUNINITIALIZE                       47 // NtUserCallOneParam
-#define SFI_ENUMCLIPBOARDFORMATS                    49 // NtUserCallOneParam(UINT Format)
+#define SFI_ENUMCLIPBOARDFORMATS                    49 // NtUserCallOneParam(ULONG Format)
 #define SFI_GETINPUTEVENT                           50 // NtUserCallOneParam
 #define SFI_GETKEYBOARDTYPE                         51 // NtUserCallOneParam(int TypeFlag)
 #define SFI_GETPROCESSDEFAULTLAYOUT                 52 // NtUserCallOneParam(PDWORD DefaultLayout)
 #define SFI_GETWINSTATIONINFO                       53 // NtUserCallOneParam
-#define SFI_LOCKSETFOREGROUNDWINDOW                 54 // NtUserCallOneParam(UINT LockCode)
+#define SFI_LOCKSETFOREGROUNDWINDOW                 54 // NtUserCallOneParam(ULONG LockCode)
 #define SFI_LW_LOADFONTS                            55 // NtUserCallOneParam
 #define SFI_MAPDESKTOPOBJECT                        56 // NtUserCallOneParam
-#define SFI_MESSAGEBEEP                             57 // NtUserCallOneParam(UINT Type)
+#define SFI_MESSAGEBEEP                             57 // NtUserCallOneParam(ULONG Type)
 #define SFI_PLAYEVENTSOUND                          58 // NtUserCallOneParam
 #define SFI_POSTQUITMESSAGE                         59 // NtUserCallOneParam(int ExitCode)
 #define SFI_REALIZEPALETTE                          60 // NtUserCallOneParam
@@ -117,10 +117,10 @@ typedef BOOL(NTAPI* PRIM_DEVICE_CHANGE_CALLBACK)(
 #define SFI_REMOTETHINWIRESTATS                     64 // NtUserCallOneParam
 #define SFI_REMOTENOTIFY                            65 // NtUserCallOneParam
 #define SFI_REPLYMESSAGE                            66 // NtUserCallOneParam(LRESULT Result)
-#define SFI_SETCARETBLINKTIME                       67 // NtUserCallOneParam(UINT MSeconds)
-#define SFI_SETDOUBLECLICKTIME                      68 // NtUserCallOneParam(UINT Interval)
+#define SFI_SETCARETBLINKTIME                       67 // NtUserCallOneParam(ULONG MSeconds)
+#define SFI_SETDOUBLECLICKTIME                      68 // NtUserCallOneParam(ULONG Interval)
 #define SFI_SETMESSAGEEXTRAINFO                     69 // NtUserCallOneParam(LPARAM lParam)
-#define SFI_SETPROCESSDEFAULTLAYOUT                 70 // NtUserCallOneParam(DWORD DefaultLayout)
+#define SFI_SETPROCESSDEFAULTLAYOUT                 70 // NtUserCallOneParam(ULONG DefaultLayout)
 #define SFI_SETWATERMARKSTRINGS                     71 // NtUserCallOneParam
 #define SFI_SHOWSTARTGLASS                          72 // NtUserCallOneParam
 #define SFI_SWAPMOUSEBUTTON                         73 // NtUserCallOneParam(BOOL Swap)
@@ -149,7 +149,7 @@ typedef BOOL(NTAPI* PRIM_DEVICE_CHANGE_CALLBACK)(
 #define SFI_NOTIFYOVERLAYWINDOW                     97 // NtUserCallHwndParam
 #define SFI_SETDIALOGPOINTER                        99 // NtUserCallHwndParam
 #define SFI_SETVISIBLE                              100 // NtUserCallHwndParam
-#define SFI_SETWINDOWCONTEXTHELPID                  101 // NtUserCallHwndParam(DWORD ContextHelpId)
+#define SFI_SETWINDOWCONTEXTHELPID                  101 // NtUserCallHwndParam(ULONG ContextHelpId)
 #define SFI_SETWINDOWSTATE                          102 // NtUserCallHwndParam
 #define SFI_REGISTERWINDOWARRANGEMENTCALLOUT        103 // NtUserCallHwndParam
 #define SFI_ENABLEMODERNAPPWINDOWKEYBOARDINTERCEPT  104 // NtUserCallHwndParam
@@ -174,7 +174,7 @@ typedef BOOL(NTAPI* PRIM_DEVICE_CHANGE_CALLBACK)(
 #define SFI_UPDATEWINDOWS                           123 // NtUserCallHwndParamLock
 #define SFI_VALIDATERGN                             124 // NtUserCallHwndParamLock
 #define SFI_ENABLEWINDOW                            125 // NtUserCallHwndParamLock(BOOL Enable), NtUserCallHwndParamLockSafe
-#define SFI_CHANGEWINDOWMESSAGEFILTER               126 // NtUserCallTwoParam(UINT Message, DWORD Flag)
+#define SFI_CHANGEWINDOWMESSAGEFILTER               126 // NtUserCallTwoParam(ULONG Message, ULONG Flag)
 #define SFI_GETCURSORPOS                            127 // NtUserCallTwoParam(LPPOINT Point, BOOL Mode)
 #define SFI_INITANSIOEM                             128 // NtUserCallTwoParam
 #define SFI_NLSKBDSENDIMENOTIFICATION               129 // NtUserCallTwoParam
@@ -238,8 +238,7 @@ typedef NTSTATUS FASTCALL KCALLBACKPROC_DUMMY(
     );
 
 /**
- * The FixupCallbackPointers routine fixes up relative pointers in a callback capture buffer to
- * absolute addresses.
+ * The FixupCallbackPointers routine fixes up relative pointers in a callback capture buffer to absolute addresses.
  *
  * \param CaptureBuffer Pointer to the capture buffer containing callback parameters.
  */
@@ -655,7 +654,6 @@ typedef PWINSTATIONINFO PWSINFO;
  * \param KeyboardDescriptor The keyboard descriptor argument.
  * \param LanguageIdString The language id string argument.
  * \param KeyboardLocale The keyboard locale argument.
- *
  * \returns The HWINSTA result described above.
  */
 _Kernel_entry_
@@ -709,11 +707,9 @@ typedef enum _tagWINDOWSTATIONFLAGS
 
 // rev
 /**
- * The NtUserCreateWindowStationEx routine creates a new window station object with extended
- * attributes.
+ * The NtUserCreateWindowStationEx routine creates a new window station object with extended attributes.
  *
- * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure specifying the window station
- *     object attributes.
+ * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure specifying the window station object attributes.
  * \param DesiredAccess The type of access to the window station.
  * \param KeyboardLayoutHandle Optional handle to the keyboard layout.
  * \param KeyboardLayoutOffset Optional offset to the keyboard layout data.
@@ -774,8 +770,7 @@ GetWinStationInfo(
     );
 
 /**
- * The NtUserBuildNameList routine enumerates desktop names, or window-station names when no station
- * is supplied.
+ * The NtUserBuildNameList routine enumerates desktop names, or window-station names when no station is supplied.
  *
  * \param WindowStationHandle Optional station handle; NULL selects window-station enumeration.
  * \param NameListInformationLength Size of the output buffer in bytes.
@@ -834,9 +829,7 @@ NtUserBuildPropList(
     );
 
 /**
- * The NtUserGetProcessWindowStation routine retrieves the window station handle associated with the
- * current process.
- *
+ * The NtUserGetProcessWindowStation routine retrieves the window station handle associated with the current process.
  * \returns A handle to the window station, or NULL if the operation fails.
  * \sa
  * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getprocesswindowstation
@@ -853,8 +846,7 @@ NtUserGetProcessWindowStation(
 /**
  * The NtUserGetWinStationInfo routine retrieves WinStation protocol and audio information.
  *
- * \param WsInfo Pointer to a WINSTATIONINFO structure that receives the protocol and audio
- *     information.
+ * \param WsInfo Pointer to a WINSTATIONINFO structure that receives the protocol and audio information.
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallOneParam(SFI_GETWINSTATIONINFO).
  */
@@ -885,8 +877,7 @@ LockWindowStation(
 
 // rev
 /**
- * The NtUserLockWindowStation routine locks the specified window station against unauthorized
- * desktop access.
+ * The NtUserLockWindowStation routine locks the specified window station against unauthorized desktop access.
  *
  * \param WindowStationHandle Handle to the window station to lock.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -900,8 +891,7 @@ NtUserLockWindowStation(
     );
 
 /**
- * The NtUserSetProcessWindowStation routine assigns the specified window station to the calling
- * process.
+ * The NtUserSetProcessWindowStation routine assigns the specified window station to the calling process.
  *
  * \param WindowStationHandle A handle to the window station to be assigned.
  * \returns TRUE if successful, FALSE otherwise.
@@ -951,8 +941,7 @@ NtUserUnlockWindowStation(
     );
 
 /**
- * The SetWindowStationUser routine associates a user security identifier (SID) and logon ID with a
- * window station.
+ * The SetWindowStationUser routine associates a user security identifier (SID) and logon ID with a window station.
  *
  * \param WindowStationHandle A handle to the window station.
  * \param UserLogonId Pointer to the logon session identifier (LUID).
@@ -1005,8 +994,7 @@ NtUserCloseWindowStation(
 
 // rev
 /**
- * The NtUserCreateDesktopEx routine creates a new desktop on a window station with extended
- * options.
+ * The NtUserCreateDesktopEx routine creates a new desktop on a window station with extended options.
  *
  * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure describing the desktop object.
  * The RootDirectory member specifies the target window station, the ObjectName member specifies
@@ -1016,8 +1004,7 @@ NtUserCloseWindowStation(
  * \param Flags Desktop creation flags (DF_*).
  * \param DesiredAccess Desired access mask for the desktop.
  * \param HeapSize Size of the desktop heap, in kilobytes.
- * \returns A handle to the newly created desktop, or NULL on failure. Argument mapping confirmed
- *     from user32!CommonCreateDesktop.
+ * \returns A handle to the newly created desktop, or NULL on failure. Argument mapping confirmed from user32!CommonCreateDesktop.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1035,8 +1022,7 @@ NtUserCreateDesktopEx(
 /**
  * The NtUserOpenDesktop routine opens the specified desktop object.
  *
- * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure specifying the desktop object
- *     attributes.
+ * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure specifying the desktop object attributes.
  * \param Flags Desktop open flags.
  * \param DesiredAccess The access mask for the desktop object.
  * \returns A handle to the desktop object, or NULL on failure.
@@ -1074,8 +1060,7 @@ NtUserOpenInputDesktop(
  * The NtUserOpenThreadDesktop routine opens the desktop associated with the specified thread.
  *
  * \param ThreadId Identifier of the thread whose desktop is opened.
- * \param Flags Desktop flags. Only DF_ALLOWOTHERACCOUNTHOOK (0x00000001) is used; higher bits are
- *     ignored.
+ * \param Flags Desktop flags. Only DF_ALLOWOTHERACCOUNTHOOK (0x00000001) is used; higher bits are ignored.
  * \param Inherit TRUE to make the returned handle inheritable; FALSE otherwise.
  * \param DesiredAccess Requested desktop access rights. DESKTOP_READOBJECTS and
  *     DESKTOP_WRITEOBJECTS are always added.
@@ -1083,8 +1068,7 @@ NtUserOpenInputDesktop(
  * \remarks Resolves the thread's desktop, with a console-desktop fallback when no GUI thread
  * information is found.
  *          Opens a new handle with DesiredAccess | 0x81 and OBJ_INHERIT when Inherit is nonzero.
- *          The open enforces the desktop's security in user mode and rejects desktops outside the
- *          current session.
+ *          The open enforces the desktop's security in user mode and rejects desktops outside the current session.
  *          DF_ALLOWOTHERACCOUNTHOOK permits processes running under other accounts on the desktop
  *          to set hooks
  *          in this process. Native failure statuses are translated to Win32 last-error codes.
@@ -1114,8 +1098,7 @@ NtUserOpenThreadDesktop(
 #define WM_CLOAKED_STATE_CHANGED 0x0347
 
 /**
- * The NtUserRegisterCloakedNotification routine registers or unregisters a window to receive
- * WM_CLOAKED_STATE_CHANGED notifications.
+ * The NtUserRegisterCloakedNotification routine registers or unregisters a window to receive WM_CLOAKED_STATE_CHANGED notifications.
  *
  * \param WindowHandle A handle to the window.
  * \param Register TRUE to register; FALSE to unregister.
@@ -1135,20 +1118,16 @@ NtUserRegisterCloakedNotification(
  * The OpenThreadDesktop routine opens the desktop associated with a thread.
  *
  * \param ThreadId Identifier of the thread whose desktop is opened.
- * \param Flags Desktop flags. Only DF_ALLOWOTHERACCOUNTHOOK (0x00000001) is used; higher bits are
- *     ignored.
+ * \param Flags Desktop flags. Only DF_ALLOWOTHERACCOUNTHOOK (0x00000001) is used; higher bits are ignored.
  * \param Inherit TRUE to make the returned handle inheritable; FALSE otherwise.
  * \param DesiredAccess Requested desktop access rights. DESKTOP_READOBJECTS and
  *     DESKTOP_WRITEOBJECTS are always added.
  * \returns A handle to the desktop on success, or NULL on failure.
  * \remarks Forwards to the NtUserOpenThreadDesktop system call.
- * Resolves the thread's desktop, with a console-desktop fallback when no GUI thread information is
- * found.
+ * Resolves the thread's desktop, with a console-desktop fallback when no GUI thread information is found.
  * Opens a new handle with DesiredAccess | 0x81 and OBJ_INHERIT when Inherit is nonzero.
- * The open enforces the desktop's security in user mode and rejects desktops outside the current
- * session.
- * DF_ALLOWOTHERACCOUNTHOOK permits processes running under other accounts on the desktop to set
- * hooks
+ * The open enforces the desktop's security in user mode and rejects desktops outside the current session.
+ * DF_ALLOWOTHERACCOUNTHOOK permits processes running under other accounts on the desktop to set hooks
  * in this process. Native failure statuses are translated to Win32 last-error codes.
  */
 _Success_(return != NULL)
@@ -1182,15 +1161,12 @@ CheckWindowThreadDesktop(
 // rev
 /**
  * The GetDesktopID routine has the following behavior:
- * DWM-only desktop identifier query. The native entry recognizes selectors 1, 2 and 4 and copies
- * exactly 8
- * bytes on success. The payload remains opaque rather than assuming a GUID or owned HANDLE. Non-DWM
- * callers
+ * DWM-only desktop identifier query. The native entry recognizes selectors 1, 2 and 4 and copies exactly 8
+ * bytes on success. The payload remains opaque rather than assuming a GUID or owned HANDLE. Non-DWM callers
  * fail with ERROR_ACCESS_DENIED (5).
  *
  * \param DesktopIndex Index of the desktop.
  * \param DesktopId Receives the desktop identifier.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -1204,7 +1180,6 @@ GetDesktopID(
 // rev
 /**
  * The GetInputDesktop routine retrieves a handle to the current input desktop.
- *
  * \returns HDESK Handle to the input desktop, or NULL on failure.
  * \remarks Thin user32 wrapper over NtUserGetInputDesktop.
  */
@@ -1219,12 +1194,10 @@ GetInputDesktop(
 /**
  * The IsInDesktopWindowBand routine tests a validated window band against desktop-associated band
  * IDs 1, 2 and 16. Returns 1 for those values and
- * 0 otherwise. Tests compare against GetWindowBand on an owned hidden window; other processes and
- * shell bands
+ * 0 otherwise. Tests compare against GetWindowBand on an owned hidden window; other processes and shell bands
  * are not manipulated.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -1240,7 +1213,6 @@ IsInDesktopWindowBand(
  * thread GUI initialization fails, the client returns 1; otherwise it reads a low-bit state value.
  * The predicate does not establish ownership of any
  * desktop object or imply that a composition operation was performed.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -1296,8 +1268,7 @@ NtUserCheckWindowThreadDesktop(
 
 // rev
 /**
- * The NtUserGetDesktopID routine retrieves the unique desktop identifier for a specified desktop
- * index.
+ * The NtUserGetDesktopID routine retrieves the unique desktop identifier for a specified desktop index.
  *
  * \param DesktopIndex Zero-based desktop index.
  * \param DesktopId Pointer to a variable receiving the desktop identifier.
@@ -1314,8 +1285,7 @@ NtUserGetDesktopID(
 
 // rev
 /**
- * The NtUserGetDesktopVisualTransform routine retrieves the global visual transform matrix for the
- * desktop.
+ * The NtUserGetDesktopVisualTransform routine retrieves the global visual transform matrix for the desktop.
  *
  * \param VisualTransform Pointer to a structure receiving desktop transform matrix parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -1332,7 +1302,6 @@ NtUserGetDesktopVisualTransform(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserGetInputDesktop routine returns a handle to the current input desktop.
- *
  * \returns The resulting handle, or NULL on failure.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETINPUTDESKTOP).
  */
@@ -1348,8 +1317,7 @@ NtUserGetInputDesktop(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserGetThreadDesktop routine retrieves a handle to the desktop assigned to the specified
- * thread.
+ * The NtUserGetThreadDesktop routine retrieves a handle to the desktop assigned to the specified thread.
  *
  * \param ThreadId The thread identifier.
  * \returns A handle to the desktop assigned to the thread, or NULL on failure.
@@ -1394,7 +1362,6 @@ NtDesktopCaptureBits(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserDeferredDesktopRotation routine applies a deferred desktop rotation.
- *
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DEFERREDDESKTOPROTATION).
  * \remarks This export can resolve to a fail-fast compatibility stub that calls
@@ -1468,8 +1435,7 @@ NtUserResolveDesktopForWOW(
  * The NtUserSetDesktopColorTransform routine applies a system color transform matrix or profile
  * across desktop rendering surfaces.
  *
- * \param ColorTransform A pointer to a 100-byte buffer containing color transformation matrix
- *     values.
+ * \param ColorTransform A pointer to a 100-byte buffer containing color transformation matrix values.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -1576,7 +1542,6 @@ ResolveDesktopForWOW(
  * settings; it is not a passive desktop query.
  *
  * \param FileName The file name argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -1622,8 +1587,7 @@ SwitchDesktopWithFade(
 
 // rev
 /**
- * The UpdateDefaultDesktopThumbnail routine updates the default desktop thumbnail visual
- * representation.
+ * The UpdateDefaultDesktopThumbnail routine updates the default desktop thumbnail visual representation.
  *
  * \param ThumbnailHandle Handle to the desktop thumbnail visual.
  * \param SourceRect Pointer to the source bounding rectangle.
@@ -1682,11 +1646,9 @@ NtUserCreateAcceleratorTable(
  * The NtUserCopyAcceleratorTable routine copies the specified accelerator table.
  *
  * \param hAccelSrc A handle to the accelerator table to be copied.
- * \param lpAccelDst Pointer to an array of ACCEL structures that receives accelerator-table
- *     information.
+ * \param lpAccelDst Pointer to an array of ACCEL structures that receives accelerator-table information.
  * \param cAccelEntries The number of ACCEL structures to copy to the buffer.
- * \returns The number of accelerator-table entries copied, or the required size if lpAccelDst is
- *     NULL.
+ * \returns The number of accelerator-table entries copied, or the required size if lpAccelDst is NULL.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1719,8 +1681,7 @@ NtUserTranslateAccelerator(
 
 // rev
 /**
- * The NtUserDestroyAcceleratorTable routine destroys an accelerator table and frees its associated
- * resources.
+ * The NtUserDestroyAcceleratorTable routine destroys an accelerator table and frees its associated resources.
  *
  * \param AcceleratorTableHandle Handle to the accelerator table to be destroyed.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -1761,7 +1722,6 @@ NtUserCreateCaret(
 
 /**
  * The NtUserGetCaretBlinkTime routine returns the time required to invert the caret's pixels.
- *
  * \returns The blink time in milliseconds.
  */
 _Kernel_entry_
@@ -1775,8 +1735,7 @@ NtUserGetCaretBlinkTime(
 /**
  * The NtUserGetCaretPos routine copies the caret's position to the specified POINT structure.
  *
- * \param lpPoint Pointer to the POINT structure that is to receive the client coordinates of the
- *     caret.
+ * \param lpPoint Pointer to the POINT structure that is to receive the client coordinates of the caret.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -1791,8 +1750,7 @@ NtUserGetCaretPos(
 /**
  * The NtUserHideCaret routine removes the caret from the screen.
  *
- * \param WindowHandle Optional handle to the window that owns the caret, or NULL for the active
- *     window.
+ * \param WindowHandle Optional handle to the window that owns the caret, or NULL for the active window.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -1843,8 +1801,7 @@ NtUserSetCaretPos(
 
 // rev
 /**
- * The NtUserShowCaret routine makes the caret visible on the screen at the caret's current
- * position.
+ * The NtUserShowCaret routine makes the caret visible on the screen at the caret's current position.
  *
  * \param WindowHandle An optional handle to the window that owns the caret.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -1860,7 +1817,6 @@ NtUserShowCaret(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserDestroyCaret routine destroys the current caret.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DESTROYCARET).
  */
@@ -1881,7 +1837,6 @@ NtUserDestroyCaret(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserCreateMenu routine creates an empty menu.
- *
  * \returns The resulting handle, or NULL on failure.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_CREATEMENU).
  */
@@ -1899,7 +1854,6 @@ NtUserCreateMenu(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserCreatePopupMenu routine creates an empty pop-up menu.
- *
  * \returns The resulting handle, or NULL on failure.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_CREATEPOPUPMENU).
  */
@@ -1957,8 +1911,7 @@ NtUserGetMenuBarInfo(
 
 // rev
 /**
- * The NtUserGetMenuIndex routine retrieves the zero-based position of a submenu item within a
- * parent menu.
+ * The NtUserGetMenuIndex routine retrieves the zero-based position of a submenu item within a parent menu.
  *
  * \param MenuHandle Handle to the parent menu.
  * \param SubMenuHandle Handle to the submenu whose index is queried.
@@ -1979,8 +1932,7 @@ NtUserGetMenuIndex(
  * \param WindowHandle A handle to the window containing the menu.
  * \param MenuHandle A handle to the menu.
  * \param MenuIndex The zero-based position of the menu item.
- * \param MenuRect Pointer to a RECT structure that receives the screen coordinates of the bounding
- *     rectangle.
+ * \param MenuRect Pointer to a RECT structure that receives the screen coordinates of the bounding rectangle.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -2016,8 +1968,7 @@ NtUserGetSysMenuOffset(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserGetSystemMenu routine enables the application to access the window menu for copying and
- * modifying.
+ * The NtUserGetSystemMenu routine enables the application to access the window menu for copying and modifying.
  *
  * \param WindowHandle A handle to the window that will own a copy of the window menu.
  * \param Revert The action to be taken. If FALSE, returns handle to the copy of the window menu in
@@ -2124,15 +2075,13 @@ MenuWindowProcW(
 
 // rev
 /**
- * The NtUserCalcMenuBar routine calculates the layout dimensions and positions of the menu bar for
- * a window.
+ * The NtUserCalcMenuBar routine calculates the layout dimensions and positions of the menu bar for a window.
  *
  * \param WindowHandle Handle to the window containing the menu bar.
  * \param Left Left bounding coordinate for the menu bar calculation.
  * \param Right Right bounding coordinate for the menu bar calculation.
  * \param Top Top bounding coordinate for the menu bar calculation.
- * \param Rect Optional pointer to a RECT structure receiving the calculated menu bar bounding
- *     rectangle.
+ * \param Rect Optional pointer to a RECT structure receiving the calculated menu bar bounding rectangle.
  * \returns ULONG The height of the menu bar in pixels, or 0 on failure.
  */
 _Kernel_entry_
@@ -2209,8 +2158,7 @@ NtUserDrawMenuBarTemp(
  *
  * \param MenuHandle Handle to the menu containing the item.
  * \param ItemId Identifier or position of the menu item.
- * \param Enable Flags controlling item state and addressing (MF_ENABLED, MF_DISABLED, MF_GRAYED,
- *     MF_BYCOMMAND, MF_BYPOSITION).
+ * \param Enable Flags controlling item state and addressing (MF_ENABLED, MF_DISABLED, MF_GRAYED, MF_BYCOMMAND, MF_BYPOSITION).
  * \returns ULONG The previous state of the menu item, or -1 if the item does not exist.
  */
 _Kernel_entry_
@@ -2247,7 +2195,6 @@ NtUserHiliteMenuItem(
 // rev
 /**
  * The NtUserInitializeUserModeMenus routine initializes client-side user-mode menu support.
- *
  * \returns Result code.
  */
 _Kernel_entry_
@@ -2259,8 +2206,7 @@ NtUserInitializeUserModeMenus(
     );
 
 /**
- * The NtUserMenuItemFromPoint routine determines which menu item is at the specified screen
- * coordinates.
+ * The NtUserMenuItemFromPoint routine determines which menu item is at the specified screen coordinates.
  *
  * \param WindowHandle A handle to the window containing the menu.
  * \param MenuHandle A handle to the menu.
@@ -2322,8 +2268,7 @@ NtUserSetDialogSystemMenu(
 
 // rev
 /**
- * The NtUserSetMenu routine assigns a new menu to the specified window and optionally redraws the
- * window frame.
+ * The NtUserSetMenu routine assigns a new menu to the specified window and optionally redraws the window frame.
  *
  * \param WindowHandle A handle to the window to which the menu is to be assigned.
  * \param MenuHandle An optional handle to the new menu, or NULL to remove the current menu.
@@ -2380,8 +2325,7 @@ NtUserSetMenuDefaultItem(
 
 // rev
 /**
- * The NtUserSetMenuFlagRtoL routine enables right-to-left reading order and layout flags for the
- * specified menu.
+ * The NtUserSetMenuFlagRtoL routine enables right-to-left reading order and layout flags for the specified menu.
  *
  * \param MenuHandle A handle to the menu to configure.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -2431,8 +2375,7 @@ NtUserSetSystemMenu(
 
 // rev
 /**
- * The NtUserThunkedMenuInfo routine retrieves or sets menu information through internal thunking
- * structures.
+ * The NtUserThunkedMenuInfo routine retrieves or sets menu information through internal thunking structures.
  *
  * \param MenuHandle A handle to the menu.
  * \param MenuInfo A pointer to a MENUINFO structure.
@@ -2484,8 +2427,7 @@ NtUserThunkedMenuItemInfo(
  * \param WindowHandle A handle to the window that owns the shortcut menu.
  * \param lptpm Pointer to a TPMPARAMS structure that specifies an area of the screen the menu
  *     should not overlap.
- * \returns If TPM_RETURNCMD is specified, the menu item identifier; otherwise nonzero on success, 0
- *     on failure.
+ * \returns If TPM_RETURNCMD is specified, the menu item identifier; otherwise nonzero on success, 0 on failure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2547,8 +2489,7 @@ SetSystemMenu(
  *
  * \param MenuHandle A handle to the menu to be changed.
  * \param Position The menu item to be deleted, as determined by the Flags parameter.
- * \param Flags Flags indicating how the Position parameter is interpreted (MF_BYCOMMAND or
- *     MF_BYPOSITION).
+ * \param Flags Flags indicating how the Position parameter is interpreted (MF_BYCOMMAND or MF_BYPOSITION).
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -2562,8 +2503,7 @@ NtUserDeleteMenu(
     );
 
 /**
- * The NtUserDestroyMenu routine destroys the specified menu and frees any memory that the menu
- * occupies.
+ * The NtUserDestroyMenu routine destroys the specified menu and frees any memory that the menu occupies.
  *
  * \param MenuHandle A handle to the menu to be destroyed.
  * \returns TRUE if successful, FALSE otherwise.
@@ -2578,7 +2518,6 @@ NtUserDestroyMenu(
 
 /**
  * The NtUserEndMenu routine ends the calling thread's active menu.
- *
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -2615,9 +2554,7 @@ NtUserRemoveMenu(
 /**
  * The NtUserGetOpenClipboardWindow routine retrieves the handle to the window that currently has
  * the clipboard open.
- *
- * \returns HWND Handle to the window that has the clipboard open, or NULL if the clipboard is not
- *     open.
+ * \returns HWND Handle to the window that has the clipboard open, or NULL if the clipboard is not open.
  * \remarks Native entry point for USER32!GetOpenClipboardWindow.
  */
 _Kernel_entry_
@@ -2648,8 +2585,7 @@ NtUserOpenClipboard(
 
 // rev
 /**
- * The CheckProcessForClipboardAccess routine determines whether a process is granted clipboard
- * access.
+ * The CheckProcessForClipboardAccess routine determines whether a process is granted clipboard access.
  *
  * \param ProcessId Process identifier to evaluate.
  * \param GrantedAccess Pointer that receives the granted access mask.
@@ -2702,7 +2638,6 @@ NtUserCheckProcessForClipboardAccess(
 /**
  * The NtUserCountClipboardFormats routine retrieves the number of different data formats currently
  * available on the clipboard.
- *
  * \returns ULONG The number of data formats currently on the clipboard, or 0 on failure.
  */
 _Kernel_entry_
@@ -2715,11 +2650,9 @@ NtUserCountClipboardFormats(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserEnumClipboardFormats routine enumerates the next available clipboard format after the
- * specified one.
+ * The NtUserEnumClipboardFormats routine enumerates the next available clipboard format after the specified one.
  *
- * \param Format Known clipboard format to enumerate after, or 0 to retrieve the first available
- *     format.
+ * \param Format Known clipboard format to enumerate after, or 0 to retrieve the first available format.
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallOneParam(SFI_ENUMCLIPBOARDFORMATS).
  */
@@ -2771,8 +2704,7 @@ NtUserGetClipboardData(
 
 // rev
 /**
- * The NtUserGetClipboardFormatName routine retrieves the name of the specified registered clipboard
- * format.
+ * The NtUserGetClipboardFormatName routine retrieves the name of the specified registered clipboard format.
  *
  * \param Format Registered format identifier to query.
  * \param Buffer Pointer to a wide-character buffer that receives the format name.
@@ -2791,8 +2723,7 @@ NtUserGetClipboardFormatName(
 
 // rev
 /**
- * The NtUserGetClipboardMetadata routine queries metadata attributes for a specific clipboard
- * format.
+ * The NtUserGetClipboardMetadata routine queries metadata attributes for a specific clipboard format.
  *
  * \param Format Clipboard format identifier to query.
  * \param Metadata Pointer to a GETCLIPBMETADATA structure receiving format metadata.
@@ -2811,7 +2742,6 @@ NtUserGetClipboardMetadata(
 // rev
 /**
  * The NtUserGetClipboardOwner routine retrieves the window handle of the current clipboard owner.
- *
  * \returns HWND Handle to the window owning the clipboard, or NULL if unowned.
  */
 _Kernel_entry_
@@ -2826,7 +2756,6 @@ NtUserGetClipboardOwner(
 /**
  * The NtUserGetClipboardSequenceNumber routine retrieves the serial number of the clipboard
  * contents for the current window station.
- *
  * \returns ULONG The current clipboard sequence number.
  */
 _Kernel_entry_
@@ -2839,9 +2768,7 @@ NtUserGetClipboardSequenceNumber(
 
 // rev
 /**
- * The NtUserGetClipboardViewer routine retrieves the handle of the first window in the clipboard
- * viewer chain.
- *
+ * The NtUserGetClipboardViewer routine retrieves the handle of the first window in the clipboard viewer chain.
  * \returns HWND Handle to the first window in the clipboard viewer chain, or NULL.
  */
 _Kernel_entry_
@@ -2873,14 +2800,11 @@ NtUserGetPriorityClipboardFormat(
 
 // rev
 /**
- * The NtUserGetUpdatedClipboardFormats routine retrieves the current list of clipboard formats that
- * have
- * updated.
+ * The NtUserGetUpdatedClipboardFormats routine retrieves the current list of clipboard formats that have updated.
  *
  * \param Formats Output array of ULONG format identifiers; NULL is accepted with zero capacity.
  * \param FormatCount 32-bit capacity in ULONG elements, not a pointer-sized value.
- * \param FormatsOut Pointer to a variable receiving the actual number of formats copied or
- *     required.
+ * \param FormatsOut Pointer to a variable receiving the actual number of formats copied or required.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  * \remarks Useful for identifying changed format IDs without retrieving format contents.
  */
@@ -2928,12 +2852,10 @@ NtUserAddClipboardFormatListener(
 
 // rev
 /**
- * The NtUserChangeClipboardChain routine removes a specified window from the chain of clipboard
- * viewers.
+ * The NtUserChangeClipboardChain routine removes a specified window from the chain of clipboard viewers.
  *
  * \param WindowHandle Handle to the window to be removed from the chain.
- * \param NextWindowHandle Optional handle to the window that follows WindowHandle in the clipboard
- *     viewer chain.
+ * \param NextWindowHandle Optional handle to the window that follows WindowHandle in the clipboard viewer chain.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -2964,12 +2886,9 @@ typedef struct _USER_SET_CLIPBOARD_INFORMATION
  * \param Format The standard or registered clipboard format.
  * \param ClipboardData A handle to the data in the specified format.
  * \param Information Required pointer to the captured 8-byte options record, not a flags scalar.
- * \returns Nonzero Boolean on success, zero on failure; this syscall does not return the data
- *     handle.
- * \remarks USER32 supplies a converted-global-memory indicator and a sequence-update indicator,
- * then returns
- * its original caller handle after Boolean success. GlobalHandle and UpdateSequence are descriptive
- * names.
+ * \returns Nonzero Boolean on success, zero on failure; this syscall does not return the data handle.
+ * \remarks USER32 supplies a converted-global-memory indicator and a sequence-update indicator, then returns
+ * its original caller handle after Boolean success. GlobalHandle and UpdateSequence are descriptive names.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -2999,7 +2918,6 @@ NtUserSetClipboardViewer(
 // rev
 /**
  * The NtUserCloseClipboard routine closes the clipboard.
- *
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -3012,9 +2930,7 @@ NtUserCloseClipboard(
 
 // rev
 /**
- * The NtUserEmptyClipboard routine empties the clipboard and frees handles to data in the
- * clipboard.
- *
+ * The NtUserEmptyClipboard routine empties the clipboard and frees handles to data in the clipboard.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -3064,8 +2980,7 @@ NtUserCreateEmptyCursorObject(
 /**
  * The GetCursorFrameInfo routine queries a cursor/icon frame when CursorHandle is non-NULL. When it
  * is NULL, the client instead calls its
- * resource-loading helper using ResourceName and does not fill Rate/NumSteps through the
- * frame-query path.
+ * resource-loading helper using ResourceName and does not fill Rate/NumSteps through the frame-query path.
  * The resource-loading and animated-frame lifetime contracts are unspecified here.
  *
  * \param CursorHandle The cursor handle argument.
@@ -3073,7 +2988,6 @@ NtUserCreateEmptyCursorObject(
  * \param Step The step argument.
  * \param Rate Receives the rate.
  * \param NumSteps Receives the num steps.
- *
  * \returns The HICON result described above.
  */
 NTSYSAPI
@@ -3106,9 +3020,7 @@ InternalGetWindowIcon(
 
 // rev
 /**
- * The MITGetCursorUpdateHandle routine retrieves an event handle signaled on Modern Input Transport
- * cursor updates.
- *
+ * The MITGetCursorUpdateHandle routine retrieves an event handle signaled on Modern Input Transport cursor updates.
  * \returns HANDLE The cursor update event handle.
  * \remarks Forwards to the NtMITGetCursorUpdateHandle system call.
  */
@@ -3164,8 +3076,7 @@ NtUserGetClassIcoCur(
  * The NtUserGetClipCursor routine retrieves the screen coordinates of the rectangular area to which
  * the cursor is confined.
  *
- * \param lpRect Pointer to a RECT structure that receives the screen coordinates of the confining
- *     rectangle.
+ * \param lpRect Pointer to a RECT structure that receives the screen coordinates of the confining rectangle.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -3178,7 +3089,6 @@ NtUserGetClipCursor(
 
 /**
  * The NtUserGetCursor routine retrieves a handle to the current cursor.
- *
  * \returns A handle to the current cursor, or NULL if there is no cursor.
  */
 _Kernel_entry_
@@ -3191,8 +3101,7 @@ NtUserGetCursor(
 
 // rev
 /**
- * The NtUserGetCursorFrameInfo routine retrieves animation rate and frame count for an animated
- * cursor.
+ * The NtUserGetCursorFrameInfo routine retrieves animation rate and frame count for an animated cursor.
  *
  * \param CursorHandle Handle to the animated cursor (ACON).
  * \param Step Frame step index to query.
@@ -3313,8 +3222,7 @@ NtUserGetIconSize(
 
 // rev
 /**
- * The NtUserGetRequiredCursorSizes routine queries the required cursor bitmap sizes for the current
- * display metrics.
+ * The NtUserGetRequiredCursorSizes routine queries the required cursor bitmap sizes for the current display metrics.
  *
  * \param CursorHandle Handle to the cursor or icon to query.
  * \param CursorSizeInfo Pointer to a structure receiving the required cursor dimensions.
@@ -3350,8 +3258,7 @@ NtUserInternalGetWindowIcon(
 /**
  * The DrawCaptionTempA routine draws a caption from an optional ANSI string. The client converts
  * text into a counted Unicode descriptor
- * before calling NtUserDrawCaptionTemp and releases any temporary heap storage. This is not a
- * direct raw-string
+ * before calling NtUserDrawCaptionTemp and releases any temporary heap storage. This is not a direct raw-string
  * syscall. Conversion failure returns zero.
  *
  * \param WindowHandle Handle to the window.
@@ -3361,7 +3268,6 @@ NtUserInternalGetWindowIcon(
  * \param IconHandle The icon handle argument.
  * \param Text The text argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -3381,8 +3287,7 @@ DrawCaptionTempA(
 /**
  * The DrawCaptionTempW routine draws a caption through NtUserDrawCaptionTemp after constructing a
  * counted Unicode descriptor for the
- * optional wide text. The native target does not receive the public raw PWSTR directly. Text and
- * graphics
+ * optional wide text. The native target does not receive the public raw PWSTR directly. Text and graphics
  * behavior depends on the worker and device context.
  *
  * \param WindowHandle Handle to the window.
@@ -3392,7 +3297,6 @@ DrawCaptionTempA(
  * \param IconHandle The icon handle argument.
  * \param Text The text argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -3427,17 +3331,14 @@ NtSetCursorInputSpace(
 /**
  * The NtSetShellCursorState routine sets shell cursor orientation and clipping rectangles.
  * Orientation is a 32-bit scalar in 1..4, not ULONG64.
- * The second argument is a read-only RECT array, not a string; each element is 16 bytes. A zero
- * count requires
+ * The second argument is a read-only RECT array, not a string; each element is 16 bytes. A zero count requires
  * NULL, and the allocation path rejects total byte length at or above 0x2710000. Native x64 capture
- * checks 4-byte alignment; WoW64 forwards three DWORD slots. Restricted shell/capability checks
- * apply. Static-
+ * checks 4-byte alignment; WoW64 forwards three ULONG slots. Restricted shell/capability checks apply. Static-
  * only; no cursor state is changed.
  *
  * \param Orientation The orientation argument.
  * \param Rectangles The rectangles argument.
  * \param RectangleCount The rectangle count argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -3452,8 +3353,7 @@ NtSetShellCursorState(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserArrangeIconicWindows routine arranges the minimized child windows of the specified
- * window.
+ * The NtUserArrangeIconicWindows routine arranges the minimized child windows of the specified window.
  *
  * \param WindowHandle Handle to the target window.
  * \returns The routine-specific result value.
@@ -3537,8 +3437,7 @@ NtUserDrawCaptionTemp(
 
 // rev
 /**
- * The NtUserDrawIconEx routine draws an icon or cursor into the specified device context with
- * extended options.
+ * The NtUserDrawIconEx routine draws an icon or cursor into the specified device context with extended options.
  *
  * \param Hdc Handle to the destination device context.
  * \param X Horizontal position of the upper-left corner of the icon.
@@ -3605,8 +3504,7 @@ NtUserEnableSoftwareCursorForScreenCapture(
 
 // rev
 /**
- * The NtUserFrostCrashedWindow routine replaces an unresponsive or crashed window with a
- * ghost/frost window.
+ * The NtUserFrostCrashedWindow routine replaces an unresponsive or crashed window with a ghost/frost window.
  *
  * \param WindowHandle Handle to the crashed target window.
  * \param FrostWindowHandle Optional handle to the frost/ghost window.
@@ -3624,7 +3522,6 @@ NtUserFrostCrashedWindow(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserHideCursorNoCapture routine hides the cursor without affecting mouse capture.
- *
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_HIDECURSORNOCAPTURE).
  */
@@ -3659,7 +3556,6 @@ NtUserLinkDpiCursor(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserLoadCursorsAndIcons routine loads the standard system cursors and icons.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_LOADCURSORSANDICONS).
  */
@@ -3694,10 +3590,8 @@ NtUserLockCursor(
  * The NtUserSetClassLongPtr routine replaces the specified pointer-sized value at the specified
  * offset into the extra class memory or class structure.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
- * \param Index The zero-based offset to the value to be replaced (e.g. GCLP_WNDPROC, GCLP_MENUNAME,
- *     GCLP_HICON).
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
+ * \param Index The zero-based offset to the value to be replaced (e.g. GCLP_WNDPROC, GCLP_MENUNAME, GCLP_HICON).
  * \param Value The replacement value.
  * \param Ansi Nonzero if handling ANSI window classes; zero for Unicode.
  * \returns The previous value of the specified offset, or zero on failure.
@@ -3731,8 +3625,7 @@ NtUserSetCursor(
 
 // rev
 /**
- * The NtUserSetCursorIconData routine sets the internal frame data and attributes for an icon or
- * cursor handle.
+ * The NtUserSetCursorIconData routine sets the internal frame data and attributes for an icon or cursor handle.
  *
  * \param CursorHandle A handle to the icon or cursor.
  * \param ModuleName Source-module counted-string descriptor.
@@ -3865,8 +3758,7 @@ PrivateExtractIconExA(
 
 // rev
 /**
- * The PrivateExtractIconExW routine extracts icons of multiple sizes from a file (private,
- * Unicode).
+ * The PrivateExtractIconExW routine extracts icons of multiple sizes from a file (private, Unicode).
  *
  * \param FileName Pointer to the null-terminated icon or executable file path.
  * \param IconIndex Zero-based index of the initial icon to extract.
@@ -4010,8 +3902,7 @@ typedef FNUNREGISTERMESSAGEPUMPHOOK* PFNUNREGISTERMESSAGEPUMPHOOK;
 
 // rev
 /**
- * The USERAPIHOOKINFO structure specifies the DLL and initialization export names for
- * RegisterUserApiHook.
+ * The USERAPIHOOKINFO structure specifies the DLL and initialization export names for RegisterUserApiHook.
  *
  * Size must be sizeof(USERAPIHOOKINFO): 0x28 on x64 or 0x14 on x86.
  * All names, including export names, are Unicode strings.
@@ -4028,12 +3919,9 @@ typedef struct _USERAPIHOOKINFO
 
 // rev
 /**
- * The NtUserRegisterDManipHook routine registers DirectManipulation hooks within the window
- * manager.
- *
+ * The NtUserRegisterDManipHook routine registers DirectManipulation hooks within the window manager.
  * \returns LOGICAL Non-zero on success, zero otherwise.
- * \remarks Takes no arguments on the x64 and WoW64 paths (x86 ret 0). It changes current-thread
- * DirectManipulation state.
+ * \remarks Takes no arguments on the x64 and WoW64 paths (x86 ret 0). It changes current-thread DirectManipulation state.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -4063,8 +3951,7 @@ NtUserRegisterShellHookWindow(
 
 // rev
 /**
- * The NtUserRegisterUserApiHook routine registers user API hook DLLs and their initialization
- * exports.
+ * The NtUserRegisterUserApiHook routine registers user API hook DLLs and their initialization exports.
  *
  * \param DllName1 Name of the first hook DLL.
  * \param FunctionName1 Name of the initialization export in the first DLL, as a Unicode string.
@@ -4135,10 +4022,8 @@ NtUserSetWindowsHookEx(
 /**
  * The RegisterDManipHook routine registers the current-thread direct-manipulation hook through
  * NtUserRegisterDManipHook. The USER32 export is a
- * direct thunk; x86 consumes zero argument bytes, not a hook procedure and flags. The native entry
- * returns a
+ * direct thunk; x86 consumes zero argument bytes, not a hook procedure and flags. The native entry returns a
  * 32-bit logical result.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -4213,8 +4098,7 @@ SetWindowsHookExAW(
  * DirectManipulation hook initialization.
  *
  * \param ModuleName Pointer to a wide-character buffer of 260 characters receiving the module name.
- * \param FunctionName Pointer to a wide-character buffer of 260 characters receiving the function
- *     export name.
+ * \param FunctionName Pointer to a wide-character buffer of 260 characters receiving the function export name.
  * \returns TRUE if successful; otherwise, FALSE.
  */
 _Kernel_entry_
@@ -4229,7 +4113,6 @@ NtUserGetDManipHookInitFunction(
 // rev
 /**
  * The InitDManipHook routine initializes the Direct Manipulation hook.
- *
  * \returns BOOL TRUE on success, FALSE otherwise.
  */
 NTSYSAPI
@@ -4296,7 +4179,6 @@ NtUserDeregisterShellHookWindow(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserDoInitMessagePumpHook routine installs the message-pump hook for the calling thread.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DOINITMESSAGEPUMPHOOK).
  */
@@ -4313,7 +4195,6 @@ NtUserDoInitMessagePumpHook(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserDoUninitMessagePumpHook routine removes the message-pump hook for the calling thread.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DOUNINITMESSAGEPUMPHOOK).
  */
@@ -4330,7 +4211,6 @@ NtUserDoUninitMessagePumpHook(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserLoadUserApiHook routine loads the registered user API hook (uxtheme) provider.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_LOADUSERAPIHOOK).
  */
@@ -4377,8 +4257,7 @@ NtUserRedrawFrameAndHook(
  * \param WinEventProc Pointer to the event hook function.
  * \param ProcessId Specifies the ID of the process from which the hook function receives events.
  * \param ThreadId Specifies the ID of the thread from which the hook function receives events.
- * \param Flags Flag values that specify the location of the hook function and of the events to be
- *     skipped.
+ * \param Flags Flag values that specify the location of the hook function and of the events to be skipped.
  * \returns An event hook handle that identifies this event hook instance, or NULL on failure.
  */
 _Kernel_entry_
@@ -4398,8 +4277,7 @@ NtUserSetWinEventHook(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserUnhookWindowsHook routine removes a Windows hook installed with the specified hook
- * procedure.
+ * The NtUserUnhookWindowsHook routine removes a Windows hook installed with the specified hook procedure.
  *
  * \param FilterType The filter type.
  * \param FilterProc The filter proc.
@@ -4419,8 +4297,7 @@ NtUserUnhookWindowsHook(
 
 // rev
 /**
- * The NtUserUnhookWindowsHookEx routine removes a hook procedure installed in a hook chain by
- * NtUserSetWindowsHookEx.
+ * The NtUserUnhookWindowsHookEx routine removes a hook procedure installed in a hook chain by NtUserSetWindowsHookEx.
  *
  * \param HookHandle A handle to the hook to be removed.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -4436,7 +4313,6 @@ NtUserUnhookWindowsHookEx(
 // rev
 /**
  * The NtUserUnregisterUserApiHook routine unregisters user-mode API hook callbacks within win32k.
- *
  * \returns BOOL TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -4450,7 +4326,6 @@ NtUserUnregisterUserApiHook(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The UnregisterMessagePumpHook routine unregisters a previously registered message pump hook.
- *
  * \returns TRUE if successful, FALSE otherwise.
  */
 NTSYSAPI
@@ -4464,7 +4339,6 @@ UnregisterMessagePumpHook(
 // rev
 /**
  * The UnregisterUserApiHook routine removes an installed user-mode API hook module.
- *
  * \returns BOOL TRUE if successfully unregistered, FALSE otherwise.
  * \remarks Forwards to the NtUserUnregisterUserApiHook system call.
  */
@@ -4497,8 +4371,7 @@ NtUserValidateTimerCallback(
 
 // rev
 /**
- * The NtUserSetSystemTimer routine creates or updates a system-level timer with a specified timeout
- * value.
+ * The NtUserSetSystemTimer routine creates or updates a system-level timer with a specified timeout value.
  *
  * \param WindowHandle A handle to the window associated with the timer.
  * \param TimerId A nonzero timer identifier.
@@ -4516,8 +4389,7 @@ NtUserSetSystemTimer(
     );
 
 /**
- * The NtUserSetTimer routine creates a timer with the specified time-out value and optional
- * tolerance delay.
+ * The NtUserSetTimer routine creates a timer with the specified time-out value and optional tolerance delay.
  *
  * \param WindowHandle A handle to the window associated with the timer.
  * \param IDEvent A nonzero timer identifier.
@@ -4577,14 +4449,12 @@ NtUserKillTimer(
 // rev
 /**
  * The ABI_Get_currentMonitorTopologyId routine has the following behavior:
- * Internal shared-server-state accessor exported by win32u x64 but absent from its x86 PE export
- * table.
+ * Internal shared-server-state accessor exported by win32u x64 but absent from its x86 PE export table.
  * The body directly reads 4 bytes at ServerInfo + 7500; it does not validate the supplied
  * pointer or perform a syscall. The opaque SERVERINFO layout and lifetime remain unspecified. Do
  * not fabricate or dereference a shared object without its layout and lifetime contract.
  *
  * \param ServerInfo Pointer to the server information.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -4597,14 +4467,12 @@ ABI_Get_currentMonitorTopologyId(
 // rev
 /**
  * The ABI_Get_ForegroundWindow routine has the following behavior:
- * Internal shared-server-state accessor exported by win32u x64 but absent from its x86 PE export
- * table.
+ * Internal shared-server-state accessor exported by win32u x64 but absent from its x86 PE export table.
  * The body directly reads 8 bytes at ServerInfo + 7648; it does not validate the supplied
  * pointer or perform a syscall. The opaque SERVERINFO layout and lifetime remain unspecified. Do
  * not fabricate or dereference a shared object without its layout and lifetime contract.
  *
  * \param ServerInfo Pointer to the server information.
- *
  * \returns The HWND result described above.
  */
 NTSYSAPI
@@ -4618,12 +4486,8 @@ ABI_Get_ForegroundWindow(
 /**
  * The DwmGetRemoteSessionOcclusionEvent routine obtains the remote-session occlusion event for DWM
  * through a zero-argument native thunk (x86 ret 0). The
- * native entry requires the current process to be DWM and requests event access 0x1F0003; non-DWM
- * calls
- * return NULL and set ERROR_ACCESS_DENIED (5). Successful output is an NT event handle, not an
- * output- buffer
- * write.
- *
+ * native entry requires the current process to be DWM and requests event access 0x1F0003; non-DWM calls
+ * return NULL and set ERROR_ACCESS_DENIED (5). Successful output is an NT event handle, not an output- buffer write.
  * \returns The HANDLE result described above.
  */
 NTSYSAPI
@@ -4635,8 +4499,7 @@ DwmGetRemoteSessionOcclusionEvent(
 
 // rev
 /**
- * The DwmGetRemoteSessionOcclusionState routine retrieves the current remote-session occlusion
- * state.
+ * The DwmGetRemoteSessionOcclusionState routine retrieves the current remote-session occlusion state.
  *
  * \param MonitorHandle Handle to the monitor to query.
  * \param OcclusionState Pointer that receives the occlusion state.
@@ -4654,15 +4517,13 @@ DwmGetRemoteSessionOcclusionState(
 /**
  * The GetDpiForMonitorInternal routine returns Boolean success for monitor-DPI retrieval, not a
  * pointer-sized value. DpiType 0, 1 or 2 is accepted
- * by the client; other values return FALSE and ERROR_BAD_ARGUMENTS (160) before the syscall,
- * preserving
+ * by the client; other values return FALSE and ERROR_BAD_ARGUMENTS (160) before the syscall, preserving
  * outputs. Native success fills two 4-byte DPI outputs.
  *
  * \param MonitorHandle The monitor handle argument.
  * \param DpiType The dpi type argument.
  * \param DpiX Receives the dpi x.
  * \param DpiY Receives the dpi y.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -4678,15 +4539,12 @@ GetDpiForMonitorInternal(
 // rev
 /**
  * The GetNumberOfPhysicalMonitors routine has the following behavior:
- * GDI32 directly forwards to NtGdiGetNumberOfPhysicalMonitors. It takes an input monitor handle and
- * a
- * required count output (x86 ret 8), not VOID, and returns a 32-bit status. The kernel path
- * acquires
+ * GDI32 directly forwards to NtGdiGetNumberOfPhysicalMonitors. It takes an input monitor handle and a
+ * required count output (x86 ret 8), not VOID, and returns a 32-bit status. The kernel path acquires
  * display-state synchronization and asks the driver for a suggested array size.
  *
  * \param MonitorHandle The monitor handle argument.
  * \param NumberOfPhysicalMonitors Receives the number of physical monitors.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -4701,14 +4559,12 @@ GetNumberOfPhysicalMonitors(
 /**
  * The GetPhysicalMonitorDescription routine retrieves a physical-monitor description.
  * DescriptionLength is a WCHAR count, not a byte count. The native
- * entry requires exactly 128 and, on success, copies 256 bytes; other lengths return
- * STATUS_INVALID_PARAMETER
+ * entry requires exactly 128 and, on success, copies 256 bytes; other lengths return STATUS_INVALID_PARAMETER
  * (0xC000000D) before querying the monitor. The GDI32 wrapper is a direct 3-argument thunk.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param DescriptionLength The description length argument.
  * \param Description Receives the description.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -4723,17 +4579,14 @@ GetPhysicalMonitorDescription(
 // rev
 /**
  * The GetPhysicalMonitors routine has the following behavior:
- * GDI32 directly forwards the four-argument NtGdiGetPhysicalMonitors service (x86 ret 16), not
- * VOID. Returns
- * a 32-bit status. Output payloads, capacity units, and ownership follow a private driver contract.
- * This
+ * GDI32 directly forwards the four-argument NtGdiGetPhysicalMonitors service (x86 ret 16), not VOID. Returns
+ * a 32-bit status. Output payloads, capacity units, and ownership follow a private driver contract. This
  * function can create physical-monitor objects.
  *
  * \param MonitorHandle The monitor handle argument.
  * \param ArraySize The array size argument.
  * \param PhysicalMonitorArray Receives the physical monitor array.
  * \param PhysicalMonitorHandles Receives the physical monitor handles.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -4784,14 +4637,12 @@ NtGdiGetNumberOfPhysicalMonitors(
 /**
  * The NtGdiGetPhysicalMonitorDescription routine retrieves a physical-monitor description.
  * DescriptionLength is a WCHAR count, not a byte count. The native
- * entry requires exactly 128 and, on success, copies 256 bytes; other lengths return
- * STATUS_INVALID_PARAMETER
+ * entry requires exactly 128 and, on success, copies 256 bytes; other lengths return STATUS_INVALID_PARAMETER
  * (0xC000000D) before querying the monitor. The GDI32 wrapper is a direct 3-argument thunk.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param DescriptionLength The description length argument.
  * \param Description Receives the description.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -4864,8 +4715,7 @@ NtUserDisplayConfigGetDeviceInfo(
 
 // rev
 /**
- * The NtUserEnumDisplayDevices routine enumerates display adapters or monitors in the current
- * session.
+ * The NtUserEnumDisplayDevices routine enumerates display adapters or monitors in the current session.
  * \param DeviceName Optional adapter name; NULL enumerates adapters.
  * \param DeviceIndex Zero-based device index.
  * \param DisplayDevice Unicode device information. Initialize cb to sizeof(DISPLAY_DEVICEW).
@@ -4892,8 +4742,7 @@ NtUserEnumDisplayDevices(
  * \param hdc A handle to a display device context, or NULL.
  * \param lprcClip Pointer to a RECT structure specifying a clipping rectangle, or NULL.
  * \param lpfnEnum Pointer to an application-defined callback function.
- * \param dwData Application-defined data that NtUserEnumDisplayMonitors passes to the callback
- *     function.
+ * \param dwData Application-defined data that NtUserEnumDisplayMonitors passes to the callback function.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -4909,8 +4758,7 @@ NtUserEnumDisplayMonitors(
 
 // rev
 /**
- * The NtUserEnumDisplaySettings routine retrieves information about one of the graphics modes for a
- * display device.
+ * The NtUserEnumDisplaySettings routine retrieves information about one of the graphics modes for a display device.
  *
  * \param DeviceName Pointer to a UNICODE_STRING containing the display device name, or NULL.
  * \param ModeNum Graphics mode index (e.g. ENUM_CURRENT_SETTINGS, ENUM_REGISTRY_SETTINGS).
@@ -4950,8 +4798,7 @@ NtUserGetDisplayAutoRotationPreferences(
  * preferences set by a process.
  *
  * \param ProcessId Unique identifier of the process whose preferences are queried.
- * \param Preferences Pointer to a variable receiving orientation preference flags
- *     (ORIENTATION_PREFERENCE).
+ * \param Preferences Pointer to a variable receiving orientation preference flags (ORIENTATION_PREFERENCE).
  * \param Param3 Pointer to a variable receiving additional rotation control flags.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
@@ -4967,8 +4814,7 @@ NtUserGetDisplayAutoRotationPreferencesByProcessId(
 
 // rev
 /**
- * The NtUserGetDisplayConfigBufferSizes routine retrieves the size of the buffers required by
- * QueryDisplayConfig.
+ * The NtUserGetDisplayConfigBufferSizes routine retrieves the size of the buffers required by QueryDisplayConfig.
  *
  * \param Flags Query type flags (QDC_ALL_PATHS, QDC_ONLY_ACTIVE_PATHS, QDC_DATABASE_CURRENT).
  * \param NumElements Pointer to a variable receiving the number of path elements required.
@@ -5028,12 +4874,10 @@ NtUserGetOwnerTransformedMonitorRect(
 
 // rev
 /**
- * The NtUserGetWindowDisplayAffinity routine retrieves the current display affinity setting of any
- * window.
+ * The NtUserGetWindowDisplayAffinity routine retrieves the current display affinity setting of any window.
  *
  * \param HWnd Handle to the window to query.
- * \param PdwAffinity Pointer to a variable receiving the display affinity flags (e.g. WDA_NONE,
- *     WDA_MONITOR, WDA_EXCLUDEFROMCAPTURE).
+ * \param PdwAffinity Pointer to a variable receiving the display affinity flags (e.g. WDA_NONE, WDA_MONITOR, WDA_EXCLUDEFROMCAPTURE).
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetWindowDisplayAffinity.
  */
@@ -5190,12 +5034,10 @@ NtUserDisplayConfigSetDeviceInfo(
 
 // rev
 /**
- * The NtUserFunctionalizeDisplayConfig routine functionalizes an internal display-path
- * configuration.
+ * The NtUserFunctionalizeDisplayConfig routine functionalizes an internal display-path configuration.
  * \param Flags Internal flags. Only bits 0x1, 0x2 and 0x4 are accepted.
  * \param PathCount Input array capacity, from 1 through 1024 records, and returned path count.
- * \param Paths Array of 216-byte DISPLAYCONFIG_PATH_INFO_INTERNAL records, not public
- *     DISPLAYCONFIG_PATH_INFO.
+ * \param Paths Array of 216-byte DISPLAYCONFIG_PATH_INFO_INTERNAL records, not public DISPLAYCONFIG_PATH_INFO.
  * \param DisplayState Optional 28-byte display-state snapshot used to detect stale configuration.
  * \param BrokerHandle Optional handle used to resolve broker-provided display paths.
  * \param Result Receives the first ULONG of the internal functionalization result.
@@ -5219,8 +5061,7 @@ NtUserFunctionalizeDisplayConfig(
 
 // rev
 /**
- * The NtUserInheritWindowMonitor routine configures a window to inherit monitor association from
- * another window.
+ * The NtUserInheritWindowMonitor routine configures a window to inherit monitor association from another window.
  *
  * \param Hwnd Handle to the target window inheriting monitor association.
  * \param HwndInherit Optional handle to the window whose monitor is inherited, or NULL to reset.
@@ -5361,9 +5202,7 @@ NtUserSetDisplayAutoRotationPreferences(
 
 // rev
 /**
- * The NtUserSetDisplayConfig routine modifies the display topology, source modes, and target modes
- * for
- * display adapters.
+ * The NtUserSetDisplayConfig routine modifies the display topology, source modes, and target modes for display adapters.
  *
  * \param PathArrayElements The number of elements information array.
  * \param PathArray A pointer to an array of display path structures.
@@ -5422,8 +5261,7 @@ NtUserSetMonitorWorkArea(
 
 // rev
 /**
- * The NtUserSetWindowDisplayAffinity routine specifies where the window's contents can be displayed
- * or captured.
+ * The NtUserSetWindowDisplayAffinity routine specifies where the window's contents can be displayed or captured.
  *
  * \param HWnd A handle to the window to configure.
  * \param DwAffinity The display affinity flag (e.g. WDA_NONE, WDA_MONITOR, WDA_EXCLUDEFROMCAPTURE).
@@ -5459,8 +5297,7 @@ NtUserSuppressWindowDisplayChange(
 
 // rev
 /**
- * The NtUserTransformPoint routine transforms point coordinates across differing DPI contexts or
- * monitor spaces.
+ * The NtUserTransformPoint routine transforms point coordinates across differing DPI contexts or monitor spaces.
  *
  * \param Point An in-out pointer to a POINT structure containing coordinates to transform.
  * \param FromDpiContext The source DPI context.
@@ -5481,8 +5318,7 @@ NtUserTransformPoint(
 
 // rev
 /**
- * The NtUserTransformRect routine transforms rectangle bounds across differing DPI contexts or
- * monitor spaces.
+ * The NtUserTransformRect routine transforms rectangle bounds across differing DPI contexts or monitor spaces.
  *
  * \param Rect An in-out pointer to a RECT structure containing rectangle bounds to transform.
  * \param FromDpiContext The source DPI context.
@@ -5503,8 +5339,7 @@ NtUserTransformRect(
 
 // rev
 /**
- * The NtUserUpdateInstance routine updates display monitor instance registration and topology
- * state.
+ * The NtUserUpdateInstance routine updates display monitor instance registration and topology state.
  *
  * \param MonitorHandle A handle to the display monitor.
  * \param Result An in-out pointer receiving status results.
@@ -5542,8 +5377,7 @@ PaintMonitor(
 
 // rev
 /**
- * The SuppressWindowDisplayChange routine suppresses or restores display-change messages for a
- * window.
+ * The SuppressWindowDisplayChange routine suppresses or restores display-change messages for a window.
  *
  * \param WindowHandle Handle to the target window.
  * \param Suppress Non-zero to suppress display change messages; zero to restore.
@@ -5658,8 +5492,7 @@ IMPQueryIMEW(
 
 // rev
 /**
- * The NtUserBuildHimcList routine retrieves the list of Input Method Context (HIMC) handles for a
- * thread.
+ * The NtUserBuildHimcList routine retrieves the list of Input Method Context (HIMC) handles for a thread.
  *
  * \param ThreadId Thread whose input contexts are enumerated; 0 selects the current thread, and
  *     ULONG_MAX selects the process-wide list.
@@ -5718,7 +5551,6 @@ NtUserGetAppImeLevel(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserGetIMEShowStatus routine retrieves the global IME show-status flag.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETIMESHOWSTATUS).
  */
@@ -5735,15 +5567,12 @@ NtUserGetIMEShowStatus(
 
 // rev
 /**
- * The NtUserGetImeHotKey routine retrieves the hot key configuration for an Input Method Editor
- * (IME).
+ * The NtUserGetImeHotKey routine retrieves the hot key configuration for an Input Method Editor (IME).
  *
  * \param HotKeyId Hot key identifier (IME_JHOTKEY_*).
- * \param Modifiers Pointer to a variable receiving hot key modifier flags (e.g. MOD_ALT,
- *     MOD_CONTROL).
+ * \param Modifiers Pointer to a variable receiving hot key modifier flags (e.g. MOD_ALT, MOD_CONTROL).
  * \param VirtualKey Pointer to a variable receiving the virtual-key code.
- * \param KeyboardLayout Optional pointer to a variable receiving the associated keyboard layout
- *     handle (HKL).
+ * \param KeyboardLayout Optional pointer to a variable receiving the associated keyboard layout handle (HKL).
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -5779,8 +5608,7 @@ NtUserGetImeInfoEx(
 
 // rev
 /**
- * The NtUserQueryInputContext routine queries internal attributes of an Input Method Context
- * (HIMC).
+ * The NtUserQueryInputContext routine queries internal attributes of an Input Method Context (HIMC).
  *
  * \param InputContext Handle to the input context (HIMC) to query.
  * \param InfoType Information class or property to query.
@@ -5829,12 +5657,10 @@ IMPSetIMEW(
 
 // rev
 /**
- * The NtUserAssociateInputContext routine associates an input context (HIMC) with the specified
- * window.
+ * The NtUserAssociateInputContext routine associates an input context (HIMC) with the specified window.
  *
  * \param WindowHandle Handle to the window to receive the input context association.
- * \param InputContext Optional handle to the input context (HIMC) to associate, or NULL to
- *     disassociate.
+ * \param InputContext Optional handle to the input context (HIMC) to associate, or NULL to disassociate.
  * \param Flags Association control flags (e.g. IAP_ALLWINDOWS).
  * \returns ULONG One of the IACE_* association status codes.
  */
@@ -5870,8 +5696,7 @@ NtUserBroadcastImeShowStatusChange(
 
 // rev
 /**
- * The NtUserDisableThreadIme routine disables the Input Method Editor (IME) for the specified
- * thread.
+ * The NtUserDisableThreadIme routine disables the Input Method Editor (IME) for the specified thread.
  *
  * \param ThreadId Unique identifier of the target thread, or 0 for the calling thread.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -5906,8 +5731,7 @@ NtUserNlsKbdSendIMENotification(
 
 // rev
 /**
- * The NtUserNotifyIMEStatus routine notifies win32k of changes in Input Method Editor (IME) status
- * or mode.
+ * The NtUserNotifyIMEStatus routine notifies win32k of changes in Input Method Editor (IME) status or mode.
  *
  * \param WindowHandle Handle to the window associated with the IME.
  * \param Status IME status code or open mode.
@@ -5968,8 +5792,7 @@ NtUserSetImeHotKey(
 
 // rev
 /**
- * The NtUserSetImeInfoEx routine registers extended Input Method Editor (IME) information and
- * layout associations.
+ * The NtUserSetImeInfoEx routine registers extended Input Method Editor (IME) information and layout associations.
  *
  * \param ImeInfoEx A pointer to an IMEINFOEX structure containing extended IME data.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -5984,8 +5807,7 @@ NtUserSetImeInfoEx(
 
 // rev
 /**
- * The NtUserSetImeOwnerWindow routine assigns an owner window for the default or active IME
- * composition window.
+ * The NtUserSetImeOwnerWindow routine assigns an owner window for the default or active IME composition window.
  *
  * \param WindowHandle A handle to the window utilizing IME input.
  * \param OwnerWindowHandle An optional handle to the IME owner window.
@@ -6070,8 +5892,7 @@ WINNLSEnableIME(
 
 // rev
 /**
- * The NtUserDestroyInputContext routine destroys an Input Method Context (HIMC) and frees its
- * resources.
+ * The NtUserDestroyInputContext routine destroys an Input Method Context (HIMC) and frees its resources.
  *
  * \param InputContext Handle to the input context (HIMC) to destroy.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -6115,7 +5936,6 @@ typedef enum _THREAD_QUEUE_MERGE_FLAGS
  * not a completely side-effect-free shared-memory getter.
  *
  * \param ThreadId Thread identifier.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -6180,25 +6000,18 @@ NtUserThreadMessageQueueAttached(
 // rev
 /**
  * The GdiGetSpoolMessage routine has the following behavior:
- * Compatibility spool-message entry with four ABI slots (x86 ret 16). The session dispatcher
- * narrows
- * MessageLength and OutputLength to 32 bits; context/output-address slots remain pointer-width.
- * Historical
- * payload types and buffer SAL are not established by this stub. The native target returns zero.
- * WoW64
- * instead logs an unsupported thunk and raises STATUS_NOT_IMPLEMENTED (0xC0000002); the x86 entry
- * returns
+ * Compatibility spool-message entry with four ABI slots (x86 ret 16). The session dispatcher narrows
+ * MessageLength and OutputLength to 32 bits; context/output-address slots remain pointer-width. Historical
+ * payload types and buffer SAL are not established by this stub. The native target returns zero. WoW64
+ * instead logs an unsupported thunk and raises STATUS_NOT_IMPLEMENTED (0xC0000002); the x86 entry returns
  * zero and sets error 1, while the x64 entry preserves last error. Zero must not be interpreted as
  * proof of a
- * supported spool operation. Only four-zero probes were run; no printing or spooler payload
- * operation was
- * performed.
+ * supported spool operation. Only four-zero probes were run; no printing or spooler payload operation was performed.
  *
  * \param SpoolContext The spool context argument.
  * \param MessageLength The message length argument.
  * \param OutputBufferAddress The output buffer address argument.
  * \param OutputLength The output length argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -6213,8 +6026,7 @@ GdiGetSpoolMessage(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The GetSendMessageReceiver routine retrieves the window handle receiving a sent message on the
- * specified thread.
+ * The GetSendMessageReceiver routine retrieves the window handle receiving a sent message on the specified thread.
  *
  * \param ThreadId The thread identifier.
  * \returns The window handle receiving the message, or NULL if none.
@@ -6230,25 +6042,18 @@ GetSendMessageReceiver(
 // rev
 /**
  * The NtGdiGetSpoolMessage routine has the following behavior:
- * Compatibility spool-message entry with four ABI slots (x86 ret 16). The session dispatcher
- * narrows
- * MessageLength and OutputLength to 32 bits; context/output-address slots remain pointer-width.
- * Historical
- * payload types and buffer SAL are not established by this stub. The native target returns zero.
- * WoW64
- * instead logs an unsupported thunk and raises STATUS_NOT_IMPLEMENTED (0xC0000002); the x86 entry
- * returns
+ * Compatibility spool-message entry with four ABI slots (x86 ret 16). The session dispatcher narrows
+ * MessageLength and OutputLength to 32 bits; context/output-address slots remain pointer-width. Historical
+ * payload types and buffer SAL are not established by this stub. The native target returns zero. WoW64
+ * instead logs an unsupported thunk and raises STATUS_NOT_IMPLEMENTED (0xC0000002); the x86 entry returns
  * zero and sets error 1, while the x64 entry preserves last error. Zero must not be interpreted as
  * proof of a
- * supported spool operation. Only four-zero probes were run; no printing or spooler payload
- * operation was
- * performed.
+ * supported spool operation. Only four-zero probes were run; no printing or spooler payload operation was performed.
  *
  * \param SpoolContext The spool context argument.
  * \param MessageLength The message length argument.
  * \param OutputBufferAddress The output buffer address argument.
  * \param OutputLength The output length argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -6265,8 +6070,7 @@ NtGdiGetSpoolMessage(
 /**
  * The NtUserGetCurrentInputMessageSource routine retrieves the source of the input message.
  *
- * \param InputMessageSource Pointer to an INPUT_MESSAGE_SOURCE structure that receives message
- *     source information.
+ * \param InputMessageSource Pointer to an INPUT_MESSAGE_SOURCE structure that receives message source information.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -6298,8 +6102,7 @@ NtUserGetLatestInputMessageData(
  * The NtUserGetMessage routine retrieves a message from the calling thread's message queue.
  *
  * \param Message Pointer to an MSG structure that receives message information.
- * \param WindowHandle Optional handle to the window whose messages are to be retrieved, or NULL for
- *     all thread windows.
+ * \param WindowHandle Optional handle to the window whose messages are to be retrieved, or NULL for all thread windows.
  * \param MsgFilterMin The integer value of the lowest message value to be retrieved.
  * \param MsgFilterMax The integer value of the highest message value to be retrieved.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -6317,9 +6120,7 @@ NtUserGetMessage(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetMessagePos routine retrieves the cursor position for the last message retrieved from
- * the queue.
- *
+ * The NtUserGetMessagePos routine retrieves the cursor position for the last message retrieved from the queue.
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETMESSAGEPOS).
  */
@@ -6339,7 +6140,6 @@ NtUserGetMessagePos(
 /**
  * The NtUserGetQueueIocp routine retrieves the I/O completion port associated with the calling
  * thread's message queue.
- *
  * \returns Handle to the queue I/O completion port (tagTHREADINFO::pIocpPort), or NULL on failure.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETQUEUEIOCP).
  */
@@ -6355,8 +6155,7 @@ NtUserGetQueueIocp(
 
 // rev
 /**
- * The NtUserGetQueueStatus routine indicates the type of messages present in the calling thread's
- * message queue.
+ * The NtUserGetQueueStatus routine indicates the type of messages present in the calling thread's message queue.
  *
  * \param Flags Queue status query flags (QS_*).
  * \returns ULONG The queue status: pending message types in the high word, newly queued types in
@@ -6395,8 +6194,7 @@ NtUserGetQueueStatusReadonly(
  * \param ThreadId The 32-bit thread identifier, not a thread handle.
  * \returns HWND The window handle receiving the message, or NULL if none.
  * \remarks Previously exposed via NtUserCallOneParam(SFI_GETSENDMESSAGERECEIVER).
- * \remarks Useful for diagnosing a synchronous send relationship without confusing thread IDs with
- * object handles.
+ * \remarks Useful for diagnosing a synchronous send relationship without confusing thread IDs with object handles.
  */
 _Success_(return != NULL)
 _Must_inspect_result_
@@ -6411,9 +6209,7 @@ NtUserGetSendMessageReceiver(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetUnpredictedMessagePos routine retrieves the unpredicted (raw) message cursor
- * position.
- *
+ * The NtUserGetUnpredictedMessagePos routine retrieves the unpredicted (raw) message cursor position.
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETUNPREDICTEDMESSAGEPOS).
  */
@@ -6461,8 +6257,7 @@ NtUserIsWindowGDIScaledDpiMessageEnabled(
 
 // rev
 /**
- * The NtUserRealInternalGetMessage routine performs low-level retrieval of messages from the thread
- * message queue.
+ * The NtUserRealInternalGetMessage routine performs low-level retrieval of messages from the thread message queue.
  *
  * \param Message Pointer to an MSG structure receiving the message.
  * \param WindowHandle Optional handle to the window whose messages are filtered.
@@ -6530,8 +6325,8 @@ MessageBoxTimeoutA(
     _In_opt_ LPCSTR Text,
     _In_opt_ LPCSTR Caption,
     _In_ ULONG Type,
-    _In_ WORD LanguageId,
-    _In_ DWORD Timeout
+    _In_ USHORT LanguageId,
+    _In_ ULONG Timeout
     );
 
 // rev
@@ -6555,8 +6350,8 @@ MessageBoxTimeoutW(
     _In_opt_ LPCWSTR Text,
     _In_opt_ LPCWSTR Caption,
     _In_ ULONG Type,
-    _In_ WORD LanguageId,
-    _In_ DWORD Timeout
+    _In_ USHORT LanguageId,
+    _In_ ULONG Timeout
     );
 
 // rev
@@ -6583,7 +6378,6 @@ NtUserCallMsgFilter(
 /**
  * The NtUserCancelQueueEventCompletionPacket routine cancels a pending queue event-completion
  * packet for the calling thread.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_CANCELQUEUEEVENTCOMPLETIONPACKET).
  */
@@ -6643,7 +6437,6 @@ NtUserChangeWindowMessageFilterEx(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserClearWakeMask routine clears the calling thread's input wake mask.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_CLEARWAKEMASK).
  */
@@ -6728,8 +6521,7 @@ NtUserMessageBeep(
 
 // rev
 /**
- * The NtUserMessageCall routine delivers a window message or executes an internal window message
- * helper.
+ * The NtUserMessageCall routine delivers a window message or executes an internal window message helper.
  *
  * \param WindowHandle Handle to the window receiving the message call.
  * \param Message The message identifier (WM_*).
@@ -6762,8 +6554,7 @@ NtUserMessageCall(
  * \param Count The number of object handles, at most 63 on the native path.
  * \param Handles Read-only handle array; may be NULL when Count is zero.
  * \param Milliseconds The time-out interval, in milliseconds.
- * \param WakeMask The input event types for which an input event message will be added to the queue
- *     (QS_*).
+ * \param WakeMask The input event types for which an input event message will be added to the queue (QS_*).
  * \param Flags The wait type flags (MWMO_*).
  * \returns A wait result: object index, queue index Count, WAIT_TIMEOUT, WAIT_IO_COMPLETION, an
  *     abandoned index, or WAIT_FAILED as applicable.
@@ -6812,8 +6603,7 @@ NtUserPeekMessage(
 /**
  * The NtUserPostKeyboardInputMessage routine posts a keyboard input packet through the
  * edition-specific input implementation.
- * \param TargetId A 32-bit target identifier passed to the edition implementation; namespace
- *     unconfirmed.
+ * \param TargetId A 32-bit target identifier passed to the edition implementation; namespace unconfirmed.
  * \param KeyboardInput A 20-byte input packet. Its complete field layout remains unconfirmed.
  * \param ExtraInfo Pointer-sized value forwarded unchanged to the edition implementation.
  * \returns NTSTATUS. Non-DWM callers receive STATUS_ACCESS_DENIED.
@@ -6893,11 +6683,9 @@ NtUserPostThreadMessage(
 
 // rev
 /**
- * The NtUserRealWaitMessageEx routine suspends thread execution until a matching message arrives in
- * the queue.
+ * The NtUserRealWaitMessageEx routine suspends thread execution until a matching message arrives in the queue.
  *
- * \param WakeMask Mask of queue status flags specifying which input types will wake the thread
- *     (QS_*).
+ * \param WakeMask Mask of queue status flags specifying which input types will wake the thread (QS_*).
  * \param Timeout Maximum duration, in milliseconds, to wait for a message.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
@@ -6916,7 +6704,6 @@ NtUserRealWaitMessageEx(
 /**
  * The NtUserReassociateQueueEventCompletionPacket routine re-associates a queue event-completion
  * packet with the calling thread's queue.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REASSOCIATEQUEUEEVENTCOMPLETIONPACKET).
  */
@@ -6950,8 +6737,7 @@ NtUserReplyMessage(
 
 // rev
 /**
- * The NtUserSendEventMessage routine sends an event message to a window procedure, bypassing normal
- * queuing mechanisms.
+ * The NtUserSendEventMessage routine sends an event message to a window procedure, bypassing normal queuing mechanisms.
  *
  * \param WindowHandle A handle to the window whose procedure is to receive the message.
  * \param Message The message to be sent.
@@ -7007,8 +6793,7 @@ NtUserSetMsgBox(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserSetThreadQueueMergeSetting routine sets the specified thread's input-queue merge
- * setting.
+ * The NtUserSetThreadQueueMergeSetting routine sets the specified thread's input-queue merge setting.
  *
  * \param ThreadId The thread id.
  * \param Flags A THREAD_QUEUE_MERGE_FLAGS value. Bits other than 0x00000001 are invalid.
@@ -7068,8 +6853,7 @@ NtUserTranslateMessage(
 
 // rev
 /**
- * The NtUserWaitAvailableMessageEx routine waits for matching message-queue activity or available
- * queue content.
+ * The NtUserWaitAvailableMessageEx routine waits for matching message-queue activity or available queue content.
  *
  * \param WakeMask Queue-status mask selecting the activity to wait for.
  * \param TimeoutMilliseconds Timeout in milliseconds. Zero specifies an indefinite wait.
@@ -7091,12 +6875,10 @@ NtUserWaitAvailableMessageEx(
 /**
  * The NtUserWaitMessage routine yields control to other threads when a thread has no other messages
  * in its message queue.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Native entry point for USER32!WaitMessage.
  *          Waits indefinitely using queue-status mask 0x3CFF. The normal sleep path checks
- *          new queue activity rather than also accepting existing wake bits, unlike
- *          NtUserWaitAvailableMessageEx.
+ *          new queue activity rather than also accepting existing wake bits, unlike NtUserWaitAvailableMessageEx.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -7109,7 +6891,6 @@ NtUserWaitMessage(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserWakeRITForShutdown routine wakes the Raw Input Thread for shutdown processing.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_WAKERITFORSHUTDOWN).
  */
@@ -7162,12 +6943,10 @@ SoftModalMessageBox(
 /**
  * The TranslateMessageEx routine translates keyboard messages through NtUserTranslateMessage only
  * for message IDs 256, 257, 260 and 261.
- * Other ordinary messages return zero; message bits masked by 0xFFFE0000 additionally set
- * ERROR_INVALID_PARAMETER (87).
+ * Other ordinary messages return zero; message bits masked by 0xFFFE0000 additionally set ERROR_INVALID_PARAMETER (87).
  *
  * \param Message The message argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The LONG result described above.
  */
 NTSYSAPI
@@ -7182,9 +6961,7 @@ TranslateMessageEx(
 
 // rev
 /**
- * The NtUserRemoveQueueCompletion routine removes a completion entry from the calling thread's
- * message queue.
- *
+ * The NtUserRemoveQueueCompletion routine removes a completion entry from the calling thread's message queue.
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOVEQUEUECOMPLETION).
  */
@@ -7302,8 +7079,7 @@ FrostCrashedWindow(
     );
 
 /**
- * The GhostWindowFromHungWindow routine retrieves the ghost window handle associated with a hung
- * window.
+ * The GhostWindowFromHungWindow routine retrieves the ghost window handle associated with a hung window.
  *
  * \param WindowHandle A handle to the hung window.
  * \returns A handle to the ghost window, or NULL if none exists.
@@ -7316,8 +7092,7 @@ GhostWindowFromHungWindow(
     );
 
 /**
- * The HungWindowFromGhostWindow routine retrieves the hung window handle associated with a ghost
- * window.
+ * The HungWindowFromGhostWindow routine retrieves the hung window handle associated with a ghost window.
  *
  * \param WindowHandle A handle to the ghost window.
  * \returns A handle to the hung window, or NULL if none exists.
@@ -7332,7 +7107,6 @@ HungWindowFromGhostWindow(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserDisableProcessWindowsGhosting routine disables window ghosting for the calling process.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DISABLEPROCESSWINDOWSGHOSTING).
  */
@@ -7347,8 +7121,7 @@ NtUserDisableProcessWindowsGhosting(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserGhostWindowFromHungWindow routine retrieves the ghost window handle associated with a
- * hung window.
+ * The NtUserGhostWindowFromHungWindow routine retrieves the ghost window handle associated with a hung window.
  *
  * \param WindowHandle A handle to the hung window.
  * \returns A handle to the ghost window, or NULL if none exists.
@@ -7362,8 +7135,7 @@ NtUserGhostWindowFromHungWindow(
     );
 
 /**
- * The NtUserHungWindowFromGhostWindow routine retrieves the hung window handle associated with a
- * ghost window.
+ * The NtUserHungWindowFromGhostWindow routine retrieves the hung window handle associated with a ghost window.
  *
  * \param WindowHandle A handle to the ghost window.
  * \returns A handle to the hung window, or NULL if none exists.
@@ -7381,8 +7153,7 @@ NtUserHungWindowFromGhostWindow(
 //
 
 /**
- * The CONSOLECONTROL enumeration is the class selector for NtUserConsoleControl(Command,
- * ConsoleInformation, ConsoleInformationLength).
+ * The CONSOLECONTROL enumeration is the class selector for NtUserConsoleControl(Command, ConsoleInformation, ConsoleInformationLength).
  * The outer syscall guard enforces "cmp class,6 / ja" (classes 0..6 only) plus "cbInfo <= 0x18";
  * the dispatcher is a sub/jz
  * ladder over classes 0..6, and any class > 6 returns STATUS_INVALID_INFO_CLASS.
@@ -7416,8 +7187,7 @@ typedef struct _CONSOLE_PROCESS_INFO
 } CONSOLE_PROCESS_INFO, *PCONSOLE_PROCESS_INFO;
 
 /**
- * The CONSOLE_CARET_INFO structure describes the console caret position for accessibility
- * notifications.
+ * The CONSOLE_CARET_INFO structure describes the console caret position for accessibility notifications.
  */
 typedef struct _CONSOLE_CARET_INFO
 {
@@ -7435,8 +7205,7 @@ typedef struct _CONSOLE_FULLSCREEN_SWITCH
 } CONSOLE_FULLSCREEN_SWITCH, *PCONSOLE_FULLSCREEN_SWITCH;
 
 /**
- * The CONSOLE_SET_RESERVE_KEYS structure specifies the reserved key combinations for a console
- * window.
+ * The CONSOLE_SET_RESERVE_KEYS structure specifies the reserved key combinations for a console window.
  */
 typedef struct _CONSOLE_SET_RESERVE_KEYS
 {
@@ -7445,8 +7214,7 @@ typedef struct _CONSOLE_SET_RESERVE_KEYS
 } CONSOLE_SET_RESERVE_KEYS, *PCONSOLE_SET_RESERVE_KEYS;
 
 /**
- * The CONSOLE_SET_FOREGROUND structure grants or revokes foreground activation rights for a
- * process.
+ * The CONSOLE_SET_FOREGROUND structure grants or revokes foreground activation rights for a process.
  */
 typedef struct _CONSOLE_SET_FOREGROUND
 {
@@ -7465,8 +7233,7 @@ typedef struct _CONSOLE_WINDOW_OWNER
 } CONSOLE_WINDOW_OWNER, *PCONSOLE_WINDOW_OWNER;
 
 /**
- * The CONSOLE_END_TASK structure requests termination of the console application attached to a
- * window.
+ * The CONSOLE_END_TASK structure requests termination of the console application attached to a window.
  * Passed with the ConsoleEndTask command of NtUserConsoleControl.
  * \deprecated No longer dispatched by NtUserConsoleControl; the ConsoleEndTask class is rejected by
  * the class<=6 syscall guard.
@@ -7485,8 +7252,7 @@ typedef struct _CONSOLE_END_TASK
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications, and terminating attached processes.
  *
- * \param Command One of the CONSOLECONTROL values indicating which console control function should
- *     be executed.
+ * \param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
  * \param ConsoleInformation A pointer to a structure specifying additional data for the requested
  *     console control function.
  * \param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation
@@ -7504,14 +7270,12 @@ ConsoleControl(
     );
 
 /**
- * The NtUserConsoleControl routine performs special kernel operations for console host
- * applications.
+ * The NtUserConsoleControl routine performs special kernel operations for console host applications.
  *
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications, and terminating attached processes.
  *
- * \param Command One of the CONSOLECONTROL values indicating which console control function should
- *     be executed.
+ * \param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
  * \param ConsoleInformation A pointer to a structure specifying additional data for the requested
  *     console control function.
  * \param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation
@@ -7538,8 +7302,7 @@ NtUserConsoleControl(
 #define FW_32BIT 2
 
 /**
- * The WINDOWINFOCLASS enumeration selects which piece of window information NtUserQueryWindow
- * returns.
+ * The WINDOWINFOCLASS enumeration selects which piece of window information NtUserQueryWindow returns.
  */
 typedef enum _WINDOWINFOCLASS
 {
@@ -7610,8 +7373,7 @@ typedef enum _WINDOWINFOCLASS
 
 /**
  * The DC_* flags has the following definitions:
- * Caption-drawing flags (DC_*) used with NtUserRedrawTitle; entries marked WinUser.h are defined
- * there.
+ * Caption-drawing flags (DC_*) used with NtUserRedrawTitle; entries marked WinUser.h are defined there.
  */
 // #define DC_ACTIVE    0x0001 // WinUser.h
 // #define DC_SMALLCAP  0x0002 // WinUser.h
@@ -7628,13 +7390,10 @@ typedef enum _WINDOWINFOCLASS
 
 // rev
 /**
- * The ZBID enumeration specifies z-order band identifiers used by win32kbase.sys and user32.dll to
- * place top-level
- * windows into fixed z-order bands. GetWindowBand, SetWindowBand and CreateWindowInBand(Ex) take a
- * ZBID.
+ * The ZBID enumeration specifies z-order band identifiers used by win32kbase.sys and user32.dll to place top-level
+ * windows into fixed z-order bands. GetWindowBand, SetWindowBand and CreateWindowInBand(Ex) take a ZBID.
  *
- * The bottom-to-top band order is fixed by an internal 18-entry ordinal table in win32kfull.sys and
- * is
+ * The bottom-to-top band order is fixed by an internal 18-entry ordinal table in win32kfull.sys and is
  * NOT the numeric order of the enumerators (ZBID_DESKTOP is lowest, ZBID_UIACCESS is highest):
  *   DESKTOP < IMMERSIVE_RESTRICTED < IMMERSIVE_BACKGROUND < IMMERSIVE_INACTIVEDOCK <
  *   IMMERSIVE_INACTIVEMOBODY < IMMERSIVE_ACTIVEDOCK < IMMERSIVE_ACTIVEMOBODY < IMMERSIVE_APPCHROME
@@ -7642,8 +7401,7 @@ typedef enum _WINDOWINFOCLASS
  *   IMMERSIVE_MOGO < IMMERSIVE_SEARCH < IMMERSIVE_NOTIFICATION < IMMERSIVE_EDGY < SYSTEM_TOOLS <
  *   LOCK < ABOVELOCK_UX < IMMERSIVE_IHM < GENUINE_WINDOWS < UIACCESS.
  * \remarks The enumerator values and band ordering match the
- * win32kfull.sys band table (IsValidBand / GetBandOrdinal); the enumerator names follow the
- * established
+ * win32kfull.sys band table (IsValidBand / GetBandOrdinal); the enumerator names follow the established
  * public convention. ZBID_DEFAULT is the default band and is not part of the ordinal table.
  */
 typedef enum _ZBID
@@ -7673,10 +7431,8 @@ typedef enum _ZBID
 /**
  * The CreateDialogIndirectParamAorW routine creates a modeless dialog from a validated template.
  * Flags is a 32-bit bitmask: the client forwards (value &
- * 2) | 1 to its internal dialog creation helper, not a simple true/false Unicode selection. The
- * native slot
- * width is unchanged; meanings beyond the supported mask are unspecified. No dialog or callback is
- * created.
+ * 2) | 1 to its internal dialog creation helper, not a simple true/false Unicode selection. The native slot
+ * width is unchanged; meanings beyond the supported mask are unspecified. No dialog or callback is created.
  *
  * \param Instance The instance argument.
  * \param Template The template argument.
@@ -7684,7 +7440,6 @@ typedef enum _ZBID
  * \param DialogProc The dialog proc argument.
  * \param InitParam The init param argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The HWND result described above.
  */
 NTSYSAPI
@@ -7830,12 +7585,9 @@ NtUserCreateActivationObject(
 
 // rev
 /**
- * The NtUserCreateBaseWindow routine creates a base-window handle for a thread supporting base
- * windows.
- * \param Context Non-NULL pointer-sized value stored in the base-window object; its use is
- *     unconfirmed.
- * \param ExtraBytes Size, in bytes, of the additional zero-initialized allocation; zero allocates
- *     none.
+ * The NtUserCreateBaseWindow routine creates a base-window handle for a thread supporting base windows.
+ * \param Context Non-NULL pointer-sized value stored in the base-window object; its use is unconfirmed.
+ * \param ExtraBytes Size, in bytes, of the additional zero-initialized allocation; zero allocates none.
  * \param AllocationFlags Value forwarded to HMAllocObjectEx; flag meanings remain unconfirmed.
  * \returns The base-window handle, or NULL on failure.
  * \remarks A NULL Context sets ERROR_INVALID_PARAMETER. A thread lacking the required
@@ -7856,8 +7608,7 @@ NtUserCreateBaseWindow(
  * The NtUserCreateLayoutSyncForHwnd routine creates a layout synchronization object for a window.
  *
  * \param WindowHandle Handle to the window to synchronize layout for.
- * \param LayoutSyncHandle Pointer to a variable receiving the created layout synchronization
- *     handle.
+ * \param LayoutSyncHandle Pointer to a variable receiving the created layout synchronization handle.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -7871,13 +7622,11 @@ NtUserCreateLayoutSyncForHwnd(
 
 // rev
 /**
- * The NtUserCreateWindowEx routine creates an overlapped, pop-up, or child window with an extended
- * window style.
+ * The NtUserCreateWindowEx routine creates an overlapped, pop-up, or child window with an extended window style.
  *
  * \param ExStyle Extended window style (WS_EX_*).
  * \param ClassName Pointer to a LARGE_STRING containing the window class name or class atom.
- * \param ClassVersion Pointer to a LARGE_STRING containing the class version or manifest
- *     specification.
+ * \param ClassVersion Pointer to a LARGE_STRING containing the class version or manifest specification.
  * \param WindowName Pointer to a LARGE_STRING containing the window title or text.
  * \param Style Window style flags (WS_*).
  * \param X Initial horizontal position of the window.
@@ -7889,8 +7638,7 @@ NtUserCreateLayoutSyncForHwnd(
  * \param Instance Optional handle to the instance of the module associated with the window.
  * \param Param Optional pointer to window-creation data (lpCreateParams).
  * \param Band The Z-order band (ZBID_*) the window is created in.
- * \param ExpWinVer The expected Windows version for the window, combined with the high creation
- *     flag bits.
+ * \param ExpWinVer The expected Windows version for the window, combined with the high creation flag bits.
  * \param TypeFlags Window type flags, as passed to CreateWindowInBandEx; bit 0 and bits 3 and above
  *     are tested by the kernel.
  * \param ActivationContextBuffer Optional pointer to activation context activation data.
@@ -7922,8 +7670,7 @@ NtUserCreateWindowEx(
 
 // rev
 /**
- * The NtUserRegisterBSDRWindow routine registers the session's BSDR window for shutdown-block
- * reason reporting.
+ * The NtUserRegisterBSDRWindow routine registers the session's BSDR window for shutdown-block reason reporting.
  *
  * \param WindowHandle Optional window to register. NULL leaves the current registration unchanged.
  * \param NotificationCode Value forwarded as wParam in an internal 0x329 thread notification.
@@ -7983,8 +7730,7 @@ NtUserRegisterForCustomDockTargets(
  * dismissal notifications when mouse or keyboard focus changes.
  *
  * \param HWnd A handle to the tooltip window.
- * \param TdFlags Flags that specify the conditions under which tooltip dismissal notifications are
- *     sent.
+ * \param TdFlags Flags that specify the conditions under which tooltip dismissal notifications are sent.
  * \returns TRUE if registration succeeded, or FALSE otherwise.
  * \remarks Native entry point for USER32!RegisterForTooltipDismissNotification.
  */
@@ -8000,8 +7746,7 @@ NtUserRegisterForTooltipDismissNotification(
 /**
  * The NtUserRegisterHotKey routine defines a system-wide hot key.
  *
- * \param WindowHandle A handle to the window that will receive WM_HOTKEY messages generated by the
- *     hot key.
+ * \param WindowHandle A handle to the window that will receive WM_HOTKEY messages generated by the hot key.
  * \param Id The identifier of the hot key.
  * \param fsModifiers The keys that must be pressed in combination with the key specified by vk
  *     (MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN).
@@ -8101,8 +7846,7 @@ NtUserShutdownBlockReasonCreate(
 
 // rev
 /**
- * The RegisterBSDRWindow routine registers the session's BSDR window for shutdown-block reason
- * reporting.
+ * The RegisterBSDRWindow routine registers the session's BSDR window for shutdown-block reason reporting.
  *
  * \param WindowHandle Optional window to register. NULL leaves the current registration unchanged.
  * \param NotificationCode Internal notification value; zero suppresses notification.
@@ -8119,8 +7863,7 @@ RegisterBSDRWindow(
 
 // rev
 /**
- * The RegisterErrorReportingDialog routine registers an error reporting dialog with the window
- * manager.
+ * The RegisterErrorReportingDialog routine registers an error reporting dialog with the window manager.
  *
  * \param WindowHandle Handle to the error reporting dialog window.
  * \param Flags Registration flags controlling dialog display and interaction.
@@ -8190,8 +7933,7 @@ ShellRegisterHotKey(
 
 // rev
 /**
- * The DwmGetDxSharedSurface routine retrieves the DWM/DirectX shared surface backing a window's
- * redirection bitmap.
+ * The DwmGetDxSharedSurface routine retrieves the DWM/DirectX shared surface backing a window's redirection bitmap.
  *
  * \param WindowHandle Handle to the target window.
  * \param SharedSurfaceHandle Optional pointer receiving the shared surface handle.
@@ -8235,16 +7977,12 @@ DwmValidateWindow(
 /**
  * The GetInternalWindowPos routine gets internal window placement through NtUserGetWindowPlacement.
  * Returns the 32-bit show-command on
- * success, not a pointer-sized value. Optional RECT and POINT outputs are cleared before querying,
- * then
- * populated from the placement record on success. A zero return can also be a show command; do not
- * assume
- * nonzero-only success.
+ * success, not a pointer-sized value. Optional RECT and POINT outputs are cleared before querying, then
+ * populated from the placement record on success. A zero return can also be a show command; do not assume nonzero-only success.
  *
  * \param WindowHandle Handle to the window.
  * \param NormalPosition Receives the normal position.
  * \param MinPosition Receives the min position.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -8259,7 +7997,6 @@ GetInternalWindowPos(
 // rev
 /**
  * The GetProgmanWindow routine retrieves the handle to the Program Manager window.
- *
  * \returns HWND Handle to the Program Manager window, or NULL if not found.
  */
 NTSYSAPI
@@ -8276,7 +8013,6 @@ GetProgmanWindow(
  * Historical declaration; its signature and caller requirements are not established.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The HANDLE result described above.
  */
 _Kernel_entry_
@@ -8289,9 +8025,7 @@ GetRealWindowOwner(
 
 // rev
 /**
- * The GetShellChangeNotifyWindow routine retrieves the handle to the shell change-notification
- * window.
- *
+ * The GetShellChangeNotifyWindow routine retrieves the handle to the shell change-notification window.
  * \returns HWND Handle to the shell change-notification window, or NULL if not set.
  */
 NTSYSAPI
@@ -8304,7 +8038,6 @@ GetShellChangeNotifyWindow(
 // rev
 /**
  * The GetTaskmanWindow routine retrieves the handle to the Task Manager window.
- *
  * \returns HWND Handle to the taskman window, or NULL if not set.
  */
 NTSYSAPI
@@ -8333,13 +8066,11 @@ GetTopLevelWindow(
 /**
  * The GetWindowBand routine queries a window band using validated client-side USER window state.
  * BandId is a required 4-byte output. NULL
- * output returns FALSE/error 87; invalid HWND returns FALSE/error 1400 and leaves the output
- * unchanged. Tests
+ * output returns FALSE/error 87; invalid HWND returns FALSE/error 1400 and leaves the output unchanged. Tests
  * are restricted to owned hidden windows; no global window enumeration occurs.
  *
  * \param WindowHandle Handle to the window.
  * \param BandId Receives the band id.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -8369,18 +8100,13 @@ GetWindowMinimizeRect(
 
 /**
  * The GetWindowProcessHandle routine has the following behavior:
- * Client helper, not a direct syscall: resolves the owning process ID, calls OpenProcess with
- * DesiredAccess
- * and inheritance FALSE, and falls back to NtUserGetWindowProcessHandle if needed. The returned
- * process
+ * Client helper, not a direct syscall: resolves the owning process ID, calls OpenProcess with DesiredAccess
+ * and inheritance FALSE, and falls back to NtUserGetWindowProcessHandle if needed. The returned process
  * handle is caller-owned and must be closed. Tests use only an owned window and
- * PROCESS_QUERY_LIMITED_INFORMATION (0x1000); cross-process access is subject to the target process
- * security
- * policy.
+ * PROCESS_QUERY_LIMITED_INFORMATION (0x1000); cross-process access is subject to the target process security policy.
  *
  * \param WindowHandle Handle to the window.
  * \param DesiredAccess Requested access rights.
- *
  * \returns The HANDLE result described above.
  */
 _Kernel_entry_
@@ -8399,8 +8125,7 @@ GetWindowProcessHandle(
  * \param WindowHandle Handle to the window whose region is queried.
  * \param RegionHandle Handle to the region to be modified.
  * \param Flags Extended region query flags.
- * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on
- *     failure.
+ * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on failure.
  * \remarks Forwards to the NtUserGetWindowRgnEx system call.
  */
 NTSYSAPI
@@ -8419,7 +8144,6 @@ GetWindowRgnEx(
  * value TRUE (1), and zero when clear or validation fails. Treat nonzero as true.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -8448,12 +8172,10 @@ IsTopLevelWindow(
 /**
  * The IsWindowInDestroy routine queries destruction state on a validated USER window object. The
  * client returns mask 0x80 when set,
- * not necessarily 1. A successfully completed DestroyWindow followed by validation is not the same
- * as observing
+ * not necessarily 1. A successfully completed DestroyWindow followed by validation is not the same as observing
  * the in-progress destruction bit.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -8467,12 +8189,10 @@ IsWindowInDestroy(
 /**
  * The IsWindowRedirectedForPrint routine queries a validated client window printing-redirection
  * bit. The x64 client computes a 32-bit negated low
- * bit (0 or 0xFFFFFFFF); the historical pointer-sized declaration is retained pending broader
- * caller
+ * bit (0 or 0xFFFFFFFF); the historical pointer-sized declaration is retained pending broader caller
  * evidence. Treat nonzero as a predicate, not as an object pointer.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -8483,8 +8203,7 @@ IsWindowRedirectedForPrint(
     );
 
 /**
- * The NtUserBuildHwndList routine builds a list of window handles matching criteria across desktops
- * or threads.
+ * The NtUserBuildHwndList routine builds a list of window handles matching criteria across desktops or threads.
  *
  * \param DesktopHandle Optional desktop handle to search.
  * \param ParentWindowHandle Optional parent window handle.
@@ -8611,8 +8330,7 @@ NtUserGetAncestor(
 
 // rev
 /**
- * The NtUserGetCPD routine retrieves or creates a CallProcData (CPD) thunk structure for window
- * subclassing.
+ * The NtUserGetCPD routine retrieves or creates a CallProcData (CPD) thunk structure for window subclassing.
  *
  * \param WindowHandle Handle to the window whose procedure is thunked.
  * \param Flags CPD creation flags (e.g. CPD_ANSI_TO_UNICODE, CPD_UNICODE_TO_ANSI).
@@ -8632,11 +8350,9 @@ NtUserGetCPD(
 /**
  * The NtUserGetClassName routine retrieves a string that specifies the window type.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
  * \param RealClassName Return the superclass or baseclass name when the window is a superclass.
- * \param ClassName Initialized descriptor supplying Buffer and MaximumLength in bytes for the class
- *     name.
+ * \param ClassName Initialized descriptor supplying Buffer and MaximumLength in bytes for the class name.
  * \returns The number of UTF-16 characters copied, excluding the terminator; zero on failure.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-realgetwindowclassw
  * \remarks The native implementation leaves descriptor Length unchanged. WoW64 copies the
@@ -8690,8 +8406,7 @@ NtUserGetControlColor(
     );
 
 /**
- * The NtUserGetCurrentDpiInfoForWindow routine retrieves the DPI information for the specified
- * window.
+ * The NtUserGetCurrentDpiInfoForWindow routine retrieves the DPI information for the specified window.
  *
  * \param WindowHandle A handle to the window.
  * \param DpiInfo Pointer to a buffer receiving the DPI information.
@@ -8708,7 +8423,6 @@ NtUserGetCurrentDpiInfoForWindow(
 
 /**
  * The NtUserGetForegroundWindow routine retrieves a handle to the foreground window.
- *
  * \returns A handle to the foreground window, or NULL if no foreground window exists.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getforegroundwindow
  */
@@ -8743,8 +8457,7 @@ NtUserGetLayeredWindowAttributes(
     );
 
 /**
- * The NtUserGetListBoxInfo routine retrieves the number of items per column in a specified list
- * box.
+ * The NtUserGetListBoxInfo routine retrieves the number of items per column in a specified list box.
  *
  * \param WindowHandle A handle to the list box.
  * \returns The number of items per column.
@@ -8759,13 +8472,11 @@ NtUserGetListBoxInfo(
 
 // rev
 /**
- * The NtUserGetMinuserIdForBaseWindow routine retrieves the Minuser component identifier for a base
- * window.
+ * The NtUserGetMinuserIdForBaseWindow routine retrieves the Minuser component identifier for a base window.
  *
  * \param BaseWindowHandle Pointer-sized handle identifying the base window.
  * \returns ULONG_PTR The minuser identifier for the base window, or 0 on failure.
- * \remarks Internal base-window to Minuser lookup; the full handle width is forwarded to the
- * implementation.
+ * \remarks Internal base-window to Minuser lookup; the full handle width is forwarded to the implementation.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -8777,8 +8488,7 @@ NtUserGetMinuserIdForBaseWindow(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetModernAppWindow routine returns the modern (immersive) app window for the specified
- * window.
+ * The NtUserGetModernAppWindow routine returns the modern (immersive) app window for the specified window.
  *
  * \param ShellFrame The shell frame.
  * \returns The resulting handle, or NULL on failure.
@@ -8800,8 +8510,7 @@ NtUserGetModernAppWindow(
  *
  * \param WindowHandle A handle to the window whose property list is to be searched.
  * \param Atom A 16-bit property atom; this syscall does not accept a string pointer.
- * \returns If the property list contains the atom, the return value is the associated data handle;
- *     otherwise, NULL.
+ * \returns If the property list contains the atom, the return value is the associated data handle; otherwise, NULL.
  * \remarks Useful for looking up an already-resolved property atom. NtUserGetProp2 is the separate
  * counted-name lookup path.
  */
@@ -8869,12 +8578,12 @@ typedef enum _SHARED_WINDOW_DATA_TYPE
     SharedWindowDataMax
 } SHARED_WINDOW_DATA_TYPE;
 
-#define SHARED_WINDOW_DATA_WORD 0
-#define SHARED_WINDOW_DATA_DWORD 1
+#define SHARED_WINDOW_DATA_USHORT 0
+#define SHARED_WINDOW_DATA_ULONG 1
 #define SHARED_WINDOW_DATA_PTR 2
 
-#define WINDOW_DATA_TYPE_WORD 0
-#define WINDOW_DATA_TYPE_DWORD 1
+#define WINDOW_DATA_TYPE_USHORT 0
+#define WINDOW_DATA_TYPE_ULONG 1
 #define WINDOW_DATA_TYPE_PTR 2
 
 // rev
@@ -8920,8 +8629,7 @@ NtUserGetTitleBarInfo(
 
 // rev
 /**
- * The NtUserGetTopLevelWindow routine retrieves the top-level ancestor window of the specified
- * window.
+ * The NtUserGetTopLevelWindow routine retrieves the top-level ancestor window of the specified window.
  *
  * \param WindowHandle Handle to the window whose top-level ancestor is retrieved.
  * \returns HWND Handle to the top-level window, or NULL on failure.
@@ -8940,8 +8648,7 @@ NtUserGetTopLevelWindow(
  * completely encloses the update region of the specified window.
  *
  * \param WindowHandle Handle to the window whose update region is to be retrieved.
- * \param Rect Optional pointer to the RECT structure that receives the coordinates of the update
- *     rectangle.
+ * \param Rect Optional pointer to the RECT structure that receives the coordinates of the update rectangle.
  * \param Erase Specifies whether the background in the update region should be erased.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
@@ -8957,14 +8664,12 @@ NtUserGetUpdateRect(
 
 // rev
 /**
- * The NtUserGetUpdateRgn routine retrieves the update region of a window by copying it into the
- * specified region.
+ * The NtUserGetUpdateRgn routine retrieves the update region of a window by copying it into the specified region.
  *
  * \param WindowHandle Handle to the window with an update region that is to be retrieved.
  * \param RegionHandle Handle to the region which receives the update region.
  * \param Erase Specifies whether the window background should be erased.
- * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on
- *     failure.
+ * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on failure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -8995,8 +8700,7 @@ NtUserGetWindowBand(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetWindowContextHelpId routine retrieves the context help identifier for the specified
- * window.
+ * The NtUserGetWindowContextHelpId routine retrieves the context help identifier for the specified window.
  *
  * \param WindowHandle Handle to the target window.
  * \returns The routine-specific result value.
@@ -9019,8 +8723,7 @@ NtUserGetWindowContextHelpId(
  * \param Hwnd Handle to the window to query.
  * \param Feedback The feedback type to retrieve (FEEDBACK_TYPE).
  * \param DwFlags Feedback query flags.
- * \param PSize Pointer to a variable holding the size in bytes of Config and receiving the required
- *     or copied size.
+ * \param PSize Pointer to a variable holding the size in bytes of Config and receiving the required or copied size.
  * \param Config Optional pointer to a buffer receiving the feedback configuration.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetWindowFeedbackSetting.
@@ -9039,8 +8742,7 @@ NtUserGetWindowFeedbackSetting(
 
 // rev
 /**
- * The NtUserGetWindowMinimizeRect routine retrieves the screen coordinates to which a window is
- * minimized.
+ * The NtUserGetWindowMinimizeRect routine retrieves the screen coordinates to which a window is minimized.
  *
  * \param WindowHandle Handle to the window being minimized.
  * \param MinimizeRect Pointer to a RECT structure receiving the minimize coordinates.
@@ -9060,8 +8762,7 @@ NtUserGetWindowMinimizeRect(
  * maximized positions of a window.
  *
  * \param WindowHandle A handle to the window.
- * \param WindowPlacement Pointer to the WINDOWPLACEMENT structure that receives the show state and
- *     position information.
+ * \param WindowPlacement Pointer to the WINDOWPLACEMENT structure that receives the show state and position information.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -9074,8 +8775,7 @@ NtUserGetWindowPlacement(
     );
 
 /**
- * The NtUserGetWindowProcessHandle routine opens a handle to the process that owns the specified
- * window.
+ * The NtUserGetWindowProcessHandle routine opens a handle to the process that owns the specified window.
  *
  * \param WindowHandle A handle to the window.
  * \param DesiredAccess The access mask requested for the process handle.
@@ -9092,14 +8792,12 @@ NtUserGetWindowProcessHandle(
 
 // rev
 /**
- * The NtUserGetWindowRgnEx routine retrieves the window region of a window with extended coordinate
- * options.
+ * The NtUserGetWindowRgnEx routine retrieves the window region of a window with extended coordinate options.
  *
  * \param WindowHandle Handle to the window whose region is queried.
  * \param RegionHandle Handle to the region that receives the window region.
  * \param Flags Coordinate flags (e.g. 1 for client coordinates, 0 for window coordinates).
- * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on
- *     failure.
+ * \returns LONG The region complexity: NULLREGION, SIMPLEREGION, COMPLEXREGION, or ERROR on failure.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -9156,8 +8854,7 @@ NtUserGetWindowTrackInfoAsync(
  * \param WindowHandle A handle to the window to query.
  * \param Index The redirection information index to query.
  * \param Information A pointer to a buffer that receives the redirection information.
- * \param InfoLength Pointer to a variable that specifies the size of the buffer, and receives the
- *     returned data size.
+ * \param InfoLength Pointer to a variable that specifies the size of the buffer, and receives the returned data size.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -9177,10 +8874,8 @@ NtUserHwndQueryRedirectionInfo(
  *
  * \param WindowHandle A handle to the window or control containing the text.
  * \param pString Pointer to the buffer that will receive the text.
- * \param cchMaxCount The maximum number of characters to copy to the buffer, including the null
- *     terminator.
- * \returns The length of the string copied in characters, not including the terminating null
- *     character.
+ * \param cchMaxCount The maximum number of characters to copy to the buffer, including the null terminator.
+ * \returns The length of the string copied in characters, not including the terminating null character.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -9196,8 +8891,7 @@ NtUserInternalGetWindowText(
 
 // rev
 /**
- * The NtUserIsInterceptWindow routine determines whether a window is configured as an input
- * interception window.
+ * The NtUserIsInterceptWindow routine determines whether a window is configured as an input interception window.
  *
  * \param WindowHandle Handle to the window to test.
  * \param IsIntercept Receives TRUE if the window is an interception window, FALSE otherwise.
@@ -9278,9 +8972,7 @@ NtUserIsWindowBroadcastingDpiToChildren(
 
 // rev
 /**
- * The NtUserQueryBSDRWindow routine retrieves the session's BSDR window for shutdown-block reason
- * reporting.
- *
+ * The NtUserQueryBSDRWindow routine retrieves the session's BSDR window for shutdown-block reason reporting.
  * \returns The registered window handle, or NULL if no window is registered.
  */
 _Kernel_entry_
@@ -9292,13 +8984,11 @@ NtUserQueryBSDRWindow(
     );
 
 /**
- * The NtUserQueryWindow routine queries information about a window according to the specified
- * information class.
+ * The NtUserQueryWindow routine queries information about a window according to the specified information class.
  *
  * \param WindowHandle A handle to the window to query.
  * \param WindowInfo The window information class selector (WINDOWINFOCLASS).
- * \returns Information about the window, such as PID, TID, or state flags depending on the
- *     information class.
+ * \returns Information about the window, such as PID, TID, or state flags depending on the information class.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -9332,13 +9022,11 @@ NtUserSBGetParms(
     );
 
 /**
- * The NtUserShutdownBlockReasonQuery routine retrieves the reason string set by
- * NtUserShutdownBlockReasonCreate.
+ * The NtUserShutdownBlockReasonQuery routine retrieves the reason string set by NtUserShutdownBlockReasonCreate.
  *
  * \param WindowHandle A handle to the main window of the application.
  * \param Buffer Pointer to a buffer that receives the reason string.
- * \param BufferCount Pointer to a variable specifying buffer size in characters and receiving
- *     copied count.
+ * \param BufferCount Pointer to a variable specifying buffer size in characters and receiving copied count.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -9370,8 +9058,7 @@ NtUserValidateHandleSecure(
  * rectangle from the update region of the specified window.
  *
  * \param WindowHandle A handle to the window whose update region is to be modified.
- * \param Rect Pointer to a RECT structure that contains the client coordinates of the rectangle to
- *     be removed.
+ * \param Rect Pointer to a RECT structure that contains the client coordinates of the rectangle to be removed.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -9405,9 +9092,7 @@ NtUserValidateRgn(
 
 // rev
 /**
- * The QueryBSDRWindow routine retrieves the session's BSDR window for shutdown-block reason
- * reporting.
- *
+ * The QueryBSDRWindow routine retrieves the session's BSDR window for shutdown-block reason reporting.
  * \returns The registered window handle, or NULL if no window is registered.
  * \remarks Forwards to the NtUserQueryBSDRWindow system call.
  */
@@ -9421,14 +9106,11 @@ QueryBSDRWindow(
 // rev
 /**
  * The TestWindowProcess routine has the following behavior:
- * Nonexported USER32 helper. It reads internal window-object state, not an ordinary public
- * HWND-only
- * contract. Symbol availability does not establish the existing declaration and must not be used to
- * call an
+ * Nonexported USER32 helper. It reads internal window-object state, not an ordinary public HWND-only
+ * contract. Symbol availability does not establish the existing declaration and must not be used to call an
  * undocumented address. Static entry triage only; no internal/shared-memory objects are fabricated.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The BOOLEAN result described above.
  */
 NTSYSAPI
@@ -9441,14 +9123,12 @@ TestWindowProcess(
 // rev
 /**
  * The ValidateHwnd routine has the following behavior:
- * Located as a mangled internal USER32 function, not a named public export. It resolves an HWND to
- * internal
+ * Located as a mangled internal USER32 function, not a named public export. It resolves an HWND to internal
  * USER window state. A returned pointer is borrowed internal state, not a new allocation;
  * lifetime/race
  * behavior is not fully specified.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The PVOID result described above.
  */
 NTSYSAPI
@@ -9460,8 +9140,7 @@ ValidateHwnd(
 
 // rev
 /**
- * The WINNLSGetEnableStatus routine retrieves the Input Method Editor (IME) enable status for a
- * window.
+ * The WINNLSGetEnableStatus routine retrieves the Input Method Editor (IME) enable status for a window.
  *
  * \param WindowHandle Handle to the window to query.
  * \returns BOOL TRUE if IME is enabled, FALSE otherwise.
@@ -9510,10 +9189,8 @@ ChildWindowFromPoint(
 /**
  * The DeferWindowPosAndBand routine adds window geometry and a band to a deferred positioning
  * batch. USER32 accepts 9 arguments (x86 ret 36),
- * forwards them to the 10-argument native service and supplies final argument 1 itself.
- * X/Y/Width/Height
- * precede positioning Flags; the previous declaration incorrectly shifted these arguments. The
- * returned HDWP
+ * forwards them to the 10-argument native service and supplies final argument 1 itself. X/Y/Width/Height
+ * precede positioning Flags; the previous declaration incorrectly shifted these arguments. The returned HDWP
  * may change and must replace the input batch handle.
  *
  * \param WindowPosInfo The window pos info argument.
@@ -9525,7 +9202,6 @@ ChildWindowFromPoint(
  * \param Height The height argument.
  * \param Flags Operation-specific flags.
  * \param Band The band argument.
- *
  * \returns The HDWP result described above.
  */
 NTSYSAPI
@@ -9547,10 +9223,8 @@ DeferWindowPosAndBand(
 /**
  * The DelegateInput routine forwards six ABI arguments to NtUserDelegateInput (x86 ret 24), not
  * three. The native entry resolves
- * ThreadId (zero selects the current thread), validates a receiving HWND, and uses two
- * pointer-sized context
- * values plus nonzero constrained flags. The sixth DWORD is forwarded by WoW64 but not consumed in
- * the native
+ * ThreadId (zero selects the current thread), validates a receiving HWND, and uses two pointer-sized context
+ * values plus nonzero constrained flags. The sixth ULONG is forwarded by WoW64 but not consumed in the native
  * body; its semantics remain unverified.
  *
  * \param ThreadId Thread identifier.
@@ -9559,7 +9233,6 @@ DeferWindowPosAndBand(
  * \param WindowHandle Handle to the window.
  * \param Flags Operation-specific flags.
  * \param AdditionalParameter The additional parameter argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -9578,9 +9251,7 @@ DelegateInput(
 /**
  * The DialogBoxIndirectParamAorW routine runs a modal dialog from a validated template. Flags is a
  * 32-bit bitmask, forwarding (value & 2) | 1 to the
- * internal dialog-box helper. This is not a simple Boolean Unicode selector; no modal loop or
- * callback is
- * executed.
+ * internal dialog-box helper. This is not a simple Boolean Unicode selector; no modal loop or callback is executed.
  *
  * \param Instance The instance argument.
  * \param Template The template argument.
@@ -9588,7 +9259,6 @@ DelegateInput(
  * \param DialogProc The dialog proc argument.
  * \param InitParam The init param argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The INT_PTR result described above.
  */
 NTSYSAPI
@@ -9605,8 +9275,7 @@ DialogBoxIndirectParamAorW(
 
 // rev
 /**
- * The DwmWindowNotificationsEnabled routine determines whether DWM window notifications are
- * enabled.
+ * The DwmWindowNotificationsEnabled routine determines whether DWM window notifications are enabled.
  *
  * \param NotificationType Type of notification to query.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -9622,23 +9291,16 @@ DwmWindowNotificationsEnabled(
 // rev
 /**
  * The EditWndProc routine has the following behavior:
- * Internal edit-control procedure. WindowObject is a fixed 64-bit pointer to USER window-object
- * state, not an
- * HWND. The x86 body uses its low DWORD as the object address and forwards both DWORDs to helpers
- * whose symbols
- * encode a 64-bit pointer; message/wParam/lParam follow that 8-byte value. Thus x86 consumes 20
- * bytes for four
- * logical arguments. MSVC PVOID64 sizeof and decorated-call tests verify this footprint. The
- * internal object
- * layout/lifetime is unspecified; do not call this as a normal WNDPROC or dereference arbitrary
- * shared
- * objects.
+ * Internal edit-control procedure. WindowObject is a fixed 64-bit pointer to USER window-object  state, not an
+ * HWND. The x86 body uses its low ULONG as the object address and forwards both DWORDs to helpers whose symbols
+ * encode a 64-bit pointer; message/wParam/lParam follow that 8-byte value. Thus x86 consumes 20 bytes for four
+ * logical arguments. MSVC PVOID64 sizeof and decorated-call tests verify this footprint. The internal object
+ * layout/lifetime is unspecified; do not call this as a normal WNDPROC or dereference arbitrary shared objects.
  *
  * \param WindowObject The window object argument.
  * \param Message The message argument.
  * \param wParam The w param argument.
  * \param lParam The l param argument.
- *
  * \returns The LRESULT result described above.
  */
 NTSYSAPI
@@ -9678,8 +9340,7 @@ EnableSynchronizedLayout(
  * \remarks Forwards to the NtUserEnableWindowShellWindowManagementBehavior system call.
  * Updates the window flags as (OldFlags & ~(Mask & 7)) | (Values & Mask & 7).
  * The caller must be the registered shell-management thread or have IAM access.
- * Failure sets ERROR_INVALID_WINDOW_HANDLE for an invalid window or ERROR_ACCESS_DENIED for
- * insufficient access.
+ * Failure sets ERROR_INVALID_WINDOW_HANDLE for an invalid window or ERROR_ACCESS_DENIED for insufficient access.
  */
 _Success_(return != 0)
 NTSYSAPI
@@ -9727,13 +9388,11 @@ ImpersonateDdeClientWindow(
  * The MirrorRgn routine has the following behavior:
  * GDI32 forwards to GDI32FULL, which obtains the supplied window rectangle and passes its width
  * with the region
- * to a mirroring worker. Full geometry/return and invalid-window behavior remain unverified. No
- * region is
+ * to a mirroring worker. Full geometry/return and invalid-window behavior remain unverified. No region is
  * mirrored during runtime tests.
  *
  * \param WindowHandle Handle to the window.
  * \param RegionHandle The region handle argument.
- *
  * \returns The LONG_PTR result described above.
  */
 NTSYSAPI
@@ -9766,7 +9425,6 @@ NotifyOverlayWindow(
  * The NtCompositorNotifyExitWindows routine notifies the compositor through a zero-argument service
  * ABI; x86 consumes no argument bytes. The return
  * value and final compositor effects are private.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -9779,8 +9437,7 @@ NtCompositorNotifyExitWindows(
 
 // rev
 /**
- * The NtUserAcquireInteractiveControlBackgroundAccess routine acquires background input access for
- * interactive controls.
+ * The NtUserAcquireInteractiveControlBackgroundAccess routine acquires background input access for interactive controls.
  *
  * \param DeviceId Identifier of the interactive control device.
  * \param Usage Usage code or page for the interactive control.
@@ -9799,8 +9456,7 @@ NtUserAcquireInteractiveControlBackgroundAccess(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserAllowSetForegroundWindow routine allows the specified process to set the foreground
- * window.
+ * The NtUserAllowSetForegroundWindow routine allows the specified process to set the foreground window.
  *
  * \param ProcessId The process id.
  * \returns TRUE on success, FALSE otherwise.
@@ -9918,8 +9574,7 @@ NtUserCalculatePopupWindowPosition(
  *
  * \param WindowHandle A handle to the parent window.
  * \param Point A structure that defines the client coordinates of the point to be checked.
- * \param Flags Flags specifying which child windows to skip (e.g. CWP_SKIPINVISIBLE,
- *     CWP_SKIPDISABLED, CWP_SKIPTRANSPARENT).
+ * \param Flags Flags specifying which child windows to skip (e.g. CWP_SKIPINVISIBLE, CWP_SKIPDISABLED, CWP_SKIPTRANSPARENT).
  * \returns A handle to the child window that contains the point and meets the criteria, or NULL.
  */
 _Kernel_entry_
@@ -9970,8 +9625,7 @@ NtUserConfirmResizeCommit(
 
 // rev
 /**
- * The NtUserConvertToInterceptWindow routine converts a top-level window into an input interception
- * window.
+ * The NtUserConvertToInterceptWindow routine converts a top-level window into an input interception window.
  *
  * \param TopLevelWindow Handle to the top-level window to convert.
  * \returns BOOL TRUE on success, FALSE on failure.
@@ -10004,8 +9658,7 @@ NtUserDefSetText(
 
 // rev
 /**
- * The NtUserDeferWindowDpiChanges routine defers DPI-scaling updates for the specified window
- * hierarchy.
+ * The NtUserDeferWindowDpiChanges routine defers DPI-scaling updates for the specified window hierarchy.
  *
  * \param WindowHandle Handle to the target window.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -10100,7 +9753,6 @@ NtUserDisableImmersiveOwner(
 /**
  * The NtUserDisableProcessWindowFiltering routine disables window filtering
  * so you can enumerate immersive windows from the desktop.
- *
  * \returns BOOL value.
  * \sa
  * https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests#disableWindowFiltering
@@ -10155,10 +9807,8 @@ NtUserDrainThreadCoreMessagingCompletions2(
  *
  * \param WindowHandle A handle to the window whose caption should be animated.
  * \param idAni The animation type (e.g. IDANI_CAPTION).
- * \param lprcFrom Pointer to a RECT structure specifying the location and size of the icon or
- *     minimized window.
- * \param lprcTo Pointer to a RECT structure specifying the location and size of the restored
- *     window.
+ * \param lprcFrom Pointer to a RECT structure specifying the location and size of the icon or minimized window.
+ * \param lprcTo Pointer to a RECT structure specifying the location and size of the restored window.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -10195,8 +9845,7 @@ NtUserDrawCaption(
 
 // rev
 /**
- * The NtUserDwmWindowNotificationsEnabled routine enables or disables DWM window state
- * notifications.
+ * The NtUserDwmWindowNotificationsEnabled routine enables or disables DWM window state notifications.
  *
  * \param Enable Non-zero to enable notifications; 0 to disable.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -10232,8 +9881,7 @@ NtUserEnableModernAppWindowKeyboardIntercept(
 
 // rev
 /**
- * The NtUserEnableNonClientDpiScaling routine enables non-client area high-DPI scaling for the
- * specified window.
+ * The NtUserEnableNonClientDpiScaling routine enables non-client area high-DPI scaling for the specified window.
  *
  * \param Hwnd Handle to the window whose non-client area should be scaled.
  * \returns BOOL TRUE on success, FALSE on failure.
@@ -10271,8 +9919,7 @@ NtUserEnableResizeLayoutSynchronization(
  *
  * \param WindowHandle Handle to a window or a scroll bar control.
  * \param ScrollBar Scroll bar type specifier (SB_HORZ, SB_VERT, SB_CTL, SB_BOTH).
- * \param Arrows Arrow enable flags (ESB_ENABLE_BOTH, ESB_DISABLE_BOTH, ESB_DISABLE_LTUP,
- *     ESB_DISABLE_RTDN).
+ * \param Arrows Arrow enable flags (ESB_ENABLE_BOTH, ESB_DISABLE_BOTH, ESB_DISABLE_LTUP, ESB_DISABLE_RTDN).
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -10327,8 +9974,7 @@ NtUserEnableSynchronizedLayout(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserEnableWindow routine enables or disables mouse and keyboard input to the specified
- * window.
+ * The NtUserEnableWindow routine enables or disables mouse and keyboard input to the specified window.
  *
  * \param WindowHandle Handle to the target window.
  * \param Enable TRUE to enable; FALSE to disable.
@@ -10348,8 +9994,7 @@ NtUserEnableWindow(
 
 // rev
 /**
- * The NtUserEnableWindowResizeOptimization routine configures session-wide GDI window-resize
- * optimization values.
+ * The NtUserEnableWindowResizeOptimization routine configures session-wide GDI window-resize optimization values.
  * \param Param1 First 32-bit session setting; not a window handle.
  * \param Param2 Second 32-bit session setting; semantics unconfirmed.
  * \param Param3 Third 32-bit session setting; semantics unconfirmed.
@@ -10394,8 +10039,7 @@ NtUserEnableWindowShellWindowManagementBehavior(
 
 // rev
 /**
- * The NtUserEnterMoveSizeLoop routine enters the modal window moving or sizing loop for the
- * specified window.
+ * The NtUserEnterMoveSizeLoop routine enters the modal window moving or sizing loop for the specified window.
  *
  * \param Hwnd Handle to the window entering the move or size loop.
  * \param PtCursor Starting cursor screen coordinates.
@@ -10490,8 +10134,7 @@ NtUserHwndSetRedirectionInfo(
 
 // rev
 /**
- * The NtUserImpersonateDdeClientWindow routine impersonates a Dynamic Data Exchange (DDE) client
- * application window.
+ * The NtUserImpersonateDdeClientWindow routine impersonates a Dynamic Data Exchange (DDE) client application window.
  *
  * \param HWndClient Handle to the DDE client window to impersonate.
  * \param HWndServer Handle to the DDE server window.
@@ -10511,8 +10154,7 @@ NtUserImpersonateDdeClientWindow(
 
 // rev
 /**
- * The NtUserInitThreadCoreMessagingIocp routine initializes core-messaging I/O completion for the
- * calling thread.
+ * The NtUserInitThreadCoreMessagingIocp routine initializes core-messaging I/O completion for the calling thread.
  *
  * \param WindowHandle Handle associated with the thread's message queue.
  * \returns Handle to the initialized completion port, or NULL on failure.
@@ -10534,8 +10176,7 @@ NtUserInitThreadCoreMessagingIocp(
  * integration for a thread.
  *
  * \param WindowHandle Handle to the window associated with the CoreMessaging queue.
- * \param Result Pointer to a variable receiving the initialization result or completion port
- *     handle.
+ * \param Result Pointer to a variable receiving the initialization result or completion port handle.
  * \returns HANDLE A handle to the thread completion port, or NULL on failure.
  */
 _Kernel_entry_
@@ -10590,8 +10231,7 @@ NtUserInvalidateRgn(
 
 // rev
 /**
- * The NtUserLayoutCompleted routine notifies the window manager that layout has completed for the
- * specified window.
+ * The NtUserLayoutCompleted routine notifies the window manager that layout has completed for the specified window.
  *
  * \param WindowHandle Handle to the window whose layout completed.
  * \returns TRUE on success, FALSE otherwise.
@@ -10645,8 +10285,7 @@ NtUserLockWindowUpdate(
  * coordinates for a specific window DPI context.
  *
  * \param WindowHandle Handle to the target window.
- * \param Point Pointer to a POINT structure containing logical coordinates to convert and receiving
- *     physical coordinates.
+ * \param Point Pointer to a POINT structure containing logical coordinates to convert and receiving physical coordinates.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -10778,8 +10417,7 @@ NtUserNotifyOverlayWindow(
  * \param Event The event constant describing the occurrence (EVENT_*).
  * \param WindowHandle Handle to the window that generates the event.
  * \param ObjectId The object identifier associated with the event (OBJID_*).
- * \param ChildId Identifies whether the event was triggered by an object or an element within the
- *     object.
+ * \param ChildId Identifies whether the event was triggered by an object or an element within the object.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -10799,8 +10437,7 @@ NtUserNotifyWinEvent(
  * coordinates to logical coordinates for a specific window.
  *
  * \param WindowHandle Handle to the window whose DPI context is used.
- * \param Point Pointer to a POINT structure containing physical coordinates and receiving logical
- *     coordinates.
+ * \param Point Pointer to a POINT structure containing physical coordinates and receiving logical coordinates.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -10852,8 +10489,7 @@ NtUserPrintWindow(
  * The NtUserRaiseLowerShellWindow routine raises or lowers the shell window in the Z-order.
  *
  * \param WindowHandle A handle to the shell window.
- * \param SetWithOptions 32-bit Boolean controlling the shell Z-order operation, not a one-byte
- *     BOOLEAN.
+ * \param SetWithOptions 32-bit Boolean controlling the shell Z-order operation, not a one-byte BOOLEAN.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  * \remarks This changes shell state. Native and WoW64 forwarding use a 32-bit Boolean; changing
  * shell state requires the appropriate caller context.
@@ -10868,12 +10504,10 @@ NtUserRaiseLowerShellWindow(
     );
 
 /**
- * The NtUserRealChildWindowFromPoint routine determines which child window contains the specified
- * client coordinates.
+ * The NtUserRealChildWindowFromPoint routine determines which child window contains the specified client coordinates.
  *
  * \param WindowHandleParent A handle to the parent window.
- * \param ptParentClientCoords A POINT structure that defines the client coordinates of the point to
- *     be checked.
+ * \param ptParentClientCoords A POINT structure that defines the client coordinates of the point to be checked.
  * \returns A handle to the child window that contains the specified point, or NULL.
  */
 _Kernel_entry_
@@ -10924,8 +10558,7 @@ NtUserRedrawTitle(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserRedrawWindow routine updates the specified rectangle or region in a window's client
- * area.
+ * The NtUserRedrawWindow routine updates the specified rectangle or region in a window's client area.
  *
  * \param WindowHandle A handle to the window to be redrawn.
  * \param UpdateRect Pointer to a RECT structure containing the coordinates of the update rectangle.
@@ -10962,8 +10595,7 @@ NtUserRestoreWindowDpiChanges(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserScheduleDispatchNotification routine schedules a dispatch notification for the
- * specified window.
+ * The NtUserScheduleDispatchNotification routine schedules a dispatch notification for the specified window.
  *
  * \param WindowHandle Handle to the target window.
  * \returns TRUE on success, FALSE otherwise.
@@ -10981,16 +10613,14 @@ NtUserScheduleDispatchNotification(
 
 // rev
 /**
- * The NtUserScrollWindowEx routine scrolls the contents of the specified window's client area with
- * extended options.
+ * The NtUserScrollWindowEx routine scrolls the contents of the specified window's client area with extended options.
  *
  * \param WindowHandle A handle to the window whose client area is to be scrolled.
  * \param Dx The amount, in device units, of horizontal scrolling.
  * \param Dy The amount, in device units, of vertical scrolling.
  * \param ScrollRect An optional pointer to a RECT structure that specifies the portion of the
  *     client area to be scrolled.
- * \param ClipRect An optional pointer to a RECT structure that contains the coordinates of the
- *     clipping rectangle.
+ * \param ClipRect An optional pointer to a RECT structure that contains the coordinates of the clipping rectangle.
  * \param UpdateRegion An optional handle to the region modified to hold the uncovered area.
  * \param UpdateRect An optional pointer to a RECT structure that receives the bounding rectangle of
  *     the update region.
@@ -11023,10 +10653,8 @@ NtUserScrollWindowEx(
  * \param FilterFlags Filter value stored in full without mask validation.
  * \returns TRUE when an entry is updated, FALSE otherwise.
  * \remarks Requires IAM access, otherwise ERROR_ACCESS_DENIED is set. An invalid window or a
- *          window not owned by an IAM thread causes ERROR_INVALID_PARAMETER. A nonzero value
- *          creates an
- *          entry when absent. Zero updates an existing entry to zero, but returns FALSE if no entry
- *          exists.
+ *          window not owned by an IAM thread causes ERROR_INVALID_PARAMETER. A nonzero value creates an
+ *          entry when absent. Zero updates an existing entry to zero, but returns FALSE if no entry exists.
  */
 _Success_(return != 0)
 _Kernel_entry_
@@ -11039,8 +10667,7 @@ NtUserSetActivationFilter(
     );
 
 /**
- * The NtUserSetActiveWindow routine makes the specified window the active window for the calling
- * thread.
+ * The NtUserSetActiveWindow routine makes the specified window the active window for the calling thread.
  *
  * \param WindowHandle A handle to the top-level window to be activated.
  * \returns The handle to the window that was previously active, or NULL on failure.
@@ -11146,12 +10773,10 @@ NtUserSetCancelRotationDelayHintWindow(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserSetCapture routine sets the mouse capture to the specified window belonging to the
- * current thread.
+ * The NtUserSetCapture routine sets the mouse capture to the specified window belonging to the current thread.
  *
  * \param WindowHandle A handle to the window in the current thread that is to capture the mouse.
- * \returns A handle to the window that previously had captured the mouse, or NULL if no such window
- *     exists.
+ * \returns A handle to the window that previously had captured the mouse, or NULL if no such window exists.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -11181,8 +10806,7 @@ NtUserSetChildWindowNoActivate(
  * The NtUserSetClassLong routine replaces the specified 32-bit (LONG) value at the specified offset
  * into the extra class memory or class structure.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
  * \param Index The zero-based offset to the value to be replaced (e.g. GCL_STYLE, GCL_CBCLSEXTRA).
  * \param Value The replacement value.
  * \param Ansi Nonzero if handling ANSI window classes; zero for Unicode.
@@ -11203,8 +10827,7 @@ NtUserSetClassLong(
  * The NtUserSetClassWord routine replaces the 16-bit (two-byte) value at the specified offset into
  * the extra class memory.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
  * \param Index The zero-based byte offset of the value to be replaced.
  * \param NewWord The replacement value.
  * \returns The previous 16-bit value, or 0 on failure.
@@ -11349,8 +10972,7 @@ NtUserSetForegroundWindow(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * The NtUserSetForegroundWindowForApplication routine brings the specified application window to
- * the foreground.
+ * The NtUserSetForegroundWindowForApplication routine brings the specified application window to the foreground.
  *
  * \param WindowHandle A handle to the application window.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -11386,8 +11008,7 @@ NtUserSetInternalWindowPos(
     );
 
 /**
- * The NtUserSetLayeredWindowAttributes routine sets the opacity and transparency color key of a
- * layered window.
+ * The NtUserSetLayeredWindowAttributes routine sets the opacity and transparency color key of a layered window.
  *
  * \param WindowHandle A handle to the layered window.
  * \param Key A COLORREF structure that specifies the transparency color key.
@@ -11408,8 +11029,7 @@ NtUserSetLayeredWindowAttributes(
 
 // rev
 /**
- * The NtUserSetMirrorRendering routine configures mirrored horizontal rendering for right-to-left
- * layout orientations.
+ * The NtUserSetMirrorRendering routine configures mirrored horizontal rendering for right-to-left layout orientations.
  *
  * \param WindowHandle A handle to the window to configure.
  * \param Enable Nonzero to enable mirror rendering; zero to disable.
@@ -11449,8 +11069,7 @@ NtUserSetModernAppWindow(
  * The NtUserSetParent routine changes the parent window of the specified child window.
  *
  * \param WindowHandle A handle to the child window whose parent is being changed.
- * \param ParentWindowHandle An optional handle to the new parent window, or NULL to make it a
- *     top-level window.
+ * \param ParentWindowHandle An optional handle to the new parent window, or NULL to make it a top-level window.
  * \returns A handle to the previous parent window, or NULL on failure.
  */
 _Kernel_entry_
@@ -11507,14 +11126,12 @@ NtUserSetProp(
 /**
  * The NtUserSetProp2 routine sets a window property using a captured counted name rather than a
  * pre-resolved atom. PropName is
- * read-only. The worker obtains a USER atom and associates the caller value with the window; remove
- * owned
+ * read-only. The worker obtains a USER atom and associates the caller value with the window; remove owned
  * properties before destroying the window.
  *
  * \param WindowHandle Handle to the window.
  * \param PropName The prop name argument.
  * \param Data The data argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -11556,15 +11173,12 @@ NtUserSetScrollInfo(
 /**
  * The NtUserSetSharedWindowData routine dispatches shared-window data through a session handler.
  * The first two arguments retain their existing
- * opaque pointer-sized contracts. The third is captured and forwarded through R8D, so DataParameter
- * is
- * 32-bit, not PVOID; exact semantics and return interpretation of the final handler remain
- * unverified.
+ * opaque pointer-sized contracts. The third is captured and forwarded through R8D, so DataParameter is
+ * 32-bit, not PVOID; exact semantics and return interpretation of the final handler remain unverified.
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
  * \param DataParameter The data parameter argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -11581,8 +11195,7 @@ NtUserSetSharedWindowData(
 
 // rev
 /**
- * The NtUserSetShellChangeNotifyHWND routine registers the window that receives shell change
- * notifications.
+ * The NtUserSetShellChangeNotifyHWND routine registers the window that receives shell change notifications.
  *
  * \param WindowHandle Handle to the window that receives shell change notifications.
  * \returns TRUE on success, FALSE otherwise.
@@ -11693,8 +11306,7 @@ NtUserSetWindowBand(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserSetWindowContextHelpId routine sets the context help identifier for the specified
- * window.
+ * The NtUserSetWindowContextHelpId routine sets the context help identifier for the specified window.
  *
  * \param WindowHandle Handle to the target window.
  * \param ContextId The context id.
@@ -11766,7 +11378,6 @@ NtUserSetWindowFeedbackSetting(
  * \param Index The index argument.
  * \param NewValue The new value argument.
  * \param Ansi The ansi argument.
- *
  * \returns The LONG result described above.
  */
 _Kernel_entry_
@@ -11782,12 +11393,10 @@ NtUserSetWindowLong(
 
 // rev
 /**
- * The NtUserSetWindowLongPtr routine changes an attribute of the specified window at the specified
- * offset in
+ * The NtUserSetWindowLongPtr routine changes an attribute of the specified window at the specified offset in
  * the extra window memory with pointer-sized precision.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
  * \param Index The zero-based offset to the value to be set (e.g. GWLP_WNDPROC, GWLP_HINSTANCE).
  * \param Value The replacement value.
  * \param Ansi Nonzero if handling ANSI window messages; zero for Unicode.
@@ -11808,13 +11417,11 @@ NtUserSetWindowLongPtr(
     );
 
 /**
- * The NtUserSetWindowPlacement routine sets the show state and the restored, minimized, and
- * maximized
+ * The NtUserSetWindowPlacement routine sets the show state and the restored, minimized, and maximized
  * positions of the specified window.
  *
  * \param WindowHandle A handle to the window.
- * \param lpwndpl Pointer to a WINDOWPLACEMENT structure that specifies the new show state and
- *     positions.
+ * \param lpwndpl Pointer to a WINDOWPLACEMENT structure that specifies the new show state and positions.
  * \returns TRUE if successful, FALSE otherwise.
  * \remarks Consumes an initialized WINDOWPLACEMENT; length must match the expected record size.
  */
@@ -11828,12 +11435,10 @@ NtUserSetWindowPlacement(
     );
 
 /**
- * The NtUserSetWindowPos routine changes the size, position, and Z-order of a child, pop-up, or
- * top-level window.
+ * The NtUserSetWindowPos routine changes the size, position, and Z-order of a child, pop-up, or top-level window.
  *
  * \param WindowHandle A handle to the window.
- * \param WindowHandleInsertAfter A handle to the window to precede the positioned window in the
- *     Z-order.
+ * \param WindowHandleInsertAfter A handle to the window to precede the positioned window in the Z-order.
  * \param X The new position of the left side of the window, in client coordinates.
  * \param Y The new position of the top of the window, in client coordinates.
  * \param cx The new width of the window, in pixels.
@@ -11864,8 +11469,7 @@ NtUserSetWindowPos(
  * \returns TRUE if successful, FALSE otherwise.
  * \remarks This is an inline wrapper around NtUserSetWindowPos with SWP_NOSIZE | SWP_NOMOVE (3),
  * not a win32u
- * export. It does not include SWP_NOACTIVATE, so bringing a top-level window forward may activate
- * it.
+ * export. It does not include SWP_NOACTIVATE, so bringing a top-level window forward may activate it.
  */
 FORCEINLINE
 NTSYSAPI
@@ -11925,8 +11529,7 @@ NtUserSetWindowRgnEx(
 
 // rev
 /**
- * The NtUserSetWindowShowState routine sets the window visibility state, show command, and
- * placement rect.
+ * The NtUserSetWindowShowState routine sets the window visibility state, show command, and placement rect.
  *
  * \param WindowHandle A handle to the window to update.
  * \param ShowState The show window state code.
@@ -11969,8 +11572,7 @@ NtUserSetWindowState(
  * The NtUserSetWindowWord routine replaces the 16-bit (two-byte) value at the specified offset into
  * the extra window memory.
  *
- * \param WindowHandle A handle to the window and, indirectly, the class to which the window
- *     belongs.
+ * \param WindowHandle A handle to the window and, indirectly, the class to which the window belongs.
  * \param Index The zero-based byte offset of the value to be replaced.
  * \param NewWord The replacement value.
  * \returns The previous 16-bit value, or 0 on failure.
@@ -11990,13 +11592,11 @@ NtUserSetWindowWord(
 /**
  * The NtUserShellForegroundBoostProcess routine enables or disables shell foreground boosting.
  * Enable is a 32-bit BOOL; the return is Boolean, not HWND.
- * The implementation requires PROCESS_SET_INFORMATION (0x0200) and a handle to the calling shell
- * process.
+ * The implementation requires PROCESS_SET_INFORMATION (0x0200) and a handle to the calling shell process.
  * Non-shell requests fail.
  *
  * \param ProcessHandle The process handle argument.
  * \param Enable The enable argument.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -12010,8 +11610,7 @@ NtUserShellForegroundBoostProcess(
 
 // rev
 /**
- * The NtUserShellMigrateWindow routine migrates a window between virtual desktops or shell hosting
- * environments.
+ * The NtUserShellMigrateWindow routine migrates a window between virtual desktops or shell hosting environments.
  *
  * \param WindowHandle A handle to the window to migrate.
  * \param MonitorHandle A handle to the target monitor.
@@ -12030,8 +11629,7 @@ NtUserShellMigrateWindow(
 
 // rev
 /**
- * The NtUserShellSetWindowPos routine performs shell-orchestrated window positioning and Z-order
- * placement.
+ * The NtUserShellSetWindowPos routine performs shell-orchestrated window positioning and Z-order placement.
  *
  * \param WindowHandle A handle to the window to reposition.
  * \param InsertAfterWindowHandle An optional handle to the window to precede the positioned window
@@ -12057,8 +11655,7 @@ NtUserShellSetWindowPos(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserShowOwnedPopups routine shows or hides the pop-up windows owned by the specified
- * window.
+ * The NtUserShowOwnedPopups routine shows or hides the pop-up windows owned by the specified window.
  *
  * \param Owner Handle to the owner window.
  * \param Show Visibility state or show command flag.
@@ -12155,8 +11752,7 @@ NtUserSwitchToThisWindow(
 
 // rev
 /**
- * The NtUserUndelegateInput routine revokes delegated input handling for the specified window and
- * input type.
+ * The NtUserUndelegateInput routine revokes delegated input handling for the specified window and input type.
  *
  * \param WindowHandle A handle to the window from which input handling is undelegated.
  * \param InputType The input event type identifier being revoked.
@@ -12207,7 +11803,6 @@ NtUserUpdateClientRect(
  * \param Blend The blend argument.
  * \param Flags Operation-specific flags.
  * \param DirtyRect The dirty rect argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -12267,14 +11862,12 @@ NtUserUpdateWindowInputSinkHints(
 /**
  * The NtUserUpdateWindowTrackingInfo routine supplies maximum and minimum sizing bounds for
  * shell-managed interactive resizing. Each input is an 8-byte
- * SIZE, not an opaque previous-state record. The entry requires positive components and maximum >=
- * minimum,
+ * SIZE, not an opaque previous-state record. The entry requires positive components and maximum >= minimum,
  * shell participation and IAM access. Both input records are captured read-only.
  *
  * \param WindowHandle Handle to the window.
  * \param MaxTrackSize The max track size argument.
  * \param MinTrackSize The min track size argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -12312,8 +11905,7 @@ NtUserUpdateWindows(
  * specified physical point.
  *
  * \param Point The physical coordinates of the point.
- * \returns A handle to the window that contains the point, or NULL if no window exists at that
- *     point.
+ * \returns A handle to the window that contains the point, or NULL if no window exists at that point.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -12324,12 +11916,10 @@ NtUserWindowFromPhysicalPoint(
     );
 
 /**
- * The NtUserWindowFromPoint routine retrieves a handle to the window that contains the specified
- * point.
+ * The NtUserWindowFromPoint routine retrieves a handle to the window that contains the specified point.
  *
  * \param Point The coordinates of the point to be tested.
- * \returns A handle to the window that contains the point, or NULL if no window exists at that
- *     point.
+ * \returns A handle to the window that contains the point, or NULL if no window exists at that point.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -12386,7 +11976,6 @@ ReportInertia(
  * \param WindowHandle Handle to the parent window.
  * \param Message Scroll message identifier (WM_HSCROLL or WM_VSCROLL).
  * \param wParam Additional scroll parameter.
- *
  * \returns No value.
  */
 NTSYSAPI
@@ -12400,13 +11989,11 @@ ScrollChildren(
 
 /**
  * The SetChildWindowNoActivate routine has the following behavior:
- * No matching named USER32 export was located. A nearby internal thunk targets
- * NtUserSetChildWindowNoActivate,
+ * No matching named USER32 export was located. A nearby internal thunk targets NtUserSetChildWindowNoActivate,
  * but that does not establish this declaration as callable through the loader. Retain it as
  * unresolved/historical rather than silently forwarding to another name. Not invoked.
  *
  * \param WindowHandle Handle to the window.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -12456,17 +12043,14 @@ SetCoveredWindowStates(
 /**
  * The SetInternalWindowPos routine forwards four arguments to NtUserSetInternalWindowPos (x86 ret
  * 16), not an opaque third placement object
- * alone. The native path captures the 16-byte rectangle after window validation and checks the
- * show- command
- * mask; the fourth ABI pointer is retained as the existing native POINT contract. Complete worker
- * behavior
+ * alone. The native path captures the 16-byte rectangle after window validation and checks the show- command
+ * mask; the fourth ABI pointer is retained as the existing native POINT contract. Complete worker behavior
  * and nullability are unspecified.
  *
  * \param WindowHandle Handle to the window.
  * \param ShowCommand The show command argument.
  * \param Rectangle The rectangle argument.
  * \param Point The point argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -12596,14 +12180,12 @@ SetWindowBand(
 /**
  * The SetWindowRgnEx routine sets a window region through NtUserSetWindowRgnEx. On nonzero native
  * success, the USER32 wrapper calls
- * DeleteObject on the supplied region handle. This ownership consumption differs from directly
- * calling the
+ * DeleteObject on the supplied region handle. This ownership consumption differs from directly calling the
  * native entry; callers must not continue using or separately free the region after success.
  *
  * \param WindowHandle Handle to the window.
  * \param RegionHandle The region handle argument.
  * \param Flags Operation-specific flags.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -12618,15 +12200,12 @@ SetWindowRgnEx(
 // rev
 /**
  * The ShellForegroundBoostProcess routine has the following behavior:
- * Direct USER32 thunk for NtUserShellForegroundBoostProcess. The second argument and return are
- * 32-bit BOOL
- * values, not HWNDs. Native code requires PROCESS_SET_INFORMATION (0x0200) and the calling shell
- * process; it
+ * Direct USER32 thunk for NtUserShellForegroundBoostProcess. The second argument and return are 32-bit BOOL
+ * values, not HWNDs. Native code requires PROCESS_SET_INFORMATION (0x0200) and the calling shell process; it
  * enables/disables shell foreground boosting.
  *
  * \param ProcessHandle The process handle argument.
  * \param Enable The enable argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -12639,8 +12218,7 @@ ShellForegroundBoostProcess(
 
 // rev
 /**
- * The ShellHandwritingDelegateInput routine delegates handwriting input to the shell input
- * dispatcher.
+ * The ShellHandwritingDelegateInput routine delegates handwriting input to the shell input dispatcher.
  *
  * \param WindowHandle Handle to the window receiving delegated handwriting input.
  * \param InputData Pointer to handwriting input event structure.
@@ -12755,13 +12333,11 @@ UpdateWindowInputSinkHints(
 /**
  * The EndDeferWindowPosEx routine completes a deferred positioning batch through
  * NtUserEndDeferWindowPosEx. The public and WoW64 wrappers
- * forward two DWORD/native-handle slots (x86 ret 8); Async must not be omitted even though the
- * native entry
+ * forward two ULONG/native-handle slots (x86 ret 8); Async must not be omitted even though the native entry
  * uses only one argument.
  *
  * \param WindowPosInfo The window pos info argument.
  * \param Async The async argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -12788,8 +12364,7 @@ NtUserDestroyWindow(
 
 // rev
 /**
- * The NtUserEndDeferWindowPosEx routine simultaneously updates the position and size of one or more
- * windows.
+ * The NtUserEndDeferWindowPosEx routine simultaneously updates the position and size of one or more windows.
  *
  * \param WindowPosInfo Handle to the multiple-window-position structure.
  * \param Async TRUE to execute window position updates asynchronously; FALSE otherwise.
@@ -12824,8 +12399,7 @@ NtUserRemoveProp(
     );
 
 /**
- * The NtUserShutdownReasonDestroy routine destroys the shutdown block reason associated with a
- * window.
+ * The NtUserShutdownReasonDestroy routine destroys the shutdown block reason associated with a window.
  *
  * \param WindowHandle A handle to the main window of the application.
  * \returns TRUE if successful, FALSE otherwise.
@@ -12891,16 +12465,12 @@ NtRIMAddInputObserver(
 /**
  * The NtRIMAreSiblingDevices routine compares two RIM devices for a shared physical ancestry
  * identifier. The public client/syscall ABI has three
- * arguments (x86 ret 12); the kernel helper supplies a separate capture-mode parameter internally.
- * Successful
- * output is a 4-byte logical value, not a pointer-sized record. Handle/edition failures do not
- * initialize the
- * result.
+ * arguments (x86 ret 12); the kernel helper supplies a separate capture-mode parameter internally. Successful
+ * output is a 4-byte logical value, not a pointer-sized record. Handle/edition failures do not initialize the result.
  *
  * \param DeviceHandle1 The device handle1 argument.
  * \param DeviceHandle2 The device handle2 argument.
  * \param Siblings Receives the siblings.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -12917,7 +12487,7 @@ NtRIMAreSiblingDevices(
 /**
  * The NtRIMDeviceIoControl routine provides the operation described below.
  *
- * win32kbase: nine syscall arguments; argument 9 is a DWORD
+ * win32kbase: nine syscall arguments; argument 9 is a ULONG
  * (0x1401f43f8), not an IO_STATUS_BLOCK pointer. Its semantic name is unspecified.
  * OutputBuffer is captured before the operation and copied back afterwards.
  * ReturnLength is optional (0x1401f44c3-0x1401f44de).
@@ -12931,7 +12501,6 @@ NtRIMAreSiblingDevices(
  * \param OutputBufferLength The output buffer length argument.
  * \param ReturnLength Receives the return length.
  * \param Param9 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -12954,18 +12523,14 @@ NtRIMDeviceIoControl(
 /**
  * The NtRIMEnableMonitorMappingForDevice routine enables monitor mapping for a RIM device. The
  * syscall/client ABI has exactly 3 arguments (x86 ret 12): two
- * input handles and an optional pointer-sized monitor-ID slot. There is no public EnableFlags
- * argument; the
- * native wrapper supplies internal user-mode capture flag 1 itself. WoW64 reads the initial 4-byte
- * slot,
- * widens it, and copies it back even on failure, hence input/output SAL. Device mapping and
- * ownership
+ * input handles and an optional pointer-sized monitor-ID slot. There is no public EnableFlags argument; the
+ * native wrapper supplies internal user-mode capture flag 1 itself. WoW64 reads the initial 4-byte slot,
+ * widens it, and copies it back even on failure, hence input/output SAL. Device mapping and ownership
  * requirements are private.
  *
  * \param InputManagerHandle The input manager handle argument.
  * \param DeviceHandle The device handle argument.
  * \param MonitorId Supplies and receives the monitor id.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -13001,12 +12566,10 @@ NtRIMFreeInputBuffer(
  *
  * \param RimHandle Handle to the raw input manager.
  * \param DeviceHandle Handle to the target HID device.
- * \param Buffer Optional buffer receiving the HID preparsed data. Specify NULL to query the
- *     required size.
+ * \param Buffer Optional buffer receiving the HID preparsed data. Specify NULL to query the required size.
  * \param BufferSize Size of Buffer, in bytes. Receives the required size only when Buffer is NULL.
  * \returns NTSTATUS Successful or errant status.
- * \remarks When Buffer is non-NULL, copies the smaller of the supplied size and the preparsed-data
- * size
+ * \remarks When Buffer is non-NULL, copies the smaller of the supplied size and the preparsed-data size
  * without updating BufferSize or reporting a short buffer.
  */
 _Kernel_entry_
@@ -13061,8 +12624,7 @@ NtRIMGetDeviceProperties(
 
 // rev
 /**
- * The NtRIMGetDevicePropertiesLockfree routine retrieves properties for a raw input device without
- * acquiring locks.
+ * The NtRIMGetDevicePropertiesLockfree routine retrieves properties for a raw input device without acquiring locks.
  *
  * \param HRimDev Handle to the target device.
  * \param PRimDevProps A pointer to a structure receiving device properties.
@@ -13079,8 +12641,7 @@ NtRIMGetDevicePropertiesLockfree(
 
 // rev
 /**
- * The NtRIMGetPhysicalDeviceRect routine retrieves the physical device rectangle for a raw input
- * device.
+ * The NtRIMGetPhysicalDeviceRect routine retrieves the physical device rectangle for a raw input device.
  *
  * \param InputManagerHandle Handle to the raw input manager.
  * \param DeviceHandle The raw input device identifier.
@@ -13133,8 +12694,7 @@ NtRIMObserveNextInput(
 
 // rev
 /**
- * The NtRIMOnAsyncPnpWorkNotification routine notifies the Raw Input Manager of asynchronous PnP
- * work completion.
+ * The NtRIMOnAsyncPnpWorkNotification routine notifies the Raw Input Manager of asynchronous PnP work completion.
  *
  * \param HRimHandle Handle to the raw input manager.
  * \returns NTSTATUS Successful or errant status.
@@ -13271,8 +12831,7 @@ NtRIMRemoveInputObserver(
 
 // rev
 /**
- * The NtRIMSetDeadzoneRotation routine configures deadzone rotation parameters for a raw input
- * device.
+ * The NtRIMSetDeadzoneRotation routine configures deadzone rotation parameters for a raw input device.
  *
  * \param Param1 Deadzone rotation configuration parameter.
  *
@@ -13289,8 +12848,7 @@ NtRIMSetDeadzoneRotation(
 
 // rev
 /**
- * The NtRIMSetExtendedDeviceProperty routine sets extended device properties for a raw input
- * device.
+ * The NtRIMSetExtendedDeviceProperty routine sets extended device properties for a raw input device.
  *
  * \param HRimDev Handle to the raw input device.
  * \param PProperty A pointer to the property buffer.
@@ -13339,8 +12897,7 @@ NtRIMUnregisterForInput(
 
 // rev
 /**
- * The NtRIMUpdateInputObserverRegistration routine updates registration parameters for a raw input
- * observer.
+ * The NtRIMUpdateInputObserverRegistration routine updates registration parameters for a raw input observer.
  *
  * \param HInputObserver Handle to the input observer.
  * \param DwFlags Registration flags.
@@ -13364,8 +12921,7 @@ NtRIMUpdateInputObserverRegistration(
  * The NtUserGetRawInputBuffer routine performs a buffered read of raw input data packets.
  *
  * \param Data Optional pointer to a buffer of RAWINPUT structures receiving input data.
- * \param Size Pointer to a variable holding the buffer size in bytes and receiving the required or
- *     read size.
+ * \param Size Pointer to a variable holding the buffer size in bytes and receiving the required or read size.
  * \param HeaderSize Size, in bytes, of the RAWINPUTHEADER structure.
  * \returns ULONG The number of messages copied, or -1 on failure.
  */
@@ -13444,8 +13000,7 @@ NtUserGetRawInputDeviceList(
     );
 
 /**
- * The NtUserGetRegisteredRawInputDevices routine retrieves the raw input devices for the current
- * application.
+ * The NtUserGetRegisteredRawInputDevices routine retrieves the raw input devices for the current application.
  *
  * \param RawInputDevices Pointer to an array of RAWINPUTDEVICE structures.
  * \param RawInputDeviceCount Pointer to a variable that specifies the buffer capacity and receives
@@ -13490,8 +13045,7 @@ NtUserRegisterRawInputDevices(
 
 // rev
 /**
- * The RIMAddInputObserver routine registers an input observer callback with the Raw Input Manager
- * (RIM).
+ * The RIMAddInputObserver routine registers an input observer callback with the Raw Input Manager (RIM).
  *
  * \param Buffer Pointer to the caller-supplied input observer buffer.
  * \param BufferSize Size of the input observer buffer in bytes.
@@ -13522,16 +13076,12 @@ RIMAddInputObserver(
 /**
  * The RIMAreSiblingDevices routine compares two RIM devices for a shared physical ancestry
  * identifier. The public client/syscall ABI has three
- * arguments (x86 ret 12); the kernel helper supplies a separate capture-mode parameter internally.
- * Successful
- * output is a 4-byte logical value, not a pointer-sized record. Handle/edition failures do not
- * initialize the
- * result.
+ * arguments (x86 ret 12); the kernel helper supplies a separate capture-mode parameter internally. Successful
+ * output is a 4-byte logical value, not a pointer-sized record. Handle/edition failures do not initialize the result.
  *
  * \param DeviceHandle1 The device handle1 argument.
  * \param DeviceHandle2 The device handle2 argument.
  * \param Siblings Receives the siblings.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -13546,15 +13096,10 @@ RIMAreSiblingDevices(
 // rev
 /**
  * The RIMDeviceIoControl routine has the following behavior:
- * USER32 directly forwards the 9-argument NtRIMDeviceIoControl contract (x86 ret 36), not the wider
- * kernel-
- * helper contract with IO_STATUS_BLOCK and asynchronous arguments. Both input and output buffers
- * are captured
- * before dispatch; successful native copyback uses the full OutputBufferLength, with an optional
- * 4-byte
- * ReturnLength write. ControlParameter is the ninth DWORD; detailed selector/driver semantics
- * remain
- * unverified.
+ * USER32 directly forwards the 9-argument NtRIMDeviceIoControl contract (x86 ret 36), not the wider kernel-
+ * helper contract with IO_STATUS_BLOCK and asynchronous arguments. Both input and output buffers are captured
+ * before dispatch; successful native copyback uses the full OutputBufferLength, with an optional 4-byte
+ * ReturnLength write. ControlParameter is the ninth ULONG; detailed selector/driver semantics remain unverified.
  *
  * \param InputManagerHandle The input manager handle argument.
  * \param DeviceHandle The device handle argument.
@@ -13565,7 +13110,6 @@ RIMAreSiblingDevices(
  * \param OutputBufferLength The output buffer length argument.
  * \param ReturnLength Receives the return length.
  * \param ControlParameter The control parameter argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -13587,18 +13131,14 @@ RIMDeviceIoControl(
 /**
  * The RIMEnableMonitorMappingForDevice routine enables monitor mapping for a RIM device. The
  * syscall/client ABI has exactly 3 arguments (x86 ret 12): two
- * input handles and an optional pointer-sized monitor-ID slot. There is no public EnableFlags
- * argument; the
- * native wrapper supplies internal user-mode capture flag 1 itself. WoW64 reads the initial 4-byte
- * slot,
- * widens it, and copies it back even on failure, hence input/output SAL. Device mapping and
- * ownership
+ * input handles and an optional pointer-sized monitor-ID slot. There is no public EnableFlags argument; the
+ * native wrapper supplies internal user-mode capture flag 1 itself. WoW64 reads the initial 4-byte slot,
+ * widens it, and copies it back even on failure, hence input/output SAL. Device mapping and ownership
  * requirements are private.
  *
  * \param InputManagerHandle The input manager handle argument.
  * \param DeviceHandle The device handle argument.
  * \param MonitorId Supplies and receives the monitor id.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -13612,8 +13152,7 @@ RIMEnableMonitorMappingForDevice(
 
 // rev
 /**
- * The RIMFreeInputBuffer routine frees a raw input buffer previously returned by the Raw Input
- * Manager.
+ * The RIMFreeInputBuffer routine frees a raw input buffer previously returned by the Raw Input Manager.
  *
  * \param InputManagerHandle Handle to the input manager.
  * \param InputBuffer Pointer to the input buffer to free.
@@ -13630,19 +13169,16 @@ RIMFreeInputBuffer(
 
 // rev
 /**
- * The RIMGetDevicePreparsedData routine retrieves the HID preparsed data describing a raw input
- * device.
+ * The RIMGetDevicePreparsedData routine retrieves the HID preparsed data describing a raw input device.
  *
  * \param RimHandle Handle to the raw input manager.
  * \param DeviceHandle Handle to the target HID device.
- * \param Buffer Optional buffer receiving the HID preparsed data. Specify NULL to query the
- *     required size.
+ * \param Buffer Optional buffer receiving the HID preparsed data. Specify NULL to query the required size.
  * \param BufferSize Size of Buffer, in bytes. Receives the required size only when Buffer is NULL.
  * \returns NTSTATUS Successful or errant status.
  * \remarks Forwards to the NtRIMGetDevicePreparsedData system call.
  * When Buffer is non-NULL, copies the smaller of the supplied size and the preparsed-data size
- * without updating BufferSize or reporting a short buffer. Non-HID devices return
- * STATUS_INVALID_PARAMETER.
+ * without updating BufferSize or reporting a short buffer. Non-HID devices return STATUS_INVALID_PARAMETER.
  */
 NTSYSAPI
 NTSTATUS
@@ -13713,8 +13249,7 @@ RIMGetDevicePropertiesLockfree(
 
 // rev
 /**
- * The RIMGetPhysicalDeviceRect routine retrieves the physical screen rectangle mapped to a raw
- * input device.
+ * The RIMGetPhysicalDeviceRect routine retrieves the physical screen rectangle mapped to a raw input device.
  *
  * \param InputManagerHandle Handle to the raw input manager.
  * \param DeviceHandle Handle to the target input device.
@@ -13733,8 +13268,7 @@ RIMGetPhysicalDeviceRect(
 
 // rev
 /**
- * The RIMGetSourceProcessId routine retrieves the process identifier that sourced a raw input
- * packet.
+ * The RIMGetSourceProcessId routine retrieves the process identifier that sourced a raw input packet.
  *
  * \param InputManagerHandle Handle to the raw input manager.
  * \param DeviceHandle Handle to the target input device.
@@ -13799,13 +13333,11 @@ RIMOnPnpNotification(
 
 // rev
 /**
- * The RIMOnTimerNotification routine notifies the Raw Input Manager of a timer occurrence for an
- * existing registration.
+ * The RIMOnTimerNotification routine notifies the Raw Input Manager of a timer occurrence for an existing registration.
  * The argument is a handle forwarded by value, not a character buffer.
  * This input-service operation is not intended as a general-purpose timer API.
  *
  * \param Handle The handle argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -13862,11 +13394,8 @@ RIMReadInput(
 // rev
 /**
  * The RIMRegisterForInput routine has the following behavior:
- * Legacy raw-input registration export. This client entry raises fail-fast rather than registering
- * input. Do
- * not call it as a capability probe. The historical prototype is retained, not a supported callable
- * contract.
- *
+ * Legacy raw-input registration export. This client entry raises fail-fast rather than registering input. Do
+ * not call it as a capability probe. The historical prototype is retained, not a supported callable contract.
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -13912,8 +13441,7 @@ RIMRegisterForInputEx(
 
 // rev
 /**
- * The RIMRemoveInputObserver routine removes a raw input observer previously added with
- * RIMAddInputObserver.
+ * The RIMRemoveInputObserver routine removes a raw input observer previously added with RIMAddInputObserver.
  *
  * \param ObserverHandle Handle to the observer to remove.
  * \returns NTSTATUS Successful or errant status.
@@ -13977,8 +13505,7 @@ RIMUnregisterForInput(
 
 // rev
 /**
- * The RIMUpdateInputObserverRegistration routine updates the registration parameters of a raw input
- * observer.
+ * The RIMUpdateInputObserverRegistration routine updates the registration parameters of a raw input observer.
  *
  * \param ObserverHandle Handle to the raw input observer.
  * \param Flags Flags specifying updated observer registration settings.
@@ -14014,13 +13541,11 @@ typedef enum _LOW_LATENCY_PROFILE_REQUEST_REASON
 /**
  * The GetExtendedPointerDeviceProperty routine queries an extended property of a pointer device.
  * The caller supplies a 20-byte property record; the native
- * entry captures and updates that record on success. Returns a 32-bit Boolean result. Device
- * registration
+ * entry captures and updates that record on success. Returns a 32-bit Boolean result. Device registration
  * requirements and property selector meanings are private.
  *
  * \param DeviceHandle The device handle argument.
  * \param Property Supplies and receives the property.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -14033,14 +13558,12 @@ GetExtendedPointerDeviceProperty(
 
 // rev
 /**
- * The GetPointerDeviceInputSpace routine retrieves the 8-byte input-space LUID associated with a
- * pointer device.
+ * The GetPointerDeviceInputSpace routine retrieves the 8-byte input-space LUID associated with a pointer device.
  * Returns a 32-bit Boolean result; a failed device lookup does not initialize
  * the output. The special mouse handle is not an invalid-handle sentinel.
  *
  * \param DeviceHandle The device handle argument.
  * \param InputSpace Receives the input space.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -14053,15 +13576,13 @@ GetPointerDeviceInputSpace(
 
 // rev
 /**
- * The GetPointerDeviceOrientation routine retrieves the 4-byte orientation value for a pointer
- * device.
+ * The GetPointerDeviceOrientation routine retrieves the 4-byte orientation value for a pointer device.
  * Returns a 32-bit Boolean result and writes the output only after device resolution.
  * (HANDLE)-1 selects the real mouse rather than
  * an invalid device; callers must not use it for a negative-path probe.
  *
  * \param DeviceHandle The device handle argument.
  * \param Orientation Receives the orientation.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -14104,7 +13625,6 @@ GetPointerFrameTimes(
  * \param DeviceData The device data argument.
  * \param DeviceParameter4 The device parameter4 argument.
  * \param DeviceHandle Receives the device handle.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -14133,7 +13653,6 @@ InitializePointerDeviceInjection(
  * \param DeviceParameter4 The device parameter4 argument.
  * \param UnusedParameter The unused parameter argument.
  * \param DeviceHandle Receives the device handle.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -14150,8 +13669,7 @@ InitializePointerDeviceInjectionEx(
 
 // rev
 /**
- * The InjectPointerInput routine injects synthetic pointer data packets into the system input
- * pipeline.
+ * The InjectPointerInput routine injects synthetic pointer data packets into the system input pipeline.
  *
  * \param DeviceHandle Handle to the synthetic pointer device.
  * \param PointerInfo Pointer to an array of POINTER_TYPE_INFO structures describing pointer state.
@@ -14170,8 +13688,7 @@ InjectPointerInput(
 
 // rev
 /**
- * The MITSynthesizeTouchInput routine injects synthesized touch input events via Modern Input
- * Transport.
+ * The MITSynthesizeTouchInput routine injects synthesized touch input events via Modern Input Transport.
  *
  * \param TouchData Pointer to the touch input descriptor structure.
  * \returns ULONG_PTR Status code or number of contacts synthesized.
@@ -14188,14 +13705,11 @@ MITSynthesizeTouchInput(
 /**
  * The NtHWCursorUpdatePointer routine updates hardware-cursor state for the graphics/input
  * subsystem. CursorInfo is a required pointer to a
- * 28-byte input record, not a 64-bit cursor ID. PointerInfo is an optional shape descriptor (32
- * bytes on
- * native x64, including a nested pixel-data pointer); a NULL descriptor selects the position-only
- * path.
+ * 28-byte input record, not a 64-bit cursor ID. PointerInfo is an optional shape descriptor (32 bytes on
+ * native x64, including a nested pixel-data pointer); a NULL descriptor selects the position-only path.
  *
  * \param CursorInfo The cursor info argument.
  * \param PointerInfo The pointer info argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -14246,7 +13760,6 @@ NtUserAutoPromoteMouseInPointer(
 /**
  * The NtUserConvertPrimaryPointerToMouseDrag routine converts an active primary pointer interaction
  * into a traditional mouse drag operation.
- *
  * \returns BOOL TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -14262,11 +13775,9 @@ NtUserConvertPrimaryPointerToMouseDrag(
  * The NtUserCreateSyntheticPointerDevice2 routine creates a synthetic pointer device for simulated
  * touch or pen input.
  *
- * \param PointerDeviceInfo Pointer to a structure describing the synthetic pointer device
- *     configuration
+ * \param PointerDeviceInfo Pointer to a structure describing the synthetic pointer device configuration
  * (device type, maximum pointer count, and flags; copied from user memory).
- * \param PointerDeviceHandle Pointer to a variable that receives the created synthetic pointer
- *     device handle.
+ * \param PointerDeviceHandle Pointer to a variable that receives the created synthetic pointer device handle.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -14280,13 +13791,11 @@ NtUserCreateSyntheticPointerDevice2(
 
 // rev
 /**
- * The NtUserDelegateCapturePointers routine queries or delegates active pointer captures to an
- * input target.
+ * The NtUserDelegateCapturePointers routine queries or delegates active pointer captures to an input target.
  *
  * \param PointerId Identifier of the primary pointer device.
  * \param CapturedPointers Pointer to an array receiving delegated pointer identifiers.
- * \param Count Pointer to a variable holding the maximum pointers to receive, and receiving the
- *     returned count.
+ * \param Count Pointer to a variable holding the maximum pointers to receive, and receiving the returned count.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -14301,8 +13810,7 @@ NtUserDelegateCapturePointers(
 
 // rev
 /**
- * The NtUserDiscardPointerFrameMessages routine discards pending pointer frame messages for a
- * pointer device.
+ * The NtUserDiscardPointerFrameMessages routine discards pending pointer frame messages for a pointer device.
  *
  * \param PointerId Identifier of the pointer whose pending frame messages are discarded.
  * \returns BOOL TRUE on success, FALSE on failure.
@@ -14318,8 +13826,7 @@ NtUserDiscardPointerFrameMessages(
 
 // rev
 /**
- * The NtUserDownlevelTouchpad routine injects or processes downlevel legacy precision touchpad
- * input packets.
+ * The NtUserDownlevelTouchpad routine injects or processes downlevel legacy precision touchpad input packets.
  *
  * \param DeviceId Identifier of the precision touchpad device.
  * \param DownlevelInput Pointer to downlevel touchpad input data.
@@ -14357,7 +13864,6 @@ NtUserEnableMouseInPointer(
 /**
  * The NtUserEnableMouseInPointerForThread routine enables mouse-in-pointer message processing for
  * the calling thread.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_ENABLEMOUSEINPOINTERFORTHREAD).
  */
@@ -14396,7 +13902,6 @@ NtUserEnableMouseInPointerForWindow(
  * architecture-specific forwarding requirements.
  *
  * \param Enable The enable argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -14409,12 +13914,10 @@ NtUserEnableTouchPad(
 
 // rev
 /**
- * The NtUserGetExtendedPointerDeviceProperty routine retrieves extended properties for an input
- * pointer device.
+ * The NtUserGetExtendedPointerDeviceProperty routine retrieves extended properties for an input pointer device.
  *
  * \param DeviceHandle Handle to the pointer device.
- * \param Property Pointer to a structure specifying the requested property and receiving output
- *     data.
+ * \param Property Pointer to a structure specifying the requested property and receiving output data.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -14433,15 +13936,12 @@ NtUserGetExtendedPointerDeviceProperty(
  * \param Hwnd Handle to the window whose gesture configuration is queried.
  * \param DwReserved Reserved; must be 0.
  * \param DwFlags Configuration query flags.
- * \param PcIDs Pointer to a variable holding the number of GESTURECONFIG structures, and receiving
- *     the
- * returned count.
+ * \param PcIDs Pointer to a variable holding the number of GESTURECONFIG structures, and receiving the returned count.
  * \param PGestureConfig Pointer to an array of GESTURECONFIG structures receiving configuration.
  * \param CbSize Size, in bytes, of a single GESTURECONFIG structure.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetGestureConfig.
- * \remarks The caller supplies gesture IDs in the input/output array. The entry accepts counts 1
- * through 256,
+ * \remarks The caller supplies gesture IDs in the input/output array. The entry accepts counts 1 through 256,
  * element size 12, and Flags bits limited to 1. Count is read, not used as an output sizing query.
  */
 _Kernel_entry_
@@ -14459,8 +13959,7 @@ NtUserGetGestureConfig(
 
 // rev
 /**
- * The NtUserGetGestureExtArgs routine retrieves extended argument data associated with a touch
- * gesture.
+ * The NtUserGetGestureExtArgs routine retrieves extended argument data associated with a touch gesture.
  *
  * \param GestureHandle Handle to the gesture info object (HGESTUREINFO).
  * \param BufferSize Size, in bytes, of the ExtArgs buffer.
@@ -14481,13 +13980,11 @@ NtUserGetGestureExtArgs(
 /**
  * The NtUserGetGestureInfo routine retrieves an owned gesture record. Initialize cbSize: 56 bytes
  * for native x64, 48 for WoW64. The buffer is
- * input/output, not write-only. The native handle must belong to the calling thread. WoW64 copies
- * its
+ * input/output, not write-only. The native handle must belong to the calling thread. WoW64 copies its
  * temporary record back even on failure, so consume output only on success.
  *
  * \param GestureHandle The gesture handle argument.
  * \param GestureInfo Supplies and receives the gesture info.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -14501,8 +13998,7 @@ NtUserGetGestureInfo(
 
 // rev
 /**
- * The NtUserGetPointerCursorId routine retrieves the cursor identifier associated with a specified
- * pointer.
+ * The NtUserGetPointerCursorId routine retrieves the cursor identifier associated with a specified pointer.
  *
  * \param PointerId Identifier of the pointer to query.
  * \param CursorId Pointer to a variable receiving the cursor identifier.
@@ -14538,8 +14034,7 @@ NtUserGetPointerDevice(
 
 // rev
 /**
- * The NtUserGetPointerDeviceCursors routine retrieves cursor information for the specified pointer
- * device.
+ * The NtUserGetPointerDeviceCursors routine retrieves cursor information for the specified pointer device.
  *
  * \param Device Handle to the pointer device.
  * \param CursorCount Pointer to a variable holding the maximum cursors to receive, and receiving
@@ -14564,8 +14059,7 @@ NtUserGetPointerDeviceCursors(
  * a pointer device.
  *
  * \param DeviceId Identifier of the pointer device.
- * \param InputSpace Pointer to a structure receiving the input space dimensions and coordinate
- *     bounds.
+ * \param InputSpace Pointer to a structure receiving the input space dimensions and coordinate bounds.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -14579,8 +14073,7 @@ NtUserGetPointerDeviceInputSpace(
 
 // rev
 /**
- * The NtUserGetPointerDeviceOrientation routine retrieves the physical mounting orientation of a
- * pointer device.
+ * The NtUserGetPointerDeviceOrientation routine retrieves the physical mounting orientation of a pointer device.
  *
  * \param DeviceId Identifier of the pointer device.
  * \param Orientation Pointer to a variable receiving orientation degrees or transform data.
@@ -14597,8 +14090,7 @@ NtUserGetPointerDeviceOrientation(
 
 // rev
 /**
- * The NtUserGetPointerDeviceProperties routine retrieves the extended properties of a pointer
- * device.
+ * The NtUserGetPointerDeviceProperties routine retrieves the extended properties of a pointer device.
  *
  * \param Device Handle to the pointer device.
  * \param PropertyCount Pointer to a variable holding the maximum properties to receive, and
@@ -14619,8 +14111,7 @@ NtUserGetPointerDeviceProperties(
 
 // rev
 /**
- * The NtUserGetPointerDeviceRects routine retrieves the pointer device coordinates and display
- * coordinates rectangles.
+ * The NtUserGetPointerDeviceRects routine retrieves the pointer device coordinates and display coordinates rectangles.
  *
  * \param Device Handle to the pointer device.
  * \param PointerDeviceRect Pointer to a RECT structure receiving the pointer device area.
@@ -14640,11 +14131,9 @@ NtUserGetPointerDeviceRects(
 
 // rev
 /**
- * The NtUserGetPointerDevices routine retrieves information about all pointer devices attached to
- * the system.
+ * The NtUserGetPointerDevices routine retrieves information about all pointer devices attached to the system.
  *
- * \param DeviceCount Pointer to a variable holding the maximum device count and receiving the
- *     returned count.
+ * \param DeviceCount Pointer to a variable holding the maximum device count and receiving the returned count.
  * \param PointerDevices Optional pointer to an array of POINTER_DEVICE_INFO structures.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetPointerDevices.
@@ -14679,9 +14168,7 @@ NtUserGetPointerFrameTimes(
 
 // rev
 /**
- * The NtUserGetPointerIdForPromotion routine queries the pointer ID designated for promotion to
- * mouse emulation.
- *
+ * The NtUserGetPointerIdForPromotion routine queries the pointer ID designated for promotion to mouse emulation.
  * \returns ULONG Pointer identifier.
  */
 _Kernel_entry_
@@ -14708,7 +14195,6 @@ NtUserGetPointerIdForPromotion(
  * \param EntryCount Supplies and receives the entry count.
  * \param PointerCount Supplies and receives the pointer count.
  * \param PointerInfoList Receives the pointer info list.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -14733,8 +14219,7 @@ NtUserGetPointerInfoList(
  *
  * \param PointerId Identifier of the pointer to query.
  * \param HistoryCount Number of transforms to retrieve.
- * \param InputTransform Pointer to an array of INPUT_TRANSFORM structures receiving the transform
- *     matrices.
+ * \param InputTransform Pointer to an array of INPUT_TRANSFORM structures receiving the transform matrices.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetPointerInputTransform.
  */
@@ -14756,7 +14241,6 @@ NtUserGetPointerInputTransform(
  *
  * \param PointerId The pointer id argument.
  * \param ProprietaryId Receives the proprietary id.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -14773,8 +14257,7 @@ NtUserGetPointerProprietaryId(
  * The NtUserGetPointerType routine retrieves the pointer type for a specified pointer.
  *
  * \param PointerId Identifier of the pointer of interest.
- * \param PointerType Pointer to a POINTER_INPUT_TYPE variable receiving the pointer device type
- *     (PT_*).
+ * \param PointerType Pointer to a POINTER_INPUT_TYPE variable receiving the pointer device type (PT_*).
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetPointerType.
  */
@@ -14794,10 +14277,8 @@ NtUserGetPointerType(
  * \param PointerId Identifier of the pointer of interest.
  * \param HistoryCount Number of historical input packets to retrieve.
  * \param PropertiesCount Number of device properties to retrieve per packet.
- * \param Properties Pointer to an array of POINTER_DEVICE_PROPERTY structures identifying the
- *     properties.
- * \param Values Pointer to an array of HistoryCount * PropertiesCount LONG values receiving the raw
- *     properties.
+ * \param Properties Pointer to an array of POINTER_DEVICE_PROPERTY structures identifying the properties.
+ * \param Values Pointer to an array of HistoryCount * PropertiesCount LONG values receiving the raw properties.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetRawPointerDeviceData.
  */
@@ -14837,8 +14318,7 @@ NtUserGetTouchInputInfo(
 
 // rev
 /**
- * The NtUserGetTouchValidationStatus routine retrieves the validation status of a touch input
- * sequence.
+ * The NtUserGetTouchValidationStatus routine retrieves the validation status of a touch input sequence.
  *
  * \param TouchInputHandle Handle to the touch input sequence.
  * \returns ULONG The touch validation status for the window.
@@ -14869,8 +14349,7 @@ NtUserHidePointerContactVisualization(
 
 // rev
 /**
- * The NtUserInitializeTouchInjection routine configures touch input injection for the calling
- * application.
+ * The NtUserInitializeTouchInjection routine configures touch input injection for the calling application.
  *
  * \param MaxCount The maximum number of simultaneous touch contact points to configure (up to 256).
  * \param DwMode Touch injection visualization and contact mode flags (TOUCH_FEEDBACK_*).
@@ -14911,8 +14390,7 @@ NtUserInjectGesture(
 
 // rev
 /**
- * The NtUserInjectPointerInput routine injects synthetic pointer data packets into the system input
- * pipeline.
+ * The NtUserInjectPointerInput routine injects synthetic pointer data packets into the system input pipeline.
  *
  * \param Device Handle to the synthetic pointer device.
  * \param PointerInfo Pointer to an array of POINTER_TYPE_INFO structures describing pointer state.
@@ -14932,8 +14410,7 @@ NtUserInjectPointerInput(
 
 // rev
 /**
- * The NtUserInjectTouchInput routine injects a frame of touch contacts into the touch input
- * pipeline.
+ * The NtUserInjectTouchInput routine injects a frame of touch contacts into the touch input pipeline.
  *
  * \param Count Number of touch contact points in the Contacts array.
  * \param Contacts Pointer to an array of POINTER_TOUCH_INFO structures describing touch contacts.
@@ -14951,8 +14428,7 @@ NtUserInjectTouchInput(
 
 // rev
 /**
- * The NtUserInjectTouchpadAction routine injects a high-level touchpad action or gesture into the
- * system.
+ * The NtUserInjectTouchpadAction routine injects a high-level touchpad action or gesture into the system.
  *
  * \param HDevice Handle to the synthetic touchpad device.
  * \param Action Touchpad action code (TOUCHPAD_ACTION).
@@ -14970,9 +14446,7 @@ NtUserInjectTouchInput(
 
 // rev
 /**
- * The NtUserIsMouseInPointerEnabled routine indicates whether mouse input is being translated to
- * pointer messages.
- *
+ * The NtUserIsMouseInPointerEnabled routine indicates whether mouse input is being translated to pointer messages.
  * \returns BOOL TRUE if mouse-in-pointer mode is enabled, FALSE otherwise.
  * \remarks Native entry point for USER32!IsMouseInPointerEnabled.
  */
@@ -15007,8 +14481,7 @@ NtUserIsTouchWindow(
 
 // rev
 /**
- * The NtUserModifyWindowTouchCapability routine modifies touch input support and capabilities for a
- * window.
+ * The NtUserModifyWindowTouchCapability routine modifies touch input support and capabilities for a window.
  *
  * \param WindowHandle Handle to the target window.
  * \param Flags Touch capability modification flags.
@@ -15029,12 +14502,10 @@ NtUserModifyWindowTouchCapability(
 /**
  * The NtUserPromoteMouseInPointer routine requests promotion within current-thread mouse-in-pointer
  * state. The x86 export consumes 4 argument bytes
- * and WoW64 forwards one DWORD. The native body does not consume PromotionParameter; its historical
- * semantics
+ * and WoW64 forwards one ULONG. The native body does not consume PromotionParameter; its historical semantics
  * are unknown. The unused parameter is still part of the API signature.
  *
  * \param PromotionParameter The promotion parameter argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -15050,8 +14521,7 @@ NtUserPromoteMouseInPointer(
  * The NtUserPromotePointer routine promotes an active pointer interaction to mouse input.
  *
  * \param PointerId Pointer identifier, from 2 through 65535.
- * \param Flags Promotion flags. Zero is accepted; otherwise low 24 bits select specific promotion
- *     forms.
+ * \param Flags Promotion flags. Zero is accepted; otherwise low 24 bits select specific promotion forms.
  * \returns LOGICAL Nonzero on success, zero otherwise.
  */
 _Success_(return != 0)
@@ -15123,15 +14593,13 @@ NtUserRegisterPointerInputTarget(
 
 // rev
 /**
- * The NtUserRegisterTouchHitTestingWindow routine registers a window to process WM_TOUCHHITTESTING
- * notifications.
+ * The NtUserRegisterTouchHitTestingWindow routine registers a window to process WM_TOUCHHITTESTING notifications.
  *
  * \param Hwnd The handle to the window to register.
  * \param Value Registration options or flags specifying hit-testing processing behavior.
  * \returns TRUE if the function succeeds; otherwise, FALSE.
  * \remarks Native entry point for USER32!RegisterTouchHitTestingWindow.
- * \remarks Controls hit-testing policy for an owned window. The hit-testing policy does not itself
- * deliver
+ * \remarks Controls hit-testing policy for an owned window. The hit-testing policy does not itself deliver
  * physical touch input.
  */
 _Kernel_entry_
@@ -15187,8 +14655,7 @@ NtUserRegisterTouchpadCapableWindow(
  * \param Reason Request reason, either 0 or 1. This is not a bitmask.
  * \returns TRUE when the request is submitted, FALSE otherwise.
  * \remarks The routine copies eight bytes from Profile but does not subsequently
- *          consume the copied contents. Invalid reasons set ERROR_INVALID_PARAMETER. Process
- *          eligibility
+ *          consume the copied contents. Invalid reasons set ERROR_INVALID_PARAMETER. Process eligibility
  *          and environment checks can fail with ERROR_ACCESS_DENIED or ERROR_NOT_SUPPORTED.
  *          Success indicates submission of the request; the helper can decline to arm the profile.
  */
@@ -15310,8 +14777,7 @@ RequestLowLatencyProfile(
 
 // rev
 /**
- * The SetPointerDeviceInputSpace routine sets the input space (coordinate mapping) of a pointer
- * device.
+ * The SetPointerDeviceInputSpace routine sets the input space (coordinate mapping) of a pointer device.
  *
  * \param DeviceHandle Handle to the target pointer device.
  * \param InputSpaceInfo1 Primary input space mapping data.
@@ -15334,14 +14800,12 @@ SetPointerDeviceInputSpace(
 
 // rev
 /**
- * The GetMagnificationDesktopColorEffect routine queries the desktop magnifier color matrix using a
- * 100-byte MAGCOLOREFFECT
+ * The GetMagnificationDesktopColorEffect routine queries the desktop magnifier color matrix using a 100-byte MAGCOLOREFFECT
  * record (5 by 5 FLOATs). Include magnification.h for the SDK definition.
  * The output pointer is optional and is written only on success. This client
  * returns a 32-bit Boolean result, not a pointer-width integer.
  *
  * \param ColorEffect Receives the color effect.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15362,7 +14826,6 @@ GetMagnificationDesktopColorEffect(
  * \param MagnificationFactor Receives the magnification factor.
  * \param OffsetX Receives the offset x.
  * \param OffsetY Receives the offset y.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15386,7 +14849,6 @@ GetMagnificationDesktopMagnification(
  * \param MagnificationFactor Receives the magnification factor.
  * \param OffsetX Receives the offset x.
  * \param OffsetY Receives the offset y.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15407,7 +14869,6 @@ GetMagnificationDesktopMonitorMagnification(
  * 32-bit Boolean. Supported sampling values require separate validation.
  *
  * \param SamplingMode Receives the sampling mode.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15421,15 +14882,13 @@ GetMagnificationDesktopSamplingMode(
 /**
  * The GetMagnificationInputTransformForMonitor routine queries a monitor-specific magnification
  * input transform. On success the outputs are a 4-byte Boolean and
- * two 16-byte RECTs; all three are required. The Boolean is derived from whether the source
- * rectangle is
+ * two 16-byte RECTs; all three are required. The Boolean is derived from whether the source rectangle is
  * nonempty. The client is feature-gated and can return zero without initializing outputs.
  *
  * \param MonitorHandle The monitor handle argument.
  * \param Enabled Receives the enabled.
  * \param SourceRect Receives the source rect.
  * \param DestinationRect Receives the destination rect.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15463,8 +14922,7 @@ NtUserMagControl(
 /**
  * The NtUserMagGetContextInformation routine queries a magnifier context. InformationLength is a
  * required pointer to a 32-bit byte capacity, updated on
- * native success, not a scalar size. Some selectors consume input fields before returning data,
- * hence
+ * native success, not a scalar size. Some selectors consume input fields before returning data, hence
  * Information is input/output. HWND NULL and special value -3 are recognized by the native entry;
  * selector-specific WoW64 layouts require separate care.
  *
@@ -15472,7 +14930,6 @@ NtUserMagControl(
  * \param InfoType The info type argument.
  * \param Information Supplies and receives the information.
  * \param InformationLength Supplies and receives the information length.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -15488,8 +14945,7 @@ NtUserMagGetContextInformation(
 
 // rev
 /**
- * The NtUserMagSetContextInformation routine configures magnification context settings for a
- * magnifier window.
+ * The NtUserMagSetContextInformation routine configures magnification context settings for a magnifier window.
  *
  * \param WindowHandle Handle or context identifier of the magnification window.
  * \param InfoType Information class or property to set.
@@ -15531,14 +14987,10 @@ NtUserSetFullscreenMagnifierOffsetsDWMUpdated(
 // rev
 /**
  * The NtUserSetMagnificationDesktopMagnifierOffsetsDWMUpdated routine has the following behavior:
- * Compatibility entry for magnifier updates. X86 consumes 4 argument bytes and WoW64 forwards one
- * DWORD. The
- * native implementation is a constant-zero stub; UpdateParameter semantics and behavior on other
- * builds are
- * not established.
+ * Compatibility entry for magnifier updates. X86 consumes 4 argument bytes and WoW64 forwards one ULONG. The
+ * native implementation is a constant-zero stub; UpdateParameter semantics and behavior on other builds are not established.
  *
  * \param UpdateParameter The update parameter argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -15575,7 +15027,6 @@ SetFullscreenMagnifierOffsetsDWMUpdated(
  * Legacy GDI export. Both client implementations return immediately
  * without establishing a result value. The historical declaration is retained
  * pending evidence of its original contract; do not rely on the return value.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -15589,12 +15040,10 @@ SetMagicColors(
 /**
  * The SetMagnificationDesktopColorEffect routine changes the desktop magnifier color matrix using a
  * 100-byte MAGCOLOREFFECT record (5 by 5 FLOATs). Include
- * magnification.h for the SDK definition. NULL supplies an identity matrix; it is not an
- * invalid-argument
+ * magnification.h for the SDK definition. NULL supplies an identity matrix; it is not an invalid-argument
  * test. The matrix is captured by the client.
  *
  * \param ColorEffect The color effect argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15613,7 +15062,6 @@ SetMagnificationDesktopColorEffect(
  * \param MagnificationFactor The magnification factor argument.
  * \param OffsetX The offset x argument.
  * \param OffsetY The offset y argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15633,7 +15081,6 @@ SetMagnificationDesktopMagnification(
  * returns zero without consuming it; its historical meaning is not established.
  *
  * \param UpdateParameter The update parameter argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -15649,13 +15096,11 @@ SetMagnificationDesktopMagnifierOffsetsDWMUpdated(
  * from an array of 40-byte records on both x64 and x86. NULL is
  * accepted only at Count zero. The client captures the array after an 8-byte private header and
  * checks 40 *
- * Count + 8 for 32-bit overflow. The member schema is unspecified. The operation is feature-gated
- * and
+ * Count + 8 for 32-bit overflow. The member schema is unspecified. The operation is feature-gated and
  * changes compositor state.
  *
  * \param Count The count argument.
  * \param TransformList The transform list argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15670,11 +15115,9 @@ SetMagnificationDesktopMonitorTransformList(
 /**
  * The SetMagnificationDesktopSamplingMode routine changes the desktop magnifier sampling mode from
  * a 4-byte input value.
- * NULL supplies mode zero. The input is read-only and the result is a
- * 32-bit Boolean.
+ * NULL supplies mode zero. The input is read-only and the result is a 32-bit Boolean.
  *
  * \param SamplingMode The sampling mode argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15690,13 +15133,11 @@ SetMagnificationDesktopSamplingMode(
  * array of 40-byte records on both x64 and x86. NULL is
  * accepted only at Count zero. The client captures the array after an 8-byte private header and
  * checks 40 *
- * Count + 8 for 32-bit overflow. The member schema is unspecified. The operation is feature-gated
- * and
+ * Count + 8 for 32-bit overflow. The member schema is unspecified. The operation is feature-gated and
  * changes compositor state.
  *
  * \param Count The count argument.
  * \param TransformList The transform list argument.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -15819,8 +15260,7 @@ typedef struct tagCOMPOSITION_TARGET_ID COMPOSITION_TARGET_ID, *PCOMPOSITION_TAR
 
 // rev
 /**
- * The CreateDCompositionHwndTarget routine creates a DirectComposition target bound to a window
- * handle.
+ * The CreateDCompositionHwndTarget routine creates a DirectComposition target bound to a window handle.
  *
  * \param WindowHandle Handle to the target window.
  * \param TargetFlags Flags controlling the composition target creation.
@@ -16088,8 +15528,7 @@ NtCreateImplicitCompositionInputSink(
 
 // rev
 /**
- * The NtDCompositionAddCrossDeviceVisualChild routine adds a cross-device visual child to a
- * DirectComposition visual.
+ * The NtDCompositionAddCrossDeviceVisualChild routine adds a cross-device visual child to a DirectComposition visual.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param ParentVisual The parent visual identifier.
@@ -16135,8 +15574,7 @@ NtDCompositionBeginFrame(
 
 // rev
 /**
- * The NtDCompositionBoostCompositorClock routine boosts the DirectComposition compositor clock
- * rate.
+ * The NtDCompositionBoostCompositorClock routine boosts the DirectComposition compositor clock rate.
  *
  * \param Enable Specifies whether to enable or disable compositor clock boosting.
  * \returns NTSTATUS Successful or errant status.
@@ -16151,8 +15589,7 @@ NtDCompositionBoostCompositorClock(
 
 // rev
 /**
- * The NtDCompositionCommitChannel routine commits pending commands and resources on a
- * DirectComposition channel.
+ * The NtDCompositionCommitChannel routine commits pending commands and resources on a DirectComposition channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param CommitSize The size of the commit batch buffer.
@@ -16185,8 +15622,7 @@ NtDCompositionCommitChannel(
 
 // rev
 /**
- * The NtDCompositionCommitSynchronizationObject routine commits a synchronization object for a
- * DirectComposition channel.
+ * The NtDCompositionCommitSynchronizationObject routine commits a synchronization object for a DirectComposition channel.
  *
  * \param SynchronizationObject A pointer or handle to the synchronization object to commit.
  * \returns NTSTATUS Successful or errant status.
@@ -16201,8 +15637,7 @@ NtDCompositionCommitSynchronizationObject(
 
 // rev
 /**
- * The NtDCompositionConfirmFrame routine confirms completion or status of a DirectComposition
- * frame.
+ * The NtDCompositionConfirmFrame routine confirms completion or status of a DirectComposition frame.
  *
  * \param Connection A handle to the DirectComposition connection.
  * \param FrameInfo A pointer to frame information to confirm.
@@ -16228,7 +15663,6 @@ NtDCompositionConfirmFrame(
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
  * \param Param3 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16254,7 +15688,6 @@ NtDCompositionConnectPipe(
  * \param ResourceId The resource id argument.
  * \param SectionSize The section size argument.
  * \param SectionHandle Receives the section handle.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16282,7 +15715,6 @@ NtDCompositionCreateAndBindSharedSection(
  * \param Buffers The buffers argument.
  * \param CollectionParameter The collection parameter argument.
  * \param BufferCollectionHandle Receives the buffer collection handle.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16298,8 +15730,7 @@ NtDCompositionCreateBufferCollection(
 
 // rev
 /**
- * The NtDCompositionCreateChannel routine creates a channel for submitting DirectComposition
- * commands.
+ * The NtDCompositionCreateChannel routine creates a channel for submitting DirectComposition commands.
  *
  * \param ChannelInfo A pointer to channel configuration information.
  * \param ChannelSection A pointer receiving channel section information.
@@ -16318,8 +15749,7 @@ NtDCompositionCreateChannel(
 
 // rev
 /**
- * The NtDCompositionCreateConnection routine creates a DirectComposition connection for the current
- * DWM process.
+ * The NtDCompositionCreateConnection routine creates a DirectComposition connection for the current DWM process.
  *
  * \param ConnectionOption Boolean connection option. Its specific meaning remains unresolved.
  * \param EventArgument Argument passed to creation of the connection event wrapper.
@@ -16341,8 +15771,7 @@ NtDCompositionCreateConnection(
 
 // rev
 /**
- * The NtDCompositionCreateSharedResourceHandle routine creates a shared resource handle for
- * DirectComposition.
+ * The NtDCompositionCreateSharedResourceHandle routine creates a shared resource handle for DirectComposition.
  *
  * \param ResourceType The type of the shared resource to create.
  * \param ResourceHandle A pointer receiving the created shared resource handle.
@@ -16359,8 +15788,7 @@ NtDCompositionCreateSharedResourceHandle(
 
 // rev
 /**
- * The NtDCompositionCreateSynchronizationObject routine creates a DirectComposition synchronization
- * object.
+ * The NtDCompositionCreateSynchronizationObject routine creates a DirectComposition synchronization object.
  *
  * \param SynchronizationObject A pointer receiving the created synchronization object handle.
  * \returns NTSTATUS Successful or errant status.
@@ -16425,8 +15853,7 @@ NtDCompositionDuplicateHandleToProcess(
 
 // rev
 /**
- * The NtDCompositionDuplicateSwapchainHandleToDwm routine duplicates a swap chain handle to the DWM
- * process.
+ * The NtDCompositionDuplicateSwapchainHandleToDwm routine duplicates a swap chain handle to the DWM process.
  *
  * \param SwapchainHandle A handle to the swap chain.
  * \param DwmHandle A pointer receiving the handle valid in the DWM process.
@@ -16458,8 +15885,7 @@ NtDCompositionEnableMMCSS(
 
 // rev
 /**
- * The NtDCompositionGetBatchId routine retrieves the current batch identifier for a
- * DirectComposition channel.
+ * The NtDCompositionGetBatchId routine retrieves the current batch identifier for a DirectComposition channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param Flags Operation flags.
@@ -16490,8 +15916,7 @@ NtDCompositionGetChannels(
 
 // rev
 /**
- * The NtDCompositionGetConnectionBatch routine retrieves the connection batch buffer for a
- * DirectComposition connection.
+ * The NtDCompositionGetConnectionBatch routine retrieves the connection batch buffer for a DirectComposition connection.
  *
  * \param Connection A handle to the DirectComposition connection.
  * \param BatchInfo A pointer to batch request parameters.
@@ -16510,8 +15935,7 @@ NtDCompositionGetConnectionBatch(
 
 // rev
 /**
- * The NtDCompositionGetDeletedResources routine retrieves deleted DirectComposition resources on a
- * channel.
+ * The NtDCompositionGetDeletedResources routine retrieves deleted DirectComposition resources on a channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param Count The number of resources to query.
@@ -16549,8 +15973,7 @@ NtDCompositionGetFrameId(
 
 // rev
 /**
- * The NtDCompositionGetFrameIdFromBatchId routine retrieves a frame identifier corresponding to a
- * batch identifier.
+ * The NtDCompositionGetFrameIdFromBatchId routine retrieves a frame identifier corresponding to a batch identifier.
  *
  * \param BatchId The batch identifier.
  * \param Flags Operation flags.
@@ -16572,14 +15995,12 @@ NtDCompositionGetFrameIdFromBatchId(
  * The NtDCompositionGetFrameLegacyTokens routine retrieves frame token delivery metadata for the
  * compositor connection. FrameId points to a pointer-width
  * value: WoW64 widens a 4-byte input to 8 bytes. The final two arguments receive 4-byte count and
- * continuation values, not payload buffers. Both are copied back even on native failure; payload
- * delivery
+ * continuation values, not payload buffers. Both are copied back even on native failure; payload delivery
  * uses connection-owned storage.
  *
  * \param FrameId The frame id argument.
  * \param TokenCount Receives the token count.
  * \param MoreTokens Receives the more tokens.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16603,7 +16024,6 @@ NtDCompositionGetFrameLegacyTokens(
  *
  * \param Statistics Supplies and receives the statistics.
  * \param AdditionalStatistics Receives the additional statistics.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16620,14 +16040,12 @@ NtDCompositionGetFrameStatistics(
  * The NtDCompositionGetFrameSurfaceUpdates routine retrieves frame update delivery metadata for the
  * compositor connection. FrameId points to a pointer-width
  * value: WoW64 widens a 4-byte input to 8 bytes. The final two arguments receive 4-byte count and
- * continuation values, not payload buffers. Both are copied back even on native failure; payload
- * delivery
+ * continuation values, not payload buffers. Both are copied back even on native failure; payload delivery
  * uses connection-owned storage.
  *
  * \param FrameId The frame id argument.
  * \param UpdateCount Receives the update count.
  * \param MoreUpdates Receives the more updates.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16643,13 +16061,11 @@ NtDCompositionGetFrameSurfaceUpdates(
 // rev
 /**
  * The NtDCompositionGetMaterialProperty routine has the following behavior:
- * Historical purpose: the NtDCompositionGetMaterialProperty routine retrieves a material property
- * in DirectComposition.
+ * Historical purpose: the NtDCompositionGetMaterialProperty routine retrieves a material property in DirectComposition.
  *
  * \param Param1 The first property parameter.
  * \param Param2 The second property parameter.
- * \returns Historical contract only (unavailable through fail-fast stubs): NTSTATUS Successful or
- *     errant status.
+ * \returns Historical contract only (unavailable through fail-fast stubs): NTSTATUS Successful or errant status.
  *
  * \warning This export can resolve to the DeadExport compatibility stub, which invokes
  * RaiseFailFastException(NULL, NULL, 0) instead of performing the historical operation.
@@ -16664,7 +16080,6 @@ NtDCompositionGetFrameSurfaceUpdates(
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16678,8 +16093,7 @@ NtDCompositionGetMaterialProperty(
 
 // rev
 /**
- * The NtDCompositionGetStatistics routine queries historical frame statistics and associated
- * composition targets.
+ * The NtDCompositionGetStatistics routine queries historical frame statistics and associated composition targets.
  * FrameId points to a pointer-width value. FrameStats occupies 24 bytes; each
  * target record occupies 28 bytes. Native processing caps the target capacity
  * at 256 and permits a NULL array at capacity zero. WoW64 pre-reads/copies back
@@ -16692,7 +16106,6 @@ NtDCompositionGetMaterialProperty(
  * \param TargetIdCount The target id count argument.
  * \param TargetIds Receives the target ids.
  * \param ActualTargetIdCount Receives the actual target id count.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16719,7 +16132,6 @@ NtDCompositionGetStatistics(
  * \param FrameId The frame id argument.
  * \param TargetId The target id argument.
  * \param TargetStatistics Supplies and receives the target statistics.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16734,8 +16146,7 @@ NtDCompositionGetTargetStatistics(
 
 // rev
 /**
- * The NtDCompositionNotifySuperWetInkWork routine notifies DirectComposition of pending super-wet
- * ink work.
+ * The NtDCompositionNotifySuperWetInkWork routine notifies DirectComposition of pending super-wet ink work.
  *
  * \param Flags Notification control flags.
  * \returns NTSTATUS Successful or errant status.
@@ -16750,8 +16161,7 @@ NtDCompositionNotifySuperWetInkWork(
 
 // rev
 /**
- * The NtDCompositionProcessChannelBatchBuffer routine processes a batch command buffer on a
- * DirectComposition channel.
+ * The NtDCompositionProcessChannelBatchBuffer routine processes a batch command buffer on a DirectComposition channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param Flags Batch processing flags.
@@ -16772,8 +16182,7 @@ NtDCompositionProcessChannelBatchBuffer(
 
 // rev
 /**
- * The NtDCompositionRegisterThumbnailVisual routine registers a thumbnail visual with
- * DirectComposition.
+ * The NtDCompositionRegisterThumbnailVisual routine registers a thumbnail visual with DirectComposition.
  *
  * \param WindowHandle A handle to the window.
  * \param ThumbnailVisual The thumbnail visual identifier.
@@ -16804,8 +16213,7 @@ NtDCompositionRegisterThumbnailVisual(
 
 // rev
 /**
- * The NtDCompositionRegisterVirtualDesktopVisual routine registers a virtual desktop visual with
- * DirectComposition.
+ * The NtDCompositionRegisterVirtualDesktopVisual routine registers a virtual desktop visual with DirectComposition.
  *
  * \param WindowHandle A handle to the virtual desktop window.
  * \param VisualInfo A pointer to visual configuration information.
@@ -16824,8 +16232,7 @@ NtDCompositionRegisterVirtualDesktopVisual(
 
 // rev
 /**
- * The NtDCompositionReleaseAllResources routine releases all DirectComposition resources on a
- * channel.
+ * The NtDCompositionReleaseAllResources routine releases all DirectComposition resources on a channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param ResourceInfo A pointer containing and receiving resource release info.
@@ -16842,8 +16249,7 @@ NtDCompositionReleaseAllResources(
 
 // rev
 /**
- * The NtDCompositionRemoveCrossDeviceVisualChild routine removes a cross-device visual child from a
- * DirectComposition visual.
+ * The NtDCompositionRemoveCrossDeviceVisualChild routine removes a cross-device visual child from a DirectComposition visual.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param ParentVisual The parent visual identifier.
@@ -16864,8 +16270,7 @@ NtDCompositionRemoveCrossDeviceVisualChild(
 
 // rev
 /**
- * The NtDCompositionSendDwmLpcMessage routine sends an LPC message to the Desktop Window Manager
- * (DWM).
+ * The NtDCompositionSendDwmLpcMessage routine sends an LPC message to the Desktop Window Manager (DWM).
  *
  * \param Message A pointer to the message buffer.
  * \param MessageSize The size of the message buffer in bytes.
@@ -16882,8 +16287,7 @@ NtDCompositionSendDwmLpcMessage(
 
 // rev
 /**
- * The NtDCompositionSetBlurredWallpaperSurface routine sets a blurred wallpaper surface for
- * DirectComposition.
+ * The NtDCompositionSetBlurredWallpaperSurface routine sets a blurred wallpaper surface for DirectComposition.
  *
  * \param SurfaceInfo A pointer to blurred wallpaper surface info.
  * \param WallpaperSurface A pointer to the wallpaper surface descriptor.
@@ -16922,14 +16326,12 @@ NtDCompositionSetChannelCommitCompletionEvent(
 /**
  * The NtDCompositionSetChannelConnectionId routine updates one of two 64-bit connection-ID slots on
  * a composition channel. AlternateConnection selects the
- * slot by zero/nonzero value. A nonzero replacement is rejected while the selected slot is already
- * nonzero.
+ * slot by zero/nonzero value. A nonzero replacement is rejected while the selected slot is already nonzero.
  * ConnectionId is consumed and stored; it is neither reserved nor pointer-sized.
  *
  * \param Channel The channel argument.
  * \param AlternateConnection The alternate connection argument.
  * \param ConnectionId The connection id argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -16985,7 +16387,6 @@ NtDCompositionSetDebugCounter(
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -17031,8 +16432,7 @@ NtDCompositionSynchronize(
 
 // rev
 /**
- * The NtDCompositionTelemetrySetApplicationId routine sets an application identifier for
- * DirectComposition telemetry.
+ * The NtDCompositionTelemetrySetApplicationId routine sets an application identifier for DirectComposition telemetry.
  *
  * \param Flags Telemetry configuration flags.
  * \param Size The size of the application identifier.
@@ -17051,8 +16451,7 @@ NtDCompositionTelemetrySetApplicationId(
 
 // rev
 /**
- * The NtDCompositionUpdatePointerCapture routine updates pointer capture state for a
- * DirectComposition channel.
+ * The NtDCompositionUpdatePointerCapture routine updates pointer capture state for a DirectComposition channel.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param Flags Pointer capture update flags.
@@ -17069,8 +16468,7 @@ NtDCompositionUpdatePointerCapture(
 
 // rev
 /**
- * The NtDCompositionWaitForChannel routine waits for pending work on a DirectComposition channel to
- * complete.
+ * The NtDCompositionWaitForChannel routine waits for pending work on a DirectComposition channel to complete.
  *
  * \param Channel The DirectComposition channel identifier.
  * \param Timeout The timeout duration for waiting.
@@ -17097,7 +16495,6 @@ NtDCompositionWaitForChannel(
  * \param Count The count argument.
  * \param Handles The handles argument.
  * \param WaitParameter The wait parameter argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -17168,8 +16565,7 @@ NtOpenCompositionSurfaceDirtyRegion(
 
 // rev
 /**
- * The NtOpenCompositionSurfaceRealizationInfo routine opens realization information for a
- * composition surface.
+ * The NtOpenCompositionSurfaceRealizationInfo routine opens realization information for a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param InputInfo A pointer to input parameter data.
@@ -17190,8 +16586,7 @@ NtOpenCompositionSurfaceRealizationInfo(
 
 // rev
 /**
- * The NtOpenCompositionSurfaceSectionInfo routine opens section information for a composition
- * surface.
+ * The NtOpenCompositionSurfaceSectionInfo routine opens section information for a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param InputInfo A pointer to input parameter data.
@@ -17212,8 +16607,7 @@ NtOpenCompositionSurfaceSectionInfo(
 
 // rev
 /**
- * The NtQueryCompositionInputIsImplicit routine queries whether a composition input sink is
- * implicit.
+ * The NtQueryCompositionInputIsImplicit routine queries whether a composition input sink is implicit.
  *
  * \param InputSink A pointer to the input sink.
  * \param IsImplicit A pointer receiving the boolean implicit flag.
@@ -17287,8 +16681,7 @@ NtQueryCompositionInputSinkLuid(
 
 // rev
 /**
- * The NtQueryCompositionInputSinkViewId routine queries the view identifier of a composition input
- * sink.
+ * The NtQueryCompositionInputSinkViewId routine queries the view identifier of a composition input sink.
  *
  * \param InputSink A pointer to the input sink.
  * \param ViewId A pointer receiving the view identifier.
@@ -17305,8 +16698,7 @@ NtQueryCompositionInputSinkViewId(
 
 // rev
 /**
- * The NtQueryCompositionSurfaceBinding routine queries binding information for a composition
- * surface.
+ * The NtQueryCompositionSurfaceBinding routine queries binding information for a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param BindingInfo A pointer to binding query parameters.
@@ -17325,8 +16717,7 @@ NtQueryCompositionSurfaceBinding(
 
 // rev
 /**
- * The NtQueryCompositionSurfaceFrameRate routine queries the frame rate configuration of a
- * composition surface.
+ * The NtQueryCompositionSurfaceFrameRate routine queries the frame rate configuration of a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param FrameRate A pointer receiving frame rate information.
@@ -17345,8 +16736,7 @@ NtQueryCompositionSurfaceFrameRate(
 /**
  * The NtQueryCompositionSurfaceHDRMetaData routine queries HDR metadata for a buffer of a
  * composition surface. BufferId points to an 8-byte identifier on both
- * architectures; MetadataType receives 4 bytes even on many failure paths. Size is a pointer-sized
- * byte
+ * architectures; MetadataType receives 4 bytes even on many failure paths. Size is a pointer-sized byte
  * capacity, not ULONG64 on x86. Metadata type 1 copies 28 bytes and type 2 copies 72 bytes;
  * insufficient
  * capacity returns STATUS_BUFFER_TOO_SMALL. A NULL metadata buffer permits a type-only query.
@@ -17356,7 +16746,6 @@ NtQueryCompositionSurfaceFrameRate(
  * \param MetadataType Receives the metadata type.
  * \param Size The size argument.
  * \param HDRMetaData Receives the hdrmeta data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -17408,8 +16797,7 @@ NtQueryCompositionSurfaceStatistics(
 
 // rev
 /**
- * The NtSetCompositionSurfaceAnalogExclusive routine configures analog exclusive mode on a
- * composition surface.
+ * The NtSetCompositionSurfaceAnalogExclusive routine configures analog exclusive mode on a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param Enable Specifies whether analog exclusive mode is enabled.
@@ -17426,8 +16814,7 @@ NtSetCompositionSurfaceAnalogExclusive(
 
 // rev
 /**
- * The NtSetCompositionSurfaceBufferUsage routine sets the buffer usage pattern on a composition
- * surface.
+ * The NtSetCompositionSurfaceBufferUsage routine sets the buffer usage pattern on a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param BufferInfo A pointer to buffer information.
@@ -17450,8 +16837,7 @@ NtSetCompositionSurfaceBufferUsage(
 
 // rev
 /**
- * The NtSetCompositionSurfaceDirectFlipState routine sets the DirectFlip state on a composition
- * surface.
+ * The NtSetCompositionSurfaceDirectFlipState routine sets the DirectFlip state on a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param FlipStateInfo A pointer to flip state information.
@@ -17472,8 +16858,7 @@ NtSetCompositionSurfaceDirectFlipState(
 
 // rev
 /**
- * The NtSetCompositionSurfaceIndependentFlipInfo routine sets independent flip parameters on a
- * composition surface.
+ * The NtSetCompositionSurfaceIndependentFlipInfo routine sets independent flip parameters on a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param FlipInfo A pointer to independent flip info.
@@ -17502,8 +16887,7 @@ NtSetCompositionSurfaceIndependentFlipInfo(
 
 // rev
 /**
- * The NtSetCompositionSurfaceStatistics routine updates or resets statistics for a composition
- * surface.
+ * The NtSetCompositionSurfaceStatistics routine updates or resets statistics for a composition surface.
  *
  * \param CompositionSurface A handle to the composition surface.
  * \param StatisticsInfo A pointer to statistics input parameters.
@@ -17581,8 +16965,7 @@ NtUserCompositionInputSinkViewInstanceIdFromPoint(
 
 // rev
 /**
- * The NtUserCreateDCompositionHwndTarget routine creates a DirectComposition target object for a
- * window.
+ * The NtUserCreateDCompositionHwndTarget routine creates a DirectComposition target object for a window.
  *
  * \param WindowHandle Handle to the window to be bound to the DirectComposition target.
  * \param TargetType Type or flags of the composition target.
@@ -17665,7 +17048,6 @@ NtUserGetResizeDCompositionSynchronizationObject(
  * \param WindowHandle Handle to the window.
  * \param AttributeData A pointer to a WINDOWCOMPOSITIONATTRIBUTEDATA descriptor describing the attribute
  * and its output buffer.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -17812,8 +17194,7 @@ SetWindowCompositionTransition(
 
 // rev
 /**
- * The NtFlipObjectAddContent routine adds content and its property set to a flip-manager object.
- * ContentId points
+ * The NtFlipObjectAddContent routine adds content and its property set to a flip-manager object. ContentId points
  * to a pointer-width identifier. PropertyCount is a count, not flags, and the fourth
  * argument supplies property items. Native entries are 32 bytes (16-byte identifier,
  * 4-byte byte length, aligned data pointer); WoW64 captures/copies back one 24-byte
@@ -17824,7 +17205,6 @@ SetWindowCompositionTransition(
  * \param ContentId The content id argument.
  * \param PropertyCount The property count argument.
  * \param PropertyItems Supplies and receives the property items.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -17852,7 +17232,6 @@ NtFlipObjectAddContent(
  * \param Param4 Operation-specific argument; its contract is not specified here.
  * \param PropertyCount The property count argument.
  * \param Properties The properties argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -17870,8 +17249,7 @@ NtFlipObjectAddPoolBuffer(
 
 // rev
 /**
- * The NtFlipObjectConsumerAcquirePresent routine acquires a present frame by a flip object
- * consumer.
+ * The NtFlipObjectConsumerAcquirePresent routine acquires a present frame by a flip object consumer.
  *
  * \param FlipObject A handle to the flip object.
  * \param Flags Acquisition flags.
@@ -17894,8 +17272,7 @@ NtFlipObjectConsumerAcquirePresent(
 
 // rev
 /**
- * The NtFlipObjectConsumerAdjustUsageReference routine adjusts the usage reference count for a flip
- * object consumer.
+ * The NtFlipObjectConsumerAdjustUsageReference routine adjusts the usage reference count for a flip object consumer.
  *
  * \param FlipObject A handle to the flip object.
  * \param Param2 Second parameter.
@@ -17969,8 +17346,7 @@ NtFlipObjectConsumerPostMessage(
 
 // rev
 /**
- * The NtFlipObjectConsumerQueryBufferInfo routine queries buffer information for a flip object
- * consumer.
+ * The NtFlipObjectConsumerQueryBufferInfo routine queries buffer information for a flip object consumer.
  *
  * \param FlipObject A handle to the flip object.
  * \param Param2 Second parameter.
@@ -18008,8 +17384,7 @@ NtFlipObjectCreate(
 
 // rev
 /**
- * The NtFlipObjectDisconnectEndpoint routine disconnects an endpoint from a flip presentation
- * object.
+ * The NtFlipObjectDisconnectEndpoint routine disconnects an endpoint from a flip presentation object.
  *
  * \param FlipObject A handle to the flip object.
  * \param Param2 Endpoint parameter.
@@ -18026,8 +17401,7 @@ NtFlipObjectDisconnectEndpoint(
 
 // rev
 /**
- * The NtFlipObjectEnablePresentStatisticsType routine enables present statistics reporting for a
- * flip object.
+ * The NtFlipObjectEnablePresentStatisticsType routine enables present statistics reporting for a flip object.
  *
  * \param FlipObject A handle to the flip object.
  * \param StatisticsType The present statistics type identifier.
@@ -18104,8 +17478,7 @@ NtFlipObjectQueryBufferAvailableEvent(
 
 // rev
 /**
- * The NtFlipObjectQueryEndpointConnected routine queries whether an endpoint is connected to a flip
- * presentation object.
+ * The NtFlipObjectQueryEndpointConnected routine queries whether an endpoint is connected to a flip presentation object.
  *
  * \param FlipObject A handle to the flip object.
  * \param Param2 Endpoint parameter.
@@ -18141,8 +17514,7 @@ NtFlipObjectQueryLostEvent(
 
 // rev
 /**
- * The NtFlipObjectQueryNextMessageToProducer routine queries the next message directed to a flip
- * object producer.
+ * The NtFlipObjectQueryNextMessageToProducer routine queries the next message directed to a flip object producer.
  *
  * \param FlipObject A handle to the flip object.
  * \param Message A pointer receiving message information.
@@ -18159,8 +17531,7 @@ NtFlipObjectQueryNextMessageToProducer(
 
 // rev
 /**
- * The NtFlipObjectReadNextMessageToProducer routine reads the next message directed to a flip
- * object producer.
+ * The NtFlipObjectReadNextMessageToProducer routine reads the next message directed to a flip object producer.
  *
  * \param FlipObject A handle to the flip object.
  * \param Param2 Second parameter.
@@ -18224,7 +17595,6 @@ NtFlipObjectRemovePoolBuffer(
  * \param Param3 Operation-specific argument; its contract is not specified here.
  * \param PropertyCount The property count argument.
  * \param Properties The properties argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -18261,8 +17631,7 @@ NtMITAccessibilityTimerNotification(
 
 // rev
 /**
- * The NtMITActivateInputProcessing routine activates input processing in the Modern Input Transport
- * subsystem.
+ * The NtMITActivateInputProcessing routine activates input processing in the Modern Input Transport subsystem.
  *
  * \param Context The input processing context.
  * \param Result A pointer receiving activation results.
@@ -18296,8 +17665,7 @@ NtMITConfigureVirtualTouchpad(
 
 // rev
 /**
- * The NtMITCoreMsgKOpenConnectionTo routine opens a CoreMessaging kernel connection to a target
- * process.
+ * The NtMITCoreMsgKOpenConnectionTo routine opens a CoreMessaging kernel connection to a target process.
  *
  * \param ProcessId The target process identifier.
  * \param ConnectionInfo A pointer to connection parameters.
@@ -18316,9 +17684,7 @@ NtMITCoreMsgKOpenConnectionTo(
 /**
  * The NtMITDeactivateInputProcessing routine deactivates input processing on the input-service
  * thread. This entry has no public parameters (x86 stack
- * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public
- * inputs.
- *
+ * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public inputs.
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -18333,9 +17699,7 @@ NtMITDeactivateInputProcessing(
 /**
  * The NtMITDisableMouseIntercept routine disables mouse interception on the input-service thread.
  * This entry has no public parameters (x86 stack
- * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public
- * inputs.
- *
+ * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public inputs.
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -18381,7 +17745,6 @@ NtMITEnableMouseIntercept(
 // rev
 /**
  * The NtMITGetCursorUpdateHandle routine retrieves an update handle for the system cursor.
- *
  * \returns HANDLE Handle to cursor update object.
  */
 _Kernel_entry_
@@ -18409,8 +17772,7 @@ NtMITInitMinuserThread(
 
 // rev
 /**
- * The NtMITMinuserSetInputTransformOffset routine sets an input transform offset for a minuser
- * context.
+ * The NtMITMinuserSetInputTransformOffset routine sets an input transform offset for a minuser context.
  *
  * \param Param1 First parameter.
  * \param Param2 Second parameter.
@@ -18429,8 +17791,7 @@ NtMITMinuserSetInputTransformOffset(
 
 // rev
 /**
- * The NtMITMinuserWindowDestroyed routine notifies the input subsystem of a destroyed minuser
- * window.
+ * The NtMITMinuserWindowDestroyed routine notifies the input subsystem of a destroyed minuser window.
  *
  * \param WindowHandle A handle to the destroyed window.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -18656,8 +18017,7 @@ NtMITSetKeyboardOverriderState(
 
 // rev
 /**
- * The NtMITSetLastInputRecipient routine sets the last input recipient for Modern Input Transport
- * (MIT).
+ * The NtMITSetLastInputRecipient routine sets the last input recipient for Modern Input Transport (MIT).
  *
  * \param Recipient The recipient identifier.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -18672,8 +18032,7 @@ NtMITSetLastInputRecipient(
 
 // rev
 /**
- * The NtMITSynthesizeKeyboardInput routine synthesizes keyboard input events via Modern Input
- * Transport (MIT).
+ * The NtMITSynthesizeKeyboardInput routine synthesizes keyboard input events via Modern Input Transport (MIT).
  *
  * \param Count The number of keyboard events.
  * \param KeyboardInput A pointer to the keyboard input array.
@@ -18692,8 +18051,7 @@ NtMITSynthesizeKeyboardInput(
 
 // rev
 /**
- * The NtMITSynthesizeMouseInput routine synthesizes mouse input events via Modern Input Transport
- * (MIT).
+ * The NtMITSynthesizeMouseInput routine synthesizes mouse input events via Modern Input Transport (MIT).
  *
  * \param MouseInput A pointer to mouse input data.
  * \param Count The number of mouse events.
@@ -18712,8 +18070,7 @@ NtMITSynthesizeMouseInput(
 
 // rev
 /**
- * The NtMITSynthesizeTouchInput routine synthesizes touch input events via Modern Input Transport
- * (MIT).
+ * The NtMITSynthesizeTouchInput routine synthesizes touch input events via Modern Input Transport (MIT).
  *
  * \param TouchInput A pointer to touch input data.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -18730,9 +18087,7 @@ NtMITSynthesizeTouchInput(
 /**
  * The NtMITUninitMinuserThread routine releases minuser state associated with the calling thread.
  * This entry has no public parameters (x86 stack
- * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public
- * inputs.
- *
+ * cleanup is zero bytes); arguments belonging to internal session-state helpers are not public inputs.
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -18787,8 +18142,7 @@ NtMinGetInputTransform(
 
 // rev
 /**
- * The NtMinInteropCoreMessagingWithInput routine configures CoreMessaging interop with input
- * processing.
+ * The NtMinInteropCoreMessagingWithInput routine configures CoreMessaging interop with input processing.
  *
  * \param Param1 Configuration parameter.
  * \returns NTSTATUS Successful or errant status.
@@ -18959,8 +18313,7 @@ NtModerncoreDestroyGDIHwndTarget(
 
 // rev
 /**
- * The NtModerncoreEnableResizeLayoutSynchronization routine enables or disables resize layout
- * synchronization.
+ * The NtModerncoreEnableResizeLayoutSynchronization routine enables or disables resize layout synchronization.
  *
  * \param WindowHandle A handle to the target window.
  * \param Param2 Second parameter.
@@ -18979,8 +18332,7 @@ NtModerncoreEnableResizeLayoutSynchronization(
 
 // rev
 /**
- * The NtModerncoreGetNavigationWindowVisual routine retrieves the navigation window visual for a
- * moderncore window.
+ * The NtModerncoreGetNavigationWindowVisual routine retrieves the navigation window visual for a moderncore window.
  *
  * \param WindowHandle A handle to the target window.
  * \param Param2 Second parameter.
@@ -19019,8 +18371,7 @@ NtModerncoreGetResizeDCompositionSynchronizationObject(
 
 // rev
 /**
- * The NtModerncoreGetWindowContentVisual routine retrieves the window content visual for a
- * moderncore window.
+ * The NtModerncoreGetWindowContentVisual routine retrieves the window content visual for a moderncore window.
  *
  * \param WindowHandle A handle to the target window.
  * \param Param2 Second parameter.
@@ -19044,7 +18395,6 @@ NtModerncoreGetWindowContentVisual(
  * The NtModerncoreIdleTimerThread routine runs the moderncore idle-timer thread entry. This entry
  * has no public parameters (x86 stack cleanup is zero
  * bytes); arguments belonging to internal session-state helpers are not public inputs.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19092,8 +18442,7 @@ NtModerncoreProcessConnect(
 
 // rev
 /**
- * The NtModerncoreRegisterEnhancedNavigationWindowHandle routine registers an enhanced navigation
- * window handle.
+ * The NtModerncoreRegisterEnhancedNavigationWindowHandle routine registers an enhanced navigation window handle.
  *
  * \param WindowHandle A handle to the window.
  * \param Param2 Second parameter.
@@ -19163,7 +18512,6 @@ NtModerncoreUnregisterNavigationWindowHandle(
  * tokens for the session token manager. This entry has no public
  * parameters (x86 stack cleanup is zero bytes); arguments belonging to internal session-state
  * helpers are not public inputs.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19183,8 +18531,7 @@ NtTokenManagerConfirmOutstandingAnalogToken(
  * \param Param3 Third parameter.
  * \param Param4 Fourth parameter.
  * \param Param5 Pointer to an 8-byte value read from user memory.
- * \param TokenHandle Pointer to a variable that receives the created token handle (written when
- *     non-NULL).
+ * \param TokenHandle Pointer to a variable that receives the created token handle (written when non-NULL).
  * \returns NTSTATUS Successful or errant status.
  * \remarks
  *          User-memory read/write shapes confirmed from dxgkrnl.sys (8-byte probe read of Param5,
@@ -19205,8 +18552,7 @@ NtTokenManagerCreateCompositionTokenHandle(
 
 // rev
 /**
- * The NtTokenManagerCreateFlipObjectReturnTokenHandle routine creates a return token handle for a
- * flip object.
+ * The NtTokenManagerCreateFlipObjectReturnTokenHandle routine creates a return token handle for a flip object.
  *
  * \param Param1 First parameter.
  * \param FlipObjectInfo A pointer to flip object information.
@@ -19240,8 +18586,7 @@ NtTokenManagerCreateFlipObjectReturnTokenHandle(
  * \returns NTSTATUS Successful or errant status.
  * \remarks
  *          User-memory shapes confirmed from dxgkrnl.sys (8-byte probe read of Param2, 16-byte
- *          copy-to-user of TokenHandle, FlipPropertyItem at Param6). win32u.dll ordinal 774,
- *          syscall 0x139F
+ *          copy-to-user of TokenHandle, FlipPropertyItem at Param6). win32u.dll ordinal 774, syscall 0x139F
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -19261,8 +18606,7 @@ NtTokenManagerCreateFlipObjectTokenHandle(
 
 // rev
 /**
- * The NtTokenManagerGetAnalogExclusiveSurfaceUpdates routine retrieves analog exclusive surface
- * updates.
+ * The NtTokenManagerGetAnalogExclusiveSurfaceUpdates routine retrieves analog exclusive surface updates.
  *
  * \param Param1 First parameter.
  * \param Param2 Second parameter.
@@ -19301,8 +18645,7 @@ NtTokenManagerGetAnalogExclusiveTokenEvent(
 
 // rev
 /**
- * The NtTokenManagerOpenSectionAndEvents routine opens shared sections and events for token
- * management.
+ * The NtTokenManagerOpenSectionAndEvents routine opens shared sections and events for token management.
  *
  * \param Param1 First parameter.
  * \param Param2 Second parameter.
@@ -19342,8 +18685,7 @@ NtTokenManagerThread(
 
 // rev
 /**
- * The NtDxgkCancelPresents routine cancels pending present operations in the DirectX graphics
- * kernel.
+ * The NtDxgkCancelPresents routine cancels pending present operations in the DirectX graphics kernel.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -19378,12 +18720,10 @@ NtDxgkCheckSinglePlaneForMultiPlaneOverlaySupport(
  * worker captures an 8-byte handle/flags
  * prefix; flags in that prefix must be zero. Newer SDK records contain additional fields not
  * consumed by the
- * native entry. This public syscall takes one pointer, not an additional BOOLEAN Flags argument.
- * The extra
+ * native entry. This public syscall takes one pointer, not an additional BOOLEAN Flags argument. The extra
  * Boolean in internal PDB helper signatures is not a public ABI slot.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19398,14 +18738,11 @@ NtDxgkConnectDoorbell(
 /**
  * The NtDxgkCreateDoorbell routine creates a doorbell for an existing hardware queue and ring
  * allocations. The native record is 72 bytes;
- * WoW64 captures and copies back 44 bytes with widened pointers, including copyback on failure.
- * This public
- * syscall takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in
- * internal PDB
+ * WoW64 captures and copies back 44 bytes with widened pointers, including copyback on failure. This public
+ * syscall takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in internal PDB
  * helper signatures is not a public ABI slot.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19424,8 +18761,7 @@ NtDxgkCreateDoorbell(
  * from user memory and writes results back into (at +4 and +72).
  * \returns NTSTATUS Successful or errant status.
  * \remarks
- *          Single in/out argument buffer confirmed from dxgkrnl.sys
- *          (NtDxgkCreateNativeFenceInternal:
+ *          Single in/out argument buffer confirmed from dxgkrnl.sys (NtDxgkCreateNativeFenceInternal:
  *          RtlCopyVolatileMemory read of 0xD8 bytes; write-back at offsets +4 and +72).
  *          win32u.dll ordinal 74, syscall 0x1149
  */
@@ -19471,12 +18807,10 @@ NtDxgkDDisplayEnum2(
 /**
  * The NtDxgkDestroyDoorbell routine destroys a caller-owned doorbell using a 4-byte doorbell-handle
  * record. The input record is captured, not
- * used as output. This public syscall takes one pointer, not an additional BOOLEAN Flags argument.
- * The extra
+ * used as output. This public syscall takes one pointer, not an additional BOOLEAN Flags argument. The extra
  * Boolean in internal PDB helper signatures is not a public ABI slot.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19506,10 +18840,8 @@ NtDxgkDestroyTrackedWorkload(
 /**
  * The NtDxgkDisableProcessDebugBlobCollection routine disables debug-blob collection for the
  * current graphics process. This feature-gated operation changes
- * current-process collection state. There are no public parameters: x86 stack cleanup is zero and
- * WoW64
+ * current-process collection state. There are no public parameters: x86 stack cleanup is zero and WoW64
  * forwards no arguments. Internal profiler/session arguments are not API inputs.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19522,8 +18854,7 @@ NtDxgkDisableProcessDebugBlobCollection(
 
 // rev
 /**
- * The NtDxgkDispMgrOperation routine performs display manager operations in the DirectX graphics
- * kernel.
+ * The NtDxgkDispMgrOperation routine performs display manager operations in the DirectX graphics kernel.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -19583,8 +18914,7 @@ NtDxgkDisplayMuxSwitchPrepare(
 
 // rev
 /**
- * The NtDxgkDisplayPortOperation routine performs DisplayPort operations in the DirectX graphics
- * kernel.
+ * The NtDxgkDisplayPortOperation routine performs DisplayPort operations in the DirectX graphics kernel.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -19614,8 +18944,7 @@ NtDxgkDuplicateHandle(
 
 // rev
 /**
- * The NtDxgkEnableProcessDebugBlobCollection routine enables debug-blob collection for the current
- * graphics process.
+ * The NtDxgkEnableProcessDebugBlobCollection routine enables debug-blob collection for the current graphics process.
  * \returns STATUS_SUCCESS on success, STATUS_NOT_SUPPORTED when the feature is disabled,
  * or STATUS_ACCESS_DENIED when the current process has no DXGPROCESS.
  * \remarks Takes no arguments. The process is obtained internally through DXGPROCESS::GetCurrent.
@@ -19643,8 +18972,7 @@ enum _D3DKMT_SCHEDULINGPRIORITYCLASS;
 struct _D3DKMT_ENUMADAPTERS3;
 
 /**
- * The NtDxgkEnumAdapters3 routine enumerates graphics adapters using the SDK D3DKMT_ENUMADAPTERS3
- * request.
+ * The NtDxgkEnumAdapters3 routine enumerates graphics adapters using the SDK D3DKMT_ENUMADAPTERS3 request.
  * \param Data Filter, adapter-array capacity and output array. Defined in d3dkmthk.h.
  * \returns NTSTATUS. An insufficient adapter-array capacity returns STATUS_INFO_LENGTH_MISMATCH.
  * \remarks The native x64 implementation captures a 24-byte request and returns
@@ -19695,8 +19023,7 @@ struct _D3DKMT_GETAVAILABLETRACKEDWORKLOADINDEX;
  * The NtDxgkGetAvailableTrackedWorkloadIndex routine retrieves an available index from a
  * tracked-workload object owned by the current graphics process.
  * \param Data Private in/out tracked-workload request; layout remains opaque in this header.
- * \returns NTSTATUS. An undersized request or invalid workload handle returns
- *     STATUS_INVALID_PARAMETER.
+ * \returns NTSTATUS. An undersized request or invalid workload handle returns STATUS_INVALID_PARAMETER.
  * \remarks The x64 implementation requires the size at offset 0 to be at least
  * 0x218 (536) bytes and captures only 0x218 bytes. The 32-bit workload handle is at
  * offset 4, a 64-bit input value at offset 8, and an inline 64-bit-value array starts
@@ -19717,14 +19044,11 @@ NtDxgkGetAvailableTrackedWorkloadIndex(
 /**
  * The NtDxgkGetNativeFenceLogDetail routine queries native-fence log-buffer details for an existing
  * hardware queue. Native and WoW64 records occupy 96
- * bytes; WoW64 captures/copies back the record even when the native operation fails. This public
- * syscall
- * takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in internal PDB
- * helper
+ * bytes; WoW64 captures/copies back the record even when the native operation fails. This public syscall
+ * takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in internal PDB helper
  * signatures is not a public ABI slot.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19739,8 +19063,7 @@ NtDxgkGetNativeFenceLogDetail(
 struct _D3DKMT_GETPROCESSLIST;
 
 /**
- * The NtDxgkGetProcessList routine opens process handles for eligible processes associated with a
- * graphics adapter.
+ * The NtDxgkGetProcessList routine opens process handles for eligible processes associated with a graphics adapter.
  * \param Data Private in/out process-list request; layout remains opaque in this header.
  * \returns NTSTATUS. A NULL or insufficient output array returns STATUS_INFO_LENGTH_MISMATCH.
  * \remarks The native x64 request is 24 bytes: adapter LUID at offset 0,
@@ -19791,8 +19114,7 @@ NtDxgkGetTrackedWorkloadStatistics(
 
 // rev
 /**
- * The NtDxgkIsFeatureEnabled routine queries whether an optional graphics kernel feature is
- * enabled.
+ * The NtDxgkIsFeatureEnabled routine queries whether an optional graphics kernel feature is enabled.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -19824,14 +19146,11 @@ NtDxgkMapProcessDebugBlob(
 /**
  * The NtDxgkNotifyWorkSubmission routine notifies a hardware queue that work was submitted. The
  * native entry reads an 8-byte handle/flags prefix; it
- * does not consume the additional private-data fields present in newer SDK definitions. This public
- * syscall
- * takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in internal PDB
- * helper
+ * does not consume the additional private-data fields present in newer SDK definitions. This public syscall
+ * takes one pointer, not an additional BOOLEAN Flags argument. The extra Boolean in internal PDB helper
  * signatures is not a public ABI slot.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19848,12 +19167,9 @@ NtDxgkNotifyWorkSubmission(
  * device. Native and WoW64 records occupy 176 bytes with
  * handle/pointer conversion and WoW64 copyback even on failure. This public syscall takes one
  * pointer, not an
- * additional BOOLEAN Flags argument. The extra Boolean in internal PDB helper signatures is not a
- * public ABI
- * slot.
+ * additional BOOLEAN Flags argument. The extra Boolean in internal PDB helper signatures is not a public ABI slot.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -19866,8 +19182,7 @@ NtDxgkOpenNativeFenceFromNtHandle(
 
 // rev
 /**
- * The NtDxgkOutputDuplPresentToHwQueue routine presents an output duplication frame to a hardware
- * queue.
+ * The NtDxgkOutputDuplPresentToHwQueue routine presents an output duplication frame to a hardware queue.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -19945,12 +19260,10 @@ NtDxgkSetProperties(
  * The NtDxgkSubmitPresentBltToHwQueue routine submits a presentation blit to a hardware queue on
  * implementations supporting this operation. The public
  * ABI has one request pointer, not two scalar slots. The native export is a STATUS_NOT_IMPLEMENTED
- * (0xC0000002) stub. WoW64 still marshals the request and nested inputs before calling it; stub
- * status does
+ * (0xC0000002) stub. WoW64 still marshals the request and nested inputs before calling it; stub status does
  * not make arbitrary payloads safe. Historical payload semantics are unspecified.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20025,10 +19338,8 @@ NtDxgkUpdateTrackedWorkload(
 /**
  * The NtDxgkVailConnect routine connects the current graphics process to the VAIL remoting
  * subsystem. The worker operates on
- * current-process and session state, not a caller buffer. There are no public parameters: x86 stack
- * cleanup
+ * current-process and session state, not a caller buffer. There are no public parameters: x86 stack cleanup
  * is zero and WoW64 forwards no arguments. Internal profiler/session arguments are not API inputs.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20043,10 +19354,8 @@ NtDxgkVailConnect(
 /**
  * The NtDxgkVailDisconnect routine disconnects the current graphics process from the VAIL remoting
  * subsystem. The worker operates on existing
- * process/session state. There are no public parameters: x86 stack cleanup is zero and WoW64
- * forwards no
+ * process/session state. There are no public parameters: x86 stack cleanup is zero and WoW64 forwards no
  * arguments. Internal profiler/session arguments are not API inputs.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20061,17 +19370,12 @@ NtDxgkVailDisconnect(
 /**
  * The NtDxgkVailPromoteCompositionSurface routine promotes a composition surface through the VAIL
  * process/session connection. The ABI has two handle-related
- * arguments, not a third scalar. The second receives a pointer-width handle. Some native failures
- * reach a
- * NULL handle write while early failures return first; WoW64 also copies its temporary handle back
- * on
- * failure. Do not consume output after failure. Promotion and returned-handle lifetime requirements
- * are
- * private.
+ * arguments, not a third scalar. The second receives a pointer-width handle. Some native failures reach a
+ * NULL handle write while early failures return first; WoW64 also copies its temporary handle back on
+ * failure. Do not consume output after failure. Promotion and returned-handle lifetime requirements are private.
  *
  * \param CompositionSurface The composition surface argument.
  * \param PromotedSurface Receives the promoted surface.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20085,8 +19389,7 @@ NtDxgkVailPromoteCompositionSurface(
 
 // rev
 /**
- * The NtGdiDdDDIAbandonSwapChain routine abandons a swap chain and releases associated presentation
- * resources.
+ * The NtGdiDdDDIAbandonSwapChain routine abandons a swap chain and releases associated presentation resources.
  *
  * \param Data A pointer to a swap chain abandonment parameters structure.
  * \returns NTSTATUS Successful or errant status.
@@ -20103,8 +19406,7 @@ NtGdiDdDDIAbandonSwapChain(
 /**
  * The NtGdiDdDDIAcquireKeyedMutex routine acquires a keyed mutex synchronization object.
  *
- * \param Data A pointer to a D3DKMT_ACQUIREKEYEDMUTEX structure that describes the keyed mutex to
- *     acquire.
+ * \param Data A pointer to a D3DKMT_ACQUIREKEYEDMUTEX structure that describes the keyed mutex to acquire.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20120,8 +19422,7 @@ NtGdiDdDDIAcquireKeyedMutex(
  * The NtGdiDdDDIAcquireKeyedMutex2 routine acquires a keyed mutex synchronization object with
  * private data options.
  *
- * \param Data A pointer to a D3DKMT_ACQUIREKEYEDMUTEX2 structure that describes the keyed mutex to
- *     acquire.
+ * \param Data A pointer to a D3DKMT_ACQUIREKEYEDMUTEX2 structure that describes the keyed mutex to acquire.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20134,8 +19435,7 @@ NtGdiDdDDIAcquireKeyedMutex2(
 
 // rev
 /**
- * The NtGdiDdDDIAcquireSwapChain routine acquires ownership of a swap chain surface for
- * presentation rendering.
+ * The NtGdiDdDDIAcquireSwapChain routine acquires ownership of a swap chain surface for presentation rendering.
  *
  * \param Data A pointer to a swap chain acquisition parameter structure.
  * \returns NTSTATUS Successful or errant status.
@@ -20165,11 +19465,9 @@ NtGdiDdDDIAddSurfaceToSwapChain(
 
 // rev
 /**
- * The NtGdiDdDDIAdjustFullscreenGamma routine adjusts gamma ramp settings for a full-screen
- * application.
+ * The NtGdiDdDDIAdjustFullscreenGamma routine adjusts gamma ramp settings for a full-screen application.
  *
- * \param Data A pointer to a D3DKMT_ADJUSTFULLSCREENGAMMA structure that describes the gamma ramp
- *     to adjust.
+ * \param Data A pointer to a D3DKMT_ADJUSTFULLSCREENGAMMA structure that describes the gamma ramp to adjust.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20182,8 +19480,7 @@ NtGdiDdDDIAdjustFullscreenGamma(
 
 // rev
 /**
- * The NtGdiDdDDICacheHybridQueryValue routine caches hybrid graphics query values for cross-adapter
- * GPU configurations.
+ * The NtGdiDdDDICacheHybridQueryValue routine caches hybrid graphics query values for cross-adapter GPU configurations.
  *
  * \param Data A pointer to a hybrid query value structure.
  * \returns NTSTATUS Successful or errant status.
@@ -20198,8 +19495,7 @@ NtGdiDdDDICacheHybridQueryValue(
 
 // rev
 /**
- * The NtGdiDdDDIChangeVideoMemoryReservation routine changes the video memory reservation for a
- * process.
+ * The NtGdiDdDDIChangeVideoMemoryReservation routine changes the video memory reservation for a process.
  *
  * \param Data A pointer to a D3DKMT_CHANGEVIDEOMEMORYRESERVATION structure that specifies the new
  *     video memory reservation.
@@ -20217,10 +19513,8 @@ NtGdiDdDDIChangeVideoMemoryReservation(
 /**
  * The NtGdiDdDDICheckExclusiveOwnership routine checks whether a display source has an exclusive
  * owner. The syscall has no arguments. Its native wrapper
- * zero-extends the worker Boolean to EAX, so the existing LOGICAL return contract is retained. This
- * is an
+ * zero-extends the worker Boolean to EAX, so the existing LOGICAL return contract is retained. This is an
  * observation of shared display state, not a request to acquire ownership.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -20249,8 +19543,7 @@ NtGdiDdDDICheckMonitorPowerState(
 
 // rev
 /**
- * The NtGdiDdDDICheckMultiPlaneOverlaySupport routine checks hardware support for multiplane
- * overlays.
+ * The NtGdiDdDDICheckMultiPlaneOverlaySupport routine checks hardware support for multiplane overlays.
  *
  * \param Data A pointer to a D3DKMT_CHECKMULTIPLANEOVERLAYSUPPORT structure that describes overlay
  *     configuration to check.
@@ -20302,8 +19595,7 @@ NtGdiDdDDICheckMultiPlaneOverlaySupport3(
 /**
  * The NtGdiDdDDICheckOcclusion routine checks whether the client area of a window is occluded.
  *
- * \param Data A pointer to a D3DKMT_CHECKOCCLUSION structure that describes the window to check for
- *     occlusion.
+ * \param Data A pointer to a D3DKMT_CHECKOCCLUSION structure that describes the window to check for occlusion.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20336,8 +19628,7 @@ NtGdiDdDDICheckSharedResourceAccess(
  * The NtGdiDdDDICheckVidPnExclusiveOwnership routine determines whether a process has exclusive
  * ownership of a video present network (VidPN) source.
  *
- * \param Data A pointer to a D3DKMT_CHECKVIDPNEXCLUSIVEOWNERSHIP structure that describes the VidPN
- *     source.
+ * \param Data A pointer to a D3DKMT_CHECKVIDPNEXCLUSIVEOWNERSHIP structure that describes the VidPN source.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20368,8 +19659,7 @@ NtGdiDdDDICloseAdapter(
  * The NtGdiDdDDIConfigureSharedResource routine configures access and synchronization attributes of
  * a shared resource.
  *
- * \param Data A pointer to a D3DKMT_CONFIGURESHAREDRESOURCE structure that specifies shared
- *     resource configuration.
+ * \param Data A pointer to a D3DKMT_CONFIGURESHAREDRESOURCE structure that specifies shared resource configuration.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20382,11 +19672,9 @@ NtGdiDdDDIConfigureSharedResource(
 
 // rev
 /**
- * The NtGdiDdDDICreateAllocation routine allocates video memory or system memory resources for
- * graphics operations.
+ * The NtGdiDdDDICreateAllocation routine allocates video memory or system memory resources for graphics operations.
  *
- * \param Data A pointer to a D3DKMT_CREATEALLOCATION structure that describes parameters for
- *     creating allocations.
+ * \param Data A pointer to a D3DKMT_CREATEALLOCATION structure that describes parameters for creating allocations.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20417,8 +19705,7 @@ NtGdiDdDDICreateBundleObject(
 /**
  * The NtGdiDdDDICreateContext routine creates a kernel-mode graphics device context.
  *
- * \param Data A pointer to a D3DKMT_CREATECONTEXT structure that describes parameters for creating
- *     the context.
+ * \param Data A pointer to a D3DKMT_CREATECONTEXT structure that describes parameters for creating the context.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20449,16 +19736,12 @@ NtGdiDdDDICreateContextVirtual(
 /**
  * The NtGdiDdDDICreateDCFromMemory routine creates a DC and bitmap backed by caller-owned writable
  * memory. Native request size is 56 bytes; WoW64
- * captures/copies back 36 bytes, even on failure. The native entry checks positive dimensions,
- * captures 256
- * palette entries (1024 bytes) for paletted input, and probes the backing buffer with 4-byte
- * alignment. Keep
- * memory alive until destruction with the matching API. Native early validation failures can leave
- * both
+ * captures/copies back 36 bytes, even on failure. The native entry checks positive dimensions, captures 256
+ * palette entries (1024 bytes) for paletted input, and probes the backing buffer with 4-byte alignment. Keep
+ * memory alive until destruction with the matching API. Native early validation failures can leave both
  * output handles unchanged.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20473,8 +19756,7 @@ NtGdiDdDDICreateDCFromMemory(
 /**
  * The NtGdiDdDDICreateDevice routine creates a kernel-mode graphics device context.
  *
- * \param Data A pointer to a D3DKMT_CREATEDEVICE structure that describes parameters for creating
- *     the device.
+ * \param Data A pointer to a D3DKMT_CREATEDEVICE structure that describes parameters for creating the device.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20488,14 +19770,11 @@ NtGdiDdDDICreateDevice(
 // rev
 /**
  * The NtGdiDdDDICreateHwContext routine has the following behavior:
- * Hardware-context lifecycle entry. The native export returns STATUS_NOT_IMPLEMENTED (0xC0000002)
- * without
- * processing its request. The WoW64 wrapper must still be considered when supplying input pointers.
- * The
+ * Hardware-context lifecycle entry. The native export returns STATUS_NOT_IMPLEMENTED (0xC0000002) without
+ * processing its request. The WoW64 wrapper must still be considered when supplying input pointers. The
  * constant-return stub does not define historical hardware-context or payload semantics.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20526,8 +19805,7 @@ NtGdiDdDDICreateHwQueue(
 /**
  * The NtGdiDdDDICreateKeyedMutex routine creates a keyed mutex synchronization object.
  *
- * \param Data A pointer to a D3DKMT_CREATEKEYEDMUTEX structure that describes the keyed mutex to
- *     create.
+ * \param Data A pointer to a D3DKMT_CREATEKEYEDMUTEX structure that describes the keyed mutex to create.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20540,11 +19818,9 @@ NtGdiDdDDICreateKeyedMutex(
 
 // rev
 /**
- * The NtGdiDdDDICreateKeyedMutex2 routine creates a keyed mutex synchronization object with private
- * data options.
+ * The NtGdiDdDDICreateKeyedMutex2 routine creates a keyed mutex synchronization object with private data options.
  *
- * \param Data A pointer to a D3DKMT_CREATEKEYEDMUTEX2 structure that describes the keyed mutex to
- *     create.
+ * \param Data A pointer to a D3DKMT_CREATEKEYEDMUTEX2 structure that describes the keyed mutex to create.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20557,8 +19833,7 @@ NtGdiDdDDICreateKeyedMutex2(
 
 // rev
 /**
- * The NtGdiDdDDICreateOutputDupl routine creates a desktop duplication instance for output
- * replication.
+ * The NtGdiDdDDICreateOutputDupl routine creates a desktop duplication instance for output replication.
  *
  * \param Data A pointer to a D3DKMT_CREATE_OUTPUTDUPL structure that describes parameters for
  *     creating the desktop duplication.
@@ -20576,8 +19851,7 @@ NtGdiDdDDICreateOutputDupl(
 /**
  * The NtGdiDdDDICreateOverlay routine creates a kernel-mode overlay object.
  *
- * \param Data A pointer to a D3DKMT_CREATEOVERLAY structure that describes parameters for creating
- *     the overlay.
+ * \param Data A pointer to a D3DKMT_CREATEOVERLAY structure that describes parameters for creating the overlay.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20607,8 +19881,7 @@ NtGdiDdDDICreatePagingQueue(
 
 // rev
 /**
- * The NtGdiDdDDICreateProtectedSession routine creates a protected session for DRM and content
- * protection workflows.
+ * The NtGdiDdDDICreateProtectedSession routine creates a protected session for DRM and content protection workflows.
  *
  * \param Data A pointer to a D3DKMT_CREATEPROTECTEDSESSION structure that describes parameters for
  *     creating the protected session.
@@ -20656,8 +19929,7 @@ NtGdiDdDDICreateSynchronizationObject(
 
 // rev
 /**
- * The NtGdiDdDDIDDisplayEnum routine enumerates graphics display devices and targets in the DirectX
- * subsystem.
+ * The NtGdiDdDDIDDisplayEnum routine enumerates graphics display devices and targets in the DirectX subsystem.
  *
  * \param Data A pointer to a display enumeration parameters structure.
  * \returns NTSTATUS Successful or errant status.
@@ -20675,8 +19947,7 @@ NtGdiDdDDIDDisplayEnum(
  * The NtGdiDdDDIDestroyAllocation routine releases allocations of video memory, system memory, or a
  * combination of both.
  *
- * \param Data A pointer to a D3DKMT_DESTROYALLOCATION structure that describes parameters for
- *     releasing allocations.
+ * \param Data A pointer to a D3DKMT_DESTROYALLOCATION structure that describes parameters for releasing allocations.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20689,11 +19960,9 @@ NtGdiDdDDIDestroyAllocation(
 
 // rev
 /**
- * The NtGdiDdDDIDestroyAllocation2 routine releases video or system memory allocations with
- * extended options.
+ * The NtGdiDdDDIDestroyAllocation2 routine releases video or system memory allocations with extended options.
  *
- * \param Data A pointer to a D3DKMT_DESTROYALLOCATION2 structure that describes parameters for
- *     releasing allocations.
+ * \param Data A pointer to a D3DKMT_DESTROYALLOCATION2 structure that describes parameters for releasing allocations.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20724,14 +19993,11 @@ NtGdiDdDDIDestroyContext(
 /**
  * The NtGdiDdDDIDestroyDCFromMemory routine releases the DC/bitmap pair created over caller-owned
  * memory. The input contains two handles, occupying 16
- * bytes native or 8 bytes on x86. Neither handle may be NULL. It validates that the bitmap owns a
- * secured
- * memory association, deletes the DC then bitmap, and does not clear the input record. Use the
- * matching pair
+ * bytes native or 8 bytes on x86. Neither handle may be NULL. It validates that the bitmap owns a secured
+ * memory association, deletes the DC then bitmap, and does not clear the input record. Use the matching pair
  * and retain backing memory until the operation completes.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20761,14 +20027,11 @@ NtGdiDdDDIDestroyDevice(
 // rev
 /**
  * The NtGdiDdDDIDestroyHwContext routine has the following behavior:
- * Hardware-context lifecycle entry. The native export returns STATUS_NOT_IMPLEMENTED (0xC0000002)
- * without
- * processing its request. The WoW64 wrapper must still be considered when supplying input pointers.
- * The
+ * Hardware-context lifecycle entry. The native export returns STATUS_NOT_IMPLEMENTED (0xC0000002) without
+ * processing its request. The WoW64 wrapper must still be considered when supplying input pointers. The
  * constant-return stub does not define historical hardware-context or payload semantics.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -20783,8 +20046,7 @@ NtGdiDdDDIDestroyHwContext(
 /**
  * The NtGdiDdDDIDestroyHwQueue routine destroys a hardware queue.
  *
- * \param Data A pointer to a D3DKMT_DESTROYHWQUEUE structure that specifies the hardware queue to
- *     destroy.
+ * \param Data A pointer to a D3DKMT_DESTROYHWQUEUE structure that specifies the hardware queue to destroy.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20799,8 +20061,7 @@ NtGdiDdDDIDestroyHwQueue(
 /**
  * The NtGdiDdDDIDestroyKeyedMutex routine destroys a keyed mutex synchronization object.
  *
- * \param Data A pointer to a D3DKMT_DESTROYKEYEDMUTEX structure that specifies the keyed mutex to
- *     destroy.
+ * \param Data A pointer to a D3DKMT_DESTROYKEYEDMUTEX structure that specifies the keyed mutex to destroy.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20846,8 +20107,7 @@ NtGdiDdDDIDestroyOverlay(
 /**
  * The NtGdiDdDDIDestroyPagingQueue routine destroys a paging queue object.
  *
- * \param Data A pointer to a D3DDDI_DESTROYPAGINGQUEUE structure that specifies the paging queue to
- *     destroy.
+ * \param Data A pointer to a D3DDDI_DESTROYPAGINGQUEUE structure that specifies the paging queue to destroy.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -20956,8 +20216,7 @@ NtGdiDdDDIEnumAdapters(
 
 // rev
 /**
- * The NtGdiDdDDIEnumAdapters2 routine enumerates all graphics adapters on the system with extended
- * adapter information.
+ * The NtGdiDdDDIEnumAdapters2 routine enumerates all graphics adapters on the system with extended adapter information.
  *
  * \param Data A pointer to a D3DKMT_ENUMADAPTERS2 structure that receives enumerated adapters.
  * \returns NTSTATUS Successful or errant status.
@@ -20972,8 +20231,7 @@ NtGdiDdDDIEnumAdapters2(
 
 // rev
 /**
- * The NtGdiDdDDIEscape routine exchanges information with the display miniport driver via private
- * escape codes.
+ * The NtGdiDdDDIEscape routine exchanges information with the display miniport driver via private escape codes.
  *
  * \param Data A pointer to a D3DKMT_ESCAPE structure that describes the shared information.
  * \returns NTSTATUS Successful or errant status.
@@ -21003,8 +20261,7 @@ NtGdiDdDDIEvict(
 
 // rev
 /**
- * The NtGdiDdDDIExtractBundleObject routine extracts an allocation or sub-object from a graphics
- * bundle object.
+ * The NtGdiDdDDIExtractBundleObject routine extracts an allocation or sub-object from a graphics bundle object.
  *
  * \param Data A pointer to a bundle object extraction parameters structure.
  * \returns NTSTATUS Successful or errant status.
@@ -21019,11 +20276,9 @@ NtGdiDdDDIExtractBundleObject(
 
 // rev
 /**
- * The NtGdiDdDDIFlipOverlay routine changes the video memory allocation displayed on a hardware
- * overlay.
+ * The NtGdiDdDDIFlipOverlay routine changes the video memory allocation displayed on a hardware overlay.
  *
- * \param Data A pointer to a D3DKMT_FLIPOVERLAY structure that describes the overlay flip
- *     operation.
+ * \param Data A pointer to a D3DKMT_FLIPOVERLAY structure that describes the overlay flip operation.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21038,8 +20293,7 @@ NtGdiDdDDIFlipOverlay(
 /**
  * The NtGdiDdDDIFlushHeapTransitions routine flushes pending video memory heap state transitions.
  *
- * \param Data A pointer to a D3DKMT_FLUSHHEAPTRANSITIONS structure that describes the transitions
- *     to flush.
+ * \param Data A pointer to a D3DKMT_FLUSHHEAPTRANSITIONS structure that describes the transitions to flush.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21072,8 +20326,7 @@ NtGdiDdDDIFreeGpuVirtualAddress(
  * The NtGdiDdDDIGetAllocationPriority routine retrieves the eviction priority of a video memory
  * resource or allocation.
  *
- * \param Data A pointer to a D3DKMT_GETALLOCATIONPRIORITY structure that specifies the resource to
- *     query.
+ * \param Data A pointer to a D3DKMT_GETALLOCATIONPRIORITY structure that specifies the resource to query.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21165,8 +20418,7 @@ NtGdiDdDDIGetDeviceState(
 
 // rev
 /**
- * The NtGdiDdDDIGetDisplayModeList routine retrieves a list of available display modes for a video
- * present source.
+ * The NtGdiDdDDIGetDisplayModeList routine retrieves a list of available display modes for a video present source.
  *
  * \param Data A pointer to a D3DKMT_GETDISPLAYMODELIST structure that receives available modes.
  * \returns NTSTATUS Successful or errant status.
@@ -21200,8 +20452,7 @@ NtGdiDdDDIGetMemoryBudgetTarget(
  * The NtGdiDdDDIGetMultiPlaneOverlayCaps routine retrieves hardware multi-plane overlay
  * capabilities for a display adapter.
  *
- * \param Data A pointer to a D3DKMT_GET_MULTIPLANE_OVERLAY_CAPS structure that receives overlay
- *     capabilities.
+ * \param Data A pointer to a D3DKMT_GET_MULTIPLANE_OVERLAY_CAPS structure that receives overlay capabilities.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21217,8 +20468,7 @@ NtGdiDdDDIGetMultiPlaneOverlayCaps(
  * The NtGdiDdDDIGetMultisampleMethodList routine retrieves the list of multiple-sampling methods
  * available for a display format.
  *
- * \param Data A pointer to a D3DKMT_GETMULTISAMPLEMETHODLIST structure that receives the
- *     multisample methods.
+ * \param Data A pointer to a D3DKMT_GETMULTISAMPLEMETHODLIST structure that receives the multisample methods.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21231,8 +20481,7 @@ NtGdiDdDDIGetMultisampleMethodList(
 
 // rev
 /**
- * The NtGdiDdDDIGetOverlayState routine retrieves the current state and positioning attributes of a
- * hardware overlay.
+ * The NtGdiDdDDIGetOverlayState routine retrieves the current state and positioning attributes of a hardware overlay.
  *
  * \param Data A pointer to a D3DKMT_GETOVERLAYSTATE structure that receives the overlay state.
  * \returns NTSTATUS Successful or errant status.
@@ -21250,8 +20499,7 @@ NtGdiDdDDIGetOverlayState(
  * The NtGdiDdDDIGetPostCompositionCaps routine retrieves hardware post-composition transformation
  * and color conversion capabilities.
  *
- * \param Data A pointer to a D3DKMT_GET_POST_COMPOSITION_CAPS structure that receives
- *     post-composition capabilities.
+ * \param Data A pointer to a D3DKMT_GET_POST_COMPOSITION_CAPS structure that receives post-composition capabilities.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21264,11 +20512,9 @@ NtGdiDdDDIGetPostCompositionCaps(
 
 // rev
 /**
- * The NtGdiDdDDIGetPresentHistory routine retrieves copying and flipping present history tokens for
- * performance monitoring.
+ * The NtGdiDdDDIGetPresentHistory routine retrieves copying and flipping present history tokens for performance monitoring.
  *
- * \param Data A pointer to a D3DKMT_GETPRESENTHISTORY structure that receives presentation history
- *     data.
+ * \param Data A pointer to a D3DKMT_GETPRESENTHISTORY structure that receives presentation history data.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21283,13 +20529,11 @@ NtGdiDdDDIGetPresentHistory(
 /**
  * The NtGdiDdDDIGetPresentQueueEvent routine queries the event associated with a compositor
  * presentation queue. The native entry requires the current
- * process to be DWM and writes a handle only after success. WoW64 copies its initially NULL
- * temporary handle
+ * process to be DWM and writes a handle only after success. WoW64 copies its initially NULL temporary handle
  * back even on failure. Use the returned handle only after successful completion.
  *
  * \param PresentQueueId The present queue id argument.
  * \param EventHandle Receives the event handle.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -21306,8 +20550,7 @@ NtGdiDdDDIGetPresentQueueEvent(
  * The NtGdiDdDDIGetProcessDeviceRemovalSupport routine queries whether a process supports graphics
  * device removal handling.
  *
- * \param Data A pointer to a D3DKMT_GETPROCESSDEVICEREMOVALSUPPORT structure that receives support
- *     flags.
+ * \param Data A pointer to a D3DKMT_GETPROCESSDEVICEREMOVALSUPPORT structure that receives support flags.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21338,15 +20581,12 @@ NtGdiDdDDIGetProcessSchedulingPriorityBand(
 /**
  * The NtGdiDdDDIGetProcessSchedulingPriorityClass routine retrieves the graphics
  * scheduling-priority class of a process. This is a two-argument call, not a pointer
- * to a combined request. PriorityClass is a 4-byte SDK D3DKMT_SCHEDULINGPRIORITYCLASS value,
- * written only
- * after successful process resolution; NULL output returns STATUS_INVALID_PARAMETER. The worker
- * requests
+ * to a combined request. PriorityClass is a 4-byte SDK D3DKMT_SCHEDULINGPRIORITYCLASS value, written only
+ * after successful process resolution; NULL output returns STATUS_INVALID_PARAMETER. The worker requests
  * process access 0x200. This is GPU scheduling, not the ordinary Win32 process CPU-priority class.
  *
  * \param ProcessHandle The process handle argument.
  * \param PriorityClass Receives the priority class.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -21363,8 +20603,7 @@ NtGdiDdDDIGetProcessSchedulingPriorityClass(
  * The NtGdiDdDDIGetResourcePresentPrivateDriverData routine retrieves private driver data
  * associated with a resource presentation.
  *
- * \param Data A pointer to a D3DDDI_GETRESOURCEPRESENTPRIVATEDRIVERDATA structure that receives the
- *     private data.
+ * \param Data A pointer to a D3DDDI_GETRESOURCEPRESENTPRIVATEDRIVERDATA structure that receives the private data.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21393,8 +20632,7 @@ NtGdiDdDDIGetRuntimeData(
 
 // rev
 /**
- * The NtGdiDdDDIGetScanLine routine retrieves the current scan line number of the active video
- * present path.
+ * The NtGdiDdDDIGetScanLine routine retrieves the current scan line number of the active video present path.
  *
  * \param Data A pointer to a D3DKMT_GETSCANLINE structure that receives the current scan line.
  * \returns NTSTATUS Successful or errant status.
@@ -21428,8 +20666,7 @@ NtGdiDdDDIGetSetSwapChainMetadata(
  * The NtGdiDdDDIGetSharedPrimaryHandle routine retrieves the shared primary surface handle for a
  * video present source.
  *
- * \param Data A pointer to a D3DKMT_GETSHAREDPRIMARYHANDLE structure that receives the shared
- *     handle.
+ * \param Data A pointer to a D3DKMT_GETSHAREDPRIMARYHANDLE structure that receives the shared handle.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21445,8 +20682,7 @@ NtGdiDdDDIGetSharedPrimaryHandle(
  * The NtGdiDdDDIGetSharedResourceAdapterLuid routine retrieves the LUID of the graphics adapter on
  * which a shared resource was created.
  *
- * \param Data A pointer to a D3DKMT_GETSHAREDRESOURCEADAPTERLUID structure that receives the
- *     adapter LUID.
+ * \param Data A pointer to a D3DKMT_GETSHAREDRESOURCEADAPTERLUID structure that receives the adapter LUID.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21475,8 +20711,7 @@ NtGdiDdDDIGetSharedResourceAdapterLuidFlipManager(
 
 // rev
 /**
- * The NtGdiDdDDIGetSwapChainSurfacePhysicalAddress routine retrieves the physical address of a swap
- * chain surface.
+ * The NtGdiDdDDIGetSwapChainSurfacePhysicalAddress routine retrieves the physical address of a swap chain surface.
  *
  * \param Data A pointer to a swap chain surface physical address query structure.
  * \returns NTSTATUS Successful or errant status.
@@ -21509,8 +20744,7 @@ NtGdiDdDDIGetYieldPercentage(
  * The NtGdiDdDDIInvalidateActiveVidPn routine invalidates the active video present network (VidPN)
  * currently in use.
  *
- * \param Data A pointer to a D3DKMT_INVALIDATEACTIVEVIDPN structure that describes the VidPN to
- *     invalidate.
+ * \param Data A pointer to a D3DKMT_INVALIDATEACTIVEVIDPN structure that describes the VidPN to invalidate.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21523,11 +20757,9 @@ NtGdiDdDDIInvalidateActiveVidPn(
 
 // rev
 /**
- * The NtGdiDdDDIInvalidateCache routine invalidates cached CPU or GPU virtual address mappings and
- * textures.
+ * The NtGdiDdDDIInvalidateCache routine invalidates cached CPU or GPU virtual address mappings and textures.
  *
- * \param Data A pointer to a D3DKMT_INVALIDATECACHE structure that describes the cache to
- *     invalidate.
+ * \param Data A pointer to a D3DKMT_INVALIDATECACHE structure that describes the cache to invalidate.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21540,11 +20772,9 @@ NtGdiDdDDIInvalidateCache(
 
 // rev
 /**
- * The NtGdiDdDDILock routine locks an entire allocation or specific subpages to obtain a CPU
- * pointer.
+ * The NtGdiDdDDILock routine locks an entire allocation or specific subpages to obtain a CPU pointer.
  *
- * \param Data A pointer to a D3DKMT_LOCK structure that describes parameters for locking the
- *     allocation.
+ * \param Data A pointer to a D3DKMT_LOCK structure that describes parameters for locking the allocation.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21559,8 +20789,7 @@ NtGdiDdDDILock(
 /**
  * The NtGdiDdDDILock2 routine locks an allocation with extended virtual addressing options.
  *
- * \param Data A pointer to a D3DKMT_LOCK2 structure that describes parameters for locking the
- *     allocation.
+ * \param Data A pointer to a D3DKMT_LOCK2 structure that describes parameters for locking the allocation.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21573,11 +20802,9 @@ NtGdiDdDDILock2(
 
 // rev
 /**
- * The NtGdiDdDDIMakeResident routine adds resources to the device residency list and increments
- * residency counts.
+ * The NtGdiDdDDIMakeResident routine adds resources to the device residency list and increments residency counts.
  *
- * \param Data A pointer to a D3DDDI_MAKERESIDENT structure that describes resources to make
- *     resident.
+ * \param Data A pointer to a D3DDDI_MAKERESIDENT structure that describes resources to make resident.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21590,11 +20817,9 @@ NtGdiDdDDIMakeResident(
 
 // rev
 /**
- * The NtGdiDdDDIMapGpuVirtualAddress routine maps GPU virtual address ranges to allocation pages or
- * reserved space.
+ * The NtGdiDdDDIMapGpuVirtualAddress routine maps GPU virtual address ranges to allocation pages or reserved space.
  *
- * \param Data A pointer to a D3DDDI_MAPGPUVIRTUALADDRESS structure that describes the virtual
- *     address mapping.
+ * \param Data A pointer to a D3DDDI_MAPGPUVIRTUALADDRESS structure that describes the virtual address mapping.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -21686,8 +20911,7 @@ NtGdiDdDDINetDispQueryMiracastDisplayDeviceSupport(
 
 // rev
 /**
- * The NtGdiDdDDINetDispStartMiracastDisplayDevice routine starts a Miracast wireless display device
- * session.
+ * The NtGdiDdDDINetDispStartMiracastDisplayDevice routine starts a Miracast wireless display device session.
  *
  * \param Data A pointer to a Miracast display device start configuration structure.
  * \returns NTSTATUS Successful or errant status.
@@ -21720,8 +20944,7 @@ NtGdiDdDDINetDispStopMiracastDisplayDevice(
 
 // rev
 /**
- * The NtGdiDdDDIOfferAllocations routine offers video memory allocations for reuse when memory
- * pressure occurs.
+ * The NtGdiDdDDIOfferAllocations routine offers video memory allocations for reuse when memory pressure occurs.
  *
  * \param Data A pointer to a D3DKMT_OFFERALLOCATIONS structure that describes allocations to offer.
  * \returns NTSTATUS Successful or errant status.
@@ -21751,8 +20974,7 @@ NtGdiDdDDIOpenAdapterFromDeviceName(
 
 // rev
 /**
- * The NtGdiDdDDIOpenAdapterFromHdc routine opens a graphics adapter from a device context handle
- * (HDC).
+ * The NtGdiDdDDIOpenAdapterFromHdc routine opens a graphics adapter from a device context handle (HDC).
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21767,8 +20989,7 @@ NtGdiDdDDIOpenAdapterFromHdc(
 
 // rev
 /**
- * The NtGdiDdDDIOpenAdapterFromLuid routine opens a graphics adapter from a locally unique
- * identifier (LUID).
+ * The NtGdiDdDDIOpenAdapterFromLuid routine opens a graphics adapter from a locally unique identifier (LUID).
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21783,8 +21004,7 @@ NtGdiDdDDIOpenAdapterFromLuid(
 
 // rev
 /**
- * The NtGdiDdDDIOpenBundleObjectNtHandleFromName routine opens a bundle object NT handle from an
- * object name.
+ * The NtGdiDdDDIOpenBundleObjectNtHandleFromName routine opens a bundle object NT handle from an object name.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21859,8 +21079,7 @@ NtGdiDdDDIOpenNtHandleFromName(
 
 // rev
 /**
- * The NtGdiDdDDIOpenProtectedSessionFromNtHandle routine opens a protected session from an NT
- * handle.
+ * The NtGdiDdDDIOpenProtectedSessionFromNtHandle routine opens a protected session from an NT handle.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21890,8 +21109,7 @@ NtGdiDdDDIOpenResource(
 
 // rev
 /**
- * The NtGdiDdDDIOpenResourceFromNtHandle routine opens a shared graphics resource from an NT
- * handle.
+ * The NtGdiDdDDIOpenResourceFromNtHandle routine opens a shared graphics resource from an NT handle.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21921,8 +21139,7 @@ NtGdiDdDDIOpenSwapChain(
 
 // rev
 /**
- * The NtGdiDdDDIOpenSyncObjectFromNtHandle routine opens a synchronization object from an NT
- * handle.
+ * The NtGdiDdDDIOpenSyncObjectFromNtHandle routine opens a synchronization object from an NT handle.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -21984,8 +21201,7 @@ NtGdiDdDDIOpenSynchronizationObject(
 
 // rev
 /**
- * The NtGdiDdDDIOutputDuplGetFrameInfo routine retrieves frame information for an output
- * duplication context.
+ * The NtGdiDdDDIOutputDuplGetFrameInfo routine retrieves frame information for an output duplication context.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22015,8 +21231,7 @@ NtGdiDdDDIOutputDuplGetMetaData(
 
 // rev
 /**
- * The NtGdiDdDDIOutputDuplGetPointerShapeData routine retrieves pointer shape data for an output
- * duplication context.
+ * The NtGdiDdDDIOutputDuplGetPointerShapeData routine retrieves pointer shape data for an output duplication context.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22031,8 +21246,7 @@ NtGdiDdDDIOutputDuplGetPointerShapeData(
 
 // rev
 /**
- * The NtGdiDdDDIOutputDuplPresent routine presents an output duplication frame to a swap chain or
- * surface.
+ * The NtGdiDdDDIOutputDuplPresent routine presents an output duplication frame to a swap chain or surface.
  *
  * \param Data A pointer to a structure containing output duplication present parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22107,8 +21321,7 @@ NtGdiDdDDIPresentMultiPlaneOverlay(
 
 // rev
 /**
- * The NtGdiDdDDIPresentMultiPlaneOverlay2 routine presents multi-plane overlay content with
- * extended configurations.
+ * The NtGdiDdDDIPresentMultiPlaneOverlay2 routine presents multi-plane overlay content with extended configurations.
  *
  * \param Data A pointer to a structure containing multi-plane overlay presentation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22154,8 +21367,7 @@ NtGdiDdDDIPresentRedirected(
 
 // rev
 /**
- * The NtGdiDdDDIQueryAdapterInfo routine queries configuration and capability information from a
- * graphics adapter.
+ * The NtGdiDdDDIQueryAdapterInfo routine queries configuration and capability information from a graphics adapter.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22170,8 +21382,7 @@ NtGdiDdDDIQueryAdapterInfo(
 
 // rev
 /**
- * The NtGdiDdDDIQueryAllocationResidency routine queries the residency status of a list of graphics
- * allocations.
+ * The NtGdiDdDDIQueryAllocationResidency routine queries the residency status of a list of graphics allocations.
  *
  * \param Data A pointer to a structure containing allocation residency query parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22202,14 +21413,11 @@ NtGdiDdDDIQueryClockCalibration(
 // rev
 /**
  * The NtGdiDdDDIQueryFSEBlock routine has the following behavior:
- * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without
- * processing the
- * request. This is not proof of support on another build; WoW64 can still touch caller input. The
- * historical
+ * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without processing the
+ * request. This is not proof of support on another build; WoW64 can still touch caller input. The historical
  * declaration is retained and no display setting was changed.
  *
  * \param Data Supplies and receives the data.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -22299,8 +21507,7 @@ NtGdiDdDDIQueryResourceInfo(
 
 // rev
 /**
- * The NtGdiDdDDIQueryResourceInfoFromNtHandle routine queries shared resource information using an
- * NT handle.
+ * The NtGdiDdDDIQueryResourceInfoFromNtHandle routine queries shared resource information using an NT handle.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22315,8 +21522,7 @@ NtGdiDdDDIQueryResourceInfoFromNtHandle(
 
 // rev
 /**
- * The NtGdiDdDDIQueryStatistics routine queries performance and memory statistics from the DirectX
- * graphics subsystem.
+ * The NtGdiDdDDIQueryStatistics routine queries performance and memory statistics from the DirectX graphics subsystem.
  *
  * \param Data A pointer to a structure containing query statistics parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22331,8 +21537,7 @@ NtGdiDdDDIQueryStatistics(
 
 // rev
 /**
- * The NtGdiDdDDIQueryVidPnExclusiveOwnership routine queries exclusive ownership status of a VidPN
- * source.
+ * The NtGdiDdDDIQueryVidPnExclusiveOwnership routine queries exclusive ownership status of a VidPN source.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22377,8 +21582,7 @@ NtGdiDdDDIReclaimAllocations(
 
 // rev
 /**
- * The NtGdiDdDDIReclaimAllocations2 routine reclaims discarded video memory allocations with
- * extended results.
+ * The NtGdiDdDDIReclaimAllocations2 routine reclaims discarded video memory allocations with extended results.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22499,8 +21703,7 @@ NtGdiDdDDIReserveGpuVirtualAddress(
 
 // rev
 /**
- * The NtGdiDdDDISetAllocationPriority routine sets the eviction and scheduling priority of graphics
- * allocations.
+ * The NtGdiDdDDISetAllocationPriority routine sets the eviction and scheduling priority of graphics allocations.
  *
  * \param Data A pointer to a structure containing allocation priority settings.
  * \returns NTSTATUS Successful or errant status.
@@ -22531,8 +21734,7 @@ NtGdiDdDDISetContextInProcessSchedulingPriority(
 
 // rev
 /**
- * The NtGdiDdDDISetContextSchedulingPriority routine sets the scheduling priority for a device
- * context.
+ * The NtGdiDdDDISetContextSchedulingPriority routine sets the scheduling priority for a device context.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22562,8 +21764,7 @@ NtGdiDdDDISetDisplayMode(
 
 // rev
 /**
- * The NtGdiDdDDISetDodIndirectSwapchain routine sets an indirect swap chain for a display-only
- * driver (DOD).
+ * The NtGdiDdDDISetDodIndirectSwapchain routine sets an indirect swap chain for a display-only driver (DOD).
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22579,14 +21780,11 @@ NtGdiDdDDISetDodIndirectSwapchain(
 // rev
 /**
  * The NtGdiDdDDISetFSEBlock routine has the following behavior:
- * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without
- * processing the
- * request. This is not proof of support on another build; WoW64 can still touch caller input. The
- * historical
+ * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without processing the
+ * request. This is not proof of support on another build; WoW64 can still touch caller input. The historical
  * declaration is retained and no display setting was changed.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -22614,8 +21812,7 @@ NtGdiDdDDISetGammaRamp(
 
 // rev
 /**
- * The NtGdiDdDDISetHwProtectionTeardownRecovery routine configures teardown recovery for
- * hardware-protected content.
+ * The NtGdiDdDDISetHwProtectionTeardownRecovery routine configures teardown recovery for hardware-protected content.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22646,14 +21843,11 @@ NtGdiDdDDISetMemoryBudgetTarget(
 // rev
 /**
  * The NtGdiDdDDISetMonitorColorSpaceTransform routine has the following behavior:
- * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without
- * processing the
- * request. This is not proof of support on another build; WoW64 can still touch caller input. The
- * historical
+ * Legacy graphics entry. The native export returns STATUS_NOT_SUPPORTED (0xC00000BB) without processing the
+ * request. This is not proof of support on another build; WoW64 can still touch caller input. The historical
  * declaration is retained and no display setting was changed.
  *
  * \param Data The data argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -22666,8 +21860,7 @@ NtGdiDdDDISetMonitorColorSpaceTransform(
 
 // rev
 /**
- * The NtGdiDdDDISetProcessDeviceRemovalSupport routine sets whether a process supports graphics
- * device removal.
+ * The NtGdiDdDDISetProcessDeviceRemovalSupport routine sets whether a process supports graphics device removal.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22699,13 +21892,11 @@ NtGdiDdDDISetProcessSchedulingPriorityBand(
 /**
  * The NtGdiDdDDISetProcessSchedulingPriorityClass routine sets a process graphics
  * scheduling-priority class using a process handle and by-value 4-byte SDK
- * D3DKMT_SCHEDULINGPRIORITYCLASS. It is not a one-argument request. Access checks and class
- * validation occur
+ * D3DKMT_SCHEDULINGPRIORITYCLASS. It is not a one-argument request. Access checks and class validation occur
  * in the worker. Include d3dkmthk.h for SDK enum constants.
  *
  * \param ProcessHandle The process handle argument.
  * \param PriorityClass The priority class argument.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -22734,8 +21925,7 @@ NtGdiDdDDISetQueuedLimit(
 
 // rev
 /**
- * The NtGdiDdDDISetStablePowerState routine enables or disables stable power state on a GPU
- * adapter.
+ * The NtGdiDdDDISetStablePowerState routine enables or disables stable power state on a GPU adapter.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22765,8 +21955,7 @@ NtGdiDdDDISetStereoEnabled(
 
 // rev
 /**
- * The NtGdiDdDDISetSyncRefreshCountWaitTarget routine sets the target refresh count for vertical
- * sync synchronization.
+ * The NtGdiDdDDISetSyncRefreshCountWaitTarget routine sets the target refresh count for vertical sync synchronization.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22828,12 +22017,9 @@ NtGdiDdDDISetYieldPercentage(
 /**
  * The NtGdiDdDDIShareObjects routine creates an NT sharing handle for graphics objects. This is a
  * five-argument call, not a pointer to a
- * request. Objects contains 4-byte graphics handles on both architectures; native count validation
- * accepts 1
- * through 3 before checking the supported object combinations. ObjectAttributes is required. The
- * native
- * handle output is written on success, while WoW64 copies its NULL temporary back even on failure.
- * Close a
+ * request. Objects contains 4-byte graphics handles on both architectures; native count validation accepts 1
+ * through 3 before checking the supported object combinations. ObjectAttributes is required. The native
+ * handle output is written on success, while WoW64 copies its NULL temporary back even on failure. Close a
  * successfully returned NT handle with NtClose.
  *
  * \param ObjectCount The object count argument.
@@ -22841,7 +22027,6 @@ NtGdiDdDDISetYieldPercentage(
  * \param ObjectAttributes Object attributes for the requested object.
  * \param DesiredAccess Requested access rights.
  * \param SharedHandle Receives the shared handle.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -22849,8 +22034,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGdiDdDDIShareObjects(
-    _In_ UINT ObjectCount,
-    _In_reads_(ObjectCount) const UINT* Objects,
+    _In_ ULONG ObjectCount,
+    _In_reads_(ObjectCount) const ULONG* Objects,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE SharedHandle
@@ -22858,8 +22043,7 @@ NtGdiDdDDIShareObjects(
 
 // rev
 /**
- * The NtGdiDdDDISharedPrimaryLockNotification routine notifies the kernel when locking a shared
- * primary surface.
+ * The NtGdiDdDDISharedPrimaryLockNotification routine notifies the kernel when locking a shared primary surface.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -22874,8 +22058,7 @@ NtGdiDdDDISharedPrimaryLockNotification(
 
 // rev
 /**
- * The NtGdiDdDDISharedPrimaryUnLockNotification routine notifies the kernel when unlocking a shared
- * primary surface.
+ * The NtGdiDdDDISharedPrimaryUnLockNotification routine notifies the kernel when unlocking a shared primary surface.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -23015,8 +22198,7 @@ NtGdiDdDDISubmitWaitForSyncObjectsToHwQueue(
 
 // rev
 /**
- * The NtGdiDdDDITrimProcessCommitment routine trims video memory allocations committed by a
- * process.
+ * The NtGdiDdDDITrimProcessCommitment routine trims video memory allocations committed by a process.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -23184,8 +22366,7 @@ NtGdiDdDDIWaitForSynchronizationObjectFromGpu(
 
 // rev
 /**
- * The NtGdiDdDDIWaitForVerticalBlankEvent routine waits for a vertical blanking event on a display
- * adapter.
+ * The NtGdiDdDDIWaitForVerticalBlankEvent routine waits for a vertical blanking event on a display adapter.
  *
  * \param Data A pointer to a structure containing operation parameters.
  * \returns NTSTATUS Successful or errant status.
@@ -23255,7 +22436,6 @@ AddFontResourceTracking(
 // rev
 /**
  * The AnyLinkedFonts routine determines whether any linked fonts are currently registered.
- *
  * \returns A pointer-sized status or handle.
  */
 NTSYSAPI
@@ -23275,7 +22455,6 @@ AnyLinkedFonts(
  * \param Bitmap The bitmap argument.
  * \param Discard The discard argument.
  * \param KernelModeDeviceHandle The kernel mode device handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23330,7 +22509,6 @@ ClearBrushAttributes(
  * \param Height The height argument.
  * \param Format The format argument.
  * \param SharedSurface The shared surface argument.
- *
  * \returns The HBITMAP result described above.
  */
 NTSYSAPI
@@ -23357,7 +22535,6 @@ CreateBitmapFromDxSurface(
  * \param SubresourceIndex The subresource index argument.
  * \param SharedSurfaceNtHandle The shared surface nt handle argument.
  * \param SharedSurface The shared surface argument.
- *
  * \returns The HBITMAP result described above.
  */
 NTSYSAPI
@@ -23419,14 +22596,12 @@ CreateScaledCompatibleBitmap(
 /**
  * The DDCCIGetCapabilitiesString routine retrieves the monitor capabilities string into a
  * byte-counted buffer; zero capacity is rejected. This GDI32
- * export forwards directly to NtGdiDDCCIGetCapabilitiesString and returns NTSTATUS, not a Win32
- * Boolean.
+ * export forwards directly to NtGdiDDCCIGetCapabilitiesString and returns NTSTATUS, not a Win32 Boolean.
  * Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param String Receives the string.
  * \param StringLength The string length argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23442,13 +22617,11 @@ DDCCIGetCapabilitiesString(
 /**
  * The DDCCIGetCapabilitiesStringLength routine queries the capabilities-string capacity into a
  * 4-byte output. This GDI32 export forwards directly to
- * NtGdiDDCCIGetCapabilitiesStringLength and returns NTSTATUS, not a Win32 Boolean. Output copies
- * occur only
+ * NtGdiDDCCIGetCapabilitiesStringLength and returns NTSTATUS, not a Win32 Boolean. Output copies occur only
  * on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param StringLength Receives the string length.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23463,13 +22636,11 @@ DDCCIGetCapabilitiesStringLength(
 /**
  * The DDCCIGetTimingReport routine queries a packed 9-byte timing report; include the
  * monitor-configuration SDK header for the
- * MC_TIMING_REPORT definition. This GDI32 export forwards directly to NtGdiDDCCIGetTimingReport and
- * returns
+ * MC_TIMING_REPORT definition. This GDI32 export forwards directly to NtGdiDDCCIGetTimingReport and returns
  * NTSTATUS, not a Win32 Boolean. Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param TimingReport Receives the timing report.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23484,8 +22655,7 @@ DDCCIGetTimingReport(
 /**
  * The DDCCIGetVCPFeature routine queries a monitor VCP feature. Outputs are 4-byte values; the
  * current value is required, while code type
- * and maximum value are optional. This GDI32 export forwards directly to NtGdiDDCCIGetVCPFeature
- * and returns
+ * and maximum value are optional. This GDI32 export forwards directly to NtGdiDDCCIGetVCPFeature and returns
  * NTSTATUS, not a Win32 Boolean. Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
@@ -23493,7 +22663,6 @@ DDCCIGetTimingReport(
  * \param VCPCodeType Receives the vcpcode type.
  * \param CurrentValue Receives the current value.
  * \param MaximumValue Receives the maximum value.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23511,12 +22680,10 @@ DDCCIGetVCPFeature(
 /**
  * The DDCCISaveCurrentSettings routine persists a physical monitor current settings; this can
  * change device state. This GDI32 export forwards
- * directly to NtGdiDDCCISaveCurrentSettings and returns NTSTATUS, not a Win32 Boolean. Output
- * copies occur
+ * directly to NtGdiDDCCISaveCurrentSettings and returns NTSTATUS, not a Win32 Boolean. Output copies occur
  * only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23530,14 +22697,11 @@ DDCCISaveCurrentSettings(
 /**
  * The DDCCISetVCPFeature routine changes a monitor VCP feature using two 4-byte scalar values. This
  * GDI32 export forwards directly to
- * NtGdiDDCCISetVCPFeature and returns NTSTATUS, not a Win32 Boolean. Output copies occur only on
- * native
- * success.
+ * NtGdiDDCCISetVCPFeature and returns NTSTATUS, not a Win32 Boolean. Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param VCPCode The vcpcode argument.
  * \param Value The value argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -23552,7 +22716,6 @@ DDCCISetVCPFeature(
 // rev
 /**
  * The DwmCreatedBitmapRemotingOutput routine creates a remoting bitmap output context for DWM.
- *
  * \returns A pointer-sized status or handle.
  */
 NTSYSAPI
@@ -23569,7 +22732,6 @@ DwmCreatedBitmapRemotingOutput(
  * NtGdiEnableEudc, not an absent parameter. The worker adds or deletes font-link entries.
  *
  * \param Enable The enable argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23583,15 +22745,12 @@ EnableEUDC(
 /**
  * The EndGdiRendering routine ends GDI rendering into a DirectX-backed bitmap. The optional
  * DeviceRemoved output receives 4 bytes even
- * when the worker fails; it is initialized to zero before the worker runs. The device argument can
- * affect GPU
- * wait ordering.
+ * when the worker fails; it is initialized to zero before the worker runs. The device argument can affect GPU wait ordering.
  *
  * \param Bitmap The bitmap argument.
  * \param Discard The discard argument.
  * \param DeviceRemoved Receives the device removed.
  * \param KernelModeDeviceHandle The kernel mode device handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23612,7 +22771,6 @@ EndGdiRendering(
  * it is not a complete font-configuration diagnostic.
  *
  * \param Dc The dc argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23636,14 +22794,13 @@ BOOL
 NTAPI
 Gdi32DllInitialize(
     _In_ HINSTANCE Instance,
-    _In_ DWORD Reason,
+    _In_ ULONG Reason,
     _In_opt_ PVOID Reserved
     );
 
 // rev
 /**
- * The GdiAddFontResourceW routine adds a font resource from a file with extended design vector
- * options.
+ * The GdiAddFontResourceW routine adds a font resource from a file with extended design vector options.
  *
  * \param FileName Path to the font resource file.
  * \param Flags Font resource installation flags.
@@ -23698,7 +22855,6 @@ GdiAddGlsRecord(
 // rev
 /**
  * The GdiAddInitialFonts routine loads initial system fonts into the GDI font table.
- *
  * \returns A pointer-sized status or handle.
  */
 NTSYSAPI
@@ -23710,8 +22866,7 @@ GdiAddInitialFonts(
 
 // rev
 /**
- * The GdiArtificialDecrementDriver routine artificially decrements the reference count of a
- * graphics driver.
+ * The GdiArtificialDecrementDriver routine artificially decrements the reference count of a graphics driver.
  *
  * \param DriverName The name of the graphics driver.
  * \param Flags Operation flags.
@@ -23749,17 +22904,14 @@ GdiCleanCacheDC(
 // rev
 /**
  * The GdiConsoleTextOut routine has the following behavior:
- * Legacy console text-output client. The implementation returns zero and sets
- * ERROR_CALL_NOT_IMPLEMENTED
- * (120), without rendering or reading these four arguments. The declaration retains the x86 16-byte
- * argument
+ * Legacy console text-output client. The implementation returns zero and sets ERROR_CALL_NOT_IMPLEMENTED
+ * (120), without rendering or reading these four arguments. The declaration retains the x86 16-byte argument
  * footprint and symbol-defined parameter types; historical rendering semantics are unspecified.
  *
  * \param Dc The dc argument.
  * \param Text The text argument.
  * \param TextCount The text count argument.
  * \param Bounds The bounds argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23923,7 +23075,6 @@ GdiConvertRegion(
  * The GdiConvertToDevmodeW routine provides the operation described below.
  *
  * \param DeviceMode The device mode argument.
- *
  * \returns The PDEVMODEW result described above.
  */
 NTSYSAPI
@@ -23963,9 +23114,7 @@ GdiCreateLocalMetaFilePict(
 
 // rev
 /**
- * The GdiCurrentProcessSplWow64 routine checks whether the current process is running under WOW64
- * spooler interop.
- *
+ * The GdiCurrentProcessSplWow64 routine checks whether the current process is running under WOW64 spooler interop.
  * \returns A pointer-sized status or handle.
  */
 NTSYSAPI
@@ -23984,7 +23133,6 @@ GdiCurrentProcessSplWow64(
  * its successful return; historical behavior remains unverified.
  *
  * \param Dc The dc argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -23999,7 +23147,6 @@ GdiDeleteLocalDC(
  * The GdiDeleteSpoolFileHandle routine provides the operation described below.
  *
  * \param SpoolFileHandle The spool file handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -24011,8 +23158,7 @@ GdiDeleteSpoolFileHandle(
 
 // rev
 /**
- * The GdiDescribePixelFormat routine queries a DC pixel-format descriptor or format count. This
- * direct native
+ * The GdiDescribePixelFormat routine queries a DC pixel-format descriptor or format count. This direct native
  * thunk takes four arguments; BufferSize counts bytes, and a zero-size query
  * can use NULL Descriptor. Native copying is capped at the 40-byte descriptor;
  * the return is a format count, not bytes written. Device support can differ.
@@ -24021,7 +23167,6 @@ GdiDeleteSpoolFileHandle(
  * \param PixelFormat The pixel format argument.
  * \param BufferSize The buffer size argument.
  * \param Descriptor Receives the descriptor.
- *
  * \returns The LONG result described above.
  */
 NTSYSAPI
@@ -24037,7 +23182,6 @@ GdiDescribePixelFormat(
 // rev
 /**
  * The GdiDisableUMPDSandboxing routine disables User-Mode Printer Driver (UMPD) sandboxing.
- *
  * \returns A pointer-sized status or handle.
  */
 NTSYSAPI
@@ -24086,7 +23230,6 @@ GdiDrawStream(
  * The GdiEndDocEMF routine provides the operation described below.
  *
  * \param SpoolFileHandle The spool file handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -24102,7 +23245,6 @@ GdiEndDocEMF(
  *
  * \param SpoolFileHandle The spool file handle argument.
  * \param Optimization The optimization argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -24115,11 +23257,9 @@ GdiEndPageEMF(
 
 // rev
 /**
- * The GdiEntry1 (DdCreateDirectDrawObject) routine creates a DirectDraw object for the specified
- * device context.
+ * The GdiEntry1 (DdCreateDirectDrawObject) routine creates a DirectDraw object for the specified device context.
  *
- * \param DirectDrawGlobal Pointer to a DDRAWI_DIRECTDRAW_GBL structure that receives the DirectDraw
- *     object data.
+ * \param DirectDrawGlobal Pointer to a DDRAWI_DIRECTDRAW_GBL structure that receives the DirectDraw object data.
  * \param Hdc Handle to the device context for which to create the DirectDraw object.
  * \returns TRUE if the DirectDraw object was created successfully, FALSE otherwise.
  */
@@ -24136,8 +23276,7 @@ GdiEntry1(
  * The GdiEntry10 (DdReenableDirectDrawObject) routine re-enables a DirectDraw object after a
  * display mode change.
  *
- * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the
- *     DirectDraw object.
+ * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the DirectDraw object.
  * \param NewMode Pointer to a boolean receiving whether a mode change occurred.
  * \returns TRUE if the DirectDraw object was re-enabled successfully, FALSE otherwise.
  */
@@ -24171,7 +23310,6 @@ GdiEntry11(
  *
  * \param Surface Pointer to the parent DDRAWI_DDRAWSURFACE_LCL structure.
  * \param SurfaceAttached Pointer to the attached DDRAWI_DDRAWSURFACE_LCL structure to detach.
- *
  * \returns No value.
  */
 NTSYSAPI
@@ -24184,9 +23322,7 @@ GdiEntry12(
 
 // rev
 /**
- * The GdiEntry13 (DdQueryDisplaySettingsUniqueness) routine retrieves the display settings
- * uniqueness counter.
- *
+ * The GdiEntry13 (DdQueryDisplaySettingsUniqueness) routine retrieves the display settings uniqueness counter.
  * \returns The current display settings uniqueness counter value.
  */
 NTSYSAPI
@@ -24201,10 +23337,8 @@ GdiEntry13(
  * The GdiEntry14 (DdGetDxHandle) routine retrieves or releases a DirectX kernel handle for a
  * DirectDraw object or surface.
  *
- * \param DirectDrawLocal Optional pointer to a DDRAWI_DIRECTDRAW_LCL structure representing the
- *     DirectDraw object.
- * \param SurfaceLocal Optional pointer to a DDRAWI_DDRAWSURFACE_LCL structure representing the
- *     surface.
+ * \param DirectDrawLocal Optional pointer to a DDRAWI_DIRECTDRAW_LCL structure representing the DirectDraw object.
+ * \param SurfaceLocal Optional pointer to a DDRAWI_DDRAWSURFACE_LCL structure representing the surface.
  * \param Release TRUE to release the handle, FALSE to retrieve the handle.
  * \returns The kernel DirectX handle, or NULL on failure.
  */
@@ -24219,8 +23353,7 @@ GdiEntry14(
 
 // rev
 /**
- * The GdiEntry15 (DdSetGammaRamp) routine sets the gamma ramp for a DirectDraw device or device
- * context.
+ * The GdiEntry15 (DdSetGammaRamp) routine sets the gamma ramp for a DirectDraw device or device context.
  *
  * \param DirectDrawLocal Optional pointer to a DDRAWI_DIRECTDRAW_LCL structure.
  * \param Hdc Handle to the device context.
@@ -24238,8 +23371,7 @@ GdiEntry15(
 
 // rev
 /**
- * The GdiEntry16 (DdSwapTextureHandles) routine swaps the driver texture handles between two
- * DirectDraw surfaces.
+ * The GdiEntry16 (DdSwapTextureHandles) routine swaps the driver texture handles between two DirectDraw surfaces.
  *
  * \param DirectDrawLocal Pointer to a DDRAWI_DIRECTDRAW_LCL structure.
  * \param SurfaceLocal1 Pointer to the first DDRAWI_DDRAWSURFACE_LCL structure.
@@ -24257,28 +23389,19 @@ GdiEntry16(
 
 // rev
 /**
- * The GdiEntry2 (DdQueryDirectDrawObject) routine queries capabilities and driver callbacks of a
- * DirectDraw object.
+ * The GdiEntry2 (DdQueryDirectDrawObject) routine queries capabilities and driver callbacks of a DirectDraw object.
  *
- * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the
- *     DirectDraw object.
+ * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the DirectDraw object.
  * \param HalInfo Pointer to a DDHALINFO structure that receives driver capability information.
  * \param Callbacks Pointer to a DDHAL_DDCALLBACKS structure that receives driver callback table.
- * \param SurfaceCallbacks Pointer to a DDHAL_DDSURFACECALLBACKS structure that receives surface
- *     callback table.
- * \param PaletteCallbacks Pointer to a DDHAL_DDPALETTECALLBACKS structure that receives palette
- *     callback table.
- * \param D3dCallbacks Pointer to a D3DHAL_CALLBACKS structure that receives Direct3D callback
- *     table.
- * \param D3dDriverData Pointer to a D3DHAL_GLOBALDRIVERDATA structure that receives Direct3D driver
- *     data.
- * \param D3dBufferCallbacks Pointer to a DDHAL_DDEXEBUFCALLBACKS structure that receives execute
- *     buffer callbacks.
- * \param D3dTextureFormats Pointer to an array of DDSURFACEDESC structures receiving supported
- *     texture formats.
+ * \param SurfaceCallbacks Pointer to a DDHAL_DDSURFACECALLBACKS structure that receives surface callback table.
+ * \param PaletteCallbacks Pointer to a DDHAL_DDPALETTECALLBACKS structure that receives palette callback table.
+ * \param D3dCallbacks Pointer to a D3DHAL_CALLBACKS structure that receives Direct3D callback table.
+ * \param D3dDriverData Pointer to a D3DHAL_GLOBALDRIVERDATA structure that receives Direct3D driver data.
+ * \param D3dBufferCallbacks Pointer to a DDHAL_DDEXEBUFCALLBACKS structure that receives execute buffer callbacks.
+ * \param D3dTextureFormats Pointer to an array of DDSURFACEDESC structures receiving supported texture formats.
  * \param FourCC Optional pointer to an array of DWORDs receiving supported FourCC formats.
- * \param VmList Optional pointer to an array of VIDMEM structures receiving video memory heap
- *     descriptions.
+ * \param VmList Optional pointer to an array of VIDMEM structures receiving video memory heap descriptions.
  * \returns TRUE if the query succeeded, FALSE otherwise.
  */
 NTSYSAPI
@@ -24300,11 +23423,9 @@ GdiEntry2(
 
 // rev
 /**
- * The GdiEntry3 (DdDeleteDirectDrawObject) routine deletes a previously created kernel-mode
- * DirectDraw object.
+ * The GdiEntry3 (DdDeleteDirectDrawObject) routine deletes a previously created kernel-mode DirectDraw object.
  *
- * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the
- *     DirectDraw object.
+ * \param DirectDrawGlobal Pointer to the DDRAWI_DIRECTDRAW_GBL structure representing the DirectDraw object.
  * \returns TRUE if the DirectDraw object was deleted successfully, FALSE otherwise.
  */
 NTSYSAPI
@@ -24319,8 +23440,7 @@ GdiEntry3(
  * The GdiEntry4 (DdCreateSurfaceObject) routine creates a kernel-mode surface object corresponding
  * to a local DirectDraw surface.
  *
- * \param SurfaceLocal Pointer to the DDRAWI_DDRAWSURFACE_LCL structure representing the local
- *     surface.
+ * \param SurfaceLocal Pointer to the DDRAWI_DDRAWSURFACE_LCL structure representing the local surface.
  * \param PrimarySurface TRUE if the surface is a primary surface, FALSE otherwise.
  * \returns TRUE if the surface object was created successfully, FALSE otherwise.
  */
@@ -24448,7 +23568,6 @@ GdiFixUpHandle(
  * \param OpaqueParameter3 The opaque parameter3 argument.
  * \param OpaqueParameter4 The opaque parameter4 argument.
  * \param OpaqueParameter5 The opaque parameter5 argument.
- *
  * \returns Status code returned by the operation.
  */
 NTSYSAPI
@@ -24464,15 +23583,13 @@ GdiFullscreenControl(
 
 // rev
 /**
- * The GdiGetBitmapBitsSize routine calculates a bitmap backing size from a BITMAPCOREHEADER or
- * bitmap-info
+ * The GdiGetBitmapBitsSize routine calculates a bitmap backing size from a BITMAPCOREHEADER or bitmap-info
  * header. The input is read-only and the return is 32-bit bytes; arithmetic
  * overflow returns 0xFFFFFFFF rather than a sign-extended pointer-sized -1.
- * Uncompressed scanlines are DWORD-aligned; other formats can return the
+ * Uncompressed scanlines are ULONG-aligned; other formats can return the
  * header biSizeImage. The helper does not validate an arbitrary buffer length.
  *
  * \param BitmapInfo The bitmap info argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -24489,7 +23606,6 @@ GdiGetBitmapBitsSize(
  * \param Hdc The hdc argument.
  * \param TextMetric Receives the text metric.
  * \param Height Receives the height.
- *
  * \returns The LONG result described above.
  */
 NTSYSAPI
@@ -24506,7 +23622,6 @@ GdiGetCharDimensions(
  * The GdiGetDC routine provides the operation described below.
  *
  * \param SpoolFileHandle The spool file handle argument.
- *
  * \returns The HDC result described above.
  */
 NTSYSAPI
@@ -24524,7 +23639,6 @@ GdiGetDC(
  * \param PageNumber The page number argument.
  * \param CurrentDeviceMode Receives the current device mode.
  * \param LastDeviceMode Receives the last device mode.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -24532,7 +23646,7 @@ BOOL
 NTAPI
 GdiGetDevmodeForPage(
     _In_ HANDLE SpoolFileHandle,
-    _In_ DWORD PageNumber,
+    _In_ ULONG PageNumber,
     _Out_opt_ PDEVMODEW *CurrentDeviceMode,
     _Out_opt_ PDEVMODEW *LastDeviceMode
     );
@@ -24600,11 +23714,10 @@ GdiGetLocalFont(
  * The GdiGetPageCount routine provides the operation described below.
  *
  * \param SpoolFileHandle The spool file handle argument.
- *
- * \returns The DWORD result described above.
+ * \returns The ULONG result described above.
  */
 NTSYSAPI
-DWORD
+ULONG
 NTAPI
 GdiGetPageCount(
     _In_ HANDLE SpoolFileHandle
@@ -24617,7 +23730,6 @@ GdiGetPageCount(
  * \param SpoolFileHandle The spool file handle argument.
  * \param PageNumber The page number argument.
  * \param PageType Receives the page type.
- *
  * \returns The HANDLE result described above.
  */
 NTSYSAPI
@@ -24625,8 +23737,8 @@ HANDLE
 NTAPI
 GdiGetPageHandle(
     _In_ HANDLE SpoolFileHandle,
-    _In_ DWORD PageNumber,
-    _Out_opt_ DWORD *PageType
+    _In_ ULONG PageNumber,
+    _Out_opt_ ULONG *PageType
     );
 
 // rev
@@ -24638,7 +23750,6 @@ GdiGetPageHandle(
  * \param DeviceName The device name argument.
  * \param DeviceMode The device mode argument.
  * \param SpoolerName The spooler name argument.
- *
  * \returns The HANDLE result described above.
  */
 NTSYSAPI
@@ -24652,8 +23763,7 @@ GdiGetSpoolFileHandle(
 
 // rev
 /**
- * The GdiGetVariationStoreDelta routine retrieves variation store deltas for OpenType variable
- * fonts.
+ * The GdiGetVariationStoreDelta routine retrieves variation store deltas for OpenType variable fonts.
  *
  * \param Param1 First parameter.
  * \param AxisCount Count of design variation axes.
@@ -24692,7 +23802,6 @@ GdiHandleBeingTracked(
 // rev
 /**
  * The GdiInitSpool routine initializes the GDI print spooler interface.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -24707,7 +23816,6 @@ GdiInitSpool(
  * The GdiInitializeLanguagePack routine initializes language pack support in GDI.
  *
  * \param Parameter The parameter argument.
- *
  * \returns The LONG_PTR result described above.
  */
 NTSYSAPI
@@ -24747,8 +23855,7 @@ GdiIsMetaPrintDC(
 
 // rev
 /**
- * The GdiIsPlayMetafileDC routine determines whether a device context is currently playing a
- * metafile.
+ * The GdiIsPlayMetafileDC routine determines whether a device context is currently playing a metafile.
  *
  * \param Hdc Device context handle or identifier.
  * \returns A status code, size, or result value.
@@ -24776,9 +23883,7 @@ GdiIsScreenDC(
 
 // rev
 /**
- * The GdiIsUMPDSandboxingEnabled routine determines whether User-Mode Printer Driver sandboxing is
- * enabled.
- *
+ * The GdiIsUMPDSandboxingEnabled routine determines whether User-Mode Printer Driver sandboxing is enabled.
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -24791,7 +23896,6 @@ GdiIsUMPDSandboxingEnabled(
 // rev
 /**
  * The GdiLoadType1Fonts routine loads Type 1 PostScript fonts into the GDI font table.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -24815,7 +23919,6 @@ GdiLoadType1Fonts(
  * \param OpaqueParameter4 The opaque parameter4 argument.
  * \param OpaqueParameter5 The opaque parameter5 argument.
  * \param OpaqueParameter6 The opaque parameter6 argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -24834,8 +23937,7 @@ GdiPlayDCScript(
 /**
  * The GdiPlayEMF routine plays a spooled EMF job through the print-processor helpers. The public
  * x86 entry consumes 20 stack bytes:
- * five arguments, although the body uses only PrinterName, DevMode and DocName. The final two slots
- * are
+ * five arguments, although the body uses only PrinterName, DevMode and DocName. The final two slots are
  * ignored and their historical meanings remain unverified. The return is a 32-bit Boolean.
  *
  * \param PrinterName The printer name argument.
@@ -24843,7 +23945,6 @@ GdiPlayDCScript(
  * \param DocName The doc name argument.
  * \param UnusedParameter4 The unused parameter4 argument.
  * \param UnusedParameter5 The unused parameter5 argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -24870,7 +23971,6 @@ GdiPlayEMF(
  * \param OpaqueParameter3 The opaque parameter3 argument.
  * \param OpaqueParameter4 The opaque parameter4 argument.
  * \param OpaqueParameter5 The opaque parameter5 argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -24939,7 +24039,6 @@ GdiPlayPrivatePageEMF(
  * \param OpaqueParameter5 The opaque parameter5 argument.
  * \param OpaqueParameter6 The opaque parameter6 argument.
  * \param OpaqueParameter7 The opaque parameter7 argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -24978,7 +24077,6 @@ GdiPrinterThunk(
 // rev
 /**
  * The GdiProcessSetup routine sets up GDI subsystem state for a newly initialized process.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -24992,16 +24090,13 @@ GdiProcessSetup(
 /**
  * The GdiQueryFonts routine queries the session font-ID list through NtGdiQueryFonts. FontCount
  * counts 8-byte UNIVERSAL_FONT_ID
- * elements, not bytes; TimeStamp is an 8-byte output. The native allocation limit is 0x4E2000
- * elements. NULL
- * Fonts with count zero is the sizing path; use NULL rather than a non-NULL zero-capacity buffer.
- * Returns a
+ * elements, not bytes; TimeStamp is an 8-byte output. The native allocation limit is 0x4E2000 elements. NULL
+ * Fonts with count zero is the sizing path; use NULL rather than a non-NULL zero-capacity buffer. Returns a
  * count or -1 on failure.
  *
  * \param Fonts Receives the fonts.
  * \param FontCount The font count argument.
  * \param TimeStamp Receives the time stamp.
- *
  * \returns The LONG result described above.
  */
 NTSYSAPI
@@ -25016,7 +24111,6 @@ GdiQueryFonts(
 // rev
 /**
  * The GdiQueryTable routine queries the global GDI handle table address.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -25065,7 +24159,6 @@ GdiReleaseDC(
  * its successful return; historical behavior remains unverified.
  *
  * \param Dc The dc argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25093,7 +24186,6 @@ GdiResetDCEMF(
  * The one-slot x86 footprint does not establish a functioning attribute setter.
  *
  * \param OpaqueParameter The opaque parameter argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -25113,13 +24205,11 @@ GdiSetLastError(
 
 // rev
 /**
- * The GdiSetPixelFormat routine sets a DC pixel format through NtGdiSetPixelFormat using two
- * arguments.
+ * The GdiSetPixelFormat routine sets a DC pixel format through NtGdiSetPixelFormat using two arguments.
  * The format index is a signed 4-byte value and the result is a 32-bit Boolean.
  *
  * \param Dc The dc argument.
  * \param PixelFormat The pixel format argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25140,7 +24230,6 @@ GdiSetPixelFormat(
  *
  * \param Dc The dc argument.
  * \param Attributes The attributes argument.
- *
  * \returns No value.
  */
 NTSYSAPI
@@ -25165,7 +24254,6 @@ GdiStartDocEMF(
  * The GdiStartPageEMF routine provides the operation described below.
  *
  * \param SpoolFileHandle The spool file handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25178,7 +24266,6 @@ GdiStartPageEMF(
 // rev
 /**
  * The GdiSupportsFontChangeEvent routine determines whether font change events are supported.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -25190,12 +24277,10 @@ GdiSupportsFontChangeEvent(
 
 // rev
 /**
- * The GdiSwapBuffers routine presents a DC drawing buffer through NtGdiSwapBuffers. The client
- * takes
+ * The GdiSwapBuffers routine presents a DC drawing buffer through NtGdiSwapBuffers. The client takes
  * one DC argument and returns a 32-bit Boolean.
  *
  * \param Dc The dc argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25224,7 +24309,6 @@ GdiTrackHCreate(
  * The GdiTrackHDelete routine tracks deletion of a client-side GDI handle.
  *
  * \param Handle A pointer to the handle value being deleted.
- *
  * \returns No value.
  */
 NTSYSAPI
@@ -25236,14 +24320,12 @@ GdiTrackHDelete(
 
 // rev
 /**
- * The GdiValidateHandle routine checks the GDI client handle table for generation and owner
- * compatibility.
+ * The GdiValidateHandle routine checks the GDI client handle table for generation and owner compatibility.
  * The result is a 32-bit Boolean, not a pointer-sized status. NULL is accepted
  * as valid by the implementation; the helper is therefore not a
  * general non-NULL resource-validity or post-deletion oracle.
  *
  * \param Handle The handle argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25256,7 +24338,6 @@ GdiValidateHandle(
 // rev
 /**
  * The GdiWaitForTextReady routine waits for pending text rendering operations to complete.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -25283,12 +24364,10 @@ GdipIsAssertEnabled(
 // rev
 /**
  * The GditGetCallerTLStorage routine has the following behavior:
- * Internal current-thread GDI caller-tracking helper. Storage is owned by GDI TLS, not by the
- * caller. Balance
+ * Internal current-thread GDI caller-tracking helper. Storage is owned by GDI TLS, not by the caller. Balance
  * push and pop calls on the same thread. Storage-query pointers do not transfer ownership. Do not
  * rely on the
  * return register as a stable public contract.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -25301,12 +24380,10 @@ GditGetCallerTLStorage(
 // rev
 /**
  * The GditPopCallerInfo routine has the following behavior:
- * Internal current-thread GDI caller-tracking helper. Storage is owned by GDI TLS, not by the
- * caller. Balance
+ * Internal current-thread GDI caller-tracking helper. Storage is owned by GDI TLS, not by the caller. Balance
  * push and pop calls on the same thread. Storage-query pointers do not transfer ownership. Do not
  * rely on the
  * return register as a stable public contract.
- *
  * \returns The ULONG_PTR result described above.
  */
 NTSYSAPI
@@ -25318,15 +24395,13 @@ GditPopCallerInfo(
 
 // rev
 /**
- * The GditPushCallerInfo routine pushes caller information into GDI current-thread bookkeeping. The
- * input
+ * The GditPushCallerInfo routine pushes caller information into GDI current-thread bookkeeping. The input
  * is a borrowed pointer, not a zero-argument operation. When tracking is
  * inactive the implementation increments a nesting count instead. Pair only
  * successful pushes with GditPopCallerInfo; do not treat this internal helper
  * as a stable cross-thread or general-purpose storage API.
  *
  * \param CallerInfo The caller info argument.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25352,14 +24427,12 @@ GetBitmapAttributes(
 
 // rev
 /**
- * The GetBitmapDpiScaleValue routine retrieves the integer DPI scale associated with a bitmap. The
- * client takes
+ * The GetBitmapDpiScaleValue routine retrieves the integer DPI scale associated with a bitmap. The client takes
  * one bitmap argument and returns a 4-byte value. The worker returns
  * one for an invalid bitmap or absent/conversion-failed scaling state, so one
  * is not evidence that the supplied handle is valid.
  *
  * \param Bitmap The bitmap argument.
- *
  * \returns The LONG result described above.
  */
 NTSYSAPI
@@ -25400,7 +24473,6 @@ GetDCDpiScaleValue(
 // rev
 /**
  * The GetEUDCTimeStamp routine retrieves the global EUDC font timestamp.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -25530,7 +24602,6 @@ GetFontResourceInfoW(
  * \param FontCount Supplies and receives the font count.
  * \param MetadataBuffer Receives the metadata buffer.
  * \param MetadataElementCount Supplies and receives the metadata element count.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -25570,10 +24641,8 @@ GetStringBitmapA(
 /**
  * The GetStringBitmapW routine queries a character bitmap through NtGdiGetStringBitmapW. The ABI
  * has five arguments; CharacterCount counts
- * WCHARs and BufferSize counts bytes. On this build CharacterCount must be exactly one; other
- * counts return
- * zero before reading String. The temporary-buffer limit is 0x2710000 bytes. A nonzero return can
- * report a
+ * WCHARs and BufferSize counts bytes. On this build CharacterCount must be exactly one; other counts return
+ * zero before reading String. The temporary-buffer limit is 0x2710000 bytes. A nonzero return can report a
  * size exceeding capacity, in which case output is not copied.
  *
  * \param Dc The dc argument.
@@ -25581,7 +24650,6 @@ GetStringBitmapA(
  * \param CharacterCount The character count argument.
  * \param BufferSize The buffer size argument.
  * \param BitmapBuffer Receives the bitmap buffer.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -25613,10 +24681,8 @@ InternalDeleteDC(
 /**
  * The LoadLocalFonts routine has the following behavior:
  * Font-loading export located in USER32, not GDI32. LoadLocalFonts forwards NtUserLW_LoadFonts(0);
- * LoadRemoteFonts calls NtUserLW_LoadFonts(1) and then enables EUDC. These operations can mutate
- * session font
+ * LoadRemoteFonts calls NtUserLW_LoadFonts(1) and then enables EUDC. These operations can mutate session font
  * state. Historical return semantics are unspecified.
- *
  * \returns The LOGICAL result described above.
  */
 NTSYSAPI
@@ -25630,10 +24696,8 @@ LoadLocalFonts(
 /**
  * The LoadRemoteFonts routine has the following behavior:
  * Font-loading export located in USER32, not GDI32. LoadLocalFonts forwards NtUserLW_LoadFonts(0);
- * LoadRemoteFonts calls NtUserLW_LoadFonts(1) and then enables EUDC. These operations can mutate
- * session font
+ * LoadRemoteFonts calls NtUserLW_LoadFonts(1) and then enables EUDC. These operations can mutate session font
  * state. Historical return semantics are unspecified.
- *
  * \returns No value.
  */
 NTSYSAPI
@@ -25683,7 +24747,6 @@ LpkDrawTextEx(
  * are not established; it is not a substitute for deleting an owned DC.
  *
  * \param OpaqueParameter The opaque parameter argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -25696,7 +24759,6 @@ ModerncoreDeleteDC(
 // rev
 /**
  * The ModerncoreGdiInit routine initializes GDI moderncore support.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -25772,8 +24834,7 @@ NtGdiCreateOPMProtectedOutputs(
 
 // rev
 /**
- * The NtGdiDDCCIGetCapabilitiesString routine retrieves a DDC/CI capabilities string describing a
- * physical monitor.
+ * The NtGdiDDCCIGetCapabilitiesString routine retrieves a DDC/CI capabilities string describing a physical monitor.
  *
  * \param PhysicalMonitor A handle to the physical monitor.
  * \param String A pointer to a buffer that receives the capabilities string.
@@ -25812,13 +24873,10 @@ NtGdiDDCCIGetCapabilitiesStringLength(
 /**
  * The NtGdiDDCCIGetTimingReport routine queries a packed 9-byte timing report; include the
  * monitor-configuration SDK header for the
- * MC_TIMING_REPORT definition. This native entry returns NTSTATUS. Output copies occur only on
- * native
- * success.
+ * MC_TIMING_REPORT definition. This native entry returns NTSTATUS. Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param TimingReport Receives the timing report.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -25834,16 +24892,13 @@ NtGdiDDCCIGetTimingReport(
 /**
  * The NtGdiDDCCIGetVCPFeature routine queries a monitor VCP feature. Outputs are 4-byte values; the
  * current value is required, while code type
- * and maximum value are optional. This native entry returns NTSTATUS. Output copies occur only on
- * native
- * success.
+ * and maximum value are optional. This native entry returns NTSTATUS. Output copies occur only on native success.
  *
  * \param PhysicalMonitor The physical monitor argument.
  * \param VCPCode The vcpcode argument.
  * \param VCPCodeType Receives the vcpcode type.
  * \param CurrentValue Receives the current value.
  * \param MaximumValue Receives the maximum value.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -25896,8 +24951,7 @@ NtGdiDDCCISetVCPFeature(
 
 // rev
 /**
- * The NtGdiDestroyOPMProtectedOutput routine destroys an Output Protection Manager (OPM) protected
- * output object.
+ * The NtGdiDestroyOPMProtectedOutput routine destroys an Output Protection Manager (OPM) protected output object.
  *
  * \param ProtectedOutput A pointer to the protected output object to destroy.
  * \returns NTSTATUS Successful or errant status.
@@ -25912,8 +24966,7 @@ NtGdiDestroyOPMProtectedOutput(
 
 // rev
 /**
- * The NtGdiFullscreenControl routine controls full-screen display mode configuration and
- * exclusivity states.
+ * The NtGdiFullscreenControl routine controls full-screen display mode configuration and exclusivity states.
  *
  * \param Param1 Fullscreen control operation code.
  * \param Param2 Operation parameter.
@@ -25938,7 +24991,7 @@ NtGdiFullscreenControl(
 
 // rev
 /**
- * The NtGdiGetAndSetDCDword routine retrieves and sets an internal device context DWORD attribute.
+ * The NtGdiGetAndSetDCDword routine retrieves and sets an internal device context ULONG attribute.
  *
  * \param Hdc A handle to the device context.
  * \param Command The DC attribute command or index to query and modify.
@@ -25964,8 +25017,7 @@ NtGdiGetAndSetDCDword(
  *
  * \param ProtectedOutput A pointer to the protected output object.
  * \param Parameters A pointer to an OPM_COPP_COMPATIBLE_GET_INFO_PARAMETERS structure.
- * \param RequestedInformation A pointer to an OPM_REQUESTED_INFORMATION structure receiving the
- *     data.
+ * \param RequestedInformation A pointer to an OPM_REQUESTED_INFORMATION structure receiving the data.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -26002,8 +25054,7 @@ NtGdiGetCertificate(
 
 // rev
 /**
- * The NtGdiGetCertificateByHandle routine retrieves an OPM certificate from a protected output
- * object handle.
+ * The NtGdiGetCertificateByHandle routine retrieves an OPM certificate from a protected output object handle.
  *
  * \param ProtectedOutput A pointer to the protected output object.
  * \param CertificateType The type of certificate to retrieve.
@@ -26024,8 +25075,7 @@ NtGdiGetCertificateByHandle(
 
 // rev
 /**
- * The NtGdiGetCertificateSize routine retrieves the length in bytes of the display driver's OPM
- * certificate.
+ * The NtGdiGetCertificateSize routine retrieves the length in bytes of the display driver's OPM certificate.
  *
  * \param Hdc A handle to the device context.
  * \param CertificateType The type of certificate whose size is queried.
@@ -26064,8 +25114,7 @@ NtGdiGetCertificateSizeByHandle(
 
 // rev
 /**
- * The NtGdiGetDCDword routine queries an internal DWORD property or metric associated with a device
- * context.
+ * The NtGdiGetDCDword routine queries an internal ULONG property or metric associated with a device context.
  *
  * \param Hdc A handle to the device context.
  * \param Command The DC attribute command or index to query.
@@ -26089,8 +25138,7 @@ NtGdiGetDCDword(
  *
  * \param ProtectedOutput A pointer to the protected output object.
  * \param Parameters Input parameters for the information query.
- * \param RequestedInformation A pointer to an OPM_REQUESTED_INFORMATION structure receiving the
- *     data.
+ * \param RequestedInformation A pointer to an OPM_REQUESTED_INFORMATION structure receiving the data.
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -26142,15 +25190,11 @@ NtGdiGetSuggestedOPMProtectedOutputArraySize(
 // rev
 /**
  * The NtGdiInitSpool routine has the following behavior:
- * Legacy spool initialization entry. There are no public arguments (x86 cleanup is zero bytes). The
- * native
- * implementation returns zero and sets ERROR_NOT_SUPPORTED (50). It does not initialize a working
- * spooler
- * interface here; historical behavior is unspecified. The observed x86/WoW64 boundary returns zero
- * while
+ * Legacy spool initialization entry. There are no public arguments (x86 cleanup is zero bytes). The native
+ * implementation returns zero and sets ERROR_NOT_SUPPORTED (50). It does not initialize a working spooler
+ * interface here; historical behavior is unspecified. The observed x86/WoW64 boundary returns zero while
  * preserving the caller last-error value, unlike the native last-error 50. Check each architecture
  * independently; zero remains an unsupported result in both cases.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -26180,14 +25224,12 @@ NtGdiSetOPMSigningKeyAndSequenceNumbers(
     );
 
 /**
- * The NtUserBeginPaint routine prepares the specified window for painting and fills a PAINTSTRUCT
- * structure.
+ * The NtUserBeginPaint routine prepares the specified window for painting and fills a PAINTSTRUCT structure.
  *
  * \param WindowHandle Handle to the window to prepare for painting.
  * \param lpPaint Pointer to the PAINTSTRUCT that receives painting information.
  * \returns The handle to the display device context for the window, or NULL on failure.
- * \remarks Begins painting an owned window, returning a DC and a PAINTSTRUCT for NtUserEndPaint.
- * Pair
+ * \remarks Begins painting an owned window, returning a DC and a PAINTSTRUCT for NtUserEndPaint. Pair
  * successful calls with EndPaint, not an unrelated object deletion.
  */
 _Kernel_entry_
@@ -26203,8 +25245,7 @@ NtUserBeginPaint(
  * The NtUserEndPaint routine marks the end of painting in the specified window.
  *
  * \param WindowHandle A handle to the window that has been repainted.
- * \param lpPaint Pointer to a PAINTSTRUCT structure that contains painting information retrieved by
- *     NtUserBeginPaint.
+ * \param lpPaint Pointer to a PAINTSTRUCT structure that contains painting information retrieved by NtUserBeginPaint.
  * \returns TRUE if successful, FALSE otherwise.
  * \remarks Completes the BeginPaint protocol using the returned PAINTSTRUCT. The input is
  * read-only. Validation pairs native BeginPaint/EndPaint and does not claim rendering coverage.
@@ -26258,8 +25299,7 @@ NtUserGetControlBrush(
  * The NtUserGetDC routine retrieves a device context (DC) for the client area of a specified window
  * or for the entire screen.
  *
- * \param WindowHandle Optional handle to the window whose DC is to be retrieved, or NULL for the
- *     screen DC.
+ * \param WindowHandle Optional handle to the window whose DC is to be retrieved, or NULL for the screen DC.
  * \returns HDC Handle to the device context for the window, or NULL on failure.
  * \remarks Acquires a client DC; successful acquisitions must be released with NtUserReleaseDC.
  * NULL requests a screen DC.
@@ -26273,16 +25313,14 @@ NtUserGetDC(
     );
 
 /**
- * The NtUserGetDCEx routine retrieves a handle to a device context (DC) for the client area of a
- * specified
+ * The NtUserGetDCEx routine retrieves a handle to a device context (DC) for the client area of a specified
  * window or for the entire screen.
  *
  * \param WindowHandle A handle to the window whose DC is to be retrieved.
  * \param hrgnClip A clipping region that may be combined with the visible region of the DC.
  * \param flags Device context retrieval flags (e.g. DCX_WINDOW, DCX_CACHE, DCX_CLIPCHILDREN).
  * \returns A handle to the device context for the specified window, or NULL on failure.
- * \remarks Acquires a DC with clipping/cache flags. DCX flags determine caching, clipping, and
- * region
+ * \remarks Acquires a DC with clipping/cache flags. DCX flags determine caching, clipping, and region
  * ownership; preserve the corresponding release rules.
  */
 _Kernel_entry_
@@ -26303,7 +25341,6 @@ NtUserGetDCEx(
  *
  * \param OemBitmapIndex The oem bitmap index argument.
  * \param Size Receives the size.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -26369,8 +25406,7 @@ NtUserRegisterLPK(
 
 // rev
 /**
- * The NtUserReleaseDC routine releases a device context (DC), freeing it for use by other
- * applications.
+ * The NtUserReleaseDC routine releases a device context (DC), freeing it for use by other applications.
  *
  * \param Hdc A handle to the device context to be released.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -26387,23 +25423,15 @@ NtUserReleaseDC(
 
 // rev
 /**
- * The NtUserScrollDC routine scrolls a rectangle of bits horizontally and vertically in the
- * specified device
- * context.
+ * The NtUserScrollDC routine scrolls a rectangle of bits horizontally and vertically in the specified device context.
  *
  * \param Hdc A handle to the device context that contains the bits to be scrolled.
  * \param Dx The amount, in device units, of horizontal scrolling.
  * \param Dy The amount, in device units, of vertical scrolling.
- * \param ScrollRectangle An optional pointer to a RECT structure containing the coordinates of the
- *     scrolling
- * rectangle.
- * \param ClipRectangle An optional pointer to a RECT structure containing the coordinates of the
- *     clipping
- * rectangle.
+ * \param ScrollRectangle An optional pointer to a RECT structure containing the coordinates of the scrolling rectangle.
+ * \param ClipRectangle An optional pointer to a RECT structure containing the coordinates of the clipping rectangle.
  * \param UpdateRegion An optional handle to the region uncovered by the scrolling process.
- * \param UpdateRectangle An optional pointer to a RECT structure receiving the bounding rectangle
- *     of the
- * update region.
+ * \param UpdateRectangle An optional pointer to a RECT structure receiving the bounding rectangle of the update region.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  * \remarks Scrolls pixels in the supplied DC with optional clipping/update outputs.
  */
@@ -26425,10 +25453,8 @@ NtUserScrollDC(
  * The NtUserWindowFromDC routine returns a handle to the window associated with the specified
  * display device context (DC).
  *
- * \param Hdc A handle to the device context from which the associated window handle is to be
- *     retrieved.
- * \returns A handle to the window associated with the specified DC, or NULL if no window is
- *     associated.
+ * \param Hdc A handle to the device context from which the associated window handle is to be retrieved.
+ * \returns A handle to the window associated with the specified DC, or NULL if no window is associated.
  * \remarks Returns the window associated with a USER DC, or NULL for a compatible memory DC.
  * Returned HWND is borrowed, not transferred.
  */
@@ -26443,7 +25469,6 @@ NtUserWindowFromDC(
 // rev
 /**
  * The QueryFontAssocStatus routine queries the font association status flags.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -26536,14 +25561,11 @@ SetBrushAttributes(
 // rev
 /**
  * The SetFontEnumeration routine has the following behavior:
- * Legacy font-enumeration control thunk with one 4-byte input slot. The native implementation
- * ignores Type,
- * sets ERROR_NOT_SUPPORTED (50), and returns the current session enumeration value. This
- * compatibility entry
+ * Legacy font-enumeration control thunk with one 4-byte input slot. The native implementation ignores Type,
+ * sets ERROR_NOT_SUPPORTED (50), and returns the current session enumeration value. This compatibility entry
  * does not implement a setter.
  *
  * \param Type The type argument.
- *
  * \returns The ULONG result described above.
  */
 NTSYSAPI
@@ -26727,8 +25749,7 @@ typedef struct _IAM_ACCESS_KEY_INPUT
 
 /**
  * The PROC_CAP_FLAGS1_VALID_MASK constant has the following definition:
- * Valid bit masks enforced by NtUserSetProcessWin32Capabilities for each
- * USER_PROCESS_CAP_ENTRY lane.
+ * Valid bit masks enforced by NtUserSetProcessWin32Capabilities for each USER_PROCESS_CAP_ENTRY lane.
  */
 #define PROC_CAP_FLAGS1_VALID_MASK     0x00000007u    // bits 0-2
 #define PROC_CAP_FLAGS2_VALID_MASK     0x00000007u    // bits 0-2
@@ -26793,8 +25814,7 @@ typedef struct _USER_PROCESS_CAP_ENTRY
 #endif
 
 /**
- * The USERTHREAD_DESKTOP_CONTEXT structure pairs a referenced desktop object with its opened
- * handle.
+ * The USERTHREAD_DESKTOP_CONTEXT structure pairs a referenced desktop object with its opened handle.
  * Used by the UserThreadSetCsrssDesktop family of USERTHREADINFOCLASS operations.
  */
 typedef struct _USERTHREAD_DESKTOP_CONTEXT
@@ -26885,8 +25905,7 @@ typedef enum _USERTHREADINFOCLASS
 
 // rev
 /**
- * The AddVisualIdentifier routine adds a visual identifier used to map injected pointer input to a
- * surface.
+ * The AddVisualIdentifier routine adds a visual identifier used to map injected pointer input to a surface.
  *
  * \param CompositionInputSink Handle to the composition input sink.
  * \param Luid Pointer to the locally unique identifier (LUID).
@@ -26923,9 +25942,7 @@ AlignRects(
 
 // rev
 /**
- * The AllowForegroundActivation routine allows the calling process to perform foreground window
- * activation.
- *
+ * The AllowForegroundActivation routine allows the calling process to perform foreground window activation.
  * \returns BOOL TRUE on success, FALSE otherwise.
  */
 NTSYSAPI
@@ -26978,7 +25995,6 @@ CheckBannedOneCoreTransformApi(
 // rev
 /**
  * The CheckDBCSEnabledExt routine determines whether DBCS input is enabled in the current session.
- *
  * \returns BOOL TRUE if DBCS is enabled, FALSE otherwise.
  */
 NTSYSAPI
@@ -27026,7 +26042,6 @@ CliImmSetHotKey(
 // rev
 /**
  * The ClientThreadSetup routine performs per-thread client-side user32 initialization.
- *
  * \returns BOOL TRUE on success, FALSE otherwise.
  */
 NTSYSAPI
@@ -27077,7 +26092,7 @@ NTAPI
 CreateDPIScaledDIBSection(
     _In_opt_ HDC Hdc,
     _In_ CONST BITMAPINFO *BitmapInfo,
-    _In_ UINT Usage,
+    _In_ ULONG Usage,
     _Out_opt_ PVOID *Bits,
     _In_opt_ HANDLE Section,
     _In_ ULONG Offset,
@@ -27087,8 +26102,7 @@ CreateDPIScaledDIBSection(
 // rev
 /**
  * The CreateOPMProtectedOutput routine is a direct client thunk to NtGdiCreateOPMProtectedOutput. Argument
- * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this
- * client wrapper.
+ * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param Parameters Parameters forwarded to the native routine.
  * \param ProtectedOutput Protected output handle.
@@ -27104,8 +26118,7 @@ CreateOPMProtectedOutput(
 // rev
 /**
  * The CreateOPMProtectedOutputs routine is a direct client thunk to NtGdiCreateOPMProtectedOutputs. Argument
- * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this
- * client wrapper.
+ * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param Param1 First native argument.
  * \param Param2 Second native argument.
@@ -27142,7 +26155,7 @@ NTAPI
 CreateSessionMappedDIBSection(
     _In_opt_ HDC Hdc,
     _In_ CONST BITMAPINFO *BitmapInfo,
-    _In_ UINT Usage,
+    _In_ ULONG Usage,
     _In_ HANDLE Section,
     _In_ ULONG Offset
     );
@@ -27164,7 +26177,6 @@ CreateSystemThreads(
 // rev
 /**
  * The CtxInitUser32 routine initializes user32 for a Terminal Services (context) session.
- *
  * \returns BOOL TRUE on success, FALSE otherwise.
  */
 NTSYSAPI
@@ -27177,8 +26189,7 @@ CtxInitUser32(
 // rev
 /**
  * The DdCreateFullscreenSprite routine is a direct client thunk to NtGdiDdCreateFullscreenSprite. Argument
- * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this
- * client wrapper.
+ * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param hdc Device context handle.
  * \param crKey Sprite color key.
@@ -27198,8 +26209,7 @@ DdCreateFullscreenSprite(
 // rev
 /**
  * The DdDestroyFullscreenSprite routine is a direct client thunk to NtGdiDdDestroyFullscreenSprite. Argument
- * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this
- * client wrapper.
+ * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param hdc Device context handle.
  * \param hSprite Sprite handle.
@@ -27246,8 +26256,7 @@ DdQueryVisRgnUniqueness(
 // rev
 /**
  * The DestroyOPMProtectedOutput routine is a direct client thunk to NtGdiDestroyOPMProtectedOutput. Argument
- * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this
- * client wrapper.
+ * order and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param ProtectedOutput Protected output handle.
  */
@@ -27274,8 +26283,7 @@ DestroyReasons(
 
 // rev
 /**
- * The DeviceCapabilitiesExA routine queries extended device capabilities using ANSI character
- * strings.
+ * The DeviceCapabilitiesExA routine queries extended device capabilities using ANSI character strings.
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
@@ -27353,7 +26361,6 @@ DrawFrame(
 // rev
 /**
  * The DwmKernelShutdown routine notifies user32 that the DWM kernel component is shutting down.
- *
  * \returns BOOL TRUE if successful, FALSE otherwise.
  * \remarks Forwards to the NtUserDwmKernelShutdown system call.
  */
@@ -27395,8 +26402,7 @@ DwmLockScreenUpdates(
 
 // rev
 /**
- * The EnableOneCoreTransformMode routine enables or disables OneCore transform mode for the
- * session.
+ * The EnableOneCoreTransformMode routine enables or disables OneCore transform mode for the session.
  *
  * \param Enable Non-zero to enable OneCore transform mode; zero to disable.
  * \returns BOOL value.
@@ -27441,8 +26447,7 @@ EndFormPage(
 // rev
 /**
  * The EudcLoadLinkW routine loads an EUDC font link by forwarding counted names, Priority, FontLinkType and
- * load=TRUE to NtGdiEudcLoadUnloadLink. Four arguments are consumed. This changes font-link state and is not
- * a query.
+ * load=TRUE to NtGdiEudcLoadUnloadLink. Four arguments are consumed. This changes font-link state and is not a query.
  *
  * \param FaceName EUDC face name.
  * \param FontFileName Font file name.
@@ -27487,7 +26492,7 @@ extern
 BOOL
 NTAPI
 FreeDDElParam(
-    _In_ UINT Msg,
+    _In_ ULONG Msg,
     _In_ LPARAM LParam
     );
 
@@ -27564,8 +26569,7 @@ GetCertificate(
 // rev
 /**
  * The GetCertificateByHandle routine is a direct client thunk to NtGdiGetCertificateByHandle. Argument order
- * and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client
- * wrapper.
+ * and result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param ProtectedOutput Protected output handle.
  * \param CertificateType Type of certificate requested.
@@ -27585,8 +26589,7 @@ GetCertificateByHandle(
 // rev
 /**
  * The GetCertificateSize routine is a direct client thunk to NtGdiGetCertificateSize. Argument order and
- * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client
- * wrapper.
+ * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param Hdc Device context handle.
  * \param CertificateType Type of certificate requested.
@@ -27709,15 +26712,11 @@ GetETM(
  * \param Hdc Handle to the device context.
  * \param Character Character for which glyph data is to be returned.
  * \param Format Format of the data that the function returns.
- * \param Metrics Pointer to the GLYPHMETRICS structure describing the placement of the glyph in the
- *     character cell.
- * \param BufferSize Size, in bytes, of the buffer where the function is to copy information about
- *     the glyph.
+ * \param Metrics Pointer to the GLYPHMETRICS structure describing the placement of the glyph in the character cell.
+ * \param BufferSize Size, in bytes, of the buffer where the function is to copy information about the glyph.
  * \param Buffer Pointer to the buffer that receives information about the glyph.
- * \param Transform Pointer to a MAT2 structure specifying a transformation matrix for the
- *     character.
- * \returns ULONG Size of the buffer required for the retrieved information, or GDI_ERROR on
- *     failure.
+ * \param Transform Pointer to a MAT2 structure specifying a transformation matrix for the character.
+ * \returns ULONG Size of the buffer required for the retrieved information, or GDI_ERROR on failure.
  */
 NTSYSAPI
 ULONG
@@ -27766,8 +26765,7 @@ GetInputLocaleInfo(
 // rev
 /**
  * The GetOPMInformation routine is a direct client thunk to NtGdiGetOPMInformation. Argument order and
- * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client
- * wrapper.
+ * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param ProtectedOutput Protected output handle.
  * \param Parameters Parameters forwarded to the native routine.
@@ -27785,8 +26783,7 @@ GetOPMInformation(
 // rev
 /**
  * The GetOPMRandomNumber routine is a direct client thunk to NtGdiGetOPMRandomNumber. Argument order and
- * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client
- * wrapper.
+ * result are forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  *
  * \param ProtectedOutput Protected output handle.
  * \param RandomNumber Receives the OPM random number.
@@ -27816,16 +26813,13 @@ GetProcessDpiAwarenessInternal(
     );
 
 /**
- * The GetProcessUIContextInformation routine retrieves the UI context and immersive status of a
- * process.
+ * The GetProcessUIContextInformation routine retrieves the UI context and immersive status of a process.
  *
  * \param ProcessHandle A handle to the target process.
- * \param UIContext Pointer to a PROCESS_UICONTEXT_INFORMATION structure receiving the UI context
- *     information.
+ * \param UIContext Pointer to a PROCESS_UICONTEXT_INFORMATION structure receiving the UI context information.
  * \returns TRUE if successful, FALSE otherwise.
  */
-_Kernel_entry_
-NTSYSCALLAPI
+NTSYSAPI
 BOOL
 NTAPI
 GetProcessUIContextInformation(
@@ -27853,7 +26847,7 @@ GetReasonTitleFromReasonCode(
 
 // rev
 /**
- * The GetRelAbs routine reads DC relative/absolute setting using native DC DWORD selector 1. The second ABI
+ * The GetRelAbs routine reads DC relative/absolute setting using native DC ULONG selector 1. The second ABI
  * slot is unused, but x86 removes 8 bytes. Returns zero on query failure.
  *
  * \param Hdc Device context handle.
@@ -27886,8 +26880,7 @@ GetSuggestedOPMProtectedOutputArraySize(
 
 // rev
 /**
- * The GetTextExtentExPointWPri routine retrieves text extent points for a string using internal
- * metrics.
+ * The GetTextExtentExPointWPri routine retrieves text extent points for a string using internal metrics.
  *
  * \param Hdc A handle to the device context.
  * \param String A pointer to the Unicode string.
@@ -28037,11 +27030,9 @@ HandleDelegatedInput(
 
 // rev
 /**
- * The InitializeGenericHidInjection routine initializes a session for injecting generic HID input
- * reports.
+ * The InitializeGenericHidInjection routine initializes a session for injecting generic HID input reports.
  *
- * \param DeviceProperties Pointer to a _RIMIDE_GENERIC_HID_DEVICE_PROPERTIES structure describing
- *     the device.
+ * \param DeviceProperties Pointer to a _RIMIDE_GENERIC_HID_DEVICE_PROPERTIES structure describing the device.
  * \param DeviceHandle Pointer to a variable receiving the created HID injection device handle.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Forwards to the NtUserInitializeGenericHidInjection system call.
@@ -28056,11 +27047,9 @@ InitializeGenericHidInjection(
 
 // rev
 /**
- * The InjectDeviceInput routine injects custom input data packets into an initialized input
- * injection device.
+ * The InjectDeviceInput routine injects custom input data packets into an initialized input injection device.
  *
- * \param DeviceHandle Handle to the synthetic input device created by
- *     InitializeInputDeviceInjection.
+ * \param DeviceHandle Handle to the synthetic input device created by InitializeInputDeviceInjection.
  * \param Values Pointer to an array of INPUT_INJECTION_VALUE structures containing input samples.
  * \param Count Number of input values in the Values array.
  * \returns BOOL TRUE on success, FALSE on failure.
@@ -28077,8 +27066,7 @@ InjectDeviceInput(
 
 // rev
 /**
- * The InjectGenericHidInput routine injects a raw HID report into an initialized synthetic HID
- * device.
+ * The InjectGenericHidInput routine injects a raw HID report into an initialized synthetic HID device.
  *
  * \param DeviceHandle Handle to the synthetic generic HID device.
  * \param InputReport Pointer to the raw input report bytes.
@@ -28168,8 +27156,7 @@ InternalDeleteObject(
 
 // rev
 /**
- * The IsOneCoreTransformMode routine determines whether OneCore coordinate transform mode is
- * enabled.
+ * The IsOneCoreTransformMode routine determines whether OneCore coordinate transform mode is enabled.
  *
  * \param QueryFlags Query flags controlling the transform mode query.
  * \returns BOOL TRUE if OneCore transform mode is active, FALSE otherwise.
@@ -28184,9 +27171,7 @@ IsOneCoreTransformMode(
 
 // rev
 /**
- * The IsSETEnabled routine determines whether the Simple Edit Terminal (SET) input feature is
- * enabled.
- *
+ * The IsSETEnabled routine determines whether the Simple Edit Terminal (SET) input feature is enabled.
  * \returns BOOL TRUE if SET is enabled, FALSE otherwise.
  */
 NTSYSAPI
@@ -28198,8 +27183,7 @@ IsSETEnabled(
 
 // rev
 /**
- * The IsThreadTSFEventAware routine determines whether the calling thread is Text Services
- * Framework event-aware.
+ * The IsThreadTSFEventAware routine determines whether the calling thread is Text Services Framework event-aware.
  *
  * \param Event Event identifier or flags to check.
  * \returns ULONG_PTR Status code or awareness mask.
@@ -28320,7 +27304,7 @@ LpkExtTextOut(
  * \param Unused Historical argument ignored by this routine.
  */
 NTSYSAPI
-DWORD
+ULONG
 NTAPI
 LpkGetCharacterPlacement(
     _In_ HDC Hdc,
@@ -28335,7 +27319,6 @@ LpkGetCharacterPlacement(
 // rev
 /**
  * The LpkGetEditControl routine retrieves the language pack edit control interface.
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
@@ -28500,8 +27483,7 @@ LpkpInitializeEditControl(
  * The MBToWCSEx routine converts into caller storage when Allocate is zero, otherwise allocates from the
  * USER heap. Returns a 32-bit destination character count for wide output or byte count for multibyte
  * output. Allocation-mode failure can free storage without clearing the output slot; never claim ownership
- * from a failed call. Source length -1 includes NUL, -2 excludes it. Destination capacity -1 requires
- * allocation.
+ * from a failed call. Source length -1 includes NUL, -2 excludes it. Destination capacity -1 requires allocation.
  *
  * \param CodePage Code page for conversion.
  * \param MultiByteString Multibyte source or destination text.
@@ -28579,8 +27561,7 @@ MITSetLastInputRecipient(
 
 // rev
 /**
- * The MakeThreadTSFEventAware routine marks the calling thread as Text Services Framework
- * event-aware.
+ * The MakeThreadTSFEventAware routine marks the calling thread as Text Services Framework event-aware.
  *
  * \param Flags TSF event awareness flags.
  * \returns ULONG_PTR Status code or previous awareness state.
@@ -28618,8 +27599,7 @@ MapPointsByVisualIdentifier(
 
 // rev
 /**
- * The MapVisualRelativePoints routine maps points relative to visual elements across DPI or spatial
- * boundaries.
+ * The MapVisualRelativePoints routine maps points relative to visual elements across DPI or spatial boundaries.
  *
  * \param SourceVisual Identifier of the source visual element.
  * \param TargetVisual Identifier of the target visual element.
@@ -28749,8 +27729,7 @@ NtInputSpaceRegionFromPoint(
 
 // rev
 /**
- * The NtIsOneCoreTransformMode routine queries whether OneCore coordinate transform mode is
- * enabled.
+ * The NtIsOneCoreTransformMode routine queries whether OneCore coordinate transform mode is enabled.
  *
  * \param Param1 Parameter.
  * \returns BOOL value.
@@ -28782,18 +27761,13 @@ NtKSTInitialize(
 
 // rev
 /**
- * The NtKSTWait routine waits on a kernel spatial transform event.
+ * The NtKSTWait routine is a zero-argument native wait entry.
  *
- * \param Param1 Wait parameter.
- * \returns LOGICAL Non-zero on success, zero otherwise.
+ * \returns A native LOGICAL result; success semantics are not established.
+ * \remarks x86 has no argument cleanup. Successful waiting and session thread lifecycle are not
+ * established by export presence.
  */
 _Kernel_entry_
-/**
- * NtKSTWait
- *
- * Zero-argument native wait entry. x86 has no argument cleanup; successful waiting and session-
- * thread lifecycle are not established by export presence.
- */
 NTSYSCALLAPI
 LOGICAL
 NTAPI
@@ -28850,8 +27824,7 @@ NtUpdateInputSinkTransforms(
 
 // rev
 /**
- * The NtUserAcquireIAMKey routine acquires the Input Access Manager (IAM) access key for the
- * current desktop.
+ * The NtUserAcquireIAMKey routine acquires the Input Access Manager (IAM) access key for the current desktop.
  *
  * \param IamDesktopKey Receives the per-desktop IAM access key.
  * \returns TRUE on success, FALSE otherwise.
@@ -28870,8 +27843,7 @@ NtUserAcquireIAMKey(
  * The NtUserActivateKeyboardLayout routine sets the input locale identifier (formerly called the
  * keyboard layout handle) for the calling thread or the current process.
  *
- * \param Hkl Handle to the keyboard layout to be activated, or layout flags (e.g. HKL_NEXT,
- *     HKL_PREV).
+ * \param Hkl Handle to the keyboard layout to be activated, or layout flags (e.g. HKL_NEXT, HKL_PREV).
  * \param Flags Keyboard layout options (e.g. KLF_ACTIVATE, KLF_NOTELLSHELL, KLF_REORDER).
  * \returns HKL The previous keyboard layout handle on success, or 0 on failure.
  * \remarks Native entry point for USER32!ActivateKeyboardLayout.
@@ -28887,8 +27859,7 @@ NtUserActivateKeyboardLayout(
 
 // rev
 /**
- * The NtUserAddVisualIdentifier routine associates a visual identifier LUID with a composition
- * input sink.
+ * The NtUserAddVisualIdentifier routine associates a visual identifier LUID with a composition input sink.
  *
  * \param CompositionInputSink Handle to the composition input sink object.
  * \param Luid Pointer to the locally unique identifier (LUID) of the visual.
@@ -28951,7 +27922,6 @@ NtUserAutoRotateScreen(
  * \param Y The y argument.
  * \param OemBitmapIndex The oem bitmap index argument.
  * \param Rop The rop argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -29003,7 +27973,6 @@ NtUserBroadcastThemeChangeEvent(
 /**
  * The NtUserCanCurrentThreadChangeForeground routine determines whether the calling thread is
  * permitted to set the foreground window.
- *
  * \returns TRUE if the current thread can set the foreground window; otherwise, FALSE.
  */
 _Success_(return != 0)
@@ -29025,7 +27994,6 @@ NtUserCanCurrentThreadChangeForeground(
  * DWM.
  *
  * \param ProcessId Process identifier.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -29072,16 +28040,13 @@ NtUserClearForeground(
 
 // rev
 /**
- * The NtUserConfigureActivationObject routine updates the selected state bits of an activation
- * object.
+ * The NtUserConfigureActivationObject routine updates the selected state bits of an activation object.
  * \param ActivationObjectId Pointer to the 8-byte activation-object LUID.
  * \param Reason ACTIVATIONOBJECTSTATECHANGE_REASON value: zero or one; one requires DWM.
- * \param Behavior ACTIVATION_OBJECT_CONFIG_BEHAVIOR value. For reason zero, only zero and one are
- *     accepted.
+ * \param Behavior ACTIVATION_OBJECT_CONFIG_BEHAVIOR value. For reason zero, only zero and one are accepted.
  * \param StateMask ACTIVATION_OBJECT_STATE bit mask selecting state bits to update.
  * \param State ACTIVATION_OBJECT_STATE values for the selected bits.
- * \returns Nonzero on success, zero on failure; helper NTSTATUS failures are converted to Win32
- *     last error.
+ * \returns Nonzero on success, zero on failure; helper NTSTATUS failures are converted to Win32 last error.
  * \remarks The manager handles state bits 0x1, 0x2 and 0x4; 0x4 controls foreground.
  * Reason zero with behavior one additionally checks object ownership and foreground eligibility.
  * Enum member names and the meanings of state bits 0x1 and 0x2 remain unconfirmed.
@@ -29102,13 +28067,10 @@ NtUserConfigureActivationObject(
 /**
  * The NtUserConvertMemHandle routine copies a caller byte buffer into an internal USER memory
  * object used by clipboard plumbing. Length is
- * captured from EDX and is 32-bit, not SIZE_T; Address is read-only. Handle ownership and transfer
- * are
- * private.
+ * captured from EDX and is 32-bit, not SIZE_T; Address is read-only. Handle ownership and transfer are private.
  *
  * \param Address The address argument.
  * \param Length The length argument.
- *
  * \returns The HANDLE result described above.
  */
 _Kernel_entry_
@@ -29171,7 +28133,6 @@ NtUserCreatePalmRejectionDelayZone(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserCreateSystemThreads routine creates the win32k system (raw input / desktop) threads.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_CREATESYSTEMTHREADS).
  */
@@ -29217,7 +28178,6 @@ NtUserCsDdeUninitialize(
  * \param MonitorFlags Receives the monitor flags.
  * \param Flags Operation-specific flags.
  * \param ClientContext The client context argument.
- *
  * \returns The ULONG result described above.
  */
 _Kernel_entry_
@@ -29266,7 +28226,6 @@ NtUserDestroyPalmRejectionDelayZone(
 // rev
 /**
  * The NtUserDoSoundConnect routine connects the win32k sound driver notification port.
- *
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -29280,7 +28239,6 @@ NtUserDoSoundConnect(
 // rev
 /**
  * The NtUserDoSoundDisconnect routine disconnects the win32k sound driver notification port.
- *
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -29297,7 +28255,6 @@ NtUserDoSoundDisconnect(
 /**
  * The NtUserDrainThreadCoreMessagingCompletions routine drains outstanding core-messaging
  * completions for the calling thread.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_DRAINTHREADCOREMESSAGINGCOMPLETIONS).
  */
@@ -29315,7 +28272,6 @@ NtUserDrainThreadCoreMessagingCompletions(
 /**
  * The NtUserDwmGetRemoteSessionOcclusionEvent routine retrieves or triggers the remote session
  * occlusion notification event.
- *
  * \returns HANDLE value.
  */
 _Kernel_entry_
@@ -29328,8 +28284,7 @@ NtUserDwmGetRemoteSessionOcclusionEvent(
 
 // rev
 /**
- * The NtUserDwmGetRemoteSessionOcclusionState routine retrieves the occlusion state for a remote
- * desktop session.
+ * The NtUserDwmGetRemoteSessionOcclusionState routine retrieves the occlusion state for a remote desktop session.
  *
  * \param SessionId Identifier of the remote session to query.
  * \returns LONG value.
@@ -29346,7 +28301,6 @@ NtUserDwmGetRemoteSessionOcclusionState(
 /**
  * The NtUserDwmKernelShutdown routine signals kernel-mode DWM components that the Desktop Window
  * Manager is shutting down.
- *
  * \returns BOOL TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -29359,9 +28313,7 @@ NtUserDwmKernelShutdown(
 
 // rev
 /**
- * The NtUserDwmKernelStartup routine initializes kernel-mode Desktop Window Manager (DWM) support
- * structures.
- *
+ * The NtUserDwmKernelStartup routine initializes kernel-mode Desktop Window Manager (DWM) support structures.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -29410,8 +28362,7 @@ NtUserEnableIAMAccess(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserEnableSessionForMMCSS routine enables the session for the Multimedia Class Scheduler
- * Service.
+ * The NtUserEnableSessionForMMCSS routine enables the session for the Multimedia Class Scheduler Service.
  *
  * \param Enable TRUE to enable; FALSE to disable.
  * \returns The routine-specific result value.
@@ -29512,9 +28463,7 @@ NtUserForceEnableNumpadTranslation(
 
 // rev
 /**
- * The NtUserGetActiveProcessesDpis routine queries DPI awareness and scaling settings across active
- * desktop processes.
- *
+ * The NtUserGetActiveProcessesDpis routine queries DPI awareness and scaling settings across active desktop processes.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -29544,8 +28493,7 @@ NtUserGetAsyncKeyState(
 
 // rev
 /**
- * The NtUserGetAtomName routine retrieves the string associated with the specified global atom in
- * win32k.
+ * The NtUserGetAtomName routine retrieves the string associated with the specified global atom in win32k.
  *
  * \param Atom The atom whose associated string is to be retrieved.
  * \param AtomName Pointer to a UNICODE_STRING structure that receives the atom string.
@@ -29578,8 +28526,7 @@ NtUserGetAutoRotationState(
 
 // rev
 /**
- * The NtUserGetCIMSSM routine retrieves current input message source information for the current
- * input message.
+ * The NtUserGetCIMSSM routine retrieves current input message source information for the current input message.
  *
  * \param InputMessageSource Pointer to an INPUT_MESSAGE_SOURCE structure receiving the source
  *     device and identifier.
@@ -29621,9 +28568,7 @@ NtUserGetClassInfoEx(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetDeviceChangeInfo routine retrieves pending device-change information for the calling
- * queue.
- *
+ * The NtUserGetDeviceChangeInfo routine retrieves pending device-change information for the calling queue.
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_GETDEVICECHANGEINFO).
  */
@@ -29640,7 +28585,6 @@ NtUserGetDeviceChangeInfo(
 
 /**
  * The NtUserGetDoubleClickTime routine retrieves the current double-click time for the mouse.
- *
  * \returns The double-click time in milliseconds.
  */
 _Kernel_entry_
@@ -29653,9 +28597,7 @@ NtUserGetDoubleClickTime(
 
 // rev
 /**
- * The NtUserGetDpiForCurrentProcess routine retrieves the DPI value associated with the calling
- * process.
- *
+ * The NtUserGetDpiForCurrentProcess routine retrieves the DPI value associated with the calling process.
  * \returns ULONG DPI value for the process.
  */
 // Note: the kernel implementation takes no arguments; the parameters below could
@@ -29670,8 +28612,7 @@ NtUserGetDpiForCurrentProcess(
     );
 
 /**
- * The NtUserGetGUIThreadInfo routine retrieves information about the active window or a specified
- * GUI thread.
+ * The NtUserGetGUIThreadInfo routine retrieves information about the active window or a specified GUI thread.
  *
  * \param idThread The identifier of the thread for which information is to be retrieved.
  * \param pgui Pointer to a GUITHREADINFO structure that receives information describing the thread.
@@ -29708,8 +28649,7 @@ NtUserGetGuiResources(
 
 // rev
 /**
- * The NtUserGetHDevName routine retrieves the device name string associated with an HDEV graphics
- * device.
+ * The NtUserGetHDevName routine retrieves the device name string associated with an HDEV graphics device.
  *
  * \param DeviceHandle Handle or identifier of the display device (HDEV).
  * \param DeviceName Pointer to a buffer or UNICODE_STRING receiving the display device name.
@@ -29750,8 +28690,7 @@ NtUserGetHimetricScaleFactorFromPixelLocation(
 
 // rev
 /**
- * The NtUserGetInputContainerId routine retrieves the device container identifier (GUID) for an
- * input device.
+ * The NtUserGetInputContainerId routine retrieves the device container identifier (GUID) for an input device.
  *
  * \param Param1 Pointer to a 16-byte input structure read from the caller.
  * \param ContainerId Receives the 4-byte container identifier.
@@ -29772,8 +28711,7 @@ NtUserGetInputContainerId(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetInputEvent routine waits for and returns an input event matching the specified wake
- * mask.
+ * The NtUserGetInputEvent routine waits for and returns an input event matching the specified wake mask.
  *
  * \param WakeMask The wake mask (QS_* WinUser.h).
  * \returns The resulting handle, or NULL on failure.
@@ -29792,8 +28730,7 @@ NtUserGetInputEvent(
 
 // rev
 /**
- * The NtUserGetInputLocaleInfo routine retrieves information about a specific input locale or
- * keyboard layout.
+ * The NtUserGetInputLocaleInfo routine retrieves information about a specific input locale or keyboard layout.
  *
  * \param KeyboardLayout Handle to the keyboard layout (HKL) to query.
  * \param LocaleInfo Pointer to a structure receiving the input locale information.
@@ -29810,8 +28747,7 @@ NtUserGetInputLocaleInfo(
 
 // rev
 /**
- * The NtUserGetInteractiveControlDeviceInfo routine retrieves device information for an interactive
- * control device.
+ * The NtUserGetInteractiveControlDeviceInfo routine retrieves device information for an interactive control device.
  *
  * \param DeviceId Identifier of the interactive control device.
  * \param DeviceInfo Pointer to a structure receiving the interactive control device information.
@@ -29828,8 +28764,7 @@ NtUserGetInteractiveControlDeviceInfo(
 
 // rev
 /**
- * The NtUserGetInteractiveControlInfo routine retrieves configuration and state information for an
- * interactive control.
+ * The NtUserGetInteractiveControlInfo routine retrieves configuration and state information for an interactive control.
  *
  * \param ControlId Identifier of the interactive control.
  * \param ControlInfo Pointer to a structure receiving the interactive control information.
@@ -29889,8 +28824,7 @@ NtUserGetKeyNameText(
  * The NtUserGetKeyState routine retrieves the status of the specified virtual key.
  *
  * \param VirtualKey The virtual key code of interest.
- * \returns LONG The key state: the high bit is set if the key is down, the low bit if it is
- *     toggled.
+ * \returns LONG The key state: the high bit is set if the key is down, the low bit if it is toggled.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -29942,8 +28876,7 @@ NtUserGetKeyboardLayout(
  *
  * \param NBuff The maximum number of handles that the buffer can hold.
  * \param LpList Pointer to the buffer that receives the array of input locale identifiers.
- * \returns LONG The number of input locale identifiers copied to the buffer, or required if NBuff
- *     is 0.
+ * \returns LONG The number of input locale identifiers copied to the buffer, or required if NBuff is 0.
  * \remarks Native entry point for USER32!GetKeyboardLayoutList.
  */
 _Kernel_entry_
@@ -29976,11 +28909,9 @@ NtUserGetKeyboardLayoutName(
 
 // rev
 /**
- * The NtUserGetKeyboardState routine copies the status of the 256 virtual keys to the specified
- * buffer.
+ * The NtUserGetKeyboardState routine copies the status of the 256 virtual keys to the specified buffer.
  *
- * \param LpKeyState Pointer to the 256-byte array that receives the status data for each virtual
- *     key.
+ * \param LpKeyState Pointer to the 256-byte array that receives the status data for each virtual key.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!GetKeyboardState.
  */
@@ -29994,8 +28925,7 @@ NtUserGetKeyboardState(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserGetKeyboardType routine returns keyboard type information selected by the specified
- * flag.
+ * The NtUserGetKeyboardType routine returns keyboard type information selected by the specified flag.
  *
  * \param TypeFlag The type flag (KEYBOARD_*).
  * \returns The routine-specific result value.
@@ -30019,8 +28949,7 @@ NtUserGetKeyboardType(
  * \param InputBuffer Pointer to a MOUSEMOVEPOINT structure containing a mouse point.
  * \param OutputBuffer Pointer to a buffer that receives the points.
  * \param OutputBufferCount The number of points to retrieve.
- * \param Resolution The resolution of the points (GMMP_USE_DISPLAY_POINTS or
- *     GMMP_USE_HIGH_RESOLUTION_POINTS).
+ * \param Resolution The resolution of the points (GMMP_USE_DISPLAY_POINTS or GMMP_USE_HIGH_RESOLUTION_POINTS).
  * \returns The number of points retrieved, or -1 on error.
  */
 _Kernel_entry_
@@ -30036,15 +28965,13 @@ NtUserGetMouseMovePointsEx(
     );
 
 /**
- * The NtUserGetObjectInformation routine retrieves information about a window station or desktop
- * object.
+ * The NtUserGetObjectInformation routine retrieves information about a window station or desktop object.
  *
  * \param ObjectHandle A handle to the window station or desktop object.
  * \param Index The information to be retrieved (e.g. UOI_NAME, UOI_TYPE, UOI_USER_SID).
  * \param vInfo Pointer to a buffer to receive the object information.
  * \param Length The size of the buffer pointed to by vInfo in bytes.
- * \param LengthNeeded Pointer to a variable that receives the number of bytes required to store the
- *     requested information.
+ * \param LengthNeeded Pointer to a variable that receives the number of bytes required to store the requested information.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -30106,7 +29033,6 @@ NtUserGetProcessDefaultLayout(
  * the public pointer-valued DPI_AWARENESS_CONTEXT token.
  *
  * \param ProcessHandle The process handle argument.
- *
  * \returns The ULONG result described above.
  */
 _Kernel_entry_
@@ -30118,16 +29044,12 @@ NtUserGetProcessDpiAwarenessContext(
     );
 
 /**
- * The NtUserGetProcessUIContextInformation routine retrieves the UI context and immersive status of
- * a
- * process.
+ * The NtUserGetProcessUIContextInformation routine retrieves the UI context and immersive status of a process.
  *
  * \param ProcessHandle A handle to the target process.
- * \param UIContext Pointer to a PROCESS_UICONTEXT_INFORMATION structure receiving the UI context
- *     information.
+ * \param UIContext Pointer to a PROCESS_UICONTEXT_INFORMATION structure receiving the UI context information.
  * \returns LOGICAL Non-zero on success, zero otherwise.
- * \remarks Queries a process UI-context record. Cross-process access and privilege requirements are
- * private.
+ * \remarks Queries a process UI-context record. Cross-process access and privilege requirements are private.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -30144,15 +29066,13 @@ NtUserGetProcessUIContextInformation(
  * calculations. Count is required and counts 16-byte RECT
  * elements, not bytes. NULL Rects queries the count without reading its initial value. With a
  * buffer, Count is
- * capacity on entry and the required/returned count on exit; insufficient capacity returns FALSE
- * and
+ * capacity on entry and the required/returned count on exit; insufficient capacity returns FALSE and
  * ERROR_INSUFFICIENT_BUFFER (122), without copying rectangles. Native x64 probes 4-byte alignment;
  * WoW64 permits
  * byte alignment. The system stores at most 4 rectangles; results can change between calls.
  *
  * \param Count Supplies and receives the count.
  * \param Rects Receives the rects.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -30170,12 +29090,10 @@ NtUserGetSystemContentRects(
  * NtCurrentProcess select the current process. A real
  * handle requires PROCESS_QUERY_LIMITED_INFORMATION (0x1000) and the current session. Returns zero
  * on failure;
- * invalid handles or a different session set ERROR_INVALID_PARAMETER (87), while absent GUI process
- * state sets
+ * invalid handles or a different session set ERROR_INVALID_PARAMETER (87), while absent GUI process state sets
  * ERROR_INVALID_STATE (5023). This is a 32-bit DPI value, not an awareness-context token.
  *
  * \param ProcessHandle The process handle argument.
- *
  * \returns The ULONG result described above.
  */
 _Kernel_entry_
@@ -30204,13 +29122,11 @@ NtUserGetThreadState(
 /**
  * The NtUserGetUniformSpaceMapping routine retrieves a driver uniform-space mapping for a validated
  * shared USER handle. Successful native output is
- * exactly 16 bytes; field meanings remain unverified, so Mapping is deliberately opaque. Failed
- * handle/driver
+ * exactly 16 bytes; field meanings remain unverified, so Mapping is deliberately opaque. Failed handle/driver
  * lookup does not produce valid output.
  *
  * \param Handle The handle argument.
  * \param Mapping Receives the mapping.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -30232,7 +29148,6 @@ NtUserGetUniformSpaceMapping(
  *
  * \param Instance The instance argument.
  * \param ClassName The class name argument.
- *
  * \returns The ULONG_PTR result described above.
  */
 _Kernel_entry_
@@ -30246,8 +29161,7 @@ NtUserGetWOWClass(
 
 // rev
 /**
- * The NtUserHandleDelegatedInput routine dispatches delegated input data to the destination thread
- * or window.
+ * The NtUserHandleDelegatedInput routine dispatches delegated input data to the destination thread or window.
  *
  * \param Input Pointer to a 48-byte buffer containing delegated input data.
  * \param InputType Type of input being handled (e.g. pointer, touch, keyboard).
@@ -30264,9 +29178,7 @@ NtUserHandleDelegatedInput(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserHandleSystemThreadCreationFailure routine reports a failure to create a win32k system
- * thread.
- *
+ * The NtUserHandleSystemThreadCreationFailure routine reports a failure to create a win32k system thread.
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_HANDLESYSTEMTHREADCREATIONFAILURE).
  */
@@ -30321,8 +29233,7 @@ NtUserInitAnsiOem(
 
 // rev
 /**
- * The NtUserInitialize routine performs one-time initialization of the user subsystem for the
- * calling process.
+ * The NtUserInitialize routine performs one-time initialization of the user subsystem for the calling process.
  *
  * \param Param1 Initialization parameter or configuration flags.
  * \param Param2 Additional initialization context.
@@ -30361,11 +29272,9 @@ NtUserInitializeClientPfnArrays(
 
 // rev
 /**
- * The NtUserInitializeGenericHidInjection routine initializes generic HID input injection for a
- * simulated device.
+ * The NtUserInitializeGenericHidInjection routine initializes generic HID input injection for a simulated device.
  *
- * \param PDeviceProperties Pointer to a _RIMIDE_GENERIC_HID_DEVICE_PROPERTIES structure describing
- *     the device.
+ * \param PDeviceProperties Pointer to a _RIMIDE_GENERIC_HID_DEVICE_PROPERTIES structure describing the device.
  * \param PhDevice Pointer to a variable receiving the created HID injection device handle.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!InitializeGenericHidInjection.
@@ -30381,11 +29290,9 @@ NtUserInitializeGenericHidInjection(
 
 // rev
 /**
- * The NtUserInjectDeviceInput routine injects custom input data packets into an initialized input
- * injection device.
+ * The NtUserInjectDeviceInput routine injects custom input data packets into an initialized input injection device.
  *
- * \param Device Handle to the synthetic input device created by
- *     NtUserInitializeInputDeviceInjection.
+ * \param Device Handle to the synthetic input device created by NtUserInitializeInputDeviceInjection.
  * \param Values Pointer to an array of INPUT_INJECTION_VALUE structures containing input samples.
  * \param Count Number of input values in the Values array.
  * \returns BOOL TRUE on success, FALSE on failure.
@@ -30403,8 +29310,7 @@ NtUserInjectDeviceInput(
 
 // rev
 /**
- * The NtUserInjectGenericHidInput routine injects a raw HID report into an initialized synthetic
- * HID device.
+ * The NtUserInjectGenericHidInput routine injects a raw HID report into an initialized synthetic HID device.
  *
  * \param HDevice Handle to the synthetic generic HID device.
  * \param PInputReport Pointer to the raw input report bytes.
@@ -30424,8 +29330,7 @@ NtUserInjectGenericHidInput(
 
 // rev
 /**
- * The NtUserInjectKeyboardInput routine injects synthetic keyboard events into the system input
- * stream.
+ * The NtUserInjectKeyboardInput routine injects synthetic keyboard events into the system input stream.
  *
  * \param PKeyboardInput Pointer to an array of KEYBDINPUT structures containing keyboard events.
  * \param Count Number of keyboard event structures in PKeyboardInput.
@@ -30461,8 +29366,7 @@ NtUserInjectMouseInput(
 
 // rev
 /**
- * The NtUserInteractiveControlQueryUsage routine queries usage capabilities for an interactive
- * control device.
+ * The NtUserInteractiveControlQueryUsage routine queries usage capabilities for an interactive control device.
  *
  * \param ControlId Identifier of the interactive control.
  * \param Param2 Usage query filter or page identifier.
@@ -30487,11 +29391,8 @@ NtUserInteractiveControlQueryUsage(
 /**
  * The NtUserInternalToUnicode routine dispatches internal Unicode conversion through the session
  * implementation table. Arguments 1, 2 and 4 are
- * captured/forwarded as 32-bit scalars (ECX, EDX, R9D), not pointers. Other slots retain their
- * opaque existing
- * contracts. Only dispatcher widths are defined; final-handler semantics and return interpretation
- * remain
- * unverified.
+ * captured/forwarded as 32-bit scalars (ECX, EDX, R9D), not pointers. Other slots retain their opaque existing
+ * contracts. Only dispatcher widths are defined; final-handler semantics and return interpretation remain unverified.
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
@@ -30499,7 +29400,6 @@ NtUserInteractiveControlQueryUsage(
  * \param Param4 Operation-specific argument; its contract is not specified here.
  * \param Param5 Operation-specific argument; its contract is not specified here.
  * \param Param6 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 _Kernel_entry_
@@ -30517,9 +29417,7 @@ NtUserInternalToUnicode(
 
 // rev
 /**
- * The NtUserIsMouseInputEnabled routine determines whether mouse input is currently enabled on the
- * system.
- *
+ * The NtUserIsMouseInputEnabled routine determines whether mouse input is currently enabled on the system.
  * \returns BOOL TRUE if mouse input is enabled, FALSE otherwise.
  */
 _Kernel_entry_
@@ -30534,7 +29432,6 @@ NtUserIsMouseInputEnabled(
 /**
  * The NtUserIsUtilitySession routine determines whether the current caller is executing in a
  * Windows utility session.
- *
  * \returns BOOLEAN TRUE if the caller is running in a utility session, otherwise FALSE.
  */
 _Kernel_entry_
@@ -30576,7 +29473,6 @@ NtUserLoadKeyboardLayoutEx(
 
 /**
  * The NtUserLockWorkStation routine locks the workstation's display.
- *
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -30589,9 +29485,7 @@ NtUserLockWorkStation(
 
 // rev
 /**
- * The NtUserMNDragLeave routine notifies the active menu drag session that the pointer has left the
- * menu window.
- *
+ * The NtUserMNDragLeave routine notifies the active menu drag session that the pointer has left the menu window.
  * \returns BOOL TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -30604,8 +29498,7 @@ NtUserMNDragLeave(
 
 // rev
 /**
- * The NtUserMNDragOver routine processes drag-over movement notifications within an active menu
- * tracking session.
+ * The NtUserMNDragOver routine processes drag-over movement notifications within an active menu tracking session.
  *
  * \param Point Pointer to a POINT structure indicating current screen coordinates.
  * \param DragOverInfo Pointer to a structure receiving menu drag-over hit test and command results.
@@ -30656,7 +29549,6 @@ NtUserMapPointsByVisualIdentifier(
  * \param MapType The map type argument.
  * \param KeyboardLayout The keyboard layout argument.
  * \param UseLayout The use layout argument.
- *
  * \returns The ULONG result described above.
  */
 _Kernel_entry_
@@ -30672,8 +29564,7 @@ NtUserMapVirtualKeyEx(
 
 // rev
 /**
- * The NtUserMinInitialize routine performs minimal user-mode subsystem initialization for a
- * process.
+ * The NtUserMinInitialize routine performs minimal user-mode subsystem initialization for a process.
  *
  * \param Param1 Unconfirmed initialization context parameter.
  * \returns NTSTATUS Successful or errant status.
@@ -30688,10 +29579,8 @@ NtUserMinInitialize(
 
 // rev
 /**
- * The NtUserModifyUserStartupInfoFlags routine performs a masked update of the calling process's
- * USER
- * startup-information flags (the dwFlags carried in the process's STARTUPINFO, for example
- * STARTF_*).
+ * The NtUserModifyUserStartupInfoFlags routine performs a masked update of the calling process's USER
+ * startup-information flags (the dwFlags carried in the process's STARTUPINFO, for example STARTF_*).
  *
  * The stored value is recomputed as (Flags & Mask) | (Current & ~Mask): only the bits selected by
  * Mask are replaced with the corresponding bits of Flags; all other bits are left unchanged.
@@ -30699,8 +29588,7 @@ NtUserMinInitialize(
  * \param Mask Bit mask selecting which startup-info flag bits are modified.
  * \param Flags New values for the bits selected by Mask (bits outside Mask are ignored).
  * \returns TRUE on success, FALSE otherwise.
- * \remarks Per-process. To set bits use Mask = Flags = bits; to clear bits use Mask = bits, Flags =
- * 0.
+ * \remarks Per-process. To set bits use Mask = Flags = bits; to clear bits use Mask = bits, Flags = 0.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -30713,8 +29601,7 @@ NtUserModifyUserStartupInfoFlags(
 
 // rev
 /**
- * The NtUserNotifyProcessCreate routine notifies win32k of process creation or initialization
- * hints.
+ * The NtUserNotifyProcessCreate routine notifies win32k of process creation or initialization hints.
  *
  * \param ProcessId Identifier of the target process.
  * \param Param2 Unused by the routine; original meaning is unresolved.
@@ -30722,12 +29609,9 @@ NtUserModifyUserStartupInfoFlags(
  * \param Flags Process creation hints.
  * \returns NTSTATUS Successful or errant status.
  * \remarks Returns STATUS_SUCCESS without further work when (Flags & ~0x30) is zero.
- *          Otherwise the caller must match the session's designated process or STATUS_ACCESS_DENIED
- *          is returned.
- *          The helper uses bit 0x10 to select Win32 process allocation. Without it, bit 0x01
- *          selects
- *          initialization state 1; otherwise state 2 is selected. Bits 0x0C, or neither low bit
- *          being set,
+ *          Otherwise the caller must match the session's designated process or STATUS_ACCESS_DENIED is returned.
+ *          The helper uses bit 0x10 to select Win32 process allocation. Without it, bit 0x01 selects
+ *          initialization state 1; otherwise state 2 is selected. Bits 0x0C, or neither low bit being set,
  *          trigger telemetry assertions rather than immediate rejection.
  */
 _Kernel_entry_
@@ -30762,7 +29646,6 @@ NtUserPlayEventSound(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserPrepareForLogoff routine prepares the session for user logoff.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_PREPAREFORLOGOFF).
  */
@@ -30994,7 +29877,6 @@ NtUserRegisterSystemThread(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserReleaseCapture routine releases the mouse capture held by the calling thread's window.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_RELEASECAPTURE).
  */
@@ -31011,13 +29893,10 @@ NtUserReleaseCapture(
 // rev
 /**
  * The NtUserReleaseDwmHitTestWaiters routine has the following behavior:
- * Compatibility entry associated with compositor hit-test waiters. The x86 export consumes zero
- * argument bytes
+ * Compatibility entry associated with compositor hit-test waiters. The x86 export consumes zero argument bytes
  * and WoW64 forwards no arguments. The native body returns constant 1 and releases no
- * waiters. The existing return type is retained pending historical evidence; this stub is not proof
- * that a
+ * waiters. The existing return type is retained pending historical evidence; this stub is not proof that a
  * compositor operation completed.
- *
  * \returns Status code returned by the operation.
  */
 // Note: this export folds onto a shared/stub address in the binary, so neither the
@@ -31054,9 +29933,7 @@ NtUserRemoteConnect(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * The NtUserRemoteConnectState routine returns the remote connection state
- * (CTX_W32_CONNECT_STATE_*).
- *
+ * The NtUserRemoteConnectState routine returns the remote connection state (CTX_W32_CONNECT_STATE_*).
  * \returns The routine-specific result value.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTECONNECTSTATE).
  */
@@ -31073,7 +29950,6 @@ NtUserRemoteConnectState(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemoteConsoleShadowStop routine stops console shadowing for a remote session.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTECONSOLESHADOWSTOP).
  */
@@ -31089,7 +29965,6 @@ NtUserRemoteConsoleShadowStop(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemoteDisconnect routine disconnects the remote session.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTEDISCONNECT).
  */
@@ -31122,7 +29997,6 @@ NtUserRemoteNotify(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemotePassthruDisable routine disables remote pass-through drawing.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTEPASSTHRUDISABLE).
  */
@@ -31138,7 +30012,6 @@ NtUserRemotePassthruDisable(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemotePassthruEnable routine enables remote pass-through drawing.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTEPASSTHRUENABLE).
  */
@@ -31195,7 +30068,6 @@ NtUserRemoteRedrawRectangle(
 // rev
 /**
  * The NtUserRemoteRedrawScreen routine forces a full redraw of the remote session screen.
- *
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -31229,7 +30101,6 @@ NtUserRemoteShadowCleanup(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemoteShadowSetup routine prepares a remote session for shadowing.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTESHADOWSETUP).
  */
@@ -31264,7 +30135,6 @@ NtUserRemoteShadowStart(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserRemoteShadowStop routine stops shadowing of a remote session.
- *
  * \returns NTSTATUS Successful or errant status.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_REMOTESHADOWSTOP).
  */
@@ -31281,7 +30151,6 @@ NtUserRemoteShadowStop(
 /**
  * The NtUserRemoteStopScreenUpdates routine suspends screen update broadcasting and rasterization
  * for remote desktop display sessions.
- *
  * \returns NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -31330,14 +30199,11 @@ NtUserRemoveInjectionDevice(
 /**
  * The NtUserRemoveVisualIdentifier routine removes an input-visual mapping identified by a captured
  * read-only 8-byte LUID. Ordinary success returns 1;
- * ordinary mapping failures return 0 and set last error. The desktop-input-sink special case
- * instead returns
- * STATUS_ACCESS_DENIED (0xC0000022) directly despite the BOOL declaration; do not treat every
- * nonzero result
+ * ordinary mapping failures return 0 and set last error. The desktop-input-sink special case instead returns
+ * STATUS_ACCESS_DENIED (0xC0000022) directly despite the BOOL declaration; do not treat every nonzero result
  * as proof of removal.
  *
  * \param Luid The luid argument.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -31377,7 +30243,6 @@ NtUserReportInertia(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserResetDblClk routine resets the double-click tracking state.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_RESETDBLCLK).
  */
@@ -31395,15 +30260,12 @@ NtUserResetDblClk(
 /**
  * The NtUserScaleSystemMetricForDPIWithoutCache routine returns a 32-bit DPI-scaled value using an
  * internal metric index, not the public SM_* numbering. The worker
- * accepts indexes 0..29 and uses only the low 16 bits of ToDpi; a zero low word or an out-of-range
- * index returns
- * zero and ERROR_INVALID_PARAMETER (87). The native entry returns EAX, not a pointer-sized result.
- * Full index
+ * accepts indexes 0..29 and uses only the low 16 bits of ToDpi; a zero low word or an out-of-range index returns
+ * zero and ERROR_INVALID_PARAMETER (87). The native entry returns EAX, not a pointer-sized result. Full index
  * meanings and scaling algorithms remain unverified.
  *
  * \param Metric The metric argument.
  * \param ToDpi The to dpi argument.
- *
  * \returns The ULONG result described above.
  */
 _Must_inspect_result_
@@ -31423,8 +30285,7 @@ NtUserScaleSystemMetricForDPIWithoutCache(
  *
  * \param Hdc A handle to the device context.
  * \param PaletteHandle A handle to the logical palette to be selected.
- * \param ForceBackground Specifies whether the logical palette is forced to be a background
- *     palette.
+ * \param ForceBackground Specifies whether the logical palette is forced to be a background palette.
  * \returns A handle to the device context's previous logical palette, or NULL on failure.
  */
 _Kernel_entry_
@@ -31477,8 +30338,7 @@ NtUserSendInteractiveControlHapticsReport(
 
 // rev
 /**
- * The NtUserSetAutoRotation routine enables or disables display auto-rotation based on orientation
- * sensor data.
+ * The NtUserSetAutoRotation routine enables or disables display auto-rotation based on orientation sensor data.
  *
  * \param Enable Nonzero to enable auto-rotation; zero to disable.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -31493,8 +30353,7 @@ NtUserSetAutoRotation(
 
 // rev
 /**
- * The NtUserSetCalibrationData routine configures digitizer or touch input calibration data in the
- * window manager.
+ * The NtUserSetCalibrationData routine configures digitizer or touch input calibration data in the window manager.
  *
  * \param Handle A handle to the calibration target object.
  * \param Param2 Calibration point count or mode index.
@@ -31533,12 +30392,10 @@ NtUserSetDoubleClickTime(
 
 // rev
 /**
- * The NtUserSetFeatureReportResponse routine sets HID feature report responses for synthetic or
- * injected devices.
+ * The NtUserSetFeatureReportResponse routine sets HID feature report responses for synthetic or injected devices.
  *
  * \param Device A handle to the injection device.
- * \param Values An array of input injection value structures specifying the feature report
- *     response.
+ * \param Values An array of input injection value structures specifying the feature report response.
  * \param Count The number of items in the Values array.
  * \returns TRUE if successful, or FALSE otherwise.
  * \remarks Native entry point for USER32!SetFeatureReportResponse.
@@ -31557,13 +30414,11 @@ NtUserSetFeatureReportResponse(
 /**
  * The NtUserSetForegroundRedirectionForActivationObject routine associates an activation-object
  * LUID with a foreground-redirection LUID. Both arguments point to read-only
- * 8-byte LUIDs, captured separately before SetForegroundRedirectionLuid; they are not arbitrary
- * object
+ * 8-byte LUIDs, captured separately before SetForegroundRedirectionLuid; they are not arbitrary object
  * pointers. Authorization and routing lifetime requirements are private.
  *
  * \param ActivationObject The activation object argument.
  * \param RedirectionInfo The redirection info argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -31585,8 +30440,7 @@ NtUserSetForegroundRedirectionForActivationObject(
  * \returns Nonzero on success, zero otherwise.
  * \remarks A disabled feature sets ERROR_NOT_SUPPORTED; a disallowed process role sets
  * ERROR_ACCESS_DENIED; an invalid class or key sets ERROR_INVALID_PARAMETER; a NULL buffer
- * or incorrect length sets ERROR_BAD_LENGTH; a missing I/O window station sets
- * ERROR_INVALID_HANDLE.
+ * or incorrect length sets ERROR_BAD_LENGTH; a missing I/O window station sets ERROR_INVALID_HANDLE.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -31687,8 +30541,7 @@ NtUserSetInteractiveCtrlRotationAngle(
  * a job object.
  *
  * \param Handle A handle to the job object.
- * \param UIRestrictionsClass UI limit flags (e.g. JOB_OBJECT_UILIMIT_HANDLES,
- *     JOB_OBJECT_UILIMIT_READCLIPBOARD).
+ * \param UIRestrictionsClass UI limit flags (e.g. JOB_OBJECT_UILIMIT_HANDLES, JOB_OBJECT_UILIMIT_READCLIPBOARD).
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -31818,8 +30671,7 @@ NtUserSetProcessLaunchForegroundPolicy(
  * The NtUserSetProcessMousewheelRoutingMode routine sets the mouse wheel routing mode for the
  * calling process (routing to active window or pointer window).
  *
- * \param Mode The mouse wheel routing mode to set (e.g. MOUSEWHEEL_ROUTING_FOCUS or
- *     MOUSEWHEEL_ROUTING_HYBRID).
+ * \param Mode The mouse wheel routing mode to set (e.g. MOUSEWHEEL_ROUTING_FOCUS or MOUSEWHEEL_ROUTING_HYBRID).
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -31832,15 +30684,12 @@ NtUserSetProcessMousewheelRoutingMode(
 
 // rev
 /**
- * The NtUserSetProcessRestrictionExemption routine enables or disables the calling process's
- * exemption
- * from USER UI restrictions (for example the restrictions applied to processes in a UI-limited
- * job).
+ * The NtUserSetProcessRestrictionExemption routine enables or disables the calling process's exemption
+ * from USER UI restrictions (for example the restrictions applied to processes in a UI-limited job).
  *
  * \param EnableExemption TRUE to grant the exemption to the current process, FALSE to revoke it.
  * \returns TRUE if the exemption state was updated, FALSE otherwise.
- * \remarks Native entry point for USER32!SetProcessRestrictionExemption. Affects the calling
- * process only.
+ * \remarks Native entry point for USER32!SetProcessRestrictionExemption. Affects the calling process only.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -31852,14 +30701,10 @@ NtUserSetProcessRestrictionExemption(
 
 // rev
 /**
- * The NtUserSetProcessUIAccessZorder routine marks the calling process as UIAccess for the purpose
- * of
- * window z-order placement, allowing its top-level windows to sit above ordinary application
- * windows.
- *
+ * The NtUserSetProcessUIAccessZorder routine marks the calling process as UIAccess for the purpose of
+ * window z-order placement, allowing its top-level windows to sit above ordinary application windows.
  * \returns TRUE if successful; otherwise, FALSE.
- * \remarks Takes no parameters; it acts on the current process. Intended for UIAccess processes
- * that
+ * \remarks Takes no parameters; it acts on the current process. Intended for UIAccess processes that
  * are not elevated (an elevated process already receives the equivalent z-order treatment).
  */
 _Kernel_entry_
@@ -31872,8 +30717,7 @@ NtUserSetProcessUIAccessZorder(
 
 // rev
 /**
- * The NtUserSetProcessWin32Capabilities routine grants or revokes win32k capabilities for one or
- * more processes.
+ * The NtUserSetProcessWin32Capabilities routine grants or revokes win32k capabilities for one or more processes.
  *
  * Each entry is copied from user mode and validated against the PROC_CAP_*_VALID_MASK masks
  * (Flags1/Flags2 accept bits 0-2, EnableMask/DisableMask accept bit 0); an entry whose lanes set
@@ -31915,8 +30759,7 @@ NtUserSetSensorPresence(
 
 // rev
 /**
- * The NtUserSetSysColors routine sets the colors for the specified display elements in the user
- * interface.
+ * The NtUserSetSysColors routine sets the colors for the specified display elements in the user interface.
  *
  * \param Count The number of display elements in the Elements array.
  * \param Elements An array of integers specifying the display elements to be set.
@@ -31939,13 +30782,11 @@ NtUserSetSysColors(
 /**
  * The NtUserSetSystemContentRects routine replaces system content rectangles used for desktop
  * layout. The entry requires the windowManagementSystem
- * capability, Count in 1..4, and a non-NULL read-only array of 16-byte RECTs. It captures Count *
- * 16 bytes
+ * capability, Count in 1..4, and a non-NULL read-only array of 16-byte RECTs. It captures Count * 16 bytes
  * before dispatch. Native alignment is 4 bytes; WoW64 accepts byte alignment.
  *
  * \param Count The count argument.
  * \param Rects The rects argument.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -31961,8 +30802,7 @@ NtUserSetSystemContentRects(
 
 // rev
 /**
- * The NtUserSetTSFEventState routine sets the Text Services Framework (TSF) event state for the
- * calling thread.
+ * The NtUserSetTSFEventState routine sets the Text Services Framework (TSF) event state for the calling thread.
  *
  * \param StateFlags TSF event state flags.
  * \returns TRUE on success, FALSE otherwise.
@@ -31982,15 +30822,12 @@ NtUserSetTSFEventState(
 /**
  * The NtUserSetTargetForResourceBrokering routine associates or clears a resource-brokering target
  * thread under restricted process eligibility checks. Flags is
- * read and must be zero; nonzero values fail with ERROR_INVALID_PARAMETER (87). ThreadId zero or
- * the current
- * thread clears a pairing; eligible other threads establish a reciprocal pairing. No nonzero flag
- * semantics are
+ * read and must be zero; nonzero values fail with ERROR_INVALID_PARAMETER (87). ThreadId zero or the current
+ * thread clears a pairing; eligible other threads establish a reciprocal pairing. No nonzero flag semantics are
  * established and no pairing was changed.
  *
  * \param Flags Operation-specific flags.
  * \param ThreadId Thread identifier.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -32006,8 +30843,7 @@ NtUserSetTargetForResourceBrokering(
 
 // rev
 /**
- * The NtUserSetThreadInputBlocked routine blocks or unblocks input delivery to the specified
- * thread.
+ * The NtUserSetThreadInputBlocked routine blocks or unblocks input delivery to the specified thread.
  *
  * \param ThreadId Identifier of the target thread.
  * \param InputBlocked TRUE to block input, FALSE to unblock.
@@ -32043,8 +30879,7 @@ NtUserSetThreadLayoutHandles(
 
 // rev
 /**
- * The NtUserSetThreadState routine sets thread-specific GUI state flags and attributes in the
- * window manager.
+ * The NtUserSetThreadState routine sets thread-specific GUI state flags and attributes in the window manager.
  *
  * \param State The thread state bitmask to apply.
  * \param Mask The mask specifying which state bits are being modified.
@@ -32063,8 +30898,7 @@ NtUserSetThreadState(
 
 // rev
 /**
- * The NtUserSetUserObjectCapability routine adds or removes a capability access-allowed ACE on a
- * USER object.
+ * The NtUserSetUserObjectCapability routine adds or removes a capability access-allowed ACE on a USER object.
  *
  * \param UserObjectHandle Handle to a USER object owned by the current process.
  * \param AccessMask Access rights for the capability access-allowed ACE.
@@ -32189,7 +31023,6 @@ NtUserShowStartGlass(
 /**
  * The NtUserSignalRedirectionStartComplete routine signals completion of visual input redirection
  * initialization in the window manager.
- *
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -32204,14 +31037,12 @@ NtUserSignalRedirectionStartComplete(
 /**
  * The NtUserSlicerControl routine has the following behavior:
  * Legacy compositor compatibility entry. This resolves to a constant-zero body and
- * performs no slicing operation. All 4 ABI slots are retained. Historical semantics remain
- * unverified.
+ * performs no slicing operation. All 4 ABI slots are retained. Historical semantics remain unverified.
  *
  * \param Param1 Operation-specific argument; its contract is not specified here.
  * \param Param2 Operation-specific argument; its contract is not specified here.
  * \param Param3 Operation-specific argument; its contract is not specified here.
  * \param Param4 Operation-specific argument; its contract is not specified here.
- *
  * \returns Status code returned by the operation.
  */
 // Note: this export folds onto a shared/stub address in the binary, so neither the
@@ -32229,9 +31060,7 @@ NtUserSlicerControl(
 
 // rev
 /**
- * The NtUserSoundSentry routine triggers a visual signal when an application sounds a system alert
- * sound.
- *
+ * The NtUserSoundSentry routine triggers a visual signal when an application sounds a system alert sound.
  * \returns TRUE if the function succeeds; otherwise, FALSE.
  * \remarks Native entry point for USER32!SoundSentry.
  */
@@ -32280,14 +31109,11 @@ NtUserSwapMouseButton(
 
 // rev
 /**
- * The NtUserSystemParametersInfo routine queries or sets the values of various system-wide
- * parameters.
+ * The NtUserSystemParametersInfo routine queries or sets the values of various system-wide parameters.
  *
  * \param Action The system-wide parameter to be queried or set (e.g. SPI_GETNONCLIENTMETRICS).
- * \param UiParam A parameter whose usage and format depend on the system parameter being queried or
- *     set.
- * \param PvParam A parameter whose usage and format depend on the system parameter being queried or
- *     set.
+ * \param UiParam A parameter whose usage and format depend on the system parameter being queried or set.
+ * \param PvParam A parameter whose usage and format depend on the system parameter being queried or set.
  * \param Flags If a system parameter is being set, specifies whether the user profile is updated.
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
@@ -32306,12 +31132,9 @@ NtUserSystemParametersInfo(
 /**
  * The NtUserSystemParametersInfoForDpi routine retrieves DPI-scaled parameter records. The entry
  * accepts actions 41, 31 and 45 with exact UiParam byte
- * sizes 504, 92 and 108 respectively, requires nonzero Dpi and a non-NULL buffer, and reads its
- * initial first
- * DWORD. Action 31 returns LOGFONTW: its first DWORD is lfHeight, not cbSize. The entire local
- * record is
- * copied back even on worker failure. Other actions and wrong sizes fail with
- * ERROR_INVALID_PARAMETER (87).
+ * sizes 504, 92 and 108 respectively, requires nonzero Dpi and a non-NULL buffer, and reads its initial first
+ * ULONG. Action 31 returns LOGFONTW: its first ULONG is lfHeight, not cbSize. The entire local record is
+ * copied back even on worker failure. Other actions and wrong sizes fail with ERROR_INVALID_PARAMETER (87).
  * Additional worker behavior is private.
  *
  * \param Action The action argument.
@@ -32319,7 +31142,6 @@ NtUserSystemParametersInfo(
  * \param PvParam Supplies and receives the pv param.
  * \param Flags Operation-specific flags.
  * \param Dpi The dpi argument.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -32335,8 +31157,7 @@ NtUserSystemParametersInfoForDpi(
     );
 
 /**
- * The NtUserTestForInteractiveUser routine tests whether the specified logon session belongs to the
- * interactive user.
+ * The NtUserTestForInteractiveUser routine tests whether the specified logon session belongs to the interactive user.
  *
  * \param AuthenticationId Pointer to the logon authentication ID (LUID) to test.
  * \returns NTSTATUS Successful or errant status.
@@ -32355,8 +31176,7 @@ NtUserTestForInteractiveUser(
  * caller-supplied 256-byte keyboard-state array.
  * BufferSize is a positive WCHAR capacity; native capture probes and copies BufferSize * 2 bytes,
  * not only the
- * returned count. Nonpositive capacity returns zero and ERROR_INVALID_PARAMETER (87). Translation
- * may affect
+ * returned count. Nonpositive capacity returns zero and ERROR_INVALID_PARAMETER (87). Translation may affect
  * dead-key state according to Flags; it does not require live key-state capture.
  *
  * \param VirtualKey The virtual key argument.
@@ -32366,7 +31186,6 @@ NtUserTestForInteractiveUser(
  * \param BufferSize The buffer size argument.
  * \param Flags Operation-specific flags.
  * \param KeyboardLayout The keyboard layout argument.
- *
  * \returns The LONG result described above.
  */
 _Kernel_entry_
@@ -32387,7 +31206,6 @@ NtUserToUnicodeEx(
 /**
  * The NtUserTraceLoggingSendMixedModeTelemetry routine emits mixed-mode application telemetry
  * events via TraceLogging.
- *
  * \returns LOGICAL Non-zero on success, zero otherwise.
  */
 _Kernel_entry_
@@ -32401,12 +31219,10 @@ NtUserTraceLoggingSendMixedModeTelemetry(
 /**
  * The NtUserTrackMouseEvent routine queries or configures window mouse tracking. Initialize cbSize
  * to sizeof(TRACKMOUSEEVENT): 24 bytes x64 or
- * 16 bytes WoW64. TME_QUERY copies the record back; ordinary registration consumes input. WoW64
- * copies
+ * 16 bytes WoW64. TME_QUERY copies the record back; ordinary registration consumes input. WoW64 copies
  * converted fields back even on native failure.
  *
  * \param EventTrack Supplies and receives the event track.
- *
  * \returns The BOOL result described above.
  */
 _Kernel_entry_
@@ -32418,11 +31234,9 @@ NtUserTrackMouseEvent(
     );
 
 /**
- * The NtUserUnhookWinEvent routine removes an event hook function created by a previous call to
- * SetWinEventHook.
+ * The NtUserUnhookWinEvent routine removes an event hook function created by a previous call to SetWinEventHook.
  *
- * \param WinEventHookHandle Handle to the event hook returned in the previous call to
- *     SetWinEventHook.
+ * \param WinEventHookHandle Handle to the event hook returned in the previous call to SetWinEventHook.
  * \returns TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -32435,8 +31249,7 @@ NtUserUnhookWinEvent(
 
 // rev
 /**
- * The NtUserUnloadKeyboardLayout routine unloads an input locale identifier (formerly called a
- * keyboard layout).
+ * The NtUserUnloadKeyboardLayout routine unloads an input locale identifier (formerly called a keyboard layout).
  *
  * \param KeyboardLayout The input locale identifier to be unloaded.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -32455,15 +31268,12 @@ NtUserUnloadKeyboardLayout(
  * atom encoded in Buffer. Native success writes
  * 24 bytes of internal ClassMenuNames bookkeeping. The WoW64 thunk copies 20 bytes back even on
  * failure;
- * initialize sufficient opaque storage and consume it only on success. Pointer ownership and
- * menu-bearing
- * class cleanup require the USER32 protocol; menu storage must follow the class cleanup and
- * ownership rules.
+ * initialize sufficient opaque storage and consume it only on success. Pointer ownership and menu-bearing
+ * class cleanup require the USER32 protocol; menu storage must follow the class cleanup and ownership rules.
  *
  * \param ClassName The class name argument.
  * \param Instance The instance argument.
  * \param ClassMenuNames Receives the class menu names.
- *
  * \returns The LOGICAL result described above.
  */
 _Kernel_entry_
@@ -32494,7 +31304,6 @@ NtUserUnregisterSessionPort(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserUpdatePerUserImmEnabling routine updates the per-user IMM (IME) enabling state.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_UPDATEPERUSERIMMENABLING).
  */
@@ -32546,7 +31355,6 @@ NtUserUserHandleGrantAccess(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserUserPowerCalloutWorker routine runs the user-mode power callout worker.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_USERPOWERCALLOUTWORKER).
  */
@@ -32564,14 +31372,12 @@ NtUserUserPowerCalloutWorker(
 /**
  * The NtUserVkKeyScanEx routine maps a Unicode character to virtual-key/modifier encoding from
  * layout metadata. Nonzero UseLayout resolves
- * KeyboardLayout; zero uses the current thread layout. The signed 16-bit worker result is
- * sign-extended,
+ * KeyboardLayout; zero uses the current thread layout. The signed 16-bit worker result is sign-extended,
  * including -1 when no translation/layout is available. No live input capture is required.
  *
  * \param Character The character argument.
  * \param KeyboardLayout The keyboard layout argument.
  * \param UseLayout The use layout argument.
- *
  * \returns The LONG result described above.
  */
 _Kernel_entry_
@@ -32610,7 +31416,6 @@ NtUserWaitForInputIdle(
 /**
  * The NtUserWaitForRedirectionStartComplete routine waits for visual input redirection subsystem
  * startup to complete.
- *
  * \returns BOOL TRUE if successful, FALSE otherwise.
  */
 _Kernel_entry_
@@ -32624,7 +31429,6 @@ NtUserWaitForRedirectionStartComplete(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtUserZapActiveAndFocus routine clears the active-window and focus-window state.
- *
  * \returns TRUE on success, FALSE otherwise.
  * \remarks Previously exposed via NtUserCallNoParam(SFI_ZAPACTIVEANDFOCUS).
  */
@@ -32671,9 +31475,8 @@ NtVisualCaptureBits(
 
 // rev
 /**
- * The PackDDElParam routine packs two pointer-sized DDE message values. The message selector is UINT and
- * payloads are UINT_PTR, matching the SDK. The message determines whether storage is allocated; release
- * through FreeDDElParam.
+ * The PackDDElParam routine packs two pointer-sized DDE message values. The message selector is ULONG and
+ * payloads are ULONG_PTR. The message determines whether storage is allocated; release through FreeDDElParam.
  *
  * \param Msg DDE message identifier.
  * \param UiLo Low DDE value.
@@ -32683,9 +31486,9 @@ extern
 LPARAM
 NTAPI
 PackDDElParam(
-    _In_ UINT Msg,
-    _In_ UINT_PTR UiLo,
-    _In_ UINT_PTR UiHi
+    _In_ ULONG Msg,
+    _In_ ULONG_PTR UiLo,
+    _In_ ULONG_PTR UiHi
     );
 
 // rev
@@ -32715,7 +31518,6 @@ PolyPatBlt(
  * The PrivateRegisterICSProc routine registers a private input-context-switch callback.
  *
  * \param Callback Pointer to the input-context-switch callback procedure.
- *
  * \returns The BOOL result described above.
  */
 NTSYSAPI
@@ -32727,8 +31529,7 @@ PrivateRegisterICSProc(
 
 // rev
 /**
- * The ReasonCodeNeedsBugID routine determines whether a shutdown reason code requires a bug
- * identifier.
+ * The ReasonCodeNeedsBugID routine determines whether a shutdown reason code requires a bug identifier.
  *
  * \param ReasonCode Shutdown reason code to test.
  * \returns BOOL TRUE if the code requires a bug identifier, FALSE otherwise.
@@ -32787,8 +31588,7 @@ RegisterLogonProcess(
 
 // rev
 /**
- * The RegisterServicesProcess routine registers the services (session 0) process with the window
- * manager.
+ * The RegisterServicesProcess routine registers the services (session 0) process with the window manager.
  *
  * \param ProcessId Process identifier of the services host.
  * \returns LOGICAL Non-zero on success, zero otherwise.
@@ -32883,8 +31683,7 @@ RemoveThreadTSFEventAwareness(
 
 // rev
 /**
- * The RemoveVisualIdentifier routine removes a visual identifier previously added with
- * AddVisualIdentifier.
+ * The RemoveVisualIdentifier routine removes a visual identifier previously added with AddVisualIdentifier.
  *
  * \param Luid Pointer to the locally unique identifier (LUID) to remove.
  * \returns ULONG_PTR Status code or result.
@@ -32914,10 +31713,10 @@ LPARAM
 NTAPI
 ReuseDDElParam(
     _In_ LPARAM LParam,
-    _In_ UINT MsgIn,
-    _In_ UINT MsgOut,
-    _In_ UINT_PTR UiLo,
-    _In_ UINT_PTR UiHi
+    _In_ ULONG MsgIn,
+    _In_ ULONG MsgOut,
+    _In_ ULONG_PTR UiLo,
+    _In_ ULONG_PTR UiHi
     );
 
 // rev
@@ -32956,12 +31755,10 @@ ScaleValues(
 
 // rev
 /**
- * The SetFeatureReportResponse routine sets HID feature report responses for synthetic or injected
- * devices.
+ * The SetFeatureReportResponse routine sets HID feature report responses for synthetic or injected devices.
  *
  * \param DeviceHandle A handle to the injection device.
- * \param Values An array of input injection value structures specifying the feature report
- *     response.
+ * \param Values An array of input injection value structures specifying the feature report response.
  * \param Count The number of items in the Values array.
  * \returns BOOL TRUE on success, FALSE on failure.
  * \remarks Forwards to the NtUserSetFeatureReportResponse system call.
@@ -32977,8 +31774,7 @@ SetFeatureReportResponse(
 
 // rev
 /**
- * The SetForegroundRedirectionForActivationObject routine sets foreground redirection for an
- * activation object.
+ * The SetForegroundRedirectionForActivationObject routine sets foreground redirection for an activation object.
  *
  * \param ActivationObject Pointer to the activation object.
  * \param RedirectionInfo Pointer to redirection information data.
@@ -33044,8 +31840,7 @@ SetProcessDpiAwarenessInternal(
 
 // rev
 /**
- * The SetProcessLaunchForegroundPolicy routine sets the foreground policy applied when the process
- * launches windows.
+ * The SetProcessLaunchForegroundPolicy routine sets the foreground policy applied when the process launches windows.
  *
  * \param ProcessId Client process identifier.
  * \param Policy Foreground policy flags.
@@ -33113,8 +31908,7 @@ SetThreadInputBlocked(
 
 // rev
 /**
- * The SetUserObjectCapability routine adds or removes a capability access-allowed ACE on a USER
- * object.
+ * The SetUserObjectCapability routine adds or removes a capability access-allowed ACE on a USER object.
  *
  * \param UserObjectHandle Handle to a USER object owned by the current process.
  * \param AccessMask Access rights for the capability access-allowed ACE.
@@ -33158,8 +31952,7 @@ SetVirtualResolution(
 
 // rev
 /**
- * The ShellHandwritingHandleDelegatedInput routine handles input delegated to the shell handwriting
- * surface.
+ * The ShellHandwritingHandleDelegatedInput routine handles input delegated to the shell handwriting surface.
  *
  * \param Input Pointer to input buffer containing handwriting data.
  * \param InputType Input event type.
@@ -33176,8 +31969,7 @@ ShellHandwritingHandleDelegatedInput(
 
 // rev
 /**
- * The ShellHandwritingUndelegateInput routine cancels input delegation to the shell handwriting
- * surface.
+ * The ShellHandwritingUndelegateInput routine cancels input delegation to the shell handwriting surface.
  *
  * \param ThreadId Target thread identifier.
  * \param InputType Input event type to cancel.
@@ -33212,8 +32004,7 @@ ShowStartGlass(
  * SignalRedirectionStartComplete
  *
  * Direct client thunk to NtUserSignalRedirectionStartComplete. Argument order and result are
- * forwarded unchanged. Kernel-side behavior is not independently implemented by this client
- * wrapper.
+ * forwarded unchanged. Kernel-side behavior is not independently implemented by this client wrapper.
  */
 NTSYSAPI
 LOGICAL
@@ -33239,7 +32030,7 @@ StartFormPage(
 // rev
 /**
  * The UnpackDDElParam routine unpacks pointer-sized DDE values into two output slots. Both outputs are
- * PUINT_PTR and written by the routine, not input pointers. No ownership is transferred by unpacking.
+ * PULONG_PTR and written by the routine, not input pointers. No ownership is transferred by unpacking.
  *
  * \param Msg DDE message identifier.
  * \param LParam Packed DDE message parameter.
@@ -33250,16 +32041,15 @@ extern
 BOOL
 NTAPI
 UnpackDDElParam(
-    _In_ UINT Msg,
+    _In_ ULONG Msg,
     _In_ LPARAM LParam,
-    _Out_ PUINT_PTR PuiLo,
-    _Out_ PUINT_PTR PuiHi
+    _Out_ PULONG_PTR PuiLo,
+    _Out_ PULONG_PTR PuiHi
     );
 
 // rev
 /**
- * The UnregisterSessionPort routine unregisters a session communication port from the window
- * manager.
+ * The UnregisterSessionPort routine unregisters a session communication port from the window manager.
  *
  * \param PortHandle Handle or identifier of the session port to unregister.
  * \returns ULONG_PTR Status code.
@@ -33347,8 +32137,7 @@ UserLpkPSMTextOut(
 /**
  * The UserLpkTabbedTextOut routine measures tab-separated text and optionally draws it.
  * AverageCharacterWidth supplies the default 8-character tab interval; CharacterHeight supplies empty-run
- * height. Returns packed width/height. Twelve ABI slots, with the last unused, not eleven pointer-valued
- * formatting arguments.
+ * height. Returns packed width/height. Twelve ABI slots, with the last unused, not eleven pointer-valued formatting arguments.
  *
  * \param Hdc Device context handle.
  * \param X Horizontal position.
@@ -33449,8 +32238,7 @@ UspAllocCache(
  * UspFreeMem
  *
  * Releases a language-pack allocation by value, not by address of the pointer. NULL returns
- * E_INVALIDARG (0x80070057). Returns HRESULT and does not clear the caller variable; free only
- * allocator-owned storage.
+ * E_INVALIDARG (0x80070057). Returns HRESULT and does not clear the caller variable; free only allocator-owned storage.
  */
 NTSYSAPI
 HRESULT
@@ -33506,8 +32294,7 @@ VTagOutput(
  * The WCSToMBEx routine converts into caller storage when Allocate is zero, otherwise allocates from the
  * USER heap. Returns a 32-bit destination character count for wide output or byte count for multibyte
  * output. Allocation-mode failure can free storage without clearing the output slot; never claim ownership
- * from a failed call. Source length -1 includes NUL; values below -1 fail. MbSize is signed and -1 requires
- * allocation.
+ * from a failed call. Source length -1 includes NUL; values below -1 fail. MbSize is signed and -1 requires allocation.
  *
  * \param CodePage Code page for conversion.
  * \param UnicodeString Unicode source or destination text.
@@ -33530,9 +32317,7 @@ WCSToMBEx(
 
 // rev
 /**
- * The WaitForRedirectionStartComplete routine waits for visual input redirection initialization to
- * complete.
- *
+ * The WaitForRedirectionStartComplete routine waits for visual input redirection initialization to complete.
  * \returns BOOL TRUE if successful, FALSE otherwise.
  * \remarks Forwards to the NtUserWaitForRedirectionStartComplete system call.
  */
@@ -33703,7 +32488,6 @@ hGetPEBHandle(
     );
 /**
  * The pldcGet routine retrieves a pointer to the local device context (LDC).
- *
  * \returns A pointer-sized status, handle, or value.
  */
 NTSYSAPI
