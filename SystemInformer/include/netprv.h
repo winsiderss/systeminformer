@@ -291,20 +291,20 @@ PhSetTcpEntry(
 
 NTSTATUS
 PhGetExtendedTcpTable(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
-    _Inout_ PULONG pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
+    _Out_writes_bytes_opt_(*SizePointer) PVOID TcpTable,
+    _Inout_ PULONG SizePointer,
+    _In_ BOOL Order,
+    _In_ ULONG Family,
     _In_ TCP_TABLE_CLASS TableClass,
     _In_ ULONG Reserved
     );
 
 NTSTATUS
 PhGetExtendedUdpTable(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
-    _Inout_ PULONG pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
+    _Out_writes_bytes_opt_(*SizePointer) PVOID UdpTable,
+    _Inout_ PULONG SizePointer,
+    _In_ BOOL Order,
+    _In_ ULONG Family,
     _In_ UDP_TABLE_CLASS TableClass,
     _In_ ULONG Reserved
     );
@@ -335,17 +335,13 @@ PhCancelMibChangeNotify2(
 NTSTATUS
 WINAPI
 PhInternalGetBoundTcpEndpointTable(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
+    _Outptr_ PMIB_TCPTABLE2* BoundTcpTable
     );
 
 NTSTATUS
 WINAPI
 PhInternalGetBoundTcp6EndpointTable(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
+    _Outptr_ PMIB_TCP6TABLE2* BoundTcpTable
     );
 
 NTSTATUS
@@ -454,3 +450,4 @@ PhCloseGetIPPhysicalInterfaceForDestination(
     );
 
 #endif
+

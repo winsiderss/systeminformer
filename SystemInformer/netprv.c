@@ -2238,7 +2238,7 @@ VOID PhQueryUdpExemptPortRange(
 
         // UdpExemptPortRange is only applied by the TCP/IP stack at boot. If the key was
         // modified after the last boot, the current value isn't active yet, so ignore it
-        // until the next restart.
+        // until the next restart. (dmex)
 
         if (
             NT_SUCCESS(PhQueryKeyLastWriteTime(keyHandle, &lastWriteTime)) &&
@@ -2268,7 +2268,7 @@ VOID PhQueryUdpExemptPortRange(
                     PH_STRINGREF remaining;
 
                     // Walk one null-terminated MULTI_SZ string at a time. Each string is a
-                    // list of comma-separated port ranges (e.g. "5000-5100,7000").
+                    // list of comma-separated port ranges (e.g. "5000-5100,7000"). (dmex)
 
                     remaining.Buffer = cursor;
                     remaining.Length = 0;

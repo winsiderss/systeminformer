@@ -255,7 +255,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Creates an LZMA2-compressed 7z archive from a source directory, excluding debug files and applying path transformations.
+        /// Creates an LZMA-compressed 7z archive, using BCJ2 for x86/x64 PE images.
         /// </summary>
         /// <param name="SourceDirectoryName">The path to the directory to compress.</param>
         /// <param name="DestinationArchiveFileName">The path where the 7z archive will be created.</param>
@@ -264,10 +264,33 @@ namespace CustomBuildTool
         public static void CreateCompressed7zFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None, bool FilterPlatforms = false)
         {
             var entries = GetCompressedFolderEntries(SourceDirectoryName, DestinationArchiveFileName, Flags, FilterPlatforms);
+            string encoder = FindSevenZipEncoder();
+
+            // Prefer 7-Zip for BCJ2; SharpCompress only supports plain LZMA/LZMA2.
+            if (encoder != null)
+            {
+                CreateSevenZipArchive(encoder, entries, DestinationArchiveFileName, Flags);
+                return;
+            }
+
+            var libarchive = FindLibArchive();
+
+            if (libarchive != null)
+            {
+                if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                    Program.PrintColorMessage("7-Zip not found, using archiveint.dll (LZMA, no BCJ2).", ConsoleColor.Yellow);
+
+                CreateLibArchiveSevenZipArchive(libarchive, entries, DestinationArchiveFileName, Flags);
+                return;
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                Program.PrintColorMessage("7-Zip not found, using SharpCompress (LZMA, no BCJ2).", ConsoleColor.Yellow);
+
             var progressReporter = new CompressionProgressReporter();
 
             using (var filestream = File.Create(DestinationArchiveFileName))
-            using (var archive = WriterFactory.OpenWriter(filestream, ArchiveType.SevenZip, new WriterOptions(CompressionType.LZMA2)
+            using (var archive = WriterFactory.OpenWriter(filestream, ArchiveType.SevenZip, new WriterOptions(CompressionType.LZMA)
             {
                 CompressionLevel = 0,
                 Progress = progressReporter

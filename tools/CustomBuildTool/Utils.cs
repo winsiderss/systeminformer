@@ -1018,7 +1018,7 @@ namespace CustomBuildTool
         /// <returns>The VsDevCmd -host_arch value: "arm64" or "amd64".</returns>
         private static string GetVsDevCmdHostArch(string InstallPath)
         {
-            if (RuntimeInformation.OSArchitecture != Architecture.Arm64)
+            if (RuntimeInformation.OSArchitecture is not Architecture.Arm64)
                 return "amd64";
 
             string msvcRoot = Path.Join([InstallPath, "VC\\Tools\\MSVC"]);
@@ -3203,7 +3203,7 @@ namespace CustomBuildTool
     public sealed unsafe class SecureBuffer : IDisposable
     {
         private IntPtr _buffer;
-        private nuint _regionSize;
+        private readonly nuint _regionSize;
         private readonly int _length;
 
         // NTSTATUS Constants
