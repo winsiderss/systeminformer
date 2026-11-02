@@ -24,6 +24,29 @@ typedef enum _PH_NETWORK_PROVIDER_FLAG
 
 extern ULONG PhNetworkProviderFlagsMask;
 
+NTSTATUS PhNsiAllocateAndGetTable(
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) PVOID* ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) PVOID* DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * StaticEntrySize) PVOID* StaticTable,
+    _In_ ULONG StaticEntrySize,
+    _Out_ PULONG Count,
+    _In_ ULONG Unused
+    );
+
+VOID PhNsiFreeTable(
+    _Frees_ptr_opt_ PVOID KeyTable,
+    _Frees_ptr_opt_ PVOID ReadWriteTable,
+    _Frees_ptr_opt_ PVOID DynamicTable,
+    _Frees_ptr_opt_ PVOID StaticTable
+    );
+
 // Defined in mainwnd.c; netprv.c reads the elapsed time actually spanned by the last provider run. (dmex)
 extern PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
 
