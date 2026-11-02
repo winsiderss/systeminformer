@@ -30,6 +30,7 @@ set(HEADERS
     "include/modprv.h"
     "include/netlist.h"
     "include/netprv.h"
+    "include/netsup.h"
     "include/notifico.h"
     "include/notificop.h"
     "include/notiftoast.h"
