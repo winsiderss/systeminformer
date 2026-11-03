@@ -11,29 +11,6 @@
 #define __WINDOT11_H__
 #endif
 
-//
-// Newer Windows SDK headers (netiodef.h pulls in mstcpip.h) use ASSERT() inside
-// inline helpers. When phnt's RtlAssert-based ASSERT macro is active, that
-// expands to RtlAssert before its prototype is visible. Neutralize ASSERT for
-// the duration of these includes, then restore it afterwards. The guard must
-// wrap netiodef.h as well, since it now includes mstcpip.h transitively.
-//
-#ifdef ASSERT
-#pragma push_macro("ASSERT")
-#undef ASSERT
-#define PHNT_RESTORE_ASSERT
-#ifdef ASSERTMSG
-#pragma push_macro("ASSERTMSG")
-#undef ASSERTMSG
-#define PHNT_RESTORE_ASSERTMSG
-#endif
-#endif
-
-#ifndef ASSERT
-#define PHNT_MSTCPIP_ASSERT_UNDEFINED
-#define ASSERT(exp) ((VOID)0)
-#endif
-
 #include <winsock2.h>
 #include <rpc.h>
 #include <ws2tcpip.h>
@@ -51,21 +28,6 @@
 #include <mstcpip.h>
 #include <tcpestats.h>
 #include <tcpmib.h>
-
-#ifdef PHNT_MSTCPIP_ASSERT_UNDEFINED
-#undef ASSERT
-#undef PHNT_MSTCPIP_ASSERT_UNDEFINED
-#endif
-
-#ifdef PHNT_RESTORE_ASSERT
-#undef PHNT_RESTORE_ASSERT
-#pragma pop_macro("ASSERT")
-#endif
-
-#ifdef PHNT_RESTORE_ASSERTMSG
-#undef PHNT_RESTORE_ASSERTMSG
-#pragma pop_macro("ASSERTMSG")
-#endif
 
 #ifndef _NETIODEF_
 typedef GUID NPIID, *PNPIID;
@@ -281,27 +243,18 @@ typedef enum _NSI_INTERFACE_INFORMATION_CLASS
 } NSI_INTERFACE_INFORMATION_CLASS;
 
 /**
- * The NSI_ICMP_OBJECT_ID values are the NSI object IDs of the ICMP echo provider (NPI_MS_IPV4_MODULEID or
- * NPI_MS_IPV6_MODULEID). NsiIcmpObjectEchoRequest is the object an ICMP handle registers a change notification on to
- * receive echo completions (ICMP_NOTIFICATION_MESSAGE).
- */
-typedef enum _NSI_ICMP_OBJECT_ID
-{
-    NsiIcmpObjectEchoRequest = 4,       // ICMP echo request object used for completion notifications.
-} NSI_ICMP_OBJECT_ID;
-
-/**
- * The NSI_ICMP_SET_ACTION_OBJECT_ID values are not object IDs: they are the NSI_SET_ACTION values passed to
- * NsiSetAllParameters on NsiIcmpObjectEchoRequest. tcpip!Ipv4/Ipv6SetAllEchoRequestParameters switch on the set action:
+ * The NSI_ICMP_SET_ACTION values are the NSI_SET_ACTION values passed to NsiSetAllParameters on NsiIpObjectEchoRequest
+ * (NPI_MS_IPV4_MODULEID or NPI_MS_IPV6_MODULEID). tcpip!Ipv4/Ipv6SetAllEchoRequestParameters switch on the set action:
  * NsiSetCreateOrSetWithReference submits an echo request (the key is ICMP_REQUEST_RW, followed by the ICMP_REQUEST_V4/V6
  * read/write block) and NsiSetDeleteWithReference acknowledges its completion; anything else fails with
- * STATUS_INVALID_PARAMETER. They are the same values as ICMP_NSI_SET_ALL_PARAMETERS_OBJECT_ID.
+ * STATUS_INVALID_PARAMETER. An ICMP handle registers a change notification on NsiIpObjectEchoRequest to receive echo
+ * completions (ICMP_NOTIFICATION_MESSAGE).
  */
-typedef enum _NSI_ICMP_SET_ACTION_OBJECT_ID
+typedef enum _NSI_ICMP_SET_ACTION
 {
-    NsiIcmpSetActionObjectSubmitEchoRequest = NsiSetCreateOrSetWithReference,   // Submit an ICMP echo request.
-    NsiIcmpSetActionObjectCompleteEchoRequest = NsiSetDeleteWithReference       // Acknowledge completion of an ICMP echo request.
-} NSI_ICMP_SET_ACTION_OBJECT_ID;
+    NsiIcmpSetActionSubmitEchoRequest = NsiSetCreateOrSetWithReference,   // Submit an ICMP echo request.
+    NsiIcmpSetActionCompleteEchoRequest = NsiSetDeleteWithReference       // Acknowledge completion of an ICMP echo request.
+} NSI_ICMP_SET_ACTION;
 
 /**
  * The NSI_FL_OBJECT_ID values are NSI object IDs of the framing-layer modules (NPI_MS_FL48_MODULEID for IPv4 and
@@ -412,40 +365,40 @@ typedef enum _NSI_IP_OBJECT_ID
     NsiIpObjectBestRoute = 0,                       // Key: NSI_IP_BEST_ROUTE_KEY4 / NSI_IP_BEST_ROUTE_KEY6 -- ROD: NSI_IP_BEST_ROUTE_ROD_V4 / NSI_IP_BEST_ROUTE_ROD_V6
     NsiIpObjectCompartmentForwarding = 1,           // Key: NET_IF_COMPARTMENT_ID; no blocks. SetAll only: NsiSetCreateOrSetWithReference / NsiSetDeleteWithReference toggle a compartment flag.
     NsiIpObjectCompartment = 2,                     // Key: NET_IF_COMPARTMENT_ID -- RW: NSI_IP_COMPARTMENT_RW -- ROD: NSI_IP_COMPARTMENT_ROD
-    NsiIpObjectIcmp = 3,                            // No key -- ROD: NSI_IP_ICMP_ROD (MIB_ICMP_EX_XPSP1)
-    NsiIpObjectEchoRequest = 4,                     // Key: ICMP_REQUEST_RW -- RW: the part of ICMP_REQUEST_V4 / ICMP_REQUEST_V6 after ReadWrite (0x48/0x58 bytes on x64) -- ROD 0x1C bytes. Same as NsiIcmpObjectEchoRequest.
-    NsiIpObjectEchoSequenceRequest = 5,             // No key -- ROD: NSI_IP_ECHO_SEQUENCE_REQUEST_ROD
-    NsiIpObjectGlobal = 6,                          // No key; RW: NSI_IP_GLOBAL_RW -- ROD: NSI_IP_STATISTICS_ROD
+    NsiIpObjectIcmp = 3,                            // Key: No key; ROD: NSI_IP_ICMP_ROD (MIB_ICMP_EX_XPSP1)
+    NsiIpObjectEchoRequest = 4,                     // Key: ICMP_REQUEST_RW -- RW: the part of ICMP_REQUEST_V4 / ICMP_REQUEST_V6 after ReadWrite (0x48/0x58 bytes on x64) -- ROD 0x1C bytes.
+    NsiIpObjectEchoSequenceRequest = 5,             // Key: No key; ROD: NSI_IP_ECHO_SEQUENCE_REQUEST_ROD
+    NsiIpObjectGlobal = 6,                          // Key: No key; RW: NSI_IP_GLOBAL_RW -- ROD: NSI_IP_STATISTICS_ROD
     NsiIpObjectIpInterface = 7,                     // Key: NET_LUID; RW: NSI_IP_INTERFACE_RW -- ROD: NSI_IP_INTERFACE_ROD -- ROS: NSI_IP_INTERFACE_ROS
     NsiIpObjectAnycastAddress = 8,                  // Key: MIB_IP_ANYCAST_KEY_ROW_V4 / MIB_IP_ANYCAST_KEY_ROW_V6
     NsiIpObjectMulticastAddress = 9,                // Key: NSI_IP_MULTICAST_ADDRESS_KEY_V4 / _V6 -- ROD: NSI_IP_MULTICAST_ADDRESS_ROD -- ROS: NSI_IP_MULTICAST_ADDRESS_ROS
     NsiIpObjectUnicastAddress = 10,                 // Key: MIB_IP_UNICAST_KEY_ROW_V4 / MIB_IP_UNICAST_KEY_ROW_V6 -- RW: MIB_IP_UNICAST_RW_ROW -- ROD: MIB_IP_UNICAST_DYNAMIC_ROW -- ROS: MIB_IP_UNICAST_STATIC_ROW
     NsiIpObjectNeighbor = 11,                       // Key: MIB_IP_NEIGHBOR_KEY_ROW_V4 / MIB_IP_NEIGHBOR_KEY_ROW_V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW
     NsiIpObjectPath = 12,                           // Key: NSI_IP_PATH_KEY_V4 / NSI_IP_PATH_KEY_V6 -- ROD: NSI_IP_PATH_ROD_V4 / NSI_IP_PATH_ROD_V6.
-    NsiIpObjectPotentialRouter = 13,                // IPv6 only. Key: NSI_IP_POTENTIAL_ROUTER_KEY -- ROD: NSI_IP_POTENTIAL_ROUTER_ROD
-    NsiIpObjectPrefixPolicy = 14,                   // IPv6 only. Key: NSI_IP_PREFIX_POLICY_KEY -- RW: NSI_IP_PREFIX_POLICY_RW
+    NsiIpObjectPotentialRouter = 13,                // Key: NSI_IP_POTENTIAL_ROUTER_KEY (IPv6 only) -- ROD: NSI_IP_POTENTIAL_ROUTER_ROD
+    NsiIpObjectPrefixPolicy = 14,                   // Key: NSI_IP_PREFIX_POLICY_KEY (IPv6 only) -- RW: NSI_IP_PREFIX_POLICY_RW
     NsiIpObjectProxyNeighbor = 15,                  // Key: NSI_IP_PROXY_NEIGHBOR_KEY_V4 / _V6 -- RW: NSI_IP_PROXY_NEIGHBOR_RW
     NsiIpObjectRoute = 16,                          // Key: MIB_IP_ROUTE_KEY_ROW_V4 / MIB_IP_ROUTE_KEY_ROW_V6 -- RW: MIB_IP_ROUTE_RW_ROW -- ROD: MIB_IP_ROUTE_DYNAMIC_ROW_V4 / MIB_IP_ROUTE_DYNAMIC_ROW_V6 -- ROS: MIB_IP_ROUTE_STATIC_ROW
-    NsiIpObjectSitePrefix = 17,                     // IPv6 only. Key: NSI_IP_SITE_PREFIX_KEY -- ROD: NSI_IP_SITE_PREFIX_ROD
+    NsiIpObjectSitePrefix = 17,                     // Key: NSI_IP_SITE_PREFIX_KEY (IPv6 only) -- ROD: NSI_IP_SITE_PREFIX_ROD
     NsiIpObjectSubInterface = 18,                   // Key: NSI_IP_SUB_INTERFACE_KEY -- RW: NSI_IP_SUB_INTERFACE_RW -- ROD: NSI_IP_SUB_INTERFACE_ROD
     NsiIpObjectWakeUpPattern = 19,                  // Key: NSI_IP_WAKE_UP_PATTERN_KEY; SetAll only (NsiSetCreateOrSet adds, NsiSetDelete removes).
     NsiIpObjectResolveNeighbor = 20,                // Key: NSI_IP_RESOLVE_NEIGHBOR_KEY_V4 / _V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW (ResolveIpNetEntry2).
-    NsiIpObjectSortedAddress = 21,                  // IPv6 only. Key: NSI_IP_SORTED_ADDRESS_KEY -- ROD: NSI_IP_SORTED_ADDRESS_ROD (CreateSortedAddressPairs).
+    NsiIpObjectSortedAddress = 21,                  // Key: NSI_IP_SORTED_ADDRESS_KEY (IPv6 only) -- ROD: NSI_IP_SORTED_ADDRESS_ROD (CreateSortedAddressPairs).
     NsiIpObjectMulticastForwarding = 22,            // Key: NSI_IP_MULTICAST_FORWARDING_KEY_V4 / _V6 -- RW: NSI_IP_MULTICAST_FORWARDING_RW -- ROD: NSI_IP_MULTICAST_FORWARDING_ROD
-    NsiIpObjectMulticastForwardingChange = 23,      // No key -- ROD: NSI_IP_MULTICAST_FORWARDING_CHANGE_ROD_V4 / _V6; change notifications only.
+    NsiIpObjectMulticastForwardingChange = 23,      // Key: No key; ROD: NSI_IP_MULTICAST_FORWARDING_CHANGE_ROD_V4 / _V6; change notifications only.
     NsiIpObjectInterfaceHop = 24,                   // Key: NET_LUID -- ROD: NSI_IP_INTERFACE_HOP_ROD
-    NsiIpObjectInterfaceUnprivileged = 25,          // IPv6 only. Key: NET_LUID; SetAll only (NsiSetClear restarts router discovery).
+    NsiIpObjectInterfaceUnprivileged = 25,          // Key: NET_LUID (IPv6 only); SetAll only (NsiSetClear restarts router discovery).
     NsiIpObjectTunnelPhysicalInterface = 26,        // Key: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_KEY -- RW 8 bytes (not used by GetAll) -- ROD: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_ROD
-    NsiIpObjectFeatureFallback = 27,                // IPv6 only. Key: NSI_IP_FEATURE_FALLBACK_KEY -- ROD: NSI_IP_FEATURE_FALLBACK_ROD; enumeration only.
-    NsiIpObjectAddressManager = 28,                 // NSI_IP_OBJECT_ADDRESS_MANAGER_RW_SIZE / NSI_IP_OBJECT_ADDRESS_MANAGER_ROS_SIZE (no handlers)
-    NsiIpObjectLocalityPrivate = 29,                // IPv6 only. No key -- RW: NSI_IP_LOCALITY_PRIVATE_RW; SetAll only.
-    NsiIpObjectBandwidth = 30,                      // NSI_IP_OBJECT_BANDWIDTH_RW_SIZE / NSI_IP_OBJECT_BANDWIDTH_ROS_SIZE (no handlers)
-    NsiIpObjectTimer = 31,                          // No key -- ROD: NSI_IP_TIMER_ROD
+    NsiIpObjectFeatureFallback = 27,                // Key: NSI_IP_FEATURE_FALLBACK_KEY (IPv6 only) -- ROD: NSI_IP_FEATURE_FALLBACK_ROD; enumeration only.
+    NsiIpObjectAddressManager = 28,                 // Key: No key; NSI_IP_OBJECT_ADDRESS_MANAGER_RW_SIZE / NSI_IP_OBJECT_ADDRESS_MANAGER_ROS_SIZE (no handlers)
+    NsiIpObjectLocalityPrivate = 29,                // Key: No key; RW: NSI_IP_LOCALITY_PRIVATE_RW (IPv6 only); SetAll only.
+    NsiIpObjectBandwidth = 30,                      // Key: No key; NSI_IP_OBJECT_BANDWIDTH_RW_SIZE / NSI_IP_OBJECT_BANDWIDTH_ROS_SIZE (no handlers)
+    NsiIpObjectTimer = 31,                          // Key: No key; ROD: NSI_IP_TIMER_ROD
     NsiIpObjectDisconnectInterface = 32,            // Key: NSI_IP_DISCONNECT_INTERFACE_KEY; SetAll only (NsiSetReset).
-    NsiIpObjectRouterInformation = 33,              // IPv6 only. Key: NET_LUID -- ROD: NSI_IP_ROUTER_INFORMATION_ROD
-    NsiIpObjectReloadRegistryConfig = 34,           // No key or blocks; SetParameter reloads the registry configuration.
-    NsiIpObjectSlaacSecretKey = 35,                 // IPv6 only. No key -- RW: NSI_IP_SLAAC_SECRET_KEY_RW (administrators and network operators only).
-    NsiIpObjectRoutingEpoch = 36                    // No key -- ROD: NSI_IP_ROUTING_EPOCH_ROD; change notifications only.
+    NsiIpObjectRouterInformation = 33,              // Key: Key: NET_LUID (IPv6 only) -- ROD: NSI_IP_ROUTER_INFORMATION_ROD
+    NsiIpObjectReloadRegistryConfig = 34,           // Key: No key; No blocks; SetParameter reloads the registry configuration.
+    NsiIpObjectSlaacSecretKey = 35,                 // Key: No key; RW: NSI_IP_SLAAC_SECRET_KEY_RW (IPv6 only) (administrators and network operators only).
+    NsiIpObjectRoutingEpoch = 36                    // Key: No key; ROD: NSI_IP_ROUTING_EPOCH_ROD; change notifications only.
 } NSI_IP_OBJECT_ID;
 
 /**
@@ -718,25 +671,6 @@ typedef enum _NSI_NDIS_SESSION_COMPARTMENT_PARAMETER_ID
 } NSI_NDIS_SESSION_COMPARTMENT_PARAMETER_ID;
 
 /**
- * The NSI_TABLE_ID values are the object IDs netsup.c passes to NsiAllocateAndGetTable to enumerate whole tables. The
- * module decides the meaning, so several names share a value (for example NsiTableIdUdp and NsiTableIdTcp are used with
- * NPI_MS_UDP_MODULEID and NPI_MS_TCP_MODULEID respectively).
- */
-typedef enum _NSI_TABLE_ID
-{
-    NsiTableIdUdp = 1,                                  // UDP endpoint table in NPI_MS_UDP_MODULEID.
-    NsiTableIdTcp = 3,                                  // TCP connection table in NPI_MS_TCP_MODULEID.
-    NsiTableIdCompartment = 7,                          // Network compartment table in NPI_MS_NDIS_MODULEID.
-    NsiTableIdIpAddress = 8,                            // Anycast address table in the IPv4 or IPv6 module.
-    NsiTableIdAnycastAddress = NsiTableIdIpAddress,     // Alias for the anycast address table ID.
-    NsiTableIdUnicastAddress = 10,                      // Unicast address table in the IPv4 or IPv6 module.
-    NsiTableIdNeighbor = 11,                            // Neighbor table in the IPv4 or IPv6 module.
-    NsiTableIdPrefixPolicy = 14,                        // Address selection prefix policy table in the IP module.
-    NsiTableIdIfStack = NsiTableIdPrefixPolicy,         // Interface stack table in NPI_MS_NDIS_MODULEID.
-    NsiTableIdRoute = 16                                // Routing table in the IPv4 or IPv6 module.
-} NSI_TABLE_ID;
-
-/**
  * The NSI_TCP_APPLIED_SETTING values identify the TCP setting template applied to a connection
  * (Get-NetTCPSetting: Internet, Datacenter, Compat and their custom variants). Reported in
  * NSI_TCP_STATUS_ROW.AppliedSetting.
@@ -763,28 +697,11 @@ typedef enum _NSI_TCP_ENUMERATE_CONNECTION_TYPE
 } NSI_TCP_ENUMERATE_CONNECTION_TYPE;
 
 /**
- * The MIB_TCP_ESTATS_TYPE values are the NSI object IDs of the per-connection TCP extended statistics (ESTATS) objects
- * of NPI_MS_TCP_MODULEID, keyed by NSI_ESTATS_TCP_KEY. netsup.c maps each TCP_ESTATS_TYPE value
- * (GetPerTcpConnectionEStats/SetPerTcpConnectionEStats) to one of them.
- */
-typedef enum _MIB_TCP_ESTATS_TYPE
-{
-    MibTcpEstatsTypeSynOpts = 6,        // TCP SYN option statistics.
-    MibTcpEstatsTypeData = 7,           // TCP data transfer statistics.
-    MibTcpEstatsTypeSndCong = 8,        // TCP sender congestion statistics.
-    MibTcpEstatsTypePath = 9,           // TCP network path statistics.
-    MibTcpEstatsTypeSendBuff = 10,      // TCP send buffer statistics.
-    MibTcpEstatsTypeRec = 11,           // TCP local receiver statistics.
-    MibTcpEstatsTypeObsRec = 12,        // TCP observed remote receiver statistics.
-    MibTcpEstatsTypeBandwidth = 14,     // TCP bandwidth estimation statistics.
-    MibTcpEstatsTypeFineRtt = 15        // TCP fine-grained round-trip time statistics.
-} MIB_TCP_ESTATS_TYPE;
-
-/**
  * The NSI_TCP_OBJECT_ID values are the NSI object IDs of the TCP module (NPI_MS_TCP_MODULEID): global statistics and
  * settings, connections, bound endpoints, and port reservations and exclusions. The table has 38 entries; IDs not listed
  * have no handlers. The port pool objects (18-20, 29, 34) are installed per compartment by tcpip!TcpCreateCompartment
- * (InetCreatePortPool). The connection ESTATS objects (6-15) are MIB_TCP_ESTATS_TYPE.
+ * (InetCreatePortPool). The connection ESTATS objects (6-15) are keyed by
+ * NSI_ESTATS_TCP_KEY; netsup.c maps each TCP_ESTATS_TYPE value to one of them.
  */
 typedef enum _NSI_TCP_OBJECT_ID
 {
@@ -794,6 +711,15 @@ typedef enum _NSI_TCP_OBJECT_ID
     NsiTcpObjectAllConnections = 3,             // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; connections and listeners (TcpEnumerateAllConnections).
     NsiTcpObjectBasicConnections = 4,           // Same blocks; connections only (TcpEnumerateBasicConnections).
     NsiTcpObjectListeningConnections = 5,       // Same blocks; listeners only (TcpEnumerateListeningConnections).
+    NsiTcpObjectEstatsSynOpts = 6,              // Key: NSI_ESTATS_TCP_KEY; TCP SYN option statistics.
+    NsiTcpObjectEstatsData = 7,                 // Key: NSI_ESTATS_TCP_KEY; TCP data transfer statistics.
+    NsiTcpObjectEstatsSndCong = 8,              // Key: NSI_ESTATS_TCP_KEY; TCP sender congestion statistics.
+    NsiTcpObjectEstatsPath = 9,                 // Key: NSI_ESTATS_TCP_KEY; TCP network path statistics.
+    NsiTcpObjectEstatsSendBuff = 10,            // Key: NSI_ESTATS_TCP_KEY; TCP send buffer statistics.
+    NsiTcpObjectEstatsRec = 11,                 // Key: NSI_ESTATS_TCP_KEY; TCP local receiver statistics.
+    NsiTcpObjectEstatsObsRec = 12,              // Key: NSI_ESTATS_TCP_KEY; TCP observed remote receiver statistics.
+    NsiTcpObjectEstatsBandwidth = 14,           // Key: NSI_ESTATS_TCP_KEY; TCP bandwidth estimation statistics.
+    NsiTcpObjectEstatsFineRtt = 15,             // Key: NSI_ESTATS_TCP_KEY; TCP fine-grained round-trip time statistics.
     NsiTcpObjectConnection = 16,                // Key: NSI_TCP_KEY_ROW (NSI_SET_TCP_ENTRY); no blocks. SetAll only; SetTcpEntry deletes the TCB through it.
     NsiTcpObjectSecurity = 17,                  // No key -- RW: NSI_TCP_SECURITY_RW (netsh tcp security mpp/profiles) -- ROD: NSI_TCP_SECURITY_ROD
     NsiTcpObjectPortPool = 18,                  // Per-compartment port pool.
@@ -1282,7 +1208,7 @@ typedef struct _ICMP_NOTIFICATION_MESSAGE
 
 /**
  * The ICMP_REQUEST_RW structure is the NSI key of an echo request (NsiSetAllParameters with
- * IcmpNsiSetAllObjectSubmitEchoRequest/CompleteEchoRequest). Tcpip.sys stores it with the request and returns it in the
+ * NsiIcmpSetActionSubmitEchoRequest/CompleteEchoRequest). Tcpip.sys stores it with the request and returns it in the
  * completion notification, which is how the caller finds its ICMP_ECHO_REQUEST_CONTEXT again.
  */
 typedef struct _ICMP_REQUEST_RW
@@ -1362,17 +1288,6 @@ typedef struct _ICMP_REQUEST_V6
         IPv6Addr DestinationAddressValue;
     } DUMMYUNIONNAME2;
 } ICMP_REQUEST_V6, *PICMP_REQUEST_V6;
-
-/**
- * The ICMP_NSI_SET_ALL_PARAMETERS_OBJECT_ID values are the NSI_SET_ACTION values netsup.c passes to NsiSetAllParameters
- * on NsiIcmpObjectEchoRequest to submit an echo request and to acknowledge its completion (see
- * NSI_ICMP_SET_ACTION_OBJECT_ID; despite the name they are not object IDs).
- */
-typedef enum _ICMP_NSI_SET_ALL_PARAMETERS_OBJECT_ID
-{
-    IcmpNsiSetAllObjectSubmitEchoRequest = NsiSetCreateOrSetWithReference, // Submit an ICMP echo request with its read/write parameters.
-    IcmpNsiSetAllObjectCompleteEchoRequest = NsiSetDeleteWithReference     // Acknowledge completion of an ICMP echo request.
-} ICMP_NSI_SET_ALL_PARAMETERS_OBJECT_ID;
 
 /**
  * The NSI_COUNTED_WCHAR_PARAMETER structure is a counted Unicode string as NSI providers return it for single string
@@ -4706,6 +4621,928 @@ typedef struct _NSI_IP_ROUTING_EPOCH_ROD
     ULONG Epoch;
 } NSI_IP_ROUTING_EPOCH_ROD, *PNSI_IP_ROUTING_EPOCH_ROD;
 
+//
+// NSI Functions
+//
+
+/**
+ * Allocates separate NSI key, read-write, dynamic and static tables; entry sizes are bytes and Count is the
+ * row count. Release returned allocations with NsiFreeTable. The thirteenth ULONG argument is required by the
+ * x86 ABI (52 stack bytes); inspected callers pass both 0 and 1. It is not read by the inspected
+ * implementations, so no flag meaning or must-be-zero rule is asserted. A zero-sized table can leave its
+ * output slot untouched; initialize optional slots before calling. This routine performs NSI device I/O.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiAllocateAndGetTable(
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) PVOID* ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) PVOID* DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * StaticEntrySize) PVOID* StaticTable,
+    _In_ ULONG StaticEntrySize,
+    _Out_ PULONG Count,
+    _In_ ULONG Unused
+    );
+
+/**
+ * The NsiAllocateAndGetPersistentDataWithMaskTable routine enumerates the persistent store of an NSI object and returns
+ * heap-allocated key, data and mask tables (one row per persisted instance). Used to read back configuration that has been
+ * written with NsiSetAllPersistentParametersWithMask, e.g. Persisted interface or route settings.
+ *
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to query.
+ * \param[out] KeyTable Optional; receives the allocated key table (*Count rows of KeyEntrySize bytes). Not allocated when KeyEntrySize is 0.
+ * \param[in] KeyEntrySize The size of each key entry in bytes.
+ * \param[out] ParameterDataTable Optional; receives the allocated parameter data table (*Count rows of ParameterDataEntrySize bytes).
+ * \param[out] ParameterMaskTable Optional; receives the allocated mask table. It has the same row size as the data table.
+ * \param[in] ParameterDataEntrySize The size of each data row and each mask row in bytes. Neither table is allocated when 0.
+ * \param[out] Count Receives the number of rows returned.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Free the tables with NsiFreePersistentDataWithMaskTable. The routine sizes the tables with a count query and retries
+ * up to three times while the store keeps growing (ERROR_MORE_DATA). 
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiAllocateAndGetPersistentDataWithMaskTable(
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterDataTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterMaskTable,
+    _In_ ULONG ParameterDataEntrySize,
+    _Out_ PULONG Count
+    );
+
+/**
+ * The NsiDeregisterChangeNotification routine unregisters an NSI change notification callback.
+ *
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] NotificationHandle Optional handle to the notification registration to deregister.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiDeregisterChangeNotification(
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ HANDLE NotificationHandle
+    );
+
+/**
+ * The NsiCancelChangeNotification routine cancels a pending NSI change notification request.
+ *
+ * \param[in] NotificationHandle Optional handle to the change notification to cancel.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiCancelChangeNotification(
+    _In_opt_ HANDLE NotificationHandle
+    );
+
+/**
+ * The NsiDeregisterChangeNotificationEx routine unregisters an extended NSI change notification callback.
+ *
+ * \param[in,out] Request A pointer to the extended deregistration request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiDeregisterChangeNotificationEx(
+    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
+    );
+
+/**
+ * The NsiEnumerateObjectsAllParameters routine enumerates all objects and parameters for an NSI module object.
+ *
+ * \param[in] Store The NSI store to query (active or persistent).
+ * \param[in] Action NsiGetFirst to enumerate from the beginning (what NsiAllocateAndGetTable and IP Helper pass) or NsiGetNext to
+ *        continue after the key in KeyTable[0]. netio.sys rejects any other value with STATUS_INVALID_PARAMETER.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to enumerate.
+ * \param[in,out] KeyTable Optional buffer receiving the array of key entries.
+ * \param[in] KeyEntrySize The size of each key entry in bytes.
+ * \param[in,out] ReadWriteTable Optional buffer receiving read-write entries.
+ * \param[in] ReadWriteEntrySize The size of each read-write entry in bytes.
+ * \param[in,out] DynamicTable Optional buffer receiving dynamic read-only entries.
+ * \param[in] DynamicEntrySize The size of each dynamic read-only entry in bytes.
+ * \param[in,out] StaticTable Optional buffer receiving static read-only entries.
+ * \param[in] StaticEntrySize The size of each static read-only entry in bytes.
+ * \param[in,out] Count A pointer specifying capacity and receiving the number of entries returned.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiEnumerateObjectsAllParameters(
+    _In_ NSI_STORE Store,
+    _In_ NSI_GET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
+    _In_ ULONG StaticEntrySize,
+    _Inout_ PULONG Count
+    );
+
+/**
+ * The NsiEnumerateObjectsAllParametersEx routine enumerates all objects and parameters using an extended request structure.
+ *
+ * \param[in,out] Request A pointer to the extended enumeration request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiEnumerateObjectsAllParametersEx(
+    _Inout_ PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX Request
+    );
+
+/**
+ * The NsiEnumerateObjectsAllPersistentParametersWithMask routine enumerates the persistent store of an NSI object into
+ * caller-supplied key, data and mask tables (IOCTL 0x120047). Pass NULL tables to obtain the row count only.
+ *
+ * \param[in] Action Must be NsiGetFirst (the value NsiAllocateAndGetPersistentDataWithMaskTable passes). nsiproxy.sys forwards it
+ *        to the same netio.sys check that validates NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX.Action for persistent enumeration,
+ *        which fails anything else with STATUS_NOT_IMPLEMENTED.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to enumerate.
+ * \param[out] KeyTable Optional buffer receiving *Count key entries.
+ * \param[in] KeyEntrySize The size of each key entry in bytes.
+ * \param[out] ParameterDataTable Optional buffer receiving *Count parameter data rows.
+ * \param[out] ParameterMaskTable Optional buffer receiving *Count parameter mask rows.
+ * \param[in] ParameterDataEntrySize The size of each data row and each mask row in bytes.
+ * \param[in,out] Count On input, the capacity of the tables in rows; on output, the number of rows (also on ERROR_MORE_DATA).
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiEnumerateObjectsAllPersistentParametersWithMask(
+    _In_ NSI_GET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Out_writes_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterDataTable,
+    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterMaskTable,
+    _In_ ULONG ParameterDataEntrySize,
+    _Inout_ PULONG Count
+    );
+
+/**
+ * The NsiGetParameter routine reads one field of one NSI object instance, e.g. The interface index for an interface LUID
+ * (ConvertInterfaceLuidToIndex) or the alias of an interface (ConvertInterfaceLuidToAlias).
+ *
+ * \param[in] Store The NSI store to query.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ParameterType The row that contains the field (read-write, read-only dynamic or read-only static).
+ * \param[out] ParameterBuffer Optional buffer receiving the field value.
+ * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes (the number of bytes copied from the row).
+ * \param[in] ParameterOffset The byte offset of the field within the ParameterType row (e.g. FIELD_OFFSET of the row struct).
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks For example, ParameterType 2, ParameterOffset 536 for the
+ * interface GUID in the NDIS interface static row.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetParameter(
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_ NSI_PARAMETER_TYPE ParameterType,
+    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
+    _In_ ULONG ParameterOffset
+    );
+
+/**
+ * The NsiGetParameterEx routine retrieves a single parameter using an extended request structure.
+ *
+ * \param[in,out] Request A pointer to the extended parameter retrieval request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetParameterEx(
+    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
+    );
+
+/**
+ * The NsiGetAllParameters routine retrieves all parameters for a single NSI object instance.
+ *
+ * \param[in] Store The NSI store to query.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[out] ReadWriteBuffer Optional buffer receiving read-write parameters.
+ * \param[in] ReadWriteBufferSize The size of the read-write buffer in bytes.
+ * \param[out] DynamicBuffer Optional buffer receiving dynamic read-only parameters.
+ * \param[in] DynamicBufferSize The size of the dynamic read-only buffer in bytes.
+ * \param[out] StaticBuffer Optional buffer receiving static read-only parameters.
+ * \param[in] StaticBufferSize The size of the static read-only buffer in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetAllParameters(
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize,
+    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
+    _In_ ULONG DynamicBufferSize,
+    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
+    _In_ ULONG StaticBufferSize
+    );
+
+/**
+ * The NsiGetAllParametersEx routine retrieves all parameters using an extended request structure.
+ *
+ * \param[in,out] Request A pointer to the extended request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetAllParametersEx(
+    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
+    );
+
+/**
+ * The NsiSetParameter routine writes one field of one NSI object instance, e.g. The administrative status of
+ * an interface (SetIfEntry) or the extended TCP statistics collection switches of a connection
+ * (SetPerTcpConnectionEStats).
+ *
+ * \param[in] Store The NSI store to update.
+ * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance,
+ * NsiSetCreateOnly, NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the
+ * reference-counted NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by
+ * EnableRouter/UnenableRouter).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ParameterType The row that contains the field (normally NsiParameterTypeReadWrite).
+ * \param[in] ParameterBuffer Optional buffer containing the new field value.
+ * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
+ * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetParameter(
+    _In_ NSI_STORE Store,
+    _In_ NSI_SET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_ NSI_PARAMETER_TYPE ParameterType,
+    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
+    _In_ ULONG ParameterOffset
+    );
+
+/**
+ * The NsiSetParameterEx routine sets a single parameter using an extended request structure.
+ *
+ * \param[in,out] Request A pointer to the extended parameter set request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetParameterEx(
+    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
+    );
+
+/**
+ * The NsiSetAllParameters routine creates, updates, deletes or flushes an NSI object instance by writing its whole read-write
+ * row. This is how iphlpapi implements CreateIpForwardEntry2/DeleteIpForwardEntry2, CreateIpNetEntry/DeleteIpNetEntry,
+ * AddIPAddress/DeleteIPAddress, SetIpInterfaceEntry, FlushIpNetTable and SetTcpEntry (closing a TCP connection).
+ *
+ * \param[in] Store The NSI store to update (NsiPersistent, NsiActive or NsiBoth).
+ * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance, NsiSetCreateOnly,
+ *        NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the reference-counted
+ *        NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by EnableRouter/UnenableRouter).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key Optional pointer to the key identifying the object instance (e.g. The interface LUID, or LUID + address).
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ReadWriteBuffer Optional read-write row to write. Usually NULL for NsiSetDelete and NsiSetReset.
+ * \param[in] ReadWriteBufferSize The size of ReadWriteBuffer in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Uses IOCTL 0x120013 with a 0x48-byte request. For example,
+ *          InternalSetIpInterfaceEntry: NsiSetAllParameters(NsiActive, NsiSetDefault, ModuleId, 7, &Luid, 8, &RwRow, 240).
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetAllParameters(
+    _In_ NSI_STORE Store,
+    _In_ NSI_SET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize
+    );
+
+/**
+ * The NsiSetAllParametersEx routine sets all parameters using an extended request structure.
+ *
+ * \param[in,out] Request A pointer to the extended request structure.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetAllParametersEx(
+    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRegisterChangeNotification routine registers a callback to receive NSI change notifications.
+ *
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to observe.
+ * \param[in] ChangeCallback Must be NULL in user mode: nsi.dll fails the request with ERROR_INVALID_PARAMETER when a callback is
+ *        supplied (callbacks are only honoured for kernel-mode NSI clients). User-mode callers should use
+ *        NsiRpcRegisterChangeNotification or NsiRequestChangeNotification instead.
+ * \param[in] NotifyCurrent TRUE to notify immediately of current state; FALSE otherwise.
+ * \param[in] CallerContext Optional context value passed to the callback function.
+ * \param[out] NotificationHandle Receives a handle to the change notification registration.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiRegisterChangeNotification(
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
+    _In_ BOOLEAN NotifyCurrent,
+    _In_opt_ PVOID CallerContext,
+    _Outptr_result_maybenull_ PHANDLE NotificationHandle
+    );
+
+/**
+ * The NsiRegisterChangeNotificationEx routine registers an extended change notification (IOCTL 0x12001F, 0x48-byte request).
+ *
+ * \param[in,out] Request A pointer to the extended registration request structure. ChangeCallback must be NULL in user
+ *        mode (ERROR_INVALID_PARAMETER otherwise).
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiRegisterChangeNotificationEx(
+    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRequestChangeNotification routine requests asynchronous change notifications for an NSI object.
+ *
+ * \param[in] ModuleHandle The NSI module handle, or 0 to identify the module by ModuleId (IP Helper always passes 0).
+ *        This is not a flags value: nsiproxy.sys copies it into the module identity of the kernel registration, and netio.sys
+ *        resolves a non-zero value through its module handle table (the value NsiGetModuleHandle returns in kernel mode).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The object index to monitor.
+ * \param[in] Overlapped Optional pointer to an OVERLAPPED structure for asynchronous completion.
+ * \param[out] NotificationHandle Receives a notification handle.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiRequestChangeNotification(
+    _In_ ULONG ModuleHandle,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ LPOVERLAPPED Overlapped,
+    _Out_ PHANDLE NotificationHandle
+    );
+
+/**
+ * The NsiRequestChangeNotificationEx routine requests an asynchronous change notification for an NSI object
+ * (IOCTL 0x12003F). The request completes through Request->Overlapped when the object changes, which lets user-mode
+ * callers wait for changes without a callback.
+ *
+ * \param[in,out] Request A pointer to the notification request (0x28 bytes). When Request->Overlapped is not NULL and
+ *        Request->NotificationHandle is not NULL, the NSI device handle used for the request is stored in
+ *        *Request->NotificationHandle so it can be passed to NsiCancelChangeNotification or GetOverlappedResult.
+ * \return A Win32 error code (ERROR_IO_PENDING for an overlapped request that has not completed yet).
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiRequestChangeNotificationEx(
+    _Inout_ PNSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST Request
+    );
+
+/**
+ * The NsiGetAllPersistentParametersWithMask routine reads the persisted (registry-backed) configuration of
+ * one NSI object instance together with a mask that marks which fields have actually been persisted, e.g. The
+ * persisted settings of an IP interface.
+ *
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[out] ParameterData Optional buffer receiving the persisted row.
+ * \param[out] ParameterMask Optional buffer receiving the field mask (same size as ParameterData; 0xFF bytes mark
+ * persisted fields).
+ * \param[in] ParameterDataSize The size of ParameterData and of ParameterMask in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetAllPersistentParametersWithMask(
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterData,
+    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
+    _In_ ULONG ParameterDataSize
+    );
+
+/**
+ * The NsiSetAllPersistentParametersWithMask routine writes the persisted (registry-backed) configuration of one NSI object
+ * instance, merging only the fields selected by the mask, e.g. SetIpInterfaceEntry persisting changed interface settings.
+ *
+ * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance, NsiSetCreateOnly,
+ *        NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the reference-counted
+ *        NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by EnableRouter/UnenableRouter).
+ *        netio.sys validates the value (NsiSetReset and NsiSetClear are handled specially); iphlpapi passes NsiSetCreateOrSet.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ParameterData Optional buffer containing the row to persist.
+ * \param[in] ParameterMask Optional field mask (same size as ParameterData; 0xFF bytes select the fields to persist).
+ * \param[in] ParameterDataSize The size of ParameterData and of ParameterMask in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetAllPersistentParametersWithMask(
+    _In_ NSI_SET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterData,
+    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
+    _In_ ULONG ParameterDataSize
+    );
+
+/**
+ * The NsiGetObjectSecurity routine queries an NSI information object's security descriptor through IOCTL 0x120037.
+ *
+ * \param[in,out] Request The input/output security request.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiGetObjectSecurity(
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
+    );
+
+/**
+ * The NsiSetObjectSecurity routine changes an NSI information object's security descriptor through IOCTL 0x12003B.
+ *
+ * \param[in,out] Request The input/output security request.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+NTAPI
+NsiSetObjectSecurity(
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
+    );
+
+/**
+ * The NsiConnectToServer routine creates and configures a local ncalrpc binding for NSI RPC calls. A
+ * non-NULL Reserved argument returns NULL before binding creation without setting a new last error.
+ * Binding-creation failures do set last error. Release successful bindings with NsiDisconnectFromServer.
+ * Binding creation alone does not query an NSI table.
+ *
+ * \param[in] Reserved Must be NULL.
+ * \return An RPC binding handle, or NULL on failure.
+ */
+NTSYSAPI
+RPC_BINDING_HANDLE
+WINAPI
+NsiConnectToServer(
+    _Reserved_ PVOID Reserved
+    );
+
+/**
+ * The NsiDisconnectFromServer routine releases the RPC binding value through RpcBindingFree using a
+ * temporary local slot. The caller variable is not cleared; discard its value after successful cleanup. This
+ * releases a binding, not the remote server.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle to release.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiDisconnectFromServer(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle
+    );
+
+/**
+ * The NsiFreePersistentDataWithMaskTable routine frees the key, data and mask allocations from the
+ * persistent-table allocator using the NSI heap. Each pointer is optional. Pass allocation values, not
+ * output-slot addresses. Caller variables are not cleared, and there is no status result.
+ *
+ * \param[in] KeyTable Optional key-table allocation to free.
+ * \param[in] ParameterDataTable Optional parameter-data allocation to free.
+ * \param[in] ParameterMaskTable Optional parameter-mask allocation to free.
+ */
+NTSYSAPI
+VOID
+NTAPI
+NsiFreePersistentDataWithMaskTable(
+    _Frees_ptr_opt_ PVOID KeyTable,
+    _Frees_ptr_opt_ PVOID ParameterDataTable,
+    _Frees_ptr_opt_ PVOID ParameterMaskTable
+    );
+
+/**
+ * The NsiFreeTable routine frees up to four independent NSI table allocations using the NSI heap. NULL
+ * entries are skipped. Pass allocation values returned by NsiAllocateAndGetTable, not output-slot addresses.
+ * Caller variables are not cleared, and there is no status result. Repeated allocation values would cause
+ * repeated frees.
+ *
+ * \param[in] KeyTable Optional key-table allocation to free.
+ * \param[in] ReadWriteTable Optional read/write table allocation to free.
+ * \param[in] DynamicTable Optional read-only dynamic table allocation to free.
+ * \param[in] StaticTable Optional read-only static table allocation to free.
+ */
+NTSYSAPI
+VOID
+NTAPI
+NsiFreeTable(
+    _Frees_ptr_opt_ PVOID KeyTable,
+    _Frees_ptr_opt_ PVOID ReadWriteTable,
+    _Frees_ptr_opt_ PVOID DynamicTable,
+    _Frees_ptr_opt_ PVOID StaticTable
+    );
+
+/**
+ * The NsiRpcDeregisterChangeNotification routine unregisters an NSI change notification that was registered over RPC.
+ *
+ * \param[in] RpcHandle The RPC binding handle used for the registration (required; NULL fails with ERROR_INVALID_PARAMETER).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] NotificationHandle The handle returned by NsiRpcRegisterChangeNotification.
+ * \return A Win32 error code. ERROR_SUCCESS on success; ERROR_INVALID_PARAMETER if the handle is unknown.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcDeregisterChangeNotification(
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ HANDLE NotificationHandle
+    );
+
+/**
+ * The NsiRpcDeregisterChangeNotificationEx routine unregisters a change notification that was registered over RPC.
+ *
+ * \param[in] RpcHandle The RPC binding handle used for the registration (required; NULL fails with ERROR_INVALID_PARAMETER).
+ * \param[in,out] Request The deregistration request; NotificationHandle is the handle returned at registration.
+ * \return A Win32 error code. ERROR_SUCCESS on success; ERROR_INVALID_PARAMETER if the handle is unknown.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcDeregisterChangeNotificationEx(
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRpcEnumerateObjectsAllParameters routine enumerates all instances of an NSI object, locally or through the NSI RPC
+ * server. Same parameters and results as NsiEnumerateObjectsAllParameters.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally
+ *        through the matching nsi.dll routine (no RPC).
+ * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
+ * \param[in] Action NsiGetFirst to enumerate from the beginning (what NsiAllocateAndGetTable and IP Helper pass) or NsiGetNext to
+ *        continue after the key in KeyTable[0]. netio.sys rejects any other value with STATUS_INVALID_PARAMETER.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to enumerate.
+ * \param[in,out] KeyTable Optional buffer receiving key entries.
+ * \param[in] KeyEntrySize The size of each key entry in bytes.
+ * \param[in,out] ReadWriteTable Optional buffer receiving read-write entries.
+ * \param[in] ReadWriteEntrySize The size of each read-write entry in bytes.
+ * \param[in,out] DynamicTable Optional buffer receiving dynamic read-only entries.
+ * \param[in] DynamicEntrySize The size of each dynamic read-only entry in bytes.
+ * \param[in,out] StaticTable Optional buffer receiving static read-only entries.
+ * \param[in] StaticEntrySize The size of each static read-only entry in bytes.
+ * \param[in,out] Count A pointer specifying capacity and receiving the number of entries returned.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcEnumerateObjectsAllParameters(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
+    _In_ NSI_GET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
+    _In_ ULONG StaticEntrySize,
+    _Inout_ PULONG Count
+    );
+
+/**
+ * The NsiRpcGetAllParameters routine retrieves all parameters of one NSI object instance, locally or through the NSI RPC
+ * server. Same parameters and results as NsiGetAllParameters.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[out] ReadWriteBuffer Optional buffer receiving read-write parameters.
+ * \param[in] ReadWriteBufferSize The size of the read-write buffer in bytes.
+ * \param[out] DynamicBuffer Optional buffer receiving dynamic read-only parameters.
+ * \param[in] DynamicBufferSize The size of the dynamic read-only buffer in bytes.
+ * \param[out] StaticBuffer Optional buffer receiving static read-only parameters.
+ * \param[in] StaticBufferSize The size of the static read-only buffer in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcGetAllParameters(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize,
+    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
+    _In_ ULONG DynamicBufferSize,
+    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
+    _In_ ULONG StaticBufferSize
+    );
+
+/**
+ * The NsiRpcGetAllParametersEx routine is the request-structure form of NsiRpcGetAllParameters.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in,out] Request A pointer to the request (passed to NsiGetAllParametersEx when RpcHandle is NULL).
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcGetAllParametersEx(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRpcGetParameter routine reads one field of one NSI object instance, locally or through the NSI RPC server.
+ * Same parameters and results as NsiGetParameter.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ParameterType The row that contains the field.
+ * \param[out] ParameterBuffer Optional buffer receiving the field value.
+ * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
+ * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcGetParameter(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_ NSI_PARAMETER_TYPE ParameterType,
+    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
+    _In_ ULONG ParameterOffset
+    );
+
+/**
+ * The NsiRpcGetParameterEx routine is the request-structure form of NsiRpcGetParameter.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in,out] Request A pointer to the request (passed to NsiGetParameterEx when RpcHandle is NULL).
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcGetParameterEx(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRpcRegisterChangeNotification routine registers a user-mode callback for NSI change notifications. Unlike
+ * NsiRegisterChangeNotification it accepts a callback, because the notification is delivered by the NSI RPC server and
+ * dispatched in the caller's process by winnsi.dll (used by System Informer for ICMP echo/ping notifications).
+ *
+ * \param[in] RpcHandle An RPC binding handle from NsiConnectToServer (required; NULL fails with ERROR_INVALID_PARAMETER).
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object to observe (for ICMP, NsiIpObjectEchoRequest).
+ * \param[in] ChangeCallback Optional pointer to the callback routine.
+ * \param[in] NotifyCurrent TRUE to notify immediately of current state; FALSE otherwise.
+ * \param[in] CallerContext Optional context value passed to the callback routine.
+ * \param[out] NotificationHandle Optional pointer receiving a notification handle for NsiRpcDeregisterChangeNotification.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcRegisterChangeNotification(
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
+    _In_ BOOLEAN NotifyCurrent,
+    _In_opt_ PVOID CallerContext,
+    _Out_opt_ PHANDLE NotificationHandle
+    );
+
+/**
+ * The NsiRpcRegisterChangeNotificationEx routine is the request-structure form of NsiRpcRegisterChangeNotification.
+ *
+ * \param[in] RpcHandle An RPC binding handle from NsiConnectToServer (required; NULL fails with ERROR_INVALID_PARAMETER).
+ * \param[in,out] Request The registration request. When both ScopeOrCompartment fields are 0, winnsi.dll fills them in by querying the NDIS module (object 8) before registering.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcRegisterChangeNotificationEx(
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRpcSetAllParameters routine creates, updates, deletes or flushes an NSI object instance, locally or through the NSI
+ * RPC server. Same parameters and results as NsiSetAllParameters.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in] Store The NSI store to update. NsiCurrent is rejected over RPC (ERROR_INVALID_PARAMETER).
+ * \param[in] Action The set action (NSI_SET_ACTION); see NsiSetAllParameters.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key Optional pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ReadWriteBuffer Optional read-write row to write.
+ * \param[in] ReadWriteBufferSize The size of ReadWriteBuffer in bytes.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcSetAllParameters(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
+    _In_ NSI_SET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize
+    );
+
+/**
+ * The NsiRpcSetAllParametersEx routine is the request-structure form of NsiRpcSetAllParameters.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in,out] Request A pointer to the request (passed to NsiSetAllParametersEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcSetAllParametersEx(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
+    );
+
+/**
+ * The NsiRpcSetParameter routine writes one field of one NSI object instance, locally or through the NSI RPC server.
+ * Same parameters and results as NsiSetParameter.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in] Store The NSI store to update. NsiCurrent is rejected over RPC (ERROR_INVALID_PARAMETER).
+ * \param[in] Action The set action (NSI_SET_ACTION); see NsiSetParameter.
+ * \param[in] ModuleId A pointer to the NPI module identifier.
+ * \param[in] ObjectId The identifier of the NSI object.
+ * \param[in] Key A pointer to the key identifying the object instance.
+ * \param[in] KeySize The size of the key in bytes.
+ * \param[in] ParameterType The row that contains the field.
+ * \param[in] ParameterBuffer Optional buffer containing the new field value.
+ * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
+ * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcSetParameter(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
+    _In_ NSI_SET_ACTION Action,
+    _In_ PNPI_MODULEID ModuleId,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_reads_bytes_opt_(KeySize) PVOID Key,
+    _In_ ULONG KeySize,
+    _In_ NSI_PARAMETER_TYPE ParameterType,
+    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
+    _In_ ULONG ParameterOffset
+    );
+
+/**
+ * The NsiRpcSetParameterEx routine is the request-structure form of NsiRpcSetParameter.
+ *
+ * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
+ * \param[in,out] Request A pointer to the request (passed to NsiSetParameterEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
+ * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ */
+NTSYSAPI
+ULONG
+WINAPI
+NsiRpcSetParameterEx(
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
+    );
+
+
 static_assert(sizeof(NSI_IP_ECHO_SEQUENCE_REQUEST_ROD) == 0x4);
 static_assert(sizeof(NSI_IP_MULTICAST_ADDRESS_ROD) == 0xC);
 static_assert(sizeof(NSI_IP_POTENTIAL_ROUTER_KEY) == 0x18);
@@ -5787,922 +6624,5 @@ static_assert(FIELD_OFFSET(NSI_UDP_OWNER_ROW, Flags) == 16);
 static_assert(FIELD_OFFSET(NSI_UDP_STATUS_ROW, RemoteAddress) == 0);
 static_assert(FIELD_OFFSET(NSI_UDP_STATUS_ROW, TrafficClass) == 28);
 static_assert(sizeof(NSI_STRING_256) == 516);
-
-/**
- * Allocates separate NSI key, read-write, dynamic and static tables; entry sizes are bytes and Count is the
- * row count. Release returned allocations with NsiFreeTable. The thirteenth ULONG argument is required by the
- * x86 ABI (52 stack bytes); inspected callers pass both 0 and 1. It is not read by the inspected
- * implementations, so no flag meaning or must-be-zero rule is asserted. A zero-sized table can leave its
- * output slot untouched; initialize optional slots before calling. This routine performs NSI device I/O.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiAllocateAndGetTable(
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) PVOID* ReadWriteTable,
-    _In_ ULONG ReadWriteEntrySize,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) PVOID* DynamicTable,
-    _In_ ULONG DynamicEntrySize,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * StaticEntrySize) PVOID* StaticTable,
-    _In_ ULONG StaticEntrySize,
-    _Out_ PULONG Count,
-    _In_ ULONG Unused
-    );
-
-/**
- * The NsiAllocateAndGetPersistentDataWithMaskTable routine enumerates the persistent store of an NSI object and returns
- * heap-allocated key, data and mask tables (one row per persisted instance). Used to read back configuration that has been
- * written with NsiSetAllPersistentParametersWithMask, e.g. Persisted interface or route settings.
- *
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to query.
- * \param[out] KeyTable Optional; receives the allocated key table (*Count rows of KeyEntrySize bytes). Not allocated when KeyEntrySize is 0.
- * \param[in] KeyEntrySize The size of each key entry in bytes.
- * \param[out] ParameterDataTable Optional; receives the allocated parameter data table (*Count rows of ParameterDataEntrySize bytes).
- * \param[out] ParameterMaskTable Optional; receives the allocated mask table. It has the same row size as the data table.
- * \param[in] ParameterDataEntrySize The size of each data row and each mask row in bytes. Neither table is allocated when 0.
- * \param[out] Count Receives the number of rows returned.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Free the tables with NsiFreePersistentDataWithMaskTable. The routine sizes the tables with a count query and retries
- * up to three times while the store keeps growing (ERROR_MORE_DATA). 
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiAllocateAndGetPersistentDataWithMaskTable(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterDataTable,
-    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterMaskTable,
-    _In_ ULONG ParameterDataEntrySize,
-    _Out_ PULONG Count
-    );
-
-/**
- * The NsiDeregisterChangeNotification routine unregisters an NSI change notification callback.
- *
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] NotificationHandle Optional handle to the notification registration to deregister.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiDeregisterChangeNotification(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-/**
- * The NsiCancelChangeNotification routine cancels a pending NSI change notification request.
- *
- * \param[in] NotificationHandle Optional handle to the change notification to cancel.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiCancelChangeNotification(
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-/**
- * The NsiDeregisterChangeNotificationEx routine unregisters an extended NSI change notification callback.
- *
- * \param[in,out] Request A pointer to the extended deregistration request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiDeregisterChangeNotificationEx(
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-/**
- * The NsiEnumerateObjectsAllParameters routine enumerates all objects and parameters for an NSI module object.
- *
- * \param[in] Store The NSI store to query (active or persistent).
- * \param[in] Action NsiGetFirst to enumerate from the beginning (what NsiAllocateAndGetTable and IP Helper pass) or NsiGetNext to
- *        continue after the key in KeyTable[0]. netio.sys rejects any other value with STATUS_INVALID_PARAMETER.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to enumerate.
- * \param[in,out] KeyTable Optional buffer receiving the array of key entries.
- * \param[in] KeyEntrySize The size of each key entry in bytes.
- * \param[in,out] ReadWriteTable Optional buffer receiving read-write entries.
- * \param[in] ReadWriteEntrySize The size of each read-write entry in bytes.
- * \param[in,out] DynamicTable Optional buffer receiving dynamic read-only entries.
- * \param[in] DynamicEntrySize The size of each dynamic read-only entry in bytes.
- * \param[in,out] StaticTable Optional buffer receiving static read-only entries.
- * \param[in] StaticEntrySize The size of each static read-only entry in bytes.
- * \param[in,out] Count A pointer specifying capacity and receiving the number of entries returned.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiEnumerateObjectsAllParameters(
-    _In_ NSI_STORE Store,
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
-    _In_ ULONG ReadWriteEntrySize,
-    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
-    _In_ ULONG DynamicEntrySize,
-    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
-    _In_ ULONG StaticEntrySize,
-    _Inout_ PULONG Count
-    );
-
-/**
- * The NsiEnumerateObjectsAllParametersEx routine enumerates all objects and parameters using an extended request structure.
- *
- * \param[in,out] Request A pointer to the extended enumeration request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiEnumerateObjectsAllParametersEx(
-    _Inout_ PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX Request
-    );
-
-/**
- * The NsiEnumerateObjectsAllPersistentParametersWithMask routine enumerates the persistent store of an NSI object into
- * caller-supplied key, data and mask tables (IOCTL 0x120047). Pass NULL tables to obtain the row count only.
- *
- * \param[in] Action Must be NsiGetFirst (the value NsiAllocateAndGetPersistentDataWithMaskTable passes). nsiproxy.sys forwards it
- *        to the same netio.sys check that validates NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX.Action for persistent enumeration,
- *        which fails anything else with STATUS_NOT_IMPLEMENTED.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to enumerate.
- * \param[out] KeyTable Optional buffer receiving *Count key entries.
- * \param[in] KeyEntrySize The size of each key entry in bytes.
- * \param[out] ParameterDataTable Optional buffer receiving *Count parameter data rows.
- * \param[out] ParameterMaskTable Optional buffer receiving *Count parameter mask rows.
- * \param[in] ParameterDataEntrySize The size of each data row and each mask row in bytes.
- * \param[in,out] Count On input, the capacity of the tables in rows; on output, the number of rows (also on ERROR_MORE_DATA).
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiEnumerateObjectsAllPersistentParametersWithMask(
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _Out_writes_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterDataTable,
-    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterMaskTable,
-    _In_ ULONG ParameterDataEntrySize,
-    _Inout_ PULONG Count
-    );
-
-/**
- * The NsiGetParameter routine reads one field of one NSI object instance, e.g. The interface index for an interface LUID
- * (ConvertInterfaceLuidToIndex) or the alias of an interface (ConvertInterfaceLuidToAlias).
- *
- * \param[in] Store The NSI store to query.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ParameterType The row that contains the field (read-write, read-only dynamic or read-only static).
- * \param[out] ParameterBuffer Optional buffer receiving the field value.
- * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes (the number of bytes copied from the row).
- * \param[in] ParameterOffset The byte offset of the field within the ParameterType row (e.g. FIELD_OFFSET of the row struct).
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks For example, ParameterType 2, ParameterOffset 536 for the
- * interface GUID in the NDIS interface static row.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetParameter(
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-/**
- * The NsiGetParameterEx routine retrieves a single parameter using an extended request structure.
- *
- * \param[in,out] Request A pointer to the extended parameter retrieval request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetParameterEx(
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
-    );
-
-/**
- * The NsiGetAllParameters routine retrieves all parameters for a single NSI object instance.
- *
- * \param[in] Store The NSI store to query.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[out] ReadWriteBuffer Optional buffer receiving read-write parameters.
- * \param[in] ReadWriteBufferSize The size of the read-write buffer in bytes.
- * \param[out] DynamicBuffer Optional buffer receiving dynamic read-only parameters.
- * \param[in] DynamicBufferSize The size of the dynamic read-only buffer in bytes.
- * \param[out] StaticBuffer Optional buffer receiving static read-only parameters.
- * \param[in] StaticBufferSize The size of the static read-only buffer in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetAllParameters(
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
-    _In_ ULONG ReadWriteBufferSize,
-    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
-    _In_ ULONG DynamicBufferSize,
-    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
-    _In_ ULONG StaticBufferSize
-    );
-
-/**
- * The NsiGetAllParametersEx routine retrieves all parameters using an extended request structure.
- *
- * \param[in,out] Request A pointer to the extended request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetAllParametersEx(
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
-    );
-
-/**
- * The NsiSetParameter routine writes one field of one NSI object instance, e.g. The administrative status of
- * an interface (SetIfEntry) or the extended TCP statistics collection switches of a connection
- * (SetPerTcpConnectionEStats).
- *
- * \param[in] Store The NSI store to update.
- * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance,
- * NsiSetCreateOnly, NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the
- * reference-counted NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by
- * EnableRouter/UnenableRouter).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ParameterType The row that contains the field (normally NsiParameterTypeReadWrite).
- * \param[in] ParameterBuffer Optional buffer containing the new field value.
- * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
- * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetParameter(
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-/**
- * The NsiSetParameterEx routine sets a single parameter using an extended request structure.
- *
- * \param[in,out] Request A pointer to the extended parameter set request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetParameterEx(
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
-    );
-
-/**
- * The NsiSetAllParameters routine creates, updates, deletes or flushes an NSI object instance by writing its whole read-write
- * row. This is how iphlpapi implements CreateIpForwardEntry2/DeleteIpForwardEntry2, CreateIpNetEntry/DeleteIpNetEntry,
- * AddIPAddress/DeleteIPAddress, SetIpInterfaceEntry, FlushIpNetTable and SetTcpEntry (closing a TCP connection).
- *
- * \param[in] Store The NSI store to update (NsiPersistent, NsiActive or NsiBoth).
- * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance, NsiSetCreateOnly,
- *        NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the reference-counted
- *        NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by EnableRouter/UnenableRouter).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key Optional pointer to the key identifying the object instance (e.g. The interface LUID, or LUID + address).
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ReadWriteBuffer Optional read-write row to write. Usually NULL for NsiSetDelete and NsiSetReset.
- * \param[in] ReadWriteBufferSize The size of ReadWriteBuffer in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Uses IOCTL 0x120013 with a 0x48-byte request. For example,
- *          InternalSetIpInterfaceEntry: NsiSetAllParameters(NsiActive, NsiSetDefault, ModuleId, 7, &Luid, 8, &RwRow, 240).
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetAllParameters(
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
-    _In_ ULONG ReadWriteBufferSize
-    );
-
-/**
- * The NsiSetAllParametersEx routine sets all parameters using an extended request structure.
- *
- * \param[in,out] Request A pointer to the extended request structure.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetAllParametersEx(
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
-    );
-
-/**
- * The NsiRegisterChangeNotification routine registers a callback to receive NSI change notifications.
- *
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to observe.
- * \param[in] ChangeCallback Must be NULL in user mode: nsi.dll fails the request with ERROR_INVALID_PARAMETER when a callback is
- *        supplied (callbacks are only honoured for kernel-mode NSI clients). User-mode callers should use
- *        NsiRpcRegisterChangeNotification or NsiRequestChangeNotification instead.
- * \param[in] NotifyCurrent TRUE to notify immediately of current state; FALSE otherwise.
- * \param[in] CallerContext Optional context value passed to the callback function.
- * \param[out] NotificationHandle Receives a handle to the change notification registration.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiRegisterChangeNotification(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
-    _In_ BOOLEAN NotifyCurrent,
-    _In_opt_ PVOID CallerContext,
-    _Outptr_result_maybenull_ PHANDLE NotificationHandle
-    );
-
-/**
- * The NsiRegisterChangeNotificationEx routine registers an extended change notification (IOCTL 0x12001F, 0x48-byte request).
- *
- * \param[in,out] Request A pointer to the extended registration request structure. ChangeCallback must be NULL in user
- *        mode (ERROR_INVALID_PARAMETER otherwise).
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiRegisterChangeNotificationEx(
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-/**
- * The NsiRequestChangeNotification routine requests asynchronous change notifications for an NSI object.
- *
- * \param[in] ModuleHandle The NSI module handle, or 0 to identify the module by ModuleId (IP Helper always passes 0).
- *        This is not a flags value: nsiproxy.sys copies it into the module identity of the kernel registration, and netio.sys
- *        resolves a non-zero value through its module handle table (the value NsiGetModuleHandle returns in kernel mode).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The object index to monitor.
- * \param[in] Overlapped Optional pointer to an OVERLAPPED structure for asynchronous completion.
- * \param[out] NotificationHandle Receives a notification handle.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiRequestChangeNotification(
-    _In_ ULONG ModuleHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ LPOVERLAPPED Overlapped,
-    _Out_ PHANDLE NotificationHandle
-    );
-
-/**
- * The NsiRequestChangeNotificationEx routine requests an asynchronous change notification for an NSI object
- * (IOCTL 0x12003F). The request completes through Request->Overlapped when the object changes, which lets user-mode
- * callers wait for changes without a callback.
- *
- * \param[in,out] Request A pointer to the notification request (0x28 bytes). When Request->Overlapped is not NULL and
- *        Request->NotificationHandle is not NULL, the NSI device handle used for the request is stored in
- *        *Request->NotificationHandle so it can be passed to NsiCancelChangeNotification or GetOverlappedResult.
- * \return A Win32 error code (ERROR_IO_PENDING for an overlapped request that has not completed yet).
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiRequestChangeNotificationEx(
-    _Inout_ PNSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-/**
- * The NsiGetAllPersistentParametersWithMask routine reads the persisted (registry-backed) configuration of
- * one NSI object instance together with a mask that marks which fields have actually been persisted, e.g. The
- * persisted settings of an IP interface.
- *
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[out] ParameterData Optional buffer receiving the persisted row.
- * \param[out] ParameterMask Optional buffer receiving the field mask (same size as ParameterData; 0xFF bytes mark
- * persisted fields).
- * \param[in] ParameterDataSize The size of ParameterData and of ParameterMask in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetAllPersistentParametersWithMask(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterData,
-    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
-    _In_ ULONG ParameterDataSize
-    );
-
-/**
- * The NsiSetAllPersistentParametersWithMask routine writes the persisted (registry-backed) configuration of one NSI object
- * instance, merging only the fields selected by the mask, e.g. SetIpInterfaceEntry persisting changed interface settings.
- *
- * \param[in] Action The set action (NSI_SET_ACTION): NsiSetDefault to update an existing instance, NsiSetCreateOnly,
- *        NsiSetCreateOrSet, NsiSetDelete, NsiSetReset (flush), NsiSetClear, or the reference-counted
- *        NsiSetCreateOrSetWithReference/NsiSetDeleteWithReference (used by EnableRouter/UnenableRouter).
- *        netio.sys validates the value (NsiSetReset and NsiSetClear are handled specially); iphlpapi passes NsiSetCreateOrSet.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ParameterData Optional buffer containing the row to persist.
- * \param[in] ParameterMask Optional field mask (same size as ParameterData; 0xFF bytes select the fields to persist).
- * \param[in] ParameterDataSize The size of ParameterData and of ParameterMask in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetAllPersistentParametersWithMask(
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterData,
-    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
-    _In_ ULONG ParameterDataSize
-    );
-
-/**
- * The NsiGetObjectSecurity routine queries an NSI information object's security descriptor through IOCTL 0x120037.
- *
- * \param[in,out] Request The input/output security request.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiGetObjectSecurity(
-    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
-    );
-
-/**
- * The NsiSetObjectSecurity routine changes an NSI information object's security descriptor through IOCTL 0x12003B.
- *
- * \param[in,out] Request The input/output security request.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-NTAPI
-NsiSetObjectSecurity(
-    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
-    );
-
-/**
- * The NsiConnectToServer routine creates and configures a local ncalrpc binding for NSI RPC calls. A
- * non-NULL Reserved argument returns NULL before binding creation without setting a new last error.
- * Binding-creation failures do set last error. Release successful bindings with NsiDisconnectFromServer.
- * Binding creation alone does not query an NSI table.
- *
- * \param[in] Reserved Must be NULL.
- * \return An RPC binding handle, or NULL on failure.
- */
-NTSYSAPI
-RPC_BINDING_HANDLE
-WINAPI
-NsiConnectToServer(
-    _Reserved_ PVOID Reserved
-    );
-
-/**
- * The NsiDisconnectFromServer routine releases the RPC binding value through RpcBindingFree using a
- * temporary local slot. The caller variable is not cleared; discard its value after successful cleanup. This
- * releases a binding, not the remote server.
- *
- * \param[in] RpcHandle Optional RPC binding handle to release.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiDisconnectFromServer(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle
-    );
-
-/**
- * The NsiFreePersistentDataWithMaskTable routine frees the key, data and mask allocations from the
- * persistent-table allocator using the NSI heap. Each pointer is optional. Pass allocation values, not
- * output-slot addresses. Caller variables are not cleared, and there is no status result.
- *
- * \param[in] KeyTable Optional key-table allocation to free.
- * \param[in] ParameterDataTable Optional parameter-data allocation to free.
- * \param[in] ParameterMaskTable Optional parameter-mask allocation to free.
- */
-NTSYSAPI
-VOID
-NTAPI
-NsiFreePersistentDataWithMaskTable(
-    _Frees_ptr_opt_ PVOID KeyTable,
-    _Frees_ptr_opt_ PVOID ParameterDataTable,
-    _Frees_ptr_opt_ PVOID ParameterMaskTable
-    );
-
-/**
- * The NsiFreeTable routine frees up to four independent NSI table allocations using the NSI heap. NULL
- * entries are skipped. Pass allocation values returned by NsiAllocateAndGetTable, not output-slot addresses.
- * Caller variables are not cleared, and there is no status result. Repeated allocation values would cause
- * repeated frees.
- *
- * \param[in] KeyTable Optional key-table allocation to free.
- * \param[in] ReadWriteTable Optional read/write table allocation to free.
- * \param[in] DynamicTable Optional read-only dynamic table allocation to free.
- * \param[in] StaticTable Optional read-only static table allocation to free.
- */
-NTSYSAPI
-VOID
-NTAPI
-NsiFreeTable(
-    _Frees_ptr_opt_ PVOID KeyTable,
-    _Frees_ptr_opt_ PVOID ReadWriteTable,
-    _Frees_ptr_opt_ PVOID DynamicTable,
-    _Frees_ptr_opt_ PVOID StaticTable
-    );
-
-/**
- * The NsiRpcDeregisterChangeNotification routine unregisters an NSI change notification that was registered over RPC.
- *
- * \param[in] RpcHandle The RPC binding handle used for the registration (required; NULL fails with ERROR_INVALID_PARAMETER).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] NotificationHandle The handle returned by NsiRpcRegisterChangeNotification.
- * \return A Win32 error code. ERROR_SUCCESS on success; ERROR_INVALID_PARAMETER if the handle is unknown.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcDeregisterChangeNotification(
-    _In_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-/**
- * The NsiRpcDeregisterChangeNotificationEx routine unregisters a change notification that was registered over RPC.
- *
- * \param[in] RpcHandle The RPC binding handle used for the registration (required; NULL fails with ERROR_INVALID_PARAMETER).
- * \param[in,out] Request The deregistration request; NotificationHandle is the handle returned at registration.
- * \return A Win32 error code. ERROR_SUCCESS on success; ERROR_INVALID_PARAMETER if the handle is unknown.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcDeregisterChangeNotificationEx(
-    _In_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-/**
- * The NsiRpcEnumerateObjectsAllParameters routine enumerates all instances of an NSI object, locally or through the NSI RPC
- * server. Same parameters and results as NsiEnumerateObjectsAllParameters.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally
- *        through the matching nsi.dll routine (no RPC).
- * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
- * \param[in] Action NsiGetFirst to enumerate from the beginning (what NsiAllocateAndGetTable and IP Helper pass) or NsiGetNext to
- *        continue after the key in KeyTable[0]. netio.sys rejects any other value with STATUS_INVALID_PARAMETER.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to enumerate.
- * \param[in,out] KeyTable Optional buffer receiving key entries.
- * \param[in] KeyEntrySize The size of each key entry in bytes.
- * \param[in,out] ReadWriteTable Optional buffer receiving read-write entries.
- * \param[in] ReadWriteEntrySize The size of each read-write entry in bytes.
- * \param[in,out] DynamicTable Optional buffer receiving dynamic read-only entries.
- * \param[in] DynamicEntrySize The size of each dynamic read-only entry in bytes.
- * \param[in,out] StaticTable Optional buffer receiving static read-only entries.
- * \param[in] StaticEntrySize The size of each static read-only entry in bytes.
- * \param[in,out] Count A pointer specifying capacity and receiving the number of entries returned.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcEnumerateObjectsAllParameters(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
-    _In_ ULONG ReadWriteEntrySize,
-    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
-    _In_ ULONG DynamicEntrySize,
-    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
-    _In_ ULONG StaticEntrySize,
-    _Inout_ PULONG Count
-    );
-
-/**
- * The NsiRpcGetAllParameters routine retrieves all parameters of one NSI object instance, locally or through the NSI RPC
- * server. Same parameters and results as NsiGetAllParameters.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[out] ReadWriteBuffer Optional buffer receiving read-write parameters.
- * \param[in] ReadWriteBufferSize The size of the read-write buffer in bytes.
- * \param[out] DynamicBuffer Optional buffer receiving dynamic read-only parameters.
- * \param[in] DynamicBufferSize The size of the dynamic read-only buffer in bytes.
- * \param[out] StaticBuffer Optional buffer receiving static read-only parameters.
- * \param[in] StaticBufferSize The size of the static read-only buffer in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcGetAllParameters(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
-    _In_ ULONG ReadWriteBufferSize,
-    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
-    _In_ ULONG DynamicBufferSize,
-    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
-    _In_ ULONG StaticBufferSize
-    );
-
-/**
- * The NsiRpcGetAllParametersEx routine is the request-structure form of NsiRpcGetAllParameters.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in,out] Request A pointer to the request (passed to NsiGetAllParametersEx when RpcHandle is NULL).
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcGetAllParametersEx(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
-    );
-
-/**
- * The NsiRpcGetParameter routine reads one field of one NSI object instance, locally or through the NSI RPC server.
- * Same parameters and results as NsiGetParameter.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in] Store The NSI store to query. NsiBoth is rejected over RPC (ERROR_INVALID_PARAMETER).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ParameterType The row that contains the field.
- * \param[out] ParameterBuffer Optional buffer receiving the field value.
- * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
- * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcGetParameter(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-/**
- * The NsiRpcGetParameterEx routine is the request-structure form of NsiRpcGetParameter.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in,out] Request A pointer to the request (passed to NsiGetParameterEx when RpcHandle is NULL).
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcGetParameterEx(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
-    );
-
-/**
- * The NsiRpcRegisterChangeNotification routine registers a user-mode callback for NSI change notifications. Unlike
- * NsiRegisterChangeNotification it accepts a callback, because the notification is delivered by the NSI RPC server and
- * dispatched in the caller's process by winnsi.dll (used by System Informer for ICMP echo/ping notifications).
- *
- * \param[in] RpcHandle An RPC binding handle from NsiConnectToServer (required; NULL fails with ERROR_INVALID_PARAMETER).
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object to observe (for ICMP, an NSI_ICMP_OBJECT_ID value).
- * \param[in] ChangeCallback Optional pointer to the callback routine.
- * \param[in] NotifyCurrent TRUE to notify immediately of current state; FALSE otherwise.
- * \param[in] CallerContext Optional context value passed to the callback routine.
- * \param[out] NotificationHandle Optional pointer receiving a notification handle for NsiRpcDeregisterChangeNotification.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcRegisterChangeNotification(
-    _In_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
-    _In_ BOOLEAN NotifyCurrent,
-    _In_opt_ PVOID CallerContext,
-    _Out_opt_ PHANDLE NotificationHandle
-    );
-
-/**
- * The NsiRpcRegisterChangeNotificationEx routine is the request-structure form of NsiRpcRegisterChangeNotification.
- *
- * \param[in] RpcHandle An RPC binding handle from NsiConnectToServer (required; NULL fails with ERROR_INVALID_PARAMETER).
- * \param[in,out] Request The registration request. When both ScopeOrCompartment fields are 0, winnsi.dll fills them in by querying the NDIS module (object 8) before registering.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcRegisterChangeNotificationEx(
-    _In_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-/**
- * The NsiRpcSetAllParameters routine creates, updates, deletes or flushes an NSI object instance, locally or through the NSI
- * RPC server. Same parameters and results as NsiSetAllParameters.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in] Store The NSI store to update. NsiCurrent is rejected over RPC (ERROR_INVALID_PARAMETER).
- * \param[in] Action The set action (NSI_SET_ACTION); see NsiSetAllParameters.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key Optional pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ReadWriteBuffer Optional read-write row to write.
- * \param[in] ReadWriteBufferSize The size of ReadWriteBuffer in bytes.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcSetAllParameters(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
-    _In_ ULONG ReadWriteBufferSize
-    );
-
-/**
- * The NsiRpcSetAllParametersEx routine is the request-structure form of NsiRpcSetAllParameters.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in,out] Request A pointer to the request (passed to NsiSetAllParametersEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcSetAllParametersEx(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
-    );
-
-/**
- * The NsiRpcSetParameter routine writes one field of one NSI object instance, locally or through the NSI RPC server.
- * Same parameters and results as NsiSetParameter.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in] Store The NSI store to update. NsiCurrent is rejected over RPC (ERROR_INVALID_PARAMETER).
- * \param[in] Action The set action (NSI_SET_ACTION); see NsiSetParameter.
- * \param[in] ModuleId A pointer to the NPI module identifier.
- * \param[in] ObjectId The identifier of the NSI object.
- * \param[in] Key A pointer to the key identifying the object instance.
- * \param[in] KeySize The size of the key in bytes.
- * \param[in] ParameterType The row that contains the field.
- * \param[in] ParameterBuffer Optional buffer containing the new field value.
- * \param[in] ParameterBufferSize The size of ParameterBuffer in bytes.
- * \param[in] ParameterOffset The byte offset of the field within the ParameterType row.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcSetParameter(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-/**
- * The NsiRpcSetParameterEx routine is the request-structure form of NsiRpcSetParameter.
- *
- * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
- * \param[in,out] Request A pointer to the request (passed to NsiSetParameterEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
- * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
- */
-NTSYSAPI
-ULONG
-WINAPI
-NsiRpcSetParameterEx(
-    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
-    );
 
 #endif
