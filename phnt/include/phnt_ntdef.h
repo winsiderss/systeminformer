@@ -194,6 +194,10 @@ typedef struct _ULARGE_INTEGER_128
 #define POINTER_ALIGNMENT
 #endif
 
+#ifdef MAX_NATURAL_ALIGNMENT
+#undef MAX_NATURAL_ALIGNMENT
+#endif
+
 #if defined(_WIN64) || defined(_M_ALPHA)
 #define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
 #define MEMORY_ALLOCATION_ALIGNMENT 16
