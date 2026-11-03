@@ -134,6 +134,18 @@ typedef ULONG64 CONTROLTRACE_ID;
 
 #define EVENT_HEADER_SIZE_MASK              0x0000FFFF
 
+#define EVENT_HEADER_FLAG_EXTENDED_INFO         0x0001
+#define EVENT_HEADER_FLAG_PRIVATE_SESSION       0x0002
+#define EVENT_HEADER_FLAG_STRING_ONLY           0x0004
+#define EVENT_HEADER_FLAG_TRACE_MESSAGE         0x0008
+#define EVENT_HEADER_FLAG_NO_CPUTIME            0x0010
+#define EVENT_HEADER_FLAG_32_BIT_HEADER         0x0020
+#define EVENT_HEADER_FLAG_64_BIT_HEADER         0x0040
+#define EVENT_HEADER_FLAG_DECODE_GUID           0x0080 // ProviderId is decode GUID.
+#define EVENT_HEADER_FLAG_CLASSIC_HEADER        0x0100
+#define EVENT_HEADER_FLAG_PROCESSOR_INDEX       0x0200
+#define EVENT_HEADER_FLAG_RESERVED1             0x0400
+
 #define SYSTEM_TRACE_VERSION                 2
 
 //
@@ -190,10 +202,10 @@ typedef ULONG64 CONTROLTRACE_ID;
 //
 // Set of Internal Flags passed to the Logger via ClientContext during StartTrace
 //
-#define EVENT_TRACE_CLOCK_RAW           0  // Use Raw timestamp
-#define EVENT_TRACE_CLOCK_PERFCOUNTER   1  // Use HighPerfClock (Default)
-#define EVENT_TRACE_CLOCK_SYSTEMTIME    2  // Use SystemTime
-#define EVENT_TRACE_CLOCK_CPUCYCLE      3  // Use CPU cycle counter
+#define EVENT_TRACE_CLOCK_RAW           0x00000000  // Use Raw timestamp
+#define EVENT_TRACE_CLOCK_PERFCOUNTER   0x00000001  // Use HighPerfClock (Default)
+#define EVENT_TRACE_CLOCK_SYSTEMTIME    0x00000002  // Use SystemTime
+#define EVENT_TRACE_CLOCK_CPUCYCLE      0x00000003  // Use CPU cycle counter
 #define EVENT_TRACE_CLOCK_MAX           4  // Max number of clock types
 
 //
@@ -897,10 +909,10 @@ PerfIsGroupOnInGroupMask(
 #define PERFINFO_LOG_TYPE_FILENAME_DELETE           (EVENT_TRACE_GROUP_FILE | 0x23) // PERFINFO_FILEOBJECT_INFORMATION
 #define PERFINFO_LOG_TYPE_FILENAME_RUNDOWN          (EVENT_TRACE_GROUP_FILE | 0x24) // PERFINFO_FILENAME_RUNDOWN_INFORMATION
 
-#define PERFINFO_LOG_TYPE_MAPFILE                   (EVENT_TRACE_GROUP_FILE | 0x25) // PERFINFO_PFMAPPED_SECTION_INFORMATION
-#define PERFINFO_LOG_TYPE_UNMAPFILE                 (EVENT_TRACE_GROUP_FILE | 0x26) // PERFINFO_PFMAPPED_SECTION_INFORMATION
-#define PERFINFO_LOG_TYPE_MAPFILE_DC_START          (EVENT_TRACE_GROUP_FILE | 0x27) // PERFINFO_PFMAPPED_SECTION_INFORMATION
-#define PERFINFO_LOG_TYPE_MAPFILE_DC_END            (EVENT_TRACE_GROUP_FILE | 0x28) // PERFINFO_PFMAPPED_SECTION_INFORMATION
+#define PERFINFO_LOG_TYPE_MAPFILE                   (EVENT_TRACE_GROUP_FILE | 0x25) // ETW_FILEIO_MAPFILE_V2
+#define PERFINFO_LOG_TYPE_UNMAPFILE                 (EVENT_TRACE_GROUP_FILE | 0x26) // ETW_FILEIO_MAPFILE_V2
+#define PERFINFO_LOG_TYPE_MAPFILE_DC_START          (EVENT_TRACE_GROUP_FILE | 0x27) // ETW_FILEIO_MAPFILE_V2
+#define PERFINFO_LOG_TYPE_MAPFILE_DC_END            (EVENT_TRACE_GROUP_FILE | 0x28) // ETW_FILEIO_MAPFILE_V2
 
 #define PERFINFO_LOG_TYPE_FILE_IO_CREATE            (EVENT_TRACE_GROUP_FILE | 0x40) // PERFINFO_FILE_CREATE
 #define PERFINFO_LOG_TYPE_FILE_IO_CLEANUP           (EVENT_TRACE_GROUP_FILE | 0x41) // PERFINFO_FILE_SIMPLE_OPERATION
@@ -5080,6 +5092,25 @@ typedef struct _PERFINFO_PFMAPPED_SECTION_OBJECT_INFORMATION
     PVOID RangeBase;
 } PERFINFO_PFMAPPED_SECTION_OBJECT_INFORMATION, *PPERFINFO_PFMAPPED_SECTION_OBJECT_INFORMATION;
 
+/**
+ * The ETW_FILEIO_MAPFILE_V2 structure is the payload of the FileIo_V2_MapFile event
+ * (PERFINFO_LOG_TYPE_MAPFILE, PERFINFO_LOG_TYPE_UNMAPFILE, PERFINFO_LOG_TYPE_MAPFILE_DC_START
+ * and PERFINFO_LOG_TYPE_MAPFILE_DC_END; EVENT_TRACE_GROUP_FILE | 0x25..0x28).
+ *
+ * \remarks Layout verified from ntoskrnl!MiFillMapFileInfo (x64).
+ * The Windows SDK km\\wmicore.mof definition of FileIo_V2_MapFile is incorrect: it omits ByteOffset,
+ * which breaks WMI decoding and event parsing because ProcessId is placed at +0x20 instead of the real +0x28.
+ */
+typedef struct _ETW_FILEIO_MAPFILE_V2
+{
+    PVOID ViewBase;         // User-mode base address of the mapped view.
+    PVOID FileObject;       // Kernel FILE_OBJECT pointer.
+    ULONGLONG MiscInfo;     // Miscellaneous mapping information.
+    SIZE_T ViewSize;        // Size of the mapped view, in bytes.
+    ULONGLONG ByteOffset;   // Starting offset into the file.
+    ULONG ProcessId;        // Identifier of the owning process.
+} ETW_FILEIO_MAPFILE_V2, *PETW_FILEIO_MAPFILE_V2;
+
 //
 // Sample profile
 //
@@ -5274,12 +5305,22 @@ typedef struct _PERFINFO_PAGE_RANGE_IDENTITY
     };
     union
     {
-        PVOID ProtoPteAddress;              // Used for large page PFMapped sections.
-        ULONG_PTR PageFrameIndex;           // Used for DriverLocked/UserPhysical Mdls.
-        PVOID VirtualAddress;               // Used otherwise.
+        PVOID ProtoPteAddress;              // Large page PFMapped sections.
+        ULONG_PTR PageFrameIndex;           // DriverLocked/UserPhysical Mdls, and WS rundown.
     };
     SIZE_T PageCount;                       // Number of pages.
+    PVOID VirtualAddress;                   // Page virtual address (set by MiQueryLeafPte).
 } PERFINFO_PAGE_RANGE_IDENTITY, *PPERFINFO_PAGE_RANGE_IDENTITY;
+
+// WsShareable / PFN-info rundown events (e.g. PERFINFO_LOG_TYPE_WSSHAREABLE_RUNDOWN, EVENT_TRACE_GROUP_MEMORY | 0x84):
+// { ProcessId, Count } header followed by Count PERFINFO_PAGE_RANGE_IDENTITY records.
+// Verified against ntoskrnl!EtwLogPfnInfoRundown. ProcessId/Count are qword-sized.
+typedef struct _PERFINFO_PAGE_RANGE_RUNDOWN
+{
+    ULONGLONG ProcessId;                    // Owning process id (0xFFFFFFFF for system)
+    ULONGLONG Count;                        // Number of Ranges entries in this event
+    PERFINFO_PAGE_RANGE_IDENTITY Ranges[ANYSIZE_ARRAY];
+} PERFINFO_PAGE_RANGE_RUNDOWN, *PPERFINFO_PAGE_RANGE_RUNDOWN;
 
 typedef PERFINFO_PAGE_RANGE_IDENTITY PERFINFO_PHYSICAL_MEMORY_INFORMATION, *PPERFINFO_PHYSICAL_MEMORY_INFORMATION;
 
