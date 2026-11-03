@@ -801,13 +801,13 @@ NTSTATUS PhNsiAllocateAndGetTable(
     _In_ NSI_STORE Store,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
     _In_ ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) _Out_opt_ PVOID* ReadWriteTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) PVOID* ReadWriteTable,
     _In_ ULONG ReadWriteEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) _Out_opt_ PVOID* DynamicTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) PVOID* DynamicTable,
     _In_ ULONG DynamicEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * StaticEntrySize) _Out_opt_ PVOID* StaticTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * StaticEntrySize) PVOID* StaticTable,
     _In_ ULONG StaticEntrySize,
     _Out_ PULONG Count,
     _In_ ULONG Unused
@@ -966,10 +966,10 @@ CleanupExit:
 NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
     _In_ ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterDataTable,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterMaskTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterDataTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterMaskTable,
     _In_ ULONG ParameterDataEntrySize,
     _Out_ PULONG Count
     )
@@ -2849,25 +2849,6 @@ NTSTATUS PhSetTcpEntry(
     return status;
 }
 
-// tcpip!NsiAllocateAndGetTable uses a module-relative object ID as its third argument.
-// The same numeric value can mean different things for different module IDs.
-//
-// Recovered tcpip.sys object sets are emitted as local literals in helper functions,
-// not as one shared global array. Current binary-backed NsiAllocateAndGetTable usage:
-//   NDIS: 1, 7, 15
-//   IP family: 7, 8, 10, 11, 14, 16, 28
-//   TCP-side module: 19, 25, 29
-//   UDP-side module: 3, 5
-// Object 35 is also observed in tcpip.sys, but on IPv6 NsiGetAllParameters /
-// NsiSetAllParameters paths rather than a recovered NsiAllocateAndGetTable caller.
-// Port-pool startup also uses NsiGetAllParameters on TCP objects 20/34 and UDP object 4.
-// Exhausting the recovered NsiAllocateAndGetTable import-thunk caller set for this
-// image did not produce a binary-backed allocator caller for object 0 or 35.
-// Repo call sites additionally exercise:
-//   NDIS: 0, 1
-//   TCP: 3, 35
-//   UDP: 1
-
 /**
  * Converts an interface index to an interface LUID using the NDIS NSI provider.
  *
@@ -4638,9 +4619,9 @@ ULONG NTAPI PhIcmpIndicateParameterChange(
 
     PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectCompleteEchoRequest,
+        NsiIcmpSetActionCompleteEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         request,
         sizeof(ICMP_REQUEST_RW),
         NULL,
@@ -4719,9 +4700,9 @@ ULONG NTAPI PhIcmp6IndicateParameterChange(
 
     PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectCompleteEchoRequest,
+        NsiIcmpSetActionCompleteEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         request,
         sizeof(ICMP_REQUEST_RW),
         NULL,
@@ -4778,9 +4759,9 @@ NTSTATUS PhSubmitIcmpRequest(
 
     return PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectSubmitEchoRequest,
+        NsiIcmpSetActionSubmitEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         RequestBuffer,
         sizeof(ICMP_REQUEST_RW),
         PTR_ADD_OFFSET(RequestBuffer, sizeof(ICMP_REQUEST_RW)),
@@ -4961,7 +4942,7 @@ NTSTATUS PhIcmpCreateFileEx(
             status = PhNsiRpcRegisterChangeNotification(
                 rpcHandle,
                 ModuleId,
-                NsiIcmpObjectEchoRequest,
+                NsiIpObjectEchoRequest,
                 PhIcmpIndicateParameterChange,
                 FALSE,
                 handle,
@@ -4987,7 +4968,7 @@ NTSTATUS PhIcmpCreateFileEx(
             status = PhNsiRpcRegisterChangeNotification(
                 rpcHandle,
                 ModuleId,
-                NsiIcmpObjectEchoRequest,
+                NsiIpObjectEchoRequest,
                 PhIcmp6IndicateParameterChange,
                 FALSE,
                 handle,
@@ -5493,7 +5474,7 @@ NTSTATUS PhGetIcmpStatisticsEx(
         NULL,
         0,
         buffer,
-            sizeof(MIB_ICMP_EX_XPSP1),
+        sizeof(MIB_ICMP_EX_XPSP1),
         NULL,
         0);
 
@@ -5666,55 +5647,55 @@ NTSTATUS PhGetPerTcpConnectionEStats(
         switch (EstatsType)
         {
         case TcpConnectionEstatsSynOpts:
-            objectId = MibTcpEstatsTypeSynOpts;
+            objectId = NsiTcpObjectEstatsSynOpts;
             rwBufferSize = 0;
             rodBufferSize = 0;
             rosBufferSize = sizeof(TCP_ESTATS_SYN_OPTS_ROS_v0);
             break;
         case TcpConnectionEstatsData:
-            objectId = MibTcpEstatsTypeData;
+            objectId = NsiTcpObjectEstatsData;
             rwBufferSize = sizeof(TCP_ESTATS_DATA_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_DATA_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSndCong:
-            objectId = MibTcpEstatsTypeSndCong;
+            objectId = NsiTcpObjectEstatsSndCong;
             rwBufferSize = sizeof(NSI_ESTATS_SND_CONG_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROD_v0);
             rosBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROS_v0);
             break;
         case TcpConnectionEstatsPath:
-            objectId = MibTcpEstatsTypePath;
+            objectId = NsiTcpObjectEstatsPath;
             rwBufferSize = sizeof(TCP_ESTATS_PATH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_PATH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSendBuff:
-            objectId = MibTcpEstatsTypeSendBuff;
+            objectId = NsiTcpObjectEstatsSendBuff;
             rwBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsRec:
-            objectId = MibTcpEstatsTypeRec;
+            objectId = NsiTcpObjectEstatsRec;
             rwBufferSize = sizeof(TCP_ESTATS_REC_RW_v0);
             rodBufferSize = sizeof(NSI_ESTATS_REC_ROD_INTERNAL);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsObsRec:
-            objectId = MibTcpEstatsTypeObsRec;
+            objectId = NsiTcpObjectEstatsObsRec;
             rwBufferSize = sizeof(TCP_ESTATS_OBS_REC_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_OBS_REC_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsBandwidth:
-            objectId = MibTcpEstatsTypeBandwidth;
+            objectId = NsiTcpObjectEstatsBandwidth;
             rwBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsFineRtt:
-            objectId = MibTcpEstatsTypeFineRtt;
+            objectId = NsiTcpObjectEstatsFineRtt;
             rwBufferSize = sizeof(TCP_ESTATS_FINE_RTT_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_FINE_RTT_ROD_v0);
             rosBufferSize = 0;
@@ -6001,55 +5982,55 @@ NTSTATUS PhGetPerTcp6ConnectionEStats(
         switch (EstatsType)
         {
         case TcpConnectionEstatsSynOpts:
-            objectId = MibTcpEstatsTypeSynOpts;
+            objectId = NsiTcpObjectEstatsSynOpts;
             rwBufferSize = 0;
             rodBufferSize = 0;
             rosBufferSize = sizeof(TCP_ESTATS_SYN_OPTS_ROS_v0);
             break;
         case TcpConnectionEstatsData:
-            objectId = MibTcpEstatsTypeData;
+            objectId = NsiTcpObjectEstatsData;
             rwBufferSize = sizeof(TCP_ESTATS_DATA_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_DATA_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSndCong:
-            objectId = MibTcpEstatsTypeSndCong;
+            objectId = NsiTcpObjectEstatsSndCong;
             rwBufferSize = sizeof(NSI_ESTATS_SND_CONG_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROD_v0);
             rosBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROS_v0);
             break;
         case TcpConnectionEstatsPath:
-            objectId = MibTcpEstatsTypePath;
+            objectId = NsiTcpObjectEstatsPath;
             rwBufferSize = sizeof(TCP_ESTATS_PATH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_PATH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSendBuff:
-            objectId = MibTcpEstatsTypeSendBuff;
+            objectId = NsiTcpObjectEstatsSendBuff;
             rwBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsRec:
-            objectId = MibTcpEstatsTypeRec;
+            objectId = NsiTcpObjectEstatsRec;
             rwBufferSize = sizeof(TCP_ESTATS_REC_RW_v0);
             rodBufferSize = sizeof(NSI_ESTATS_REC_ROD_INTERNAL);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsObsRec:
-            objectId = MibTcpEstatsTypeObsRec;
+            objectId = NsiTcpObjectEstatsObsRec;
             rwBufferSize = sizeof(TCP_ESTATS_OBS_REC_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_OBS_REC_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsBandwidth:
-            objectId = MibTcpEstatsTypeBandwidth;
+            objectId = NsiTcpObjectEstatsBandwidth;
             rwBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsFineRtt:
-            objectId = MibTcpEstatsTypeFineRtt;
+            objectId = NsiTcpObjectEstatsFineRtt;
             rwBufferSize = sizeof(TCP_ESTATS_FINE_RTT_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_FINE_RTT_ROD_v0);
             rosBufferSize = 0;
@@ -6381,7 +6362,7 @@ NTSTATUS PhIcmpCloseHandle(
         PhNsiRpcDeregisterChangeNotification(
             NotificationRpcHandle,
             handle->ModuleId,
-            NsiIcmpObjectEchoRequest,
+            NsiIpObjectEchoRequest,
             notificationHandle
             );
     }
@@ -6426,7 +6407,7 @@ NTSTATUS PhGetTcpTable(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &firstKeyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -6651,15 +6632,15 @@ NTSTATUS PhSetPerTcp6ConnectionEStats(
 
     switch (EstatsType)
     {
-    case TcpConnectionEstatsSynOpts:   objectId = MibTcpEstatsTypeSynOpts;   break;
-    case TcpConnectionEstatsData:      objectId = MibTcpEstatsTypeData;      break;
-    case TcpConnectionEstatsSndCong:   objectId = MibTcpEstatsTypeSndCong;   break;
-    case TcpConnectionEstatsPath:      objectId = MibTcpEstatsTypePath;      break;
-    case TcpConnectionEstatsSendBuff:  objectId = MibTcpEstatsTypeSendBuff;  break;
-    case TcpConnectionEstatsRec:       objectId = MibTcpEstatsTypeRec;       break;
-    case TcpConnectionEstatsObsRec:    objectId = MibTcpEstatsTypeObsRec;    break;
-    case TcpConnectionEstatsBandwidth: objectId = MibTcpEstatsTypeBandwidth; break;
-    case TcpConnectionEstatsFineRtt:   objectId = MibTcpEstatsTypeFineRtt;   break;
+    case TcpConnectionEstatsSynOpts:   objectId = NsiTcpObjectEstatsSynOpts;   break;
+    case TcpConnectionEstatsData:      objectId = NsiTcpObjectEstatsData;      break;
+    case TcpConnectionEstatsSndCong:   objectId = NsiTcpObjectEstatsSndCong;   break;
+    case TcpConnectionEstatsPath:      objectId = NsiTcpObjectEstatsPath;      break;
+    case TcpConnectionEstatsSendBuff:  objectId = NsiTcpObjectEstatsSendBuff;  break;
+    case TcpConnectionEstatsRec:       objectId = NsiTcpObjectEstatsRec;       break;
+    case TcpConnectionEstatsObsRec:    objectId = NsiTcpObjectEstatsObsRec;    break;
+    case TcpConnectionEstatsBandwidth: objectId = NsiTcpObjectEstatsBandwidth; break;
+    case TcpConnectionEstatsFineRtt:   objectId = NsiTcpObjectEstatsFineRtt;   break;
     default: return STATUS_INVALID_PARAMETER;
     }
 
@@ -6721,31 +6702,31 @@ NTSTATUS PhSetPerTcpConnectionEStats(
     switch (EstatsType)
     {
     case TcpConnectionEstatsSynOpts:   
-        objectId = MibTcpEstatsTypeSynOpts;   
+        objectId = NsiTcpObjectEstatsSynOpts;   
         break;
     case TcpConnectionEstatsData:      
-        objectId = MibTcpEstatsTypeData;      
+        objectId = NsiTcpObjectEstatsData;      
         break;
     case TcpConnectionEstatsSndCong:   
-        objectId = MibTcpEstatsTypeSndCong;   
+        objectId = NsiTcpObjectEstatsSndCong;   
         break;
     case TcpConnectionEstatsPath:      
-        objectId = MibTcpEstatsTypePath;      
+        objectId = NsiTcpObjectEstatsPath;      
         break;
     case TcpConnectionEstatsSendBuff:  
-        objectId = MibTcpEstatsTypeSendBuff;  
+        objectId = NsiTcpObjectEstatsSendBuff;  
         break;
     case TcpConnectionEstatsRec:       
-        objectId = MibTcpEstatsTypeRec;       
+        objectId = NsiTcpObjectEstatsRec;       
         break;
     case TcpConnectionEstatsObsRec:    
-        objectId = MibTcpEstatsTypeObsRec;    
+        objectId = NsiTcpObjectEstatsObsRec;    
         break;
     case TcpConnectionEstatsBandwidth: 
-        objectId = MibTcpEstatsTypeBandwidth; 
+        objectId = NsiTcpObjectEstatsBandwidth; 
         break;
     case TcpConnectionEstatsFineRtt:   
-        objectId = MibTcpEstatsTypeFineRtt;   
+        objectId = NsiTcpObjectEstatsFineRtt;   
         break;
     default: 
         return STATUS_INVALID_PARAMETER;
@@ -7423,7 +7404,7 @@ static NTSTATUS PhpGetTcpTableInternal(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -8253,7 +8234,7 @@ static NTSTATUS PhGetUdp6TableInternal(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(NSI_UDP_KEY_ROW),
         NULL,
@@ -8426,7 +8407,7 @@ static NTSTATUS PhGetUdpTableInternal(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(NSI_UDP_KEY_ROW),
         NULL,
@@ -9725,7 +9706,7 @@ NTSTATUS PhGetTcp6Table(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(TCP_KEY_ROW),
         NULL,
@@ -9843,7 +9824,7 @@ NTSTATUS PhGetTcp6Table2(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(TCP_KEY_ROW),
         NULL,
@@ -9975,7 +9956,7 @@ NTSTATUS PhGetUdp6Table(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(UDP_KEY_ROW),
         NULL,
@@ -15432,7 +15413,7 @@ NTSTATUS NTAPI PhCancelMibChangeNotify2(
     if (!handle)
         return STATUS_INVALID_PARAMETER;
 
-    NSI_ICMP_OBJECT_ID objectId = handle->ObjectId;
+    NSI_IP_OBJECT_ID objectId = handle->ObjectId;
     RPC_BINDING_HANDLE rpcHandle = NotificationRpcHandle;
 
     if (handle->NotificationHandleV4)
