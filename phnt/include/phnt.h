@@ -110,6 +110,7 @@ EXTERN_C_START
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+#include <ntxcapi.h>
 #include <ntbcd.h>
 #include <ntdbg.h>
 #include <ntimage.h>
@@ -130,7 +131,6 @@ EXTERN_C_START
 #include <ntuser.h>
 #include <ntwmi.h>
 #include <ntwow64.h>
-#include <ntxcapi.h>
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 EXTERN_C_END
