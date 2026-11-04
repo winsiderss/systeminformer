@@ -594,10 +594,10 @@ INT WINAPI wWinMain(
 
     SetupInitializeMutant();
     PhGuiSupportInitialization();
+    PhConsoleSetForeground(NtCurrentProcess(), TRUE);
 
     context = PhAllocateZeroSafe(sizeof(PH_SETUP_CONTEXT));
-    if (!context)
-        return EXIT_FAILURE;
+    if (!context) return EXIT_FAILURE;
 
     context->SetupCreateStartMenuShortcuts = TRUE;
     context->SetupCreateDesktopShortcut = TRUE;

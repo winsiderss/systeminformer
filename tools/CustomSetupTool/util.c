@@ -3246,7 +3246,7 @@ NTSTATUS SetupHashFile(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
+        PhUpdateHash(&hashContext, buffer, iosb.Information);
         bytesRemaining -= (ULONG)iosb.Information;
     }
 
