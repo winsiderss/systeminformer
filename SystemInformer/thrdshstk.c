@@ -11,6 +11,7 @@
 
 #include <phapp.h>
 #include <phsettings.h>
+#include <settings.h>
 #include <symprv.h>
 
 typedef struct _PH_THREAD_SHADOW_STACK_DIALOG_CONTEXT
@@ -23,6 +24,7 @@ typedef struct _PH_THREAD_SHADOW_STACK_DIALOG_CONTEXT
     PULONG64 Entries;
     ULONG Count;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } PH_THREAD_SHADOW_STACK_DIALOG_CONTEXT, *PPH_THREAD_SHADOW_STACK_DIALOG_CONTEXT;
 
@@ -61,9 +63,11 @@ INT_PTR CALLBACK PhpThreadShadowStackDlgProc(
                 FlagOn(context->CetUMsr, PH_CET_U_WR_SHSTK_EN) ? L", write-enabled" : L""
                 )->Buffer);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhSetApplicationWindowIcon(hwndDlg);
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_RIGHT, 45, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 135, L"Address");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 135, L"Value");
@@ -106,12 +110,33 @@ INT_PTR CALLBACK PhpThreadShadowStackDlgProc(
             }
 
             PhSetDialogFocus(hwndDlg, context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_THREAD_SHADOW_STACK_LISTVIEW_COLUMNS, context->ListViewHandle);
+
+            if (PhValidWindowPlacementFromSetting(SETTING_THREAD_SHADOW_STACK_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_THREAD_SHADOW_STACK_WINDOW_POSITION, SETTING_THREAD_SHADOW_STACK_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
+        PhSaveListViewColumnsToSetting(SETTING_THREAD_SHADOW_STACK_LISTVIEW_COLUMNS, context->ListViewHandle);
+        PhSaveWindowPlacementToSetting(SETTING_THREAD_SHADOW_STACK_WINDOW_POSITION, SETTING_THREAD_SHADOW_STACK_WINDOW_SIZE, hwndDlg);
         PhDeleteLayoutManager(&context->LayoutManager);
+        if (context->WindowFont)
+            DeleteFont(context->WindowFont);
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+        }
+        PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+        PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
