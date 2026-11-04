@@ -1235,6 +1235,13 @@ VOID PhShowThreadFrameContextDialog(
     _In_ ULONG PriorFrameCount
     );
 
+VOID PhShowThreadShadowStack(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 // thrdshstk
 
 VOID PhShowThreadShadowStackDialog(
