@@ -57,6 +57,7 @@
 #include <appresolver.h>
 #include <actions.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phconsole.h>
 #include <phsvc.h>
 #include <phsvccl.h>
