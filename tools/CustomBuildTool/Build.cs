@@ -1188,16 +1188,16 @@ namespace CustomBuildTool
             try
             {
                 string toolchainSuffix = GetToolchainSuffix(Flags);
-                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-bin.zip"]);
+                string sevenZipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-bin.7z"]);
                 string base64FilePath = Path.Join([Build.BuildOutputFolder, "systeminformer-build-bin.b64"]);
 
-                if (!File.Exists(zipFilePath))
+                if (!File.Exists(sevenZipFilePath))
                 {
-                    Program.PrintErrorMessage($"Missing setup payload source: {zipFilePath}");
+                    Program.PrintErrorMessage($"Missing setup payload source: {sevenZipFilePath}");
                     return false;
                 }
 
-                using (var input = File.OpenRead(zipFilePath))
+                using (var input = File.OpenRead(sevenZipFilePath))
                 using (var output = File.Create(base64FilePath))
                 using (var base64 = new CryptoStream(output, new ToBase64Transform(), CryptoStreamMode.Write))
                 {
@@ -1731,7 +1731,7 @@ namespace CustomBuildTool
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m -mt -p:UseClStructuredOutput=false /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /t:Rebuild/nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
             if (preprocessorOptionsBuilder.Length > 0)
@@ -1810,7 +1810,28 @@ namespace CustomBuildTool
         /// <param name="Channel"></param>
         /// <param name="SkipArm64"></param>
         /// <returns></returns>
-        private static string MsbuildParallelCommandString(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
+        /// <summary>
+        /// Gets the platforms and configurations built by a parallel matrix build.
+        /// </summary>
+        private static void GetParallelBuildMatrix(BuildFlags Flags, bool SkipArm64, out List<string> TargetPlatforms, out List<string> TargetConfigurations)
+        {
+            TargetPlatforms = new List<string>(3);
+            TargetConfigurations = new List<string>(2);
+
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+                TargetPlatforms.Add("Win32");
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+                TargetPlatforms.Add("x64");
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !SkipArm64)
+                TargetPlatforms.Add("ARM64");
+
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
+                TargetConfigurations.Add("Debug");
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+                TargetConfigurations.Add("Release");
+        }
+
+        private static string MsbuildParallelCommandString(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false, string LoggerSwitches = null)
         {
             List<string> preprocessorOptionsList = new List<string>();
             List<string> compilerOptionsList = new List<string>();
@@ -1819,20 +1840,8 @@ namespace CustomBuildTool
             StringBuilder compilerOptionsBuilder = new StringBuilder(0x200);
             StringBuilder linkerOptionsBuilder = new StringBuilder(0x200);
             StringBuilder commandLineBuilder = new StringBuilder(0x100);
-            List<string> targetPlatforms = new List<string>(3);
-            List<string> targetConfigurations = new List<string>(2);
 
-            if (Flags.HasFlag(BuildFlags.Build32bit))
-                targetPlatforms.Add("Win32");
-            if (Flags.HasFlag(BuildFlags.Build64bit))
-                targetPlatforms.Add("x64");
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !SkipArm64)
-                targetPlatforms.Add("ARM64");
-
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
-                targetConfigurations.Add("Debug");
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
-                targetConfigurations.Add("Release");
+            GetParallelBuildMatrix(Flags, SkipArm64, out List<string> targetPlatforms, out List<string> targetConfigurations);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
                 preprocessorOptionsList.Add("PH_BUILD_API");
@@ -1861,7 +1870,7 @@ namespace CustomBuildTool
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m -mt -p:UseClStructuredOutput=false /graph /t:All /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /graph /t:All/nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append("/p:RestoreUseStaticGraphEvaluation=true ");
             commandLineBuilder.Append("/p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=200 ");
 
@@ -1885,7 +1894,9 @@ namespace CustomBuildTool
 
             commandLineBuilder.Append($"/bl:build/output/logs/{Path.GetFileNameWithoutExtension(Solution)}Matrix.binlog ");
 
-            if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+            if (!string.IsNullOrWhiteSpace(LoggerSwitches))
+                commandLineBuilder.Append(LoggerSwitches);
+            else if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
                 commandLineBuilder.Append("-terminalLogger:on ");
 
             commandLineBuilder.Append(Solution);
@@ -2347,7 +2358,7 @@ namespace CustomBuildTool
                     "--parallel",
                     "--",
                     "/m",
-                    "-mt",
+                    .. (Utils.GetMsbuildMultiThreadedSwitch(Flags).Length != 0 ? (string[])["-mt"] : []),
                     "-p:UseClStructuredOutput=false",
                     $"/p:Platform={Utils.CMakeGetPlatform(Toolchain)}",
                     "/p:BuildInParallel=true",

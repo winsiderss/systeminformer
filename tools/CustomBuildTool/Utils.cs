@@ -215,6 +215,42 @@ namespace CustomBuildTool
             return Win32.CreateProcess(file, Arguments, out OutputString, false, RedirectOutput);
         }
 
+        private static string MsbuildMultiThreadedSwitch;
+
+        /// <summary>
+        /// Returns the MSBuild multithreaded switch ("-mt ") when the resolved MSBuild supports it (version 18 or later),
+        /// otherwise an empty string. Older MSBuild versions fail with MSB1001 (Unknown switch) when passed -mt.
+        /// </summary>
+        /// <param name="Flags">The build flags used to resolve the MSBuild executable.</param>
+        /// <returns>"-mt " or an empty string.</returns>
+        public static string GetMsbuildMultiThreadedSwitch(BuildFlags Flags)
+        {
+            if (MsbuildMultiThreadedSwitch != null)
+                return MsbuildMultiThreadedSwitch;
+
+            string result = string.Empty;
+
+            try
+            {
+                string file = GetMsbuildFilePath(Flags, RuntimeInformation.ProcessArchitecture);
+
+                if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
+                {
+                    var version = System.Diagnostics.FileVersionInfo.GetVersionInfo(file);
+
+                    if (version.FileMajorPart >= 18)
+                        result = "-mt ";
+                }
+            }
+            catch (Exception)
+            {
+                result = string.Empty;
+            }
+
+            MsbuildMultiThreadedSwitch = result;
+            return result;
+        }
+
         /// <summary>
         /// Executes a command using the vswhere utility and returns the trimmed output as a string.
         /// </summary>
