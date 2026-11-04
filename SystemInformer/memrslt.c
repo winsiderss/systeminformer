@@ -29,6 +29,7 @@ typedef struct _MEMORY_RESULTS_CONTEXT
     HANDLE ProcessId;
     PPH_LIST Results;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 
     ULONG SortColumn;
@@ -279,8 +280,10 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             }
 
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
+            SetWindowFont(lvHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Address");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Length");
@@ -352,6 +355,9 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
 
             PhDereferenceMemoryResults((PPH_MEMORY_RESULT *)context->Results->Items, context->Results->Count);
             PhDereferenceObject(context->Results);
@@ -766,6 +772,11 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
