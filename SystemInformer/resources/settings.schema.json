@@ -5241,6 +5241,35 @@
         }
       ]
     },
+    "KsiEnableDynDataDownload": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Downloads the dynamic configuration when the local one does not support the kernel.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiDynDataDownloadTime": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Time of the last dynamic configuration download attempt, in seconds since 1970.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
     "ProcessHacker.DotNetTools.AsmTreeListColumns": {
       "type": "string",
       "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the .NET assembly tree list."

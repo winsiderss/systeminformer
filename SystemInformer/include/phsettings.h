@@ -756,6 +756,8 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN                    L"KsiEnableFsFeatureQueryOpen"
 #define SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO                     L"KsiEnableFsFeatureBypassIO"
 #define SETTING_KSI_RING_BUFFER_LENGTH                              L"KsiRingBufferLength"
+#define SETTING_KSI_ENABLE_DYN_DATA_DOWNLOAD                        L"KsiEnableDynDataDownload"
+#define SETTING_KSI_DYN_DATA_DOWNLOAD_TIME                          L"KsiDynDataDownloadTime"
 #define SETTING_ENABLE_PROCESS_MONITOR                              L"EnableProcessMonitor"
 #define SETTING_PROCESS_MONITOR_LOOKBACK                            L"ProcessMonitorLookback"
 #define SETTING_PROCESS_MONITOR_CACHE_LIMIT                         L"ProcessMonitorCacheLimit"

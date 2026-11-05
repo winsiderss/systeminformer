@@ -27,6 +27,9 @@
 
 #include <ksisup.h>
 
+#define MINIZ_NO_ZLIB_COMPATIBLE_NAMES
+#include "../tools/thirdparty/miniz/miniz.h"
+
 typedef struct _KSI_SUPPORT_DATA
 {
     USHORT Class;
@@ -51,7 +54,12 @@ VOID KsiShowKernelSupportCheckDialog(
     );
 #endif
 
+#define KSI_DYN_DATA_DOWNLOAD_INTERVAL (6 * 60 * 60) // seconds
+#define KSI_DYN_DATA_MAX_LENGTH (16 * 1024 * 1024)
+
 static CONST PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
+static CONST PH_STRINGREF KsiDynDataFileName = PH_STRINGREF_INIT(L"ksidyn.bin");
+static CONST PH_STRINGREF KsiDynSigFileName = PH_STRINGREF_INIT(L"ksidyn.sig");
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;
@@ -1069,6 +1077,45 @@ BOOLEAN KsiCommsCallback(
 }
 
 /**
+ * Read an entire file into a buffer allocated by the Ph memory allocator.
+ *
+ * \param[in] FileName Native file name.
+ * \param[out] Data Receives pointer to allocated buffer with file contents, free with PhFree().
+ * \param[out] Length Receives buffer length in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiReadFile(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_ PBYTE* Data,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    *Data = NULL;
+    *Length = 0;
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetFileData(fileHandle, Data, Length);
+        NtClose(fileHandle);
+    }
+
+    return status;
+}
+
+/**
  * Read a configuration file located in the application directory.
  *
  * This opens and reads the entire file into a buffer allocated by the Ph
@@ -1088,29 +1135,13 @@ NTSTATUS KsiReadConfiguration(
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    HANDLE fileHandle;
 
     *Data = NULL;
     *Length = 0;
 
     if (fileName = PhGetApplicationDirectoryFileName(FileName, TRUE))
     {
-        status = PhCreateFile(
-            &fileHandle,
-            &fileName->sr,
-            FILE_GENERIC_READ,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            status = PhGetFileData(fileHandle, Data, Length);
-            NtClose(fileHandle);
-        }
-
+        status = KsiReadFile(&fileName->sr, Data, Length);
         PhDereferenceObject(fileName);
     }
     else
@@ -1190,8 +1221,6 @@ NTSTATUS KsiGetDynData(
     _Out_ PULONG SignatureLength
     )
 {
-    static CONST PH_STRINGREF dataFileName = PH_STRINGREF_INIT(L"ksidyn.bin");
-    static CONST PH_STRINGREF sigFileName = PH_STRINGREF_INIT(L"ksidyn.sig");
     NTSTATUS status;
     NTSTATUS supportStatus;
     PBYTE data = NULL;
@@ -1199,14 +1228,12 @@ NTSTATUS KsiGetDynData(
     PBYTE sig = NULL;
     ULONG sigLength;
 
-    // TODO download dynamic data from server
-
     *DynData = NULL;
     *DynDataLength = 0;
     *Signature = NULL;
     *SignatureLength = 0;
 
-    status = KsiReadConfiguration(&dataFileName, &data, &dataLength);
+    status = KsiReadConfiguration(&KsiDynDataFileName, &data, &dataLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -1217,7 +1244,7 @@ NTSTATUS KsiGetDynData(
         goto CleanupExit;
     }
 
-    status = KsiReadConfiguration(&sigFileName, &sig, &sigLength);
+    status = KsiReadConfiguration(&KsiDynSigFileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -1247,18 +1274,781 @@ CleanupExit:
 }
 
 /**
+ * Get the directory holding the downloaded dynamic configuration.
+ *
+ * \return Referenced native directory name with a trailing separator.
+ */
+static PPH_STRING KsiGetDynDataCacheDirectory(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"ksidyn\\");
+
+    return PhGetApplicationDataFileName(&directoryName, TRUE);
+}
+
+/**
+ * Read the downloaded dynamic configuration, only when it covers the current kernel.
+ *
+ * \param[out] DynData Receives the dynamic data buffer, free with PhFree().
+ * \param[out] DynDataLength Receives the length of the dynamic data buffer.
+ * \param[out] Signature Receives the signature buffer, free with PhFree().
+ * \param[out] SignatureLength Receives the length of the signature buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiReadCachedDynData(
+    _Out_ PBYTE* DynData,
+    _Out_ PULONG DynDataLength,
+    _Out_ PBYTE* Signature,
+    _Out_ PULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING directory;
+    PPH_STRING fileName;
+    PBYTE data = NULL;
+    ULONG dataLength;
+    PBYTE sig = NULL;
+    ULONG sigLength;
+
+    *DynData = NULL;
+    *DynDataLength = 0;
+    *Signature = NULL;
+    *SignatureLength = 0;
+
+    if (!(directory = KsiGetDynDataCacheDirectory()))
+        return STATUS_NO_SUCH_FILE;
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
+    status = KsiReadFile(&fileName->sr, &data, &dataLength);
+    PhDereferenceObject(fileName);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynSigFileName);
+    status = KsiReadFile(&fileName->sr, &sig, &sigLength);
+    PhDereferenceObject(fileName);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!sigLength)
+    {
+        status = STATUS_SI_DYNDATA_INVALID_SIGNATURE;
+        goto CleanupExit;
+    }
+
+    *DynDataLength = dataLength;
+    *DynData = data;
+    data = NULL;
+
+    *SignatureLength = sigLength;
+    *Signature = sig;
+    sig = NULL;
+
+CleanupExit:
+    if (data)
+        PhFree(data);
+    if (sig)
+        PhFree(sig);
+
+    PhDereferenceObject(directory);
+
+    return status;
+}
+
+/**
+ * Replace a file by writing a temporary file and renaming it over the target.
+ *
+ * \param[in] FileName Native file name.
+ * \param[in] Buffer File contents.
+ * \param[in] Length Length of the file contents in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiReplaceFile(
+    _In_ PCPH_STRINGREF FileName,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    static CONST PH_STRINGREF tempExtension = PH_STRINGREF_INIT(L".tmp");
+    NTSTATUS status;
+    PPH_STRING tempFileName;
+    HANDLE fileHandle;
+
+    tempFileName = PhConcatStringRef2(FileName, &tempExtension);
+
+    status = PhCreateFile(
+        &fileHandle,
+        &tempFileName->sr,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhWriteFile(fileHandle, Buffer, Length, NULL, NULL);
+        NtClose(fileHandle);
+
+        if (NT_SUCCESS(status))
+            status = PhMoveFile(&tempFileName->sr, FileName, FALSE);
+
+        if (!NT_SUCCESS(status))
+            PhDeleteFile(&tempFileName->sr);
+    }
+
+    PhDereferenceObject(tempFileName);
+
+    return status;
+}
+
+/**
+ * Store downloaded dynamic configuration the kernel has accepted.
+ *
+ * \param[in] DynData Dynamic data buffer.
+ * \param[in] DynDataLength Length of the dynamic data buffer.
+ * \param[in] Signature Signature buffer.
+ * \param[in] SignatureLength Length of the signature buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiWriteCachedDynData(
+    _In_reads_bytes_(DynDataLength) PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_reads_bytes_(SignatureLength) PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING directory;
+    PPH_STRING fileName;
+
+    if (!(directory = KsiGetDynDataCacheDirectory()))
+        return STATUS_NO_SUCH_FILE;
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynSigFileName);
+    status = PhCreateDirectoryFullPath(&fileName->sr);
+    if (NT_SUCCESS(status))
+        status = KsiReplaceFile(&fileName->sr, Signature, SignatureLength);
+    PhDereferenceObject(fileName);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
+    status = KsiReplaceFile(&fileName->sr, DynData, DynDataLength);
+    PhDereferenceObject(fileName);
+
+CleanupExit:
+    PhDereferenceObject(directory);
+
+    return status;
+}
+
+/**
+ * Delete the downloaded dynamic configuration.
+ */
+static VOID KsiDeleteCachedDynData(
+    VOID
+    )
+{
+    PPH_STRING directory;
+    PPH_STRING fileName;
+
+    if (!(directory = KsiGetDynDataCacheDirectory()))
+        return;
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
+    PhDeleteFile(&fileName->sr);
+    PhDereferenceObject(fileName);
+
+    fileName = PhConcatStringRef2(&directory->sr, &KsiDynSigFileName);
+    PhDeleteFile(&fileName->sr);
+    PhDereferenceObject(fileName);
+
+    PhDereferenceObject(directory);
+}
+
+PPH_STRING KsiCreateBuildString(
+    VOID
+    )
+{
+    static const PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"KsiBuild: ");
+    ULONG majorVersion;
+    ULONG minorVersion;
+    ULONG buildVersion;
+    ULONG revisionVersion;
+    SIZE_T returnLength;
+    PH_FORMAT format[8];
+    WCHAR formatBuffer[260];
+
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhInitFormatSR(&format[0], versionHeader);
+    PhInitFormatU(&format[1], majorVersion);
+    PhInitFormatC(&format[2], L'.');
+    PhInitFormatU(&format[3], minorVersion);
+    PhInitFormatC(&format[4], L'.');
+    PhInitFormatU(&format[5], buildVersion);
+    PhInitFormatC(&format[6], L'.');
+    PhInitFormatU(&format[7], revisionVersion);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+    {
+        PH_STRINGREF stringFormat;
+
+        stringFormat.Buffer = formatBuffer;
+        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
+
+        return PhCreateString2(&stringFormat);
+    }
+    else
+    {
+        return PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+}
+
+NTSTATUS KsiCreatePlatformSupportInformation(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_ PUSHORT ImageMachine,
+    _Out_ PULONG TimeDateStamp,
+    _Out_ PULONG SizeOfImage,
+    _Out_writes_bytes_to_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    USHORT imageMachine;
+    ULONG imageDateStamp;
+    ULONG imageSizeOfImage;
+    PH_MAPPED_IMAGE mappedImage;
+    LARGE_INTEGER fileSize;
+    PH_HASH_CONTEXT hashContext;
+    ULONG64 bytesRemaining;
+    ULONG numberOfBytesRead;
+    ULONG bufferLength;
+    PBYTE buffer;
+    UCHAR hash[PH_HASH_SHA256_LENGTH];
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetFileSize(fileHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    bufferLength = PAGE_SIZE * 2;
+    buffer = PhAllocateSafe(bufferLength);
+
+    if (!buffer)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto CleanupExit;
+    }
+
+    bytesRemaining = (ULONG64)fileSize.QuadPart;
+
+    while (bytesRemaining)
+    {
+        status = PhReadFile(
+            fileHandle,
+            buffer,
+            bufferLength,
+            NULL,
+            &numberOfBytesRead
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        status = PhUpdateHash(
+            &hashContext,
+            buffer,
+            numberOfBytesRead
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        bytesRemaining -= numberOfBytesRead;
+    }
+
+    PhFree(buffer);
+
+    status = PhFinalHash(
+        &hashContext,
+        hash,
+        sizeof(hash),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!PhBufferToHexStringBuffer(
+        hash,
+        sizeof(hash),
+        FALSE,
+        OutputBuffer,
+        OutputLength,
+        ReturnLength
+        ))
+    {
+        status = STATUS_FAIL_CHECK;
+        goto CleanupExit;
+    }
+
+    status = PhLoadMappedImageHeaderPageSize(
+        NULL,
+        fileHandle,
+        &mappedImage
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    __try
+    {
+        imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+        imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+        imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+
+    PhUnloadMappedImage(&mappedImage);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (NT_SUCCESS(status))
+    {
+        *ImageMachine = imageMachine;
+        *TimeDateStamp = imageDateStamp;
+        *SizeOfImage = imageSizeOfImage;
+
+        NtClose(fileHandle);
+        return STATUS_SUCCESS;
+    }
+
+CleanupExit:
+    NtClose(fileHandle);
+    return status;
+}
+
+typedef struct _KSI_PLATFORM_BUILD_ENTRY
+{
+    USHORT Class;
+    PH_STRINGREF FileName;
+} KSI_PLATFORM_BUILD_ENTRY, *PKSI_PLATFORM_BUILD_ENTRY;
+
+PPH_STRING KsiCreatePlatformBuildString(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"KsiPlatformSupport: ");
+    static CONST KSI_PLATFORM_BUILD_ENTRY platformFiles[] =
+    {
+        { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
+        { KPH_DYN_CLASS_NTKRLA57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
+        { KPH_DYN_CLASS_LXCORE,   PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\lxcore.sys") },
+    };
+
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 30);
+    PhAppendStringBuilder(&stringBuilder, &platformHeader);
+    PhAppendStringBuilder2(&stringBuilder, L"{\"version\":1,");
+    PhAppendStringBuilder2(&stringBuilder, L"\"files\":[");
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(platformFiles); i++)
+    {
+        USHORT imageMachine;
+        ULONG timeDateStamp;
+        ULONG sizeOfImage;
+        SIZE_T outputLength = 0;
+        WCHAR outputBuffer[PH_HASH_SHA256_LENGTH * 2 + 1];
+
+        if (NT_SUCCESS(KsiCreatePlatformSupportInformation(
+            &platformFiles[i].FileName,
+            &imageMachine,
+            &timeDateStamp,
+            &sizeOfImage,
+            outputBuffer,
+            sizeof(outputBuffer),
+            &outputLength
+            )))
+        {
+            PPH_STRING string;
+            PH_STRINGREF hashString;
+            PH_FORMAT format[11];
+
+            hashString.Buffer = outputBuffer;
+            hashString.Length = outputLength;
+
+            PhInitFormatS(&format[0], L"{\"hash\":\"");
+            PhInitFormatSR(&format[1], hashString);
+            PhInitFormatS(&format[2], L"\",\"file\":");
+            PhInitFormatU(&format[3], platformFiles[i].Class);
+            PhInitFormatS(&format[4], L",\"machine\":");
+            PhInitFormatU(&format[5], imageMachine);
+            PhInitFormatS(&format[6], L",\"timestamp\":");
+            PhInitFormatU(&format[7], timeDateStamp);
+            PhInitFormatS(&format[8], L",\"size\":");
+            PhInitFormatU(&format[9], sizeOfImage);
+            PhInitFormatS(&format[10], L"},");
+
+            string = PhFormat(format, RTL_NUMBER_OF(format), 10);
+            PhAppendStringBuilder(&stringBuilder, &string->sr);
+            PhDereferenceObject(string);
+        }
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    PhAppendStringBuilder2(&stringBuilder, L"]}");
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+PPH_STRING KsiCreateUpdateWindowsString(
+    VOID
+    )
+{
+    PPH_STRING buildString = NULL;
+    PPH_STRING fileName;
+    PVOID imageBase;
+    ULONG imageSize;
+    PVOID versionInfo;
+
+    if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
+    {
+        if (NT_SUCCESS(PhGetFileVersionInfoEx(&fileName->sr, &versionInfo)))
+        {
+            VS_FIXEDFILEINFO* rootBlock;
+
+            if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
+            {
+                PH_FORMAT format[5];
+
+                PhInitFormatS(&format[0], L"KsiOsBuild: ");
+                PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
+                PhInitFormatC(&format[2], '.');
+                PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
+                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64" : L"_32");
+
+                buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+
+            PhFree(versionInfo);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    return buildString;
+}
+
+/**
+ * Extract a zip entry into a buffer allocated by the Ph memory allocator.
+ *
+ * \param[in] Zip Zip archive opened for reading.
+ * \param[in] EntryName Name of the entry.
+ * \param[out] Buffer Receives the entry contents, free with PhFree().
+ * \param[out] Length Receives the length of the entry contents.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiExtractZipEntry(
+    _In_ mz_zip_archive* Zip,
+    _In_ PCSTR EntryName,
+    _Out_ PBYTE* Buffer,
+    _Out_ PULONG Length
+    )
+{
+    INT index;
+    mz_zip_archive_file_stat stat;
+    PBYTE buffer;
+
+    *Buffer = NULL;
+    *Length = 0;
+
+    if ((index = mz_zip_reader_locate_file(Zip, EntryName, NULL, 0)) < 0)
+        return STATUS_NOT_FOUND;
+    if (!mz_zip_reader_file_stat(Zip, (mz_uint)index, &stat))
+        return STATUS_FILE_CORRUPT_ERROR;
+    if (!stat.m_uncomp_size)
+        return STATUS_FILE_CORRUPT_ERROR;
+    if (stat.m_uncomp_size > KSI_DYN_DATA_MAX_LENGTH)
+        return STATUS_FILE_TOO_LARGE;
+
+    buffer = PhAllocate((SIZE_T)stat.m_uncomp_size);
+
+    if (!mz_zip_reader_extract_to_mem(Zip, (mz_uint)index, buffer, (SIZE_T)stat.m_uncomp_size, 0))
+    {
+        PhFree(buffer);
+        return STATUS_FILE_CORRUPT_ERROR;
+    }
+
+    *Buffer = buffer;
+    *Length = (ULONG)stat.m_uncomp_size;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Download the dynamic configuration archive from a server.
+ *
+ * \param[in] ServerName Host name of the server.
+ * \param[out] Buffer Receives the archive, free with PhFree().
+ * \param[out] BufferLength Receives the length of the archive.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiDownloadDynDataArchive(
+    _In_ PCWSTR ServerName,
+    _Out_ PVOID* Buffer,
+    _Out_ PULONG BufferLength
+    )
+{
+    static CONST PH_STRINGREF clientIdHeader = PH_STRINGREF_INIT(L"SystemInformer-Client-Id: ");
+    NTSTATUS status;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING header;
+
+    *Buffer = NULL;
+    *BufferLength = 0;
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, ServerName, PH_HTTP_DEFAULT_HTTPS_PORT)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"GET", L"/ksidyn", PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
+
+    if (header = KsiCreateBuildString())
+    {
+        PhHttpAddRequestHeadersSR(httpContext, &header->sr);
+        PhDereferenceObject(header);
+    }
+
+    if (header = KsiCreateUpdateWindowsString())
+    {
+        PhHttpAddRequestHeadersSR(httpContext, &header->sr);
+        PhDereferenceObject(header);
+    }
+
+    if (header = KsiCreatePlatformBuildString())
+    {
+        PhHttpAddRequestHeadersSR(httpContext, &header->sr);
+        PhDereferenceObject(header);
+    }
+
+    header = PhGetStringSetting(SETTING_CLIENT_ID);
+
+    if (!PhIsNullOrEmptyString(header))
+    {
+        PhMoveReference(&header, PhConcatStringRef2(&clientIdHeader, &header->sr));
+        PhHttpAddRequestHeadersSR(httpContext, &header->sr);
+    }
+
+    PhClearReference(&header);
+
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, NULL, 0, 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
+
+    status = PhHttpReadDataToBuffer(httpContext->RequestHandle, 0, Buffer, BufferLength);
+
+CleanupExit:
+    if (httpContext)
+        PhHttpDestroy(httpContext);
+
+    return status;
+}
+
+/**
+ * Download the latest dynamic configuration, only when it covers the current kernel.
+ *
+ * \param[out] DynData Receives the dynamic data buffer, free with PhFree().
+ * \param[out] DynDataLength Receives the length of the dynamic data buffer.
+ * \param[out] Signature Receives the signature buffer, free with PhFree().
+ * \param[out] SignatureLength Receives the length of the signature buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS KsiDownloadDynData(
+    _Out_ PBYTE* DynData,
+    _Out_ PULONG DynDataLength,
+    _Out_ PBYTE* Signature,
+    _Out_ PULONG SignatureLength
+    )
+{
+    static CONST PCWSTR servers[] =
+    {
+        L"systeminformer.io",
+        L"systeminformer.com",
+    };
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PVOID buffer = NULL;
+    ULONG bufferLength = 0;
+    mz_zip_archive zip;
+    BOOLEAN zipInitialized = FALSE;
+    PBYTE data = NULL;
+    ULONG dataLength;
+    PBYTE sig = NULL;
+    ULONG sigLength;
+
+    *DynData = NULL;
+    *DynDataLength = 0;
+    *Signature = NULL;
+    *SignatureLength = 0;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(servers); i++)
+    {
+        if (NT_SUCCESS(status = KsiDownloadDynDataArchive(servers[i], &buffer, &bufferLength)))
+            break;
+    }
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Integrity is enforced by the driver signature check.
+
+    memset(&zip, 0, sizeof(mz_zip_archive));
+
+    if (!mz_zip_reader_init_mem(&zip, buffer, bufferLength, 0))
+    {
+        status = STATUS_FILE_CORRUPT_ERROR;
+        goto CleanupExit;
+    }
+
+    zipInitialized = TRUE;
+
+    if (!NT_SUCCESS(status = KsiExtractZipEntry(&zip, "ksidyn.bin", &data, &dataLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = KsiExtractZipEntry(&zip, "ksidyn.sig", &sig, &sigLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = KsiValidateDynamicConfiguration(data, dataLength)))
+        goto CleanupExit;
+
+    *DynDataLength = dataLength;
+    *DynData = data;
+    data = NULL;
+
+    *SignatureLength = sigLength;
+    *Signature = sig;
+    sig = NULL;
+
+CleanupExit:
+    if (zipInitialized)
+        mz_zip_reader_end(&zip);
+    if (data)
+        PhFree(data);
+    if (sig)
+        PhFree(sig);
+    if (buffer)
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * Download and activate the dynamic configuration, retrying until one covering the kernel activates.
+ *
+ * \param[in] Parameter Unused.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Function_class_(USER_THREAD_START_ROUTINE)
+static NTSTATUS NTAPI KsiDownloadDynDataThread(
+    _In_ PVOID Parameter
+    )
+{
+    LARGE_INTEGER systemTime;
+    ULONG currentSeconds;
+    ULONG lastSeconds;
+    PBYTE dynData;
+    ULONG dynDataLength;
+    PBYTE signature;
+    ULONG signatureLength;
+
+    while (TRUE)
+    {
+        PhQuerySystemTime(&systemTime);
+        PhTimeToSecondsSince1970(&systemTime, &currentSeconds);
+        lastSeconds = PhGetIntegerSetting(SETTING_KSI_DYN_DATA_DOWNLOAD_TIME);
+
+        // The attempt time persists so restarts do not shorten the interval.
+
+        if (lastSeconds && currentSeconds >= lastSeconds &&
+            currentSeconds - lastSeconds < KSI_DYN_DATA_DOWNLOAD_INTERVAL)
+        {
+            PhDelayExecution((KSI_DYN_DATA_DOWNLOAD_INTERVAL - (currentSeconds - lastSeconds)) * 1000);
+            continue;
+        }
+
+        PhSetIntegerSetting(SETTING_KSI_DYN_DATA_DOWNLOAD_TIME, currentSeconds);
+
+        if (NT_SUCCESS(KsiDownloadDynData(&dynData, &dynDataLength, &signature, &signatureLength)))
+        {
+            NTSTATUS status;
+
+            status = KphActivateDynData(dynData, dynDataLength, signature, signatureLength, NULL);
+
+            if (NT_SUCCESS(status))
+                KsiWriteCachedDynData(dynData, dynDataLength, signature, signatureLength);
+
+            PhFree(signature);
+            PhFree(dynData);
+
+            if (NT_SUCCESS(status))
+                break;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Retrieves and activates dynamic configuration data.
  *
  * \param[in] WindowHandle Optional parent window for UI prompts.
  * \param[in] Level Current KPH level.
+ * \return TRUE if the configuration should be downloaded, FALSE otherwise.
  */
-VOID KsiActivateDynData(
+BOOLEAN KsiActivateDynData(
     _In_opt_ HWND WindowHandle,
     _In_ KPH_LEVEL Level
     )
 {
     NTSTATUS status;
     BOOLEAN showMessage;
+    BOOLEAN download;
+    BOOLEAN activated = FALSE;
     PBYTE dynData = NULL;
     ULONG dynDataLength;
     PBYTE signature = NULL;
@@ -1273,7 +2063,44 @@ VOID KsiActivateDynData(
         &signatureLength
         );
 
-    if (dynData && signature)
+    if (!NT_SUCCESS(status))
+    {
+        PBYTE cacheData;
+        ULONG cacheDataLength;
+        PBYTE cacheSignature;
+        ULONG cacheSignatureLength;
+
+        if (NT_SUCCESS(KsiReadCachedDynData(
+            &cacheData,
+            &cacheDataLength,
+            &cacheSignature,
+            &cacheSignatureLength
+            )))
+        {
+            if (NT_SUCCESS(KphActivateDynData(
+                cacheData,
+                cacheDataLength,
+                cacheSignature,
+                cacheSignatureLength,
+                NULL
+                )))
+            {
+                status = STATUS_SUCCESS;
+                activated = TRUE;
+            }
+            else
+            {
+                KsiDeleteCachedDynData();
+            }
+
+            PhFree(cacheSignature);
+            PhFree(cacheData);
+        }
+    }
+
+    download = !NT_SUCCESS(status) && !!PhGetIntegerSetting(SETTING_KSI_ENABLE_DYN_DATA_DOWNLOAD);
+
+    if (!activated && dynData && signature)
     {
         NTSTATUS activateStatus;
 
@@ -1292,6 +2119,10 @@ VOID KsiActivateDynData(
     if (!showMessage)
     {
         NOTHING;
+    }
+    else if (download && (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL || !dynData))
+    {
+        NOTHING; // the download reports nothing, the window title shows reduced functionality
     }
     else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
     {
@@ -1353,6 +2184,8 @@ VOID KsiActivateDynData(
         PhFree(signature);
     if (dynData)
         PhFree(dynData);
+
+    return download;
 }
 
 /**
@@ -1477,6 +2310,7 @@ NTSTATUS KsiConnect(
     PPH_STRING systemProcessName = NULL;
     PPH_STRING tempDriverDir = NULL;
     KPH_LEVEL level;
+    BOOLEAN downloadDynData;
 
     if (tempDriverDir = PhGetTemporaryKsiDirectory())
     {
@@ -1698,7 +2532,7 @@ NTSTATUS KsiConnect(
 
     level = KphLevelEx(FALSE);
 
-    KsiActivateDynData(WindowHandle, level);
+    downloadDynData = KsiActivateDynData(WindowHandle, level);
 
     if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
     {
@@ -1730,6 +2564,9 @@ NTSTATUS KsiConnect(
             goto CleanupExit;
         }
     }
+
+    if (downloadDynData)
+        PhCreateThread2(KsiDownloadDynDataThread, NULL);
 
     if (level == KphLevelMax)
     {
@@ -2191,306 +3028,6 @@ NTSTATUS PhQueryKphCounters(
 }
 
 #if defined(KSI_ONLINE_PLATFORM_SUPPORT)
-PPH_STRING KsiCreateBuildString(
-    VOID
-    )
-{
-    static const PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"KsiBuild: ");
-    ULONG majorVersion;
-    ULONG minorVersion;
-    ULONG buildVersion;
-    ULONG revisionVersion;
-    SIZE_T returnLength;
-    PH_FORMAT format[8];
-    WCHAR formatBuffer[260];
-
-    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    PhInitFormatSR(&format[0], versionHeader);
-    PhInitFormatU(&format[1], majorVersion);
-    PhInitFormatC(&format[2], L'.');
-    PhInitFormatU(&format[3], minorVersion);
-    PhInitFormatC(&format[4], L'.');
-    PhInitFormatU(&format[5], buildVersion);
-    PhInitFormatC(&format[6], L'.');
-    PhInitFormatU(&format[7], revisionVersion);
-
-    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
-    {
-        PH_STRINGREF stringFormat;
-
-        stringFormat.Buffer = formatBuffer;
-        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
-
-        return PhCreateString2(&stringFormat);
-    }
-    else
-    {
-        return PhFormat(format, RTL_NUMBER_OF(format), 0);
-    }
-}
-
-NTSTATUS KsiCreatePlatformSupportInformation(
-    _In_ PCPH_STRINGREF FileName,
-    _Out_ PUSHORT ImageMachine,
-    _Out_ PULONG TimeDateStamp,
-    _Out_ PULONG SizeOfImage,
-    _Out_writes_bytes_to_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
-    _In_ SIZE_T OutputLength,
-    _Out_opt_ PSIZE_T ReturnLength
-    )
-{
-    NTSTATUS status;
-    HANDLE fileHandle;
-    USHORT imageMachine;
-    ULONG imageDateStamp;
-    ULONG imageSizeOfImage;
-    PH_MAPPED_IMAGE mappedImage;
-    LARGE_INTEGER fileSize;
-    PH_HASH_CONTEXT hashContext;
-    ULONG64 bytesRemaining;
-    ULONG numberOfBytesRead;
-    ULONG bufferLength;
-    PBYTE buffer;
-    UCHAR hash[PH_HASH_SHA256_LENGTH];
-
-    status = PhCreateFile(
-        &fileHandle,
-        FileName,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PhGetFileSize(fileHandle, &fileSize);
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    status = PhInitializeHash(&hashContext, Sha256HashAlgorithm);
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    bufferLength = PAGE_SIZE * 2;
-    buffer = PhAllocateSafe(bufferLength);
-
-    if (!buffer)
-    {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto CleanupExit;
-    }
-
-    bytesRemaining = (ULONG64)fileSize.QuadPart;
-
-    while (bytesRemaining)
-    {
-        status = PhReadFile(
-            fileHandle,
-            buffer,
-            bufferLength,
-            NULL,
-            &numberOfBytesRead
-            );
-
-        if (!NT_SUCCESS(status))
-            break;
-
-        status = PhUpdateHash(
-            &hashContext,
-            buffer,
-            numberOfBytesRead
-            );
-
-        if (!NT_SUCCESS(status))
-            break;
-
-        bytesRemaining -= numberOfBytesRead;
-    }
-
-    PhFree(buffer);
-
-    status = PhFinalHash(
-        &hashContext,
-        hash,
-        sizeof(hash),
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    if (!PhBufferToHexStringBuffer(
-        hash,
-        sizeof(hash),
-        FALSE,
-        OutputBuffer,
-        OutputLength,
-        ReturnLength
-        ))
-    {
-        status = STATUS_FAIL_CHECK;
-        goto CleanupExit;
-    }
-
-    status = PhLoadMappedImageHeaderPageSize(
-        NULL,
-        fileHandle,
-        &mappedImage
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    __try
-    {
-        imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-        imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-        imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
-    }
-
-    PhUnloadMappedImage(&mappedImage);
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    if (NT_SUCCESS(status))
-    {
-        *ImageMachine = imageMachine;
-        *TimeDateStamp = imageDateStamp;
-        *SizeOfImage = imageSizeOfImage;
-
-        NtClose(fileHandle);
-        return STATUS_SUCCESS;
-    }
-
-CleanupExit:
-    NtClose(fileHandle);
-    return status;
-}
-
-typedef struct _KSI_PLATFORM_BUILD_ENTRY
-{
-    USHORT Class;
-    PH_STRINGREF FileName;
-} KSI_PLATFORM_BUILD_ENTRY, *PKSI_PLATFORM_BUILD_ENTRY;
-
-PPH_STRING KsiCreatePlatformBuildString(
-    VOID
-    )
-{
-    static CONST PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"KsiPlatformSupport: ");
-    static CONST KSI_PLATFORM_BUILD_ENTRY platformFiles[] =
-    {
-        { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
-        { KPH_DYN_CLASS_NTKRLA57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
-        { KPH_DYN_CLASS_LXCORE,   PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\lxcore.sys") },
-    };
-
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, 30);
-    PhAppendStringBuilder(&stringBuilder, &platformHeader);
-    PhAppendStringBuilder2(&stringBuilder, L"{\"version\":1,");
-    PhAppendStringBuilder2(&stringBuilder, L"\"files\":[");
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(platformFiles); i++)
-    {
-        USHORT imageMachine;
-        ULONG timeDateStamp;
-        ULONG sizeOfImage;
-        SIZE_T outputLength = 0;
-        WCHAR outputBuffer[PH_HASH_SHA256_LENGTH * 2 + 1];
-
-        if (NT_SUCCESS(KsiCreatePlatformSupportInformation(
-            &platformFiles[i].FileName,
-            &imageMachine,
-            &timeDateStamp,
-            &sizeOfImage,
-            outputBuffer,
-            sizeof(outputBuffer),
-            &outputLength
-            )))
-        {
-            PPH_STRING string;
-            PH_STRINGREF hashString;
-            PH_FORMAT format[11];
-
-            hashString.Buffer = outputBuffer;
-            hashString.Length = outputLength;
-
-            PhInitFormatS(&format[0], L"{\"hash\":\"");
-            PhInitFormatSR(&format[1], hashString);
-            PhInitFormatS(&format[2], L"\",\"file\":");
-            PhInitFormatU(&format[3], platformFiles[i].Class);
-            PhInitFormatS(&format[4], L",\"machine\":");
-            PhInitFormatU(&format[5], imageMachine);
-            PhInitFormatS(&format[6], L",\"timestamp\":");
-            PhInitFormatU(&format[7], timeDateStamp);
-            PhInitFormatS(&format[8], L",\"size\":");
-            PhInitFormatU(&format[9], sizeOfImage);
-            PhInitFormatS(&format[10], L"},");
-
-            string = PhFormat(format, RTL_NUMBER_OF(format), 10);
-            PhAppendStringBuilder(&stringBuilder, &string->sr);
-            PhDereferenceObject(string);
-        }
-    }
-
-    if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
-        PhRemoveEndStringBuilder(&stringBuilder, 1);
-
-    PhAppendStringBuilder2(&stringBuilder, L"]}");
-
-    return PhFinalStringBuilderString(&stringBuilder);
-}
-
-PPH_STRING KsiCreateUpdateWindowsString(
-    VOID
-    )
-{
-    PPH_STRING buildString = NULL;
-    PPH_STRING fileName;
-    PVOID imageBase;
-    ULONG imageSize;
-    PVOID versionInfo;
-
-    if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
-    {
-        if (NT_SUCCESS(PhGetFileVersionInfoEx(&fileName->sr, &versionInfo)))
-        {
-            VS_FIXEDFILEINFO* rootBlock;
-
-            if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
-            {
-                PH_FORMAT format[5];
-
-                PhInitFormatS(&format[0], L"KsiOsBuild: ");
-                PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatC(&format[2], '.');
-                PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64" : L"_32");
-
-                buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
-            }
-
-            PhFree(versionInfo);
-        }
-
-        PhDereferenceObject(fileName);
-    }
-
-    return buildString;
-}
-
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS KsiCheckKernelSupportThread(
     _In_ PVOID Parameter
