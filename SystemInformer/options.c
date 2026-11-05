@@ -4525,6 +4525,26 @@ static COLOR_ITEM PhpOptionsGraphColorItems[] =
 };
 static HWND PhpGraphListViewHandle = NULL;
 
+// The Task Manager style uses a fixed palette and only applies to new colors.
+static VOID PhpUpdateGraphOptionsState(
+    _In_ HWND hwndDlg
+    )
+{
+    BOOLEAN oldColors = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USEOLDCOLORS)) == BST_CHECKED;
+
+    EnableWindow(GetDlgItem(hwndDlg, IDC_TASKMANAGERSTYLE), !oldColors);
+
+    if (PhEnableThemeSupport)
+    {
+        ShowWindow(PhpGraphListViewHandle, oldColors ? SW_SHOW : SW_HIDE);
+        EnableWindow(PhpGraphListViewHandle, TRUE);
+    }
+    else
+    {
+        EnableWindow(PhpGraphListViewHandle, oldColors);
+    }
+}
+
 INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -4541,6 +4561,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
             SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
+            SetDlgItemCheckForSetting(hwndDlg, IDC_TASKMANAGERSTYLE, SETTING_GRAPH_TASK_MANAGER_STYLE);
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             // Highlighting
@@ -4559,19 +4580,14 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, PhpGraphListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerSetting(SETTING_GRAPH_COLOR_MODE))
-                EnableWindow(PhpGraphListViewHandle, TRUE);
-            else if (PhEnableThemeSupport)
-            {
-                ShowWindow(PhpGraphListViewHandle, SW_HIDE);
-                EnableWindow(PhpGraphListViewHandle, TRUE);
-            }
+            PhpUpdateGraphOptionsState(hwndDlg);
         }
         break;
     case WM_DESTROY:
         {
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
             SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
+            SetSettingForDlgItemCheck(hwndDlg, IDC_TASKMANAGERSTYLE, SETTING_GRAPH_TASK_MANAGER_STYLE);
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOptionsGraphColorItems); i++)
@@ -4600,13 +4616,11 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
              switch (GET_WM_COMMAND_ID(wParam, lParam))
              {
              case IDC_USEOLDCOLORS:
+             case IDC_TASKMANAGERSTYLE:
                 {
                     ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED); // deselect all items
 
-                    if (PhEnableThemeSupport)
-                        ShowWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED ? SW_SHOW : SW_HIDE);
-                    else
-                        EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                    PhpUpdateGraphOptionsState(hwndDlg);
                 }
                 break;
             }

@@ -1007,11 +1007,13 @@ CAPTION "Graphs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Show text",IDC_SHOWTEXT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,49,10
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_DISABLED | WS_TABSTOP,7,44,236,105
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_DISABLED | WS_TABSTOP,7,56,236,93
     CONTROL         "Use old colors (black background)",IDC_USEOLDCOLORS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,123,10
+    CONTROL         "Use Task Manager style (white background, solid lines)",IDC_TASKMANAGERSTYLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,200,10
     CONTROL         "Show commit charge instead of physical memory in summary view",IDC_SHOWCOMMITINSUMMARY,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,227,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,227,10
 END
 
 IDD_PLUGINMANAGER DIALOGEX 0, 0, 501, 272
