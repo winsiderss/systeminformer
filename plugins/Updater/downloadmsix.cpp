@@ -20,6 +20,7 @@
 //
 
 #include "updater.h"
+#include <utility>
 
 #include <roapi.h>
 #include <wrl.h>
@@ -127,7 +128,7 @@ HRESULT UpdaterMsixCheckStoreUpdates(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    if (updateCount > 0)
+    if (std::cmp_greater(updateCount, 0))
     {
         *UpdateAvailable = TRUE;
         UpdaterMsixClearStoreUpdates();

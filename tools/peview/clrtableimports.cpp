@@ -10,6 +10,7 @@
  */
 
 #include <peview.h>
+#include <utility>
 #include <mapclr.h>
 
 #ifdef __has_include
@@ -374,30 +375,30 @@ HRESULT PvSafeParseAttributeString(
     ULONG offset = 0;
     PCCOR_SIGNATURE data;
 
-    if (BufferLength < sizeof(USHORT) + sizeof(ULONG)) // prolog + length (1-4 compressed)
+    if (std::cmp_less(BufferLength, sizeof(USHORT) + sizeof(ULONG))) // prolog + length (1-4 compressed)
         return META_E_CA_INVALID_BLOB;
 
     USHORT prolog = *static_cast<USHORT const*>(Buffer);
-    if (prolog != 0x0001)
+    if (std::cmp_not_equal(prolog, 0x0001))
         return META_E_CA_INVALID_BLOB;
 
     offset += sizeof(USHORT);
     data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
-    if (offset > BufferLength)
+    if (std::cmp_greater(offset, BufferLength))
         return COR_E_OVERFLOW;
 
     BYTE null = *const_cast<PBYTE>(data);
-    if (null == 0xFF) // 0xFF indicates NULL string
+    if (std::cmp_equal(null, 0xFF)) // 0xFF indicates NULL string
         return COR_E_OVERFLOW;
 
     if (FAILED(CorSigUncompressData(data, sizeof(ULONG), &stringLength, &skipLength)))
         return COR_E_OVERFLOW;
-    if (stringLength >= BufferLength)
+    if (std::cmp_greater_equal(stringLength, BufferLength))
         return COR_E_OVERFLOW;
 
     offset += skipLength;
     data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
-    if (offset > BufferLength)
+    if (std::cmp_greater(offset, BufferLength))
         return COR_E_OVERFLOW;
 
     *VersionString = PhConvertUtf8ToUtf16Ex(reinterpret_cast<char*>(const_cast<unsigned char*>(data)), stringLength);
@@ -434,7 +435,7 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
         if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, nullptr, &assemblyRefCount, nullptr, nullptr, nullptr)))
         {
-            for (ULONG i = 1; i <= assemblyRefCount; i++)
+            for (ULONG i = 1; std::cmp_less_equal(i, assemblyRefCount); i++)
             {
                 PH_MAPPED_CLR_ASSEMBLY_PROPS properties;
                 BOOLEAN runtime;
@@ -493,7 +494,7 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
     if (metaDataTables->GetTableInfo(PH_CLR_TABLE_ASSEMBLYREF, nullptr, &count, &columns, nullptr, nullptr) == S_OK)
     {
-        for (ULONG i = 1; i <= count; i++)
+        for (ULONG i = 1; std::cmp_less_equal(i, count); i++)
         {
             BOOLEAN runtime = FALSE;
             BOOLEAN framework = FALSE;
@@ -580,7 +581,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
         if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_MODULEREF, nullptr, &moduleRefCount, nullptr, nullptr, nullptr)))
         {
-            for (ULONG i = 1; i <= moduleRefCount; i++)
+            for (ULONG i = 1; std::cmp_less_equal(i, moduleRefCount); i++)
             {
                 PPH_STRING moduleName = nullptr;
 
@@ -603,7 +604,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
         if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_IMPLMAP, nullptr, &implMapCount, nullptr, nullptr, nullptr)))
         {
-            for (ULONG i = 1; i <= implMapCount; i++)
+            for (ULONG i = 1; std::cmp_less_equal(i, implMapCount); i++)
             {
                 BOOLEAN found = false;
                 ULONG importFlagsValue = 0;

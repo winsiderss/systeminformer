@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <utility>
 #include <guisup.h>
 #include <guisupview.h>
 
@@ -1033,7 +1034,7 @@ BOOLEAN PhListView_GetItemCount(
     {
         LONG count = ListView_GetItemCount(Context->ListViewHandle);
 
-        if (count != INT_ERROR)
+        if (std::cmp_not_equal(count, INT_ERROR))
         {
             *ItemCount = count;
             return TRUE;
@@ -1054,19 +1055,21 @@ BOOLEAN PhListView_GetItemCount(
 BOOLEAN PhListView_SetItemCount(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemCount,
-    _In_ LV_LISTVIEW_SETITEMCOUNT_FLAGS Flags
+    _In_ ULONG Flags
     )
 {
+    LV_LISTVIEW_SETITEMCOUNT_FLAGS flags = static_cast<LV_LISTVIEW_SETITEMCOUNT_FLAGS>(Flags);
+
     if (Context->ListViewInterface && NtCurrentThreadId() == Context->ThreadId)
     {
-        if (HR_SUCCESS(Context->ListViewInterface->SetItemCount(ItemCount, Flags)))
+        if (HR_SUCCESS(Context->ListViewInterface->SetItemCount(ItemCount, flags)))
         {
             return TRUE;
         }
     }
     else
     {
-        if (ListView_SetItemCountEx(Context->ListViewHandle, ItemCount, Flags))
+        if (ListView_SetItemCountEx(Context->ListViewHandle, ItemCount, flags))
         {
             return TRUE;
         }
@@ -1893,7 +1896,7 @@ VOID PhListView_SetStateAllItems(
 
         if (HR_SUCCESS(Context->ListViewInterface->GetItemCount(&count)))
         {
-            for (i = 0; i < count; i++)
+            for (i = 0; std::cmp_less(i, count); i++)
             {
                 Context->ListViewInterface->SetItemState(i, 0, static_cast<LV_LISTVIEW_ITEM_STATE_FLAGS>(Mask), static_cast<LV_LISTVIEW_ITEM_STATE_FLAGS>(State));
             }
@@ -1961,7 +1964,7 @@ BOOLEAN PhListView_GetSelectedCount(
     {
         LONG count = ListView_GetSelectedCount(Context->ListViewHandle);
         
-        if (count != INT_ERROR)
+        if (std::cmp_not_equal(count, INT_ERROR))
         {
             *SelectedCount = count;
             return TRUE;
