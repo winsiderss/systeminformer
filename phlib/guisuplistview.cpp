@@ -20,6 +20,28 @@
 #include <uxtheme.h>
 
 /**
+ * Queries a list-view control for its IListView interface.
+ *
+ * \param ListViewHandle The list-view control.
+ * \return The interface, or NULL if unavailable. Release a returned interface when finished.
+ */
+IListView* PhGetListViewInterface(
+    _In_ HWND ListViewHandle
+    )
+{
+    IListView* listviewInterface = NULL;
+
+    SendMessage(
+        ListViewHandle,
+        LVM_QUERYINTERFACE,
+        reinterpret_cast<WPARAM>(&IID_IListView),
+        reinterpret_cast<LPARAM>(&listviewInterface)
+        );
+
+    return listviewInterface;
+}
+
+/**
  * Adds a column to a list-view control with DPI scaling applied to width.
  *
  * \param ListViewHandle A handle to the list-view window.
