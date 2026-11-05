@@ -40,8 +40,8 @@ typedef struct _PH_MEMORY_STRING_OPTIONS
             BOOLEAN Spare : 6;
         };
     };
-    volatile ULONG *ProgressValue;
-    volatile ULONG *ProgressMax;
+    PULONG ProgressValue;
+    PULONG ProgressMax;
 } PH_MEMORY_STRING_OPTIONS, *PPH_MEMORY_STRING_OPTIONS;
 
 PVOID PhAllocateForMemorySearch(
