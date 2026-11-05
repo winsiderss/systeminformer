@@ -1731,7 +1731,7 @@ namespace CustomBuildTool
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /t:Rebuild/nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
             if (preprocessorOptionsBuilder.Length > 0)
@@ -1870,7 +1870,7 @@ namespace CustomBuildTool
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /graph /t:All/nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m {Utils.GetMsbuildMultiThreadedSwitch(Flags)}-p:UseClStructuredOutput=false /graph /t:All /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append("/p:RestoreUseStaticGraphEvaluation=true ");
             commandLineBuilder.Append("/p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=200 ");
 
