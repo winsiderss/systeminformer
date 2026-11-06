@@ -247,7 +247,10 @@ NTSTATUS KphpFltGetFileNameUseContext(
         return status;
     }
 
-    if (PagingIo)
+    //
+    // A relative file object name is incomplete, let the worker query it.
+    //
+    if (PagingIo || (!FileName && FileObject->RelatedFileObject))
     {
         status = KphpFltQueueFileNameCachePopulate(Instance, FileObject);
         if (!NT_SUCCESS(status))
@@ -546,6 +549,18 @@ NTSTATUS KphpFltGetFileNameCopy(
 
     NT_ASSERT(FltObjects->Volume);
     NT_ASSERT(FltObjects->FileObject);
+
+    //
+    // A relative file object name is incomplete.
+    //
+    if (FltObjects->FileObject->RelatedFileObject)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "File object name is relative");
+
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    }
 
     length = KphpFltNameCacheFileNameLength(FltObjects->Volume,
                                             FltObjects->FileObject);
