@@ -116,7 +116,6 @@ static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
     { (512 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA512) },
 };
 C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
-DECLARE_CONST_UNICODE_STRING(KphpDefaultStream, L"::$DATA");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpHashingInitialized = FALSE;
 static BYTE KphpHashingEaList[KPH_HASH_EACACHE_MAX_LENGTH] = { 0 };
@@ -695,14 +694,12 @@ BOOLEAN KphpFileSupportsEaCache(
     PFLT_VOLUME volume;
     FLT_FILESYSTEM_TYPE fileSystemType;
     FLT_VOLUME_PROPERTIES volumeProperties;
-    PFLT_FILE_NAME_INFORMATION nameInfo;
     ULONG returnLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
     result = FALSE;
     volume = NULL;
-    nameInfo = NULL;
 
     if (!NT_VERIFY(KphFltFilter))
     {
@@ -778,63 +775,13 @@ BOOLEAN KphpFileSupportsEaCache(
         goto Exit;
     }
 
-    if (!NT_VERIFY(!IoGetTopLevelIrp()) || !NT_VERIFY(!KeAreAllApcsDisabled()))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "Unsafe to retrieve file name: %!bool!, %!bool!",
-                      (IoGetTopLevelIrp() != NULL),
-                      KeAreAllApcsDisabled());
-
-        goto Exit;
-    }
-
-    status = FltGetFileNameInformationUnsafe(FileObject,
-                                             NULL,
-                                             (FLT_FILE_NAME_OPENED |
-                                              FLT_FILE_NAME_QUERY_DEFAULT),
-                                             &nameInfo);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "FltGetFileNameInformationUnsafe failed: %!STATUS!",
-                      status);
-
-        nameInfo = NULL;
-        goto Exit;
-    }
-
-    status = FltParseFileNameInformation(nameInfo);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "FltParseFileNameInformation failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    if ((nameInfo->Stream.Length > 0) &&
-        !RtlEqualUnicodeString(&nameInfo->Stream, &KphpDefaultStream, TRUE))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "File stream not supported: %wZ",
-                      &nameInfo->Stream);
-
-        goto Exit;
-    }
+    //
+    // N.B. NTFS and ReFS reject EA I/O on named streams.
+    //
 
     result = TRUE;
 
 Exit:
-
-    if (nameInfo)
-    {
-        FltReleaseFileNameInformation(nameInfo);
-    }
 
     if (volume)
     {
