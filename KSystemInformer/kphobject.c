@@ -586,6 +586,72 @@ PVOID KphAtomicMoveObjectReference(
 }
 
 /**
+ * \brief Assigns an object to an atomically managed object reference only if
+ * no object is currently managed.
+ *
+ * \details If no object is managed, this function acquires an additional
+ * reference to the object and assigns it, the caller should still release
+ * their reference. Otherwise, the currently managed object is referenced and
+ * returned instead.
+ *
+ * \param[in,out] ObjectRef The object reference to assign the object to.
+ * \param[in] Object The object to reference and assign.
+ *
+ * \return NULL if the object was assigned, otherwise the currently managed
+ * object. The caller *must* dereference the returned object.
+ */
+_IRQL_requires_max_(HIGH_LEVEL)
+_Must_inspect_result_
+PVOID KphAtomicAssignObjectReferenceIfEmpty(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_ PVOID Object
+    )
+{
+    KIRQL previousIrql;
+    PVOID previous;
+    ULONG_PTR value;
+    ULONG_PTR object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
+
+    NT_ASSERT(Object);
+    NT_ASSERT(((ULONG_PTR)Object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK) == 0);
+
+    previousIrql = KeGetCurrentIrql();
+    if (previousIrql < DISPATCH_LEVEL)
+    {
+        previousIrql = KeRaiseIrqlToDpcLevel();
+    }
+
+    KphpAtomicAcquireObjectLockExclusive(ObjectRef);
+
+    value = ReadULongPtrNoFence(&ObjectRef->Object);
+    previous = (PVOID)(value & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
+
+    if (previous)
+    {
+        KphReferenceObject(previous);
+    }
+    else
+    {
+        KphReferenceObject(Object);
+
+        object = (ULONG_PTR)Object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
+
+        WriteULongPtrRelease(&ObjectRef->Object, object);
+    }
+
+    KphpAtomicReleaseObjectLockExclusive(ObjectRef);
+
+    if (previousIrql < DISPATCH_LEVEL)
+    {
+        KeLowerIrql(previousIrql);
+    }
+
+    return previous;
+}
+
+/**
  * \brief DPC bridge that bounces from above-DISPATCH context down to
  * DISPATCH_LEVEL where the work-queue API can be called. Its only job is
  * to queue the deferred-delete worker.

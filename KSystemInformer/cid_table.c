@@ -157,6 +157,27 @@ VOID KphCidAssignObject(
 }
 
 /**
+ * \brief Assigns an object to the table entry only if the entry is empty.
+ *
+ * \param[in,out] Entry The entry to assign to.
+ * \param[in] Object Object pointer to assign into the table entry.
+ *
+ * \return NULL if the object was assigned, otherwise the object already in
+ * the table entry. The caller *must* dereference the returned object.
+ */
+_IRQL_requires_max_(HIGH_LEVEL)
+_Must_inspect_result_
+PVOID KphCidAssignObjectIfEmpty(
+    _Inout_ PKPH_CID_TABLE_ENTRY Entry,
+    _In_ PVOID Object
+    )
+{
+    KPH_NPAGED_CODE_HIGH_MAX();
+
+    return KphAtomicAssignObjectReferenceIfEmpty(&Entry->ObjectRef, Object);
+}
+
+/**
  * \brief Allocates a CID table for a given level.
  *
  * \param[in] Level The level to allocate for.
