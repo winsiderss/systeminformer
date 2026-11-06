@@ -62,6 +62,12 @@ NTSTATUS KphOpenDevice(
             goto Exit;
         }
 
+        if (IsKernelHandle(capturedAttributes.RootDirectory))
+        {
+            status = STATUS_INVALID_HANDLE;
+            goto Exit;
+        }
+
         if (capturedAttributes.ObjectName)
         {
             status = KphCaptureUnicodeString(capturedAttributes.ObjectName,
