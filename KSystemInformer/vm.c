@@ -293,6 +293,10 @@ NTSTATUS KphReadVirtualMemory(
                               MM_COPY_MEMORY_VIRTUAL,
                               &numberOfBytesRead);
 
+        ExReleaseResourceLite(PsLoadedModuleResource);
+        KeLeaveCriticalRegion();
+        releaseModuleLock = FALSE;
+
         if (AccessMode != KernelMode)
         {
             __try
