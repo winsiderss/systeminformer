@@ -210,6 +210,8 @@ Exit:
  * \param[in] Volume The volume of the file object.
  * \param[in] FileObject The file object.
  * \param[in] PagingIo TRUE if the operation is paging I/O.
+ * \param[in] FileName Optional name to cache, otherwise the name is copied
+ * from the file object.
  * \param[out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
@@ -222,6 +224,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     _In_ PFLT_VOLUME Volume,
     _In_ PFILE_OBJECT FileObject,
     _In_ BOOLEAN PagingIo,
+    _In_opt_ PCUNICODE_STRING FileName,
     _Out_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
@@ -264,7 +267,14 @@ NTSTATUS KphpFltGetFileNameUseContext(
     // Try to create a new context.
     //
 
-    length = KphpFltNameCacheFileNameLength(Volume, FileObject);
+    if (FileName)
+    {
+        length = FileName->Length;
+    }
+    else
+    {
+        length = KphpFltNameCacheFileNameLength(Volume, FileObject);
+    }
 
     status = FltAllocateContext(Filter,
                                 FLT_STREAMHANDLE_CONTEXT,
@@ -289,7 +299,14 @@ NTSTATUS KphpFltGetFileNameUseContext(
     FltFileName->FileName->Buffer = Add2Ptr(FltFileName->FileName,
                                             sizeof(UNICODE_STRING));
 
-    KphpFltNameCacheCopyFileName(Volume, FileObject, FltFileName->FileName);
+    if (FileName)
+    {
+        RtlCopyUnicodeString(FltFileName->FileName, FileName);
+    }
+    else
+    {
+        KphpFltNameCacheCopyFileName(Volume, FileObject, FltFileName->FileName);
+    }
 
     //
     // Set the new context.
@@ -672,6 +689,7 @@ NTSTATUS KphpFltGetFileName(
                                               FltObjects->Volume,
                                               FltObjects->FileObject,
                                               pagingIo,
+                                              NULL,
                                               FltFileName);
     }
     else if (FsRtlIsPagingFile(FltObjects->FileObject))
@@ -992,12 +1010,14 @@ VOID KphpFltPopulateFileNameCache(
     NTSTATUS status;
     PFLT_FILTER filter;
     PFLT_VOLUME volume;
+    PFLT_FILE_NAME_INFORMATION nameInfo;
     KPH_FLT_FILE_NAME fltFileName;
 
     KPH_PAGED_CODE_PASSIVE();
 
     filter = NULL;
     volume = NULL;
+    nameInfo = NULL;
 
     status = FltGetFilterFromInstance(Instance, &filter);
     if (!NT_SUCCESS(status))
@@ -1027,11 +1047,28 @@ VOID KphpFltPopulateFileNameCache(
 
     if (FltSupportsStreamHandleContexts(FileObject))
     {
+        status = FltGetFileNameInformationUnsafe(FileObject,
+                                                 Instance,
+                                                 (FLT_FILE_NAME_NORMALIZED |
+                                                  FLT_FILE_NAME_QUERY_DEFAULT),
+                                                 &nameInfo);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "FltGetFileNameInformationUnsafe failed: %!STATUS!",
+                          status);
+
+            nameInfo = NULL;
+            goto Exit;
+        }
+
         status = KphpFltGetFileNameUseContext(filter,
                                               Instance,
                                               volume,
                                               FileObject,
                                               FALSE,
+                                              &nameInfo->Name,
                                               &fltFileName);
         if (!NT_SUCCESS(status))
         {
@@ -1072,6 +1109,11 @@ VOID KphpFltPopulateFileNameCache(
     KphpFltReleaseFileName(&fltFileName);
 
 Exit:
+
+    if (nameInfo)
+    {
+        FltReleaseFileNameInformation(nameInfo);
+    }
 
     if (volume)
     {
