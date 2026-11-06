@@ -446,13 +446,12 @@ VOID KphFltUnregister(
 
     KphCommsStop();
 
-    if (!KphFltFilter)
+    if (KphFltFilter)
     {
-        return;
+        FltUnregisterFilter(KphFltFilter);
     }
 
-    FltUnregisterFilter(KphFltFilter);
-
+    KphCommsCleanup();
     KphpFltCleanupFileNameCache();
     KphpFltCleanupFileOp();
 }
