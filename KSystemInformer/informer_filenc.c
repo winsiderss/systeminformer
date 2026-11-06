@@ -212,8 +212,8 @@ Exit:
  * \param[in] PagingIo TRUE if the operation is paging I/O.
  * \param[in] Closing TRUE if the file object is being closed, it must not be
  * referenced.
- * \param[in] FileName Optional name to cache, otherwise the name is copied
- * from the file object.
+ * \param[in] FileName Optional name to cache, replacing any existing entry,
+ * otherwise the name is copied from the file object.
  * \param[out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
@@ -246,8 +246,22 @@ NTSTATUS KphpFltGetFileNameUseContext(
                                        &FltFileName->Context);
     if (NT_SUCCESS(status))
     {
-        FltFileName->Type = KphFltFileNameTypeContext;
-        return status;
+        if (FltFileName->FileName->Buffer)
+        {
+            FltFileName->Type = KphFltFileNameTypeContext;
+            return status;
+        }
+
+        //
+        // A populate is pending or failed for this file object.
+        //
+        FltReleaseContext(FltFileName->Context);
+        FltFileName->Context = NULL;
+
+        if (!FileName)
+        {
+            return STATUS_FLT_NAME_CACHE_MISS;
+        }
     }
 
     //
@@ -255,6 +269,8 @@ NTSTATUS KphpFltGetFileNameUseContext(
     //
     if (PagingIo || (!FileName && FileObject->RelatedFileObject))
     {
+        PFLT_CONTEXT pendingContext;
+
         if (Closing)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -264,6 +280,50 @@ NTSTATUS KphpFltGetFileNameUseContext(
             return STATUS_OBJECT_NAME_NOT_FOUND;
         }
 
+        //
+        // Mark the populate as pending so that only one is ever queued.
+        //
+
+        status = FltAllocateContext(Filter,
+                                    FLT_STREAMHANDLE_CONTEXT,
+                                    sizeof(UNICODE_STRING),
+                                    NonPagedPoolNx,
+                                    &pendingContext);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "FltAllocateContext failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        RtlZeroMemory(pendingContext, sizeof(UNICODE_STRING));
+
+        status = FltSetStreamHandleContext(Instance,
+                                           FileObject,
+                                           FLT_SET_CONTEXT_KEEP_IF_EXISTS,
+                                           pendingContext,
+                                           NULL);
+
+        FltReleaseContext(pendingContext);
+
+        if (status == STATUS_FLT_CONTEXT_ALREADY_DEFINED)
+        {
+            return STATUS_FLT_NAME_CACHE_MISS;
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "FltSetStreamHandleContext failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
         status = KphpFltQueueFileNameCachePopulate(Instance, FileObject);
         if (!NT_SUCCESS(status))
         {
@@ -271,6 +331,8 @@ NTSTATUS KphpFltGetFileNameUseContext(
                           INFORMER,
                           "KphpFltQueueFileNameCachePopulate failed: %!STATUS!",
                           status);
+
+            FltDeleteStreamHandleContext(Instance, FileObject, NULL);
 
             return status;
         }
@@ -330,11 +392,18 @@ NTSTATUS KphpFltGetFileNameUseContext(
     oldContext = NULL;
     status = FltSetStreamHandleContext(Instance,
                                        FileObject,
-                                       FLT_SET_CONTEXT_KEEP_IF_EXISTS,
+                                       (FileName ?
+                                        FLT_SET_CONTEXT_REPLACE_IF_EXISTS :
+                                        FLT_SET_CONTEXT_KEEP_IF_EXISTS),
                                        FltFileName->Context,
                                        &oldContext);
     if (NT_SUCCESS(status))
     {
+        if (oldContext)
+        {
+            FltReleaseContext(oldContext);
+        }
+
         FltFileName->Type = KphFltFileNameTypeContext;
         return status;
     }
@@ -348,6 +417,17 @@ NTSTATUS KphpFltGetFileNameUseContext(
 
     if (status == STATUS_FLT_CONTEXT_ALREADY_DEFINED)
     {
+        NT_ASSERT(oldContext);
+
+        if (!((PUNICODE_STRING)oldContext)->Buffer)
+        {
+            //
+            // A populate became pending.
+            //
+            FltReleaseContext(oldContext);
+            return STATUS_FLT_NAME_CACHE_MISS;
+        }
+
         //
         // Return the existing context.
         //
