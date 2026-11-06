@@ -1825,6 +1825,13 @@ PVOID KphAtomicMoveObjectReference(
     _In_opt_ PVOID Object
     );
 
+_IRQL_requires_max_(HIGH_LEVEL)
+_Must_inspect_result_
+PVOID KphAtomicAssignObjectReferenceIfEmpty(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_ PVOID Object
+    );
+
 // cid_table
 
 typedef struct _KPH_CID_TABLE_ENTRY
@@ -1866,6 +1873,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphCidAssignObject(
     _Inout_ PKPH_CID_TABLE_ENTRY Entry,
     _In_opt_ PVOID Object
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+_Must_inspect_result_
+PVOID KphCidAssignObjectIfEmpty(
+    _Inout_ PKPH_CID_TABLE_ENTRY Entry,
+    _In_ PVOID Object
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

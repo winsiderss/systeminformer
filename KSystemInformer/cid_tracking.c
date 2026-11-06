@@ -1326,6 +1326,42 @@ VOID KphpUnlinkProcessContextThreadContexts(
 }
 
 /**
+ * \brief Unlinks a thread context from its process context.
+ *
+ * \param[in] Thread The thread context to unlink.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphpUnlinkThreadContext(
+    _In_ PKPH_THREAD_CONTEXT Thread
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (!Thread->ProcessContext)
+    {
+        return;
+    }
+
+    KphAcquireRWLockExclusive(&Thread->ProcessContext->ThreadListLock);
+
+    if (Thread->InThreadList)
+    {
+        RemoveEntryList(&Thread->ThreadListEntry);
+        Thread->InThreadList = FALSE;
+        Thread->ProcessContext->NumberOfThreads--;
+        KphDereferenceObject(Thread);
+    }
+
+    if (Thread->ProcessContext->InitialThread == Thread)
+    {
+        Thread->ProcessContext->InitialThread = NULL;
+        KphDereferenceObject(Thread);
+    }
+
+    KphReleaseRWLock(&Thread->ProcessContext->ThreadListLock);
+}
+
+/**
  * \brief Cleanup callback for enumerating the CID tracking table.
  *
  * \param[in] Object The CID table entry to clean up.
@@ -1408,25 +1444,22 @@ PVOID KphpTrackContext(
     NTSTATUS status;
     PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
+    PVOID existing;
 
     KPH_PAGED_CODE();
+
+    object = NULL;
 
     entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
     {
-        return NULL;
+        goto Exit;
     }
 
     object = KphCidReferenceObject(entry);
     if (object)
     {
-        if (KphGetObjectType(object) != ObjectType)
-        {
-            KphDereferenceObject(object);
-            object = NULL;
-        }
-
-        return object;
+        goto Exit;
     }
 
     status = KphCreateObject(ObjectType, ObjectBodySize, &object, Parameter);
@@ -1438,10 +1471,33 @@ PVOID KphpTrackContext(
                       HandleToULong(Cid),
                       status);
 
-        return NULL;
+        goto Exit;
     }
 
-    KphCidAssignObject(entry, object);
+    existing = KphCidAssignObjectIfEmpty(entry, object);
+    if (!existing)
+    {
+        goto Exit;
+    }
+
+    //
+    // Another caller tracked this CID first, discard ours and use theirs.
+    //
+    if (ObjectType == KphThreadContextType)
+    {
+        KphpUnlinkThreadContext(object);
+    }
+
+    KphDereferenceObject(object);
+    object = existing;
+
+Exit:
+
+    if (object && (KphGetObjectType(object) != ObjectType))
+    {
+        KphDereferenceObject(object);
+        object = NULL;
+    }
 
     return object;
 }
@@ -1868,26 +1924,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
         return NULL;
     }
 
-    if (thread->ProcessContext)
-    {
-        KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
-
-        if (thread->InThreadList)
-        {
-            RemoveEntryList(&thread->ThreadListEntry);
-            thread->InThreadList = FALSE;
-            thread->ProcessContext->NumberOfThreads--;
-            KphDereferenceObject(thread);
-        }
-
-        if (thread->ProcessContext->InitialThread == thread)
-        {
-            thread->ProcessContext->InitialThread = NULL;
-            KphDereferenceObject(thread);
-        }
-
-        KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
-    }
+    KphpUnlinkThreadContext(thread);
 
     return thread;
 }
