@@ -1267,12 +1267,14 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     const KPH_MESSAGE_HANDLER* handler;
     KPH_PROCESS_STATE processState;
     KPH_PROCESS_STATE requiredState;
+    BOOLEAN releaseRundown;
 
     KPH_PAGED_CODE_PASSIVE();
 
     client = (PKPH_CLIENT)PortCookie;
 
     msg = NULL;
+    releaseRundown = FALSE;
 
     if ((PsGetCurrentProcess() != client->Process->EProcess) ||
         (ExGetPreviousMode() != UserMode))
@@ -1286,6 +1288,18 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     }
 
     *ReturnOutputBufferLength = 0;
+
+    if (!KphAcquireRundown(&KphpCommsRundown))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Failed to acquire rundown, dropping client message");
+
+        status = STATUS_TOO_LATE;
+        goto Exit;
+    }
+
+    releaseRundown = TRUE;
 
     if (!InputBuffer ||
         (InputBufferLength < KPH_MESSAGE_MIN_SIZE) ||
@@ -1439,6 +1453,11 @@ Exit:
     if (msg)
     {
         KphFreeMessage(msg);
+    }
+
+    if (releaseRundown)
+    {
+        KphReleaseRundown(&KphpCommsRundown);
     }
 
     return status;
@@ -2654,6 +2673,25 @@ VOID KphCommsStop(
     }
 
     FltCloseCommunicationPort(KphpFltServerPort);
+}
+
+/**
+ * \brief Cleans up the communications infrastructure.
+ *
+ * \details Must be called after the filter is unregistered, client ports and
+ * filter callbacks may use the message lookasides until then.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCommsCleanup(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphpFltServerPort)
+    {
+        return;
+    }
 
     KphDeleteNPagedLookaside(&KphpMessageQueueItemLookaside);
     KphDeleteNPagedLookaside(&KphpNPagedMessageLookaside);

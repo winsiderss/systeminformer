@@ -98,6 +98,11 @@ VOID KphCommsStop(
     VOID
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCommsCleanup(
+    VOID
+    );
+
 _IRQL_requires_max_(HIGH_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
