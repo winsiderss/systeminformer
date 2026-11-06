@@ -210,6 +210,8 @@ Exit:
  * \param[in] Volume The volume of the file object.
  * \param[in] FileObject The file object.
  * \param[in] PagingIo TRUE if the operation is paging I/O.
+ * \param[in] Closing TRUE if the file object is being closed, it must not be
+ * referenced.
  * \param[in] FileName Optional name to cache, otherwise the name is copied
  * from the file object.
  * \param[out] FltFileName Receives the file name.
@@ -224,6 +226,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     _In_ PFLT_VOLUME Volume,
     _In_ PFILE_OBJECT FileObject,
     _In_ BOOLEAN PagingIo,
+    _In_ BOOLEAN Closing,
     _In_opt_ PCUNICODE_STRING FileName,
     _Out_ PKPH_FLT_FILE_NAME FltFileName
     )
@@ -252,6 +255,15 @@ NTSTATUS KphpFltGetFileNameUseContext(
     //
     if (PagingIo || (!FileName && FileObject->RelatedFileObject))
     {
+        if (Closing)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "File object is closing");
+
+            return STATUS_OBJECT_NAME_NOT_FOUND;
+        }
+
         status = KphpFltQueueFileNameCachePopulate(Instance, FileObject);
         if (!NT_SUCCESS(status))
         {
@@ -661,6 +673,7 @@ NTSTATUS KphpFltGetFileName(
 {
     NTSTATUS status;
     BOOLEAN pagingIo;
+    BOOLEAN closing;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -697,6 +710,8 @@ NTSTATUS KphpFltGetFileName(
     pagingIo = (FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO) ||
                 FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
 
+    closing = (Data->Iopb->MajorFunction == IRP_MJ_CLOSE);
+
     if (FltSupportsStreamHandleContexts(FltObjects->FileObject))
     {
         status = KphpFltGetFileNameUseContext(FltObjects->Filter,
@@ -704,6 +719,7 @@ NTSTATUS KphpFltGetFileName(
                                               FltObjects->Volume,
                                               FltObjects->FileObject,
                                               pagingIo,
+                                              closing,
                                               NULL,
                                               FltFileName);
     }
@@ -1082,6 +1098,7 @@ VOID KphpFltPopulateFileNameCache(
                                               Instance,
                                               volume,
                                               FileObject,
+                                              FALSE,
                                               FALSE,
                                               &nameInfo->Name,
                                               &fltFileName);
