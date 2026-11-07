@@ -29,6 +29,10 @@
 #include <tcpestats.h>
 #include <tcpmib.h>
 
+//
+// NPI Module and Interface Identifiers
+//
+
 #ifndef _NETIODEF_
 typedef GUID NPIID, *PNPIID;
 
@@ -61,61 +65,135 @@ typedef struct _NPI_MODULEID
 } NPI_MODULEID, *PNPI_MODULEID;
 #endif
 
-#define NPI_MS_IPV4_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A00, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_IPV6_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A01, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_UDP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A02, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_TCP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A03, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_NMR_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A04, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_TUN_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A05, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL4L_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0E, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL6L_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0F, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_EQOS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1D, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_WANARPV4_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A09, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL48_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0A, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL68_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0B, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_WANARPV6_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0C, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL_WANARP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0D, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_TCPIP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A35, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_NDIS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A11, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL4T_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1B, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FL6T_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1C, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FLRDMA_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1E, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_RAW_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A07, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_WSK_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0D, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_PACER_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A19, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_RSS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A22, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_EQOSPROXY_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A2A, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_FSE_CLIENT_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A32, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_IPSEC_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A34, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }
-#define NPI_MS_IPS_LB_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xD49FE21E, 0x1F02, 0x400F, { 0xA9, 0xCB, 0xD9, 0xC8, 0x0A, 0x6E, 0x2E, 0x69 } } }
-#define NPI_FRAMING_LAYER_ID_INIT { 0x2227E801, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_NETWORK_LAYER_ID_INIT { 0x2227E802, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_WSK_INTERFACE_ID_INIT { 0x2227E803, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_TRANSPORT_LAYER_ID_INIT { 0x2227E804, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_NSI_MODULE_ID_INIT { 0x2227E806, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_NL_PNP_EVENT_ACCESS_ID_INIT { 0x2227E808, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
+//
+// NPI module IDs
+//
+
+#define NPI_MS_IPV4_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A00, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_IP_OBJECT_ID
+#define NPI_MS_IPV6_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A01, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_IP_OBJECT_ID
+#define NPI_MS_UDP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A02, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_UDP_OBJECT_ID
+#define NPI_MS_TCP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A03, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_TCP_OBJECT_ID
+#define NPI_MS_NMR_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A09, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_NMR_OBJECT_ID
+#define NPI_MS_TUN_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A10, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           //
+#define NPI_MS_FL4L_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0E, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          //
+#define NPI_MS_FL6L_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0F, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          //
+#define NPI_MS_EQOS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1D, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          //
+#define NPI_MS_WANARPV4_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A16, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }      //
+#define NPI_MS_FL48_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0A, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_FL_OBJECT_ID
+#define NPI_MS_FL68_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0B, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_FL_OBJECT_ID
+#define NPI_MS_WANARPV6_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A17, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }      //
+#define NPI_MS_FL_WANARP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A18, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }     //
+#define NPI_MS_TCPIP_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A35, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }         // No static object table
+#define NPI_MS_NDIS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A11, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_NDIS_OBJECT_ID
+#define NPI_MS_FL4T_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1B, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          //
+#define NPI_MS_FL6T_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1C, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          // NSI_FL6T_OBJECT_ID
+#define NPI_MS_FLRDMA_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1E, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }        // NSI_FL_RDMA_OBJECT_ID
+#define NPI_MS_RAW_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A07, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_RAW_OBJECT_ID
+#define NPI_MS_WSK_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A0D, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           //
+#define NPI_MS_PACER_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A19, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }         //
+#define NPI_MS_RSS_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A22, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_RSS_OBJECT_ID
+#define NPI_MS_EQOSPROXY_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A2A, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }     //
+#define NPI_MS_FSE_CLIENT_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A32, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }    //
+#define NPI_MS_IPSEC_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A34, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }         //
+#define NPI_MS_IPS_LB_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xD49FE21E, 0x1F02, 0x400F, { 0xA9, 0xCB, 0xD9, 0xC8, 0x0A, 0x6E, 0x2E, 0x69 } } }        //
+#define NPI_MS_PKTMON_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A2E, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }        //
+#define NPI_MS_PKTMON_NETEVT_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A37, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } } //
+#define NPI_MS_TDX_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A04, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_TDX_OBJECT_ID
+#define NPI_MS_NSI_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A05, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           //
+#define NPI_MS_NETIO_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A1A, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }         //
+#define NPI_MS_AFD_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A36, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }           // NSI_AFD_OBJECT_ID
+#define NPI_MS_DNSK_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A38, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }          //
+#define NPI_MS_WINNAT_MODULEID_INIT { sizeof(NPI_MODULEID), MIT_GUID, { 0xEB004A20, 0x9B1A, 0x11D4, { 0x91, 0x23, 0x00, 0x50, 0x04, 0x77, 0x59, 0xBC } } }        // NSI_WINNAT_OBJECT_ID
+
+EXTERN_C CONST NPI_MODULEID NPI_MS_IPV4_MODULEID;          // IPv4 network layer module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_IPV6_MODULEID;          // IPv6 network layer module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_UDP_MODULEID;           // UDP transport module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_TCP_MODULEID;           // TCP transport module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_NMR_MODULEID;           // Network Module Registrar (netio.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_TUN_MODULEID;           // IP tunnel module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL4L_MODULEID;          // IPv4 loopback framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL6L_MODULEID;          // IPv6 loopback framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_EQOS_MODULEID;          // Enterprise QoS module (eqos.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_WANARPV4_MODULEID;      // IPv4 WAN ARP module (wanarp.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL48_MODULEID;          // IPv4 framing layer over NDIS (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL68_MODULEID;          // IPv6 framing layer over NDIS (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_WANARPV6_MODULEID;      // IPv6 WAN ARP module (wanarp.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL_WANARP_MODULEID;     // WAN ARP framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_TCPIP_MODULEID;         // TCP/IP stack module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_NDIS_MODULEID;          // NDIS module (ndis.sys): interfaces, compartments and interface stacks.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL4T_MODULEID;          // IPv4 tunnel framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FL6T_MODULEID;          // IPv6 tunnel (Teredo) framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FLRDMA_MODULEID;        // RDMA framing layer.
+EXTERN_C CONST NPI_MODULEID NPI_MS_EQOSPROXY_MODULEID;     // Enterprise QoS proxy module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_FSE_CLIENT_MODULEID;    // FSE client module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_IPS_LB_MODULEID;        // IPsec load balancing module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_IPSEC_MODULEID;         // IPsec module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_PACER_MODULEID;         // QoS packet scheduler module (pacer.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_PKTMON_MODULEID;        // Packet Monitor module (pktmon.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_PKTMON_NETEVT_MODULEID; // Packet Monitor network event module (pktmon.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_RAW_MODULEID;           // Raw IP transport module (tcpip.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_RSS_MODULEID;           // Receive side scaling (RSS) module.
+EXTERN_C CONST NPI_MODULEID NPI_MS_WSK_MODULEID;           // Winsock Kernel (WSK) module (afd.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_TDX_MODULEID;           // TDI translation module (tdx.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_NSI_MODULEID;           // Network Store Interface module (netio.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_NETIO_MODULEID;         // NETIO module (netio.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_AFD_MODULEID;           // Ancillary Function Driver module (afd.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_DNSK_MODULEID;          // Kernel DNS module (afd.sys).
+EXTERN_C CONST NPI_MODULEID NPI_MS_WINNAT_MODULEID;        // Windows NAT module (winnat.sys).
+
+//
+// NPI interface IDs
+//
+
+#define NPI_FRAMING_LAYER_ID_INIT { 0x2227E801, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_NETWORK_LAYER_ID_INIT { 0x2227E802, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_WSK_INTERFACE_ID_INIT { 0x2227E803, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_TRANSPORT_LAYER_ID_INIT { 0x2227E804, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_NSI_MODULE_ID_INIT { 0x2227E806, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_NL_PNP_EVENT_ACCESS_ID_INIT { 0x2227E808, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
 #define NPI_WSK_RDMA_INTERFACE_ID_INIT { 0x2227E80A, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
 #define NPI_QOS_INTERFACE_ID_INIT { 0x2227E80B, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
-#define NPI_RSS_CONTROL_INTERFACE_ID_INIT { 0x2227E80D, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_RSS_HASH_INTERFACE_ID_INIT { 0x2227E80F, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_UQOS_INTERFACE_ID_INIT { 0x2227E810, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_IP_SWITCHING_ID_INIT { 0x2227E812, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_HTTP_KE_INTERFACE_ID_INIT { 0x2227E813, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_PKTMON_INTERFACE_ID_INIT { 0x2227E815, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_FSE_LOCAL_SERVER_INTERFACE_ID_INIT { 0x2227E816, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
-#define NPI_FL_SWITCHING_ID_INIT { 0x2227E818, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } } 
+#define NPI_RSS_CONTROL_INTERFACE_ID_INIT { 0x2227E80D, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_RSS_HASH_INTERFACE_ID_INIT { 0x2227E80F, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_UQOS_INTERFACE_ID_INIT { 0x2227E810, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_IP_SWITCHING_ID_INIT { 0x2227E812, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_HTTP_KE_INTERFACE_ID_INIT { 0x2227E813, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_PKTMON_INTERFACE_ID_INIT { 0x2227E815, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_FSE_LOCAL_SERVER_INTERFACE_ID_INIT { 0x2227E816, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_FL_SWITCHING_ID_INIT { 0x2227E818, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_PKTMON_NETEVT_ID_INIT { 0x2227E81A, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_DATALINK_LAYER_ID_INIT { 0x2227E800, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_SESSION_LAYER_ID_INIT { 0x2227E805, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_NSI_ACCESS_ID_INIT { 0x2227E807, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_TL_OFFLOAD_INTERFACE_ID_INIT { 0x2227E809, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
+#define NPI_DNSK_INTERFACE_ID_INIT { 0x2227E819, 0x8D8B, 0x11D4, { 0xAB, 0xAD, 0x00, 0x90, 0x27, 0x71, 0x9E, 0x09 } }
 
-#define NSI_ESTATS_SND_CONG_RW_VERSION 0
-#define TCP_ESTATS_DATA_ROD_VERSION 0
-#define TCP_ESTATS_DATA_RW_VERSION 0
-#define TCP_ESTATS_SND_CONG_ROD_VERSION 0
-#define TCP_ESTATS_SND_CONG_ROS_VERSION 0
-#define TCP_ESTATS_SYN_OPTS_ROS_VERSION 0
+EXTERN_C CONST NPIID NPI_FL_SWITCHING_ID;                  // Framing layer switching NPI.
+EXTERN_C CONST NPIID NPI_FRAMING_LAYER_ID;                 // Framing layer NPI (between the network layer and framing layers).
+EXTERN_C CONST NPIID NPI_FSE_LOCAL_SERVER_INTERFACE_ID;    // FSE local server interface NPI.
+EXTERN_C CONST NPIID NPI_HTTP_KE_INTERFACE_ID;             // HTTP kernel extension interface NPI (http.sys).
+EXTERN_C CONST NPIID NPI_IP_SWITCHING_ID;                  // IP switching NPI.
+EXTERN_C CONST NPIID NPI_NETWORK_LAYER_ID;                 // Network layer NPI (between transports and the network layer).
+EXTERN_C CONST NPIID NPI_NL_PNP_EVENT_ACCESS_ID;           // Network layer PnP event access NPI.
+EXTERN_C CONST NPIID NPI_NSI_MODULE_ID;                    // NSI provider NPI; modules register through it to serve NSI objects.
+EXTERN_C CONST NPIID NPI_PKTMON_INTERFACE_ID;              // Packet Monitor interface NPI (pktmon.sys).
+EXTERN_C CONST NPIID NPI_PKTMON_NETEVT_ID;                 // Packet Monitor network event interface NPI (pktmon.sys).
+EXTERN_C CONST NPIID NPI_QOS_INTERFACE_ID;                 // QoS interface NPI.
+EXTERN_C CONST NPIID NPI_RSS_CONTROL_INTERFACE_ID;         // RSS control interface NPI.
+EXTERN_C CONST NPIID NPI_RSS_HASH_INTERFACE_ID;            // RSS hash interface NPI.
+EXTERN_C CONST NPIID NPI_TRANSPORT_LAYER_ID;               // Transport layer NPI (between WSK and transports).
+EXTERN_C CONST NPIID NPI_UQOS_INTERFACE_ID;                // UQoS interface NPI.
+EXTERN_C CONST NPIID NPI_WSK_INTERFACE_ID;                 // Winsock Kernel (WSK) client interface NPI.
+EXTERN_C CONST NPIID NPI_WSK_RDMA_INTERFACE_ID;            // Winsock Kernel (WSK) RDMA interface NPI.
+EXTERN_C CONST NPIID NPI_DATALINK_LAYER_ID;                // Data link layer NPI.
+EXTERN_C CONST NPIID NPI_SESSION_LAYER_ID;                 // Session layer NPI.
+EXTERN_C CONST NPIID NPI_NSI_ACCESS_ID;                    // NSI access NPI.
+EXTERN_C CONST NPIID NPI_TL_OFFLOAD_INTERFACE_ID;          // Transport layer offload interface NPI.
+EXTERN_C CONST NPIID NPI_DNSK_INTERFACE_ID;                // Kernel DNS interface NPI (afd.sys).
 
-#define NSI_IP_OBJECT_BANDWIDTH_RW_SIZE 0x30
-#define NSI_IP_OBJECT_BANDWIDTH_ROS_SIZE 0x18
-#define NSI_IP_OBJECT_ADDRESS_MANAGER_RW_SIZE 0x30
-#define NSI_IP_OBJECT_ADDRESS_MANAGER_ROS_SIZE 0x18
+//
+// NSI Device and IOCTLs
+//
 
 #define NSI_DEVICE_NAME L"\\Device\\Nsi"
 
@@ -134,50 +212,9 @@ typedef struct _NPI_MODULEID
 #define IOCTL_NSI_GET_ALL_PERSISTENT_PARAMETERS_WITH_MASK                   CTL_CODE(FILE_DEVICE_NETWORK, 0x12, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004B; in: NSI_PERSISTENT_GET_REQUEST; out: NSI_PERSISTENT_GET_REQUEST
 #define IOCTL_NSI_SET_ALL_PERSISTENT_PARAMETERS_WITH_MASK                   CTL_CODE(FILE_DEVICE_NETWORK, 0x13, METHOD_NEITHER, FILE_ANY_ACCESS)   // 0x12004F; in: NSI_PERSISTENT_SET_REQUEST; out: NSI_PERSISTENT_SET_REQUEST
 
-EXTERN_C CONST NPI_MODULEID NPI_MS_IPV4_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_IPV6_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_UDP_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_TCP_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_NMR_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_TUN_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL4L_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL6L_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_EQOS_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_WANARPV4_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL48_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL68_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_WANARPV6_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL_WANARP_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_TCPIP_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_NDIS_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL4T_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FL6T_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FLRDMA_MODULEID;
-
-EXTERN_C CONST NPIID NPI_FL_SWITCHING_ID;
-EXTERN_C CONST NPIID NPI_FRAMING_LAYER_ID;
-EXTERN_C CONST NPIID NPI_FSE_LOCAL_SERVER_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_HTTP_KE_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_IP_SWITCHING_ID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_EQOSPROXY_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_FSE_CLIENT_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_IPS_LB_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_IPSEC_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_PACER_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_RAW_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_RSS_MODULEID;
-EXTERN_C CONST NPI_MODULEID NPI_MS_WSK_MODULEID;
-EXTERN_C CONST NPIID NPI_NETWORK_LAYER_ID;
-EXTERN_C CONST NPIID NPI_NL_PNP_EVENT_ACCESS_ID;
-EXTERN_C CONST NPIID NPI_NSI_MODULE_ID;
-EXTERN_C CONST NPIID NPI_PKTMON_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_QOS_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_RSS_CONTROL_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_RSS_HASH_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_TRANSPORT_LAYER_ID;
-EXTERN_C CONST NPIID NPI_UQOS_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_WSK_INTERFACE_ID;
-EXTERN_C CONST NPIID NPI_WSK_RDMA_INTERFACE_ID;
+//
+// NSI Enumerations
+//
 
 /**
  * The NSI_STORE values select which copy of an object's parameters an NSI call works on. NsiActive is the running
@@ -197,6 +234,20 @@ typedef enum _NSI_STORE
 } NSI_STORE;
 
 /**
+ * The NSI_GET_ACTION enumeration selects which object instance a get or enumerate request returns. It is carried in the
+ * request header (NSI_EX_REQUEST_COMMON.GetAction) and passed unchanged to the information provider.
+ * \remarks netio.sys accepts 0-2 for NsiGetParameter(Ex)/NsiGetAllParameters(Ex), only NsiGetFirst and NsiGetNext
+ * for NsiEnumerateObjectsAllParameters(Ex), and only NsiGetFirst for persistent-store enumeration; anything else fails with
+ * STATUS_INVALID_PARAMETER (STATUS_NOT_IMPLEMENTED for the persistent store).
+ */
+typedef enum _NSI_GET_ACTION
+{
+    NsiGetExact = 0,            // The instance identified by the key (used by NsiGetParameter/NsiGetAllParameters).
+    NsiGetFirst = 1,            // Start at the first instance (NsiAllocateAndGetTable and IP Helper always pass this).
+    NsiGetNext = 2              // Continue with the instance that follows the key in the first KeyTable entry.
+} NSI_GET_ACTION;
+
+/**
  * The NSI_SET_ACTION values select what NsiSetParameter(Ex) and NsiSetAllParameters(Ex) do with the object named by
  * the key: change it, create it, create-or-change it, or delete it. The *WithReference variants keep a reference count so
  * that several callers can create and delete the same object (for example port reservations); Reset and Clear restore
@@ -214,22 +265,6 @@ typedef enum _NSI_SET_ACTION
     NsiSetCreateOrSetWithReference = 6,     // Create or update an object and retain a reference to it.
     NsiSetDeleteWithReference = 7,          // Release a reference to the object, deleting it when no references remain.
 } NSI_SET_ACTION;
-
-/**
- * The NSI_GET_ACTION enumeration selects which object instance a get or enumerate request returns. It is carried in the
- * request header (NSI_EX_REQUEST_COMMON.GetAction) and passed unchanged to the information provider.
- * \remarks netio.sys accepts 0-2 for NsiGetParameter(Ex)/NsiGetAllParameters(Ex), only NsiGetFirst and NsiGetNext
- * for NsiEnumerateObjectsAllParameters(Ex), and only NsiGetFirst for persistent-store enumeration; anything else fails with
- * STATUS_INVALID_PARAMETER (STATUS_NOT_IMPLEMENTED for the persistent store).
- */
-typedef enum _NSI_GET_ACTION
-{
-    NsiGetExact = 0,            // The instance identified by the key (used by NsiGetParameter/NsiGetAllParameters).
-    NsiGetFirst = 1,            // Start at the first instance (NsiAllocateAndGetTable and IP Helper always pass this).
-    NsiGetNext = 2              // Continue with the instance that follows the key in the first KeyTable entry.
-} NSI_GET_ACTION;
-
-typedef ULONG NSI_OBJECT_ID, *PNSI_OBJECT_ID;
 
 /**
  * The NSI_INTERFACE_INFORMATION_CLASS values select a conversion between interface identifiers (NET_LUID, interface
@@ -257,6 +292,219 @@ typedef enum _NSI_ICMP_SET_ACTION
 } NSI_ICMP_SET_ACTION;
 
 /**
+ * The NSI_TCP_APPLIED_SETTING values identify the TCP setting template applied to a connection
+ * (Get-NetTCPSetting: Internet, Datacenter, Compat and their custom variants). Reported in
+ * NSI_TCP_STATUS_ROW.AppliedSetting.
+ */
+typedef enum _NSI_TCP_APPLIED_SETTING
+{
+    NsiTcpAppliedSettingInternet = 0,               // Internet TCP setting template.
+    NsiTcpAppliedSettingDatacenter = 1,             // Datacenter TCP setting template.
+    NsiTcpAppliedSettingCompat = 2,                 // Compatibility TCP setting template.
+    NsiTcpAppliedSettingInternetCustom = 3,         // Custom Internet TCP setting template.
+    NsiTcpAppliedSettingDatacenterCustom = 4,       // Custom Datacenter TCP setting template.
+    NsiTcpAppliedSettingUnspecified = 6,            // IP Helper renders this value as an empty string.
+} NSI_TCP_APPLIED_SETTING;
+
+/**
+ * The NSI_TCP_ENUMERATE_CONNECTION_TYPE values select which TCP endpoints a tcpip.sys connection enumeration returns.
+ */
+typedef enum _NSI_TCP_ENUMERATE_CONNECTION_TYPE
+{
+    NsiTcpEnumerateConnectionTypeBasic = 0,             // IPv6 and IPv4 connection TCBs (synchronizing, established, closing and TIME_WAIT); no listeners.
+    NsiTcpEnumerateConnectionTypeListening = 1,         // Listening endpoints only.
+    NsiTcpEnumerateConnectionTypeAll = 2,               // Connection TCBs followed by listeners (the GetTcpTable view).
+    NsiTcpEnumerateConnectionTypeBoundConnections = 3   // Bound endpoints that are neither connected nor listening.
+} NSI_TCP_ENUMERATE_CONNECTION_TYPE;
+
+/**
+ * The NSI_PARAMETER_TYPE values select which parameter block of an object NsiGetParameter and NsiSetParameter access:
+ * the read/write block (configuration), the read-only dynamic block (state and statistics) or the read-only static block
+ * (properties fixed when the object is created).
+ */
+typedef enum _NSI_PARAMETER_TYPE
+{
+    NsiParameterTypeReadWrite = 0,          // Configuration parameters that can be queried and changed.
+    NsiParameterTypeReadOnlyDynamic = 1,    // Changing state and statistics available for queries.
+    NsiParameterTypeReadOnlyStatic = 2      // Properties fixed when the object is created.
+} NSI_PARAMETER_TYPE;
+
+/**
+ * The NSI_NMR_MODULE_STATE values are the registration state of an NMR provider or client module, returned as the
+ * read-only dynamic block of NsiNmrObjectProvider and NsiNmrObjectClient (netio module +0x4).
+ */
+typedef enum _NSI_NMR_MODULE_STATE
+{
+    NsiNmrModuleStateInitializing = 1,          // Allocated by NmrpAllocateAndInitializeModule, not yet in the NPI table.
+    NsiNmrModuleStateRegistered = 2,            // Inserted by NmrpRegisterModuleAndGetBindableCandidates.
+    NsiNmrModuleStateDeregistering = 3          // Set by NmrpDeregisterModule.
+} NSI_NMR_MODULE_STATE;
+
+/**
+ * The NSI_NMR_BINDING_STATE values are the state of an NMR client/provider binding, returned as the read-only dynamic
+ * block of NsiNmrObjectBinding.
+ */
+typedef enum _NSI_NMR_BINDING_STATE
+{
+    NsiNmrBindingStateProposed = 1,             // Allocated by NmrpProposeAttachment; the client's attach callback is running.
+    NsiNmrBindingStateAttached = 2,             // Inserted by NmrpInsertBinding.
+    NsiNmrBindingStateAttachedDuringDeregistration = 3, // Inserted while the client or provider was deregistering; detached at once.
+    NsiNmrBindingStateDetachingClient = 4,      // Detaching because the client is deregistering (NmrpDeregisterModule).
+    NsiNmrBindingStateDetachingProvider = 5,    // Detaching because the provider is deregistering (NmrpDeregisterModule).
+    NsiNmrBindingStateDetachingFilter = 6       // Detaching because an NMR filter was created (NmrfpCreateFilterAndGetDetachList).
+} NSI_NMR_BINDING_STATE;
+
+/**
+ * The NSI_NMR_FILTER_TYPE values are the read/write block of NsiNmrObjectFilter. NmrfpCreateFilterAndGetDetachList rejects
+ * any other value with STATUS_INVALID_PARAMETER.
+ */
+typedef enum _NSI_NMR_FILTER_TYPE
+{
+    NsiNmrFilterTypeBlockClient = 0,            // The keyed client may not bind to the keyed provider; existing bindings are detached.
+    NsiNmrFilterTypeExclusiveClient = 1         // Only the keyed client may bind to the keyed provider; other clients' bindings are detached.
+} NSI_NMR_FILTER_TYPE;
+
+//
+// NSI Object IDs
+//
+
+typedef ULONG NSI_OBJECT_ID, *PNSI_OBJECT_ID;
+
+/**
+ * The NSI_IP_OBJECT_ID values are the NSI object IDs of the IPv4 and IPv6 network-layer modules
+ * (NPI_MS_IPV4_MODULEID and NPI_MS_IPV6_MODULEID). Each object has its own key and parameter blocks, for example
+ * NsiIpObjectRoute (MIB_IP_ROUTE_*), NsiIpObjectNeighbor (MIB_IP_NEIGHBOR_*) and NsiIpObjectPath (NSI_IP_PATH_*).
+ * Both modules register the same 37-entry table (tcpip!IppStartNsip); "IPv6 only" objects have no handlers in the IPv4
+ * table, and IDs not listed have no handlers in either. Block sizes are IPv4/IPv6 where they differ.
+ */
+typedef enum _NSI_IP_OBJECT_ID
+{
+    NsiIpObjectBestRoute = 0,                       // Key: NSI_IP_BEST_ROUTE_KEY4 / NSI_IP_BEST_ROUTE_KEY6 -- ROD: NSI_IP_BEST_ROUTE_ROD_V4 / NSI_IP_BEST_ROUTE_ROD_V6
+    NsiIpObjectCompartmentForwarding = 1,           // Key: NET_IF_COMPARTMENT_ID; no blocks. SetAll only: NsiSetCreateOrSetWithReference / NsiSetDeleteWithReference toggle a compartment flag.
+    NsiIpObjectCompartment = 2,                     // Key: NET_IF_COMPARTMENT_ID -- RW: NSI_IP_COMPARTMENT_RW -- ROD: NSI_IP_COMPARTMENT_ROD
+    NsiIpObjectIcmp = 3,                            // Key: No key; ROD: NSI_IP_ICMP_ROD (MIB_ICMP_EX_XPSP1)
+    NsiIpObjectEchoRequest = 4,                     // Key: ICMP_REQUEST_RW -- RW: the part of ICMP_REQUEST_V4 / ICMP_REQUEST_V6 after ReadWrite (0x48/0x58 bytes on x64) -- ROD 0x1C bytes.
+    NsiIpObjectEchoSequenceRequest = 5,             // Key: No key; ROD: NSI_IP_ECHO_SEQUENCE_REQUEST_ROD
+    NsiIpObjectGlobal = 6,                          // Key: No key; RW: NSI_IP_GLOBAL_RW -- ROD: NSI_IP_STATISTICS_ROD
+    NsiIpObjectIpInterface = 7,                     // Key: NET_LUID; RW: NSI_IP_INTERFACE_RW -- ROD: NSI_IP_INTERFACE_ROD -- ROS: NSI_IP_INTERFACE_ROS
+    NsiIpObjectAnycastAddress = 8,                  // Key: MIB_IP_ANYCAST_KEY_ROW_V4 / MIB_IP_ANYCAST_KEY_ROW_V6
+    NsiIpObjectMulticastAddress = 9,                // Key: NSI_IP_MULTICAST_ADDRESS_KEY_V4 / _V6 -- ROD: NSI_IP_MULTICAST_ADDRESS_ROD -- ROS: NSI_IP_MULTICAST_ADDRESS_ROS
+    NsiIpObjectUnicastAddress = 10,                 // Key: MIB_IP_UNICAST_KEY_ROW_V4 / MIB_IP_UNICAST_KEY_ROW_V6 -- RW: MIB_IP_UNICAST_RW_ROW -- ROD: MIB_IP_UNICAST_DYNAMIC_ROW -- ROS: MIB_IP_UNICAST_STATIC_ROW
+    NsiIpObjectNeighbor = 11,                       // Key: MIB_IP_NEIGHBOR_KEY_ROW_V4 / MIB_IP_NEIGHBOR_KEY_ROW_V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW
+    NsiIpObjectPath = 12,                           // Key: NSI_IP_PATH_KEY_V4 / NSI_IP_PATH_KEY_V6 -- ROD: NSI_IP_PATH_ROD_V4 / NSI_IP_PATH_ROD_V6.
+    NsiIpObjectPotentialRouter = 13,                // Key: NSI_IP_POTENTIAL_ROUTER_KEY (IPv6 only) -- ROD: NSI_IP_POTENTIAL_ROUTER_ROD
+    NsiIpObjectPrefixPolicy = 14,                   // Key: NSI_IP_PREFIX_POLICY_KEY (IPv6 only) -- RW: NSI_IP_PREFIX_POLICY_RW
+    NsiIpObjectProxyNeighbor = 15,                  // Key: NSI_IP_PROXY_NEIGHBOR_KEY_V4 / _V6 -- RW: NSI_IP_PROXY_NEIGHBOR_RW
+    NsiIpObjectRoute = 16,                          // Key: MIB_IP_ROUTE_KEY_ROW_V4 / MIB_IP_ROUTE_KEY_ROW_V6 -- RW: MIB_IP_ROUTE_RW_ROW -- ROD: MIB_IP_ROUTE_DYNAMIC_ROW_V4 / MIB_IP_ROUTE_DYNAMIC_ROW_V6 -- ROS: MIB_IP_ROUTE_STATIC_ROW
+    NsiIpObjectSitePrefix = 17,                     // Key: NSI_IP_SITE_PREFIX_KEY (IPv6 only) -- ROD: NSI_IP_SITE_PREFIX_ROD
+    NsiIpObjectSubInterface = 18,                   // Key: NSI_IP_SUB_INTERFACE_KEY -- RW: NSI_IP_SUB_INTERFACE_RW -- ROD: NSI_IP_SUB_INTERFACE_ROD
+    NsiIpObjectWakeUpPattern = 19,                  // Key: NSI_IP_WAKE_UP_PATTERN_KEY; SetAll only (NsiSetCreateOrSet adds, NsiSetDelete removes).
+    NsiIpObjectResolveNeighbor = 20,                // Key: NSI_IP_RESOLVE_NEIGHBOR_KEY_V4 / _V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW (ResolveIpNetEntry2).
+    NsiIpObjectSortedAddress = 21,                  // Key: NSI_IP_SORTED_ADDRESS_KEY (IPv6 only) -- ROD: NSI_IP_SORTED_ADDRESS_ROD (CreateSortedAddressPairs).
+    NsiIpObjectMulticastForwarding = 22,            // Key: NSI_IP_MULTICAST_FORWARDING_KEY_V4 / _V6 -- RW: NSI_IP_MULTICAST_FORWARDING_RW -- ROD: NSI_IP_MULTICAST_FORWARDING_ROD
+    NsiIpObjectMulticastForwardingChange = 23,      // Key: No key; ROD: NSI_IP_MULTICAST_FORWARDING_CHANGE_ROD_V4 / _V6; change notifications only.
+    NsiIpObjectInterfaceHop = 24,                   // Key: NET_LUID -- ROD: NSI_IP_INTERFACE_HOP_ROD
+    NsiIpObjectInterfaceUnprivileged = 25,          // Key: NET_LUID (IPv6 only); SetAll only (NsiSetClear restarts router discovery).
+    NsiIpObjectTunnelPhysicalInterface = 26,        // Key: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_KEY -- RW 8 bytes (not used by GetAll) -- ROD: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_ROD
+    NsiIpObjectFeatureFallback = 27,                // Key: NSI_IP_FEATURE_FALLBACK_KEY (IPv6 only) -- ROD: NSI_IP_FEATURE_FALLBACK_ROD; enumeration only.
+    NsiIpObjectAddressManager = 28,                 // Key: GUID network ID (IPv6 only) -- RW: NSI_IP_ADDRESS_MANAGER_RW; persistent store only (no handlers).
+    NsiIpObjectLocalityPrivate = 29,                // Key: No key; RW: NSI_IP_LOCALITY_PRIVATE_RW (IPv6 only); SetAll only.
+    NsiIpObjectBandwidth = 30,                      // Key: NSI_IP_BANDWIDTH_KEY -- RW: NSI_IP_BANDWIDTH_RW; persistent store only (no handlers); tcpip!IppInterfaceBwPersistParameters.
+    NsiIpObjectTimer = 31,                          // Key: No key; ROD: NSI_IP_TIMER_ROD
+    NsiIpObjectDisconnectInterface = 32,            // Key: NSI_IP_DISCONNECT_INTERFACE_KEY; SetAll only (NsiSetReset).
+    NsiIpObjectRouterInformation = 33,              // Key: NET_LUID (IPv6 only) -- ROD: NSI_IP_ROUTER_INFORMATION_ROD
+    NsiIpObjectReloadRegistryConfig = 34,           // Key: No key; No blocks; SetParameter reloads the registry configuration.
+    NsiIpObjectSlaacSecretKey = 35,                 // Key: No key; RW: NSI_IP_SLAAC_SECRET_KEY_RW (IPv6 only) (administrators and network operators only).
+    NsiIpObjectRoutingEpoch = 36                    // Key: No key; ROD: NSI_IP_ROUTING_EPOCH_ROD; change notifications only.
+} NSI_IP_OBJECT_ID;
+
+/**
+ * The NSI_TCP_OBJECT_ID values are the NSI object IDs of the TCP module (NPI_MS_TCP_MODULEID): global statistics and
+ * settings, connections, bound endpoints, and port reservations and exclusions. The table has 38 entries; IDs not listed
+ * have no handlers. The port pool objects (18-20, 29, 34) are installed per compartment by tcpip!TcpCreateCompartment
+ * (InetCreatePortPool). The connection ESTATS objects (6-15) are keyed by
+ * NSI_ESTATS_TCP_KEY; netsup.c maps each TCP_ESTATS_TYPE value to one of them.
+ */
+typedef enum _NSI_TCP_OBJECT_ID
+{
+    NsiTcpObjectGlobal = 0,                     // Key: ADDRESS_FAMILY -- RW: NSI_TCP_GLOBAL_RW -- ROD: NETIO_TCP_STATS_DYNAMIC -- ROS: NSI_TCP_GLOBAL_ROS
+    NsiTcpObjectInterface = 1,                  // Key: NET_LUID -- RW: NSI_TCP_INTERFACE_RW -- ROS: NSI_TCP_INTERFACE_ROS (optional).
+    NsiTcpObjectInterfaceConnectionOffload = 2, // Key: NET_LUID -- ROD: NSI_TCP_INTERFACE_CONNECTION_OFFLOAD_ROD (always zeroed).
+    NsiTcpObjectAllConnections = 3,             // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; connections and listeners (TcpEnumerateAllConnections).
+    NsiTcpObjectBasicConnections = 4,           // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; connections only (TcpEnumerateBasicConnections).
+    NsiTcpObjectListeningConnections = 5,       // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; listeners only (TcpEnumerateListeningConnections).
+    NsiTcpObjectEstatsSynOpts = 6,              // Key: NSI_ESTATS_TCP_KEY -- ROS: TCP_ESTATS_SYN_OPTS_ROS_v0; SYN option statistics.
+    NsiTcpObjectEstatsData = 7,                 // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_DATA_RW_v0 -- ROD: TCP_ESTATS_DATA_ROD_v0; data transfer statistics.
+    NsiTcpObjectEstatsSndCong = 8,              // Key: NSI_ESTATS_TCP_KEY -- RW: NSI_ESTATS_SND_CONG_RW_v0 -- ROD: TCP_ESTATS_SND_CONG_ROD_v0 -- ROS: TCP_ESTATS_SND_CONG_ROS_v0; sender congestion statistics.
+    NsiTcpObjectEstatsPath = 9,                 // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_PATH_RW_v0 -- ROD: TCP_ESTATS_PATH_ROD_v0; network path statistics.
+    NsiTcpObjectEstatsSendBuff = 10,            // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_SEND_BUFF_RW_v0 -- ROD: TCP_ESTATS_SEND_BUFF_ROD_v0; send buffer statistics.
+    NsiTcpObjectEstatsRec = 11,                 // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_REC_RW_v0 -- ROD: NSI_ESTATS_REC_ROD_INTERNAL; local receiver statistics.
+    NsiTcpObjectEstatsObsRec = 12,              // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_OBS_REC_RW_v0 -- ROD: TCP_ESTATS_OBS_REC_ROD_v0; observed remote receiver statistics.
+    NsiTcpObjectEstatsBandwidth = 14,           // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_BANDWIDTH_RW_v0 -- ROD: TCP_ESTATS_BANDWIDTH_ROD_v0; bandwidth estimation statistics.
+    NsiTcpObjectEstatsFineRtt = 15,             // Key: NSI_ESTATS_TCP_KEY -- RW: TCP_ESTATS_FINE_RTT_RW_v0 -- ROD: TCP_ESTATS_FINE_RTT_ROD_v0; fine-grained round-trip time statistics.
+    NsiTcpObjectConnection = 16,                // Key: NSI_TCP_KEY_ROW (NSI_SET_TCP_ENTRY); no blocks; SetAll only (SetTcpEntry deletes the TCB through it).
+    NsiTcpObjectSecurity = 17,                  // Key: No key -- RW: NSI_TCP_SECURITY_RW -- ROD: NSI_TCP_SECURITY_ROD (netsh tcp security mpp/profiles).
+    NsiTcpObjectPortPool = 18,                  // Key: not decoded; per-compartment port pool.
+    NsiTcpObjectPortReservationGranting = 19,   // Key: not decoded; port reservation granting object (per compartment).
+    NsiTcpObjectPortReservation = 20,           // Key: not decoded; port reservation object (per compartment).
+    NsiTcpObjectPortProperty = 25,              // Key: NSI_TCP_PORT_PROPERTY_KEY -- RW: NSI_TCP_PORT_PROPERTY_RW
+    NsiTcpObjectTemplate = 26,                  // Key: ULONG template index (0-4) -- RW: NSI_TCP_TEMPLATE_RW; TCP setting templates.
+    NsiTcpObjectDefaultTemplate = 27,           // Key: ULONG (must be 6) -- RW: NSI_TCP_DEFAULT_TEMPLATE_RW
+    NsiTcpObjectGlobalEx = 28,                  // Key: ADDRESS_FAMILY -- RW: NSI_TCP_GLOBAL_EX_RW -- ROS: 1 byte.
+    NsiTcpObjectPortExclusionGranting = 29,     // Key: not decoded; port exclusion granting object (per compartment).
+    NsiTcpObjectRscStats = 30,                  // Key: NET_LUID -- ROD: NSI_TCP_RSC_STATS_ROD; receive segment coalescing state and statistics.
+    NsiTcpObjectNcContext = 31,                 // Key: NSI_TCP_NC_CONTEXT_KEY -- RW: 0x2C8 bytes (not decoded) -- ROD: NSI_TCP_NC_CONTEXT_ROD
+    NsiTcpObjectRetransmitTimeout = 32,         // Key: NSI_TCP_KEY_ROW; no blocks; change notifications only.
+    NsiTcpObjectPortExclusion = 34,             // Key: not decoded; excluded port range object (per compartment).
+    NsiTcpObjectBoundEndpoint = 35,             // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; bound endpoints, enumeration only.
+    NsiTcpObjectReloadRegistryConfig = 36,      // Key: No key; no blocks; SetParameter reloads the registry configuration.
+    NsiTcpObjectTraceRundown = 37               // Key: No key; no blocks; SetParameter emits the TCP trace rundown.
+} NSI_TCP_OBJECT_ID;
+
+/**
+ * The NSI_UDP_OBJECT_ID values are the NSI object IDs of the UDP module (NPI_MS_UDP_MODULEID): global statistics,
+ * endpoints, and port reservations and exclusions. The table has 7 entries. The port pool objects (2-5) are installed
+ * per compartment by tcpip!UdpCreateCompartment (InetCreatePortPool).
+ */
+typedef enum _NSI_UDP_OBJECT_ID
+{
+    NsiUdpObjectGlobal = 0,                     // Key: ADDRESS_FAMILY -- RW: NSI_UDP_GLOBAL_RW -- ROD: NETIO_UDP_STATS_DYNAMIC
+    NsiUdpObjectEndpoint = 1,                   // Key: NSI_UDP_KEY_ROW -- ROD: NSI_UDP_STATUS_ROW -- ROS: NSI_UDP_OWNER_ROW; enumeration only.
+    NsiUdpObjectPortPool = 2,                   // Key: not decoded; per-compartment port pool.
+    NsiUdpObjectPortReservationGranting = 3,    // Key: not decoded; port reservation granting object (per compartment).
+    NsiUdpObjectPortReservation = 4,            // Key: not decoded; port reservation object (per compartment).
+    NsiUdpObjectPortExclusionGranting = 5,      // Key: not decoded; port exclusion granting object (per compartment).
+    NsiUdpObjectUroStats = 6                    // Key: NET_LUID (exactly 8 bytes) -- ROD: 8 bytes (not decoded); UDP receive offload statistics (tcpip!UdpOffloadUroGetAllStats).
+} NSI_UDP_OBJECT_ID;
+
+/**
+ * The NSI_NDIS_OBJECT_ID values are the NSI object IDs of the NDIS module (NPI_MS_NDIS_MODULEID): interfaces (with and
+ * without statistics), index-to-LUID mapping, networks, compartments (by ID, by GUID, and the current thread's, session's
+ * and job's compartment), the interface stack and isolation settings.
+ */
+typedef enum _NSI_NDIS_OBJECT_ID
+{
+    NsiNdisObjectInterface = 0,                         // Key: NET_LUID -- RW: NDIS_NSI_INTERFACE_INFORMATION_RW -- ROD: NDIS_NSI_INTERFACE_INFORMATION_ROD -- ROS: NDIS_NSI_INTERFACE_INFORMATION_ROS
+    NsiNdisObjectInterfaceWithoutStatistics = 1,        // Key: NET_LUID -- ROD: NDIS_NSI_INTERFACE_ENUM_ROD -- ROS: NDIS_NSI_INTERFACE_ENUM_ROS
+    NsiNdisObjectInterfaceIndex = 2,                    // Key: NET_IFINDEX -- ROS: NET_LUID
+    NsiNdisObjectInterfaceReceiveAddress = 3,           // Key: NDIS_NSI_RCV_ADDRESS_KEY -- ROD: NDIS_NSI_RCV_ADDRESS_ROD; interface receive address table.
+    NsiNdisObjectIfStackBasic = 4,                      // Key: MIB_NDIS_IFSTACK_KEY_ROW; no blocks; enumeration only (ndisNsiEnumerateAllIfStackEntries).
+    NsiNdisObjectInvertedIfStack = 5,                   // Key: MIB_NDIS_IFSTACK_KEY_ROW; no blocks; enumeration only (ndisNsiEnumerateAllInvertedIfStackEntries).
+    NsiNdisObjectNetwork = 6,                           // Key: NET_IF_NETWORK_GUID -- RW: NDIS_NSI_NETWORK_RW
+    NsiNdisObjectCompartment = 7,                       // Key: MIB_NDIS_COMPARTMENT_KEY_ROW -- RW: NDIS_NSI_COMPARTMENT_RW
+    NsiNdisObjectCurrentThreadCompartment = 8,          // Key: No key -- RW: NET_IF_COMPARTMENT_ID
+    NsiNdisObjectSessionCompartment = 9,                // Key: NDIS_NSI_SESSION_COMPARTMENT_KEY -- RW: NDIS_NSI_SESSION_COMPARTMENT_RW
+    NsiNdisObjectInterfacePersisted = 10,               // Key: NET_LUID -- RW: NDIS_NSI_INTERFACE_PERSIST_RW; persistent store only (no provider handlers).
+    NsiNdisObjectCompartmentGuid = 11,                  // Key: GUID -- ROS: NET_IF_COMPARTMENT_ID
+    NsiNdisObjectInterfaceRaw = 12,                     // Key: NDIS_NSI_INTERFACE_RAW_KEY -- RW: NDIS_NSI_INTERFACE_RAW_RW -- ROD: NDIS_NSI_INTERFACE_RAW_ROD -- ROS: NDIS_NSI_INTERFACE_RAW_ROS; get only, no enumeration.
+    NsiNdisObjectInterfaceWithoutStatisticsRaw = 13,    // Key: NDIS_NSI_INTERFACE_ENUM_RAW_KEY -- ROD: NDIS_NSI_INTERFACE_ENUM_RAW_ROD -- ROS: NDIS_NSI_INTERFACE_ENUM_RAW_ROS
+    NsiNdisObjectIfStack = 14,                          // Key: MIB_NDIS_IFSTACK_KEY_ROW; no blocks; enumeration only (ndisNsiEnumerateAllIfStackEntriesFull).
+    NsiNdisObjectPersistentIsolation = 15,              // Key: NDIS_NSI_PERSISTENT_ISOLATION_KEY -- RW: NDIS_NSI_PERSISTENT_ISOLATION_RW; persistent store only (no provider handlers); used by tcpip.sys.
+    NsiNdisObjectJobCompartment = 16,                   // Key: NDIS_NSI_JOB_COMPARTMENT_KEY -- RW: NDIS_NSI_JOB_COMPARTMENT_RW
+    NsiNdisObjectTimestampConfigChange = 17             // Key: NET_LUID -- ROD: NDIS_NSI_TIMESTAMP_ROD
+} NSI_NDIS_OBJECT_ID;
+
+/**
  * The NSI_FL_OBJECT_ID values are NSI object IDs of the framing-layer modules (NPI_MS_FL48_MODULEID for IPv4 and
  * NPI_MS_FL68_MODULEID for IPv6; tcpip!Fl48Start/Fl68Start). Each table has 12 objects; IDs not listed have no handlers.
  */
@@ -268,6 +516,105 @@ typedef enum _NSI_FL_OBJECT_ID
     NsiFlObjectNetBTGlobalTriage = 9,       // NPI_MS_FL48_MODULEID only. Key: NSI_FL_NETBT_GLOBAL_TRIAGE_KEY; SetAll only.
     NsiFlObjectVirtualInterface = 11        // Key: NSI_FL_VIRTUAL_INTERFACE_KEY -- RW 1 byte -- ROD: NSI_FL_VIRTUAL_INTERFACE_ROD -- ROS: NSI_FL_VIRTUAL_INTERFACE_ROS
 } NSI_FL_OBJECT_ID;
+
+/**
+ * The NSI_FL6T_OBJECT_ID values are the NSI object IDs of the Teredo framing-layer module (NPI_MS_FL6T_MODULEID;
+ * tcpip!Fl6tStart). The table has 11 entries; IDs not listed have no handlers. NsiFl6tObjectClientPort is the Teredo
+ * client port that NotifyTeredoPortChange watches.
+ */
+typedef enum _NSI_FL6T_OBJECT_ID
+{
+    NsiFl6tObjectTunnel = 0,                    // No key -- RW: NSI_FL6T_TUNNEL_RW -- ROD: NSI_FL6T_TUNNEL_ROD; change notifications.
+    NsiFl6tObjectTeredo = 1,                    // No key -- RW: NSI_FL6T_TEREDO_RW; change notifications.
+    NsiFl6tObjectInterface = 2,                 // Key: NET_LUID -- RW: NSI_FL_INTERFACE_RW
+    NsiFl6tObjectClientPort = 3,                // No key -- RW: NSI_FL6T_CLIENT_PORT_RW; the Teredo client port NotifyTeredoPortChange watches.
+    NsiFl6tObjectInterfaceRemoteAddress = 4,    // Key: NET_LUID -- RW: NSI_FL6T_INTERFACE_REMOTE_ADDRESS_RW
+    NsiFl6tObjectTunnelPhysicalInterfaceAssociation = 6, // Key: NET_LUID -- RW: NSI_FL6T_TUNNEL_PHYSICAL_INTERFACE_ASSOCIATION_RW; SetAll only.
+    NsiFl6tObjectTunnelPotentialRouter = 8,     // Key: NET_LUID -- RW: NSI_FL6T_TUNNEL_POTENTIAL_ROUTER_RW; SetAll only.
+    NsiFl6tObjectTeredoShunt = 10               // No key -- RW: NSI_FL6T_TEREDO_SHUNT_RW
+} NSI_FL6T_OBJECT_ID;
+
+/**
+ * The NSI_FL_RDMA_OBJECT_ID values are the NSI object IDs of the tcpip RDMA framing-layer provider (tcpip!FlRdmaStart).
+ */
+typedef enum _NSI_FL_RDMA_OBJECT_ID
+{
+    NsiFlRdmaObjectInterface = 0,               // Key: NET_IFINDEX -- ROD: NSI_FL_RDMA_INTERFACE_ROD -- ROS: NSI_FL_RDMA_INTERFACE_ROS; change notifications.
+    NsiFlRdmaObjectGlobal = 1,                  // No key -- RW: NSI_FL_RDMA_GLOBAL_RW
+    NsiFlRdmaObjectConnection = 2,              // Key: NSI_FL_RDMA_CONNECTION_KEY -- ROS: NSI_FL_RDMA_ENDPOINT_ROS; enumeration only.
+    NsiFlRdmaObjectLocalEndpoint = 3            // Key: NSI_FL_RDMA_LOCAL_ENDPOINT_KEY -- ROS: NSI_FL_RDMA_ENDPOINT_ROS; enumeration only.
+} NSI_FL_RDMA_OBJECT_ID;
+
+/**
+ * The NSI_RAW_OBJECT_ID values are the NSI object IDs of the raw IP transport module (NPI_MS_RAW_MODULEID).
+ */
+typedef enum _NSI_RAW_OBJECT_ID
+{
+    NsiRawObjectGlobal = 0                      // Key: ADDRESS_FAMILY (AF_INET or AF_INET6) -- ROD: NSI_RAW_GLOBAL_ROD (MIB_UDPSTATS2 layout).
+} NSI_RAW_OBJECT_ID;
+
+/**
+ * The NSI_RSS_OBJECT_ID values are the NSI object IDs of the tcpip receive side scaling provider (tcpip!RssStartNsiProvider).
+ */
+typedef enum _NSI_RSS_OBJECT_ID
+{
+    NsiRssObjectInterface = 0                   // Key: NET_IFINDEX -- ROD: NSI_RSS_INTERFACE_ROD; change notifications.
+} NSI_RSS_OBJECT_ID;
+
+/**
+ * The NSI_NMR_OBJECT_ID values are the NSI object IDs of the Network Module Registrar (NPI_MS_NMR_MODULEID;
+ * netio!NmrfpNsiProviderDispatch). They expose NMR filters, registered providers and clients, and bindings.
+ */
+typedef enum _NSI_NMR_OBJECT_ID
+{
+    NsiNmrObjectFilter = 0,                     // Key: NSI_NMR_BINDING_KEY -- RW: NSI_NMR_FILTER_TYPE (ULONG); netio!NmrfpGetAllFilterParameters / NmrfpSetAllFilterParameters.
+    NsiNmrObjectProvider = 1,                   // Key: NSI_NMR_MODULE_KEY -- ROD: NSI_NMR_MODULE_STATE (ULONG); registered providers (netio!NmrpGetAllProviderParameters).
+    NsiNmrObjectClient = 2,                     // Key: NSI_NMR_MODULE_KEY -- ROD: NSI_NMR_MODULE_STATE (ULONG); registered clients (netio!NmrpGetAllClientParameters).
+    NsiNmrObjectBinding = 3                     // Key: NSI_NMR_BINDING_KEY -- ROD: NSI_NMR_BINDING_STATE (ULONG); client/provider bindings (netio!NmrpGetAllBindingParameters).
+} NSI_NMR_OBJECT_ID;
+
+/**
+ * The NSI_AFD_OBJECT_ID values are the NSI object IDs of the Ancillary Function Driver (NPI_MS_AFD_MODULEID;
+ * afd!AfdAttachNsiClient).
+ */
+typedef enum _NSI_AFD_OBJECT_ID
+{
+    NsiAfdObjectProcessDiagnostics = 0          // Key: ULONG process ID -- ROD: NSI_AFD_PROCESS_DIAGNOSTICS_ROD; enumeration only (afd!AfdEnumerateProcessDiagnostics).
+} NSI_AFD_OBJECT_ID;
+
+/**
+ * The NSI_TDX_OBJECT_ID values are the NSI object IDs of the TDI translation driver (NPI_MS_TDX_MODULEID;
+ * tdx!TdxNsiProviderDispatch).
+ */
+typedef enum _NSI_TDX_OBJECT_ID
+{
+    NsiTdxObjectGlobal = 0                      // Key: No key -- ROD: NSI_TDX_GLOBAL_ROD; tdx!TdxGetAllGlobalParameters.
+} NSI_TDX_OBJECT_ID;
+
+/**
+ * The NSI_WINNAT_OBJECT_ID values are the NSI object IDs of the Windows NAT driver (NPI_MS_WINNAT_MODULEID;
+ * winnat!WinNatNsiProviderDispatch). The table has 12 entries: WinNAT instances and state (0-5), the SLB NAT objects (6-10)
+ * and the IP translation (464XLAT) instance (11). Block sizes are bytes on x64; the blocks are not decoded.
+ */
+typedef enum _NSI_WINNAT_OBJECT_ID
+{
+    NsiWinNatObjectInstance = 0,                // Key: NSI_WINNAT_INSTANCE_KEY -- RW: NSI_WINNAT_INSTANCE_RW; winnat!WinNatGet/Set/EnumerateInstanceHandler.
+    NsiWinNatObjectPacketFilter = 1,            // Key: NSI_WINNAT_PACKET_FILTER_KEY; no blocks; winnat!WinNatSet/EnumeratePacketFilterHandler.
+    NsiWinNatObjectAddressPool = 2,             // Key: NSI_WINNAT_ADDRESS_POOL_KEY -- ROD: BOOLEAN (address not present on the interface at creation); winnat!WinNatGet/Set/EnumerateAddressPoolHandler.
+    NsiWinNatObjectBindingEntry = 3,            // Key: NSI_WINNAT_BINDING_KEY -- ROD: NSI_WINNAT_BINDING_ROD; winnat!WinNatGetBindingEntryHandler / WinNatEnumerateBindingEntriesHandler.
+    NsiWinNatObjectSessionEntry = 4,            // Key: NSI_WINNAT_SESSION_KEY -- ROD: NSI_WINNAT_SESSION_ROD; enumeration only (Get returns STATUS_NOT_IMPLEMENTED); winnat!WinNatEnumerateSessionEntriesHandler.
+    NsiWinNatObjectStaticBinding = 5,           // Key: NSI_WINNAT_STATIC_BINDING_KEY; no blocks; SetAll only (winnat!WinNatSetStaticBindingHandler).
+    NsiWinNatObjectSlbInstance = 6,             // Key: NSI_WINNAT_SLB_INSTANCE_KEY -- RW: NSI_WINNAT_SLB_INSTANCE_RW -- ROD: NSI_WINNAT_SLB_INSTANCE_ROD; winnat!SlbNatNsiGet/Set/EnumerateInstanceHandler.
+    NsiWinNatObjectSlbExternalAddress = 7,      // Key: NSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY -- RW: NSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW; winnat!SlbNatNsiGet/Set/EnumerateExternalAddressHandler.
+    NsiWinNatObjectSlbStaticMapping = 8,        // Key: NSI_WINNAT_SLB_STATIC_MAPPING_KEY -- RW: NSI_WINNAT_SLB_STATIC_MAPPING_RW; winnat!SlbNatNsiGet/Set/EnumerateStaticMappingHandler.
+    NsiWinNatObjectSlbSession = 9,              // Key: NSI_WINNAT_SESSION_KEY -- ROD: NSI_WINNAT_SESSION_ROD; enumeration only (winnat!SlbNatNsiEnumerateSessionHandler, WinNatLibEnumerateSessions).
+    NsiWinNatObjectSlbGlobal = 10,              // Key: No key -- RW: ULONG (winnat global, meaning unknown); winnat!SlbNatNsiGet/SetGlobalHandler.
+    NsiWinNatObjectIPxlatInstance = 11          // Key: 8 bytes -- RW: 0x2C bytes, or 0x3C bytes with the CLAT_Preview2_RandomLocalAddress feature when the buffer allows; change notifications; winnat!WinNatGet/SetIPxlatInstanceHandler.
+} NSI_WINNAT_OBJECT_ID;
+
+//
+// NSI Parameter IDs
+//
 
 /**
  * NsiGetParameter on an object whose provider registers no GetParameter handler (the IP objects below, and the NDIS
@@ -354,54 +701,6 @@ typedef enum _NSI_IP_INTERFACE_PARAMETER_ID
 } NSI_IP_INTERFACE_PARAMETER_ID;
 
 /**
- * The NSI_IP_OBJECT_ID values are the NSI object IDs of the IPv4 and IPv6 network-layer modules
- * (NPI_MS_IPV4_MODULEID and NPI_MS_IPV6_MODULEID). Each object has its own key and parameter blocks, for example
- * NsiIpObjectRoute (MIB_IP_ROUTE_*), NsiIpObjectNeighbor (MIB_IP_NEIGHBOR_*) and NsiIpObjectPath (NSI_IP_PATH_*).
- * Both modules register the same 37-entry table (tcpip!IppStartNsip); "IPv6 only" objects have no handlers in the IPv4
- * table, and IDs not listed have no handlers in either. Block sizes are IPv4/IPv6 where they differ.
- */
-typedef enum _NSI_IP_OBJECT_ID
-{
-    NsiIpObjectBestRoute = 0,                       // Key: NSI_IP_BEST_ROUTE_KEY4 / NSI_IP_BEST_ROUTE_KEY6 -- ROD: NSI_IP_BEST_ROUTE_ROD_V4 / NSI_IP_BEST_ROUTE_ROD_V6
-    NsiIpObjectCompartmentForwarding = 1,           // Key: NET_IF_COMPARTMENT_ID; no blocks. SetAll only: NsiSetCreateOrSetWithReference / NsiSetDeleteWithReference toggle a compartment flag.
-    NsiIpObjectCompartment = 2,                     // Key: NET_IF_COMPARTMENT_ID -- RW: NSI_IP_COMPARTMENT_RW -- ROD: NSI_IP_COMPARTMENT_ROD
-    NsiIpObjectIcmp = 3,                            // Key: No key; ROD: NSI_IP_ICMP_ROD (MIB_ICMP_EX_XPSP1)
-    NsiIpObjectEchoRequest = 4,                     // Key: ICMP_REQUEST_RW -- RW: the part of ICMP_REQUEST_V4 / ICMP_REQUEST_V6 after ReadWrite (0x48/0x58 bytes on x64) -- ROD 0x1C bytes.
-    NsiIpObjectEchoSequenceRequest = 5,             // Key: No key; ROD: NSI_IP_ECHO_SEQUENCE_REQUEST_ROD
-    NsiIpObjectGlobal = 6,                          // Key: No key; RW: NSI_IP_GLOBAL_RW -- ROD: NSI_IP_STATISTICS_ROD
-    NsiIpObjectIpInterface = 7,                     // Key: NET_LUID; RW: NSI_IP_INTERFACE_RW -- ROD: NSI_IP_INTERFACE_ROD -- ROS: NSI_IP_INTERFACE_ROS
-    NsiIpObjectAnycastAddress = 8,                  // Key: MIB_IP_ANYCAST_KEY_ROW_V4 / MIB_IP_ANYCAST_KEY_ROW_V6
-    NsiIpObjectMulticastAddress = 9,                // Key: NSI_IP_MULTICAST_ADDRESS_KEY_V4 / _V6 -- ROD: NSI_IP_MULTICAST_ADDRESS_ROD -- ROS: NSI_IP_MULTICAST_ADDRESS_ROS
-    NsiIpObjectUnicastAddress = 10,                 // Key: MIB_IP_UNICAST_KEY_ROW_V4 / MIB_IP_UNICAST_KEY_ROW_V6 -- RW: MIB_IP_UNICAST_RW_ROW -- ROD: MIB_IP_UNICAST_DYNAMIC_ROW -- ROS: MIB_IP_UNICAST_STATIC_ROW
-    NsiIpObjectNeighbor = 11,                       // Key: MIB_IP_NEIGHBOR_KEY_ROW_V4 / MIB_IP_NEIGHBOR_KEY_ROW_V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW
-    NsiIpObjectPath = 12,                           // Key: NSI_IP_PATH_KEY_V4 / NSI_IP_PATH_KEY_V6 -- ROD: NSI_IP_PATH_ROD_V4 / NSI_IP_PATH_ROD_V6.
-    NsiIpObjectPotentialRouter = 13,                // Key: NSI_IP_POTENTIAL_ROUTER_KEY (IPv6 only) -- ROD: NSI_IP_POTENTIAL_ROUTER_ROD
-    NsiIpObjectPrefixPolicy = 14,                   // Key: NSI_IP_PREFIX_POLICY_KEY (IPv6 only) -- RW: NSI_IP_PREFIX_POLICY_RW
-    NsiIpObjectProxyNeighbor = 15,                  // Key: NSI_IP_PROXY_NEIGHBOR_KEY_V4 / _V6 -- RW: NSI_IP_PROXY_NEIGHBOR_RW
-    NsiIpObjectRoute = 16,                          // Key: MIB_IP_ROUTE_KEY_ROW_V4 / MIB_IP_ROUTE_KEY_ROW_V6 -- RW: MIB_IP_ROUTE_RW_ROW -- ROD: MIB_IP_ROUTE_DYNAMIC_ROW_V4 / MIB_IP_ROUTE_DYNAMIC_ROW_V6 -- ROS: MIB_IP_ROUTE_STATIC_ROW
-    NsiIpObjectSitePrefix = 17,                     // Key: NSI_IP_SITE_PREFIX_KEY (IPv6 only) -- ROD: NSI_IP_SITE_PREFIX_ROD
-    NsiIpObjectSubInterface = 18,                   // Key: NSI_IP_SUB_INTERFACE_KEY -- RW: NSI_IP_SUB_INTERFACE_RW -- ROD: NSI_IP_SUB_INTERFACE_ROD
-    NsiIpObjectWakeUpPattern = 19,                  // Key: NSI_IP_WAKE_UP_PATTERN_KEY; SetAll only (NsiSetCreateOrSet adds, NsiSetDelete removes).
-    NsiIpObjectResolveNeighbor = 20,                // Key: NSI_IP_RESOLVE_NEIGHBOR_KEY_V4 / _V6 -- RW: MIB_IP_NEIGHBOR_RW_ROW -- ROD: MIB_IP_NEIGHBOR_DYNAMIC_ROW -- ROS: MIB_IP_NEIGHBOR_STATIC_ROW (ResolveIpNetEntry2).
-    NsiIpObjectSortedAddress = 21,                  // Key: NSI_IP_SORTED_ADDRESS_KEY (IPv6 only) -- ROD: NSI_IP_SORTED_ADDRESS_ROD (CreateSortedAddressPairs).
-    NsiIpObjectMulticastForwarding = 22,            // Key: NSI_IP_MULTICAST_FORWARDING_KEY_V4 / _V6 -- RW: NSI_IP_MULTICAST_FORWARDING_RW -- ROD: NSI_IP_MULTICAST_FORWARDING_ROD
-    NsiIpObjectMulticastForwardingChange = 23,      // Key: No key; ROD: NSI_IP_MULTICAST_FORWARDING_CHANGE_ROD_V4 / _V6; change notifications only.
-    NsiIpObjectInterfaceHop = 24,                   // Key: NET_LUID -- ROD: NSI_IP_INTERFACE_HOP_ROD
-    NsiIpObjectInterfaceUnprivileged = 25,          // Key: NET_LUID (IPv6 only); SetAll only (NsiSetClear restarts router discovery).
-    NsiIpObjectTunnelPhysicalInterface = 26,        // Key: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_KEY -- RW 8 bytes (not used by GetAll) -- ROD: NSI_IP_TUNNEL_PHYSICAL_INTERFACE_ROD
-    NsiIpObjectFeatureFallback = 27,                // Key: NSI_IP_FEATURE_FALLBACK_KEY (IPv6 only) -- ROD: NSI_IP_FEATURE_FALLBACK_ROD; enumeration only.
-    NsiIpObjectAddressManager = 28,                 // Key: No key; NSI_IP_OBJECT_ADDRESS_MANAGER_RW_SIZE / NSI_IP_OBJECT_ADDRESS_MANAGER_ROS_SIZE (no handlers)
-    NsiIpObjectLocalityPrivate = 29,                // Key: No key; RW: NSI_IP_LOCALITY_PRIVATE_RW (IPv6 only); SetAll only.
-    NsiIpObjectBandwidth = 30,                      // Key: No key; NSI_IP_OBJECT_BANDWIDTH_RW_SIZE / NSI_IP_OBJECT_BANDWIDTH_ROS_SIZE (no handlers)
-    NsiIpObjectTimer = 31,                          // Key: No key; ROD: NSI_IP_TIMER_ROD
-    NsiIpObjectDisconnectInterface = 32,            // Key: NSI_IP_DISCONNECT_INTERFACE_KEY; SetAll only (NsiSetReset).
-    NsiIpObjectRouterInformation = 33,              // Key: Key: NET_LUID (IPv6 only) -- ROD: NSI_IP_ROUTER_INFORMATION_ROD
-    NsiIpObjectReloadRegistryConfig = 34,           // Key: No key; No blocks; SetParameter reloads the registry configuration.
-    NsiIpObjectSlaacSecretKey = 35,                 // Key: No key; RW: NSI_IP_SLAAC_SECRET_KEY_RW (IPv6 only) (administrators and network operators only).
-    NsiIpObjectRoutingEpoch = 36                    // Key: No key; ROD: NSI_IP_ROUTING_EPOCH_ROD; change notifications only.
-} NSI_IP_OBJECT_ID;
-
-/**
  * The NSI_NDIS_COMPARTMENT_GUID_PARAMETER_ID values are byte offsets for NsiNdisObjectCompartmentGuid (key: GUID, the
  * compartment GUID). NsiNdisCompartmentGuidType2Id reads the compartment ID from the read-only static block;
  * ConvertCompartmentGuidToId uses it.
@@ -477,14 +776,14 @@ typedef enum _NSI_NDIS_INTERFACE_INDEX_PARAMETER_ID
     NsiNdisInterfaceIndexToLuid = 0x000                 // NET_LUID InterfaceLuid (8 bytes).
 } NSI_NDIS_INTERFACE_INDEX_PARAMETER_ID;
 
-/**
- * The NSI_NDIS_INTERFACE_*_PARAMETER_ID values below are the byte offsets that the ndis.sys interface handlers accept for
- * NsiGetParameter on NsiNdisObjectInterface (and NsiNdisObjectInterfaceRaw) and NsiNdisObjectInterfaceWithoutStatistics
- * (and NsiNdisObjectInterfaceWithoutStatisticsRaw). Any other offset fails with STATUS_INVALID_PARAMETER. Each field is
- * copied whole, so the parameter length must be at least the field size; a longer length continues into the following
- * fields until the last one. Fields marked "provider OID" are queried from the interface provider when ndis.sys is not
- * the provider (or always, where noted) and are zeroed if that query fails.
- */
+//
+// The NSI_NDIS_INTERFACE_{RW,DYNAMIC,STATIC,ENUM_DYNAMIC,ENUM_STATIC}_PARAMETER_ID values below are the byte offsets that
+// the ndis.sys interface handlers accept for NsiGetParameter on NsiNdisObjectInterface (and NsiNdisObjectInterfaceRaw) and
+// NsiNdisObjectInterfaceWithoutStatistics (and NsiNdisObjectInterfaceWithoutStatisticsRaw). Any other offset fails with
+// STATUS_INVALID_PARAMETER. Each field is copied whole, so the parameter length must be at least the field size; a longer
+// length continues into the following fields until the last one. Fields marked "provider OID" are queried from the
+// interface provider when ndis.sys is not the provider (or always, where noted) and are zeroed if that query fails.
+//
 
 /**
  * The NSI_NDIS_INTERFACE_RW_PARAMETER_ID values are byte offsets into NDIS_NSI_INTERFACE_INFORMATION_RW
@@ -546,11 +845,7 @@ typedef enum _NSI_NDIS_INTERFACE_DYNAMIC_PARAMETER_ID
 /**
  * The NSI_NDIS_INTERFACE_STATIC_PARAMETER_ID values are byte offsets into NDIS_NSI_INTERFACE_INFORMATION_ROS
  * (NsiNdisObjectInterface, read-only static block). IP Helper's ConvertInterfaceLuidToIndex/ToGuid and the description
- * lookup use the first three.
- *
- * ndis.sys (ndisNsiGetInterfaceRosInformation) accepts only these offsets; any other offset fails with
- * STATUS_INVALID_PARAMETER. Each field is copied whole, so the parameter length must be at least the field size. A longer
- * length continues into the following fields.
+ * lookup use the first three. ndis.sys handler: ndisNsiGetInterfaceRosInformation.
  */
 typedef enum _NSI_NDIS_INTERFACE_STATIC_PARAMETER_ID
 {
@@ -628,33 +923,6 @@ typedef enum _NSI_NDIS_JOB_COMPARTMENT_PARAMETER_ID
 } NSI_NDIS_JOB_COMPARTMENT_PARAMETER_ID;
 
 /**
- * The NSI_NDIS_OBJECT_ID values are the NSI object IDs of the NDIS module (NPI_MS_NDIS_MODULEID): interfaces (with and
- * without statistics), index-to-LUID mapping, networks, compartments (by ID, by GUID, and the current thread's, session's
- * and job's compartment), the interface stack and isolation settings.
- */
-typedef enum _NSI_NDIS_OBJECT_ID
-{
-    NsiNdisObjectInterface = 0,                         // Key: NET_LUID; RW: NDIS_NSI_INTERFACE_INFORMATION_RW; ROD: NDIS_NSI_INTERFACE_INFORMATION_ROD; ROS: NDIS_NSI_INTERFACE_INFORMATION_ROS.
-    NsiNdisObjectInterfaceWithoutStatistics = 1,        // Key: NET_LUID; ROD: NDIS_NSI_INTERFACE_ENUM_ROD; ROS: NDIS_NSI_INTERFACE_ENUM_ROS.
-    NsiNdisObjectInterfaceIndex = 2,                    // Key: NET_IFINDEX; ROS: NET_LUID.
-    NsiNdisObjectInterfaceReceiveAddress = 3,           // Key: NDIS_NSI_RCV_ADDRESS_KEY; ROD: NDIS_NSI_RCV_ADDRESS_ROD (interface receive address table).
-    NsiNdisObjectIfStackBasic = 4,                      // Key: MIB_NDIS_IFSTACK_KEY_ROW; enumeration only (ndisNsiEnumerateAllIfStackEntries).
-    NsiNdisObjectInvertedIfStack = 5,                   // Key: MIB_NDIS_IFSTACK_KEY_ROW; enumeration only (ndisNsiEnumerateAllInvertedIfStackEntries).
-    NsiNdisObjectNetwork = 6,                           // Key: NET_IF_NETWORK_GUID; RW: NDIS_NSI_NETWORK_RW.
-    NsiNdisObjectCompartment = 7,                       // Key: MIB_NDIS_COMPARTMENT_KEY_ROW; RW: NDIS_NSI_COMPARTMENT_RW.
-    NsiNdisObjectCurrentThreadCompartment = 8,          // key; None. RW: NET_IF_COMPARTMENT_ID.
-    NsiNdisObjectSessionCompartment = 9,                // Key: NDIS_NSI_SESSION_COMPARTMENT_KEY; RW: NDIS_NSI_SESSION_COMPARTMENT_RW.
-    NsiNdisObjectInterfacePersisted = 10,               // Key: NET_LUID; RW: NDIS_NSI_INTERFACE_PERSIST_RW. Persistent store only (no provider handlers).
-    NsiNdisObjectCompartmentGuid = 11,                  // Key: GUID; ROS compartment ID: NET_IF_COMPARTMENT_ID;
-    NsiNdisObjectInterfaceRaw = 12,                     // Key: NDIS_NSI_INTERFACE_RAW_KEY; RW: NDIS_NSI_INTERFACE_RAW_RW; ROD: NDIS_NSI_INTERFACE_RAW_ROD; ROS: NDIS_NSI_INTERFACE_RAW_ROS (get only, no enumeration).
-    NsiNdisObjectInterfaceWithoutStatisticsRaw = 13,    // Key: NDIS_NSI_INTERFACE_ENUM_RAW_KEY; ROD: NDIS_NSI_INTERFACE_ENUM_RAW_ROD; ROS: NDIS_NSI_INTERFACE_ENUM_RAW_ROS.
-    NsiNdisObjectIfStack = 14,                          // Key: MIB_NDIS_IFSTACK_KEY_ROW; enumeration only (ndisNsiEnumerateAllIfStackEntriesFull).
-    NsiNdisObjectPersistentIsolation = 15,              // Key: NDIS_NSI_PERSISTENT_ISOLATION_KEY; RW: NDIS_NSI_PERSISTENT_ISOLATION_RW. Persistent store only (no provider handlers); used by tcpip.sys.
-    NsiNdisObjectJobCompartment = 16,                   // Key: NDIS_NSI_JOB_COMPARTMENT_KEY; RW: NDIS_NSI_JOB_COMPARTMENT_RW.
-    NsiNdisObjectTimestampConfigChange = 17             // Key: NET_LUID; ROD: NDIS_NSI_TIMESTAMP_ROD.
-} NSI_NDIS_OBJECT_ID;
-
-/**
  * The NSI_NDIS_SESSION_COMPARTMENT_PARAMETER_ID values are byte offsets into NDIS_NSI_SESSION_COMPARTMENT_RW
  * (NsiNdisObjectSessionCompartment; key: NDIS_NSI_SESSION_COMPARTMENT_KEY). NsiNdisSessionCompartmentType0Id is the
  * compartment ID assigned to a session.
@@ -670,146 +938,9 @@ typedef enum _NSI_NDIS_SESSION_COMPARTMENT_PARAMETER_ID
     NsiNdisSessionCompartmentType0Id = 0x000            // NET_IF_COMPARTMENT_ID CompartmentId (4 bytes).
 } NSI_NDIS_SESSION_COMPARTMENT_PARAMETER_ID;
 
-/**
- * The NSI_TCP_APPLIED_SETTING values identify the TCP setting template applied to a connection
- * (Get-NetTCPSetting: Internet, Datacenter, Compat and their custom variants). Reported in
- * NSI_TCP_STATUS_ROW.AppliedSetting.
- */
-typedef enum _NSI_TCP_APPLIED_SETTING
-{
-    NsiTcpAppliedSettingInternet = 0,               // Internet TCP setting template.
-    NsiTcpAppliedSettingDatacenter = 1,             // Datacenter TCP setting template.
-    NsiTcpAppliedSettingCompat = 2,                 // Compatibility TCP setting template.
-    NsiTcpAppliedSettingInternetCustom = 3,         // Custom Internet TCP setting template.
-    NsiTcpAppliedSettingDatacenterCustom = 4,       // Custom Datacenter TCP setting template.
-    NsiTcpAppliedSettingUnspecified = 6,            // IP Helper renders this value as an empty string.
-} NSI_TCP_APPLIED_SETTING;
-
-/**
- * The NSI_TCP_ENUMERATE_CONNECTION_TYPE values select which TCP endpoints a tcpip.sys connection enumeration returns.
- */
-typedef enum _NSI_TCP_ENUMERATE_CONNECTION_TYPE
-{
-    NsiTcpEnumerateConnectionTypeBasic = 0,             // IPv6 and IPv4 connection TCBs (synchronizing, established, closing and TIME_WAIT); no listeners.
-    NsiTcpEnumerateConnectionTypeListening = 1,         // Listening endpoints only.
-    NsiTcpEnumerateConnectionTypeAll = 2,               // Connection TCBs followed by listeners (the GetTcpTable view).
-    NsiTcpEnumerateConnectionTypeBoundConnections = 3   // Bound endpoints that are neither connected nor listening.
-} NSI_TCP_ENUMERATE_CONNECTION_TYPE;
-
-/**
- * The NSI_TCP_OBJECT_ID values are the NSI object IDs of the TCP module (NPI_MS_TCP_MODULEID): global statistics and
- * settings, connections, bound endpoints, and port reservations and exclusions. The table has 38 entries; IDs not listed
- * have no handlers. The port pool objects (18-20, 29, 34) are installed per compartment by tcpip!TcpCreateCompartment
- * (InetCreatePortPool). The connection ESTATS objects (6-15) are keyed by
- * NSI_ESTATS_TCP_KEY; netsup.c maps each TCP_ESTATS_TYPE value to one of them.
- */
-typedef enum _NSI_TCP_OBJECT_ID
-{
-    NsiTcpObjectGlobal = 0,                     // Key: ADDRESS_FAMILY -- RW: NSI_TCP_GLOBAL_RW -- ROD: NETIO_TCP_STATS_DYNAMIC -- ROS: NSI_TCP_GLOBAL_ROS
-    NsiTcpObjectInterface = 1,                  // Key: NET_LUID -- RW: NSI_TCP_INTERFACE_RW -- ROS: NSI_TCP_INTERFACE_ROS (optional).
-    NsiTcpObjectInterfaceConnectionOffload = 2, // Key: NET_LUID -- ROD: NSI_TCP_INTERFACE_CONNECTION_OFFLOAD_ROD (always zeroed).
-    NsiTcpObjectAllConnections = 3,             // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; connections and listeners (TcpEnumerateAllConnections).
-    NsiTcpObjectBasicConnections = 4,           // Same blocks; connections only (TcpEnumerateBasicConnections).
-    NsiTcpObjectListeningConnections = 5,       // Same blocks; listeners only (TcpEnumerateListeningConnections).
-    NsiTcpObjectEstatsSynOpts = 6,              // Key: NSI_ESTATS_TCP_KEY; TCP SYN option statistics.
-    NsiTcpObjectEstatsData = 7,                 // Key: NSI_ESTATS_TCP_KEY; TCP data transfer statistics.
-    NsiTcpObjectEstatsSndCong = 8,              // Key: NSI_ESTATS_TCP_KEY; TCP sender congestion statistics.
-    NsiTcpObjectEstatsPath = 9,                 // Key: NSI_ESTATS_TCP_KEY; TCP network path statistics.
-    NsiTcpObjectEstatsSendBuff = 10,            // Key: NSI_ESTATS_TCP_KEY; TCP send buffer statistics.
-    NsiTcpObjectEstatsRec = 11,                 // Key: NSI_ESTATS_TCP_KEY; TCP local receiver statistics.
-    NsiTcpObjectEstatsObsRec = 12,              // Key: NSI_ESTATS_TCP_KEY; TCP observed remote receiver statistics.
-    NsiTcpObjectEstatsBandwidth = 14,           // Key: NSI_ESTATS_TCP_KEY; TCP bandwidth estimation statistics.
-    NsiTcpObjectEstatsFineRtt = 15,             // Key: NSI_ESTATS_TCP_KEY; TCP fine-grained round-trip time statistics.
-    NsiTcpObjectConnection = 16,                // Key: NSI_TCP_KEY_ROW (NSI_SET_TCP_ENTRY); no blocks. SetAll only; SetTcpEntry deletes the TCB through it.
-    NsiTcpObjectSecurity = 17,                  // No key -- RW: NSI_TCP_SECURITY_RW (netsh tcp security mpp/profiles) -- ROD: NSI_TCP_SECURITY_ROD
-    NsiTcpObjectPortPool = 18,                  // Per-compartment port pool.
-    NsiTcpObjectPortReservationGranting = 19,   // TCP port reservation granting object.
-    NsiTcpObjectPortReservation = 20,           // TCP port reservation object.
-    NsiTcpObjectPortProperty = 25,              // Key: NSI_TCP_PORT_PROPERTY_KEY -- RW: NSI_TCP_PORT_PROPERTY_RW
-    NsiTcpObjectTemplate = 26,                  // Key: ULONG template index (0-4) -- RW: NSI_TCP_TEMPLATE_RW (TCP setting templates).
-    NsiTcpObjectDefaultTemplate = 27,           // Key: ULONG, must be 6 -- RW: NSI_TCP_DEFAULT_TEMPLATE_RW
-    NsiTcpObjectGlobalEx = 28,                  // Key: ADDRESS_FAMILY -- RW: NSI_TCP_GLOBAL_EX_RW -- ROS 1 byte.
-    NsiTcpObjectPortExclusionGranting = 29,     // TCP port exclusion granting object.
-    NsiTcpObjectRscStats = 30,                  // Key: NET_LUID -- ROD: NSI_TCP_RSC_STATS_ROD (receive segment coalescing state and statistics).
-    NsiTcpObjectNcContext = 31,                 // Key: NSI_TCP_NC_CONTEXT_KEY -- RW 0x2C8 bytes (not decoded) -- ROD: NSI_TCP_NC_CONTEXT_ROD
-    NsiTcpObjectRetransmitTimeout = 32,         // Key: NSI_TCP_KEY_ROW; no blocks; change notifications only.
-    NsiTcpObjectPortExclusion = 34,             // TCP excluded port range object.
-    NsiTcpObjectBoundEndpoint = 35,             // Key: NSI_TCP_KEY_ROW -- ROD: NSI_TCP_STATUS_ROW -- ROS: NSI_TCP_OWNER_ROW; bound endpoints, enumeration only.
-    NsiTcpObjectReloadRegistryConfig = 36,      // No key or blocks; SetParameter reloads the registry configuration.
-    NsiTcpObjectTraceRundown = 37               // No key or blocks; SetParameter emits the TCP trace rundown.
-} NSI_TCP_OBJECT_ID;
-
-/**
- * The NSI_UDP_OBJECT_ID values are the NSI object IDs of the UDP module (NPI_MS_UDP_MODULEID): global statistics,
- * endpoints, and port reservations and exclusions. The table has 7 entries. The port pool objects (2-5) are installed
- * per compartment by tcpip!UdpCreateCompartment (InetCreatePortPool).
- */
-typedef enum _NSI_UDP_OBJECT_ID
-{
-    NsiUdpObjectGlobal = 0,                     // Key: ADDRESS_FAMILY -- RW: NSI_UDP_GLOBAL_RW -- ROD: NETIO_UDP_STATS_DYNAMIC
-    NsiUdpObjectEndpoint = 1,                   // Key: NSI_UDP_KEY_ROW -- ROD: NSI_UDP_STATUS_ROW -- ROS: NSI_UDP_OWNER_ROW; enumeration only.
-    NsiUdpObjectPortPool = 2,                   // Per-compartment port pool.
-    NsiUdpObjectPortReservationGranting = 3,    // UDP port reservation granting object.
-    NsiUdpObjectPortReservation = 4,            // UDP port reservation object.
-    NsiUdpObjectPortExclusionGranting = 5,      // UDP port exclusion granting object.
-    NsiUdpObjectUroStats = 6                    // Key: NET_LUID (exactly 8 bytes) -- ROD 8 bytes of UDP receive offload statistics (tcpip!UdpOffloadUroGetAllStats; layout not decoded).
-} NSI_UDP_OBJECT_ID;
-
-/**
- * The NSI_FL6T_OBJECT_ID values are the NSI object IDs of the Teredo framing-layer module (NPI_MS_FL6T_MODULEID;
- * tcpip!Fl6tStart). The table has 11 entries; IDs not listed have no handlers. NsiFl6tObjectClientPort is the Teredo
- * client port that NotifyTeredoPortChange watches.
- */
-typedef enum _NSI_FL6T_OBJECT_ID
-{
-    NsiFl6tObjectTunnel = 0,                    // No key -- RW: NSI_FL6T_TUNNEL_RW -- ROD: NSI_FL6T_TUNNEL_ROD; change notifications.
-    NsiFl6tObjectTeredo = 1,                    // No key -- RW: NSI_FL6T_TEREDO_RW; change notifications.
-    NsiFl6tObjectInterface = 2,                 // Key: NET_LUID -- RW: NSI_FL_INTERFACE_RW
-    NsiFl6tObjectClientPort = 3,                // No key -- RW: NSI_FL6T_CLIENT_PORT_RW; the Teredo client port NotifyTeredoPortChange watches.
-    NsiFl6tObjectInterfaceRemoteAddress = 4,    // Key: NET_LUID -- RW: NSI_FL6T_INTERFACE_REMOTE_ADDRESS_RW
-    NsiFl6tObjectTunnelPhysicalInterfaceAssociation = 6, // Key: NET_LUID -- RW: NSI_FL6T_TUNNEL_PHYSICAL_INTERFACE_ASSOCIATION_RW; SetAll only.
-    NsiFl6tObjectTunnelPotentialRouter = 8,     // Key: NET_LUID -- RW: NSI_FL6T_TUNNEL_POTENTIAL_ROUTER_RW; SetAll only.
-    NsiFl6tObjectTeredoShunt = 10               // No key -- RW: NSI_FL6T_TEREDO_SHUNT_RW
-} NSI_FL6T_OBJECT_ID;
-
-/**
- * The NSI_FL_RDMA_OBJECT_ID values are the NSI object IDs of the tcpip RDMA framing-layer provider (tcpip!FlRdmaStart).
- */
-typedef enum _NSI_FL_RDMA_OBJECT_ID
-{
-    NsiFlRdmaObjectInterface = 0,               // Key: NET_IFINDEX -- ROD: NSI_FL_RDMA_INTERFACE_ROD -- ROS: NSI_FL_RDMA_INTERFACE_ROS; change notifications.
-    NsiFlRdmaObjectGlobal = 1,                  // No key -- RW: NSI_FL_RDMA_GLOBAL_RW
-    NsiFlRdmaObjectConnection = 2,              // Key: NSI_FL_RDMA_CONNECTION_KEY -- ROS: NSI_FL_RDMA_ENDPOINT_ROS; enumeration only.
-    NsiFlRdmaObjectLocalEndpoint = 3            // Key: NSI_FL_RDMA_LOCAL_ENDPOINT_KEY -- ROS: NSI_FL_RDMA_ENDPOINT_ROS; enumeration only.
-} NSI_FL_RDMA_OBJECT_ID;
-
-/**
- * The NSI_RAW_OBJECT_ID values are the NSI object IDs of the raw IP transport module (NPI_MS_RAW_MODULEID).
- */
-typedef enum _NSI_RAW_OBJECT_ID
-{
-    NsiRawObjectGlobal = 0                      // Key: ADDRESS_FAMILY (AF_INET or AF_INET6) -- ROD: NSI_RAW_GLOBAL_ROD (MIB_UDPSTATS2 layout).
-} NSI_RAW_OBJECT_ID;
-
-/**
- * The NSI_RSS_OBJECT_ID values are the NSI object IDs of the tcpip receive side scaling provider (tcpip!RssStartNsiProvider).
- */
-typedef enum _NSI_RSS_OBJECT_ID
-{
-    NsiRssObjectInterface = 0                   // Key: NET_IFINDEX -- ROD: NSI_RSS_INTERFACE_ROD; change notifications.
-} NSI_RSS_OBJECT_ID;
-
-/**
- * The NSI_PARAMETER_TYPE values select which parameter block of an object NsiGetParameter and NsiSetParameter access:
- * the read/write block (configuration), the read-only dynamic block (state and statistics) or the read-only static block
- * (properties fixed when the object is created).
- */
-typedef enum _NSI_PARAMETER_TYPE
-{
-    NsiParameterTypeReadWrite = 0,          // Configuration parameters that can be queried and changed.
-    NsiParameterTypeReadOnlyDynamic = 1,    // Changing state and statistics available for queries.
-    NsiParameterTypeReadOnlyStatic = 2      // Properties fixed when the object is created.
-} NSI_PARAMETER_TYPE;
+//
+// NSI Structures
+//
 
 /**
  * The NSI_SET_TCP_ENTRY structure is the key of a TCP connection (NPI_MS_TCP_MODULEID, NsiTcpObjectConnection): the local
@@ -968,8 +1099,8 @@ typedef struct _NETIO_TCP_STATS_DYNAMIC
     ULONG CurrEstab;                // MIB_TCPSTATS2.dwCurrEstab
     ULONG TimeWaitCollisions;       // Connection attempts whose 4-tuple collided with a TIME_WAIT TCB (perf counter
                                     //      "TCPIP Extended Performance Diagnostics\TWTCB collisions").
-    ULONG64 InSegs;                  // MIB_TCPSTATS2.dw64InSegs
-    ULONG64 OutSegs;                 // MIB_TCPSTATS2.dw64OutSegs
+    ULONG64 InSegs;                 // MIB_TCPSTATS2.dw64InSegs
+    ULONG64 OutSegs;                // MIB_TCPSTATS2.dw64OutSegs
     ULONG RetransSegs;              // MIB_TCPSTATS2.dwRetransSegs
     ULONG OutRsts;                  // MIB_TCPSTATS2.dwOutRsts
     ULONG InErrs;                   // MIB_TCPSTATS2.dwInErrs
@@ -1417,6 +1548,13 @@ typedef struct _NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX
     } DUMMYUNIONNAME;
 } NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX, *PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX;
 
+// GetPerTcpConnectionEStats/SetPerTcpConnectionEStats block versions for the tcpestats.h structures; only v0 exists.
+#define NSI_ESTATS_SYN_OPTS_ROS_VERSION 0   // TCP_ESTATS_SYN_OPTS_ROS_v0
+#define NSI_ESTATS_DATA_RW_VERSION 0        // TCP_ESTATS_DATA_RW_v0
+#define NSI_ESTATS_DATA_ROD_VERSION 0       // TCP_ESTATS_DATA_ROD_v0
+#define NSI_ESTATS_SND_CONG_ROS_VERSION 0   // TCP_ESTATS_SND_CONG_ROS_v0
+#define NSI_ESTATS_SND_CONG_ROD_VERSION 0   // TCP_ESTATS_SND_CONG_ROD_v0
+
 /**
  * The NSI_ESTATS_REC_ROD_INTERNAL structure is the read-only dynamic block of the receive extended statistics of a TCP
  * connection (TcpConnectionEstatsRec). GetPerTcpConnectionEStats converts it to TCP_ESTATS_REC_ROD_v0.
@@ -1438,6 +1576,8 @@ typedef struct _NSI_ESTATS_REC_ROD_INTERNAL
     ULONG MaxAppRQueue;
     ULONG WinScaleSent;
 } NSI_ESTATS_REC_ROD_INTERNAL, *PNSI_ESTATS_REC_ROD_INTERNAL;
+
+#define NSI_ESTATS_SND_CONG_RW_VERSION 0
 
 /**
  * The NSI_ESTATS_SND_CONG_RW_v0 structure is the read/write block of the send-congestion extended statistics of a TCP
@@ -4560,6 +4700,65 @@ typedef struct _NSI_IP_LOCALITY_PRIVATE_RW
 } NSI_IP_LOCALITY_PRIVATE_RW, *PNSI_IP_LOCALITY_PRIVATE_RW;
 
 /**
+ * The NSI_IP_ADDRESS_MANAGER_RW structure is the read/write block of NsiIpObjectAddressManager: the IPv6 per-network
+ * locality data that tcpip.sys keeps for each network it has connected to.
+ *
+ * \remarks The object is IPv6 only and persistent-store only: tcpip.sys registers no handlers and the IPv4 table entry is
+ * empty. tcpip writes one entry per network with NsiSetAllParameters(NsiPersistent) when the network goes away
+ * (tcpip!IppPersistAndDeleteLocationTableForNetwork) and reloads them at startup (tcpip!IppPopulateNetworkTable). The key
+ * is the 16-byte network GUID. Entries whose LastSeenTime is more than 30 days old are deleted on load. If
+ * AddressConfigTime is more than 30 days old, the RA flags are reset to 0xFF and the time to 0. NSI stores each entry under
+ * HKLM\SYSTEM\CurrentControlSet\Control\Nsi\{EB004A01-9B1A-11D4-9123-0050047759BC}\28, as this block followed by a
+ * same-size field mask.
+ */
+typedef struct _NSI_IP_ADDRESS_MANAGER_RW
+{
+    ULONG64 Reserved1;                      // +0x0000 Always zero.
+    LARGE_INTEGER LastSeenTime;             // +0x0008 System time the network was last connected.
+    UCHAR Reserved2[0xBB80];                // +0x0010 Always zero; not read or written by current tcpip.sys.
+    UCHAR ManagedAddressConfiguration;      // +0xBB90 Router advertisement M flag seen on the network (1), or 0xFF if not known.
+    UCHAR OtherStatefulConfiguration;       // +0xBB91 Router advertisement O flag seen on the network (1), or 0xFF if not known.
+    UCHAR Reserved3[6];                     // +0xBB92
+    LARGE_INTEGER AddressConfigTime;        // +0xBB98 System time the M/O flags were last updated, or 0.
+    UCHAR Reserved4[8];                     // +0xBBA0
+    UCHAR FeatureFallbackFlags;             // +0xBBA8 Bit 2: feature fallback enabled (tcpip!FallbackLoad).
+    UCHAR FeatureFallbackPreviouslyDisabled;// +0xBBA9 Nonzero if feature fallback was previously disabled (tcpip!FallbackLoad).
+    UCHAR Reserved5[0x26];                  // +0xBBAA
+} NSI_IP_ADDRESS_MANAGER_RW, *PNSI_IP_ADDRESS_MANAGER_RW;
+
+static_assert(sizeof(NSI_IP_ADDRESS_MANAGER_RW) == 0xBBD0);
+static_assert(FIELD_OFFSET(NSI_IP_ADDRESS_MANAGER_RW, ManagedAddressConfiguration) == 0xBB90);
+static_assert(FIELD_OFFSET(NSI_IP_ADDRESS_MANAGER_RW, AddressConfigTime) == 0xBB98);
+static_assert(FIELD_OFFSET(NSI_IP_ADDRESS_MANAGER_RW, FeatureFallbackFlags) == 0xBBA8);
+
+/**
+ * The NSI_IP_BANDWIDTH_KEY structure is the key of NsiIpObjectBandwidth. tcpip.sys keeps one bandwidth estimate per
+ * connected network and interface (tcpip!IppInterfaceBwPersistParameters, IppInterfaceBwQueryParameters).
+ */
+typedef struct _NSI_IP_BANDWIDTH_KEY
+{
+    GUID NetworkId;                         // IP interface +0x398; set from NSI_IP_INTERFACE_RW+0xC0 (all 0xFF: not supplied), cleared on media reconnect.
+    NET_LUID InterfaceLuid;                 // IP interface +0x10.
+} NSI_IP_BANDWIDTH_KEY, *PNSI_IP_BANDWIDTH_KEY;
+
+static_assert(sizeof(NSI_IP_BANDWIDTH_KEY) == 0x18);
+
+/**
+ * The NSI_IP_BANDWIDTH_RW structure is the read/write block of NsiIpObjectBandwidth: the interface bandwidth estimates
+ * (IP interface +0x3B0). tcpip.sys writes them to the persistent store with NsiSetAllParameters(NsiPersistent,
+ * NsiSetCreateOrSet) when a sub-interface disconnects or is deleted, and reads them back with NsiGetAllParameters when
+ * the interface's network changes (IppCommitSetAllInterfaceParameters). The same values are returned in
+ * NSI_IP_INTERFACE_ROD.InboundBandwidthInformation and OutboundBandwidthInformation (IppFillInterfaceData).
+ */
+typedef struct _NSI_IP_BANDWIDTH_RW
+{
+    NL_BANDWIDTH_INFORMATION InboundBandwidthInformation;
+    NL_BANDWIDTH_INFORMATION OutboundBandwidthInformation;
+} NSI_IP_BANDWIDTH_RW, *PNSI_IP_BANDWIDTH_RW;
+
+static_assert(sizeof(NSI_IP_BANDWIDTH_RW) == 0x30);
+
+/**
  * The NSI_IP_TIMER_ROD structure is the read-only dynamic block of NsiIpObjectTimer (tcpip!IpTimerGetAllParameters).
  */
 typedef struct _NSI_IP_TIMER_ROD
@@ -4620,6 +4819,338 @@ typedef struct _NSI_IP_ROUTING_EPOCH_ROD
 {
     ULONG Epoch;
 } NSI_IP_ROUTING_EPOCH_ROD, *PNSI_IP_ROUTING_EPOCH_ROD;
+
+/**
+ * The NSI_NMR_MODULE_KEY structure is the key of NsiNmrObjectProvider and NsiNmrObjectClient: the NPI and the module
+ * registered for it.
+ */
+typedef struct _NSI_NMR_MODULE_KEY
+{
+    NPIID NpiId;
+    NPI_MODULEID ModuleId;
+} NSI_NMR_MODULE_KEY, *PNSI_NMR_MODULE_KEY;
+
+static_assert(sizeof(NSI_NMR_MODULE_KEY) == 0x28);
+
+/**
+ * The NSI_NMR_BINDING_KEY structure is the key of NsiNmrObjectBinding and NsiNmrObjectFilter: the NPI, the client module
+ * and the provider module.
+ */
+typedef struct _NSI_NMR_BINDING_KEY
+{
+    NPIID NpiId;
+    NPI_MODULEID ClientModuleId;
+    NPI_MODULEID ProviderModuleId;
+} NSI_NMR_BINDING_KEY, *PNSI_NMR_BINDING_KEY;
+
+static_assert(sizeof(NSI_NMR_BINDING_KEY) == 0x40);
+
+/**
+ * The NSI_AFD_PROCESS_DIAGNOSTICS_ROD structure is the read-only dynamic block of NsiAfdObjectProcessDiagnostics: per-process
+ * AFD endpoint counts in the caller's compartments.
+ */
+typedef struct _NSI_AFD_PROCESS_DIAGNOSTICS_ROD
+{
+    ULONG EndpointCount;
+    //
+    // Endpoints with bit 0x800 set in the AFD endpoint flags at endpoint offset +0x8 (meaning unknown). afd.sys only
+    // tests this bit (for example in AfdSetInformation); the code that sets it was not found.
+    //
+    ULONG FlaggedEndpointCount;
+} NSI_AFD_PROCESS_DIAGNOSTICS_ROD, *PNSI_AFD_PROCESS_DIAGNOSTICS_ROD;
+
+static_assert(sizeof(NSI_AFD_PROCESS_DIAGNOSTICS_ROD) == 8);
+
+/**
+ * The NSI_TDX_GLOBAL_ROD structure is the read-only dynamic block of NsiTdxObjectGlobal: tdx.sys TDI activity counters.
+ */
+typedef struct _NSI_TDX_GLOBAL_ROD
+{
+    ULONG ActiveTransportCount;             // TdxActivateTransport / TdxDeactivateTransport.
+    ULONG ConnectionFileCount;              // Open TDI connection files (FsContext2 TDI_CONNECTION_FILE).
+    ULONG TransportAddressFileCount;        // Open TDI transport address files (FsContext2 TDI_TRANSPORT_ADDRESS_FILE).
+    ULONG ControlChannelFileCount;          // Open TDI control channel files (FsContext2 TDI_CONTROL_CHANNEL_FILE).
+} NSI_TDX_GLOBAL_ROD, *PNSI_TDX_GLOBAL_ROD;
+
+static_assert(sizeof(NSI_TDX_GLOBAL_ROD) == 0x10);
+
+/**
+ * The NSI_WINNAT_ADDRESS union holds an IPv4 or IPv6 address in the WinNAT keys and blocks; the family is given by a
+ * separate ADDRESS_FAMILY field (AF_INET uses the first four bytes).
+ */
+typedef union _NSI_WINNAT_ADDRESS
+{
+    IN_ADDR Ipv4;
+    IN6_ADDR Ipv6;
+} NSI_WINNAT_ADDRESS, *PNSI_WINNAT_ADDRESS;
+
+static_assert(sizeof(NSI_WINNAT_ADDRESS) == 0x10);
+
+/**
+ * The NSI_WINNAT_INSTANCE_KEY structure is the key of NsiWinNatObjectInstance (and the first field of the packet filter
+ * and address pool keys): the NAT instance name (Get-NetNat Name).
+ */
+typedef struct _NSI_WINNAT_INSTANCE_KEY
+{
+    WCHAR InstanceName[261];
+} NSI_WINNAT_INSTANCE_KEY, *PNSI_WINNAT_INSTANCE_KEY;
+
+static_assert(sizeof(NSI_WINNAT_INSTANCE_KEY) == 0x20A);
+
+/**
+ * The NSI_WINNAT_INSTANCE_RW structure is the read/write block of NsiWinNatObjectInstance (winnat!WinNatSetInstance,
+ * WinNatLibSetAddressPool). Field names are from the WinNat instance ETW event (1010). On a set, zero timeouts and
+ * filtering behaviors of -1 leave the current value unchanged.
+ */
+typedef struct _NSI_WINNAT_INSTANCE_RW
+{
+    ULONG UdpIdleSessionTimeout;            // Seconds.
+    BOOLEAN UdpInboundRefresh;
+    UCHAR Reserved5[3];
+    ULONG UdpFilteringBehavior;
+    ULONG TcpTransientConnectionTimeout;    // Seconds.
+    ULONG TcpEstablishedConnectionTimeout;  // Seconds.
+    ULONG TcpFilteringBehavior;
+    ULONG IcmpQueryTimeout;                 // Seconds.
+    BOOLEAN Enabled;                        // Instance +0x362; WinNatSetInstanceState applies changes.
+    UCHAR Reserved1D[3];
+} NSI_WINNAT_INSTANCE_RW, *PNSI_WINNAT_INSTANCE_RW;
+
+static_assert(sizeof(NSI_WINNAT_INSTANCE_RW) == 0x20);
+
+/**
+ * The NSI_WINNAT_PACKET_FILTER_KEY structure is the key of NsiWinNatObjectPacketFilter (winnat!WinNatSetPacketFilter).
+ * Field names are from the WinNat packet filter ETW event (1011). Family AF_INET6 selects NAT64, which also adds
+ * Ipv4Prefix/Ipv4PrefixLength to the instance.
+ */
+typedef struct _NSI_WINNAT_PACKET_FILTER_KEY
+{
+    WCHAR InstanceName[261];
+    UCHAR Reserved20A[2];
+    NSI_WINNAT_ADDRESS SourcePrefix;
+    UCHAR SourcePrefixLength;
+    UCHAR Reserved21D;
+    ADDRESS_FAMILY Family;                  // AF_INET or AF_INET6 (NAT64).
+    NSI_WINNAT_ADDRESS DestinationPrefix;
+    UCHAR DestinationPrefixLength;
+    UCHAR Reserved231[7];
+    NET_LUID InterfaceLuid;
+    IN_ADDR Ipv4Prefix;                     // NAT64 IPv4 prefix.
+    UCHAR Ipv4PrefixLength;
+    UCHAR Reserved245[3];
+} NSI_WINNAT_PACKET_FILTER_KEY, *PNSI_WINNAT_PACKET_FILTER_KEY;
+
+static_assert(sizeof(NSI_WINNAT_PACKET_FILTER_KEY) == 0x248);
+
+/**
+ * The NSI_WINNAT_ADDRESS_POOL_KEY structure is the key of NsiWinNatObjectAddressPool (winnat!WinNatSetAddressPool).
+ * Field names are from the WinNat address pool ETW event (1013). An unspecified Address creates or deletes entries for
+ * every address on the interface. The read-only dynamic block is one BOOLEAN that is TRUE when the address was not a
+ * unicast address of the interface when the entry was created (pool entry flag bit 0).
+ */
+typedef struct _NSI_WINNAT_ADDRESS_POOL_KEY
+{
+    WCHAR InstanceName[261];
+    UCHAR Reserved20A[6];
+    NET_LUID InterfaceLuid;
+    IN_ADDR Address;
+    USHORT StartingPort;
+    USHORT EndingPort;
+} NSI_WINNAT_ADDRESS_POOL_KEY, *PNSI_WINNAT_ADDRESS_POOL_KEY;
+
+static_assert(sizeof(NSI_WINNAT_ADDRESS_POOL_KEY) == 0x220);
+
+/**
+ * The NSI_WINNAT_BINDING_KEY structure is the key of NsiWinNatObjectBindingEntry (winnat!WinNatLibEnumerateBindings).
+ * Field names are from the WinNat binding ETW events (1006-1008).
+ */
+typedef struct _NSI_WINNAT_BINDING_KEY
+{
+    SOCKADDR_INET InternalAddress;          // Binding +0x60.
+    UCHAR TransportProtocol;                // Binding +0x44: IPPROTO_*.
+    UCHAR Reserved[3];
+} NSI_WINNAT_BINDING_KEY, *PNSI_WINNAT_BINDING_KEY;
+
+static_assert(sizeof(NSI_WINNAT_BINDING_KEY) == 0x20);
+
+/**
+ * The NSI_WINNAT_BINDING_ROD structure is the read-only dynamic block of NsiWinNatObjectBindingEntry.
+ */
+typedef struct _NSI_WINNAT_BINDING_ROD
+{
+    SOCKADDR_INET ExternalAddress;          // Binding +0x68: pool address and port from WinNatAllocatePort.
+    BOOLEAN Configured;                     // Binding flag bit 0: static binding (NsiWinNatObjectStaticBinding).
+    UCHAR Reserved[3];
+} NSI_WINNAT_BINDING_ROD, *PNSI_WINNAT_BINDING_ROD;
+
+static_assert(sizeof(NSI_WINNAT_BINDING_ROD) == 0x20);
+
+/**
+ * The NSI_WINNAT_SESSION_KEY structure is the key of NsiWinNatObjectSessionEntry and NsiWinNatObjectSlbSession
+ * (winnat!WinNatLibEnumerateSessions): the flow on the internal side. Field names are from the WinNat session ETW events
+ * (1001-1005).
+ */
+typedef struct _NSI_WINNAT_SESSION_KEY
+{
+    SOCKADDR_INET InternalSourceAddress;    // Session +0x58.
+    SOCKADDR_INET InternalDestinationAddress; // Session +0x60.
+    UCHAR TransportProtocol;                // Session +0x78: IPPROTO_*.
+    UCHAR Reserved[3];
+    ULONG InternalCompartmentId;            // Session +0x08 (1 when the session has no instance context).
+} NSI_WINNAT_SESSION_KEY, *PNSI_WINNAT_SESSION_KEY;
+
+static_assert(sizeof(NSI_WINNAT_SESSION_KEY) == 0x40);
+
+/**
+ * The NSI_WINNAT_SESSION_ROD structure is the read-only dynamic block of NsiWinNatObjectSessionEntry and
+ * NsiWinNatObjectSlbSession: the translated flow on the external side and the session timers.
+ */
+typedef struct _NSI_WINNAT_SESSION_ROD
+{
+    SOCKADDR_INET ExternalSourceAddress;    // Session +0x68.
+    SOCKADDR_INET ExternalDestinationAddress; // Session +0x70.
+    ULONG TcpSessionState;                  // Session +0xF8.
+    ULONG Lifetime;                         // Seconds until the session expires (session +0x88 minus the current tick in seconds).
+    LARGE_INTEGER CreationTime;             // Session +0x118 (KeQuerySystemTimePrecise in WinNatCreateSessionEntry).
+    ULONG64 Unknown48;                      // Session +0x110; copied from the NAT instance at creation (meaning unknown).
+} NSI_WINNAT_SESSION_ROD, *PNSI_WINNAT_SESSION_ROD;
+
+static_assert(sizeof(NSI_WINNAT_SESSION_ROD) == 0x50);
+
+/**
+ * The NSI_WINNAT_STATIC_BINDING_KEY structure is the key of NsiWinNatObjectStaticBinding (winnat!WinNatSetStaticBinding).
+ * Field names are from the WinNat static binding ETW event (1015). Only TCP and UDP are accepted.
+ */
+typedef struct _NSI_WINNAT_STATIC_BINDING_KEY
+{
+    SOCKADDR_INET InternalSourceAddress;
+    SOCKADDR_INET ExternalSourceAddress;
+    UCHAR Protocol;                         // IPPROTO_TCP or IPPROTO_UDP.
+    UCHAR Reserved[3];
+} NSI_WINNAT_STATIC_BINDING_KEY, *PNSI_WINNAT_STATIC_BINDING_KEY;
+
+static_assert(sizeof(NSI_WINNAT_STATIC_BINDING_KEY) == 0x3C);
+
+/**
+ * The NSI_WINNAT_SLB_INSTANCE_KEY structure is the key of NsiWinNatObjectSlbInstance (and the first field of the SLB
+ * external address and static mapping keys).
+ */
+typedef struct _NSI_WINNAT_SLB_INSTANCE_KEY
+{
+    WCHAR InstanceName[40];
+} NSI_WINNAT_SLB_INSTANCE_KEY, *PNSI_WINNAT_SLB_INSTANCE_KEY;
+
+static_assert(sizeof(NSI_WINNAT_SLB_INSTANCE_KEY) == 0x50);
+
+/**
+ * The NSI_WINNAT_SLB_INSTANCE_RW structure is the read/write block of NsiWinNatObjectSlbInstance (winnat!SlbNatCreateInstance).
+ * Field names are from the WinNat SLB instance ETW events (1019, 1023). Exactly one of the internal and external prefix
+ * lengths is non-zero (1-32), and one of the prefixes must be AF_INET. An UdpIdleSessionTimeout of 300 is replaced by the
+ * SLB global default.
+ */
+typedef struct _NSI_WINNAT_SLB_INSTANCE_RW
+{
+    ULONG RoutingDomainType;                // 1: compartment 1; 2: compartment 0; 3: compartment of InternalRoutingDomainId.
+    GUID InternalRoutingDomainId;
+    ADDRESS_FAMILY InternalPrefixFamily;
+    UCHAR InternalPrefixLength;
+    UCHAR Reserved17;
+    NSI_WINNAT_ADDRESS InternalPrefix;
+    ULONG UdpIdleSessionTimeout;
+    BOOLEAN UdpInboundRefresh;
+    UCHAR Reserved2D[3];
+    ULONG UdpFilteringBehavior;
+    ULONG TcpTransientConnectionTimeout;
+    ULONG TcpEstablishedConnectionTimeout;
+    ULONG TcpFilteringBehavior;
+    ULONG IcmpQueryTimeout;
+    ADDRESS_FAMILY ExternalPrefixFamily;
+    UCHAR ExternalPrefixLength;
+    UCHAR Reserved47;
+    NSI_WINNAT_ADDRESS ExternalPrefix;      // ExternalIPInterfaceAddressPrefix.
+    ULONG Unknown58;                        // Instance +0xF8 (meaning unknown).
+} NSI_WINNAT_SLB_INSTANCE_RW, *PNSI_WINNAT_SLB_INSTANCE_RW;
+
+static_assert(sizeof(NSI_WINNAT_SLB_INSTANCE_RW) == 0x5C);
+
+/**
+ * The NSI_WINNAT_SLB_INSTANCE_ROD structure is the read-only dynamic block of NsiWinNatObjectSlbInstance
+ * (winnat!SlbNatEnumerateInstances; instance +0x100).
+ */
+typedef struct _NSI_WINNAT_SLB_INSTANCE_ROD
+{
+    ULONG Unknown00;                        // Zero at creation (meaning unknown).
+    ULONG Unknown04;                        // Zero at creation (meaning unknown).
+    ULONG64 Unknown08;                      // Zero at creation (meaning unknown).
+    ULONG ExternalInterfaceIndex;
+    ULONG Reserved14;
+    ULONG64 InstanceSequenceNumber;         // Global counter value assigned at creation.
+} NSI_WINNAT_SLB_INSTANCE_ROD, *PNSI_WINNAT_SLB_INSTANCE_ROD;
+
+static_assert(sizeof(NSI_WINNAT_SLB_INSTANCE_ROD) == 0x20);
+
+/**
+ * The NSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY structure is the key of NsiWinNatObjectSlbExternalAddress
+ * (winnat!SlbNatFindAndReturnExternalAddress).
+ */
+typedef struct _NSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY
+{
+    WCHAR InstanceName[40];
+    ULONG ExternalAddressId;                // External address entry +0x30.
+} NSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY, *PNSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY;
+
+static_assert(sizeof(NSI_WINNAT_SLB_EXTERNAL_ADDRESS_KEY) == 0x54);
+
+/**
+ * The NSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW structure is the read/write block of NsiWinNatObjectSlbExternalAddress. Field
+ * names are from the WinNat external address ETW events (1024-1026).
+ */
+typedef struct _NSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW
+{
+    ADDRESS_FAMILY Family;
+    UCHAR Reserved2[2];
+    NSI_WINNAT_ADDRESS IPAddress;
+    USHORT PortStart;
+    USHORT PortEnd;
+} NSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW, *PNSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW;
+
+static_assert(sizeof(NSI_WINNAT_SLB_EXTERNAL_ADDRESS_RW) == 0x18);
+
+/**
+ * The NSI_WINNAT_SLB_STATIC_MAPPING_KEY structure is the key of NsiWinNatObjectSlbStaticMapping
+ * (winnat!SlbNatEnumerateStaticMappings).
+ */
+typedef struct _NSI_WINNAT_SLB_STATIC_MAPPING_KEY
+{
+    WCHAR InstanceName[40];
+    ULONG StaticMappingId;                  // Static mapping entry +0x20.
+} NSI_WINNAT_SLB_STATIC_MAPPING_KEY, *PNSI_WINNAT_SLB_STATIC_MAPPING_KEY;
+
+static_assert(sizeof(NSI_WINNAT_SLB_STATIC_MAPPING_KEY) == 0x54);
+
+/**
+ * The NSI_WINNAT_SLB_STATIC_MAPPING_RW structure is the read/write block of NsiWinNatObjectSlbStaticMapping (static
+ * mapping entry +0x24). Field names are from the WinNat static mapping ETW events (1027-1029); ports are in network byte
+ * order.
+ */
+typedef struct _NSI_WINNAT_SLB_STATIC_MAPPING_RW
+{
+    UCHAR TransportProtocol;
+    UCHAR Reserved1;
+    ADDRESS_FAMILY Family;
+    ULONG MappingType;
+    NSI_WINNAT_ADDRESS ExternalAddress;
+    NSI_WINNAT_ADDRESS InternalAddress;
+    USHORT ExternalPort;
+    USHORT InternalPort;
+    GUID InternalRoutingDomainId;
+    UCHAR RemoteAddressPrefixLength;
+    UCHAR Reserved3D[3];
+    NSI_WINNAT_ADDRESS RemoteAddressPrefix;
+    ULONG Unknown50;                        // Static mapping entry +0x74 (meaning unknown).
+} NSI_WINNAT_SLB_STATIC_MAPPING_RW, *PNSI_WINNAT_SLB_STATIC_MAPPING_RW;
+
+static_assert(sizeof(NSI_WINNAT_SLB_STATIC_MAPPING_RW) == 0x54);
 
 //
 // NSI Functions

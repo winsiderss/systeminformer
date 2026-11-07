@@ -535,6 +535,7 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_CRITICAL, L"Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_PERMISSIONS, L"Per&missions", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_REGISTERS, L"Registe&rs", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_SHADOW_STACK, L"Shadow stack", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TOKEN, L"&Token", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Priority", NULL, NULL);
@@ -1229,6 +1230,23 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadsContext->Provider
                             );
                         PhDereferenceObject(threadsContext->Provider);
+                    }
+                }
+                break;
+            case ID_THREAD_SHADOW_STACK:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+
+                    if (threadItem)
+                    {
+                        PhReferenceObject(threadsContext->Provider->SymbolProvider);
+                        PhShowThreadShadowStack(
+                            hwndDlg,
+                            threadsContext->Provider->ProcessId,
+                            threadItem->ThreadId,
+                            threadsContext->Provider->SymbolProvider
+                            );
+                        PhDereferenceObject(threadsContext->Provider->SymbolProvider);
                     }
                 }
                 break;

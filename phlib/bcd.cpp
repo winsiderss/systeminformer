@@ -10,6 +10,7 @@
  */
 
 #include <ph.h>
+#include <utility>
 #include <bcd.h>
 #include <mapldr.h>
 
@@ -754,7 +755,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         return;
     }
 
-    for (ULONG i = 0; i < objectCount; i++)
+    for (ULONG i = 0; std::cmp_less(i, objectCount); i++)
     {
         HANDLE objectHandle;
         PPH_STRING objectDescription;
@@ -851,7 +852,7 @@ static VOID PhpBcdEnumerateBootMgrList(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    for (ULONG i = 0; i < objectListLength / sizeof(BCD_ELEMENT_OBJECT_LIST); i++)
+    for (ULONG i = 0; std::cmp_less(i, objectListLength / sizeof(BCD_ELEMENT_OBJECT_LIST)); i++)
     {
         HANDLE objectEntryHandle;
         PPH_STRING objectEntryDescription;

@@ -10,6 +10,7 @@
  */
 
 #include <phbase.h>
+#include <utility>
 #include <charconv>
 
 extern NTSTATUS PhErrcToNtStatus(
@@ -42,7 +43,7 @@ NTSTATUS PhFormatSingleToUtf8(
     SIZE_T returnLength;
     CHAR buffer[_CVTBUFSIZE + 1];
 
-    if (Precision < 0)
+    if (std::cmp_less(Precision, 0))
     {
         // This overload finds the shortest string that converts back to the exact same value.
         result = std::to_chars(
@@ -74,9 +75,9 @@ NTSTATUS PhFormatSingleToUtf8(
 
     returnLength = result.ptr - buffer;
 
-    if (returnLength == 0)
+    if (std::cmp_equal(returnLength, 0))
         return STATUS_UNSUCCESSFUL;
-    if (returnLength >= BufferLength)
+    if (std::cmp_greater_equal(returnLength, BufferLength))
         return STATUS_BUFFER_TOO_SMALL;
 
     // Format into the local buffer so that failures writing a value don't touch the input buffer (dmex)
@@ -92,7 +93,7 @@ NTSTATUS PhFormatSingleToUtf8(
     std::to_chars_result result;
     SIZE_T returnLength;
 
-    if (Precision < 0)
+    if (std::cmp_less(Precision, 0))
     {
         // This overload finds the shortest string that converts back to the exact same double.
         // It is roughly 2x faster than the version with explicit precision.
@@ -162,7 +163,7 @@ NTSTATUS PhFormatDoubleToUtf8(
     SIZE_T returnLength;
     CHAR buffer[_CVTBUFSIZE + 1];
 
-    if (Precision < 0)
+    if (std::cmp_less(Precision, 0))
     {
         // This overload finds the shortest string that converts back to the exact same double.
         // It is roughly 2x faster than the version with explicit precision.
@@ -195,9 +196,9 @@ NTSTATUS PhFormatDoubleToUtf8(
 
     returnLength = result.ptr - buffer;
 
-    if (returnLength == 0)
+    if (std::cmp_equal(returnLength, 0))
         return STATUS_UNSUCCESSFUL;
-    if (returnLength >= BufferLength)
+    if (std::cmp_greater_equal(returnLength, BufferLength))
         return STATUS_BUFFER_TOO_SMALL;
 
     // Format into the local buffer so that failures writing a value don't touch the input buffer (dmex)
@@ -213,7 +214,7 @@ NTSTATUS PhFormatDoubleToUtf8(
     std::to_chars_result result;
     SIZE_T returnLength;
 
-    if (Precision < 0)
+    if (std::cmp_less(Precision, 0))
     {
         // This overload finds the shortest string that converts back to the exact same double.
         // It is roughly 2x faster than the version with explicit precision.
@@ -278,11 +279,11 @@ NTSTATUS PhIntegerToUtf8Buffer(
     )
 {
     std::to_chars_result result;
-    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
+    INT radix = (std::cmp_equal(Base, 0)) ? 10 : static_cast<INT>(Base);
 
-    if (!Buffer || BufferLength == 0)
+    if (!Buffer || std::cmp_equal(BufferLength, 0))
         return STATUS_BUFFER_TOO_SMALL;
-    if (radix < 2 || radix > 36)
+    if (std::cmp_less(radix, 2) || std::cmp_greater(radix, 36))
         return STATUS_INVALID_PARAMETER;
 
     // Reserve 1 byte for null terminator
@@ -504,7 +505,7 @@ NTSTATUS PhStringToInteger64Utf8Ex(
     _Out_ PLONG64 Integer
     )
 {
-    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
+    INT radix = (std::cmp_equal(Base, 0)) ? 10 : static_cast<INT>(Base);
 
     auto result = std::from_chars(
         String,
@@ -552,7 +553,7 @@ NTSTATUS PhStringToUInt64Utf8Ex(
     _Out_ PULONG64 Integer
     )
 {
-    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
+    INT radix = (std::cmp_equal(Base, 0)) ? 10 : static_cast<INT>(Base);
 
     auto result = std::from_chars(
         String,

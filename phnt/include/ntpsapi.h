@@ -813,9 +813,9 @@ typedef union _PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
     ULONG_PTR ConsoleHostProcessId;
     struct
     {
-        ULONG_PTR ProcessId : (sizeof(ULONG_PTR) * 8 - 2);
-        ULONG_PTR ConsoleApplication : 1;
         ULONG_PTR Reserved : 1;
+        ULONG_PTR ConsoleApplication : 1;
+        ULONG_PTR ProcessId : (sizeof(ULONG_PTR) * 8 - 2); // ProcessId >> 2 (use PS_CONSOLE_HOST_PROCESS_MASK for the full value)
     };
 } PROCESS_CONSOLE_HOST_PROCESS_INFORMATION, *PPROCESS_CONSOLE_HOST_PROCESS_INFORMATION;
 

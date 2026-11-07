@@ -282,11 +282,12 @@ typedef struct _PH_PROCGENERAL_CONTEXT
     HWND WindowHandle;
     HWND StartedLabelHandle;
     PPH_STRING StartedText;
+    PPH_STRING CurrentDirectory;
     BOOLEAN Enabled;
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
-static VOID PhpSetStartedText(
+static VOID PhSetStartedText(
     _Inout_ PPH_PROCGENERAL_CONTEXT Context,
     _In_ PCWSTR Text
     )
@@ -296,6 +297,55 @@ static VOID PhpSetStartedText(
 
     if (PhSetWindowText(Context->StartedLabelHandle, Text))
         PhMoveReference(&Context->StartedText, PhCreateString(Text));
+}
+
+static VOID PhSetCurrentDirectoryText(
+    _In_ HWND hwndDlg,
+    _Inout_ PPH_PROCGENERAL_CONTEXT Context,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    PPH_STRING currentDirectory = NULL;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        // Tell the function to get the WOW64 current directory, because that's the one that actually gets updated for 32-bit. (wj32)
+
+        status = PhGetProcessCurrentDirectory(
+            processHandle,
+            !!ProcessItem->IsWow64Process,
+            &currentDirectory
+            );
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        currentDirectory = PhGetNtMessage(status);
+        PhMoveReference(&currentDirectory, PhFormatString(L"0x%x: %s",
+            status,
+            PhGetStringOrDefault(currentDirectory, L"N/A")
+            ));
+    }
+
+    if (Context->CurrentDirectory && PhEqualString(Context->CurrentDirectory, currentDirectory, FALSE))
+    {
+        PhDereferenceObject(currentDirectory);
+        return;
+    }
+
+    PhSetDialogItemText(hwndDlg, IDC_CURDIR, PhGetString(currentDirectory));
+
+    PhMoveReference(&Context->CurrentDirectory, currentDirectory);
 }
 
 VOID PphProcessGeneralDlgUpdateIcons(
@@ -431,8 +481,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         }
     case WM_INITDIALOG:
         {
-            HANDLE processHandle = NULL;
-            PPH_STRING curDir = NULL;
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
             PPH_STRING fileNameWin32 = NULL;
@@ -562,27 +610,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Current Directory
 
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                processItem->ProcessId
-                )))
-            {
-                // Tell the function to get the WOW64 current directory, because that's the one that actually gets updated.
-                if (NT_SUCCESS(PhGetProcessCurrentDirectory(
-                    processHandle,
-                    !!processItem->IsWow64Process,
-                    &curDir
-                    )))
-                {
-                    PH_AUTO(curDir);
-                }
-
-                NtClose(processHandle);
-                processHandle = NULL;
-            }
-
-            PhSetDialogItemText(hwndDlg, IDC_CURDIR, PhpGetStringOrNa(curDir));
+            PhSetCurrentDirectoryText(hwndDlg, context, processItem);
 
             // Started
 
@@ -604,7 +632,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                     startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                    PhpSetStartedText(context, PhaFormatString(
+                    PhSetStartedText(context, PhaFormatString(
                         L"%s ago (%s)",
                         startTimeRelativeString->Buffer,
                         startTimeString->Buffer
@@ -612,12 +640,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    PhpSetStartedText(context, L"N/A");
+                    PhSetStartedText(context, L"N/A");
                 }
             }
             else
             {
-                PhpSetStartedText(context, L"N/A");
+                PhSetStartedText(context, L"N/A");
             }
 
             // Parent
@@ -715,6 +743,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     case WM_NCDESTROY:
         {
             PhClearReference(&context->StartedText);
+            PhClearReference(&context->CurrentDirectory);
             PhFree(context);
         }
         break;
@@ -1108,6 +1137,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
             case PH_WINDOW_TIMER_DEFAULT:
                 {
+                    if (context->Enabled)
+                        PhSetCurrentDirectoryText(hwndDlg, context, processItem);
+
                     if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
                         break;
 
@@ -1128,7 +1160,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                             startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                            PhpSetStartedText(context, PhaFormatString(
+                            PhSetStartedText(context, PhaFormatString(
                                 L"%s ago (%s)",
                                 PhGetString(startTimeRelativeString),
                                 PhGetString(startTimeString)
@@ -1136,12 +1168,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         }
                         else
                         {
-                            PhpSetStartedText(context, L"\u221E");
+                            PhSetStartedText(context, L"\u221E");
                         }
                     }
                     else
                     {
-                        PhpSetStartedText(context, L"N/A");
+                        PhSetStartedText(context, L"N/A");
                     }
                 }
                 break;

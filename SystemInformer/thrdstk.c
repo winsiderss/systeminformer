@@ -36,7 +36,6 @@
 #define WM_PH_SYMBOL_STATUS (WM_APP + 308)   // StatusContent changed; update the status label
 
 static PPH_OBJECT_TYPE PhThreadStackContextType = NULL;
-static RECT MinimumSize = { -1, -1, -1, -1 };
 
 typedef struct _PH_THREAD_STACK_CONTEXT
 {
@@ -105,6 +104,7 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     LONG WindowDpi;
 
     PH_LAYOUT_MANAGER LayoutManager;
+    SIZE MinimumSize;
 
     HWND WindowHandle;
     HWND ParentHandle;
@@ -247,6 +247,7 @@ typedef enum _PH_THREAD_STACK_MENUITEM
     PH_THREAD_STACK_MENUITEM_REGISTERS,
     PH_THREAD_STACK_MENUITEM_OPENSOURCELINK,
     PH_THREAD_STACK_MENUITEM_COPYSOURCELINK,
+    PH_THREAD_STACK_MENUITEM_SHADOWSTACK,
 } PH_THREAD_STACK_MENUITEM;
 
 /**
@@ -1488,17 +1489,12 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (MinimumSize.left == -1)
             {
-                RECT rect;
+                RECT rect = { 0, 0, 190, 120 };
 
-                rect.left = 0;
-                rect.top = 0;
-                rect.right = 190;
-                rect.bottom = 120;
                 MapDialogRect(hwndDlg, &rect);
-                MinimumSize = rect;
-                MinimumSize.left = 0;
+                context->MinimumSize.cx = PhScaleToDefault(rect.right, context->LayoutManager.WindowDpi);
+                context->MinimumSize.cy = PhScaleToDefault(rect.bottom, context->LayoutManager.WindowDpi);
             }
 
             if (PhValidWindowPlacementFromSetting(SETTING_THREAD_STACK_WINDOW_POSITION))
@@ -1618,6 +1614,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_DEFAULT | (selectedNode->FrameContext ? 0 : PH_EMENU_DISABLED), PH_THREAD_STACK_MENUITEM_REGISTERS, L"&Registers...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(NT_SUCCESS(context->ShadowStackStatus) ? 0 : PH_EMENU_DISABLED, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, L"S&hadow stack...", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_THREAD_STACK_MENUITEM_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_THREAD_STACK_MENUITEM_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
@@ -1675,6 +1672,11 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                                     PhShowThreadStackFrameRegisters(hwndDlg, context, selectedNode);
                                 }
                                 break;
+                            case PH_THREAD_STACK_MENUITEM_SHADOWSTACK:
+                                {
+                                    SendMessage(hwndDlg, WM_COMMAND, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, 0);
+                                }
+                                break;
                             case PH_THREAD_STACK_MENUITEM_OPENSOURCELINK:
                                 {
                                     if (sourceLinkUrl)
@@ -1710,6 +1712,23 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     }
                 }
                 break;
+            case PH_THREAD_STACK_MENUITEM_SHADOWSTACK:
+                {
+                    if (NT_SUCCESS(context->ShadowStackStatus))
+                    {
+                        PhShowThreadShadowStackDialog(
+                            hwndDlg,
+                            context->ProcessId,
+                            context->ThreadId,
+                            context->SymbolProvider,
+                            context->ShadowStackPointer,
+                            context->ShadowStackMsr,
+                            context->ShadowStackEntries,
+                            context->ShadowStackCount
+                            );
+                    }
+                }
+                break;
             case WM_PH_SHOWSTACKDEFAULT:
                 {
                     PPH_STACK_TREE_ROOT_NODE selectedNode;
@@ -1731,6 +1750,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PPH_EMENU_ITEM userItem;
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM inlineItem;
+                    PPH_STACK_TREE_ROOT_NODE selectedNode;
                     PPH_EMENU_ITEM selectedItem;
 
                     if (!PhGetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect))
@@ -1749,6 +1769,15 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         NT_SUCCESS(context->ShadowStackStatus) ? 0 : PH_EMENU_DISABLED,
                         7,
                         L"Shadow stack...",
+                        NULL,
+                        NULL
+                        ), ULONG_MAX);
+
+                    selectedNode = GetSelectedThreadStackNode(context);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(
+                        selectedNode && selectedNode->FrameContext ? 0 : PH_EMENU_DISABLED,
+                        8,
+                        L"&Registers...",
                         NULL,
                         NULL
                         ), ULONG_MAX);
@@ -1806,16 +1835,11 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         }
                         else if (selectedItem->Id == 7)
                         {
-                            PhShowThreadShadowStackDialog(
-                                hwndDlg,
-                                context->ProcessId,
-                                context->ThreadId,
-                                context->SymbolProvider,
-                                context->ShadowStackPointer,
-                                context->ShadowStackMsr,
-                                context->ShadowStackEntries,
-                                context->ShadowStackCount
-                                );
+                            SendMessage(hwndDlg, WM_COMMAND, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, 0);
+                        }
+                        else if (selectedItem->Id == 8)
+                        {
+                            SendMessage(hwndDlg, WM_COMMAND, WM_PH_SHOWSTACKDEFAULT, 0);
                         }
 
                         PhApplyTreeNewFilters(&context->TreeFilterSupport);
@@ -1983,7 +2007,12 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+            PhResizingMinimumSize(
+                (PRECT)lParam,
+                wParam,
+                PhScaleToDisplay(context->MinimumSize.cx, context->LayoutManager.WindowDpi),
+                PhScaleToDisplay(context->MinimumSize.cy, context->LayoutManager.WindowDpi)
+                );
         }
         break;
     case WM_CTLCOLORBTN:
@@ -2124,6 +2153,71 @@ VOID PhpCaptureThreadShadowStack(
         }
     }
 #endif
+}
+
+VOID PhShowThreadShadowStack(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+    NTSTATUS status;
+    PPH_THREAD_STACK_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(PH_THREAD_STACK_CONTEXT));
+    context->SymbolProvider = SymbolProvider;
+
+    status = PhOpenThread(
+        &context->ThreadHandle,
+        THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        ThreadId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (SymbolProvider->ProcessHandle)
+            status = PhGetProcessIsWow64(SymbolProvider->ProcessHandle, &context->IsWow64Process);
+        else
+            status = STATUS_ACCESS_DENIED;
+
+        if (NT_SUCCESS(status))
+        {
+            status = NtSuspendThread(context->ThreadHandle, NULL);
+
+            if (NT_SUCCESS(status))
+            {
+                PhpCaptureThreadShadowStack(context);
+                NtResumeThread(context->ThreadHandle, NULL);
+                status = context->NewShadowStackStatus;
+            }
+        }
+
+        NtClose(context->ThreadHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhLoadSymbolProviderOptions(SymbolProvider);
+        PhShowThreadShadowStackDialog(
+            ParentWindowHandle,
+            ProcessId,
+            ThreadId,
+            SymbolProvider,
+            context->NewShadowStackPointer,
+            context->NewShadowStackMsr,
+            context->NewShadowStackEntries,
+            context->NewShadowStackCount
+            );
+    }
+    else
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to capture the thread shadow stack.", status, 0);
+    }
+
+    if (context->NewShadowStackEntries)
+        PhFree(context->NewShadowStackEntries);
+    PhFree(context);
 }
 
 VOID PhpAnnotateThreadStackShadowStack(

@@ -41,7 +41,7 @@ typedef struct _TCPIP_IF_TYPE_STRING_ENTRY
 typedef struct _MIB_NOTIFICATION_HANDLE
 {
     PVOID Reserved;
-    NSI_ICMP_OBJECT_ID ObjectId;
+    NSI_IP_OBJECT_ID ObjectId;
     PVOID NotificationHandleV4;
     PVOID NotificationHandleV6;
     PVOID NotificationHandleTeredo;
@@ -217,10 +217,10 @@ NTSTATUS PhNsiSetAllParameters(
 NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
     _In_ ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterDataTable,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterMaskTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterDataTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterMaskTable,
     _In_ ULONG ParameterDataEntrySize,
     _Out_ PULONG Count
     );
