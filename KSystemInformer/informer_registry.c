@@ -1504,7 +1504,8 @@ VOID KphpRegFillPostOpMessage(
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               preInfo->EnumerateKey.KeyInformation,
-                              Message->Kernel.Reg.Post.EnumerateKey.ResultLength);
+                              min(Message->Kernel.Reg.Post.EnumerateKey.ResultLength,
+                                  preInfo->EnumerateKey.Length));
             break;
         }
         case RegNtPostEnumerateValueKey:
@@ -1521,7 +1522,8 @@ VOID KphpRegFillPostOpMessage(
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               preInfo->EnumerateValueKey.KeyValueInformation,
-                              Message->Kernel.Reg.Post.EnumerateValueKey.ResultLength);
+                              min(Message->Kernel.Reg.Post.EnumerateValueKey.ResultLength,
+                                  preInfo->EnumerateValueKey.Length));
             break;
         }
         case RegNtPostQueryKey:
@@ -1538,7 +1540,8 @@ VOID KphpRegFillPostOpMessage(
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               preInfo->QueryKey.KeyInformation,
-                              Message->Kernel.Reg.Post.QueryKey.ResultLength);
+                              min(Message->Kernel.Reg.Post.QueryKey.ResultLength,
+                                  preInfo->QueryKey.Length));
             break;
         }
         case RegNtPostQueryValueKey:
@@ -1562,7 +1565,8 @@ VOID KphpRegFillPostOpMessage(
                 KphpRegCopyBuffer(Message,
                                   KphMsgFieldValueBuffer,
                                   preInfo->QueryValueKey.KeyValueInformation,
-                                  Message->Kernel.Reg.Post.QueryValueKey.ResultLength);
+                                  min(Message->Kernel.Reg.Post.QueryValueKey.ResultLength,
+                                      preInfo->QueryValueKey.Length));
             }
             break;
         }
