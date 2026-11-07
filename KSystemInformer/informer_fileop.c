@@ -1642,6 +1642,39 @@ BOOLEAN KphpFltHandleNameTunneling(
 }
 
 /**
+ * \brief Check if the operation is a rename.
+ *
+ * \param[in] Data The callback data for the operation.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphpFltIsRename(
+    _In_ PFLT_CALLBACK_DATA Data
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    if (Data->Iopb->MajorFunction != IRP_MJ_SET_INFORMATION)
+    {
+        return FALSE;
+    }
+
+    switch (Data->Iopb->Parameters.SetFileInformation.FileInformationClass)
+    {
+        case FileRenameInformation:
+        case FileRenameInformationBypassAccessCheck:
+        case FileRenameInformationEx:
+        case FileRenameInformationExBypassAccessCheck:
+        {
+            return TRUE;
+        }
+        default:
+        {
+            return FALSE;
+        }
+    }
+}
+
+/**
  * \brief Check if name tunneling is relevant for the operation.
  *
  * \param[in] Data The callback data for the operation.
@@ -1817,6 +1850,14 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
 
     context = CompletionContext;
     reply = NULL;
+
+    if (!FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING) &&
+        KphpFltIsRename(Data) &&
+        NT_SUCCESS(Data->IoStatus.Status))
+    {
+        NT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
+        KphpFltRenameFileNameCache(FltObjects);
+    }
 
     if (!context)
     {
@@ -2484,6 +2525,21 @@ Exit:
         // in order to do reaping (see: KphpFltReapFileNameCache).
         //
         callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+    }
+
+    if ((callbackStatus != FLT_PREOP_COMPLETE) &&
+        (Data->Iopb->MajorFunction == IRP_MJ_SET_INFORMATION) &&
+        KphpFltIsNameTunnelingPossible(Data) &&
+        ((callbackStatus == FLT_PREOP_SUCCESS_WITH_CALLBACK) ||
+         KphpFltIsRename(Data)))
+    {
+        //
+        // N.B. We always require a post operation callback for renames in
+        // order to invalidate cached names (see: KphpFltRenameFileNameCache).
+        // Rename and link post operations release file name information. Both
+        // must run at or below APC_LEVEL, so synchronize them.
+        //
+        callbackStatus = FLT_PREOP_SYNCHRONIZE;
     }
 
     return callbackStatus;
