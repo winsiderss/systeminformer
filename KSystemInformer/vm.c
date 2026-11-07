@@ -530,6 +530,14 @@ NTSTATUS KphQueryVirtualMemory(
     thread = NULL;
     mappedFileName = NULL;
 
+    if ((AccessMode != KernelMode) &&
+        IsKernelHandle(ProcessHandle) &&
+        !IsPseudoHandle(ProcessHandle))
+    {
+        status = STATUS_INVALID_HANDLE;
+        goto Exit;
+    }
+
     switch (MemoryInformationClass)
     {
         case KphMemoryImageSection:
