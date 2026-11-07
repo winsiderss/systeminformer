@@ -41,9 +41,8 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
 {
     NTSTATUS status;
     PVOID communicationInfo;
-    PVOID handleTable;
-    PVOID handleTableLock;
-    BOOLEAN typeMismatch;
+    PVOID blob;
+    PVOID blobLock;
     PVOID connectionPort;
     PVOID serverPort;
     PVOID clientPort;
@@ -59,8 +58,8 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
     clientPort = NULL;
 
     if ((Dyn->AlpcCommunicationInfo == ULONG_MAX) ||
-        (Dyn->AlpcHandleTable == ULONG_MAX) ||
-        (Dyn->AlpcHandleTableLock == ULONG_MAX))
+        (Dyn->AlpcBlobSize == ULONG_MAX) ||
+        (Dyn->AlpcBlobLock == ULONG_MAX))
     {
         status = STATUS_NOINTERFACE;
         goto Exit;
@@ -73,28 +72,19 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
         goto Exit;
     }
 
-    handleTable = Add2Ptr(communicationInfo, Dyn->AlpcHandleTable);
-    handleTableLock = Add2Ptr(handleTable, Dyn->AlpcHandleTableLock);
+    blob = Add2Ptr(communicationInfo, -(LONG_PTR)Dyn->AlpcBlobSize);
+    blobLock = Add2Ptr(blob, Dyn->AlpcBlobLock);
 
-    typeMismatch = FALSE;
-
-    FltAcquirePushLockShared(handleTableLock);
+    KeEnterCriticalRegion();
+    ExAcquirePushLockShared(blobLock);
 
     if (Dyn->AlpcConnectionPort != ULONG_MAX)
     {
         connectionPort = *(PVOID*)Add2Ptr(communicationInfo,
                                           Dyn->AlpcConnectionPort);
-        if (connectionPort)
+        if (connectionPort && !ObReferenceObjectSafe(connectionPort))
         {
-            if (ObGetObjectType(connectionPort) != *AlpcPortObjectType)
-            {
-                typeMismatch = TRUE;
-                connectionPort = NULL;
-            }
-            else
-            {
-                ObReferenceObject(connectionPort);
-            }
+            connectionPort = NULL;
         }
     }
 
@@ -102,17 +92,9 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
     {
         serverPort = *(PVOID*)Add2Ptr(communicationInfo,
                                       Dyn->AlpcServerCommunicationPort);
-        if (serverPort)
+        if (serverPort && !ObReferenceObjectSafe(serverPort))
         {
-            if (ObGetObjectType(serverPort) != *AlpcPortObjectType)
-            {
-                typeMismatch = TRUE;
-                serverPort = NULL;
-            }
-            else
-            {
-                ObReferenceObject(serverPort);
-            }
+            serverPort = NULL;
         }
     }
 
@@ -120,27 +102,14 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
     {
         clientPort = *(PVOID*)Add2Ptr(communicationInfo,
                                       Dyn->AlpcClientCommunicationPort);
-        if (clientPort)
+        if (clientPort && !ObReferenceObjectSafe(clientPort))
         {
-            if (ObGetObjectType(clientPort) != *AlpcPortObjectType)
-            {
-                typeMismatch = TRUE;
-                clientPort = NULL;
-            }
-            else
-            {
-                ObReferenceObject(clientPort);
-            }
+            clientPort = NULL;
         }
     }
 
-    FltReleasePushLock(handleTableLock);
-
-    if (typeMismatch)
-    {
-        status = STATUS_OBJECT_TYPE_MISMATCH;
-        goto Exit;
-    }
+    ExReleasePushLockShared(blobLock);
+    KeLeaveCriticalRegion();
 
     *ConnectionPort = connectionPort;
     connectionPort = NULL;
