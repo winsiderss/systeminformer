@@ -60,6 +60,7 @@ NTSTATUS KphpMsgDynClaimEntry(
     NTSTATUS status;
     PKPH_MESSAGE_DYNAMIC_TABLE_ENTRY claimed;
     USHORT offset;
+    USHORT endOffset;
 
     *Entry = NULL;
 
@@ -91,18 +92,16 @@ NTSTATUS KphpMsgDynClaimEntry(
 
     offset = Message->Header.Size;
 
-    status = RtlUShortAdd(offset, Length, &offset);
+    status = RtlUShortAdd(offset, Length, &endOffset);
     if (!NT_SUCCESS(status))
     {
         return status;
     }
 
-    if (offset > sizeof(KPH_MESSAGE))
+    if (endOffset > sizeof(KPH_MESSAGE))
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
-
-    offset = Message->Header.Size;
 
     claimed = &Message->_Dyn.Entries[Message->_Dyn.Count++];
     claimed->FieldId = FieldId;
@@ -110,7 +109,10 @@ NTSTATUS KphpMsgDynClaimEntry(
     claimed->Offset = offset;
     claimed->Length = Length;
 
-    Message->Header.Size += Length;
+    endOffset = (USHORT)ALIGN_UP_BY(endOffset, MEMORY_ALLOCATION_ALIGNMENT);
+    NT_ASSERT(endOffset <= sizeof(KPH_MESSAGE));
+
+    Message->Header.Size = endOffset;
 
     *Entry = claimed;
 
@@ -201,7 +203,7 @@ VOID KphMsgDynClearLast(
     {
         Message->_Dyn.Count--;
         entry = &Message->_Dyn.Entries[Message->_Dyn.Count];
-        Message->Header.Size -= entry->Length;
+        Message->Header.Size = entry->Offset;
         RtlZeroMemory(entry, sizeof(KPH_MESSAGE_DYNAMIC_TABLE_ENTRY));
     }
 }
