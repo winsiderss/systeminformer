@@ -565,6 +565,7 @@ typedef struct _KPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT
  * \return FALSE
  */
 _Function_class_(KPH_ENUM_PROCESS_CONTEXTS_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 BOOLEAN KSIAPI KphpSetInformerProcessSettings(
     _In_ PKPH_PROCESS_CONTEXT Process,

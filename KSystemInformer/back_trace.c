@@ -368,6 +368,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApcCleanup(
  * \return Allocated object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpStackBackTraceAllocate(
     _In_ SIZE_T Size
@@ -384,6 +385,7 @@ PVOID KSIAPI KphpStackBackTraceAllocate(
  * \param[in] Object The stack back trace object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpStackBackTraceFree(
     _In_freesMem_ PVOID Object
     )
@@ -402,6 +404,7 @@ VOID KSIAPI KphpStackBackTraceFree(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpStackBackTraceInitialize(
     _Inout_ PVOID Object,
@@ -441,6 +444,7 @@ NTSTATUS KSIAPI KphpStackBackTraceInitialize(
  * \param[in] Object The stack back trace object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpStackBackTraceDelete(
     _Inout_ PVOID Object
     )
