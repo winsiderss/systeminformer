@@ -59,6 +59,7 @@ KPH_PAGED_FILE();
  * \return Allocates image load APC object, null on failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpAllocateImageLoadApc(
     _In_ SIZE_T Size
@@ -78,6 +79,7 @@ PVOID KSIAPI KphpAllocateImageLoadApc(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeImageLoadApc(
     _Inout_ PVOID Object,
@@ -112,6 +114,7 @@ NTSTATUS KSIAPI KphpInitializeImageLoadApc(
  * \param[in,out] Object The image load APC object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpDeleteImageLoadApc(
     _Inout_ PVOID Object
     )
@@ -136,6 +139,7 @@ VOID KSIAPI KphpDeleteImageLoadApc(
  * \param[in] Object Image load APC object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpFreeImageLoadApc(
     _In_freesMem_ PVOID Object
     )

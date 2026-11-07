@@ -305,7 +305,7 @@ VOID KphInvalidateLsass(
 {
     HANDLE processId;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     processId = PsGetProcessId(Process);
 

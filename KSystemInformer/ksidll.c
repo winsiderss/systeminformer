@@ -333,8 +333,6 @@ VOID KSIAPI KsiQueueWorkItem(
 
 _Function_class_(KDEFERRED_ROUTINE)
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_IRQL_requires_min_(DISPATCH_LEVEL)
-_IRQL_requires_(DISPATCH_LEVEL)
 _IRQL_requires_same_
 VOID KsipDpcRoutine(
     _In_ PKDPC Dpc,
@@ -347,6 +345,8 @@ VOID KsipDpcRoutine(
     PDRIVER_OBJECT driverObject;
     PKDEFERRED_ROUTINE routine;
     PVOID context;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     UNREFERENCED_PARAMETER(Dpc);
     NT_ASSERT(DeferredContext);
