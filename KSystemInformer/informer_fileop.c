@@ -497,7 +497,8 @@ VOID KphpFltCopyBuffer(
     }
 
     if (SystemBuffer ||
-        FLT_IS_FASTIO_OPERATION(Data) ||
+        (FLT_IS_FASTIO_OPERATION(Data) &&
+         (Data->RequestorMode == KernelMode)) ||
         FLT_IS_SYSTEM_BUFFER(Data))
     {
         NT_ASSERT(!Buffer ||
