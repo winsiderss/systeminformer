@@ -104,35 +104,9 @@ ULONG KphGetConnectedClientCount(
     VOID
     )
 {
-    ULONG count;
-    KIRQL oldIrql;
-
     KPH_NPAGED_CODE_HIGH_MAX();
 
-    if (KeGetCurrentIrql() >= DISPATCH_LEVEL)
-    {
-        oldIrql = HIGH_LEVEL;
-#pragma warning(suppress: 28121)
-        ExAcquireSpinLockSharedAtDpcLevel(&KphpConnectedClientsLock);
-    }
-    else
-    {
-        oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
-    }
-
-    count = KphpConnectedClientsCount;
-
-    if (oldIrql == HIGH_LEVEL)
-    {
-#pragma warning(suppress: 28121)
-        ExReleaseSpinLockSharedFromDpcLevel(&KphpConnectedClientsLock);
-    }
-    else
-    {
-        ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
-    }
-
-    return count;
+    return ReadULongNoFence(&KphpConnectedClientsCount);
 }
 
 /**
