@@ -547,7 +547,6 @@ VOID KphpFltCopyBuffer(
                       "MmProbeAndLockProcessPages failed: %!STATUS!",
                       GetExceptionCode());
 
-        NT_ASSERT(FALSE);
         goto Exit;
     }
 
