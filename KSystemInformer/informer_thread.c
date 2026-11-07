@@ -231,7 +231,7 @@ Exit:
  * \param[in] ProcessId Process ID of the process where the thread is beginning
  * execution.
  * \param[in] ThreadId Thread ID of the thread beginning execution.
- * \param[in] Create Unused
+ * \param[in] Create FALSE if the thread is exiting.
  */
 _Function_class_(PCREATE_THREAD_NOTIFY_ROUTINE)
 _IRQL_requires_max_(APC_LEVEL)
@@ -245,7 +245,10 @@ VOID KphpExecuteThreadNotifyRoutine(
 
     KPH_PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(Create);
+    if (!Create)
+    {
+        return;
+    }
 
     thread = KphGetThreadContext(ThreadId);
     if (thread)
