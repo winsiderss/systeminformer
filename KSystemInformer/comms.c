@@ -32,7 +32,6 @@ typedef struct _KPHM_QUEUE_ITEM
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpClientTypeName, L"KphClient");
 DECLARE_CONST_UNICODE_STRING(KphpClientInformerStateTypeName, L"KphClientInformerState");
-static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
 DECLARE_CONST_UNICODE_STRING(KphpMessageQueueThreadName, L"System Informer Message Queue");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
