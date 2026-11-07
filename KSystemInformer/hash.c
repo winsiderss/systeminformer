@@ -467,7 +467,7 @@ NTSTATUS KphpUpdateHash(
             start = NULL;
         }
 
-        if ((unsafeEnd >= region->Start) && (unsafeEnd < region->End))
+        if ((unsafeEnd > region->Start) && (unsafeEnd < region->End))
         {
             end = unsafeEnd;
         }
@@ -1634,11 +1634,23 @@ NTSTATUS KphpHashFile(
     {
         __try
         {
-            KphpInitializeAuthenticodeHashing(context, mappedBase, viewSize);
+            status = KphpInitializeAuthenticodeHashing(context,
+                                                       mappedBase,
+                                                       viewSize);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             status = GetExceptionCode();
+            goto Exit;
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "KphpInitializeAuthenticodeHashing failed: %!STATUS!",
+                          status);
+
             goto Exit;
         }
     }
