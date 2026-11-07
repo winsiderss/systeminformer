@@ -1175,7 +1175,7 @@ Exit:
  * \brief Cleanup routine for the image load APC.
  *
  * \param[in] Apc The APC to clean up.
- * \param[in] Reason Unused.
+ * \param[in] Reason The reason for the cleanup.
  */
 _Function_class_(KSI_KCLEANUP_ROUTINE)
 _IRQL_requires_min_(PASSIVE_LEVEL)
@@ -1190,9 +1190,12 @@ VOID KSIAPI KphpImageLoadCleanupRoutine(
 
     KPH_PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(Reason);
-
     apc = CONTAINING_RECORD(Apc, KPH_IMAGE_LOAD_APC, Apc);
+
+    if ((Reason == KsiApcCleanupRundown) || (Reason == KsiApcCleanupRemoved))
+    {
+        InterlockedIncrementSizeT(&apc->Process->NumberOfUntrustedImageLoads);
+    }
 
     KphDereferenceObject(apc);
 }
@@ -1431,6 +1434,7 @@ VOID KphpHandleUntrustedImageLoad(
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(FlagOn(Process->Protection.State, KPH_PROTECTION_VERIFIED));
+    NT_ASSERT(ImageBase <= MmHighestUserAddress);
 
     status = STATUS_UNSUCCESSFUL;
     actor = NULL;
@@ -1486,17 +1490,6 @@ VOID KphpHandleUntrustedImageLoad(
                       PROTECTION,
                       "KphCheckProcessApcNoopRoutine failed: %!STATUS!",
                       status);
-        goto Exit;
-    }
-
-    if (ImageBase > MmHighestUserAddress)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE, PROTECTION, "Invalid image base!");
-
-        //
-        // This isn't an error, we just check for safety downstream.
-        //
-        status = STATUS_SUCCESS;
         goto Exit;
     }
 
