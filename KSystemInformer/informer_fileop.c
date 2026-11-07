@@ -1206,7 +1206,6 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.SetEa.EaBuffer;
             length = Data->Iopb->Parameters.SetEa.Length;
             fieldId = KphMsgFieldInformationBuffer; // FILE_FULL_EA_INFORMATION
-            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_SET_VOLUME_INFORMATION:
