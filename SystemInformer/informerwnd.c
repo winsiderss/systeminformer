@@ -3092,14 +3092,14 @@ BOOLEAN PhpInformerIsPostOp(
     _In_ PCKPH_MESSAGE Message,
     _Out_ PULONG64 PreSequence,
     _Out_ PNTSTATUS ResultStatus,
-    _Out_ PLARGE_INTEGER PreTimeStamp
+    _Out_ PLARGE_INTEGER PreUnbiasedInterruptTime
     )
 {
     KPH_MESSAGE_ID msgId = Message->Header.MessageId;
 
     *PreSequence = 0;
     *ResultStatus = STATUS_PENDING;
-    PreTimeStamp->QuadPart = 0;
+    PreUnbiasedInterruptTime->QuadPart = 0;
 
     if (msgId >= KphMsgFilePreCreate && msgId <= KphMsgFilePostVolumeDismount)
     {
@@ -3107,7 +3107,7 @@ BOOLEAN PhpInformerIsPostOp(
         {
             *PreSequence = Message->Kernel.File.Post.PreSequence;
             *ResultStatus = Message->Kernel.File.Post.IoStatus.Status;
-            *PreTimeStamp = Message->Kernel.File.Post.PreTimeStamp;
+            *PreUnbiasedInterruptTime = Message->Kernel.File.Post.PreUnbiasedInterruptTime;
             return TRUE;
         }
     }
@@ -3117,7 +3117,7 @@ BOOLEAN PhpInformerIsPostOp(
         {
             *PreSequence = Message->Kernel.Reg.Post.PreSequence;
             *ResultStatus = Message->Kernel.Reg.Post.Status;
-            *PreTimeStamp = Message->Kernel.Reg.Post.PreTimeStamp;
+            *PreUnbiasedInterruptTime = Message->Kernel.Reg.Post.PreUnbiasedInterruptTime;
             return TRUE;
         }
     }
@@ -3127,7 +3127,7 @@ BOOLEAN PhpInformerIsPostOp(
         {
             *PreSequence = Message->Kernel.Handle.Post.PreSequence;
             *ResultStatus = Message->Kernel.Handle.Post.ReturnStatus;
-            *PreTimeStamp = Message->Kernel.Handle.Post.PreTimeStamp;
+            *PreUnbiasedInterruptTime = Message->Kernel.Handle.Post.PreUnbiasedInterruptTime;
             return TRUE;
         }
     }
@@ -3387,7 +3387,7 @@ VOID PhpInformerAddMessage(
     ULONG64 preSeq;
     ULONG64 postPreSeq;
     NTSTATUS postStatus;
-    LARGE_INTEGER preTimeStamp;
+    LARGE_INTEGER preUnbiasedInterruptTime;
 
     //
     // For process-scoped views, only keep events where this process is
@@ -3416,7 +3416,7 @@ VOID PhpInformerAddMessage(
     // Pre/post correlation: if this is a post-op, try to back-fill the result
     // onto the matching pre-op node and suppress the post as a standalone row.
     //
-    if (PhpInformerIsPostOp(Message, &postPreSeq, &postStatus, &preTimeStamp))
+    if (PhpInformerIsPostOp(Message, &postPreSeq, &postStatus, &preUnbiasedInterruptTime))
     {
         PVOID *entry;
 
@@ -3428,7 +3428,7 @@ VOID PhpInformerAddMessage(
 
             PhMoveReference(&preNode->ResultText, PhGetStatusMessage(postStatus, 0));
 
-            durationTicks = Message->Header.TimeStamp.QuadPart - preTimeStamp.QuadPart;
+            durationTicks = Message->Header.UnbiasedInterruptTime.QuadPart - preUnbiasedInterruptTime.QuadPart;
             if (durationTicks > 0)
             {
                 PH_FORMAT durationFmt[1];

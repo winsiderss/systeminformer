@@ -636,6 +636,7 @@ typedef struct _KPHM_HANDLE
         {
             ULONG64 PreSequence;
             LARGE_INTEGER PreTimeStamp;
+            LARGE_INTEGER PreUnbiasedInterruptTime;
             NTSTATUS ReturnStatus;
             ACCESS_MASK GrantedAccess;
             ACCESS_MASK DesiredAccess;
@@ -1309,6 +1310,7 @@ typedef struct _KPHM_FILE
         {
             ULONG64 PreSequence;
             LARGE_INTEGER PreTimeStamp;
+            LARGE_INTEGER PreUnbiasedInterruptTime;
             IO_STATUS_BLOCK IoStatus;
             union
             {
@@ -1632,6 +1634,7 @@ typedef struct _KPHM_REGISTRY
         {
             ULONG64 PreSequence;
             LARGE_INTEGER PreTimeStamp;
+            LARGE_INTEGER PreUnbiasedInterruptTime;
             NTSTATUS Status;
 
             union
