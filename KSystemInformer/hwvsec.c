@@ -130,11 +130,11 @@ NTSTATUS KphHwVsecCopyTable(
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT((EntryCount >= 1) && (EntryCount <= MAXUCHAR));
-    NT_ASSERT(((EntryStride % sizeof(ULONG)) == 0) &&
+    NT_ASSERT(IS_ALIGNED(EntryStride, sizeof(ULONG)) &&
               (EntryStride <= (MAXUCHAR * sizeof(ULONG))));
     NT_ASSERT((EntryDwords >= 1) &&
               ((EntryDwords * sizeof(ULONG)) <= EntryStride));
-    NT_ASSERT((Base % sizeof(ULONG)) == 0);
+    NT_ASSERT(IS_ALIGNED(Base, sizeof(ULONG)));
 
     NT_VERIFY(NT_SUCCESS(RtlULongMult(EntryCount, EntryStride, &length)));
 

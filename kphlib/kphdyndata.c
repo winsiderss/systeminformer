@@ -1035,7 +1035,7 @@ BOOLEAN KphDynHwIndirectTargetAllowed(
 
     NT_ASSERT(Op->Kind == KPH_DYN_HW_KIND_PCI_INDIRECT_READ);
 
-    if ((Target & 3) != 0)
+    if (!IS_ALIGNED(Target, sizeof(ULONG)))
     {
         return FALSE;
     }

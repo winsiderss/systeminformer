@@ -749,7 +749,7 @@ NTSTATUS KphQueryRegistryString(
 
     if ((info->Type != REG_SZ) ||
         (length > UNICODE_STRING_MAX_BYTES) ||
-        ((info->DataLength % 2) != 0))
+        !IS_ALIGNED(info->DataLength, sizeof(WCHAR)))
     {
         status = STATUS_OBJECT_TYPE_MISMATCH;
         goto Exit;

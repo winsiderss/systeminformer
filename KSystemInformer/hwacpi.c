@@ -715,7 +715,7 @@ NTSTATUS KphpHwAcpiQueryPath(
     if ((status != STATUS_BUFFER_TOO_SMALL) ||
         (type != DEVPROP_TYPE_STRING) ||
         (required < (2 * sizeof(WCHAR))) ||
-        ((required % sizeof(WCHAR)) != 0))
+        !IS_ALIGNED(required, sizeof(WCHAR)))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -2290,7 +2290,7 @@ NTSTATUS KphpHwAcpiDeriveCrsBase(
         goto Exit;
     }
 
-    if ((length < WindowSize) || ((start % sizeof(ULONG64)) != 0))
+    if ((length < WindowSize) || !IS_ALIGNED(start, sizeof(ULONG64)))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,

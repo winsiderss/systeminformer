@@ -700,7 +700,7 @@ NTSTATUS KphHwWindowLpitBase(
         return status;
     }
 
-    if ((counter->Width != Width) || ((counter->Address & (Width - 1)) != 0))
+    if ((counter->Width != Width) || !IS_ALIGNED(counter->Address, Width))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -752,7 +752,7 @@ NTSTATUS KphHwWindowLpitRelativeBase(
     }
 
     if (!NT_SUCCESS(RtlULongLongSub(counter->Address, Offset, &base)) ||
-        ((base & (Size - 1)) != 0))
+        !IS_ALIGNED(base, Size))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,

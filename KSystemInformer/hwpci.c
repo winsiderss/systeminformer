@@ -2678,7 +2678,7 @@ NTSTATUS KphHwReadPciIndirect(
 
     locator = *Locator;
 
-    if ((Target & 3) != 0)
+    if (!IS_ALIGNED(Target, sizeof(ULONG)))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -3569,7 +3569,7 @@ NTSTATUS KphpHwPciDeriveWindowBase(
         }
     }
 
-    if ((base & (window->WindowSize - 1)) != 0)
+    if (!IS_ALIGNED(base, window->WindowSize))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -4459,7 +4459,7 @@ NTSTATUS KphpHwPciVsecReadTable(
     if (!entries ||
         (entrySize < EntryDwords) ||
         (Table->Bar >= PCI_TYPE0_ADDRESSES) ||
-        ((Table->Offset % sizeof(ULONG)) != 0))
+        !IS_ALIGNED(Table->Offset, sizeof(ULONG)))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -5598,7 +5598,7 @@ NTSTATUS KphHwPciSmnRead(
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Session->Bus.Interface.GetBusData);
-    NT_ASSERT((Address & 3) == 0);
+    NT_ASSERT(IS_ALIGNED(Address, sizeof(ULONG)));
 
     KphAcquireRWLockExclusive(&KphpHwPciLock);
 
@@ -5640,7 +5640,7 @@ NTSTATUS KphHwPciSmnWrite(
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Session->Bus.Interface.SetBusData);
-    NT_ASSERT((Address & 3) == 0);
+    NT_ASSERT(IS_ALIGNED(Address, sizeof(ULONG)));
 
     bus = &Session->Bus.Interface;
     index = Address;
