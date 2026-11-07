@@ -327,6 +327,7 @@ typedef struct _KPH_MESSAGE
         USHORT Size;
         KPH_MESSAGE_ID MessageId;
         LARGE_INTEGER TimeStamp;
+        LARGE_INTEGER UnbiasedInterruptTime;
     } Header;
 
     union
@@ -441,7 +442,7 @@ typedef struct _KPH_MESSAGE
     {
         UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[0x4000 - 460];
+        CHAR Buffer[0x4000 - 476];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
@@ -458,9 +459,9 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
 C_ASSERT(sizeof(KPH_MESSAGE) == 0x4000);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 360);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 460);
-C_ASSERT(KPH_MESSAGE_MIN_SIZE == 460);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 376);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 476);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == 476);
 C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 #else
 // not supported
@@ -472,6 +473,10 @@ EXTERN_C_START
 
 VOID KphMsgQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
+    );
+
+VOID KphMsgQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
     );
 
 VOID KphMsgInit(

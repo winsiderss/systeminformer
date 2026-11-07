@@ -354,7 +354,7 @@ BOOLEAN KphpCommsMessageIsRateLimited(
     }
 
     if (KphRateLimitConsumeToken(&state->InformerRateLimit[index],
-                                 &Message->Header.TimeStamp))
+                                 &Message->Header.UnbiasedInterruptTime))
     {
         goto Exit;
     }
@@ -408,7 +408,7 @@ BOOLEAN KphpCommsQueueIsRateLimited(
     }
 
     if (KphRateLimitConsumeToken(&state->AsyncQueueRateLimit,
-                                 &Message->Header.TimeStamp))
+                                 &Message->Header.UnbiasedInterruptTime))
     {
         goto Exit;
     }
@@ -888,7 +888,7 @@ NTSTATUS KSIAPI KphpInitializeClientInformerState(
     state = Object;
     settings = Parameter;
 
-    KeQuerySystemTime(&timeStamp);
+    timeStamp.QuadPart = KeQueryUnbiasedInterruptTime();
 
     RtlCopyMemory(&state->MessageTimeouts,
                   &settings->MessageTimeouts,

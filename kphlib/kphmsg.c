@@ -16,7 +16,7 @@
 #define KPH_MESSAGE_VERSION 9
 
 /**
- * Gets the current system time (UTC).
+ * \brief Gets the current system time (UTC).
  *
  * \remarks Use this function instead of NtQuerySystemTime() because no system calls are involved.
  */
@@ -29,14 +29,44 @@ VOID KphMsgQuerySystemTime(
 #else
     while (TRUE)
     {
-        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
-        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+        SystemTime->HighPart = ReadAcquire(&USER_SHARED_DATA->SystemTime.High1Time);
+        SystemTime->LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->SystemTime.LowPart);
 
-        if (SystemTime->HighPart == USER_SHARED_DATA->SystemTime.High2Time)
+        if (SystemTime->HighPart == ReadAcquire(&USER_SHARED_DATA->SystemTime.High2Time))
             break;
 
         YieldProcessor();
     }
+#endif
+}
+
+/**
+ * \brief Gets the current unbiased interrupt time, which excludes time spent asleep.
+ */
+VOID KphMsgQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
+    )
+{
+#ifdef _KERNEL_MODE
+    UnbiasedInterruptTime->QuadPart = KeQueryUnbiasedInterruptTime();
+#else
+    LARGE_INTEGER interruptTime;
+    ULONGLONG interruptTimeBias;
+
+    while (TRUE)
+    {
+        interruptTimeBias = ReadULong64Acquire(&USER_SHARED_DATA->InterruptTimeBias);
+        interruptTime.HighPart = ReadAcquire(&USER_SHARED_DATA->InterruptTime.High1Time);
+        interruptTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->InterruptTime.LowPart);
+
+        if ((interruptTime.HighPart == ReadAcquire(&USER_SHARED_DATA->InterruptTime.High2Time)) &&
+            (interruptTimeBias == ReadULong64Acquire(&USER_SHARED_DATA->InterruptTimeBias)))
+            break;
+
+        YieldProcessor();
+    }
+
+    UnbiasedInterruptTime->QuadPart = interruptTime.QuadPart - (LONG64)interruptTimeBias;
 #endif
 }
 
@@ -55,6 +85,7 @@ VOID KphMsgInit(
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
     Message->Header.MessageId = MessageId;
     KphMsgQuerySystemTime(&Message->Header.TimeStamp);
+    KphMsgQueryUnbiasedInterruptTime(&Message->Header.UnbiasedInterruptTime);
 }
 
 /**

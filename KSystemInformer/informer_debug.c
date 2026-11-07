@@ -28,6 +28,7 @@ typedef struct _KPH_DBG_PRINT_SLOT
     KDPC Dpc;
     KPH_DBG_PRINT_SLOT_STATE State;
     LARGE_INTEGER TimeStamp;
+    LARGE_INTEGER UnbiasedInterruptTime;
     KPHM_CONTEXT Context;
     ULONG ComponentId;
     ULONG Level;
@@ -104,6 +105,7 @@ VOID KphpDebugPrintSend(
 
     KphMsgInit(msg, KphMsgDebugPrint);
     msg->Header.TimeStamp.QuadPart = Slot->TimeStamp.QuadPart;
+    msg->Header.UnbiasedInterruptTime.QuadPart = Slot->UnbiasedInterruptTime.QuadPart;
     msg->Kernel.DebugPrint.Context = Slot->Context;
     msg->Kernel.DebugPrint.ComponentId = Slot->ComponentId;
     msg->Kernel.DebugPrint.Level = Slot->Level;
@@ -220,6 +222,7 @@ VOID KphpDebugPrintCallback(
     }
 
     KeQuerySystemTime(&slot->TimeStamp);
+    slot->UnbiasedInterruptTime.QuadPart = KeQueryUnbiasedInterruptTime();
     KphCaptureCurrentContextEx(&slot->Context, TRUE);
     slot->ComponentId = ComponentId;
     slot->Level = Level;

@@ -32,6 +32,7 @@ typedef struct _KPH_OB_CALL_CONTEXT
 {
     ULONG64 PreSequence;
     LARGE_INTEGER PreTimeStamp;
+    LARGE_INTEGER PreUnbiasedInterruptTime;
     KPH_OB_OPTIONS Options;
     ACCESS_MASK DesiredAccess;
     ACCESS_MASK OriginalDesiredAccess;
@@ -469,6 +470,7 @@ VOID KphpObPostFillMessage(
     Message->Kernel.Handle.PostOperation = TRUE;
     Message->Kernel.Handle.Post.PreSequence = Context->PreSequence;
     Message->Kernel.Handle.Post.PreTimeStamp = Context->PreTimeStamp;
+    Message->Kernel.Handle.Post.PreUnbiasedInterruptTime = Context->PreUnbiasedInterruptTime;
     Message->Kernel.Handle.Post.ReturnStatus = Info->ReturnStatus;
     Message->Kernel.Handle.Post.DesiredAccess = Context->DesiredAccess;
     Message->Kernel.Handle.Post.OriginalDesiredAccess = Context->OriginalDesiredAccess;
@@ -632,13 +634,15 @@ VOID KphpObPostOp(
  * \param[in] Options Object operation options to use.
  * \param[in] Sequence The pre-operation sequence number.
  * \param[in] TimeStamp The pre-operation time stamp.
+ * \param[in] UnbiasedInterruptTime The pre-operation unbiased interrupt time.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPreOpSetCallContext(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_OB_OPTIONS Options,
     _In_ ULONG64 Sequence,
-    _In_ PLARGE_INTEGER TimeStamp
+    _In_ PLARGE_INTEGER TimeStamp,
+    _In_ PLARGE_INTEGER UnbiasedInterruptTime
     )
 {
     PKPH_OB_CALL_CONTEXT context;
@@ -657,6 +661,7 @@ VOID KphpObPreOpSetCallContext(
 
     context->PreSequence = Sequence;
     context->PreTimeStamp = *TimeStamp;
+    context->PreUnbiasedInterruptTime = *UnbiasedInterruptTime;
     context->Options.Flags = Options->Flags;
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
@@ -694,13 +699,16 @@ VOID KphpObPreOpSetCallContext(
  * \param[in] Options Object operation options to use.
  * \param[in] Sequence The sequence number for the message.
  * \param[out] TimeStamp Receives the time stamp of the pre-operation message.
+ * \param[out] UnbiasedInterruptTime Receives the unbiased interrupt time of the
+ * pre-operation message.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPreOpSend(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_OB_OPTIONS Options,
     _In_ ULONG64 Sequence,
-    _Out_ PLARGE_INTEGER TimeStamp
+    _Out_ PLARGE_INTEGER TimeStamp,
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
     )
 {
     PKPH_MESSAGE msg;
@@ -715,12 +723,14 @@ VOID KphpObPreOpSend(
                       "Failed to allocate message");
 
         KeQuerySystemTime(TimeStamp);
+        UnbiasedInterruptTime->QuadPart = KeQueryUnbiasedInterruptTime();
         return;
     }
 
     KphMsgInit(msg, KphpObPreGetMessageId(Info));
 
     *TimeStamp = msg->Header.TimeStamp;
+    *UnbiasedInterruptTime = msg->Header.UnbiasedInterruptTime;
 
     msg->Kernel.Handle.Sequence = Sequence;
 
@@ -997,6 +1007,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     KPH_OB_OPTIONS options;
     ULONG64 sequence;
     LARGE_INTEGER timeStamp;
+    LARGE_INTEGER unbiasedInterruptTime;
 
     //
     // N.B. Although Microsoft's documentation states that object callbacks
@@ -1028,7 +1039,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
 
     if (options.PreEnabled)
     {
-        KphpObPreOpSend(Info, &options, sequence, &timeStamp);
+        KphpObPreOpSend(Info,
+                        &options,
+                        sequence,
+                        &timeStamp,
+                        &unbiasedInterruptTime);
     }
     else
     {
@@ -1037,11 +1052,16 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
         // post operation to use.
         //
         KeQuerySystemTime(&timeStamp);
+        unbiasedInterruptTime.QuadPart = KeQueryUnbiasedInterruptTime();
     }
 
     if (options.PostEnabled)
     {
-        KphpObPreOpSetCallContext(Info, &options, sequence, &timeStamp);
+        KphpObPreOpSetCallContext(Info,
+                                  &options,
+                                  sequence,
+                                  &timeStamp,
+                                  &unbiasedInterruptTime);
     }
 
     return OB_PREOP_SUCCESS;
