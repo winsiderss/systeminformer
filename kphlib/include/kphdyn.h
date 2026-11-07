@@ -41,6 +41,8 @@ typedef struct _KPH_DYN_KERNEL_FIELDS
     USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT u1.State
+    USHORT AlpcBlobSize;                 // ?? sizeof(nt!_BLOB)
+    USHORT AlpcBlobLock;                 // dt nt!_BLOB Lock
     USHORT KtInitialStack;               // dt nt!_KTHREAD InitialStack
     USHORT KtStackLimit;                 // dt nt!_KTHREAD StackLimit
     USHORT KtStackBase;                  // dt nt!_KTHREAD StackBase

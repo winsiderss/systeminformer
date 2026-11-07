@@ -407,6 +407,8 @@ typedef struct _KPH_DYN_KERNEL_FIELDS
     USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT u1.State
+    USHORT AlpcBlobSize;                 // ?? sizeof(nt!_BLOB)
+    USHORT AlpcBlobLock;                 // dt nt!_BLOB Lock
     USHORT KtInitialStack;               // dt nt!_KTHREAD InitialStack
     USHORT KtStackLimit;                 // dt nt!_KTHREAD StackLimit
     USHORT KtStackBase;                  // dt nt!_KTHREAD StackBase
@@ -1100,6 +1102,8 @@ C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
             public UInt16 AlpcPortObjectLock;
             public UInt16 AlpcSequenceNo = UInt16.MaxValue;
             public UInt16 AlpcState;
+            public UInt16 AlpcBlobSize;
+            public UInt16 AlpcBlobLock;
             public UInt16 KtInitialStack;
             public UInt16 KtStackLimit;
             public UInt16 KtStackBase;
@@ -1141,6 +1145,8 @@ C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
                 AlpcPortObjectLock = UInt16.MaxValue;
                 AlpcSequenceNo = UInt16.MaxValue;
                 AlpcState = UInt16.MaxValue;
+                AlpcBlobSize = UInt16.MaxValue;
+                AlpcBlobLock = UInt16.MaxValue;
                 KtInitialStack = UInt16.MaxValue;
                 KtStackLimit = UInt16.MaxValue;
                 KtStackBase = UInt16.MaxValue;

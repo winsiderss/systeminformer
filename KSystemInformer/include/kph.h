@@ -854,6 +854,8 @@ typedef struct _KPH_DYN
     ULONG AlpcPortObjectLock;
     ULONG AlpcSequenceNo;
     ULONG AlpcState;
+    ULONG AlpcBlobSize;
+    ULONG AlpcBlobLock;
     ULONG KtInitialStack;
     ULONG KtStackLimit;
     ULONG KtStackBase;
