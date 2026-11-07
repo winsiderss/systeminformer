@@ -32,6 +32,7 @@ KPH_PAGED_FILE();
  * \param[in] Context Pointer to a KPH_THREAD_START_CONTEXT.
  */
 _Function_class_(KSTART_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 VOID KphpThreadStartRoutine(
     _In_ PVOID StartContext

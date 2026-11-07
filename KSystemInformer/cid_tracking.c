@@ -1947,6 +1947,7 @@ typedef struct _KPH_ENUM_CONTEXT
  * for or the return value from callers callback.
  */
 _Function_class_(KPH_CID_ENUMERATE_CALLBACK)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KSIAPI KphpEnumerateContexts(
     _In_ PVOID Object,
     _In_opt_ PVOID Parameter

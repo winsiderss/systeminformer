@@ -427,6 +427,8 @@ ULONG KphpGetNonRateLimitedClients(
     ULONG clientsCount;
     PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
 
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     count = 0;
     clientsCount = KphpGetInformerClients(clients);
 

@@ -180,6 +180,7 @@ VOID KphFreeToNPagedLookaside(
  * \return Allocated lookaside object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpAllocateNPagedLookasideObject(
     _In_ SIZE_T Size
@@ -199,6 +200,7 @@ PVOID KSIAPI KphpAllocateNPagedLookasideObject(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeNPagedLookasideObject(
     _Inout_ PVOID Object,
@@ -228,6 +230,7 @@ NTSTATUS KSIAPI KphpInitializeNPagedLookasideObject(
  * \param[in,out] Object The lookaside object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KSIAPI KphpDeleteNPagedLookasideObject(
     _Inout_ PVOID Object
     )
@@ -247,6 +250,7 @@ VOID KSIAPI KphpDeleteNPagedLookasideObject(
  * \param[in] Object The lookaside object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KSIAPI KphpFreeNPagedLookasideObject(
     _In_freesMem_ PVOID Object
     )
@@ -458,6 +462,7 @@ VOID KphFreeToPagedLookaside(
  * \return Allocated lookaside object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpAllocatePagedLookasideObject(
     _In_ SIZE_T Size
@@ -477,6 +482,7 @@ PVOID KSIAPI KphpAllocatePagedLookasideObject(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializePagedLookasideObject(
     _Inout_ PVOID Object,
@@ -506,6 +512,7 @@ NTSTATUS KSIAPI KphpInitializePagedLookasideObject(
  * \param[in,out] Object The lookaside object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpDeletePagedLookasideObject(
     _Inout_ PVOID Object
     )
@@ -525,6 +532,7 @@ VOID KSIAPI KphpDeletePagedLookasideObject(
  * \param[in] Object The lookaside object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpFreePagedLookasideObject(
     _In_freesMem_ PVOID Object
     )
