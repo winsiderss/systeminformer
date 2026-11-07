@@ -36,6 +36,7 @@ typedef struct _KPH_REG_CALL_CONTEXT
 {
     ULONG64 PreSequence;
     LARGE_INTEGER PreTimeStamp;
+    LARGE_INTEGER PreUnbiasedInterruptTime;
     KPH_REG_OPTIONS Options;
     ULONG_PTR ObjectId;
     PUNICODE_STRING ObjectName;
@@ -1449,6 +1450,7 @@ VOID KphpRegFillPostOpMessage(
 
     Message->Kernel.Reg.Post.PreSequence = Context->PreSequence;
     Message->Kernel.Reg.Post.PreTimeStamp = Context->PreTimeStamp;
+    Message->Kernel.Reg.Post.PreUnbiasedInterruptTime = Context->PreUnbiasedInterruptTime;
 
     preInfo = PostInfo->Common.PreInformation;
     Message->Kernel.Reg.Post.Status = PostInfo->Common.Status;
@@ -2052,6 +2054,8 @@ VOID KphpRegPostOp(
  * \param[in] Options Registry options to use.
  * \param[in] Sequence The registry sequence number for the pre operation.
  * \param[in] TimeStamp The time stamp for the pre operation.
+ * \param[in] UnbiasedInterruptTime The unbiased interrupt time for the pre
+ * operation.
  */
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
@@ -2060,7 +2064,8 @@ NTSTATUS KphpRegPreOpSetCallContext(
     _In_ PKPH_REG_PRE_INFORMATION PreInfo,
     _In_ PKPH_REG_OPTIONS Options,
     _In_ ULONG64 Sequence,
-    _In_ PLARGE_INTEGER TimeStamp
+    _In_ PLARGE_INTEGER TimeStamp,
+    _In_ PLARGE_INTEGER UnbiasedInterruptTime
     )
 {
     NTSTATUS status;
@@ -2081,6 +2086,7 @@ NTSTATUS KphpRegPreOpSetCallContext(
 
     context->PreSequence = Sequence;
     context->PreTimeStamp = *TimeStamp;
+    context->PreUnbiasedInterruptTime = *UnbiasedInterruptTime;
     context->Options.Flags = Options->Flags;
 
     if (RegClass == RegNtPreKeyHandleClose)
@@ -2176,6 +2182,8 @@ Exit:
  * \param[in] Options Registry options to use.
  * \param[in] Sequence The registry sequence number for the pre operation.
  * \param[out] TimeStamp Receives time stamp for the pre operation.
+ * \param[out] UnbiasedInterruptTime Receives unbiased interrupt time for the
+ * pre operation.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegPreOpSend(
@@ -2183,7 +2191,8 @@ VOID KphpRegPreOpSend(
     _In_ PKPH_REG_PRE_INFORMATION PreInfo,
     _In_ PKPH_REG_OPTIONS Options,
     _In_ ULONG64 Sequence,
-    _Out_ PLARGE_INTEGER TimeStamp
+    _Out_ PLARGE_INTEGER TimeStamp,
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
     )
 {
     PKPH_MESSAGE msg;
@@ -2198,11 +2207,13 @@ VOID KphpRegPreOpSend(
                       "KphAllocateMessage failed");
 
         KeQuerySystemTime(TimeStamp);
+        UnbiasedInterruptTime->QuadPart = KeQueryUnbiasedInterruptTime();
         return;
     }
 
     KphMsgInit(msg, KphpRegGetMessageId(RegClass));
     *TimeStamp = msg->Header.TimeStamp;
+    *UnbiasedInterruptTime = msg->Header.UnbiasedInterruptTime;
     msg->Kernel.Reg.Sequence = Sequence;
     KphpRegFillPreOpMessage(msg, RegClass, PreInfo, Options);
 
@@ -2232,6 +2243,7 @@ VOID KphpRegPreOp(
 {
     NTSTATUS status;
     LARGE_INTEGER timeStamp;
+    LARGE_INTEGER unbiasedInterruptTime;
 
     KPH_PAGED_CODE();
 
@@ -2239,7 +2251,12 @@ VOID KphpRegPreOp(
 
     if (Options->PreEnabled)
     {
-        KphpRegPreOpSend(RegClass, PreInfo, Options, Sequence, &timeStamp);
+        KphpRegPreOpSend(RegClass,
+                         PreInfo,
+                         Options,
+                         Sequence,
+                         &timeStamp,
+                         &unbiasedInterruptTime);
     }
     else
     {
@@ -2248,6 +2265,7 @@ VOID KphpRegPreOp(
         // post operation to use.
         //
         KeQuerySystemTime(&timeStamp);
+        unbiasedInterruptTime.QuadPart = KeQueryUnbiasedInterruptTime();
     }
 
     if (Options->PostEnabled)
@@ -2256,7 +2274,8 @@ VOID KphpRegPreOp(
                                             PreInfo,
                                             Options,
                                             Sequence,
-                                            &timeStamp);
+                                            &timeStamp,
+                                            &unbiasedInterruptTime);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,

@@ -83,7 +83,7 @@ KphpInitializeInformerState(
     state = Object;
     settings = Parameter;
 
-    KeQuerySystemTime(&timeStamp);
+    timeStamp.QuadPart = KeQueryUnbiasedInterruptTime();
 
     if (settings)
     {
@@ -230,7 +230,7 @@ BOOLEAN KphInformerAllowed(
         return FALSE;
     }
 
-    KeQuerySystemTime(&timeStamp);
+    timeStamp.QuadPart = KeQueryUnbiasedInterruptTime();
 
     if (!Context || (Context->Count == 0))
     {

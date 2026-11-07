@@ -1880,6 +1880,7 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
     messageId = KphpFltGetMessageId(Data->Iopb->MajorFunction, TRUE);
     context->Message->Header.MessageId = messageId;
     KeQuerySystemTime(&context->Message->Header.TimeStamp);
+    context->Message->Header.UnbiasedInterruptTime.QuadPart = KeQueryUnbiasedInterruptTime();
     context->Message->Kernel.File.Sequence = sequence;
 
     if (KphpFltIsNameTunnelingPossible(Data))
@@ -1965,6 +1966,8 @@ Exit:
  * \param[in] FltDestFileName The destination file name information, if any.
  * \param[in] Sequence The sequence number for the pre operation.
  * \param[in] TimeStamp The time stamp for the pre operation.
+ * \param[in] UnbiasedInterruptTime The unbiased interrupt time for the pre
+ * operation.
  * \param[out] Context Set to the completion context for the operation.
  *
  * \return Successful or errant status.
@@ -1979,6 +1982,7 @@ NTSTATUS KphpFltPreOpCreateCompletionContext(
     _In_ PKPH_FLT_FILE_NAME FltDestFileName,
     _In_ ULONG64 Sequence,
     _In_ PLARGE_INTEGER TimeStamp,
+    _In_ PLARGE_INTEGER UnbiasedInterruptTime,
     _Out_ PKPH_FLT_COMPLETION_CONTEXT* CompletionContext
     )
 {
@@ -2030,9 +2034,11 @@ NTSTATUS KphpFltPreOpCreateCompletionContext(
     //
     NT_ASSERT(context->Message->Kernel.File.Sequence == 0);
     context->Message->Header.TimeStamp.QuadPart = 0;
+    context->Message->Header.UnbiasedInterruptTime.QuadPart = 0;
 
     context->Message->Kernel.File.Post.PreSequence = Sequence;
     context->Message->Kernel.File.Post.PreTimeStamp = *TimeStamp;
+    context->Message->Kernel.File.Post.PreUnbiasedInterruptTime = *UnbiasedInterruptTime;
 
     if (Options->EnablePostFileNames)
     {
@@ -2111,6 +2117,8 @@ Exit:
  * \param[in] FltDestFileName The destination file name information, if any.
  * \param[in] Sequence The sequence number for the operation.
  * \param[out] TimeStamp Set to the time stamp for the pre operation.
+ * \param[out] UnbiasedInterruptTime Set to the unbiased interrupt time for the
+ * pre operation.
  *
  * \return FLT_PREOP_SUCCESS_NO_CALLBACK or FLT_PREOP_COMPLETE
  */
@@ -2122,7 +2130,8 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
     _In_ PKPH_FLT_FILE_NAME FltFileName,
     _In_ PKPH_FLT_FILE_NAME FltDestFileName,
     _In_ ULONG64 Sequence,
-    _Out_ PLARGE_INTEGER TimeStamp
+    _Out_ PLARGE_INTEGER TimeStamp,
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
     )
 {
     FLT_PREOP_CALLBACK_STATUS callbackStatus;
@@ -2143,12 +2152,14 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
                       "KphAllocateNPagedMessage failed");
 
         KeQuerySystemTime(TimeStamp);
+        UnbiasedInterruptTime->QuadPart = KeQueryUnbiasedInterruptTime();
         goto Exit;
     }
 
     KphpFltInitMessage(message, FltObjects, Data->Iopb->MajorFunction, FALSE);
 
     *TimeStamp = message->Header.TimeStamp;
+    *UnbiasedInterruptTime = message->Header.UnbiasedInterruptTime;
 
     message->Kernel.File.Sequence = Sequence;
 
@@ -2367,6 +2378,7 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
     KPH_FLT_FILE_NAME fltFileName;
     KPH_FLT_FILE_NAME fltDestFileName;
     LARGE_INTEGER timeStamp;
+    LARGE_INTEGER unbiasedInterruptTime;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -2449,7 +2461,8 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
                                           &fltFileName,
                                           &fltDestFileName,
                                           sequence,
-                                          &timeStamp);
+                                          &timeStamp,
+                                          &unbiasedInterruptTime);
 
         NT_ASSERT((callbackStatus == FLT_PREOP_SUCCESS_NO_CALLBACK) ||
                   (callbackStatus == FLT_PREOP_COMPLETE));
@@ -2466,6 +2479,7 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
         // for the post operation to use.
         //
         KeQuerySystemTime(&timeStamp);
+        unbiasedInterruptTime.QuadPart = KeQueryUnbiasedInterruptTime();
     }
 
     if (options.PostEnabled)
@@ -2479,6 +2493,7 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
                                                      &fltDestFileName,
                                                      sequence,
                                                      &timeStamp,
+                                                     &unbiasedInterruptTime,
                                                      &context);
         if (!NT_SUCCESS(status))
         {
