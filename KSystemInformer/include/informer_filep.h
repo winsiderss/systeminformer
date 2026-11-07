@@ -57,10 +57,31 @@ typedef struct _KPH_FLT_FILE_NAME_CACHE_ENTRY
     UNICODE_STRING FileName;
 } KPH_FLT_FILE_NAME_CACHE_ENTRY, *PKPH_FLT_FILE_NAME_CACHE_ENTRY;
 
+typedef enum _KPH_FLT_NAME_CONTEXT_STATE
+{
+    KphFltNameContextPending,
+    KphFltNameContextReady,
+} KPH_FLT_NAME_CONTEXT_STATE;
+
+typedef struct _KPH_FLT_STREAMHANDLE_CONTEXT
+{
+    UNICODE_STRING FileName;
+    KPH_FLT_NAME_CONTEXT_STATE State;
+    LONG RenameGeneration;
+    LONG RefreshQueued;
+} KPH_FLT_STREAMHANDLE_CONTEXT, *PKPH_FLT_STREAMHANDLE_CONTEXT;
+C_ASSERT(FIELD_OFFSET(KPH_FLT_STREAMHANDLE_CONTEXT, FileName) == 0);
+C_ASSERT(sizeof(KPH_FLT_STREAMHANDLE_CONTEXT) % MEMORY_ALLOCATION_ALIGNMENT == 0);
+
+typedef struct _KPH_FLT_STREAM_CONTEXT
+{
+    LONG RenameGeneration;
+} KPH_FLT_STREAM_CONTEXT, *PKPH_FLT_STREAM_CONTEXT;
+
 typedef struct _KPH_FLT_FILE_NAME
 {
     //
-    // N.B. PFLT_CONTEXT stores a PUNICODE_STRING
+    // N.B. PFLT_CONTEXT stores a KPH_FLT_STREAMHANDLE_CONTEXT
     //
     KPH_FLT_FILE_NAME_TYPE Type;
     union
@@ -95,6 +116,11 @@ NTSTATUS KphpFltGetDestFileName(
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpFltReleaseFileName(
     _In_ PKPH_FLT_FILE_NAME FltFileName
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphpFltRenameFileNameCache(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

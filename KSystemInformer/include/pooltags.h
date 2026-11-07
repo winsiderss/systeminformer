@@ -89,6 +89,7 @@
 #define KPH_TAG_INFORMER_SETTINGS               'sIpK'
 #define KPH_TAG_SILO_NAME                       'aIpK'
 #define KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE    'bIpK'
+#define KPH_TAG_FLT_STREAM_CONTEXT              'cIpK'
 
 // cid_tracking
 
