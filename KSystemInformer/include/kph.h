@@ -1994,6 +1994,16 @@ typedef union _KPH_INFORMER_STATE_ATOMIC
     KPH_ATOMIC_OBJECT_REF Atomic;
 } KPH_INFORMER_STATE_ATOMIC, *PKPH_INFORMER_STATE_ATOMIC;
 
+typedef _Enum_is_bitflag_ enum _KPH_PROCESS_TRACKED_STATE
+{
+    KPH_PROCESS_TRACKED_NONE                 = 0x00000000,
+    KPH_PROCESS_TRACKED_DEBUGGED             = 0x00000001,
+    KPH_PROCESS_TRACKED_FILE_OBJECT_WRITABLE = 0x00000002,
+    KPH_PROCESS_TRACKED_FILE_TRANSACTION     = 0x00000004,
+    KPH_PROCESS_TRACKED_USER_WRITABLE_REFS   = 0x00000008,
+} KPH_PROCESS_TRACKED_STATE, *PKPH_PROCESS_TRACKED_STATE;
+C_ASSERT(sizeof(KPH_PROCESS_TRACKED_STATE) == sizeof(ULONG));
+
 typedef struct _KPH_PROCESS_CONTEXT
 {
     PEPROCESS EProcess;
@@ -2035,18 +2045,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     KPH_PROTECTION Protection;
 
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Debugged : 1;
-            ULONG FileObjectWritable : 1;
-            ULONG FileObjectTransaction : 1;
-            ULONG UserWritableReferences : 1;
-            ULONG Reserved : 28;
-        };
-    } StateTracking;
+    KPH_PROCESS_TRACKED_STATE StateTracking;
 
     //
     // Only tracked for verified processes.
@@ -2318,6 +2317,27 @@ BOOLEAN KphTestProcessContextState(
     )
 {
     return KphTestProcessState(KphGetProcessState(Process), State);
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+BOOLEAN KphTestProcessTrackedState(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_ KPH_PROCESS_TRACKED_STATE State
+    )
+{
+    return BooleanFlagOn(ReadULongNoFence((PULONG)&Process->StateTracking),
+                         State);
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+VOID KphSetProcessTrackedState(
+    _Inout_ PKPH_PROCESS_CONTEXT Process,
+    _In_ KPH_PROCESS_TRACKED_STATE State
+    )
+{
+    InterlockedOrNoFence((PLONG)&Process->StateTracking, State);
 }
 
 // protection

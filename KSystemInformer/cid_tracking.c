@@ -2398,7 +2398,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         SetFlag(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES);
     }
 
-    if (!Process->StateTracking.Debugged)
+    if (!KphTestProcessTrackedState(Process, KPH_PROCESS_TRACKED_DEBUGGED))
     {
         if (!PsIsProcessBeingDebugged(Process->EProcess))
         {
@@ -2406,7 +2406,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         }
         else
         {
-            Process->StateTracking.Debugged = TRUE;
+            KphSetProcessTrackedState(Process, KPH_PROCESS_TRACKED_DEBUGGED);
         }
     }
 
@@ -2417,7 +2417,7 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     SetFlag(processState, KPH_PROCESS_HAS_FILE_OBJECT);
 
-    if (!Process->StateTracking.FileObjectWritable)
+    if (!KphTestProcessTrackedState(Process, KPH_PROCESS_TRACKED_FILE_OBJECT_WRITABLE))
     {
         if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
         {
@@ -2425,11 +2425,11 @@ KPH_PROCESS_STATE KphGetProcessState(
         }
         else
         {
-            Process->StateTracking.FileObjectWritable = TRUE;
+            KphSetProcessTrackedState(Process, KPH_PROCESS_TRACKED_FILE_OBJECT_WRITABLE);
         }
     }
 
-    if (!Process->StateTracking.FileObjectTransaction)
+    if (!KphTestProcessTrackedState(Process, KPH_PROCESS_TRACKED_FILE_TRANSACTION))
     {
         if (!IoGetTransactionParameterBlock(Process->FileObject))
         {
@@ -2437,7 +2437,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         }
         else
         {
-            Process->StateTracking.FileObjectTransaction = TRUE;
+            KphSetProcessTrackedState(Process, KPH_PROCESS_TRACKED_FILE_TRANSACTION);
         }
     }
 
@@ -2448,7 +2448,7 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     SetFlag(processState, KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS);
 
-    if (!Process->StateTracking.UserWritableReferences)
+    if (!KphTestProcessTrackedState(Process, KPH_PROCESS_TRACKED_USER_WRITABLE_REFS))
     {
         if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
         {
@@ -2456,7 +2456,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         }
         else
         {
-            Process->StateTracking.UserWritableReferences = TRUE;
+            KphSetProcessTrackedState(Process, KPH_PROCESS_TRACKED_USER_WRITABLE_REFS);
         }
     }
 
