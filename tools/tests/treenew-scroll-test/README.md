@@ -4,7 +4,11 @@ Build System Informer Debug x64, then run `build.cmd` from an x64 Native Tools
 Command Prompt. This uses the real TreeNew and native header controls without
 loading the kernel driver. It checks existing/new oversized columns, agreement
 between stored/native widths, preservation of following columns, shrinking,
-DPI width scaling, and 32-bit thumb-release positions. A nonzero exit means failure.
+DPI width scaling, and 32-bit thumb-release positions. Fixed-column checks cover
+minimum/maximum widths and integer limits, repeated clamped requests, direct
+native-header changes, fixed-width updates, removal/reinsertion, hide/show,
+96-to-144-to-96 DPI changes, cached geometry, header placement, and divider hit
+testing. A nonzero exit (including a crash) means failure.
 
 For GUI regression testing, launch System Informer with a dedicated `-settings`
 file and `-nokph -noplugins -newinstance`. Run a waiting test process with dummy
