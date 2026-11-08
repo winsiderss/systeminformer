@@ -879,10 +879,16 @@ NTSTATUS KphVerifyCreateKey(
         goto Exit;
     }
 
+    //
+    // RSA is verified through CNG, which is FIPS validated. ML-DSA is verified
+    // with our own build of SymCrypt, which is not a validated module, so its
+    // FIPS self-test does not apply. Skip it since it bugchecks on allocation
+    // failure.
+    //
     error = SymCryptMlDsakeySetValue(KeyMaterial + KPH_KEY_RSA_PUBLIC_LENGTH,
                                      KPH_KEY_MLDSA_PUBLIC_LENGTH,
                                      SYMCRYPT_MLDSAKEY_FORMAT_PUBLIC_KEY,
-                                     0,
+                                     SYMCRYPT_FLAG_KEY_NO_FIPS,
                                      key->MlDsa);
     status = KphpSymCryptErrorToStatus(error);
     if (!NT_SUCCESS(status))
