@@ -194,11 +194,15 @@ typedef struct _ULARGE_INTEGER_128
 #define POINTER_ALIGNMENT
 #endif
 
+#ifdef MAX_NATURAL_ALIGNMENT
+#undef MAX_NATURAL_ALIGNMENT
+#endif
+
 #if defined(_WIN64) || defined(_M_ALPHA)
 #define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
 #define MEMORY_ALLOCATION_ALIGNMENT 16
 #else
-#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONG)
 #define MEMORY_ALLOCATION_ALIGNMENT 8
 #endif
 
@@ -367,7 +371,6 @@ typedef struct _SINGLE_LIST_ENTRY32
 
 /**
  * The STRING32 structure is a 32-bit thunked representation of the `STRING` structure.
- *
  * \remarks Used for marshaling between 32-bit and 64-bit contexts.
  */
 typedef struct _STRING32
@@ -385,7 +388,6 @@ typedef const STRING32 *PCANSI_STRING32;
 
 /**
  * The STRING64 structure is a 64-bit thunked representation of the `STRING` structure.
- *
  * \remarks Used for marshaling between 64-bit and 32-bit contexts.
  */
 typedef struct _STRING64

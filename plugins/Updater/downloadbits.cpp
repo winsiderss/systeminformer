@@ -15,11 +15,13 @@
 // job completion.
 
 #include "updater.h"
+#include <utility>
 
 #include <bits.h>
 #include <combaseapi.h>
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 // 4991d34b-80a1-4291-83b6-3328366b9097
 DEFINE_GUID(CLSID_BackgroundCopyManager, 0x4991d34b, 0x80a1, 0x4291, 0x83, 0xb6, 0x33, 0x28, 0x36, 0x6b, 0x90, 0x97);
@@ -80,7 +82,7 @@ public:
           ErrorCode(S_OK),
           Context(context)
     {
-        PhQuerySystemTime(&TimeStart);
+        PhQueryUnbiasedInterruptTime(&TimeStart);
     }
 
     ~UpdateBitsCallback()
@@ -148,7 +150,7 @@ public:
     {
         const ULONG refCount = InterlockedDecrement(&RefCount);
 
-        if (refCount == 0)
+        if (std::cmp_equal(refCount, 0))
             delete this;
 
         return refCount;
@@ -185,7 +187,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE JobModification(
         _In_ IBackgroundCopyJob* job,
-        _In_ DWORD reserved
+        _In_ ULONG reserved
         ) override
     {
         BG_JOB_PROGRESS progress;
@@ -211,7 +213,7 @@ private:
         ULONG64 timeTicks;
         ULONG64 bytesPerSecond;
 
-        PhQuerySystemTime(&timeNow);
+        PhQueryUnbiasedInterruptTime(&timeNow);
         timeTicks = (timeNow.QuadPart - TimeStart.QuadPart) / PH_TICKS_PER_SEC;
         bytesPerSecond = timeTicks ? progress.BytesTransferred / timeTicks : 0;
 
@@ -221,7 +223,7 @@ private:
             UpdateSetProgressState(Context, progress.BytesTotal, progress.BytesTransferred, bytesPerSecond);
     }
 
-    volatile LONG RefCount;
+    LONG RefCount;
     HANDLE CompletionEvent;
     LARGE_INTEGER TimeStart;
     HRESULT ErrorCode;
@@ -289,7 +291,7 @@ ULONG64 UpdateBitsBytesPerSecond(
     LARGE_INTEGER timeNow;
     ULONG64 timeTicks;
 
-    PhQuerySystemTime(&timeNow);
+    PhQueryUnbiasedInterruptTime(&timeNow);
     timeTicks = (timeNow.QuadPart - StartTime->QuadPart) / PH_TICKS_PER_SEC;
 
     return timeTicks ? BytesTransferred / timeTicks : 0;
@@ -472,7 +474,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
         goto CleanupExit;
     }
 
-    PhQuerySystemTime(&startTime);
+    PhQueryUnbiasedInterruptTime(&startTime);
 
     while (TRUE)
     {
@@ -480,7 +482,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
         BG_JOB_PROGRESS progress;
         LARGE_INTEGER timeout;
 
-        if (Context->Cancel)
+        if (ReadBooleanAcquire(&Context->Cancel))
         {
             bitsJob->Cancel();
             jobCreated = FALSE;

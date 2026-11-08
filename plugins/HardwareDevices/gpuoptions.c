@@ -364,7 +364,7 @@ VOID FindGraphicsDevices(
                     adapterHandle,
                     KMTQAITYPE_PHYSICALADAPTERDEVICEIDS,
                     &deviceIds,
-                    sizeof(deviceIds)
+                    sizeof(D3DKMT_QUERY_DEVICE_IDS)
                     );
 
                 if (NT_SUCCESS(status))

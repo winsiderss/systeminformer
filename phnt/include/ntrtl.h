@@ -84,6 +84,13 @@ EXTERN_C_START
 
 #endif
 
+#ifndef RTL_PTR_OFFSET
+/**
+ * Computes the number of bytes between a base pointer and a pointer (Pointer - Base).
+ */
+#define RTL_PTR_OFFSET(Base, Pointer) ((SIZE_T)(((PUCHAR)(Pointer)) - ((PUCHAR)(Base))))
+#endif
+
 #ifndef RTL_IS_POWER_OF_TWO
 /**
  * Evaluates to nonzero when a value is a power of two.
@@ -8759,7 +8766,7 @@ RtlFillMemoryUlong(
 
         //
         // If the destination is not quadword aligned (ignoring low bits),
-        // then align the destination by storing one DWORD.
+        // then align the destination by storing one ULONG.
         //
 
         if (((ULONG64)Address & 4) != 0) {
@@ -13937,6 +13944,7 @@ typedef struct _RTL_BITMAP
 #ifndef PHNT_NO_INLINE_RTL_BITMAP
 FORCEINLINE
 VOID
+NTAPI_INLINE
 RtlInitializeBitMap(
     _Out_ PRTL_BITMAP BitMapHeader,
     _In_ PULONG BitMapBuffer,
@@ -13955,7 +13963,7 @@ RtlInitializeBitMap(
     _In_ PULONG BitMapBuffer,
     _In_ ULONG SizeOfBitMap
     );
-#endif
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlClearBit routine sets the specified bit in a bitmap to zero.
@@ -13965,6 +13973,18 @@ RtlInitializeBitMap(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlclearbit
  */
 #if (PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8)
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearBit(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    )
+{
+    ((PUCHAR)BitMapHeader->Buffer)[BitNumber >> 3] &= ~(UCHAR)(1u << (BitNumber & 7));
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -13972,6 +13992,7 @@ RtlClearBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 #endif // PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8
 
 /**
@@ -13985,6 +14006,7 @@ RtlClearBit(
 #ifndef PHNT_NO_INLINE_RTL_BITMAP
 FORCEINLINE
 VOID
+NTAPI_INLINE
 RtlSetBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
@@ -14000,7 +14022,7 @@ RtlSetBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
-#endif
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 #endif // PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8
 
 /**
@@ -14012,14 +14034,16 @@ RtlSetBit(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtltestbit
  */
 #ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Check_return_
 FORCEINLINE
 BOOLEAN
+NTAPI_INLINE
 RtlTestBit(
     _In_ PRTL_BITMAP BitMapHeader,
-    _In_ ULONG BitNumber
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     )
 {
-    return (BOOLEAN)((((const UCHAR*)BitMapHeader->Buffer)[BitNumber >> 3] >> (BitNumber & 7)) & 0x1);
+    return (BOOLEAN)((((const UCHAR *)BitMapHeader->Buffer)[BitNumber >> 3] >> (BitNumber & 7)) & 1);
 }
 #else
 _Check_return_
@@ -14030,7 +14054,7 @@ RtlTestBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
-#endif
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlClearAllBits routine sets all bits in a given bitmap variable to zero.
@@ -14039,12 +14063,29 @@ RtlTestBit(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlclearallbits
  * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearAllBits(
+    _In_ PRTL_BITMAP BitMapHeader
+    )
+{
+    // Include padding in the final ULONG, also for RTL_BITMAP_EX.
+    SIZE_T size = (SIZE_T)((BitMapHeader->SizeOfBitMap >> 5) +
+        ((BitMapHeader->SizeOfBitMap & 31) != 0)) * sizeof(ULONG);
+
+    if (size != 0)
+        memset(BitMapHeader->Buffer, 0, size);
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
 RtlClearAllBits(
     _In_ PRTL_BITMAP BitMapHeader
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlSetAllBits routine sets all bits in a given bitmap variable to one.
@@ -14053,12 +14094,261 @@ RtlClearAllBits(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsetallbits
  * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlSetAllBits(
+    _In_ PRTL_BITMAP BitMapHeader
+    )
+{
+    // Include padding in the final ULONG, also for RTL_BITMAP_EX.
+    SIZE_T size = (SIZE_T)((BitMapHeader->SizeOfBitMap >> 5) +
+        ((BitMapHeader->SizeOfBitMap & 31) != 0)) * sizeof(ULONG);
+
+    if (size != 0)
+        memset(BitMapHeader->Buffer, 0xff, size);
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
 RtlSetAllBits(
     _In_ PRTL_BITMAP BitMapHeader
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
+
+/**
+ * The RtlClearBits routine sets all bits in the specified range of bits in the bitmap to zero.
+ *
+ * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
+ * \param StartingIndex The index of the first bit in the bit range that is to be cleared. If the bitmap contains N bits, the bits are numbered from 0 to N-1.
+ * \param NumberToClear Specifies how many bits to clear. If the bitmap contains N bits, this parameter can be a value in the range 1 to (N - StartingIndex).
+ * \remarks If the NumberToClear parameter is zero, RtlClearBits simply returns control without clearing any bits. The sum (StartingIndex + NumberToClear) must not exceed the SizeOfBitMap parameter value specified in the RtlInitializeBitMap call that initialized the bitmap.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlclearbits
+ */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    )
+{
+    PUCHAR buffer;
+    ULONG offset;
+    ULONG count;
+    UCHAR mask;
+    SIZE_T bytes;
+
+    if (NumberToClear == 0)
+        return;
+
+    buffer = (PUCHAR)BitMapHeader->Buffer + (SIZE_T)(StartingIndex >> 3);
+    offset = (ULONG)(StartingIndex & 7);
+
+    if (offset != 0)
+    {
+        count = 8 - offset;
+        if (NumberToClear < count)
+            count = (ULONG)NumberToClear;
+        mask = (UCHAR)(((1u << count) - 1) << offset);
+        *buffer++ &= (UCHAR)~mask;
+        NumberToClear -= count;
+    }
+
+    bytes = (SIZE_T)(NumberToClear >> 3);
+    if (bytes != 0)
+    {
+        memset(buffer, 0, bytes);
+        buffer += bytes;
+    }
+
+    count = (ULONG)(NumberToClear & 7);
+    if (count != 0)
+    {
+        mask = (UCHAR)((1u << count) - 1);
+        *buffer &= (UCHAR)~mask;
+    }
+}
+#else
+NTSYSAPI
+VOID
+NTAPI
+RtlClearBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
+
+/**
+ * The RtlSetBits routine sets all bits in a given range of a given bitmap variable.
+ *
+ * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
+ * \param StartingIndex Specifies the start of the bit range to be set. This is a zero-based value indicating the position of the first bit in the range.
+ * \param NumberToSet Specifies how many bits to set.
+ * \remarks RtlSetBits simply returns control if the input NumberToSet is zero. StartingIndex plus NumberToSet must be less than or equal to BitMapHeader->SizeOfBitMap.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsetbits
+ */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlSetBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    )
+{
+    PUCHAR buffer;
+    ULONG offset;
+    ULONG count;
+    UCHAR mask;
+    SIZE_T bytes;
+
+    if (NumberToSet == 0)
+        return;
+
+    buffer = (PUCHAR)BitMapHeader->Buffer + (SIZE_T)(StartingIndex >> 3);
+    offset = (ULONG)(StartingIndex & 7);
+
+    if (offset != 0)
+    {
+        count = 8 - offset;
+        if (NumberToSet < count)
+            count = (ULONG)NumberToSet;
+        mask = (UCHAR)(((1u << count) - 1) << offset);
+        *buffer++ |= mask;
+        NumberToSet -= count;
+    }
+
+    bytes = (SIZE_T)(NumberToSet >> 3);
+    if (bytes != 0)
+    {
+        memset(buffer, 0xff, bytes);
+        buffer += bytes;
+    }
+
+    count = (ULONG)(NumberToSet & 7);
+    if (count != 0)
+    {
+        mask = (UCHAR)((1u << count) - 1);
+        *buffer |= mask;
+    }
+}
+#else
+NTSYSAPI
+VOID
+NTAPI
+RtlSetBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
+
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+// Private implementation shared by the clear-bit and set-bit searches.
+// Scan ULONGs so a ULONG-aligned buffer needs no extra 64-bit padding.
+_Success_(return != MAXULONG)
+_Check_return_
+FORCEINLINE
+ULONG
+NTAPI_INLINE
+RtlpFindBitsInline(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex,
+    _In_ BOOLEAN FindSetBits
+    )
+{
+    ULONG size = BitMapHeader->SizeOfBitMap;
+    ULONG index;
+    ULONG limit;
+    ULONG runStart;
+    ULONG runLength;
+    ULONG bits;
+    ULONG count;
+    ULONG skip;
+    ULONG length;
+    ULONG invert = FindSetBits ? 0 : MAXULONG;
+
+    if (HintIndex >= size)
+        HintIndex = 0;
+
+    // Native empty searches return the effective hint on a byte boundary.
+    if (NumberToFind == 0)
+        return HintIndex & ~7u;
+    if (NumberToFind > size)
+        return MAXULONG;
+
+    index = HintIndex;
+    limit = size;
+
+    for (;;)
+    {
+        runStart = index;
+        runLength = 0;
+
+        while (index < limit)
+        {
+            if (NumberToFind - runLength > limit - index)
+                break;
+
+            count = 32 - (index & 31);
+            if (count > limit - index)
+                count = limit - index;
+
+            bits = (BitMapHeader->Buffer[index >> 5] ^ invert) >> (index & 31);
+            if (count < 32)
+                bits &= (1u << count) - 1;
+
+            if (!_BitScanForward(&skip, bits))
+            {
+                runLength = 0;
+                index += count;
+                continue;
+            }
+
+            if (skip != 0)
+            {
+                runLength = 0;
+                index += skip;
+                count -= skip;
+                bits >>= skip;
+            }
+
+            if (runLength == 0)
+                runStart = index;
+
+            if (!_BitScanForward(&length, ~bits))
+                length = 32;
+            if (length > count)
+                length = count;
+
+            if (length >= NumberToFind - runLength)
+                return runStart;
+
+            runLength += length;
+            index += length;
+        }
+
+        if (HintIndex == 0)
+            return MAXULONG;
+
+        // Wrap once; a run starting before the hint may extend beyond it.
+        // Preserve the native ULONG addition used for this search bound.
+        limit = HintIndex + NumberToFind;
+        if (limit > size)
+            limit = size;
+        HintIndex = 0;
+        index = 0;
+    }
+}
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindClearBits routine searches for a range of clear bits of a requested size within a bitmap.
@@ -14070,6 +14360,21 @@ RtlSetAllBits(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindclearbits
  * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Success_(return != -1)
+_Check_return_
+FORCEINLINE
+ULONG
+NTAPI_INLINE
+RtlFindClearBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
+    )
+{
+    return RtlpFindBitsInline(BitMapHeader, NumberToFind, HintIndex, FALSE);
+}
+#else
 _Success_(return != -1)
 _Check_return_
 NTSYSAPI
@@ -14080,6 +14385,7 @@ RtlFindClearBits(
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindSetBits routine searches for a range of set bits of a requested size within a bitmap.
@@ -14091,6 +14397,21 @@ RtlFindClearBits(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindsetbits
  * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Success_(return != -1)
+_Check_return_
+FORCEINLINE
+ULONG
+NTAPI_INLINE
+RtlFindSetBits(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
+    )
+{
+    return RtlpFindBitsInline(BitMapHeader, NumberToFind, HintIndex, TRUE);
+}
+#else
 _Success_(return != -1)
 _Check_return_
 NTSYSAPI
@@ -14101,6 +14422,7 @@ RtlFindSetBits(
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindClearBitsAndSet routine searches for a range of clear bits of a requested size within a bitmap and sets all bits in the range when it has been located.
@@ -14112,6 +14434,26 @@ RtlFindSetBits(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindclearbitsandset
  * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Success_(return != -1)
+FORCEINLINE
+ULONG
+NTAPI_INLINE
+RtlFindClearBitsAndSet(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
+    )
+{
+    ULONG index;
+
+    index = RtlFindClearBits(BitMapHeader, NumberToFind, HintIndex);
+    if (index != MAXULONG)
+        RtlSetBits(BitMapHeader, index, NumberToFind);
+
+    return index;
+}
+#else
 _Success_(return != -1)
 NTSYSAPI
 ULONG
@@ -14121,6 +14463,7 @@ RtlFindClearBitsAndSet(
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindSetBitsAndClear routine searches for a range of set bits of a requested size within a bitmap and clears all bits in the range when it has been located.
@@ -14132,6 +14475,26 @@ RtlFindClearBitsAndSet(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindsetbitsandclear
  * \remarks NumberToFind zero returns the effective hint rounded down to an 8-bit boundary, without modifying the bitmap. A hint outside SizeOfBitMap becomes zero. Failed nonempty search returns 0xFFFFFFFF; search-and-modify is not an atomic allocator.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Success_(return != -1)
+FORCEINLINE
+ULONG
+NTAPI_INLINE
+RtlFindSetBitsAndClear(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
+    )
+{
+    ULONG index;
+
+    index = RtlFindSetBits(BitMapHeader, NumberToFind, HintIndex);
+    if (index != MAXULONG)
+        RtlClearBits(BitMapHeader, index, NumberToFind);
+
+    return index;
+}
+#else
 _Success_(return != -1)
 NTSYSAPI
 ULONG
@@ -14141,42 +14504,7 @@ RtlFindSetBitsAndClear(
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex
     );
-
-/**
- * The RtlClearBits routine sets all bits in the specified range of bits in the bitmap to zero.
- *
- * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
- * \param StartingIndex The index of the first bit in the bit range that is to be cleared. If the bitmap contains N bits, the bits are numbered from 0 to N-1.
- * \param NumberToClear Specifies how many bits to clear. If the bitmap contains N bits, this parameter can be a value in the range 1 to (N - StartingIndex).
- * \remarks If the NumberToClear parameter is zero, RtlClearBits simply returns control without clearing any bits. The sum (StartingIndex + NumberToClear) must not exceed the SizeOfBitMap parameter value specified in the RtlInitializeBitMap call that initialized the bitmap.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlclearbits
- */
-NTSYSAPI
-VOID
-NTAPI
-RtlClearBits(
-    _In_ PRTL_BITMAP BitMapHeader,
-    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
-    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
-    );
-
-/**
- * The RtlSetBits routine sets all bits in a given range of a given bitmap variable.
- *
- * \param BitMapHeader A pointer to the RTL_BITMAP structure that describes the bitmap. This structure must have been initialized by the RtlInitializeBitMap routine.
- * \param StartingIndex Specifies the start of the bit range to be set. This is a zero-based value indicating the position of the first bit in the range.
- * \param NumberToSet Specifies how many bits to set.
- * \remarks RtlSetBits simply returns control if the input NumberToSet is zero. StartingIndex plus NumberToSet must be less than or equal to BitMapHeader->SizeOfBitMap.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlsetbits
- */
-NTSYSAPI
-VOID
-NTAPI
-RtlSetBits(
-    _In_ PRTL_BITMAP BitMapHeader,
-    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
-    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
-    );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindMostSignificantBit routine returns the zero-based position of the most significant nonzero bit in its parameter.
@@ -14185,12 +14513,36 @@ RtlSetBits(
  * \return The zero-based bit position of the most significant nonzero bit, or -1 if every bit is zero.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindmostsignificantbit
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+CCHAR
+NTAPI_INLINE
+RtlFindMostSignificantBit(
+    _In_ ULONGLONG Set
+    )
+{
+    ULONG index;
+
+#ifdef _WIN64
+    if (_BitScanReverse64(&index, Set))
+        return (CCHAR)index;
+#else
+    if (_BitScanReverse(&index, (ULONG)(Set >> 32)))
+        return (CCHAR)(index + 32);
+    if (_BitScanReverse(&index, (ULONG)Set))
+        return (CCHAR)(index);
+#endif
+
+    return (CCHAR)-1;
+}
+#else
 NTSYSAPI
 CCHAR
 NTAPI
 RtlFindMostSignificantBit(
     _In_ ULONGLONG Set
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlFindLeastSignificantBit routine returns the zero-based position of the least significant nonzero bit in its parameter.
@@ -14199,12 +14551,36 @@ RtlFindMostSignificantBit(
  * \return The zero-based bit position of the least significant nonzero bit, or -1 if every bit is zero.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlfindleastsignificantbit
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+CCHAR
+NTAPI_INLINE
+RtlFindLeastSignificantBit(
+    _In_ ULONGLONG Set
+    )
+{
+    ULONG index;
+
+#ifdef _WIN64
+    if (_BitScanForward64(&index, Set))
+        return (CCHAR)index;
+#else
+    if (_BitScanForward(&index, (ULONG)Set))
+        return (CCHAR)(index);
+    if (_BitScanForward(&index, (ULONG)(Set >> 32)))
+        return (CCHAR)(index + 32);
+#endif
+
+    return (CCHAR)-1;
+}
+#else
 NTSYSAPI
 CCHAR
 NTAPI
 RtlFindLeastSignificantBit(
     _In_ ULONGLONG Set
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * Describes a run of contiguous bits within a bitmap.
@@ -14548,6 +14924,20 @@ typedef struct _RTL_BITMAP_EX
  * \param BitMapBuffer A pointer to the caller-allocated buffer that stores the bitmap bits.
  * \param SizeOfBitMap The size of the bitmap, in bits.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlInitializeBitMapEx(
+    _Out_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ PULONG64 BitMapBuffer,
+    _In_ ULONG64 SizeOfBitMap
+    )
+{
+    BitMapHeader->SizeOfBitMap = SizeOfBitMap;
+    BitMapHeader->Buffer = BitMapBuffer;
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -14556,6 +14946,7 @@ RtlInitializeBitMapEx(
     _In_ PULONG64 BitMapBuffer,
     _In_ ULONG64 SizeOfBitMap
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14565,6 +14956,19 @@ RtlInitializeBitMapEx(
  * \param BitNumber The zero-based index of the bit to test.
  * \return Returns `TRUE` if the specified bit is set, otherwise `FALSE`.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+_Check_return_
+FORCEINLINE
+BOOLEAN
+NTAPI_INLINE
+RtlTestBitEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
+    )
+{
+    return (BOOLEAN)((BitMapHeader->Buffer[BitNumber >> 6] >> (BitNumber & 63)) & 1);
+}
+#else
 _Check_return_
 NTSYSAPI
 BOOLEAN
@@ -14573,6 +14977,7 @@ RtlTestBitEx(
     _In_ PRTL_BITMAP_EX BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14581,12 +14986,29 @@ RtlTestBitEx(
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
  * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearAllBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    )
+{
+    // Include padding in the final ULONG, also for RTL_BITMAP_EX.
+    SIZE_T size = (SIZE_T)((BitMapHeader->SizeOfBitMap >> 5) +
+        ((BitMapHeader->SizeOfBitMap & 31) != 0)) * sizeof(ULONG);
+
+    if (size != 0)
+        memset(BitMapHeader->Buffer, 0, size);
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
 RtlClearAllBitsEx(
     _In_ PRTL_BITMAP_EX BitMapHeader
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14595,6 +15017,18 @@ RtlClearAllBitsEx(
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
  * \param BitNumber The zero-based index of the bit to clear.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearBitEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
+    )
+{
+    BitMapHeader->Buffer[BitNumber >> 6] &= ~((ULONG64)1 << (BitNumber & 63));
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -14602,6 +15036,7 @@ RtlClearBitEx(
     _In_ PRTL_BITMAP_EX BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14610,6 +15045,18 @@ RtlClearBitEx(
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
  * \param BitNumber The zero-based index of the bit to set.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlSetBitEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
+    )
+{
+    BitMapHeader->Buffer[BitNumber >> 6] |= ((ULONG64)1 << (BitNumber & 63));
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -14617,6 +15064,7 @@ RtlSetBitEx(
     _In_ PRTL_BITMAP_EX BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlSetBitsEx routine sets a run of consecutive bits in an extended bitmap.
@@ -14625,6 +15073,53 @@ RtlSetBitEx(
  * \param StartingIndex The zero-based index of the first bit to set.
  * \param NumberToSet The number of consecutive bits to set.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlSetBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToSet
+    )
+{
+    PUCHAR buffer;
+    ULONG offset;
+    ULONG count;
+    UCHAR mask;
+    SIZE_T bytes;
+
+    if (NumberToSet == 0)
+        return;
+
+    buffer = (PUCHAR)BitMapHeader->Buffer + (SIZE_T)(StartingIndex >> 3);
+    offset = (ULONG)(StartingIndex & 7);
+
+    if (offset != 0)
+    {
+        count = 8 - offset;
+        if (NumberToSet < count)
+            count = (ULONG)NumberToSet;
+        mask = (UCHAR)(((1u << count) - 1) << offset);
+        *buffer++ |= mask;
+        NumberToSet -= count;
+    }
+
+    bytes = (SIZE_T)(NumberToSet >> 3);
+    if (bytes != 0)
+    {
+        memset(buffer, 0xff, bytes);
+        buffer += bytes;
+    }
+
+    count = (ULONG)(NumberToSet & 7);
+    if (count != 0)
+    {
+        mask = (UCHAR)((1u << count) - 1);
+        *buffer |= mask;
+    }
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -14633,6 +15128,7 @@ RtlSetBitsEx(
     _In_ ULONGLONG StartingIndex,
     _In_ ULONGLONG NumberToSet
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14641,12 +15137,29 @@ RtlSetBitsEx(
  * \param BitMapHeader A pointer to the RTL_BITMAP_EX that describes the bitmap.
  * \remarks The implementation writes whole 32-bit words, rounding SizeOfBitMap up to a multiple of 32 bits, including padding bits in the final word. Supply sufficient backing storage; logical bit-count queries still stop at SizeOfBitMap. The Ex suffix widens the logical size, not this fill granularity.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlSetAllBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    )
+{
+    // Include padding in the final ULONG, also for RTL_BITMAP_EX.
+    SIZE_T size = (SIZE_T)((BitMapHeader->SizeOfBitMap >> 5) +
+        ((BitMapHeader->SizeOfBitMap & 31) != 0)) * sizeof(ULONG);
+
+    if (size != 0)
+        memset(BitMapHeader->Buffer, 0xff, size);
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
 RtlSetAllBitsEx(
     _In_ PRTL_BITMAP_EX BitMapHeader
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 // rev
 /**
@@ -14741,6 +15254,53 @@ RtlFindClearBitsEx(
  * \param StartingIndex The zero-based index of the first bit to clear.
  * \param NumberToClear The number of consecutive bits to clear.
  */
+#ifndef PHNT_NO_INLINE_RTL_BITMAP
+FORCEINLINE
+VOID
+NTAPI_INLINE
+RtlClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToClear
+    )
+{
+    PUCHAR buffer;
+    ULONG offset;
+    ULONG count;
+    UCHAR mask;
+    SIZE_T bytes;
+
+    if (NumberToClear == 0)
+        return;
+
+    buffer = (PUCHAR)BitMapHeader->Buffer + (SIZE_T)(StartingIndex >> 3);
+    offset = (ULONG)(StartingIndex & 7);
+
+    if (offset != 0)
+    {
+        count = 8 - offset;
+        if (NumberToClear < count)
+            count = (ULONG)NumberToClear;
+        mask = (UCHAR)(((1u << count) - 1) << offset);
+        *buffer++ &= (UCHAR)~mask;
+        NumberToClear -= count;
+    }
+
+    bytes = (SIZE_T)(NumberToClear >> 3);
+    if (bytes != 0)
+    {
+        memset(buffer, 0, bytes);
+        buffer += bytes;
+    }
+
+    count = (ULONG)(NumberToClear & 7);
+    if (count != 0)
+    {
+        mask = (UCHAR)((1u << count) - 1);
+        *buffer &= (UCHAR)~mask;
+    }
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
@@ -14749,6 +15309,7 @@ RtlClearBitsEx(
     _In_ ULONGLONG StartingIndex,
     _In_ ULONGLONG NumberToClear
     );
+#endif // PHNT_NO_INLINE_RTL_BITMAP
 
 /**
  * The RtlNumberOfSetBitsEx routine returns the number of set bits in an extended bitmap.

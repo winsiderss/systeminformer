@@ -300,7 +300,7 @@ NTSTATUS DiskDriveQueryDeviceInformation(
         DeviceHandle,
         IOCTL_STORAGE_QUERY_PROPERTY,
         &query,
-        sizeof(query),
+        sizeof(STORAGE_PROPERTY_QUERY),
         buffer,
         bufferLength,
         &returnLength
@@ -335,7 +335,7 @@ NTSTATUS DiskDriveQueryDeviceInformation(
         DeviceHandle,
         IOCTL_STORAGE_QUERY_PROPERTY,
         &query,
-        sizeof(query),
+        sizeof(STORAGE_PROPERTY_QUERY),
         buffer,
         bufferLength,
         &returnLength
@@ -399,7 +399,7 @@ NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
         NULL,
         0,
         &result,
-        sizeof(result),
+        sizeof(STORAGE_DEVICE_NUMBER),
         NULL
         );
 
@@ -442,7 +442,7 @@ NTSTATUS DiskDriveQueryStatistics(
         NULL,
         0,
         &result,
-        sizeof(result),
+        sizeof(DISK_PERFORMANCE),
         NULL
         );
 
@@ -650,7 +650,7 @@ PPH_STRING DiskDriveQueryGeometry(
             NULL,
             0,
             &result,
-            sizeof(result),
+            sizeof(DISK_GEOMETRY_EX),
             NULL
             )))
         {
@@ -672,7 +672,7 @@ PPH_STRING DiskDriveQueryGeometry(
             NULL,
             0,
             &result,
-            sizeof(result),
+            sizeof(DISK_GEOMETRY),
             NULL
             )))
         {
@@ -691,7 +691,7 @@ PPH_STRING DiskDriveQueryGeometry(
             NULL,
             0,
             &result,
-            sizeof(result),
+            sizeof(GET_LENGTH_INFORMATION),
             NULL
             )))
         {
@@ -711,7 +711,7 @@ PPH_STRING DiskDriveQueryGeometry(
             NULL,
             0,
             &result,
-            sizeof(result),
+            sizeof(STORAGE_READ_CAPACITY),
             NULL
             )))
         {
@@ -753,7 +753,7 @@ NTSTATUS DiskDriveQueryImminentFailure(
         NULL,
         0,
         &storagePredictFailure,
-        sizeof(storagePredictFailure),
+        sizeof(STORAGE_PREDICT_FAILURE),
         NULL
         );
 
@@ -1088,7 +1088,7 @@ BOOLEAN DiskDriveQueryNtfsVolumeInfo(
         NULL,
         0,
         &result,
-        sizeof(result),
+        sizeof(NTFS_VOLUME_INFO),
         NULL
         )))
     {
@@ -1122,7 +1122,7 @@ BOOLEAN DiskDriveQueryRefsVolumeInfo(
         NULL,
         0,
         &result,
-        sizeof(result),
+        sizeof(REFS_VOLUME_DATA_BUFFER),
         NULL
         )))
     {

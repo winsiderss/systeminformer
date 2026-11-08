@@ -1303,7 +1303,7 @@ PPH_LIST EtInitializeGraphicsAdapters(
         deviceProperties[0].Key = DEVPKEY_Device_InstanceId;
         deviceProperties[0].Store = DEVPROP_STORE_SYSTEM;
 
-        memset(&deviceFilterCompoundProp, 0, sizeof(deviceFilterCompoundProp));
+        memset(&deviceFilterCompoundProp, 0, sizeof(DEVPROPCOMPKEY));
         deviceFilterCompoundProp.Key = DEVPKEY_DeviceInterface_ClassGuid;
         deviceFilterCompoundProp.Store = DEVPROP_STORE_SYSTEM;
 

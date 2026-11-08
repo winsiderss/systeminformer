@@ -552,8 +552,8 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(State)
 {
     // For TCP, treat "Bound" state (listening sockets) specially - always sort them last
-    BOOLEAN isBound1 = (networkItem1->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem1->State == MIB_TCP_STATE_RESERVED);
-    BOOLEAN isBound2 = (networkItem2->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem2->State == MIB_TCP_STATE_RESERVED);
+    BOOLEAN isBound1 = (FlagOn(networkItem1->ProtocolType, PH_PROTOCOL_TYPE_TCP) && networkItem1->State == MIB_TCP_STATE_RESERVED);
+    BOOLEAN isBound2 = (FlagOn(networkItem2->ProtocolType, PH_PROTOCOL_TYPE_TCP) && networkItem2->State == MIB_TCP_STATE_RESERVED);
 
     if (isBound1 && !isBound2)
     {

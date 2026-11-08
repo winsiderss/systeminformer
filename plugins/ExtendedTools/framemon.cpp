@@ -10,6 +10,7 @@
  */
 
 #include "exttools.h"
+#include <utility>
 #include "framemon.h"
 
 BOOLEAN EtFramesEnabled = FALSE;
@@ -217,11 +218,11 @@ VOID EtClearGpuFrameHashTable(
     static ULONG64 lastTickCount = 0;
     ULONG64 tickCount = NtGetTickCount64();
 
-    if (lastTickCount == 0)
+    if (std::cmp_equal(lastTickCount, 0))
         lastTickCount = tickCount;
 
     // Reset hashtable once in a while.
-    if (tickCount - lastTickCount >= 600 * 1000)
+    if (std::cmp_greater_equal(tickCount - lastTickCount, 600 * 1000))
     {
         PhDereferenceObject(EtFramesHashTable);
 

@@ -228,20 +228,20 @@ NTSTATUS EtTpmQueryIndices(
 
     command.Header.SessionTag = _byteswap_ushort(TPM_ST_NO_SESSIONS);
     command.Header.CommandCode = _byteswap_ulong(TPM_CC_GetCapability);
-    command.Header.Size = _byteswap_ulong(sizeof(command));
+    command.Header.Size = _byteswap_ulong(sizeof(TPM_GET_CAPABILITY_CMD_HEADER));
 
     indexCount = RTL_NUMBER_OF(reply.Data.Data.Handles.Handle);
     command.Capability = _byteswap_ulong(TPM_CAP_HANDLES);
     command.Property = _byteswap_ulong(TPM_HR_NV_INDEX);
     command.PropertyCount = _byteswap_ulong(indexCount);
 
-    resultLength = sizeof(reply);
+    resultLength = sizeof(TPM_GET_CAPABILITY_REPLY);
     if (Tbsip_Submit_Command(
         TbsContextHandle,
         TBS_COMMAND_LOCALITY_ZERO,
         TBS_COMMAND_PRIORITY_NORMAL,
         (PCBYTE)&command,
-        sizeof(command),
+        sizeof(TPM_GET_CAPABILITY_CMD_HEADER),
         (PBYTE)&reply,
         &resultLength
         ) != TBS_SUCCESS)
@@ -343,10 +343,10 @@ NTSTATUS EtTpmPcrRead(
                 break;
         }
 
-        memset(&command, 0, sizeof(command));
+        memset(&command, 0, sizeof(TPM_PCR_READ_CMD));
         command.Header.SessionTag = _byteswap_ushort(TPM_ST_NO_SESSIONS);
         command.Header.CommandCode = _byteswap_ulong(TPM_CC_PCR_Read);
-        command.Header.Size = _byteswap_ulong(sizeof(command));
+        command.Header.Size = _byteswap_ulong(sizeof(TPM_PCR_READ_CMD));
         command.SelectionCount = _byteswap_ulong(1);
         command.Selection.HashAlg = _byteswap_ushort(HashAlgorithm);
         command.Selection.SizeOfSelect = TPM_PCR_SELECT_SIZE;
@@ -362,7 +362,7 @@ NTSTATUS EtTpmPcrRead(
             TBS_COMMAND_LOCALITY_ZERO,
             TBS_COMMAND_PRIORITY_NORMAL,
             (PCBYTE)&command,
-            sizeof(command),
+            sizeof(TPM_PCR_READ_CMD),
             (PBYTE)reply,
             &resultLength
             ) != TBS_SUCCESS)
@@ -491,18 +491,18 @@ NTSTATUS EtTpmReadPublic(
 
     command.Header.SessionTag = _byteswap_ushort(TPM_ST_NO_SESSIONS);
     command.Header.CommandCode = _byteswap_ulong(TPM_CC_NV_ReadPublic);
-    command.Header.Size = _byteswap_ulong(sizeof(command));
+    command.Header.Size = _byteswap_ulong(sizeof(TPM_NV_READ_PUBLIC_CMD_HEADER));
 
     command.NvIndex.Value = _byteswap_ulong(Index.Value);
 
-    resultLength = sizeof(reply);
+    resultLength = sizeof(TPM_NV_READ_PUBLIC_REPLY);
 
     if (Tbsip_Submit_Command(
         TbsContextHandle,
         TBS_COMMAND_LOCALITY_ZERO,
         TBS_COMMAND_PRIORITY_NORMAL,
         (PCBYTE)&command,
-        sizeof(command),
+        sizeof(TPM_NV_READ_PUBLIC_CMD_HEADER),
         (PBYTE)&reply,
         &resultLength
         ) != TBS_SUCCESS)
@@ -775,7 +775,7 @@ BOOLEAN EtTpmIsReady(
     if (status == STATUS_SUCCESS)
         return TRUE;
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
+        return Tbsi_GetDeviceInfo(sizeof(TPM_DEVICE_INFO), &info) == TBS_SUCCESS;
 
     return FALSE;
 }
@@ -944,7 +944,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
 
             PhSetApplicationWindowIcon(WindowHandle);
 
-            if (Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS)
+            if (Tbsi_GetDeviceInfo(sizeof(TPM_DEVICE_INFO), &info) == TBS_SUCCESS)
             {
                 PPH_STRING newText;
                 PPH_STRING windowText = PhGetWindowText(WindowHandle);

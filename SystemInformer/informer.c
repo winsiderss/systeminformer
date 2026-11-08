@@ -61,6 +61,8 @@ typedef int SQLITE_APICALL sqlite3_prepare_v2_fn(
 typedef int SQLITE_APICALL sqlite3_bind_int64_fn(sqlite3_stmt*, int, sqlite3_int64);
 typedef int SQLITE_APICALL sqlite3_step_fn(sqlite3_stmt*);
 typedef int SQLITE_APICALL sqlite3_reset_fn(sqlite3_stmt *pStmt);
+typedef int SQLITE_APICALL sqlite3_finalize_fn(sqlite3_stmt *pStmt);
+typedef int SQLITE_APICALL sqlite3_close_fn(sqlite3 *db);
 typedef sqlite3_int64 SQLITE_APICALL sqlite3_value_int64_fn(sqlite3_value*);
 typedef sqlite3_int64 SQLITE_APICALL sqlite3_column_int64_fn(sqlite3_stmt*, int iCol);
 
@@ -85,6 +87,8 @@ static sqlite3_prepare_v2_fn* sqlite3_prepare_v2_I = NULL;
 static sqlite3_bind_int64_fn* sqlite3_bind_int64_I = NULL;
 static sqlite3_step_fn* sqlite3_step_I = NULL;
 static sqlite3_reset_fn* sqlite3_reset_I = NULL;
+static sqlite3_finalize_fn* sqlite3_finalize_I = NULL;
+static sqlite3_close_fn* sqlite3_close_I = NULL;
 static sqlite3_value_int64_fn* sqlite3_value_int64_I = NULL;
 static sqlite3_column_int64_fn* sqlite3_column_int64_I = NULL;
 
@@ -136,7 +140,6 @@ VOID PhInformerGetProcessStartKeys(
         Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
     {
         context = &Message->Kernel.Handle.Context;
-        Keys[count++] = context->ProcessStartKey;
 
         if (Message->Kernel.Handle.Duplicate)
         {
@@ -391,7 +394,7 @@ VOID PhpInformerDatabaseDereferenceMessage(
     PhDereferenceObject(message);
 }
 
-BOOLEAN PhpInfomerLoadSQLite(
+BOOLEAN PhpInformerLoadSQLite(
     VOID
     )
 {
@@ -406,6 +409,8 @@ BOOLEAN PhpInfomerLoadSQLite(
         sqlite3_bind_int64_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_bind_int64", 0);
         sqlite3_step_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_step", 0);
         sqlite3_reset_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_reset", 0);
+        sqlite3_finalize_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_finalize", 0);
+        sqlite3_close_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_close", 0);
         sqlite3_value_int64_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_value_int64", 0);
         sqlite3_column_int64_I = PhGetDllBaseProcedureAddress(baseAddress, "sqlite3_column_int64", 0);
     }
@@ -418,172 +423,253 @@ BOOLEAN PhpInfomerLoadSQLite(
         sqlite3_bind_int64_I &&
         sqlite3_step_I &&
         sqlite3_reset_I &&
+        sqlite3_finalize_I &&
+        sqlite3_close_I &&
         sqlite3_value_int64_I &&
         sqlite3_column_int64_I
         );
+}
+
+// Finalizes every prepared statement and closes the database, leaving all pointers NULL so the
+// database functions treat the informer database as unavailable. (dmex)
+VOID PhpInformerCloseDatabase(
+    VOID
+    )
+{
+    sqlite3_stmt** statements[] =
+    {
+        &PhpInformerDBInsert,
+        &PhpInformerDBQueryCount,
+        &PhpInformerDBReapMax,
+        &PhpInformerDBReapTime,
+        &PhpInformerDBReapProc,
+        &PhpInformerDBQuery,
+        &PhpInformerDBQueryProc,
+    };
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(statements); i++)
+    {
+        if (*statements[i])
+        {
+            sqlite3_finalize_I(*statements[i]);
+            *statements[i] = NULL;
+        }
+    }
+
+    if (PhpInformerDB)
+    {
+        sqlite3_close_I(PhpInformerDB);
+        PhpInformerDB = NULL;
+    }
 }
 
 VOID PhpInitializeInformerDatabase(
     VOID
     )
 {
-    if (!PhpInfomerLoadSQLite())
+    INT result;
+
+    if (!PhpInformerLoadSQLite())
         return;
 
-    if (sqlite3_open_v2_I(
+    // sqlite3_open_v2 can return a handle even when it fails; it is closed below.
+    result = sqlite3_open_v2_I(
         "informer",
         &PhpInformerDB,
         SQLITE_OPEN_MEMORY | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX,
         NULL
-        ) == SQLITE_OK)
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_exec_I(
+        PhpInformerDB,
+        "PRAGMA synchronous = OFF;"
+        "PRAGMA journal_mode = OFF;"
+        "DROP TABLE IF EXISTS messages;"
+        "CREATE TABLE messages("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "time_stamp INTEGER NOT NULL,"
+        "key1 INTEGER NOT NULL,"
+        "key2 INTEGER NOT NULL,"
+        "key3 INTEGER NOT NULL,"
+        "key4 INTEGER NOT NULL,"
+        "key5 INTEGER NOT NULL,"
+        "key6 INTEGER NOT NULL,"
+        "key7 INTEGER NOT NULL,"
+        "message INTEGER NOT NULL"
+        ");",
+        NULL,
+        NULL,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    // Rows hold raw KPH_MESSAGE pointers. The reference/dereference functions and triggers keep
+    // those messages alive, so the database is unusable if any of them fails to install.
+
+    result = sqlite3_create_function_v2_I(
+        PhpInformerDB,
+        "reference_message",
+        1,
+        SQLITE_UTF8,
+        NULL,
+        PhpInformerDatabaseReferenceMessage,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_create_function_v2_I(
+        PhpInformerDB,
+        "dereference_message",
+        1,
+        SQLITE_UTF8,
+        NULL,
+        PhpInformerDatabaseDereferenceMessage,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_exec_I(
+        PhpInformerDB,
+        "CREATE TRIGGER before_insert_messages "
+        "BEFORE INSERT ON messages "
+        "FOR EACH ROW "
+        "BEGIN "
+        "    SELECT reference_message(NEW.message); "
+        "END;",
+        NULL,
+        NULL,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_exec_I(
+        PhpInformerDB,
+        "CREATE TRIGGER after_delete_messages "
+        "AFTER DELETE ON messages "
+        "FOR EACH ROW "
+        "BEGIN "
+        "    SELECT dereference_message(OLD.message); "
+        "END;",
+        NULL,
+        NULL,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "INSERT INTO messages(time_stamp, key1, key2, key3, key4, key5, key6, key7, message)"
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        -1,
+        &PhpInformerDBInsert,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "SELECT COUNT(*) FROM messages;",
+        -1,
+        &PhpInformerDBQueryCount,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "DELETE FROM messages "
+        "WHERE id IN ("
+        "    SELECT id FROM messages "
+        "    ORDER BY id ASC "
+        "    LIMIT (SELECT COUNT(*) - ? FROM messages)"
+        ");",
+        -1,
+        &PhpInformerDBReapMax,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "DELETE FROM messages "
+        "WHERE time_stamp < ?;",
+        -1,
+        &PhpInformerDBReapTime,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "DELETE FROM messages "
+        "WHERE (key1 = 0 OR key1 = ?)"
+        "  AND (key2 = 0 OR key2 = ?)"
+        "  AND (key3 = 0 OR key3 = ?)"
+        "  AND (key4 = 0 OR key4 = ?)"
+        "  AND (key5 = 0 OR key5 = ?)"
+        "  AND (key6 = 0 OR key6 = ?)"
+        "  AND (key7 = 0 OR key7 = ?);",
+        -1,
+        &PhpInformerDBReapProc,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "SELECT message FROM messages "
+        "WHERE time_stamp >= ? "
+        "ORDER BY time_stamp ASC;",
+        -1,
+        &PhpInformerDBQuery,
+        NULL
+        );
+
+    if (result != SQLITE_OK)
+        goto CleanupExit;
+
+    result = sqlite3_prepare_v2_I(
+        PhpInformerDB,
+        "SELECT message FROM messages "
+        "WHERE (key1 = ? OR key2 = ? OR key3 = ? OR key4 = ? OR key5 = ? OR key6 = ? OR key7 = ?)"
+        "  AND time_stamp >= ? "
+        "ORDER BY time_stamp ASC;",
+        -1,
+        &PhpInformerDBQueryProc,
+        NULL
+        );
+
+CleanupExit:
+    if (result != SQLITE_OK)
     {
-        if (sqlite3_exec_I(
-            PhpInformerDB,
-            "PRAGMA synchronous = OFF;"
-            "PRAGMA journal_mode = OFF;"
-            "DROP TABLE IF EXISTS messages;"
-            "CREATE TABLE messages("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "time_stamp INTEGER NOT NULL,"
-            "key1 INTEGER NOT NULL,"
-            "key2 INTEGER NOT NULL,"
-            "key3 INTEGER NOT NULL,"
-            "key4 INTEGER NOT NULL,"
-            "key5 INTEGER NOT NULL,"
-            "key6 INTEGER NOT NULL,"
-            "key7 INTEGER NOT NULL,"
-            "message INTEGER NOT NULL"
-            ");",
-            NULL,
-            NULL,
-            NULL
-            ) == SQLITE_OK)
-        {
-            sqlite3_create_function_v2_I(
-                PhpInformerDB,
-                "reference_message",
-                1,
-                SQLITE_UTF8,
-                NULL,
-                PhpInformerDatabaseReferenceMessage,
-                NULL,
-                NULL,
-                NULL
-                );
-
-            sqlite3_create_function_v2_I(
-                PhpInformerDB,
-                "dereference_message",
-                1,
-                SQLITE_UTF8,
-                NULL,
-                PhpInformerDatabaseDereferenceMessage,
-                NULL,
-                NULL,
-                NULL
-                );
-
-            sqlite3_exec_I(
-                PhpInformerDB,
-                "CREATE TRIGGER before_insert_messages "
-                "BEFORE INSERT ON messages "
-                "FOR EACH ROW "
-                "BEGIN "
-                "    SELECT reference_message(NEW.message); "
-                "END;",
-                NULL,
-                NULL,
-                NULL
-                );
-
-            sqlite3_exec_I(
-                PhpInformerDB,
-                "CREATE TRIGGER after_delete_messages "
-                "AFTER DELETE ON messages "
-                "FOR EACH ROW "
-                "BEGIN "
-                "    SELECT dereference_message(OLD.message); "
-                "END;",
-                NULL,
-                NULL,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "INSERT INTO messages(time_stamp, key1, key2, key3, key4, key5, key6, key7, message)"
-                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);",
-                -1,
-                &PhpInformerDBInsert,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "SELECT COUNT(*) FROM messages;",
-                -1,
-                &PhpInformerDBQueryCount,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "DELETE FROM messages "
-                "WHERE id IN ("
-                "    SELECT id FROM messages "
-                "    ORDER BY id ASC "
-                "    LIMIT (SELECT COUNT(*) - ? FROM messages)"
-                ");",
-                -1,
-                &PhpInformerDBReapMax,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "DELETE FROM messages "
-                "WHERE time_stamp < ?;",
-                -1,
-                &PhpInformerDBReapTime,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "DELETE FROM messages "
-                "WHERE (key1 = 0 OR key1 = ?)"
-                "  AND (key2 = 0 OR key2 = ?)"
-                "  AND (key3 = 0 OR key3 = ?)"
-                "  AND (key4 = 0 OR key4 = ?)"
-                "  AND (key5 = 0 OR key5 = ?)"
-                "  AND (key6 = 0 OR key6 = ?)"
-                "  AND (key7 = 0 OR key7 = ?);",
-                -1,
-                &PhpInformerDBReapProc,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "SELECT message FROM messages "
-                "WHERE time_stamp >= ? "
-                "ORDER BY time_stamp ASC;",
-                -1,
-                &PhpInformerDBQuery,
-                NULL
-                );
-
-            sqlite3_prepare_v2_I(
-                PhpInformerDB,
-                "SELECT message FROM messages "
-                "WHERE (key1 = ? OR key2 = ? OR key3 = ? OR key4 = ? OR key5 = ? OR key6 = ? OR key7 = ?)"
-                "  AND time_stamp >= ? "
-                "ORDER BY time_stamp ASC;",
-                -1,
-                &PhpInformerDBQueryProc,
-                NULL
-                );
-        }
+        PhpInformerCloseDatabase();
     }
 }
 

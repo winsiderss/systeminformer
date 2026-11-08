@@ -535,10 +535,19 @@ VOID AtpAddNvmeHealth(
 
     // Both numbers come from the device and are about to be read through into a buffer on the
     // stack, so the log has to be shown to end inside what the call actually returned.
-    if (!NT_SUCCESS(RtlULongAdd((ULONG)(ULONG_PTR)PTR_SUB_OFFSET(protocolData, buffer), protocolData->ProtocolDataOffset, &dataOffset)) ||
-        !NT_SUCCESS(RtlULongAdd(dataOffset, sizeof(NVME_HEALTH_INFO_LOG), &dataEnd)) ||
-        dataEnd > returnedLength ||
-        dataEnd > sizeof(buffer))
+    if (!NT_SUCCESS(RtlULongAdd((ULONG)(ULONG_PTR)PTR_SUB_OFFSET(protocolData, buffer), protocolData->ProtocolDataOffset, &dataOffset)))
+    {
+        AtJsonAddNull(Row, "nvme");
+        return;
+    }
+
+    if (!NT_SUCCESS(RtlULongAdd(dataOffset, sizeof(NVME_HEALTH_INFO_LOG), &dataEnd)))
+    {
+        AtJsonAddNull(Row, "nvme");
+        return;
+    }
+
+    if (dataEnd > returnedLength || dataEnd > sizeof(buffer))
     {
         AtJsonAddNull(Row, "nvme");
         return;

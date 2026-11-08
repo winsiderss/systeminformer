@@ -235,6 +235,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SERVICES, FALSE, L"Services", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SHORT_USERNAME, FALSE, L"Short user name", 140, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_CURRENTDIRECTORY, FALSE, L"Current directory", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -699,6 +700,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->MitigationPoliciesText);
     PhClearReference(&ProcessNode->ServicesText);
     PhClearReference(&ProcessNode->ShortUsernameText);
+    PhClearReference(&ProcessNode->CurrentDirectoryText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1976,6 +1978,44 @@ static VOID PhpUpdateProcessNodeShortUsername(
     }
 }
 
+static VOID PhpUpdateProcessNodeCurrentDirectory(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_CURRENTDIRECTORY))
+    {
+        HANDLE processHandle;
+
+        PhClearReference(&ProcessNode->CurrentDirectoryText);
+
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
+        {
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                ProcessNode->ProcessId
+                )))
+            {
+                PPH_STRING currentDirectory;
+
+                // Query the WOW64 current directory, because that's the one that actually gets updated. (prpggen.c)
+                if (NT_SUCCESS(PhGetProcessCurrentDirectory(
+                    processHandle,
+                    !!ProcessNode->ProcessItem->IsWow64Process,
+                    &currentDirectory
+                    )))
+                {
+                    ProcessNode->CurrentDirectoryText = currentDirectory;
+                }
+
+                NtClose(processHandle);
+            }
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_CURRENTDIRECTORY);
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     _In_ const void *_elem1, \
@@ -3101,6 +3141,19 @@ BEGIN_SORT_FUNCTION(ShortUserName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CurrentDirectory)
+{
+    PhpUpdateProcessNodeCurrentDirectory(node1);
+    PhpUpdateProcessNodeCurrentDirectory(node2);
+    sortResult = PhCompareStringWithNullSortOrder(
+        node1->CurrentDirectoryText,
+        node2->CurrentDirectoryText,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3290,6 +3343,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SORT_FUNCTION(Services),
                     SORT_FUNCTION(ShortUserName),
                     SORT_FUNCTION(IoTotalBytes),
+                    SORT_FUNCTION(CurrentDirectory),
                 };
                 _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
@@ -4848,6 +4902,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         getCellText->Text = PhGetStringRef(node->ShortUsernameText);
                     }
+                }
+                break;
+            case PHPRTLC_CURRENTDIRECTORY:
+                {
+                    PhpUpdateProcessNodeCurrentDirectory(node);
+                    getCellText->Text = PhGetStringRef(node->CurrentDirectoryText);
                 }
                 break;
             default:

@@ -452,6 +452,9 @@
     <ClInclude Include="include\netprv.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\netsup.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="include\modprv.h">
       <Filter>Headers</Filter>
     </ClInclude>

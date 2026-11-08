@@ -769,8 +769,7 @@ NtCreateTokenEx(
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstoken
  * \remarks Opens the process primary token, not a thread impersonation token. It forwards to NtOpenProcessTokenEx with
  * HandleAttributes = 0. The process reference requires PROCESS_QUERY_LIMITED_INFORMATION (0x1000) on this
- * build; DesiredAccess applies separately to the returned token. The token handle is caller-owned and must be
- * closed.
+ * build; DesiredAccess applies separately to the returned token. The token handle is caller-owned and must be closed.
  */
 _Kernel_entry_
 NTSYSCALLAPI

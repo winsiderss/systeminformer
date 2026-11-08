@@ -46,17 +46,17 @@ typedef struct _MEMORY_STRING_CONTEXT
         };
     };
 
-    volatile CHAR EnableCloseDialog;
+    CHAR EnableCloseDialog;
     BOOLEAN ProgressBarSwitched; // UI-thread only
 
     HWND ParentWindowHandle;
-    volatile HWND WindowHandle;
+    HWND WindowHandle;
     WNDPROC DefaultWindowProc;
     PH_MEMORY_STRING_OPTIONS Options;
     PPH_LIST Results;
-    volatile ULONG ResultCount;
-    volatile ULONG SearchProgressValue;
-    volatile ULONG SearchProgressMax;
+    ULONG ResultCount;
+    ULONG SearchProgressValue;
+    ULONG SearchProgressMax;
 } MEMORY_STRING_CONTEXT, *PMEMORY_STRING_CONTEXT;
 
 typedef struct _MEMORY_STRING_SEARCH_CONTEXT
@@ -89,8 +89,8 @@ typedef struct _MEMORY_STRING_BULK_CONTEXT
     PMEMORY_BASIC_INFORMATION Regions;
     ULONG RegionCount;
     ULONG RegionIndex;
-    volatile ULONG *ProgressValue;
-    volatile ULONG *ProgressMax;
+    PULONG ProgressValue;
+    PULONG ProgressMax;
 } MEMORY_STRING_BULK_CONTEXT, *PMEMORY_STRING_BULK_CONTEXT;
 
 /**
@@ -306,7 +306,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
 
     if (context->ReadRemaning)
     {
-        if (context->Options->Cancel)
+        if (ReadBooleanAcquire(&context->Options->Cancel))
             return status;
         goto ReadMemory;
     }
@@ -322,7 +322,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     {
         SIZE_T length;
 
-        if (context->Options->Cancel)
+        if (ReadBooleanAcquire(&context->Options->Cancel))
             break;
         if (context->BasicInfo.State != MEM_COMMIT)
             continue;
@@ -391,7 +391,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     assert(context);
 
     if (!context->DetectUnicode && Result->Encoding == PH_STRING_SEARCH_ENCODING_UTF16)
-        return context->Options->Cancel;
+        return ReadBooleanAcquire(&context->Options->Cancel);
 
     result = PhCreateMemoryResult(
         PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer)),
@@ -400,14 +400,14 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
         );
 
     if (!result)
-        return context->Options->Cancel;
+        return ReadBooleanAcquire(&context->Options->Cancel);
 
     result->Display.Buffer = PhAllocateForMemorySearch(Result->String.Length + sizeof(WCHAR));
 
     if (!result->Display.Buffer)
     {
         PhDereferenceMemoryResult(result);
-        return context->Options->Cancel;
+        return ReadBooleanAcquire(&context->Options->Cancel);
     }
 
     memcpy(result->Display.Buffer, Result->String.Buffer, Result->String.Length);
@@ -416,7 +416,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
 
     context->Options->Callback(result, context->Options->Context);
 
-    return context->Options->Cancel;
+    return ReadBooleanAcquire(&context->Options->Cancel);
 }
 
 /**
@@ -442,7 +442,7 @@ NTSTATUS NTAPI PhpMemoryStringBulkEnumCallback(
 
     for (SIZE_T i = 0; i < Count; i++)
     {
-        if (context->Options->Cancel)
+        if (ReadBooleanAcquire(&context->Options->Cancel))
             return STATUS_CANCELLED;
         if (BasicInfo[i].State != MEM_COMMIT)
             continue;
@@ -492,14 +492,14 @@ NTSTATUS NTAPI PhpMemoryStringBulkNextBuffer(
 
     if (searchContext->ReadRemaning)
     {
-        if (searchContext->Options->Cancel)
+        if (ReadBooleanAcquire(&searchContext->Options->Cancel))
             return status;
         goto ReadMemory;
     }
 
     while (context->RegionIndex < context->RegionCount)
     {
-        if (searchContext->Options->Cancel)
+        if (ReadBooleanAcquire(&searchContext->Options->Cancel))
             break;
 
         searchContext->BasicInfo = context->Regions[context->RegionIndex++];
@@ -853,7 +853,7 @@ NTSTATUS PhpMemoryStringThreadStart(
     PhSearchMemoryString(context->ProcessHandle, &context->Options);
 
     SendMessage(
-        context->WindowHandle,
+        (HWND)ReadPointerAcquire((PVOID*)&context->WindowHandle),
         WM_PH_MEMORY_STATUS_UPDATE,
         PH_SEARCH_COMPLETED,
         0
@@ -936,7 +936,7 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
     {
     case TDN_CREATED:
         {
-            context->WindowHandle = hwndDlg;
+            WritePointerRelease((PVOID*)&context->WindowHandle, hwndDlg);
 
             // Create the Taskdialog icons.
             PhSetApplicationWindowIcon(hwndDlg);
@@ -970,7 +970,7 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
             if ((INT)wParam == IDCANCEL)
                 _InterlockedOr8((volatile CHAR*)&context->Options.Header.Cancel, 1);
 
-            if (!context->EnableCloseDialog)
+            if (!ReadAcquire8(&context->EnableCloseDialog))
                 return S_FALSE;
         }
         break;
@@ -984,8 +984,8 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
             if (!context->Results)
                 break;
 
-            progressMax = context->SearchProgressMax;
-            progressValue = context->SearchProgressValue;
+            progressMax = ReadULongAcquire(&context->SearchProgressMax);
+            progressValue = ReadULongAcquire(&context->SearchProgressValue);
 
             if (progressMax > 0)
             {
@@ -1001,7 +1001,7 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
                     (WPARAM)((progressValue < progressMax) ? PhMultiplyDivide(progressValue, 100, progressMax) : 100), 0);
             }
 
-            numberText = PhFormatUInt64(context->ResultCount, TRUE);
+            numberText = PhFormatUInt64(ReadULongAcquire(&context->ResultCount), TRUE);
             progressText = PhFormatString(L"%s strings found...", numberText->Buffer);
 
             SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)progressText->Buffer);

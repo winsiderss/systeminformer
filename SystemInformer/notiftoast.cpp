@@ -10,6 +10,7 @@
  */
 
 #include <phapp.h>
+#include <utility>
 #include <mapldr.h>
 #include <appresolver.h>
 
@@ -330,7 +331,7 @@ HRESULT PH::Toast::Initialize(
         }
     }
 
-    if (TimeoutMilliseconds > 0)
+    if (std::cmp_greater(TimeoutMilliseconds, 0))
     {
         //
         // We have a timeout, set it.
@@ -1235,18 +1236,18 @@ PPH_STRING PhEscapeStringForXml(
     SIZE_T length = PhCountStringZ((PWSTR)Input);
     SIZE_T pos = 0;
 
-    while (pos < length)
+    while (std::cmp_less(pos, length))
     {
         // Emit the literal run up to the next character that needs escaping in
         // one block instead of appending character-by-character.
         SIZE_T runLength = PhFindFirstOfCharsW(&Input[pos], length - pos, specialChars, RTL_NUMBER_OF(specialChars));
 
-        if (runLength != 0)
+        if (std::cmp_not_equal(runLength, 0))
             PhAppendStringBuilderEx(&sb, (PWCHAR)&Input[pos], runLength * sizeof(WCHAR));
 
         pos += runLength;
 
-        if (pos >= length)
+        if (std::cmp_greater_equal(pos, length))
             break;
 
         switch (Input[pos])
@@ -1359,7 +1360,7 @@ static HRESULT NTAPI PhpShowToastEx2Worker(
     }
 
     // Expiration (timeout)
-    if (TimeoutMilliseconds > 0)
+    if (std::cmp_greater(TimeoutMilliseconds, 0))
     {
         ComPtr<IPropertyValueStatics> propertyStats;
         RETURN_IF_FAILED(PH::RoGetActivationFactory<IPropertyValueStatics>(
