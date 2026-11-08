@@ -2135,6 +2135,8 @@ NTSTATUS KphGetSigningLevel(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *SigningLevel = SE_SIGNING_LEVEL_UNCHECKED;
+
     status = SeGetCachedSigningLevel(FileObject,
                                      &flags,
                                      SigningLevel,
