@@ -37,6 +37,7 @@ NTSTATUS KphCaptureUnicodeString(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *CapturedUnicodeString = NULL;
     outputString = NULL;
 
     __try

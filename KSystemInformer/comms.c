@@ -1251,6 +1251,8 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     msg = NULL;
     releaseRundown = FALSE;
 
+    *ReturnOutputBufferLength = 0;
+
     if ((PsGetCurrentProcess() != client->Process->EProcess) ||
         (ExGetPreviousMode() != UserMode))
     {
@@ -1261,8 +1263,6 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
         status = STATUS_ACCESS_DENIED;
         goto Exit;
     }
-
-    *ReturnOutputBufferLength = 0;
 
     if (!KphAcquireRundown(&KphpCommsRundown))
     {
@@ -2752,14 +2752,14 @@ NTSTATUS KphCommsSendMessage(
 
     NT_ASSERT(NT_SUCCESS(KphMsgValidate(Message)));
 
-    if (!KphAcquireRundown(&KphpCommsRundown))
-    {
-        return STATUS_TOO_LATE;
-    }
-
     if (Reply)
     {
         KphMsgInit(Reply, KphMsgUnhandled);
+    }
+
+    if (!KphAcquireRundown(&KphpCommsRundown))
+    {
+        return STATUS_TOO_LATE;
     }
 
     status = STATUS_PORT_DISCONNECTED;

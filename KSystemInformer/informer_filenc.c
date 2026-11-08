@@ -43,7 +43,7 @@ static KSI_WORK_QUEUE_ITEM KphpFileNameCachePopulateWorkItem;
  * \brief Retrieves file name information using the filter name cache.
  *
  * \param[in] Data The callback data for the operation.
- * \param[out] FltFileName Receives the file name.
+ * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
  */
@@ -51,7 +51,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltGetFileNameInformation(
     _In_ PFLT_CALLBACK_DATA Data,
-    _Out_ PKPH_FLT_FILE_NAME FltFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
     NTSTATUS status;
@@ -414,6 +414,8 @@ NTSTATUS KphpFltAllocateNameContext(
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
+    *Context = NULL;
+
     NT_VERIFY(NT_SUCCESS(RtlULongAdd(Length,
                                      sizeof(KPH_FLT_STREAMHANDLE_CONTEXT),
                                      &contextSize)));
@@ -454,7 +456,7 @@ NTSTATUS KphpFltAllocateNameContext(
  * \param[in] PagingIo TRUE if the operation is paging I/O.
  * \param[in] Closing TRUE if the file object is being closed, it must not be
  * referenced.
- * \param[out] FltFileName Receives the file name.
+ * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
  */
@@ -467,7 +469,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     _In_ PFILE_OBJECT FileObject,
     _In_ BOOLEAN PagingIo,
     _In_ BOOLEAN Closing,
-    _Out_ PKPH_FLT_FILE_NAME FltFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
     NTSTATUS status;
@@ -675,7 +677,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
  * \param[in] Volume The volume of the file object.
  * \param[in] FileObject The file object.
  * \param[in] PagingIo TRUE if the operation is paging I/O.
- * \param[out] FltFileName Receives the file name.
+ * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
  */
@@ -686,7 +688,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     _In_ PFLT_VOLUME Volume,
     _In_ PFILE_OBJECT FileObject,
     _In_ BOOLEAN PagingIo,
-    _Out_ PKPH_FLT_FILE_NAME FltFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
     NTSTATUS status;
@@ -839,7 +841,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
  * \brief Retrieves the file name, by copying it from the related objects.
  *
  * \param[in] FltObjects The related objects for the operation.
- * \param[out] FltFileName Receives the file name.
+ * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
  */
@@ -847,7 +849,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltGetFileNameCopy(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Out_ PKPH_FLT_FILE_NAME FltFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
     ULONG length;
@@ -901,7 +903,7 @@ NTSTATUS KphpFltGetFileNameCopy(
  * \brief Retrieves the volume name, by copying it from the related objects.
  *
  * \param[in] FltObjects The related objects for the operation.
- * \param[out] FltFileName Receives the file name.
+ * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
  */
@@ -909,7 +911,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltGetVolumeName(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Out_ PKPH_FLT_FILE_NAME FltFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
     ULONG length;
@@ -1043,7 +1045,7 @@ NTSTATUS KphpFltGetFileName(
  *
  * \param[in] Data The callback data for the operation.
  * \param[in] FltObjects The related objects for the operation.
- * \param[out] FltFileName Receives the destination file name.
+ * \param[in,out] FltDestFileName Receives the destination file name.
  *
  * \return Successful or errant status.
  */
@@ -1052,7 +1054,7 @@ _Must_inspect_result_
 NTSTATUS KphpFltGetDestinationFileNameInformation(
     _In_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Out_ PKPH_FLT_FILE_NAME FltDestFileName
+    _Inout_ PKPH_FLT_FILE_NAME FltDestFileName
     )
 {
     NTSTATUS status;
