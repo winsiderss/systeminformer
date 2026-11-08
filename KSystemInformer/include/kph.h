@@ -2775,6 +2775,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
 typedef struct _KPH_SESSION_TOKEN
 {
     KPH_SESSION_ACCESS_TOKEN AccessToken;
+    LARGE_INTEGER Deadline;
     LONG UseCount;
 } KPH_SESSION_TOKEN, *PKPH_SESSION_TOKEN;
 
