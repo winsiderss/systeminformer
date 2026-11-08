@@ -18,13 +18,98 @@ static VOID Check(PCSTR Name, LONG Expected, LONG Actual)
 
 static VOID CheckColumn(HWND Tree, ULONG Id, LONG Width)
 {
-    PH_TREENEW_COLUMN column;
+    PH_TREENEW_COLUMN column = { 0 };
     HDITEM item = { 0 };
     TreeNew_GetColumn(Tree, Id, &column);
     Check("TreeNew width", Width, column.Width);
     item.mask = HDI_WIDTH;
     Header_GetItem(TreeNew_GetHeader(Tree), column.s.ViewIndex, &item);
     Check("native header width", Width, item.cxy);
+}
+
+static VOID CheckFixedColumn(HWND Tree, LONG Width)
+{
+    PPH_TREENEW_CONTEXT context = PhGetWindowContextEx(Tree);
+    PH_TREENEW_COLUMN column = { 0 };
+    HDITEM item = { 0 };
+
+    Check("fixed column cache is present", TRUE, context->FixedColumn != NULL);
+    Check("get fixed column", TRUE, TreeNew_GetColumn(Tree, 0, &column));
+    item.mask = HDI_WIDTH;
+    Check("get fixed header", TRUE, Header_GetItem(context->FixedHeaderHandle, 0, &item));
+    Check("fixed column width", Width, column.Width);
+    Check("fixed native header width", Width + 1, item.cxy);
+    Check("cached fixed width", Width, context->FixedWidth);
+    Check("normal columns start after fixed header", Width + 1, context->NormalLeft);
+}
+
+static VOID CheckFixedColumnResizing(HWND Tree)
+{
+    PPH_TREENEW_CONTEXT context = PhGetWindowContextEx(Tree);
+    PH_TREENEW_COLUMN column = { 0 };
+    HDITEM item = { 0 };
+    LONG widths[] = { 150000, 150000, SHRT_MAX - 2, SHRT_MAX - 1, SHRT_MAX, MAXLONG, 0, MINLONG, 200 };
+
+    TreeNew_Scroll(Tree, 0, -MAXLONG);
+    for (ULONG i = 0; i < RTL_NUMBER_OF(widths); i++)
+    {
+        printf("Fixed column API resize to %ld\n", widths[i]);
+        TreeNew_GetColumn(Tree, 0, &column);
+        column.Width = widths[i];
+        Check("set fixed column", TRUE, TreeNew_SetColumn(Tree, TN_COLUMN_WIDTH, &column));
+        CheckFixedColumn(Tree, min(max(widths[i], context->FixedWidthMinimum), SHRT_MAX - 1));
+    }
+
+    // Direct header updates use the same notification path as divider dragging.
+    item.mask = HDI_WIDTH;
+    item.cxy = 150000;
+    Check("resize native fixed header", TRUE, Header_SetItem(context->FixedHeaderHandle, 0, &item));
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+    item.cxy = 150000;
+    Check("repeat clamped native resize", TRUE, Header_SetItem(context->FixedHeaderHandle, 0, &item));
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+
+    PhTnpSetFixedWidth(context, MAXULONG);
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+    PhTnpSetFixedWidth(context, 200);
+    CheckFixedColumn(Tree, 200);
+
+    // Insertion and hide/show must use the same limit as resizing.
+    TreeNew_GetColumn(Tree, 0, &column);
+    Check("remove fixed column", TRUE, TreeNew_RemoveColumn(Tree, 0));
+    Check("removed fixed width", 0, context->FixedWidth);
+    Check("removed normal origin", 0, context->NormalLeft);
+    column.Width = MAXLONG;
+    Check("insert oversized fixed column", TRUE, TreeNew_AddColumn(Tree, &column));
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+    TreeNew_GetColumn(Tree, 0, &column);
+    column.Visible = FALSE;
+    Check("hide fixed column", TRUE, TreeNew_SetColumn(Tree, TN_COLUMN_FLAG_VISIBLE, &column));
+    Check("hidden fixed width", 0, context->FixedWidth);
+    Check("hidden normal origin", 0, context->NormalLeft);
+    column.Visible = TRUE;
+    column.Width = MAXLONG;
+    Check("show oversized fixed column", TRUE, TreeNew_SetColumn(Tree, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &column));
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+
+    // Exercise a DPI request that clamps to the already installed width (zero delta).
+    PhTnpUpdateColumnHeadersDpiChanged(context, 96, 144);
+    CheckFixedColumn(Tree, SHRT_MAX - 1);
+    PhTnpUpdateColumnHeadersDpiChanged(context, 144, 96);
+    CheckFixedColumn(Tree, PhMultiplyDivideSigned(SHRT_MAX, 96, 144));
+    PhTnpSetFixedWidth(context, 200);
+    CheckFixedColumn(Tree, 200);
+    {
+        RECT rect;
+        PH_TREENEW_HIT_TEST hitTest = { 0 };
+        GetWindowRect(context->HeaderHandle, &rect);
+        MapWindowPoints(NULL, Tree, (PPOINT)&rect, 2);
+        Check("normal header window follows fixed column", 201, rect.left);
+        hitTest.Point.x = 200;
+        hitTest.Point.y = context->HeaderHeight + 1;
+        TreeNew_HitTest(Tree, &hitTest);
+        Check("divider hit testing follows fixed column", TRUE, !!(hitTest.Flags & TN_HIT_DIVIDER));
+    }
 }
 
 int main(void)
@@ -36,6 +121,8 @@ int main(void)
     INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_WIN95_CLASSES };
     PPH_TREENEW_CONTEXT context;
     SCROLLINFO scrollInfo = { sizeof(scrollInfo), SIF_RANGE | SIF_PAGE | SIF_POS, 0, 150000, 800, 141909, 0 };
+
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     if (!NT_SUCCESS(PhInitializePhLib(L"treenew-scroll-test")))
         return 2;
@@ -99,6 +186,8 @@ int main(void)
     PhTnpUpdateColumnHeadersDpiChanged(context, 96, 144);
     Check("DPI-scaled header remains addressable", TRUE, context->TotalViewX <= SHRT_MAX);
 
+    CheckFixedColumnResizing(tree);
+
     // Exercise the thumb-release path independently of the width guard.
     SetScrollInfo(context->HScrollHandle, SB_CTL, &scrollInfo, FALSE);
     context->HScrollPosition = scrollInfo.nPos;
@@ -107,5 +196,6 @@ int main(void)
 
     DestroyWindow(parent);
     PhDeleteAutoPool(&pool);
+    printf("Regression complete: %lu failures\n", Failures);
     return Failures ? 1 : 0;
 }
