@@ -150,6 +150,122 @@ VOID KSIAPI KphpFreeImageLoadApc(
 }
 
 /**
+ * \brief Checks the object access rules that do not depend on the protection
+ * state of the object process.
+ *
+ * \param[in] Info Optional object pre operation information.
+ * \param[in] Actor The actor process requesting access.
+ * \param[in] Object The process context associated with the object.
+ * \param[out] Allow Receives TRUE if access is allowed, FALSE if the remaining
+ * rules apply.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpShouldAllowObjectAccessEarly(
+    _In_opt_ POB_PRE_OPERATION_INFORMATION Info,
+    _In_ PKPH_PROCESS_CONTEXT Actor,
+    _In_ PKPH_PROCESS_CONTEXT Object,
+    _Out_ PBOOLEAN Allow
+    )
+{
+    NTSTATUS status;
+    BOOLEAN isLsass;
+
+    KPH_PAGED_CODE();
+
+    *Allow = FALSE;
+
+    if (!Info || (Info->Operation == OB_OPERATION_HANDLE_CREATE))
+    {
+        //
+        // Allow access to itself.
+        //
+        if (Actor->EProcess == Object->EProcess)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Process %wZ (%lu) allowed to access itself",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+    }
+    else if (Info->Operation == OB_OPERATION_HANDLE_DUPLICATE)
+    {
+        //
+        // Allow duplication to itself into itself from itself.
+        //
+        if ((Object->EProcess == Actor->EProcess) &&
+            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.SourceProcess) &&
+            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.TargetProcess))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Process %wZ (%lu) allowed to access itself",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+    }
+
+    status = KphDominationCheck(Object->EProcess, Actor->EProcess, UserMode);
+    if (!NT_SUCCESS(status))
+    {
+        //
+        // Allow access when the actor is a protected process and the target is
+        // not protected at a higher level.
+        //
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "PPL process %wZ (%lu) allowed to access process %wZ (%lu)",
+                      &Actor->ImageName,
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId));
+
+        *Allow = TRUE;
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    status = KphProcessIsLsass(Actor->EProcess, &isLsass);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "KphProcessIsLsass failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (isLsass)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "LSA process %wZ (%lu) allowed to access process %wZ (%lu)",
+                      &Actor->ImageName,
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId));
+
+        *Allow = TRUE;
+    }
+
+Exit:
+
+    return status;
+}
+
+/**
  * \brief Checks if object protections should be allowed.
  *
  * \param[in] Info Optional object pre operation information.
@@ -172,7 +288,6 @@ NTSTATUS KphpShouldAllowObjectAccess(
     NTSTATUS status;
     PKPH_PROCESS_CONTEXT source;
     PKPH_PROCESS_CONTEXT target;
-    BOOLEAN isLsass;
 
     KPH_PAGED_CODE();
 
@@ -185,22 +300,6 @@ NTSTATUS KphpShouldAllowObjectAccess(
 
     if (!Info || (Info->Operation == OB_OPERATION_HANDLE_CREATE))
     {
-        //
-        // Allow access to itself.
-        //
-        if (Actor->EProcess == Object->EProcess)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          PROTECTION,
-                          "Process %wZ (%lu) allowed to access itself",
-                          &Actor->ImageName,
-                          HandleToULong(Actor->ProcessId));
-
-            *Allow = TRUE;
-            status = STATUS_SUCCESS;
-            goto Exit;
-        }
-
         //
         // Allow maximum state processes access to one another.
         //
@@ -233,24 +332,6 @@ NTSTATUS KphpShouldAllowObjectAccess(
     else if (Info && (Info->Operation == OB_OPERATION_HANDLE_DUPLICATE))
     {
         PEPROCESS process;
-
-        //
-        // Allow duplication to itself into itself from itself.
-        //
-        if ((Object->EProcess == Actor->EProcess) &&
-            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.SourceProcess) &&
-            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.TargetProcess))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          PROTECTION,
-                          "Process %wZ (%lu) allowed to access itself",
-                          &Actor->ImageName,
-                          HandleToULong(Actor->ProcessId));
-
-            *Allow = TRUE;
-            status = STATUS_SUCCESS;
-            goto Exit;
-        }
 
         process = Info->Parameters->DuplicateHandleInformation.SourceProcess;
         source = KphGetEProcessContext(process);
@@ -319,50 +400,7 @@ NTSTATUS KphpShouldAllowObjectAccess(
                       HandleToULong(target->ProcessId));
     }
 
-    status = KphDominationCheck(Object->EProcess, Actor->EProcess, UserMode);
-    if (!NT_SUCCESS(status))
-    {
-        //
-        // Allow access when the actor is a protected process and the target is
-        // not protected at a higher level.
-        //
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "PPL process %wZ (%lu) allowed to access process %wZ (%lu)",
-                      &Actor->ImageName,
-                      HandleToULong(Actor->ProcessId),
-                      &Object->ImageName,
-                      HandleToULong(Object->ProcessId));
-
-        *Allow = TRUE;
-        status = STATUS_SUCCESS;
-        goto Exit;
-    }
-
-    status = KphProcessIsLsass(Actor->EProcess, &isLsass);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "KphProcessIsLsass failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    if (isLsass)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "LSA process %wZ (%lu) allowed to access process %wZ (%lu)",
-                      &Actor->ImageName,
-                      HandleToULong(Actor->ProcessId),
-                      &Object->ImageName,
-                      HandleToULong(Object->ProcessId));
-
-        *Allow = TRUE;
-        goto Exit;
-    }
+    status = STATUS_SUCCESS;
 
 Exit:
 
@@ -524,11 +562,29 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
 
     parameter = Parameter;
 
-    allow = FALSE;
-    status = KphpShouldAllowObjectAccess(NULL,
-                                         Process,
-                                         parameter->Process,
-                                         &allow);
+    status = KphpShouldAllowObjectAccessEarly(NULL,
+                                              Process,
+                                              parameter->Process,
+                                              &allow);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "KphpShouldAllowObjectAccessEarly failed: %!STATUS!",
+                      status);
+
+        parameter->Status = status;
+        return TRUE;
+    }
+
+    if (!allow)
+    {
+        status = KphpShouldAllowObjectAccess(NULL,
+                                             Process,
+                                             parameter->Process,
+                                             &allow);
+    }
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -536,12 +592,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
                       "KphpShouldAllowObjectAccess failed: %!STATUS!",
                       status);
 
-        //
-        // This usually means we don't have the dynamic data to do work.
-        // We can't guarantee both protection and application compatibility.
-        //
         parameter->Status = status;
-
         return TRUE;
     }
 
@@ -643,6 +694,71 @@ NTSTATUS KphpStartProtectingProcess(
 }
 
 /**
+ * \brief Checks if the image of a process meets the verification requirements.
+ *
+ * \param[in] Process The process to check.
+ *
+ * \return TRUE if the image can be verified, FALSE otherwise.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+BOOLEAN KphpIsProcessImageVerifiable(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (!Process->ImageFileName || !Process->FileObject)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "%wZ (%lu) missing file object or name",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId));
+
+        return FALSE;
+    }
+
+    if (Process->FileObject->WriteAccess)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%wZ (%lu) image \"%wZ\" is writable",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      Process->ImageFileName);
+
+        return FALSE;
+    }
+
+    if (IoGetTransactionParameterBlock(Process->FileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%wZ (%lu) image \"%wZ\" is in a transaction",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      Process->ImageFileName);
+
+        return FALSE;
+    }
+
+    if (!Process->FileObject->SectionObjectPointer ||
+        MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%wZ (%lu) image \"%wZ\" has user writable references",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      Process->ImageFileName);
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
  * \brief Performs actions to verify a process and begin protecting it. Process
  * protection is only applied to processes that meet the necessary requirements.
  *
@@ -664,47 +780,11 @@ VOID KphpVerifyProcessAndProtect(
 
     state = KPH_PROTECTION_UNTRUSTED;
 
-    if (!Process->ImageFileName || !Process->FileObject)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "%wZ (%lu) missing file object or name",
-                      &Process->ImageName,
-                      HandleToULong(Process->ProcessId));
-
-        goto Exit;
-    }
-
-    if (Process->FileObject->WriteAccess)
+    if (!KphpIsProcessImageVerifiable(Process))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "%wZ (%lu) image \"%wZ\" is writable",
-                      &Process->ImageName,
-                      HandleToULong(Process->ProcessId),
-                      Process->ImageFileName);
-
-        goto Exit;
-    }
-
-    if (IoGetTransactionParameterBlock(Process->FileObject))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "%wZ (%lu) image \"%wZ\" is in a transaction",
-                      &Process->ImageName,
-                      HandleToULong(Process->ProcessId),
-                      Process->ImageFileName);
-
-        goto Exit;
-    }
-
-    if (!Process->FileObject->SectionObjectPointer ||
-        MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "%wZ (%lu) image \"%wZ\" has user writable references",
+                      "%wZ (%lu) image \"%wZ\" is not verifiable",
                       &Process->ImageName,
                       HandleToULong(Process->ProcessId),
                       Process->ImageFileName);
@@ -770,7 +850,7 @@ VOID KphpVerifyProcessAndProtect(
 Exit:
 
     NT_ASSERT(!FlagOn(state, KPH_PROTECTION_PENDING));
-    state = InterlockedExchange((LONG*)&Process->Protection.State, state);
+    state = InterlockedExchange((PLONG)&Process->Protection.State, state);
     NT_ASSERT(state == KPH_PROTECTION_PENDING);
     KeSetEvent(&Process->Protection.CompletionEvent, EVENT_INCREMENT, FALSE);
 }
@@ -827,11 +907,30 @@ KPH_PROTECTION_STATE KphGetProtectionState(
 
     KPH_PAGED_CODE();
 
-    state = InterlockedCompareExchange((LONG*)&Process->Protection.State,
+    state = InterlockedCompareExchange((PLONG)&Process->Protection.State,
                                        KPH_PROTECTION_PENDING,
                                        KPH_PROTECTION_NONE);
     if (state == KPH_PROTECTION_NONE)
     {
+        if (!KphpIsProcessImageVerifiable(Process))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Process %wZ (%lu) not verifiable, untrusted",
+                          &Process->ImageName,
+                          HandleToULong(Process->ProcessId));
+
+            state = InterlockedExchange((PLONG)&Process->Protection.State,
+                                        KPH_PROTECTION_UNTRUSTED);
+            NT_ASSERT(state == KPH_PROTECTION_PENDING);
+            KeSetEvent(&Process->Protection.CompletionEvent,
+                       EVENT_INCREMENT,
+                       FALSE);
+
+            state = KPH_PROTECTION_UNTRUSTED;
+            goto Exit;
+        }
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "Queuing process %wZ (%lu) for protection evaluation",
@@ -863,7 +962,7 @@ KPH_PROTECTION_STATE KphGetProtectionState(
                               FALSE,
                               NULL);
 
-        state = ReadAcquire((LONG*)&Process->Protection.State);
+        state = ReadAcquire((PLONG)&Process->Protection.State);
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
@@ -875,6 +974,8 @@ KPH_PROTECTION_STATE KphGetProtectionState(
 
         NT_ASSERT(!FlagOn(state, KPH_PROTECTION_PENDING));
     }
+
+Exit:
 
     return state;
 }
@@ -898,6 +999,33 @@ BOOLEAN KphIsProtectedProcess(
     state = KphGetProtectionState(Process);
 
     return BooleanFlagOn(state, KPH_PROTECTION_ACTIVE);
+}
+
+/**
+ * \brief Determines if a process might be protected, without waiting for the
+ * protection evaluation.
+ *
+ * \param[in] Process The process to check.
+ *
+ * \return FALSE if the process settled as not protected, TRUE otherwise.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+BOOLEAN KphpIsProtectedProcessEarly(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    KPH_PROTECTION_STATE state;
+
+    KPH_PAGED_CODE();
+
+    state = ReadAcquire((PLONG)&Process->Protection.State);
+
+    if (state == KPH_PROTECTION_NONE)
+    {
+        return TRUE;
+    }
+
+    return BooleanFlagOn(state, KPH_PROTECTION_PENDING | KPH_PROTECTION_ACTIVE);
 }
 
 /**
@@ -1022,32 +1150,49 @@ VOID KphApplyObProtections(
         desiredAccess = *access;
     }
 
-    if (!KphIsProtectedProcess(process))
+    //
+    // The "early" checks decide access where they can without waiting for the
+    // protection evaluation of the object process, which may block on I/O.
+    //
+    if (!KphpIsProtectedProcessEarly(process))
     {
         goto Exit;
     }
 
-    KphAcquireRWLockShared(&process->Protection.AllowedMaskLock);
-    releaseLock = TRUE;
-
-    allow = FALSE;
-    status = KphpShouldAllowObjectAccess(Info,
-                                         actor->ProcessContext,
-                                         process,
-                                         &allow);
+    status = KphpShouldAllowObjectAccessEarly(Info,
+                                              actor->ProcessContext,
+                                              process,
+                                              &allow);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphpShouldAllowObjectAccess failed: %!STATUS!",
+                      "KphpShouldAllowObjectAccessEarly failed: %!STATUS!",
                       status);
 
-        //
-        // We shouldn't get here since we would have succeeded when starting to
-        // protect the process to begin with. So if we fail here we fail-safe
-        // and do not allow.
-        //
         allow = FALSE;
+    }
+
+    if (!allow)
+    {
+        if (!KphIsProtectedProcess(process))
+        {
+            goto Exit;
+        }
+
+        status = KphpShouldAllowObjectAccess(Info,
+                                             actor->ProcessContext,
+                                             process,
+                                             &allow);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "KphpShouldAllowObjectAccess failed: %!STATUS!",
+                          status);
+
+            allow = FALSE;
+        }
     }
 
     if (allow)
@@ -1064,6 +1209,9 @@ VOID KphApplyObProtections(
 
         goto Exit;
     }
+
+    KphAcquireRWLockShared(&process->Protection.AllowedMaskLock);
+    releaseLock = TRUE;
 
     if (Info->ObjectType == *PsProcessType)
     {
