@@ -590,6 +590,7 @@ PsGetProcessJob(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 _When_(NT_SUCCESS(return), _Acquires_lock_(Process))
 NTKERNELAPI
 NTSTATUS
@@ -598,6 +599,7 @@ PsAcquireProcessExitSynchronization(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 _Releases_lock_(Process)
 NTKERNELAPI
 VOID

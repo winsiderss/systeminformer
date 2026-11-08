@@ -35,12 +35,19 @@ DECLARE_CONST_UNICODE_STRING(KphpCidApcTypeName, L"KphCidApc");
 DECLARE_CONST_UNICODE_STRING(KphpProcessContextTypeName, L"KphProcessContext");
 DECLARE_CONST_UNICODE_STRING(KphpThreadContextTypeName, L"KphThreadContext");
 static const LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
+static const LARGE_INTEGER KphpCidReapDueTime = KPH_TIMEOUT(60 * 1000);
+static const ULONG KphpCidReapPeriod = (60 * 1000);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
 static LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static ULONG64 KphpProcessSequence = 0;
+static KTIMER KphpCidReapTimer;
+static KDPC KphpCidReapDpc;
+static KSI_WORK_QUEUE_ITEM KphpCidReapWorkItem;
+static KPH_RUNDOWN KphpCidReapRundown;
+static LONG KphpCidReapQueued = FALSE;
 
 /**
  * \brief Looks up a context object in the CID tracking.
@@ -168,7 +175,118 @@ PKPH_THREAD_CONTEXT KphGetThreadContext(
     return KphpLookupContext(ThreadId, KphThreadContextType);
 }
 
+/**
+ * \brief Queues the CID reaper work item.
+ *
+ * \param[in] Dpc Unused.
+ * \param[in] DeferredContext Unused.
+ * \param[in] SystemArgument1 Unused.
+ * \param[in] SystemArgument2 Unused.
+ */
+_Function_class_(KDEFERRED_ROUTINE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_same_
+VOID KphpCidReapDpcRoutine(
+    _In_ PKDPC Dpc,
+    _In_opt_ PVOID DeferredContext,
+    _In_opt_ PVOID SystemArgument1,
+    _In_opt_ PVOID SystemArgument2
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(DeferredContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    if (!InterlockedExchange(&KphpCidReapQueued, TRUE))
+    {
+        KsiQueueWorkItem(&KphpCidReapWorkItem, DelayedWorkQueue);
+    }
+}
+
 KPH_PAGED_FILE();
+
+/**
+ * \brief Untracks a process context that never had a thread once it exits.
+ *
+ * \details The process notification routine untracks a process when it
+ * exits, but it is never called for a process that never had a thread.
+ *
+ * \param[in] Process The process context to check.
+ * \param[in] Parameter Unused.
+ *
+ * \return FALSE to continue enumerating.
+ */
+_Function_class_(KPH_ENUM_PROCESS_CONTEXTS_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KSIAPI KphpReapProcessCallback(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PKPH_PROCESS_CONTEXT process;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    if (Process->CreateNotification || Process->NumberOfThreads)
+    {
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(PsAcquireProcessExitSynchronization(Process->EProcess)))
+    {
+        PsReleaseProcessExitSynchronization(Process->EProcess);
+        return FALSE;
+    }
+
+    process = KphUntrackProcessContext(Process->ProcessId);
+    if (process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Reaped process %wZ (%lu)",
+                      &process->ImageName,
+                      HandleToULong(process->ProcessId));
+
+        KphDereferenceObject(process);
+    }
+
+    return FALSE;
+}
+
+/**
+ * \brief Reaps exited process contexts that are not otherwise untracked.
+ *
+ * \param[in] Parameter Unused.
+ */
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpCidReapWorker(
+    _In_opt_ PVOID Parameter
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    InterlockedExchange(&KphpCidReapQueued, FALSE);
+
+    if (KphAcquireRundown(&KphpCidReapRundown))
+    {
+        if (ReadAcquire(&KphpCidPopulated))
+        {
+            KphEnumerateProcessContexts(KphpReapProcessCallback, NULL);
+        }
+
+        KphReleaseRundown(&KphpCidReapRundown);
+    }
+}
 
 /**
  * \brief Marks the CID tracking populated, which unblocks public tracking APIs.
@@ -1256,6 +1374,18 @@ NTSTATUS KphCidInitialize(
                         &typeInfo,
                         &KphpCidApcType);
 
+    KphInitializeRundown(&KphpCidReapRundown);
+    KsiInitializeWorkItem(&KphpCidReapWorkItem,
+                          KphDriverObject,
+                          KphpCidReapWorker,
+                          NULL);
+    KeInitializeThreadedDpc(&KphpCidReapDpc, KphpCidReapDpcRoutine, NULL);
+    KeInitializeTimerEx(&KphpCidReapTimer, NotificationTimer);
+    KeSetTimerEx(&KphpCidReapTimer,
+                 KphpCidReapDueTime,
+                 KphpCidReapPeriod,
+                 &KphpCidReapDpc);
+
     KphpCidTrackingInitialized = TRUE;
     status = STATUS_SUCCESS;
 
@@ -1405,6 +1535,10 @@ VOID KphCidCleanup(
     {
         return;
     }
+
+    KeCancelTimer(&KphpCidReapTimer);
+    KeFlushQueuedDpcs();
+    KphWaitForRundown(&KphpCidReapRundown);
 
     KphCidRundown(&KphpCidTable, KphpCidCleanupCallback, NULL);
 
