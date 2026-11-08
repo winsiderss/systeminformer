@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{5F0D72C4-8319-4B61-9E13-6084B680EB90}</ProjectGuid>
     <RootNamespace>HardwareDevices</RootNamespace>
     <Keyword>Win32Proj</Keyword>

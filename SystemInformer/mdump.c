@@ -24,6 +24,7 @@
 #define WM_PH_MINIDUMP_STATUS_UPDATE (WM_APP + 301)
 #define WM_PH_MINIDUMP_COMPLETED (WM_APP + 302)
 #define WM_PH_MINIDUMP_ERROR (WM_APP + 303)
+#define WM_PH_MINIDUMP_PROGRESS_UPDATE (WM_APP + 304)
 
 typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
 {
@@ -47,15 +48,21 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
         {
             BOOLEAN IsWow64Process : 1;
             BOOLEAN IsProcessSnapshot : 1;
-            BOOLEAN Stop : 1;
             BOOLEAN Succeeded : 1;
             BOOLEAN EnableProcessSnapshot : 1;
             BOOLEAN EnableKernelSnapshot : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN Spare : 3;
         };
     };
 
+    BOOLEAN Stop;
+
     ULONG64 LastTickCount;
+    ULONG Progress;
+    ULONG ModuleProgressCount;
+    ULONG ThreadProgressCount;
+    ULONG MemoryProgressCount;
+    ULONG KernelProgressCount;
     WNDPROC DefaultTaskDialogWindowProc;
 } PH_PROCESS_MINIDUMP_CONTEXT, *PPH_PROCESS_MINIDUMP_CONTEXT;
 
@@ -259,6 +266,33 @@ VOID PhUiCreateDumpFileProcess(
     //    );
 }
 
+VOID PhpProcessMiniDumpUpdateProgress(
+    _Inout_ PPH_PROCESS_MINIDUMP_CONTEXT Context,
+    _In_ ULONG Progress,
+    _In_ PCWSTR Message
+    )
+{
+    PPH_STRING message;
+
+    if (ReadBooleanAcquire(&Context->Stop))
+        return;
+
+    if (Progress > 100)
+        Progress = 100;
+
+    if (Progress > Context->Progress)
+        Context->Progress = Progress;
+
+    message = PhFormatString(L"%s (%lu%%)", Message, Context->Progress);
+    SendMessage(
+        Context->WindowHandle,
+        WM_PH_MINIDUMP_PROGRESS_UPDATE,
+        Context->Progress,
+        (LPARAM)message->Buffer
+        );
+    PhDereferenceObject(message);
+}
+
 static BOOL CALLBACK PhpProcessMiniDumpCallback(
     _Inout_ PVOID CallbackParam,
     _In_ PMINIDUMP_CALLBACK_INPUT CallbackInput,
@@ -267,6 +301,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
 {
     PPH_PROCESS_MINIDUMP_CONTEXT context = CallbackParam;
     PPH_STRING message = NULL;
+    ULONG progress = 0;
 
     // Don't try to send status updates if we're creating a dump of the current process.
     if (context->ProcessId == NtCurrentProcessId())
@@ -280,7 +315,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     {
     case CancelCallback:
         {
-            if (context->Stop)
+            if (ReadBooleanAcquire(&context->Stop))
                 CallbackOutput->Cancel = TRUE;
 
             CallbackOutput->CheckCancel = TRUE;
@@ -331,6 +366,11 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
 
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
             PhClearReference(&baseName);
+
+            if (context->ModuleProgressCount < 25)
+                context->ModuleProgressCount++;
+
+            progress = 5 + context->ModuleProgressCount;
         }
         break;
     case ThreadCallback:
@@ -344,6 +384,11 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             PhInitFormatS(&format[2], L"...");
 
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+            if (context->ThreadProgressCount < 20)
+                context->ThreadProgressCount++;
+
+            progress = 30 + context->ThreadProgressCount;
         }
         break;
     case IncludeVmRegionCallback:
@@ -358,6 +403,11 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             PhInitFormatS(&format[1], L"...");
 
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+            if (context->MemoryProgressCount < 40)
+                context->MemoryProgressCount++;
+
+            progress = 50 + context->MemoryProgressCount;
         }
         break;
     case WriteKernelMinidumpCallback:
@@ -402,13 +452,18 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             PhInitFormatS(&format[1], L"...");
 
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+            if (context->KernelProgressCount < 5)
+                context->KernelProgressCount++;
+
+            progress = 90 + context->KernelProgressCount;
         }
         break;
     }
 
     if (message)
     {
-        SendMessage(context->WindowHandle, WM_PH_MINIDUMP_STATUS_UPDATE, 0, (LPARAM)message->Buffer);
+        PhpProcessMiniDumpUpdateProgress(context, progress, message->Buffer);
         PhDereferenceObject(message);
     }
 
@@ -427,6 +482,8 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     HANDLE processHandle = NULL;
     LONG status;
 
+    PhpProcessMiniDumpUpdateProgress(context, 5, L"Initializing the minidump...");
+
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = context;
 
@@ -442,10 +499,12 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
                 context->DumpType
                 )))
             {
+                PhpProcessMiniDumpUpdateProgress(context, 95, L"Finalizing the minidump...");
                 context->Succeeded = TRUE;
             }
             else
             {
+                PhpProcessMiniDumpUpdateProgress(context, 95, L"Finalizing the minidump...");
                 SendMessage(context->WindowHandle, WM_PH_MINIDUMP_ERROR, 0, (LPARAM)PhNtStatusToDosError(status));
             }
 
@@ -521,6 +580,8 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         &callbackInfo
         );
 
+    PhpProcessMiniDumpUpdateProgress(context, 95, L"Finalizing the minidump...");
+
     if (HR_SUCCESS(status))
     {
         context->Succeeded = TRUE;
@@ -540,6 +601,7 @@ Completed:
 #endif
     if (context->Succeeded)
     {
+        PhpProcessMiniDumpUpdateProgress(context, 100, L"Minidump complete.");
         SendMessage(context->WindowHandle, WM_PH_MINIDUMP_COMPLETED, 0, 0);
     }
     else
@@ -610,7 +672,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             case IDCANCEL:
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
-                    context->Stop = TRUE;
+                    WriteBooleanRelease(&context->Stop, TRUE);
                 }
                 break;
             }
@@ -696,12 +758,19 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
             context->LastTickCount = NtGetTickCount64();
         }
         break;
+    case WM_PH_MINIDUMP_PROGRESS_UPDATE:
+        {
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, wParam, 0);
+            SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, lParam);
+            context->LastTickCount = NtGetTickCount64();
+        }
+        break;
     case WM_PH_MINIDUMP_ERROR:
         {
             TASKDIALOGCONFIG config;
             PPH_STRING statusMessage;
 
-            if (context->Stop)
+            if (ReadBooleanAcquire(&context->Stop))
             {
                 SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
                 break;
@@ -757,8 +826,8 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
             PhSetWindowContext(hwndDlg, 0xF, context);
             PhSetWindowProcedure(hwndDlg, PhpProcessMiniDumpTaskDialogSubclassProc);
 
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_RANGE, 0, MAKELPARAM(0, 100));
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, 0, 0);
 
             PhReferenceObject(context);
             PhCreateThread2(PhpProcessMiniDumpThreadStart, context);
@@ -786,8 +855,12 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
 
             if (buttonId == IDCANCEL)
             {
-                context->Stop = TRUE;
-                SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Cancelling...");
+                PPH_STRING message;
+
+                WriteBooleanRelease(&context->Stop, TRUE);
+                message = PhFormatString(L"Cancelling... (%lu%%)", context->Progress);
+                SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)message->Buffer);
+                PhDereferenceObject(message);
                 return S_FALSE;
             }
         }
@@ -807,7 +880,7 @@ NTSTATUS PhpProcessMiniDumpTaskDialogThread(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER | TDF_CAN_BE_MINIMIZED;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER | TDF_CAN_BE_MINIMIZED;
     config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(context->ParentWindowHandle));
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpProcessMiniDumpTaskDialogCallbackProc;

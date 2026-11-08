@@ -49,6 +49,11 @@ INT_PTR CALLBACK EtpNpuPanelDialogProc(
     _In_ LPARAM lParam
     );
 
+VOID EtpGetNpuGraphRects(
+    _Out_writes_(6) RECT LabelRects[6],
+    _Out_writes_(6) RECT GraphRects[6]
+    );
+
 VOID EtpCreateNpuGraphs(
     VOID
     );

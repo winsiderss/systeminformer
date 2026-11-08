@@ -118,8 +118,12 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     }
                     else
                     {
-                        string.Buffer = PTR_ADD_OFFSET(context->String, selStart);
-                        string.Length = (selEnd - selStart) * sizeof(WCHAR);
+                        SIZE_T stringLength = PhCountStringZ(context->String);
+                        SIZE_T start = min((SIZE_T)max(selStart, 0), stringLength);
+                        SIZE_T end = min((SIZE_T)max(selEnd, 0), stringLength);
+
+                        string.Buffer = (PWCH)context->String + start;
+                        string.Length = (end - start) * sizeof(WCHAR);
                     }
 
                     PhSetClipboardString(hwndDlg, &string);

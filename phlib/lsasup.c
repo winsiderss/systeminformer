@@ -1168,8 +1168,8 @@ VOID PhInitializeCapabilityGuidCache(
     _Inout_ PPH_ARRAY CapabilityGuidArrayList
     )
 {
-    static CONST PH_STRINGREF accessManagerKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\Capabilities");
-    static CONST PH_STRINGREF deviceAccessKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\CapabilityMappings");
+    CONST PH_STRINGREF accessManagerKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\Capabilities");
+    CONST PH_STRINGREF deviceAccessKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\CapabilityMappings");
     HANDLE keyHandle;
 
     PhInitializeArray(CapabilityGuidArrayList, sizeof(PH_CAPABILITY_GUID_ENTRY), 100);
@@ -1639,7 +1639,8 @@ BOOLEAN PhIsServiceSid(
     _In_ PSID Sid
     )
 {
-    if (!Sid || !RtlValidSid(Sid)) return FALSE;
+    if (!Sid || !PhValidSid(Sid)) 
+        return FALSE;
 
     if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY))
     {
@@ -1667,7 +1668,7 @@ PPH_STRING PhGetSidAuthorityName(
     PSID_IDENTIFIER_AUTHORITY authority;
     UCHAR authorityValue;
 
-    if (!Sid || !RtlValidSid(Sid))
+    if (!Sid || !PhValidSid(Sid))
         return NULL;
 
     authority = PhIdentifierAuthoritySid(Sid);
@@ -1741,7 +1742,7 @@ NTSTATUS PhGetShadowAdminAssociatedSid(
 
     if (!(USER_SHARED_DATA->SharedDataFlags & SHARED_GLOBAL_FLAGS_SHADOW_ADMIN_ENABLED))
         return STATUS_NOT_SUPPORTED;
-    if (!Sid || !RtlValidSid(Sid))
+    if (!Sid || !PhValidSid(Sid))
         return STATUS_INVALID_PARAMETER;
 
     if (PhBeginInitOnce(&initOnce))
@@ -1769,7 +1770,7 @@ NTSTATUS PhGetShadowAdminAssociatedSid(
 
     if (NT_SUCCESS(status))
     {
-        if (isShadowAdmin && associatedAccountSid && RtlValidSid(associatedAccountSid))
+        if (isShadowAdmin && associatedAccountSid && PhValidSid(associatedAccountSid))
         {
             *AssociatedSid = PhAllocateCopy(associatedAccountSid, PhLengthSid(associatedAccountSid));
 

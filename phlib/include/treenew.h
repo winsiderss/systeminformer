@@ -27,6 +27,15 @@ typedef struct _PH_TREENEW_CREATEPARAMS
     // Add new fields here.
 } PH_TREENEW_CREATEPARAMS, *PPH_TREENEW_CREATEPARAMS;
 
+#define PH_TREENEW_HEADER_TEXT_SIZE_MAX 0x40
+
+// Column-owned header text buffer for columns outside the control-level
+// cache (e.g. plugin columns). Owned by the creator of the column.
+typedef struct _PH_TREENEW_HEADER_TEXT_CACHE
+{
+    WCHAR Text[PH_TREENEW_HEADER_TEXT_SIZE_MAX];
+} PH_TREENEW_HEADER_TEXT_CACHE, *PPH_TREENEW_HEADER_TEXT_CACHE;
+
 typedef struct _PH_TREENEW_COLUMN
 {
     union
@@ -56,6 +65,8 @@ typedef struct _PH_TREENEW_COLUMN
         LONG ViewIndex; // Actual index in header control
         LONG ViewX; // 0 for the fixed column, and an offset from the divider for normal columns
     } s;
+
+    PPH_TREENEW_HEADER_TEXT_CACHE HeaderTextCache; // Optional; caller-owned
 } PH_TREENEW_COLUMN, *PPH_TREENEW_COLUMN;
 
 typedef struct _PH_TREENEW_NODE
@@ -421,14 +432,13 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
     PH_STRINGREF String;
 } PH_TREENEW_SEARCH_EVENT, *PPH_TREENEW_SEARCH_EVENT;
 
-#define PH_TREENEW_HEADER_TEXT_SIZE_MAX 0x40
-
 typedef struct _PH_TREENEW_GET_HEADER_TEXT
 {
     PPH_TREENEW_COLUMN Column;
     PH_STRINGREF Text;
     PWSTR TextCache;
     ULONG TextCacheSize;
+    ULONG Flags; // TN_CACHE to cache the text until the control-level cache is cleared
 } PH_TREENEW_GET_HEADER_TEXT, *PPH_TREENEW_GET_HEADER_TEXT;
 
 typedef struct _PH_TREENEW_SET_HEADER_CACHE
@@ -544,148 +554,148 @@ EXTERN_C LRESULT PhTnSendMessage(
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     PhTnSendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
- 
+
 #define TreeNew_NodesStructured(hWnd) \
     PhTnSendMessage((hWnd), TNM_NODESSTRUCTURED, 0, 0)
- 
+
 #define TreeNew_AddColumn(hWnd, Column) \
     PhTnSendMessage((hWnd), TNM_ADDCOLUMN, 0, (LPARAM)(Column))
- 
+
 #define TreeNew_RemoveColumn(hWnd, Id) \
     PhTnSendMessage((hWnd), TNM_REMOVECOLUMN, (WPARAM)(Id), 0)
- 
+
 #define TreeNew_GetColumn(hWnd, Id, Column) \
     PhTnSendMessage((hWnd), TNM_GETCOLUMN, (WPARAM)(Id), (LPARAM)(Column))
- 
+
 #define TreeNew_SetColumn(hWnd, Mask, Column) \
     PhTnSendMessage((hWnd), TNM_SETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
- 
+
 #define TreeNew_GetColumnOrderArray(hWnd, Count, Array) \
     PhTnSendMessage((hWnd), TNM_GETCOLUMNORDERARRAY, (WPARAM)(Count), (LPARAM)(Array))
- 
+
 #define TreeNew_SetColumnOrderArray(hWnd, Count, Array) \
     PhTnSendMessage((hWnd), TNM_SETCOLUMNORDERARRAY, (WPARAM)(Count), (LPARAM)(Array))
- 
+
 #define TreeNew_SetCursor(hWnd, Cursor) \
     PhTnSendMessage((hWnd), TNM_SETCURSOR, 0, (LPARAM)(Cursor))
- 
+
 #define TreeNew_GetSort(hWnd, Column, Order) \
     PhTnSendMessage((hWnd), TNM_GETSORT, (WPARAM)(Column), (LPARAM)(Order))
- 
+
 #define TreeNew_SetSort(hWnd, Column, Order) \
     PhTnSendMessage((hWnd), TNM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
- 
+
 #define TreeNew_SetTriState(hWnd, TriState) \
     PhTnSendMessage((hWnd), TNM_SETTRISTATE, (WPARAM)(TriState), 0)
- 
+
 #define TreeNew_EnsureVisible(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_ENSUREVISIBLE, 0, (LPARAM)(Node))
- 
+
 #define TreeNew_Scroll(hWnd, DeltaRows, DeltaX) \
     PhTnSendMessage((hWnd), TNM_SCROLL, (WPARAM)(DeltaRows), (LPARAM)(DeltaX))
- 
+
 #define TreeNew_GetFlatNodeCount(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETFLATNODECOUNT, 0, 0))
- 
+
 #define TreeNew_GetFlatNode(hWnd, Index) \
     ((PPH_TREENEW_NODE)PhTnSendMessage((hWnd), TNM_GETFLATNODE, (WPARAM)(Index), 0))
- 
+
 #define TreeNew_GetCellText(hWnd, GetCellText) \
     PhTnSendMessage((hWnd), TNM_GETCELLTEXT, 0, (LPARAM)(GetCellText))
- 
+
 #define TreeNew_SetNodeExpanded(hWnd, Node, Expanded) \
     PhTnSendMessage((hWnd), TNM_SETNODEEXPANDED, (WPARAM)(Expanded), (LPARAM)(Node))
- 
+
 #define TreeNew_GetMaxId(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETMAXID, 0, 0))
- 
+
 #define TreeNew_SetMaxId(hWnd, MaxId) \
     PhTnSendMessage((hWnd), TNM_SETMAXID, (WPARAM)(MaxId), 0)
- 
+
 #define TreeNew_InvalidateNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_INVALIDATENODE, 0, (LPARAM)(Node))
- 
+
 #define TreeNew_InvalidateNodes(hWnd, Start, End) \
     PhTnSendMessage((hWnd), TNM_INVALIDATENODES, (WPARAM)(Start), (LPARAM)(End))
- 
+
 #define TreeNew_GetFixedHeader(hWnd) \
     ((HWND)PhTnSendMessage((hWnd), TNM_GETFIXEDHEADER, 0, 0))
- 
+
 #define TreeNew_GetHeader(hWnd) \
     ((HWND)PhTnSendMessage((hWnd), TNM_GETHEADER, 0, 0))
- 
+
 #define TreeNew_GetTooltips(hWnd) \
     ((HWND)PhTnSendMessage((hWnd), TNM_GETTOOLTIPS, 0, 0))
- 
+
 #define TreeNew_SelectRange(hWnd, Start, End) \
     PhTnSendMessage((hWnd), TNM_SELECTRANGE, (WPARAM)(Start), (LPARAM)(End))
- 
+
 #define TreeNew_DeselectRange(hWnd, Start, End) \
     PhTnSendMessage((hWnd), TNM_DESELECTRANGE, (WPARAM)(Start), (LPARAM)(End))
- 
+
 #define TreeNew_GetColumnCount(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETCOLUMNCOUNT, 0, 0))
- 
+
 #define TreeNew_SetRedraw(hWnd, Redraw) \
     ((LONG)PhTnSendMessage((hWnd), TNM_SETREDRAW, (WPARAM)(Redraw), 0))
- 
+
 #define TreeNew_GetViewParts(hWnd, Parts) \
     PhTnSendMessage((hWnd), TNM_GETVIEWPARTS, 0, (LPARAM)(Parts))
- 
+
 #define TreeNew_GetFixedColumn(hWnd) \
     ((PPH_TREENEW_COLUMN)PhTnSendMessage((hWnd), TNM_GETFIXEDCOLUMN, 0, 0))
- 
+
 #define TreeNew_GetFirstColumn(hWnd) \
     ((PPH_TREENEW_COLUMN)PhTnSendMessage((hWnd), TNM_GETFIRSTCOLUMN, 0, 0))
- 
+
 #define TreeNew_SetFocusNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_SETFOCUSNODE, 0, (LPARAM)(Node))
- 
+
 #define TreeNew_SetMarkNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_SETMARKNODE, 0, (LPARAM)(Node))
- 
+
 #define TreeNew_SetHotNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_SETHOTNODE, 0, (LPARAM)(Node))
- 
+
 #define TreeNew_SetExtendedFlags(hWnd, Mask, Value) \
     PhTnSendMessage((hWnd), TNM_SETEXTENDEDFLAGS, (WPARAM)(Mask), (LPARAM)(Value))
- 
+
 #define TreeNew_GetCallback(hWnd, Callback, Context) \
     PhTnSendMessage((hWnd), TNM_GETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
- 
+
 #define TreeNew_HitTest(hWnd, HitTest) \
     PhTnSendMessage((hWnd), TNM_HITTEST, 0, (LPARAM)(HitTest))
- 
+
 #define TreeNew_GetVisibleColumnCount(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETVISIBLECOLUMNCOUNT, 0, 0))
- 
+
 #define TreeNew_AutoSizeColumn(hWnd, Id, Flags) \
     PhTnSendMessage((hWnd), TNM_AUTOSIZECOLUMN, (WPARAM)(Id), (LPARAM)(Flags))
- 
+
 #define TreeNew_SetEmptyText(hWnd, Text, Flags) \
     PhTnSendMessage((hWnd), TNM_SETEMPTYTEXT, (WPARAM)(Flags), (LPARAM)(Text))
- 
+
 #define TreeNew_SetRowHeight(hWnd, RowHeight) \
     PhTnSendMessage((hWnd), TNM_SETROWHEIGHT, (WPARAM)(RowHeight), 0)
- 
+
 #define TreeNew_IsFlatNodeValid(hWnd) \
     ((BOOLEAN)PhTnSendMessage((hWnd), TNM_ISFLATNODEVALID, 0, 0))
- 
+
 #define TreeNew_ThemeSupport(hWnd, Enable) \
     PhTnSendMessage((hWnd), TNM_THEMESUPPORT, (WPARAM)(Enable), 0)
- 
+
 #define TreeNew_SetImageList(hWnd, ImageListHandle) \
     PhTnSendMessage((hWnd), TNM_SETIMAGELIST, (WPARAM)(ImageListHandle), 0)
- 
+
 #define TreeNew_SetColumnTextCache(hWnd, Cache) \
     PhTnSendMessage((hWnd), TNM_SETCOLUMNTEXTCACHE, (WPARAM)(Cache), 0)
- 
+
 #define TreeNew_EnsureVisibleIndex(hWnd, Index) \
     PhTnSendMessage((hWnd), TNM_ENSUREVISIBLEINDEX, 0, (LPARAM)(Index))
- 
+
 #define TreeNew_GetVisibleColumn(hWnd, Index, Column) \
     PhTnSendMessage((hWnd), TNM_GETVISIBLECOLUMN, (WPARAM)(Index), (LPARAM)(Column))
- 
+
 #define TreeNew_GetVisibleColumnArray(hWnd, Count, ColumnArray) \
     ((BOOLEAN)PhTnSendMessage((hWnd), TNM_GETVISIBLECOLUMNARRAY, (WPARAM)(Count), (LPARAM)(ColumnArray)))
 

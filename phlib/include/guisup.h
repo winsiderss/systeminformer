@@ -2102,30 +2102,12 @@ PhGetSelectedListViewItemParams(
     _Out_ PULONG NumberOfItems
     );
 
-/**
- * Queries a list-view control for its IListView interface.
- *
- * \param ListViewHandle The list-view control.
- * \return The interface, or NULL if unavailable. Release a returned interface when finished.
- */
-FORCEINLINE
+PHLIBAPI
 IListView*
 NTAPI
 PhGetListViewInterface(
     _In_ HWND ListViewHandle
-    )
-{
-    IListView* listviewInterface = NULL;
-
-    SendMessage(
-        ListViewHandle,
-        LVM_QUERYINTERFACE,
-        (WPARAM)&IID_IListView,
-        (LPARAM)&listviewInterface
-        );
-
-    return listviewInterface;
-}
+    );
 
 #define PhDestroyListViewInterface(ListViewClass) \
     if (ListViewClass) IListView_Release((struct IListView*)(ListViewClass));
@@ -2821,6 +2803,13 @@ PhSetWindowAlwaysOnTop(
     _In_ BOOLEAN AlwaysOnTop
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsWindowOverlapped(
+    _In_ HWND WindowHandle
+    );
+
 _Success_(return)
 PHLIBAPI
 NTSTATUS
@@ -3143,7 +3132,7 @@ NTAPI
 PhListView_SetItemCount(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemCount,
-    _In_ LV_LISTVIEW_SETITEMCOUNT_FLAGS Flags
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -4344,6 +4333,8 @@ extern HFONT PhApplicationFont;
 extern HFONT PhTreeWindowFont;
 extern HFONT PhMonospaceFont;
 extern HBRUSH PhThemeWindowBackgroundBrush;
+EXTERN_C HBRUSH PhStockDcBrush;
+EXTERN_C HBRUSH PhStockNullBrush;
 extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
@@ -4524,6 +4515,15 @@ PhSetWindowShadowDisplayAffinity(
     );
 
 PHLIBAPI
+ULONG
+PhGetWindowShadowOwnerOccluders(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_opt_ HWND FocusWindowHandle,
+    _Out_writes_to_(Count, return) PRECT Rects,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhApplyThemeMode(
@@ -4575,6 +4575,13 @@ VOID
 NTAPI
 PhInitializeThemeWindowGroupBoxEx(
     _In_ HWND GroupBoxHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowGroupBoxes(
+    _In_ HWND ParentWindowHandle
     );
 
 PHLIBAPI
@@ -4684,14 +4691,14 @@ PhInitializeWindowThemeMainMenu(
 
 typedef union _UAHMENUITEMMETRICS
 {
-    struct { DWORD cx; DWORD cy; } rgsizeBar[2];
-    struct { DWORD cx; DWORD cy; } rgsizePopup[4];
+    struct { ULONG cx; ULONG cy; } rgsizeBar[2];
+    struct { ULONG cx; ULONG cy; } rgsizePopup[4];
 } UAHMENUITEMMETRICS, *PUAHMENUITEMMETRICS;
 
 typedef struct _UAHMENUPOPUPMETRICS
 {
-    DWORD rgcx[4];
-    DWORD fUpdateMaxWidths : 2;
+    ULONG rgcx[4];
+    ULONG fUpdateMaxWidths : 2;
 } UAHMENUPOPUPMETRICS, *PUAHMENUPOPUPMETRICS;
 
 #define UAHMENU_FLAG_POPUP 0x00000001
@@ -4700,7 +4707,7 @@ typedef struct _UAHMENU
 {
     HMENU hmenu;
     HDC hdc;
-    DWORD dwFlags;
+    ULONG dwFlags;
 } UAHMENU, *PUAHMENU;
 
 typedef struct _UAHMENUITEM

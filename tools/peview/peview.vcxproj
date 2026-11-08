@@ -27,7 +27,6 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>17.0</VCProjectVersion>
         <ProjectGuid>{72C124A2-3C80-41C6-ABA1-C4948B713204}</ProjectGuid>
         <RootNamespace>peview</RootNamespace>
         <Keyword>Win32Proj</Keyword>

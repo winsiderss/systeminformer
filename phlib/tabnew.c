@@ -2484,6 +2484,61 @@ VOID PhTabNewPaint(
     SelectFont(Hdc, oldFont);
 }
 
+/**
+ * Renders the control into the back buffer and copies an area of it to a device context.
+ *
+ * \param Context A pointer to the tab control context.
+ * \param Hdc A handle to the destination device context.
+ * \param UpdateRect The area to copy, in client coordinates.
+ */
+VOID PhTabNewPaintBuffered(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PRECT UpdateRect
+    )
+{
+    RECT clientRect;
+
+    GetClientRect(Context->WindowHandle, &clientRect);
+
+    // The buffer only grows (same as TreeNew). Reallocating the DIB on every WM_SIZE
+    // churns during a live resize, and a larger buffer is simply painted partially. (dmex)
+    if (
+        Context->BufferedContextRect.right < clientRect.right ||
+        Context->BufferedContextRect.bottom < clientRect.bottom
+        )
+    {
+        PhTabNewDestroyBufferedContext(Context);
+        Context->BufferedContextRect.left = 0;
+        Context->BufferedContextRect.top = 0;
+        Context->BufferedContextRect.right = max(Context->BufferedContextRect.right, clientRect.right);
+        Context->BufferedContextRect.bottom = max(Context->BufferedContextRect.bottom, clientRect.bottom);
+    }
+
+    if (!Context->BufferedContext)
+        PhTabNewCreateBufferedContext(Context, Hdc);
+
+    if (Context->BufferedContext)
+    {
+        PhTabNewPaint(Context, Context->BufferedContext, &clientRect);
+        BitBlt(
+            Hdc,
+            UpdateRect->left,
+            UpdateRect->top,
+            UpdateRect->right - UpdateRect->left,
+            UpdateRect->bottom - UpdateRect->top,
+            Context->BufferedContext,
+            UpdateRect->left,
+            UpdateRect->top,
+            SRCCOPY
+            );
+    }
+    else
+    {
+        PhTabNewPaint(Context, Hdc, &clientRect);
+    }
+}
+
 VOID PhTabNewOnPaint(
     _In_ HWND WindowHandle,
     _In_ PPH_TABNEW_CONTEXT Context
@@ -2521,40 +2576,7 @@ VOID PhTabNewOnPaint(
 
         if (hdc = BeginPaint(WindowHandle, &paintStruct))
         {
-            RECT clientRect;
-
-            updateRect = paintStruct.rcPaint;
-            GetClientRect(WindowHandle, &clientRect);
-
-            if (!PhEqualRect(&Context->BufferedContextRect, &clientRect))
-            {
-                PhTabNewDestroyBufferedContext(Context);
-                Context->BufferedContextRect = clientRect;
-            }
-
-            if (!Context->BufferedContext)
-                PhTabNewCreateBufferedContext(Context, hdc);
-
-            if (Context->BufferedContext)
-            {
-                PhTabNewPaint(Context, Context->BufferedContext, &clientRect);
-                BitBlt(
-                    hdc,
-                    updateRect.left,
-                    updateRect.top,
-                    updateRect.right - updateRect.left,
-                    updateRect.bottom - updateRect.top,
-                    Context->BufferedContext,
-                    updateRect.left,
-                    updateRect.top,
-                    SRCCOPY
-                    );
-            }
-            else
-            {
-                PhTabNewPaint(Context, hdc, &updateRect);
-            }
-
+            PhTabNewPaintBuffered(Context, hdc, &paintStruct.rcPaint);
             EndPaint(WindowHandle, &paintStruct);
         }
     }

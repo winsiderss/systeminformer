@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -89,13 +89,12 @@ struct _PH_PROPSHEETNEW_BUILDER
 typedef struct _PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT
 {
     PH_LAYOUT_MANAGER LayoutManager;
-    PVOID Instance;       // page dialog template module (for template-relative margins)
-    PCWSTR Template;       // page dialog template resource name
+    PVOID Instance;
+    PCWSTR Template;
 } PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT, *PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT;
 
 #define PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT 0x70736c79
 
-BOOLEAN PhPropSheetNewClassRegistered = FALSE;
 PPH_OBJECT_TYPE PhPropSheetNewBuilderType = NULL;
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
@@ -115,18 +114,6 @@ HWND PhPropSheetNewCreate(
     _In_ PPH_PROPSHEETNEW Sheet,
     _In_ BOOLEAN Modal,
     _Out_opt_ PPH_PROPSHEETNEW_CONTEXT* OutContext
-    );
-
-BOOLEAN PhPropSheetNewUseDarkBackground(
-    VOID
-    );
-
-HBRUSH PhPropSheetNewGetBackgroundBrush(
-    VOID
-    );
-
-VOID PhPropSheetNewUpdateClassBackground(
-    _In_ HWND WindowHandle
     );
 
 PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT PhpPropSheetNewGetPageLayoutContext(
@@ -168,20 +155,15 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 {
     WNDCLASSEX wcex;
 
-    if (PhPropSheetNewClassRegistered)
-        return RTL_ATOM_INVALID_ATOM;
-
-    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    RtlZeroMemory(&wcex, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
     wcex.lpfnWndProc = PhPropSheetNewWndProc;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = PhPropSheetNewGetBackgroundBrush();
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PH_PROPSHEETNEW_CLASSNAME;
-
-    PhPropSheetNewClassRegistered = TRUE;
 
     return RegisterClassEx(&wcex);
 }
@@ -189,31 +171,6 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-// The themed background is shared with every other top-level window that has to
-// present a flash-free first frame (the main window included), so these are thin
-// forwarders onto the phlib helpers. (dmex)
-
-BOOLEAN PhPropSheetNewUseDarkBackground(
-    VOID
-    )
-{
-    return PhThemeWindowUseDarkBackground();
-}
-
-HBRUSH PhPropSheetNewGetBackgroundBrush(
-    VOID
-    )
-{
-    return PhGetThemeWindowBackgroundBrush();
-}
-
-VOID PhPropSheetNewUpdateClassBackground(
-    _In_ HWND WindowHandle
-    )
-{
-    PhUpdateWindowClassBackground(WindowHandle);
-}
 
 LONG PhPropSheetNewScaleDpi(
     _In_ LONG Value96,
@@ -695,14 +652,16 @@ VOID PhPropSheetNewLayout(
 #ifdef PH_PROPSHEETNEW_REDRAW_FIX
     if (Context->TabControl)
     {
+        // No RDW_ERASE: TabNew paints its whole client from a back buffer, so a
+        // separate erase pass only renders the strip twice per resize step. (dmex)
         RedrawWindow(
             Context->TabControl,
             NULL,
             NULL,
 #ifdef PH_PROPSHEETNEW_REDRAW_UPDATENOW
-            RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_ALLCHILDREN
+            RDW_INVALIDATE | RDW_UPDATENOW
 #else
-            RDW_INVALIDATE | RDW_ERASE
+            RDW_INVALIDATE
 #endif
             );
     }
@@ -1263,7 +1222,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             if (GetClipBox(hdc, &clipRect) <= NULLREGION)
                 return TRUE;
 
-            FillRect(hdc, &clipRect, PhPropSheetNewGetBackgroundBrush());
+            FillRect(hdc, &clipRect, PhGetThemeWindowBackgroundBrush());
 
             return TRUE;
         }
@@ -1271,7 +1230,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
         {
-            if (PhPropSheetNewUseDarkBackground())
+            if (PhThemeWindowUseDarkBackground())
             {
                 LONG type;
 
@@ -1306,7 +1265,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         {
-            PhPropSheetNewUpdateClassBackground(WindowHandle);
+            PhUpdateWindowClassBackground(WindowHandle);
             InvalidateRect(WindowHandle, NULL, TRUE);
         }
         break;
@@ -1676,6 +1635,7 @@ HWND PhPropSheetNewCreate(
     _Out_opt_ PPH_PROPSHEETNEW_CONTEXT* OutContext
     )
 {
+    static ATOM windowAtom = INVALID_ATOM;
     PPH_PROPSHEETNEW_CONTEXT context;
     HWND hwnd;
     ULONG style;
@@ -1688,8 +1648,6 @@ HWND PhPropSheetNewCreate(
 
     if (Sheet->PageCount == 0 || !Sheet->Pages)
         return NULL;
-
-    PhPropSheetNewRegisterClass();
 
     context = PhAllocateZero(sizeof(PH_PROPSHEETNEW_CONTEXT));
     context->Sheet = *Sheet;
@@ -1725,15 +1683,18 @@ HWND PhPropSheetNewCreate(
         initialX = CW_USEDEFAULT;
         initialY = CW_USEDEFAULT;
 
-        if (FlagOn(Sheet->Flags, PH_PROPSHEETNEW_SAVE_PLACEMENT) &&
-            Sheet->SettingNamePosition && Sheet->SettingNameSize)
+        if (
+            FlagOn(Sheet->Flags, PH_PROPSHEETNEW_SAVE_PLACEMENT) &&
+            Sheet->SettingNamePosition && Sheet->SettingNameSize
+            )
         {
             PhLoadWindowPlacementFromRectangle(
                 Sheet->SettingNamePosition,
                 Sheet->SettingNameSize,
                 &rectangle
                 );
-
+            
+          
             if (rectangle.Width > 0 && rectangle.Height > 0 && (rectangle.Left || rectangle.Top))
             {
                 initialX = rectangle.Left;
@@ -1777,16 +1738,28 @@ HWND PhPropSheetNewCreate(
         }
     }
 
+    if (windowAtom == INVALID_ATOM)
+    {
+        windowAtom = PhPropSheetNewRegisterClass();
+    }
+
+    if (windowAtom == INVALID_ATOM)
+    {
+        PhShowError(Sheet->ParentWindow, L"Unable to register window class.", L"");
+        return NULL;
+    }
+
+    // NOTE: WS_EX_CONTROLPARENT must NOT be set on the top-level host. The
+    // modal loop drives it through IsDialogMessage, and the dialog manager
+    // recurses into any WS_EX_CONTROLPARENT window it walks - on the root
+    // window that traversal can loop, leaving the sheet unpainted. Page
+    // dialogs get the style in PhPropSheetNewCreatePageDialog, which is
+    // where it is actually needed for tab navigation. (dmex)
+
     hwnd = PhCreateWindowEx(
-        PH_PROPSHEETNEW_CLASSNAME,
+        MAKEINTATOM(windowAtom),
         Sheet->Caption,
         style,
-        // NOTE: WS_EX_CONTROLPARENT must NOT be set on the top-level host. The
-        // modal loop drives it through IsDialogMessage, and the dialog manager
-        // recurses into any WS_EX_CONTROLPARENT window it walks - on the root
-        // window that traversal can loop, leaving the sheet unpainted. Page
-        // dialogs get the style in PhPropSheetNewCreatePageDialog, which is
-        // where it is actually needed for tab navigation. (dmex)
         0,
         initialX,
         initialY,
@@ -1809,7 +1782,7 @@ HWND PhPropSheetNewCreate(
 
     // Refresh the class brush before the first show; the brush captured at
     // registration is deleted on palette changes made while no sheet exists. (dmex)
-    PhPropSheetNewUpdateClassBackground(hwnd);
+    PhUpdateWindowClassBackground(hwnd);
 
     if (Sheet->Icon && !(Sheet->Flags & PH_PROPSHEETNEW_NOICON))
     {

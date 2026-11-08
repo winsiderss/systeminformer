@@ -4,7 +4,7 @@
         {
             "label": "Build SystemInformer (Debug64)",
             "type": "shell",
-            "command": "msbuild",
+            "command": "${workspaceFolder}/build/build_msbuild.cmd",
             "args": [
                 "${workspaceFolder}/SystemInformer.sln",
                 "/p:Configuration=Debug",
@@ -21,7 +21,7 @@
         {
             "label": "Build Plugins (Debug64)",
             "type": "shell",
-            "command": "msbuild",
+            "command": "${workspaceFolder}/build/build_msbuild.cmd",
             "args": [
                 "${workspaceFolder}/Plugins/Plugins.sln",
                 "/p:Configuration=Debug",
@@ -38,7 +38,7 @@
         {
             "label": "Build ThirdParty (Debug64)",
             "type": "shell",
-            "command": "msbuild",
+            "command": "${workspaceFolder}/build/build_msbuild.cmd",
             "args": [
                 "${workspaceFolder}/tools/thirdparty/thirdparty.sln",
                 "/p:Configuration=Debug",
@@ -55,7 +55,7 @@
         {
             "label": "Build SystemInformer (kernel driver) (Debug64)",
             "type": "shell",
-            "command": "msbuild",
+            "command": "${workspaceFolder}/build/build_msbuild.cmd",
             "args": [
                 "${workspaceFolder}/KSystemInformer/KSystemInformer.sln",
                 "/p:Configuration=Debug",

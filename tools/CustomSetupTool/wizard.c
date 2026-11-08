@@ -32,29 +32,34 @@ typedef struct _SETUP_WIZARD_FONT_CONTEXT
 
 #define SETUP_WIZARD_WELCOME_PAGE_INDEX 0
 #define SETUP_WIZARD_SHORTCUTS_PAGE_INDEX 2
-#define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 3
-#define SETUP_WIZARD_INSTALL_PAGE_INDEX 4
-#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 5
-#define SETUP_WIZARD_ERROR_PAGE_INDEX 6
+#define SETUP_WIZARD_PARTNER_PAGE_INDEX 3
+#define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 4
+#define SETUP_WIZARD_INSTALL_PAGE_INDEX 5
+#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 6
+#define SETUP_WIZARD_ERROR_PAGE_INDEX 7
 
 #define SETUP_DARKMODE_SUBCLASS_ID 1
 #define SETUP_DWM_USE_IMMERSIVE_DARK_MODE 20
 #define SETUP_DWM_BORDER_COLOR 34
+#define SETUP_DWM_CAPTION_COLOR 35
+#define SETUP_DWM_TEXT_COLOR 36
 #define SETUP_WINDOW_CONTEXT_LARGE_TITLE UCHAR_MAX
+#define SETUP_WINDOW_CONTEXT_PARTNER_BANNER (UCHAR_MAX - 1)
 
 static BOOLEAN SetupWizardDarkMode = FALSE;
+static HBRUSH SetupWizardStockBrush = NULL;
 static HBRUSH SetupWizardBrushWindow = NULL;
 static HBRUSH SetupWizardBrushControl = NULL;
 
-static COLORREF SetupWizardColorWindow = RGB(32, 32, 32);
-static COLORREF SetupWizardColorControl = RGB(45, 45, 45);
-static COLORREF SetupWizardColorBorder = RGB(96, 96, 96);
-static COLORREF SetupWizardColorText = RGB(242, 242, 242);
-static COLORREF SetupWizardColorDisabledText = RGB(128, 128, 128);
-static COLORREF SetupWizardColorHot = RGB(62, 62, 62);
-static COLORREF SetupWizardColorPressed = RGB(72, 72, 72);
-static COLORREF SetupWizardColorEditActiveBorder = RGB(91, 157, 217);
-static COLORREF SetupWizardColorWindowInactiveBorder = RGB(90, 90, 90);
+static COLORREF SetupWizardColorWindow;
+static COLORREF SetupWizardColorControl;
+static COLORREF SetupWizardColorBorder;
+static COLORREF SetupWizardColorText;
+static COLORREF SetupWizardColorDisabledText;
+static COLORREF SetupWizardColorHot;
+static COLORREF SetupWizardColorPressed;
+static COLORREF SetupWizardColorEditActiveBorder;
+static COLORREF SetupWizardColorWindowInactiveBorder;
 
 typedef HRESULT (WINAPI* SETUP_DWMSETWINDOWATTRIBUTE)(
     _In_ HWND WindowHandle,
@@ -72,9 +77,48 @@ typedef BOOL (WINAPI* SETUP_ALLOWDARKMODEFORWINDOW)(
     _In_ BOOL Allow
     );
 
+typedef HRESULT (WINAPI* SETUP_DWMGETCOLORIZATIONCOLOR)(
+    _Out_ PULONG Colorization,
+    _Out_ PBOOL OpaqueBlend
+    );
+
 static SETUP_DWMSETWINDOWATTRIBUTE SetupDwmSetWindowAttribute_I = NULL;
+static SETUP_DWMGETCOLORIZATIONCOLOR SetupDwmGetColorizationColor_I = NULL;
 static SETUP_SHOULDAPPSUSEDARKMODE ShouldAppsUseDarkMode_I = NULL;
 static SETUP_ALLOWDARKMODEFORWINDOW AllowDarkModeForWindow_I = NULL;
+
+/**
+ * Queries the DWM colorization (accent) color.
+ *
+ * \param Color A variable which receives the colorization color.
+ * \return TRUE if the color was queried, otherwise FALSE.
+ */
+BOOLEAN SetupQueryDwmColorizationColor(
+    _Out_ COLORREF* Color
+    )
+{
+    PVOID dwmapiModule;
+    ULONG colorization;
+    BOOL opaqueBlend;
+
+    if (!(dwmapiModule = PhGetDllHandle(L"dwmapi.dll")))
+        dwmapiModule = PhLoadLibrary(L"dwmapi.dll");
+
+    if (!dwmapiModule)
+        return FALSE;
+
+    SetupDwmGetColorizationColor_I = (SETUP_DWMGETCOLORIZATIONCOLOR)PhGetProcedureAddress(dwmapiModule, "DwmGetColorizationColor", 0);
+
+    if (!SetupDwmGetColorizationColor_I)
+        return FALSE;
+
+    if (!HR_SUCCESS(SetupDwmGetColorizationColor_I(&colorization, &opaqueBlend)))
+        return FALSE;
+
+    // DWM returns 0xAARRGGBB; convert to COLORREF (0x00BBGGRR).
+    *Color = RGB((colorization >> 16) & 0xFF, (colorization >> 8) & 0xFF, colorization & 0xFF);
+    return TRUE;
+}
 
 /**
  * Queries whether Windows is using dark app mode.
@@ -85,13 +129,13 @@ BOOLEAN SetupQueryDarkMode(
     VOID
     )
 {
-    HMODULE uxthemeModule;
+    PVOID uxthemeModule;
 
     if (!(uxthemeModule = PhGetDllHandle(L"uxtheme.dll")))
         uxthemeModule = PhLoadLibrary(L"uxtheme.dll");
 
     if (!uxthemeModule)
-        return FALSE;
+       return FALSE;
 
     ShouldAppsUseDarkMode_I = (SETUP_SHOULDAPPSUSEDARKMODE)PhGetProcedureAddress(uxthemeModule, NULL, 132);
 
@@ -112,12 +156,8 @@ VOID SetupAllowDarkModeForWindow(
 {
     HMODULE uxthemeModule;
     HMODULE dwmapiModule;
-    BOOL value;
 
-    if (!SetupWizardDarkMode)
-        return;
-
-    if (uxthemeModule = PhGetDllHandle(L"uxtheme.dll"))
+    if (SetupWizardDarkMode && (uxthemeModule = PhGetDllHandle(L"uxtheme.dll")))
     {
         AllowDarkModeForWindow_I = (SETUP_ALLOWDARKMODEFORWINDOW)PhGetProcedureAddress(uxthemeModule, NULL, 133);
 
@@ -125,15 +165,20 @@ VOID SetupAllowDarkModeForWindow(
             AllowDarkModeForWindow_I(WindowHandle, TRUE);
     }
 
-    if (dwmapiModule = PhLoadLibrary(L"dwmapi.dll"))
+    if (!SetupDwmSetWindowAttribute_I && (dwmapiModule = PhLoadLibrary(L"dwmapi.dll")))
     {
         SetupDwmSetWindowAttribute_I = (SETUP_DWMSETWINDOWATTRIBUTE)PhGetProcedureAddress(dwmapiModule, "DwmSetWindowAttribute", 0);
+    }
 
-        if (SetupDwmSetWindowAttribute_I)
-        {
-            value = TRUE;
-            SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
-        }
+    if (SetupDwmSetWindowAttribute_I)
+    {
+        COLORREF captionColor = SetupWizardColorWindow;
+        COLORREF textColor = SetupWizardColorText;
+        BOOL value= SetupWizardDarkMode;
+
+        SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+        SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_CAPTION_COLOR, &captionColor, sizeof(captionColor));
+        SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_TEXT_COLOR, &textColor, sizeof(textColor));
     }
 }
 
@@ -149,12 +194,27 @@ VOID SetupUpdateWindowBorderColor(
     )
 {
     COLORREF borderColor;
+    COLORREF captionColor;
+    COLORREF textColor;
 
-    if (!SetupWizardDarkMode || !SetupDwmSetWindowAttribute_I)
+    if (!SetupDwmSetWindowAttribute_I)
         return;
 
-    borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : SetupWizardColorWindowInactiveBorder;
+    if (Active)
+    {
+        if (!SetupQueryDwmColorizationColor(&borderColor))
+            borderColor = GetSysColor(COLOR_HOTLIGHT);
+    }
+    else
+    {
+        borderColor = SetupWizardColorWindowInactiveBorder;
+    }
+
+    captionColor = SetupWizardColorWindow;
+    textColor = Active ? SetupWizardColorText : SetupWizardColorDisabledText;
     SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_BORDER_COLOR, &borderColor, sizeof(borderColor));
+    SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_CAPTION_COLOR, &captionColor, sizeof(captionColor));
+    SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_TEXT_COLOR, &textColor, sizeof(textColor));
 }
 
 /**
@@ -166,14 +226,42 @@ VOID SetupInitializeDarkMode(
 {
     SetupWizardDarkMode = SetupQueryDarkMode();
 
-    if (!SetupWizardDarkMode)
-        return;
+    if (SetupWizardDarkMode)
+    {
+        SetupWizardColorWindow = RGB(32, 32, 32);
+        SetupWizardColorControl = RGB(45, 45, 45);
+        SetupWizardColorBorder = RGB(96, 96, 96);
+        SetupWizardColorText = RGB(242, 242, 242);
+        SetupWizardColorDisabledText = RGB(128, 128, 128);
+        SetupWizardColorHot = RGB(62, 62, 62);
+        SetupWizardColorPressed = RGB(72, 72, 72);
+        SetupWizardColorEditActiveBorder = RGB(91, 157, 217);
+        SetupWizardColorWindowInactiveBorder = RGB(90, 90, 90);
+    }
+    else
+    {
+        SetupWizardColorWindow = GetSysColor(COLOR_WINDOW);
+        SetupWizardColorControl = GetSysColor(COLOR_WINDOW);
+        SetupWizardColorBorder = GetSysColor(COLOR_3DSHADOW);
+        SetupWizardColorText = GetSysColor(COLOR_WINDOWTEXT);
+        SetupWizardColorDisabledText = GetSysColor(COLOR_GRAYTEXT);
+        SetupWizardColorHot = GetSysColor(COLOR_3DLIGHT);
+        SetupWizardColorPressed = GetSysColor(COLOR_3DSHADOW);
+        SetupWizardColorEditActiveBorder = GetSysColor(COLOR_HOTLIGHT);
+        SetupWizardColorWindowInactiveBorder = GetSysColor(COLOR_INACTIVEBORDER);
+    }
+
+    SetupWizardStockBrush = GetStockBrush(DC_BRUSH);
 
     if (!SetupWizardBrushWindow)
+    {
         SetupWizardBrushWindow = CreateSolidBrush(SetupWizardColorWindow);
+    }
 
     if (!SetupWizardBrushControl)
+    {
         SetupWizardBrushControl = CreateSolidBrush(SetupWizardColorControl);
+    }
 }
 
 /**
@@ -211,8 +299,8 @@ INT_PTR SetupHandleDarkControlColor(
     HWND controlHandle;
     WCHAR className[16];
 
-    if (!SetupWizardDarkMode)
-        return 0;
+    //if (!SetupWizardDarkMode)
+    //    return 0;
 
     controlHandle = (HWND)lParam;
 
@@ -284,7 +372,7 @@ VOID SetupPaintDarkButton(
 
         FillRect(hdc, &checkRect, SetupWizardBrushControl);
         SetDCBrushColor(hdc, RGB(0, 130, 135));
-        FrameRect(hdc, &checkRect, GetStockBrush(DC_BRUSH));
+        FrameRect(hdc, &checkRect, SetupWizardStockBrush);
 
         if (SendMessage(windowHandle, BM_GETCHECK, 0, 0) == BST_CHECKED)
         {
@@ -325,7 +413,7 @@ VOID SetupPaintDarkButton(
         DeleteBrush(brushHandle);
 
         SetDCBrushColor(hdc, RGB(55, 55, 55));
-        FrameRect(hdc, &CustomDraw->rc, GetStockBrush(DC_BRUSH));
+        FrameRect(hdc, &CustomDraw->rc, SetupWizardStockBrush);
 
         if (focused)
         {
@@ -403,19 +491,37 @@ LRESULT CALLBACK SetupDividerSubclassProc(
         return TRUE;
     case WM_PAINT:
         {
+            HDC hdc;
             PAINTSTRUCT paint;
+            PH_BUFFERED_PAINT bufferedPaint;
+            HDC bufferDc;
             RECT clientRect;
             COLORREF dividerColor;
-            LONG dpi = PhGetWindowDpi(WindowHandle);
 
-            BeginPaint(WindowHandle, &paint);
             GetClientRect(WindowHandle, &clientRect);
-            //PhInflateRect(&clientRect, -1, -1);
-            PhInflateRect(&clientRect, 1, 1);
 
-            dividerColor = SetupWizardDarkMode ? RGB(55, 55, 55) : GetSysColor(COLOR_3DSHADOW);
-            SetDCBrushColor(paint.hdc, dividerColor);
-            FillRect(paint.hdc, &clientRect, GetStockBrush(DC_BRUSH));
+            hdc = BeginPaint(WindowHandle, &paint);
+
+            if (PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
+            {
+                //PhInflateRect(&clientRect, -1, -1);
+                PhInflateRect(&clientRect, 1, 1);
+
+                dividerColor = SetupWizardDarkMode ? RGB(55, 55, 55) : GetSysColor(COLOR_BTNSHADOW);
+                SetDCBrushColor(bufferDc, dividerColor);
+                FillRect(bufferDc, &clientRect, SetupWizardStockBrush);
+
+                PhEndBufferedPaint(&bufferedPaint, TRUE);
+            }
+            else
+            {
+                //PhInflateRect(&clientRect, -1, -1);
+                PhInflateRect(&clientRect, 1, 1);
+
+                dividerColor = SetupWizardDarkMode ? RGB(55, 55, 55) : GetSysColor(COLOR_BTNSHADOW);
+                SetDCBrushColor(hdc, dividerColor);
+                FillRect(hdc, &clientRect, SetupWizardStockBrush);
+            }
 
             EndPaint(WindowHandle, &paint);
         }
@@ -554,7 +660,7 @@ VOID SetupPaintControlBorder(
         borderColor = RGB(122, 122, 122);
 
     SetDCBrushColor(dcHandle, borderColor);
-    FrameRect(dcHandle, &windowRect, GetStockBrush(DC_BRUSH));
+    FrameRect(dcHandle, &windowRect, SetupWizardStockBrush);
 
     PhInflateRect(&windowRect, -1, -1);
     FrameRect(dcHandle, &windowRect, SetupWizardBrushWindow);
@@ -619,9 +725,6 @@ VOID SetupApplyDarkModeToControl(
     )
 {
     WCHAR className[16];
-
-    if (!SetupWizardDarkMode)
-        return;
 
     if (NT_SUCCESS(PhGetClassName(WindowHandle, className, ARRAYSIZE(className), NULL)))
     {
@@ -689,7 +792,7 @@ static VOID SetupPaintDarkProgress(
     LONG width;
 
     SetDCBrushColor(DcHandle, SetupWizardColorControl);
-    FillRect(DcHandle, &trackRect, GetStockBrush(DC_BRUSH));
+    FillRect(DcHandle, &trackRect, SetupWizardStockBrush);
 
     SendMessage(WindowHandle, PBM_GETRANGE, 0, (LPARAM)&range);
 
@@ -698,11 +801,11 @@ static VOID SetupPaintDarkProgress(
         width = (trackRect.right - trackRect.left) * (position - range.iLow) / (range.iHigh - range.iLow);
         barRect.right = barRect.left + width;
         SetDCBrushColor(DcHandle, RGB(0, 120, 215));
-        FillRect(DcHandle, &barRect, GetStockBrush(DC_BRUSH));
+        FillRect(DcHandle, &barRect, SetupWizardStockBrush);
     }
 
     SetDCBrushColor(DcHandle, RGB(70, 70, 70));
-    FrameRect(DcHandle, &trackRect, GetStockBrush(DC_BRUSH));
+    FrameRect(DcHandle, &trackRect, SetupWizardStockBrush);
 }
 
 static LRESULT CALLBACK SetupProgressSubclassProc(
@@ -732,7 +835,8 @@ static LRESULT CALLBACK SetupProgressSubclassProc(
 
         BeginPaint(WindowHandle, &paint);
         GetClientRect(WindowHandle, &clientRect);
-        if (PhBeginBufferedPaint(paint.hdc, &paint.rcPaint, BPBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
+
+        if (PhBeginBufferedPaint(paint.hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
         {
             SetupPaintDarkProgress(WindowHandle, bufferDc, &clientRect);
             PhEndBufferedPaint(&bufferedPaint, TRUE);
@@ -741,6 +845,7 @@ static LRESULT CALLBACK SetupProgressSubclassProc(
         {
             SetupPaintDarkProgress(WindowHandle, paint.hdc, &clientRect);
         }
+
         EndPaint(WindowHandle, &paint);
         return 0;
     }
@@ -1316,24 +1421,9 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
 
             PhCenterWindow(context->ParentWindowHandle, NULL);
 
-            ShowWindow(context->ParentWindowHandle, SW_SHOW);
-            UpdateWindow(context->ParentWindowHandle);
-
-            if (!SetForegroundWindow(context->ParentWindowHandle))
-            {
-                PhBringWindowToTop(context->ParentWindowHandle);
-            }
-
             SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
             SetupLoadWelcomeBitmap(WindowHandle);
             SetupApplyDarkModeToPage(WindowHandle);
-
-            SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE);
-
-            if (!PhGetOwnTokenAttributes().Elevated)
-            {
-                Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), TRUE);
-            }
         }
         break;
     case WM_NOTIFY:
@@ -1352,7 +1442,22 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE);
+                {
+                    SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE);
+
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), TRUE);
+                    }
+                }
+                break;
+            case PSN_KILLACTIVE:
+                {
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), FALSE);
+                    }
+                }
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
@@ -1434,10 +1539,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
         {
-            if (SetupWizardDarkMode)
-            {
-                return SetupHandleDarkControlColor(wParam, lParam);
-            }
+            return SetupHandleDarkControlColor(wParam, lParam);
         }
         break;
     case WM_NCDESTROY:
@@ -1722,10 +1824,6 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
         LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
-
-        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
-        SetupApplyDarkModeToPage(WindowHandle);
-        PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
     }
     else
     {
@@ -1737,6 +1835,18 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
 
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
+            SetupApplyDarkModeToPage(WindowHandle);
+
+            // The dark mode path above already subclasses edit controls with its own border painting.
+            if (!SetupWizardDarkMode)
+                PhInitializeWindowThemeEditControl(GetDlgItem(WindowHandle, IDC_PATH));
+
+            PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
+        }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -1827,18 +1937,21 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
         SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
-        if (SetupWizardDarkMode)
         {
-            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
-            return TRUE;
+            if (SetupWizardDarkMode)
+            {
+                SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+                return TRUE;
+            }
         }
         break;
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
+        {
             return SetupHandleDarkControlColor(wParam, lParam);
+        }
         break;
     case WM_NCDESTROY:
         SetupDestroyWizardPage(WindowHandle);
@@ -2045,7 +2158,7 @@ INT_PTR CALLBACK SetupShortcutsPageDlgProc(
                     }
 
                     PhMoveReference(&context->SetupStartMenuFolderName, PhCreateString(folderName));
-                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_INSTALL_PAGE_INDEX);
+                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_PARTNER_PAGE_INDEX);
                     SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                     return TRUE;
                 }
@@ -2064,7 +2177,6 @@ INT_PTR CALLBACK SetupShortcutsPageDlgProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORLISTBOX:
-        if (SetupWizardDarkMode)
             return SetupHandleDarkControlColor(wParam, lParam);
         break;
     case WM_NCDESTROY:
@@ -2098,20 +2210,6 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
         LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
-
-        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
-        SetupApplyDarkModeToPage(WindowHandle);
-
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_SHOW);
-            EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), TRUE);
-        }
-        else
-        {
-            ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_HIDE);
-            EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), FALSE);
-        }
     }
     else
     {
@@ -2146,6 +2244,14 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
                     if (!PhGetOwnTokenAttributes().Elevated)
                     {
                         Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), TRUE);
+                    }
+                }
+                break;
+            case PSN_KILLACTIVE:
+                {
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), FALSE);
                     }
                 }
                 break;
@@ -2220,9 +2326,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
-            return SetupHandleDarkControlColor(wParam, lParam);
-        break;
+        return SetupHandleDarkControlColor(wParam, lParam);
     case WM_NCDESTROY:
         SetupDestroyWizardPage(WindowHandle);
         break;
@@ -2327,6 +2431,23 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
 
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
+            SetupApplyDarkModeToPage(WindowHandle);
+
+            if (PhGetOwnTokenAttributes().Elevated)
+            {
+                ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_SHOW);
+                EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), TRUE);
+            }
+            else
+            {
+                ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_HIDE);
+                EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), FALSE);
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -2395,10 +2516,7 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
         {
-            if (SetupWizardDarkMode)
-            {
-                return SetupHandleDarkControlColor(wParam, lParam);
-            }
+            return SetupHandleDarkControlColor(wParam, lParam);
         }
         break;
     case WM_NCDESTROY:
@@ -2432,11 +2550,6 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
         LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
-
-        SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
-        SetupApplyDarkModeToPage(WindowHandle);
-        CheckDlgButton(WindowHandle, IDC_STARTAPP, BST_CHECKED);
-        SetupLoadWelcomeBitmap(WindowHandle);
     }
     else
     {
@@ -2448,6 +2561,14 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
 
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+
+            SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
+            SetupApplyDarkModeToPage(WindowHandle);
+            SetupLoadWelcomeBitmap(WindowHandle);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -2497,7 +2618,7 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
         {
-            if (SetupWizardDarkMode)
+      
             {
                 return SetupHandleDarkControlColor(wParam, lParam);
             }
@@ -2534,10 +2655,6 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
         LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
-
-        SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
-        SetupApplyDarkModeToPage(WindowHandle);
-        SetupLoadWelcomeBitmap(WindowHandle);
     }
     else
     {
@@ -2549,6 +2666,15 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
 
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+
+            SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
+            SetupApplyDarkModeToPage(WindowHandle);
+            CheckDlgButton(WindowHandle, IDC_STARTAPP, BST_CHECKED);
+            SetupLoadWelcomeBitmap(WindowHandle);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -2584,11 +2710,14 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZBACK:
-                if (context->SetupMode == SetupCommandUninstall)
-                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_UNINSTALL_PAGE_INDEX);
-                else
-                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, 0);
-                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                {
+                    if (context->SetupMode == SetupCommandUninstall)
+                        PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_UNINSTALL_PAGE_INDEX);
+                    else
+                        PropSheet_SetCurSel(context->ParentWindowHandle, NULL, 0);
+
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                }
                 return TRUE;
             }
         }
@@ -2608,7 +2737,6 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
             return SetupHandleDarkControlColor(wParam, lParam);
         break;
     case WM_NCDESTROY:
@@ -2651,7 +2779,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     case WM_DPICHANGED:
         {
             LRESULT result;
-            PRECT suggestedRect = (RECT *)lParam;
+            PRECT suggestedRect = (RECT*)lParam;
 
             SetWindowPos(
                 WindowHandle,
@@ -2710,10 +2838,12 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         }
         break;
     case WM_ERASEBKGND:
-        if (SetupWizardDarkMode)
         {
-            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
-            return TRUE;
+            if (SetupWizardDarkMode)
+            {
+                SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+                return TRUE;
+            }
         }
         break;
     case WM_CTLCOLORDLG:
@@ -2721,8 +2851,8 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
         {
-            if (SetupWizardDarkMode)
-                return SetupHandleDarkControlColor(wParam, lParam);
+
+            return SetupHandleDarkControlColor(wParam, lParam);
         }
         break;
     case WM_NOTIFY:

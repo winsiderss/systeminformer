@@ -33,6 +33,7 @@ static BOOLEAN OneGraphPerCpu;
 static HWND CpuPanel;
 static ULONG CpuTicked;
 static ULONG CpuMaxMhz;
+static PULONG CpuNominalMhz; // Per processor nominal frequency (hybrid processors have more than one)
 static ULONG NumberOfProcessors;
 static FLOAT CpuTimerResolution;
 static PFLOAT CpuFrequencyInformation;
@@ -251,6 +252,7 @@ VOID PhSipInitializeCpuDialog(
     CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * NumberOfProcessors);
     InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors);
     PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+    CpuNominalMhz = PhAllocateZero(sizeof(ULONG) * NumberOfProcessors);
 
     if (PhGetIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU))
     {
@@ -303,6 +305,8 @@ VOID PhSipUninitializeCpuDialog(
     PhFree(CpusGraphState);
     PhFree(InterruptInformation);
     PhFree(PowerInformation);
+    PhFree(CpuNominalMhz);
+    PhFree(CpuFrequencyInformation);
 
     // Note: Required for SysInfoViewChanging (dmex)
     NumberOfProcessors = 0;
@@ -311,6 +315,8 @@ VOID PhSipUninitializeCpuDialog(
     CpusGraphState = NULL;
     InterruptInformation = NULL;
     PowerInformation = NULL;
+    CpuNominalMhz = NULL;
+    CpuFrequencyInformation = NULL;
 
     for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
     {
@@ -519,6 +525,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(hwndDlg);
             CpuL1CacheSize = 0;
             CpuL2CacheSize = 0;
             CpuL3CacheSize = 0;
@@ -1601,13 +1608,88 @@ LARGE_INTEGER PhSipGetCpuInterceptLatency(
     return performanceCounterTicks;
 }
 
+VOID PhSipUpdateProcessorFrequencyFromPowerInformation(
+    VOID
+    )
+{
+    ULONGLONG currentMhzTotal = 0;
+
+    // Derive the CPU page frequency from the processor power information that
+    // PhSipUpdateProcessorInformation() already retrieved via NtPowerInformation(ProcessorInformation), matching the
+    // approach used by Task Manager (average of PROCESSOR_POWER_INFORMATION.CurrentMhz). (dmex)
+
+    for (ULONG i = 0; i < NumberOfProcessors; i++)
+    {
+        if (CpuFrequencyInformation)
+            CpuFrequencyInformation[i] = (FLOAT)PowerInformation[i].CurrentMhz;
+
+        currentMhzTotal += PowerInformation[i].CurrentMhz;
+    }
+
+    if (NumberOfProcessors != 0)
+        CpuCurrentFrequency = (FLOAT)((DOUBLE)currentMhzTotal / (DOUBLE)NumberOfProcessors);
+    else
+        CpuCurrentFrequency = (FLOAT)PowerInformation[0].CurrentMhz;
+}
+
+_Success_(return)
+BOOLEAN PhSipAccumulateProcessorPerformanceDistribution(
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Current,
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Previous,
+    _In_ ULONG BaseProcessorIndex,
+    _Inout_ PDOUBLE TotalWeightedFrequency,
+    _Inout_ PULONG64 TotalHitCount
+    )
+{
+    DOUBLE totalWeightedFrequency = 0;
+    ULONG64 totalHitCount = 0;
+
+    // PercentPerformance is relative to the nominal frequency of this processor's performance
+    // domain, not the system wide nominal frequency.
+    //
+    // Note: Windows 10 encodes the performance as a pseudo distribution with PercentFrequency
+    // values of 0 and 255, so PercentPerformance cannot exceed 255 percent. Hybrid processors
+    // with a low efficiency core nominal frequency can run above that and the value is capped.
+    // We keep the capped value until the driver can provide APERF/MPERF data.
+    // https://github.com/winsiderss/systeminformer/issues/3109 (dmex)
+
+    if (Current->ProcessorCount != Previous->ProcessorCount)
+        return FALSE;
+
+    for (ULONG i = 0; i < Current->ProcessorCount; i++)
+    {
+        PH_PROCESSOR_PERFORMANCE_DELTA delta;
+        ULONG processorIndex = BaseProcessorIndex + i;
+        DOUBLE frequency;
+
+        if (processorIndex >= NumberOfProcessors)
+            break;
+
+        if (!PhCalculateProcessorPerformanceDistributionDelta(Current, Previous, i, &delta))
+            return FALSE;
+
+        frequency = (DOUBLE)delta.PercentPerformance * (DOUBLE)CpuNominalMhz[processorIndex] / 100.0;
+
+        if (CpuFrequencyInformation)
+        {
+            CpuFrequencyInformation[processorIndex] = delta.TotalHitCount ? (FLOAT)frequency : 0.0f;
+        }
+
+        totalWeightedFrequency += frequency * (DOUBLE)delta.TotalHitCount;
+        totalHitCount += delta.TotalHitCount;
+    }
+
+    *TotalWeightedFrequency += totalWeightedFrequency;
+    *TotalHitCount += totalHitCount;
+    return TRUE;
+}
+
 VOID PhSipUpdateProcessorPerformanceDistribution(
     VOID
     )
 {
-    ULONG i, j;
-    ULONGLONG totalCount = 0;
-    ULONGLONG totalValue = 0;
+    DOUBLE totalWeightedFrequency = 0;
+    ULONG64 totalHitCount = 0;
 
     if (PreviousPerformanceDistribution)
     {
@@ -1622,133 +1704,53 @@ VOID PhSipUpdateProcessorPerformanceDistribution(
 
     if (!CurrentPerformanceDistribution || !PreviousPerformanceDistribution)
         goto CleanupExit;
-    if (CurrentPerformanceDistribution->ProcessorCount != PreviousPerformanceDistribution->ProcessorCount)
-        goto CleanupExit;
-    //if (CurrentPerformanceDistribution->ProcessorCount != NumberOfProcessors)
-    //    goto CleanupExit;
 
-    for (i = 0; i < CurrentPerformanceDistribution->ProcessorCount; i++)
+    if (!PhSipAccumulateProcessorPerformanceDistribution(
+        CurrentPerformanceDistribution,
+        PreviousPerformanceDistribution,
+        0,
+        &totalWeightedFrequency,
+        &totalHitCount
+        ))
     {
-        ULONGLONG count = 0;
-        ULONGLONG value = 0;
-
-        if (WindowsVersion >= WINDOWS_8_1)
-        {
-            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION current;
-            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION previous;
-
-            current = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-            previous = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-
-            if (current->StateCount != previous->StateCount)
-                goto CleanupExit;
-
-            for (j = 0; j < current->StateCount; j++)
-            {
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountCurrent = &current->States[j];
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountPrevious = &previous->States[j];;
-                ULONGLONG delta = hitcountCurrent->Hits - hitcountPrevious->Hits;
-
-                if (delta)
-                {
-                    count += delta;
-                    value += delta * hitcountCurrent->PercentFrequency * CpuMaxMhz;
-                }
-            }
-        }
-        else
-        {
-            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 current;
-            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 previous;
-
-            current = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-            previous = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-
-            if (current->StateCount != previous->StateCount)
-                goto CleanupExit;
-
-            for (j = 0; j < current->StateCount; j++)
-            {
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldCurrent = &current->States[j];
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldPrevious = &previous->States[j];
-                ULONGLONG delta = hitcountOldCurrent->Hits - hitcountOldPrevious->Hits;
-
-                if (delta)
-                {
-                    count += delta;
-                    value += delta * hitcountOldCurrent->PercentFrequency * CpuMaxMhz;
-                }
-            }
-        }
-
-        if (CpuFrequencyInformation)
-        {
-            CpuFrequencyInformation[i] = count ? (FLOAT)((DOUBLE)value / (DOUBLE)count / 100.0) : 0.0f;
-        }
-
-        totalCount += count;
-        totalValue += value;
+        goto CleanupExit;
     }
 
-    if (totalCount == 0)
-        CpuCurrentFrequency = (FLOAT)PowerInformation[0].CurrentMhz;
-    else
-        CpuCurrentFrequency = (FLOAT)((DOUBLE)totalValue / (DOUBLE)totalCount / 100.0);
+    if (totalHitCount == 0)
+    {
+        PhSipUpdateProcessorFrequencyFromPowerInformation();
+        return;
+    }
 
+    CpuCurrentFrequency = (FLOAT)(totalWeightedFrequency / (DOUBLE)totalHitCount);
     return;
 
 CleanupExit:
-    if (CurrentPerformanceDistribution)
-    {
-        PhFree(CurrentPerformanceDistribution);
-        CurrentPerformanceDistribution = NULL;
-    }
+    // Keep the current distribution as the baseline for the next update. Freeing it here
+    // would leave the next update without a previous sample, and that one would fail too. (dmex)
     if (PreviousPerformanceDistribution)
     {
         PhFree(PreviousPerformanceDistribution);
         PreviousPerformanceDistribution = NULL;
     }
 
-    if (CpuFrequencyInformation)
-    {
-        memset(CpuFrequencyInformation, 0, sizeof(FLOAT) * NumberOfProcessors);
-    }
-
-    // Derive the CPU page frequency from the processor power information that
-    // PhSipUpdateProcessorInformation() already retrieved via NtPowerInformation(ProcessorInformation), matching the
-    // approach used by Task Manager (average of PROCESSOR_POWER_INFORMATION.CurrentMhz). (dmex)
-    {
-        ULONG i;
-        ULONGLONG currentMhzTotal = 0;
-
-        for (i = 0; i < NumberOfProcessors; i++)
-        {
-            if (CpuFrequencyInformation)
-                CpuFrequencyInformation[i] = (FLOAT)PowerInformation[i].CurrentMhz;
-
-            currentMhzTotal += PowerInformation[i].CurrentMhz;
-        }
-
-        if (NumberOfProcessors != 0)
-            CpuCurrentFrequency = (FLOAT)((DOUBLE)currentMhzTotal / (DOUBLE)NumberOfProcessors);
-        else
-            CpuCurrentFrequency = (FLOAT)PowerInformation[0].CurrentMhz;
-    }
+    PhSipUpdateProcessorFrequencyFromPowerInformation();
 }
 
 VOID PhSipUpdateProcessorPerformanceDistributionEx(
     VOID
     )
 {
-    ULONG i, j;
-    ULONGLONG totalCount = 0;
-    ULONGLONG totalValue = 0;
+    DOUBLE totalWeightedFrequency = 0;
+    ULONG64 totalHitCount = 0;
     ULONG processorIndex = 0; // Global (system-wide) processor index across all groups.
+    BOOLEAN valid = TRUE;
 
     // The SystemProcessorPerformanceDistribution class only returns data for a single
     // processor group per query, so iterate every group and aggregate the per-processor
     // frequency into the system-wide CpuFrequencyInformation array (indexed in group
-    // order) and into the overall CpuCurrentFrequency average. (dmex)
+    // order) and into the overall CpuCurrentFrequency average. Every group is rotated
+    // even when another group fails so each keeps a baseline for the next update. (dmex)
 
     for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
     {
@@ -1763,104 +1765,36 @@ VOID PhSipUpdateProcessorPerformanceDistributionEx(
 
         PhGetSystemProcessorPerformanceDistributionEx(processorGroup, &CurrentPerformanceDistributionEx[processorGroup]);
 
-        if (!CurrentPerformanceDistributionEx[processorGroup] || !PreviousPerformanceDistributionEx[processorGroup])
-            goto CleanupExit;
-        if (CurrentPerformanceDistributionEx[processorGroup]->ProcessorCount != PreviousPerformanceDistributionEx[processorGroup]->ProcessorCount)
-            goto CleanupExit;
-
-        for (i = 0; i < CurrentPerformanceDistributionEx[processorGroup]->ProcessorCount; i++)
+        if (
+            !CurrentPerformanceDistributionEx[processorGroup] ||
+            !PreviousPerformanceDistributionEx[processorGroup] ||
+            !PhSipAccumulateProcessorPerformanceDistribution(
+                CurrentPerformanceDistributionEx[processorGroup],
+                PreviousPerformanceDistributionEx[processorGroup],
+                processorIndex,
+                &totalWeightedFrequency,
+                &totalHitCount
+                ))
         {
-            ULONGLONG count = 0;
-            ULONGLONG value = 0;
-
-            if (WindowsVersion >= WINDOWS_8_1)
+            if (PreviousPerformanceDistributionEx[processorGroup])
             {
-                PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION current;
-                PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION previous;
-
-                current = PTR_ADD_OFFSET(CurrentPerformanceDistributionEx[processorGroup], CurrentPerformanceDistributionEx[processorGroup]->Offsets[i]);
-                previous = PTR_ADD_OFFSET(PreviousPerformanceDistributionEx[processorGroup], PreviousPerformanceDistributionEx[processorGroup]->Offsets[i]);
-
-                if (current->StateCount != previous->StateCount)
-                    goto CleanupExit;
-
-                for (j = 0; j < current->StateCount; j++)
-                {
-                    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountCurrent = &current->States[j];
-                    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountPrevious = &previous->States[j];
-                    ULONGLONG delta = hitcountCurrent->Hits - hitcountPrevious->Hits;
-
-                    if (delta)
-                    {
-                        count += delta;
-                        value += delta * hitcountCurrent->PercentFrequency * CpuMaxMhz;
-                    }
-                }
-            }
-            else
-            {
-                PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 current;
-                PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 previous;
-
-                current = PTR_ADD_OFFSET(CurrentPerformanceDistributionEx[processorGroup], CurrentPerformanceDistributionEx[processorGroup]->Offsets[i]);
-                previous = PTR_ADD_OFFSET(PreviousPerformanceDistributionEx[processorGroup], PreviousPerformanceDistributionEx[processorGroup]->Offsets[i]);
-
-                if (current->StateCount != previous->StateCount)
-                    goto CleanupExit;
-
-                for (j = 0; j < current->StateCount; j++)
-                {
-                    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldCurrent = &current->States[j];
-                    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldPrevious = &previous->States[j];
-                    ULONGLONG delta = hitcountOldCurrent->Hits - hitcountOldPrevious->Hits;
-
-                    if (delta)
-                    {
-                        count += delta;
-                        value += delta * hitcountOldCurrent->PercentFrequency * CpuMaxMhz;
-                    }
-                }
+                PhFree(PreviousPerformanceDistributionEx[processorGroup]);
+                PreviousPerformanceDistributionEx[processorGroup] = NULL;
             }
 
-            if (CpuFrequencyInformation && processorIndex < NumberOfProcessors)
-            {
-                CpuFrequencyInformation[processorIndex] = count ? (FLOAT)((DOUBLE)value / (DOUBLE)count / 100.0) : 0.0f;
-            }
-
-            processorIndex++;
-            totalCount += count;
-            totalValue += value;
+            valid = FALSE;
         }
+
+        processorIndex += PhGetActiveProcessorCount(processorGroup);
     }
 
-    if (totalCount == 0)
-        CpuCurrentFrequency = (FLOAT)PowerInformation[0].CurrentMhz;
-    else
-        CpuCurrentFrequency = (FLOAT)((DOUBLE)totalValue / (DOUBLE)totalCount / 100.0);
-
-    return;
-
-CleanupExit:
-    for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+    if (!valid || totalHitCount == 0)
     {
-        if (CurrentPerformanceDistributionEx[processorGroup])
-        {
-            PhFree(CurrentPerformanceDistributionEx[processorGroup]);
-            CurrentPerformanceDistributionEx[processorGroup] = NULL;
-        }
-        if (PreviousPerformanceDistributionEx[processorGroup])
-        {
-            PhFree(PreviousPerformanceDistributionEx[processorGroup]);
-            PreviousPerformanceDistributionEx[processorGroup] = NULL;
-        }
+        PhSipUpdateProcessorFrequencyFromPowerInformation();
+        return;
     }
 
-    if (CpuFrequencyInformation)
-    {
-        memset(CpuFrequencyInformation, 0, sizeof(FLOAT) * NumberOfProcessors);
-    }
-
-    CpuCurrentFrequency = (FLOAT)PowerInformation[0].CurrentMhz;
+    CpuCurrentFrequency = (FLOAT)(totalWeightedFrequency / (DOUBLE)totalHitCount);
 }
 
 _Success_(return)
@@ -2557,36 +2491,30 @@ VOID PhSipUpdateProcessorFrequency(
     VOID
     )
 {
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT input;
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT output;
+    // The performance distribution reports each processor as a percentage of its own
+    // performance domain nominal frequency, and hybrid processors have a different nominal
+    // frequency for each core type. Query every processor rather than processor 0 only. (dmex)
 
-    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT));
-    input.InternalType = PowerInternalProcessorBrandedFrequency;
-    input.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
-    //PhGetCurrentProcessorNumber(&input.ProcessorNumber);
-
-    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT));
-    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
-
-    if (NT_SUCCESS(NtPowerInformation(
-        PowerInformationInternal,
-        &input,
-        sizeof(input),
-        &output,
-        sizeof(output)
-        )))
-    {
-        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
-        {
-            CpuMaxMhz = output.NominalFrequency;
-            return;
-        }
-    }
+    CpuMaxMhz = 0;
 
     for (ULONG i = 0; i < NumberOfProcessors; i++)
     {
-        if (CpuMaxMhz < PowerInformation[i].MaxMhz)
-            CpuMaxMhz = PowerInformation[i].MaxMhz;
+        PH_PROCESSOR_NUMBER processorNumber;
+        ULONG nominalFrequency = 0;
+
+        if (NT_SUCCESS(PhGetProcessorNumberFromIndex(i, &processorNumber)))
+        {
+            if (!NT_SUCCESS(PhGetProcessorNominalFrequency(&processorNumber, &nominalFrequency)))
+                nominalFrequency = 0;
+        }
+
+        if (nominalFrequency == 0)
+            nominalFrequency = PowerInformation[i].MaxMhz;
+
+        CpuNominalMhz[i] = nominalFrequency;
+
+        if (CpuMaxMhz < nominalFrequency)
+            CpuMaxMhz = nominalFrequency;
     }
 }
 

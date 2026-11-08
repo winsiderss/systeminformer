@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{72176b92-9169-4bb7-a3e9-3d136d1d3f14}</ProjectGuid>
     <RootNamespace>CustomStartTool</RootNamespace>

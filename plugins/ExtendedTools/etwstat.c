@@ -372,10 +372,14 @@ VOID EtProcessNetworkEvent(
         EtNetworkSendCount++;
     }
 
-    // Note: there is always the possibility of us receiving the event too early,
-    // before the process item or network item is created. So events may be lost.
+    // Note: We don't track ETW process events since this duplicates the process provider,
+    // but this can result in the possibility of us receiving an event before the process is created.
+    // 
 
-    if (processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess))
+    if (!(processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess)))
+        processItem = PhReferenceProcessItem(SYSTEM_PROCESS_ID);
+
+    if (processItem)
     {
         block = EtGetProcessBlock(processItem);
 

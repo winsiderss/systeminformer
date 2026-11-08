@@ -131,8 +131,9 @@
 #define PHPRTLC_SERVICES 106
 #define PHPRTLC_SHORT_USERNAME 107
 #define PHPRTLC_IOTOTALBYTES 108
+#define PHPRTLC_CURRENTDIRECTORY 109
 
-#define PHPRTLC_MAXIMUM 109
+#define PHPRTLC_MAXIMUM 110
 #define PHPRTLC_IOGROUP_COUNT 10
 
 #define PHPN_WSCOUNTERS 0x1
@@ -162,6 +163,7 @@
 #define PHPN_SERVICES 0x1000000
 #define PHPN_USERHANDLES 0x2000000
 #define PHPN_SHORTUSERNAME 0x4000000
+#define PHPN_CURRENTDIRECTORY 0x8000000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -313,6 +315,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ServicesText;
     PPH_STRING ServerSiloText;
     PPH_STRING ShortUsernameText;
+    PPH_STRING CurrentDirectoryText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

@@ -57,6 +57,7 @@ VOID PhShowSessionProperties(
 typedef struct _PHP_SESSION_PROPERTIES_CONTEXT
 {
     HWND ListViewHandle;
+    HFONT WindowFont;
     ULONG SessionId;
     PPH_STRING UserName;
     PSECURITY_DESCRIPTOR SecurityDescriptor;
@@ -288,6 +289,7 @@ NTSTATUS PhpSessionNltestThreadStart(
     PPH_STRING systemDirectory;
     PPH_STRING fileName;
     PPH_STRING commandLine;
+    PPH_STRING quotedUserName;
     PPH_STRING commandOutput = NULL;
     PPH_LIST list = NULL;
     PSECURITY_DESCRIPTOR securityDescriptor = NULL;
@@ -306,11 +308,13 @@ NTSTATUS PhpSessionNltestThreadStart(
             goto CleanupExit;
         }
 
+        quotedUserName = PhQuoteCommandLine(&context->UserName->sr, TRUE);
         commandLine = PhFormatString(
             L"\"%s\" /USER:%s",
             fileName->Buffer,
-            context->UserName->Buffer
+            quotedUserName->Buffer
             );
+        PhDereferenceObject(quotedUserName);
 
         if (NT_SUCCESS(PhCreateProcessRedirection(&fileName->sr, &commandLine->sr, NULL, &commandOutput)) && commandOutput)
         {
@@ -642,8 +646,11 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
@@ -702,7 +709,17 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             PhClearReference(&context->UserName);
             if (context->SecurityDescriptor)
                 PhFree(context->SecurityDescriptor);
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_PH_SESSION_NLTEST_RESULT:

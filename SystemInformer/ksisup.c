@@ -243,9 +243,19 @@ VOID KsiGetKernelSupportData(
 
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage)))
             {
-                KsiSupportData.Machine = mappedImage.NtHeaders->FileHeader.Machine;
-                KsiSupportData.TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                KsiSupportData.SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+                KSI_SUPPORT_DATA supportData = KsiSupportData;
+
+                __try
+                {
+                    supportData.Machine = mappedImage.NtHeaders->FileHeader.Machine;
+                    supportData.TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                    supportData.SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+                    KsiSupportData = supportData;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    NOTHING;
+                }
 
                 PhUnloadMappedImage(&mappedImage);
             }

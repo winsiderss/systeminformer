@@ -265,7 +265,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhMwpOnDpiChanged(WindowHandle, LOWORD(wParam));
+            PhMwpOnDpiChanged(WindowHandle, LOWORD(wParam), (PRECT)lParam);
         }
         break;
     case WM_NCPAINT:
@@ -3099,11 +3099,14 @@ VOID PhMwpOnDeviceChanged(
  * Handles the DPI change event for the specified window.
  *
  * \param WindowHandle Handle to the window whose DPI has changed.
- * \param WindowDpi The new DPI value for the window.
+ * \param WindowDpi The new DPI value for the window, or zero to query the current DPI.
+ * \param SuggestedRect The suggested window rectangle, or NULL when the message was sent
+ * to refresh the window metrics (e.g. by a plugin) rather than by the system.
  */
 VOID PhMwpOnDpiChanged(
     _In_ HWND WindowHandle,
-    _In_ LONG WindowDpi
+    _In_ LONG WindowDpi,
+    _In_opt_ PRECT SuggestedRect
     )
 {
     PhMwpInitializeMetrics(WindowHandle, WindowDpi);
@@ -3133,7 +3136,20 @@ VOID PhMwpOnDpiChanged(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
     }
 
-    InvalidateRect(WindowHandle, NULL, TRUE);
+    if (SuggestedRect)
+    {
+        SetWindowPos(
+            WindowHandle,
+            NULL,
+            SuggestedRect->left,
+            SuggestedRect->top,
+            SuggestedRect->right - SuggestedRect->left,
+            SuggestedRect->bottom - SuggestedRect->top,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
+            );
+    }
+
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 /**
@@ -3276,8 +3292,8 @@ LRESULT PhMwpOnUserMessage(
         break;
     case WM_PH_INVOKE:
         {
-            PhProcessInvokeQueue();
             InterlockedExchange(&PhMainThreadInvokePending, 0);
+            PhProcessInvokeQueue();
         }
         break;
     case WM_PH_UPDATE_FONT:
@@ -3577,42 +3593,6 @@ BOOLEAN PhMwpExecuteComputerCommand(
 }
 
 /**
- * Determines whether the specified window is overlapped by other windows.
- *
- * \param WindowHandle Handle to the window to check for overlap.
- * \return TRUE if the window is overlapped by other windows; FALSE otherwise.
- */
-BOOLEAN PhMwpIsWindowOverlapped(
-    _In_ HWND WindowHandle
-    )
-{
-    RECT rectThisWindow = { 0 };
-    RECT rectOtherWindow = { 0 };
-    RECT rectIntersection = { 0 };
-    HWND windowHandle = WindowHandle;
-
-    if (!PhGetWindowRect(WindowHandle, &rectThisWindow))
-        return FALSE;
-
-    while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
-    {
-        if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
-            continue;
-
-        if (!PhGetWindowRect(windowHandle, &rectOtherWindow))
-            continue;
-
-        if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
-            PhIntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
-        {
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-/**
  * Activates the specified window.
  *
  * \param WindowHandle Handle to the window to be activated.
@@ -3630,7 +3610,7 @@ VOID PhMwpActivateWindow(
     }
     else if (IsWindowVisible(WindowHandle))
     {
-        if (Toggle && !PhMwpIsWindowOverlapped(WindowHandle))
+        if (Toggle && !PhIsWindowOverlapped(WindowHandle))
             ShowWindow(WindowHandle, SW_HIDE);
         else
             SetForegroundWindow(WindowHandle);
@@ -5713,7 +5693,8 @@ NTSTATUS PhInvokeOnMainThread(
     // still ensuring the queue is processed (one message drains all items).
     if (InterlockedCompareExchange(&PhMainThreadInvokePending, 1, 0) == 0)
     {
-        PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0);
+        if (!PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0))
+            InterlockedExchange(&PhMainThreadInvokePending, 0);
     }
 
     return STATUS_SUCCESS;
@@ -5730,9 +5711,21 @@ VOID PhProcessInvokeQueue(
     )
 {
     PSLIST_ENTRY listEntry;
+    PSLIST_ENTRY nextEntry;
+    PSLIST_ENTRY orderedEntries = NULL;
     PPH_INVOKE_ENTRY entry;
 
     listEntry = RtlInterlockedFlushSList(&PhMainThreadInvokeQueue);
+
+    while (listEntry)
+    {
+        nextEntry = listEntry->Next;
+        listEntry->Next = orderedEntries;
+        orderedEntries = listEntry;
+        listEntry = nextEntry;
+    }
+
+    listEntry = orderedEntries;
 
     while (listEntry)
     {

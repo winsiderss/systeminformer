@@ -160,7 +160,7 @@ static NTSTATUS EtpSymbolLookupFunction(
     PSYMBOL_LOOKUP_RESULT result = Parameter;
 
     // Don't bother looking up the symbol if the window has already closed.
-    if (result->Context->Destroying)
+    if (ReadBooleanAcquire(&result->Context->Destroying))
     {
         EtpDereferenceWsWatchContext(result->Context);
         PhFree(result);
@@ -526,7 +526,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-            context->Destroying = TRUE;
+            WriteBooleanRelease(&context->Destroying, TRUE);
 
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 

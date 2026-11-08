@@ -549,6 +549,8 @@ typedef struct _PDB_SYMBOL_CONTEXT
             ULONG Spare : 21;
         };
     };
+
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(

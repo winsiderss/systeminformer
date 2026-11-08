@@ -349,11 +349,10 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
-            EtpInitializeGpuDialog();
-
             GpuDialog = WindowHandle;
             GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
-            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
+
+            EtpInitializeGpuDialog();
 
             PhInitializeLayoutManager(&GpuLayoutManager, WindowHandle);
             PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
@@ -441,6 +440,8 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhInitializeThemeWindowGroupBoxes(WindowHandle);
+
             GpuPanelDedicatedUsageLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDCURRENT_V);
             GpuPanelDedicatedLimitLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDLIMIT_V);
             GpuPanelSharedUsageLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDCURRENT_V);
@@ -471,11 +472,63 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
     return FALSE;
 }
 
+VOID EtpGetGpuGraphRects(
+    _Out_writes_(6) RECT LabelRects[6],
+    _Out_writes_(6) RECT GraphRects[6]
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphCount;
+    LONG graphWidth;
+    LONG graphHeight;
+    LONG graphPadding;
+    LONG y;
+
+    marginRect = GpuGraphMarginScaled;
+    graphPadding = PhScaleToDisplay(ET_GPU_PADDING, GpuDialogWindowDpi);
+    graphCount = EtGpuSupported ? 6 : 3;
+
+    PhGetClientRect(GpuDialog, &clientRect);
+    PhGetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * graphCount - graphPadding * (graphCount + 2)) / graphCount;
+
+    memset(LabelRects, 0, sizeof(RECT) * 6);
+    memset(GraphRects, 0, sizeof(RECT) * 6);
+    y = marginRect.top;
+
+    for (LONG i = 0; i < graphCount; i++)
+    {
+        LabelRects[i].left = marginRect.left;
+        LabelRects[i].top = y;
+        LabelRects[i].right = marginRect.left + labelRect.right;
+        LabelRects[i].bottom = y + labelRect.bottom;
+        y += labelRect.bottom + graphPadding;
+
+        GraphRects[i].left = marginRect.left;
+        GraphRects[i].top = y;
+        GraphRects[i].right = marginRect.left + graphWidth;
+        GraphRects[i].bottom = y + graphHeight;
+        y += graphHeight + graphPadding;
+    }
+
+    if (EtGpuSupported)
+    {
+        GraphRects[graphCount - 1].bottom = clientRect.bottom - marginRect.bottom;
+    }
+}
+
 VOID EtpCreateGpuGraphs(
     VOID
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT labelRects[6];
+    RECT graphRects[6];
+
+    EtpGetGpuGraphRects(labelRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -485,10 +538,10 @@ VOID EtpCreateGpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         GpuDialog,
         NULL,
         NULL,
@@ -500,10 +553,10 @@ VOID EtpCreateGpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         GpuDialog,
         NULL,
         NULL,
@@ -515,10 +568,10 @@ VOID EtpCreateGpuGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         GpuDialog,
         NULL,
         NULL,
@@ -532,10 +585,10 @@ VOID EtpCreateGpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[3].left,
+            graphRects[3].top,
+            graphRects[3].right - graphRects[3].left,
+            graphRects[3].bottom - graphRects[3].top,
             GpuDialog,
             NULL,
             NULL,
@@ -547,10 +600,10 @@ VOID EtpCreateGpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[4].left,
+            graphRects[4].top,
+            graphRects[4].right - graphRects[4].left,
+            graphRects[4].bottom - graphRects[4].top,
             GpuDialog,
             NULL,
             NULL,
@@ -562,10 +615,10 @@ VOID EtpCreateGpuGraphs(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-            0,
-            0,
-            0,
-            0,
+            graphRects[5].left,
+            graphRects[5].top,
+            graphRects[5].right - graphRects[5].left,
+            graphRects[5].bottom - graphRects[5].top,
             GpuDialog,
             NULL,
             NULL,
@@ -579,14 +632,9 @@ VOID EtpLayoutGpuGraphs(
     _In_ HWND WindowHandle
     )
 {
-    RECT clientRect;
-    RECT labelRect;
-    RECT marginRect;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    RECT labelRects[6];
+    RECT graphRects[6];
     HDWP deferHandle;
-    ULONG y;
-    LONG graphPadding;
 
     GpuGraphState.Valid = FALSE;
     GpuGraphState.TooltipIndex = ULONG_MAX;
@@ -605,92 +653,72 @@ VOID EtpLayoutGpuGraphs(
         FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = GpuGraphMarginScaled;
-    graphPadding = PhScaleToDisplay(ET_GPU_PADDING, GpuDialogWindowDpi);
-
-    PhGetClientRect(GpuDialog, &clientRect);
-    PhGetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
-    graphWidth = clientRect.right - marginRect.left - marginRect.right;
-
-    if (EtGpuSupported)
-        graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 6 - graphPadding * 8) / 6;
-    else
-        graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 3 - graphPadding * 5) / 3;
+    EtpGetGpuGraphRects(labelRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(12);
-    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(GpuDialog, IDC_GPU_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[0].left,
+        labelRects[0].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         GpuGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(GpuDialog, IDC_DEDICATED_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[1].left,
+        labelRects[1].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         DedicatedGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(GpuDialog, IDC_SHARED_L),
         NULL,
-        marginRect.left,
-        y,
+        labelRects[2].left,
+        labelRects[2].top,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
-
     deferHandle = DeferWindowPos(
         deferHandle,
         SharedGraphHandle,
         NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
+        graphRects[2].left,
+        graphRects[2].top,
+        graphRects[2].right - graphRects[2].left,
+        graphRects[2].bottom - graphRects[2].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
 
     if (EtGpuSupported)
     {
@@ -698,70 +726,62 @@ VOID EtpLayoutGpuGraphs(
             deferHandle,
             GetDlgItem(GpuDialog, IDC_POWER_USAGE_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[3].left,
+            labelRects[3].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             PowerUsageGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            graphHeight,
+            graphRects[3].left,
+            graphRects[3].top,
+            graphRects[3].right - graphRects[3].left,
+            graphRects[3].bottom - graphRects[3].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += graphHeight + graphPadding;
 
         deferHandle = DeferWindowPos(
             deferHandle,
             GetDlgItem(GpuDialog, IDC_TEMPERATURE_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[4].left,
+            labelRects[4].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             TemperatureGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            graphHeight,
+            graphRects[4].left,
+            graphRects[4].top,
+            graphRects[4].right - graphRects[4].left,
+            graphRects[4].bottom - graphRects[4].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += graphHeight + graphPadding;
 
         deferHandle = DeferWindowPos(
             deferHandle,
             GetDlgItem(GpuDialog, IDC_FAN_RPM_L),
             NULL,
-            marginRect.left,
-            y,
+            labelRects[5].left,
+            labelRects[5].top,
             0,
             0,
             SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += labelRect.bottom + graphPadding;
-
         deferHandle = DeferWindowPos(
             deferHandle,
             FanRpmGraphHandle,
             NULL,
-            marginRect.left,
-            y,
-            graphWidth,
-            clientRect.bottom - marginRect.bottom - y,
+            graphRects[5].left,
+            graphRects[5].top,
+            graphRects[5].right - graphRects[5].left,
+            graphRects[5].bottom - graphRects[5].top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
     }

@@ -651,6 +651,7 @@ VOID PvAddTreeViewSections(
                     );
             }
         }
+        PhDeleteMappedImageExports(&exports);
     }
 
     // Exports ARM64X page
@@ -677,6 +678,7 @@ VOID PvAddTreeViewSections(
             PvPeExportsDlgProc,
             propSheetPage
             );
+        PhDeleteMappedImageExports(&exports);
     }
 
     // Resources page

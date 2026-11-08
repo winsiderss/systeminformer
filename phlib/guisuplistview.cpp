@@ -11,12 +11,35 @@
  */
 
 #include <ph.h>
+#include <utility>
 #include <guisup.h>
 #include <guisupview.h>
 
 #include <commoncontrols.h>
 #include <wincodec.h>
 #include <uxtheme.h>
+
+/**
+ * Queries a list-view control for its IListView interface.
+ *
+ * \param ListViewHandle The list-view control.
+ * \return The interface, or NULL if unavailable. Release a returned interface when finished.
+ */
+IListView* PhGetListViewInterface(
+    _In_ HWND ListViewHandle
+    )
+{
+    IListView* listviewInterface = NULL;
+
+    SendMessage(
+        ListViewHandle,
+        LVM_QUERYINTERFACE,
+        reinterpret_cast<WPARAM>(&IID_IListView),
+        reinterpret_cast<LPARAM>(&listviewInterface)
+        );
+
+    return listviewInterface;
+}
 
 /**
  * Adds a column to a list-view control with DPI scaling applied to width.
@@ -1033,7 +1056,7 @@ BOOLEAN PhListView_GetItemCount(
     {
         LONG count = ListView_GetItemCount(Context->ListViewHandle);
 
-        if (count != INT_ERROR)
+        if (std::cmp_not_equal(count, INT_ERROR))
         {
             *ItemCount = count;
             return TRUE;
@@ -1054,19 +1077,21 @@ BOOLEAN PhListView_GetItemCount(
 BOOLEAN PhListView_SetItemCount(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemCount,
-    _In_ LV_LISTVIEW_SETITEMCOUNT_FLAGS Flags
+    _In_ ULONG Flags
     )
 {
+    LV_LISTVIEW_SETITEMCOUNT_FLAGS flags = static_cast<LV_LISTVIEW_SETITEMCOUNT_FLAGS>(Flags);
+
     if (Context->ListViewInterface && NtCurrentThreadId() == Context->ThreadId)
     {
-        if (HR_SUCCESS(Context->ListViewInterface->SetItemCount(ItemCount, Flags)))
+        if (HR_SUCCESS(Context->ListViewInterface->SetItemCount(ItemCount, flags)))
         {
             return TRUE;
         }
     }
     else
     {
-        if (ListView_SetItemCountEx(Context->ListViewHandle, ItemCount, Flags))
+        if (ListView_SetItemCountEx(Context->ListViewHandle, ItemCount, flags))
         {
             return TRUE;
         }
@@ -1893,7 +1918,7 @@ VOID PhListView_SetStateAllItems(
 
         if (HR_SUCCESS(Context->ListViewInterface->GetItemCount(&count)))
         {
-            for (i = 0; i < count; i++)
+            for (i = 0; std::cmp_less(i, count); i++)
             {
                 Context->ListViewInterface->SetItemState(i, 0, static_cast<LV_LISTVIEW_ITEM_STATE_FLAGS>(Mask), static_cast<LV_LISTVIEW_ITEM_STATE_FLAGS>(State));
             }
@@ -1961,7 +1986,7 @@ BOOLEAN PhListView_GetSelectedCount(
     {
         LONG count = ListView_GetSelectedCount(Context->ListViewHandle);
         
-        if (count != INT_ERROR)
+        if (std::cmp_not_equal(count, INT_ERROR))
         {
             *SelectedCount = count;
             return TRUE;

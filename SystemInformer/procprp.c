@@ -1346,13 +1346,10 @@ VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
 {
     PPH_PROCESS_WAITPROPCONTEXT context = (PPH_PROCESS_WAITPROPCONTEXT)Object;
 
-    PhpFlushProcessPropSheetWaitContextData();
-
-    if (context->ProcessWaitHandle)
-    {
-        RtlDeregisterWaitEx(context->ProcessWaitHandle, RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION);
-        context->ProcessWaitHandle = NULL;
-    }
+    // N.B. The wait is deregistered by PhpDeregisterProcessPropSheetWait before the
+    // last reference is released, and queued entries hold their own reference, so
+    // nothing can still reference this object here.
+    assert(!context->ProcessWaitHandle);
 
     if (context->ProcessHandle)
     {
@@ -1416,6 +1413,23 @@ VOID PhpCreateProcessPropSheetWaitContext(
     }
 }
 
+/**
+ * Deregisters the process wait of a wait context and waits for any running callback.
+ * Must be called before the owner releases its reference to the wait context.
+ *
+ * \param WaitContext The wait context.
+ */
+VOID PhpDeregisterProcessPropSheetWait(
+    _In_ PPH_PROCESS_WAITPROPCONTEXT WaitContext
+    )
+{
+    if (WaitContext->ProcessWaitHandle)
+    {
+        RtlDeregisterWaitEx(WaitContext->ProcessWaitHandle, RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION);
+        WaitContext->ProcessWaitHandle = NULL;
+    }
+}
+
 VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     )
@@ -1474,6 +1488,9 @@ VOID PhpFlushProcessPropSheetWaitContextData(
         }
 
         //PostMessage(data->PropSheetWindowHandle, WM_PH_PROPPAGE_EXITSTATUS, 0, (LPARAM)data);
+
+        // Release the reference taken by PhpProcessPropertiesWaitCallback.
+        PhDereferenceObject(data);
     }
 }
 
@@ -1484,6 +1501,10 @@ VOID NTAPI PhpProcessPropertiesWaitCallback(
     )
 {
     PPH_PROCESS_WAITPROPCONTEXT waitContext = Context;
+
+    // The queued entry keeps the context alive until a flush has processed it; the owner
+    // can close its property sheet (and release its reference) at any time.
+    PhReferenceObject(waitContext);
 
     // This avoids blocking the workqueue and avoids converting the workqueue to GUI threads. (dmex)
     RtlInterlockedPushEntrySList(&WaitContextQueryListHead, &waitContext->ListEntry);
@@ -1541,8 +1562,14 @@ BOOLEAN PhPropPageDlgProcHeader(
 
         if (propPageContext->PropContext->ProcessWaitContext)
         {
+            // Deregister before releasing our reference so the callback can never run
+            // against a context that is being deleted.
+            PhpDeregisterProcessPropSheetWait(propPageContext->PropContext->ProcessWaitContext);
             PhDereferenceObject(propPageContext->PropContext->ProcessWaitContext);
             propPageContext->PropContext->ProcessWaitContext = NULL;
+
+            // Drain anything still queued (including our own entry) so it does not linger.
+            PhpFlushProcessPropSheetWaitContextData();
         }
     }
 
@@ -1857,7 +1884,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhpProcessGeneralDlgProc,
         NULL
         );
-    newPage->Flags |= PH_PROPSHEETNEW_PAGE_NOCLIP;
     PhAddProcessPropPage(PropContext, newPage);
 
     // Statistics
@@ -1866,7 +1892,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhpProcessStatisticsDlgProc,
         NULL
         );
-    newPage->Flags |= PH_PROPSHEETNEW_PAGE_NOCLIP;
     PhAddProcessPropPage(PropContext, newPage);
 
     // Performance

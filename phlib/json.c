@@ -1106,6 +1106,7 @@ static PPH_BYTES PhXmlSaveString(
 {
     mxml_options_t* options;
     PPH_BYTES string;
+    char* buffer;
 
     options = mxmlOptionsNew();
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
@@ -1115,8 +1116,14 @@ static PPH_BYTES PhXmlSaveString(
         mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
     }
 
-    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
+    buffer = mxmlSaveAllocString(XmlRootObject, options);
     mxmlOptionsDelete(options);
+
+    if (!buffer)
+        return NULL;
+
+    string = PhCreateBytes(buffer);
+    free(buffer);
 
     return string;
 }

@@ -1,0 +1,29 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "msvc",
+      "pattern": [
+        {
+          "regexp": "^\\s*(?:\\d+>)?([^\\s(][^(]*)\\((\\d+)(?:,(\\d+))?\\)\\s*:\\s*(?:fatal\\s+)?(error|warning)\\s+(\\w+)\\s*:\\s*(.*?)(?:\\s+\\[[^\\]]*\\])?$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      ]
+    },
+    {
+      "owner": "msvc-tool",
+      "pattern": [
+        {
+          "regexp": "^\\s*(?:\\d+>)?[^:(]+?\\s*:\\s*(?:fatal\\s+)?(error|warning)\\s+((?:LNK|MSB|RC|CVT|C)\\d+)\\s*:\\s*(.*?)(?:\\s+\\[[^\\]]*\\])?$",
+          "severity": 1,
+          "code": 2,
+          "message": 3
+        }
+      ]
+    }
+  ]
+}

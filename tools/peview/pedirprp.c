@@ -89,6 +89,8 @@ typedef struct _PV_DIRECTORY_CONTEXT
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } PV_DIRECTORY_CONTEXT, *PPV_DIRECTORY_CONTEXT;
 
 BOOLEAN PvDirectoryNodeHashtableCompareFunction(
@@ -368,6 +370,7 @@ NTSTATUS PvpPeDirectoryEnumerateThread(
     PvpPeEnumerateImageDataDirectory(Context, 15, L"Reserved");
 
     PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    PhReleaseRundownProtection(&Context->WorkerRundown);
     return STATUS_SUCCESS;
 }
 
@@ -403,6 +406,7 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PV_DIRECTORY_CONTEXT));
+        PhInitializeRundownProtection(&context->WorkerRundown);
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
         if (lParam)
@@ -447,13 +451,19 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCreateThread2(PvpPeDirectoryEnumerateThread, context);
+            PhAcquireRundownProtection(&context->WorkerRundown);
+
+            if (!NT_SUCCESS(PhCreateThread2(PvpPeDirectoryEnumerateThread, context)))
+                PhReleaseRundownProtection(&context->WorkerRundown);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            // The worker only posts, so waiting here cannot deadlock.
+            PhWaitForRundownProtection(&context->WorkerRundown);
+
             PhSaveSettingsDirectoryList(context);
             PvDeleteDirectoryTree(context);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);

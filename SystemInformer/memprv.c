@@ -940,7 +940,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 &numberOfHeaps,
                 sizeof(ULONG),
                 NULL
-                )) && numberOfHeaps < MAX_HEAPS)
+                )) && numberOfHeaps > 0 && numberOfHeaps < MAX_HEAPS) // match the native path
             {
                 processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
 

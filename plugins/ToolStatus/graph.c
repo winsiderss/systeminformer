@@ -1109,16 +1109,42 @@ BOOLEAN IoHistoryGraphMessageCallback(
             {
                 FLOAT max = 1024 * 1024; // minimum scaling of 1 MB.
 
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (EnableAvxSupport && drawInfo->LineDataCount > 128)
                 {
-                    graph->GraphState.Data1[i] =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoReadHistory, i) +
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoOtherHistory, i);
-                    graph->GraphState.Data2[i] =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoWriteHistory, i);
+                    PFLOAT scratch = PhAllocateStack(drawInfo->LineDataCount * sizeof(FLOAT));
+                    FLOAT dataMax;
 
-                    if (max < graph->GraphState.Data1[i] + graph->GraphState.Data2[i])
-                        max = graph->GraphState.Data1[i] + graph->GraphState.Data2[i];
+                    if (!scratch)
+                        goto Exit;
+
+                    PhCopyConvertCircularBufferULONG64(SystemStatistics.IoReadHistory, graph->GraphState.Data1, drawInfo->LineDataCount);
+                    PhCopyConvertCircularBufferULONG64(SystemStatistics.IoWriteHistory, graph->GraphState.Data2, drawInfo->LineDataCount);
+                    PhCopyConvertCircularBufferULONG64(SystemStatistics.IoOtherHistory, scratch, drawInfo->LineDataCount);
+                    PhAddMemorySingles(graph->GraphState.Data1, scratch, drawInfo->LineDataCount);
+                    PhFreeStack(scratch);
+
+                    dataMax = PhAddPlusMaxMemorySingles(graph->GraphState.Data1, graph->GraphState.Data2, drawInfo->LineDataCount);
+
+                    if (max < dataMax)
+                        max = dataMax;
+                }
+                else
+                {
+                Exit:
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT readOther = 
+                            (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoReadHistory, i) +
+                            (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoOtherHistory, i);
+                        FLOAT write = 
+                            (FLOAT)PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoWriteHistory, i);
+
+                        graph->GraphState.Data1[i] = readOther;
+                        graph->GraphState.Data2[i] = write;
+
+                        if (max < readOther + write)
+                            max = readOther + write;
+                    }
                 }
 
                 PhDivideSinglesBySingle(graph->GraphState.Data1, max, drawInfo->LineDataCount);

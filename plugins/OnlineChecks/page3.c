@@ -49,7 +49,7 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
         {
             if ((INT)wParam == IDCANCEL)
             {
-                context->Cancel = TRUE;
+                WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;
             }
         }
@@ -97,7 +97,7 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
         {
             if ((INT)wParam == IDCANCEL)
             {
-                context->Cancel = TRUE;
+                WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;
             }
         }
@@ -145,7 +145,7 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
         {
             if ((INT)wParam == IDCANCEL)
             {
-                context->Cancel = TRUE;
+                WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;
             }
         }

@@ -25,6 +25,7 @@
 #include <mapldr.h>
 #include <phnet.h>
 #include <thirdparty.h>
+#include <phconsole.h>
 
 #include <aclapi.h>
 #include <io.h>

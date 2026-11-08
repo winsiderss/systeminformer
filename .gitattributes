@@ -13,7 +13,7 @@
 # Project files
 *.appinstaller  text
 *.asm           text
-*.bat           text
+*.bat           -text diff
 *.build         text
 *.c             text
 *.cs            text
@@ -21,7 +21,7 @@
 *.cppasm        text
 *.config        text
 *.cmake         text
-*.cmd           text
+*.cmd           -text diff
 *.csproj        text
 *.def           text
 *.ddf           text

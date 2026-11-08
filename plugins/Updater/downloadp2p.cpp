@@ -17,6 +17,7 @@
 //
 
 #include "updater.h"
+#include <utility>
 
 #include <deliveryoptimization.h>
 #include <memory>
@@ -77,7 +78,7 @@ public:
           Context(context)
     {
         PhInitializeQueuedLock(&Lock);
-        PhQuerySystemTime(&TimeStart);
+        PhQueryUnbiasedInterruptTime(&TimeStart);
     }
 
     ~UpdateDoStatusCallback()
@@ -147,7 +148,7 @@ public:
     {
         const ULONG refCount = InterlockedDecrement(&RefCount);
 
-        if (refCount == 0)
+        if (std::cmp_equal(refCount, 0))
             delete this;
 
         return refCount;
@@ -166,7 +167,7 @@ public:
         Status = *status;
         PhReleaseQueuedLockExclusive(&Lock);
 
-        PhQuerySystemTime(&timeNow);
+        PhQueryUnbiasedInterruptTime(&timeNow);
         timeTicks = (timeNow.QuadPart - TimeStart.QuadPart) / PH_TICKS_PER_SEC;
         bytesPerSecond = timeTicks ? status->BytesTransferred / timeTicks : 0;
 
@@ -196,7 +197,7 @@ public:
     }
 
 private:
-    volatile LONG RefCount;
+    LONG RefCount;
     PH_QUEUED_LOCK Lock;
     HANDLE CompletionEvent;
     LARGE_INTEGER TimeStart;
@@ -464,7 +465,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithDeliveryOptimization(
 
     while (TRUE)
     {
-        if (Context->Cancel)
+        if (ReadBooleanAcquire(&Context->Cancel))
         {
             idoDownloadClass->Abort();
             status = STATUS_CANCELLED;

@@ -26,6 +26,6 @@
       </_ProjectsToBuild>
     </ItemGroup>
 
-    <MSBuild Projects="@(_ProjectsToBuild)" Targets="$(BuildAllTarget)" BuildInParallel="true" />
+    <MSBuild Projects="@(_ProjectsToBuild)" Targets="$(BuildAllTarget)" BuildInParallel="true" ContinueOnError="ErrorAndStop" />
   </Target>
 </Project>

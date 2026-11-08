@@ -12,6 +12,11 @@ PPH_LIST PhInitializeColumnSetList(
     _In_ PCWSTR SettingName
     );
 
+VOID PhSaveSettingsColumnList(
+    _In_ PCWSTR SettingName,
+    _In_ PPH_LIST ColumnSetList
+    );
+
 VOID PhDeleteColumnSetList(
     _In_ PPH_LIST ColumnSetList
     );

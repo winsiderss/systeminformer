@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2025
+ *     dmex    2025-2026
  *
  */
 
@@ -13,6 +13,7 @@
 #include <ntnsi.h>
 #include <mapldr.h>
 #include <netprv.h>
+#include <netsup.h>
 #include <ntstrsafe.h>
 #include <subprocesstag.h>
 #include <limits.h>
@@ -63,148 +64,37 @@ CONST NPIID NPI_FSE_LOCAL_SERVER_INTERFACE_ID = NPI_FSE_LOCAL_SERVER_INTERFACE_I
 CONST NPIID NPI_FL_SWITCHING_ID = NPI_FL_SWITCHING_ID_INIT;
 
 #define TCPIP_ADAPTER_PREFIX L"\\DEVICE\\TCPIP_"
-#define TCPIP_ADAPTER_PREFIX_LENGTH (sizeof(TCPIP_ADAPTER_PREFIX) / sizeof(WCHAR) - 1)
+#define TCPIP_ADAPTER_PREFIX_LENGTH (RTL_NUMBER_OF(TCPIP_ADAPTER_PREFIX) - 1)
 #define PH_IPV4_MAPPED_IN6_ADDRESS_OFFSET (FIELD_OFFSET(IN6_ADDR, s6_addr) + RTL_FIELD_SIZE(IN6_ADDR, s6_addr) - sizeof(IN_ADDR))
 #define PH_NETIO_IPNET_FAMILY_COUNT 2
-#define PHP_ICMP_ECHO_DATA_SIZE 32
-#define PHP_ICMP_ECHO_PATTERN_LENGTH 23
-#define PHP_ICMP_ECHO_REPLY_BUFFER_SIZE 0x1000
-#define PHP_ICMP_ECHO_TIMEOUT 5000
-#define PHP_NETIO_RTT_SCALE 1000
-#define PHP_NSI_CONNECTIVITY_LOCAL_MASK 0x00000014
-#define PHP_NSI_CONNECTIVITY_INTERNET_MASK 0x00000028
-#define PHP_NSI_CONNECTIVITY_CONSTRAINED_MASK 0x000000C0
-#define PHP_NSI_CONNECTIVITY_COST_SHIFT 32
-#define PHP_NSI_CONNECTIVITY_COST_UNDETERMINED 0x04
-#define PHP_NSI_CONNECTIVITY_COST_FIXED 0x02
-#define PHP_NSI_CONNECTIVITY_COST_UNRESTRICTED 0x01
+#define PH_ICMP_ECHO_DATA_SIZE 32
+#define PH_ICMP_ECHO_PATTERN_LENGTH 23
+#define PH_ICMP_ECHO_REPLY_BUFFER_SIZE 0x1000
+#define PH_ICMP_ECHO_TIMEOUT 5000
+#define PH_NETIO_RTT_SCALE 1000
+#define PH_NSI_CONNECTIVITY_LOCAL_MASK 0x00000014
+#define PH_NSI_CONNECTIVITY_INTERNET_MASK 0x00000028
+#define PH_NSI_CONNECTIVITY_CONSTRAINED_MASK 0x000000C0
+#define PH_NSI_CONNECTIVITY_COST_SHIFT 32
+#define PH_NSI_CONNECTIVITY_COST_UNDETERMINED 0x04
+#define PH_NSI_CONNECTIVITY_COST_FIXED 0x02
+#define PH_NSI_CONNECTIVITY_COST_UNRESTRICTED 0x01
 // WNF state name of the NCSI network connectivity state (8-byte value) watched by iphlpapi!NotifyNetworkConnectivityHintChange.
-#define PHP_WNF_CONNECTIVITY_STATE_NAME 0x418B0223A3BC2075ULL
-#define PHP_NET_LUID_INDEX_MASK 0x00FFFFFF
-#define PHP_ICMP_STATUS_BLOCK_LENGTH 4
-#define PHP_ICMP_ECHO_ERROR_TYPE_INDEX 2
-#define PHP_ICMP_ECHO_ERROR_CODE_INDEX 3
-#define PHP_NSI_INTERFACE_OBJECT_NAME_BUFFER_LENGTH 64
-#define PHP_INTERFACE_NAME_BUFFER_LENGTH 24
-#define PHP_INTERFACE_NAME_MAX_LENGTH 21
-#define PHP_MAC_ADDRESS_LENGTH 6
-#define PHP_MAC_ADDRESS_STRING_LENGTH (PHP_MAC_ADDRESS_LENGTH * 3 - 1)
-#define PHP_IPV4_NETWORK_ADDRESS_BUFFER_LENGTH 22
-#define PHP_IPV6_NETWORK_ADDRESS_BUFFER_LENGTH 65
-#define PHP_DNS_UTF8_NAME_BUFFER_LENGTH 512
-#define PHP_NSI_ENUMERATION_MAX_ATTEMPTS 3
-#define PHP_NSI_ENUMERATION_GROWTH_DIVISOR 8
-#define PHP_NSI_ENUMERATION_MIN_GROWTH 10
-#define PHP_NSI_OBJECT_SECURITY_POINTER_COUNT 6
-#define PHP_CONNECTIVITY_CALLBACK_PROCESSING 2
-#define PHP_TIMESTAMP_CONFIG_CHANGE_TAG 0x656D6974 // "time"
-
-typedef enum _PHP_NETIO_ADDRESS_TYPE
-{
-    PhpNetioAddressUnicast,
-    PhpNetioAddressMulticast,
-    PhpNetioAddressAnycast
-} PHP_NETIO_ADDRESS_TYPE;
-
-typedef enum _PHP_TCP_OWNER_CLASS
-{
-    PhpTcpOwnerBasic,
-    PhpTcpOwnerBasic2,
-    PhpTcpOwnerModule,
-    PhpTcpOwnerPid
-} PHP_TCP_OWNER_CLASS;
-
-// Forward declarations (definitions appear later in this file)
-static NTSTATUS PhNetioGetAddress(
-    _In_ NSI_STORE Store,
-    _In_ PHP_NETIO_ADDRESS_TYPE AddressType,
-    _Inout_ PVOID Row
-    );
-static NTSTATUS PhNetioEnumerateAddress(
-    _In_ NSI_STORE Store,
-    _In_ ADDRESS_FAMILY Family,
-    _In_ PHP_NETIO_ADDRESS_TYPE AddressType,
-    _Outptr_ PVOID *Table
-    );
-NTSTATUS PhGetIfTable2(
-    _Outptr_ PMIB_IF_TABLE2 *Table
-    );
-NTSTATUS PhGetTcpTable2(
-    _Out_writes_bytes_opt_(*SizePointer) PMIB_TCPTABLE2 TcpTable,
-    _Inout_ PULONG SizePointer,
-    _In_ BOOL Order
-    );
-NTSTATUS PhGetExtendedTcpTable(
-    _Out_writes_bytes_opt_(*SizePointer) PVOID TcpTable,
-    _Inout_ PULONG SizePointer,
-    _In_ BOOL Order,
-    _In_ ULONG Family,
-    _In_ TCP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-NTSTATUS PhGetExtendedUdpTable(
-    _Out_writes_bytes_opt_(*SizePointer) PVOID UdpTable,
-    _Inout_ PULONG SizePointer,
-    _In_ BOOL Order,
-    _In_ ULONG Family,
-    _In_ UDP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-NTSTATUS PhGetIpInterfaceEntry(
-    _Inout_ PMIB_IPINTERFACE_ROW Row
-    );
-NTSTATUS PhGetIpInterfaceTable(
-    _In_ ADDRESS_FAMILY Family,
-    _Outptr_ PMIB_IPINTERFACE_TABLE *Table
-    );
-NTSTATUS PhGetIpNetTable2(
-    _In_ ADDRESS_FAMILY Family,
-    _Outptr_ PMIB_IPNET_TABLE2 *Table
-    );
-NTSTATUS PhGetIpNetEntry2(
-    _Inout_ PMIB_IPNET_ROW2 Row
-    );
-NTSTATUS PhGetIpForwardTable2(
-    _In_ ADDRESS_FAMILY Family,
-    _Outptr_ PMIB_IPFORWARD_TABLE2 *Table
-    );
-NTSTATUS PhGetIpForwardEntry2(
-    _Inout_ PMIB_IPFORWARD_ROW2 Row
-    );
-NTSTATUS PhGetBestInterfaceEx(
-    _In_ struct sockaddr *DestinationAddress,
-    _Out_ PULONG BestIfIndex
-    );
-NTSTATUS PhGetIpStatisticsEx(
-    _Out_ PMIB_IPSTATS Statistics,
-    _In_ ULONG Family
-    );
-NTSTATUS PhGetTcpStatisticsEx(
-    _Out_ PMIB_TCPSTATS Statistics,
-    _In_ ULONG Family
-    );
-NTSTATUS PhGetUdpStatisticsEx(
-    _Out_ PMIB_UDPSTATS Statistics,
-    _In_ ULONG Family
-    );
-ULONG PhpNeighborStateToMibState(
-    _In_ ULONG State
-    );
-
-VOID PhIcmpDestroyEchoRequestContext(
-    _Inout_ ICMP_ECHO_REQUEST_CONTEXT* Context
-    );
-
-VOID PhPrintTcpTableStatus(
-    _In_ ULONG Status,
-    _In_ PCWSTR Action
-);
-
-typedef struct _TCPIP_IF_TYPE_STRING_ENTRY
-{
-    PCWSTR Name;
-    USHORT IfType;
-} TCPIP_IF_TYPE_STRING_ENTRY;
+#define PH_WNF_CONNECTIVITY_STATE_NAME 0x418B0223A3BC2075ULL
+#define PH_NET_LUID_INDEX_MASK 0x00FFFFFF
+#define PH_NSI_INTERFACE_OBJECT_NAME_BUFFER_LENGTH 64
+#define PH_INTERFACE_NAME_BUFFER_LENGTH 24
+#define PH_INTERFACE_NAME_MAX_LENGTH 21
+#define PH_MAC_ADDRESS_LENGTH 6
+#define PH_MAC_ADDRESS_STRING_LENGTH (PH_MAC_ADDRESS_LENGTH * 3 - 1)
+#define PH_IPV4_NETWORK_ADDRESS_BUFFER_LENGTH 22
+#define PH_IPV6_NETWORK_ADDRESS_BUFFER_LENGTH 65
+#define PH_DNS_UTF8_NAME_BUFFER_LENGTH 512
+#define PH_NSI_ENUMERATION_MAX_ATTEMPTS 3
+#define PH_NSI_ENUMERATION_GROWTH_DIVISOR 8
+#define PH_NSI_ENUMERATION_MIN_GROWTH 10
+#define PH_CONNECTIVITY_CALLBACK_PROCESSING 2
+#define PH_TIMESTAMP_CONFIG_CHANGE_TAG 0x656D6974 // "time"
 
 static const TCPIP_IF_TYPE_STRING_ENTRY IfTypeStringTable[] =
 {
@@ -260,31 +150,10 @@ static const ULONG Ipv4Mask[sizeof(IN_ADDR) * CHAR_BIT + 1] =
 };
 
 static PH_QUEUED_LOCK NotificationCriticalSection = PH_QUEUED_LOCK_INIT;
-static PH_INITONCE NotificationInitOnce = PH_INITONCE_INIT;
-static PVOID NotificationRpcHandle;
-
-typedef struct _PHP_MIB_NOTIFICATION_HANDLE
-{
-    PVOID Reserved;
-    NSI_ICMP_OBJECT_ID ObjectId;
-    PVOID NotificationHandleV4;
-    PVOID NotificationHandleV6;
-    PVOID NotificationHandleTeredo;
-    PVOID NotificationHandleNdis;
-    PVOID ConnectivityHintContext;
-} PHP_MIB_NOTIFICATION_HANDLE, * PPHP_MIB_NOTIFICATION_HANDLE;
-
-typedef struct _PHP_CONNECTIVITY_HINT_CONTEXT
-{
-    LIST_ENTRY ListEntry;
-    PVOID Callback;
-    PVOID CallerContext;
-    PTP_WORK ThreadpoolWork;
-    LONG State;
-} PHP_CONNECTIVITY_HINT_CONTEXT, * PPHP_CONNECTIVITY_HINT_CONTEXT;
+static RPC_BINDING_HANDLE NotificationRpcHandle;
 
 static PH_QUEUED_LOCK PhpConnectivityHintLock = PH_QUEUED_LOCK_INIT;
-static LIST_ENTRY PhpConnectivityHintListHead;
+static LIST_ENTRY PhpConnectivityHintListHead = { &PhpConnectivityHintListHead, &PhpConnectivityHintListHead };
 static PVOID PhpConnectivitySubscriptionHandle;
 static ULONG PhpConnectivityLevel;
 static ULONG PhpConnectivityCost;
@@ -295,386 +164,7 @@ static HANDLE PingNotificationHandleV4;
 static HANDLE PingNotificationHandleV6;
 static PH_QUEUED_LOCK PingNotificationLock = PH_QUEUED_LOCK_INIT;
 
-static BOOLEAN PhpIsIpv4Interface(
-    _In_ NET_LUID* InterfaceLuid,
-    _In_ USHORT MediaType
-);
-
-BOOLEAN PhTcpipGuidEquals(
-    _In_ const GUID* Left,
-    _In_ const GUID* Right
-);
-
-
-/**
- * Converts a Win32 error code returned by nsi.dll, winnsi.dll or other IP Helper components into an NTSTATUS value.
- *
- * \param DosError The Win32 error code.
- * \return The NTSTATUS value. ERROR_MORE_DATA maps to STATUS_BUFFER_OVERFLOW (not the informational
- * STATUS_MORE_ENTRIES) so that NT_SUCCESS() fails and callers can retry with a larger buffer.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-rtlntstatustodoserror
- */
-NTSTATUS PhpNetioDosErrorToNtStatus(
-    _In_ ULONG DosError
-    )
-{
-    switch (DosError)
-    {
-    case ERROR_SUCCESS:
-        return STATUS_SUCCESS;
-    case ERROR_MORE_DATA:
-        return STATUS_BUFFER_OVERFLOW;
-    case ERROR_BUFFER_OVERFLOW:
-        return STATUS_BUFFER_TOO_SMALL;
-    case ERROR_IO_PENDING:
-        return STATUS_PENDING;
-    case ERROR_NO_DATA:
-        return STATUS_NO_MORE_ENTRIES;
-    case ERROR_GEN_FAILURE:
-        return STATUS_UNSUCCESSFUL;
-    case ERROR_ARITHMETIC_OVERFLOW:
-        return STATUS_INTEGER_OVERFLOW;
-    case ERROR_INVALID_USER_BUFFER:
-        return STATUS_INVALID_USER_BUFFER;
-    case ERROR_OUTOFMEMORY:
-        return STATUS_NO_MEMORY;
-    }
-
-    return PhDosErrorToNtStatus(DosError);
-}
-
 #pragma region NSI Wrappers
-
-NTSTATUS PhNsiGetParameter(
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength
-    );
-
-NTSTATUS PhNsiSetAllParameters(
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(RwSize) PVOID Rw,
-    _In_ ULONG RwSize
-    );
-
-NTSTATUS PhNsiAllocateAndGetTable(
-    _In_ CONST NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RwEntrySize) _Out_opt_ PVOID* RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RodEntrySize) _Out_opt_ PVOID* RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RosEntrySize) _Out_opt_ PVOID* RosTable,
-    _In_ CONST ULONG RosEntrySize,
-    _Out_ PULONG Count,
-    _In_ ULONG Unused
-    );
-
-NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
-    _In_ ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterDataTable,
-    _Outptr_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) _Out_opt_ PVOID* ParameterMaskTable,
-    _In_ ULONG ParameterDataEntrySize,
-    _Out_ PULONG Count
-    );
-
-NTSTATUS PhNsiDeregisterChangeNotification(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-NTSTATUS PhNsiCancelChangeNotification(
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-NTSTATUS PhNsiDeregisterChangeNotificationEx(
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST DeregistrationRequest
-    );
-
-NTSTATUS PhNsiEnumerateObjectsAllParameters(
-    _In_ CONST NSI_STORE Store,
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RwEntrySize) PVOID RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RodEntrySize) PVOID RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RosEntrySize) PVOID RosTable,
-    _In_ CONST ULONG RosEntrySize,
-    _Inout_ PULONG Count
-    );
-
-NTSTATUS PhNsiEnumerateObjectsAllParametersEx(
-    _Inout_ PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX EnumerateRequest
-    );
-
-NTSTATUS PhNsiEnumerateObjectsAllPersistentParametersWithMask(
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Out_writes_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterDataTable,
-    _Out_writes_bytes_opt_(*Count * ParameterDataEntrySize) PVOID ParameterMaskTable,
-    _In_ CONST ULONG ParameterDataEntrySize,
-    _Inout_ PULONG Count
-    );
-
-NTSTATUS PhNsiGetParameterEx(
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST GetParameterRequest
-    );
-
-NTSTATUS PhNsiGetAllParameters(
-    _In_ CONST NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ CONST ULONG KeySize,
-    _Out_writes_bytes_opt_(RwSize) PVOID Rw,
-    _In_ CONST ULONG RwSize,
-    _Out_writes_bytes_opt_(RodSize) PVOID Rod,
-    _In_ CONST ULONG RodSize,
-    _Out_writes_bytes_opt_(RosSize) PVOID Ros,
-    _In_ CONST ULONG RosSize
-    );
-
-NTSTATUS PhNsiGetAllParametersEx(
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST GetAllParametersRequest
-    );
-
-NTSTATUS PhNsiSetParameter(
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-NTSTATUS PhNsiSetParameterEx(
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST SetParameterRequest
-    );
-
-NTSTATUS PhNsiSetAllParametersEx(
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST SetAllParametersRequest
-    );
-
-NTSTATUS PhNsiRegisterChangeNotification(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _In_opt_ PVOID ChangeCallback,
-    _In_ BOOLEAN NotifyCurrent,
-    _In_opt_ PVOID CallerContext,
-    _Outptr_result_maybenull_ PHANDLE NotificationHandle
-    );
-
-NTSTATUS PhNsiRegisterChangeNotificationEx(
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST RegistrationRequest
-    );
-
-NTSTATUS PhNsiRequestChangeNotification(
-    _In_ ULONG ModuleHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ ULONG ObjectIndex,
-    _In_opt_ LPOVERLAPPED OverLapped,
-    _Out_ PHANDLE NotificationHandle
-    );
-
-NTSTATUS PhNsiRequestChangeNotificationEx(
-    _Inout_ PNSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST Request
-    );
-
-NTSTATUS PhNsiGetAllPersistentParametersWithMask(
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterData,
-    _Out_writes_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
-    _In_ ULONG ParameterDataSize
-    );
-
-NTSTATUS PhNsiSetAllPersistentParametersWithMask(
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterData,
-    _In_reads_bytes_opt_(ParameterDataSize) PVOID ParameterMask,
-    _In_ ULONG ParameterDataSize
-    );
-
-NTSTATUS PhNsiGetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
-    );
-
-NTSTATUS PhNsiSetObjectSecurity(
-    _Inout_updates_bytes_(6 * sizeof(PVOID)) PVOID ObjectSecurity
-    );
-
-PVOID PhNsiConnectToServer(
-    _Reserved_ PVOID Reserved
-    );
-
-NTSTATUS PhNsiDisconnectFromServer(
-    _In_opt_ PVOID RpcHandle
-    );
-
-VOID PhNsiFreePersistentDataWithMaskTable(
-    _Frees_ptr_opt_ PVOID KeyTable,
-    _Frees_ptr_opt_ PVOID ParameterDataTable,
-    _Frees_ptr_opt_ PVOID ParameterMaskTable
-    );
-
-VOID PhNsiFreeTable(
-    _Frees_ptr_opt_ PVOID KeyTable,
-    _Frees_ptr_opt_ PVOID RwTable,
-    _Frees_ptr_opt_ PVOID RodTable,
-    _Frees_ptr_opt_ PVOID RosTable
-    );
-
-NTSTATUS PhNsiRpcDeregisterChangeNotification(
-    _In_ HANDLE RpcHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ HANDLE NotificationHandle
-    );
-
-NTSTATUS PhNsiRpcDeregisterChangeNotificationEx(
-    _In_ HANDLE RpcHandle,
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST DeregistrationRequest
-    );
-
-NTSTATUS PhNsiRpcEnumerateObjectsAllParameters(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ CONST NSI_STORE Store,
-    _In_ NSI_GET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RwEntrySize) PVOID RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RodEntrySize) PVOID RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RosEntrySize) PVOID RosTable,
-    _In_ CONST ULONG RosEntrySize,
-    _Inout_ PULONG Count
-    );
-
-NTSTATUS PhNsiRpcGetAllParameters(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ CONST NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ CONST ULONG KeySize,
-    _Out_writes_bytes_opt_(RwSize) PVOID Rw,
-    _In_ CONST ULONG RwSize,
-    _Out_writes_bytes_opt_(RodSize) PVOID Rod,
-    _In_ CONST ULONG RodSize,
-    _Out_writes_bytes_opt_(RosSize) PVOID Ros,
-    _In_ CONST ULONG RosSize
-    );
-
-NTSTATUS PhNsiRpcGetAllParametersEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST GetAllParametersRequest
-    );
-
-NTSTATUS PhNsiRpcGetParameter(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength,
-    _In_ ULONG ParameterOffset
-    );
-
-NTSTATUS PhNsiRpcGetParameterEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST GetParameterRequest
-    );
-
-NTSTATUS PhNsiRpcRegisterChangeNotification(
-    _In_ HANDLE RpcHandle,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ PVOID CallbackRoutine,
-    _In_ BOOLEAN NotifyCurrent,
-    _In_opt_ PVOID CallerContext,
-    _Out_opt_ HANDLE *NotificationHandle
-    );
-
-NTSTATUS PhNsiRpcRegisterChangeNotificationEx(
-    _In_ HANDLE RpcHandle,
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST RegistrationRequest
-    );
-
-NTSTATUS PhNsiRpcSetAllParameters(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(RwSize) PVOID Rw,
-    _In_ ULONG RwSize
-    );
-
-NTSTATUS PhNsiRpcSetAllParametersEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST SetAllParametersRequest
-    );
-
-NTSTATUS PhNsiRpcSetParameter(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
-    _In_ PNPI_MODULEID ModuleId,
-    _In_ NSI_OBJECT_ID ObjectId,
-    _In_reads_bytes_opt_(KeySize) PVOID Key,
-    _In_ ULONG KeySize,
-    _In_ NSI_PARAMETER_TYPE ParameterType,
-    _In_reads_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
-    _In_ ULONG ParameterBufferSize,
-    _In_ ULONG ParameterOffset
-    );
-
-NTSTATUS PhNsiRpcSetParameterEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST SetParameterRequest
-    );
 
 static typeof(&NsiGetParameter) NsiGetParameter_I;
 static typeof(&NsiSetAllParameters) NsiSetAllParameters_I;
@@ -791,6 +281,43 @@ static BOOLEAN PhNsiApiInitialized(
 }
 
 /**
+ * Converts a Win32 error code returned by nsi.dll, winnsi.dll or other IP Helper components into an NTSTATUS value.
+ *
+ * \param DosError The Win32 error code.
+ * \return The NTSTATUS value. ERROR_MORE_DATA maps to STATUS_BUFFER_OVERFLOW (not the informational
+ * STATUS_MORE_ENTRIES) so that NT_SUCCESS() fails and callers can retry with a larger buffer.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-rtlntstatustodoserror
+ */
+NTSTATUS PhNetioDosErrorToNtStatus(
+    _In_ ULONG DosError
+    )
+{
+    switch (DosError)
+    {
+    case ERROR_SUCCESS:
+        return STATUS_SUCCESS;
+    case ERROR_MORE_DATA:
+        return STATUS_BUFFER_OVERFLOW;
+    case ERROR_BUFFER_OVERFLOW:
+        return STATUS_BUFFER_TOO_SMALL;
+    case ERROR_IO_PENDING:
+        return STATUS_PENDING;
+    case ERROR_NO_DATA:
+        return STATUS_NO_MORE_ENTRIES;
+    case ERROR_GEN_FAILURE:
+        return STATUS_UNSUCCESSFUL;
+    case ERROR_ARITHMETIC_OVERFLOW:
+        return STATUS_INTEGER_OVERFLOW;
+    case ERROR_INVALID_USER_BUFFER:
+        return STATUS_INVALID_USER_BUFFER;
+    case ERROR_OUTOFMEMORY:
+        return STATUS_NO_MEMORY;
+    }
+
+    return PhDosErrorToNtStatus(DosError);
+}
+
+/**
  * Retrieves a single NSI parameter block for an object (nsi!NsiGetParameter).
  *
  * \param Store The NSI store to query (active or persistent).
@@ -799,8 +326,8 @@ static BOOLEAN PhNsiApiInitialized(
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
  * \param ParameterType The parameter block to access (read-write, read-only dynamic or read-only static).
- * \param Buffer The buffer that receives the parameter data.
- * \param BufferLength The size, in bytes, of Buffer.
+ * \param ParameterBuffer The buffer that receives the parameter data.
+ * \param ParameterBufferSize The size, in bytes, of ParameterBuffer.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntdeviceiocontrolfile
@@ -812,8 +339,8 @@ NTSTATUS PhNsiGetParameter(
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
     _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength
+    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize
     )
 {
 #if !defined(PH_INLINE_NSI)
@@ -851,14 +378,14 @@ NTSTATUS PhNsiGetParameter(
         return status;
 
     RtlZeroMemory(&nsiGetParameter, sizeof(NSI_GET_PARAMETER_EX_REQUEST));
-    nsiGetParameter.Header.ModuleId = ModuleId;
-    nsiGetParameter.Header.ObjectId = ObjectId;
+    nsiGetParameter.Header.RequestHeader.ModuleId = ModuleId;
+    nsiGetParameter.Header.RequestHeader.ObjectId = ObjectId;
     nsiGetParameter.Header.Store = Store;
     nsiGetParameter.Key = Key;
     nsiGetParameter.KeySize = KeySize;
     nsiGetParameter.ParameterType = ParameterType;
-    nsiGetParameter.Buffer = Buffer;
-    nsiGetParameter.BufferLength = BufferLength;
+    nsiGetParameter.Buffer = ParameterBuffer;
+    nsiGetParameter.BufferLength = ParameterBufferSize;
     nsiGetParameter.ParameterOffset = 0;
 
     status = NtDeviceIoControlFile(
@@ -881,15 +408,15 @@ NTSTATUS PhNsiGetParameter(
     if (!PhNsiApiInitialized() || !NsiGetParameter_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetParameter_I(
+    return PhNetioDosErrorToNtStatus(NsiGetParameter_I(
         Store,
         ModuleId,
         ObjectId,
         Key,
         KeySize,
         ParameterType,
-        Buffer,
-        BufferLength,
+        ParameterBuffer,
+        ParameterBufferSize,
         0
         ));
 #endif
@@ -904,10 +431,9 @@ NTSTATUS PhNsiGetParameter(
  * \param ObjectId The NSI object identifier within the module.
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
- * \param Rw The read-write parameter block.
- * \param RwSize The size, in bytes, of the read-write parameter block.
+ * \param ReadWriteBuffer The read-write parameter block.
+ * \param ReadWriteBufferSize The size, in bytes, of the read-write parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntdeviceiocontrolfile
  */
 NTSTATUS PhNsiSetAllParameters(
@@ -917,8 +443,8 @@ NTSTATUS PhNsiSetAllParameters(
     _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(RwSize) PVOID Rw,
-    _In_ ULONG RwSize
+    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize
     )
 {
 #if !defined(PH_INLINE_NSI)
@@ -956,14 +482,14 @@ NTSTATUS PhNsiSetAllParameters(
         return status;
 
     RtlZeroMemory(&nsiSetAllParameters, sizeof(NSI_SET_ALL_PARAMETERS_EX_REQUEST));
-    nsiSetAllParameters.Header.ModuleId = ModuleId;
-    nsiSetAllParameters.Header.ObjectId = ObjectId;
+    nsiSetAllParameters.Header.RequestHeader.ModuleId = ModuleId;
+    nsiSetAllParameters.Header.RequestHeader.ObjectId = ObjectId;
     nsiSetAllParameters.Header.Store = Store;
     nsiSetAllParameters.Header.SetAction = Action;
     nsiSetAllParameters.Key = Key;
     nsiSetAllParameters.KeySize = KeySize;
-    nsiSetAllParameters.ReadWriteBuffer = Rw;
-    nsiSetAllParameters.ReadWriteBufferSize = RwSize;
+    nsiSetAllParameters.ReadWriteBuffer = ReadWriteBuffer;
+    nsiSetAllParameters.ReadWriteBufferSize = ReadWriteBufferSize;
 
     status = NtDeviceIoControlFile(
         deviceHandle,
@@ -985,15 +511,15 @@ NTSTATUS PhNsiSetAllParameters(
     if (!PhNsiApiInitialized() || !NsiSetAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiSetAllParameters_I(
         Store,
         Action,
         ModuleId,
         ObjectId,
         Key,
         KeySize,
-        Rw,
-        RwSize
+        ReadWriteBuffer,
+        ReadWriteBufferSize
         ));
 #endif
 }
@@ -1012,7 +538,7 @@ NTSTATUS PhNsiSetAllParameters(
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntdeviceiocontrolfile
  */
-static NTSTATUS PhpNsiDeviceIoControl(
+NTSTATUS PhNsiDeviceIoControl(
     _In_ ULONG ControlCode,
     _In_reads_bytes_(InputLength) PVOID InputBuffer,
     _In_ ULONG InputLength,
@@ -1028,7 +554,13 @@ static NTSTATUS PhpNsiDeviceIoControl(
     IO_STATUS_BLOCK ioStatusBlock;
 
     RtlInitUnicodeString(&objectName, NSI_DEVICE_NAME);
-    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName, 
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
 
     status = NtCreateFile(
         &deviceHandle,
@@ -1077,7 +609,6 @@ static NTSTATUS PhpNsiDeviceIoControl(
     return status == STATUS_MORE_ENTRIES ? STATUS_BUFFER_OVERFLOW : NT_SUCCESS(status) ? STATUS_SUCCESS : status;
 }
 
-
 /**
  * Allocates a zeroed table buffer for an NSI enumeration, checking for overflow.
  *
@@ -1085,14 +616,14 @@ static NTSTATUS PhpNsiDeviceIoControl(
  * \param EntrySize The size, in bytes, of each entry. A zero size returns a NULL buffer.
  * \param Buffer Receives the allocated buffer, or NULL.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
-static NTSTATUS PhpNsiAllocateTableBuffer(
+NTSTATUS PhNsiAllocateTableBuffer(
     _In_ ULONG Count,
     _In_ ULONG EntrySize,
     _Out_ PVOID *Buffer
     )
 {
+    NTSTATUS status;
     SIZE_T size;
 
     *Buffer = NULL;
@@ -1100,12 +631,13 @@ static NTSTATUS PhpNsiAllocateTableBuffer(
     if (!EntrySize)
         return STATUS_SUCCESS;
 
-    size = (SIZE_T)Count * EntrySize;
+    status = RtlSIZETMult(Count, EntrySize, &size);
 
-    if (Count && size / Count != EntrySize)
-        return STATUS_INTEGER_OVERFLOW;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    *Buffer = PhAllocateZero(size);
+    if (!(*Buffer = PhAllocateZeroSafe(size)))
+        return STATUS_NO_MEMORY;
 
     return STATUS_SUCCESS;
 }
@@ -1115,11 +647,12 @@ static HANDLE PhpNsiAsyncDeviceHandle = INVALID_HANDLE_VALUE;
 /**
  * Returns a cached overlapped handle to \\Device\\Nsi used for change notifications, opening it on first use.
  *
- * \return The device handle, or INVALID_HANDLE_VALUE on failure.
+ * \param DeviceHandle Receives the device handle. The handle is cached and must not be closed by the caller.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntdeviceiocontrolfile
  */
-static HANDLE PhpNsiGetAsyncDeviceHandle(
-    VOID
+NTSTATUS PhNsiGetAsyncDeviceHandle(
+    _Out_ PHANDLE DeviceHandle
     )
 {
     HANDLE deviceHandle;
@@ -1130,16 +663,25 @@ static HANDLE PhpNsiGetAsyncDeviceHandle(
     NTSTATUS status;
 
     deviceHandle = InterlockedCompareExchangePointer(
-        (PVOID *)&PhpNsiAsyncDeviceHandle,
+        (PVOID volatile*)&PhpNsiAsyncDeviceHandle,
         INVALID_HANDLE_VALUE,
         INVALID_HANDLE_VALUE
         );
 
     if (deviceHandle != INVALID_HANDLE_VALUE)
-        return deviceHandle;
+    {
+        *DeviceHandle = deviceHandle;
+        return STATUS_SUCCESS;
+    }
 
     RtlInitUnicodeString(&deviceName, L"\\Device\\Nsi");
-    InitializeObjectAttributes(&objectAttributes, &deviceName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes, 
+        &deviceName,
+        OBJ_CASE_INSENSITIVE,
+        NULL, 
+        NULL
+        );
 
     status = NtCreateFile(
         &deviceHandle,
@@ -1156,13 +698,10 @@ static HANDLE PhpNsiGetAsyncDeviceHandle(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        PhSetLastError(PhNtStatusToDosError(status));
-        return INVALID_HANDLE_VALUE;
-    }
+        return status;
 
     previousHandle = InterlockedCompareExchangePointer(
-        (PVOID *)&PhpNsiAsyncDeviceHandle,
+        (PVOID volatile*)&PhpNsiAsyncDeviceHandle,
         deviceHandle,
         INVALID_HANDLE_VALUE
         );
@@ -1173,7 +712,8 @@ static HANDLE PhpNsiGetAsyncDeviceHandle(
         deviceHandle = previousHandle;
     }
 
-    return deviceHandle;
+    *DeviceHandle = deviceHandle;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1186,7 +726,7 @@ static HANDLE PhpNsiGetAsyncDeviceHandle(
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntdeviceiocontrolfile
  */
-static NTSTATUS PhpNsiAsyncDeviceIoControl(
+NTSTATUS PhNsiAsyncDeviceIoControl(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG ControlCode,
     _In_reads_bytes_(InputLength) PVOID InputBuffer,
@@ -1238,9 +778,6 @@ static NTSTATUS PhpNsiAsyncDeviceIoControl(
 
 #endif
 
-// NSI entry points use nsi.dll with PH_INLINE_NSI and direct device requests otherwise.
-// The existing PhNsiGetParameter and PhNsiSetAllParameters wrappers remain above.
-
 /**
  * Enumerates all instances of an NSI object and allocates the key and parameter tables (nsi!NsiAllocateAndGetTable). The enumeration is retried when the table grows between calls.
  *
@@ -1249,36 +786,35 @@ static NTSTATUS PhpNsiAsyncDeviceIoControl(
  * \param ObjectId The NSI object identifier within the module.
  * \param KeyTable Receives the allocated key table.
  * \param KeyEntrySize The size, in bytes, of each key entry.
- * \param RwTable Receives the allocated read-write table.
- * \param RwEntrySize The size, in bytes, of each read-write entry.
- * \param RodTable Receives the allocated read-only dynamic table.
- * \param RodEntrySize The size, in bytes, of each read-only dynamic entry.
- * \param RosTable Receives the allocated read-only static table.
- * \param RosEntrySize The size, in bytes, of each read-only static entry.
+ * \param ReadWriteTable Receives the allocated read-write table.
+ * \param ReadWriteEntrySize The size, in bytes, of each read-write entry.
+ * \param DynamicTable Receives the allocated read-only dynamic table.
+ * \param DynamicEntrySize The size, in bytes, of each read-only dynamic entry.
+ * \param StaticTable Receives the allocated read-only static table.
+ * \param StaticEntrySize The size, in bytes, of each read-only static entry.
  * \param Count Receives the number of entries.
  * \param Unused Unused; pass zero.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \remarks Free the tables with PhNsiFreeTable.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiAllocateAndGetTable(
-    _In_ CONST NSI_STORE Store,
+    _In_ NSI_STORE Store,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count * KeyEntrySize) _Out_opt_ PVOID* KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RwEntrySize) _Out_opt_ PVOID* RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RodEntrySize) _Out_opt_ PVOID* RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count * RosEntrySize) _Out_opt_ PVOID* RosTable,
-    _In_ CONST ULONG RosEntrySize,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
+    _In_ ULONG KeyEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ReadWriteEntrySize) PVOID* ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * DynamicEntrySize) PVOID* DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * StaticEntrySize) PVOID* StaticTable,
+    _In_ ULONG StaticEntrySize,
     _Out_ PULONG Count,
     _In_ ULONG Unused
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG capacity;
     ULONG count;
     ULONG attempt;
@@ -1287,75 +823,126 @@ NTSTATUS PhNsiAllocateAndGetTable(
     PVOID rodBuffer;
     PVOID rosBuffer;
 
-    for (attempt = 0; attempt < PHP_NSI_ENUMERATION_MAX_ATTEMPTS; attempt++)
+    for (attempt = 0; attempt < PH_NSI_ENUMERATION_MAX_ATTEMPTS; attempt++)
     {
         count = 0;
-        result = PhNsiEnumerateObjectsAllParameters(Store, NsiGetFirst, ModuleId, ObjectId,
-            NULL, KeyEntrySize, NULL, RwEntrySize, NULL, RodEntrySize, NULL, RosEntrySize, &count);
-        if (!NT_SUCCESS(result) && result != STATUS_BUFFER_OVERFLOW)
-            return result;
 
-        capacity = count + max(count / PHP_NSI_ENUMERATION_GROWTH_DIVISOR, PHP_NSI_ENUMERATION_MIN_GROWTH);
-        if (capacity < count)
-            return STATUS_INTEGER_OVERFLOW;
+        status = PhNsiEnumerateObjectsAllParameters(
+            Store,
+            NsiGetFirst,
+            ModuleId,
+            ObjectId,
+            NULL,
+            KeyEntrySize,
+            NULL,
+            ReadWriteEntrySize,
+            NULL,
+            DynamicEntrySize,
+            NULL,
+            StaticEntrySize,
+            &count
+            );
+
+        if (!NT_SUCCESS(status) && status != STATUS_BUFFER_OVERFLOW)
+            return status;
+
+        status = RtlULongAdd(count, max(count / PH_NSI_ENUMERATION_GROWTH_DIVISOR, PH_NSI_ENUMERATION_MIN_GROWTH), &capacity);
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         keyBuffer = NULL;
         rwBuffer = NULL;
         rodBuffer = NULL;
         rosBuffer = NULL;
-        result = KeyTable ? PhpNsiAllocateTableBuffer(capacity, KeyEntrySize, &keyBuffer) : STATUS_SUCCESS;
-        if (NT_SUCCESS(result) && RwTable)
-            result = PhpNsiAllocateTableBuffer(capacity, RwEntrySize, &rwBuffer);
-        if (NT_SUCCESS(result) && RodTable)
-            result = PhpNsiAllocateTableBuffer(capacity, RodEntrySize, &rodBuffer);
-        if (NT_SUCCESS(result) && RosTable)
-            result = PhpNsiAllocateTableBuffer(capacity, RosEntrySize, &rosBuffer);
-        if (!NT_SUCCESS(result))
+
+        if (KeyTable)
         {
-            PhNsiFreeTable(keyBuffer, rwBuffer, rodBuffer, rosBuffer);
-            return result;
+            status = PhNsiAllocateTableBuffer(capacity, KeyEntrySize, &keyBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+
+        if (ReadWriteTable)
+        {
+            status = PhNsiAllocateTableBuffer(capacity, ReadWriteEntrySize, &rwBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+
+        if (DynamicTable)
+        {
+            status = PhNsiAllocateTableBuffer(capacity, DynamicEntrySize, &rodBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+
+        if (StaticTable)
+        {
+            status = PhNsiAllocateTableBuffer(capacity, StaticEntrySize, &rosBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
         }
 
         count = capacity;
-        result = PhNsiEnumerateObjectsAllParameters(Store, NsiGetFirst, ModuleId, ObjectId,
-            keyBuffer, KeyEntrySize, rwBuffer, RwEntrySize, rodBuffer, RodEntrySize,
-            rosBuffer, RosEntrySize, &count);
-        if (result == STATUS_BUFFER_OVERFLOW && attempt + 1 < PHP_NSI_ENUMERATION_MAX_ATTEMPTS)
+
+        status = PhNsiEnumerateObjectsAllParameters(
+            Store,
+            NsiGetFirst,
+            ModuleId,
+            ObjectId,
+            keyBuffer,
+            KeyEntrySize,
+            rwBuffer,
+            ReadWriteEntrySize,
+            rodBuffer,
+            DynamicEntrySize,
+            rosBuffer,
+            StaticEntrySize,
+            &count);
+
+        if (status == STATUS_BUFFER_OVERFLOW && attempt + 1 < PH_NSI_ENUMERATION_MAX_ATTEMPTS)
         {
             PhNsiFreeTable(keyBuffer, rwBuffer, rodBuffer, rosBuffer);
             continue;
         }
-        if (!NT_SUCCESS(result))
-        {
-            PhNsiFreeTable(keyBuffer, rwBuffer, rodBuffer, rosBuffer);
-            return result;
-        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
 
         if (KeyTable && keyBuffer) *KeyTable = keyBuffer;
-        if (RwTable && rwBuffer) *RwTable = rwBuffer;
-        if (RodTable && rodBuffer) *RodTable = rodBuffer;
-        if (RosTable && rosBuffer) *RosTable = rosBuffer;
+        if (ReadWriteTable && rwBuffer) *ReadWriteTable = rwBuffer;
+        if (DynamicTable && rodBuffer) *DynamicTable = rodBuffer;
+        if (StaticTable && rosBuffer) *StaticTable = rosBuffer;
         *Count = count;
         return STATUS_SUCCESS;
     }
 
     return STATUS_BUFFER_OVERFLOW;
+
+CleanupExit:
+    PhNsiFreeTable(keyBuffer, rwBuffer, rodBuffer, rosBuffer);
+    return status;
 #else
     if (!PhNsiApiInitialized() || !NsiAllocateAndGetTable_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiAllocateAndGetTable_I(
+    return PhNetioDosErrorToNtStatus(NsiAllocateAndGetTable_I(
         Store,
         ModuleId,
         ObjectId,
         KeyTable,
         KeyEntrySize,
-        RwTable,
-        RwEntrySize,
-        RodTable,
-        RodEntrySize,
-        RosTable,
-        RosEntrySize,
+        ReadWriteTable,
+        ReadWriteEntrySize,
+        DynamicTable,
+        DynamicEntrySize,
+        StaticTable,
+        StaticEntrySize,
         Count,
         Unused
         ));
@@ -1375,21 +962,20 @@ NTSTATUS PhNsiAllocateAndGetTable(
  * \param Count Receives the number of entries.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \remarks Free the tables with PhNsiFreePersistentDataWithMaskTable.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _Outptr_result_bytebuffer_maybenull_(*Count* KeyEntrySize) _Out_opt_ PVOID* KeyTable,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * KeyEntrySize) PVOID* KeyTable,
     _In_ ULONG KeyEntrySize,
-    _Outptr_result_bytebuffer_maybenull_(*Count* ParameterDataEntrySize) _Out_opt_ PVOID* ParameterDataTable,
-    _Outptr_result_bytebuffer_maybenull_(*Count* ParameterDataEntrySize) _Out_opt_ PVOID* ParameterMaskTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterDataTable,
+    _Outptr_opt_result_bytebuffer_maybenull_(*Count * ParameterDataEntrySize) PVOID* ParameterMaskTable,
     _In_ ULONG ParameterDataEntrySize,
     _Out_ PULONG Count
-)
+    )
 {
 #if !defined(PH_INLINE_NSI)
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG capacity;
     ULONG count;
     ULONG attempt;
@@ -1397,10 +983,10 @@ NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
     PVOID dataBuffer;
     PVOID maskBuffer;
 
-    for (attempt = 0; attempt < PHP_NSI_ENUMERATION_MAX_ATTEMPTS; attempt++)
+    for (attempt = 0; attempt < PH_NSI_ENUMERATION_MAX_ATTEMPTS; attempt++)
     {
         count = 0;
-        result = PhNsiEnumerateObjectsAllPersistentParametersWithMask(
+        status = PhNsiEnumerateObjectsAllPersistentParametersWithMask(
             NsiGetFirst,
             ModuleId,
             ObjectId,
@@ -1412,30 +998,44 @@ NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
             &count
             );
 
-        if (!NT_SUCCESS(result) && result != STATUS_BUFFER_OVERFLOW)
-            return result;
+        if (!NT_SUCCESS(status) && status != STATUS_BUFFER_OVERFLOW)
+            return status;
 
-        capacity = count + max(count / PHP_NSI_ENUMERATION_GROWTH_DIVISOR, PHP_NSI_ENUMERATION_MIN_GROWTH);
-        if (capacity < count)
-            return STATUS_INTEGER_OVERFLOW;
+        status = RtlULongAdd(count, max(count / PH_NSI_ENUMERATION_GROWTH_DIVISOR, PH_NSI_ENUMERATION_MIN_GROWTH), &capacity);
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         keyBuffer = NULL;
         dataBuffer = NULL;
         maskBuffer = NULL;
 
-        result = KeyTable ? PhpNsiAllocateTableBuffer(capacity, KeyEntrySize, &keyBuffer) : STATUS_SUCCESS;
-        if (NT_SUCCESS(result) && ParameterDataTable)
-            result = PhpNsiAllocateTableBuffer(capacity, ParameterDataEntrySize, &dataBuffer);
-        if (NT_SUCCESS(result) && ParameterMaskTable)
-            result = PhpNsiAllocateTableBuffer(capacity, ParameterDataEntrySize, &maskBuffer);
-        if (!NT_SUCCESS(result))
+        if (KeyTable)
         {
-            PhNsiFreePersistentDataWithMaskTable(keyBuffer, dataBuffer, maskBuffer);
-            return result;
+            status = PhNsiAllocateTableBuffer(capacity, KeyEntrySize, &keyBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+
+        if (ParameterDataTable)
+        {
+            status = PhNsiAllocateTableBuffer(capacity, ParameterDataEntrySize, &dataBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+
+        if (ParameterMaskTable)
+        {
+            status = PhNsiAllocateTableBuffer(capacity, ParameterDataEntrySize, &maskBuffer);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
         }
 
         count = capacity;
-        result = PhNsiEnumerateObjectsAllPersistentParametersWithMask(
+        status = PhNsiEnumerateObjectsAllPersistentParametersWithMask(
             NsiGetFirst,
             ModuleId,
             ObjectId,
@@ -1447,31 +1047,37 @@ NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
             &count
             );
 
-        if (result == STATUS_BUFFER_OVERFLOW && attempt + 1 < PHP_NSI_ENUMERATION_MAX_ATTEMPTS)
+        if (status == STATUS_BUFFER_OVERFLOW && attempt + 1 < PH_NSI_ENUMERATION_MAX_ATTEMPTS)
         {
             PhNsiFreePersistentDataWithMaskTable(keyBuffer, dataBuffer, maskBuffer);
             continue;
         }
 
-        if (!NT_SUCCESS(result))
-        {
-            PhNsiFreePersistentDataWithMaskTable(keyBuffer, dataBuffer, maskBuffer);
-            return result;
-        }
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
 
-        if (KeyTable && keyBuffer) *KeyTable = keyBuffer;
-        if (ParameterDataTable && dataBuffer) *ParameterDataTable = dataBuffer;
-        if (ParameterMaskTable && maskBuffer) *ParameterMaskTable = maskBuffer;
+        if (KeyTable && keyBuffer)
+            *KeyTable = keyBuffer;
+        if (ParameterDataTable && dataBuffer)
+            *ParameterDataTable = dataBuffer;
+        if (ParameterMaskTable && maskBuffer)
+            *ParameterMaskTable = maskBuffer;
+
         *Count = count;
+
         return STATUS_SUCCESS;
     }
 
     return STATUS_BUFFER_OVERFLOW;
+
+CleanupExit:
+    PhNsiFreePersistentDataWithMaskTable(keyBuffer, dataBuffer, maskBuffer);
+    return status;
 #else
     if (!PhNsiApiInitialized() || !NsiAllocateAndGetPersistentDataWithMaskTable_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiAllocateAndGetPersistentDataWithMaskTable_I(
+    return PhNetioDosErrorToNtStatus(NsiAllocateAndGetPersistentDataWithMaskTable_I(
         ModuleId,
         ObjectId,
         KeyTable,
@@ -1480,7 +1086,7 @@ NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
         ParameterMaskTable,
         ParameterDataEntrySize,
         Count
-    ));
+        ));
 #endif
 }
 
@@ -1491,17 +1097,17 @@ NTSTATUS PhNsiAllocateAndGetPersistentDataWithMaskTable(
  * \param ObjectId The NSI object identifier within the module.
  * \param NotificationHandle The notification handle.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiDeregisterChangeNotification(
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _In_opt_ HANDLE NotificationHandle
 )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST request = { 0 };
+    NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST request;
 
+    RtlZeroMemory(&request, sizeof(NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST));
     request.ModuleId = ModuleId;
     request.ObjectId = ObjectId;
     request.NotificationHandle = NotificationHandle;
@@ -1511,7 +1117,7 @@ NTSTATUS PhNsiDeregisterChangeNotification(
     if (!PhNsiApiInitialized() || !NsiDeregisterChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiDeregisterChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiDeregisterChangeNotification_I(
         ModuleId,
         ObjectId,
         NotificationHandle
@@ -1524,7 +1130,6 @@ NTSTATUS PhNsiDeregisterChangeNotification(
  *
  * \param NotificationHandle The OVERLAPPED pointer used for the pending request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-cancelipchangenotify
  */
 NTSTATUS PhNsiCancelChangeNotification(
@@ -1533,23 +1138,24 @@ NTSTATUS PhNsiCancelChangeNotification(
 {
 #if !defined(PH_INLINE_NSI)
     HANDLE deviceHandle;
+    NTSTATUS status;
 
-    deviceHandle = PhpNsiGetAsyncDeviceHandle();
+    status = PhNsiGetAsyncDeviceHandle(&deviceHandle);
 
-    if (deviceHandle == INVALID_HANDLE_VALUE)
-        return PhpNetioDosErrorToNtStatus(PhGetLastError());
+    if (!NT_SUCCESS(status))
+        return status;
 
-    return PhpNsiAsyncDeviceIoControl(
+    return PhNsiAsyncDeviceIoControl(
         deviceHandle,
         IOCTL_NSI_CANCEL_CHANGE_NOTIFICATION,
         &NotificationHandle,
-        sizeof(NotificationHandle)
+        sizeof(HANDLE)
         );
 #else
     if (!PhNsiApiInitialized() || !NsiCancelChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiCancelChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiCancelChangeNotification_I(
         NotificationHandle
         ));
 #endif
@@ -1558,29 +1164,28 @@ NTSTATUS PhNsiCancelChangeNotification(
 /**
  * Removes a change notification using a prepared request (nsi!NsiDeregisterChangeNotificationEx).
  *
- * \param DeregistrationRequest The deregistration request.
+ * \param Request The deregistration request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiDeregisterChangeNotificationEx(
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST DeregistrationRequest
+    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_DEREGISTER_CHANGE_NOTIFICATION_EX,
-        DeregistrationRequest,
-        sizeof(*DeregistrationRequest),
-        DeregistrationRequest,
-        sizeof(*DeregistrationRequest),
+        Request,
+        sizeof(NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST),
+        Request,
+        sizeof(NSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiDeregisterChangeNotificationEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiDeregisterChangeNotificationEx_I(
-        DeregistrationRequest
+    return PhNetioDosErrorToNtStatus(NsiDeregisterChangeNotificationEx_I(
+        Request
         ));
 #endif
 }
@@ -1594,69 +1199,71 @@ NTSTATUS PhNsiDeregisterChangeNotificationEx(
  * \param ObjectId The NSI object identifier within the module.
  * \param KeyTable The table of keys.
  * \param KeyEntrySize The size, in bytes, of each key entry.
- * \param RwTable The table of read-write parameter blocks.
- * \param RwEntrySize The size, in bytes, of each read-write entry.
- * \param RodTable The table of read-only dynamic parameter blocks.
- * \param RodEntrySize The size, in bytes, of each read-only dynamic entry.
- * \param RosTable The table of read-only static parameter blocks.
- * \param RosEntrySize The size, in bytes, of each read-only static entry.
+ * \param ReadWriteTable The table of read-write parameter blocks.
+ * \param ReadWriteEntrySize The size, in bytes, of each read-write entry.
+ * \param DynamicTable The table of read-only dynamic parameter blocks.
+ * \param DynamicEntrySize The size, in bytes, of each read-only dynamic entry.
+ * \param StaticTable The table of read-only static parameter blocks.
+ * \param StaticEntrySize The size, in bytes, of each read-only static entry.
  * \param Count On input, the capacity of the tables in entries; on output, the number of entries returned.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiEnumerateObjectsAllParameters(
-    _In_ CONST NSI_STORE Store,
+    _In_ NSI_STORE Store,
     _In_ NSI_GET_ACTION Action,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RwEntrySize) PVOID RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RodEntrySize) PVOID RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RosEntrySize) PVOID RosTable,
-    _In_ CONST ULONG RosEntrySize,
+    _In_ ULONG KeyEntrySize,
+    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
+    _In_ ULONG StaticEntrySize,
     _Inout_ PULONG Count
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX request = { 0 };
-        NTSTATUS result;
+        NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX request;
+        NTSTATUS status;
     
-        request.ModuleId = ModuleId;
-        request.ObjectId = ObjectId;
+        RtlZeroMemory(&request, sizeof(NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX));
+        request.RequestHeader.ModuleId = ModuleId;
+        request.RequestHeader.ObjectId = ObjectId;
         request.Store = Store;
         request.Action = Action;
         request.KeyTable = KeyTable;
         request.KeyEntrySize = KeyEntrySize;
-        request.ReadWriteTable = RwTable;
-        request.ReadWriteEntrySize = RwEntrySize;
-        request.DynamicTable = RodTable;
-        request.DynamicEntrySize = RodEntrySize;
-        request.StaticTable = RosTable;
-        request.StaticEntrySize = RosEntrySize;
+        request.ReadWriteTable = ReadWriteTable;
+        request.ReadWriteEntrySize = ReadWriteEntrySize;
+        request.DynamicTable = DynamicTable;
+        request.DynamicEntrySize = DynamicEntrySize;
+        request.StaticTable = StaticTable;
+        request.StaticEntrySize = StaticEntrySize;
         request.Count = *Count;
-        result = PhNsiEnumerateObjectsAllParametersEx(&request);
+
+        status = PhNsiEnumerateObjectsAllParametersEx(&request);
         *Count = request.Count;
-        return result;
+
+        return status;
 #else
     if (!PhNsiApiInitialized() || !NsiEnumerateObjectsAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiEnumerateObjectsAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiEnumerateObjectsAllParameters_I(
         Store,
         Action,
         ModuleId,
         ObjectId,
         KeyTable,
         KeyEntrySize,
-        RwTable,
-        RwEntrySize,
-        RodTable,
-        RodEntrySize,
-        RosTable,
-        RosEntrySize,
+        ReadWriteTable,
+        ReadWriteEntrySize,
+        DynamicTable,
+        DynamicEntrySize,
+        StaticTable,
+        StaticEntrySize,
         Count
         ));
 #endif
@@ -1665,29 +1272,28 @@ NTSTATUS PhNsiEnumerateObjectsAllParameters(
 /**
  * Enumerates the instances of an NSI object using a prepared request (nsi!NsiEnumerateObjectsAllParametersEx).
  *
- * \param EnumerateRequest The enumeration request.
+ * \param Request The enumeration request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiEnumerateObjectsAllParametersEx(
-    _Inout_ PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX EnumerateRequest
+    _Inout_ PNSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_GET_ALL_PARAMETERS,
-        EnumerateRequest,
-        sizeof(*EnumerateRequest),
-        EnumerateRequest,
-        sizeof(*EnumerateRequest),
+        Request,
+        sizeof(NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX),
+        Request,
+        sizeof(NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiEnumerateObjectsAllParametersEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiEnumerateObjectsAllParametersEx_I(
-        EnumerateRequest
+    return PhNetioDosErrorToNtStatus(NsiEnumerateObjectsAllParametersEx_I(
+        Request
         ));
 #endif
 }
@@ -1705,26 +1311,26 @@ NTSTATUS PhNsiEnumerateObjectsAllParametersEx(
  * \param ParameterDataEntrySize The size, in bytes, of each parameter data and mask entry.
  * \param Count On input, the capacity of the tables in entries; on output, the number of entries returned.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiEnumerateObjectsAllPersistentParametersWithMask(
     _In_ NSI_GET_ACTION Action,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _Out_writes_bytes_opt_(*Count* KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
+    _In_ ULONG KeyEntrySize,
     _Out_writes_bytes_opt_(*Count* ParameterDataEntrySize) PVOID ParameterDataTable,
     _Out_writes_bytes_opt_(*Count* ParameterDataEntrySize) PVOID ParameterMaskTable,
-    _In_ CONST ULONG ParameterDataEntrySize,
+    _In_ ULONG ParameterDataEntrySize,
     _Inout_ PULONG Count
 )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_PERSISTENT_ENUMERATE_REQUEST request = { 0 };
-    NTSTATUS result;
+    NSI_PERSISTENT_ENUMERATE_REQUEST request;
+    NTSTATUS status;
 
-    request.ModuleId = ModuleId;
-    request.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_PERSISTENT_ENUMERATE_REQUEST));
+    request.RequestHeader.ModuleId = ModuleId;
+    request.RequestHeader.ObjectId = ObjectId;
     request.Action = Action;
     request.KeyTable = KeyTable;
     request.KeyEntrySize = KeyEntrySize;
@@ -1733,23 +1339,23 @@ NTSTATUS PhNsiEnumerateObjectsAllPersistentParametersWithMask(
     request.ParameterDataEntrySize = ParameterDataEntrySize;
     request.Count = *Count;
 
-    result = PhpNsiDeviceIoControl(
+    status = PhNsiDeviceIoControl(
         IOCTL_NSI_ENUMERATE_OBJECTS_ALL_PERSISTENT_PARAMETERS_WITH_MASK,
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_ENUMERATE_REQUEST),
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_ENUMERATE_REQUEST),
         NULL
         );
 
     *Count = request.Count;
 
-    return result;
+    return status;
 #else
     if (!PhNsiApiInitialized() || !NsiEnumerateObjectsAllPersistentParametersWithMask_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiEnumerateObjectsAllPersistentParametersWithMask_I(
+    return PhNetioDosErrorToNtStatus(NsiEnumerateObjectsAllPersistentParametersWithMask_I(
         Action,
         ModuleId,
         ObjectId,
@@ -1766,29 +1372,30 @@ NTSTATUS PhNsiEnumerateObjectsAllPersistentParametersWithMask(
 /**
  * Retrieves a single NSI parameter using a prepared request (nsi!NsiGetParameterEx).
  *
- * \param GetParameterRequest The get parameter request.
+ * \param Request The get parameter request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetParameterEx(
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST GetParameterRequest
+    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    ULONG returnedLength;
+
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_GET_PARAMETER,
-        GetParameterRequest,
-        sizeof(*GetParameterRequest),
-        GetParameterRequest,
-        GetParameterRequest->BufferLength,
-        &GetParameterRequest->BufferLength
+        Request,
+        sizeof(NSI_GET_PARAMETER_EX_REQUEST),
+        Request,
+        sizeof(NSI_GET_PARAMETER_EX_REQUEST),
+        &returnedLength
         );
 #else
     if (!PhNsiApiInitialized() || !NsiGetParameterEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetParameterEx_I(
-        GetParameterRequest
+    return PhNetioDosErrorToNtStatus(NsiGetParameterEx_I(
+        Request
         ));
 #endif
 }
@@ -1801,64 +1408,67 @@ NTSTATUS PhNsiGetParameterEx(
  * \param ObjectId The NSI object identifier within the module.
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
- * \param Rw The read-write parameter block.
- * \param RwSize The size, in bytes, of the read-write parameter block.
- * \param Rod The read-only dynamic parameter block.
- * \param RodSize The size, in bytes, of the read-only dynamic parameter block.
- * \param Ros The read-only static parameter block.
- * \param RosSize The size, in bytes, of the read-only static parameter block.
+ * \param ReadWriteBuffer The read-write parameter block.
+ * \param ReadWriteBufferSize The size, in bytes, of the read-write parameter block.
+ * \param DynamicBuffer The read-only dynamic parameter block.
+ * \param DynamicBufferSize The size, in bytes, of the read-only dynamic parameter block.
+ * \param StaticBuffer The read-only static parameter block.
+ * \param StaticBufferSize The size, in bytes, of the read-only static parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetAllParameters(
-    _In_ CONST NSI_STORE Store,
+    _In_ NSI_STORE Store,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ CONST ULONG KeySize,
-    _Out_writes_bytes_opt_(RwSize) PVOID Rw,
-    _In_ CONST ULONG RwSize,
-    _Out_writes_bytes_opt_(RodSize) PVOID Rod,
-    _In_ CONST ULONG RodSize,
-    _Out_writes_bytes_opt_(RosSize) PVOID Ros,
-    _In_ CONST ULONG RosSize
+    _In_ ULONG KeySize,
+    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize,
+    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
+    _In_ ULONG DynamicBufferSize,
+    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
+    _In_ ULONG StaticBufferSize
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_GET_ALL_PARAMETERS_EX_REQUEST request = { 0 };
-    NTSTATUS result;
+    NSI_GET_ALL_PARAMETERS_EX_REQUEST request;
+    NTSTATUS status;
 
-    request.Header.ModuleId = ModuleId;
-    request.Header.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_GET_ALL_PARAMETERS_EX_REQUEST));
+    request.Header.RequestHeader.ModuleId = ModuleId;
+    request.Header.RequestHeader.ObjectId = ObjectId;
     request.Header.Store = Store;
     request.Key = Key;
     request.KeySize = KeySize;
-    request.ReadWriteBuffer = Rw;
-    request.ReadWriteBufferSize = RwSize;
-    request.DynamicBuffer = Rod;
-    request.DynamicBufferSize = RodSize;
-    request.StaticBuffer = Ros;
-    request.StaticBufferSize = RosSize;
-    result = PhNsiGetAllParametersEx(&request);
-    if (NT_SUCCESS(result) && request.ReadWriteBufferSize < RwSize)
+    request.ReadWriteBuffer = ReadWriteBuffer;
+    request.ReadWriteBufferSize = ReadWriteBufferSize;
+    request.DynamicBuffer = DynamicBuffer;
+    request.DynamicBufferSize = DynamicBufferSize;
+    request.StaticBuffer = StaticBuffer;
+    request.StaticBufferSize = StaticBufferSize;
+
+    status = PhNsiGetAllParametersEx(&request);
+
+    if (NT_SUCCESS(status) && request.ReadWriteBufferSize < ReadWriteBufferSize)
         return STATUS_INVALID_PARAMETER;
-    return result;
+
+    return status;
 #else
     if (!PhNsiApiInitialized() || !NsiGetAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiGetAllParameters_I(
         Store,
         ModuleId,
         ObjectId,
         Key,
         KeySize,
-        Rw,
-        RwSize,
-        Rod,
-        RodSize,
-        Ros,
-        RosSize
+        ReadWriteBuffer,
+        ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
+        StaticBuffer,
+        StaticBufferSize
         ));
 #endif
 }
@@ -1866,29 +1476,28 @@ NTSTATUS PhNsiGetAllParameters(
 /**
  * Retrieves all parameter blocks of an NSI object instance using a prepared request (nsi!NsiGetAllParametersEx).
  *
- * \param GetAllParametersRequest The get all parameters request.
+ * \param Request The get all parameters request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetAllParametersEx(
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST GetAllParametersRequest
+    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_GET_ALL_PARAMETERS_EX,
-        GetAllParametersRequest,
-        sizeof(*GetAllParametersRequest),
-        GetAllParametersRequest,
-        sizeof(*GetAllParametersRequest),
+        Request,
+        sizeof(NSI_GET_ALL_PARAMETERS_EX_REQUEST),
+        Request,
+        sizeof(NSI_GET_ALL_PARAMETERS_EX_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiGetAllParametersEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetAllParametersEx_I(
-        GetAllParametersRequest
+    return PhNetioDosErrorToNtStatus(NsiGetAllParametersEx_I(
+        Request
         ));
 #endif
 }
@@ -1907,7 +1516,6 @@ NTSTATUS PhNsiGetAllParametersEx(
  * \param ParameterBufferSize The size, in bytes, of ParameterBuffer.
  * \param ParameterOffset The offset, in bytes, of the parameter within the parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetParameter(
     _In_ NSI_STORE Store,
@@ -1923,10 +1531,11 @@ NTSTATUS PhNsiSetParameter(
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_SET_PARAMETER_EX_REQUEST request = { 0 };
+    NSI_SET_PARAMETER_EX_REQUEST request;
 
-    request.Header.ModuleId = ModuleId;
-    request.Header.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_SET_PARAMETER_EX_REQUEST));
+    request.Header.RequestHeader.ModuleId = ModuleId;
+    request.Header.RequestHeader.ObjectId = ObjectId;
     request.Header.Store = Store;
     request.Header.SetAction = Action;
     request.Key = Key;
@@ -1940,7 +1549,7 @@ NTSTATUS PhNsiSetParameter(
     if (!PhNsiApiInitialized() || !NsiSetParameter_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetParameter_I(
+    return PhNetioDosErrorToNtStatus(NsiSetParameter_I(
         Store,
         Action,
         ModuleId,
@@ -1958,29 +1567,30 @@ NTSTATUS PhNsiSetParameter(
 /**
  * Sets a single NSI parameter using a prepared request (nsi!NsiSetParameterEx).
  *
- * \param SetParameterRequest The set parameter request.
+ * \param Request The set parameter request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetParameterEx(
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST SetParameterRequest
+    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    ULONG returnedLength;
+
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_SET_PARAMETER,
-        SetParameterRequest,
-        sizeof(*SetParameterRequest),
-        SetParameterRequest,
-        SetParameterRequest->ParameterBufferSize,
-        &SetParameterRequest->ParameterBufferSize
+        Request,
+        sizeof(NSI_SET_PARAMETER_EX_REQUEST),
+        Request,
+        sizeof(NSI_SET_PARAMETER_EX_REQUEST),
+        &returnedLength
         );
 #else
     if (!PhNsiApiInitialized() || !NsiSetParameterEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetParameterEx_I(
-        SetParameterRequest
+    return PhNetioDosErrorToNtStatus(NsiSetParameterEx_I(
+        Request
         ));
 #endif
 }
@@ -1988,29 +1598,28 @@ NTSTATUS PhNsiSetParameterEx(
 /**
  * Sets the read-write parameters of an NSI object using a prepared request (nsi!NsiSetAllParametersEx).
  *
- * \param SetAllParametersRequest The set all parameters request.
+ * \param Request The set all parameters request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetAllParametersEx(
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST SetAllParametersRequest
+    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_SET_ALL_PARAMETERS,
-        SetAllParametersRequest,
-        sizeof(*SetAllParametersRequest),
-        SetAllParametersRequest,
-        sizeof(*SetAllParametersRequest),
+        Request,
+        sizeof(NSI_SET_ALL_PARAMETERS_EX_REQUEST),
+        Request,
+        sizeof(NSI_SET_ALL_PARAMETERS_EX_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiSetAllParametersEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetAllParametersEx_I(
-        SetAllParametersRequest
+    return PhNetioDosErrorToNtStatus(NsiSetAllParametersEx_I(
+        Request
         ));
 #endif
 }
@@ -2025,32 +1634,33 @@ NTSTATUS PhNsiSetAllParametersEx(
  * \param CallerContext A caller-defined context passed to the callback.
  * \param NotificationHandle Receives the notification handle.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRegisterChangeNotification(
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
-    _In_opt_ PVOID ChangeCallback,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
     _In_ BOOLEAN NotifyCurrent,
     _In_opt_ PVOID CallerContext,
     _Outptr_result_maybenull_ PHANDLE NotificationHandle
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST request = { 0 };
+    NSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST request;
 
+    RtlZeroMemory(&request, sizeof(NSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST));
     request.ModuleId = ModuleId;
     request.ObjectId = ObjectId;
     request.ChangeCallback = ChangeCallback;
     request.NotifyCurrent = NotifyCurrent;
     request.CallerContext = CallerContext;
     request.NotificationHandle = (PVOID *)NotificationHandle;
+
     return PhNsiRegisterChangeNotificationEx(&request);
 #else
     if (!PhNsiApiInitialized() || !NsiRegisterChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRegisterChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiRegisterChangeNotification_I(
         ModuleId,
         ObjectId,
         ChangeCallback,
@@ -2064,32 +1674,31 @@ NTSTATUS PhNsiRegisterChangeNotification(
 /**
  * Registers for change notifications using a prepared request (nsi!NsiRegisterChangeNotificationEx). Callback-based registrations are not supported over the device interface.
  *
- * \param RegistrationRequest The registration request.
+ * \param Request The registration request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRegisterChangeNotificationEx(
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST RegistrationRequest
+    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    if (RegistrationRequest->ChangeCallback)
+    if (Request->ChangeCallback)
         return STATUS_INVALID_PARAMETER;
 
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_REGISTER_CHANGE_NOTIFICATION_EX,
-        RegistrationRequest,
-        sizeof(*RegistrationRequest),
-        RegistrationRequest,
-        sizeof(*RegistrationRequest),
+        Request,
+        sizeof(NSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST),
+        Request,
+        sizeof(NSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiRegisterChangeNotificationEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRegisterChangeNotificationEx_I(
-        RegistrationRequest
+    return PhNetioDosErrorToNtStatus(NsiRegisterChangeNotificationEx_I(
+        Request
         ));
 #endif
 }
@@ -2097,41 +1706,42 @@ NTSTATUS PhNsiRegisterChangeNotificationEx(
 /**
  * Requests a one-shot change notification on an NSI object (nsi!NsiRequestChangeNotification).
  *
- * \param ModuleHandle The module handle; pass zero.
- * \param ModuleId The NPI module identifier of the provider (for example NPI_MS_TCP_MODULEID).
- * \param ObjectIndex The NSI object identifier within the module.
- * \param OverLapped An optional OVERLAPPED structure for asynchronous completion.
- * \param NotificationHandle Receives the handle used to wait for the notification.
+ * \param[in] ModuleHandle The module handle; pass zero.
+ * \param[in] ModuleId The NPI module identifier of the provider (for example NPI_MS_TCP_MODULEID).
+ * \param[in] ObjectId The NSI object identifier within the module.
+ * \param[in] Overlapped An optional OVERLAPPED structure for asynchronous completion.
+ * \param[out] NotificationHandle Receives the handle used to wait for the notification.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-notifyaddrchange
  */
 NTSTATUS PhNsiRequestChangeNotification(
     _In_ ULONG ModuleHandle,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ ULONG ObjectIndex,
-    _In_opt_ LPOVERLAPPED OverLapped,
+    _In_ NSI_OBJECT_ID ObjectId,
+    _In_opt_ LPOVERLAPPED Overlapped,
     _Out_ PHANDLE NotificationHandle
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST request = { 0 };
+    NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST request;
 
+    RtlZeroMemory(&request, sizeof(NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST));
     request.ModuleHandle = ModuleHandle;
     request.ModuleId = ModuleId;
-    request.ObjectIndex = ObjectIndex;
-    request.Overlapped = OverLapped;
+    request.ObjectIndex = ObjectId;
+    request.Overlapped = Overlapped;
     request.NotificationHandle = NotificationHandle;
+
     return PhNsiRequestChangeNotificationEx(&request);
 #else
     if (!PhNsiApiInitialized() || !NsiRequestChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRequestChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiRequestChangeNotification_I(
         ModuleHandle,
         ModuleId,
-        ObjectIndex,
-        OverLapped,
+        ObjectId,
+        Overlapped,
         NotificationHandle
         ));
 #endif
@@ -2142,7 +1752,6 @@ NTSTATUS PhNsiRequestChangeNotification(
  *
  * \param Request The change notification request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRequestChangeNotificationEx(
     _Inout_ PNSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST Request
@@ -2150,17 +1759,19 @@ NTSTATUS PhNsiRequestChangeNotificationEx(
 {
 #if !defined(PH_INLINE_NSI)
     HANDLE deviceHandle;
-    NTSTATUS result;
+    NTSTATUS status;
 
-    deviceHandle = PhpNsiGetAsyncDeviceHandle();
-    if (deviceHandle == INVALID_HANDLE_VALUE)
-        return PhpNetioDosErrorToNtStatus(PhGetLastError());
+    status = PhNsiGetAsyncDeviceHandle(&deviceHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (Request->Overlapped)
     {
         Request->Overlapped->Internal = STATUS_PENDING;
         Request->Overlapped->InternalHigh = 0;
-        result = NtDeviceIoControlFile(
+
+        status = NtDeviceIoControlFile(
             deviceHandle,
             Request->Overlapped->hEvent,
             NULL,
@@ -2168,25 +1779,30 @@ NTSTATUS PhNsiRequestChangeNotificationEx(
             (PIO_STATUS_BLOCK)Request->Overlapped,
             IOCTL_NSI_REQUEST_CHANGE_NOTIFICATION_EX,
             Request,
-            sizeof(*Request),
+            sizeof(NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST),
             NULL,
             0
             );
     }
     else
     {
-        result = PhpNsiAsyncDeviceIoControl(deviceHandle, IOCTL_NSI_REQUEST_CHANGE_NOTIFICATION_EX, Request, sizeof(*Request));
+        status = PhNsiAsyncDeviceIoControl(
+            deviceHandle, 
+            IOCTL_NSI_REQUEST_CHANGE_NOTIFICATION_EX, 
+            Request, 
+            sizeof(NSI_REQUEST_CHANGE_NOTIFICATION_EX_REQUEST)
+            );
     }
 
     if (Request->Overlapped && Request->NotificationHandle)
         *Request->NotificationHandle = deviceHandle;
 
-    return result;
+    return status;
 #else
     if (!PhNsiApiInitialized() || !NsiRequestChangeNotificationEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRequestChangeNotificationEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRequestChangeNotificationEx_I(
         Request
         ));
 #endif
@@ -2203,7 +1819,6 @@ NTSTATUS PhNsiRequestChangeNotificationEx(
  * \param ParameterMask The mask that selects the valid fields of ParameterData.
  * \param ParameterDataSize The size, in bytes, of ParameterData and ParameterMask.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetAllPersistentParametersWithMask(
     _In_ PNPI_MODULEID ModuleId,
@@ -2216,28 +1831,30 @@ NTSTATUS PhNsiGetAllPersistentParametersWithMask(
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_PERSISTENT_GET_REQUEST request = { 0 };
+    NSI_PERSISTENT_GET_REQUEST request;
 
-    request.ModuleId = ModuleId;
-    request.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_PERSISTENT_GET_REQUEST));
+    request.RequestHeader.ModuleId = ModuleId;
+    request.RequestHeader.ObjectId = ObjectId;
     request.Key = Key;
     request.KeySize = KeySize;
     request.ParameterData = ParameterData;
     request.ParameterMask = ParameterMask;
     request.ParameterDataSize = ParameterDataSize;
-    return PhpNsiDeviceIoControl(
+
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_GET_ALL_PERSISTENT_PARAMETERS_WITH_MASK,
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_GET_REQUEST),
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_GET_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiGetAllPersistentParametersWithMask_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetAllPersistentParametersWithMask_I(
+    return PhNetioDosErrorToNtStatus(NsiGetAllPersistentParametersWithMask_I(
         ModuleId,
         ObjectId,
         Key,
@@ -2261,7 +1878,6 @@ NTSTATUS PhNsiGetAllPersistentParametersWithMask(
  * \param ParameterMask The mask that selects the valid fields of ParameterData.
  * \param ParameterDataSize The size, in bytes, of ParameterData and ParameterMask.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetAllPersistentParametersWithMask(
     _In_ NSI_SET_ACTION Action,
@@ -2275,29 +1891,31 @@ NTSTATUS PhNsiSetAllPersistentParametersWithMask(
     )
 {
 #if !defined(PH_INLINE_NSI)
-    NSI_PERSISTENT_SET_REQUEST request = { 0 };
+    NSI_PERSISTENT_SET_REQUEST request;
 
-    request.ModuleId = ModuleId;
-    request.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_PERSISTENT_SET_REQUEST));
+    request.RequestHeader.ModuleId = ModuleId;
+    request.RequestHeader.ObjectId = ObjectId;
     request.Action = Action;
     request.Key = Key;
     request.KeySize = KeySize;
     request.ParameterData = ParameterData;
     request.ParameterMask = ParameterMask;
     request.ParameterDataSize = ParameterDataSize;
-    return PhpNsiDeviceIoControl(
+
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_SET_ALL_PERSISTENT_PARAMETERS_WITH_MASK,
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_SET_REQUEST),
         &request,
-        sizeof(request),
+        sizeof(NSI_PERSISTENT_SET_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiSetAllPersistentParametersWithMask_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetAllPersistentParametersWithMask_I(
+    return PhNetioDosErrorToNtStatus(NsiSetAllPersistentParametersWithMask_I(
         Action,
         ModuleId,
         ObjectId,
@@ -2313,29 +1931,28 @@ NTSTATUS PhNsiSetAllPersistentParametersWithMask(
 /**
  * Retrieves the security descriptor of an NSI object (nsi!NsiGetObjectSecurity).
  *
- * \param ObjectSecurity The object security request block.
+ * \param Request The object security request block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiGetObjectSecurity(
-    _Inout_updates_bytes_(PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_GET_OBJECT_SECURITY,
-        ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
-        ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        Request,
+        sizeof(NSI_OBJECT_SECURITY_REQUEST),
+        Request,
+        sizeof(NSI_OBJECT_SECURITY_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiGetObjectSecurity_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiGetObjectSecurity_I(
-        ObjectSecurity
+    return PhNetioDosErrorToNtStatus(NsiGetObjectSecurity_I(
+        Request
         ));
 #endif
 }
@@ -2343,50 +1960,239 @@ NTSTATUS PhNsiGetObjectSecurity(
 /**
  * Sets the security descriptor of an NSI object (nsi!NsiSetObjectSecurity).
  *
- * \param ObjectSecurity The object security request block.
+ * \param Request The object security request block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiSetObjectSecurity(
-    _Inout_updates_bytes_(PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID)) PVOID ObjectSecurity
+    _Inout_ PNSI_OBJECT_SECURITY_REQUEST Request
     )
 {
 #if !defined(PH_INLINE_NSI)
-    return PhpNsiDeviceIoControl(
+    return PhNsiDeviceIoControl(
         IOCTL_NSI_SET_OBJECT_SECURITY,
-        ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
-        ObjectSecurity,
-        PHP_NSI_OBJECT_SECURITY_POINTER_COUNT * sizeof(PVOID),
+        Request,
+        sizeof(NSI_OBJECT_SECURITY_REQUEST),
+        Request,
+        sizeof(NSI_OBJECT_SECURITY_REQUEST),
         NULL
         );
 #else
     if (!PhNsiApiInitialized() || !NsiSetObjectSecurity_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiSetObjectSecurity_I(
-        ObjectSecurity
+    return PhNetioDosErrorToNtStatus(NsiSetObjectSecurity_I(
+        Request
         ));
 #endif
+}
+
+/**
+ * Writes the security descriptor of an NSI registry key to the debug console in SDDL form.
+ *
+ * \param KeyHandle A handle to the key, opened with READ_CONTROL access.
+ * \param ModuleName The name of the parent module key, or NULL if the key is a module key.
+ * \param ObjectName The name of the key.
+ */
+static VOID PhpNsiDumpKeySecurity(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRING ModuleName,
+    _In_ PPH_STRING ObjectName
+    )
+{
+    const SECURITY_INFORMATION securityInformation = OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    PPH_STRING sddl = NULL;
+    NTSTATUS status;
+
+    status = PhGetObjectSecurity(KeyHandle, securityInformation, &securityDescriptor);
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetSecurityDescriptorAsString(securityDescriptor, securityInformation, &sddl);
+        PhFree(securityDescriptor);
+    }
+
+    if (ModuleName)
+    {
+        if (NT_SUCCESS(status))
+            dprintf("[NSI] %ws\\%ws SDDL=%ws\n", ModuleName->Buffer, ObjectName->Buffer, sddl->Buffer);
+        else
+            dprintf("[NSI] %ws\\%ws security status=0x%08lx\n", ModuleName->Buffer, ObjectName->Buffer, status);
+    }
+    else
+    {
+        if (NT_SUCCESS(status))
+            dprintf("[NSI] %ws SDDL=%ws\n", ObjectName->Buffer, sddl->Buffer);
+        else
+            dprintf("[NSI] %ws security status=0x%08lx\n", ObjectName->Buffer, status);
+    }
+
+    if (NT_SUCCESS(status))
+        PhDereferenceObject(sddl);
+}
+
+/**
+ * Key enumeration callback that dumps the security descriptor of an NSI object key.
+ *
+ * \param RootDirectory A handle to the parent module key.
+ * \param Information A KEY_BASIC_INFORMATION structure describing the object key.
+ * \param Context The module name (PPH_STRING) of the parent key.
+ * \return TRUE to continue the enumeration.
+ */
+static BOOLEAN NTAPI PhpNsiDumpObjectSecurityKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PKEY_BASIC_INFORMATION basicInformation = Information;
+    PPH_STRING moduleName = Context;
+    PH_STRINGREF keyName;
+    PPH_STRING objectName;
+    HANDLE keyHandle;
+    NTSTATUS status;
+
+    keyName.Buffer = basicInformation->Name;
+    keyName.Length = basicInformation->NameLength;
+    objectName = PhCreateString2(&keyName);
+
+    status = PhOpenKey(&keyHandle, READ_CONTROL, RootDirectory, &keyName, 0);
+
+    if (NT_SUCCESS(status))
+    {
+        PhpNsiDumpKeySecurity(keyHandle, moduleName, objectName);
+        NtClose(keyHandle);
+    }
+    else
+    {
+        dprintf("[NSI] %ws\\%ws open status=0x%08lx\n", moduleName->Buffer, objectName->Buffer, status);
+    }
+
+    PhDereferenceObject(objectName);
+
+    return TRUE;
+}
+
+/**
+ * Key enumeration callback that dumps the security descriptor of an NSI module key
+ * and of each object key beneath it.
+ *
+ * \param RootDirectory A handle to the parent NSI key.
+ * \param Information A KEY_BASIC_INFORMATION structure describing the module key.
+ * \param Context Unused.
+ * \return TRUE to continue the enumeration.
+ */
+static BOOLEAN NTAPI PhpNsiDumpModuleSecurityKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PKEY_BASIC_INFORMATION basicInformation = Information;
+    PH_STRINGREF keyName;
+    PPH_STRING moduleName;
+    HANDLE keyHandle;
+    NTSTATUS status;
+
+    keyName.Buffer = basicInformation->Name;
+    keyName.Length = basicInformation->NameLength;
+    moduleName = PhCreateString2(&keyName);
+
+    status = PhOpenKey(&keyHandle, READ_CONTROL, RootDirectory, &keyName, 0);
+
+    if (NT_SUCCESS(status))
+    {
+        PhpNsiDumpKeySecurity(keyHandle, NULL, moduleName);
+        NtClose(keyHandle);
+    }
+    else
+    {
+        dprintf("[NSI] %ws security open status=0x%08lx\n", moduleName->Buffer, status);
+    }
+
+    status = PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, RootDirectory, &keyName, 0);
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumerateKey(keyHandle, KeyBasicInformation, PhpNsiDumpObjectSecurityKeyCallback, moduleName);
+
+        if (!NT_SUCCESS(status))
+            dprintf("[NSI] %ws enumerate status=0x%08lx\n", moduleName->Buffer, status);
+
+        NtClose(keyHandle);
+    }
+    else
+    {
+        dprintf("[NSI] %ws enumeration open status=0x%08lx\n", moduleName->Buffer, status);
+    }
+
+    PhDereferenceObject(moduleName);
+
+    return TRUE;
+}
+
+/**
+ * The PhNsiDumpObjectSecurityDescriptors routine prints the SDDL of every NSI module and explicit object key.
+ * The module key also supplies the security descriptor for object IDs without their own key.
+ */
+VOID PhNsiDumpObjectSecurityDescriptors(
+    VOID
+    )
+{
+    static const PH_STRINGREF nsiKeyName = PH_STRINGREF_INIT(L"SYSTEM\\CurrentControlSet\\Control\\Nsi");
+    HANDLE keyHandle;
+    NTSTATUS status;
+
+    status = PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, PH_KEY_LOCAL_MACHINE, &nsiKeyName, 0);
+
+    if (!NT_SUCCESS(status))
+    {
+        dprintf("[NSI] open status=0x%08lx\n", status);
+        return;
+    }
+
+    status = PhEnumerateKey(keyHandle, KeyBasicInformation, PhpNsiDumpModuleSecurityKeyCallback, NULL);
+
+    if (!NT_SUCCESS(status))
+        dprintf("[NSI] enumerate status=0x%08lx\n", status);
+
+    NtClose(keyHandle);
 }
 
 /**
  * Connects to the NSI RPC server (nsi!NsiConnectToServer).
  *
  * \param Reserved Reserved; pass NULL.
- * \return The RPC binding handle, or NULL on failure.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
+ * \param RpcHandle Receives the RPC binding handle.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  */
-PVOID PhNsiConnectToServer(
-    _Reserved_ PVOID Reserved
+NTSTATUS PhNsiConnectToServer(
+    _Reserved_ PVOID Reserved,
+    _Out_ RPC_BINDING_HANDLE* RpcHandle
     )
 {
-    if (!PhNsiApiInitialized() || !NsiConnectToServer_I)
-        return NULL;
+    RPC_BINDING_HANDLE rpcHandle;
+    NTSTATUS status;
 
-    return NsiConnectToServer_I(
+    if (!PhNsiApiInitialized() || !NsiConnectToServer_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    rpcHandle = NsiConnectToServer_I(
         Reserved
         );
+
+    if (!rpcHandle)
+    {
+        status = PhNetioDosErrorToNtStatus(PhGetLastError());
+
+        if (NT_SUCCESS(status))
+            status = STATUS_UNSUCCESSFUL;
+
+        return status;
+    }
+
+    *RpcHandle = rpcHandle;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -2394,16 +2200,15 @@ PVOID PhNsiConnectToServer(
  *
  * \param RpcHandle The RPC binding handle returned by PhNsiConnectToServer.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiDisconnectFromServer(
-    _In_opt_ PVOID RpcHandle
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle
     )
 {
     if (!PhNsiApiInitialized() || !NsiDisconnectFromServer_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiDisconnectFromServer_I(
+    return PhNetioDosErrorToNtStatus(NsiDisconnectFromServer_I(
         RpcHandle
         ));
 }
@@ -2414,7 +2219,6 @@ NTSTATUS PhNsiDisconnectFromServer(
  * \param KeyTable The key table.
  * \param ParameterDataTable The parameter data table.
  * \param ParameterMaskTable The parameter mask table.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 VOID PhNsiFreePersistentDataWithMaskTable(
     _Frees_ptr_opt_ PVOID KeyTable,
@@ -2442,32 +2246,31 @@ VOID PhNsiFreePersistentDataWithMaskTable(
  * Frees the tables returned by PhNsiAllocateAndGetTable (nsi!NsiFreeTable).
  *
  * \param KeyTable The key table.
- * \param RwTable The read-write table.
- * \param RodTable The read-only dynamic table.
- * \param RosTable The read-only static table.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
+ * \param ReadWriteTable The read-write table.
+ * \param DynamicTable The read-only dynamic table.
+ * \param StaticTable The read-only static table.
  */
 VOID PhNsiFreeTable(
     _Frees_ptr_opt_ PVOID KeyTable,
-    _Frees_ptr_opt_ PVOID RwTable,
-    _Frees_ptr_opt_ PVOID RodTable,
-    _Frees_ptr_opt_ PVOID RosTable
-)
+    _Frees_ptr_opt_ PVOID ReadWriteTable,
+    _Frees_ptr_opt_ PVOID DynamicTable,
+    _Frees_ptr_opt_ PVOID StaticTable
+    )
 {
 #if !defined(PH_INLINE_NSI)
     if (KeyTable) PhFree(KeyTable);
-    if (RwTable) PhFree(RwTable);
-    if (RodTable) PhFree(RodTable);
-    if (RosTable) PhFree(RosTable);
+    if (ReadWriteTable) PhFree(ReadWriteTable);
+    if (DynamicTable) PhFree(DynamicTable);
+    if (StaticTable) PhFree(StaticTable);
 #else
     if (!PhNsiApiInitialized() || !NsiFreeTable_I)
         return;
 
     NsiFreeTable_I(
         KeyTable,
-        RwTable,
-        RodTable,
-        RosTable
+        ReadWriteTable,
+        DynamicTable,
+        StaticTable
         );
 #endif
 }
@@ -2480,10 +2283,9 @@ VOID PhNsiFreeTable(
  * \param ObjectId The NSI object identifier within the module.
  * \param NotificationHandle The notification handle.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcDeregisterChangeNotification(
-    _In_ HANDLE RpcHandle,
+    _In_ RPC_BINDING_HANDLE RpcHandle,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
     _In_opt_ HANDLE NotificationHandle
@@ -2492,7 +2294,7 @@ NTSTATUS PhNsiRpcDeregisterChangeNotification(
     if (!PhNsiApiInitialized() || !NsiRpcDeregisterChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcDeregisterChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcDeregisterChangeNotification_I(
         RpcHandle,
         ModuleId,
         ObjectId,
@@ -2504,21 +2306,20 @@ NTSTATUS PhNsiRpcDeregisterChangeNotification(
  * Removes an RPC change notification using a prepared request (nsi!NsiRpcDeregisterChangeNotificationEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param DeregistrationRequest The deregistration request.
+ * \param Request The deregistration request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcDeregisterChangeNotificationEx(
-    _In_ HANDLE RpcHandle,
-    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST DeregistrationRequest
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_DEREGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcDeregisterChangeNotificationEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcDeregisterChangeNotificationEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcDeregisterChangeNotificationEx_I(
         RpcHandle,
-        DeregistrationRequest
+        Request
         ));
 }
 
@@ -2532,37 +2333,36 @@ NTSTATUS PhNsiRpcDeregisterChangeNotificationEx(
  * \param ObjectId The NSI object identifier within the module.
  * \param KeyTable The table of keys.
  * \param KeyEntrySize The size, in bytes, of each key entry.
- * \param RwTable The table of read-write parameter blocks.
- * \param RwEntrySize The size, in bytes, of each read-write entry.
- * \param RodTable The table of read-only dynamic parameter blocks.
- * \param RodEntrySize The size, in bytes, of each read-only dynamic entry.
- * \param RosTable The table of read-only static parameter blocks.
- * \param RosEntrySize The size, in bytes, of each read-only static entry.
+ * \param ReadWriteTable The table of read-write parameter blocks.
+ * \param ReadWriteEntrySize The size, in bytes, of each read-write entry.
+ * \param DynamicTable The table of read-only dynamic parameter blocks.
+ * \param DynamicEntrySize The size, in bytes, of each read-only dynamic entry.
+ * \param StaticTable The table of read-only static parameter blocks.
+ * \param StaticEntrySize The size, in bytes, of each read-only static entry.
  * \param Count On input, the capacity of the tables in entries; on output, the number of entries returned.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcEnumerateObjectsAllParameters(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ CONST NSI_STORE Store,
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
     _In_ NSI_GET_ACTION Action,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _Inout_updates_bytes_opt_(*Count * KeyEntrySize) PVOID KeyTable,
-    _In_ CONST ULONG KeyEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RwEntrySize) PVOID RwTable,
-    _In_ CONST ULONG RwEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RodEntrySize) PVOID RodTable,
-    _In_ CONST ULONG RodEntrySize,
-    _Inout_updates_bytes_opt_(*Count * RosEntrySize) PVOID RosTable,
-    _In_ CONST ULONG RosEntrySize,
+    _In_ ULONG KeyEntrySize,
+    _Inout_updates_bytes_opt_(*Count * ReadWriteEntrySize) PVOID ReadWriteTable,
+    _In_ ULONG ReadWriteEntrySize,
+    _Inout_updates_bytes_opt_(*Count * DynamicEntrySize) PVOID DynamicTable,
+    _In_ ULONG DynamicEntrySize,
+    _Inout_updates_bytes_opt_(*Count * StaticEntrySize) PVOID StaticTable,
+    _In_ ULONG StaticEntrySize,
     _Inout_ PULONG Count
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcEnumerateObjectsAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcEnumerateObjectsAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcEnumerateObjectsAllParameters_I(
         RpcHandle,
         Store,
         Action,
@@ -2570,12 +2370,12 @@ NTSTATUS PhNsiRpcEnumerateObjectsAllParameters(
         ObjectId,
         KeyTable,
         KeyEntrySize,
-        RwTable,
-        RwEntrySize,
-        RodTable,
-        RodEntrySize,
-        RosTable,
-        RosEntrySize,
+        ReadWriteTable,
+        ReadWriteEntrySize,
+        DynamicTable,
+        DynamicEntrySize,
+        StaticTable,
+        StaticEntrySize,
         Count
         ));
 }
@@ -2589,46 +2389,45 @@ NTSTATUS PhNsiRpcEnumerateObjectsAllParameters(
  * \param ObjectId The NSI object identifier within the module.
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
- * \param Rw The read-write parameter block.
- * \param RwSize The size, in bytes, of the read-write parameter block.
- * \param Rod The read-only dynamic parameter block.
- * \param RodSize The size, in bytes, of the read-only dynamic parameter block.
- * \param Ros The read-only static parameter block.
- * \param RosSize The size, in bytes, of the read-only static parameter block.
+ * \param ReadWriteBuffer The read-write parameter block.
+ * \param ReadWriteBufferSize The size, in bytes, of the read-write parameter block.
+ * \param DynamicBuffer The read-only dynamic parameter block.
+ * \param DynamicBufferSize The size, in bytes, of the read-only dynamic parameter block.
+ * \param StaticBuffer The read-only static parameter block.
+ * \param StaticBufferSize The size, in bytes, of the read-only static parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcGetAllParameters(
-    _In_opt_ HANDLE RpcHandle,
-    _In_ CONST NSI_STORE Store,
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _In_ NSI_STORE Store,
     _In_ PNPI_MODULEID ModuleId,
-    _In_ CONST NSI_OBJECT_ID ObjectId,
+    _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_(KeySize) PVOID Key,
-    _In_ CONST ULONG KeySize,
-    _Out_writes_bytes_opt_(RwSize) PVOID Rw,
-    _In_ CONST ULONG RwSize,
-    _Out_writes_bytes_opt_(RodSize) PVOID Rod,
-    _In_ CONST ULONG RodSize,
-    _Out_writes_bytes_opt_(RosSize) PVOID Ros,
-    _In_ CONST ULONG RosSize
+    _In_ ULONG KeySize,
+    _Out_writes_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize,
+    _Out_writes_bytes_opt_(DynamicBufferSize) PVOID DynamicBuffer,
+    _In_ ULONG DynamicBufferSize,
+    _Out_writes_bytes_opt_(StaticBufferSize) PVOID StaticBuffer,
+    _In_ ULONG StaticBufferSize
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcGetAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcGetAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcGetAllParameters_I(
         RpcHandle,
         Store,
         ModuleId,
         ObjectId,
         Key,
         KeySize,
-        Rw,
-        RwSize,
-        Rod,
-        RodSize,
-        Ros,
-        RosSize
+        ReadWriteBuffer,
+        ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
+        StaticBuffer,
+        StaticBufferSize
         ));
 }
 
@@ -2636,21 +2435,20 @@ NTSTATUS PhNsiRpcGetAllParameters(
  * Retrieves all parameter blocks over RPC using a prepared request (nsi!NsiRpcGetAllParametersEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param GetAllParametersRequest The get all parameters request.
+ * \param Request The get all parameters request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcGetAllParametersEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST GetAllParametersRequest
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_GET_ALL_PARAMETERS_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcGetAllParametersEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcGetAllParametersEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcGetAllParametersEx_I(
         RpcHandle,
-        GetAllParametersRequest
+        Request
         ));
 }
 
@@ -2664,29 +2462,28 @@ NTSTATUS PhNsiRpcGetAllParametersEx(
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
  * \param ParameterType The parameter block to access (read-write, read-only dynamic or read-only static).
- * \param Buffer The buffer that receives the parameter data.
- * \param BufferLength The size, in bytes, of Buffer.
+ * \param ParameterBuffer The buffer that receives the parameter data.
+ * \param ParameterBufferSize The size, in bytes, of ParameterBuffer.
  * \param ParameterOffset The offset, in bytes, of the parameter within the parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcGetParameter(
-    _In_opt_ HANDLE RpcHandle,
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
     _In_ NSI_STORE Store,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
     _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength,
+    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
     _In_ ULONG ParameterOffset
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcGetParameter_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcGetParameter_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcGetParameter_I(
         RpcHandle,
         Store,
         ModuleId,
@@ -2694,8 +2491,8 @@ NTSTATUS PhNsiRpcGetParameter(
         Key,
         KeySize,
         ParameterType,
-        Buffer,
-        BufferLength,
+        ParameterBuffer,
+        ParameterBufferSize,
         ParameterOffset
         ));
 }
@@ -2704,21 +2501,20 @@ NTSTATUS PhNsiRpcGetParameter(
  * Retrieves a single NSI parameter over RPC using a prepared request (nsi!NsiRpcGetParameterEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param GetParameterRequest The get parameter request.
+ * \param Request The get parameter request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcGetParameterEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST GetParameterRequest
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_GET_PARAMETER_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcGetParameterEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcGetParameterEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcGetParameterEx_I(
         RpcHandle,
-        GetParameterRequest
+        Request
         ));
 }
 
@@ -2728,31 +2524,30 @@ NTSTATUS PhNsiRpcGetParameterEx(
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
  * \param ModuleId The NPI module identifier of the provider (for example NPI_MS_TCP_MODULEID).
  * \param ObjectId The NSI object identifier within the module.
- * \param CallbackRoutine The callback invoked when the object changes.
+ * \param ChangeCallback The callback invoked when the object changes.
  * \param NotifyCurrent TRUE to invoke the callback immediately for the current state.
  * \param CallerContext A caller-defined context passed to the callback.
  * \param NotificationHandle Receives the notification handle.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcRegisterChangeNotification(
-    _In_ HANDLE RpcHandle,
+    _In_ RPC_BINDING_HANDLE RpcHandle,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
-    _In_opt_ PVOID CallbackRoutine,
+    _In_opt_ PNSI_CHANGE_CALLBACK ChangeCallback,
     _In_ BOOLEAN NotifyCurrent,
     _In_opt_ PVOID CallerContext,
-    _Out_opt_ HANDLE *NotificationHandle
+    _Out_opt_ PHANDLE NotificationHandle
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcRegisterChangeNotification_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcRegisterChangeNotification_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcRegisterChangeNotification_I(
         RpcHandle,
         ModuleId,
         ObjectId,
-        CallbackRoutine,
+        ChangeCallback,
         NotifyCurrent,
         CallerContext,
         NotificationHandle
@@ -2763,21 +2558,20 @@ NTSTATUS PhNsiRpcRegisterChangeNotification(
  * Registers a callback for NSI object changes over RPC using a prepared request (nsi!NsiRpcRegisterChangeNotificationEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param RegistrationRequest The registration request.
+ * \param Request The registration request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcRegisterChangeNotificationEx(
-    _In_ HANDLE RpcHandle,
-    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST RegistrationRequest
+    _In_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_REGISTER_CHANGE_NOTIFICATION_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcRegisterChangeNotificationEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcRegisterChangeNotificationEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcRegisterChangeNotificationEx_I(
         RpcHandle,
-        RegistrationRequest
+        Request
         ));
 }
 
@@ -2791,27 +2585,26 @@ NTSTATUS PhNsiRpcRegisterChangeNotificationEx(
  * \param ObjectId The NSI object identifier within the module.
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
- * \param Rw The read-write parameter block.
- * \param RwSize The size, in bytes, of the read-write parameter block.
+ * \param ReadWriteBuffer The read-write parameter block.
+ * \param ReadWriteBufferSize The size, in bytes, of the read-write parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcSetAllParameters(
-    _In_opt_ HANDLE RpcHandle,
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
     _In_ NSI_STORE Store,
     _In_ NSI_SET_ACTION Action,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(RwSize) PVOID Rw,
-    _In_ ULONG RwSize
+    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcSetAllParameters_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcSetAllParameters_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcSetAllParameters_I(
         RpcHandle,
         Store,
         Action,
@@ -2819,8 +2612,8 @@ NTSTATUS PhNsiRpcSetAllParameters(
         ObjectId,
         Key,
         KeySize,
-        Rw,
-        RwSize
+        ReadWriteBuffer,
+        ReadWriteBufferSize
         ));
 }
 
@@ -2828,21 +2621,20 @@ NTSTATUS PhNsiRpcSetAllParameters(
  * Sets the read-write parameters over RPC using a prepared request (nsi!NsiRpcSetAllParametersEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param SetAllParametersRequest The set all parameters request.
+ * \param Request The set all parameters request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcSetAllParametersEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST SetAllParametersRequest
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_SET_ALL_PARAMETERS_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcSetAllParametersEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcSetAllParametersEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcSetAllParametersEx_I(
         RpcHandle,
-        SetAllParametersRequest
+        Request
         ));
 }
 
@@ -2861,10 +2653,9 @@ NTSTATUS PhNsiRpcSetAllParametersEx(
  * \param ParameterBufferSize The size, in bytes, of ParameterBuffer.
  * \param ParameterOffset The offset, in bytes, of the parameter within the parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcSetParameter(
-    _In_opt_ HANDLE RpcHandle,
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
     _In_ NSI_STORE Store,
     _In_ NSI_SET_ACTION Action,
     _In_ PNPI_MODULEID ModuleId,
@@ -2880,7 +2671,7 @@ NTSTATUS PhNsiRpcSetParameter(
     if (!PhNsiApiInitialized() || !NsiRpcSetParameter_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcSetParameter_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcSetParameter_I(
         RpcHandle,
         Store,
         Action,
@@ -2899,21 +2690,20 @@ NTSTATUS PhNsiRpcSetParameter(
  * Sets a single NSI parameter over RPC using a prepared request (nsi!NsiRpcSetParameterEx).
  *
  * \param RpcHandle The NSI RPC binding handle returned by PhNsiConnectToServer.
- * \param SetParameterRequest The set parameter request.
+ * \param Request The set parameter request.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhNsiRpcSetParameterEx(
-    _In_opt_ HANDLE RpcHandle,
-    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST SetParameterRequest
+    _In_opt_ RPC_BINDING_HANDLE RpcHandle,
+    _Inout_ PNSI_SET_PARAMETER_EX_REQUEST Request
     )
 {
     if (!PhNsiApiInitialized() || !NsiRpcSetParameterEx_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    return PhpNetioDosErrorToNtStatus(NsiRpcSetParameterEx_I(
+    return PhNetioDosErrorToNtStatus(NsiRpcSetParameterEx_I(
         RpcHandle,
-        SetParameterRequest
+        Request
         ));
 }
 
@@ -2926,11 +2716,10 @@ NTSTATUS PhNsiRpcSetParameterEx(
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
  * \param ParameterType The parameter block to access (read-write, read-only dynamic or read-only static).
- * \param Buffer The buffer that receives the parameter data.
- * \param BufferLength The size, in bytes, of Buffer.
+ * \param ParameterBuffer The buffer that receives the parameter data.
+ * \param ParameterBufferSize The size, in bytes, of ParameterBuffer.
  * \param ParameterOffset The offset, in bytes, of the parameter within the parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 static NTSTATUS PhpNsiGetParameter(
     _In_ NSI_STORE Store,
@@ -2939,21 +2728,22 @@ static NTSTATUS PhpNsiGetParameter(
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
     _In_ NSI_PARAMETER_TYPE ParameterType,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength,
+    _Out_writes_bytes_opt_(ParameterBufferSize) PVOID ParameterBuffer,
+    _In_ ULONG ParameterBufferSize,
     _In_ ULONG ParameterOffset
     )
 {
-    NSI_GET_PARAMETER_EX_REQUEST request = { 0 };
+    NSI_GET_PARAMETER_EX_REQUEST request;
 
-    request.Header.ModuleId = ModuleId;
-    request.Header.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_GET_PARAMETER_EX_REQUEST));
+    request.Header.RequestHeader.ModuleId = ModuleId;
+    request.Header.RequestHeader.ObjectId = ObjectId;
     request.Header.Store = Store;
     request.Key = Key;
     request.KeySize = KeySize;
     request.ParameterType = ParameterType;
-    request.Buffer = Buffer;
-    request.BufferLength = BufferLength;
+    request.Buffer = ParameterBuffer;
+    request.BufferLength = ParameterBufferSize;
     request.ParameterOffset = ParameterOffset;
 
     return PhNsiGetParameterEx(&request);
@@ -2968,32 +2758,32 @@ static NTSTATUS PhpNsiGetParameter(
  * \param ObjectId The NSI object identifier within the module.
  * \param Key The key that identifies the object instance.
  * \param KeySize The size, in bytes, of Key.
- * \param Rw The read-write parameter block.
- * \param RwSize The size, in bytes, of the read-write parameter block.
+ * \param ReadWriteBuffer The read-write parameter block.
+ * \param ReadWriteBufferSize The size, in bytes, of the read-write parameter block.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 static NTSTATUS PhpNsiSetAllParameters(
     _In_ NSI_STORE Store,
-    _In_ NSI_SET_ACTION Action,
+    _In_ ULONG Action,
     _In_ PNPI_MODULEID ModuleId,
     _In_ NSI_OBJECT_ID ObjectId,
     _In_reads_bytes_opt_(KeySize) PVOID Key,
     _In_ ULONG KeySize,
-    _In_reads_bytes_opt_(RwSize) PVOID Rw,
-    _In_ ULONG RwSize
+    _In_reads_bytes_opt_(ReadWriteBufferSize) PVOID ReadWriteBuffer,
+    _In_ ULONG ReadWriteBufferSize
     )
 {
-    NSI_SET_ALL_PARAMETERS_EX_REQUEST request = { 0 };
+    NSI_SET_ALL_PARAMETERS_EX_REQUEST request;
 
-    request.Header.ModuleId = ModuleId;
-    request.Header.ObjectId = ObjectId;
+    RtlZeroMemory(&request, sizeof(NSI_SET_ALL_PARAMETERS_EX_REQUEST));
+    request.Header.RequestHeader.ModuleId = ModuleId;
+    request.Header.RequestHeader.ObjectId = ObjectId;
     request.Header.Store = Store;
-    request.Header.SetAction = Action;
+    request.Header.SetAction = (NSI_SET_ACTION)Action;
     request.Key = Key;
     request.KeySize = KeySize;
-    request.ReadWriteBuffer = Rw;
-    request.ReadWriteBufferSize = RwSize;
+    request.ReadWriteBuffer = ReadWriteBuffer;
+    request.ReadWriteBufferSize = ReadWriteBufferSize;
 
     return PhNsiSetAllParametersEx(&request);
 }
@@ -3033,12 +2823,16 @@ NTSTATUS PhSetTcpEntry(
         NsiSetTcpEntryData.LocalFamily = AF_INET6;
         NsiSetTcpEntryData.LocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
         memcpy(&NsiSetTcpEntryData.LocalAddressIPv6, &NetworkItem->LocalEndpoint.Address.In6Addr, sizeof(IN6_ADDR));
-        NsiSetTcpEntryData.LocalScopeID = NetworkItem->LocalScopeId;
+        NsiSetTcpEntryData.LocalScopeID.Value = NetworkItem->LocalScopeId;
 
         NsiSetTcpEntryData.RemoteFamily = AF_INET6;
         NsiSetTcpEntryData.RemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
         memcpy(&NsiSetTcpEntryData.RemoteAddressIPv6, &NetworkItem->RemoteEndpoint.Address.In6Addr, sizeof(IN6_ADDR));
-        NsiSetTcpEntryData.RemoteScopeID = NetworkItem->RemoteScopeId;
+        NsiSetTcpEntryData.RemoteScopeID.Value = NetworkItem->RemoteScopeId;
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
     }
 
     status = PhNsiSetAllParameters(
@@ -3054,96 +2848,6 @@ NTSTATUS PhSetTcpEntry(
 
     return status;
 }
-
-#ifdef ASSERT
-#pragma push_macro("ASSERT")
-#undef ASSERT
-#define PHNT_RESTORE_ASSERT
-#ifdef ASSERTMSG
-#pragma push_macro("ASSERTMSG")
-#undef ASSERTMSG
-#define PHNT_RESTORE_ASSERTMSG
-#endif
-#endif
-
-#ifndef ASSERT
-#define PHNT_MSTCPIP_ASSERT_UNDEFINED
-#define ASSERT(exp) ((VOID)0)
-#endif
-
-#include <ip2string.h>
-#include <ipexport.h>
-#include <ipmib.h>
-#include <netiodef.h>
-#include <tcpestats.h>
-#include <tcpmib.h>
-
-#ifdef PHNT_MSTCPIP_ASSERT_UNDEFINED
-#undef ASSERT
-#undef PHNT_MSTCPIP_ASSERT_UNDEFINED
-#endif
-
-#ifdef PHNT_RESTORE_ASSERT
-#undef PHNT_RESTORE_ASSERT
-#pragma pop_macro("ASSERT")
-#endif
-
-#ifdef PHNT_RESTORE_ASSERTMSG
-#undef PHNT_RESTORE_ASSERTMSG
-#pragma pop_macro("ASSERTMSG")
-#endif
-
-#define WIN32_LEAN_AND_MEAN
-
-// tcpip!NsiAllocateAndGetTable uses a module-relative object ID as its third argument.
-// The same numeric value can mean different things for different module IDs.
-//
-// Recovered tcpip.sys object sets are emitted as local literals in helper functions,
-// not as one shared global array. Current binary-backed NsiAllocateAndGetTable usage:
-//   NDIS: 1, 7, 15
-//   IP family: 7, 8, 10, 11, 14, 16, 28
-//   TCP-side module: 19, 25, 29
-//   UDP-side module: 3, 5
-// Object 35 is also observed in tcpip.sys, but on IPv6 NsiGetAllParameters /
-// NsiSetAllParameters paths rather than a recovered NsiAllocateAndGetTable caller.
-// Port-pool startup also uses NsiGetAllParameters on TCP objects 20/34 and UDP object 4.
-// Exhausting the recovered NsiAllocateAndGetTable import-thunk caller set for this
-// image did not produce a binary-backed allocator caller for object 0 or 35.
-// Repo call sites additionally exercise:
-//   NDIS: 0, 1
-//   TCP: 3, 35
-//   UDP: 1
-
-typedef ULONG(WINAPI* PFN_NSI_RPC_GET_PARAMETER)(
-    HANDLE RpcHandle,
-    NSI_STORE Store,
-    PNPI_MODULEID ModuleId,
-    NSI_OBJECT_ID ObjectId,
-    PVOID Key,
-    ULONG KeySize,
-    NSI_PARAMETER_TYPE Type,
-    PVOID Buffer,
-    ULONG BufferLength,
-    ULONG ParameterId
-    );
-
-typedef VOID(NTAPI* PFN_ICMP_APC_ROUTINE)(PVOID, PIO_STATUS_BLOCK, ULONG);
-
-NTSTATUS PhConvertInterfaceLuidToNameW(
-    _In_ const NET_LUID* InterfaceLuid,
-    _Out_writes_(Length) PWSTR InterfaceName,
-    _In_ SIZE_T Length
-);
-
-NTSTATUS PhConvertInterfaceNameToLuidW(
-    _In_z_ PCWSTR InterfaceName,
-    _Out_ NET_LUID* InterfaceLuid
-);
-
-NTSTATUS PhConvertStringToGuidW(
-    _In_z_ PCWSTR SourceString,
-    _Out_ GUID* Guid
-);
 
 /**
  * Converts an interface index to an interface LUID using the NDIS NSI provider.
@@ -3281,79 +2985,11 @@ VOID NTAPI PhIcmpEchoRequestCompleteWorker(
     )
 {
     ICMP_ECHO_REQUEST_CONTEXT* context;
-    PFN_ICMP_APC_ROUTINE apcRoutine;
 
     context = (ICMP_ECHO_REQUEST_CONTEXT*)ApcArgument1;
-    apcRoutine = (PFN_ICMP_APC_ROUTINE)(context->ApcRoutine);
-    apcRoutine(context->ApcContext, &context->IoStatusBlock, 0);
+    context->ApcRoutine(context->ApcContext, &context->IoStatusBlock, 0);
+
     PhIcmpDestroyEchoRequestContext(context);
-}
-
-/**
- * Converts an HRESULT from an address string routine into an NTSTATUS value.
- *
- * \param Status The HRESULT to convert.
- * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winerror/nf-winerror-hresult_code
- */
-NTSTATUS PhTcpipResolveStringStatus(
-    _In_ HRESULT Status
-    )
-{
-    if (HR_SUCCESS(Status))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    //if (Status == STRSAFE_E_INVALID_PARAMETER || Status == STRSAFE_E_INSUFFICIENT_BUFFER)
-    //{
-    //    return STATUS_BUFFER_TOO_SMALL;
-    //}
-
-    return PhNtStatusFromHResult(Status);
-}
-
-/**
- * Normalizes an NTSTATUS from an Rtl address string routine.
- *
- * \param Status The NTSTATUS to convert.
- * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-rtlntstatustodoserror
- */
-NTSTATUS PhTcpipResolveNtStringStatus(
-    _In_ ULONG Status
-    )
-{
-    if (NT_SUCCESS(Status))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    return Status;
-}
-
-/**
- * Converts an HRESULT from a NETIO string routine into an NTSTATUS value.
- *
- * \param Status The HRESULT to convert.
- * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winerror/nf-winerror-hresult_code
- */
-NTSTATUS PhTcpipResolveNetioStringStatus(
-    _In_ HRESULT Status
-    )
-{
-    if (HR_SUCCESS(Status))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    //if (Status == STRSAFE_E_INVALID_PARAMETER || Status == STRSAFE_E_INSUFFICIENT_BUFFER)
-    //{
-    //    return STATUS_NO_MEMORY;
-    //}
-
-    return PhNtStatusFromHResult(Status);
 }
 
 /**
@@ -3426,7 +3062,7 @@ NTSTATUS PhConvertCompartmentIdToGuid(
         return STATUS_INVALID_PARAMETER;
     }
 
-    ZeroMemory(CompartmentGuid, sizeof(GUID));
+    RtlZeroMemory(CompartmentGuid, sizeof(GUID));
 
     Status = PhNsiAllocateAndGetTable(
         NsiActive,
@@ -3468,7 +3104,7 @@ NTSTATUS PhConvertCompartmentIdToGuid(
 /**
  * Retrieves the network compartment identifier of the current thread.
  *
- * \return The compartment identifier, or NET_IF_COMPARTMENT_ID_UNSPECIFIED on failure.
+ * \return The compartment identifier, or NET_IF_COMPARTMENT_ID_PRIMARY on failure.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getcurrentthreadcompartmentid
  */
 NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
@@ -3479,7 +3115,7 @@ NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
 
     current = NET_IF_COMPARTMENT_ID_UNSPECIFIED;
 
-    if (!PhpNsiGetParameter(
+    if (NT_SUCCESS(PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectCurrentThreadCompartment,
@@ -3489,80 +3125,13 @@ NET_IF_COMPARTMENT_ID PhGetCurrentThreadCompartmentId(
         &current,
         sizeof(NET_IF_COMPARTMENT_ID),
         NsiNdisCurrentThreadCompartmentType0Id
-        ))
+        )))
     {
         return current;
     }
 
     return NET_IF_COMPARTMENT_ID_PRIMARY;
 }
-
-//
-//ULONG PhConvertGuidToStringA(
-//    _In_ const GUID* Guid,
-//    _Out_writes_(Length) PSTR GuidString,
-//    _In_ SIZE_T Length
-//    )
-//{
-//   // ULONG status;
-//
-//    if (Guid == NULL || GuidString == NULL)
-//    {
-//        return STATUS_INVALID_PARAMETER;
-//    }
-//
-//    //status = RtlStringCchPrintfA(
-//    //    GuidString,
-//    //    Length,
-//    //    "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-//    //    Guid->Data1,
-//    //    Guid->Data2,
-//    //    Guid->Data3,
-//    //    Guid->Data4[0],
-//    //    Guid->Data4[1],
-//    //    Guid->Data4[2],
-//    //    Guid->Data4[3],
-//    //    Guid->Data4[4],
-//    //    Guid->Data4[5],
-//    //    Guid->Data4[6],
-//    //    Guid->Data4[7]);
-//
-//    return PhTcpipResolveNtStringStatus(status);
-//}
-//
-///* Source: A:\tcpip\convert.c */
-//
-//ULONG PhConvertGuidToStringW(
-//    _In_ const GUID* Guid,
-//    _Out_writes_(Length) PWSTR GuidString,
-//    _In_ SIZE_T Length
-//    )
-//{
-//    HRESULT Result;
-//
-//    if (Guid == NULL || GuidString == NULL)
-//    {
-//        return STATUS_INVALID_PARAMETER;
-//    }
-//
-//    Result = StringCchPrintfW(
-//        GuidString,
-//        Length,
-//        L"{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-//        Guid->Data1,
-//        Guid->Data2,
-//        Guid->Data3,
-//        Guid->Data4[0],
-//        Guid->Data4[1],
-//        Guid->Data4[2],
-//        Guid->Data4[3],
-//        Guid->Data4[4],
-//        Guid->Data4[5],
-//        Guid->Data4[6],
-//        Guid->Data4[7]);
-//
-//    return PhTcpipResolveStringStatus(Result);
-//}
 
 /**
  * Converts an interface alias to an interface LUID.
@@ -3587,10 +3156,8 @@ NTSTATUS PhConvertInterfaceAliasToLuid(
     DynamicTable = NULL;
     Count = 0;
 
-    //if (InterfaceAlias == NULL || InterfaceLuid == NULL || !NT_SUCCESS(RtlStringCchLengthW(InterfaceAlias, MAXIMUM_FILENAME_LENGTH, AliasLength)))
-    //{
-    //    return STATUS_INVALID_PARAMETER;
-    //}
+    if (!InterfaceAlias || !InterfaceLuid || PhCountStringZ(InterfaceAlias) > MAXIMUM_FILENAME_LENGTH)
+        return STATUS_INVALID_PARAMETER;
 
     Status = PhNsiAllocateAndGetTable(
         NsiActive,
@@ -3629,22 +3196,6 @@ NTSTATUS PhConvertInterfaceAliasToLuid(
         {
             InterfaceLuid->Value = KeyTable[Index].Value;
             PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-            return STATUS_SUCCESS;
-        }
-    }
-
-    for (Index = 0; Index < Count; ++Index)
-    {
-        PH_STRINGREF aliasSr;
-
-        PhInitializeStringRef(&aliasSr, DynamicTable[Index].ifAlias.String);
-
-        if (PhStartsWithStringRef2(&aliasSr, InterfaceAlias, TRUE))
-        {
-            InterfaceLuid->Value = KeyTable[Index].Value;
-
-            PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-
             return STATUS_SUCCESS;
         }
     }
@@ -3711,12 +3262,12 @@ NTSTATUS PhConvertInterfaceGuidToLuid(
 
     for (Index = 0; Index < Count; ++Index)
     {
-        //if (PhTcpipGuidEquals(&StaticTable[Index].InterfaceGuid, InterfaceGuid))
-        //{
-        //    InterfaceLuid->Value = KeyTable[Index].Value;
-        //    Status = STATUS_SUCCESS;
-        //    break;
-        //}
+        if (PhTcpipGuidEquals(&StaticTable[Index].InterfaceGuid, InterfaceGuid))
+        {
+            InterfaceLuid->Value = KeyTable[Index].Value;
+            Status = STATUS_SUCCESS;
+            break;
+        }
     }
 
     PhNsiFreeTable(KeyTable, NULL, NULL, StaticTable);
@@ -3786,7 +3337,10 @@ NTSTATUS PhConvertInterfaceLuidToAlias(
     NSI_STRING_256 Alias;
     ULONG CurrentLength;
 
-    ZeroMemory(&Alias, sizeof(NSI_STRING_256));
+    if (!InterfaceLuid || !InterfaceAlias)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(&Alias, sizeof(NSI_STRING_256));
     Key = *InterfaceLuid;
 
     Status = PhpNsiGetParameter(
@@ -3806,14 +3360,14 @@ NTSTATUS PhConvertInterfaceLuidToAlias(
         return Status;
     }
 
-    CurrentLength = Alias.Length >> 1;
+    CurrentLength = Alias.CountedString.Length >> 1;
     if (CurrentLength > MAXIMUM_FILENAME_LENGTH)
     {
         CurrentLength = MAXIMUM_FILENAME_LENGTH;
     }
 
-    Alias.Buffer[CurrentLength] = UNICODE_NULL;
-    return 0;// PhTcpipResolveNetioStringStatus(StringCchPrintfW(InterfaceAlias, Length, L"%s", Alias.Buffer));
+    Alias.CountedString.String[CurrentLength] = UNICODE_NULL;
+    return PhCopyStringZ(Alias.CountedString.String, CurrentLength, InterfaceAlias, Length, NULL);
 }
 
 /**
@@ -3851,7 +3405,7 @@ NTSTATUS PhConvertInterfaceLuidToGuid(
 
     if (!NT_SUCCESS(Status))
     {
-        ZeroMemory(InterfaceGuid, sizeof(GUID));
+        RtlZeroMemory(InterfaceGuid, sizeof(GUID));
     }
 
     return Status;
@@ -3871,12 +3425,15 @@ NTSTATUS PhGetInterfaceHandle(
     )
 {
     GUID interfaceGuid;
+    WCHAR guidString[RTL_GUID_STRING_SIZE + 1];
     UNICODE_STRING objectName;
-    UNICODE_STRING guidString;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
     HANDLE fileHandle;
-    WCHAR objectBuffer[PHP_NSI_INTERFACE_OBJECT_NAME_BUFFER_LENGTH];
+    PH_STRINGREF stringRef;
+    SIZE_T returnLength;
+    PH_FORMAT format[2];
+    WCHAR formatBuffer[PH_NSI_INTERFACE_OBJECT_NAME_BUFFER_LENGTH];
     NTSTATUS status;
 
     if (InterfaceLuid == NULL || InterfaceHandle == NULL)
@@ -3885,54 +3442,49 @@ NTSTATUS PhGetInterfaceHandle(
     *InterfaceHandle = NULL;
     fileHandle = NULL;
     interfaceGuid = GUID_NULL;
-    guidString.Buffer = NULL;
-    guidString.Length = 0;
-    guidString.MaximumLength = 0;
-
-    RtlInitEmptyUnicodeString(&objectName, objectBuffer, sizeof(objectBuffer));
 
     status = PhConvertInterfaceLuidToGuid(InterfaceLuid, &interfaceGuid);
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlStringFromGUID(&interfaceGuid, &guidString);
+    status = PhFormatGuidToBuffer(&interfaceGuid, guidString, sizeof(guidString), NULL);
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlAppendUnicodeToString(&objectName, TCPIP_ADAPTER_PREFIX);
-    if (NT_SUCCESS(status))
-        status = RtlAppendUnicodeStringToString(&objectName, &guidString);
+    PhInitFormatS(&format[0], TCPIP_ADAPTER_PREFIX);
+    PhInitFormatS(&format[1], guidString);
 
-    if (NT_SUCCESS(status))
-    {
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &objectName,
-            OBJ_CASE_INSENSITIVE,
-            NULL,
-            NULL
-            );
+    if (!PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+        return STATUS_NAME_TOO_LONG;
 
-        status = NtOpenFile(
-            &fileHandle,
-            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-            &objectAttributes,
-            &ioStatusBlock,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_SYNCHRONOUS_IO_NONALERT
-            );
+    stringRef.Length = returnLength - sizeof(UNICODE_NULL);
+    stringRef.Buffer = formatBuffer;
 
-        if (NT_SUCCESS(status))
-            *InterfaceHandle = fileHandle;
-        else
-            status = status;
-    }
-    else
-    {
-        status = status;
-    }
+    if (!PhStringRefToUnicodeString(&stringRef, &objectName))
+        return STATUS_NAME_TOO_LONG;
 
-    RtlFreeUnicodeString(&guidString);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &objectAttributes,
+        &ioStatusBlock,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *InterfaceHandle = fileHandle;
+
     return status;
 }
 
@@ -3951,7 +3503,7 @@ NTSTATUS PhConvertNdisStatusToError(
     {
         if (Status == STATUS_BUFFER_OVERFLOW)
             Status = STATUS_INTERNAL_ERROR;
-        else if (Status >= 0)
+        else if (NT_SUCCESS(Status))
             Status = STATUS_UNSUCCESSFUL;
 
         return Status;
@@ -3969,19 +3521,17 @@ NTSTATUS PhConvertNdisStatusToError(
  * \param ReadWrite The read-write parameter block.
  * \param ReadOnlyDynamic The read-only dynamic parameter block.
  * \param ReadOnlyStatic The read-only static parameter block.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 static VOID PhFillVirtualInterfaceRow(
     _Out_ PMIB_FL_VIRTUAL_INTERFACE_ROW InterfaceRow,
-    _In_ USHORT Family,
+    _In_ ADDRESS_FAMILY Family,
     _In_ const NSI_FL_VIRTUAL_INTERFACE_KEY* Key,
     _In_ const NSI_FL_VIRTUAL_INTERFACE_RW* ReadWrite,
     _In_ const NSI_FL_VIRTUAL_INTERFACE_ROD* ReadOnlyDynamic,
     _In_ const NSI_FL_VIRTUAL_INTERFACE_ROS* ReadOnlyStatic
     )
 {
-    RtlZeroMemory(InterfaceRow, sizeof(*InterfaceRow));
-
+    RtlZeroMemory(InterfaceRow, sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW));
     InterfaceRow->Family = Family;
     InterfaceRow->IfLuid = Key->InterfaceLuid;
     InterfaceRow->VirtualIfId = Key->VirtualInterfaceId;
@@ -3991,8 +3541,23 @@ static VOID PhFillVirtualInterfaceRow(
     InterfaceRow->VirtualIfLuid = ReadOnlyStatic->VirtualInterfaceLuid;
     InterfaceRow->VirtualIfIndex = ReadOnlyDynamic->VirtualInterfaceIndex;
     InterfaceRow->AllowLocalNd = ReadWrite->ClientInterfaceFlag;
-    memcpy(&InterfaceRow->AttachedFlsnpiClients, ReadOnlyDynamic->Counters32, sizeof(ReadOnlyDynamic->Counters32));
-    memcpy(&InterfaceRow->FlsnpiClientInjectErrors, ReadOnlyDynamic->Counters64, sizeof(ReadOnlyDynamic->Counters64));
+    InterfaceRow->AttachedFlsnpiClients = ReadOnlyDynamic->AttachedFlsnpiClients;
+    InterfaceRow->FlsnpiClientConfigErrors = ReadOnlyDynamic->FlsnpiClientConfigErrors;
+    InterfaceRow->FlsnpiClientInjectErrors = ReadOnlyDynamic->FlsnpiClientInjectErrors;
+    InterfaceRow->FlsnpiClientCloneErrors = ReadOnlyDynamic->FlsnpiClientCloneErrors;
+    InterfaceRow->InFlsnpiIndicatedPackets = ReadOnlyDynamic->InFlsnpiIndicatedPackets;
+    InterfaceRow->InFlsnpiClientReturnedPackets = ReadOnlyDynamic->InFlsnpiClientReturnedPackets;
+    InterfaceRow->InFlsnpiClientSilentlyDroppedPackets = ReadOnlyDynamic->InFlsnpiClientSilentlyDroppedPackets;
+    InterfaceRow->InFlsnpiClientDroppedPackets = ReadOnlyDynamic->InFlsnpiClientDroppedPackets;
+    InterfaceRow->InFlsnpiClientInjectedPackets = ReadOnlyDynamic->InFlsnpiClientInjectedPackets;
+    InterfaceRow->InFlsnpiClientClonedPackets = ReadOnlyDynamic->InFlsnpiClientClonedPackets;
+    InterfaceRow->OutFlsnpiIndicatedPackets = ReadOnlyDynamic->OutFlsnpiIndicatedPackets;
+    InterfaceRow->OutFlsnpiClientReturnedPackets = ReadOnlyDynamic->OutFlsnpiClientReturnedPackets;
+    InterfaceRow->OutFlsnpiClientDroppedPackets = ReadOnlyDynamic->OutFlsnpiClientDroppedPackets;
+    InterfaceRow->OutFlsnpiClientSilentlyDroppedPackets = ReadOnlyDynamic->OutFlsnpiClientSilentlyDroppedPackets;
+    InterfaceRow->OutFlsnpiClientInjectedPackets = ReadOnlyDynamic->OutFlsnpiClientInjectedPackets;
+    InterfaceRow->OutFlsnpiClientClonedPackets = ReadOnlyDynamic->OutFlsnpiClientClonedPackets;
+    InterfaceRow->OutFlsnpiClientClonedPacketsForNbSplit = ReadOnlyDynamic->OutFlsnpiClientClonedPacketsForNbSplit;
 }
 
 /**
@@ -4054,7 +3619,7 @@ NTSTATUS PhConvertInterfaceLuidToNameW(
     NTSTATUS Status;
     ULONG Index;
     PCWSTR Prefix;
-    WCHAR PrefixBuffer[PHP_INTERFACE_NAME_BUFFER_LENGTH];
+    WCHAR PrefixBuffer[PH_INTERFACE_NAME_BUFFER_LENGTH];
     HRESULT Result;
 
     if (InterfaceLuid == NULL || InterfaceName == NULL)
@@ -4125,7 +3690,7 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
     PCWSTR Source;
     WCHAR* Destination;
     WCHAR* Terminator;
-    WCHAR LocalName[PHP_INTERFACE_NAME_BUFFER_LENGTH];
+    WCHAR LocalName[PH_INTERFACE_NAME_BUFFER_LENGTH];
     PCWSTR Prefix = L"iftype";
     WCHAR* Separator;
     PH_STRINGREF sr;
@@ -4146,7 +3711,7 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
         return STATUS_OBJECT_NAME_INVALID;
     }
 
-    Remaining = PHP_INTERFACE_NAME_MAX_LENGTH;
+    Remaining = PH_INTERFACE_NAME_MAX_LENGTH;
     Source = InterfaceName;
     while (Remaining != 0 && *Source != UNICODE_NULL)
     {
@@ -4161,7 +3726,7 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
 
     Source = InterfaceName;
     Destination = LocalName;
-    Remaining = PHP_INTERFACE_NAME_MAX_LENGTH;
+    Remaining = PH_INTERFACE_NAME_MAX_LENGTH;
     while (Remaining != 0 && *Source != UNICODE_NULL)
     {
         *Destination++ = *Source++;
@@ -4186,21 +3751,22 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
     Separator = LocalName + index;
 
     PhInitializeStringRef(&indexSr, Separator + 1);
-    if (PhStringToInteger64(&indexSr, 10, &value))
-        InterfaceLuid->Info.NetLuidIndex = (ULONG)value;
-    else
-        InterfaceLuid->Info.NetLuidIndex = 0;
+    if (!PhStringToInteger64(&indexSr, 10, &value) || value > 0xFFFFFF)
+        return STATUS_OBJECT_NAME_INVALID;
+
+    InterfaceLuid->Info.NetLuidIndex = (ULONG)value;
 
     if (wcsncmp(LocalName, Prefix, PhCountStringZ(Prefix)) == 0)
     {
         PH_STRINGREF typeSr;
 
         PhInitializeStringRef(&typeSr, LocalName + PhCountStringZ(Prefix));
+        typeSr.Length = RTL_PTR_OFFSET(typeSr.Buffer, Separator);
 
-        if (PhStringToInteger64(&typeSr, 10, &value))
+        if (PhStringToInteger64(&typeSr, 10, &value) && value <= MAXUSHORT)
             InterfaceLuid->Info.IfType = (USHORT)value;
         else
-            InterfaceLuid->Info.IfType = 0;
+            return STATUS_OBJECT_NAME_INVALID;
 
         return STATUS_SUCCESS;
     }
@@ -4209,7 +3775,8 @@ NTSTATUS PhConvertInterfaceNameToLuidW(
     {
         size_t PrefixLength = (size_t)(Separator - LocalName);
 
-        if (wcsncmp(LocalName, IfTypeStringTable[Index].Name, PrefixLength) == 0)
+        if (PrefixLength == PhCountStringZ(IfTypeStringTable[Index].Name) &&
+            wcsncmp(LocalName, IfTypeStringTable[Index].Name, PrefixLength) == 0)
         {
             InterfaceLuid->Info.IfType = IfTypeStringTable[Index].IfType;
             return STATUS_SUCCESS;
@@ -4420,18 +3987,6 @@ NTSTATUS PhConvertRemoteInterfaceAliasToLuid(
         }
     }
 
-    for (Index = 0; Index < Count; ++Index)
-    {
-        PH_STRINGREF aliasSr;
-        PhInitializeStringRef(&aliasSr, DynamicTable[Index].ifAlias.String);
-        if (PhStartsWithStringRef2(&aliasSr, InterfaceAlias, TRUE))
-        {
-            InterfaceLuid->Value = KeyTable[Index].Value;
-            PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
-            return STATUS_SUCCESS;
-        }
-    }
-
     InterfaceLuid->Value = 0;
     PhNsiFreeTable(KeyTable, NULL, DynamicTable, NULL);
     return STATUS_INVALID_PARAMETER;
@@ -4577,7 +4132,7 @@ NTSTATUS PhConvertRemoteInterfaceLuidToAlias(
     PCWSTR AliasString;
     ULONG CurrentLength;
 
-    ZeroMemory(&Alias, sizeof(NSI_STRING_256));
+    RtlZeroMemory(&Alias, sizeof(NSI_STRING_256));
 
     if (InterfaceLuid == NULL || InterfaceAlias == NULL)
     {
@@ -4602,14 +4157,14 @@ NTSTATUS PhConvertRemoteInterfaceLuidToAlias(
 
     if (NT_SUCCESS(Status))
     {
-        CurrentLength = Alias.Length >> 1;
+        CurrentLength = Alias.CountedString.Length >> 1;
         if (CurrentLength > MAXIMUM_FILENAME_LENGTH)
         {
             CurrentLength = MAXIMUM_FILENAME_LENGTH;
         }
 
-        Alias.Buffer[CurrentLength] = UNICODE_NULL;
-        AliasString = Alias.Buffer;
+        Alias.CountedString.String[CurrentLength] = UNICODE_NULL;
+        AliasString = Alias.CountedString.String;
     }
     else
     {
@@ -4618,7 +4173,9 @@ NTSTATUS PhConvertRemoteInterfaceLuidToAlias(
 
     if (!NT_SUCCESS(Status))
     {
-        return PhCopyStringZ(AliasString, SIZE_MAX, InterfaceAlias, Length, NULL);
+        if (Length)
+            InterfaceAlias[0] = UNICODE_NULL;
+        return Status;
     }
 
     return PhCopyStringZ(AliasString, SIZE_MAX, InterfaceAlias, Length, NULL);
@@ -4664,7 +4221,7 @@ NTSTATUS PhConvertRemoteInterfaceLuidToGuid(
 
     if (!NT_SUCCESS(Status))
     {
-        ZeroMemory(InterfaceGuid, sizeof(GUID));
+        RtlZeroMemory(InterfaceGuid, sizeof(GUID));
     }
 
     return Status;
@@ -4732,50 +4289,19 @@ NTSTATUS PhConvertStringToGuidW(
 {
     UNICODE_STRING UnicodeGuid;
 
-    ZeroMemory(&UnicodeGuid, sizeof(UNICODE_STRING));
+    RtlZeroMemory(&UnicodeGuid, sizeof(UNICODE_STRING));
 
-    if (SourceString != NULL && Guid != NULL)
+    if (SourceString && Guid)
     {
         RtlInitUnicodeString(&UnicodeGuid, SourceString);
 
-        if (RtlGUIDFromString(&UnicodeGuid, Guid) >= 0)
+        if (NT_SUCCESS(RtlGUIDFromString(&UnicodeGuid, Guid)))
         {
             return STATUS_SUCCESS;
         }
     }
 
     return STATUS_INVALID_PARAMETER;
-}
-
-/**
- * Converts an ANSI GUID string to a GUID.
- *
- * \param SourceString The GUID string, with or without braces.
- * \param Guid Receives the GUID.
- * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlguidfromstring
- */
-NTSTATUS PhConvertStringToGuidA(
-    _In_z_ PCSTR SourceString,
-    _Out_ GUID* Guid
-    )
-{
-    WCHAR WideGuid[RTL_GUID_STRING_SIZE + 1];
-    NTSTATUS Status;
-
-    if (SourceString == NULL || Guid == NULL)
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    Status = PhCopyStringZFromMultiByte(SourceString, strlen(SourceString), WideGuid, RTL_NUMBER_OF(WideGuid), NULL);
-
-    if (!NT_SUCCESS(Status))
-    {
-        return Status;
-    }
-
-    return PhConvertStringToGuidW(WideGuid, Guid);
 }
 
 /**
@@ -4788,22 +4314,20 @@ NTSTATUS PhConvertStringToGuidA(
  */
 NTSTATUS PhConvertStringToInterfacePhysicalAddress(
     _In_z_ PCWSTR InterfacePhysicalAddressString,
-    _Out_writes_bytes_(PHP_MAC_ADDRESS_LENGTH) PBYTE InterfacePhysicalAddress
-)
+    _Out_writes_bytes_(PH_MAC_ADDRESS_LENGTH) PBYTE InterfacePhysicalAddress
+    )
 {
     size_t Length;
     ULONG Index;
 
-    Length = 0;
-
     Length = PhCountStringZ(InterfacePhysicalAddressString);
 
-    if (Length != PHP_MAC_ADDRESS_STRING_LENGTH)
+    if (Length != PH_MAC_ADDRESS_STRING_LENGTH)
     {
         return STATUS_INVALID_PARAMETER;
     }
 
-    for (Index = 0; Index < PHP_MAC_ADDRESS_STRING_LENGTH; ++Index)
+    for (Index = 0; Index < PH_MAC_ADDRESS_STRING_LENGTH; ++Index)
     {
         WCHAR Character;
         ULONG ByteIndex;
@@ -4854,7 +4378,17 @@ NTSTATUS PhConvertStringToInterfacePhysicalAddress(
     return STATUS_SUCCESS;
 }
 
-ULONG PhIcmpv4ErrorToIpStatus(_In_ int Type, _In_ ULONG Code)
+/**
+ * Converts an ICMPv4 error type and code into an IP_STATUS code.
+ *
+ * \param Type The ICMPv4 message type (ICMP4_*).
+ * \param Code The ICMPv4 message code.
+ * \return The IP_STATUS code; IP_GENERAL_FAILURE for unrecognized messages.
+ */
+ULONG PhIcmpv4ErrorToIpStatus(
+    _In_ LONG Type,
+    _In_ ULONG Code
+    )
 {
     switch (Type)
     {
@@ -4899,7 +4433,17 @@ ULONG PhIcmpv4ErrorToIpStatus(_In_ int Type, _In_ ULONG Code)
     }
 }
 
-ULONG PhIcmpv6ErrorToIpStatus(_In_ int Type, _In_ int Code)
+/**
+ * Converts an ICMPv6 error type and code into an IP_STATUS code.
+ *
+ * \param Type The ICMPv6 message type (ICMP6_*).
+ * \param Code The ICMPv6 message code.
+ * \return The IP_STATUS code; IP_GENERAL_FAILURE for unrecognized messages.
+ */
+ULONG PhIcmpv6ErrorToIpStatus(
+    _In_ LONG Type, 
+    _In_ LONG Code
+    )
 {
     switch (Type)
     {
@@ -4933,40 +4477,40 @@ ULONG PhIcmpv6ErrorToIpStatus(_In_ int Type, _In_ int Code)
 /**
  * Converts the status block of a completed ICMP request into an IP_STATUS code.
  *
- * \param StatusBlock The status block of the request (status, reserved, ICMP type, ICMP code).
+ * \param StatusBlock The notification header of the request (status, ICMP error indicator, type and code).
  * \param Ipv4 TRUE for an IPv4 request, FALSE for IPv6.
  * \return The IP_STATUS value.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho2
  */
 ULONG PhNtStatusToIpStatus(
-    _In_reads_(PHP_ICMP_STATUS_BLOCK_LENGTH) const ULONG* StatusBlock,
+    _In_ const ICMP_NOTIFICATION_HEADER* StatusBlock,
     _In_ BOOLEAN Ipv4
     )
 {
-    if (StatusBlock[0] == NO_ERROR)
+    if (StatusBlock->Status == NO_ERROR)
         return IP_SUCCESS;
 
-    if (StatusBlock[0] == STATUS_UNSUCCESSFUL)
+    if (StatusBlock->Status == STATUS_UNSUCCESSFUL)
     {
-        if (StatusBlock[1] == 0)
+        if (StatusBlock->HasIcmpError == 0)
             return IP_GENERAL_FAILURE;
 
         return Ipv4
-            ? PhIcmpv4ErrorToIpStatus((int)(StatusBlock[PHP_ICMP_ECHO_ERROR_TYPE_INDEX]), StatusBlock[PHP_ICMP_ECHO_ERROR_CODE_INDEX])
-            : PhIcmpv6ErrorToIpStatus((int)(StatusBlock[PHP_ICMP_ECHO_ERROR_TYPE_INDEX]), (int)(StatusBlock[PHP_ICMP_ECHO_ERROR_CODE_INDEX]));
+            ? PhIcmpv4ErrorToIpStatus((LONG)(StatusBlock->IcmpType), StatusBlock->IcmpCode)
+            : PhIcmpv6ErrorToIpStatus((LONG)(StatusBlock->IcmpType), (LONG)(StatusBlock->IcmpCode));
     }
 
-    if (StatusBlock[0] == STATUS_INSUFFICIENT_RESOURCES)
+    if (StatusBlock->Status == STATUS_INSUFFICIENT_RESOURCES)
         return IP_NO_RESOURCES;
-    if (StatusBlock[0] == STATUS_DUPLICATE_NAME)
+    if (StatusBlock->Status == STATUS_DUPLICATE_NAME)
         return IP_DUPLICATE_ADDRESS;
-    if (StatusBlock[0] == STATUS_CANCELLED)
+    if (StatusBlock->Status == STATUS_CANCELLED)
         return IP_GENERAL_FAILURE;
-    if (StatusBlock[0] == STATUS_INVALID_BUFFER_SIZE)
+    if (StatusBlock->Status == STATUS_INVALID_BUFFER_SIZE)
         return IP_PACKET_TOO_BIG;
-    if (StatusBlock[0] == STATUS_IPSEC_QUEUE_OVERFLOW)
+    if (StatusBlock->Status == STATUS_IPSEC_QUEUE_OVERFLOW)
         return IP_NEGOTIATING_IPSEC;
-    if (StatusBlock[0] == STATUS_TIMEOUT)
+    if (StatusBlock->Status == STATUS_TIMEOUT)
         return IP_REQ_TIMED_OUT;
 
     return IP_GENERAL_FAILURE;
@@ -5012,49 +4556,51 @@ VOID PhIcmpEchoRequestComplete(
 /**
  * Returns the shared NSI RPC binding used for ICMP notifications, connecting on first use.
  *
- * \return The RPC binding handle, or NULL on failure (the last error is set).
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
+ * \param RpcHandle Receives the shared RPC binding handle. The handle is cached and must not be disconnected by the caller.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  */
-PVOID PhNsiNotificationConnectToServer(
-    VOID
+NTSTATUS PhNsiNotificationConnectToServer(
+    _Out_ RPC_BINDING_HANDLE* RpcHandle
     )
 {
-    ULONG lastError;
-
-    lastError = ERROR_SUCCESS;
-    if (PhBeginInitOnce(&NotificationInitOnce))
-    {
-        InitializeListHead(&PhpConnectivityHintListHead);
-        PhEndInitOnce(&NotificationInitOnce);
-    }
+    NTSTATUS status = STATUS_SUCCESS;
 
     PhAcquireQueuedLockExclusive(&NotificationCriticalSection);
+
     if (NotificationRpcHandle == NULL)
     {
-        NotificationRpcHandle = PhNsiConnectToServer(0);
-        lastError = PhGetLastError();
+        status = PhNsiConnectToServer(NULL, &NotificationRpcHandle);
     }
+
+    if (NT_SUCCESS(status))
+    {
+        *RpcHandle = NotificationRpcHandle;
+    }
+
     PhReleaseQueuedLockExclusive(&NotificationCriticalSection);
 
-    PhSetLastError(lastError);
-    return NotificationRpcHandle;
+    return status;
 }
 
 /**
  * NSI callback that receives an IPv4 echo reply, copies it into the caller's reply buffer and completes the request.
  *
- * \param Unknown Unused.
- * \param RequestPointer The echo request that completed.
- * \param Notification The NSI notification message that carries the reply.
+ * \param CallerContext The ICMP handle passed at registration (unused).
+ * \param ObjectKey The echo request that completed (ICMP_REQUEST_RW**).
+ * \param ObjectParameter The NSI notification message that carries the reply (ICMP_NOTIFICATION_MESSAGE*).
+ * \param NotificationType The kind of change (unused).
  * \return ERROR_SUCCESS (NO_ERROR) on success, otherwise a Win32 error code.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho2
  */
-ULONG PhIcmpIndicateParameterChange(
-    _In_opt_ PVOID Unknown,
-    _Inout_ ICMP_REQUEST_RW** RequestPointer,
-    _In_ ICMP_NOTIFICATION_MESSAGE* Notification
+ULONG NTAPI PhIcmpIndicateParameterChange(
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
+    _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
+    ICMP_REQUEST_RW** RequestPointer = ObjectKey;
+    ICMP_NOTIFICATION_MESSAGE* Notification = ObjectParameter;
     ICMP_REQUEST_RW* request;
     ICMP_HANDLE_INTERNAL* handle;
     ICMP_ECHO_REQUEST_CONTEXT* requestContext;
@@ -5073,9 +4619,9 @@ ULONG PhIcmpIndicateParameterChange(
 
     PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectCompleteEchoRequest,
+        NsiIcmpSetActionCompleteEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         request,
         sizeof(ICMP_REQUEST_RW),
         NULL,
@@ -5088,7 +4634,7 @@ ULONG PhIcmpIndicateParameterChange(
     RtlLeaveCriticalSection(&handle->Lock);
 
     reply = (PICMP_ECHO_REPLY)(requestContext->ReplyBuffer);
-    ZeroMemory(reply, sizeof(ICMP_ECHO_REPLY));
+    RtlZeroMemory(reply, sizeof(ICMP_ECHO_REPLY));
 
     dataLength = 0;
     optionsSize = 0;
@@ -5110,8 +4656,8 @@ ULONG PhIcmpIndicateParameterChange(
         reply->Options.OptionsData = PTR_ADD_OFFSET(reply->Data, dataLength);
     }
 
-    reply->Status = PhNtStatusToIpStatus((const ULONG*)(&notificationData->Header), TRUE);
-    requestContext->IoStatusBlock.Status = (NTSTATUS)(notificationData->Header.Status);
+    reply->Status = PhNtStatusToIpStatus(&notificationData->Header, TRUE);
+    requestContext->IoStatusBlock.Status = notificationData->Header.Status;
     requestContext->IoStatusBlock.Information = dataLength + optionsSize + sizeof(ICMP_ECHO_REPLY);
     PhIcmpEchoRequestComplete((ULONG_PTR)requestContext);
     return reply->Status;
@@ -5120,18 +4666,22 @@ ULONG PhIcmpIndicateParameterChange(
 /**
  * NSI callback that receives an IPv6 echo reply, copies it into the caller's reply buffer and completes the request.
  *
- * \param Unknown Unused.
- * \param RequestPointer The echo request that completed.
- * \param Notification The NSI notification message that carries the reply.
+ * \param CallerContext The ICMP handle passed at registration (unused).
+ * \param ObjectKey The echo request that completed (ICMP_REQUEST_RW**).
+ * \param ObjectParameter The NSI notification message that carries the reply (ICMP_NOTIFICATION_MESSAGE*).
+ * \param NotificationType The kind of change (unused).
  * \return ERROR_SUCCESS (NO_ERROR) on success, otherwise a Win32 error code.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6sendecho2
  */
-ULONG PhIcmp6IndicateParameterChange(
-    _In_opt_ PVOID Unknown,
-    _Inout_ ICMP_REQUEST_RW** RequestPointer,
-    _In_ ICMP_NOTIFICATION_MESSAGE* Notification
+ULONG NTAPI PhIcmp6IndicateParameterChange(
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
+    _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
+    ICMP_REQUEST_RW** RequestPointer = ObjectKey;
+    ICMP_NOTIFICATION_MESSAGE* Notification = ObjectParameter;
     ICMP_REQUEST_RW* request;
     ICMP_HANDLE_INTERNAL* handle;
     ICMP_ECHO_REQUEST_CONTEXT* requestContext;
@@ -5150,9 +4700,9 @@ ULONG PhIcmp6IndicateParameterChange(
 
     PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectCompleteEchoRequest,
+        NsiIcmpSetActionCompleteEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         request,
         sizeof(ICMP_REQUEST_RW),
         NULL,
@@ -5165,19 +4715,19 @@ ULONG PhIcmp6IndicateParameterChange(
     RtlLeaveCriticalSection(&handle->Lock);
 
     reply =(PICMPV6_ECHO_REPLY)(requestContext->ReplyBuffer);
-    ZeroMemory(reply, sizeof(ICMPV6_ECHO_REPLY));
+    RtlZeroMemory(reply, sizeof(ICMPV6_ECHO_REPLY));
 
     if ((notificationData->Header.Status == STATUS_UNSUCCESSFUL && notificationData->Header.HasIcmpError != 0)
         || notificationData->Header.Status == 0)
     {
-        memcpy(reply->Address.sin6_addr, &notificationData->Address, sizeof(notificationData->Address));
-        reply->Address.sin6_scope_id = notificationData->ScopeId;
+        memcpy(reply->Address.sin6_addr, &notificationData->Address, sizeof(IN6_ADDR));
+        reply->Address.sin6_scope_id = notificationData->ScopeId.Value;
         reply->RoundTripTime = notificationData->RoundTripTime;
         replySize = sizeof(ICMPV6_ECHO_REPLY) + notificationData->DataLength;
     }
 
-    reply->Status = PhNtStatusToIpStatus((const ULONG*)(&notificationData->Header), FALSE);
-    requestContext->IoStatusBlock.Status = (NTSTATUS)(notificationData->Header.Status);
+    reply->Status = PhNtStatusToIpStatus(&notificationData->Header, FALSE);
+    requestContext->IoStatusBlock.Status = notificationData->Header.Status;
     requestContext->IoStatusBlock.Information = replySize;
     PhIcmpEchoRequestComplete((ULONG_PTR)(requestContext));
     return reply->Status;
@@ -5209,9 +4759,9 @@ NTSTATUS PhSubmitIcmpRequest(
 
     return PhpNsiSetAllParameters(
         NsiActive,
-        IcmpNsiSetAllObjectSubmitEchoRequest,
+        NsiIcmpSetActionSubmitEchoRequest,
         handle->ModuleId,
-        NsiIcmpObjectEchoRequest,
+        NsiIpObjectEchoRequest,
         RequestBuffer,
         sizeof(ICMP_REQUEST_RW),
         PTR_ADD_OFFSET(RequestBuffer, sizeof(ICMP_REQUEST_RW)),
@@ -5232,7 +4782,7 @@ VOID PhIcmpDestroyEchoRequestContext(
     if (Context == NULL)
         return;
 
-    if (Context->ThreadHandle != NULL)
+    if (Context->ThreadHandle)
         NtClose(Context->ThreadHandle);
 
     PhFree(Context);
@@ -5270,22 +4820,23 @@ NTSTATUS PhAllocateEchoRequestContext(
     *RequestContext = NULL;
     *IsAsynchronous = FALSE;
 
-    if (WaitEvent != NULL)
+    if (WaitEvent)
         *WaitEvent = NULL;
 
     completionEvent = Event;
     duplicatedThread = NULL;
 
-    if (Event != NULL)
+    if (Event)
     {
         *IsAsynchronous = TRUE;
     }
-    else if (ApcRoutine != NULL)
+    else if (ApcRoutine)
     {
         HANDLE currentProcess;
 
         *IsAsynchronous = TRUE;
         currentProcess = NtCurrentProcess();
+
         {
             NTSTATUS status = NtDuplicateObject(
                 currentProcess,
@@ -5303,10 +4854,17 @@ NTSTATUS PhAllocateEchoRequestContext(
     }
     else
     {
-        NTSTATUS status = NtCreateEvent(&completionEvent, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
+        NTSTATUS status = PhCreateEvent(
+            &completionEvent, 
+            EVENT_ALL_ACCESS,
+            SynchronizationEvent, 
+            FALSE
+            );
+
         if (!NT_SUCCESS(status))
             return status;
-        if (WaitEvent != NULL)
+
+        if (WaitEvent)
             *WaitEvent = completionEvent;
     }
 
@@ -5326,7 +4884,7 @@ NTSTATUS PhAllocateEchoRequestContext(
         return STATUS_NO_MEMORY;
     }
 
-    memset(context, 0, sizeof(ICMP_ECHO_REQUEST_CONTEXT));
+    RtlZeroMemory(context, sizeof(ICMP_ECHO_REQUEST_CONTEXT));
     context->EventHandle = completionEvent;
     context->ThreadHandle = duplicatedThread;
     context->ApcRoutine = ApcRoutine;
@@ -5347,35 +4905,31 @@ NTSTATUS PhAllocateEchoRequestContext(
  *
  * \param ModuleId NPI_MS_IPV4_MODULEID or NPI_MS_IPV6_MODULEID.
  * \param IsIpv4 TRUE for an IPv4 handle, FALSE for IPv6.
- * \return The ICMP handle, or INVALID_HANDLE_VALUE on failure (the last error is set).
+ * \param IcmpHandle Receives the ICMP handle. Close it with PhIcmpCloseHandle.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpcreatefile
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6createfile
  */
-HANDLE PhIcmpCreateFileEx(
+NTSTATUS PhIcmpCreateFileEx(
     _In_ const NPI_MODULEID* ModuleId,
-    _In_ BOOLEAN IsIpv4)
+    _In_ BOOLEAN IsIpv4,
+    _Out_ PHANDLE IcmpHandle
+    )
 {
     ICMP_HANDLE_INTERNAL* handle;
-    PVOID rpcHandle;
+    RPC_BINDING_HANDLE rpcHandle;
     NTSTATUS status;
 
-    handle = (ICMP_HANDLE_INTERNAL*)PhAllocate(sizeof(ICMP_HANDLE_INTERNAL));
+    handle = (ICMP_HANDLE_INTERNAL*)PhAllocateZeroSafe(sizeof(ICMP_HANDLE_INTERNAL));
     if (handle == NULL)
-        return INVALID_HANDLE_VALUE;
-    memset(handle, 0, sizeof(ICMP_HANDLE_INTERNAL));
+        return STATUS_NO_MEMORY;
 
-    rpcHandle = PhNsiNotificationConnectToServer();
-    if (rpcHandle == NULL)
+    status = PhNsiNotificationConnectToServer(&rpcHandle);
+    if (!NT_SUCCESS(status))
     {
-        ULONG lastError;
-
-        lastError = PhGetLastError();
         PhFree(handle);
-        PhSetLastError(lastError);
-        return INVALID_HANDLE_VALUE;
+        return status;
     }
-
-    NotificationRpcHandle = rpcHandle;
 
     PhAcquireQueuedLockExclusive(&PingNotificationLock);
 
@@ -5388,18 +4942,18 @@ HANDLE PhIcmpCreateFileEx(
             status = PhNsiRpcRegisterChangeNotification(
                 rpcHandle,
                 ModuleId,
-                NsiIcmpObjectEchoRequest,
+                NsiIpObjectEchoRequest,
                 PhIcmpIndicateParameterChange,
                 FALSE,
                 handle,
-                &PingNotificationHandleV4);
+                &PingNotificationHandleV4
+                );
 
             if (!NT_SUCCESS(status))
             {
                 PhReleaseQueuedLockExclusive(&PingNotificationLock);
                 PhFree(handle);
-                PhSetLastError(PhNtStatusToDosError(status));
-                return INVALID_HANDLE_VALUE;
+                return status;
             }
         }
 
@@ -5414,7 +4968,7 @@ HANDLE PhIcmpCreateFileEx(
             status = PhNsiRpcRegisterChangeNotification(
                 rpcHandle,
                 ModuleId,
-                NsiIcmpObjectEchoRequest,
+                NsiIpObjectEchoRequest,
                 PhIcmp6IndicateParameterChange,
                 FALSE,
                 handle,
@@ -5425,8 +4979,7 @@ HANDLE PhIcmpCreateFileEx(
             {
                 PhReleaseQueuedLockExclusive(&PingNotificationLock);
                 PhFree(handle);
-                PhSetLastError(PhNtStatusToDosError(status));
-                return INVALID_HANDLE_VALUE;
+                return status;
             }
         }
 
@@ -5435,39 +4988,43 @@ HANDLE PhIcmpCreateFileEx(
 
     PhReleaseQueuedLockExclusive(&PingNotificationLock);
 
-    memset(handle, 0, sizeof(ICMP_HANDLE_INTERNAL));
+    RtlZeroMemory(handle, sizeof(ICMP_HANDLE_INTERNAL));
     handle->ProcessId = HandleToUlong(NtCurrentProcessId());
     handle->IsIpv4 = IsIpv4;
     handle->ModuleId = ModuleId;
     RtlInitializeCriticalSection(&handle->Lock);
     InitializeListHead(&handle->RequestList);
-    return handle;
+
+    *IcmpHandle = handle;
+    return STATUS_SUCCESS;
 }
 
 /**
  * Opens a handle on which IPv6 ICMP echo requests can be issued.
  *
- * \return The ICMP handle, or INVALID_HANDLE_VALUE on failure.
+ * \param IcmpHandle Receives the ICMP handle. Close it with PhIcmpCloseHandle.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6createfile
  */
-HANDLE PhIcmp6CreateFile(
-    VOID
+NTSTATUS PhIcmp6CreateFile(
+    _Out_ PHANDLE IcmpHandle
     )
 {
-    return PhIcmpCreateFileEx(&NPI_MS_IPV6_MODULEID, FALSE);
+    return PhIcmpCreateFileEx(&NPI_MS_IPV6_MODULEID, FALSE, IcmpHandle);
 }
 
 /**
  * Opens a handle on which IPv4 ICMP echo requests can be issued.
  *
- * \return The ICMP handle, or INVALID_HANDLE_VALUE on failure.
+ * \param IcmpHandle Receives the ICMP handle. Close it with PhIcmpCloseHandle.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpcreatefile
  */
-HANDLE PhIcmpCreateFile(
-    VOID
+NTSTATUS PhIcmpCreateFile(
+    _Out_ PHANDLE IcmpHandle
     )
 {
-    return PhIcmpCreateFileEx(&NPI_MS_IPV4_MODULEID, TRUE);
+    return PhIcmpCreateFileEx(&NPI_MS_IPV4_MODULEID, TRUE, IcmpHandle);
 }
 
 /**
@@ -5493,28 +5050,25 @@ static VOID PhpRemoveEchoRequestContext(
  *
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
- * \return 1 if the buffer holds a successful reply, otherwise 0 (the last error is set).
+ * \param ReplyCount Receives 1 if the buffer holds a successful reply, otherwise 0; the IP_STATUS of a failed request is
+ * in the Status field of the reply.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6parsereplies
  */
-ULONG PhIcmp6ParseReplies(
+NTSTATUS PhIcmp6ParseReplies(
     _In_reads_bytes_(ReplySize) PVOID ReplyBuffer,
-    _In_ ULONG ReplySize
+    _In_ ULONG ReplySize,
+    _Out_ PULONG ReplyCount
     )
 {
-    NTSTATUS status;
+    IP_STATUS ipStatus;
 
-    if (ReplyBuffer == NULL || ReplySize == 0)
-    {
-        PhSetLastError(ERROR_GEN_FAILURE);
-        return 0;
-    }
+    if (ReplyBuffer == NULL || ReplySize < sizeof(ICMPV6_ECHO_REPLY))
+        return STATUS_INVALID_PARAMETER;
 
-    status = ((PICMPV6_ECHO_REPLY)(ReplyBuffer))->Status;
-    if (status == IP_SUCCESS || status == IP_TTL_EXPIRED_TRANSIT)
-        return 1;
-
-    PhSetLastError(status);
-    return 0;
+    ipStatus = ((PICMPV6_ECHO_REPLY)(ReplyBuffer))->Status;
+    *ReplyCount = (ipStatus == IP_SUCCESS || ipStatus == IP_TTL_EXPIRED_TRANSIT) ? 1 : 0;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -5532,10 +5086,12 @@ ULONG PhIcmp6ParseReplies(
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
  * \param Timeout The time, in milliseconds, to wait for replies.
- * \return The number of replies for synchronous requests, otherwise 0 (the last error is set; ERROR_IO_PENDING for asynchronous requests).
+ * \param ReplyCount Receives the number of replies for synchronous requests; the IP_STATUS of a failed request is in the
+ * Status field of the reply.
+ * \return An NTSTATUS value; STATUS_PENDING for asynchronous requests. Use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6sendecho2
  */
-ULONG PhIcmp6SendEcho2(
+NTSTATUS PhIcmp6SendEcho2(
     _In_ HANDLE IcmpHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -5547,7 +5103,8 @@ ULONG PhIcmp6SendEcho2(
     _In_opt_ PIP_OPTION_INFORMATION RequestOptions,
     _Out_writes_bytes_(ReplySize) PVOID ReplyBuffer,
     _In_ ULONG ReplySize,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _Out_opt_ PULONG ReplyCount
     )
 {
     ICMP_HANDLE_INTERNAL* handle;
@@ -5556,19 +5113,14 @@ ULONG PhIcmp6SendEcho2(
     HANDLE waitEvent;
     BOOLEAN asynchronous;
     NTSTATUS status;
+    ULONG replyCount;
 
     if (PhIsInvalidIcmpHandle(IcmpHandle))
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
+        return STATUS_INVALID_HANDLE;
 
     handle = (ICMP_HANDLE_INTERNAL*)(IcmpHandle);
-    if (handle->IsIpv4)
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
+    if (handle->IsIpv4 || ReplySize < sizeof(ICMPV6_ECHO_REPLY))
+        return STATUS_INVALID_PARAMETER;
 
     status = PhAllocateEchoRequestContext(
         handle,
@@ -5582,12 +5134,9 @@ ULONG PhIcmp6SendEcho2(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        PhSetLastError(PhNtStatusToDosError(status));
-        return 0;
-    }
+        return status;
 
-    ZeroMemory(&request, sizeof(ICMP_REQUEST_V6));
+    RtlZeroMemory(&request, sizeof(ICMP_REQUEST_V6));
     request.ReadWrite.Handle = handle;
     request.ReadWrite.ProcessId = handle->ProcessId;
     request.ReadWrite.ReplyBuffer = ReplyBuffer;
@@ -5602,7 +5151,7 @@ ULONG PhIcmp6SendEcho2(
     if (RequestOptions)
     {
         request.Ttl = RequestOptions->Ttl;
-        request.Reverse = RequestOptions->Flags & IP_FLAG_REVERSE;
+        request.Reverse = (RequestOptions->Flags & IP_FLAG_REVERSE) != 0;
         request.OptionsSize = RequestOptions->OptionsSize;
         request.OptionsData = RequestOptions->OptionsData;
     }
@@ -5610,8 +5159,8 @@ ULONG PhIcmp6SendEcho2(
     {
         request.Ttl = MAXUCHAR;
     }
-    request.SourceScopeId = SourceAddress->sin6_scope_id;
-    request.DestinationScopeId = DestinationAddress->sin6_scope_id;
+    request.SourceScopeId.Value = SourceAddress->sin6_scope_id;
+    request.DestinationScopeId.Value = DestinationAddress->sin6_scope_id;
     request.SourceAddress = SourceAddress->sin6_addr;
     request.DestinationAddress = DestinationAddress->sin6_addr;
 
@@ -5626,21 +5175,22 @@ ULONG PhIcmp6SendEcho2(
             NtClose(waitEvent);
         }
 
-        PhSetLastError(PhNtStatusToDosError(status));
         PhIcmpDestroyEchoRequestContext(requestContext);
-        return 0;
+        return status;
     }
 
     if (asynchronous)
-    {
-        PhSetLastError(ERROR_IO_PENDING);
-        return 0;
-    }
+        return STATUS_PENDING;
 
     NtWaitForSingleObject(waitEvent, FALSE, NULL);
     NtClose(waitEvent);
 
-    return PhIcmp6ParseReplies(ReplyBuffer, ReplySize);
+    status = PhIcmp6ParseReplies(ReplyBuffer, ReplySize, &replyCount);
+
+    if (NT_SUCCESS(status) && ReplyCount)
+        *ReplyCount = replyCount;
+
+    return status;
 }
 
 /**
@@ -5648,29 +5198,26 @@ ULONG PhIcmp6SendEcho2(
  *
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
- * \return The number of replies in the buffer, or 0 on failure (the last error is set).
+ * \param ReplyCount Receives the number of replies in the buffer; when it is 0 the IP_STATUS of the failed request is in
+ * the Status field of the reply.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpparsereplies
  */
-ULONG PhIcmpParseReplies(
+NTSTATUS PhIcmpParseReplies(
     _In_reads_bytes_(ReplySize) PVOID ReplyBuffer,
-    _In_ ULONG ReplySize
+    _In_ ULONG ReplySize,
+    _Out_ PULONG ReplyCount
     )
 {
     PICMP_ECHO_REPLY reply;
-    ULONG count;
 
-    if (ReplyBuffer == NULL || ReplySize == 0)
-    {
-        PhSetLastError(ERROR_GEN_FAILURE);
-        return 0;
-    }
+    if (ReplyBuffer == NULL || ReplySize < sizeof(ICMP_ECHO_REPLY))
+        return STATUS_INVALID_PARAMETER;
 
     reply = (PICMP_ECHO_REPLY)(ReplyBuffer);
-    count = reply->Reserved;
+    *ReplyCount = reply->Reserved;
     reply->Reserved = 0;
-    if (count == 0)
-        PhSetLastError(reply->Status);
-    return count;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -5688,10 +5235,12 @@ ULONG PhIcmpParseReplies(
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
  * \param Timeout The time, in milliseconds, to wait for replies.
- * \return The number of replies for synchronous requests, otherwise 0 (the last error is set; ERROR_IO_PENDING for asynchronous requests).
+ * \param ReplyCount Receives the number of replies for synchronous requests; when it is 0 the IP_STATUS of the failed
+ * request is in the Status field of the reply.
+ * \return An NTSTATUS value; STATUS_PENDING for asynchronous requests. Use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho2ex
  */
-ULONG PhIcmpSendEcho2Ex(
+NTSTATUS PhIcmpSendEcho2Ex(
     _In_ HANDLE IcmpHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -5703,7 +5252,8 @@ ULONG PhIcmpSendEcho2Ex(
     _In_opt_ PIP_OPTION_INFORMATION RequestOptions,
     _Out_writes_bytes_(ReplySize) PVOID ReplyBuffer,
     _In_ ULONG ReplySize,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _Out_opt_ PULONG ReplyCount
     )
 {
     ICMP_HANDLE_INTERNAL* handle;
@@ -5713,20 +5263,15 @@ ULONG PhIcmpSendEcho2Ex(
     BOOLEAN asynchronous;
     NTSTATUS status;
     ULONG parsedReplySize;
+    ULONG replyCount;
     PICMP_ECHO_REPLY reply;
 
     if (PhIsInvalidIcmpHandle(IcmpHandle))
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
+        return STATUS_INVALID_HANDLE;
 
     handle = (ICMP_HANDLE_INTERNAL*)(IcmpHandle);
     if (!handle->IsIpv4 || ReplySize < sizeof(ICMP_ECHO_REPLY))
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
+        return STATUS_INVALID_PARAMETER;
 
     status = PhAllocateEchoRequestContext(
         handle,
@@ -5735,16 +5280,14 @@ ULONG PhIcmpSendEcho2Ex(
         ApcContext,
         ReplyBuffer, 
         &requestContext,
-        &waitEvent, 
-        &asynchronous);
+        &waitEvent,
+        &asynchronous
+        );
 
     if (!NT_SUCCESS(status))
-    {
-        PhSetLastError(PhNtStatusToDosError(status));
-        return 0;
-    }
+        return status;
 
-    ZeroMemory(&request, sizeof(ICMP_REQUEST_V4));
+    RtlZeroMemory(&request, sizeof(ICMP_REQUEST_V4));
     request.ReadWrite.Handle = handle;
     request.ReadWrite.ProcessId = handle->ProcessId;
     request.ReadWrite.ReplyBuffer = ReplyBuffer;
@@ -5759,7 +5302,7 @@ ULONG PhIcmpSendEcho2Ex(
     if (RequestOptions)
     {
         request.Ttl = RequestOptions->Ttl;
-        request.Reverse = RequestOptions->Flags & IP_FLAG_REVERSE;
+        request.Reverse = (RequestOptions->Flags & IP_FLAG_REVERSE) != 0;
         request.DontFragment = (RequestOptions->Flags & IP_FLAG_DF) != 0;
         request.OptionsSize = RequestOptions->OptionsSize;
         request.OptionsData = RequestOptions->OptionsData;
@@ -5776,25 +5319,26 @@ ULONG PhIcmpSendEcho2Ex(
     if (!NT_SUCCESS(status))
     {
         PhpRemoveEchoRequestContext(handle, requestContext);
-        if (waitEvent != NULL)
+        if (waitEvent)
             NtClose(waitEvent);
-        PhSetLastError(PhNtStatusToDosError(status));
         PhIcmpDestroyEchoRequestContext(requestContext);
-        return 0;
+        return status;
     }
 
     if (asynchronous)
-    {
-        PhSetLastError(ERROR_IO_PENDING);
-        return 0;
-    }
+        return STATUS_PENDING;
 
     NtWaitForSingleObject(waitEvent, FALSE, NULL);
     NtClose(waitEvent);
 
     reply = (PICMP_ECHO_REPLY)(ReplyBuffer);
     parsedReplySize = sizeof(ICMP_ECHO_REPLY) + reply->DataSize + reply->Options.OptionsSize;
-    return PhIcmpParseReplies(ReplyBuffer, parsedReplySize);
+    status = PhIcmpParseReplies(ReplyBuffer, parsedReplySize, &replyCount);
+
+    if (NT_SUCCESS(status) && ReplyCount)
+        *ReplyCount = replyCount;
+
+    return status;
 }
 
 /**
@@ -5808,10 +5352,12 @@ ULONG PhIcmpSendEcho2Ex(
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
  * \param Timeout The time, in milliseconds, to wait for replies.
- * \return The number of replies, or 0 on failure (the last error is set).
+ * \param ReplyCount Receives the number of replies; when it is 0 the IP_STATUS of the failed request is in the Status
+ * field of the reply.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho
  */
-ULONG PhIcmpSendEcho(
+NTSTATUS PhIcmpSendEcho(
     _In_ HANDLE IcmpHandle,
     _In_ IPAddr DestinationAddress,
     _In_reads_bytes_(RequestSize) PVOID RequestData,
@@ -5819,7 +5365,8 @@ ULONG PhIcmpSendEcho(
     _In_opt_ PIP_OPTION_INFORMATION RequestOptions,
     _Out_writes_bytes_(ReplySize) PVOID ReplyBuffer,
     _In_ ULONG ReplySize,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _Out_opt_ PULONG ReplyCount
     )
 {
     return PhIcmpSendEcho2Ex(
@@ -5834,7 +5381,9 @@ ULONG PhIcmpSendEcho(
         RequestOptions,
         ReplyBuffer,
         ReplySize,
-        Timeout);
+        Timeout,
+        ReplyCount
+        );
 }
 
 /**
@@ -5851,10 +5400,12 @@ ULONG PhIcmpSendEcho(
  * \param ReplyBuffer The buffer that receives the echo replies.
  * \param ReplySize The size, in bytes, of ReplyBuffer.
  * \param Timeout The time, in milliseconds, to wait for replies.
- * \return The number of replies for synchronous requests, otherwise 0 (the last error is set; ERROR_IO_PENDING for asynchronous requests).
+ * \param ReplyCount Receives the number of replies for synchronous requests; when it is 0 the IP_STATUS of the failed
+ * request is in the Status field of the reply.
+ * \return An NTSTATUS value; STATUS_PENDING for asynchronous requests. Use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho2
  */
-ULONG PhIcmpSendEcho2(
+NTSTATUS PhIcmpSendEcho2(
     _In_ HANDLE IcmpHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -5865,7 +5416,8 @@ ULONG PhIcmpSendEcho2(
     _In_opt_ PIP_OPTION_INFORMATION RequestOptions,
     _Out_writes_bytes_(ReplySize) PVOID ReplyBuffer,
     _In_ ULONG ReplySize,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _Out_opt_ PULONG ReplyCount
     )
 {
     return PhIcmpSendEcho2Ex(
@@ -5880,14 +5432,16 @@ ULONG PhIcmpSendEcho2(
         RequestOptions,
         ReplyBuffer,
         ReplySize,
-        Timeout);
+        Timeout,
+        ReplyCount
+        );
 }
 
 /**
  * Retrieves ICMP statistics for IPv4 or IPv6.
  *
  * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-geticmpstatisticsex
  */
@@ -5900,7 +5454,7 @@ NTSTATUS PhGetIcmpStatisticsEx(
     BYTE buffer[sizeof(MIB_ICMP_EX_XPSP1)];
     NTSTATUS status;
 
-    memset(buffer, 0, sizeof(MIB_ICMP_EX_XPSP1));
+    RtlZeroMemory(buffer, sizeof(MIB_ICMP_EX_XPSP1));
     if (Statistics == NULL)
         return STATUS_INVALID_PARAMETER;
 
@@ -5920,7 +5474,7 @@ NTSTATUS PhGetIcmpStatisticsEx(
         NULL,
         0,
         buffer,
-            sizeof(MIB_ICMP_EX_XPSP1),
+        sizeof(MIB_ICMP_EX_XPSP1),
         NULL,
         0);
 
@@ -5945,7 +5499,7 @@ NTSTATUS PhGetIcmpStatistics(
     MIB_ICMP_EX extendedStatistics;
     NTSTATUS status;
 
-    memset(&extendedStatistics, 0, sizeof(MIB_ICMP_EX));
+    RtlZeroMemory(&extendedStatistics, sizeof(MIB_ICMP_EX));
     status = PhGetIcmpStatisticsEx(&extendedStatistics, AF_INET);
 
     if (!NT_SUCCESS(status))
@@ -5984,15 +5538,17 @@ NTSTATUS PhGetIcmpStatistics(
  * Opens an IPv4 or IPv6 ICMP handle.
  *
  * \param IsIpv4 TRUE for an IPv4 handle, FALSE for IPv6.
- * \return The ICMP handle, or INVALID_HANDLE_VALUE on failure.
+ * \param IcmpHandle Receives the ICMP handle. Close it with PhIcmpCloseHandle.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpcreatefile
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmp6createfile
  */
-HANDLE PhInternalIcmpCreateFileEx(
-    _In_ BOOLEAN IsIpv4
+NTSTATUS PhInternalIcmpCreateFileEx(
+    _In_ BOOLEAN IsIpv4,
+    _Out_ PHANDLE IcmpHandle
     )
 {
-    return PhIcmpCreateFileEx(IsIpv4 ? &NPI_MS_IPV4_MODULEID : &NPI_MS_IPV6_MODULEID, IsIpv4 != 0);
+    return PhIcmpCreateFileEx(IsIpv4 ? &NPI_MS_IPV4_MODULEID : &NPI_MS_IPV6_MODULEID, IsIpv4 != 0, IcmpHandle);
 }
 
 #pragma endregion
@@ -6007,17 +5563,20 @@ HANDLE PhInternalIcmpCreateFileEx(
  * Retrieves the interface index of an interface LUID.
  *
  * \param InterfaceLuid The locally unique identifier (LUID) of the network interface.
- * \return The interface index, or 0 on failure.
+ * \param InterfaceIndex Receives the interface index.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-convertinterfaceluidtoindex
  */
-ULONG PhQueryNeighborInterfaceIndex(
-    _In_ const NET_LUID* InterfaceLuid
+NTSTATUS PhQueryNeighborInterfaceIndex(
+    _In_ const NET_LUID* InterfaceLuid,
+    _Out_ PNET_IFINDEX InterfaceIndex
     )
 {
-    ULONG ifIndex = 0;
+    NTSTATUS status;
+    NET_IFINDEX ifIndex = 0;
     NET_LUID interfaceLuid = *InterfaceLuid;
 
-    if (PhpNsiGetParameter(
+    status = PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterface,
@@ -6025,14 +5584,15 @@ ULONG PhQueryNeighborInterfaceIndex(
         sizeof(NET_LUID),
         NsiParameterTypeReadOnlyStatic,
         &ifIndex,
-        sizeof(ULONG),
+        sizeof(NET_IFINDEX),
         NsiNdisInterfaceLuidToIndex
-        ) != STATUS_SUCCESS)
-    {
-        ifIndex = 0;
-    }
+        );
 
-    return ifIndex;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *InterfaceIndex = ifIndex;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -6073,7 +5633,7 @@ NTSTATUS PhGetPerTcpConnectionEStats(
     ULONG rwBufferSize = 0;
     ULONG rodBufferSize = 0;
     ULONG rosBufferSize = 0;
-    ULONG objectId;
+    NSI_OBJECT_ID objectId;
     NTSTATUS status;
     NSI_ESTATS_TCP_KEY_V4 key;
 
@@ -6087,55 +5647,55 @@ NTSTATUS PhGetPerTcpConnectionEStats(
         switch (EstatsType)
         {
         case TcpConnectionEstatsSynOpts:
-            objectId = MibTcpEstatsTypeSynOpts;
+            objectId = NsiTcpObjectEstatsSynOpts;
             rwBufferSize = 0;
             rodBufferSize = 0;
             rosBufferSize = sizeof(TCP_ESTATS_SYN_OPTS_ROS_v0);
             break;
         case TcpConnectionEstatsData:
-            objectId = MibTcpEstatsTypeData;
+            objectId = NsiTcpObjectEstatsData;
             rwBufferSize = sizeof(TCP_ESTATS_DATA_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_DATA_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSndCong:
-            objectId = MibTcpEstatsTypeSndCong;
+            objectId = NsiTcpObjectEstatsSndCong;
             rwBufferSize = sizeof(NSI_ESTATS_SND_CONG_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROD_v0);
             rosBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROS_v0);
             break;
         case TcpConnectionEstatsPath:
-            objectId = MibTcpEstatsTypePath;
+            objectId = NsiTcpObjectEstatsPath;
             rwBufferSize = sizeof(TCP_ESTATS_PATH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_PATH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSendBuff:
-            objectId = MibTcpEstatsTypeSendBuff;
+            objectId = NsiTcpObjectEstatsSendBuff;
             rwBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsRec:
-            objectId = MibTcpEstatsTypeRec;
+            objectId = NsiTcpObjectEstatsRec;
             rwBufferSize = sizeof(TCP_ESTATS_REC_RW_v0);
             rodBufferSize = sizeof(NSI_ESTATS_REC_ROD_INTERNAL);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsObsRec:
-            objectId = MibTcpEstatsTypeObsRec;
+            objectId = NsiTcpObjectEstatsObsRec;
             rwBufferSize = sizeof(TCP_ESTATS_OBS_REC_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_OBS_REC_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsBandwidth:
-            objectId = MibTcpEstatsTypeBandwidth;
+            objectId = NsiTcpObjectEstatsBandwidth;
             rwBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsFineRtt:
-            objectId = MibTcpEstatsTypeFineRtt;
+            objectId = NsiTcpObjectEstatsFineRtt;
             rwBufferSize = sizeof(TCP_ESTATS_FINE_RTT_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_FINE_RTT_ROD_v0);
             rosBufferSize = 0;
@@ -6144,7 +5704,7 @@ NTSTATUS PhGetPerTcpConnectionEStats(
             return STATUS_INVALID_PARAMETER;
         }
 
-        memset(&key, 0, sizeof(NSI_ESTATS_TCP_KEY_V4));
+        RtlZeroMemory(&key, sizeof(NSI_ESTATS_TCP_KEY_V4));
         key.AddressFamily = AF_INET;
         key.LocalPort = (USHORT)Row->dwLocalPort;
         key.LocalAddress = Row->dwLocalAddr;
@@ -6154,17 +5714,35 @@ NTSTATUS PhGetPerTcpConnectionEStats(
 
         if (RwSize && rwBufferSize != 0)
         {
-            rwBuffer = PhAllocate(rwBufferSize);
+            rwBuffer = PhAllocateSafe(rwBufferSize);
+
+            if (!rwBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         if (RodSize && rodBufferSize != 0)
         {
-            rodBuffer = PhAllocate(rodBufferSize);
+            rodBuffer = PhAllocateSafe(rodBufferSize);
+
+            if (!rodBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         if (RosSize && rosBufferSize != 0)
         {
-            rosBuffer = PhAllocate(rosBufferSize);
+            rosBuffer = PhAllocateSafe(rosBufferSize);
+
+            if (!rosBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         status = PhNsiGetAllParameters(
@@ -6268,12 +5846,9 @@ NTSTATUS PhGetPerTcpConnectionEStats(
                 {
                     if (RodVersion) { status = STATUS_NOT_SUPPORTED; break; }
                     if (RodSize != sizeof(TCP_ESTATS_REC_ROD_v0)) { status = STATUS_INVALID_USER_BUFFER; break; }
-                    *(PTCP_ESTATS_REC_ROD_v0)Rod = *(PTCP_ESTATS_REC_ROD_v0)rodBuffer;
 
                     NSI_ESTATS_REC_ROD_INTERNAL* src;
                     PTCP_ESTATS_REC_ROD_v0 dst;
-                    if (RodVersion) { status = STATUS_NOT_SUPPORTED; break; }
-                    if (RodSize != sizeof(TCP_ESTATS_REC_ROD_v0)) { status = STATUS_INVALID_USER_BUFFER; break; }
                     src = (NSI_ESTATS_REC_ROD_INTERNAL*)rodBuffer;
                     dst = (PTCP_ESTATS_REC_ROD_v0)Rod;
                     dst->CurRwinSent = src->CurRwinSent;
@@ -6397,7 +5972,7 @@ NTSTATUS PhGetPerTcp6ConnectionEStats(
     ULONG rwBufferSize = 0;
     ULONG rodBufferSize = 0;
     ULONG rosBufferSize = 0;
-    ULONG objectId;
+    NSI_OBJECT_ID objectId;
     NTSTATUS status;
     NSI_ESTATS_TCP_KEY key;
 
@@ -6407,55 +5982,55 @@ NTSTATUS PhGetPerTcp6ConnectionEStats(
         switch (EstatsType)
         {
         case TcpConnectionEstatsSynOpts:
-            objectId = MibTcpEstatsTypeSynOpts;
+            objectId = NsiTcpObjectEstatsSynOpts;
             rwBufferSize = 0;
             rodBufferSize = 0;
             rosBufferSize = sizeof(TCP_ESTATS_SYN_OPTS_ROS_v0);
             break;
         case TcpConnectionEstatsData:
-            objectId = MibTcpEstatsTypeData;
+            objectId = NsiTcpObjectEstatsData;
             rwBufferSize = sizeof(TCP_ESTATS_DATA_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_DATA_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSndCong:
-            objectId = MibTcpEstatsTypeSndCong;
+            objectId = NsiTcpObjectEstatsSndCong;
             rwBufferSize = sizeof(NSI_ESTATS_SND_CONG_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROD_v0);
             rosBufferSize = sizeof(TCP_ESTATS_SND_CONG_ROS_v0);
             break;
         case TcpConnectionEstatsPath:
-            objectId = MibTcpEstatsTypePath;
+            objectId = NsiTcpObjectEstatsPath;
             rwBufferSize = sizeof(TCP_ESTATS_PATH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_PATH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsSendBuff:
-            objectId = MibTcpEstatsTypeSendBuff;
+            objectId = NsiTcpObjectEstatsSendBuff;
             rwBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsRec:
-            objectId = MibTcpEstatsTypeRec;
+            objectId = NsiTcpObjectEstatsRec;
             rwBufferSize = sizeof(TCP_ESTATS_REC_RW_v0);
             rodBufferSize = sizeof(NSI_ESTATS_REC_ROD_INTERNAL);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsObsRec:
-            objectId = MibTcpEstatsTypeObsRec;
+            objectId = NsiTcpObjectEstatsObsRec;
             rwBufferSize = sizeof(TCP_ESTATS_OBS_REC_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_OBS_REC_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsBandwidth:
-            objectId = MibTcpEstatsTypeBandwidth;
+            objectId = NsiTcpObjectEstatsBandwidth;
             rwBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0);
             rosBufferSize = 0;
             break;
         case TcpConnectionEstatsFineRtt:
-            objectId = MibTcpEstatsTypeFineRtt;
+            objectId = NsiTcpObjectEstatsFineRtt;
             rwBufferSize = sizeof(TCP_ESTATS_FINE_RTT_RW_v0);
             rodBufferSize = sizeof(TCP_ESTATS_FINE_RTT_ROD_v0);
             rosBufferSize = 0;
@@ -6464,32 +6039,50 @@ NTSTATUS PhGetPerTcp6ConnectionEStats(
             return STATUS_INVALID_PARAMETER;
         }
 
-        memset(&key, 0, sizeof(NSI_ESTATS_TCP_KEY));
+        RtlZeroMemory(&key, sizeof(NSI_ESTATS_TCP_KEY));
         key.AddressFamily = AF_INET6;
         key.LocalPort = (USHORT)Row->dwLocalPort;
         key.LocalAddressIPv6 = Row->LocalAddr;
-        key.LocalScopeId = Row->dwLocalScopeId;
+        key.LocalScopeId.Value = Row->dwLocalScopeId;
         key.RemoteAddressFamily = AF_INET6;
         key.RemotePort = (USHORT)Row->dwRemotePort;
         key.RemoteAddressIPv6 = Row->RemoteAddr;
-        key.RemoteScopeId = Row->dwRemoteScopeId;
+        key.RemoteScopeId.Value = Row->dwRemoteScopeId;
 
         //key.LocalPort = (USHORT)_byteswap_ushort(Row->dwLocalPort);
         //key.RemotePort = (USHORT)_byteswap_ushort(Row->dwRemotePort);
 
         if (RwSize && rwBufferSize != 0)
         {
-            rwBuffer = PhAllocate(rwBufferSize);
+            rwBuffer = PhAllocateSafe(rwBufferSize);
+
+            if (!rwBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         if (RodSize && rodBufferSize != 0)
         {
-            rodBuffer = PhAllocate(rodBufferSize);
+            rodBuffer = PhAllocateSafe(rodBufferSize);
+
+            if (!rodBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         if (RosSize && rosBufferSize != 0)
         {
-            rosBuffer = PhAllocate(rosBufferSize);
+            rosBuffer = PhAllocateSafe(rosBufferSize);
+
+            if (!rosBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto Cleanup;
+            }
         }
 
         status = PhNsiGetAllParameters(
@@ -6724,10 +6317,10 @@ VOID PhFormatTimestamp(
  * Closes an ICMP handle and deregisters its reply notification.
  *
  * \param IcmpHandle The ICMP handle returned by PhIcmpCreateFile or PhIcmp6CreateFile.
- * \return TRUE on success, otherwise FALSE (the last error is set).
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpclosehandle
  */
-BOOL PhIcmpCloseHandle(
+NTSTATUS PhIcmpCloseHandle(
     _In_ HANDLE IcmpHandle
     )
 {
@@ -6736,10 +6329,7 @@ BOOL PhIcmpCloseHandle(
     BOOLEAN deregister;
 
     if (PhIsInvalidIcmpHandle(IcmpHandle))
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
+        return STATUS_INVALID_HANDLE;
 
     handle = (ICMP_HANDLE_INTERNAL*)(IcmpHandle);
     for (;;)
@@ -6772,7 +6362,7 @@ BOOL PhIcmpCloseHandle(
         PhNsiRpcDeregisterChangeNotification(
             NotificationRpcHandle,
             handle->ModuleId,
-            NsiIcmpObjectEchoRequest,
+            NsiIpObjectEchoRequest,
             notificationHandle
             );
     }
@@ -6780,7 +6370,7 @@ BOOL PhIcmpCloseHandle(
     PhReleaseQueuedLockExclusive(&PingNotificationLock);
     RtlDeleteCriticalSection(&handle->Lock);
     PhFree(handle);
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -6817,7 +6407,7 @@ NTSTATUS PhGetTcpTable(
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &firstKeyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -6830,13 +6420,13 @@ NTSTATUS PhGetTcpTable(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
     status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp6,
+        NsiTcpObjectBoundEndpoint,
         &secondKeyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -6849,25 +6439,48 @@ NTSTATUS PhGetTcpTable(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
     {
         PhNsiFreeTable(firstKeyTable, NULL, firstStatusTable, firstOwnerTable);
         return status;
     }
 
-    if (!NT_SUCCESS(RtlSizeTAdd(firstCount, secondCount, &totalRows)) ||
-        !NT_SUCCESS(RtlSizeTMult(totalRows, sizeof(NSI_TCP_IPV4_ROW), &rowBytes)) ||
-        !NT_SUCCESS(RtlSizeTAdd(FIELD_OFFSET(NSI_TCP_IPV4_TABLE, Entries), rowBytes, &ipv4TableSize)) ||
-        !NT_SUCCESS(RtlSizeTMult(totalRows, sizeof(NSI_TCP_IPV6_ROW), &rowBytes)) ||
-        !NT_SUCCESS(RtlSizeTAdd(FIELD_OFFSET(NSI_TCP_IPV6_TABLE, Entries), rowBytes, &ipv6TableSize)))
+    status = RtlSIZETAdd(firstCount, secondCount, &totalRows);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETMult(totalRows, sizeof(NSI_TCP_IPV4_ROW), &rowBytes);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(NSI_TCP_IPV4_TABLE, Entries), rowBytes, &ipv4TableSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETMult(totalRows, sizeof(NSI_TCP_IPV6_ROW), &rowBytes);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(NSI_TCP_IPV6_TABLE, Entries), rowBytes, &ipv6TableSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!(ipv4TcpTable = PhAllocateZeroSafe(ipv4TableSize)))
     {
-        PhNsiFreeTable(firstKeyTable, NULL, firstStatusTable, firstOwnerTable);
-        PhNsiFreeTable(secondKeyTable, NULL, secondStatusTable, secondOwnerTable);
-        return STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
     }
 
-    ipv4TcpTable = PhAllocateZero(ipv4TableSize);
-    ipv6TcpTable = PhAllocateZero(ipv6TableSize);
+    if (!(ipv6TcpTable = PhAllocateZeroSafe(ipv6TableSize)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     for (ULONG i = 0; i < firstCount; ++i)
     {
@@ -6883,7 +6496,7 @@ NTSTATUS PhGetTcpTable(
                 const NSI_TCP_OWNER_ROW* const ownerRow = &firstOwnerTable[i];
                 NSI_TCP_IPV4_ROW* const ipv4Row = &ipv4TcpTable->Entries[ipv4Count++];
 
-                ZeroMemory(ipv4Row, sizeof(NSI_TCP_IPV4_ROW));
+                RtlZeroMemory(ipv4Row, sizeof(NSI_TCP_IPV4_ROW));
                 ipv4Row->State = statusRow->State;
                 ipv4Row->LocalAddress = keyRow->LocalAddress.Ipv4.sin_addr;
                 ipv4Row->LocalPort = keyRow->LocalAddress.Ipv4.sin_port;
@@ -6901,7 +6514,7 @@ NTSTATUS PhGetTcpTable(
                 const NSI_TCP_OWNER_ROW* const ownerRow = &firstOwnerTable[i];
                 NSI_TCP_IPV6_ROW* const ipv6Row = &ipv6TcpTable->Entries[ipv6Count++];
 
-                ZeroMemory(ipv6Row, sizeof(NSI_TCP_IPV6_ROW));
+                RtlZeroMemory(ipv6Row, sizeof(NSI_TCP_IPV6_ROW));
                 ipv6Row->LocalAddress = keyRow->LocalAddress.Ipv6.sin6_addr;
                 ipv6Row->LocalScopeId.Value = keyRow->LocalAddress.Ipv6.sin6_scope_id;
                 ipv6Row->LocalPort = keyRow->LocalAddress.Ipv6.sin6_port;
@@ -6932,7 +6545,7 @@ NTSTATUS PhGetTcpTable(
                 const NSI_TCP_OWNER_ROW* const ownerRow = &secondOwnerTable[i];
                 NSI_TCP_IPV4_ROW* const ipv4Row = &ipv4TcpTable->Entries[ipv4Count++];
 
-                ZeroMemory(ipv4Row, sizeof(NSI_TCP_IPV4_ROW));
+                RtlZeroMemory(ipv4Row, sizeof(NSI_TCP_IPV4_ROW));
                 ipv4Row->State = statusRow->State;
                 ipv4Row->LocalAddress = keyRow->LocalAddress.Ipv4.sin_addr;
                 ipv4Row->LocalPort = keyRow->LocalAddress.Ipv4.sin_port;
@@ -6950,7 +6563,7 @@ NTSTATUS PhGetTcpTable(
                 const NSI_TCP_OWNER_ROW* const ownerRow = &secondOwnerTable[i];
                 NSI_TCP_IPV6_ROW* const ipv6Row = &ipv6TcpTable->Entries[ipv6Count++];
 
-                ZeroMemory(ipv6Row, sizeof(NSI_TCP_IPV6_ROW));
+                RtlZeroMemory(ipv6Row, sizeof(NSI_TCP_IPV6_ROW));
                 ipv6Row->LocalAddress = keyRow->LocalAddress.Ipv6.sin6_addr;
                 ipv6Row->LocalScopeId.Value = keyRow->LocalAddress.Ipv6.sin6_scope_id;
                 ipv6Row->LocalPort = keyRow->LocalAddress.Ipv6.sin6_port;
@@ -6972,6 +6585,15 @@ NTSTATUS PhGetTcpTable(
 
     *Tcp_Ipv4Table = ipv4TcpTable;
     *Tcp_Ipv6Table = ipv6TcpTable;
+    ipv4TcpTable = NULL;
+    ipv6TcpTable = NULL;
+    status = STATUS_SUCCESS;
+
+CleanupExit:
+    if (ipv6TcpTable)
+        PhFree(ipv6TcpTable);
+    if (ipv4TcpTable)
+        PhFree(ipv4TcpTable);
 
     PhNsiFreeTable(firstKeyTable, NULL, firstStatusTable, firstOwnerTable);
     PhNsiFreeTable(secondKeyTable, NULL, secondStatusTable, secondOwnerTable);
@@ -6999,7 +6621,7 @@ NTSTATUS PhSetPerTcp6ConnectionEStats(
     _In_ ULONG Offset)
 {
     NSI_ESTATS_TCP_KEY key;
-    ULONG objectId;
+    NSI_OBJECT_ID objectId;
 
     if (RwVersion || Offset)
         return STATUS_NOT_SUPPORTED;
@@ -7010,27 +6632,27 @@ NTSTATUS PhSetPerTcp6ConnectionEStats(
 
     switch (EstatsType)
     {
-    case TcpConnectionEstatsSynOpts:   objectId = MibTcpEstatsTypeSynOpts;   break;
-    case TcpConnectionEstatsData:      objectId = MibTcpEstatsTypeData;      break;
-    case TcpConnectionEstatsSndCong:   objectId = MibTcpEstatsTypeSndCong;   break;
-    case TcpConnectionEstatsPath:      objectId = MibTcpEstatsTypePath;      break;
-    case TcpConnectionEstatsSendBuff:  objectId = MibTcpEstatsTypeSendBuff;  break;
-    case TcpConnectionEstatsRec:       objectId = MibTcpEstatsTypeRec;       break;
-    case TcpConnectionEstatsObsRec:    objectId = MibTcpEstatsTypeObsRec;    break;
-    case TcpConnectionEstatsBandwidth: objectId = MibTcpEstatsTypeBandwidth; break;
-    case TcpConnectionEstatsFineRtt:   objectId = MibTcpEstatsTypeFineRtt;   break;
+    case TcpConnectionEstatsSynOpts:   objectId = NsiTcpObjectEstatsSynOpts;   break;
+    case TcpConnectionEstatsData:      objectId = NsiTcpObjectEstatsData;      break;
+    case TcpConnectionEstatsSndCong:   objectId = NsiTcpObjectEstatsSndCong;   break;
+    case TcpConnectionEstatsPath:      objectId = NsiTcpObjectEstatsPath;      break;
+    case TcpConnectionEstatsSendBuff:  objectId = NsiTcpObjectEstatsSendBuff;  break;
+    case TcpConnectionEstatsRec:       objectId = NsiTcpObjectEstatsRec;       break;
+    case TcpConnectionEstatsObsRec:    objectId = NsiTcpObjectEstatsObsRec;    break;
+    case TcpConnectionEstatsBandwidth: objectId = NsiTcpObjectEstatsBandwidth; break;
+    case TcpConnectionEstatsFineRtt:   objectId = NsiTcpObjectEstatsFineRtt;   break;
     default: return STATUS_INVALID_PARAMETER;
     }
 
-    memset(&key, 0, sizeof(NSI_ESTATS_TCP_KEY));
+    RtlZeroMemory(&key, sizeof(NSI_ESTATS_TCP_KEY));
     key.AddressFamily = AF_INET6;
     key.LocalPort = (USHORT)Row->dwLocalPort;
     key.LocalAddressIPv6 = Row->LocalAddr;
-    key.LocalScopeId = Row->dwLocalScopeId;
+    key.LocalScopeId.Value = Row->dwLocalScopeId;
     key.RemoteAddressFamily = AF_INET6;
     key.RemotePort = (USHORT)Row->dwRemotePort;
     key.RemoteAddressIPv6 = Row->RemoteAddr;
-    key.RemoteScopeId = Row->dwRemoteScopeId;
+    key.RemoteScopeId.Value = Row->dwRemoteScopeId;
 
     return PhNsiSetParameter(
         NsiActive,
@@ -7068,7 +6690,7 @@ NTSTATUS PhSetPerTcpConnectionEStats(
     _In_ ULONG Offset)
 {
     NSI_ESTATS_TCP_KEY key;
-    ULONG objectId;
+    NSI_OBJECT_ID objectId;
 
     if (RwVersion || Offset)
         return STATUS_NOT_SUPPORTED;
@@ -7080,37 +6702,37 @@ NTSTATUS PhSetPerTcpConnectionEStats(
     switch (EstatsType)
     {
     case TcpConnectionEstatsSynOpts:   
-        objectId = MibTcpEstatsTypeSynOpts;   
+        objectId = NsiTcpObjectEstatsSynOpts;   
         break;
     case TcpConnectionEstatsData:      
-        objectId = MibTcpEstatsTypeData;      
+        objectId = NsiTcpObjectEstatsData;      
         break;
     case TcpConnectionEstatsSndCong:   
-        objectId = MibTcpEstatsTypeSndCong;   
+        objectId = NsiTcpObjectEstatsSndCong;   
         break;
     case TcpConnectionEstatsPath:      
-        objectId = MibTcpEstatsTypePath;      
+        objectId = NsiTcpObjectEstatsPath;      
         break;
     case TcpConnectionEstatsSendBuff:  
-        objectId = MibTcpEstatsTypeSendBuff;  
+        objectId = NsiTcpObjectEstatsSendBuff;  
         break;
     case TcpConnectionEstatsRec:       
-        objectId = MibTcpEstatsTypeRec;       
+        objectId = NsiTcpObjectEstatsRec;       
         break;
     case TcpConnectionEstatsObsRec:    
-        objectId = MibTcpEstatsTypeObsRec;    
+        objectId = NsiTcpObjectEstatsObsRec;    
         break;
     case TcpConnectionEstatsBandwidth: 
-        objectId = MibTcpEstatsTypeBandwidth; 
+        objectId = NsiTcpObjectEstatsBandwidth; 
         break;
     case TcpConnectionEstatsFineRtt:   
-        objectId = MibTcpEstatsTypeFineRtt;   
+        objectId = NsiTcpObjectEstatsFineRtt;   
         break;
     default: 
         return STATUS_INVALID_PARAMETER;
     }
 
-    memset(&key, 0, sizeof(NSI_ESTATS_TCP_KEY));
+    RtlZeroMemory(&key, sizeof(NSI_ESTATS_TCP_KEY));
     key.AddressFamily = AF_INET;
     key.LocalPort = (USHORT)Row->dwLocalPort;
     key.LocalAddressIPv4.s_addr = Row->dwLocalAddr;
@@ -7196,7 +6818,7 @@ BOOLEAN PhTcpipGuidEquals(
     return Left->Data1 == Right->Data1
         && Left->Data2 == Right->Data2
         && Left->Data3 == Right->Data3
-        && memcmp(Left->Data4, Right->Data4, sizeof(Left->Data4)) == 0;
+        && memcmp(Left->Data4, Right->Data4, RTL_NUMBER_OF(Left->Data4)) == 0;
 }
 
 /**
@@ -7267,17 +6889,17 @@ static VOID PhpFillIfRow2(
 {
     SIZE_T length;
 
-    memset(Row, 0, sizeof(MIB_IF_ROW2));
+    RtlZeroMemory(Row, sizeof(MIB_IF_ROW2));
     Row->InterfaceLuid = *InterfaceLuid;
     Row->InterfaceIndex = Ros->ifIndex;
     Row->InterfaceGuid = Ros->InterfaceGuid;
-    length = min(Rw->ifAlias.Length, sizeof(Row->Alias) - sizeof(WCHAR));
+    length = min(Rw->ifAlias.Length, (sizeof(WCHAR) * RTL_NUMBER_OF(Row->Alias)) - sizeof(WCHAR));
     memcpy(Row->Alias, Rw->ifAlias.String, length);
-    length = min(Ros->ifDescr.Length, sizeof(Row->Description) - sizeof(WCHAR));
+    length = min(Ros->ifDescr.Length, (sizeof(WCHAR) * RTL_NUMBER_OF(Row->Description)) - sizeof(WCHAR));
     memcpy(Row->Description, Ros->ifDescr.String, length);
-    Row->PhysicalAddressLength = min(Rw->ifPhysAddress.Length, sizeof(Row->PhysicalAddress));
+    Row->PhysicalAddressLength = min(Rw->ifPhysAddress.Length, RTL_NUMBER_OF(Row->PhysicalAddress));
     memcpy(Row->PhysicalAddress, Rw->ifPhysAddress.Address, Row->PhysicalAddressLength);
-    length = min(Ros->PermanentPhysAddress.Length, sizeof(Row->PermanentPhysicalAddress));
+    length = min(Ros->PermanentPhysAddress.Length, RTL_NUMBER_OF(Row->PermanentPhysicalAddress));
     memcpy(Row->PermanentPhysicalAddress, Ros->PermanentPhysAddress.Address, length);
     Row->Mtu = Rod->ifMtu;
     Row->Type = Ros->ifType;
@@ -7330,7 +6952,7 @@ NTSTATUS PhGetIfEntry2(
     _Inout_ PMIB_IF_ROW2 Row
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NET_LUID interfaceLuid;
     NDIS_NSI_INTERFACE_INFORMATION_RW rw;
     NDIS_NSI_INTERFACE_INFORMATION_ROD rod;
@@ -7345,27 +6967,27 @@ NTSTATUS PhGetIfEntry2(
         if (!Row->InterfaceIndex)
             return STATUS_INVALID_PARAMETER;
 
-        result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
+        status = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
 
-        if (result)
-            return result;
+        if (!NT_SUCCESS(status))
+            return status;
     }
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterface,
         &interfaceLuid,
-        sizeof(interfaceLuid),
+        sizeof(NET_LUID),
         &rw,
-        sizeof(rw),
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW),
         &rod,
-        sizeof(rod),
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD),
         &ros,
-        sizeof(ros));
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS));
 
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (rod.CompartmentId != PhGetCurrentThreadCompartmentId())
         return STATUS_NOT_FOUND;
@@ -7385,7 +7007,7 @@ NTSTATUS PhGetAnycastIpAddressEntry(
     _Inout_ PMIB_ANYCASTIPADDRESS_ROW Row
     )
 {
-    return PhNetioGetAddress(NsiActive, PhpNetioAddressAnycast, Row);
+    return PhNetioGetAddress(NsiActive, PhNetioAddressAnycast, Row);
 }
 
 /**
@@ -7401,7 +7023,7 @@ NTSTATUS PhGetAnycastIpAddressTable(
     _Outptr_ PMIB_ANYCASTIPADDRESS_TABLE* Table
     )
 {
-    return PhNetioEnumerateAddress(NsiActive, Family, PhpNetioAddressAnycast, Table);
+    return PhNetioEnumerateAddress(NsiActive, Family, PhNetioAddressAnycast, Table);
 }
 
 /**
@@ -7415,7 +7037,7 @@ NTSTATUS PhGetUnicastIpAddressEntry(
     _Inout_ PMIB_UNICASTIPADDRESS_ROW Row
     )
 {
-    return PhNetioGetAddress(NsiActive, PhpNetioAddressUnicast, Row);
+    return PhNetioGetAddress(NsiActive, PhNetioAddressUnicast, Row);
 }
 
 /**
@@ -7431,7 +7053,7 @@ NTSTATUS PhGetUnicastIpAddressTable(
     _Outptr_ PMIB_UNICASTIPADDRESS_TABLE* Table
     )
 {
-    return PhNetioEnumerateAddress(NsiActive, Family, PhpNetioAddressUnicast, Table);
+    return PhNetioEnumerateAddress(NsiActive, Family, PhNetioAddressUnicast, Table);
 }
 
 /**
@@ -7445,7 +7067,7 @@ NTSTATUS PhGetMulticastIpAddressEntry(
     _Inout_ PMIB_MULTICASTIPADDRESS_ROW Row
     )
 {
-    return PhNetioGetAddress(NsiActive, PhpNetioAddressMulticast, Row);
+    return PhNetioGetAddress(NsiActive, PhNetioAddressMulticast, Row);
 }
 
 /**
@@ -7461,12 +7083,13 @@ NTSTATUS PhGetMulticastIpAddressTable(
     _Outptr_ PMIB_MULTICASTIPADDRESS_TABLE* Table
     )
 {
-    return PhNetioEnumerateAddress(NsiActive, Family, PhpNetioAddressMulticast, Table);
+    return PhNetioEnumerateAddress(NsiActive, Family, PhNetioAddressMulticast, Table);
 }
 
 /**
  * Checks that a caller buffer can hold a table with a count header and the specified rows.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param Table The caller buffer.
@@ -7475,23 +7098,29 @@ NTSTATUS PhGetMulticastIpAddressTable(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getiftable
  */
 static NTSTATUS PhpNetioMibCheckTableBufferSize(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_opt_ PVOID Table,
     _Inout_ PULONG SizePointer
     )
 {
+    NTSTATUS status;
     ULONG requiredSize;
     ULONG rowBytes;
 
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    if (RtlULongMult(RowCount, RowSize, &rowBytes) != STATUS_SUCCESS)
-        return STATUS_INTEGER_OVERFLOW;
+    status = RtlULongMult(RowCount, RowSize, &rowBytes);
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), rowBytes, &requiredSize) != STATUS_SUCCESS)
-        return STATUS_INTEGER_OVERFLOW;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlULongAdd(HeaderSize, rowBytes, &requiredSize);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!Table || *SizePointer < requiredSize)
     {
@@ -7506,6 +7135,7 @@ static NTSTATUS PhpNetioMibCheckTableBufferSize(
 /**
  * Determines whether a buffer can hold the specified rows without overflow.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param BufferSize The size, in bytes, of the buffer.
@@ -7513,6 +7143,7 @@ static NTSTATUS PhpNetioMibCheckTableBufferSize(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-freemibtable
  */
 static BOOLEAN PhpNetioMibTableHasCapacity(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_ ULONG BufferSize
@@ -7520,10 +7151,10 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
 {
     ULONG requiredSize;
 
-    if (RtlULongMult(RowCount, RowSize, &requiredSize) != STATUS_SUCCESS)
+    if (!NT_SUCCESS(RtlULongMult(RowCount, RowSize, &requiredSize)))
         return FALSE;
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), requiredSize, &requiredSize) != STATUS_SUCCESS)
+    if (!NT_SUCCESS(RtlULongAdd(HeaderSize, requiredSize, &requiredSize)))
         return FALSE;
 
     return BufferSize >= requiredSize;
@@ -7532,6 +7163,7 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
 /**
  * Computes the size of a MIB table with a count header followed by rows.
  *
+ * \param HeaderSize The offset of the row array in the table (FIELD_OFFSET(<table>, table)).
  * \param RowCount The number of rows.
  * \param RowSize The size, in bytes, of each row.
  * \param IncludeOneEntry TRUE if the header already includes one row (ANY_SIZE array).
@@ -7540,6 +7172,7 @@ static BOOLEAN PhpNetioMibTableHasCapacity(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-freemibtable
  */
 static BOOLEAN PhpNetioMibSizeofTable(
+    _In_ ULONG HeaderSize,
     _In_ ULONG RowCount,
     _In_ ULONG RowSize,
     _In_ BOOLEAN IncludeOneEntry,
@@ -7552,15 +7185,74 @@ static BOOLEAN PhpNetioMibSizeofTable(
     if (!Size)
         return FALSE;
 
-    rows = RowCount + (IncludeOneEntry ? 1 : 0);
-
-    if (RtlULongMult(rows, RowSize, &tableSize) != STATUS_SUCCESS)
+    if (!NT_SUCCESS(RtlULongAdd(RowCount, IncludeOneEntry ? 1 : 0, &rows)))
         return FALSE;
 
-    if (RtlULongAdd(FIELD_OFFSET(MIB_IFTABLE, table), tableSize, Size) != STATUS_SUCCESS)
+    if (!NT_SUCCESS(RtlULongMult(rows, RowSize, &tableSize)))
         return FALSE;
 
+    if (!NT_SUCCESS(RtlULongAdd(HeaderSize, tableSize, &tableSize)))
+        return FALSE;
+
+    *Size = tableSize;
     return TRUE;
+}
+
+// N.B. Tables whose rows contain 8-byte fields put the row array at offset 8, not 4.
+static_assert(FIELD_OFFSET(MIB_TCPTABLE_OWNER_MODULE, table) == 8, "MIB_TCPTABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) == 8, "MIB_TCP6TABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_UDPTABLE_OWNER_MODULE, table) == 8, "MIB_UDPTABLE_OWNER_MODULE header size");
+static_assert(FIELD_OFFSET(MIB_UDP6TABLE_OWNER_MODULE, table) == 8, "MIB_UDP6TABLE_OWNER_MODULE header size");
+
+// N.B. qsort_s requires a comparator; passing NULL invokes the invalid parameter handler.
+static int __cdecl PhpCompareMibTcp6Row2(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    );
+
+/**
+ * Sort routine that orders MIB_TCP6ROW entries by local and remote endpoint.
+ */
+int __cdecl PhpCompareMibTcp6Row(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    // State comes first in MIB_TCP6ROW; compare LocalAddr through the end of the row.
+    return memcmp(
+        &((PMIB_TCP6ROW)Row1)->LocalAddr,
+        &((PMIB_TCP6ROW)Row2)->LocalAddr,
+        sizeof(MIB_TCP6ROW) - FIELD_OFFSET(MIB_TCP6ROW, LocalAddr)
+        );
+}
+
+/**
+ * Sort routine that orders MIB_UDP6ROW entries by local endpoint.
+ */
+int __cdecl PhpCompareMibUdp6Row(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    return memcmp(Row1, Row2, sizeof(MIB_UDP6ROW));
+}
+
+/**
+ * Sort routine that orders MIB_IFROW entries by interface index.
+ */
+int __cdecl PhpCompareMibIfRow(
+    _In_opt_ PVOID Context,
+    _In_ const void* Row1,
+    _In_ const void* Row2
+    )
+{
+    ULONG index1 = ((PMIB_IFROW)Row1)->dwIndex;
+    ULONG index2 = ((PMIB_IFROW)Row2)->dwIndex;
+
+    return (index1 > index2) - (index1 < index2);
 }
 
 /**
@@ -7616,30 +7308,40 @@ static VOID PhpFillIfEntry(
     const NDIS_NSI_INTERFACE_INFORMATION_ROS* ros = StaticRow;
     SIZE_T descriptionLength;
 
-    memset(IfRow, 0, sizeof(MIB_IFROW));
+    RtlZeroMemory(IfRow, sizeof(MIB_IFROW));
     IfRow->dwIndex = ros->ifIndex;
     IfRow->dwType = ros->ifType;
     IfRow->dwMtu = rod->ifMtu;
-    IfRow->dwSpeed = (DWORD)min(rod->XmitLinkSpeed, MAXULONG);
-    IfRow->dwPhysAddrLen = min(rw->ifPhysAddress.Length, sizeof(IfRow->bPhysAddr));
+    IfRow->dwSpeed = (ULONG)min(rod->XmitLinkSpeed, MAXULONG);
+    IfRow->dwPhysAddrLen = min(rw->ifPhysAddress.Length, RTL_NUMBER_OF(IfRow->bPhysAddr));
     memcpy(IfRow->bPhysAddr, rw->ifPhysAddress.Address, IfRow->dwPhysAddrLen);
     IfRow->dwAdminStatus = rw->ifAdminStatus;
     IfRow->dwOperStatus = (INTERNAL_IF_OPER_STATUS)rod->ifOperStatus;
-    IfRow->dwLastChange = (DWORD)rod->ifLastChange;
-    IfRow->dwInOctets = (DWORD)rod->ifHCInOctets;
-    IfRow->dwInUcastPkts = (DWORD)rod->ifHCInUcastPkts;
-    IfRow->dwInNUcastPkts = (DWORD)(rod->ifHCInMulticastPkts + rod->ifHCInBroadcastPkts);
-    IfRow->dwInDiscards = (DWORD)rod->ifInDiscards;
-    IfRow->dwInErrors = (DWORD)rod->ifInErrors;
-    IfRow->dwInUnknownProtos = (DWORD)rod->ifInUnknownProtos;
-    IfRow->dwOutOctets = (DWORD)rod->ifHCOutOctets;
-    IfRow->dwOutUcastPkts = (DWORD)rod->ifHCOutUcastPkts;
-    IfRow->dwOutNUcastPkts = (DWORD)(rod->ifHCOutMulticastPkts + rod->ifHCOutBroadcastPkts);
-    IfRow->dwOutDiscards = (DWORD)rod->ifOutDiscards;
-    IfRow->dwOutErrors = (DWORD)rod->ifOutErrors;
-    descriptionLength = min(ros->ifDescr.Length, sizeof(IfRow->bDescr));
-    memcpy(IfRow->bDescr, ros->ifDescr.String, descriptionLength);
-    IfRow->dwDescrLen = (DWORD)descriptionLength;
+    IfRow->dwLastChange = (ULONG)rod->ifLastChange;
+    IfRow->dwInOctets = (ULONG)rod->ifHCInOctets;
+    IfRow->dwInUcastPkts = (ULONG)rod->ifHCInUcastPkts;
+    IfRow->dwInNUcastPkts = (ULONG)(rod->ifHCInMulticastPkts + rod->ifHCInBroadcastPkts);
+    IfRow->dwInDiscards = (ULONG)rod->ifInDiscards;
+    IfRow->dwInErrors = (ULONG)rod->ifInErrors;
+    IfRow->dwInUnknownProtos = (ULONG)rod->ifInUnknownProtos;
+    IfRow->dwOutOctets = (ULONG)rod->ifHCOutOctets;
+    IfRow->dwOutUcastPkts = (ULONG)rod->ifHCOutUcastPkts;
+    IfRow->dwOutNUcastPkts = (ULONG)(rod->ifHCOutMulticastPkts + rod->ifHCOutBroadcastPkts);
+    IfRow->dwOutDiscards = (ULONG)rod->ifOutDiscards;
+    IfRow->dwOutErrors = (ULONG)rod->ifOutErrors;
+
+    PPH_BYTES description = PhConvertUtf16ToMultiByteEx(
+        ros->ifDescr.String,
+        ros->ifDescr.Length
+        );
+
+    if (description)
+    {
+        descriptionLength = min(description->Length, RTL_NUMBER_OF(IfRow->bDescr));
+        memcpy(IfRow->bDescr, description->Buffer, descriptionLength);
+        IfRow->dwDescrLen = (ULONG)descriptionLength;
+        PhDereferenceObject(description);
+    }
 }
 
 /**
@@ -7660,11 +7362,12 @@ static NTSTATUS PhpGetTcpTableInternal(
     _In_ BOOL Order,
     _In_ ADDRESS_FAMILY Family,
     _In_ TCP_TABLE_CLASS TableClass,
-    _In_ ULONG OwnerClass
+    _In_ PH_TCP_OWNER_CLASS OwnerClass
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG rowSize;
+    ULONG headerSize;
     NSI_TCP_KEY_ROW* keyTable = NULL;
     NSI_TCP_STATUS_ROW* statusTable = NULL;
     NSI_TCP_OWNER_ROW* ownerTable = NULL;
@@ -7678,26 +7381,30 @@ static NTSTATUS PhpGetTcpTableInternal(
 
     switch (OwnerClass)
     {
-    case PhpTcpOwnerBasic:
+    case PhTcpOwnerBasic:
         rowSize = sizeof(MIB_TCPROW);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE, table);
         break;
-    case PhpTcpOwnerBasic2:
+    case PhTcpOwnerBasic2:
         rowSize = sizeof(MIB_TCPROW2);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE2, table);
         break;
-    case PhpTcpOwnerModule:
+    case PhTcpOwnerModule:
         rowSize = sizeof(MIB_TCPROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE_OWNER_MODULE, table);
         break;
-    case PhpTcpOwnerPid:
+    case PhTcpOwnerPid:
         rowSize = sizeof(MIB_TCPROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_TCPTABLE_OWNER_PID, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
     }
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -7710,10 +7417,10 @@ static NTSTATUS PhpGetTcpTableInternal(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -7753,6 +7460,7 @@ static NTSTATUS PhpGetTcpTableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             tcpTable->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -7764,14 +7472,14 @@ static NTSTATUS PhpGetTcpTableInternal(
 
         switch (OwnerClass)
         {
-        case PhpTcpOwnerBasic:
+        case PhTcpOwnerBasic:
             {
                 PMIB_TCPTABLE table;
                 PMIB_TCPROW row;
 
                 table = (PMIB_TCPTABLE)TcpTable;
                 row = &table->table[table->dwNumEntries];
-                memset(row, 0, sizeof(MIB_TCPROW));
+                RtlZeroMemory(row, sizeof(MIB_TCPROW));
                 row->dwState = statusTable[i].State;
                 row->dwLocalAddr = key->LocalAddress.Ipv4.sin_addr.S_un.S_addr;
                 row->dwLocalPort = key->LocalAddress.Ipv4.sin_port;
@@ -7779,14 +7487,14 @@ static NTSTATUS PhpGetTcpTableInternal(
                 row->dwRemotePort = key->RemoteAddress.Ipv4.sin_port;
             }
             break;
-        case PhpTcpOwnerBasic2:
+        case PhTcpOwnerBasic2:
             {
                 PMIB_TCPTABLE2 table;
                 PMIB_TCPROW2 row;
 
                 table = (PMIB_TCPTABLE2)TcpTable;
                 row = &table->table[table->dwNumEntries];
-                memset(row, 0, sizeof(MIB_TCPROW2));
+                RtlZeroMemory(row, sizeof(MIB_TCPROW2));
                 row->dwState = statusTable[i].State;
                 row->dwLocalAddr = key->LocalAddress.Ipv4.sin_addr.S_un.S_addr;
                 row->dwLocalPort = key->LocalAddress.Ipv4.sin_port;
@@ -7796,14 +7504,14 @@ static NTSTATUS PhpGetTcpTableInternal(
                 row->dwOffloadState = statusTable[i].OffloadState;
             }
             break;
-        case PhpTcpOwnerModule:
+        case PhTcpOwnerModule:
             {
                 PMIB_TCPTABLE_OWNER_MODULE table;
                 PMIB_TCPROW_OWNER_MODULE row;
 
                 table = (PMIB_TCPTABLE_OWNER_MODULE)TcpTable;
                 row = &table->table[table->dwNumEntries];
-                memset(row, 0, sizeof(MIB_TCPROW_OWNER_MODULE));
+                RtlZeroMemory(row, sizeof(MIB_TCPROW_OWNER_MODULE));
                 row->dwState = statusTable[i].State;
                 row->dwLocalAddr = key->LocalAddress.Ipv4.sin_addr.S_un.S_addr;
                 row->dwLocalPort = key->LocalAddress.Ipv4.sin_port;
@@ -7814,14 +7522,14 @@ static NTSTATUS PhpGetTcpTableInternal(
                 row->OwningModuleInfo[0] = ownerTable[i].OwningModuleInfo;
             }
             break;
-        case PhpTcpOwnerPid:
+        case PhTcpOwnerPid:
             {
                 PMIB_TCPTABLE_OWNER_PID table;
                 PMIB_TCPROW_OWNER_PID row;
 
                 table = (PMIB_TCPTABLE_OWNER_PID)TcpTable;
                 row = &table->table[table->dwNumEntries];
-                memset(row, 0, sizeof(MIB_TCPROW_OWNER_PID));
+                RtlZeroMemory(row, sizeof(MIB_TCPROW_OWNER_PID));
                 row->dwState = statusTable[i].State;
                 row->dwLocalAddr = key->LocalAddress.Ipv4.sin_addr.S_un.S_addr;
                 row->dwLocalPort = key->LocalAddress.Ipv4.sin_port;
@@ -7838,6 +7546,7 @@ static NTSTATUS PhpGetTcpTableInternal(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + tcpTable->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -7892,13 +7601,13 @@ VOID PhpNetioSetSocketAddress(
 
     if (Family != AF_INET6)
     {
-        memset(&Address->Ipv4, 0, sizeof(Address->Ipv4));
+        RtlZeroMemory(&Address->Ipv4, sizeof(SOCKADDR_IN));
         Address->Ipv4.sin_family = AF_INET;
         Address->Ipv4.sin_addr = *(const IN_ADDR*)KeyAddress;
         return;
     }
 
-    memset(&Address->Ipv6, 0, sizeof(Address->Ipv6));
+    RtlZeroMemory(&Address->Ipv6, sizeof(SOCKADDR_IN6));
     Address->Ipv6.sin6_family = AF_INET6;
     Address->Ipv6.sin6_addr = *(const IN6_ADDR*)KeyAddress;
     Address->Ipv6.sin6_scope_id = ScopeId;
@@ -7928,7 +7637,7 @@ VOID PhpNetioSetSocketAddress(
  */
 VOID PhpNetioFillAddressRow(
     _In_ ADDRESS_FAMILY Family,
-    _In_ PHP_NETIO_ADDRESS_TYPE AddressType,
+    _In_ PH_NETIO_ADDRESS_TYPE AddressType,
     _Out_ PVOID Row,
     _In_ const VOID* Key,
     _In_opt_ const VOID* Rw,
@@ -7942,16 +7651,16 @@ VOID PhpNetioFillAddressRow(
 
     switch (AddressType)
     {
-    case PhpNetioAddressUnicast:
+    case PhNetioAddressUnicast:
         {
             PMIB_UNICASTIPADDRESS_ROW row = Row;
             const MIB_IP_UNICAST_RW_ROW* rw = Rw;
             const MIB_IP_UNICAST_DYNAMIC_ROW* rod = Rod;
             const MIB_IP_UNICAST_STATIC_ROW* ros = Ros;
 
-            memset(row, 0, sizeof(MIB_UNICASTIPADDRESS_ROW));
+            RtlZeroMemory(row, sizeof(MIB_UNICASTIPADDRESS_ROW));
             row->InterfaceLuid = interfaceLuid;
-            if (PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex) == STATUS_SUCCESS)
+            if (NT_SUCCESS(PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex)))
                 row->InterfaceIndex = interfaceIndex;
 
             PhpNetioSetSocketAddress(Family, &row->Address, keyAddress, rod ? rod->ScopeId.Value : 0);
@@ -7973,20 +7682,20 @@ VOID PhpNetioFillAddressRow(
             }
 
             if (ros)
-                row->CreationTimeStamp.QuadPart = (LONGLONG)ros->CreationTimestamp;
+                row->CreationTimeStamp = ros->CreationTimestamp;
         }
         break;
-    case PhpNetioAddressMulticast:
+    case PhNetioAddressMulticast:
         {
             PMIB_MULTICASTIPADDRESS_ROW row = Row;
             ULONG scopeId = Rod ? *(const ULONG*)Rod : 0;
 
-            memset(row, 0, sizeof(MIB_MULTICASTIPADDRESS_ROW));
+            RtlZeroMemory(row, sizeof(MIB_MULTICASTIPADDRESS_ROW));
             row->InterfaceLuid = interfaceLuid;
 
             if (Ros)
                 row->InterfaceIndex = *(const NET_IFINDEX*)Ros;
-            else if (PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex) == STATUS_SUCCESS)
+            else if (NT_SUCCESS(PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex)))
                 row->InterfaceIndex = interfaceIndex;
 
             PhpNetioSetSocketAddress(Family, &row->Address, keyAddress, scopeId);
@@ -7995,13 +7704,13 @@ VOID PhpNetioFillAddressRow(
                 row->ScopeId.Value = scopeId;
         }
         break;
-    case PhpNetioAddressAnycast:
+    case PhNetioAddressAnycast:
         {
             PMIB_ANYCASTIPADDRESS_ROW row = Row;
 
-            memset(row, 0, sizeof(MIB_ANYCASTIPADDRESS_ROW));
+            RtlZeroMemory(row, sizeof(MIB_ANYCASTIPADDRESS_ROW));
             row->InterfaceLuid = interfaceLuid;
-            if (PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex) == STATUS_SUCCESS)
+            if (NT_SUCCESS(PhConvertInterfaceLuidToIndex(&interfaceLuid, &interfaceIndex)))
                 row->InterfaceIndex = interfaceIndex;
 
             PhpNetioSetSocketAddress(Family, &row->Address, keyAddress, 0);
@@ -8019,17 +7728,13 @@ VOID PhpNetioFillAddressRow(
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getunicastipaddressentry
  */
-static NTSTATUS PhNetioGetAddress(
+NTSTATUS PhNetioGetAddress(
     _In_ NSI_STORE Store,
-    _In_ PHP_NETIO_ADDRESS_TYPE AddressType,
+    _In_ PH_NETIO_ADDRESS_TYPE AddressType,
     _Inout_ PVOID Row
     )
 {
-    union
-    {
-        MIB_IP_UNICAST_KEY_ROW_V4 V4;
-        MIB_IP_UNICAST_KEY_ROW_V6 V6;
-    } key;
+    NSI_IP_ADDRESS_KEY key;
     MIB_IP_UNICAST_RW_ROW rw;
     ULONG rod[3]; // largest dynamic row (multicast, 0xC bytes)
     MIB_IP_UNICAST_STATIC_ROW ros;
@@ -8037,22 +7742,22 @@ static NTSTATUS PhNetioGetAddress(
     PNET_LUID interfaceLuid;
     NET_IFINDEX interfaceIndex;
     ULONG keySize;
-    NTSTATUS result;
+    NTSTATUS status;
 
     if (!Row || (ULONG)AddressType >= RTL_NUMBER_OF(PhpNetioAddressTypeInfo))
         return STATUS_INVALID_PARAMETER;
 
-    static_assert(sizeof(rod) >= sizeof(MIB_IP_UNICAST_DYNAMIC_ROW));
-    static_assert(sizeof(ros) >= sizeof(NET_IFINDEX));
+    static_assert((sizeof(ULONG) * RTL_NUMBER_OF(rod)) >= sizeof(MIB_IP_UNICAST_DYNAMIC_ROW));
+    static_assert(sizeof(MIB_IP_UNICAST_STATIC_ROW) >= sizeof(NET_IFINDEX));
 
     switch (AddressType)
     {
-    case PhpNetioAddressUnicast:
+    case PhNetioAddressUnicast:
         address = &((PMIB_UNICASTIPADDRESS_ROW)Row)->Address;
         interfaceLuid = &((PMIB_UNICASTIPADDRESS_ROW)Row)->InterfaceLuid;
         interfaceIndex = ((PMIB_UNICASTIPADDRESS_ROW)Row)->InterfaceIndex;
         break;
-    case PhpNetioAddressMulticast:
+    case PhNetioAddressMulticast:
         address = &((PMIB_MULTICASTIPADDRESS_ROW)Row)->Address;
         interfaceLuid = &((PMIB_MULTICASTIPADDRESS_ROW)Row)->InterfaceLuid;
         interfaceIndex = ((PMIB_MULTICASTIPADDRESS_ROW)Row)->InterfaceIndex;
@@ -8064,7 +7769,7 @@ static NTSTATUS PhNetioGetAddress(
         break;
     }
 
-    memset(&key, 0, sizeof(key));
+    RtlZeroMemory(&key, sizeof(NSI_IP_ADDRESS_KEY));
 
     if (address->si_family == AF_INET)
     {
@@ -8088,16 +7793,16 @@ static NTSTATUS PhNetioGetAddress(
     }
     else
     {
-        result = PhConvertInterfaceIndexToLuid(interfaceIndex, &key.V6.InterfaceLuid);
-        if (!NT_SUCCESS(result))
-            return result;
+        status = PhConvertInterfaceIndexToLuid(interfaceIndex, &key.V6.InterfaceLuid);
+        if (!NT_SUCCESS(status))
+            return status;
     }
 
-    memset(&rw, 0, sizeof(rw));
-    memset(rod, 0, sizeof(rod));
-    memset(&ros, 0, sizeof(ros));
+    RtlZeroMemory(&rw, sizeof(MIB_IP_UNICAST_RW_ROW));
+    RtlZeroMemory(rod, (sizeof(ULONG) * RTL_NUMBER_OF(rod)));
+    RtlZeroMemory(&ros, sizeof(MIB_IP_UNICAST_STATIC_ROW));
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         Store,
         address->si_family == AF_INET6 ? &NPI_MS_IPV6_MODULEID : &NPI_MS_IPV4_MODULEID,
         PhpNetioAddressTypeInfo[AddressType].ObjectId,
@@ -8111,8 +7816,8 @@ static NTSTATUS PhNetioGetAddress(
         PhpNetioAddressTypeInfo[AddressType].RosSize
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     PhpNetioFillAddressRow(
         address->si_family,
@@ -8137,10 +7842,10 @@ static NTSTATUS PhNetioGetAddress(
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getunicastipaddresstable
  */
-static NTSTATUS PhNetioEnumerateAddress(
+NTSTATUS PhNetioEnumerateAddress(
     _In_ NSI_STORE Store,
     _In_ ADDRESS_FAMILY Family,
-    _In_ PHP_NETIO_ADDRESS_TYPE AddressType,
+    _In_ PH_NETIO_ADDRESS_TYPE AddressType,
     _Outptr_ PVOID *Table
     )
 {
@@ -8159,7 +7864,7 @@ static NTSTATUS PhNetioEnumerateAddress(
     SIZE_T tableSize;
     PULONG table;
     ULONG entryIndex;
-    NTSTATUS result;
+    NTSTATUS status;
 
     if (!Table || (ULONG)AddressType >= RTL_NUMBER_OF(PhpNetioAddressTypeInfo))
         return STATUS_INVALID_PARAMETER;
@@ -8176,7 +7881,7 @@ static NTSTATUS PhNetioEnumerateAddress(
         if (Family != AF_UNSPEC && Family != families[i])
             continue;
 
-        result = PhNsiAllocateAndGetTable(
+        status = PhNsiAllocateAndGetTable(
             Store,
             families[i] == AF_INET6 ? &NPI_MS_IPV6_MODULEID : &NPI_MS_IPV4_MODULEID,
             PhpNetioAddressTypeInfo[AddressType].ObjectId,
@@ -8193,27 +7898,36 @@ static NTSTATUS PhNetioEnumerateAddress(
             );
 
         // A family that is not installed or has no addresses contributes no rows.
-        if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
+        if (status == STATUS_NOT_FOUND || status == STATUS_NOT_SUPPORTED)
         {
             counts[i] = 0;
             continue;
         }
 
-        if (!NT_SUCCESS(result))
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
     }
 
-    totalCount = counts[0] + counts[1];
+    status = RtlULongAdd(counts[0], counts[1], &totalCount);
 
-    if (totalCount < counts[0] ||
-        totalCount > (SIZE_MAX - FIELD_OFFSET(MIB_UNICASTIPADDRESS_TABLE, Table)) / rowSize)
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETMult(totalCount, rowSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_UNICASTIPADDRESS_TABLE, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
         goto CleanupExit;
     }
-
-    tableSize = FIELD_OFFSET(MIB_UNICASTIPADDRESS_TABLE, Table) + (SIZE_T)totalCount * rowSize;
-    table = PhAllocateZero(tableSize);
     entryIndex = 0;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -8235,13 +7949,13 @@ static NTSTATUS PhNetioEnumerateAddress(
 
     *table = entryIndex; // NumEntries
     *Table = table;
-    result = STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
 
 CleanupExit:
     for (ULONG i = 0; i < RTL_NUMBER_OF(families); i++)
         PhNsiFreeTable(keys[i], rw[i], rod[i], ros[i]);
 
-    return result;
+    return status;
 }
 
 /**
@@ -8260,11 +7974,12 @@ static NTSTATUS PhpGetTcp6TableInternal(
     _Inout_ PULONG SizePointer,
     _In_ BOOL Order,
     _In_ TCP_TABLE_CLASS TableClass,
-    _In_ ULONG OwnerClass
+    _In_ PH_TCP_OWNER_CLASS OwnerClass
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG rowSize;
+    ULONG headerSize;
     NSI_TCP_KEY_ROW* keyTable = NULL;
     NSI_TCP_STATUS_ROW* statusTable = NULL;
     NSI_TCP_OWNER_ROW* ownerTable = NULL;
@@ -8278,26 +7993,30 @@ static NTSTATUS PhpGetTcp6TableInternal(
 
     switch (OwnerClass)
     {
-    case PhpTcpOwnerBasic:
+    case PhTcpOwnerBasic:
         rowSize = sizeof(MIB_TCP6ROW);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE, table);
         break;
-    case PhpTcpOwnerBasic2:
+    case PhTcpOwnerBasic2:
         rowSize = sizeof(MIB_TCP6ROW2);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE2, table);
         break;
-    case PhpTcpOwnerModule:
+    case PhTcpOwnerModule:
         rowSize = sizeof(MIB_TCP6ROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table);
         break;
-    case PhpTcpOwnerPid:
+    case PhTcpOwnerPid:
         rowSize = sizeof(MIB_TCP6ROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_PID, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
     }
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp6,
+        NsiTcpObjectBoundEndpoint,
         &keyTable,
         sizeof(NSI_TCP_KEY_ROW),
         NULL,
@@ -8310,10 +8029,10 @@ static NTSTATUS PhpGetTcp6TableInternal(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8358,6 +8077,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             tcp6Table->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8369,12 +8089,12 @@ static NTSTATUS PhpGetTcp6TableInternal(
 
         switch (OwnerClass)
         {
-        case PhpTcpOwnerBasic:
+        case PhTcpOwnerBasic:
             {
                 PMIB_TCP6TABLE table = (PMIB_TCP6TABLE)TcpTable;
                 PMIB_TCP6ROW row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_TCP6ROW));
+                RtlZeroMemory(row, sizeof(MIB_TCP6ROW));
                 row->State = statusTable[i].State;
                 row->LocalAddr = key->LocalAddress.Ipv6.sin6_addr;
                 row->dwLocalScopeId = key->LocalAddress.Ipv6.sin6_scope_id;
@@ -8384,12 +8104,12 @@ static NTSTATUS PhpGetTcp6TableInternal(
                 row->dwRemotePort = key->RemoteAddress.Ipv6.sin6_port;
             }
             break;
-        case PhpTcpOwnerBasic2:
+        case PhTcpOwnerBasic2:
             {
                 PMIB_TCP6TABLE2 table = (PMIB_TCP6TABLE2)TcpTable;
                 PMIB_TCP6ROW2 row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_TCP6ROW2));
+                RtlZeroMemory(row, sizeof(MIB_TCP6ROW2));
                 row->LocalAddr = key->LocalAddress.Ipv6.sin6_addr;
                 row->dwLocalScopeId = key->LocalAddress.Ipv6.sin6_scope_id;
                 row->dwLocalPort = key->LocalAddress.Ipv6.sin6_port;
@@ -8401,17 +8121,17 @@ static NTSTATUS PhpGetTcp6TableInternal(
                 row->dwOffloadState = statusTable[i].OffloadState;
             }
             break;
-        case PhpTcpOwnerModule:
+        case PhTcpOwnerModule:
             {
                 PMIB_TCP6TABLE_OWNER_MODULE table = (PMIB_TCP6TABLE_OWNER_MODULE)TcpTable;
                 PMIB_TCP6ROW_OWNER_MODULE row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_TCP6ROW_OWNER_MODULE));
+                RtlZeroMemory(row, sizeof(MIB_TCP6ROW_OWNER_MODULE));
                 row->dwState = statusTable[i].State;
-                memcpy(row->ucLocalAddr, key->LocalAddress.Ipv6.sin6_addr.s6_addr, sizeof(row->ucLocalAddr));
+                memcpy(row->ucLocalAddr, key->LocalAddress.Ipv6.sin6_addr.s6_addr, RTL_NUMBER_OF(row->ucLocalAddr));
                 row->dwLocalScopeId = key->LocalAddress.Ipv6.sin6_scope_id;
                 row->dwLocalPort = key->LocalAddress.Ipv6.sin6_port;
-                memcpy(row->ucRemoteAddr, key->RemoteAddress.Ipv6.sin6_addr.s6_addr, sizeof(row->ucRemoteAddr));
+                memcpy(row->ucRemoteAddr, key->RemoteAddress.Ipv6.sin6_addr.s6_addr, RTL_NUMBER_OF(row->ucRemoteAddr));
                 row->dwRemoteScopeId = key->RemoteAddress.Ipv6.sin6_scope_id;
                 row->dwRemotePort = key->RemoteAddress.Ipv6.sin6_port;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8419,17 +8139,17 @@ static NTSTATUS PhpGetTcp6TableInternal(
                 row->OwningModuleInfo[0] = ownerTable[i].OwningModuleInfo;
             }
             break;
-        case PhpTcpOwnerPid:
+        case PhTcpOwnerPid:
             {
                 PMIB_TCP6TABLE_OWNER_PID table = (PMIB_TCP6TABLE_OWNER_PID)TcpTable;
                 PMIB_TCP6ROW_OWNER_PID row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_TCP6ROW_OWNER_PID));
+                RtlZeroMemory(row, sizeof(MIB_TCP6ROW_OWNER_PID));
                 row->dwState = statusTable[i].State;
-                memcpy(row->ucLocalAddr, key->LocalAddress.Ipv6.sin6_addr.s6_addr, sizeof(row->ucLocalAddr));
+                memcpy(row->ucLocalAddr, key->LocalAddress.Ipv6.sin6_addr.s6_addr, RTL_NUMBER_OF(row->ucLocalAddr));
                 row->dwLocalScopeId = key->LocalAddress.Ipv6.sin6_scope_id;
                 row->dwLocalPort = key->LocalAddress.Ipv6.sin6_port;
-                memcpy(row->ucRemoteAddr, key->RemoteAddress.Ipv6.sin6_addr.s6_addr, sizeof(row->ucRemoteAddr));
+                memcpy(row->ucRemoteAddr, key->RemoteAddress.Ipv6.sin6_addr.s6_addr, RTL_NUMBER_OF(row->ucRemoteAddr));
                 row->dwRemoteScopeId = key->RemoteAddress.Ipv6.sin6_scope_id;
                 row->dwRemotePort = key->RemoteAddress.Ipv6.sin6_port;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8443,6 +8163,7 @@ static NTSTATUS PhpGetTcp6TableInternal(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + tcp6Table->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8479,8 +8200,9 @@ static NTSTATUS PhGetUdp6TableInternal(
     _Reserved_ ULONG Reserved
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG rowSize;
+    ULONG headerSize;
     PNSI_UDP_KEY_ROW keyTable = NULL;
     PNSI_UDP_OWNER_ROW ownerTable = NULL;
     ULONG count = 0;
@@ -8495,21 +8217,24 @@ static NTSTATUS PhGetUdp6TableInternal(
     {
     case UDP_TABLE_BASIC:
         rowSize = sizeof(MIB_UDP6ROW);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE, table);
         break;
     case UDP_TABLE_OWNER_PID:
         rowSize = sizeof(MIB_UDP6ROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE_OWNER_PID, table);
         break;
     case UDP_TABLE_OWNER_MODULE:
         rowSize = sizeof(MIB_UDP6ROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_UDP6TABLE_OWNER_MODULE, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
     }
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(NSI_UDP_KEY_ROW),
         NULL,
@@ -8522,10 +8247,10 @@ static NTSTATUS PhGetUdp6TableInternal(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8554,6 +8279,7 @@ static NTSTATUS PhGetUdp6TableInternal(
         }
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             udp6Table->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8570,7 +8296,7 @@ static NTSTATUS PhGetUdp6TableInternal(
                 PMIB_UDP6TABLE table = (PMIB_UDP6TABLE)UdpTable;
                 PMIB_UDP6ROW row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDP6ROW));
+                RtlZeroMemory(row, sizeof(MIB_UDP6ROW));
                 row->dwLocalAddr = key->LocalAddressV6;
                 row->dwLocalScopeId = key->LocalScopeId.Value;
                 row->dwLocalPort = key->LocalPort;
@@ -8581,8 +8307,8 @@ static NTSTATUS PhGetUdp6TableInternal(
                 PMIB_UDP6TABLE_OWNER_PID table = (PMIB_UDP6TABLE_OWNER_PID)UdpTable;
                 PMIB_UDP6ROW_OWNER_PID row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDP6ROW_OWNER_PID));
-                memcpy(row->ucLocalAddr, key->LocalAddressV6.s6_addr, sizeof(row->ucLocalAddr));
+                RtlZeroMemory(row, sizeof(MIB_UDP6ROW_OWNER_PID));
+                memcpy(row->ucLocalAddr, key->LocalAddressV6.s6_addr, RTL_NUMBER_OF(row->ucLocalAddr));
                 row->dwLocalScopeId = key->LocalScopeId.Value;
                 row->dwLocalPort = key->LocalPort;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8593,8 +8319,8 @@ static NTSTATUS PhGetUdp6TableInternal(
                 PMIB_UDP6TABLE_OWNER_MODULE table = (PMIB_UDP6TABLE_OWNER_MODULE)UdpTable;
                 PMIB_UDP6ROW_OWNER_MODULE row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDP6ROW_OWNER_MODULE));
-                memcpy(row->ucLocalAddr, key->LocalAddressV6.s6_addr, sizeof(row->ucLocalAddr));
+                RtlZeroMemory(row, sizeof(MIB_UDP6ROW_OWNER_MODULE));
+                memcpy(row->ucLocalAddr, key->LocalAddressV6.s6_addr, RTL_NUMBER_OF(row->ucLocalAddr));
                 row->dwLocalScopeId = key->LocalScopeId.Value;
                 row->dwLocalPort = key->LocalPort;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8610,6 +8336,7 @@ static NTSTATUS PhGetUdp6TableInternal(
     PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + udp6Table->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8646,8 +8373,9 @@ static NTSTATUS PhGetUdpTableInternal(
     _Reserved_ ULONG Reserved
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG rowSize;
+    ULONG headerSize;
     PNSI_UDP_KEY_ROW keyTable = NULL;
     PNSI_UDP_OWNER_ROW ownerTable = NULL;
     ULONG count = 0;
@@ -8662,21 +8390,24 @@ static NTSTATUS PhGetUdpTableInternal(
     {
     case UDP_TABLE_BASIC:
         rowSize = sizeof(MIB_UDPROW);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE, table);
         break;
     case UDP_TABLE_OWNER_PID:
         rowSize = sizeof(MIB_UDPROW_OWNER_PID);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE_OWNER_PID, table);
         break;
     case UDP_TABLE_OWNER_MODULE:
         rowSize = sizeof(MIB_UDPROW_OWNER_MODULE);
+        headerSize = FIELD_OFFSET(MIB_UDPTABLE_OWNER_MODULE, table);
         break;
     default:
         return STATUS_INVALID_PARAMETER;
     }
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(NSI_UDP_KEY_ROW),
         NULL,
@@ -8689,10 +8420,10 @@ static NTSTATUS PhGetUdpTableInternal(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!PhpNetioMibSizeofTable(count, rowSize, FALSE, &requiredSize))
+    if (!PhpNetioMibSizeofTable(headerSize, count, rowSize, FALSE, &requiredSize))
     {
         PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
         return STATUS_UNSUCCESSFUL;
@@ -8716,6 +8447,7 @@ static NTSTATUS PhGetUdpTableInternal(
             continue;
 
         if (!PhpNetioMibTableHasCapacity(
+            headerSize,
             udpTable->dwNumEntries + 1,
             rowSize,
             *SizePointer
@@ -8732,7 +8464,7 @@ static NTSTATUS PhGetUdpTableInternal(
                 PMIB_UDPTABLE table = (PMIB_UDPTABLE)UdpTable;
                 PMIB_UDPROW row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDPROW));
+                RtlZeroMemory(row, sizeof(MIB_UDPROW));
                 row->dwLocalAddr = PhpNetioIpv4AddressFromInAddress(key->LocalAddressV4);
                 row->dwLocalPort = key->LocalPort;
             }
@@ -8742,7 +8474,7 @@ static NTSTATUS PhGetUdpTableInternal(
                 PMIB_UDPTABLE_OWNER_PID table = (PMIB_UDPTABLE_OWNER_PID)UdpTable;
                 PMIB_UDPROW_OWNER_PID row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDPROW_OWNER_PID));
+                RtlZeroMemory(row, sizeof(MIB_UDPROW_OWNER_PID));
                 row->dwLocalAddr = PhpNetioIpv4AddressFromInAddress(key->LocalAddressV4);
                 row->dwLocalPort = key->LocalPort;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8753,7 +8485,7 @@ static NTSTATUS PhGetUdpTableInternal(
                 PMIB_UDPTABLE_OWNER_MODULE table = (PMIB_UDPTABLE_OWNER_MODULE)UdpTable;
                 PMIB_UDPROW_OWNER_MODULE row = &table->table[table->dwNumEntries];
 
-                memset(row, 0, sizeof(MIB_UDPROW_OWNER_MODULE));
+                RtlZeroMemory(row, sizeof(MIB_UDPROW_OWNER_MODULE));
                 row->dwLocalAddr = PhpNetioIpv4AddressFromInAddress(key->LocalAddressV4);
                 row->dwLocalPort = key->LocalPort;
                 row->dwOwningPid = ownerTable[i].OwningPid;
@@ -8769,6 +8501,7 @@ static NTSTATUS PhGetUdpTableInternal(
     PhNsiFreeTable(keyTable, NULL, NULL, ownerTable);
 
     if (!PhpNetioMibSizeofTable(
+        headerSize,
         errorCount + udpTable->dwNumEntries,
         rowSize,
         errorCount != 0,
@@ -8801,14 +8534,14 @@ static NTSTATUS PhInternalGetBestInterface(
     _Out_opt_ PULONG BestIfIndexAlias
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
 
-    result = PhGetBestInterfaceEx(DestinationAddress, BestIfIndex);
+    status = PhGetBestInterfaceEx(DestinationAddress, BestIfIndex);
 
-    if (NT_SUCCESS(result) && BestIfIndexAlias)
+    if (NT_SUCCESS(status) && BestIfIndexAlias)
         *BestIfIndexAlias = *BestIfIndex;
 
-    return result;
+    return status;
 }
 
 /**
@@ -8866,7 +8599,7 @@ static PIP_ADDR_STRING PhpAddAddressStringToAdapter(
     _Inout_ PIP_ADDR_STRING *Tail
     )
 {
-    PIP_ADDR_STRING newEntry = PhAllocateZero(sizeof(IP_ADDR_STRING));
+    PIP_ADDR_STRING newEntry = PhAllocateZeroSafe(sizeof(IP_ADDR_STRING));
     if (newEntry)
     {
         PhpSetAddressString(newEntry, Address, Mask);
@@ -8891,6 +8624,9 @@ static VOID PhpAddDnsServerAddressInfo(
     static const IN_ADDR broadcastAddress = { .S_un = { .S_addr = INADDR_NONE } }; // 255.255.255.255
     PIP_ADDR_STRING tail = DnsServerList;
 
+    if (!DnsServers->AddrCount)
+        return;
+
     PhpSetAddressString(DnsServerList, (PIN_ADDR)&DnsServers->AddrArray[0], (PIN_ADDR)&broadcastAddress);
 
     for (ULONG i = 1; i < DnsServers->AddrCount; i++)
@@ -8899,115 +8635,121 @@ static VOID PhpAddDnsServerAddressInfo(
     }
 }
 
-//static ULONG PhAllocateAndGetFixedInfo(
-//    _Outptr_result_maybenull_ PVOID *FixedInfo
-//    )
-//{
-//    PFIXED_INFO fixedInfo;
-//    ULONG pBufLen;
-//    HLOCAL hMem;
-//
-//    if (!FixedInfo)
-//        return ERROR_INVALID_PARAMETER;
-//
-//    *FixedInfo = NULL;
-//
-//    fixedInfo = PhAllocateZero(sizeof(FIXED_INFO));
-//    if (!fixedInfo)
-//        return ERROR_NOT_ENOUGH_MEMORY;
-//
-//    pBufLen = sizeof(IP4_ARRAY);
-//    hMem = NULL;
-//
-//    if (DnsQueryConfig(DnsConfigDnsServerList, DNS_CONFIG_FLAG_ALLOC, NULL, NULL, &hMem, &pBufLen) == ERROR_SUCCESS)
-//    {
-//        PhpAddDnsServerAddressInfo(&fixedInfo->DnsServerList, (PIP4_ARRAY)hMem);
-//        LocalFree(hMem);
-//    }
-//
-//    pBufLen = sizeof(fixedInfo->HostName);
-//    DnsQueryConfig(DnsConfigHostName_A, 0, NULL, NULL, fixedInfo->HostName, &pBufLen);
-//
-//    pBufLen = sizeof(fixedInfo->DomainName);
-//    DnsQueryConfig(DnsConfigPrimaryDomainName_A, 0, NULL, NULL, fixedInfo->DomainName, &pBufLen);
-//
-//    // NetBT Parameters
-//    HANDLE keyHandle;
-//    PH_STRINGREF keyName;
-//
-//    PhInitializeStringRef(&keyName, L"SYSTEM\\CurrentControlSet\\Services\\NetBT\\Parameters");
-//
-//    if (NT_SUCCESS(PhOpenKey(
-//        &keyHandle,
-//        KEY_QUERY_VALUE,
-//        PH_KEY_LOCAL_MACHINE,
-//        &keyName,
-//        0
-//        )))
-//    {
-//        ULONG nodeType = PhQueryRegistryUlongZ(keyHandle, L"NodeType");
-//        if (nodeType == ULONG_MAX)
-//            nodeType = PhQueryRegistryUlongZ(keyHandle, L"DhcpNodeType");
-//        if (nodeType == ULONG_MAX)
-//            nodeType = 8;
-//
-//        fixedInfo->NodeType = nodeType;
-//
-//        PPH_STRING scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"ScopeId");
-//        if (!scopeIdStr)
-//            scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"DhcpScopeId");
-//
-//        if (scopeIdStr)
-//        {
-//            PhConvertUtf16ToUtf8Buffer(
-//                fixedInfo->ScopeId,
-//                sizeof(fixedInfo->ScopeId),
-//                NULL,
-//                scopeIdStr->Buffer,
-//                scopeIdStr->Length
-//            );
-//            PhDereferenceObject(scopeIdStr);
-//        }
-//        else
-//        {
-//            fixedInfo->ScopeId[0] = UNICODE_NULL;
-//        }
-//
-//        ULONG enableProxy = PhQueryRegistryUlongZ(keyHandle, L"EnableProxy");
-//        if (enableProxy != ULONG_MAX)
-//            fixedInfo->EnableProxy = enableProxy;
-//        else
-//            fixedInfo->EnableProxy = 0;
-//
-//        ULONG enableDns = PhQueryRegistryUlongZ(keyHandle, L"EnableDns");
-//        if (enableDns != ULONG_MAX)
-//            fixedInfo->EnableDns = enableDns;
-//        else
-//            fixedInfo->EnableDns = 0;
-//
-//        NtClose(keyHandle);
-//    }
-//    else
-//    {
-//        fixedInfo->NodeType = 8;
-//        fixedInfo->ScopeId[0] = UNICODE_NULL;
-//        fixedInfo->EnableProxy = 0;
-//        fixedInfo->EnableDns = 0;
-//    }
-//
-//    MIB_IPSTATS stats;
-//    if (PhGetIpStatisticsEx(&stats, AF_INET) == NO_ERROR)
-//    {
-//        fixedInfo->EnableRouting = (stats.dwForwarding == MIB_IP_FORWARDING);
-//    }
-//    else
-//    {
-//        fixedInfo->EnableRouting = 0;
-//    }
-//
-//    *FixedInfo = fixedInfo;
-//    return ERROR_SUCCESS;
-//}
+/**
+ * Allocates and fills a FIXED_INFO structure with the host name, domain name and DNS server list.
+ *
+ * \param FixedInfo Receives the FIXED_INFO structure. Free the DNS server list with PhFreeAddressStringList, then the structure with PhFree.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
+ */
+NTSTATUS PhpAllocateAndGetFixedInfo(
+    _Outptr_result_maybenull_ PVOID *FixedInfo
+    )
+{
+    PFIXED_INFO fixedInfo;
+    ULONG pBufLen;
+    HLOCAL hMem;
+
+    if (!FixedInfo)
+        return STATUS_INVALID_PARAMETER;
+
+    *FixedInfo = NULL;
+
+    fixedInfo = PhAllocateZeroSafe(sizeof(FIXED_INFO));
+    if (!fixedInfo)
+        return STATUS_NO_MEMORY;
+
+    pBufLen = sizeof(IP4_ARRAY);
+    hMem = NULL;
+
+    if (DnsQueryConfig(DnsConfigDnsServerList, DNS_CONFIG_FLAG_ALLOC, NULL, NULL, &hMem, &pBufLen) == ERROR_SUCCESS)
+    {
+        PhpAddDnsServerAddressInfo(&fixedInfo->DnsServerList, (PIP4_ARRAY)hMem);
+        LocalFree(hMem);
+    }
+
+    pBufLen = RTL_NUMBER_OF(fixedInfo->HostName);
+    DnsQueryConfig(DnsConfigHostName_A, 0, NULL, NULL, fixedInfo->HostName, &pBufLen);
+
+    pBufLen = RTL_NUMBER_OF(fixedInfo->DomainName);
+    DnsQueryConfig(DnsConfigPrimaryDomainName_A, 0, NULL, NULL, fixedInfo->DomainName, &pBufLen);
+
+    // NetBT Parameters
+    HANDLE keyHandle;
+    PH_STRINGREF keyName;
+
+    PhInitializeStringRef(&keyName, L"SYSTEM\\CurrentControlSet\\Services\\NetBT\\Parameters");
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        ULONG nodeType = PhQueryRegistryUlongZ(keyHandle, L"NodeType");
+        if (nodeType == ULONG_MAX)
+            nodeType = PhQueryRegistryUlongZ(keyHandle, L"DhcpNodeType");
+        if (nodeType == ULONG_MAX)
+            nodeType = 8;
+
+        fixedInfo->NodeType = nodeType;
+
+        PPH_STRING scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"ScopeId");
+        if (!scopeIdStr)
+            scopeIdStr = PhQueryRegistryStringZ(keyHandle, L"DhcpScopeId");
+
+        if (scopeIdStr)
+        {
+            PhConvertUtf16ToUtf8Buffer(
+                fixedInfo->ScopeId,
+                RTL_NUMBER_OF(fixedInfo->ScopeId),
+                NULL,
+                scopeIdStr->Buffer,
+                scopeIdStr->Length
+            );
+            PhDereferenceObject(scopeIdStr);
+        }
+        else
+        {
+            fixedInfo->ScopeId[0] = UNICODE_NULL;
+        }
+
+        ULONG enableProxy = PhQueryRegistryUlongZ(keyHandle, L"EnableProxy");
+        if (enableProxy != ULONG_MAX)
+            fixedInfo->EnableProxy = enableProxy;
+        else
+            fixedInfo->EnableProxy = 0;
+
+        ULONG enableDns = PhQueryRegistryUlongZ(keyHandle, L"EnableDns");
+        if (enableDns != ULONG_MAX)
+            fixedInfo->EnableDns = enableDns;
+        else
+            fixedInfo->EnableDns = 0;
+
+        NtClose(keyHandle);
+    }
+    else
+    {
+        fixedInfo->NodeType = 8;
+        fixedInfo->ScopeId[0] = UNICODE_NULL;
+        fixedInfo->EnableProxy = 0;
+        fixedInfo->EnableDns = 0;
+    }
+
+    MIB_IPSTATS stats;
+    if (NT_SUCCESS(PhGetIpStatisticsEx(&stats, AF_INET)))
+    {
+        fixedInfo->EnableRouting = (stats.dwForwarding == MIB_IP_FORWARDING);
+    }
+    else
+    {
+        fixedInfo->EnableRouting = 0;
+    }
+
+    *FixedInfo = fixedInfo;
+    return STATUS_SUCCESS;
+}
 
 /**
  * Computes the size of the additional entries of an IP_ADDR_STRING list.
@@ -9016,7 +8758,7 @@ static VOID PhpAddDnsServerAddressInfo(
  * \return The size, in bytes, excluding the first entry.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_addr_string
  */
-static NTSTATUS PhGetSizeofAddressStringList(
+static ULONG PhGetSizeofAddressStringList(
     _In_opt_ PIP_ADDR_STRING AddressString
     )
 {
@@ -9114,7 +8856,7 @@ NTSTATUS PhGetInterfaceTimestampCapabilities(
     if (!getCapabilities)
         return STATUS_NOT_SUPPORTED;
 
-    return PhpNetioDosErrorToNtStatus(getCapabilities(InterfaceLuid, TimestampCapabilities));
+    return PhNetioDosErrorToNtStatus(getCapabilities(InterfaceLuid, TimestampCapabilities));
 }
 
 /**
@@ -9142,7 +8884,7 @@ static NTSTATUS PhStringResultToStatus(
  * \param Ros The read-only static parameter block.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/ns-netioapi-mib_ipforward_row2
  */
-static VOID PhpFillRouteEntry(
+VOID PhNsiFillRouteEntry(
     _In_ ADDRESS_FAMILY Family,
     _Out_ PMIB_IPFORWARD_ROW2 Route,
     _In_ const VOID *Key,
@@ -9151,7 +8893,7 @@ static VOID PhpFillRouteEntry(
     _In_ const MIB_IP_ROUTE_STATIC_ROW *Ros
     )
 {
-    memset(Route, 0, sizeof(MIB_IPFORWARD_ROW2));
+    RtlZeroMemory(Route, sizeof(MIB_IPFORWARD_ROW2));
     Route->DestinationPrefix.Prefix.si_family = Family;
     Route->NextHop.si_family = Family;
 
@@ -9195,14 +8937,6 @@ static VOID PhpFillRouteEntry(
     Route->Origin = Ros->Origin;
 }
 
-typedef struct _PHP_NSI_UNICAST_TABLE
-{
-    PVOID Keys;
-    PMIB_IP_UNICAST_RW_ROW ReadWrite;
-    PMIB_IP_UNICAST_DYNAMIC_ROW Dynamic;
-    ULONG Count;
-} PHP_NSI_UNICAST_TABLE, *PPHP_NSI_UNICAST_TABLE;
-
 /**
  * Enumerates the unicast address table of the specified IP module.
  *
@@ -9215,10 +8949,10 @@ typedef struct _PHP_NSI_UNICAST_TABLE
 static NTSTATUS PhpNsiGetUnicastTable(
     _In_ const NPI_MODULEID* ModuleId,
     _In_ ULONG KeySize,
-    _Out_ PPHP_NSI_UNICAST_TABLE Table
+    _Out_ PNSI_UNICAST_TABLE Table
     )
 {
-    memset(Table, 0, sizeof(*Table));
+    RtlZeroMemory(Table, sizeof(NSI_UNICAST_TABLE));
 
     return PhNsiAllocateAndGetTable(
         NsiActive,
@@ -9244,7 +8978,7 @@ static NTSTATUS PhpNsiGetUnicastTable(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-freemibtable
  */
 static VOID PhpNsiFreeUnicastTable(
-    _Inout_ PPHP_NSI_UNICAST_TABLE Table
+    _Inout_ PNSI_UNICAST_TABLE Table
     )
 {
     PhNsiFreeTable(Table->Keys, Table->ReadWrite, Table->Dynamic, NULL);
@@ -9270,10 +9004,10 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
     NET_LUID* interfaceKeys = NULL;
     PNDIS_NSI_INTERFACE_ENUM_ROD dynamicRows = NULL;
     PNDIS_NSI_INTERFACE_ENUM_ROS staticRows = NULL;
-    PHP_NSI_UNICAST_TABLE ipv4;
-    PHP_NSI_UNICAST_TABLE ipv6;
+    NSI_UNICAST_TABLE ipv4;
+    NSI_UNICAST_TABLE ipv6;
     ULONG interfaceCount = 0;
-    NTSTATUS result;
+    NTSTATUS status;
     SIZE_T requiredSize;
     PUCHAR cursor;
     PIP_ADAPTER_ADDRESSES previous = NULL;
@@ -9283,10 +9017,10 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
     if (AddressSize)
         *AddressSize = 0;
 
-    memset(&ipv4, 0, sizeof(ipv4));
-    memset(&ipv6, 0, sizeof(ipv6));
+    RtlZeroMemory(&ipv4, sizeof(NSI_UNICAST_TABLE));
+    RtlZeroMemory(&ipv6, sizeof(NSI_UNICAST_TABLE));
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterfaceWithoutStatistics,
@@ -9302,22 +9036,22 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!(Flags & GAA_FLAG_SKIP_UNICAST))
     {
         if (Family == AF_UNSPEC || Family == AF_INET)
         {
-            result = PhpNsiGetUnicastTable(&NPI_MS_IPV4_MODULEID, sizeof(MIB_IP_UNICAST_KEY_ROW_V4), &ipv4);
-            if (!NT_SUCCESS(result))
+            status = PhpNsiGetUnicastTable(&NPI_MS_IPV4_MODULEID, sizeof(MIB_IP_UNICAST_KEY_ROW_V4), &ipv4);
+            if (!NT_SUCCESS(status))
                 goto Cleanup;
         }
 
         if (Family == AF_UNSPEC || Family == AF_INET6)
         {
-            result = PhpNsiGetUnicastTable(&NPI_MS_IPV6_MODULEID, sizeof(MIB_IP_UNICAST_KEY_ROW_V6), &ipv6);
-            if (!NT_SUCCESS(result))
+            status = PhpNsiGetUnicastTable(&NPI_MS_IPV6_MODULEID, sizeof(MIB_IP_UNICAST_KEY_ROW_V6), &ipv6);
+            if (!NT_SUCCESS(status))
                 goto Cleanup;
         }
     }
@@ -9334,11 +9068,16 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
 
     if (requiredSize > ULONG_MAX)
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_INTEGER_OVERFLOW;
         goto Cleanup;
     }
 
-    *Addresses = PhAllocateZero(requiredSize ? requiredSize : 1);
+    if (!(*Addresses = PhAllocateZeroSafe(requiredSize ? requiredSize : 1)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto Cleanup;
+    }
+
     cursor = (PUCHAR)*Addresses;
     compartmentId = PhGetCurrentThreadCompartmentId();
 
@@ -9353,8 +9092,8 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
             continue;
 
         adapter = (PIP_ADAPTER_ADDRESSES)cursor;
-        cursor += ALIGN_UP_BY(sizeof(*adapter), sizeof(ULONG64));
-        adapter->Length = sizeof(*adapter);
+        cursor += ALIGN_UP_BY(sizeof(IP_ADAPTER_ADDRESSES), sizeof(ULONG64));
+        adapter->Length = sizeof(IP_ADAPTER_ADDRESSES);
         adapter->IfIndex = staticRows[i].ifIndex;
         adapter->Ipv6IfIndex = staticRows[i].ifIndex;
         adapter->Luid = interfaceKeys[i];
@@ -9366,11 +9105,11 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
         adapter->Mtu = dynamicRows[i].ifMtu;
         adapter->TransmitLinkSpeed = dynamicRows[i].XmitLinkSpeed;
         adapter->ReceiveLinkSpeed = dynamicRows[i].RcvLinkSpeed;
-        adapter->PhysicalAddressLength = min(dynamicRows[i].ifPhysAddress.Length, sizeof(adapter->PhysicalAddress));
+        adapter->PhysicalAddressLength = min(dynamicRows[i].ifPhysAddress.Length, RTL_NUMBER_OF(adapter->PhysicalAddress));
         memcpy(adapter->PhysicalAddress, dynamicRows[i].ifPhysAddress.Address, adapter->PhysicalAddressLength);
 
         adapter->AdapterName = (PCHAR)cursor;
-        if (NT_SUCCESS(PhFormatGuidToBuffer(&staticRows[i].InterfaceGuid, guidString, sizeof(guidString), NULL)))
+        if (NT_SUCCESS(PhFormatGuidToBuffer(&staticRows[i].InterfaceGuid, guidString, (sizeof(WCHAR) * RTL_NUMBER_OF(guidString)), NULL)))
         {
             for (ULONG j = 0; j <= RTL_GUID_STRING_SIZE; j++)
                 adapter->AdapterName[j] = (CHAR)guidString[j];
@@ -9389,7 +9128,7 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
 
         for (ULONG familyIndex = 0; familyIndex < 2; familyIndex++)
         {
-            PPHP_NSI_UNICAST_TABLE table = familyIndex ? &ipv6 : &ipv4;
+            PNSI_UNICAST_TABLE table = familyIndex ? &ipv6 : &ipv4;
 
             for (ULONG j = 0; j < table->Count; j++)
             {
@@ -9403,11 +9142,11 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
                     continue;
 
                 unicast = (PIP_ADAPTER_UNICAST_ADDRESS)cursor;
-                cursor += ALIGN_UP_BY(sizeof(*unicast), sizeof(ULONG64));
+                cursor += ALIGN_UP_BY(sizeof(IP_ADAPTER_UNICAST_ADDRESS), sizeof(ULONG64));
                 socketAddress = (PSOCKADDR_INET)cursor;
-                cursor += ALIGN_UP_BY(sizeof(*socketAddress), sizeof(ULONG64));
+                cursor += ALIGN_UP_BY(sizeof(SOCKADDR_INET), sizeof(ULONG64));
 
-                unicast->Length = sizeof(*unicast);
+                unicast->Length = sizeof(IP_ADAPTER_UNICAST_ADDRESS);
                 unicast->Address.lpSockaddr = (PSOCKADDR)socketAddress;
                 unicast->Address.iSockaddrLength = familyIndex ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN);
                 unicast->PrefixOrigin = table->ReadWrite[j].PrefixOrigin;
@@ -9448,20 +9187,20 @@ static NTSTATUS PhpNsiAllocateAndGetAdaptersAddresses(
     {
         PhFree(*Addresses);
         *Addresses = NULL;
-        result = STATUS_NO_MORE_ENTRIES;
+        status = STATUS_NO_MORE_ENTRIES;
     }
     else
     {
         if (AddressSize)
             *AddressSize = (ULONG)(cursor - (PUCHAR)*Addresses);
-        result = STATUS_SUCCESS;
+        status = STATUS_SUCCESS;
     }
 
 Cleanup:
     PhpNsiFreeUnicastTable(&ipv4);
     PhpNsiFreeUnicastTable(&ipv6);
     PhNsiFreeTable(interfaceKeys, NULL, dynamicRows, staticRows);
-    return result;
+    return status;
 }
 
 /**
@@ -9492,7 +9231,7 @@ static NTSTATUS PhpAllocateAndGetAdaptersAddresses(
     static PGET_ADAPTERS_ADDRESSES getAdaptersAddresses;
     PVOID baseAddress;
     ULONG size;
-    NTSTATUS result;
+    NTSTATUS status;
 
     if (!Addresses)
         return STATUS_INVALID_PARAMETER;
@@ -9522,18 +9261,20 @@ static NTSTATUS PhpAllocateAndGetAdaptersAddresses(
         return STATUS_PROCEDURE_NOT_FOUND;
 
     size = 0;
-    result = PhpNetioDosErrorToNtStatus(getAdaptersAddresses(Family, Flags, NULL, NULL, &size));
+    status = PhNetioDosErrorToNtStatus(getAdaptersAddresses(Family, Flags, NULL, NULL, &size));
 
-    if (result != STATUS_BUFFER_TOO_SMALL)
-        return result;
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return status;
 
     if (!size)
         return STATUS_DATA_ERROR;
 
-    *Addresses = PhAllocateZero(size);
-    result = PhpNetioDosErrorToNtStatus(getAdaptersAddresses(Family, Flags, NULL, *Addresses, &size));
+    if (!(*Addresses = PhAllocateZeroSafe(size)))
+        return STATUS_NO_MEMORY;
 
-    if (!NT_SUCCESS(result))
+    status = PhNetioDosErrorToNtStatus(getAdaptersAddresses(Family, Flags, NULL, *Addresses, &size));
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(*Addresses);
         *Addresses = NULL;
@@ -9543,7 +9284,7 @@ static NTSTATUS PhpAllocateAndGetAdaptersAddresses(
         *AddressSize = size;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -9646,7 +9387,7 @@ NTSTATUS PhGetIfEntry(
     _Inout_ PMIB_IFROW IfRow
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     IF_INDEX dwIndex;
     NET_LUID interfaceLuid;
     NDIS_NSI_INTERFACE_INFORMATION_ROD dynamicRow;
@@ -9654,15 +9395,15 @@ NTSTATUS PhGetIfEntry(
     NDIS_NSI_INTERFACE_INFORMATION_RW readWriteRow;
 
     interfaceLuid.Value = 0;
-    memset(&readWriteRow, 0, sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW));
-    memset(&dynamicRow, 0, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD));
-    memset(&staticRow, 0, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS));
+    RtlZeroMemory(&readWriteRow, sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW));
+    RtlZeroMemory(&dynamicRow, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD));
+    RtlZeroMemory(&staticRow, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS));
 
     if (!IfRow)
         return STATUS_INVALID_PARAMETER;
 
     dwIndex = IfRow->dwIndex;
-    result = PhpNsiGetParameter(
+    status = PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterfaceIndex,
@@ -9674,30 +9415,28 @@ NTSTATUS PhGetIfEntry(
         NsiNdisInterfaceIndexToLuid
     );
 
-    if (!result)
-    {
-        result = PhNsiGetAllParameters(
-            NsiActive,
-            &NPI_MS_NDIS_MODULEID,
-            NsiNdisObjectInterface,
-            &interfaceLuid,
-            sizeof(NET_LUID),
-            &readWriteRow,
-            sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW),
-            &dynamicRow,
-            sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD),
-            &staticRow,
-            sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS)
-            );
-        
-        if (!result)
-        {
-            PhpFillIfEntry(IfRow, &readWriteRow, &dynamicRow, &staticRow);
-            return STATUS_SUCCESS;
-        }
-    }
+    if (!NT_SUCCESS(status))
+        return status;
 
-    return result;
+    status = PhNsiGetAllParameters(
+        NsiActive,
+        &NPI_MS_NDIS_MODULEID,
+        NsiNdisObjectInterface,
+        &interfaceLuid,
+        sizeof(NET_LUID),
+        &readWriteRow,
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW),
+        &dynamicRow,
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD),
+        &staticRow,
+        sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS)
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhpFillIfEntry(IfRow, &readWriteRow, &dynamicRow, &staticRow);
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -9711,7 +9450,8 @@ NTSTATUS PhGetIfTable2(
     _Outptr_ PMIB_IF_TABLE2 *Table
     )
 {
-    NTSTATUS result;
+    SIZE_T tableSize;
+    NTSTATUS status;
     ULONG count;
     ULONG outputCount;
     ULONG i;
@@ -9725,21 +9465,35 @@ NTSTATUS PhGetIfTable2(
     if (!Table)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiAllocateAndGetTable(NsiActive, &NPI_MS_NDIS_MODULEID, NsiNdisObjectInterface,
+    status = PhNsiAllocateAndGetTable(NsiActive, &NPI_MS_NDIS_MODULEID, NsiNdisObjectInterface,
         &keys, sizeof(NET_LUID), &rw, sizeof(NDIS_NSI_INTERFACE_INFORMATION_RW),
         &rod, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROD),
         &ros, sizeof(NDIS_NSI_INTERFACE_INFORMATION_ROS), &count, 0);
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IF_TABLE2, Table)) / sizeof(MIB_IF_ROW2))
+    status = RtlSIZETMult(count, sizeof(MIB_IF_ROW2), &tableSize);
+
+    if (!NT_SUCCESS(status))
     {
         PhNsiFreeTable(keys, rw, rod, ros);
-        return STATUS_INTEGER_OVERFLOW;
+        return status;
+    }
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_IF_TABLE2, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhNsiFreeTable(keys, rw, rod, ros);
+        return status;
     }
 
     compartmentId = PhGetCurrentThreadCompartmentId();
-    table = PhAllocateZero(FIELD_OFFSET(MIB_IF_TABLE2, Table) + (SIZE_T)count * sizeof(MIB_IF_ROW2));
+    if (!(table = PhAllocateZeroSafe(tableSize)))
+    {
+        PhNsiFreeTable(keys, rw, rod, ros);
+        return STATUS_NO_MEMORY;
+    }
     outputCount = 0;
 
     for (i = 0; i < count; i++)
@@ -9776,14 +9530,14 @@ NTSTATUS PhGetNetworkInformation(
     _In_ ULONG Length
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     SIZE_T networkNameLength;
     NDIS_NSI_NETWORK_RW networkInformation;
     WCHAR pszSrc[MAXIMUM_FILENAME_LENGTH + 1];
 
-    memset(&networkInformation, 0, sizeof(NDIS_NSI_NETWORK_RW));
+    RtlZeroMemory(&networkInformation, sizeof(NDIS_NSI_NETWORK_RW));
 
-    result = PhpNsiGetParameter(
+    status = PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectNetwork,
@@ -9795,7 +9549,7 @@ NTSTATUS PhGetNetworkInformation(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(status))
     {
         networkNameLength = networkInformation.NetworkName.Length >> 1;
 
@@ -9804,19 +9558,19 @@ NTSTATUS PhGetNetworkInformation(
         
         pszSrc[networkNameLength] = UNICODE_NULL;
         memcpy(pszSrc, networkInformation.NetworkName.String, networkNameLength * sizeof(WCHAR));
-        result = PhCopyStringZ(pszSrc, SIZE_MAX, NetworkName, Length, NULL);
+        status = PhCopyStringZ(pszSrc, SIZE_MAX, NetworkName, Length, NULL);
 
-        if (result >= 0)
+        if (NT_SUCCESS(status))
         {
             *CompartmentId = networkInformation.CompartmentId;
             *SiteId = networkInformation.SiteId;
             return STATUS_SUCCESS;
         }
 
-        return result;
+        return status;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -9838,7 +9592,7 @@ NTSTATUS PhGetAdapterIndex(
     PNDIS_NSI_INTERFACE_ENUM_ROS publicTable = NULL;
     ULONG count = 0;
     NET_LUID matchLuid;
-    NTSTATUS result;
+    NTSTATUS status;
 
     if (!AdapterName || !IfIndex)
         return STATUS_INVALID_PARAMETER;
@@ -9855,7 +9609,7 @@ NTSTATUS PhGetAdapterIndex(
 
     matchLuid.Value = 0;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterfaceWithoutStatistics,
@@ -9871,7 +9625,7 @@ NTSTATUS PhGetAdapterIndex(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         for (ULONG i = 0; i < count; i++)
         {
@@ -9889,7 +9643,7 @@ NTSTATUS PhGetAdapterIndex(
         return STATUS_NOT_FOUND;
     }
 
-    result = PhpNsiGetParameter(
+    status = PhpNsiGetParameter(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterface,
@@ -9901,10 +9655,10 @@ NTSTATUS PhGetAdapterIndex(
         NsiNdisInterfaceLuidToIndex
         );
 
-    if (!NT_SUCCESS(result))
+    if (!NT_SUCCESS(status))
         *IfIndex = 0;
 
-    return result;
+    return status;
 }
 
 /**
@@ -9922,7 +9676,7 @@ NTSTATUS PhGetTcp6Table(
     _In_ BOOL Order
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     MIB_TCPSTATS_LH statistics;
     PTCP_KEY_ROW keyTable = NULL;
     PNSI_TCP_STATUS_ROW dynamicTable = NULL;
@@ -9932,26 +9686,27 @@ NTSTATUS PhGetTcp6Table(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    memset(&statistics, 0, sizeof(MIB_TCPSTATS_LH));
-    result = PhGetTcpStatisticsEx(&statistics, AF_INET6);
+    RtlZeroMemory(&statistics, sizeof(MIB_TCPSTATS_LH));
+    status = PhGetTcpStatisticsEx(&statistics, AF_INET6);
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhpNetioMibCheckTableBufferSize(
+    status = PhpNetioMibCheckTableBufferSize(
+        FIELD_OFFSET(MIB_TCP6TABLE, table),
         statistics.dwNumConns,
         sizeof(MIB_TCP6ROW),
         TcpTable,
         SizePointer
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(TCP_KEY_ROW),
         NULL,
@@ -9964,7 +9719,7 @@ NTSTATUS PhGetTcp6Table(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         TcpTable->dwNumEntries = 0;
 
@@ -9975,7 +9730,7 @@ NTSTATUS PhGetTcp6Table(
             if (key->Family == AF_INET6 &&
                 !IN6_IS_ADDR_V4MAPPED(&key->LocalAddress))
             {
-                if (PhpNetioMibTableHasCapacity(TcpTable->dwNumEntries + 1, sizeof(MIB_TCP6ROW), *SizePointer))
+                if (PhpNetioMibTableHasCapacity(FIELD_OFFSET(MIB_TCP6TABLE, table), TcpTable->dwNumEntries + 1, sizeof(MIB_TCP6ROW), *SizePointer))
                 {
                     const ULONG idx = TcpTable->dwNumEntries;
 
@@ -10000,6 +9755,7 @@ NTSTATUS PhGetTcp6Table(
         ULONG requiredSize = 0;
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_TCP6TABLE, table),
             errorCount + TcpTable->dwNumEntries,
             sizeof(MIB_TCP6ROW),
             errorCount != 0,
@@ -10016,7 +9772,7 @@ NTSTATUS PhGetTcp6Table(
             {
                 if (Order && TcpTable->dwNumEntries > 0)
                 {
-                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW), NULL, NULL);
+                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW), PhpCompareMibTcp6Row, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10027,7 +9783,7 @@ NTSTATUS PhGetTcp6Table(
         }
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10045,7 +9801,7 @@ NTSTATUS PhGetTcp6Table2(
     _In_ BOOL Order
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     MIB_TCPSTATS_LH statistics;
     PTCP_KEY_ROW keyTable = NULL;
     PNSI_TCP_STATUS_ROW dynamicTable = NULL;
@@ -10056,19 +9812,19 @@ NTSTATUS PhGetTcp6Table2(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    memset(&statistics, 0, sizeof(MIB_TCPSTATS_LH));
-    result = PhGetTcpStatisticsEx(&statistics, AF_INET6);
-    if (!NT_SUCCESS(result))
-        return result;
+    RtlZeroMemory(&statistics, sizeof(MIB_TCPSTATS_LH));
+    status = PhGetTcpStatisticsEx(&statistics, AF_INET6);
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhpNetioMibCheckTableBufferSize(statistics.dwNumConns, sizeof(MIB_TCP6ROW2), TcpTable, SizePointer);
-    if (!NT_SUCCESS(result))
-        return result;
+    status = PhpNetioMibCheckTableBufferSize(FIELD_OFFSET(MIB_TCP6TABLE2, table), statistics.dwNumConns, sizeof(MIB_TCP6ROW2), TcpTable, SizePointer);
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
-        NsiTableIdTcp,
+        NsiTcpObjectAllConnections,
         &keyTable,
         sizeof(TCP_KEY_ROW),
         NULL,
@@ -10081,7 +9837,7 @@ NTSTATUS PhGetTcp6Table2(
         0
     );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         TcpTable->dwNumEntries = 0;
 
@@ -10093,6 +9849,7 @@ NTSTATUS PhGetTcp6Table2(
                 !IN6_IS_ADDR_V4MAPPED(&key->LocalAddress))
             {
                 if (PhpNetioMibTableHasCapacity(
+                    FIELD_OFFSET(MIB_TCP6TABLE2, table),
                     TcpTable->dwNumEntries + 1,
                     sizeof(MIB_TCP6ROW2),
                     *SizePointer
@@ -10123,6 +9880,7 @@ NTSTATUS PhGetTcp6Table2(
         ULONG requiredSize = 0;
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_TCP6TABLE2, table),
             errorCount + TcpTable->dwNumEntries,
             sizeof(MIB_TCP6ROW2),
             errorCount != 0,
@@ -10139,7 +9897,7 @@ NTSTATUS PhGetTcp6Table2(
             {
                 if (Order && TcpTable->dwNumEntries > 0)
                 {
-                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW2), NULL, NULL);
+                    qsort_s(TcpTable->table, TcpTable->dwNumEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10150,7 +9908,7 @@ NTSTATUS PhGetTcp6Table2(
         }
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10168,7 +9926,7 @@ NTSTATUS PhGetUdp6Table(
     _In_ BOOL Order
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     MIB_UDPSTATS statistics;
     PUDP_KEY_ROW keyTable = NULL;
     ULONG count = 0;
@@ -10178,26 +9936,27 @@ NTSTATUS PhGetUdp6Table(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    memset(&statistics, 0, sizeof(MIB_UDPSTATS));
-    result = PhGetUdpStatisticsEx(&statistics, AF_INET6);
+    RtlZeroMemory(&statistics, sizeof(MIB_UDPSTATS));
+    status = PhGetUdpStatisticsEx(&statistics, AF_INET6);
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhpNetioMibCheckTableBufferSize(
+    status = PhpNetioMibCheckTableBufferSize(
+        FIELD_OFFSET(MIB_UDP6TABLE, table),
         statistics.dwNumAddrs,
         sizeof(MIB_UDP6ROW),
         Udp6Table,
         SizePointer
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
-        NsiTableIdUdp,
+        NsiUdpObjectEndpoint,
         &keyTable,
         sizeof(UDP_KEY_ROW),
         NULL,
@@ -10210,7 +9969,7 @@ NTSTATUS PhGetUdp6Table(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         Udp6Table->dwNumEntries = 0;
 
@@ -10221,7 +9980,7 @@ NTSTATUS PhGetUdp6Table(
             if (row->Family == AF_INET6 &&
                 !IN6_IS_ADDR_V4MAPPED(&row->Address))
             {
-                if (PhpNetioMibTableHasCapacity(Udp6Table->dwNumEntries + 1, sizeof(MIB_UDP6ROW), *SizePointer))
+                if (PhpNetioMibTableHasCapacity(FIELD_OFFSET(MIB_UDP6TABLE, table), Udp6Table->dwNumEntries + 1, sizeof(MIB_UDP6ROW), *SizePointer))
                 {
                     ULONG idx = Udp6Table->dwNumEntries;
                     Udp6Table->table[idx].dwLocalAddr = row->Address;
@@ -10239,6 +9998,7 @@ NTSTATUS PhGetUdp6Table(
         PhNsiFreeTable(keyTable, NULL, NULL, NULL);
 
         if (PhpNetioMibSizeofTable(
+            FIELD_OFFSET(MIB_UDP6TABLE, table),
             errorCount + Udp6Table->dwNumEntries,
             sizeof(MIB_UDP6ROW),
             errorCount != 0,
@@ -10255,7 +10015,7 @@ NTSTATUS PhGetUdp6Table(
             {
                 if (Order && Udp6Table->dwNumEntries > 0)
                 {
-                    qsort_s(Udp6Table->table, Udp6Table->dwNumEntries, sizeof(MIB_UDP6ROW), NULL, NULL);
+                    qsort_s(Udp6Table->table, Udp6Table->dwNumEntries, sizeof(MIB_UDP6ROW), PhpCompareMibUdp6Row, NULL);
                 }
                 return STATUS_SUCCESS;
             }
@@ -10266,7 +10026,7 @@ NTSTATUS PhGetUdp6Table(
         }
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10285,26 +10045,6 @@ NTSTATUS PhNotifyRouteChange(
     return PhNsiRequestChangeNotification(0, &NPI_MS_IPV4_MODULEID, NsiIpObjectBestRoute, overlapped, Handle);
 }
 
-typedef struct _PHP_ROUTE_CHANGE_KEY
-{
-    PVOID Key;
-    ULONG KeyLength;
-} PHP_ROUTE_CHANGE_KEY, *PPHP_ROUTE_CHANGE_KEY;
-
-typedef struct _PHP_ROUTE_CHANGE_CONTEXT
-{
-    NETIO_CHANGE_CALLBACK_CONTEXT Callback;
-    MIB_IPFORWARD_ROW2 Row;
-} PHP_ROUTE_CHANGE_CONTEXT, *PPHP_ROUTE_CHANGE_CONTEXT;
-
-typedef struct _PHP_ROUTE_CHANGE_PARAMETER
-{
-    NSI_PARAMETER_TYPE Type;
-    PVOID Data;
-    ULONG Length;
-    ULONG Offset;
-} PHP_ROUTE_CHANGE_PARAMETER, *PPHP_ROUTE_CHANGE_PARAMETER;
-
 /**
  * NSI callback that converts a route change into a MIB_IPFORWARD_ROW2 and forwards it to the caller.
  *
@@ -10316,18 +10056,21 @@ typedef struct _PHP_ROUTE_CHANGE_PARAMETER
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-notifyroutechange2
  */
 static ULONG NTAPI PhpRouteChangeCallback(
-    _In_ PPHP_ROUTE_CHANGE_CONTEXT Context,
-    _In_ PPHP_ROUTE_CHANGE_KEY ChangeKey,
-    _In_opt_ PPHP_ROUTE_CHANGE_PARAMETER ChangeParameter,
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
+    PPH_ROUTE_CHANGE_CONTEXT Context = CallerContext;
+    PPH_ROUTE_CHANGE_KEY ChangeKey = ObjectKey;
+    PPH_ROUTE_CHANGE_PARAMETER ChangeParameter = ObjectParameter;
     PMIB_IPFORWARD_ROW2 row = NULL;
 
     if (ChangeKey && ChangeKey->Key && ChangeKey->KeyLength)
     {
         row = &Context->Row;
-        memset(row, 0, sizeof(MIB_IPFORWARD_ROW2));
+        RtlZeroMemory(row, sizeof(MIB_IPFORWARD_ROW2));
 
         if (Context->Callback.Family == AF_INET && ChangeKey->KeyLength >= sizeof(MIB_IP_ROUTE_KEY_ROW_V4))
         {
@@ -10370,7 +10113,7 @@ static ULONG NTAPI PhpRouteChangeCallback(
         }
     }
 
-    ((PIPFORWARD_CHANGE_CALLBACK)Context->Callback.Callback)(
+    Context->Callback.RouteCallback(
         Context->Callback.CallerContext, row, NotificationType);
     return ERROR_SUCCESS;
 }
@@ -10395,29 +10138,35 @@ NTSTATUS PhNotifyRouteChange2(
     )
 {
     PNETIO_ROUTE_CHANGE_REGISTRATION registration;
-    PVOID rpcHandle;
-    NTSTATUS result;
+    RPC_BINDING_HANDLE rpcHandle;
+    NTSTATUS status;
     NTSTATUS ipv4Result = STATUS_NOT_SUPPORTED;
 
     if ((AddressFamily != AF_UNSPEC && AddressFamily != AF_INET && AddressFamily != AF_INET6) ||
         !Callback || !NotificationHandle)
         return STATUS_INVALID_PARAMETER;
 
-    registration = PhAllocateZero(sizeof(NETIO_ROUTE_CHANGE_REGISTRATION));
+    registration = PhAllocateZeroSafe(sizeof(NETIO_ROUTE_CHANGE_REGISTRATION));
+
+    if (!registration)
+        return STATUS_NO_MEMORY;
+
     registration->Header.ObjectId = NsiIpObjectRoute;
     registration->Header.Ipv4CallbackContext = &registration->Ipv4Callback;
     registration->Header.Ipv6CallbackContext = &registration->Ipv6Callback;
     registration->Ipv4Callback.Family = AF_INET;
-    registration->Ipv4Callback.Callback = Callback;
+    registration->Ipv4Callback.RouteCallback = Callback;
     registration->Ipv4Callback.CallerContext = CallerContext;
     registration->Ipv6Callback.Family = AF_INET6;
-    registration->Ipv6Callback.Callback = Callback;
+    registration->Ipv6Callback.RouteCallback = Callback;
     registration->Ipv6Callback.CallerContext = CallerContext;
 
-    if (!(rpcHandle = PhNsiNotificationConnectToServer()))
+    status = PhNsiNotificationConnectToServer(&rpcHandle);
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(registration);
-        return STATUS_INVALID_HANDLE;
+        return status;
     }
 
     if (AddressFamily != AF_INET6)
@@ -10427,20 +10176,20 @@ NTSTATUS PhNotifyRouteChange2(
             &registration->Ipv4Callback, &registration->Header.Ipv4NotificationHandle);
     }
 
-    result = ipv4Result;
+    status = ipv4Result;
     if (AddressFamily != AF_INET)
     {
-        result = PhNsiRpcRegisterChangeNotification(rpcHandle, &NPI_MS_IPV6_MODULEID,
+        status = PhNsiRpcRegisterChangeNotification(rpcHandle, &NPI_MS_IPV6_MODULEID,
             NsiIpObjectRoute, PhpRouteChangeCallback, InitialNotification,
             &registration->Ipv6Callback, &registration->Header.Ipv6NotificationHandle);
         if (AddressFamily == AF_UNSPEC)
-            result = (!NT_SUCCESS(ipv4Result) && !NT_SUCCESS(result)) ? ipv4Result : STATUS_SUCCESS;
+            status = (!NT_SUCCESS(ipv4Result) && !NT_SUCCESS(status)) ? ipv4Result : STATUS_SUCCESS;
     }
 
-    if (result)
+    if (!NT_SUCCESS(status))
     {
         PhCancelMibChangeNotify2(registration);
-        return result;
+        return status;
     }
 
     *NotificationHandle = registration;
@@ -10451,7 +10200,7 @@ NTSTATUS PhNotifyRouteChange2(
  * Retrieves TCP statistics for IPv4 or IPv6.
  *
  * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-gettcpstatisticsex
  */
@@ -10460,8 +10209,8 @@ NTSTATUS PhGetTcpStatisticsEx(
     _In_ ULONG Family
     )
 {
-    NTSTATUS result;
-    USHORT familyKey;
+    NTSTATUS status;
+    ADDRESS_FAMILY familyKey;
     NSI_TCP_GLOBAL_ROS readOnlyParams;
     NETIO_TCP_STATS_DYNAMIC dynamicParams;
 
@@ -10472,15 +10221,15 @@ NTSTATUS PhGetTcpStatisticsEx(
         return STATUS_NOT_SUPPORTED;
 
     familyKey = (USHORT)Family;
-    memset(&dynamicParams, 0, sizeof(NETIO_TCP_STATS_DYNAMIC));
-    memset(&readOnlyParams, 0, sizeof(NSI_TCP_GLOBAL_ROS));
+    RtlZeroMemory(&dynamicParams, sizeof(NETIO_TCP_STATS_DYNAMIC));
+    RtlZeroMemory(&readOnlyParams, sizeof(NSI_TCP_GLOBAL_ROS));
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
         NsiTcpObjectGlobal,
         &familyKey,
-        sizeof(USHORT),
+        sizeof(familyKey),
         NULL,
         0,
         &dynamicParams,
@@ -10489,7 +10238,7 @@ NTSTATUS PhGetTcpStatisticsEx(
         sizeof(NSI_TCP_GLOBAL_ROS)
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         Statistics->dwRtoAlgorithm = readOnlyParams.RtoAlgorithm;
         Statistics->dwRtoMin = readOnlyParams.RtoMin;
@@ -10508,7 +10257,7 @@ NTSTATUS PhGetTcpStatisticsEx(
         Statistics->dwNumConns = dynamicParams.NumConns;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10540,13 +10289,13 @@ NTSTATUS PhGetTeredoPort(
     _Out_ PUSHORT Port
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     USHORT portValue = 0;
 
     if (!Port)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_FL6T_MODULEID,
         NsiFl6tObjectClientPort,
@@ -10560,17 +10309,17 @@ NTSTATUS PhGetTeredoPort(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
         *Port = portValue;
 
-    return result;
+    return status;
 }
 
 /**
  * Retrieves UDP statistics for IPv4 or IPv6.
  *
  * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getudpstatisticsex
  */
@@ -10579,8 +10328,8 @@ NTSTATUS PhGetUdpStatisticsEx(
     _In_ ULONG Family
     )
 {
-    NTSTATUS result;
-    USHORT familyKey;
+    NTSTATUS status;
+    ADDRESS_FAMILY familyKey;
     NETIO_UDP_STATS_DYNAMIC dynamicParams;
 
     if (!Statistics)
@@ -10590,14 +10339,14 @@ NTSTATUS PhGetUdpStatisticsEx(
         return STATUS_NOT_SUPPORTED;
 
     familyKey = (USHORT)Family;
-    memset(&dynamicParams, 0, sizeof(NETIO_UDP_STATS_DYNAMIC));
+    RtlZeroMemory(&dynamicParams, sizeof(NETIO_UDP_STATS_DYNAMIC));
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
         NsiUdpObjectGlobal,
         &familyKey,
-        sizeof(USHORT),
+        sizeof(familyKey),
         NULL,
         0,
         &dynamicParams,
@@ -10606,7 +10355,7 @@ NTSTATUS PhGetUdpStatisticsEx(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         Statistics->dwInDatagrams = (ULONG)dynamicParams.InDatagrams;
         Statistics->dwNoPorts = dynamicParams.NoPorts;
@@ -10615,7 +10364,7 @@ NTSTATUS PhGetUdpStatisticsEx(
         Statistics->dwNumAddrs = dynamicParams.NumAddrs;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10630,12 +10379,12 @@ NTSTATUS PhGetNumberOfInterfaces(
     )
 {
     ULONG count = 0;
-    NTSTATUS result;
+    NTSTATUS status;
 
     if (!NumberOfInterfaces)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiEnumerateObjectsAllParameters(
+    status = PhNsiEnumerateObjectsAllParameters(
         NsiActive,
         NsiGetFirst,
         &NPI_MS_NDIS_MODULEID,
@@ -10651,29 +10400,30 @@ NTSTATUS PhGetNumberOfInterfaces(
         &count
         );
 
-    *NumberOfInterfaces = count;
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        *NumberOfInterfaces = count;
+        return STATUS_SUCCESS;
+    }
 
-    if (result != STATUS_BUFFER_TOO_SMALL)
-        return result;
-
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
  * Retrieves TCP statistics with 64-bit counters for IPv4 or IPv6.
  *
- * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param[out] Statistics Receives the statistics.
+ * \param[in] Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-gettcpstatisticsex2
  */
 NTSTATUS PhGetTcpStatisticsEx2(
-    _In_ PNETIO_TCP_STATISTICS_EX2 Statistics,
-    _In_ USHORT Family
+    _Out_ PNETIO_TCP_STATISTICS_EX2 Statistics,
+    _In_ ADDRESS_FAMILY Family
     )
 {
-    NTSTATUS result;
-    USHORT familyKey;
+    NTSTATUS status;
+    ADDRESS_FAMILY familyKey;
     NETIO_TCP_STATS_DYNAMIC dynamicParams;
     NSI_TCP_GLOBAL_ROS readOnlyParams;
 
@@ -10684,15 +10434,15 @@ NTSTATUS PhGetTcpStatisticsEx2(
         return STATUS_NOT_SUPPORTED;
 
     familyKey = Family;
-    memset(&dynamicParams, 0, sizeof(NETIO_TCP_STATS_DYNAMIC));
-    memset(&readOnlyParams, 0, sizeof(NSI_TCP_GLOBAL_ROS));
+    RtlZeroMemory(&dynamicParams, sizeof(NETIO_TCP_STATS_DYNAMIC));
+    RtlZeroMemory(&readOnlyParams, sizeof(NSI_TCP_GLOBAL_ROS));
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
         NsiTcpObjectGlobal,
         &familyKey,
-        sizeof(USHORT),
+        sizeof(familyKey),
         NULL,
         0,
         &dynamicParams,
@@ -10701,9 +10451,9 @@ NTSTATUS PhGetTcpStatisticsEx2(
         sizeof(NSI_TCP_GLOBAL_ROS)
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
-        memcpy(&Statistics->Header, &readOnlyParams, sizeof(NETIO_RECOVERED_128));
+        Statistics->GlobalParameters = readOnlyParams.GlobalParameters;
         Statistics->ActiveOpens = dynamicParams.ActiveOpens;
         Statistics->PassiveOpens = dynamicParams.PassiveOpens;
         Statistics->AttemptFails = dynamicParams.AttemptFails;
@@ -10719,24 +10469,24 @@ NTSTATUS PhGetTcpStatisticsEx2(
         Statistics->NumConns = dynamicParams.NumConns;
     }
 
-    return result;
+    return status;
 }
 
 /**
  * Retrieves UDP statistics with 64-bit counters for IPv4 or IPv6.
  *
- * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param[out] Statistics Receives the statistics.
+ * \param[in] Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getudpstatisticsex2
  */
 NTSTATUS PhGetUdpStatisticsEx2(
-    _In_ PNETIO_UDP_STATISTICS_EX2 Statistics,
-    _In_ USHORT Family
+    _Out_ PNETIO_UDP_STATISTICS_EX2 Statistics,
+    _In_ ADDRESS_FAMILY Family
     )
 {
-    NTSTATUS result;
-    USHORT familyKey;
+    NTSTATUS status;
+    ADDRESS_FAMILY familyKey;
     NETIO_UDP_STATS_DYNAMIC dynamicParams;
 
     if (!Statistics)
@@ -10746,14 +10496,14 @@ NTSTATUS PhGetUdpStatisticsEx2(
         return STATUS_NOT_SUPPORTED;
 
     familyKey = Family;
-    memset(&dynamicParams, 0, sizeof(NETIO_UDP_STATS_DYNAMIC));
+    RtlZeroMemory(&dynamicParams, sizeof(NETIO_UDP_STATS_DYNAMIC));
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_UDP_MODULEID,
         NsiUdpObjectGlobal,
         &familyKey,
-        sizeof(USHORT),
+        sizeof(familyKey),
         NULL,
         0,
         &dynamicParams,
@@ -10762,31 +10512,30 @@ NTSTATUS PhGetUdpStatisticsEx2(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
-        memcpy(&Statistics->Header, &dynamicParams, sizeof(NETIO_RECOVERED_128));
-        memcpy(&Statistics->Dynamic, (PUCHAR)&dynamicParams + sizeof(NETIO_RECOVERED_128), sizeof(NETIO_RECOVERED_128));
+        memcpy(&Statistics->NativeStatistics, &dynamicParams, sizeof(Statistics->NativeStatistics));
     }
 
-    return result;
+    return status;
 }
 
 /**
  * Retrieves the legacy interface table for all compartments.
  *
  * \param IfTable The buffer that receives the table.
- * \param Size On input, the size of the buffer in bytes; on output, the required size.
+ * \param SizePointer On input, the size of the buffer in bytes; on output, the required size.
  * \param Order TRUE to sort the returned table.
  * \return An NTSTATUS value. STATUS_BUFFER_TOO_SMALL is returned when the buffer is too small and SizePointer receives the required size.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getiftable
  */
 NTSTATUS PhGetIfTable(
-    _In_ PMIB_IFTABLE IfTable,
-    _In_ PULONG Size,
+    _Out_writes_bytes_opt_(*SizePointer) PMIB_IFTABLE IfTable,
+    _Inout_ PULONG SizePointer,
     _In_ BOOL Order
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG entryCount;
     NET_IF_COMPARTMENT_ID currentCompartmentId;
     ULONG count;
@@ -10797,10 +10546,10 @@ NTSTATUS PhGetIfTable(
     NET_LUID* keyTable = NULL;
     NDIS_NSI_INTERFACE_INFORMATION_ROS* staticTable = NULL;
 
-    if (!Size)
+    if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterface,
@@ -10816,13 +10565,14 @@ NTSTATUS PhGetIfTable(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(status))
     {
         entryCount = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(MIB_IFTABLE, table),
             count,
             sizeof(MIB_IFROW),
             IfTable,
-            Size
+            SizePointer
             );
 
         if (!entryCount)
@@ -10849,7 +10599,7 @@ NTSTATUS PhGetIfTable(
 
             if (Order)
             {
-                qsort_s(IfTable->table, entryCount, sizeof(MIB_IFROW), NULL, NULL);
+                qsort_s(IfTable->table, entryCount, sizeof(MIB_IFROW), PhpCompareMibIfRow, NULL);
             }
             
             entryCount = (entryCount == 0) ? STATUS_NO_MORE_ENTRIES : 0;
@@ -10860,7 +10610,7 @@ NTSTATUS PhGetIfTable(
         return entryCount;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -10873,7 +10623,7 @@ NTSTATUS PhGetIfTable(
  */
 NTSTATUS PhGetIfTable2Ex(
     _In_ MIB_IF_TABLE_LEVEL Level,
-    _In_ PMIB_IF_TABLE2 *Table
+    _Outptr_ PMIB_IF_TABLE2 *Table
     )
 {
     if (Level == MibIfTableNormal)
@@ -10911,36 +10661,36 @@ NTSTATUS PhGetExtendedTcpTable(
 {
     if (Family == AF_INET)
     {
-        ULONG ownerClass;
+        PH_TCP_OWNER_CLASS ownerClass;
 
         switch (TableClass)
         {
         case TCP_TABLE_BASIC_LISTENER:
-            ownerClass = PhpTcpOwnerBasic;
+            ownerClass = PhTcpOwnerBasic;
             break;
         case TCP_TABLE_BASIC_CONNECTIONS:
-            ownerClass = PhpTcpOwnerBasic;
+            ownerClass = PhTcpOwnerBasic;
             break;
         case TCP_TABLE_BASIC_ALL:
-            ownerClass = PhpTcpOwnerBasic;
+            ownerClass = PhTcpOwnerBasic;
             break;
         case TCP_TABLE_OWNER_PID_LISTENER:
-            ownerClass = PhpTcpOwnerPid;
+            ownerClass = PhTcpOwnerPid;
             break;
         case TCP_TABLE_OWNER_PID_CONNECTIONS:
-            ownerClass = PhpTcpOwnerPid;
+            ownerClass = PhTcpOwnerPid;
             break;
         case TCP_TABLE_OWNER_PID_ALL:
-            ownerClass = PhpTcpOwnerPid;
+            ownerClass = PhTcpOwnerPid;
             break;
         case TCP_TABLE_OWNER_MODULE_LISTENER:
-            ownerClass = PhpTcpOwnerModule;
+            ownerClass = PhTcpOwnerModule;
             break;
         case TCP_TABLE_OWNER_MODULE_CONNECTIONS:
-            ownerClass = PhpTcpOwnerModule;
+            ownerClass = PhTcpOwnerModule;
             break;
         case TCP_TABLE_OWNER_MODULE_ALL:
-            ownerClass = PhpTcpOwnerModule;
+            ownerClass = PhTcpOwnerModule;
             break;
         default:
             return STATUS_INVALID_PARAMETER;
@@ -10955,23 +10705,23 @@ NTSTATUS PhGetExtendedTcpTable(
     switch (TableClass)
     {
     case TCP_TABLE_BASIC_LISTENER:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerBasic);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerBasic);
     case TCP_TABLE_BASIC_CONNECTIONS:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerBasic);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerBasic);
     case TCP_TABLE_BASIC_ALL:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerBasic);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerBasic);
     case TCP_TABLE_OWNER_PID_LISTENER:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerPid);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerPid);
     case TCP_TABLE_OWNER_PID_CONNECTIONS:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerPid);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerPid);
     case TCP_TABLE_OWNER_PID_ALL:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerPid);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerPid);
     case TCP_TABLE_OWNER_MODULE_LISTENER:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerModule);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerModule);
     case TCP_TABLE_OWNER_MODULE_CONNECTIONS:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerModule);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerModule);
     case TCP_TABLE_OWNER_MODULE_ALL:
-        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhpTcpOwnerModule);
+        return PhpGetTcp6TableInternal(TcpTable, SizePointer, Order, TableClass, PhTcpOwnerModule);
     }
 
     return STATUS_INVALID_PARAMETER;
@@ -11023,7 +10773,7 @@ NTSTATUS PhGetExtendedUdpTable(
  * Retrieves IP statistics for IPv4 or IPv6.
  *
  * \param Statistics Receives the statistics.
- * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
+ * \param Family The address family (AF_INET or AF_INET6).
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getipstatisticsex
  */
@@ -11034,7 +10784,7 @@ NTSTATUS PhGetIpStatisticsEx(
 {
     ULONG forwarding;
     const NPI_MODULEID *moduleId;
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG reassemblyTimeout;
     NET_IF_COMPARTMENT_ID compartmentKey;
     NSI_IP_GLOBAL_RW globalRw;
@@ -11042,10 +10792,10 @@ NTSTATUS PhGetIpStatisticsEx(
     NSI_IP_COMPARTMENT_RW compartmentRw;
     NSI_IP_COMPARTMENT_ROD compartmentRod;
 
-    memset(&globalRw, 0, sizeof(NSI_IP_GLOBAL_RW));
-    memset(&statistics, 0, sizeof(NSI_IP_STATISTICS_ROD));
-    memset(&compartmentRw, 0, sizeof(NSI_IP_COMPARTMENT_RW));
-    memset(&compartmentRod, 0, sizeof(NSI_IP_COMPARTMENT_ROD));
+    RtlZeroMemory(&globalRw, sizeof(NSI_IP_GLOBAL_RW));
+    RtlZeroMemory(&statistics, sizeof(NSI_IP_STATISTICS_ROD));
+    RtlZeroMemory(&compartmentRw, sizeof(NSI_IP_COMPARTMENT_RW));
+    RtlZeroMemory(&compartmentRod, sizeof(NSI_IP_COMPARTMENT_ROD));
     forwarding = 0;
     reassemblyTimeout = 0;
 
@@ -11059,7 +10809,7 @@ NTSTATUS PhGetIpStatisticsEx(
     else
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         moduleId,
         NsiIpObjectGlobal,
@@ -11073,56 +10823,54 @@ NTSTATUS PhGetIpStatisticsEx(
         sizeof(ULONG)
         );
 
-    if (!result)
-    {
-        compartmentKey = PhGetCurrentThreadCompartmentId();
-        result = PhNsiGetAllParameters(
-            NsiActive,
-            moduleId,
-            NsiIpObjectCompartment,
-            &compartmentKey,
-            sizeof(NET_IF_COMPARTMENT_ID),
-            &compartmentRw,
-            sizeof(NSI_IP_COMPARTMENT_RW),
-            &compartmentRod,
-            sizeof(NSI_IP_COMPARTMENT_ROD),
-            NULL,
-            0
-            );
+    if (!NT_SUCCESS(status))
+        return status;
 
-        if (!result)
-        {
-            forwarding = compartmentRw.Forwarding == 1;
-            Statistics->dwInReceives = (ULONG)statistics.InReceives;
-            Statistics->dwInHdrErrors = statistics.InHdrErrors;
-            Statistics->dwInAddrErrors = statistics.InAddrErrors;
-            Statistics->dwForwDatagrams = (ULONG)statistics.ForwDatagrams;
-            Statistics->dwInUnknownProtos = statistics.InUnknownProtos;
-            Statistics->dwInDiscards = statistics.InDiscards;
-            Statistics->dwInDelivers = (ULONG)statistics.InDelivers;
-            Statistics->dwOutRequests = (ULONG)statistics.OutRequests;
-            Statistics->dwRoutingDiscards = statistics.RoutingDiscards;
-            Statistics->dwOutDiscards = statistics.OutDiscards;
-            Statistics->dwOutNoRoutes = statistics.OutNoRoutes;
-            Statistics->dwReasmTimeout = reassemblyTimeout;
-            Statistics->dwReasmReqds = statistics.ReasmReqds;
-            Statistics->dwReasmOks = statistics.ReasmOks;
-            Statistics->dwReasmFails = statistics.ReasmFails;
-            Statistics->dwFragOks = statistics.FragOks;
-            Statistics->dwFragFails = statistics.FragFails;
-            Statistics->dwFragCreates = statistics.FragCreates;
-            Statistics->dwForwarding = forwarding + 1;
-            Statistics->dwDefaultTTL = compartmentRw.DefaultHopLimit;
-            if (Statistics->dwDefaultTTL == ULONG_MAX)
-                Statistics->dwDefaultTTL = globalRw.DefaultHopLimit;
-            Statistics->dwNumIf = compartmentRod.NumIf;
-            Statistics->dwNumAddr = compartmentRod.NumAddr;
-            Statistics->dwNumRoutes = compartmentRod.NumRoutes;
-            return STATUS_SUCCESS;
-        }
-    }
+    compartmentKey = PhGetCurrentThreadCompartmentId();
+    status = PhNsiGetAllParameters(
+        NsiActive,
+        moduleId,
+        NsiIpObjectCompartment,
+        &compartmentKey,
+        sizeof(NET_IF_COMPARTMENT_ID),
+        &compartmentRw,
+        sizeof(NSI_IP_COMPARTMENT_RW),
+        &compartmentRod,
+        sizeof(NSI_IP_COMPARTMENT_ROD),
+        NULL,
+        0
+        );
 
-    return result;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    forwarding = compartmentRw.Forwarding == 1;
+    Statistics->dwInReceives = (ULONG)statistics.InReceives;
+    Statistics->dwInHdrErrors = statistics.InHdrErrors;
+    Statistics->dwInAddrErrors = statistics.InAddrErrors;
+    Statistics->dwForwDatagrams = (ULONG)statistics.ForwDatagrams;
+    Statistics->dwInUnknownProtos = statistics.InUnknownProtos;
+    Statistics->dwInDiscards = statistics.InDiscards;
+    Statistics->dwInDelivers = (ULONG)statistics.InDelivers;
+    Statistics->dwOutRequests = (ULONG)statistics.OutRequests;
+    Statistics->dwRoutingDiscards = statistics.RoutingDiscards;
+    Statistics->dwOutDiscards = statistics.OutDiscards;
+    Statistics->dwOutNoRoutes = statistics.OutNoRoutes;
+    Statistics->dwReasmTimeout = reassemblyTimeout;
+    Statistics->dwReasmReqds = statistics.ReasmReqds;
+    Statistics->dwReasmOks = statistics.ReasmOks;
+    Statistics->dwReasmFails = statistics.ReasmFails;
+    Statistics->dwFragOks = statistics.FragOks;
+    Statistics->dwFragFails = statistics.FragFails;
+    Statistics->dwFragCreates = statistics.FragCreates;
+    Statistics->dwForwarding = forwarding + 1;
+    Statistics->dwDefaultTTL = compartmentRw.DefaultHopLimit;
+    if (Statistics->dwDefaultTTL == ULONG_MAX)
+        Statistics->dwDefaultTTL = globalRw.DefaultHopLimit;
+    Statistics->dwNumIf = compartmentRod.NumIf;
+    Statistics->dwNumAddr = compartmentRod.NumAddr;
+    Statistics->dwNumRoutes = compartmentRod.NumRoutes;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -11145,7 +10893,7 @@ static VOID PhpFillIpInterfaceRow(
     _In_ const NSI_IP_INTERFACE_ROS *Ros
     )
 {
-    memset(Row, 0, sizeof(MIB_IPINTERFACE_ROW));
+    RtlZeroMemory(Row, sizeof(MIB_IPINTERFACE_ROW));
     Row->Family = Family;
     Row->InterfaceLuid = *InterfaceLuid;
     PhConvertInterfaceLuidToIndex(InterfaceLuid, &Row->InterfaceIndex);
@@ -11167,7 +10915,7 @@ static VOID PhpFillIpInterfaceRow(
     Row->PathMtuDiscoveryTimeout = Rw->PathMtuDiscoveryTimeout;
     Row->LinkLocalAddressBehavior = Rw->LinkLocalAddressBehavior;
     Row->LinkLocalAddressTimeout = Rw->LinkLocalAddressTimeout;
-    memcpy(Row->ZoneIndices, Rw->ZoneIndices, sizeof(Row->ZoneIndices));
+    memcpy(Row->ZoneIndices, Rw->ZoneIndices, (sizeof(ULONG) * RTL_NUMBER_OF(Row->ZoneIndices)));
     Row->SitePrefixLength = Rw->SitePrefixLength;
     Row->Metric = Rw->Metric;
     Row->NlMtu = Rw->NlMtu;
@@ -11176,8 +10924,8 @@ static VOID PhpFillIpInterfaceRow(
     Row->SupportsNeighborDiscovery = Ros->SupportsNeighborDiscovery;
     Row->SupportsRouterDiscovery = Ros->SupportsRouterDiscovery;
     Row->ReachableTime = Rod->ReachableTime;
-    memcpy(&Row->TransmitOffload, &Rod->TransmitOffload, sizeof(Row->TransmitOffload));
-    memcpy(&Row->ReceiveOffload, &Rod->ReceiveOffload, sizeof(Row->ReceiveOffload));
+    memcpy(&Row->TransmitOffload, &Rod->TransmitOffload, sizeof(NL_INTERFACE_OFFLOAD_ROD));
+    memcpy(&Row->ReceiveOffload, &Rod->ReceiveOffload, sizeof(NL_INTERFACE_OFFLOAD_ROD));
     Row->DisableDefaultRoutes = Rw->DisableDefaultRoutes;
 }
 
@@ -11192,7 +10940,7 @@ NTSTATUS PhGetIpInterfaceEntry(
     _Inout_ PMIB_IPINTERFACE_ROW Row
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     PNPI_MODULEID moduleId;
     NET_LUID interfaceLuid;
     NSI_IP_INTERFACE_RW rw;
@@ -11210,12 +10958,12 @@ NTSTATUS PhGetIpInterfaceEntry(
         if (!Row->InterfaceIndex)
             return STATUS_INVALID_PARAMETER;
 
-        result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
-        if (result)
-            return result;
+        status = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
+        if (!NT_SUCCESS(status))
+            return status;
     }
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         moduleId,
         NsiIpObjectIpInterface,
@@ -11229,8 +10977,8 @@ NTSTATUS PhGetIpInterfaceEntry(
         sizeof(NSI_IP_INTERFACE_ROS)
         );
 
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (rod.CompartmentId != PhGetCurrentThreadCompartmentId())
         return STATUS_NOT_FOUND;
@@ -11252,6 +11000,7 @@ NTSTATUS PhGetIpInterfaceTable(
     _Outptr_ PMIB_IPINTERFACE_TABLE *Table
     )
 {
+    SIZE_T tableSize;
     struct
     {
         ADDRESS_FAMILY Family;
@@ -11265,7 +11014,7 @@ NTSTATUS PhGetIpInterfaceTable(
         { AF_INET, (PNPI_MODULEID)&NPI_MS_IPV4_MODULEID },
         { AF_INET6, (PNPI_MODULEID)&NPI_MS_IPV6_MODULEID }
     };
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG count;
     ULONG i;
     ULONG j;
@@ -11284,7 +11033,7 @@ NTSTATUS PhGetIpInterfaceTable(
         if (Family != AF_UNSPEC && Family != families[i].Family)
             continue;
 
-        result = PhNsiAllocateAndGetTable(
+        status = PhNsiAllocateAndGetTable(
             NsiActive,
             families[i].ModuleId,
             NsiIpObjectIpInterface,
@@ -11300,26 +11049,42 @@ NTSTATUS PhGetIpInterfaceTable(
             0
             );
 
-        if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
+        if (status == STATUS_NOT_FOUND || status == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(status))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
         {
             if (families[i].Rod[j].CompartmentId == compartmentId)
+            {
+                if (count == ULONG_MAX)
+                {
+                    status = STATUS_INTEGER_OVERFLOW;
+                    goto Cleanup;
+                }
+
                 count++;
+            }
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPINTERFACE_TABLE, Table)) / sizeof(MIB_IPINTERFACE_ROW))
+    status = RtlSIZETMult(count, sizeof(MIB_IPINTERFACE_ROW), &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_IPINTERFACE_TABLE, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
         goto Cleanup;
     }
-
-    table = PhAllocateZero(FIELD_OFFSET(MIB_IPINTERFACE_TABLE, Table) + (SIZE_T)count * sizeof(MIB_IPINTERFACE_ROW));
     entryIndex = 0;
 
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -11337,7 +11102,7 @@ NTSTATUS PhGetIpInterfaceTable(
 
     table->NumEntries = entryIndex;
     *Table = table;
-    result = STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
 
 Cleanup:
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -11346,7 +11111,7 @@ Cleanup:
             PhNsiFreeTable(families[i].Keys, families[i].Rw, families[i].Rod, families[i].Ros);
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -11369,7 +11134,7 @@ static VOID PhpFillIpNetRow2(
 {
     ULONG physicalAddressLength;
 
-    memset(Row, 0, sizeof(MIB_IPNET_ROW2));
+    RtlZeroMemory(Row, sizeof(MIB_IPNET_ROW2));
 
     // Neighbor key layout: NET_LUID at offset 0; IPv4 address at offset 16
     // (mirrors PhGetIpNetTable). The IPv6 address follows the LUID at offset 8.
@@ -11441,7 +11206,7 @@ NTSTATUS PhGetIpNetTable2(
     if (Family != AF_INET && Family != AF_INET6 && Family != AF_UNSPEC)
         return STATUS_INVALID_PARAMETER;
 
-    memset(families, 0, sizeof(PH_NETIO_IPNET_FAMILY) * RTL_NUMBER_OF(families));
+    RtlZeroMemory(families, sizeof(PH_NETIO_IPNET_FAMILY) * RTL_NUMBER_OF(families));
 
     if (Family == AF_INET || Family == AF_UNSPEC)
     {
@@ -11460,7 +11225,7 @@ NTSTATUS PhGetIpNetTable2(
 
     for (i = 0; i < familyCount; i++)
     {
-        NTSTATUS result = PhNsiAllocateAndGetTable(
+        NTSTATUS status = PhNsiAllocateAndGetTable(
             NsiActive,
             families[i].ModuleId,
             NsiIpObjectNeighbor,
@@ -11476,7 +11241,7 @@ NTSTATUS PhGetIpNetTable2(
             0
             );
 
-        if (result != STATUS_SUCCESS)
+        if (status != STATUS_SUCCESS)
         {
             families[i].Count = 0;
             families[i].KeyTable = NULL;
@@ -11487,7 +11252,18 @@ NTSTATUS PhGetIpNetTable2(
         total += families[i].Count;
     }
 
-    table = PhAllocateZero(FIELD_OFFSET(MIB_IPNET_TABLE2, Table) + (SIZE_T)total * sizeof(MIB_IPNET_ROW2));
+    table = PhAllocateZeroSafe(FIELD_OFFSET(MIB_IPNET_TABLE2, Table) + (SIZE_T)total * sizeof(MIB_IPNET_ROW2));
+
+    if (!table)
+    {
+        for (i = 0; i < familyCount; i++)
+        {
+            if (families[i].KeyTable || families[i].RwTable || families[i].RodTable)
+                PhNsiFreeTable(families[i].KeyTable, families[i].RwTable, families[i].RodTable, NULL);
+        }
+
+        return STATUS_NO_MEMORY;
+    }
 
     entryIndex = 0;
     for (i = 0; i < familyCount; i++)
@@ -11544,8 +11320,8 @@ NTSTATUS PhGetIpNetworkConnectionBandwidthEstimates(
         return STATUS_INVALID_PARAMETER;
 
     interfaceIndex = InterfaceIndex;
-    memset(&interfaceLuid, 0, sizeof(NET_LUID));
-    memset(&bandwidthRow, 0, sizeof(NSI_IP_INTERFACE_ROD));
+    RtlZeroMemory(&interfaceLuid, sizeof(NET_LUID));
+    RtlZeroMemory(&bandwidthRow, sizeof(NSI_IP_INTERFACE_ROD));
 
     status = PhpNsiGetParameter(
         NsiActive,
@@ -11559,7 +11335,7 @@ NTSTATUS PhGetIpNetworkConnectionBandwidthEstimates(
         NsiNdisInterfaceIndexToLuid
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
     status = PhNsiGetAllParameters(
@@ -11576,10 +11352,10 @@ NTSTATUS PhGetIpNetworkConnectionBandwidthEstimates(
         0
         );
 
-    if (status)
+    if (!NT_SUCCESS(status))
         return status;
 
-    memset(BandwidthEstimates, 0, sizeof(MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES));
+    RtlZeroMemory(BandwidthEstimates, sizeof(MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES));
     BandwidthEstimates->InboundBandwidthInformation = bandwidthRow.InboundBandwidthInformation;
     BandwidthEstimates->OutboundBandwidthInformation = bandwidthRow.OutboundBandwidthInformation;
 
@@ -11599,6 +11375,7 @@ NTSTATUS PhGetIpForwardTable2(
     _Outptr_ PMIB_IPFORWARD_TABLE2 *Table
     )
 {
+    SIZE_T tableSize;
     struct
     {
         ADDRESS_FAMILY Family;
@@ -11614,7 +11391,7 @@ NTSTATUS PhGetIpForwardTable2(
         { AF_INET, (PNPI_MODULEID)&NPI_MS_IPV4_MODULEID, sizeof(MIB_IP_ROUTE_KEY_ROW_V4), sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V4) },
         { AF_INET6, (PNPI_MODULEID)&NPI_MS_IPV6_MODULEID, sizeof(MIB_IP_ROUTE_KEY_ROW_V6), sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V6) }
     };
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG count;
     ULONG i;
     ULONG j;
@@ -11633,7 +11410,7 @@ NTSTATUS PhGetIpForwardTable2(
         if (Family != AF_UNSPEC && Family != families[i].Family)
             continue;
 
-        result = PhNsiAllocateAndGetTable(
+        status = PhNsiAllocateAndGetTable(
             NsiActive,
             families[i].ModuleId,
             NsiIpObjectRoute,
@@ -11649,10 +11426,10 @@ NTSTATUS PhGetIpForwardTable2(
             0
             );
 
-        if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
+        if (status == STATUS_NOT_FOUND || status == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(status))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
@@ -11663,13 +11440,21 @@ NTSTATUS PhGetIpForwardTable2(
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPFORWARD_TABLE2, Table)) / sizeof(MIB_IPFORWARD_ROW2))
+    status = RtlSIZETMult(count, sizeof(MIB_IPFORWARD_ROW2), &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_IPFORWARD_TABLE2, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
         goto Cleanup;
     }
-
-    table = PhAllocateZero(FIELD_OFFSET(MIB_IPFORWARD_TABLE2, Table) + (SIZE_T)count * sizeof(MIB_IPFORWARD_ROW2));
     entryIndex = 0;
 
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -11682,7 +11467,7 @@ NTSTATUS PhGetIpForwardTable2(
             if (*(const ULONG *)key != compartmentId)
                 continue;
 
-            PhpFillRouteEntry(families[i].Family, &table->Table[entryIndex], key,
+            PhNsiFillRouteEntry(families[i].Family, &table->Table[entryIndex], key,
                 &families[i].Rw[j], rod, &families[i].Ros[j]);
             entryIndex++;
         }
@@ -11690,7 +11475,7 @@ NTSTATUS PhGetIpForwardTable2(
 
     table->NumEntries = entryIndex;
     *Table = table;
-    result = STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
 
 Cleanup:
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -11699,7 +11484,7 @@ Cleanup:
             PhNsiFreeTable(families[i].Keys, families[i].Rw, families[i].Rod, families[i].Ros);
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -11716,15 +11501,15 @@ NTSTATUS PhNhGetGuidFromInterfaceName(
     _Out_ GUID *InterfaceGuid
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NET_LUID InterfaceLuid;
 
     InterfaceLuid.Value = 0;
-    result = PhConvertInterfaceAliasToLuid(InterfaceName, &InterfaceLuid);
-    if (!result)
+    status = PhConvertInterfaceAliasToLuid(InterfaceName, &InterfaceLuid);
+    if (NT_SUCCESS(status))
         return PhConvertInterfaceLuidToGuid(&InterfaceLuid, InterfaceGuid);
 
-    return result;
+    return status;
 }
 
 /**
@@ -11743,19 +11528,23 @@ NTSTATUS PhNhGetInterfaceNameFromGuid(
     _Inout_ PULONG InterfaceNameLength
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NET_LUID InterfaceLuid;
 
     InterfaceLuid.Value = 0;
-    result = PhConvertInterfaceGuidToLuid(InterfaceGuid, &InterfaceLuid);
-    if (!result)
+    status = PhConvertInterfaceGuidToLuid(InterfaceGuid, &InterfaceLuid);
+
+    if (NT_SUCCESS(status))
     {
-        result = PhConvertInterfaceLuidToAlias(&InterfaceLuid, InterfaceName, *InterfaceNameLength >> 1);
-        if (result == STATUS_NO_MEMORY)
+        status = PhConvertInterfaceLuidToAlias(&InterfaceLuid, InterfaceName, *InterfaceNameLength >> 1);
+
+        if (status == STATUS_NO_MEMORY)
+        {
             *InterfaceNameLength = (IF_MAX_STRING_SIZE + 1) * sizeof(WCHAR);
+        }
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -11784,7 +11573,7 @@ NTSTATUS PhGetPerTcpConnectionStats(
 {
     NSI_TCP_KEY_ROW key;
 
-    memset(&key, 0, sizeof(NSI_TCP_KEY_ROW));
+    RtlZeroMemory(&key, sizeof(NSI_TCP_KEY_ROW));
     key.LocalAddress.Ipv4.sin_family = AF_INET;
     key.LocalAddress.Ipv4.sin_addr.S_un.S_addr = TcpRow->dwLocalAddr;
     key.LocalAddress.Ipv4.sin_port = (USHORT)TcpRow->dwLocalPort;
@@ -11798,10 +11587,10 @@ NTSTATUS PhGetPerTcpConnectionStats(
         ObjectId,
         &key,
         sizeof(NSI_TCP_KEY_ROW),
-        DynamicBuffer,
-        DynamicBufferSize,
         ReadWriteBuffer,
         ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
         StaticBuffer,
         StaticBufferSize
         );
@@ -11833,7 +11622,7 @@ NTSTATUS PhGetPerTcp6ConnectionStats(
 {
     NSI_TCP_KEY_ROW key;
 
-    memset(&key, 0, sizeof(NSI_TCP_KEY_ROW));
+    RtlZeroMemory(&key, sizeof(NSI_TCP_KEY_ROW));
     key.LocalAddress.Ipv6.sin6_family = AF_INET6;
     key.LocalAddress.Ipv6.sin6_port = (USHORT)TcpRow->dwLocalPort;
     key.LocalAddress.Ipv6.sin6_scope_id = TcpRow->dwLocalScopeId;
@@ -11849,10 +11638,10 @@ NTSTATUS PhGetPerTcp6ConnectionStats(
         ObjectId,
         &key,
         sizeof(NSI_TCP_KEY_ROW),
-        DynamicBuffer,
-        DynamicBufferSize,
         ReadWriteBuffer,
         ReadWriteBufferSize,
+        DynamicBuffer,
+        DynamicBufferSize,
         StaticBuffer,
         StaticBufferSize
         );
@@ -11866,7 +11655,7 @@ NTSTATUS PhGetPerTcp6ConnectionStats(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getifstacktable
  */
 NTSTATUS PhGetIfStackTable(
-    _In_ PMIB_IFSTACK_TABLE *Table
+    _Outptr_ PMIB_IFSTACK_TABLE *Table
     )
 {
     NTSTATUS status;
@@ -11877,6 +11666,8 @@ NTSTATUS PhGetIfStackTable(
 
     if (!Table)
         return STATUS_INVALID_PARAMETER;
+
+    *Table = NULL;
 
     status = PhNsiAllocateAndGetTable(
         NsiActive,
@@ -11900,9 +11691,9 @@ NTSTATUS PhGetIfStackTable(
         {
             dwBytes = 0;
 
-            if (PhpNetioMibSizeofTable(count, sizeof(MIB_IFSTACK_ROW), FALSE, &dwBytes))
+            if (PhpNetioMibSizeofTable(FIELD_OFFSET(MIB_IFSTACK_TABLE, Table), count, sizeof(MIB_IFSTACK_ROW), FALSE, &dwBytes))
             {
-                memory = PhAllocate(dwBytes);
+                memory = PhAllocateSafe(dwBytes);
                 if (memory)
                 {
                     memory->NumEntries = count;
@@ -11943,10 +11734,29 @@ NTSTATUS PhGetIfStackTable(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getinvertedifstacktable
  */
 NTSTATUS PhGetInvertedIfStackTable(
-    _In_ PMIB_INVERTEDIFSTACK_TABLE *Table
+    _Outptr_ PMIB_INVERTEDIFSTACK_TABLE *Table
     )
 {
-    return PhGetIfStackTable((PMIB_IFSTACK_TABLE *)Table);
+    NTSTATUS status;
+    PMIB_IFSTACK_TABLE stackTable;
+
+    if (!Table)
+        return STATUS_INVALID_PARAMETER;
+
+    *Table = NULL;
+    status = PhGetIfStackTable(&stackTable);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG index = 0; index < stackTable->NumEntries; index++)
+    {
+        NET_IFINDEX higherIndex = stackTable->Table[index].HigherLayerInterfaceIndex;
+        stackTable->Table[index].HigherLayerInterfaceIndex = stackTable->Table[index].LowerLayerInterfaceIndex;
+        stackTable->Table[index].LowerLayerInterfaceIndex = higherIndex;
+    }
+
+    *Table = (PMIB_INVERTEDIFSTACK_TABLE)stackTable;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -11982,7 +11792,7 @@ NTSTATUS PhGetIpForwardEntry2(
     _Inout_ PMIB_IPFORWARD_ROW2 Row
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     PNPI_MODULEID moduleId;
     NET_LUID interfaceLuid;
     MIB_IP_ROUTE_RW_ROW rw;
@@ -11996,14 +11806,16 @@ NTSTATUS PhGetIpForwardEntry2(
         return STATUS_INVALID_PARAMETER;
 
     interfaceLuid = Row->InterfaceLuid;
+    
     if (!interfaceLuid.Value)
     {
         if (!Row->InterfaceIndex)
             return STATUS_INVALID_PARAMETER;
 
-        result = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
-        if (result)
-            return result;
+        status = PhConvertInterfaceIndexToLuid(Row->InterfaceIndex, &interfaceLuid);
+
+        if (!NT_SUCCESS(status))
+            return status;
     }
 
     if (Row->DestinationPrefix.Prefix.si_family == AF_INET)
@@ -12012,16 +11824,31 @@ NTSTATUS PhGetIpForwardEntry2(
             return STATUS_INVALID_PARAMETER;
 
         moduleId = (PNPI_MODULEID)&NPI_MS_IPV4_MODULEID;
-        memset(&keyV4, 0, sizeof(keyV4));
+        RtlZeroMemory(&keyV4, sizeof(MIB_IP_ROUTE_KEY_ROW_V4));
         keyV4.CompartmentId = PhGetCurrentThreadCompartmentId();
         keyV4.DestinationPrefix = Row->DestinationPrefix.Prefix.Ipv4.sin_addr;
         keyV4.DestinationPrefixLength = Row->DestinationPrefix.PrefixLength;
         keyV4.InterfaceLuid = interfaceLuid;
         keyV4.NextHop = Row->NextHop.Ipv4.sin_addr;
-        result = PhNsiGetAllParameters(NsiActive, moduleId, NsiIpObjectRoute,
-            &keyV4, sizeof(keyV4), &rw, sizeof(rw), &rodV4, sizeof(rodV4), &ros, sizeof(ros));
-        if (!result)
-            PhpFillRouteEntry(AF_INET, Row, &keyV4, &rw, &rodV4, &ros);
+
+        status = PhNsiGetAllParameters(
+            NsiActive, 
+            moduleId, 
+            NsiIpObjectRoute,
+            &keyV4, 
+            sizeof(MIB_IP_ROUTE_KEY_ROW_V4),
+            &rw, 
+            sizeof(MIB_IP_ROUTE_RW_ROW),
+            &rodV4, 
+            sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V4),
+            &ros,
+            sizeof(MIB_IP_ROUTE_STATIC_ROW)
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PhNsiFillRouteEntry(AF_INET, Row, &keyV4, &rw, &rodV4, &ros);
+        }
     }
     else
     {
@@ -12029,19 +11856,34 @@ NTSTATUS PhGetIpForwardEntry2(
             return STATUS_INVALID_PARAMETER;
 
         moduleId = (PNPI_MODULEID)&NPI_MS_IPV6_MODULEID;
-        memset(&keyV6, 0, sizeof(keyV6));
+        RtlZeroMemory(&keyV6, sizeof(MIB_IP_ROUTE_KEY_ROW_V6));
         keyV6.CompartmentId = PhGetCurrentThreadCompartmentId();
         keyV6.DestinationPrefix = Row->DestinationPrefix.Prefix.Ipv6.sin6_addr;
         keyV6.DestinationPrefixLength = Row->DestinationPrefix.PrefixLength;
         keyV6.InterfaceLuid = interfaceLuid;
         keyV6.NextHop = Row->NextHop.Ipv6.sin6_addr;
-        result = PhNsiGetAllParameters(NsiActive, moduleId, NsiIpObjectRoute,
-            &keyV6, sizeof(keyV6), &rw, sizeof(rw), &rodV6, sizeof(rodV6), &ros, sizeof(ros));
-        if (!result)
-            PhpFillRouteEntry(AF_INET6, Row, &keyV6, &rw, &rodV6, &ros);
+
+        status = PhNsiGetAllParameters(
+            NsiActive, 
+            moduleId, 
+            NsiIpObjectRoute,
+            &keyV6, 
+            sizeof(MIB_IP_ROUTE_KEY_ROW_V6), 
+            &rw,
+            sizeof(MIB_IP_ROUTE_RW_ROW), 
+            &rodV6, 
+            sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V6), 
+            &ros, 
+            sizeof(MIB_IP_ROUTE_STATIC_ROW)
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PhNsiFillRouteEntry(AF_INET6, Row, &keyV6, &rw, &rodV6, &ros);
+        }
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -12059,7 +11901,7 @@ NTSTATUS PhGetBestInterface(
 {
     struct sockaddr_in destination;
 
-    memset(&destination, 0, sizeof(struct sockaddr_in));
+    RtlZeroMemory(&destination, sizeof(struct sockaddr_in));
     destination.sin_family = AF_INET;
     destination.sin_addr.S_un.S_addr = DestinationAddress;
     
@@ -12102,7 +11944,7 @@ NTSTATUS PhGetBestInterfaceEx(
         
         moduleId = &NPI_MS_IPV4_MODULEID;
 
-        memset(&keyV4, 0, sizeof(NSI_IP_BEST_ROUTE_KEY4));
+        RtlZeroMemory(&keyV4, sizeof(NSI_IP_BEST_ROUTE_KEY4));
         keyV4.DestinationAddress = sockAddrIn4->sin_addr;
 
         keyBuffer = &keyV4;
@@ -12121,7 +11963,7 @@ NTSTATUS PhGetBestInterfaceEx(
             return STATUS_SUCCESS;
         }
 
-        memset(&keyV6, 0, sizeof(NSI_IP_BEST_ROUTE_KEY6));
+        RtlZeroMemory(&keyV6, sizeof(NSI_IP_BEST_ROUTE_KEY6));
         keyV6.DestinationAddress = sockAddrIn6->sin6_addr;
         keyV6.DestinationScopeId.Value = sockAddrIn6->sin6_scope_id;
 
@@ -12210,7 +12052,7 @@ NTSTATUS PhDhcpReleaseParameters(
 
     if (ReleaseParameters)
     {
-        return PhpNetioDosErrorToNtStatus(ReleaseParameters(AdapterName, Reserved));
+        return PhNetioDosErrorToNtStatus(ReleaseParameters(AdapterName, Reserved));
     }
 
     return STATUS_NOT_SUPPORTED;
@@ -12239,7 +12081,7 @@ NTSTATUS PhDhcpAcquireParameters(
 
     if (AcquireParameters)
     {
-        return PhpNetioDosErrorToNtStatus(AcquireParameters(AdapterName, Reserved));
+        return PhNetioDosErrorToNtStatus(AcquireParameters(AdapterName, Reserved));
     }
 
     return STATUS_NOT_SUPPORTED;
@@ -12259,8 +12101,9 @@ NTSTATUS PhIpReleaseAddress(
     if (!AdapterInfo)
         return STATUS_INVALID_PARAMETER;
 
-    SIZE_T len = PhCountStringZ(AdapterInfo->Name);
-    if (len > TCPIP_ADAPTER_PREFIX_LENGTH)
+    SIZE_T length = PhCountStringZ(AdapterInfo->Name);
+
+    if (length > TCPIP_ADAPTER_PREFIX_LENGTH)
         return PhDhcpReleaseParameters(&AdapterInfo->Name[TCPIP_ADAPTER_PREFIX_LENGTH], NULL);
     else
         return STATUS_INVALID_PARAMETER;
@@ -12280,8 +12123,9 @@ NTSTATUS PhIpRenewAddress(
     if (!AdapterInfo)
         return STATUS_INVALID_PARAMETER;
 
-    SIZE_T len = PhCountStringZ(AdapterInfo->Name);
-    if (len > TCPIP_ADAPTER_PREFIX_LENGTH)
+    SIZE_T length = PhCountStringZ(AdapterInfo->Name);
+
+    if (length > TCPIP_ADAPTER_PREFIX_LENGTH)
         return PhDhcpAcquireParameters(&AdapterInfo->Name[TCPIP_ADAPTER_PREFIX_LENGTH], NULL);
     else
         return STATUS_INVALID_PARAMETER;
@@ -12294,97 +12138,122 @@ NTSTATUS PhIpRenewAddress(
  * \param HopCount Receives the hop count.
  * \param MaxHops The maximum number of hops to search.
  * \param RTT Receives the round-trip time, in milliseconds.
- * \return TRUE on success, otherwise FALSE (the last error is set).
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success. STATUS_UNSUCCESSFUL is returned when the destination
+ * returned an unexpected IP_STATUS, the timing probes got no reply, or the destination was not reached within MaxHops.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getrttandhopcount
  */
-BOOL PhGetRTTAndHopCount(
+NTSTATUS PhGetRTTAndHopCount(
     _In_ IPAddr DestIpAddress,
     _Out_ PULONG HopCount,
     _In_ ULONG MaxHops,
     _Out_ PULONG RTT
     )
 {
+    NTSTATUS status;
     HANDLE fileHandle;
-    ULONG lastError;
+    IP_STATUS ipStatus;
+    ULONG replyCount;
     PVOID replyBuffer;
-    BOOLEAN success = TRUE;
     struct ip_option_information requestOptions;
-    UCHAR requestData[PHP_ICMP_ECHO_DATA_SIZE];
+    UCHAR requestData[PH_ICMP_ECHO_DATA_SIZE];
 
     if (!HopCount || !RTT || DestIpAddress == INADDR_NONE)
-    {
-        PhSetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
+        return STATUS_INVALID_PARAMETER;
 
-    memset(&requestOptions, 0, sizeof(struct ip_option_information));
+    RtlZeroMemory(&requestOptions, sizeof(struct ip_option_information));
 
-    fileHandle = PhIcmpCreateFileEx(&NPI_MS_IPV4_MODULEID, TRUE);
-    if (fileHandle == INVALID_HANDLE_VALUE)
-    {
-        PhSetLastError(ERROR_INVALID_HANDLE);
-        return FALSE;
-    }
+    status = PhIcmpCreateFileEx(&NPI_MS_IPV4_MODULEID, TRUE, &fileHandle);
 
-    replyBuffer = PhAllocate(PHP_ICMP_ECHO_REPLY_BUFFER_SIZE);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    replyBuffer = PhAllocateSafe(PH_ICMP_ECHO_REPLY_BUFFER_SIZE);
+
     if (!replyBuffer)
     {
         PhIcmpCloseHandle(fileHandle);
-        PhSetLastError(ERROR_NOT_ENOUGH_MEMORY);
-        return FALSE;
+        return STATUS_NO_MEMORY;
     }
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(requestData); i++)
     {
-        requestData[i] = 'a' + (UCHAR)(i % PHP_ICMP_ECHO_PATTERN_LENGTH);
+        requestData[i] = 'a' + (UCHAR)(i % PH_ICMP_ECHO_PATTERN_LENGTH);
     }
 
     requestOptions.Tos = 0;
-    
-    for (UCHAR ttl = 1; ttl <= MaxHops; ttl++)
-    {
-        requestOptions.Ttl = ttl;
-        
-        if (PhIcmpSendEcho2Ex(fileHandle, NULL, NULL, NULL, 0, DestIpAddress, requestData, sizeof(requestData), &requestOptions, replyBuffer, PHP_ICMP_ECHO_REPLY_BUFFER_SIZE, PHP_ICMP_ECHO_TIMEOUT))
-        {
-            lastError = ((PICMP_ECHO_REPLY)replyBuffer)->Status;
-        }
-        else
-        {
-            lastError = PhGetLastError();
-        }
+    status = STATUS_UNSUCCESSFUL;
 
-        if (lastError == 0)
+    for (ULONG ttl = 1; ttl <= min(MaxHops, MAXUCHAR); ttl++)
+    {
+        requestOptions.Ttl = (UCHAR)ttl;
+
+        status = PhIcmpSendEcho2Ex(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            0,
+            DestIpAddress,
+            requestData,
+            RTL_NUMBER_OF(requestData),
+            &requestOptions,
+            replyBuffer,
+            PH_ICMP_ECHO_REPLY_BUFFER_SIZE,
+            PH_ICMP_ECHO_TIMEOUT,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        ipStatus = ((PICMP_ECHO_REPLY)replyBuffer)->Status;
+
+        if (ipStatus == IP_SUCCESS)
         {
-            *HopCount = requestOptions.Ttl;
-            
-            if (PhIcmpSendEcho2Ex(fileHandle, NULL, NULL, NULL, 0, DestIpAddress, requestData, sizeof(requestData), &requestOptions, replyBuffer, PHP_ICMP_ECHO_REPLY_BUFFER_SIZE, PHP_ICMP_ECHO_TIMEOUT) &&
-                PhIcmpSendEcho2Ex(fileHandle, NULL, NULL, NULL, 0, DestIpAddress, requestData, sizeof(requestData), &requestOptions, replyBuffer, PHP_ICMP_ECHO_REPLY_BUFFER_SIZE, PHP_ICMP_ECHO_TIMEOUT))
+            // Two further probes at the same TTL; the RTT comes from the second.
+            for (ULONG probe = 0; probe < 2; probe++)
             {
+                status = PhIcmpSendEcho2Ex(
+                    fileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    0,
+                    DestIpAddress,
+                    requestData,
+                    RTL_NUMBER_OF(requestData),
+                    &requestOptions,
+                    replyBuffer,
+                    PH_ICMP_ECHO_REPLY_BUFFER_SIZE,
+                    PH_ICMP_ECHO_TIMEOUT,
+                    &replyCount
+                    );
+
+                if (NT_SUCCESS(status) && replyCount == 0)
+                    status = STATUS_UNSUCCESSFUL;
+
+                if (!NT_SUCCESS(status))
+                    break;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                *HopCount = requestOptions.Ttl;
                 *RTT = ((PICMP_ECHO_REPLY)replyBuffer)->RoundTripTime;
             }
-            else
-            {
-                success = FALSE;
-            }
-            
-            PhFree(replyBuffer);
-            PhIcmpCloseHandle(fileHandle);
-            return success;
+
+            break;
         }
 
-        if (lastError != IP_TTL_EXPIRED_TRANSIT && lastError != IP_REQ_TIMED_OUT)
-        {
-            success = FALSE;
-            PhFree(replyBuffer);
-            PhIcmpCloseHandle(fileHandle);
-            return success;
-        }
+        status = STATUS_UNSUCCESSFUL;
+
+        if (ipStatus != IP_TTL_EXPIRED_TRANSIT && ipStatus != IP_REQ_TIMED_OUT)
+            break;
     }
 
     PhFree(replyBuffer);
     PhIcmpCloseHandle(fileHandle);
-    return FALSE;
+    return status;
 }
 
 /**
@@ -12403,7 +12272,7 @@ VOID PhpFillIpPathRow(
     _In_ const VOID* RodRow
     )
 {
-    memset(Row, 0, sizeof(MIB_IPPATH_ROW));
+    RtlZeroMemory(Row, sizeof(MIB_IPPATH_ROW));
 
     if (Family == AF_INET)
     {
@@ -12422,8 +12291,8 @@ VOID PhpFillIpPathRow(
         Row->CurrentNextHop.si_family = AF_INET;
         Row->CurrentNextHop.Ipv4.sin_addr = rod->CurrentNextHop;
         Row->PathMtu = rod->PathMtu;
-        Row->RttMean = rod->RttMean / PHP_NETIO_RTT_SCALE;
-        Row->RttDeviation = rod->RttDeviation / PHP_NETIO_RTT_SCALE;
+        Row->RttMean = rod->RttMean / PH_NETIO_RTT_SCALE;
+        Row->RttDeviation = rod->RttDeviation / PH_NETIO_RTT_SCALE;
         Row->LastReachable = rod->ReachabilityTime;
         Row->IsReachable = rod->IsReachable;
         Row->LinkTransmitSpeed = rod->LinkTransmitSpeed;
@@ -12446,8 +12315,8 @@ VOID PhpFillIpPathRow(
         Row->CurrentNextHop.si_family = AF_INET6;
         Row->CurrentNextHop.Ipv6.sin6_addr = rod->CurrentNextHop;
         Row->PathMtu = rod->PathMtu;
-        Row->RttMean = rod->RttMean / PHP_NETIO_RTT_SCALE;
-        Row->RttDeviation = rod->RttDeviation / PHP_NETIO_RTT_SCALE;
+        Row->RttMean = rod->RttMean / PH_NETIO_RTT_SCALE;
+        Row->RttDeviation = rod->RttDeviation / PH_NETIO_RTT_SCALE;
         Row->LastReachable = rod->ReachabilityTime;
         Row->IsReachable = rod->IsReachable;
         Row->LinkTransmitSpeed = rod->LinkTransmitSpeed;
@@ -12588,7 +12457,7 @@ NTSTATUS PhGetInterfaceInfo(
     _Inout_ PULONG SizePointer
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NET_IF_COMPARTMENT_ID CurrentThreadCompartmentId;
     NET_LUID* keyTable = NULL;
     PNDIS_NSI_INTERFACE_ENUM_ROD rodTable = NULL;
@@ -12599,7 +12468,7 @@ NTSTATUS PhGetInterfaceInfo(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterfaceWithoutStatistics,
@@ -12615,7 +12484,7 @@ NTSTATUS PhGetInterfaceInfo(
         0
         );
 
-    if (NT_SUCCESS(result))
+    if (NT_SUCCESS(status))
     {
         CurrentThreadCompartmentId = PhGetCurrentThreadCompartmentId();
 
@@ -12625,7 +12494,7 @@ NTSTATUS PhGetInterfaceInfo(
             {
                 if (PhpIsIpv4Interface(&keyTable[i], rosTable[i].ifType))
                 {
-                    if (IfTable && PhpNetioMibTableHasCapacity(outputCount + 1, sizeof(IP_ADAPTER_INDEX_MAP), *SizePointer))
+                    if (IfTable && PhpNetioMibTableHasCapacity(FIELD_OFFSET(IP_INTERFACE_INFO, Adapter), outputCount + 1, sizeof(IP_ADAPTER_INDEX_MAP), *SizePointer))
                     {
                         PIP_ADAPTER_INDEX_MAP dest = &IfTable->Adapter[outputCount];
                         dest->Index = rosTable[i].ifIndex;
@@ -12653,22 +12522,23 @@ NTSTATUS PhGetInterfaceInfo(
             IfTable->NumAdapters = outputCount;
         }
 
-        result = PhpNetioMibCheckTableBufferSize(
+        status = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(IP_INTERFACE_INFO, Adapter),
             outputCount,
             sizeof(IP_ADAPTER_INDEX_MAP),
             IfTable,
             SizePointer
             );
 
-        if (NT_SUCCESS(result) && outputCount == 0)
+        if (NT_SUCCESS(status) && outputCount == 0)
         {
-            result = STATUS_NO_MORE_ENTRIES;
+            status = STATUS_NO_MORE_ENTRIES;
         }
 
         PhNsiFreeTable(keyTable, NULL, rodTable, rosTable);
     }
 
-    return result;
+    return status;
 }
 
 #pragma endregion
@@ -12732,7 +12602,7 @@ NTSTATUS PhDnsGetSettings(
 
     if (GetSettings)
     {
-        return PhpNetioDosErrorToNtStatus(GetSettings(Settings));
+        return PhNetioDosErrorToNtStatus(GetSettings(Settings));
     }
 
     return STATUS_NOT_SUPPORTED;
@@ -12761,7 +12631,7 @@ NTSTATUS PhDnsGetInterfaceSettings(
 
     if (GetInterfaceSettings)
     {
-        return PhpNetioDosErrorToNtStatus(GetInterfaceSettings(InterfaceGuid, Settings));
+        return PhNetioDosErrorToNtStatus(GetInterfaceSettings(InterfaceGuid, Settings));
     }
 
     return STATUS_NOT_SUPPORTED;
@@ -12804,7 +12674,7 @@ NTSTATUS PhGetDnsSettings(
     _Inout_ DNS_SETTINGS *Settings
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     DNS_SETTINGS2 request;
 
     if (!Settings ||
@@ -12812,13 +12682,13 @@ NTSTATUS PhGetDnsSettings(
         Settings->Version > DNS_SETTINGS_VERSION2)
         return STATUS_INVALID_PARAMETER;
 
-    memset(&request, 0, sizeof(DNS_SETTINGS2));
+    RtlZeroMemory(&request, sizeof(DNS_SETTINGS2));
     request.Version = DNS_SETTINGS_VERSION1;
     request.Flags = Settings->Flags;
 
-    result = PhDnsGetSettings((DNS_SETTINGS*)&request);
+    status = PhDnsGetSettings((DNS_SETTINGS*)&request);
 
-    if (result == 0)
+    if (NT_SUCCESS(status))
     {
         Settings->Hostname = request.Hostname;
         Settings->Domain = request.Domain;
@@ -12828,7 +12698,7 @@ NTSTATUS PhGetDnsSettings(
             ((DNS_SETTINGS2*)Settings)->SettingFlags = request.SettingFlags;
         }
     }
-    return result;
+    return status;
 }
 
 #pragma endregion
@@ -12907,7 +12777,6 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
     PPH_STRING imagePath;
     PCWSTR imageName;
     ULONG imageNameLength;
-    NTSTATUS result;
     NTSTATUS status;
 
     if (!SizePointer || Class != TCPIP_OWNER_MODULE_INFO_BASIC)
@@ -12922,9 +12791,9 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
         // IP Helper includes the existing terminators in these string lengths.
         return PhpCopyOwnerModuleInfo(
             systemName,
-            sizeof(systemName),
+            (sizeof(WCHAR) * RTL_NUMBER_OF(systemName)),
             systemName,
-            sizeof(systemName),
+            (sizeof(WCHAR) * RTL_NUMBER_OF(systemName)),
             Buffer,
             SizePointer
             );
@@ -12940,12 +12809,12 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
         if (!queryTagInformation)
             return STATUS_PROCEDURE_NOT_FOUND;
 
-        memset(&tagInformation, 0, sizeof(tagInformation));
+        RtlZeroMemory(&tagInformation, sizeof(TAG_INFO_NAME_FROM_TAG));
         tagInformation.InParams.ProcessId = ProcessId;
         tagInformation.InParams.ServiceTag = (ULONG)Info[0];
-        result = PhpNetioDosErrorToNtStatus(queryTagInformation(NULL, eTagInfoLevelNameFromTag, &tagInformation));
-        if (result)
-            return result;
+        status = PhNetioDosErrorToNtStatus(queryTagInformation(NULL, eTagInfoLevelNameFromTag, &tagInformation));
+        if (!NT_SUCCESS(status))
+            return status;
         if (!tagInformation.OutParams.Name)
             return STATUS_NOT_FOUND;
 
@@ -12955,10 +12824,10 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
             LocalFree((HLOCAL)tagInformation.OutParams.Name);
             return STATUS_INTEGER_OVERFLOW;
         }
-        result = PhpCopyOwnerModuleInfo(tagInformation.OutParams.Name, (ULONG)serviceNameLength,
+        status = PhpCopyOwnerModuleInfo(tagInformation.OutParams.Name, (ULONG)serviceNameLength,
             tagInformation.OutParams.Name, (ULONG)serviceNameLength, Buffer, SizePointer);
         LocalFree((HLOCAL)tagInformation.OutParams.Name);
-        return result;
+        return status;
     }
 
     status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, UlongToHandle(ProcessId));
@@ -12984,10 +12853,10 @@ static NTSTATUS PhpGetOwnerModuleFromPidAndInfo(
             imageName = &imagePath->Buffer[i + 1];
     }
     imageNameLength = (ULONG)imagePath->Length - (ULONG)((PUCHAR)imageName - (PUCHAR)imagePath->Buffer);
-    result = PhpCopyOwnerModuleInfo(imageName, imageNameLength,
+    status = PhpCopyOwnerModuleInfo(imageName, imageNameLength,
         imagePath->Buffer, (ULONG)imagePath->Length, Buffer, SizePointer);
     PhDereferenceObject(imagePath);
-    return result;
+    return status;
 }
 
 /**
@@ -13196,6 +13065,7 @@ NTSTATUS PhGetIpPathTable(
     _Outptr_ PMIB_IPPATH_TABLE *Table
     )
 {
+    SIZE_T tableSize;
     struct
     {
         ADDRESS_FAMILY Family;
@@ -13209,7 +13079,7 @@ NTSTATUS PhGetIpPathTable(
         { AF_INET, (PNPI_MODULEID)&NPI_MS_IPV4_MODULEID, sizeof(NSI_IP_PATH_KEY_V4), sizeof(NSI_IP_PATH_ROD_V4) },
         { AF_INET6, (PNPI_MODULEID)&NPI_MS_IPV6_MODULEID, sizeof(NSI_IP_PATH_KEY_V6), sizeof(NSI_IP_PATH_ROD_V6) }
     };
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG count;
     ULONG i;
     ULONG j;
@@ -13228,7 +13098,7 @@ NTSTATUS PhGetIpPathTable(
         if (Family != AF_UNSPEC && Family != families[i].Family)
             continue;
 
-        result = PhNsiAllocateAndGetTable(
+        status = PhNsiAllocateAndGetTable(
             NsiActive,
             families[i].ModuleId,
             NsiIpObjectPath,
@@ -13244,10 +13114,10 @@ NTSTATUS PhGetIpPathTable(
             0
             );
 
-        if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
+        if (status == STATUS_NOT_FOUND || status == STATUS_NOT_SUPPORTED)
             continue;
 
-        if (result)
+        if (!NT_SUCCESS(status))
             goto Cleanup;
 
         for (j = 0; j < families[i].Count; j++)
@@ -13258,13 +13128,21 @@ NTSTATUS PhGetIpPathTable(
         }
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_IPPATH_TABLE, Table)) / sizeof(MIB_IPPATH_ROW))
+    status = RtlSIZETMult(count, sizeof(MIB_IPPATH_ROW), &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_IPPATH_TABLE, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
         goto Cleanup;
     }
-
-    table = PhAllocateZero(FIELD_OFFSET(MIB_IPPATH_TABLE, Table) + (SIZE_T)count * sizeof(MIB_IPPATH_ROW));
     entryIndex = 0;
 
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -13284,7 +13162,7 @@ NTSTATUS PhGetIpPathTable(
 
     table->NumEntries = entryIndex;
     *Table = table;
-    result = STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
 
 Cleanup:
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -13293,7 +13171,7 @@ Cleanup:
             PhNsiFreeTable(families[i].Keys, NULL, families[i].Rod, NULL);
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -13313,22 +13191,30 @@ NTSTATUS PhGetIpErrorString(
 {
     ULONG length;
     PWSTR message = NULL;
+    HMODULE iphlpapiModule;
+    ULONG lastError;
 
     if (!Size)
         return STATUS_INVALID_PARAMETER;
 
+    iphlpapiModule = LoadLibraryExW(L"iphlpapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!iphlpapiModule)
+        return PhNetioDosErrorToNtStatus(PhGetLastError());
+
     length = FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS,
+        iphlpapiModule,
         ErrorCode,
         0,
         (PWSTR)&message,
         0,
         NULL
         );
+    lastError = PhGetLastError();
+    FreeLibrary(iphlpapiModule);
 
     if (!length)
-        return PhpNetioDosErrorToNtStatus(PhGetLastError());
+        return PhNetioDosErrorToNtStatus(lastError);
 
     if (!Buffer || *Size <= length)
     {
@@ -13355,7 +13241,7 @@ ULONG PhGetFriendlyIfIndex(
     _In_ ULONG IfIndex
     )
 {
-    return IfIndex & PHP_NET_LUID_INDEX_MASK;
+    return IfIndex & PH_NET_LUID_INDEX_MASK;
 }
 
 /**
@@ -13363,11 +13249,12 @@ ULONG PhGetFriendlyIfIndex(
  *
  * \param CompartmentScope Receives the compartment scope.
  * \param CompartmentId Receives the compartment identifier.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getcurrentthreadcompartmentscope
  */
-VOID PhGetCurrentThreadCompartmentScope(
+NTSTATUS PhGetCurrentThreadCompartmentScope(
     _Out_ PNET_IF_COMPARTMENT_SCOPE CompartmentScope,
-    _Out_ PNET_IF_COMPARTMENT_ID CompartmentId
+    _Out_opt_ PNET_IF_COMPARTMENT_ID CompartmentId
     )
 {
     typedef struct _PH_NETIO_CURRENT_THREAD_COMPARTMENT
@@ -13376,10 +13263,11 @@ VOID PhGetCurrentThreadCompartmentScope(
         NET_IF_COMPARTMENT_SCOPE CompartmentScope;
     } PH_NETIO_CURRENT_THREAD_COMPARTMENT;
     PH_NETIO_CURRENT_THREAD_COMPARTMENT currentCompartment;
+    NTSTATUS status;
 
-    memset(&currentCompartment, 0, sizeof(PH_NETIO_CURRENT_THREAD_COMPARTMENT));
+    RtlZeroMemory(&currentCompartment, sizeof(PH_NETIO_CURRENT_THREAD_COMPARTMENT));
 
-    if (PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectCurrentThreadCompartment,
@@ -13391,18 +13279,16 @@ VOID PhGetCurrentThreadCompartmentScope(
         0,
         0,
         0
-        ))
-    {
-        *CompartmentScope = 0;
-        if (CompartmentId)
-            *CompartmentId = 1;
-    }
-    else
-    {
-        *CompartmentScope = currentCompartment.CompartmentScope;
-        if (CompartmentId)
-            *CompartmentId = currentCompartment.CompartmentId;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *CompartmentScope = currentCompartment.CompartmentScope;
+    if (CompartmentId)
+        *CompartmentId = currentCompartment.CompartmentId;
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -13429,20 +13315,20 @@ NTSTATUS PhGetNetworkConnectivityHintForInterface(
     GUID interfaceGuid;
     GUID adapterGuid;
     NLM_CONNECTIVITY connectivity;
-    DWORD cost;
+    ULONG cost;
     ULONG fetched;
-    NTSTATUS result;
+    NTSTATUS status;
     HRESULT hr;
 
     if (!ConnectivityHint)
         return STATUS_INVALID_PARAMETER;
 
-    memset(ConnectivityHint, 0, sizeof(*ConnectivityHint));
+    RtlZeroMemory(ConnectivityHint, sizeof(NETIO_CONNECTIVITY_HINT));
 
-    result = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
-    if (result) return result;
-    result = PhConvertInterfaceLuidToGuid(&interfaceLuid, &interfaceGuid);
-    if (result) return result;
+    status = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
+    if (!NT_SUCCESS(status)) return status;
+    status = PhConvertInterfaceLuidToGuid(&interfaceLuid, &interfaceGuid);
+    if (!NT_SUCCESS(status)) return status;
 
     hr = CoCreateInstance(
         &networkListClass,
@@ -13531,7 +13417,7 @@ NTSTATUS PhGetNetworkConnectivityHintForInterface(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-submitthreadpoolwork
  */
 static VOID PhpNotifyClientAsync(
-    _Inout_ PPHP_CONNECTIVITY_HINT_CONTEXT Context
+    _Inout_ PPH_CONNECTIVITY_HINT_CONTEXT Context
     )
 {
     if (InterlockedExchange(&Context->State, 1) == 0)
@@ -13554,22 +13440,23 @@ static void NTAPI PhpConnectivityThreadpoolWorkCallback(
     _Inout_ PTP_WORK Work
     )
 {
-    PPHP_CONNECTIVITY_HINT_CONTEXT ctx = (PPHP_CONNECTIVITY_HINT_CONTEXT)Context;
+    PPH_CONNECTIVITY_HINT_CONTEXT ctx = (PPH_CONNECTIVITY_HINT_CONTEXT)Context;
     PNET_NETWORK_CONNECTIVITY_HINT_CHANGE_CALLBACK callback = (PNET_NETWORK_CONNECTIVITY_HINT_CHANGE_CALLBACK)ctx->Callback;
     NETIO_CONNECTIVITY_HINT hint;
 
     TpCallbackMayRunLong(Instance);
+
     do
     {
         PhAcquireQueuedLockExclusive(&PhpConnectivityHintLock);
         hint.ConnectivityLevel = PhpConnectivityLevel;
         hint.ConnectivityCost = PhpConnectivityCost;
-        InterlockedExchange(&ctx->State, PHP_CONNECTIVITY_CALLBACK_PROCESSING);
+        InterlockedExchange(&ctx->State, PH_CONNECTIVITY_CALLBACK_PROCESSING);
         PhReleaseQueuedLockExclusive(&PhpConnectivityHintLock);
 
         callback(ctx->CallerContext, &hint);
     }
-    while (InterlockedCompareExchange(&ctx->State, 0, PHP_CONNECTIVITY_CALLBACK_PROCESSING) == 1);
+    while (InterlockedCompareExchange(&ctx->State, 0, PH_CONNECTIVITY_CALLBACK_PROCESSING) == 1);
 }
 
 /**
@@ -13588,29 +13475,30 @@ static void PhpConnectivityHintFromConnectivityState(
     ULONG level;
     NL_NETWORK_CONNECTIVITY_COST_HINT cost = NetworkConnectivityCostHintVariable;
 
-    memset(Hint, 0, sizeof(NETIO_CONNECTIVITY_HINT));
+    RtlZeroMemory(Hint, sizeof(NETIO_CONNECTIVITY_HINT));
 
-    if ((val & PHP_NSI_CONNECTIVITY_CONSTRAINED_MASK) != 0)
+    if ((val & PH_NSI_CONNECTIVITY_CONSTRAINED_MASK) != 0)
         level = NetworkConnectivityLevelHintConstrainedInternetAccess;
-    else if ((val & PHP_NSI_CONNECTIVITY_INTERNET_MASK) != 0)
+    else if ((val & PH_NSI_CONNECTIVITY_INTERNET_MASK) != 0)
         level = NetworkConnectivityLevelHintInternetAccess;
-    else if ((val & PHP_NSI_CONNECTIVITY_LOCAL_MASK) != 0)
+    else if ((val & PH_NSI_CONNECTIVITY_LOCAL_MASK) != 0)
         level = NetworkConnectivityLevelHintLocalAccess;
     else
         level = (ULONG)val != 0 ? NetworkConnectivityLevelHintNone : NetworkConnectivityLevelHintUnknown;
 
     Hint->ConnectivityLevel = level;
 
-    UCHAR byte4 = (UCHAR)(val >> PHP_NSI_CONNECTIVITY_COST_SHIFT);
-    if ((byte4 & PHP_NSI_CONNECTIVITY_COST_UNDETERMINED) == 0)
+    UCHAR byte4 = (UCHAR)(val >> PH_NSI_CONNECTIVITY_COST_SHIFT);
+
+    if ((byte4 & PH_NSI_CONNECTIVITY_COST_UNDETERMINED) == 0)
     {
-        if ((byte4 & PHP_NSI_CONNECTIVITY_COST_FIXED) != 0)
+        if ((byte4 & PH_NSI_CONNECTIVITY_COST_FIXED) != 0)
             cost = NetworkConnectivityCostHintFixed;
         else
-            cost = (byte4 & PHP_NSI_CONNECTIVITY_COST_UNRESTRICTED) ? NetworkConnectivityCostHintUnrestricted : NetworkConnectivityCostHintUnknown;
+            cost = (byte4 & PH_NSI_CONNECTIVITY_COST_UNRESTRICTED) ? NetworkConnectivityCostHintUnrestricted : NetworkConnectivityCostHintUnknown;
     }
-    Hint->ConnectivityCost = cost;
 
+    Hint->ConnectivityCost = cost;
 }
 
 /**
@@ -13650,7 +13538,7 @@ static NTSTATUS NTAPI PhpConnectivityStateChangeCallback(
             PLIST_ENTRY entry = PhpConnectivityHintListHead.Flink;
             while (entry != &PhpConnectivityHintListHead)
             {
-                PPHP_CONNECTIVITY_HINT_CONTEXT ctx = CONTAINING_RECORD(entry, PHP_CONNECTIVITY_HINT_CONTEXT, ListEntry);
+                PPH_CONNECTIVITY_HINT_CONTEXT ctx = CONTAINING_RECORD(entry, PH_CONNECTIVITY_HINT_CONTEXT, ListEntry);
                 PhpNotifyClientAsync(ctx);
                 entry = entry->Flink;
             }
@@ -13667,50 +13555,48 @@ static NTSTATUS NTAPI PhpConnectivityStateChangeCallback(
  */
 static NTSTATUS PhpMonitorConnectivityState(void)
 {
-    //WNF_STATE_NAME stateName = { .Value = PHP_WNF_CONNECTIVITY_STATE_NAME };
-    //WNF_CHANGE_STAMP changeStamp = 0;
-    //ULONG64 stateData = 0;
-    //ULONG stateDataLength = sizeof(stateData);
-    //NETIO_CONNECTIVITY_HINT hint;
-    //NTSTATUS status;
-    //
-    //if (PhpConnectivitySubscriptionHandle)
-    //    return STATUS_SUCCESS;
-    //
-    //// A failed query leaves the state zeroed, which maps to an unknown level (as iphlpapi does).
-    //status = NtQueryWnfStateData(
-    //    &stateName,
-    //    NULL,
-    //    NULL,
-    //    &changeStamp,
-    //    &stateData,
-    //    &stateDataLength
-    //    );
-    //
-    //if (!NT_SUCCESS(status) || stateDataLength != sizeof(stateData))
-    //    stateData = 0;
-    //
-    //PhpConnectivityHintFromConnectivityState(&stateData, &hint);
-    //PhpConnectivityLevel = (ULONG)hint.ConnectivityLevel;
-    //PhpConnectivityCost = hint.ConnectivityCost;
-    //
-    //// Subscribing from the queried change stamp delivers only later changes.
-    //status = RtlSubscribeWnfStateChangeNotification(
-    //    (PWNF_USER_SUBSCRIPTION*)&PhpConnectivitySubscriptionHandle,
-    //    stateName,
-    //    changeStamp,
-    //    PhpConnectivityStateChangeCallback,
-    //    NULL,
-    //    NULL,
-    //    0,
-    //    0
-    //    );
-    //
-    //if (!NT_SUCCESS(status))
-    //{
-    //    PhpConnectivitySubscriptionHandle = NULL;
-    //    return status;
-    //}
+    WNF_STATE_NAME stateName = { .Value = PH_WNF_CONNECTIVITY_STATE_NAME };
+    WNF_CHANGE_STAMP changeStamp = 0;
+    ULONG64 stateData = 0;
+    ULONG stateDataLength = sizeof(ULONG64);
+    NETIO_CONNECTIVITY_HINT hint;
+    NTSTATUS status;
+
+    if (PhpConnectivitySubscriptionHandle)
+        return STATUS_SUCCESS;
+
+    status = NtQueryWnfStateData(
+        &stateName,
+        NULL,
+        NULL,
+        &changeStamp,
+        &stateData,
+        &stateDataLength
+        );
+
+    if (!NT_SUCCESS(status) || stateDataLength != sizeof(ULONG64))
+        stateData = 0;
+
+    PhpConnectivityHintFromConnectivityState(&stateData, &hint);
+    PhpConnectivityLevel = (ULONG)hint.ConnectivityLevel;
+    PhpConnectivityCost = hint.ConnectivityCost;
+
+    status = RtlSubscribeWnfStateChangeNotification(
+        (PWNF_USER_SUBSCRIPTION*)&PhpConnectivitySubscriptionHandle,
+        stateName,
+        changeStamp,
+        PhpConnectivityStateChangeCallback,
+        NULL,
+        NULL,
+        0,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpConnectivitySubscriptionHandle = NULL;
+        return status;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -13732,17 +13618,17 @@ NTSTATUS NTAPI PhNotifyNetworkConnectivityHintChange(
     _Out_ PHANDLE NotificationHandle
     )
 {
-    PPHP_MIB_NOTIFICATION_HANDLE handle;
+    PMIB_NOTIFICATION_HANDLE handle;
     NTSTATUS lastError;
-    PPHP_CONNECTIVITY_HINT_CONTEXT context;
+    PPH_CONNECTIVITY_HINT_CONTEXT context;
 
     *NotificationHandle = NULL;
 
-    handle = PhAllocate(sizeof(PHP_MIB_NOTIFICATION_HANDLE));
+    handle = PhAllocateZeroSafe(sizeof(MIB_NOTIFICATION_HANDLE));
     if (!handle)
         return STATUS_NO_MEMORY;
 
-    context = PhAllocate(sizeof(PHP_CONNECTIVITY_HINT_CONTEXT));
+    context = PhAllocateSafe(sizeof(PH_CONNECTIVITY_HINT_CONTEXT));
     if (!context)
     {
         PhFree(handle);
@@ -13817,18 +13703,6 @@ NTSTATUS PhNotifyStableUnicastIpAddressTable(
         NotificationHandle);
 }
 
-typedef struct _PHP_NSI_CHANGE_DATA
-{
-    PVOID Reserved;
-    PVOID Data;
-} PHP_NSI_CHANGE_DATA, *PPHP_NSI_CHANGE_DATA;
-
-typedef struct _PHP_TEREDO_PORT_CHANGE_CONTEXT
-{
-    PTEREDO_PORT_CHANGE_CALLBACK Callback;
-    PVOID CallerContext;
-} PHP_TEREDO_PORT_CHANGE_CONTEXT, *PPHP_TEREDO_PORT_CHANGE_CONTEXT;
-
 /**
  * NSI callback that forwards Teredo port changes to the caller.
  *
@@ -13840,12 +13714,14 @@ typedef struct _PHP_TEREDO_PORT_CHANGE_CONTEXT
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-notifyteredoportchange
  */
 static ULONG NTAPI PhpTeredoPortChangeCallback(
-    _In_ PPHP_TEREDO_PORT_CHANGE_CONTEXT Context,
-    _In_opt_ PVOID ChangeKey,
-    _In_opt_ PPHP_NSI_CHANGE_DATA ChangeData,
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
+    PPH_TEREDO_PORT_CHANGE_CONTEXT Context = CallerContext;
+    PNSI_CHANGE_DATA ChangeData = ObjectParameter;
     USHORT port = MIB_INVALID_TEREDO_PORT_NUMBER;
 
     if (ChangeData && ChangeData->Data)
@@ -13873,25 +13749,31 @@ NTSTATUS PhNotifyTeredoPortChange(
     )
 {
     PNETIO_TEREDO_PORT_CHANGE_REGISTRATION registration;
-    PVOID rpcHandle;
-    NTSTATUS result;
+    RPC_BINDING_HANDLE rpcHandle;
+    NTSTATUS status;
 
     if (!NotificationHandle || !Callback)
         return STATUS_INVALID_PARAMETER;
 
-    registration = PhAllocateZero(sizeof(NETIO_TEREDO_PORT_CHANGE_REGISTRATION));
+    registration = PhAllocateZeroSafe(sizeof(NETIO_TEREDO_PORT_CHANGE_REGISTRATION));
+
+    if (!registration)
+        return STATUS_NO_MEMORY;
+
     registration->Header.ObjectId = NsiFl6tObjectClientPort;
     registration->Header.Ipv4CallbackContext = &registration->Callback;
     registration->Callback = Callback;
     registration->CallerContext = CallerContext;
 
-    if (!(rpcHandle = PhNsiNotificationConnectToServer()))
+    status = PhNsiNotificationConnectToServer(&rpcHandle);
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(registration);
-        return STATUS_INVALID_HANDLE;
+        return status;
     }
 
-    result = PhNsiRpcRegisterChangeNotification(
+    status = PhNsiRpcRegisterChangeNotification(
         rpcHandle,
         &NPI_MS_FL6T_MODULEID,
         NsiFl6tObjectClientPort,
@@ -13901,18 +13783,28 @@ NTSTATUS PhNotifyTeredoPortChange(
         &registration->Header.TeredoNotificationHandle
         );
 
-    if (result)
+    if (!NT_SUCCESS(status))
     {
         PhFree(registration);
-        return result;
+        return status;
     }
 
     *NotificationHandle = registration;
     return STATUS_SUCCESS;
 }
 
-PIP_ADAPTER_ORDER_MAP PhGetAdapterOrderMap()
+/**
+ * Retrieves the interface indexes of the adapters in the current thread's compartment.
+ *
+ * \param AdapterOrderMap Receives the adapter order map. Free it with LocalFree.
+ * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadapterordermap
+ */
+NTSTATUS PhGetAdapterOrderMap(
+    _Out_ PIP_ADAPTER_ORDER_MAP* AdapterOrderMap
+    )
 {
+    NTSTATUS status;
     ULONG count;
     NET_IF_COMPARTMENT_ID currentCompartmentId;
     NDIS_NSI_INTERFACE_ENUM_ROD* aliasTable = NULL;
@@ -13921,7 +13813,7 @@ PIP_ADAPTER_ORDER_MAP PhGetAdapterOrderMap()
     ULONG activeCount = 0;
     PIP_ADAPTER_ORDER_MAP orderMap;
 
-    if (PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_NDIS_MODULEID,
         NsiNdisObjectInterfaceWithoutStatistics,
@@ -13935,10 +13827,10 @@ PIP_ADAPTER_ORDER_MAP PhGetAdapterOrderMap()
         sizeof(NDIS_NSI_INTERFACE_ENUM_ROS),
         &count,
         0
-        ))
-    {
-        return NULL;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     currentCompartmentId = PhGetCurrentThreadCompartmentId();
 
@@ -13965,8 +13857,12 @@ PIP_ADAPTER_ORDER_MAP PhGetAdapterOrderMap()
     }
 
     PhNsiFreeTable(keyTable, NULL, aliasTable, guidTable);
-    
-    return orderMap;
+
+    if (!orderMap)
+        return STATUS_NO_MEMORY;
+
+    *AdapterOrderMap = orderMap;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -13987,7 +13883,7 @@ NTSTATUS PhGetAdaptersInfo(
     // the additional IP_ADDR_STRING entries chain into the trailing area of that buffer.
     static const IN_ADDR broadcastMask = { .S_un = { .S_addr = INADDR_NONE } }; // 255.255.255.255
 
-    NTSTATUS result;
+    NTSTATUS status;
     PIP_ADAPTER_ADDRESSES addresses = NULL;
     PIP_ADAPTER_ADDRESSES adapter;
     ULONG adapterCount = 0;
@@ -14002,10 +13898,10 @@ NTSTATUS PhGetAdaptersInfo(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhpAllocateAndGetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS, &addresses, NULL);
+    status = PhpAllocateAndGetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS, &addresses, NULL);
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Pass 1: count qualifying adapters (those with at least one IPv4 unicast address)
     // and the additional IP_ADDR_STRING nodes needed beyond the inline members.
@@ -14054,7 +13950,7 @@ NTSTATUS PhGetAdaptersInfo(
         return STATUS_BUFFER_TOO_SMALL;
     }
 
-    memset(AdapterInfo, 0, requiredSize);
+    RtlZeroMemory(AdapterInfo, requiredSize);
 
     infoArray = AdapterInfo;
     nodePool = (PIP_ADDR_STRING)((PUCHAR)AdapterInfo + (SIZE_T)adapterCount * sizeof(IP_ADAPTER_INFO));
@@ -14103,7 +13999,7 @@ NTSTATUS PhGetAdaptersInfo(
         {
             PhConvertUtf16ToUtf8Buffer(
                 info->Description,
-                sizeof(info->Description),
+                RTL_NUMBER_OF(info->Description),
                 NULL,
                 adapter->Description,
                 PhCountStringZ(adapter->Description) * sizeof(WCHAR)
@@ -14131,7 +14027,7 @@ NTSTATUS PhGetAdaptersInfo(
                 continue;
 
             address = ((struct sockaddr_in *)unicast->Address.lpSockaddr)->sin_addr;
-            if (PhConvertLengthToIpv4Mask(unicast->OnLinkPrefixLength, &mask.S_un.S_addr) != STATUS_SUCCESS)
+            if (!NT_SUCCESS(PhConvertLengthToIpv4Mask(unicast->OnLinkPrefixLength, &mask.S_un.S_addr)))
                 mask.S_un.S_addr = 0;
 
             if (addressTail == &info->IpAddressList && info->IpAddressList.IpAddress.String[0] == UNICODE_NULL)
@@ -14205,7 +14101,7 @@ NTSTATUS PhGetUniDirectionalAdapterInfo(
     _Inout_ PULONG SizePointer
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG count;
     ULONG requiredSize;
     PIP_ADAPTER_ADDRESSES addresses = NULL;
@@ -14214,14 +14110,14 @@ NTSTATUS PhGetUniDirectionalAdapterInfo(
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhpAllocateAndGetAdaptersAddresses(
+    status = PhpAllocateAndGetAdaptersAddresses(
         AF_INET,
         GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME,
         &addresses,
         NULL);
 
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     count = 0;
     for (adapter = addresses; adapter; adapter = adapter->Next)
@@ -14241,13 +14137,21 @@ NTSTATUS PhGetUniDirectionalAdapterInfo(
         }
     }
 
-    if (count > (ULONG_MAX - sizeof(IP_UNIDIRECTIONAL_ADAPTER_ADDRESS)) / sizeof(IPAddr))
+    status = RtlULongMult(count, sizeof(IPAddr), &requiredSize);
+
+    if (!NT_SUCCESS(status))
     {
         PhpFreeAdaptersAddresses(addresses);
-        return STATUS_INTEGER_OVERFLOW;
+        return status;
     }
 
-    requiredSize = sizeof(IP_UNIDIRECTIONAL_ADAPTER_ADDRESS) + count * sizeof(IPAddr);
+    status = RtlULongAdd(sizeof(IP_UNIDIRECTIONAL_ADAPTER_ADDRESS), requiredSize, &requiredSize);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpFreeAdaptersAddresses(addresses);
+        return status;
+    }
 
     if (!IpIfInfo || *SizePointer < requiredSize)
     {
@@ -14319,53 +14223,54 @@ NTSTATUS PhGetNetworkParams(
     _Inout_ PULONG SizePointer
     )
 {
-    //ULONG status;
-    //PVOID memory = NULL;
-    //
-    //if (!SizePointer)
-    //    return STATUS_INVALID_PARAMETER;
-    //
-    //status = PhAllocateAndGetFixedInfo(&memory);
-    //if (!NT_SUCCESS(status))
-    //    return status;
-    //
-    //PFIXED_INFO sourceFixedInfo = (PFIXED_INFO)memory;
-    //PIP_ADDR_STRING dnsListHead = &sourceFixedInfo->DnsServerList;
-    //
-    //ULONG dnsListSize = PhGetSizeofAddressStringList(dnsListHead);
-    //ULONG sizeRequired = sizeof(FIXED_INFO) + dnsListSize;
-    //
-    //if (!FixedInfo || *SizePointer < sizeRequired)
-    //{
-    //    *SizePointer = sizeRequired;
-    //    PhFreeAddressStringList(dnsListHead);
-    //    PhFree(memory);
-    //    return STATUS_BUFFER_TOO_SMALL;
-    //}
-    //
-    //memset(FixedInfo, 0, *SizePointer);
-    //memcpy(FixedInfo, memory, sizeof(FIXED_INFO));
-    //
-    //PIP_ADDR_STRING dest = (PIP_ADDR_STRING)(FixedInfo + 1);
-    //PIP_ADDR_STRING src = dnsListHead->Next;
-    //PIP_ADDR_STRING tail = &FixedInfo->DnsServerList;
-    //
-    //FixedInfo->DnsServerList.Next = NULL;
-    //
-    //while (src)
-    //{
-    //    tail->Next = dest;
-    //    memcpy(dest, src, sizeof(IP_ADDR_STRING));
-    //    tail = dest;
-    //    dest = (PIP_ADDR_STRING)((PCHAR)dest + sizeof(IP_ADDR_STRING));
-    //    src = src->Next;
-    //}
-    //
-    //if (tail)
-    //    tail->Next = NULL;
-    //
-    //PhFreeAddressStringList(dnsListHead);
-    //PhFree(memory);
+    NTSTATUS status;
+    PVOID memory = NULL;
+    
+    if (!SizePointer)
+        return STATUS_INVALID_PARAMETER;
+    
+    status = PhpAllocateAndGetFixedInfo(&memory);
+    if (!NT_SUCCESS(status))
+        return status;
+    
+    PFIXED_INFO sourceFixedInfo = (PFIXED_INFO)memory;
+    PIP_ADDR_STRING dnsListHead = &sourceFixedInfo->DnsServerList;
+    
+    ULONG dnsListSize = PhGetSizeofAddressStringList(dnsListHead);
+    ULONG sizeRequired = sizeof(FIXED_INFO) + dnsListSize;
+    
+    if (!FixedInfo || *SizePointer < sizeRequired)
+    {
+        *SizePointer = sizeRequired;
+        PhFreeAddressStringList(dnsListHead);
+        PhFree(memory);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    
+    RtlZeroMemory(FixedInfo, *SizePointer);
+    memcpy(FixedInfo, memory, sizeof(FIXED_INFO));
+    
+    PIP_ADDR_STRING dest = (PIP_ADDR_STRING)(FixedInfo + 1);
+    PIP_ADDR_STRING src = dnsListHead->Next;
+    PIP_ADDR_STRING tail = &FixedInfo->DnsServerList;
+    
+    FixedInfo->DnsServerList.Next = NULL;
+    
+    while (src)
+    {
+        tail->Next = dest;
+        memcpy(dest, src, sizeof(IP_ADDR_STRING));
+        tail = dest;
+        dest = (PIP_ADDR_STRING)((PCHAR)dest + sizeof(IP_ADDR_STRING));
+        src = src->Next;
+    }
+    
+    if (tail)
+        tail->Next = NULL;
+    
+    PhFreeAddressStringList(dnsListHead);
+    PhFree(memory);
+    *SizePointer = sizeRequired;
     return STATUS_SUCCESS;
 }
 
@@ -14380,15 +14285,21 @@ NTSTATUS PhGetNetworkConnectivityHint(
     _Out_ PNETIO_CONNECTIVITY_HINT ConnectivityHint
     )
 {
+    NTSTATUS status;
+
     if (!ConnectivityHint)
         return STATUS_INVALID_PARAMETER;
 
     PhAcquireQueuedLockExclusive(&PhpConnectivityHintLock);
-    ConnectivityHint->ConnectivityLevel = PhpConnectivityLevel;
-    ConnectivityHint->ConnectivityCost = PhpConnectivityCost;
+    status = PhpMonitorConnectivityState();
+    if (NT_SUCCESS(status))
+    {
+        ConnectivityHint->ConnectivityLevel = PhpConnectivityLevel;
+        ConnectivityHint->ConnectivityCost = PhpConnectivityCost;
+    }
     PhReleaseQueuedLockExclusive(&PhpConnectivityHintLock);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -14440,36 +14351,38 @@ NTSTATUS PhCaptureInterfaceHardwareCrossTimestamp(
     _Out_ PNETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP Timestamp
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     IO_STATUS_BLOCK ioStatusBlock;
     HANDLE deviceHandle;
     NET_LUID interfaceLuid;
-    NETIO_NDIS_CROSSTIMESTAMP_REQUEST request = { 0 };
+    NETIO_NDIS_CROSSTIMESTAMP_REQUEST request;
     NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA crossTimestamp;
+
+    RtlZeroMemory(&request, sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST));
 
     if (!Timestamp)
         return STATUS_INVALID_PARAMETER;
 
     deviceHandle = NULL;
-    result = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
+    status = PhConvertInterfaceIndexToLuid(InterfaceIndex, &interfaceLuid);
 
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    result = PhGetInterfaceHandle(&interfaceLuid, &deviceHandle);
+    status = PhGetInterfaceHandle(&interfaceLuid, &deviceHandle);
 
-    if (result)
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
-    RtlZeroMemory(Timestamp, sizeof(*Timestamp));
+    RtlZeroMemory(Timestamp, sizeof(NETIO_INTERFACE_HARDWARE_CROSSTIMESTAMP));
 
-    request.Header.Type = NETIO_NDIS_CROSSTIMESTAMP_REQUEST_TYPE;
-    request.Header.Revision = NETIO_NDIS_CROSSTIMESTAMP_REQUEST_REVISION;
-    request.Header.Size = FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data);
-    request.Oid = NETIO_OID_TIMESTAMP_GET_CROSSTIMESTAMP;
-    request.DataOffset = FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data);
+    request.RequestHeader.Header.Type = NETIO_NDIS_CROSSTIMESTAMP_REQUEST_TYPE;
+    request.RequestHeader.Header.Revision = NETIO_NDIS_CROSSTIMESTAMP_REQUEST_REVISION;
+    request.RequestHeader.Header.Size = FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data);
+    request.RequestHeader.Oid = NETIO_OID_TIMESTAMP_GET_CROSSTIMESTAMP;
+    request.RequestHeader.DataOffset = FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data);
 
-    result = NtDeviceIoControlFile(
+    status = NtDeviceIoControlFile(
         deviceHandle,
         NULL,
         NULL,
@@ -14477,62 +14390,54 @@ NTSTATUS PhCaptureInterfaceHardwareCrossTimestamp(
         &ioStatusBlock,
         IOCTL_NETIO_NDIS_CROSSTIMESTAMP,
         &request,
-        sizeof(request),
+        sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST),
         &request,
-        sizeof(request)
+        sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST)
         );
 
-    if (result == STATUS_PENDING)
+    if (status == STATUS_PENDING)
     {
-        result = NtWaitForSingleObject(deviceHandle, FALSE, NULL);
+        status = NtWaitForSingleObject(deviceHandle, FALSE, NULL);
 
-        if (NT_SUCCESS(result))
-            result = ioStatusBlock.Status;
+        if (NT_SUCCESS(status))
+            status = ioStatusBlock.Status;
     }
 
-    if (NT_SUCCESS(result))
-    {
-        result = PhConvertNdisStatusToError(request.Status);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
-        if (!result)
-        {
-            if (request.DataOffset < FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data) ||
-                request.DataOffset > sizeof(request) - sizeof(crossTimestamp))
-            {
-                result = STATUS_DATA_ERROR;
-            }
-            else
-            {
-                memcpy(&crossTimestamp, PTR_ADD_OFFSET(&request, request.DataOffset), sizeof(crossTimestamp));
-                Timestamp->SystemTimestamp1 = crossTimestamp.SystemTimestamp1;
-                Timestamp->HardwareClockTimestamp = crossTimestamp.HardwareClockTimestamp;
-                Timestamp->SystemTimestamp2 = crossTimestamp.SystemTimestamp2;
-            }
-        }
+    status = PhConvertNdisStatusToError(request.RequestHeader.Status);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (request.RequestHeader.DataOffset < FIELD_OFFSET(NETIO_NDIS_CROSSTIMESTAMP_REQUEST, Data) ||
+        request.RequestHeader.DataOffset > sizeof(NETIO_NDIS_CROSSTIMESTAMP_REQUEST) - sizeof(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA))
+    {
+        status = STATUS_DATA_ERROR;
+        goto CleanupExit;
     }
 
+    memcpy(&crossTimestamp, PTR_ADD_OFFSET(&request, request.RequestHeader.DataOffset), sizeof(NETIO_NDIS_HARDWARE_CROSSTIMESTAMP_DATA));
+    Timestamp->SystemTimestamp1 = crossTimestamp.SystemTimestamp1;
+    Timestamp->HardwareClockTimestamp = crossTimestamp.HardwareClockTimestamp;
+    Timestamp->SystemTimestamp2 = crossTimestamp.SystemTimestamp2;
+
+CleanupExit:
     NtClose(deviceHandle);
-    return result;
+    return status;
 }
 
-typedef struct _PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION
-{
-    ULONG Tag;
-    HANDLE NsiNotificationHandle;
-    PVOID CallerContext;
-    PINTERFACE_TIMESTAMP_CONFIG_CHANGE_CALLBACK Callback;
-} PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, *PPHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION;
-
 #ifdef _WIN64
-static_assert(sizeof(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION) == 0x20);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, NsiNotificationHandle) == 0x08);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, CallerContext) == 0x10);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, Callback) == 0x18);
+static_assert(sizeof(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION) == 0x20);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, NsiNotificationHandle) == 0x08);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, CallerContext) == 0x10);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, Callback) == 0x18);
 #else
-static_assert(sizeof(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION) == 0x10);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, NsiNotificationHandle) == 0x04);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, CallerContext) == 0x08);
-static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, Callback) == 0x0C);
+static_assert(sizeof(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION) == 0x10);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, NsiNotificationHandle) == 0x04);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, CallerContext) == 0x08);
+static_assert(FIELD_OFFSET(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, Callback) == 0x0C);
 #endif
 
 /**
@@ -14546,13 +14451,15 @@ static_assert(FIELD_OFFSET(PHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION, Callback) =
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-registerinterfacetimestampconfigchange
  */
 static ULONG NTAPI PhpInterfaceTimestampConfigChangeCallback(
-    _In_ PPHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION Registration,
-    _In_opt_ PVOID ChangeKey,
-    _In_opt_ PVOID Reserved,
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
-    if (Registration->Tag == PHP_TIMESTAMP_CONFIG_CHANGE_TAG)
+    PPH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION Registration = CallerContext;
+
+    if (Registration->Tag == PH_TIMESTAMP_CONFIG_CHANGE_TAG)
     {
         Registration->Callback(Registration->CallerContext);
     }
@@ -14575,35 +14482,29 @@ NTSTATUS NTAPI PhRegisterInterfaceTimestampConfigChange(
     _Out_ HIFTIMESTAMPCHANGE* NotificationHandle
     )
 {
-    PPHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION registration;
-    PVOID rpcHandle;
-    NTSTATUS result;
+    PPH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION registration;
+    RPC_BINDING_HANDLE rpcHandle;
+    NTSTATUS status;
 
     if (!Callback || !NotificationHandle)
         return STATUS_INVALID_PARAMETER;
 
     *NotificationHandle = NULL;
-    registration = PhAllocateSafe(sizeof(*registration));
+    registration = PhAllocateSafe(sizeof(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION));
 
     if (!registration)
         return STATUS_NO_MEMORY;
 
-    memset(registration, 0, sizeof(*registration));
-    registration->Tag = PHP_TIMESTAMP_CONFIG_CHANGE_TAG;
+    RtlZeroMemory(registration, sizeof(PH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION));
+    registration->Tag = PH_TIMESTAMP_CONFIG_CHANGE_TAG;
     registration->Callback = Callback;
     registration->CallerContext = CallerContext;
 
-    rpcHandle = PhNsiNotificationConnectToServer();
+    status = PhNsiNotificationConnectToServer(&rpcHandle);
 
-    if (!rpcHandle)
+    if (NT_SUCCESS(status))
     {
-        result = PhpNetioDosErrorToNtStatus(PhGetLastError());
-        if (!result)
-            result = STATUS_UNSUCCESSFUL;
-    }
-    else
-    {
-        result = PhNsiRpcRegisterChangeNotification(
+        status = PhNsiRpcRegisterChangeNotification(
             rpcHandle,
             &NPI_MS_NDIS_MODULEID,
             NsiNdisObjectTimestampConfigChange,
@@ -14614,10 +14515,10 @@ NTSTATUS NTAPI PhRegisterInterfaceTimestampConfigChange(
             );
     }
 
-    if (!NT_SUCCESS(result))
+    if (!NT_SUCCESS(status))
     {
         PhFree(registration);
-        return result;
+        return status;
     }
 
     *NotificationHandle = (HIFTIMESTAMPCHANGE)registration;
@@ -14634,11 +14535,11 @@ VOID NTAPI PhUnregisterInterfaceTimestampConfigChange(
     _In_ HIFTIMESTAMPCHANGE NotificationHandle
     )
 {
-    PPHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION registration;
+    PPH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION registration;
 
-    registration = (PPHP_TIMESTAMP_CONFIG_CHANGE_REGISTRATION)NotificationHandle;
+    registration = (PPH_TIMESTAMP_CONFIG_CHANGE_REGISTRATION)NotificationHandle;
 
-    if (!registration || registration->Tag != PHP_TIMESTAMP_CONFIG_CHANGE_TAG)
+    if (!registration || registration->Tag != PH_TIMESTAMP_CONFIG_CHANGE_TAG)
         return;
 
     PhNsiRpcDeregisterChangeNotification(
@@ -14667,18 +14568,17 @@ NTSTATUS PhNhGetInterfaceDescriptionFromGuid(
     _Inout_ PULONG InterfaceDescriptionLength
     )
 {
-    NTSTATUS result;
     NTSTATUS status;
     NET_LUID interfaceLuid;
     NSI_COUNTED_WCHAR_PARAMETER description;
 
     interfaceLuid.Value = 0;
-    memset(&description, 0, sizeof(NSI_COUNTED_WCHAR_PARAMETER));
+    RtlZeroMemory(&description, sizeof(NSI_COUNTED_WCHAR_PARAMETER));
 
-    result = PhConvertInterfaceGuidToLuid(InterfaceGuid, &interfaceLuid);
+    status = PhConvertInterfaceGuidToLuid(InterfaceGuid, &interfaceLuid);
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     status = PhpNsiGetParameter(
         NsiActive,
@@ -14694,31 +14594,28 @@ NTSTATUS PhNhGetInterfaceDescriptionFromGuid(
 
     if (NT_SUCCESS(status))
     {
-        ULONG length = description.Length / sizeof(WCHAR);
+        ULONG length = description.CountedString.Length / sizeof(WCHAR);
         if (length > MAXIMUM_FILENAME_LENGTH)
             length = MAXIMUM_FILENAME_LENGTH;
-        description.Buffer[length] = UNICODE_NULL;
+        description.CountedString.String[length] = UNICODE_NULL;
     }
 
+    if (!NT_SUCCESS(status))
+        return status;
+
+    ULONG requiredLength = ((ULONG)PhCountStringZ(description.CountedString.String) + 1) * sizeof(WCHAR);
     NTSTATUS copyStatus = PhCopyStringZ(
-        (NT_SUCCESS(status)) ? description.Buffer : L"",
+        description.CountedString.String,
         SIZE_MAX,
         InterfaceDescription,
         *InterfaceDescriptionLength / sizeof(WCHAR),
         NULL
         );
 
-    if (NT_SUCCESS(status))
-    {
-        ULONG stringStatus = PhStringResultToStatus(copyStatus);
-        if (stringStatus == STATUS_BUFFER_TOO_SMALL)
-        {
-            *InterfaceDescriptionLength = sizeof(description.Buffer);
-        }
-        return stringStatus;
-    }
+    if (copyStatus == STATUS_BUFFER_TOO_SMALL)
+        *InterfaceDescriptionLength = requiredLength;
 
-    return status;
+    return copyStatus;
 }
 
 /**
@@ -14726,13 +14623,12 @@ NTSTATUS PhNhGetInterfaceDescriptionFromGuid(
  *
  * \param InterfaceRow On input, the key fields of the row; on output, the complete row.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhGetFlVirtualInterface(
     _Inout_ PMIB_FL_VIRTUAL_INTERFACE_ROW InterfaceRow
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     const NPI_MODULEID* moduleId;
     USHORT family;
     NSI_FL_VIRTUAL_INTERFACE_KEY key;
@@ -14741,10 +14637,10 @@ NTSTATUS PhGetFlVirtualInterface(
     NSI_FL_VIRTUAL_INTERFACE_ROS readOnlyStatic;
 
     family = InterfaceRow->Family;
-    memset(&key, 0, sizeof(NSI_FL_VIRTUAL_INTERFACE_KEY));
-    memset(&readWrite, 0, sizeof(NSI_FL_VIRTUAL_INTERFACE_RW));
-    memset(&readOnlyDynamic, 0, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROD));
-    memset(&readOnlyStatic, 0, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS));
+    RtlZeroMemory(&key, sizeof(NSI_FL_VIRTUAL_INTERFACE_KEY));
+    RtlZeroMemory(&readWrite, sizeof(NSI_FL_VIRTUAL_INTERFACE_RW));
+    RtlZeroMemory(&readOnlyDynamic, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROD));
+    RtlZeroMemory(&readOnlyStatic, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS));
 
     if (family == AF_INET)
         moduleId = &NPI_MS_FL48_MODULEID;
@@ -14756,7 +14652,7 @@ NTSTATUS PhGetFlVirtualInterface(
     key.InterfaceLuid = InterfaceRow->IfLuid;
     key.VirtualInterfaceId = InterfaceRow->VirtualIfId;
 
-    result = PhNsiGetAllParameters(
+    status = PhNsiGetAllParameters(
         NsiActive,
         moduleId,
         NsiFlObjectVirtualInterface,
@@ -14770,13 +14666,13 @@ NTSTATUS PhGetFlVirtualInterface(
         sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS)
         );
 
-    if (!result)
+    if (NT_SUCCESS(status))
     {
         PhFillVirtualInterfaceRow(InterfaceRow, family, &key, &readWrite, &readOnlyDynamic, &readOnlyStatic);
         return 0;
     }
 
-    return result;
+    return status;
 }
 
 /**
@@ -14785,13 +14681,13 @@ NTSTATUS PhGetFlVirtualInterface(
  * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
  * \param Table Receives the allocated table. Free it with PhFreeMibTable/FreeMibTable.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
- * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar
  */
 NTSTATUS PhGetFlVirtualInterfaceTable(
     _In_ ADDRESS_FAMILY Family,
     _Outptr_ PMIB_FL_VIRTUAL_INTERFACE_TABLE *Table
     )
 {
+    SIZE_T tableSize;
     struct
     {
         ADDRESS_FAMILY Family;
@@ -14805,7 +14701,7 @@ NTSTATUS PhGetFlVirtualInterfaceTable(
         { AF_INET, (PNPI_MODULEID)&NPI_MS_FL48_MODULEID },
         { AF_INET6, (PNPI_MODULEID)&NPI_MS_FL68_MODULEID }
     };
-    NTSTATUS result;
+    NTSTATUS status;
     ULONG count;
     ULONG i;
     ULONG j;
@@ -14821,31 +14717,37 @@ NTSTATUS PhGetFlVirtualInterfaceTable(
         if (Family != AF_UNSPEC && Family != families[i].Family)
             continue;
 
-        result = PhNsiAllocateAndGetTable(NsiActive, families[i].ModuleId, NsiFlObjectVirtualInterface,
+        status = PhNsiAllocateAndGetTable(NsiActive, families[i].ModuleId, NsiFlObjectVirtualInterface,
             &families[i].Keys, sizeof(NSI_FL_VIRTUAL_INTERFACE_KEY),
             &families[i].Rw, sizeof(NSI_FL_VIRTUAL_INTERFACE_RW),
             &families[i].Rod, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROD),
             &families[i].Ros, sizeof(NSI_FL_VIRTUAL_INTERFACE_ROS), &families[i].Count, 0);
-        if (result == STATUS_NOT_FOUND || result == STATUS_NOT_SUPPORTED)
+        if (status == STATUS_NOT_FOUND || status == STATUS_NOT_SUPPORTED)
             continue;
-        if (result)
+        if (!NT_SUCCESS(status))
             goto Cleanup;
 
-        if (count > ULONG_MAX - families[i].Count)
-        {
-            result = STATUS_INTEGER_OVERFLOW;
+        status = RtlULongAdd(count, families[i].Count, &count);
+
+        if (!NT_SUCCESS(status))
             goto Cleanup;
-        }
-        count += families[i].Count;
     }
 
-    if (count > (SIZE_MAX - FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_TABLE, Table)) / sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW))
+    status = RtlSIZETMult(count, sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW), &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    status = RtlSIZETAdd(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_TABLE, Table), tableSize, &tableSize);
+
+    if (!NT_SUCCESS(status))
+        goto Cleanup;
+
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
-        result = STATUS_INTEGER_OVERFLOW;
+        status = STATUS_NO_MEMORY;
         goto Cleanup;
     }
-
-    table = PhAllocateZero(FIELD_OFFSET(MIB_FL_VIRTUAL_INTERFACE_TABLE, Table) + (SIZE_T)count * sizeof(MIB_FL_VIRTUAL_INTERFACE_ROW));
     entryIndex = 0;
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
     {
@@ -14859,7 +14761,7 @@ NTSTATUS PhGetFlVirtualInterfaceTable(
 
     table->NumEntries = entryIndex;
     *Table = table;
-    result = STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
 
 Cleanup:
     for (i = 0; i < RTL_NUMBER_OF(families); i++)
@@ -14867,7 +14769,7 @@ Cleanup:
         if (families[i].Keys || families[i].Rw || families[i].Rod || families[i].Ros)
             PhNsiFreeTable(families[i].Keys, families[i].Rw, families[i].Rod, families[i].Ros);
     }
-    return result;
+    return status;
 }
 
 /**
@@ -14885,7 +14787,7 @@ NTSTATUS PhGetIpNetTable(
     _In_ BOOL Order
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NTSTATUS tableResult;
     NET_IF_COMPARTMENT_ID CurrentThreadCompartmentId;
     ULONG outputCount;
@@ -14899,12 +14801,12 @@ NTSTATUS PhGetIpNetTable(
     readWriteTable = 0;
     dynamicTable = 0;
 
-    memset(&neighborCount, 0, sizeof(ULONG));
+    RtlZeroMemory(&neighborCount, sizeof(ULONG));
     
     if (!SizePointer)
         return STATUS_INVALID_PARAMETER;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_IPV4_MODULEID,
         NsiIpObjectNeighbor,
@@ -14920,9 +14822,10 @@ NTSTATUS PhGetIpNetTable(
         0
         );
 
-    if (!result)
+    if (NT_SUCCESS(status))
     {
         tableResult = PhpNetioMibCheckTableBufferSize(
+            FIELD_OFFSET(MIB_IPNETTABLE, table),
             neighborCount,
             sizeof(MIB_IPNETROW),
             IpNetTable,
@@ -14950,11 +14853,17 @@ NTSTATUS PhGetIpNetTable(
                         row->dwType = 0;
 
                         PMIB_IP_NEIGHBOR_KEY_ROW_V4 keyElement = PTR_ADD_OFFSET(keyTable, sizeof(MIB_IP_NEIGHBOR_KEY_ROW_V4) * neighborIndex);
-                        PhConvertInterfaceLuidToIndex(&keyElement->InterfaceLuid, &row->dwIndex);
+                        status = PhConvertInterfaceLuidToIndex(&keyElement->InterfaceLuid, &row->dwIndex);
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhNsiFreeTable(keyTable, readWriteTable, dynamicTable, NULL);
+                            return status;
+                        }
 
                         ULONG physAddrLen = dynamicElement->PhysicalAddressLength;
-                        if (physAddrLen > sizeof(row->bPhysAddr))
-                            physAddrLen = sizeof(row->bPhysAddr);
+                        if (physAddrLen > RTL_NUMBER_OF(row->bPhysAddr))
+                            physAddrLen = RTL_NUMBER_OF(row->bPhysAddr);
                         row->dwPhysAddrLen = physAddrLen;
 
                         PVOID physAddr = PTR_ADD_OFFSET(readWriteTable, neighborIndex * sizeof(MIB_IP_NEIGHBOR_RW_ROW));
@@ -14962,7 +14871,7 @@ NTSTATUS PhGetIpNetTable(
 
                         row->dwAddr = keyElement->Address.S_un.S_addr;
 
-                        ULONG neighborState = dynamicElement->State;
+                        NL_NEIGHBOR_STATE neighborState = dynamicElement->State;
                         row->dwType = PhpNeighborStateToMibState(neighborState);
                     }
                     ++neighborIndex;
@@ -14976,7 +14885,7 @@ NTSTATUS PhGetIpNetTable(
         PhNsiFreeTable(keyTable, readWriteTable, dynamicTable, NULL);
         return tableResult;
     }
-    return result;
+    return status;
 }
 
 /**
@@ -15017,10 +14926,13 @@ NTSTATUS PhGetBestRoute2(
     if (SourceAddress && SourceAddress->si_family == family)
         hasSource = TRUE;
 
-    memset(BestRoute, 0, sizeof(MIB_IPFORWARD_ROW2));
-    memset(BestSourceAddress, 0, sizeof(SOCKADDR_INET));
+    RtlZeroMemory(BestRoute, sizeof(MIB_IPFORWARD_ROW2));
+    RtlZeroMemory(BestSourceAddress, sizeof(SOCKADDR_INET));
 
-    NET_LUID luid = { 0 };
+    NET_LUID luid;
+
+    RtlZeroMemory(&luid, sizeof(NET_LUID));
+
     if (InterfaceLuid)
     {
         luid = *InterfaceLuid;
@@ -15042,8 +14954,7 @@ NTSTATUS PhGetBestRoute2(
     if (family == AF_INET)
     {
         NSI_IP_BEST_ROUTE_KEY4 key;
-        memset(&key, 0, sizeof(NSI_IP_BEST_ROUTE_KEY4));
-
+        RtlZeroMemory(&key, sizeof(NSI_IP_BEST_ROUTE_KEY4));
         key.CompartmentId = PhGetCurrentThreadCompartmentId();
         
         if (isMapped)
@@ -15075,7 +14986,7 @@ NTSTATUS PhGetBestRoute2(
         key.InterfaceLuid = luid;
 
         NSI_IP_BEST_ROUTE_ROD_V4 resultRow;
-        memset(&resultRow, 0, sizeof(NSI_IP_BEST_ROUTE_ROD_V4));
+        RtlZeroMemory(&resultRow, sizeof(NSI_IP_BEST_ROUTE_ROD_V4));
 
         status = PhNsiGetAllParameters(
             NsiActive,
@@ -15086,21 +14997,24 @@ NTSTATUS PhGetBestRoute2(
             NULL,
             0,
             &resultRow,
-            sizeof(resultRow),
+            sizeof(NSI_IP_BEST_ROUTE_ROD_V4),
             NULL,
             0
             );
 
         if (NT_SUCCESS(status))
         {
-            MIB_IP_ROUTE_DYNAMIC_ROW_V4 routeDynamic = { 0 };
-            MIB_IP_ROUTE_STATIC_ROW routeStatic = { 0 };
+            MIB_IP_ROUTE_DYNAMIC_ROW_V4 routeDynamic;
+            MIB_IP_ROUTE_STATIC_ROW routeStatic;
+
+            RtlZeroMemory(&routeDynamic, sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V4));
+            RtlZeroMemory(&routeStatic, sizeof(MIB_IP_ROUTE_STATIC_ROW));
 
             routeDynamic.Age = resultRow.Age;
             routeStatic.Origin = resultRow.Origin;
             routeStatic.InterfaceIndex = resultRow.InterfaceIndex;
 
-            PhpFillRouteEntry(
+            PhNsiFillRouteEntry(
                 AF_INET,
                 BestRoute,
                 &resultRow.Key,
@@ -15124,8 +15038,8 @@ NTSTATUS PhGetBestRoute2(
                 SCOPE_ID nextHopScope;
                 SCOPE_ID sourceScope;
 
-                memset(&a6, 0, sizeof(SOCKADDR_IN6));
-                memset(&v44, 0, sizeof(SOCKADDR_IN6));
+                RtlZeroMemory(&a6, sizeof(SOCKADDR_IN6));
+                RtlZeroMemory(&v44, sizeof(SOCKADDR_IN6));
 
                 destinationScope.Value = BestRoute->DestinationPrefix.Prefix.Ipv6.sin6_scope_id;
                 nextHopScope.Value = BestRoute->NextHop.Ipv6.sin6_scope_id;
@@ -15145,8 +15059,7 @@ NTSTATUS PhGetBestRoute2(
     else
     {
         NSI_IP_BEST_ROUTE_KEY6 key;
-        memset(&key, 0, sizeof(NSI_IP_BEST_ROUTE_KEY6));
-
+        RtlZeroMemory(&key, sizeof(NSI_IP_BEST_ROUTE_KEY6));
         key.CompartmentId = PhGetCurrentThreadCompartmentId();
         key.DestinationAddress = DestinationAddress->Ipv6.sin6_addr;
         key.DestinationScopeId.Value = DestinationAddress->Ipv6.sin6_scope_id;
@@ -15160,7 +15073,7 @@ NTSTATUS PhGetBestRoute2(
         key.InterfaceLuid = luid;
 
         NSI_IP_BEST_ROUTE_ROD_V6 resultRow;
-        memset(&resultRow, 0, sizeof(NSI_IP_BEST_ROUTE_ROD_V6));
+        RtlZeroMemory(&resultRow, sizeof(NSI_IP_BEST_ROUTE_ROD_V6));
 
         status = PhNsiGetAllParameters(
             NsiActive,
@@ -15171,20 +15084,23 @@ NTSTATUS PhGetBestRoute2(
             NULL,
             0,
             &resultRow,
-            sizeof(resultRow),
+            sizeof(NSI_IP_BEST_ROUTE_ROD_V6),
             NULL,
             0
             );
 
         if (NT_SUCCESS(status))
         {
-            MIB_IP_ROUTE_DYNAMIC_ROW_V6 routeDynamic = { 0 };
-            MIB_IP_ROUTE_STATIC_ROW routeStatic = { 0 };
+            MIB_IP_ROUTE_DYNAMIC_ROW_V6 routeDynamic;
+            MIB_IP_ROUTE_STATIC_ROW routeStatic;
+
+            RtlZeroMemory(&routeDynamic, sizeof(MIB_IP_ROUTE_DYNAMIC_ROW_V6));
+            RtlZeroMemory(&routeStatic, sizeof(MIB_IP_ROUTE_STATIC_ROW));
 
             routeDynamic.Age = resultRow.Age;
             routeStatic.Origin = resultRow.Origin;
             routeStatic.InterfaceIndex = resultRow.InterfaceIndex;
-            PhpFillRouteEntry(AF_INET6, BestRoute, &resultRow.Key,
+            PhNsiFillRouteEntry(AF_INET6, BestRoute, &resultRow.Key,
                 &resultRow.Route, &routeDynamic, &routeStatic);
             INETADDR_SETSOCKADDR(AF_INET6, (PSOCKADDR)BestSourceAddress, &resultRow.SourceAddress, resultRow.SourceScopeId, 0);
         }
@@ -15270,8 +15186,8 @@ static int __cdecl PhpCompareIpInterfaceNameInfo(
  * \return The MIB_IPNET_TYPE value.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getipnettable
  */
-ULONG PhpNeighborStateToMibState(
-    _In_ ULONG State
+MIB_IPNET_TYPE PhpNeighborStateToMibState(
+    _In_ NL_NEIGHBOR_STATE State
     )
 {
     switch (State)
@@ -15294,19 +15210,19 @@ ULONG PhpNeighborStateToMibState(
  * Determines whether an interface has an IPv4 interface instance and is not a loopback interface.
  *
  * \param InterfaceLuid The locally unique identifier (LUID) of the network interface.
- * \param MediaType The interface media type (IF_TYPE_*).
+ * \param InterfaceType The interface type (IF_TYPE_*).
  * \return TRUE if the interface is an IPv4 interface, otherwise FALSE.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getipinterfaceentry
  */
 BOOLEAN PhpIsIpv4Interface(
     _In_ NET_LUID *InterfaceLuid,
-    _In_ USHORT MediaType
+    _In_ NET_IFTYPE InterfaceType
     )
 {
-    if (MediaType == IF_TYPE_SOFTWARE_LOOPBACK)
+    if (InterfaceType == IF_TYPE_SOFTWARE_LOOPBACK)
         return FALSE;
 
-    if (PhNsiGetAllParameters(
+    if (NT_SUCCESS(PhNsiGetAllParameters(
         NsiActive,
         &NPI_MS_IPV4_MODULEID,
         NsiIpObjectIpInterface,
@@ -15318,7 +15234,7 @@ BOOLEAN PhpIsIpv4Interface(
         0,
         NULL,
         0
-        ) == 0)
+        )))
     {
         return TRUE;
     }
@@ -15491,46 +15407,49 @@ NTSTATUS NTAPI PhCancelMibChangeNotify2(
     _In_ HANDLE NotificationHandle
     )
 {
-    NTSTATUS result = STATUS_SUCCESS;
-    PPHP_MIB_NOTIFICATION_HANDLE handle = (PPHP_MIB_NOTIFICATION_HANDLE)NotificationHandle;
+    NTSTATUS status = STATUS_SUCCESS;
+    PMIB_NOTIFICATION_HANDLE handle = (PMIB_NOTIFICATION_HANDLE)NotificationHandle;
 
     if (!handle)
         return STATUS_INVALID_PARAMETER;
 
-    NSI_ICMP_OBJECT_ID objectId = handle->ObjectId;
-    PVOID rpcHandle = NotificationRpcHandle;
+    NSI_IP_OBJECT_ID objectId = handle->ObjectId;
+    RPC_BINDING_HANDLE rpcHandle = NotificationRpcHandle;
 
     if (handle->NotificationHandleV4)
     {
-        result = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_IPV4_MODULEID, objectId, handle->NotificationHandleV4);
+        status = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_IPV4_MODULEID, objectId, handle->NotificationHandleV4);
     }
     if (handle->NotificationHandleV6)
     {
-        result = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_IPV6_MODULEID, objectId, handle->NotificationHandleV6);
+        status = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_IPV6_MODULEID, objectId, handle->NotificationHandleV6);
     }
     if (handle->NotificationHandleTeredo)
     {
-        result = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_FL6T_MODULEID, objectId, handle->NotificationHandleTeredo);
+        status = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_FL6T_MODULEID, objectId, handle->NotificationHandleTeredo);
     }
     if (handle->NotificationHandleNdis)
     {
-        result = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_NDIS_MODULEID, objectId, handle->NotificationHandleNdis);
+        status = PhNsiRpcDeregisterChangeNotification(rpcHandle, &NPI_MS_NDIS_MODULEID, objectId, handle->NotificationHandleNdis);
     }
     if (handle->ConnectivityHintContext)
     {
-        PPHP_CONNECTIVITY_HINT_CONTEXT context = (PPHP_CONNECTIVITY_HINT_CONTEXT)handle->ConnectivityHintContext;
+        PPH_CONNECTIVITY_HINT_CONTEXT context = (PPH_CONNECTIVITY_HINT_CONTEXT)handle->ConnectivityHintContext;
 
         PhAcquireQueuedLockExclusive(&PhpConnectivityHintLock);
         RemoveEntryList(&context->ListEntry);
         PhReleaseQueuedLockExclusive(&PhpConnectivityHintLock);
 
         if (context->ThreadpoolWork)
+        {
+            TpWaitForWork(context->ThreadpoolWork, TRUE);
             TpReleaseWork(context->ThreadpoolWork);
+        }
         PhFree(context);
     }
 
     PhFree(handle);
-    return result;
+    return status;
 }
 
 /**
@@ -15585,7 +15504,7 @@ NTSTATUS NTAPI PhGetIpAddrTable(
     )
 {
     NTSTATUS status;
-    PIP_ADAPTER_ADDRESSES lpMem = NULL;
+    PIP_ADAPTER_ADDRESSES addresses = NULL;
     ULONG entryCount = 0;
 
     if (!SizePointer)
@@ -15594,29 +15513,31 @@ NTSTATUS NTAPI PhGetIpAddrTable(
     status = PhpAllocateAndGetAdaptersAddresses(
         AF_INET,
         GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME,
-        &lpMem,
+        &addresses,
         NULL
         );
 
     if (!NT_SUCCESS(status))
     {
-        if (lpMem)
-            PhpFreeAdaptersAddresses(lpMem);
+        if (addresses)
+            PhpFreeAdaptersAddresses(addresses);
         return status;
     }
 
-    if (!lpMem)
+    if (!addresses)
     {
         *SizePointer = 0;
         return STATUS_SUCCESS;
     }
 
-    PIP_ADAPTER_ADDRESSES adapter = (PIP_ADAPTER_ADDRESSES)lpMem;
+    PIP_ADAPTER_ADDRESSES adapter = (PIP_ADAPTER_ADDRESSES)addresses;
+
     while (adapter)
     {
         if (adapter->OperStatus == IfOperStatusUp)
         {
             PIP_ADAPTER_UNICAST_ADDRESS unicast = adapter->FirstUnicastAddress;
+
             while (unicast)
             {
                 if (unicast->DadState >= IpDadStateDeprecated)
@@ -15633,19 +15554,21 @@ NTSTATUS NTAPI PhGetIpAddrTable(
     if (!IpAddrTable || *SizePointer < sizeRequired)
     {
         *SizePointer = sizeRequired;
-        PhpFreeAdaptersAddresses(lpMem);
+        PhpFreeAdaptersAddresses(addresses);
         return STATUS_BUFFER_TOO_SMALL;
     }
 
     IpAddrTable->dwNumEntries = entryCount;
 
     ULONG index = 0;
-    adapter = (PIP_ADAPTER_ADDRESSES)lpMem;
+    adapter = (PIP_ADAPTER_ADDRESSES)addresses;
+
     while (adapter)
     {
         if (adapter->OperStatus == IfOperStatusUp)
         {
             PIP_ADAPTER_UNICAST_ADDRESS unicast = adapter->FirstUnicastAddress;
+
             while (unicast)
             {
                 if (unicast->DadState >= IpDadStateDeprecated)
@@ -15654,7 +15577,14 @@ NTSTATUS NTAPI PhGetIpAddrTable(
                     row->dwAddr = ((PSOCKADDR_IN)unicast->Address.lpSockaddr)->sin_addr.S_un.S_addr;
                     row->dwIndex = adapter->IfIndex;
                     
-                    PhConvertLengthToIpv4Mask(unicast->OnLinkPrefixLength, &row->dwMask);
+                    status = PhConvertLengthToIpv4Mask(unicast->OnLinkPrefixLength, &row->dwMask);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhpFreeAdaptersAddresses(addresses);
+                        return status;
+                    }
+
                     row->dwBCastAddr = 1;
                     row->dwReasmSize = MAXUSHORT;
                     row->unused1 = 0;
@@ -15694,7 +15624,7 @@ NTSTATUS NTAPI PhGetIpAddrTable(
         qsort_s(IpAddrTable->table, index, sizeof(MIB_IPADDRROW), PhpCompareMibIpAddrRow, NULL);
     }
 
-    PhpFreeAdaptersAddresses(lpMem);
+    PhpFreeAdaptersAddresses(addresses);
     return STATUS_SUCCESS;
 }
 
@@ -15764,7 +15694,7 @@ NTSTATUS NTAPI PhAllocateAndGetInterfaceInfoFromStack(
         return STATUS_NO_MORE_ENTRIES;
     }
 
-    table = PhAllocate(count * sizeof(IP_INTERFACE_NAME_INFO));
+    table = PhAllocateSafe(count * sizeof(IP_INTERFACE_NAME_INFO));
     if (!table)
     {
         PhNsiFreeTable(luidTable, NULL, ndisTable, ndisTable2);
@@ -15777,19 +15707,20 @@ NTSTATUS NTAPI PhAllocateAndGetInterfaceInfoFromStack(
     for (ULONG i = 0; i < count; i++)
     {
         NDIS_NSI_INTERFACE_ENUM_ROD* ndisElement = &ndisTable[i];
+
         if (ndisElement->CompartmentId == currentCompartment)
         {
             PNDIS_NSI_INTERFACE_ENUM_ROS publicEntry = (PNDIS_NSI_INTERFACE_ENUM_ROS)&ndisTable2[i];
-            USHORT mediaType = publicEntry->ifType;
+            NET_IFTYPE interfaceType = publicEntry->ifType;
             NET_LUID* luid = &luidTable[i];
 
-            if (PhpIsIpv4Interface(luid, mediaType))
+            if (PhpIsIpv4Interface(luid, interfaceType))
             {
                 PIP_INTERFACE_NAME_INFO dest = &table[outputCount];
                 outputCount++;
 
                 dest->Index = publicEntry->ifIndex;
-                dest->MediaType = mediaType;
+                dest->MediaType = interfaceType;
                 dest->ConnectionType = publicEntry->ConnectionType;
                 dest->AccessType = publicEntry->AccessType;
                 dest->DeviceGuid = publicEntry->InterfaceGuid;
@@ -15836,7 +15767,7 @@ NTSTATUS NTAPI PhAllocateAndGetIpAddrTableFromStack(
         return status;
     }
 
-    table = (PMIB_IPADDRTABLE)PhAllocate(size);
+    table = (PMIB_IPADDRTABLE)PhAllocateSafe(size);
 
     if (!table)
     {
@@ -15976,20 +15907,16 @@ static int __cdecl PhpCompareMibTcp6Row2(
  *
  * \param Family The address family (AF_INET, AF_INET6 or AF_UNSPEC).
  * \param Table Receives the allocated table. Free it with RtlFreeHeap.
- * \param HeapHandle The heap to allocate from.
- * \param HeapFlags Flags passed to RtlAllocateHeap.
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-gettcptable2
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-gettcp6table2
  */
 static NTSTATUS PhpAllocateAndGetBoundTcpTable(
     _In_ ADDRESS_FAMILY Family,
-    _Out_ PVOID* Table,
-    _In_ PVOID HeapHandle,
-    _In_ ULONG HeapFlags
+    _Out_ PVOID* Table
     )
 {
-    NTSTATUS result;
+    NTSTATUS status;
     NSI_TCP_KEY_ROW* keyTable = NULL;
     NSI_TCP_STATUS_ROW* statusTable = NULL;
     NSI_TCP_OWNER_ROW* ownerTable = NULL;
@@ -16000,7 +15927,7 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
 
     *Table = NULL;
 
-    result = PhNsiAllocateAndGetTable(
+    status = PhNsiAllocateAndGetTable(
         NsiActive,
         &NPI_MS_TCP_MODULEID,
         NsiTcpObjectBoundEndpoint,
@@ -16016,15 +15943,15 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
         0
         );
 
-    if (!NT_SUCCESS(result))
-        return result;
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (Family == AF_INET)
         tableSize = FIELD_OFFSET(MIB_TCPTABLE2, table) + sizeof(MIB_TCPROW2) * (SIZE_T)max(count, 1);
     else
         tableSize = FIELD_OFFSET(MIB_TCP6TABLE2, table) + sizeof(MIB_TCP6ROW2) * (SIZE_T)max(count, 1);
 
-    if (!(table = RtlAllocateHeap(HeapHandle, HeapFlags, tableSize)))
+    if (!(table = PhAllocateZeroSafe(tableSize)))
     {
         PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
         return STATUS_NO_MEMORY;
@@ -16060,7 +15987,7 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
             }
 
             row = &((PMIB_TCPTABLE2)table)->table[numberOfEntries++];
-            memset(row, 0, sizeof(MIB_TCPROW2));
+            RtlZeroMemory(row, sizeof(MIB_TCPROW2));
             row->dwState = statusTable[i].State;
             row->dwLocalAddr = localAddress;
             row->dwLocalPort = key->LocalAddress.Ipv4.sin_port;
@@ -16077,7 +16004,7 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
                 continue;
 
             row = &((PMIB_TCP6TABLE2)table)->table[numberOfEntries++];
-            memset(row, 0, sizeof(MIB_TCP6ROW2));
+            RtlZeroMemory(row, sizeof(MIB_TCP6ROW2));
             row->LocalAddr = key->LocalAddress.Ipv6.sin6_addr;
             row->dwLocalScopeId = key->LocalAddress.Ipv6.sin6_scope_id;
             row->dwLocalPort = key->LocalAddress.Ipv6.sin6_port;
@@ -16093,17 +16020,26 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
     PhNsiFreeTable(keyTable, NULL, statusTable, ownerTable);
 
     // InternalGetTable always requests a sorted table.
+    // N.B. This is the only write of dwNumEntries and the heap block is not zeroed.
 
-    //if (Family == AF_INET)
-    //{
-    //    ((PMIB_TCPTABLE2)table)->dwNumEntries = numberOfEntries;
-    //    qsort_s(((PMIB_TCPTABLE2)table)->table, numberOfEntries, sizeof(MIB_TCPROW2), PhpCompareMibTcpRow2, NULL);
-    //}
-    //else
-    //{
-    //    ((PMIB_TCP6TABLE2)table)->dwNumEntries = numberOfEntries;
-    //    qsort_s(((PMIB_TCP6TABLE2)table)->table, numberOfEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
-    //}
+    if (Family == AF_INET)
+    {
+        ((PMIB_TCPTABLE2)table)->dwNumEntries = numberOfEntries;
+
+        //if (numberOfEntries > 1)
+        //{
+        //    qsort_s(((PMIB_TCPTABLE2)table)->table, numberOfEntries, sizeof(MIB_TCPROW2), PhpCompareMibTcpRow2, NULL);
+        //}
+    }
+    else
+    {
+        ((PMIB_TCP6TABLE2)table)->dwNumEntries = numberOfEntries;
+
+        //if (numberOfEntries > 1)
+        //{
+        //    qsort_s(((PMIB_TCP6TABLE2)table)->table, numberOfEntries, sizeof(MIB_TCP6ROW2), PhpCompareMibTcp6Row2, NULL);
+        //}
+    }
 
     *Table = table;
     return STATUS_SUCCESS;
@@ -16112,56 +16048,50 @@ static NTSTATUS PhpAllocateAndGetBoundTcpTable(
 /**
  * Retrieves the IPv4 TCP endpoints that are bound but not connected or listening.
  *
- * \param BoundTcpTable Receives a MIB_TCPTABLE2 allocated from HeapHandle. Free it with RtlFreeHeap.
- * \param HeapHandle The heap to allocate the table from.
- * \param HeapFlags Flags passed to RtlAllocateHeap.
+ * \param BoundTcpTable Receives a MIB_TCPTABLE2
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \remarks Reimplements iphlpapi!InternalGetBoundTcpEndpointTable.
  */
 NTSTATUS WINAPI PhInternalGetBoundTcpEndpointTable(
-    _Out_ PVOID* BoundTcpTable,
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
+    _Outptr_ PMIB_TCPTABLE2* BoundTcpTable
     )
 {
-    return PhpAllocateAndGetBoundTcpTable(AF_INET, BoundTcpTable, HeapHandle, HeapFlags);
+    NTSTATUS status;
+    PVOID table;
+
+    status = PhpAllocateAndGetBoundTcpTable(AF_INET, &table);
+
+    if (NT_SUCCESS(status))
+        *BoundTcpTable = table;
+
+    return status;
 }
 
 /**
  * Retrieves the IPv6 TCP endpoints that are bound but not connected or listening.
  *
- * \param BoundTcpTable Receives a MIB_TCP6TABLE2 allocated from HeapHandle. Free it with RtlFreeHeap.
- * \param HeapHandle The heap to allocate the table from.
- * \param HeapFlags Flags passed to RtlAllocateHeap.
+ * \param BoundTcpTable Receives a MIB_TCP6TABLE2
  * \return An NTSTATUS value; use NT_SUCCESS() to check for success.
  * \remarks Reimplements iphlpapi!InternalGetBoundTcp6EndpointTable.
  */
 NTSTATUS WINAPI PhInternalGetBoundTcp6EndpointTable(
-    _Out_ PVOID* BoundTcpTable,
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
+    _Outptr_ PMIB_TCP6TABLE2* BoundTcpTable
     )
 {
-    return PhpAllocateAndGetBoundTcpTable(AF_INET6, BoundTcpTable, HeapHandle, HeapFlags);
+    NTSTATUS status;
+    PVOID table;
+
+    status = PhpAllocateAndGetBoundTcpTable(AF_INET6, &table);
+
+    if (NT_SUCCESS(status))
+        *BoundTcpTable = table;
+
+    return status;
 }
 
 //
 // NotifyIpInterfaceChange
 //
-
-// Second argument of the NSI RPC change callback for keyed objects (iphlpapi!NetioInterfaceChangeCallBack).
-typedef struct _PHP_NSI_CHANGE_KEY
-{
-    PVOID Key;
-    ULONG KeyLength;
-} PHP_NSI_CHANGE_KEY, *PPHP_NSI_CHANGE_KEY;
-
-// Matches the NETIO_CHANGE_CALLBACK_CONTEXT + MIB_IPINTERFACE_ROW pairs of NETIO_IP_INTERFACE_CHANGE_REGISTRATION.
-typedef struct _PHP_IP_INTERFACE_CHANGE_CONTEXT
-{
-    NETIO_CHANGE_CALLBACK_CONTEXT Callback;
-    MIB_IPINTERFACE_ROW Row;
-} PHP_IP_INTERFACE_CHANGE_CONTEXT, *PPHP_IP_INTERFACE_CHANGE_CONTEXT;
 
 /**
  * NSI callback that converts an IP interface change into a MIB_IPINTERFACE_ROW and forwards it to the caller.
@@ -16174,23 +16104,25 @@ typedef struct _PHP_IP_INTERFACE_CHANGE_CONTEXT
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-notifyipinterfacechange
  */
 static ULONG NTAPI PhpIpInterfaceChangeCallback(
-    _In_ PPHP_IP_INTERFACE_CHANGE_CONTEXT Context,
-    _In_ PPHP_NSI_CHANGE_KEY ChangeKey,
-    _In_opt_ PVOID Reserved,
+    _In_opt_ PVOID CallerContext,
+    _In_opt_ PVOID ObjectKey,
+    _In_opt_ PVOID ObjectParameter,
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
+    PPH_IP_INTERFACE_CHANGE_CONTEXT Context = CallerContext;
+    PNSI_CHANGE_KEY ChangeKey = ObjectKey;
     PMIB_IPINTERFACE_ROW row = NULL;
 
     // The initial notification has no key and reports a NULL row.
     if (ChangeKey->KeyLength)
     {
         row = &Context->Row;
-        memset(row, 0, sizeof(MIB_IPINTERFACE_ROW));
+        RtlZeroMemory(row, sizeof(MIB_IPINTERFACE_ROW));
         row->Family = Context->Callback.Family;
         row->InterfaceLuid = *(PNET_LUID)ChangeKey->Key;
 
-        if (PhpNsiGetParameter(
+        if (!NT_SUCCESS(PhpNsiGetParameter(
             NsiActive,
             &NPI_MS_NDIS_MODULEID,
             NsiNdisObjectInterface,
@@ -16200,13 +16132,13 @@ static ULONG NTAPI PhpIpInterfaceChangeCallback(
             &row->InterfaceIndex,
             sizeof(NET_IFINDEX),
             0
-            ) != STATUS_SUCCESS)
+            )))
         {
             row->InterfaceIndex = 0;
         }
     }
 
-    ((PIPINTERFACE_CHANGE_CALLBACK)Context->Callback.Callback)(
+    Context->Callback.InterfaceCallback(
         Context->Callback.CallerContext,
         row,
         NotificationType
@@ -16235,41 +16167,47 @@ NTSTATUS NTAPI PhNotifyIpInterfaceChange(
     )
 {
     PNETIO_IP_INTERFACE_CHANGE_REGISTRATION registration;
-    PPHP_IP_INTERFACE_CHANGE_CONTEXT ipv4Context;
-    PPHP_IP_INTERFACE_CHANGE_CONTEXT ipv6Context;
-    PVOID rpcHandle;
-    NTSTATUS result = STATUS_SUCCESS;
+    PPH_IP_INTERFACE_CHANGE_CONTEXT ipv4Context;
+    PPH_IP_INTERFACE_CHANGE_CONTEXT ipv6Context;
+    RPC_BINDING_HANDLE rpcHandle;
+    NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS result4 = STATUS_SUCCESS;
 
     if ((Family != AF_UNSPEC && Family != AF_INET && Family != AF_INET6) || !Callback || !NotificationHandle)
         return STATUS_INVALID_PARAMETER;
 
     // PhCancelMibChangeNotify2 deregisters through the shared header and frees with PhFree.
-    registration = PhAllocateZero(sizeof(NETIO_IP_INTERFACE_CHANGE_REGISTRATION));
+    registration = PhAllocateZeroSafe(sizeof(NETIO_IP_INTERFACE_CHANGE_REGISTRATION));
+
+    if (!registration)
+        return STATUS_NO_MEMORY;
+
     registration->Header.ObjectId = NsiIpObjectIpInterface;
     registration->Header.Ipv4CallbackContext = &registration->Ipv4Callback;
     registration->Header.Ipv6CallbackContext = &registration->Ipv6Callback;
 
-    ipv4Context = (PPHP_IP_INTERFACE_CHANGE_CONTEXT)&registration->Ipv4Callback;
+    ipv4Context = (PPH_IP_INTERFACE_CHANGE_CONTEXT)&registration->Ipv4Callback;
     ipv4Context->Callback.Family = AF_INET;
-    ipv4Context->Callback.Callback = Callback;
+    ipv4Context->Callback.InterfaceCallback = Callback;
     ipv4Context->Callback.CallerContext = CallerContext;
 
-    ipv6Context = (PPHP_IP_INTERFACE_CHANGE_CONTEXT)&registration->Ipv6Callback;
+    ipv6Context = (PPH_IP_INTERFACE_CHANGE_CONTEXT)&registration->Ipv6Callback;
     ipv6Context->Callback.Family = AF_INET6;
-    ipv6Context->Callback.Callback = Callback;
+    ipv6Context->Callback.InterfaceCallback = Callback;
     ipv6Context->Callback.CallerContext = CallerContext;
 
-    if (!(rpcHandle = PhNsiNotificationConnectToServer()))
+    status = PhNsiNotificationConnectToServer(&rpcHandle);
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(registration);
         *NotificationHandle = NULL;
-        return STATUS_INVALID_HANDLE;
+        return status;
     }
 
     if (Family != AF_INET6)
     {
-        result = result4 = PhNsiRpcRegisterChangeNotification(
+        status = result4 = PhNsiRpcRegisterChangeNotification(
             rpcHandle,
             &NPI_MS_IPV4_MODULEID,
             NsiIpObjectIpInterface,
@@ -16282,7 +16220,7 @@ NTSTATUS NTAPI PhNotifyIpInterfaceChange(
 
     if (Family != AF_INET)
     {
-        result = PhNsiRpcRegisterChangeNotification(
+        status = PhNsiRpcRegisterChangeNotification(
             rpcHandle,
             &NPI_MS_IPV6_MODULEID,
             NsiIpObjectIpInterface,
@@ -16294,14 +16232,14 @@ NTSTATUS NTAPI PhNotifyIpInterfaceChange(
 
         // InternalRegisterChangeNotification: AF_UNSPEC succeeds when either module registers.
         if (Family == AF_UNSPEC)
-            result = (!NT_SUCCESS(result4) && !NT_SUCCESS(result)) ? result4 : STATUS_SUCCESS;
+            status = (!NT_SUCCESS(result4) && !NT_SUCCESS(status)) ? result4 : STATUS_SUCCESS;
     }
 
-    if (!NT_SUCCESS(result))
+    if (!NT_SUCCESS(status))
     {
         PhCancelMibChangeNotify2(registration);
         *NotificationHandle = NULL;
-        return result;
+        return status;
     }
 
     *NotificationHandle = registration;
@@ -16451,12 +16389,15 @@ NTSTATUS NTAPI PhParseNetworkString(
     _Out_opt_ PUCHAR PrefixLength
     )
 {
-    IN_ADDR ipv4Address = { 0 };
-    IN6_ADDR ipv6Address = { 0 };
+    IN_ADDR ipv4Address;
+    IN6_ADDR ipv6Address;
     ULONG scopeId = 0;
     USHORT port = 0;
     PCWSTR separator;
     UCHAR prefix;
+
+    RtlZeroMemory(&ipv4Address, sizeof(IN_ADDR));
+    RtlZeroMemory(&ipv6Address, sizeof(IN6_ADDR));
 
     if (!NetworkString)
         return STATUS_INVALID_PARAMETER;
@@ -16473,7 +16414,7 @@ NTSTATUS NTAPI PhParseNetworkString(
         if (AddressInfo)
         {
             AddressInfo->Format = NET_ADDRESS_IPV4;
-            memset(&AddressInfo->Ipv4Address, 0, sizeof(SOCKADDR_IN));
+            RtlZeroMemory(&AddressInfo->Ipv4Address, sizeof(SOCKADDR_IN));
             AddressInfo->Ipv4Address.sin_family = AF_INET;
             AddressInfo->Ipv4Address.sin_port = port;
             AddressInfo->Ipv4Address.sin_addr = ipv4Address;
@@ -16493,7 +16434,7 @@ NTSTATUS NTAPI PhParseNetworkString(
         (separator = wcschr(NetworkString, L'/')) && separator[1] &&
         (prefix = PhpParsePrefixLength(separator + 1)) <= sizeof(IN_ADDR) * CHAR_BIT)
     {
-        WCHAR addressString[PHP_IPV4_NETWORK_ADDRESS_BUFFER_LENGTH];
+        WCHAR addressString[PH_IPV4_NETWORK_ADDRESS_BUFFER_LENGTH];
 
         if (NT_SUCCESS(RtlStringCchCopyNW(addressString, RTL_NUMBER_OF(addressString), NetworkString, separator - NetworkString)))
         {
@@ -16506,7 +16447,7 @@ NTSTATUS NTAPI PhParseNetworkString(
                 if (AddressInfo)
                 {
                     AddressInfo->Format = NET_ADDRESS_IPV4;
-                    memset(&AddressInfo->Ipv4Address, 0, sizeof(SOCKADDR_IN));
+                    RtlZeroMemory(&AddressInfo->Ipv4Address, sizeof(SOCKADDR_IN));
                     AddressInfo->Ipv4Address.sin_family = AF_INET;
                     AddressInfo->Ipv4Address.sin_addr = ipv4Address;
                 }
@@ -16564,7 +16505,7 @@ NTSTATUS NTAPI PhParseNetworkString(
         (separator = wcschr(NetworkString, L'/')) && separator[1] &&
         (prefix = PhpParsePrefixLength(separator + 1)) != UCHAR_MAX)
     {
-        WCHAR addressString[PHP_IPV6_NETWORK_ADDRESS_BUFFER_LENGTH];
+        WCHAR addressString[PH_IPV6_NETWORK_ADDRESS_BUFFER_LENGTH];
 
         if (NT_SUCCESS(RtlStringCchCopyNW(addressString, RTL_NUMBER_OF(addressString), NetworkString, separator - NetworkString)) &&
             PhIpv6StringToAddressEx(addressString, &ipv6Address, &scopeId, &port) == STATUS_SUCCESS &&
@@ -16582,7 +16523,7 @@ NTSTATUS NTAPI PhParseNetworkString(
                 index++;
             }
 
-            for (; hostBitsClear && index < sizeof(ipv6Address.u.Byte); index++)
+            for (; hostBitsClear && index < RTL_NUMBER_OF(ipv6Address.u.Byte); index++)
             {
                 if (ipv6Address.u.Byte[index] != 0)
                     hostBitsClear = FALSE;
@@ -16635,7 +16576,7 @@ NTSTATUS NTAPI PhParseNetworkString(
         }
         else
         {
-            nameLength = PhCountStringZ((PWSTR)NetworkString);
+            nameLength = PhCountStringZ(NetworkString);
         }
 
         if (!PhpDnsValidateName_W)
@@ -16657,13 +16598,13 @@ NTSTATUS NTAPI PhParseNetworkString(
         }
         else
         {
-            CHAR utf8Name[PHP_DNS_UTF8_NAME_BUFFER_LENGTH];
+            CHAR utf8Name[PH_DNS_UTF8_NAME_BUFFER_LENGTH];
             ULONG utf8Length;
             NTSTATUS status;
 
             status = RtlUnicodeToUTF8N(
                 utf8Name,
-                sizeof(utf8Name) - 2,
+                RTL_NUMBER_OF(utf8Name) - 2,
                 &utf8Length,
                 NetworkString,
                 (ULONG)(nameLength * sizeof(WCHAR))
@@ -16683,8 +16624,15 @@ NTSTATUS NTAPI PhParseNetworkString(
         {
             AddressInfo->Format = NET_ADDRESS_DNS_NAME;
 
-            if (!NT_SUCCESS(RtlStringCchCopyNW(AddressInfo->NamedAddress.Address, RTL_NUMBER_OF(AddressInfo->NamedAddress.Address), NetworkString, nameLength)))
+            if (!NT_SUCCESS(RtlStringCchCopyNW(
+                AddressInfo->NamedAddress.Address,
+                RTL_NUMBER_OF(AddressInfo->NamedAddress.Address),
+                NetworkString,
+                nameLength
+                )))
+            {
                 return STATUS_BUFFER_TOO_SMALL;
+            }
 
             RtlStringCchCopyW(AddressInfo->NamedAddress.Port, RTL_NUMBER_OF(AddressInfo->NamedAddress.Port), colon ? colon + 1 : L"");
         }

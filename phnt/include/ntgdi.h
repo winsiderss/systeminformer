@@ -2773,7 +2773,7 @@ NtGdiSetRectRgn(
  *
  * Copies counted packed source bytes into a bitmap and returns the number transferred. The storage is
  * caller-owned and not retained by this entry. Use the bitmap's scan-line layout rather than assuming DIB
- * DWORD padding.
+ * ULONG padding.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI

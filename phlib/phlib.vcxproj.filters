@@ -29,6 +29,9 @@
     <ClCompile Include="emenu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="emenudx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -116,7 +119,7 @@
     <ClCompile Include="tabnew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="graphprp.c">
+    <ClCompile Include="Controls\propwnd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="treenew.c">
@@ -254,6 +257,9 @@
     <ClCompile Include="base64.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Controls\graphbar.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="graphscroll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -353,6 +359,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\tabnewp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\graphprp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\treenew.h">
@@ -497,6 +506,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\base64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\graphbar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\graphscroll.h">

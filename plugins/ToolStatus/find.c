@@ -444,6 +444,47 @@ VOID FindDialogHandleFindMessage(
 }
 
 /**
+ * Hook procedure for the system Find dialog.
+ *
+ * \param WindowHandle A handle to the Find dialog.
+ * \param WindowMessage The message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \return Zero to allow the default dialog procedure to process the message; otherwise, the message result.
+ */
+UINT_PTR CALLBACK FindDialogHookProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (WindowMessage)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND editHandle;
+
+            if (editHandle = FindWindowEx(WindowHandle, NULL, WC_EDIT, NULL))
+            {
+                PhInitializeWindowThemeEditControl(editHandle);
+            }
+        }
+        return TRUE;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLOREDIT:
+        return HANDLE_WM_CTLCOLOREDIT(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+/**
  * Displays the system Find dialog for searching TreeNew control content.
  *
  * \param OwnerWindow A handle to the window that will own the Find dialog.
@@ -496,10 +537,11 @@ VOID ShowFindDialog(
 
     ZeroMemory(&FindDialogData, sizeof(FindDialogData));
     FindDialogData.lStructSize = sizeof(FindDialogData);
-    FindDialogData.Flags = FR_DOWN;
+    FindDialogData.Flags = FR_DOWN | FR_ENABLEHOOK;
     FindDialogData.hwndOwner = OwnerWindow;
     FindDialogData.lpstrFindWhat = FindDialogText;
     FindDialogData.wFindWhatLen = (WORD)sizeof(FindDialogText);
+    FindDialogData.lpfnHook = FindDialogHookProc;
 
     FindDialogHandle = FindText_I(&FindDialogData);
 

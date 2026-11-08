@@ -1661,6 +1661,7 @@ DEFINE_GUID(FOLDERID_ProgramFilesX86, 0x7C5A40EF, 0xA0FB, 0x4BFC, 0x87, 0x4A, 0x
 DEFINE_GUID(FOLDERID_ProgramFilesX64, 0x6D809377, 0x6AF0, 0x444B, 0x89, 0x57, 0xA3, 0x77, 0x3F, 0x02, 0x20, 0x0E);
 DEFINE_GUID(FOLDERID_ProgramData, 0x62AB5D82, 0xFDC1, 0x4DC3, 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97);
 
+#define PH_KF_FLAG_FORCE_NONE 0x0
 #define PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION 0x1
 #define PH_KF_FLAG_FORCE_APPCONTAINER_REDIRECTION 0x2
 
@@ -2328,7 +2329,7 @@ NTAPI
 PhUpdateHash(
     _In_ PPH_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
-    _In_ ULONG Length
+    _In_ SIZE_T Length
     );
 
 PHLIBAPI
@@ -2997,32 +2998,6 @@ PhTaskbarListSetOverlayIcon(
     _In_opt_ HICON IconHandle,
     _In_opt_ PCWSTR IconDescription
     );
-
-typedef enum _PH_TASKBAR_NOTIFY_EVENT
-{
-    PhTaskbarNotifyCreated,
-    PhTaskbarNotifyProgressValue,
-    PhTaskbarNotifyProgressState,
-    PhTaskbarNotifyDestroyed,
-    PhTaskbarNotifyMaximum
-} PH_TASKBAR_NOTIFY_EVENT;
-
-typedef struct _PH_TASKBAR_NOTIFY
-{
-    PH_TASKBAR_NOTIFY_EVENT Event;
-    HANDLE TaskbarHandle;
-    HWND WindowHandle;
-    ULONGLONG Completed;
-    ULONGLONG Total;
-    ULONG Flags;
-} PH_TASKBAR_NOTIFY, *PPH_TASKBAR_NOTIFY;
-
-//PHLIBAPI
-//PPH_CALLBACK
-//NTAPI
-//PhGetTaskbarListCallback(
-//    VOID
-//    );
 
 /**
  * Adds an offset to a pointer with overflow protection.

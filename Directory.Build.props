@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <SystemInformerRoot>$(MSBuildThisFileDirectory)</SystemInformerRoot>
+    <VCProjectVersion>18.0</VCProjectVersion>
   </PropertyGroup>
   <!-- Order matters: WDK props clear TargetPlatformVersion; SDK.CPP base sets it. Import base last so it wins. -->
   <Import Project="packages\Microsoft.Windows.WDK.x64.10.0.28000.2526\build\native\Microsoft.Windows.WDK.x64.props" Condition="Exists('packages\Microsoft.Windows.WDK.x64.10.0.28000.2526\build\native\Microsoft.Windows.WDK.x64.props') and '$(Platform)' == 'x64'"/>

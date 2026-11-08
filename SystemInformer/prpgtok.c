@@ -22,17 +22,20 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     )
 {
     NTSTATUS status;
+    PPH_PROCESS_ITEM processItem;
     HANDLE processHandle;
 
     if (!PH_IS_REAL_PROCESS_ID(Context))
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        (HANDLE)Context
-        )))
-        return status;
+    if (!(processItem = PhReferenceProcessItem((HANDLE)Context)))
+        return STATUS_INVALID_HANDLE;
+
+    if (!(processHandle = processItem->QueryHandle))
+    {
+        PhDereferenceObject(processItem);
+        return STATUS_INVALID_HANDLE;
+    }
 
     if (!NT_SUCCESS(status = PhOpenProcessToken(
         processHandle,
@@ -54,7 +57,7 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
         }
     }
 
-    NtClose(processHandle);
+    PhDereferenceObject(processItem);
 
     return status;
 }

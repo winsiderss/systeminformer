@@ -13,6 +13,7 @@
 #include <kphuser.h>
 #include <mapldr.h>
 #include <bcrypt.h>
+#include <phcrypt.h>
 
 #include <winsqlite/winsqlite3.h>
 
@@ -1397,13 +1398,13 @@ VOID ProcessScanItemsSubmit(
         PhClearReference(&id);
     }
 
-    PhQuerySystemTime(&deadline);
+    PhQueryUnbiasedInterruptTime(&deadline);
     deadline.QuadPart += UInt32x32To64(ScanSubmitTimeout, PH_TICKS_PER_SEC);
 
     for (;;)
     {
         BOOLEAN pending = FALSE;
-        LARGE_INTEGER systemTime;
+        LARGE_INTEGER currentTime;
 
         for (ULONG i = 0; i < Count; i++)
         {
@@ -1431,8 +1432,8 @@ VOID ProcessScanItemsSubmit(
         if (!pending)
             break;
 
-        PhQuerySystemTime(&systemTime);
-        if (systemTime.QuadPart >= deadline.QuadPart)
+        PhQueryUnbiasedInterruptTime(&currentTime);
+        if (currentTime.QuadPart >= deadline.QuadPart)
             break;
 
         PhDelayExecution(500);

@@ -138,14 +138,22 @@ BOOLEAN EtwDiskGraphMessageCallback(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data;
+                        PhCopyConvertCircularBufferULONG64(&context->Block->DiskReadHistory, context->DiskReadGraphState.Data1, drawInfo->LineDataCount);
+                        max = PhMaxMemorySingles(context->DiskReadGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data;
 
-                        context->DiskReadGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskReadHistory, i);
+                            context->DiskReadGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskReadHistory, i);
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     // Minimum scaling of 1 MB.
@@ -205,14 +213,22 @@ BOOLEAN EtwDiskGraphMessageCallback(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data;
+                        PhCopyConvertCircularBufferULONG64(&context->Block->DiskWriteHistory, context->DiskWriteGraphState.Data1, drawInfo->LineDataCount);
+                        max = PhMaxMemorySingles(context->DiskWriteGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data;
 
-                        context->DiskWriteGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskWriteHistory, i);
+                            context->DiskWriteGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskWriteHistory, i);
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     // Minimum scaling of 1 MB.
@@ -324,11 +340,60 @@ BOOLEAN EtwDiskGraphMessageCallback(
     return TRUE;
 }
 
+VOID EtwDiskGetGraphRects(
+    _In_ PET_DISK_CONTEXT Context,
+    _Out_writes_(2) RECT GroupRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT panelRect;
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
+    LONG graphWidth;
+    LONG graphHeight;
+
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+
+    // Limit the rectangle bottom to the top of the panel.
+    if (Context->PanelHandle && PhGetWindowRect(Context->PanelHandle, &panelRect))
+    {
+        MapWindowRect(NULL, Context->WindowHandle, &panelRect);
+        clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
+    }
+
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 2;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        GroupRects[i].left = margin.left;
+        GroupRects[i].top = margin.top + (graphHeight + between) * i;
+        GroupRects[i].right = GroupRects[i].left + graphWidth;
+        GroupRects[i].bottom = GroupRects[i].top + graphHeight;
+
+        GraphRects[i].left = GroupRects[i].left + innerMargin.left;
+        GraphRects[i].top = GroupRects[i].top + innerMargin.top;
+        GraphRects[i].right = GroupRects[i].right - innerMargin.right;
+        GraphRects[i].bottom = GroupRects[i].bottom - innerMargin.bottom;
+    }
+}
+
 VOID EtwDiskCreateGraphs(
     _In_ PET_DISK_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT groupRects[2];
+    RECT graphRects[2];
+
+    EtwDiskGetGraphRects(Context, groupRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -339,10 +404,10 @@ VOID EtwDiskCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -354,10 +419,10 @@ VOID EtwDiskCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -395,14 +460,22 @@ BOOLEAN EtwNetworkGraphMessageCallback(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data;
+                        PhCopyConvertCircularBufferULONG64(&context->Block->NetworkReceiveHistory, context->NetworkReceiveGraphState.Data1, drawInfo->LineDataCount);
+                        max = PhMaxMemorySingles(context->NetworkReceiveGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data;
 
-                        context->NetworkReceiveGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkReceiveHistory, i);
+                            context->NetworkReceiveGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkReceiveHistory, i);
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     // Minimum scaling of 1 MB.
@@ -462,14 +535,22 @@ BOOLEAN EtwNetworkGraphMessageCallback(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data;
+                        PhCopyConvertCircularBufferULONG64(&context->Block->NetworkSendHistory, context->NetworkSendGraphState.Data1, drawInfo->LineDataCount);
+                        max = PhMaxMemorySingles(context->NetworkSendGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data;
 
-                        context->NetworkSendGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkSendHistory, i);
+                            context->NetworkSendGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkSendHistory, i);
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     // Minimum scaling of 1 MB.
@@ -581,11 +662,60 @@ BOOLEAN EtwNetworkGraphMessageCallback(
     return TRUE;
 }
 
+VOID EtwNetworkGetGraphRects(
+    _In_ PET_NET_CONTEXT Context,
+    _Out_writes_(2) RECT GroupRects[2],
+    _Out_writes_(2) RECT GraphRects[2]
+    )
+{
+    RECT clientRect;
+    RECT panelRect;
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
+    LONG graphWidth;
+    LONG graphHeight;
+
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
+
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+
+    // Limit the rectangle bottom to the top of the panel.
+    if (Context->PanelHandle && PhGetWindowRect(Context->PanelHandle, &panelRect))
+    {
+        MapWindowRect(NULL, Context->WindowHandle, &panelRect);
+        clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
+    }
+
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 2;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        GroupRects[i].left = margin.left;
+        GroupRects[i].top = margin.top + (graphHeight + between) * i;
+        GroupRects[i].right = GroupRects[i].left + graphWidth;
+        GroupRects[i].bottom = GroupRects[i].top + graphHeight;
+
+        GraphRects[i].left = GroupRects[i].left + innerMargin.left;
+        GraphRects[i].top = GroupRects[i].top + innerMargin.top;
+        GraphRects[i].right = GroupRects[i].right - innerMargin.right;
+        GraphRects[i].bottom = GroupRects[i].bottom - innerMargin.bottom;
+    }
+}
+
 VOID EtwNetworkCreateGraphs(
     _In_ PET_NET_CONTEXT Context
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    RECT groupRects[2];
+    RECT graphRects[2];
+
+    EtwNetworkGetGraphRects(Context, groupRects, graphRects);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -596,10 +726,10 @@ VOID EtwNetworkCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -611,10 +741,10 @@ VOID EtwNetworkCreateGraphs(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        0,
-        0,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -708,20 +838,8 @@ VOID EtwDiskLayoutGraphs(
     )
 {
     HDWP deferHandle;
-    RECT clientRect;
-    RECT panelRect;
-    RECT margin;
-    RECT innerMargin;
-    LONG between;
-    LONG graphWidth;
-    LONG graphHeight;
-
-    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
-
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
-    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
-
-    between = PhScaleToDisplay(3, Context->WindowDpi);
+    RECT groupRects[2];
+    RECT graphRects[2];
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -730,41 +848,49 @@ VOID EtwDiskLayoutGraphs(
     Context->DiskWriteGraphState.Valid = FALSE;
     Context->DiskWriteGraphState.TooltipIndex = ULONG_MAX;
 
-    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
-        return;
-    // Limit the rectangle bottom to the top of the panel.
-    if (!PhGetWindowRect(Context->PanelHandle, &panelRect))
-        return;
-
-    MapWindowRect(NULL, Context->WindowHandle, &panelRect);
-    clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
-
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 2;
+    EtwDiskGetGraphRects(Context, groupRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
 
-    deferHandle = DeferWindowPos(deferHandle, Context->DiskReadGroupBox, NULL, margin.left, margin.top, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->DiskReadGroupBox,
+        NULL,
+        groupRects[0].left,
+        groupRects[0].top,
+        groupRects[0].right - groupRects[0].left,
+        groupRects[0].bottom - groupRects[0].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->DiskReadGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->DiskWriteGroupBox, NULL, margin.left, margin.top + graphHeight + between, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->DiskWriteGroupBox,
+        NULL,
+        groupRects[1].left,
+        groupRects[1].top,
+        groupRects[1].right - groupRects[1].left,
+        groupRects[1].bottom - groupRects[1].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->DiskWriteGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + graphHeight + between + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -776,20 +902,8 @@ VOID EtwNetworkLayoutGraphs(
     )
 {
     HDWP deferHandle;
-    RECT clientRect;
-    RECT panelRect;
-    RECT margin;
-    RECT innerMargin;
-    LONG between;
-    ULONG graphWidth;
-    ULONG graphHeight;
-
-    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
-
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
-    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
-
-    between = PhScaleToDisplay(3, Context->WindowDpi);
+    RECT groupRects[2];
+    RECT graphRects[2];
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -798,41 +912,49 @@ VOID EtwNetworkLayoutGraphs(
     Context->NetworkReceiveGraphState.Valid = FALSE;
     Context->NetworkReceiveGraphState.TooltipIndex = ULONG_MAX;
 
-    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
-        return;
-    // Limit the rectangle bottom to the top of the panel.
-    if (!PhGetWindowRect(Context->PanelHandle, &panelRect))
-        return;
-
-    MapWindowRect(NULL, Context->WindowHandle, &panelRect);
-    clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
-
-    graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 2;
+    EtwNetworkGetGraphRects(Context, groupRects, graphRects);
 
     deferHandle = BeginDeferWindowPos(4);
 
-    deferHandle = DeferWindowPos(deferHandle, Context->NetworkReceiveGroupBox, NULL, margin.left, margin.top, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->NetworkReceiveGroupBox,
+        NULL,
+        groupRects[0].left,
+        groupRects[0].top,
+        groupRects[0].right - groupRects[0].left,
+        groupRects[0].bottom - groupRects[0].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->NetworkReceiveGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[0].left,
+        graphRects[0].top,
+        graphRects[0].right - graphRects[0].left,
+        graphRects[0].bottom - graphRects[0].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    deferHandle = DeferWindowPos(deferHandle, Context->NetworkSendGroupBox, NULL, margin.left, margin.top + graphHeight + between, graphWidth, graphHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->NetworkSendGroupBox,
+        NULL,
+        groupRects[1].left,
+        groupRects[1].top,
+        groupRects[1].right - groupRects[1].left,
+        groupRects[1].bottom - groupRects[1].top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->NetworkSendGraphHandle,
         NULL,
-        margin.left + innerMargin.left,
-        margin.top + graphHeight + between + innerMargin.top,
-        graphWidth - innerMargin.left - innerMargin.right,
-        graphHeight - innerMargin.top - innerMargin.bottom,
+        graphRects[1].left,
+        graphRects[1].top,
+        graphRects[1].right - graphRects[1].left,
+        graphRects[1].bottom - graphRects[1].top,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 

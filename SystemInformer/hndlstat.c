@@ -190,7 +190,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
                 if (PhIsNullOrEmptyString(entry->Name))
                 {
-                    entry->Name = PhGetObjectTypeIndexName(handleInfo->ObjectTypeIndex);
+                    PhMoveReference(&entry->Name, PhGetObjectTypeIndexName(handleInfo->ObjectTypeIndex));
 
                     if (PhIsNullOrEmptyString(entry->Name))
                     {
@@ -267,6 +267,8 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhFree(context);
         }
         break;
     case WM_COMMAND:

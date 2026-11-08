@@ -57,6 +57,9 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     HWND UserNameWindowHandle;
     HWND PassBoxWindowHandle;
     HWND PassCheckBoxWindowHandle;
+    PPH_STRING OriginalGroup;
+    PPH_STRING OriginalBinaryPath;
+    PPH_STRING OriginalUserAccount;
     HWND ServiceDllWindowHandle;
     HFONT WindowFont;
     LONG WindowDpi;
@@ -413,6 +416,10 @@ NTSTATUS PhpShowServicePropertiesThread(
 
     PhModalPropertySheet(&propSheetHeader);
 
+    PhClearReference(&context.OriginalGroup);
+    PhClearReference(&context.OriginalBinaryPath);
+    PhClearReference(&context.OriginalUserAccount);
+
     PhDereferenceObject(serviceItem);
 
     return STATUS_SUCCESS;
@@ -576,6 +583,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PhSetWindowText(context->GroupWindowHandle, config->lpLoadOrderGroup);
                     PhSetWindowText(context->BinaryPathWindowHandle, config->lpBinaryPathName);
                     PhSetWindowText(context->UserNameWindowHandle, config->lpServiceStartName);
+                    context->OriginalGroup = PhCreateString(config->lpLoadOrderGroup ? config->lpLoadOrderGroup : L"");
+                    context->OriginalBinaryPath = PhCreateString(config->lpBinaryPathName ? config->lpBinaryPathName : L"");
+                    context->OriginalUserAccount = PhCreateString(config->lpServiceStartName ? config->lpServiceStartName : L"");
 
                     if (startType != config->dwStartType || errorControl != config->dwErrorControl)
                     {
@@ -785,6 +795,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PPH_STRING newServiceBinaryPath = NULL;
                     PPH_STRING newServiceUserAccount = NULL;
                     PPH_STRING newServicePassword = NULL;
+                    PCWSTR serviceGroup = NULL;
+                    PCWSTR serviceBinaryPath = NULL;
+                    PCWSTR serviceUserAccount = NULL;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
@@ -807,12 +820,16 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     if (PhEqualStringRef(PhGetServiceErrorControlString(serviceItem->ErrorControl), &newServiceErrorControlString->sr, TRUE))
                         newServiceErrorControl = SERVICE_NO_CHANGE;
 
-                    if (PhGetWindowTextLength(context->GroupWindowHandle))
-                        newServiceGroup = PH_AUTO(PhGetWindowText(context->GroupWindowHandle));
-                    if (PhGetWindowTextLength(context->BinaryPathWindowHandle))
-                        newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
-                    if (PhGetWindowTextLength(context->UserNameWindowHandle))
-                        newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
+                    newServiceGroup = PH_AUTO(PhGetWindowText(context->GroupWindowHandle));
+                    newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
+                    newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
+
+                    if (context->OriginalGroup && !PhEqualStringRef(&newServiceGroup->sr, &context->OriginalGroup->sr, FALSE))
+                        serviceGroup = newServiceGroup->Buffer;
+                    if (context->OriginalBinaryPath && !PhEqualStringRef(&newServiceBinaryPath->sr, &context->OriginalBinaryPath->sr, FALSE))
+                        serviceBinaryPath = newServiceBinaryPath->Buffer;
+                    if (context->OriginalUserAccount && !PhEqualStringRef(&newServiceUserAccount->sr, &context->OriginalUserAccount->sr, FALSE))
+                        serviceUserAccount = newServiceUserAccount->Buffer;
 
                     if (Button_GetCheck(context->PassCheckBoxWindowHandle) == BST_CHECKED)
                         newServicePassword = PhGetWindowText(context->PassBoxWindowHandle);
@@ -826,11 +843,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             newServiceType,
                             newServiceStartType,
                             newServiceErrorControl,
-                            PhGetString(newServiceBinaryPath),
-                            PhGetString(newServiceGroup),
+                            serviceBinaryPath,
+                            serviceGroup,
                             NULL,
                             NULL,
-                            PhGetString(newServiceUserAccount),
+                            serviceUserAccount,
                             PhGetString(newServicePassword),
                             NULL
                             );
@@ -868,11 +885,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                     newServiceType,
                                     newServiceStartType,
                                     newServiceErrorControl,
-                                    PhGetString(newServiceBinaryPath),
-                                    PhGetString(newServiceGroup),
+                                    serviceBinaryPath,
+                                    serviceGroup,
                                     NULL,
                                     NULL,
-                                    PhGetString(newServiceUserAccount),
+                                    serviceUserAccount,
                                     PhGetString(newServicePassword),
                                     NULL
                                     );
@@ -924,6 +941,13 @@ ErrorCase:
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
 
 Cleanup:
+                    if (NT_SUCCESS(status))
+                    {
+                        PhSetReference(&context->OriginalGroup, newServiceGroup);
+                        PhSetReference(&context->OriginalBinaryPath, newServiceBinaryPath);
+                        PhSetReference(&context->OriginalUserAccount, newServiceUserAccount);
+                    }
+
                     if (newServicePassword)
                     {
                         RtlSecureZeroMemory(newServicePassword->Buffer, newServicePassword->Length);

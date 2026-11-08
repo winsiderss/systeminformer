@@ -863,6 +863,35 @@ PPH_EMENU_ITEM PhShowEMenu(
 }
 
 /**
+ * Cancels the menu shown by PhShowEMenu on the calling thread.
+ *
+ * \remarks The DirectComposition menu runs its own message loop, so sending
+ * WM_CANCELMODE to the owner window (which ends a TrackPopupMenu menu) doesn't
+ * close it. Use this function instead.
+ */
+VOID PhCancelEMenu(
+    VOID
+    )
+{
+#ifdef PH_EMENU_NO_ENDMENU
+    GUITHREADINFO threadInfo;
+#endif
+
+    PhCancelEMenuDX();
+#ifndef PH_EMENU_NO_ENDMENU
+    EndMenu();
+#else
+    memset(&threadInfo, 0, sizeof(GUITHREADINFO));
+    threadInfo.cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(HandleToUlong(NtCurrentThreadId()), &threadInfo) && threadInfo.hwndMenuOwner)
+    {
+        SendMessage(threadInfo.hwndMenuOwner, WM_CANCELMODE, 0, 0);
+    }
+#endif
+}
+
+/**
  * Sets the flags of a menu item.
  *
  * \param Item The parent menu item.

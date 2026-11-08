@@ -235,6 +235,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SERVICES, FALSE, L"Services", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SHORT_USERNAME, FALSE, L"Short user name", 140, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_CURRENTDIRECTORY, FALSE, L"Current directory", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -699,6 +700,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->MitigationPoliciesText);
     PhClearReference(&ProcessNode->ServicesText);
     PhClearReference(&ProcessNode->ShortUsernameText);
+    PhClearReference(&ProcessNode->CurrentDirectoryText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1096,6 +1098,21 @@ static VOID PhpUpdateProcessNodeWindow(
 
         if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
+            if (ProcessNode->WindowHandle)
+            {
+                CLIENT_ID clientId;
+
+                // HWNDs are recycled; drop the cached window when it is gone or no longer
+                // belongs to this process so the next query picks up the new main window.
+                if (!IsWindow(ProcessNode->WindowHandle) ||
+                    !NT_SUCCESS(PhGetWindowClientId(ProcessNode->WindowHandle, &clientId)) ||
+                    clientId.UniqueProcess != ProcessNode->ProcessId)
+                {
+                    ProcessNode->WindowHandle = NULL;
+                    ProcessNode->WindowHung = FALSE;
+                }
+            }
+
             if (!ProcessNode->WindowHandle)
             {
                 ProcessNode->WindowHandle = PhGetProcessMainWindow(
@@ -1277,26 +1294,50 @@ static VOID PhpUpdateProcessNodeImage(
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
 #endif
             {
-                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
-
-                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                {
-                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                }
-                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                {
-                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                }
-
+                USHORT imageMachine;
+                ULONG imageTimeDateStamp;
+                USHORT imageCharacteristics;
+                USHORT imageSubsystem = IMAGE_SUBSYSTEM_UNKNOWN;
+                USHORT imageDllCharacteristics = 0;
 #ifdef _ARM64_
-                if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
-                    ProcessNode->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+                ULONG imageCHPEVersion = 0;
 #endif
+                __try
+                {
+                    imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                    imageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                    imageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+    
+                    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    {
+                        imageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                        imageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                    }
+                    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    {
+                        imageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                        imageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                    }            
+#ifdef _ARM64_
+                    if (imageMachine == IMAGE_FILE_MACHINE_AMD64 || imageMachine == IMAGE_FILE_MACHINE_ARM64)
+                    {
+                        imageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+                    }
+#endif
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    NOTHING;
+                }
 
+                ProcessNode->ImageMachine = imageMachine;
+                ProcessNode->ImageTimeDateStamp = imageTimeDateStamp;
+                ProcessNode->ImageCharacteristics = imageCharacteristics;
+                ProcessNode->ImageSubsystem = imageSubsystem;
+                ProcessNode->ImageDllCharacteristics = imageDllCharacteristics;
+#ifdef _ARM64_
+                ProcessNode->ImageCHPEVersion = imageCHPEVersion;
+#endif
                 PhUnloadMappedImage(&mappedImage);
             }
         }
@@ -1934,6 +1975,44 @@ static VOID PhpUpdateProcessNodeShortUsername(
         }
 
         SetFlag(ProcessNode->ValidMask, PHPN_SHORTUSERNAME);
+    }
+}
+
+static VOID PhpUpdateProcessNodeCurrentDirectory(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_CURRENTDIRECTORY))
+    {
+        HANDLE processHandle;
+
+        PhClearReference(&ProcessNode->CurrentDirectoryText);
+
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
+        {
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                ProcessNode->ProcessId
+                )))
+            {
+                PPH_STRING currentDirectory;
+
+                // Query the WOW64 current directory, because that's the one that actually gets updated. (prpggen.c)
+                if (NT_SUCCESS(PhGetProcessCurrentDirectory(
+                    processHandle,
+                    !!ProcessNode->ProcessItem->IsWow64Process,
+                    &currentDirectory
+                    )))
+                {
+                    ProcessNode->CurrentDirectoryText = currentDirectory;
+                }
+
+                NtClose(processHandle);
+            }
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_CURRENTDIRECTORY);
     }
 }
 
@@ -3062,6 +3141,19 @@ BEGIN_SORT_FUNCTION(ShortUserName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CurrentDirectory)
+{
+    PhpUpdateProcessNodeCurrentDirectory(node1);
+    PhpUpdateProcessNodeCurrentDirectory(node2);
+    sortResult = PhCompareStringWithNullSortOrder(
+        node1->CurrentDirectoryText,
+        node2->CurrentDirectoryText,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3251,6 +3343,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SORT_FUNCTION(Services),
                     SORT_FUNCTION(ShortUserName),
                     SORT_FUNCTION(IoTotalBytes),
+                    SORT_FUNCTION(CurrentDirectory),
                 };
                 _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
@@ -4811,6 +4904,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                 }
                 break;
+            case PHPRTLC_CURRENTDIRECTORY:
+                {
+                    PhpUpdateProcessNodeCurrentDirectory(node);
+                    getCellText->Text = PhGetStringRef(node->CurrentDirectoryText);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -5384,6 +5483,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             default:
                 return FALSE;
             }
+
+            getHeaderText->Flags = TN_CACHE;
 
             // NOTE: Windows Task Manager doesn't loop subitems when summing the totals but instead just returns the system totals.
             // We should do the same for some columns like CPU when/if the below loop/aggregate fields becomes a performance issue. (dmex)

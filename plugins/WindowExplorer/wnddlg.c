@@ -571,7 +571,7 @@ VOID WepSetWindowMenuState(
     _In_ HWND WindowHandle
     )
 {
-    WINDOWPLACEMENT placement = { sizeof(placement) };
+    WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
     BYTE alpha;
     ULONG flags;
     ULONG i;
@@ -643,7 +643,7 @@ BOOLEAN WepExecuteWindowCommand(
     {
     case ID_WINDOW_BRINGTOFRONT:
         {
-            WINDOWPLACEMENT placement = { sizeof(placement) };
+            WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
 
             if (GetWindowPlacement(WindowHandle, &placement) &&
                 (placement.showCmd == SW_SHOWMINIMIZED || placement.showCmd == SW_MINIMIZE))
@@ -2638,7 +2638,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        WINDOWPLACEMENT placement = { sizeof(placement) };
+                        WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
 
                         GetWindowPlacement(selectedNode->WindowHandle, &placement);
 

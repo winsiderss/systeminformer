@@ -28,6 +28,7 @@ typedef struct _REPARSE_WINDOW_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     ULONG Count;
     PPH_LIST Items;
+    PH_RUNDOWN_PROTECT WorkerRundown;
 } REPARSE_WINDOW_CONTEXT, *PREPARSE_WINDOW_CONTEXT;
 
 typedef struct _REPARSE_LISTVIEW_ENTRY
@@ -92,6 +93,7 @@ PREPARSE_WINDOW_CONTEXT EtReparseCreateDialogContext(
 
     context = PhCreateObject(sizeof(REPARSE_WINDOW_CONTEXT), EtReparseItemType);
     memset(context, 0, sizeof(REPARSE_WINDOW_CONTEXT));
+    PhInitializeRundownProtection(&context->WorkerRundown);
 
     return context;
 }
@@ -898,14 +900,14 @@ NTSTATUS EtEnumerateVolumeDirectoryObjects(
         NtClose(directoryHandle);
     }
 
-    if (Context->WindowHandle)
-    {
-        if (NT_SUCCESS(status))
-            PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_MSG, 0, 0);
-        else
-            PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_ERROR, 0, status);
-    }
+    // The window handle is only cleared after the rundown wait in WM_DESTROY,
+    // so it is stable for as long as this worker holds the rundown protection.
+    if (NT_SUCCESS(status))
+        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_MSG, 0, 0);
+    else
+        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_ERROR, 0, status);
 
+    PhReleaseRundownProtection(&Context->WorkerRundown);
     PhDereferenceObject(Context);
 
     return status;
@@ -1214,6 +1216,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
             EnableWindow(GetDlgItem(WindowHandle, IDRETRY), FALSE);
 
+            PhAcquireRundownProtection(&context->WorkerRundown);
             PhReferenceObject(context);
             PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
         }
@@ -1231,6 +1234,8 @@ INT_PTR CALLBACK EtReparseDlgProc(
         break;
     case WM_DESTROY:
         {
+            // Wait for the workers (they only post) before clearing the handle they read.
+            PhWaitForRundownProtection(&context->WorkerRundown);
             context->WindowHandle = NULL;
 
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
@@ -1367,6 +1372,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
                     EnableWindow(GetDlgItem(WindowHandle, IDRETRY), FALSE);
 
+                    PhAcquireRundownProtection(&context->WorkerRundown);
                     PhReferenceObject(context);
                     PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
                 }

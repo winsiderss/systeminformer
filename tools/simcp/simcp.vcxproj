@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{9E3F2D1A-6B4C-4F8E-A2D7-5C1B8E0F3A64}</ProjectGuid>
     <RootNamespace>simcp</RootNamespace>
     <Keyword>Win32Proj</Keyword>

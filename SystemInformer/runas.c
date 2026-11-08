@@ -57,10 +57,12 @@
 #include <appresolver.h>
 #include <actions.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phconsole.h>
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>
+#include <procprv.h>
 #include <settings.h>
 #include <svcsup.h>
 #include <mainwnd.h>
@@ -120,6 +122,82 @@ NTSTATUS PhRunAsUpdateWindowStation(
     _In_opt_ PSID LogonSid,
     _In_opt_ PCWSTR DesktopName
     );
+
+static NTSTATUS (NTAPI* PhpLsaEnumerateLogonSessions)(
+    _Out_ PULONG LogonSessionCount,
+    _Out_ PLUID* LogonSessionList
+    );
+static NTSTATUS (NTAPI* PhpLsaFreeReturnBuffer)(
+    _In_ PVOID Buffer
+    );
+
+BOOLEAN PhpRunAsEnumerateLogonSessions(
+    _Out_ PLUID* SessionList,
+    _Out_ PULONG SessionCount
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    NTSTATUS status;
+
+    *SessionList = NULL;
+    *SessionCount = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress = PhLoadLibrary(L"secur32.dll");
+
+        if (baseAddress)
+        {
+            PhpLsaEnumerateLogonSessions = PhGetDllBaseProcedureAddress(baseAddress, "LsaEnumerateLogonSessions", 0);
+            PhpLsaFreeReturnBuffer = PhGetDllBaseProcedureAddress(baseAddress, "LsaFreeReturnBuffer", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!PhpLsaEnumerateLogonSessions || !PhpLsaFreeReturnBuffer)
+        return FALSE;
+
+    status = PhpLsaEnumerateLogonSessions(SessionCount, SessionList);
+    if (!NT_SUCCESS(status) || !*SessionList)
+    {
+        if (*SessionList)
+            PhpLsaFreeReturnBuffer(*SessionList);
+        *SessionList = NULL;
+        *SessionCount = 0;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhpRunAsIsInactiveLogonSid(
+    _In_ PSID Sid,
+    _In_reads_(SessionCount) PLUID SessionList,
+    _In_ ULONG SessionCount
+    )
+{
+    ULONG i;
+
+    if (!SessionList || !PhValidSid(Sid) ||
+        *PhSubAuthorityCountSid(Sid) != SECURITY_LOGON_IDS_RID_COUNT ||
+        !PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY) ||
+        *PhSubAuthoritySid(Sid, 0) != SECURITY_LOGON_IDS_RID)
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < SessionCount; i++)
+    {
+        if ((ULONG)SessionList[i].HighPart == *PhSubAuthoritySid(Sid, 1) &&
+            SessionList[i].LowPart == *PhSubAuthoritySid(Sid, 2))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
 
 //NTSTATUS PhSetDesktopWinStaAccess(
 //    _In_ HWND WindowHandle
@@ -729,18 +807,14 @@ VOID SetDefaultUserEntry(
     }
     else
     {
-        HANDLE processHandle;
+        PPH_PROCESS_ITEM processItem;
         HANDLE tokenHandle;
         PPH_STRING userName;
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            Context->ProcessId
-            )))
+        if (processItem = PhReferenceProcessItem(Context->ProcessId))
         {
-            if (NT_SUCCESS(PhOpenProcessToken(
-                processHandle,
+            if (processItem->QueryHandle && NT_SUCCESS(PhOpenProcessToken(
+                processItem->QueryHandle,
                 TOKEN_QUERY,
                 &tokenHandle
                 )))
@@ -754,7 +828,7 @@ VOID SetDefaultUserEntry(
                 NtClose(tokenHandle);
             }
 
-            NtClose(processHandle);
+            PhDereferenceObject(processItem);
         }
 
         EnableWindow(Context->UserComboBoxWindowHandle, FALSE);
@@ -954,16 +1028,16 @@ BOOLEAN PhRunAsGetLogonSid(
 }
 
 /**
- * Checks if the command is an execution alias and handles accordingly.
+ * Checks whether the command resolves to an execution alias.
  *
  * \param Command The command string.
- * \return NTSTATUS Successful or errant status.
+ * \return STATUS_NOT_IMPLEMENTED for an alias, or STATUS_NOT_FOUND otherwise.
  */
 NTSTATUS PhRunAsExecutionAlias(
     _In_ PPH_STRING Command
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_NOT_FOUND;
     PPH_STRING fullFileName = NULL;
     PPH_STRING commandString = NULL;
     PH_STRINGREF fileName;
@@ -981,14 +1055,12 @@ NTSTATUS PhRunAsExecutionAlias(
 
     if (!PhIsNullOrEmptyString(fullFileName))
     {
-        // NOTE: The CreateProcess function will ignore PROC_THREAD_ATTRIBUTE_PARENT_PROCESS when redirecting execution
-        // of the filename via execution alias. The new process incorrectly inherits our elevated process token
-        // instead of using the non-elevated parent process. To work around the issue we execute the alias using the
-        // WdcRunTaskAsInteractiveUser function and also skip resetting the token and current directory. (dmex)
+        // CreateProcess ignores PROC_THREAD_ATTRIBUTE_PARENT_PROCESS for execution aliases.
+        // Reject them until they can be launched with the intended process token.
 
         if (PhIsAppExecutionAliasTarget(fullFileName))
         {
-            status = STATUS_SUCCESS;
+            status = STATUS_NOT_IMPLEMENTED;
         }
     }
 
@@ -1027,7 +1099,7 @@ NTSTATUS PhRunAsExecuteParentCommand(
 
     status = PhOpenProcess(
         &processHandle,
-        PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
+        PROCESS_CREATE_PROCESS | PROCESS_QUERY_LIMITED_INFORMATION | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
         ProcessId
         );
 
@@ -1107,8 +1179,8 @@ NTSTATUS PhRunAsExecuteParentCommand(
 
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
-            PhRunAsUpdateDesktop(userSid, NULL);
-            PhRunAsUpdateWindowStation(userSid, logonSid, NULL);
+            PhRunAsUpdateDesktop(logonSid, NULL);
+            PhRunAsUpdateWindowStation(NULL, logonSid, NULL);
 
             PhFree(userSid);
             PhFree(logonSid);
@@ -1351,8 +1423,8 @@ VOID PhRunAsExecuteCommmand(
 
             if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
             {
-                PhRunAsUpdateDesktop(userSid, PhGetString(desktopName));
-                PhRunAsUpdateWindowStation(userSid, logonSid, PhGetString(desktopName));
+                PhRunAsUpdateDesktop(logonSid, PhGetString(desktopName));
+                PhRunAsUpdateWindowStation(NULL, logonSid, PhGetString(desktopName));
 
                 PhFree(userSid);
                 PhFree(logonSid);
@@ -1382,7 +1454,7 @@ VOID PhRunAsExecuteCommmand(
         {
             status = PhRunAsExecutionAlias(program);
 
-            if (!NT_SUCCESS(status))
+            if (status == STATUS_NOT_FOUND)
             {
                 status = PhRunAsExecuteParentCommand(
                     Context->WindowHandle,
@@ -1663,6 +1735,10 @@ static NTSTATUS PhpRunAsUpdateDesktop(
 {
     NTSTATUS status;
     HDESK desktopHandle;
+    PLUID activeLogonSessions = NULL;
+    ULONG activeLogonSessionCount = 0;
+
+    PhpRunAsEnumerateLogonSessions(&activeLogonSessions, &activeLogonSessionCount);
 
     if (desktopHandle = OpenDesktop(
         DesktopName,
@@ -1742,6 +1818,9 @@ static NTSTATUS PhpRunAsUpdateDesktop(
                         {
                             PSID aceSid = (PSID)&((PACCESS_ALLOWED_ACE)currentAce)->SidStart;
 
+                            if (PhpRunAsIsInactiveLogonSid(aceSid, activeLogonSessions, activeLogonSessionCount))
+                                continue;
+
                             if (PhEqualSid(aceSid, UserSid))
                             {
                                 if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == DESKTOP_ALL_ACCESS)
@@ -1802,6 +1881,9 @@ static NTSTATUS PhpRunAsUpdateDesktop(
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
+    if (activeLogonSessions)
+        PhpLsaFreeReturnBuffer(activeLogonSessions);
+
     return status;
 }
 
@@ -1813,6 +1895,10 @@ static NTSTATUS PhpRunAsUpdateWindowStation(
 {
     NTSTATUS status;
     HWINSTA wsHandle;
+    PLUID activeLogonSessions = NULL;
+    ULONG activeLogonSessionCount = 0;
+
+    PhpRunAsEnumerateLogonSessions(&activeLogonSessions, &activeLogonSessionCount);
 
     if (wsHandle = OpenWindowStation(
         WindowStationName,
@@ -1881,6 +1967,9 @@ static NTSTATUS PhpRunAsUpdateWindowStation(
                         {
                             PSID aceSid = (PSID)&((PACCESS_ALLOWED_ACE)currentAce)->SidStart;
 
+                            if (PhpRunAsIsInactiveLogonSid(aceSid, activeLogonSessions, activeLogonSessionCount))
+                                continue;
+
                             if (UserSid && PhEqualSid(aceSid, UserSid))
                             {
                                 if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == (WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS))
@@ -1889,7 +1978,8 @@ static NTSTATUS PhpRunAsUpdateWindowStation(
 
                             if (LogonSid && PhEqualSid(aceSid, LogonSid))
                             {
-                                if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == WINSTA_ALL_ACCESS)
+                                if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == WINSTA_ALL_ACCESS ||
+                                    ((PACCESS_ALLOWED_ACE)currentAce)->Mask == GENERIC_ALL)
                                     continue;
                             }
                         }
@@ -1975,6 +2065,9 @@ static NTSTATUS PhpRunAsUpdateWindowStation(
     {
         status = PhGetLastWin32ErrorAsNtStatus();
     }
+
+    if (activeLogonSessions)
+        PhpLsaFreeReturnBuffer(activeLogonSessions);
 
     return status;
 }
@@ -2730,12 +2823,12 @@ NTSTATUS PhInvokeRunAsService(
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
             PhRunAsUpdateDesktop(
-                userSid,
+                logonSid,
                 Parameters->DesktopName && Parameters->DesktopName[0] != UNICODE_NULL ?
                     Parameters->DesktopName : L"WinSta0\\Default"
                 );
             PhRunAsUpdateWindowStation(
-                userSid,
+                NULL,
                 logonSid,
                 Parameters->DesktopName && Parameters->DesktopName[0] != UNICODE_NULL ?
                     Parameters->DesktopName : L"WinSta0\\Default"
@@ -2851,22 +2944,16 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     BOOLEAN success = FALSE;
     PPH_STRING executeString = NULL;
     PPH_STRING fileName = NULL;
-    PPH_STRING fileArgs = NULL;
-    PPH_LIST cmdlineArgList;
+    PPH_STRING resolvedFileName = NULL;
+    PPH_STRING quotedFileName = NULL;
+    PH_STRINGREF fileNameRef;
+    PH_STRINGREF argumentsRef;
 
-    // Extract the filename.
-    if (cmdlineArgList = PhCommandLineToList(Command->Buffer))
-    {
-        fileName = PhReferenceObject(cmdlineArgList->Items[0]);
-
-        if (cmdlineArgList->Count == 2)
-        {
-            fileArgs = PhReferenceObject(cmdlineArgList->Items[1]);
-        }
-
-        PhDereferenceObjects(cmdlineArgList->Items, cmdlineArgList->Count);
-        PhDereferenceObject(cmdlineArgList);
-    }
+    PhParseCommandLineFuzzy(&Command->sr, &fileNameRef, &argumentsRef, &resolvedFileName);
+    if (resolvedFileName)
+        fileName = PhReferenceObject(resolvedFileName);
+    else if (fileNameRef.Length)
+        fileName = PhCreateString2(&fileNameRef);
 
     if (fileName && !PhDoesFileExistWin32(PhGetString(fileName)))
     {
@@ -2881,26 +2968,17 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (fileName)
     {
-        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
         static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
 
-        // Escape the filename.
-        PhMoveReference(&fileName, PhConcatStringRef3(&separator, &fileName->sr, &separator));
+        quotedFileName = PhQuoteCommandLine(&fileName->sr, TRUE);
 
-        if (fileArgs)
+        if (argumentsRef.Length)
         {
-            // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStringRef3(&separator, &fileArgs->sr, &separator));
-
-            // Create the escaped execute string.
-            executeString = PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr);
-
-            // Cleanup.
-            PhClearReference(&fileArgs);
+            executeString = PhConcatStringRef3(&quotedFileName->sr, &space, &argumentsRef);
         }
         else
         {
-            executeString = fileName;
+            executeString = PhReferenceObject(quotedFileName);
         }
     }
 
@@ -2917,6 +2995,9 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     }
 
     PhClearReference(&executeString);
+    PhClearReference(&quotedFileName);
+    PhClearReference(&resolvedFileName);
+    PhClearReference(&fileName);
 
     return success;
 }
@@ -3034,12 +3115,30 @@ NTSTATUS RunAsCreateProcessThread(
     HANDLE newProcessHandle;
     STARTUPINFOEX startupInfo;
     PPH_STRING commandLine = NULL;
-    PPH_STRING filePathString;
+    PPH_STRING fullFileName = NULL;
+    PPH_STRING quotedFileName = NULL;
+    PH_STRINGREF fileName;
+    PH_STRINGREF arguments;
 
-    if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
-        PhMoveReference(&commandLine, filePathString);
+    PhParseCommandLineFuzzy(&command->sr, &fileName, &arguments, &fullFileName);
+    if (!fullFileName && fileName.Length)
+        fullFileName = PhCreateString2(&fileName);
+    if (!fullFileName || !PhDoesFileExistWin32(fullFileName->Buffer))
+    {
+        status = STATUS_OBJECT_NAME_NOT_FOUND;
+        goto CleanupExit;
+    }
+
+    quotedFileName = PhQuoteCommandLine(&fullFileName->sr, TRUE);
+    if (arguments.Length)
+    {
+        static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+        commandLine = PhConcatStringRef3(&quotedFileName->sr, &space, &arguments);
+    }
     else
-        PhSetReference(&commandLine, command);
+    {
+        commandLine = PhReferenceObject(quotedFileName);
+    }
 
     if (!NT_SUCCESS(status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS | SERVICE_START, L"TrustedInstaller")))
         goto CleanupExit;
@@ -3107,7 +3206,7 @@ NTSTATUS RunAsCreateProcessThread(
     startupInfo.lpAttributeList = attributeList;
 
     status = PhCreateProcessWin32Ex(
-        NULL,
+        PhGetString(fullFileName),
         PhGetString(commandLine),
         NULL,
         NULL,
@@ -3133,6 +3232,9 @@ NTSTATUS RunAsCreateProcessThread(
     }
 
 CleanupExit:
+
+    PhClearReference(&quotedFileName);
+    PhClearReference(&fullFileName);
 
     if (processHandle)
         NtClose(processHandle);
@@ -3421,6 +3523,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                         {
                             PhReferenceObject(commandString);
                             status = PhCreateThread2(RunAsCreateProcessThread, commandString);
+                            if (!NT_SUCCESS(status))
+                                PhDereferenceObject(commandString);
                         }
                         else
                         {

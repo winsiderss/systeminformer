@@ -367,6 +367,7 @@ typedef struct _PH_MEMORY_CONTEXT
     };
     PH_MEMORY_ITEM_LIST MemoryItemList;
     BOOLEAN MemoryItemListValid;
+    BOOLEAN RefreshInProgress; // UI thread only; set when a worker starts, cleared on WM_PH_INVOKE
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 

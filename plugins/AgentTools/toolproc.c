@@ -276,10 +276,7 @@ VOID AtpAddProcessStatistics(
     statistics = PhCreateJsonObject();
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
-    {
-        if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
-            PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
-    }
+        processHandle = ProcessItem->QueryHandle;
 
     // Everything from the working set down is null without a process handle.
     entry = PhCreateJsonObject();
@@ -354,9 +351,6 @@ VOID AtpAddProcessStatistics(
         AtJsonAddDuration(statistics, "uptime_seconds", now.QuadPart - ProcessItem->CreateTime.QuadPart);
     else
         AtJsonAddNull(statistics, "uptime_seconds");
-
-    if (processHandle)
-        NtClose(processHandle);
 
     PhAddJsonObjectValue(Object, "statistics", statistics);
 }
@@ -1094,7 +1088,7 @@ VOID AtpControlProcess(
         break;
     case AtActionEmptyProcessWorkingSet:
         {
-            if (NT_SUCCESS(PhOpenProcess(&workingSetHandle, PROCESS_QUERY_INFORMATION, Target->ProcessItem->ProcessId)))
+            if (workingSetHandle = Target->ProcessItem->QueryHandle)
             {
                 if (hasWorkingSetBefore = NT_SUCCESS(PhGetProcessWsCounters(workingSetHandle, &wsCounters)))
                     workingSetBefore = (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE;
@@ -1213,9 +1207,6 @@ VOID AtpControlProcess(
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
-
-    if (workingSetHandle)
-        NtClose(workingSetHandle);
 }
 
 VOID AtpAddSidStrings(
@@ -1299,7 +1290,6 @@ VOID AtpGetProcessToken(
 {
     NTSTATUS status;
     AT_TARGET target;
-    HANDLE processHandle;
     HANDLE tokenHandle;
     PVOID structured;
     PH_TOKEN_USER tokenUser;
@@ -1315,16 +1305,14 @@ VOID AtpGetProcessToken(
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
         return;
 
-    if (!PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ||
-        !NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, target.ProcessItem->ProcessId)))
+    if (!PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) || !target.ProcessItem->QueryHandle)
     {
-        AtSetToolStatusError(Result, PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ? status : STATUS_INVALID_CID, L"Opening the process");
+        AtSetToolStatusError(Result, PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ? STATUS_INVALID_HANDLE : STATUS_INVALID_CID, L"Opening the process");
         AtDeleteTarget(&target);
         return;
     }
 
-    status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
-    NtClose(processHandle);
+    status = PhOpenProcessToken(target.ProcessItem->QueryHandle, TOKEN_QUERY, &tokenHandle);
 
     if (!NT_SUCCESS(status))
     {

@@ -90,6 +90,10 @@ EXPORTS
     PhGetGeneralCallback
     PhGetImageListIcon
     PhGetListViewContextMenuPoint
+    PhGetMemoryRegionUseText
+    PhGetNetworkConnections
+    PhGetPerTcp6ConnectionEStats
+    PhGetPerTcpConnectionEStats
     PhGetProcessBasicInformation
     PhGetProcessIsSuspended
     PhGetProcessKnownType
@@ -172,6 +176,8 @@ EXPORTS
     PhSelectWindowFromScreenTargeting
     PhSetApplicationWindowIcon
     PhSetApplicationWindowIconEx
+    PhSetPerTcp6ConnectionEStats
+    PhSetPerTcpConnectionEStats
     PhSetProcessItemAffinityMask
     PhSetProcessItemIoPriority
     PhSetProcessItemPagePriority
@@ -180,6 +186,7 @@ EXPORTS
     PhSetProcessItemThrottlingState
     PhSetSelectThreadIdProcessPropContext
     PhSetStaticWindowIcon
+    PhSetTcpEntry
     PhSetWindowIcon
     PhShellExecuteUserString
     PhShellOpenKey
@@ -819,6 +826,7 @@ EXPORTS
     PhCreateSaveFileDialog
     PhCreateUserProcess
     PhDeleteImageVersionInfo
+    PhDeleteMappedImageExports
     PhDevFreeObjectProperties
     PhDevFreeObjects
     PhDevGetObjectProperties
@@ -986,6 +994,7 @@ EXPORTS
     PhGetTreeNewText
 
 ; emenu
+    PhCancelEMenu
     PhCreateEMenu
     PhCreateEMenuItem
     PhDeleteEMenuData
@@ -1134,6 +1143,7 @@ EXPORTS
     PhInitializeThemeWindowFrame
     PhInitializeThemeWindowGroupBox
     PhInitializeThemeWindowGroupBoxEx
+    PhInitializeThemeWindowGroupBoxes
     PhInitializeThemeWindowProgressBar
     PhInitializeWindowTheme
     PhIsThemeActive
@@ -1207,6 +1217,7 @@ EXPORTS
 
 ; mapimg
     PhGetMappedImageAuthenticodeHash
+    PhGetMappedImageAuthenticodeHashEx
     PhGetMappedImageDataDirectory
     PhGetMappedImageDebug
     PhGetMappedImageDebugEntryByType

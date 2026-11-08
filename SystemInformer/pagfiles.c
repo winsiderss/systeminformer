@@ -319,7 +319,7 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU item;
-                PVOID* listviewItems;
+                PVOID* listviewItems = NULL;
                 ULONG numberOfItems;
 
                 point.x = GET_X_LPARAM(lParam);
@@ -364,9 +364,9 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
                     PhFree(listviewItems);
                 }
+            }
         }
         break;
     case WM_CTLCOLORBTN:

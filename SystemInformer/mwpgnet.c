@@ -423,7 +423,7 @@ VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Context
     )
 {
-    SystemInformer_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
+    SystemInformer_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
 /**

@@ -333,23 +333,27 @@ NTSTATUS PhpProcessHandleOpenCallback(
 
     if (KsiLevel() >= KphLevelMax)
     {
-        // Try limited-information first when allowed by KSI.
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            context->ProcessId
-            )))
+        PPH_PROCESS_ITEM processItem;
+
+        // Try the process item query handle first when allowed by KSI.
+        if (processItem = PhReferenceProcessItem(context->ProcessId))
         {
-            status = NtDuplicateObject(
-                processHandle,
-                context->HandleItem->Handle,
-                NtCurrentProcess(),
-                Handle,
-                DesiredAccess,
-                0,
-                0
-                );
-            NtClose(processHandle);
+            status = STATUS_INVALID_HANDLE;
+
+            if (processItem->QueryHandle)
+            {
+                status = NtDuplicateObject(
+                    processItem->QueryHandle,
+                    context->HandleItem->Handle,
+                    NtCurrentProcess(),
+                    Handle,
+                    DesiredAccess,
+                    0,
+                    0
+                    );
+            }
+
+            PhDereferenceObject(processItem);
 
             if (NT_SUCCESS(status))
                 return status;

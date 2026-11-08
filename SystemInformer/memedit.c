@@ -74,6 +74,7 @@ VOID PhShowMemoryEditorDialog(
     PMEMORY_EDITOR_CONTEXT context;
     MEMORY_EDITOR_CONTEXT lookupContext;
     PPH_AVL_LINKS links;
+    PVOID buffer = NULL;
 
     lookupContext.ProcessId = ProcessId;
     lookupContext.BaseAddress = BaseAddress;
@@ -84,12 +85,11 @@ VOID PhShowMemoryEditorDialog(
     if (!links)
     {
         NTSTATUS status;
-        PVOID buffer;
 
         if (RegionSize > 1024ULL * 1024ULL * 1024ULL) // 1 GB
         {
             PhShowStatus(OwnerWindow, L"Unable to edit the memory region.", 0, MEM_E_INVALID_SIZE);
-            return;
+            goto UnmapExit;
         }
 
         status = PhAllocateVirtualMemory(NtCurrentProcess(), &buffer, RegionSize, MEM_COMMIT, PAGE_READWRITE);
@@ -97,7 +97,7 @@ VOID PhShowMemoryEditorDialog(
         if (!NT_SUCCESS(status))
         {
             PhShowStatus(OwnerWindow, L"Unable to edit the memory region.", status, 0);
-            return;
+            goto UnmapExit;
         }
 
         {
@@ -124,13 +124,13 @@ VOID PhShowMemoryEditorDialog(
                 if (!NT_SUCCESS(status))
                 {
                     PhShowStatus(OwnerWindow, L"Unable to read memory", status, 0);
-                    return;
+                    goto FreeExit;
                 }
             }
             else
             {
                 PhShowStatus(OwnerWindow, L"Unable to open the process", status, 0);
-                return;
+                goto FreeExit;
             }
         }
 
@@ -183,6 +183,14 @@ VOID PhShowMemoryEditorDialog(
         if ((Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && ProcessId == NtCurrentProcessId())
             PhUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
     }
+
+    return;
+
+FreeExit:
+    PhFreePage(buffer);
+UnmapExit:
+    if ((Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && ProcessId == NtCurrentProcessId())
+        PhUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
 }
 
 INT NTAPI PhpMemoryEditorCompareFunction(

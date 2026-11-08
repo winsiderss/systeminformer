@@ -55,6 +55,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
 
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -106,10 +110,24 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
 
+    - name: Reflow Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd reflow
+
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
+
+    - name: Check Exports
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_exports.cmd validate
 
     - name: Upload Build Zips
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # 7.0.2
@@ -158,6 +176,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
 
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
+
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -201,6 +223,10 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
+    - name: Github Annotations
+      shell: cmd
+      run: echo ::add-matcher::.github/msvc-matcher.json
 
     - name: Build Driver
       shell: cmd

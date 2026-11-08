@@ -11,6 +11,8 @@
  */
 
 #include <phapp.h>
+
+static VOID PhpRegisterMultiSortFunctions(_In_ HWND TreeNewHandle);
 #include <apiimport.h>
 #include <appresolver.h>
 #include <appmodel.h>
@@ -64,19 +66,33 @@ typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
     BOOLEAN ItemFlagState;
 } PHP_TOKEN_PAGE_LISTVIEW_ITEM, *PPHP_TOKEN_PAGE_LISTVIEW_ITEM;
 
+#define WM_PH_TOKEN_USER_RESOLVED (WM_APP + 331)
+
 typedef struct _PHP_TOKEN_USER_RESOLVE_CONTEXT
 {
-    HWND WindowHandle;
+    HWND WindowHandle; // The page dialog; the resolved name is posted to it and applied on the UI thread.
     PSID TokenUserSid;
 } PHP_TOKEN_USER_RESOLVE_CONTEXT, *PPHP_TOKEN_USER_RESOLVE_CONTEXT;
 
+#define WM_PH_TOKEN_GROUP_RESOLVED (WM_APP + 330)
+
 typedef struct _PHP_TOKEN_GROUP_RESOLVE_CONTEXT
 {
-    HWND ListViewHandle;
-    PPHP_TOKEN_PAGE_LISTVIEW_ITEM LvItem;
+    HWND DialogHandle;
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM LvItem; // Lookup key only; never dereferenced off the UI thread.
+    LONG Generation;
     LONG GroupId;
     PSID TokenGroupSid;
 } PHP_TOKEN_GROUP_RESOLVE_CONTEXT, *PPHP_TOKEN_GROUP_RESOLVE_CONTEXT;
+
+typedef struct _PHP_TOKEN_GROUP_RESOLVE_RESULT
+{
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM LvItem;
+    LONG Generation;
+    PPH_STRING Name;
+    PCWSTR Type;
+    PCWSTR Use;
+} PHP_TOKEN_GROUP_RESOLVE_RESULT, *PPHP_TOKEN_GROUP_RESOLVE_RESULT;
 
 typedef struct _PH_TOKEN_ATTRIBUTE_NODE
 {
@@ -103,10 +119,13 @@ typedef struct _TOKEN_PAGE_CONTEXT
     DLGPROC HookProc;
     HANDLE ProcessId;
 
+    HWND DialogHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     BOOLEAN SinglePageContext;
+    LONG RefreshGeneration; // Bumped whenever the list view entries are freed; stale resolver results are dropped.
 
     PTOKEN_GROUPS Groups;
     PTOKEN_GROUPS RestrictedSids;
@@ -541,6 +560,37 @@ PPH_STRING PhGetGroupAttributesString(
 }
 
 /**
+ * Converts a token highlight color to a dark theme equivalent.
+ *
+ * \param Color The configured highlight color.
+ * \return COLORREF The dark theme color.
+ * \remarks The default token colors are light pastels intended for a light background. Light colors
+ * are shifted down so the hue is preserved while the background stays dark and the text remains
+ * readable. Colors that are already dark are returned unmodified.
+ */
+COLORREF PhGetTokenColorDark(
+    _In_ COLORREF Color
+    )
+{
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+
+    if (PhGetColorBrightness(Color) <= 128)
+        return Color;
+
+    r = (UCHAR)Color;
+    g = (UCHAR)(Color >> 8);
+    b = (UCHAR)(Color >> 16);
+
+    r = r > 0xA0 ? r - 0xA0 : 0;
+    g = g > 0xA0 ? g - 0xA0 : 0;
+    b = b > 0xA0 ? b - 0xA0 : 0;
+
+    return RGB(r, g, b);
+}
+
+/**
  * Gets the dark theme display color for token group attributes.
  *
  * \param Attributes The SID attributes flags.
@@ -552,25 +602,24 @@ COLORREF PhGetGroupAttributesColorDark(
 {
     COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 
+    // Enabled groups are the common case and are not highlighted in the dark theme. (dmex)
+
     if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
         if (!FlagOn(Attributes, SE_GROUP_ENABLED))
-            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
+            return backgroundColor;
     }
 
     if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
-        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
-        else
-            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
+        return backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
+            return PhCsUseColorTokenDisabledDefault ? PhGetTokenColorDark(PhCsColorTokenDisabledDefault) : backgroundColor;
         else
-            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
+            return PhCsUseColorTokenDisabled ? PhGetTokenColorDark(PhCsColorTokenDisabled) : backgroundColor;
     }
 }
 
@@ -588,22 +637,21 @@ COLORREF PhGetPrivilegeAttributesColorDark(
 
     if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        return PhCsUseColorTokenRemoved ? PhCsColorTokenRemoved : backgroundColor;
+        return PhCsUseColorTokenRemoved ? PhGetTokenColorDark(PhCsColorTokenRemoved) : backgroundColor;
     }
+
+    // Enabled privileges are not highlighted in the dark theme. (dmex)
 
     if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
     {
-        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
-        else
-            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
+        return backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
+            return PhCsUseColorTokenDisabledDefault ? PhGetTokenColorDark(PhCsColorTokenDisabledDefault) : backgroundColor;
         else
-            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
+            return PhCsUseColorTokenDisabled ? PhGetTokenColorDark(PhCsColorTokenDisabled) : backgroundColor;
     }
 }
 
@@ -620,9 +668,9 @@ COLORREF PhGetDangerousFlagColorDark(
     COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 
     if (FlagState)
-        return PhCsUseColorTokenDangerousFlag ? PhCsColorTokenDangerousFlag : backgroundColor;
+        return PhCsUseColorTokenDangerousFlag ? PhGetTokenColorDark(PhCsColorTokenDangerousFlag) : backgroundColor;
     else
-        return PhCsUseColorTokenNormalFlag ? PhCsColorTokenNormalFlag : backgroundColor;
+        return PhCsUseColorTokenNormalFlag ? PhGetTokenColorDark(PhCsColorTokenNormalFlag) : backgroundColor;
 }
 
 /**
@@ -830,7 +878,10 @@ COLORREF PhGetTokenElevatedColor(
 {
     COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 
-    return PhCsUseColorTokenElevated ? PhCsColorTokenElevated : backgroundColor;
+    if (!PhCsUseColorTokenElevated)
+        return backgroundColor;
+
+    return PhEnableThemeSupport ? PhGetTokenColorDark(PhCsColorTokenElevated) : PhCsColorTokenElevated;
 }
 
 /**
@@ -1012,6 +1063,9 @@ VOID PhpTokenPageFreeListViewEntries(
 {
     LONG index = INT_ERROR;
 
+    // Resolver results queued for the entries freed below must not be applied to new entries.
+    InterlockedIncrement(&TokenPageContext->RefreshGeneration);
+
     while ((index = PhFindListViewItemByFlags(
         TokenPageContext->ListViewHandle,
         index,
@@ -1105,17 +1159,12 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     )
 {
     PPHP_TOKEN_GROUP_RESOLVE_CONTEXT context = ThreadParameter;
-    PPH_STRING sidString;
+    PPH_STRING sidString = NULL;
     SID_NAME_USE sidUse;
-    LONG ItemIndex;
+    PPHP_TOKEN_GROUP_RESOLVE_RESULT result;
 
-    ItemIndex = PhFindListViewItemByParam(
-        context->ListViewHandle,
-        INT_ERROR,
-        context->LvItem
-        );
-
-    if (ItemIndex != INT_ERROR)
+    // N.B. This thread must not read or write the list view. Rows can be rebuilt at any time, so
+    // the row is looked up on the UI thread when the result is applied.
     {
         if (sidString = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
         {
@@ -1157,24 +1206,28 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
             }
         }
 
-        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetStringOrDefault(sidString, L"[Unknown SID]"));
-        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, PhGetSidAccountTypeString(context->TokenGroupSid));
-
-        PhClearReference(&sidString);
     }
+
+    result = PhAllocateZero(sizeof(PHP_TOKEN_GROUP_RESOLVE_RESULT));
+    result->LvItem = context->LvItem;
+    result->Generation = context->Generation;
+    result->Name = sidString; // Takes ownership (may be NULL).
+    result->Type = PhGetSidAccountTypeString(context->TokenGroupSid);
+    result->Use = L"N/A";
 
     if (NT_SUCCESS(PhLookupSid(context->TokenGroupSid, NULL, NULL, &sidUse)))
     {
         PWSTR tokenSidType;
 
         if (PhGetTokenSidTypeString(sidUse, &tokenSidType))
-            PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, tokenSidType);
-        else
-            PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
+            result->Use = tokenSidType;
     }
-    else
+
+    if (!PostMessage(context->DialogHandle, WM_PH_TOKEN_GROUP_RESOLVED, 0, (LPARAM)result))
     {
-        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
+        // The page is gone and nobody will apply the result.
+        PhClearReference(&result->Name);
+        PhFree(result);
     }
 
     PhFree(context->TokenGroupSid);
@@ -1255,7 +1308,8 @@ VOID PhpUpdateSidsFromTokenGroups(
             PPHP_TOKEN_GROUP_RESOLVE_CONTEXT tokenGroupResolve;
 
             tokenGroupResolve = PhAllocateZero(sizeof(PHP_TOKEN_GROUP_RESOLVE_CONTEXT));
-            tokenGroupResolve->ListViewHandle = TokenPageContext->ListViewHandle;
+            tokenGroupResolve->DialogHandle = TokenPageContext->DialogHandle;
+            tokenGroupResolve->Generation = ReadAcquire(&TokenPageContext->RefreshGeneration);
             tokenGroupResolve->LvItem = lvitem;
             tokenGroupResolve->GroupId = lvitem->GroupId;
             tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, PhLengthSid(Groups->Groups[i].Sid));
@@ -1568,18 +1622,16 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     PPHP_TOKEN_USER_RESOLVE_CONTEXT context = ThreadParameter;
     PPH_STRING fullUserName;
 
-    if (fullUserName = PhGetSidFullName(context->TokenUserSid, TRUE, NULL))
+    fullUserName = PhGetSidFullName(context->TokenUserSid, TRUE, NULL);
+
+    if (!fullUserName)
+        fullUserName = PhGetAzureDirectoryObjectSid(context->TokenUserSid);
+
+    // N.B. Never touch the controls from this thread; the page applies the name on the UI thread.
+    if (fullUserName)
     {
-        PhSetWindowText(context->WindowHandle, PhGetString(fullUserName));
-        PhDereferenceObject(fullUserName);
-    }
-    else
-    {
-        if (fullUserName = PhGetAzureDirectoryObjectSid(context->TokenUserSid))
-        {
-            PhSetWindowText(context->WindowHandle, PhGetString(fullUserName));
+        if (!PostMessage(context->WindowHandle, WM_PH_TOKEN_USER_RESOLVED, 0, (LPARAM)fullUserName))
             PhDereferenceObject(fullUserName);
-        }
     }
 
     PhFree(context->TokenUserSid);
@@ -1778,10 +1830,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
         {
             HANDLE tokenHandle;
 
+            tokenPageContext->DialogHandle = hwndDlg;
             tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
+
+            tokenPageContext->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
 
             PhSetListViewStyle(tokenPageContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
+            SetWindowFont(tokenPageContext->ListViewHandle, tokenPageContext->WindowFont, FALSE);
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
@@ -1840,7 +1896,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhSetDialogItemText(hwndDlg, IDC_USER, L"Resolving...");
 
                         tokenUserResolve = PhAllocateZero(sizeof(PHP_TOKEN_USER_RESOLVE_CONTEXT));
-                        tokenUserResolve->WindowHandle = GetDlgItem(hwndDlg, IDC_USER);
+                        tokenUserResolve->WindowHandle = hwndDlg;
                         tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
 
                         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenUserResolveWorker, tokenUserResolve);
@@ -1955,6 +2011,41 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_SESSIONID));
         }
         break;
+    case WM_PH_TOKEN_USER_RESOLVED:
+        {
+            PPH_STRING userName = (PPH_STRING)lParam;
+
+            PhSetDialogItemText(hwndDlg, IDC_USER, PhGetString(userName));
+            PhDereferenceObject(userName);
+        }
+        break;
+    case WM_PH_TOKEN_GROUP_RESOLVED:
+        {
+            PPHP_TOKEN_GROUP_RESOLVE_RESULT result = (PPHP_TOKEN_GROUP_RESOLVE_RESULT)lParam;
+
+            // Results for rows that were freed by a refresh are stale and must be dropped.
+            if (result->Generation == ReadAcquire(&tokenPageContext->RefreshGeneration))
+            {
+                LONG itemIndex;
+
+                itemIndex = PhFindListViewItemByParam(
+                    tokenPageContext->ListViewHandle,
+                    INT_ERROR,
+                    result->LvItem
+                    );
+
+                if (itemIndex != INT_ERROR)
+                {
+                    PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetStringOrDefault(result->Name, L"[Unknown SID]"));
+                    PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, result->Type);
+                    PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_USE, result->Use);
+                }
+            }
+
+            PhClearReference(&result->Name);
+            PhFree(result);
+        }
+        break;
     case WM_DESTROY:
         {
             PhSaveListViewSortColumnsToSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_SORT, tokenPageContext->ListViewHandle);
@@ -1979,6 +2070,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
+
+            if (tokenPageContext->WindowFont)
+            {
+                DeleteFont(tokenPageContext->WindowFont);
+                tokenPageContext->WindowFont = NULL;
+            }
         }
         break;
     case WM_SIZE:
@@ -1992,6 +2089,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(uMsg == WM_DPICHANGED ? LOWORD(wParam) : PhGetWindowDpi(hwndDlg)))
+                PhSwapReferenceFont(&tokenPageContext->WindowFont, tokenPageContext->ListViewHandle, windowFont, TRUE);
+
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
         }
         break;
@@ -3165,6 +3267,7 @@ typedef struct _PHP_TOKEN_ADVANCED_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } PHP_TOKEN_ADVANCED_CONTEXT, *PPHP_TOKEN_ADVANCED_CONTEXT;
 
@@ -3229,8 +3332,11 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
@@ -3388,7 +3494,20 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(uMsg == WM_DPICHANGED ? LOWORD(wParam) : PhGetWindowDpi(hwndDlg)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SIZE:
@@ -5055,8 +5174,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
@@ -5241,7 +5363,20 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(uMsg == WM_DPICHANGED ? LOWORD(wParam) : PhGetWindowDpi(hwndDlg)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SIZE:

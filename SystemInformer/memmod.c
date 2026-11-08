@@ -25,6 +25,7 @@ typedef struct _PH_IMAGE_MODIFIED_DIALOG_CONTEXT
     HWND StatusHandle;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
+    HFONT WindowFont;
     PPH_PROCESS_ITEM ProcessItem;
     PH_LAYOUT_MANAGER LayoutManager;
 
@@ -232,8 +233,6 @@ VOID PhpLimitedSymbolDereferenceContext(
     {
         if (Context->SymbolProvider)
             PhDereferenceObject(Context->SymbolProvider);
-        if (Context->ProcessHandle)
-            NtClose(Context->ProcessHandle);
 
         PhpCleanupPageModifiedLists(Context);
 
@@ -281,7 +280,7 @@ static NTSTATUS PhpLimitedSymbolProviderLookupFunction(
         PhEndInitOnce(&result->Context->SymbolProviderInitOnce);
     }
 
-    if (result->Context->Destroying)
+    if (ReadBooleanAcquire(&result->Context->Destroying))
     {
         PhpLimitedSymbolDereferenceContext(result->Context);
         PhFree(result);
@@ -552,8 +551,11 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
 
             PhSetApplicationWindowIcon(WindowHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"Index");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"File");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"ImageBase");
@@ -621,20 +623,24 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS, context->ListViewHandle);
             PhSaveWindowPlacementToSetting(SETTING_MEMORY_MODIFIED_WINDOW_POSITION, SETTING_MEMORY_MODIFIED_WINDOW_SIZE, WindowHandle);
 
-            context->Destroying = TRUE;
+            WriteBooleanRelease(&context->Destroying, TRUE);
 
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            PhpLimitedSymbolDereferenceContext(context);
 
             PhUnregisterCallback(
                 &PhSymbolEventCallback,
                 &context->SymbolProviderEventRegistration
                 );
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+            // N.B. This can free the context; it must be the last access.
+            PhpLimitedSymbolDereferenceContext(context);
         }
         break;
     case WM_TIMER:
@@ -682,6 +688,11 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -764,18 +775,10 @@ VOID PhShowImagePageModifiedDialog(
     )
 {
     PPH_IMAGE_MODIFIED_DIALOG_CONTEXT context;
-    NTSTATUS status;
-    HANDLE processHandle;
 
-    status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_INFORMATION,
-        ProcessItem->ProcessId
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!ProcessItem->QueryHandle)
     {
-        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", STATUS_INVALID_HANDLE, 0);
         return;
     }
 
@@ -783,7 +786,7 @@ VOID PhShowImagePageModifiedDialog(
     context->RefCount = 1;
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->ParentWindowHandle = ParentWindowHandle;
-    context->ProcessHandle = processHandle;
+    context->ProcessHandle = ProcessItem->QueryHandle;
 
     PhDialogBox(
         PhInstanceHandle,

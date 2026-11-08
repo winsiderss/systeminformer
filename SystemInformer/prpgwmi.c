@@ -1893,7 +1893,10 @@ VOID PhpShowWmiProviderNodeContextMenu(
     if (!PhpGetSelectedWmiProviderNodes(Context, &nodes, &numberOfNodes))
         return;
     if (numberOfNodes == 0)
+    {
+        PhFree(nodes);
         return;
+    }
 
     menu = PhCreateEMenu();
 
@@ -2018,6 +2021,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
     }
 
     PhDestroyEMenu(menu);
+    PhFree(nodes);
 }
 
 VOID PhLoadSettingsWmiProviderList(

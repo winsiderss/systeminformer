@@ -36,7 +36,6 @@
 #define WM_PH_SYMBOL_STATUS (WM_APP + 308)   // StatusContent changed; update the status label
 
 static PPH_OBJECT_TYPE PhThreadStackContextType = NULL;
-static RECT MinimumSize = { -1, -1, -1, -1 };
 
 typedef struct _PH_THREAD_STACK_CONTEXT
 {
@@ -77,6 +76,17 @@ typedef struct _PH_THREAD_STACK_CONTEXT
 
     PPH_LIST List;
     PPH_LIST NewList;
+    ULONG64 ShadowStackPointer;
+    ULONG64 ShadowStackMsr;
+    PULONG64 ShadowStackEntries;
+    ULONG ShadowStackCount;
+    NTSTATUS ShadowStackStatus;
+    ULONG64 NewShadowStackPointer;
+    ULONG64 NewShadowStackMsr;
+    PULONG64 NewShadowStackEntries;
+    ULONG NewShadowStackCount;
+    NTSTATUS NewShadowStackStatus;
+    BOOLEAN NewShadowStackComplete;
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
 
@@ -94,6 +104,7 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     LONG WindowDpi;
 
     PH_LAYOUT_MANAGER LayoutManager;
+    SIZE MinimumSize;
 
     HWND WindowHandle;
     HWND ParentHandle;
@@ -143,6 +154,7 @@ typedef struct _THREAD_STACK_ITEM
     PPH_STRING UnwindMethod;
     PPH_STRING CfgTarget;
     PPH_STRING Language;
+    PPH_STRING ShadowStack;
     PVOID DiagnosticAddress;
     PVOID FrameContext; // Copy of the unwound register context (PH_THREAD_STACK_FRAME::ContextRecord).
 } THREAD_STACK_ITEM, *PTHREAD_STACK_ITEM;
@@ -189,6 +201,7 @@ typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
     PH_STACK_TREE_COLUMN_UNWINDMETHOD,
     PH_STACK_TREE_COLUMN_CFGTARGET,
     PH_STACK_TREE_COLUMN_LANGUAGE,
+    PH_STACK_TREE_COLUMN_SHADOWSTACK,
     TREE_COLUMN_ITEM_MAXIMUM
 } PH_STACK_TREE_COLUMN_ITEM_NAME;
 
@@ -222,6 +235,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     PPH_STRING UnwindMethodString;
     PPH_STRING CfgTargetString;
     PPH_STRING LanguageString;
+    PPH_STRING ShadowStackString;
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PH_STACK_TREE_ROOT_NODE, *PPH_STACK_TREE_ROOT_NODE;
@@ -233,6 +247,7 @@ typedef enum _PH_THREAD_STACK_MENUITEM
     PH_THREAD_STACK_MENUITEM_REGISTERS,
     PH_THREAD_STACK_MENUITEM_OPENSOURCELINK,
     PH_THREAD_STACK_MENUITEM_COPYSOURCELINK,
+    PH_THREAD_STACK_MENUITEM_SHADOWSTACK,
 } PH_THREAD_STACK_MENUITEM;
 
 /**
@@ -464,6 +479,7 @@ STRING_SORT_FUNCTION(StackValid, StackValidString)
 STRING_SORT_FUNCTION(UnwindMethod, UnwindMethodString)
 STRING_SORT_FUNCTION(CfgTarget, CfgTargetString)
 STRING_SORT_FUNCTION(Language, LanguageString)
+STRING_SORT_FUNCTION(ShadowStack, ShadowStackString)
 
 VOID ThreadStackLoadSettingsTreeList(
     _Inout_ PPH_THREAD_STACK_CONTEXT Context
@@ -639,6 +655,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     SORT_FUNCTION(UnwindMethod),
                     SORT_FUNCTION(CfgTarget),
                     SORT_FUNCTION(Language),
+                    SORT_FUNCTION(ShadowStack),
                 };
                 _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
@@ -740,6 +757,9 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                 break;
             case PH_STACK_TREE_COLUMN_LANGUAGE:
                 getCellText->Text = PhGetStringRef(node->LanguageString);
+                break;
+            case PH_STACK_TREE_COLUMN_SHADOWSTACK:
+                getCellText->Text = PhGetStringRef(node->ShadowStackString);
                 break;
             default:
                 return FALSE;
@@ -1106,6 +1126,7 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_UNWINDMETHOD, TRUE, L"Unwind", 120, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CFGTARGET, TRUE, L"CFG target", 90, PH_ALIGN_LEFT, 6, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LANGUAGE, TRUE, L"Language", 90, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_SHADOWSTACK, FALSE, L"Shadow stack", 90, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhpThreadStackTreeFilterCallback, Context);
@@ -1156,6 +1177,8 @@ VOID NTAPI PhpThreadStackContextDeleteProcedure(
 
     if (context->StatusMessage) PhDereferenceObject(context->StatusMessage);
     if (context->StatusContent) PhDereferenceObject(context->StatusContent);
+    if (context->ShadowStackEntries) PhFree(context->ShadowStackEntries);
+    if (context->NewShadowStackEntries) PhFree(context->NewShadowStackEntries);
     if (context->NewList)
     {
         for (ULONG i = 0; i < context->NewList->Count; i++)
@@ -1290,6 +1313,8 @@ VOID PhShowThreadStackDialog(
     context = PhCreateObjectZero(sizeof(PH_THREAD_STACK_CONTEXT), PhThreadStackContextType);
     context->List = PhCreateList(10);
     context->NewList = PhCreateList(10);
+    context->ShadowStackStatus = STATUS_NOT_SUPPORTED;
+    context->NewShadowStackStatus = STATUS_NOT_SUPPORTED;
     PhInitializeQueuedLock(&context->StatusLock);
     PhInitializeSListHead(&context->ResolvedListHead);
     // Manual-reset event, initially signalled (no worker running).
@@ -1315,6 +1340,10 @@ VOID PhShowThreadStackDialog(
     }
 }
 
+static ULONG PhpGetThreadStackFrameContextSize(
+    _In_ USHORT Machine
+    );
+
 VOID PhShowThreadStackFrameRegisters(
     _In_ HWND WindowHandle,
     _In_ PPH_THREAD_STACK_CONTEXT Context,
@@ -1324,6 +1353,8 @@ VOID PhShowThreadStackFrameRegisters(
     PH_FORMAT format[4];
     ULONG count = 2;
     PPH_STRING frameTitle;
+    PPH_THREAD_FRAME_CONTEXT priorFrames;
+    ULONG priorFrameCount = 0;
 
     if (!Node->FrameContext)
         return;
@@ -1339,6 +1370,23 @@ VOID PhShowThreadStackFrameRegisters(
     }
 
     frameTitle = PhFormat(format, count, 0);
+    priorFrames = PhAllocateZero(sizeof(PH_THREAD_FRAME_CONTEXT) * Context->List->Count);
+
+    // Use capture order, independently of the tree's current sort and filters.
+    for (ULONG i = 0; i < Context->List->Count; i++)
+    {
+        PTHREAD_STACK_ITEM item = Context->List->Items[i];
+        PPH_THREAD_FRAME_CONTEXT frame;
+
+        if (item->Index >= Node->Index)
+            continue;
+
+        frame = &priorFrames[priorFrameCount++];
+        frame->Index = item->Index;
+        frame->Machine = item->StackFrame.Machine;
+        if (item->FrameContext)
+            frame->ContextRecord = PhAllocateCopy(item->FrameContext, PhpGetThreadStackFrameContextSize(frame->Machine));
+    }
 
     PhShowThreadFrameContextDialog(
         WindowHandle,
@@ -1346,9 +1394,17 @@ VOID PhShowThreadStackFrameRegisters(
         Context->ThreadId,
         Node->StackFrame.Machine,
         Node->FrameContext,
-        PhGetString(frameTitle)
+        PhGetString(frameTitle),
+        priorFrames,
+        priorFrameCount
         );
 
+    for (ULONG i = 0; i < priorFrameCount; i++)
+    {
+        if (priorFrames[i].ContextRecord)
+            PhFree(priorFrames[i].ContextRecord);
+    }
+    PhFree(priorFrames);
     PhDereferenceObject(frameTitle);
 }
 
@@ -1389,6 +1445,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             context->HighlightInlineFrames = !!PhGetIntegerSetting(SETTING_USE_COLOR_INLINE_THREAD_STACK);
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
             PhSetWindowExStyle(context->TreeNewHandle, WS_EX_CLIENTEDGE, 0);
+            PhSetWindowStyle(context->TreeNewHandle, WS_BORDER, WS_BORDER);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -1432,17 +1489,12 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (MinimumSize.left == -1)
             {
-                RECT rect;
+                RECT rect = { 0, 0, 190, 120 };
 
-                rect.left = 0;
-                rect.top = 0;
-                rect.right = 190;
-                rect.bottom = 120;
                 MapDialogRect(hwndDlg, &rect);
-                MinimumSize = rect;
-                MinimumSize.left = 0;
+                context->MinimumSize.cx = PhScaleToDefault(rect.right, context->LayoutManager.WindowDpi);
+                context->MinimumSize.cy = PhScaleToDefault(rect.bottom, context->LayoutManager.WindowDpi);
             }
 
             if (PhValidWindowPlacementFromSetting(SETTING_THREAD_STACK_WINDOW_POSITION))
@@ -1562,6 +1614,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_DEFAULT | (selectedNode->FrameContext ? 0 : PH_EMENU_DISABLED), PH_THREAD_STACK_MENUITEM_REGISTERS, L"&Registers...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(NT_SUCCESS(context->ShadowStackStatus) ? 0 : PH_EMENU_DISABLED, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, L"S&hadow stack...", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_THREAD_STACK_MENUITEM_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_THREAD_STACK_MENUITEM_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
@@ -1619,6 +1672,11 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                                     PhShowThreadStackFrameRegisters(hwndDlg, context, selectedNode);
                                 }
                                 break;
+                            case PH_THREAD_STACK_MENUITEM_SHADOWSTACK:
+                                {
+                                    SendMessage(hwndDlg, WM_COMMAND, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, 0);
+                                }
+                                break;
                             case PH_THREAD_STACK_MENUITEM_OPENSOURCELINK:
                                 {
                                     if (sourceLinkUrl)
@@ -1654,6 +1712,23 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     }
                 }
                 break;
+            case PH_THREAD_STACK_MENUITEM_SHADOWSTACK:
+                {
+                    if (NT_SUCCESS(context->ShadowStackStatus))
+                    {
+                        PhShowThreadShadowStackDialog(
+                            hwndDlg,
+                            context->ProcessId,
+                            context->ThreadId,
+                            context->SymbolProvider,
+                            context->ShadowStackPointer,
+                            context->ShadowStackMsr,
+                            context->ShadowStackEntries,
+                            context->ShadowStackCount
+                            );
+                    }
+                }
+                break;
             case WM_PH_SHOWSTACKDEFAULT:
                 {
                     PPH_STACK_TREE_ROOT_NODE selectedNode;
@@ -1675,6 +1750,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PPH_EMENU_ITEM userItem;
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM inlineItem;
+                    PPH_STACK_TREE_ROOT_NODE selectedNode;
                     PPH_EMENU_ITEM selectedItem;
 
                     if (!PhGetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect))
@@ -1688,6 +1764,23 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PhInsertEMenuItem(menu, userItem = PhCreateEMenuItem(0, 4, L"Highlight user frames", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, 5, L"Highlight system frames", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, inlineItem = PhCreateEMenuItem(0, 6, L"Highlight inline frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(
+                        NT_SUCCESS(context->ShadowStackStatus) ? 0 : PH_EMENU_DISABLED,
+                        7,
+                        L"Shadow stack...",
+                        NULL,
+                        NULL
+                        ), ULONG_MAX);
+
+                    selectedNode = GetSelectedThreadStackNode(context);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(
+                        selectedNode && selectedNode->FrameContext ? 0 : PH_EMENU_DISABLED,
+                        8,
+                        L"&Registers...",
+                        NULL,
+                        NULL
+                        ), ULONG_MAX);
 
                     if (context->HideUserPages)
                         hideUserItem->Flags |= PH_EMENU_CHECKED;
@@ -1740,6 +1833,14 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                             context->HighlightInlineFrames = !context->HighlightInlineFrames;
                             PhSetIntegerSetting(SETTING_USE_COLOR_INLINE_THREAD_STACK, context->HighlightInlineFrames);
                         }
+                        else if (selectedItem->Id == 7)
+                        {
+                            SendMessage(hwndDlg, WM_COMMAND, PH_THREAD_STACK_MENUITEM_SHADOWSTACK, 0);
+                        }
+                        else if (selectedItem->Id == 8)
+                        {
+                            SendMessage(hwndDlg, WM_COMMAND, WM_PH_SHOWSTACKDEFAULT, 0);
+                        }
 
                         PhApplyTreeNewFilters(&context->TreeFilterSupport);
                     }
@@ -1774,6 +1875,10 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                 for (ULONG i = 0; i < context->NewList->Count; i++)
                     PhpFreeThreadStackItem(context->NewList->Items[i]);
                 PhClearList(context->NewList);
+                if (context->NewShadowStackEntries)
+                    PhFree(context->NewShadowStackEntries);
+                context->NewShadowStackEntries = NULL;
+                context->NewShadowStackCount = 0;
             }
         }
         return TRUE;
@@ -1902,7 +2007,12 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+            PhResizingMinimumSize(
+                (PRECT)lParam,
+                wParam,
+                PhScaleToDisplay(context->MinimumSize.cx, context->LayoutManager.WindowDpi),
+                PhScaleToDisplay(context->MinimumSize.cy, context->LayoutManager.WindowDpi)
+                );
         }
         break;
     case WM_CTLCOLORBTN:
@@ -1929,9 +2039,245 @@ VOID PhpFreeThreadStackItem(
     if (StackItem->UnwindMethod) PhDereferenceObject(StackItem->UnwindMethod);
     if (StackItem->CfgTarget) PhDereferenceObject(StackItem->CfgTarget);
     if (StackItem->Language) PhDereferenceObject(StackItem->Language);
+    if (StackItem->ShadowStack) PhDereferenceObject(StackItem->ShadowStack);
     if (StackItem->FrameContext) PhFree(StackItem->FrameContext);
 
     PhFree(StackItem);
+}
+
+VOID PhpCaptureThreadShadowStack(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    if (Context->NewShadowStackEntries)
+    {
+        PhFree(Context->NewShadowStackEntries);
+        Context->NewShadowStackEntries = NULL;
+    }
+
+    Context->NewShadowStackPointer = 0;
+    Context->NewShadowStackMsr = 0;
+    Context->NewShadowStackCount = 0;
+    Context->NewShadowStackStatus = STATUS_NOT_SUPPORTED;
+    Context->NewShadowStackComplete = FALSE;
+
+#if defined(_M_X64)
+    if (!Context->IsWow64Process && Context->SymbolProvider->ProcessHandle)
+    {
+        NTSTATUS status;
+        XSAVE_CET_U_FORMAT cetUserState;
+        MEMORY_BASIC_INFORMATION basicInfo;
+        ULONG64 regionBase;
+        ULONG64 regionTop;
+        ULONG64 availableEntries;
+        SIZE_T bytesRead;
+        ULONG count;
+
+        status = PhGetThreadCetUserState(Context->ThreadHandle, &cetUserState);
+
+        if (!NT_SUCCESS(status))
+        {
+            Context->NewShadowStackStatus = status;
+            return;
+        }
+
+        if (!FlagOn(cetUserState.Ia32CetUMsr, PH_CET_U_SH_STK_EN) || !cetUserState.Ia32Pl3SspMsr)
+        {
+            Context->NewShadowStackStatus = STATUS_NOT_FOUND;
+            return;
+        }
+
+        Context->NewShadowStackPointer = cetUserState.Ia32Pl3SspMsr;
+        Context->NewShadowStackMsr = cetUserState.Ia32CetUMsr;
+
+        status = NtQueryVirtualMemory(
+            Context->SymbolProvider->ProcessHandle,
+            (PVOID)(ULONG_PTR)(cetUserState.Ia32Pl3SspMsr - 1),
+            MemoryBasicInformation,
+            &basicInfo,
+            sizeof(basicInfo),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            Context->NewShadowStackStatus = status;
+            return;
+        }
+
+        regionBase = (ULONG64)(ULONG_PTR)basicInfo.BaseAddress;
+        if (basicInfo.State != MEM_COMMIT ||
+            regionBase > cetUserState.Ia32Pl3SspMsr ||
+            basicInfo.RegionSize > MAXULONG64 - regionBase)
+        {
+            Context->NewShadowStackStatus = STATUS_INVALID_ADDRESS;
+            return;
+        }
+
+        regionTop = regionBase + basicInfo.RegionSize;
+        if (cetUserState.Ia32Pl3SspMsr > regionTop)
+        {
+            Context->NewShadowStackStatus = STATUS_INVALID_ADDRESS;
+            return;
+        }
+
+        availableEntries = (regionTop - cetUserState.Ia32Pl3SspMsr) / sizeof(ULONG64);
+        Context->NewShadowStackComplete = availableEntries <= 4096;
+        count = (ULONG)min(availableEntries, 4096);
+        if (!count)
+        {
+            Context->NewShadowStackStatus = STATUS_SUCCESS;
+            return;
+        }
+
+        Context->NewShadowStackEntries = PhAllocate(sizeof(ULONG64) * count);
+        bytesRead = 0;
+        status = PhReadVirtualMemory(
+            Context->SymbolProvider->ProcessHandle,
+            (PVOID)(ULONG_PTR)cetUserState.Ia32Pl3SspMsr,
+            Context->NewShadowStackEntries,
+            sizeof(ULONG64) * count,
+            &bytesRead
+            );
+
+        if (NT_SUCCESS(status) && bytesRead == sizeof(ULONG64) * count)
+        {
+            Context->NewShadowStackCount = count;
+            Context->NewShadowStackStatus = STATUS_SUCCESS;
+        }
+        else
+        {
+            PhFree(Context->NewShadowStackEntries);
+            Context->NewShadowStackEntries = NULL;
+            Context->NewShadowStackStatus = NT_SUCCESS(status) ? STATUS_PARTIAL_COPY : status;
+        }
+    }
+#endif
+}
+
+VOID PhShowThreadShadowStack(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+    NTSTATUS status;
+    PPH_THREAD_STACK_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(PH_THREAD_STACK_CONTEXT));
+    context->SymbolProvider = SymbolProvider;
+
+    status = PhOpenThread(
+        &context->ThreadHandle,
+        THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        ThreadId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (SymbolProvider->ProcessHandle)
+            status = PhGetProcessIsWow64(SymbolProvider->ProcessHandle, &context->IsWow64Process);
+        else
+            status = STATUS_ACCESS_DENIED;
+
+        if (NT_SUCCESS(status))
+        {
+            status = NtSuspendThread(context->ThreadHandle, NULL);
+
+            if (NT_SUCCESS(status))
+            {
+                PhpCaptureThreadShadowStack(context);
+                NtResumeThread(context->ThreadHandle, NULL);
+                status = context->NewShadowStackStatus;
+            }
+        }
+
+        NtClose(context->ThreadHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhLoadSymbolProviderOptions(SymbolProvider);
+        PhShowThreadShadowStackDialog(
+            ParentWindowHandle,
+            ProcessId,
+            ThreadId,
+            SymbolProvider,
+            context->NewShadowStackPointer,
+            context->NewShadowStackMsr,
+            context->NewShadowStackEntries,
+            context->NewShadowStackCount
+            );
+    }
+    else
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to capture the thread shadow stack.", status, 0);
+    }
+
+    if (context->NewShadowStackEntries)
+        PhFree(context->NewShadowStackEntries);
+    PhFree(context);
+}
+
+VOID PhpAnnotateThreadStackShadowStack(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    ULONG cursor = 0;
+
+    for (ULONG i = 0; i < Context->NewList->Count; i++)
+    {
+        PTHREAD_STACK_ITEM item = Context->NewList->Items[i];
+        ULONG64 returnAddress;
+
+        if (FlagOn(item->StackFrame.Flags, PH_THREAD_STACK_FRAME_KERNEL) ||
+            PhIsStackFrameTypeInline(item->StackFrame.InlineFrameContext))
+            continue;
+
+        if (item->StackFrame.Machine != IMAGE_FILE_MACHINE_AMD64)
+        {
+            item->ShadowStack = PhCreateString(L"Unavailable");
+            continue;
+        }
+
+        if (Context->NewShadowStackStatus == STATUS_NOT_FOUND)
+        {
+            item->ShadowStack = PhCreateString(L"Disabled");
+            continue;
+        }
+
+        if (!NT_SUCCESS(Context->NewShadowStackStatus))
+        {
+            item->ShadowStack = PhCreateString(L"Unavailable");
+            continue;
+        }
+
+        returnAddress = (ULONG64)(ULONG_PTR)item->StackFrame.ReturnAddress;
+        if (!returnAddress)
+        {
+            item->ShadowStack = PhCreateString(L"N/A");
+            continue;
+        }
+
+        item->ShadowStack = PhCreateString(Context->NewShadowStackComplete ? L"No" : L"Unknown");
+
+        for (ULONG j = cursor; j < Context->NewShadowStackCount; j++)
+        {
+            ULONG64 entry = Context->NewShadowStackEntries[j];
+            ULONG64 rangeEnd = Context->NewShadowStackPointer + (ULONG64)Context->NewShadowStackCount * sizeof(ULONG64);
+
+            if ((entry & 1) && (entry & ~1ULL) >= Context->NewShadowStackPointer && (entry & ~1ULL) < rangeEnd)
+                continue;
+
+            if (entry == returnAddress)
+            {
+                PhMoveReference(&item->ShadowStack, PhCreateString(L"Yes"));
+                cursor = j + 1;
+                break;
+            }
+        }
+    }
 }
 
 static PPH_STRING PhpGetThreadStackLanguage(
@@ -1993,7 +2339,7 @@ static VOID PhpInitializeThreadStackDiagnostics(
             ));
     }
 
-    if (KsiLevel() >= KphLevelMed)
+    if (KsiLevel() == KphLevelMax)
     {
         Context->KernelStackInformationValid = NT_SUCCESS(KphQueryInformationThread(
             Context->ThreadHandle,
@@ -2412,6 +2758,7 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
     PPH_THREAD_STACK_CONTEXT threadStackContext = Parameter;
     CLIENT_ID clientId;
     BOOLEAN defaultWalk;
+    BOOLEAN threadSuspended;
 
     PhInitializeAutoPool(&autoPool);
     PhpInitializeThreadStackDiagnostics(threadStackContext);
@@ -2422,6 +2769,10 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
     clientId.UniqueProcess = threadStackContext->ProcessId;
     clientId.UniqueThread = threadStackContext->ThreadId;
     defaultWalk = TRUE;
+    threadSuspended = NT_SUCCESS(NtSuspendThread(threadStackContext->ThreadHandle, NULL));
+    PhpCaptureThreadShadowStack(threadStackContext);
+    if (!threadSuspended)
+        threadStackContext->NewShadowStackComplete = FALSE;
 
     if (threadStackContext->CustomWalk)
     {
@@ -2476,6 +2827,11 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
 
     if (threadStackContext->NewList->Count != 0)
         status = STATUS_SUCCESS;
+
+    if (threadSuspended)
+        NtResumeThread(threadStackContext->ThreadHandle, NULL);
+
+    PhpAnnotateThreadStackShadowStack(threadStackContext);
 
     threadStackContext->WalkStatus = status;
     PostMessage(threadStackContext->TaskDialogHandle, WM_PH_COMPLETED, 0, 0);
@@ -2737,6 +3093,16 @@ VOID PhpApplyThreadStackFrames(
     Context->List = Context->NewList;
     Context->NewList = PhCreateList(10);
 
+    if (Context->ShadowStackEntries)
+        PhFree(Context->ShadowStackEntries);
+    Context->ShadowStackEntries = Context->NewShadowStackEntries;
+    Context->ShadowStackCount = Context->NewShadowStackCount;
+    Context->ShadowStackPointer = Context->NewShadowStackPointer;
+    Context->ShadowStackMsr = Context->NewShadowStackMsr;
+    Context->ShadowStackStatus = Context->NewShadowStackStatus;
+    Context->NewShadowStackEntries = NULL;
+    Context->NewShadowStackCount = 0;
+
     ClearThreadStackTree(Context);
 
     // Suspend redraw so the per-node TreeNew_NodesStructured calls coalesce into a
@@ -2761,6 +3127,7 @@ VOID PhpApplyThreadStackFrames(
         stackNode->UnwindMethodString = item->UnwindMethod;
         stackNode->CfgTargetString = item->CfgTarget;
         stackNode->LanguageString = item->Language;
+        stackNode->ShadowStackString = item->ShadowStack;
 
         if (stackNode->FileNameString)
             stackNode->FileNameString = PhGetFileName(stackNode->FileNameString);
@@ -3021,6 +3388,7 @@ NTSTATUS PhpDeferredThreadStackThreadStart(
     ULONG generation;
     PTHREAD_STACK_DEFERRED_FRAME frames = NULL;
     ULONG numberOfFrames = 0;
+    BOOLEAN threadSuspended;
 
     // Only one deferred worker runs at a time (see PhpRefreshThreadStack), so this worker owns
     // NewList and the diagnostics fields until it hands NewList to the UI thread.
@@ -3039,6 +3407,10 @@ NTSTATUS PhpDeferredThreadStackThreadStart(
     // provider here -- that is deferred to phase 2 below.
     WriteBooleanRelease(&context->SkipSymbolPass, TRUE);
     PhpSetThreadStackStatus(context, PhCreateString(L"Walking stack..."));
+    threadSuspended = NT_SUCCESS(NtSuspendThread(context->ThreadHandle, NULL));
+    PhpCaptureThreadShadowStack(context);
+    if (!threadSuspended)
+        context->NewShadowStackComplete = FALSE;
 
     if (context->CustomWalk)
     {
@@ -3091,7 +3463,11 @@ NTSTATUS PhpDeferredThreadStackThreadStart(
         }
     }
 
+    if (threadSuspended)
+        NtResumeThread(context->ThreadHandle, NULL);
+
     context->WalkStatus = status;
+    PhpAnnotateThreadStackShadowStack(context);
 
     // Keep a private copy of the frames for phase 2. After WM_PH_FRAMES_READY the items belong
     // to the UI thread and may be freed at any time (refresh), so the worker must not touch them.
@@ -3200,6 +3576,10 @@ NTSTATUS PhpRefreshThreadStack(
             PhpFreeThreadStackItem(Context->NewList->Items[i]);
 
         PhClearList(Context->NewList);
+        if (Context->NewShadowStackEntries)
+            PhFree(Context->NewShadowStackEntries);
+        Context->NewShadowStackEntries = NULL;
+        Context->NewShadowStackCount = 0;
     }
 
     if (ReadBooleanAcquire(&Context->StopWalk))

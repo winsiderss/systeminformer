@@ -225,7 +225,7 @@ PPIPE_ENUM_ITEM EtCreateNamedPipeDirectoryItem(
             EtSetNamedPipeItemText(item, 2, PH_AUTO_T(PH_STRING, PhStdGetClientIdName(&clientId))->Buffer);
         }
 
-        if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &pipeLocalInfo, sizeof(pipeLocalInfo), FilePipeLocalInformation)))
+        if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &pipeLocalInfo, sizeof(FILE_PIPE_LOCAL_INFORMATION), FilePipeLocalInformation)))
         {
             // Will always be client, since we opened the pipe by name. NtCreateNamedPipeFile must be used to create/open the server end.
             assert(pipeLocalInfo.NamedPipeEnd == FILE_PIPE_CLIENT_END);
@@ -283,7 +283,7 @@ PPIPE_ENUM_ITEM EtCreateNamedPipeDirectoryItem(
                 EtSetNamedPipeItemText(item, 10, L"Accept");
         }
 
-        if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &pipeInfo, sizeof(pipeInfo), FilePipeInformation)))
+        if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &pipeInfo, sizeof(FILE_PIPE_INFORMATION), FilePipeInformation)))
         {
             switch (pipeInfo.ReadMode)
             {
@@ -375,7 +375,7 @@ PPIPE_ENUM_ITEM EtCreateNamedPipeHandleItem(
         HandleInfo->Handle,
         FilePipeLocalInformation,
         &pipeLocalInfo,
-        sizeof(pipeLocalInfo),
+        sizeof(FILE_PIPE_LOCAL_INFORMATION),
         NULL
         )))
     {
@@ -484,7 +484,7 @@ PPIPE_ENUM_ITEM EtCreateNamedPipeHandleItem(
         HandleInfo->Handle,
         FilePipeInformation,
         &pipeInfo,
-        sizeof(pipeInfo),
+        sizeof(FILE_PIPE_INFORMATION),
         NULL
         )))
     {

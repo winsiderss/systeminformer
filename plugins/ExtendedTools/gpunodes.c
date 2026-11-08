@@ -318,6 +318,42 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
+VOID EtpGpuNodesGetGraphRect(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Index,
+    _Out_ PRECT GraphRect
+    )
+{
+    RECT clientRect;
+    LONG numberOfRows;
+    LONG numberOfColumns;
+    LONG row;
+    LONG column;
+    LONG cellWidth;
+    LONG cellHeight;
+
+    numberOfRows = (LONG)sqrt(EtGpuTotalNodeCount);
+    numberOfColumns = ((LONG)EtGpuTotalNodeCount + numberOfRows - 1) / numberOfRows;
+    row = (LONG)Index / numberOfColumns;
+    column = (LONG)Index % numberOfColumns;
+
+    PhGetClientRect(WindowHandle, &clientRect);
+    cellWidth = (clientRect.right - LayoutMargin.left - LayoutMargin.right - GRAPH_PADDING * (numberOfColumns - 1)) / numberOfColumns;
+    cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * (numberOfRows - 1)) / numberOfRows;
+
+    GraphRect->left = LayoutMargin.left + (cellWidth + GRAPH_PADDING) * column;
+    GraphRect->top = LayoutMargin.top + (cellHeight + GRAPH_PADDING) * row;
+    GraphRect->right = GraphRect->left + cellWidth;
+    GraphRect->bottom = GraphRect->top + cellHeight;
+
+    // Give the last row and column the remaining space; the size we calculated might be off
+    // by a few pixels due to integer division.
+    if (column == numberOfColumns - 1)
+        GraphRect->right = clientRect.right - LayoutMargin.right;
+    if (row == numberOfRows - 1)
+        GraphRect->bottom = clientRect.bottom - LayoutMargin.bottom;
+}
+
 VOID EtShowGpuNodesDialog(
     _In_ HWND ParentWindowHandle
     )
@@ -373,19 +409,22 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 PH_GRAPH_CREATEPARAMS graphCreateParams;
+                RECT graphRect;
 
                 memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
                 graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
                 graphCreateParams.Callback = EtpGpuNodesGraphMessageCallback;
 
+                EtpGpuNodesGetGraphRect(WindowHandle, i, &graphRect);
+
                 GraphHandle[i] = PhCreateWindow(
                     PH_GRAPH_CLASSNAME,
                     NULL,
                     WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
-                    0,
-                    0,
-                    0,
-                    0,
+                    graphRect.left,
+                    graphRect.top,
+                    graphRect.right - graphRect.left,
+                    graphRect.bottom - graphRect.top,
                     WindowHandle,
                     NULL,
                     NULL,
@@ -459,18 +498,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
     case WM_SIZE:
         {
             HDWP deferHandle;
-            RECT clientRect;
-            ULONG numberOfRows = (ULONG)sqrt(EtGpuTotalNodeCount);
-            ULONG numberOfColumns = (EtGpuTotalNodeCount + numberOfRows - 1) / numberOfRows;
-            ULONG numberOfYPaddings = numberOfRows - 1;
-            ULONG numberOfXPaddings = numberOfColumns - 1;
-            ULONG cellHeight;
-            ULONG y;
-            ULONG cellWidth;
-            ULONG x;
-            ULONG i;
+            RECT graphRect;
 
-            for (i = 0; i < EtGpuTotalNodeCount; i++)
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 GraphState[i].Valid = FALSE;
                 GraphState[i].TooltipIndex = ULONG_MAX;
@@ -480,46 +510,20 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(EtGpuTotalNodeCount);
 
-            PhGetClientRect(WindowHandle, &clientRect);
-            cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
-            y = LayoutMargin.top;
-            i = 0;
-
-            for (ULONG row = 0; row < numberOfRows; ++row)
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                // Give the last row the remaining space; the height we calculated might be off by a few
-                // pixels due to integer division.
-                if (row == numberOfRows - 1)
-                    cellHeight = clientRect.bottom - LayoutMargin.bottom - y;
+                EtpGpuNodesGetGraphRect(WindowHandle, i, &graphRect);
 
-                cellWidth = (clientRect.right - LayoutMargin.left - LayoutMargin.right - GRAPH_PADDING * numberOfXPaddings) / numberOfColumns;
-                x = LayoutMargin.left;
-
-                for (ULONG column = 0; column < numberOfColumns; column++)
-                {
-                    // Give the last cell the remaining space; the width we calculated might be off by a few
-                    // pixels due to integer division.
-                    if (column == numberOfColumns - 1)
-                        cellWidth = clientRect.right - LayoutMargin.right - x;
-
-                    if (i < EtGpuTotalNodeCount)
-                    {
-                        deferHandle = DeferWindowPos(
-                            deferHandle,
-                            GraphHandle[i],
-                            NULL,
-                            x,
-                            y,
-                            cellWidth,
-                            cellHeight,
-                            SWP_NOACTIVATE | SWP_NOZORDER
-                            );
-                        i++;
-                    }
-                    x += cellWidth + GRAPH_PADDING;
-                }
-
-                y += cellHeight + GRAPH_PADDING;
+                deferHandle = DeferWindowPos(
+                    deferHandle,
+                    GraphHandle[i],
+                    NULL,
+                    graphRect.left,
+                    graphRect.top,
+                    graphRect.right - graphRect.left,
+                    graphRect.bottom - graphRect.top,
+                    SWP_NOACTIVATE | SWP_NOZORDER
+                    );
             }
 
             EndDeferWindowPos(deferHandle);

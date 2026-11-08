@@ -345,6 +345,25 @@ PhGetThreadXStateFeatures(
     _Out_ PULONG64 FeatureMask
     );
 
+// IA32_U_CET MSR bits.
+#define PH_CET_U_SH_STK_EN 0x1
+#define PH_CET_U_WR_SHSTK_EN 0x2
+#define PH_CET_U_ENDBR_EN 0x4
+#define PH_CET_U_LEG_IW_EN 0x8
+#define PH_CET_U_NO_TRACK_EN 0x10
+#define PH_CET_U_SUPPRESS_DIS 0x20
+#define PH_CET_U_SUPPRESS 0x400
+#define PH_CET_U_TRACKER 0x800
+#define PH_CET_U_LEG_BITMAP_BASE_MASK 0xFFFFFFFFFFFFF000ULL
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadCetUserState(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PXSAVE_CET_U_FORMAT CetUserState
+    );
+
 #if defined(_ARM64_)
 PHLIBAPI
 NTSTATUS

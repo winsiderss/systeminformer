@@ -1024,6 +1024,204 @@ BOOLEAN NTAPI AtpAgentsTreeNewCallback(
     return FALSE;
 }
 
+typedef enum _AT_CLIENT_SNIPPET_KIND
+{
+    AtSnippetCommand, // Format is applied to the raw broker path.
+    AtSnippetJson, // Format is applied to the JSON-escaped broker path.
+    AtSnippetPercentLink, // Payload (JSON-escaped path) is percent-encoded, then applied to Format.
+    AtSnippetBase64Link // Payload (JSON-escaped path) is base64 and percent-encoded, then applied to Format.
+} AT_CLIENT_SNIPPET_KIND;
+
+typedef struct _AT_CLIENT_CONFIG
+{
+    PCWSTR Name;
+    AT_CLIENT_SNIPPET_KIND Kind;
+    PCWSTR Format;
+    PCWSTR Payload;
+    PCWSTR Hint;
+} AT_CLIENT_CONFIG, *PAT_CLIENT_CONFIG;
+
+// Table order is the combo box order.
+static CONST AT_CLIENT_CONFIG AtClientConfigs[] =
+{
+    {
+        L"Claude Code",
+        AtSnippetCommand,
+        L"claude mcp add --scope user systeminformer -- \"%s\"",
+        NULL,
+        L"Run in a terminal."
+    },
+    {
+        L"Codex CLI",
+        AtSnippetCommand,
+        L"codex mcp add systeminformer -- \"%s\"",
+        NULL,
+        L"Run in a terminal."
+    },
+    {
+        L"Gemini CLI",
+        AtSnippetCommand,
+        L"gemini mcp add --scope user systeminformer \"%s\"",
+        NULL,
+        L"Run in a terminal."
+    },
+    {
+        L"GitHub Copilot CLI",
+        AtSnippetCommand,
+        L"copilot mcp add systeminformer -- \"%s\"",
+        NULL,
+        L"Run in a terminal."
+    },
+    {
+        L"VS Code",
+        AtSnippetPercentLink,
+        L"explorer \"vscode:mcp/install?%s\"",
+        L"{\"name\":\"systeminformer\",\"type\":\"stdio\",\"command\":\"%s\"}",
+        L"Run in a terminal, then confirm the install in VS Code."
+    },
+    {
+        L"Cursor",
+        AtSnippetBase64Link,
+        L"explorer \"cursor://anysphere.cursor-deeplink/mcp/install?name=systeminformer&config=%s\"",
+        L"{\"command\":\"%s\"}",
+        L"Run in a terminal, then confirm the install in Cursor."
+    },
+    {
+        L"Windsurf",
+        AtSnippetJson,
+        L"{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"command\": \"%s\" }\r\n  }\r\n}",
+        NULL,
+        L"Merge into %USERPROFILE%\\.codeium\\windsurf\\mcp_config.json."
+    },
+    {
+        L"Claude Desktop",
+        AtSnippetJson,
+        L"{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"command\": \"%s\" }\r\n  }\r\n}",
+        NULL,
+        L"Merge into claude_desktop_config.json (Settings > Developer > Edit Config), then restart."
+    },
+    {
+        L"OpenCode",
+        AtSnippetJson,
+        L"{\r\n  \"$schema\": \"https://opencode.ai/config.json\",\r\n  \"mcp\": {\r\n    \"systeminformer\": { \"type\": \"local\", \"command\": [ \"%s\" ] }\r\n  }\r\n}",
+        NULL,
+        L"Merge into %USERPROFILE%\\.config\\opencode\\opencode.json."
+    },
+    {
+        L"Pi",
+        AtSnippetCommand,
+        L"pi mcp add systeminformer -- \"%s\"",
+        NULL,
+        L"Run in a terminal."
+    },
+    {
+        L"Oh-My-Pi (omp)",
+        AtSnippetJson,
+        L"{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"type\": \"stdio\", \"command\": \"%s\" }\r\n  }\r\n}",
+        NULL,
+        L"Merge into %USERPROFILE%\\.omp\\agent\\mcp.json. omp also reads Claude Code and Codex configs."
+    },
+    {
+        L"Hermes Agent",
+        AtSnippetCommand,
+        L"hermes mcp add systeminformer --command \"%s\"",
+        NULL,
+        L"Run in a terminal. Under WSL, use the /mnt/c/... form of the path."
+    },
+    {
+        L"OpenClaw",
+        AtSnippetCommand,
+        L"openclaw mcp add systeminformer --command \"%s\"",
+        NULL,
+        L"Stop the OpenClaw gateway, then run in a terminal."
+    },
+};
+
+/**
+ * Appends the UTF-8 encoding of a string, percent-encoding every byte that is not an
+ * RFC 3986 unreserved character.
+ */
+static VOID AtpAppendPercentEncoded(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PCPH_STRINGREF Text
+    )
+{
+    static CONST WCHAR hexDigits[] = L"0123456789ABCDEF";
+    PPH_BYTES utf8;
+    SIZE_T i;
+
+    if (!(utf8 = PhConvertStringRefToUtf8(Text)))
+        return;
+
+    for (i = 0; i < utf8->Length; i++)
+    {
+        UCHAR c = (UCHAR)utf8->Buffer[i];
+
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+            c == '-' || c == '.' || c == '_' || c == '~')
+        {
+            PhAppendCharStringBuilder(StringBuilder, (WCHAR)c);
+        }
+        else
+        {
+            PhAppendCharStringBuilder(StringBuilder, L'%');
+            PhAppendCharStringBuilder(StringBuilder, hexDigits[c >> 4]);
+            PhAppendCharStringBuilder(StringBuilder, hexDigits[c & 0xf]);
+        }
+    }
+
+    PhDereferenceObject(utf8);
+}
+
+/**
+ * Appends the standard (padded) base64 encoding of the UTF-8 encoding of a string.
+ */
+static VOID AtpAppendBase64(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PCPH_STRINGREF Text
+    )
+{
+    static CONST WCHAR alphabet[] = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    PPH_BYTES utf8;
+    PUCHAR data;
+    SIZE_T length;
+    SIZE_T i;
+    ULONG value;
+
+    if (!(utf8 = PhConvertStringRefToUtf8(Text)))
+        return;
+
+    data = (PUCHAR)utf8->Buffer;
+    length = utf8->Length;
+
+    for (i = 0; i + 2 < length; i += 3)
+    {
+        value = ((ULONG)data[i] << 16) | ((ULONG)data[i + 1] << 8) | data[i + 2];
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 18) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 12) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 6) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[value & 0x3f]);
+    }
+
+    if (length - i == 1)
+    {
+        value = (ULONG)data[i] << 16;
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 18) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 12) & 0x3f]);
+        PhAppendStringBuilder2(StringBuilder, L"==");
+    }
+    else if (length - i == 2)
+    {
+        value = ((ULONG)data[i] << 16) | ((ULONG)data[i + 1] << 8);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 18) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 12) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, alphabet[(value >> 6) & 0x3f]);
+        PhAppendCharStringBuilder(StringBuilder, L'=');
+    }
+
+    PhDereferenceObject(utf8);
+}
+
 VOID AtpUpdateSnippet(
     _In_ HWND WindowHandle
     )
@@ -1032,8 +1230,11 @@ VOID AtpUpdateSnippet(
     PPH_STRING directory;
     PPH_STRING brokerPath;
     PPH_STRING escapedPath;
+    PPH_STRING payload;
+    PPH_STRING encoded;
     PPH_STRING snippet;
     PH_STRING_BUILDER builder;
+    CONST AT_CLIENT_CONFIG* config;
     SIZE_T i;
     LONG target;
 
@@ -1059,28 +1260,47 @@ VOID AtpUpdateSnippet(
 
     target = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_CONFIG_TARGET));
 
-    switch (target)
+    if (target < 0 || (ULONG)target >= RTL_NUMBER_OF(AtClientConfigs))
+        target = 0;
+
+    config = &AtClientConfigs[target];
+
+    switch (config->Kind)
     {
-    case 1:
-        snippet = PhFormatString(
-            L"{\r\n  \"servers\": {\r\n    \"systeminformer\": { \"type\": \"stdio\", \"command\": \"%s\" }\r\n  }\r\n}",
-            PhGetString(escapedPath)
-            );
+    case AtSnippetJson:
+        snippet = PhFormatString(config->Format, PhGetString(escapedPath));
         break;
-    case 2:
-        snippet = PhFormatString(
-            L"{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"command\": \"%s\" }\r\n  }\r\n}",
-            PhGetString(escapedPath)
-            );
+    case AtSnippetPercentLink:
+    case AtSnippetBase64Link:
+        {
+            payload = PhFormatString(config->Payload, PhGetString(escapedPath));
+
+            if (config->Kind == AtSnippetBase64Link)
+            {
+                PPH_STRING base64;
+
+                PhInitializeStringBuilder(&builder, payload->Length * 2);
+                AtpAppendBase64(&builder, &payload->sr);
+                base64 = PhFinalStringBuilderString(&builder);
+                PhMoveReference(&payload, base64);
+            }
+
+            PhInitializeStringBuilder(&builder, payload->Length * 3);
+            AtpAppendPercentEncoded(&builder, &payload->sr);
+            encoded = PhFinalStringBuilderString(&builder);
+
+            snippet = PhFormatString(config->Format, PhGetString(encoded));
+
+            PhDereferenceObject(encoded);
+            PhDereferenceObject(payload);
+        }
         break;
     default:
-        snippet = PhFormatString(
-            L"claude mcp add --transport stdio systeminformer -- \"%s\"",
-            PhGetString(brokerPath)
-            );
+        snippet = PhFormatString(config->Format, PhGetString(brokerPath));
         break;
     }
 
+    PhSetDialogItemText(WindowHandle, IDC_CONFIG_HINT, config->Hint);
     PhSetDialogItemText(WindowHandle, IDC_SNIPPET, PhGetString(snippet));
 
     PhDereferenceObject(snippet);
@@ -1117,6 +1337,7 @@ INT_PTR CALLBACK AtAgentsDlgProc(
             static CONST PH_STRINGREF emptyText = PH_STRINGREF_INIT(L"No agents connected.");
             HWND treeNew;
             HWND configTarget;
+            ULONG i;
             PPH_STRING columns;
 
             context->WindowHandle = WindowHandle;
@@ -1141,9 +1362,9 @@ INT_PTR CALLBACK AtAgentsDlgProc(
             PhDereferenceObject(columns);
 
             configTarget = GetDlgItem(WindowHandle, IDC_CONFIG_TARGET);
-            ComboBox_AddString(configTarget, L"Claude Code");
-            ComboBox_AddString(configTarget, L"VS Code");
-            ComboBox_AddString(configTarget, L"Claude Desktop");
+            for (i = 0; i < RTL_NUMBER_OF(AtClientConfigs); i++)
+                ComboBox_AddString(configTarget, AtClientConfigs[i].Name);
+
             ComboBox_SetCurSel(configTarget, 0);
 
             // The agents group takes the extra height; the configuration group keeps its size
@@ -1157,6 +1378,7 @@ INT_PTR CALLBACK AtAgentsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, configTarget, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SNIPPET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_CONFIG_HINT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             AtpRefreshAgents(context);
             AtpUpdateSnippet(WindowHandle);

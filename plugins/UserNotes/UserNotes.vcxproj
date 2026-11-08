@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}</ProjectGuid>
     <RootNamespace>UserNotes</RootNamespace>
     <Keyword>Win32Proj</Keyword>

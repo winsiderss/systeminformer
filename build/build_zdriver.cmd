@@ -81,7 +81,7 @@ REM   %~1 - Semicolon-separated platform list (e.g. "x64" or "x64;ARM64").
 REM   %~2 - BuildAll target such as Clean, Build, or Rebuild.
 REM -----------------------------------------------------------------------------
 :RunDriverBuild
-msbuild -mt -p:UseClStructuredOutput=false -restore -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:ContinuousIntegrationBuild=%IsCI% -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS% %MSBUILD_EXTRA_ARGS% /m /graph KSystemInformer\KSystemInformer.sln
+msbuild -mt -p:UseClStructuredOutput=false -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:ContinuousIntegrationBuild=%IsCI% -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS% %MSBUILD_EXTRA_ARGS% /m /graph KSystemInformer\KSystemInformer.sln
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -195,6 +195,7 @@ REM ----------------------------------------------------------------------------
 :DetectCi
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
+if /i "%GITLAB_CI%"=="true" set "IsCI=true"
 exit /b 0
 
 REM -----------------------------------------------------------------------------

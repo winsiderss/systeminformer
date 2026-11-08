@@ -782,6 +782,8 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                             break;
                         }
                     }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             case WM_PH_PLUGINS_SHOWPROPERTIES:
@@ -1035,7 +1037,7 @@ INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
 
 typedef struct _PLUGIN_DISABLED_CONTEXT
 {
-    PH_QUEUED_LOCK ListLock;
+    BOOLEAN AddingItems;
     HWND DialogHandle;
     HWND ListViewHandle;
 } PLUGIN_DISABLED_CONTEXT, *PPLUGIN_DISABLED_CONTEXT;
@@ -1053,6 +1055,9 @@ VOID PhpAddDisabledPlugins(
     disabled = PhGetStringSetting(SETTING_DISABLED_PLUGINS);
     remainingPart = disabled->sr;
 
+    // Suppress LVN_ITEMCHANGED (including the check state change) while populating the list.
+    Context->AddingItems = TRUE;
+
     while (remainingPart.Length)
     {
         PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
@@ -1060,14 +1065,12 @@ VOID PhpAddDisabledPlugins(
         if (part.Length)
         {
             displayText = PhCreateString2(&part);
-
-            PhAcquireQueuedLockExclusive(&Context->ListLock);
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, PhGetString(displayText), displayText);
-            PhReleaseQueuedLockExclusive(&Context->ListLock);
-
             ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
         }
     }
+
+    Context->AddingItems = FALSE;
 
     PhDereferenceObject(disabled);
 }
@@ -1119,6 +1122,14 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            for (INT i = 0; i < ListView_GetItemCount(context->ListViewHandle); i++)
+            {
+                PPH_STRING itemString;
+
+                if (PhGetListViewItemParam(context->ListViewHandle, i, &itemString))
+                    PhDereferenceObject(itemString);
+            }
+
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
             context = NULL;
@@ -1172,7 +1183,7 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
             {
                 LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
 
-                if (!PhTryAcquireReleaseQueuedLockExclusive(&context->ListLock))
+                if (context->AddingItems)
                     break;
 
                 if (listView->uChanged & LVIF_STATE)

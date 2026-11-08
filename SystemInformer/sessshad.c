@@ -155,9 +155,9 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
 
             // Set up the modifiers.
 
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHIFT), hotkey.Y & KBDSHIFT);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_CTRL), hotkey.Y & KBDCTRL);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALT), hotkey.Y & KBDALT);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHIFT), FlagOn(hotkey.Y, KBDSHIFT) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_CTRL), FlagOn(hotkey.Y, KBDCTRL) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALT), FlagOn(hotkey.Y, KBDALT) ? BST_CHECKED : BST_UNCHECKED);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }

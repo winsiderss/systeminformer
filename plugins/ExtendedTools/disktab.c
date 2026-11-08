@@ -85,7 +85,8 @@ BOOLEAN EtpDiskPageCallback(
             ULONG thinRows;
             ULONG treelistBorder;
             ULONG treelistCustomColors;
-            PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+            PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
+            RECT clientRect = { 0 };
 
             thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
             treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE)) ? WS_BORDER : 0;
@@ -98,14 +99,18 @@ BOOLEAN EtpDiskPageCallback(
                 treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
+            // Create the tree with the tab page container client area so the first layout
+            // and paint use the final size.
+            PhGetClientRect(Parameter2, &clientRect);
+
             WindowHandle = PhCreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-                0,
-                0,
-                0,
-                0,
+                clientRect.left,
+                clientRect.top,
+                clientRect.right - clientRect.left,
+                clientRect.bottom - clientRect.top,
                 Parameter2,
                 NULL,
                 NULL,
@@ -493,7 +498,7 @@ VOID EtUpdateDiskNode(
     PhClearReference(&DiskNode->TooltipText);
 
     PhInvalidateTreeNewNode(&DiskNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(DiskTreeNewHandle);
+    TreeNew_InvalidateNode(DiskTreeNewHandle, &DiskNode->Node);
 }
 
 /**

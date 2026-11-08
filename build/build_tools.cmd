@@ -216,6 +216,7 @@ REM ----------------------------------------------------------------------------
 :DetectCi
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
+if /i "%GITLAB_CI%"=="true" set "IsCI=true"
 if /i "%IsCI%"=="true" set "TIB=true"
 exit /b 0
 

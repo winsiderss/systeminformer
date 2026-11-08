@@ -457,7 +457,7 @@ NTSTATUS
 NTAPI
 PhSetProcessItemPriorityBoost(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     );
 
 PHAPPAPI
@@ -1217,13 +1217,42 @@ VOID PhShowThreadContextDialog(
     _In_ HANDLE ThreadId
     );
 
+typedef struct _PH_THREAD_FRAME_CONTEXT
+{
+    ULONG Index;
+    USHORT Machine;
+    PVOID ContextRecord;
+} PH_THREAD_FRAME_CONTEXT, *PPH_THREAD_FRAME_CONTEXT;
+
 VOID PhShowThreadFrameContextDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ USHORT Machine,
     _In_ PVOID FrameContext,
-    _In_opt_ PCWSTR FrameTitle
+    _In_opt_ PCWSTR FrameTitle,
+    _In_reads_(PriorFrameCount) PPH_THREAD_FRAME_CONTEXT PriorFrames,
+    _In_ ULONG PriorFrameCount
+    );
+
+VOID PhShowThreadShadowStack(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
+// thrdshstk
+
+VOID PhShowThreadShadowStackDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 ShadowStackPointer,
+    _In_ ULONG64 CetUMsr,
+    _In_reads_opt_(Count) PULONG64 Entries,
+    _In_ ULONG Count
     );
 
 VOID PhShowSymbolsDialog(

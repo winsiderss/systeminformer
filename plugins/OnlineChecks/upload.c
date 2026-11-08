@@ -188,7 +188,7 @@ NTSTATUS HashFileAndResetPosition(
         if (!NT_SUCCESS(status))
             break;
 
-        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
+        PhUpdateHash(&hashContext, buffer, iosb.Information);
         bytesRemaining -= (ULONG)iosb.Information;
     }
 
@@ -329,6 +329,67 @@ CleanupExit:
     return result;
 }
 
+/**
+ * Validates that an upload destination stays within the selected service's own
+ * HTTPS origin.  The VirusTotal v3 flow takes its destination from the service
+ * response ("upload_url"), and the request carries the user's API key, so a
+ * tampered or compromised response must not be able to redirect the credential
+ * and the file to another host, scheme, or port. (dmex)
+ *
+ * \param HostName The host parsed from the upload URL.
+ * \param Port The port parsed from the upload URL.
+ * \param ServiceHostName The service's registered host name.
+ * \return TRUE if the destination is the service host or a subdomain of its
+ * parent domain, over the default HTTPS port.
+ */
+static BOOLEAN UploadValidateDestination(
+    _In_opt_ PPH_STRING HostName,
+    _In_ USHORT Port,
+    _In_ PCWSTR ServiceHostName
+    )
+{
+    PH_STRINGREF serviceHost;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF parentDomain;
+
+    if (PhIsNullOrEmptyString(HostName))
+        return FALSE;
+
+    if (Port != PH_HTTP_DEFAULT_HTTPS_PORT)
+        return FALSE;
+
+    PhInitializeStringRefLongHint(&serviceHost, (PWSTR)ServiceHostName);
+
+    if (PhEqualStringRef(&HostName->sr, &serviceHost, TRUE))
+        return TRUE;
+
+    // Accept subdomains of the service's parent domain (e.g. www.example.com
+    // permits upload.example.com) but nothing outside it.
+    if (!PhSplitStringRefAtChar(&serviceHost, L'.', &firstPart, &parentDomain))
+        return FALSE;
+
+    if (parentDomain.Length == 0)
+        return FALSE;
+
+    if (HostName->sr.Length <= parentDomain.Length + sizeof(WCHAR))
+        return FALSE;
+
+    {
+        PH_STRINGREF suffix;
+
+        suffix.Length = parentDomain.Length + sizeof(WCHAR);
+        suffix.Buffer = PTR_ADD_OFFSET(HostName->sr.Buffer, HostName->sr.Length - suffix.Length);
+
+        if (suffix.Buffer[0] != L'.')
+            return FALSE;
+
+        suffix.Length -= sizeof(WCHAR);
+        suffix.Buffer++;
+
+        return PhEqualStringRef(&suffix, &parentDomain, TRUE);
+    }
+}
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadFileThreadStart(
     _In_ PVOID Parameter
@@ -384,6 +445,16 @@ NTSTATUS UploadFileThreadStart(
 
     if (!NT_SUCCESS(status = PhHttpCrackUrl(context->FileUpload, &httpHostName, &httpHostPath, &httpHostPort)))
         goto CleanupExit;
+
+    // The destination can come from a service response; never send the file and
+    // the API key anywhere but the service's own HTTPS origin. (dmex)
+    if (!UploadValidateDestination(httpHostName, httpHostPort, serviceInfo->HostName))
+    {
+        status = STATUS_ACCESS_DENIED;
+        RaiseUploadError(context, L"The service returned an untrusted upload location.", status);
+        goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(httpHostName), httpHostPort)))
@@ -421,20 +492,33 @@ NTSTATUS UploadFileThreadStart(
             goto CleanupExit;
         }
 
-        switch (mappedImage.Signature)
+        __try
         {
-        case IMAGE_DOS_SIGNATURE:
-            machineType = mappedImage.NtHeaders->FileHeader.Machine;
-            break;
-        case IMAGE_ELF_SIGNATURE:
-            machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
-            break;
-        default:
-            machineType = 0;
-            break;
+            switch (mappedImage.Signature)
+            {
+            case IMAGE_DOS_SIGNATURE:
+                machineType = mappedImage.NtHeaders->FileHeader.Machine;
+                break;
+            case IMAGE_ELF_SIGNATURE:
+                machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
+                break;
+            default:
+                machineType = 0;
+                break;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
         }
 
         PhUnloadMappedImage(&mappedImage);
+
+        if (!NT_SUCCESS(status))
+        {
+            RaiseUploadError(context, L"Unable to read the image.", status);
+            goto CleanupExit;
+        }
 
         switch (machineType)
         {
@@ -640,7 +724,7 @@ NTSTATUS UploadFileThreadStart(
     asciiFooterData = PhConvertStringToUtf8(httpPostFooter.String);
 
     // Start the clock.
-    PhQuerySystemTime(&timeStart);
+    PhQueryUnbiasedInterruptTime(&timeStart);
 
     // Write the header
     if (!NT_SUCCESS(status = PhHttpWriteData(
@@ -704,11 +788,11 @@ NTSTATUS UploadFileThreadStart(
             goto CleanupExit;
         }
 
-        PhQuerySystemTime(&timeNow);
+        PhQueryUnbiasedInterruptTime(&timeNow);
 
         totalUploadedLength += totalWriteLength;
-        timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
-        timeBitsPerSecond = totalUploadedLength / __max(timeTicks, 1);
+        timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
+        timeBitsPerSecond = timeTicks ? (ULONG64)totalUploadedLength * PH_TICKS_PER_SEC / timeTicks : 0;
 
 #ifdef FORCE_NO_STATUS_TIMER
         ULONG percent = PhMultiplyDivide(totalUploadedLength, 100, context->TotalFileLength);

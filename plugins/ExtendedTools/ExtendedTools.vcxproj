@@ -27,7 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{3437FD16-A3BF-4938-883A-EB0DF1584A2A}</ProjectGuid>
     <RootNamespace>ExtendedTools</RootNamespace>
     <Keyword>Win32Proj</Keyword>

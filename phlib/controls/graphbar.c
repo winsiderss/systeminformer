@@ -282,7 +282,7 @@ VOID PhpGraphBarEnsureTooltip(
         0,
         WindowHandle,
         NULL,
-        NULL,
+        NtCurrentImageBase(),
         NULL
         );
 

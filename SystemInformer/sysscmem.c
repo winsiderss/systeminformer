@@ -626,7 +626,7 @@ INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
-            NOTHING;
+            PhInitializeThemeWindowGroupBoxes(hwndDlg);
         }
         break;
     case WM_COMMAND:
