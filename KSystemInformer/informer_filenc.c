@@ -88,27 +88,66 @@ NTSTATUS KphpFltGetFileNameInformation(
  *
  * \param[in] Volume The volume of the file object.
  * \param[in] FileObject The file object.
+ * \param[out] Length Receives the length of the file name.
  *
- * \return The length of the file name.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(APC_LEVEL)
-ULONG KphpFltNameCacheFileNameLength(
+_Must_inspect_result_
+NTSTATUS KphpFltNameCacheFileNameLength(
     _In_ PFLT_VOLUME Volume,
-    _In_ PFILE_OBJECT FileObject
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PUSHORT Length
     )
 {
+    NTSTATUS status;
     ULONG length;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    NT_VERIFY(FltGetVolumeName(Volume,
-                               NULL,
-                               &length) == STATUS_BUFFER_TOO_SMALL);
-    NT_VERIFY(NT_SUCCESS(RtlULongAdd(length,
-                                     FileObject->FileName.Length,
-                                     &length)));
+    *Length = 0;
 
-    return length;
+    status = FltGetVolumeName(Volume, NULL, &length);
+    if (status != STATUS_BUFFER_TOO_SMALL)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltGetVolumeName returned: %!STATUS!",
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        goto Exit;
+    }
+
+    status = RtlULongAdd(length, FileObject->FileName.Length, &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "RtlULongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = RtlULongToUShort(length, Length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "RtlULongToUShort failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+Exit:
+
+    return status;
 }
 
 /**
@@ -404,7 +443,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpFltAllocateNameContext(
     _In_ PFLT_FILTER Filter,
-    _In_ ULONG Length,
+    _In_ USHORT Length,
     _Outptr_ PKPH_FLT_STREAMHANDLE_CONTEXT* Context
     )
 {
@@ -438,7 +477,7 @@ NTSTATUS KphpFltAllocateNameContext(
     RtlZeroMemory(context, sizeof(KPH_FLT_STREAMHANDLE_CONTEXT));
 
     context->State = KphFltNameContextReady;
-    context->FileName.MaximumLength = (USHORT)Length;
+    context->FileName.MaximumLength = Length;
     context->FileName.Buffer = Add2Ptr(context, sizeof(KPH_FLT_STREAMHANDLE_CONTEXT));
 
     *Context = context;
@@ -473,7 +512,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     )
 {
     NTSTATUS status;
-    ULONG length;
+    USHORT length;
     PKPH_FLT_STREAMHANDLE_CONTEXT context;
     PKPH_FLT_STREAMHANDLE_CONTEXT oldContext;
 
@@ -587,7 +626,16 @@ NTSTATUS KphpFltGetFileNameUseContext(
     // Try to create a new context.
     //
 
-    length = KphpFltNameCacheFileNameLength(Volume, FileObject);
+    status = KphpFltNameCacheFileNameLength(Volume, FileObject, &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphpFltNameCacheFileNameLength failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
 
     status = KphpFltAllocateNameContext(Filter, length, &context);
     if (!NT_SUCCESS(status))
@@ -693,7 +741,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
 {
     NTSTATUS status;
     KIRQL previousIrql;
-    ULONG length;
+    USHORT length;
     PKPH_FLT_FILE_NAME_CACHE_ENTRY cacheEntry;
     PKPH_FLT_FILE_NAME_CACHE_ENTRY existingCacheEntry;
 
@@ -755,7 +803,16 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     // Try to create new entry and insert it into the cache.
     //
 
-    length = KphpFltNameCacheFileNameLength(Volume, FileObject);
+    status = KphpFltNameCacheFileNameLength(Volume, FileObject, &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphpFltNameCacheFileNameLength failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
 
     status = KphCreateObject(KphpCachedFileNameType,
                              length + sizeof(KPH_FLT_FILE_NAME_CACHE_ENTRY),
@@ -774,7 +831,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     cacheEntry->FileObject = FileObject;
 
     cacheEntry->FileName.Length = 0;
-    cacheEntry->FileName.MaximumLength = (USHORT)length;
+    cacheEntry->FileName.MaximumLength = length;
     cacheEntry->FileName.Buffer = Add2Ptr(cacheEntry,
                                           sizeof(KPH_FLT_FILE_NAME_CACHE_ENTRY));
 
@@ -852,7 +909,8 @@ NTSTATUS KphpFltGetFileNameCopy(
     _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
-    ULONG length;
+    NTSTATUS status;
+    USHORT length;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -871,8 +929,18 @@ NTSTATUS KphpFltGetFileNameCopy(
         return STATUS_OBJECT_NAME_NOT_FOUND;
     }
 
-    length = KphpFltNameCacheFileNameLength(FltObjects->Volume,
-                                            FltObjects->FileObject);
+    status = KphpFltNameCacheFileNameLength(FltObjects->Volume,
+                                            FltObjects->FileObject,
+                                            &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphpFltNameCacheFileNameLength failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
 
     FltFileName->FileName = KphAllocateNPaged(length + sizeof(UNICODE_STRING),
                                               KPH_TAG_FLT_FILE_NAME);
@@ -886,7 +954,7 @@ NTSTATUS KphpFltGetFileNameCopy(
     }
 
     FltFileName->FileName->Length = 0;
-    FltFileName->FileName->MaximumLength = (USHORT)length;
+    FltFileName->FileName->MaximumLength = length;
     FltFileName->FileName->Buffer = Add2Ptr(FltFileName->FileName,
                                             sizeof(UNICODE_STRING));
 

@@ -1038,7 +1038,8 @@ NTSTATUS KphQueryNameFileObject(
     }
 
     Buffer->Name.Length = 0;
-    Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
+    Buffer->Name.MaximumLength = (USHORT)min(BufferLength - sizeof(OBJECT_NAME_INFORMATION),
+                                             UNICODE_STRING_MAX_BYTES);
     Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
 
     RtlCopyUnicodeString(&Buffer->Name, &fileNameInfo->Name);
