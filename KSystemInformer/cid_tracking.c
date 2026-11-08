@@ -808,24 +808,25 @@ VOID KphpInitializeWSLThreadContext(
         return;
     }
 
-    if (!ThreadContext->WSL.ValidThreadId)
+    if (!ReadBooleanNoFence(&ThreadContext->WSL.ValidThreadId))
     {
         value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoThrdInfo);
         ThreadContext->WSL.ThreadId =
             *(PULONG)Add2Ptr(value, Dyn->LxPicoThrdInfoTID);
 
-        ThreadContext->WSL.ValidThreadId = TRUE;
+        WriteBooleanRelease(&ThreadContext->WSL.ValidThreadId, TRUE);
     }
 
     if (ThreadContext->ProcessContext &&
-        !ThreadContext->ProcessContext->WSL.ValidProcessId)
+        !ReadBooleanNoFence(&ThreadContext->ProcessContext->WSL.ValidProcessId))
     {
         value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoProc);
         value = *(PVOID*)Add2Ptr(value, Dyn->LxPicoProcInfo);
         ThreadContext->ProcessContext->WSL.ProcessId =
             *(PULONG)Add2Ptr(value, Dyn->LxPicoProcInfoPID);
 
-        ThreadContext->ProcessContext->WSL.ValidProcessId = TRUE;
+        WriteBooleanRelease(&ThreadContext->ProcessContext->WSL.ValidProcessId,
+                            TRUE);
     }
 }
 
@@ -2379,7 +2380,7 @@ NTSTATUS KphQueryInformationProcessContext(
                 goto Exit;
             }
 
-            if (!Process->WSL.ValidProcessId)
+            if (!ReadBooleanAcquire(&Process->WSL.ValidProcessId))
             {
                 PKPH_THREAD_CONTEXT thread;
 
@@ -2404,7 +2405,7 @@ NTSTATUS KphQueryInformationProcessContext(
                 KphDereferenceObject(thread);
             }
 
-            if (!Process->WSL.ValidProcessId)
+            if (!ReadBooleanAcquire(&Process->WSL.ValidProcessId))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
@@ -2487,12 +2488,12 @@ NTSTATUS KphQueryInformationThreadContext(
                 goto Exit;
             }
 
-            if (!Thread->WSL.ValidThreadId)
+            if (!ReadBooleanAcquire(&Thread->WSL.ValidThreadId))
             {
                 KphpInitThreadContextInOriginalEnvironment(Thread, TRUE);
             }
 
-            if (!Thread->WSL.ValidThreadId)
+            if (!ReadBooleanAcquire(&Thread->WSL.ValidThreadId))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
