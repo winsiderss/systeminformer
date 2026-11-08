@@ -88,6 +88,9 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
     NTSTATUS status;
     PKPH_SESSION_TOKEN token;
     PKPH_SESSION_TOKEN_INIT init;
+    LARGE_INTEGER systemTime;
+    LARGE_INTEGER interruptTime;
+    LONGLONG duration;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -126,15 +129,69 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
         return status;
     }
 
+    KeQuerySystemTime(&systemTime);
+    interruptTime.QuadPart = (LONGLONG)KeQueryInterruptTime();
+
     if (init->Expiry.QuadPart < 0)
     {
-        KeQuerySystemTime(&token->AccessToken.Expiry);
+        status = RtlLongLongSub(0, init->Expiry.QuadPart, &duration);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlLongLongSub failed: %!STATUS!",
+                          status);
 
-        token->AccessToken.Expiry.QuadPart += -(init->Expiry.QuadPart);
+            return status;
+        }
+
+        status = RtlLongLongAdd(systemTime.QuadPart,
+                                duration,
+                                &token->AccessToken.Expiry.QuadPart);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlLongLongAdd failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
     }
     else
     {
+        status = RtlLongLongSub(init->Expiry.QuadPart,
+                                systemTime.QuadPart,
+                                &duration);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlLongLongSub failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        if (duration <= 0)
+        {
+            return STATUS_INVALID_PARAMETER;
+        }
+
         token->AccessToken.Expiry = init->Expiry;
+    }
+
+    status = RtlLongLongAdd(interruptTime.QuadPart,
+                            duration,
+                            &token->Deadline.QuadPart);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "RtlLongLongAdd failed: %!STATUS!",
+                      status);
+
+        return status;
     }
 
     token->AccessToken.Privileges = init->Privileges;
@@ -695,16 +752,16 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
     )
 {
     NTSTATUS status;
-    LARGE_INTEGER systemTime;
+    LARGE_INTEGER interruptTime;
     LONG useCount;
 
     KPH_PAGED_CODE();
 
-    KeQuerySystemTime(&systemTime);
+    interruptTime.QuadPart = (LONGLONG)KeQueryInterruptTime();
 
     useCount = ReadAcquire(&Token->UseCount);
 
-    if (Token->AccessToken.Expiry.QuadPart <= systemTime.QuadPart)
+    if (Token->Deadline.QuadPart <= interruptTime.QuadPart)
     {
         status = STATUS_TIMEOUT;
         goto Exit;
