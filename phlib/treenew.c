@@ -2338,35 +2338,11 @@ BOOLEAN PhTnpOnNotify(
             if (!nmHeader->pitem)
                 break;
 
-            if (Header->code == HDN_ITEMCHANGING && Header->hwndFrom == Context->FixedHeaderHandle)
-            {
-                if (nmHeader->pitem->mask & HDI_WIDTH)
-                {
-                    if (Context->FixedColumnVisible)
-                    {
-                        Context->FixedWidth = nmHeader->pitem->cxy - 1;
-
-                        if (Context->FixedWidth < Context->FixedWidthMinimum)
-                            Context->FixedWidth = Context->FixedWidthMinimum;
-
-                        Context->NormalLeft = Context->FixedWidth + 1;
-                        nmHeader->pitem->cxy = Context->FixedWidth + 1;
-                    }
-                    else
-                    {
-                        Context->FixedWidth = 0;
-                        Context->NormalLeft = 0;
-                    }
-                }
-            }
-
             if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
             {
                 if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
-                    // A column is being resized. Note that this arrives for every mouse movement
-                    // while the divider is dragged (HDS_FULLDRAG), so the whole header must not be
-                    // enumerated here - only the column that actually changed is touched. (dmex)
+                    // Clamp the native header width before updating the cached column geometry.
 
                     if (Header->code == HDN_ITEMCHANGING)
                     {
@@ -2388,6 +2364,22 @@ BOOLEAN PhTnpOnNotify(
                         {
                             Context->ResizingColumn = NULL;
                             Context->OldColumnWidth = -1;
+                        }
+
+                        // Use the clamped header width for layout and hit testing too,
+                        // including requests that clamp back to the existing width.
+                        if (Header->hwndFrom == Context->FixedHeaderHandle)
+                        {
+                            if (Context->FixedColumnVisible)
+                            {
+                                Context->FixedWidth = nmHeader->pitem->cxy - 1;
+                                Context->NormalLeft = nmHeader->pitem->cxy;
+                            }
+                            else
+                            {
+                                Context->FixedWidth = 0;
+                                Context->NormalLeft = 0;
+                            }
                         }
                     }
                     else if (Header->code == HDN_ITEMCHANGED)
@@ -3874,7 +3866,7 @@ VOID PhTnpSetFixedWidth(
 
     if (Context->FixedColumnVisible)
     {
-        Context->FixedWidth = FixedWidth;
+        Context->FixedWidth = min(FixedWidth, SHRT_MAX - 1);
 
         if (Context->FixedWidth < Context->FixedWidthMinimum)
             Context->FixedWidth = Context->FixedWidthMinimum;
@@ -4647,6 +4639,8 @@ LONG PhTnpInsertColumnHeader(
 
     if (Column->Fixed)
     {
+        Context->FixedColumn = Column;
+
         if (Column->Width < Context->FixedWidthMinimum)
             Column->Width = Context->FixedWidthMinimum;
 
@@ -4726,7 +4720,7 @@ VOID PhTnpChangeColumnHeader(
         item.cxy = Column->Width;
 
         if (Column->Fixed)
-            item.cxy++;
+            item.cxy = min(item.cxy, SHRT_MAX - 1) + 1;
     }
 
     if (Mask & TN_COLUMN_ALIGNMENT)
