@@ -16,6 +16,7 @@
 #ifdef _KERNEL_MODE
 #pragma warning(push)
 #pragma warning(disable: 5103) // invalid preprocessing token (/Zc:preprocessor)
+#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #include <ntifs.h>
 #include <ntintsafe.h>
 #include <minwindef.h>
