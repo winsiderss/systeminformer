@@ -299,6 +299,8 @@ NTSTATUS KphpCreateRingBufferSection(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    RtlZeroMemory(Section, sizeof(KPH_RING_SECTION));
+
     kernelMappedBase = NULL;
 
     if (PageProtection == PAGE_READONLY)

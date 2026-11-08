@@ -98,6 +98,8 @@ BOOLEAN KphpHwMeasureSmbiosStrings(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Length = 0;
+
     offset = 0;
 
     do
@@ -755,6 +757,9 @@ NTSTATUS KphHwQueryBootConfiguration(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *List = NULL;
+    *Length = 0;
+
     list = NULL;
     listLength = 0;
 
@@ -838,6 +843,13 @@ BOOLEAN KphHwFindMemoryDescriptor(
     ULONG memoryOrdinal;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *Length = 0;
+
+    if (Flags)
+    {
+        *Flags = 0;
+    }
 
     if (ListLength < (ULONG)FIELD_OFFSET(CM_RESOURCE_LIST, List))
     {

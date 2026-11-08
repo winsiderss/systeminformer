@@ -644,6 +644,8 @@ NTSTATUS KphpHwWindowLpitCounter(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Counter = NULL;
+
     if (Entry >= KphpHwLpitCounterCount)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -693,6 +695,8 @@ NTSTATUS KphHwWindowLpitBase(
     PKPH_HW_LPIT_COUNTER counter;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *Base = 0;
 
     status = KphpHwWindowLpitCounter(Entry, &counter);
     if (!NT_SUCCESS(status))
@@ -744,6 +748,8 @@ NTSTATUS KphHwWindowLpitRelativeBase(
     ULONG64 base;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *Base = 0;
 
     status = KphpHwWindowLpitCounter(Entry, &counter);
     if (!NT_SUCCESS(status))

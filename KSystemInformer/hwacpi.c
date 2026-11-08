@@ -2192,6 +2192,8 @@ NTSTATUS KphpHwAcpiDeriveCrsBase(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Base = 0;
+
     raw = NULL;
     translated = NULL;
 

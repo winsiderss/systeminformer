@@ -252,6 +252,8 @@ BOOLEAN KphpHwPciParseHex(
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT((Count >= 1) && (Count <= 4));
 
+    *Value = 0;
+
     value = 0;
 
     for (ULONG i = 0; i < Count; i++)
@@ -405,6 +407,8 @@ NTSTATUS KphpHwPciReadHardwareId(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Id = 0;
+
     status = KphpHwPciReadIdList(DeviceObject, DevicePropertyHardwareID, &ids);
     if (!NT_SUCCESS(status))
     {
@@ -500,6 +504,10 @@ NTSTATUS KphpHwPciReadClassCode(
     UNICODE_STRING part;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *BaseClass = 0;
+    *SubClass = 0;
+    *ProgIf = 0;
 
     status = KphpHwPciReadIdList(DeviceObject,
                                  DevicePropertyCompatibleIDs,
@@ -1450,6 +1458,8 @@ BOOLEAN KphpHwPciReadIds(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    RtlZeroMemory(Ids, sizeof(KPH_HW_PCI_IDS));
+
     RtlZeroMemory(&header, sizeof(header));
 
     bytes = Bus->GetBusData(Bus->Context,
@@ -2374,6 +2384,8 @@ NTSTATUS KphpHwPciFindPmCapability(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *PmCapability = 0;
+
     if (!KphpHwPciReadConfig(Bus,
                              FIELD_OFFSET(PCI_COMMON_HEADER, Status),
                              &pciStatus,
@@ -2862,6 +2874,8 @@ NTSTATUS KphpHwPciLocateMemoryBar(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Base = 0;
+
     switch (Device->Ids.HeaderType)
     {
         case PCI_DEVICE_TYPE:
@@ -3007,6 +3021,8 @@ NTSTATUS KphpHwPciBootRangeLength(
     ULONG64 translatedLengthOfRange;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *Length = 0;
 
     raw = NULL;
     translated = NULL;
@@ -3228,6 +3244,9 @@ NTSTATUS KphpHwPciDeriveMemoryBar(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *Base = 0;
+    *Length = 0;
+
     if (!KphpHwPciReadConfig(Bus,
                              FIELD_OFFSET(PCI_COMMON_HEADER, Command),
                              &command,
@@ -3343,6 +3362,8 @@ NTSTATUS KphpHwPciDeriveSmnAperture(
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Offset < KPH_DYN_HW_SMN_APERTURE_SIZE);
 
+    *Base = 0;
+
     low = 0;
     high = 0;
 
@@ -3435,6 +3456,8 @@ NTSTATUS KphpHwPciDeriveWindowBase(
     ULONG64 base;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    *Base = 0;
 
     window = (PKPH_DYN_HW_WINDOW_READ)Op->Body;
 
@@ -4236,6 +4259,8 @@ BOOLEAN KphpHwPciVsecRegionInBar(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    RtlZeroMemory(Location, sizeof(KPH_HW_VSEC_LOCATION));
+
     status = RtlULongLongAdd(Offset, Size, &end);
     if (!NT_SUCCESS(status))
     {
@@ -4317,6 +4342,9 @@ NTSTATUS KphpHwPciVsecDeriveBar(
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(BarIndex < PCI_TYPE0_ADDRESSES);
+
+    *Base = 0;
+    *Length = 0;
 
     if (!BooleanFlagOn(Bars->Derived, 1 << BarIndex))
     {
@@ -4609,6 +4637,8 @@ NTSTATUS KphpHwPciVsecLocatePmt(
     ULONG64 regionBarLength;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    RtlZeroMemory(Location, sizeof(KPH_HW_VSEC_LOCATION));
 
     entry = &Table->Entries[Index * Table->EntryDwords];
 

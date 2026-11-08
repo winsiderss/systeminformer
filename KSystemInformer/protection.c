@@ -1624,6 +1624,7 @@ NTSTATUS KphpReOpenImageFile(
     imageBase = NULL;
     dataBase = NULL;
 
+    *FileHandle = NULL;
     *FileObject = NULL;
     *FileName = NULL;
     *ImageBase = NULL;
