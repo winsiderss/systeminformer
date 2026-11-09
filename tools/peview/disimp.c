@@ -1794,7 +1794,7 @@ VOID PvScanImageForPage(
 
         if (!Context->DecoderStreamingEnabled)
         {
-            RtlZeroMemory(&window, sizeof(window));
+            RtlZeroMemory(&window, sizeof(PV_INSTRUCTION_WINDOW));
         }
 
         ip = imageBase + (ULONG64)rva;

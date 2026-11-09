@@ -1177,9 +1177,9 @@ PhClientToScreenRect(
     _Inout_ PRECT Rect
     )
 {
-    //if (!ClientToScreen(WindowHandle, (PPOINT)Rect))
+    //if (!ClientToScreen(MenuWindow, (PPOINT)Rect))
     //    return FALSE;
-    //if (!ClientToScreen(WindowHandle, ((PPOINT)Rect) + 1))
+    //if (!ClientToScreen(MenuWindow, ((PPOINT)Rect) + 1))
     //    return FALSE;
 
     if (MapWindowRect(WindowHandle, HWND_DESKTOP, Rect) == 0)
@@ -1209,9 +1209,9 @@ PhScreenToClientRect(
 
     return TRUE;
 
-    //if (!ScreenToClient(WindowHandle, (PPOINT)Rect))
+    //if (!ScreenToClient(MenuWindow, (PPOINT)Rect))
     //    return FALSE;
-    //if (!ScreenToClient(WindowHandle, ((PPOINT)Rect) + 1))
+    //if (!ScreenToClient(MenuWindow, ((PPOINT)Rect) + 1))
     //    return FALSE;
     //return TRUE;
 }
@@ -2031,7 +2031,7 @@ PhLogWindowMessage(
     _In_ LPARAM lParam
     );
 #else
-#define PhLogWindowMessage(Tag, WindowHandle, Message, wParam, lParam) ((void)0)
+#define PhLogWindowMessage(Tag, MenuWindow, Message, wParam, lParam) ((void)0)
 #endif
 
 PHLIBAPI
@@ -5005,10 +5005,12 @@ HWND PhSelectWindowFromScreenSnapshot(
     VOID
     );
 
-typedef BOOLEAN (NTAPI* PPH_WINDOW_TARGETING_CALLBACK)(
+typedef _Function_class_(PH_WINDOW_TARGETING_CALLBACK)
+BOOLEAN NTAPI PH_WINDOW_TARGETING_CALLBACK(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_WINDOW_TARGETING_CALLBACK* PPH_WINDOW_TARGETING_CALLBACK;
 
 typedef struct _PH_WINDOW_TARGETING_CONTEXT
 {
@@ -5080,7 +5082,7 @@ PHLIBAPI
 HRESULT
 NTAPI
 PhCreateDispatcherQueueController(
-    _In_ PH_DISPATCHER_QUEUE_OPTIONS Options,
+    _In_ PPH_DISPATCHER_QUEUE_OPTIONS Options,
     _COM_Outptr_ PVOID *Controller
     );
 

@@ -1459,10 +1459,12 @@ SIZE_T PhGetXmlNodeAttributeCount(
     return mxmlElementGetAttrCount(XmlNodeObject);
 }
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_XML_NODE_CALLBACK)(
+typedef _Function_class_(PH_ENUM_XML_NODE_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_XML_NODE_CALLBACK(
     _In_ PVOID XmlNodeObject,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_XML_NODE_CALLBACK* PPH_ENUM_XML_NODE_CALLBACK;
 
 BOOLEAN PhEnumXmlNode(
     _In_ PVOID XmlNodeObject,

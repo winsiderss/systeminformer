@@ -104,9 +104,9 @@ VOID PhInitializeHandleList(
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
-    TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
-
     PhCmInitializeManager(&Context->Cm, hwnd, PHHNTLC_MAXIMUM, PhpHandleTreeNewPostSortFunction);
+
+    TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->NodeList);
 }

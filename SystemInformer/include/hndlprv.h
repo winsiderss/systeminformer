@@ -47,7 +47,7 @@ typedef struct _PH_HANDLE_ITEM
             ULONG Spare : 31;
         };
     };
-    volatile LONG JustProcessed;
+    LONG JustProcessed;
 
     PPH_STRING TypeName;
     PPH_STRING ObjectName;

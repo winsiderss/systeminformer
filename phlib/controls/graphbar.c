@@ -116,7 +116,7 @@ VOID PhpGraphBarFillRect(
     )
 {
     SetDCBrushColor(hdc, Color);
-    FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+    FillRect(hdc, Rect, PhStockDcBrush);
 }
 
 VOID PhpGraphBarFormatSize(

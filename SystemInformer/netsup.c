@@ -674,7 +674,7 @@ NTSTATUS PhNsiGetAsyncDeviceHandle(
         return STATUS_SUCCESS;
     }
 
-    RtlInitUnicodeString(&deviceName, L"\\Device\\Nsi");
+    RtlInitUnicodeString(&deviceName, NSI_DEVICE_NAME);
     InitializeObjectAttributes(
         &objectAttributes, 
         &deviceName,
@@ -8817,10 +8817,12 @@ NTSTATUS PhGetInterfaceTimestampCapabilities(
     _Out_ PVOID TimestampCapabilities
     )
 {
-    typedef ULONG (WINAPI *PGET_INTERFACE_TIMESTAMP_CAPABILITIES)(
+    typedef _Function_class_(GET_INTERFACE_TIMESTAMP_CAPABILITIES)
+    ULONG WINAPI GET_INTERFACE_TIMESTAMP_CAPABILITIES(
         _In_ const NET_LUID* InterfaceLuid,
         _Out_ PINTERFACE_TIMESTAMP_CAPABILITIES TimestampCapabilities
         );
+    typedef GET_INTERFACE_TIMESTAMP_CAPABILITIES* PGET_INTERFACE_TIMESTAMP_CAPABILITIES;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PGET_INTERFACE_TIMESTAMP_CAPABILITIES getActiveCapabilities;
     static PGET_INTERFACE_TIMESTAMP_CAPABILITIES getSupportedCapabilities;
@@ -9220,13 +9222,15 @@ static NTSTATUS PhpAllocateAndGetAdaptersAddresses(
     _Out_opt_ PULONG AddressSize
     )
 {
-    typedef ULONG (WINAPI *PGET_ADAPTERS_ADDRESSES)(
+    typedef _Function_class_(GET_ADAPTERS_ADDRESSES)
+    ULONG WINAPI GET_ADAPTERS_ADDRESSES(
         _In_ ULONG Family,
         _In_ ULONG Flags,
         _Reserved_ PVOID Reserved,
         _Out_writes_bytes_opt_(*SizePointer) PIP_ADAPTER_ADDRESSES AdapterAddresses,
         _Inout_ PULONG SizePointer
         );
+    typedef GET_ADAPTERS_ADDRESSES* PGET_ADAPTERS_ADDRESSES;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PGET_ADAPTERS_ADDRESSES getAdaptersAddresses;
     PVOID baseAddress;

@@ -185,7 +185,7 @@ typedef struct _PH_GRAPH_OPTIONS
 #define Graph_Update(hWnd) \
     SendMessage((hWnd), GCM_UPDATE, 0, 0)
 #define Graph_SetCallback(hWnd, Callback, Context) \
-    SendMessage((hWnd), GCM_SETCALLBACK, (LPARAM)(Callback), (WPARAM)(Context))
+    SendMessage((hWnd), GCM_SETCALLBACK, (WPARAM)(Callback), (LPARAM)(Context))
 
 // Notifications
 

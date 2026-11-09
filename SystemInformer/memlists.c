@@ -178,11 +178,15 @@ PPH_STRING PhpCreateCommandStatusString(
 
     if (statusString = PhGetStatusMessage(Status, 0))
     {
+        static const PH_STRINGREF trimCharSet = PH_STRINGREF_INIT(L"\r\n ");
         PH_FORMAT format[3];
+        PH_STRINGREF statusText = statusString->sr;
+
+        PhTrimStringRef(&statusText, &trimCharSet, PH_TRIM_END_ONLY);
 
         PhInitFormatS(&format[0], Message);
         PhInitFormatC(&format[1], L' ');
-        PhInitFormatSR(&format[2], statusString->sr);
+        PhInitFormatSR(&format[2], statusText);
 
         string = PhFormat(format, RTL_NUMBER_OF(format), 10);
 
@@ -225,7 +229,7 @@ NTSTATUS PhpMemoryListCommandCommon(
             else
             {
                 // User cancelled elevation.
-                status = STATUS_SUCCESS;
+                status = STATUS_CANCELLED;
             }
         }
     }

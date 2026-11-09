@@ -1350,7 +1350,7 @@ NTSTATUS PhSetThreadAffinityMask(
  * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetThreadBasePriorityClientId(
-    _In_ CLIENT_ID ClientId,
+    _In_ PCLIENT_ID ClientId,
     _In_ KPRIORITY Increment
     )
 {
@@ -1358,7 +1358,7 @@ NTSTATUS PhSetThreadBasePriorityClientId(
     SYSTEM_THREAD_CID_PRIORITY_INFORMATION threadInfo;
 
     RtlZeroMemory(&threadInfo, sizeof(SYSTEM_THREAD_CID_PRIORITY_INFORMATION));
-    threadInfo.ClientId = ClientId;
+    threadInfo.ClientId = *ClientId;
     threadInfo.Priority = Increment;
 
     status = NtSetSystemInformation(
@@ -2309,6 +2309,9 @@ NTSTATUS PhGetThreadApartmentCallState(
 
             PhEndInitOnce(&initOnce);
         }
+
+        if (!CoGetCallState_I)
+            return STATUS_PROCEDURE_NOT_FOUND;
 
         if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_OUTGOING, &outgoingCallDataOffset)) && outgoingCallDataOffset)
         {

@@ -75,7 +75,22 @@ VOID PhEmSetObjectExtension(
     PPH_EM_OBJECT_TYPE_STATE objectTypeState;
     PPH_EM_OBJECT_EXTENSION objectExtension;
 
+    if ((ULONG)ObjectType >= EmMaximumObjectType)
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+
     objectTypeState = &PhEmObjectTypeState[ObjectType];
+
+    if (objectTypeState->InitialSize)
+        PhRaiseStatus(STATUS_INVALID_DEVICE_STATE);
+
+    if (ExtensionSize > SIZE_MAX - (MEMORY_ALLOCATION_ALIGNMENT - 1))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    ExtensionSize = ALIGN_UP_BY(ExtensionSize, MEMORY_ALLOCATION_ALIGNMENT);
+
+    if (ExtensionSize > SIZE_MAX - objectTypeState->ExtensionOffset)
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
     objectExtension = AppContext->Extensions[ObjectType];
 
     if (!objectExtension)
@@ -109,6 +124,9 @@ PVOID PhEmGetObject(
 {
     PPH_EM_OBJECT_EXTENSION objectExtension;
 
+    if ((ULONG)ObjectType >= EmMaximumObjectType)
+        return NULL;
+
     objectExtension = AppContext->Extensions[ObjectType];
 
     if (!objectExtension)
@@ -132,6 +150,9 @@ PVOID PhEmGetObjectExtension(
 {
     PPH_EM_OBJECT_EXTENSION objectExtension;
 
+    if ((ULONG)ObjectType >= EmMaximumObjectType)
+        return NULL;
+
     objectExtension = AppContext->Extensions[ObjectType];
 
     if (!objectExtension)
@@ -151,6 +172,12 @@ SIZE_T PhEmGetObjectSize(
     _In_ SIZE_T InitialSize
     )
 {
+    if ((ULONG)ObjectType >= EmMaximumObjectType ||
+        InitialSize > SIZE_MAX - PhEmObjectTypeState[ObjectType].ExtensionOffset)
+    {
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+    }
+
     PhEmObjectTypeState[ObjectType].InitialSize = InitialSize;
 
     return InitialSize + PhEmObjectTypeState[ObjectType].ExtensionOffset;

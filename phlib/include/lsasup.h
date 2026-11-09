@@ -128,11 +128,13 @@ PhGetAccountPrivileges(
     _Out_ PTOKEN_PRIVILEGES* Privileges
     );
 
-typedef NTSTATUS (NTAPI* PPH_ENUM_PRIVILEGES)(
+typedef _Function_class_(PH_ENUM_PRIVILEGES)
+NTSTATUS NTAPI PH_ENUM_PRIVILEGES(
     _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
     _In_ ULONG NumberOfPrivileges,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_PRIVILEGES* PPH_ENUM_PRIVILEGES;
 
 PHLIBAPI
 NTSTATUS

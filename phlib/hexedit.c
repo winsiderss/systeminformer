@@ -1085,7 +1085,7 @@ VOID PhpHexEditOnPaint(
     PWCHAR buffer;
 
     SetDCBrushColor(hdc, GetSysColor(COLOR_WINDOW));
-    FillRect(hdc, clientRect, PhGetStockBrush(DC_BRUSH));
+    FillRect(hdc, clientRect, PhStockDcBrush);
     SelectFont(hdc, Context->Font);
     SetBoundsRect(hdc, clientRect, DCB_DISABLE);
 

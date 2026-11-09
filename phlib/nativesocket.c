@@ -517,7 +517,7 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 //    )
 //{
 //    SOCKET socketHandle;
-//    DWORD bytesSent = 0;
+//    ULONG bytesSent = 0;
 //    int error;
 //
 //    if (!BufferArray || !BufferCount)
@@ -541,8 +541,8 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 //    )
 //{
 //    SOCKET socketHandle;
-//    DWORD bytesReceived = 0;
-//    DWORD flags = 0;
+//    ULONG bytesReceived = 0;
+//    ULONG flags = 0;
 //    int error;
 //
 //    if (!BufferArray || !BufferCount)
@@ -567,7 +567,7 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 //    )
 //{
 //    SOCKET socketHandle;
-//    DWORD bytesSent = 0;
+//    ULONG bytesSent = 0;
 //    int error;
 //
 //    if (!BufferArray || !BufferCount || !RemoteAddress || RemoteAddressLength < sizeof(SOCKADDR))
@@ -592,8 +592,8 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 //    )
 //{
 //    SOCKET socketHandle;
-//    DWORD bytesReceived = 0;
-//    DWORD flags = 0;
+//    ULONG bytesReceived = 0;
+//    ULONG flags = 0;
 //    int error;
 //
 //    if (!BufferArray || !BufferCount)

@@ -169,7 +169,7 @@ LRESULT CALLBACK PhColorBoxWndProc(
                 SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
 
                 // Select the border and fill.
-                oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
+                oldBrush = SelectBrush(hdc, PhStockDcBrush);
                 // Fill color
                 if (!context->Hot && !context->HasFocus)
                     SetDCBrushColor(hdc, context->SelectedColor);

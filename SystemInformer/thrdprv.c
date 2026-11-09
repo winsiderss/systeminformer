@@ -246,7 +246,7 @@ VOID PhLoadSymbolsThreadProvider(
 }
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    _In_ CLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     )
 {
     PPH_THREAD_ITEM threadItem;
@@ -256,10 +256,10 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         PhThreadItemType
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
-    threadItem->ClientId = ClientId;
+    threadItem->ClientId = *ClientId;
 
-    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ClientId.UniqueThread));
-    PhPrintUInt32IX(threadItem->ThreadIdHexString, HandleToUlong(ClientId.UniqueThread));
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ClientId->UniqueThread));
+    PhPrintUInt32IX(threadItem->ThreadIdHexString, HandleToUlong(ClientId->UniqueThread));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
@@ -851,7 +851,7 @@ VOID PhpThreadProviderUpdate(
 
         if (!threadItem)
         {
-            threadItem = PhCreateThreadItem(thread->ClientId);
+            threadItem = PhCreateThreadItem(&thread->ClientId);
             threadItem->KernelTime = thread->KernelTime;
             PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
             threadItem->UserTime = thread->UserTime;

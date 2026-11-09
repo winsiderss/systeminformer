@@ -1002,7 +1002,7 @@ VOID PhScrollNewDrawMarks(
         return;
 
     markerArea = gutterLength - 1;
-    dcBrush = PhGetStockBrush(DC_BRUSH);
+    dcBrush = PhStockDcBrush;
 
     for (ULONG i = 0; i < Context->NumberOfMarks; i++)
     {
@@ -1109,7 +1109,7 @@ VOID PhScrollNewDraw(
     if (Context->Theme == PhScrollNewThemeWin11 ||
         Context->Theme == PhScrollNewThemeWin11Overlay)
     {
-        HBRUSH brush = PhGetStockBrush(DC_BRUSH);
+        HBRUSH brush = PhStockDcBrush;
         COLORREF track = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_TRACK_DARK : PH_SCROLLNEW_WIN11_TRACK_LIGHT;
         COLORREF thumb = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_THUMB_DARK : PH_SCROLLNEW_WIN11_THUMB_LIGHT;
 
@@ -1240,7 +1240,7 @@ VOID PhScrollNewDraw(
 
     {
         // Windows 10 flat scrollbar — no 3D borders, muted grays, DC_BRUSH/DC_PEN for zero allocation.
-        HBRUSH dcBrush = PhGetStockBrush(DC_BRUSH);
+        HBRUSH dcBrush = PhStockDcBrush;
         BOOLEAN upHot   = (Context->HotPart    == PhScrollNewPartUpButton);
         BOOLEAN upPress = (Context->PressedPart == PhScrollNewPartUpButton);
         BOOLEAN dnHot   = (Context->HotPart    == PhScrollNewPartDownButton);

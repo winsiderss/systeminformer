@@ -591,16 +591,23 @@ NTSTATUS PhSearchStrings(
     buffer = NULL;
     length = 0;
 
-    while (NT_SUCCESS(status = NextBuffer(&buffer, &length, Context)))
+    __try
     {
-        if (!length)
-            break;
-
-        if (PhpSearchUtf8Strings(context, buffer, length))
-            break;
-
-        if (PhpSearchStrings(context, buffer, length))
-            break;
+        while (NT_SUCCESS(status = NextBuffer(&buffer, &length, Context)))
+        {
+            if (!length)
+                break;
+    
+            if (PhpSearchUtf8Strings(context, buffer, length))
+                break;
+    
+            if (PhpSearchStrings(context, buffer, length))
+                break;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
     }
 
     PhFree(context);

@@ -3574,8 +3574,8 @@ static BOOLEAN PhMipGraphsTreeNewCallback(
             }
 
             SetDCBrushColor(hdc, borderColor);
-            oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
-            FrameRect(hdc, &graphRect, PhGetStockBrush(DC_BRUSH));
+            oldBrush = SelectBrush(hdc, PhStockDcBrush);
+            FrameRect(hdc, &graphRect, PhStockDcBrush);
             SelectBrush(hdc, oldBrush);
 
             SetBkMode(hdc, TRANSPARENT);

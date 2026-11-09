@@ -118,6 +118,9 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
+    PhStockDcBrush = PhGetStockBrush(DC_BRUSH);
+    PhStockNullBrush = PhGetStockBrush(NULL_BRUSH);
+
     WindowCallbackCookie = (ULONG_PTR)PhGenerateRandomNumber64();
     WindowCallbackFlsIndex = FlsAlloc(PhWindowFlsCallback);
     WindowCallbackHashTable = PhCreateHashtable(
@@ -6969,13 +6972,13 @@ VOID PhCustomDrawTreeTimeLine(
     {
         FillRect(Hdc, CellRect, PhThemeWindowBackgroundBrush);
         SetDCBrushColor(Hdc, FlagOn(Flags, PH_DRAW_TIMELINE_OVERFLOW) ? RGB(128, 128, 128) : RGB(0, 130, 135));
-        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, PhStockDcBrush);
     }
     else
     {
         FillRect(Hdc, CellRect, (HBRUSH)(COLOR_BTNFACE + 1));
         SetDCBrushColor(Hdc, FlagOn(Flags, PH_DRAW_TIMELINE_OVERFLOW) ? RGB(128, 128, 128) : RGB(158, 202, 158));
-        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, PhStockDcBrush);
     }
 
     PhInflateRect(&drawRect, -1, -1);
@@ -7649,6 +7652,16 @@ NTSTATUS PhGetWindowCompositionAttribute(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+/**
+ * Sets a DWM window composition attribute.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param AttributeData The attribute, data buffer and buffer length to set.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks user32!SetWindowCompositionAttribute is a pure forwarder to
+ * win32u!NtUserSetWindowCompositionAttribute with no client-side validation, so the
+ * system call is invoked directly.
+ */
 NTSTATUS PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
@@ -7698,6 +7711,141 @@ NTSTATUS PhSetWindowAcrylicCompositionColor(
     };
 
     return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
+}
+
+/**
+ * Cloaks or uncloaks a window.
+ *
+ * A cloaked window remains visible to the window manager (and continues to be
+ * composed and rendered) but is not displayed on screen.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param Cloak TRUE to cloak the window, FALSE to uncloak the window.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhSetWindowCloak(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Cloak
+    )
+{
+    ULONG cloak = Cloak ? TRUE : FALSE;
+    WINDOWCOMPOSITIONATTRIBUTEDATA attribute =
+    {
+        WCA_CLOAK,
+        &cloak,
+        sizeof(ULONG)
+    };
+
+    return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
+}
+
+/**
+ * Sets the color DWM uses to fill the window's redirection bitmap.
+ *
+ * The fill color is shown by the compositor before the window has painted
+ * (for example during creation or resizing), avoiding white flashes.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param FillColor The COLORREF used to fill the redirection bitmap.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks win32kfull!NtUserSetWindowCompositionAttribute (WCA_REDIRECTIONBITMAP_FILL_COLOR, 0x23):
+ * - Any non-zero value whose top byte is not 0xFF fails with ERROR_INVALID_PARAMETER,
+ *   so FillColor | 0xFF000000 is required.
+ * - The top byte is discarded and only the low 24 bits are stored (tagWND+0xB4 = value & 0x00FFFFFF).
+ * - A value of 0 returns the window to the default fill (tagWND+0xB4 = 0xFFFFFFFF).
+ *   This helper passes 0 through unchanged to reset the fill; any other color gets the marker byte.
+ *   As a consequence pure black (RGB(0, 0, 0)) cannot be set; use RGB(0, 0, 1) instead.
+ * - The low 24 bits are stored as-is, so they are in COLORREF (0x00BBGGRR) order.
+ */
+NTSTATUS PhSetWindowRedirectionBitmapFillColor(
+    _In_ HWND WindowHandle,
+    _In_ COLORREF FillColor
+    )
+{
+    ULONG fillColor = FillColor ? (FillColor | 0xFF000000) : 0;
+    WINDOWCOMPOSITIONATTRIBUTEDATA attribute =
+    {
+        WCA_REDIRECTIONBITMAP_FILL_COLOR,
+        &fillColor,
+        sizeof(ULONG)
+    };
+
+    return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
+}
+
+/**
+ * Enables or disables alpha for the window's DWM redirection bitmap.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param Enable TRUE to have DWM honor the redirection bitmap alpha channel, FALSE to treat it as opaque.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks win32kfull!SetWindowCompositionAlpha (WCA_REDIRECTIONBITMAP_ALPHA, 0x24):
+ * - It only applies to top-level windows or layered child windows.
+ * - The value becomes a single on/off flag (value != 0), stored as bit 19 (0x80000)
+ *   of the window's composition flags.
+ * - If the flag is already in the requested state, the call returns success and does nothing else.
+ * - Otherwise it updates the flag and passes attribute 0x24 on to DWM.
+ * - It never reads the fill color, so it does not change the WCA_REDIRECTIONBITMAP_FILL_COLOR
+ *   check. The attribute is set-only (querying it fails with ERROR_INVALID_PARAMETER).
+ */
+NTSTATUS PhSetWindowRedirectionBitmapAlpha(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Enable
+    )
+{
+    BOOL enable = !!Enable;
+    WINDOWCOMPOSITIONATTRIBUTEDATA attribute =
+    {
+        WCA_REDIRECTIONBITMAP_ALPHA,
+        &enable,
+        sizeof(BOOL)
+    };
+
+    return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
+}
+
+/**
+ * Queries the persisted "Animation effects" preference from the registry.
+ *
+ * \return TRUE if animations are enabled (or the preference could not be read),
+ * FALSE if animations are disabled.
+ * \remarks This reads the per-user UserPreferencesMask value (byte 4, bit 0x02),
+ * which backs SPI_GETCLIENTAREAANIMATION. It reflects the persisted setting rather
+ * than the live session value and is unaffected by SystemParametersInfo hooks.
+ */
+BOOLEAN PhGetSystemAnimationsEnabledRegistry(
+    VOID
+    )
+{
+    BOOLEAN enabled = TRUE;
+    HANDLE keyHandle;
+    PKEY_VALUE_PARTIAL_INFORMATION info;
+
+    if (NT_SUCCESS(PhOpenKeyZ(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_CURRENT_USER,
+        L"Control Panel\\Desktop",
+        0
+        )))
+    {
+        if (NT_SUCCESS(PhQueryValueKeyZ(
+            keyHandle,
+            L"UserPreferencesMask",
+            KeyValuePartialInformation,
+            &info
+            )))
+        {
+            if (info->Type == REG_BINARY && info->DataLength > 4)
+                enabled = !!(info->Data[4] & 0x02);
+
+            PhFree(info);
+        }
+
+        NtClose(keyHandle);
+    }
+
+    return enabled;
 }
 
 HCURSOR PhLoadArrowCursor(

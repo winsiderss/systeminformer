@@ -29,6 +29,7 @@ typedef struct _JOB_PAGE_CONTEXT
     PPH_CLOSE_OBJECT CloseObject;
     PVOID Context;
     DLGPROC HookProc;
+    HFONT WindowFont;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
@@ -337,10 +338,15 @@ INT_PTR CALLBACK PhpJobPageProc(
 
             processesLv = GetDlgItem(hwndDlg, IDC_PROCESSES);
             limitsLv = GetDlgItem(hwndDlg, IDC_LIMITS);
+
+            jobPageContext->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(processesLv, FALSE, TRUE);
             PhSetListViewStyle(limitsLv, FALSE, TRUE);
             PhSetControlTheme(processesLv, L"explorer");
             PhSetControlTheme(limitsLv, L"explorer");
+            SetWindowFont(processesLv, jobPageContext->WindowFont, FALSE);
+            SetWindowFont(limitsLv, jobPageContext->WindowFont, FALSE);
             PhSetExtendedListView(processesLv);
             PhSetExtendedListView(limitsLv);
 
@@ -510,7 +516,26 @@ INT_PTR CALLBACK PhpJobPageProc(
         }
         break;
     case WM_DESTROY:
-        PhSaveListViewColumnsToSetting(SETTING_JOB_LIST_VIEW_COLUMNS, GetDlgItem(hwndDlg, IDC_LIMITS));
+        {
+            PhSaveListViewColumnsToSetting(SETTING_JOB_LIST_VIEW_COLUMNS, GetDlgItem(hwndDlg, IDC_LIMITS));
+
+            if (jobPageContext->WindowFont)
+            {
+                DeleteFont(jobPageContext->WindowFont);
+                jobPageContext->WindowFont = NULL;
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+            {
+                PhSwapReferenceFont(&jobPageContext->WindowFont, GetDlgItem(hwndDlg, IDC_PROCESSES), windowFont, TRUE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_LIMITS), jobPageContext->WindowFont, TRUE);
+            }
+        }
         break;
     case WM_SHOWWINDOW:
         {

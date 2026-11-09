@@ -106,12 +106,14 @@ PhLookupHandleTableEntry(
     _In_ HANDLE Handle
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
+typedef _Function_class_(PH_ENUM_HANDLE_TABLE_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_HANDLE_TABLE_CALLBACK(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ HANDLE Handle,
     _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_HANDLE_TABLE_CALLBACK* PPH_ENUM_HANDLE_TABLE_CALLBACK;
 
 PHLIBAPI
 VOID

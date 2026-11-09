@@ -30,7 +30,7 @@ typedef struct _PH_SERVICE_ITEM
     PPH_STRING FileName;
 
     PPH_IMAGELIST_ITEM IconEntry;
-    volatile LONG JustProcessed;
+    LONG JustProcessed;
 
     // State
     ULONG Type;

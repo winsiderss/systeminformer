@@ -90,11 +90,11 @@ static VOID PhSipFillContainerBackground(
     {
     case 0: // New colors
         SetDCBrushColor(hdc, GetSysColor(COLOR_WINDOW));
-        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        FillRect(hdc, rect, PhStockDcBrush);
         break;
     case 1: // Old colors
         SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        FillRect(hdc, rect, PhStockDcBrush);
         break;
     }
 }
@@ -513,7 +513,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
-            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhStockDcBrush;
         }
         break;
     case WM_DPICHANGED:
@@ -602,7 +602,7 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
-            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhStockDcBrush;
         }
         break;
     }
@@ -1747,20 +1747,19 @@ VOID PhSipDrawRestoreSummaryPanel(
         case 0: // New colors
             SetTextColor(bufferDc, RGB(0x00, 0x00, 0x00));
             SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &bufferRect, PhStockDcBrush);
             break;
         case 1: // Old colors
         default:
             SetTextColor(bufferDc, PhThemeWindowTextColor);
-            SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &bufferRect, PhThemeWindowBackgroundBrush);
             break;
         }
     }
     else
     {
-        SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
-        FillRect(bufferDc, &bufferRect, (HBRUSH)(COLOR_WINDOW + 1));
+        SetTextColor(bufferDc, PhThemeWindowTextColor);
+        FillRect(bufferDc, &bufferRect, PhThemeWindowBackgroundBrush);
     }
 
     if (RestoreSummaryControlHot || RestoreSummaryControlHasFocus)
@@ -1778,7 +1777,7 @@ VOID PhSipDrawRestoreSummaryPanel(
         }
         else
         {
-            FillRect(bufferDc, &bufferRect, (HBRUSH)(COLOR_WINDOW + 1));
+            FillRect(bufferDc, &bufferRect, PhThemeWindowBackgroundBrush);
         }
     }
 
@@ -1837,7 +1836,7 @@ VOID PhSipDrawSeparator(
         case 1: // Old colors
             {
                 SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-                FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, PhStockDcBrush);
             }
             break;
         }
@@ -1850,7 +1849,7 @@ VOID PhSipDrawSeparator(
         //bufferRect.left -= 1;
 
         SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-        FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &bufferRect, PhStockDcBrush);
     }
 
     BitBlt(
@@ -1910,7 +1909,7 @@ VOID PhSipDrawPanel(
         //        break;
         //    case 1: // Old colors
         //        SetDCBrushColor(hdc, RGB(30, 30, 30));
-        //        FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+        //        FillRect(hdc, Rect, PhStockDcBrush);
         //        break;
         //    }
         //}
@@ -2047,12 +2046,12 @@ VOID PhSipDefaultDrawPanel(
         case 0: // New colors
             SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
             //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            //FillRect(hdc, Rect, PhStockDcBrush);
             break;
         case 1: // Old colors
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
             //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0x00));
-            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            //FillRect(hdc, Rect, PhStockDcBrush);
             break;
         }
 

@@ -3627,6 +3627,30 @@ PhRemoveItemsList(
     );
 
 /**
+ * Finds the index of a string in a list.
+ *
+ * \param Items The list to search.
+ * \param String The string to find.
+ * \return The index of the string, or ULONG_MAX if not found.
+ */
+_Success_(return != ULONG_MAX)
+FORCEINLINE
+ULONG
+PhIndexOfStringInList(
+    _In_ PPH_LIST Items,
+    _In_ PCWSTR String
+    )
+{
+    for (ULONG i = 0; i < Items->Count; i++)
+    {
+        if (PhEqualStringZ((PCWSTR)Items->Items[i], String, FALSE))
+            return i;
+    }
+
+    return ULONG_MAX;
+}
+
+/**
  * A comparison function.
  *
  * \param Item1 The first item.

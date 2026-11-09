@@ -920,7 +920,7 @@ VOID PrintTypeInDetail(
             //if ((pSymbol->get_virtualBaseClass(&bFlag) == S_OK) && bFlag) {
             //    IDiaSymbol* pVBTableType;
             //    LONG ptrOffset;
-            //    DWORD dispIndex;
+            //    ULONG dispIndex;
 
             //    if ((pSymbol->get_virtualBaseDispIndex(&dispIndex) == S_OK) &&
             //        (pSymbol->get_virtualBasePointerOffset(&ptrOffset) == S_OK)) {

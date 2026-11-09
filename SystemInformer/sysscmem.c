@@ -1199,7 +1199,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
             segmentColors[4] = PhEnableThemeSupport ? RGB(0x7a, 0x7a, 0x7a) : RGB(0x9e, 0x9e, 0x9e); // Zero (gray)
             segmentColors[5] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x48, 0xc0, 0xc4)) : RGB(0x48, 0xc0, 0xc4); // Free (teal)
 
-            oldBrush = SelectBrush(drawBar->hdc, PhGetStockBrush(DC_BRUSH));
+            oldBrush = SelectBrush(drawBar->hdc, PhStockDcBrush);
             oldPen = SelectPen(drawBar->hdc, PhGetStockPen(DC_PEN));
 
             x = rect.left;
@@ -1233,7 +1233,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
                 fillRect.bottom = rect.bottom;
 
                 SetDCBrushColor(drawBar->hdc, segmentColors[i]);
-                FillRect(drawBar->hdc, &fillRect, PhGetStockBrush(DC_BRUSH));
+                FillRect(drawBar->hdc, &fillRect, PhStockDcBrush);
 
                 if (x != rect.left)
                 {

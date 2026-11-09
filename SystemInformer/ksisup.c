@@ -961,7 +961,7 @@ NTSTATUS PhRestartSelf(
     status = PhInitializeProcThreadAttributeList(&attributeList, 1);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     if (WindowsVersion >= WINDOWS_10_22H2)
     {

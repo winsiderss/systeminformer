@@ -13,13 +13,15 @@
 #include <guisup.h>
 #include <mapldr.h>
 
-typedef HRESULT (WINAPI *PGET_THEME_DEFAULTS)(
+typedef _Function_class_(GET_THEME_DEFAULTS)
+HRESULT WINAPI GET_THEME_DEFAULTS(
     _In_ PCWSTR ThemeFileName,
     _Out_writes_(ColorNameLength) PWSTR ColorName,
     _In_ ULONG ColorNameLength,
     _Out_writes_(SizeNameLength) PWSTR SizeName,
     _In_ ULONG SizeNameLength
     );
+typedef GET_THEME_DEFAULTS* PGET_THEME_DEFAULTS;
 
 struct _PH_THEME_FILE
 {

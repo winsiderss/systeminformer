@@ -23,6 +23,7 @@ typedef struct _PH_CHOOSE_PROCESS_DIALOG_CONTEXT
     RECT MinimumSize;
     HIMAGELIST ImageList;
     HWND ListViewHandle;
+    HFONT WindowFont;
 } PH_CHOOSE_PROCESS_DIALOG_CONTEXT, *PPH_CHOOSE_PROCESS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
@@ -249,8 +250,11 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
 
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
+            SetWindowFont(lvHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 160, L"User name");
@@ -269,6 +273,9 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         {
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             if (context->ImageList)
             {
                 PhImageListDestroy(context->ImageList);
@@ -280,6 +287,11 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
 
