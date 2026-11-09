@@ -113,6 +113,7 @@ set(SOURCES
     "hndlstat.c"
     "hwprv.c"
     "hwreport.c"
+    "hwsensor.c"
     "hwsensorwnd.c"
     "hwsmu.c"
     "infodlg.c"

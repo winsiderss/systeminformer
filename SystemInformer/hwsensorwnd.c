@@ -34,224 +34,6 @@ typedef enum _PHP_HW_SENSORS_COLUMN
     PhpHwSensorsColumnMaximumId
 } PHP_HW_SENSORS_COLUMN;
 
-typedef enum _PHP_HW_COMPONENT_KIND
-{
-    PhpHwComponentCpu, // one per package
-    PhpHwComponentMemory, // one per package
-    PhpHwComponentChipset,
-    PhpHwComponentSystem,
-    PhpHwComponentWindows, // Windows performance counters
-    PhpHwComponentSource, // published by a hardware sensor source
-    PhpHwComponentMaximum
-} PHP_HW_COMPONENT_KIND;
-
-typedef enum _PHP_HW_GROUP
-{
-    PhpHwGroupTemperatures,
-    PhpHwGroupPowers,
-    PhpHwGroupLimits,
-    PhpHwGroupClocks,
-    PhpHwGroupBandwidth,
-    PhpHwGroupActiveClocks,
-    PhpHwGroupMultipliers,
-    PhpHwGroupVoltages,
-    PhpHwGroupCurrents,
-    PhpHwGroupResidency,
-    PhpHwGroupFans,
-    PhpHwGroupControls,
-    PhpHwGroupThrottling,
-    PhpHwGroupMaximum
-} PHP_HW_GROUP;
-
-typedef struct _PHP_HW_GROUP_INFO
-{
-    PCWSTR Name;
-    BOOLEAN PerProcessor; // collapsed by default on large systems
-} PHP_HW_GROUP_INFO, *PPHP_HW_GROUP_INFO;
-typedef CONST PHP_HW_GROUP_INFO *PCPHP_HW_GROUP_INFO;
-
-static CONST PHP_HW_GROUP_INFO PhpHwGroupInfo[PhpHwGroupMaximum] =
-{
-    { L"Temperatures", FALSE },
-    { L"Powers", FALSE },
-    { L"Limits", FALSE },
-    { L"Clocks", TRUE },
-    { L"Bandwidth", FALSE },
-    { L"Active clocks", TRUE },
-    { L"Multipliers", TRUE },
-    { L"Voltages", TRUE },
-    { L"Currents", FALSE },
-    { L"Residency", FALSE },
-    { L"Fans", FALSE },
-    { L"Controls", FALSE },
-    { L"Throttling", FALSE },
-};
-
-// Ordered as displayed within a group.
-typedef enum _PHP_HW_SENSOR_KIND
-{
-    PhpHwSensorPackageTemperature,
-    PhpHwSensorCoresTemperature,
-    PhpHwSensorGraphicsTemperature,
-    PhpHwSensorCcdTemperature,
-    PhpHwSensorCoreTemperature,
-    PhpHwSensorSmuTemperature, // named
-    PhpHwSensorPmtTemperature, // named
-    PhpHwSensorChipsetTemperature,
-    PhpHwSensorDimmTemperature, // named
-    PhpHwSensorDimmPmicTemperature, // named
-    PhpHwSensorAcpiTemperature, // named
-    PhpHwSensorZoneTemperature, // named
-    PhpHwSensorPackagePower,
-    PhpHwSensorCorePower,
-    PhpHwSensorDramPower,
-    PhpHwSensorPlatformPower,
-    PhpHwSensorTpmiPower, // named
-    PhpHwSensorSmuPower, // named
-    PhpHwSensorDimmPower, // named
-    PhpHwSensorAcpiPower, // named
-    PhpHwSensorMeterPower, // named
-    PhpHwSensorPowerLimit1,
-    PhpHwSensorPowerLimit2,
-    PhpHwSensorSmuPowerLimit, // named
-    PhpHwSensorPowerLimit, // named
-    PhpHwSensorSmuCurrentLimit, // named
-    PhpHwSensorSmuTemperatureLimit, // named
-    PhpHwSensorSmuClockLimit, // named
-    PhpHwSensorUncoreClock, // named
-    PhpHwSensorSmuClock, // named
-    PhpHwSensorEffectiveClock,
-    PhpHwSensorActiveClock,
-    PhpHwSensorOsClock, // named
-    PhpHwSensorMemoryClock,
-    PhpHwSensorMemoryDataRate,
-    PhpHwSensorMemoryGear,
-    PhpHwSensorSmuMemoryClock, // named
-    PhpHwSensorMemoryReadBandwidth,
-    PhpHwSensorMemoryWriteBandwidth,
-    PhpHwSensorSmuMemoryLoad, // named
-    PhpHwSensorSmuBandwidth, // named
-    PhpHwSensorMultiplier,
-    PhpHwSensorVoltage,
-    PhpHwSensorSmuVoltage, // named
-    PhpHwSensorDimmVoltage, // named
-    PhpHwSensorAcpiVoltage, // named
-    PhpHwSensorSmuCurrent, // named
-    PhpHwSensorDimmCurrent, // named
-    PhpHwSensorSmuResidency, // named
-    PhpHwSensorPlatformResidency, // named
-    PhpHwSensorFanSpeed, // named
-    PhpHwSensorFanControl, // named
-    PhpHwSensorThrottle,
-    PhpHwSensorZonePassiveLimit, // named
-    PhpHwSensorOsPerformanceLimit, // named
-    PhpHwSensorMaximum
-} PHP_HW_SENSOR_KIND;
-
-typedef enum _PHP_HW_SENSOR_UNIT
-{
-    PhpHwUnitTemperature,
-    PhpHwUnitPower,
-    PhpHwUnitClock,
-    PhpHwUnitDataRate,
-    PhpHwUnitMultiplier,
-    PhpHwUnitVoltage,
-    PhpHwUnitThrottle,
-    PhpHwUnitBandwidth,
-    PhpHwUnitGear,
-    PhpHwUnitCurrent,
-    PhpHwUnitFan,
-    PhpHwUnitPercent
-} PHP_HW_SENSOR_UNIT;
-
-typedef struct _PHP_HW_SENSOR_INFO
-{
-    PHP_HW_COMPONENT_KIND Component;
-    PHP_HW_GROUP Group;
-    ULONG Capability;
-    PHP_HW_SENSOR_UNIT Unit;
-    PCWSTR Name; // followed by the index when Indexed; NULL for named sensors
-    BOOLEAN Indexed;
-    BOOLEAN History;
-} PHP_HW_SENSOR_INFO, *PPHP_HW_SENSOR_INFO;
-typedef CONST PHP_HW_SENSOR_INFO *PCPHP_HW_SENSOR_INFO;
-
-static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
-{
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_PACKAGE_TEMP, PhpHwUnitTemperature, L"Package", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_CORES_TEMP, PhpHwUnitTemperature, L"IA cores", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_GRAPHICS_TEMP, PhpHwUnitTemperature, L"Graphics", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_CCD_TEMP, PhpHwUnitTemperature, L"CCD ", TRUE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_CORE_TEMP, PhpHwUnitTemperature, L"Core ", TRUE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_SMU, PhpHwUnitTemperature, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupTemperatures, PH_HW_CAP_TPMI_POWER, PhpHwUnitTemperature, NULL, FALSE, TRUE },
-    { PhpHwComponentChipset, PhpHwGroupTemperatures, PH_HW_CAP_CHIPSET_TEMP, PhpHwUnitTemperature, L"PCH", FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupTemperatures, PH_HW_CAP_DIMM_TEMP, PhpHwUnitTemperature, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupTemperatures, PH_HW_CAP_DIMM_PMIC, PhpHwUnitTemperature, NULL, FALSE, FALSE },
-    { PhpHwComponentSystem, PhpHwGroupTemperatures, PH_HW_CAP_ACPI_TEMP, PhpHwUnitTemperature, NULL, FALSE, TRUE },
-    { PhpHwComponentWindows, PhpHwGroupTemperatures, 0, PhpHwUnitTemperature, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_PACKAGE, PhpHwUnitPower, L"Package", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_CORE, PhpHwUnitPower, L"Core", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_DRAM, PhpHwUnitPower, L"DRAM", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_RAPL_PSYS, PhpHwUnitPower, L"Platform", FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_TPMI_POWER, PhpHwUnitPower, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupPowers, PH_HW_CAP_SMU, PhpHwUnitPower, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupPowers, PH_HW_CAP_DIMM_PMIC, PhpHwUnitPower, NULL, FALSE, TRUE },
-    { PhpHwComponentSystem, PhpHwGroupPowers, PH_HW_CAP_ACPI_POWER, PhpHwUnitPower, NULL, FALSE, TRUE },
-    { PhpHwComponentWindows, PhpHwGroupPowers, 0, PhpHwUnitPower, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_POWER_LIMIT1, PhpHwUnitPower, L"PL1 (active)", FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_POWER_LIMIT2, PhpHwUnitPower, L"PL2 (active)", FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitPower, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_PLATFORM_LIMITS, PhpHwUnitPower, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitCurrent, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitTemperature, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupLimits, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, FALSE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_UNCORE_CLOCK, PhpHwUnitClock, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupClocks, PH_HW_CAP_EFFECTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupActiveClocks, PH_HW_CAP_ACTIVE_CLOCK, PhpHwUnitClock, L"CPU ", TRUE, TRUE },
-    { PhpHwComponentWindows, PhpHwGroupClocks, 0, PhpHwUnitClock, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitClock, L"Memory clock", FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitDataRate, L"Data rate", FALSE, FALSE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_MEMORY_CLOCK, PhpHwUnitGear, L"Gear", FALSE, FALSE },
-    { PhpHwComponentMemory, PhpHwGroupClocks, PH_HW_CAP_SMU, PhpHwUnitClock, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_MEMORY_BANDWIDTH, PhpHwUnitBandwidth, L"DRAM read", FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_MEMORY_BANDWIDTH, PhpHwUnitBandwidth, L"DRAM write", FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_SMU, PhpHwUnitPercent, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupBandwidth, PH_HW_CAP_SMU, PhpHwUnitBandwidth, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupMultipliers, PH_HW_CAP_MULTIPLIER, PhpHwUnitMultiplier, L"CPU ", TRUE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_VOLTAGE, PhpHwUnitVoltage, L"CPU ", TRUE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupVoltages, PH_HW_CAP_SMU, PhpHwUnitVoltage, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupVoltages, PH_HW_CAP_DIMM_VOLTAGE, PhpHwUnitVoltage, NULL, FALSE, FALSE },
-    { PhpHwComponentSystem, PhpHwGroupVoltages, PH_HW_CAP_ACPI_TEMP, PhpHwUnitVoltage, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupCurrents, PH_HW_CAP_SMU, PhpHwUnitCurrent, NULL, FALSE, TRUE },
-    { PhpHwComponentMemory, PhpHwGroupCurrents, PH_HW_CAP_DIMM_PMIC, PhpHwUnitCurrent, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_SMU, PhpHwUnitPercent, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupResidency, PH_HW_CAP_RESIDENCY, PhpHwUnitPercent, NULL, FALSE, TRUE },
-    { PhpHwComponentSystem, PhpHwGroupFans, PH_HW_CAP_FAN_SPEED, PhpHwUnitFan, NULL, FALSE, TRUE },
-    { PhpHwComponentSystem, PhpHwGroupControls, PH_HW_CAP_FAN_CONTROL, PhpHwUnitPercent, NULL, FALSE, TRUE },
-    { PhpHwComponentCpu, PhpHwGroupThrottling, PH_HW_CAP_THROTTLE, PhpHwUnitThrottle, L"Package", FALSE, FALSE },
-    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, TRUE },
-    { PhpHwComponentWindows, PhpHwGroupThrottling, 0, PhpHwUnitPercent, NULL, FALSE, TRUE },
-};
-
-// Group and unit of each PH_HW_SENSOR_TYPE; source sensors use PhpHwSensorMaximum as their kind.
-static CONST struct
-{
-    PHP_HW_GROUP Group;
-    PHP_HW_SENSOR_UNIT Unit;
-} PhpHwSourceTypeInfo[PhHwSensorTypeMaximum] =
-{
-    { PhpHwGroupTemperatures, PhpHwUnitTemperature },
-    { PhpHwGroupPowers, PhpHwUnitPower },
-    { PhpHwGroupClocks, PhpHwUnitClock },
-    { PhpHwGroupVoltages, PhpHwUnitVoltage },
-    { PhpHwGroupCurrents, PhpHwUnitCurrent },
-    { PhpHwGroupFans, PhpHwUnitFan },
-    { PhpHwGroupControls, PhpHwUnitPercent },
-    { PhpHwGroupBandwidth, PhpHwUnitBandwidth },
-};
-
 typedef enum _PHP_HW_NODE_TYPE
 {
     PhpHwNodeComponent,
@@ -271,16 +53,16 @@ typedef struct _PHP_HW_NODE
     {
         struct
         {
-            struct _PHP_HW_NODE *Groups[PhpHwGroupMaximum];
-            PHP_HW_COMPONENT_KIND Kind;
+            struct _PHP_HW_NODE *Groups[PhHwGroupMaximum];
+            PH_HW_COMPONENT_KIND Kind;
         } Component;
         struct
         {
             struct _PHP_HW_NODE *Group;
-            PHP_HW_SENSOR_KIND Kind; // PhpHwSensorMaximum for a source sensor
-            PHP_HW_SENSOR_UNIT Unit;
+            PH_HW_SENSOR_UNIT Unit;
             ULONG Capability; // core sensors: removed when the capability is lost
             BOOLEAN History;
+            BOOLEAN ScalesToCpuLimit;
             BOOLEAN Listed; // source and named sensors: removed when no longer listed by the provider
             BOOLEAN Current;
             BOOLEAN RangeValid;
@@ -309,7 +91,6 @@ typedef struct _PHP_HW_SENSORS_CONTEXT
     PPH_LIST ComponentList; // all components ordered by key
     PPH_LIST RootList; // components with sensors
     PPH_LIST SensorList; // all sensors, unordered
-    PPH_STRING CpuBrandString;
     ULONG ProcessorCount;
     BOOLEAN StructureChanged;
 
@@ -374,171 +155,6 @@ static VOID NTAPI PhpHwSensorsProcessesUpdatedHandler(
 
     if (context)
         PostMessage(context->WindowHandle, WM_PH_HW_SENSORS_UPDATE, 0, 0);
-}
-
-static PPH_STRING PhpHwSensorFormatValue(
-    _In_ PHP_HW_SENSOR_UNIT Unit,
-    _In_ FLOAT Value
-    )
-{
-    PH_FORMAT format[PH_HW_TEMPERATURE_FORMAT_COUNT];
-
-    C_ASSERT(PH_HW_TEMPERATURE_FORMAT_COUNT == 2);
-
-    switch (Unit)
-    {
-    case PhpHwUnitTemperature:
-        PhHwFormatTemperature(Value, 1, format);
-        break;
-    case PhpHwUnitPower:
-        PhInitFormatF(&format[0], Value, 1);
-        PhInitFormatS(&format[1], L" W");
-        break;
-    case PhpHwUnitClock:
-        PhInitFormatF(&format[0], Value, 0);
-        PhInitFormatS(&format[1], L" MHz");
-        break;
-    case PhpHwUnitDataRate:
-        PhInitFormatF(&format[0], Value, 0);
-        PhInitFormatS(&format[1], L" MT/s");
-        break;
-    case PhpHwUnitMultiplier:
-        PhInitFormatF(&format[0], Value, 2);
-        PhInitFormatS(&format[1], L"x");
-        break;
-    case PhpHwUnitVoltage:
-        PhInitFormatF(&format[0], Value, 3);
-        PhInitFormatS(&format[1], L" V");
-        break;
-    case PhpHwUnitBandwidth:
-        PhInitFormatF(&format[0], Value, 0);
-        PhInitFormatS(&format[1], L" MB/s");
-        break;
-    case PhpHwUnitGear:
-        PhInitFormatF(&format[0], Value, 0);
-        PhInitFormatS(&format[1], L"");
-        break;
-    case PhpHwUnitCurrent:
-        PhInitFormatF(&format[0], Value, 2);
-        PhInitFormatS(&format[1], L" A");
-        break;
-    case PhpHwUnitFan:
-        PhInitFormatF(&format[0], Value, 0);
-        PhInitFormatS(&format[1], L" RPM");
-        break;
-    case PhpHwUnitPercent:
-        PhInitFormatF(&format[0], Value, 1);
-        PhInitFormatS(&format[1], L"%");
-        break;
-    default:
-        return NULL;
-    }
-
-    return PhFormat(format, RTL_NUMBER_OF(format), 0);
-}
-
-static PPH_STRING PhpHwSensorFormatThrottle(
-    _In_ ULONG ThrottleFlags
-    )
-{
-    static CONST struct { ULONG Flag; PCWSTR Name; } throttleNames[] =
-    {
-        { PH_HW_THROTTLE_THERMAL, L"Thermal" },
-        { PH_HW_THROTTLE_PROCHOT, L"PROCHOT" },
-        { PH_HW_THROTTLE_CRITICAL, L"Critical" },
-        { PH_HW_THROTTLE_POWER_LIMIT, L"Power limit" },
-        { PH_HW_THROTTLE_PL1, L"PL1" },
-        { PH_HW_THROTTLE_PL2, L"PL2" },
-        { PH_HW_THROTTLE_VR_THERMAL, L"VR thermal" },
-        { PH_HW_THROTTLE_VR_CURRENT, L"VR current" },
-        { PH_HW_THROTTLE_ELECTRICAL, L"Electrical" },
-        { PH_HW_THROTTLE_MAX_TURBO, L"Max turbo" },
-        { PH_HW_THROTTLE_TURBO_ATTENUATION, L"Turbo attenuation" },
-        { PH_HW_THROTTLE_RUNNING_AVERAGE_THERMAL, L"Running average thermal" },
-        { PH_HW_THROTTLE_RESIDENCY, L"Residency" },
-        { PH_HW_THROTTLE_GRAPHICS, L"Graphics" },
-        { PH_HW_THROTTLE_AUTONOMOUS, L"Autonomous" },
-    };
-    PH_FORMAT format[RTL_NUMBER_OF(throttleNames) * 2];
-    ULONG count = 0;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(throttleNames); i++)
-    {
-        if (!(ThrottleFlags & throttleNames[i].Flag))
-            continue;
-
-        if (count)
-            PhInitFormatS(&format[count++], L", ");
-
-        PhInitFormatS(&format[count++], throttleNames[i].Name);
-    }
-
-    if (!count)
-        PhInitFormatS(&format[count++], L"None");
-
-    return PhFormat(format, count, 0);
-}
-
-static PPH_STRING PhpHwFormatComponentName(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ PHP_HW_COMPONENT_KIND Kind,
-    _In_ ULONG Index
-    )
-{
-    switch (Kind)
-    {
-    case PhpHwComponentCpu:
-        {
-            PH_FORMAT format[4];
-
-            if (PhHwGetPackageCount() <= 1)
-                return PhReferenceObject(Context->CpuBrandString);
-
-            PhInitFormatS(&format[0], L"CPU #");
-            PhInitFormatU(&format[1], Index);
-            PhInitFormatS(&format[2], L": ");
-            PhInitFormatSR(&format[3], Context->CpuBrandString->sr);
-
-            return PhFormat(format, RTL_NUMBER_OF(format), 0);
-        }
-    case PhpHwComponentMemory:
-        {
-            PH_FORMAT format[2];
-
-            if (PhHwGetPackageCount() <= 1)
-                return PhCreateString(L"Memory");
-
-            PhInitFormatS(&format[0], L"Memory #");
-            PhInitFormatU(&format[1], Index);
-
-            return PhFormat(format, RTL_NUMBER_OF(format), 0);
-        }
-    case PhpHwComponentChipset:
-        return PhCreateString(L"Chipset");
-    case PhpHwComponentSystem:
-        return PhCreateString(L"System");
-    case PhpHwComponentWindows:
-        return PhCreateString(L"Windows");
-    }
-
-    return PhReferenceEmptyString();
-}
-
-static PPH_STRING PhpHwFormatSensorName(
-    _In_ PHP_HW_SENSOR_KIND Kind,
-    _In_ ULONG Index
-    )
-{
-    PCPHP_HW_SENSOR_INFO info = &PhpHwSensorInfo[Kind];
-    PH_FORMAT format[2];
-
-    if (!info->Indexed)
-        return PhCreateString(info->Name);
-
-    PhInitFormatS(&format[0], info->Name);
-    PhInitFormatU(&format[1], Index);
-
-    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
 static PPHP_HW_NODE PhpHwCreateNode(
@@ -615,30 +231,22 @@ static PPHP_HW_NODE PhpHwFindNode(
     return NULL;
 }
 
-// Ordered by kind, source registration, then index; SourceId and Name apply to source components only.
+// Ordered by kind, source registration, then index.
 static PPHP_HW_NODE PhpHwGetComponent(
     _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ PHP_HW_COMPONENT_KIND Kind,
-    _In_ ULONG SourceId,
-    _In_ ULONG Index,
-    _In_opt_ PPH_STRING Name
+    _In_ PCPH_HW_SENSOR_ENTRY Entry
     )
 {
-    ULONG64 key = ((ULONG64)Kind << 56) | ((ULONG64)(SourceId & 0xFFFFFF) << 32) | Index;
     PPHP_HW_NODE component;
     ULONG position;
 
-    component = PhpHwFindNode(Context->ComponentList, key, &position);
+    component = PhpHwFindNode(Context->ComponentList, Entry->ComponentKey, &position);
 
     if (component)
         return component;
 
-    component = PhpHwCreateNode(
-        PhpHwNodeComponent,
-        key,
-        Name ? PhReferenceObject(Name) : PhpHwFormatComponentName(Context, Kind, Index)
-        );
-    component->Component.Kind = Kind;
+    component = PhpHwCreateNode(PhpHwNodeComponent, Entry->ComponentKey, PhReferenceObject(Entry->ComponentName));
+    component->Component.Kind = Entry->ComponentKind;
     PhInsertItemList(Context->ComponentList, position, component);
 
     return component;
@@ -647,10 +255,9 @@ static PPHP_HW_NODE PhpHwGetComponent(
 static PPHP_HW_NODE PhpHwGetGroup(
     _In_ PPHP_HW_SENSORS_CONTEXT Context,
     _In_ PPHP_HW_NODE Component,
-    _In_ PHP_HW_GROUP Group
+    _In_ PH_HW_SENSOR_GROUP Group
     )
 {
-    PCPHP_HW_GROUP_INFO info = &PhpHwGroupInfo[Group];
     PPHP_HW_NODE group;
 
     group = Component->Component.Groups[Group];
@@ -658,10 +265,10 @@ static PPHP_HW_NODE PhpHwGetGroup(
     if (group)
         return group;
 
-    group = PhpHwCreateNode(PhpHwNodeGroup, Group, PhCreateString(info->Name));
+    group = PhpHwCreateNode(PhpHwNodeGroup, Group, PhCreateString(PhHwGetSensorGroupName(Group)));
     group->Node.Expanded = !(
-        info->PerProcessor &&
-        Component->Component.Kind == PhpHwComponentCpu &&
+        PhHwIsSensorGroupPerProcessor(Group) &&
+        Component->Component.Kind == PhHwComponentCpu &&
         Context->ProcessorCount > PHP_HW_COLLAPSE_PROCESSOR_COUNT
         );
     Component->Component.Groups[Group] = group;
@@ -673,24 +280,19 @@ static PPHP_HW_NODE PhpHwInsertSensor(
     _In_ PPHP_HW_SENSORS_CONTEXT Context,
     _In_ PPHP_HW_NODE Group,
     _In_ ULONG Position,
-    _In_ ULONG64 Key,
-    _In_ _Assume_refs_(1) PPH_STRING Name,
-    _In_ PHP_HW_SENSOR_KIND Kind,
-    _In_ PHP_HW_SENSOR_UNIT Unit,
-    _In_ ULONG Capability,
-    _In_ BOOLEAN History
+    _In_ PCPH_HW_SENSOR_ENTRY Entry
     )
 {
     PPHP_HW_NODE sensor;
 
-    sensor = PhpHwCreateNode(PhpHwNodeSensor, Key, Name);
+    sensor = PhpHwCreateNode(PhpHwNodeSensor, Entry->SensorKey, PhReferenceObject(Entry->SensorName));
     sensor->Sensor.Group = Group;
-    sensor->Sensor.Kind = Kind;
-    sensor->Sensor.Unit = Unit;
-    sensor->Sensor.Capability = Capability;
-    sensor->Sensor.History = History;
+    sensor->Sensor.Unit = Entry->Unit;
+    sensor->Sensor.Capability = Entry->Capability;
+    sensor->Sensor.History = Entry->History;
+    sensor->Sensor.ScalesToCpuLimit = PhHwSensorScalesToCpuLimit(Entry);
 
-    if (History)
+    if (sensor->Sensor.History)
         PhInitializeCircularBuffer_FLOAT(&sensor->Sensor.HistoryBuffer, PhStatisticsSampleCount);
 
     PhInitializeGraphBuffers(&sensor->Sensor.GraphBuffers);
@@ -700,41 +302,6 @@ static PPHP_HW_NODE PhpHwInsertSensor(
     Context->StructureChanged = TRUE;
 
     return sensor;
-}
-
-// Creates the node and its parents as needed; a NULL Name is formatted from the kind and index.
-static PPHP_HW_NODE PhpHwGetSensor(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ ULONG ComponentIndex,
-    _In_ PHP_HW_SENSOR_KIND Kind,
-    _In_ ULONG Index,
-    _In_opt_ PCWSTR Name
-    )
-{
-    PCPHP_HW_SENSOR_INFO info = &PhpHwSensorInfo[Kind];
-    ULONG64 key = ((ULONG64)Kind << 32) | Index;
-    PPHP_HW_NODE group;
-    PPHP_HW_NODE sensor;
-    ULONG position;
-
-    group = PhpHwGetGroup(Context, PhpHwGetComponent(Context, info->Component, 0, ComponentIndex, NULL), info->Group);
-
-    sensor = PhpHwFindNode(group->Children, key, &position);
-
-    if (sensor)
-        return sensor;
-
-    return PhpHwInsertSensor(
-        Context,
-        group,
-        position,
-        key,
-        Name ? PhCreateString((PWSTR)Name) : PhpHwFormatSensorName(Kind, Index),
-        Kind,
-        info->Unit,
-        info->Capability,
-        info->History
-        );
 }
 
 static VOID PhpHwSensorUpdateValue(
@@ -760,242 +327,10 @@ static VOID PhpHwSensorUpdateValue(
     }
 }
 
-static VOID PhpHwSensorSetValue(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ ULONG Package,
-    _In_ PHP_HW_SENSOR_KIND Kind,
-    _In_ ULONG Index,
-    _In_ FLOAT Value
-    )
-{
-    PhpHwSensorUpdateValue(PhpHwGetSensor(Context, Package, Kind, Index, NULL), Value);
-}
-
-static VOID PhpHwSensorSetThrottle(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ ULONG Package,
-    _In_ ULONG ThrottleFlags
-    )
-{
-    PPHP_HW_NODE sensor = PhpHwGetSensor(Context, Package, PhpHwSensorThrottle, 0, NULL);
-
-    sensor->Sensor.Current = TRUE;
-    sensor->Sensor.ThrottleFlags = ThrottleFlags;
-}
-
-static VOID PhpHwCollectCpu(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context
-    )
-{
-    ULONG packageCount = PhHwGetPackageCount();
-    PPH_HW_PACKAGE_SENSOR package;
-    PPH_HW_CPU_SENSOR sensor;
-    ULONG processorCount = 0;
-
-    while (PhHwGetCpuSensor(processorCount))
-        processorCount++;
-
-    for (ULONG i = 0; i < packageCount; i++)
-    {
-        if (!(package = PhHwGetPackageSensor(i)))
-            break;
-
-        if (package->Valid & PH_HW_CAP_PACKAGE_TEMP)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorPackageTemperature, 0, package->Temperature);
-        if (package->Valid & PH_HW_CAP_CORES_TEMP)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorCoresTemperature, 0, package->CoresTemperature);
-        if (package->Valid & PH_HW_CAP_GRAPHICS_TEMP)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorGraphicsTemperature, 0, package->GraphicsTemperature);
-
-        if (package->Valid & PH_HW_CAP_CCD_TEMP)
-        {
-            for (ULONG ccd = 0; ccd < PH_HW_MAX_CCD; ccd++)
-            {
-                if (package->CcdValidMask & (1UL << ccd))
-                    PhpHwSensorSetValue(Context, i, PhpHwSensorCcdTemperature, ccd, package->CcdTemperature[ccd]);
-            }
-        }
-
-        if (package->Valid & PH_HW_CAP_RAPL_PACKAGE)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorPackagePower, 0, package->PackagePower);
-        if (package->Valid & PH_HW_CAP_RAPL_CORE)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorCorePower, 0, package->CorePower);
-        if (package->Valid & PH_HW_CAP_RAPL_DRAM)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorDramPower, 0, package->DramPower);
-        if (package->Valid & PH_HW_CAP_RAPL_PSYS)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorPlatformPower, 0, package->PlatformPower);
-        if (package->Valid & PH_HW_CAP_POWER_LIMIT1)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorPowerLimit1, 0, package->ActivePowerLimit1);
-        if (package->Valid & PH_HW_CAP_POWER_LIMIT2)
-            PhpHwSensorSetValue(Context, i, PhpHwSensorPowerLimit2, 0, package->ActivePowerLimit2);
-        if (package->Valid & PH_HW_CAP_THROTTLE)
-            PhpHwSensorSetThrottle(Context, i, package->ThrottleFlags);
-    }
-
-    for (ULONG i = 0; i < processorCount; i++)
-    {
-        ULONG packageIndex;
-
-        if (!(sensor = PhHwGetCpuSensor(i)))
-            break;
-
-        packageIndex = sensor->PackageIndex;
-
-        // Logical processors of a core share its temperature.
-        if (sensor->Valid & PH_HW_CAP_CORE_TEMP)
-            PhpHwSensorSetValue(Context, packageIndex, PhpHwSensorCoreTemperature, sensor->CoreIndex, sensor->Temperature);
-        if (sensor->Valid & PH_HW_CAP_EFFECTIVE_CLOCK)
-            PhpHwSensorSetValue(Context, packageIndex, PhpHwSensorEffectiveClock, i, sensor->EffectiveMhz);
-        if (sensor->Valid & PH_HW_CAP_ACTIVE_CLOCK)
-            PhpHwSensorSetValue(Context, packageIndex, PhpHwSensorActiveClock, i, sensor->ActiveMhz);
-        if (sensor->Valid & PH_HW_CAP_MULTIPLIER)
-            PhpHwSensorSetValue(Context, packageIndex, PhpHwSensorMultiplier, i, sensor->Multiplier);
-        if (sensor->Valid & PH_HW_CAP_VOLTAGE)
-            PhpHwSensorSetValue(Context, packageIndex, PhpHwSensorVoltage, i, sensor->Voltage);
-    }
-}
-
-static VOID PhpHwCollectMemory(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context
-    )
-{
-    ULONG packageCount = PhHwGetPackageCount();
-    PPH_HW_PACKAGE_SENSOR package;
-
-    for (ULONG i = 0; i < packageCount; i++)
-    {
-        if (!(package = PhHwGetPackageSensor(i)))
-            break;
-
-        if (package->Valid & PH_HW_CAP_MEMORY_CLOCK)
-        {
-            PhpHwSensorSetValue(Context, i, PhpHwSensorMemoryClock, 0, package->MemoryClockMhz);
-            PhpHwSensorSetValue(Context, i, PhpHwSensorMemoryDataRate, 0, package->MemoryDataRate);
-
-            if (package->MemoryGear)
-                PhpHwSensorSetValue(Context, i, PhpHwSensorMemoryGear, 0, (FLOAT)package->MemoryGear);
-        }
-
-        if (package->Valid & PH_HW_CAP_MEMORY_BANDWIDTH)
-        {
-            PhpHwSensorSetValue(Context, i, PhpHwSensorMemoryReadBandwidth, 0, package->MemoryReadBandwidth);
-            PhpHwSensorSetValue(Context, i, PhpHwSensorMemoryWriteBandwidth, 0, package->MemoryWriteBandwidth);
-        }
-    }
-}
-
-static VOID PhpHwCollectChipset(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context
-    )
-{
-    FLOAT celsius;
-
-    if (PhHwGetChipsetTemperature(&celsius))
-        PhpHwSensorSetValue(Context, 0, PhpHwSensorChipsetTemperature, 0, celsius);
-}
-
-static PPHP_HW_NODE PhpHwFindSensor(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context,
-    _In_ ULONG ComponentIndex,
-    _In_ PHP_HW_SENSOR_KIND Kind,
-    _In_ ULONG Index
-    )
-{
-    PCPHP_HW_SENSOR_INFO info = &PhpHwSensorInfo[Kind];
-    PPHP_HW_NODE component;
-    PPHP_HW_NODE group;
-    ULONG position;
-
-    if (!(component = PhpHwFindNode(Context->ComponentList, ((ULONG64)info->Component << 56) | ComponentIndex, &position)))
-        return NULL;
-    if (!(group = component->Component.Groups[info->Group]))
-        return NULL;
-
-    return PhpHwFindNode(group->Children, ((ULONG64)Kind << 32) | Index, &position);
-}
-
-static BOOLEAN PhpHwSensorIsNamed(
-    _In_ PHP_HW_SENSOR_KIND Kind
-    )
-{
-    return PhpHwSensorInfo[Kind].Name == NULL;
-}
-
-// A named sensor node appears on its first current value.
-static VOID PhpHwCollectNamed(
-    _In_ PPHP_HW_SENSORS_CONTEXT Context
-    )
-{
-    static CONST PHP_HW_SENSOR_KIND kinds[] =
-    {
-        PhpHwSensorDimmTemperature,
-        PhpHwSensorUncoreClock,
-        PhpHwSensorTpmiPower,
-        PhpHwSensorSmuTemperature,
-        PhpHwSensorSmuPower,
-        PhpHwSensorSmuPowerLimit,
-        PhpHwSensorSmuCurrentLimit,
-        PhpHwSensorSmuTemperatureLimit,
-        PhpHwSensorSmuClock,
-        PhpHwSensorSmuClockLimit,
-        PhpHwSensorSmuMemoryClock,
-        PhpHwSensorSmuMemoryLoad,
-        PhpHwSensorSmuVoltage,
-        PhpHwSensorSmuCurrent,
-        PhpHwSensorSmuResidency,
-        PhpHwSensorFanSpeed,
-        PhpHwSensorDimmVoltage,
-        PhpHwSensorDimmCurrent,
-        PhpHwSensorDimmPower,
-        PhpHwSensorDimmPmicTemperature,
-        PhpHwSensorAcpiTemperature,
-        PhpHwSensorFanControl,
-        PhpHwSensorAcpiPower,
-        PhpHwSensorPlatformResidency,
-        PhpHwSensorSmuBandwidth,
-        PhpHwSensorPowerLimit,
-        PhpHwSensorPmtTemperature,
-        PhpHwSensorAcpiVoltage,
-        PhpHwSensorZoneTemperature,
-        PhpHwSensorZonePassiveLimit,
-        PhpHwSensorMeterPower,
-        PhpHwSensorOsClock,
-        PhpHwSensorOsPerformanceLimit,
-    };
-    ULONG count = PhHwGetNamedSensorCount();
-
-    C_ASSERT(RTL_NUMBER_OF(kinds) == PhHwNamedSensorMaximum);
-
-    for (ULONG i = 0; i < count; i++)
-    {
-        PH_HW_NAMED_SENSOR sensor;
-        PHP_HW_SENSOR_KIND kind;
-        PPHP_HW_NODE node;
-
-        if (!PhHwGetNamedSensor(i, &sensor) || sensor.Kind >= PhHwNamedSensorMaximum)
-            continue;
-
-        kind = kinds[sensor.Kind];
-        sensor.Name[RTL_NUMBER_OF(sensor.Name) - 1] = UNICODE_NULL;
-
-        if (sensor.Valid)
-        {
-            node = PhpHwGetSensor(Context, sensor.PackageIndex, kind, sensor.Id, sensor.Name);
-            PhpHwSensorUpdateValue(node, sensor.Value);
-        }
-        else
-        {
-            node = PhpHwFindSensor(Context, sensor.PackageIndex, kind, sensor.Id);
-        }
-
-        if (node)
-            node->Sensor.Listed = TRUE;
-    }
-}
-
-_Function_class_(PH_HW_SOURCE_SENSOR_CALLBACK)
-static VOID NTAPI PhpHwCollectSourceSensor(
-    _In_ PCPH_HW_SOURCE_SENSOR Sensor,
+// A source sensor node appears on its first listing, any other sensor node on its first current value.
+_Function_class_(PH_HW_SENSOR_ENUM_CALLBACK)
+static VOID NTAPI PhpHwCollectSensor(
+    _In_ PCPH_HW_SENSOR_ENTRY Entry,
     _In_opt_ PVOID Context
     )
 {
@@ -1003,46 +338,58 @@ static VOID NTAPI PhpHwCollectSourceSensor(
     PPHP_HW_NODE component;
     PPHP_HW_NODE group;
     PPHP_HW_NODE sensor;
-    ULONG64 key;
     ULONG position;
 
-    if (!context || Sensor->Type >= RTL_NUMBER_OF(PhpHwSourceTypeInfo))
+    if (!context || Entry->Group >= PhHwGroupMaximum)
         return;
 
-    component = PhpHwGetComponent(context, PhpHwComponentSource, Sensor->SourceId, Sensor->ComponentId, Sensor->ComponentName);
-    group = PhpHwGetGroup(context, component, PhpHwSourceTypeInfo[Sensor->Type].Group);
-    key = ((ULONG64)PhpHwSensorMaximum << 32) | Sensor->SensorId;
-    sensor = PhpHwFindNode(group->Children, key, &position);
+    if (Entry->Current || Entry->ComponentKind == PhHwComponentSource)
+    {
+        component = PhpHwGetComponent(context, Entry);
+        group = PhpHwGetGroup(context, component, Entry->Group);
+    }
+    else
+    {
+        if (!(component = PhpHwFindNode(context->ComponentList, Entry->ComponentKey, &position)))
+            return;
+        if (!(group = component->Component.Groups[Entry->Group]))
+            return;
+    }
+
+    sensor = PhpHwFindNode(group->Children, Entry->SensorKey, &position);
 
     if (!sensor)
     {
-        sensor = PhpHwInsertSensor(
-            context,
-            group,
-            position,
-            key,
-            PhReferenceObject(Sensor->SensorName),
-            PhpHwSensorMaximum,
-            PhpHwSourceTypeInfo[Sensor->Type].Unit,
-            0,
-            !!(Sensor->Flags & PH_HW_SENSOR_REPORT_HISTORY)
-            );
+        if (!Entry->Current && Entry->ComponentKind != PhHwComponentSource)
+            return;
+
+        sensor = PhpHwInsertSensor(context, group, position, Entry);
     }
 
     sensor->Sensor.Listed = TRUE;
 
-    if (Sensor->Current)
-        PhpHwSensorUpdateValue(sensor, Sensor->Value);
+    if (!Entry->Current)
+        return;
+
+    if (Entry->Unit == PhHwUnitThrottle)
+    {
+        sensor->Sensor.Current = TRUE;
+        sensor->Sensor.ThrottleFlags = Entry->ThrottleFlags;
+    }
+    else
+    {
+        PhpHwSensorUpdateValue(sensor, Entry->Value);
+    }
 }
 
 static VOID PhpHwSensorUpdateText(
     _In_ PPHP_HW_NODE Sensor
     )
 {
-    if (Sensor->Sensor.Unit == PhpHwUnitThrottle)
+    if (Sensor->Sensor.Unit == PhHwUnitThrottle)
     {
         if (Sensor->Sensor.Current)
-            PhMoveReference(&Sensor->Sensor.ValueText, PhpHwSensorFormatThrottle(Sensor->Sensor.ThrottleFlags));
+            PhMoveReference(&Sensor->Sensor.ValueText, PhHwFormatThrottleFlags(Sensor->Sensor.ThrottleFlags));
         else
             PhClearReference(&Sensor->Sensor.ValueText);
 
@@ -1050,15 +397,15 @@ static VOID PhpHwSensorUpdateText(
     }
 
     if (Sensor->Sensor.Current)
-        PhMoveReference(&Sensor->Sensor.ValueText, PhpHwSensorFormatValue(Sensor->Sensor.Unit, Sensor->Sensor.Value));
+        PhMoveReference(&Sensor->Sensor.ValueText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Value));
     else
         PhClearReference(&Sensor->Sensor.ValueText);
 
     // The gear is a mode, not a measurement; it has no range.
-    if (Sensor->Sensor.RangeValid && Sensor->Sensor.Unit != PhpHwUnitGear)
+    if (Sensor->Sensor.RangeValid && Sensor->Sensor.Unit != PhHwUnitGear)
     {
-        PhMoveReference(&Sensor->Sensor.MinimumText, PhpHwSensorFormatValue(Sensor->Sensor.Unit, Sensor->Sensor.Minimum));
-        PhMoveReference(&Sensor->Sensor.MaximumText, PhpHwSensorFormatValue(Sensor->Sensor.Unit, Sensor->Sensor.Maximum));
+        PhMoveReference(&Sensor->Sensor.MinimumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Minimum));
+        PhMoveReference(&Sensor->Sensor.MaximumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Maximum));
     }
     else
     {
@@ -1077,13 +424,13 @@ static VOID PhpHwSensorsRemoveEmptySourceComponents(
         PPHP_HW_NODE component = Context->ComponentList->Items[i];
         BOOLEAN empty = TRUE;
 
-        if (component->Component.Kind != PhpHwComponentSource)
+        if (component->Component.Kind != PhHwComponentSource)
         {
             i++;
             continue;
         }
 
-        for (ULONG group = 0; group < PhpHwGroupMaximum; group++)
+        for (ULONG group = 0; group < PhHwGroupMaximum; group++)
         {
             if (!component->Component.Groups[group])
                 continue;
@@ -1191,7 +538,7 @@ static VOID PhpHwSensorsRestructure(
 
         PhClearList(component->Children);
 
-        for (ULONG group = 0; group < PhpHwGroupMaximum; group++)
+        for (ULONG group = 0; group < PhHwGroupMaximum; group++)
         {
             if (component->Component.Groups[group] && component->Component.Groups[group]->Children->Count)
                 PhAddItemList(component->Children, component->Component.Groups[group]);
@@ -1210,7 +557,7 @@ static VOID PhpHwSensorsUpdate(
     _In_ PPHP_HW_SENSORS_CONTEXT Context
     )
 {
-    ULONG capabilities = PhHwGetCapabilities();
+    ULONG capabilities;
 
     for (ULONG i = 0; i < Context->SensorList->Count; i++)
     {
@@ -1220,23 +567,15 @@ static VOID PhpHwSensorsUpdate(
         sensor->Sensor.Listed = FALSE;
     }
 
-    if (capabilities)
-    {
-        PhpHwCollectCpu(Context);
-        PhpHwCollectMemory(Context);
-        PhpHwCollectChipset(Context);
-    }
-
-    PhpHwCollectNamed(Context);
-
-    PhHwEnumerateSourceSensors(PhpHwCollectSourceSensor, Context);
+    PhHwEnumerateSensors(PhpHwCollectSensor, Context);
+    capabilities = PhHwGetCapabilities();
 
     for (ULONG i = 0; i < Context->SensorList->Count; )
     {
         PPHP_HW_NODE sensor = Context->SensorList->Items[i];
         BOOLEAN available;
 
-        if (sensor->Sensor.Kind == PhpHwSensorMaximum || PhpHwSensorIsNamed(sensor->Sensor.Kind))
+        if (!sensor->Sensor.Capability)
             available = sensor->Sensor.Listed;
         else
             available = !!(capabilities & sensor->Sensor.Capability);
@@ -1368,26 +707,26 @@ static VOID PhpHwSensorsNeedGraphContext(
 }
 
 static COLORREF PhpHwSensorGraphColor(
-    _In_ PHP_HW_SENSOR_UNIT Unit
+    _In_ PH_HW_SENSOR_UNIT Unit
     )
 {
     switch (Unit)
     {
-    case PhpHwUnitTemperature:
+    case PhHwUnitTemperature:
         return PhCsColorTemperature;
-    case PhpHwUnitClock:
+    case PhHwUnitClock:
         return PhCsColorClock;
-    case PhpHwUnitMultiplier:
+    case PhHwUnitMultiplier:
         return PhCsColorMultiplier;
-    case PhpHwUnitVoltage:
+    case PhHwUnitVoltage:
         return PhCsColorVoltage;
-    case PhpHwUnitCurrent:
+    case PhHwUnitCurrent:
         return PhCsColorCurrent;
-    case PhpHwUnitFan:
+    case PhHwUnitFan:
         return PhCsColorFanRpm;
-    case PhpHwUnitBandwidth:
+    case PhHwUnitBandwidth:
         return PhCsColorBandwidth;
-    case PhpHwUnitPercent:
+    case PhHwUnitPercent:
         return PhCsColorPercentage;
     }
 
@@ -1396,16 +735,16 @@ static COLORREF PhpHwSensorGraphColor(
 
 // The smallest full scale of a graph scaled to its maximum, so that a near-zero history stays near the bottom.
 static FLOAT PhpHwSensorGraphMinimumScale(
-    _In_ PHP_HW_SENSOR_UNIT Unit
+    _In_ PH_HW_SENSOR_UNIT Unit
     )
 {
     switch (Unit)
     {
-    case PhpHwUnitClock:
+    case PhHwUnitClock:
         return 100.0f;
-    case PhpHwUnitMultiplier:
-    case PhpHwUnitVoltage:
-    case PhpHwUnitCurrent:
+    case PhHwUnitMultiplier:
+    case PhHwUnitVoltage:
+    case PhHwUnitCurrent:
         return 1.0f;
     }
 
@@ -1447,24 +786,16 @@ static VOID PhpHwSensorsDrawHistory(
 
         PhCopyCircularBuffer_FLOAT(&node->Sensor.HistoryBuffer, node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount);
 
-        if (
-            node->Sensor.Unit == PhpHwUnitTemperature &&
-            node->Sensor.Kind != PhpHwSensorMaximum &&
-            node->Sensor.Kind != PhpHwSensorChipsetTemperature &&
-            node->Sensor.Kind != PhpHwSensorDimmTemperature &&
-            node->Sensor.Kind != PhpHwSensorDimmPmicTemperature &&
-            node->Sensor.Kind != PhpHwSensorAcpiTemperature &&
-            node->Sensor.Kind != PhpHwSensorZoneTemperature
-            )
+        if (node->Sensor.ScalesToCpuLimit)
         {
             scale = PhHwGetCpuTemperatureLimit();
         }
-        else if (node->Sensor.Unit == PhpHwUnitTemperature)
+        else if (node->Sensor.Unit == PhHwUnitTemperature)
         {
             // A source, chipset, zone or DIMM temperature is not bounded by the CPU TjMax.
             scale = max(PhMaxMemorySingles(node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount), 100.0f);
         }
-        else if (node->Sensor.Unit == PhpHwUnitPercent)
+        else if (node->Sensor.Unit == PhHwUnitPercent)
         {
             scale = 100.0f;
         }
@@ -1828,7 +1159,7 @@ static VOID PhpHwSensorsDeleteTree(
     {
         PPHP_HW_NODE component = Context->ComponentList->Items[i];
 
-        for (ULONG group = 0; group < PhpHwGroupMaximum; group++)
+        for (ULONG group = 0; group < PhHwGroupMaximum; group++)
         {
             if (component->Component.Groups[group])
                 PhpHwDestroyNode(component->Component.Groups[group]);
@@ -1877,7 +1208,6 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
             context->ComponentList = PhCreateList(2);
             context->RootList = PhCreateList(2);
             context->SensorList = PhCreateList(64);
-            context->CpuBrandString = PhSipGetCpuBrandString();
             context->ProcessorCount = PhSystemProcessorInformation.NumberOfProcessors;
 
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1935,7 +1265,6 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhpHwSensorsDeleteTree(context);
-            PhClearReference(&context->CpuBrandString);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
         }

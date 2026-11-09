@@ -119,6 +119,9 @@ EXPORTS
     PhHandleListViewNotifyBehaviors
     PhHandleListViewNotifyForCopy
     PhHandleTreeNewColumnMenu
+    PhHwCounterSensorsPresent
+    PhHwCreateReport
+    PhHwEnumerateSensors
     PhHwFormatTemperature
     PhHwGetCapabilities
     PhHwGetChipsetTemperature
@@ -126,8 +129,10 @@ EXPORTS
     PhHwGetCpuTemperatureLimit
     PhHwGetPackageCount
     PhHwGetPackageSensor
+    PhHwGetSensorsUnavailableReason
     PhHwSensorsAvailable
     PhHwSensorsEnabled
+    PhHwSourceSensorsPresent
     PhImageListExtractIcon
     PhImageListFlushCache
     PhInitializeTreeNewColumnMenu

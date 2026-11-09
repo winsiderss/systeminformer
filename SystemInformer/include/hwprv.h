@@ -198,10 +198,6 @@ ULONG PhHwGetNamedSensorCount(
     VOID
     );
 
-BOOLEAN PhHwCounterSensorsPresent(
-    VOID
-    );
-
 _Success_(return)
 BOOLEAN PhHwGetNamedSensor(
     _In_ ULONG Index,
@@ -243,10 +239,6 @@ VOID PhHwEnumerateSourceSensors(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PhHwSourceSensorsPresent(
-    VOID
-    );
-
 VOID PhHwSweepSensorSources(
     VOID
     );
@@ -263,17 +255,149 @@ VOID PhHwWriteSourceDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-_Ret_maybenull_
-PCPH_STRINGREF PhHwGetSensorsUnavailableReason(
-    VOID
-    );
-
 BOOLEAN PhHwSensorsProbed(
     VOID
     );
 
-PPH_STRING PhHwCreateReport(
+// begin_phapppub
+typedef enum _PH_HW_COMPONENT_KIND
+{
+    PhHwComponentCpu, // one per package
+    PhHwComponentMemory, // one per package
+    PhHwComponentChipset,
+    PhHwComponentSystem,
+    PhHwComponentWindows, // Windows performance counters
+    PhHwComponentSource, // published by a hardware sensor source
+    PhHwComponentMaximum
+} PH_HW_COMPONENT_KIND;
+
+typedef enum _PH_HW_SENSOR_GROUP
+{
+    PhHwGroupTemperatures,
+    PhHwGroupPowers,
+    PhHwGroupLimits,
+    PhHwGroupClocks,
+    PhHwGroupBandwidth,
+    PhHwGroupActiveClocks,
+    PhHwGroupMultipliers,
+    PhHwGroupVoltages,
+    PhHwGroupCurrents,
+    PhHwGroupResidency,
+    PhHwGroupFans,
+    PhHwGroupControls,
+    PhHwGroupThrottling,
+    PhHwGroupMaximum
+} PH_HW_SENSOR_GROUP;
+
+typedef enum _PH_HW_SENSOR_UNIT
+{
+    PhHwUnitTemperature, // degrees Celsius
+    PhHwUnitPower, // watts
+    PhHwUnitClock, // MHz
+    PhHwUnitDataRate, // MT/s
+    PhHwUnitMultiplier,
+    PhHwUnitVoltage, // volts
+    PhHwUnitThrottle, // ThrottleFlags
+    PhHwUnitBandwidth, // MB/s (10^6 bytes)
+    PhHwUnitGear,
+    PhHwUnitCurrent, // amperes
+    PhHwUnitFan, // RPM
+    PhHwUnitPercent,
+    PhHwUnitMaximum
+} PH_HW_SENSOR_UNIT;
+
+// Valid only during the callback. (ComponentKey, Group, SensorKey) is unique per enumeration.
+typedef struct _PH_HW_SENSOR_ENTRY
+{
+    PH_HW_COMPONENT_KIND ComponentKind;
+    ULONG ComponentIndex; // package index; the source's ComponentId for PhHwComponentSource; 0 otherwise
+    ULONG SourceId; // PhHwComponentSource only, 0 otherwise
+    ULONG64 ComponentKey; // identifies and orders components for the session
+    PPH_STRING ComponentName;
+    PH_HW_SENSOR_GROUP Group;
+    PH_HW_SENSOR_UNIT Unit;
+    ULONG64 SensorKey; // identifies and orders sensors within (component, group) for the session
+    PPH_STRING SensorName;
+    ULONG Capability; // PH_HW_CAP_* of a core sensor, 0 for named and source sensors
+    BOOLEAN Current; // Value is from the last update
+    BOOLEAN History; // the sensors window keeps a graph
+    FLOAT Value; // in the unit of Unit; temperatures in Celsius
+    ULONG ThrottleFlags; // PH_HW_THROTTLE_*, PhHwUnitThrottle only
+} PH_HW_SENSOR_ENTRY, *PPH_HW_SENSOR_ENTRY;
+typedef const PH_HW_SENSOR_ENTRY* PCPH_HW_SENSOR_ENTRY;
+
+_Function_class_(PH_HW_SENSOR_ENUM_CALLBACK)
+typedef VOID (NTAPI PH_HW_SENSOR_ENUM_CALLBACK)(
+    _In_ PCPH_HW_SENSOR_ENTRY Entry,
+    _In_opt_ PVOID Context
+    );
+typedef PH_HW_SENSOR_ENUM_CALLBACK *PPH_HW_SENSOR_ENUM_CALLBACK;
+
+// Any thread. The callback may run under a provider lock: it must not call PhHwEnumerateSensors,
+// PhHwSourceSensorsPresent, PhHwGetSensorsUnavailableReason or PhHwCreateReport, or register or
+// unregister a sensor source.
+PHAPPAPI
+VOID
+NTAPI
+PhHwEnumerateSensors(
+    _In_ PPH_HW_SENSOR_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+_Ret_maybenull_
+PCPH_STRINGREF
+NTAPI
+PhHwGetSensorsUnavailableReason(
+    VOID
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhHwCounterSensorsPresent(
+    VOID
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhHwSourceSensorsPresent(
+    VOID
+    );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhHwCreateReport(
     _In_opt_ PCPH_STRINGREF Sensors
+    );
+// end_phapppub
+
+BOOLEAN PhHwSensorScalesToCpuLimit(
+    _In_ PCPH_HW_SENSOR_ENTRY Entry
+    );
+
+PCWSTR PhHwGetSensorGroupName(
+    _In_ PH_HW_SENSOR_GROUP Group
+    );
+
+BOOLEAN PhHwIsSensorGroupPerProcessor(
+    _In_ PH_HW_SENSOR_GROUP Group
+    );
+
+_Ret_maybenull_
+PPH_STRING PhHwFormatSensorValue(
+    _In_ PH_HW_SENSOR_UNIT Unit,
+    _In_ FLOAT Value
+    );
+
+PPH_STRING PhHwFormatThrottleFlags(
+    _In_ ULONG ThrottleFlags
+    );
+
+PPH_STRING PhHwFormatSensorsText(
+    VOID
     );
 
 // begin_phapppub

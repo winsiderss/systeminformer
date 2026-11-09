@@ -26,7 +26,7 @@
  * \return The reason, or NULL when sensors are available.
  */
 _Ret_maybenull_
-PCPH_STRINGREF PhHwGetSensorsUnavailableReason(
+PCPH_STRINGREF NTAPI PhHwGetSensorsUnavailableReason(
     VOID
     )
 {
@@ -350,15 +350,16 @@ static BOOLEAN NTAPI PhpHwReportSmbiosCallback(
 /**
  * Creates the hardware report.
  *
- * \param Sensors The sensors window tree as text, or NULL when it shows none.
+ * \param Sensors The sensors as text, or NULL to format the current sensors.
  * \return The report.
  */
-PPH_STRING PhHwCreateReport(
+PPH_STRING NTAPI PhHwCreateReport(
     _In_opt_ PCPH_STRINGREF Sensors
     )
 {
     PH_STRING_BUILDER builder;
     PPH_STRING version;
+    PPH_STRING sensorsText = NULL;
     static CONST PH_STRINGREF available = PH_STRINGREF_INIT(L"Hardware sensors are available.");
     PCPH_STRINGREF reason;
 
@@ -392,7 +393,13 @@ PPH_STRING PhHwCreateReport(
 
     PhpHwReportSection(&builder, L"Sensors");
 
-    if (Sensors && Sensors->Length)
+    if (!Sensors)
+    {
+        sensorsText = PhHwFormatSensorsText();
+        Sensors = &sensorsText->sr;
+    }
+
+    if (Sensors->Length)
         PhAppendStringBuilder(&builder, Sensors);
     else
         PhAppendStringBuilder2(&builder, L"None\n");
@@ -402,6 +409,8 @@ PPH_STRING PhHwCreateReport(
 
     PhpHwReportSection(&builder, L"SMBIOS");
     PhEnumSMBIOS(PhpHwReportSmbiosCallback, &builder);
+
+    PhClearReference(&sensorsText);
 
     return PhFinalStringBuilderString(&builder);
 }

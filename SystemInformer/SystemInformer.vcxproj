@@ -256,6 +256,7 @@
         <ClCompile Include="hndlstat.c" />
         <ClCompile Include="hwprv.c" />
         <ClCompile Include="hwreport.c" />
+        <ClCompile Include="hwsensor.c" />
         <ClCompile Include="hwsensorwnd.c" />
         <ClCompile Include="hwsmu.c" />
         <ClCompile Include="infodlg.c" />

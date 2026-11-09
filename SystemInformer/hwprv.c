@@ -8976,7 +8976,7 @@ static BOOLEAN PhpHwCounterZoneEverSeen(
  *
  * \return TRUE when the counters publish a sensor.
  */
-BOOLEAN PhHwCounterSensorsPresent(
+BOOLEAN NTAPI PhHwCounterSensorsPresent(
     VOID
     )
 {
@@ -12715,7 +12715,7 @@ VOID PhHwEnumerateSourceSensors(
 /**
  * Determines whether a source has reported a sensor.
  */
-BOOLEAN PhHwSourceSensorsPresent(
+BOOLEAN NTAPI PhHwSourceSensorsPresent(
     VOID
     )
 {
