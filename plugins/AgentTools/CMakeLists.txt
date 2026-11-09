@@ -38,6 +38,7 @@ set(SOURCES
     "toolhndl.c"
     "toolimg.c"
     "toolhist.c"
+    "toolhw.c"
     "toolio.c"
     "toolmod.c"
     "toolmtgn.c"

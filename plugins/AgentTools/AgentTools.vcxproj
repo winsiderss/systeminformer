@@ -96,6 +96,7 @@
     <ClCompile Include="toolhndl.c" />
     <ClCompile Include="toolimg.c" />
     <ClCompile Include="toolhist.c" />
+    <ClCompile Include="toolhw.c" />
     <ClCompile Include="toolio.c" />
     <ClCompile Include="toolmod.c" />
     <ClCompile Include="toolmtgn.c" />

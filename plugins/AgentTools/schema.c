@@ -396,6 +396,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the processor layout", L"Allow reading the processor layout", L"get_cpu_info"
     },
     {
+        AtActionGetHardwareSensors, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensors"),
+        L"read the hardware sensors", L"Allow reading hardware sensors", L"get_hardware_sensors"
+    },
+    {
+        AtActionGetHardwareReport, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
+        L"create the hardware report", L"Allow creating the hardware report", L"get_hardware_report"
+    },
+    {
         AtActionListLogonSessions, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_logon_sessions"),
         L"list who is logged on", L"List the logon sessions", L"list_logon_sessions"
     },
@@ -4249,6 +4257,55 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"architecture\",\"logical_processor_count\",\"page_size\"]},"
         AT_ANNOTATIONS("Get processor information", AT_READ_HINTS) "}"
+    },
+    {
+        "get_hardware_sensors", L"Get hardware sensors", AtTierRead, AtActionGetHardwareSensors,
+        SETTING_NAME_TOOL_ACCESS(L"get_hardware_sensors"), SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensors"),
+        "{\"name\":\"get_hardware_sensors\",\"title\":\"Get hardware sensors\","
+        "\"description\":\"The live readings of the hardware sensors, exactly as System Informer's Hardware "
+        "sensors window shows them: CPU and memory temperatures, power, clocks, voltages, currents, fans and "
+        "limits, plus the readings Windows itself publishes and those that plugins such as HardwareDevices "
+        "add for the motherboard. Values are SI units and temperatures are always Celsius, whatever the "
+        "display setting. When clocks look low, the throttling group says why: throttle names each reason the "
+        "processor is being held back, and an empty list means it is not. Per-processor groups (clocks, "
+        "active_clocks, multipliers, voltages) are large on big machines, so filter by group. get_cpu_info "
+        "says how the processors are laid out; this tool says what they are doing. Most sensors need the "
+        "hardware sensors option and the kernel driver with full access; collector says which of those are "
+        "missing in unavailable_reason, and the Windows rows can still be present without them. Windows rows "
+        "take a few seconds to appear after System Informer starts. "
+        AT_PAGE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"component\":{\"type\":\"string\",\"enum\":[\"cpu\",\"memory\",\"chipset\",\"system\",\"windows\",\"source\"],\"description\":\"Only rows of this kind of component\"},"
+        "\"group\":{\"type\":\"string\",\"enum\":[\"temperatures\",\"powers\",\"limits\",\"clocks\",\"bandwidth\",\"active_clocks\",\"multipliers\",\"voltages\",\"currents\",\"residency\",\"fans\",\"controls\",\"throttling\"],\"description\":\"Only rows of this group\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Only rows whose sensor or component name contains this, case-insensitive\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sensors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"id\":{\"type\":\"string\",\"description\":\"Unique per call and stable while this System Informer runs; not stable across restarts\"},"
+        "\"component\":{\"type\":\"object\",\"properties\":{"
+        "\"kind\":{\"type\":\"string\",\"description\":\"cpu, memory, chipset, system, windows or source\"},"
+        "\"index\":{\"type\":\"integer\",\"description\":\"Processor package for cpu and memory; the source's own component number for source\"},"
+        "\"source_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Which registered source published it; null unless kind is source\"},"
+        "\"name\":{\"type\":\"string\"}"
+        "},\"required\":[\"kind\",\"index\",\"source_id\",\"name\"]},"
+        "\"group\":{\"type\":\"string\"},"
+        "\"name\":{\"type\":\"string\"},"
+        "\"unit\":{\"type\":\"string\",\"description\":\"celsius, watts, mhz, mt_per_s, multiplier, volts, throttle, mb_per_s, gear, amperes, rpm or percent\"},"
+        "\"value\":{\"type\":[\"number\",\"null\"],\"description\":\"The last reading; null when the sensor did not report in the last update, and always null for unit throttle\"},"
+        "\"throttle\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"Unit throttle only: thermal, prochot, critical, power_limit, pl1, pl2, vr_thermal, vr_current, electrical, max_turbo, turbo_attenuation, running_average_thermal, residency, graphics, autonomous; empty when not throttling\"}"
+        "},\"required\":[\"id\",\"component\",\"group\",\"name\",\"unit\",\"value\",\"throttle\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"collector\":{\"type\":\"object\",\"description\":\"Why the rows are what they are\",\"properties\":{"
+        "\"sensors_enabled\":{\"type\":\"boolean\",\"description\":\"The hardware sensors option\"},"
+        "\"kernel_sensors_available\":{\"type\":\"boolean\",\"description\":\"The driver-backed sensors are running\"},"
+        "\"windows_counters_present\":{\"type\":\"boolean\",\"description\":\"Windows has published sensor readings\"},"
+        "\"source_sensors_present\":{\"type\":\"boolean\",\"description\":\"A plugin has published sensor readings\"},"
+        "\"unavailable_reason\":{\"type\":[\"string\",\"null\"],\"description\":\"Why the kernel and plugin sensors are missing; null when either is present. Windows rows can be present regardless\"}"
+        "},\"required\":[\"sensors_enabled\",\"kernel_sensors_available\",\"windows_counters_present\",\"source_sensors_present\",\"unavailable_reason\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"sensors\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
+        AT_ANNOTATIONS("Get hardware sensors", AT_READ_HINTS) "}"
     },
     {
         "list_logon_sessions", L"List logon sessions", AtTierSensitiveRead, AtActionListLogonSessions,

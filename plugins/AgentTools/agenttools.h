@@ -170,6 +170,8 @@ typedef enum _AT_ACTION
     AtActionGetMemoryDetails,
     AtActionGetSecurityPosture,
     AtActionGetCpuInfo,
+    AtActionGetHardwareSensors,
+    AtActionGetHardwareReport,
     AtActionListLogonSessions,
     AtActionListTerminalSessions,
     AtActionLookupAccount,
@@ -1191,6 +1193,15 @@ VOID AtNetworkInvokeTool(
     );
 
 VOID AtSystemInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+// toolhw.c
+
+VOID AtHardwareInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
