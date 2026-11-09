@@ -212,6 +212,11 @@ VOID AtpGetSystemHistory(
     AT_HISTORY_STATS commit;
     AT_HISTORY_STATS physical;
     PAT_HISTORY_STATS perCpu = NULL;
+    AT_HISTORY_STATS temperature;
+    AT_HISTORY_STATS power;
+    PPH_CIRCULAR_BUFFER_FLOAT temperatureHistory = NULL;
+    PPH_CIRCULAR_BUFFER_FLOAT powerHistory = NULL;
+    ULONG hardwareCount = 0;
     BOOLEAN includeSamples;
     BOOLEAN includePerCpu;
     ULONG processorCount;
@@ -258,6 +263,12 @@ VOID AtpGetSystemHistory(
     memset(&ioOther, 0, sizeof(AT_HISTORY_STATS));
     memset(&commit, 0, sizeof(AT_HISTORY_STATS));
     memset(&physical, 0, sizeof(AT_HISTORY_STATS));
+    memset(&temperature, 0, sizeof(AT_HISTORY_STATS));
+    memset(&power, 0, sizeof(AT_HISTORY_STATS));
+
+    // Sampled with the system histories, so index i is the same provider run; 0 is no reading.
+    if (PhHwGetCpuHistory(&temperatureHistory, &powerHistory))
+        hardwareCount = min(temperatureHistory->Count, powerHistory->Count);
 
     AtInitializeRows(&rows, Call->Arguments);
 
@@ -310,9 +321,13 @@ VOID AtpGetSystemHistory(
         ULONG64 physicalBytes;
         ULONG maxCpuPid;
         ULONG maxIoPid;
+        FLOAT cpuTemperature;
+        FLOAT cpuPower;
         LARGE_INTEGER time;
 
         kernel = PhGetItemCircularBuffer_FLOAT(statistics.CpuKernelHistory, i);
+        cpuTemperature = i < hardwareCount ? PhGetItemCircularBuffer_FLOAT(temperatureHistory, i) : 0.0f;
+        cpuPower = i < hardwareCount ? PhGetItemCircularBuffer_FLOAT(powerHistory, i) : 0.0f;
         user = PhGetItemCircularBuffer_FLOAT(statistics.CpuUserHistory, i);
         read = PhGetItemCircularBuffer_ULONG64(statistics.IoReadHistory, i);
         write = PhGetItemCircularBuffer_ULONG64(statistics.IoWriteHistory, i);
@@ -333,6 +348,11 @@ VOID AtpGetSystemHistory(
         AtpAccumulate(&ioOther, (DOUBLE)other);
         AtpAccumulate(&commit, (DOUBLE)commitBytes);
         AtpAccumulate(&physical, (DOUBLE)physicalBytes);
+
+        if (cpuTemperature != 0.0f)
+            AtpAccumulate(&temperature, cpuTemperature);
+        if (cpuPower != 0.0f)
+            AtpAccumulate(&power, cpuPower);
 
         if (includeSamples)
         {
@@ -360,6 +380,16 @@ VOID AtpGetSystemHistory(
             else
                 AtJsonAddNull(row, "max_io_pid");
 
+            if (cpuTemperature != 0.0f)
+                PhAddJsonObjectDouble(row, "cpu_temperature_celsius", cpuTemperature);
+            else
+                AtJsonAddNull(row, "cpu_temperature_celsius");
+
+            if (cpuPower != 0.0f)
+                PhAddJsonObjectDouble(row, "cpu_package_power_watts", cpuPower);
+            else
+                AtJsonAddNull(row, "cpu_package_power_watts");
+
             AtAddRow(&rows, row);
         }
     }
@@ -378,6 +408,17 @@ VOID AtpGetSystemHistory(
     AtpAddStats(structured, "io_other_bytes", &ioOther, TRUE);
     AtpAddStats(structured, "commit_bytes", &commit, FALSE);
     AtpAddStats(structured, "physical_in_use_bytes", &physical, FALSE);
+
+    // Only samples with a reading count; no reading in the window is null, not zero.
+    if (temperature.Count)
+        AtpAddStats(structured, "cpu_temperature_celsius", &temperature, FALSE);
+    else
+        AtJsonAddNull(structured, "cpu_temperature_celsius");
+
+    if (power.Count)
+        AtpAddStats(structured, "cpu_package_power_watts", &power, FALSE);
+    else
+        AtJsonAddNull(structured, "cpu_package_power_watts");
 
     if (perCpu)
     {
