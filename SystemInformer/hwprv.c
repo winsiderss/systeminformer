@@ -12535,6 +12535,28 @@ VOID PhHwProviderUpdateHistory(
 }
 
 /**
+ * Retrieves the CPU temperature and power histories, which are sampled with the system histories.
+ *
+ * \param TemperatureHistory Receives the hottest package temperature at each sample, 0 without a reading.
+ * \param PowerHistory Receives the total package power at each sample, 0 without a reading.
+ * \return TRUE once the histories exist, otherwise FALSE.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhHwGetCpuHistory(
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* TemperatureHistory,
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* PowerHistory
+    )
+{
+    if (!PhpHwHistoryInitialized)
+        return FALSE;
+
+    *TemperatureHistory = &PhHwCpuTemperatureHistory;
+    *PowerHistory = &PhHwCpuPowerHistory;
+
+    return TRUE;
+}
+
+/**
  * Registers a hardware sensor source.
  *
  * \param Plugin The plugin that owns the source.

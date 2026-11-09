@@ -125,6 +125,7 @@ EXPORTS
     PhHwFormatTemperature
     PhHwGetCapabilities
     PhHwGetChipsetTemperature
+    PhHwGetCpuHistory
     PhHwGetCpuSensor
     PhHwGetCpuTemperatureLimit
     PhHwGetPackageCount

@@ -372,6 +372,17 @@ NTAPI
 PhHwCreateReport(
     _In_opt_ PCPH_STRINGREF Sensors
     );
+
+// The hottest package temperature (Celsius) and the total package power (watts) at each system
+// history sample, 0 where there was no reading. The buffers live as long as the process.
+PHAPPAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhHwGetCpuHistory(
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* TemperatureHistory,
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* PowerHistory
+    );
 // end_phapppub
 
 BOOLEAN PhHwSensorScalesToCpuLimit(
