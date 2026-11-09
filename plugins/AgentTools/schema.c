@@ -400,7 +400,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the hardware sensors", L"Allow reading hardware sensors", L"get_hardware_sensors"
     },
     {
-        AtActionGetHardwareReport, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
+        AtActionGetHardwareReport, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
         L"create the hardware report", L"Allow creating the hardware report", L"get_hardware_report"
     },
     {
@@ -4306,6 +4306,24 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sensors\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
         AT_ANNOTATIONS("Get hardware sensors", AT_READ_HINTS) "}"
+    },
+    {
+        "get_hardware_report", L"Get hardware report", AtTierSensitiveRead, AtActionGetHardwareReport,
+        SETTING_NAME_TOOL_ACCESS(L"get_hardware_report"), SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
+        "{\"name\":\"get_hardware_report\",\"title\":\"Get hardware report\","
+        "\"description\":\"The hardware report System Informer saves from its Hardware sensors window: the text "
+        "a person attaches to an issue when sensors are missing or wrong. It says whether sensors are available "
+        "and why not, what the sensor provider and each plugin source found and how they are configured, the "
+        "processor identification, the current sensor readings, the devices, and the SMBIOS tables, serial "
+        "numbers included. Use get_hardware_sensors for the readings as data; use this when the question is why "
+        "a sensor is missing or reads wrong, or when a report is wanted for a bug. "
+        AT_SENSITIVE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"report\":{\"type\":\"string\",\"description\":\"The report as plain text, in sections: Status, Provider, Sources, Processor, Sensors, Devices, SMBIOS\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"report\"]},"
+        AT_ANNOTATIONS("Get hardware report", AT_READ_HINTS) "}"
     },
     {
         "list_logon_sessions", L"List logon sessions", AtTierSensitiveRead, AtActionListLogonSessions,

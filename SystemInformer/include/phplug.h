@@ -1080,8 +1080,8 @@ typedef PH_HW_SENSOR_SOURCE_CALLBACK *PPH_HW_SENSOR_SOURCE_CALLBACK;
 /**
  * \brief Appends the state of a source to the hardware report, as plain text lines.
  *
- * \details Called on the main thread while a report is created, never concurrently with the source
- * callback. The same restrictions apply.
+ * \details Called while a report is created, never concurrently with the source callback. The same
+ * restrictions apply.
  */
 _Function_class_(PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK)
 typedef VOID (NTAPI PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK)(

@@ -367,6 +367,27 @@ VOID AtpGetHardwareSensors(
     PhClearReference(&nameContains);
 }
 
+VOID AtpGetHardwareReport(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING report;
+    PVOID structured;
+
+    UNREFERENCED_PARAMETER(Call);
+
+    report = PhHwCreateReport(NULL);
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "report", report);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhDereferenceObject(report);
+}
+
 VOID AtHardwareInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -380,6 +401,9 @@ VOID AtHardwareInvokeTool(
     {
     case AtActionGetHardwareSensors:
         AtpGetHardwareSensors(Call, Result);
+        break;
+    case AtActionGetHardwareReport:
+        AtpGetHardwareReport(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
