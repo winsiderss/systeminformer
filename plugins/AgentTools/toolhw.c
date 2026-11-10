@@ -567,7 +567,8 @@ static PVOID AtpHwCreateHistoryRow(
     _In_ ULONG WindowSamples,
     _In_ BOOLEAN IncludeSamples,
     _Out_writes_(WindowSamples) PFLOAT Values,
-    _Out_writes_(WindowSamples) PLARGE_INTEGER Times
+    _Out_writes_(WindowSamples) PLARGE_INTEGER Times,
+    _Out_ PULONG SampleCount
     )
 {
     BOOLEAN throttle = Sensor->Unit == PhHwUnitThrottle;
@@ -583,6 +584,8 @@ static PVOID AtpHwCreateHistoryRow(
 
     if (!PhHwCopySensorHistory(Sensor->ComponentKey, Sensor->Group, Sensor->SensorKey, WindowSamples, Values, Times, &count, NULL))
         count = 0;
+
+    *SampleCount = count;
 
     for (ULONG i = 0; i < count; i++)
     {
@@ -704,6 +707,7 @@ VOID AtpGetHardwareSensorHistory(
     ULONG interval;
     ULONG slots;
     ULONG windowSamples;
+    ULONG coveredSamples = 0;
     BOOLEAN includeSamples;
     PVOID ids;
     PPH_LIST sensors;
@@ -848,11 +852,16 @@ VOID AtpGetHardwareSensorHistory(
     AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < selected->Count; i++)
-        AtAddRow(&rows, AtpHwCreateHistoryRow(selected->Items[i], windowSamples, includeSamples, values, times));
+    {
+        ULONG count;
+
+        AtAddRow(&rows, AtpHwCreateHistoryRow(selected->Items[i], windowSamples, includeSamples, values, times, &count));
+        coveredSamples = max(coveredSamples, count);
+    }
 
     PhAddJsonObjectUInt64(structured, "update_interval_ms", interval);
     PhAddJsonObjectUInt64(structured, "history_slots", slots);
-    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)windowSamples * interval / 1000);
+    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)coveredSamples * interval / 1000);
     AtAddRows(structured, "sensors", &rows);
     AtpHwAddCollector(structured);
     AtAddSnapshot(structured);
