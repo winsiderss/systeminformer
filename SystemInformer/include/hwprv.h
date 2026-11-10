@@ -383,6 +383,55 @@ PhHwGetCpuHistory(
     _Out_ PPH_CIRCULAR_BUFFER_FLOAT* TemperatureHistory,
     _Out_ PPH_CIRCULAR_BUFFER_FLOAT* PowerHistory
     );
+
+typedef struct _PH_HW_SENSOR_HISTORY_INFO
+{
+    PH_HW_COMPONENT_KIND ComponentKind;
+    ULONG ComponentIndex;
+    ULONG SourceId;
+    PH_HW_SENSOR_UNIT Unit;
+    PPH_STRING ComponentName; // referenced, may be NULL; the caller dereferences
+    PPH_STRING SensorName; // referenced, may be NULL; the caller dereferences
+    BOOLEAN Listed; // listed in the last run
+} PH_HW_SENSOR_HISTORY_INFO, *PPH_HW_SENSOR_HISTORY_INFO;
+
+// Copies a sensor's history, most recent first: Values[i] (NaN where there was no reading) and
+// Times[i] (the system time of that run) are the same run. A throttle sensor's values are its
+// PH_HW_THROTTLE_* flags, which a FLOAT holds exactly.
+PHAPPAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhHwCopySensorHistory(
+    _In_ ULONG64 ComponentKey,
+    _In_ PH_HW_SENSOR_GROUP Group,
+    _In_ ULONG64 SensorKey,
+    _In_ ULONG MaximumCount,
+    _Out_writes_to_(MaximumCount, *Count) PFLOAT Values,
+    _Out_writes_to_opt_(MaximumCount, *Count) PLARGE_INTEGER Times,
+    _Out_ PULONG Count,
+    _Out_opt_ PPH_HW_SENSOR_HISTORY_INFO Info
+    );
+
+// Called under the history lock (shared): must not call PhHwCopySensorHistory or
+// PhHwEnumerateSensorHistories.
+_Function_class_(PH_HW_SENSOR_HISTORY_ENUM_CALLBACK)
+typedef VOID (NTAPI PH_HW_SENSOR_HISTORY_ENUM_CALLBACK)(
+    _In_ ULONG64 ComponentKey,
+    _In_ PH_HW_SENSOR_GROUP Group,
+    _In_ ULONG64 SensorKey,
+    _In_ BOOLEAN Listed,
+    _In_opt_ PVOID Context
+    );
+typedef PH_HW_SENSOR_HISTORY_ENUM_CALLBACK *PPH_HW_SENSOR_HISTORY_ENUM_CALLBACK;
+
+PHAPPAPI
+VOID
+NTAPI
+PhHwEnumerateSensorHistories(
+    _In_ PPH_HW_SENSOR_HISTORY_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
 // end_phapppub
 
 BOOLEAN PhHwSensorScalesToCpuLimit(
@@ -409,6 +458,22 @@ PPH_STRING PhHwFormatThrottleFlags(
 
 PPH_STRING PhHwFormatSensorsText(
     VOID
+    );
+
+#define PHP_HW_ENUM_NO_NAMES 0x1 // entry names are NULL
+
+VOID PhpHwEnumerateSensorsEx(
+    _In_ PPH_HW_SENSOR_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ ULONG Flags
+    );
+
+VOID PhpHwHistoryAppend(
+    VOID
+    );
+
+VOID PhpHwHistoryWriteDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
     );
 
 // begin_phapppub

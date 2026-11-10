@@ -12532,6 +12532,8 @@ VOID PhHwProviderUpdateHistory(
         PhAddItemCircularBuffer_FLOAT(&sensor->TemperatureHistory, (sensor->Valid & PH_HW_CAP_PACKAGE_TEMP) ? sensor->Temperature : 0.0f);
         PhAddItemCircularBuffer_FLOAT(&sensor->PackagePowerHistory, (sensor->Valid & PH_HW_CAP_RAPL_PACKAGE) ? sensor->PackagePower : 0.0f);
     }
+
+    PhpHwHistoryAppend();
 }
 
 /**
@@ -13927,4 +13929,6 @@ VOID PhHwWriteDiagnostics(
         if (report->Table)
             PhFree(report->Table);
     }
+
+    PhpHwHistoryWriteDiagnostics(Builder);
 }

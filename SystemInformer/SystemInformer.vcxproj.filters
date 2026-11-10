@@ -75,6 +75,9 @@
     <ClCompile Include="hwreport.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwhist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="hwsensor.c">
       <Filter>System Informer</Filter>
     </ClCompile>

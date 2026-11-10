@@ -233,6 +233,7 @@ typedef struct _PHP_HW_ENUM_CONTEXT
 {
     PPH_HW_SENSOR_ENUM_CALLBACK Callback;
     PVOID Context;
+    ULONG Flags; // PHP_HW_ENUM_*
     ULONG64 ComponentKey; // of ComponentName
     PPH_STRING ComponentName;
 } PHP_HW_ENUM_CONTEXT, *PPHP_HW_ENUM_CONTEXT;
@@ -348,6 +349,9 @@ static PPH_STRING PhpHwGetComponentName(
 {
     ULONG64 key = PhpHwComponentKey(Kind, 0, Index);
 
+    if (Context->Flags & PHP_HW_ENUM_NO_NAMES)
+        return NULL;
+
     if (!Context->ComponentName || Context->ComponentKey != key)
     {
         PhMoveReference(&Context->ComponentName, PhpHwFormatComponentName(Kind, Index));
@@ -373,7 +377,10 @@ static VOID PhpHwEmitSensor(
     PH_HW_SENSOR_ENTRY entry;
     PPH_STRING sensorName;
 
-    sensorName = Name ? PhReferenceObject(Name) : PhpHwFormatSensorName(Kind, Index);
+    if (Context->Flags & PHP_HW_ENUM_NO_NAMES)
+        sensorName = NULL;
+    else
+        sensorName = Name ? PhReferenceObject(Name) : PhpHwFormatSensorName(Kind, Index);
 
     entry.ComponentKind = info->Component;
     entry.ComponentIndex = ComponentIndex;
@@ -392,7 +399,7 @@ static VOID PhpHwEmitSensor(
 
     Context->Callback(&entry, Context->Context);
 
-    PhDereferenceObject(sensorName);
+    PhClearReference(&sensorName);
 }
 
 static VOID PhpHwEmitValue(
@@ -540,7 +547,7 @@ static VOID PhpHwEnumerateNamed(
             continue;
 
         sensor.Name[RTL_NUMBER_OF(sensor.Name) - 1] = UNICODE_NULL;
-        name = PhCreateString(sensor.Name);
+        name = (Context->Flags & PHP_HW_ENUM_NO_NAMES) ? NULL : PhCreateString(sensor.Name);
 
         PhpHwEmitSensor(
             Context,
@@ -553,7 +560,7 @@ static VOID PhpHwEnumerateNamed(
             0
             );
 
-        PhDereferenceObject(name);
+        PhClearReference(&name);
     }
 }
 
@@ -573,11 +580,11 @@ static VOID NTAPI PhpHwEnumerateSourceSensor(
     entry.ComponentIndex = Sensor->ComponentId;
     entry.SourceId = Sensor->SourceId;
     entry.ComponentKey = PhpHwComponentKey(PhHwComponentSource, Sensor->SourceId, Sensor->ComponentId);
-    entry.ComponentName = Sensor->ComponentName;
+    entry.ComponentName = (context->Flags & PHP_HW_ENUM_NO_NAMES) ? NULL : Sensor->ComponentName;
     entry.Group = PhpHwSourceTypeInfo[Sensor->Type].Group;
     entry.Unit = PhpHwSourceTypeInfo[Sensor->Type].Unit;
     entry.SensorKey = PhpHwSensorKey(PhpHwSensorMaximum, Sensor->SensorId);
-    entry.SensorName = Sensor->SensorName;
+    entry.SensorName = (context->Flags & PHP_HW_ENUM_NO_NAMES) ? NULL : Sensor->SensorName;
     entry.Capability = 0;
     entry.Current = Sensor->Current;
     entry.History = !!(Sensor->Flags & PH_HW_SENSOR_REPORT_HISTORY);
@@ -598,10 +605,27 @@ VOID NTAPI PhHwEnumerateSensors(
     _In_opt_ PVOID Context
     )
 {
+    PhpHwEnumerateSensorsEx(Callback, Context, 0);
+}
+
+/**
+ * Enumerates the hardware sensors.
+ *
+ * \param Callback Called once per sensor, in no particular order.
+ * \param Context Passed to the callback.
+ * \param Flags PHP_HW_ENUM_*; with PHP_HW_ENUM_NO_NAMES the entry names are NULL.
+ */
+VOID PhpHwEnumerateSensorsEx(
+    _In_ PPH_HW_SENSOR_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ ULONG Flags
+    )
+{
     PHP_HW_ENUM_CONTEXT context;
 
     context.Callback = Callback;
     context.Context = Context;
+    context.Flags = Flags;
     context.ComponentKey = 0;
     context.ComponentName = NULL;
 

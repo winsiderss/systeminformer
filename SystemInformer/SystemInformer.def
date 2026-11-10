@@ -119,8 +119,10 @@ EXPORTS
     PhHandleListViewNotifyBehaviors
     PhHandleListViewNotifyForCopy
     PhHandleTreeNewColumnMenu
+    PhHwCopySensorHistory
     PhHwCounterSensorsPresent
     PhHwCreateReport
+    PhHwEnumerateSensorHistories
     PhHwEnumerateSensors
     PhHwFormatTemperature
     PhHwGetCapabilities
