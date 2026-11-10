@@ -384,6 +384,29 @@ VOID NTAPI PhHwEnumerateSensorHistories(
 }
 
 /**
+ * Gets the number of samples each sensor's history holds.
+ *
+ * \return The size of the history buffers, or the size they will have once the first sensor is stored.
+ */
+ULONG NTAPI PhHwGetSensorHistorySlots(
+    VOID
+    )
+{
+    ULONG slots;
+
+    PhAcquireQueuedLockShared(&PhpHwHistoryLock);
+
+    if (PhpHwHistoryTable)
+        slots = PhpHwHistoryTimes.Size;
+    else
+        slots = PhRoundUpToPowerOfTwo(PhStatisticsSampleCount);
+
+    PhReleaseQueuedLockShared(&PhpHwHistoryLock);
+
+    return slots;
+}
+
+/**
  * Appends the size of the history to the hardware report.
  */
 VOID PhpHwHistoryWriteDiagnostics(

@@ -432,6 +432,14 @@ PhHwEnumerateSensorHistories(
     _In_ PPH_HW_SENSOR_HISTORY_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
+
+// The number of samples each sensor's history holds.
+PHAPPAPI
+ULONG
+NTAPI
+PhHwGetSensorHistorySlots(
+    VOID
+    );
 // end_phapppub
 
 BOOLEAN PhHwSensorScalesToCpuLimit(

@@ -132,6 +132,7 @@ EXPORTS
     PhHwGetCpuTemperatureLimit
     PhHwGetPackageCount
     PhHwGetPackageSensor
+    PhHwGetSensorHistorySlots
     PhHwGetSensorsUnavailableReason
     PhHwSensorsAvailable
     PhHwSensorsEnabled
