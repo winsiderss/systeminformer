@@ -172,6 +172,7 @@ typedef enum _AT_ACTION
     AtActionGetCpuInfo,
     AtActionGetHardwareSensors,
     AtActionGetHardwareReport,
+    AtActionGetHardwareSensorHistory,
     AtActionListLogonSessions,
     AtActionListTerminalSessions,
     AtActionLookupAccount,

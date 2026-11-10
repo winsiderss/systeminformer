@@ -1871,6 +1871,7 @@ VOID AtInvokeTool(
         break;
     case AtActionGetHardwareSensors:
     case AtActionGetHardwareReport:
+    case AtActionGetHardwareSensorHistory:
         AtHardwareInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListLogonSessions:
