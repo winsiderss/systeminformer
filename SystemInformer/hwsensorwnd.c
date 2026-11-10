@@ -73,7 +73,8 @@ typedef struct _PHP_HW_NODE
             PPH_STRING ValueText;
             PPH_STRING MinimumText;
             PPH_STRING MaximumText;
-            PH_CIRCULAR_BUFFER_FLOAT HistoryBuffer; // valid when History
+            ULONG64 ComponentKey;
+            ULONG HistoryCount; // samples copied from the history store into GraphBuffers
             PH_GRAPH_BUFFERS GraphBuffers;
         } Sensor;
     };
@@ -186,10 +187,6 @@ static VOID PhpHwDestroyNode(
         PhClearReference(&Node->Sensor.ValueText);
         PhClearReference(&Node->Sensor.MinimumText);
         PhClearReference(&Node->Sensor.MaximumText);
-
-        if (Node->Sensor.History)
-            PhDeleteCircularBuffer_FLOAT(&Node->Sensor.HistoryBuffer);
-
         PhDeleteGraphBuffers(&Node->Sensor.GraphBuffers);
     }
 
@@ -291,10 +288,7 @@ static PPHP_HW_NODE PhpHwInsertSensor(
     sensor->Sensor.Capability = Entry->Capability;
     sensor->Sensor.History = Entry->History;
     sensor->Sensor.ScalesToCpuLimit = PhHwSensorScalesToCpuLimit(Entry);
-
-    if (sensor->Sensor.History)
-        PhInitializeCircularBuffer_FLOAT(&sensor->Sensor.HistoryBuffer, PhStatisticsSampleCount);
-
+    sensor->Sensor.ComponentKey = Entry->ComponentKey;
     PhInitializeGraphBuffers(&sensor->Sensor.GraphBuffers);
 
     PhInsertItemList(Group->Children, Position, sensor);
@@ -594,12 +588,7 @@ static VOID PhpHwSensorsUpdate(
             continue;
         }
 
-        if (sensor->Sensor.History)
-        {
-            PhAddItemCircularBuffer_FLOAT(&sensor->Sensor.HistoryBuffer, sensor->Sensor.Current ? sensor->Sensor.Value : 0.0f);
-            sensor->Sensor.GraphBuffers.Valid = FALSE;
-        }
-
+        sensor->Sensor.GraphBuffers.Valid = FALSE;
         PhpHwSensorUpdateText(sensor);
         i++;
     }
@@ -763,7 +752,7 @@ static VOID PhpHwSensorsDrawHistory(
 
     if (node->Type != PhpHwNodeSensor)
         return;
-    if (!node->Sensor.History || !node->Sensor.HistoryBuffer.Count)
+    if (!node->Sensor.History)
         return;
     if (rect.right - rect.left <= 1 || rect.bottom - rect.top <= 1)
         return;
@@ -778,13 +767,35 @@ static VOID PhpHwSensorsDrawHistory(
     drawInfo.LineColor1 = color;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(color);
 
-    PhGetDrawInfoGraphBuffers(&node->Sensor.GraphBuffers, &drawInfo, node->Sensor.HistoryBuffer.Count);
+    PhGetDrawInfoGraphBuffers(&node->Sensor.GraphBuffers, &drawInfo, PhStatisticsSampleCount);
 
     if (!node->Sensor.GraphBuffers.Valid)
     {
+        PFLOAT data = node->Sensor.GraphBuffers.Data1;
+        ULONG count;
         FLOAT scale;
 
-        PhCopyCircularBuffer_FLOAT(&node->Sensor.HistoryBuffer, node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount);
+        if (!PhHwCopySensorHistory(
+            node->Sensor.ComponentKey,
+            (PH_HW_SENSOR_GROUP)node->Sensor.Group->Key,
+            node->Key,
+            drawInfo.LineDataCount,
+            data,
+            NULL,
+            &count,
+            NULL
+            ))
+        {
+            count = 0;
+        }
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            if (isnan(data[i]))
+                data[i] = 0.0f;
+        }
+
+        node->Sensor.HistoryCount = count;
 
         if (node->Sensor.ScalesToCpuLimit)
         {
@@ -793,7 +804,7 @@ static VOID PhpHwSensorsDrawHistory(
         else if (node->Sensor.Unit == PhHwUnitTemperature)
         {
             // A source, chipset, zone or DIMM temperature is not bounded by the CPU TjMax.
-            scale = max(PhMaxMemorySingles(node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount), 100.0f);
+            scale = max(PhMaxMemorySingles(data, count), 100.0f);
         }
         else if (node->Sensor.Unit == PhHwUnitPercent)
         {
@@ -801,12 +812,17 @@ static VOID PhpHwSensorsDrawHistory(
         }
         else
         {
-            scale = max(PhMaxMemorySingles(node->Sensor.GraphBuffers.Data1, drawInfo.LineDataCount), PhpHwSensorGraphMinimumScale(node->Sensor.Unit));
+            scale = max(PhMaxMemorySingles(data, count), PhpHwSensorGraphMinimumScale(node->Sensor.Unit));
         }
 
-        PhDivideSinglesBySingle(node->Sensor.GraphBuffers.Data1, scale, drawInfo.LineDataCount);
+        PhDivideSinglesBySingle(data, scale, count);
         node->Sensor.GraphBuffers.Valid = TRUE;
     }
+
+    drawInfo.LineDataCount = min(node->Sensor.HistoryCount, drawInfo.LineDataCount);
+
+    if (!drawInfo.LineDataCount)
+        return;
 
     PhpHwSensorsNeedGraphContext(Context, CustomDraw->Dc, drawInfo.Width, drawInfo.Height);
 
