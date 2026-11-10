@@ -2988,6 +2988,20 @@ HFONT NTAPI PH_EXTLV_GET_ITEM_FONT(
     );
 typedef PH_EXTLV_GET_ITEM_FONT* PPH_EXTLV_GET_ITEM_FONT;
 
+/**
+ * Gets the text color of a subitem.
+ *
+ * \return The text color, or CLR_DEFAULT to use the default text color.
+ */
+typedef _Function_class_(PH_EXTLV_GET_SUBITEM_TEXT_COLOR)
+COLORREF NTAPI PH_EXTLV_GET_SUBITEM_TEXT_COLOR(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    );
+typedef PH_EXTLV_GET_SUBITEM_TEXT_COLOR* PPH_EXTLV_GET_SUBITEM_TEXT_COLOR;
+
 typedef struct _PH_EXTLV_SETCOMPAREFUNCTION
 {
     PPH_COMPARE_FUNCTION CompareFunction;
@@ -3028,7 +3042,7 @@ PhSetHeaderSortIcon(
     _In_ PH_SORT_ORDER Order
     );
 
-// next 1122
+// next 1123
 
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
@@ -3041,6 +3055,7 @@ PhSetHeaderSortIcon(
 #define ELVM_RESERVED4 (WM_APP + 1118)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
 #define ELVM_SETSUBITEMDRAWFUNCTION (WM_APP + 1120)
+#define ELVM_SETSUBITEMTEXTCOLORFUNCTION (WM_APP + 1122)
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_RESERVED1 (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
@@ -3071,6 +3086,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
 #define ExtendedListView_SetSubItemDrawFunction(hWnd, SubItemDrawFunction) \
     SendMessage((hWnd), ELVM_SETSUBITEMDRAWFUNCTION, 0, (LPARAM)(SubItemDrawFunction))
+#define ExtendedListView_SetSubItemTextColorFunction(hWnd, SubItemTextColorFunction) \
+    SendMessage((hWnd), ELVM_SETSUBITEMTEXTCOLORFUNCTION, 0, (LPARAM)(SubItemTextColorFunction))
 #define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
     SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
@@ -4053,6 +4070,37 @@ NTAPI
 PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetWindowCloak(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Cloak
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetWindowRedirectionBitmapFillColor(
+    _In_ HWND WindowHandle,
+    _In_ COLORREF FillColor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetWindowRedirectionBitmapAlpha(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Enable
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSystemAnimationsEnabledRegistry(
+    VOID
     );
 
 // TODO: https://stackoverflow.com/questions/12304848/fast-algorithm-to-invert-an-argb-color-value-to-abgr/42133405#42133405
