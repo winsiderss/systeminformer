@@ -1042,13 +1042,16 @@ EXPORTS
     PhDeleteGraphState
     PhDrawGraphBar
     PhDrawGraphDirect
+    PhDrawGraphDirectEx
     PhDrawGraphTextBox
     PhDrawTrayIconText
     PhGetDrawInfoGraphBuffers
+    PhGetGraphScrollOffset
     PhGraphStateGetDrawInfo
     PhInitializeGraphState
     PhNfGetTrayIconFont
     PhSetGraphText
+    PhStartGraphScroll
 
 ; graphprp
     PhPropSheetNewBuilderAddPage

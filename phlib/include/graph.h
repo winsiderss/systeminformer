@@ -114,6 +114,43 @@ PhDrawGraphDirect(
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo
     );
 
+// Offset shifts the data right by that many pixels (smooth renderer only).
+PHLIBAPI
+VOID
+NTAPI
+PhDrawGraphDirectEx(
+    _In_ HDC hdc,
+    _In_ PVOID PH_RESTRICT Bits,
+    _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ FLOAT Offset
+    );
+
+// Scrolls graphs drawn with PhDrawGraphDirectEx (tree cells) between updates, like the graph control.
+typedef struct _PH_GRAPH_SCROLL_STATE
+{
+    ULONG64 StartTime; // 0 when not scrolling
+    ULONG64 LastStartTime;
+    ULONG Duration; // ms, the measured update interval
+} PH_GRAPH_SCROLL_STATE, *PPH_GRAPH_SCROLL_STATE;
+
+// Call when the graphs gained a sample. Returns the frame interval in ms, or 0 when scrolling is off.
+PHLIBAPI
+ULONG
+NTAPI
+PhStartGraphScroll(
+    _Inout_ PPH_GRAPH_SCROLL_STATE State
+    );
+
+// Returns FALSE once the scroll has finished; Offset is then 0.
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetGraphScrollOffset(
+    _Inout_ PPH_GRAPH_SCROLL_STATE State,
+    _In_ ULONG Step,
+    _Out_ PFLOAT Offset
+    );
+
 // Keeps a text box from resizing with every change of its text: it widens at once but only
 // narrows after the text has stayed narrower for PH_GRAPH_TEXT_BOX_SHRINK_DELAY ms.
 #define PH_GRAPH_TEXT_BOX_SHRINK_DELAY 5000

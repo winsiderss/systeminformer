@@ -1789,20 +1789,11 @@ static BOOLEAN PhpDrawGraphSmooth(
     gridColor = COLORREF_TO_BITS(DrawInfo->GridColor);
     gridUnderFill = 1.0f - (1.0f - PH_GRAPH_SMOOTH_GRID_UNDER_FILL) * 1.0f; // grid weight where the fill is complete
 
-    // Small graphs (tray icons, tree cells) keep a one pixel stroke and a flat fill. The fill
-    // fades linearly on light backgrounds and along a curve on dark ones.
+    // The fill fades linearly on light backgrounds and along a curve on dark ones. Small graphs
+    // (tray icons, tree cells) keep a one pixel stroke.
     fillCurve = !PhpIsLightGraphColor(backColor);
-
-    if (height < 40)
-    {
-        halfWidth = 0.5f;
-        fillBottom = PH_GRAPH_SMOOTH_FILL_TOP;
-    }
-    else
-    {
-        halfWidth = 0.75f;
-        fillBottom = PH_GRAPH_SMOOTH_FILL_BOTTOM;
-    }
+    fillBottom = PH_GRAPH_SMOOTH_FILL_BOTTOM;
+    halfWidth = height < 40 ? 0.5f : 0.75f;
 
     for (LONG y = 0; y < height; y++)
     {
@@ -2067,6 +2058,122 @@ VOID PhDrawGraphDirect(
     )
 {
     PhpDrawGraphDirect(hdc, Bits, DrawInfo, 0, NULL, NULL);
+}
+
+/**
+ * Draws a graph directly to memory, shifted right.
+ *
+ * \param hdc The DC to draw to. This is only used when drawing text.
+ * \param Bits The bits in a bitmap.
+ * \param DrawInfo A structure which contains graphing information.
+ * \param Offset The shift in pixels, from PhGetGraphScrollOffset. The classic renderer ignores it.
+ */
+VOID PhDrawGraphDirectEx(
+    _In_ HDC hdc,
+    _In_ PVOID PH_RESTRICT Bits,
+    _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ FLOAT Offset
+    )
+{
+    PhpDrawGraphDirect(hdc, Bits, DrawInfo, Offset, NULL, NULL);
+}
+
+// The animation lasts until the next update is expected, so the scrolling never stops.
+static ULONG PhpMeasureGraphAnimationDuration(
+    _Inout_ PULONG64 LastStartTime,
+    _In_ ULONG64 Now
+    )
+{
+    ULONG duration = PH_GRAPH_ANIMATION_DEFAULT_DURATION;
+
+    if (*LastStartTime && Now - *LastStartTime <= PH_GRAPH_ANIMATION_MAX_DURATION)
+        duration = max((ULONG)(Now - *LastStartTime), PH_GRAPH_ANIMATION_MIN_DURATION);
+
+    *LastStartTime = Now;
+
+    return duration;
+}
+
+static BOOLEAN PhpGraphAnimationEnabled(
+    VOID
+    )
+{
+    BOOL clientAreaAnimation = TRUE;
+
+    if (!PhEnableGraphSmoothing)
+        return FALSE;
+    if (SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &clientAreaAnimation, 0) && !clientAreaAnimation)
+        return FALSE;
+
+    return TRUE;
+}
+
+static ULONG PhpGraphAnimationFrameInterval(
+    _In_ ULONG Duration
+    )
+{
+    return min(max(Duration / PH_GRAPH_ANIMATION_FRAMES, PH_GRAPH_ANIMATION_MIN_FRAME_INTERVAL), PH_GRAPH_ANIMATION_MAX_FRAME_INTERVAL);
+}
+
+/**
+ * Starts scrolling graphs that just gained a sample.
+ *
+ * \param State The scroll state shared by the graphs.
+ *
+ * \return The frame interval in milliseconds, or 0 when scrolling is disabled.
+ */
+ULONG PhStartGraphScroll(
+    _Inout_ PPH_GRAPH_SCROLL_STATE State
+    )
+{
+    ULONG64 now;
+
+    if (!PhpGraphAnimationEnabled())
+    {
+        State->StartTime = 0;
+        return 0;
+    }
+
+    now = NtGetTickCount64();
+    State->Duration = PhpMeasureGraphAnimationDuration(&State->LastStartTime, now);
+    State->StartTime = now;
+
+    return PhpGraphAnimationFrameInterval(State->Duration);
+}
+
+/**
+ * Gets the current offset of scrolling graphs.
+ *
+ * \param State The scroll state shared by the graphs.
+ * \param Step The \a Step of the graphs.
+ * \param Offset The offset to pass to PhDrawGraphDirectEx.
+ *
+ * \return TRUE while scrolling, FALSE once the scroll has finished.
+ */
+BOOLEAN PhGetGraphScrollOffset(
+    _Inout_ PPH_GRAPH_SCROLL_STATE State,
+    _In_ ULONG Step,
+    _Out_ PFLOAT Offset
+    )
+{
+    ULONG64 elapsed;
+
+    *Offset = 0;
+
+    if (!State->StartTime)
+        return FALSE;
+
+    elapsed = NtGetTickCount64() - State->StartTime;
+
+    if (elapsed >= State->Duration)
+    {
+        State->StartTime = 0;
+        return FALSE;
+    }
+
+    *Offset = (FLOAT)Step * (1.0f - (FLOAT)elapsed / State->Duration);
+
+    return TRUE;
 }
 
 // Offset shifts the data and the vertical grid right (smooth renderer only). ValueDrawInfo holds
@@ -2591,17 +2698,15 @@ static VOID PhpStartGraphAnimation(
     _In_ LONG Increment
     )
 {
-    BOOL clientAreaAnimation = TRUE;
     HWND rootWindow;
     ULONG64 now;
 
     if (
-        !PhEnableGraphSmoothing ||
         Increment <= 0 ||
         !Context->AnimationTargetCount ||
         !IsWindowVisible(Context->Handle) ||
         ((rootWindow = GetAncestor(Context->Handle, GA_ROOT)) && IsIconic(rootWindow)) ||
-        (SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &clientAreaAnimation, 0) && !clientAreaAnimation)
+        !PhpGraphAnimationEnabled()
         )
     {
         PhpStopGraphAnimation(Context);
@@ -2614,20 +2719,14 @@ static VOID PhpStartGraphAnimation(
     Context->AnimationShift = Increment;
     Context->AnimationProgress = 0;
 
-    // The animation lasts until the next update is expected, so the scrolling never stops.
     now = NtGetTickCount64();
-    Context->AnimationDuration = PH_GRAPH_ANIMATION_DEFAULT_DURATION;
-
-    if (Context->AnimationLastStartTime && now - Context->AnimationLastStartTime <= PH_GRAPH_ANIMATION_MAX_DURATION)
-        Context->AnimationDuration = max((ULONG)(now - Context->AnimationLastStartTime), PH_GRAPH_ANIMATION_MIN_DURATION);
-
-    Context->AnimationLastStartTime = now;
+    Context->AnimationDuration = PhpMeasureGraphAnimationDuration(&Context->AnimationLastStartTime, now);
     Context->AnimationStartTime = now;
 
     SetTimer(
         Context->Handle,
         PH_GRAPH_ANIMATION_TIMER_ID,
-        min(max(Context->AnimationDuration / PH_GRAPH_ANIMATION_FRAMES, PH_GRAPH_ANIMATION_MIN_FRAME_INTERVAL), PH_GRAPH_ANIMATION_MAX_FRAME_INTERVAL),
+        PhpGraphAnimationFrameInterval(Context->AnimationDuration),
         NULL
         );
 }
