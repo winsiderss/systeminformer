@@ -23,6 +23,8 @@
 
 #define WM_PH_HW_SENSORS_UPDATE (WM_APP + 1)
 #define PHP_HW_COLLAPSE_PROCESSOR_COUNT 16
+#define PHP_HW_SENSORS_SCROLL_TIMER_ID 1
+#define PHP_HW_SENSORS_GRAPH_STEP 2
 
 typedef enum _PHP_HW_SENSORS_COLUMN
 {
@@ -101,6 +103,7 @@ typedef struct _PHP_HW_SENSORS_CONTEXT
     PVOID GraphBits;
     LONG GraphWidth;
     LONG GraphHeight;
+    PH_GRAPH_SCROLL_STATE GraphScroll;
 } PHP_HW_SENSORS_CONTEXT, *PPHP_HW_SENSORS_CONTEXT;
 
 static HWND PhpHwSensorsWindowHandle = NULL;
@@ -749,6 +752,7 @@ static VOID PhpHwSensorsDrawHistory(
     RECT rect = CustomDraw->CellRect;
     PH_GRAPH_DRAW_INFO drawInfo;
     COLORREF color;
+    FLOAT offset;
 
     if (node->Type != PhpHwNodeSensor)
         return;
@@ -762,12 +766,15 @@ static VOID PhpHwSensorsDrawHistory(
     memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
     drawInfo.Width = rect.right - rect.left - 1; // leave a small gap
     drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
-    drawInfo.Step = 2;
+    drawInfo.Step = PHP_HW_SENSORS_GRAPH_STEP;
     drawInfo.BackColor = RGB(0x00, 0x00, 0x00);
     drawInfo.LineColor1 = color;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(color);
 
+    // One more sample scrolls in from the left edge.
+    drawInfo.Width += drawInfo.Step;
     PhGetDrawInfoGraphBuffers(&node->Sensor.GraphBuffers, &drawInfo, PhStatisticsSampleCount);
+    drawInfo.Width -= drawInfo.Step;
 
     if (!node->Sensor.GraphBuffers.Valid)
     {
@@ -828,7 +835,8 @@ static VOID PhpHwSensorsDrawHistory(
 
     if (Context->GraphBits)
     {
-        PhDrawGraphDirect(Context->GraphContext, Context->GraphBits, &drawInfo);
+        PhGetGraphScrollOffset(&Context->GraphScroll, drawInfo.Step, &offset);
+        PhDrawGraphDirectEx(Context->GraphContext, Context->GraphBits, &drawInfo, offset);
         BitBlt(
             CustomDraw->Dc,
             rect.left,
@@ -1268,6 +1276,8 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
         break;
     case WM_DESTROY:
         {
+            KillTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID);
+
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &context->ProcessesUpdatedRegistration
@@ -1304,7 +1314,28 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
         break;
     case WM_PH_HW_SENSORS_UPDATE:
         {
+            ULONG interval;
+
             PhpHwSensorsUpdate(context);
+
+            if (!IsIconic(hwndDlg) && (interval = PhStartGraphScroll(&context->GraphScroll)))
+                SetTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID, interval, NULL);
+            else
+                KillTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID);
+        }
+        break;
+    case WM_TIMER:
+        {
+            if (wParam == PHP_HW_SENSORS_SCROLL_TIMER_ID)
+            {
+                FLOAT offset;
+
+                // The last frame is drawn at offset 0.
+                if (!PhGetGraphScrollOffset(&context->GraphScroll, PHP_HW_SENSORS_GRAPH_STEP, &offset))
+                    KillTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID);
+
+                PhInvalidateTreeNewColumn(context->TreeNewHandle, PhpHwSensorsColumnHistory);
+            }
         }
         break;
     case WM_DPICHANGED:
