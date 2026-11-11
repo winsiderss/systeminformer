@@ -260,6 +260,24 @@ static BOOLEAN CpuGetCoreTemperature(
     return TRUE;
 }
 
+// Index is the flat processor index; MHz.
+_Success_(return)
+static BOOLEAN CpuGetCoreActiveClock(
+    _In_ ULONG Index,
+    _Out_ PFLOAT Mhz
+    )
+{
+    PPH_HW_CPU_SENSOR sensor;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+    if (!(sensor = PhHwGetCpuSensor(Index)) || !(sensor->Valid & PH_HW_CAP_ACTIVE_CLOCK))
+        return FALSE;
+
+    *Mhz = sensor->ActiveMhz;
+    return TRUE;
+}
+
 static VOID CpuInvalidateGraphStates(
     VOID
     )
@@ -1584,12 +1602,17 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     FLOAT cpuUser;
                     FLOAT temperature;
                     BOOLEAN temperatureValid;
+                    FLOAT mhz;
                     PH_FORMAT format[12 + PH_HW_TEMPERATURE_FORMAT_COUNT];
                     ULONG count;
 
                     cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[index], 0);
                     cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[index], 0);
                     temperatureValid = CpuTemperaturePerCpu && CpuGetCoreTemperature(index, &temperature);
+
+                    // The active clock replaces the performance distribution estimate when available.
+                    if (!CpuGetCoreActiveClock(index, &mhz))
+                        mhz = CpuFrequencyInformation ? CpuFrequencyInformation[index] : 0.0f;
 
                     // %.2f%% (K: %.2f%%, U: %.2f%%)
                     PhInitFormatF(&format[0], (cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
@@ -1598,13 +1621,13 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     PhInitFormatS(&format[3], L"%, U: ");
                     PhInitFormatF(&format[4], cpuUser * 100, PhMaxPrecisionUnit);
 
-                    if (CpuFrequencyInformation)
+                    if (mhz > 0.0f)
                     {
                         PhInitFormatS(&format[5], L"%)\r\n");
-                        PhInitFormatF(&format[6], CpuFrequencyInformation[index] / 1000, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[6], mhz / 1000, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[7], L" GHz");
                         PhInitFormatS(&format[8], L" (");
-                        PhInitFormatFD(&format[9], 1000 / CpuFrequencyInformation[index], 3); // ns per cycle
+                        PhInitFormatFD(&format[9], 1000 / mhz, 3); // ns per cycle
                         PhInitFormatS(&format[10], L" \u00B5s)");
                         count = 11;
 
