@@ -512,17 +512,7 @@ NTSTATUS KphpHwWindowCheckMemory(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (KphDynMmGetPhysicalMemoryRangesEx2)
-    {
-        ranges = KphDynMmGetPhysicalMemoryRangesEx2(
-                        NULL,
-                        (MM_GET_PHYSICAL_MEMORY_RANGES_INCLUDE_FILE_ONLY |
-                         MM_GET_PHYSICAL_MEMORY_RANGES_INCLUDE_ALL_PARTITIONS));
-    }
-    else
-    {
-        ranges = MmGetPhysicalMemoryRanges();
-    }
+    ranges = MmGetPhysicalMemoryRanges();
 
     if (!ranges)
     {
