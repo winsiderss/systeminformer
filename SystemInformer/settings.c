@@ -12,6 +12,7 @@
  */
 
 #include <phapp.h>
+#include <sysinfo.h>
 #include <settings.h>
 #define PH_SETTINGS_PRIVATE
 #include <phsettings.h>
@@ -684,6 +685,14 @@ VOID PhUpdateCachedSettings(
 
     PH_GET_INTEGER_CACHED_SETTING(GraphShowText);
     PH_GET_INTEGER_CACHED_SETTING(GraphColorMode);
+
+    // Legacy 1 was forced on by theme support, or chosen as "old colors" without it.
+    if (PhCsGraphColorMode == PH_GRAPH_MODE_LEGACY)
+        PhCsGraphColorMode = PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? PH_GRAPH_MODE_SMOOTH : PH_GRAPH_MODE_CLASSIC_OLD_COLORS;
+    else if (PhCsGraphColorMode > PH_GRAPH_MODE_SMOOTH_OLD_COLORS)
+        PhCsGraphColorMode = PH_GRAPH_MODE_SMOOTH;
+
+    PhEnableGraphSmoothing = PH_GRAPH_MODE_IS_SMOOTH(PhCsGraphColorMode);
     PH_GET_INTEGER_CACHED_SETTING(ColorCpuKernel);
     PH_GET_INTEGER_CACHED_SETTING(ColorCpuUser);
     PH_GET_INTEGER_CACHED_SETTING(ColorIoReadOther);

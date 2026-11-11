@@ -1029,6 +1029,7 @@
 #define ID_MENUBAR_ELEVATE              10336
 
 #define IDD_THRDSHADOWSTACK             298
+#define IDC_ENABLESMOOTHGRAPHS          1570
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -1038,7 +1039,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        299
 #define _APS_NEXT_COMMAND_VALUE         10355
-#define _APS_NEXT_CONTROL_VALUE         1570
+#define _APS_NEXT_CONTROL_VALUE         1571
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

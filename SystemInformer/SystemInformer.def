@@ -1040,7 +1040,9 @@ EXPORTS
 
 ; graph
     PhDeleteGraphState
+    PhDrawGraphBar
     PhDrawGraphDirect
+    PhDrawGraphTextBox
     PhDrawTrayIconText
     PhGetDrawInfoGraphBuffers
     PhGraphStateGetDrawInfo

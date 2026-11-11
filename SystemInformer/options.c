@@ -11,6 +11,7 @@
  */
 
 #include <phapp.h>
+#include <sysinfo.h>
 
 #include <commdlg.h>
 #include <colmgr.h>
@@ -314,16 +315,9 @@ static VOID PhpApplyThemeSupportSetting(
     )
 {
     BOOLEAN enableThemeSupport;
-    BOOLEAN themeSupportWasEnabled;
 
-    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
     enableThemeSupport = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETHEME)) == BST_CHECKED;
     PhSetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, enableThemeSupport);
-
-    // Enabling theme support forces dark graph backgrounds (GraphColorMode); undo that
-    // override when theme support is turned off so the graphs return to the light colors.
-    if (themeSupportWasEnabled && !enableThemeSupport)
-        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0);
 
     PhUpdateCachedSettings();
 
@@ -354,13 +348,6 @@ static VOID PhpApplyThemeModeSetting(
         return;
 
     PhSetIntegerSetting(SETTING_THEME_MODE, mode);
-
-    // Graph drawing keys off GraphColorMode rather than the window palette;
-    // pair a dark palette with dark graph backgrounds (same override the
-    // advanced options page applies).
-    if (PhEnableThemeSupport && PhIsThemeModeDark(mode))
-        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1);
-
     PhUpdateCachedSettings();
 
     if (PhEnableThemeSupport)
@@ -1810,12 +1797,9 @@ static VOID PhpAdvancedPageSave(
 {
     HWND listViewHandle;
     ULONG sampleCount;
-    BOOLEAN themeSupportWasEnabled;
 
     if (!hwndDlg)
         return;
-
-    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
     sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
@@ -1884,15 +1868,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, SETTING_ENABLE_ADVANCED_OPTIONS);
     if (WindowsVersion >= WINDOWS_10)
         SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_PROCESS_MONITOR, SETTING_ENABLE_PROCESS_MONITOR);
-
-    if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // PhGetIntegerSetting required (dmex)
-    {
-        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1); // HACK switch to dark theme. (dmex)
-    }
-    else if (themeSupportWasEnabled)
-    {
-        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0); // Undo the override above when theme support is turned off.
-    }
 
     WriteCurrentUserRun(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,
@@ -4540,8 +4515,11 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
         {
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
-            SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
+
+            // Graph mode: smooth drawing and old colors are independent.
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESMOOTHGRAPHS), PH_GRAPH_MODE_IS_SMOOTH(PhCsGraphColorMode) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_USEOLDCOLORS), PH_GRAPH_MODE_IS_OLD_COLORS(PhCsGraphColorMode) ? BST_CHECKED : BST_UNCHECKED);
 
             // Highlighting
             PhpGraphListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -4559,20 +4537,23 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, PhpGraphListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerSetting(SETTING_GRAPH_COLOR_MODE))
-                EnableWindow(PhpGraphListViewHandle, TRUE);
-            else if (PhEnableThemeSupport)
-            {
-                ShowWindow(PhpGraphListViewHandle, SW_HIDE);
-                EnableWindow(PhpGraphListViewHandle, TRUE);
-            }
+            EnableWindow(PhpGraphListViewHandle, TRUE);
         }
         break;
     case WM_DESTROY:
         {
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
-            SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
+
+            {
+                BOOLEAN smooth = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESMOOTHGRAPHS)) == BST_CHECKED;
+                BOOLEAN oldColors = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USEOLDCOLORS)) == BST_CHECKED;
+
+                if (oldColors)
+                    PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, smooth ? PH_GRAPH_MODE_SMOOTH_OLD_COLORS : PH_GRAPH_MODE_CLASSIC_OLD_COLORS);
+                else
+                    PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, smooth ? PH_GRAPH_MODE_SMOOTH : PH_GRAPH_MODE_CLASSIC);
+            }
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOptionsGraphColorItems); i++)
             {
@@ -4595,24 +4576,8 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
              ExtendedListView_SetColumnWidth(PhpGraphListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
          }
          break;
-     case WM_COMMAND:
-         {
-             switch (GET_WM_COMMAND_ID(wParam, lParam))
-             {
-             case IDC_USEOLDCOLORS:
-                {
-                    ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED); // deselect all items
-
-                    if (PhEnableThemeSupport)
-                        ShowWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED ? SW_SHOW : SW_HIDE);
-                    else
-                        EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
-                }
-                break;
-            }
-        }
-        break;
     case WM_NOTIFY:
+
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
