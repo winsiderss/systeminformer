@@ -386,11 +386,11 @@ VOID PhNfLoadStage2(
 
     // Registered after the plugin icons, which take their IconId from the registration count.
     hwIconFlags = PhHwSensorsEnabled() ? 0 : PH_NF_ICON_UNAVAILABLE;
-    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_HISTORY], NULL, L"CPU &temperature history", hwIconFlags, PhNfpCpuTemperatureHistoryIconUpdateCallback, NULL);
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY, &PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_HISTORY], NULL, L"CPU &temperature history", hwIconFlags, PhNfpCpuTemperatureHistoryIconUpdateCallback, NULL);
     icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY;
-    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_TEXT], NULL, L"CPU temperature (text)", hwIconFlags, PhNfpCpuTemperatureTextIconUpdateCallback, NULL);
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT, &PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_TEXT], NULL, L"CPU temperature (text)", hwIconFlags, PhNfpCpuTemperatureTextIconUpdateCallback, NULL);
     icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT;
-    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_POWER_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_POWER_TEXT], NULL, L"CPU power (text)", hwIconFlags, PhNfpCpuPowerTextIconUpdateCallback, NULL);
+    icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_POWER_TEXT, &PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_POWER_TEXT], NULL, L"CPU power (text)", hwIconFlags, PhNfpCpuPowerTextIconUpdateCallback, NULL);
     icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_POWER_TEXT;
 
     // Load tray icon settings.
