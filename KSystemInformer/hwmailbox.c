@@ -1415,12 +1415,11 @@ NTSTATUS KphpHwMailboxPrepareEntry(
     *Command = NULL;
     RtlZeroMemory(Args, sizeof(ULONG) * KPH_HW_MAILBOX_ARGS);
 
-    if ((Entry->Opcode < 1) || (Entry->Opcode > KPH_DYN_HW_MAILBOX_MAX_OPCODE))
+    if (!Entry->Opcode)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Mailbox opcode 0x%lx is out of range",
-                      Entry->Opcode);
+                      "Mailbox opcode is zero");
 
         return STATUS_INVALID_PARAMETER;
     }

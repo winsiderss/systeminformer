@@ -4341,7 +4341,18 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
             return status;
         }
 
-        if (match && (count < KPH_HW_PCI_VSEC_MAX_CAPABILITIES))
+        if (match && (count >= KPH_HW_PCI_VSEC_MAX_CAPABILITIES))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "VSEC discovery capability at 0x%lx beyond %lu",
+                          position,
+                          (ULONG)KPH_HW_PCI_VSEC_MAX_CAPABILITIES);
+
+            return STATUS_DEVICE_CONFIGURATION_ERROR;
+        }
+
+        if (match)
         {
             Positions[count++] = position;
         }
