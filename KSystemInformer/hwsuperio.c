@@ -955,6 +955,10 @@ NTSTATUS KphpHwSuperIoReadMonitor(
         }
         case KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC:
         {
+            UCHAR current;
+
+            NT_ASSERT(bank != KPH_HW_SUPERIO_EC_PAGE_FREE);
+
             while (KphpHwSuperIoIn(page) != KPH_HW_SUPERIO_EC_PAGE_FREE)
             {
                 if (KphHwDeadlinePassed(Session->Deadline))
@@ -970,8 +974,25 @@ NTSTATUS KphpHwSuperIoReadMonitor(
                 KphpHwSuperIoDelay(1);
             }
 
-            KphpHwSuperIoOut(page, KPH_HW_SUPERIO_EC_PAGE_FREE);
+            //
+            // With the EC's lock enabled the page write is accepted only while
+            // the page reads free, so the write is the claim.
+            //
             KphpHwSuperIoOut(page, bank);
+
+            current = KphpHwSuperIoIn(page);
+            if (current != bank)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SuperIO EC page 0x%02lx claimed, not 0x%02lx",
+                              (ULONG)current,
+                              (ULONG)bank);
+
+                Session->Contended = TRUE;
+                return STATUS_RETRY;
+            }
+
             break;
         }
         case KPH_DYN_HW_SUPERIO_FAMILY_SMSC:
@@ -994,6 +1015,23 @@ NTSTATUS KphpHwSuperIoReadMonitor(
 
     if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC)
     {
+        UCHAR current;
+
+        current = KphpHwSuperIoIn(page);
+        if (current != bank)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SuperIO EC page 0x%02lx selected after the read, "
+                          "not 0x%02lx: not released",
+                          (ULONG)current,
+                          (ULONG)bank);
+
+            *Value = 0;
+            Session->Contended = TRUE;
+            return STATUS_RETRY;
+        }
+
         KphpHwSuperIoOut(page, KPH_HW_SUPERIO_EC_PAGE_FREE);
     }
 
