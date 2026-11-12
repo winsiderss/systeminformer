@@ -812,6 +812,300 @@ Exit:
 }
 
 /**
+ * \brief Computes the size of a resource list.
+ *
+ * \param[in] List The resource list.
+ * \param[in] Available The number of bytes available at the list.
+ * \param[out] Size Receives the size of the list.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwResourceListSize(
+    _In_reads_bytes_(Available) PCM_RESOURCE_LIST List,
+    _In_ ULONG Available,
+    _Out_ PULONG Size
+    )
+{
+    NTSTATUS status;
+    ULONG fullHeaderLength;
+    ULONG offset;
+    ULONG next;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Size = 0;
+
+    if (Available < (ULONG)FIELD_OFFSET(CM_RESOURCE_LIST, List))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Resource list of %lu bytes is truncated",
+                      Available);
+
+        return STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
+
+    fullHeaderLength = FIELD_OFFSET(CM_FULL_RESOURCE_DESCRIPTOR,
+                                    PartialResourceList.PartialDescriptors);
+    offset = FIELD_OFFSET(CM_RESOURCE_LIST, List);
+
+    for (ULONG i = 0; i < List->Count; i++)
+    {
+        PCM_FULL_RESOURCE_DESCRIPTOR full;
+        ULONG partialCount;
+
+        status = RtlULongAdd(offset, fullHeaderLength, &next);
+        if (!NT_SUCCESS(status) || (next > Available))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Resource list truncated at %lu",
+                          offset);
+
+            return STATUS_DEVICE_CONFIGURATION_ERROR;
+        }
+
+        full = Add2Ptr(List, offset);
+        partialCount = full->PartialResourceList.Count;
+        offset = next;
+
+        for (ULONG j = 0; j < partialCount; j++)
+        {
+            PCM_PARTIAL_RESOURCE_DESCRIPTOR partial;
+
+            status = RtlULongAdd(offset,
+                                 sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR),
+                                 &next);
+            if (!NT_SUCCESS(status) || (next > Available))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "Resource list truncated at %lu",
+                              offset);
+
+                return STATUS_DEVICE_CONFIGURATION_ERROR;
+            }
+
+            partial = Add2Ptr(List, offset);
+            offset = next;
+
+            if (partial->Type != CmResourceTypeDeviceSpecific)
+            {
+                continue;
+            }
+
+            status = RtlULongAdd(offset,
+                                 partial->u.DeviceSpecificData.DataSize,
+                                 &next);
+            if (!NT_SUCCESS(status) || (next > Available))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "Resource list device data overruns at %lu",
+                              offset);
+
+                return STATUS_DEVICE_CONFIGURATION_ERROR;
+            }
+
+            offset = next;
+        }
+    }
+
+    *Size = offset;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Retrieves the resources the PnP manager has assigned to a device.
+ *
+ * \details The property holds the raw list immediately followed by the
+ * translated list. A device without assigned resources yields no buffer.
+ *
+ * \param[in] Pdo The physical device object.
+ * \param[out] Buffer Receives the property, freed with
+ * KPH_TAG_HW_BOOT_CONFIG; NULL when the device has no assigned resources.
+ * \param[out] First Receives the raw list, within Buffer.
+ * \param[out] FirstLength Receives the length of the raw list.
+ * \param[out] Second Receives the translated list, within Buffer.
+ * \param[out] SecondLength Receives the length of the translated list.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwQueryAllocatedResources(
+    _In_ PDEVICE_OBJECT Pdo,
+    _Outptr_result_maybenull_ PVOID* Buffer,
+    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* First,
+    _Out_ PULONG FirstLength,
+    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* Second,
+    _Out_ PULONG SecondLength
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG length;
+    ULONG resultLength;
+    ULONG firstLength;
+    ULONG secondLength;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Buffer = NULL;
+    *First = NULL;
+    *FirstLength = 0;
+    *Second = NULL;
+    *SecondLength = 0;
+
+    buffer = NULL;
+    length = 0;
+
+    status = IoGetDeviceProperty(Pdo,
+                                 DevicePropertyAllocatedResources,
+                                 0,
+                                 NULL,
+                                 &length);
+    if ((status == STATUS_SUCCESS) && !length)
+    {
+        goto Exit;
+    }
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty returned: %!STATUS!",
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        }
+
+        goto Exit;
+    }
+
+    if (!length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Allocated resources probe returned no length");
+
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        goto Exit;
+    }
+
+    buffer = KphAllocatePaged(length, KPH_TAG_HW_BOOT_CONFIG);
+    if (!buffer)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate allocated resources");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    resultLength = 0;
+
+    status = IoGetDeviceProperty(Pdo,
+                                 DevicePropertyAllocatedResources,
+                                 length,
+                                 buffer,
+                                 &resultLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (resultLength != length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Allocated resources changed from %lu to %lu bytes",
+                      length,
+                      resultLength);
+
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        goto Exit;
+    }
+
+    status = KphpHwResourceListSize(buffer, length, &firstLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwResourceListSize failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (firstLength >= length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Allocated resources of %lu bytes hold one list",
+                      length);
+
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        goto Exit;
+    }
+
+    status = KphpHwResourceListSize(Add2Ptr(buffer, firstLength),
+                                    length - firstLength,
+                                    &secondLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwResourceListSize failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (secondLength != (length - firstLength))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Allocated resources of %lu bytes hold %lu + %lu",
+                      length,
+                      firstLength,
+                      secondLength);
+
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        goto Exit;
+    }
+
+    *Buffer = buffer;
+    *First = buffer;
+    *FirstLength = firstLength;
+    *Second = Add2Ptr(buffer, firstLength);
+    *SecondLength = secondLength;
+    buffer = NULL;
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (buffer)
+    {
+        KphFree(buffer, KPH_TAG_HW_BOOT_CONFIG);
+    }
+
+    return status;
+}
+
+/**
  * \brief Finds a memory descriptor of a resource list.
  *
  * \param[in] List The resource list.

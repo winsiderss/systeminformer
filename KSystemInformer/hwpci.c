@@ -169,8 +169,6 @@ typedef struct _KPH_HW_PCI_DEVICE
     BOOLEAN CapabilitiesWalked;
     BOOLEAN CapabilitiesValid;
     UCHAR PmCapability;
-    ULONG64 BarBase[PCI_TYPE0_ADDRESSES];
-    ULONG64 BarLength[PCI_TYPE0_ADDRESSES];
 } KPH_HW_PCI_DEVICE, *PKPH_HW_PCI_DEVICE;
 
 typedef struct _KPH_HW_PCI_FIND_PDO
@@ -2990,7 +2988,10 @@ NTSTATUS KphpHwPciLocateMemoryBar(
 }
 
 /**
- * \brief Finds the boot configuration length of the memory range at a base.
+ * \brief Finds the length of the memory range of a device at a base.
+ *
+ * \details The resources the PnP manager has assigned to the device decide;
+ * the boot configuration is used only when there are none.
  *
  * \param[in] Pdo The physical device object.
  * \param[in] Base The raw base of the BAR.
@@ -3000,13 +3001,16 @@ NTSTATUS KphpHwPciLocateMemoryBar(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpHwPciBootRangeLength(
+NTSTATUS KphpHwPciRangeLength(
     _In_ PDEVICE_OBJECT Pdo,
     _In_ ULONG64 Base,
     _Out_ PULONG64 Length
     )
 {
     NTSTATUS status;
+    PVOID allocated;
+    PCM_RESOURCE_LIST bootRaw;
+    PCM_RESOURCE_LIST bootTranslated;
     PCM_RESOURCE_LIST raw;
     PCM_RESOURCE_LIST translated;
     ULONG rawLength;
@@ -3020,36 +3024,58 @@ NTSTATUS KphpHwPciBootRangeLength(
 
     *Length = 0;
 
-    raw = NULL;
-    translated = NULL;
+    bootRaw = NULL;
+    bootTranslated = NULL;
 
-    status = KphHwQueryBootConfiguration(Pdo,
-                                         DevicePropertyBootConfiguration,
-                                         &raw,
-                                         &rawLength);
+    status = KphHwQueryAllocatedResources(Pdo,
+                                          &allocated,
+                                          &raw,
+                                          &rawLength,
+                                          &translated,
+                                          &translatedLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphHwQueryBootConfiguration failed: %!STATUS!",
+                      "KphHwQueryAllocatedResources failed: %!STATUS!",
                       status);
 
         goto Exit;
     }
 
-    status = KphHwQueryBootConfiguration(
-                              Pdo,
-                              DevicePropertyBootConfigurationTranslated,
-                              &translated,
-                              &translatedLength);
-    if (!NT_SUCCESS(status))
+    if (!allocated)
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphHwQueryBootConfiguration failed: %!STATUS!",
-                      status);
+        status = KphHwQueryBootConfiguration(Pdo,
+                                             DevicePropertyBootConfiguration,
+                                             &bootRaw,
+                                             &rawLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphHwQueryBootConfiguration failed: %!STATUS!",
+                          status);
 
-        goto Exit;
+            goto Exit;
+        }
+
+        status = KphHwQueryBootConfiguration(
+                                  Pdo,
+                                  DevicePropertyBootConfigurationTranslated,
+                                  &bootTranslated,
+                                  &translatedLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphHwQueryBootConfiguration failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        raw = bootRaw;
+        translated = bootTranslated;
     }
 
     ordinal = 0;
@@ -3065,7 +3091,7 @@ NTSTATUS KphpHwPciBootRangeLength(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "No boot memory range starts at 0x%I64x",
+                      "No memory range starts at 0x%I64x",
                       Base);
 
         status = STATUS_DEVICE_CONFIGURATION_ERROR;
@@ -3082,7 +3108,7 @@ NTSTATUS KphpHwPciBootRangeLength(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "No translated boot memory range %lu",
+                      "No translated memory range %lu",
                       ordinal);
 
         status = STATUS_DEVICE_CONFIGURATION_ERROR;
@@ -3093,7 +3119,7 @@ NTSTATUS KphpHwPciBootRangeLength(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Boot memory range 0x%I64x+0x%I64x translates to "
+                      "Memory range 0x%I64x+0x%I64x translates to "
                       "0x%I64x+0x%I64x",
                       Base,
                       length,
@@ -3109,14 +3135,19 @@ NTSTATUS KphpHwPciBootRangeLength(
 
 Exit:
 
-    if (translated)
+    if (bootTranslated)
     {
-        KphFree(translated, KPH_TAG_HW_BOOT_CONFIG);
+        KphFree(bootTranslated, KPH_TAG_HW_BOOT_CONFIG);
     }
 
-    if (raw)
+    if (bootRaw)
     {
-        KphFree(raw, KPH_TAG_HW_BOOT_CONFIG);
+        KphFree(bootRaw, KPH_TAG_HW_BOOT_CONFIG);
+    }
+
+    if (allocated)
+    {
+        KphFree(allocated, KPH_TAG_HW_BOOT_CONFIG);
     }
 
     return status;
@@ -3298,7 +3329,7 @@ NTSTATUS KphpHwPciReadMemoryBar(
 /**
  * \brief Derives the base and length of a memory BAR.
  *
- * \param[in,out] Device The device.
+ * \param[in] Device The device.
  * \param[in] Bus The bus interface of the device.
  * \param[in] BarIndex The index of the BAR.
  * \param[out] Base Receives the base, untouched on failure.
@@ -3311,7 +3342,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwPciLock)
 _Must_inspect_result_
 NTSTATUS KphpHwPciDeriveMemoryBar(
-    _Inout_ PKPH_HW_PCI_DEVICE Device,
+    _In_ PKPH_HW_PCI_DEVICE Device,
     _In_ PBUS_INTERFACE_STANDARD Bus,
     _In_ UCHAR BarIndex,
     _Out_ PULONG64 Base,
@@ -3339,30 +3370,22 @@ NTSTATUS KphpHwPciDeriveMemoryBar(
         return status;
     }
 
-    NT_ASSERT(BarIndex < ARRAYSIZE(Device->BarBase));
-
-    if (Device->BarBase[BarIndex] != base)
+    status = KphpHwPciRangeLength(Device->Pdo, base, &length);
+    if (!NT_SUCCESS(status))
     {
-        status = KphpHwPciBootRangeLength(Device->Pdo, base, &length);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "PCI %04lx:%04lx BAR %lu length unknown: %!STATUS!",
-                          (ULONG)Device->Ids.VendorId,
-                          (ULONG)Device->Ids.DeviceId,
-                          (ULONG)BarIndex,
-                          status);
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "PCI %04lx:%04lx BAR %lu length unknown: %!STATUS!",
+                      (ULONG)Device->Ids.VendorId,
+                      (ULONG)Device->Ids.DeviceId,
+                      (ULONG)BarIndex,
+                      status);
 
-            return STATUS_DEVICE_CONFIGURATION_ERROR;
-        }
-
-        Device->BarBase[BarIndex] = base;
-        Device->BarLength[BarIndex] = length;
+        return STATUS_DEVICE_CONFIGURATION_ERROR;
     }
 
     *Base = base;
-    *Length = Device->BarLength[BarIndex];
+    *Length = length;
 
     return STATUS_SUCCESS;
 }

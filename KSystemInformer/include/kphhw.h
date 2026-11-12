@@ -172,6 +172,17 @@ NTSTATUS KphHwQueryBootConfiguration(
     _Out_ PULONG Length
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwQueryAllocatedResources(
+    _In_ PDEVICE_OBJECT Pdo,
+    _Outptr_result_maybenull_ PVOID* Buffer,
+    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* First,
+    _Out_ PULONG FirstLength,
+    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* Second,
+    _Out_ PULONG SecondLength
+    );
+
 typedef enum _KPH_HW_FIND_MEMORY
 {
     KPH_HW_FIND_MEMORY_BY_START,
