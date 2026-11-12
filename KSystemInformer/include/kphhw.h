@@ -138,6 +138,17 @@ KPH_HW_ENUMERATE_DEVICES_CALLBACK(
     );
 typedef KPH_HW_ENUMERATE_DEVICES_CALLBACK* PKPH_HW_ENUMERATE_DEVICES_CALLBACK;
 
+typedef
+_Function_class_(KPH_HW_WINDOW_RECHECK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KSIAPI
+KPH_HW_WINDOW_RECHECK(
+    _In_ PVOID Context
+    );
+typedef KPH_HW_WINDOW_RECHECK* PKPH_HW_WINDOW_RECHECK;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwEnumerateDriverDevices(
@@ -361,6 +372,8 @@ typedef struct _KPH_HW_VSEC_LOCATION
     ULONG64 Base;
     ULONG Size;
     ULONG Id;
+    ULONG64 BarBase;
+    UCHAR Bar;
 } KPH_HW_VSEC_LOCATION, *PKPH_HW_VSEC_LOCATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -459,6 +472,17 @@ BOOLEAN KphHwWindowValidateEntries(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG64 KphHwWindowAllOnes(
+    _In_ UCHAR Width
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphHwWindowStopEntries(
+    _In_ ULONG Count,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwWindowMapAndRead(
     _In_ PKPH_DYN_HW_OP Op,
@@ -466,7 +490,9 @@ NTSTATUS KphHwWindowMapAndRead(
     _In_ ULONG SpanBegin,
     _In_ ULONG SpanEnd,
     _In_ ULONG Count,
-    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_opt_ PKPH_HW_WINDOW_RECHECK Recheck,
+    _In_opt_ PVOID Context
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -609,7 +635,9 @@ NTSTATUS KphHwVsecMapAndRead(
     _In_ ULONG SpanBegin,
     _In_ ULONG SpanEnd,
     _In_ ULONG Count,
-    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_opt_ PKPH_HW_WINDOW_RECHECK Recheck,
+    _In_opt_ PVOID Context
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

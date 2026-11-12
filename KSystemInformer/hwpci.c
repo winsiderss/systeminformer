@@ -3214,13 +3214,13 @@ NTSTATUS KphpHwPciCheckD0(
 }
 
 /**
- * \brief Derives the base and length of a memory BAR.
+ * \brief Reads the base of a memory BAR of a device that decodes memory, from
+ * configuration space only.
  *
- * \param[in,out] Device The device.
+ * \param[in] Device The device.
  * \param[in] Bus The bus interface of the device.
  * \param[in] BarIndex The index of the BAR.
  * \param[out] Base Receives the base, untouched on failure.
- * \param[out] Length Receives the length, untouched on failure.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
  *
  * \return Successful or errant status.
@@ -3228,24 +3228,21 @@ NTSTATUS KphpHwPciCheckD0(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwPciLock)
 _Must_inspect_result_
-NTSTATUS KphpHwPciDeriveMemoryBar(
-    _Inout_ PKPH_HW_PCI_DEVICE Device,
+NTSTATUS KphpHwPciReadMemoryBar(
+    _In_ PKPH_HW_PCI_DEVICE Device,
     _In_ PBUS_INTERFACE_STANDARD Bus,
     _In_ UCHAR BarIndex,
     _Out_ PULONG64 Base,
-    _Out_ PULONG64 Length,
     _Inout_ PBOOLEAN ReadFailed
     )
 {
     NTSTATUS status;
     USHORT command;
     ULONG64 base;
-    ULONG64 length;
 
     KPH_PAGED_CODE_PASSIVE();
 
     *Base = 0;
-    *Length = 0;
 
     if (!KphpHwPciReadConfig(Bus,
                              FIELD_OFFSET(PCI_COMMON_HEADER, Command),
@@ -3295,6 +3292,55 @@ NTSTATUS KphpHwPciDeriveMemoryBar(
                       (ULONG)BarIndex);
 
         return STATUS_DEVICE_NOT_READY;
+    }
+
+    *Base = base;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Derives the base and length of a memory BAR.
+ *
+ * \param[in,out] Device The device.
+ * \param[in] Bus The bus interface of the device.
+ * \param[in] BarIndex The index of the BAR.
+ * \param[out] Base Receives the base, untouched on failure.
+ * \param[out] Length Receives the length, untouched on failure.
+ * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwPciLock)
+_Must_inspect_result_
+NTSTATUS KphpHwPciDeriveMemoryBar(
+    _Inout_ PKPH_HW_PCI_DEVICE Device,
+    _In_ PBUS_INTERFACE_STANDARD Bus,
+    _In_ UCHAR BarIndex,
+    _Out_ PULONG64 Base,
+    _Out_ PULONG64 Length,
+    _Inout_ PBOOLEAN ReadFailed
+    )
+{
+    NTSTATUS status;
+    ULONG64 base;
+    ULONG64 length;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Base = 0;
+    *Length = 0;
+
+    status = KphpHwPciReadMemoryBar(Device, Bus, BarIndex, &base, ReadFailed);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwPciReadMemoryBar failed: %!STATUS!",
+                      status);
+
+        return status;
     }
 
     NT_ASSERT(BarIndex < ARRAYSIZE(Device->BarBase));
@@ -3433,6 +3479,8 @@ NTSTATUS KphpHwPciDeriveSmnAperture(
  * \param[in] Bus The bus interface of the device.
  * \param[in] Table The op table of the device.
  * \param[in] Op The window_read op.
+ * \param[in] QueryLength FALSE to derive from configuration space only, with
+ * no BAR length query.
  * \param[out] Base Receives the base, aligned to the window size, untouched
  * on failure.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
@@ -3447,6 +3495,7 @@ NTSTATUS KphpHwPciDeriveWindowBase(
     _In_ PBUS_INTERFACE_STANDARD Bus,
     _In_ PKPH_DYN_HW_TABLE Table,
     _In_ PKPH_DYN_HW_OP Op,
+    _In_ BOOLEAN QueryLength,
     _Out_ PULONG64 Base,
     _Inout_ PBOOLEAN ReadFailed
     )
@@ -3475,7 +3524,25 @@ NTSTATUS KphpHwPciDeriveWindowBase(
         }
     }
 
-    if (window->BaseKind == KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR)
+    if ((window->BaseKind == KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR) &&
+        !QueryLength)
+    {
+        status = KphpHwPciReadMemoryBar(Device,
+                                        Bus,
+                                        window->BarIndex,
+                                        &base,
+                                        ReadFailed);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwPciReadMemoryBar failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+    }
+    else if (window->BaseKind == KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR)
     {
         ULONG64 length;
 
@@ -3608,6 +3675,73 @@ NTSTATUS KphpHwPciDeriveWindowBase(
     return STATUS_SUCCESS;
 }
 
+typedef struct _KPH_HW_PCI_WINDOW_RECHECK_CONTEXT
+{
+    PKPH_HW_PCI_DEVICE Device;
+    PBUS_INTERFACE_STANDARD Bus;
+    PKPH_DYN_HW_TABLE Table;
+    PKPH_DYN_HW_OP Op;
+    ULONG64 Base;
+    PBOOLEAN ReadFailed;
+} KPH_HW_PCI_WINDOW_RECHECK_CONTEXT, *PKPH_HW_PCI_WINDOW_RECHECK_CONTEXT;
+
+/**
+ * \brief Re-checks a window's device from configuration space after an
+ * all-ones read.
+ *
+ * \param[in] Context The PKPH_HW_PCI_WINDOW_RECHECK_CONTEXT of the read.
+ *
+ * \return STATUS_SUCCESS when the window base is unchanged,
+ * STATUS_DEVICE_NOT_READY otherwise.
+ */
+_Function_class_(KPH_HW_WINDOW_RECHECK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwPciLock)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpHwPciRecheckWindow(
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_HW_PCI_WINDOW_RECHECK_CONTEXT context;
+    ULONG64 base;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    context = Context;
+    base = 0;
+
+    status = KphpHwPciDeriveWindowBase(context->Device,
+                                       context->Bus,
+                                       context->Table,
+                                       context->Op,
+                                       FALSE,
+                                       &base,
+                                       context->ReadFailed);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwPciDeriveWindowBase failed: %!STATUS!",
+                      status);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    if (base != context->Base)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Window base 0x%I64x moved to 0x%I64x",
+                      context->Base,
+                      base);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * \brief Reads a batch of allow-listed registers of a device window.
  *
@@ -3641,6 +3775,7 @@ NTSTATUS KphHwPciReadWindow(
     ULONG spanEnd;
     ULONG64 base;
     ULONG64 check;
+    KPH_HW_PCI_WINDOW_RECHECK_CONTEXT recheck;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -3711,6 +3846,7 @@ NTSTATUS KphHwPciReadWindow(
                                        &bus.Interface,
                                        table,
                                        op,
+                                       TRUE,
                                        &base,
                                        &readFailed);
     if (!NT_SUCCESS(status))
@@ -3723,12 +3859,21 @@ NTSTATUS KphHwPciReadWindow(
         goto Exit;
     }
 
+    recheck.Device = device;
+    recheck.Bus = &bus.Interface;
+    recheck.Table = table;
+    recheck.Op = op;
+    recheck.Base = base;
+    recheck.ReadFailed = &readFailed;
+
     status = KphHwWindowMapAndRead(op,
                                    base,
                                    spanBegin,
                                    spanEnd,
                                    Count,
-                                   Entries);
+                                   Entries,
+                                   KphpHwPciRecheckWindow,
+                                   &recheck);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -3745,6 +3890,7 @@ NTSTATUS KphHwPciReadWindow(
                                        &bus.Interface,
                                        table,
                                        op,
+                                       TRUE,
                                        &check,
                                        &readFailed);
     if (!NT_SUCCESS(status) || (check != base))
@@ -4232,6 +4378,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
 /**
  * \brief Records a region located in a BAR of the device.
  *
+ * \param[in] Bar The index of the BAR.
  * \param[in] BarBase The base of the BAR.
  * \param[in] BarLength The length of the BAR.
  * \param[in] Offset The offset of the region in the BAR.
@@ -4245,6 +4392,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 _Success_(return)
 BOOLEAN KphpHwPciVsecRegionInBar(
+    _In_ UCHAR Bar,
     _In_ ULONG64 BarBase,
     _In_ ULONG64 BarLength,
     _In_ ULONG64 Offset,
@@ -4298,6 +4446,8 @@ BOOLEAN KphpHwPciVsecRegionInBar(
     Location->Base = base;
     Location->Size = Size;
     Location->Id = Id;
+    Location->Bar = Bar;
+    Location->BarBase = BarBase;
 
     return TRUE;
 }
@@ -4747,7 +4897,8 @@ NTSTATUS KphpHwPciVsecLocatePmt(
         return status;
     }
 
-    if (!KphpHwPciVsecRegionInBar(regionBarBase,
+    if (!KphpHwPciVsecRegionInBar(regionBar,
+                                  regionBarBase,
                                   regionBarLength,
                                   regionOffset,
                                   size,
@@ -4824,7 +4975,8 @@ VOID KphpHwPciVsecLocateTpmi(
                                              instanceOffset,
                                              &regionOffset)));
 
-        if (!KphpHwPciVsecRegionInBar(Table->BarBase,
+        if (!KphpHwPciVsecRegionInBar(Table->Bar,
+                                      Table->BarBase,
                                       Table->BarLength,
                                       regionOffset,
                                       size,
@@ -5031,6 +5183,87 @@ NTSTATUS KphpHwPciVsecRequireCached(
     return STATUS_NOT_SUPPORTED;
 }
 
+typedef struct _KPH_HW_PCI_VSEC_RECHECK_CONTEXT
+{
+    PKPH_HW_PCI_DEVICE Device;
+    PBUS_INTERFACE_STANDARD Bus;
+    PKPH_DYN_HW_OP Op;
+    PKPH_HW_VSEC_LOCATION Location;
+    PBOOLEAN ReadFailed;
+} KPH_HW_PCI_VSEC_RECHECK_CONTEXT, *PKPH_HW_PCI_VSEC_RECHECK_CONTEXT;
+
+/**
+ * \brief Re-checks a VSEC region's device from configuration space after an
+ * all-ones read.
+ *
+ * \param[in] Context The PKPH_HW_PCI_VSEC_RECHECK_CONTEXT of the read.
+ *
+ * \return STATUS_SUCCESS when the region's BAR is unchanged,
+ * STATUS_DEVICE_NOT_READY otherwise.
+ */
+_Function_class_(KPH_HW_WINDOW_RECHECK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwPciLock)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpHwPciRecheckVsec(
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_HW_PCI_VSEC_RECHECK_CONTEXT context;
+    ULONG64 base;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    context = Context;
+    base = 0;
+
+    if (BooleanFlagOn(context->Op->Flags, KPH_DYN_HW_FLAG_REQUIRE_D0))
+    {
+        status = KphpHwPciCheckD0(context->Device,
+                                  context->Bus,
+                                  context->ReadFailed);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwPciCheckD0 failed: %!STATUS!",
+                          status);
+
+            return STATUS_DEVICE_NOT_READY;
+        }
+    }
+
+    status = KphpHwPciReadMemoryBar(context->Device,
+                                    context->Bus,
+                                    context->Location->Bar,
+                                    &base,
+                                    context->ReadFailed);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwPciReadMemoryBar failed: %!STATUS!",
+                      status);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    if (base != context->Location->BarBase)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "VSEC BAR %lu base 0x%I64x moved to 0x%I64x",
+                      (ULONG)context->Location->Bar,
+                      context->Location->BarBase,
+                      base);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * \brief Reads a batch of allow-listed registers of a VSEC region.
  *
@@ -5066,6 +5299,7 @@ NTSTATUS KphHwPciReadVsec(
     KPH_HW_VSEC_LOCATION location;
     ULONG spanBegin;
     ULONG spanEnd;
+    KPH_HW_PCI_VSEC_RECHECK_CONTEXT recheck;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -5175,12 +5409,20 @@ NTSTATUS KphHwPciReadVsec(
         goto Exit;
     }
 
+    recheck.Device = device;
+    recheck.Bus = &bus.Interface;
+    recheck.Op = op;
+    recheck.Location = &location;
+    recheck.ReadFailed = &readFailed;
+
     status = KphHwVsecMapAndRead(&locator,
                                  &location,
                                  spanBegin,
                                  spanEnd,
                                  Count,
-                                 Entries);
+                                 Entries,
+                                 KphpHwPciRecheckVsec,
+                                 &recheck);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

@@ -2429,7 +2429,9 @@ NTSTATUS KphpHwAcpiReadCrsWindow(
                                    spanBegin,
                                    spanEnd,
                                    Count,
-                                   Entries);
+                                   Entries,
+                                   NULL,
+                                   NULL);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

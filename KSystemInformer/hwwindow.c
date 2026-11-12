@@ -1257,6 +1257,52 @@ BOOLEAN KphHwWindowValidateEntries(
 }
 
 /**
+ * \brief Retrieves the all-ones value of an access width.
+ *
+ * \param[in] Width The access width, 1, 2, 4 or 8.
+ *
+ * \return The value with every bit of the width set.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG64 KphHwWindowAllOnes(
+    _In_ UCHAR Width
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT((Width == 1) || (Width == 2) || (Width == 4) || (Width == 8));
+
+    if (Width == sizeof(ULONG64))
+    {
+        return MAXULONG64;
+    }
+
+    return ((1ull << (Width * RTL_BITS_OF(UCHAR))) - 1);
+}
+
+/**
+ * \brief Stops a batch: every entry still pending is not read.
+ *
+ * \param[in] Count The number of entries.
+ * \param[in,out] Entries The batch entries.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphHwWindowStopEntries(
+    _In_ ULONG Count,
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (Entries[i].Status == STATUS_PENDING)
+        {
+            Entries[i].Status = STATUS_DEVICE_NOT_READY;
+        }
+    }
+}
+
+/**
  * \brief Maps the span of a window the prepared entries cover and reads them.
  *
  * \param[in] Op The window_read op.
@@ -1265,6 +1311,9 @@ BOOLEAN KphHwWindowValidateEntries(
  * \param[in] SpanEnd The end of the highest read, exclusive.
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The prepared batch entries.
+ * \param[in] Recheck Optionally re-checks the device after an all-ones read;
+ * on failure the batch stops.
+ * \param[in] Context The context of Recheck.
  *
  * \return Successful or errant status.
  */
@@ -1276,7 +1325,9 @@ NTSTATUS KphHwWindowMapAndRead(
     _In_ ULONG SpanBegin,
     _In_ ULONG SpanEnd,
     _In_ ULONG Count,
-    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_opt_ PKPH_HW_WINDOW_RECHECK Recheck,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -1361,6 +1412,30 @@ NTSTATUS KphHwWindowMapAndRead(
         registerAddress = Add2Ptr(mapping, entry->Offset - SpanBegin);
         entry->Value = KphpHwWindowReadRegister(registerAddress, entry->Width);
         entry->Status = STATUS_SUCCESS;
+
+        if (!Recheck || (entry->Value != KphHwWindowAllOnes(entry->Width)))
+        {
+            continue;
+        }
+
+        status = Recheck(Context);
+        if (NT_SUCCESS(status))
+        {
+            continue;
+        }
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Window offset 0x%lx read all-ones, device re-check "
+                      "failed: %!STATUS!",
+                      entry->Offset,
+                      status);
+
+        entry->Value = 0;
+        entry->Status = STATUS_DEVICE_NOT_READY;
+
+        KphHwWindowStopEntries(Count, Entries);
+        break;
     }
 
     MmUnmapIoSpace(mapping, spanLength);
@@ -1556,7 +1631,9 @@ NTSTATUS KphpHwWindowReadLpit(
                                    spanBegin,
                                    spanEnd,
                                    Count,
-                                   Entries);
+                                   Entries,
+                                   NULL,
+                                   NULL);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1630,7 +1707,9 @@ NTSTATUS KphpHwWindowReadFixedMmio(
                                    spanBegin,
                                    spanEnd,
                                    Count,
-                                   Entries);
+                                   Entries,
+                                   NULL,
+                                   NULL);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

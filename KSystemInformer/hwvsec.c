@@ -300,6 +300,9 @@ BOOLEAN KphHwVsecValidateEntries(
  * \param[in] SpanEnd The end of the highest read, exclusive.
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The prepared batch entries.
+ * \param[in] Recheck Optionally re-checks the device after an all-ones read;
+ * on failure the batch stops.
+ * \param[in] Context The context of Recheck.
  *
  * \return Successful or errant status.
  */
@@ -311,7 +314,9 @@ NTSTATUS KphHwVsecMapAndRead(
     _In_ ULONG SpanBegin,
     _In_ ULONG SpanEnd,
     _In_ ULONG Count,
-    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
+    _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
+    _In_opt_ PKPH_HW_WINDOW_RECHECK Recheck,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -392,6 +397,32 @@ NTSTATUS KphHwVsecMapAndRead(
                 break;
             }
         }
+
+        if (!Recheck ||
+            (entry->Status != STATUS_SUCCESS) ||
+            (entry->Value != KphHwWindowAllOnes(entry->Width)))
+        {
+            continue;
+        }
+
+        status = Recheck(Context);
+        if (NT_SUCCESS(status))
+        {
+            continue;
+        }
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "VSEC offset 0x%lx read all-ones, device re-check "
+                      "failed: %!STATUS!",
+                      entry->Offset,
+                      status);
+
+        entry->Value = 0;
+        entry->Status = STATUS_DEVICE_NOT_READY;
+
+        KphHwWindowStopEntries(Count, Entries);
+        break;
     }
 
     MmUnmapIoSpace(mapping, spanLength);
