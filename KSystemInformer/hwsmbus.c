@@ -1644,6 +1644,29 @@ NTSTATUS KphpHwSmbusRead(
             continue;
         }
 
+        if ((session.HostKind == KPH_DYN_HW_SMBUS_HOST_I801) || session.Pm)
+        {
+            status = KphpHwSmbusConfirm(&session,
+                                        Locator,
+                                        Section,
+                                        OpIndex,
+                                        op,
+                                        &host);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SMBus entry %lu not started, host not "
+                              "confirmed: %!STATUS!",
+                              i,
+                              status);
+
+                session.Stopped = status;
+                entry->Status = STATUS_RETRY;
+                continue;
+            }
+        }
+
         entry->Status = KphpHwSmbusTransact(&session,
                                             entry->Address,
                                             entry->Command,
