@@ -5651,7 +5651,8 @@ NTSTATUS KphHwPciSmnRead(
  * \param[in] Value The value to write.
  *
  * \return Successful or errant status; STATUS_DEVICE_NOT_READY when an
- * access failed, STATUS_RETRY when the index moved.
+ * access failed, STATUS_RETRY when the data write was not issued,
+ * STATUS_DEVICE_DATA_ERROR when it was issued and where it landed is unproven.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -5695,6 +5696,34 @@ NTSTATUS KphHwPciSmnWrite(
         goto Exit;
     }
 
+    bytes = bus->GetBusData(bus->Context,
+                            PCI_WHICHSPACE_CONFIG,
+                            &check,
+                            Session->IndexOffset,
+                            sizeof(check));
+    if (bytes != sizeof(check))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMN index read failed: %lu bytes",
+                      bytes);
+
+        status = STATUS_DEVICE_NOT_READY;
+        goto Exit;
+    }
+
+    if (check != Address)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMN index 0x%lx moved to 0x%lx before the data write",
+                      Address,
+                      check);
+
+        status = STATUS_RETRY;
+        goto Exit;
+    }
+
     bytes = bus->SetBusData(bus->Context,
                             PCI_WHICHSPACE_CONFIG,
                             &value,
@@ -5731,11 +5760,11 @@ NTSTATUS KphHwPciSmnWrite(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "SMN index 0x%lx moved to 0x%lx",
+                      "SMN index 0x%lx moved to 0x%lx after the data write",
                       Address,
                       check);
 
-        status = STATUS_RETRY;
+        status = STATUS_DEVICE_DATA_ERROR;
         goto Exit;
     }
 

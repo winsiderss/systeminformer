@@ -393,7 +393,8 @@ NTSTATUS KphpHwMailboxRead(
  * \param[in] Index The argument register, below ArgCount; zero otherwise.
  * \param[in] Value The value to write.
  *
- * \return Successful or errant status; STATUS_RETRY when the SMN index moved.
+ * \return Successful or errant status; for SMN, STATUS_RETRY when the write
+ * was not issued, STATUS_DEVICE_DATA_ERROR when its landing is unproven.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwMailboxLock)
@@ -417,6 +418,124 @@ NTSTATUS KphpHwMailboxWrite(
     }
 
     WRITE_REGISTER_ULONG(KphpHwMailboxMapped(Session, address), Value);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Writes RSP or an argument register of a mailbox so that it holds a
+ * value; a write whose landing is unproven is resolved by reading the
+ * register back.
+ *
+ * \param[in] Session The mailbox session.
+ * \param[in] Register KphpHwMailboxRsp or KphpHwMailboxArg.
+ * \param[in] Index The argument register, below ArgCount; zero for RSP.
+ * \param[in] Value The value to write.
+ * \param[out] Issued Receives TRUE when the write was issued.
+ *
+ * \return STATUS_SUCCESS when the register holds Value; STATUS_RETRY when
+ * the write was not issued or the register holds another value;
+ * STATUS_DEVICE_DATA_ERROR when the write was issued and the register could
+ * not be read back; otherwise the status of the write or of the read back.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwMailboxLock)
+_Must_inspect_result_
+NTSTATUS KphpHwMailboxStore(
+    _In_ PKPH_HW_MAILBOX_SESSION Session,
+    _In_ KPH_HW_MAILBOX_REGISTER Register,
+    _In_ ULONG Index,
+    _In_ ULONG Value,
+    _Out_ PBOOLEAN Issued
+    )
+{
+    NTSTATUS status;
+    ULONG value;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Register != KphpHwMailboxMsg);
+
+    *Issued = FALSE;
+
+    status = KphpHwMailboxWrite(Session, Register, Index, Value);
+    if (status == STATUS_RETRY)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx register %lu.%lu write not issued",
+                      Session->Msg,
+                      (ULONG)Register,
+                      Index);
+
+        return status;
+    }
+
+    *Issued = TRUE;
+
+    if (NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    if (status != STATUS_DEVICE_DATA_ERROR)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwMailboxWrite failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    value = 0;
+
+    status = KphpHwMailboxRead(Session, Register, Index, &value);
+    if (status == STATUS_RETRY)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx register %lu.%lu not read after an "
+                      "unproven write",
+                      Session->Msg,
+                      (ULONG)Register,
+                      Index);
+
+        return STATUS_DEVICE_DATA_ERROR;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwMailboxRead failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    if (value != Value)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx register %lu.%lu holds 0x%08lx after "
+                      "an unproven write of 0x%08lx",
+                      Session->Msg,
+                      (ULONG)Register,
+                      Index,
+                      value,
+                      Value);
+
+        return STATUS_RETRY;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "Mailbox 0x%08lx register %lu.%lu holds 0x%08lx after an "
+                  "unproven write",
+                  Session->Msg,
+                  (ULONG)Register,
+                  Index,
+                  Value);
 
     return STATUS_SUCCESS;
 }
@@ -501,31 +620,67 @@ NTSTATUS KphpHwMailboxWait(
 }
 
 /**
- * \brief Restores the idle RSP value after a handshake failed before MSG.
+ * \brief Restores the idle RSP value after a handshake failed before MSG;
+ * repeated until RSP holds it, since nothing of ours is in flight.
  *
  * \param[in] Session The mailbox session.
+ * \param[in] Deadline The deadline of the request.
  * \param[in] Idle The non-zero RSP value the idle poll read.
+ *
+ * \return STATUS_SUCCESS when RSP holds Idle, STATUS_DEVICE_DATA_ERROR
+ * otherwise.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwMailboxLock)
-VOID KphpHwMailboxRestoreIdle(
+_Must_inspect_result_
+NTSTATUS KphpHwMailboxRestoreIdle(
     _In_ PKPH_HW_MAILBOX_SESSION Session,
+    _In_ ULONG64 Deadline,
     _In_ ULONG Idle
     )
 {
     NTSTATUS status;
+    BOOLEAN issued;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Idle && (Idle != MAXULONG));
 
-    status = KphpHwMailboxWrite(Session, KphpHwMailboxRsp, 0, Idle);
-    if (!NT_SUCCESS(status))
+    for (;;)
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Mailbox 0x%08lx RSP not restored: %!STATUS!",
-                      Session->Msg,
-                      status);
+        status = KphpHwMailboxStore(Session,
+                                    KphpHwMailboxRsp,
+                                    0,
+                                    Idle,
+                                    &issued);
+        if (NT_SUCCESS(status))
+        {
+            return STATUS_SUCCESS;
+        }
+
+        if (status == STATUS_DEVICE_NOT_READY)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx RSP not restored: %!STATUS!",
+                          Session->Msg,
+                          status);
+
+            return STATUS_DEVICE_DATA_ERROR;
+        }
+
+        if (KphHwDeadlinePassed(Deadline))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx RSP not restored by the deadline: "
+                          "%!STATUS!",
+                          Session->Msg,
+                          status);
+
+            return STATUS_DEVICE_DATA_ERROR;
+        }
+
+        KphpHwMailboxDelay(1);
     }
 }
 
@@ -541,8 +696,6 @@ VOID KphpHwMailboxRestoreIdle(
  * \param[in] Args The argument register values, ArgCount of them.
  * \param[in] ResponseWords The argument registers read back on success.
  * \param[out] Results Receives the response words.
- * \param[in] ClientCommand TRUE to retry a torn MSG write; kernel-issued
- * commands are never posted twice.
  * \param[out] Completed Receives FALSE when the handshake failed and no
  * further command may run this request.
  *
@@ -558,7 +711,6 @@ NTSTATUS KphpHwMailboxTransact(
     _In_ ULONG Opcode,
     _In_reads_(KPH_HW_MAILBOX_ARGS) PCULONG Args,
     _In_ UCHAR ResponseWords,
-    _In_ BOOLEAN ClientCommand,
     _Out_writes_(KPH_HW_MAILBOX_ARGS) PULONG Results,
     _Out_ PBOOLEAN Completed
     )
@@ -566,6 +718,8 @@ NTSTATUS KphpHwMailboxTransact(
     NTSTATUS status;
     PKPH_DYN_HW_MAILBOX_TRANSACT mailbox;
     ULONG response;
+    ULONG idle;
+    BOOLEAN issued;
     BOOLEAN restoreIdle;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -574,6 +728,7 @@ NTSTATUS KphpHwMailboxTransact(
     RtlZeroMemory(Results, sizeof(ULONG) * KPH_HW_MAILBOX_ARGS);
     *Completed = FALSE;
 
+    idle = 0;
     restoreIdle = FALSE;
 
     mailbox = (PKPH_DYN_HW_MAILBOX_TRANSACT)Op->Body;
@@ -605,31 +760,61 @@ NTSTATUS KphpHwMailboxTransact(
         goto Exit;
     }
 
-    restoreIdle = TRUE;
+    idle = response;
 
-    status = KphpHwMailboxWrite(Session, KphpHwMailboxRsp, 0, 0);
+    status = KphpHwMailboxStore(Session, KphpHwMailboxRsp, 0, 0, &issued);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphpHwMailboxWrite failed: %!STATUS!",
+                      "KphpHwMailboxStore failed: %!STATUS!",
                       status);
 
+        restoreIdle = (issued && (status != STATUS_RETRY));
         goto Exit;
     }
 
+    restoreIdle = TRUE;
+
     for (ULONG i = 0; i < mailbox->ArgCount; i++)
     {
-        status = KphpHwMailboxWrite(Session, KphpHwMailboxArg, i, Args[i]);
+        status = KphpHwMailboxStore(Session,
+                                    KphpHwMailboxArg,
+                                    i,
+                                    Args[i],
+                                    &issued);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
-                          "KphpHwMailboxWrite failed: %!STATUS!",
+                          "KphpHwMailboxStore failed: %!STATUS!",
                           status);
 
             goto Exit;
         }
+    }
+
+    status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+    if (status == STATUS_RETRY)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx opcode 0x%02lx MSG not issued",
+                      Session->Msg,
+                      Opcode);
+
+        status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+    }
+
+    if (status == STATUS_RETRY)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx opcode 0x%02lx MSG not issued twice",
+                      Session->Msg,
+                      Opcode);
+
+        goto Exit;
     }
 
     //
@@ -637,13 +822,16 @@ NTSTATUS KphpHwMailboxTransact(
     //
     restoreIdle = FALSE;
 
-    status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
-    if ((status == STATUS_RETRY) && ClientCommand)
+    if (status == STATUS_DEVICE_DATA_ERROR)
     {
-        status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx opcode 0x%02lx MSG issued, landing "
+                      "unproven",
+                      Session->Msg,
+                      Opcode);
     }
-
-    if (!NT_SUCCESS(status))
+    else if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -743,7 +931,18 @@ Exit:
 
     if (restoreIdle)
     {
-        KphpHwMailboxRestoreIdle(Session, response);
+        NTSTATUS restoreStatus;
+
+        restoreStatus = KphpHwMailboxRestoreIdle(Session, Deadline, idle);
+        if (!NT_SUCCESS(restoreStatus))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwMailboxRestoreIdle failed: %!STATUS!",
+                          restoreStatus);
+
+            status = restoreStatus;
+        }
     }
 
     return status;
@@ -929,7 +1128,6 @@ NTSTATUS KphpHwMailboxQueryFirmware(
                                        mailbox->VersionOpcode,
                                        args,
                                        1,
-                                       FALSE,
                                        results,
                                        &completed);
         if (!NT_SUCCESS(status))
@@ -1208,7 +1406,6 @@ NTSTATUS KphpHwMailboxRunBatch(
                                        entry->Opcode,
                                        args,
                                        command->ResponseWords,
-                                       TRUE,
                                        entry->Args,
                                        &completed);
 
@@ -1264,7 +1461,6 @@ NTSTATUS KphpHwMailboxTableCommand(
                                    Opcode,
                                    args,
                                    Command->ResponseWords,
-                                   FALSE,
                                    Results,
                                    &completed);
     if (!NT_SUCCESS(status))
