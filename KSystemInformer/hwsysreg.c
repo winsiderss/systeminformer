@@ -193,6 +193,233 @@ NTSTATUS KphpHwReadSysregRaw(
                 value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR03_EL0);
                 break;
             }
+            case KPH_DYN_HW_SYSREG_ID_AA64ISAR0_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64ISAR0_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64ISAR1_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64ISAR1_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64ISAR2_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64ISAR2_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64MMFR0_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64MMFR0_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64MMFR1_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64MMFR1_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64MMFR2_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64MMFR2_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64ZFR0_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64ZFR0_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_ID_AA64SMFR0_EL1:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64SMFR0_EL1);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_CNTPCT_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_CNTPCT_EL0);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMCG1IDR_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMCG1IDR_EL0);
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR10_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(0));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR11_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(1));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR12_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(2));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR13_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(3));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR14_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(4));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR15_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(5));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR16_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(6));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR17_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(7));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR18_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(8));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR19_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(9));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR110_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(10));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR111_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(11));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR112_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(12));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR113_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(13));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR114_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(14));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVCNTR115_EL0:
+            {
+                __isb(_ARM64_BARRIER_SY);
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVCNTR1_EL0(15));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER10_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(0));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER11_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(1));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER12_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(2));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER13_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(3));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER14_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(4));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER15_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(5));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER16_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(6));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER17_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(7));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER18_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(8));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER19_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(9));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER110_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(10));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER111_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(11));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER112_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(12));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER113_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(13));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER114_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(14));
+                break;
+            }
+            case KPH_DYN_HW_SYSREG_AMEVTYPER115_EL0:
+            {
+                value = (ULONG64)_ReadStatusReg(ARM64_AMEVTYPER1_EL0(15));
+                break;
+            }
             default:
             {
                 status = STATUS_NOT_SUPPORTED;
@@ -229,6 +456,14 @@ BOOLEAN KphpHwSysregPrerequisite(
     )
 {
     KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT((Register >= KPH_DYN_HW_SYSREG_MIDR_EL1) &&
+              (Register <= KPH_DYN_HW_SYSREG_MAX));
+
+    if ((Register >= KPH_DYN_HW_SYSREG_AMEVCNTR10_EL0) &&
+        (Register <= KPH_DYN_HW_SYSREG_AMEVTYPER115_EL0))
+    {
+        return Core->AmuImplemented;
+    }
 
     switch (Register)
     {
@@ -243,14 +478,55 @@ BOOLEAN KphpHwSysregPrerequisite(
         case KPH_DYN_HW_SYSREG_AMEVCNTR01_EL0:
         case KPH_DYN_HW_SYSREG_AMEVCNTR02_EL0:
         case KPH_DYN_HW_SYSREG_AMEVCNTR03_EL0:
+        case KPH_DYN_HW_SYSREG_AMCG1IDR_EL0:
         {
             return Core->AmuImplemented;
         }
         default:
         {
-            NT_ASSERT((Register >= KPH_DYN_HW_SYSREG_MIDR_EL1) &&
-                      (Register <= KPH_DYN_HW_SYSREG_CNTVCT_EL0));
             return TRUE;
+        }
+    }
+}
+
+/**
+ * \brief Checks whether a register is an ID register, the only kind a
+ * SYSREG_FIELD gate reads.
+ *
+ * \param[in] Register The register (KPH_DYN_HW_SYSREG_*).
+ *
+ * \return TRUE for an ID register, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpHwSysregIsIdRegister(
+    _In_ UCHAR Register
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    switch (Register)
+    {
+        case KPH_DYN_HW_SYSREG_MIDR_EL1:
+        case KPH_DYN_HW_SYSREG_MPIDR_EL1:
+        case KPH_DYN_HW_SYSREG_REVIDR_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64PFR0_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64PFR1_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64DFR0_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64ISAR0_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64ISAR1_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64ISAR2_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64MMFR0_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64MMFR1_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64MMFR2_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64ZFR0_EL1:
+        case KPH_DYN_HW_SYSREG_ID_AA64SMFR0_EL1:
+        {
+            return TRUE;
+        }
+        default:
+        {
+            return FALSE;
         }
     }
 }
@@ -398,8 +674,7 @@ VOID KphpHwReadSysregEntry(
 
     if (op->Gate.Kind == KPH_DYN_HW_GATE_SYSREG_FIELD)
     {
-        NT_ASSERT((op->Gate.Register >= KPH_DYN_HW_SYSREG_MIDR_EL1) &&
-                  (op->Gate.Register <= KPH_DYN_HW_SYSREG_ID_LAST));
+        NT_ASSERT(KphpHwSysregIsIdRegister(op->Gate.Register));
 
         status = KphpHwReadSysregRaw(op->Gate.Register, &value);
         if (!NT_SUCCESS(status))

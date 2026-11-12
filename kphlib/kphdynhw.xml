@@ -4462,104 +4462,104 @@ This file is part of System Informer.
          variants="0x1-0x4"
          revisions="0x0-0xf"
          desc="Oryon, first generation">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x51"
          parts="0x002"
          variants="0x1-0x3"
          revisions="0x0-0xf"
          desc="Oryon, second generation">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x41"
          parts="0xd4b,0xd4c"
          variants="0x0-0xf"
          revisions="0x0-0xf"
          desc="Cortex-A78C and Cortex-X1C, Snapdragon 8cx Gen 3 and SQ3; AMU held">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x41"
          parts="0xd41"
          variants="0x0-0xf"
          revisions="0x0-0xf"
          desc="Cortex-A78, Snapdragon 7c+ Gen 3 Kryo 6xx Gold; AMU held">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x41"
          parts="0xd05"
          variants="0x0-0xf"
          revisions="0x0-0xf"
          desc="Cortex-A55, Snapdragon 7c+ Gen 3 Kryo 6xx Silver">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x41"
          parts="0xd85,0xd87"
          variants="0x0-0x1"
          revisions="0x0-0xf"
          desc="Cortex-X925 and Cortex-A725, NVIDIA N1X; AMU held">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
     <arm implementer="0x51"
          parts="0x800-0x805"
          variants="0x0-0xf"
          revisions="0x0-0xf"
          desc="Kryo 2xx, 3xx and 4xx: Snapdragon 835, 850, 7c, 7c Gen 2, 8c, 8cx Gen 1 and 2, SQ1, SQ2">
-        <sysreg reg="midr_el1"/>
-        <sysreg reg="mpidr_el1"/>
-        <sysreg reg="revidr_el1"/>
-        <sysreg reg="id_aa64pfr0_el1"/>
-        <sysreg reg="id_aa64pfr1_el1"/>
-        <sysreg reg="id_aa64dfr0_el1"/>
-        <sysreg reg="cntfrq_el0"/>
-        <sysreg reg="cntvct_el0"/>
-        <sysreg reg="pmccntr_el0" gate="id_aa64dfr0_el1:8:4=0x1-0xe" desc="PMUv3"/>
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
 </hw>

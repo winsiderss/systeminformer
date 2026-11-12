@@ -222,7 +222,8 @@ namespace CustomBuildTool
         public const UInt16 KindSmbusHost = 13;
 
         /// <summary>
-        /// 1 to <see cref="SysregIdLast"/> are ID registers, the only ones a SYSREG_FIELD gate may read.
+        /// The registers the driver reads, a compiled case each; <see cref="SysregIdRegisters"/> are the ones a
+        /// SYSREG_FIELD gate may read.
         /// </summary>
         public const byte SysregMidr = 1;
         public const byte SysregMpidr = 2;
@@ -240,30 +241,76 @@ namespace CustomBuildTool
         public const byte SysregAmevcntr01 = 14;
         public const byte SysregAmevcntr02 = 15;
         public const byte SysregAmevcntr03 = 16;
-        public const byte SysregIdLast = SysregIdAa64Dfr0;
-        public const byte SysregMax = SysregAmevcntr03;
+        public const byte SysregIdAa64Isar0 = 17;
+        public const byte SysregIdAa64Isar1 = 18;
+        public const byte SysregIdAa64Isar2 = 19;
+        public const byte SysregIdAa64Mmfr0 = 20;
+        public const byte SysregIdAa64Mmfr1 = 21;
+        public const byte SysregIdAa64Mmfr2 = 22;
+        public const byte SysregIdAa64Zfr0 = 23;
+        public const byte SysregIdAa64Smfr0 = 24;
+        public const byte SysregCntpct = 25;
+        public const byte SysregAmcg1idr = 26;
+        /// <summary>
+        /// AMEVCNTR1&lt;n&gt;_EL0, n = 0 to 15, at this value + n.
+        /// </summary>
+        public const byte SysregAmevcntr1First = 27;
+        /// <summary>
+        /// AMEVTYPER1&lt;n&gt;_EL0, n = 0 to 15, at this value + n.
+        /// </summary>
+        public const byte SysregAmevtyper1First = 43;
+        public const byte SysregAmuGroup1Counters = 16;
+        public const byte SysregMax = SysregAmevtyper1First + SysregAmuGroup1Counters - 1;
+
+        public static readonly byte[] SysregIdRegisters =
+        [
+            SysregMidr, SysregMpidr, SysregRevidr, SysregIdAa64Pfr0, SysregIdAa64Pfr1, SysregIdAa64Dfr0,
+            SysregIdAa64Isar0, SysregIdAa64Isar1, SysregIdAa64Isar2, SysregIdAa64Mmfr0, SysregIdAa64Mmfr1, SysregIdAa64Mmfr2,
+            SysregIdAa64Zfr0, SysregIdAa64Smfr0
+        ];
 
         public static readonly FrozenDictionary<string, byte> SysregNames = new Dictionary<string, byte>
         {
-            ["midr_el1"] = SysregMidr,
-            ["mpidr_el1"] = SysregMpidr,
-            ["revidr_el1"] = SysregRevidr,
-            ["id_aa64pfr0_el1"] = SysregIdAa64Pfr0,
-            ["id_aa64pfr1_el1"] = SysregIdAa64Pfr1,
-            ["id_aa64dfr0_el1"] = SysregIdAa64Dfr0,
-            ["cntfrq_el0"] = SysregCntfrq,
-            ["cntvct_el0"] = SysregCntvct,
-            ["pmccntr_el0"] = SysregPmccntr,
-            ["amcfgr_el0"] = SysregAmcfgr,
-            ["amcgcr_el0"] = SysregAmcgcr,
-            ["amcntenset0_el0"] = SysregAmcntenset0,
-            ["amevcntr00_el0"] = SysregAmevcntr00,
-            ["amevcntr01_el0"] = SysregAmevcntr01,
-            ["amevcntr02_el0"] = SysregAmevcntr02,
-            ["amevcntr03_el0"] = SysregAmevcntr03,
-        }.ToFrozenDictionary();
+            ["MIDR_EL1"] = SysregMidr,
+            ["MPIDR_EL1"] = SysregMpidr,
+            ["REVIDR_EL1"] = SysregRevidr,
+            ["ID_AA64PFR0_EL1"] = SysregIdAa64Pfr0,
+            ["ID_AA64PFR1_EL1"] = SysregIdAa64Pfr1,
+            ["ID_AA64DFR0_EL1"] = SysregIdAa64Dfr0,
+            ["CNTFRQ_EL0"] = SysregCntfrq,
+            ["CNTVCT_EL0"] = SysregCntvct,
+            ["PMCCNTR_EL0"] = SysregPmccntr,
+            ["AMCFGR_EL0"] = SysregAmcfgr,
+            ["AMCGCR_EL0"] = SysregAmcgcr,
+            ["AMCNTENSET0_EL0"] = SysregAmcntenset0,
+            ["AMEVCNTR00_EL0"] = SysregAmevcntr00,
+            ["AMEVCNTR01_EL0"] = SysregAmevcntr01,
+            ["AMEVCNTR02_EL0"] = SysregAmevcntr02,
+            ["AMEVCNTR03_EL0"] = SysregAmevcntr03,
+            ["ID_AA64ISAR0_EL1"] = SysregIdAa64Isar0,
+            ["ID_AA64ISAR1_EL1"] = SysregIdAa64Isar1,
+            ["ID_AA64ISAR2_EL1"] = SysregIdAa64Isar2,
+            ["ID_AA64MMFR0_EL1"] = SysregIdAa64Mmfr0,
+            ["ID_AA64MMFR1_EL1"] = SysregIdAa64Mmfr1,
+            ["ID_AA64MMFR2_EL1"] = SysregIdAa64Mmfr2,
+            ["ID_AA64ZFR0_EL1"] = SysregIdAa64Zfr0,
+            ["ID_AA64SMFR0_EL1"] = SysregIdAa64Smfr0,
+            ["CNTPCT_EL0"] = SysregCntpct,
+            ["AMCG1IDR_EL0"] = SysregAmcg1idr,
+        }.Concat(Enumerable.Range(0, SysregAmuGroup1Counters).SelectMany(n => new[]
+        {
+            KeyValuePair.Create($"AMEVCNTR1{n}_EL0", (byte)(SysregAmevcntr1First + n)),
+            KeyValuePair.Create($"AMEVTYPER1{n}_EL0", (byte)(SysregAmevtyper1First + n)),
+        })).ToFrozenDictionary();
 
-        public static bool SysregIsIdClass(byte Register) => Register >= SysregMidr && Register <= SysregIdLast;
+        public static bool SysregIsIdClass(byte Register) => SysregIdRegisters.Contains(Register);
+
+        /// <summary>
+        /// The #define lines of the AMU group 1 registers for kphdyn.h.
+        /// </summary>
+        public static string SysregGroup1Defines(string NewLine) => string.Join(NewLine,
+            Enumerable.Range(0, SysregAmuGroup1Counters).Select(n => $"#define {$"KPH_DYN_HW_SYSREG_AMEVCNTR1{n}_EL0",-40}((UCHAR){SysregAmevcntr1First + n})").Concat(
+            Enumerable.Range(0, SysregAmuGroup1Counters).Select(n => $"#define {$"KPH_DYN_HW_SYSREG_AMEVTYPER1{n}_EL0",-40}((UCHAR){SysregAmevtyper1First + n})")));
 
         /// <summary>
         /// MIDR_EL1 variant [23:20], part number [15:4], revision [3:0].
@@ -944,8 +991,7 @@ namespace CustomBuildTool
             VsecDiscoveries: [VsecDiscoveryPmtTelemetry, VsecDiscoveryTpmi],
             MailboxTransports: [MailboxTransportSmnPair, MailboxTransportMmioWindow],
             SmuTableBounds: [SmuTableBoundAmdDram],
-            SysregRegisters: [SysregMidr, SysregMpidr, SysregRevidr, SysregIdAa64Pfr0, SysregIdAa64Pfr1, SysregIdAa64Dfr0, SysregCntfrq, SysregCntvct,
-                              SysregPmccntr, SysregAmcfgr, SysregAmcgcr, SysregAmcntenset0, SysregAmevcntr00, SysregAmevcntr01, SysregAmevcntr02, SysregAmevcntr03]
+            SysregRegisters: [.. Enumerable.Range(SysregMidr, SysregMax).Select(r => (byte)r)]
         );
 
         private static readonly FrozenDictionary<byte, string> IdentityKindNames = new Dictionary<byte, string>
