@@ -298,6 +298,9 @@ namespace CustomBuildTool
         /// </summary>
         public const byte VsecTpmiControl = 0x80;
         public const UInt32 VsecGuidAny = 0;
+        public const byte VsecRevisionDefault = 1;
+        public const byte VsecRevisionMax = 0xF;
+        public const UInt16 VsecDvsecVendorDefault = 0x8086;
         public const byte VsecMaxRegions = 64;
         public const UInt32 VsecMaxRegionSize = 0x40000;
         /// <summary>
@@ -1018,7 +1021,8 @@ namespace CustomBuildTool
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "MaxRegionSize", 8),
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "FeatureCapsMask", 12),
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "RangeCount", 16),
-            FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "Reserved", 17),
+            FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "Revision", 17),
+            FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "DvsecVendor", 18),
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "DataOffset", 2),
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "PinDevice", 4),
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "PinFunction", 5),
@@ -1337,7 +1341,7 @@ namespace CustomBuildTool
         /// The KPH_DYN_HW_VSEC_READ header; ranges follow.
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public unsafe struct HwVsecRead
+        public struct HwVsecRead
         {
             public byte Discovery;
             public byte Quirks;
@@ -1347,7 +1351,8 @@ namespace CustomBuildTool
             public UInt32 MaxRegionSize;
             public UInt32 FeatureCapsMask;
             public byte RangeCount;
-            public fixed byte Reserved[3];
+            public byte Revision;
+            public UInt16 DvsecVendor;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1654,7 +1659,7 @@ namespace CustomBuildTool
         private static readonly string[] SuperIoReadAttributes = ["reg", "length", "desc"];
         private static readonly string[] SmbusAttributes = ["host", "port", "protocols", "slaves", "name", "desc"];
         private static readonly string[] SmbusReadAttributes = ["command", "length", "desc"];
-        private static readonly string[] VsecAttributes = ["discovery", "quirks", "guid", "feature", "max-regions", "max-size", "require-d0", "arm64", "name", "desc"];
+        private static readonly string[] VsecAttributes = ["discovery", "quirks", "guid", "feature", "max-regions", "max-size", "revision", "dvsec-vendor", "require-d0", "arm64", "name", "desc"];
         private static readonly string[] MailboxAttributes = ["transport", "protocol", "index", "data", "msg", "rsp", "arg", "args", "version", "version-arg", "name", "desc"];
         private static readonly string[] MmioMailboxAttributes = ["transport", "protocol", "resource", "size", "msg", "rsp", "arg", "args", "version", "version-arg", "cpu-family", "cpu-models", "name", "desc"];
         private static readonly string[] CommandAttributes = ["opcode", "type", "response", "internal", "name", "desc"];
@@ -3568,6 +3573,12 @@ namespace CustomBuildTool
                 throw Context.Error(Vsec, $"max-size 0x{maxSize:x} is not a non-zero multiple of 4");
 
             body.MaxRegionSize = (UInt32)maxSize;
+
+            string revision = OptionalAttribute(Vsec, "revision");
+            string dvsecVendor = OptionalAttribute(Vsec, "dvsec-vendor");
+
+            body.Revision = revision != null ? (byte)ParseDecimal(Context, Vsec, "revision", revision, 0, DynDataHw.VsecRevisionMax) : DynDataHw.VsecRevisionDefault;
+            body.DvsecVendor = dvsecVendor != null ? (UInt16)ParseHex(Context, Vsec, "dvsec-vendor", dvsecVendor, UInt16.MaxValue) : DynDataHw.VsecDvsecVendorDefault;
 
             if (requireD0 != null)
             {
@@ -6537,8 +6548,10 @@ namespace CustomBuildTool
                 throw Fail($"vsec_read discovery {vsec.Discovery} is not implemented by the driver");
             if (vsec.RangeCount > DynDataHw.MaxRanges)
                 throw Fail($"vsec_read has {vsec.RangeCount} ranges, cap {DynDataHw.MaxRanges}");
-            if (vsec.RangeCount < 1 || vsec.FeatureCapsMask != 0 || Body[17..DynDataHw.VsecReadSize].ContainsAnyExcept((byte)0))
+            if (vsec.RangeCount < 1 || vsec.FeatureCapsMask != 0)
                 throw Fail("vsec_read has no range or sets a field no implemented discovery honours");
+            if (vsec.Revision > DynDataHw.VsecRevisionMax)
+                throw Fail($"vsec_read header revision {vsec.Revision} above 0x{DynDataHw.VsecRevisionMax:x}");
             if (vsec.MaxRegions < 1 || vsec.MaxRegions > DynDataHw.VsecMaxRegions)
                 throw Fail($"vsec_read max regions {vsec.MaxRegions} outside [1, {DynDataHw.VsecMaxRegions}]");
             if (vsec.MaxRegionSize < 4 || vsec.MaxRegionSize > DynDataHw.VsecMaxRegionSize || (vsec.MaxRegionSize % 4) != 0)

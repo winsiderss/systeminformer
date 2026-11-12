@@ -38,8 +38,6 @@
 #define KPH_HW_PCI_VSEC_ENTRY_SIZE_OFFSET  0xB
 #define KPH_HW_PCI_VSEC_TABLE_OFFSET       0xC
 #define KPH_HW_PCI_VSEC_HEADER_LENGTH      0x10
-#define KPH_HW_PCI_VSEC_REVISION           1
-#define KPH_HW_PCI_VSEC_INTEL_VENDOR       0x8086
 #define KPH_HW_PCI_VSEC_MAX_CAPABILITIES   8
 #define KPH_HW_VSEC_BIR_MASK               0x7ul
 #define KPH_HW_VSEC_TABLE_SHIFT            3
@@ -4192,13 +4190,13 @@ Exit:
 #endif
 
 /**
- * \brief Checks whether an extended capability is an Intel VSEC or DVSEC with
- * a discovery ID.
+ * \brief Checks whether an extended capability is the VSEC or DVSEC an op
+ * names.
  *
  * \param[in] Bus The bus interface of the device.
  * \param[in] Position The configuration offset of the capability.
  * \param[in] Id The extended capability ID.
- * \param[in] Discovery The DVSEC/VSEC ID (KPH_DYN_HW_VSEC_DISCOVERY_*).
+ * \param[in] Vsec The vsec_read op body.
  * \param[out] Match Receives TRUE when the capability matches.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
  *
@@ -4210,7 +4208,7 @@ NTSTATUS KphpHwPciVsecMatches(
     _In_ PBUS_INTERFACE_STANDARD Bus,
     _In_ ULONG Position,
     _In_ USHORT Id,
-    _In_ UCHAR Discovery,
+    _In_ PKPH_DYN_HW_VSEC_READ Vsec,
     _Out_ PBOOLEAN Match,
     _Inout_ PBOOLEAN ReadFailed
     )
@@ -4257,7 +4255,7 @@ NTSTATUS KphpHwPciVsecMatches(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    if ((header1.Revision != KPH_HW_PCI_VSEC_REVISION) ||
+    if ((header1.Revision != Vsec->Revision) ||
         (header1.Length < KPH_HW_PCI_VSEC_HEADER_LENGTH))
     {
         return STATUS_SUCCESS;
@@ -4265,11 +4263,11 @@ NTSTATUS KphpHwPciVsecMatches(
 
     if (Id == KPH_HW_PCI_EXT_CAP_VSEC)
     {
-        *Match = (header1.Id == Discovery);
+        *Match = (header1.Id == Vsec->Discovery);
         return STATUS_SUCCESS;
     }
 
-    if (header1.Id != KPH_HW_PCI_VSEC_INTEL_VENDOR)
+    if (header1.Id != Vsec->DvsecVendor)
     {
         return STATUS_SUCCESS;
     }
@@ -4289,16 +4287,16 @@ NTSTATUS KphpHwPciVsecMatches(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    *Match = (dvsecId == Discovery);
+    *Match = (dvsecId == Vsec->Discovery);
 
     return STATUS_SUCCESS;
 }
 
 /**
- * \brief Finds the Intel VSEC and DVSEC capabilities with a discovery ID.
+ * \brief Finds the VSEC and DVSEC capabilities an op names.
  *
  * \param[in] Bus The bus interface of the device.
- * \param[in] Discovery The DVSEC/VSEC ID (KPH_DYN_HW_VSEC_DISCOVERY_*).
+ * \param[in] Vsec The vsec_read op body.
  * \param[out] Positions Receives the configuration offsets of the matches.
  * \param[out] Count Receives the number of matches.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
@@ -4309,7 +4307,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpHwPciFindVsecCapabilities(
     _In_ PBUS_INTERFACE_STANDARD Bus,
-    _In_ UCHAR Discovery,
+    _In_ PKPH_DYN_HW_VSEC_READ Vsec,
     _Out_writes_to_(KPH_HW_PCI_VSEC_MAX_CAPABILITIES, *Count) PULONG Positions,
     _Out_ PULONG Count,
     _Inout_ PBOOLEAN ReadFailed
@@ -4365,7 +4363,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
         status = KphpHwPciVsecMatches(Bus,
                                       position,
                                       (USHORT)header.Id,
-                                      Discovery,
+                                      Vsec,
                                       &match,
                                       ReadFailed);
         if (!NT_SUCCESS(status))
@@ -5099,7 +5097,7 @@ NTSTATUS KphpHwPciLocateVsec(
     }
 
     status = KphpHwPciFindVsecCapabilities(Bus,
-                                           vsec->Discovery,
+                                           vsec,
                                            positions,
                                            &capabilityCount,
                                            ReadFailed);

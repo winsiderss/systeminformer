@@ -849,9 +849,10 @@ typedef struct _KPH_DYN_HW_VSEC_READ
     ULONG MaxRegionSize;
     ULONG FeatureCapsMask;
     UCHAR RangeCount;
-    UCHAR Reserved[3];
+    UCHAR Revision;
+    USHORT DvsecVendor;
     // KPH_DYN_HW_WINDOW_RANGE Ranges[RangeCount];
-} KPH_DYN_HW_VSEC_READ, *PKPH_DYN_HW_VSEC_READ;
+} KPH_DYN_HW_VSEC_READ,*PKPH_DYN_HW_VSEC_READ;
 typedef const KPH_DYN_HW_VSEC_READ* PCKPH_DYN_HW_VSEC_READ;
 
 typedef struct _KPH_DYN_HW_MAILBOX_SMN
