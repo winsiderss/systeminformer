@@ -1800,7 +1800,7 @@ BOOLEAN KphDynHwPortIndirectReadAllowed(
 }
 
 /**
- * \brief Finds the mailbox command for an opcode and firmware version.
+ * \brief Finds the mailbox command for an opcode.
  *
  * \param[in] Op The mailbox_transact op.
  * \param[in] Opcode The opcode.
