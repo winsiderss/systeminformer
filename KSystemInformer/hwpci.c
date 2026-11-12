@@ -5729,6 +5729,8 @@ Exit:
  * \param[out] Op Receives the op, valid while the section is referenced.
  * \param[out] Mailbox Receives the mailbox_transact op (Op itself for a
  * mailbox_transact op).
+ * \param[out] DfMap Receives the df_map op of an smu_table_read op, NULL when
+ * it names none.
  * \param[out] Session Receives the session, closed with KphHwPciCloseSmn.
  *
  * \return Successful or errant status.
@@ -5742,6 +5744,7 @@ NTSTATUS KphHwPciOpenSmn(
     _In_ ULONG OpIndex,
     _Outptr_ PKPH_DYN_HW_OP* Op,
     _Outptr_ PKPH_DYN_HW_OP* Mailbox,
+    _Outptr_result_maybenull_ PKPH_DYN_HW_OP* DfMap,
     _Out_ PKPH_HW_SMN_SESSION Session
     )
 {
@@ -5752,6 +5755,7 @@ NTSTATUS KphHwPciOpenSmn(
     PKPH_DYN_HW_TABLE table;
     PKPH_DYN_HW_OP op;
     PKPH_DYN_HW_OP mailboxOp;
+    PKPH_DYN_HW_OP dfMapOp;
     PKPH_DYN_HW_MAILBOX_TRANSACT mailbox;
     PKPH_DYN_HW_MAILBOX_SMN smn;
     BOOLEAN readFailed;
@@ -5762,9 +5766,11 @@ NTSTATUS KphHwPciOpenSmn(
 
     *Op = NULL;
     *Mailbox = NULL;
+    *DfMap = NULL;
     RtlZeroMemory(Session, sizeof(KPH_HW_SMN_SESSION));
 
     locator = *Locator;
+    dfMapOp = NULL;
 
     if (!KphpHwPciValidLocator(&locator))
     {
@@ -5841,6 +5847,13 @@ NTSTATUS KphHwPciOpenSmn(
         NT_VERIFY(NT_SUCCESS(KphDynHwFindMailboxOp(table,
                                                    smuTable->MailboxOp,
                                                    &mailboxOp)));
+
+        if (smuTable->DfMapOp != KPH_DYN_HW_SMU_TABLE_DF_MAP_NONE)
+        {
+            NT_VERIFY(NT_SUCCESS(KphDynHwFindDfMapOp(table,
+                                                     smuTable->DfMapOp,
+                                                     &dfMapOp)));
+        }
     }
 
     mailbox = (PKPH_DYN_HW_MAILBOX_TRANSACT)mailboxOp->Body;
@@ -5873,6 +5886,7 @@ NTSTATUS KphHwPciOpenSmn(
 
     *Op = op;
     *Mailbox = mailboxOp;
+    *DfMap = dfMapOp;
 
     status = STATUS_SUCCESS;
 

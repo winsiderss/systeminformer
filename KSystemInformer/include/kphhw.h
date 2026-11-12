@@ -332,6 +332,7 @@ NTSTATUS KphHwPciOpenSmn(
     _In_ ULONG OpIndex,
     _Outptr_ PKPH_DYN_HW_OP* Op,
     _Outptr_ PKPH_DYN_HW_OP* Mailbox,
+    _Outptr_result_maybenull_ PKPH_DYN_HW_OP* DfMap,
     _Out_ PKPH_HW_SMN_SESSION Session
     );
 
@@ -448,6 +449,15 @@ NTSTATUS KphHwWindowCheckRange(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwWindowCheckAmdDram(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwWindowCheckAmdDf(
+    _In_ PKPH_DYN_HW_OP Op,
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ ULONG64 Begin,
     _In_ ULONG64 End
     );

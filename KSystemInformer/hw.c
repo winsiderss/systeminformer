@@ -1412,6 +1412,7 @@ NTSTATUS KphHwQueryCapabilities(
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_MAILBOX_TRANSACT));
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_SMU_TABLE_READ));
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_PORT_INDIRECT_READ));
+    SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_DF_MAP));
 #endif
 #if defined(_M_ARM64)
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_SYSREG_READ));

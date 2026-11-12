@@ -2256,7 +2256,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x5c0002" size="0x1e3c" desc="96 cores"/>
                 <version id="0x5c0003" size="0x1e48" desc="96 cores"/>
                 <version id="0x5c0102" size="0x1a14" desc="80 cores"/>
@@ -2492,7 +2493,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x540000" size="0x828"/>
                 <version id="0x540001" size="0x82c"/>
                 <version id="0x540002" size="0x87c"/>
@@ -2560,7 +2562,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x4c0003" size="0xb18"/>
                 <version id="0x4c0004" size="0xb1c"/>
                 <version id="0x4c0005" size="0xaf8"/>
@@ -2874,7 +2877,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x730204" size="0xb1c" desc="2 CCD"/>
                 <version id="0x730404" size="0x1004" desc="4 CCD"/>
                 <version id="0x730604" size="0x14ec" desc="6 CCD"/>
@@ -3035,7 +3039,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x5d0008" size="0xd54"/>
             </smutable>
         </pci>
@@ -3088,7 +3093,8 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <dfmap name="df" device="0x18" function="7" offset="0xe00" count="16" stride="0x10" limit="0x4" control="0x8" shift="28" mask="0x0fffffff" valid="0" remap="1" hole="0x104" hole-mask="0xff000000" hole-valid="0" desc="Data Fabric DRAM address maps, DF4/DF4.5 layout"/>
+            <smutable mailbox="rsmu" bound="amd-dram" dfmap="df" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x620105" size="0x724" desc="1 CCD"/>
                 <version id="0x620205" size="0x994"/>
                 <version id="0x621102" size="0x724" desc="1 CCD"/>

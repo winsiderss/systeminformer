@@ -207,6 +207,13 @@ NTSTATUS KphDynHwFindSmuTableOp(
     );
 
 _Must_inspect_result_
+NTSTATUS KphDynHwFindDfMapOp(
+    _In_ PKPH_DYN_HW_TABLE Table,
+    _In_ ULONG Index,
+    _Outptr_ PKPH_DYN_HW_OP* Op
+    );
+
+_Must_inspect_result_
 NTSTATUS KphDynHwFindMailboxCommand(
     _In_ PKPH_DYN_HW_OP Op,
     _In_ ULONG Opcode,

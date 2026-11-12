@@ -296,6 +296,10 @@ ULONG KphpDynHwOpFixedLength(
         {
             return sizeof(KPH_DYN_HW_SMBUS_HOST);
         }
+        case KPH_DYN_HW_KIND_DF_MAP:
+        {
+            return sizeof(KPH_DYN_HW_DF_MAP);
+        }
         default:
         {
             return 0;
@@ -1820,6 +1824,25 @@ NTSTATUS KphDynHwFindSmuTableOp(
                                  KPH_DYN_HW_KIND_SMU_TABLE_READ,
                                  Index,
                                  Op);
+}
+
+/**
+ * \brief Finds the df_map op at an index.
+ *
+ * \param[in] Table The op table.
+ * \param[in] Index The index of the op among the df_map ops.
+ * \param[out] Op Receives a pointer into the table for the op.
+ *
+ * \return Successful or errant status.
+ */
+_Must_inspect_result_
+NTSTATUS KphDynHwFindDfMapOp(
+    _In_ PKPH_DYN_HW_TABLE Table,
+    _In_ ULONG Index,
+    _Outptr_ PKPH_DYN_HW_OP* Op
+    )
+{
+    return KphpDynHwFindOpOfKind(Table, KPH_DYN_HW_KIND_DF_MAP, Index, Op);
 }
 
 /**

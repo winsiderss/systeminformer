@@ -24,6 +24,11 @@
 #define KPH_HW_NFIT_SIGNATURE               'TIFN'
 #define KPH_HW_NFIT_HEADER_LENGTH           40
 #define KPH_HW_NFIT_TYPE_SPA_RANGE          0
+#define KPH_HW_MCFG_SIGNATURE               'GFCM'
+#define KPH_HW_MCFG_HEADER_LENGTH           44
+#define KPH_HW_ECAM_BUS_SHIFT               20
+#define KPH_HW_ECAM_DEVICE_SHIFT            15
+#define KPH_HW_ECAM_FUNCTION_SHIFT          12
 
 #define KPH_HW_AMD_MSR_SYSCFG               0xC0010010
 #define KPH_HW_AMD_MSR_IORR_BASE0           0xC0010016
@@ -40,8 +45,8 @@
 #define KPH_HW_AMD_IORR_MASK_VALID          (1ull << 11)
 #define KPH_HW_AMD_IORR_BASE_RDMEM          (1ull << 4)
 #define KPH_HW_AMD_IORR_LOW_BITS            0xFFFull
-#define KPH_HW_AMD_DRAM_FLOOR               0x100000ull
-#define KPH_HW_AMD_TOP_MEM2_FLOOR           0x100000000ull
+#define KPH_HW_X86_LEGACY_END               0x100000ull
+#define KPH_HW_4GB                          0x100000000ull
 
 #include <pshpack1.h>
 
@@ -73,8 +78,18 @@ typedef struct _KPH_HW_LPIT_NATIVE_ENTRY
     ULONG64 CounterFrequency;
 } KPH_HW_LPIT_NATIVE_ENTRY, *PKPH_HW_LPIT_NATIVE_ENTRY;
 
+typedef struct _KPH_HW_MCFG_ENTRY
+{
+    ULONG64 BaseAddress;
+    USHORT Segment;
+    UCHAR StartBus;
+    UCHAR EndBus;
+    ULONG Reserved;
+} KPH_HW_MCFG_ENTRY, *PKPH_HW_MCFG_ENTRY;
+
 #include <poppack.h>
 
+C_ASSERT(sizeof(KPH_HW_MCFG_ENTRY) == 16);
 C_ASSERT(FIELD_OFFSET(KPH_HW_LPIT_NATIVE_ENTRY, ResidencyCounter) == 36);
 C_ASSERT(sizeof(KPH_HW_LPIT_NATIVE_ENTRY) == 56);
 C_ASSERT(FIELD_OFFSET(KPH_HW_NFIT_SPA_RANGE, RangeBase) == 32);
@@ -105,6 +120,8 @@ KphpHwLpitCounters[KPH_DYN_HW_ACPI_LPIT_MAX_ENTRIES] = { 0 };
 static BOOLEAN KphpHwNvdimmRangesKnown = FALSE;
 static ULONG KphpHwNvdimmRangeCount = 0;
 static PKPH_HW_MEMORY_RANGE KphpHwNvdimmRanges = NULL;
+static ULONG KphpHwEcamRangeCount = 0;
+static PKPH_HW_MCFG_ENTRY KphpHwEcamRanges = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
@@ -746,6 +763,97 @@ Exit:
 }
 
 /**
+ * \brief Caches the ECAM ranges of the MCFG table.
+ *
+ * \param[in] Tables The enumerated ACPI table signatures.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwInitializeMcfg(
+    _In_ PKPH_HW_ACPI_TABLES Tables
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
+    ULONG length;
+    ULONG count;
+    ULONG rangesLength;
+    PKPH_HW_MCFG_ENTRY ranges;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    status = KphpHwQueryAcpiTable(Tables,
+                                  KPH_HW_MCFG_SIGNATURE,
+                                  &info,
+                                  &length);
+    if (status == STATUS_NOT_FOUND)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwQueryAcpiTable failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    if ((length < KPH_HW_MCFG_HEADER_LENGTH) ||
+        ((length - KPH_HW_MCFG_HEADER_LENGTH) % sizeof(KPH_HW_MCFG_ENTRY)))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "MCFG length %lu malformed",
+                      length);
+
+        status = STATUS_ACPI_INVALID_TABLE;
+        goto Exit;
+    }
+
+    count = ((length - KPH_HW_MCFG_HEADER_LENGTH) / sizeof(KPH_HW_MCFG_ENTRY));
+
+    if (!count)
+    {
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    NT_VERIFY(NT_SUCCESS(RtlULongMult(count,
+                                      sizeof(KPH_HW_MCFG_ENTRY),
+                                      &rangesLength)));
+
+    ranges = KphAllocatePaged(rangesLength, KPH_TAG_HW_ECAM_RANGES);
+    if (!ranges)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate ECAM ranges");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    RtlCopyMemory(ranges,
+                  Add2Ptr(info->TableBuffer, KPH_HW_MCFG_HEADER_LENGTH),
+                  rangesLength);
+
+    KphpHwEcamRanges = ranges;
+    KphpHwEcamRangeCount = count;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    KphFree(info, KPH_TAG_HW_FIRMWARE);
+
+    return status;
+}
+
+/**
  * \brief Initializes the window infrastructure.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -795,6 +903,17 @@ VOID KphInitializeHardwareWindow(
 
     if (tables.Info)
     {
+        status = KphpHwInitializeMcfg(&tables);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "ECAM ranges: %lu: %!STATUS!",
+                  KphpHwEcamRangeCount,
+                  status);
+
+    if (tables.Info)
+    {
         KphFree(tables.Info, KPH_TAG_HW_FIRMWARE);
     }
 }
@@ -812,6 +931,11 @@ VOID KphCleanupHardwareWindow(
     if (KphpHwNvdimmRanges)
     {
         KphFree(KphpHwNvdimmRanges, KPH_TAG_HW_NVDIMM_RANGES);
+    }
+
+    if (KphpHwEcamRanges)
+    {
+        KphFree(KphpHwEcamRanges, KPH_TAG_HW_ECAM_RANGES);
     }
 }
 
@@ -1157,7 +1281,7 @@ NTSTATUS KphHwWindowCheckAmdDram(
         return STATUS_CONFLICTING_ADDRESSES;
     }
 
-    inDram = ((Begin >= KPH_HW_AMD_DRAM_FLOOR) && (End <= topMem));
+    inDram = ((Begin >= KPH_HW_X86_LEGACY_END) && (End <= topMem));
 
     if (!inDram && BooleanFlagOn(syscfg, KPH_HW_AMD_SYSCFG_TOM2_EN))
     {
@@ -1175,7 +1299,7 @@ NTSTATUS KphHwWindowCheckAmdDram(
 
         topMem2 &= (limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
 
-        inDram = ((Begin >= KPH_HW_AMD_TOP_MEM2_FLOOR) && (End <= topMem2));
+        inDram = ((Begin >= KPH_HW_4GB) && (End <= topMem2));
     }
 
     if (!inDram)
@@ -1272,6 +1396,245 @@ NTSTATUS KphHwWindowCheckAmdDram(
     }
 
     return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Finds the ECAM page of a PCI function in the cached MCFG ranges.
+ *
+ * \param[in] Segment The segment.
+ * \param[in] Bus The bus.
+ * \param[in] Device The device.
+ * \param[in] Function The function.
+ * \param[out] Address Receives the physical address of the page, zero when
+ * no range decodes the bus.
+ *
+ * \return TRUE if a range decodes the bus, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpHwWindowEcamPage(
+    _In_ USHORT Segment,
+    _In_ UCHAR Bus,
+    _In_ UCHAR Device,
+    _In_ UCHAR Function,
+    _Out_ PULONG64 Address
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Address = 0;
+
+    for (ULONG i = 0; i < KphpHwEcamRangeCount; i++)
+    {
+        PKPH_HW_MCFG_ENTRY range;
+
+        range = &KphpHwEcamRanges[i];
+
+        if ((range->Segment != Segment) ||
+            (Bus < range->StartBus) ||
+            (Bus > range->EndBus))
+        {
+            continue;
+        }
+
+        *Address = (range->BaseAddress +
+                    ((ULONG64)Bus << KPH_HW_ECAM_BUS_SHIFT) +
+                    ((ULONG64)Device << KPH_HW_ECAM_DEVICE_SHIFT) +
+                    ((ULONG64)Function << KPH_HW_ECAM_FUNCTION_SHIFT));
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * \brief Checks that a physical range is DRAM as the AMD Data Fabric decodes
+ * it.
+ *
+ * \details The DRAM address map is read through ECAM, which a hypervisor
+ * does not hide. Without an MCFG range for the fabric the check is skipped
+ * and the range is left to KphHwWindowCheckRange.
+ *
+ * \param[in] Op The df_map op.
+ * \param[in] Locator The locator of the root complex.
+ * \param[in] Begin The page-aligned start of the range.
+ * \param[in] End The page-aligned end of the range, exclusive.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwWindowCheckAmdDf(
+    _In_ PKPH_DYN_HW_OP Op,
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN_HW_DF_MAP map;
+    ULONG64 page;
+    PHYSICAL_ADDRESS physical;
+    PUCHAR mapping;
+    ULONG hole;
+    BOOLEAN holeValid;
+    ULONG64 holeBase;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Op->Kind == KPH_DYN_HW_KIND_DF_MAP);
+    NT_ASSERT(Begin < End);
+
+    map = (PKPH_DYN_HW_DF_MAP)Op->Body;
+    mapping = NULL;
+
+    if (!KphpHwWindowEcamPage(Locator->Segment,
+                              Locator->Bus,
+                              map->Device,
+                              map->Function,
+                              &page))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Data fabric bound of 0x%llx-0x%llx skipped: no ECAM "
+                      "range for %04lx:%02lx",
+                      Begin,
+                      End,
+                      (ULONG)Locator->Segment,
+                      (ULONG)Locator->Bus);
+
+        return STATUS_SUCCESS;
+    }
+
+    status = KphHwWindowCheckRange(page, page + PAGE_SIZE);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "ECAM page 0x%llx refused: %!STATUS!",
+                      page,
+                      status);
+
+        goto Exit;
+    }
+
+    physical.QuadPart = (LONGLONG)page;
+
+    mapping = MmMapIoSpaceEx(physical,
+                             PAGE_SIZE,
+                             PAGE_READONLY | PAGE_NOCACHE);
+    if (!mapping)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE, HARDWARE, "MmMapIoSpaceEx failed");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    if (READ_REGISTER_ULONG((PULONG)mapping) == MAXULONG)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Data fabric at ECAM page 0x%llx reads all ones",
+                      page);
+
+        status = STATUS_DEVICE_NOT_READY;
+        goto Exit;
+    }
+
+    holeValid = FALSE;
+    holeBase = 0;
+
+    if (map->HoleOffset)
+    {
+        hole = READ_REGISTER_ULONG((PULONG)Add2Ptr(mapping, map->HoleOffset));
+
+        holeValid = BooleanFlagOn(hole, (1ul << map->HoleValidBit));
+        holeBase = (hole & map->HoleBaseMask);
+    }
+
+    for (ULONG i = 0; i < map->MapCount; i++)
+    {
+        ULONG offset;
+        ULONG baseRegister;
+        ULONG limitRegister;
+        ULONG control;
+        ULONG64 mapBegin;
+        ULONG64 mapEnd;
+
+        offset = (map->MapOffset + (i * map->MapStride));
+
+        control = READ_REGISTER_ULONG(
+            (PULONG)Add2Ptr(mapping, offset + map->ControlOffset));
+
+        if (!BooleanFlagOn(control, (1ul << map->ValidBit)))
+        {
+            continue;
+        }
+
+        baseRegister = READ_REGISTER_ULONG((PULONG)Add2Ptr(mapping, offset));
+        limitRegister = READ_REGISTER_ULONG(
+            (PULONG)Add2Ptr(mapping, offset + map->LimitOffset));
+
+        mapBegin = ((ULONG64)(baseRegister & map->AddressMask) <<
+                    map->AddressShift);
+        mapEnd = (((ULONG64)(limitRegister & map->AddressMask) <<
+                   map->AddressShift) + (1ull << map->AddressShift));
+
+        if ((Begin < mapBegin) || (End > mapEnd))
+        {
+            continue;
+        }
+
+        if (Begin < KPH_HW_X86_LEGACY_END)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Range 0x%llx-0x%llx refused: in the legacy region",
+                          Begin,
+                          End);
+
+            status = STATUS_CONFLICTING_ADDRESSES;
+            goto Exit;
+        }
+
+        if (holeValid &&
+            BooleanFlagOn(control, (1ul << map->HoleRemapBit)) &&
+            (Begin < KPH_HW_4GB) &&
+            (holeBase < End))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Range 0x%llx-0x%llx refused: DRAM hole at 0x%llx",
+                          Begin,
+                          End,
+                          holeBase);
+
+            status = STATUS_CONFLICTING_ADDRESSES;
+            goto Exit;
+        }
+
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "Range 0x%llx-0x%llx refused: no data fabric DRAM map",
+                  Begin,
+                  End);
+
+    status = STATUS_CONFLICTING_ADDRESSES;
+
+Exit:
+
+    if (mapping)
+    {
+        MmUnmapIoSpace(mapping, PAGE_SIZE);
+    }
+
+    return status;
 }
 
 #endif

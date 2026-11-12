@@ -151,6 +151,8 @@ VOID KphpHwMailboxDelay(
  * \param[in] OpIndex The index of the op of the kind of the root.
  * \param[out] Op Receives the op, valid while the section is referenced.
  * \param[out] Mailbox Receives the mailbox_transact op.
+ * \param[out] DfMap Receives the df_map op of an smu_table_read op, NULL when
+ * it names none.
  * \param[out] Session Receives the session, closed with KphpHwMailboxClose.
  *
  * \return Successful or errant status.
@@ -165,6 +167,7 @@ NTSTATUS KphpHwMailboxOpenSmn(
     _In_ ULONG OpIndex,
     _Outptr_ PKPH_DYN_HW_OP* Op,
     _Outptr_ PKPH_DYN_HW_OP* Mailbox,
+    _Outptr_result_maybenull_ PKPH_DYN_HW_OP* DfMap,
     _Out_ PKPH_HW_MAILBOX_SESSION Session
     )
 {
@@ -181,6 +184,7 @@ NTSTATUS KphpHwMailboxOpenSmn(
                              OpIndex,
                              Op,
                              Mailbox,
+                             DfMap,
                              &Session->Smn);
     if (!NT_SUCCESS(status))
     {
@@ -1723,6 +1727,7 @@ NTSTATUS KphpHwMailboxCopyTable(
     KPH_HW_MAILBOX_SESSION session;
     PKPH_DYN_HW_OP op;
     PKPH_DYN_HW_OP mailboxOp;
+    PKPH_DYN_HW_OP dfMapOp;
     PKPH_DYN_HW_SMU_TABLE_READ table;
     PKPH_DYN_HW_SMU_TABLE_VERSION versions;
     PKPH_DYN_HW_MAILBOX_COMMAND versionCommand;
@@ -1758,6 +1763,7 @@ NTSTATUS KphpHwMailboxCopyTable(
                                   OpIndex,
                                   &op,
                                   &mailboxOp,
+                                  &dfMapOp,
                                   &session);
     if (!NT_SUCCESS(status))
     {
@@ -2083,6 +2089,23 @@ NTSTATUS KphpHwMailboxCopyTable(
         goto Exit;
     }
 
+    if (dfMapOp)
+    {
+        status = KphHwWindowCheckAmdDf(dfMapOp, Locator, base, rangeEnd);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMU table version 0x%08lx base 0x%llx refused by "
+                          "the data fabric: %!STATUS!",
+                          *Version,
+                          base,
+                          status);
+
+            goto Exit;
+        }
+    }
+
     status = KphHwWindowCheckRange(base, rangeEnd);
     if (!NT_SUCCESS(status))
     {
@@ -2211,6 +2234,7 @@ NTSTATUS KphHwMailboxBatch(
     KPH_HW_MAILBOX_SESSION session;
     PKPH_DYN_HW_OP op;
     PKPH_DYN_HW_OP mailboxOp;
+    PKPH_DYN_HW_OP dfMapOp;
     ULONG version;
     ULONG64 deadline;
     BOOLEAN locked;
@@ -2295,6 +2319,7 @@ NTSTATUS KphHwMailboxBatch(
                                   OpIndex,
                                   &op,
                                   &mailboxOp,
+                                  &dfMapOp,
                                   &session);
     if (!NT_SUCCESS(status))
     {
@@ -2309,6 +2334,7 @@ NTSTATUS KphHwMailboxBatch(
     sessionOpen = TRUE;
 
     NT_ASSERT(op == mailboxOp);
+    NT_ASSERT(!dfMapOp);
 
     status = KphpHwMailboxRunBatch(&session,
                                    op,

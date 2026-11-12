@@ -220,6 +220,11 @@ namespace CustomBuildTool
         /// function use the one whose PCI_CONFIG gate passes, and a revision no smbus_host covers is refused.
         /// </summary>
         public const UInt16 KindSmbusHost = 13;
+        /// <summary>
+        /// The layout of an AMD Data Fabric DRAM address map, read through the ECAM page of the fabric function; the
+        /// smu_table_read op that names it bounds the table base to the DRAM it describes.
+        /// </summary>
+        public const UInt16 KindDfMap = 14;
 
         /// <summary>
         /// The registers the driver reads, a compiled case each; <see cref="SysregIdRegisters"/> are the ones a
@@ -405,6 +410,45 @@ namespace CustomBuildTool
                 highest = Math.Max(highest, SizeWord);
 
             return (byte)(highest + 1);
+        }
+        /// <summary>
+        /// The table names no df_map op.
+        /// </summary>
+        public const byte SmuTableDfMapNone = 0xFF;
+        /// <summary>
+        /// The Data Fabric function whose data register performs an indirect fabric access; never read.
+        /// </summary>
+        public const byte DfMapIndirectFunction = 4;
+        /// <summary>
+        /// The layout rules of a df_map body the loader and the section check share; null when it holds.
+        /// </summary>
+        public static unsafe string DfMapError(HwDfMap Map)
+        {
+            UInt32 mapsEnd = (UInt32)Map.MapOffset + (UInt32)(Map.MapCount - 1) * Map.MapStride + Math.Max(Map.LimitOffset, Map.ControlOffset) + 4u;
+
+            if (Map.Device > 31)
+                return $"device {Map.Device} is not a PCI device number (0-31)";
+            if (Map.Function > 7 || Map.Function == DfMapIndirectFunction)
+                return $"function {Map.Function} is not a Data Fabric function KSI reads (0-7, never {DfMapIndirectFunction})";
+            if (Map.MapCount == 0 || Map.MapStride < 4 || (Map.MapStride % 4) != 0 || (Map.MapOffset % 4) != 0)
+                return "maps need a count, and a stride and offset that are dword multiples";
+            if ((Map.LimitOffset % 4) != 0 || (Map.ControlOffset % 4) != 0 || Map.LimitOffset == 0 || Map.ControlOffset == 0 || Map.LimitOffset == Map.ControlOffset ||
+                Map.LimitOffset >= Map.MapStride || Map.ControlOffset >= Map.MapStride)
+                return "limit and control are distinct dword registers of a map, after the base";
+            if (mapsEnd > PciConfigLength)
+                return $"the maps end at 0x{mapsEnd:x}, past the configuration space";
+            if (Map.AddressMask == 0 || Map.AddressShift < 12 || Map.AddressShift > 40 || (Map.AddressMask & (Map.AddressMask + 1)) != 0)
+                return "address field must be one low run of bits shifted by 12 to 40";
+            if (Map.ValidBit > 31 || Map.HoleRemapBit > 31 || Map.ValidBit == Map.HoleRemapBit)
+                return "valid and hole-remap bits must be distinct bits of the control register";
+            if (Map.HoleOffset == 0 ? (Map.HoleBaseMask != 0 || Map.HoleValidBit != 0) :
+                ((Map.HoleOffset % 4) != 0 || Map.HoleOffset > PciConfigLength - 4 || Map.HoleBaseMask == 0 || Map.HoleValidBit > 31 ||
+                 (Map.HoleBaseMask & (1u << Map.HoleValidBit)) != 0))
+                return "a hole register needs a dword offset, a base mask and a valid bit outside it; no hole register names none";
+            if (Map.Reserved[0] != 0 || Map.Reserved[1] != 0)
+                return "reserved bytes are non-zero";
+
+            return null;
         }
         public const byte SmuTableMaxVersions = 64;
         public const UInt32 SmuTableMaxSize = 0x10000;
@@ -975,6 +1019,7 @@ namespace CustomBuildTool
         public const int SysregReadSize = 12;
         public const int PortIndirectReadSize = 8;
         public const int SmbusHostSize = 32;
+        public const int DfMapSize = 24;
         public const int SectionSize = 12;
         public const int TableSize = 4;
 
@@ -982,7 +1027,7 @@ namespace CustomBuildTool
         /// The kinds the driver implements; a build may only emit these.
         /// </summary>
         public static readonly HwKindSet DriverKinds = new(
-            OpKinds: [KindMsrRead, KindPciRead, KindPciIndirectRead, KindWindowRead, KindSuperIoRead, KindSmbusRead, KindVsecRead, KindMailboxTransact, KindSmuTableRead, KindAcpiEval, KindSysregRead, KindPortIndirectRead, KindSmbusHost],
+            OpKinds: [KindMsrRead, KindPciRead, KindPciIndirectRead, KindWindowRead, KindSuperIoRead, KindSmbusRead, KindVsecRead, KindMailboxTransact, KindSmuTableRead, KindAcpiEval, KindSysregRead, KindPortIndirectRead, KindSmbusHost, KindDfMap],
             IdentityKinds: [IdentityCpu, IdentityPci, IdentityCpuAndPci, IdentityCpuAndPciClass, IdentitySuperIo, IdentityBoard, IdentityAcpiHid, IdentityArmCpu],
             GateKinds: [GateNone, GateCpuid, GateChassis, GateSysregField, GatePciConfig],
             WindowBaseKinds: [WindowBaseStandardBar, WindowBaseConfigReg, WindowBaseAcpiLpit, WindowBaseAcpiCrs, WindowBaseSmnDerived, WindowBaseFixedMmio, WindowBaseFixedIo, WindowBaseAcpiLpitRelative],
@@ -1158,6 +1203,21 @@ namespace CustomBuildTool
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseLowWord", 16),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseHighWord", 17),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "SizeWord", 18),
+            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "DfMapOp", 19),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "MapCount", 1),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "MapStride", 2),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "AddressShift", 3),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "MapOffset", 4),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "HoleOffset", 6),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "AddressMask", 8),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "HoleBaseMask", 12),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "LimitOffset", 16),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "ControlOffset", 17),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "ValidBit", 18),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "HoleRemapBit", 19),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "HoleValidBit", 20),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "Device", 21),
+            FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "Reserved", 22),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Max", 4),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Fixed", 8),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Reserved", 12),
@@ -1555,7 +1615,31 @@ namespace CustomBuildTool
             public byte BaseLowWord;
             public byte BaseHighWord;
             public byte SizeWord;
-            public byte Reserved;
+            public byte DfMapOp;
+        }
+
+        /// <summary>
+        /// The KPH_DYN_HW_DF_MAP body: where the DRAM address maps of an AMD Data Fabric function lie and how their
+        /// fields decode.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public unsafe struct HwDfMap
+        {
+            public byte Function;
+            public byte MapCount;
+            public byte MapStride;
+            public byte AddressShift;
+            public UInt16 MapOffset;
+            public UInt16 HoleOffset;
+            public UInt32 AddressMask;
+            public UInt32 HoleBaseMask;
+            public byte LimitOffset;
+            public byte ControlOffset;
+            public byte ValidBit;
+            public byte HoleRemapBit;
+            public byte HoleValidBit;
+            public byte Device;
+            public fixed byte Reserved[2];
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1727,6 +1811,7 @@ namespace CustomBuildTool
             CheckSize<HwSysregRead>(SysregReadSize);
             CheckSize<HwPortIndirectRead>(PortIndirectReadSize);
             CheckSize<HwSmbusHost>(SmbusHostSize);
+            CheckSize<HwDfMap>(DfMapSize);
             CheckSize<HwSectionHeader>(SectionSize);
             CheckSize<HwTableHeader>(TableSize);
 
@@ -1796,7 +1881,9 @@ namespace CustomBuildTool
         private static readonly string[] MmioMailboxAttributes = ["transport", "protocol", "resource", "size", "msg", "rsp", "arg", "args", "version", "version-arg", "cpu-family", "cpu-models", "name", "desc"];
         private static readonly string[] CommandAttributes = ["opcode", "type", "response", "internal", "name", "desc"];
         private static readonly string[] ArgAttributes = ["index", "mask", "max", "fixed", "desc"];
-        private static readonly string[] SmuTableAttributes = ["mailbox", "bound", "version", "transfer", "setup", "base", "base-low", "base-high", "size-word", "name", "desc"];
+        private static readonly string[] SmuTableAttributes = ["mailbox", "bound", "dfmap", "version", "transfer", "setup", "base", "base-low", "base-high", "size-word", "name", "desc"];
+        private static readonly string[] DfMapAttributes = ["name", "device", "function", "offset", "count", "stride", "limit", "control", "shift", "mask", "valid", "remap",
+                                                            "hole", "hole-mask", "hole-valid", "desc"];
         private static readonly string[] SmuTableVersionAttributes = ["id", "size", "desc"];
         private static readonly string[] AcpiAttributes = ["id", "name", "desc"];
         private static readonly string[] EvalAttributes = ["method", "results", "max-output", "desc"];
@@ -2227,6 +2314,7 @@ namespace CustomBuildTool
             var vsecs = new List<XElement>();
             var mailboxes = new List<XElement>();
             var smuTables = new List<XElement>();
+            var dfMaps = new List<XElement>();
             var portIndirects = new List<XElement>();
             XElement firstRead = null;
             XElement indirect = null;
@@ -2285,6 +2373,9 @@ namespace CustomBuildTool
                     break;
                 case "smutable":
                     smuTables.Add(element);
+                    break;
+                case "dfmap":
+                    dfMaps.Add(element);
                     break;
                 default:
                     throw Context.Error(element, "unknown element");
@@ -2398,8 +2489,23 @@ namespace CustomBuildTool
             if (mailboxes.Count > byte.MaxValue + 1)
                 throw Context.Error(Pci, $"{mailboxes.Count} <mailbox> exceeds 256");
 
+            var loadedDfMaps = new Dictionary<string, int>();
+
+            for (int i = 0; i < dfMaps.Count; i++)
+            {
+                string name = RequiredAttribute(Context, dfMaps[i], "name");
+
+                if (!loadedDfMaps.TryAdd(name, i))
+                    throw Context.Error(dfMaps[i], $"duplicate <dfmap> name \"{name}\"");
+
+                anchored.Add((dfMaps[i], BuildDfMapOp(Context, result, nested, dfMaps[i])));
+            }
+
+            if (dfMaps.Count > DynDataHw.SmuTableDfMapNone)
+                throw Context.Error(Pci, $"{dfMaps.Count} <dfmap> exceeds {DynDataHw.SmuTableDfMapNone}");
+
             foreach (var smuTable in smuTables)
-                anchored.Add((smuTable, BuildSmuTableOp(Context, loadedMailboxes, smuTable)));
+                anchored.Add((smuTable, BuildSmuTableOp(Context, loadedMailboxes, loadedDfMaps, smuTable)));
 
             //
             // An op's index among the ops of its kind in the table is the document order of its element.
@@ -2747,7 +2853,7 @@ namespace CustomBuildTool
         /// Builds the smu_table_read op of a smutable: the version, optional transfer and base commands of a named mailbox.
         /// </summary>
         /// <remarks>The base and transfer commands must be internal; every version the firmware may report is listed.</remarks>
-        private static byte[] BuildSmuTableOp(LoadContext Context, Dictionary<string, LoadedMailbox> Mailboxes, XElement SmuTable)
+        private static byte[] BuildSmuTableOp(LoadContext Context, Dictionary<string, LoadedMailbox> Mailboxes, Dictionary<string, int> DfMaps, XElement SmuTable)
         {
             CheckAttributes(Context, SmuTable, SmuTableAttributes);
 
@@ -2768,8 +2874,18 @@ namespace CustomBuildTool
                 BaseOpcode = (UInt32)ParseHex(Context, SmuTable, "base", RequiredAttribute(Context, SmuTable, "base"), DynDataHw.MailboxMaxOpcode),
                 BaseLowWord = (byte)ParseDecimal(Context, SmuTable, "base-low", RequiredAttribute(Context, SmuTable, "base-low"), 0, DynDataHw.MailboxMaxArgs - 1),
                 BaseHighWord = DynDataHw.SmuTableWordNone,
-                SizeWord = DynDataHw.SmuTableWordNone
+                SizeWord = DynDataHw.SmuTableWordNone,
+                DfMapOp = DynDataHw.SmuTableDfMapNone
             };
+            string dfMap = OptionalAttribute(SmuTable, "dfmap");
+
+            if (dfMap != null)
+            {
+                if (!DfMaps.TryGetValue(dfMap, out int dfMapIndex))
+                    throw Context.Error(SmuTable, $"no <dfmap name=\"{dfMap}\"> in this element");
+
+                body.DfMapOp = (byte)dfMapIndex;
+            }
             string baseHigh = OptionalAttribute(SmuTable, "base-high");
             string sizeWord = OptionalAttribute(SmuTable, "size-word");
 
@@ -2864,6 +2980,56 @@ namespace CustomBuildTool
                 bytes.AddRange(DynDataHw.ToBytes(version));
 
             return BuildOp(Context, SmuTable, DynDataHw.KindSmuTableRead, DynDataHw.LockPci, default, bytes.ToArray());
+        }
+
+        /// <summary>
+        /// Builds the df_map op of a dfmap element: the DRAM address map layout of the AMD Data Fabric of this CPU,
+        /// read by the driver through the ECAM page of device.function on the root's segment and bus.
+        /// </summary>
+        private static byte[] BuildDfMapOp(LoadContext Context, LoadedPci Loaded, bool Nested, XElement Map)
+        {
+            CheckAttributes(Context, Map, DfMapAttributes);
+            CheckNoChildren(Context, Map);
+
+            if (!Nested || Loaded.Class || !Loaded.Pinned || Loaded.VendorId != 0x1022)
+                throw Context.Error(Map, "<dfmap> is only allowed in the pinned AMD root complex <pci> of a <cpu>");
+
+            var body = new DynDataHw.HwDfMap
+            {
+                Device = (byte)ParseHex(Context, Map, "device", RequiredAttribute(Context, Map, "device"), 31),
+                Function = (byte)ParseDecimal(Context, Map, "function", RequiredAttribute(Context, Map, "function"), 0, 7),
+                MapOffset = (UInt16)ParseHex(Context, Map, "offset", RequiredAttribute(Context, Map, "offset"), DynDataHw.PciConfigLength - 4),
+                MapCount = (byte)ParseDecimal(Context, Map, "count", RequiredAttribute(Context, Map, "count"), 1, byte.MaxValue),
+                MapStride = (byte)ParseHex(Context, Map, "stride", RequiredAttribute(Context, Map, "stride"), byte.MaxValue),
+                LimitOffset = (byte)ParseHex(Context, Map, "limit", RequiredAttribute(Context, Map, "limit"), byte.MaxValue),
+                ControlOffset = (byte)ParseHex(Context, Map, "control", RequiredAttribute(Context, Map, "control"), byte.MaxValue),
+                AddressShift = (byte)ParseDecimal(Context, Map, "shift", RequiredAttribute(Context, Map, "shift"), 12, 40),
+                AddressMask = (UInt32)ParseHex(Context, Map, "mask", RequiredAttribute(Context, Map, "mask"), UInt32.MaxValue),
+                ValidBit = (byte)ParseDecimal(Context, Map, "valid", RequiredAttribute(Context, Map, "valid"), 0, 31),
+                HoleRemapBit = (byte)ParseDecimal(Context, Map, "remap", RequiredAttribute(Context, Map, "remap"), 0, 31)
+            };
+            string hole = OptionalAttribute(Map, "hole");
+            string holeMask = OptionalAttribute(Map, "hole-mask");
+            string holeValid = OptionalAttribute(Map, "hole-valid");
+
+            if ((hole != null) != (holeMask != null) || (hole != null) != (holeValid != null))
+                throw Context.Error(Map, "hole, hole-mask and hole-valid go together");
+            if (hole != null)
+            {
+                body.HoleOffset = (UInt16)ParseHex(Context, Map, "hole", hole, DynDataHw.PciConfigLength - 4);
+                body.HoleBaseMask = (UInt32)ParseHex(Context, Map, "hole-mask", holeMask, UInt32.MaxValue);
+                body.HoleValidBit = (byte)ParseDecimal(Context, Map, "hole-valid", holeValid, 0, 31);
+
+                if (body.HoleOffset == 0)
+                    throw Context.Error(Map, "hole offset is zero");
+            }
+
+            string error = DynDataHw.DfMapError(body);
+
+            if (error != null)
+                throw Context.Error(Map, error);
+
+            return BuildOp(Context, Map, DynDataHw.KindDfMap, DynDataHw.LockNone, default, DynDataHw.ToBytes(body));
         }
 
         private static byte[] BuildIndirectOp(LoadContext Context, XElement Pci, XElement Indirect)
@@ -5880,6 +6046,8 @@ namespace CustomBuildTool
                     throw Fail($"row {Index} identity kind {kind} holds an msr_read op (CPU rows only)");
                 if (op.Kind == DynDataHw.KindPortIndirectRead && kind != DynDataHw.IdentityCpuAndPci)
                     throw Fail($"row {Index} identity kind {kind} holds a port_indirect_read op (CPU_AND_PCI rows only)");
+                if (op.Kind == DynDataHw.KindDfMap && kind != DynDataHw.IdentityCpuAndPci)
+                    throw Fail($"row {Index} identity kind {kind} holds a df_map op (CPU_AND_PCI rows only)");
                 if ((kind == DynDataHw.IdentityArmCpu) != (op.Kind == DynDataHw.KindSysregRead))
                     throw Fail($"row {Index} identity kind {kind} holds op kind {op.Kind} (sysreg_read belongs to ARM_CPU rows only, and they hold nothing else)");
 
@@ -6277,6 +6445,7 @@ namespace CustomBuildTool
                 DynDataHw.KindSysregRead => DynDataHw.SysregReadSize,
                 DynDataHw.KindPortIndirectRead => DynDataHw.PortIndirectReadSize,
                 DynDataHw.KindSmbusHost => DynDataHw.SmbusHostSize,
+                DynDataHw.KindDfMap => DynDataHw.DfMapSize,
                 _ => -1
             };
 
@@ -6305,6 +6474,8 @@ namespace CustomBuildTool
                 throw Fail("sysreg_read op has a lock class");
             if (op.Kind == DynDataHw.KindSmbusHost && op.LockClass != DynDataHw.LockNone)
                 throw Fail("smbus_host op has a lock class");
+            if (op.Kind == DynDataHw.KindDfMap && (op.LockClass != DynDataHw.LockNone || op.Gate.Kind != DynDataHw.GateNone))
+                throw Fail("df_map op has a lock class or a gate");
             if ((op.Kind == DynDataHw.KindSmbusHost) != (op.Gate.Kind == DynDataHw.GatePciConfig))
                 throw Fail($"op kind {op.Kind} gate kind {op.Gate.Kind} (an smbus_host has a PCI_CONFIG gate, and nothing else does)");
             if ((op.Kind == DynDataHw.KindSuperIoRead || op.Kind == DynDataHw.KindPortIndirectRead) && op.LockClass != DynDataHw.LockIsaBus)
@@ -6426,6 +6597,16 @@ namespace CustomBuildTool
 
                 if (error != null)
                     throw Fail($"smbus_host: {error}");
+            }
+            else if (op.Kind == DynDataHw.KindDfMap)
+            {
+                if (op.Length != DynDataHw.OpHeaderSize + DynDataHw.DfMapSize)
+                    throw Fail("df_map op length is not its body");
+
+                string error = DynDataHw.DfMapError(MemoryMarshal.Read<DynDataHw.HwDfMap>(body));
+
+                if (error != null)
+                    throw Fail($"df_map: {error}");
             }
             else if (op.Kind == DynDataHw.KindPortIndirectRead)
             {
@@ -6612,8 +6793,6 @@ namespace CustomBuildTool
 
             if (!DynDataHw.DriverKinds.SmuTableBounds.Contains(table.Bound))
                 throw Fail($"smu_table_read bound {table.Bound} is not implemented by the driver");
-            if (table.Reserved != 0)
-                throw Fail("smu_table_read reserved byte is not zero");
             if (table.BaseLowWord >= DynDataHw.MailboxMaxArgs ||
                 (table.BaseHighWord != DynDataHw.SmuTableWordNone && (table.BaseHighWord >= DynDataHw.MailboxMaxArgs || table.BaseHighWord == table.BaseLowWord)) ||
                 (table.SizeWord != DynDataHw.SmuTableWordNone && (table.SizeWord >= DynDataHw.MailboxMaxArgs || table.SizeWord == table.BaseLowWord || table.SizeWord == table.BaseHighWord)))
@@ -6779,6 +6958,7 @@ namespace CustomBuildTool
             UInt32 count = MemoryMarshal.Read<DynDataHw.HwTableHeader>(Table).Count;
             var mailboxes = new List<int>();
             var tables = new List<int>();
+            int dfMaps = 0;
             int offset = DynDataHw.TableSize;
 
             for (UInt32 j = 0; j < count; j++)
@@ -6789,6 +6969,8 @@ namespace CustomBuildTool
                     mailboxes.Add(offset + DynDataHw.OpHeaderSize);
                 else if (op.Kind == DynDataHw.KindSmuTableRead)
                     tables.Add(offset + DynDataHw.OpHeaderSize);
+                else if (op.Kind == DynDataHw.KindDfMap)
+                    dfMaps++;
 
                 offset += op.Length;
             }
@@ -6799,6 +6981,8 @@ namespace CustomBuildTool
 
                 if (table.MailboxOp >= mailboxes.Count)
                     throw Fail($"row {Index} smu_table_read names mailbox op {table.MailboxOp} of {mailboxes.Count}");
+                if (table.DfMapOp != DynDataHw.SmuTableDfMapNone && table.DfMapOp >= dfMaps)
+                    throw Fail($"row {Index} smu_table_read names df_map op {table.DfMapOp} of {dfMaps}");
 
                 var mailboxBody = Table[mailboxes[table.MailboxOp]..];
                 var mailbox = MemoryMarshal.Read<DynDataHw.HwMailboxTransact>(mailboxBody);

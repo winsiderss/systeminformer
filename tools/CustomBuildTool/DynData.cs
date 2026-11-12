@@ -489,6 +489,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_KIND_SYSREG_READ             ((USHORT){{DynDataHw.KindSysregRead}})
 #define KPH_DYN_HW_KIND_PORT_INDIRECT_READ      ((USHORT){{DynDataHw.KindPortIndirectRead}})
 #define KPH_DYN_HW_KIND_SMBUS_HOST              ((USHORT){{DynDataHw.KindSmbusHost}})
+#define KPH_DYN_HW_KIND_DF_MAP                  ((USHORT){{DynDataHw.KindDfMap}})
 
 #define KPH_DYN_HW_FLAG_REQUIRE_D0              ((UCHAR)0x{{DynDataHw.FlagRequireD0:X2}})
 #define KPH_DYN_HW_FLAG_ARM64                   ((UCHAR)0x{{DynDataHw.FlagArm64:X2}})
@@ -564,6 +565,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_MAILBOX_COMMAND_INTERNAL     ((UCHAR)0x{{DynDataHw.MailboxCommandInternal:X2}})
 #define KPH_DYN_HW_SMU_TABLE_BOUND_AMD_DRAM     ((UCHAR){{DynDataHw.SmuTableBoundAmdDram}})
 #define KPH_DYN_HW_SMU_TABLE_WORD_NONE          ((UCHAR)0x{{DynDataHw.SmuTableWordNone:X2}})
+#define KPH_DYN_HW_SMU_TABLE_DF_MAP_NONE        ((UCHAR)0x{{DynDataHw.SmuTableDfMapNone:X2}})
 #define KPH_DYN_HW_SMU_TABLE_MAX_VERSIONS       ((UCHAR){{DynDataHw.SmuTableMaxVersions}})
 #define KPH_DYN_HW_SMU_TABLE_MAX_SIZE           ((ULONG)0x{{DynDataHw.SmuTableMaxSize:X}})
 
@@ -964,7 +966,7 @@ typedef struct _KPH_DYN_HW_SMU_TABLE_READ
     UCHAR BaseLowWord;
     UCHAR BaseHighWord;
     UCHAR SizeWord;
-    UCHAR Reserved;
+    UCHAR DfMapOp;
     // KPH_DYN_HW_SMU_TABLE_VERSION Versions[VersionCount];
 } KPH_DYN_HW_SMU_TABLE_READ, *PKPH_DYN_HW_SMU_TABLE_READ;
 typedef const KPH_DYN_HW_SMU_TABLE_READ* PCKPH_DYN_HW_SMU_TABLE_READ;
@@ -1009,6 +1011,26 @@ typedef struct _KPH_DYN_HW_PORT_INDIRECT_READ
     // KPH_DYN_HW_RANGE Ranges[RangeCount];
 } KPH_DYN_HW_PORT_INDIRECT_READ, *PKPH_DYN_HW_PORT_INDIRECT_READ;
 typedef const KPH_DYN_HW_PORT_INDIRECT_READ* PCKPH_DYN_HW_PORT_INDIRECT_READ;
+
+typedef struct _KPH_DYN_HW_DF_MAP
+{
+    UCHAR Function;
+    UCHAR MapCount;
+    UCHAR MapStride;
+    UCHAR AddressShift;
+    USHORT MapOffset;
+    USHORT HoleOffset;
+    ULONG AddressMask;
+    ULONG HoleBaseMask;
+    UCHAR LimitOffset;
+    UCHAR ControlOffset;
+    UCHAR ValidBit;
+    UCHAR HoleRemapBit;
+    UCHAR HoleValidBit;
+    UCHAR Device;
+    UCHAR Reserved[2];
+} KPH_DYN_HW_DF_MAP, *PKPH_DYN_HW_DF_MAP;
+typedef const KPH_DYN_HW_DF_MAP* PCKPH_DYN_HW_DF_MAP;
 
 typedef struct _KPH_DYN_HW_SMBUS_HOST
 {
@@ -1081,6 +1103,7 @@ C_ASSERT(sizeof(KPH_DYN_HW_ACPI_EVAL) == {{DynDataHw.AcpiEvalSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SYSREG_READ) == {{DynDataHw.SysregReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_PORT_INDIRECT_READ) == {{DynDataHw.PortIndirectReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SMBUS_HOST) == {{DynDataHw.SmbusHostSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_DF_MAP) == {{DynDataHw.DfMapSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SECTION) == {{DynDataHw.SectionSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
 {{DynDataHw.FieldOffsetAsserts()}}
