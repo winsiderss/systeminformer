@@ -1626,7 +1626,7 @@ NTSTATUS KphpHwMailboxTableCommand(
  * \param[in] Session The mailbox session.
  * \param[in] Op The mailbox_transact op.
  * \param[in] Table The smu_table_read op body.
- * \param[in] SetupCommand The setup command (TWO_STEP), else NULL.
+ * \param[in] SetupCommand The setup command, NULL when the table has none.
  * \param[in] BaseCommand The base command.
  * \param[in] Deadline The deadline of the request.
  * \param[out] Results Receives the base command's response words.
@@ -1654,8 +1654,7 @@ NTSTATUS KphpHwMailboxTableBase(
 
     *Base = 0;
 
-    NT_ASSERT((SetupCommand != NULL) ==
-              (Table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP));
+    NT_ASSERT((SetupCommand != NULL) == (Table->SetupOpcode != 0));
 
     if (SetupCommand)
     {
@@ -1682,13 +1681,11 @@ NTSTATUS KphpHwMailboxTableBase(
         return status;
     }
 
-    if (Table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP)
+    *Base = Results[Table->BaseLowWord];
+
+    if (Table->BaseHighWord != KPH_DYN_HW_SMU_TABLE_WORD_NONE)
     {
-        *Base = Results[0];
-    }
-    else
-    {
-        *Base = (Results[0] | ((ULONG64)Results[1] << 32));
+        *Base |= ((ULONG64)Results[Table->BaseHighWord] << 32);
     }
 
     return STATUS_SUCCESS;
@@ -1834,7 +1831,7 @@ NTSTATUS KphpHwMailboxCopyTable(
         }
     }
 
-    if (table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP)
+    if (table->SetupOpcode)
     {
         status = KphDynHwFindMailboxCommand(mailboxOp,
                                             table->SetupOpcode,
@@ -1854,11 +1851,13 @@ NTSTATUS KphpHwMailboxCopyTable(
                                 KPH_DYN_HW_MAILBOX_COMMAND_INTERNAL));
     }
 
+    NT_ASSERT(table->Bound == KPH_DYN_HW_SMU_TABLE_BOUND_AMD_DRAM);
     NT_ASSERT(versionCommand->ResponseWords >= 1);
-    NT_ASSERT(baseCommand->ResponseWords >=
-              ((table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_HSMP) ? 3 :
-               (table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP) ? 1 :
-               2));
+    NT_ASSERT(baseCommand->ResponseWords > table->BaseLowWord);
+    NT_ASSERT((table->BaseHighWord == KPH_DYN_HW_SMU_TABLE_WORD_NONE) ||
+              (baseCommand->ResponseWords > table->BaseHighWord));
+    NT_ASSERT((table->SizeWord == KPH_DYN_HW_SMU_TABLE_WORD_NONE) ||
+              (baseCommand->ResponseWords > table->SizeWord));
     NT_ASSERT(BooleanFlagOn(baseCommand->Flags,
                             KPH_DYN_HW_MAILBOX_COMMAND_INTERNAL));
     NT_ASSERT(!transferCommand ||
@@ -2019,16 +2018,16 @@ NTSTATUS KphpHwMailboxCopyTable(
     }
 
     //
-    // HSMP reports the table size; never read past it.
+    // A reported table size is never read past.
     //
-    if ((table->BaseShape == KPH_DYN_HW_SMU_TABLE_BASE_HSMP) &&
-        results[2] &&
-        (results[2] < size))
+    if ((table->SizeWord != KPH_DYN_HW_SMU_TABLE_WORD_NONE) &&
+        results[table->SizeWord] &&
+        (results[table->SizeWord] < size))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "SMU table reported size %lu below %lu",
-                      results[2],
+                      results[table->SizeWord],
                       size);
 
         status = STATUS_DEVICE_CONFIGURATION_ERROR;

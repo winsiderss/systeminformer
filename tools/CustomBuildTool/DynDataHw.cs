@@ -335,26 +335,27 @@ namespace CustomBuildTool
         /// </summary>
         public const byte MailboxCommandInternal = 0x01;
         /// <summary>
-        /// Base = response 0 | response 1 &lt;&lt; 32 (RSMU GetDramBaseAddress).
+        /// The table base must lie in DRAM the CPU decodes (AMD).
         /// </summary>
-        public const byte SmuTableBaseHiLo = 1;
+        public const byte SmuTableBoundAmdDram = 1;
         /// <summary>
-        /// As <see cref="SmuTableBaseHiLo"/>; response 2 is the reported size, 0 when unreported.
+        /// No reply word: the base has no high half, or no size is reported.
         /// </summary>
-        public const byte SmuTableBaseHsmp = 2;
+        public const byte SmuTableWordNone = 0xFF;
         /// <summary>
-        /// The setup opcode, then the base opcode; base = response 0, 32 bits (Raven/Picasso).
+        /// The response words the base opcode must read back: one more than the highest word index the row names.
         /// </summary>
-        public const byte SmuTableBaseTwoStep = 3;
-        /// <summary>
-        /// The response words the base opcode of a shape reads back.
-        /// </summary>
-        public static byte SmuTableBaseWords(byte Shape) => Shape switch
+        public static byte SmuTableBaseWords(byte BaseLowWord, byte BaseHighWord, byte SizeWord)
         {
-            SmuTableBaseHsmp => 3,
-            SmuTableBaseTwoStep => 1,
-            _ => 2
-        };
+            byte highest = BaseLowWord;
+
+            if (BaseHighWord != SmuTableWordNone)
+                highest = Math.Max(highest, BaseHighWord);
+            if (SizeWord != SmuTableWordNone)
+                highest = Math.Max(highest, SizeWord);
+
+            return (byte)(highest + 1);
+        }
         public const byte SmuTableMaxVersions = 64;
         public const UInt32 SmuTableMaxSize = 0x10000;
 
@@ -878,7 +879,7 @@ namespace CustomBuildTool
         public const int MailboxCommandSize = 104;
         public const int MailboxTransactSize = 48;
         public const int SmuTableVersionSize = 8;
-        public const int SmuTableReadSize = 16;
+        public const int SmuTableReadSize = 20;
         public const int AcpiArgSize = 16;
         public const int AcpiEvalSize = 16;
         public const int SysregReadSize = 12;
@@ -899,7 +900,7 @@ namespace CustomBuildTool
             SmbusHosts: [SmbusHostI801, SmbusHostPiix4],
             VsecDiscoveries: [VsecDiscoveryPmtTelemetry, VsecDiscoveryTpmi],
             MailboxTransports: [MailboxTransportSmnPair, MailboxTransportMmioWindow],
-            SmuTableShapes: [SmuTableBaseHiLo, SmuTableBaseHsmp, SmuTableBaseTwoStep],
+            SmuTableBounds: [SmuTableBoundAmdDram],
             SysregRegisters: [SysregMidr, SysregMpidr, SysregRevidr, SysregIdAa64Pfr0, SysregIdAa64Pfr1, SysregIdAa64Dfr0, SysregCntfrq, SysregCntvct,
                               SysregPmccntr, SysregAmcfgr, SysregAmcgcr, SysregAmcntenset0, SysregAmevcntr00, SysregAmevcntr01, SysregAmevcntr02, SysregAmevcntr03],
             PortPairs: [PortPairFchPm]
@@ -1048,12 +1049,15 @@ namespace CustomBuildTool
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Reserved2", 12),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Address", 16),
             FieldOffset<HwSmuTableVersion>("KPH_DYN_HW_SMU_TABLE_VERSION", "Size", 4),
-            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseShape", 1),
+            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "Bound", 1),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "VersionCount", 2),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "SetupOpcode", 3),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "VersionOpcode", 4),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "TransferOpcode", 8),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseOpcode", 12),
+            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseLowWord", 16),
+            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "BaseHighWord", 17),
+            FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "SizeWord", 18),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Max", 4),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Fixed", 8),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Reserved", 12),
@@ -1416,12 +1420,16 @@ namespace CustomBuildTool
         public struct HwSmuTableRead
         {
             public byte MailboxOp;
-            public byte BaseShape;
+            public byte Bound;
             public byte VersionCount;
             public byte SetupOpcode;
             public UInt32 VersionOpcode;
             public UInt32 TransferOpcode;
             public UInt32 BaseOpcode;
+            public byte BaseLowWord;
+            public byte BaseHighWord;
+            public byte SizeWord;
+            public byte Reserved;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1613,7 +1621,7 @@ namespace CustomBuildTool
     /// <summary>
     /// The kinds, families, transports, shapes, registers and port pairs a driver implements.
     /// </summary>
-    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] SmuTableShapes, byte[] SysregRegisters, byte[] PortPairs);
+    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] SmuTableBounds,byte[] SysregRegisters, byte[] PortPairs);
 
     /// <summary>
     /// An index row: an exact identity and its op table.
@@ -1651,7 +1659,7 @@ namespace CustomBuildTool
         private static readonly string[] MmioMailboxAttributes = ["transport", "protocol", "resource", "size", "msg", "rsp", "arg", "args", "version", "version-arg", "cpu-family", "cpu-models", "name", "desc"];
         private static readonly string[] CommandAttributes = ["opcode", "type", "response", "internal", "name", "desc"];
         private static readonly string[] ArgAttributes = ["index", "mask", "max", "fixed", "desc"];
-        private static readonly string[] SmuTableAttributes = ["mailbox", "shape", "version", "transfer", "setup", "base", "name", "desc"];
+        private static readonly string[] SmuTableAttributes = ["mailbox", "bound", "version", "transfer", "setup", "base", "base-low", "base-high", "size-word", "name", "desc"];
         private static readonly string[] SmuTableVersionAttributes = ["id", "size", "desc"];
         private static readonly string[] AcpiAttributes = ["id", "name", "desc"];
         private static readonly string[] EvalAttributes = ["method", "results", "max-output", "desc"];
@@ -2613,16 +2621,33 @@ namespace CustomBuildTool
             var body = new DynDataHw.HwSmuTableRead
             {
                 MailboxOp = (byte)mailbox.Index,
-                BaseShape = RequiredAttribute(Context, SmuTable, "shape") switch
+                Bound = RequiredAttribute(Context, SmuTable, "bound") switch
                 {
-                    "hi-lo" => DynDataHw.SmuTableBaseHiLo,
-                    "hsmp" => DynDataHw.SmuTableBaseHsmp,
-                    "two-step" => DynDataHw.SmuTableBaseTwoStep,
-                    _ => throw Context.Error(SmuTable, "shape must be \"hi-lo\", \"hsmp\" or \"two-step\"")
+                    "amd-dram" => DynDataHw.SmuTableBoundAmdDram,
+                    _ => throw Context.Error(SmuTable, "bound must be \"amd-dram\"")
                 },
                 VersionOpcode = (UInt32)ParseHex(Context, SmuTable, "version", RequiredAttribute(Context, SmuTable, "version"), DynDataHw.MailboxMaxOpcode),
-                BaseOpcode = (UInt32)ParseHex(Context, SmuTable, "base", RequiredAttribute(Context, SmuTable, "base"), DynDataHw.MailboxMaxOpcode)
+                BaseOpcode = (UInt32)ParseHex(Context, SmuTable, "base", RequiredAttribute(Context, SmuTable, "base"), DynDataHw.MailboxMaxOpcode),
+                BaseLowWord = (byte)ParseDecimal(Context, SmuTable, "base-low", RequiredAttribute(Context, SmuTable, "base-low"), 0, DynDataHw.MailboxMaxArgs - 1),
+                BaseHighWord = DynDataHw.SmuTableWordNone,
+                SizeWord = DynDataHw.SmuTableWordNone
             };
+            string baseHigh = OptionalAttribute(SmuTable, "base-high");
+            string sizeWord = OptionalAttribute(SmuTable, "size-word");
+
+            if (baseHigh != null)
+                body.BaseHighWord = (byte)ParseDecimal(Context, SmuTable, "base-high", baseHigh, 0, DynDataHw.MailboxMaxArgs - 1);
+            if (sizeWord != null)
+                body.SizeWord = (byte)ParseDecimal(Context, SmuTable, "size-word", sizeWord, 0, DynDataHw.MailboxMaxArgs - 1);
+            if ((baseHigh != null && body.BaseHighWord == body.BaseLowWord) ||
+                (sizeWord != null && (body.SizeWord == body.BaseLowWord || body.SizeWord == body.BaseHighWord)))
+                throw Context.Error(SmuTable, "base-low, base-high and size-word name the same reply word");
+
+            byte baseWords = DynDataHw.SmuTableBaseWords(body.BaseLowWord, body.BaseHighWord, body.SizeWord);
+
+            if (baseWords > mailbox.ArgCount)
+                throw Context.Error(SmuTable, $"reply word {baseWords - 1} is not below the {mailbox.ArgCount} arguments of mailbox \"{mailboxName}\"");
+
             string transfer = OptionalAttribute(SmuTable, "transfer");
 
             if (transfer != null)
@@ -2635,8 +2660,6 @@ namespace CustomBuildTool
 
             string setup = OptionalAttribute(SmuTable, "setup");
 
-            if ((setup != null) != (body.BaseShape == DynDataHw.SmuTableBaseTwoStep))
-                throw Context.Error(SmuTable, "setup is required for shape=\"two-step\" and only for it");
             if (setup != null)
             {
                 body.SetupOpcode = (byte)ParseHex(Context, SmuTable, "setup", setup, DynDataHw.MailboxMaxOpcode);
@@ -2644,8 +2667,6 @@ namespace CustomBuildTool
                 if (body.SetupOpcode == 0 || body.SetupOpcode == body.BaseOpcode || body.SetupOpcode == body.VersionOpcode || body.SetupOpcode == body.TransferOpcode)
                     throw Context.Error(SmuTable, $"setup opcode 0x{body.SetupOpcode:x2} is zero or another opcode of the table");
             }
-
-            byte baseWords = DynDataHw.SmuTableBaseWords(body.BaseShape);
 
             if (body.VersionOpcode == body.BaseOpcode || body.VersionOpcode == body.TransferOpcode)
                 throw Context.Error(SmuTable, $"version opcode 0x{body.VersionOpcode:x2} is also the base or transfer opcode");
@@ -6222,14 +6243,21 @@ namespace CustomBuildTool
         {
             var table = MemoryMarshal.Read<DynDataHw.HwSmuTableRead>(Body);
 
-            if (!DynDataHw.DriverKinds.SmuTableShapes.Contains(table.BaseShape))
-                throw Fail($"smu_table_read base shape {table.BaseShape} is not implemented by the driver");
+            if (!DynDataHw.DriverKinds.SmuTableBounds.Contains(table.Bound))
+                throw Fail($"smu_table_read bound {table.Bound} is not implemented by the driver");
+            if (table.Reserved != 0)
+                throw Fail("smu_table_read reserved byte is not zero");
+            if (table.BaseLowWord >= DynDataHw.MailboxMaxArgs ||
+                (table.BaseHighWord != DynDataHw.SmuTableWordNone && (table.BaseHighWord >= DynDataHw.MailboxMaxArgs || table.BaseHighWord == table.BaseLowWord)) ||
+                (table.SizeWord != DynDataHw.SmuTableWordNone && (table.SizeWord >= DynDataHw.MailboxMaxArgs || table.SizeWord == table.BaseLowWord || table.SizeWord == table.BaseHighWord)))
+            {
+                throw Fail("smu_table_read reply words are out of range or not distinct");
+            }
             if (table.VersionCount > DynDataHw.SmuTableMaxVersions)
                 throw Fail($"smu_table_read has {table.VersionCount} versions, cap {DynDataHw.SmuTableMaxVersions}");
             if (DynDataHw.SmuTableReadSize + table.VersionCount * DynDataHw.SmuTableVersionSize > Body.Length)
                 throw Fail("smu_table_read versions overrun the op");
             if (table.VersionCount < 1 ||
-                (table.SetupOpcode != 0) != (table.BaseShape == DynDataHw.SmuTableBaseTwoStep) ||
                 (table.SetupOpcode != 0 && (table.SetupOpcode == table.BaseOpcode || table.SetupOpcode == table.VersionOpcode || table.SetupOpcode == table.TransferOpcode)) ||
                 table.VersionOpcode < 1 || table.VersionOpcode > DynDataHw.MailboxMaxOpcode ||
                 table.BaseOpcode < 1 || table.BaseOpcode > DynDataHw.MailboxMaxOpcode ||
@@ -6430,7 +6458,7 @@ namespace CustomBuildTool
                 }
 
                 Require(mailboxBody, table.VersionOpcode, 1, false);
-                Require(mailboxBody, table.BaseOpcode, DynDataHw.SmuTableBaseWords(table.BaseShape), true);
+                Require(mailboxBody, table.BaseOpcode, DynDataHw.SmuTableBaseWords(table.BaseLowWord, table.BaseHighWord, table.SizeWord), true);
 
                 if (table.TransferOpcode != 0)
                     Require(mailboxBody, table.TransferOpcode, 0, true);

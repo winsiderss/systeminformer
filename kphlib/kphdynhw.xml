@@ -1459,7 +1459,7 @@ This file is part of System Informer.
                     <arg index="0" fixed="0x3"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="two-step" version="0x0c" transfer="0x3d" setup="0x0a" base="0x0b" desc="PM table; the 0xA4-byte table 5 is not read (0x608 primary)">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" version="0x0c" transfer="0x3d" setup="0x0a" base="0x0b" desc="PM table; the 0xA4-byte table 5 is not read (0x608 primary)">
                 <version id="0x1e0004" size="0x608"/>
             </smutable>
         </pci>
@@ -1547,7 +1547,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x08" transfer="0x05" base="0x06" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x08" transfer="0x05" base="0x06" desc="PM table">
                 <version id="0x240003" size="0x18ac" desc="64 cores"/>
                 <version id="0x240503" size="0xd7c" desc="32 cores"/>
                 <version id="0x240603" size="0xab0" desc="24 cores"/>
@@ -1647,7 +1647,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x370000" size="0x794"/>
                 <version id="0x370001" size="0x884"/>
                 <version id="0x370002" size="0x88c"/>
@@ -1706,7 +1706,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x08" transfer="0x05" base="0x06" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x08" transfer="0x05" base="0x06" desc="PM table">
                 <version id="0x240802" size="0x7e0"/>
                 <version id="0x240803" size="0x7e4"/>
                 <version id="0x240902" size="0x514"/>
@@ -1885,7 +1885,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x08" transfer="0x05" base="0x06" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x08" transfer="0x05" base="0x06" desc="PM table">
                 <version id="0x2d0008" size="0x1ab0"/>
                 <version id="0x380005" size="0x1bb0" desc="Chagall 64c"/>
                 <version id="0x380505" size="0xf30" desc="Chagall 32c"/>
@@ -2256,7 +2256,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x5c0002" size="0x1e3c" desc="96 cores"/>
                 <version id="0x5c0003" size="0x1e48" desc="96 cores"/>
                 <version id="0x5c0102" size="0x1a14" desc="80 cores"/>
@@ -2319,7 +2319,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x08" transfer="0x05" base="0x06" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x08" transfer="0x05" base="0x06" desc="PM table">
                 <version id="0x2d0803" size="0x894"/>
                 <version id="0x2d0903" size="0x594"/>
                 <version id="0x380804" size="0x8a4"/>
@@ -2380,7 +2380,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x450004" size="0xaa4"/>
                 <version id="0x450005" size="0xab0"/>
             </smutable>
@@ -2435,7 +2435,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x400001" size="0x910"/>
                 <version id="0x400002" size="0x928"/>
                 <version id="0x400003" size="0x94c"/>
@@ -2492,7 +2492,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x540000" size="0x828"/>
                 <version id="0x540001" size="0x82c"/>
                 <version id="0x540002" size="0x87c"/>
@@ -2560,7 +2560,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x4c0003" size="0xb18"/>
                 <version id="0x4c0004" size="0xb1c"/>
                 <version id="0x4c0005" size="0xaf8"/>
@@ -2874,7 +2874,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x730204" size="0xb1c" desc="2 CCD"/>
                 <version id="0x730404" size="0x1004" desc="4 CCD"/>
                 <version id="0x730604" size="0x14ec" desc="6 CCD"/>
@@ -3035,7 +3035,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x06" transfer="0x65" base="0x66" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x06" transfer="0x65" base="0x66" desc="PM table">
                 <version id="0x5d0008" size="0xd54"/>
             </smutable>
         </pci>
@@ -3088,7 +3088,7 @@ This file is part of System Informer.
                     <arg index="1" fixed="0x1" desc="high half of the address"/>
                 </command>
             </mailbox>
-            <smutable mailbox="rsmu" shape="hi-lo" version="0x05" transfer="0x03" base="0x04" desc="PM table">
+            <smutable mailbox="rsmu" bound="amd-dram" base-low="0" base-high="1" version="0x05" transfer="0x03" base="0x04" desc="PM table">
                 <version id="0x620105" size="0x724" desc="1 CCD"/>
                 <version id="0x620205" size="0x994"/>
                 <version id="0x621102" size="0x724" desc="1 CCD"/>

@@ -560,9 +560,8 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_MAILBOX_MAX_OPCODE           ((ULONG)0x{{DynDataHw.MailboxMaxOpcode:X2}})
 #define KPH_DYN_HW_MAILBOX_COMMAND_GET          ((UCHAR){{DynDataHw.MailboxCommandGet}})
 #define KPH_DYN_HW_MAILBOX_COMMAND_INTERNAL     ((UCHAR)0x{{DynDataHw.MailboxCommandInternal:X2}})
-#define KPH_DYN_HW_SMU_TABLE_BASE_HI_LO         ((UCHAR){{DynDataHw.SmuTableBaseHiLo}})
-#define KPH_DYN_HW_SMU_TABLE_BASE_HSMP          ((UCHAR){{DynDataHw.SmuTableBaseHsmp}})
-#define KPH_DYN_HW_SMU_TABLE_BASE_TWO_STEP      ((UCHAR){{DynDataHw.SmuTableBaseTwoStep}})
+#define KPH_DYN_HW_SMU_TABLE_BOUND_AMD_DRAM     ((UCHAR){{DynDataHw.SmuTableBoundAmdDram}})
+#define KPH_DYN_HW_SMU_TABLE_WORD_NONE          ((UCHAR)0x{{DynDataHw.SmuTableWordNone:X2}})
 #define KPH_DYN_HW_SMU_TABLE_MAX_VERSIONS       ((UCHAR){{DynDataHw.SmuTableMaxVersions}})
 #define KPH_DYN_HW_SMU_TABLE_MAX_SIZE           ((ULONG)0x{{DynDataHw.SmuTableMaxSize:X}})
 
@@ -927,12 +926,16 @@ typedef const KPH_DYN_HW_SMU_TABLE_VERSION* PCKPH_DYN_HW_SMU_TABLE_VERSION;
 typedef struct _KPH_DYN_HW_SMU_TABLE_READ
 {
     UCHAR MailboxOp;
-    UCHAR BaseShape; // KPH_DYN_HW_SMU_TABLE_BASE_*
+    UCHAR Bound; // KPH_DYN_HW_SMU_TABLE_BOUND_*
     UCHAR VersionCount;
     UCHAR SetupOpcode;
     ULONG VersionOpcode;
     ULONG TransferOpcode;
     ULONG BaseOpcode;
+    UCHAR BaseLowWord;
+    UCHAR BaseHighWord;
+    UCHAR SizeWord;
+    UCHAR Reserved;
     // KPH_DYN_HW_SMU_TABLE_VERSION Versions[VersionCount];
 } KPH_DYN_HW_SMU_TABLE_READ, *PKPH_DYN_HW_SMU_TABLE_READ;
 typedef const KPH_DYN_HW_SMU_TABLE_READ* PCKPH_DYN_HW_SMU_TABLE_READ;
