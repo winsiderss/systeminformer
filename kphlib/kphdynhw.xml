@@ -3557,6 +3557,14 @@ This file is part of System Informer.
         <read offset="0xe8" length="0x4"/>
     </pci>
 
+    <pci vendor="0x1022"
+         device="0x14db,0x14dd"
+         desc="Family 19h M60h-7Fh and Family 1Ah M40h PCIe root ports (GPP bridges)">
+        <read offset="0x00" length="0xc4" desc="header and capability list: PCI Express Device Control and Root Control"/>
+        <read offset="0xcc" length="0x34" desc="capability list above the SMN index/data pair C4h/C8h a class-keyed AMD root uses"/>
+        <read offset="0x100" length="0xf00" desc="extended capabilities: AER masks and severity, DPC Control"/>
+    </pci>
+
     <superio slots="0,1"
              family="smsc"
              chassis="0x01-0x07,0x0f-0x1d"

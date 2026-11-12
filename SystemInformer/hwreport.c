@@ -407,6 +407,9 @@ PPH_STRING NTAPI PhHwCreateReport(
     PhpHwReportSection(&builder, L"Devices");
     PhpHwReportDevices(&builder);
 
+    PhpHwReportSection(&builder, L"PCI error policy");
+    PhHwWriteBridgeDiagnostics(&builder);
+
     PhpHwReportSection(&builder, L"SMBIOS");
     PhEnumSMBIOS(PhpHwReportSmbiosCallback, &builder);
 

@@ -13255,6 +13255,402 @@ static VOID PhpHwAppendPmic(
         );
 }
 
+#define PHP_HW_MAX_BRIDGES 64
+#define PHP_HW_PCI_CONFIG_LENGTH 0x1000
+#define PHP_HW_PCI_CONFIG_HEADER 0x100
+#define PHP_HW_PCI_STATUS_CAPABILITIES 0x0010
+#define PHP_HW_PCI_CAP_EXPRESS 0x10
+#define PHP_HW_PCI_EXT_CAP_AER 0x0001
+#define PHP_HW_PCI_EXT_CAP_DPC 0x001D
+
+typedef struct _PHP_HW_REPORT_CONFIG
+{
+    UCHAR Bytes[PHP_HW_PCI_CONFIG_LENGTH];
+    BOOLEAN Readable[PHP_HW_PCI_CONFIG_LENGTH];
+} PHP_HW_REPORT_CONFIG, *PPHP_HW_REPORT_CONFIG;
+
+/**
+ * Reads the configuration space of a PCI function for the report; bytes the driver refuses stay unread.
+ *
+ * \details A row may split the header around registers it keeps out, so a refused header is read a
+ * dword at a time.
+ *
+ * \param Locator The function.
+ * \param Config Receives the bytes and which of them were read.
+ * \return STATUS_SUCCESS if any header byte was read, otherwise the status of the header read.
+ */
+static NTSTATUS PhpHwReadReportConfig(
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _Out_ PPHP_HW_REPORT_CONFIG Config
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    BOOLEAN anyRead = FALSE;
+
+    memset(Config, 0, sizeof(PHP_HW_REPORT_CONFIG));
+
+    status = KphHwReadPciConfig(Locator, 0, Config->Bytes, PHP_HW_PCI_CONFIG_HEADER, &returnLength);
+
+    if (NT_SUCCESS(status))
+    {
+        memset(Config->Readable, TRUE, min(returnLength, PHP_HW_PCI_CONFIG_HEADER));
+        anyRead = returnLength != 0;
+    }
+    else
+    {
+        for (ULONG offset = 0; offset < PHP_HW_PCI_CONFIG_HEADER; offset += sizeof(ULONG))
+        {
+            if (NT_SUCCESS(KphHwReadPciConfig(Locator, offset, &Config->Bytes[offset], sizeof(ULONG), &returnLength)) && returnLength == sizeof(ULONG))
+            {
+                memset(&Config->Readable[offset], TRUE, sizeof(ULONG));
+                anyRead = TRUE;
+            }
+        }
+    }
+
+    if (NT_SUCCESS(KphHwReadPciConfig(
+        Locator,
+        PHP_HW_PCI_CONFIG_HEADER,
+        &Config->Bytes[PHP_HW_PCI_CONFIG_HEADER],
+        PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER,
+        &returnLength
+        )))
+    {
+        memset(&Config->Readable[PHP_HW_PCI_CONFIG_HEADER], TRUE, min(returnLength, PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER));
+    }
+
+    return anyRead ? STATUS_SUCCESS : status;
+}
+
+/**
+ * Reads a little-endian configuration register from a report read.
+ *
+ * \return TRUE if every byte of the register was read.
+ */
+static BOOLEAN PhpHwReportConfigValue(
+    _In_ PPHP_HW_REPORT_CONFIG Config,
+    _In_ ULONG Offset,
+    _In_range_(1, 4) ULONG Size,
+    _Out_ PULONG Value
+    )
+{
+    *Value = 0;
+
+    if (Offset > PHP_HW_PCI_CONFIG_LENGTH || Size > PHP_HW_PCI_CONFIG_LENGTH - Offset)
+        return FALSE;
+
+    for (ULONG i = 0; i < Size; i++)
+    {
+        if (!Config->Readable[Offset + i])
+            return FALSE;
+    }
+
+    memcpy(Value, &Config->Bytes[Offset], Size);
+    return TRUE;
+}
+
+/**
+ * Finds a capability of the standard list.
+ *
+ * \return The capability offset, zero if absent or not readable.
+ */
+static ULONG PhpHwReportFindCapability(
+    _In_ PPHP_HW_REPORT_CONFIG Config,
+    _In_ UCHAR Id
+    )
+{
+    ULONG value;
+    ULONG offset;
+
+    if (!PhpHwReportConfigValue(Config, 0x06, 2, &value) || !(value & PHP_HW_PCI_STATUS_CAPABILITIES))
+        return 0;
+    if (!PhpHwReportConfigValue(Config, 0x34, 1, &offset))
+        return 0;
+
+    for (ULONG ttl = 48; ttl && (offset &= 0xFC) >= 0x40; ttl--)
+    {
+        if (!PhpHwReportConfigValue(Config, offset, 2, &value))
+            return 0;
+        if ((value & 0xFF) == Id)
+            return offset;
+
+        offset = value >> 8;
+    }
+
+    return 0;
+}
+
+/**
+ * Finds a capability of the extended list.
+ *
+ * \param Read Receives TRUE when the chain was read to its end or to the capability.
+ * \return The capability offset, zero if absent or not readable.
+ */
+static ULONG PhpHwReportFindExtendedCapability(
+    _In_ PPHP_HW_REPORT_CONFIG Config,
+    _In_ USHORT Id,
+    _Out_ PBOOLEAN Read
+    )
+{
+    ULONG header;
+    ULONG offset = PHP_HW_PCI_CONFIG_HEADER;
+
+    *Read = FALSE;
+
+    for (ULONG ttl = (PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER) / sizeof(ULONG); ttl; ttl--)
+    {
+        if (!PhpHwReportConfigValue(Config, offset, 4, &header))
+            return 0;
+
+        *Read = TRUE;
+
+        if (header == 0 || header == ULONG_MAX)
+            return 0;
+        if ((header & 0xFFFF) == Id)
+            return offset;
+
+        offset = (header >> 20) & 0xFFC;
+
+        if (offset < PHP_HW_PCI_CONFIG_HEADER)
+            return 0;
+
+        *Read = FALSE;
+    }
+
+    return 0;
+}
+
+/**
+ * Appends the extended capability chain as offset:ID pairs, or what stopped the walk.
+ */
+static VOID PhpHwReportAppendExtendedList(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PPHP_HW_REPORT_CONFIG Config
+    )
+{
+    ULONG header;
+    ULONG offset = PHP_HW_PCI_CONFIG_HEADER;
+
+    PhAppendStringBuilder2(Builder, L"\n    Extended capabilities:");
+
+    for (ULONG ttl = (PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER) / sizeof(ULONG); ttl; ttl--)
+    {
+        if (!PhpHwReportConfigValue(Config, offset, 4, &header))
+        {
+            PhAppendFormatStringBuilder(Builder, L" 0x%03lx not read", offset);
+            return;
+        }
+
+        if (header == 0 || header == ULONG_MAX)
+        {
+            if (offset == PHP_HW_PCI_CONFIG_HEADER)
+                PhAppendFormatStringBuilder(Builder, L" none (0x100 reads 0x%08lx)", header);
+            else
+                PhAppendFormatStringBuilder(Builder, L" 0x%03lx reads 0x%08lx", offset, header);
+
+            return;
+        }
+
+        PhAppendFormatStringBuilder(Builder, L" 0x%03lx:%04lx", offset, header & 0xFFFF);
+
+        offset = (header >> 20) & 0xFFC;
+
+        if (offset < PHP_HW_PCI_CONFIG_HEADER)
+            return;
+    }
+}
+
+/**
+ * Appends one register of the error-policy census, or that it was not read.
+ */
+static VOID PhpHwReportAppendRegister(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PPHP_HW_REPORT_CONFIG Config,
+    _In_ PCWSTR Name,
+    _In_ ULONG Offset,
+    _In_range_(1, 4) ULONG Size,
+    _Out_ PULONG Value
+    )
+{
+    if (PhpHwReportConfigValue(Config, Offset, Size, Value))
+        PhAppendFormatStringBuilder(Builder, Size == 4 ? L"\n    %s 0x%08lx" : L"\n    %s 0x%04lx", Name, *Value);
+    else
+        PhAppendFormatStringBuilder(Builder, L"\n    %s not read", Name);
+}
+
+/**
+ * Writes the error policy of each PCI bridge for the hardware report: the PCI Express error-reporting
+ * enables, Root Control, the AER handling of Unsupported Request and Advisory Non-Fatal, and DPC Control.
+ *
+ * \param Builder The report.
+ */
+VOID PhHwWriteBridgeDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    static CONST PH_STRINGREF bridgeClass = PH_STRINGREF_INIT(L"PCI\\CC_0604");
+    static CONST PCWSTR portTypes[] =
+    {
+        L"endpoint", L"legacy endpoint", L"type 2", L"type 3", L"root port", L"upstream port", L"downstream port",
+        L"PCI Express to PCI bridge", L"PCI to PCI Express bridge", L"root complex integrated endpoint", L"root complex event collector"
+    };
+    KPH_HW_PCI_LOCATOR bridges[PHP_HW_MAX_BRIDGES];
+    PPHP_HW_REPORT_CONFIG config;
+    ULONG count;
+
+    if (KsiLevel() != KphLevelMax)
+    {
+        PhAppendStringBuilder2(Builder, L"Not read: the driver is not at the maximum level\n");
+        return;
+    }
+
+    count = PhpHwFindPciDevices(PHP_HW_ANY_VENDOR_ID, PHP_HW_ANY_VENDOR_ID, &bridgeClass, NULL, 0, FALSE, bridges, RTL_NUMBER_OF(bridges));
+
+    if (!count)
+    {
+        PhAppendStringBuilder2(Builder, L"None\n");
+        return;
+    }
+
+    config = PhAllocate(sizeof(PHP_HW_REPORT_CONFIG));
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        NTSTATUS status;
+        ULONG ids;
+        ULONG value;
+        ULONG express;
+        ULONG aer;
+        ULONG dpc;
+        BOOLEAN chainRead;
+        ULONG portType = ULONG_MAX;
+
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"%04x:%02x:%02x.%x",
+            bridges[i].Segment,
+            bridges[i].Bus,
+            bridges[i].Device,
+            bridges[i].Function
+            );
+
+        status = PhpHwReadReportConfig(&bridges[i], config);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhAppendFormatStringBuilder(Builder, L": status 0x%08x\n", status);
+            continue;
+        }
+
+        if (PhpHwReportConfigValue(config, 0x00, 4, &ids))
+            PhAppendFormatStringBuilder(Builder, L" %04x:%04x", ids & 0xFFFF, ids >> 16);
+
+        express = PhpHwReportFindCapability(config, PHP_HW_PCI_CAP_EXPRESS);
+
+        if (!express)
+        {
+            PhAppendStringBuilder2(Builder, L": no PCI Express capability read\n");
+            continue;
+        }
+
+        if (PhpHwReportConfigValue(config, express + 0x02, 2, &value))
+        {
+            portType = (value >> 4) & 0xF;
+            PhAppendFormatStringBuilder(Builder, L", %s", portType < RTL_NUMBER_OF(portTypes) ? portTypes[portType] : L"reserved type");
+        }
+
+        PhpHwReportAppendRegister(Builder, config, L"Device Control", express + 0x08, 2, &value);
+
+        if (PhpHwReportConfigValue(config, express + 0x08, 2, &value))
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L": reporting correctable %lu, non-fatal %lu, fatal %lu, unsupported request %lu",
+                value & 1,
+                (value >> 1) & 1,
+                (value >> 2) & 1,
+                (value >> 3) & 1
+                );
+        }
+
+        if (portType == 4 || portType == 10)
+        {
+            PhpHwReportAppendRegister(Builder, config, L"Root Control", express + 0x1C, 2, &value);
+
+            if (PhpHwReportConfigValue(config, express + 0x1C, 2, &value))
+            {
+                PhAppendFormatStringBuilder(
+                    Builder,
+                    L": system error on correctable %lu, non-fatal %lu, fatal %lu",
+                    value & 1,
+                    (value >> 1) & 1,
+                    (value >> 2) & 1
+                    );
+            }
+        }
+
+        PhpHwReportAppendExtendedList(Builder, config);
+
+        aer = PhpHwReportFindExtendedCapability(config, PHP_HW_PCI_EXT_CAP_AER, &chainRead);
+
+        if (aer)
+        {
+            ULONG mask;
+            ULONG severity;
+            ULONG correctable;
+
+            if (PhpHwReportConfigValue(config, aer + 0x08, 4, &mask) &&
+                PhpHwReportConfigValue(config, aer + 0x0C, 4, &severity) &&
+                PhpHwReportConfigValue(config, aer + 0x14, 4, &correctable))
+            {
+                PhAppendFormatStringBuilder(
+                    Builder,
+                    L"\n    AER uncorrectable mask 0x%08lx, severity 0x%08lx, correctable mask 0x%08lx: "
+                    L"unsupported request %s, %s; advisory non-fatal %s",
+                    mask,
+                    severity,
+                    correctable,
+                    (mask & (1ul << 20)) ? L"masked" : L"unmasked",
+                    (severity & (1ul << 20)) ? L"fatal" : L"non-fatal",
+                    (correctable & (1ul << 13)) ? L"masked" : L"unmasked"
+                    );
+            }
+            else
+            {
+                PhAppendStringBuilder2(Builder, L"\n    AER not read");
+            }
+
+            if (portType == 4 || portType == 10)
+                PhpHwReportAppendRegister(Builder, config, L"AER Root Error Command", aer + 0x2C, 4, &value);
+        }
+        else
+        {
+            PhAppendStringBuilder2(Builder, chainRead ? L"\n    AER absent" : L"\n    AER not read");
+        }
+
+        dpc = PhpHwReportFindExtendedCapability(config, PHP_HW_PCI_EXT_CAP_DPC, &chainRead);
+
+        if (dpc)
+        {
+            static CONST PCWSTR triggers[] = { L"disabled", L"on ERR_FATAL", L"on ERR_NONFATAL or ERR_FATAL", L"reserved" };
+
+            PhpHwReportAppendRegister(Builder, config, L"DPC Control", dpc + 0x06, 2, &value);
+
+            if (PhpHwReportConfigValue(config, dpc + 0x06, 2, &value))
+                PhAppendFormatStringBuilder(Builder, L": trigger %s, interrupt %lu, ERR_COR %lu", triggers[value & 3], (value >> 3) & 1, (value >> 4) & 1);
+        }
+        else
+        {
+            PhAppendStringBuilder2(Builder, chainRead ? L"\n    DPC absent" : L"\n    DPC not read");
+        }
+
+        PhAppendCharStringBuilder(Builder, L'\n');
+    }
+
+    PhFree(config);
+}
+
 /**
  * Writes the state of the hardware sensors provider for the hardware report.
  *

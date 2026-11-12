@@ -255,6 +255,10 @@ VOID PhHwWriteSourceDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
+VOID PhHwWriteBridgeDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 BOOLEAN PhHwSensorsProbed(
     VOID
     );
