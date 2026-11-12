@@ -38,7 +38,7 @@ namespace CustomBuildTool
         /// <summary>
         /// The dynamic configuration version.
         /// </summary>
-        private const UInt32 Version = 18;
+        private const UInt32 Version = 17;
 
         /// <summary>
         /// The public key used for session token validation.
@@ -491,6 +491,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_KIND_SMBUS_HOST              ((USHORT){{DynDataHw.KindSmbusHost}})
 
 #define KPH_DYN_HW_FLAG_REQUIRE_D0              ((UCHAR)0x{{DynDataHw.FlagRequireD0:X2}})
+#define KPH_DYN_HW_FLAG_ARM64                   ((UCHAR)0x{{DynDataHw.FlagArm64:X2}})
 
 #define KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR     ((UCHAR){{DynDataHw.WindowBaseStandardBar}})
 #define KPH_DYN_HW_WINDOW_BASE_CONFIG_REG       ((UCHAR){{DynDataHw.WindowBaseConfigReg}})
@@ -724,7 +725,7 @@ typedef struct _KPH_DYN_HW_OP
 {
     USHORT Kind; // KPH_DYN_HW_KIND_*
     USHORT Length;
-    UCHAR CoreType;
+    UCHAR Reserved0;
     UCHAR LockClass; // KPH_DYN_HW_LOCK_*
     UCHAR Flags; // KPH_DYN_HW_FLAG_*
     UCHAR Reserved;

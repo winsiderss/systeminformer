@@ -10,7 +10,7 @@
 #pragma once
 
 #include <kphlibbase.h>
-#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)18)
+#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)17)
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG)3131)
 #define KPH_DYN_CLASS_NTOSKRNL                  ((USHORT)0)
 #define KPH_DYN_CLASS_NTKRLA57                  ((USHORT)1)
@@ -125,6 +125,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_KIND_SMBUS_HOST              ((USHORT)13)
 
 #define KPH_DYN_HW_FLAG_REQUIRE_D0              ((UCHAR)0x01)
+#define KPH_DYN_HW_FLAG_ARM64                   ((UCHAR)0x02)
 
 #define KPH_DYN_HW_WINDOW_BASE_STANDARD_BAR     ((UCHAR)1)
 #define KPH_DYN_HW_WINDOW_BASE_CONFIG_REG       ((UCHAR)2)
@@ -366,7 +367,7 @@ typedef struct _KPH_DYN_HW_OP
 {
     USHORT Kind; // KPH_DYN_HW_KIND_*
     USHORT Length;
-    UCHAR CoreType;
+    UCHAR Reserved0;
     UCHAR LockClass; // KPH_DYN_HW_LOCK_*
     UCHAR Flags; // KPH_DYN_HW_FLAG_*
     UCHAR Reserved;
@@ -718,7 +719,7 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_GATE, SubLeaf) == 8);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_GATE, Value) == 12);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_GATE, ValueMax) == 16);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, Length) == 2);
-C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, CoreType) == 4);
+C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, Reserved0) == 4);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, LockClass) == 5);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, Flags) == 6);
 C_ASSERT(FIELD_OFFSET(KPH_DYN_HW_OP, Reserved) == 7);

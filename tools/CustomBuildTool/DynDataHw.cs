@@ -380,7 +380,7 @@ namespace CustomBuildTool
                 Mmio: [],
                 GetOpcodes: [0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x0A, 0x0B, 0x0F, 0x10, 0x11, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
                              0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x23, 0x30, 0x31, 0x32, 0x34, 0x35, 0x36, 0x37],
-                Cpus: null),
+                Cpus: [(0x19, 0x00, 0x0F), (0x19, 0x10, 0x1F), (0x19, 0x90, 0x9F), (0x19, 0xA0, 0xAF), (0x1A, 0x00, 0x1F)]),
             // RSMU, APU map: 02h GetSmuVersion, 06h GetTableVersion, 65h TransferTableToDram, 66h GetDramBaseAddress.
             new("rsmu-renoir",
                 Smn: [new(0x60, 0x64, 0x3B10A20, 0x3B10A80, 0x3B10A88, 6)],
@@ -667,6 +667,10 @@ namespace CustomBuildTool
         }
 
         public const byte FlagRequireD0 = 0x01;
+        /// <summary>
+        /// A PCI window or VSEC op ARM64 builds may read; x64 builds ignore it.
+        /// </summary>
+        public const byte FlagArm64 = 0x02;
 
         public const byte WindowBaseStandardBar = 1;
         public const byte WindowBaseConfigReg = 2;
@@ -679,7 +683,7 @@ namespace CustomBuildTool
         /// </summary>
         public const byte WindowBaseAcpiCrs = 4;
         /// <summary>
-        /// AMD PMC aperture ((SMN[hi] &amp; FFFFh) &lt;&lt; 32) | (SMN[lo] &amp; FFF00000h); FixedBase is the window offset, Aux the SMN addresses.
+        /// AMD PMC aperture ((SMN[hi] &lt;&lt; 32) | SMN[lo]) &amp; ConfigMask while bit EnableBit is set; FixedBase is the window offset, Aux the SMN addresses.
         /// </summary>
         public const byte WindowBaseSmnDerived = 5;
         /// <summary>
@@ -698,6 +702,20 @@ namespace CustomBuildTool
         /// The largest ACPI_LPIT_RELATIVE block.
         /// </summary>
         public const UInt32 AcpiLpitRelativeMaxSize = 0x10000;
+        /// <summary>
+        /// Every read of an ACPI_LPIT_RELATIVE window lies in the 4 KiB page that holds the counter.
+        /// </summary>
+        public const UInt32 AcpiLpitCounterPage = 0x1000;
+
+        /// <summary>
+        /// Whether a read range of an ACPI_LPIT_RELATIVE window lies in the page of the counter at offset Counter.
+        /// </summary>
+        public static bool InLpitCounterPage(UInt64 Counter, UInt64 Offset, UInt64 Length)
+        {
+            UInt64 page = Counter / AcpiLpitCounterPage;
+
+            return Length != 0 && Offset / AcpiLpitCounterPage == page && (Offset + Length - 1) / AcpiLpitCounterPage == page;
+        }
         /// <summary>
         /// Intel PMC PWRM registers that hold lock bits (CTEN, ECRPTEN, TL, TLEN, PHLC); no ACPI_LPIT_RELATIVE range covers them.
         /// </summary>
@@ -949,7 +967,7 @@ namespace CustomBuildTool
             FieldOffset<HwGate>("KPH_DYN_HW_GATE", "Value", 12),
             FieldOffset<HwGate>("KPH_DYN_HW_GATE", "ValueMax", 16),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Length", 2),
-            FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "CoreType", 4),
+            FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Reserved0", 4),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "LockClass", 5),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Flags", 6),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Reserved", 7),
@@ -1197,7 +1215,7 @@ namespace CustomBuildTool
         {
             public UInt16 Kind;
             public UInt16 Length;
-            public byte CoreType;
+            public byte Reserved0;
             public byte LockClass;
             public byte Flags;
             public byte Reserved;
@@ -1616,19 +1634,19 @@ namespace CustomBuildTool
     public static class HwManifest
     {
         private static readonly string[] CpuAttributes = ["vendor", "family", "models", "name", "desc"];
-        private static readonly string[] MsrAttributes = ["reg", "gate", "readmask", "coretype", "desc"];
+        private static readonly string[] MsrAttributes = ["reg", "gate", "readmask", "desc"];
         private static readonly string[] PciAttributes = ["vendor", "device", "pin", "name", "desc"];
         private static readonly string[] PciClassAttributes = ["vendor", "class", "header", "pin", "source", "name", "desc"];
         private static readonly string[] ReadAttributes = ["offset", "length", "desc"];
         private static readonly string[] IndirectAttributes = ["index", "data", "desc"];
         private static readonly string[] TargetAttributes = ["begin", "end", "stride", "count", "desc"];
-        private static readonly string[] WindowAttributes = ["base", "bar", "offset", "width", "mask", "enable", "size", "require-d0", "resource", "entry", "lo", "hi", "address", "port", "present", "signature", "desc"];
+        private static readonly string[] WindowAttributes = ["base", "bar", "offset", "width", "mask", "enable", "size", "require-d0", "arm64", "resource", "entry", "lo", "hi", "address", "port", "present", "signature", "desc"];
         private static readonly string[] WindowReadAttributes = ["offset", "length", "width", "desc"];
         private static readonly string[] SuperIoAttributes = ["slots", "family", "chips", "mask", "customers", "ldn", "exit", "vendor", "base", "chassis", "name", "desc"];
         private static readonly string[] SuperIoReadAttributes = ["reg", "length", "desc"];
         private static readonly string[] SmbusAttributes = ["host", "port", "protocols", "slaves", "name", "desc"];
         private static readonly string[] SmbusReadAttributes = ["command", "length", "desc"];
-        private static readonly string[] VsecAttributes = ["discovery", "quirks", "guid", "feature", "max-regions", "max-size", "require-d0", "name", "desc"];
+        private static readonly string[] VsecAttributes = ["discovery", "quirks", "guid", "feature", "max-regions", "max-size", "require-d0", "arm64", "name", "desc"];
         private static readonly string[] MailboxAttributes = ["transport", "protocol", "index", "data", "msg", "rsp", "arg", "args", "version", "version-arg", "name", "desc"];
         private static readonly string[] MmioMailboxAttributes = ["transport", "protocol", "resource", "size", "msg", "rsp", "arg", "args", "version", "version-arg", "cpu-family", "cpu-models", "name", "desc"];
         private static readonly string[] CommandAttributes = ["opcode", "type", "response", "internal", "name", "desc"];
@@ -1771,7 +1789,6 @@ namespace CustomBuildTool
                             throw Context.Error(element, $"duplicate msr reg 0x{msr.Register:x} in this table");
 
                         string readMask = OptionalAttribute(element, "readmask");
-                        string coreType = OptionalAttribute(element, "coretype");
 
                         if (readMask != null)
                         {
@@ -1785,7 +1802,6 @@ namespace CustomBuildTool
                             Context,
                             element,
                             DynDataHw.KindMsrRead,
-                            coreType != null ? (byte)ParseHex(Context, element, "coretype", coreType, byte.MaxValue) : (byte)0,
                             DynDataHw.LockNone,
                             ParseGate(Context, element, false),
                             DynDataHw.ToBytes(msr)
@@ -2157,7 +2173,7 @@ namespace CustomBuildTool
                 foreach (var range in ranges)
                     body.AddRange(DynDataHw.ToBytes(range));
 
-                readOp = BuildOp(Context, firstRead, DynDataHw.KindPciRead, 0, DynDataHw.LockNone, default, body.ToArray());
+                readOp = BuildOp(Context, firstRead, DynDataHw.KindPciRead, DynDataHw.LockNone, default, body.ToArray());
             }
 
             if (indirect != null)
@@ -2355,7 +2371,7 @@ namespace CustomBuildTool
 
             body.CommandCount = (byte)result.Commands.Count;
             result.ArgCount = argCount;
-            result.Op = BuildOp(Context, Mailbox, DynDataHw.KindMailboxTransact, 0, DynDataHw.LockPci, default, [.. DynDataHw.ToBytes(body), .. commands]);
+            result.Op = BuildOp(Context, Mailbox, DynDataHw.KindMailboxTransact, DynDataHw.LockPci, default, [.. DynDataHw.ToBytes(body), .. commands]);
 
             string problem = DynDataHw.MailboxVersionProblem(result.Op.AsSpan(DynDataHw.OpHeaderSize));
 
@@ -2465,7 +2481,7 @@ namespace CustomBuildTool
 
             header[2] = (byte)result.Commands.Count;
             result.ArgCount = argCount;
-            result.Op = BuildOp(Context, Mailbox, DynDataHw.KindMailboxTransact, 0, DynDataHw.LockPci, gate, [.. header, .. commands]);
+            result.Op = BuildOp(Context, Mailbox, DynDataHw.KindMailboxTransact, DynDataHw.LockPci, gate, [.. header, .. commands]);
 
             string problem = DynDataHw.MailboxVersionProblem(result.Op.AsSpan(DynDataHw.OpHeaderSize));
 
@@ -2688,7 +2704,7 @@ namespace CustomBuildTool
             foreach (var version in versions)
                 bytes.AddRange(DynDataHw.ToBytes(version));
 
-            return BuildOp(Context, SmuTable, DynDataHw.KindSmuTableRead, 0, DynDataHw.LockPci, default, bytes.ToArray());
+            return BuildOp(Context, SmuTable, DynDataHw.KindSmuTableRead, DynDataHw.LockPci, default, bytes.ToArray());
         }
 
         private static byte[] BuildIndirectOp(LoadContext Context, XElement Pci, XElement Indirect)
@@ -2797,7 +2813,7 @@ namespace CustomBuildTool
             foreach (var value in values)
                 body.AddRange(DynDataHw.ToBytes(value));
 
-            return BuildOp(Context, Indirect, DynDataHw.KindPciIndirectRead, 0, DynDataHw.LockPci, default, body.ToArray());
+            return BuildOp(Context, Indirect, DynDataHw.KindPciIndirectRead, DynDataHw.LockPci, default, body.ToArray());
         }
 
         /// <summary>
@@ -2912,22 +2928,30 @@ namespace CustomBuildTool
                 break;
             case "smn":
                 {
-                    Disallow("bar", "width", "mask", "enable", "resource", "entry", "address", "port", "present", "signature", "require-d0");
+                    Disallow("bar", "width", "resource", "entry", "address", "port", "present", "signature", "require-d0");
 
                     //
-                    // base = ((SMN[hi] & FFFFh) << 32) | (SMN[lo] & FFF00000h).
+                    // base = ((SMN[hi] << 32) | SMN[lo]) & mask, while bit enable of that value is set.
                     //
                     UInt32 lo = (UInt32)ParseHex(Context, Window, "lo", RequiredAttribute(Context, Window, "lo"), UInt32.MaxValue);
                     UInt32 hi = (UInt32)ParseHex(Context, Window, "hi", RequiredAttribute(Context, Window, "hi"), UInt32.MaxValue);
                     UInt64 offset = ParseHex(Context, Window, "offset", RequiredAttribute(Context, Window, "offset"), DynDataHw.SmnApertureSize);
+                    UInt64 mask = ParseHex(Context, Window, "mask", RequiredAttribute(Context, Window, "mask"), UInt64.MaxValue);
+                    byte enable = (byte)ParseDecimal(Context, Window, "enable", RequiredAttribute(Context, Window, "enable"), 0, 63);
 
                     if ((lo % 4) != 0 || (hi % 4) != 0 || lo == hi)
                         throw Context.Error(Window, $"lo 0x{lo:x} and hi 0x{hi:x} must be distinct 4-aligned SMN addresses");
                     if ((offset % size) != 0 || offset + size > DynDataHw.SmnApertureSize)
                         throw Context.Error(Window, $"offset 0x{offset:x} must be aligned to the size 0x{size:x} and the window end inside the 0x{DynDataHw.SmnApertureSize:x}-byte aperture");
+                    if (mask == 0 || (mask & (DynDataHw.SmnApertureSize - 1)) != 0)
+                        throw Context.Error(Window, $"mask 0x{mask:x} is zero or has bits below the 0x{DynDataHw.SmnApertureSize:x}-byte aperture");
+                    if ((mask & (1ul << enable)) != 0)
+                        throw Context.Error(Window, $"enable bit {enable} is inside the mask");
 
                     body.BaseKind = DynDataHw.WindowBaseSmnDerived;
                     body.FixedBase = offset;
+                    body.ConfigMask = mask;
+                    body.EnableBit = enable;
                     aux.Add(lo);
                     aux.Add(hi);
                     lockClass = DynDataHw.LockPci;
@@ -3065,6 +3089,8 @@ namespace CustomBuildTool
                     throw Context.Error(Window, "require-d0 must be \"true\" or \"false\"");
             }
 
+            flags |= ParseArm64(Context, Window, body.BaseKind == DynDataHw.WindowBaseStandardBar || body.BaseKind == DynDataHw.WindowBaseConfigReg);
+
             var ranges = new List<DynDataHw.HwWindowRange>();
 
             if (body.BaseKind == DynDataHw.WindowBaseAcpiLpit)
@@ -3094,6 +3120,8 @@ namespace CustomBuildTool
                     throw Context.Error(element, $"offset 0x{offset:x} / length 0x{length:x} not aligned to width {width}");
                 if (offset + length > size)
                     throw Context.Error(element, $"offset 0x{offset:x} + length 0x{length:x} exceeds the window size 0x{size:x}");
+                if (body.BaseKind == DynDataHw.WindowBaseAcpiLpitRelative && !DynDataHw.InLpitCounterPage(body.FixedBase, offset, length))
+                    throw Context.Error(element, $"offset 0x{offset:x} + length 0x{length:x} leaves the 4 KiB page of the LPIT counter at 0x{body.FixedBase:x}");
 
                 ranges.Add(new DynDataHw.HwWindowRange { Offset = (UInt32)offset, Length = (UInt32)length, Width = (byte)width });
             }
@@ -3114,7 +3142,7 @@ namespace CustomBuildTool
             foreach (UInt32 word in aux)
                 bytes.AddRange(DynDataHw.ToBytes(word));
 
-            return BuildOp(Context, Window, DynDataHw.KindWindowRead, 0, lockClass, default, bytes.ToArray(), flags);
+            return BuildOp(Context, Window, DynDataHw.KindWindowRead, lockClass, default, bytes.ToArray(), flags);
         }
 
         /// <summary>
@@ -3180,7 +3208,7 @@ namespace CustomBuildTool
             foreach (var range in ranges)
                 bytes.AddRange(DynDataHw.ToBytes(range));
 
-            return BuildOp(Context, Port, DynDataHw.KindPortIndirectRead, 0, DynDataHw.LockIsaBus, default, bytes.ToArray());
+            return BuildOp(Context, Port, DynDataHw.KindPortIndirectRead, DynDataHw.LockIsaBus, default, bytes.ToArray());
         }
 
         /// <summary>
@@ -3308,7 +3336,7 @@ namespace CustomBuildTool
             foreach (var range in ranges)
                 bytes.AddRange(DynDataHw.ToBytes(range));
 
-            return BuildOp(Context, Smbus, DynDataHw.KindSmbusRead, 0, DynDataHw.LockSmbus, default, bytes.ToArray());
+            return BuildOp(Context, Smbus, DynDataHw.KindSmbusRead, DynDataHw.LockSmbus, default, bytes.ToArray());
         }
 
         /// <summary>
@@ -3429,7 +3457,7 @@ namespace CustomBuildTool
             if (error != null)
                 throw Context.Error(Host, error);
 
-            return BuildOp(Context, Host, DynDataHw.KindSmbusHost, 0, DynDataHw.LockNone, gate, DynDataHw.ToBytes(body));
+            return BuildOp(Context, Host, DynDataHw.KindSmbusHost, DynDataHw.LockNone, gate, DynDataHw.ToBytes(body));
         }
 
         /// <summary>
@@ -3530,6 +3558,8 @@ namespace CustomBuildTool
                     throw Context.Error(Vsec, "require-d0 must be \"true\" or \"false\"");
             }
 
+            flags |= ParseArm64(Context, Vsec, true);
+
             var ranges = new List<DynDataHw.HwWindowRange>();
 
             foreach (var element in Vsec.Elements())
@@ -3567,7 +3597,7 @@ namespace CustomBuildTool
             foreach (var range in ranges)
                 bytes.AddRange(DynDataHw.ToBytes(range));
 
-            return BuildOp(Context, Vsec, DynDataHw.KindVsecRead, 0, DynDataHw.LockNone, default, bytes.ToArray(), flags);
+            return BuildOp(Context, Vsec, DynDataHw.KindVsecRead, DynDataHw.LockNone, default, bytes.ToArray(), flags);
         }
 
         /// <summary>
@@ -3819,7 +3849,7 @@ namespace CustomBuildTool
                 gate.ValueMax = (UInt32)(types >> 32);
             }
 
-            byte[] table = BuildTable(Context, SuperIo, [BuildOp(Context, SuperIo, DynDataHw.KindSuperIoRead, 0, DynDataHw.LockIsaBus, gate, bytes.ToArray())]);
+            byte[] table = BuildTable(Context, SuperIo, [BuildOp(Context, SuperIo, DynDataHw.KindSuperIoRead, DynDataHw.LockIsaBus, gate, bytes.ToArray())]);
 
             foreach (byte slot in slots)
             {
@@ -4040,7 +4070,7 @@ namespace CustomBuildTool
             for (int i = 0; i < argCount; i++)
                 bytes.AddRange(DynDataHw.ToBytes(args[i].Value));
 
-            return BuildOp(Context, Eval, DynDataHw.KindAcpiEval, 0, DynDataHw.LockNone, default, bytes.ToArray());
+            return BuildOp(Context, Eval, DynDataHw.KindAcpiEval, DynDataHw.LockNone, default, bytes.ToArray());
         }
 
         /// <summary>
@@ -4148,7 +4178,7 @@ namespace CustomBuildTool
                                 throw Context.Error(element, "readmask 0x0 reads nothing");
                         }
 
-                        ops.Add(BuildOp(Context, element, DynDataHw.KindSysregRead, 0, DynDataHw.LockNone, ParseGate(Context, element, true), DynDataHw.ToBytes(sysreg)));
+                        ops.Add(BuildOp(Context, element, DynDataHw.KindSysregRead, DynDataHw.LockNone, ParseGate(Context, element, true), DynDataHw.ToBytes(sysreg)));
                     }
                     break;
                 case "msr":
@@ -4185,7 +4215,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Builds an op: the 32-byte header followed by the body.
         /// </summary>
-        private static byte[] BuildOp(LoadContext Context, XElement Element, UInt16 Kind, byte CoreType, byte LockClass, DynDataHw.HwGate Gate, byte[] Body, byte Flags = 0)
+        private static byte[] BuildOp(LoadContext Context, XElement Element, UInt16 Kind, byte LockClass, DynDataHw.HwGate Gate, byte[] Body, byte Flags = 0)
         {
             int length = DynDataHw.OpHeaderSize + Body.Length;
 
@@ -4196,13 +4226,29 @@ namespace CustomBuildTool
             {
                 Kind = Kind,
                 Length = (UInt16)length,
-                CoreType = CoreType,
                 LockClass = LockClass,
                 Flags = Flags,
                 Gate = Gate
             };
 
             return [.. DynDataHw.ToBytes(header), .. Body];
+        }
+
+        /// <summary>
+        /// Parses arm64="true|false" (default false): whether ARM64 builds may run a PCI window or VSEC op.
+        /// </summary>
+        private static byte ParseArm64(LoadContext Context, XElement Element, bool Allowed)
+        {
+            string arm64 = OptionalAttribute(Element, "arm64");
+
+            if (arm64 == null || arm64 == "false")
+                return 0;
+            if (arm64 != "true")
+                throw Context.Error(Element, "arm64 must be \"true\" or \"false\"");
+            if (!Allowed)
+                throw Context.Error(Element, "arm64 is only an attribute of a base=\"bar\" or base=\"config\" window and of a <vsec>");
+
+            return DynDataHw.FlagArm64;
         }
 
         private static List<byte[]> SplitTable(byte[] Table)
@@ -5853,9 +5899,9 @@ namespace CustomBuildTool
                 throw Fail($"op kind {op.Kind} is not implemented by the driver");
             if (op.Length < DynDataHw.OpHeaderSize + minimum || op.Length > Remaining.Length)
                 throw Fail($"op kind {op.Kind} length {op.Length} invalid");
-            byte allowedFlags = (op.Kind == DynDataHw.KindWindowRead || op.Kind == DynDataHw.KindVsecRead) ? DynDataHw.FlagRequireD0 : (byte)0;
+            byte allowedFlags = (op.Kind == DynDataHw.KindWindowRead || op.Kind == DynDataHw.KindVsecRead) ? (byte)(DynDataHw.FlagRequireD0 | DynDataHw.FlagArm64) : (byte)0;
 
-            if ((op.Flags & ~allowedFlags) != 0 || op.Reserved != 0 || op.Reserved2 != 0 || op.LockClass > DynDataHw.LockSmbus)
+            if ((op.Flags & ~allowedFlags) != 0 || op.Reserved0 != 0 || op.Reserved != 0 || op.Reserved2 != 0 || op.LockClass > DynDataHw.LockSmbus)
                 throw Fail($"op kind {op.Kind} sets a field no implemented kind honours");
             if (op.Kind == DynDataHw.KindWindowRead &&
                 op.LockClass != (Remaining[DynDataHw.OpHeaderSize] == DynDataHw.WindowBaseSmnDerived ? DynDataHw.LockPci : DynDataHw.LockNone))
@@ -5891,12 +5937,11 @@ namespace CustomBuildTool
                                 op.Gate.Shift != 4 || op.Gate.Width != 24 || ((op.Gate.Value ^ op.Gate.ValueMax) >> 4) != 0))
                 throw Fail("MMIO mailbox_transact is not gated on CPUID 1 EAX [27:4] for one block of 16 models (its ACPI_HID key names no CPU)");
 
-            if ((op.Kind != DynDataHw.KindMsrRead && op.CoreType != 0) ||
-                (op.Gate.Kind == DynDataHw.GateCpuid && op.Kind != DynDataHw.KindMsrRead && !mmioMailbox) ||
+            if ((op.Gate.Kind == DynDataHw.GateCpuid && op.Kind != DynDataHw.KindMsrRead && !mmioMailbox) ||
                 (op.Gate.Kind == DynDataHw.GateChassis && op.Kind != DynDataHw.KindSuperIoRead) ||
                 (op.Gate.Kind == DynDataHw.GateSysregField && op.Kind != DynDataHw.KindSysregRead))
             {
-                throw Fail($"op kind {op.Kind} has a core type or gate kind {op.Gate.Kind} it does not evaluate");
+                throw Fail($"op kind {op.Kind} has gate kind {op.Gate.Kind}, which it does not evaluate");
             }
 
             var body = Remaining.Slice(DynDataHw.OpHeaderSize, op.Length - DynDataHw.OpHeaderSize);
@@ -5978,7 +6023,7 @@ namespace CustomBuildTool
                 CheckWindowOp(body);
 
                 if (body[0] != DynDataHw.WindowBaseStandardBar && body[0] != DynDataHw.WindowBaseConfigReg && op.Flags != 0)
-                    throw Fail($"window_read base kind {body[0]} has a flag (no PCI power state)");
+                    throw Fail($"window_read base kind {body[0]} has a flag (no PCI power state or ARM64 read)");
 
                 MaxRanges = Math.Max(MaxRanges, body[28]);
             }
@@ -6580,11 +6625,18 @@ namespace CustomBuildTool
             }
             else if (window.BaseKind == DynDataHw.WindowBaseSmnDerived)
             {
-                if (window.BarIndex != 0 || configFields || window.AuxCount != 2 ||
+                if (window.BarIndex != 0 || window.ConfigOffset != 0 || window.Is64 != 0 || window.AuxCount != 2 ||
                     (aux[0] % 4) != 0 || (aux[1] % 4) != 0 || aux[0] == aux[1] ||
                     (window.FixedBase % window.WindowSize) != 0 || window.FixedBase > DynDataHw.SmnApertureSize - window.WindowSize)
                 {
                     throw Fail($"window_read SMN_DERIVED offset 0x{window.FixedBase:x} size 0x{window.WindowSize:x} or SMN addresses invalid");
+                }
+
+                if (window.EnableBit == DynDataHw.WindowEnableNone || window.EnableBit > 63 ||
+                    window.ConfigMask == 0 || (window.ConfigMask & (DynDataHw.SmnApertureSize - 1)) != 0 ||
+                    (window.ConfigMask & (1ul << window.EnableBit)) != 0)
+                {
+                    throw Fail($"window_read SMN_DERIVED mask 0x{window.ConfigMask:x} or enable bit {window.EnableBit} invalid");
                 }
             }
             else if (window.BaseKind == DynDataHw.WindowBaseFixedMmio)
@@ -6632,6 +6684,9 @@ namespace CustomBuildTool
                 for (int i = 0; i < window.RangeCount; i++)
                 {
                     var range = MemoryMarshal.Read<DynDataHw.HwWindowRange>(Body[(DynDataHw.WindowReadSize + i * DynDataHw.WindowRangeSize)..]);
+
+                    if (!DynDataHw.InLpitCounterPage(window.FixedBase, range.Offset, range.Length))
+                        throw Fail($"window_read LPIT_RELATIVE range 0x{range.Offset:x}+0x{range.Length:x} leaves the page of the counter at 0x{window.FixedBase:x}");
 
                     foreach (UInt32 register in DynDataHw.PwrmLockRegisters)
                     {

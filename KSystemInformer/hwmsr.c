@@ -19,22 +19,8 @@ KPH_PAGED_FILE();
 
 #if defined(_M_X64)
 
-#define KPH_HW_CPUID_LEAF_HYBRID 0x1A
-
-typedef union _KPH_HW_CPUID_HYBRID_EAX
-{
-    struct
-    {
-        ULONG NativeModelId : 24;
-        ULONG CoreType : 8;
-    };
-
-    ULONG Value;
-} KPH_HW_CPUID_HYBRID_EAX, *PKPH_HW_CPUID_HYBRID_EAX;
-C_ASSERT(sizeof(KPH_HW_CPUID_HYBRID_EAX) == sizeof(ULONG));
-
 /**
- * \brief Evaluates an op's CPUID gate and core type on the current processor.
+ * \brief Evaluates an op's CPUID gate on the current processor.
  *
  * \param[in] Cpu The cached CPU identity.
  * \param[in] Op The MSR op.
@@ -48,34 +34,9 @@ BOOLEAN KphpHwMsrOpApplies(
     _In_ PCKPH_DYN_HW_OP Op
     )
 {
-    KPH_CPUID cpuid;
-    KPH_HW_CPUID_HYBRID_EAX hybrid;
-
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!KphHwCpuidGatePasses(Cpu, &Op->Gate))
-    {
-        return FALSE;
-    }
-
-    if (Op->CoreType)
-    {
-        if (Cpu->MaxBasicLeaf < KPH_HW_CPUID_LEAF_HYBRID)
-        {
-            return FALSE;
-        }
-
-        KphCpuId(&cpuid, KPH_HW_CPUID_LEAF_HYBRID, 0);
-
-        hybrid.Value = cpuid.EAX;
-
-        if (hybrid.CoreType != Op->CoreType)
-        {
-            return FALSE;
-        }
-    }
-
-    return TRUE;
+    return KphHwCpuidGatePasses(Cpu, &Op->Gate);
 }
 
 /**

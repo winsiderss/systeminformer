@@ -61,8 +61,6 @@
 #define KPH_HW_PCI_ID_CLASS_CHARS          9
 #define KPH_HW_PCI_ID_CLASS_MIN_CHARS      13
 #define KPH_HW_PCI_HEADER_LAYOUTS          3
-#define KPH_HW_SMN_APERTURE_LOW            0xFFF00000ul
-#define KPH_HW_SMN_APERTURE_HIGH           0x0000FFFFul
 
 typedef union _KPH_HW_PCI_PNP_ADDRESS
 {
@@ -3380,8 +3378,10 @@ NTSTATUS KphpHwPciDeriveMemoryBar(
  * \param[in] Low The SMN address of the base low register.
  * \param[in] High The SMN address of the base high register.
  * \param[in] Offset The offset in the aperture.
- * \param[out] Base Receives the aperture base plus Offset, untouched on
- * failure.
+ * \param[in] EnableBit The bit of (High << 32) | Low that enables the
+ * aperture.
+ * \param[in] Mask The bits of (High << 32) | Low that form the base.
+ * \param[out] Base Receives the aperture base plus Offset, zero on failure.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
  *
  * \return Successful or errant status.
@@ -3396,6 +3396,8 @@ NTSTATUS KphpHwPciDeriveSmnAperture(
     _In_ ULONG Low,
     _In_ ULONG High,
     _In_ ULONG64 Offset,
+    _In_ UCHAR EnableBit,
+    _In_ ULONG64 Mask,
     _Out_ PULONG64 Base,
     _Inout_ PBOOLEAN ReadFailed
     )
@@ -3403,10 +3405,14 @@ NTSTATUS KphpHwPciDeriveSmnAperture(
     NTSTATUS status;
     ULONG low;
     ULONG high;
+    ULONG64 value;
     ULONG64 base;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Offset < KPH_DYN_HW_SMN_APERTURE_SIZE);
+    NT_ASSERT(EnableBit < RTL_BITS_OF(ULONG64));
+    NT_ASSERT(Mask && !(Mask & (KPH_DYN_HW_SMN_APERTURE_SIZE - 1)));
+    NT_ASSERT(!(Mask & (1ull << EnableBit)));
 
     *Base = 0;
 
@@ -3455,8 +3461,19 @@ NTSTATUS KphpHwPciDeriveSmnAperture(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    base = (((ULONG64)(high & KPH_HW_SMN_APERTURE_HIGH) << 32) |
-            (low & KPH_HW_SMN_APERTURE_LOW));
+    value = (((ULONG64)high << 32) | low);
+
+    if (!BooleanFlagOn(value, 1ull << EnableBit))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMN aperture is disabled: 0x%I64x",
+                      value);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    base = (value & Mask);
 
     if (!base)
     {
@@ -3600,6 +3617,8 @@ NTSTATUS KphpHwPciDeriveWindowBase(
                                             KphDynHwWindowAux(Op, 0),
                                             KphDynHwWindowAux(Op, 1),
                                             window->FixedBase,
+                                            window->EnableBit,
+                                            window->ConfigMask,
                                             &base,
                                             ReadFailed);
         if (!NT_SUCCESS(status))
@@ -3831,6 +3850,19 @@ NTSTATUS KphHwPciReadWindow(
 
         goto Exit;
     }
+
+#if defined(_M_ARM64)
+    if (!BooleanFlagOn(op->Flags, KPH_DYN_HW_FLAG_ARM64))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "PCI window op %lu is not signed for ARM64",
+                      OpIndex);
+
+        status = STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+#endif
 
     if (!KphHwWindowValidateEntries(op, Count, Entries, &spanBegin, &spanEnd))
     {
@@ -5374,6 +5406,19 @@ NTSTATUS KphHwPciReadVsec(
         goto Exit;
     }
 
+#if defined(_M_ARM64)
+    if (!BooleanFlagOn(op->Flags, KPH_DYN_HW_FLAG_ARM64))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "VSEC op %lu is not signed for ARM64",
+                      OpIndex);
+
+        status = STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+#endif
+
     status = KphpHwPciLocateVsec(&locator,
                                  device,
                                  &bus.Interface,
@@ -5593,6 +5638,18 @@ NTSTATUS KphHwPciQueryVsecRegions(
         }
 
         vsec = (PKPH_DYN_HW_VSEC_READ)op->Body;
+
+#if defined(_M_ARM64)
+        if (!BooleanFlagOn(op->Flags, KPH_DYN_HW_FLAG_ARM64))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "VSEC op %lu is not signed for ARM64, skipped",
+                          opIndex);
+
+            continue;
+        }
+#endif
 
         status = KphpHwPciLocateVsec(&locator,
                                      device,
