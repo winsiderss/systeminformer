@@ -3033,17 +3033,7 @@ NTSTATUS KphpHwPciRangeLength(
                                           &rawLength,
                                           &translated,
                                           &translatedLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphHwQueryAllocatedResources failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    if (!allocated)
+    if (status == STATUS_NOT_FOUND)
     {
         status = KphHwQueryBootConfiguration(Pdo,
                                              DevicePropertyBootConfiguration,
@@ -3076,6 +3066,15 @@ NTSTATUS KphpHwPciRangeLength(
 
         raw = bootRaw;
         translated = bootTranslated;
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphHwQueryAllocatedResources failed: %!STATUS!",
+                      status);
+
+        goto Exit;
     }
 
     ordinal = 0;

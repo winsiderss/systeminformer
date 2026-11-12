@@ -2156,13 +2156,15 @@ Exit:
 }
 
 /**
- * \brief Derives the physical base of an ACPI_CRS window.
+ * \brief Derives the physical base of an ACPI_CRS window from the resources
+ * the PnP manager has assigned to the device.
  *
  * \param[in] Pdo The physical device object.
  * \param[in] Ordinal The memory descriptor ordinal (the op's BarIndex).
  * \param[in] WindowSize The window size.
  * \param[in] Mailbox TRUE for an MMIO mailbox (writable and page-aligned).
  * \param[out] Base Receives the base, untouched on failure.
+ * \param[out] Length Optionally receives the length of the descriptor.
  *
  * \return Successful or errant status.
  */
@@ -2173,10 +2175,12 @@ NTSTATUS KphpHwAcpiDeriveCrsBase(
     _In_ ULONG Ordinal,
     _In_ ULONG WindowSize,
     _In_ BOOLEAN Mailbox,
-    _Out_ PULONG64 Base
+    _Out_ PULONG64 Base,
+    _Out_opt_ PULONG64 Length
     )
 {
     NTSTATUS status;
+    PVOID allocated;
     PCM_RESOURCE_LIST raw;
     PCM_RESOURCE_LIST translated;
     ULONG rawLength;
@@ -2188,41 +2192,33 @@ NTSTATUS KphpHwAcpiDeriveCrsBase(
     ULONG64 translatedLengthOfRange;
     USHORT flags;
     USHORT translatedFlags;
-    DEVICE_REGISTRY_PROPERTY property;
 
     KPH_PAGED_CODE_PASSIVE();
 
     *Base = 0;
 
-    raw = NULL;
-    translated = NULL;
-
-    status = KphHwQueryBootConfiguration(Pdo,
-                                         DevicePropertyBootConfiguration,
-                                         &raw,
-                                         &rawLength);
-    if (!NT_SUCCESS(status))
+    if (Length)
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphHwQueryBootConfiguration failed: %!STATUS!",
-                      status);
-
-        goto Exit;
+        *Length = 0;
     }
 
-    property = DevicePropertyBootConfigurationTranslated;
-
-    status = KphHwQueryBootConfiguration(Pdo,
-                                         property,
-                                         &translated,
-                                         &translatedLength);
+    status = KphHwQueryAllocatedResources(Pdo,
+                                          &allocated,
+                                          &raw,
+                                          &rawLength,
+                                          &translated,
+                                          &translatedLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphHwQueryBootConfiguration failed: %!STATUS!",
+                      "KphHwQueryAllocatedResources failed: %!STATUS!",
                       status);
+
+        if (status == STATUS_NOT_FOUND)
+        {
+            status = STATUS_DEVICE_NOT_READY;
+        }
 
         goto Exit;
     }
@@ -2320,18 +2316,19 @@ NTSTATUS KphpHwAcpiDeriveCrsBase(
     }
 
     *Base = start;
+
+    if (Length)
+    {
+        *Length = length;
+    }
+
     status = STATUS_SUCCESS;
 
 Exit:
 
-    if (translated)
+    if (allocated)
     {
-        KphFree(translated, KPH_TAG_HW_BOOT_CONFIG);
-    }
-
-    if (raw)
-    {
-        KphFree(raw, KPH_TAG_HW_BOOT_CONFIG);
+        KphFree(allocated, KPH_TAG_HW_BOOT_CONFIG);
     }
 
     return status;
@@ -2413,7 +2410,8 @@ NTSTATUS KphpHwAcpiReadCrsWindow(
                                      window->BarIndex,
                                      window->WindowSize,
                                      FALSE,
-                                     &base);
+                                     &base,
+                                     NULL);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2448,7 +2446,8 @@ NTSTATUS KphpHwAcpiReadCrsWindow(
                                      window->BarIndex,
                                      window->WindowSize,
                                      FALSE,
-                                     &check);
+                                     &check,
+                                     NULL);
     if (!NT_SUCCESS(status) || (check != base))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2479,6 +2478,218 @@ Exit:
 }
 
 #if defined(_M_X64)
+
+/**
+ * \brief Checks that a device's own requirements pin a memory range.
+ *
+ * \param[in] Pdo The physical device object.
+ * \param[in] Base The start of the range.
+ * \param[in] Length The length of the range.
+ *
+ * \return STATUS_SUCCESS when every alternative list holds a memory descriptor
+ * whose minimum is the base and whose maximum is the last byte of the range;
+ * STATUS_NOT_SUPPORTED when one does not; otherwise an errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwAcpiCheckPinnedRange(
+    _In_ PDEVICE_OBJECT Pdo,
+    _In_ ULONG64 Base,
+    _In_ ULONG64 Length
+    )
+{
+    NTSTATUS status;
+    PIO_RESOURCE_REQUIREMENTS_LIST requirements;
+    ULONG length;
+    ULONG resultLength;
+    ULONG offset;
+    ULONG next;
+    ULONG64 last;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Length);
+
+    requirements = NULL;
+    length = 0;
+
+    status = RtlULongLongAdd(Base, Length - 1, &last);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlULongLongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = IoGetDeviceProperty(Pdo,
+                                 DevicePropertyResourceRequirements,
+                                 0,
+                                 NULL,
+                                 &length);
+    if ((status != STATUS_BUFFER_TOO_SMALL) || !length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty returned: %!STATUS!",
+                      status);
+
+        status = STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    requirements = KphAllocatePaged(length, KPH_TAG_HW_BOOT_CONFIG);
+    if (!requirements)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate resource requirements");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    resultLength = 0;
+
+    status = IoGetDeviceProperty(Pdo,
+                                 DevicePropertyResourceRequirements,
+                                 length,
+                                 requirements,
+                                 &resultLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if ((resultLength != length) ||
+        (length < UFIELD_OFFSET(IO_RESOURCE_REQUIREMENTS_LIST, List)))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Resource requirements of %lu bytes are malformed",
+                      resultLength);
+
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
+        goto Exit;
+    }
+
+    if (!requirements->AlternativeLists)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Resource requirements hold no list");
+
+        status = STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    offset = FIELD_OFFSET(IO_RESOURCE_REQUIREMENTS_LIST, List);
+
+    for (ULONG i = 0; i < requirements->AlternativeLists; i++)
+    {
+        PIO_RESOURCE_LIST list;
+        ULONG descriptorsLength;
+        BOOLEAN pinned;
+
+        status = RtlULongAdd(offset,
+                             FIELD_OFFSET(IO_RESOURCE_LIST, Descriptors),
+                             &next);
+        if (!NT_SUCCESS(status) || (next > length))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Resource requirements truncated at %lu",
+                          offset);
+
+            status = STATUS_DEVICE_CONFIGURATION_ERROR;
+            goto Exit;
+        }
+
+        list = Add2Ptr(requirements, offset);
+
+        status = RtlULongMult(list->Count,
+                              sizeof(IO_RESOURCE_DESCRIPTOR),
+                              &descriptorsLength);
+        if (NT_SUCCESS(status))
+        {
+            status = RtlULongAdd(next, descriptorsLength, &next);
+        }
+
+        if (!NT_SUCCESS(status) || (next > length))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Resource requirements list %lu overruns",
+                          i);
+
+            status = STATUS_DEVICE_CONFIGURATION_ERROR;
+            goto Exit;
+        }
+
+        pinned = FALSE;
+
+        for (ULONG j = 0; j < list->Count; j++)
+        {
+            PIO_RESOURCE_DESCRIPTOR descriptor;
+            ULONGLONG minimum;
+            ULONGLONG maximum;
+
+            descriptor = &list->Descriptors[j];
+
+            if ((descriptor->Type != CmResourceTypeMemory) &&
+                (descriptor->Type != CmResourceTypeMemoryLarge))
+            {
+                continue;
+            }
+
+            minimum = 0;
+            maximum = 0;
+
+            if (!RtlIoDecodeMemIoResource(descriptor, NULL, &minimum, &maximum))
+            {
+                continue;
+            }
+
+            if ((minimum == Base) && (maximum == last))
+            {
+                pinned = TRUE;
+                break;
+            }
+        }
+
+        if (!pinned)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Requirements list %lu does not pin %I64x-%I64x",
+                          i,
+                          Base,
+                          last);
+
+            status = STATUS_NOT_SUPPORTED;
+            goto Exit;
+        }
+
+        offset = next;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (requirements)
+    {
+        KphFree(requirements, KPH_TAG_HW_BOOT_CONFIG);
+    }
+
+    return status;
+}
 
 /**
  * \brief Opens the MMIO mailbox of an allow-listed ACPI device.
@@ -2513,6 +2724,7 @@ NTSTATUS KphHwAcpiOpenMailbox(
     PKPH_DYN_HW_MAILBOX_TRANSACT mailbox;
     PKPH_DYN_HW_MAILBOX_WINDOW window;
     ULONG64 base;
+    ULONG64 length;
     ULONG64 windowEnd;
     ULONG64 rangeEnd;
     ULONG registersEnd;
@@ -2576,12 +2788,25 @@ NTSTATUS KphHwAcpiOpenMailbox(
                                      window->BarIndex,
                                      window->WindowSize,
                                      TRUE,
-                                     &base);
+                                     &base,
+                                     &length);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "KphpHwAcpiDeriveCrsBase failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphpHwAcpiCheckPinnedRange(device->Pdo, base, length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox %Z refused: %!STATUS!",
+                      &device->Path,
                       status);
 
         goto Exit;
@@ -2704,7 +2929,8 @@ BOOLEAN KphHwAcpiMailboxMoved(
                                      window->BarIndex,
                                      window->WindowSize,
                                      TRUE,
-                                     &base);
+                                     &base,
+                                     NULL);
 
     return (!NT_SUCCESS(status) || (base != Session->Base));
 }

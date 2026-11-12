@@ -1466,6 +1466,32 @@ NTSTATUS KphpHwMailboxPrepareEntry(
 }
 
 /**
+ * \brief Checks whether the window of an MMIO mailbox session moved.
+ *
+ * \param[in] Session The open mailbox session.
+ * \param[in] Op The mailbox_transact op.
+ *
+ * \return TRUE if the session is an MMIO session whose window moved.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwMailboxLock)
+_Must_inspect_result_
+BOOLEAN KphpHwMailboxMoved(
+    _In_ PKPH_HW_MAILBOX_SESSION Session,
+    _In_ PKPH_DYN_HW_OP Op
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Session->Transport != KPH_DYN_HW_MAILBOX_TRANSPORT_MMIO_WINDOW)
+    {
+        return FALSE;
+    }
+
+    return KphHwAcpiMailboxMoved(&Session->Mmio, Op);
+}
+
+/**
  * \brief Runs a batch of mailbox commands under the mailbox lock.
  *
  * \param[in] Session The open mailbox session.
@@ -1498,6 +1524,17 @@ NTSTATUS KphpHwMailboxRunBatch(
 
     *FirmwareVersion = 0;
 
+    if (KphpHwMailboxMoved(Session, Op))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx at %Z moved before the batch",
+                      Session->Msg,
+                      &Session->Mmio.Path);
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
     status = KphpHwMailboxQueryFirmware(Session, Op, Deadline, &version);
     if (!NT_SUCCESS(status))
     {
@@ -1528,6 +1565,18 @@ NTSTATUS KphpHwMailboxRunBatch(
             if (NT_SUCCESS(stopped) && KphHwDeadlinePassed(Deadline))
             {
                 stopped = STATUS_RETRY;
+            }
+
+            if (NT_SUCCESS(stopped) && KphpHwMailboxMoved(Session, Op))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "Mailbox 0x%08lx at %Z moved before entry %lu",
+                              Session->Msg,
+                              &Session->Mmio.Path,
+                              i);
+
+                stopped = STATUS_DEVICE_NOT_READY;
             }
 
             status = stopped;

@@ -176,10 +176,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwQueryAllocatedResources(
     _In_ PDEVICE_OBJECT Pdo,
-    _Outptr_result_maybenull_ PVOID* Buffer,
-    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* First,
+    _Outptr_ PVOID* Buffer,
+    _Outptr_ PCM_RESOURCE_LIST* First,
     _Out_ PULONG FirstLength,
-    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* Second,
+    _Outptr_ PCM_RESOURCE_LIST* Second,
     _Out_ PULONG SecondLength
     );
 

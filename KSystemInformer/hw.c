@@ -922,26 +922,27 @@ NTSTATUS KphpHwResourceListSize(
  * \brief Retrieves the resources the PnP manager has assigned to a device.
  *
  * \details The property holds the raw list immediately followed by the
- * translated list. A device without assigned resources yields no buffer.
+ * translated list.
  *
  * \param[in] Pdo The physical device object.
  * \param[out] Buffer Receives the property, freed with
- * KPH_TAG_HW_BOOT_CONFIG; NULL when the device has no assigned resources.
+ * KPH_TAG_HW_BOOT_CONFIG.
  * \param[out] First Receives the raw list, within Buffer.
  * \param[out] FirstLength Receives the length of the raw list.
  * \param[out] Second Receives the translated list, within Buffer.
  * \param[out] SecondLength Receives the length of the translated list.
  *
- * \return Successful or errant status.
+ * \return Successful or errant status; STATUS_NOT_FOUND when the device has
+ * no assigned resources.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwQueryAllocatedResources(
     _In_ PDEVICE_OBJECT Pdo,
-    _Outptr_result_maybenull_ PVOID* Buffer,
-    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* First,
+    _Outptr_ PVOID* Buffer,
+    _Outptr_ PCM_RESOURCE_LIST* First,
     _Out_ PULONG FirstLength,
-    _Outptr_result_maybenull_ PCM_RESOURCE_LIST* Second,
+    _Outptr_ PCM_RESOURCE_LIST* Second,
     _Out_ PULONG SecondLength
     )
 {
@@ -970,6 +971,11 @@ NTSTATUS KphHwQueryAllocatedResources(
                                  &length);
     if ((status == STATUS_SUCCESS) && !length)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Device has no assigned resources");
+
+        status = STATUS_NOT_FOUND;
         goto Exit;
     }
 
