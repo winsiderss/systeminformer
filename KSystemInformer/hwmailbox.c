@@ -2067,6 +2067,22 @@ NTSTATUS KphpHwMailboxCopyTable(
 
     rangeEnd = ROUND_TO_PAGES(end);
 
+    NT_ASSERT(table->Bound == KPH_DYN_HW_SMU_TABLE_BOUND_AMD_DRAM);
+
+    status = KphHwWindowCheckAmdDram(base, rangeEnd);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMU table version 0x%08lx base 0x%llx refused: "
+                      "%!STATUS!",
+                      *Version,
+                      base,
+                      status);
+
+        goto Exit;
+    }
+
     status = KphHwWindowCheckRange(base, rangeEnd);
     if (!NT_SUCCESS(status))
     {

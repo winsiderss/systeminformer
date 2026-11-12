@@ -444,6 +444,15 @@ NTSTATUS KphHwWindowCheckRange(
     _In_ ULONG64 End
     );
 
+#if defined(_M_X64)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwWindowCheckAmdDram(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    );
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwWindowLpitBase(

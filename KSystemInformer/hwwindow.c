@@ -25,6 +25,24 @@
 #define KPH_HW_NFIT_HEADER_LENGTH           40
 #define KPH_HW_NFIT_TYPE_SPA_RANGE          0
 
+#define KPH_HW_AMD_MSR_SYSCFG               0xC0010010
+#define KPH_HW_AMD_MSR_IORR_BASE0           0xC0010016
+#define KPH_HW_AMD_MSR_TOP_MEM              0xC001001A
+#define KPH_HW_AMD_MSR_TOP_MEM2             0xC001001D
+#define KPH_HW_AMD_MSR_SMM_ADDR             0xC0010112
+#define KPH_HW_AMD_MSR_SMM_MASK             0xC0010113
+#define KPH_HW_AMD_IORR_COUNT               2
+#define KPH_HW_AMD_SYSCFG_VAR_DRAM_EN       (1ull << 20)
+#define KPH_HW_AMD_SYSCFG_TOM2_EN           (1ull << 21)
+#define KPH_HW_AMD_TOP_MEM_LOW_BITS         0x7FFFFFull
+#define KPH_HW_AMD_SMM_MASK_TVALID          (1ull << 1)
+#define KPH_HW_AMD_SMM_LOW_BITS             0x1FFFFull
+#define KPH_HW_AMD_IORR_MASK_VALID          (1ull << 11)
+#define KPH_HW_AMD_IORR_BASE_RDMEM          (1ull << 4)
+#define KPH_HW_AMD_IORR_LOW_BITS            0xFFFull
+#define KPH_HW_AMD_DRAM_FLOOR               0x100000ull
+#define KPH_HW_AMD_TOP_MEM2_FLOOR           0x100000000ull
+
 #include <pshpack1.h>
 
 typedef struct _KPH_HW_NFIT_SPA_RANGE
@@ -980,6 +998,283 @@ NTSTATUS KphHwWindowCheckRange(
 
     return STATUS_SUCCESS;
 }
+
+#if defined(_M_X64)
+
+/**
+ * \brief Reads an MSR on the current processor.
+ *
+ * \param[in] Msr The MSR.
+ * \param[out] Value Receives the value, zero when the read faults.
+ *
+ * \return TRUE if the read did not fault, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpHwWindowReadMsr(
+    _In_ ULONG Msr,
+    _Out_ PULONG64 Value
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Value = 0;
+
+    __try
+    {
+        *Value = __readmsr(Msr);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "MSR 0x%08lx read faulted",
+                      Msr);
+
+        *Value = 0;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * \brief Computes the region an AMD base/mask register pair decodes.
+ *
+ * \param[in] Base The base register.
+ * \param[in] Mask The mask register.
+ * \param[in] LowBits The bits below the pair's granularity.
+ * \param[in] Limit The mask of the physical address bits.
+ * \param[out] Begin Receives the start of the region.
+ * \param[out] End Receives the end of the region, exclusive.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpHwWindowAmdRegion(
+    _In_ ULONG64 Base,
+    _In_ ULONG64 Mask,
+    _In_ ULONG64 LowBits,
+    _In_ ULONG64 Limit,
+    _Out_ PULONG64 Begin,
+    _Out_ PULONG64 End
+    )
+{
+    ULONG64 mask;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    mask = (Mask & Limit & ~LowBits);
+
+    *Begin = (Base & mask);
+    *End = (*Begin + ((~mask & Limit) + 1));
+}
+
+/**
+ * \brief Checks that a physical range is DRAM as this AMD processor decodes
+ * it and is not routed to SMM or to I/O.
+ *
+ * \details The registers are the AMD64 architectural address map. A register
+ * a hypervisor hides faults; the check that needs it is skipped and the
+ * range is left to KphHwWindowCheckRange.
+ *
+ * \param[in] Begin The page-aligned start of the range.
+ * \param[in] End The page-aligned end of the range, exclusive.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwWindowCheckAmdDram(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    )
+{
+    PCKPH_HW_CPU_IDENTITY cpu;
+    ULONG64 limit;
+    ULONG64 syscfg;
+    ULONG64 topMem;
+    ULONG64 topMem2;
+    ULONG64 base;
+    ULONG64 mask;
+    ULONG64 regionBegin;
+    ULONG64 regionEnd;
+    BOOLEAN inDram;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    cpu = KphGetHardwareCpuIdentity();
+
+    NT_ASSERT((cpu->PhysicalAddressBits > 0) &&
+              (cpu->PhysicalAddressBits < 64));
+    NT_ASSERT(Begin < End);
+
+    limit = ((1ull << cpu->PhysicalAddressBits) - 1);
+
+    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SYSCFG, &syscfg))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "DRAM bound of 0x%llx-0x%llx skipped: SYSCFG hidden",
+                      Begin,
+                      End);
+
+        return STATUS_SUCCESS;
+    }
+
+    if (!BooleanFlagOn(syscfg, KPH_HW_AMD_SYSCFG_VAR_DRAM_EN))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Range 0x%llx-0x%llx refused: SYSCFG 0x%llx has no "
+                      "TOP_MEM",
+                      Begin,
+                      End,
+                      syscfg);
+
+        return STATUS_CONFLICTING_ADDRESSES;
+    }
+
+    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_TOP_MEM, &topMem))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "DRAM bound of 0x%llx-0x%llx skipped: TOP_MEM hidden",
+                      Begin,
+                      End);
+
+        return STATUS_SUCCESS;
+    }
+
+    topMem &= (limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+
+    if (!topMem)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Range 0x%llx-0x%llx refused: TOP_MEM is zero",
+                      Begin,
+                      End);
+
+        return STATUS_CONFLICTING_ADDRESSES;
+    }
+
+    inDram = ((Begin >= KPH_HW_AMD_DRAM_FLOOR) && (End <= topMem));
+
+    if (!inDram && BooleanFlagOn(syscfg, KPH_HW_AMD_SYSCFG_TOM2_EN))
+    {
+        if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_TOP_MEM2, &topMem2))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "DRAM bound of 0x%llx-0x%llx skipped: TOP_MEM2 "
+                          "hidden",
+                          Begin,
+                          End);
+
+            return STATUS_SUCCESS;
+        }
+
+        topMem2 &= (limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+
+        inDram = ((Begin >= KPH_HW_AMD_TOP_MEM2_FLOOR) && (End <= topMem2));
+    }
+
+    if (!inDram)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Range 0x%llx-0x%llx refused: not below TOP_MEM 0x%llx "
+                      "or TOP_MEM2",
+                      Begin,
+                      End,
+                      topMem);
+
+        return STATUS_CONFLICTING_ADDRESSES;
+    }
+
+    if (KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_ADDR, &base) &&
+        KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_MASK, &mask))
+    {
+        KphpHwWindowAmdRegion(base,
+                              mask,
+                              KPH_HW_AMD_SMM_LOW_BITS,
+                              limit,
+                              &regionBegin,
+                              &regionEnd);
+
+        if (BooleanFlagOn(mask, KPH_HW_AMD_SMM_MASK_TVALID) &&
+            (Begin < regionEnd) &&
+            (regionBegin < End))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Range 0x%llx-0x%llx refused: TSEG 0x%llx-0x%llx",
+                          Begin,
+                          End,
+                          regionBegin,
+                          regionEnd);
+
+            return STATUS_CONFLICTING_ADDRESSES;
+        }
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "TSEG check of 0x%llx-0x%llx skipped: TSEG hidden",
+                      Begin,
+                      End);
+    }
+
+    for (ULONG i = 0; i < KPH_HW_AMD_IORR_COUNT; i++)
+    {
+        if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_IORR_BASE0 + (i * 2), &base) ||
+            !KphpHwWindowReadMsr(KPH_HW_AMD_MSR_IORR_BASE0 + (i * 2) + 1,
+                                 &mask))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "IORR %lu check of 0x%llx-0x%llx skipped: IORR "
+                          "hidden",
+                          i,
+                          Begin,
+                          End);
+
+            continue;
+        }
+
+        if (!BooleanFlagOn(mask, KPH_HW_AMD_IORR_MASK_VALID) ||
+            BooleanFlagOn(base, KPH_HW_AMD_IORR_BASE_RDMEM))
+        {
+            continue;
+        }
+
+        KphpHwWindowAmdRegion(base,
+                              mask,
+                              KPH_HW_AMD_IORR_LOW_BITS,
+                              limit,
+                              &regionBegin,
+                              &regionEnd);
+
+        if ((Begin < regionEnd) && (regionBegin < End))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Range 0x%llx-0x%llx refused: IORR %lu reads I/O "
+                          "at 0x%llx-0x%llx",
+                          Begin,
+                          End,
+                          i,
+                          regionBegin,
+                          regionEnd);
+
+            return STATUS_CONFLICTING_ADDRESSES;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+#endif
 
 /**
  * \brief Retrieves an LPIT residency counter that has an address.
