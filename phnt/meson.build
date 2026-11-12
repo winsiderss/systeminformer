@@ -12,6 +12,7 @@ phnt_inc = include_directories('include')
 phnt_srcs = files(
     'include/ntafd.h',
     'include/ntbcd.h',
+    'include/ntcbs.h',
     'include/ntdbg.h',
     'include/ntexapi.h',
     'include/ntgdi.h',
