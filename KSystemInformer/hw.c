@@ -1354,6 +1354,7 @@ VOID KphCleanupHardware(
     KphCleanupHardwareSmbus();
     KphCleanupHardwareSuperIo();
     KphCleanupHardwarePci();
+    KphCleanupHardwareWindow();
 }
 
 /**

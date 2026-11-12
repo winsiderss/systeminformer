@@ -21,8 +21,25 @@
 #define KPH_HW_WINDOW_LPIT_DISABLED         0x00000001
 #define KPH_HW_WINDOW_LPIT_NO_COUNTER       0x00000002
 #define KPH_HW_WINDOW_GAS_SYSTEM_MEMORY     0
+#define KPH_HW_NFIT_SIGNATURE               'TIFN'
+#define KPH_HW_NFIT_HEADER_LENGTH           40
+#define KPH_HW_NFIT_TYPE_SPA_RANGE          0
 
 #include <pshpack1.h>
+
+typedef struct _KPH_HW_NFIT_SPA_RANGE
+{
+    USHORT Type;
+    USHORT Length;
+    USHORT RangeIndex;
+    USHORT Flags;
+    ULONG Reserved;
+    ULONG ProximityDomain;
+    GUID AddressRangeType;
+    ULONG64 RangeBase;
+    ULONG64 RangeLength;
+    ULONG64 MappingAttribute;
+} KPH_HW_NFIT_SPA_RANGE, *PKPH_HW_NFIT_SPA_RANGE;
 
 typedef struct _KPH_HW_LPIT_NATIVE_ENTRY
 {
@@ -42,6 +59,8 @@ typedef struct _KPH_HW_LPIT_NATIVE_ENTRY
 
 C_ASSERT(FIELD_OFFSET(KPH_HW_LPIT_NATIVE_ENTRY, ResidencyCounter) == 36);
 C_ASSERT(sizeof(KPH_HW_LPIT_NATIVE_ENTRY) == 56);
+C_ASSERT(FIELD_OFFSET(KPH_HW_NFIT_SPA_RANGE, RangeBase) == 32);
+C_ASSERT(sizeof(KPH_HW_NFIT_SPA_RANGE) == 56);
 
 typedef struct _KPH_HW_ACPI_TABLES
 {
@@ -55,10 +74,19 @@ typedef struct _KPH_HW_LPIT_COUNTER
     UCHAR Width;
 } KPH_HW_LPIT_COUNTER, *PKPH_HW_LPIT_COUNTER;
 
+typedef struct _KPH_HW_MEMORY_RANGE
+{
+    ULONG64 Begin;
+    ULONG64 End;
+} KPH_HW_MEMORY_RANGE, *PKPH_HW_MEMORY_RANGE;
+
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static ULONG KphpHwLpitCounterCount = 0;
 static KPH_HW_LPIT_COUNTER
 KphpHwLpitCounters[KPH_DYN_HW_ACPI_LPIT_MAX_ENTRIES] = { 0 };
+static BOOLEAN KphpHwNvdimmRangesKnown = FALSE;
+static ULONG KphpHwNvdimmRangeCount = 0;
+static PKPH_HW_MEMORY_RANGE KphpHwNvdimmRanges = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
@@ -273,7 +301,7 @@ NTSTATUS KphpHwQueryAcpiTable(
         //
         if (status == STATUS_NOT_FOUND)
         {
-            status = STATUS_INVALID_IMAGE_FORMAT;
+            status = STATUS_ACPI_INVALID_TABLE;
         }
 
         goto Exit;
@@ -287,7 +315,7 @@ NTSTATUS KphpHwQueryAcpiTable(
                       Signature,
                       info->TableBufferLength);
 
-        status = STATUS_INVALID_IMAGE_FORMAT;
+        status = STATUS_ACPI_INVALID_TABLE;
         goto Exit;
     }
 
@@ -301,7 +329,7 @@ NTSTATUS KphpHwQueryAcpiTable(
                       info->TableBufferLength,
                       embeddedLength);
 
-        status = STATUS_INVALID_IMAGE_FORMAT;
+        status = STATUS_ACPI_INVALID_TABLE;
         goto Exit;
     }
 
@@ -375,7 +403,7 @@ NTSTATUS KphpHwInitializeLpit(
                           offset,
                           length);
 
-            status = STATUS_INVALID_IMAGE_FORMAT;
+            status = STATUS_ACPI_INVALID_TABLE;
             goto Exit;
         }
 
@@ -401,7 +429,7 @@ NTSTATUS KphpHwInitializeLpit(
                           entry->Length,
                           length);
 
-            status = STATUS_INVALID_IMAGE_FORMAT;
+            status = STATUS_ACPI_INVALID_TABLE;
             goto Exit;
         }
 
@@ -451,6 +479,255 @@ Exit:
 }
 
 /**
+ * \brief Parses the system physical address ranges of the NFIT table.
+ *
+ * \param[in] Table The NFIT table.
+ * \param[in] Length The length of the table.
+ * \param[out] Ranges Optionally receives the ranges.
+ * \param[in] Capacity The number of entries Ranges can hold.
+ * \param[out] Count Receives the number of ranges.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwWindowParseNfit(
+    _In_reads_bytes_(Length) PVOID Table,
+    _In_ ULONG Length,
+    _Out_writes_opt_(Capacity) PKPH_HW_MEMORY_RANGE Ranges,
+    _In_ ULONG Capacity,
+    _Out_ PULONG Count
+    )
+{
+    NTSTATUS status;
+    ULONG count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Count = 0;
+
+    if (Length < KPH_HW_NFIT_HEADER_LENGTH)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "NFIT length %lu is below the header",
+                      Length);
+
+        return STATUS_ACPI_INVALID_TABLE;
+    }
+
+    count = 0;
+
+    for (ULONG offset = KPH_HW_NFIT_HEADER_LENGTH; offset < Length; )
+    {
+        USHORT type;
+        USHORT structureLength;
+        PKPH_HW_NFIT_SPA_RANGE spa;
+        ULONG64 end;
+
+        if ((Length - offset) < (sizeof(USHORT) * 2))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "NFIT structure at %lu of %lu truncated",
+                          offset,
+                          Length);
+
+            return STATUS_ACPI_INVALID_TABLE;
+        }
+
+        type = *(UNALIGNED USHORT*)Add2Ptr(Table, offset);
+        structureLength = *(UNALIGNED USHORT*)Add2Ptr(Table, offset + sizeof(USHORT));
+
+        if ((structureLength < (sizeof(USHORT) * 2)) ||
+            (structureLength > (Length - offset)))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "NFIT structure at %lu length %lu malformed, "
+                          "table %lu",
+                          offset,
+                          (ULONG)structureLength,
+                          Length);
+
+            return STATUS_ACPI_INVALID_TABLE;
+        }
+
+        spa = Add2Ptr(Table, offset);
+        NT_VERIFY(NT_SUCCESS(RtlULongAdd(offset, structureLength, &offset)));
+
+        if (type != KPH_HW_NFIT_TYPE_SPA_RANGE)
+        {
+            continue;
+        }
+
+        if (structureLength < sizeof(KPH_HW_NFIT_SPA_RANGE))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "NFIT SPA range length %lu truncated",
+                          (ULONG)structureLength);
+
+            return STATUS_ACPI_INVALID_TABLE;
+        }
+
+        status = RtlULongLongAdd(spa->RangeBase, spa->RangeLength, &end);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "NFIT SPA range 0x%llx length 0x%llx overflows",
+                          spa->RangeBase,
+                          spa->RangeLength);
+
+            return STATUS_ACPI_INVALID_TABLE;
+        }
+
+        if (Ranges && (count >= Capacity))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "NFIT SPA range beyond %lu",
+                          Capacity);
+
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Ranges)
+        {
+            Ranges[count].Begin = spa->RangeBase;
+            Ranges[count].End = end;
+        }
+
+        count++;
+    }
+
+    *Count = count;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Caches the system physical address ranges of the NFIT table.
+ *
+ * \param[in] Tables The enumerated ACPI table signatures.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwInitializeNfit(
+    _In_ PKPH_HW_ACPI_TABLES Tables
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
+    ULONG length;
+    ULONG count;
+    ULONG rangesLength;
+    PKPH_HW_MEMORY_RANGE ranges;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    ranges = NULL;
+
+    status = KphpHwQueryAcpiTable(Tables,
+                                  KPH_HW_NFIT_SIGNATURE,
+                                  &info,
+                                  &length);
+    if (status == STATUS_NOT_FOUND)
+    {
+        KphpHwNvdimmRangesKnown = TRUE;
+        return STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwQueryAcpiTable failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = KphpHwWindowParseNfit(info->TableBuffer,
+                                   length,
+                                   NULL,
+                                   0,
+                                   &count);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowParseNfit failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!count)
+    {
+        KphpHwNvdimmRangesKnown = TRUE;
+        goto Exit;
+    }
+
+    status = RtlULongMult(count, sizeof(KPH_HW_MEMORY_RANGE), &rangesLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlULongMult failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    ranges = KphAllocatePaged(rangesLength, KPH_TAG_HW_NVDIMM_RANGES);
+    if (!ranges)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate NVDIMM ranges");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphpHwWindowParseNfit(info->TableBuffer,
+                                   length,
+                                   ranges,
+                                   count,
+                                   &count);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowParseNfit failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphpHwNvdimmRanges = ranges;
+    KphpHwNvdimmRangeCount = count;
+    KphpHwNvdimmRangesKnown = TRUE;
+    ranges = NULL;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (ranges)
+    {
+        KphFree(ranges, KPH_TAG_HW_NVDIMM_RANGES);
+    }
+
+    KphFree(info, KPH_TAG_HW_FIRMWARE);
+
+    return status;
+}
+
+/**
  * \brief Initializes the window infrastructure.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -488,7 +765,35 @@ VOID KphInitializeHardwareWindow(
 
     if (tables.Info)
     {
+        status = KphpHwInitializeNfit(&tables);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "NVDIMM ranges: %lu, known %!bool!: %!STATUS!",
+                  KphpHwNvdimmRangeCount,
+                  KphpHwNvdimmRangesKnown,
+                  status);
+
+    if (tables.Info)
+    {
         KphFree(tables.Info, KPH_TAG_HW_FIRMWARE);
+    }
+}
+
+/**
+ * \brief Cleans up the window infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupHardwareWindow(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (KphpHwNvdimmRanges)
+    {
+        KphFree(KphpHwNvdimmRanges, KPH_TAG_HW_NVDIMM_RANGES);
     }
 }
 
@@ -566,6 +871,56 @@ Exit:
 }
 
 /**
+ * \brief Checks that a physical range is not NVDIMM memory.
+ *
+ * \param[in] Begin The start of the range.
+ * \param[in] End The end of the range, exclusive.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwWindowCheckNvdimm(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphpHwNvdimmRangesKnown)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "NVDIMM ranges unknown");
+
+        return STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
+
+    for (ULONG i = 0; i < KphpHwNvdimmRangeCount; i++)
+    {
+        PKPH_HW_MEMORY_RANGE range;
+
+        range = &KphpHwNvdimmRanges[i];
+
+        if ((Begin < range->End) && (range->Begin < End))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Range 0x%llx-0x%llx overlaps NVDIMM "
+                          "0x%llx-0x%llx",
+                          Begin,
+                          End,
+                          range->Begin,
+                          range->End);
+
+            return STATUS_CONFLICTING_ADDRESSES;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Checks that a physical range is safe to map.
  *
  * \param[in] Begin The page-aligned start of the range.
@@ -599,6 +954,17 @@ NTSTATUS KphHwWindowCheckRange(
                       (ULONG)cpu->PhysicalAddressBits);
 
         return STATUS_CONFLICTING_ADDRESSES;
+    }
+
+    status = KphpHwWindowCheckNvdimm(Begin, End);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowCheckNvdimm failed: %!STATUS!",
+                      status);
+
+        return status;
     }
 
     status = KphpHwWindowCheckMemory(Begin, End);

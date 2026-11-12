@@ -154,3 +154,4 @@
 #define KPH_TAG_HW_ACPI_DEVICE                  'IhpK'
 #define KPH_TAG_HW_ACPI_PATH                    'JhpK'
 #define KPH_TAG_HW_MAILBOX_PATH                 'KhpK'
+#define KPH_TAG_HW_NVDIMM_RANGES                'LhpK'
