@@ -4397,8 +4397,8 @@ This file is part of System Informer.
         </window>
     </board>
 
-    <acpi id="PNP0C0B"
-          desc="ACPI fan">
+    <acpi id="PNP0C0B,INT3404,INTC1044,INTC1048,INTC1063,INTC106A,INTC10A2,INTC10D6,INTC10FE,INTC10F5"
+          desc="ACPI fan and Intel DPTF fan participants">
         <eval method="_FST" results="integer|package" max-output="0x40" desc="_FST fan status: revision, control, speed RPM (ACPI 6.5 11.3.1.4)"/>
         <eval method="_FIF" results="integer" max-output="0x40" desc="_FIF fan information: revision, fine-grain control, step size %, low-speed notification (ACPI 6.5 11.3.1.1)"/>
         <eval method="_FPS" results="integer|package" max-output="0x800" desc="_FPS fan performance states: revision, then {control, trip point, speed RPM, noise 0.1 dBA, power mW} (ACPI 6.5 11.3.1.2)"/>
