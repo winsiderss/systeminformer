@@ -246,13 +246,61 @@ USHORT KphpHwSuperIoReadConfigWord(
 }
 
 /**
- * \brief Enters configuration mode with the key of the session's family.
+ * \brief Reads the chip ID of the session's family: the word at CR20h, or the
+ * byte at CR20h for SMSC.
  *
- * \param[in,out] Session The session.
+ * \param[in] Session The session.
+ *
+ * \return The chip ID.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+USHORT KphpHwSuperIoReadChipId(
+    _In_ PKPH_HW_SUPERIO_SESSION Session
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
+    {
+        return KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_CHIP_ID);
+    }
+
+    return KphpHwSuperIoReadConfigWord(Session, KPH_HW_SUPERIO_CR_CHIP_ID);
+}
+
+/**
+ * \brief Checks whether a chip ID read means no configuration session is
+ * open: all zeros or all ones.
+ *
+ * \param[in] Family The family the ID was read for.
+ * \param[in] ChipId The chip ID, as KphpHwSuperIoReadChipId reads it.
+ *
+ * \return TRUE if the slot reads locked.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpHwSuperIoIdLocked(
+    _In_ UCHAR Family,
+    _In_ USHORT ChipId
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Family == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
+    {
+        return ((ChipId == 0) || (ChipId == MAXUCHAR));
+    }
+
+    return ((ChipId == 0) || (ChipId == MAXUSHORT));
+}
+
+/**
+ * \brief Sends the configuration key of the session's family.
+ *
+ * \param[in] Session The session.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpHwSuperIoEnter(
-    _Inout_ PKPH_HW_SUPERIO_SESSION Session
+    _In_ PKPH_HW_SUPERIO_SESSION Session
     )
 {
     UCHAR slotKey;
@@ -284,8 +332,6 @@ VOID KphpHwSuperIoEnter(
         KphpHwSuperIoOut(Session->Port, KPH_HW_SUPERIO_KEY_ENTER);
         KphpHwSuperIoOut(Session->Port, KPH_HW_SUPERIO_KEY_ENTER);
     }
-
-    Session->Entered = TRUE;
 }
 
 /**
@@ -334,14 +380,23 @@ VOID KphpHwSuperIoExit(
 /**
  * \brief Exits configuration mode for a chip that was not identified.
  *
+ * \details An ITE key can open another family's chip, so after it CR02h is
+ * written only when the slot still answers after AAh.
+ *
  * \param[in,out] Session The session.
+ * \param[out] SlotBusy Receives TRUE when the slot still answers.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpHwSuperIoAbandon(
-    _Inout_ PKPH_HW_SUPERIO_SESSION Session
+    _Inout_ PKPH_HW_SUPERIO_SESSION Session,
+    _Out_ PBOOLEAN SlotBusy
     )
 {
+    USHORT chipId;
+
     KPH_PAGED_CODE_PASSIVE();
+
+    *SlotBusy = FALSE;
 
     if (!Session->Entered)
     {
@@ -350,11 +405,31 @@ VOID KphpHwSuperIoAbandon(
 
     KphpHwSuperIoOut(Session->Port, KPH_HW_SUPERIO_KEY_EXIT);
 
-    if (Session->Family != KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
+    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_ITE)
     {
-        KphpHwSuperIoWriteConfig(Session,
-                                 KPH_HW_SUPERIO_CR_CONFIG_CONTROL,
-                                 KPH_HW_SUPERIO_CONFIG_CONTROL_EXIT);
+        chipId = KphpHwSuperIoReadChipId(Session);
+
+        if (!KphpHwSuperIoIdLocked(Session->Family, chipId))
+        {
+            KphpHwSuperIoWriteConfig(Session,
+                                     KPH_HW_SUPERIO_CR_CONFIG_CONTROL,
+                                     KPH_HW_SUPERIO_CONFIG_CONTROL_EXIT);
+        }
+    }
+
+    chipId = KphpHwSuperIoReadChipId(Session);
+
+    if (!KphpHwSuperIoIdLocked(Session->Family, chipId))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SuperIO slot %lu still answers 0x%04lx after the "
+                      "family %lu exit",
+                      (ULONG)Session->Slot,
+                      (ULONG)chipId,
+                      (ULONG)Session->Family);
+
+        *SlotBusy = TRUE;
     }
 
     Session->Entered = FALSE;
@@ -427,6 +502,8 @@ NTSTATUS KphpHwSuperIoValidateBase(
  *
  * \param[in,out] Session The session, with Section, Slot, Family and Port set.
  * \param[in] OpIndex The index of the superio_read op among those of the chip.
+ * \param[in] AlreadyOpen TRUE when the chip already answers its ID: no key is
+ * sent and configuration mode is never exited.
  * \param[out] ChipMatched Receives TRUE when the chip ID matched a row.
  * \param[out] SlotBusy Receives TRUE when no family may probe the slot further.
  *
@@ -437,6 +514,7 @@ _Must_inspect_result_
 NTSTATUS KphpHwSuperIoConfigure(
     _Inout_ PKPH_HW_SUPERIO_SESSION Session,
     _In_ ULONG OpIndex,
+    _In_ BOOLEAN AlreadyOpen,
     _Out_ PBOOLEAN ChipMatched,
     _Out_ PBOOLEAN SlotBusy
     )
@@ -469,65 +547,16 @@ NTSTATUS KphpHwSuperIoConfigure(
     ldn = 0;
     originalLdn = 0;
 
-    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_ITE)
-    {
-        chipId = KphpHwSuperIoReadConfigWord(Session,
-                                             KPH_HW_SUPERIO_CR_CHIP_ID);
-
-        known = KphDynHwSuperIoChipKnown(Session->Section,
-                                         Session->Slot,
-                                         Session->Family,
-                                         chipId,
-                                         Session->ChassisType);
-        if (!known)
-        {
-            if ((chipId != 0) && (chipId != MAXUSHORT))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HARDWARE,
-                              "SuperIO slot %lu holds unknown chip 0x%04lx",
-                              (ULONG)Session->Slot,
-                              (ULONG)chipId);
-
-                *SlotBusy = TRUE;
-                status = STATUS_NOT_FOUND;
-                goto Exit;
-            }
-
-            KphpHwSuperIoEnter(Session);
-
-            chipId = KphpHwSuperIoReadConfigWord(Session,
-                                                 KPH_HW_SUPERIO_CR_CHIP_ID);
-        }
-    }
-    else if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
-    {
-        chipId = KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_CHIP_ID);
-
-        if ((chipId != 0) && (chipId != MAXUCHAR))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "SuperIO slot %lu answers 0x%02lx before the SMSC "
-                          "key",
-                          (ULONG)Session->Slot,
-                          (ULONG)chipId);
-
-            *SlotBusy = TRUE;
-            status = STATUS_NOT_FOUND;
-            goto Exit;
-        }
-
-        KphpHwSuperIoEnter(Session);
-
-        chipId = KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_CHIP_ID);
-    }
-    else
+    if (!AlreadyOpen)
     {
         KphpHwSuperIoEnter(Session);
+    }
 
-        chipId = KphpHwSuperIoReadConfigWord(Session,
-                                             KPH_HW_SUPERIO_CR_CHIP_ID);
+    chipId = KphpHwSuperIoReadChipId(Session);
+
+    if (!AlreadyOpen)
+    {
+        Session->Entered = !KphpHwSuperIoIdLocked(Session->Family, chipId);
     }
 
     known = KphDynHwSuperIoChipKnown(Session->Section,
@@ -764,7 +793,7 @@ Exit:
     }
     else
     {
-        KphpHwSuperIoAbandon(Session);
+        KphpHwSuperIoAbandon(Session, SlotBusy);
     }
 
     return status;
@@ -1238,6 +1267,8 @@ NTSTATUS KphpHwSuperIoRead(
     BOOLEAN slotBusy;
     UCHAR chassisType;
     USHORT port;
+    USHORT probeId;
+    UCHAR openFamily;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Slot < KPH_DYN_HW_SUPERIO_SLOTS);
@@ -1268,6 +1299,59 @@ NTSTATUS KphpHwSuperIoRead(
     order[4] = KPH_DYN_HW_SUPERIO_FAMILY_FINTEK;
     order[5] = KPH_DYN_HW_SUPERIO_FAMILY_SMSC;
 
+    //
+    // One read before any key: a locked slot gets the keys, a known chip
+    // that already answers is read without one, anything else is busy.
+    //
+    session.Port = port;
+    probeId = KphpHwSuperIoReadConfigWord(&session, KPH_HW_SUPERIO_CR_CHIP_ID);
+    openFamily = 0;
+
+    if (!KphpHwSuperIoIdLocked(KPH_DYN_HW_SUPERIO_FAMILY_ITE, probeId))
+    {
+        for (ULONG i = 1; i < ARRAYSIZE(order); i++)
+        {
+            USHORT id;
+
+            if (!(families & (1ul << order[i])))
+            {
+                continue;
+            }
+
+            if (order[i] == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
+            {
+                id = (probeId >> RTL_BITS_OF(UCHAR));
+            }
+            else
+            {
+                id = probeId;
+            }
+
+            if (KphDynHwSuperIoChipKnown(Section,
+                                         Slot,
+                                         order[i],
+                                         id,
+                                         chassisType))
+            {
+                openFamily = order[i];
+                break;
+            }
+        }
+
+        if (!openFamily)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SuperIO slot %lu answers 0x%04lx before any key",
+                          (ULONG)Slot,
+                          (ULONG)probeId);
+
+            KphpHwSuperIoHint[Slot] = 0;
+            status = STATUS_NOT_FOUND;
+            goto Exit;
+        }
+    }
+
     status = STATUS_NOT_FOUND;
     tried = 0;
     matched = FALSE;
@@ -1276,6 +1360,11 @@ NTSTATUS KphpHwSuperIoRead(
     for (ULONG i = 0; i < ARRAYSIZE(order); i++)
     {
         if (!(families & (1ul << order[i])) || (tried & (1ul << order[i])))
+        {
+            continue;
+        }
+
+        if (openFamily && (order[i] != openFamily))
         {
             continue;
         }
@@ -1289,7 +1378,11 @@ NTSTATUS KphpHwSuperIoRead(
         session.Port = port;
         session.ChassisType = chassisType;
 
-        status = KphpHwSuperIoConfigure(&session, OpIndex, &matched, &slotBusy);
+        status = KphpHwSuperIoConfigure(&session,
+                                        OpIndex,
+                                        !!openFamily,
+                                        &matched,
+                                        &slotBusy);
         if (matched || slotBusy)
         {
             break;
