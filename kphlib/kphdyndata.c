@@ -379,7 +379,7 @@ NTSTATUS KphpDynHwValidateOp(
     ULONG fixedLength;
     ULONG arrayLength;
 
-    if ((Length < (ULONG)FIELD_OFFSET(KPH_DYN_HW_OP, Body)) ||
+    if ((Length < UFIELD_OFFSET(KPH_DYN_HW_OP, Body)) ||
         (Op->Length > Length))
     {
         return STATUS_SI_DYNDATA_INVALID_LENGTH;

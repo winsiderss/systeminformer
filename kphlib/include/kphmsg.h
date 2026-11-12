@@ -447,7 +447,7 @@ typedef struct _KPH_MESSAGE
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 
-#define KPH_MESSAGE_MIN_SIZE ((ULONG)FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer))
+#define KPH_MESSAGE_MIN_SIZE UFIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer)
 
 //
 // ABI breaking asserts. KPH_MESSAGE_VERSION must be updated.

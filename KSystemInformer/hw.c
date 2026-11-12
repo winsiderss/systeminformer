@@ -837,7 +837,7 @@ NTSTATUS KphpHwResourceListSize(
 
     *Size = 0;
 
-    if (Available < (ULONG)FIELD_OFFSET(CM_RESOURCE_LIST, List))
+    if (Available < UFIELD_OFFSET(CM_RESOURCE_LIST, List))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -1151,7 +1151,7 @@ BOOLEAN KphHwFindMemoryDescriptor(
         *Flags = 0;
     }
 
-    if (ListLength < (ULONG)FIELD_OFFSET(CM_RESOURCE_LIST, List))
+    if (ListLength < UFIELD_OFFSET(CM_RESOURCE_LIST, List))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
