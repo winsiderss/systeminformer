@@ -1830,8 +1830,11 @@ INT_PTR PhPropSheetNewShowModal(
         return -1;
 
     parentOwner = Sheet->ParentWindow;
+
     if (parentOwner)
+    {
         EnableWindow(parentOwner, FALSE);
+    }
 
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);

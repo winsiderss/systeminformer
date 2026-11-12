@@ -145,7 +145,7 @@ VOID PhLoadSymbolsThreadProvider(
     );
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    _In_ CLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     );
 
 PPH_THREAD_ITEM PhReferenceThreadItem(

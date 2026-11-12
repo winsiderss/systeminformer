@@ -947,7 +947,7 @@ NTSTATUS PhEnumSMBIOS(
     _In_opt_ PVOID Context
     )
 {
-    static volatile ULONG cachedLength = sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION) + 64;
+    static ULONG cachedLength = sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION) + 64;
     NTSTATUS status;
     ULONG length;
     PSYSTEM_FIRMWARE_TABLE_INFORMATION info;

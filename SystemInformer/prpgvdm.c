@@ -29,6 +29,7 @@ typedef struct _PH_NTVDM_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     BOOLEAN Enabled;
     PPH_LIST VdmHostProcessList;
 } PH_NTVDM_CONTEXT, *PPH_NTVDM_CONTEXT;
@@ -271,8 +272,11 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
             context->Enabled = TRUE;
             context->VdmHostProcessList = PhCreateList(1);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Module name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 180, L"File name");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Thread Id");
@@ -306,7 +310,18 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
             PhpClearVdmHostProcessItems(context);
             PhDereferenceObject(context->VdmHostProcessList);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SHOWWINDOW:

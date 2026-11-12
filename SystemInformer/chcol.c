@@ -539,7 +539,7 @@ static VOID PhpColumnsDrawDragInsert(
         DrawInfo->hDC,
         PhEnableThemeSupport ? PhThemeWindowHighlightColor : GetSysColor(COLOR_HIGHLIGHT)
         );
-    FillRect(DrawInfo->hDC, &lineRect, PhGetStockBrush(DC_BRUSH));
+    FillRect(DrawInfo->hDC, &lineRect, PhStockDcBrush);
     SetDCBrushColor(DrawInfo->hDC, oldColor);
 }
 
@@ -634,7 +634,7 @@ static VOID PhpColumnsMoveActiveItem(
         return;
     }
 
-    arrayFrom = IndexOfStringInList(Context->ActiveListArray, string->Buffer);
+    arrayFrom = PhIndexOfStringInList(Context->ActiveListArray, string->Buffer);
 
     if (arrayFrom != ULONG_MAX)
     {
@@ -648,7 +648,7 @@ static VOID PhpColumnsMoveActiveItem(
         {
             PPH_STRING targetString = PhGetListBoxString(Context->ActiveWindowHandle, ToIndex);
 
-            arrayTo = targetString ? IndexOfStringInList(Context->ActiveListArray, targetString->Buffer) : ULONG_MAX;
+            arrayTo = targetString ? PhIndexOfStringInList(Context->ActiveListArray, targetString->Buffer) : ULONG_MAX;
             PhClearReference(&targetString);
 
             if (arrayTo == ULONG_MAX)
@@ -708,7 +708,7 @@ static VOID PhpColumnsShowItem(
 
     if (!PhIsNullOrEmptyString(string))
     {
-        ULONG index = IndexOfStringInList(Context->InactiveListArray, string->Buffer);
+        ULONG index = PhIndexOfStringInList(Context->InactiveListArray, string->Buffer);
 
         if (index != ULONG_MAX)
         {
@@ -727,7 +727,7 @@ static VOID PhpColumnsShowItem(
             {
                 PPH_STRING targetString = PhGetListBoxString(Context->ActiveWindowHandle, ActiveInsertIndex);
 
-                arrayTo = targetString ? IndexOfStringInList(Context->ActiveListArray, targetString->Buffer) : ULONG_MAX;
+                arrayTo = targetString ? PhIndexOfStringInList(Context->ActiveListArray, targetString->Buffer) : ULONG_MAX;
                 PhClearReference(&targetString);
 
                 if (arrayTo == ULONG_MAX)
@@ -780,7 +780,7 @@ static VOID PhpColumnsHideItem(
 
     if (!PhIsNullOrEmptyString(string))
     {
-        ULONG index = IndexOfStringInList(Context->ActiveListArray, string->Buffer);
+        ULONG index = PhIndexOfStringInList(Context->ActiveListArray, string->Buffer);
 
         if (index != ULONG_MAX)
         {

@@ -830,12 +830,12 @@ NTSTATUS PhGetProcessConsoleHostProcess(
 
     if (NT_SUCCESS(status))
     {
-        *ConsoleHostProcessId = (HANDLE)(consoleHostProcess & ~3);
-    }
+        *ConsoleHostProcessId = (HANDLE)(consoleHostProcess & PS_CONSOLE_HOST_PROCESS_MASK);
 
-    if (ConsoleApplication)
-    {
-        *ConsoleApplication = !!(ULONG_PTR)(consoleHostProcess & 2);
+        if (ConsoleApplication)
+        {
+            *ConsoleApplication = !!(consoleHostProcess & PS_CONSOLE_HOST_CONSOLE_APP_FLAG);
+        }
     }
 
     return status;

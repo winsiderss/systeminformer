@@ -46,11 +46,13 @@ typedef enum _PH_EM_OBJECT_OPERATION
     EmMaximumObjectOperation
 } PH_EM_OBJECT_OPERATION;
 
-typedef VOID (NTAPI *PPH_EM_OBJECT_CALLBACK)(
+typedef _Function_class_(PH_EM_OBJECT_CALLBACK)
+VOID NTAPI PH_EM_OBJECT_CALLBACK(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
     );
+typedef PH_EM_OBJECT_CALLBACK* PPH_EM_OBJECT_CALLBACK;
 // end_phapppub
 
 typedef struct _PH_EM_APP_CONTEXT

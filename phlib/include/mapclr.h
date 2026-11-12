@@ -1267,10 +1267,12 @@ typedef struct _PH_CLR_SOURCE_LOCATION
     PPH_STRING FileName; // owned; NULL for a hidden point
 } PH_CLR_SOURCE_LOCATION, *PPH_CLR_SOURCE_LOCATION;
 
-typedef BOOLEAN (NTAPI *PPH_CLR_SEQUENCE_POINT_CALLBACK)(
+typedef _Function_class_(PH_CLR_SEQUENCE_POINT_CALLBACK)
+BOOLEAN NTAPI PH_CLR_SEQUENCE_POINT_CALLBACK(
     _In_ PPH_CLR_SEQUENCE_POINT Point,
     _In_opt_ PVOID Context
     );
+typedef PH_CLR_SEQUENCE_POINT_CALLBACK* PPH_CLR_SEQUENCE_POINT_CALLBACK;
 
 /** Borrows a standalone Portable PDB buffer. Context and buffer must remain at stable addresses.
  * Failure leaves ClrMetadata unchanged. No mapping is created or owned by this API.

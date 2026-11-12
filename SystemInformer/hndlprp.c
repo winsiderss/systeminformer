@@ -105,6 +105,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
 {
     HWND ListViewHandle;
     HWND ParentWindow;
+    HFONT WindowFont;
     HANDLE ProcessId;
     PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
@@ -120,6 +121,7 @@ typedef struct _HANDLE_PERMISSIONS_CONTEXT
     HANDLE ProcessId;
     PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PERMISSIONS_CONTEXT, *PHANDLE_PERMISSIONS_CONTEXT;
 
@@ -2218,8 +2220,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             PhSetApplicationWindowIcon(context->ParentWindow);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
@@ -2258,6 +2263,12 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             PhListView_Destroy(context->ListViewClass);
 
+            if (context->WindowFont)
+            {
+                DeleteFont(context->WindowFont);
+                context->WindowFont = NULL;
+            }
+
             PhRemoveDialogContext(hwndDlg);
         }
         break;
@@ -2270,6 +2281,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -3166,6 +3182,10 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
             //PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Inherited from");
             PhSetExtendedListView(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+            SetWindowFont(context->ListViewHeader, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHeader, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -3212,6 +3232,14 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+            {
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+                SetWindowFont(context->ListViewHeader, context->WindowFont, TRUE);
+            }
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -3359,6 +3387,10 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
             //PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Source");
             PhSetExtendedListView(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+            SetWindowFont(context->ListViewHeader, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHeader, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -3398,6 +3430,14 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+            {
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+                SetWindowFont(context->ListViewHeader, context->WindowFont, TRUE);
+            }
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

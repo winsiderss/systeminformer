@@ -116,7 +116,7 @@ VOID PhpGraphBarFillRect(
     )
 {
     SetDCBrushColor(hdc, Color);
-    FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+    FillRect(hdc, Rect, PhStockDcBrush);
 }
 
 VOID PhpGraphBarFormatSize(
@@ -488,14 +488,27 @@ VOID PhpGraphBarOnPaint(
 
     if (hdc = BeginPaint(WindowHandle, &paintStruct))
     {
+        PH_BUFFERED_PAINT bufferedPaint;
+        HDC bufferDc;
+        BOOLEAN buffered;
+
         GetClientRect(WindowHandle, &clientRect);
 
         PhpGraphBarQueryMemory(WindowHandle, Context);
 
-        if (!PhpGraphBarNotifyDraw(WindowHandle, Context, hdc, &clientRect))
+        // Draw into a 32bpp buffer: no flicker, and the owner can draw into the bits.
+        buffered = PhBeginBufferedPaint(hdc, &clientRect, PHBF_DIB, NULL, &bufferedPaint, &bufferDc);
+
+        if (!buffered)
+            bufferDc = hdc;
+
+        if (!PhpGraphBarNotifyDraw(WindowHandle, Context, bufferDc, &clientRect))
         {
-            PhpGraphBarDrawMemory(Context, hdc, &clientRect);
+            PhpGraphBarDrawMemory(Context, bufferDc, &clientRect);
         }
+
+        if (buffered)
+            PhEndBufferedPaint(&bufferedPaint, TRUE);
 
         EndPaint(WindowHandle, &paintStruct);
     }

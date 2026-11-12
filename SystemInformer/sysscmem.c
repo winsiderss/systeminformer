@@ -136,6 +136,44 @@ static BOOLEAN PhSipGetMemoryListInfo(
     _Out_opt_ PULONG_PTR StandbyPageCount
     );
 
+#define PH_SI_MEMORY_BAR_MIN_SEGMENT 6 // px, smooth graphs only
+
+// Smooth graphs: the fraction of the bar each segment takes. Non-empty segments are at least
+// PH_SI_MEMORY_BAR_MIN_SEGMENT wide; the difference comes proportionally from the wider ones.
+static VOID PhSipLayoutMemoryGraphBar(
+    _In_reads_(Count) const ULONG64* SegmentPages,
+    _In_ ULONG Count,
+    _In_ ULONG64 TotalPages,
+    _In_ LONG BarWidth,
+    _Out_writes_(Count) PFLOAT Fractions
+    )
+{
+    FLOAT minimum = BarWidth > 0 ? (FLOAT)PH_SI_MEMORY_BAR_MIN_SEGMENT / (FLOAT)BarWidth : 0;
+    FLOAT deficit = 0;
+    FLOAT surplus = 0;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        Fractions[i] = (FLOAT)((DOUBLE)SegmentPages[i] / (DOUBLE)TotalPages);
+
+        if (Fractions[i] > minimum)
+            surplus += Fractions[i] - minimum;
+        else if (Fractions[i] > 0)
+            deficit += minimum - Fractions[i];
+    }
+
+    if (deficit <= 0 || surplus <= 0)
+        return;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (Fractions[i] > minimum)
+            Fractions[i] = minimum + (Fractions[i] - minimum) * max(1.0f - deficit / surplus, 0.0f);
+        else if (Fractions[i] > 0)
+            Fractions[i] = minimum;
+    }
+}
+
 _Function_class_(PH_GRAPHBAR_MESSAGE_CALLBACK)
 static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
     _In_ HWND WindowHandle,
@@ -1199,7 +1237,36 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
             segmentColors[4] = PhEnableThemeSupport ? RGB(0x7a, 0x7a, 0x7a) : RGB(0x9e, 0x9e, 0x9e); // Zero (gray)
             segmentColors[5] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x48, 0xc0, 0xc4)) : RGB(0x48, 0xc0, 0xc4); // Free (teal)
 
-            oldBrush = SelectBrush(drawBar->hdc, PhGetStockBrush(DC_BRUSH));
+            if (PhEnableGraphSmoothing)
+            {
+                FLOAT fractions[RTL_NUMBER_OF(segmentPages)];
+                COLORREF lineColors[RTL_NUMBER_OF(segmentPages)];
+                PH_SI_GRAPH_PALETTE palette = PhSiGetGraphPalette();
+
+                // The fills keep the colors above; the edge line is darker on a light palette
+                // and brighter on a dark one, like the graph lines.
+                PhSipLayoutMemoryGraphBar(segmentPages, RTL_NUMBER_OF(segmentPages), totalPages, rect.right - rect.left, fractions);
+
+                for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages); i++)
+                {
+                    if (palette == PhSiGraphPaletteLight)
+                        lineColors[i] = PhHalveColorBrightness(segmentColors[i]);
+                    else
+                        lineColors[i] = PhMakeColorBrighter(segmentColors[i], 70);
+                }
+
+                PhDrawGraphBar(
+                    drawBar->hdc,
+                    &rect,
+                    PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW),
+                    RTL_NUMBER_OF(segmentPages),
+                    fractions,
+                    lineColors,
+                    segmentColors
+                    );
+                break;
+            }
+            oldBrush = SelectBrush(drawBar->hdc, PhStockDcBrush);
             oldPen = SelectPen(drawBar->hdc, PhGetStockPen(DC_PEN));
 
             x = rect.left;
@@ -1233,7 +1300,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
                 fillRect.bottom = rect.bottom;
 
                 SetDCBrushColor(drawBar->hdc, segmentColors[i]);
-                FillRect(drawBar->hdc, &fillRect, PhGetStockBrush(DC_BRUSH));
+                FillRect(drawBar->hdc, &fillRect, PhStockDcBrush);
 
                 if (x != rect.left)
                 {
@@ -1300,7 +1367,30 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
             hit = FALSE;
             hitIndex = 0;
 
-            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages); i++)
+            if (PhEnableGraphSmoothing)
+            {
+                FLOAT fractions[RTL_NUMBER_OF(segmentPages)];
+                FLOAT start = 0;
+
+                // Same layout as the drawing (minimum segment widths).
+                PhSipLayoutMemoryGraphBar(segmentPages, RTL_NUMBER_OF(segmentPages), totalPages, barWidth, fractions);
+
+                for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages); i++)
+                {
+                    FLOAT left = (FLOAT)getTooltipText->Rect.left + start * barWidth;
+
+                    start += fractions[i];
+
+                    if (segmentPages[i] && (FLOAT)getTooltipText->CursorX >= left && (FLOAT)getTooltipText->CursorX < (FLOAT)getTooltipText->Rect.left + start * barWidth)
+                    {
+                        hit = TRUE;
+                        hitIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages) && !PhEnableGraphSmoothing; i++)
             {
                 LONG right;
                 ULONG64 scaledWidth = 0;

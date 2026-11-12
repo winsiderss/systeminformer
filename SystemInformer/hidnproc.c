@@ -79,6 +79,7 @@ VOID PhpSetZombieProcessHandleCount(
 
 static HWND PhZombieProcessesWindowHandle = NULL;
 static HWND PhZombieProcessesListViewHandle = NULL;
+static HFONT PhZombieProcessesWindowFont = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 
@@ -210,8 +211,11 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            PhZombieProcessesWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
+            SetWindowFont(lvHandle, PhZombieProcessesWindowFont, FALSE);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 320, L"Process");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_RIGHT, 70, L"Handles");
@@ -254,6 +258,12 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
             PhZombieProcessesCleanupList(ProcessesList);
             ProcessesList = NULL;
+
+            if (PhZombieProcessesWindowFont)
+            {
+                DeleteFont(PhZombieProcessesWindowFont);
+                PhZombieProcessesWindowFont = NULL;
+            }
 
             PhZombieProcessesWindowHandle = NULL;
         }
@@ -528,6 +538,11 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&PhZombieProcessesWindowFont, PhZombieProcessesListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&WindowLayoutManager);
         }

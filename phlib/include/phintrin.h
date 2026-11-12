@@ -119,7 +119,7 @@ PhArm64ReadRandomNumber64(
 #define PhHasShuffleBytes TRUE
 #else
 /**
- * @var __isa_available
+ * \var __isa_available
  *
  * External variable indicating the availability of ISA (Instruction Set Architecture) features.
  *
@@ -139,7 +139,7 @@ extern int __isa_available;
 #define ISA_AVAILABLE_NEON_ARM64 2
 
 /**
- * @var __isa_enabled
+ * \var __isa_enabled
  *
  * External variable indicating which ISA (Instruction Set Architecture)
  * extensions are enabled and available on the current system (e.g., SSE, AVX, etc.).
@@ -196,7 +196,7 @@ PhpHasAVX512CDOnce(
 #define PhHasAVX512CD (PhHasAVX512 && PhpHasAVX512CDOnce())
 
 /**
- * @def PhHasSSSE3
+ * \def PhHasSSSE3
  *
  * Reports whether SSSE3 (Supplemental SSE3) is available, which provides
  * the _mm_shuffle_epi8 / pshufb instruction used by the hex-conversion,
@@ -212,7 +212,7 @@ PhpHasAVX512CDOnce(
     FlagOn(__isa_enabled, ISA_ENABLED_SSE42)
 
 /**
- * @def PhHasShuffleBytes
+ * \def PhHasShuffleBytes
  *
  * Reports whether the byte-shuffle wrapper PhShuffleINT128by8 is usable. On
  * x86/x64 this maps to _mm_shuffle_epi8 and therefore requires SSSE3; on ARM64
@@ -221,7 +221,7 @@ PhpHasAVX512CDOnce(
 #define PhHasShuffleBytes PhHasSSSE3
 
 /**
- * @def PhHasPCLMUL
+ * \def PhHasPCLMUL
  *
  * Reports whether carry-less multiplication (PCLMULQDQ, CPUID.1:ECX.PCLMULQDQ[bit 1])
  * is available. Required by the PCLMUL-folding implementation of PhCrc32
@@ -259,7 +259,7 @@ PhpHasPCLMULOnce(
 #define PhHasPCLMUL (PhpHasPCLMULOnce())
 
 /**
- * @def PhHasVPCLMUL
+ * \def PhHasVPCLMUL
  *
  * Reports whether the vector (512-bit) form of carry-less multiplication
  * (VPCLMULQDQ, CPUID.(EAX=7,ECX=0):ECX.VPCLMULQDQ[bit 10]) is available.
@@ -307,7 +307,7 @@ PhpHasVPCLMULOnce(
 #endif
 
 /**
- * @var __favor
+ * \var __favor
  *
  * External variable indicating performance features that are enabled in the processor.
  *

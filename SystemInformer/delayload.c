@@ -92,6 +92,7 @@ PVOID WINAPI __delayLoadHelper2(
     PVOID procedureAddress;
     PVOID moduleHandle;
     PVOID* importHandle;
+    NTSTATUS status;
     PIMAGE_THUNK_DATA importEntry;
     PIMAGE_THUNK_DATA importTable;
     PIMAGE_THUNK_DATA importNameTable;
@@ -112,7 +113,7 @@ PVOID WINAPI __delayLoadHelper2(
 
         if (!(moduleHandle = PhLoadLibrary(importDllNameBuffer)))
         {
-            return NULL;
+            PhRaiseStatus(STATUS_DLL_NOT_FOUND);
         }
 
         importNeedsFree = TRUE;
@@ -132,25 +133,30 @@ PVOID WINAPI __delayLoadHelper2(
     }
 
     if (!procedureAddress)
-        return NULL;
-
-    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(
-        NtCurrentImageBase(),
-        &imageNtHeaders
-        )))
     {
-        return NULL;
+        status = STATUS_ENTRYPOINT_NOT_FOUND;
+        goto FailureExit;
     }
 
-    if (!NT_SUCCESS(PhGetLoaderEntryImageVaToSection(
+    status = PhGetLoaderEntryImageNtHeaders(
+        NtCurrentImageBase(),
+        &imageNtHeaders
+        );
+    if (!NT_SUCCESS(status))
+    {
+        goto FailureExit;
+    }
+
+    status = PhGetLoaderEntryImageVaToSection(
         NtCurrentImageBase(),
         imageNtHeaders,
         importTable,
         &importDirectorySectionAddress,
         &importDirectorySectionSize
-        )))
+        );
+    if (!NT_SUCCESS(status))
     {
-        return NULL;
+        goto FailureExit;
     }
 
     PhDelayLoadImportAcquire(importDirectorySectionAddress, importDirectorySectionSize);
@@ -163,6 +169,13 @@ PVOID WINAPI __delayLoadHelper2(
     }
 
     return procedureAddress;
+
+FailureExit:
+    if (importNeedsFree)
+        PhFreeLibrary(moduleHandle);
+
+    PhRaiseStatus(status);
+    return NULL;
 #else
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PVOID (WINAPI* DelayLoadFailureHook)(

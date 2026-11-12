@@ -150,7 +150,7 @@ VOID PhSearchControlInitializeColors(
     static const COLORREF FrameHotClassicColor = RGB(43, 43, 43);
     static const COLORREF CueBannerTextThemeColor = RGB(170, 170, 170);
 
-    Context->DcBrush = PhGetStockBrush(DC_BRUSH);
+    Context->DcBrush = PhStockDcBrush;
     Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
 
     Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
@@ -1525,6 +1525,15 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
                 break;
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
+
+            // Note: The cursor can still be inside our window rect while over another window
+            // that overlaps the edit control (e.g. a child/sibling window). Only treat the
+            // control as hot when it's actually the window under the cursor. (dmex)
+            if (WindowFromPoint(windowPoint) != WindowHandle)
+            {
+                windowPoint.x = LONG_MIN;
+                windowPoint.y = LONG_MIN;
+            }
 
             context->Hot = PhPtInRect(&windowRect, &windowPoint);
 

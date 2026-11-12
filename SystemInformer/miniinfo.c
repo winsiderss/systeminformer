@@ -3520,7 +3520,18 @@ static BOOLEAN PhMipGraphsTreeNewCallback(
             graphRect.right -= padding;
 
             graphHeight = graphRect.bottom - graphRect.top;
-            borderColor = PhCsGraphColorMode == 0 ? RGB(0xc7, 0xc7, 0xc7) : RGB(0x00, 0x57, 0x00);
+            switch (PhSiGetGraphPalette())
+            {
+            case PhSiGraphPaletteLight:
+                borderColor = RGB(0xc7, 0xc7, 0xc7);
+                break;
+            case PhSiGraphPaletteDark:
+                borderColor = PhThemeWindowBorderColor;
+                break;
+            default:
+                borderColor = RGB(0x00, 0x57, 0x00);
+                break;
+            }
 
             textRect = graphRect;
             textRect.left += padding;
@@ -3529,7 +3540,7 @@ static BOOLEAN PhMipGraphsTreeNewCallback(
             if (graphRect.right > graphRect.left && graphRect.bottom > graphRect.top)
             {
                 memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
-                drawInfo.BackColor = (PhCsGraphColorMode == 0) ? RGB(0xef, 0xef, 0xef) : RGB(0x00, 0x00, 0x00);
+                drawInfo.BackColor = PhSiGetGraphPalette() == PhSiGraphPaletteLight ? RGB(0xef, 0xef, 0xef) : RGB(0x00, 0x00, 0x00);
                 drawInfo.Width = graphRect.right - graphRect.left;
                 drawInfo.Height = graphHeight;
                 drawInfo.Step = 2;
@@ -3574,8 +3585,8 @@ static BOOLEAN PhMipGraphsTreeNewCallback(
             }
 
             SetDCBrushColor(hdc, borderColor);
-            oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
-            FrameRect(hdc, &graphRect, PhGetStockBrush(DC_BRUSH));
+            oldBrush = SelectBrush(hdc, PhStockDcBrush);
+            FrameRect(hdc, &graphRect, PhStockDcBrush);
             SelectBrush(hdc, oldBrush);
 
             SetBkMode(hdc, TRANSPARENT);

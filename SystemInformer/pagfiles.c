@@ -21,6 +21,7 @@ typedef struct _PHP_PAGEFILE_PROPERTIES_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } PHP_PAGEFILE_PROPERTIES_CONTEXT, *PPHP_PAGEFILE_PROPERTIES_CONTEXT;
 
@@ -197,6 +198,8 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -254,6 +257,10 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
         }
         break;
@@ -303,6 +310,11 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

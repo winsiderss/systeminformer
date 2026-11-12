@@ -102,7 +102,12 @@ INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                     HANDLE processHandle;
                     ULONG64 protect;
 
-                    PhStringToUInt64(&PhaGetDlgItemText(hwndDlg, IDC_VALUE)->sr, 0, &protect);
+                    // N.B. Reject invalid input and values that do not fit in a ULONG. (dmex)
+                    if (!PhStringToUInt64(&PhaGetDlgItemText(hwndDlg, IDC_VALUE)->sr, 0, &protect) || protect > ULONG_MAX)
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to change memory protection.", STATUS_INVALID_PARAMETER, 0);
+                        break;
+                    }
 
                     if (NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,

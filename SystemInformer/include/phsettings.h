@@ -188,7 +188,7 @@ EXT ULONG PhCsColorInheritHandles;
 EXT ULONG PhCsUseColorEfficiencyMode;
 EXT ULONG PhCsColorEfficiencyMode;
 EXT ULONG PhCsGraphShowText;
-EXT ULONG PhCsGraphColorMode;
+EXT ULONG PhCsGraphColorMode; // PH_GRAPH_MODE_* (sysinfo.h)
 EXT ULONG PhCsGraphTaskManagerStyle;
 EXT ULONG PhCsColorCpuKernel;
 EXT ULONG PhCsColorCpuUser;

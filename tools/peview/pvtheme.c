@@ -421,7 +421,7 @@ BOOLEAN PvThemeFillRoundRect(
 
     SetBkMode(Hdc, TRANSPARENT);
     SelectPen(Hdc, PhGetStockPen(DC_PEN));
-    SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+    SelectBrush(Hdc, PhStockDcBrush);
     SetDCPenColor(Hdc, BorderColor);
     SetDCBrushColor(Hdc, FillColor);
 
@@ -458,7 +458,7 @@ HBRUSH PvThemeHandleCtlColorEx(
     // brush carries the color per device context, so no brush is owned here. (dmex)
     SetDCBrushColor(Hdc, BackgroundColor);
 
-    return PhGetStockBrush(DC_BRUSH);
+    return PhStockDcBrush;
 }
 
 // Selects the uxtheme sub-app-name for a control based on PE Viewer's resolved
@@ -543,13 +543,13 @@ VOID PvThemeUpdateWindowBorder(
     if (!WindowHandle || WindowsVersion < WINDOWS_11)
         return;
     if (PvThemeDarkEnabled() &&
-        SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, 0) &&
+        SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &highContrast, 0) &&
         !(highContrast.dwFlags & HCF_HIGHCONTRASTON))
     {
         // Keep in step with SetupUpdateWindowBorderColor in CustomSetupTool.
         borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : RGB(90, 90, 90);
     }
-    PhSetWindowThemeAttribute(WindowHandle, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+    PhSetWindowThemeAttribute(WindowHandle, DWMWA_BORDER_COLOR, &borderColor, sizeof(COLORREF));
 }
 
 VOID PvThemeApplyWindowFrame(
@@ -564,7 +564,7 @@ VOID PvThemeApplyWindowFrame(
         return;
 
     customColors = PvpThemeEnabled &&
-        SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, 0) &&
+        SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &highContrast, 0) &&
         !(highContrast.dwFlags & HCF_HIGHCONTRASTON);
     darkMode = customColors && PvpThemeDark;
 
@@ -575,10 +575,10 @@ VOID PvThemeApplyWindowFrame(
         PhAllowDarkModeForWindow(WindowHandle, !!darkMode);
         PhSetControlTheme(WindowHandle, darkMode ? L"DarkMode_Explorer" : L"Explorer");
         if (!HR_SUCCESS(PhSetWindowThemeAttribute(WindowHandle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */,
-            &darkMode, sizeof(darkMode))))
+            &darkMode, sizeof(BOOL))))
         {
             PhSetWindowThemeAttribute(WindowHandle, 19 /* pre-20H1 */,
-                &darkMode, sizeof(darkMode));
+                &darkMode, sizeof(BOOL));
         }
     }
 
@@ -837,7 +837,7 @@ static VOID PvpThemeDrawGroupChevron(
 
     // The circle is an outline only, so the header fill shows through it. (dmex)
     SelectPen(Hdc, PhGetStockPen(DC_PEN));
-    SelectBrush(Hdc, PhGetStockBrush(NULL_BRUSH));
+    SelectBrush(Hdc, PhStockNullBrush);
     SetDCPenColor(Hdc, AccentColor);
     Ellipse(Hdc, buttonRect.left, buttonRect.top, buttonRect.right, buttonRect.bottom);
 
@@ -896,7 +896,7 @@ LRESULT PvThemeDrawListViewGroup(
             NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
             LVGROUP groupInfo;
 
-            if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
+            if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, dpiValue))
             {
                 metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-11, dpiValue);
                 metrics.lfMessageFont.lfWeight = FW_BOLD;
@@ -1121,7 +1121,7 @@ static VOID PvpThemeDrawButtonGlyph(
         return;
 
     SelectPen(Hdc, PhGetStockPen(DC_PEN));
-    SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+    SelectBrush(Hdc, PhStockDcBrush);
     SetDCPenColor(Hdc, Color);
     SetDCBrushColor(Hdc, Color);
 
@@ -1161,7 +1161,7 @@ static VOID PvpThemeDrawButtonGlyph(
             shield[5].x = X;
             shield[5].y = Y + unit * 2;
 
-            SelectBrush(Hdc, PhGetStockBrush(NULL_BRUSH));
+            SelectBrush(Hdc, PhStockNullBrush);
             Polygon(Hdc, shield, RTL_NUMBER_OF(shield));
         }
         break;
@@ -1325,7 +1325,7 @@ LRESULT PvThemeDrawButton(
                     if (savedDc = SaveDC(DrawInfo->hdc))
                     {
                         SelectPen(DrawInfo->hdc, PhGetStockPen(DC_PEN));
-                        SelectBrush(DrawInfo->hdc, PhGetStockBrush(NULL_BRUSH));
+                        SelectBrush(DrawInfo->hdc, PhStockNullBrush);
                         SetDCPenColor(DrawInfo->hdc, defaultButton ?
                             PvpThemeColors.AccentText : PvGetThemeAccentColor(PvThemeAccentPrimary));
                         RoundRect(
@@ -1404,7 +1404,7 @@ LRESULT PvThemeDrawSidebarItem(
             if (savedDc = SaveDC(DrawInfo->nmcd.hdc))
             {
                 SelectPen(DrawInfo->nmcd.hdc, PhGetStockPen(DC_PEN));
-                SelectBrush(DrawInfo->nmcd.hdc, PhGetStockBrush(DC_BRUSH));
+                SelectBrush(DrawInfo->nmcd.hdc, PhStockDcBrush);
                 SetDCPenColor(DrawInfo->nmcd.hdc, fillColor);
                 SetDCBrushColor(DrawInfo->nmcd.hdc, fillColor);
                 RoundRect(

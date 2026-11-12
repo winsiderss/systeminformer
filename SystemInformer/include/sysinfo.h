@@ -155,11 +155,34 @@ typedef struct _PH_SYSINFO_SECTION
 
     WNDPROC GraphWindowProc;
     WNDPROC PanelWindowProc;
+
+    PH_GRAPH_TEXT_BOX_STATE PanelTextBoxState;
 // begin_phapppub
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
 // end_phapppub
 
 VOID PhSiNotifyChangeSettings(
+    VOID
+    );
+
+// GraphColorMode values.
+#define PH_GRAPH_MODE_SMOOTH 0 // smooth renderer, palette follows the theme
+#define PH_GRAPH_MODE_LEGACY 1 // stored by older versions; resolved when settings are cached
+#define PH_GRAPH_MODE_CLASSIC 2 // classic renderer, palette follows the theme
+#define PH_GRAPH_MODE_CLASSIC_OLD_COLORS 3 // classic renderer, black background and green grid
+#define PH_GRAPH_MODE_SMOOTH_OLD_COLORS 4 // smooth renderer, black background and green grid
+
+#define PH_GRAPH_MODE_IS_SMOOTH(Mode) ((Mode) == PH_GRAPH_MODE_SMOOTH || (Mode) == PH_GRAPH_MODE_SMOOTH_OLD_COLORS)
+#define PH_GRAPH_MODE_IS_OLD_COLORS(Mode) ((Mode) == PH_GRAPH_MODE_CLASSIC_OLD_COLORS || (Mode) == PH_GRAPH_MODE_SMOOTH_OLD_COLORS)
+typedef enum _PH_SI_GRAPH_PALETTE
+{
+    PhSiGraphPaletteLight,
+    PhSiGraphPaletteDark,
+    PhSiGraphPaletteOldSchool // black background and green grid
+} PH_SI_GRAPH_PALETTE;
+
+// Graph palette for the graph mode and the active theme.
+PH_SI_GRAPH_PALETTE PhSiGetGraphPalette(
     VOID
     );
 

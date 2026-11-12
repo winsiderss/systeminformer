@@ -732,7 +732,7 @@
 #define IDC_TRAYICON_NOTIFYENABLEALL    1526
 #define IDC_TRAYICON_NOTIFYDISABLEALL   1527
 #define IDC_TRAYICON_ICONLIST           1528
-#define IDC_TASKMANAGERSTYLE            1540
+#define IDC_TASKMANAGERSTYLE            1571
 #define ID_OCIIMAGE_RUN                 1520
 #define ID_OCIIMAGE_RUNINTERACTIVE      1521
 #define ID_OCIIMAGE_PULL                1522
@@ -1030,6 +1030,7 @@
 #define ID_MENUBAR_ELEVATE              10336
 
 #define IDD_THRDSHADOWSTACK             298
+#define IDC_ENABLESMOOTHGRAPHS          1570
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -1039,7 +1040,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        299
 #define _APS_NEXT_COMMAND_VALUE         10355
-#define _APS_NEXT_CONTROL_VALUE         1570
+#define _APS_NEXT_CONTROL_VALUE         1572
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

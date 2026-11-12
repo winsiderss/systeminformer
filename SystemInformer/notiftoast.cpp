@@ -228,6 +228,11 @@ namespace PH
 
         Toast() = default;
 
+        Toast(const Toast&) = delete;
+        Toast& operator=(const Toast&) = delete;
+        Toast(Toast&&) = delete;
+        Toast& operator=(Toast&&) = delete;
+
         _Must_inspect_result_
         HRESULT Initialize(
             _In_ PPH_STRINGREF ApplicationId,
@@ -502,9 +507,11 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
 #define WM_PH_TOAST_INVOKE (WM_APP + 0x80)
 #define WM_PH_TOAST_QUIT   (WM_APP + 0x81)
 
-typedef HRESULT (NTAPI* PPH_TOAST_INVOKE_ROUTINE)(
+typedef _Function_class_(PH_TOAST_INVOKE_ROUTINE)
+HRESULT NTAPI PH_TOAST_INVOKE_ROUTINE(
     _In_opt_ PVOID Context
     );
+typedef PH_TOAST_INVOKE_ROUTINE* PPH_TOAST_INVOKE_ROUTINE;
 
 typedef struct _PH_TOAST_INVOKE_WORK
 {

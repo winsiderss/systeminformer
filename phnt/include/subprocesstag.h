@@ -159,15 +159,15 @@ typedef struct _TAG_INFO_NAME_TAG_MAPPING
 /**
  * Queries subprocess-tag information from the Service Control Manager.
  *
- * @param MachineName Reserved. This parameter is not used.
- * @param InfoLevel The kind of information to query. This determines the
+ * \param MachineName Reserved. This parameter is not used.
+ * \param InfoLevel The kind of information to query. This determines the
  * structure supplied in TagInfo:
  * - eTagInfoLevelNameFromTag: PTAG_INFO_NAME_FROM_TAG.
  * - eTagInfoLevelNamesReferencingModule: PTAG_INFO_NAMES_REFERENCING_MODULE.
  * - eTagInfoLevelNameTagMapping: PTAG_INFO_NAME_TAG_MAPPING.
- * @param TagInfo A pointer to the information-level-specific input/output
+ * \param TagInfo A pointer to the information-level-specific input/output
  * structure.
- * @return A Win32 error code. ERROR_SUCCESS is returned on success.
+ * \return A Win32 error code. ERROR_SUCCESS is returned on success.
  */
 _Must_inspect_result_
 NTSYSAPI
@@ -182,11 +182,11 @@ I_QueryTagInformation(
 /**
  * Defines a callback compatible with I_QueryTagInformation.
  *
- * @param MachineName Reserved. This parameter is not used.
- * @param InfoLevel The kind of subprocess-tag information to query.
- * @param TagInfo A pointer to the information-level-specific input/output
+ * \param MachineName Reserved. This parameter is not used.
+ * \param InfoLevel The kind of subprocess-tag information to query.
+ * \param TagInfo A pointer to the information-level-specific input/output
  * structure.
- * @return A Win32 error code. ERROR_SUCCESS is returned on success.
+ * \return A Win32 error code. ERROR_SUCCESS is returned on success.
  */
 typedef _Function_class_(QUERY_TAG_INFORMATION)
 _Must_inspect_result_

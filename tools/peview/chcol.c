@@ -118,28 +118,6 @@ static int __cdecl PvInactiveColumnsCompareNameTn(
 }
 
 /**
- * Finds the index of a string in a list.
- *
- * \param List The list to search.
- * \param String The string to find.
- * \return The index of the string, or ULONG_MAX if not found.
- */
-_Success_(return != ULONG_MAX)
-static ULONG IndexOfStringInList(
-    _In_ PPH_LIST List,
-    _In_ PCWSTR String
-    )
-{
-    for (ULONG i = 0; i < List->Count; i++)
-    {
-        if (PhEqualStringZ(List->Items[i], String, FALSE))
-            return i;
-    }
-
-    return ULONG_MAX;
-}
-
-/**
  * Gets the current message font for a window.
  *
  * \param hwnd The window handle.
@@ -155,7 +133,7 @@ static HFONT PvColumnsGetCurrentFont(
 
     dpiValue = PhGetWindowDpi(hwnd);
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, dpiValue))
         font = CreateFontIndirect(&metrics.lfMessageFont);
     else
         font = NULL;
@@ -532,7 +510,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                             PPH_TREENEW_COLUMN column = context->Columns->Items[i];
                             ULONG index;
 
-                            index = IndexOfStringInList(context->ActiveListArray, column->Text);
+                            index = PhIndexOfStringInList(context->ActiveListArray, column->Text);
                             column->Visible = index != ULONG_MAX;
 
                             TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
@@ -614,7 +592,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->InactiveWindowHandle, sel))
                         {
-                            ULONG index = IndexOfStringInList(context->InactiveListArray, string);
+                            ULONG index = PhIndexOfStringInList(context->InactiveListArray, string);
 
                             if (index != ULONG_MAX)
                             {
@@ -656,7 +634,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = PhIndexOfStringInList(context->ActiveListArray, string);
 
                             if (index != ULONG_MAX)
                             {
@@ -669,7 +647,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                                 // Sort inactive list with new entry
                                 qsort_s(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PvInactiveColumnsCompareNameTn, NULL);
                                 // Find index of new entry in inactive list
-                                ULONG lb_index = IndexOfStringInList(context->InactiveListArray, item);
+                                ULONG lb_index = PhIndexOfStringInList(context->InactiveListArray, item);
 
                                 // Delete from active list
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
@@ -708,7 +686,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = PhIndexOfStringInList(context->ActiveListArray, string);
 
                             if (index != ULONG_MAX)
                             {
@@ -741,7 +719,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = PhIndexOfStringInList(context->ActiveListArray, string);
 
                             if (index != ULONG_MAX)
                             {

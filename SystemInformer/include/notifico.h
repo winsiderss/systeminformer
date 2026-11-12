@@ -252,7 +252,7 @@ HICON PhNfBitmapToIcon(
 PPH_NF_ICON PhNfRegisterIcon(
     _In_opt_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
-    _In_ GUID Guid,
+    _In_ PCGUID Guid,
     _In_opt_ PVOID Context,
     _In_ PCWSTR Text,
     _In_ ULONG Flags,

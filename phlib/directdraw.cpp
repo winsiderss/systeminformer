@@ -10,6 +10,7 @@
  */
 
 #include <ph.h>
+#include <utility>
 #include <guisup.h>
 #include <settings.h>
 #include <mapldr.h>
@@ -184,7 +185,7 @@ HICON PhConvertBitmapToIcon(
     RtlZeroMemory(&dib, sizeof(DIBSECTION));
 
     if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
-        return NULL;
+        return nullptr;
 
     // Create a 32bpp ARGB DIB section for the output color bitmap
     RtlZeroMemory(&bitmapInfo, sizeof(BITMAPINFO));
@@ -196,31 +197,31 @@ HICON PhConvertBitmapToIcon(
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
     // hdc is ignored when using DIB_RGB_COLORS, NULL is safe.
-    colorBitmap = CreateDIBSection(NULL, &bitmapInfo, DIB_RGB_COLORS, &colorBits, NULL, 0);
+    colorBitmap = CreateDIBSection(nullptr, &bitmapInfo, DIB_RGB_COLORS, &colorBits, nullptr, 0);
     if (!colorBitmap)
-        return NULL;
+        return nullptr;
 
     // Fill the color bitmap with the background color (as premultiplied ARGB)
     {
-        PULONG pixels = (PULONG)colorBits;
-        ULONG pixelCount = (ULONG)Width * (ULONG)Height;
+        PULONG pixels = static_cast<PULONG>(colorBits);
+        ULONG pixelCount = static_cast<ULONG>(Width) * static_cast<ULONG>(Height);
         ULONG bgArgb;
 
         // COLORREF is 0x00BBGGRR; convert to ARGB 0xAARRGGBB for the DIB
         bgArgb = (0xFF << 24) | // fully opaque
-            ((ULONG)GetRValue(Background) << 16) |
-            ((ULONG)GetGValue(Background) << 8) |
-            ((ULONG)GetBValue(Background));
+            (static_cast<ULONG>(GetRValue(Background)) << 16) |
+            (static_cast<ULONG>(GetGValue(Background)) << 8) |
+            static_cast<ULONG>(GetBValue(Background));
 
-        for (ULONG i = 0; i < pixelCount; i++)
+        for (ULONG i = 0; std::cmp_less(i, pixelCount); i++)
         {
             pixels[i] = bgArgb;
         }
     }
 
     // AlphaBlend the source bitmap onto the background
-    srcDc = CreateCompatibleDC(NULL);
-    dstDc = CreateCompatibleDC(NULL);
+    srcDc = CreateCompatibleDC(nullptr);
+    dstDc = CreateCompatibleDC(nullptr);
     oldSrcBitmap = SelectBitmap(srcDc, OriginalBitmap);
     oldDstBitmap = SelectBitmap(dstDc, colorBitmap);
 
@@ -251,16 +252,16 @@ HICON PhConvertBitmapToIcon(
     DeleteDC(dstDc);
 
     // Create the monochrome mask bitmap (all zeros = fully opaque icon)
-    maskBitmap = CreateBitmap(Width, Height, 1, 1, NULL);
+    maskBitmap = CreateBitmap(Width, Height, 1, 1, nullptr);
     if (!maskBitmap)
     {
         DeleteBitmap(colorBitmap);
-        return NULL;
+        return nullptr;
     }
 
     // Zero the mask (0 = opaque everywhere)
     {
-        HDC maskDc = CreateCompatibleDC(NULL);
+        HDC maskDc = CreateCompatibleDC(nullptr);
         HBITMAP oldMask = SelectBitmap(maskDc, maskBitmap);
         RECT r = { 0, 0, Width, Height };
 
@@ -426,7 +427,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             SetLayeredWindowAttributes(
                 WindowHandle,
                 0,
-                static_cast<BYTE>(255 * (100 - OpacityPercent) / 100),
+                255 * (100 - OpacityPercent) / 100,
                 LWA_ALPHA
                 );
 #endif
@@ -630,7 +631,7 @@ BOOL CALLBACK PhWindowFromPointEnumProc(
     PPH_WINDOW_FROM_POINT_CONTEXT context;
     RECT windowRect;
 
-    context = (PPH_WINDOW_FROM_POINT_CONTEXT)lParam;
+    context = reinterpret_cast<PPH_WINDOW_FROM_POINT_CONTEXT>(lParam);
 
     if (WindowHandle == context->SnapshotWindow)
         return TRUE;
@@ -644,7 +645,7 @@ BOOL CALLBACK PhWindowFromPointEnumProc(
     if (!PhGetWindowRect(WindowHandle, &windowRect))
         return TRUE;
 
-    if (!PtInRect(&windowRect, context->Point))
+    if (!PhPtInRect(&windowRect, &context->Point))
         return TRUE;
 
     context->WindowHandle = WindowHandle;
@@ -664,7 +665,7 @@ HWND PhWindowFromPointBelowSnapshot(
     context.WindowHandle = nullptr;
     context.Point = Point;
 
-    EnumWindows(PhWindowFromPointEnumProc, (LPARAM)&context);
+    EnumWindows(PhWindowFromPointEnumProc, reinterpret_cast<LPARAM>(&context));
 
     windowHandle = context.WindowHandle;
 
@@ -876,7 +877,7 @@ BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
     screenWidth = Context->ScreenRect.right - Context->ScreenRect.left;
     screenHeight = Context->ScreenRect.bottom - Context->ScreenRect.top;
 
-    if (screenWidth <= 0 || screenHeight <= 0)
+    if (std::cmp_less_equal(screenWidth, 0) || std::cmp_less_equal(screenHeight, 0))
         return FALSE;
 
     Context->BlurredDC = CreateCompatibleDC(nullptr);
@@ -896,10 +897,10 @@ BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
     smallWidth = screenWidth / 24;
     smallHeight = screenHeight / 24;
 
-    if (smallWidth < 1)
+    if (std::cmp_less(smallWidth, 1))
         smallWidth = 1;
 
-    if (smallHeight < 1)
+    if (std::cmp_less(smallHeight, 1))
         smallHeight = 1;
 
     smallDC = CreateCompatibleDC(nullptr);
@@ -983,14 +984,14 @@ LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
 {
     PPH_WINDOW_SNAPSHOT_CONTEXT context;
 
-    if (WindowMessage == WM_CREATE)
+    if (std::cmp_equal(WindowMessage, WM_CREATE))
     {
-        context = (PPH_WINDOW_SNAPSHOT_CONTEXT)((CREATESTRUCT*)lParam)->lpCreateParams;
+        context = static_cast<PPH_WINDOW_SNAPSHOT_CONTEXT>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
         PhSetWindowContext(WindowHandle, 0xFF, context);
     }
     else
     {
-        context = (PPH_WINDOW_SNAPSHOT_CONTEXT)PhGetWindowContext(WindowHandle, 0xFF);
+        context = static_cast<PPH_WINDOW_SNAPSHOT_CONTEXT>(PhGetWindowContext(WindowHandle, 0xFF));
     }
 
     if (!context)
@@ -1003,10 +1004,12 @@ LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
         PhRemoveWindowContext(WindowHandle, 0xFF);
         break;
     case WM_SHOWWINDOW:
-        if (wParam)
         {
-            InvalidateRect(WindowHandle, nullptr, TRUE);
-            UpdateWindow(WindowHandle);
+            if (wParam)
+            {
+                InvalidateRect(WindowHandle, nullptr, TRUE);
+                UpdateWindow(WindowHandle);
+            }
         }
         break;
     case WM_ACTIVATE:
@@ -1147,7 +1150,7 @@ LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
         }
         return 0;
     case WM_KEYDOWN:
-        if (wParam == VK_ESCAPE)
+        if (std::cmp_equal(wParam, VK_ESCAPE))
         {
             context->TargetWindow = nullptr;
             context->IsActive = FALSE;
@@ -1213,7 +1216,7 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
 {
     PPH_WINDOW_TARGETING_CONTEXT context;
 
-    if (WindowMessage == WM_CREATE)
+    if (std::cmp_equal(WindowMessage, WM_CREATE))
     {
         context = static_cast<PPH_WINDOW_TARGETING_CONTEXT>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
         PhSetWindowContext(WindowHandle, 0xFF, context);
@@ -1248,7 +1251,7 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
                 oldDc = SaveDC(hdc);
                 pen = CreatePen(PS_INSIDEFRAME, 2, RGB(0x60, 0x60, 0x60));
                 SelectPen(hdc, pen);
-                brush = PhGetStockBrush(NULL_BRUSH);
+                brush = PhStockNullBrush;
                 SelectBrush(hdc, brush);
                 Rectangle(hdc, borderRect.left, borderRect.top, borderRect.right, borderRect.bottom);
                 RestoreDC(hdc, oldDc);
@@ -1274,7 +1277,7 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        WNDCLASSEX wcex = { 0 };
+        WNDCLASSEX wcex;
 
         memset(&wcex, 0, sizeof(WNDCLASSEX));
         wcex.cbSize = sizeof(WNDCLASSEX);
@@ -1385,7 +1388,8 @@ VOID PhUpdateWindowTargetingOverlay(
     }
 
     ShowWindow(Context->OverlayWindowHandle, SW_SHOWNOACTIVATE);
-    InvalidateRect(Context->OverlayWindowHandle, nullptr, TRUE);
+    UpdateWindow(Context->OverlayWindowHandle);
+    //InvalidateRect(Context->OverlayWindowHandle, nullptr, TRUE);
 }
 
 VOID PhHideWindowTargetingOverlayForHitTest(
@@ -1437,7 +1441,7 @@ VOID PhDrawWindowBorderForTargeting(
         pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
         SelectPen(hdc, pen);
 
-        brush = PhGetStockBrush(NULL_BRUSH);
+        brush = PhStockNullBrush;
         SelectBrush(hdc, brush);
 
         Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
@@ -2000,7 +2004,7 @@ BOOLEAN PhIsPointInWindowShadowExclusion(
     _In_ LONG y
     )
 {
-    for (ULONG i = 0; i < RTL_NUMBER_OF(Context->ExcludeRect); i++)
+    for (ULONG i = 0; std::cmp_less(i, RTL_NUMBER_OF(Context->ExcludeRect)); i++)
     {
         PRECT rect = &Context->ExcludeRect[i];
         FLOAT radius = (FLOAT)Context->ExcludeRadius[i];
@@ -2037,14 +2041,14 @@ VOID PhRenderWindowShadow(
     _In_ PPH_WINDOW_SHADOW_CONTEXT Context
     )
 {
-    PULONG pixels = (PULONG)Context->Bits;
+    PULONG pixels = static_cast<PULONG>(Context->Bits);
     LONG totalWidth = Context->ContentWidth + Context->MarginLeft + Context->MarginRight;
     LONG totalHeight = Context->ContentHeight + Context->MarginTop + Context->MarginBottom;
     LONG innerLeft = Context->MarginLeft;
     LONG innerTop = Context->MarginTop;
     LONG innerRight = Context->MarginLeft + Context->ContentWidth;
     LONG innerBottom = Context->MarginTop + Context->ContentHeight;
-    FLOAT shadowRadius = (FLOAT)Context->Margin;
+    FLOAT shadowRadius = static_cast<FLOAT>(Context->Margin);
     FLOAT radius;
     ULONG background;
     LONG maximumRadius;
@@ -2052,22 +2056,22 @@ VOID PhRenderWindowShadow(
     // Clamp the corner radius for popups smaller than the radius itself.
 
     maximumRadius = std::min(Context->ContentWidth, Context->ContentHeight) / 2;
-    radius = (FLOAT)std::min(Context->Radius, maximumRadius);
+    radius = static_cast<FLOAT>(std::min(Context->Radius, maximumRadius));
 
     // The interior is fully opaque so the color needs no pre-multiplication.
 
     background = 0xff000000 |
-        ((ULONG)GetRValue(Context->BackgroundColor) << 16) |
-        ((ULONG)GetGValue(Context->BackgroundColor) << 8) |
-        ((ULONG)GetBValue(Context->BackgroundColor));
+        (static_cast<ULONG>(GetRValue(Context->BackgroundColor)) << 16) |
+        (static_cast<ULONG>(GetGValue(Context->BackgroundColor)) << 8) |
+        static_cast<ULONG>(GetBValue(Context->BackgroundColor));
 
-    for (LONG y = 0; y < totalHeight; y++)
+    for (LONG y = 0; std::cmp_less(y, totalHeight); y++)
     {
-        for (LONG x = 0; x < totalWidth; x++)
+        for (LONG x = 0; std::cmp_less(x, totalWidth); x++)
         {
             LONG index = y * totalWidth + x;
-            FLOAT pixelX = (FLOAT)x + 0.5f;
-            FLOAT pixelY = (FLOAT)y + 0.5f;
+            FLOAT pixelX = static_cast<FLOAT>(x) + 0.5f;
+            FLOAT pixelY = static_cast<FLOAT>(y) + 0.5f;
             FLOAT deltaX = 0.0f;
             FLOAT deltaY = 0.0f;
             FLOAT distance;
@@ -2123,9 +2127,9 @@ VOID PhRenderWindowShadow(
                     // black so the pre-multiplied color channels stay zero.
 
                     FLOAT factor = 1.0f - (shadowDistance / shadowRadius);
-                    BYTE alpha = (BYTE)(powf(factor, Context->Falloff) * Context->Opacity * 255.0f);
+                    BYTE alpha = static_cast<BYTE>(powf(factor, Context->Falloff) * Context->Opacity * 255.0f);
 
-                    pixels[index] = (ULONG)alpha << 24;
+                    pixels[index] = static_cast<ULONG>(alpha) << 24;
                 }
                 else
                 {
@@ -2143,7 +2147,7 @@ LRESULT CALLBACK PhWindowShadowWndProc(
     _In_ LPARAM lParam
     )
 {
-    if (WindowMessage == WM_NCDESTROY)
+    if (std::cmp_equal(WindowMessage, WM_NCDESTROY))
     {
         PPH_WINDOW_SHADOW_CONTEXT context;
 
@@ -2237,16 +2241,16 @@ BOOLEAN PhCreateWindowShadow(
     shadowHandle = CreateWindowEx(
         exStyle,
         MAKEINTATOM(windowAtom),
-        NULL,
+        nullptr,
         WS_POPUP,
         0,
         0,
         0,
         0,
         parentHandle,
-        NULL,
+        nullptr,
         static_cast<HINSTANCE>(NtCurrentImageBase()),
-        NULL
+        nullptr
         );
 
     if (!shadowHandle)
@@ -2337,7 +2341,7 @@ VOID PhAddWindowShadowToolbarOccluder(
     {
         ULONG bandCount = (ULONG)SendMessage(rebarHandle, RB_GETBANDCOUNT, 0, 0);
 
-        for (ULONG i = 0; i < bandCount; i++)
+        for (ULONG i = 0; std::cmp_less(i, bandCount); i++)
         {
             REBARBANDINFO bandInfo;
             RECT bandRect;
@@ -2539,7 +2543,7 @@ VOID PhUpdateWindowShadow(
     contentWidth = windowRect.right - windowRect.left;
     contentHeight = windowRect.bottom - windowRect.top;
 
-    if (contentWidth <= 0 || contentHeight <= 0)
+    if (std::cmp_less_equal(contentWidth, 0) || std::cmp_less_equal(contentHeight, 0))
     {
         ShowWindow(shadowHandle, SW_HIDE);
         return;
@@ -2570,14 +2574,14 @@ VOID PhUpdateWindowShadow(
     shadowRect.right = windowRect.right + marginRight;
     shadowRect.bottom = windowRect.bottom + marginBottom;
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(excludeRect); i++)
+    for (ULONG i = 0; std::cmp_less(i, RTL_NUMBER_OF(excludeRect)); i++)
     {
         RECT intersect;
 
         // Keep the whole occluder rect (not just the intersection) so its
         // rounded corners are tested against the real corner positions.
 
-        if (i < occluders.Count && PhIntersectRect(&intersect, &shadowRect, &occluders.Rect[i]))
+        if (std::cmp_less(i, occluders.Count) && PhIntersectRect(&intersect, &shadowRect, &occluders.Rect[i]))
         {
             excludeRect[i] = occluders.Rect[i];
             excludeRadius[i] = occluders.Radius[i];

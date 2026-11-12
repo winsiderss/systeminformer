@@ -106,15 +106,8 @@ VOID RichEditSetText(
         cf.cbSize = sizeof(CHARFORMAT);
         cf.dwMask = CFM_COLOR;
 
-        switch (PhGetIntegerSetting(SETTING_GRAPH_COLOR_MODE))
-        {
-        case 0: // New colors
-            cf.crTextColor = RGB(0x0, 0x0, 0x0);
-            break;
-        case 1: // Old colors
-            cf.crTextColor = RGB(0xff, 0xff, 0xff);
-            break;
-        }
+        cf.crTextColor = RGB(0xff, 0xff, 0xff);
+
 
         SendMessage(RichEditHandle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
     }

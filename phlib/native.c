@@ -987,7 +987,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
     if (capturedElementCount > 0x4000)
         capturedElementCount = 0x4000;
 
-    if (!NT_SUCCESS(status = RtlSizeTMult(
+    if (!NT_SUCCESS(status = RtlSIZETMult(
         (SIZE_T)capturedElementSize,
         (SIZE_T)capturedElementCount,
         &eventTraceSize
@@ -4714,7 +4714,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     }
 
     // Multiply numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY)
-    status = RtlSizeTMult((SIZE_T)numberOfHeaps, sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY), &heapEntriesSize);
+    status = RtlSIZETMult((SIZE_T)numberOfHeaps, sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY), &heapEntriesSize);
 
     if (!NT_SUCCESS(status))
     {
@@ -4723,7 +4723,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     }
 
     // Add sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + heapEntriesSize
-    status = RtlSizeTAdd(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION), heapEntriesSize, &heapDebugInfoLength);
+    status = RtlSIZETAdd(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION), heapEntriesSize, &heapDebugInfoLength);
 
     if (!NT_SUCCESS(status))
     {

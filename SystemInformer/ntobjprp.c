@@ -569,6 +569,7 @@ typedef struct _MAPPINGS_PAGE_CONTEXT
     DLGPROC HookProc;
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PKPH_SECTION_MAPPINGS_INFORMATION SectionInfo;
 
 } MAPPINGS_PAGE_CONTEXT, *PMAPPINGS_PAGE_CONTEXT;
@@ -704,8 +705,11 @@ INT_PTR CALLBACK PhpMappingsPageProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"View");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Start");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"End");
@@ -722,7 +726,18 @@ INT_PTR CALLBACK PhpMappingsPageProc(
             if (context->SectionInfo)
                 PhFree(context->SectionInfo);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_CONTEXTMENU:
@@ -823,6 +838,7 @@ typedef struct _PHP_AFD_SOCKET_PAGE_CONTEXT
     HANDLE ProcessId;
     HANDLE HandleValue;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PPH_LISTVIEW_CONTEXT ListViewContext;
     PH_LAYOUT_MANAGER LayoutManager;
 } PHP_AFD_SOCKET_PAGE_CONTEXT, *PPHP_AFD_SOCKET_PAGE_CONTEXT;
@@ -1967,8 +1983,11 @@ INT_PTR CALLBACK PhpAfdSocketPageProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewContext = PhListView_Initialize(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
             PhListView_AddColumn(context->ListViewContext, 0, 0, 0, LVCFMT_LEFT, 145, L"Name");
             PhListView_AddColumn(context->ListViewContext, 1, 1, 1, LVCFMT_LEFT, 225, L"Value");
@@ -2129,11 +2148,19 @@ INT_PTR CALLBACK PhpAfdSocketPageProc(
             PhDeleteLayoutManager(&context->LayoutManager);
             PhListView_Destroy(context->ListViewContext);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
         }
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

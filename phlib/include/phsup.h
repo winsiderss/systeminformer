@@ -486,7 +486,9 @@ FORCEINLINE int wcsicmp2(
         return 1;
 }
 
-typedef int (__cdecl *PC_COMPARE_FUNCTION)(void *, const void *, const void *);
+typedef _Function_class_(C_COMPARE_FUNCTION)
+int __cdecl C_COMPARE_FUNCTION(void *, const void *, const void *);
+typedef C_COMPARE_FUNCTION* PC_COMPARE_FUNCTION;
 
 //
 // Synchronization

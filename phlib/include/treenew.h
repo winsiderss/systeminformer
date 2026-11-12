@@ -912,6 +912,39 @@ FORCEINLINE VOID PhInvalidateTreeNewNode(
         Node->s.CachedIconValid = FALSE;
 }
 
+// Invalidates the rows of a column. Returns FALSE when the column is hidden.
+FORCEINLINE BOOLEAN PhInvalidateTreeNewColumn(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    )
+{
+    PH_TREENEW_COLUMN column;
+    PH_TREENEW_VIEW_PARTS viewParts;
+    RECT rect;
+
+    if (!TreeNew_GetColumn(WindowHandle, Id, &column) || !column.Visible)
+        return FALSE;
+
+    TreeNew_GetViewParts(WindowHandle, &viewParts);
+
+    if (column.Fixed)
+    {
+        rect.left = 0;
+        rect.right = viewParts.FixedWidth;
+    }
+    else
+    {
+        rect.left = viewParts.NormalLeft + column.s.ViewX - viewParts.HScrollPosition;
+        rect.right = rect.left + column.Width;
+    }
+
+    rect.top = viewParts.HeaderHeight;
+    rect.bottom = viewParts.ClientRect.bottom;
+    InvalidateRect(WindowHandle, &rect, FALSE);
+
+    return TRUE;
+}
+
 FORCEINLINE BOOLEAN PhAddTreeNewColumn(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,

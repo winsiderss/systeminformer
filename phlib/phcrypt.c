@@ -119,8 +119,8 @@ static NTSTATUS PhpQueryCryptoProvider(
 {
     PH_CRYPTO_PROVIDER_INFO information;
 
-    RtlZeroMemory(&information, sizeof(information));
-    information.Size = sizeof(information);
+    RtlZeroMemory(&information, sizeof(PH_CRYPTO_PROVIDER_INFO));
+    information.Size = sizeof(PH_CRYPTO_PROVIDER_INFO);
     information.Available = TRUE;
 
     if (ProviderId == PhCryptoProviderDefault)
@@ -1382,13 +1382,13 @@ NTSTATUS NTAPI PhSymCryptGetProperty(
     {
         if (PhEqualStringZ(Property, BCRYPT_HASH_LENGTH, TRUE))
         {
-            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+            return PhpSymCryptWriteProperty(&value, sizeof(ULONG), Output, OutputLength, ResultLength);
         }
 
         if (PhEqualStringZ(Property, BCRYPT_OBJECT_LENGTH, TRUE))
         {
             value = sizeof(PH_SYMCRYPT_HASH_CONTEXT);
-            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+            return PhpSymCryptWriteProperty(&value, sizeof(ULONG), Output, OutputLength, ResultLength);
         }
 
         if (PhEqualStringZ(Property, BCRYPT_ALGORITHM_NAME, TRUE))
@@ -1403,19 +1403,19 @@ NTSTATUS NTAPI PhSymCryptGetProperty(
         if (PhEqualStringZ(Property, BCRYPT_BLOCK_LENGTH, TRUE))
         {
             value = SYMCRYPT_AES_BLOCK_SIZE;
-            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+            return PhpSymCryptWriteProperty(&value, sizeof(ULONG), Output, OutputLength, ResultLength);
         }
 
         if (PhEqualStringZ(Property, BCRYPT_KEY_LENGTH, TRUE))
         {
             value = 256;
-            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+            return PhpSymCryptWriteProperty(&value, sizeof(ULONG), Output, OutputLength, ResultLength);
         }
 
         if (PhEqualStringZ(Property, BCRYPT_OBJECT_LENGTH, TRUE))
         {
             value = sizeof(SYMCRYPT_AES_EXPANDED_KEY);
-            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+            return PhpSymCryptWriteProperty(&value, sizeof(ULONG), Output, OutputLength, ResultLength);
         }
     }
 
@@ -1560,7 +1560,7 @@ NTSTATUS NTAPI PhSymCryptHmac(
         SymCryptHmac(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result);
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_HMAC_EXPANDED_KEY));
 
     return PhSymCryptErrorToStatus(error);
 }
@@ -1665,7 +1665,7 @@ NTSTATUS NTAPI PhSymCryptAesCmac(
     if (error == SYMCRYPT_NO_ERROR)
         SymCryptAesCmac(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result);
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_CMAC_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -1738,7 +1738,7 @@ NTSTATUS NTAPI PhSymCryptKmac128(
     if (error == SYMCRYPT_NO_ERROR)
         SymCryptKmac128Ex(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result, ResultLength);
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_KMAC128_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -1773,7 +1773,7 @@ NTSTATUS NTAPI PhSymCryptKmac256(
     if (error == SYMCRYPT_NO_ERROR)
         SymCryptKmac256Ex(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result, ResultLength);
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_KMAC256_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -2317,7 +2317,7 @@ NTSTATUS NTAPI PhSymCryptAesGcmEncrypt(
         // Bail out, but wipe the expanded key first.
         //
 
-        SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+        SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_GCM_EXPANDED_KEY));
 
         return PhSymCryptErrorToStatus(error);
     }
@@ -2343,7 +2343,7 @@ NTSTATUS NTAPI PhSymCryptAesGcmEncrypt(
     // Scrub the expanded key before returning.
     //
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_GCM_EXPANDED_KEY));
 
     return STATUS_SUCCESS;
 }
@@ -2434,7 +2434,7 @@ NTSTATUS NTAPI PhSymCryptAesGcmDecrypt(
     // Scrub the expanded key regardless of success / failure.
     //
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_GCM_EXPANDED_KEY));
 
     return PhSymCryptErrorToStatus(error);
 }
@@ -2502,7 +2502,7 @@ NTSTATUS NTAPI PhSymCryptAesCcmEncrypt(
             );
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -2569,7 +2569,7 @@ NTSTATUS NTAPI PhSymCryptAesCcmDecrypt(
             );
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -2943,7 +2943,7 @@ NTSTATUS PhSymCryptAesCbcEncryptRaw(
     // Scrub key schedule and chaining state before returning.
     //
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     SymCryptWipeKnownSize(chainingValue, sizeof(chainingValue));
     return STATUS_SUCCESS;
 }
@@ -3015,7 +3015,7 @@ NTSTATUS PhSymCryptAesCbcDecryptRaw(
     // Scrub key schedule and chaining state.
     //
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     SymCryptWipeKnownSize(chainingValue, sizeof(chainingValue));
 
     return STATUS_SUCCESS;
@@ -3318,7 +3318,7 @@ NTSTATUS NTAPI PhSymCryptAesEcbEncrypt(
     if (error == SYMCRYPT_NO_ERROR)
         SymCryptAesEcbEncrypt(&expandedKey, (PCBYTE)Plaintext, (PBYTE)Ciphertext, DataLength);
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -3357,7 +3357,7 @@ NTSTATUS NTAPI PhSymCryptAesEcbDecrypt(
         SymCryptAesEcbDecrypt(&expandedKey, (PCBYTE)Ciphertext, (PBYTE)Plaintext, DataLength);
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -3395,7 +3395,7 @@ NTSTATUS NTAPI PhSymCryptAesCtr(
         SymCryptAesCtrMsb64(&expandedKey, (PBYTE)Counter, (PCBYTE)Input, (PBYTE)Output, DataLength);
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -3453,7 +3453,7 @@ static NTSTATUS PhpSymCryptAesCfb(
             );
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));
     SymCryptWipeKnownSize(chainingValue, sizeof(chainingValue));
     return STATUS_SUCCESS;
 }
@@ -3546,7 +3546,7 @@ NTSTATUS NTAPI PhSymCryptXtsAesEncrypt(
             );
     }
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_XTS_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -3578,7 +3578,7 @@ NTSTATUS NTAPI PhSymCryptXtsAesDecrypt(
     if (error == SYMCRYPT_NO_ERROR)
         SymCryptXtsAesDecryptWith128bTweak(&expandedKey, DataUnitLength, (PCBYTE)Tweak, (PCBYTE)Ciphertext, (PBYTE)Plaintext, DataLength);
 
-    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_XTS_AES_EXPANDED_KEY));
     return PhSymCryptErrorToStatus(error);
 }
 
@@ -3601,7 +3601,7 @@ NTSTATUS NTAPI PhSymCryptXtsAesDecrypt(
         error = SymCryptAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);   \
         if (error == SYMCRYPT_NO_ERROR)                                       \
             error = FunctionName(&expandedKey, (PCBYTE)Input, InputLength, (PBYTE)Output, OutputCapacity, OutputLength); \
-        SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));             \
+        SymCryptWipeKnownSize(&expandedKey, sizeof(SYMCRYPT_AES_EXPANDED_KEY));             \
         return PhSymCryptErrorToStatus(error);                                \
     }
 
@@ -3743,10 +3743,12 @@ NTSTATUS PhSymCryptRsaImportPublicKey(
         SIZE_T bitLength;
         UINT32 bitLength32;
 
-        if (
-            !NT_SUCCESS(RtlSIZETMult(ModulusLength, 8, &bitLength)) ||
-            !NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32))
-            )
+        if (!NT_SUCCESS(RtlSIZETMult(ModulusLength, 8, &bitLength)))
+        {
+            return STATUS_INTEGER_OVERFLOW;
+        }
+
+        if (!NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32)))
         {
             return STATUS_INTEGER_OVERFLOW;
         }
@@ -4160,10 +4162,12 @@ NTSTATUS PhpSymCryptRsaImportPublicKeyBlob(
     if (header->cbPublicExp == 0 || header->cbPublicExp > sizeof(ULONG64) || header->cbModulus == 0)
         return STATUS_INVALID_PARAMETER;
 
-    if (
-        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
-        )
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)))
     {
         return STATUS_INTEGER_OVERFLOW;
     }
@@ -4747,10 +4751,12 @@ NTSTATUS NTAPI PhSymCryptRsaVerifyBlob(
     // Validate the full blob length holds exponent + modulus.
     //
 
-    if (
-        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
-        )
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)))
     {
         return STATUS_INTEGER_OVERFLOW;
     }
@@ -5049,11 +5055,22 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
     // Compute the minimum byte count for the fields we need (PublicExp..Prime2).
     //
 
-    if (
-        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime1, &expectedSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime2, &expectedSize)))
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime1, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime2, &expectedSize)))
     {
         return STATUS_INTEGER_OVERFLOW;
     }
@@ -5089,8 +5106,10 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
         SIZE_T bitLength;
         UINT32 bitLength32;
 
-        if (!NT_SUCCESS(RtlSIZETMult(header->cbModulus, 8, &bitLength)) ||
-            !NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32)))
+        if (!NT_SUCCESS(RtlSIZETMult(header->cbModulus, 8, &bitLength)))
+            return STATUS_INTEGER_OVERFLOW;
+
+        if (!NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32)))
             return STATUS_INTEGER_OVERFLOW;
 
         params.version = 1;
@@ -5599,10 +5618,14 @@ NTSTATUS NTAPI PhSymCryptInitializeMultiHash(
     // Allocate scratch buffer: fixed portion + per-state portion
     //
 
-    if (
-        !NT_SUCCESS(RtlSIZETMult(perStateScratchSize, NumberOfHashes, &scratchSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(fixedScratchSize, scratchSize, &scratchSize))
-        )
+    if (!NT_SUCCESS(RtlSIZETMult(perStateScratchSize, NumberOfHashes, &scratchSize)))
+    {
+        PhFree(ParallelHashContext->pHashStates);
+        ParallelHashContext->pHashStates = NULL;
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(fixedScratchSize, scratchSize, &scratchSize)))
     {
         PhFree(ParallelHashContext->pHashStates);
         ParallelHashContext->pHashStates = NULL;
@@ -6312,13 +6335,27 @@ NTSTATUS NTAPI PhSymCryptExportKey(
             SIZE_T privBlobSize;
             ULONG resultLength;
 
-            if (
-                !NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &privBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(privBlobSize, modulusLength, &privBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(privBlobSize, primeBlobSize, &privBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength))
-                )
+            if (!NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &privBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETAdd(privBlobSize, modulusLength, &privBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETAdd(privBlobSize, primeBlobSize, &privBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength)))
             {
                 return STATUS_INTEGER_OVERFLOW;
             }
@@ -6379,11 +6416,17 @@ NTSTATUS NTAPI PhSymCryptExportKey(
             SIZE_T pubBlobSize;
             ULONG resultLength;
 
-            if (
-                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength))
-                )
+            if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength)))
             {
                 return STATUS_INTEGER_OVERFLOW;
             }
@@ -6443,11 +6486,17 @@ NTSTATUS NTAPI PhSymCryptExportKey(
             SIZE_T privBlobSize;
             ULONG resultLength;
 
-            if (
-                !NT_SUCCESS(RtlSIZETMult(32, 3, &privateKeyMaterialSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), privateKeyMaterialSize, &privBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength))
-                )
+            if (!NT_SUCCESS(RtlSIZETMult(32, 3, &privateKeyMaterialSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), privateKeyMaterialSize, &privBlobSize)))
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            if (!NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength)))
             {
                 return STATUS_INTEGER_OVERFLOW;
             }
@@ -6488,9 +6537,13 @@ NTSTATUS NTAPI PhSymCryptExportKey(
             SIZE_T pubBlobSize;
             ULONG resultLength;
 
-            if (!NT_SUCCESS(RtlSIZETMult(32, 2, &publicKeyMaterialSize)) ||
-                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), publicKeyMaterialSize, &pubBlobSize)) ||
-                !NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength)))
+            if (!NT_SUCCESS(RtlSIZETMult(32, 2, &publicKeyMaterialSize)))
+                return STATUS_INTEGER_OVERFLOW;
+
+            if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), publicKeyMaterialSize, &pubBlobSize)))
+                return STATUS_INTEGER_OVERFLOW;
+
+            if (!NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength)))
                 return STATUS_INTEGER_OVERFLOW;
 
             *ResultLength = resultLength;
@@ -6612,10 +6665,13 @@ NTSTATUS NTAPI PhSymCryptImportKeyPair(
                     return STATUS_INVALID_PARAMETER;
                 }
 
-                if (
-                    !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
-                    !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
-                    )
+                if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)))
+                {
+                    PhFree(key);
+                    return STATUS_INTEGER_OVERFLOW;
+                }
+
+                if (!NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)))
                 {
                     PhFree(key);
                     return STATUS_INTEGER_OVERFLOW;
@@ -7066,12 +7122,22 @@ NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
     primeLength = modulusLength / 2;
     publicExpLength = sizeof(ULONG64);
 
-    if (
-        !NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)) ||
-        !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, primeBlobSize, &privBlobSize))
-        )
+    if (!NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETAdd(pubBlobSize, primeBlobSize, &privBlobSize)))
     {
         return STATUS_INTEGER_OVERFLOW;
     }

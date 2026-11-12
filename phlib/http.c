@@ -2556,8 +2556,8 @@ static NTSTATUS PhpIpv6StringToAddress(
             if (byteCount > 12 || !NT_SUCCESS(PhpIpv4StringToAddress(component, TRUE, &terminator4, &address4, NULL)))
                 goto InvalidAddress;
 
-            memcpy(bytes + byteCount, &address4, sizeof(address4));
-            byteCount += sizeof(address4);
+            memcpy(bytes + byteCount, &address4, sizeof(IN_ADDR));
+            byteCount += sizeof(IN_ADDR);
             string = terminator4;
             break;
         }
@@ -2623,7 +2623,7 @@ static NTSTATUS PhpIpv6StringToAddress(
     if (Extended && *string)
         goto InvalidAddress;
 
-    memcpy(&address, bytes, sizeof(address));
+    memcpy(&address, bytes, sizeof(IN6_ADDR));
     *Address = address;
     if (ScopeId) *ScopeId = scope;
     if (Port) *Port = port;
@@ -3413,7 +3413,7 @@ NTSTATUS PhHttpDnsQueryEx(
     _Out_ PDNS_RECORD* DnsQueryRecord
     )
 {
-    static volatile USHORT seed = 0;
+    static USHORT seed = 0;
     NTSTATUS status;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
@@ -3427,7 +3427,7 @@ NTSTATUS PhHttpDnsQueryEx(
     if (!PhDnsApiInitialized())
         return STATUS_UNSUCCESSFUL;
 
-    dnsQueryId = _InterlockedIncrement16(&seed);
+    dnsQueryId = _InterlockedIncrement16((volatile SHORT*)&seed);
 
     status = PhCreateDnsMessageBuffer(
         DnsQueryMessage,

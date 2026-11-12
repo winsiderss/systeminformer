@@ -49,26 +49,26 @@ NTSTATUS PhHvSocketOpenSystemControl(
     if (VmId)
     {
 #if defined(PHNT_USE_NATIVE_APPEND)
-        UNICODE_STRING systemPath;
+        UNICODE_STRING objectName;
         UNICODE_STRING guidString;
         OBJECT_ATTRIBUTES objectAttributes;
         BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
 
-        RtlInitEmptyUnicodeString(&systemPath, (PWCHAR)buffer, sizeof(buffer));
+        RtlInitEmptyUnicodeString(&objectName, (PWCHAR)buffer, sizeof(buffer));
 
-        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketSystemDevicePath);
+        status = RtlAppendUnicodeStringToString(&objectName, &HvSocketSystemDevicePath);
         if (!NT_SUCCESS(status))
             return status;
 
-        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        status = RtlAppendUnicodeToString(&objectName, L"\\");
         if (!NT_SUCCESS(status))
             return status;
 
-        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
+        status = RtlAppendUnicodeStringToString(&objectName, &HvSocketAddressInfoName);
         if (!NT_SUCCESS(status))
             return status;
 
-        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        status = RtlAppendUnicodeToString(&objectName, L"\\");
         if (!NT_SUCCESS(status))
             return status;
 
@@ -76,13 +76,13 @@ NTSTATUS PhHvSocketOpenSystemControl(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
+        status = RtlAppendUnicodeStringToString(&objectName, &guidString);
         RtlFreeUnicodeString(&guidString);
 
         if (!NT_SUCCESS(status))
             return status;
 #else
-        PPH_STRING gidString;
+        WCHAR guidString[RTL_GUID_STRING_SIZE + 1];
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
         PH_STRINGREF stringRef;
@@ -90,22 +90,21 @@ NTSTATUS PhHvSocketOpenSystemControl(
         PH_FORMAT format[5];
         WCHAR formatBuffer[0x100];
 
-        if (!(gidString = PhFormatGuid((PGUID)VmId)))
-            return STATUS_NO_MEMORY;
+        status = PhFormatGuidToBuffer(VmId, guidString, sizeof(guidString), &returnLength);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        stringRef.Length = returnLength - sizeof(UNICODE_NULL);
+        stringRef.Buffer = guidString;
 
         PhInitFormatUCS(&format[0], &HvSocketSystemDevicePath);
         PhInitFormatSR(&format[1], PhNtPathSeparatorString);
         PhInitFormatUCS(&format[2], &HvSocketAddressInfoName);
         PhInitFormatSR(&format[3], PhNtPathSeparatorString);
-        PhInitFormatSR(&format[4], gidString->sr);
+        PhInitFormatSR(&format[4], stringRef);
 
-        if (!PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), &returnLength))
-        {
-            PhDereferenceObject(gidString);
-            return STATUS_NO_MEMORY;
-        }
-
-        PhDereferenceObject(gidString);
+        if (!PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+            return STATUS_NAME_TOO_LONG;
 
         stringRef.Length = returnLength - sizeof(UNICODE_NULL);
         stringRef.Buffer = formatBuffer;

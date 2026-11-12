@@ -148,7 +148,7 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhStockDcBrush;
         }
         break;
     }
@@ -426,7 +426,7 @@ VOID ThemeWindowStatusBarDrawPart(
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
         blockRect.left -= 3, blockRect.top -= 1;
-        FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &blockRect, PhStockDcBrush);
         blockRect.left += 3, blockRect.top += 1;
     }
     else
@@ -439,7 +439,7 @@ VOID ThemeWindowStatusBarDrawPart(
         separator.left = separator.right - 1;
         PhInflateRect(&separator, 0, -1);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
-        FillRect(bufferDc, &separator, PhGetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &separator, PhStockDcBrush);
     }
 
     if (textStyle & SBT_OWNERDRAW)
@@ -819,12 +819,12 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
                 {
                     // A little bit nicer and contrast color (Dart Vanya)
                     SetDCBrushColor(hdc, PhMakeColorBrighter(GetSysColor(COLOR_HOTLIGHT), 85)); // PhThemeWindowHighlightColor
-                    FrameRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                    FrameRect(hdc, &windowRect, PhStockDcBrush);
                 }
                 else
                 {
                     SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                    FrameRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                    FrameRect(hdc, &windowRect, PhStockDcBrush);
                 }
 
                 ReleaseDC(WindowHandle, hdc);
@@ -897,7 +897,7 @@ VOID ThemeWindowRenderHeaderControl(
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
-            FillRect(bufferDc, &headerRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &headerRect, PhStockDcBrush);
         }
         else
         {
@@ -1453,8 +1453,8 @@ static HRESULT(WINAPI* DefaultDrawThemeText)(
     _In_ int     iStateId,
     _In_ LPCWSTR pszText,
     _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+    _In_ ULONG   dwTextFlags,
+    _In_ ULONG   dwTextFlags2,
     _In_ LPCRECT pRect
     ) = NULL;
 
@@ -1465,7 +1465,7 @@ static HRESULT(WINAPI* DefaultDrawThemeTextEx)(
     _In_      int           iStateId,
     _In_      LPCWSTR       pszText,
     _In_      int           cchText,
-    _In_      DWORD         dwTextFlags,
+    _In_      ULONG         dwTextFlags,
     _Inout_   LPRECT        pRect,
     _In_      const DTTOPTS* pOptions
     ) = NULL;
@@ -1596,7 +1596,7 @@ HRESULT PhDrawThemeBackgroundHook(
         {
             FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
             SetDCBrushColor(Hdc, RGB(0x60, 0x60, 0x60));
-            FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            FrameRect(Hdc, Rect, PhStockDcBrush);
             return S_OK;
         }
     }
@@ -1638,7 +1638,7 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
         {
         case TDLG_PRIMARYPANEL:
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, pRect, PhStockDcBrush);
             return S_OK;
         case TDLG_FOOTNOTEPANE:
             FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
@@ -1649,20 +1649,20 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
             RECT rect = *pRect;
             rect.bottom = rect.top + 1;
             SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
-            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rect, PhStockDcBrush);
             PhOffsetRect(&rect, 0, 1);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rect, PhStockDcBrush);
             return S_OK;
         }
         case TDLG_FOOTNOTESEPARATOR:
         {
             SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
-            FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, pRect, PhStockDcBrush);
             RECT rect = *pRect;
             rect.top += 1;
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rect, PhStockDcBrush);
             return S_OK;
         }
         case TDLG_EXPANDOBUTTON:
@@ -1856,8 +1856,8 @@ HRESULT WINAPI PhDrawThemeTextHook(
     _In_ int     iStateId,
     _In_ LPCWSTR pszText,
     _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+    _In_ ULONG   dwTextFlags,
+    _In_ ULONG   dwTextFlags2,
     _In_ LPCRECT pRect
     )
 {
@@ -1882,7 +1882,7 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     _In_      int           iStateId,
     _In_      LPCWSTR       pszText,
     _In_      int           cchText,
-    _In_      DWORD         dwTextFlags,
+    _In_      ULONG         dwTextFlags,
     _Inout_   LPRECT        pRect,
     _In_      const DTTOPTS* pOptions
     )
@@ -2146,6 +2146,7 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     context->Painting++;
     result = CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
     context->Painting--;
+
     return result;
 }
 
@@ -2167,7 +2168,9 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     }
 
     if (CallbackData->pfCallback)
+    {
         result = CallbackData->pfCallback(hwndDlg, uMsg, wParam, lParam, CallbackData->lpCallbackData);
+    }
 
     return result;
 }

@@ -256,7 +256,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPU,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPU],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPU],
         NULL,
         L"&GPU history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -268,7 +268,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_NPU,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NPU],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NPU],
         NULL,
         L"&NPU history",
         EtNpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -280,7 +280,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_DISK,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISK],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISK],
         NULL,
         L"&Disk history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -292,7 +292,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_NETWORK,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORK],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORK],
         NULL,
         L"&Network history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -304,7 +304,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPUTEXT,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEXT],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEXT],
         NULL,
         L"&GPU usage (text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -316,7 +316,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_DISKTEXT,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISKTEXT],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISKTEXT],
         NULL,
         L"&Disk usage (text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -328,7 +328,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_NETWORKTEXT,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORKTEXT],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORKTEXT],
         NULL,
         L"&Network usage (text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -340,7 +340,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPUMEM,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEM],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEM],
         NULL,
         L"&GPU memory history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -352,7 +352,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPUMEMTEXT,
-        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEMTEXT],
+        &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEMTEXT],
         NULL,
         L"&GPU memory usage (text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -366,7 +366,7 @@ VOID EtRegisterNotifyIcons(
         Pointers->RegisterTrayIcon(
             PluginInstance,
             ETP_TRAY_ICON_ID_GPUTEMP,
-            EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMP],
+            &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMP],
             NULL,
             L"&GPU temperature history",
             EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -378,7 +378,7 @@ VOID EtRegisterNotifyIcons(
         Pointers->RegisterTrayIcon(
             PluginInstance,
             ETP_TRAY_ICON_ID_GPUTEMPTEXT,
-            EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMPTEXT],
+            &EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMPTEXT],
             NULL,
             L"&GPU temperature (text)",
             EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,

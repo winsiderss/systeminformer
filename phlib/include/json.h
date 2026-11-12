@@ -296,12 +296,14 @@ PhGetJsonArrayIndexObject(
     _In_ ULONG Index
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_JSON_OBJECT_CALLBACK)(
+typedef _Function_class_(PH_ENUM_JSON_OBJECT_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_JSON_OBJECT_CALLBACK(
     _In_ PVOID Object,
     _In_ PCSTR Key,
     _In_ PVOID Value,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_JSON_OBJECT_CALLBACK* PPH_ENUM_JSON_OBJECT_CALLBACK;
 
 VOID PhEnumJsonArrayObject(
     _In_ PVOID Object,
@@ -498,84 +500,116 @@ PhCreateXmlOpaqueNode(
     _In_ PCSTR Value
     );
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_LOAD_OBJECT_FROM_STRING)(
+typedef _Function_class_(H_XML_LOAD_OBJECT_FROM_STRING)
+_Ret_maybenull_ PVOID NTAPI H_XML_LOAD_OBJECT_FROM_STRING(
     _In_ PCSTR String
     );
+typedef H_XML_LOAD_OBJECT_FROM_STRING* PH_XML_LOAD_OBJECT_FROM_STRING;
 
-typedef _Must_inspect_result_ NTSTATUS (NTAPI* PH_XML_LOAD_OBJECT_FROM_FILE)(
+typedef _Function_class_(H_XML_LOAD_OBJECT_FROM_FILE)
+_Must_inspect_result_ NTSTATUS NTAPI H_XML_LOAD_OBJECT_FROM_FILE(
     _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootNode
     );
+typedef H_XML_LOAD_OBJECT_FROM_FILE* PH_XML_LOAD_OBJECT_FROM_FILE;
 
-typedef _Must_inspect_result_ NTSTATUS (NTAPI* PH_XML_SAVE_OBJECT_TO_FILE)(
+typedef _Function_class_(H_XML_SAVE_OBJECT_TO_FILE)
+_Must_inspect_result_ NTSTATUS NTAPI H_XML_SAVE_OBJECT_TO_FILE(
     _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     );
+typedef H_XML_SAVE_OBJECT_TO_FILE* PH_XML_SAVE_OBJECT_TO_FILE;
 
-typedef VOID (NTAPI* PH_XML_FREE_OBJECT)(
+typedef _Function_class_(H_XML_FREE_OBJECT)
+VOID NTAPI H_XML_FREE_OBJECT(
     _In_ PVOID XmlRootObject
     );
+typedef H_XML_FREE_OBJECT* PH_XML_FREE_OBJECT;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_GET_OBJECT)(
+typedef _Function_class_(H_XML_GET_OBJECT)
+_Ret_maybenull_ PVOID NTAPI H_XML_GET_OBJECT(
     _In_ PVOID XmlNodeObject,
     _In_ PCSTR Path
     );
+typedef H_XML_GET_OBJECT* PH_XML_GET_OBJECT;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_CREATE_NODE)(
+typedef _Function_class_(H_XML_CREATE_NODE)
+_Ret_maybenull_ PVOID NTAPI H_XML_CREATE_NODE(
     _In_opt_ PVOID ParentNode,
     _In_ PCSTR Name
     );
+typedef H_XML_CREATE_NODE* PH_XML_CREATE_NODE;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_CREATE_OPAQUE_NODE)(
+typedef _Function_class_(H_XML_CREATE_OPAQUE_NODE)
+_Ret_maybenull_ PVOID NTAPI H_XML_CREATE_OPAQUE_NODE(
     _In_opt_ PVOID ParentNode,
     _In_ PCSTR Value
     );
+typedef H_XML_CREATE_OPAQUE_NODE* PH_XML_CREATE_OPAQUE_NODE;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_FIND_OBJECT)(
+typedef _Function_class_(H_XML_FIND_OBJECT)
+_Ret_maybenull_ PVOID NTAPI H_XML_FIND_OBJECT(
     _In_ PVOID XmlNodeObject,
     _In_ PVOID XmlTopObject,
     _In_ PCSTR Element,
     _In_ PCSTR Attribute,
     _In_ PCSTR Value
     );
+typedef H_XML_FIND_OBJECT* PH_XML_FIND_OBJECT;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_GET_NODE_FIRST_CHILD)(
+typedef _Function_class_(H_XML_GET_NODE_FIRST_CHILD)
+_Ret_maybenull_ PVOID NTAPI H_XML_GET_NODE_FIRST_CHILD(
     _In_ PVOID XmlNodeObject
     );
+typedef H_XML_GET_NODE_FIRST_CHILD* PH_XML_GET_NODE_FIRST_CHILD;
 
-typedef _Ret_maybenull_ PVOID (NTAPI* PH_XML_GET_NODE_NEXT_CHILD)(
+typedef _Function_class_(H_XML_GET_NODE_NEXT_CHILD)
+_Ret_maybenull_ PVOID NTAPI H_XML_GET_NODE_NEXT_CHILD(
     _In_ PVOID XmlNodeObject
     );
+typedef H_XML_GET_NODE_NEXT_CHILD* PH_XML_GET_NODE_NEXT_CHILD;
 
-typedef _Ret_maybenull_ PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_OPAQUE_TEXT)(
+typedef _Function_class_(H_XML_GET_XML_NODE_OPAQUE_TEXT)
+_Ret_maybenull_ PPH_STRING NTAPI H_XML_GET_XML_NODE_OPAQUE_TEXT(
     _In_ PVOID XmlNodeObject
     );
+typedef H_XML_GET_XML_NODE_OPAQUE_TEXT* PH_XML_GET_XML_NODE_OPAQUE_TEXT;
 
-typedef _Ret_maybenull_ PCSTR (NTAPI* PH_XML_GET_XML_NODE_ELEMENT_TEXT)(
+typedef _Function_class_(H_XML_GET_XML_NODE_ELEMENT_TEXT)
+_Ret_maybenull_ PCSTR NTAPI H_XML_GET_XML_NODE_ELEMENT_TEXT(
     _In_ PVOID XmlNodeObject
     );
+typedef H_XML_GET_XML_NODE_ELEMENT_TEXT* PH_XML_GET_XML_NODE_ELEMENT_TEXT;
 
-typedef _Ret_maybenull_ PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT)(
+typedef _Function_class_(H_XML_GET_XML_NODE_ATTRIBUTE_TEXT)
+_Ret_maybenull_ PPH_STRING NTAPI H_XML_GET_XML_NODE_ATTRIBUTE_TEXT(
     _In_ PVOID XmlNodeObject,
     _In_ PCSTR AttributeName
     );
+typedef H_XML_GET_XML_NODE_ATTRIBUTE_TEXT* PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT;
 
-typedef _Ret_maybenull_ PCSTR (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)(
+typedef _Function_class_(H_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)
+_Ret_maybenull_ PCSTR NTAPI H_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX(
     _In_ PVOID XmlNodeObject,
     _In_ SIZE_T Index,
     _Out_ PCSTR* AttributeName
     );
+typedef H_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX;
 
-typedef VOID (NTAPI* PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT)(
+typedef _Function_class_(H_XML_SET_XML_NODE_ATTRIBUTE_TEXT)
+VOID NTAPI H_XML_SET_XML_NODE_ATTRIBUTE_TEXT(
     _In_ PVOID XmlNodeObject,
     _In_ PCSTR Name,
     _In_ PCSTR Value
     );
+typedef H_XML_SET_XML_NODE_ATTRIBUTE_TEXT* PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT;
 
-typedef SIZE_T (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
+typedef _Function_class_(H_XML_GET_XML_NODE_ATTRIBUTE_COUNT)
+SIZE_T NTAPI H_XML_GET_XML_NODE_ATTRIBUTE_COUNT(
     _In_ PVOID XmlNodeObject
     );
+typedef H_XML_GET_XML_NODE_ATTRIBUTE_COUNT* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT;
 
 typedef struct _PH_XML_INTERFACE
 {

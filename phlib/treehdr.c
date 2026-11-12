@@ -649,7 +649,7 @@ VOID PhHeaderNewDrawSortArrow(
 
         SetDCBrushColor(Hdc, Colors->Text);
         SetDCPenColor(Hdc, Colors->Text);
-        oldBrush = SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        oldBrush = SelectBrush(Hdc, PhStockDcBrush);
         oldPen = SelectPen(Hdc, PhGetStockPen(DC_PEN));
         Polygon(Hdc, points, (INT)RTL_NUMBER_OF(points));
         SelectPen(Hdc, oldPen);
@@ -693,7 +693,7 @@ VOID PhHeaderNewDrawItem(
         if (!drawn)
         {
             SetDCBrushColor(Hdc, pressed ? Colors->Pressed : (hot ? Colors->Hot : Colors->Background));
-            FillRect(Hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &rect, PhStockDcBrush);
         }
     }
 
@@ -704,7 +704,7 @@ VOID PhHeaderNewDrawItem(
         HBRUSH oldBrush;
 
         SetDCBrushColor(Hdc, Colors->Divider);
-        oldBrush = SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        oldBrush = SelectBrush(Hdc, PhStockDcBrush);
         PatBlt(Hdc, rect.right - 1, rect.top, 1, rect.bottom - rect.top, PATCOPY);
 
         if (FlagOn(Context->Flags, PHHF_BOTTOMBORDER))
@@ -829,7 +829,7 @@ VOID PhHeaderNewDrawInsertionMarker(
     }
 
     SetDCBrushColor(Hdc, Colors->Marker);
-    oldBrush = SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+    oldBrush = SelectBrush(Hdc, PhStockDcBrush);
     PatBlt(Hdc, x, clientRect.top, width, clientRect.bottom - clientRect.top, PATCOPY);
     SelectBrush(Hdc, oldBrush);
 }
@@ -854,7 +854,7 @@ VOID PhHeaderNewDraw(
 
     SetBkMode(Hdc, TRANSPARENT);
     SetDCBrushColor(Hdc, colors.Background);
-    FillRect(Hdc, PaintRect, PhGetStockBrush(DC_BRUSH));
+    FillRect(Hdc, PaintRect, PhStockDcBrush);
 
     memset(&customDraw, 0, sizeof(NMCUSTOMDRAW));
     customDraw.hdr.hwndFrom = Context->WindowHandle;
@@ -940,7 +940,7 @@ VOID PhHeaderNewPaint(
     if (PhHeaderNewCreateBuffer(Context, Hdc))
     {
         SetDCBrushColor(Context->BufferedDc, colors.Background);
-        FillRect(Context->BufferedDc, PaintRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(Context->BufferedDc, PaintRect, PhStockDcBrush);
         PhHeaderNewDraw(Context, Context->BufferedDc, PaintRect);
 
         BitBlt(
@@ -958,7 +958,7 @@ VOID PhHeaderNewPaint(
     else
     {
         SetDCBrushColor(Hdc, colors.Background);
-        FillRect(Hdc, PaintRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(Hdc, PaintRect, PhStockDcBrush);
         PhHeaderNewDraw(Context, Hdc, PaintRect);
     }
 }

@@ -274,11 +274,13 @@ PhCreateStringFromWindowsRuntimeString(
     _In_ HSTRING String
     );
 
-typedef VOID (NTAPI *PPH_ASYNC_OPERATION_CALLBACK)(
+typedef _Function_class_(PH_ASYNC_OPERATION_CALLBACK)
+VOID NTAPI PH_ASYNC_OPERATION_CALLBACK(
     _In_ PVOID Operation,
     _In_ HRESULT Result,
     _In_opt_ PVOID Context
     );
+typedef PH_ASYNC_OPERATION_CALLBACK* PPH_ASYNC_OPERATION_CALLBACK;
 
 PHLIBAPI
 HRESULT

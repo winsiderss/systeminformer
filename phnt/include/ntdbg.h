@@ -515,7 +515,8 @@ DbgUiConnectToDbg(
  *
  * \return HANDLE The debug object handle.
  * \remarks Reads/writes the calling TEB debug-object slot without duplicating, attaching, detaching or closing the handle.
- * The setter is not process debugging initialization; callers own the handle lifetime and must not overwrite unrelated debugger state.
+ * The setter is not process debugging initialization; callers own the handle lifetime and must not overwrite unrelated
+ * debugger state.
  */
 NTSYSAPI
 HANDLE
@@ -529,7 +530,8 @@ DbgUiGetThreadDebugObject(
  *
  * \param DebugObject The debug object handle.
  * \remarks Reads/writes the calling TEB debug-object slot without duplicating, attaching, detaching or closing the handle.
- * The setter is not process debugging initialization; callers own the handle lifetime and must not overwrite unrelated debugger state.
+ * The setter is not process debugging initialization; callers own the handle lifetime and must not overwrite unrelated
+ * debugger state.
  */
 NTSYSAPI
 VOID
@@ -592,7 +594,8 @@ DbgUiStopDebugging(
  *
  * \param Process A handle to the process.
  * \return NTSTATUS Successful or errant status.
- * \remarks Participates in attaching to a target and/or dispatching a break-in thread. This is execution-affecting debugger machinery, 
+ * \remarks Participates in attaching to a target and/or dispatching a break-in thread.
+ * This is execution-affecting debugger machinery,
  * not a passive inspection helper. Remote process lifecycle and exception behavior are distinct from local state conversion.
  */
 NTSYSAPI
@@ -606,7 +609,8 @@ DbgUiDebugActiveProcess(
  * Remotely triggers a breakpoint in a process.
  *
  * \param Context A pointer to the context for the breakpoint.
- * \remarks Participates in attaching to a target and/or dispatching a break-in thread. This is execution-affecting debugger machinery, 
+ * \remarks Participates in attaching to a target and/or dispatching a break-in thread.
+ * This is execution-affecting debugger machinery,
  * not a passive inspection helper. Remote process lifecycle and exception behavior are distinct from local state conversion.
  */
 NTSYSAPI
@@ -621,7 +625,8 @@ DbgUiRemoteBreakin(
  *
  * \param Process A handle to the process.
  * \return NTSTATUS Successful or errant status.
- * \remarks Participates in attaching to a target and/or dispatching a break-in thread. This is execution-affecting debugger machinery, 
+ * \remarks Participates in attaching to a target and/or dispatching a break-in thread.
+ * This is execution-affecting debugger machinery,
  * not a passive inspection helper. Remote process lifecycle and exception behavior are distinct from local state conversion.
  */
 NTSYSAPI
@@ -638,7 +643,8 @@ DbgUiIssueRemoteBreakin(
  * \param DebugEvent A pointer to a DEBUG_EVENT structure that receives the converted information.
  * \return NTSTATUS Successful or errant status.
  * \remarks Converts a native debug state to DEBUG_EVENT. The converter writes process/thread IDs before validating the state, 
- * so failure can leave partial output. Exit/exception records can be converted locally; create-thread/process paths additionally query a supplied thread handle. 
+ * so failure can leave partial output.
+ * Exit/exception records can be converted locally; create-thread/process paths additionally query a supplied thread handle.
  * Do not interpret conversion as attaching to or continuing a debuggee.
  */
 NTSYSAPI
@@ -656,7 +662,8 @@ DbgUiConvertStateChangeStructure(
  * \param DebugEvent A pointer to a DEBUG_EVENT structure that receives the converted information.
  * \return NTSTATUS Successful or errant status.
  * \remarks Converts a native debug state to DEBUG_EVENT. The converter writes process/thread IDs before validating the state, 
- * so failure can leave partial output. Exit/exception records can be converted locally; create-thread/process paths additionally query a supplied thread handle. 
+ * so failure can leave partial output.
+ * Exit/exception records can be converted locally; create-thread/process paths additionally query a supplied thread handle.
  * Do not interpret conversion as attaching to or continuing a debuggee.
  */
 NTSYSAPI

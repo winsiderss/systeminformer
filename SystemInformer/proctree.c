@@ -89,6 +89,8 @@ static LONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
+static PH_GRAPH_SCROLL_STATE ProcessTreeGraphScroll;
+static UINT_PTR ProcessTreeGraphScrollTimerId = 0;
 
 /**
  * Initializes the process tree list.
@@ -725,6 +727,73 @@ VOID PhUpdateProcessNode(
     TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
+static VOID PhpInvalidateProcessTreeGraphs(
+    VOID
+    )
+{
+    PhInvalidateTreeNewColumn(ProcessTreeListHandle, PHPRTLC_CPUHISTORY);
+    PhInvalidateTreeNewColumn(ProcessTreeListHandle, PHPRTLC_PRIVATEBYTESHISTORY);
+    PhInvalidateTreeNewColumn(ProcessTreeListHandle, PHPRTLC_IOHISTORY);
+}
+
+static VOID CALLBACK PhpProcessTreeGraphScrollTimerProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Message,
+    _In_ UINT_PTR TimerId,
+    _In_ ULONG Time
+    )
+{
+    FLOAT offset;
+
+    // The last frame is drawn at offset 0.
+    if (!PhGetGraphScrollOffset(&ProcessTreeGraphScroll, 2, &offset))
+    {
+        KillTimer(NULL, ProcessTreeGraphScrollTimerId);
+        ProcessTreeGraphScrollTimerId = 0;
+    }
+
+    PhpInvalidateProcessTreeGraphs();
+}
+
+// Scrolls the history graphs until the next update.
+static VOID PhpStartProcessTreeGraphScroll(
+    VOID
+    )
+{
+    static const ULONG columnIds[] = { PHPRTLC_CPUHISTORY, PHPRTLC_PRIVATEBYTESHISTORY, PHPRTLC_IOHISTORY };
+    PH_TREENEW_COLUMN column;
+    HWND rootWindow;
+    BOOLEAN visible = FALSE;
+    ULONG interval = 0;
+
+    if (IsWindowVisible(ProcessTreeListHandle) && !((rootWindow = GetAncestor(ProcessTreeListHandle, GA_ROOT)) && IsIconic(rootWindow)))
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(columnIds); i++)
+        {
+            if (TreeNew_GetColumn(ProcessTreeListHandle, columnIds[i], &column) && column.Visible)
+            {
+                visible = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (visible)
+        interval = PhStartGraphScroll(&ProcessTreeGraphScroll);
+    else
+        ProcessTreeGraphScroll.StartTime = 0;
+
+    if (interval)
+    {
+        ProcessTreeGraphScrollTimerId = SetTimer(NULL, ProcessTreeGraphScrollTimerId, interval, PhpProcessTreeGraphScrollTimerProc);
+    }
+    else if (ProcessTreeGraphScrollTimerId)
+    {
+        KillTimer(NULL, ProcessTreeGraphScrollTimerId);
+        ProcessTreeGraphScrollTimerId = 0;
+    }
+}
+
 VOID PhTickProcessNodes(
     VOID
     )
@@ -797,6 +866,9 @@ VOID PhTickProcessNodes(
         else
             InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
     }
+
+    if (ProcessTreeListHandle)
+        PhpStartProcessTreeGraphScroll();
 }
 
 static VOID PhpNeedGraphContext(
@@ -5071,9 +5143,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PRIVATEBYTESHISTORY:
             case PHPRTLC_IOHISTORY:
                 memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
-                drawInfo.Width = rect.right - rect.left - 1; // leave a small gap
-                drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
                 drawInfo.Step = 2;
+                drawInfo.Width = rect.right - rect.left - 1 + drawInfo.Step; // leave a small gap; one more sample scrolls in from the left
+                drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
                 drawInfo.BackColor = RGB(0x00, 0x00, 0x00);
                 break;
             }
@@ -5268,11 +5340,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_CPUHISTORY:
             case PHPRTLC_PRIVATEBYTESHISTORY:
             case PHPRTLC_IOHISTORY:
+                drawInfo.Width -= drawInfo.Step;
                 PhpNeedGraphContext(customDraw->Dc, drawInfo.Width, drawInfo.Height);
 
                 if (GraphBits)
                 {
-                    PhDrawGraphDirect(GraphContext, GraphBits, &drawInfo);
+                    FLOAT offset;
+
+                    PhGetGraphScrollOffset(&ProcessTreeGraphScroll, drawInfo.Step, &offset);
+                    PhDrawGraphDirectEx(GraphContext, GraphBits, &drawInfo, offset);
                     BitBlt(
                         customDraw->Dc,
                         rect.left,
