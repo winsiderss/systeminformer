@@ -41,6 +41,7 @@
 #define KPH_HW_SUPERIO_NUVOTON_BANK         0x4E
 #define KPH_HW_SUPERIO_NUVOTON_VENDOR_INDEX 0x4F
 #define KPH_HW_SUPERIO_NUVOTON_VENDOR_HIGH  0x8000
+#define KPH_HW_SUPERIO_NUVOTON_HBACS        0x80
 #define KPH_HW_SUPERIO_NUVOTON_ID_HIGH      0x5C
 #define KPH_HW_SUPERIO_NUVOTON_ID_LOW       0xA3
 #define KPH_HW_SUPERIO_EC_PAGE_FREE         0xFF
@@ -788,6 +789,37 @@ Exit:
 }
 
 /**
+ * \brief Reads the Nuvoton bank register once per request; it becomes the
+ * original and the current bank.
+ *
+ * \param[in,out] Session The session, between begin and end of monitor access.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpHwSuperIoReadBank(
+    _Inout_ PKPH_HW_SUPERIO_SESSION Session
+    )
+{
+    ULONG index;
+    ULONG data;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON);
+
+    if (Session->BankRead)
+    {
+        return;
+    }
+
+    index = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_INDEX);
+    data = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_DATA);
+
+    KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
+    Session->OriginalBank = KphpHwSuperIoIn(data);
+    Session->Bank = Session->OriginalBank;
+    Session->BankRead = TRUE;
+}
+
+/**
  * \brief Ends hardware monitor access, restoring the original bank while the
  * session's bank is still selected.
  *
@@ -870,13 +902,7 @@ NTSTATUS KphpHwSuperIoReadMonitor(
     {
         case KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON:
         {
-            if (!Session->BankRead)
-            {
-                KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
-                Session->OriginalBank = KphpHwSuperIoIn(data);
-                Session->Bank = Session->OriginalBank;
-                Session->BankRead = TRUE;
-            }
+            KphpHwSuperIoReadBank(Session);
 
             if (bank != Session->Bank)
             {
@@ -1027,6 +1053,51 @@ BOOLEAN KphpHwSuperIoCheckVendor(
         read = (PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body;
         index = (read->VendorIndex ? read->VendorIndex :
                  (UCHAR)KPH_HW_SUPERIO_NUVOTON_VENDOR_INDEX);
+
+        KphpHwSuperIoReadBank(Session);
+
+        if (!(Session->OriginalBank & ~KPH_HW_SUPERIO_NUVOTON_HBACS))
+        {
+            ULONG indexPort;
+            ULONG dataPort;
+            UCHAR expected;
+            UCHAR value;
+
+            indexPort = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_INDEX);
+            dataPort = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_DATA);
+
+            KphpHwSuperIoOut(indexPort, index);
+            value = KphpHwSuperIoIn(dataPort);
+
+            if (BooleanFlagOn(Session->OriginalBank,
+                              KPH_HW_SUPERIO_NUVOTON_HBACS))
+            {
+                expected = KPH_HW_SUPERIO_NUVOTON_ID_HIGH;
+            }
+            else
+            {
+                expected = KPH_HW_SUPERIO_NUVOTON_ID_LOW;
+            }
+
+            if (value != expected)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SuperIO Nuvoton vendor byte 0x%02lx in bank "
+                              "0x%02lx, expected 0x%02lx",
+                              (ULONG)value,
+                              (ULONG)Session->OriginalBank,
+                              (ULONG)expected);
+
+                return FALSE;
+            }
+
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SuperIO Nuvoton vendor byte 0x%02lx in bank 0x%02lx",
+                          (ULONG)value,
+                          (ULONG)Session->OriginalBank);
+        }
 
         status = KphpHwSuperIoReadMonitor(
             Session,
