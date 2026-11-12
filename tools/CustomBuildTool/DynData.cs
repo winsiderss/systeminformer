@@ -532,7 +532,8 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_SUPERIO_EXIT_NONE            ((UCHAR){{DynDataHw.SuperIoExitNone}})
 #define KPH_DYN_HW_SUPERIO_EXIT_KEY_AA          ((UCHAR){{DynDataHw.SuperIoExitKeyAa}})
 #define KPH_DYN_HW_SUPERIO_EXIT_CONFIG_02       ((UCHAR){{DynDataHw.SuperIoExitConfig02}})
-#define KPH_DYN_HW_SUPERIO_EC_LDN               ((UCHAR)0x{{DynDataHw.SuperIoEcLdn:X2}})
+#define KPH_DYN_HW_SUPERIO_FLAG_ACTIVE_OPTIONAL ((UCHAR)0x{{DynDataHw.SuperIoFlagActiveOptional:X2}})
+#define KPH_DYN_HW_SUPERIO_MAX_IDS              ((UCHAR){{DynDataHw.SuperIoMaxIds}})
 
 #define KPH_DYN_HW_SMBUS_HOST_I801              ((UCHAR){{DynDataHw.SmbusHostI801}})
 #define KPH_DYN_HW_SMBUS_HOST_PIIX4             ((UCHAR){{DynDataHw.SmbusHostPiix4}})
@@ -815,14 +816,31 @@ typedef struct _KPH_DYN_HW_WINDOW_READ
 } KPH_DYN_HW_WINDOW_READ, *PKPH_DYN_HW_WINDOW_READ;
 typedef const KPH_DYN_HW_WINDOW_READ* PCKPH_DYN_HW_WINDOW_READ;
 
+typedef struct _KPH_DYN_HW_SUPERIO_ID
+{
+    USHORT Register;
+    UCHAR Value;
+    UCHAR Alternate;
+} KPH_DYN_HW_SUPERIO_ID, *PKPH_DYN_HW_SUPERIO_ID;
+typedef const KPH_DYN_HW_SUPERIO_ID* PCKPH_DYN_HW_SUPERIO_ID;
+
 typedef struct _KPH_DYN_HW_SUPERIO_READ
 {
     UCHAR Ldn;
     UCHAR Exit; // KPH_DYN_HW_SUPERIO_EXIT_*
     UCHAR RangeCount;
-    UCHAR VendorIndex;
+    UCHAR IdCount;
     USHORT BaseMin;
     USHORT BaseMax;
+    USHORT ConfigPort;
+    UCHAR Flags; // KPH_DYN_HW_SUPERIO_FLAG_*
+    UCHAR BankMask;
+    UCHAR ConfigIdIndex;
+    UCHAR Reserved;
+    USHORT ConfigIdValue;
+    USHORT CustomerRegister;
+    UCHAR Reserved2[2];
+    KPH_DYN_HW_SUPERIO_ID Ids[KPH_DYN_HW_SUPERIO_MAX_IDS];
     // KPH_DYN_HW_RANGE Ranges[RangeCount];
 } KPH_DYN_HW_SUPERIO_READ, *PKPH_DYN_HW_SUPERIO_READ;
 typedef const KPH_DYN_HW_SUPERIO_READ* PCKPH_DYN_HW_SUPERIO_READ;
@@ -1037,6 +1055,7 @@ C_ASSERT(sizeof(KPH_DYN_HW_TARGET_RANGE) == {{DynDataHw.TargetRangeSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_PCI_INDIRECT_READ) == {{DynDataHw.PciIndirectReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_WINDOW_RANGE) == {{DynDataHw.WindowRangeSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_WINDOW_READ) == {{DynDataHw.WindowReadSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_SUPERIO_ID) == {{DynDataHw.SuperIoIdSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SUPERIO_READ) == {{DynDataHw.SuperIoReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SMBUS_READ) == {{DynDataHw.SmbusReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_VSEC_READ) == {{DynDataHw.VsecReadSize}});

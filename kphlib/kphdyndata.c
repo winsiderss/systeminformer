@@ -1262,15 +1262,15 @@ BOOLEAN KphDynHwPciConfigFieldInRange(
 }
 
 /**
- * \brief Checks whether any superio_read op of a table passes its gate.
+ * \brief Finds the first superio_read op of a table that passes its gate.
  *
  * \param[in] Table The op table of a SUPERIO index row.
  * \param[in] ChassisType The SMBIOS chassis type, zero when absent.
  *
- * \return TRUE if an op of the table passes its gate.
+ * \return The op, NULL when no op of the table passes its gate.
  */
 _Must_inspect_result_
-BOOLEAN KphpDynHwSuperIoTablePasses(
+PKPH_DYN_HW_OP KphpDynHwSuperIoPassingOp(
     _In_ PKPH_DYN_HW_TABLE Table,
     _In_ UCHAR ChassisType
     )
@@ -1283,13 +1283,13 @@ BOOLEAN KphpDynHwSuperIoTablePasses(
     {
         if (KphDynHwSuperIoGatePasses(op, ChassisType))
         {
-            return TRUE;
+            return op;
         }
 
         op = Add2Ptr(op, op->Length);
     }
 
-    return FALSE;
+    return NULL;
 }
 
 /**
@@ -1343,6 +1343,8 @@ BOOLEAN KphpDynHwSuperIoTableBaseAllowed(
  * \param[in] Section The hardware section.
  * \param[in] Slot The configuration port slot.
  * \param[in] ChassisType The SMBIOS chassis type, zero when absent.
+ * \param[out] ConfigPort Receives the configuration index port of the first
+ * passing row of the slot, zero when there is none.
  *
  * \return Bit n set for each KPH_DYN_HW_SUPERIO_FAMILY n with such a row.
  */
@@ -1350,12 +1352,15 @@ _Must_inspect_result_
 ULONG KphDynHwSuperIoFamilies(
     _In_ PKPH_DYN_HW_SECTION Section,
     _In_ UCHAR Slot,
-    _In_ UCHAR ChassisType
+    _In_ UCHAR ChassisType,
+    _Out_ PUSHORT ConfigPort
     )
 {
     PKPH_DYN_HW_INDEX index;
     PVOID body;
     ULONG families;
+
+    *ConfigPort = 0;
 
     index = Add2Ptr(Section, sizeof(KPH_DYN_HW_SECTION));
     body = &index[Section->Count];
@@ -1364,6 +1369,7 @@ ULONG KphDynHwSuperIoFamilies(
     for (ULONG i = 0; i < Section->Count; i++)
     {
         PKPH_DYN_HW_SUPERIO_IDENTITY superIo;
+        PKPH_DYN_HW_OP op;
         ULONG family;
 
         if (index[i].IdentityKind != KPH_DYN_HW_IDENTITY_SUPERIO)
@@ -1374,13 +1380,24 @@ ULONG KphDynHwSuperIoFamilies(
         superIo = &index[i].Identity.SuperIo;
         family = (1ul << superIo->VendorFamily);
 
-        if ((superIo->Slot == Slot) &&
-            !(families & family) &&
-            KphpDynHwSuperIoTablePasses(Add2Ptr(body, index[i].Offset),
-                                        ChassisType))
+        if ((superIo->Slot != Slot) || (families & family))
         {
-            families |= family;
+            continue;
         }
+
+        op = KphpDynHwSuperIoPassingOp(Add2Ptr(body, index[i].Offset),
+                                       ChassisType);
+        if (!op)
+        {
+            continue;
+        }
+
+        if (!*ConfigPort)
+        {
+            *ConfigPort = ((PKPH_DYN_HW_SUPERIO_READ)op->Body)->ConfigPort;
+        }
+
+        families |= family;
     }
 
     return families;
@@ -1426,14 +1443,76 @@ BOOLEAN KphDynHwSuperIoChipKnown(
         if ((superIo->Slot == Slot) &&
             (superIo->VendorFamily == Family) &&
             (superIo->ChipId == ChipId) &&
-            KphpDynHwSuperIoTablePasses(Add2Ptr(body, index[i].Offset),
-                                        ChassisType))
+            KphpDynHwSuperIoPassingOp(Add2Ptr(body, index[i].Offset),
+                                      ChassisType))
         {
             return TRUE;
         }
     }
 
     return FALSE;
+}
+
+/**
+ * \brief Finds the first passing superio_read op of a SuperIO chip, for any
+ * customer ID; its chip-level fields are the same in every row of the chip.
+ *
+ * \param[in] Section The hardware section.
+ * \param[in] Slot The configuration port slot.
+ * \param[in] VendorFamily The SuperIO family (KPH_DYN_HW_SUPERIO_FAMILY_*).
+ * \param[in] ChipId The chip ID read from the chip.
+ * \param[in] ChassisType The SMBIOS chassis type, zero when absent.
+ * \param[out] Op Receives a pointer into the section for the op.
+ *
+ * \return Successful or errant status.
+ */
+_Must_inspect_result_
+NTSTATUS KphDynHwFindSuperIoChipOp(
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _In_ UCHAR Slot,
+    _In_ UCHAR VendorFamily,
+    _In_ USHORT ChipId,
+    _In_ UCHAR ChassisType,
+    _Outptr_ PKPH_DYN_HW_OP* Op
+    )
+{
+    PKPH_DYN_HW_INDEX index;
+    PVOID body;
+
+    *Op = NULL;
+
+    index = Add2Ptr(Section, sizeof(KPH_DYN_HW_SECTION));
+    body = &index[Section->Count];
+
+    for (ULONG i = 0; i < Section->Count; i++)
+    {
+        PKPH_DYN_HW_SUPERIO_IDENTITY superIo;
+        PKPH_DYN_HW_OP op;
+
+        if (index[i].IdentityKind != KPH_DYN_HW_IDENTITY_SUPERIO)
+        {
+            continue;
+        }
+
+        superIo = &index[i].Identity.SuperIo;
+
+        if ((superIo->Slot != Slot) ||
+            (superIo->VendorFamily != VendorFamily) ||
+            (superIo->ChipId != ChipId))
+        {
+            continue;
+        }
+
+        op = KphpDynHwSuperIoPassingOp(Add2Ptr(body, index[i].Offset),
+                                       ChassisType);
+        if (op)
+        {
+            *Op = op;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_NOT_FOUND;
 }
 
 /**

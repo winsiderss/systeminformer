@@ -635,12 +635,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// HWM vendor ID indexes a Nuvoton row may name in place of 4Fh (NCT610x: FEh, bank 0 low, bank 80h high).
-        /// </summary>
-        public static readonly byte[] SuperIoNuvotonVendorIndexes = [0xFE];
-
-        /// <summary>
-        /// SMSC chips whose HWM device ID at 3Dh the driver knows (SCH311x 8Ch, SCH5127 8Eh).
+        /// SMSC chips whose HWM device ID at 3Dh is known (SCH311x 8Ch, SCH5127 8Eh); their rows name it in an id.
         /// </summary>
         public static readonly UInt16[] SuperIoSmscChips = [0x7C, 0x7D, 0x7F, 0x86];
 
@@ -838,9 +833,23 @@ namespace CustomBuildTool
         /// </summary>
         public const byte SuperIoExitConfig02 = 2;
         /// <summary>
-        /// The NCT668x HWM logical device, selected before the customer ID is known.
+        /// The NCT668x HWM logical device, selected before the customer ID is known; an authoring rule.
         /// </summary>
         public const byte SuperIoEcLdn = 0x0B;
+        /// <summary>
+        /// The slot's logical device need not be activated (the identity bytes at the base are the check).
+        /// </summary>
+        public const byte SuperIoFlagActiveOptional = 0x01;
+        public const byte SuperIoFlagMask = SuperIoFlagActiveOptional;
+        /// <summary>
+        /// The Nuvoton bank register bit that selects the high byte of a 16-bit register (HBACS).
+        /// </summary>
+        public const byte SuperIoNuvotonHbacs = 0x80;
+        public const byte SuperIoMaxIds = 2;
+        /// <summary>
+        /// The configuration index port of a slot when the row names none (2Eh, 4Eh); the data port is the next one.
+        /// </summary>
+        public static UInt16 SuperIoPortDefault(byte Slot) => Slot == 0 ? (UInt16)0x2E : (UInt16)0x4E;
         /// <summary>
         /// ITE chips that must never leave configuration mode.
         /// </summary>
@@ -902,7 +911,11 @@ namespace CustomBuildTool
         public const int PciIndirectReadSize = 8;
         public const int WindowRangeSize = 12;
         public const int WindowReadSize = 32;
-        public const int SuperIoReadSize = 8;
+        public const int SuperIoReadSize = 28;
+        public const int SuperIoIdSize = 4;
+        public const int SuperIoIdsOffset = 20;
+        public static HwSuperIoId SuperIoId(ReadOnlySpan<byte> Body, int Index) =>
+            MemoryMarshal.Read<HwSuperIoId>(Body[(SuperIoIdsOffset + Index * SuperIoIdSize)..]);
         public const int SmbusReadSize = 24;
         public const int VsecReadSize = 20;
         public const int MailboxAddressSize = 32;
@@ -1032,9 +1045,20 @@ namespace CustomBuildTool
             FieldOffset<HwWindowRead>("KPH_DYN_HW_WINDOW_READ", "Reserved", 30),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Exit", 1),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "RangeCount", 2),
-            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "VendorIndex", 3),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "IdCount", 3),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "BaseMin", 4),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "BaseMax", 6),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "ConfigPort", 8),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Flags", 10),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "BankMask", 11),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "ConfigIdIndex", 12),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Reserved", 13),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "ConfigIdValue", 14),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "CustomerRegister", 16),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Reserved2", 18),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Ids", 20),
+            FieldOffset<HwSuperIoId>("KPH_DYN_HW_SUPERIO_ID", "Value", 2),
+            FieldOffset<HwSuperIoId>("KPH_DYN_HW_SUPERIO_ID", "Alternate", 3),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Port", 1),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Protocols", 2),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "RangeCount", 3),
@@ -1349,9 +1373,29 @@ namespace CustomBuildTool
             public byte Ldn;
             public byte Exit;
             public byte RangeCount;
-            public byte VendorIndex;
+            public byte IdCount;
             public UInt16 BaseMin;
             public UInt16 BaseMax;
+            public UInt16 ConfigPort;
+            public byte Flags;
+            public byte BankMask;
+            public byte ConfigIdIndex;
+            public byte Reserved;
+            public UInt16 ConfigIdValue;
+            public UInt16 CustomerRegister;
+            public fixed byte Reserved2[2];
+            public fixed byte Ids[SuperIoMaxIds * SuperIoIdSize];
+        }
+
+        /// <summary>
+        /// The KPH_DYN_HW_SUPERIO_ID body: a monitor register (bank or page in the high byte) and its accepted values.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct HwSuperIoId
+        {
+            public UInt16 Register;
+            public byte Value;
+            public byte Alternate;
         }
 
         /// <summary>
@@ -1620,6 +1664,10 @@ namespace CustomBuildTool
             CheckSize<HwWindowRange>(WindowRangeSize);
             CheckSize<HwWindowRead>(WindowReadSize);
             CheckSize<HwSuperIoRead>(SuperIoReadSize);
+            CheckSize<HwSuperIoId>(SuperIoIdSize);
+
+            if (Marshal.OffsetOf<HwSuperIoRead>("Ids").ToInt32() != SuperIoIdsOffset)
+                throw new InvalidOperationException($"HwSuperIoRead.Ids is not at {SuperIoIdsOffset}");
             CheckSize<HwSmbusRead>(SmbusReadSize);
             CheckSize<HwVsecRead>(VsecReadSize);
             CheckSize<HwMailboxSmn>(MailboxAddressSize);
@@ -1691,7 +1739,9 @@ namespace CustomBuildTool
         private static readonly string[] TargetAttributes = ["begin", "end", "stride", "count", "desc"];
         private static readonly string[] WindowAttributes = ["base", "bar", "offset", "width", "mask", "enable", "size", "require-d0", "arm64", "resource", "entry", "lo", "hi", "address", "port", "present", "signature", "desc"];
         private static readonly string[] WindowReadAttributes = ["offset", "length", "width", "desc"];
-        private static readonly string[] SuperIoAttributes = ["slots", "family", "chips", "mask", "customers", "ldn", "exit", "vendor", "base", "chassis", "name", "desc"];
+        private static readonly string[] SuperIoAttributes = ["slots", "family", "chips", "mask", "customers", "ldn", "exit", "base", "chassis", "port", "bank-mask",
+                                                              "config-id", "customer-reg", "require-active", "name", "desc"];
+        private static readonly string[] SuperIoIdAttributes = ["reg", "value", "alt", "desc"];
         private static readonly string[] SuperIoReadAttributes = ["reg", "length", "desc"];
         private static readonly string[] SmbusAttributes = ["host", "port", "protocols", "slaves", "name", "desc"];
         private static readonly string[] SmbusReadAttributes = ["command", "length", "desc"];
@@ -3826,21 +3876,71 @@ namespace CustomBuildTool
                 throw Context.Error(SuperIo, "no-exit chips (0x8790, 0x8733, 0x8695) need exit=\"none\"");
             }
 
-            //
-            // NCT610x keep the vendor ID at FEh, not 4Fh.
-            //
-            string vendor = OptionalAttribute(SuperIo, "vendor");
+            string bankMask = OptionalAttribute(SuperIo, "bank-mask");
 
-            if (vendor != null)
+            if ((bankMask != null) != (family == DynDataHw.SuperIoFamilyNuvoton))
+                throw Context.Error(SuperIo, "bank-mask is required for family=\"nuvoton\" and only for it");
+            if (bankMask != null)
             {
-                if (family != DynDataHw.SuperIoFamilyNuvoton)
-                    throw Context.Error(SuperIo, "vendor is only for family=\"nuvoton\"");
+                body.BankMask = (byte)ParseHex(Context, SuperIo, "bank-mask", bankMask, byte.MaxValue);
 
-                body.VendorIndex = (byte)ParseHex(Context, SuperIo, "vendor", vendor, byte.MaxValue);
-
-                if (!DynDataHw.SuperIoNuvotonVendorIndexes.Contains(body.VendorIndex))
-                    throw Context.Error(SuperIo, $"vendor 0x{body.VendorIndex:x2} is not in DynDataHw.SuperIoNuvotonVendorIndexes");
+                if ((body.BankMask & DynDataHw.SuperIoNuvotonHbacs) == 0)
+                    throw Context.Error(SuperIo, $"bank-mask 0x{body.BankMask:x2} does not include bit 7 (HBACS)");
             }
+
+            string configId = OptionalAttribute(SuperIo, "config-id");
+
+            if (configId != null)
+            {
+                string[] parts = configId.Split(':');
+
+                if (family != DynDataHw.SuperIoFamilyFintek)
+                    throw Context.Error(SuperIo, "config-id is only for family=\"fintek\"");
+                if (parts.Length != 2)
+                    throw Context.Error(SuperIo, "config-id must be \"0xINDEX:0xVALUE\"");
+
+                body.ConfigIdIndex = (byte)ParseHex(Context, SuperIo, "config-id", parts[0].Trim(), byte.MaxValue - 1);
+                body.ConfigIdValue = (UInt16)ParseHex(Context, SuperIo, "config-id", parts[1].Trim(), UInt16.MaxValue);
+
+                if (body.ConfigIdIndex == 0)
+                    throw Context.Error(SuperIo, "config-id index is zero");
+            }
+
+            string customerReg = OptionalAttribute(SuperIo, "customer-reg");
+
+            if ((customerReg != null) != (family == DynDataHw.SuperIoFamilyNuvotonEc))
+                throw Context.Error(SuperIo, "customer-reg is required for family=\"nuvoton-ec\" and only for it");
+            if (customerReg != null)
+            {
+                body.CustomerRegister = (UInt16)ParseHex(Context, SuperIo, "customer-reg", customerReg, UInt16.MaxValue);
+
+                if ((body.CustomerRegister & 0xFF) == 0xFF || (body.CustomerRegister >> 8) == 0xFF)
+                    throw Context.Error(SuperIo, $"customer-reg 0x{body.CustomerRegister:x4} must be a register pair in a page other than FFh");
+            }
+
+            switch (OptionalAttribute(SuperIo, "require-active") ?? "true")
+            {
+            case "true":
+                break;
+            case "false":
+                if (family != DynDataHw.SuperIoFamilySmsc)
+                    throw Context.Error(SuperIo, "require-active=\"false\" is only for family=\"smsc\"");
+
+                body.Flags |= DynDataHw.SuperIoFlagActiveOptional;
+                break;
+            default:
+                throw Context.Error(SuperIo, "require-active must be \"true\" or \"false\"");
+            }
+
+            string port = OptionalAttribute(SuperIo, "port");
+
+            if (port != null && slots.Count != 1)
+                throw Context.Error(SuperIo, "port is only for a <superio> of one slot (a row that lists both slots uses the defaults)");
+
+            UInt16 portValue = port != null ? (UInt16)ParseHex(Context, SuperIo, "port", port, UInt16.MaxValue - 1) : (UInt16)0;
+
+            if (port != null && portValue == 0)
+                throw Context.Error(SuperIo, "port is zero");
 
             //
             // The HWM base read from the chip must start in this range; the driver refuses any other block.
@@ -3869,29 +3969,64 @@ namespace CustomBuildTool
                 throw Context.Error(SuperIo, baseError);
 
             var ranges = new List<DynDataHw.HwRange>();
+            var ids = new List<DynDataHw.HwSuperIoId>();
+
+            UInt64 Register(XElement Element, UInt64 Length)
+            {
+                UInt64 reg = ParseHex(Context, Element, "reg", RequiredAttribute(Context, Element, "reg"), flat ? byte.MaxValue : UInt16.MaxValue);
+
+                if ((reg & 0xFF) + Length > 0x100)
+                    throw Context.Error(Element, $"reg 0x{reg:x} + length 0x{Length:x} crosses a {(flat ? "register space" : "bank")} boundary");
+                if (family == DynDataHw.SuperIoFamilyNuvotonEc && (reg >> 8) == 0xFF)
+                    throw Context.Error(Element, $"reg 0x{reg:x} is in page FFh, the NCT668x page register's free value");
+                if (family == DynDataHw.SuperIoFamilyNuvoton && ((reg >> 8) & ~(UInt64)body.BankMask) != 0)
+                    throw Context.Error(Element, $"reg 0x{reg:x} is in bank 0x{reg >> 8:x2}, outside bank-mask 0x{body.BankMask:x2}");
+                foreach (UInt16 clear in DynDataHw.SuperIoReadToClear(family))
+                {
+                    if (clear >= reg && clear < reg + Length)
+                        throw Context.Error(Element, $"reg 0x{reg:x} + length 0x{Length:x} covers the read-to-clear register 0x{clear:x2}");
+                }
+
+                return reg;
+            }
 
             foreach (var element in SuperIo.Elements())
             {
+                if (element.Name.LocalName == "id")
+                {
+                    CheckAttributes(Context, element, SuperIoIdAttributes);
+                    CheckNoChildren(Context, element);
+
+                    var id = new DynDataHw.HwSuperIoId
+                    {
+                        Register = (UInt16)Register(element, 1),
+                        Value = (byte)ParseHex(Context, element, "value", RequiredAttribute(Context, element, "value"), byte.MaxValue)
+                    };
+                    string alternate = OptionalAttribute(element, "alt");
+
+                    id.Alternate = alternate != null ? (byte)ParseHex(Context, element, "alt", alternate, byte.MaxValue) : id.Value;
+
+                    if (ids.Any(other => other.Register == id.Register))
+                        throw Context.Error(element, $"duplicate id reg 0x{id.Register:x}");
+                    if (ids.Count == DynDataHw.SuperIoMaxIds)
+                        throw Context.Error(element, $"more than {DynDataHw.SuperIoMaxIds} <id>");
+
+                    ids.Add(id);
+                    continue;
+                }
+
                 if (element.Name.LocalName != "read")
                     throw Context.Error(element, "unknown element");
 
                 CheckAttributes(Context, element, SuperIoReadAttributes);
                 CheckNoChildren(Context, element);
 
-                UInt64 reg = ParseHex(Context, element, "reg", RequiredAttribute(Context, element, "reg"), flat ? byte.MaxValue : UInt16.MaxValue);
                 UInt64 length = ParseHex(Context, element, "length", RequiredAttribute(Context, element, "length"), 0x100);
 
                 if (length == 0)
                     throw Context.Error(element, "length is zero");
-                if ((reg & 0xFF) + length > 0x100)
-                    throw Context.Error(element, $"reg 0x{reg:x} + length 0x{length:x} crosses a {(flat ? "register space" : "bank")} boundary");
-                if (family == DynDataHw.SuperIoFamilyNuvotonEc && (reg >> 8) == 0xFF)
-                    throw Context.Error(element, $"reg 0x{reg:x} is in page FFh, the NCT668x page register's free value");
-                foreach (UInt16 clear in DynDataHw.SuperIoReadToClear(family))
-                {
-                    if (clear >= reg && clear < reg + length)
-                        throw Context.Error(element, $"reg 0x{reg:x} + length 0x{length:x} covers the read-to-clear register 0x{clear:x2}");
-                }
+
+                UInt64 reg = Register(element, length);
 
                 ranges.Add(new DynDataHw.HwRange { Offset = (UInt16)reg, Length = (UInt16)length });
             }
@@ -3900,14 +4035,11 @@ namespace CustomBuildTool
                 throw Context.Error(SuperIo, "<superio> has no <read>");
             if (ranges.Count > DynDataHw.MaxRanges)
                 throw Context.Error(SuperIo, $"{ranges.Count} <read> ranges exceeds the cap of {DynDataHw.MaxRanges}");
+            if ((body.Flags & DynDataHw.SuperIoFlagActiveOptional) != 0 && ids.Count == 0)
+                throw Context.Error(SuperIo, "require-active=\"false\" needs an <id> (the identity bytes at the base are the check)");
 
             body.RangeCount = (byte)ranges.Count;
-
-            var bytes = new List<byte>();
-
-            bytes.AddRange(DynDataHw.ToBytes(body));
-            foreach (var range in ranges)
-                bytes.AddRange(DynDataHw.ToBytes(range));
+            body.IdCount = (byte)ids.Count;
 
             //
             // The driver never probes a slot outside the listed chassis types.
@@ -3941,13 +4073,27 @@ namespace CustomBuildTool
                 gate.ValueMax = (UInt32)(types >> 32);
             }
 
-            byte[] table = BuildTable(Context, SuperIo, [BuildOp(Context, SuperIo, DynDataHw.KindSuperIoRead, DynDataHw.LockIsaBus, gate, bytes.ToArray())]);
-
             foreach (byte slot in slots)
             {
+                body.ConfigPort = port != null ? portValue : DynDataHw.SuperIoPortDefault(slot);
+
+                byte[] fixedBytes = DynDataHw.ToBytes(body);
+
+                for (int i = 0; i < ids.Count; i++)
+                    DynDataHw.ToBytes(ids[i]).CopyTo(fixedBytes, DynDataHw.SuperIoReadSize - DynDataHw.SuperIoMaxIds * DynDataHw.SuperIoIdSize + i * DynDataHw.SuperIoIdSize);
+
+                var bytes = new List<byte>(fixedBytes);
+
+                foreach (var range in ranges)
+                    bytes.AddRange(DynDataHw.ToBytes(range));
+
+                byte[] table = BuildTable(Context, SuperIo, [BuildOp(Context, SuperIo, DynDataHw.KindSuperIoRead, DynDataHw.LockIsaBus, gate, bytes.ToArray())]);
+
+                Context.AddSuperIoPort(SuperIo, slot, body.ConfigPort);
+
                 foreach (UInt16 chip in chips)
                 {
-                    Context.AddSuperIoChip(SuperIo, slot, family, chip, body.BaseMin, body.BaseMax);
+                    Context.AddSuperIoChip(SuperIo, slot, family, chip, body);
 
                     foreach (UInt16 customer in customers)
                     {
@@ -4792,22 +4938,48 @@ namespace CustomBuildTool
 
             /// <summary>
             /// The driver takes the first family whose probe matches, so a chip ID belongs to one family only, and
-            /// the base range is checked per (slot, family, chip), so every row of the chip must carry the same one.
+            /// the base range and the chip-level fields are read from the first passing row of (slot, family, chip),
+            /// so every row of the chip must carry the same ones.
             /// </summary>
-            public void AddSuperIoChip(XElement Element, byte Slot, byte Family, UInt16 Chip, UInt16 BaseMin, UInt16 BaseMax)
+            public void AddSuperIoChip(XElement Element, byte Slot, byte Family, UInt16 Chip, DynDataHw.HwSuperIoRead Body)
             {
                 if (SuperIoChips.TryGetValue((Slot, Chip), out var other))
                 {
+                    var o = other.Body;
+
                     if (other.Family != Family)
                         throw Error(Element, $"chip 0x{Chip:x4} at slot {Slot} is also family {other.Family} in {Describe(other.Element)}");
-                    if (other.BaseMin != BaseMin || other.BaseMax != BaseMax)
-                        throw Error(Element, $"chip 0x{Chip:x4} at slot {Slot} has base range 0x{other.BaseMin:x4}-0x{other.BaseMax:x4} in {Describe(other.Element)}");
+                    if (o.BaseMin != Body.BaseMin || o.BaseMax != Body.BaseMax)
+                        throw Error(Element, $"chip 0x{Chip:x4} at slot {Slot} has base range 0x{o.BaseMin:x4}-0x{o.BaseMax:x4} in {Describe(other.Element)}");
+                    if (o.Ldn != Body.Ldn || o.Exit != Body.Exit || o.ConfigIdIndex != Body.ConfigIdIndex || o.ConfigIdValue != Body.ConfigIdValue ||
+                        o.CustomerRegister != Body.CustomerRegister || o.Flags != Body.Flags)
+                        throw Error(Element, $"chip 0x{Chip:x4} at slot {Slot} has other ldn, exit, config-id, customer-reg or require-active in {Describe(other.Element)}");
                 }
 
-                SuperIoChips[(Slot, Chip)] = (Family, BaseMin, BaseMax, Element);
+                SuperIoChips[(Slot, Chip)] = (Family, Body, Element);
             }
 
-            private readonly Dictionary<(byte Slot, UInt16 Chip), (byte Family, UInt16 BaseMin, UInt16 BaseMax, XElement Element)> SuperIoChips = [];
+            private readonly Dictionary<(byte Slot, UInt16 Chip), (byte Family, DynDataHw.HwSuperIoRead Body, XElement Element)> SuperIoChips = [];
+
+            /// <summary>
+            /// The driver probes a slot at the port of its first passing row, so all rows of a slot name one port, and
+            /// two slots never share one.
+            /// </summary>
+            public void AddSuperIoPort(XElement Element, byte Slot, UInt16 Port)
+            {
+                if (SuperIoPorts.TryGetValue(Slot, out var other) && other.Port != Port)
+                    throw Error(Element, $"slot {Slot} port 0x{Port:x2} differs from port 0x{other.Port:x2} in {Describe(other.Element)}");
+
+                foreach (var (slot, (otherPort, otherElement)) in SuperIoPorts)
+                {
+                    if (slot != Slot && (Math.Abs(otherPort - Port) <= 1))
+                        throw Error(Element, $"slot {Slot} port 0x{Port:x2} overlaps slot {slot} port 0x{otherPort:x2} in {Describe(otherElement)}");
+                }
+
+                SuperIoPorts[Slot] = (Port, Element);
+            }
+
+            private readonly Dictionary<byte, (UInt16 Port, XElement Element)> SuperIoPorts = [];
 
             /// <summary>
             /// One board row per hash: a second (manufacturer, product) with the same FNV-1a hash is a collision.
@@ -5098,6 +5270,8 @@ namespace CustomBuildTool
             UInt32 maxVersions = 0;
             UInt32 maxVsecRegions = 0;
             UInt64 rowOps = 0;
+            var superIoPorts = new Dictionary<byte, UInt16>();
+            var superIoChips = new Dictionary<(byte Slot, byte Family, UInt16 Chip), byte[]>();
 
             for (int i = 0; i < header.Count; i++)
             {
@@ -5169,6 +5343,7 @@ namespace CustomBuildTool
 
                 CheckRowTable(rowBytes, table, i);
                 CheckRowPolicy(rowBytes, table, i);
+                CheckSuperIoRow(rowBytes, table, i, superIoPorts, superIoChips);
 
                 rowOps += MemoryMarshal.Read<DynDataHw.HwTableHeader>(table).Count;
             }
@@ -5564,6 +5739,46 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Generator-only: the driver probes a slot at the port of its first passing row and reads the chip-level
+        /// fields from the first passing row of (slot, family, chip), so those agree across rows; two slots never
+        /// share a port.
+        /// </summary>
+        private static void CheckSuperIoRow(ReadOnlySpan<byte> Row, ReadOnlySpan<byte> Table, int Index,
+                                            Dictionary<byte, UInt16> Ports, Dictionary<(byte Slot, byte Family, UInt16 Chip), byte[]> Chips)
+        {
+            if (Row[0] != DynDataHw.IdentitySuperIo)
+                return;
+
+            byte slot = Row[4];
+            byte family = Row[5];
+            UInt16 chip = BinaryPrimitives.ReadUInt16LittleEndian(Row[6..]);
+            UInt32 count = MemoryMarshal.Read<DynDataHw.HwTableHeader>(Table).Count;
+            var remaining = Table[DynDataHw.TableSize..];
+
+            for (UInt32 j = 0; j < count; j++)
+            {
+                var op = MemoryMarshal.Read<DynDataHw.HwOpHeader>(remaining);
+                var superIo = MemoryMarshal.Read<DynDataHw.HwSuperIoRead>(remaining[DynDataHw.OpHeaderSize..]);
+                byte[] fields =
+                [
+                    superIo.Ldn, superIo.Exit, superIo.Flags, superIo.ConfigIdIndex,
+                    .. BitConverter.GetBytes(superIo.ConfigIdValue), .. BitConverter.GetBytes(superIo.CustomerRegister)
+                ];
+
+                if (Ports.TryGetValue(slot, out UInt16 port) && port != superIo.ConfigPort)
+                    throw Fail($"row {Index} superio_read slot {slot} port 0x{superIo.ConfigPort:x} differs from 0x{port:x}");
+                if (Ports.Any(p => p.Key != slot && Math.Abs(p.Value - superIo.ConfigPort) <= 1))
+                    throw Fail($"row {Index} superio_read slot {slot} port 0x{superIo.ConfigPort:x} overlaps another slot's");
+                if (Chips.TryGetValue((slot, family, chip), out var other) && !other.AsSpan().SequenceEqual(fields))
+                    throw Fail($"row {Index} superio_read chip 0x{chip:x4} at slot {slot} disagrees with another row on a chip-level field");
+
+                Ports[slot] = superIo.ConfigPort;
+                Chips[(slot, family, chip)] = fields;
+                remaining = remaining[op.Length..];
+            }
+        }
+
+        /// <summary>
         /// Generator-only; the table already passed <see cref="CheckOp"/>.
         /// </summary>
         private static void CheckRowTable(ReadOnlySpan<byte> Row, ReadOnlySpan<byte> Table, int Index)
@@ -5637,8 +5852,28 @@ namespace CustomBuildTool
 
                     if (family == DynDataHw.SuperIoFamilyNuvotonEc && superIo.Ldn != DynDataHw.SuperIoEcLdn)
                         throw Fail($"row {Index} NCT668x superio_read ldn 0x{superIo.Ldn:x2}");
-                    if (superIo.VendorIndex != 0 && family != DynDataHw.SuperIoFamilyNuvoton)
-                        throw Fail($"row {Index} superio_read vendor index 0x{superIo.VendorIndex:x2} outside family nuvoton");
+                    if ((superIo.BankMask != 0) != (family == DynDataHw.SuperIoFamilyNuvoton) ||
+                        (superIo.BankMask != 0 && (superIo.BankMask & DynDataHw.SuperIoNuvotonHbacs) == 0))
+                        throw Fail($"row {Index} superio_read bank mask 0x{superIo.BankMask:x2} on family {family}");
+                    if ((superIo.Flags & DynDataHw.SuperIoFlagActiveOptional) != 0 && (family != DynDataHw.SuperIoFamilySmsc || superIo.IdCount == 0))
+                        throw Fail($"row {Index} superio_read activation is optional on family {family} or without an id");
+                    if (superIo.ConfigIdIndex != 0 && family != DynDataHw.SuperIoFamilyFintek)
+                        throw Fail($"row {Index} superio_read config-id on family {family}");
+                    if ((superIo.CustomerRegister != 0) != (family == DynDataHw.SuperIoFamilyNuvotonEc))
+                        throw Fail($"row {Index} superio_read customer register 0x{superIo.CustomerRegister:x4} on family {family}");
+
+                    bool RegisterBad(UInt16 Register) =>
+                        (flat && Register > 0xFF) ||
+                        (family == DynDataHw.SuperIoFamilyNuvotonEc && (Register >> 8) == 0xFF) ||
+                        (family == DynDataHw.SuperIoFamilyNuvoton && ((Register >> 8) & ~superIo.BankMask) != 0);
+
+                    for (int d = 0; d < superIo.IdCount; d++)
+                    {
+                        var id = DynDataHw.SuperIoId(body, d);
+
+                        if (RegisterBad(id.Register))
+                            throw Fail($"row {Index} superio_read id 0x{id.Register:x} is banked on a flat family, in page FFh or outside the bank mask");
+                    }
 
                     string baseError = DynDataHw.SuperIoBaseRangeError(superIo.BaseMin, superIo.BaseMax, DynDataHw.SuperIoBaseExtent(family));
 
@@ -5649,10 +5884,8 @@ namespace CustomBuildTool
                     {
                         var range = MemoryMarshal.Read<DynDataHw.HwRange>(body[(DynDataHw.SuperIoReadSize + r * DynDataHw.RangeSize)..]);
 
-                        if (flat && range.Offset > 0xFF)
-                            throw Fail($"row {Index} superio_read range 0x{range.Offset:x} is banked on flat family {family}");
-                        if (family == DynDataHw.SuperIoFamilyNuvotonEc && (range.Offset >> 8) == 0xFF)
-                            throw Fail($"row {Index} NCT668x superio_read range 0x{range.Offset:x} is in page FFh");
+                        if (RegisterBad(range.Offset))
+                            throw Fail($"row {Index} superio_read range 0x{range.Offset:x} is banked on a flat family, in page FFh or outside the bank mask");
                         if (DynDataHw.SuperIoReadToClear(family).Any(clear => clear >= range.Offset && clear < (UInt32)range.Offset + range.Length))
                             throw Fail($"row {Index} superio_read range 0x{range.Offset:x}+0x{range.Length:x} covers a read-to-clear register of family {family}");
                     }
@@ -6171,11 +6404,17 @@ namespace CustomBuildTool
 
                 if (superIo.RangeCount > DynDataHw.MaxRanges)
                     throw Fail($"superio_read has {superIo.RangeCount} ranges, cap {DynDataHw.MaxRanges}");
-                if (superIo.RangeCount < 1 || superIo.Exit > DynDataHw.SuperIoExitConfig02 ||
-                    (superIo.VendorIndex != 0 && !DynDataHw.SuperIoNuvotonVendorIndexes.Contains(superIo.VendorIndex)))
-                {
-                    throw Fail("superio_read has no range or an unknown exit or vendor index");
-                }
+                if (superIo.RangeCount < 1 || superIo.Exit > DynDataHw.SuperIoExitConfig02)
+                    throw Fail("superio_read has no range or an unknown exit");
+                if (superIo.IdCount > DynDataHw.SuperIoMaxIds || (superIo.Flags & ~DynDataHw.SuperIoFlagMask) != 0)
+                    throw Fail($"superio_read has {superIo.IdCount} ids (cap {DynDataHw.SuperIoMaxIds}) or flags 0x{superIo.Flags:x2}");
+                if (superIo.ConfigPort == 0 || superIo.ConfigPort == UInt16.MaxValue)
+                    throw Fail($"superio_read configuration port 0x{superIo.ConfigPort:x}");
+                if (superIo.ConfigIdIndex == 0 ? superIo.ConfigIdValue != 0 : superIo.ConfigIdIndex == byte.MaxValue)
+                    throw Fail($"superio_read config-id 0x{superIo.ConfigIdIndex:x2}:0x{superIo.ConfigIdValue:x4}");
+                if (superIo.Reserved != 0 || body[(DynDataHw.SuperIoIdsOffset - 2)..DynDataHw.SuperIoIdsOffset].ContainsAnyExcept((byte)0) ||
+                    body[(DynDataHw.SuperIoIdsOffset + superIo.IdCount * DynDataHw.SuperIoIdSize)..DynDataHw.SuperIoReadSize].ContainsAnyExcept((byte)0))
+                    throw Fail("superio_read reserved bytes or unused ids are non-zero");
 
                 // The family is on the row; the 8-port extent is the floor every family shares.
                 string baseError = DynDataHw.SuperIoBaseRangeError(superIo.BaseMin, superIo.BaseMax, DynDataHw.SuperIoBaseExtent(0));

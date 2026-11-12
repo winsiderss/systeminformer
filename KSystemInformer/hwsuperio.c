@@ -15,8 +15,6 @@
 
 #include <trace.h>
 
-#define KPH_HW_SUPERIO_PORT_SLOT0           0x2E
-#define KPH_HW_SUPERIO_PORT_SLOT1           0x4E
 #define KPH_HW_SUPERIO_DATA_PORT_OFFSET     1
 #define KPH_HW_SUPERIO_KEY_ENTER            0x87
 #define KPH_HW_SUPERIO_KEY_ITE_ENTER1       0x01
@@ -28,36 +26,19 @@
 #define KPH_HW_SUPERIO_CONFIG_CONTROL_EXIT  0x02
 #define KPH_HW_SUPERIO_CR_LDN               0x07
 #define KPH_HW_SUPERIO_CR_CHIP_ID           0x20
-#define KPH_HW_SUPERIO_CR_MANUFACTURER      0x23
 #define KPH_HW_SUPERIO_CR_ACTIVATE          0x30
 #define KPH_HW_SUPERIO_CR_BASE              0x60
 #define KPH_HW_SUPERIO_LDN_ACTIVE           0x01
-#define KPH_HW_SUPERIO_FINTEK_MANUFACTURER  0x1934
 
 #define KPH_HW_SUPERIO_HWM_ALIGN_MASK       0x0007ul
 #define KPH_HW_SUPERIO_HWM_PAGE             4
 #define KPH_HW_SUPERIO_HWM_INDEX            5
 #define KPH_HW_SUPERIO_HWM_DATA             6
 #define KPH_HW_SUPERIO_NUVOTON_BANK         0x4E
-#define KPH_HW_SUPERIO_NUVOTON_VENDOR_INDEX 0x4F
-#define KPH_HW_SUPERIO_NUVOTON_VENDOR_HIGH  0x8000
-#define KPH_HW_SUPERIO_NUVOTON_HBACS        0x80
-#define KPH_HW_SUPERIO_NUVOTON_ID_HIGH      0x5C
-#define KPH_HW_SUPERIO_NUVOTON_ID_LOW       0xA3
 #define KPH_HW_SUPERIO_EC_PAGE_FREE         0xFF
-#define KPH_HW_SUPERIO_EC_CUSTOMER          0x0602
-#define KPH_HW_SUPERIO_ITE_VENDOR           0x58
-#define KPH_HW_SUPERIO_ITE_ID               0x90
-#define KPH_HW_SUPERIO_ITE_ID_ALT           0x7F
 #define KPH_HW_SUPERIO_KEY_SMSC_ENTER       0x55
 #define KPH_HW_SUPERIO_SMSC_INDEX           0x70
 #define KPH_HW_SUPERIO_SMSC_DATA            0x71
-#define KPH_HW_SUPERIO_SMSC_VENDOR          0x3E
-#define KPH_HW_SUPERIO_SMSC_ID              0x5C
-#define KPH_HW_SUPERIO_SMSC_DEVICE          0x3D
-#define KPH_HW_SUPERIO_SMSC_DEVICE_SCH311X  0x8C
-#define KPH_HW_SUPERIO_SMSC_DEVICE_SCH5127  0x8E
-#define KPH_HW_SUPERIO_SMSC_CHIP_SCH5127    0x86
 #define KPH_HW_SUPERIO_SMSC_ALIGN_MASK      0x007Ful
 
 typedef struct _KPH_HW_SUPERIO_SESSION
@@ -70,6 +51,7 @@ typedef struct _KPH_HW_SUPERIO_SESSION
     USHORT ChipId;
     USHORT CustomerId;
     USHORT Base;
+    PKPH_DYN_HW_OP ChipOp;
     PKPH_DYN_HW_OP Op;
     BOOLEAN BankRead;
     UCHAR OriginalBank;
@@ -462,11 +444,10 @@ NTSTATUS KphpHwSuperIoConfigure(
     NTSTATUS status;
     KPH_DYN_HW_IDENTITY identity;
     PKPH_DYN_HW_TABLE table;
-    PKPH_DYN_HW_OP first;
-    PKPH_DYN_HW_SUPERIO_READ read;
+    PKPH_DYN_HW_SUPERIO_READ chip;
     USHORT chipId;
     BOOLEAN known;
-    USHORT vendorId;
+    USHORT configId;
     BOOLEAN identified;
     UCHAR exitKind;
     BOOLEAN ldnSelected;
@@ -567,18 +548,37 @@ NTSTATUS KphpHwSuperIoConfigure(
         goto Exit;
     }
 
-    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_FINTEK)
+    status = KphDynHwFindSuperIoChipOp(Session->Section,
+                                       Session->Slot,
+                                       Session->Family,
+                                       chipId,
+                                       Session->ChassisType,
+                                       &Session->ChipOp);
+    if (!NT_SUCCESS(status))
     {
-        vendorId = KphpHwSuperIoReadConfigWord(Session,
-                                               KPH_HW_SUPERIO_CR_MANUFACTURER);
-        if (vendorId != KPH_HW_SUPERIO_FINTEK_MANUFACTURER)
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphDynHwFindSuperIoChipOp failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    chip = (PKPH_DYN_HW_SUPERIO_READ)Session->ChipOp->Body;
+
+    if (chip->ConfigIdIndex)
+    {
+        configId = KphpHwSuperIoReadConfigWord(Session, chip->ConfigIdIndex);
+        if (configId != chip->ConfigIdValue)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
-                          "SuperIO slot %lu manufacturer 0x%04lx is not "
-                          "Fintek",
+                          "SuperIO slot %lu configuration ID 0x%04lx at "
+                          "0x%02lx, expected 0x%04lx",
                           (ULONG)Session->Slot,
-                          (ULONG)vendorId);
+                          (ULONG)configId,
+                          (ULONG)chip->ConfigIdIndex,
+                          (ULONG)chip->ConfigIdValue);
 
             status = STATUS_NOT_FOUND;
             goto Exit;
@@ -588,13 +588,11 @@ NTSTATUS KphpHwSuperIoConfigure(
     *ChipMatched = TRUE;
     Session->ChipId = chipId;
 
-    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC)
-    {
-        identified = TRUE;
-        exitKind = KPH_DYN_HW_SUPERIO_EXIT_KEY_AA;
-        ldn = KPH_DYN_HW_SUPERIO_EC_LDN;
-    }
-    else
+    identified = TRUE;
+    exitKind = chip->Exit;
+    ldn = chip->Ldn;
+
+    if (Session->Family != KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC)
     {
         RtlZeroMemory(&identity, sizeof(identity));
         identity.SuperIo.Slot = Session->Slot;
@@ -613,15 +611,6 @@ NTSTATUS KphpHwSuperIoConfigure(
                           status);
 
             goto Exit;
-        }
-
-        status = KphDynHwFindSuperIoOp(table, 0, &first);
-        if (NT_SUCCESS(status))
-        {
-            read = (PKPH_DYN_HW_SUPERIO_READ)first->Body;
-
-            identified = TRUE;
-            exitKind = read->Exit;
         }
 
         status = KphDynHwFindSuperIoOp(table, OpIndex, &Session->Op);
@@ -649,11 +638,8 @@ NTSTATUS KphpHwSuperIoConfigure(
             goto Exit;
         }
 
-        read = (PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body;
-
-        identified = TRUE;
-        exitKind = read->Exit;
-        ldn = read->Ldn;
+        NT_ASSERT(((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->Ldn == ldn);
+        NT_ASSERT(((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->Exit == exitKind);
     }
 
     originalLdn = KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_LDN);
@@ -661,12 +647,8 @@ NTSTATUS KphpHwSuperIoConfigure(
     KphpHwSuperIoWriteConfig(Session, KPH_HW_SUPERIO_CR_LDN, ldn);
     ldnSelected = TRUE;
 
-    requireActive = TRUE;
-
-    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
-    {
-        requireActive = FALSE;
-    }
+    requireActive = !BooleanFlagOn(chip->Flags,
+                                   KPH_DYN_HW_SUPERIO_FLAG_ACTIVE_OPTIONAL);
 
     activate = KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_ACTIVATE);
     if (requireActive && !BooleanFlagOn(activate, KPH_HW_SUPERIO_LDN_ACTIVE))
@@ -832,13 +814,19 @@ VOID KphpHwSuperIoEndMonitor(
 {
     ULONG index;
     ULONG data;
+    UCHAR mask;
     UCHAR current;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!Session->BankRead ||
-        (Session->Bank == Session->OriginalBank) ||
-        Session->Contended)
+    if (!Session->BankRead || Session->Contended)
+    {
+        return;
+    }
+
+    mask = ((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->BankMask;
+
+    if (!((Session->Bank ^ Session->OriginalBank) & mask))
     {
         return;
     }
@@ -849,7 +837,7 @@ VOID KphpHwSuperIoEndMonitor(
     KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
 
     current = KphpHwSuperIoIn(data);
-    if (current != Session->Bank)
+    if ((current & mask) != (Session->Bank & mask))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -862,8 +850,9 @@ VOID KphpHwSuperIoEndMonitor(
         return;
     }
 
-    KphpHwSuperIoOut(data, Session->OriginalBank);
-    Session->Bank = Session->OriginalBank;
+    Session->Bank = (UCHAR)((current & ~mask) |
+                            (Session->OriginalBank & mask));
+    KphpHwSuperIoOut(data, Session->Bank);
 }
 
 /**
@@ -902,16 +891,22 @@ NTSTATUS KphpHwSuperIoReadMonitor(
     {
         case KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON:
         {
+            UCHAR mask;
+
+            mask = ((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->BankMask;
+
+            NT_ASSERT(!(bank & ~mask));
+
             KphpHwSuperIoReadBank(Session);
 
-            if (bank != Session->Bank)
+            if (bank != (Session->Bank & mask))
             {
                 UCHAR current;
 
                 KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
 
                 current = KphpHwSuperIoIn(data);
-                if (current != Session->Bank)
+                if ((current & mask) != (Session->Bank & mask))
                 {
                     KphTracePrint(TRACE_LEVEL_VERBOSE,
                                   HARDWARE,
@@ -923,8 +918,8 @@ NTSTATUS KphpHwSuperIoReadMonitor(
                     return STATUS_RETRY;
                 }
 
-                KphpHwSuperIoOut(data, bank);
-                Session->Bank = bank;
+                Session->Bank = (UCHAR)((current & ~mask) | bank);
+                KphpHwSuperIoOut(data, Session->Bank);
             }
 
             break;
@@ -977,12 +972,15 @@ NTSTATUS KphpHwSuperIoReadMonitor(
 }
 
 /**
- * \brief Checks the hardware monitor vendor ID of the session's family.
+ * \brief Checks the hardware monitor identity registers the op names.
+ *
+ * \details On a banked chip the registers in the current bank are read first,
+ * so a chip that fails them sees no bank write.
  *
  * \param[in,out] Session The session, between begin and end of monitor access.
  *
- * \return TRUE if the vendor ID reads back or the family has none, FALSE
- * otherwise.
+ * \return TRUE if every identity register reads its value or alternate, or
+ * the op names none, FALSE otherwise.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -990,161 +988,72 @@ BOOLEAN KphpHwSuperIoCheckVendor(
     _Inout_ PKPH_HW_SUPERIO_SESSION Session
     )
 {
-    NTSTATUS status;
-    UCHAR high;
-    UCHAR low;
+    PKPH_DYN_HW_SUPERIO_READ read;
+    UCHAR mask;
+    UCHAR bank;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if ((Session->Family != KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON) &&
-        (Session->Family != KPH_DYN_HW_SUPERIO_FAMILY_ITE) &&
-        (Session->Family != KPH_DYN_HW_SUPERIO_FAMILY_SMSC))
-    {
-        return TRUE;
-    }
+    read = (PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body;
 
-    if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_SMSC)
-    {
-        UCHAR device;
+    NT_ASSERT(read->IdCount <= KPH_DYN_HW_SUPERIO_MAX_IDS);
 
-        status = KphpHwSuperIoReadMonitor(Session,
-                                          KPH_HW_SUPERIO_SMSC_VENDOR,
-                                          &low);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "KphpHwSuperIoReadMonitor failed: %!STATUS!",
-                          status);
-
-            return FALSE;
-        }
-
-        status = KphpHwSuperIoReadMonitor(Session,
-                                          KPH_HW_SUPERIO_SMSC_DEVICE,
-                                          &high);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "KphpHwSuperIoReadMonitor failed: %!STATUS!",
-                          status);
-
-            return FALSE;
-        }
-
-        if (Session->ChipId == KPH_HW_SUPERIO_SMSC_CHIP_SCH5127)
-        {
-            device = KPH_HW_SUPERIO_SMSC_DEVICE_SCH5127;
-        }
-        else
-        {
-            device = KPH_HW_SUPERIO_SMSC_DEVICE_SCH311X;
-        }
-
-        return ((low == KPH_HW_SUPERIO_SMSC_ID) && (high == device));
-    }
+    mask = 0;
+    bank = 0;
 
     if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON)
     {
-        PKPH_DYN_HW_SUPERIO_READ read;
-        UCHAR index;
-
-        read = (PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body;
-        index = (read->VendorIndex ? read->VendorIndex :
-                 (UCHAR)KPH_HW_SUPERIO_NUVOTON_VENDOR_INDEX);
-
         KphpHwSuperIoReadBank(Session);
 
-        if (!(Session->OriginalBank & ~KPH_HW_SUPERIO_NUVOTON_HBACS))
+        mask = read->BankMask;
+        bank = (Session->Bank & mask);
+    }
+
+    for (ULONG pass = 0; pass < 2; pass++)
+    {
+        for (ULONG i = 0; i < read->IdCount; i++)
         {
-            ULONG indexPort;
-            ULONG dataPort;
-            UCHAR expected;
+            NTSTATUS status;
+            PKPH_DYN_HW_SUPERIO_ID id;
+            BOOLEAN current;
             UCHAR value;
 
-            indexPort = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_INDEX);
-            dataPort = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_DATA);
+            id = &read->Ids[i];
+            current = (((UCHAR)(id->Register >> 8) & mask) == bank);
 
-            KphpHwSuperIoOut(indexPort, index);
-            value = KphpHwSuperIoIn(dataPort);
-
-            if (BooleanFlagOn(Session->OriginalBank,
-                              KPH_HW_SUPERIO_NUVOTON_HBACS))
+            if (current != (pass == 0))
             {
-                expected = KPH_HW_SUPERIO_NUVOTON_ID_HIGH;
-            }
-            else
-            {
-                expected = KPH_HW_SUPERIO_NUVOTON_ID_LOW;
+                continue;
             }
 
-            if (value != expected)
+            status = KphpHwSuperIoReadMonitor(Session, id->Register, &value);
+            if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HARDWARE,
-                              "SuperIO Nuvoton vendor byte 0x%02lx in bank "
-                              "0x%02lx, expected 0x%02lx",
-                              (ULONG)value,
-                              (ULONG)Session->OriginalBank,
-                              (ULONG)expected);
+                              "KphpHwSuperIoReadMonitor failed: %!STATUS!",
+                              status);
 
                 return FALSE;
             }
 
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "SuperIO Nuvoton vendor byte 0x%02lx in bank 0x%02lx",
-                          (ULONG)value,
-                          (ULONG)Session->OriginalBank);
+            if ((value != id->Value) && (value != id->Alternate))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SuperIO identity register 0x%04lx reads "
+                              "0x%02lx, expected 0x%02lx or 0x%02lx",
+                              (ULONG)id->Register,
+                              (ULONG)value,
+                              (ULONG)id->Value,
+                              (ULONG)id->Alternate);
+
+                return FALSE;
+            }
         }
-
-        status = KphpHwSuperIoReadMonitor(
-            Session,
-            (USHORT)(KPH_HW_SUPERIO_NUVOTON_VENDOR_HIGH | index),
-            &high);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "KphpHwSuperIoReadMonitor failed: %!STATUS!",
-                          status);
-
-            return FALSE;
-        }
-
-        status = KphpHwSuperIoReadMonitor(Session, index, &low);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "KphpHwSuperIoReadMonitor failed: %!STATUS!",
-                          status);
-
-            return FALSE;
-        }
-
-        return ((high == KPH_HW_SUPERIO_NUVOTON_ID_HIGH) &&
-                (low == KPH_HW_SUPERIO_NUVOTON_ID_LOW));
     }
 
-    NT_ASSERT(Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_ITE);
-
-    status = KphpHwSuperIoReadMonitor(Session,
-                                      KPH_HW_SUPERIO_ITE_VENDOR,
-                                      &low);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphpHwSuperIoReadMonitor failed: %!STATUS!",
-                      status);
-
-        return FALSE;
-    }
-
-    return ((low == KPH_HW_SUPERIO_ITE_ID) ||
-            (low == KPH_HW_SUPERIO_ITE_ID_ALT));
+    return TRUE;
 }
 
 /**
@@ -1165,14 +1074,17 @@ NTSTATUS KphpHwSuperIoResolveEc(
     NTSTATUS status;
     KPH_DYN_HW_IDENTITY identity;
     PKPH_DYN_HW_TABLE table;
+    PKPH_DYN_HW_SUPERIO_READ chip;
     UCHAR high;
     UCHAR low;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    status = KphpHwSuperIoReadMonitor(Session,
-                                      KPH_HW_SUPERIO_EC_CUSTOMER,
-                                      &high);
+    chip = (PKPH_DYN_HW_SUPERIO_READ)Session->ChipOp->Body;
+
+    NT_ASSERT(chip->CustomerRegister);
+
+    status = KphpHwSuperIoReadMonitor(Session, chip->CustomerRegister, &high);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1184,7 +1096,7 @@ NTSTATUS KphpHwSuperIoResolveEc(
     }
 
     status = KphpHwSuperIoReadMonitor(Session,
-                                      KPH_HW_SUPERIO_EC_CUSTOMER + 1,
+                                      (USHORT)(chip->CustomerRegister + 1),
                                       &low);
     if (!NT_SUCCESS(status))
     {
@@ -1241,8 +1153,7 @@ NTSTATUS KphpHwSuperIoResolveEc(
         return STATUS_NOT_FOUND;
     }
 
-    NT_ASSERT(((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->Ldn ==
-              KPH_DYN_HW_SUPERIO_EC_LDN);
+    NT_ASSERT(((PKPH_DYN_HW_SUPERIO_READ)Session->Op->Body)->Ldn == chip->Ldn);
 
     return STATUS_SUCCESS;
 }
@@ -1335,9 +1246,7 @@ NTSTATUS KphpHwSuperIoRead(
     RtlZeroMemory(&session, sizeof(session));
 
     chassisType = KphGetHardwareChassisType();
-    port = (Slot ? KPH_HW_SUPERIO_PORT_SLOT1 : KPH_HW_SUPERIO_PORT_SLOT0);
-
-    families = KphDynHwSuperIoFamilies(Section, Slot, chassisType);
+    families = KphDynHwSuperIoFamilies(Section, Slot, chassisType, &port);
     if (!families)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1349,6 +1258,8 @@ NTSTATUS KphpHwSuperIoRead(
         status = STATUS_NOT_FOUND;
         goto Exit;
     }
+
+    NT_ASSERT(port);
 
     order[0] = KphpHwSuperIoHint[Slot];
     order[1] = KPH_DYN_HW_SUPERIO_FAMILY_ITE;
@@ -1485,7 +1396,7 @@ Exit:
 /**
  * \brief Reads a batch of allow-listed SuperIO hardware monitor registers.
  *
- * \param[in] Slot The configuration port slot: 0 for 2Eh/2Fh, 1 for 4Eh/4Fh.
+ * \param[in] Slot The configuration port slot; its rows name the port.
  * \param[in] OpIndex The index of the superio_read op among those of the chip.
  * \param[in] Count The number of entries, zero to only identify the chip.
  * \param[in,out] Entries The batch entries.

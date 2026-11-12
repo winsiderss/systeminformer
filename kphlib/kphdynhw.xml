@@ -3562,7 +3562,10 @@ This file is part of System Informer.
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0x7c,0x7d,0x7f"
              ldn="0x0a"
+             require-active="false"
              desc="SMSC SCH3112/SCH3114/SCH3116; alarms 41h/42h/83h stay out">
+        <id reg="0x3e" value="0x5c" desc="company ID 3Eh"/>
+        <id reg="0x3d" value="0x8c" desc="device ID 3Dh"/>
         <read reg="0x20" length="0xe" desc="in0-in4 20h-24h, temperatures 25h-27h, fan counts 28h-2Dh"/>
         <read reg="0x30" length="0x3" desc="PWM duty 30h-32h"/>
         <read reg="0x3d" length="0x2" desc="device ID 3Dh (8Ch), company ID 3Eh (5Ch)"/>
@@ -3576,7 +3579,10 @@ This file is part of System Informer.
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0x86"
              ldn="0x0a"
+             require-active="false"
              desc="SMSC SCH5127; alarms 41h/42h/83h stay out">
+        <id reg="0x3e" value="0x5c" desc="company ID 3Eh"/>
+        <id reg="0x3d" value="0x8e" desc="device ID 3Dh"/>
         <read reg="0x1f" length="0xf" desc="in7 1Fh, in0-in4 20h-24h, temperatures 25h-27h, fan counts 28h-2Dh"/>
         <read reg="0x30" length="0x3" desc="PWM duty 30h-32h"/>
         <read reg="0x3d" length="0x2" desc="device ID 3Dh (8Eh), company ID 3Eh (5Ch)"/>
@@ -3587,12 +3593,14 @@ This file is part of System Informer.
 
     <superio slots="0,1"
              family="nuvoton"
-             vendor="0xfe"
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0xc450"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6102D/NCT6104D/NCT6106D">
+        <id reg="0x80fe" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x00fe" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x00fe" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x80fe" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0000" length="0x1c" desc="voltage inputs 00h-05h, 07h-09h (8 mV/LSB); temperatures 10h-15h, half-degree bits 16h/1Bh; monitor temperatures 18h-1Ah"/>
@@ -3622,12 +3630,14 @@ This file is part of System Informer.
 
     <superio slots="0,1"
              family="nuvoton"
-             vendor="0xfe"
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0xd280"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6112D/NCT6114D/NCT6116D, NCT6126D">
+        <id reg="0x80fe" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x00fe" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x00fe" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x80fe" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0000" length="0x1c" desc="voltage inputs 00h-05h, 07h-09h (8 mV/LSB); temperatures 10h-15h, half-degree bits 16h/1Bh; monitor temperatures 18h-1Ah"/>
@@ -3666,7 +3676,10 @@ This file is part of System Informer.
              chips="0xb470"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6775F">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3706,7 +3719,10 @@ This file is part of System Informer.
              chips="0xc330"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6776D/F">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3744,7 +3760,10 @@ This file is part of System Informer.
              chips="0xc560"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6779D">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3793,7 +3812,10 @@ This file is part of System Informer.
              chips="0xc800,0xc910,0xd120,0xd350,0xd420,0xd450"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6791D through NCT6797D">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3846,7 +3868,10 @@ This file is part of System Informer.
              chips="0xd428"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6798D">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3904,7 +3929,10 @@ This file is part of System Informer.
              chips="0xd800"
              mask="0xfff8"
              ldn="0x0b"
+             bank-mask="0xff"
              desc="NCT6799D, NCT6701D (D806h)">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0001" length="0x1" desc="REG_PWM_READ 01h"/>
@@ -3967,7 +3995,10 @@ This file is part of System Informer.
              chips="0x8850,0x8860,0xa020,0xb070,0xa230,0xa510,0xb350"
              mask="0xfff0"
              ldn="0x0b"
+             bank-mask="0x87"
              desc="W83627EHF/EHG/DHG/DHG-P/UHG, W83667HG/HG-B">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
         <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
         <read reg="0x0000" length="0x18" desc="SmartFan 00h-17h: PWM duty 01h/03h/11h, mode 04h/12h, targets, stop/start, step"/>
@@ -3991,6 +4022,7 @@ This file is part of System Informer.
              mask="0xfff0"
              customers="0x0805,0x0a0e,0x0200,0x0201,0x0207,0x020d,0x162b,0x0e2c,0x0e1b,0x1631,0x163e,0x1621,0x1633,0x163d"
              ldn="0x0b"
+             customer-reg="0x602"
              desc="NCT668x">
         <read reg="0x0100" length="0x40" desc="MON registers 100h-13Fh, 2 bytes each: temperatures 100h-114h, voltages 120h-13Fh"/>
         <read reg="0x0140" length="0x20" desc="fan RPM 140h + 2x (incl. NCT6687DR 144h, 154h-15Eh)"/>
@@ -4014,6 +4046,7 @@ This file is part of System Informer.
              chips="0x8705,0x8712,0x8716,0x8718,0x8720,0x8721,0x8726,0x8728,0x8732,0x8771,0x8772,0x8781,0x8782,0x8783,0x8786,0x8603,0x8613,0x8620,0x8622,0x8623,0x8625,0x8628,0x8631,0x8638,0x8655,0x8665,0x8686,0x8688,0x8689,0x8696,0x8698,0x8606,0x8607,0x8736,0x8738,0x8785"
              ldn="0x04"
              desc="IT87xx">
+        <id reg="0x58" value="0x90" alt="0x7f" desc="HWM vendor ID 58h"/>
         <read reg="0x00" length="0x1" desc="CONFIG 00h (bit 4 chassis intrusion)"/>
         <read reg="0x06" length="0x1" desc="bank select 06h, bits 6:5 (read only; a non-zero bank swaps 10h-AFh)"/>
         <read reg="0x0b" length="0x5" desc="fan divisor 0Bh, 16-bit enable 0Ch, fan 1-3 low 0Dh-0Fh"/>
@@ -4036,6 +4069,7 @@ This file is part of System Informer.
              ldn="0x04"
              exit="none"
              desc="IT87xx left in configuration mode">
+        <id reg="0x58" value="0x90" alt="0x7f" desc="HWM vendor ID 58h"/>
         <read reg="0x00" length="0x1" desc="CONFIG 00h (bit 4 chassis intrusion)"/>
         <read reg="0x06" length="0x1" desc="bank select 06h, bits 6:5 (read only; a non-zero bank swaps 10h-AFh)"/>
         <read reg="0x0b" length="0x5" desc="fan divisor 0Bh, 16-bit enable 0Ch, fan 1-3 low 0Dh-0Fh"/>
@@ -4056,6 +4090,7 @@ This file is part of System Informer.
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0x0901,0x1001,0x0601,0x1106,0x0814,0x1007,0x0541,0x0723,0x0909,0x1005,0x0581,0x1210,0x0704,0x1010,0x1806,0x1502"
              ldn="0x04"
+             config-id="0x23:0x1934"
              desc="Fintek F718xx/F818xx">
         <read reg="0x01" length="0x1" desc="start/status 01h (powered down, activated)"/>
         <read reg="0x20" length="0xb" desc="voltages 20h-2Ah, 8 mV/LSB"/>
@@ -4073,6 +4108,7 @@ This file is part of System Informer.
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0x0507,0x0903"
              ldn="0x02"
+             config-id="0x23:0x1934"
              desc="Fintek F71858FG and F71858AD, 16-bit temperatures">
         <read reg="0x01" length="0x1" desc="start/status 01h (powered down, activated)"/>
         <read reg="0x20" length="0xb" desc="voltages 20h-2Ah, 8 mV/LSB"/>

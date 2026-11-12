@@ -117,7 +117,8 @@ _Must_inspect_result_
 ULONG KphDynHwSuperIoFamilies(
     _In_ PKPH_DYN_HW_SECTION Section,
     _In_ UCHAR Slot,
-    _In_ UCHAR ChassisType
+    _In_ UCHAR ChassisType,
+    _Out_ PUSHORT ConfigPort
     );
 
 _Must_inspect_result_
@@ -127,6 +128,16 @@ BOOLEAN KphDynHwSuperIoChipKnown(
     _In_ UCHAR Family,
     _In_ USHORT ChipId,
     _In_ UCHAR ChassisType
+    );
+
+_Must_inspect_result_
+NTSTATUS KphDynHwFindSuperIoChipOp(
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _In_ UCHAR Slot,
+    _In_ UCHAR VendorFamily,
+    _In_ USHORT ChipId,
+    _In_ UCHAR ChassisType,
+    _Outptr_ PKPH_DYN_HW_OP* Op
     );
 
 _Must_inspect_result_
