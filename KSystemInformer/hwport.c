@@ -15,9 +15,6 @@
 
 #include <trace.h>
 
-#define KPH_HW_PORT_FCH_PM_INDEX            0xCD6
-#define KPH_HW_PORT_FCH_PM_DATA             0xCD7
-
 typedef union _KPH_HW_PORT_SIGNATURE
 {
     struct
@@ -33,29 +30,6 @@ C_ASSERT(sizeof(KPH_HW_PORT_SIGNATURE) == sizeof(ULONG));
 KPH_PAGED_FILE();
 
 #if defined(_M_X64)
-
-/**
- * \brief Retrieves the ports of a compiled port pair.
- *
- * \param[in] PortPair The pair (KPH_DYN_HW_PORT_PAIR_*).
- * \param[out] IndexPort Receives the index port.
- * \param[out] DataPort Receives the data port.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphHwPortPairPorts(
-    _In_ UCHAR PortPair,
-    _Out_ PUSHORT IndexPort,
-    _Out_ PUSHORT DataPort
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(PortPair == KPH_DYN_HW_PORT_PAIR_FCH_PM);
-    UNREFERENCED_PARAMETER(PortPair);
-
-    *IndexPort = KPH_HW_PORT_FCH_PM_INDEX;
-    *DataPort = KPH_HW_PORT_FCH_PM_DATA;
-}
 
 /**
  * \brief Validates batch entries against a port_indirect_read op.
@@ -126,13 +100,13 @@ VOID KphpHwPortReadIndirect(
 {
     UCHAR original;
     UCHAR written;
-    BOOLEAN moved;
+    NTSTATUS stopped;
 
     KPH_PAGED_CODE_PASSIVE();
 
     original = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)IndexPort);
     written = original;
-    moved = FALSE;
+    stopped = STATUS_SUCCESS;
 
     for (ULONG i = 0; i < Count; i++)
     {
@@ -145,33 +119,54 @@ VOID KphpHwPortReadIndirect(
             continue;
         }
 
-        entry->Status = STATUS_RETRY;
-
-        if (moved)
+        if (!NT_SUCCESS(stopped))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
-                          "Port index 0x%02lx not started: the index moved",
-                          (ULONG)entry->Index);
+                          "Port index 0x%02lx not started: %!STATUS!",
+                          (ULONG)entry->Index,
+                          stopped);
 
+            entry->Status = stopped;
             continue;
         }
+
+        entry->Status = STATUS_RETRY;
 
         for (ULONG attempt = 0; attempt < 2; attempt++)
         {
             UCHAR value;
+            UCHAR index;
 
             WRITE_PORT_UCHAR((PUCHAR)(ULONG_PTR)IndexPort, entry->Index);
             written = entry->Index;
 
             value = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)DataPort);
 
-            if (READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)IndexPort) == entry->Index)
+            index = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)IndexPort);
+            if (index == MAXUCHAR)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "Port 0x%04lx reads FFh: not decoded",
+                              (ULONG)IndexPort);
+
+                entry->Status = STATUS_DEVICE_NOT_READY;
+                break;
+            }
+
+            if (index == entry->Index)
             {
                 entry->Value = value;
                 entry->Status = STATUS_SUCCESS;
                 break;
             }
+        }
+
+        if (entry->Status == STATUS_DEVICE_NOT_READY)
+        {
+            stopped = STATUS_DEVICE_NOT_READY;
+            continue;
         }
 
         if (entry->Status != STATUS_SUCCESS)
@@ -181,7 +176,7 @@ VOID KphpHwPortReadIndirect(
                           "Port index 0x%02lx moved during the read",
                           (ULONG)entry->Index);
 
-            moved = TRUE;
+            stopped = STATUS_RETRY;
         }
     }
 
@@ -235,7 +230,7 @@ BOOLEAN KphpHwPortSignatureMatches(
 #endif
 
 /**
- * \brief Reads a batch of allow-listed registers through a compiled port pair.
+ * \brief Reads a batch of allow-listed registers through the port pair.
  *
  * \param[in] Locator The locator of the function proving the pair.
  * \param[in] OpIndex The index among the function's port_indirect_read ops.
@@ -262,8 +257,7 @@ NTSTATUS KphHwReadPortIndirectBatch(
     PKPH_HW_PORT_INDIRECT_BATCH_ENTRY entries;
     PKPH_DYN dyn;
     PKPH_DYN_HW_OP op;
-    USHORT indexPort;
-    USHORT dataPort;
+    PKPH_DYN_HW_PORT_INDIRECT_READ port;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -341,13 +335,11 @@ NTSTATUS KphHwReadPortIndirectBatch(
         goto Exit;
     }
 
-    KphHwPortPairPorts(((PKPH_DYN_HW_PORT_INDIRECT_READ)op->Body)->PortPair,
-                       &indexPort,
-                       &dataPort);
+    port = (PKPH_DYN_HW_PORT_INDIRECT_READ)op->Body;
 
     KphHwAcquireIsaLock();
 
-    KphpHwPortReadIndirect(indexPort, dataPort, Count, entries);
+    KphpHwPortReadIndirect(port->IndexPort, port->DataPort, Count, entries);
 
     KphHwReleaseIsaLock();
 

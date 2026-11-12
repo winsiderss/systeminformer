@@ -541,6 +541,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_SMBUS_PORTS                  ((UCHAR){{DynDataHw.SmbusPorts}})
 #define KPH_DYN_HW_SMBUS_PM_PORT_PAIR           ((UCHAR){{DynDataHw.SmbusPmPortPair}})
 #define KPH_DYN_HW_SMBUS_PM_MMIO                ((UCHAR){{DynDataHw.SmbusPmMmio}})
+#define KPH_DYN_HW_SMBUS_FLAG_READ_ONLY         ((UCHAR)0x{{DynDataHw.SmbusHostFlagSelectReadOnly:X2}})
 
 #define KPH_DYN_HW_VSEC_DISCOVERY_PMT_TELEMETRY ((UCHAR){{DynDataHw.VsecDiscoveryPmtTelemetry}})
 #define KPH_DYN_HW_VSEC_DISCOVERY_TPMI          ((UCHAR){{DynDataHw.VsecDiscoveryTpmi}})
@@ -565,7 +566,6 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_SMU_TABLE_MAX_VERSIONS       ((UCHAR){{DynDataHw.SmuTableMaxVersions}})
 #define KPH_DYN_HW_SMU_TABLE_MAX_SIZE           ((ULONG)0x{{DynDataHw.SmuTableMaxSize:X}})
 
-#define KPH_DYN_HW_PORT_PAIR_FCH_PM             ((UCHAR){{DynDataHw.PortPairFchPm}})
 #define KPH_DYN_HW_PORT_INDEX_END               ((ULONG)0x{{DynDataHw.PortIndexEnd:X}})
 
 #define KPH_DYN_HW_ACPI_ID_LENGTH               ((ULONG){{DynDataHw.AcpiIdSize}})
@@ -972,11 +972,12 @@ typedef const KPH_DYN_HW_SYSREG_READ* PCKPH_DYN_HW_SYSREG_READ;
 
 typedef struct _KPH_DYN_HW_PORT_INDIRECT_READ
 {
-    UCHAR PortPair; // KPH_DYN_HW_PORT_PAIR_*
+    UCHAR Reserved;
     UCHAR PinDevice;
     UCHAR PinFunction;
     UCHAR RangeCount;
-    UCHAR Reserved[4];
+    USHORT IndexPort;
+    USHORT DataPort;
     // KPH_DYN_HW_RANGE Ranges[RangeCount];
 } KPH_DYN_HW_PORT_INDIRECT_READ, *PKPH_DYN_HW_PORT_INDIRECT_READ;
 typedef const KPH_DYN_HW_PORT_INDIRECT_READ* PCKPH_DYN_HW_PORT_INDIRECT_READ;
@@ -984,7 +985,7 @@ typedef const KPH_DYN_HW_PORT_INDIRECT_READ* PCKPH_DYN_HW_PORT_INDIRECT_READ;
 typedef struct _KPH_DYN_HW_SMBUS_HOST
 {
     UCHAR PmAccess; // KPH_DYN_HW_SMBUS_PM_*
-    UCHAR PortPair; // KPH_DYN_HW_PORT_PAIR_*
+    UCHAR Flags; // KPH_DYN_HW_SMBUS_FLAG_*
     UCHAR PmLength;
     UCHAR DecodeLow;
     UCHAR DecodeHigh;
@@ -996,8 +997,12 @@ typedef struct _KPH_DYN_HW_SMBUS_HOST
     UCHAR SelectChooseMask;
     UCHAR SelectMask;
     UCHAR SelectShift;
-    UCHAR Reserved[2];
-    ULONG64 PmBase; // MMIO access
+    UCHAR GateRegister;
+    UCHAR GateMask;
+    ULONG64 PmBase;
+    USHORT IndexPort;
+    USHORT DataPort;
+    UCHAR Reserved[4];
 } KPH_DYN_HW_SMBUS_HOST, *PKPH_DYN_HW_SMBUS_HOST;
 typedef const KPH_DYN_HW_SMBUS_HOST* PCKPH_DYN_HW_SMBUS_HOST;
 

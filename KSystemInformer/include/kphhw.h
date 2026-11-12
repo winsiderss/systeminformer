@@ -517,15 +517,6 @@ NTSTATUS KphHwReadPlatformWindowBatch(
 
 // hwport
 
-#if defined(_M_X64)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphHwPortPairPorts(
-    _In_ UCHAR PortPair,
-    _Out_ PUSHORT IndexPort,
-    _Out_ PUSHORT DataPort
-    );
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwReadPortIndirectBatch(

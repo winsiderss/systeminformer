@@ -4107,11 +4107,11 @@ This file is part of System Informer.
     <pci vendor="0x1022"
          device="0x790b"
          desc="FCH SMBus controller: KERNCZ">
-        <smbus-host revisions="0x00-0x48" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x00-0x48" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x2c,0x2d" base-mask="0xffe0" enable-mask="0x01"
                     select="0x02" select-mask="0x18"
                     desc="SB800 decode at PM 2Ch/2Dh, port select PM 02h [4:3]"/>
-        <smbus-host revisions="0x49-0x50" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x49-0x50" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x00,0x01" base-mask="0xff00" enable-mask="0x10"
                     select="0x02" select-mask="0x18"
                     desc="KERNCZ decode at PM 00h/01h, port select PM 02h [4:3]"/>
@@ -4138,15 +4138,15 @@ This file is part of System Informer.
     <pci vendor="0x1022"
          device="0x780b"
          desc="FCH SMBus controller: Hudson-2/Bolton; DDR3-era, no DDR5 PMIC">
-        <smbus-host revisions="0x00-0x1e" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x00-0x1e" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x2c,0x2d" base-mask="0xffe0" enable-mask="0x01"
                     select="0x2e" select-mask="0x06"
                     desc="SB800 decode, port select PM 2Eh [2:1]"/>
-        <smbus-host revisions="0x1f-0x40" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x1f-0x40" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x2c,0x2d" base-mask="0xffe0" enable-mask="0x01"
                     select="0x02" select-mask="0x18"
                     desc="SB800 decode, port select PM 02h [4:3]"/>
-        <smbus-host revisions="0x41-0xff" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x41-0xff" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x00,0x01" base-mask="0xff00" enable-mask="0x10"
                     select="0x02" select-mask="0x18"
                     desc="KERNCZ decode and port select; the line is discontinued"/>
@@ -4161,7 +4161,7 @@ This file is part of System Informer.
     <pci vendor="0x1d94"
          device="0x790b"
          desc="Hygon FCH SMBus controller">
-        <smbus-host revisions="0x49-0x59" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x49-0x59" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x00,0x01" base-mask="0xff00" enable-mask="0x10"
                     select="0x02" select-mask="0x18"
                     desc="KERNCZ decode and port select through CD6h/CD7h; above 49h, the Zen 1 die reports 59h"/>
@@ -4184,7 +4184,7 @@ This file is part of System Informer.
     <pci vendor="0x1002"
          device="0x4385"
          desc="ATI SB800/SB900 SMBus controller; DDR3-era, no DDR5 PMIC">
-        <smbus-host revisions="0x40-0xff" pm="pair" pair="fch-pm"
+        <smbus-host revisions="0x40-0xff" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x2c,0x2d" base-mask="0xffe0" enable-mask="0x01"
                     select="0x2c" select-mask="0x06" select-alternate="0x2e" select-choose="0x2f:0x01"
                     desc="SB800 decode, port select PM 2Ch [2:1], or 2Eh when PM 2Fh bit 0 is set; below 40h is not SB800; the line is discontinued"/>

@@ -203,13 +203,13 @@ namespace CustomBuildTool
         public const UInt16 KindSysregRead = 11;
 
         /// <summary>
-        /// The data selects a port pair compiled into the driver, never a port.
+        /// The row names an index/data port pair of <see cref="IoPortPairs"/>.
         /// </summary>
         public const UInt16 KindPortIndirectRead = 12;
         /// <summary>
-        /// AMD FCH PM, index CD6h and data CD7h.
+        /// The index/data I/O port pairs a portindirect or smbus-host may name: AMD FCH PM, index CD6h and data CD7h.
         /// </summary>
-        public const byte PortPairFchPm = 1;
+        public static readonly (UInt16 Index, UInt16 Data)[] IoPortPairs = [(0xCD6, 0xCD7)];
         /// <summary>
         /// Exclusive; an undecoded pair reads FFh.
         /// </summary>
@@ -535,13 +535,19 @@ namespace CustomBuildTool
         /// </summary>
         public const byte SmbusPorts = 4;
         /// <summary>
-        /// The PM registers of an smbus_host through a port pair compiled into the driver.
+        /// The PM registers of an smbus_host through the index/data port pair the row names; optionally a mapped view
+        /// behind a gate read through the pair.
         /// </summary>
         public const byte SmbusPmPortPair = 1;
         /// <summary>
         /// The PM registers of an smbus_host in a fixed MMIO block, mapped for the request.
         /// </summary>
         public const byte SmbusPmMmio = 2;
+        /// <summary>
+        /// The port select register must not be written.
+        /// </summary>
+        public const byte SmbusHostFlagSelectReadOnly = 0x01;
+        public const byte SmbusHostFlagMask = SmbusHostFlagSelectReadOnly;
         /// <summary>
         /// The PCI revision ID, byte 08h of the configuration header.
         /// </summary>
@@ -576,20 +582,41 @@ namespace CustomBuildTool
         /// </summary>
         public static unsafe string SmbusHostError(HwSmbusHost Host)
         {
-            UInt32 registerEnd = Host.PmAccess == SmbusPmMmio ? Host.PmLength : PortIndexEnd;
+            UInt32 registerEnd = Host.PmLength != 0 ? Host.PmLength : PortIndexEnd;
             int portMask = (SmbusPorts - 1) << Host.SelectShift;
             UInt64 pmBase = Host.PmBase;
             UInt64 pmEnd = Host.PmBase + Host.PmLength;
+            bool view = Host.PmBase != 0 || Host.PmLength != 0 || Host.GateMask != 0;
 
-            if (Host.PmAccess == SmbusPmPortPair ? (Host.PortPair == 0 || Host.PmLength != 0 || Host.PmBase != 0) :
-                Host.PmAccess == SmbusPmMmio ? (Host.PortPair != 0 || Host.PmLength == 0 || Host.PmBase == 0) : true)
-                return $"PM access {Host.PmAccess} has the fields of another access";
-            if (Host.PmAccess == SmbusPmMmio && !SmbusPmMmioBlocks.Any(block => pmBase >= block.Base && pmEnd <= block.Base + block.Size))
+            if (Host.PmAccess == SmbusPmPortPair)
+            {
+                if (!IoPortPairs.Contains((Host.IndexPort, Host.DataPort)))
+                    return $"index port 0x{Host.IndexPort:x} / data port 0x{Host.DataPort:x} is not a pair of DynDataHw.IoPortPairs";
+                if (view && (Host.PmBase == 0 || Host.PmLength == 0 || Host.GateMask == 0))
+                    return "a mapped view needs base, length and enable together";
+                if (!view && Host.GateRegister != 0)
+                    return "an enable register without a mapped view";
+            }
+            else if (Host.PmAccess == SmbusPmMmio)
+            {
+                if (Host.IndexPort != 0 || Host.DataPort != 0 || Host.GateRegister != 0 || Host.GateMask != 0)
+                    return "a mapped layout has no ports and no enable gate";
+                if (Host.PmLength == 0 || Host.PmBase == 0)
+                    return "a mapped layout needs base and length";
+            }
+            else
+            {
+                return $"PM access {Host.PmAccess} is unknown";
+            }
+
+            if ((Host.Flags & ~SmbusHostFlagMask) != 0)
+                return $"flags 0x{Host.Flags:x2} unknown";
+            if (Host.PmBase != 0 && !SmbusPmMmioBlocks.Any(block => pmBase >= block.Base && pmEnd <= block.Base + block.Size))
                 return $"PM MMIO 0x{Host.PmBase:x} length 0x{Host.PmLength:x} is not inside a DynDataHw.SmbusPmMmioBlocks block";
-            if (Host.PmAccess == SmbusPmMmio && (pmBase & ~0xFFFul) != ((pmEnd - 1) & ~0xFFFul))
+            if (Host.PmBase != 0 && (pmBase & ~0xFFFul) != ((pmEnd - 1) & ~0xFFFul))
                 return $"PM MMIO 0x{Host.PmBase:x} length 0x{Host.PmLength:x} crosses a page";
             if (Host.DecodeLow >= registerEnd || Host.DecodeHigh >= registerEnd || Host.Select >= registerEnd ||
-                Host.SelectAlternate >= registerEnd || Host.SelectChoose >= registerEnd)
+                Host.SelectAlternate >= registerEnd || Host.SelectChoose >= registerEnd || Host.GateRegister >= registerEnd)
                 return "a PM register is outside the PM registers";
             if (Host.DecodeLow == Host.DecodeHigh)
                 return "decode names one register twice";
@@ -601,7 +628,7 @@ namespace CustomBuildTool
                 return $"select-mask 0x{Host.SelectMask:x2} is not exactly the {SmbusPorts} ports";
             if (Host.SelectChooseMask == 0 ? (Host.SelectChoose != 0 || Host.SelectAlternate != 0) : Host.SelectAlternate == Host.Select)
                 return "select-choose has no alternate, or an alternate without select-choose";
-            if (Host.Reserved[0] != 0 || Host.Reserved[1] != 0)
+            if (Host.Reserved[0] != 0 || Host.Reserved[1] != 0 || Host.Reserved[2] != 0 || Host.Reserved[3] != 0)
                 return "reserved bytes are non-zero";
 
             return null;
@@ -887,7 +914,7 @@ namespace CustomBuildTool
         public const int AcpiEvalSize = 16;
         public const int SysregReadSize = 12;
         public const int PortIndirectReadSize = 8;
-        public const int SmbusHostSize = 24;
+        public const int SmbusHostSize = 32;
         public const int SectionSize = 12;
         public const int TableSize = 4;
 
@@ -905,8 +932,7 @@ namespace CustomBuildTool
             MailboxTransports: [MailboxTransportSmnPair, MailboxTransportMmioWindow],
             SmuTableBounds: [SmuTableBoundAmdDram],
             SysregRegisters: [SysregMidr, SysregMpidr, SysregRevidr, SysregIdAa64Pfr0, SysregIdAa64Pfr1, SysregIdAa64Dfr0, SysregCntfrq, SysregCntvct,
-                              SysregPmccntr, SysregAmcfgr, SysregAmcgcr, SysregAmcntenset0, SysregAmevcntr00, SysregAmevcntr01, SysregAmevcntr02, SysregAmevcntr03],
-            PortPairs: [PortPairFchPm]
+                              SysregPmccntr, SysregAmcfgr, SysregAmcgcr, SysregAmcntenset0, SysregAmevcntr00, SysregAmevcntr01, SysregAmevcntr02, SysregAmevcntr03]
         );
 
         private static readonly FrozenDictionary<byte, string> IdentityKindNames = new Dictionary<byte, string>
@@ -1075,8 +1101,9 @@ namespace CustomBuildTool
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "PinDevice", 1),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "PinFunction", 2),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "RangeCount", 3),
-            FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "Reserved", 4),
-            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "PortPair", 1),
+            FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "IndexPort", 4),
+            FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "DataPort", 6),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "Flags", 1),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "PmLength", 2),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "DecodeLow", 3),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "DecodeHigh", 4),
@@ -1088,8 +1115,12 @@ namespace CustomBuildTool
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "SelectChooseMask", 11),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "SelectMask", 12),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "SelectShift", 13),
-            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "Reserved", 14),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "GateRegister", 14),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "GateMask", 15),
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "PmBase", 16),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "IndexPort", 24),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "DataPort", 26),
+            FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "Reserved", 28),
             FieldOffset<HwSectionHeader>("KPH_DYN_HW_SECTION", "Length", 4),
             FieldOffset<HwSectionHeader>("KPH_DYN_HW_SECTION", "Count", 8),
         ];
@@ -1472,13 +1503,14 @@ namespace CustomBuildTool
         /// The KPH_DYN_HW_PORT_INDIRECT_READ header; ranges follow.
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public unsafe struct HwPortIndirectRead
+        public struct HwPortIndirectRead
         {
-            public byte PortPair;
+            public byte Reserved;
             public byte PinDevice;
             public byte PinFunction;
             public byte RangeCount;
-            public fixed byte Reserved[4];
+            public UInt16 IndexPort;
+            public UInt16 DataPort;
         }
 
         /// <summary>
@@ -1488,7 +1520,7 @@ namespace CustomBuildTool
         public unsafe struct HwSmbusHost
         {
             public byte PmAccess;
-            public byte PortPair;
+            public byte Flags;
             public byte PmLength;
             public byte DecodeLow;
             public byte DecodeHigh;
@@ -1500,8 +1532,12 @@ namespace CustomBuildTool
             public byte SelectChooseMask;
             public byte SelectMask;
             public byte SelectShift;
-            public fixed byte Reserved[2];
+            public byte GateRegister;
+            public byte GateMask;
             public UInt64 PmBase;
+            public UInt16 IndexPort;
+            public UInt16 DataPort;
+            public fixed byte Reserved[4];
         }
 
         /// <summary>
@@ -1626,7 +1662,7 @@ namespace CustomBuildTool
     /// <summary>
     /// The kinds, families, transports, shapes, registers and port pairs a driver implements.
     /// </summary>
-    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] SmuTableBounds,byte[] SysregRegisters, byte[] PortPairs);
+    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] SmuTableBounds, byte[] SysregRegisters);
 
     /// <summary>
     /// An index row: an exact identity and its op table.
@@ -1671,9 +1707,10 @@ namespace CustomBuildTool
         private static readonly string[] ArmAttributes = ["implementer", "parts", "variants", "revisions", "name", "desc"];
         private static readonly string[] SysregAttributes = ["reg", "readmask", "gate", "desc"];
         private static readonly string[] BoardAttributes = ["smbios", "manufacturer", "product", "name", "desc"];
-        private static readonly string[] PortIndirectAttributes = ["pair", "name", "desc"];
-        private static readonly string[] SmbusHostAttributes = ["revisions", "pm", "pair", "base", "length", "decode", "base-mask", "enable-mask",
-                                                                "select", "select-mask", "select-alternate", "select-choose", "name", "desc"];
+        private static readonly string[] PortIndirectAttributes = ["index-port", "data-port", "name", "desc"];
+        private static readonly string[] SmbusHostAttributes = ["revisions", "pm", "index-port", "data-port", "base", "length", "enable", "decode", "base-mask",
+                                                                "enable-mask", "select", "select-mask", "select-alternate", "select-choose", "select-write",
+                                                                "name", "desc"];
         private static readonly string[] PortIndirectReadAttributes = ["index", "length", "desc"];
 
         private enum WindowPlacement
@@ -3188,17 +3225,10 @@ namespace CustomBuildTool
                 PinFunction = (byte)(Loaded.DevFn & 7)
             };
 
-            switch (RequiredAttribute(Context, Port, "pair"))
-            {
-            case "fch-pm":
-                if (Loaded.VendorId != 0x1022)
-                    throw Context.Error(Port, "pair=\"fch-pm\" is an AMD FCH pair (vendor 0x1022)");
+            if (Loaded.VendorId != 0x1022)
+                throw Context.Error(Port, "<portindirect> is an AMD FCH pair (vendor 0x1022)");
 
-                body.PortPair = DynDataHw.PortPairFchPm;
-                break;
-            default:
-                throw Context.Error(Port, "pair must be \"fch-pm\"");
-            }
+            (body.IndexPort, body.DataPort) = ParsePortPair(Context, Port);
 
             var ranges = new List<DynDataHw.HwRange>();
 
@@ -3400,39 +3430,55 @@ namespace CustomBuildTool
             };
 
             var body = new DynDataHw.HwSmbusHost();
-            UInt32 registerEnd;
+            UInt32 registerEnd = DynDataHw.PortIndexEnd;
+            string viewBase = OptionalAttribute(Host, "base");
+            string viewLength = OptionalAttribute(Host, "length");
+            string enable = OptionalAttribute(Host, "enable");
+
+            void ParseView()
+            {
+                UInt64 pmBase = ParseHex(Context, Host, "base", RequiredAttribute(Context, Host, "base"), UInt32.MaxValue);
+                UInt64 pmLength = ParseHex(Context, Host, "length", RequiredAttribute(Context, Host, "length"), byte.MaxValue);
+
+                if (pmBase == 0 || pmLength == 0)
+                    throw Context.Error(Host, "base and length must be non-zero");
+
+                body.PmLength = (byte)pmLength;
+                body.PmBase = pmBase;
+                registerEnd = (UInt32)pmLength;
+            }
 
             switch (RequiredAttribute(Context, Host, "pm"))
             {
             case "pair":
-                if (OptionalAttribute(Host, "base") != null || OptionalAttribute(Host, "length") != null)
-                    throw Context.Error(Host, "base and length are only for pm=\"mmio\"");
-                if (RequiredAttribute(Context, Host, "pair") != "fch-pm")
-                    throw Context.Error(Host, "pair must be \"fch-pm\"");
-
                 body.PmAccess = DynDataHw.SmbusPmPortPair;
-                body.PortPair = DynDataHw.PortPairFchPm;
-                registerEnd = DynDataHw.PortIndexEnd;
+                (body.IndexPort, body.DataPort) = ParsePortPair(Context, Host);
+
+                if ((viewBase != null) != (viewLength != null) || (viewBase != null) != (enable != null))
+                    throw Context.Error(Host, "a mapped view for pm=\"pair\" needs base, length and enable together");
+                if (viewBase != null)
+                    ParseView();
                 break;
             case "mmio":
-                {
-                    if (OptionalAttribute(Host, "pair") != null)
-                        throw Context.Error(Host, "pair is only for pm=\"pair\"");
+                if (OptionalAttribute(Host, "index-port") != null || OptionalAttribute(Host, "data-port") != null || enable != null)
+                    throw Context.Error(Host, "index-port, data-port and enable are only for pm=\"pair\"");
 
-                    UInt64 pmBase = ParseHex(Context, Host, "base", RequiredAttribute(Context, Host, "base"), UInt32.MaxValue);
-                    UInt64 pmLength = ParseHex(Context, Host, "length", RequiredAttribute(Context, Host, "length"), byte.MaxValue);
-
-                    if (pmBase == 0 || pmLength == 0)
-                        throw Context.Error(Host, "base and length must be non-zero");
-
-                    body.PmAccess = DynDataHw.SmbusPmMmio;
-                    body.PmLength = (byte)pmLength;
-                    body.PmBase = pmBase;
-                    registerEnd = (UInt32)pmLength;
-                }
+                body.PmAccess = DynDataHw.SmbusPmMmio;
+                ParseView();
                 break;
             default:
                 throw Context.Error(Host, "pm must be \"pair\" or \"mmio\"");
+            }
+
+            switch (OptionalAttribute(Host, "select-write") ?? "true")
+            {
+            case "true":
+                break;
+            case "false":
+                body.Flags |= DynDataHw.SmbusHostFlagSelectReadOnly;
+                break;
+            default:
+                throw Context.Error(Host, "select-write must be \"true\" or \"false\"");
             }
 
             byte Register(string Name, string Text)
@@ -3476,6 +3522,20 @@ namespace CustomBuildTool
                 body.SelectAlternate = Register("select-alternate", alternate);
                 body.SelectChoose = Register("select-choose", parts[0]);
                 body.SelectChooseMask = (byte)ParseHex(Context, Host, "select-choose", parts[1].Trim(), byte.MaxValue);
+            }
+
+            if (enable != null)
+            {
+                string[] parts = enable.Split(':');
+
+                if (parts.Length != 2)
+                    throw Context.Error(Host, "enable must be \"0xREGISTER:0xMASK\"");
+
+                body.GateRegister = Register("enable", parts[0]);
+                body.GateMask = (byte)ParseHex(Context, Host, "enable", parts[1].Trim(), byte.MaxValue);
+
+                if (body.GateMask == 0)
+                    throw Context.Error(Host, "enable mask is zero");
             }
 
             string error = DynDataHw.SmbusHostError(body);
@@ -4548,6 +4608,20 @@ namespace CustomBuildTool
 
             return ((byte)ParseDecimal(Context, Element, "pin device", parts[0], 0, 31),
                     (byte)ParseDecimal(Context, Element, "pin function", parts[1], 0, 7));
+        }
+
+        /// <summary>
+        /// Parses the required index-port and data-port of an element; the two must be a pair of DynDataHw.IoPortPairs.
+        /// </summary>
+        private static (UInt16 Index, UInt16 Data) ParsePortPair(LoadContext Context, XElement Element)
+        {
+            UInt16 index = (UInt16)ParseHex(Context, Element, "index-port", RequiredAttribute(Context, Element, "index-port"), UInt16.MaxValue);
+            UInt16 data = (UInt16)ParseHex(Context, Element, "data-port", RequiredAttribute(Context, Element, "data-port"), UInt16.MaxValue);
+
+            if (!DynDataHw.IoPortPairs.Contains((index, data)))
+                throw Context.Error(Element, $"index-port 0x{index:x} / data-port 0x{data:x} is not a pair of DynDataHw.IoPortPairs");
+
+            return (index, data);
         }
 
         /// <summary>
@@ -5710,7 +5784,7 @@ namespace CustomBuildTool
                     var port = MemoryMarshal.Read<DynDataHw.HwPortIndirectRead>(body);
 
                     if (pciVendor != 0x1022)
-                        throw Fail($"row {Index} port_indirect_read pair {port.PortPair} is on PCI vendor 0x{pciVendor:x4}, not an AMD FCH (0x1022)");
+                        throw Fail($"row {Index} port_indirect_read 0x{port.IndexPort:x}/0x{port.DataPort:x} is on PCI vendor 0x{pciVendor:x4}, not an AMD FCH (0x1022)");
 
                     CheckPin("port_indirect_read", port.PinDevice, port.PinFunction);
                 }
@@ -6069,9 +6143,6 @@ namespace CustomBuildTool
 
                 if (op.Length != DynDataHw.OpHeaderSize + DynDataHw.SmbusHostSize)
                     throw Fail("smbus_host op length is not its body");
-                if (host.PmAccess == DynDataHw.SmbusPmPortPair && !DynDataHw.DriverKinds.PortPairs.Contains(host.PortPair))
-                    throw Fail($"smbus_host pair {host.PortPair} is not implemented by the driver");
-
                 string error = DynDataHw.SmbusHostError(host);
 
                 if (error != null)
@@ -6770,13 +6841,13 @@ namespace CustomBuildTool
         {
             var port = MemoryMarshal.Read<DynDataHw.HwPortIndirectRead>(Body);
 
-            if (!DynDataHw.DriverKinds.PortPairs.Contains(port.PortPair))
-                throw Fail($"port_indirect_read pair {port.PortPair} is not implemented by the driver");
+            if (!DynDataHw.IoPortPairs.Contains((port.IndexPort, port.DataPort)))
+                throw Fail($"port_indirect_read index port 0x{port.IndexPort:x} / data port 0x{port.DataPort:x} is not a pair of DynDataHw.IoPortPairs");
             if (port.RangeCount > DynDataHw.MaxRanges)
                 throw Fail($"port_indirect_read has {port.RangeCount} ranges, cap {DynDataHw.MaxRanges}");
             if (DynDataHw.PortIndirectReadSize + port.RangeCount * DynDataHw.RangeSize > Body.Length)
                 throw Fail("port_indirect_read ranges overrun the op");
-            if (port.PinDevice > 31 || port.PinFunction > 7 || port.RangeCount < 1 || Body[4..DynDataHw.PortIndirectReadSize].ContainsAnyExcept((byte)0))
+            if (port.PinDevice > 31 || port.PinFunction > 7 || port.RangeCount < 1 || port.Reserved != 0)
                 throw Fail("port_indirect_read has a bad pin, no range or non-zero reserved bytes");
 
             for (int i = 0; i < port.RangeCount; i++)
