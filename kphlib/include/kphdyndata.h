@@ -30,7 +30,7 @@ _Must_inspect_result_
 NTSTATUS KphDynDataLookupHardware(
     _In_reads_bytes_(Length) PKPH_DYN_CONFIG Config,
     _In_ ULONG Length,
-    _Outptr_result_maybenull_ PKPH_DYN_HW_SECTION* Section,
+    _Outptr_ PKPH_DYN_HW_SECTION* Section,
     _Out_ PULONG SectionLength
     );
 
