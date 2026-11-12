@@ -557,6 +557,26 @@ This file is part of System Informer.
                 <read offset="0x5994" length="0x8" width="4" desc="RP_STATE_LIMITS [7:0]; RP_STATE_CAP: RP0 [7:0], RP1 [15:8], RPn [23:16]"/>
             </window>
         </pci>
+        <pci vendor="0x8086" device="0x5a02,0x5a04" desc="Host bridge (Cannon Lake); command rate omitted, its offset differs between the 14 nm and 10 nm layouts">
+            <window base="config" offset="0x48" width="8" mask="0x7fffff8000" enable="0" size="0x8000" desc="MCHBAR, 32 KiB">
+                <read offset="0x5040" length="0xc" width="4" desc="IMC GT/IA/IO request counters, free-running"/>
+                <read offset="0x5050" length="0x8" width="4" desc="IMC DRAM data reads/writes, 64 B units"/>
+                <read offset="0x58e0" length="0x10" width="4" desc="DRAM RAPL limit/energy/perf mirror"/>
+                <read offset="0x5930" length="0x10" width="4" desc="package power info/unit/energy mirror"/>
+                <read offset="0x59a0" length="0x8" width="4" desc="package PL1/PL2 limit mirror, the active MMIO limit"/>
+                <read offset="0x5978" length="0xc" width="4" desc="package/PP0/PP1 temperature [7:0]"/>
+                <read offset="0x599c" length="0x4" width="4" desc="TjMax [23:16]"/>
+                <read offset="0x5e00" length="0x8" width="4" desc="MC_BIOS_REQ/MC_BIOS_DATA, memory clock ratio/ref/gear"/>
+                <read offset="0x4000" length="0x4" width="4" desc="MC0 ch0 TC_PRE: tRP/tRCD, tRAS"/>
+                <read offset="0x4070" length="0x4" width="4" desc="MC0 ch0 TC_ODT: tCL"/>
+                <read offset="0x423c" length="0x4" width="4" desc="MC0 ch0 TC_RFTP: tRFC"/>
+                <read offset="0x4400" length="0x4" width="4" desc="MC0 ch1 TC_PRE: tRP/tRCD, tRAS"/>
+                <read offset="0x4470" length="0x4" width="4" desc="MC0 ch1 TC_ODT: tCL"/>
+                <read offset="0x463c" length="0x4" width="4" desc="MC0 ch1 TC_RFTP: tRFC"/>
+                <read offset="0x5948" length="0x4" width="4" desc="GT_PERF_STATUS: render VID [7:0], ratio [15:8] (gen9+ [16:8])"/>
+                <read offset="0x5994" length="0x8" width="4" desc="RP_STATE_LIMITS [7:0]; RP_STATE_CAP: RP0 [7:0], RP1 [15:8], RPn [23:16]"/>
+            </window>
+        </pci>
         <pci vendor="0x8086" device="0x1903,0x3e83,0x5a03" desc="Processor thermal">
             <window base="bar" bar="0" size="0x8000" require-d0="true" desc="PCU MMIO mirror">
                 <read offset="0x5820" length="0x4" width="4" desc="thermal thresholds: T0 [14:8], T1 [22:16] below TjMax, interrupt enables [15], [23]"/>
