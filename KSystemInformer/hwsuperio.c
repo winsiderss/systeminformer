@@ -73,6 +73,7 @@ typedef struct _KPH_HW_SUPERIO_SESSION
     BOOLEAN BankRead;
     UCHAR OriginalBank;
     UCHAR Bank;
+    BOOLEAN Contended;
     ULONG64 Deadline;
     UCHAR ChassisType;
 } KPH_HW_SUPERIO_SESSION, *PKPH_HW_SUPERIO_SESSION;
@@ -691,6 +692,7 @@ NTSTATUS KphpHwSuperIoConfigure(
                       (ULONG)ldn,
                       (ULONG)base);
 
+        Session->Contended = TRUE;
         status = STATUS_RETRY;
         goto Exit;
     }
@@ -737,12 +739,43 @@ NTSTATUS KphpHwSuperIoConfigure(
 
 Exit:
 
-    if (ldnSelected && !Session->Entered && (originalLdn != ldn))
+    if (ldnSelected && !Session->Contended && (originalLdn != ldn))
     {
-        KphpHwSuperIoWriteConfig(Session, KPH_HW_SUPERIO_CR_LDN, originalLdn);
+        UCHAR current;
+
+        current = KphpHwSuperIoReadConfig(Session, KPH_HW_SUPERIO_CR_LDN);
+        if (current == ldn)
+        {
+            KphpHwSuperIoWriteConfig(Session,
+                                     KPH_HW_SUPERIO_CR_LDN,
+                                     originalLdn);
+        }
+        else
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SuperIO LDN 0x%02lx selected, not 0x%02lx: "
+                          "LDN 0x%02lx not restored",
+                          (ULONG)current,
+                          (ULONG)ldn,
+                          (ULONG)originalLdn);
+
+            Session->Contended = TRUE;
+        }
     }
 
-    if (identified)
+    if (Session->Contended)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SuperIO slot %lu contended, not exiting configuration: "
+                      "%!STATUS!",
+                      (ULONG)Session->Slot,
+                      status);
+
+        status = STATUS_RETRY;
+    }
+    else if (identified)
     {
         KphpHwSuperIoExit(Session, exitKind);
     }
@@ -755,7 +788,8 @@ Exit:
 }
 
 /**
- * \brief Ends hardware monitor access, restoring the original bank.
+ * \brief Ends hardware monitor access, restoring the original bank while the
+ * session's bank is still selected.
  *
  * \param[in,out] Session The session.
  */
@@ -766,18 +800,38 @@ VOID KphpHwSuperIoEndMonitor(
 {
     ULONG index;
     ULONG data;
+    UCHAR current;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (Session->BankRead && (Session->Bank != Session->OriginalBank))
+    if (!Session->BankRead ||
+        (Session->Bank == Session->OriginalBank) ||
+        Session->Contended)
     {
-        index = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_INDEX);
-        data = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_DATA);
-
-        KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
-        KphpHwSuperIoOut(data, Session->OriginalBank);
-        Session->Bank = Session->OriginalBank;
+        return;
     }
+
+    index = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_INDEX);
+    data = ((ULONG)Session->Base + KPH_HW_SUPERIO_HWM_DATA);
+
+    KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
+
+    current = KphpHwSuperIoIn(data);
+    if (current != Session->Bank)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SuperIO bank 0x%02lx selected, not 0x%02lx: "
+                      "bank 0x%02lx not restored",
+                      (ULONG)current,
+                      (ULONG)Session->Bank,
+                      (ULONG)Session->OriginalBank);
+
+        return;
+    }
+
+    KphpHwSuperIoOut(data, Session->OriginalBank);
+    Session->Bank = Session->OriginalBank;
 }
 
 /**
@@ -826,7 +880,23 @@ NTSTATUS KphpHwSuperIoReadMonitor(
 
             if (bank != Session->Bank)
             {
+                UCHAR current;
+
                 KphpHwSuperIoOut(index, KPH_HW_SUPERIO_NUVOTON_BANK);
+
+                current = KphpHwSuperIoIn(data);
+                if (current != Session->Bank)
+                {
+                    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                                  HARDWARE,
+                                  "SuperIO bank 0x%02lx selected, not 0x%02lx",
+                                  (ULONG)current,
+                                  (ULONG)Session->Bank);
+
+                    Session->Contended = TRUE;
+                    return STATUS_RETRY;
+                }
+
                 KphpHwSuperIoOut(data, bank);
                 Session->Bank = bank;
             }
@@ -1303,11 +1373,12 @@ NTSTATUS KphpHwSuperIoRead(
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "SuperIO slot %lu chip 0x%04lx failed the vendor "
-                      "check",
+                      "check, contended %!bool!",
                       (ULONG)Slot,
-                      (ULONG)session.ChipId);
+                      (ULONG)session.ChipId,
+                      session.Contended);
 
-        status = STATUS_NOT_FOUND;
+        status = (session.Contended ? STATUS_RETRY : STATUS_NOT_FOUND);
         goto Exit;
     }
 
@@ -1315,6 +1386,12 @@ NTSTATUS KphpHwSuperIoRead(
     {
         if (Entries[i].Status != STATUS_PENDING)
         {
+            continue;
+        }
+
+        if (session.Contended)
+        {
+            Entries[i].Status = STATUS_RETRY;
             continue;
         }
 
