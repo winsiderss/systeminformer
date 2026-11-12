@@ -349,11 +349,11 @@ PULONG KphpHwMailboxMapped(
 }
 
 /**
- * \brief Reads RSP or an argument register of a mailbox.
+ * \brief Reads MSG, RSP or an argument register of a mailbox.
  *
  * \param[in] Session The mailbox session.
- * \param[in] Register KphpHwMailboxRsp or KphpHwMailboxArg.
- * \param[in] Index The argument register, below ArgCount; zero for RSP.
+ * \param[in] Register The register.
+ * \param[in] Index The argument register, below ArgCount; zero otherwise.
  * \param[out] Value Receives the register value.
  *
  * \return Successful or errant status.
@@ -371,7 +371,6 @@ NTSTATUS KphpHwMailboxRead(
     ULONG address;
 
     KPH_PAGED_CODE_PASSIVE();
-    NT_ASSERT(Register != KphpHwMailboxMsg);
 
     address = KphpHwMailboxAddress(Session, Register, Index);
 
@@ -685,6 +684,170 @@ NTSTATUS KphpHwMailboxRestoreIdle(
 }
 
 /**
+ * \brief Writes MSG; a write whose landing is unproven is resolved by reading
+ * MSG before and after it, and repeated only when proven not to have landed.
+ *
+ * \param[in] Session The mailbox session.
+ * \param[in] Deadline The deadline of the request.
+ * \param[in] Opcode The opcode.
+ *
+ * \return STATUS_SUCCESS when MSG may hold the opcode; STATUS_RETRY when the
+ * opcode was not posted; otherwise errant status and MSG may have been
+ * written.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwMailboxLock)
+_Must_inspect_result_
+NTSTATUS KphpHwMailboxPostMsg(
+    _In_ PKPH_HW_MAILBOX_SESSION Session,
+    _In_ ULONG64 Deadline,
+    _In_ ULONG Opcode
+    )
+{
+    NTSTATUS status;
+    NTSTATUS beforeStatus;
+    ULONG before;
+    ULONG after;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Session->Transport != KPH_DYN_HW_MAILBOX_TRANSPORT_SMN_PAIR)
+    {
+        return KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+    }
+
+    before = 0;
+
+    beforeStatus = KphpHwMailboxRead(Session, KphpHwMailboxMsg, 0, &before);
+    if (!NT_SUCCESS(beforeStatus))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx MSG not read before opcode 0x%02lx: "
+                      "%!STATUS!",
+                      Session->Msg,
+                      Opcode,
+                      beforeStatus);
+    }
+
+    for (;;)
+    {
+        status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+        if (status == STATUS_RETRY)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG not issued",
+                          Session->Msg,
+                          Opcode);
+
+            status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+        }
+
+        if (status == STATUS_RETRY)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG not issued twice",
+                          Session->Msg,
+                          Opcode);
+
+            return STATUS_RETRY;
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            return STATUS_SUCCESS;
+        }
+
+        if (status != STATUS_DEVICE_DATA_ERROR)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwMailboxWrite failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        if (!NT_SUCCESS(beforeStatus))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG issued, landing "
+                          "unresolved",
+                          Session->Msg,
+                          Opcode);
+
+            return STATUS_SUCCESS;
+        }
+
+        after = 0;
+
+        status = KphpHwMailboxRead(Session, KphpHwMailboxMsg, 0, &after);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG issued, not read "
+                          "back: %!STATUS!",
+                          Session->Msg,
+                          Opcode,
+                          status);
+
+            return STATUS_SUCCESS;
+        }
+
+        if ((after == Opcode) && (before != Opcode))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG landed",
+                          Session->Msg,
+                          Opcode);
+
+            return STATUS_SUCCESS;
+        }
+
+        if ((after != before) || (after == Opcode))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG landing "
+                          "unresolved: before 0x%08lx after 0x%08lx",
+                          Session->Msg,
+                          Opcode,
+                          before,
+                          after);
+
+            return STATUS_SUCCESS;
+        }
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx opcode 0x%02lx MSG not landed, holds "
+                      "0x%08lx",
+                      Session->Msg,
+                      Opcode,
+                      after);
+
+        if (KphHwDeadlinePassed(Deadline))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx opcode 0x%02lx MSG not landed by "
+                          "the deadline",
+                          Session->Msg,
+                          Opcode);
+
+            return STATUS_RETRY;
+        }
+
+        KphpHwMailboxDelay(1);
+    }
+}
+
+/**
  * \brief Runs one mailbox command.
  *
  * \details Another agent's command in flight (RSP zero) is never written over.
@@ -794,23 +957,12 @@ NTSTATUS KphpHwMailboxTransact(
         }
     }
 
-    status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
+    status = KphpHwMailboxPostMsg(Session, Deadline, Opcode);
     if (status == STATUS_RETRY)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Mailbox 0x%08lx opcode 0x%02lx MSG not issued",
-                      Session->Msg,
-                      Opcode);
-
-        status = KphpHwMailboxWrite(Session, KphpHwMailboxMsg, 0, Opcode);
-    }
-
-    if (status == STATUS_RETRY)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Mailbox 0x%08lx opcode 0x%02lx MSG not issued twice",
+                      "Mailbox 0x%08lx opcode 0x%02lx not posted",
                       Session->Msg,
                       Opcode);
 
@@ -822,20 +974,11 @@ NTSTATUS KphpHwMailboxTransact(
     //
     restoreIdle = FALSE;
 
-    if (status == STATUS_DEVICE_DATA_ERROR)
+    if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Mailbox 0x%08lx opcode 0x%02lx MSG issued, landing "
-                      "unproven",
-                      Session->Msg,
-                      Opcode);
-    }
-    else if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphpHwMailboxWrite failed: %!STATUS!",
+                      "KphpHwMailboxPostMsg failed: %!STATUS!",
                       status);
 
         goto Exit;
