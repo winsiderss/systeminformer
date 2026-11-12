@@ -253,6 +253,104 @@ Exit:
 }
 
 /**
+ * \brief Modifies a PM register through the port pair of the layout in one
+ * hold of the pair. The index is checked before and after every data access;
+ * once it has moved nothing more is written.
+ *
+ * \param[in] Session The session, PM open through a port pair.
+ * \param[in] Register The PM register.
+ * \param[in] Mask The bits of the register to modify.
+ * \param[in] Bits The new value of the bits in Mask.
+ * \param[out] Value Receives the register as read back after the write.
+ *
+ * \return TRUE on success, FALSE if the index moved.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpHwSmbusPmPortModify(
+    _In_ PKPH_HW_SMBUS_SESSION Session,
+    _In_ UCHAR Register,
+    _In_ UCHAR Mask,
+    _In_ UCHAR Bits,
+    _Out_ PUCHAR Value
+    )
+{
+    BOOLEAN result;
+    USHORT indexPort;
+    USHORT dataPort;
+    UCHAR original;
+    UCHAR old;
+    UCHAR value;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->Layout->PmAccess == KPH_DYN_HW_SMBUS_PM_PORT_PAIR);
+
+    *Value = 0;
+    result = FALSE;
+
+    KphHwPortPairPorts(Session->Layout->PortPair, &indexPort, &dataPort);
+
+    KphHwAcquireIsaLock();
+
+    original = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort);
+    WRITE_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort, Register);
+    if (READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort) != Register)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM index 0x%02lx moved during modify",
+                      (ULONG)Register);
+
+        goto Exit;
+    }
+
+    old = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)dataPort);
+    if (READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort) != Register)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM index 0x%02lx moved during modify",
+                      (ULONG)Register);
+
+        goto Exit;
+    }
+
+    WRITE_PORT_UCHAR((PUCHAR)(ULONG_PTR)dataPort,
+                     (UCHAR)((old & ~Mask) | (Bits & Mask)));
+    if (READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort) != Register)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM index 0x%02lx moved during modify",
+                      (ULONG)Register);
+
+        goto Exit;
+    }
+
+    value = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)dataPort);
+    if (READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort) != Register)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM index 0x%02lx moved during modify",
+                      (ULONG)Register);
+
+        goto Exit;
+    }
+
+    WRITE_PORT_UCHAR((PUCHAR)(ULONG_PTR)indexPort, original);
+
+    *Value = value;
+    result = TRUE;
+
+Exit:
+
+    KphHwReleaseIsaLock();
+
+    return result;
+}
+
+/**
  * \brief Reads a PM register.
  *
  * \param[in] Session The session, PM open.
@@ -403,34 +501,72 @@ NTSTATUS KphpHwSmbusSelectPort(
     _In_ UCHAR Port
     )
 {
+    UCHAR mask;
+    UCHAR bits;
     UCHAR select;
     UCHAR check;
 
     KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->PmOpen);
 
-    if (!KphpHwSmbusPmIn(Session, Session->PmSelect, &select))
+    mask = Session->Layout->SelectMask;
+    bits = (UCHAR)((Port << Session->Layout->SelectShift) & mask);
+
+    if (Session->Pm)
     {
-        return STATUS_RETRY;
+        if (!KphpHwSmbusPmIn(Session, Session->PmSelect, &select))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus PM 0x%02lx not read",
+                          (ULONG)Session->PmSelect);
+
+            return STATUS_RETRY;
+        }
+
+        select = (UCHAR)((select & ~mask) | bits);
+
+        if (!KphpHwSmbusPmOut(Session, Session->PmSelect, select))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus PM 0x%02lx not written",
+                          (ULONG)Session->PmSelect);
+
+            return STATUS_RETRY;
+        }
+
+        if (!KphpHwSmbusPmIn(Session, Session->PmSelect, &check))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus PM 0x%02lx not read back",
+                          (ULONG)Session->PmSelect);
+
+            return STATUS_RETRY;
+        }
     }
-
-    select = (UCHAR)((select & ~Session->Layout->SelectMask) |
-                     ((Port << Session->Layout->SelectShift) &
-                      Session->Layout->SelectMask));
-
-    if (!KphpHwSmbusPmOut(Session, Session->PmSelect, select) ||
-        !KphpHwSmbusPmIn(Session, Session->PmSelect, &check))
-    {
-        return STATUS_RETRY;
-    }
-
-    if (((check ^ select) & Session->Layout->SelectMask) != 0)
+    else if (!KphpHwSmbusPmPortModify(Session,
+                                      Session->PmSelect,
+                                      mask,
+                                      bits,
+                                      &check))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "SMBus PM 0x%02lx read back 0x%02lx, wrote 0x%02lx",
+                      "KphpHwSmbusPmPortModify failed");
+
+        return STATUS_RETRY;
+    }
+
+    if ((check & mask) != bits)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM 0x%02lx read back 0x%02lx, wrote bits 0x%02lx",
                       (ULONG)Session->PmSelect,
                       (ULONG)check,
-                      (ULONG)select);
+                      (ULONG)bits);
 
         return STATUS_RETRY;
     }
@@ -822,29 +958,94 @@ NTSTATUS KphpHwSmbusAcquire(
 }
 
 /**
+ * \brief Restores the original PM port select while the session's port is
+ * still selected; another agent's selection is left alone.
+ *
+ * \param[in] Session The session, host owned, port changed.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusRestorePort(
+    _In_ PKPH_HW_SMBUS_SESSION Session
+    )
+{
+    NTSTATUS status;
+    UCHAR select;
+    UCHAR port;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->PortChanged);
+
+    if (!KphpHwSmbusPmIn(Session, Session->PmSelect, &select))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus port select not read at release");
+
+        return STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
+
+    port = (UCHAR)((select & Session->Layout->SelectMask) >>
+                   Session->Layout->SelectShift);
+
+    if (port != Session->Port)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus port %lu selected, not the session's %lu: "
+                      "port %lu not restored",
+                      (ULONG)port,
+                      (ULONG)Session->Port,
+                      (ULONG)Session->OriginalPort);
+
+        return STATUS_SUCCESS;
+    }
+
+    status = KphpHwSmbusSelectPort(Session, Session->OriginalPort);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus port %lu not restored: %!STATUS!",
+                      (ULONG)Session->OriginalPort,
+                      status);
+
+        return STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Restores the PM port select and releases the host.
  *
  * \param[in,out] Session The session, host owned.
+ *
+ * \return Successful or errant status; the host is released either way.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpHwSmbusRelease(
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusRelease(
     _Inout_ PKPH_HW_SMBUS_SESSION Session
     )
 {
+    NTSTATUS status;
+
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Session->Owned);
 
+    status = STATUS_SUCCESS;
+
     if (Session->PortChanged)
     {
-        NTSTATUS status;
-
-        status = KphpHwSmbusSelectPort(Session, Session->OriginalPort);
+        status = KphpHwSmbusRestorePort(Session);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
-                          "SMBus port 0x%02lx not restored: %!STATUS!",
-                          (ULONG)Session->OriginalPort,
+                          "KphpHwSmbusRestorePort failed: %!STATUS!",
                           status);
         }
 
@@ -872,6 +1073,8 @@ VOID KphpHwSmbusRelease(
     }
 
     Session->Owned = FALSE;
+
+    return status;
 }
 
 /**
@@ -1240,6 +1443,87 @@ BOOLEAN KphpHwSmbusHostUnchanged(
 }
 
 /**
+ * \brief Confirms that the host still decodes the session's base, a PIIX4
+ * mux still selects the session's port, and the host controller is unchanged.
+ *
+ * \param[in] Session The session, host owned.
+ * \param[in] Locator The locator of the host controller.
+ * \param[in] Section The hardware section.
+ * \param[in] OpIndex The index of the smbus_read op of the controller.
+ * \param[in] Op The op the host was opened with.
+ * \param[in] Host The configuration registers the host was opened with.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(KphpHwSmbusLock)
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusConfirm(
+    _In_ PKPH_HW_SMBUS_SESSION Session,
+    _In_ PKPH_HW_PCI_LOCATOR Locator,
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _In_ ULONG OpIndex,
+    _In_ PKPH_DYN_HW_OP Op,
+    _In_ PKPH_HW_SMBUS_HOST Host
+    )
+{
+    NTSTATUS status;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Session->HostKind == KPH_DYN_HW_SMBUS_HOST_PIIX4)
+    {
+        UCHAR select;
+        UCHAR port;
+
+        status = KphpHwSmbusPmCheck(Session);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwSmbusPmCheck failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        if (!KphpHwSmbusPmIn(Session, Session->PmSelect, &select))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus port select not read at confirm");
+
+            return STATUS_RETRY;
+        }
+
+        port = (UCHAR)((select & Session->Layout->SelectMask) >>
+                       Session->Layout->SelectShift);
+
+        if (port != Session->Port)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus port %lu selected, session port %lu",
+                          (ULONG)port,
+                          (ULONG)Session->Port);
+
+            return STATUS_DEVICE_NOT_READY;
+        }
+    }
+
+    if (!KphpHwSmbusHostUnchanged(Locator, Section, OpIndex, Op, Host))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus host controller changed");
+
+        return STATUS_DEVICE_NOT_READY;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Runs a batch of read transactions on an SMBus host controller.
  *
  * \param[in] Locator The locator of the host controller.
@@ -1367,14 +1651,12 @@ NTSTATUS KphpHwSmbusRead(
                                             &entry->Value);
     }
 
-    status = KphpHwSmbusPmCheck(&session);
-
-    if (NT_SUCCESS(status) &&
-        !KphpHwSmbusHostUnchanged(Locator, Section, OpIndex, op, &host))
-    {
-        status = STATUS_DEVICE_NOT_READY;
-    }
-
+    status = KphpHwSmbusConfirm(&session,
+                                Locator,
+                                Section,
+                                OpIndex,
+                                op,
+                                &host);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1398,7 +1680,21 @@ Exit:
 
     if (session.Owned)
     {
-        KphpHwSmbusRelease(&session);
+        NTSTATUS releaseStatus;
+
+        releaseStatus = KphpHwSmbusRelease(&session);
+        if (!NT_SUCCESS(releaseStatus))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwSmbusRelease failed: %!STATUS!",
+                          releaseStatus);
+
+            if ((status == STATUS_SUCCESS) || (status == STATUS_RETRY))
+            {
+                status = releaseStatus;
+            }
+        }
     }
 
     KphpHwSmbusCloseHost(&session);
