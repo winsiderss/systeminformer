@@ -599,8 +599,16 @@ static ULONG PhpHwProbeRetryTicks = 0;
 static BOOLEAN PhpHwNoDataTraced = FALSE;
 static KPH_HW_CAPABILITIES PhpHwProbeCapabilities;
 
+typedef enum _PHP_HW_CPU_CLASS
+{
+    PhpHwCpuNone, // ARM64, or a processor the provider does not serve
+    PhpHwCpuIntel,
+    PhpHwCpuAmdZen, // AuthenticAMD or HygonGenuine, family 17h and later
+    PhpHwCpuAmdLegacy // AuthenticAMD, families 10h to 16h
+} PHP_HW_CPU_CLASS;
+
 static PH_CPU_IDENTITY PhpHwIdentity;
-static BOOLEAN PhpHwIntel = FALSE;
+static PHP_HW_CPU_CLASS PhpHwCpuClass = PhpHwCpuNone;
 static PHP_HW_REGISTER PhpHwRegisters[PhpHwRegMaximum];
 static BOOLEAN PhpHwVoltageSupported = FALSE;
 static FLOAT PhpHwTscMhz = 0.0f;
@@ -1068,18 +1076,12 @@ static BOOLEAN PhpHwInitializeTopology(
         return FALSE;
 
     if (PhCpuIdentityIsIntel(&PhpHwIdentity))
-    {
-        PhpHwIntel = TRUE;
-    }
+        PhpHwCpuClass = PhpHwCpuIntel;
     else if (PhCpuIdentityIsAmd(&PhpHwIdentity))
-    {
-        if (PhpHwIdentity.DisplayFamily < 0x17)
-            return FALSE;
-    }
-    else
-    {
+        PhpHwCpuClass = PhpHwIdentity.DisplayFamily >= 0x17 ? PhpHwCpuAmdZen : PhpHwCpuAmdLegacy;
+
+    if (PhpHwCpuClass != PhpHwCpuIntel && PhpHwCpuClass != PhpHwCpuAmdZen)
         return FALSE;
-    }
 #endif
 
     PhpHwProcessorCount = PhSystemProcessorInformation.NumberOfProcessors;
@@ -1239,7 +1241,7 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegArmFrequency, KPH_DYN_HW_SYSREG_CNTFRQ_EL0, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegArmAmuEnable, KPH_DYN_HW_SYSREG_AMCNTENSET0_EL0, PhpHwScopeThread);
     }
-    else if (PhpHwIntel)
+    else if (PhpHwCpuClass == PhpHwCpuIntel)
     {
         PhpHwSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
@@ -1264,7 +1266,7 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwCoreReadoutMask = PhIntelThermReadoutMask(&PhpHwIdentity, FALSE);
         PhpHwPackageReadoutMask = PhIntelThermReadoutMask(&PhpHwIdentity, TRUE);
     }
-    else
+    else if (PhpHwCpuClass == PhpHwCpuAmdZen)
     {
         PhpHwSetRegister(PhpHwRegAperf, PH_AMD_MSR_APERF_READONLY, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegMperf, PH_AMD_MSR_MPERF_READONLY, PhpHwScopeThread);
@@ -1966,7 +1968,7 @@ static BOOLEAN PhpHwSmnSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    return !PhpHwIntel &&
+    return PhpHwCpuClass == PhpHwCpuAmdZen &&
         FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
         FlagOn(Capabilities->ImplementedKinds, 1ULL << KPH_DYN_HW_KIND_PCI_INDIRECT_READ);
 }
@@ -2215,7 +2217,7 @@ static BOOLEAN PhpHwWindowsSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    return PhpHwIntel &&
+    return PhpHwCpuClass == PhpHwCpuIntel &&
         FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
         FlagOn(Capabilities->ImplementedKinds, 1ULL << KPH_DYN_HW_KIND_WINDOW_READ);
 }
@@ -3404,7 +3406,7 @@ static BOOLEAN PhpHwSendSmbusBatch(
     if (!PhpHwDimmSessionCurrent(RequestId))
         return FALSE;
 
-    status = KphHwReadSmbusBatch(Locator, OpIndex, Entries, Count, !PhpHwIntel, PhTimeoutFromMilliseconds(&timeout, PHP_HW_SMBUS_TIMEOUT_MS));
+    status = KphHwReadSmbusBatch(Locator, OpIndex, Entries, Count, PhpHwCpuClass != PhpHwCpuIntel, PhTimeoutFromMilliseconds(&timeout, PHP_HW_SMBUS_TIMEOUT_MS));
 
     for (ULONG i = 0; i < Count; i++)
     {
@@ -4921,7 +4923,7 @@ static BOOLEAN PhpHwSmuSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    return !PhpHwIntel &&
+    return PhpHwCpuClass == PhpHwCpuAmdZen &&
         FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
         FlagOn(Capabilities->ImplementedKinds, (1ULL << KPH_DYN_HW_KIND_MAILBOX_TRANSACT) | (1ULL << KPH_DYN_HW_KIND_SMU_TABLE_READ));
 }
@@ -9117,7 +9119,7 @@ static BOOLEAN PhpHwTpmiSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    return PhpHwIntel &&
+    return PhpHwCpuClass == PhpHwCpuIntel &&
         FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
         FlagOn(Capabilities->ImplementedKinds, 1ULL << KPH_DYN_HW_KIND_VSEC_READ);
 }
@@ -10148,7 +10150,7 @@ static VOID PhpHwRefreshCapabilities(
             capabilities |= PH_HW_CAP_ACTIVE_CLOCK;
 
             // The AMD multiplier is derived from the active clock.
-            if (!PhpHwIntel)
+            if (PhpHwCpuClass == PhpHwCpuAmdZen)
                 capabilities |= PH_HW_CAP_MULTIPLIER;
         }
     }
@@ -10358,7 +10360,7 @@ static VOID PhpHwProbeDecode(
     )
 {
     PPHP_HW_SAMPLE sample0 = &PhpHwPackages[0].Sample;
-    FLOAT busMhz = (PhpHwIntel && PhpHwIsIntelNehalem()) ? 133.33f : 100.0f;
+    FLOAT busMhz = (PhpHwCpuClass == PhpHwCpuIntel && PhpHwIsIntelNehalem()) ? 133.33f : 100.0f;
     ULONG64 raplUnit = 0;
     BOOLEAN raplUnitValid;
     BOOLEAN tjMax = FALSE;
@@ -10378,7 +10380,7 @@ static VOID PhpHwProbeDecode(
     {
         PhpHwEnergyUnit = PhRaplEnergyUnitJoules(raplUnit, &PhpHwIdentity);
 
-        if (PhpHwIntel)
+        if (PhpHwCpuClass == PhpHwCpuIntel)
         {
             PhpHwDramEnergyUnit = PhIntelRaplDramEnergyUnitJoules(raplUnit, &PhpHwIdentity);
             PhpHwPlatformEnergyUnit = PhIntelRaplPlatformEnergyUnitJoules(raplUnit, &PhpHwIdentity);
@@ -10397,7 +10399,7 @@ static VOID PhpHwProbeDecode(
         package->MsrPowerLimit1 = 0.0f;
         package->MsrPowerLimit2 = 0.0f;
 
-        if (PhpHwIntel)
+        if (PhpHwCpuClass == PhpHwCpuIntel)
         {
             if (PhpHwSampleValue(&package->Sample, PhpHwRegTemperatureTarget, &value))
                 package->TjMax = PhIntelTemperatureTargetTjMax(value);
@@ -10411,7 +10413,7 @@ static VOID PhpHwProbeDecode(
                 PhpHwDecodeMsrPowerLimit(package, value);
             }
         }
-        else
+        else if (PhpHwCpuClass == PhpHwCpuAmdZen)
         {
             // MPERF counts at the P0 frequency.
             if (PhpHwSampleValue(&package->Sample, PhpHwRegPStateDef0, &value))
@@ -10441,11 +10443,11 @@ static VOID PhpHwProbeDecode(
 
         if (PhpHwSampleValue(sample, PhpHwRegPerfStatus, &value))
         {
-            if (PhpHwIntel)
+            if (PhpHwCpuClass == PhpHwCpuIntel)
             {
                 PhpHwVoltageSupported = PhIntelPerfStatusToVolts(value, &PhpHwIdentity) > 0.0f;
             }
-            else
+            else if (PhpHwCpuClass == PhpHwCpuAmdZen)
             {
                 UCHAR vid;
 
@@ -10454,7 +10456,7 @@ static VOID PhpHwProbeDecode(
         }
     }
 
-    if (!PhpHwIntel)
+    if (PhpHwCpuClass == PhpHwCpuAmdZen)
     {
         SYSTEM_PROCESSOR_BRAND_STRING brandString;
 
@@ -10633,7 +10635,7 @@ static BOOLEAN PhpHwLpitSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    return PhpHwIntel &&
+    return PhpHwCpuClass == PhpHwCpuIntel &&
         !PhpHwArm64 &&
         FlagOn(Capabilities->Flags, KPH_HW_CAP_CPU_HAS_ROW) &&
         FlagOn(Capabilities->ImplementedKinds, 1ULL << KPH_DYN_HW_KIND_WINDOW_READ);
@@ -11430,7 +11432,7 @@ static BOOLEAN PhpHwProbeProcessor(
         PhTraceInfo("Hardware sensors: no MSR access, flags 0x%lx kinds 0x%llx", Capabilities->Flags, Capabilities->ImplementedKinds);
 
         // The SMBus and TPMI sensors do not depend on a CPU row.
-        if (!PhpHwIntel)
+        if (PhpHwCpuClass == PhpHwCpuAmdZen)
             return FALSE;
 
         memset(PhpHwRegisters, 0, sizeof(PhpHwRegisters));
@@ -11473,7 +11475,7 @@ static BOOLEAN PhpHwProbeProcessor(
     }
 
     // The read-only APERF/MPERF aliases may fault or read zero under a hypervisor.
-    if (!PhpHwIntel && (
+    if (PhpHwCpuClass == PhpHwCpuAmdZen && (
         !PhpHwSampleValue(&PhpHwProcessorSamples[firstProcessor], PhpHwRegAperf, &aperf) || aperf == 0 ||
         !PhpHwRegisterActive(PhpHwRegMperf)
         ))
@@ -11750,7 +11752,7 @@ static VOID PhpHwDecodeProcessor(
         }
     }
 
-    if (PhpHwIntel)
+    if (PhpHwCpuClass == PhpHwCpuIntel)
     {
         if (PhpHwSampleValue(thread, PhpHwRegPerfStatus, &value))
         {
@@ -11790,7 +11792,7 @@ static VOID PhpHwDecodeProcessor(
             package->TickValid |= PH_HW_CAP_THROTTLE;
         }
     }
-    else
+    else if (PhpHwCpuClass == PhpHwCpuAmdZen)
     {
         // HwPstateStatus reports the requested P-state, not the boosted ratio.
         if ((valid & PH_HW_CAP_ACTIVE_CLOCK) && packageSensor->BusMhz > 0.0f)
@@ -11894,7 +11896,7 @@ static VOID PhpHwDecodePackage(
         valid |= PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_THROTTLE;
         package->TickThrottleFlags |= PhpHwDecodeThrottle(value);
     }
-    else if (PhpHwIntel && (valid & PH_HW_CAP_CORE_TEMP))
+    else if (PhpHwCpuClass == PhpHwCpuIntel && (valid & PH_HW_CAP_CORE_TEMP))
     {
         sensor->Temperature = package->TickMaxCoreTemperature;
         valid |= PH_HW_CAP_PACKAGE_TEMP;
@@ -12115,7 +12117,7 @@ static VOID PhpHwUpdateSensors(
     else
         PhQueryPerformanceCounter(&PhpHwSampleTime);
 
-    if (!PhpHwIntel && !PhpHwArm64)
+    if (PhpHwCpuClass == PhpHwCpuAmdZen)
     {
         for (ULONG i = 0; i < PhpHwCoreCount; i++)
         {
