@@ -3926,8 +3926,15 @@ This file is part of System Informer.
     </pci>
 
     <pci vendor="0x1022"
+         device="0x1204,0x1704,0x1404"
+         desc="Family 10h, 12h/14h and 15h M10h D18F4">
+        <read offset="0x15c" length="0x4" desc="Core Performance Boost control: NumBoostStates [4:2], Family 10h [2]"/>
+    </pci>
+
+    <pci vendor="0x1022"
          device="0x1604,0x141e,0x1574,0x15b4,0x1534,0x1584"
          desc="Family 15h M00h/M30h/M60h/M70h and 16h M00h/M30h D18F4">
+        <read offset="0x15c" length="0x4" desc="Core Performance Boost control: NumBoostStates [4:2]"/>
         <read offset="0x1b8" length="0x4" desc="processor TDP: base TDP [31:16], TDP [15:0]"/>
     </pci>
 
