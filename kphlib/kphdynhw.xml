@@ -4727,6 +4727,54 @@ This file is part of System Informer.
         <sysreg reg="CNTVCT_EL0"/>
         <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
     </arm>
+
+    <arm implementer="0x41"
+         parts="0xd03"
+         variants="0x0"
+         revisions="0x0-0xf"
+         desc="Cortex-A53 r0: Raspberry Pi 3, NXP i.MX 8M">
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
+    </arm>
+
+    <arm implementer="0x41"
+         parts="0xd08"
+         variants="0x0-0x1"
+         revisions="0x0-0xf"
+         desc="Cortex-A72 r0-r1: Raspberry Pi 4">
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
+    </arm>
+
+    <arm implementer="0x41"
+         parts="0xd0b"
+         variants="0x0-0x4"
+         revisions="0x0-0xf"
+         desc="Cortex-A76 r0-r4: Raspberry Pi 5">
+        <sysreg reg="MIDR_EL1"/>
+        <sysreg reg="MPIDR_EL1"/>
+        <sysreg reg="REVIDR_EL1"/>
+        <sysreg reg="ID_AA64PFR0_EL1"/>
+        <sysreg reg="ID_AA64PFR1_EL1"/>
+        <sysreg reg="ID_AA64DFR0_EL1"/>
+        <sysreg reg="CNTFRQ_EL0"/>
+        <sysreg reg="CNTVCT_EL0"/>
+        <sysreg reg="PMCCNTR_EL0" gate="ID_AA64DFR0_EL1:8:4=0x1-0xe" desc="PMUv3"/>
+    </arm>
     <arm implementer="0x41"
          parts="0xd85,0xd87"
          variants="0x0-0x1"
