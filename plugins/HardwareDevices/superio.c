@@ -2446,8 +2446,8 @@ static FLOAT SuperIoFintekRpm(
     _In_ USHORT Count
     )
 {
-    // Counts above 1500000/366 are below the detectable speed (FAN_MIN_DETECT).
-    return Count && Count < 1500000 / 366 ? 1500000.0f / Count : 0;
+    // 366 RPM is the lowest detectable speed (FAN_MIN_DETECT); a stopped fan reads FFFh.
+    return Count && 1500000 / Count > 366 ? 1500000.0f / Count : 0;
 }
 
 static VOID SuperIoDecodeFintek(
