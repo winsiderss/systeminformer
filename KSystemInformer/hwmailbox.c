@@ -905,6 +905,19 @@ NTSTATUS KphpHwMailboxTransact(
     NT_ASSERT(mailbox->ArgCount == Session->ArgCount);
     NT_ASSERT(ResponseWords <= mailbox->ArgCount);
 
+    if (KphHwDeadlinePassed(Deadline))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Mailbox 0x%08lx opcode 0x%02lx not posted: deadline "
+                      "passed",
+                      Session->Msg,
+                      Opcode);
+
+        status = STATUS_RETRY;
+        goto Exit;
+    }
+
     status = KphpHwMailboxWait(Session, Deadline, &response);
     if (status == STATUS_IO_TIMEOUT)
     {
@@ -1576,11 +1589,6 @@ NTSTATUS KphpHwMailboxRunBatch(
         status = KphpHwMailboxPrepareEntry(Op, entry, &command, args);
         if (NT_SUCCESS(status))
         {
-            if (NT_SUCCESS(stopped) && KphHwDeadlinePassed(Deadline))
-            {
-                stopped = STATUS_RETRY;
-            }
-
             if (NT_SUCCESS(stopped) && KphpHwMailboxMoved(Session, Op))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
