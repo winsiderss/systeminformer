@@ -233,7 +233,7 @@ BOOLEAN KSIAPI KphpReapProcessCallback(
 
     UNREFERENCED_PARAMETER(Parameter);
 
-    if (Process->CreateNotification || Process->NumberOfThreads)
+    if (Process->CreateNotification || Process->HadThread)
     {
         return FALSE;
     }
@@ -1197,6 +1197,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
 
         InsertTailList(&thread->ProcessContext->ThreadListHead,
                        &thread->ThreadListEntry);
+        thread->ProcessContext->HadThread = TRUE;
         thread->ProcessContext->NumberOfThreads++;
         thread->InThreadList = TRUE;
         KphReferenceObject(thread);

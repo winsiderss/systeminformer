@@ -2038,6 +2038,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     KPH_RWLOCK ThreadListLock;
     struct _KPH_THREAD_CONTEXT* InitialThread;
+    BOOLEAN HadThread;
     SIZE_T NumberOfThreads;
     LIST_ENTRY ThreadListHead;
     SIZE_T NumberOfUnlinkedThreads;
