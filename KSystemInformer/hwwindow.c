@@ -16,7 +16,6 @@
 #include <trace.h>
 
 #define KPH_HW_WINDOW_SIGNATURE_LPIT        'TIPL'
-#define KPH_HW_WINDOW_ACPI_PROVIDER         'ACPI'
 #define KPH_HW_WINDOW_LPIT_TYPE_NATIVE      0
 #define KPH_HW_WINDOW_LPIT_DISABLED         0x00000001
 #define KPH_HW_WINDOW_LPIT_NO_COUNTER       0x00000002
@@ -29,21 +28,7 @@
 #define KPH_HW_ECAM_BUS_SHIFT               20
 #define KPH_HW_ECAM_DEVICE_SHIFT            15
 #define KPH_HW_ECAM_FUNCTION_SHIFT          12
-
-#define KPH_HW_AMD_MSR_IORR_BASE0           0xC0010016
-#define KPH_HW_AMD_MSR_TOP_MEM              0xC001001A
-#define KPH_HW_AMD_MSR_TOP_MEM2             0xC001001D
-#define KPH_HW_AMD_MSR_SMM_ADDR             0xC0010112
-#define KPH_HW_AMD_MSR_SMM_MASK             0xC0010113
 #define KPH_HW_AMD_IORR_COUNT               2
-#define KPH_HW_AMD_SYSCFG_VAR_DRAM_EN       (1ull << 20)
-#define KPH_HW_AMD_SYSCFG_TOM2_EN           (1ull << 21)
-#define KPH_HW_AMD_TOP_MEM_LOW_BITS         0x7FFFFFull
-#define KPH_HW_AMD_SMM_MASK_TVALID          (1ull << 1)
-#define KPH_HW_AMD_SMM_LOW_BITS             0x1FFFFull
-#define KPH_HW_AMD_IORR_MASK_VALID          (1ull << 11)
-#define KPH_HW_AMD_IORR_BASE_RDMEM          (1ull << 4)
-#define KPH_HW_AMD_IORR_LOW_BITS            0xFFFull
 #define KPH_HW_X86_LEGACY_END               0x100000ull
 #define KPH_HW_4GB                          0x100000000ull
 
@@ -156,7 +141,7 @@ NTSTATUS KphpHwQueryAcpiProvider(
     info = NULL;
 
     RtlZeroMemory(&query, sizeof(query));
-    query.ProviderSignature = KPH_HW_WINDOW_ACPI_PROVIDER;
+    query.ProviderSignature = FIRMWARE_TABLE_PROVIDER_ACPI;
     query.Action = Action;
     query.TableID = TableId;
     query.TableBufferLength = 0;
@@ -221,7 +206,7 @@ NTSTATUS KphpHwQueryAcpiProvider(
         goto Exit;
     }
 
-    info->ProviderSignature = KPH_HW_WINDOW_ACPI_PROVIDER;
+    info->ProviderSignature = FIRMWARE_TABLE_PROVIDER_ACPI;
     info->Action = Action;
     info->TableID = TableId;
     info->TableBufferLength = tableLength;
@@ -1235,7 +1220,7 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SYSCFG, &syscfg))
+    if (!KphpHwWindowReadMsr(MSR_AMD_SYSCFG, &syscfg))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -1246,7 +1231,7 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
         return STATUS_SUCCESS;
     }
 
-    if (!BooleanFlagOn(syscfg, KPH_HW_AMD_SYSCFG_VAR_DRAM_EN))
+    if (!BooleanFlagOn(syscfg, MSR_AMD_SYSCFG_VAR_DRAM_EN))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -1259,7 +1244,7 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
         return STATUS_CONFLICTING_ADDRESSES;
     }
 
-    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_TOP_MEM, &topMem))
+    if (!KphpHwWindowReadMsr(MSR_AMD_TOP_MEM, &topMem))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -1270,7 +1255,7 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
         return STATUS_SUCCESS;
     }
 
-    topMem &= (Limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+    topMem &= (Limit & ~MSR_AMD_TOP_MEM_LOW_BITS);
 
     if (!topMem)
     {
@@ -1285,9 +1270,9 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
 
     inDram = ((Begin >= KPH_HW_X86_LEGACY_END) && (End <= topMem));
 
-    if (!inDram && BooleanFlagOn(syscfg, KPH_HW_AMD_SYSCFG_TOM2_EN))
+    if (!inDram && BooleanFlagOn(syscfg, MSR_AMD_SYSCFG_TOM2_EN))
     {
-        if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_TOP_MEM2, &topMem2))
+        if (!KphpHwWindowReadMsr(MSR_AMD_TOP_MEM2, &topMem2))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -1299,7 +1284,7 @@ NTSTATUS KphpHwWindowCheckAmdTopMem(
             return STATUS_SUCCESS;
         }
 
-        topMem2 &= (Limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+        topMem2 &= (Limit & ~MSR_AMD_TOP_MEM_LOW_BITS);
 
         inDram = ((Begin >= KPH_HW_4GB) && (End <= topMem2));
     }
@@ -1344,8 +1329,8 @@ NTSTATUS KphpHwWindowCheckAmdTseg(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_ADDR, &base) ||
-        !KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_MASK, &mask))
+    if (!KphpHwWindowReadMsr(MSR_AMD_SMM_ADDR, &base) ||
+        !KphpHwWindowReadMsr(MSR_AMD_SMM_MASK, &mask))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -1358,12 +1343,12 @@ NTSTATUS KphpHwWindowCheckAmdTseg(
 
     KphpHwWindowAmdRegion(base,
                           mask,
-                          KPH_HW_AMD_SMM_LOW_BITS,
+                          MSR_AMD_SMM_LOW_BITS,
                           Limit,
                           &regionBegin,
                           &regionEnd);
 
-    if (BooleanFlagOn(mask, KPH_HW_AMD_SMM_MASK_TVALID) &&
+    if (BooleanFlagOn(mask, MSR_AMD_SMM_MASK_TVALID) &&
         (Begin < regionEnd) &&
         (regionBegin < End))
     {
@@ -1407,8 +1392,8 @@ NTSTATUS KphpHwWindowCheckAmdIorr(
 
     for (ULONG i = 0; i < KPH_HW_AMD_IORR_COUNT; i++)
     {
-        if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_IORR_BASE0 + (i * 2), &base) ||
-            !KphpHwWindowReadMsr(KPH_HW_AMD_MSR_IORR_BASE0 + (i * 2) + 1,
+        if (!KphpHwWindowReadMsr(MSR_AMD_IORR_BASE0 + (i * 2), &base) ||
+            !KphpHwWindowReadMsr(MSR_AMD_IORR_BASE0 + (i * 2) + 1,
                                  &mask))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1422,15 +1407,15 @@ NTSTATUS KphpHwWindowCheckAmdIorr(
             continue;
         }
 
-        if (!BooleanFlagOn(mask, KPH_HW_AMD_IORR_MASK_VALID) ||
-            BooleanFlagOn(base, KPH_HW_AMD_IORR_BASE_RDMEM))
+        if (!BooleanFlagOn(mask, MSR_AMD_IORR_MASK_VALID) ||
+            BooleanFlagOn(base, MSR_AMD_IORR_BASE_RDMEM))
         {
             continue;
         }
 
         KphpHwWindowAmdRegion(base,
                               mask,
-                              KPH_HW_AMD_IORR_LOW_BITS,
+                              MSR_AMD_IORR_LOW_BITS,
                               Limit,
                               &regionBegin,
                               &regionEnd);

@@ -57,23 +57,6 @@ typedef union _KPH_CPUID_1
 
 #define KphCpuId(Info, Function, SubFunction)                                  \
     __cpuidex((Info)->Data, Function, SubFunction)
-
-#define KPH_HW_CPU_VENDOR_AMD             "AuthenticAMD"
-#define KPH_HW_CPU_VENDOR_INTEL           "GenuineIntel"
-
-#define KPH_HW_AMD_CPUID_ENCRYPTION       0x8000001F
-#define KPH_HW_AMD_CPUID_SME              (1ul << 0)
-#define KPH_HW_AMD_CPUID_SEV              (1ul << 1)
-#define KPH_HW_AMD_CPUID_REDUCTION_SHIFT  6
-#define KPH_HW_AMD_CPUID_REDUCTION_MASK   0x3F
-#define KPH_HW_AMD_MSR_SYSCFG             0xC0010010
-#define KPH_HW_AMD_SYSCFG_MEM_ENCRYPT     (1ull << 23)
-#define KPH_HW_INTEL_CPUID_FEATURES       0x00000007
-#define KPH_HW_INTEL_CPUID_TME            (1ul << 13)
-#define KPH_HW_INTEL_MSR_TME_ACTIVATE     0x982
-#define KPH_HW_INTEL_TME_LOCKED_ENABLED   0x3ull
-#define KPH_HW_INTEL_TME_KEYID_BITS_SHIFT 32
-#define KPH_HW_INTEL_TME_KEYID_BITS_MASK  0xF
 #endif
 
 typedef struct _KPH_HW_CPU_IDENTITY
@@ -87,6 +70,13 @@ typedef struct _KPH_HW_CPU_IDENTITY
     UCHAR PhysicalAddressBits;
 } KPH_HW_CPU_IDENTITY, *PKPH_HW_CPU_IDENTITY;
 typedef const KPH_HW_CPU_IDENTITY* PCKPH_HW_CPU_IDENTITY;
+
+#if defined(_M_X64)
+C_ASSERT(RTL_FIELD_SIZE(KPH_HW_CPU_IDENTITY, Vendor) ==
+         (sizeof(CPUID_VENDOR_AMD) - sizeof(ANSI_NULL)));
+C_ASSERT(RTL_FIELD_SIZE(KPH_HW_CPU_IDENTITY, Vendor) ==
+         (sizeof(CPUID_VENDOR_INTEL) - sizeof(ANSI_NULL)));
+#endif
 
 #define KPH_HW_ACPI_HEADER_LENGTH 36
 

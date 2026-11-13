@@ -19,8 +19,6 @@ KPH_PAGED_FILE();
 
 #if defined(_M_ARM64)
 
-#define KPH_ARM64_PMUVER_IMPDEF         0xF
-
 typedef union _KPH_ARM64_MIDR
 {
     struct
@@ -599,8 +597,16 @@ VOID KphpHwInitializeSysregCore(
     if (NT_SUCCESS(status))
     {
         dfr0.Value = value;
-        Core->PmuImplemented = ((dfr0.PmuVer >= 1) &&
-                                (dfr0.PmuVer < KPH_ARM64_PMUVER_IMPDEF));
+
+        if ((dfr0.PmuVer >= 1) &&
+            (dfr0.PmuVer < ARM64_ID_AA64DFR0_EL1_PMUVER_IMPDEF))
+        {
+            Core->PmuImplemented = TRUE;
+        }
+        else
+        {
+            Core->PmuImplemented = FALSE;
+        }
     }
     else
     {

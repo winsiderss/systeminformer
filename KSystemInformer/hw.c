@@ -18,7 +18,6 @@
 
 #define KPH_HW_FNV1A64_OFFSET_BASIS 0xcbf29ce484222325ull
 #define KPH_HW_FNV1A64_PRIME        0x00000100000001b3ull
-#define KPH_HW_SMBIOS_PROVIDER      'RSMB'
 #define KPH_HW_ENUMERATE_STACK      16
 #define KPH_HW_ENUMERATE_SLACK      8
 
@@ -277,7 +276,7 @@ VOID KphpHwInitializeBoardIdentity(
     chassisFound = FALSE;
 
     RtlZeroMemory(&query, sizeof(query));
-    query.ProviderSignature = KPH_HW_SMBIOS_PROVIDER;
+    query.ProviderSignature = FIRMWARE_TABLE_PROVIDER_SMBIOS;
     query.Action = SystemFirmwareTable_Get;
     query.TableID = 0;
     query.TableBufferLength = 0;
@@ -333,7 +332,7 @@ VOID KphpHwInitializeBoardIdentity(
         goto Exit;
     }
 
-    info->ProviderSignature = KPH_HW_SMBIOS_PROVIDER;
+    info->ProviderSignature = FIRMWARE_TABLE_PROVIDER_SMBIOS;
     info->Action = SystemFirmwareTable_Get;
     info->TableID = 0;
     info->TableBufferLength = tableLength;
@@ -1533,40 +1532,41 @@ UCHAR KphpHwEncryptionAddressBits(
     __try
     {
         if (KphEqualMemory(Identity->Vendor,
-                           KPH_HW_CPU_VENDOR_AMD,
+                           CPUID_VENDOR_AMD,
                            sizeof(Identity->Vendor)) &&
-            (Identity->MaxExtendedLeaf >= KPH_HW_AMD_CPUID_ENCRYPTION))
+            (Identity->MaxExtendedLeaf >= CPUID_AMD_ENCRYPTION))
         {
-            KphCpuId(&cpuid, KPH_HW_AMD_CPUID_ENCRYPTION, 0);
+            KphCpuId(&cpuid, CPUID_AMD_ENCRYPTION, 0);
 
-            if (FlagOn(cpuid.EAX, KPH_HW_AMD_CPUID_SME | KPH_HW_AMD_CPUID_SEV))
+            if (FlagOn(cpuid.EAX, CPUID_AMD_ENCRYPTION_SME) ||
+                FlagOn(cpuid.EAX, CPUID_AMD_ENCRYPTION_SEV))
             {
-                value = __readmsr(KPH_HW_AMD_MSR_SYSCFG);
+                value = __readmsr(MSR_AMD_SYSCFG);
 
-                if (FlagOn(value, KPH_HW_AMD_SYSCFG_MEM_ENCRYPT))
+                if (FlagOn(value, MSR_AMD_SYSCFG_MEM_ENCRYPT))
                 {
-                    value = (cpuid.EBX >> KPH_HW_AMD_CPUID_REDUCTION_SHIFT);
-                    bits = (UCHAR)(value & KPH_HW_AMD_CPUID_REDUCTION_MASK);
+                    value = (cpuid.EBX >> CPUID_AMD_ENCRYPTION_REDUCTION_SHIFT);
+                    bits = (UCHAR)(value & CPUID_AMD_ENCRYPTION_REDUCTION_MASK);
                 }
             }
         }
 
         if (KphEqualMemory(Identity->Vendor,
-                           KPH_HW_CPU_VENDOR_INTEL,
+                           CPUID_VENDOR_INTEL,
                            sizeof(Identity->Vendor)) &&
-            (Identity->MaxBasicLeaf >= KPH_HW_INTEL_CPUID_FEATURES))
+            (Identity->MaxBasicLeaf >= CPUID_STRUCTURED_FEATURES))
         {
-            KphCpuId(&cpuid, KPH_HW_INTEL_CPUID_FEATURES, 0);
+            KphCpuId(&cpuid, CPUID_STRUCTURED_FEATURES, 0);
 
-            if (FlagOn(cpuid.ECX, KPH_HW_INTEL_CPUID_TME))
+            if (FlagOn(cpuid.ECX, CPUID_STRUCTURED_FEATURES_TME))
             {
-                value = __readmsr(KPH_HW_INTEL_MSR_TME_ACTIVATE);
+                value = __readmsr(MSR_IA32_TME_ACTIVATE);
 
-                if ((value & KPH_HW_INTEL_TME_LOCKED_ENABLED) ==
-                    KPH_HW_INTEL_TME_LOCKED_ENABLED)
+                if (FlagOn(value, MSR_IA32_TME_ACTIVATE_LOCK) &&
+                    FlagOn(value, MSR_IA32_TME_ACTIVATE_ENABLE))
                 {
-                    value >>= KPH_HW_INTEL_TME_KEYID_BITS_SHIFT;
-                    bits = (UCHAR)(value & KPH_HW_INTEL_TME_KEYID_BITS_MASK);
+                    value >>= MSR_IA32_TME_ACTIVATE_KEYID_SHIFT;
+                    bits = (UCHAR)(value & MSR_IA32_TME_ACTIVATE_KEYID_MASK);
                 }
             }
         }
@@ -1671,9 +1671,9 @@ VOID KphInitializeHardware(
 #if defined(_M_X64)
     identity = &KphpHwCpuIdentity;
 
-    KphCpuId(&cpuid0, 0, 0);
-    KphCpuId(&cpuid1, 1, 0);
-    KphCpuId(&cpuidExt, 0x80000000, 0);
+    KphCpuId(&cpuid0, CPUID_BASIC, 0);
+    KphCpuId(&cpuid1, CPUID_VERSION, 0);
+    KphCpuId(&cpuidExt, CPUID_EXTENDED, 0);
 
     identity->Vendor[0] = cpuid0.EBX;
     identity->Vendor[1] = cpuid0.EDX;
@@ -1697,11 +1697,11 @@ VOID KphInitializeHardware(
 
     identity->PhysicalAddressBits = 36;
 
-    if (identity->MaxExtendedLeaf >= 0x80000008)
+    if (identity->MaxExtendedLeaf >= CPUID_ADDRESS_SIZES)
     {
         KPH_CPUID cpuidAddress;
 
-        KphCpuId(&cpuidAddress, 0x80000008, 0);
+        KphCpuId(&cpuidAddress, CPUID_ADDRESS_SIZES, 0);
 
         if (((UCHAR)cpuidAddress.EAX >= 32) && ((UCHAR)cpuidAddress.EAX < 64))
         {

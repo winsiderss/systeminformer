@@ -9,6 +9,47 @@
 
 #pragma once
 
+#define FIRMWARE_TABLE_PROVIDER_ACPI   'ACPI'
+#define FIRMWARE_TABLE_PROVIDER_SMBIOS 'RSMB'
+
+#if defined(_M_X64)
+#define CPUID_VENDOR_AMD                     "AuthenticAMD"
+#define CPUID_VENDOR_INTEL                   "GenuineIntel"
+
+#define CPUID_BASIC                          0x00000000
+#define CPUID_VERSION                        0x00000001
+#define CPUID_STRUCTURED_FEATURES            0x00000007
+#define CPUID_STRUCTURED_FEATURES_TME        (1ul << 13)
+#define CPUID_EXTENDED                       0x80000000
+#define CPUID_ADDRESS_SIZES                  0x80000008
+#define CPUID_AMD_ENCRYPTION                 0x8000001F
+#define CPUID_AMD_ENCRYPTION_SME             (1ul << 0)
+#define CPUID_AMD_ENCRYPTION_SEV             (1ul << 1)
+#define CPUID_AMD_ENCRYPTION_REDUCTION_SHIFT 6
+#define CPUID_AMD_ENCRYPTION_REDUCTION_MASK  0x3F
+
+#define MSR_IA32_TME_ACTIVATE                0x00000982
+#define MSR_IA32_TME_ACTIVATE_LOCK           (1ull << 0)
+#define MSR_IA32_TME_ACTIVATE_ENABLE         (1ull << 1)
+#define MSR_IA32_TME_ACTIVATE_KEYID_SHIFT    32
+#define MSR_IA32_TME_ACTIVATE_KEYID_MASK     0xF
+#define MSR_AMD_SYSCFG                       0xC0010010
+#define MSR_AMD_SYSCFG_VAR_DRAM_EN           (1ull << 20)
+#define MSR_AMD_SYSCFG_TOM2_EN               (1ull << 21)
+#define MSR_AMD_SYSCFG_MEM_ENCRYPT           (1ull << 23)
+#define MSR_AMD_IORR_BASE0                   0xC0010016
+#define MSR_AMD_IORR_BASE_RDMEM              (1ull << 4)
+#define MSR_AMD_IORR_MASK_VALID              (1ull << 11)
+#define MSR_AMD_IORR_LOW_BITS                0xFFFull
+#define MSR_AMD_TOP_MEM                      0xC001001A
+#define MSR_AMD_TOP_MEM_LOW_BITS             0x7FFFFFull
+#define MSR_AMD_TOP_MEM2                     0xC001001D
+#define MSR_AMD_SMM_ADDR                     0xC0010112
+#define MSR_AMD_SMM_MASK                     0xC0010113
+#define MSR_AMD_SMM_MASK_TVALID              (1ull << 1)
+#define MSR_AMD_SMM_LOW_BITS                 0x1FFFFull
+#endif
+
 #if defined(_M_ARM64)
 #define ARM64_MIDR_EL1          ARM64_SYSREG(3, 0, 0, 0, 0)
 #define ARM64_MPIDR_EL1         ARM64_SYSREG(3, 0, 0, 0, 5)
@@ -35,6 +76,7 @@
 #define ARM64_AMCG1IDR_EL0      ARM64_SYSREG(3, 3, 13, 2, 6)
 #define ARM64_AMEVCNTR1_EL0(n)  ARM64_SYSREG(3, 3, 13, 12 + ((n) >> 3), (n) & 7)
 #define ARM64_AMEVTYPER1_EL0(n) ARM64_SYSREG(3, 3, 13, 14 + ((n) >> 3), (n) & 7)
+#define ARM64_ID_AA64DFR0_EL1_PMUVER_IMPDEF 0xF
 #define ARM64_ID_AA64MMFR0_EL1_PARANGE_MASK 0xF
 #define ARM64_TCR_EL1           ARM64_SYSREG(3, 0, 2, 0, 2)
 #define ARM64_TCR_EL1_IPS_SHIFT 32
