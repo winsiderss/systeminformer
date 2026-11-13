@@ -1325,8 +1325,8 @@ This file is part of System Informer.
 
     <cpu vendor="GenuineIntel"
          family="0x06"
-         models="0x27,0x35,0x36"
-         desc="Saltwell Atom: Penwell, Cloverview, Cedarview; TjMax falls back to 90/100 C without 1A2h">
+         models="0x36"
+         desc="Saltwell Atom: Cedarview; TjMax falls back to 90/100 C without 1A2h">
         <msr reg="0x19c" gate="06h:eax:0" desc="IA32_THERM_STATUS (core)"/>
         <msr reg="0x1a2" desc="MSR_TEMPERATURE_TARGET, TjMax [23:16]; absent on some parts (pkg)"/>
         <msr reg="0x198" desc="IA32_PERF_STATUS, ratio in EDX [12:8] + half step [14] (thread)"/>
