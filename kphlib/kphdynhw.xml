@@ -1358,6 +1358,26 @@ This file is part of System Informer.
         <msr reg="0x664" desc="MSR_MODULE_C6_RES_MS (module)"/>
         <msr reg="0x1b0" gate="06h:ecx:3" desc="IA32_ENERGY_PERF_BIAS (thread)"/>
         <window base="lpit" entry="0" size="0x4" desc="LPIT memory counter 0: PMC SLP_S0 residency, units of the entry's counter frequency"/>
+        <pci vendor="0x8086" device="0x5af0,0x31f0" desc="Host bridge (Apollo Lake, Gemini Lake); P-unit layout, not the client map">
+            <window base="config" offset="0x48" width="8" mask="0x7fffff8000" enable="0" size="0x8000" desc="MCHBAR, 32 KiB">
+                <read offset="0x1000" length="0x4" width="4" desc="DUNIT 8 DRP0: rank [1:0], width [5:4], density [8:6], type [24:22]"/>
+                <read offset="0x1200" length="0x4" width="4" desc="DUNIT 9 DRP0"/>
+                <read offset="0x1400" length="0x4" width="4" desc="DUNIT 10 DRP0"/>
+                <read offset="0x1600" length="0x4" width="4" desc="DUNIT 11 DRP0"/>
+                <read offset="0x7070" length="0x4" width="4" desc="GT_PERF_STATUS: ratio [16:8], VID [7:0]"/>
+            </window>
+        </pci>
+        <pci vendor="0x8086" device="0x4e22,0x4e26,0x4e12,0x4e14,0x4e24,0x4e28,0x4510,0x4512,0x4514,0x4516,0x4518,0x451a,0x451c,0x451e,0x4522,0x4524,0x4526,0x4528,0x452a,0x452c,0x452e,0x4532,0x4536,0x4538,0x453a" desc="Host bridge (Jasper Lake, Elkhart Lake)">
+            <window base="config" offset="0x48" width="8" mask="0x7fffff8000" enable="0" size="0x8000" desc="MCHBAR, 32 KiB">
+                <read offset="0x5000" length="0x4" width="4" desc="MAD_INTER_CHANNEL"/>
+                <read offset="0x500c" length="0x8" width="4" desc="MAD_DIMM channel 0/1"/>
+                <read offset="0x58e0" length="0x8" width="4" desc="DDR power limit"/>
+                <read offset="0x5948" length="0x4" width="4" desc="GT_PERF_STATUS: VID [7:0], ratio [16:8]"/>
+                <read offset="0x5994" length="0x8" width="4" desc="RP_STATE_LIMITS; RP_STATE_CAP: RP0 [7:0], RP1 [15:8], RPn [23:16]"/>
+                <read offset="0x59a0" length="0x8" width="4" desc="package PL1/PL2 limit, the active MMIO limit"/>
+                <read offset="0x5ef0" length="0x4" width="4" desc="FREQ_INFO_REC: RPE [15:8]"/>
+            </window>
+        </pci>
     </cpu>
 
     <cpu vendor="GenuineIntel"
