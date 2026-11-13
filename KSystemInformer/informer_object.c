@@ -761,12 +761,12 @@ VOID KphpObPerformProcessTracking(
     process = KphGetEProcessContext(ProcessObject);
     if (process)
     {
-        if (process->CreateNotification || process->NumberOfThreads)
+        if (process->CreateNotification || process->HadThread)
         {
             //
             // Let the process notification routine handle this process.
             //
-            // N.B. We check CreateNotification and NumberOfThreads because we
+            // N.B. We check CreateNotification and HadThread because we
             // may have loaded too late to observe the original create
             // notification. This avoids unnecessarily entering the logic below.
             //
