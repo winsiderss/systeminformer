@@ -937,7 +937,7 @@ BOOLEAN KphpHwPciMatchLocator(
     )
 {
     NTSTATUS status;
-    ULONG busNumber;
+    PCI_SEGMENT_BUS_NUMBER busNumber;
     KPH_HW_PCI_PNP_ADDRESS address;
     ULONG resultLength;
     WCHAR location[KPH_HW_PCI_LOCATION_CHARS];
@@ -963,7 +963,7 @@ BOOLEAN KphpHwPciMatchLocator(
         return FALSE;
     }
 
-    if (busNumber != Locator->Bus)
+    if (busNumber.u.bits.BusNumber != Locator->Bus)
     {
         return FALSE;
     }
