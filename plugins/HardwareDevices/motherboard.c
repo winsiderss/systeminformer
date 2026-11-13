@@ -409,7 +409,6 @@ static VOID MotherboardPollSlot(
     case STATUS_INVALID_PARAMETER:
     case STATUS_NOT_FOUND: // no chip, or no row for it
     case STATUS_ACCESS_DENIED:
-    case STATUS_NOINTERFACE: // no hardware data
     case STATUS_DEVICE_NOT_READY: // the chip's monitor is not active or has no base
     case STATUS_DEVICE_CONFIGURATION_ERROR:
     case STATUS_INTEGER_OVERFLOW:
@@ -418,6 +417,7 @@ static VOID MotherboardPollSlot(
         break;
     case STATUS_RETRY: // another agent held the bus: not a strike
     case STATUS_IO_TIMEOUT: // another agent held the NCT668x EC page
+    case STATUS_NOINTERFACE: // no hardware data yet: a later activation can supply it
         MotherboardAgeSlot(Context, Slot);
         break;
     default:
