@@ -672,8 +672,7 @@ NTSTATUS KphpDynHwValidateSection(
  * for the hardware section.
  * \param[out] SectionLength Receives the length of the hardware section.
  *
- * \return Successful or errant status, STATUS_NOT_FOUND when the
- * configuration has no hardware section.
+ * \return Successful or errant status.
  */
 _Must_inspect_result_
 NTSTATUS KphDynDataLookupHardware(

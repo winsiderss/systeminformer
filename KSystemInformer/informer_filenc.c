@@ -382,8 +382,7 @@ VOID KphpFltGetNameGeneration(
  * referenced.
  * \param[in] Context The cached name context.
  *
- * \return STATUS_SUCCESS if the cached name is usable, otherwise
- * STATUS_FLT_NAME_CACHE_MISS.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_

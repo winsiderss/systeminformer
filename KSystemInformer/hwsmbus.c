@@ -394,7 +394,7 @@ Exit:
  * \param[in] Register The register, relative to the PM base.
  * \param[out] Value Receives the register value.
  *
- * \return Successful or errant status (see KphpHwSmbusPmPort).
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -427,7 +427,7 @@ NTSTATUS KphpHwSmbusPmIn(
  * \param[in] Register The register, relative to the PM base.
  * \param[in] Value The value.
  *
- * \return Successful or errant status (see KphpHwSmbusPmPort).
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -758,8 +758,7 @@ VOID KphpHwSmbusUnmapPm(
  *
  * \param[in,out] Session The session, layout set, nothing mapped.
  *
- * \return Successful or errant status; success with Session->Pm NULL stays on
- * the pair.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1410,7 +1409,7 @@ NTSTATUS KphpHwSmbusRestorePort(
  *
  * \param[in,out] Session The session, host owned.
  *
- * \return Successful or errant status; the host is released either way.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

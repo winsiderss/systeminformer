@@ -636,8 +636,7 @@ BOOLEAN KphpHwAcpiNormalizePath(
  * KphReleaseAnsiString.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
- * \return Successful or errant status; STATUS_INVALID_PARAMETER for an empty
- * or malformed path.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -698,8 +697,7 @@ Exit:
  * \param[out] Path Receives the normalized path, freed with KphFree and
  * KPH_TAG_HW_ACPI_PATH.
  *
- * \return Successful or errant status; STATUS_NOT_FOUND if the device has no
- * well-formed BiosDeviceName.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1352,8 +1350,7 @@ BOOLEAN KSIAPI KphpHwAcpiFindRequiredCallback(
  *
  * \param[in] Require The acpi_require op.
  *
- * \return Successful or errant status, STATUS_NOT_FOUND when no present
- * device has a required ID.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2623,8 +2620,7 @@ Exit:
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The batch entries, in system memory.
  *
- * \return STATUS_SUCCESS when the batch was processed, otherwise an errant
- * status for the whole batch.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2766,9 +2762,7 @@ Exit:
  * \param[in] Base The start of the range.
  * \param[in] Length The length of the range.
  *
- * \return STATUS_SUCCESS when every alternative list holds a memory descriptor
- * whose minimum is the base and whose maximum is the last byte of the range;
- * STATUS_NOT_SUPPORTED when one does not; otherwise an errant status.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2984,8 +2978,7 @@ Exit:
  * \param[out] Session Receives the session, closed with KphHwAcpiCloseMailbox;
  * zeroed on failure.
  *
- * \return Successful or errant status; STATUS_NOT_FOUND also when the op's
- * gate does not hold on this processor.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

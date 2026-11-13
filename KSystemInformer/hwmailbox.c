@@ -436,10 +436,8 @@ NTSTATUS KphpHwMailboxWrite(
  * \param[in] Value The value to write.
  * \param[out] Issued Receives TRUE when the write was issued.
  *
- * \return STATUS_SUCCESS when the register holds Value; STATUS_RETRY when
- * the write was not issued or the register holds another value;
- * STATUS_DEVICE_DATA_ERROR when the write was issued and the register could
- * not be read back; otherwise the status of the write or of the read back.
+ * \return Successful or errant status, STATUS_RETRY when the write was not
+ * issued or the register holds another value.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwMailboxLock)
@@ -630,8 +628,7 @@ NTSTATUS KphpHwMailboxWait(
  * \param[in] Deadline The deadline of the request.
  * \param[in] Idle The non-zero RSP value the idle poll read.
  *
- * \return STATUS_SUCCESS when RSP holds Idle, STATUS_DEVICE_DATA_ERROR
- * otherwise.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwMailboxLock)
@@ -695,9 +692,8 @@ NTSTATUS KphpHwMailboxRestoreIdle(
  * \param[in] Deadline The deadline of the request.
  * \param[in] Opcode The opcode.
  *
- * \return STATUS_SUCCESS when MSG may hold the opcode; STATUS_RETRY when the
- * opcode was not posted; otherwise errant status and MSG may have been
- * written.
+ * \return Successful or errant status, STATUS_RETRY when the opcode was not
+ * posted.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwMailboxLock)
@@ -2723,8 +2719,7 @@ Exit:
  * \param[in] Timeout Optional timeout for the request; NULL is infinite.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
- * \return Successful or errant status; STATUS_BUFFER_TOO_SMALL when the table
- * does not fit, STATUS_NOT_SUPPORTED when its version is not signed.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

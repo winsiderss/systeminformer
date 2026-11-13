@@ -560,8 +560,7 @@ Exit:
  * not fit.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
- * \return Successful or errant status; STATUS_BUFFER_TOO_SMALL when the
- * regions do not fit.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

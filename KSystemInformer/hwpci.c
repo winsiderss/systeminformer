@@ -1830,8 +1830,7 @@ VOID KphpHwPciRelease(
  * \param[out] Bus Receives the bus interface and the referenced top of the
  * stack, released with KphpHwPciReleaseBus.
  *
- * \return STATUS_SUCCESS if the device still answers with its identity,
- * otherwise an errant status.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2500,8 +2499,7 @@ NTSTATUS KphpHwPciFindPmCapability(
  * \param[in,out] Device The device.
  * \param[in] Bus The bus interface of the device.
  *
- * \return Successful or errant status; success does not imply the chain is
- * valid.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwPciLock)
@@ -3730,8 +3728,7 @@ typedef struct _KPH_HW_PCI_WINDOW_RECHECK_CONTEXT
  *
  * \param[in] Context The PKPH_HW_PCI_WINDOW_RECHECK_CONTEXT of the read.
  *
- * \return STATUS_SUCCESS when the window base is unchanged,
- * STATUS_DEVICE_NOT_READY otherwise.
+ * \return Successful or errant status.
  */
 _Function_class_(KPH_HW_WINDOW_RECHECK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3790,8 +3787,7 @@ NTSTATUS KSIAPI KphpHwPciRecheckWindow(
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The batch entries, in system memory.
  *
- * \return STATUS_SUCCESS when the batch was processed, otherwise an errant
- * status for the whole batch.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -5262,7 +5258,7 @@ Exit:
  *
  * \param[in] Device The opened device.
  *
- * \return STATUS_SUCCESS for a cached device, STATUS_NOT_SUPPORTED otherwise.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwPciLock)
@@ -5303,8 +5299,7 @@ typedef struct _KPH_HW_PCI_VSEC_RECHECK_CONTEXT
  *
  * \param[in] Context The PKPH_HW_PCI_VSEC_RECHECK_CONTEXT of the read.
  *
- * \return STATUS_SUCCESS when the region's BAR is unchanged,
- * STATUS_DEVICE_NOT_READY otherwise.
+ * \return Successful or errant status.
  */
 _Function_class_(KPH_HW_WINDOW_RECHECK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -5610,8 +5605,7 @@ Exit:
  * \param[out] Regions Receives the regions, in system memory, when they fit.
  * \param[out] Total Receives the number of regions.
  *
- * \return Successful or errant status; STATUS_NOT_FOUND when the device has
- * no vsec_read op.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
