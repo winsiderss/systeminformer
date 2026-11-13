@@ -52,6 +52,7 @@
 #define KPH_HW_SMBUS_PIIX4_SEMAPHORE        0x10
 #define KPH_HW_SMBUS_PIIX4_SEMAPHORE_CLEAR  0x20
 #define KPH_HW_SMBUS_PIIX4_SEMAPHORE_TRIES  5
+#define KPH_HW_SMBUS_PIIX4_RESTORE_TRIES    5
 
 #define KPH_HW_SMBUS_I801_HOSTC_HST_EN      0x01
 #define KPH_HW_SMBUS_I801_HOSTC_SMI_EN      0x02
@@ -1381,7 +1382,8 @@ NTSTATUS KphpHwSmbusAcquire(
  *
  * \param[in] Session The session, host owned, port changed.
  *
- * \return Successful or errant status.
+ * \return STATUS_SUCCESS, STATUS_RETRY when an access to the select collided,
+ * or an errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1404,7 +1406,7 @@ NTSTATUS KphpHwSmbusRestorePort(
                       "SMBus port select not read at release: %!STATUS!",
                       status);
 
-        return STATUS_DEVICE_CONFIGURATION_ERROR;
+        return status;
     }
 
     port = (UCHAR)((select & Session->Layout->SelectMask) >>
@@ -1432,7 +1434,7 @@ NTSTATUS KphpHwSmbusRestorePort(
                       (ULONG)Session->OriginalPort,
                       status);
 
-        return STATUS_DEVICE_CONFIGURATION_ERROR;
+        return status;
     }
 
     return STATUS_SUCCESS;
@@ -1460,13 +1462,25 @@ NTSTATUS KphpHwSmbusRelease(
 
     if (Session->PortChanged)
     {
-        status = KphpHwSmbusRestorePort(Session);
+        for (ULONG i = 0; i < KPH_HW_SMBUS_PIIX4_RESTORE_TRIES; i++)
+        {
+            status = KphpHwSmbusRestorePort(Session);
+            if (status != STATUS_RETRY)
+            {
+                break;
+            }
+
+            KphpHwSmbusDelay(1);
+        }
+
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
                           "KphpHwSmbusRestorePort failed: %!STATUS!",
                           status);
+
+            status = STATUS_DEVICE_CONFIGURATION_ERROR;
         }
 
         Session->PortChanged = FALSE;
