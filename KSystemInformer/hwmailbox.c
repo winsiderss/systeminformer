@@ -542,7 +542,8 @@ NTSTATUS KphpHwMailboxStore(
 }
 
 /**
- * \brief Polls the RSP register of a mailbox until it is non-zero.
+ * \brief Polls the RSP register of a mailbox until it is non-zero; a contended
+ * read is polled again.
  *
  * \param[in] Session The mailbox session.
  * \param[in] Deadline The deadline of the request.
@@ -573,7 +574,11 @@ NTSTATUS KphpHwMailboxWait(
         expired = KphHwDeadlinePassed(Deadline);
 
         status = KphpHwMailboxRead(Session, KphpHwMailboxRsp, 0, &value);
-        if (!NT_SUCCESS(status))
+        if ((status == STATUS_RETRY) && !expired)
+        {
+            value = 0;
+        }
+        else if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -1054,7 +1059,20 @@ NTSTATUS KphpHwMailboxTransact(
 
     for (ULONG i = 0; i < ResponseWords; i++)
     {
-        status = KphpHwMailboxRead(Session, KphpHwMailboxArg, i, &Results[i]);
+        for (;;)
+        {
+            status = KphpHwMailboxRead(Session,
+                                       KphpHwMailboxArg,
+                                       i,
+                                       &Results[i]);
+            if ((status != STATUS_RETRY) || KphHwDeadlinePassed(Deadline))
+            {
+                break;
+            }
+
+            KphpHwMailboxDelay(1);
+        }
+
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
