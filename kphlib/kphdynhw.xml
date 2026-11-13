@@ -2136,6 +2136,104 @@ This file is part of System Informer.
 
     <cpu vendor="AuthenticAMD"
          family="0x19"
+         models="0x30-0x3f"
+         desc="Zen 3: Trento">
+        <msr reg="0x8b" desc="PATCH_LEVEL (pkg)"/>
+        <msr reg="0xc00000e7" desc="MPerfReadOnly (thread)"/>
+        <msr reg="0xc00000e8" desc="APerfReadOnly (thread)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread); fallback when the RO alias faults"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread); fallback when the RO alias faults"/>
+        <msr reg="0xc0010015" desc="HWCR (core)"/>
+        <msr reg="0xc0010061" desc="PStateCurLim (core)"/>
+        <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
+        <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
+        <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
+        <msr reg="0xc0010067" desc="PStateDef[3] (core)"/>
+        <msr reg="0xc0010068" desc="PStateDef[4] (core)"/>
+        <msr reg="0xc0010069" desc="PStateDef[5] (core)"/>
+        <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
+        <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
+        <msr reg="0xc0010293" desc="HwPstateStatus (core)"/>
+        <msr reg="0xc0010299" gate="80000007h:edx:14" desc="RAPL_PWR_UNIT (pkg)"/>
+        <msr reg="0xc001029a" gate="80000007h:edx:14" desc="CORE_ENERGY_STAT (core)"/>
+        <msr reg="0xc001029b" gate="80000007h:edx:14" desc="PKG_ENERGY_STAT (pkg)"/>
+        <msr reg="0xc00102b0" gate="80000008h:ebx:27" desc="CPPC_CAP1 (core)"/>
+        <msr reg="0xc00102b1" gate="80000008h:ebx:27" desc="CPPC_ENABLE (core)"/>
+        <msr reg="0xc00102b2" gate="80000008h:ebx:27" desc="CPPC_CAP2 (core)"/>
+        <msr reg="0xc00102b3" gate="80000008h:ebx:27" desc="CPPC_REQ (core)"/>
+        <msr reg="0xc00102b4" gate="80000008h:ebx:27" desc="CPPC_STATUS (core)"/>
+        <msr reg="0xc00102b5" gate="80000008h:ebx:27" desc="CPPC_REQ2 (core)"/>
+        <pci vendor="0x1022" device="0x1480" pin="0.0" desc="Root complex; ID assumed from the Milan I/O die">
+            <indirect index="0x60" data="0x64" desc="SMN index/data">
+                <target begin="0x00059800" end="0x00059c00" desc="SMU::THM, Tctl at 0x59800"/>
+                <target begin="0x00050000" end="0x00051000" stride="0x100000" count="8" desc="UMC channels 0-7, 1 MB apart"/>
+            </indirect>
+            <read offset="0x00" length="0x10" desc="vendor/device ID header"/>
+            <mailbox transport="smn" protocol="hsmp" index="0xc4" data="0xc8" msg="0x3b10534" rsp="0x3b10980" arg="0x3b109e0" args="8" version="0x02" desc="HSMP">
+                <command opcode="0x01" type="get" response="1" desc="TEST, the probe">
+                    <arg index="0" mask="0xffffffff" desc="returned plus one"/>
+                </command>
+                <command opcode="0x02" type="get" response="1" desc="GET_SMU_VER, the version query"/>
+                <command opcode="0x03" type="get" response="1" desc="GET_PROTO_VER"/>
+                <command opcode="0x04" type="get" response="1" desc="GET_SOCKET_POWER, mW"/>
+                <command opcode="0x06" type="get" response="1" desc="GET_SOCKET_POWER_LIMIT, mW"/>
+                <command opcode="0x07" type="get" response="1" desc="GET_SOCKET_POWER_LIMIT_MAX, mW"/>
+                <command opcode="0x0a" type="get" response="1" desc="GET_BOOST_LIMIT">
+                    <arg index="0" mask="0xffff" desc="APIC ID [15:0]"/>
+                </command>
+                <command opcode="0x0b" type="get" response="1" desc="GET_PROC_HOT"/>
+                <command opcode="0x0f" type="get" response="2" desc="GET_FCLK_MCLK, MHz"/>
+                <command opcode="0x10" type="get" response="1" desc="GET_CCLK_THROTTLE_LIMIT, MHz"/>
+                <command opcode="0x11" type="get" response="1" desc="GET_C0_PERCENT"/>
+                <command opcode="0x13" type="get" response="1" desc="GET_NBIO_DPM_LEVEL">
+                    <arg index="0" mask="0x00ff0000" desc="NBIO ID [23:16]"/>
+                </command>
+                <command opcode="0x14" type="get" response="1" desc="GET_DDR_BANDWIDTH"/>
+                <command opcode="0x15" type="get" response="1" desc="GET_TEMP_MONITOR, socket temperature"/>
+                <command opcode="0x16" type="get" response="1" desc="GET_DIMM_TEMP_RANGE">
+                    <arg index="0" mask="0xff" desc="DIMM address [7:0]"/>
+                </command>
+                <command opcode="0x17" type="get" response="1" desc="GET_DIMM_POWER">
+                    <arg index="0" mask="0xff" desc="DIMM address [7:0]"/>
+                </command>
+                <command opcode="0x18" type="get" response="1" desc="GET_DIMM_THERMAL">
+                    <arg index="0" mask="0xff" desc="DIMM address [7:0]"/>
+                </command>
+                <command opcode="0x19" type="get" response="1" desc="GET_SOCKET_FREQ_LIMIT"/>
+                <command opcode="0x1a" type="get" response="1" desc="GET_CCLK_CORE_LIMIT">
+                    <arg index="0" mask="0xffffffff" desc="APIC ID [31:0]"/>
+                </command>
+                <command opcode="0x1b" type="get" response="1" desc="GET_RAILS_SVI, mW"/>
+                <command opcode="0x1c" type="get" response="1" desc="GET_SOCKET_FMAX_FMIN"/>
+                <command opcode="0x1d" type="get" response="1" desc="GET_IOLINK_BANDWITH">
+                    <arg index="0" mask="0xff07" desc="link [15:8], type [2:0]"/>
+                </command>
+                <command opcode="0x1e" type="get" response="1" desc="GET_XGMI_BANDWITH">
+                    <arg index="0" mask="0xff07" desc="link [15:8], type [2:0]"/>
+                </command>
+                <command opcode="0x23" type="get" response="1" desc="GET_METRIC_TABLE_VER"/>
+                <command opcode="0x30" type="get" response="1" desc="GET_RAPL_UNITS"/>
+                <command opcode="0x31" type="get" response="2" desc="GET_RAPL_CORE_COUNTER">
+                    <arg index="0" mask="0xffff" desc="APIC ID [15:0]"/>
+                </command>
+                <command opcode="0x32" type="get" response="2" desc="GET_RAPL_PACKAGE_COUNTER"/>
+                <command opcode="0x34" type="get" response="1" desc="READ_CCD_POWER, mW">
+                    <arg index="0" mask="0xffff" desc="APIC ID [15:0]"/>
+                </command>
+                <command opcode="0x35" type="get" response="1" desc="READ_TDELTA"/>
+                <command opcode="0x36" type="get" response="1" desc="GET_SVI3_VR_CTRL_TEMP">
+                    <arg index="0" mask="0xf" desc="rail [3:1], read temperature [0]"/>
+                </command>
+                <command opcode="0x37" type="get" response="3" desc="GET_ENABLED_HSMP_CMDS">
+                    <arg index="0" mask="0x1" desc="mask select [0]"/>
+                </command>
+            </mailbox>
+        </pci>
+    </cpu>
+
+    <cpu vendor="AuthenticAMD"
+         family="0x19"
          models="0x10-0x17,0x19-0x1f"
          name="zen4-genoa"
          desc="Zen 4: Genoa">
