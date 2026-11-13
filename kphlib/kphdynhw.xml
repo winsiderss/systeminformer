@@ -3720,6 +3720,8 @@ This file is part of System Informer.
          models="0x00-0x0f"
          desc="K10: Phenom, Phenom II, Athlon II, Opteron">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3733,6 +3735,8 @@ This file is part of System Informer.
          models="0x00-0x0f"
          desc="Griffin: Turion X2 Ultra">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3749,6 +3753,8 @@ This file is part of System Informer.
          models="0x00-0x0f"
          desc="Llano">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3765,6 +3771,8 @@ This file is part of System Informer.
          models="0x00-0x0f"
          desc="Bobcat: Ontario, Zacate">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3781,6 +3789,8 @@ This file is part of System Informer.
          models="0x00-0x0f,0x10-0x1f,0x30-0x3f"
          desc="Bulldozer, Piledriver">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3800,6 +3810,8 @@ This file is part of System Informer.
          models="0x00-0x0f,0x30-0x3f"
          desc="Jaguar, Puma">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
@@ -3819,6 +3831,8 @@ This file is part of System Informer.
          models="0x60-0x6f,0x70-0x7f"
          desc="Excavator: Carrizo, Bristol Ridge, Stoney Ridge">
         <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="APERF (thread)"/>
         <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
         <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
         <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
