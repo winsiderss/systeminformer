@@ -4906,6 +4906,20 @@ This file is part of System Informer.
         </eval>
     </acpi>
 
+    <acpi id="PNP0C09"
+          desc="Embedded controller">
+        <require id="IBM0068,LEN0068,LEN0268" desc="ThinkPad hotkey device">
+            <eval method="TMP0" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 0, degrees C; outside -127 to 127 when absent"/>
+            <eval method="TMP1" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 1"/>
+            <eval method="TMP2" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 2"/>
+            <eval method="TMP3" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 3"/>
+            <eval method="TMP4" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 4"/>
+            <eval method="TMP5" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 5"/>
+            <eval method="TMP6" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 6"/>
+            <eval method="TMP7" results="integer" max-output="0x20" desc="ThinkPad EC thermal sensor 7"/>
+        </require>
+    </acpi>
+
     <acpi id="ACPI000D"
           desc="ACPI power meter">
         <eval method="_STA" results="integer" max-output="0x20" desc="_STA device status (ACPI 6.5 6.3.7)"/>
