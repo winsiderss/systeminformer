@@ -20,6 +20,8 @@
 #define MB_DECODER_DEFAULT 0
 #define MB_DECODER_W836 1
 #define MB_DECODER_NCT610X 2
+#define MB_DECODER_W83627HF 3
+#define MB_DECODER_F71805F 4
 
 #define MB_CUSTOMER_MSI(Id) ((Id) == 0x200 || (Id) == 0x201 || (Id) == 0x207 || (Id) == 0x20D)
 
@@ -86,6 +88,23 @@ typedef struct _MB_W836_VARIANT
     UCHAR Flags;
 } MB_W836_VARIANT, *PMB_W836_VARIANT;
 typedef const MB_W836_VARIANT* PCMB_W836_VARIANT;
+
+#define MB_W83627HF_VRM_IN0 0x1 // in0 reads the VRM when 18h bit 0 is set
+#define MB_W83627HF_THF_PWM 0x2 // PWM at 01h, 03h and 11h, low nibble reserved; else 5Ah and 5Bh
+
+typedef struct _MB_W83627HF_VARIANT
+{
+    USHORT InputMask;
+    UCHAR PwmCount;
+    UCHAR Flags;
+} MB_W83627HF_VARIANT, *PMB_W83627HF_VARIANT;
+typedef const MB_W83627HF_VARIANT* PCMB_W83627HF_VARIANT;
+
+typedef struct _MB_F71805F_VARIANT
+{
+    USHORT InputMask;
+} MB_F71805F_VARIANT, *PMB_F71805F_VARIANT;
+typedef const MB_F71805F_VARIANT* PCMB_F71805F_VARIANT;
 
 #define MB_ITE_SCALED 0x1
 #define MB_ITE_AVCC3 0x2
@@ -408,6 +427,46 @@ static CONST PCWSTR W836TemperatureLabels[] =
     L"SYSTIN", L"CPUTIN", L"AUXTIN", L"AMDTSI", L"PECI Agent 1", L"PECI Agent 2", L"PECI Agent 3", L"PECI Agent 4"
 };
 
+// W83627HF, W83627THF and W83687THF: 16 mV inputs at 20h-26h, 550h and 551h; three fans.
+static CONST MB_W83627HF_VARIANT W83627hf = { 0x1ff, 2, 0 };
+static CONST MB_W83627HF_VARIANT W83627thf = { 0x19f, 3, MB_W83627HF_VRM_IN0 | MB_W83627HF_THF_PWM };
+
+static CONST USHORT W83627hfInputRegisters[] = { 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x550, 0x551 };
+static CONST PCWSTR W83627hfInputLabels[] =
+{
+    L"VCOREA", L"VCOREB", L"Voltage 2", L"Voltage 3", L"Voltage 4", L"Voltage 5", L"Voltage 6", L"5VSB", L"VBAT"
+};
+static CONST USHORT W83627hfPwmRegisters[] = { 0x5a, 0x5b };
+static CONST USHORT W83627thfPwmRegisters[] = { 0x01, 0x03, 0x11 };
+
+#define W83627HF_REG_VRM_OVT 0x18
+#define W83627HF_REG_TEMP1 0x27
+#define W83627HF_REG_FAN(n) (0x28 + (n))
+#define W83627HF_REG_FANDIV 0x47
+#define W83627HF_REG_PIN 0x4b
+#define W83627HF_REG_VBAT 0x5d
+#define W83627HF_VBAT_INPUT 8
+#define W83627HF_FANS 3
+
+static CONST USHORT W83627hfTemperatureRegisters[] = { 0x150, 0x250 };
+static CONST USHORT W83627hfTemperatureConfigRegisters[] = { 0x152, 0x252 };
+
+// F71805F and F71872F: inputs at 10h-1Ah, in0, in9 and in10 internally halved; three fans and temperatures.
+static CONST MB_F71805F_VARIANT F71805f = { 0x1ff };
+static CONST MB_F71805F_VARIANT F71872f = { 0x6ef }; // in4 and in8 follow FNSEL1, global configuration space
+
+static CONST PCWSTR F71805fInputLabels[] =
+{
+    L"VCC3V", L"VIN1", L"VIN2", L"VIN3", L"VIN4", L"VIN5", L"VIN6", L"VIN7", L"VIN8", L"VSB3V", L"VBAT"
+};
+
+#define F71805F_REG_IN(n) (0x10 + (n))
+#define F71805F_REG_TEMP(n) (0x1b + (n))
+#define F71805F_REG_FAN(n) (0x20 + 2 * (n))
+#define F71805F_REG_PWM_DUTY(n) (0x6b + 16 * (n))
+#define F71805F_HALVED_INPUTS 0x601
+#define F71805F_FANS 3
+
 #define W836_REG_FANDIV1 0x47
 #define W836_REG_SOURCE_SELECT1 0x49
 #define W836_REG_SOURCE_SELECT2 0x4a
@@ -556,6 +615,11 @@ static CONST MB_CHIP SuperIoChips[] =
     { MB_FAMILY_NUVOTON, 0xd428, 0xfff8, L"NCT6798D", &Nct6798 },
     { MB_FAMILY_NUVOTON, 0xd806, 0xffff, L"NCT6701D", &Nct6701 }, // inside the D800 match; first hit wins
     { MB_FAMILY_NUVOTON, 0xd800, 0xfff8, L"NCT6799D", &Nct6799 },
+    { MB_FAMILY_NUVOTON, 0x5210, 0xfff0, L"W83627HF", &W83627hf, MB_DECODER_W83627HF },
+    { MB_FAMILY_NUVOTON, 0x5230, 0xfff0, L"W83627HF", &W83627hf, MB_DECODER_W83627HF },
+    { MB_FAMILY_NUVOTON, 0x5240, 0xfff0, L"W83627HF", &W83627hf, MB_DECODER_W83627HF },
+    { MB_FAMILY_NUVOTON, 0x8280, 0xfff0, L"W83627THF", &W83627thf, MB_DECODER_W83627HF },
+    { MB_FAMILY_NUVOTON, 0x8540, 0xfff0, L"W83687THF", &W83627thf, MB_DECODER_W83627HF },
     { MB_FAMILY_NUVOTON, 0x8850, 0xfff0, L"W83627EHF", &W83627ehf, MB_DECODER_W836 },
     { MB_FAMILY_NUVOTON, 0x8860, 0xfff0, L"W83627EHG", &W83627ehf, MB_DECODER_W836 },
     { MB_FAMILY_NUVOTON, 0xa020, 0xfff0, L"W83627DHG", &W83627dhg, MB_DECODER_W836 },
@@ -609,6 +673,8 @@ static CONST MB_CHIP SuperIoChips[] =
     { MB_FAMILY_SMSC, 0x007d, 0xffff, L"SCH3114", &Sch311x },
     { MB_FAMILY_SMSC, 0x007f, 0xffff, L"SCH3116", &Sch311x },
     { MB_FAMILY_SMSC, 0x0086, 0xffff, L"SCH5127", &Sch5127 },
+    { MB_FAMILY_FINTEK, 0x0406, 0xffff, L"F71805F", &F71805f, MB_DECODER_F71805F },
+    { MB_FAMILY_FINTEK, 0x0341, 0xffff, L"F71872F", &F71872f, MB_DECODER_F71805F },
     { MB_FAMILY_FINTEK, 0x0901, 0xffff, L"F71808E", &F71808e },
     { MB_FAMILY_FINTEK, 0x1001, 0xffff, L"F71808A", &F71808a },
     { MB_FAMILY_FINTEK, 0x0507, 0xffff, L"F71858FG", &F71858fg },
@@ -1087,6 +1153,60 @@ static VOID SuperIoAddW836Registers(
         SuperIoAddRegister(List, W836PwmRegisters[i]);
 }
 
+static VOID SuperIoAddW83627hfRegisters(
+    _In_ PCMB_W83627HF_VARIANT Variant,
+    _Inout_ PMB_REGISTER_LIST List
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(W83627hfInputRegisters); i++)
+    {
+        if (Variant->InputMask & (1u << i))
+            SuperIoAddRegister(List, W83627hfInputRegisters[i]);
+    }
+
+    if (Variant->Flags & MB_W83627HF_VRM_IN0)
+        SuperIoAddRegister(List, W83627HF_REG_VRM_OVT);
+
+    SuperIoAddRegister(List, W83627HF_REG_TEMP1);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(W83627hfTemperatureRegisters); i++)
+    {
+        SuperIoAddWord(List, W83627hfTemperatureRegisters[i]);
+        SuperIoAddRegister(List, W83627hfTemperatureConfigRegisters[i]);
+    }
+
+    SuperIoAddRegister(List, W83627HF_REG_FANDIV);
+    SuperIoAddRegister(List, W83627HF_REG_PIN);
+    SuperIoAddRegister(List, W83627HF_REG_VBAT);
+
+    for (USHORT i = 0; i < W83627HF_FANS; i++)
+        SuperIoAddRegister(List, W83627HF_REG_FAN(i));
+
+    for (ULONG i = 0; i < Variant->PwmCount; i++)
+        SuperIoAddRegister(List, (Variant->Flags & MB_W83627HF_THF_PWM) ? W83627thfPwmRegisters[i] : W83627hfPwmRegisters[i]);
+}
+
+static VOID SuperIoAddF71805fRegisters(
+    _In_ PCMB_F71805F_VARIANT Variant,
+    _Inout_ PMB_REGISTER_LIST List
+    )
+{
+    for (USHORT i = 0; i < RTL_NUMBER_OF(F71805fInputLabels); i++)
+    {
+        if (Variant->InputMask & (1u << i))
+            SuperIoAddRegister(List, F71805F_REG_IN(i));
+    }
+
+    for (USHORT i = 0; i < 3; i++)
+        SuperIoAddRegister(List, F71805F_REG_TEMP(i));
+
+    for (USHORT i = 0; i < F71805F_FANS; i++)
+    {
+        SuperIoAddWord(List, F71805F_REG_FAN(i));
+        SuperIoAddRegister(List, F71805F_REG_PWM_DUTY(i));
+    }
+}
+
 static VOID SuperIoAddNct610xRegisters(
     _In_ PCMB_NCT610X_VARIANT Variant,
     _Inout_ PMB_REGISTER_LIST List
@@ -1279,6 +1399,8 @@ ULONG SuperIoGetRegisters(
     case MB_FAMILY_NUVOTON:
         if (State->Chip->Decoder == MB_DECODER_W836)
             SuperIoAddW836Registers(State->Chip->Variant, &list);
+        else if (State->Chip->Decoder == MB_DECODER_W83627HF)
+            SuperIoAddW83627hfRegisters(State->Chip->Variant, &list);
         else if (State->Chip->Decoder == MB_DECODER_NCT610X)
             SuperIoAddNct610xRegisters(State->Chip->Variant, &list);
         else
@@ -1291,7 +1413,10 @@ ULONG SuperIoGetRegisters(
         SuperIoAddIteRegisters(State->Chip->Variant, &list);
         break;
     case MB_FAMILY_FINTEK:
-        SuperIoAddFintekRegisters(State->Chip->Variant, &list);
+        if (State->Chip->Decoder == MB_DECODER_F71805F)
+            SuperIoAddF71805fRegisters(State->Chip->Variant, &list);
+        else
+            SuperIoAddFintekRegisters(State->Chip->Variant, &list);
         break;
     case MB_FAMILY_SMSC:
         SuperIoAddSmscRegisters(State->Chip->Variant, &list);
@@ -2018,6 +2143,94 @@ static VOID SuperIoDecodeW836(
     }
 }
 
+static VOID SuperIoDecodeW83627hf(
+    _Inout_ PMB_DECODE_CONTEXT Context
+    )
+{
+    PCMB_W83627HF_VARIANT variant = Context->State->Chip->Variant;
+    PCMB_REGISTERS registers = Context->Registers;
+    BOOLEAN vbatValid;
+    BOOLEAN vrm = FALSE;
+    UCHAR vbat;
+    UCHAR fanDiv;
+    UCHAR pin;
+    UCHAR value8;
+    USHORT value16;
+
+    vbatValid = SuperIoRead8(registers, W83627HF_REG_VBAT, &vbat);
+
+    // 18h bit 0: in0 reads the VRM in 4.88 mV steps above 0.7 V.
+    if ((variant->Flags & MB_W83627HF_VRM_IN0) && SuperIoRead8(registers, W83627HF_REG_VRM_OVT, &value8))
+        vrm = !!(value8 & 1);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(W83627hfInputRegisters); i++)
+    {
+        FLOAT raw;
+
+        if (!(variant->InputMask & (1u << i)))
+            continue;
+        // VBAT reads only while firmware left its monitor enabled (5Dh bit 0).
+        if (i == W83627HF_VBAT_INPUT && !(vbatValid && (vbat & 1)))
+            continue;
+        if (!SuperIoRead8(registers, W83627hfInputRegisters[i], &value8))
+            continue;
+
+        if (i == 0 && vrm)
+            raw = (value8 * 488 + 70000) / 100000.0f;
+        else
+            raw = value8 * 0.016f;
+
+        SuperIoAddVoltage(Context, i, raw, FALSE, W83627hfInputLabels[i]);
+    }
+
+    if (SuperIoRead8(registers, W83627HF_REG_TEMP1, &value8))
+        SuperIoAddTemperature(Context, 0, 0, (SCHAR)value8, L"Temperature #", 1);
+
+    // 150h and 250h carry a half degree; bit 0 of 152h and 252h set stops the sensor.
+    for (ULONG i = 0; i < RTL_NUMBER_OF(W83627hfTemperatureRegisters); i++)
+    {
+        if (!SuperIoRead8(registers, W83627hfTemperatureConfigRegisters[i], &value8) || (value8 & 1))
+            continue;
+        if (!SuperIoRead16(registers, W83627hfTemperatureRegisters[i], &value16))
+            continue;
+
+        SuperIoAddTemperature(Context, i + 1, i + 1, SuperIoTemperature9(value16), L"Temperature #", i + 2);
+    }
+
+    // Divisor exponents: two low bits in 47h and 4Bh, the high bit in 5Dh bits 5-7.
+    if (vbatValid && SuperIoRead8(registers, W83627HF_REG_FANDIV, &fanDiv) && SuperIoRead8(registers, W83627HF_REG_PIN, &pin))
+    {
+        UCHAR divisors[W83627HF_FANS];
+
+        divisors[0] = ((fanDiv >> 4) & 3) | ((vbat >> 3) & 4);
+        divisors[1] = ((fanDiv >> 6) & 3) | ((vbat >> 4) & 4);
+        divisors[2] = ((pin >> 6) & 3) | ((vbat >> 5) & 4);
+
+        for (USHORT i = 0; i < W83627HF_FANS; i++)
+        {
+            if (!SuperIoRead8(registers, W83627HF_REG_FAN(i), &value8))
+                continue;
+
+            // 0 and FFh: no reading.
+            SuperIoAddFan(Context, i, value8 && value8 != 0xff ? 1350000.0f / ((ULONG)value8 << divisors[i]) : 0, FALSE);
+        }
+    }
+
+    for (ULONG i = 0; i < variant->PwmCount; i++)
+    {
+        if (variant->Flags & MB_W83627HF_THF_PWM)
+        {
+            if (SuperIoRead8(registers, W83627thfPwmRegisters[i], &value8))
+                SuperIoAddControl(Context, i, (value8 & 0xf0) * 100.0f / 255.0f);
+        }
+        else
+        {
+            if (SuperIoRead8(registers, W83627hfPwmRegisters[i], &value8))
+                SuperIoAddControl(Context, i, value8 * 100.0f / 255.0f);
+        }
+    }
+}
+
 static VOID SuperIoDecodeNct668x(
     _Inout_ PMB_DECODE_CONTEXT Context
     )
@@ -2322,6 +2535,44 @@ static VOID SuperIoDecodeFintek(
     }
 }
 
+static VOID SuperIoDecodeF71805f(
+    _Inout_ PMB_DECODE_CONTEXT Context
+    )
+{
+    PCMB_F71805F_VARIANT variant = Context->State->Chip->Variant;
+    PCMB_REGISTERS registers = Context->Registers;
+    UCHAR value8;
+    USHORT value16;
+
+    // 8 mV steps; in0, in9 and in10 are halved inside the chip.
+    for (USHORT i = 0; i < RTL_NUMBER_OF(F71805fInputLabels); i++)
+    {
+        if (!(variant->InputMask & (1u << i)) || !SuperIoRead8(registers, F71805F_REG_IN(i), &value8))
+            continue;
+
+        SuperIoAddVoltage(Context, i, value8 * ((F71805F_HALVED_INPUTS & (1u << i)) ? 0.016f : 0.008f), FALSE, F71805fInputLabels[i]);
+    }
+
+    for (USHORT i = 0; i < 3; i++)
+    {
+        if (SuperIoRead8(registers, F71805F_REG_TEMP(i), &value8))
+            SuperIoAddTemperature(Context, i, i, (FLOAT)value8, L"Temperature #", i + 1);
+    }
+
+    for (USHORT i = 0; i < F71805F_FANS; i++)
+    {
+        // The MSB read latches the LSB; a 12-bit count, 0 and FFFh stopped.
+        if (SuperIoRead16(registers, F71805F_REG_FAN(i), &value16))
+        {
+            value16 &= 0xfff;
+            SuperIoAddFan(Context, i, value16 && value16 != 0xfff ? 1500000.0f / value16 : 0, FALSE);
+        }
+
+        if (SuperIoRead8(registers, F71805F_REG_PWM_DUTY(i), &value8))
+            SuperIoAddControl(Context, i, value8 * 100.0f / 255.0f);
+    }
+}
+
 static VOID SuperIoDecodeSmsc(
     _Inout_ PMB_DECODE_CONTEXT Context
     )
@@ -2397,6 +2648,8 @@ ULONG SuperIoDecode(
     case MB_FAMILY_NUVOTON:
         if (State->Chip->Decoder == MB_DECODER_W836)
             SuperIoDecodeW836(&context);
+        else if (State->Chip->Decoder == MB_DECODER_W83627HF)
+            SuperIoDecodeW83627hf(&context);
         else if (State->Chip->Decoder == MB_DECODER_NCT610X)
             SuperIoDecodeNct610x(&context);
         else
@@ -2409,7 +2662,10 @@ ULONG SuperIoDecode(
         SuperIoDecodeIte(&context);
         break;
     case MB_FAMILY_FINTEK:
-        SuperIoDecodeFintek(&context);
+        if (State->Chip->Decoder == MB_DECODER_F71805F)
+            SuperIoDecodeF71805f(&context);
+        else
+            SuperIoDecodeFintek(&context);
         break;
     case MB_FAMILY_SMSC:
         SuperIoDecodeSmsc(&context);
