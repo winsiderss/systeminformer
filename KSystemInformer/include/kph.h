@@ -1213,8 +1213,8 @@ NTSTATUS KphQueryInformationThread(
 _Must_inspect_result_
 FORCEINLINE
 INT KphCompareMemory(
-    _In_reads_bytes_(Length) PVOID Buffer1,
-    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_reads_bytes_(Length) PCVOID Buffer1,
+    _In_reads_bytes_(Length) PCVOID Buffer2,
     _In_ SIZE_T Length
     )
 {
@@ -1225,8 +1225,8 @@ INT KphCompareMemory(
 _Must_inspect_result_
 FORCEINLINE
 BOOLEAN KphEqualMemory(
-    _In_reads_bytes_(Length) PVOID Buffer1,
-    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_reads_bytes_(Length) PCVOID Buffer1,
+    _In_reads_bytes_(Length) PCVOID Buffer2,
     _In_ SIZE_T Length
     )
 {
@@ -1280,10 +1280,10 @@ VOID KphQuickSort(
 _IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 _Success_(return != NULL)
-PVOID KphSearchMemory(
-    _In_reads_bytes_(BufferLength) PVOID Buffer,
+PCVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PCVOID Buffer,
     _In_ ULONG BufferLength,
-    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_reads_bytes_(PatternLength) PCVOID Pattern,
     _In_ ULONG PatternLength
     );
 
