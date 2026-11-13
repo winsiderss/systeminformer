@@ -62,6 +62,7 @@
 #define KPH_HW_SMBUS_SPIN_US                25
 #define KPH_HW_SMBUS_SPIN_COUNT             80
 #define KPH_HW_SMBUS_PIIX4_START_US         250
+#define KPH_HW_SMBUS_TIMEOUT                (35 * 10000ull)
 
 typedef struct _KPH_HW_SMBUS_SESSION
 {
@@ -1576,6 +1577,8 @@ NTSTATUS KphpHwSmbusTransact(
     UCHAR controlAfter;
     USHORT value;
     BOOLEAN i801;
+    ULONG64 qpc;
+    ULONG64 deadline;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(Session->Owned);
@@ -1642,6 +1645,11 @@ NTSTATUS KphpHwSmbusTransact(
                        transaction | KPH_HW_SMBUS_CNT_START);
     }
 
+    NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTimePrecise(&qpc),
+                                         KPH_HW_SMBUS_TIMEOUT,
+                                         &deadline)));
+    deadline = max(deadline, Session->Deadline);
+
     KeStallExecutionProcessor(i801 ?
                               KPH_HW_SMBUS_SPIN_US :
                               KPH_HW_SMBUS_PIIX4_START_US);
@@ -1656,7 +1664,7 @@ NTSTATUS KphpHwSmbusTransact(
             break;
         }
 
-        if (KphHwDeadlinePassed(Session->Deadline))
+        if (KphHwDeadlinePassed(deadline))
         {
             KphpHwSmbusKill(Session, clear);
 
