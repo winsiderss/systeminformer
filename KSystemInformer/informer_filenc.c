@@ -334,6 +334,90 @@ PKPH_FLT_STREAM_CONTEXT KphpFltGetStreamContext(
 }
 
 /**
+ * \brief Retrieves the instance context for a filter instance.
+ *
+ * \param[in] Filter The filter, required if Create is TRUE.
+ * \param[in] Instance The filter instance.
+ * \param[in] Create TRUE to create the instance context if it does not exist.
+ *
+ * \return Referenced instance context, NULL if not found or on failure.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+PKPH_FLT_INSTANCE_CONTEXT KphpFltGetInstanceContext(
+    _In_opt_ PFLT_FILTER Filter,
+    _In_ PFLT_INSTANCE Instance,
+    _In_ BOOLEAN Create
+    )
+{
+    NTSTATUS status;
+    PKPH_FLT_INSTANCE_CONTEXT context;
+    PKPH_FLT_INSTANCE_CONTEXT oldContext;
+
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+
+    NT_ASSERT(!Create || Filter);
+
+    status = FltGetInstanceContext(Instance, &context);
+    if (NT_SUCCESS(status))
+    {
+        return context;
+    }
+
+    if (!Create)
+    {
+        return NULL;
+    }
+
+    status = FltAllocateContext(Filter,
+                                FLT_INSTANCE_CONTEXT,
+                                sizeof(KPH_FLT_INSTANCE_CONTEXT),
+                                NonPagedPoolNx,
+                                &context);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltAllocateContext failed: %!STATUS!",
+                      status);
+
+        return NULL;
+    }
+
+    RtlZeroMemory(context, sizeof(KPH_FLT_INSTANCE_CONTEXT));
+
+    oldContext = NULL;
+    status = FltSetInstanceContext(Instance,
+                                   FLT_SET_CONTEXT_KEEP_IF_EXISTS,
+                                   context,
+                                   &oldContext);
+    if (NT_SUCCESS(status))
+    {
+        return context;
+    }
+
+    FltReleaseContext(context);
+
+    if (status == STATUS_FLT_CONTEXT_ALREADY_DEFINED)
+    {
+        NT_ASSERT(oldContext);
+        return oldContext;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  INFORMER,
+                  "FltSetInstanceContext failed: %!STATUS!",
+                  status);
+
+    if (oldContext)
+    {
+        FltReleaseContext(oldContext);
+    }
+
+    return NULL;
+}
+
+/**
  * \brief Retrieves the rename generation for a file object.
  *
  * \details Read before querying a name so that a rename which completes
@@ -342,8 +426,8 @@ PKPH_FLT_STREAM_CONTEXT KphpFltGetStreamContext(
  * \param[in] Filter The filter, required if Create is TRUE.
  * \param[in] Instance The filter instance.
  * \param[in] FileObject The file object.
- * \param[in] Create TRUE to create the stream context so that later renames
- * of the stream are counted.
+ * \param[in] Create TRUE to create the contexts so that later renames of the
+ * stream and of directories on the instance are counted.
  * \param[out] Generation Receives the rename generation.
  */
 _IRQL_requires_max_(APC_LEVEL)
@@ -356,6 +440,7 @@ VOID KphpFltGetNameGeneration(
     )
 {
     PKPH_FLT_STREAM_CONTEXT streamContext;
+    PKPH_FLT_INSTANCE_CONTEXT instanceContext;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -369,6 +454,13 @@ VOID KphpFltGetNameGeneration(
     {
         *Generation = ReadAcquire(&streamContext->RenameGeneration);
         FltReleaseContext(streamContext);
+    }
+
+    instanceContext = KphpFltGetInstanceContext(Filter, Instance, Create);
+    if (instanceContext)
+    {
+        *Generation += ReadAcquire(&instanceContext->DirectoryRenameGeneration);
+        FltReleaseContext(instanceContext);
     }
 }
 
@@ -1310,7 +1402,10 @@ VOID KphpFltRenameFileNameCache(
     _In_ PCFLT_RELATED_OBJECTS FltObjects
     )
 {
+    NTSTATUS status;
     PKPH_FLT_STREAM_CONTEXT streamContext;
+    PKPH_FLT_INSTANCE_CONTEXT instanceContext;
+    BOOLEAN isDirectory;
 
     KPH_NPAGED_CODE_APC_MAX();
 
@@ -1325,6 +1420,34 @@ VOID KphpFltRenameFileNameCache(
         InterlockedIncrement(&streamContext->RenameGeneration);
         FltReleaseContext(streamContext);
     }
+
+    instanceContext = KphpFltGetInstanceContext(NULL,
+                                                FltObjects->Instance,
+                                                FALSE);
+    if (!instanceContext)
+    {
+        return;
+    }
+
+    status = FltIsDirectory(FltObjects->FileObject,
+                            FltObjects->Instance,
+                            &isDirectory);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "FltIsDirectory failed: %!STATUS!",
+                      status);
+
+        isDirectory = TRUE;
+    }
+
+    if (isDirectory)
+    {
+        InterlockedIncrement(&instanceContext->DirectoryRenameGeneration);
+    }
+
+    FltReleaseContext(instanceContext);
 }
 
 /**

@@ -78,6 +78,11 @@ typedef struct _KPH_FLT_STREAM_CONTEXT
     LONG RenameGeneration;
 } KPH_FLT_STREAM_CONTEXT, *PKPH_FLT_STREAM_CONTEXT;
 
+typedef struct _KPH_FLT_INSTANCE_CONTEXT
+{
+    LONG DirectoryRenameGeneration;
+} KPH_FLT_INSTANCE_CONTEXT, *PKPH_FLT_INSTANCE_CONTEXT;
+
 typedef struct _KPH_FLT_FILE_NAME
 {
     //
