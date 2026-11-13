@@ -780,6 +780,7 @@ NTSTATUS KphpHwInitializeMcfg(
     ULONG length;
     ULONG count;
     ULONG rangesLength;
+    PKPH_HW_MCFG_ENTRY entries;
     PKPH_HW_MCFG_ENTRY ranges;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -823,6 +824,29 @@ NTSTATUS KphpHwInitializeMcfg(
         goto Exit;
     }
 
+    entries = Add2Ptr(info->TableBuffer, KPH_HW_MCFG_HEADER_LENGTH);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        ULONG64 end;
+
+        status = RtlULongLongAdd(entries[i].BaseAddress,
+                                 (((ULONG64)entries[i].EndBus + 1) <<
+                                  KPH_HW_ECAM_BUS_SHIFT),
+                                 &end);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "MCFG range 0x%llx end bus %lu overflows",
+                          entries[i].BaseAddress,
+                          (ULONG)entries[i].EndBus);
+
+            status = STATUS_ACPI_INVALID_TABLE;
+            goto Exit;
+        }
+    }
+
     NT_VERIFY(NT_SUCCESS(RtlULongMult(count,
                                       sizeof(KPH_HW_MCFG_ENTRY),
                                       &rangesLength)));
@@ -838,9 +862,7 @@ NTSTATUS KphpHwInitializeMcfg(
         goto Exit;
     }
 
-    RtlCopyMemory(ranges,
-                  Add2Ptr(info->TableBuffer, KPH_HW_MCFG_HEADER_LENGTH),
-                  rangesLength);
+    RtlCopyMemory(ranges, entries, rangesLength);
 
     KphpHwEcamRanges = ranges;
     KphpHwEcamRangeCount = count;
