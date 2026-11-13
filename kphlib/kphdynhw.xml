@@ -1277,6 +1277,7 @@ This file is part of System Informer.
          desc="Silvermont, Airmont">
         <msr reg="0x19c" gate="06h:eax:0" desc="IA32_THERM_STATUS (core)"/>
         <msr reg="0x1a2" desc="MSR_TEMPERATURE_TARGET, TjMax [23:16] (pkg)"/>
+        <msr reg="0xcd" desc="MSR_FSB_FREQ, bus clock select (pkg)"/>
         <msr reg="0xce" desc="MSR_PLATFORM_INFO (pkg)"/>
         <msr reg="0x198" desc="IA32_PERF_STATUS, ratio/voltage (thread)"/>
         <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
