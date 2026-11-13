@@ -3536,6 +3536,67 @@ This file is part of System Informer.
     </cpu>
 
     <cpu vendor="AuthenticAMD"
+         family="0x10"
+         models="0x00-0x0f"
+         desc="K10: Phenom, Phenom II, Athlon II, Opteron">
+        <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
+        <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
+        <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
+        <msr reg="0xc0010067" desc="PStateDef[3] (core)"/>
+        <msr reg="0xc0010068" desc="PStateDef[4] (core)"/>
+        <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+    </cpu>
+
+    <cpu vendor="AuthenticAMD"
+         family="0x11"
+         models="0x00-0x0f"
+         desc="Griffin: Turion X2 Ultra">
+        <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
+        <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
+        <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
+        <msr reg="0xc0010067" desc="PStateDef[3] (core)"/>
+        <msr reg="0xc0010068" desc="PStateDef[4] (core)"/>
+        <msr reg="0xc0010069" desc="PStateDef[5] (core)"/>
+        <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
+        <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
+        <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+    </cpu>
+
+    <cpu vendor="AuthenticAMD"
+         family="0x12"
+         models="0x00-0x0f"
+         desc="Llano">
+        <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
+        <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
+        <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
+        <msr reg="0xc0010067" desc="PStateDef[3] (core)"/>
+        <msr reg="0xc0010068" desc="PStateDef[4] (core)"/>
+        <msr reg="0xc0010069" desc="PStateDef[5] (core)"/>
+        <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
+        <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
+        <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+    </cpu>
+
+    <cpu vendor="AuthenticAMD"
+         family="0x14"
+         models="0x00-0x0f"
+         desc="Bobcat: Ontario, Zacate">
+        <msr reg="0xc0010063" desc="PStateStat (core)"/>
+        <msr reg="0xc0010064" desc="PStateDef[0] (core)"/>
+        <msr reg="0xc0010065" desc="PStateDef[1] (core)"/>
+        <msr reg="0xc0010066" desc="PStateDef[2] (core)"/>
+        <msr reg="0xc0010067" desc="PStateDef[3] (core)"/>
+        <msr reg="0xc0010068" desc="PStateDef[4] (core)"/>
+        <msr reg="0xc0010069" desc="PStateDef[5] (core)"/>
+        <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
+        <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
+        <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+    </cpu>
+
+    <cpu vendor="AuthenticAMD"
          family="0x15"
          models="0x00-0x0f,0x10-0x1f,0x30-0x3f"
          desc="Bulldozer, Piledriver">
