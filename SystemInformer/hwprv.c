@@ -198,7 +198,8 @@ typedef enum _PHP_HW_REG
     PhpHwRegLimitReasons, // Intel MSR_CORE_PERF_LIMIT_REASONS (pkg)
     PhpHwRegVrCurrentConfig, // Intel MSR_VR_CURRENT_CONFIG, PL4 (pkg)
     PhpHwRegPlatformPowerLimit, // Intel MSR_PLATFORM_POWER_LIMIT (pkg)
-    PhpHwRegTemperatureTarget, // probe only from here
+    PhpHwRegCentaurTemperature, // Centaur and Zhaoxin 1423h (core)
+    PhpHwRegTemperatureTarget, // probe only from here; Intel MSR_TEMPERATURE_TARGET, Zhaoxin critical temperature
     PhpHwRegPlatformInfo,
     PhpHwRegRaplUnit,
     PhpHwRegPowerLimit,
@@ -608,7 +609,8 @@ typedef enum _PHP_HW_CPU_CLASS
     PhpHwCpuNone, // ARM64, or a processor the provider does not serve
     PhpHwCpuIntel,
     PhpHwCpuAmdZen, // AuthenticAMD or HygonGenuine, family 17h and later
-    PhpHwCpuAmdLegacy // AuthenticAMD, families 10h to 16h
+    PhpHwCpuAmdLegacy, // AuthenticAMD, families 10h to 16h
+    PhpHwCpuCentaur // CentaurHauls or "  Shanghai  "
 } PHP_HW_CPU_CLASS;
 
 static PH_CPU_IDENTITY PhpHwIdentity;
@@ -1087,6 +1089,8 @@ static BOOLEAN PhpHwInitializeTopology(
         PhpHwCpuClass = PhpHwCpuAmdZen;
     else if (PhCpuIdentityIsAmd(&PhpHwIdentity) && PhpHwIdentity.DisplayFamily >= 0x10)
         PhpHwCpuClass = PhpHwCpuAmdLegacy;
+    else if (PhCpuIdentityIsCentaur(&PhpHwIdentity))
+        PhpHwCpuClass = PhpHwCpuCentaur;
 
     if (PhpHwCpuClass == PhpHwCpuNone)
         return FALSE;
@@ -1293,6 +1297,17 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
         PhpHwSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+    }
+    else if (PhpHwCpuClass == PhpHwCpuCentaur)
+    {
+        ULONG critical = PhCentaurCriticalTemperatureMsr(&PhpHwIdentity);
+
+        PhpHwSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
+        PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
+        PhpHwSetRegister(PhpHwRegCentaurTemperature, PH_CENTAUR_MSR_TEMPERATURE, PhpHwScopeCore);
+
+        if (critical)
+            PhpHwSetRegister(PhpHwRegTemperatureTarget, critical, PhpHwScopePackage);
     }
 }
 
@@ -10357,7 +10372,7 @@ static VOID PhpHwRefreshCapabilities(
     {
         capabilities |= PH_HW_CAP_EFFECTIVE_CLOCK;
 
-        if (PhpHwRegisterActive(PhpHwRegMperf))
+        if (PhpHwRegisterActive(PhpHwRegMperf) && PhpHwTscMhz > 0.0f)
         {
             capabilities |= PH_HW_CAP_ACTIVE_CLOCK;
 
@@ -10377,6 +10392,8 @@ static VOID PhpHwRefreshCapabilities(
 
     if (PhpHwRegisterActive(PhpHwRegThermStatus))
         capabilities |= PH_HW_CAP_CORE_TEMP | PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_THROTTLE;
+    if (PhpHwRegisterActive(PhpHwRegCentaurTemperature))
+        capabilities |= PH_HW_CAP_CORE_TEMP | PH_HW_CAP_PACKAGE_TEMP;
     if (PhpHwRegisterActive(PhpHwRegPackageThermStatus))
         capabilities |= PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_THROTTLE;
     if (PhpHwRegisterActive(PhpHwRegLimitReasons))
@@ -10636,6 +10653,11 @@ static VOID PhpHwProbeDecode(
             // MPERF counts at the P0 frequency.
             if (PhpHwSampleValue(&package->Sample, PhpHwRegPStateDef0, &value))
                 baseMhz = PhAmdPStateDefToMhz(value, &PhpHwIdentity);
+        }
+        else if (PhpHwCpuClass == PhpHwCpuCentaur)
+        {
+            if (PhpHwSampleValue(&package->Sample, PhpHwRegTemperatureTarget, &value))
+                package->TjMax = (ULONG)(value & 0xFF);
         }
 
         if (i == 0)
@@ -11964,7 +11986,8 @@ static VOID PhpHwDecodeProcessor(
             valid |= PH_HW_CAP_EFFECTIVE_CLOCK;
         }
 
-        if (PhpHwSampleDelta(thread, PhpHwRegMperf, &deltaMperf) && deltaMperf != 0)
+        // MPERF counts at the base clock; without one there is no active clock.
+        if (PhpHwTscMhz > 0.0f && PhpHwSampleDelta(thread, PhpHwRegMperf, &deltaMperf) && deltaMperf != 0)
         {
             sensor->ActiveMhz = PhActiveMhzFromAperfMperf(deltaAperf, deltaMperf, PhpHwTscMhz);
             valid |= PH_HW_CAP_ACTIVE_CLOCK;
@@ -12036,6 +12059,21 @@ static VOID PhpHwDecodeProcessor(
                 sensor->Voltage = PhAmdCpuVidToVolts(vid, &PhpHwIdentity);
                 valid |= PH_HW_CAP_VOLTAGE;
             }
+        }
+    }
+    else if (PhpHwCpuClass == PhpHwCpuCentaur)
+    {
+        FLOAT celsius;
+
+        if (PhpHwSampleValue(core, PhpHwRegCentaurTemperature, &value) && PhCentaurTemperatureToCelsius(value, &celsius))
+        {
+            sensor->Temperature = celsius;
+            valid |= PH_HW_CAP_CORE_TEMP;
+
+            if (!(package->TickValid & PH_HW_CAP_CORE_TEMP) || celsius > package->TickMaxCoreTemperature)
+                package->TickMaxCoreTemperature = celsius;
+
+            package->TickValid |= PH_HW_CAP_CORE_TEMP;
         }
     }
 
@@ -12115,7 +12153,7 @@ static VOID PhpHwDecodePackage(
         valid |= PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_THROTTLE;
         package->TickThrottleFlags |= PhpHwDecodeThrottle(value);
     }
-    else if (PhpHwCpuClass == PhpHwCpuIntel && (valid & PH_HW_CAP_CORE_TEMP))
+    else if ((PhpHwCpuClass == PhpHwCpuIntel || PhpHwCpuClass == PhpHwCpuCentaur) && (valid & PH_HW_CAP_CORE_TEMP))
     {
         sensor->Temperature = package->TickMaxCoreTemperature;
         valid |= PH_HW_CAP_PACKAGE_TEMP;

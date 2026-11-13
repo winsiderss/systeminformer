@@ -173,6 +173,65 @@ BOOLEAN NTAPI PhCpuIdentityIsAmd(
 }
 
 /**
+ * Determines whether the identity is a CentaurHauls or Zhaoxin ("  Shanghai  ") processor.
+ *
+ * \param Identity The CPU identity.
+ * \return TRUE for CentaurHauls or "  Shanghai  ".
+ */
+BOOLEAN NTAPI PhCpuIdentityIsCentaur(
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    return PhpCpuIdentityIsVendor(Identity, "CentaurHauls") || PhpCpuIdentityIsVendor(Identity, "  Shanghai  ");
+}
+
+/**
+ * Returns the critical temperature MSR of a Centaur or Zhaoxin model.
+ *
+ * \param Identity The CPU identity.
+ * \return The MSR, or 0 when the model has none.
+ */
+ULONG NTAPI PhCentaurCriticalTemperatureMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    static const UCHAR models[] = { 0x3B, 0x5B };
+    static const UCHAR altModels[] = { 0x6B, 0x7B };
+
+    if (!PhCpuIdentityIsCentaur(Identity))
+        return 0;
+
+    if (PhpCpuIdentityIsModel(Identity, 0x07, models, RTL_NUMBER_OF(models)))
+        return PH_CENTAUR_MSR_TEMPERATURE_CRIT;
+    if (PhpCpuIdentityIsModel(Identity, 0x07, altModels, RTL_NUMBER_OF(altModels)))
+        return PH_CENTAUR_MSR_TEMPERATURE_CRIT_ALT;
+
+    return 0;
+}
+
+/**
+ * Converts the Centaur and Zhaoxin temperature MSR (1423h) to degrees Celsius.
+ *
+ * \param Value The MSR value.
+ * \param Celsius Receives bits 23:0.
+ * \return FALSE for an implausible reading.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhCentaurTemperatureToCelsius(
+    _In_ ULONG64 Value,
+    _Out_ PFLOAT Celsius
+    )
+{
+    ULONG celsius = (ULONG)(Value & 0xFFFFFF);
+
+    if (celsius > 0xFF)
+        return FALSE;
+
+    *Celsius = (FLOAT)celsius;
+    return TRUE;
+}
+
+/**
  * Retrieves the width of the IA32_THERM_STATUS or IA32_PACKAGE_THERM_STATUS digital readout.
  *
  * \param Identity The CPU identity.

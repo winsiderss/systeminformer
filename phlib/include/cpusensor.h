@@ -58,6 +58,11 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_AMD_MSR_CORE_ENERGY_STAT 0xC001029A
 #define PH_AMD_MSR_PKG_ENERGY_STAT 0xC001029B
 
+// Centaur and Zhaoxin MSR
+#define PH_CENTAUR_MSR_TEMPERATURE 0x1423 // [23:0] degrees C (core)
+#define PH_CENTAUR_MSR_TEMPERATURE_CRIT 0x1416 // [7:0] degrees C, family 7 models 3Bh and 5Bh
+#define PH_CENTAUR_MSR_TEMPERATURE_CRIT_ALT 0x175B // [7:0] degrees C, family 7 models 6Bh and 7Bh
+
 // AMD SMN
 #define PH_AMD_SMN_THM_TCON_CUR_TMP 0x00059800
 #define PH_AMD_SMN_SVI_TFN 0x0005A008
@@ -163,6 +168,29 @@ BOOLEAN
 NTAPI
 PhCpuIdentityIsAmd(
     _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCpuIdentityIsCentaur(
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhCentaurCriticalTemperatureMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCentaurTemperatureToCelsius(
+    _In_ ULONG64 Value,
+    _Out_ PFLOAT Celsius
     );
 
 PHLIBAPI
