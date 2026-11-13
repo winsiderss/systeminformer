@@ -544,6 +544,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_SMBUS_PM_MMIO                ((UCHAR){{DynDataHw.SmbusPmMmio}})
 #define KPH_DYN_HW_SMBUS_PM_CONFIG              ((UCHAR){{DynDataHw.SmbusPmConfig}})
 #define KPH_DYN_HW_SMBUS_FLAG_READ_ONLY         ((UCHAR)0x{{DynDataHw.SmbusHostFlagSelectReadOnly:X2}})
+#define KPH_DYN_HW_SMBUS_FLAG_NO_SEMAPHORE      ((UCHAR)0x{{DynDataHw.SmbusHostFlagNoSemaphore:X2}})
 
 #define KPH_DYN_HW_VSEC_DISCOVERY_PMT_TELEMETRY ((UCHAR){{DynDataHw.VsecDiscoveryPmtTelemetry}})
 #define KPH_DYN_HW_VSEC_DISCOVERY_TPMI          ((UCHAR){{DynDataHw.VsecDiscoveryTpmi}})

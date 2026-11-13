@@ -678,7 +678,11 @@ namespace CustomBuildTool
         /// The port select register must not be written.
         /// </summary>
         public const byte SmbusHostFlagSelectReadOnly = 0x01;
-        public const byte SmbusHostFlagMask = SmbusHostFlagSelectReadOnly;
+        /// <summary>
+        /// The host has no host semaphore in its slave control register (hosts before SB800).
+        /// </summary>
+        public const byte SmbusHostFlagNoSemaphore = 0x02;
+        public const byte SmbusHostFlagMask = SmbusHostFlagSelectReadOnly | SmbusHostFlagNoSemaphore;
         /// <summary>
         /// The PCI revision ID, byte 08h of the configuration header.
         /// </summary>
@@ -729,9 +733,9 @@ namespace CustomBuildTool
                     return "a configuration layout needs an enable register above the header";
                 if (Host.BaseMask == 0)
                     return "base-mask must be non-zero";
-                if (Host.Flags != 0 || Host.EnableMask != 0 || Host.Select != 0 || Host.SelectMask != 0 || Host.SelectShift != 0 ||
+                if ((Host.Flags & SmbusHostFlagSelectReadOnly) != 0 || Host.EnableMask != 0 || Host.Select != 0 || Host.SelectMask != 0 || Host.SelectShift != 0 ||
                     Host.SelectAlternate != 0 || Host.SelectChoose != 0 || Host.SelectChooseMask != 0)
-                    return "a configuration layout has no flags, enable-mask or port select";
+                    return "a configuration layout has no enable-mask or port select";
                 if (Host.Reserved[0] != 0 || Host.Reserved[1] != 0 || Host.Reserved[2] != 0 || Host.Reserved[3] != 0)
                     return "reserved bytes are non-zero";
 
@@ -1966,7 +1970,7 @@ namespace CustomBuildTool
         private static readonly string[] PortIndirectAttributes = ["index-port", "data-port", "name", "desc"];
         private static readonly string[] SmbusHostAttributes = ["revisions", "pm", "index-port", "data-port", "base", "length", "enable", "decode", "base-mask",
                                                                 "enable-mask", "select", "select-mask", "select-alternate", "select-choose", "select-write",
-                                                                "name", "desc"];
+                                                                "semaphore", "name", "desc"];
         private static readonly string[] PortIndirectReadAttributes = ["index", "length", "desc"];
 
         private enum WindowPlacement
@@ -3840,6 +3844,17 @@ namespace CustomBuildTool
                 break;
             default:
                 throw Context.Error(Host, "select-write must be \"true\" or \"false\"");
+            }
+
+            switch (OptionalAttribute(Host, "semaphore") ?? "true")
+            {
+            case "true":
+                break;
+            case "false":
+                body.Flags |= DynDataHw.SmbusHostFlagNoSemaphore;
+                break;
+            default:
+                throw Context.Error(Host, "semaphore must be \"true\" or \"false\"");
             }
 
             byte Register(string Name, string Text)

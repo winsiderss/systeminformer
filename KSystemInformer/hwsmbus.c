@@ -1221,6 +1221,69 @@ NTSTATUS KphpHwSmbusTakePort(
 }
 
 /**
+ * \brief Takes the host semaphore of a PIIX4 host; a host without one is owned
+ * at once.
+ *
+ * \param[in,out] Session The session, host open.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusTakeSemaphore(
+    _Inout_ PKPH_HW_SMBUS_SESSION Session
+    )
+{
+    UCHAR control;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->HostKind == KPH_DYN_HW_SMBUS_HOST_PIIX4);
+
+    if (BooleanFlagOn(Session->Layout->Flags,
+                      KPH_DYN_HW_SMBUS_FLAG_NO_SEMAPHORE))
+    {
+        Session->Owned = TRUE;
+        return STATUS_SUCCESS;
+    }
+
+    control = KphpHwSmbusIn(Session, KPH_HW_SMBUS_PIIX4_SLVCNT);
+
+    if (BooleanFlagOn(control, KPH_HW_SMBUS_PIIX4_SEMAPHORE))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus 0x%04lx semaphore held",
+                      (ULONG)Session->Base);
+
+        return STATUS_RETRY;
+    }
+
+    for (ULONG i = 0; i < KPH_HW_SMBUS_PIIX4_SEMAPHORE_TRIES; i++)
+    {
+        KphpHwSmbusOut(Session,
+                       KPH_HW_SMBUS_PIIX4_SLVCNT,
+                       control | KPH_HW_SMBUS_PIIX4_SEMAPHORE);
+
+        control = KphpHwSmbusIn(Session, KPH_HW_SMBUS_PIIX4_SLVCNT);
+
+        if (BooleanFlagOn(control, KPH_HW_SMBUS_PIIX4_SEMAPHORE))
+        {
+            Session->Owned = TRUE;
+            return STATUS_SUCCESS;
+        }
+
+        KphpHwSmbusDelay(1);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "SMBus 0x%04lx semaphore not granted",
+                  (ULONG)Session->Base);
+
+    return STATUS_RETRY;
+}
+
+/**
  * \brief Takes the host for the request.
  *
  * \param[in,out] Session The session, host open.
@@ -1256,45 +1319,15 @@ NTSTATUS KphpHwSmbusAcquire(
     }
     else
     {
-        UCHAR control;
-
-        control = KphpHwSmbusIn(Session, KPH_HW_SMBUS_PIIX4_SLVCNT);
-
-        if (BooleanFlagOn(control, KPH_HW_SMBUS_PIIX4_SEMAPHORE))
+        status = KphpHwSmbusTakeSemaphore(Session);
+        if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
-                          "SMBus 0x%04lx semaphore held",
-                          (ULONG)Session->Base);
+                          "KphpHwSmbusTakeSemaphore failed: %!STATUS!",
+                          status);
 
-            return STATUS_RETRY;
-        }
-
-        for (ULONG i = 0; i < KPH_HW_SMBUS_PIIX4_SEMAPHORE_TRIES; i++)
-        {
-            KphpHwSmbusOut(Session,
-                           KPH_HW_SMBUS_PIIX4_SLVCNT,
-                           control | KPH_HW_SMBUS_PIIX4_SEMAPHORE);
-
-            control = KphpHwSmbusIn(Session, KPH_HW_SMBUS_PIIX4_SLVCNT);
-
-            if (BooleanFlagOn(control, KPH_HW_SMBUS_PIIX4_SEMAPHORE))
-            {
-                Session->Owned = TRUE;
-                break;
-            }
-
-            KphpHwSmbusDelay(1);
-        }
-
-        if (!Session->Owned)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "SMBus 0x%04lx semaphore not granted",
-                          (ULONG)Session->Base);
-
-            return STATUS_RETRY;
+            return status;
         }
 
         hststs = KphpHwSmbusIn(Session, KPH_HW_SMBUS_HSTSTS);
@@ -1448,7 +1481,8 @@ NTSTATUS KphpHwSmbusRelease(
                        KPH_HW_SMBUS_HSTSTS,
                        (UCHAR)(KPH_HW_SMBUS_STS_I801_INUSE | clear));
     }
-    else
+    else if (!BooleanFlagOn(Session->Layout->Flags,
+                            KPH_DYN_HW_SMBUS_FLAG_NO_SEMAPHORE))
     {
         UCHAR control;
 
