@@ -68,16 +68,21 @@ DECLARE_INTERFACE_IID_(IDiaDataSource2, IDiaDataSource, "6D31CB3B-EDD4-4C3E-AB44
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource2
 
+    DECLSPEC_XFGVIRT(IDiaDataSource2, getRawPDBPtr)
     STDMETHOD(getRawPDBPtr)(THIS_
         _Out_ PVOID PdbBaseAddress
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDiaDataSource2, loadDataFromRawPDBPtr)
     STDMETHOD(loadDataFromRawPDBPtr)(THIS_
         _In_ PVOID PdbBaseAddress
         ) PURE;
@@ -92,17 +97,22 @@ DECLARE_INTERFACE_IID_(IDiaDataSource3, IDiaDataSource2, "65A23C15-BAB3-45DA-863
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource3
 
+    DECLSPEC_XFGVIRT(IDiaDataSource3, getStreamSize)
     STDMETHOD(getStreamSize)(THIS_
         _In_ PWSTR StreamName,
         _Out_ PULONG StreamSize
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDiaDataSource3, getStreamRawData)
     STDMETHOD(getStreamRawData)(THIS_
         _In_ PWSTR StreamName,
         _In_ ULONG BytesToRead,
@@ -119,35 +129,45 @@ DECLARE_INTERFACE_IID_(IDiaDataSource10, IUnknown, "5c7e382a-93b4-4677-a6b5-cc28
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, get_lastError)
     STDMETHOD(get_lastError)(THIS_
         _Out_ BSTR* pRetVal);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromPdb)
     STDMETHOD(loadDataFromPdb)(THIS_
         _In_ LPCOLESTR pdbPath);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadAndValidateDataFromPdb)
     STDMETHOD(loadAndValidateDataFromPdb)(THIS_
         _In_ LPCOLESTR pdbPath,
         _In_ GUID* pcsig70,
         _In_ DWORD sig,
         _In_ DWORD age);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataForExe)
     STDMETHOD(loadDataForExe)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
         _In_ IUnknown* pCallback);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromIStream)
     STDMETHOD(loadDataFromIStream)(THIS_
         _In_ IStream * pIStream);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, openSession)
     STDMETHOD(openSession)(THIS_
         _Out_ IDiaSession** ppSession);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromCodeViewInfo)
     STDMETHOD(loadDataFromCodeViewInfo)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
@@ -155,6 +175,7 @@ DECLARE_INTERFACE_IID_(IDiaDataSource10, IUnknown, "5c7e382a-93b4-4677-a6b5-cc28
         _In_ BYTE* pbCvInfo,
         _In_ IUnknown* pCallback);
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromMiscInfo)
     STDMETHOD(loadDataFromMiscInfo)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
@@ -167,21 +188,25 @@ DECLARE_INTERFACE_IID_(IDiaDataSource10, IUnknown, "5c7e382a-93b4-4677-a6b5-cc28
 
     // IDiaDataSource2
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, getRawPDBPtr)
     STDMETHOD(getRawPDBPtr)(THIS_
         _Out_ PVOID PdbBaseAddress
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromRawPDBPtr)
     STDMETHOD(loadDataFromRawPDBPtr)(THIS_
         _In_ PVOID PdbBaseAddress
         ) PURE;
 
     // IDiaDataSource3
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, getStreamSize)
     STDMETHOD(getStreamSize)(THIS_
         _In_ PWSTR StreamName,
         _Out_ PULONG StreamSize
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDiaDataSource10, getStreamRawData)
     STDMETHOD(getStreamRawData)(THIS_
         _In_ PWSTR StreamName,
         _In_ ULONG BytesToRead,
@@ -189,21 +214,37 @@ DECLARE_INTERFACE_IID_(IDiaDataSource10, IUnknown, "5c7e382a-93b4-4677-a6b5-cc28
         ) PURE;
 
     // TODO
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromPdbEx)
     STDMETHOD(loadDataFromPdbEx)(THIS_ USHORT const* pdbPath, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadAndValidateDataFromPdbEx)
     STDMETHOD(loadAndValidateDataFromPdbEx)(THIS_ USHORT const* pdbPath, PGUID, ULONG, ULONG, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataForExeEx)
     STDMETHOD(loadDataForExeEx)(THIS_ USHORT const*, USHORT const*, IUnknown* Object, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromIStreamEx)
     STDMETHOD(loadDataFromIStreamEx)(THIS_ IStream*, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, NotUsedQueryInterface)
     STDMETHOD(NotUsedQueryInterface)(THIS_ REFIID riid, PVOID* ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, setPfnMiniPDBErrorCallback2)
     STDMETHOD(setPfnMiniPDBErrorCallback2)(THIS_ PVOID, long (*)(PVOID, ULONG, USHORT const* const, USHORT const* const)) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, setPfnMiniPDBNHBuildStatusCallback)
     STDMETHOD(setPfnMiniPDBNHBuildStatusCallback)(THIS_ PVOID, INT(*)(PVOID, ULONG)) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromPdbEx2)
     STDMETHOD(loadDataFromPdbEx2)(THIS_ USHORT const*, INT, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadAndValidateDataFromPdbEx2)
     STDMETHOD(loadAndValidateDataFromPdbEx2)(THIS_ USHORT const*, PGUID, ULONG, ULONG, INT, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataForExeEx2)
     STDMETHOD(loadDataForExeEx2)(THIS_ USHORT const*, USHORT const*, IUnknown*, INT, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromIStreamEx2)
     STDMETHOD(loadDataFromIStreamEx2)(THIS_ IStream*, INT, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromCodeViewInfoEx)
     STDMETHOD(loadDataFromCodeViewInfoEx)(THIS_ USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, VSDebuggerPreloadPDBDone)
     STDMETHOD(VSDebuggerPreloadPDBDone)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataForExeEx3)
     STDMETHOD(loadDataForExeEx3)(THIS_ USHORT const*, USHORT const*, IUnknown*, INT, INT, INT) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, usePdb)
     STDMETHOD(usePdb)(THIS_ PVOID) PURE;
+    DECLSPEC_XFGVIRT(IDiaDataSource10, loadDataFromCodeViewInfoHelper)
     STDMETHOD(loadDataFromCodeViewInfoHelper)(THIS_ USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, char const*) PURE;
 
     END_INTERFACE
@@ -216,15 +257,23 @@ DECLARE_INTERFACE_IID_(IDiaXfgTypeHash, IUnknown, "c63d5964-b043-432d-9445-56ca8
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaXfgTypeHash
+    DECLSPEC_XFGVIRT(IDiaXfgTypeHash, get_TypeHash)
     STDMETHOD(get_TypeHash)(THIS_ __RPC__out PULONG64 TypeHash) PURE;
+    DECLSPEC_XFGVIRT(IDiaXfgTypeHash, get_TypeSignature)
     STDMETHOD(get_TypeSignature)(THIS_ __RPC__out IDiaSymbol** TypeSymbol) PURE;
+    DECLSPEC_XFGVIRT(IDiaXfgTypeHash, get_HasVirtualInformation)
     STDMETHOD(get_HasVirtualInformation)(THIS_ __RPC__out PBOOL Virtual) PURE;
+    DECLSPEC_XFGVIRT(IDiaXfgTypeHash, get_BaseClassName)
     STDMETHOD(get_BaseClassName)(THIS_ __RPC__out PWSTR *BaseClassName) PURE;
+    DECLSPEC_XFGVIRT(IDiaXfgTypeHash, get_MethodName)
     STDMETHOD(get_MethodName)(THIS_ __RPC__out PWSTR *MethodName) PURE;
 
     END_INTERFACE
@@ -256,13 +305,19 @@ DECLARE_INTERFACE_IID_(IDiaEnumXfgTypeHashes, IUnknown, "c63d5964-b043-432d-9445
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaEnumXfgTypeHashes
+    DECLSPEC_XFGVIRT(IDiaEnumXfgTypeHashes, get_Count)
     STDMETHOD(get_Count)(THIS_ __RPC__out PULONG Count) PURE;
+    DECLSPEC_XFGVIRT(IDiaEnumXfgTypeHashes, Next)
     STDMETHOD(Next)(THIS_ __RPC__in ULONG celt, __RPC__out_ecount_part(celt, *pceltFetched) IDiaXfgTypeHash **TypeHashes, __RPC__out PULONG pceltFetched) PURE;
+    DECLSPEC_XFGVIRT(IDiaEnumXfgTypeHashes, Reset)
     STDMETHOD(Reset)(THIS) PURE;
 
     END_INTERFACE
@@ -290,27 +345,36 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaSession
 
+    DECLSPEC_XFGVIRT(IDiaSession13, get_loadAddress)
     STDMETHOD(get_loadAddress)(THIS_
         _Out_ ULONGLONG* pRetVal);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, put_loadAddress)
     STDMETHOD(put_loadAddress)(THIS_
         _In_ ULONGLONG NewVal);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, get_globalScope)
     STDMETHOD(get_globalScope)(THIS_
         _Out_ IDiaSymbol **pRetVal);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getEnumTables)
     STDMETHOD(getEnumTables)(THIS_
         _Out_ IDiaEnumTables **ppEnumTables);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getSymbolsByAddr)
     STDMETHOD(getSymbolsByAddr)(THIS_
         _Out_ IDiaEnumSymbolsByAddr **ppEnumbyAddr);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildren)
     STDMETHOD(findChildren)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
@@ -318,6 +382,7 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         _In_ DWORD compareFlags,
         _Out_ IDiaEnumSymbols **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildrenEx)
     STDMETHOD(findChildrenEx)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
@@ -325,6 +390,7 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         _In_ DWORD compareFlags,
         _Out_ IDiaEnumSymbols **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildrenExByAddr)
     STDMETHOD(findChildrenExByAddr)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
@@ -334,6 +400,7 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         _In_ DWORD offset,
         _Out_ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildrenExByVA)
     STDMETHOD(findChildrenExByVA)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
@@ -342,6 +409,7 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         _In_ ULONGLONG va,
         _Out_ IDiaEnumSymbols **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildrenExByRVA)
     STDMETHOD(findChildrenExByRVA)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
@@ -350,78 +418,93 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         _In_ DWORD rva,
         _Out_ IDiaEnumSymbols **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByAddr)
     STDMETHOD(findSymbolByAddr)(THIS_
         _In_ DWORD isect,
         _In_ DWORD offset,
         _In_ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByRVA)
     STDMETHOD(findSymbolByRVA)(THIS_
         _In_ DWORD rva,
         _In_ enum SymTagEnum symtag,
         _Out_ IDiaSymbol * *ppSymbol);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByVA)
     STDMETHOD(findSymbolByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByToken)
     STDMETHOD(findSymbolByToken)(THIS_
         /* [in] */ ULONG token,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, symsAreEquiv)
     STDMETHOD(symsAreEquiv)(THIS_
         /* [in] */ IDiaSymbol* symbolA,
         /* [in] */ IDiaSymbol* symbolB);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, symbolById)
     STDMETHOD(symbolById)(THIS_
         /* [in] */ DWORD id,
         _Out_ IDiaSymbol **ppSymbol);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByRVAEx)
     STDMETHOD(findSymbolByRVAEx)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol,
         _Out_ long* displacement);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolByVAEx)
     STDMETHOD(findSymbolByVAEx)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ enum SymTagEnum symtag,
         /* [out] */ IDiaSymbol **ppSymbol,
         /* [out] */ long* displacement);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findFile)
     STDMETHOD(findFile)(THIS_
         /* [in] */ IDiaSymbol* pCompiland,
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD compareFlags,
         /* [out] */ IDiaEnumSourceFiles **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findFileById)
     STDMETHOD(findFileById)(THIS_
         /* [in] */ DWORD uniqueId,
         /* [out] */ IDiaSourceFile **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findLines)
     STDMETHOD(findLines)(THIS_
         /* [in] */ IDiaSymbol* compiland,
         /* [in] */ IDiaSourceFile* file,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findLinesByAddr)
     STDMETHOD(findLinesByAddr)(THIS_
         /* [in] */ DWORD seg,
         /* [in] */ DWORD offset,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findLinesByRVA)
     STDMETHOD(findLinesByRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findLinesByVA)
     STDMETHOD(findLinesByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findLinesByLinenum)
     STDMETHOD(findLinesByLinenum)(THIS_
         /* [in] */ IDiaSymbol* compiland,
         /* [in] */ IDiaSourceFile* file,
@@ -429,33 +512,40 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInjectedSource)
     STDMETHOD(findInjectedSource)(THIS_
         /* [in] */ LPCOLESTR srcFile,
         /* [out] */ IDiaEnumInjectedSources **ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getEnumDebugStreams)
     STDMETHOD(getEnumDebugStreams)(THIS_
         /* [out] */ IDiaEnumDebugStreams **ppEnumDebugStreams);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineFramesByAddr)
     STDMETHOD(findInlineFramesByAddr)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD isect,
         /* [in] */ DWORD offset,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineFramesByRVA)
     STDMETHOD(findInlineFramesByRVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD rva,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineFramesByVA)
     STDMETHOD(findInlineFramesByVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ ULONGLONG va,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineeLines)
     STDMETHOD(findInlineeLines)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineeLinesByAddr)
     STDMETHOD(findInlineeLinesByAddr)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD isect,
@@ -463,29 +553,34 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineeLinesByRVA)
     STDMETHOD(findInlineeLinesByRVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineeLinesByVA)
     STDMETHOD(findInlineeLinesByVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineeLinesByLinenum)
     STDMETHOD(findInlineeLinesByLinenum)(THIS_
         /* [in] */ IDiaSourceFile * file,
         /* [in] */ DWORD linenum,
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInlineesByName)
     STDMETHOD(findInlineesByName)(THIS_
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD option,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findAcceleratorInlineeLinesByLinenum)
     STDMETHOD(findAcceleratorInlineeLinesByLinenum)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ IDiaSourceFile * file,
@@ -493,85 +588,103 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolsForAcceleratorPointerTag)
     STDMETHOD(findSymbolsForAcceleratorPointerTag)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD tagValue,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolsByRVAForAcceleratorPointerTag)
     STDMETHOD(findSymbolsByRVAForAcceleratorPointerTag)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD tagValue,
         /* [in] */ DWORD rva,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findAcceleratorInlineesByName)
     STDMETHOD(findAcceleratorInlineesByName)(THIS_
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD option,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, addressForVA)
     STDMETHOD(addressForVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [out] */ DWORD * pISect,
         /* [out] */ DWORD * pOffset);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, addressForRVA)
     STDMETHOD(addressForRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [out] */ DWORD * pISect,
         /* [out] */ DWORD * pOffset);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findILOffsetsByAddr)
     STDMETHOD(findILOffsetsByAddr)(THIS_
         /* [in] */ DWORD isect,
         /* [in] */ DWORD offset,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findILOffsetsByRVA)
     STDMETHOD(findILOffsetsByRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findILOffsetsByVA)
     STDMETHOD(findILOffsetsByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInputAssemblyFiles)
     STDMETHOD(findInputAssemblyFiles)(THIS_
         /* [out] */ IDiaEnumInputAssemblyFiles * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInputAssembly)
     STDMETHOD(findInputAssembly)(THIS_
         /* [in] */ DWORD index,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInputAssemblyById)
     STDMETHOD(findInputAssemblyById)(THIS_
         /* [in] */ DWORD uniqueId,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getFuncMDTokenMapSize)
     STDMETHOD(getFuncMDTokenMapSize)(THIS_
         /* [out] */ DWORD * pcb);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getFuncMDTokenMap)
     STDMETHOD(getFuncMDTokenMap)(THIS_
         /* [in] */ DWORD cb,
         /* [out] */ DWORD * pcb,
         /* [size_is][out] */ BYTE * pb);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getTypeMDTokenMapSize)
     STDMETHOD(getTypeMDTokenMapSize)(THIS_
         /* [out] */ DWORD * pcb);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getTypeMDTokenMap)
     STDMETHOD(getTypeMDTokenMap)(THIS_
         /* [in] */ DWORD cb,
         /* [out] */ DWORD * pcb,
         /* [size_is][out] */ BYTE * pb);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getNumberOfFunctionFragments_VA)
     STDMETHOD(getNumberOfFunctionFragments_VA)(THIS_
         /* [in] */ ULONGLONG vaFunc,
         /* [in] */ DWORD cbFunc,
         /* [out] */ DWORD * pNumFragments);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getNumberOfFunctionFragments_RVA)
     STDMETHOD(getNumberOfFunctionFragments_RVA)(THIS_
         /* [in] */ DWORD rvaFunc,
         /* [in] */ DWORD cbFunc,
         /* [out] */ DWORD * pNumFragments);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getFunctionFragments_VA)
     STDMETHOD(getFunctionFragments_VA)(THIS_
         /* [in] */ ULONGLONG vaFunc,
         /* [in] */ DWORD cbFunc,
@@ -579,6 +692,7 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         /* [size_is][out] */ ULONGLONG * pVaFragment,
         /* [size_is][out] */ DWORD * pLenFragment);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getFunctionFragments_RVA)
     STDMETHOD(getFunctionFragments_RVA)(THIS_
         /* [in] */ DWORD rvaFunc,
         /* [in] */ DWORD cbFunc,
@@ -586,12 +700,15 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
         /* [size_is][out] */ DWORD * pRvaFragment,
         /* [size_is][out] */ DWORD * pLenFragment);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getExports)
     STDMETHOD(getExports)(THIS_
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getHeapAllocationSites)
     STDMETHOD(getHeapAllocationSites)(THIS_
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
+    DECLSPEC_XFGVIRT(IDiaSession13, findInputAssemblyFile)
     STDMETHOD(findInputAssemblyFile)(THIS_
         /* [in] */ IDiaSymbol * pSymbol,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
@@ -623,36 +740,63 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
     // CDiaSession::isPortablePDB(int*)
     // CDiaSession::getSourceLinkInfo(IDiaSymbol*,IDiaEnumSourceLink**)
 
+    DECLSPEC_XFGVIRT(IDiaSession13, addPublicSymbol)
     STDMETHOD(addPublicSymbol)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, addStaticSymbol)
     STDMETHOD(addStaticSymbol)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, findSectionAddressByCrc)
     STDMETHOD(findSectionAddressByCrc)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, findThunkSymbol)
     STDMETHOD(findThunkSymbol)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, makeThunkSymbol)
     STDMETHOD(makeThunkSymbol)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, mergeObjPDB)
     STDMETHOD(mergeObjPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, commitObjPDBMerge)
     STDMETHOD(commitObjPDBMerge)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, cancelObjPDBMerge)
     STDMETHOD(cancelObjPDBMerge)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getLinkInfo)
     STDMETHOD(getLinkInfo)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, isMiniPDB)
     STDMETHOD(isMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, prepareEnCRebuild)
     STDMETHOD(prepareEnCRebuild)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, dispose)
     STDMETHOD(dispose)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getRawSymbolsFromMiniPDB)
     STDMETHOD(getRawSymbolsFromMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getRawTypesFromMiniPDB)
     STDMETHOD(getRawTypesFromMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getPdbMappingsForMiniPDB)
     STDMETHOD(getPdbMappingsForMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, disposeObjForMiniPDB)
     STDMETHOD(disposeObjForMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, EnablePrefetching)
     STDMETHOD(EnablePrefetching)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, isPCTModuleFromMiniPDB)
     STDMETHOD(isPCTModuleFromMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, EnableMemoryMappedFileIO)
     STDMETHOD(EnableMemoryMappedFileIO)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, VSDebuggerPreloadPDBDone)
     STDMETHOD(VSDebuggerPreloadPDBDone)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, isLinkerGeneratedModuleInMiniPDB)
     STDMETHOD(isLinkerGeneratedModuleInMiniPDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getInlineeMDTokenMapSize)
     STDMETHOD(getInlineeMDTokenMapSize)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getInlineeMDTokenMap)
     STDMETHOD(getInlineeMDTokenMap)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, isPortablePDB)
     STDMETHOD(isPortablePDB)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getSourceLinkInfo)
     STDMETHOD(getSourceLinkInfo)(THIS);
 
     // CDiaSession::getEnumXfgTypeHashes(IDiaEnumXfgTypeHashes**)
     // CDiaSession::getXfgTypeHash(unsigned __int64,IDiaEnumXfgTypeHashes**)
 
+    DECLSPEC_XFGVIRT(IDiaSession13, getEnumXfgTypeHashes)
     STDMETHOD(getEnumXfgTypeHashes)(THIS_ IDiaEnumXfgTypeHashes**);
+    DECLSPEC_XFGVIRT(IDiaSession13, getXfgTypeHash)
     STDMETHOD(getXfgTypeHash)(THIS_ ULONG64, IDiaEnumXfgTypeHashes**);
 
     // CDiaSession::findChildrenHelper(IDiaSymbol *,SymTagEnum,ushort const *,ulong,ulong,bool,bool,IDiaEnumSymbols * *)
@@ -662,12 +806,19 @@ DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a
     // CDiaSession::getMDTokenMapHelper2(ulong,CDiaSession::MDTokenMapKind,ulong,ulong *,uchar *)
     // CDiaSession::getMDTokenRemapHelper(CDiaSession::MDTokenMapKind,ulong,ulong *,uchar *)
     // CDiaSession::getFunctionFragmentsHelper(ulong,ulong,ulong,ulong *,ulong *,ulong *)
+    DECLSPEC_XFGVIRT(IDiaSession13, findChildrenHelper)
     STDMETHOD(findChildrenHelper)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, findLinesByLinenumHelper)
     STDMETHOD(findLinesByLinenumHelper)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, findSymbolsForAcceleratorPointerTagHelper)
     STDMETHOD(findSymbolsForAcceleratorPointerTagHelper)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getMDTokenMapHelper)
     STDMETHOD(getMDTokenMapHelper)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getMDTokenMapHelper2)
     STDMETHOD(getMDTokenMapHelper2)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getMDTokenRemapHelper)
     STDMETHOD(getMDTokenRemapHelper)(THIS);
+    DECLSPEC_XFGVIRT(IDiaSession13, getFunctionFragmentsHelper)
     STDMETHOD(getFunctionFragmentsHelper)(THIS);
 
     END_INTERFACE

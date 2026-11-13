@@ -46,7 +46,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLENPUMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
             {
-                INT temperatureUnit = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_TEMPERATUREUNIT));
+                LONG temperatureUnit = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_TEMPERATUREUNIT));
 
                 PhSetIntegerSetting(SETTING_NAME_TEMPERATURE_UNIT, temperatureUnit != CB_ERR ? temperatureUnit : 0);
             }

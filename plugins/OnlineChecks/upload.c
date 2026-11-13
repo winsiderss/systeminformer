@@ -754,7 +754,7 @@ NTSTATUS UploadFileThreadStart(
 
     while (TRUE)
     {
-        if (context->Cancel)
+        if (ReadBooleanAcquire(&context->Cancel))
         {
             RaiseUploadError(context, L"Unable to complete the request.", STATUS_CANCELLED);
             goto CleanupExit;
@@ -1103,7 +1103,7 @@ NTSTATUS UploadFileThreadStart(
         goto CleanupExit;
     }
 
-    if (context->Cancel)
+    if (ReadBooleanAcquire(&context->Cancel))
     {
         RaiseUploadError(context, L"Unable to complete the request.", STATUS_CANCELLED);
         goto CleanupExit;

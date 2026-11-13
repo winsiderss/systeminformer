@@ -505,12 +505,6 @@ static VOID SelectDefaultImeWindowColor(
     }
 }
 
-/**
- * \brief WepCreateWindowMenu
- *
- * \param WindowMenu
- * \return
- */
 
 PPH_EMENU WepCreateWindowMenu(
     _In_ PPH_EMENU WindowMenu,
@@ -848,32 +842,7 @@ BOOLEAN WepExecuteWindowCommand(
         break;
     case ID_WINDOW_SETDPI:
         {
-            PPH_STRING selectedChoice = NULL;
-
-            while (PhaChoiceDialog(
-                ParentWindowHandle,
-                L"Enter new Window DPI:",
-                L"Enter new Window DPI:",
-                NULL,
-                0,
-                NULL,
-                PH_CHOICE_DIALOG_USER_CHOICE,
-                &selectedChoice,
-                NULL,
-                NULL
-                ))
-            {
-                LONG64 value;
-
-                if (selectedChoice->Length == 0)
-                    continue;
-
-                if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
-                {
-                    WeSetWindowToDpiForTesting(WindowHandle, (LONG)value);
-                    break;
-                }
-            }
+            WeShowWindowDpiDialog(ParentWindowHandle, WindowHandle);
         }
         break;
     default:
@@ -1236,6 +1205,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
 
@@ -1783,32 +1753,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 {
                     if (selectedNode)
                     {
-                        PPH_STRING selectedChoice = NULL;
-
-                        while (PhaChoiceDialog(
-                            WindowHandle,
-                            L"Enter new Window DPI:",
-                            L"Enter new Window DPI:",
-                            NULL,
-                            0,
-                            NULL,
-                            PH_CHOICE_DIALOG_USER_CHOICE,
-                            &selectedChoice,
-                            NULL,
-                            NULL
-                            ))
-                        {
-                            LONG64 value;
-
-                            if (selectedChoice->Length == 0)
-                                continue;
-
-                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
-                            {
-                                WeSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
-                                break;
-                            }
-                        }
+                        WeShowWindowDpiDialog(WindowHandle, selectedNode->WindowHandle);
                     }
                 }
                 break;
@@ -2881,32 +2826,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        PPH_STRING selectedChoice = NULL;
-
-                        while (PhaChoiceDialog(
-                            WindowHandle,
-                            L"Enter new Window DPI:",
-                            L"Enter new Window DPI:",
-                            NULL,
-                            0,
-                            NULL,
-                            PH_CHOICE_DIALOG_USER_CHOICE,
-                            &selectedChoice,
-                            NULL,
-                            NULL
-                            ))
-                        {
-                            LONG64 value;
-
-                            if (selectedChoice->Length == 0)
-                                continue;
-
-                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
-                            {
-                                WeSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
-                                break;
-                            }
-                        }
+                        WeShowWindowDpiDialog(WindowHandle, selectedNode->WindowHandle);
                     }
                 }
                 break;

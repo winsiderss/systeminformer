@@ -687,6 +687,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), WindowHandle, NetworkDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
+            UpdateWindow(context->PanelWindowHandle);
             PhAddLayoutItemExLogical(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             NetworkDeviceInitializeDialogDpi(context);

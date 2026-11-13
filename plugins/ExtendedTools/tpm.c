@@ -56,6 +56,7 @@ typedef struct _TPM_WINDOW_CONTEXT
     HWND WindowHandle;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } TPM_WINDOW_CONTEXT, *PTPM_WINDOW_CONTEXT;
 
@@ -976,6 +977,9 @@ INT_PTR CALLBACK EtTpmDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 400, L"Attributes");
             PhSetExtendedListView(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+
             PhLoadListViewColumnsFromSetting(SETTING_NAME_TPM_LISTVIEW_COLUMNS, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
@@ -999,6 +1003,9 @@ INT_PTR CALLBACK EtTpmDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_TPM_WINDOW_POSITION, SETTING_NAME_TPM_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -1010,6 +1017,11 @@ INT_PTR CALLBACK EtTpmDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

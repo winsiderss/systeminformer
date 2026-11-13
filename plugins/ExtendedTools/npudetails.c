@@ -377,6 +377,7 @@ typedef struct _ET_NPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     PH_LAYOUT_MANAGER LayoutManager;
 } ET_NPU_DETAILS_CONTEXT, *PET_NPU_DETAILS_CONTEXT;
@@ -420,6 +421,9 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
             //PhSetExtendedListView(context->ListViewHandle);
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -445,6 +449,9 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
 
             PostQuitMessage(0);
@@ -468,6 +475,11 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -483,6 +495,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }
@@ -571,6 +584,7 @@ NTSTATUS EtNpuDetailsDialogThreadStart(
     PhSetEvent(&EtNpuDetailsInitializedEvent);
 
     ShowWindow(EtNpuDetailsDialogHandle, SW_SHOW);
+    UpdateWindow(EtNpuDetailsDialogHandle);
     SetForegroundWindow(EtNpuDetailsDialogHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

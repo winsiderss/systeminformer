@@ -946,6 +946,8 @@ VOID PhpRefreshPluginDetails(
     }
 
     ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
+    if (SelectedPlugin->Information.Url)
+        UpdateWindow(GetDlgItem(hwndDlg, IDC_OPENURL));
     EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Information.HasOptions);
 
     PhClearReference(&fileName);

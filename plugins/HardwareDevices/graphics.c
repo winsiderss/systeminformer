@@ -1319,7 +1319,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
  * \return Engine type display string.
  */
 PPH_STRING GraphicsGetNodeEngineTypeString(
-    _In_ D3DKMT_NODEMETADATA NodeMetaData
+    _In_ const D3DKMT_NODEMETADATA* NodeMetaData
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -1355,10 +1355,10 @@ PPH_STRING GraphicsGetNodeEngineTypeString(
         PhEndInitOnce(&initOnce);
     }
 
-    switch (NodeMetaData.NodeData.EngineType)
+    switch (NodeMetaData->NodeData.EngineType)
     {
     case DXGK_ENGINE_TYPE_OTHER:
-        return PhCreateString(NodeMetaData.NodeData.FriendlyName);
+        return PhCreateString(NodeMetaData->NodeData.FriendlyName);
     case DXGK_ENGINE_TYPE_3D:
         return PhReferenceObject(name3D);
     case DXGK_ENGINE_TYPE_VIDEO_DECODE:
@@ -1408,7 +1408,7 @@ PPH_LIST GraphicsQueryDeviceNodeList(
             sizeof(D3DKMT_NODEMETADATA)
             )))
         {
-            PhAddItemList(NodeNameList, GraphicsGetNodeEngineTypeString(metaDataInfo));
+            PhAddItemList(NodeNameList, GraphicsGetNodeEngineTypeString(&metaDataInfo));
         }
         else
         {
@@ -1510,17 +1510,24 @@ NTSTATUS GraphicsQueryAdapterAttributes(
             return status;
     }
 
-    for (PWCHAR attr = adapterAttributes->Buffer;;)
+    // The value is a REG_MULTI_SZ whose terminating empty string is not guaranteed,
+    // so each element is bounded by the characters remaining in the returned data.
+    for (PWCHAR attr = adapterAttributes->Buffer, attrEnd = attr + adapterAttributes->Length / sizeof(WCHAR); attr < attrEnd;)
     {
         PH_STRINGREF attribute;
+        SIZE_T attributeCount;
         GUID guid;
 
-        PhInitializeStringRefLongHint(&attribute, attr);
+        attributeCount = wcsnlen(attr, (SIZE_T)(attrEnd - attr));
 
-        if (!attribute.Length)
+        if (attributeCount == 0)
             break;
 
-        attr = PTR_ADD_OFFSET(attr, attribute.Length + sizeof(UNICODE_NULL));
+        attribute.Buffer = attr;
+        attribute.Length = attributeCount * sizeof(WCHAR);
+
+        // Step over the element and its terminator (if one is present).
+        attr += min(attributeCount + 1, (SIZE_T)(attrEnd - attr));
 
         if (!NT_SUCCESS(status = PhStringToGuid(&attribute, &guid)))
             break;

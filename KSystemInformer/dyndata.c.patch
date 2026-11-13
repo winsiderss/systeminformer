@@ -1,0 +1,46 @@
+--- a/KSystemInformer/dyndata.c
++++ b/KSystemInformer/dyndata.c
+@@ -627,10 +627,39 @@ VOID KphInitializeDynData(
+                       "Embedded Dynamic Configuration disabled");
+     }
+     else
+     {
+-        status = KphpActivateDynData((PBYTE)KphDynConfig,
+-                                     KphDynConfigLength,
+-                                     NULL,
+-                                     0);
++        PBYTE dynConfig;
++        ULONG finalSize;
++
++        dynConfig = KphAllocatePaged(KphDynConfigUncompressedLength, KPH_TAG_DYNDATA);
++        if (!dynConfig)
++        {
++            status = STATUS_INSUFFICIENT_RESOURCES;
++        }
++        else
++        {
++            status = RtlDecompressBuffer(COMPRESSION_FORMAT_LZNT1,
++                                         dynConfig,
++                                         KphDynConfigUncompressedLength,
++                                         (PUCHAR)KphDynConfig,
++                                         KphDynConfigLength,
++                                         &finalSize);
++            if (NT_SUCCESS(status))
++            {
++                if (finalSize == KphDynConfigUncompressedLength)
++                {
++                    status = KphpActivateDynData(dynConfig,
++                                                 finalSize,
++                                                 NULL,
++                                                 0);
++                }
++                else
++                {
++                    status = STATUS_DATA_ERROR;
++                }
++            }
++
++            KphFree(dynConfig, KPH_TAG_DYNDATA);
++        }
+ 
+         NT_ANALYSIS_ASSUME(NT_SUCCESS(status));

@@ -66,7 +66,7 @@ typedef struct _PH_NETWORK_ITEM
     BOOLEAN ProcessIconValid;
     PPH_STRING OwnerName;
 
-    volatile LONG JustResolved;
+    LONG JustResolved;
 
     PPH_STRING LocalAddressString;
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
@@ -77,6 +77,12 @@ typedef struct _PH_NETWORK_ITEM
     PPH_STRING HvService;
 
     LARGE_INTEGER CreateTime;
+    NSI_TCP_APPLIED_SETTING AppliedSetting;
+    ULONG ConnectionDuration;
+    ULONG SendWindowScale;
+    ULONG ReceiveWindowScale;
+    BOOLEAN NagleEnabled;
+    BOOLEAN SackEnabled;
     ULONG LocalScopeId;
     ULONG RemoteScopeId;
 
@@ -87,7 +93,8 @@ typedef struct _PH_NETWORK_ITEM
         {
             ULONG UnknownProcess : 1;
             ULONG SubsystemProcess : 1;
-            ULONG Spare : 27;
+            ULONG DualMode : 1;
+            ULONG Spare : 26;
             ULONG InvalidateHostname : 1;
             ULONG LocalHostnameResolved : 1;
             ULONG RemoteHostnameResolved : 1;
@@ -97,19 +104,6 @@ typedef struct _PH_NETWORK_ITEM
     PPH_PROCESS_ITEM ProcessItem;
     PH_HASH_ENTRY HashEntry;
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
-
-typedef struct _PH_NETWORK_CONNECTION
-{
-    ULONG ProtocolType;
-    PH_IP_ENDPOINT LocalEndpoint;
-    PH_IP_ENDPOINT RemoteEndpoint;
-    MIB_TCP_STATE State;
-    HANDLE ProcessId;
-    LARGE_INTEGER CreateTime;
-    ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
-    ULONG LocalScopeId; // Ipv6
-    ULONG RemoteScopeId; // Ipv6
-} PH_NETWORK_CONNECTION, *PPH_NETWORK_CONNECTION;
 // end_phapppub
 
 BOOLEAN PhNetworkProviderInitialization(
@@ -148,8 +142,41 @@ PhEnumNetworkItemsByProcessId(
     _Out_ PULONG NumberOfNetworkItems
     );
 
-_Success_(return)
+typedef struct _PH_NETWORK_CONNECTION
+{
+    ULONG ProtocolType;
+    PH_IP_ENDPOINT LocalEndpoint;
+    PH_IP_ENDPOINT RemoteEndpoint;
+    MIB_TCP_STATE State;
+    HANDLE ProcessId;
+    LARGE_INTEGER CreateTime;
+    ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
+    ULONG LocalScopeId; // Ipv6
+    ULONG RemoteScopeId; // Ipv6
+    TCP_CONNECTION_OFFLOAD_STATE OffloadState;
+    NSI_TCP_APPLIED_SETTING AppliedSetting;
+    ULONG ConnectionDuration;
+    ULONG SendWindowScale;
+    ULONG ReceiveWindowScale;
+    BOOLEAN NagleEnabled;
+    BOOLEAN SackEnabled;
+    BOOLEAN TimestampsEnabled;
+    BOOLEAN EcnEnabled;
+    BOOLEAN DualMode;
+    UCHAR QosFlowTag;
+    union
+    {
+        ULONG Flags; // NSI_UDP_OWNER_FLAGS
+        struct
+        {
+            ULONG SpecificPortBind : 1;
+            ULONG ReservedFlags : 31;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PH_NETWORK_CONNECTION, *PPH_NETWORK_CONNECTION;
+
 PHAPPAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetNetworkConnections(

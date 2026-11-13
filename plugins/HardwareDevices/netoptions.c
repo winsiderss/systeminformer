@@ -209,7 +209,7 @@ VOID AddNetworkAdapterToListView(
     )
 {
     DV_NETADAPTER_ID adapterId;
-    INT lvItemIndex;
+    LONG lvItemIndex;
     BOOLEAN found = FALSE;
     PDV_NETADAPTER_ID newId = NULL;
 
@@ -262,7 +262,7 @@ VOID FreeListViewAdapterEntries(
     _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
-    INT index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
@@ -643,7 +643,7 @@ VOID FindNetworkAdapters(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        INT index = INT_ERROR;
+        LONG index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
@@ -859,7 +859,7 @@ VOID LoadNetworkAdapterImages(
                 if (PhExtractIconEx(
                     &dllIconPath->sr,
                     FALSE,
-                    (INT)index,
+                    (LONG)index,
                     PhGetSystemMetrics(SM_CXICON, dpiValue),
                     PhGetSystemMetrics(SM_CYICON, dpiValue),
                     0,
@@ -924,6 +924,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Network Adapters");
             PhSetExtendedListView(context->ListViewHandle);
             LoadNetworkAdapterImages(context);
@@ -961,6 +963,17 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 NetAdaptersSaveList();
 
             FreeListViewAdapterEntries(context);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NCDESTROY:

@@ -42,7 +42,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDOK)
+            if ((LONG)wParam == IDOK)
             {
                 ShowProgressDialog(context);
                 return S_FALSE;

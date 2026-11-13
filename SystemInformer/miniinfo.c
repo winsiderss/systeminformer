@@ -195,6 +195,7 @@ VOID PhPinMiniInformation(
                 NULL
                 );
             ShowWindow(PhMipWindow, SW_SHOW);
+            UpdateWindow(PhMipWindow);
 
             if (PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED))
                 PhMipSetPinned(TRUE, TRUE);
@@ -240,6 +241,7 @@ VOID PhPinMiniInformation(
         PhUpdateWindowClassBackground(PhMipContainerWindow);
 
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
+        UpdateWindow(PhMipContainerWindow);
     }
     else if (adjustPinResult == HideAdjustPinResult)
     {
@@ -434,8 +436,8 @@ RTL_ATOM PhMipContainerInitializeWindowClass(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     name = PhaGetStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PhGetStringOrDefault(name, SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
 
     return RegisterClassEx(&wcex);
@@ -1106,7 +1108,10 @@ VOID PhMipChangeSection(
     if (!NewSection->DialogHandle)
         PhMipCreateSectionDialog(NewSection);
     if (NewSection->DialogHandle)
+    {
         ShowWindow(NewSection->DialogHandle, SW_SHOW);
+        UpdateWindow(NewSection->DialogHandle);
+    }
 
     PhMipUpdateSectionText(NewSection);
     PhMipLayout();

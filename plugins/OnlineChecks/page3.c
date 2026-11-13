@@ -47,7 +47,7 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDCANCEL)
+            if ((LONG)wParam == IDCANCEL)
             {
                 WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;
@@ -95,7 +95,7 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDCANCEL)
+            if ((LONG)wParam == IDCANCEL)
             {
                 WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;
@@ -143,7 +143,7 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDCANCEL)
+            if ((LONG)wParam == IDCANCEL)
             {
                 WriteBooleanRelease(&context->Cancel, TRUE);
                 return S_FALSE;

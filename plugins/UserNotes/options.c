@@ -93,7 +93,7 @@ BOOLEAN OptionsEnumDbCallback(
     _In_ PDB_ENUM_CONTEXT Context
     )
 {
-    INT lvItemIndex;
+    LONG lvItemIndex;
     WCHAR value[PH_INT64_STR_LEN_1];
 
     PhPrintUInt32(value, ++Context->Count);
@@ -166,6 +166,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     )
 {
     static PH_LAYOUT_MANAGER LayoutManager;
+    static HFONT WindowFont = NULL;
 
     switch (WindowMessage)
     {
@@ -175,6 +176,10 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             PhSetListViewStyle(listview, TRUE, TRUE);
             PhSetControlTheme(listview, L"explorer");
+
+            WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(listview, WindowFont, FALSE);
+
             PhAddListViewColumn(listview, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(listview, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(listview, 2, 2, 2, LVCFMT_LEFT, 100, L"Name");
@@ -210,6 +215,20 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_OPTIONS_DB_COLUMNS, GetDlgItem(WindowHandle, IDC_DBLIST));
 
             PhDeleteLayoutManager(&LayoutManager);
+
+            if (WindowFont)
+            {
+                DeleteFont(WindowFont);
+                WindowFont = NULL;
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&WindowFont, GetDlgItem(WindowHandle, IDC_DBLIST), windowFont, TRUE);
         }
         break;
     case WM_SIZE:

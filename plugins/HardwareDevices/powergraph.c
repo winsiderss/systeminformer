@@ -886,6 +886,7 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
 
             context->RaplDevicePanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_RAPLDEVICE_PANEL), WindowHandle, RaplDevicePanelDialogProc, context);
             ShowWindow(context->RaplDevicePanel, SW_SHOW);
+            UpdateWindow(context->RaplDevicePanel);
             PhAddLayoutItemExLogical(&context->LayoutManager, context->RaplDevicePanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             RaplDeviceInitializeGraphStates(context);

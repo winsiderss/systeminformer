@@ -42,6 +42,7 @@ typedef struct _GPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
     PGPU_DEVICE_DETAILS_DIALOG_CONTEXT DetailsContext;
 } GPU_DETAILS_CONTEXT, *PGPU_DETAILS_CONTEXT;
@@ -407,6 +408,9 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -425,6 +429,9 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
 
             PostQuitMessage(0);
         }
@@ -454,6 +461,10 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
     case WM_DPICHANGED:
         {
             LONG windowDpi = HIWORD(wParam);
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, windowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -467,6 +478,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }
@@ -555,6 +567,7 @@ NTSTATUS GraphicsDeviceDetailsDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     PostMessage(windowHandle, WM_PH_SHOW_DIALOG, 0, 0);

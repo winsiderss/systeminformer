@@ -45,6 +45,7 @@ typedef struct _PIPE_ENUM_DIALOG_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewWndHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LIST PipeList;
     HANDLE PipeDirectoryHandle;
@@ -52,8 +53,8 @@ typedef struct _PIPE_ENUM_DIALOG_CONTEXT
     IO_STATUS_BLOCK NotifyIoStatusBlock;
     SLIST_HEADER NotifyListHead;
     PH_QUEUED_LOCK NotifyLock;
-    volatile LONG WatchEnabled;
-    volatile LONG NotifyMessagePending;
+    LONG WatchEnabled;
+    LONG NotifyMessagePending;
     BOOLEAN UseKph;
     DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) UCHAR NotifyBuffer[ET_PIPE_NOTIFY_BUFFER_SIZE];
 } PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
@@ -1117,6 +1118,9 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
             PhSetListViewStyle(context->ListViewWndHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewWndHandle, L"explorer");
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewWndHandle, context->WindowFont, FALSE);
+
             if (context->UseKph)
             {
                 PhAddListViewColumn(context->ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"End");
@@ -1195,6 +1199,8 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                 PhSaveListViewColumnsToSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
             EtDestroyNamedPipeList(context->PipeList);
             PhFree(context);
         }
@@ -1211,6 +1217,11 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewWndHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

@@ -10,6 +10,8 @@
  */
 
 #include <ph.h>
+#include <utility>
+#include <cstddef>
 #include <guisup.h>
 #include <mapldr.h>
 
@@ -33,10 +35,10 @@ struct _PH_THEME_FILE
     CHAR End[3];
 };
 
-static_assert(FIELD_OFFSET(PH_THEME_FILE, SharedSectionView) == 8);
-static_assert(FIELD_OFFSET(PH_THEME_FILE, NonSharedSectionView) == (sizeof(PVOID) == 8 ? 24 : 16));
-static_assert(FIELD_OFFSET(PH_THEME_FILE, End) == (sizeof(PVOID) == 8 ? 40 : 24));
-static_assert(sizeof(PH_THEME_FILE) == (sizeof(PVOID) == 8 ? 48 : 28));
+static_assert(std::cmp_equal(offsetof(PH_THEME_FILE, SharedSectionView), 8));
+static_assert(std::cmp_equal(offsetof(PH_THEME_FILE, NonSharedSectionView), (std::cmp_equal(sizeof(PVOID), 8) ? 24 : 16)));
+static_assert(std::cmp_equal(offsetof(PH_THEME_FILE, End), (std::cmp_equal(sizeof(PVOID), 8) ? 40 : 24)));
+static_assert(std::cmp_equal(sizeof(PH_THEME_FILE), (std::cmp_equal(sizeof(PVOID), 8) ? 48 : 28)));
 
 static PGET_THEME_DEFAULTS PhpGetThemeDefaults = nullptr;
 static decltype(&LoaderLoadTheme) PhpLoaderLoadTheme = nullptr;

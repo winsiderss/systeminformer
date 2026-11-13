@@ -524,7 +524,7 @@ VOID PhpUpdaterFreeListViewEntries(
     _In_ PPH_UPDATER_COMMIT_CONTEXT Context
     )
 {
-    INT index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
@@ -754,7 +754,7 @@ INT_PTR CALLBACK TextDlgProc(
                                 PPH_STRING commitHash;
                                 PPH_STRING shortCommitHash;
 
-                                if (commitHash = PhGetListViewItemText(context->ListViewHandle, (INT)customDraw->nmcd.dwItemSpec, 3))
+                                if (commitHash = PhGetListViewItemText(context->ListViewHandle, (LONG)customDraw->nmcd.dwItemSpec, 3))
                                 {
                                     if (context->LatestCommitHash && (shortCommitHash = PhSubstring(context->LatestCommitHash, 0, 7)))
                                     {
@@ -807,7 +807,7 @@ INT_PTR CALLBACK TextDlgProc(
                         //        {
                         //            PPH_STRING commitAuthor;
                         //
-                        //            if (commitAuthor = PhGetListViewItemText(context->ListViewHandle, (INT)customDraw->nmcd.dwItemSpec, 1))
+                        //            if (commitAuthor = PhGetListViewItemText(context->ListViewHandle, (LONG)customDraw->nmcd.dwItemSpec, 1))
                         //            {
                         //                if (PhEqualString2(commitAuthor, L"dmex", TRUE))
                         //                {
@@ -888,7 +888,7 @@ INT_PTR CALLBACK TextDlgProc(
                                 {
                                     PPH_UPDATER_COMMIT_ENTRY entry;
                                     PPH_STRING commitHashUrl;
-                                    INT lvItemIndex;
+                                    LONG lvItemIndex;
 
                                     lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
@@ -933,7 +933,7 @@ INT_PTR CALLBACK TextDlgProc(
             for (ULONG i = 0; i < commitList->Count; i++)
             {
                 PPH_UPDATER_COMMIT_ENTRY entry = commitList->Items[i];
-                INT lvItemIndex;
+                LONG lvItemIndex;
                 PPH_STRING shortCommitHash;
                 PPH_STRING commitTimeString;
 

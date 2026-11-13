@@ -38,7 +38,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDOK)
+            if ((LONG)wParam == IDOK)
             {
                 ShowCheckingForUpdatesDialog(context);
                 return S_FALSE;
@@ -49,7 +49,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
         {
             PH_RELEASE_CHANNEL channel;
 
-            switch ((INT)wParam)
+            switch ((LONG)wParam)
             {
             default:
             case IDOK:

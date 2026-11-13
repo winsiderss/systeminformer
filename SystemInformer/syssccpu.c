@@ -423,6 +423,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
 
             CpuPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc, NULL);
             ShowWindow(CpuPanel, SW_SHOW);
+            UpdateWindow(CpuPanel);
             PhAddLayoutItemExLogical(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             PhSipCreateCpuGraphs();
@@ -758,10 +759,14 @@ VOID PhSipSetOneGraphPerCpu(
     )
 {
     ShowWindow(CpuGraphHandle, !OneGraphPerCpu ? SW_SHOW : SW_HIDE);
+    if (!OneGraphPerCpu)
+        UpdateWindow(CpuGraphHandle);
 
     for (ULONG i = 0; i < NumberOfProcessors; i++)
     {
         ShowWindow(CpusGraphHandle[i], OneGraphPerCpu ? SW_SHOW : SW_HIDE);
+        if (OneGraphPerCpu)
+            UpdateWindow(CpusGraphHandle[i]);
     }
 }
 

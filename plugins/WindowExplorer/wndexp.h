@@ -234,27 +234,37 @@ BOOLEAN WepExecuteWindowCommand(
 
 typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA WINDOWCOMPOSITIONATTRIBDATA;
 
-typedef ULONG (WINAPI *PFN_GetWindowBand)(
+typedef _Function_class_(FN_GetWindowBand)
+ULONG WINAPI FN_GetWindowBand(
     _In_ HWND WindowHandle
     );
+typedef FN_GetWindowBand* PFN_GetWindowBand;
 
-typedef BOOL (WINAPI *PFN_IsShellManagedWindow)(
+typedef _Function_class_(FN_IsShellManagedWindow)
+BOOL WINAPI FN_IsShellManagedWindow(
     _In_ HWND WindowHandle
     );
+typedef FN_IsShellManagedWindow* PFN_IsShellManagedWindow;
 
-typedef BOOL (WINAPI *PFN_GetWindowCompositionAttribute)(
+typedef _Function_class_(FN_GetWindowCompositionAttribute)
+BOOL WINAPI FN_GetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _Inout_ WINDOWCOMPOSITIONATTRIBDATA *Data
     );
+typedef FN_GetWindowCompositionAttribute* PFN_GetWindowCompositionAttribute;
 
-typedef BOOL (WINAPI *PFN_IsShellFrameWindow)(
+typedef _Function_class_(FN_IsShellFrameWindow)
+BOOL WINAPI FN_IsShellFrameWindow(
     _In_ HWND WindowHandle
     );
+typedef FN_IsShellFrameWindow* PFN_IsShellFrameWindow;
 
-typedef BOOL (WINAPI *PFN_GetModernAppWindow)(
+typedef _Function_class_(FN_GetModernAppWindow)
+BOOL WINAPI FN_GetModernAppWindow(
     _In_ HANDLE ProcessHandle,
     _Out_ HWND *WindowHandle
     );
+typedef FN_GetModernAppWindow* PFN_GetModernAppWindow;
 
 NTSTATUS WeWindowEndTask(
     _In_ HWND WindowHandle,
@@ -264,6 +274,11 @@ NTSTATUS WeWindowEndTask(
 VOID WeSetWindowToDpiForTesting(
     _In_ HWND WindowHandle,
     _In_ LONG WindowDPI
+    );
+
+VOID WeShowWindowDpiDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TargetWindowHandle
     );
 
 NTSTATUS WeDestroyRemoteWindow(

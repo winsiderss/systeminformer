@@ -592,6 +592,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
 
             MemoryPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL), hwndDlg, PhSipMemoryPanelDialogProc, NULL);
             ShowWindow(MemoryPanel, SW_SHOW);
+            UpdateWindow(MemoryPanel);
 
             margin = panelItem->Margin;
             PhGetMarginDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);

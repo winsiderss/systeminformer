@@ -945,6 +945,7 @@ VOID SetSearchFocus(
                 if (!IsWindowVisible(SearchboxHandle))
                 {
                     ShowWindow(SearchboxHandle, SW_SHOW);
+                    UpdateWindow(SearchboxHandle);
                 }
             }
 

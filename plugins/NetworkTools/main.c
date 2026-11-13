@@ -212,7 +212,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowPingWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
+                    ShowPingWindowFromAddress(menuItem->OwnerWindow, &remoteEndpoint);
                     break;
                 }
             }
@@ -238,7 +238,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowTracertWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
+                    ShowTracertWindowFromAddress(menuItem->OwnerWindow, &remoteEndpoint);
                     break;
                 }
             }
@@ -264,7 +264,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowWhoisWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
+                    ShowWhoisWindowFromAddress(menuItem->OwnerWindow, &remoteEndpoint);
                     break;
                 }
             }
@@ -595,7 +595,7 @@ VOID NTAPI NetworkNodeCreateCallback(
         LONG remoteCountryIconIndex;
 
         if (LookupCountryCodeEx(
-            networkNode->NetworkItem->RemoteEndpoint.Address,
+            &networkNode->NetworkItem->RemoteEndpoint.Address,
             &remoteCountryCode,
             &remoteCountryName,
             &remoteCountryIconIndex
@@ -809,14 +809,14 @@ VOID NTAPI TreeNewMessageCallback(
             {
                 if (extension->CountryIconIndex != INT_ERROR)
                 {
-                    DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
+                    DrawCountryIcon(hdc, &rect, extension->CountryIconIndex);
                     rect.left += GeoCountryImageSize.cx + 2;
                 }
 
                 DrawText(
                     hdc,
                     extension->RemoteCountryName->Buffer,
-                    (INT)extension->RemoteCountryName->Length / sizeof(WCHAR),
+                    (LONG)extension->RemoteCountryName->Length / sizeof(WCHAR),
                     &rect,
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
@@ -875,6 +875,11 @@ VOID NetworkProviderUpdatedCallback(
     {
         PNETWORK_EXTENSION extension = CONTAINING_RECORD(listEntry, NETWORK_EXTENSION, ListEntry);
         PPH_NETWORK_ITEM networkItem;
+        ULONG64 previousBytesIn;
+        ULONG64 previousBytesOut;
+        ULONG64 previousLostPackets;
+        ULONG previousSampleRtt;
+        ULONG previousVarianceRtt;
 
         if (!extension || !extension->NodePresent)
             continue;
@@ -883,6 +888,12 @@ VOID NetworkProviderUpdatedCallback(
 
         if (!networkItem)
             continue;
+
+        previousBytesIn = extension->NumberOfBytesIn;
+        previousBytesOut = extension->NumberOfBytesOut;
+        previousLostPackets = extension->NumberOfLostPackets;
+        previousSampleRtt = extension->SampleRtt;
+        previousVarianceRtt = extension->VarianceRtt;
 
         if (!extension->StatsEnabled)
         {
@@ -950,7 +961,13 @@ VOID NetworkProviderUpdatedCallback(
             {
                 if (pathRw.EnableCollection)
                 {
-                    extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
+                    ULONG lostPackets;
+
+                    if (NT_SUCCESS(RtlULongAdd(pathRod.FastRetran, pathRod.PktsRetrans, &lostPackets)))
+                        extension->NumberOfLostPackets = lostPackets;
+                    else
+                        extension->NumberOfLostPackets = ULONG_MAX;
+
                     extension->SampleRtt = pathRod.SampleRtt;
                     extension->VarianceRtt = pathRod.RttVar;
 
@@ -1008,7 +1025,13 @@ VOID NetworkProviderUpdatedCallback(
             {
                 if (pathRw.EnableCollection)
                 {
-                    extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
+                    ULONG lostPackets;
+
+                    if (NT_SUCCESS(RtlULongAdd(pathRod.FastRetran, pathRod.PktsRetrans, &lostPackets)))
+                        extension->NumberOfLostPackets = lostPackets;
+                    else
+                        extension->NumberOfLostPackets = ULONG_MAX;
+
                     extension->SampleRtt = pathRod.SampleRtt;
                     extension->VarianceRtt = pathRod.RttVar;
 
@@ -1018,6 +1041,17 @@ VOID NetworkProviderUpdatedCallback(
                         extension->VarianceRtt = 0;
                 }
             }
+        }
+
+        if (
+            previousBytesIn != extension->NumberOfBytesIn ||
+            previousBytesOut != extension->NumberOfBytesOut ||
+            previousLostPackets != extension->NumberOfLostPackets ||
+            previousSampleRtt != extension->SampleRtt ||
+            previousVarianceRtt != extension->VarianceRtt
+            )
+        {
+            NetworkProviderNotifyItemModified(networkItem);
         }
     }
 }
@@ -1046,7 +1080,6 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TRACERT_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_TREE_LIST_SORT, L"0,1" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"14" },
-                { IntegerSettingType, SETTING_NAME_TRACERT_PING_CONTINUOUS, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
                 { IntegerSettingType, SETTING_NAME_WHOIS_IPV6_SUPPORT, L"0" },

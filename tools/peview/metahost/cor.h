@@ -293,6 +293,7 @@ EXTERN_GUID(IID_IMetaDataError, 0xb81ff171, 0x20f3, 0x11d2, 0x8d, 0xcc, 0x0, 0xa
 #define INTERFACE IMetaDataError
 DECLARE_INTERFACE_(IMetaDataError, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataError, OnError)
     STDMETHOD(OnError)(HRESULT hrError, mdToken token) PURE;
 };
 
@@ -307,6 +308,7 @@ EXTERN_GUID(IID_IMapToken, 0x6a3ea8b, 0x225, 0x11d1, 0xbf, 0x72, 0x0, 0xc0, 0x4f
 #define INTERFACE IMapToken
 DECLARE_INTERFACE_(IMapToken, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMapToken, Map)
     STDMETHOD(Map)(mdToken tkImp, mdToken tkEmit) PURE;
 };
 
@@ -321,18 +323,21 @@ EXTERN_GUID(IID_IMetaDataDispenser, 0x809c652e, 0x7396, 0x11d2, 0x97, 0x71, 0x00
 #define INTERFACE IMetaDataDispenser
 DECLARE_INTERFACE_(IMetaDataDispenser, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataDispenser, DefineScope)
     STDMETHOD(DefineScope)(                 // Return code.
         REFCLSID    rclsid,                 // [in] What version to create.
         DWORD       dwCreateFlags,          // [in] Flags on the create.
         REFIID      riid,                   // [in] The interface desired.
         IUnknown    **ppIUnk) PURE;         // [out] Return interface on success.
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenser, OpenScope)
     STDMETHOD(OpenScope)(                   // Return code.
         LPCWSTR     szScope,                // [in] The scope to open.
         DWORD       dwOpenFlags,            // [in] Open mode flags.
         REFIID      riid,                   // [in] The interface desired.
         IUnknown    **ppIUnk) PURE;         // [out] Return interface on success.
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenser, OpenScopeOnMemory)
     STDMETHOD(OpenScopeOnMemory)(           // Return code.
         LPCVOID     pData,                  // [in] Location of scope data.
         ULONG       cbData,                 // [in] Size of the data pointed to by pData.
@@ -352,21 +357,26 @@ EXTERN_GUID(IID_IMetaDataEmit, 0xba3fee4c, 0xecb9, 0x4e41, 0x83, 0xb7, 0x18, 0x3
 #define INTERFACE IMetaDataEmit
 DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetModuleProps)
     STDMETHOD(SetModuleProps)(              // S_OK or error.
         LPCWSTR     szName) PURE;           // [IN] If not NULL, the name of the module to set.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, Save)
     STDMETHOD(Save)(                        // S_OK or error.
         LPCWSTR     szFile,                 // [IN] The filename to save to.
         DWORD       dwSaveFlags) PURE;      // [IN] Flags for the save.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SaveToStream)
     STDMETHOD(SaveToStream)(                // S_OK or error.
         IStream     *pIStream,              // [IN] A writable stream to save to.
         DWORD       dwSaveFlags) PURE;      // [IN] Flags for the save.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, GetSaveSize)
     STDMETHOD(GetSaveSize)(                 // S_OK or error.
         CorSaveSize fSave,                  // [IN] cssAccurate or cssQuick.
         DWORD       *pdwSaveSize) PURE;     // [OUT] Put the size here.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineTypeDef)
     STDMETHOD(DefineTypeDef)(               // S_OK or error.
         LPCWSTR     szTypeDef,              // [IN] Name of TypeDef
         DWORD       dwTypeDefFlags,         // [IN] CustomAttribute flags
@@ -374,6 +384,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdToken     rtkImplements[],        // [IN] Implements interfaces
         mdTypeDef   *ptd) PURE;             // [OUT] Put TypeDef token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineNestedType)
     STDMETHOD(DefineNestedType)(            // S_OK or error.
         LPCWSTR     szTypeDef,              // [IN] Name of TypeDef
         DWORD       dwTypeDefFlags,         // [IN] CustomAttribute flags
@@ -382,9 +393,11 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdTypeDef   tdEncloser,             // [IN] TypeDef token of the enclosing type.
         mdTypeDef   *ptd) PURE;             // [OUT] Put TypeDef token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetHandler)
     STDMETHOD(SetHandler)(                  // S_OK.
         IUnknown    *pUnk) PURE;            // [IN] The new error handler.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineMethod)
     STDMETHOD(DefineMethod)(                // S_OK or error. 
         mdTypeDef   td,                     // Parent TypeDef
         LPCWSTR     szName,                 // Name of member
@@ -395,16 +408,19 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         DWORD       dwImplFlags,
         mdMethodDef *pmd) PURE;             // Put member token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineMethodImpl)
     STDMETHOD(DefineMethodImpl)(            // S_OK or error.
         mdTypeDef   td,                     // [IN] The class implementing the method
         mdToken     tkBody,                 // [IN] Method body - MethodDef or MethodRef
         mdToken     tkDecl) PURE;           // [IN] Method declaration - MethodDef or MethodRef
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineTypeRefByName)
     STDMETHOD(DefineTypeRefByName)(         // S_OK or error.
         mdToken     tkResolutionScope,      // [IN] ModuleRef, AssemblyRef or TypeRef.
         LPCWSTR     szName,                 // [IN] Name of the TypeRef.
         mdTypeRef   *ptr) PURE;             // [OUT] Put TypeRef token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineImportType)
     STDMETHOD(DefineImportType)(            // S_OK or error.
         IMetaDataAssemblyImport *pAssemImport,  // [IN] Assembly containing the TypeDef.
         const void  *pbHashValue,           // [IN] Hash Blob for Assembly.
@@ -414,6 +430,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         IMetaDataAssemblyEmit *pAssemEmit,  // [IN] Assembly into which the TypeDef is imported.
         mdTypeRef   *ptr) PURE;             // [OUT] Put TypeRef token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineMemberRef)
     STDMETHOD(DefineMemberRef)(             // S_OK or error
         mdToken     tkImport,               // [IN] ClassRef or ClassDef importing a member.
         LPCWSTR     szName,                 // [IN] member's name
@@ -421,6 +438,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdMemberRef *pmr) PURE;             // [OUT] memberref token
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineImportMember)
     STDMETHOD(DefineImportMember)(          // S_OK or error.
         IMetaDataAssemblyImport *pAssemImport,  // [IN] Assembly containing the Member.
         const void  *pbHashValue,           // [IN] Hash Blob for Assembly.
@@ -431,6 +449,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdToken     tkParent,               // [IN] Classref or classdef in emit scope.
         mdMemberRef *pmr) PURE;             // [OUT] Put member ref here.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineEvent)
     STDMETHOD(DefineEvent) (
         mdTypeDef   td,                     // [IN] the class/interface on which the event is being defined 
         LPCWSTR     szEvent,                // [IN] Name of the event
@@ -442,23 +461,28 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdMethodDef rmdOtherMethods[],      // [IN] optional array of other methods associate with the event
         mdEvent     *pmdEvent) PURE;        // [OUT] output event token 
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetClassLayout)
     STDMETHOD(SetClassLayout) (
         mdTypeDef   td,                     // [IN] typedef 
         DWORD       dwPackSize,             // [IN] packing size specified as 1, 2, 4, 8, or 16 
         COR_FIELD_OFFSET rFieldOffsets[],   // [IN] array of layout specification
         ULONG       ulClassSize) PURE;      // [IN] size of the class
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DeleteClassLayout)
     STDMETHOD(DeleteClassLayout) (
         mdTypeDef   td) PURE;               // [IN] typedef whose layout is to be deleted.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetFieldMarshal)
     STDMETHOD(SetFieldMarshal) (
         mdToken     tk,                     // [IN] given a fieldDef or paramDef token
         PCCOR_SIGNATURE pvNativeType,       // [IN] native type specification
         ULONG       cbNativeType) PURE;     // [IN] count of bytes of pvNativeType
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DeleteFieldMarshal)
     STDMETHOD(DeleteFieldMarshal) (
         mdToken     tk) PURE;               // [IN] given a fieldDef or paramDef token
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefinePermissionSet)
     STDMETHOD(DefinePermissionSet) (
         mdToken     tk,                     // [IN] the object to be decorated. 
         DWORD       dwAction,               // [IN] CorDeclSecurity.
@@ -466,53 +490,64 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cbPermission,           // [IN] count of bytes of pvPermission. 
         mdPermission *ppm) PURE;            // [OUT] returned permission token. 
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetRVA)
     STDMETHOD(SetRVA)(                      // S_OK or error.
         mdMethodDef md,                     // [IN] Method for which to set offset
         ULONG       ulRVA) PURE;            // [IN] The offset
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, GetTokenFromSig)
     STDMETHOD(GetTokenFromSig)(             // S_OK or error.
         PCCOR_SIGNATURE pvSig,              // [IN] Signature to define.
         ULONG       cbSig,                  // [IN] Size of signature data. 
         mdSignature *pmsig) PURE;           // [OUT] returned signature token.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineModuleRef)
     STDMETHOD(DefineModuleRef)(             // S_OK or error.
         LPCWSTR     szName,                 // [IN] DLL name
         mdModuleRef *pmur) PURE;            // [OUT] returned
 
     // <TODO>@FUTURE:  This should go away once everyone starts using SetMemberRefProps.</TODO>
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetParent)
     STDMETHOD(SetParent)(                   // S_OK or error.
         mdMemberRef mr,                     // [IN] Token for the ref to be fixed up.
         mdToken     tk) PURE;               // [IN] The ref parent. 
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, GetTokenFromTypeSpec)
     STDMETHOD(GetTokenFromTypeSpec)(        // S_OK or error.
         PCCOR_SIGNATURE pvSig,              // [IN] TypeSpec Signature to define.
         ULONG       cbSig,                  // [IN] Size of signature data. 
         mdTypeSpec *ptypespec) PURE;        // [OUT] returned TypeSpec token.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SaveToMemory)
     STDMETHOD(SaveToMemory)(                // S_OK or error.
         void        *pbData,                // [OUT] Location to write data.
         ULONG       cbData) PURE;           // [IN] Max size of data buffer.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineUserString)
     STDMETHOD(DefineUserString)(            // Return code.
         LPCWSTR szString,                   // [IN] User literal string.
         ULONG       cchString,              // [IN] Length of string.
         mdString    *pstk) PURE;            // [OUT] String token.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DeleteToken)
     STDMETHOD(DeleteToken)(                 // Return code.
         mdToken     tkObj) PURE;            // [IN] The token to be deleted
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetMethodProps)
     STDMETHOD(SetMethodProps)(              // S_OK or error.
         mdMethodDef md,                     // [IN] The MethodDef.
         DWORD       dwMethodFlags,          // [IN] Method attributes.
         ULONG       ulCodeRVA,              // [IN] Code RVA.
         DWORD       dwImplFlags) PURE;      // [IN] Impl flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetTypeDefProps)
     STDMETHOD(SetTypeDefProps)(             // S_OK or error.
         mdTypeDef   td,                     // [IN] The TypeDef.
         DWORD       dwTypeDefFlags,         // [IN] TypeDef flags.
         mdToken     tkExtends,              // [IN] Base TypeDef or TypeRef.
         mdToken     rtkImplements[]) PURE;  // [IN] Implemented interfaces.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetEventProps)
     STDMETHOD(SetEventProps)(               // S_OK or error.
         mdEvent     ev,                     // [IN] The event token.
         DWORD       dwEventFlags,           // [IN] CorEventAttr.
@@ -522,6 +557,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdMethodDef mdFire,                 // [IN] Fire method.
         mdMethodDef rmdOtherMethods[]) PURE;// [IN] Array of other methods associate with the event.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetPermissionSetProps)
     STDMETHOD(SetPermissionSetProps)(       // S_OK or error.
         mdToken     tk,                     // [IN] The object to be decorated.
         DWORD       dwAction,               // [IN] CorDeclSecurity.
@@ -529,22 +565,26 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cbPermission,           // [IN] Count of bytes of pvPermission.
         mdPermission *ppm) PURE;            // [OUT] Permission token.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefinePinvokeMap)
     STDMETHOD(DefinePinvokeMap)(            // Return code.
         mdToken     tk,                     // [IN] FieldDef or MethodDef.
         DWORD       dwMappingFlags,         // [IN] Flags used for mapping.
         LPCWSTR     szImportName,           // [IN] Import name.
         mdModuleRef mrImportDLL) PURE;      // [IN] ModuleRef token for the target DLL.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetPinvokeMap)
     STDMETHOD(SetPinvokeMap)(               // Return code.
         mdToken     tk,                     // [IN] FieldDef or MethodDef.
         DWORD       dwMappingFlags,         // [IN] Flags used for mapping.
         LPCWSTR     szImportName,           // [IN] Import name.
         mdModuleRef mrImportDLL) PURE;      // [IN] ModuleRef token for the target DLL.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DeletePinvokeMap)
     STDMETHOD(DeletePinvokeMap)(            // Return code.
         mdToken     tk) PURE;               // [IN] FieldDef or MethodDef.
 
     // New CustomAttribute functions.
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineCustomAttribute)
     STDMETHOD(DefineCustomAttribute)(       // Return code.
         mdToken     tkOwner,                // [IN] The object to put the value on.
         mdToken     tkCtor,                 // [IN] Constructor of the CustomAttribute type (MemberRef/MethodDef).
@@ -552,11 +592,13 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cbCustomAttribute,      // [IN] The custom value data length.
         mdCustomAttribute *pcv) PURE;       // [OUT] The custom value token value on return.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetCustomAttributeValue)
     STDMETHOD(SetCustomAttributeValue)(     // Return code.
         mdCustomAttribute pcv,              // [IN] The custom value token whose value to replace.
         void const  *pCustomAttribute,      // [IN] The custom value data.
         ULONG       cbCustomAttribute) PURE;// [IN] The custom value data length.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineField)
     STDMETHOD(DefineField)(                 // S_OK or error. 
         mdTypeDef   td,                     // Parent TypeDef
         LPCWSTR     szName,                 // Name of member
@@ -568,6 +610,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cchValue,               // [IN] size of constant value (string, in wide chars).
         mdFieldDef  *pmd) PURE;             // [OUT] Put member token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineProperty)
     STDMETHOD(DefineProperty)( 
         mdTypeDef   td,                     // [IN] the class/interface on which the property is being defined
         LPCWSTR     szProperty,             // [IN] Name of the property
@@ -582,6 +625,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdMethodDef rmdOtherMethods[],      // [IN] an optional array of other methods
         mdProperty  *pmdProp) PURE;         // [OUT] output property token
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineParam)
     STDMETHOD(DefineParam)(
         mdMethodDef md,                     // [IN] Owning method
         ULONG       ulParamSeq,             // [IN] Which param 
@@ -592,6 +636,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cchValue,               // [IN] size of constant value (string, in wide chars).
         mdParamDef  *ppd) PURE;             // [OUT] Put param token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetFieldProps)
     STDMETHOD(SetFieldProps)(               // S_OK or error.
         mdFieldDef  fd,                     // [IN] The FieldDef.
         DWORD       dwFieldFlags,           // [IN] Field attributes.
@@ -599,6 +644,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         void const  *pValue,                // [IN] Constant value.
         ULONG       cchValue) PURE;         // [IN] size of constant value (string, in wide chars).
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetPropertyProps)
     STDMETHOD(SetPropertyProps)(            // S_OK or error.
         mdProperty  pr,                     // [IN] Property token.
         DWORD       dwPropFlags,            // [IN] CorPropertyAttr.
@@ -609,6 +655,7 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         mdMethodDef mdGetter,               // [IN] Getter of the property.
         mdMethodDef rmdOtherMethods[]) PURE;// [IN] Array of other methods.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetParamProps)
     STDMETHOD(SetParamProps)(               // Return code.
         mdParamDef  pd,                     // [IN] Param token.
         LPCWSTR     szName,                 // [IN] Param name.
@@ -618,15 +665,18 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cchValue) PURE;         // [IN] size of constant value (string, in wide chars).
 
     // Specialized Custom Attributes for security.
+    DECLSPEC_XFGVIRT(IMetaDataEmit, DefineSecurityAttributeSet)
     STDMETHOD(DefineSecurityAttributeSet)(  // Return code.
         mdToken     tkObj,                  // [IN] Class or method requiring security attributes.
         COR_SECATTR rSecAttrs[],            // [IN] Array of security attribute descriptions.
         ULONG       cSecAttrs,              // [IN] Count of elements in above array.
         ULONG       *pulErrorAttr) PURE;    // [OUT] On error, index of attribute causing problem.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, ApplyEditAndContinue)
     STDMETHOD(ApplyEditAndContinue)(        // S_OK or error.
         IUnknown    *pImport) PURE;         // [IN] Metadata from the delta PE.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, TranslateSigWithScope)
     STDMETHOD(TranslateSigWithScope)(
         IMetaDataAssemblyImport *pAssemImport, // [IN] importing assembly interface
         const void  *pbHashValue,           // [IN] Hash Blob for Assembly.
@@ -640,19 +690,23 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
         ULONG       cbTranslatedSigMax,
         ULONG       *pcbTranslatedSig) PURE;// [OUT] count of bytes in the translated signature
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetMethodImplFlags)
     STDMETHOD(SetMethodImplFlags)(          // [IN] S_OK or error.
         mdMethodDef md,                     // [IN] Method for which to set ImplFlags 
         DWORD       dwImplFlags) PURE;
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, SetFieldRVA)
     STDMETHOD(SetFieldRVA)(                 // [IN] S_OK or error.
         mdFieldDef  fd,                     // [IN] Field for which to set offset
         ULONG       ulRVA) PURE;            // [IN] The offset
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, Merge)
     STDMETHOD(Merge)(                       // S_OK or error.
         IMetaDataImport *pImport,           // [IN] The scope to be merged.
         IMapToken   *pHostMapToken,         // [IN] Host IMapToken interface to receive token remap notification
         IUnknown    *pHandler) PURE;        // [IN] An object to receive to receive error notification.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit, MergeEnd)
     STDMETHOD(MergeEnd)() PURE;             // S_OK or error.
 
     // This interface is sealed.  Do not change, add, or remove anything.  Instead, derive a new iterface.
@@ -670,28 +724,34 @@ EXTERN_GUID(IID_IMetaDataEmit2, 0xf5dd9950, 0xf693, 0x42e6, 0x83, 0xe, 0x7b, 0x8
 #define INTERFACE IMetaDataEmit2
 DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
 {
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, DefineMethodSpec)
     STDMETHOD(DefineMethodSpec)(
         mdToken     tkParent,               // [IN] MethodDef or MemberRef
         PCCOR_SIGNATURE pvSigBlob,          // [IN] point to a blob value of COM+ signature 
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdMethodSpec *pmi) PURE;            // [OUT] method instantiation token
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, GetDeltaSaveSize)
     STDMETHOD(GetDeltaSaveSize)(            // S_OK or error.
         CorSaveSize fSave,                  // [IN] cssAccurate or cssQuick.
         DWORD       *pdwSaveSize) PURE;     // [OUT] Put the size here.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, SaveDelta)
     STDMETHOD(SaveDelta)(                   // S_OK or error.
         LPCWSTR     szFile,                 // [IN] The filename to save to.
         DWORD       dwSaveFlags) PURE;      // [IN] Flags for the save.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, SaveDeltaToStream)
     STDMETHOD(SaveDeltaToStream)(           // S_OK or error.
         IStream     *pIStream,              // [IN] A writable stream to save to.
         DWORD       dwSaveFlags) PURE;      // [IN] Flags for the save.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, SaveDeltaToMemory)
     STDMETHOD(SaveDeltaToMemory)(           // S_OK or error.
         void        *pbData,                // [OUT] Location to write data.
         ULONG       cbData) PURE;           // [IN] Max size of data buffer.
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, DefineGenericParam)
     STDMETHOD(DefineGenericParam)(          // S_OK or error.
         mdToken      tk,                    // [IN] TypeDef or MethodDef
         ULONG        ulParamSeq,            // [IN] Index of the type parameter
@@ -701,6 +761,7 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
         mdToken      rtkConstraints[],      // [IN] Array of type constraints (TypeDef,TypeRef,TypeSpec)
         mdGenericParam *pgp) PURE;          // [OUT] Put GenericParam token here
 
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, SetGenericParamProps)
     STDMETHOD(SetGenericParamProps)(        // S_OK or error.
         mdGenericParam gp,                  // [IN] GenericParam
         DWORD        dwParamFlags,          // [IN] Flags, for future use (e.g. variance)
@@ -708,6 +769,7 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
         DWORD        reserved,              // [IN] For future use (e.g. non-type parameters)
         mdToken      rtkConstraints[]) PURE;// [IN] Array of type constraints (TypeDef,TypeRef,TypeSpec)
     
+    DECLSPEC_XFGVIRT(IMetaDataEmit2, ResetENCLog)
     STDMETHOD(ResetENCLog)() PURE;          // S_OK or error.
 
 };
@@ -723,22 +785,30 @@ EXTERN_GUID(IID_IMetaDataImport, 0x7dac8207, 0xd3ae, 0x4c75, 0x9b, 0x67, 0x92, 0
 #define INTERFACE IMetaDataImport
 DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataImport, CloseEnum)
     STDMETHOD_(void, CloseEnum)(HCORENUM hEnum) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataImport, CountEnum)
     STDMETHOD(CountEnum)(HCORENUM hEnum, ULONG *pulCount) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataImport, ResetEnum)
     STDMETHOD(ResetEnum)(HCORENUM hEnum, ULONG ulPos) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumTypeDefs)
     STDMETHOD(EnumTypeDefs)(HCORENUM *phEnum, mdTypeDef rTypeDefs[],
                             ULONG cMax, ULONG *pcTypeDefs) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumInterfaceImpls)
     STDMETHOD(EnumInterfaceImpls)(HCORENUM *phEnum, mdTypeDef td,
                             mdInterfaceImpl rImpls[], ULONG cMax,
                             ULONG* pcImpls) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumTypeRefs)
     STDMETHOD(EnumTypeRefs)(HCORENUM *phEnum, mdTypeRef rTypeRefs[],
                             ULONG cMax, ULONG* pcTypeRefs) PURE;
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindTypeDefByName)
     STDMETHOD(FindTypeDefByName)(           // S_OK or error.
         LPCWSTR     szTypeDef,              // [IN] Name of the Type.
         mdToken     tkEnclosingClass,       // [IN] TypeDef/TypeRef for Enclosing class.
         mdTypeDef   *ptd) PURE;             // [OUT] Put the TypeDef token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetScopeProps)
     STDMETHOD(GetScopeProps)(               // S_OK or error.
       _Out_writes_to_opt_(cchName, *pchName)
         LPWSTR      szName,                 // [OUT] Put the name here.
@@ -746,9 +816,11 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       *pchName,               // [OUT] Put size of name (wide chars) here.
         GUID        *pmvid) PURE;           // [OUT, OPTIONAL] Put MVID here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetModuleFromScope)
     STDMETHOD(GetModuleFromScope)(          // S_OK.
         mdModule    *pmd) PURE;             // [OUT] Put mdModule token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetTypeDefProps)
     STDMETHOD(GetTypeDefProps)(             // S_OK or error.
         mdTypeDef   td,                     // [IN] TypeDef token for inquiry.
       _Out_writes_to_opt_(cchTypeDef, *pchTypeDef)
@@ -758,11 +830,13 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         DWORD       *pdwTypeDefFlags,       // [OUT] Put flags here.
         mdToken     *ptkExtends) PURE;      // [OUT] Put base class TypeDef/TypeRef here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetInterfaceImplProps)
     STDMETHOD(GetInterfaceImplProps)(       // S_OK or error.
         mdInterfaceImpl iiImpl,             // [IN] InterfaceImpl token.
         mdTypeDef   *pClass,                // [OUT] Put implementing class token here.
         mdToken     *ptkIface) PURE;        // [OUT] Put implemented interface token here.
             
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetTypeRefProps)
     STDMETHOD(GetTypeRefProps)(             // S_OK or error.
         mdTypeRef   tr,                     // [IN] TypeRef token.
         mdToken     *ptkResolutionScope,    // [OUT] Resolution scope, ModuleRef or AssemblyRef.
@@ -771,8 +845,10 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cchName,                // [IN] Size of buffer.
         ULONG       *pchName) PURE;         // [OUT] Size of Name.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, ResolveTypeRef)
     STDMETHOD(ResolveTypeRef)(mdTypeRef tr, REFIID riid, IUnknown **ppIScope, mdTypeDef *ptd) PURE;
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMembers)
     STDMETHOD(EnumMembers)(                 // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -780,6 +856,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MemberDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMembersWithName)
     STDMETHOD(EnumMembersWithName)(         // S_OK, S_FALSE, or error.
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -788,6 +865,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MemberDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMethods)
     STDMETHOD(EnumMethods)(                 // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -795,6 +873,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MethodDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMethodsWithName)
     STDMETHOD(EnumMethodsWithName)(         // S_OK, S_FALSE, or error.
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -803,6 +882,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MethodDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumFields)
     STDMETHOD(EnumFields)(                  // S_OK, S_FALSE, or error.
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -810,6 +890,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max FieldDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumFieldsWithName)
     STDMETHOD(EnumFieldsWithName)(          // S_OK, S_FALSE, or error.
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   cl,                     // [IN] TypeDef to scope the enumeration.
@@ -819,6 +900,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumParams)
     STDMETHOD(EnumParams)(                  // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdMethodDef mb,                     // [IN] MethodDef to scope the enumeration. 
@@ -826,6 +908,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max ParamDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMemberRefs)
     STDMETHOD(EnumMemberRefs)(              // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdToken     tkParent,               // [IN] Parent token to scope the enumeration.
@@ -833,6 +916,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max MemberRefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMethodImpls)
     STDMETHOD(EnumMethodImpls)(             // S_OK, S_FALSE, or error
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   td,                     // [IN] TypeDef to scope the enumeration.
@@ -841,6 +925,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max tokens to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumPermissionSets)
     STDMETHOD(EnumPermissionSets)(          // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdToken     tk,                     // [IN] if !NIL, token to scope the enumeration.
@@ -849,6 +934,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max Permissions to put. 
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindMember)
     STDMETHOD(FindMember)(
         mdTypeDef   td,                     // [IN] given typedef
         LPCWSTR     szName,                 // [IN] member name 
@@ -856,6 +942,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdToken     *pmb) PURE;             // [OUT] matching memberdef 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindMethod)
     STDMETHOD(FindMethod)(
         mdTypeDef   td,                     // [IN] given typedef
         LPCWSTR     szName,                 // [IN] member name 
@@ -863,6 +950,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdMethodDef *pmb) PURE;             // [OUT] matching memberdef 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindField)
     STDMETHOD(FindField)(
         mdTypeDef   td,                     // [IN] given typedef
         LPCWSTR     szName,                 // [IN] member name 
@@ -870,6 +958,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdFieldDef  *pmb) PURE;             // [OUT] matching memberdef 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindMemberRef)
     STDMETHOD(FindMemberRef)(
         mdTypeRef   td,                     // [IN] given typeRef
         LPCWSTR     szName,                 // [IN] member name 
@@ -877,6 +966,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cbSigBlob,              // [IN] count of bytes in the signature blob
         mdMemberRef *pmr) PURE;             // [OUT] matching memberref 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetMethodProps)
     STDMETHOD (GetMethodProps)( 
         mdMethodDef mb,                     // The method for which to get props.
         mdTypeDef   *pClass,                // Put method's class here. 
@@ -890,6 +980,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       *pulCodeRVA,            // [OUT] codeRVA
         DWORD       *pdwImplFlags) PURE;    // [OUT] Impl. Flags
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetMemberRefProps)
     STDMETHOD(GetMemberRefProps)(           // S_OK or error.
         mdMemberRef mr,                     // [IN] given memberref 
         mdToken     *ptk,                   // [OUT] Put classref or classdef here. 
@@ -900,6 +991,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         PCCOR_SIGNATURE *ppvSigBlob,        // [OUT] point to meta data blob value
         ULONG       *pbSig) PURE;           // [OUT] actual size of signature blob
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumProperties)
     STDMETHOD(EnumProperties)(              // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   td,                     // [IN] TypeDef to scope the enumeration.
@@ -907,6 +999,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max properties to put.
         ULONG       *pcProperties) PURE;    // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumEvents)
     STDMETHOD(EnumEvents)(                  // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdTypeDef   td,                     // [IN] TypeDef to scope the enumeration.
@@ -914,6 +1007,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max events to put.
         ULONG       *pcEvents) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetEventProps)
     STDMETHOD(GetEventProps)(               // S_OK, S_FALSE, or error. 
         mdEvent     ev,                     // [IN] event token 
         mdTypeDef   *pClass,                // [OUT] typedef containing the event declarion.
@@ -929,6 +1023,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] size of rmdOtherMethod
         ULONG       *pcOtherMethod) PURE;   // [OUT] total number of other method of this event 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumMethodSemantics)
     STDMETHOD(EnumMethodSemantics)(         // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdMethodDef mb,                     // [IN] MethodDef to scope the enumeration. 
@@ -936,11 +1031,13 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Max properties to put.
         ULONG       *pcEventProp) PURE;     // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetMethodSemantics)
     STDMETHOD(GetMethodSemantics)(          // S_OK, S_FALSE, or error. 
         mdMethodDef mb,                     // [IN] method token
         mdToken     tkEventProp,            // [IN] event/property token.
         DWORD       *pdwSemanticsFlags) PURE; // [OUT] the role flags for the method/propevent pair 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetClassLayout)
     STDMETHOD(GetClassLayout) ( 
         mdTypeDef   td,                     // [IN] give typedef
         DWORD       *pdwPackSize,           // [OUT] 1, 2, 4, 8, or 16
@@ -949,27 +1046,32 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       *pcFieldOffset,         // [OUT] needed array size
         ULONG       *pulClassSize) PURE;        // [OUT] the size of the class
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetFieldMarshal)
     STDMETHOD(GetFieldMarshal) (
         mdToken     tk,                     // [IN] given a field's memberdef
         PCCOR_SIGNATURE *ppvNativeType,     // [OUT] native type of this field
         ULONG       *pcbNativeType) PURE;   // [OUT] the count of bytes of *ppvNativeType
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetRVA)
     STDMETHOD(GetRVA)(                      // S_OK or error.
         mdToken     tk,                     // Member for which to set offset
         ULONG       *pulCodeRVA,            // The offset
         DWORD       *pdwImplFlags) PURE;    // the implementation flags 
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetPermissionSetProps)
     STDMETHOD(GetPermissionSetProps) (
         mdPermission pm,                    // [IN] the permission token.
         DWORD       *pdwAction,             // [OUT] CorDeclSecurity.
         void const  **ppvPermission,        // [OUT] permission blob.
         ULONG       *pcbPermission) PURE;   // [OUT] count of bytes of pvPermission.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetSigFromToken)
     STDMETHOD(GetSigFromToken)(             // S_OK or error.
         mdSignature mdSig,                  // [IN] Signature token.
         PCCOR_SIGNATURE *ppvSig,            // [OUT] return pointer to token.
         ULONG       *pcbSig) PURE;          // [OUT] return size of signature.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetModuleRefProps)
     STDMETHOD(GetModuleRefProps)(           // S_OK or error.
         mdModuleRef mur,                    // [IN] moduleref token.
       _Out_writes_to_opt_(cchName, *pchName)
@@ -977,27 +1079,32 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cchName,                // [IN] size of szName in wide characters.
         ULONG       *pchName) PURE;         // [OUT] actual count of characters in the name.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumModuleRefs)
     STDMETHOD(EnumModuleRefs)(              // S_OK or error.
         HCORENUM    *phEnum,                // [IN|OUT] pointer to the enum.
         mdModuleRef rModuleRefs[],          // [OUT] put modulerefs here.
         ULONG       cmax,                   // [IN] max memberrefs to put.
         ULONG       *pcModuleRefs) PURE;    // [OUT] put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetTypeSpecFromToken)
     STDMETHOD(GetTypeSpecFromToken)(        // S_OK or error.
         mdTypeSpec typespec,                // [IN] TypeSpec token.
         PCCOR_SIGNATURE *ppvSig,            // [OUT] return pointer to TypeSpec signature
         ULONG       *pcbSig) PURE;          // [OUT] return size of signature.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetNameFromToken)
     STDMETHOD(GetNameFromToken)(            // Not Recommended! May be removed!
         mdToken     tk,                     // [IN] Token to get name from.  Must have a name.
         MDUTF8CSTR  *pszUtf8NamePtr) PURE;  // [OUT] Return pointer to UTF8 name in heap.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumUnresolvedMethods)
     STDMETHOD(EnumUnresolvedMethods)(       // S_OK, S_FALSE, or error. 
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdToken     rMethods[],             // [OUT] Put MemberDefs here.
         ULONG       cMax,                   // [IN] Max MemberDefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetUserString)
     STDMETHOD(GetUserString)(               // S_OK or error.
         mdString    stk,                    // [IN] String token.
       _Out_writes_to_opt_(cchString, *pchString)
@@ -1005,6 +1112,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cchString,              // [IN] Max chars of room in szString.
         ULONG       *pchString) PURE;       // [OUT] How many chars in actual string.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetPinvokeMap)
     STDMETHOD(GetPinvokeMap)(               // S_OK or error.
         mdToken     tk,                     // [IN] FieldDef or MethodDef.
         DWORD       *pdwMappingFlags,       // [OUT] Flags used for mapping.
@@ -1014,29 +1122,34 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       *pchImportName,         // [OUT] Actual number of characters stored.
         mdModuleRef *pmrImportDLL) PURE;    // [OUT] ModuleRef token for the target DLL.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumSignatures)
     STDMETHOD(EnumSignatures)(              // S_OK or error.
         HCORENUM    *phEnum,                // [IN|OUT] pointer to the enum.
         mdSignature rSignatures[],          // [OUT] put signatures here.
         ULONG       cmax,                   // [IN] max signatures to put.
         ULONG       *pcSignatures) PURE;    // [OUT] put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumTypeSpecs)
     STDMETHOD(EnumTypeSpecs)(               // S_OK or error.
         HCORENUM    *phEnum,                // [IN|OUT] pointer to the enum.
         mdTypeSpec  rTypeSpecs[],           // [OUT] put TypeSpecs here.
         ULONG       cmax,                   // [IN] max TypeSpecs to put.
         ULONG       *pcTypeSpecs) PURE;     // [OUT] put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumUserStrings)
     STDMETHOD(EnumUserStrings)(             // S_OK or error.
         HCORENUM    *phEnum,                // [IN/OUT] pointer to the enum.
         mdString    rStrings[],             // [OUT] put Strings here.
         ULONG       cmax,                   // [IN] max Strings to put.
         ULONG       *pcStrings) PURE;       // [OUT] put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetParamForMethodIndex)
     STDMETHOD(GetParamForMethodIndex)(      // S_OK or error.
         mdMethodDef md,                     // [IN] Method token.
         ULONG       ulParamSeq,             // [IN] Parameter sequence.
         mdParamDef  *ppd) PURE;             // [IN] Put Param token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, EnumCustomAttributes)
     STDMETHOD(EnumCustomAttributes)(        // S_OK or error.
         HCORENUM    *phEnum,                // [IN, OUT] COR enumerator.
         mdToken     tk,                     // [IN] Token to scope the enumeration, 0 for all.
@@ -1045,6 +1158,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] Size of rCustomAttributes.
         ULONG       *pcCustomAttributes) PURE;  // [OUT, OPTIONAL] Put count of token values here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetCustomAttributeProps)
     STDMETHOD(GetCustomAttributeProps)(     // S_OK or error.
         mdCustomAttribute cv,               // [IN] CustomAttribute token.
         mdToken     *ptkObj,                // [OUT, OPTIONAL] Put object token here.
@@ -1052,11 +1166,13 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         void const  **ppBlob,               // [OUT, OPTIONAL] Put pointer to data here.
         ULONG       *pcbSize) PURE;         // [OUT, OPTIONAL] Put size of date here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, FindTypeRef)
     STDMETHOD(FindTypeRef)(
         mdToken     tkResolutionScope,      // [IN] ModuleRef, AssemblyRef or TypeRef.
         LPCWSTR     szName,                 // [IN] TypeRef Name.
         mdTypeRef   *ptr) PURE;             // [OUT] matching TypeRef.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetMemberProps)
     STDMETHOD(GetMemberProps)(
         mdToken     mb,                     // The member for which to get props.
         mdTypeDef   *pClass,                // Put member's class here. 
@@ -1073,6 +1189,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         UVCP_CONSTANT *ppValue,             // [OUT] constant value 
         ULONG       *pcchValue) PURE;       // [OUT] size of constant string in chars, 0 for non-strings.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetFieldProps)
     STDMETHOD(GetFieldProps)(
         mdFieldDef  mb,                     // The field for which to get props.
         mdTypeDef   *pClass,                // Put field's class here.
@@ -1087,6 +1204,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         UVCP_CONSTANT *ppValue,             // [OUT] constant value 
         ULONG       *pcchValue) PURE;       // [OUT] size of constant string in chars, 0 for non-strings.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetPropertyProps)
     STDMETHOD(GetPropertyProps)(            // S_OK, S_FALSE, or error. 
         mdProperty  prop,                   // [IN] property token
         mdTypeDef   *pClass,                // [OUT] typedef containing the property declarion. 
@@ -1105,6 +1223,7 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         ULONG       cMax,                   // [IN] size of rmdOtherMethod
         ULONG       *pcOtherMethod) PURE;   // [OUT] total number of other method of this property
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetParamProps)
     STDMETHOD(GetParamProps)(               // S_OK or error.
         mdParamDef  tk,                     // [IN]The Parameter.
         mdMethodDef *pmd,                   // [OUT] Parent Method token.
@@ -1118,24 +1237,29 @@ DECLARE_INTERFACE_(IMetaDataImport, IUnknown)
         UVCP_CONSTANT *ppValue,             // [OUT] Constant value.
         ULONG       *pcchValue) PURE;       // [OUT] size of constant string in chars, 0 for non-strings.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetCustomAttributeByName)
     STDMETHOD(GetCustomAttributeByName)(    // S_OK or error.
         mdToken     tkObj,                  // [IN] Object with Custom Attribute.
         LPCWSTR     szName,                 // [IN] Name of desired Custom Attribute.
         const void  **ppData,               // [OUT] Put pointer to data here.
         ULONG       *pcbData) PURE;         // [OUT] Put size of data here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, IsValidToken)
     STDMETHOD_(BOOL, IsValidToken)(         // True or False.
         mdToken     tk) PURE;               // [IN] Given token.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetNestedClassProps)
     STDMETHOD(GetNestedClassProps)(         // S_OK or error.
         mdTypeDef   tdNestedClass,          // [IN] NestedClass token.
         mdTypeDef   *ptdEnclosingClass) PURE; // [OUT] EnclosingClass token.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, GetNativeCallConvFromSig)
     STDMETHOD(GetNativeCallConvFromSig)(    // S_OK or error.
         void const  *pvSig,                 // [IN] Pointer to signature.
         ULONG       cbSig,                  // [IN] Count of signature bytes.
         ULONG       *pCallConv) PURE;       // [OUT] Put calling conv here (see CorPinvokemap).
 
+    DECLSPEC_XFGVIRT(IMetaDataImport, IsGlobal)
     STDMETHOD(IsGlobal)(                    // S_OK or error.
         mdToken     pd,                     // [IN] Type, Field, or Method token.
         int         *pbGlobal) PURE;        // [OUT] Put 1 if global, 0 otherwise.
@@ -1155,6 +1279,7 @@ EXTERN_GUID(IID_IMetaDataImport2, 0xfce5efa0, 0x8bba, 0x4f8e, 0xa0, 0x36, 0x8f, 
 #define INTERFACE IMetaDataImport2
 DECLARE_INTERFACE_(IMetaDataImport2, IMetaDataImport)
 {
+    DECLSPEC_XFGVIRT(IMetaDataImport2, EnumGenericParams)
     STDMETHOD(EnumGenericParams)(
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdToken      tk,                    // [IN] TypeDef or MethodDef whose generic parameters are requested
@@ -1162,6 +1287,7 @@ DECLARE_INTERFACE_(IMetaDataImport2, IMetaDataImport)
         ULONG       cMax,                   // [IN] Max GenericParams to put.
         ULONG       *pcGenericParams) PURE; // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, GetGenericParamProps)
     STDMETHOD(GetGenericParamProps)(        // S_OK or error.
         mdGenericParam gp,                  // [IN] GenericParam
         ULONG        *pulParamSeq,          // [OUT] Index of the type parameter
@@ -1173,12 +1299,14 @@ DECLARE_INTERFACE_(IMetaDataImport2, IMetaDataImport)
         ULONG        cchName,               // [IN] Size of buffer
         ULONG        *pchName) PURE;        // [OUT] Put size of name (wide chars) here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, GetMethodSpecProps)
     STDMETHOD(GetMethodSpecProps)(
         mdMethodSpec mi,                    // [IN] The method instantiation
         mdToken *tkParent,                  // [OUT] MethodDef or MemberRef
         PCCOR_SIGNATURE *ppvSigBlob,        // [OUT] point to the blob value of meta data
         ULONG       *pcbSigBlob) PURE;      // [OUT] actual size of signature blob
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, EnumGenericParamConstraints)
     STDMETHOD(EnumGenericParamConstraints)(
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdGenericParam tk,                  // [IN] GenericParam whose constraints are requested
@@ -1186,21 +1314,25 @@ DECLARE_INTERFACE_(IMetaDataImport2, IMetaDataImport)
         ULONG       cMax,                   // [IN] Max GenericParamConstraints to put.
         ULONG       *pcGenericParamConstraints) PURE; // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, GetGenericParamConstraintProps)
     STDMETHOD(GetGenericParamConstraintProps)( // S_OK or error.
         mdGenericParamConstraint gpc,       // [IN] GenericParamConstraint
         mdGenericParam *ptGenericParam,     // [OUT] GenericParam that is constrained
         mdToken      *ptkConstraintType) PURE; // [OUT] TypeDef/Ref/Spec constraint
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, GetPEKind)
     STDMETHOD(GetPEKind)(                   // S_OK or error.
         DWORD* pdwPEKind,                   // [OUT] The kind of PE (0 - not a PE)
         DWORD* pdwMAchine) PURE;            // [OUT] Machine as defined in NT header
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, GetVersionString)
     STDMETHOD(GetVersionString)(            // S_OK or error.
       _Out_writes_to_opt_(ccBufSize, *pccBufSize)
         LPWSTR      pwzBuf,                 // [OUT] Put version string here.
         DWORD       ccBufSize,              // [IN] size of the buffer, in wide chars
         DWORD       *pccBufSize) PURE;      // [OUT] Size of the version string, wide chars, including terminating nul.
 
+    DECLSPEC_XFGVIRT(IMetaDataImport2, EnumMethodSpecs)
     STDMETHOD(EnumMethodSpecs)(
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdToken      tk,                    // [IN] MethodDef or MemberRef whose MethodSpecs are requested
@@ -1221,8 +1353,11 @@ EXTERN_GUID(IID_IMetaDataFilter, 0xd0e80dd1, 0x12d4, 0x11d3, 0xb3, 0x9d, 0x0, 0x
 #define INTERFACE IMetaDataFilter
 DECLARE_INTERFACE_(IMetaDataFilter, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataFilter, UnmarkAll)
     STDMETHOD(UnmarkAll)() PURE;
+    DECLSPEC_XFGVIRT(IMetaDataFilter, MarkToken)
     STDMETHOD(MarkToken)(mdToken tk) PURE;
+    DECLSPEC_XFGVIRT(IMetaDataFilter, IsTokenMarked)
     STDMETHOD(IsTokenMarked)(mdToken tk, BOOL *pIsMarked) PURE;
 };
 
@@ -1238,6 +1373,7 @@ EXTERN_GUID(IID_IHostFilter, 0xd0e80dd3, 0x12d4, 0x11d3, 0xb3, 0x9d, 0x0, 0xc0, 
 #define INTERFACE IHostFilter
 DECLARE_INTERFACE_(IHostFilter, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IHostFilter, MarkToken)
     STDMETHOD(MarkToken)(mdToken tk) PURE;
 };
 
@@ -1277,6 +1413,7 @@ EXTERN_GUID(IID_IMetaDataAssemblyEmit, 0x211ef15b, 0x5317, 0x4438, 0xb1, 0x96, 0
 #define INTERFACE IMetaDataAssemblyEmit
 DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, DefineAssembly)
     STDMETHOD(DefineAssembly)(              // S_OK or error.
         const void  *pbPublicKey,           // [IN] Public key of the assembly.
         ULONG       cbPublicKey,            // [IN] Count of bytes in the public key.
@@ -1286,6 +1423,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwAssemblyFlags,        // [IN] Flags.
         mdAssembly  *pma) PURE;             // [OUT] Returned Assembly token.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, DefineAssemblyRef)
     STDMETHOD(DefineAssemblyRef)(           // S_OK or error.
         const void  *pbPublicKeyOrToken,    // [IN] Public key or token of the assembly.
         ULONG       cbPublicKeyOrToken,     // [IN] Count of bytes in the public key or token.
@@ -1296,6 +1434,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwAssemblyRefFlags,     // [IN] Flags.
         mdAssemblyRef *pmdar) PURE;         // [OUT] Returned AssemblyRef token.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, DefineFile)
     STDMETHOD(DefineFile)(                  // S_OK or error.
         LPCWSTR     szName,                 // [IN] Name of the file.
         const void  *pbHashValue,           // [IN] Hash Blob.
@@ -1303,6 +1442,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwFileFlags,            // [IN] Flags.
         mdFile      *pmdf) PURE;            // [OUT] Returned File token.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, DefineExportedType)
     STDMETHOD(DefineExportedType)(          // S_OK or error.
         LPCWSTR     szName,                 // [IN] Name of the Com Type.
         mdToken     tkImplementation,       // [IN] mdFile or mdAssemblyRef or mdExportedType
@@ -1310,6 +1450,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwExportedTypeFlags,    // [IN] Flags.
         mdExportedType   *pmdct) PURE;      // [OUT] Returned ExportedType token.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, DefineManifestResource)
     STDMETHOD(DefineManifestResource)(      // S_OK or error.
         LPCWSTR     szName,                 // [IN] Name of the resource.
         mdToken     tkImplementation,       // [IN] mdFile or mdAssemblyRef that provides the resource.
@@ -1317,6 +1458,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         DWORD       dwResourceFlags,        // [IN] Flags.
         mdManifestResource  *pmdmr) PURE;   // [OUT] Returned ManifestResource token.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, SetAssemblyProps)
     STDMETHOD(SetAssemblyProps)(            // S_OK or error.
         mdAssembly  pma,                    // [IN] Assembly token.
         const void  *pbPublicKey,           // [IN] Public key of the assembly.
@@ -1326,6 +1468,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         const ASSEMBLYMETADATA *pMetaData,  // [IN] Assembly MetaData.
         DWORD       dwAssemblyFlags) PURE;  // [IN] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, SetAssemblyRefProps)
     STDMETHOD(SetAssemblyRefProps)(         // S_OK or error.
         mdAssemblyRef ar,                   // [IN] AssemblyRefToken.
         const void  *pbPublicKeyOrToken,    // [IN] Public key or token of the assembly.
@@ -1336,18 +1479,21 @@ DECLARE_INTERFACE_(IMetaDataAssemblyEmit, IUnknown)
         ULONG       cbHashValue,            // [IN] Count of bytes in the Hash Blob.
         DWORD       dwAssemblyRefFlags) PURE; // [IN] Token for Execution Location.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, SetFileProps)
     STDMETHOD(SetFileProps)(                // S_OK or error.
         mdFile      file,                   // [IN] File token.
         const void  *pbHashValue,           // [IN] Hash Blob.
         ULONG       cbHashValue,            // [IN] Count of bytes in the Hash Blob.
         DWORD       dwFileFlags) PURE;      // [IN] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, SetExportedTypeProps)
     STDMETHOD(SetExportedTypeProps)(        // S_OK or error.
         mdExportedType   ct,                // [IN] ExportedType token.
         mdToken     tkImplementation,       // [IN] mdFile or mdAssemblyRef or mdExportedType.
         mdTypeDef   tkTypeDef,              // [IN] TypeDef token within the file.
         DWORD       dwExportedTypeFlags) PURE;   // [IN] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyEmit, SetManifestResourceProps)
     STDMETHOD(SetManifestResourceProps)(    // S_OK or error.
         mdManifestResource  mr,             // [IN] ManifestResource token.
         mdToken     tkImplementation,       // [IN] mdFile or mdAssemblyRef that provides the resource.
@@ -1365,6 +1511,7 @@ EXTERN_GUID(IID_IMetaDataAssemblyImport, 0xee62470b, 0xe94b, 0x424e, 0x9b, 0x7c,
 #define INTERFACE IMetaDataAssemblyImport
 DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetAssemblyProps)
     STDMETHOD(GetAssemblyProps)(            // S_OK or error.
         mdAssembly  mda,                    // [IN] The Assembly for which to get the properties.
         const void  **ppbPublicKey,         // [OUT] Pointer to the public key.
@@ -1376,6 +1523,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         ASSEMBLYMETADATA *pMetaData,        // [OUT] Assembly MetaData.
         DWORD       *pdwAssemblyFlags) PURE;    // [OUT] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetAssemblyRefProps)
     STDMETHOD(GetAssemblyRefProps)(         // S_OK or error.
         mdAssemblyRef mdar,                 // [IN] The AssemblyRef for which to get the properties.
         const void  **ppbPublicKeyOrToken,  // [OUT] Pointer to the public key or token.
@@ -1388,6 +1536,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         ULONG       *pcbHashValue,          // [OUT] Count of bytes in the hash blob.
         DWORD       *pdwAssemblyRefFlags) PURE; // [OUT] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetFileProps)
     STDMETHOD(GetFileProps)(                // S_OK or error.
         mdFile      mdf,                    // [IN] The File for which to get the properties.
         _Out_writes_to_opt_(cchName, *pchName) LPWSTR      szName, // [OUT] Buffer to fill with name.
@@ -1397,6 +1546,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         ULONG       *pcbHashValue,          // [OUT] Count of bytes in the Hash Value Blob.
         DWORD       *pdwFileFlags) PURE;    // [OUT] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetExportedTypeProps)
     STDMETHOD(GetExportedTypeProps)(        // S_OK or error.
         mdExportedType   mdct,              // [IN] The ExportedType for which to get the properties.
         _Out_writes_to_opt_(cchName, *pchName) LPWSTR      szName, // [OUT] Buffer to fill with name.
@@ -1406,6 +1556,7 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         mdTypeDef   *ptkTypeDef,            // [OUT] TypeDef token within the file.
         DWORD       *pdwExportedTypeFlags) PURE; // [OUT] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetManifestResourceProps)
     STDMETHOD(GetManifestResourceProps)(    // S_OK or error.
         mdManifestResource  mdmr,           // [IN] The ManifestResource for which to get the properties.
         _Out_writes_to_opt_(cchName, *pchName)LPWSTR      szName,  // [OUT] Buffer to fill with name.
@@ -1415,45 +1566,54 @@ DECLARE_INTERFACE_(IMetaDataAssemblyImport, IUnknown)
         DWORD       *pdwOffset,             // [OUT] Offset to the beginning of the resource within the file.
         DWORD       *pdwResourceFlags) PURE;// [OUT] Flags.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, EnumAssemblyRefs)
     STDMETHOD(EnumAssemblyRefs)(            // S_OK or error
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdAssemblyRef rAssemblyRefs[],      // [OUT] Put AssemblyRefs here.
         ULONG       cMax,                   // [IN] Max AssemblyRefs to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, EnumFiles)
     STDMETHOD(EnumFiles)(                   // S_OK or error
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdFile      rFiles[],               // [OUT] Put Files here.
         ULONG       cMax,                   // [IN] Max Files to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, EnumExportedTypes)
     STDMETHOD(EnumExportedTypes)(           // S_OK or error
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdExportedType   rExportedTypes[],  // [OUT] Put ExportedTypes here.
         ULONG       cMax,                   // [IN] Max ExportedTypes to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, EnumManifestResources)
     STDMETHOD(EnumManifestResources)(       // S_OK or error
         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.
         mdManifestResource  rManifestResources[],   // [OUT] Put ManifestResources here.
         ULONG       cMax,                   // [IN] Max Resources to put.
         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, GetAssemblyFromScope)
     STDMETHOD(GetAssemblyFromScope)(        // S_OK or error
         mdAssembly  *ptkAssembly) PURE;     // [OUT] Put token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, FindExportedTypeByName)
     STDMETHOD(FindExportedTypeByName)(      // S_OK or error
         LPCWSTR     szName,                 // [IN] Name of the ExportedType.
         mdToken     mdtExportedType,        // [IN] ExportedType for the enclosing class.
         mdExportedType   *ptkExportedType) PURE; // [OUT] Put the ExportedType token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, FindManifestResourceByName)
     STDMETHOD(FindManifestResourceByName)(  // S_OK or error
         LPCWSTR     szName,                 // [IN] Name of the ManifestResource.
         mdManifestResource *ptkManifestResource) PURE;  // [OUT] Put the ManifestResource token here.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, CloseEnum)
     STDMETHOD_(void, CloseEnum)(
         HCORENUM hEnum) PURE;               // Enum to be closed.
 
+    DECLSPEC_XFGVIRT(IMetaDataAssemblyImport, FindAssembliesByName)
     STDMETHOD(FindAssembliesByName)(        // S_OK or error
         LPCWSTR  szAppBase,                 // [IN] optional - can be NULL
         LPCWSTR  szPrivateBin,              // [IN] optional - can be NULL
@@ -1493,10 +1653,12 @@ EXTERN_GUID(IID_IMetaDataValidate, 0x4709c9c6, 0x81ff, 0x11d3, 0x9f, 0xc7, 0x0, 
 #define INTERFACE IMetaDataValidate
 DECLARE_INTERFACE_(IMetaDataValidate, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataValidate, ValidatorInit)
     STDMETHOD(ValidatorInit)(               // S_OK or error.
         DWORD       dwModuleType,           // [IN] Specifies the type of the module.
         IUnknown    *pUnk) PURE;            // [IN] Validation error handler.
 
+    DECLSPEC_XFGVIRT(IMetaDataValidate, ValidateMetaData)
     STDMETHOD(ValidateMetaData)(            // S_OK or error.
         ) PURE;
 };  // IMetaDataValidate
@@ -1516,26 +1678,31 @@ EXTERN_GUID(IID_IMetaDataDispenserEx, 0x31bcfce2, 0xdafb, 0x11d2, 0x9f, 0x81, 0x
 #define INTERFACE IMetaDataDispenserEx
 DECLARE_INTERFACE_(IMetaDataDispenserEx, IMetaDataDispenser)
 {
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, SetOption)
     STDMETHOD(SetOption)(                   // Return code.
         REFGUID     optionid,               // [in] GUID for the option to be set.
         const VARIANT *value) PURE;         // [in] Value to which the option is to be set.
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, GetOption)
     STDMETHOD(GetOption)(                   // Return code.
         REFGUID     optionid,               // [in] GUID for the option to be set.
         VARIANT *pvalue) PURE;              // [out] Value to which the option is currently set.
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, OpenScopeOnITypeInfo)
     STDMETHOD(OpenScopeOnITypeInfo)(        // Return code.
         ITypeInfo   *pITI,                  // [in] ITypeInfo to open.
         DWORD       dwOpenFlags,            // [in] Open mode flags.
         REFIID      riid,                   // [in] The interface desired.
         IUnknown    **ppIUnk) PURE;         // [out] Return interface on success.
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, GetCORSystemDirectory)
     STDMETHOD(GetCORSystemDirectory)(       // Return code.
        _Out_writes_to_opt_(cchBuffer, *pchBuffer)
          LPWSTR      szBuffer,              // [out] Buffer for the directory name
          DWORD       cchBuffer,             // [in] Size of the buffer
          DWORD*      pchBuffer) PURE;       // [OUT] Number of characters returned
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, FindAssembly)
     STDMETHOD(FindAssembly)(                // S_OK or error
         LPCWSTR  szAppBase,                 // [IN] optional - can be NULL
         LPCWSTR  szPrivateBin,              // [IN] optional - can be NULL
@@ -1545,6 +1712,7 @@ DECLARE_INTERFACE_(IMetaDataDispenserEx, IMetaDataDispenser)
         ULONG    cchName,                   // [IN] the name buffer's size
         ULONG    *pcName) PURE;             // [OUT] the number of characters returend in the buffer
 
+    DECLSPEC_XFGVIRT(IMetaDataDispenserEx, FindAssemblyModule)
     STDMETHOD(FindAssemblyModule)(          // S_OK or error
         LPCWSTR  szAppBase,                 // [IN] optional - can be NULL
         LPCWSTR  szPrivateBin,              // [IN] optional - can be NULL
@@ -1680,36 +1848,45 @@ EXTERN_GUID(IID_ICeeGen, 0x7ed1bdff, 0x8e36, 0x11d2, 0x9c, 0x56, 0x0, 0xa0, 0xc9
 
 DECLARE_INTERFACE_(ICeeGen, IUnknown)
 {
+    DECLSPEC_XFGVIRT(ICeeGen, EmitString)
     STDMETHOD (EmitString) (
       _In_
         LPWSTR lpString,                    // [IN] String to emit
         ULONG *RVA) PURE;                   // [OUT] RVA for string emitted string
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetString)
     STDMETHOD (GetString) (
         ULONG RVA,                          // [IN] RVA for string to return
       _Out_opt_
         LPWSTR *lpString) PURE;             // [OUT] Returned string
 
+    DECLSPEC_XFGVIRT(ICeeGen, AllocateMethodBuffer)
     STDMETHOD (AllocateMethodBuffer) (
         ULONG cchBuffer,                    // [IN] Length of buffer to create
         UCHAR **lpBuffer,                   // [OUT] Returned buffer
         ULONG *RVA) PURE;                   // [OUT] RVA for method 
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetMethodBuffer)
     STDMETHOD (GetMethodBuffer) (
         ULONG RVA,                          // [IN] RVA for method to return
         UCHAR **lpBuffer) PURE;             // [OUT] Returned buffer
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetIMapTokenIface)
     STDMETHOD (GetIMapTokenIface) (
         IUnknown **pIMapToken) PURE;
 
+    DECLSPEC_XFGVIRT(ICeeGen, GenerateCeeFile)
     STDMETHOD (GenerateCeeFile) () PURE;
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetIlSection)
     STDMETHOD (GetIlSection) (
         HCEESECTION *section) PURE; 
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetStringSection)
     STDMETHOD (GetStringSection) (
         HCEESECTION *section) PURE; 
 
+    DECLSPEC_XFGVIRT(ICeeGen, AddSectionReloc)
     STDMETHOD (AddSectionReloc) (
         HCEESECTION section, 
         ULONG offset, 
@@ -1718,28 +1895,34 @@ DECLARE_INTERFACE_(ICeeGen, IUnknown)
 
     // use these only if you have special section requirements not handled
     // by other APIs
+    DECLSPEC_XFGVIRT(ICeeGen, GetSectionCreate)
     STDMETHOD (GetSectionCreate) (
         const char *name, 
         DWORD flags, 
         HCEESECTION *section) PURE; 
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetSectionDataLen)
     STDMETHOD (GetSectionDataLen) (
         HCEESECTION section, 
         ULONG *dataLen) PURE;
 
+    DECLSPEC_XFGVIRT(ICeeGen, GetSectionBlock)
     STDMETHOD (GetSectionBlock) (
         HCEESECTION section, 
         ULONG len, 
         ULONG align=1, 
         void **ppBytes=0) PURE; 
 
+    DECLSPEC_XFGVIRT(ICeeGen, TruncateSection)
     STDMETHOD (TruncateSection) (
         HCEESECTION section, 
         ULONG len) PURE;
 
+    DECLSPEC_XFGVIRT(ICeeGen, GenerateCeeMemoryImage)
     STDMETHOD (GenerateCeeMemoryImage) (
         void **ppImage) PURE;
 
+    DECLSPEC_XFGVIRT(ICeeGen, ComputePointer)
     STDMETHOD (ComputePointer) (
         HCEESECTION section, 
         ULONG RVA,                          // [IN] RVA for method to return
@@ -1765,25 +1948,32 @@ EXTERN_GUID(IID_IMetaDataTables, 0xd8f579ab, 0x402d, 0x4b8e, 0x82, 0xd9, 0x5d, 0
 
 DECLARE_INTERFACE_(IMetaDataTables, IUnknown)
 {
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetStringHeapSize)
     STDMETHOD (GetStringHeapSize) (
         ULONG   *pcbStrings) PURE;          // [OUT] Size of the string heap.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetBlobHeapSize)
     STDMETHOD (GetBlobHeapSize) (
         ULONG   *pcbBlobs) PURE;            // [OUT] Size of the Blob heap.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetGuidHeapSize)
     STDMETHOD (GetGuidHeapSize) (
         ULONG   *pcbGuids) PURE;            // [OUT] Size of the Guid heap.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetUserStringHeapSize)
     STDMETHOD (GetUserStringHeapSize) (
         ULONG   *pcbBlobs) PURE;            // [OUT] Size of the User String heap.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetNumTables)
     STDMETHOD (GetNumTables) (
         ULONG   *pcTables) PURE;            // [OUT] Count of tables.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetTableIndex)
     STDMETHOD (GetTableIndex) (
         ULONG   token,                      // [IN] Token for which to get table index.
         ULONG   *pixTbl) PURE;              // [OUT] Put table index here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetTableInfo)
     STDMETHOD (GetTableInfo) (
         ULONG   ixTbl,                      // [IN] Which table.
         ULONG   *pcbRow,                    // [OUT] Size of a row, bytes.
@@ -1792,6 +1982,7 @@ DECLARE_INTERFACE_(IMetaDataTables, IUnknown)
         ULONG   *piKey,                     // [OUT] Key column, or -1 if none.
         const char **ppName) PURE;          // [OUT] Name of the table.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetColumnInfo)
     STDMETHOD (GetColumnInfo) (
         ULONG   ixTbl,                      // [IN] Which Table
         ULONG   ixCol,                      // [IN] Which Column in the table
@@ -1800,53 +1991,64 @@ DECLARE_INTERFACE_(IMetaDataTables, IUnknown)
         ULONG   *pType,                     // [OUT] Type of the column.
         const char **ppName) PURE;          // [OUT] Name of the Column.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetCodedTokenInfo)
     STDMETHOD (GetCodedTokenInfo) (
         ULONG   ixCdTkn,                    // [IN] Which kind of coded token.
         ULONG   *pcTokens,                  // [OUT] Count of tokens.
         ULONG   **ppTokens,                 // [OUT] List of tokens.
         const char **ppName) PURE;          // [OUT] Name of the CodedToken.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetRow)
     STDMETHOD (GetRow) (
         ULONG   ixTbl,                      // [IN] Which table.
         ULONG   rid,                        // [IN] Which row.
         void    **ppRow) PURE;              // [OUT] Put pointer to row here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetColumn)
     STDMETHOD (GetColumn) (
         ULONG   ixTbl,                      // [IN] Which table.
         ULONG   ixCol,                      // [IN] Which column.
         ULONG   rid,                        // [IN] Which row.
         ULONG   *pVal) PURE;                // [OUT] Put the column contents here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetString)
     STDMETHOD (GetString) (
         ULONG   ixString,                   // [IN] Value from a string column.
         const char **ppString) PURE;        // [OUT] Put a pointer to the string here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetBlob)
     STDMETHOD (GetBlob) (
         ULONG   ixBlob,                     // [IN] Value from a blob column.
         ULONG   *pcbData,                   // [OUT] Put size of the blob here.
         const void **ppData) PURE;          // [OUT] Put a pointer to the blob here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetGuid)
     STDMETHOD (GetGuid) (
         ULONG   ixGuid,                     // [IN] Value from a guid column.
         const GUID **ppGUID) PURE;          // [OUT] Put a pointer to the GUID here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetUserString)
     STDMETHOD (GetUserString) (
         ULONG   ixUserString,               // [IN] Value from a UserString column.
         ULONG   *pcbData,                   // [OUT] Put size of the UserString here.
         const void **ppData) PURE;          // [OUT] Put a pointer to the UserString here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetNextString)
     STDMETHOD (GetNextString) (
         ULONG   ixString,                   // [IN] Value from a string column.
         ULONG   *pNext) PURE;               // [OUT] Put the index of the next string here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetNextBlob)
     STDMETHOD (GetNextBlob) (
         ULONG   ixBlob,                     // [IN] Value from a blob column.
         ULONG   *pNext) PURE;               // [OUT] Put the index of the netxt blob here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetNextGuid)
     STDMETHOD (GetNextGuid) (
         ULONG   ixGuid,                     // [IN] Value from a guid column.
         ULONG   *pNext) PURE;               // [OUT] Put the index of the next guid here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables, GetNextUserString)
     STDMETHOD (GetNextUserString) (
         ULONG   ixUserString,               // [IN] Value from a UserString column.
         ULONG   *pNext) PURE;               // [OUT] Put the index of the next user string here.
@@ -1861,10 +2063,12 @@ EXTERN_GUID(IID_IMetaDataTables2, 0xbadb5f70, 0x58da, 0x43a9, 0xa1, 0xc6, 0xd7, 
 
 DECLARE_INTERFACE_(IMetaDataTables2, IMetaDataTables)
 {
+    DECLSPEC_XFGVIRT(IMetaDataTables2, GetMetaDataStorage)
     STDMETHOD (GetMetaDataStorage) (        //@todo: name?
         const void **ppvMd,                 // [OUT] put pointer to MD section here (aka, 'BSJB').
         ULONG   *pcbMd) PURE;               // [OUT] put size of the stream here.
 
+    DECLSPEC_XFGVIRT(IMetaDataTables2, GetMetaDataStreamInfo)
     STDMETHOD (GetMetaDataStreamInfo) (     // Get info about the MD stream.
         ULONG   ix,                         // [IN] Stream ordinal desired.
         const char **ppchName,              // [OUT] put pointer to stream name here.
@@ -1916,6 +2120,7 @@ DECLARE_INTERFACE_(IMetaDataInfo, IUnknown)
     //   COR_E_NOTSUPPORTED - The API is not supported for this particular scope (e.g. .obj files, scope 
     //                        opened without whole file via code:IMetaDataDispenser::OpenScopeOnMemory, etc.).
     //   E_INVALIDARG       - If NULL is passed as parameter.
+   DECLSPEC_XFGVIRT(IMetaDataInfo, GetFileMapping)
    STDMETHOD(GetFileMapping)(
         const void ** ppvData,              // [out] Pointer to the start of the mapped file.
         ULONGLONG *   pcbData,              // [out] Size of the mapped memory region.
@@ -1934,6 +2139,7 @@ EXTERN_GUID(IID_IMetaDataWinMDImport, 0x969ea0c5, 0x964e, 0x411b, 0xa8, 0x7, 0xb
 #define INTERFACE IMetaDataWinMDImport
 DECLARE_INTERFACE_(IMetaDataWinMDImport, IUnknown)
 {
+       DECLSPEC_XFGVIRT(IMetaDataWinMDImport, GetUntransformedTypeRefProps)
        STDMETHOD(GetUntransformedTypeRefProps)( // S_OK or error.
         mdTypeRef   tr,                         // [IN] TypeRef token.
         mdToken     *ptkResolutionScope,        // [OUT] Resolution scope, ModuleRef or AssemblyRef.

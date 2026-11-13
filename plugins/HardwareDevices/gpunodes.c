@@ -436,6 +436,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

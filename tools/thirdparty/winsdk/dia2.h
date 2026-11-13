@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.01.0626 */
-/* @@MIDL_FILE_HEADING(  ) */
+/* \@MIDL_FILE_HEADING(  ) */
 
 #pragma warning( disable: 4049 )  /* more than 64k source lines */
 
@@ -618,21 +618,26 @@ EXTERN_C const IID IID_IDiaLoadCallback;
     IDiaLoadCallback : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaLoadCallback, NotifyDebugDir)
         virtual HRESULT STDMETHODCALLTYPE NotifyDebugDir(
             /* [in] */ BOOL fExecutable,
             /* [in] */ DWORD cbData,
             /* [size_is][in] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback, NotifyOpenDBG)
         virtual HRESULT STDMETHODCALLTYPE NotifyOpenDBG(
             /* [in] */ LPCOLESTR dbgPath,
             /* [in] */ HRESULT resultCode) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback, NotifyOpenPDB)
         virtual HRESULT STDMETHODCALLTYPE NotifyOpenPDB(
             /* [in] */ LPCOLESTR pdbPath,
             /* [in] */ HRESULT resultCode) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback, RestrictRegistryAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictRegistryAccess( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback, RestrictSymbolServerAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictSymbolServerAccess( void) = 0;
 
     };
@@ -742,12 +747,16 @@ EXTERN_C const IID IID_IDiaLoadCallback2;
     IDiaLoadCallback2 : public IDiaLoadCallback
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaLoadCallback2, RestrictOriginalPathAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictOriginalPathAccess( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback2, RestrictReferencePathAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictReferencePathAccess( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback2, RestrictDBGAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictDBGAccess( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLoadCallback2, RestrictSystemRootAccess)
         virtual HRESULT STDMETHODCALLTYPE RestrictSystemRootAccess( void) = 0;
 
     };
@@ -882,6 +891,7 @@ EXTERN_C const IID IID_IDiaReadExeAtOffsetCallback;
     IDiaReadExeAtOffsetCallback : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaReadExeAtOffsetCallback, ReadExecutableAt)
         virtual HRESULT STDMETHODCALLTYPE ReadExecutableAt(
             /* [in] */ DWORDLONG fileOffset,
             /* [in] */ DWORD cbData,
@@ -968,6 +978,7 @@ EXTERN_C const IID IID_IDiaReadExeAtRVACallback;
     IDiaReadExeAtRVACallback : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaReadExeAtRVACallback, ReadExecutableAtRVA)
         virtual HRESULT STDMETHODCALLTYPE ReadExecutableAtRVA(
             /* [in] */ DWORD relativeVirtualAddress,
             /* [in] */ DWORD cbData,
@@ -1054,29 +1065,36 @@ EXTERN_C const IID IID_IDiaDataSource;
     IDiaDataSource : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaDataSource, get_lastError)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lastError(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadDataFromPdb)
         virtual HRESULT STDMETHODCALLTYPE loadDataFromPdb(
             /* [in] */ LPCOLESTR pdbPath) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadAndValidateDataFromPdb)
         virtual HRESULT STDMETHODCALLTYPE loadAndValidateDataFromPdb(
             /* [in] */ LPCOLESTR pdbPath,
             /* [in] */ GUID *pcsig70,
             /* [in] */ DWORD sig,
             /* [in] */ DWORD age) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadDataForExe)
         virtual HRESULT STDMETHODCALLTYPE loadDataForExe(
             /* [in] */ LPCOLESTR executable,
             /* [in] */ LPCOLESTR searchPath,
             /* [in] */ IUnknown *pCallback) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadDataFromIStream)
         virtual HRESULT STDMETHODCALLTYPE loadDataFromIStream(
             /* [in] */ IStream *pIStream) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, openSession)
         virtual HRESULT STDMETHODCALLTYPE openSession(
             /* [out] */ IDiaSession **ppSession) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadDataFromCodeViewInfo)
         virtual HRESULT STDMETHODCALLTYPE loadDataFromCodeViewInfo(
             /* [in] */ LPCOLESTR executable,
             /* [in] */ LPCOLESTR searchPath,
@@ -1084,6 +1102,7 @@ EXTERN_C const IID IID_IDiaDataSource;
             /* [size_is][in] */ BYTE *pbCvInfo,
             /* [in] */ IUnknown *pCallback) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaDataSource, loadDataFromMiscInfo)
         virtual HRESULT STDMETHODCALLTYPE loadDataFromMiscInfo(
             /* [in] */ LPCOLESTR executable,
             /* [in] */ LPCOLESTR searchPath,
@@ -1236,26 +1255,33 @@ EXTERN_C const IID IID_IDiaEnumSymbols;
     IDiaEnumSymbols : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaSymbol **symbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSymbol **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbols, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumSymbols **ppenum) = 0;
 
@@ -1380,29 +1406,35 @@ EXTERN_C const IID IID_IDiaEnumSymbolsByAddr;
     IDiaEnumSymbolsByAddr : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, symbolByAddr)
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE symbolByAddr(
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, symbolByRVA)
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE symbolByRVA(
             /* [in] */ DWORD relativeVirtualAddress,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, symbolByVA)
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE symbolByVA(
             /* [in] */ ULONGLONG virtualAddress,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSymbol **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, Prev)
         virtual HRESULT STDMETHODCALLTYPE Prev(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSymbol **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumSymbolsByAddr **ppenum) = 0;
 
@@ -1526,28 +1558,33 @@ EXTERN_C const IID IID_IDiaEnumSymbolsByAddr2;
     IDiaEnumSymbolsByAddr2 : public IDiaEnumSymbolsByAddr
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr2, symbolByAddrEx)
         virtual HRESULT STDMETHODCALLTYPE symbolByAddrEx(
             /* [in] */ BOOL fPromoteBlockSym,
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr2, symbolByRVAEx)
         virtual HRESULT STDMETHODCALLTYPE symbolByRVAEx(
             /* [in] */ BOOL fPromoteBlockSym,
             /* [in] */ DWORD relativeVirtualAddress,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr2, symbolByVAEx)
         virtual HRESULT STDMETHODCALLTYPE symbolByVAEx(
             /* [in] */ BOOL fPromoteBlockSym,
             /* [in] */ ULONGLONG virtualAddress,
             /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr2, NextEx)
         virtual HRESULT STDMETHODCALLTYPE NextEx(
             /* [in] */ BOOL fPromoteBlockSym,
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSymbol **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSymbolsByAddr2, PrevEx)
         virtual HRESULT STDMETHODCALLTYPE PrevEx(
             /* [in] */ BOOL fPromoteBlockSym,
             /* [in] */ ULONG celt,
@@ -1723,26 +1760,33 @@ EXTERN_C const IID IID_IDiaEnumSourceFiles;
     IDiaEnumSourceFiles : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaSourceFile **sourceFile) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSourceFile **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSourceFiles, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumSourceFiles **ppenum) = 0;
 
@@ -1867,26 +1911,33 @@ EXTERN_C const IID IID_IDiaEnumInputAssemblyFiles;
     IDiaEnumInputAssemblyFiles : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaInputAssemblyFile **file) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaInputAssemblyFile **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInputAssemblyFiles, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumInputAssemblyFiles **ppenum) = 0;
 
@@ -2011,26 +2062,33 @@ EXTERN_C const IID IID_IDiaEnumLineNumbers;
     IDiaEnumLineNumbers : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaLineNumber **lineNumber) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaLineNumber **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumLineNumbers, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumLineNumbers **ppenum) = 0;
 
@@ -2155,26 +2213,33 @@ EXTERN_C const IID IID_IDiaEnumInjectedSources;
     IDiaEnumInjectedSources : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaInjectedSource **injectedSource) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaInjectedSource **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumInjectedSources, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumInjectedSources **ppenum) = 0;
 
@@ -2299,26 +2364,33 @@ EXTERN_C const IID IID_IDiaEnumSegments;
     IDiaEnumSegments : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaSegment **segment) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSegment **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSegments, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumSegments **ppenum) = 0;
 
@@ -2443,26 +2515,33 @@ EXTERN_C const IID IID_IDiaEnumSectionContribs;
     IDiaEnumSectionContribs : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaSectionContrib **section) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaSectionContrib **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumSectionContribs, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumSectionContribs **ppenum) = 0;
 
@@ -2587,33 +2666,42 @@ EXTERN_C const IID IID_IDiaEnumFrameData;
     IDiaEnumFrameData : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IDiaFrameData **frame) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaFrameData **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumFrameData **ppenum) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, frameByRVA)
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE frameByRVA(
             /* [in] */ DWORD relativeVirtualAddress,
             /* [retval][out] */ IDiaFrameData **frame) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumFrameData, frameByVA)
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE frameByVA(
             /* [in] */ ULONGLONG virtualAddress,
             /* [retval][out] */ IDiaFrameData **frame) = 0;
@@ -2755,21 +2843,26 @@ EXTERN_C const IID IID_IDiaEnumDebugStreamData;
     IDiaEnumDebugStreamData : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, get_name)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_name(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
             /* [size_is][out] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [in] */ DWORD cbData,
@@ -2777,11 +2870,14 @@ EXTERN_C const IID IID_IDiaEnumDebugStreamData;
             /* [size_is][out] */ BYTE *pbData,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreamData, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumDebugStreamData **ppenum) = 0;
 
@@ -2917,26 +3013,33 @@ EXTERN_C const IID IID_IDiaEnumDebugStreams;
     IDiaEnumDebugStreams : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ VARIANT index,
             /* [retval][out] */ IDiaEnumDebugStreamData **stream) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaEnumDebugStreamData **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumDebugStreams, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumDebugStreams **ppenum) = 0;
 
@@ -3074,29 +3177,37 @@ EXTERN_C const IID IID_IDiaAddressMap;
     IDiaAddressMap : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaAddressMap, get_addressMapEnabled)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressMapEnabled(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, put_addressMapEnabled)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_addressMapEnabled(
             /* [in] */ BOOL NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, get_relativeVirtualAddressEnabled)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddressEnabled(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, put_relativeVirtualAddressEnabled)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_relativeVirtualAddressEnabled(
             /* [in] */ BOOL NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, get_imageAlign)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_imageAlign(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, put_imageAlign)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_imageAlign(
             /* [in] */ DWORD NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, set_imageHeaders)
         virtual HRESULT STDMETHODCALLTYPE set_imageHeaders(
             /* [in] */ DWORD cbData,
             /* [size_is][in] */ BYTE *pbData,
             /* [in] */ BOOL originalHeaders) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaAddressMap, set_addressMap)
         virtual HRESULT STDMETHODCALLTYPE set_addressMap(
             /* [in] */ DWORD cData,
             /* [size_is][in] */ struct DiaAddressMapEntry *pData,
@@ -3232,21 +3343,27 @@ EXTERN_C const IID IID_IDiaSession;
     IDiaSession : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSession, get_loadAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_loadAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, put_loadAddress)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_loadAddress(
             /* [in] */ ULONGLONG NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, get_globalScope)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_globalScope(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getEnumTables)
         virtual HRESULT STDMETHODCALLTYPE getEnumTables(
             /* [out] */ IDiaEnumTables **ppEnumTables) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getSymbolsByAddr)
         virtual HRESULT STDMETHODCALLTYPE getSymbolsByAddr(
             /* [out] */ IDiaEnumSymbolsByAddr **ppEnumbyAddr) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findChildren)
         virtual HRESULT STDMETHODCALLTYPE findChildren(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ enum SymTagEnum symtag,
@@ -3254,6 +3371,7 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD compareFlags,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findChildrenEx)
         virtual HRESULT STDMETHODCALLTYPE findChildrenEx(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ enum SymTagEnum symtag,
@@ -3261,6 +3379,7 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD compareFlags,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findChildrenExByAddr)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByAddr(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ enum SymTagEnum symtag,
@@ -3270,6 +3389,7 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD offset,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findChildrenExByVA)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ enum SymTagEnum symtag,
@@ -3278,6 +3398,7 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findChildrenExByRVA)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByRVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ enum SymTagEnum symtag,
@@ -3286,78 +3407,93 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByAddr)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByAddr(
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByRVA)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByRVA(
             /* [in] */ DWORD rva,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByVA)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByVA(
             /* [in] */ ULONGLONG va,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByToken)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByToken(
             /* [in] */ ULONG token,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, symsAreEquiv)
         virtual HRESULT STDMETHODCALLTYPE symsAreEquiv(
             /* [in] */ IDiaSymbol *symbolA,
             /* [in] */ IDiaSymbol *symbolB) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, symbolById)
         virtual HRESULT STDMETHODCALLTYPE symbolById(
             /* [in] */ DWORD id,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByRVAEx)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByRVAEx(
             /* [in] */ DWORD rva,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol,
             /* [out] */ long *displacement) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolByVAEx)
         virtual HRESULT STDMETHODCALLTYPE findSymbolByVAEx(
             /* [in] */ ULONGLONG va,
             /* [in] */ enum SymTagEnum symtag,
             /* [out] */ IDiaSymbol **ppSymbol,
             /* [out] */ long *displacement) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findFile)
         virtual HRESULT STDMETHODCALLTYPE findFile(
             /* [in] */ IDiaSymbol *pCompiland,
             /* [in] */ LPCOLESTR name,
             /* [in] */ DWORD compareFlags,
             /* [out] */ IDiaEnumSourceFiles **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findFileById)
         virtual HRESULT STDMETHODCALLTYPE findFileById(
             /* [in] */ DWORD uniqueId,
             /* [out] */ IDiaSourceFile **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findLines)
         virtual HRESULT STDMETHODCALLTYPE findLines(
             /* [in] */ IDiaSymbol *compiland,
             /* [in] */ IDiaSourceFile *file,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findLinesByAddr)
         virtual HRESULT STDMETHODCALLTYPE findLinesByAddr(
             /* [in] */ DWORD seg,
             /* [in] */ DWORD offset,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findLinesByRVA)
         virtual HRESULT STDMETHODCALLTYPE findLinesByRVA(
             /* [in] */ DWORD rva,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findLinesByVA)
         virtual HRESULT STDMETHODCALLTYPE findLinesByVA(
             /* [in] */ ULONGLONG va,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findLinesByLinenum)
         virtual HRESULT STDMETHODCALLTYPE findLinesByLinenum(
             /* [in] */ IDiaSymbol *compiland,
             /* [in] */ IDiaSourceFile *file,
@@ -3365,33 +3501,40 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD column,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInjectedSource)
         virtual HRESULT STDMETHODCALLTYPE findInjectedSource(
             /* [in] */ LPCOLESTR srcFile,
             /* [out] */ IDiaEnumInjectedSources **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getEnumDebugStreams)
         virtual HRESULT STDMETHODCALLTYPE getEnumDebugStreams(
             /* [out] */ IDiaEnumDebugStreams **ppEnumDebugStreams) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineFramesByAddr)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByAddr(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineFramesByRVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByRVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineFramesByVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineeLines)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLines(
             /* [in] */ IDiaSymbol *parent,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineeLinesByAddr)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByAddr(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD isect,
@@ -3399,18 +3542,21 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineeLinesByRVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByRVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD rva,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineeLinesByVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByVA(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ ULONGLONG va,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineeLinesByLinenum)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByLinenum(
             /* [in] */ IDiaSymbol *compiland,
             /* [in] */ IDiaSourceFile *file,
@@ -3418,11 +3564,13 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD column,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInlineesByName)
         virtual HRESULT STDMETHODCALLTYPE findInlineesByName(
             /* [in] */ LPCOLESTR name,
             /* [in] */ DWORD option,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findAcceleratorInlineeLinesByLinenum)
         virtual HRESULT STDMETHODCALLTYPE findAcceleratorInlineeLinesByLinenum(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ IDiaSourceFile *file,
@@ -3430,85 +3578,103 @@ EXTERN_C const IID IID_IDiaSession;
             /* [in] */ DWORD column,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolsForAcceleratorPointerTag)
         virtual HRESULT STDMETHODCALLTYPE findSymbolsForAcceleratorPointerTag(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD tagValue,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findSymbolsByRVAForAcceleratorPointerTag)
         virtual HRESULT STDMETHODCALLTYPE findSymbolsByRVAForAcceleratorPointerTag(
             /* [in] */ IDiaSymbol *parent,
             /* [in] */ DWORD tagValue,
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findAcceleratorInlineesByName)
         virtual HRESULT STDMETHODCALLTYPE findAcceleratorInlineesByName(
             /* [in] */ LPCOLESTR name,
             /* [in] */ DWORD option,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, addressForVA)
         virtual HRESULT STDMETHODCALLTYPE addressForVA(
             /* [in] */ ULONGLONG va,
             /* [out] */ DWORD *pISect,
             /* [out] */ DWORD *pOffset) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, addressForRVA)
         virtual HRESULT STDMETHODCALLTYPE addressForRVA(
             /* [in] */ DWORD rva,
             /* [out] */ DWORD *pISect,
             /* [out] */ DWORD *pOffset) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findILOffsetsByAddr)
         virtual HRESULT STDMETHODCALLTYPE findILOffsetsByAddr(
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findILOffsetsByRVA)
         virtual HRESULT STDMETHODCALLTYPE findILOffsetsByRVA(
             /* [in] */ DWORD rva,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findILOffsetsByVA)
         virtual HRESULT STDMETHODCALLTYPE findILOffsetsByVA(
             /* [in] */ ULONGLONG va,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInputAssemblyFiles)
         virtual HRESULT STDMETHODCALLTYPE findInputAssemblyFiles(
             /* [out] */ IDiaEnumInputAssemblyFiles **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInputAssembly)
         virtual HRESULT STDMETHODCALLTYPE findInputAssembly(
             /* [in] */ DWORD index,
             /* [out] */ IDiaInputAssemblyFile **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInputAssemblyById)
         virtual HRESULT STDMETHODCALLTYPE findInputAssemblyById(
             /* [in] */ DWORD uniqueId,
             /* [out] */ IDiaInputAssemblyFile **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getFuncMDTokenMapSize)
         virtual HRESULT STDMETHODCALLTYPE getFuncMDTokenMapSize(
             /* [out] */ DWORD *pcb) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getFuncMDTokenMap)
         virtual HRESULT STDMETHODCALLTYPE getFuncMDTokenMap(
             /* [in] */ DWORD cb,
             /* [out] */ DWORD *pcb,
             /* [size_is][out] */ BYTE *pb) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getTypeMDTokenMapSize)
         virtual HRESULT STDMETHODCALLTYPE getTypeMDTokenMapSize(
             /* [out] */ DWORD *pcb) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getTypeMDTokenMap)
         virtual HRESULT STDMETHODCALLTYPE getTypeMDTokenMap(
             /* [in] */ DWORD cb,
             /* [out] */ DWORD *pcb,
             /* [size_is][out] */ BYTE *pb) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getNumberOfFunctionFragments_VA)
         virtual HRESULT STDMETHODCALLTYPE getNumberOfFunctionFragments_VA(
             /* [in] */ ULONGLONG vaFunc,
             /* [in] */ DWORD cbFunc,
             /* [out] */ DWORD *pNumFragments) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getNumberOfFunctionFragments_RVA)
         virtual HRESULT STDMETHODCALLTYPE getNumberOfFunctionFragments_RVA(
             /* [in] */ DWORD rvaFunc,
             /* [in] */ DWORD cbFunc,
             /* [out] */ DWORD *pNumFragments) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getFunctionFragments_VA)
         virtual HRESULT STDMETHODCALLTYPE getFunctionFragments_VA(
             /* [in] */ ULONGLONG vaFunc,
             /* [in] */ DWORD cbFunc,
@@ -3516,6 +3682,7 @@ EXTERN_C const IID IID_IDiaSession;
             /* [size_is][out] */ ULONGLONG *pVaFragment,
             /* [size_is][out] */ DWORD *pLenFragment) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getFunctionFragments_RVA)
         virtual HRESULT STDMETHODCALLTYPE getFunctionFragments_RVA(
             /* [in] */ DWORD rvaFunc,
             /* [in] */ DWORD cbFunc,
@@ -3523,12 +3690,15 @@ EXTERN_C const IID IID_IDiaSession;
             /* [size_is][out] */ DWORD *pRvaFragment,
             /* [size_is][out] */ DWORD *pLenFragment) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getExports)
         virtual HRESULT STDMETHODCALLTYPE getExports(
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, getHeapAllocationSites)
         virtual HRESULT STDMETHODCALLTYPE getHeapAllocationSites(
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSession, findInputAssemblyFile)
         virtual HRESULT STDMETHODCALLTYPE findInputAssemblyFile(
             /* [in] */ IDiaSymbol *pSymbol,
             /* [out] */ IDiaInputAssemblyFile **ppResult) = 0;
@@ -4140,266 +4310,351 @@ EXTERN_C const IID IID_IDiaSymbol;
     IDiaSymbol : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_symIndexId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_symIndexId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_symTag)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_symTag(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_name)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_name(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_lexicalParent)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lexicalParent(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_classParent)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_classParent(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_type)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_type(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_dataKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_dataKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_locationType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_locationType(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_addressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_addressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_registerId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_registerId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_offset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_offset(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_length)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_length(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_slot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_slot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_volatileType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_volatileType(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_constType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_constType(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_unalignedType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_unalignedType(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_access)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_access(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_libraryName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_libraryName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_platform)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_platform(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_language)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_language(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_editAndContinueEnabled)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_editAndContinueEnabled(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_frontEndMajor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frontEndMajor(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_frontEndMinor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frontEndMinor(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_frontEndBuild)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frontEndBuild(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_backEndMajor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_backEndMajor(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_backEndMinor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_backEndMinor(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_backEndBuild)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_backEndBuild(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_sourceFileName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sourceFileName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_unused)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_unused(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_thunkOrdinal)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_thunkOrdinal(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_thisAdjust)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_thisAdjust(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualBaseOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualBaseOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtual)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtual(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_intro)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_intro(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_pure)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_pure(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_callingConvention)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_callingConvention(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_value)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_value(
             /* [retval][out] */ VARIANT *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_baseType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_baseType(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_token)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_token(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_timeStamp)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_timeStamp(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_guid)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_guid(
             /* [retval][out] */ GUID *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_symbolsFileName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_symbolsFileName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_reference)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_reference(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_count(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_bitPosition)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_bitPosition(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_arrayIndexType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_arrayIndexType(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_packed)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_packed(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_constructor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_constructor(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_overloadedOperator)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_overloadedOperator(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_nested)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_nested(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasNestedTypes)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasNestedTypes(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasAssignmentOperator)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasAssignmentOperator(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasCastOperator)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasCastOperator(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_scoped)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_scoped(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualBaseClass)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualBaseClass(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_indirectVirtualBaseClass)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_indirectVirtualBaseClass(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualBasePointerOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualBasePointerOffset(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualTableShape)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualTableShape(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_lexicalParentId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lexicalParentId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_classParentId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_classParentId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_typeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_typeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_arrayIndexTypeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_arrayIndexTypeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualTableShapeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualTableShapeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_code)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_code(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_function)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_function(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_managed)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_managed(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_msil)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_msil(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualBaseDispIndex)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualBaseDispIndex(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_undecoratedName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_undecoratedName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_age)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_age(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_signature)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_signature(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_compilerGenerated)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compilerGenerated(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_addressTaken)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressTaken(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_rank)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_rank(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_lowerBound)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lowerBound(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_upperBound)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_upperBound(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_lowerBoundId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lowerBoundId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_upperBoundId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_upperBoundId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_dataBytes)
         virtual HRESULT STDMETHODCALLTYPE get_dataBytes(
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
             /* [size_is][out] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findChildren)
         virtual HRESULT STDMETHODCALLTYPE findChildren(
             /* [in] */ enum SymTagEnum symtag,
             /* [in] */ LPCOLESTR name,
             /* [in] */ DWORD compareFlags,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findChildrenEx)
         virtual HRESULT STDMETHODCALLTYPE findChildrenEx(
             /* [in] */ enum SymTagEnum symtag,
             /* [in] */ LPCOLESTR name,
             /* [in] */ DWORD compareFlags,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findChildrenExByAddr)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByAddr(
             /* [in] */ enum SymTagEnum symtag,
             /* [in] */ LPCOLESTR name,
@@ -4408,6 +4663,7 @@ EXTERN_C const IID IID_IDiaSymbol;
             /* [in] */ DWORD offset,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findChildrenExByVA)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByVA(
             /* [in] */ enum SymTagEnum symtag,
             /* [in] */ LPCOLESTR name,
@@ -4415,6 +4671,7 @@ EXTERN_C const IID IID_IDiaSymbol;
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findChildrenExByRVA)
         virtual HRESULT STDMETHODCALLTYPE findChildrenExByRVA(
             /* [in] */ enum SymTagEnum symtag,
             /* [in] */ LPCOLESTR name,
@@ -4422,475 +4679,624 @@ EXTERN_C const IID IID_IDiaSymbol;
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_targetSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_targetSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_targetOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_targetOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_targetRelativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_targetRelativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_targetVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_targetVirtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_machineType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_machineType(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_oemId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_oemId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_oemSymbolId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_oemSymbolId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_types)
         virtual HRESULT STDMETHODCALLTYPE get_types(
             /* [in] */ DWORD cTypes,
             /* [out] */ DWORD *pcTypes,
             /* [size_is][size_is][out] */ IDiaSymbol **pTypes) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_typeIds)
         virtual HRESULT STDMETHODCALLTYPE get_typeIds(
             /* [in] */ DWORD cTypeIds,
             /* [out] */ DWORD *pcTypeIds,
             /* [size_is][out] */ DWORD *pdwTypeIds) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_objectPointerType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_objectPointerType(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_udtKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_udtKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_undecoratedNameEx)
         virtual HRESULT STDMETHODCALLTYPE get_undecoratedNameEx(
             /* [in] */ DWORD undecorateOptions,
             /* [out] */ BSTR *name) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_noReturn)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noReturn(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_customCallingConvention)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_customCallingConvention(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_noInline)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noInline(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_optimizedCodeDebugInfo)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_optimizedCodeDebugInfo(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_notReached)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_notReached(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_interruptReturn)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_interruptReturn(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_farReturn)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_farReturn(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isStatic)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isStatic(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasDebugInfo)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasDebugInfo(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isLTCG)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isLTCG(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isDataAligned)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isDataAligned(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasSecurityChecks)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasSecurityChecks(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_compilerName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compilerName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasAlloca)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasAlloca(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasSetJump)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasSetJump(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasLongJump)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasLongJump(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasInlAsm)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasInlAsm(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasEH)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasEH(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasSEH)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasSEH(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasEHa)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasEHa(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isNaked)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isNaked(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isAggregated)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isAggregated(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isSplitted)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSplitted(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_container)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_container(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_inlSpec)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_inlSpec(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_noStackOrdering)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noStackOrdering(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_virtualBaseTableType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualBaseTableType(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasManagedCode)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasManagedCode(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isHotpatchable)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isHotpatchable(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isCVTCIL)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isCVTCIL(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isMSILNetmodule)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isMSILNetmodule(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isCTypes)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isCTypes(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isStripped)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isStripped(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_frontEndQFE)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frontEndQFE(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_backEndQFE)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_backEndQFE(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_wasInlined)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_wasInlined(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_strictGSCheck)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_strictGSCheck(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isCxxReturnUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isCxxReturnUdt(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isConstructorVirtualBase)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isConstructorVirtualBase(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_RValueReference)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_RValueReference(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_unmodifiedType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_unmodifiedType(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_framePointerPresent)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_framePointerPresent(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isSafeBuffers)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSafeBuffers(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_intrinsic)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_intrinsic(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_sealed)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sealed(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hfaFloat)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hfaFloat(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hfaDouble)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hfaDouble(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_liveRangeStartAddressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_liveRangeStartAddressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_liveRangeStartAddressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_liveRangeStartAddressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_liveRangeStartRelativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_liveRangeStartRelativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_countLiveRanges)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_countLiveRanges(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_liveRangeLength)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_liveRangeLength(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_offsetInUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_offsetInUdt(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_paramBasePointerRegisterId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_paramBasePointerRegisterId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_localBasePointerRegisterId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_localBasePointerRegisterId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isLocationControlFlowDependent)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isLocationControlFlowDependent(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_stride)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_stride(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numberOfRows)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_numberOfRows(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numberOfColumns)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_numberOfColumns(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isMatrixRowMajor)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isMatrixRowMajor(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numericProperties)
         virtual HRESULT STDMETHODCALLTYPE get_numericProperties(
             /* [in] */ DWORD cnt,
             /* [out] */ DWORD *pcnt,
             /* [size_is][out] */ DWORD *pProperties) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_modifierValues)
         virtual HRESULT STDMETHODCALLTYPE get_modifierValues(
             /* [in] */ DWORD cnt,
             /* [out] */ DWORD *pcnt,
             /* [size_is][out] */ WORD *pModifiers) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isReturnValue)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isReturnValue(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isOptimizedAway)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isOptimizedAway(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_builtInKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_builtInKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_registerType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_registerType(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_baseDataSlot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_baseDataSlot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_baseDataOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_baseDataOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_textureSlot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_textureSlot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_samplerSlot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_samplerSlot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_uavSlot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_uavSlot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_sizeInUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sizeInUdt(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_memorySpaceKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_memorySpaceKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_unmodifiedTypeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_unmodifiedTypeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_subTypeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_subTypeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_subType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_subType(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numberOfModifiers)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_numberOfModifiers(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numberOfRegisterIndices)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_numberOfRegisterIndices(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isHLSLData)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isHLSLData(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isPointerToDataMember)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isPointerToDataMember(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isPointerToMemberFunction)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isPointerToMemberFunction(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isSingleInheritance)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSingleInheritance(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isMultipleInheritance)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isMultipleInheritance(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isVirtualInheritance)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isVirtualInheritance(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_restrictedType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_restrictedType(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isPointerBasedOnSymbolValue)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isPointerBasedOnSymbolValue(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_baseSymbol)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_baseSymbol(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_baseSymbolId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_baseSymbolId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_objectFileName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_objectFileName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isAcceleratorGroupSharedLocal)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isAcceleratorGroupSharedLocal(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isAcceleratorPointerTagLiveRange)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isAcceleratorPointerTagLiveRange(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isAcceleratorStubFunction)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isAcceleratorStubFunction(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_numberOfAcceleratorPointerTags)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_numberOfAcceleratorPointerTags(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isSdl)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSdl(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isWinRTPointer)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isWinRTPointer(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isRefUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isRefUdt(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isValueUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isValueUdt(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isInterfaceUdt)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isInterfaceUdt(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineFramesByAddr)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByAddr(
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineFramesByRVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByRVA(
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineFramesByVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineFramesByVA(
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineeLines)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLines(
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineeLinesByAddr)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByAddr(
             /* [in] */ DWORD isect,
             /* [in] */ DWORD offset,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineeLinesByRVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByRVA(
             /* [in] */ DWORD rva,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInlineeLinesByVA)
         virtual HRESULT STDMETHODCALLTYPE findInlineeLinesByVA(
             /* [in] */ ULONGLONG va,
             /* [in] */ DWORD length,
             /* [out] */ IDiaEnumLineNumbers **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findSymbolsForAcceleratorPointerTag)
         virtual HRESULT STDMETHODCALLTYPE findSymbolsForAcceleratorPointerTag(
             /* [in] */ DWORD tagValue,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findSymbolsByRVAForAcceleratorPointerTag)
         virtual HRESULT STDMETHODCALLTYPE findSymbolsByRVAForAcceleratorPointerTag(
             /* [in] */ DWORD tagValue,
             /* [in] */ DWORD rva,
             /* [out] */ IDiaEnumSymbols **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_acceleratorPointerTags)
         virtual HRESULT STDMETHODCALLTYPE get_acceleratorPointerTags(
             /* [in] */ DWORD cnt,
             /* [out] */ DWORD *pcnt,
             /* [size_is][out] */ DWORD *pPointerTags) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, getSrcLineOnTypeDefn)
         virtual HRESULT STDMETHODCALLTYPE getSrcLineOnTypeDefn(
             /* [out] */ IDiaLineNumber **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isPGO)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isPGO(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasValidPGOCounts)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasValidPGOCounts(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_isOptimizedForSpeed)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isOptimizedForSpeed(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_PGOEntryCount)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_PGOEntryCount(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_PGOEdgeCount)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_PGOEdgeCount(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_PGODynamicInstructionCount)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_PGODynamicInstructionCount(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_staticSize)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_staticSize(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_finalLiveStaticSize)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_finalLiveStaticSize(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_phaseName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_phaseName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_hasControlFlowCheck)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasControlFlowCheck(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_constantExport)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_constantExport(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_dataExport)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_dataExport(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_privateExport)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_privateExport(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_noNameExport)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noNameExport(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exportHasExplicitlyAssignedOrdinal)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exportHasExplicitlyAssignedOrdinal(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exportIsForwarder)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exportIsForwarder(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_ordinal)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_ordinal(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_frameSize)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frameSize(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exceptionHandlerAddressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exceptionHandlerAddressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exceptionHandlerAddressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exceptionHandlerAddressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exceptionHandlerRelativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exceptionHandlerRelativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_exceptionHandlerVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_exceptionHandlerVirtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, findInputAssemblyFile)
         virtual HRESULT STDMETHODCALLTYPE findInputAssemblyFile(
             /* [out] */ IDiaInputAssemblyFile **ppResult) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_characteristics)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_characteristics(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_coffGroup)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_coffGroup(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_bindID)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_bindID(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_bindSpace)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_bindSpace(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol, get_bindSlot)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_bindSlot(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
@@ -8014,12 +8420,15 @@ EXTERN_C const IID IID_IDiaSymbol2;
     IDiaSymbol2 : public IDiaSymbol
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol2, get_isObjCClass)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCClass(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol2, get_isObjCCategory)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCCategory(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol2, get_isObjCProtocol)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCProtocol(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -9849,9 +10258,11 @@ EXTERN_C const IID IID_IDiaSymbol3;
     IDiaSymbol3 : public IDiaSymbol2
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol3, get_inlinee)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_inlinee(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol3, get_inlineeId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_inlineeId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
@@ -11684,6 +12095,7 @@ EXTERN_C const IID IID_IDiaSymbol4;
     IDiaSymbol4 : public IDiaSymbol3
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol4, get_noexcept)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noexcept(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -13512,6 +13924,7 @@ EXTERN_C const IID IID_IDiaSymbol5;
     IDiaSymbol5 : public IDiaSymbol4
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol5, get_hasAbsoluteAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasAbsoluteAddress(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -15348,6 +15761,7 @@ EXTERN_C const IID IID_IDiaSymbol6;
     IDiaSymbol6 : public IDiaSymbol5
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol6, get_isStaticMemberFunc)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isStaticMemberFunc(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -17192,6 +17606,7 @@ EXTERN_C const IID IID_IDiaSymbol7;
     IDiaSymbol7 : public IDiaSymbol6
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol7, get_isSignRet)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSignRet(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -19044,21 +19459,27 @@ EXTERN_C const IID IID_IDiaSymbol8;
     IDiaSymbol8 : public IDiaSymbol7
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_coroutineKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_coroutineKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_associatedSymbolKind)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolKind(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_associatedSymbolSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_associatedSymbolOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_associatedSymbolRva)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolRva(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol8, get_associatedSymbolAddr)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolAddr(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
@@ -21014,12 +21435,15 @@ EXTERN_C const IID IID_IDiaSymbol9;
     IDiaSymbol9 : public IDiaSymbol8
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol9, get_framePadSize)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_framePadSize(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol9, get_framePadOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_framePadOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol9, get_isRTCs)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isRTCs(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -22961,6 +23385,7 @@ EXTERN_C const IID IID_IDiaSymbol10;
     IDiaSymbol10 : public IDiaSymbol9
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol10, get_sourceLink)
         virtual HRESULT STDMETHODCALLTYPE get_sourceLink(
             /* [in] */ DWORD cb,
             /* [out] */ DWORD *pcb,
@@ -24905,11 +25330,13 @@ EXTERN_C const IID IID_IDiaSymbol11;
     IDiaSymbol11 : public IDiaSymbol10
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSymbol11, get_discriminatedUnionTag)
         virtual HRESULT STDMETHODCALLTYPE get_discriminatedUnionTag(
             /* [out] */ IDiaSymbol **ppTagType,
             /* [out] */ DWORD *pTagOffset,
             /* [out] */ struct DiaTagValue *pTagMask) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSymbol11, get_tagRanges)
         virtual HRESULT STDMETHODCALLTYPE get_tagRanges(
             /* [in] */ DWORD count,
             /* [out] */ DWORD *pcRangeValues,
@@ -26874,18 +27301,23 @@ EXTERN_C const IID IID_IDiaSourceFile;
     IDiaSourceFile : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSourceFile, get_uniqueId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_uniqueId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSourceFile, get_fileName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_fileName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSourceFile, get_checksumType)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_checksumType(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSourceFile, get_compilands)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compilands(
             /* [retval][out] */ IDiaEnumSymbols **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSourceFile, get_checksum)
         virtual HRESULT STDMETHODCALLTYPE get_checksum(
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
@@ -26998,21 +27430,27 @@ EXTERN_C const IID IID_IDiaInputAssemblyFile;
     IDiaInputAssemblyFile : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_uniqueId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_uniqueId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_index)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_index(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_timestamp)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_timestamp(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_pdbAvailableAtILMerge)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_pdbAvailableAtILMerge(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_fileName)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_fileName(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInputAssemblyFile, get_version)
         virtual HRESULT STDMETHODCALLTYPE get_version(
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
@@ -27132,45 +27570,59 @@ EXTERN_C const IID IID_IDiaLineNumber;
     IDiaLineNumber : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_compiland)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compiland(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_sourceFile)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sourceFile(
             /* [retval][out] */ IDiaSourceFile **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_lineNumber)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lineNumber(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_lineNumberEnd)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lineNumberEnd(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_columnNumber)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_columnNumber(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_columnNumberEnd)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_columnNumberEnd(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_addressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_addressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_length)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_length(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_sourceFileId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sourceFileId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_statement)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_statement(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaLineNumber, get_compilandId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compilandId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
@@ -27342,69 +27794,91 @@ EXTERN_C const IID IID_IDiaSectionContrib;
     IDiaSectionContrib : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_compiland)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compiland(
             /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_addressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_addressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_length)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_length(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_notPaged)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_notPaged(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_code)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_code(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_initializedData)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_initializedData(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_uninitializedData)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_uninitializedData(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_remove)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_remove(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_comdat)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_comdat(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_discardable)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_discardable(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_notCached)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_notCached(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_share)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_share(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_execute)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_execute(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_read)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_read(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_write)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_write(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_dataCrc)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_dataCrc(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_relocationsCrc)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relocationsCrc(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_compilandId)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_compilandId(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSectionContrib, get_code16bit)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_code16bit(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
@@ -27632,30 +28106,39 @@ EXTERN_C const IID IID_IDiaSegment;
     IDiaSegment : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaSegment, get_frame)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_frame(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_offset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_offset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_length)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_length(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_read)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_read(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_write)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_write(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_execute)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_execute(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_addressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaSegment, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
@@ -27792,24 +28275,31 @@ EXTERN_C const IID IID_IDiaInjectedSource;
     IDiaInjectedSource : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_crc)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_crc(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_length)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_length(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_filename)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_filename(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_objectFilename)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_objectFilename(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_virtualFilename)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualFilename(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_sourceCompression)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_sourceCompression(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaInjectedSource, get_source)
         virtual HRESULT STDMETHODCALLTYPE get_source(
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
@@ -27952,14 +28442,17 @@ EXTERN_C const IID IID_IDiaStackWalkFrame;
     IDiaStackWalkFrame : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaStackWalkFrame, get_registerValue)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_registerValue(
             /* [in] */ DWORD index,
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkFrame, put_registerValue)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_registerValue(
             /* [in] */ DWORD index,
             /* [in] */ ULONGLONG NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkFrame, readMemory)
         virtual HRESULT STDMETHODCALLTYPE readMemory(
             /* [in] */ enum MemoryTypeEnum type,
             /* [in] */ ULONGLONG va,
@@ -27967,10 +28460,12 @@ EXTERN_C const IID IID_IDiaStackWalkFrame;
             /* [out] */ DWORD *pcbData,
             /* [size_is][out] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkFrame, searchForReturnAddress)
         virtual HRESULT STDMETHODCALLTYPE searchForReturnAddress(
             /* [in] */ IDiaFrameData *frame,
             /* [out] */ ULONGLONG *returnAddress) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkFrame, searchForReturnAddressStart)
         virtual HRESULT STDMETHODCALLTYPE searchForReturnAddressStart(
             /* [in] */ IDiaFrameData *frame,
             /* [in] */ ULONGLONG startAddress,
@@ -28090,57 +28585,75 @@ EXTERN_C const IID IID_IDiaFrameData;
     IDiaFrameData : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_addressSection)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressSection(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_addressOffset)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_addressOffset(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_lengthBlock)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthBlock(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_lengthLocals)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthLocals(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_lengthParams)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthParams(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_maxStack)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_maxStack(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_lengthProlog)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthProlog(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_lengthSavedRegisters)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthSavedRegisters(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_program)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_program(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_systemExceptionHandling)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_systemExceptionHandling(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_cplusplusExceptionHandling)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_cplusplusExceptionHandling(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_functionStart)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_functionStart(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_allocatesBasePointer)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_allocatesBasePointer(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_type)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_type(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, get_functionParent)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_functionParent(
             /* [retval][out] */ IDiaFrameData **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaFrameData, execute)
         virtual HRESULT STDMETHODCALLTYPE execute(
             IDiaStackWalkFrame *frame) = 0;
 
@@ -28340,12 +28853,15 @@ EXTERN_C const IID IID_IDiaImageData;
     IDiaImageData : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaImageData, get_relativeVirtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_relativeVirtualAddress(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaImageData, get_virtualAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_virtualAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaImageData, get_imageBase)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_imageBase(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
@@ -28440,15 +28956,19 @@ EXTERN_C const IID IID_IDiaTable;
     IDiaTable : public IEnumUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaTable, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaTable, get_name)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_name(
             /* [retval][out] */ BSTR *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaTable, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaTable, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ DWORD index,
             /* [retval][out] */ IUnknown **element) = 0;
@@ -28585,26 +29105,33 @@ EXTERN_C const IID IID_IDiaEnumTables;
     IDiaEnumTables : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumTables, get__NewEnum)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get__NewEnum(
             /* [retval][out] */ IUnknown **pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, get_Count)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_Count(
             /* [retval][out] */ LONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, Item)
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE Item(
             /* [in] */ VARIANT index,
             /* [retval][out] */ IDiaTable **table) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             ULONG celt,
             IDiaTable **rgelt,
             ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, Skip)
         virtual HRESULT STDMETHODCALLTYPE Skip(
             /* [in] */ ULONG celt) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumTables, Clone)
         virtual HRESULT STDMETHODCALLTYPE Clone(
             /* [out] */ IDiaEnumTables **ppenum) = 0;
 
@@ -28794,35 +29321,43 @@ EXTERN_C const IID IID_IDiaPropertyStorage;
     IDiaPropertyStorage : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadMultiple)
         virtual HRESULT STDMETHODCALLTYPE ReadMultiple(
             /* [in] */ ULONG cpspec,
             /* [size_is][in] */ const PROPSPEC *rgpspec,
             /* [size_is][out] */ PROPVARIANT *rgvar) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadPropertyNames)
         virtual HRESULT STDMETHODCALLTYPE ReadPropertyNames(
             /* [in] */ ULONG cpropid,
             /* [size_is][in] */ const PROPID *rgpropid,
             /* [size_is][out][in] */ BSTR *rglpwstrName) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, Enum)
         virtual HRESULT STDMETHODCALLTYPE Enum(
             /* [out] */ IEnumSTATPROPSTG **ppenum) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadDWORD)
         virtual HRESULT STDMETHODCALLTYPE ReadDWORD(
             /* [in] */ PROPID id,
             /* [out] */ DWORD *pValue) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadLONG)
         virtual HRESULT STDMETHODCALLTYPE ReadLONG(
             /* [in] */ PROPID id,
             /* [out] */ LONG *pValue) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadBOOL)
         virtual HRESULT STDMETHODCALLTYPE ReadBOOL(
             /* [in] */ PROPID id,
             /* [out] */ BOOL *pValue) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadULONGLONG)
         virtual HRESULT STDMETHODCALLTYPE ReadULONGLONG(
             /* [in] */ PROPID id,
             /* [out] */ ULONGLONG *pValue) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaPropertyStorage, ReadBSTR)
         virtual HRESULT STDMETHODCALLTYPE ReadBSTR(
             /* [in] */ PROPID id,
             /* [out] */ BSTR *pValue) = 0;
@@ -28962,48 +29497,63 @@ EXTERN_C const IID IID_IDiaStackFrame;
     IDiaStackFrame : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_type)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_type(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_base)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_base(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_size)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_size(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_returnAddress)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_returnAddress(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_localsBase)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_localsBase(
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_lengthLocals)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthLocals(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_lengthParams)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthParams(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_lengthProlog)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthProlog(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_lengthSavedRegisters)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_lengthSavedRegisters(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_systemExceptionHandling)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_systemExceptionHandling(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_cplusplusExceptionHandling)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_cplusplusExceptionHandling(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_functionStart)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_functionStart(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_allocatesBasePointer)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_allocatesBasePointer(
             /* [retval][out] */ BOOL *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_maxStack)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_maxStack(
             /* [retval][out] */ DWORD *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackFrame, get_registerValue)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_registerValue(
             /* [in] */ DWORD index,
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
@@ -29184,11 +29734,13 @@ EXTERN_C const IID IID_IDiaEnumStackFrames;
     IDiaEnumStackFrames : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaEnumStackFrames, Next)
         virtual HRESULT STDMETHODCALLTYPE Next(
             /* [in] */ ULONG celt,
             /* [out] */ IDiaStackFrame **rgelt,
             /* [out] */ ULONG *pceltFetched) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaEnumStackFrames, Reset)
         virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
 
     };
@@ -29293,14 +29845,17 @@ EXTERN_C const IID IID_IDiaStackWalkHelper;
     IDiaStackWalkHelper : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, get_registerValue)
         virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_registerValue(
             /* [in] */ DWORD index,
             /* [retval][out] */ ULONGLONG *pRetVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, put_registerValue)
         virtual /* [id][helpstring][propput] */ HRESULT STDMETHODCALLTYPE put_registerValue(
             /* [in] */ DWORD index,
             /* [in] */ ULONGLONG NewVal) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, readMemory)
         virtual HRESULT STDMETHODCALLTYPE readMemory(
             /* [in] */ enum MemoryTypeEnum type,
             /* [in] */ ULONGLONG va,
@@ -29308,43 +29863,52 @@ EXTERN_C const IID IID_IDiaStackWalkHelper;
             /* [out] */ DWORD *pcbData,
             /* [size_is][out] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, searchForReturnAddress)
         virtual HRESULT STDMETHODCALLTYPE searchForReturnAddress(
             /* [in] */ IDiaFrameData *frame,
             /* [out] */ ULONGLONG *returnAddress) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, searchForReturnAddressStart)
         virtual HRESULT STDMETHODCALLTYPE searchForReturnAddressStart(
             /* [in] */ IDiaFrameData *frame,
             /* [in] */ ULONGLONG startAddress,
             /* [out] */ ULONGLONG *returnAddress) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, frameForVA)
         virtual HRESULT STDMETHODCALLTYPE frameForVA(
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaFrameData **ppFrame) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, symbolForVA)
         virtual HRESULT STDMETHODCALLTYPE symbolForVA(
             /* [in] */ ULONGLONG va,
             /* [out] */ IDiaSymbol **ppSymbol) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, pdataForVA)
         virtual HRESULT STDMETHODCALLTYPE pdataForVA(
             /* [in] */ ULONGLONG va,
             /* [in] */ DWORD cbData,
             /* [out] */ DWORD *pcbData,
             /* [size_is][out] */ BYTE *pbData) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, imageForVA)
         virtual HRESULT STDMETHODCALLTYPE imageForVA(
             /* [in] */ ULONGLONG vaContext,
             /* [out] */ ULONGLONG *pvaImageStart) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, addressForVA)
         virtual HRESULT STDMETHODCALLTYPE addressForVA(
             /* [in] */ ULONGLONG va,
             /* [out] */ DWORD *pISect,
             /* [out] */ DWORD *pOffset) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, numberOfFunctionFragmentsForVA)
         virtual HRESULT STDMETHODCALLTYPE numberOfFunctionFragmentsForVA(
             /* [in] */ ULONGLONG vaFunc,
             /* [in] */ DWORD cbFunc,
             /* [out] */ DWORD *pNumFragments) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalkHelper, functionFragmentsForVA)
         virtual HRESULT STDMETHODCALLTYPE functionFragmentsForVA(
             /* [in] */ ULONGLONG vaFunc,
             /* [in] */ DWORD cbFunc,
@@ -29529,10 +30093,12 @@ EXTERN_C const IID IID_IDiaStackWalker;
     IDiaStackWalker : public IUnknown
     {
     public:
+        DECLSPEC_XFGVIRT(IDiaStackWalker, getEnumFrames)
         virtual HRESULT STDMETHODCALLTYPE getEnumFrames(
             /* [in] */ IDiaStackWalkHelper *pHelper,
             /* [out] */ IDiaEnumStackFrames **ppEnum) = 0;
 
+        DECLSPEC_XFGVIRT(IDiaStackWalker, getEnumFrames2)
         virtual HRESULT STDMETHODCALLTYPE getEnumFrames2(
             /* [in] */ enum CV_CPU_TYPE_e cpuid,
             /* [in] */ IDiaStackWalkHelper *pHelper,

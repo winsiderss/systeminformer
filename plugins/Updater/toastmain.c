@@ -63,7 +63,7 @@ typedef struct _UPDATER_TOAST_CONTEXT
 {
     PPH_UPDATER_CONTEXT UpdaterContext;
     PPH_TOAST Toast;
-    volatile LONG Handled;
+    LONG Handled;
 } UPDATER_TOAST_CONTEXT, *PUPDATER_TOAST_CONTEXT;
 
 BOOLEAN UpdaterToastActionMatches(

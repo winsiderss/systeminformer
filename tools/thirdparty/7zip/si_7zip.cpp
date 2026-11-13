@@ -1,6 +1,7 @@
 // IIDs for every 7-Zip interface are instantiated in this translation unit
 // (MyInitGuid.h must precede the first interface declaration).
 #include "CPP/Common/MyInitGuid.h"
+#include <utility>
 
 #include "CPP/7zip/ICoder.h"
 #include "CPP/7zip/IPassword.h"
@@ -73,9 +74,9 @@ static SI7Z_FORMAT Si7zNormalizeFormatFromPath(const wchar_t* archivePath, const
     if (!ext)
         return SI7Z_FORMAT_AUTO;
 
-    if (Si7zCompareExtension(ext, L".7z") == 0)
+    if (std::cmp_equal(Si7zCompareExtension(ext, L".7z"), 0))
         return SI7Z_FORMAT_7Z;
-    if (Si7zCompareExtension(ext, L".zip") == 0 || Si7zCompareExtension(ext, L".zipx") == 0)
+    if (std::cmp_equal(Si7zCompareExtension(ext, L".zip"), 0) || std::cmp_equal(Si7zCompareExtension(ext, L".zipx"), 0))
         return SI7Z_FORMAT_ZIP;
 
     return SI7Z_FORMAT_AUTO;
@@ -146,10 +147,10 @@ static void Si7zWriteUInt32(unsigned char* data, uint32_t value)
 
 static void Si7zCrc32Init(uint32_t table[256])
 {
-    for (uint32_t i = 0; i < 256; i++)
+    for (uint32_t i = 0; std::cmp_less(i, 256); i++)
     {
         uint32_t crc = i;
-        for (uint32_t j = 0; j < 8; j++)
+        for (uint32_t j = 0; std::cmp_less(j, 8); j++)
             crc = (crc >> 1) ^ (0xedb88320u & (uint32_t)-(int32_t)(crc & 1));
         table[i] = crc;
     }
@@ -163,7 +164,7 @@ static uint32_t Si7zCrc32(const void* data, size_t size)
 
     Si7zCrc32Init(table);
 
-    for (size_t i = 0; i < size; i++)
+    for (size_t i = 0; std::cmp_less(i, size); i++)
         crc = table[(crc ^ bytes[i]) & 0xffu] ^ (crc >> 8);
 
     return crc ^ 0xffffffffu;
@@ -171,13 +172,13 @@ static uint32_t Si7zCrc32(const void* data, size_t size)
 
 static int Si7zBufferReserve(SI7Z_BUFFER* buffer, size_t required)
 {
-    if (required <= buffer->Capacity)
+    if (std::cmp_less_equal(required, buffer->Capacity))
         return 1;
 
     size_t capacity = buffer->Capacity ? buffer->Capacity : 256;
-    while (capacity < required)
+    while (std::cmp_less(capacity, required))
     {
-        if (capacity > ((size_t)-1) / 2)
+        if (std::cmp_greater(capacity, ((size_t)-1) / 2))
             return 0;
         capacity *= 2;
     }
@@ -196,7 +197,7 @@ static int Si7zBufferAppend(SI7Z_BUFFER* buffer, const void* data, size_t size)
     if (!size)
         return 1;
 
-    if (size > (size_t)-1 - buffer->Size)
+    if (std::cmp_greater(size, (size_t)-1 - buffer->Size))
         return 0;
 
     if (!Si7zBufferReserve(buffer, buffer->Size + size))
@@ -209,7 +210,7 @@ static int Si7zBufferAppend(SI7Z_BUFFER* buffer, const void* data, size_t size)
 
 static int Si7zBufferAppendZeros(SI7Z_BUFFER* buffer, size_t size)
 {
-    if (size > (size_t)-1 - buffer->Size)
+    if (std::cmp_greater(size, (size_t)-1 - buffer->Size))
         return 0;
 
     if (!Si7zBufferReserve(buffer, buffer->Size + size))
@@ -227,7 +228,7 @@ static char* Si7zWideToUtf8(const wchar_t* string, size_t* length)
 
 #ifdef _WIN32
     int required = WideCharToMultiByte(CP_UTF8, 0, string, -1, NULL, 0, NULL, NULL);
-    if (required <= 0)
+    if (std::cmp_less_equal(required, 0))
         return NULL;
 
     char* result = (char*)malloc((size_t)required);
@@ -244,7 +245,7 @@ static char* Si7zWideToUtf8(const wchar_t* string, size_t* length)
     return result;
 #else
     size_t required = wcstombs(NULL, string, 0);
-    if (required == (size_t)-1)
+    if (std::cmp_equal(required, (size_t)-1))
         return NULL;
 
     char* result = (char*)malloc(required + 1);
@@ -320,13 +321,13 @@ static const CCodecInfo Si7zDecoders[] =
 
 static bool Si7zRegisterDecoders()
 {
-    for (size_t i = 0; i < Z7_ARRAY_SIZE(Si7zDecoders); i++)
+    for (size_t i = 0; std::cmp_less(i, Z7_ARRAY_SIZE(Si7zDecoders)); i++)
     {
         bool registered = false;
 
-        for (unsigned j = 0; j < g_NumCodecs; j++)
+        for (unsigned j = 0; std::cmp_less(j, g_NumCodecs); j++)
         {
-            if (g_Codecs[j]->Id == Si7zDecoders[i].Id)
+            if (std::cmp_equal(g_Codecs[j]->Id, Si7zDecoders[i].Id))
             {
                 registered = true;
                 break;
@@ -421,7 +422,7 @@ Z7_COM7F_IMF(CSi7zExtractCallback::GetStream(UInt32 index, ISequentialOutStream*
 {
     *outStream = NULL;
 
-    if (index != Index || askExtractMode != NArchive::NExtract::NAskMode::kExtract)
+    if (std::cmp_not_equal(index, Index) || askExtractMode != NArchive::NExtract::NAskMode::kExtract)
         return S_OK;
 
     if (!OutStreamSpec)
@@ -481,10 +482,10 @@ static SI7Z_FORMAT Si7zDetectBufferFormat(const void* archiveData, size_t archiv
     if (options && options->Format != SI7Z_FORMAT_AUTO)
         return options->Format;
 
-    if (archiveSize >= sizeof(Si7zSignature7z) && memcmp(data, Si7zSignature7z, sizeof(Si7zSignature7z)) == 0)
+    if (std::cmp_greater_equal(archiveSize, sizeof(Si7zSignature7z)) && std::cmp_equal(memcmp(data, Si7zSignature7z, sizeof(Si7zSignature7z)), 0))
         return SI7Z_FORMAT_7Z;
-    if (archiveSize >= 4 && data[0] == 'P' && data[1] == 'K' &&
-        ((data[2] == 3 && data[3] == 4) || (data[2] == 5 && data[3] == 6)))
+    if (std::cmp_greater_equal(archiveSize, 4) && data[0] == 'P' && data[1] == 'K' &&
+        ((std::cmp_equal(data[2], 3) && std::cmp_equal(data[3], 4)) || (std::cmp_equal(data[2], 5) && std::cmp_equal(data[3], 6))))
         return SI7Z_FORMAT_ZIP;
 
     return SI7Z_FORMAT_AUTO;
@@ -519,11 +520,11 @@ static SI7Z_RESULT Si7zOpenBuffer(const void* archiveData, size_t archiveSize, c
     const UInt64 maxCheckStartPosition = 0;
     const HRESULT hr = handler->Open(stream, &maxCheckStartPosition, openCallback);
 
-    if (hr == E_OUTOFMEMORY)
+    if (std::cmp_equal(hr, E_OUTOFMEMORY))
         return SI7Z_ERROR_OUT_OF_MEMORY;
-    if (hr == E_ABORT) // encrypted headers and no password
+    if (std::cmp_equal(hr, E_ABORT)) // encrypted headers and no password
         return SI7Z_ERROR_DATA_ERROR;
-    if (hr != S_OK)
+    if (std::cmp_not_equal(hr, S_OK))
         return SI7Z_ERROR_OPEN_FAILED;
 
     archive = handler;
@@ -555,7 +556,7 @@ static HRESULT Si7zGetItemBool(IInArchive* archive, UInt32 index, PROPID propId,
     RINOK(archive->GetProperty(index, propId, &prop))
 
     if (prop.vt == VT_BOOL)
-        value = prop.boolVal != VARIANT_FALSE;
+        value = std::cmp_not_equal(prop.boolVal, VARIANT_FALSE);
     else if (prop.vt != VT_EMPTY)
         return E_FAIL;
 
@@ -622,12 +623,12 @@ static SI7Z_METHOD Si7zMethodFromString(const wchar_t* method)
         length = wcscspn(method, L" ");
         nameLength = wcscspn(method, L": ");
 
-        if (nameLength > length)
+        if (std::cmp_greater(nameLength, length))
             nameLength = length;
 
-        for (size_t i = 0; i < Z7_ARRAY_SIZE(methods); i++)
+        for (size_t i = 0; std::cmp_less(i, Z7_ARRAY_SIZE(methods)); i++)
         {
-            if (wcslen(methods[i].Name) == nameLength && _wcsnicmp(method, methods[i].Name, nameLength) == 0)
+            if (std::cmp_equal(wcslen(methods[i].Name), nameLength) && std::cmp_equal(_wcsnicmp(method, methods[i].Name, nameLength), 0))
                 return methods[i].Method;
         }
 
@@ -675,14 +676,14 @@ static SI7Z_RESULT Si7zFindItem(IInArchive* archive, const wchar_t* itemName, UI
     UInt32 numItems = 0;
     bool found = false;
 
-    if (archive->GetNumberOfItems(&numItems) != S_OK)
+    if (std::cmp_not_equal(archive->GetNumberOfItems(&numItems), S_OK))
         return SI7Z_ERROR_ARCHIVE_FAILED;
 
-    for (UInt32 i = 0; i < numItems; i++)
+    for (UInt32 i = 0; std::cmp_less(i, numItems); i++)
     {
         bool isDir;
 
-        if (Si7zGetItemBool(archive, i, kpidIsDir, isDir) != S_OK)
+        if (std::cmp_not_equal(Si7zGetItemBool(archive, i, kpidIsDir, isDir), S_OK))
             return SI7Z_ERROR_ARCHIVE_FAILED;
         if (isDir)
             continue;
@@ -691,7 +692,7 @@ static SI7Z_RESULT Si7zFindItem(IInArchive* archive, const wchar_t* itemName, UI
         {
             UString path;
 
-            if (Si7zGetItemPath(archive, i, path) != S_OK)
+            if (std::cmp_not_equal(Si7zGetItemPath(archive, i, path), S_OK))
                 return SI7Z_ERROR_ARCHIVE_FAILED;
 
             if (Si7zEqualItemPath(path, itemName))
@@ -723,7 +724,7 @@ static SI7Z_RESULT Si7zExtractItem(IInArchive* archive, UInt32 index, const SI7Z
 
     const HRESULT hr = archive->Extract(&index, 1, 0, callback);
 
-    if (hr != S_OK)
+    if (std::cmp_not_equal(hr, S_OK))
         return Si7zResultFromHresult(hr);
     if (!callbackSpec->Completed)
         return SI7Z_ERROR_ARCHIVE_FAILED;
@@ -766,10 +767,10 @@ static void Si7zFreeItems(SI7Z_ITEM* items, uint32_t count)
     if (!items)
         return;
 
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; std::cmp_less(i, count); i++)
         free(items[i].Name);
 
-    free(items);
+    HeapFree(GetProcessHeap(), 0, items);
 }
 
 SI7Z_RESULT SI7ZAPI Si7zCompressArchive(const wchar_t* archivePath, const wchar_t* sourcePath, const SI7Z_OPTIONS* options)
@@ -826,14 +827,14 @@ SI7Z_RESULT SI7ZAPI Si7zCompressBuffer(const void* sourceData, size_t sourceSize
     SI7Z_RESULT result = Si7zValidateBufferZipOptions(options);
     if (result != SI7Z_OK)
         return result;
-    if (sourceSize > UINT32_MAX)
+    if (std::cmp_greater(sourceSize, UINT32_MAX))
         return SI7Z_ERROR_INVALID_ARGUMENT;
 
     size_t nameLength = 0;
     char* name = Si7zWideToUtf8(itemName, &nameLength);
     if (!name)
         return SI7Z_ERROR_OUT_OF_MEMORY;
-    if (nameLength > UINT16_MAX)
+    if (std::cmp_greater(nameLength, UINT16_MAX))
     {
         free(name);
         return SI7Z_ERROR_INVALID_ARGUMENT;
@@ -884,7 +885,7 @@ SI7Z_RESULT SI7ZAPI Si7zCompressBuffer(const void* sourceData, size_t sourceSize
     Si7zWriteUInt32(buffer.Data + centralDirectoryOffset + 42, (uint32_t)localHeaderOffset);
 
     const size_t centralDirectorySize = buffer.Size - centralDirectoryOffset;
-    if (centralDirectoryOffset > UINT32_MAX || centralDirectorySize > UINT32_MAX)
+    if (std::cmp_greater(centralDirectoryOffset, UINT32_MAX) || std::cmp_greater(centralDirectorySize, UINT32_MAX))
     {
         free(name);
         free(buffer.Data);
@@ -1016,21 +1017,21 @@ static bool Si7zIsReservedDeviceName(const wchar_t* component, size_t length)
     static const wchar_t* const names[] = { L"CON", L"PRN", L"AUX", L"NUL", L"CONIN$", L"CONOUT$" };
     size_t baseLength = 0;
 
-    while (baseLength < length && component[baseLength] != L'.')
+    while (std::cmp_less(baseLength, length) && component[baseLength] != L'.')
         baseLength++;
 
     // Trailing spaces before the extension are ignored by Win32 too ("nul .txt").
     while (baseLength && component[baseLength - 1] == L' ')
         baseLength--;
 
-    for (size_t i = 0; i < Z7_ARRAY_SIZE(names); i++)
+    for (size_t i = 0; std::cmp_less(i, Z7_ARRAY_SIZE(names)); i++)
     {
-        if (wcslen(names[i]) == baseLength && _wcsnicmp(component, names[i], baseLength) == 0)
+        if (std::cmp_equal(wcslen(names[i]), baseLength) && std::cmp_equal(_wcsnicmp(component, names[i], baseLength), 0))
             return true;
     }
 
     // COM1-COM9 and LPT1-LPT9, including the superscript digits Win32 also accepts.
-    if (baseLength == 4 && (_wcsnicmp(component, L"COM", 3) == 0 || _wcsnicmp(component, L"LPT", 3) == 0))
+    if (std::cmp_equal(baseLength, 4) && (std::cmp_equal(_wcsnicmp(component, L"COM", 3), 0) || std::cmp_equal(_wcsnicmp(component, L"LPT", 3), 0)))
     {
         const wchar_t digit = component[3];
 
@@ -1071,7 +1072,7 @@ static SI7Z_RESULT Si7zMakeRelativePath(const wchar_t* path, UString& relative)
 
         length = (size_t)(path - start);
 
-        if (length == 0 || (length == 1 && start[0] == L'.'))
+        if (std::cmp_equal(length, 0) || (std::cmp_equal(length, 1) && start[0] == L'.'))
             continue;
 
         // ".." escapes the destination, and Windows strips trailing dots and spaces
@@ -1085,7 +1086,7 @@ static SI7Z_RESULT Si7zMakeRelativePath(const wchar_t* path, UString& relative)
         if (!relative.IsEmpty())
             relative += L'\\';
 
-        for (size_t i = 0; i < length; i++)
+        for (size_t i = 0; std::cmp_less(i, length); i++)
             relative += start[i];
     }
 
@@ -1110,9 +1111,9 @@ static SI7Z_RESULT Si7zCreateDirectoryChain(const UString& root, const UString& 
 
         attributes = GetFileAttributesW(path);
 
-        if (attributes == INVALID_FILE_ATTRIBUTES)
+        if (std::cmp_equal(attributes, INVALID_FILE_ATTRIBUTES))
         {
-            if (!CreateDirectoryW(path, NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+            if (!CreateDirectoryW(path, NULL) && std::cmp_not_equal(GetLastError(), ERROR_ALREADY_EXISTS))
                 return SI7Z_ERROR_WRITE_FAILED;
         }
         else if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
@@ -1174,7 +1175,7 @@ Z7_COM7F_IMF(CSi7zDirectoryExtractCallback::GetStream(UInt32 index, ISequentialO
 
     const int separator = target.Path.ReverseFind(L'\\');
 
-    if (separator > (int)Root.Len())
+    if (std::cmp_greater(separator, (int)Root.Len()))
     {
         UString parent = target.Path;
 
@@ -1187,7 +1188,7 @@ Z7_COM7F_IMF(CSi7zDirectoryExtractCallback::GetStream(UInt32 index, ISequentialO
 
     const DWORD attributes = GetFileAttributesW(target.Path);
 
-    if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)))
+    if (std::cmp_not_equal(attributes, INVALID_FILE_ATTRIBUTES) && (attributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)))
     {
         Result = (attributes & FILE_ATTRIBUTE_REPARSE_POINT) ? SI7Z_ERROR_UNSAFE_PATH : SI7Z_ERROR_WRITE_FAILED;
         return E_ABORT;
@@ -1277,7 +1278,7 @@ SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t
         UString root = destinationPath;
         UInt32 numItems = 0;
 
-        while (root.Len() > 1 && (root.Back() == L'\\' || root.Back() == L'/'))
+        while (std::cmp_greater(root.Len(), 1) && (root.Back() == L'\\' || root.Back() == L'/'))
             root.DeleteBack();
 
         Si7zEnsureDecoders();
@@ -1286,23 +1287,23 @@ SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t
         if (result != SI7Z_OK)
             return result;
 
-        if (archive->GetNumberOfItems(&numItems) != S_OK)
+        if (std::cmp_not_equal(archive->GetNumberOfItems(&numItems), S_OK))
         {
             archive->Close();
             return SI7Z_ERROR_ARCHIVE_FAILED;
         }
 
         // Validate every entry before anything is written.
-        for (UInt32 i = 0; i < numItems; i++)
+        for (UInt32 i = 0; std::cmp_less(i, numItems); i++)
         {
             CSi7zTarget& target = targets.AddNew();
             NWindows::NCOM::CPropVariant prop;
             UString path;
             UString relative;
 
-            if (Si7zGetItemPath(archive, i, path) != S_OK ||
-                Si7zGetItemBool(archive, i, kpidIsDir, target.IsDirectory) != S_OK ||
-                archive->GetProperty(i, kpidMTime, &prop) != S_OK)
+            if (std::cmp_not_equal(Si7zGetItemPath(archive, i, path), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemBool(archive, i, kpidIsDir, target.IsDirectory), S_OK) ||
+                std::cmp_not_equal(archive->GetProperty(i, kpidMTime, &prop), S_OK))
             {
                 archive->Close();
                 return SI7Z_ERROR_ARCHIVE_FAILED;
@@ -1330,9 +1331,9 @@ SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t
 
         // Create the destination and any missing parents. Failures on the intermediate
         // components (drive roots, UNC shares) are expected; only the result is checked.
-        for (unsigned i = 1; i <= root.Len(); i++)
+        for (unsigned i = 1; std::cmp_less_equal(i, root.Len()); i++)
         {
-            if (i == root.Len() || root[i] == L'\\' || root[i] == L'/')
+            if (std::cmp_equal(i, root.Len()) || root[i] == L'\\' || root[i] == L'/')
             {
                 UString prefix = root;
 
@@ -1343,7 +1344,7 @@ SI7Z_RESULT SI7ZAPI Si7zExtractBufferToDirectory(const void* archiveData, size_t
 
         const DWORD rootAttributes = GetFileAttributesW(root);
 
-        if (rootAttributes == INVALID_FILE_ATTRIBUTES || !(rootAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        if (std::cmp_equal(rootAttributes, INVALID_FILE_ATTRIBUTES) || !(rootAttributes & FILE_ATTRIBUTE_DIRECTORY))
         {
             archive->Close();
             return SI7Z_ERROR_WRITE_FAILED;
@@ -1402,31 +1403,33 @@ SI7Z_RESULT SI7ZAPI Si7zListBuffer(const void* archiveData, size_t archiveSize, 
         if (result != SI7Z_OK)
             return result;
 
-        if (archive->GetNumberOfItems(&count) != S_OK)
+        if (std::cmp_not_equal(archive->GetNumberOfItems(&count), S_OK))
         {
             archive->Close();
             return SI7Z_ERROR_ARCHIVE_FAILED;
         }
 
-        items = (SI7Z_ITEM*)calloc(count ? count : 1, sizeof(SI7Z_ITEM));
+        const size_t itemCount = count ? count : 1;
+        if (!std::cmp_greater(itemCount, SIZE_MAX / sizeof(SI7Z_ITEM)))
+            items = (SI7Z_ITEM*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, itemCount * sizeof(SI7Z_ITEM));
         if (!items)
         {
             archive->Close();
             return SI7Z_ERROR_OUT_OF_MEMORY;
         }
 
-        for (UInt32 i = 0; i < count; i++)
+        for (UInt32 i = 0; std::cmp_less(i, count); i++)
         {
             UString path;
             UInt64 attributes;
             bool isDirectory;
 
-            if (Si7zGetItemPath(archive, i, path) != S_OK ||
-                Si7zGetItemUInt64(archive, i, kpidSize, items[i].Size) != S_OK ||
-                Si7zGetItemUInt64(archive, i, kpidPackSize, items[i].PackedSize) != S_OK ||
-                Si7zGetItemUInt64(archive, i, kpidAttrib, attributes) != S_OK ||
-                Si7zGetItemBool(archive, i, kpidIsDir, isDirectory) != S_OK ||
-                Si7zGetItemMethod(archive, i, items[i].Method) != S_OK)
+            if (std::cmp_not_equal(Si7zGetItemPath(archive, i, path), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemUInt64(archive, i, kpidSize, items[i].Size), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemUInt64(archive, i, kpidPackSize, items[i].PackedSize), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemUInt64(archive, i, kpidAttrib, attributes), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemBool(archive, i, kpidIsDir, isDirectory), S_OK) ||
+                std::cmp_not_equal(Si7zGetItemMethod(archive, i, items[i].Method), S_OK))
             {
                 Si7zFreeItems(items, count);
                 archive->Close();
@@ -1471,10 +1474,7 @@ void SI7ZAPI Si7zFreeList(SI7Z_LIST* list)
     if (!list)
         return;
 
-    for (uint32_t i = 0; i < list->Count; i++)
-        free(list->Items[i].Name);
-
-    free(list->Items);
+    Si7zFreeItems(list->Items, list->Count);
     list->Items = NULL;
     list->Count = 0;
 }

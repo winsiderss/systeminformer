@@ -1291,6 +1291,7 @@ NTSTATUS PhpUserListDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

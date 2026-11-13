@@ -127,10 +127,10 @@ BOOLEAN ScanIsFileExcluded(
 
 static PPH_STRING ExcludeGetListBoxItemText(
     _In_ HWND ListBoxHandle,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
-    INT length;
+    LONG length;
     PPH_STRING string;
 
     length = ListBox_GetTextLen(ListBoxHandle, Index);
@@ -332,12 +332,12 @@ VOID ScanExclusionsSaveListBox(
     _In_ HWND ListBoxHandle
     )
 {
-    INT count = ListBox_GetCount(ListBoxHandle);
+    LONG count = ListBox_GetCount(ListBoxHandle);
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 64);
 
-    for (INT i = 0; i < count; i++)
+    for (LONG i = 0; i < count; i++)
     {
         PPH_STRING entry = ExcludeGetListBoxItemText(ListBoxHandle, i);
 

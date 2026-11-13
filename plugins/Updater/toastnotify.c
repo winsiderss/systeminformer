@@ -20,6 +20,7 @@ typedef struct _UPDATER_HTTP_DOWNLOAD_CONTEXT
     PPH_UPDATER_CONTEXT UpdaterContext;
     HANDLE FileHandle;
     PUPDATER_HASH_CONTEXT HashContext;
+    ULONG64 TotalWritten;
 } UPDATER_HTTP_DOWNLOAD_CONTEXT, *PUPDATER_HTTP_DOWNLOAD_CONTEXT;
 
 NTSTATUS UpdateInitializeWinHttpDownloadStage3(
@@ -46,7 +47,7 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
 
 NTSTATUS UpdateFinalizeWinHttpDownloadStage6(
     _In_ PPH_UPDATER_CONTEXT Context,
-    _In_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
+    _Inout_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
     _Out_ PUPDATER_DOWNLOAD_RESULT Result
     );
 
@@ -157,7 +158,7 @@ NTSTATUS UpdateInstallerDownloadThreadStage1(
         {
             status = UpdateDownloadFileWithDeliveryOptimization(context, &result);
 
-            if (NT_SUCCESS(status) || context->Cancel ||
+            if (NT_SUCCESS(status) || ReadBooleanAcquire(&context->Cancel) ||
                 status == STATUS_DATA_CHECKSUM_ERROR || result.HashSuccess || result.SignatureSuccess)
             {
                 break;
@@ -165,7 +166,7 @@ NTSTATUS UpdateInstallerDownloadThreadStage1(
 
             status = UpdateDownloadFileWithBits(context, &result);
 
-            if (NT_SUCCESS(status) || context->Cancel ||
+            if (NT_SUCCESS(status) || ReadBooleanAcquire(&context->Cancel) ||
                 status == STATUS_DATA_CHECKSUM_ERROR || result.HashSuccess || result.SignatureSuccess)
             {
                 break;
@@ -353,7 +354,7 @@ NTSTATUS NTAPI UpdateWinHttpEventCallbackStage4(
     if (!updater)
         return STATUS_INVALID_PARAMETER;
 
-    if (updater->Cancel)
+    if (ReadBooleanAcquire(&updater->Cancel))
         return STATUS_CANCELLED;
 
     switch (Event)
@@ -400,7 +401,7 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
     if (!updater)
         return STATUS_INVALID_PARAMETER;
 
-    if (updater->Cancel)
+    if (ReadBooleanAcquire(&updater->Cancel))
         return STATUS_CANCELLED;
 
     switch (Event)
@@ -425,7 +426,7 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
                 FILE_GENERIC_READ | FILE_GENERIC_WRITE,
                 Parameter->TotalLength ? &allocationSize : NULL,
                 FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ ,
+                FILE_SHARE_READ,
                 FILE_OVERWRITE_IF,
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
                 NULL
@@ -434,12 +435,20 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
             if (!NT_SUCCESS(status))
                 return status;
 
-            return UpdaterInitializeHashForContext(&downloadContext->HashContext, updater);
+            status = UpdaterInitializeHashForContext(&downloadContext->HashContext, updater);
+
+            if (!NT_SUCCESS(status))
+                return status;
         }
-        break;
+        return STATUS_SUCCESS;
     case PH_HTTPDOWNLOAD_EVENT_DATA:
         {
             ULONG bytesWritten = 0;
+
+            if (downloadContext->TotalWritten + Parameter->BufferLength > UpdaterGetMaxDownloadLength(updater))
+            {
+                return STATUS_FILE_TOO_LARGE;
+            }
 
             status = UpdaterHashDataForContext(
                 downloadContext->HashContext,
@@ -464,9 +473,9 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
             if (bytesWritten != Parameter->BufferLength)
                 return STATUS_DATA_CHECKSUM_ERROR;
 
-            return STATUS_SUCCESS;
+            downloadContext->TotalWritten += bytesWritten;
         }
-        break;
+        return STATUS_SUCCESS;
     case PH_HTTPDOWNLOAD_EVENT_PROGRESS:
         {
             UpdateSetProgressState(
@@ -492,7 +501,7 @@ NTSTATUS NTAPI UpdateWinHttpTransferCallbackStage5(
  */
 NTSTATUS UpdateFinalizeWinHttpDownloadStage6(
     _In_ PPH_UPDATER_CONTEXT Context,
-    _In_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
+    _Inout_ PUPDATER_HTTP_DOWNLOAD_CONTEXT DownloadContext,
     _Out_ PUPDATER_DOWNLOAD_RESULT Result
     )
 {
@@ -527,7 +536,6 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
 {
     NTSTATUS status;
     HANDLE fileHandle = NULL;
-    PPH_STRING fileName = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
     IO_STATUS_BLOCK iosb;
     LARGE_INTEGER fileSize;
@@ -537,19 +545,14 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
 
     memset(Result, 0, sizeof(UPDATER_DOWNLOAD_RESULT));
 
-    fileName = PhDosPathNameToNtPathName(&Context->SetupFilePath->sr);
-    if (!fileName)
-    {
-        status = STATUS_OBJECT_PATH_INVALID;
-        goto CleanupExit;
-    }
-
-    status = PhOpenFile(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
-        &fileName->sr,
+        PhGetString(Context->SetupFilePath),
         FILE_GENERIC_READ,
         NULL,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
+        FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
         );
@@ -614,16 +617,18 @@ EXTERN_C NTSTATUS UpdateVerifyCacheFileSignature(
         }
     }
 
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     if (!(Result->HashSuccess && Result->SignatureSuccess))
     {
         status = STATUS_DATA_CHECKSUM_ERROR;
         goto CleanupExit;
     }
 
-    //
-    // Retain the handle that was hashed. It denies write and delete access to
-    // the file until the installer has been launched (see UpdateShellExecute).
-    //
+    // Retain the handle the file was verified through. It denies writers for as long as it stays
+    // open, so the verified content cannot be swapped before the setup file is executed. (dmex)
+
     Context->SetupFileHandle = fileHandle;
     fileHandle = NULL;
     Result->DownloadSuccess = TRUE;
@@ -636,14 +641,12 @@ CleanupExit:
         UpdaterDestroyHashForContext(hashContext);
     if (fileHandle)
         NtClose(fileHandle);
-    if (fileName)
-        PhDereferenceObject(fileName);
 
     return status;
 }
 
 /**
- * \brief Releases resources used by a WinHTTP download context.
+ * Releases resources used by a WinHTTP download context.
  * \param Context The download context.
  */
 VOID UpdateReleaseWinHttpDownloadContext(
@@ -664,7 +667,8 @@ VOID UpdateReleaseWinHttpDownloadContext(
 }
 
 /**
- * \brief Releases strings used by a WinHTTP download session.
+ * Releases strings used by a WinHTTP download session.
+ *
  * \param DownloadHostPath The host path string.
  * \param DownloadUrlPath The URL path string.
  * \param UserAgent The user agent string.

@@ -644,6 +644,8 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 240, L"Value");
 
@@ -693,6 +695,9 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PostQuitMessage(0);
         }
         break;
@@ -711,6 +716,14 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+        }
+        break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
@@ -720,6 +733,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

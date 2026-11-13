@@ -96,6 +96,7 @@ VOID GraphicsDeviceSysInfoInitializing(
 
     context = PhCreateObjectZero(sizeof(DV_GPU_SYSINFO_CONTEXT), GraphicsSysinfoEntryType);
     PhInitializeEvent(&context->NodeWindowInitializedEvent);
+    PhInitializeRundownProtection(&context->NodeWindowRundown);
     context->DeviceEntry = PhReferenceObject(DeviceEntry);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
@@ -1433,6 +1434,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
 
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), WindowHandle, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
+            UpdateWindow(context->GpuPanel);
             PhAddLayoutItemExLogical(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             GraphicsDeviceCreateGraphs(context);

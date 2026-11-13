@@ -31,6 +31,7 @@ RTL_ATOM PhHexEditInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PH_HEXEDIT_CLASSNAME;
 
     return RegisterClassEx(&wcex);

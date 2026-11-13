@@ -252,8 +252,13 @@ HICON PhGetBlackIcon(
 
         PhBeginBitmap2(&PhBlackBitmapContext, &width, &height, &PhBlackBitmap, &bits, &hdc, &oldBitmap);
 
-        if (!NT_SUCCESS(RtlSizeTMult(width, height, &bitsSize)) ||
-            !NT_SUCCESS(RtlSizeTMult(bitsSize, sizeof(RGBQUAD), &bitsSize)))
+        if (!NT_SUCCESS(RtlSIZETMult(width, height, &bitsSize)))
+        {
+            SelectBitmap(hdc, oldBitmap);
+            return NULL;
+        }
+
+        if (!NT_SUCCESS(RtlSIZETMult(bitsSize, sizeof(RGBQUAD), &bitsSize)))
         {
             SelectBitmap(hdc, oldBitmap);
             return NULL;

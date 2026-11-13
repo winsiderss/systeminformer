@@ -406,6 +406,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG PeakGdiHandleCount; ULONG PeakGdiHandleCountMin; ULONG PeakGdiHandleCountMax; ULONG PeakGdiHandleCountDiff;
     ULONG UserHandleCount; ULONG UserHandleCountMin; ULONG UserHandleCountMax; ULONG UserHandleCountDiff;
     ULONG PeakUserHandleCount; ULONG PeakUserHandleCountMin; ULONG PeakUserHandleCountMax; ULONG PeakUserHandleCountDiff;
+    ULONG GdiHandleTotal; ULONG PeakGdiHandleTotal; ULONG UserHandleTotal; ULONG PeakUserHandleTotal; // session totals
     ULONG HangCount; ULONG HangCountMin; ULONG HangCountMax; ULONG HangCountDiff;
     ULONG GhostCount; ULONG GhostCountMin; ULONG GhostCountMax; ULONG GhostCountDiff;
     ULONGLONG RunningTime; ULONGLONG RunningTimeMin; ULONGLONG RunningTimeMax; ULONGLONG RunningTimeDiff;

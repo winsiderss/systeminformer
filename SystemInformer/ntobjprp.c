@@ -590,6 +590,7 @@ VOID PhpEnumerateMappingsEntries(
         statusWindow = GetDlgItem(Context->WindowHandle, IDC_TEXT);
         ShowWindow(Context->ListViewHandle, SW_HIDE);
         ShowWindow(statusWindow, SW_SHOW);
+        UpdateWindow(statusWindow);
 
         statusText = PhGetKsiNotConnectedString(
             L"Viewing active mappings requires a connection to the kernel driver."

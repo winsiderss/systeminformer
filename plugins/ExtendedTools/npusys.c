@@ -368,6 +368,7 @@ INT_PTR CALLBACK EtpNpuDialogProc(
 
             NpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NPUPANEL), WindowHandle, EtpNpuPanelDialogProc, NULL);
             ShowWindow(NpuPanel, SW_SHOW);
+            UpdateWindow(NpuPanel);
             PhAddLayoutItemExLogical(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             EtpCreateNpuGraphs();

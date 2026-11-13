@@ -85,10 +85,12 @@ NTSTATUS SaveDb(
     VOID
     );
 
-typedef BOOLEAN (NTAPI* PDB_ENUM_CALLBACK)(
+typedef _Function_class_(DB_ENUM_CALLBACK)
+BOOLEAN NTAPI DB_ENUM_CALLBACK(
     _In_ PDB_OBJECT Object,
     _In_ PVOID Context
     );
+typedef DB_ENUM_CALLBACK* PDB_ENUM_CALLBACK;
 
 VOID EnumDb(
     _In_ PDB_ENUM_CALLBACK Callback,

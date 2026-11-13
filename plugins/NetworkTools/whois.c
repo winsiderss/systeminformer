@@ -1295,6 +1295,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
@@ -1365,7 +1366,7 @@ VOID ShowWhoisWindow(
 
 VOID ShowWhoisWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    _In_ PPH_IP_ENDPOINT RemoteEndpoint
     )
 {
     PNETWORK_WHOIS_CONTEXT context;

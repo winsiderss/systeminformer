@@ -71,6 +71,8 @@ VOID EtUpdateBigPoolTable(
     PhFree(bigPoolTable);
 }
 
+static HFONT BigPoolWindowFont = NULL; // modal dialog, single instance (context struct lives in poolmon.h)
+
 INT_PTR CALLBACK EtBigPoolMonDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -114,6 +116,9 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"NonPaged");
             PhSetExtendedListView(context->ListViewHandle);
 
+            BigPoolWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, BigPoolWindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
@@ -136,6 +141,11 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&BigPoolWindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -146,6 +156,12 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION, SETTING_NAME_BIGPOOL_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (BigPoolWindowFont)
+            {
+                DeleteFont(BigPoolWindowFont);
+                BigPoolWindowFont = NULL;
+            }
 
             PhFree(context);
         }
