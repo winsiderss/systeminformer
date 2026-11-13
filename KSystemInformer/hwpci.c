@@ -49,7 +49,6 @@
 #define KPH_HW_VSEC_PMT_FIXED_BLOCK_GUID   0x10000000
 #define KPH_HW_VSEC_TPMI_ENTRY_DWORDS      2
 #define KPH_HW_VSEC_TPMI_CAP_UNIT          1024
-#define KPH_HW_PCI_MAX_IDS                 256
 #define KPH_HW_PCI_ID_VENDOR               8
 #define KPH_HW_PCI_ID_DEVICE_PREFIX        12
 #define KPH_HW_PCI_ID_DEVICE               17
@@ -177,6 +176,12 @@ typedef struct _KPH_HW_PCI_FIND_PDO
     PDEVICE_OBJECT Pdo;
 } KPH_HW_PCI_FIND_PDO, *PKPH_HW_PCI_FIND_PDO;
 
+typedef struct _KPH_HW_PCI_RECORD
+{
+    ULONG Capacity;
+    BOOLEAN Complete;
+} KPH_HW_PCI_RECORD, *PKPH_HW_PCI_RECORD;
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpHwPciDriverName, L"\\Driver\\pci");
 DECLARE_CONST_UNICODE_STRING(KphpHwPciVendorPrefix, L"PCI\\VEN_");
@@ -185,9 +190,9 @@ DECLARE_CONST_UNICODE_STRING(KphpHwPciBusPrefix, L"PCI\\");
 DECLARE_CONST_UNICODE_STRING(KphpHwPciClassPrefix, L"CC_");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
-static BOOLEAN KphpHwPciIdsKnown = FALSE;
+static BOOLEAN KphpHwPciIdsComplete = FALSE;
 static ULONG KphpHwPciIdCount = 0;
-static ULONG KphpHwPciIds[KPH_HW_PCI_MAX_IDS] = { 0 };
+static PULONG KphpHwPciIds = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 static KPH_RWLOCK KphpHwPciLock;
@@ -601,13 +606,44 @@ Exit:
 }
 
 /**
+ * \brief Counts a PCI function.
+ *
+ * \param[in] DeviceObject A device object of the PCI bus driver.
+ * \param[in,out] Context Points to the ULONG count.
+ *
+ * \return FALSE to continue.
+ */
+_Function_class_(KPH_HW_ENUMERATE_DEVICES_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KSIAPI KphpHwPciCountDevice(
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_opt_ PVOID Context
+    )
+{
+    PULONG count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    count = Context;
+
+    if (BooleanFlagOn(DeviceObject->Flags, DO_BUS_ENUMERATED_DEVICE))
+    {
+        NT_VERIFY(NT_SUCCESS(RtlULongAdd(*count, 1, count)));
+    }
+
+    return FALSE;
+}
+
+/**
  * \brief Records the ID of a PCI function.
  *
  * \param[in] DeviceObject A device object of the PCI bus driver.
- * \param[in,out] Context Points to a BOOLEAN that is cleared when presence
- * becomes unknown.
+ * \param[in,out] Context Points to the KPH_HW_PCI_RECORD of the scan.
  *
- * \return TRUE to stop once presence is unknown, FALSE to continue.
+ * \return TRUE to stop once the list is full, FALSE to continue.
  */
 _Function_class_(KPH_HW_ENUMERATE_DEVICES_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -618,23 +654,18 @@ BOOLEAN KSIAPI KphpHwPciRecordDevice(
     )
 {
     NTSTATUS status;
-    PBOOLEAN known;
+    PKPH_HW_PCI_RECORD record;
     ULONG id;
 
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Context);
 
-    known = Context;
+    record = Context;
 
     if (!BooleanFlagOn(DeviceObject->Flags, DO_BUS_ENUMERATED_DEVICE))
     {
         return FALSE;
-    }
-
-    if (!*known)
-    {
-        return TRUE;
     }
 
     status = KphpHwPciReadHardwareId(DeviceObject, &id);
@@ -650,13 +681,13 @@ BOOLEAN KSIAPI KphpHwPciRecordDevice(
                       "KphpHwPciReadHardwareId failed: %!STATUS!",
                       status);
 
-        *known = FALSE;
+        record->Complete = FALSE;
         return FALSE;
     }
 
     if (!KphpHwPciIdRecorded(id))
     {
-        if (KphpHwPciIdCount < ARRAYSIZE(KphpHwPciIds))
+        if (KphpHwPciIdCount < record->Capacity)
         {
             KphpHwPciIds[KphpHwPciIdCount++] = id;
         }
@@ -667,7 +698,8 @@ BOOLEAN KSIAPI KphpHwPciRecordDevice(
                           "PCI ID list is full at %lu IDs",
                           KphpHwPciIdCount);
 
-            *known = FALSE;
+            record->Complete = FALSE;
+            return TRUE;
         }
     }
 
@@ -677,8 +709,9 @@ BOOLEAN KSIAPI KphpHwPciRecordDevice(
 /**
  * \brief Records the IDs of the PCI functions present.
  *
- * \details A read failure or ID overflow leaves presence unknown; a device
- * without a PCI\VEN_ hardware ID is skipped.
+ * \details A read failure, or a function that appears during the scan, leaves
+ * the presence of an unrecorded ID unknown; a device without a PCI\VEN_
+ * hardware ID is skipped.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpHwPciInitializeDevices(
@@ -687,7 +720,9 @@ VOID KphpHwPciInitializeDevices(
 {
     NTSTATUS status;
     PDRIVER_OBJECT driver;
-    BOOLEAN known;
+    ULONG count;
+    ULONG length;
+    KPH_HW_PCI_RECORD record;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -701,13 +736,13 @@ VOID KphpHwPciInitializeDevices(
                       "KphHwReferenceDriver failed: %!STATUS!",
                       status);
 
-        KphpHwPciIdsKnown = TRUE;
+        KphpHwPciIdsComplete = TRUE;
         goto Exit;
     }
 
-    known = TRUE;
+    count = 0;
 
-    status = KphHwEnumerateDriverDevices(driver, KphpHwPciRecordDevice, &known);
+    status = KphHwEnumerateDriverDevices(driver, KphpHwPciCountDevice, &count);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -718,7 +753,50 @@ VOID KphpHwPciInitializeDevices(
         goto Exit;
     }
 
-    KphpHwPciIdsKnown = known;
+    if (!count)
+    {
+        KphpHwPciIdsComplete = TRUE;
+        goto Exit;
+    }
+
+    status = RtlULongMult(count, sizeof(ULONG), &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlULongMult failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphpHwPciIds = KphAllocatePaged(length, KPH_TAG_HW_PCI_IDS);
+    if (!KphpHwPciIds)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate PCI ID list");
+
+        goto Exit;
+    }
+
+    record.Capacity = count;
+    record.Complete = TRUE;
+
+    status = KphHwEnumerateDriverDevices(driver,
+                                         KphpHwPciRecordDevice,
+                                         &record);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphHwEnumerateDriverDevices failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphpHwPciIdsComplete = record.Complete;
 
 Exit:
 
@@ -731,7 +809,7 @@ Exit:
                   HARDWARE,
                   "PCI devices: %lu IDs, presence known %!bool!",
                   KphpHwPciIdCount,
-                  KphpHwPciIdsKnown);
+                  KphpHwPciIdsComplete);
 }
 
 /**
@@ -972,16 +1050,16 @@ NTSTATUS KphHwPciIdPresent(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!KphpHwPciIdsKnown)
+    if (KphpHwPciIdRecorded((ULONG)VendorId | ((ULONG)DeviceId << 16)))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    if (!KphpHwPciIdsComplete)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE, HARDWARE, "PCI ID presence unknown");
 
         return STATUS_NOT_SUPPORTED;
-    }
-
-    if (KphpHwPciIdRecorded((ULONG)VendorId | ((ULONG)DeviceId << 16)))
-    {
-        return STATUS_SUCCESS;
     }
 
     return STATUS_NOT_FOUND;
@@ -2101,6 +2179,11 @@ VOID KphCleanupHardwarePci(
     KphReleaseRWLock(&KphpHwPciLock);
 
     KphDeleteRWLock(&KphpHwPciLock);
+
+    if (KphpHwPciIds)
+    {
+        KphFree(KphpHwPciIds, KPH_TAG_HW_PCI_IDS);
+    }
 }
 
 /**

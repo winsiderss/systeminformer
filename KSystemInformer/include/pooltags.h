@@ -158,3 +158,4 @@
 #define KPH_TAG_HW_NVDIMM_RANGES                'LhpK'
 #define KPH_TAG_HW_ECAM_RANGES                  'MhpK'
 #define KPH_TAG_HW_SECTION_SPANS                'NhpK'
+#define KPH_TAG_HW_PCI_IDS                      'OhpK'
