@@ -79,6 +79,7 @@ typedef struct _KPH_HW_SMBUS_SESSION
     BOOLEAN PortChanged;
     BOOLEAN Owned;
     BOOLEAN Started;
+    BOOLEAN Collided;
     NTSTATUS Stopped;
     ULONG64 Deadline;
 } KPH_HW_SMBUS_SESSION, *PKPH_HW_SMBUS_SESSION;
@@ -1490,7 +1491,8 @@ NTSTATUS KphpHwSmbusRelease(
     {
         UCHAR clear;
 
-        clear = (Session->Started ? KPH_HW_SMBUS_STS_I801_CLEAR : 0);
+        clear = ((Session->Started && !Session->Collided) ?
+                 KPH_HW_SMBUS_STS_I801_CLEAR : 0);
 
         KphpHwSmbusOut(Session,
                        KPH_HW_SMBUS_HSTSTS,
@@ -1616,6 +1618,7 @@ NTSTATUS KphpHwSmbusTransact(
                       (ULONG)Session->Base,
                       (ULONG)hststs);
 
+        Session->Collided = TRUE;
         Session->Stopped = STATUS_RETRY;
         return STATUS_RETRY;
     }
@@ -1728,6 +1731,7 @@ NTSTATUS KphpHwSmbusTransact(
                       (ULONG)Address,
                       (ULONG)Command);
 
+        Session->Collided = TRUE;
         Session->Stopped = STATUS_RETRY;
         return STATUS_RETRY;
     }
