@@ -872,6 +872,108 @@ Exit:
 }
 
 /**
+ * \brief Opens the PM registers of a PIIX4 layout, chooses its port select
+ * and decodes the base they enable.
+ *
+ * \param[in,out] Session The session, layout set, nothing mapped.
+ * \param[out] Base Receives the decoded base.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusOpenPm(
+    _Inout_ PKPH_HW_SMBUS_SESSION Session,
+    _Out_ PULONG Base
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN_HW_SMBUS_HOST layout;
+    ULONG base;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Base = 0;
+
+    layout = Session->Layout;
+
+    if (layout->PmAccess == KPH_DYN_HW_SMBUS_PM_MMIO)
+    {
+        status = KphpHwSmbusMapPm(Session);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwSmbusMapPm failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+    }
+    else if (layout->GateMask)
+    {
+        NT_ASSERT(layout->PmAccess == KPH_DYN_HW_SMBUS_PM_PORT_PAIR);
+
+        status = KphpHwSmbusOpenView(Session);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwSmbusOpenView failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+    }
+    else
+    {
+        NT_ASSERT(layout->PmAccess == KPH_DYN_HW_SMBUS_PM_PORT_PAIR);
+    }
+
+    Session->PmOpen = TRUE;
+    Session->PmSelect = layout->Select;
+
+    if (layout->SelectChooseMask)
+    {
+        UCHAR choose;
+
+        status = KphpHwSmbusPmIn(Session, layout->SelectChoose, &choose);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SMBus PM 0x%02lx not read: %!STATUS!",
+                          (ULONG)layout->SelectChoose,
+                          status);
+
+            return status;
+        }
+
+        if (BooleanFlagOn(choose, layout->SelectChooseMask))
+        {
+            Session->PmSelect = layout->SelectAlternate;
+        }
+    }
+
+    status = KphpHwSmbusPmDecode(Session, &base);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus PM decode failed: base 0x%04lx %!STATUS!",
+                      base,
+                      status);
+
+        return status;
+    }
+
+    NT_VERIFY(NT_SUCCESS(RtlULongToUShort(base, &Session->PmBaseValue)));
+    *Base = base;
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Derives and validates the base of a host controller.
  *
  * \param[in,out] Session The session, with HostKind set.
@@ -942,77 +1044,35 @@ NTSTATUS KphpHwSmbusOpenHost(
         layout = (PKPH_DYN_HW_SMBUS_HOST)Host->HostOp->Body;
         Session->Layout = layout;
 
-        if (layout->PmAccess == KPH_DYN_HW_SMBUS_PM_MMIO)
+        if (layout->PmAccess == KPH_DYN_HW_SMBUS_PM_CONFIG)
         {
-            status = KphpHwSmbusMapPm(Session);
-            if (!NT_SUCCESS(status))
+            if (!BooleanFlagOn(Host->Hostc, layout->GateMask))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HARDWARE,
-                              "KphpHwSmbusMapPm failed: %!STATUS!",
-                              status);
+                              "SMBus PIIX4 host disabled: 0x%02lx reads "
+                              "0x%02lx",
+                              (ULONG)layout->GateRegister,
+                              (ULONG)Host->Hostc);
 
-                return status;
+                return STATUS_DEVICE_NOT_READY;
             }
-        }
-        else if (layout->GateMask)
-        {
-            NT_ASSERT(layout->PmAccess == KPH_DYN_HW_SMBUS_PM_PORT_PAIR);
 
-            status = KphpHwSmbusOpenView(Session);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HARDWARE,
-                              "KphpHwSmbusOpenView failed: %!STATUS!",
-                              status);
-
-                return status;
-            }
+            base = (Host->Bar & layout->BaseMask);
         }
         else
         {
-            NT_ASSERT(layout->PmAccess == KPH_DYN_HW_SMBUS_PM_PORT_PAIR);
-        }
-
-        Session->PmOpen = TRUE;
-        Session->PmSelect = layout->Select;
-
-        if (layout->SelectChooseMask)
-        {
-            UCHAR choose;
-
-            status = KphpHwSmbusPmIn(Session, layout->SelectChoose, &choose);
+            status = KphpHwSmbusOpenPm(Session, &base);
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HARDWARE,
-                              "SMBus PM 0x%02lx not read: %!STATUS!",
-                              (ULONG)layout->SelectChoose,
+                              "KphpHwSmbusOpenPm failed: %!STATUS!",
                               status);
 
                 return status;
             }
-
-            if (BooleanFlagOn(choose, layout->SelectChooseMask))
-            {
-                Session->PmSelect = layout->SelectAlternate;
-            }
         }
-
-        status = KphpHwSmbusPmDecode(Session, &base);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "SMBus PM decode failed: base 0x%04lx %!STATUS!",
-                          base,
-                          status);
-
-            return status;
-        }
-
-        Session->PmBaseValue = (USHORT)base;
     }
 
     if (base == 0)
@@ -1094,6 +1154,74 @@ NTSTATUS KphpHwSmbusPmCheck(
 }
 
 /**
+ * \brief Selects the session's port through the PM port select, remembering
+ * the original selection.
+ *
+ * \param[in,out] Session The session, host owned, PM registers open.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwSmbusTakePort(
+    _Inout_ PKPH_HW_SMBUS_SESSION Session
+    )
+{
+    NTSTATUS status;
+    UCHAR select;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(Session->PmOpen);
+
+    status = KphpHwSmbusPmIn(Session, Session->PmSelect, &select);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus port select not read: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    select &= Session->Layout->SelectMask;
+
+    Session->OriginalPort = (select >> Session->Layout->SelectShift);
+
+    if (Session->OriginalPort == Session->Port)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    if (BooleanFlagOn(Session->Layout->Flags, KPH_DYN_HW_SMBUS_FLAG_READ_ONLY))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "SMBus port %lu selected, port %lu not selectable: the "
+                      "select is read-only",
+                      (ULONG)Session->OriginalPort,
+                      (ULONG)Session->Port);
+
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    Session->PortChanged = TRUE;
+
+    status = KphpHwSmbusSelectPort(Session, Session->Port);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwSmbusSelectPort failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Takes the host for the request.
  *
  * \param[in,out] Session The session, host open.
@@ -1130,7 +1258,6 @@ NTSTATUS KphpHwSmbusAcquire(
     else
     {
         UCHAR control;
-        UCHAR select;
 
         control = KphpHwSmbusIn(Session, KPH_HW_SMBUS_PIIX4_SLVCNT);
 
@@ -1184,44 +1311,14 @@ NTSTATUS KphpHwSmbusAcquire(
             return STATUS_RETRY;
         }
 
-        status = KphpHwSmbusPmIn(Session, Session->PmSelect, &select);
-        if (!NT_SUCCESS(status))
+        if (Session->PmOpen)
         {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "SMBus port select not read: %!STATUS!",
-                          status);
-
-            return status;
-        }
-
-        select &= Session->Layout->SelectMask;
-
-        Session->OriginalPort = (select >> Session->Layout->SelectShift);
-
-        if (Session->OriginalPort != Session->Port)
-        {
-            if (BooleanFlagOn(Session->Layout->Flags,
-                              KPH_DYN_HW_SMBUS_FLAG_READ_ONLY))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HARDWARE,
-                              "SMBus port %lu selected, port %lu not "
-                              "selectable: the select is read-only",
-                              (ULONG)Session->OriginalPort,
-                              (ULONG)Session->Port);
-
-                return STATUS_NOT_SUPPORTED;
-            }
-
-            Session->PortChanged = TRUE;
-
-            status = KphpHwSmbusSelectPort(Session, Session->Port);
+            status = KphpHwSmbusTakePort(Session);
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HARDWARE,
-                              "KphpHwSmbusSelectPort failed: %!STATUS!",
+                              "KphpHwSmbusTakePort failed: %!STATUS!",
                               status);
 
                 return status;
@@ -1761,7 +1858,7 @@ NTSTATUS KphpHwSmbusConfirm(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (Session->HostKind == KPH_DYN_HW_SMBUS_HOST_PIIX4)
+    if ((Session->HostKind == KPH_DYN_HW_SMBUS_HOST_PIIX4) && Session->PmOpen)
     {
         UCHAR select;
         UCHAR port;

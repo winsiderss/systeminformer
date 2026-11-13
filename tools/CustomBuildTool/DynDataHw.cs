@@ -635,6 +635,11 @@ namespace CustomBuildTool
         /// </summary>
         public const byte SmbusPmMmio = 2;
         /// <summary>
+        /// The host's own configuration space holds the SMBus base (decode, a word) and the host enable (enable); one
+        /// port, no PM registers and no port select.
+        /// </summary>
+        public const byte SmbusPmConfig = 3;
+        /// <summary>
         /// The port select register must not be written.
         /// </summary>
         public const byte SmbusHostFlagSelectReadOnly = 0x01;
@@ -678,6 +683,25 @@ namespace CustomBuildTool
             UInt64 pmBase = Host.PmBase;
             UInt64 pmEnd = Host.PmBase + Host.PmLength;
             bool view = Host.PmBase != 0 || Host.PmLength != 0 || Host.GateMask != 0;
+
+            if (Host.PmAccess == SmbusPmConfig)
+            {
+                if (Host.IndexPort != 0 || Host.DataPort != 0 || Host.PmBase != 0 || Host.PmLength != 0)
+                    return "a configuration layout has no ports and no PM view";
+                if (Host.DecodeLow < PciConfigHeaderLength || (Host.DecodeLow & 1) != 0 || Host.DecodeHigh != Host.DecodeLow + 1)
+                    return "decode must be an aligned configuration word above the header";
+                if (Host.GateRegister < PciConfigHeaderLength || Host.GateMask == 0)
+                    return "a configuration layout needs an enable register above the header";
+                if (Host.BaseMask == 0)
+                    return "base-mask must be non-zero";
+                if (Host.Flags != 0 || Host.EnableMask != 0 || Host.Select != 0 || Host.SelectMask != 0 || Host.SelectShift != 0 ||
+                    Host.SelectAlternate != 0 || Host.SelectChoose != 0 || Host.SelectChooseMask != 0)
+                    return "a configuration layout has no flags, enable-mask or port select";
+                if (Host.Reserved[0] != 0 || Host.Reserved[1] != 0 || Host.Reserved[2] != 0 || Host.Reserved[3] != 0)
+                    return "reserved bytes are non-zero";
+
+                return null;
+            }
 
             if (Host.PmAccess == SmbusPmPortPair)
             {
@@ -2454,6 +2478,17 @@ namespace CustomBuildTool
                 hostRevisions.Add((low, high));
                 anchored.Add((smbusHost, op));
             }
+
+            if (smbusHosts.Any(host => OptionalAttribute(host, "pm") == "config"))
+            {
+                foreach (var smbus in smbuses)
+                {
+                    string port = OptionalAttribute(smbus, "port");
+
+                    if (port != null && ParseDecimal(Context, smbus, "port", port, 0, DynDataHw.SmbusPorts - 1u) != 0)
+                        throw Context.Error(smbus, "a <pci> with a pm=\"config\" <smbus-host> has one port; port must be 0");
+                }
+            }
             foreach (var vsec in vsecs)
                 anchored.Add((vsec, BuildVsecOp(Context, result, vsec)));
 
@@ -3728,11 +3763,26 @@ namespace CustomBuildTool
                 body.PmAccess = DynDataHw.SmbusPmMmio;
                 ParseView();
                 break;
+            case "config":
+                foreach (string name in new[] { "index-port", "data-port", "base", "length", "enable-mask", "select", "select-mask", "select-alternate", "select-choose", "select-write" })
+                {
+                    if (OptionalAttribute(Host, name) != null)
+                        throw Context.Error(Host, $"{name} is not for pm=\"config\" (configuration registers, one port, no port select)");
+                }
+
+                if (enable == null)
+                    throw Context.Error(Host, "pm=\"config\" needs enable=\"0xREGISTER:0xMASK\", the host enable in configuration space");
+
+                body.PmAccess = DynDataHw.SmbusPmConfig;
+                registerEnd = DynDataHw.PciConfigLength;
+                break;
             default:
-                throw Context.Error(Host, "pm must be \"pair\" or \"mmio\"");
+                throw Context.Error(Host, "pm must be \"pair\", \"mmio\" or \"config\"");
             }
 
-            switch (OptionalAttribute(Host, "select-write") ?? "true")
+            bool config = body.PmAccess == DynDataHw.SmbusPmConfig;
+
+            switch (config ? "true" : OptionalAttribute(Host, "select-write") ?? "true")
             {
             case "true":
                 break;
@@ -3761,12 +3811,16 @@ namespace CustomBuildTool
             body.DecodeLow = Register("decode", decode[0]);
             body.DecodeHigh = Register("decode", decode[1]);
             body.BaseMask = (UInt16)ParseHex(Context, Host, "base-mask", RequiredAttribute(Context, Host, "base-mask"), UInt16.MaxValue);
-            body.EnableMask = (byte)ParseHex(Context, Host, "enable-mask", RequiredAttribute(Context, Host, "enable-mask"), byte.MaxValue);
-            body.Select = Register("select", RequiredAttribute(Context, Host, "select"));
-            body.SelectMask = (byte)ParseHex(Context, Host, "select-mask", RequiredAttribute(Context, Host, "select-mask"), byte.MaxValue);
 
-            if (body.SelectMask != 0)
-                body.SelectShift = (byte)BitOperations.TrailingZeroCount(body.SelectMask);
+            if (!config)
+            {
+                body.EnableMask = (byte)ParseHex(Context, Host, "enable-mask", RequiredAttribute(Context, Host, "enable-mask"), byte.MaxValue);
+                body.Select = Register("select", RequiredAttribute(Context, Host, "select"));
+                body.SelectMask = (byte)ParseHex(Context, Host, "select-mask", RequiredAttribute(Context, Host, "select-mask"), byte.MaxValue);
+
+                if (body.SelectMask != 0)
+                    body.SelectShift = (byte)BitOperations.TrailingZeroCount(body.SelectMask);
+            }
 
             string alternate = OptionalAttribute(Host, "select-alternate");
             string choose = OptionalAttribute(Host, "select-choose");

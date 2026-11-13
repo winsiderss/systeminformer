@@ -4016,6 +4016,7 @@ NTSTATUS KphHwPciReadSmbusHost(
     PKPH_DYN_HW_TABLE table;
     PKPH_DYN_HW_OP op;
     PKPH_DYN_HW_OP hostOp;
+    PKPH_DYN_HW_SMBUS_HOST layout;
     KPH_HW_SMBUS_HOST host;
     BOOLEAN readFailed;
     ULONG barOffset;
@@ -4184,6 +4185,47 @@ NTSTATUS KphHwPciReadSmbusHost(
                 host.HostOp = hostOp;
                 break;
             }
+        }
+
+        layout = (PKPH_DYN_HW_SMBUS_HOST)host.HostOp->Body;
+
+        if (layout->PmAccess == KPH_DYN_HW_SMBUS_PM_CONFIG)
+        {
+            USHORT base;
+
+            if (!KphpHwPciReadConfig(&bus.Interface,
+                                     layout->DecodeLow,
+                                     &base,
+                                     sizeof(base)) ||
+                (base == MAXUSHORT))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SMBus host base register 0x%02lx read failed",
+                              (ULONG)layout->DecodeLow);
+
+                readFailed = TRUE;
+                status = STATUS_DEVICE_NOT_READY;
+                goto Exit;
+            }
+
+            if (!KphpHwPciReadConfig(&bus.Interface,
+                                     layout->GateRegister,
+                                     &host.Hostc,
+                                     sizeof(host.Hostc)) ||
+                (host.Hostc == MAXUCHAR))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "SMBus host enable register 0x%02lx read failed",
+                              (ULONG)layout->GateRegister);
+
+                readFailed = TRUE;
+                status = STATUS_DEVICE_NOT_READY;
+                goto Exit;
+            }
+
+            host.Bar = base;
         }
     }
 

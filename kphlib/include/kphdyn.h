@@ -185,6 +185,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_SMBUS_PORTS                  ((UCHAR)4)
 #define KPH_DYN_HW_SMBUS_PM_PORT_PAIR           ((UCHAR)1)
 #define KPH_DYN_HW_SMBUS_PM_MMIO                ((UCHAR)2)
+#define KPH_DYN_HW_SMBUS_PM_CONFIG              ((UCHAR)3)
 #define KPH_DYN_HW_SMBUS_FLAG_READ_ONLY         ((UCHAR)0x01)
 
 #define KPH_DYN_HW_VSEC_DISCOVERY_PMT_TELEMETRY ((UCHAR)2)
