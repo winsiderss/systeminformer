@@ -2481,9 +2481,6 @@ static VOID PhpHwPrepareLegacyPower(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
 {
-    for (ULONG i = 0; i < PhpHwPackageCount; i++)
-        PhpHwPackages[i].RunningAverage.Disabled = TRUE;
-
     if (!PhpHwLegacyPowerSupported(Capabilities))
         return;
 
@@ -12186,6 +12183,7 @@ static BOOLEAN PhpHwProbeProcessor(
     {
         PhpHwPackages[i].UncoreNamedIndex = ULONG_MAX;
         memset(PhpHwPackages[i].LimitNamedIndex, 0xFF, sizeof(PhpHwPackages[i].LimitNamedIndex));
+        PhpHwPackages[i].RunningAverage.Disabled = TRUE;
     }
 
     PhpHwCancelDimms();
