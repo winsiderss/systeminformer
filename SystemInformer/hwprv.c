@@ -35,6 +35,7 @@
 #define PHP_HW_STRIKE_LIMIT 2 // consecutive transient failures that end an item for the session
 #define PHP_HW_PCI_CONTENDED_LIMIT 2 // consecutive timed-out Access_PCI waits after which ticks stop waiting
 #define PHP_HW_MAX_ROOTS 32
+#define PHP_HW_MAX_PACKAGE_NODES 2 // pre-Zen AMD nodes per package (G34, C32)
 #define PHP_HW_AMD_VENDOR_ID 0x1022
 #define PHP_HW_HYGON_VENDOR_ID 0x1D94
 #define PHP_HW_INTEL_VENDOR_ID 0x8086
@@ -275,6 +276,9 @@ typedef struct _PHP_HW_PACKAGE
     BOOLEAN HasRoot;
     KPH_HW_PCI_LOCATOR Root;
     PHP_HW_ITEM Tctl;
+    ULONG NodeCount; // pre-Zen AMD: the D18F3 functions of the package
+    KPH_HW_PCI_LOCATOR Nodes[PHP_HW_MAX_PACKAGE_NODES];
+    PHP_HW_ITEM NodeTemperature[PHP_HW_MAX_PACKAGE_NODES];
     ULONG CcdMask;
     PHP_HW_ITEM Ccd[PH_HW_MAX_CCD];
     PHP_HW_ITEM MemoryClock;
@@ -681,6 +685,8 @@ static LARGE_INTEGER PhpHwFrequency = { 0 };
 static BOOLEAN PhpHwHistoryInitialized = FALSE;
 
 static BOOLEAN PhpHwRootsEnumerated = FALSE;
+static BOOLEAN PhpHwNodesEnumerated = FALSE;
+static BOOLEAN PhpHwLegacyRootTemperature = FALSE; // 15h M60h-7Fh: ReportedTempCtrl through the root complex B8h/BCh pair
 static BOOLEAN PhpHwSmnPending = FALSE;
 static UCHAR PhpHwPciTimeouts = 0; // consecutive timed-out waits for Access_PCI
 
@@ -1077,11 +1083,16 @@ static BOOLEAN PhpHwInitializeTopology(
 
     if (PhCpuIdentityIsIntel(&PhpHwIdentity))
         PhpHwCpuClass = PhpHwCpuIntel;
-    else if (PhCpuIdentityIsAmd(&PhpHwIdentity))
-        PhpHwCpuClass = PhpHwIdentity.DisplayFamily >= 0x17 ? PhpHwCpuAmdZen : PhpHwCpuAmdLegacy;
+    else if (PhCpuIdentityIsAmd(&PhpHwIdentity) && PhpHwIdentity.DisplayFamily >= 0x17)
+        PhpHwCpuClass = PhpHwCpuAmdZen;
+    else if (PhCpuIdentityIsAmd(&PhpHwIdentity) && PhpHwIdentity.DisplayFamily >= 0x10)
+        PhpHwCpuClass = PhpHwCpuAmdLegacy;
 
-    if (PhpHwCpuClass != PhpHwCpuIntel && PhpHwCpuClass != PhpHwCpuAmdZen)
+    if (PhpHwCpuClass == PhpHwCpuNone)
         return FALSE;
+
+    PhpHwLegacyRootTemperature = PhpHwCpuClass == PhpHwCpuAmdLegacy &&
+        PhpHwIdentity.DisplayFamily == 0x15 && PhpHwIdentity.DisplayModel >= 0x60;
 #endif
 
     PhpHwProcessorCount = PhSystemProcessorInformation.NumberOfProcessors;
@@ -1274,6 +1285,13 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegCoreEnergy, PH_AMD_MSR_CORE_ENERGY_STAT, PhpHwScopeCore);
         PhpHwSetRegister(PhpHwRegPackageEnergy, PH_AMD_MSR_PKG_ENERGY_STAT, PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegRaplUnit, PH_AMD_MSR_RAPL_PWR_UNIT, PhpHwScopePackage);
+        PhpHwSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+    }
+    else if (PhpHwCpuClass == PhpHwCpuAmdLegacy)
+    {
+        PhpHwSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
+        PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
+        PhpHwSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
         PhpHwSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
     }
 }
@@ -1632,6 +1650,13 @@ static BOOLEAN PhpHwSendBatch(
     }
 
     return answered;
+}
+
+static BOOLEAN PhpHwCpuIsAmd(
+    VOID
+    )
+{
+    return PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy;
 }
 
 static BOOLEAN PhpHwIsIntelNehalem(
@@ -2015,6 +2040,193 @@ static VOID PhpHwPrepareSmn(
     {
         if (PhpHwPackages[i].HasRoot)
             PhpHwSmnPending = TRUE;
+    }
+}
+
+/**
+ * Splits the pre-Zen D18F3 functions evenly over the packages in bus order.
+ */
+static VOID PhpHwAssignLegacyNodes(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF hostBridgeClass = PH_STRINGREF_INIT(L"PCI\\CC_0600");
+    static CONST USHORT miscControlIds[] = { 0x1203, 0x1303, 0x1703, 0x1603, 0x1403, 0x141D, 0x1533, 0x1583 }; // D18F3; keep in sync with kphdynhw.xml
+    KPH_HW_PCI_LOCATOR nodes[PHP_HW_MAX_ROOTS];
+    ULONG nodeCount;
+    ULONG step;
+
+    nodeCount = PhpHwFindPciDevices(PHP_HW_AMD_VENDOR_ID, PHP_HW_AMD_VENDOR_ID, &hostBridgeClass, miscControlIds, RTL_NUMBER_OF(miscControlIds), FALSE, nodes, RTL_NUMBER_OF(nodes));
+
+    PhTraceInfo("Hardware sensors: %lu D18F3 functions", nodeCount);
+
+    if (nodeCount == 0)
+        return;
+
+    step = nodeCount / PhpHwPackageCount;
+
+    if (nodeCount % PhpHwPackageCount == 0 && step <= PHP_HW_MAX_PACKAGE_NODES)
+    {
+        for (ULONG i = 0; i < PhpHwPackageCount; i++)
+        {
+            PhpHwPackages[i].NodeCount = step;
+
+            for (ULONG j = 0; j < step; j++)
+                PhpHwPackages[i].Nodes[j] = nodes[i * step + j];
+        }
+    }
+    else
+    {
+        PhpHwPackages[0].NodeCount = 1;
+        PhpHwPackages[0].Nodes[0] = nodes[0];
+    }
+}
+
+/**
+ * Reads and decodes ReportedTempCtrl of a pre-Zen node: D18F3xA4, or D0F0xBC_xD8200CA4 through the root complex
+ * pair, whose caller holds Global\Access_PCI.
+ */
+_Success_(return)
+static BOOLEAN PhpHwReadLegacyTemperature(
+    _In_ PPHP_HW_PACKAGE Package,
+    _In_ ULONG Node,
+    _Out_ PFLOAT Celsius
+    )
+{
+    PPHP_HW_ITEM item = &Package->NodeTemperature[Node];
+    NTSTATUS status;
+    ULONG value;
+
+    if (PhpHwLegacyRootTemperature)
+    {
+        if (!PhpHwReadSmn(Package, item, PH_AMD_D0F0XBC_REPORTED_TEMP_CTRL, &value))
+            return FALSE;
+    }
+    else
+    {
+        if (item->Disabled)
+            return FALSE;
+
+        status = KphHwReadPciConfig(&Package->Nodes[Node], PH_AMD_D18F3_REPORTED_TEMP_CTRL, &value, sizeof(value), NULL);
+
+        if (!PhpHwApplyStatus(item, PH_AMD_D18F3_REPORTED_TEMP_CTRL, status))
+            return FALSE;
+    }
+
+    return PhAmdReportedTempCtrlToCelsius(value, &PhpHwIdentity, Celsius);
+}
+
+static BOOLEAN PhpHwLegacyTemperatureSupported(
+    _In_ const KPH_HW_CAPABILITIES* Capabilities
+    )
+{
+    return PhpHwCpuClass == PhpHwCpuAmdLegacy &&
+        FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
+        FlagOn(Capabilities->ImplementedKinds, 1ULL << (PhpHwLegacyRootTemperature ? KPH_DYN_HW_KIND_PCI_INDIRECT_READ : KPH_DYN_HW_KIND_PCI_READ));
+}
+
+/**
+ * Enables the D18F3 temperature of each pre-Zen node that reads and decodes.
+ */
+static VOID PhpHwPrepareLegacyTemperature(
+    _In_ const KPH_HW_CAPABILITIES* Capabilities
+    )
+{
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        for (ULONG j = 0; j < PHP_HW_MAX_PACKAGE_NODES; j++)
+            PhpHwPackages[i].NodeTemperature[j].Disabled = TRUE;
+    }
+
+    if (!PhpHwLegacyTemperatureSupported(Capabilities))
+        return;
+
+    if (PhpHwLegacyRootTemperature)
+    {
+        BOOLEAN locked;
+
+        if (!PhpHwRootsEnumerated)
+        {
+            PhpHwRootsEnumerated = TRUE;
+            PhpHwAssignRootComplexes();
+        }
+
+        // Without Access_PCI the first read waits for a tick that gets it.
+        locked = PhpHwAcquirePciMutant();
+
+        for (ULONG i = 0; i < PhpHwPackageCount; i++)
+        {
+            PPHP_HW_PACKAGE package = &PhpHwPackages[i];
+            FLOAT celsius;
+
+            package->NodeCount = package->HasRoot ? 1 : 0;
+
+            if (!package->NodeCount)
+                continue;
+
+            package->NodeTemperature[0].Disabled = FALSE;
+            package->NodeTemperature[0].RetryCount = 0;
+
+            if (locked && !PhpHwReadLegacyTemperature(package, 0, &celsius))
+                package->NodeTemperature[0].Disabled = TRUE;
+        }
+
+        if (locked)
+            PhpHwReleasePciMutant();
+
+        return;
+    }
+
+    if (!PhpHwNodesEnumerated)
+    {
+        PhpHwNodesEnumerated = TRUE;
+        PhpHwAssignLegacyNodes();
+    }
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PPHP_HW_PACKAGE package = &PhpHwPackages[i];
+
+        for (ULONG j = 0; j < package->NodeCount; j++)
+        {
+            FLOAT celsius;
+
+            package->NodeTemperature[j].Disabled = FALSE;
+            package->NodeTemperature[j].RetryCount = 0;
+
+            if (!PhpHwReadLegacyTemperature(package, j, &celsius))
+                package->NodeTemperature[j].Disabled = TRUE;
+        }
+    }
+}
+
+/**
+ * Decodes the package temperature of a pre-Zen package: the hottest of its nodes.
+ */
+static VOID PhpHwDecodeLegacyTemperature(
+    _In_ ULONG Index
+    )
+{
+    PPHP_HW_PACKAGE package = &PhpHwPackages[Index];
+    PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[Index];
+    BOOLEAN found = FALSE;
+    FLOAT maximum = 0.0f;
+
+    for (ULONG j = 0; j < package->NodeCount; j++)
+    {
+        FLOAT celsius;
+
+        if (PhpHwReadLegacyTemperature(package, j, &celsius) && (!found || celsius > maximum))
+        {
+            maximum = celsius;
+            found = TRUE;
+        }
+    }
+
+    if (found)
+    {
+        sensor->Temperature = maximum;
+        package->TickValid |= PH_HW_CAP_PACKAGE_TEMP;
     }
 }
 
@@ -10150,7 +10362,7 @@ static VOID PhpHwRefreshCapabilities(
             capabilities |= PH_HW_CAP_ACTIVE_CLOCK;
 
             // The AMD multiplier is derived from the active clock.
-            if (PhpHwCpuClass == PhpHwCpuAmdZen)
+            if (PhpHwCpuIsAmd())
                 capabilities |= PH_HW_CAP_MULTIPLIER;
         }
     }
@@ -10210,6 +10422,12 @@ static VOID PhpHwRefreshCapabilities(
 
         if (package->UncoreNamedIndex != ULONG_MAX && PhpHwRegisterActive(PhpHwRegUncorePerfStatus))
             capabilities |= PH_HW_CAP_UNCORE_CLOCK;
+
+        for (ULONG j = 0; j < package->NodeCount; j++)
+        {
+            if (!package->NodeTemperature[j].Disabled)
+                capabilities |= PH_HW_CAP_PACKAGE_TEMP;
+        }
 
         if (!package->HasRoot)
             continue;
@@ -10413,7 +10631,7 @@ static VOID PhpHwProbeDecode(
                 PhpHwDecodeMsrPowerLimit(package, value);
             }
         }
-        else if (PhpHwCpuClass == PhpHwCpuAmdZen)
+        else if (PhpHwCpuIsAmd())
         {
             // MPERF counts at the P0 frequency.
             if (PhpHwSampleValue(&package->Sample, PhpHwRegPStateDef0, &value))
@@ -10447,7 +10665,7 @@ static VOID PhpHwProbeDecode(
             {
                 PhpHwVoltageSupported = PhIntelPerfStatusToVolts(value, &PhpHwIdentity) > 0.0f;
             }
-            else if (PhpHwCpuClass == PhpHwCpuAmdZen)
+            else if (PhpHwCpuIsAmd())
             {
                 UCHAR vid;
 
@@ -11432,7 +11650,7 @@ static BOOLEAN PhpHwProbeProcessor(
         PhTraceInfo("Hardware sensors: no MSR access, flags 0x%lx kinds 0x%llx", Capabilities->Flags, Capabilities->ImplementedKinds);
 
         // The SMBus and TPMI sensors do not depend on a CPU row.
-        if (PhpHwCpuClass == PhpHwCpuAmdZen)
+        if (PhpHwCpuClass != PhpHwCpuIntel)
             return FALSE;
 
         memset(PhpHwRegisters, 0, sizeof(PhpHwRegisters));
@@ -11486,6 +11704,7 @@ static BOOLEAN PhpHwProbeProcessor(
 
     PhpHwProbeDecode();
     PhpHwPrepareSmn(Capabilities);
+    PhpHwPrepareLegacyTemperature(Capabilities);
 
     if (PhpHwSmnPending && PhpHwAcquirePciMutant())
     {
@@ -11792,9 +12011,9 @@ static VOID PhpHwDecodeProcessor(
             package->TickValid |= PH_HW_CAP_THROTTLE;
         }
     }
-    else if (PhpHwCpuClass == PhpHwCpuAmdZen)
+    else if (PhpHwCpuIsAmd())
     {
-        // HwPstateStatus reports the requested P-state, not the boosted ratio.
+        // HwPstateStatus and COFVID_STATUS report the requested P-state, not the boosted ratio.
         if ((valid & PH_HW_CAP_ACTIVE_CLOCK) && packageSensor->BusMhz > 0.0f)
         {
             sensor->Multiplier = sensor->ActiveMhz / packageSensor->BusMhz;
@@ -12159,6 +12378,16 @@ static VOID PhpHwUpdateSensors(
 
             PhpHwReleasePciMutant();
         }
+    }
+
+    // The root complex pair runs only under Global\Access_PCI, like the SMN reads.
+    if (PhpHwLegacyTemperatureSupported(&PhpHwProbeCapabilities) && (!PhpHwLegacyRootTemperature || PhpHwAcquirePciMutant()))
+    {
+        for (ULONG i = 0; i < PhpHwPackageCount; i++)
+            PhpHwDecodeLegacyTemperature(i);
+
+        if (PhpHwLegacyRootTemperature)
+            PhpHwReleasePciMutant();
     }
 
     // One batch per window per tick serves every consumer of the window.
