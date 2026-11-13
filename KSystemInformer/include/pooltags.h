@@ -129,7 +129,7 @@
 
 // kphthread
 
-#define KPH_TAG_THREAD_START_CONTEXT             '0rpK'
+#define KPH_TAG_THREAD_START_CONTEXT            '0rpK'
 
 // hw
 
