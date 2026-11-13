@@ -102,6 +102,7 @@
 #define PHP_HW_ARM_PROBE_REGISTERS 6 // ARM64 thread-scope registers of the plan, probed on every LP
 #define PHP_HW_ARM_AMU_COUNTERS 0x3 // AMCNTENSET0_EL0: CPU_CYCLES and CNT_CYCLES enabled
 #define PHP_HW_MAX_FANS 32 // entries of the fan worker: fans, DPTF participants, power meters, DPTF power getters
+#define PHP_HW_THINKPAD_SENSORS 8 // TMP0-TMP7, the acpi_eval ops of the PNP0C09 row
 #define PHP_HW_FAN_INTERVAL_MS 2000 // at least this long between evaluations of a device
 #define PHP_HW_FAN_TIMEOUT_MS 500 // per evaluation
 #define PHP_HW_FAN_STRIKE_LIMIT 2 // consecutive timed-out evaluations that end a device for the session
@@ -536,7 +537,8 @@ typedef enum _PHP_HW_ACPI_KIND
     PhpHwAcpiDptfPower, // Intel DPTF power (PTYP 11h) or battery (0Ch) participant: one entry per getter (PMAX, PBSS, PROP)
     PhpHwAcpiAtk, // ASUS ATK0110: expanded into PhpHwAcpiAtkReading entries at session start
     PhpHwAcpiAtkReading, // one ATK0110 sensor: RTMP, RVLT or RFAN of an id
-    PhpHwAcpiDytc // Lenovo ThinkPad HKEY: DYTC read once for the report
+    PhpHwAcpiDytc, // Lenovo ThinkPad HKEY: DYTC read once for the report
+    PhpHwAcpiThinkPadTemperature // PNP0C09 on a ThinkPad: one entry per TMP0-TMP7, the op index
 } PHP_HW_ACPI_KIND;
 
 // An ACPI device the fan worker evaluates periodically.
@@ -5454,6 +5456,10 @@ static PPH_BYTES PhpHwGetDeviceAcpiPath(
     _In_ PSP_DEVINFO_DATA DeviceInfoData
     );
 
+static PCSTR PhpHwAcpiLastSegment(
+    _In_ PPH_BYTES Path
+    );
+
 static BOOLEAN PhpHwGetDeviceString(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
@@ -6760,6 +6766,30 @@ static PHP_HW_FAN_DECODE PhpHwDecodeDptfTemperature(
     return PhpHwFanDecodeOk;
 }
 
+/**
+ * Decodes a ThinkPad EC TMPn reading: signed degrees C; outside -127 to 127 the sensor is absent.
+ */
+static PHP_HW_FAN_DECODE PhpHwDecodeThinkPadTemperature(
+    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_ ULONG Length,
+    _Out_ PFLOAT Celsius
+    )
+{
+    ULONG64 value;
+    LONG celsius;
+
+    if (!PhpHwAcpiReadInteger(Buffer, Length, &value))
+        return PhpHwFanDecodeMalformed;
+
+    celsius = (LONG)(ULONG)value;
+
+    if (celsius > 127 || celsius < -127)
+        return PhpHwFanDecodeUnknown;
+
+    *Celsius = (FLOAT)celsius;
+    return PhpHwFanDecodeOk;
+}
+
 static BOOLEAN PhpHwFanSupported(
     _In_ const KPH_HW_CAPABILITIES* Capabilities
     )
@@ -7044,6 +7074,41 @@ static BOOLEAN PhpHwIsDytc(
 }
 
 /**
+ * Determines whether a device is a ThinkPad hotkey device (IBM0068, LEN0068, LEN0268) by its hardware ID; keep in
+ * sync with the require group of the kphdynhw.xml PNP0C09 row.
+ */
+static BOOLEAN PhpHwIsThinkPadHotkey(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData
+    )
+{
+    static CONST PH_STRINGREF hotkeyIds[] =
+    {
+        PH_STRINGREF_INIT(L"ACPI\\IBM0068"), PH_STRINGREF_INIT(L"*IBM0068"),
+        PH_STRINGREF_INIT(L"ACPI\\LEN0068"), PH_STRINGREF_INIT(L"*LEN0068"),
+        PH_STRINGREF_INIT(L"ACPI\\LEN0268"), PH_STRINGREF_INIT(L"*LEN0268"),
+    };
+
+    return PhpHwHasHardwareId(DeviceInfoSet, DeviceInfoData, hotkeyIds, RTL_NUMBER_OF(hotkeyIds));
+}
+
+/**
+ * Determines whether a device is an ACPI embedded controller (PNP0C09) by its hardware ID.
+ */
+static BOOLEAN PhpHwIsAcpiEc(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData
+    )
+{
+    static CONST PH_STRINGREF ecIds[] =
+    {
+        PH_STRINGREF_INIT(L"ACPI\\PNP0C09"), PH_STRINGREF_INIT(L"*PNP0C09"),
+    };
+
+    return PhpHwHasHardwareId(DeviceInfoSet, DeviceInfoData, ecIds, RTL_NUMBER_OF(ecIds));
+}
+
+/**
  * Determines whether a device is an ACPI power meter (ACPI000D) by its hardware ID.
  */
 static BOOLEAN PhpHwIsPowerMeter(
@@ -7121,6 +7186,9 @@ static ULONG PhpHwFindAcpiFans(
     HDEVINFO deviceInfoSet;
     SP_DEVINFO_DATA deviceInfoData;
     ULONG found = 0;
+    PPH_BYTES ecPaths[2];
+    ULONG ecCount = 0;
+    BOOLEAN thinkPad = FALSE;
 
     deviceInfoSet = SetupDiGetClassDevsW(NULL, L"ACPI", NULL, DIGCF_ALLCLASSES | DIGCF_PRESENT);
 
@@ -7135,6 +7203,18 @@ static ULONG PhpHwFindAcpiFans(
         WCHAR name[128];
         PPH_BYTES path;
         PHP_HW_ACPI_KIND kind;
+
+        if (PhpHwIsThinkPadHotkey(deviceInfoSet, &deviceInfoData))
+            thinkPad = TRUE;
+
+        // The EC temperatures are listed after the scan, and only on a ThinkPad.
+        if (PhpHwIsAcpiEc(deviceInfoSet, &deviceInfoData))
+        {
+            if (ecCount < RTL_NUMBER_OF(ecPaths) && (path = PhpHwGetDeviceAcpiPath(deviceInfoSet, &deviceInfoData)))
+                ecPaths[ecCount++] = path;
+
+            continue;
+        }
 
         if (PhpHwIsAcpiFan(deviceInfoSet, &deviceInfoData))
             kind = PhpHwAcpiFan;
@@ -7193,6 +7273,24 @@ static ULONG PhpHwFindAcpiFans(
     }
 
     SetupDiDestroyDeviceInfoList(deviceInfoSet);
+
+    for (ULONG i = 0; i < ecCount; i++)
+    {
+        PPH_BYTES path = ecPaths[i];
+
+        for (ULONG j = 0; thinkPad && j < PHP_HW_THINKPAD_SENSORS && found < Count; j++)
+        {
+            memset(&Fans[found], 0, sizeof(PHP_HW_FAN));
+            Fans[found].Path = PhReferenceObject(path);
+            Fans[found].Kind = PhpHwAcpiThinkPadTemperature;
+            Fans[found].Op = (UCHAR)j;
+            Fans[found].Probed = TRUE;
+            Names[found] = PhFormatString(L"%hs TMP%lu", PhpHwAcpiLastSegment(path), j);
+            found++;
+        }
+
+        PhDereferenceObject(path);
+    }
 
     return found;
 }
@@ -7382,6 +7480,7 @@ static PH_HW_NAMED_SENSOR_KIND PhpHwAcpiSensorKind(
     case PhpHwAcpiFan:
         return PhHwNamedSensorFanSpeed;
     case PhpHwAcpiDptfTemperature:
+    case PhpHwAcpiThinkPadTemperature:
         return PhHwNamedSensorAcpiTemperature;
     case PhpHwAcpiAtkReading:
         if (Fan->Op == PHP_HW_ATK_OP_RTMP)
@@ -8395,6 +8494,7 @@ static VOID PhpHwReadFans(
             break;
         case PhpHwAcpiDptfPower:
         case PhpHwAcpiAtkReading:
+        case PhpHwAcpiThinkPadTemperature:
             status = PhpHwEvalFanOp(fan, fan->Op, buffer, &returnLength);
             break;
         default:
@@ -8418,6 +8518,10 @@ static VOID PhpHwReadFans(
             else if (fan->Kind == PhpHwAcpiAtkReading)
             {
                 decode = PhpHwDecodeAtkReading(fan, buffer, returnLength, &value);
+            }
+            else if (fan->Kind == PhpHwAcpiThinkPadTemperature)
+            {
+                decode = PhpHwDecodeThinkPadTemperature(buffer, returnLength, &value);
             }
             else
             {
@@ -14513,10 +14617,10 @@ VOID PhHwWriteDiagnostics(
 
     for (ULONG i = 0; i < fanCount; i++)
     {
-        static CONST PCWSTR kindNames[] = { L"fan", L"DPTF participant", L"power meter", L"DPTF power participant", L"ATK0110", L"ATK0110 sensor", L"DYTC" };
+        static CONST PCWSTR kindNames[] = { L"fan", L"DPTF participant", L"power meter", L"DPTF power participant", L"ATK0110", L"ATK0110 sensor", L"DYTC", L"ThinkPad EC temperature" };
         PPHP_HW_ACPI_REPORT report = &acpi[i];
 
-        C_ASSERT(RTL_NUMBER_OF(kindNames) == PhpHwAcpiDytc + 1);
+        C_ASSERT(RTL_NUMBER_OF(kindNames) == PhpHwAcpiThinkPadTemperature + 1);
 
         PhAppendFormatStringBuilder(Builder, L"  %hs: %s", report->Path, kindNames[report->Kind < RTL_NUMBER_OF(kindNames) ? report->Kind : 0]);
 
