@@ -3610,6 +3610,9 @@ This file is part of System Informer.
         <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
         <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
         <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+        <msr reg="0xc001007a" gate="80000007h:edx:12" desc="CU_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc001007b" gate="80000007h:edx:12" desc="CU_MAX_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc0010280" gate="80000007h:edx:12" desc="PTSC, performance timestamp counter (core)"/>
     </cpu>
 
     <cpu vendor="AuthenticAMD"
@@ -3626,6 +3629,9 @@ This file is part of System Informer.
         <msr reg="0xc001006a" desc="PStateDef[6] (core)"/>
         <msr reg="0xc001006b" desc="PStateDef[7] (core)"/>
         <msr reg="0xc0010071" desc="COFVID_STATUS (core)"/>
+        <msr reg="0xc001007a" gate="80000007h:edx:12" desc="CU_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc001007b" gate="80000007h:edx:12" desc="CU_MAX_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc0010280" gate="80000007h:edx:12" desc="PTSC, performance timestamp counter (core)"/>
     </cpu>
 
     <cpu vendor="AuthenticAMD"
@@ -3648,6 +3654,9 @@ This file is part of System Informer.
                 <value desc="D0F0xBC_xD8200C64 HTC">0xd8200c64</value>
             </indirect>
         </pci>
+        <msr reg="0xc001007a" gate="80000007h:edx:12" desc="CU_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc001007b" gate="80000007h:edx:12" desc="CU_MAX_PWR_ACCUMULATOR (compute unit)"/>
+        <msr reg="0xc0010280" gate="80000007h:edx:12" desc="PTSC, performance timestamp counter (core)"/>
     </cpu>
 
     <pci vendor="0x1022"
@@ -3720,6 +3729,19 @@ This file is part of System Informer.
         <read offset="0xa4" length="0x4"/>
         <read offset="0xd4" length="0x4"/>
         <read offset="0xe8" length="0x4"/>
+    </pci>
+
+    <pci vendor="0x1022"
+         device="0x1604,0x141e,0x1574,0x15b4,0x1534,0x1584"
+         desc="Family 15h M00h/M30h/M60h/M70h and 16h M00h/M30h D18F4">
+        <read offset="0x1b8" length="0x4" desc="processor TDP: base TDP [31:16], TDP [15:0]"/>
+    </pci>
+
+    <pci vendor="0x1022"
+         device="0x1605,0x141f,0x1575,0x15b5,0x1535,0x1585"
+         desc="Family 15h M00h/M30h/M60h/M70h and 16h M00h/M30h D18F5">
+        <read offset="0xe0" length="0x4" desc="TDP running average"/>
+        <read offset="0xe8" length="0x4" desc="TDP limit 3: TDP-to-watts scale"/>
     </pci>
 
     <pci vendor="0x1022"
