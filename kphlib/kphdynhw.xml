@@ -4211,6 +4211,58 @@ This file is part of System Informer.
     </superio>
 
     <superio slots="0,1"
+             family="nuvoton"
+             chassis="0x01-0x07,0x0f-0x1d"
+             chips="0x5210,0x5230,0x5240"
+             mask="0xfff0"
+             ldn="0x0b"
+             bank-mask="0x87"
+             desc="W83627HF">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
+        <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
+        <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
+        <read reg="0x0020" length="0x1e" desc="voltage inputs 20h-26h, temperature 27h, fan counts 28h-2Ah, limits 2Bh-3Dh"/>
+        <read reg="0x0040" length="0x1" desc="configuration, bit 0 monitoring started (41h-46h SMI status excluded)"/>
+        <read reg="0x0047" length="0x5" desc="fan divisor and VID 47h, 48h, VID4 49h, 4Ah, fan 3 divisor 4Bh"/>
+        <read reg="0x0056" length="0x8" desc="beep 56h/57h, chip ID 58h, configuration 59h, PWM duty 5Ah/5Bh, PWM frequency 5Ch, VBAT and fan divisor bit 2 5Dh"/>
+        <read reg="0x0150" length="0x7" desc="temperature 2 150h/151h, config 152h, limits 153h-156h"/>
+        <read reg="0x0250" length="0x7" desc="temperature 3 250h/251h, config 252h, limits 253h-256h"/>
+        <read reg="0x0453" length="0x1" desc="beep control 453h"/>
+        <read reg="0x0459" length="0x3" desc="real-time alarm 459h-45Bh"/>
+        <read reg="0x0550" length="0x2" desc="voltage inputs 550h/551h"/>
+        <read reg="0x0554" length="0x4" desc="voltage limits 554h-557h"/>
+    </superio>
+
+    <superio slots="0,1"
+             family="nuvoton"
+             chassis="0x01-0x07,0x0f-0x1d"
+             chips="0x8280,0x8540"
+             mask="0xfff0"
+             ldn="0x0b"
+             bank-mask="0x87"
+             desc="W83627THF, W83687THF">
+        <id reg="0x804f" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
+        <id reg="0x004f" value="0xa3" desc="HWM vendor ID low, bank 0"/>
+        <read reg="0x004f" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
+        <read reg="0x804f" length="0x1" desc="HWM vendor ID high (5Ch), bank 80h"/>
+        <read reg="0x0000" length="0x5" desc="PWM frequency 00h/02h, duty 01h/03h, mode 04h"/>
+        <read reg="0x0010" length="0x3" desc="PWM frequency 10h, duty 11h, mode 12h"/>
+        <read reg="0x0018" length="0x1" desc="VRM and overtemperature configuration"/>
+        <read reg="0x0020" length="0x1e" desc="voltage inputs 20h-24h, temperature 27h, fan counts 28h-2Ah, limits 2Bh-3Dh"/>
+        <read reg="0x0040" length="0x1" desc="configuration, bit 0 monitoring started (41h-46h SMI status excluded)"/>
+        <read reg="0x0047" length="0x5" desc="fan divisor 47h, 48h, 49h, 4Ah, fan 3 divisor 4Bh"/>
+        <read reg="0x0056" length="0x4" desc="beep 56h/57h, chip ID 58h, configuration 59h"/>
+        <read reg="0x005d" length="0x1" desc="VBAT and fan divisor bit 2"/>
+        <read reg="0x0150" length="0x7" desc="temperature 2 150h/151h, config 152h, limits 153h-156h"/>
+        <read reg="0x0250" length="0x7" desc="temperature 3 250h/251h, config 252h, limits 253h-256h"/>
+        <read reg="0x0453" length="0x1" desc="beep control 453h"/>
+        <read reg="0x0459" length="0x3" desc="real-time alarm 459h-45Bh"/>
+        <read reg="0x0550" length="0x2" desc="voltage inputs 550h/551h"/>
+        <read reg="0x0554" length="0x4" desc="voltage limits 554h-557h"/>
+    </superio>
+
+    <superio slots="0,1"
              family="nuvoton-ec"
              chassis="0x01-0x07,0x0f-0x1d"
              chips="0xc730,0xd440,0xd590"
@@ -4314,6 +4366,25 @@ This file is part of System Informer.
         <read reg="0x96" length="0x1" desc="fan mode 96h (2 bits per fan)"/>
         <read reg="0x98" length="0x2" desc="fan hysteresis 98h + n"/>
         <read reg="0xa0" length="0x40" desc="fan n at A0h + 16n: count, target A2h, duty A3h, full speed A4h, auto points A6h-AFh"/>
+    </superio>
+
+    <superio slots="0,1"
+             family="fintek"
+             chassis="0x01-0x07,0x0f-0x1d"
+             chips="0x0406,0x0341"
+             ldn="0x04"
+             config-id="0x23:0x1934"
+             desc="Fintek F71805F and F71872F; status 36h-38h stay out">
+        <read reg="0x00" length="0x2" desc="configuration 00h, temperature sensor type 01h"/>
+        <read reg="0x10" length="0xe" desc="voltages 10h-1Ah, temperatures 1Bh-1Dh"/>
+        <read reg="0x20" length="0x10" desc="fan counts 20h-25h (MSB first), fan low limits 28h-2Dh, voltage 10 limits 2Eh/2Fh"/>
+        <read reg="0x40" length="0x1a" desc="voltage limits 40h-53h, temperature limits and hysteresis 54h-59h"/>
+        <read reg="0x60" length="0xc" desc="fan 1 control, PWM frequency, target, duty"/>
+        <read reg="0x70" length="0xc" desc="fan 2 control, PWM frequency, target, duty"/>
+        <read reg="0x80" length="0xc" desc="fan 3 control, PWM frequency, target, duty"/>
+        <read reg="0xa0" length="0xa" desc="fan 1 auto points: temperatures, speeds"/>
+        <read reg="0xb0" length="0xa" desc="fan 2 auto points: temperatures, speeds"/>
+        <read reg="0xc0" length="0xa" desc="fan 3 auto points: temperatures, speeds"/>
     </superio>
 
     <pci vendor="0x8086"
