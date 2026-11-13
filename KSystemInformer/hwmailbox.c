@@ -630,7 +630,6 @@ NTSTATUS KphpHwMailboxWait(
  * repeated until RSP holds it, since nothing of ours is in flight.
  *
  * \param[in] Session The mailbox session.
- * \param[in] Deadline The deadline of the request.
  * \param[in] Idle The non-zero RSP value the idle poll read.
  *
  * \return Successful or errant status.
@@ -640,7 +639,6 @@ _Requires_lock_held_(KphpHwMailboxLock)
 _Must_inspect_result_
 NTSTATUS KphpHwMailboxRestoreIdle(
     _In_ PKPH_HW_MAILBOX_SESSION Session,
-    _In_ ULONG64 Deadline,
     _In_ ULONG Idle
     )
 {
@@ -667,18 +665,6 @@ NTSTATUS KphpHwMailboxRestoreIdle(
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
                           "Mailbox 0x%08lx RSP not restored: %!STATUS!",
-                          Session->Msg,
-                          status);
-
-            return STATUS_DEVICE_DATA_ERROR;
-        }
-
-        if (KphHwDeadlinePassed(Deadline))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "Mailbox 0x%08lx RSP not restored by the deadline: "
-                          "%!STATUS!",
                           Session->Msg,
                           status);
 
@@ -1107,7 +1093,7 @@ Exit:
     {
         NTSTATUS restoreStatus;
 
-        restoreStatus = KphpHwMailboxRestoreIdle(Session, Deadline, idle);
+        restoreStatus = KphpHwMailboxRestoreIdle(Session, idle);
         if (!NT_SUCCESS(restoreStatus))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
