@@ -883,13 +883,16 @@ BOOLEAN NTAPI PhAmdReportedTempCtrlToCelsius(
  *
  * \param PState PStateDef, HwPstateStatus (Zen) or COFVID_STATUS (pre-Zen).
  * \param Identity The CPU identity.
+ * \param ClockPowerTimingControl0 D18F3xD4 (Family 14h: MainPllOpFreqId [5:0]); 0 when unavailable.
  * \return The core frequency in MHz, or 0 when undecodable.
  */
 static FLOAT PhpAmdCoreCofMhz(
     _In_ ULONG64 PState,
-    _In_ PCPH_CPU_IDENTITY Identity
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _In_ ULONG ClockPowerTimingControl0
     )
 {
+    static CONST FLOAT family12hDivisors[] = { 1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 6.0f, 8.0f, 12.0f, 16.0f };
     ULONG fid;
     ULONG did;
 
@@ -923,6 +926,26 @@ static FLOAT PhpAmdCoreCofMhz(
         did = (ULONG)(PState >> 6) & 0x7;
 
         return 100.0f * (FLOAT)(fid + 0x10) / (FLOAT)(1UL << did);
+    case 0x12:
+        // CpuFid [8:4], CpuDid [3:0] indexes the divisor table.
+        fid = (ULONG)(PState >> 4) & 0x1F;
+        did = (ULONG)PState & 0xF;
+
+        if (did >= RTL_NUMBER_OF(family12hDivisors))
+            return 0.0f;
+
+        return 100.0f * (FLOAT)(fid + 0x10) / family12hDivisors[did];
+    case 0x14:
+        {
+            // The main PLL runs at (MainPllOpFreqId + 10h) x 100 MHz; CpuDidMSD [8:4] + CpuDidLSD [3:0] / 4 + 1 divides it.
+            ULONG msd = (ULONG)(PState >> 4) & 0x1F;
+            ULONG lsd = (ULONG)PState & 0xF;
+
+            if (!ClockPowerTimingControl0)
+                return 0.0f;
+
+            return 100.0f * (FLOAT)((ClockPowerTimingControl0 & 0x3F) + 0x10) / ((FLOAT)msd + (FLOAT)lsd * 0.25f + 1.0f);
+        }
     default:
         return 0.0f;
     }
@@ -933,17 +956,19 @@ static FLOAT PhpAmdCoreCofMhz(
  *
  * \param PStateDef The MSR value.
  * \param Identity The CPU identity.
+ * \param ClockPowerTimingControl0 D18F3xD4, needed by Family 14h; 0 when unavailable.
  * \return The core frequency in MHz, or 0 when PstateEn (bit 63) is clear or undecodable.
  */
 FLOAT NTAPI PhAmdPStateDefToMhz(
     _In_ ULONG64 PStateDef,
-    _In_ PCPH_CPU_IDENTITY Identity
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _In_ ULONG ClockPowerTimingControl0
     )
 {
     if (!(PStateDef & (1ULL << 63)))
         return 0.0f;
 
-    return PhpAmdCoreCofMhz(PStateDef, Identity);
+    return PhpAmdCoreCofMhz(PStateDef, Identity, ClockPowerTimingControl0);
 }
 
 /**
@@ -951,14 +976,16 @@ FLOAT NTAPI PhAmdPStateDefToMhz(
  *
  * \param HwPStateStatus The MSR value.
  * \param Identity The CPU identity.
+ * \param ClockPowerTimingControl0 D18F3xD4, needed by Family 14h; 0 when unavailable.
  * \return The core frequency in MHz, or 0 when undecodable.
  */
 FLOAT NTAPI PhAmdHwPStateStatusToMhz(
     _In_ ULONG64 HwPStateStatus,
-    _In_ PCPH_CPU_IDENTITY Identity
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _In_ ULONG ClockPowerTimingControl0
     )
 {
-    return PhpAmdCoreCofMhz(HwPStateStatus, Identity);
+    return PhpAmdCoreCofMhz(HwPStateStatus, Identity, ClockPowerTimingControl0);
 }
 
 /**

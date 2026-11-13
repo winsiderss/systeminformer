@@ -84,6 +84,7 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 
 // AMD D18F3 / D0F0xBC index
 #define PH_AMD_D18F3_REPORTED_TEMP_CTRL 0xA4
+#define PH_AMD_D18F3_CLOCK_POWER_TIMING_CONTROL0 0xD4 // Family 14h: [5:0] MainPllOpFreqId
 #define PH_AMD_D0F0XBC_REPORTED_TEMP_CTRL 0xD8200CA4
 
 // AMD D18F4 / D18F5, families 15h and 16h
@@ -382,7 +383,8 @@ FLOAT
 NTAPI
 PhAmdPStateDefToMhz(
     _In_ ULONG64 PStateDef,
-    _In_ PCPH_CPU_IDENTITY Identity
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _In_ ULONG ClockPowerTimingControl0
     );
 
 PHLIBAPI
@@ -390,7 +392,8 @@ FLOAT
 NTAPI
 PhAmdHwPStateStatusToMhz(
     _In_ ULONG64 HwPStateStatus,
-    _In_ PCPH_CPU_IDENTITY Identity
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _In_ ULONG ClockPowerTimingControl0
     );
 
 _Success_(return)

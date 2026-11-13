@@ -694,6 +694,7 @@ static BOOLEAN PhpHwHistoryInitialized = FALSE;
 static BOOLEAN PhpHwRootsEnumerated = FALSE;
 static BOOLEAN PhpHwNodesEnumerated = FALSE;
 static BOOLEAN PhpHwPowerNodesEnumerated = FALSE;
+static ULONG PhpHwClockPowerTimingControl0 = 0; // Family 14h D18F3xD4: the main PLL frequency of the P-states
 static BOOLEAN PhpHwLegacyRootTemperature = FALSE; // 15h M60h-7Fh: ReportedTempCtrl through the root complex B8h/BCh pair
 static BOOLEAN PhpHwSmnPending = FALSE;
 static UCHAR PhpHwPciTimeouts = 0; // consecutive timed-out waits for Access_PCI
@@ -10765,6 +10766,25 @@ static VOID PhpHwProbeDecode(
     PhpHwPowerUnit = 0.0f;
     PhpHwVoltageSupported = FALSE;
     PhpHwTctlOffset = 0.0f;
+    PhpHwClockPowerTimingControl0 = 0;
+
+    // The Family 14h P-states divide the main PLL, whose frequency is in D18F3xD4 of the first node.
+    if (PhpHwCpuClass == PhpHwCpuAmdLegacy && PhpHwIdentity.DisplayFamily == 0x14)
+    {
+        ULONG clockControl;
+
+        if (!PhpHwNodesEnumerated)
+        {
+            PhpHwNodesEnumerated = TRUE;
+            PhpHwAssignLegacyNodes();
+        }
+
+        if (PhpHwPackages[0].NodeCount &&
+            NT_SUCCESS(KphHwReadPciConfig(&PhpHwPackages[0].Nodes[0], PH_AMD_D18F3_CLOCK_POWER_TIMING_CONTROL0, &clockControl, sizeof(clockControl), NULL)))
+        {
+            PhpHwClockPowerTimingControl0 = clockControl;
+        }
+    }
 
     raplUnitValid = PhpHwSampleValue(sample0, PhpHwRegRaplUnit, &raplUnit);
 
@@ -10809,7 +10829,7 @@ static VOID PhpHwProbeDecode(
         {
             // MPERF counts at the P0 frequency.
             if (PhpHwSampleValue(&package->Sample, PhpHwRegPStateDef0, &value))
-                baseMhz = PhAmdPStateDefToMhz(value, &PhpHwIdentity);
+                baseMhz = PhAmdPStateDefToMhz(value, &PhpHwIdentity, PhpHwClockPowerTimingControl0);
         }
         else if (PhpHwCpuClass == PhpHwCpuCentaur)
         {
@@ -12203,7 +12223,7 @@ static VOID PhpHwDecodeProcessor(
 
         if (PhpHwSampleValue(core, PhpHwRegPerfStatus, &value))
         {
-            FLOAT mhz = PhAmdHwPStateStatusToMhz(value, &PhpHwIdentity);
+            FLOAT mhz = PhAmdHwPStateStatusToMhz(value, &PhpHwIdentity, PhpHwClockPowerTimingControl0);
             UCHAR vid;
 
             if (!(valid & PH_HW_CAP_MULTIPLIER) && mhz > 0.0f && packageSensor->BusMhz > 0.0f)
