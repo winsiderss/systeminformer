@@ -4519,11 +4519,14 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
         {
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
+            SetDlgItemCheckForSetting(hwndDlg, IDC_TASKMANAGERSTYLE, SETTING_GRAPH_TASK_MANAGER_STYLE);
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             // Graph mode: smooth drawing and old colors are independent.
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESMOOTHGRAPHS), PH_GRAPH_MODE_IS_SMOOTH(PhCsGraphColorMode) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_USEOLDCOLORS), PH_GRAPH_MODE_IS_OLD_COLORS(PhCsGraphColorMode) ? BST_CHECKED : BST_UNCHECKED);
+            // The Task Manager style uses a fixed palette and only applies to new colors.
+            EnableWindow(GetDlgItem(hwndDlg, IDC_TASKMANAGERSTYLE), !PH_GRAPH_MODE_IS_OLD_COLORS(PhCsGraphColorMode));
 
             // Highlighting
             PhpGraphListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -4547,6 +4550,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     case WM_DESTROY:
         {
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
+            SetSettingForDlgItemCheck(hwndDlg, IDC_TASKMANAGERSTYLE, SETTING_GRAPH_TASK_MANAGER_STYLE);
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             {
@@ -4580,6 +4584,16 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
              ExtendedListView_SetColumnWidth(PhpGraphListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
          }
          break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_USEOLDCOLORS:
+                EnableWindow(GetDlgItem(hwndDlg, IDC_TASKMANAGERSTYLE), Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) != BST_CHECKED);
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
 
         {

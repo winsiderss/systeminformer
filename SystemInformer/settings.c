@@ -495,6 +495,7 @@ VOID PhAddDefaultSettings(
 
     PhpAddIntegerSetting(SETTING_GRAPH_SHOW_TEXT, L"1");
     PhpAddIntegerSetting(SETTING_GRAPH_COLOR_MODE, L"0");
+    PhpAddIntegerSetting(SETTING_GRAPH_TASK_MANAGER_STYLE, L"0");
     PhpAddIntegerSetting(SETTING_COLOR_CPU_KERNEL, L"00ff00");
     PhpAddIntegerSetting(SETTING_COLOR_CPU_USER, L"0000ff");
     PhpAddIntegerSetting(SETTING_COLOR_IO_READ_OTHER, L"00ffff");
@@ -685,6 +686,7 @@ VOID PhUpdateCachedSettings(
 
     PH_GET_INTEGER_CACHED_SETTING(GraphShowText);
     PH_GET_INTEGER_CACHED_SETTING(GraphColorMode);
+    PH_GET_INTEGER_CACHED_SETTING(GraphTaskManagerStyle);
 
     // Legacy 1 was forced on by theme support, or chosen as "old colors" without it.
     if (PhCsGraphColorMode == PH_GRAPH_MODE_LEGACY)
