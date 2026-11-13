@@ -41,6 +41,13 @@ namespace CustomBuildTool
         private const UInt32 Version = 17;
 
         /// <summary>
+        /// Zero bytes after the session token public key that 4-byte align the KPH_DYN_CONFIG fields after it.
+        /// </summary>
+        private static int ConfigKeyPadding => (4 - (sizeof(uint) + SessionTokenPublicKey.Length) % 4) % 4;
+
+        private static string ConfigKeyReserved => ConfigKeyPadding != 0 ? $"    BYTE Reserved[{ConfigKeyPadding}];\r\n" : "";
+
+        /// <summary>
         /// The public key used for session token validation.
         /// </summary>
         private static readonly byte[] SessionTokenPublicKey =
@@ -382,8 +389,6 @@ $$"""
 #define KPH_DYN_CLASS_NTKRLA57                  ((USHORT){{(UInt16)ClassType.Ntkrla57}})
 #define KPH_DYN_CLASS_LXCORE                    ((USHORT){{(UInt16)ClassType.Lxcore}})
 
-#include <pshpack1.h>
-
 typedef struct _KPH_DYN_KERNEL_FIELDS
 {
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
@@ -439,13 +444,6 @@ typedef struct _KPH_DYN_LXCORE_FIELDS
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
 } KPH_DYN_LXCORE_FIELDS, *PKPH_DYN_LXCORE_FIELDS;
 
-typedef struct _KPH_DYN_FIELDS
-{
-    ULONG FieldsId;
-    USHORT Length;
-    BYTE Fields[ANYSIZE_ARRAY];
-} KPH_DYN_FIELDS, *PKPH_DYN_FIELDS;
-
 typedef struct _KPH_DYN_DATA
 {
     USHORT Class;
@@ -459,7 +457,7 @@ typedef struct _KPH_DYN_CONFIG
 {
     ULONG Version;
     BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
-    ULONG Count;
+{{DynData.ConfigKeyReserved}}    ULONG Count;
     ULONG HardwareOffset;
     ULONG HardwareLength;
     KPH_DYN_DATA Data[ANYSIZE_ARRAY];
@@ -694,7 +692,7 @@ typedef struct _KPH_DYN_HW_ARM_CPU_IDENTITY
     UCHAR Variant;
     USHORT PartNum;
     UCHAR Revision;
-    UCHAR Reserved[3];
+    UCHAR Reserved;
 } KPH_DYN_HW_ARM_CPU_IDENTITY, *PKPH_DYN_HW_ARM_CPU_IDENTITY;
 typedef const KPH_DYN_HW_ARM_CPU_IDENTITY* PCKPH_DYN_HW_ARM_CPU_IDENTITY;
 
@@ -715,7 +713,7 @@ typedef const KPH_DYN_HW_IDENTITY* PCKPH_DYN_HW_IDENTITY;
 typedef struct _KPH_DYN_HW_INDEX
 {
     UCHAR IdentityKind; // KPH_DYN_HW_IDENTITY_*
-    UCHAR Reserved[3];
+    UCHAR Reserved[7];
     KPH_DYN_HW_IDENTITY Identity;
     ULONG Offset;
     ULONG Length;
@@ -752,6 +750,7 @@ typedef const KPH_DYN_HW_OP* PCKPH_DYN_HW_OP;
 typedef struct _KPH_DYN_HW_TABLE
 {
     ULONG Count;
+    ULONG Reserved;
     // KPH_DYN_HW_OP Ops[Count];
 } KPH_DYN_HW_TABLE, *PKPH_DYN_HW_TABLE;
 typedef const KPH_DYN_HW_TABLE* PCKPH_DYN_HW_TABLE;
@@ -759,6 +758,7 @@ typedef const KPH_DYN_HW_TABLE* PCKPH_DYN_HW_TABLE;
 typedef struct _KPH_DYN_HW_MSR_READ
 {
     ULONG Register;
+    ULONG Reserved;
     ULONG64 ReadMask;
 } KPH_DYN_HW_MSR_READ, *PKPH_DYN_HW_MSR_READ;
 typedef const KPH_DYN_HW_MSR_READ* PCKPH_DYN_HW_MSR_READ;
@@ -773,7 +773,7 @@ typedef const KPH_DYN_HW_RANGE* PCKPH_DYN_HW_RANGE;
 typedef struct _KPH_DYN_HW_PCI_READ
 {
     UCHAR RangeCount;
-    UCHAR Reserved[3];
+    UCHAR Reserved;
     KPH_DYN_HW_RANGE Ranges[ANYSIZE_ARRAY];
 } KPH_DYN_HW_PCI_READ, *PKPH_DYN_HW_PCI_READ;
 typedef const KPH_DYN_HW_PCI_READ* PCKPH_DYN_HW_PCI_READ;
@@ -853,7 +853,6 @@ typedef struct _KPH_DYN_HW_SUPERIO_READ
     UCHAR Reserved;
     USHORT ConfigIdValue;
     USHORT CustomerRegister;
-    UCHAR Reserved2[2];
     KPH_DYN_HW_SUPERIO_ID Ids[KPH_DYN_HW_SUPERIO_MAX_IDS];
     // KPH_DYN_HW_RANGE Ranges[RangeCount];
 } KPH_DYN_HW_SUPERIO_READ, *PKPH_DYN_HW_SUPERIO_READ;
@@ -865,7 +864,6 @@ typedef struct _KPH_DYN_HW_SMBUS_READ
     UCHAR Port;
     UCHAR Protocols; // KPH_DYN_HW_SMBUS_PROTOCOL_*
     UCHAR RangeCount;
-    UCHAR Reserved[4];
     UCHAR Slaves[{{DynDataHw.SmbusSlaveMapSize}}];
     // KPH_DYN_HW_RANGE Ranges[RangeCount];
 } KPH_DYN_HW_SMBUS_READ, *PKPH_DYN_HW_SMBUS_READ;
@@ -897,7 +895,6 @@ typedef struct _KPH_DYN_HW_MAILBOX_SMN
     ULONG Msg;
     ULONG Rsp;
     ULONG Arg0;
-    ULONG Reserved2[3];
 } KPH_DYN_HW_MAILBOX_SMN, *PKPH_DYN_HW_MAILBOX_SMN;
 typedef const KPH_DYN_HW_MAILBOX_SMN* PCKPH_DYN_HW_MAILBOX_SMN;
 
@@ -910,7 +907,6 @@ typedef struct _KPH_DYN_HW_MAILBOX_WINDOW
     ULONG Msg;
     ULONG Rsp;
     ULONG Arg0;
-    ULONG Reserved2[3];
 } KPH_DYN_HW_MAILBOX_WINDOW, *PKPH_DYN_HW_MAILBOX_WINDOW;
 typedef const KPH_DYN_HW_MAILBOX_WINDOW* PCKPH_DYN_HW_MAILBOX_WINDOW;
 
@@ -918,7 +914,6 @@ typedef union _KPH_DYN_HW_MAILBOX_ADDRESS
 {
     KPH_DYN_HW_MAILBOX_SMN Smn;
     KPH_DYN_HW_MAILBOX_WINDOW Window;
-    UCHAR Bytes[32];
 } KPH_DYN_HW_MAILBOX_ADDRESS, *PKPH_DYN_HW_MAILBOX_ADDRESS;
 typedef const KPH_DYN_HW_MAILBOX_ADDRESS* PCKPH_DYN_HW_MAILBOX_ADDRESS;
 
@@ -943,7 +938,6 @@ typedef struct _KPH_DYN_HW_MAILBOX_TRANSACT
     UCHAR Reserved;
     ULONG VersionOpcode;
     ULONG VersionArg0;
-    ULONG Reserved2;
     KPH_DYN_HW_MAILBOX_ADDRESS Address;
     // KPH_DYN_HW_MAILBOX_COMMAND Commands[CommandCount];
 } KPH_DYN_HW_MAILBOX_TRANSACT, *PKPH_DYN_HW_MAILBOX_TRANSACT;
@@ -978,7 +972,6 @@ typedef struct _KPH_DYN_HW_ACPI_ARG
     ULONG Mask;
     ULONG Max;
     ULONG Fixed;
-    ULONG Reserved;
 } KPH_DYN_HW_ACPI_ARG, *PKPH_DYN_HW_ACPI_ARG;
 typedef const KPH_DYN_HW_ACPI_ARG* PCKPH_DYN_HW_ACPI_ARG;
 
@@ -988,8 +981,6 @@ typedef struct _KPH_DYN_HW_ACPI_EVAL
     UCHAR ArgCount;
     UCHAR ResultTypes; // KPH_DYN_HW_ACPI_RESULT_*
     USHORT MaxOutput;
-    ULONG Reserved;
-    ULONG Reserved2;
     // KPH_DYN_HW_ACPI_ARG Args[ArgCount];
 } KPH_DYN_HW_ACPI_EVAL, *PKPH_DYN_HW_ACPI_EVAL;
 typedef const KPH_DYN_HW_ACPI_EVAL* PCKPH_DYN_HW_ACPI_EVAL;
@@ -997,7 +988,6 @@ typedef const KPH_DYN_HW_ACPI_EVAL* PCKPH_DYN_HW_ACPI_EVAL;
 typedef struct _KPH_DYN_HW_ACPI_REQUIRE
 {
     UCHAR IdCount;
-    UCHAR Reserved[3];
     // CHAR Ids[IdCount][KPH_DYN_HW_ACPI_ID_LENGTH];
 } KPH_DYN_HW_ACPI_REQUIRE, *PKPH_DYN_HW_ACPI_REQUIRE;
 typedef const KPH_DYN_HW_ACPI_REQUIRE* PCKPH_DYN_HW_ACPI_REQUIRE;
@@ -1005,7 +995,7 @@ typedef const KPH_DYN_HW_ACPI_REQUIRE* PCKPH_DYN_HW_ACPI_REQUIRE;
 typedef struct _KPH_DYN_HW_SYSREG_READ
 {
     UCHAR SysregEnum; // KPH_DYN_HW_SYSREG_*
-    UCHAR Reserved[3];
+    UCHAR Reserved[7];
     ULONG64 ReadMask;
 } KPH_DYN_HW_SYSREG_READ, *PKPH_DYN_HW_SYSREG_READ;
 typedef const KPH_DYN_HW_SYSREG_READ* PCKPH_DYN_HW_SYSREG_READ;
@@ -1071,13 +1061,14 @@ typedef struct _KPH_DYN_HW_SECTION
     ULONG Magic; // KPH_DYN_HW_SECTION_MAGIC
     ULONG Length;
     ULONG Count;
+    ULONG Reserved;
     // KPH_DYN_HW_INDEX Index[Count];
     // BYTE Body[ANYSIZE_ARRAY];
 } KPH_DYN_HW_SECTION, *PKPH_DYN_HW_SECTION;
 typedef const KPH_DYN_HW_SECTION* PCKPH_DYN_HW_SECTION;
 
-#include <poppack.h>
 
+C_ASSERT(FIELD_OFFSET(KPH_DYN_CONFIG, Data) == {{sizeof(uint) * 4 + DynData.SessionTokenPublicKey.Length + DynData.ConfigKeyPadding}});
 C_ASSERT(sizeof(KPH_DYN_HW_CPU_IDENTITY) == {{DynDataHw.CpuIdentitySize}});
 C_ASSERT(sizeof(KPH_DYN_HW_PCI_IDENTITY) == {{DynDataHw.PciIdentitySize}});
 C_ASSERT(sizeof(KPH_DYN_HW_CPU_AND_PCI_IDENTITY) == {{DynDataHw.CpuAndPciIdentitySize}});
@@ -1496,11 +1487,16 @@ C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
             // HardwareLength (4) + (Entries * EntrySize) + Fields Data Length + Hardware Section Length.
             int hardwareOffset = sizeof(uint) +
                                  SessionTokenPublicKey.Length +
+                                 ConfigKeyPadding +
                                  sizeof(uint) +
                                  sizeof(uint) +
                                  sizeof(uint) +
                                  (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
                                  fieldsStream.WrittenCount;
+
+            // The hardware section starts 8-byte aligned, as its 8-byte fields are read in place.
+            hardwareOffset = (hardwareOffset + 7) & ~7;
+
             byte[] result = new byte[hardwareOffset + hardware.Length];
             // Create a span over the result buffer for efficient writing.
             Span<byte> span = result;
@@ -1511,7 +1507,7 @@ C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
 
             // Copy the session token public key into the buffer and advance the span.
             SessionTokenPublicKey.CopyTo(span);
-            span = span[SessionTokenPublicKey.Length..];
+            span = span[(SessionTokenPublicKey.Length + ConfigKeyPadding)..];
 
             // Write the count of dynamic data entries and advance the span.
             BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)entries.Count);
@@ -1530,10 +1526,9 @@ C_ASSERT(sizeof(KPH_DYN_HW_TABLE) == {{DynDataHw.TableSize}});
 
             // Copy the field data from the ArrayBufferWriter and advance the span.
             fieldsStream.WrittenSpan.CopyTo(span);
-            span = span[fieldsStream.WrittenCount..];
 
-            // Copy the hardware section to the remaining buffer space.
-            hardware.CopyTo(span);
+            // Copy the hardware section at its aligned offset; the bytes before it stay zero.
+            hardware.CopyTo(result.AsSpan(hardwareOffset));
 
             return result;
         }

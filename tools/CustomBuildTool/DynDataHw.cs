@@ -1049,39 +1049,51 @@ namespace CustomBuildTool
         public const int SuperIoIdentitySize = 6;
         public const int BoardIdentitySize = 16;
         public const int AcpiHidIdentitySize = AcpiIdSize;
-        public const int ArmCpuIdentitySize = 8;
-        public const int IdentitySize = 32;
-        public const int IndexSize = 44;
+        public const int ArmCpuIdentitySize = 6;
+        public const int IdentitySize = 24;
+        public const int IndexSize = 40;
+        public const int IndexIdentityOffset = 8;
         public const int GateSize = 20;
         public const int OpHeaderSize = 32;
-        public const int MsrReadSize = 12;
+        public const int MsrReadSize = 16;
         public const int RangeSize = 4;
-        public const int PciReadHeaderSize = 4;
+        public const int PciReadHeaderSize = 2;
         public const int TargetRangeSize = 16;
         public const int PciIndirectReadSize = 8;
         public const int WindowRangeSize = 12;
         public const int WindowReadSize = 32;
-        public const int SuperIoReadSize = 28;
+        public const int SuperIoReadSize = 26;
         public const int SuperIoIdSize = 4;
-        public const int SuperIoIdsOffset = 20;
+        public const int SuperIoIdsOffset = 18;
         public static HwSuperIoId SuperIoId(ReadOnlySpan<byte> Body, int Index) =>
             MemoryMarshal.Read<HwSuperIoId>(Body[(SuperIoIdsOffset + Index * SuperIoIdSize)..]);
-        public const int SmbusReadSize = 24;
+        public const int SmbusReadSize = 20;
+        public const int SmbusSlavesOffset = 4;
         public const int VsecReadSize = 20;
-        public const int MailboxAddressSize = 32;
+        public const int MailboxAddressSize = 20;
+        public const int MailboxAddressOffset = 12;
         public const int MailboxCommandSize = 104;
-        public const int MailboxTransactSize = 48;
+        public const int MailboxTransactSize = 32;
         public const int SmuTableVersionSize = 8;
         public const int SmuTableReadSize = 20;
-        public const int AcpiArgSize = 16;
-        public const int AcpiEvalSize = 16;
-        public const int AcpiRequireSize = 4;
-        public const int SysregReadSize = 12;
+        public const int AcpiArgSize = 12;
+        public const int AcpiEvalSize = 8;
+        public const int AcpiRequireSize = 1;
+        public const int SysregReadSize = 16;
         public const int PortIndirectReadSize = 8;
         public const int SmbusHostSize = 32;
         public const int DfMapSize = 24;
-        public const int SectionSize = 12;
-        public const int TableSize = 4;
+        public const int SectionSize = 16;
+        public const int TableSize = 8;
+        /// <summary>
+        /// Every op length is a multiple of this, so each op, and the 8-byte fields of its body, stay naturally aligned.
+        /// </summary>
+        public const int OpAlignment = 8;
+
+        /// <summary>
+        /// Rounds an op length up to OpAlignment.
+        /// </summary>
+        public static int AlignOp(int Length) => (Length + OpAlignment - 1) & ~(OpAlignment - 1);
 
         /// <summary>
         /// The kinds the driver implements; a build may only emit these.
@@ -1150,9 +1162,9 @@ namespace CustomBuildTool
             FieldOffset<HwArmCpuIdentity>("KPH_DYN_HW_ARM_CPU_IDENTITY", "Revision", 4),
             FieldOffset<HwArmCpuIdentity>("KPH_DYN_HW_ARM_CPU_IDENTITY", "Reserved", 5),
             FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Reserved", 1),
-            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Identity", 4),
-            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Offset", 36),
-            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Length", 40),
+            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Identity", 8),
+            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Offset", 32),
+            FieldOffset<HwIndex>("KPH_DYN_HW_INDEX", "Length", 36),
             FieldOffset<HwGate>("KPH_DYN_HW_GATE", "Register", 1),
             FieldOffset<HwGate>("KPH_DYN_HW_GATE", "Shift", 2),
             FieldOffset<HwGate>("KPH_DYN_HW_GATE", "Width", 3),
@@ -1167,7 +1179,8 @@ namespace CustomBuildTool
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Reserved", 7),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Reserved2", 8),
             FieldOffset<HwOpHeader>("KPH_DYN_HW_OP", "Gate", 12),
-            FieldOffset<HwMsrRead>("KPH_DYN_HW_MSR_READ", "ReadMask", 4),
+            FieldOffset<HwMsrRead>("KPH_DYN_HW_MSR_READ", "Reserved", 4),
+            FieldOffset<HwMsrRead>("KPH_DYN_HW_MSR_READ", "ReadMask", 8),
             FieldOffset<HwRange>("KPH_DYN_HW_RANGE", "Length", 2),
             FieldOffset<HwPciReadHeader>("KPH_DYN_HW_PCI_READ", "Reserved", 1),
             FieldOffset<HwTargetRange>("KPH_DYN_HW_TARGET_RANGE", "End", 4),
@@ -1206,15 +1219,13 @@ namespace CustomBuildTool
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Reserved", 13),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "ConfigIdValue", 14),
             FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "CustomerRegister", 16),
-            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Reserved2", 18),
-            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Ids", 20),
+            FieldOffset<HwSuperIoRead>("KPH_DYN_HW_SUPERIO_READ", "Ids", 18),
             FieldOffset<HwSuperIoId>("KPH_DYN_HW_SUPERIO_ID", "Value", 2),
             FieldOffset<HwSuperIoId>("KPH_DYN_HW_SUPERIO_ID", "Alternate", 3),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Port", 1),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Protocols", 2),
             FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "RangeCount", 3),
-            FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Reserved", 4),
-            FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Slaves", 8),
+            FieldOffset<HwSmbusRead>("KPH_DYN_HW_SMBUS_READ", "Slaves", 4),
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "Quirks", 1),
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "MaxRegions", 2),
             FieldOffset<HwVsecRead>("KPH_DYN_HW_VSEC_READ", "FeatureId", 3),
@@ -1231,14 +1242,12 @@ namespace CustomBuildTool
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "Msg", 8),
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "Rsp", 12),
             FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "Arg0", 16),
-            FieldOffset<HwMailboxSmn>("KPH_DYN_HW_MAILBOX_SMN", "Reserved2", 20),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "BarIndex", 1),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "Reserved", 2),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "WindowSize", 4),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "Msg", 8),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "Rsp", 12),
             FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "Arg0", 16),
-            FieldOffset<HwMailboxWindow>("KPH_DYN_HW_MAILBOX_WINDOW", "Reserved2", 20),
             FieldOffset<HwMailboxCommand>("KPH_DYN_HW_MAILBOX_COMMAND", "IsGet", 4),
             FieldOffset<HwMailboxCommand>("KPH_DYN_HW_MAILBOX_COMMAND", "ResponseWords", 5),
             FieldOffset<HwMailboxCommand>("KPH_DYN_HW_MAILBOX_COMMAND", "Flags", 6),
@@ -1251,8 +1260,7 @@ namespace CustomBuildTool
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Reserved", 3),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "VersionOpcode", 4),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "VersionArg0", 8),
-            FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Reserved2", 12),
-            FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Address", 16),
+            FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Address", 12),
             FieldOffset<HwSmuTableVersion>("KPH_DYN_HW_SMU_TABLE_VERSION", "Size", 4),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "Bound", 1),
             FieldOffset<HwSmuTableRead>("KPH_DYN_HW_SMU_TABLE_READ", "VersionCount", 2),
@@ -1280,15 +1288,11 @@ namespace CustomBuildTool
             FieldOffset<HwDfMap>("KPH_DYN_HW_DF_MAP", "Reserved", 22),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Max", 4),
             FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Fixed", 8),
-            FieldOffset<HwAcpiArg>("KPH_DYN_HW_ACPI_ARG", "Reserved", 12),
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "ArgCount", 4),
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "ResultTypes", 5),
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "MaxOutput", 6),
-            FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "Reserved", 8),
-            FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "Reserved2", 12),
-            FieldOffset<HwAcpiRequire>("KPH_DYN_HW_ACPI_REQUIRE", "Reserved", 1),
             FieldOffset<HwSysregRead>("KPH_DYN_HW_SYSREG_READ", "Reserved", 1),
-            FieldOffset<HwSysregRead>("KPH_DYN_HW_SYSREG_READ", "ReadMask", 4),
+            FieldOffset<HwSysregRead>("KPH_DYN_HW_SYSREG_READ", "ReadMask", 8),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "PinDevice", 1),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "PinFunction", 2),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "RangeCount", 3),
@@ -1314,6 +1318,8 @@ namespace CustomBuildTool
             FieldOffset<HwSmbusHost>("KPH_DYN_HW_SMBUS_HOST", "Reserved", 28),
             FieldOffset<HwSectionHeader>("KPH_DYN_HW_SECTION", "Length", 4),
             FieldOffset<HwSectionHeader>("KPH_DYN_HW_SECTION", "Count", 8),
+            FieldOffset<HwSectionHeader>("KPH_DYN_HW_SECTION", "Reserved", 12),
+            FieldOffset<HwTableHeader>("KPH_DYN_HW_TABLE", "Reserved", 4),
         ];
 
         /// <summary>
@@ -1398,7 +1404,7 @@ namespace CustomBuildTool
             public byte Variant;
             public UInt16 PartNum;
             public byte Revision;
-            public fixed byte Reserved[3];
+            public byte Reserved;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = IdentitySize)]
@@ -1418,7 +1424,7 @@ namespace CustomBuildTool
         public unsafe struct HwIndex
         {
             public byte IdentityKind;
-            public fixed byte Reserved[3];
+            public fixed byte Reserved[7];
             public HwIdentity Identity;
             public UInt32 Offset;
             public UInt32 Length;
@@ -1457,6 +1463,7 @@ namespace CustomBuildTool
         public struct HwMsrRead
         {
             public UInt32 Register;
+            public UInt32 Reserved;
             public UInt64 ReadMask;
         }
 
@@ -1471,10 +1478,10 @@ namespace CustomBuildTool
         /// The KPH_DYN_HW_PCI_READ header; ranges follow.
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public unsafe struct HwPciReadHeader
+        public struct HwPciReadHeader
         {
             public byte RangeCount;
-            public fixed byte Reserved[3];
+            public byte Reserved;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1550,7 +1557,6 @@ namespace CustomBuildTool
             public byte Reserved;
             public UInt16 ConfigIdValue;
             public UInt16 CustomerRegister;
-            public fixed byte Reserved2[2];
             public fixed byte Ids[SuperIoMaxIds * SuperIoIdSize];
         }
 
@@ -1575,7 +1581,6 @@ namespace CustomBuildTool
             public byte Port;
             public byte Protocols;
             public byte RangeCount;
-            public fixed byte Reserved[4];
             public fixed byte Slaves[SmbusSlaveMapSize];
         }
 
@@ -1608,7 +1613,6 @@ namespace CustomBuildTool
             public UInt32 Msg;
             public UInt32 Rsp;
             public UInt32 Arg0;
-            public fixed UInt32 Reserved2[3];
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1621,7 +1625,6 @@ namespace CustomBuildTool
             public UInt32 Msg;
             public UInt32 Rsp;
             public UInt32 Arg0;
-            public fixed UInt32 Reserved2[3];
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1649,7 +1652,6 @@ namespace CustomBuildTool
             public byte Reserved;
             public UInt32 VersionOpcode;
             public UInt32 VersionArg0;
-            public UInt32 Reserved2;
             public HwMailboxSmn Address;
         }
 
@@ -1709,7 +1711,6 @@ namespace CustomBuildTool
             public UInt32 Mask;
             public UInt32 Max;
             public UInt32 Fixed;
-            public UInt32 Reserved;
         }
 
         /// <summary>
@@ -1722,25 +1723,22 @@ namespace CustomBuildTool
             public byte ArgCount;
             public byte ResultTypes;
             public UInt16 MaxOutput;
-            public UInt32 Reserved;
-            public UInt32 Reserved2;
         }
 
         /// <summary>
         /// The KPH_DYN_HW_ACPI_REQUIRE header; IdCount IDs of AcpiIdSize bytes follow.
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public unsafe struct HwAcpiRequire
+        public struct HwAcpiRequire
         {
             public byte IdCount;
-            public fixed byte Reserved[3];
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public unsafe struct HwSysregRead
         {
             public byte SysregEnum;
-            public fixed byte Reserved[3];
+            public fixed byte Reserved[7];
             public UInt64 ReadMask;
         }
 
@@ -1794,6 +1792,7 @@ namespace CustomBuildTool
             public UInt32 Magic;
             public UInt32 Length;
             public UInt32 Count;
+            public UInt32 Reserved;
         }
 
         /// <summary>
@@ -1803,6 +1802,7 @@ namespace CustomBuildTool
         public struct HwTableHeader
         {
             public UInt32 Count;
+            public UInt32 Reserved;
         }
 
         /// <summary>
@@ -2811,7 +2811,7 @@ namespace CustomBuildTool
             };
             byte[] header = DynDataHw.ToBytes(body);
 
-            DynDataHw.ToBytes(window).CopyTo(header.AsSpan(16, DynDataHw.MailboxAddressSize));
+            DynDataHw.ToBytes(window).CopyTo(header.AsSpan(DynDataHw.MailboxAddressOffset, DynDataHw.MailboxAddressSize));
 
             byte[] commands = LoadMailboxCommands(Context, Mailbox, protocol, argCount, false, result);
 
@@ -4835,7 +4835,8 @@ namespace CustomBuildTool
         /// </summary>
         private static byte[] BuildOp(LoadContext Context, XElement Element, UInt16 Kind, byte LockClass, DynDataHw.HwGate Gate, byte[] Body, byte Flags = 0)
         {
-            int length = DynDataHw.OpHeaderSize + Body.Length;
+            // The body is zero-padded so the next op stays aligned.
+            int length = DynDataHw.AlignOp(DynDataHw.OpHeaderSize + Body.Length);
 
             if (length > UInt16.MaxValue)
                 throw Context.Error(Element, $"op length {length} exceeds 0xFFFF");
@@ -4849,7 +4850,7 @@ namespace CustomBuildTool
                 Gate = Gate
             };
 
-            return [.. DynDataHw.ToBytes(header), .. Body];
+            return [.. DynDataHw.ToBytes(header), .. Body, .. new byte[length - DynDataHw.OpHeaderSize - Body.Length]];
         }
 
         /// <summary>
@@ -5596,7 +5597,7 @@ namespace CustomBuildTool
                 };
                 byte[] entryBytes = DynDataHw.ToBytes(entry);
 
-                row.Identity.CopyTo(entryBytes.AsSpan(4, DynDataHw.IdentitySize));
+                row.Identity.CopyTo(entryBytes.AsSpan(DynDataHw.IndexIdentityOffset, DynDataHw.IdentitySize));
                 index.AddRange(entryBytes);
             }
 
@@ -5634,8 +5635,8 @@ namespace CustomBuildTool
 
             if (header.Magic != DynDataHw.SectionMagic)
                 throw Fail("bad magic");
-            if (header.Length != Section.Length || header.Count > DynDataHw.MaxRows)
-                throw Fail($"length {header.Length} or row count {header.Count} invalid");
+            if (header.Length != Section.Length || header.Count > DynDataHw.MaxRows || header.Reserved != 0)
+                throw Fail($"length {header.Length}, row count {header.Count} or reserved invalid");
 
             long bodyOffset = DynDataHw.SectionSize + (long)header.Count * DynDataHw.IndexSize;
 
@@ -5661,9 +5662,11 @@ namespace CustomBuildTool
                 CheckIdentity(rowBytes);
 
                 // The driver takes the first row of an identity; strictly ascending rows are unique.
-                if (i != 0 && Section.Slice(DynDataHw.SectionSize + (i - 1) * DynDataHw.IndexSize, 4 + DynDataHw.IdentitySize).SequenceCompareTo(rowBytes[..(4 + DynDataHw.IdentitySize)]) >= 0)
+                if (i != 0 && Section.Slice(DynDataHw.SectionSize + (i - 1) * DynDataHw.IndexSize, DynDataHw.IndexIdentityOffset + DynDataHw.IdentitySize).SequenceCompareTo(rowBytes[..(DynDataHw.IndexIdentityOffset + DynDataHw.IdentitySize)]) >= 0)
                     throw Fail($"row {i} is not above row {i - 1} in (identity kind, identity) order");
 
+                if (row.Offset % DynDataHw.OpAlignment != 0)
+                    throw Fail($"row {i} table offset 0x{row.Offset:x} is not {DynDataHw.OpAlignment}-byte aligned");
                 if ((UInt64)row.Offset + row.Length > (UInt64)body.Length)
                     throw Fail($"row {i} table [0x{row.Offset:x}, +0x{row.Length:x}) overruns the body");
 
@@ -5674,7 +5677,11 @@ namespace CustomBuildTool
                     if (table.Length < DynDataHw.TableSize)
                         throw Fail($"row {i} table shorter than its count");
 
-                    UInt32 count = MemoryMarshal.Read<DynDataHw.HwTableHeader>(table).Count;
+                    var tableHeader = MemoryMarshal.Read<DynDataHw.HwTableHeader>(table);
+                    UInt32 count = tableHeader.Count;
+
+                    if (tableHeader.Reserved != 0)
+                        throw Fail($"row {i} table reserved is non-zero");
 
                     if (count > DynDataHw.MaxOps)
                         throw Fail($"row {i} table has {count} ops, cap {DynDataHw.MaxOps}");
@@ -5916,7 +5923,7 @@ namespace CustomBuildTool
                 if (row.IdentityKind != DynDataHw.IdentityCpuAndPci && row.IdentityKind != DynDataHw.IdentityCpuAndPciClass)
                     continue;
 
-                string key = Convert.ToHexString(rowBytes.Slice(4, DynDataHw.CpuIdentitySize));
+                string key = Convert.ToHexString(rowBytes.Slice(DynDataHw.IndexIdentityOffset, DynDataHw.CpuIdentitySize));
 
                 if (!groups.TryGetValue(key, out var group))
                     groups.Add(key, group = (i, []));
@@ -6009,7 +6016,7 @@ namespace CustomBuildTool
                         if (mailbox.Transport == DynDataHw.MailboxTransportMmioWindow)
                         {
                             opcodes.Add(mailbox.VersionOpcode);
-                            mmio.Add((mailbox, MemoryMarshal.Read<DynDataHw.HwMailboxWindow>(opBody.Slice(16, DynDataHw.MailboxAddressSize)), opcodes));
+                            mmio.Add((mailbox, MemoryMarshal.Read<DynDataHw.HwMailboxWindow>(opBody.Slice(DynDataHw.MailboxAddressOffset, DynDataHw.MailboxAddressSize)), opcodes));
                         }
                         else if (internalOpcodes.Count != 0)
                         {
@@ -6129,9 +6136,9 @@ namespace CustomBuildTool
             if (Row[0] != DynDataHw.IdentitySuperIo)
                 return;
 
-            byte slot = Row[4];
-            byte family = Row[5];
-            UInt16 chip = BinaryPrimitives.ReadUInt16LittleEndian(Row[6..]);
+            byte slot = Row[DynDataHw.IndexIdentityOffset];
+            byte family = Row[DynDataHw.IndexIdentityOffset + 1];
+            UInt16 chip = BinaryPrimitives.ReadUInt16LittleEndian(Row[(DynDataHw.IndexIdentityOffset + 2)..]);
             UInt32 count = MemoryMarshal.Read<DynDataHw.HwTableHeader>(Table).Count;
             var remaining = Table[DynDataHw.TableSize..];
 
@@ -6164,7 +6171,7 @@ namespace CustomBuildTool
         private static void CheckRowTable(ReadOnlySpan<byte> Row, ReadOnlySpan<byte> Table, int Index)
         {
             byte kind = Row[0];
-            byte family = Row[5];
+            byte family = Row[DynDataHw.IndexIdentityOffset + 1];
             UInt32 count = MemoryMarshal.Read<DynDataHw.HwTableHeader>(Table).Count;
             var remaining = Table[DynDataHw.TableSize..];
 
@@ -6283,10 +6290,10 @@ namespace CustomBuildTool
         private static void CheckRowPolicy(ReadOnlySpan<byte> Row, ReadOnlySpan<byte> Table, int Index)
         {
             byte kind = Row[0];
-            var identity = MemoryMarshal.Read<DynDataHw.HwIdentity>(Row[4..]);
+            var identity = MemoryMarshal.Read<DynDataHw.HwIdentity>(Row[DynDataHw.IndexIdentityOffset..]);
             bool cpuKeyed = kind == DynDataHw.IdentityCpu || kind == DynDataHw.IdentityCpuAndPci || kind == DynDataHw.IdentityCpuAndPciClass;
             bool classRow = kind == DynDataHw.IdentityCpuAndPciClass;
-            string cpuVendor = cpuKeyed ? Encoding.ASCII.GetString(Row.Slice(4, 12)) : null;
+            string cpuVendor = cpuKeyed ? Encoding.ASCII.GetString(Row.Slice(DynDataHw.IndexIdentityOffset, 12)) : null;
             UInt16 family = identity.Cpu.DisplayFamily;
             byte model = identity.Cpu.DisplayModel;
             UInt16 pciVendor = kind switch
@@ -6303,7 +6310,7 @@ namespace CustomBuildTool
                 _ => 0
             };
             UInt32 classCode = ((UInt32)identity.CpuAndPciClass.BaseClass << 16) | ((UInt32)identity.CpuAndPciClass.SubClass << 8) | identity.CpuAndPciClass.ProgIf;
-            string acpiId = kind == DynDataHw.IdentityAcpiHid ? Encoding.ASCII.GetString(Row.Slice(4, DynDataHw.AcpiIdSize)).TrimEnd('\0') : null;
+            string acpiId = kind == DynDataHw.IdentityAcpiHid ? Encoding.ASCII.GetString(Row.Slice(DynDataHw.IndexIdentityOffset, DynDataHw.AcpiIdSize)).TrimEnd('\0') : null;
             int tablePin = -1;
 
             void CheckPin(string What, byte Device, byte Function)
@@ -6530,7 +6537,7 @@ namespace CustomBuildTool
         private static void CheckIdentity(ReadOnlySpan<byte> Row)
         {
             byte kind = Row[0];
-            var identity = Row.Slice(4, DynDataHw.IdentitySize);
+            var identity = Row.Slice(DynDataHw.IndexIdentityOffset, DynDataHw.IdentitySize);
             int length = kind switch
             {
                 DynDataHw.IdentityCpu => DynDataHw.CpuIdentitySize,
@@ -6546,7 +6553,7 @@ namespace CustomBuildTool
 
             if (length == 0 || !DynDataHw.DriverKinds.IdentityKinds.Contains(kind))
                 throw Fail($"identity kind {kind} is not implemented by the driver");
-            if (Row[1] != 0 || Row[2] != 0 || Row[3] != 0)
+            if (Row[1..DynDataHw.IndexIdentityOffset].ContainsAnyExcept((byte)0))
                 throw Fail("index row reserved bytes are not zero");
 
             switch (kind)
@@ -6645,7 +6652,7 @@ namespace CustomBuildTool
 
             if (minimum < 0 || !DynDataHw.DriverKinds.OpKinds.Contains(op.Kind))
                 throw Fail($"op kind {op.Kind} is not implemented by the driver");
-            if (op.Length < DynDataHw.OpHeaderSize + minimum || op.Length > Remaining.Length)
+            if (op.Length < DynDataHw.OpHeaderSize + minimum || op.Length > Remaining.Length || op.Length % DynDataHw.OpAlignment != 0)
                 throw Fail($"op kind {op.Kind} length {op.Length} invalid");
             byte allowedFlags = (op.Kind == DynDataHw.KindWindowRead || op.Kind == DynDataHw.KindVsecRead) ? (byte)(DynDataHw.FlagRequireD0 | DynDataHw.FlagArm64) : (byte)0;
 
@@ -6702,8 +6709,8 @@ namespace CustomBuildTool
             {
                 var msr = MemoryMarshal.Read<DynDataHw.HwMsrRead>(body);
 
-                if (msr.ReadMask == 0)
-                    throw Fail($"msr_read 0x{msr.Register:x} has a zero readmask");
+                if (msr.ReadMask == 0 || msr.Reserved != 0)
+                    throw Fail($"msr_read 0x{msr.Register:x} has a zero readmask or a non-zero reserved");
             }
             else if (op.Kind == DynDataHw.KindPciRead)
             {
@@ -6711,7 +6718,7 @@ namespace CustomBuildTool
 
                 if (rangeCount > DynDataHw.MaxRanges)
                     throw Fail($"pci_read has {rangeCount} ranges, cap {DynDataHw.MaxRanges}");
-                if (rangeCount < 1 || body[1] != 0 || body[2] != 0 || body[3] != 0)
+                if (rangeCount < 1 || body[1] != 0)
                     throw Fail("pci_read has no range or non-zero reserved bytes");
                 if (DynDataHw.PciReadHeaderSize + rangeCount * DynDataHw.RangeSize > body.Length)
                     throw Fail("pci_read ranges overrun the op");
@@ -6791,7 +6798,7 @@ namespace CustomBuildTool
             {
                 var host = MemoryMarshal.Read<DynDataHw.HwSmbusHost>(body);
 
-                if (op.Length != DynDataHw.OpHeaderSize + DynDataHw.SmbusHostSize)
+                if (op.Length != DynDataHw.AlignOp(DynDataHw.OpHeaderSize + DynDataHw.SmbusHostSize))
                     throw Fail("smbus_host op length is not its body");
                 string error = DynDataHw.SmbusHostError(host);
 
@@ -6800,7 +6807,7 @@ namespace CustomBuildTool
             }
             else if (op.Kind == DynDataHw.KindDfMap)
             {
-                if (op.Length != DynDataHw.OpHeaderSize + DynDataHw.DfMapSize)
+                if (op.Length != DynDataHw.AlignOp(DynDataHw.OpHeaderSize + DynDataHw.DfMapSize))
                     throw Fail("df_map op length is not its body");
 
                 string error = DynDataHw.DfMapError(MemoryMarshal.Read<DynDataHw.HwDfMap>(body));
@@ -6820,7 +6827,7 @@ namespace CustomBuildTool
 
                 if (!DynDataHw.DriverKinds.SysregRegisters.Contains(sysreg.SysregEnum))
                     throw Fail($"sysreg_read register {sysreg.SysregEnum} is not implemented by the driver");
-                if (body[1..4].ContainsAnyExcept((byte)0))
+                if (body[1..8].ContainsAnyExcept((byte)0))
                     throw Fail($"sysreg_read register {sysreg.SysregEnum} has non-zero reserved bytes");
                 if (sysreg.ReadMask == 0)
                     throw Fail($"sysreg_read register {sysreg.SysregEnum} has a zero readmask");
@@ -6839,7 +6846,7 @@ namespace CustomBuildTool
                     throw Fail($"superio_read configuration port 0x{superIo.ConfigPort:x}");
                 if (superIo.ConfigIdIndex == 0 ? superIo.ConfigIdValue != 0 : superIo.ConfigIdIndex == byte.MaxValue)
                     throw Fail($"superio_read config-id 0x{superIo.ConfigIdIndex:x2}:0x{superIo.ConfigIdValue:x4}");
-                if (superIo.Reserved != 0 || body[(DynDataHw.SuperIoIdsOffset - 2)..DynDataHw.SuperIoIdsOffset].ContainsAnyExcept((byte)0) ||
+                if (superIo.Reserved != 0 ||
                     body[(DynDataHw.SuperIoIdsOffset + superIo.IdCount * DynDataHw.SuperIoIdSize)..DynDataHw.SuperIoReadSize].ContainsAnyExcept((byte)0))
                     throw Fail("superio_read reserved bytes or unused ids are non-zero");
 
@@ -6892,7 +6899,7 @@ namespace CustomBuildTool
         {
             var mailbox = MemoryMarshal.Read<DynDataHw.HwMailboxTransact>(Body);
             var smn = mailbox.Address;
-            var address = Body.Slice(16, DynDataHw.MailboxAddressSize);
+            var address = Body.Slice(DynDataHw.MailboxAddressOffset, DynDataHw.MailboxAddressSize);
             var window = MemoryMarshal.Read<DynDataHw.HwMailboxWindow>(address);
             bool mmio = mailbox.Transport == DynDataHw.MailboxTransportMmioWindow;
 
@@ -6903,14 +6910,14 @@ namespace CustomBuildTool
             if (DynDataHw.MailboxTransactSize + mailbox.CommandCount * DynDataHw.MailboxCommandSize > Body.Length)
                 throw Fail("mailbox_transact commands overrun the op");
             if (mailbox.CommandCount < 1 || mailbox.ArgCount < 1 || mailbox.ArgCount > DynDataHw.MailboxMaxArgs ||
-                mailbox.Reserved != 0 || mailbox.Reserved2 != 0 ||
+                mailbox.Reserved != 0 ||
                 mailbox.VersionOpcode < 1 || mailbox.VersionOpcode > DynDataHw.MailboxMaxOpcode)
             {
                 throw Fail("mailbox_transact has no command, a bad argument count or version opcode, or non-zero reserved bytes");
             }
             if (mmio)
             {
-                if (window.BaseKind != DynDataHw.WindowBaseAcpiCrs || address[2..4].ContainsAnyExcept((byte)0) || address[20..].ContainsAnyExcept((byte)0) ||
+                if (window.BaseKind != DynDataHw.WindowBaseAcpiCrs || address[2..4].ContainsAnyExcept((byte)0) ||
                     window.WindowSize == 0 || window.WindowSize > DynDataHw.MaxWindowSize || (window.WindowSize & (window.WindowSize - 1)) != 0)
                 {
                     throw Fail($"MMIO mailbox_transact base kind {window.BaseKind} / size 0x{window.WindowSize:x} / reserved bytes invalid");
@@ -6924,7 +6931,7 @@ namespace CustomBuildTool
                 smn.IndexOffset < DynDataHw.PciConfigHeaderLength || smn.DataOffset < DynDataHw.PciConfigHeaderLength ||
                 smn.IndexOffset >= DynDataHw.PciConfigLength || smn.DataOffset >= DynDataHw.PciConfigLength ||
                 smn.IndexOffset == smn.DataOffset || smn.PinDevice > 31 || smn.PinFunction > 7 ||
-                address[6..8].ContainsAnyExcept((byte)0) || address[20..].ContainsAnyExcept((byte)0))
+                address[6..8].ContainsAnyExcept((byte)0))
             {
                 throw Fail($"mailbox_transact index 0x{smn.IndexOffset:x} / data 0x{smn.DataOffset:x} / pin invalid");
             }
@@ -7224,15 +7231,14 @@ namespace CustomBuildTool
         private static void CheckSmbusOp(ReadOnlySpan<byte> Body)
         {
             var smbus = MemoryMarshal.Read<DynDataHw.HwSmbusRead>(Body);
-            var slaves = Body.Slice(8, DynDataHw.SmbusSlaveMapSize);
+            var slaves = Body.Slice(DynDataHw.SmbusSlavesOffset, DynDataHw.SmbusSlaveMapSize);
             bool anySlave = false;
 
             if (!DynDataHw.DriverKinds.SmbusHosts.Contains(smbus.HostKind))
                 throw Fail($"smbus_read host kind {smbus.HostKind} is not implemented by the driver");
             if (smbus.RangeCount > DynDataHw.MaxRanges)
                 throw Fail($"smbus_read has {smbus.RangeCount} ranges, cap {DynDataHw.MaxRanges}");
-            if (smbus.RangeCount < 1 || smbus.Protocols == 0 || (smbus.Protocols & ~DynDataHw.SmbusProtocolMask) != 0 ||
-                Body[4..8].ContainsAnyExcept((byte)0))
+            if (smbus.RangeCount < 1 || smbus.Protocols == 0 || (smbus.Protocols & ~DynDataHw.SmbusProtocolMask) != 0)
             {
                 throw Fail("smbus_read has no range, no or an unknown protocol, or non-zero reserved bytes");
             }
@@ -7656,8 +7662,7 @@ namespace CustomBuildTool
             if (!DynDataHw.AcpiMethodAllowed(method))
                 throw Fail($"acpi_eval method \"{method}\" is not a NameSeg or not a read-only spec method");
             if (eval.ResultTypes == 0 || (eval.ResultTypes & ~DynDataHw.AcpiResultMask) != 0 ||
-                eval.MaxOutput < DynDataHw.AcpiMinOutput || eval.MaxOutput > DynDataHw.AcpiMaxOutput ||
-                eval.Reserved != 0 || eval.Reserved2 != 0)
+                eval.MaxOutput < DynDataHw.AcpiMinOutput || eval.MaxOutput > DynDataHw.AcpiMaxOutput)
             {
                 throw Fail($"acpi_eval method \"{method}\" result types 0x{eval.ResultTypes:x2}, max output 0x{eval.MaxOutput:x} or reserved invalid");
             }
@@ -7666,7 +7671,7 @@ namespace CustomBuildTool
             {
                 var arg = MemoryMarshal.Read<DynDataHw.HwAcpiArg>(Body[(DynDataHw.AcpiEvalSize + i * DynDataHw.AcpiArgSize)..]);
 
-                if ((arg.Max & ~arg.Mask) != 0 || (arg.Fixed & arg.Mask) != 0 || arg.Reserved != 0)
+                if ((arg.Max & ~arg.Mask) != 0 || (arg.Fixed & arg.Mask) != 0)
                     throw Fail($"acpi_eval method \"{method}\" argument {i} mask/max/fixed invalid");
             }
         }
@@ -7679,9 +7684,9 @@ namespace CustomBuildTool
             var require = MemoryMarshal.Read<DynDataHw.HwAcpiRequire>(Body);
             var ids = new HashSet<string>();
 
-            if (require.IdCount == 0 || Body[1..DynDataHw.AcpiRequireSize].ContainsAnyExcept((byte)0))
-                throw Fail("acpi_require has no ID or a reserved byte set");
-            if (Body.Length != DynDataHw.AcpiRequireSize + require.IdCount * DynDataHw.AcpiIdSize)
+            if (require.IdCount == 0)
+                throw Fail("acpi_require has no ID");
+            if (Body.Length != DynDataHw.AlignOp(DynDataHw.OpHeaderSize + DynDataHw.AcpiRequireSize + require.IdCount * DynDataHw.AcpiIdSize) - DynDataHw.OpHeaderSize)
                 throw Fail("acpi_require op length is not its IDs");
 
             for (int i = 0; i < require.IdCount; i++)
