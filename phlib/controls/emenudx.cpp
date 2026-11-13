@@ -156,6 +156,8 @@ class PH_EMENU_DX
 public:
     PH_EMENU_DX(_In_ const PH_EMENU_DX& Other) = delete;
     PH_EMENU_DX& operator=(_In_ const PH_EMENU_DX& Other) = delete;
+    PH_EMENU_DX(_In_ PH_EMENU_DX&& Other) = delete;
+    PH_EMENU_DX& operator=(_In_ PH_EMENU_DX&& Other) = delete;
 
     PH_EMENU_DX(
         _In_ PPH_EMENU Menu,
@@ -719,7 +721,7 @@ private:
 #define PH_EMENU_DX_GLYPH_FONT_NAME_LEGACY L"Segoe MDL2 Assets"
 #define PH_EMENU_DX_GLYPH_EMOJI_FONT_NAME L"Segoe UI Emoji"
 
-#define PH_EMENU_DX_DARK_BACKGROUND D2D1::ColorF(0.169f, 0.169f, 0.169f, 1.0f) // #2B2B2B, as the Windows 11 menus
+#define PH_EMENU_DX_DARK_BACKGROUND D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f) // #2B2B2B, as the Windows 11 menus
 #define PH_EMENU_DX_LIGHT_BACKGROUND D2D1::ColorF(0.98f, 0.98f, 0.98f, 1.0f)
 
 #define PH_EMENU_DX_TEXT_BRUSH_OPACITY 1.0f
@@ -1171,7 +1173,7 @@ BOOLEAN PH_EMENU_DX::EnterMessageLoop()
             {
                 msg.hwnd = MenuWindow;
             }
-            else if (msg.message == WM_MOUSEWHEEL)
+            else if (std::cmp_equal(msg.message, WM_MOUSEWHEEL))
             {
                 // The menu never has focus, so wheel input is delivered to the owner.
                 // Send it to the menu under the cursor, or the innermost menu.
@@ -1234,7 +1236,7 @@ HRESULT PH_EMENU_DX::CreateMainWindow(
 {
     RTL_ATOM windowAtom = PhRegisterMenuClass();
 
-    if (windowAtom == RTL_ATOM_INVALID_ATOM)
+    if (std::cmp_equal(windowAtom, RTL_ATOM_INVALID_ATOM))
         return E_FAIL;
 
     // Create the menu window
@@ -1299,6 +1301,7 @@ HRESULT PH_EMENU_DX::ShowMainWindow()
 #endif
 
     ShowWindow(MenuWindow, SW_SHOWNOACTIVATE);
+    UpdateWindow(MenuWindow);
 
     // The tree was committed fully transparent; start the entrance only once the
     // window is visible so no animation frames are spent on an unmapped window.
@@ -2211,7 +2214,7 @@ HRESULT PH_EMENU_DX::DrawDCompMenuSurface()
     {
         D2D1_SIZE_U bitmapSize = MenuBitmap->GetPixelSize();
 
-        if (bitmapSize.width != surfaceSize.width || bitmapSize.height != surfaceSize.height)
+        if (std::cmp_not_equal(bitmapSize.width, surfaceSize.width) || std::cmp_not_equal(bitmapSize.height, surfaceSize.height))
         {
             MenuBitmap->Release();
             MenuBitmap = nullptr;
@@ -3323,13 +3326,13 @@ VOID PH_EMENU_DX::CommitUpdate()
             }
         }
 #endif
-        if (status == DXGI_ERROR_DEVICE_REMOVED || status == DXGI_ERROR_DEVICE_RESET)
+        if (std::cmp_equal(status, DXGI_ERROR_DEVICE_REMOVED) || std::cmp_equal(status, DXGI_ERROR_DEVICE_RESET))
         {
             // Every open menu observes the removal. Only the first one (still on the
             // current generation) drops the shared objects; the rest just rebuild so
             // they don't tear down devices another menu has already recreated.
             PhAcquireQueuedLockExclusive(&SharedLock);
-            if (ResourceGeneration == SharedGeneration)
+            if (std::cmp_equal(ResourceGeneration, SharedGeneration))
                 PH_EMENU_DX::ReleaseSharedResources();
             PhReleaseQueuedLockExclusive(&SharedLock);
 
@@ -3486,7 +3489,7 @@ VOID PH_EMENU_DX::Render()
                 {
                     // Bitmap and Icon share storage in PH_EMENU_ITEM. PhShowEMenu callers
                     // supply HBITMAPs; anything that isn't a GDI bitmap is treated as an icon.
-                    if (GetObjectType(item->Bitmap) == OBJ_BITMAP)
+                    if (std::cmp_equal(GetObjectType(item->Bitmap), OBJ_BITMAP))
                     {
                         CreateBitmapFromHBitmap(item->Bitmap, &ItemBitmaps[i]);
                     }
@@ -4389,7 +4392,7 @@ VOID PH_EMENU_DX::HandleMouseMove(
         PhSetTimer(WindowHandle, PH_WINDOW_TIMER_SCROLL, PH_EMENU_DX_SCROLL_TIMER_INTERVAL, nullptr);
     }
 
-    if (oldHoverUp != HoverUpArrow || oldHoverDown != HoverDownArrow)
+    if (std::cmp_not_equal(oldHoverUp, HoverUpArrow) || std::cmp_not_equal(oldHoverDown, HoverDownArrow))
         CommitUpdate();
 
     HoverItem = nullptr;
@@ -4605,7 +4608,7 @@ VOID PH_EMENU_DX::OnMouseLeave(
                     PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
                     if (HoverItem != SubMenuContext->Menu &&
-                        (index = PhFindItemList(Menu->Items, SubMenuContext->Menu)) != ULONG_MAX)
+                        std::cmp_not_equal((index = PhFindItemList(Menu->Items, SubMenuContext->Menu)), ULONG_MAX))
                     {
                         HoverItem = SubMenuContext->Menu;
                         HoverIndex = static_cast<LONG>(index);
@@ -4909,7 +4912,7 @@ LRESULT PH_EMENU_DX::OnActivate(
     _In_ HWND OtherWindow
     )
 {
-    if (LOWORD(Type) == WA_INACTIVE)
+    if (std::cmp_equal(LOWORD(Type), WA_INACTIVE))
     {
         HWND otherWnd = OtherWindow;
         HWND popup = otherWnd ? GetLastActivePopup(otherWnd) : nullptr;
@@ -4953,7 +4956,7 @@ VOID PH_EMENU_DX::OnUpdateUiState(
     {
         BOOL newShowCues = (std::cmp_equal(Action, UIS_CLEAR));
 
-        if (ShowKeyboardCues != newShowCues)
+        if (std::cmp_not_equal(ShowKeyboardCues, newShowCues))
         {
             ShowKeyboardCues = newShowCues;
             RebuildTextLayouts();
