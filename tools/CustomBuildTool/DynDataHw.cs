@@ -7534,8 +7534,8 @@ namespace CustomBuildTool
         /// </summary>
         private static void WarnCap(string Name, UInt64 Value, UInt64 Cap)
         {
-            if (Value * 2 >= Cap)
-                Program.PrintColorMessage($"Dynamic hardware -> warning: {Name} {Value} is at least half of the cap {Cap}", ConsoleColor.Yellow);
+            if (Value * 10 >= Cap * 9)
+                Program.PrintColorMessage($"Dynamic hardware -> warning: {Name} {Value} is at least 90% of the cap {Cap}", ConsoleColor.Yellow);
         }
     }
 }
