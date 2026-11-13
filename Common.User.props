@@ -129,7 +129,7 @@
         <ClCompile>
             <AdditionalOptions>/utf-8 %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;_DBG_MEMCPY_INLINE_;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-            <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
             <Optimization>Disabled</Optimization>
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -158,7 +158,7 @@
         <ClCompile>
             <AdditionalOptions>/utf-8 %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;_DBG_MEMCPY_INLINE_;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-            <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
             <Optimization>Disabled</Optimization>
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -188,7 +188,7 @@
             <AdditionalOptions>/utf-8 %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;_DBG_MEMCPY_INLINE_;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
             <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-            <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <Optimization>Disabled</Optimization>
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
             <CallingConvention>StdCall</CallingConvention>

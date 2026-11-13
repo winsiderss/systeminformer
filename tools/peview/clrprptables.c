@@ -964,6 +964,7 @@ VOID PvPeClrShowTablePreview(
     }
 
     ShowWindow(dialogHandle, SW_SHOW);
+    UpdateWindow(dialogHandle);
 }
 
 _Function_class_(PH_CLR_ENUM_TABLES_CALLBACK)

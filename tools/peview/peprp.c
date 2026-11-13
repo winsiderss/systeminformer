@@ -1047,7 +1047,7 @@ static VOID PvpUpdatePeImageTitleFont(
 
     dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
-    if (!PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
+    if (!PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, dpiValue))
         return;
 
     metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-15, dpiValue);
@@ -3068,7 +3068,9 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
                 if ((cardHandle = GetDlgItem(hwndDlg, IDC_FILE)) && PhGetWindowRect(cardHandle, &cardRect))
                 {
                     MapWindowRect(NULL, hwndDlg, &cardRect);
-                    RedrawWindow(hwndDlg, &cardRect, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+                    // Note: No RDW_ALLCHILDREN. The card controls are resized by the layout
+                    // and repaint themselves; forcing them again on every step flickers. (dmex)
+                    RedrawWindow(hwndDlg, &cardRect, NULL, RDW_INVALIDATE | RDW_ERASE);
                 }
             }
 
@@ -3127,6 +3129,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
                     PhDereferenceObject(string);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
+                    UpdateWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK));
                 }
                 else
                 {

@@ -108,7 +108,7 @@ HRESULT PvGetClrMetaDataInterface(
             // Sort by version?
             qsort_s(directoryList->Items, directoryList->Count, sizeof(PVOID), PvClrCoreNameCompare, nullptr);
 
-            if (directoryList->Count > 0)
+            if (std::cmp_greater(directoryList->Count, 0))
             {
                 PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
                 PPH_STRING fileName = PhConcatStringRef3(
@@ -127,7 +127,7 @@ HRESULT PvGetClrMetaDataInterface(
 
             if (!clrCoreBaseAddress)
             {
-                for (ULONG i = 0; i < directoryList->Count; i++)
+                for (ULONG i = 0; std::cmp_less(i, directoryList->Count); i++)
                 {
                     PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[i]);
                     PPH_STRING fileName = PhConcatStringRef3(
@@ -474,17 +474,17 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
     comStatus = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
 
-    if (comStatus != S_OK)
+    if (std::cmp_not_equal(comStatus, S_OK))
         return nullptr;
 
-    if (metaDataImport->GetCustomAttributeByName(
+    if (std::cmp_equal(metaDataImport->GetCustomAttributeByName(
         TokenFromRid(1, mdtAssembly),
         TARGET_FRAMEWORK_TYPE_W,
         &attributeBuffer,
         &attributeLength
-        ) == S_OK)
+        ), S_OK))
     {
-        if (PvSafeParseAttributeString(attributeBuffer, attributeLength, &version) == S_OK)
+        if (std::cmp_equal(PvSafeParseAttributeString(attributeBuffer, attributeLength, &version), S_OK))
         {
             metaDataTables->Release();
             metaDataImport->Release();
@@ -492,7 +492,7 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
         }
     }
 
-    if (metaDataTables->GetTableInfo(PH_CLR_TABLE_ASSEMBLYREF, nullptr, &count, &columns, nullptr, nullptr) == S_OK)
+    if (std::cmp_equal(metaDataTables->GetTableInfo(PH_CLR_TABLE_ASSEMBLYREF, nullptr, &count, &columns, nullptr, nullptr), S_OK))
     {
         for (ULONG i = 1; std::cmp_less_equal(i, count); i++)
         {
@@ -505,9 +505,9 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
             ULONG buildVersion = 0;
             ULONG revisionVersion = 0;
 
-            if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_NAME, i, &index) == S_OK)
+            if (std::cmp_equal(metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_NAME, i, &index), S_OK))
             {
-                if (metaDataTables->GetString(index, &name) == S_OK)
+                if (std::cmp_equal(metaDataTables->GetString(index, &name), S_OK))
                 {
                     if (PhEqualBytesZ(name, "System.Runtime", TRUE))
                         runtime = TRUE;
@@ -518,13 +518,13 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
             if (runtime || framework)
             {
-                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MAJORVERSION, i, &majorVersion) != S_OK)
+                if (std::cmp_not_equal(metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MAJORVERSION, i, &majorVersion), S_OK))
                     break;
-                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MINORVERSION, i, &minorVersion) != S_OK)
+                if (std::cmp_not_equal(metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MINORVERSION, i, &minorVersion), S_OK))
                     break;
-                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_BUILDNUMBER, i, &buildVersion) != S_OK)
+                if (std::cmp_not_equal(metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_BUILDNUMBER, i, &buildVersion), S_OK))
                     break;
-                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_REVISIONNUMBER, i, &revisionVersion) != S_OK)
+                if (std::cmp_not_equal(metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_REVISIONNUMBER, i, &revisionVersion), S_OK))
                     break;
 
                 if (runtime)
@@ -634,11 +634,11 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 if (NT_SUCCESS(PhGetMappedClrTableRow(&clrMetadata, PH_CLR_TABLE_IMPLMAP, i, &importRowValue)))
                     importOffsetValue = PTR_SUB_OFFSET(importRowValue, reinterpret_cast<ULONG_PTR>(PvMappedImage.ViewBase));
 
-                for (ULONG j = 0; j < clrImportsList->Count; j++)
+                for (ULONG j = 0; std::cmp_less(j, clrImportsList->Count); j++)
                 {
                     PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[j]);
 
-                    if (importDll->ImportToken == moduleTokenValue)
+                    if (std::cmp_equal(importDll->ImportToken, moduleTokenValue))
                     {
                         if (!importDll->Functions)
                             importDll->Functions = PhCreateList(1);

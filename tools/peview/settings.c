@@ -101,7 +101,9 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImageHashesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePidsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageGuidsListViewColumns", L"");
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageRttiListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdHashListViewColumns", L"");

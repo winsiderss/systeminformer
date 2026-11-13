@@ -503,6 +503,8 @@ VOID PvShowPePropertiesWindow(
     }
 
     ShowWindow(PvPropertiesWindowHandle, PvPropertiesWindowShowCommand);
+    if (IsWindowVisible(PvPropertiesWindowHandle))
+        UpdateWindow(PvPropertiesWindowHandle);
     SetForegroundWindow(PvPropertiesWindowHandle);
     PvStartPageFinishLoading();
 
@@ -1368,7 +1370,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PostQuitMessage(0);
         }
         break;
-    case WM_DPICHANGED_AFTERPARENT:
+    case WM_DPICHANGED:
         {
             LONG newDpi = LOWORD(wParam);
 
@@ -1498,7 +1500,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             //        case 1: // Old colors
             //            {
             //                SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
-            //                FillRect(drawInfo->hDC, &rect, PhGetStockBrush(DC_BRUSH));
+            //                FillRect(drawInfo->hDC, &rect, PhStockDcBrush);
             //            }
             //            break;
             //        }
@@ -1585,10 +1587,15 @@ VOID PvTabWindowOnSize(
 
     /* Keep the shell controls visible after theme/layout initialization. */
     ShowWindow(PvTabTreeControl, SW_SHOW);
+    UpdateWindow(PvTabTreeControl);
     ShowWindow(PvTabContainerControl, SW_SHOW);
+    UpdateWindow(PvTabContainerControl);
     ShowWindow(GetDlgItem(PvPropertiesWindowHandle, IDC_OPTIONS), SW_SHOW);
+    UpdateWindow(GetDlgItem(PvPropertiesWindowHandle, IDC_OPTIONS));
     ShowWindow(GetDlgItem(PvPropertiesWindowHandle, IDC_SECURITY), SW_SHOW);
+    UpdateWindow(GetDlgItem(PvPropertiesWindowHandle, IDC_SECURITY));
     ShowWindow(GetDlgItem(PvPropertiesWindowHandle, IDOK), SW_SHOW);
+    UpdateWindow(GetDlgItem(PvPropertiesWindowHandle, IDOK));
 
     if (PvTabSectionList && PvTabSectionList->Count != 0)
     {
@@ -1659,6 +1666,7 @@ VOID PvEnterTabSectionView(
     {
         SendMessage(NewSection->DialogHandle, WM_SETREDRAW, FALSE, 0);
         ShowWindow(NewSection->DialogHandle, SW_SHOW);
+        UpdateWindow(NewSection->DialogHandle);
         SendMessage(NewSection->DialogHandle, WM_SETREDRAW, TRUE, 0);
 
         RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
