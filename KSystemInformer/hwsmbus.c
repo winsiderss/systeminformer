@@ -1591,7 +1591,6 @@ NTSTATUS KphpHwSmbusTransact(
     UCHAR controlAfter;
     USHORT value;
     BOOLEAN i801;
-    ULONG64 qpc;
     ULONG64 deadline;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -1659,7 +1658,7 @@ NTSTATUS KphpHwSmbusTransact(
                        transaction | KPH_HW_SMBUS_CNT_START);
     }
 
-    NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTimePrecise(&qpc),
+    NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTime(),
                                          KPH_HW_SMBUS_TIMEOUT,
                                          &deadline)));
     deadline = max(deadline, Session->Deadline);
