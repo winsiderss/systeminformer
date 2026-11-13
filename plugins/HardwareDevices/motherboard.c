@@ -417,6 +417,7 @@ static VOID MotherboardPollSlot(
         MotherboardStopSlot(Context, Slot, status);
         break;
     case STATUS_RETRY: // another agent held the bus: not a strike
+    case STATUS_IO_TIMEOUT: // another agent held the NCT668x EC page
         MotherboardAgeSlot(Context, Slot);
         break;
     default:
