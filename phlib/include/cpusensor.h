@@ -27,6 +27,7 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 // Intel MSR
 #define PH_INTEL_MSR_MPERF 0xE7
 #define PH_INTEL_MSR_APERF 0xE8
+#define PH_INTEL_MSR_FSB_FREQ 0xCD // Silvermont, Airmont: bus clock select
 #define PH_INTEL_MSR_PLATFORM_INFO 0xCE
 #define PH_INTEL_MSR_PERF_STATUS 0x198
 #define PH_INTEL_MSR_THERM_STATUS 0x19C
@@ -350,6 +351,21 @@ FLOAT
 NTAPI
 PhIntelPerfStatusToVolts(
     _In_ ULONG64 PerfStatus,
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhIntelFsbFreqMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+FLOAT
+NTAPI
+PhIntelFsbFreqToMhz(
+    _In_ ULONG64 FsbFreq,
     _In_ PCPH_CPU_IDENTITY Identity
     );
 

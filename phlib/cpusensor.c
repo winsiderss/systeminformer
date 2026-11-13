@@ -670,6 +670,63 @@ FLOAT NTAPI PhIntelPerfStatusToVolts(
 }
 
 /**
+ * Retrieves the MSR that selects the bus clock, which MSR_PLATFORM_INFO multiplies.
+ *
+ * \param Identity The CPU identity.
+ * \return MSR_FSB_FREQ on Silvermont and Airmont, or 0 where the bus clock is fixed.
+ */
+ULONG NTAPI PhIntelFsbFreqMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    static const UCHAR models[] = { 0x37, 0x4D, 0x4A, 0x5A, 0x4C, 0x75 };
+
+    if (!PhCpuIdentityIsIntel(Identity))
+        return 0;
+    if (!PhpCpuIdentityIsModel(Identity, 0x06, models, RTL_NUMBER_OF(models)))
+        return 0;
+
+    return PH_INTEL_MSR_FSB_FREQ;
+}
+
+/**
+ * Decodes the bus clock of a Silvermont or Airmont processor.
+ *
+ * \param FsbFreq MSR_FSB_FREQ.
+ * \param Identity The CPU identity.
+ * \return The bus clock in MHz, or 0 when the model or the selection is not known.
+ */
+FLOAT NTAPI PhIntelFsbFreqToMhz(
+    _In_ ULONG64 FsbFreq,
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    // 100 MHz x 5/6, 1, 4/3, 7/6, 4/5; Cherry Trail adds 14/15, 9/10, 8/9, 7/8.
+    static const FLOAT clocks[] = { 83.3333f, 100.0f, 133.3333f, 116.6667f, 80.0f, 93.3333f, 90.0f, 88.8889f, 87.5f };
+    static const UCHAR silvermont[] = { 0x37, 0x4D };
+    static const UCHAR cherryTrail[] = { 0x4C };
+    ULONG select;
+    ULONG count;
+
+    if (PhpCpuIdentityIsModel(Identity, 0x06, silvermont, RTL_NUMBER_OF(silvermont)))
+    {
+        select = (ULONG)FsbFreq & 0x7;
+        count = 5;
+    }
+    else if (PhpCpuIdentityIsModel(Identity, 0x06, cherryTrail, RTL_NUMBER_OF(cherryTrail)))
+    {
+        select = (ULONG)FsbFreq & 0xF;
+        count = RTL_NUMBER_OF(clocks);
+    }
+    else
+    {
+        return 0.0f;
+    }
+
+    return select < count ? clocks[select] : 0.0f;
+}
+
+/**
  * Converts SMN THM_TCON_CUR_TMP to Tctl in degrees Celsius.
  *
  * \param ThmTconCurTmp The register value.

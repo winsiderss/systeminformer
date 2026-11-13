@@ -204,6 +204,7 @@ typedef enum _PHP_HW_REG
     PhpHwRegPtsc, // AMD 15h/16h PTSC (compute unit)
     PhpHwRegTemperatureTarget, // probe only from here; Intel MSR_TEMPERATURE_TARGET, Zhaoxin critical temperature
     PhpHwRegPlatformInfo,
+    PhpHwRegFsbFreq, // Intel Silvermont and Airmont MSR_FSB_FREQ (pkg)
     PhpHwRegRaplUnit,
     PhpHwRegPowerLimit,
     PhpHwRegPStateDef0,
@@ -1382,6 +1383,7 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegPlatformEnergy, PH_INTEL_MSR_PLATFORM_ENERGY_STATUS, PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegTemperatureTarget, PH_INTEL_MSR_TEMPERATURE_TARGET, PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegPlatformInfo, PH_INTEL_MSR_PLATFORM_INFO, PhpHwScopePackage);
+        PhpHwSetRegister(PhpHwRegFsbFreq, PhIntelFsbFreqMsr(&PhpHwIdentity), PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegRaplUnit, PH_INTEL_MSR_RAPL_POWER_UNIT, PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegPowerLimit, PH_INTEL_MSR_PKG_POWER_LIMIT, PhpHwScopePackage);
         PhpHwSetRegister(PhpHwRegUncorePerfStatus, PH_INTEL_MSR_UNCORE_PERF_STATUS, PhpHwScopePackage);
@@ -11141,6 +11143,10 @@ static VOID PhpHwProbeDecode(
             PhpHwClockPowerTimingControl0 = clockControl;
         }
     }
+
+    // Silvermont and Airmont select the bus clock in MSR_FSB_FREQ; undecoded, the base clock stays unknown.
+    if (PhpHwRegisters[PhpHwRegFsbFreq].Register)
+        busMhz = PhpHwSampleValue(sample0, PhpHwRegFsbFreq, &value) ? PhIntelFsbFreqToMhz(value, &PhpHwIdentity) : 0.0f;
 
     raplUnitValid = PhpHwSampleValue(sample0, PhpHwRegRaplUnit, &raplUnit);
 
