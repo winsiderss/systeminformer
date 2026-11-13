@@ -1617,6 +1617,11 @@ VOID KphInitializeHardware(
             KphpHwCpuIdentity.PhysicalAddressBits = 52;
             break;
         }
+        case 7:
+        {
+            KphpHwCpuIdentity.PhysicalAddressBits = 56;
+            break;
+        }
         default:
         {
             KphpHwCpuIdentity.PhysicalAddressBits = 48;
