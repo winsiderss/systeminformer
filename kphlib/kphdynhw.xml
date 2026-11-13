@@ -1955,6 +1955,68 @@ This file is part of System Informer.
         </pciclass>
     </cpu>
 
+    <cpu vendor="CentaurHauls"
+         family="0x06"
+         models="0x0f"
+         desc="VIA Nano">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
+    <cpu vendor="CentaurHauls"
+         family="0x07"
+         models="0x1b"
+         desc="Centaur family 7 model 1Bh">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
+    <cpu vendor="CentaurHauls"
+         family="0x07"
+         models="0x3b,0x5b"
+         desc="Centaur family 7 models 3Bh, 5Bh">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0x1415" desc="maximum temperature, degrees C [7:0] (core)"/>
+        <msr reg="0x1416" desc="critical temperature, degrees C [7:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
+    <cpu vendor="CentaurHauls"
+         family="0x07"
+         models="0x6b,0x7b"
+         desc="Centaur family 7 models 6Bh, 7Bh">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0x175a" desc="maximum temperature, degrees C [7:0] (core)"/>
+        <msr reg="0x175b" desc="critical temperature, degrees C [7:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
+    <cpu vendor="  Shanghai  "
+         family="0x07"
+         models="0x3b,0x5b"
+         desc="Zhaoxin family 7 models 3Bh, 5Bh">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0x1415" desc="maximum temperature, degrees C [7:0] (core)"/>
+        <msr reg="0x1416" desc="critical temperature, degrees C [7:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
+    <cpu vendor="  Shanghai  "
+         family="0x07"
+         models="0x6b,0x7b"
+         desc="Zhaoxin family 7 models 6Bh, 7Bh">
+        <msr reg="0x1423" desc="temperature, degrees C [23:0] (core)"/>
+        <msr reg="0x175a" desc="maximum temperature, degrees C [7:0] (core)"/>
+        <msr reg="0x175b" desc="critical temperature, degrees C [7:0] (core)"/>
+        <msr reg="0xe7" gate="06h:ecx:0" desc="IA32_MPERF (thread)"/>
+        <msr reg="0xe8" gate="06h:ecx:0" desc="IA32_APERF (thread)"/>
+    </cpu>
+
     <cpu vendor="AuthenticAMD"
          family="0x19"
          models="0x00-0x0f"
