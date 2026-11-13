@@ -2002,7 +2002,7 @@ static ULONG PhpHwFindPciDevices(
             continue;
         if (!SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_Address, &propertyType, (PBYTE)&address, sizeof(ULONG), NULL, 0))
             continue;
-        if ((DeviceZeroOnly && address != 0) || busNumber > UCHAR_MAX || HIWORD(address) > 0x1F || LOWORD(address) > 0x7)
+        if ((DeviceZeroOnly && address != 0) || HIWORD(address) > 0x1F || LOWORD(address) > 0x7)
             continue;
 
         memset(location, 0, sizeof(location));
@@ -2019,7 +2019,8 @@ static ULONG PhpHwFindPciDevices(
         else if (numberCount != 3)
             continue;
 
-        locator.Bus = (UCHAR)busNumber;
+        // Off segment 0 the bus number carries the segment above the bus.
+        locator.Bus = LOBYTE(busNumber);
         locator.Device = (UCHAR)HIWORD(address);
         locator.Function = (UCHAR)LOWORD(address);
 
