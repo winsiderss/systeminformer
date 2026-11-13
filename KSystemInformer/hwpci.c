@@ -4743,7 +4743,8 @@ typedef struct _KPH_HW_VSEC_TABLE
  * \param[out] Table Receives the table; Entries is freed by the caller.
  * \param[in,out] ReadFailed Set TRUE when a read failed or read all-ones.
  *
- * \return Successful or errant status.
+ * \return STATUS_SUCCESS, STATUS_NOT_FOUND when the capability describes no
+ * usable table, or an errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(KphpHwPciLock)
@@ -4832,7 +4833,7 @@ NTSTATUS KphpHwPciVsecReadTable(
                       (ULONG)Table->Bar,
                       Table->Offset);
 
-        return STATUS_DEVICE_CONFIGURATION_ERROR;
+        return STATUS_NOT_FOUND;
     }
 
     status = KphpHwPciVsecDeriveBar(Device,
@@ -4865,7 +4866,7 @@ NTSTATUS KphpHwPciVsecReadTable(
                       "RtlULongAdd failed: %!STATUS!",
                       status);
 
-        return status;
+        return STATUS_NOT_FOUND;
     }
 
     if (tableEnd > Table->BarLength)
@@ -4877,7 +4878,7 @@ NTSTATUS KphpHwPciVsecReadTable(
                       tableEnd,
                       Table->BarLength);
 
-        return STATUS_DEVICE_CONFIGURATION_ERROR;
+        return STATUS_NOT_FOUND;
     }
 
     status = RtlULongLongAdd(Table->BarBase, Table->Offset, &tableBase);
@@ -5275,6 +5276,11 @@ NTSTATUS KphpHwPciLocateVsec(
                                         &bars,
                                         &table,
                                         ReadFailed);
+        if (status == STATUS_NOT_FOUND)
+        {
+            continue;
+        }
+
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
