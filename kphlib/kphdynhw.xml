@@ -4688,8 +4688,8 @@ This file is part of System Informer.
     <pci vendor="0x1002"
          device="0x4385"
          desc="ATI SB600/SB700/SB800/SB900 SMBus controller; DDR2/DDR3-era, no DDR5 PMIC">
-        <smbus-host revisions="0x00-0x3f" pm="config" decode="0x90,0x91" base-mask="0xfff0" enable="0xd2:0x01"
-                    desc="SB600/SB700: SMBus base word at 90h, host enable D2h bit 0, in configuration space"/>
+        <smbus-host revisions="0x00-0x3f" pm="config" decode="0x90,0x91" base-mask="0xfff0" enable="0xd2:0x01" semaphore="false"
+                    desc="SB600/SB700: SMBus base word at 90h, host enable D2h bit 0, in configuration space; slave control [7:4] reserved, no host semaphore"/>
         <smbus-host revisions="0x40-0xff" pm="pair" index-port="0xcd6" data-port="0xcd7"
                     decode="0x2c,0x2d" base-mask="0xffe0" enable-mask="0x01"
                     select="0x2c" select-mask="0x06" select-alternate="0x2e" select-choose="0x2f:0x01"
@@ -4705,8 +4705,8 @@ This file is part of System Informer.
     <pci vendor="0x1002"
          device="0x4353,0x4363,0x4372"
          desc="ATI IXP200/IXP300/IXP400 SMBus controller; DDR/DDR2-era">
-        <smbus-host revisions="0x00-0xff" pm="config" decode="0x90,0x91" base-mask="0xfff0" enable="0xd2:0x01"
-                    desc="SMBus base word at 90h, host enable D2h bit 0, in configuration space"/>
+        <smbus-host revisions="0x00-0xff" pm="config" decode="0x90,0x91" base-mask="0xfff0" enable="0xd2:0x01" semaphore="false"
+                    desc="SMBus base word at 90h, host enable D2h bit 0, in configuration space; no host semaphore"/>
         <smbus host="piix4" port="0" protocols="byte,word" slaves="0x50-0x57" desc="SPD">
             <read command="0x00" length="0x100" desc="SPD bytes 0-255"/>
         </smbus>
