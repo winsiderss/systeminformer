@@ -1460,10 +1460,13 @@ VOID KphpUnlinkProcessContextThreadContexts(
  * \brief Unlinks a thread context from its process context.
  *
  * \param[in] Thread The thread context to unlink.
+ * \param[in] Successor Optional linked thread context that takes over as the
+ * initial thread of the process.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpUnlinkThreadContext(
-    _In_ PKPH_THREAD_CONTEXT Thread
+    _In_ PKPH_THREAD_CONTEXT Thread,
+    _In_opt_ PKPH_THREAD_CONTEXT Successor
     )
 {
     KPH_PAGED_CODE();
@@ -1485,7 +1488,18 @@ VOID KphpUnlinkThreadContext(
 
     if (Thread->ProcessContext->InitialThread == Thread)
     {
-        Thread->ProcessContext->InitialThread = NULL;
+        if (Successor &&
+            (Successor->ProcessContext == Thread->ProcessContext) &&
+            Successor->InThreadList)
+        {
+            Thread->ProcessContext->InitialThread = Successor;
+            KphReferenceObject(Successor);
+        }
+        else
+        {
+            Thread->ProcessContext->InitialThread = NULL;
+        }
+
         KphDereferenceObject(Thread);
     }
 
@@ -1620,7 +1634,16 @@ PVOID KphpTrackContext(
     //
     if (ObjectType == KphThreadContextType)
     {
-        KphpUnlinkThreadContext(object);
+        PKPH_THREAD_CONTEXT successor;
+
+        successor = NULL;
+
+        if (KphGetObjectType(existing) == KphThreadContextType)
+        {
+            successor = existing;
+        }
+
+        KphpUnlinkThreadContext(object, successor);
     }
 
     KphDereferenceObject(object);
@@ -2059,7 +2082,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
         return NULL;
     }
 
-    KphpUnlinkThreadContext(thread);
+    KphpUnlinkThreadContext(thread, NULL);
 
     return thread;
 }
