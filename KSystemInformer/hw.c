@@ -1544,7 +1544,7 @@ VOID KphInitializeHardware(
     }
 
     identity->DisplayModel = (UCHAR)cpuid1.Model;
-    if ((cpuid1.Family == 0x6) || (cpuid1.Family == 0xF))
+    if (cpuid1.Family >= 0x6)
     {
         identity->DisplayModel |= (UCHAR)(cpuid1.ExtendedModel << 4);
     }
