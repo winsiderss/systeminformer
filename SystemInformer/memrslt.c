@@ -828,5 +828,6 @@ VOID PhShowMemoryResultsDialog(
         context
         );
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 }

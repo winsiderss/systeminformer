@@ -262,6 +262,7 @@ typedef struct _PH_COLUMNSET_DIALOG_CONTEXT
     HWND MoveUpButtonHandle;
     HWND MoveDownButtonHandle;
     HWND RemoveButtonHandle;
+    HFONT WindowFont;
     PPH_STRING SettingName;
     PPH_LIST ColumnSetList;
     BOOLEAN LabelEditActive;
@@ -396,7 +397,10 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(context->ListViewHandle);
 
@@ -423,7 +427,18 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
 
             PhDeleteColumnSetList(context->ColumnSetList);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_COMMAND:

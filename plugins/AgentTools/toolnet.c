@@ -120,7 +120,7 @@ VOID AtpAddCountry(
     PPH_STRING countryName = NULL;
 
     if (Interface && !AtpIsPrivateAddress(Address) &&
-        Interface->LookupCountryCode(*Address, &geoNameId, &countryName))
+        Interface->LookupCountryCode(Address, &geoNameId, &countryName))
     {
         // TRUE even for an address it does not know; identifier and name come together or not at all.
         AtJsonAddString(Object, "country", countryName);

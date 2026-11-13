@@ -101,6 +101,9 @@ PH_DECLARE_IMPORT(CreateEnvironmentBlock);
 PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
 PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
+PH_DECLARE_IMPORT(CreateAppContainerProfile);
+PH_DECLARE_IMPORT(DeleteAppContainerProfile);
+PH_DECLARE_IMPORT(DeriveAppContainerSidFromAppContainerName);
 
 // User32
 

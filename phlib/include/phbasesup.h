@@ -166,6 +166,22 @@ PhQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER UnbiasedInterruptTime
     );
 
+/**
+ * Reads the unbiased interrupt time, excluding time spent asleep or hibernating.
+ * \return The unbiased interrupt time in 100-nanosecond units.
+ */
+FORCEINLINE
+ULONGLONG
+NTAPI
+PhQueryInterruptTimeUnbiased(
+    VOID
+    )
+{
+    LARGE_INTEGER interruptTime;
+    PhQueryUnbiasedInterruptTime(&interruptTime);
+    return (ULONGLONG)interruptTime.QuadPart;
+}
+
 PHLIBAPI
 ULONG64
 NTAPI

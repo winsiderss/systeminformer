@@ -165,7 +165,7 @@ PPH_STRING AtpGetCertificateSerialNumber(
         return NULL;
 
     // Two hex digits a byte, over a length the certificate chose.
-    if (!NT_SUCCESS(RtlSizeTMult(serial->cbData, 2 * sizeof(WCHAR), &length)))
+    if (!NT_SUCCESS(RtlSIZETMult(serial->cbData, 2 * sizeof(WCHAR), &length)))
         return NULL;
 
     string = PhCreateStringEx(NULL, length);

@@ -126,6 +126,7 @@ RTL_ATOM PhScrollNewWindowInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PH_SCROLLNEW_CLASSNAME;
 
     return RegisterClassEx(&wcex);

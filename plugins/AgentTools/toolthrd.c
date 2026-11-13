@@ -945,7 +945,7 @@ VOID AtpGetProcessStacks(
     // against one consistent view rather than against a process that is still creating threads.
     threadCount = process->NumberOfThreads;
     // threadCount comes from the snapshot, so the size is checked rather than assumed to fit.
-    if (!NT_SUCCESS(RtlSizeTMult(sizeof(AT_STACK_THREAD), max(threadCount, 1), &threadsSize)))
+    if (!NT_SUCCESS(RtlSIZETMult(sizeof(AT_STACK_THREAD), max(threadCount, 1), &threadsSize)))
     {
         AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"That process has too many threads to walk.");
         PhFree(processes);

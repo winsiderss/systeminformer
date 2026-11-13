@@ -781,7 +781,7 @@ VOID AtpListProcesses(
     }
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
-    if (!NT_SUCCESS(RtlSizeTMult(numberOfProcessItems, sizeof(BOOLEAN), &matchedSize)))
+    if (!NT_SUCCESS(RtlSIZETMult(numberOfProcessItems, sizeof(BOOLEAN), &matchedSize)))
     {
         AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"There are too many processes to filter.");
         PhFree(processItems);

@@ -82,7 +82,7 @@ static Bitmap* PhGdiplusCreateBitmapFromDIB(
 {
     DIBSECTION dib = {};
 
-    if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) == sizeof(DIBSECTION))
+    if (std::cmp_equal(GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib), sizeof(DIBSECTION)))
     {
         LONG width = dib.dsBmih.biWidth;
         LONG height = dib.dsBmih.biHeight;
@@ -112,7 +112,7 @@ HICON PhGdiplusConvertBitmapToIcon(
 
         RtlZeroMemory(&dib, sizeof(DIBSECTION));
 
-        if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
+        if (std::cmp_not_equal(GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib), sizeof(DIBSECTION)))
             return nullptr;
 
         LONG width = dib.dsBmih.biWidth;
@@ -184,7 +184,7 @@ HICON PhConvertBitmapToIcon(
 
     RtlZeroMemory(&dib, sizeof(DIBSECTION));
 
-    if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
+    if (std::cmp_not_equal(GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib), sizeof(DIBSECTION)))
         return nullptr;
 
     // Create a 32bpp ARGB DIB section for the output color bitmap
@@ -451,7 +451,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             HDC hdc = reinterpret_cast<HDC>(wParam);
             RECT clientRect;
 
-            if (GetClipBox(hdc, &clientRect) <= NULLREGION)
+            if (std::cmp_less_equal(GetClipBox(hdc, &clientRect), NULLREGION))
                 return TRUE;
 
             FillRect(hdc, &clientRect, PhGetStockBrush(BLACK_BRUSH));
@@ -488,7 +488,7 @@ HWND PhCreateBackgroundWindow(
     HWND windowHandle;
     RECT windowRect = { 0 };
 
-    if (WindowsVersion < WINDOWS_8)
+    if (std::cmp_less(WindowsVersion, WINDOWS_8))
         return nullptr;
 
     if (!PhGetClientRect(ParentWindowHandle, &windowRect))
@@ -513,7 +513,7 @@ HWND PhCreateBackgroundWindow(
         PhEndInitOnce(&initOnce);
     }
 
-    if (windowAtom == INVALID_ATOM)
+    if (std::cmp_equal(windowAtom, INVALID_ATOM))
         return nullptr;
 
     windowHandle = CreateWindowEx(
@@ -544,6 +544,7 @@ HWND PhCreateBackgroundWindow(
         0,
         SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW
         );
+    UpdateWindow(windowHandle);
 
     return windowHandle;
 }
@@ -757,7 +758,7 @@ BOOLEAN PhCreateWindowSnapshotSelection(
     {
         static RTL_ATOM windowAtom = RTL_ATOM_INVALID_ATOM;
 
-        if (windowAtom == RTL_ATOM_INVALID_ATOM)
+        if (std::cmp_equal(windowAtom, RTL_ATOM_INVALID_ATOM))
         {
             WNDCLASSEX wcex;
 
@@ -796,6 +797,7 @@ BOOLEAN PhCreateWindowSnapshotSelection(
     Context->IsActive = TRUE;
 
     ShowWindow(Context->SnapshotWindow, SW_SHOWNA);
+    UpdateWindow(Context->SnapshotWindow);
     SetWindowPos(
         Context->SnapshotWindow,
         HWND_TOPMOST,
@@ -1013,7 +1015,7 @@ LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
         }
         break;
     case WM_ACTIVATE:
-        if (LOWORD(wParam) != WA_INACTIVE)
+        if (std::cmp_not_equal(LOWORD(wParam), WA_INACTIVE))
             InvalidateRect(WindowHandle, nullptr, FALSE);
         break;
     case WM_ERASEBKGND:
@@ -1045,8 +1047,8 @@ LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
                 }
 
                 if (
-                    context->HighlightRect.right > context->HighlightRect.left &&
-                    context->HighlightRect.bottom > context->HighlightRect.top
+                    std::cmp_greater(context->HighlightRect.right, context->HighlightRect.left) &&
+                    std::cmp_greater(context->HighlightRect.bottom, context->HighlightRect.top)
                     )
                 {
                     RECT highlightRect;
@@ -1183,7 +1185,7 @@ HWND PhSelectWindowFromScreenSnapshot(
 
         result = GetMessage(&message, nullptr, 0, 0);
 
-        if (result <= 0)
+        if (std::cmp_less_equal(result, 0))
         {
             context.IsActive = FALSE;
             break;
@@ -1291,7 +1293,7 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
         PhEndInitOnce(&initOnce);
     }
 
-    if (windowAtom == RTL_ATOM_INVALID_ATOM)
+    if (std::cmp_equal(windowAtom, RTL_ATOM_INVALID_ATOM))
         return FALSE;
 
     if (!Context->OverlayWindowHandle)
@@ -1680,17 +1682,17 @@ HWND PhSelectWindowFromScreenTargeting(
 
         result = GetMessage(&message, nullptr, 0, 0);
 
-        if (result <= 0)
+        if (std::cmp_less_equal(result, 0))
             break;
 
-        if (message.message == WM_KEYDOWN && message.wParam == VK_ESCAPE)
+        if (std::cmp_equal(message.message, WM_KEYDOWN) && std::cmp_equal(message.wParam, VK_ESCAPE))
         {
             context.TargetWindowHandle = nullptr;
             context.Completed = TRUE;
             break;
         }
 
-        if (message.message == WM_MOUSEMOVE)
+        if (std::cmp_equal(message.message, WM_MOUSEMOVE))
         {
             POINT cursorPos;
             HWND windowHandle;
@@ -1725,7 +1727,7 @@ HWND PhSelectWindowFromScreenTargeting(
             continue;
         }
 
-        if (message.message == WM_LBUTTONUP || message.message == WM_LBUTTONDOWN)
+        if (std::cmp_equal(message.message, WM_LBUTTONUP) || std::cmp_equal(message.message, WM_LBUTTONDOWN))
         {
             POINT cursorPos;
 
@@ -2011,7 +2013,7 @@ BOOLEAN PhIsPointInWindowShadowExclusion(
         FLOAT deltaX = 0.0f;
         FLOAT deltaY = 0.0f;
 
-        if (!(x >= rect->left && x < rect->right && y >= rect->top && y < rect->bottom))
+        if (!(std::cmp_greater_equal(x, rect->left) && x < rect->right && y >= rect->top && std::cmp_less(y, rect->bottom)))
             continue;
 
         // Windows 11 rounds the occluder corners, so the shadow stays visible
@@ -2216,7 +2218,7 @@ BOOLEAN PhCreateWindowShadow(
         return TRUE;
 
     windowAtom = PhWindowShadowInitialization();
-    if (windowAtom == RTL_ATOM_INVALID_ATOM)
+    if (std::cmp_equal(windowAtom, RTL_ATOM_INVALID_ATOM))
         return FALSE;
 
     // Menu popups (#32768) are unowned, so the owner is optional. Never the popup itself. (dmex)
@@ -2278,7 +2280,7 @@ VOID PhAddWindowShadowOccluder(
     _In_ LONG Radius
     )
 {
-    if (Occluders->Count < RTL_NUMBER_OF(Occluders->Rect) && !IsRectEmpty(Rect))
+    if (std::cmp_less(Occluders->Count, RTL_NUMBER_OF(Occluders->Rect)) && !IsRectEmpty(Rect))
     {
         Occluders->Rect[Occluders->Count] = *Rect;
         Occluders->Radius[Occluders->Count] = Radius;
@@ -2557,7 +2559,7 @@ VOID PhUpdateWindowShadow(
 
     PhQueryWindowShadowOccluders(
         WindowHandle,
-        WindowsVersion >= WINDOWS_11 ? PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi) : 0,
+        std::cmp_greater_equal(WindowsVersion, WINDOWS_11) ? PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi) : 0,
         &occluders
         );
 
@@ -2595,16 +2597,16 @@ VOID PhUpdateWindowShadow(
     }
 
     if (
-        context->ContentWidth != contentWidth ||
-        context->ContentHeight != contentHeight ||
-        context->WindowDpi != windowDpi ||
-        context->Margin != margin ||
+        std::cmp_not_equal(context->ContentWidth, contentWidth) ||
+        std::cmp_not_equal(context->ContentHeight, contentHeight) ||
+        std::cmp_not_equal(context->WindowDpi, windowDpi) ||
+        std::cmp_not_equal(context->Margin, margin) ||
         context->Opacity != opacity ||
         context->Falloff != falloff ||
-        context->BackgroundColor != backgroundColor ||
+        std::cmp_not_equal(context->BackgroundColor, backgroundColor) ||
         context->Sides != Sides ||
-        memcmp(context->ExcludeRect, excludeRect, sizeof(excludeRect)) != 0 ||
-        memcmp(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius)) != 0
+        std::cmp_not_equal(memcmp(context->ExcludeRect, excludeRect, sizeof(excludeRect)), 0) ||
+        std::cmp_not_equal(memcmp(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius)), 0)
         )
     {
         context->ContentWidth = contentWidth;
@@ -2676,6 +2678,7 @@ VOID PhUpdateWindowShadow(
             windowSize.cy,
             SWP_NOACTIVATE | SWP_NOREDRAW  | SWP_SHOWWINDOW
             );
+        UpdateWindow(shadowHandle);
     }
 }
 

@@ -301,7 +301,7 @@ NTSTATUS PhBcdGetElementString(
         &stringLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
+    if (std::cmp_equal(status, STATUS_BUFFER_TOO_SMALL))
     {
         PhDereferenceObject(string);
         string = PhCreateStringEx(nullptr, stringLength);
@@ -734,7 +734,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         &objectCount
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
+    if (std::cmp_equal(status, STATUS_BUFFER_TOO_SMALL))
     {
         object = static_cast<PBCD_OBJECT>(PhAllocate(objectSize));
         memset(object, 0, objectSize);
@@ -986,7 +986,7 @@ VOID PhBcdDestroyBootApplicationList(
     _In_ PPH_LIST ObjectApplicationList
     )
 {
-    for (ULONG i = 0; i < ObjectApplicationList->Count; i++)
+    for (ULONG i = 0; std::cmp_less(i, ObjectApplicationList->Count); i++)
     {
         PPH_BCD_OBJECT_LIST entry = static_cast<PPH_BCD_OBJECT_LIST>(ObjectApplicationList->Items[i]);
 

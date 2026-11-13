@@ -577,6 +577,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PhaFormatString(L"<a>(Verified) %s</a>", processItem->VerifySignerName->Buffer)->Buffer);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
+                    UpdateWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK));
                 }
                 else
                 {

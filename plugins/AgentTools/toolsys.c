@@ -1778,7 +1778,7 @@ VOID AtpListPoolTags(
     tagFilter = AtGetArgumentString(Call->Arguments, "tag");
     AtGetArgumentUInt64(Call->Arguments, "min_bytes", &minimumBytes);
 
-    if (!NT_SUCCESS(RtlSizeTMult(sizeof(AT_POOL_TAG_ENTRY), poolTable->Count, &entriesSize)))
+    if (!NT_SUCCESS(RtlSIZETMult(sizeof(AT_POOL_TAG_ENTRY), poolTable->Count, &entriesSize)))
     {
         AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"The pool tag table is too large to read.");
         PhFree(poolTable);

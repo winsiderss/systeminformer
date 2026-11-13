@@ -12,7 +12,6 @@
 #include <ph.h>
 
 #include <phfirmware.h>
-#include <ntintsafe.h>
 
 // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
 // private

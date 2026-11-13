@@ -146,7 +146,7 @@ extern int __isa_available;
  *
  * \note This is an external variable initialized by the MSCRT (Microsoft C Runtime).
  */
-extern long __isa_enabled;
+EXTERN_C long __isa_enabled;
 #define ISA_ENABLED_X86 0x00000001
 #define ISA_ENABLED_SSE2 0x00000002
 #define ISA_ENABLED_SSE42 0x00000004

@@ -16,7 +16,6 @@
 #include <phnative.h>
 #include <circbuf.h>
 #include <thirdparty.h>
-#include <ntintsafe.h>
 
 #include <trace.h>
 

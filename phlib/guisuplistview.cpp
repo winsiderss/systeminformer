@@ -13,7 +13,7 @@
 #include <ph.h>
 #include <utility>
 #include <guisup.h>
-#include <guisupview.h>
+#include <thirdparty.h>
 
 #include <commoncontrols.h>
 #include <wincodec.h>
@@ -70,7 +70,7 @@ LONG PhAddListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhScaleToDisplay(Width, ListViewDpi);
+    column.cx = std::cmp_less(WindowsVersion, WINDOWS_10) ? Width : PhScaleToDisplay(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -108,7 +108,7 @@ LONG PhAddIListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhScaleToDisplay(Width, ListViewDpi);
+    column.cx = std::cmp_less(WindowsVersion, WINDOWS_10) ? Width : PhScaleToDisplay(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -353,7 +353,7 @@ LONG PhFindIListViewItemByParam(
         ListView->GetHeaderControl(&windowHandle);
         windowHandle = GetParent(windowHandle);
         LONG index = PhFindListViewItemByParam(windowHandle, StartIndex, Param);
-        assert(index == foundIndex.iItem); // Items changed during enumeration. (dmex)
+        assert(std::cmp_equal(index, foundIndex.iItem)); // Items changed during enumeration. (dmex)
 #endif
 
         return foundIndex.iItem;
@@ -847,7 +847,7 @@ PVOID PhGetSelectedListViewItemParam(
         LVNI_SELECTED
         );
 
-    if (index != INT_ERROR)
+    if (std::cmp_not_equal(index, INT_ERROR))
     {
         if (PhGetListViewItemParam(
             WindowHandle,
@@ -883,11 +883,11 @@ BOOLEAN PhGetSelectedListViewItemParams(
     PhInitializeArray(&array, sizeof(PVOID), 2);
     index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
+    while (std::cmp_not_equal((index = PhFindListViewItemByFlags(
         WindowHandle,
         index,
         LVNI_SELECTED
-        )) != INT_ERROR)
+        )), INT_ERROR))
     {
         if (PhGetListViewItemParam(WindowHandle, index, &param))
             PhAddItemArray(&array, &param);
@@ -895,7 +895,7 @@ BOOLEAN PhGetSelectedListViewItemParams(
 
     *NumberOfItems = static_cast<ULONG>(PhFinalArrayCount(&array));
 
-    if (*NumberOfItems == 0)
+    if (std::cmp_equal(*NumberOfItems, 0))
     {
         *Items = nullptr;
         PhDeleteArray(&array);
@@ -927,11 +927,11 @@ BOOLEAN PhGetSelectedIListViewItemParams(
     PhInitializeArray(&array, sizeof(PVOID), 2);
     index = INT_ERROR;
 
-    while ((index = PhFindIListViewItemByFlags(
+    while (std::cmp_not_equal((index = PhFindIListViewItemByFlags(
         ListView,
         index,
         LVNI_SELECTED
-        )) != INT_ERROR)
+        )), INT_ERROR))
     {
         if (PhGetIListViewItemParam(ListView, index, &param))
             PhAddItemArray(&array, &param);
@@ -939,7 +939,7 @@ BOOLEAN PhGetSelectedIListViewItemParams(
 
     *NumberOfItems = static_cast<ULONG>(PhFinalArrayCount(&array));
 
-    if (*NumberOfItems == 0)
+    if (std::cmp_equal(*NumberOfItems, 0))
     {
         *Items = nullptr;
         PhDeleteArray(&array);
@@ -1321,7 +1321,7 @@ BOOLEAN PhListView_InsertItem(
     {
         index = ListView_InsertItem(Context->ListViewHandle, Item);
 
-        if (index == INT_ERROR)
+        if (std::cmp_equal(index, INT_ERROR))
             return FALSE;
     }
 
@@ -1359,7 +1359,7 @@ BOOLEAN PhListView_InsertGroup(
     {
         index = static_cast<LONG>(ListView_InsertGroup(Context->ListViewHandle, InsertAt, Group));
 
-        if (index == INT_ERROR)
+        if (std::cmp_equal(index, INT_ERROR))
             return FALSE;
     }
 
@@ -1951,7 +1951,7 @@ PVOID PhListView_GetSelectedItemParam(
             LVNI_SELECTED
             );
 
-        if (index != INT_ERROR)
+        if (std::cmp_not_equal(index, INT_ERROR))
         {
             if (PhGetIListViewItemParam(Context->ListViewInterface, index, &param))
                 return param;
@@ -2163,7 +2163,7 @@ BOOLEAN PhListView_IsItemVisible(
             return FALSE;
         
         // Check if the item rectangle intersects with the client area
-        *Visible = (itemRect.top < clientRect.bottom && itemRect.bottom > clientRect.top);
+        *Visible = (std::cmp_less(itemRect.top, clientRect.bottom) && std::cmp_greater(itemRect.bottom, clientRect.top));
         return TRUE;
     }
 }
@@ -2186,6 +2186,6 @@ BOOLEAN PhListView_HitTestSubItem(
     }
     else
     {
-        return ListView_SubItemHitTest(Context->ListViewHandle, HitTestInfo) != INT_ERROR;
+        return std::cmp_not_equal(ListView_SubItemHitTest(Context->ListViewHandle, HitTestInfo), INT_ERROR);
     }
 }

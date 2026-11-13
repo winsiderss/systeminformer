@@ -165,6 +165,7 @@ VOID PhShowMemoryEditorDialog(
         PhAddElementAvlTree(&PhMemoryEditorSet, &context->Links);
 
         ShowWindow(context->WindowHandle, SW_SHOW);
+        UpdateWindow(context->WindowHandle);
         SetForegroundWindow(context->WindowHandle);
     }
     else
@@ -172,7 +173,10 @@ VOID PhShowMemoryEditorDialog(
         context = CONTAINING_RECORD(links, MEMORY_EDITOR_CONTEXT, Links);
 
         if (IsMinimized(context->WindowHandle))
+        {
             ShowWindow(context->WindowHandle, SW_RESTORE);
+            UpdateWindow(context->WindowHandle);
+        }
         else
             SetForegroundWindow(context->WindowHandle);
 

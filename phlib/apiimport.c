@@ -212,6 +212,9 @@ PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
+PH_DEFINE_IMPORT(L"userenv.dll", CreateAppContainerProfile);
+PH_DEFINE_IMPORT(L"userenv.dll", DeleteAppContainerProfile);
+PH_DEFINE_IMPORT(L"userenv.dll", DeriveAppContainerSidFromAppContainerName);
 
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 PH_DEFINE_IMPORT(L"user32.dll", GetCurrentInputMessageSource);

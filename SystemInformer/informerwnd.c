@@ -4049,10 +4049,14 @@ VOID PhShowInformerWindow(
             );
         PhRegisterDialog(PhpInformerWindowHandle);
         ShowWindow(PhpInformerWindowHandle, SW_SHOW);
+        UpdateWindow(PhpInformerWindowHandle);
     }
 
     if (IsMinimized(PhpInformerWindowHandle))
+    {
         ShowWindow(PhpInformerWindowHandle, SW_RESTORE);
+        UpdateWindow(PhpInformerWindowHandle);
+    }
     else
         SetForegroundWindow(PhpInformerWindowHandle);
 }

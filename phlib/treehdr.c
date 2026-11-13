@@ -60,8 +60,8 @@ RTL_ATOM PhHeaderNewInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PH_HEADERNEW_CLASSNAME;
-    //wcex.hbrBackground = PhThemeWindowBackgroundBrush;
 
     return RegisterClassEx(&wcex);
 }
@@ -1985,8 +1985,11 @@ LRESULT CALLBACK PhHeaderNewWndProc(
     case WM_THEMECHANGED:
     case WM_SYSCOLORCHANGE:
         {
+            BOOLEAN oldThemeDark = !!context->ThemeDark;
+
             PhHeaderNewUpdateTheme(context);
-            PhSetControlTheme(WindowHandle, context->ThemeDark ? L"DarkMode_ItemsView" : L"Explorer");
+            if (oldThemeDark != context->ThemeDark)
+                PhSetControlTheme(WindowHandle, context->ThemeDark ? L"DarkMode_ItemsView" : L"Explorer");
             PhHeaderNewUpdateHeight(context);
             PhHeaderNewLayoutItems(context);
             PhHeaderNewInvalidate(context, NULL);

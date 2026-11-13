@@ -107,7 +107,10 @@ VOID PhShowZombieProcessesDialog(
     }
 
     if (!IsWindowVisible(PhZombieProcessesWindowHandle))
+    {
         ShowWindow(PhZombieProcessesWindowHandle, SW_SHOW);
+        UpdateWindow(PhZombieProcessesWindowHandle);
+    }
     else
         SetForegroundWindow(PhZombieProcessesWindowHandle);
 }

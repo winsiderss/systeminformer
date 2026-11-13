@@ -54,10 +54,14 @@ VOID PhShowLogDialog(
             );
         PhRegisterDialog(PhLogWindowHandle);
         ShowWindow(PhLogWindowHandle, SW_SHOW);
+        UpdateWindow(PhLogWindowHandle);
     }
 
     if (IsMinimized(PhLogWindowHandle))
+    {
         ShowWindow(PhLogWindowHandle, SW_RESTORE);
+        UpdateWindow(PhLogWindowHandle);
+    }
     else
         SetForegroundWindow(PhLogWindowHandle);
 }
@@ -180,8 +184,11 @@ INT_PTR CALLBACK PhpLogDlgProc(
             ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             ListViewContext = PhListView_Initialize(ListViewHandle);
 
+            WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+
             PhSetListViewStyle(ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(ListViewHandle, L"explorer");
+            SetWindowFont(ListViewHandle, WindowFont, FALSE);
             PhSetExtendedListView(ListViewHandle);
             PhListView_AddColumn(ListViewContext, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
             PhListView_AddColumn(ListViewContext, 1, 1, 1, LVCFMT_LEFT, 140, L"Type");
@@ -232,6 +239,12 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
             PhListView_Destroy(ListViewContext);
             ListViewContext = NULL;
+
+            if (WindowFont)
+            {
+                DeleteFont(WindowFont);
+                WindowFont = NULL;
+            }
         }
         break;
     case WM_COMMAND:
