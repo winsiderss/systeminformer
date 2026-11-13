@@ -27,7 +27,7 @@ VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ ULONG Flags
     );
 
-INT CALLBACK PvpPropSheetProc(
+LONG CALLBACK PvpPropSheetProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ LPARAM lParam
@@ -94,7 +94,7 @@ VOID NTAPI PvpPropContextDeleteProcedure(
     PhFree(propContext->PropSheetPages);
 }
 
-INT CALLBACK PvpPropSheetProc(
+LONG CALLBACK PvpPropSheetProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ LPARAM lParam

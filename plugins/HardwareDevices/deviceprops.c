@@ -65,6 +65,10 @@ typedef struct _DEVICE_PROPERTIES_CONTEXT
     HWND PropsListViewHandle;
     HWND InterfacesListViewHandle;
     HWND ResourcesListViewHandle;
+    HFONT GeneralWindowFont;
+    HFONT PropsWindowFont;
+    HFONT InterfacesWindowFont;
+    HFONT ResourcesWindowFont;
     HICON DeviceIcon;
     PH_INTEGER_PAIR DeviceIconSize;
     HIMAGELIST ListViewImageList;
@@ -265,6 +269,8 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
             PhSetListViewStyle(context->GeneralListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->GeneralListViewHandle, L"explorer");
+            context->GeneralWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->GeneralListViewHandle, context->GeneralWindowFont, FALSE);
             PhAddListViewColumn(context->GeneralListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
             PhAddListViewColumn(context->GeneralListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->GeneralListViewHandle);
@@ -283,8 +289,19 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_GENERAL_COLUMNS, context->GeneralListViewHandle);
 
+            if (context->GeneralWindowFont)
+                DeleteFont(context->GeneralWindowFont);
+
             if (context->DeviceIcon)
                 DestroyIcon(context->DeviceIcon);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->GeneralWindowFont, context->GeneralListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SHOWWINDOW:
@@ -523,27 +540,35 @@ PPH_STRING DevicePropertyToString(
             }
         case DEVPROP_TYPE_STRING:
         case DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING:
-            return PhCreateString((PWSTR)Property->Buffer);
+            {
+                // The terminator is not guaranteed; bound the string by the property size.
+                PWSTR buffer = (PWSTR)Property->Buffer;
+                SIZE_T count = wcsnlen(buffer, Property->BufferSize / sizeof(WCHAR));
+
+                return PhCreateStringEx(buffer, count * sizeof(WCHAR));
+            }
         case DEVPROP_TYPE_STRING_LIST:
             {
                 PPH_STRING string;
                 PH_STRING_BUILDER stringBuilder;
+                PWSTR item = (PWSTR)Property->Buffer;
+                PWSTR itemEnd = item + Property->BufferSize / sizeof(WCHAR);
 
                 PhInitializeStringBuilder(&stringBuilder, 10);
 
-                for (PZZWSTR item = Property->Buffer;;)
+                // REG_MULTI_SZ style list: each element is bounded by the characters remaining
+                // in the property, since the final empty string is not guaranteed to be present.
+                while (item < itemEnd)
                 {
-                    UNICODE_STRING ucs;
+                    SIZE_T count = wcsnlen(item, (SIZE_T)(itemEnd - item));
 
-                    RtlInitUnicodeString(&ucs, item);
-
-                    if (ucs.Length == 0)
+                    if (count == 0)
                         break;
 
-                    PhAppendStringBuilderEx(&stringBuilder, ucs.Buffer, ucs.Length);
+                    PhAppendStringBuilderEx(&stringBuilder, item, count * sizeof(WCHAR));
                     PhAppendStringBuilder2(&stringBuilder, L", ");
 
-                    item = PTR_ADD_OFFSET(item, ucs.MaximumLength);
+                    item += min(count + 1, (SIZE_T)(itemEnd - item));
                 }
 
                 if (stringBuilder.String->Length > 2)
@@ -608,7 +633,7 @@ VOID DeviceInitializePropsPage(
         {
             const DEVPROPERTY* prop = &properties[i];
             PH_DEVICE_PROPERTY_CLASS propClass;
-            INT lvItemIndex;
+            LONG lvItemIndex;
             PPH_STRING nameString = NULL;
             PPH_STRING valueString = NULL;
             PCWSTR name;
@@ -676,6 +701,8 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
 
             PhSetListViewStyle(context->PropsListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
+            context->PropsWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->PropsListViewHandle, context->PropsWindowFont, FALSE);
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->PropsListViewHandle);
@@ -690,6 +717,17 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
+
+            if (context->PropsWindowFont)
+                DeleteFont(context->PropsWindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->PropsWindowFont, context->PropsListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SHOWWINDOW:
@@ -784,6 +822,7 @@ VOID DeviceInitializeInterfacesPage(
 
     ULONG group = 0;
     ULONG index = 0;
+
     for (PPH_DEVICE_ITEM deviceItem = Context->DeviceItem->Child;
          deviceItem;
          deviceItem = deviceItem->Sibling)
@@ -849,6 +888,8 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
 
             PhSetListViewStyle(context->InterfacesListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->InterfacesListViewHandle, L"explorer");
+            context->InterfacesWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->InterfacesListViewHandle, context->InterfacesWindowFont, FALSE);
             PhAddListViewColumn(context->InterfacesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->InterfacesListViewHandle);
@@ -864,6 +905,17 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
+
+            if (context->InterfacesWindowFont)
+                DeleteFont(context->InterfacesWindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->InterfacesWindowFont, context->InterfacesListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SHOWWINDOW:
@@ -971,6 +1023,8 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
 
             PhSetListViewStyle(context->ResourcesListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ResourcesListViewHandle, L"explorer");
+            context->ResourcesWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ResourcesListViewHandle, context->ResourcesWindowFont, FALSE);
             PhAddListViewColumn(context->ResourcesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Resource type");
             PhAddListViewColumn(context->ResourcesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Setting");
             PhSetExtendedListView(context->ResourcesListViewHandle);
@@ -980,7 +1034,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
             for (ULONG i = 0; i < context->Resources->Count; i++)
             {
                 PDEVICE_RESOURCE resource = context->Resources->Items[i];
-                INT lvItemIndex;
+                LONG lvItemIndex;
                 lvItemIndex = PhAddListViewItem(context->ResourcesListViewHandle, MAXINT, resource->Type, NULL);
                 PhSetListViewSubItem(context->ResourcesListViewHandle, lvItemIndex, 1, PhGetString(resource->Setting));
             }
@@ -991,6 +1045,17 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->ResourcesListViewHandle);
+
+            if (context->ResourcesWindowFont)
+                DeleteFont(context->ResourcesWindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->ResourcesWindowFont, context->ResourcesListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SHOWWINDOW:

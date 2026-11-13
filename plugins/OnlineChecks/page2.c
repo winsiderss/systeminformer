@@ -33,7 +33,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            INT buttonID = (INT)wParam;
+            LONG buttonID = (LONG)wParam;
 
             if (buttonID == IDOK)
             {

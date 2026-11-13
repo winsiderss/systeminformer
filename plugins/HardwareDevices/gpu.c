@@ -200,6 +200,20 @@ VOID GraphicsDevicesUpdate(
                         entry->SystemRunningTimeNodesDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * numberOfNodes);
                         entry->GpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * numberOfNodes);
 
+                        // Prime the deltas with the current counters so the first sample isn't
+                        // computed against zero (cumulative running time clamps to 100%).
+                        for (ULONG node = 0; node < numberOfNodes; node++)
+                        {
+                            ULONG64 runningTime;
+                            ULONG64 systemRunningTime;
+
+                            if (NT_SUCCESS(GraphicsQueryAdapterNodeRunningTime(adapterLuid, node, &runningTime, &systemRunningTime)))
+                            {
+                                PhUpdateDelta(&entry->TotalRunningTimeNodesDelta[node], runningTime);
+                                PhUpdateDelta(&entry->SystemRunningTimeNodesDelta[node], systemRunningTime);
+                            }
+                        }
+
                         {
                             ULONG sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
 

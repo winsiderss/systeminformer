@@ -283,6 +283,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
     HWND WindowHandle;
     HWND ParentHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
 
     HANDLE NotifyHandle;
     PDV_NETADAPTER_SYSINFO_CONTEXT SysInfoContext;
@@ -297,6 +298,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
+    HFONT WindowFont;
 
     union
     {
@@ -670,6 +672,7 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
+    HFONT WindowFont;
     union
     {
         BOOLEAN Flags;
@@ -728,6 +731,7 @@ typedef struct _DV_DISK_PAGE_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     BOOLEAN RefreshPending;
 
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
@@ -1316,6 +1320,7 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
 typedef struct _DV_RAPL_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
+    HFONT WindowFont;
     BOOLEAN OptionsChanged;
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_RAPL_OPTIONS_CONTEXT, *PDV_RAPL_OPTIONS_CONTEXT;
@@ -1533,6 +1538,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
 typedef struct _DV_GPU_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
+    HFONT WindowFont;
     union
     {
         BOOLEAN Flags;

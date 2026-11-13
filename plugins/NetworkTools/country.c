@@ -203,7 +203,7 @@ HIMAGELIST NetToolsGetCountryImageList(
     if (!WindowHandle)
         return NULL;
 
-    NetToolsInitializeCountryImageList(WindowHandle, (ULONG)PhGetWindowDpi(WindowHandle));
+    NetToolsInitializeCountryImageList(WindowHandle, PhGetWindowDpi(WindowHandle));
 
     return GeoImageList;
 }
@@ -258,7 +258,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
             if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbInstance) == MMDB_SUCCESS)
             {
                 LARGE_INTEGER systemTime;
-                ULONG secondsSince1970;
+                ULONG secondsSince1970 = 0;
 
                 // Query the current time
                 PhQuerySystemTime(&systemTime);
@@ -268,7 +268,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
                 // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
                 // Guard against unsigned underflow when build_epoch is in the future (clock skew). (audit)
                 if (secondsSince1970 > GeoDbInstance.metadata.build_epoch &&
-                    (secondsSince1970 - GeoDbInstance.metadata.build_epoch) > (182 * 24 * 60 * 60))
+                    (secondsSince1970 - GeoDbInstance.metadata.build_epoch) > (ULONG64_C(182) * ULONG64_C(24) * ULONG64_C(60) * ULONG64_C(60)))
                 {
                     GeoDbExpired = TRUE;
                 }
@@ -277,10 +277,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
 
                 if (NetworkTreeNewHandle)
                 {
-                    NetToolsInitializeCountryImageList(
-                        NetworkTreeNewHandle,
-                        (ULONG)PhGetWindowDpi(NetworkTreeNewHandle)
-                        );
+                    NetToolsInitializeCountryImageList(NetworkTreeNewHandle, PhGetWindowDpi(NetworkTreeNewHandle));
                 }
 
                 GeoDbInitialized = TRUE;
@@ -460,7 +457,7 @@ BOOLEAN GeoDbGetContinentData(
 
 _Success_(return)
 BOOLEAN LookupCountryCodeFromMmdb(
-    _In_ PH_IP_ADDRESS RemoteAddress,
+    _In_ PPH_IP_ADDRESS RemoteAddress,
     _Out_ ULONG *CountryCode,
     _Out_ PPH_STRING *CountryName
     )
@@ -474,18 +471,18 @@ BOOLEAN LookupCountryCodeFromMmdb(
             return FALSE;
     }
 
-    if (RemoteAddress.Type == PH_NETWORK_TYPE_IPV4)
+    if (RemoteAddress->Type == PH_NETWORK_TYPE_IPV4)
     {
         SOCKADDR_IN ipv4SockAddr;
 
         if (
-            IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_LOOPBACK(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_BROADCAST(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_MULTICAST(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_LINKLOCAL(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_MC_LINKLOCAL(&RemoteAddress.InAddr) ||
-            IN4_IS_ADDR_RFC1918(&RemoteAddress.InAddr)
+            IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_LOOPBACK(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_BROADCAST(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_MULTICAST(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_LINKLOCAL(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_MC_LINKLOCAL(&RemoteAddress->InAddr) ||
+            IN4_IS_ADDR_RFC1918(&RemoteAddress->InAddr)
             )
         {
             return FALSE;
@@ -493,7 +490,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
 
         memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
         ipv4SockAddr.sin_family = AF_INET;
-        ipv4SockAddr.sin_addr = RemoteAddress.InAddr;
+        ipv4SockAddr.sin_addr = RemoteAddress->InAddr;
 
         memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
         mmdb_result = MMDB_lookup_sockaddr(
@@ -507,11 +504,11 @@ BOOLEAN LookupCountryCodeFromMmdb(
         SOCKADDR_IN6 ipv6SockAddr;
 
         if (
-            IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress.In6Addr) ||
-            IN6_IS_ADDR_LOOPBACK(&RemoteAddress.In6Addr) ||
-            IN6_IS_ADDR_MULTICAST(&RemoteAddress.In6Addr) ||
-            IN6_IS_ADDR_LINKLOCAL(&RemoteAddress.In6Addr) ||
-            IN6_IS_ADDR_MC_LINKLOCAL(&RemoteAddress.In6Addr)
+            IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress->In6Addr) ||
+            IN6_IS_ADDR_LOOPBACK(&RemoteAddress->In6Addr) ||
+            IN6_IS_ADDR_MULTICAST(&RemoteAddress->In6Addr) ||
+            IN6_IS_ADDR_LINKLOCAL(&RemoteAddress->In6Addr) ||
+            IN6_IS_ADDR_MC_LINKLOCAL(&RemoteAddress->In6Addr)
             )
         {
             return FALSE;
@@ -519,7 +516,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
 
         memset(&ipv6SockAddr, 0, sizeof(SOCKADDR_IN6));
         ipv6SockAddr.sin6_family = AF_INET6;
-        ipv6SockAddr.sin6_addr = RemoteAddress.In6Addr;
+        ipv6SockAddr.sin6_addr = RemoteAddress->In6Addr;
 
         memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
         mmdb_result = MMDB_lookup_sockaddr(
@@ -553,12 +550,12 @@ BOOLEAN LookupSockInAddr4CountryCode(
     remoteAddress.Type = PH_NETWORK_TYPE_IPV4;
     remoteAddress.InAddr = RemoteAddress;
 
-    return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
+    return LookupCountryCodeFromMmdb(&remoteAddress, CountryCode, CountryName);
 }
 
 _Success_(return)
 BOOLEAN LookupSockInAddr6CountryCode(
-    _In_ IN6_ADDR RemoteAddress,
+    _In_ PIN6_ADDR RemoteAddress,
     _Out_ ULONG *CountryCode,
     _Out_ PPH_STRING *CountryName
     )
@@ -567,9 +564,9 @@ BOOLEAN LookupSockInAddr6CountryCode(
 
     memset(&remoteAddress, 0, sizeof(PH_IP_ADDRESS));
     remoteAddress.Type = PH_NETWORK_TYPE_IPV6;
-    remoteAddress.In6Addr = RemoteAddress;
+    remoteAddress.In6Addr = *RemoteAddress;
 
-    return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
+    return LookupCountryCodeFromMmdb(&remoteAddress, CountryCode, CountryName);
 }
 
 LONG LookupCountryIcon(
@@ -614,8 +611,8 @@ LONG LookupCountryIcon(
 
 VOID DrawCountryIcon(
     _In_ HDC hdc,
-    _In_ RECT rect,
-    _In_ INT Index
+    _In_ PRECT rect,
+    _In_ LONG Index
     )
 {
     if (!GeoImageList)
@@ -625,8 +622,8 @@ VOID DrawCountryIcon(
         GeoImageList,
         Index,
         hdc,
-        rect.left,
-        rect.top + ((rect.bottom - rect.top) - 11) / 2,
+        rect->left,
+        rect->top + ((rect->bottom - rect->top) - 11) / 2,
         ILD_NORMAL,
         FALSE
         );
@@ -656,7 +653,7 @@ ULONG NetworkToolsGeoDbCacheHashtableHashFunction(
 
 _Success_(return)
 BOOLEAN LookupCountryCodeEx(
-    _In_ PH_IP_ADDRESS RemoteAddress,
+    _In_ PPH_IP_ADDRESS RemoteAddress,
     _Out_opt_ PULONG CountryCode,
     _Out_opt_ PPH_STRING* CountryName,
     _Out_opt_ PLONG CountryIconIndex
@@ -674,7 +671,7 @@ BOOLEAN LookupCountryCodeEx(
         PGEODB_IPADDR_CACHE_ENTRY entry;
         GEODB_IPADDR_CACHE_ENTRY lookupEntry;
 
-        lookupEntry.RemoteAddress = RemoteAddress;
+        lookupEntry.RemoteAddress = *RemoteAddress;
         entry = PhFindEntryHashtable(NetworkToolsGeoDbCacheHashtable, &lookupEntry);
 
         if (entry)
@@ -731,7 +728,7 @@ BOOLEAN LookupCountryCodeEx(
     newEntry.CountryCode = countryCode;
     newEntry.CountryIconIndex = countryIconIndex;
     PhSetReference(&newEntry.CountryName, countryName);
-    memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));
+    memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), RemoteAddress, sizeof(PH_IP_ADDRESS));
     if (!PhAddEntryHashtable(NetworkToolsGeoDbCacheHashtable, &newEntry))
         PhClearReference(&newEntry.CountryName);
 
@@ -751,7 +748,7 @@ BOOLEAN LookupCountryCodeEx(
 
 _Success_(return)
 BOOLEAN LookupCountryCode(
-    _In_ PH_IP_ADDRESS RemoteAddress,
+    _In_ PPH_IP_ADDRESS RemoteAddress,
     _Out_ ULONG* CountryCode,
     _Out_ PPH_STRING* CountryName
     )

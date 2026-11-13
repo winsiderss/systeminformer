@@ -11,7 +11,6 @@
 
 #include "onlnchk.h"
 
-BOOLEAN OnlineChecksPreEnableUi = FALSE;
 static BOOLEAN OnlineChecksRestartRequired = FALSE;
 static BOOLEAN OptionsHybridKeyConfigured = FALSE;
 static BOOLEAN OptionsVirusTotalKeyConfigured = FALSE;
@@ -21,7 +20,7 @@ static PH_LAYOUT_MANAGER OptionsLayoutManager;
 
 static VOID OptionsRefreshKeyStatus(
     _In_ HWND WindowHandle,
-    _In_ INT LabelId,
+    _In_ LONG LabelId,
     _In_ PCWSTR SettingName,
     _Out_ PBOOLEAN Configured
     )
@@ -43,7 +42,7 @@ VOID ShowHybridAnalysisConfigDialog(
 
 static VOID OptionsSaveCheckRestart(
     _In_ HWND WindowHandle,
-    _In_ INT ControlId,
+    _In_ LONG ControlId,
     _In_ PCWSTR SettingName
     )
 {
@@ -154,7 +153,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDC_EXCLUDE_REMOVE:
                 {
                     HWND listBoxHandle = GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST);
-                    INT index = ListBox_GetCurSel(listBoxHandle);
+                    LONG index = ListBox_GetCurSel(listBoxHandle);
 
                     if (index != LB_ERR)
                         ListBox_DeleteString(listBoxHandle, index);

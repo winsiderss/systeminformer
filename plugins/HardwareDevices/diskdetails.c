@@ -113,7 +113,7 @@ VOID AddNvmeSmartEntry(
     _In_ PPH_STRING Value
     )
 {
-    INT lvItemIndex = PhAddListViewItem(
+    LONG lvItemIndex = PhAddListViewItem(
         ListViewHandle,
         MAXINT,
         Name,
@@ -151,7 +151,7 @@ VOID DiskDeviceQuerySmart(
             {
                 PSMART_ATTRIBUTES attribute = attributes->Items[i];
 
-                INT lvItemIndex = PhAddListViewItem(
+                LONG lvItemIndex = PhAddListViewItem(
                     Context->ListViewHandle,
                     MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
@@ -249,7 +249,7 @@ VOID DiskDeviceQuerySmart(
 }
 
 //COLORREF NTAPI PhpColorItemColorFunction(
-//    _In_ INT Index,
+//    _In_ LONG Index,
 //    _In_ PVOID Param,
 //    _In_opt_ PVOID Context
 //    )
@@ -265,7 +265,7 @@ VOID DiskDeviceQuerySmart(
 VOID DiskDeviceQueryVolumeInfo(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context,
     _In_ USHORT Type,
-    _In_ INT Column,
+    _In_ LONG Column,
     _In_ HANDLE DeviceHandle
     )
 {
@@ -394,7 +394,7 @@ VOID DiskDeviceQueryFileSystem(
 
     for (ULONG i = 0; i < deviceMountHandles->Count; i++)
     {
-        INT column = i + 1;
+        LONG column = i + 1;
         USHORT fsInfoType;
         PVOID fsInfoBuffer;
         PFILE_FS_VOLUME_INFORMATION volumeInfo;
@@ -727,6 +727,7 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }
@@ -886,6 +887,7 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

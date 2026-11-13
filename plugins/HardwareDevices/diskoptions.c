@@ -174,7 +174,7 @@ VOID AddDiskDriveToListView(
     )
 {
     DV_DISK_ID adapterId;
-    INT lvItemIndex;
+    LONG lvItemIndex;
     BOOLEAN found = FALSE;
     PDV_DISK_ID newId = NULL;
 
@@ -227,7 +227,7 @@ VOID FreeListViewDiskDriveEntries(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
-    INT index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
@@ -521,7 +521,7 @@ VOID FindDiskDrives(
     PhAcquireQueuedLockShared(&DiskDevicesListLock);
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        INT index = INT_ERROR;
+        LONG index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
@@ -694,7 +694,7 @@ VOID LoadDiskDriveImages(
     if (PhExtractIconEx(
         &deviceIconPath->sr,
         FALSE,
-        (INT)index,
+        (LONG)index,
         PhGetSystemMetrics(SM_CXICON, dpiValue),
         PhGetSystemMetrics(SM_CYICON, dpiValue),
         0,
@@ -753,6 +753,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
             LoadDiskDriveImages(context);
@@ -786,6 +788,17 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 DiskDrivesSaveList();
 
             FreeListViewDiskDriveEntries(context);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NCDESTROY:
