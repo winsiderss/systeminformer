@@ -703,6 +703,7 @@ static BOOLEAN PhpHwRootsEnumerated = FALSE;
 static BOOLEAN PhpHwNodesEnumerated = FALSE;
 static BOOLEAN PhpHwPowerNodesEnumerated = FALSE;
 static ULONG PhpHwClockPowerTimingControl0 = 0; // Family 14h D18F3xD4: the main PLL frequency of the P-states
+static ULONG PhpHwLegacyP0Definition = 0; // pre-Zen AMD: the PStateDef MSR of P0, after the boosted states; 0 when unknown
 static PBOOLEAN PhpHwComputeUnitFirst = NULL; // Family 15h/16h, per processor: the first of its compute unit
 static ULONG PhpHwCuSampleTimeRatio = 0; // CPUID 8000_0007h ECX
 static ULONG64 PhpHwCuMaxAccumulator = 0; // CU_MAX_PWR_ACCUMULATOR, 0 when unread
@@ -1408,7 +1409,9 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
-        PhpHwSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+
+        if (PhpHwLegacyP0Definition)
+            PhpHwSetRegister(PhpHwRegPStateDef0, PhpHwLegacyP0Definition, PhpHwScopePackage);
 
         if (PhpHwComputeUnitFirst)
         {
@@ -2216,6 +2219,49 @@ static VOID PhpHwAssignLegacyNodes(
         PhpHwPackages[0].Nodes[0] = nodes[0];
     }
 }
+
+#if defined(_M_IX86) || defined(_M_X64)
+/**
+ * Finds the PStateDef MSR of P0 of a pre-Zen processor. Core Performance Boost (8000_0007h EDX[9]) puts its boosted
+ * P-states first and D18F4x15C of the first node counts them; unread, P0 stays unknown.
+ */
+static VOID PhpHwResolveLegacyP0Definition(
+    VOID
+    )
+{
+    INT cpuInfo[4];
+    KPH_HW_PCI_LOCATOR locator;
+    ULONG control;
+
+    PhpHwLegacyP0Definition = PH_AMD_MSR_PSTATE_DEF0;
+
+    __cpuid(cpuInfo, 0x80000000);
+    if ((ULONG)cpuInfo[0] < 0x80000007)
+        return;
+    __cpuid(cpuInfo, 0x80000007);
+    if (!(cpuInfo[3] & (1 << 9)))
+        return;
+
+    PhpHwLegacyP0Definition = 0;
+
+    if (!PhpHwNodesEnumerated)
+    {
+        PhpHwNodesEnumerated = TRUE;
+        PhpHwAssignLegacyNodes();
+    }
+
+    if (!PhpHwPackages[0].NodeCount)
+        return;
+
+    locator = PhpHwPackages[0].Nodes[0];
+    locator.Function = 4;
+
+    if (!NT_SUCCESS(KphHwReadPciConfig(&locator, PH_AMD_D18F4_CPB_CONTROL, &control, sizeof(control), NULL)))
+        return;
+
+    PhpHwLegacyP0Definition = PH_AMD_MSR_PSTATE_DEF0 + PhAmdBoostStateCount(control, &PhpHwIdentity);
+}
+#endif
 
 /**
  * Reads and decodes ReportedTempCtrl of a pre-Zen node: D18F3xA4, or D0F0xBC_xD8200CA4 through the root complex
@@ -12168,6 +12214,11 @@ static BOOLEAN PhpHwProbeProcessor(
 
         return PhpHwProbePciSensors(Capabilities);
     }
+
+#if defined(_M_IX86) || defined(_M_X64)
+    if (PhpHwCpuClass == PhpHwCpuAmdLegacy)
+        PhpHwResolveLegacyP0Definition();
+#endif
 
     PhpHwInitializeRegisterPlan();
     PhpHwResetSamples();

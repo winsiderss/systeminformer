@@ -90,6 +90,9 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_AMD_D18F3_CLOCK_POWER_TIMING_CONTROL0 0xD4 // Family 14h: [5:0] MainPllOpFreqId
 #define PH_AMD_D0F0XBC_REPORTED_TEMP_CTRL 0xD8200CA4
 
+// AMD D18F4, families 10h to 16h
+#define PH_AMD_D18F4_CPB_CONTROL 0x15C // [4:2] NumBoostStates, Family 10h [2]
+
 // AMD D18F4 / D18F5, families 15h and 16h
 #define PH_AMD_D18F4_PROCESSOR_TDP 0x1B8 // [31:16] base TDP, [15:0] TDP
 #define PH_AMD_D18F5_TDP_RUNNING_AVERAGE 0xE0 // [3:0] range, capture above
@@ -403,6 +406,14 @@ PhAmdPStateDefToMhz(
     _In_ ULONG64 PStateDef,
     _In_ PCPH_CPU_IDENTITY Identity,
     _In_ ULONG ClockPowerTimingControl0
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhAmdBoostStateCount(
+    _In_ ULONG CpbControl,
+    _In_ PCPH_CPU_IDENTITY Identity
     );
 
 PHLIBAPI

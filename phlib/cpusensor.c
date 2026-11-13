@@ -992,6 +992,25 @@ FLOAT NTAPI PhAmdPStateDefToMhz(
 }
 
 /**
+ * Decodes the number of boosted P-states of a pre-Zen processor. They come first in the PStateDef MSRs, so P0 is
+ * PStateDef[count].
+ *
+ * \param CpbControl D18F4x15C.
+ * \param Identity The CPU identity.
+ * \return The number of boosted P-states.
+ */
+ULONG NTAPI PhAmdBoostStateCount(
+    _In_ ULONG CpbControl,
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    if (Identity->DisplayFamily == 0x10)
+        return (CpbControl >> 2) & 0x1;
+
+    return (CpbControl >> 2) & 0x7;
+}
+
+/**
  * Decodes the current core frequency of HwPstateStatus (Zen) or COFVID_STATUS (pre-Zen).
  *
  * \param HwPStateStatus The MSR value.
