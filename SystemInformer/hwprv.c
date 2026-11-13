@@ -2581,7 +2581,7 @@ static FLOAT PhpHwDecodeGtClock(
     )
 {
     static CONST UCHAR legacyModels[] = { 0x2A, 0x3A, 0x3C, 0x45, 0x46, 0x3D, 0x47 }; // SNB..BDW client, the rows that read it
-    static CONST UCHAR gen11Models[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7, 0xD7, 0x97, 0x9A, 0xB7, 0xBA, 0xBF }; // ICL..RPL
+    static CONST UCHAR gen11Models[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7, 0xD7, 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE }; // ICL..RPL, ADL-N
 
     if (PhpHwIdentity.DisplayFamily == 0x06)
     {
@@ -2786,6 +2786,8 @@ static PHP_HW_INTEL_TIMINGS_FORMAT PhpHwIntelTimingsFormat(
     case 0xb7:
     case 0xba:
     case 0xbf:
+    case 0xbe:
+    case 0xd7:
         return PhpHwIntelTimingsAdl;
     case 0xaa:
     case 0xac:
@@ -6367,8 +6369,8 @@ static BOOLEAN PhpHwGetDeviceString(
 }
 
 /**
- * Determines whether a device has an ACPI fan (PNP0C0B) hardware or compatible ID; Intel DPTF fan
- * participants carry it as a compatible ID.
+ * Determines whether a device has an ACPI fan (PNP0C0B) or Intel DPTF fan participant hardware or compatible ID;
+ * keep in sync with the kphdynhw.xml fan row.
  */
 static BOOLEAN PhpHwIsAcpiFan(
     _In_ HDEVINFO DeviceInfoSet,
@@ -6381,6 +6383,15 @@ static BOOLEAN PhpHwIsAcpiFan(
         PH_STRINGREF_INIT(L"ACPI\\PNP0C0B"),
         PH_STRINGREF_INIT(L"*PNP0C0B"),
         PH_STRINGREF_INIT(L"ACPI\\VEN_PNP&DEV_0C0B"),
+        PH_STRINGREF_INIT(L"ACPI\\INT3404"), PH_STRINGREF_INIT(L"*INT3404"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC1044"), PH_STRINGREF_INIT(L"*INTC1044"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC1048"), PH_STRINGREF_INIT(L"*INTC1048"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC1063"), PH_STRINGREF_INIT(L"*INTC1063"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC106A"), PH_STRINGREF_INIT(L"*INTC106A"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC10A2"), PH_STRINGREF_INIT(L"*INTC10A2"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC10D6"), PH_STRINGREF_INIT(L"*INTC10D6"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC10FE"), PH_STRINGREF_INIT(L"*INTC10FE"),
+        PH_STRINGREF_INIT(L"ACPI\\INTC10F5"), PH_STRINGREF_INIT(L"*INTC10F5"),
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(keys); i++)

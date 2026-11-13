@@ -129,7 +129,7 @@ BOOLEAN NTAPI PhGetCpuIdentity(
         Identity->DisplayFamily += (USHORT)((signature >> 20) & 0xFF);
 
     Identity->DisplayModel = (UCHAR)model;
-    if (family == 0x6 || family == 0xF)
+    if (family >= 0x6)
         Identity->DisplayModel |= (UCHAR)(((signature >> 16) & 0xF) << 4);
 
     Identity->Stepping = (UCHAR)(signature & 0xF);
@@ -986,6 +986,7 @@ static PHP_AMD_UMC_FORMAT PhpAmdUmcFormat(
         PhpCpuIdentityIsModelRange(Identity, 0x17, 0x60, 0x7F) ||
         PhpCpuIdentityIsModelRange(Identity, 0x19, 0x00, 0x0F) ||
         PhpCpuIdentityIsModelRange(Identity, 0x19, 0x20, 0x2F) ||
+        PhpCpuIdentityIsModelRange(Identity, 0x19, 0x30, 0x3F) ||
         PhpCpuIdentityIsModelRange(Identity, 0x19, 0x50, 0x5F)
         )
     {
@@ -1136,7 +1137,7 @@ static PHP_INTEL_MEMORY_CLOCK_FORMAT PhpIntelMemoryClockFormat(
     static const UCHAR snbModels[] = { 0x2A, 0x3A, 0x3C, 0x45, 0x46, 0x3D, 0x47 };
     static const UCHAR sklModels[] = { 0x4E, 0x5E, 0x8E, 0x9E, 0xA5, 0xA6, 0x66 };
     static const UCHAR iclModels[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7 };
-    static const UCHAR adlModels[] = { 0x97, 0x9A, 0xB7, 0xBA, 0xBF };
+    static const UCHAR adlModels[] = { 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE, 0xD7 }; // Alder, Raptor, ADL-N and Bartlett Lake
     static const UCHAR mtlModels[] = { 0xAA, 0xAC, 0xC5, 0xC6, 0xB5, 0xCC, 0xD5 }; // Meteor, Arrow, Panther and Wildcat Lake
     static const UCHAR lnlModels[] = { 0xBD }; // Lunar Lake
 
