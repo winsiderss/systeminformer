@@ -996,13 +996,18 @@ static FLOAT PhpAmdCoreCofMhz(
 
         return (FLOAT)fid * 5.0f;
     case 0x10:
-    case 0x11:
     case 0x15:
     case 0x16:
         fid = (ULONG)PState & 0x3F;
         did = (ULONG)(PState >> 6) & 0x7;
 
         return 100.0f * (FLOAT)(fid + 0x10) / (FLOAT)(1UL << did);
+    case 0x11:
+        // CpuFid + 08h, where the other families add 10h.
+        fid = (ULONG)PState & 0x3F;
+        did = (ULONG)(PState >> 6) & 0x7;
+
+        return 100.0f * (FLOAT)(fid + 0x08) / (FLOAT)(1UL << did);
     case 0x12:
         // CpuFid [8:4], CpuDid [3:0] indexes the divisor table.
         fid = (ULONG)(PState >> 4) & 0x1F;
