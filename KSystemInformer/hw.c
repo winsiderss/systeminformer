@@ -1508,6 +1508,142 @@ BOOLEAN KphHwDeadlinePassed(
     return (KeQueryInterruptTime() >= Deadline);
 }
 
+#if defined(_M_X64)
+
+/**
+ * \brief Retrieves the physical address bits that memory encryption takes.
+ *
+ * \param[in] Identity The CPU identity.
+ *
+ * \return The number of bits, zero when memory encryption is off.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+UCHAR KphpHwEncryptionAddressBits(
+    _In_ PCKPH_HW_CPU_IDENTITY Identity
+    )
+{
+    KPH_CPUID cpuid;
+    ULONG64 value;
+    UCHAR bits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    bits = 0;
+
+    __try
+    {
+        if (KphEqualMemory(Identity->Vendor,
+                           KPH_HW_CPU_VENDOR_AMD,
+                           sizeof(Identity->Vendor)) &&
+            (Identity->MaxExtendedLeaf >= KPH_HW_AMD_CPUID_ENCRYPTION))
+        {
+            KphCpuId(&cpuid, KPH_HW_AMD_CPUID_ENCRYPTION, 0);
+
+            if (FlagOn(cpuid.EAX, KPH_HW_AMD_CPUID_SME | KPH_HW_AMD_CPUID_SEV))
+            {
+                value = __readmsr(KPH_HW_AMD_MSR_SYSCFG);
+
+                if (FlagOn(value, KPH_HW_AMD_SYSCFG_MEM_ENCRYPT))
+                {
+                    value = (cpuid.EBX >> KPH_HW_AMD_CPUID_REDUCTION_SHIFT);
+                    bits = (UCHAR)(value & KPH_HW_AMD_CPUID_REDUCTION_MASK);
+                }
+            }
+        }
+
+        if (KphEqualMemory(Identity->Vendor,
+                           KPH_HW_CPU_VENDOR_INTEL,
+                           sizeof(Identity->Vendor)) &&
+            (Identity->MaxBasicLeaf >= KPH_HW_INTEL_CPUID_FEATURES))
+        {
+            KphCpuId(&cpuid, KPH_HW_INTEL_CPUID_FEATURES, 0);
+
+            if (FlagOn(cpuid.ECX, KPH_HW_INTEL_CPUID_TME))
+            {
+                value = __readmsr(KPH_HW_INTEL_MSR_TME_ACTIVATE);
+
+                if ((value & KPH_HW_INTEL_TME_LOCKED_ENABLED) ==
+                    KPH_HW_INTEL_TME_LOCKED_ENABLED)
+                {
+                    value >>= KPH_HW_INTEL_TME_KEYID_BITS_SHIFT;
+                    bits = (UCHAR)(value & KPH_HW_INTEL_TME_KEYID_BITS_MASK);
+                }
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Memory encryption MSR read faulted");
+
+        bits = 0;
+    }
+
+    return bits;
+}
+
+#endif
+
+#if defined(_M_ARM64)
+
+/**
+ * \brief Decodes a physical address size.
+ *
+ * \param[in] Size The ID_AA64MMFR0_EL1.PARange or TCR_EL1.IPS encoding.
+ *
+ * \return The number of physical address bits.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+UCHAR KphpHwAddressSizeBits(
+    _In_ ULONG64 Size
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    switch (Size)
+    {
+        case 0:
+        {
+            return 32;
+        }
+        case 1:
+        {
+            return 36;
+        }
+        case 2:
+        {
+            return 40;
+        }
+        case 3:
+        {
+            return 42;
+        }
+        case 4:
+        {
+            return 44;
+        }
+        case 5:
+        {
+            return 48;
+        }
+        case 6:
+        {
+            return 52;
+        }
+        case 7:
+        {
+            return 56;
+        }
+        default:
+        {
+            return 48;
+        }
+    }
+}
+
+#endif
+
 /**
  * \brief Initializes the hardware infrastructure.
  */
@@ -1521,7 +1657,13 @@ VOID KphInitializeHardware(
     KPH_CPUID_1 cpuid1;
     KPH_CPUID cpuidExt;
     PKPH_HW_CPU_IDENTITY identity;
+    UCHAR encryptionBits;
     CHAR vendor[sizeof(identity->Vendor) + sizeof(ANSI_NULL)];
+#endif
+#if defined(_M_ARM64)
+    ULONG64 value;
+    UCHAR implementedAddressBits;
+    UCHAR configuredAddressBits;
 #endif
 
     KPH_PAGED_CODE_PASSIVE();
@@ -1567,6 +1709,12 @@ VOID KphInitializeHardware(
         }
     }
 
+    encryptionBits = KphpHwEncryptionAddressBits(identity);
+    if (encryptionBits < identity->PhysicalAddressBits)
+    {
+        identity->PhysicalAddressBits -= encryptionBits;
+    }
+
     RtlCopyMemory(vendor, identity->Vendor, sizeof(identity->Vendor));
     vendor[ARRAYSIZE(vendor) - 1] = ANSI_NULL;
 
@@ -1574,65 +1722,37 @@ VOID KphInitializeHardware(
                   HARDWARE,
                   "CPU %hs family 0x%lx model 0x%lx stepping 0x%lx "
                   "max leaf 0x%lx max extended leaf 0x%lx "
-                  "physical address bits %lu",
+                  "physical address bits %lu encryption bits %lu",
                   vendor,
                   (ULONG)identity->DisplayFamily,
                   (ULONG)identity->DisplayModel,
                   (ULONG)identity->Stepping,
                   identity->MaxBasicLeaf,
                   identity->MaxExtendedLeaf,
-                  (ULONG)identity->PhysicalAddressBits);
+                  (ULONG)identity->PhysicalAddressBits,
+                  (ULONG)encryptionBits);
 #endif
 
 #if defined(_M_ARM64)
-    switch (_ReadStatusReg(ARM64_ID_AA64MMFR0_EL1) & 0xF)
-    {
-        case 0:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 32;
-            break;
-        }
-        case 1:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 36;
-            break;
-        }
-        case 2:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 40;
-            break;
-        }
-        case 3:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 42;
-            break;
-        }
-        case 4:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 44;
-            break;
-        }
-        case 6:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 52;
-            break;
-        }
-        case 7:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 56;
-            break;
-        }
-        default:
-        {
-            KphpHwCpuIdentity.PhysicalAddressBits = 48;
-            break;
-        }
-    }
+    value = (ULONG64)_ReadStatusReg(ARM64_ID_AA64MMFR0_EL1);
+    value &= ARM64_ID_AA64MMFR0_EL1_PARANGE_MASK;
+    implementedAddressBits = KphpHwAddressSizeBits(value);
+
+    value = (ULONG64)_ReadStatusReg(ARM64_TCR_EL1);
+    value >>= ARM64_TCR_EL1_IPS_SHIFT;
+    configuredAddressBits = KphpHwAddressSizeBits(value & ARM64_TCR_EL1_IPS_MASK);
+
+    KphpHwCpuIdentity.PhysicalAddressBits = min(implementedAddressBits,
+                                                configuredAddressBits);
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   HARDWARE,
-                  "CPU physical address bits %lu",
-                  (ULONG)KphpHwCpuIdentity.PhysicalAddressBits);
+                  "CPU MIDR 0x%016llx physical address bits %lu "
+                  "implemented %lu configured %lu",
+                  (ULONG64)_ReadStatusReg(ARM64_MIDR_EL1),
+                  (ULONG)KphpHwCpuIdentity.PhysicalAddressBits,
+                  (ULONG)implementedAddressBits,
+                  (ULONG)configuredAddressBits);
 #endif
 
     KphpHwInitializeBoardIdentity();

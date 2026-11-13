@@ -30,7 +30,6 @@
 #define KPH_HW_ECAM_DEVICE_SHIFT            15
 #define KPH_HW_ECAM_FUNCTION_SHIFT          12
 
-#define KPH_HW_AMD_MSR_SYSCFG               0xC0010010
 #define KPH_HW_AMD_MSR_IORR_BASE0           0xC0010016
 #define KPH_HW_AMD_MSR_TOP_MEM              0xC001001A
 #define KPH_HW_AMD_MSR_TOP_MEM2             0xC001001D

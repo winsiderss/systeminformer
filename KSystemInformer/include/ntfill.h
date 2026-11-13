@@ -35,6 +35,10 @@
 #define ARM64_AMCG1IDR_EL0      ARM64_SYSREG(3, 3, 13, 2, 6)
 #define ARM64_AMEVCNTR1_EL0(n)  ARM64_SYSREG(3, 3, 13, 12 + ((n) >> 3), (n) & 7)
 #define ARM64_AMEVTYPER1_EL0(n) ARM64_SYSREG(3, 3, 13, 14 + ((n) >> 3), (n) & 7)
+#define ARM64_ID_AA64MMFR0_EL1_PARANGE_MASK 0xF
+#define ARM64_TCR_EL1           ARM64_SYSREG(3, 0, 2, 0, 2)
+#define ARM64_TCR_EL1_IPS_SHIFT 32
+#define ARM64_TCR_EL1_IPS_MASK  0x7
 #endif
 
 
