@@ -194,14 +194,9 @@ typedef struct _PH_HW_NAMED_SENSOR
     WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
 } PH_HW_NAMED_SENSOR, *PPH_HW_NAMED_SENSOR;
 
-ULONG PhHwGetNamedSensorCount(
-    VOID
-    );
-
-_Success_(return)
-BOOLEAN PhHwGetNamedSensor(
-    _In_ ULONG Index,
-    _Out_ PPH_HW_NAMED_SENSOR Sensor
+_Ret_maybenull_
+PPH_HW_NAMED_SENSOR PhHwCopyNamedSensors(
+    _Out_ PULONG Count
     );
 
 _Success_(return)

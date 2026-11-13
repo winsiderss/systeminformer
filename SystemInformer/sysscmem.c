@@ -860,7 +860,8 @@ static VOID PhSipUpdateMemoryHardwareRows(
 
     // The first DIMM's VDD set point and the hottest DIMM.
     {
-        ULONG count = PhHwGetNamedSensorCount();
+        ULONG count;
+        PPH_HW_NAMED_SENSOR sensors = PhHwCopyNamedSensors(&count);
         BOOLEAN voltageFound = FALSE;
         BOOLEAN temperatureFound = FALSE;
         FLOAT voltage = 0.0f;
@@ -870,9 +871,9 @@ static VOID PhSipUpdateMemoryHardwareRows(
 
         for (ULONG i = 0; i < count; i++)
         {
-            PH_HW_NAMED_SENSOR sensor;
+            PH_HW_NAMED_SENSOR sensor = sensors[i];
 
-            if (!PhHwGetNamedSensor(i, &sensor) || !sensor.Valid)
+            if (!sensor.Valid)
                 continue;
 
             if (sensor.Kind == PhHwNamedSensorDimmVoltage && sensor.Id % PH_HW_PMIC_RAILS == 0 && !voltageFound)
@@ -886,6 +887,9 @@ static VOID PhSipUpdateMemoryHardwareRows(
                 temperatureFound = TRUE;
             }
         }
+
+        if (sensors)
+            PhFree(sensors);
 
         if (voltageFound)
         {

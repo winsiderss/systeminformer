@@ -536,14 +536,18 @@ static VOID PhpHwEnumerateNamed(
     _Inout_ PPHP_HW_ENUM_CONTEXT Context
     )
 {
-    ULONG count = PhHwGetNamedSensorCount();
+    PPH_HW_NAMED_SENSOR sensors;
+    ULONG count;
+
+    if (!(sensors = PhHwCopyNamedSensors(&count)))
+        return;
 
     for (ULONG i = 0; i < count; i++)
     {
-        PH_HW_NAMED_SENSOR sensor;
+        PH_HW_NAMED_SENSOR sensor = sensors[i];
         PPH_STRING name;
 
-        if (!PhHwGetNamedSensor(i, &sensor) || sensor.Kind >= PhHwNamedSensorMaximum)
+        if (sensor.Kind >= PhHwNamedSensorMaximum)
             continue;
 
         sensor.Name[RTL_NUMBER_OF(sensor.Name) - 1] = UNICODE_NULL;
@@ -562,6 +566,8 @@ static VOID PhpHwEnumerateNamed(
 
         PhClearReference(&name);
     }
+
+    PhFree(sensors);
 }
 
 _Function_class_(PH_HW_SOURCE_SENSOR_CALLBACK)

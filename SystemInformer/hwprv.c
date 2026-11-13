@@ -13654,15 +13654,20 @@ static PPH_HW_NAMED_SENSOR PhpHwGetNamedSensorSetLocked(
 }
 
 /**
- * Retrieves the number of named sensors.
+ * Copies the active named sensors under one hold of the lock.
  *
- * \return The number of named sensors, or 0 when hardware sensors are unavailable.
+ * \param Count Receives the number of sensors copied.
+ * \return The sensors, freed with PhFree, or NULL when there are none.
  */
-ULONG PhHwGetNamedSensorCount(
-    VOID
+_Ret_maybenull_
+PPH_HW_NAMED_SENSOR PhHwCopyNamedSensors(
+    _Out_ PULONG Count
     )
 {
+    PPH_HW_NAMED_SENSOR sensors;
+    PPH_HW_NAMED_SENSOR copy = NULL;
     ULONG total = 0;
+    ULONG copied = 0;
     ULONG count;
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
@@ -13670,49 +13675,31 @@ ULONG PhHwGetNamedSensorCount(
     for (ULONG set = 0; PhpHwGetNamedSensorSetLocked(set, &count); set++)
         total += count;
 
-    PhReleaseQueuedLockShared(&PhpHwNamedSensorLock);
-
-    return total;
-}
-
-/**
- * Copies a named sensor.
- *
- * \param Index The index of the sensor.
- * \param Sensor Receives a copy of the sensor.
- * \return TRUE when the sensor exists and is active.
- */
-_Success_(return)
-BOOLEAN PhHwGetNamedSensor(
-    _In_ ULONG Index,
-    _Out_ PPH_HW_NAMED_SENSOR Sensor
-    )
-{
-    PPH_HW_NAMED_SENSOR sensors;
-    BOOLEAN found = FALSE;
-    ULONG count;
-
-    PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
-
-    for (ULONG set = 0; (sensors = PhpHwGetNamedSensorSetLocked(set, &count)); set++)
+    if (total)
     {
-        if (Index < count)
+        copy = PhAllocate(sizeof(PH_HW_NAMED_SENSOR) * total);
+
+        for (ULONG set = 0; (sensors = PhpHwGetNamedSensorSetLocked(set, &count)); set++)
         {
-            if (sensors[Index].Active)
+            for (ULONG i = 0; i < count; i++)
             {
-                *Sensor = sensors[Index];
-                found = TRUE;
+                if (sensors[i].Active)
+                    copy[copied++] = sensors[i];
             }
-
-            break;
         }
-
-        Index -= count;
     }
 
     PhReleaseQueuedLockShared(&PhpHwNamedSensorLock);
 
-    return found;
+    if (copy && !copied)
+    {
+        PhFree(copy);
+        copy = NULL;
+    }
+
+    *Count = copied;
+
+    return copy;
 }
 
 /**
