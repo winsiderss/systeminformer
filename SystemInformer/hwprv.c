@@ -199,11 +199,14 @@ typedef enum _PHP_HW_REG
     PhpHwRegVrCurrentConfig, // Intel MSR_VR_CURRENT_CONFIG, PL4 (pkg)
     PhpHwRegPlatformPowerLimit, // Intel MSR_PLATFORM_POWER_LIMIT (pkg)
     PhpHwRegCentaurTemperature, // Centaur and Zhaoxin 1423h (core)
+    PhpHwRegCuPowerAccumulator, // AMD 15h/16h CU_PWR_ACCUMULATOR (compute unit)
+    PhpHwRegPtsc, // AMD 15h/16h PTSC (compute unit)
     PhpHwRegTemperatureTarget, // probe only from here; Intel MSR_TEMPERATURE_TARGET, Zhaoxin critical temperature
     PhpHwRegPlatformInfo,
     PhpHwRegRaplUnit,
     PhpHwRegPowerLimit,
     PhpHwRegPStateDef0,
+    PhpHwRegCuMaxPowerAccumulator, // AMD 15h/16h CU_MAX_PWR_ACCUMULATOR (compute unit)
     PhpHwRegArmFrequency, // ARM64 CNTFRQ_EL0
     PhpHwRegArmAmuEnable, // ARM64 AMCNTENSET0_EL0
     PhpHwRegMaximum
@@ -221,7 +224,8 @@ typedef enum _PHP_HW_SCOPE
 {
     PhpHwScopeThread,
     PhpHwScopeCore,
-    PhpHwScopePackage
+    PhpHwScopePackage,
+    PhpHwScopeComputeUnit // the first processor of each compute unit, sampled per processor
 } PHP_HW_SCOPE;
 
 typedef struct _PHP_HW_ITEM
@@ -695,6 +699,9 @@ static BOOLEAN PhpHwRootsEnumerated = FALSE;
 static BOOLEAN PhpHwNodesEnumerated = FALSE;
 static BOOLEAN PhpHwPowerNodesEnumerated = FALSE;
 static ULONG PhpHwClockPowerTimingControl0 = 0; // Family 14h D18F3xD4: the main PLL frequency of the P-states
+static PBOOLEAN PhpHwComputeUnitFirst = NULL; // Family 15h/16h, per processor: the first of its compute unit
+static ULONG PhpHwCuSampleTimeRatio = 0; // CPUID 8000_0007h ECX
+static ULONG64 PhpHwCuMaxAccumulator = 0; // CU_MAX_PWR_ACCUMULATOR, 0 when unread
 static BOOLEAN PhpHwLegacyRootTemperature = FALSE; // 15h M60h-7Fh: ReportedTempCtrl through the root complex B8h/BCh pair
 static BOOLEAN PhpHwSmnPending = FALSE;
 static UCHAR PhpHwPciTimeouts = 0; // consecutive timed-out waits for Access_PCI
@@ -1069,6 +1076,93 @@ static BOOLEAN PhpHwMapRelationship(
     return TRUE;
 }
 
+#if defined(_M_IX86) || defined(_M_X64)
+/**
+ * Marks the first processor of each compute unit, keyed by CPUID 8000_001Eh NodeId (ECX[7:0]) and ComputeUnitId
+ * (EBX[7:0]) read on each processor, and keeps the accumulator sample ratio. Needs TopologyExtensions
+ * (8000_0001h ECX[22]) and the processor power accumulator (8000_0007h EDX[12]).
+ */
+static VOID PhpHwMapComputeUnits(
+    VOID
+    )
+{
+    INT cpuInfo[4];
+    ULONG ratio;
+    GROUP_AFFINITY original;
+    PBOOLEAN first;
+    PULONG keys;
+    ULONG keyCount = 0;
+    BOOLEAN failed = FALSE;
+
+    __cpuid(cpuInfo, 0x80000000);
+    if ((ULONG)cpuInfo[0] < 0x8000001E)
+        return;
+    __cpuid(cpuInfo, 0x80000001);
+    if (!(cpuInfo[2] & (1 << 22)))
+        return;
+    __cpuid(cpuInfo, 0x80000007);
+    if (!(cpuInfo[3] & (1 << 12)))
+        return;
+
+    ratio = (ULONG)cpuInfo[2];
+
+    if (!ratio || !NT_SUCCESS(PhGetThreadGroupAffinity(NtCurrentThread(), &original)))
+        return;
+
+    first = PhAllocateZero(sizeof(BOOLEAN) * PhpHwProcessorCount);
+    keys = PhAllocate(sizeof(ULONG) * PhpHwProcessorCount);
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        GROUP_AFFINITY affinity;
+        ULONG key;
+        BOOLEAN seen = FALSE;
+
+        memset(&affinity, 0, sizeof(GROUP_AFFINITY));
+        affinity.Group = PhpHwCpuSensors[i].ProcessorNumber.Group;
+        affinity.Mask = (KAFFINITY)1 << PhpHwCpuSensors[i].ProcessorNumber.Number;
+
+        if (!NT_SUCCESS(PhSetThreadGroupAffinity(NtCurrentThread(), affinity)))
+        {
+            failed = TRUE;
+            break;
+        }
+
+        __cpuid(cpuInfo, 0x8000001E);
+        key = (((ULONG)cpuInfo[2] & 0xFF) << 8) | ((ULONG)cpuInfo[1] & 0xFF);
+
+        for (ULONG j = 0; j < keyCount; j++)
+        {
+            if (keys[j] == key)
+            {
+                seen = TRUE;
+                break;
+            }
+        }
+
+        if (!seen)
+        {
+            keys[keyCount++] = key;
+            first[i] = TRUE;
+        }
+    }
+
+    PhSetThreadGroupAffinity(NtCurrentThread(), original);
+    PhFree(keys);
+
+    if (failed)
+    {
+        PhFree(first);
+        return;
+    }
+
+    PhpHwComputeUnitFirst = first;
+    PhpHwCuSampleTimeRatio = ratio;
+
+    PhTraceInfo("Hardware sensors: %lu compute units, sample ratio %lu", keyCount, ratio);
+}
+#endif
+
 /**
  * Builds the processor, core and package maps and allocates the sensor arrays.
  */
@@ -1169,8 +1263,8 @@ static BOOLEAN PhpHwInitializeTopology(
         PhpHwPackages[PhpHwCores[i].PackageIndex].CoreCount++;
     }
 
-    // Per-tick registers (3 thread, 2 core, 10 package) plus the probe-only package registers (13 with them).
-    PhpHwBatchCapacity = PhpHwProcessorCount * (arm64 ? PHP_HW_ARM_PROBE_REGISTERS : 3) + coreCount * 2 + packageCount * 14 + 8;
+    // Per-tick registers (3 thread, 2 compute unit, 2 core, 10 package) plus the probe-only package registers.
+    PhpHwBatchCapacity = PhpHwProcessorCount * (arm64 ? PHP_HW_ARM_PROBE_REGISTERS : 5) + coreCount * 2 + packageCount * 14 + 8;
     PhpHwBatch = PhAllocate(sizeof(KPH_HW_MSR_BATCH_ENTRY) * PhpHwBatchCapacity);
     PhpHwBatchTags = PhAllocate(sizeof(PHP_HW_BATCH_TAG) * PhpHwBatchCapacity);
 
@@ -1187,6 +1281,11 @@ static BOOLEAN PhpHwInitializeTopology(
 
     PhFree(coreFirst);
     PhFree(packageFirst);
+
+#if defined(_M_IX86) || defined(_M_X64)
+    if (PhpHwCpuClass == PhpHwCpuAmdLegacy && (PhpHwIdentity.DisplayFamily == 0x15 || PhpHwIdentity.DisplayFamily == 0x16))
+        PhpHwMapComputeUnits();
+#endif
 
     PhTraceInfo(
         "Hardware sensors topology: %lu processors, %lu cores, %lu packages",
@@ -1304,6 +1403,13 @@ static VOID PhpHwInitializeRegisterPlan(
         PhpHwSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
         PhpHwSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
         PhpHwSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+
+        if (PhpHwComputeUnitFirst)
+        {
+            PhpHwSetRegister(PhpHwRegCuPowerAccumulator, PH_AMD_MSR_CU_PWR_ACCUMULATOR, PhpHwScopeComputeUnit);
+            PhpHwSetRegister(PhpHwRegPtsc, PH_AMD_MSR_PTSC, PhpHwScopeComputeUnit);
+            PhpHwSetRegister(PhpHwRegCuMaxPowerAccumulator, PH_AMD_MSR_CU_MAX_PWR_ACCUMULATOR, PhpHwScopeComputeUnit);
+        }
     }
     else if (PhpHwCpuClass == PhpHwCpuCentaur)
     {
@@ -1386,6 +1492,7 @@ static PPHP_HW_SAMPLE PhpHwGetSample(
     switch (PhpHwRegisters[Reg].Scope)
     {
     case PhpHwScopeThread:
+    case PhpHwScopeComputeUnit:
         return &PhpHwProcessorSamples[Index];
     case PhpHwScopeCore:
         return &PhpHwCores[Index].Sample;
@@ -2353,8 +2460,62 @@ static VOID PhpHwPrepareLegacyPower(
     }
 }
 
+static BOOLEAN PhpHwComputeUnitPowerActive(
+    VOID
+    )
+{
+    return PhpHwComputeUnitFirst && PhpHwCuMaxAccumulator &&
+        PhpHwRegisterActive(PhpHwRegCuPowerAccumulator) && PhpHwRegisterActive(PhpHwRegPtsc);
+}
+
 /**
- * Decodes the package power of a Family 15h package from its TDP running average.
+ * Sums the compute unit accumulator power of a Family 15h/16h package over the sample interval; the accumulator
+ * wraps at CU_MAX_PWR_ACCUMULATOR.
+ *
+ * \return FALSE unless every compute unit of the package has two samples.
+ */
+_Success_(return)
+static BOOLEAN PhpHwComputeUnitPower(
+    _In_ ULONG Index,
+    _Out_ PFLOAT Watts
+    )
+{
+    FLOAT total = 0.0f;
+    BOOLEAN found = FALSE;
+
+    if (!PhpHwComputeUnitPowerActive())
+        return FALSE;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwProcessorSamples[i];
+        ULONG64 current;
+        ULONG64 last;
+        ULONG64 deltaPtsc;
+
+        if (!PhpHwComputeUnitFirst[i] || PhpHwCpuSensors[i].PackageIndex != Index)
+            continue;
+
+        if (!(sample->Valid & sample->LastValid & (1UL << PhpHwRegCuPowerAccumulator)) ||
+            !PhpHwSampleDelta(sample, PhpHwRegPtsc, &deltaPtsc))
+        {
+            return FALSE;
+        }
+
+        current = sample->Value[PhpHwRegCuPowerAccumulator];
+        last = sample->LastValue[PhpHwRegCuPowerAccumulator];
+
+        total += PhAmdComputeUnitPowerToWatts(current >= last ? current - last : PhpHwCuMaxAccumulator + current - last, deltaPtsc, PhpHwCuSampleTimeRatio);
+        found = TRUE;
+    }
+
+    *Watts = total;
+    return found;
+}
+
+/**
+ * Decodes the package power of a Family 15h/16h package: the TDP running average, else the compute unit
+ * accumulators.
  */
 static VOID PhpHwDecodeLegacyPower(
     _In_ ULONG Index
@@ -2363,7 +2524,7 @@ static VOID PhpHwDecodeLegacyPower(
     PPHP_HW_PACKAGE package = &PhpHwPackages[Index];
     FLOAT watts;
 
-    if (PhpHwReadRunningAverage(package, &watts))
+    if (PhpHwReadRunningAverage(package, &watts) || PhpHwComputeUnitPower(Index, &watts))
     {
         PhpHwPackageSensors[Index].PackagePower = watts;
         package->TickValid |= PH_HW_CAP_RAPL_PACKAGE;
@@ -10601,7 +10762,7 @@ static VOID PhpHwRefreshCapabilities(
                 capabilities |= PH_HW_CAP_PACKAGE_TEMP;
         }
 
-        if (!package->RunningAverage.Disabled)
+        if (!package->RunningAverage.Disabled || PhpHwComputeUnitPowerActive())
             capabilities |= PH_HW_CAP_RAPL_PACKAGE;
 
         if (!package->HasRoot)
@@ -10767,6 +10928,11 @@ static VOID PhpHwProbeDecode(
     PhpHwVoltageSupported = FALSE;
     PhpHwTctlOffset = 0.0f;
     PhpHwClockPowerTimingControl0 = 0;
+    PhpHwCuMaxAccumulator = 0;
+
+    // Every compute unit wraps at the same maximum; the probe reads it on the first processor.
+    if (!PhpHwSampleValue(&PhpHwProcessorSamples[PhpHwPackages[0].FirstProcessor], PhpHwRegCuMaxPowerAccumulator, &PhpHwCuMaxAccumulator))
+        PhpHwCuMaxAccumulator = 0;
 
     // The Family 14h P-states divide the main PLL, whose frequency is in D18F3xD4 of the first node.
     if (PhpHwCpuClass == PhpHwCpuAmdLegacy && PhpHwIdentity.DisplayFamily == 0x14)
@@ -11872,6 +12038,7 @@ static BOOLEAN PhpHwProbeProcessor(
         switch (PhpHwRegisters[reg].Scope)
         {
         case PhpHwScopeThread:
+        case PhpHwScopeComputeUnit:
             PhpHwAddEntry(&count, reg, firstProcessor, firstProcessor);
             break;
         case PhpHwScopeCore:
@@ -12543,6 +12710,10 @@ static VOID PhpHwUpdateSensors(
                 if (firstOfPackage)
                     PhpHwAddEntry(&count, reg, i, sensor->PackageIndex);
                 break;
+            case PhpHwScopeComputeUnit:
+                if (PhpHwComputeUnitFirst && PhpHwComputeUnitFirst[i])
+                    PhpHwAddEntry(&count, reg, i, i);
+                break;
             }
         }
     }
@@ -12606,7 +12777,7 @@ static VOID PhpHwUpdateSensors(
             PhpHwReleasePciMutant();
     }
 
-    if (PhpHwLegacyPowerSupported(&PhpHwProbeCapabilities))
+    if (PhpHwCpuClass == PhpHwCpuAmdLegacy)
     {
         for (ULONG i = 0; i < PhpHwPackageCount; i++)
             PhpHwDecodeLegacyPower(i);

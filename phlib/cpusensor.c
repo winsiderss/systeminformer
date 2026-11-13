@@ -270,6 +270,26 @@ BOOLEAN NTAPI PhAmdTdpRunningAverageToWatts(
 }
 
 /**
+ * Converts the compute unit power accumulator delta of a Family 15h or 16h compute unit to watts.
+ *
+ * \param DeltaAccumulator The CU_PWR_ACCUMULATOR delta, wrapped at CU_MAX_PWR_ACCUMULATOR.
+ * \param DeltaPtsc The PTSC delta over the same interval.
+ * \param SampleTimeRatio CpuPwrSampleTimeRatio, CPUID 8000_0007h ECX.
+ * \return DeltaAccumulator x SampleTimeRatio x 1000 / DeltaPtsc microwatts in watts, or 0 when DeltaPtsc is 0.
+ */
+FLOAT NTAPI PhAmdComputeUnitPowerToWatts(
+    _In_ ULONG64 DeltaAccumulator,
+    _In_ ULONG64 DeltaPtsc,
+    _In_ ULONG SampleTimeRatio
+    )
+{
+    if (DeltaPtsc == 0)
+        return 0.0f;
+
+    return (FLOAT)((DOUBLE)DeltaAccumulator * (DOUBLE)SampleTimeRatio * 1000.0 / (DOUBLE)DeltaPtsc / 1000000.0);
+}
+
+/**
  * Determines whether the identity is a CentaurHauls or Zhaoxin ("  Shanghai  ") processor.
  *
  * \param Identity The CPU identity.

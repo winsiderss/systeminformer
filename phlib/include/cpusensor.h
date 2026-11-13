@@ -53,6 +53,9 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_AMD_MSR_PSTATE_STAT 0xC0010063
 #define PH_AMD_MSR_PSTATE_DEF0 0xC0010064
 #define PH_AMD_MSR_COFVID_STATUS 0xC0010071
+#define PH_AMD_MSR_CU_PWR_ACCUMULATOR 0xC001007A // Family 15h/16h, per compute unit
+#define PH_AMD_MSR_CU_MAX_PWR_ACCUMULATOR 0xC001007B // the accumulator wraps here
+#define PH_AMD_MSR_PTSC 0xC0010280 // performance timestamp counter
 #define PH_AMD_MSR_HW_PSTATE_STATUS 0xC0010293
 #define PH_AMD_MSR_RAPL_PWR_UNIT 0xC0010299
 #define PH_AMD_MSR_CORE_ENERGY_STAT 0xC001029A
@@ -196,6 +199,15 @@ PhAmdTdpRunningAverageToWatts(
     _In_ ULONG TdpLimit3,
     _In_ PCPH_CPU_IDENTITY Identity,
     _Out_ PFLOAT Watts
+    );
+
+PHLIBAPI
+FLOAT
+NTAPI
+PhAmdComputeUnitPowerToWatts(
+    _In_ ULONG64 DeltaAccumulator,
+    _In_ ULONG64 DeltaPtsc,
+    _In_ ULONG SampleTimeRatio
     );
 
 PHLIBAPI
