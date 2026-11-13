@@ -5454,6 +5454,7 @@ NTSTATUS KSIAPI KphpHwPciRecheckVsec(
  * \param[in] Section The hardware section.
  * \param[in] OpIndex The index of the op among the vsec_read ops of the device.
  * \param[in] Instance The index of the region among those the op exposes.
+ * \param[in] Id The ID the region was listed with.
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The batch entries, in system memory.
  *
@@ -5466,6 +5467,7 @@ NTSTATUS KphHwPciReadVsec(
     _In_ PKPH_DYN_HW_SECTION Section,
     _In_ ULONG OpIndex,
     _In_ ULONG Instance,
+    _In_ ULONG Id,
     _In_ ULONG Count,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
     )
@@ -5576,15 +5578,16 @@ NTSTATUS KphHwPciReadVsec(
         goto Exit;
     }
 
-    if (Instance >= regionCount)
+    if ((Instance >= regionCount) || (locations[Instance].Id != Id))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "VSEC instance %lu out of %lu",
+                      "VSEC instance %lu of %lu is not region 0x%08lx",
                       Instance,
-                      regionCount);
+                      regionCount,
+                      Id);
 
-        status = STATUS_NOT_FOUND;
+        status = STATUS_CONTEXT_MISMATCH;
         goto Exit;
     }
 

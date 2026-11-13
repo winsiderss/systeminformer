@@ -3350,6 +3350,7 @@ NTSTATUS KphHwQueryVsecRegions(
  * \param Locator The locator of the device.
  * \param OpIndex The OpIndex of the region.
  * \param Instance The Instance of the region.
+ * \param Id The Id of the region; the read fails when the instance is no longer that region.
  * \param Entries The batch entries; the caller sets Offset (region-relative) and Width.
  * \param Count The number of entries.
  * \return Successful or errant status.
@@ -3358,6 +3359,7 @@ NTSTATUS KphHwReadVsecBatch(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ UCHAR OpIndex,
     _In_ USHORT Instance,
+    _In_ ULONG Id,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
     _In_ ULONG Count
     )
@@ -3375,6 +3377,7 @@ NTSTATUS KphHwReadVsecBatch(
     msg->User.HwReadVsecBatch.Locator = *Locator;
     msg->User.HwReadVsecBatch.OpIndex = OpIndex;
     msg->User.HwReadVsecBatch.Instance = Instance;
+    msg->User.HwReadVsecBatch.Id = Id;
     msg->User.HwReadVsecBatch.Count = Count;
     msg->User.HwReadVsecBatch.Entries = Entries;
     status = KphCommsSendMessage(msg);

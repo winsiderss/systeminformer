@@ -789,6 +789,7 @@ KphHwReadVsecBatch(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ UCHAR OpIndex,
     _In_ USHORT Instance,
+    _In_ ULONG Id,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
     _In_ ULONG Count
     );

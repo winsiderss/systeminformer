@@ -666,6 +666,7 @@ typedef struct _KPHM_HW_READ_VSEC_BATCH
     UCHAR OpIndex;
     UCHAR Reserved;
     USHORT Instance;
+    ULONG Id;
     ULONG Count;
     PKPH_HW_WINDOW_BATCH_ENTRY Entries;
 } KPHM_HW_READ_VSEC_BATCH, *PKPHM_HW_READ_VSEC_BATCH;
