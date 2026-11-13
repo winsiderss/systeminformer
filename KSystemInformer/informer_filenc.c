@@ -546,8 +546,8 @@ NTSTATUS KphpFltAllocateNameContext(
 
     *Context = NULL;
 
-    NT_VERIFY(NT_SUCCESS(RtlULongAdd(Length,
-                                     sizeof(KPH_FLT_STREAMHANDLE_CONTEXT),
+    NT_VERIFY(NT_SUCCESS(RtlULongAdd(sizeof(KPH_FLT_STREAMHANDLE_CONTEXT),
+                                     Length,
                                      &contextSize)));
 
     status = FltAllocateContext(Filter,
@@ -565,6 +565,7 @@ NTSTATUS KphpFltAllocateNameContext(
         return status;
     }
 
+    NT_ASSERT(contextSize >= sizeof(KPH_FLT_STREAMHANDLE_CONTEXT));
     RtlZeroMemory(context, sizeof(KPH_FLT_STREAMHANDLE_CONTEXT));
 
     context->State = KphFltNameContextReady;
