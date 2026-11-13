@@ -490,6 +490,7 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_HW_KIND_PORT_INDIRECT_READ      ((USHORT){{DynDataHw.KindPortIndirectRead}})
 #define KPH_DYN_HW_KIND_SMBUS_HOST              ((USHORT){{DynDataHw.KindSmbusHost}})
 #define KPH_DYN_HW_KIND_DF_MAP                  ((USHORT){{DynDataHw.KindDfMap}})
+#define KPH_DYN_HW_KIND_ACPI_REQUIRE            ((USHORT){{DynDataHw.KindAcpiRequire}})
 
 #define KPH_DYN_HW_FLAG_REQUIRE_D0              ((UCHAR)0x{{DynDataHw.FlagRequireD0:X2}})
 #define KPH_DYN_HW_FLAG_ARM64                   ((UCHAR)0x{{DynDataHw.FlagArm64:X2}})
@@ -993,6 +994,14 @@ typedef struct _KPH_DYN_HW_ACPI_EVAL
 } KPH_DYN_HW_ACPI_EVAL, *PKPH_DYN_HW_ACPI_EVAL;
 typedef const KPH_DYN_HW_ACPI_EVAL* PCKPH_DYN_HW_ACPI_EVAL;
 
+typedef struct _KPH_DYN_HW_ACPI_REQUIRE
+{
+    UCHAR IdCount;
+    UCHAR Reserved[3];
+    // CHAR Ids[IdCount][KPH_DYN_HW_ACPI_ID_LENGTH];
+} KPH_DYN_HW_ACPI_REQUIRE, *PKPH_DYN_HW_ACPI_REQUIRE;
+typedef const KPH_DYN_HW_ACPI_REQUIRE* PCKPH_DYN_HW_ACPI_REQUIRE;
+
 typedef struct _KPH_DYN_HW_SYSREG_READ
 {
     UCHAR SysregEnum; // KPH_DYN_HW_SYSREG_*
@@ -1101,6 +1110,7 @@ C_ASSERT(sizeof(KPH_DYN_HW_SMU_TABLE_VERSION) == {{DynDataHw.SmuTableVersionSize
 C_ASSERT(sizeof(KPH_DYN_HW_SMU_TABLE_READ) == {{DynDataHw.SmuTableReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_ACPI_ARG) == {{DynDataHw.AcpiArgSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_ACPI_EVAL) == {{DynDataHw.AcpiEvalSize}});
+C_ASSERT(sizeof(KPH_DYN_HW_ACPI_REQUIRE) == {{DynDataHw.AcpiRequireSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SYSREG_READ) == {{DynDataHw.SysregReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_PORT_INDIRECT_READ) == {{DynDataHw.PortIndirectReadSize}});
 C_ASSERT(sizeof(KPH_DYN_HW_SMBUS_HOST) == {{DynDataHw.SmbusHostSize}});

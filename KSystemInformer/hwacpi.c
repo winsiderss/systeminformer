@@ -54,6 +54,30 @@ typedef struct _KPH_HW_ACPI_FIND_PDO
     PDEVICE_OBJECT Pdo;
 } KPH_HW_ACPI_FIND_PDO, *PKPH_HW_ACPI_FIND_PDO;
 
+typedef struct _KPH_HW_ACPI_FIND_TABLE
+{
+    PKPH_DYN_HW_SECTION Section;
+    PCHAR Id;
+    PKPH_DYN_HW_TABLE Table;
+} KPH_HW_ACPI_FIND_TABLE, *PKPH_HW_ACPI_FIND_TABLE;
+
+typedef struct _KPH_HW_ACPI_FIND_REQUIRED
+{
+    PKPH_DYN_HW_ACPI_REQUIRE Require;
+    BOOLEAN Found;
+} KPH_HW_ACPI_FIND_REQUIRED, *PKPH_HW_ACPI_FIND_REQUIRED;
+
+typedef
+_Function_class_(KPH_HW_ACPI_ID_CALLBACK)
+_Must_inspect_result_
+BOOLEAN
+KSIAPI
+KPH_HW_ACPI_ID_CALLBACK(
+    _In_reads_(KPH_DYN_HW_ACPI_ID_LENGTH) PCCH Id,
+    _In_opt_ PVOID Context
+    );
+typedef KPH_HW_ACPI_ID_CALLBACK* PKPH_HW_ACPI_ID_CALLBACK;
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpHwAcpiEvalTypeName, L"KphHwAcpiEval");
 DECLARE_CONST_UNICODE_STRING(KphpHwAcpiDriverName, L"\\Driver\\ACPI");
@@ -1015,30 +1039,27 @@ BOOLEAN KphpHwAcpiNormalizeId(
 }
 
 /**
- * \brief Finds the op table of an ACPI device by its IDs.
+ * \brief Enumerates the hardware and compatible IDs of an ACPI device.
  *
  * \param[in] Pdo The physical device object.
- * \param[in] Section The hardware section.
- * \param[out] Id Receives the identity of the row, untouched on failure.
- * \param[out] Table Receives the op table.
+ * \param[in] Callback Invoked with each ACPI ID; TRUE stops the enumeration.
+ * \param[in] Context Passed to the callback.
  *
- * \return Successful or errant status.
+ * \return STATUS_SUCCESS when the callback stopped the enumeration,
+ * STATUS_NOT_FOUND when it did not, or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpHwAcpiFindTable(
+NTSTATUS KphpHwAcpiEnumerateIds(
     _In_ PDEVICE_OBJECT Pdo,
-    _In_ PKPH_DYN_HW_SECTION Section,
-    _Out_writes_(KPH_DYN_HW_ACPI_ID_LENGTH) PCHAR Id,
-    _Outptr_ PKPH_DYN_HW_TABLE* Table
+    _In_ PKPH_HW_ACPI_ID_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
     PWCHAR ids;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    *Table = NULL;
 
     ids = NULL;
 
@@ -1107,24 +1128,13 @@ NTSTATUS KphpHwAcpiFindTable(
 
         while (id.Length > 0)
         {
-            KPH_DYN_HW_IDENTITY identity;
+            CHAR acpiId[KPH_DYN_HW_ACPI_ID_LENGTH];
 
-            RtlZeroMemory(&identity, sizeof(identity));
-
-            if (KphpHwAcpiNormalizeId(&id, identity.AcpiHid.Id))
+            if (KphpHwAcpiNormalizeId(&id, acpiId) &&
+                Callback(acpiId, Context))
             {
-                status = KphDynHwFindTable(Section,
-                                           KPH_DYN_HW_IDENTITY_ACPI_HID,
-                                           &identity,
-                                           Table);
-                if (NT_SUCCESS(status))
-                {
-                    RtlCopyMemory(Id,
-                                  identity.AcpiHid.Id,
-                                  KPH_DYN_HW_ACPI_ID_LENGTH);
-                    found = TRUE;
-                    break;
-                }
+                found = TRUE;
+                break;
             }
 
             RtlInitUnicodeString(&id,
@@ -1141,10 +1151,6 @@ NTSTATUS KphpHwAcpiFindTable(
         ids = NULL;
     }
 
-    KphTracePrint(TRACE_LEVEL_VERBOSE,
-                  HARDWARE,
-                  "No ID of the ACPI device is allow-listed");
-
     status = STATUS_NOT_FOUND;
 
 Exit:
@@ -1152,6 +1158,263 @@ Exit:
     if (ids)
     {
         KphFree(ids, KPH_TAG_HW_ACPI_BUFFER);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Looks up the row of one ID of an ACPI device.
+ *
+ * \param[in] Id The ACPI ID.
+ * \param[in,out] Context The find context; receives the table and identity.
+ *
+ * \return TRUE when the ID has a row, FALSE to continue enumerating.
+ */
+_Function_class_(KPH_HW_ACPI_ID_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KSIAPI KphpHwAcpiFindTableCallback(
+    _In_reads_(KPH_DYN_HW_ACPI_ID_LENGTH) PCCH Id,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_HW_ACPI_FIND_TABLE context;
+    KPH_DYN_HW_IDENTITY identity;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    context = Context;
+
+    RtlZeroMemory(&identity, sizeof(identity));
+    RtlCopyMemory(identity.AcpiHid.Id, Id, KPH_DYN_HW_ACPI_ID_LENGTH);
+
+    status = KphDynHwFindTable(context->Section,
+                               KPH_DYN_HW_IDENTITY_ACPI_HID,
+                               &identity,
+                               &context->Table);
+    if (!NT_SUCCESS(status))
+    {
+        return FALSE;
+    }
+
+    RtlCopyMemory(context->Id, Id, KPH_DYN_HW_ACPI_ID_LENGTH);
+
+    return TRUE;
+}
+
+/**
+ * \brief Finds the op table of an ACPI device by its IDs.
+ *
+ * \param[in] Pdo The physical device object.
+ * \param[in] Section The hardware section.
+ * \param[out] Id Receives the identity of the row, untouched on failure.
+ * \param[out] Table Receives the op table.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwAcpiFindTable(
+    _In_ PDEVICE_OBJECT Pdo,
+    _In_ PKPH_DYN_HW_SECTION Section,
+    _Out_writes_(KPH_DYN_HW_ACPI_ID_LENGTH) PCHAR Id,
+    _Outptr_ PKPH_DYN_HW_TABLE* Table
+    )
+{
+    NTSTATUS status;
+    KPH_HW_ACPI_FIND_TABLE context;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Table = NULL;
+
+    context.Section = Section;
+    context.Id = Id;
+    context.Table = NULL;
+
+    status = KphpHwAcpiEnumerateIds(Pdo,
+                                    KphpHwAcpiFindTableCallback,
+                                    &context);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "No ID of the ACPI device is allow-listed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    *Table = context.Table;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Matches one ID of an ACPI device against the IDs of an
+ * acpi_require op.
+ *
+ * \param[in] Id The ACPI ID.
+ * \param[in] Context The acpi_require op body.
+ *
+ * \return TRUE when the ID is required, FALSE to continue enumerating.
+ */
+_Function_class_(KPH_HW_ACPI_ID_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KSIAPI KphpHwAcpiRequiredIdCallback(
+    _In_reads_(KPH_DYN_HW_ACPI_ID_LENGTH) PCCH Id,
+    _In_opt_ PVOID Context
+    )
+{
+    PKPH_DYN_HW_ACPI_REQUIRE require;
+    PCCH ids;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    require = Context;
+    ids = Add2Ptr(require, sizeof(KPH_DYN_HW_ACPI_REQUIRE));
+
+    for (ULONG i = 0; i < require->IdCount; i++)
+    {
+        if (KphEqualMemory(Id,
+                           &ids[i * KPH_DYN_HW_ACPI_ID_LENGTH],
+                           KPH_DYN_HW_ACPI_ID_LENGTH))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * \brief Matches an ACPI device against the IDs of an acpi_require op.
+ *
+ * \param[in] DeviceObject A device object of the ACPI driver.
+ * \param[in,out] Context The find context; receives whether one matched.
+ *
+ * \return TRUE when the device has a required ID, FALSE to continue
+ * enumerating.
+ */
+_Function_class_(KPH_HW_ENUMERATE_DEVICES_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KSIAPI KphpHwAcpiFindRequiredCallback(
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_HW_ACPI_FIND_REQUIRED context;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    context = Context;
+
+    if (!BooleanFlagOn(DeviceObject->Flags, DO_BUS_ENUMERATED_DEVICE))
+    {
+        return FALSE;
+    }
+
+    status = KphpHwAcpiEnumerateIds(DeviceObject,
+                                    KphpHwAcpiRequiredIdCallback,
+                                    context->Require);
+    if (!NT_SUCCESS(status))
+    {
+        if (status != STATUS_NOT_FOUND)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpHwAcpiEnumerateIds failed: %!STATUS!",
+                          status);
+        }
+
+        return FALSE;
+    }
+
+    context->Found = TRUE;
+
+    return TRUE;
+}
+
+/**
+ * \brief Checks that a present ACPI device has one of the IDs of an
+ * acpi_require op.
+ *
+ * \param[in] Require The acpi_require op.
+ *
+ * \return Successful or errant status, STATUS_NOT_FOUND when no present
+ * device has a required ID.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwAcpiCheckRequire(
+    _In_ PKPH_DYN_HW_OP Require
+    )
+{
+    NTSTATUS status;
+    PDRIVER_OBJECT driver;
+    KPH_HW_ACPI_FIND_REQUIRED context;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Require->Kind == KPH_DYN_HW_KIND_ACPI_REQUIRE);
+
+    driver = NULL;
+
+    status = KphHwReferenceDriver(&KphpHwAcpiDriverName, &driver);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphHwReferenceDriver failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    context.Require = (PKPH_DYN_HW_ACPI_REQUIRE)Require->Body;
+    context.Found = FALSE;
+
+    status = KphHwEnumerateDriverDevices(driver,
+                                         KphpHwAcpiFindRequiredCallback,
+                                         &context);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphHwEnumerateDriverDevices failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!context.Found)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "No present ACPI device has a required ID");
+
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (driver)
+    {
+        ObDereferenceObject(driver);
     }
 
     return status;
@@ -1799,6 +2062,7 @@ NTSTATUS KphHwEvalAcpi(
     PKPH_HW_ACPI_DEVICE device;
     PKPH_DYN_HW_TABLE table;
     PKPH_DYN_HW_OP op;
+    PKPH_DYN_HW_OP require;
     PKPH_DYN_HW_ACPI_EVAL body;
     KPH_HW_ACPI_EVAL_INIT init;
     PKPH_HW_ACPI_EVAL eval;
@@ -1902,7 +2166,7 @@ NTSTATUS KphHwEvalAcpi(
         goto Exit;
     }
 
-    status = KphDynHwFindAcpiEvalOp(table, OpIndex, &op);
+    status = KphDynHwFindAcpiEvalOp(table, OpIndex, &op, &require);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1911,6 +2175,22 @@ NTSTATUS KphHwEvalAcpi(
                       status);
 
         goto Exit;
+    }
+
+    if (require)
+    {
+        status = KphpHwAcpiCheckRequire(require);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "ACPI %Z op %lu refused: %!STATUS!",
+                          path,
+                          OpIndex,
+                          status);
+
+            goto Exit;
+        }
     }
 
     body = (PKPH_DYN_HW_ACPI_EVAL)op->Body;

@@ -300,6 +300,10 @@ ULONG KphpDynHwOpFixedLength(
         {
             return sizeof(KPH_DYN_HW_DF_MAP);
         }
+        case KPH_DYN_HW_KIND_ACPI_REQUIRE:
+        {
+            return sizeof(KPH_DYN_HW_ACPI_REQUIRE);
+        }
         default:
         {
             return 0;
@@ -500,6 +504,15 @@ NTSTATUS KphpDynHwValidateOp(
             eval = (PKPH_DYN_HW_ACPI_EVAL)Op->Body;
             arrayLength = KphpDynHwArrayLength(eval->ArgCount,
                                                sizeof(KPH_DYN_HW_ACPI_ARG));
+            break;
+        }
+        case KPH_DYN_HW_KIND_ACPI_REQUIRE:
+        {
+            PKPH_DYN_HW_ACPI_REQUIRE require;
+
+            require = (PKPH_DYN_HW_ACPI_REQUIRE)Op->Body;
+            arrayLength = KphpDynHwArrayLength(require->IdCount,
+                                               KPH_DYN_HW_ACPI_ID_LENGTH);
             break;
         }
         case KPH_DYN_HW_KIND_PORT_INDIRECT_READ:
@@ -1945,6 +1958,8 @@ NTSTATUS KphDynHwFindMailboxCommand(
  * \param[in] Table The op table.
  * \param[in] Index The index of the op among the acpi_eval ops.
  * \param[out] Op Receives a pointer into the table for the op.
+ * \param[out] Require Receives the acpi_require op gating the op, NULL when
+ * none does.
  *
  * \return Successful or errant status.
  */
@@ -1952,10 +1967,43 @@ _Must_inspect_result_
 NTSTATUS KphDynHwFindAcpiEvalOp(
     _In_ PKPH_DYN_HW_TABLE Table,
     _In_ ULONG Index,
-    _Outptr_ PKPH_DYN_HW_OP* Op
+    _Outptr_ PKPH_DYN_HW_OP* Op,
+    _Outptr_result_maybenull_ PKPH_DYN_HW_OP* Require
     )
 {
-    return KphpDynHwFindOpOfKind(Table, KPH_DYN_HW_KIND_ACPI_EVAL, Index, Op);
+    PKPH_DYN_HW_OP op;
+    PKPH_DYN_HW_OP require;
+    ULONG remaining;
+
+    *Op = NULL;
+    *Require = NULL;
+
+    op = Add2Ptr(Table, sizeof(KPH_DYN_HW_TABLE));
+    require = NULL;
+    remaining = Index;
+
+    for (ULONG i = 0; i < Table->Count; i++)
+    {
+        if (op->Kind == KPH_DYN_HW_KIND_ACPI_REQUIRE)
+        {
+            require = op;
+        }
+        else if (op->Kind == KPH_DYN_HW_KIND_ACPI_EVAL)
+        {
+            if (remaining == 0)
+            {
+                *Op = op;
+                *Require = require;
+                return STATUS_SUCCESS;
+            }
+
+            remaining--;
+        }
+
+        op = Add2Ptr(op, op->Length);
+    }
+
+    return STATUS_NOT_FOUND;
 }
 
 /**

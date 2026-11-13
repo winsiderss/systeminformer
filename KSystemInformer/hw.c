@@ -1721,6 +1721,7 @@ NTSTATUS KphHwQueryCapabilities(
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_WINDOW_READ));
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_VSEC_READ));
     SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_ACPI_EVAL));
+    SetFlag(kinds, (1ull << KPH_DYN_HW_KIND_ACPI_REQUIRE));
 
     identityKinds = KPH_DYN_HW_IMPLEMENTED_IDENTITY_KINDS;
 #if !defined(_M_X64)

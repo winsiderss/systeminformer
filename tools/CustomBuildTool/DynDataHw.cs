@@ -62,6 +62,10 @@ namespace CustomBuildTool
         /// Read-only methods with integer arguments only.
         /// </summary>
         public const UInt16 KindAcpiEval = 10;
+        /// <summary>
+        /// Gates the acpi_eval ops after it, up to the next acpi_require: one of the IDs names a present ACPI device.
+        /// </summary>
+        public const UInt16 KindAcpiRequire = 15;
 
         public const byte AcpiMaxArgs = 7;
         /// <summary>
@@ -122,8 +126,39 @@ namespace CustomBuildTool
             .. new[] { "TSIF", "VSIF", "FSIF", "RTMP", "RVLT", "RFAN" }.Select(m => ("ATK0110", m)),
             // Lenovo ThinkPad HKEY DYTC; read commands in AcpiMethodArgs.
             ("LEN0068", "DYTC"),
-            ("LEN0268", "DYTC")
+            ("LEN0268", "DYTC"),
+            // ThinkPad EC thermal sensors, degrees C; gated in AcpiMethodRequires.
+            .. Enumerable.Range(0, 8).Select(i => ("PNP0C09", $"TMP{i}"))
         ];
+
+        /// <summary>
+        /// ThinkPad hotkey device IDs.
+        /// </summary>
+        public static readonly string[] ThinkPadHotkeyIds = ["IBM0068", "LEN0068", "LEN0268"];
+
+        /// <summary>
+        /// Vendor methods allowed only inside a require group, by ACPI ID: every ID the group requires is one of these.
+        /// </summary>
+        public static readonly Dictionary<(string Id, string Method), string[]> AcpiMethodRequires =
+            Enumerable.Range(0, 8).ToDictionary(i => ("PNP0C09", $"TMP{i}"), i => ThinkPadHotkeyIds);
+
+        /// <summary>
+        /// Returns why the require group of a method breaks AcpiMethodRequires, or null when it is allowed.
+        /// </summary>
+        public static string AcpiMethodRequireError(string Id, string Method, IReadOnlyCollection<string> Required)
+        {
+            if (!AcpiMethodRequires.TryGetValue((Id, Method), out var allowed))
+                return null;
+            if (Required == null)
+                return $"method \"{Method}\" of {Id} needs a <require> of {string.Join(",", allowed)} (DynDataHw.AcpiMethodRequires)";
+
+            string other = Required.FirstOrDefault(r => !allowed.Contains(r));
+
+            if (other != null)
+                return $"method \"{Method}\" of {Id} requires {other}, not one of {string.Join(",", allowed)} (DynDataHw.AcpiMethodRequires)";
+
+            return null;
+        }
 
         /// <summary>
         /// The arguments a method of a device may take, by position: the fixed values allowed and the widest mask. A
@@ -1040,6 +1075,7 @@ namespace CustomBuildTool
         public const int SmuTableReadSize = 20;
         public const int AcpiArgSize = 16;
         public const int AcpiEvalSize = 16;
+        public const int AcpiRequireSize = 4;
         public const int SysregReadSize = 12;
         public const int PortIndirectReadSize = 8;
         public const int SmbusHostSize = 32;
@@ -1051,7 +1087,7 @@ namespace CustomBuildTool
         /// The kinds the driver implements; a build may only emit these.
         /// </summary>
         public static readonly HwKindSet DriverKinds = new(
-            OpKinds: [KindMsrRead, KindPciRead, KindPciIndirectRead, KindWindowRead, KindSuperIoRead, KindSmbusRead, KindVsecRead, KindMailboxTransact, KindSmuTableRead, KindAcpiEval, KindSysregRead, KindPortIndirectRead, KindSmbusHost, KindDfMap],
+            OpKinds: [KindMsrRead, KindPciRead, KindPciIndirectRead, KindWindowRead, KindSuperIoRead, KindSmbusRead, KindVsecRead, KindMailboxTransact, KindSmuTableRead, KindAcpiEval, KindSysregRead, KindPortIndirectRead, KindSmbusHost, KindDfMap, KindAcpiRequire],
             IdentityKinds: [IdentityCpu, IdentityPci, IdentityCpuAndPci, IdentityCpuAndPciClass, IdentitySuperIo, IdentityBoard, IdentityAcpiHid, IdentityArmCpu],
             GateKinds: [GateNone, GateCpuid, GateChassis, GateSysregField, GatePciConfig],
             WindowBaseKinds: [WindowBaseStandardBar, WindowBaseConfigReg, WindowBaseAcpiLpit, WindowBaseAcpiCrs, WindowBaseSmnDerived, WindowBaseFixedMmio, WindowBaseFixedIo, WindowBaseAcpiLpitRelative],
@@ -1250,6 +1286,7 @@ namespace CustomBuildTool
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "MaxOutput", 6),
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "Reserved", 8),
             FieldOffset<HwAcpiEval>("KPH_DYN_HW_ACPI_EVAL", "Reserved2", 12),
+            FieldOffset<HwAcpiRequire>("KPH_DYN_HW_ACPI_REQUIRE", "Reserved", 1),
             FieldOffset<HwSysregRead>("KPH_DYN_HW_SYSREG_READ", "Reserved", 1),
             FieldOffset<HwSysregRead>("KPH_DYN_HW_SYSREG_READ", "ReadMask", 4),
             FieldOffset<HwPortIndirectRead>("KPH_DYN_HW_PORT_INDIRECT_READ", "PinDevice", 1),
@@ -1689,6 +1726,16 @@ namespace CustomBuildTool
             public UInt32 Reserved2;
         }
 
+        /// <summary>
+        /// The KPH_DYN_HW_ACPI_REQUIRE header; IdCount IDs of AcpiIdSize bytes follow.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public unsafe struct HwAcpiRequire
+        {
+            public byte IdCount;
+            public fixed byte Reserved[3];
+        }
+
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public unsafe struct HwSysregRead
         {
@@ -1832,6 +1879,7 @@ namespace CustomBuildTool
             CheckSize<HwSmuTableRead>(SmuTableReadSize);
             CheckSize<HwAcpiArg>(AcpiArgSize);
             CheckSize<HwAcpiEval>(AcpiEvalSize);
+            CheckSize<HwAcpiRequire>(AcpiRequireSize);
             CheckSize<HwSysregRead>(SysregReadSize);
             CheckSize<HwPortIndirectRead>(PortIndirectReadSize);
             CheckSize<HwSmbusHost>(SmbusHostSize);
@@ -1911,6 +1959,7 @@ namespace CustomBuildTool
         private static readonly string[] SmuTableVersionAttributes = ["id", "size", "desc"];
         private static readonly string[] AcpiAttributes = ["id", "name", "desc"];
         private static readonly string[] EvalAttributes = ["method", "results", "max-output", "desc"];
+        private static readonly string[] RequireAttributes = ["id", "desc"];
         private static readonly string[] ArmAttributes = ["implementer", "parts", "variants", "revisions", "name", "desc"];
         private static readonly string[] SysregAttributes = ["reg", "readmask", "gate", "desc"];
         private static readonly string[] BoardAttributes = ["smbios", "manufacturer", "product", "name", "desc"];
@@ -4404,11 +4453,59 @@ namespace CustomBuildTool
             var ops = new List<byte[]>();
             var evals = new Dictionary<string, XElement>();
             var mailboxes = new List<XElement>();
+            bool gated = false;
+
+            void AddEval(XElement Element, string[] Required)
+            {
+                byte[] op = BuildAcpiEvalOp(Context, id, Element, Required);
+                string key = Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize + 4, 1)) +
+                             Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize)[..4]) +
+                             Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize + DynDataHw.AcpiEvalSize));
+
+                if (evals.TryGetValue(key, out var other))
+                    throw Context.Error(Element, $"duplicate <eval> method and arguments, also on line {((IXmlLineInfo)other).LineNumber}");
+
+                evals.Add(key, Element);
+                ops.Add(op);
+            }
 
             foreach (var element in Acpi.Elements())
             {
                 switch (element.Name.LocalName)
                 {
+                case "require":
+                    {
+                        CheckAttributes(Context, element, RequireAttributes);
+
+                        string[] required = RequiredAttribute(Context, element, "id").Split(',').Select(s => s.Trim()).ToArray();
+
+                        if (required.Distinct().Count() != required.Length)
+                            throw Context.Error(element, "duplicate id in the id list");
+                        if (required.Length > byte.MaxValue)
+                            throw Context.Error(element, $"more than {byte.MaxValue} ids");
+
+                        foreach (string item in required)
+                        {
+                            if (!DynDataHw.IsAcpiId(item))
+                                throw Context.Error(element, $"id \"{item}\" is not a 7-character EISA or 8-character ACPI ID of [A-Z0-9_]");
+                        }
+
+                        if (!element.Elements().Any())
+                            throw Context.Error(element, "<require> has no <eval>");
+
+                        ops.Add(BuildAcpiRequireOp(Context, element, required));
+
+                        foreach (var child in element.Elements())
+                        {
+                            if (child.Name.LocalName != "eval")
+                                throw Context.Error(child, "unknown element (a <require> holds <eval> only)");
+
+                            AddEval(child, required);
+                        }
+
+                        gated = true;
+                    }
+                    break;
                 case "mailbox":
                     {
                         if (mailboxes.Count > byte.MaxValue)
@@ -4424,18 +4521,10 @@ namespace CustomBuildTool
                     }
                     break;
                 case "eval":
-                    {
-                        byte[] op = BuildAcpiEvalOp(Context, id, element);
-                        string key = Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize + 4, 1)) +
-                                     Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize)[..4]) +
-                                     Convert.ToHexString(op.AsSpan(DynDataHw.OpHeaderSize + DynDataHw.AcpiEvalSize));
+                    if (gated)
+                        throw Context.Error(element, "an <eval> after a <require> is gated by it; ungated <eval> go before the first <require>");
 
-                        if (evals.TryGetValue(key, out var other))
-                            throw Context.Error(element, $"duplicate <eval> method and arguments, also on line {((IXmlLineInfo)other).LineNumber}");
-
-                        evals.Add(key, element);
-                        ops.Add(op);
-                    }
+                    AddEval(element, null);
                     break;
                 case "window":
                     ops.Add(BuildWindowOp(Context, element, WindowPlacement.Acpi));
@@ -4477,7 +4566,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Builds the acpi_eval op of an eval element.
         /// </summary>
-        private static byte[] BuildAcpiEvalOp(LoadContext Context, string AcpiId, XElement Eval)
+        private static byte[] BuildAcpiEvalOp(LoadContext Context, string AcpiId, XElement Eval, string[] Required)
         {
             CheckAttributes(Context, Eval, EvalAttributes);
 
@@ -4491,6 +4580,11 @@ namespace CustomBuildTool
                 throw Context.Error(Eval, $"method \"{method}\" is not a read-only spec method nor a DynDataHw.AcpiVendorMethods entry of {AcpiId}");
             if (maxOutput < DynDataHw.AcpiMinOutput)
                 throw Context.Error(Eval, $"max-output 0x{maxOutput:x} is below 0x{DynDataHw.AcpiMinOutput:x}");
+
+            string requireError = DynDataHw.AcpiMethodRequireError(AcpiId, method, Required);
+
+            if (requireError != null)
+                throw Context.Error(Eval, requireError);
 
             foreach (string item in RequiredAttribute(Context, Eval, "results").Split('|'))
             {
@@ -4575,6 +4669,26 @@ namespace CustomBuildTool
                 bytes.AddRange(DynDataHw.ToBytes(args[i].Value));
 
             return BuildOp(Context, Eval, DynDataHw.KindAcpiEval, DynDataHw.LockNone, default, bytes.ToArray());
+        }
+
+        /// <summary>
+        /// Builds the acpi_require op of a require element.
+        /// </summary>
+        private static byte[] BuildAcpiRequireOp(LoadContext Context, XElement Require, string[] Ids)
+        {
+            var bytes = new List<byte>();
+
+            bytes.AddRange(DynDataHw.ToBytes(new DynDataHw.HwAcpiRequire { IdCount = (byte)Ids.Length }));
+
+            foreach (string id in Ids)
+            {
+                var buffer = new byte[DynDataHw.AcpiIdSize];
+
+                Encoding.ASCII.GetBytes(id, buffer);
+                bytes.AddRange(buffer);
+            }
+
+            return BuildOp(Context, Require, DynDataHw.KindAcpiRequire, DynDataHw.LockNone, default, bytes.ToArray());
         }
 
         /// <summary>
@@ -6069,10 +6183,10 @@ namespace CustomBuildTool
                 }
 
                 byte windowBase = op.Kind == DynDataHw.KindWindowRead ? remaining[DynDataHw.OpHeaderSize] : (byte)0;
-                bool acpiOp = op.Kind == DynDataHw.KindAcpiEval || windowBase == DynDataHw.WindowBaseAcpiCrs || mmioMailbox;
+                bool acpiOp = op.Kind == DynDataHw.KindAcpiEval || op.Kind == DynDataHw.KindAcpiRequire || windowBase == DynDataHw.WindowBaseAcpiCrs || mmioMailbox;
 
                 if ((kind == DynDataHw.IdentityAcpiHid) != acpiOp)
-                    throw Fail($"row {Index} identity kind {kind} holds op kind {op.Kind} base {windowBase} (acpi_eval, ACPI_CRS windows and MMIO mailboxes belong to ACPI_HID rows only, and they hold nothing else)");
+                    throw Fail($"row {Index} identity kind {kind} holds op kind {op.Kind} base {windowBase} (acpi_eval, acpi_require, ACPI_CRS windows and MMIO mailboxes belong to ACPI_HID rows only, and they hold nothing else)");
                 bool lpitWindow = windowBase == DynDataHw.WindowBaseAcpiLpit || windowBase == DynDataHw.WindowBaseAcpiLpitRelative;
 
                 if (kind == DynDataHw.IdentityCpu ?
@@ -6218,6 +6332,8 @@ namespace CustomBuildTool
             var remaining = Table[DynDataHw.TableSize..];
             int piix4Reads = 0;
             var hostRevisions = new List<(UInt32 Low, UInt32 High)>();
+            List<string> required = null;
+            int requiredEvals = 0;
 
             for (UInt32 j = 0; j < count; j++)
             {
@@ -6355,10 +6471,33 @@ namespace CustomBuildTool
 
                     if (argsError != null)
                         throw Fail($"row {Index} acpi_eval: {argsError}");
+
+                    string requireError = DynDataHw.AcpiMethodRequireError(acpiId, method, required);
+
+                    if (requireError != null)
+                        throw Fail($"row {Index} acpi_eval: {requireError}");
+
+                    requiredEvals++;
+                }
+                else if (op.Kind == DynDataHw.KindAcpiRequire)
+                {
+                    if (required != null && requiredEvals == 0)
+                        throw Fail($"row {Index} acpi_require gates no acpi_eval");
+
+                    var require = MemoryMarshal.Read<DynDataHw.HwAcpiRequire>(body);
+
+                    required = [];
+                    requiredEvals = 0;
+
+                    for (int r = 0; r < require.IdCount; r++)
+                        required.Add(Encoding.ASCII.GetString(body.Slice(DynDataHw.AcpiRequireSize + r * DynDataHw.AcpiIdSize, DynDataHw.AcpiIdSize)).TrimEnd('\0'));
                 }
 
                 remaining = remaining[op.Length..];
             }
+
+            if (required != null && requiredEvals == 0)
+                throw Fail($"row {Index} acpi_require gates no acpi_eval");
 
             if ((piix4Reads != 0) != (hostRevisions.Count != 0))
                 throw Fail($"row {Index} holds {piix4Reads} PIIX4 smbus_read and {hostRevisions.Count} smbus_host ops (a PIIX4 host needs its PM layout, and only it has one)");
@@ -6496,6 +6635,7 @@ namespace CustomBuildTool
                 DynDataHw.KindMailboxTransact => DynDataHw.MailboxTransactSize,
                 DynDataHw.KindSmuTableRead => DynDataHw.SmuTableReadSize,
                 DynDataHw.KindAcpiEval => DynDataHw.AcpiEvalSize,
+                DynDataHw.KindAcpiRequire => DynDataHw.AcpiRequireSize,
                 DynDataHw.KindSysregRead => DynDataHw.SysregReadSize,
                 DynDataHw.KindPortIndirectRead => DynDataHw.PortIndirectReadSize,
                 DynDataHw.KindSmbusHost => DynDataHw.SmbusHostSize,
@@ -6524,6 +6664,8 @@ namespace CustomBuildTool
                 throw Fail("vsec_read op has a lock class");
             if (op.Kind == DynDataHw.KindAcpiEval && op.LockClass != DynDataHw.LockNone)
                 throw Fail("acpi_eval op has a lock class");
+            if (op.Kind == DynDataHw.KindAcpiRequire && (op.LockClass != DynDataHw.LockNone || op.Gate.Kind != DynDataHw.GateNone))
+                throw Fail("acpi_require op has a lock class or a gate");
             if (op.Kind == DynDataHw.KindSysregRead && op.LockClass != DynDataHw.LockNone)
                 throw Fail("sysreg_read op has a lock class");
             if (op.Kind == DynDataHw.KindSmbusHost && op.LockClass != DynDataHw.LockNone)
@@ -6640,6 +6782,10 @@ namespace CustomBuildTool
             else if (op.Kind == DynDataHw.KindAcpiEval)
             {
                 CheckAcpiEvalOp(body);
+            }
+            else if (op.Kind == DynDataHw.KindAcpiRequire)
+            {
+                CheckAcpiRequireOp(body);
             }
             else if (op.Kind == DynDataHw.KindSmbusHost)
             {
@@ -7522,6 +7668,29 @@ namespace CustomBuildTool
 
                 if ((arg.Max & ~arg.Mask) != 0 || (arg.Fixed & arg.Mask) != 0 || arg.Reserved != 0)
                     throw Fail($"acpi_eval method \"{method}\" argument {i} mask/max/fixed invalid");
+            }
+        }
+
+        /// <summary>
+        /// Generator-only; the driver trusts the signed section for this.
+        /// </summary>
+        private static void CheckAcpiRequireOp(ReadOnlySpan<byte> Body)
+        {
+            var require = MemoryMarshal.Read<DynDataHw.HwAcpiRequire>(Body);
+            var ids = new HashSet<string>();
+
+            if (require.IdCount == 0 || Body[1..DynDataHw.AcpiRequireSize].ContainsAnyExcept((byte)0))
+                throw Fail("acpi_require has no ID or a reserved byte set");
+            if (Body.Length != DynDataHw.AcpiRequireSize + require.IdCount * DynDataHw.AcpiIdSize)
+                throw Fail("acpi_require op length is not its IDs");
+
+            for (int i = 0; i < require.IdCount; i++)
+            {
+                var bytes = Body.Slice(DynDataHw.AcpiRequireSize + i * DynDataHw.AcpiIdSize, DynDataHw.AcpiIdSize);
+                string id = Encoding.ASCII.GetString(bytes).TrimEnd('\0');
+
+                if (!DynDataHw.IsAcpiId(id) || bytes[id.Length..].ContainsAnyExcept((byte)0) || !ids.Add(id))
+                    throw Fail($"acpi_require ID {i} is not a zero-padded ACPI ID or is a duplicate");
             }
         }
 

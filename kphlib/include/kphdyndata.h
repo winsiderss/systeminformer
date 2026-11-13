@@ -250,7 +250,8 @@ _Must_inspect_result_
 NTSTATUS KphDynHwFindAcpiEvalOp(
     _In_ PKPH_DYN_HW_TABLE Table,
     _In_ ULONG Index,
-    _Outptr_ PKPH_DYN_HW_OP* Op
+    _Outptr_ PKPH_DYN_HW_OP* Op,
+    _Outptr_result_maybenull_ PKPH_DYN_HW_OP* Require
     );
 
 _Must_inspect_result_
