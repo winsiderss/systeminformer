@@ -2032,7 +2032,7 @@ NTSTATUS KphpHwSmbusRead(
             continue;
         }
 
-        if ((session.HostKind == KPH_DYN_HW_SMBUS_HOST_I801) || session.Pm)
+        if (!session.PmOpen || session.Pm)
         {
             status = KphpHwSmbusConfirm(&session,
                                         Locator,
