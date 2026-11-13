@@ -111,6 +111,12 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_INTEL_MCHBAR_SA_PERF_STATUS 0x5918
 #define PH_INTEL_MCHBAR_PKG_POWER_UNIT 0x5938
 #define PH_INTEL_MCHBAR_GT_PERF_STATUS 0x5948 // render ratio [15:8], [16:8] from Skylake, [19:11] from Ice Lake (SNB..RPL)
+#define PH_INTEL_MCHBAR_GT_PERF_STATUS_LP 0x7070 // Apollo Lake, Gemini Lake: render ratio [16:8]
+#define PH_INTEL_MCHBAR_MAD_INTER_CHANNEL_ICL 0x5000 // Ice Lake layout (Jasper Lake, Elkhart Lake)
+#define PH_INTEL_MCHBAR_MAD_DIMM_ICL 0x500C // MAD_DIMM_CH0; CH1 at +4
+#define PH_INTEL_MCHBAR_DUNIT_DRP0 0x1000 // Apollo Lake, Gemini Lake: DUNIT n at + 0x200 x n; rank [1:0], width [5:4], density [8:6], type [24:22]
+#define PH_INTEL_MCHBAR_DUNIT_STRIDE 0x200
+#define PH_INTEL_MCHBAR_DUNITS 4
 #define PH_INTEL_MCHBAR_PKG_TEMPERATURE 0x5978
 #define PH_INTEL_MCHBAR_PP0_TEMPERATURE 0x597C
 #define PH_INTEL_MCHBAR_PP1_TEMPERATURE 0x5980

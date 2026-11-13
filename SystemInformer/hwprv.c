@@ -365,6 +365,7 @@ typedef enum _PHP_HW_WINDOW_REG
     PhpHwWinMc0Ch1RankTemperature,
     PhpHwWinMc1Ch0RankTemperature,
     PhpHwWinMc1Ch1RankTemperature,
+    PhpHwWinGtPerfStatusLp, // Apollo Lake, Gemini Lake: GT_PERF_STATUS at 7070h, in place of PhpHwWinGtPerfStatus
     PhpHwWinMaximum
 } PHP_HW_WINDOW_REG;
 C_ASSERT(PhpHwWinMaximum <= 64);
@@ -412,6 +413,7 @@ static CONST PHP_HW_WINDOW_REG_INFO PhpHwWindowRegInfo[PhpHwWinMaximum] =
     { PH_INTEL_MCHBAR_RANK_TEMPERATURE + 0x800, 4, 0 },
     { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_RANK_TEMPERATURE, 4, 0 },
     { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_RANK_TEMPERATURE + 0x800, 4, 0 },
+    { PH_INTEL_MCHBAR_GT_PERF_STATUS_LP, 4, 0 },
 };
 
 typedef struct _PHP_HW_SOURCE_SENSOR
@@ -724,12 +726,14 @@ static ULONG PhpHwGtPerfStatusLast = 0; // GT_PERF_STATUS, for the report
 static ULONG PhpHwGtPerfStatusPeak = 0; // the GT_PERF_STATUS with the highest decoded clock, for the report
 static ULONG PhpHwRaplLimitedNamedIndex = ULONG_MAX; // the MMIO RAPL limited residency sensor, ULONG_MAX when not listed
 
-// MEMSS_PMA_CR_MEM_CONFIG and the MAD registers of each IMC at probe (Meteor Lake and later), for the report.
+// MEMSS_PMA_CR_MEM_CONFIG and the MAD registers of each IMC at probe (Meteor Lake and later; IMC 0 also the Ice
+// Lake layout of Jasper and Elkhart Lake), and the Apollo and Gemini Lake DUNIT DRP0 registers, for the report.
 typedef struct _PHP_HW_INTEL_MEMORY_CONFIG
 {
-    ULONG Valid; // bit 0 MemConfig, bit 1 + 3 * IMC + i Mad[IMC][i]
+    ULONG Valid; // bit 0 MemConfig, bit 1 + 3 * IMC + i Mad[IMC][i], bit 7 + n Drp0[n]
     ULONG MemConfig;
     ULONG Mad[2][3]; // MAD_INTER_CHANNEL, MAD_DIMM_CH0, MAD_DIMM_CH1
+    ULONG Drp0[PH_INTEL_MCHBAR_DUNITS];
 } PHP_HW_INTEL_MEMORY_CONFIG;
 
 static PHP_HW_INTEL_MEMORY_CONFIG PhpHwMemoryConfig = { 0 };
@@ -2907,6 +2911,16 @@ static BOOLEAN PhpHwWindowRegisterActive(
     return FALSE;
 }
 
+/**
+ * The GT_PERF_STATUS of the part: the client register, else the Apollo and Gemini Lake one at 7070h.
+ */
+static PHP_HW_WINDOW_REG PhpHwGtPerfStatusRegister(
+    VOID
+    )
+{
+    return PhpHwWindowRegisterActive(PhpHwWinGtPerfStatus) ? PhpHwWinGtPerfStatus : PhpHwWinGtPerfStatusLp;
+}
+
 static VOID PhpHwDisableWindowRegister(
     _In_ PHP_HW_WINDOW_REG Reg
     )
@@ -3128,7 +3142,7 @@ static FLOAT PhpHwDecodeGtClock(
     )
 {
     static CONST UCHAR legacyModels[] = { 0x2A, 0x3A, 0x3C, 0x45, 0x46, 0x3D, 0x47 }; // SNB..BDW client, the rows that read it
-    static CONST UCHAR gen11Models[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7, 0xD7, 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE }; // ICL..RPL, ADL-N
+    static CONST UCHAR gen11Models[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7, 0xD7, 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE, 0x96, 0x9C }; // ICL..RPL, ADL-N, Elkhart and Jasper Lake
 
     if (PhpHwIdentity.DisplayFamily == 0x06)
     {
@@ -3247,7 +3261,7 @@ static VOID PhpHwDecodeWindows(
 
     if (PhpHwGtNamedIndex != ULONG_MAX)
     {
-        BOOLEAN valid = PhpHwWindowValue(PhpHwWinGtPerfStatus, &value);
+        BOOLEAN valid = PhpHwWindowValue(PhpHwGtPerfStatusRegister(), &value);
         FLOAT mhz = 0.0f;
 
         if (valid)
@@ -3588,7 +3602,7 @@ static VOID PhpHwReadIntelMemoryConfig(
             PhpHwWinMc1Ch0RankTemperature, PhpHwWinMc1Ch1RankTemperature
         },
     };
-    KPH_HW_WINDOW_BATCH_ENTRY entries[2 + 2 * 3];
+    KPH_HW_WINDOW_BATCH_ENTRY entries[2 + 2 * 3 + 3 + PH_INTEL_MCHBAR_DUNITS];
 
     memset(entries, 0, sizeof(entries));
     entries[0].Offset = PH_INTEL_MCHBAR_MEMSS_MEM_CONFIG;
@@ -3600,6 +3614,14 @@ static VOID PhpHwReadIntelMemoryConfig(
         entries[3 + i * 3].Offset = i * PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_MAD_DIMM;
         entries[4 + i * 3].Offset = i * PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_MAD_DIMM + 4;
     }
+
+    // A part allow-lists the MAD registers of one layout; DRP0 only on Apollo and Gemini Lake.
+    entries[8].Offset = PH_INTEL_MCHBAR_MAD_INTER_CHANNEL_ICL;
+    entries[9].Offset = PH_INTEL_MCHBAR_MAD_DIMM_ICL;
+    entries[10].Offset = PH_INTEL_MCHBAR_MAD_DIMM_ICL + 4;
+
+    for (ULONG i = 0; i < PH_INTEL_MCHBAR_DUNITS; i++)
+        entries[11 + i].Offset = PH_INTEL_MCHBAR_DUNIT_DRP0 + i * PH_INTEL_MCHBAR_DUNIT_STRIDE;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(entries); i++)
     {
@@ -3625,6 +3647,24 @@ static VOID PhpHwReadIntelMemoryConfig(
         {
             PhpHwMemoryConfig.Mad[i / 3][i % 3] = (ULONG)entries[2 + i].Value;
             PhpHwMemoryConfig.Valid |= 0x2UL << i;
+        }
+    }
+
+    for (ULONG i = 0; i < 3; i++)
+    {
+        if (NT_SUCCESS(entries[8 + i].Status) && !(PhpHwMemoryConfig.Valid & (0x2UL << i)))
+        {
+            PhpHwMemoryConfig.Mad[0][i] = (ULONG)entries[8 + i].Value;
+            PhpHwMemoryConfig.Valid |= 0x2UL << i;
+        }
+    }
+
+    for (ULONG i = 0; i < PH_INTEL_MCHBAR_DUNITS; i++)
+    {
+        if (NT_SUCCESS(entries[11 + i].Status))
+        {
+            PhpHwMemoryConfig.Drp0[i] = (ULONG)entries[11 + i].Value;
+            PhpHwMemoryConfig.Valid |= 0x80UL << i;
         }
     }
 
@@ -10833,7 +10873,7 @@ static VOID PhpHwRefreshCapabilities(
         capabilities |= PH_HW_CAP_RESIDENCY;
     if (PhpHwPwrmWindow)
         capabilities |= PH_HW_CAP_CHIPSET_TEMP;
-    if (PhpHwGtNamedIndex != ULONG_MAX && PhpHwWindowRegisterActive(PhpHwWinGtPerfStatus))
+    if (PhpHwGtNamedIndex != ULONG_MAX && PhpHwWindowRegisterActive(PhpHwGtPerfStatusRegister()))
         capabilities |= PH_HW_CAP_UNCORE_CLOCK;
 
     for (ULONG i = 0; i < PhpHwPmtEntryCount; i++)
@@ -10983,7 +11023,7 @@ static VOID PhpHwRefreshCapabilities(
     }
 
     if (PhpHwGtNamedIndex < PhpHwNamedSensorCount)
-        PhpHwNamedSensors[PhpHwGtNamedIndex].Active = PhpHwWindowRegisterActive(PhpHwWinGtPerfStatus);
+        PhpHwNamedSensors[PhpHwGtNamedIndex].Active = PhpHwWindowRegisterActive(PhpHwGtPerfStatusRegister());
     if (PhpHwRaplLimitedNamedIndex < PhpHwNamedSensorCount)
         PhpHwNamedSensors[PhpHwRaplLimitedNamedIndex].Active = PhpHwWindowRegisterActive(PhpHwWinRaplPerfStatus);
 
@@ -11588,7 +11628,7 @@ static VOID PhpHwProbeGtClock(
 
     PhpHwGtNamedIndex = ULONG_MAX;
 
-    if (!PhpHwWindowRegisterActive(PhpHwWinGtPerfStatus))
+    if (!PhpHwWindowRegisterActive(PhpHwGtPerfStatusRegister()))
         return;
 
     name = PhCreateString(L"Graphics");
@@ -14765,6 +14805,26 @@ VOID PhHwWriteDiagnostics(
             type < RTL_NUMBER_OF(ddrTypes) ? ddrTypes[type] : L"reserved",
             (config & 0x1) ? L"on" : L"off",
             (config & 0x2) ? L"on" : L"off"
+            );
+    }
+
+    for (ULONG i = 0; i < PH_INTEL_MCHBAR_DUNITS; i++)
+    {
+        ULONG drp0 = diagnostics.MemoryConfig.Drp0[i];
+
+        if (!(diagnostics.MemoryConfig.Valid & (0x80UL << i)))
+            continue;
+
+        // Raw fields: rank enables [1:0], width [5:4], density [8:6], type [24:22].
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"DUNIT %lu: DRP0 0x%08lx (ranks 0x%lx, width %lu, density %lu, type %lu)\n",
+            i,
+            drp0,
+            drp0 & 0x3,
+            (drp0 >> 4) & 0x3,
+            (drp0 >> 6) & 0x7,
+            (drp0 >> 22) & 0x7
             );
     }
 
