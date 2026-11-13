@@ -3826,11 +3826,11 @@ This file is part of System Informer.
     <superio slots="0,1"
              family="nuvoton"
              chassis="0x01-0x07,0x0f-0x1d"
-             chips="0xd280"
+             chips="0xd280,0xd2a0"
              mask="0xfff8"
              ldn="0x0b"
              bank-mask="0xff"
-             desc="NCT6112D/NCT6114D/NCT6116D, NCT6126D">
+             desc="NCT6112D/NCT6114D/NCT6116D, NCT6122D, NCT6126D">
         <id reg="0x80fe" value="0x5c" desc="HWM vendor ID high, bank 80h"/>
         <id reg="0x00fe" value="0xa3" desc="HWM vendor ID low, bank 0"/>
         <read reg="0x00fe" length="0x1" desc="HWM vendor ID low (A3h), bank 0"/>
