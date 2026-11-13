@@ -1553,11 +1553,19 @@ NTSTATUS KphpHwMailboxRunBatch(
 
     if (KphpHwMailboxMoved(Session, Op))
     {
+        PKPH_HW_MAILBOX_FIRMWARE firmware;
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "Mailbox 0x%08lx at %Z moved before the batch",
                       Session->Msg,
                       &Session->Mmio.Path);
+
+        firmware = KphpHwMailboxFindFirmware(Session, Op);
+        if (firmware)
+        {
+            KphpHwMailboxFreeFirmware(firmware);
+        }
 
         return STATUS_DEVICE_NOT_READY;
     }
