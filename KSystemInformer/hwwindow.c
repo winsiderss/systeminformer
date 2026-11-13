@@ -1215,45 +1215,28 @@ VOID KphpHwWindowAmdRegion(
 }
 
 /**
- * \brief Checks that a physical range is DRAM as this AMD processor decodes
- * it and is not routed to SMM or to I/O.
- *
- * \details The registers are the AMD64 architectural address map. A register
- * a hypervisor hides faults; the check that needs it is skipped and the
- * range is left to KphHwWindowCheckRange.
+ * \brief Checks that a physical range is DRAM below TOP_MEM or TOP_MEM2.
  *
  * \param[in] Begin The page-aligned start of the range.
  * \param[in] End The page-aligned end of the range, exclusive.
+ * \param[in] Limit The mask of the physical address bits.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHwWindowCheckAmdDram(
+NTSTATUS KphpHwWindowCheckAmdTopMem(
     _In_ ULONG64 Begin,
-    _In_ ULONG64 End
+    _In_ ULONG64 End,
+    _In_ ULONG64 Limit
     )
 {
-    PCKPH_HW_CPU_IDENTITY cpu;
-    ULONG64 limit;
     ULONG64 syscfg;
     ULONG64 topMem;
     ULONG64 topMem2;
-    ULONG64 base;
-    ULONG64 mask;
-    ULONG64 regionBegin;
-    ULONG64 regionEnd;
     BOOLEAN inDram;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    cpu = KphGetHardwareCpuIdentity();
-
-    NT_ASSERT((cpu->PhysicalAddressBits > 0) &&
-              (cpu->PhysicalAddressBits < 64));
-    NT_ASSERT(Begin < End);
-
-    limit = ((1ull << cpu->PhysicalAddressBits) - 1);
 
     if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SYSCFG, &syscfg))
     {
@@ -1290,7 +1273,7 @@ NTSTATUS KphHwWindowCheckAmdDram(
         return STATUS_SUCCESS;
     }
 
-    topMem &= (limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+    topMem &= (Limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
 
     if (!topMem)
     {
@@ -1319,7 +1302,7 @@ NTSTATUS KphHwWindowCheckAmdDram(
             return STATUS_SUCCESS;
         }
 
-        topMem2 &= (limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
+        topMem2 &= (Limit & ~KPH_HW_AMD_TOP_MEM_LOW_BITS);
 
         inDram = ((Begin >= KPH_HW_4GB) && (End <= topMem2));
     }
@@ -1337,39 +1320,93 @@ NTSTATUS KphHwWindowCheckAmdDram(
         return STATUS_CONFLICTING_ADDRESSES;
     }
 
-    if (KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_ADDR, &base) &&
-        KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_MASK, &mask))
-    {
-        KphpHwWindowAmdRegion(base,
-                              mask,
-                              KPH_HW_AMD_SMM_LOW_BITS,
-                              limit,
-                              &regionBegin,
-                              &regionEnd);
+    return STATUS_SUCCESS;
+}
 
-        if (BooleanFlagOn(mask, KPH_HW_AMD_SMM_MASK_TVALID) &&
-            (Begin < regionEnd) &&
-            (regionBegin < End))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "Range 0x%llx-0x%llx refused: TSEG 0x%llx-0x%llx",
-                          Begin,
-                          End,
-                          regionBegin,
-                          regionEnd);
+/**
+ * \brief Checks that a physical range does not overlap TSEG.
+ *
+ * \param[in] Begin The page-aligned start of the range.
+ * \param[in] End The page-aligned end of the range, exclusive.
+ * \param[in] Limit The mask of the physical address bits.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwWindowCheckAmdTseg(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End,
+    _In_ ULONG64 Limit
+    )
+{
+    ULONG64 base;
+    ULONG64 mask;
+    ULONG64 regionBegin;
+    ULONG64 regionEnd;
 
-            return STATUS_CONFLICTING_ADDRESSES;
-        }
-    }
-    else
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_ADDR, &base) ||
+        !KphpHwWindowReadMsr(KPH_HW_AMD_MSR_SMM_MASK, &mask))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "TSEG check of 0x%llx-0x%llx skipped: TSEG hidden",
                       Begin,
                       End);
+
+        return STATUS_SUCCESS;
     }
+
+    KphpHwWindowAmdRegion(base,
+                          mask,
+                          KPH_HW_AMD_SMM_LOW_BITS,
+                          Limit,
+                          &regionBegin,
+                          &regionEnd);
+
+    if (BooleanFlagOn(mask, KPH_HW_AMD_SMM_MASK_TVALID) &&
+        (Begin < regionEnd) &&
+        (regionBegin < End))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Range 0x%llx-0x%llx refused: TSEG 0x%llx-0x%llx",
+                      Begin,
+                      End,
+                      regionBegin,
+                      regionEnd);
+
+        return STATUS_CONFLICTING_ADDRESSES;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Checks that a physical range is not routed to I/O by an IORR.
+ *
+ * \param[in] Begin The page-aligned start of the range.
+ * \param[in] End The page-aligned end of the range, exclusive.
+ * \param[in] Limit The mask of the physical address bits.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHwWindowCheckAmdIorr(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End,
+    _In_ ULONG64 Limit
+    )
+{
+    ULONG64 base;
+    ULONG64 mask;
+    ULONG64 regionBegin;
+    ULONG64 regionEnd;
+
+    KPH_PAGED_CODE_PASSIVE();
 
     for (ULONG i = 0; i < KPH_HW_AMD_IORR_COUNT; i++)
     {
@@ -1397,7 +1434,7 @@ NTSTATUS KphHwWindowCheckAmdDram(
         KphpHwWindowAmdRegion(base,
                               mask,
                               KPH_HW_AMD_IORR_LOW_BITS,
-                              limit,
+                              Limit,
                               &regionBegin,
                               &regionEnd);
 
@@ -1415,6 +1452,76 @@ NTSTATUS KphHwWindowCheckAmdDram(
 
             return STATUS_CONFLICTING_ADDRESSES;
         }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Checks that a physical range is DRAM as this AMD processor decodes
+ * it and is not routed to SMM or to I/O.
+ *
+ * \details The registers are the AMD64 architectural address map. A register
+ * a hypervisor hides faults; the check that needs it is skipped and the
+ * range is left to KphHwWindowCheckRange.
+ *
+ * \param[in] Begin The page-aligned start of the range.
+ * \param[in] End The page-aligned end of the range, exclusive.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHwWindowCheckAmdDram(
+    _In_ ULONG64 Begin,
+    _In_ ULONG64 End
+    )
+{
+    NTSTATUS status;
+    PCKPH_HW_CPU_IDENTITY cpu;
+    ULONG64 limit;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    cpu = KphGetHardwareCpuIdentity();
+
+    NT_ASSERT((cpu->PhysicalAddressBits > 0) &&
+              (cpu->PhysicalAddressBits < 64));
+    NT_ASSERT(Begin < End);
+
+    limit = ((1ull << cpu->PhysicalAddressBits) - 1);
+
+    status = KphpHwWindowCheckAmdTopMem(Begin, End, limit);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowCheckAmdTopMem failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = KphpHwWindowCheckAmdTseg(Begin, End, limit);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowCheckAmdTseg failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = KphpHwWindowCheckAmdIorr(Begin, End, limit);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpHwWindowCheckAmdIorr failed: %!STATUS!",
+                      status);
+
+        return status;
     }
 
     return STATUS_SUCCESS;
