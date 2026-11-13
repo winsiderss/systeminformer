@@ -173,6 +173,103 @@ BOOLEAN NTAPI PhCpuIdentityIsAmd(
 }
 
 /**
+ * Extracts the TDP-to-watts scale of D18F5xE8 (TDP limit 3): [9:0] above [15:10], watts in 16.16 fixed point.
+ */
+static ULONG PhpAmdTdpToWattsScale(
+    _In_ ULONG TdpLimit3
+    )
+{
+    return ((TdpLimit3 & 0x3FF) << 6) | ((TdpLimit3 >> 10) & 0x3F);
+}
+
+/**
+ * Converts the processor TDP of a Family 15h or 16h node to watts.
+ *
+ * \param ProcessorTdp D18F4x1B8; [15:0] TDP.
+ * \param TdpLimit3 D18F5xE8; the TDP-to-watts scale.
+ * \param Watts Receives the TDP.
+ * \return FALSE for a zero or implausible (256 W or more) TDP.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhAmdProcessorTdpToWatts(
+    _In_ ULONG ProcessorTdp,
+    _In_ ULONG TdpLimit3,
+    _Out_ PFLOAT Watts
+    )
+{
+    ULONG64 fixed = (ULONG64)(ProcessorTdp & 0xFFFF) * PhpAmdTdpToWattsScale(TdpLimit3);
+
+    if (fixed == 0 || (fixed >> 16) >= 256)
+        return FALSE;
+
+    *Watts = (FLOAT)fixed / 65536.0f;
+    return TRUE;
+}
+
+/**
+ * Converts the TDP running average of a Family 15h node to the processor power in watts:
+ * ((TDP limit + base TDP) << range - capture) x TDP-to-watts / 2^(16 + range).
+ *
+ * \param RunningAverage D18F5xE0; [3:0] range - 1, the signed capture above it ([25:4], [31:4] from model 60h).
+ * \param ProcessorTdp D18F4x1B8; [31:16] base TDP.
+ * \param TdpLimit3 D18F5xE8; [28:16] TDP limit ([31:16] from model 60h) and the TDP-to-watts scale.
+ * \param Identity The CPU identity.
+ * \param Watts Receives the processor power.
+ * \return FALSE outside Family 15h models 00h-0Fh and 60h-7Fh, for the range 0Eh that saturates the average
+ * on models 00h-0Fh (a write the driver does not make fixes it), or for a negative result.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhAmdTdpRunningAverageToWatts(
+    _In_ ULONG RunningAverage,
+    _In_ ULONG ProcessorTdp,
+    _In_ ULONG TdpLimit3,
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _Out_ PFLOAT Watts
+    )
+{
+    BOOLEAN excavator;
+    ULONG range;
+    LONG capture;
+    ULONG limit;
+    LONG64 power;
+
+    if (!PhCpuIdentityIsAmd(Identity) || Identity->DisplayFamily != 0x15)
+        return FALSE;
+
+    if (PhpCpuIdentityIsModelRange(Identity, 0x15, 0x00, 0x0F))
+        excavator = FALSE;
+    else if (PhpCpuIdentityIsModelRange(Identity, 0x15, 0x60, 0x7F))
+        excavator = TRUE;
+    else
+        return FALSE;
+
+    if (!excavator && (RunningAverage & 0xF) == 0xE)
+        return FALSE;
+
+    range = (RunningAverage & 0xF) + 1;
+
+    if (excavator)
+    {
+        capture = (LONG)RunningAverage >> 4; // [31:4], sign at bit 31
+        limit = TdpLimit3 >> 16;
+    }
+    else
+    {
+        capture = (LONG)(((RunningAverage >> 4) & 0x3FFFFF) << 10) >> 10; // [25:4], sign at bit 25
+        limit = (TdpLimit3 >> 16) & 0x1FFF;
+    }
+
+    power = (((LONG64)limit + (ProcessorTdp >> 16)) << range) - capture;
+    power *= PhpAmdTdpToWattsScale(TdpLimit3);
+
+    if (power < 0)
+        return FALSE;
+
+    *Watts = (FLOAT)((DOUBLE)power / (DOUBLE)(1ULL << (16 + range)));
+    return TRUE;
+}
+
+/**
  * Determines whether the identity is a CentaurHauls or Zhaoxin ("  Shanghai  ") processor.
  *
  * \param Identity The CPU identity.

@@ -86,6 +86,11 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_AMD_D18F3_REPORTED_TEMP_CTRL 0xA4
 #define PH_AMD_D0F0XBC_REPORTED_TEMP_CTRL 0xD8200CA4
 
+// AMD D18F4 / D18F5, families 15h and 16h
+#define PH_AMD_D18F4_PROCESSOR_TDP 0x1B8 // [31:16] base TDP, [15:0] TDP
+#define PH_AMD_D18F5_TDP_RUNNING_AVERAGE 0xE0 // [3:0] range, capture above
+#define PH_AMD_D18F5_TDP_LIMIT3 0xE8 // [28:16] TDP limit, [15:0] TDP-to-watts scale
+
 // Intel MCHBAR (host bridge) and processor-thermal BAR0 offsets
 #define PH_INTEL_MCHBAR_IMC_DATA_READS 0x5050 // 32-bit, 64-byte units (SNB-ICL)
 #define PH_INTEL_MCHBAR_IMC_DATA_WRITES 0x5054
@@ -168,6 +173,28 @@ BOOLEAN
 NTAPI
 PhCpuIdentityIsAmd(
     _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhAmdProcessorTdpToWatts(
+    _In_ ULONG ProcessorTdp,
+    _In_ ULONG TdpLimit3,
+    _Out_ PFLOAT Watts
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhAmdTdpRunningAverageToWatts(
+    _In_ ULONG RunningAverage,
+    _In_ ULONG ProcessorTdp,
+    _In_ ULONG TdpLimit3,
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _Out_ PFLOAT Watts
     );
 
 PHLIBAPI

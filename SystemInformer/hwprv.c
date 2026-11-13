@@ -280,6 +280,11 @@ typedef struct _PHP_HW_PACKAGE
     ULONG NodeCount; // pre-Zen AMD: the D18F3 functions of the package
     KPH_HW_PCI_LOCATOR Nodes[PHP_HW_MAX_PACKAGE_NODES];
     PHP_HW_ITEM NodeTemperature[PHP_HW_MAX_PACKAGE_NODES];
+    BOOLEAN HasPowerNode; // Family 15h/16h: the D18F4 of the package; F5 is function 5 of the device
+    KPH_HW_PCI_LOCATOR PowerNode;
+    ULONG ProcessorTdp; // D18F4x1B8
+    ULONG TdpLimit3; // D18F5xE8
+    PHP_HW_ITEM RunningAverage; // D18F5xE0
     ULONG CcdMask;
     PHP_HW_ITEM Ccd[PH_HW_MAX_CCD];
     PHP_HW_ITEM MemoryClock;
@@ -688,6 +693,7 @@ static BOOLEAN PhpHwHistoryInitialized = FALSE;
 
 static BOOLEAN PhpHwRootsEnumerated = FALSE;
 static BOOLEAN PhpHwNodesEnumerated = FALSE;
+static BOOLEAN PhpHwPowerNodesEnumerated = FALSE;
 static BOOLEAN PhpHwLegacyRootTemperature = FALSE; // 15h M60h-7Fh: ReportedTempCtrl through the root complex B8h/BCh pair
 static BOOLEAN PhpHwSmnPending = FALSE;
 static UCHAR PhpHwPciTimeouts = 0; // consecutive timed-out waits for Access_PCI
@@ -2212,6 +2218,154 @@ static VOID PhpHwPrepareLegacyTemperature(
             if (!PhpHwReadLegacyTemperature(package, j, &celsius))
                 package->NodeTemperature[j].Disabled = TRUE;
         }
+    }
+}
+
+/**
+ * Assigns each package the first D18F4 of its share, the functions split evenly over the packages in bus order.
+ */
+static VOID PhpHwAssignPowerNodes(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF hostBridgeClass = PH_STRINGREF_INIT(L"PCI\\CC_0600");
+    static CONST USHORT linkControlIds[] = { 0x1604, 0x141E, 0x1574, 0x15B4, 0x1534, 0x1584 }; // D18F4; keep in sync with kphdynhw.xml
+    KPH_HW_PCI_LOCATOR nodes[PHP_HW_MAX_ROOTS];
+    ULONG nodeCount;
+
+    nodeCount = PhpHwFindPciDevices(PHP_HW_AMD_VENDOR_ID, PHP_HW_AMD_VENDOR_ID, &hostBridgeClass, linkControlIds, RTL_NUMBER_OF(linkControlIds), FALSE, nodes, RTL_NUMBER_OF(nodes));
+
+    PhTraceInfo("Hardware sensors: %lu D18F4 functions", nodeCount);
+
+    if (nodeCount == 0)
+        return;
+
+    if (nodeCount % PhpHwPackageCount == 0)
+    {
+        ULONG step = nodeCount / PhpHwPackageCount;
+
+        for (ULONG i = 0; i < PhpHwPackageCount; i++)
+        {
+            PhpHwPackages[i].HasPowerNode = TRUE;
+            PhpHwPackages[i].PowerNode = nodes[i * step];
+        }
+    }
+    else
+    {
+        PhpHwPackages[0].HasPowerNode = TRUE;
+        PhpHwPackages[0].PowerNode = nodes[0];
+    }
+}
+
+/**
+ * Reads a configuration register of function 4 or 5 of the power node of a package.
+ */
+_Success_(return)
+static BOOLEAN PhpHwReadPowerNode(
+    _In_ PPHP_HW_PACKAGE Package,
+    _In_ UCHAR Function,
+    _In_ ULONG Offset,
+    _Out_ PULONG Value
+    )
+{
+    KPH_HW_PCI_LOCATOR locator = Package->PowerNode;
+
+    locator.Function = Function;
+
+    return NT_SUCCESS(KphHwReadPciConfig(&locator, Offset, Value, sizeof(ULONG), NULL));
+}
+
+/**
+ * Decodes the TDP running average of a Family 15h package to its power.
+ */
+_Success_(return)
+static BOOLEAN PhpHwReadRunningAverage(
+    _In_ PPHP_HW_PACKAGE Package,
+    _Out_ PFLOAT Watts
+    )
+{
+    KPH_HW_PCI_LOCATOR locator = Package->PowerNode;
+    NTSTATUS status;
+    ULONG value;
+
+    if (Package->RunningAverage.Disabled)
+        return FALSE;
+
+    locator.Function = 5;
+    status = KphHwReadPciConfig(&locator, PH_AMD_D18F5_TDP_RUNNING_AVERAGE, &value, sizeof(value), NULL);
+
+    if (!PhpHwApplyStatus(&Package->RunningAverage, PH_AMD_D18F5_TDP_RUNNING_AVERAGE, status))
+        return FALSE;
+
+    return PhAmdTdpRunningAverageToWatts(value, Package->ProcessorTdp, Package->TdpLimit3, &PhpHwIdentity, Watts);
+}
+
+static BOOLEAN PhpHwLegacyPowerSupported(
+    _In_ const KPH_HW_CAPABILITIES* Capabilities
+    )
+{
+    return PhpHwCpuClass == PhpHwCpuAmdLegacy &&
+        (PhpHwIdentity.DisplayFamily == 0x15 || PhpHwIdentity.DisplayFamily == 0x16) &&
+        FlagOn(Capabilities->Flags, KPH_HW_CAP_PCI_AVAILABLE) &&
+        FlagOn(Capabilities->ImplementedKinds, 1ULL << KPH_DYN_HW_KIND_PCI_READ);
+}
+
+/**
+ * Reads the TDP of each Family 15h/16h package as its power limit and enables the running average that decodes.
+ */
+static VOID PhpHwPrepareLegacyPower(
+    _In_ const KPH_HW_CAPABILITIES* Capabilities
+    )
+{
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+        PhpHwPackages[i].RunningAverage.Disabled = TRUE;
+
+    if (!PhpHwLegacyPowerSupported(Capabilities))
+        return;
+
+    if (!PhpHwPowerNodesEnumerated)
+    {
+        PhpHwPowerNodesEnumerated = TRUE;
+        PhpHwAssignPowerNodes();
+    }
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PPHP_HW_PACKAGE package = &PhpHwPackages[i];
+        FLOAT watts;
+
+        if (!package->HasPowerNode)
+            continue;
+        if (!PhpHwReadPowerNode(package, 4, PH_AMD_D18F4_PROCESSOR_TDP, &package->ProcessorTdp))
+            continue;
+        if (!PhpHwReadPowerNode(package, 5, PH_AMD_D18F5_TDP_LIMIT3, &package->TdpLimit3))
+            continue;
+
+        if (PhAmdProcessorTdpToWatts(package->ProcessorTdp, package->TdpLimit3, &watts))
+            PhpHwPackageSensors[i].PowerLimit = watts;
+
+        package->RunningAverage.Disabled = FALSE;
+        package->RunningAverage.RetryCount = 0;
+
+        if (!PhpHwReadRunningAverage(package, &watts))
+            package->RunningAverage.Disabled = TRUE;
+    }
+}
+
+/**
+ * Decodes the package power of a Family 15h package from its TDP running average.
+ */
+static VOID PhpHwDecodeLegacyPower(
+    _In_ ULONG Index
+    )
+{
+    PPHP_HW_PACKAGE package = &PhpHwPackages[Index];
+    FLOAT watts;
+
+    if (PhpHwReadRunningAverage(package, &watts))
+    {
+        PhpHwPackageSensors[Index].PackagePower = watts;
+        package->TickValid |= PH_HW_CAP_RAPL_PACKAGE;
     }
 }
 
@@ -10446,6 +10600,9 @@ static VOID PhpHwRefreshCapabilities(
                 capabilities |= PH_HW_CAP_PACKAGE_TEMP;
         }
 
+        if (!package->RunningAverage.Disabled)
+            capabilities |= PH_HW_CAP_RAPL_PACKAGE;
+
         if (!package->HasRoot)
             continue;
 
@@ -11727,6 +11884,7 @@ static BOOLEAN PhpHwProbeProcessor(
     PhpHwProbeDecode();
     PhpHwPrepareSmn(Capabilities);
     PhpHwPrepareLegacyTemperature(Capabilities);
+    PhpHwPrepareLegacyPower(Capabilities);
 
     if (PhpHwSmnPending && PhpHwAcquirePciMutant())
     {
@@ -12426,6 +12584,12 @@ static VOID PhpHwUpdateSensors(
 
         if (PhpHwLegacyRootTemperature)
             PhpHwReleasePciMutant();
+    }
+
+    if (PhpHwLegacyPowerSupported(&PhpHwProbeCapabilities))
+    {
+        for (ULONG i = 0; i < PhpHwPackageCount; i++)
+            PhpHwDecodeLegacyPower(i);
     }
 
     // One batch per window per tick serves every consumer of the window.
