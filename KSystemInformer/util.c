@@ -86,15 +86,15 @@ VOID KphQuickSort(
 _IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 _Success_(return != NULL)
-PVOID KphSearchMemory(
-    _In_reads_bytes_(BufferLength) PVOID Buffer,
+PCVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PCVOID Buffer,
     _In_ ULONG BufferLength,
-    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_reads_bytes_(PatternLength) PCVOID Pattern,
     _In_ ULONG PatternLength
     )
 {
-    PBYTE buffer;
-    PBYTE end;
+    const BYTE* buffer;
+    const BYTE* end;
 
     KPH_NPAGED_CODE_HIGH_MAX();
 
@@ -124,7 +124,7 @@ PVOID KphSearchMemory(
     {                                                                          \
         KPH_SEARCH_MEMORY_FOR                                                  \
         {                                                                      \
-            if (*(type*)buffer == *(type*)Pattern)                             \
+            if (*(const type*)buffer == *(const type*)Pattern)                 \
             {                                                                  \
                 return buffer;                                                 \
             }                                                                  \
