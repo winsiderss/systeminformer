@@ -48,6 +48,14 @@ typedef enum _KPH_DYN_MODULE_CLASS
     KphDynLxcore,
 } KPH_DYN_MODULE_CLASS, *PKPH_DYN_MODULE_CLASS;
 
+typedef struct _KPH_DYN_HW_SPAN
+{
+    ULONG Offset;
+    ULONG Length;
+    ULONG NewOffset;
+} KPH_DYN_HW_SPAN, *PKPH_DYN_HW_SPAN;
+typedef const KPH_DYN_HW_SPAN* PCKPH_DYN_HW_SPAN;
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpDynDataTypeName, L"KphDynData");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -101,7 +109,370 @@ PVOID KSIAPI KphpAllocateDynData(
 }
 
 /**
- * \brief Copies the hardware section and resolves this CPU's and board's rows.
+ * \brief Orders hardware section table spans by offset, then length.
+ *
+ * \param[in] Left The first span.
+ * \param[in] Right The second span.
+ *
+ * \return Negative, zero, or positive ordering of the spans.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+INT KphpDynHwCompareSpan(
+    _In_ PCKPH_DYN_HW_SPAN Left,
+    _In_ PCKPH_DYN_HW_SPAN Right
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Left->Offset != Right->Offset)
+    {
+        return ((Left->Offset < Right->Offset) ? -1 : 1);
+    }
+
+    if (Left->Length != Right->Length)
+    {
+        return ((Left->Length < Right->Length) ? -1 : 1);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Sorts hardware section table spans.
+ *
+ * \param[in] Context Unused.
+ * \param[in] LeftElement The first span.
+ * \param[in] RightElement The second span.
+ *
+ * \return Negative, zero, or positive ordering of the spans.
+ */
+_Function_class_(KPH_QUICK_SORT_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+INT KSIAPI KphpDynHwSortSpan(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID LeftElement,
+    _In_ PCVOID RightElement
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Context);
+
+    return KphpDynHwCompareSpan(LeftElement, RightElement);
+}
+
+/**
+ * \brief Searches sorted hardware section table spans.
+ *
+ * \param[in] Context Unused.
+ * \param[in] Key The span to find.
+ * \param[in] Element The span to compare against.
+ *
+ * \return Negative, zero, or positive ordering of the spans.
+ */
+_Function_class_(KPH_BINARY_SEARCH_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+INT KSIAPI KphpDynHwSearchSpan(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID Key,
+    _In_ PCVOID Element
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Context);
+
+    return KphpDynHwCompareSpan(Key, Element);
+}
+
+/**
+ * \brief Checks whether a hardware section row can apply to this system.
+ *
+ * \param[in] Index The row to check.
+ * \param[in] Cpu The CPU identity of this system.
+ * \param[in] Board The board identity of this system.
+ *
+ * \return TRUE if the row is kept, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpDynHwKeepRow(
+    _In_ PCKPH_DYN_HW_INDEX Index,
+    _In_ PCKPH_DYN_HW_CPU_IDENTITY Cpu,
+    _In_ PCKPH_DYN_HW_BOARD_IDENTITY Board
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    switch (Index->IdentityKind)
+    {
+        case KPH_DYN_HW_IDENTITY_CPU:
+        case KPH_DYN_HW_IDENTITY_CPU_AND_PCI:
+        case KPH_DYN_HW_IDENTITY_CPU_AND_PCI_CLASS:
+        {
+#if defined(_M_X64)
+            return KphEqualMemory(&Index->Identity.Cpu,
+                                  Cpu,
+                                  sizeof(KPH_DYN_HW_CPU_IDENTITY));
+#else
+            UNREFERENCED_PARAMETER(Cpu);
+            return FALSE;
+#endif
+        }
+        case KPH_DYN_HW_IDENTITY_BOARD:
+        {
+            if (Index->Identity.Board.BaseboardHash &&
+                (Index->Identity.Board.BaseboardHash == Board->BaseboardHash))
+            {
+                return TRUE;
+            }
+
+            if (Index->Identity.Board.SystemHash &&
+                (Index->Identity.Board.SystemHash == Board->SystemHash))
+            {
+                return TRUE;
+            }
+
+            return FALSE;
+        }
+        case KPH_DYN_HW_IDENTITY_ARM_CPU:
+        {
+#if defined(_M_ARM64)
+            return TRUE;
+#else
+            return FALSE;
+#endif
+        }
+        default:
+        {
+            return TRUE;
+        }
+    }
+}
+
+/**
+ * \brief Copies the rows of a hardware section that can apply to this system.
+ *
+ * \details The copy is a valid section: kept rows stay in order and kept
+ * tables are packed in order with their offsets rewritten.
+ *
+ * \param[in] Section The verified hardware section.
+ * \param[in] Cpu The CPU identity of this system.
+ * \param[in] Board The board identity of this system.
+ * \param[out] Filtered Receives the filtered section, freed with
+ * KPH_TAG_HW_SECTION.
+ * \param[out] FilteredLength Receives the length of the filtered section.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpDynHwFilterSection(
+    _In_ PCKPH_DYN_HW_SECTION Section,
+    _In_ PCKPH_DYN_HW_CPU_IDENTITY Cpu,
+    _In_ PCKPH_DYN_HW_BOARD_IDENTITY Board,
+    _Outptr_result_bytebuffer_(*FilteredLength) PKPH_DYN_HW_SECTION* Filtered,
+    _Out_ PULONG FilteredLength
+    )
+{
+    NTSTATUS status;
+    PCKPH_DYN_HW_INDEX index;
+    PCVOID body;
+    PKPH_DYN_HW_SPAN spans;
+    ULONG rowCount;
+    ULONG spanCount;
+    ULONG bodyLength;
+    ULONG length;
+    PKPH_DYN_HW_SECTION filtered;
+    PKPH_DYN_HW_INDEX filteredIndex;
+    PVOID filteredBody;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Filtered = NULL;
+    *FilteredLength = 0;
+
+    spans = NULL;
+    filtered = NULL;
+
+    index = Add2Ptr(Section, sizeof(KPH_DYN_HW_SECTION));
+    body = &index[Section->Count];
+
+    rowCount = 0;
+
+    for (ULONG i = 0; i < Section->Count; i++)
+    {
+        if (KphpDynHwKeepRow(&index[i], Cpu, Board))
+        {
+            rowCount++;
+        }
+    }
+
+    if (rowCount)
+    {
+        spans = KphAllocatePaged(sizeof(KPH_DYN_HW_SPAN) * rowCount,
+                                 KPH_TAG_HW_SECTION_SPANS);
+        if (!spans)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Failed to allocate hardware section spans");
+
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+    }
+
+    spanCount = 0;
+
+    for (ULONG i = 0; i < Section->Count; i++)
+    {
+        if (KphpDynHwKeepRow(&index[i], Cpu, Board))
+        {
+            spans[spanCount].Offset = index[i].Offset;
+            spans[spanCount].Length = index[i].Length;
+            spans[spanCount].NewOffset = 0;
+            spanCount++;
+        }
+    }
+
+    NT_ASSERT(spanCount == rowCount);
+
+    if (spanCount)
+    {
+        ULONG unique;
+
+        KphQuickSort(spans,
+                     spanCount,
+                     sizeof(KPH_DYN_HW_SPAN),
+                     KphpDynHwSortSpan,
+                     NULL);
+
+        unique = 1;
+
+        for (ULONG i = 1; i < spanCount; i++)
+        {
+            if (KphpDynHwCompareSpan(&spans[i], &spans[unique - 1]))
+            {
+                spans[unique++] = spans[i];
+            }
+        }
+
+        spanCount = unique;
+    }
+
+    //
+    // Every kept span is within the verified section, so the packed copy is
+    // never longer than the original.
+    //
+    bodyLength = 0;
+
+    for (ULONG i = 0; i < spanCount; i++)
+    {
+        spans[i].NewOffset = bodyLength;
+
+        NT_VERIFY(NT_SUCCESS(RtlULongAdd(bodyLength,
+                                         spans[i].Length,
+                                         &bodyLength)));
+    }
+
+    NT_VERIFY(NT_SUCCESS(RtlULongMult(sizeof(KPH_DYN_HW_INDEX),
+                                      rowCount,
+                                      &length)));
+    NT_VERIFY(NT_SUCCESS(RtlULongAdd(length,
+                                     sizeof(KPH_DYN_HW_SECTION),
+                                     &length)));
+    NT_VERIFY(NT_SUCCESS(RtlULongAdd(length, bodyLength, &length)));
+
+    NT_ASSERT(length <= Section->Length);
+
+    filtered = KphAllocatePaged(length, KPH_TAG_HW_SECTION);
+    if (!filtered)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate hardware section");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    filtered->Magic = Section->Magic;
+    filtered->Length = length;
+    filtered->Count = rowCount;
+    filtered->Reserved = 0;
+
+    filteredIndex = Add2Ptr(filtered, sizeof(KPH_DYN_HW_SECTION));
+    filteredBody = &filteredIndex[rowCount];
+
+    rowCount = 0;
+
+    for (ULONG i = 0; i < Section->Count; i++)
+    {
+        KPH_DYN_HW_SPAN key;
+        PCKPH_DYN_HW_SPAN span;
+
+        if (!KphpDynHwKeepRow(&index[i], Cpu, Board))
+        {
+            continue;
+        }
+
+        key.Offset = index[i].Offset;
+        key.Length = index[i].Length;
+        key.NewOffset = 0;
+
+        span = KphBinarySearch(&key,
+                               spans,
+                               spanCount,
+                               sizeof(KPH_DYN_HW_SPAN),
+                               KphpDynHwSearchSpan,
+                               NULL);
+        NT_ASSERT(span);
+        _Analysis_assume_(span);
+
+        filteredIndex[rowCount] = index[i];
+        filteredIndex[rowCount].Offset = span->NewOffset;
+        rowCount++;
+    }
+
+    for (ULONG i = 0; i < spanCount; i++)
+    {
+        RtlCopyMemory(Add2Ptr(filteredBody, spans[i].NewOffset),
+                      Add2Ptr(body, spans[i].Offset),
+                      spans[i].Length);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "Hardware section filtered: %lu of %lu rows, "
+                  "%lu of %lu bytes",
+                  filtered->Count,
+                  Section->Count,
+                  filtered->Length,
+                  Section->Length);
+
+    *Filtered = filtered;
+    *FilteredLength = length;
+    filtered = NULL;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (filtered)
+    {
+        KphFree(filtered, KPH_TAG_HW_SECTION);
+    }
+
+    if (spans)
+    {
+        KphFree(spans, KPH_TAG_HW_SECTION_SPANS);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Copies this system's hardware section rows and resolves this CPU's
+ * and board's rows.
  *
  * \param[in,out] Dyn Dynamic configuration object.
  * \param[in] Init Initialization parameters for dynamic configuration.
@@ -117,6 +488,7 @@ NTSTATUS KphpInitializeDynHardware(
 {
     NTSTATUS status;
     KPH_DYN_HW_IDENTITY identity;
+    KPH_DYN_HW_CPU_IDENTITY cpuIdentity;
     PCKPH_DYN_HW_BOARD_IDENTITY board;
 #if defined(_M_X64)
     PCKPH_HW_CPU_IDENTITY cpu;
@@ -129,32 +501,38 @@ NTSTATUS KphpInitializeDynHardware(
         return STATUS_SUCCESS;
     }
 
-    Dyn->Hardware.Section = KphAllocatePaged(Init->HardwareLength,
-                                             KPH_TAG_HW_SECTION);
-    if (!Dyn->Hardware.Section)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Failed to allocate hardware section");
-
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    Dyn->Hardware.SectionLength = Init->HardwareLength;
-
-    RtlCopyMemory(Dyn->Hardware.Section,
-                  Init->Hardware,
-                  Init->HardwareLength);
+    RtlZeroMemory(&cpuIdentity, sizeof(cpuIdentity));
 
 #if defined(_M_X64)
     cpu = KphGetHardwareCpuIdentity();
 
-    RtlZeroMemory(&identity, sizeof(identity));
-    RtlCopyMemory(identity.Cpu.Vendor,
+    RtlCopyMemory(cpuIdentity.Vendor,
                   cpu->Vendor,
-                  sizeof(identity.Cpu.Vendor));
-    identity.Cpu.DisplayFamily = cpu->DisplayFamily;
-    identity.Cpu.DisplayModel = cpu->DisplayModel;
+                  sizeof(cpuIdentity.Vendor));
+    cpuIdentity.DisplayFamily = cpu->DisplayFamily;
+    cpuIdentity.DisplayModel = cpu->DisplayModel;
+#endif
+
+    board = KphGetHardwareBoardIdentity();
+
+    status = KphpDynHwFilterSection(Init->Hardware,
+                                    &cpuIdentity,
+                                    board,
+                                    &Dyn->Hardware.Section,
+                                    &Dyn->Hardware.SectionLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpDynHwFilterSection failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+#if defined(_M_X64)
+    RtlZeroMemory(&identity, sizeof(identity));
+    identity.Cpu = cpuIdentity;
 
     status = KphDynHwFindTable(Dyn->Hardware.Section,
                                KPH_DYN_HW_IDENTITY_CPU,
@@ -162,8 +540,6 @@ NTSTATUS KphpInitializeDynHardware(
                                &Dyn->Hardware.CpuTable);
     NT_VERIFY(NT_SUCCESS(status) || (status == STATUS_NOT_FOUND));
 #endif
-
-    board = KphGetHardwareBoardIdentity();
 
     if (board->BaseboardHash)
     {
