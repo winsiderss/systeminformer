@@ -329,6 +329,7 @@ NTSTATUS KphHwVsecMapAndRead(
 
     NT_ASSERT((SpanBegin < SpanEnd) &&
               (SpanEnd <= Location->Size));
+    NT_ASSERT(!Recheck || Context);
 
     status = RtlULongLongAdd(Location->Base, Location->Size, &regionEnd);
     if (!NT_SUCCESS(status))

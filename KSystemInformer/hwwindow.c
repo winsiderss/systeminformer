@@ -650,7 +650,6 @@ NTSTATUS KphpHwWindowParseNfit(
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphpHwInitializeNfit(
     _In_ PKPH_HW_ACPI_TABLES Tables
     )
@@ -770,7 +769,6 @@ Exit:
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphpHwInitializeMcfg(
     _In_ PKPH_HW_ACPI_TABLES Tables
     )
@@ -1695,7 +1693,7 @@ NTSTATUS KphHwWindowCheckAmdDf(
         offset = (map->MapOffset + (i * map->MapStride));
 
         control = READ_REGISTER_ULONG(
-            (PULONG)Add2Ptr(mapping, offset + map->ControlOffset));
+            (PULONG)Add2Ptr(mapping, (SIZE_T)offset + map->ControlOffset));
 
         if (!BooleanFlagOn(control, (1ul << map->ValidBit)))
         {
@@ -1704,7 +1702,7 @@ NTSTATUS KphHwWindowCheckAmdDf(
 
         baseRegister = READ_REGISTER_ULONG((PULONG)Add2Ptr(mapping, offset));
         limitRegister = READ_REGISTER_ULONG(
-            (PULONG)Add2Ptr(mapping, offset + map->LimitOffset));
+            (PULONG)Add2Ptr(mapping, (SIZE_T)offset + map->LimitOffset));
 
         mapBegin = ((ULONG64)(baseRegister & map->AddressMask) <<
                     map->AddressShift);

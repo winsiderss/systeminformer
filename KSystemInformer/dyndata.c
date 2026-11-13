@@ -328,6 +328,8 @@ NTSTATUS KphpDynHwFilterSection(
     {
         if (KphpDynHwKeepRow(&index[i], Cpu, Board))
         {
+            NT_ASSERT(spans);
+
             spans[spanCount].Offset = index[i].Offset;
             spans[spanCount].Length = index[i].Length;
             spans[spanCount].NewOffset = 0;

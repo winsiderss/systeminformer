@@ -750,7 +750,8 @@ NTSTATUS KphpHwAcpiQueryPath(
         goto Exit;
     }
 
-    count = ((required / sizeof(WCHAR)) - 1);
+    length = required;
+    count = ((length / sizeof(WCHAR)) - 1);
 
     if (count >= MAXUSHORT)
     {
@@ -763,7 +764,7 @@ NTSTATUS KphpHwAcpiQueryPath(
         goto Exit;
     }
 
-    name = KphAllocatePaged(required, KPH_TAG_HW_ACPI_BUFFER);
+    name = KphAllocatePaged(length, KPH_TAG_HW_ACPI_BUFFER);
     if (!name)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -773,8 +774,6 @@ NTSTATUS KphpHwAcpiQueryPath(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
-
-    length = required;
 
     status = IoGetDevicePropertyData(Pdo,
                                      &DEVPKEY_Device_BiosDeviceName,
@@ -1246,6 +1245,8 @@ NTSTATUS KphpHwAcpiFindTable(
 
         return status;
     }
+
+    NT_ASSERT(context.Table);
 
     *Table = context.Table;
 
