@@ -150,6 +150,13 @@ static const FLT_CONTEXT_REGISTRATION KphpFltContextRegistration[] =
         sizeof(KPH_FLT_STREAM_CONTEXT),
         KPH_TAG_FLT_STREAM_CONTEXT
     },
+    {
+        FLT_INSTANCE_CONTEXT,
+        0,
+        NULL,
+        sizeof(KPH_FLT_INSTANCE_CONTEXT),
+        KPH_TAG_FLT_INSTANCE_CONTEXT
+    },
     { FLT_CONTEXT_END }
 };
 static const FLT_REGISTRATION KphpFltRegistration =
