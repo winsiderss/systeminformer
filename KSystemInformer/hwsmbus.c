@@ -2077,7 +2077,8 @@ NTSTATUS KphpHwSmbusRead(
 
         for (ULONG i = 0; i < Count; i++)
         {
-            if (Entries[i].Status == STATUS_SUCCESS)
+            if ((Entries[i].Status == STATUS_SUCCESS) ||
+                (Entries[i].Status == STATUS_NO_SUCH_DEVICE))
             {
                 Entries[i].Value = 0;
                 Entries[i].Status = status;
