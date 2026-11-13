@@ -732,6 +732,57 @@ VOID KphpHwReadSysregEntry(
     Entry->Status = STATUS_SUCCESS;
 }
 
+/**
+ * \brief Orders system register batch entries by processor, then by position.
+ *
+ * \param[in] Context The batch entries.
+ * \param[in] LeftElement The index of the first entry.
+ * \param[in] RightElement The index of the second entry.
+ *
+ * \return Negative, zero, or positive ordering of the entries.
+ */
+_Function_class_(KPH_QUICK_SORT_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+INT KSIAPI KphpHwSysregSortOrder(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID LeftElement,
+    _In_ PCVOID RightElement
+    )
+{
+    PKPH_HW_SYSREG_BATCH_ENTRY entries;
+    ULONG left;
+    ULONG right;
+    PPROCESSOR_NUMBER leftProcessor;
+    PPROCESSOR_NUMBER rightProcessor;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    entries = Context;
+    left = *(const ULONG*)LeftElement;
+    right = *(const ULONG*)RightElement;
+    leftProcessor = &entries[left].Processor;
+    rightProcessor = &entries[right].Processor;
+
+    if (leftProcessor->Group != rightProcessor->Group)
+    {
+        return ((leftProcessor->Group < rightProcessor->Group) ? -1 : 1);
+    }
+
+    if (leftProcessor->Number != rightProcessor->Number)
+    {
+        return ((leftProcessor->Number < rightProcessor->Number) ? -1 : 1);
+    }
+
+    if (left != right)
+    {
+        return ((left < right) ? -1 : 1);
+    }
+
+    return 0;
+}
+
 #endif // defined(_M_ARM64)
 
 /**
@@ -846,7 +897,6 @@ NTSTATUS KphHwReadSysregBatch(
     for (ULONG i = 0; i < Count; i++)
     {
         PKPH_HW_SYSREG_BATCH_ENTRY entry;
-        ULONG j;
 
         entry = &entries[i];
 
@@ -865,25 +915,14 @@ NTSTATUS KphHwReadSysregBatch(
             continue;
         }
 
-        for (j = orderCount; j > 0; j--)
-        {
-            PKPH_HW_SYSREG_BATCH_ENTRY prev;
-
-            prev = &entries[order[j - 1]];
-
-            if ((prev->Processor.Group < entry->Processor.Group) ||
-                ((prev->Processor.Group == entry->Processor.Group) &&
-                 (prev->Processor.Number <= entry->Processor.Number)))
-            {
-                break;
-            }
-
-            order[j] = order[j - 1];
-        }
-
-        order[j] = i;
-        orderCount++;
+        order[orderCount++] = i;
     }
+
+    KphQuickSort(order,
+                 orderCount,
+                 sizeof(ULONG),
+                 KphpHwSysregSortOrder,
+                 entries);
 
     RtlZeroMemory(&processor, sizeof(processor));
     RtlZeroMemory(&core, sizeof(core));
