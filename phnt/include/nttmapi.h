@@ -18,7 +18,8 @@
  * \param CommitStrength Reserved for future use. This value must be zero.
  * \return NTSTATUS code indicating success or failure.
  * \remarks If the specified log stream does not exist, KTM creates it; otherwise, KTM opens the existing stream.
- * Callers are expected to call NtRecoverTransactionManager after creating the transaction manager, and must eventually close the returned handle.
+ * Callers are expected to call NtRecoverTransactionManager after creating the transaction manager, and must eventually
+ * close the returned handle.
  * \sa https://learn.microsoft.com/en-us/windows/win32/secauthz/ntcreatelowboxtoken
  * \remarks For an owned volatile manager, use TRANSACTION_MANAGER_VOLATILE (0x1) with
  * no log filename. The entry rejects a nonempty log name for that option; durable managers have
@@ -803,7 +804,8 @@ NtGetNotificationResourceManager(
  * \param ResourceManagerInformationLength The size of the buffer pointed to by ResourceManagerInformation, in bytes.
  * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
  * \return NTSTATUS Successful or errant status.
- * \remarks Only ResourceManagerBasicInformation is accepted by the entry. It requires at least 24 bytes; shorter buffers return STATUS_BUFFER_TOO_SMALL and ReturnLength zero.
+ * \remarks Only ResourceManagerBasicInformation is accepted by the entry.
+ * It requires at least 24 bytes; shorter buffers return STATUS_BUFFER_TOO_SMALL and ReturnLength zero.
  * With room for the fixed record, required length is max(24, 20 + DescriptionLength), and a truncated description
  * returns STATUS_BUFFER_OVERFLOW. DescriptionLength counts bytes, not WCHARs or a terminating NUL.
  */
