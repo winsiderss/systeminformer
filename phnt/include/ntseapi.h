@@ -955,7 +955,8 @@ NtSetInformationToken(
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
  * \remarks Use TOKEN_ADJUST_PRIVILEGES (0x20), plus TOKEN_QUERY (0x8) when PreviousState is requested. ReturnLength is
  * required when PreviousState is non-NULL. An unknown privilege can produce STATUS_NOT_ALL_ASSIGNED (0x106)
- * even though NT_SUCCESS is true. This operation cannot add privileges that the token does not possess. An empty previous-state result clears the first declared LUID_AND_ATTRIBUTES slot as well
+ * even though NT_SUCCESS is true. This operation cannot add privileges that the token does not possess.
+ * An empty previous-state result clears the first declared LUID_AND_ATTRIBUTES slot as well
  * as PrivilegeCount; retain storage for the declared TOKEN_PRIVILEGES structure.
  */
 _Kernel_entry_
