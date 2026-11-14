@@ -17,10 +17,6 @@
 
 #include <trace.h>
 
-#define KPH_HW_LPIT_TYPE_NATIVE             0
-#define KPH_HW_ECAM_BUS_SHIFT               20
-#define KPH_HW_ECAM_DEVICE_SHIFT            15
-#define KPH_HW_ECAM_FUNCTION_SHIFT          12
 #define KPH_HW_AMD_IORR_COUNT               2
 #define KPH_HW_X86_LEGACY_END               0x100000ull
 #define KPH_HW_4GB                          0x100000000ull
@@ -400,7 +396,7 @@ NTSTATUS KphpHwInitializeLpit(
 
         offset = end;
 
-        if ((entry->Type != KPH_HW_LPIT_TYPE_NATIVE) ||
+        if ((entry->Type != LPI_STATE_TYPE_NATIVE) ||
             (entry->Length < sizeof(LPI_STATE_DESCRIPTOR)) ||
             entry->Flags.Disabled ||
             entry->Flags.CounterUnavailable)
@@ -769,7 +765,7 @@ NTSTATUS KphpHwInitializeMcfg(
 
         status = RtlULongLongAdd(entries[i].BaseAddress,
                                  (((ULONG64)entries[i].EndBusNumber + 1) <<
-                                  KPH_HW_ECAM_BUS_SHIFT),
+                                  PCI_ECAM_BUS_SHIFT),
                                  &end);
         if (!NT_SUCCESS(status))
         {
@@ -1504,9 +1500,9 @@ BOOLEAN KphpHwWindowEcamPage(
         }
 
         *Address = (range->BaseAddress +
-                    ((ULONG64)Bus << KPH_HW_ECAM_BUS_SHIFT) +
-                    ((ULONG64)Device << KPH_HW_ECAM_DEVICE_SHIFT) +
-                    ((ULONG64)Function << KPH_HW_ECAM_FUNCTION_SHIFT));
+                    ((ULONG64)Bus << PCI_ECAM_BUS_SHIFT) +
+                    ((ULONG64)Device << PCI_ECAM_DEVICE_SHIFT) +
+                    ((ULONG64)Function << PCI_ECAM_FUNCTION_SHIFT));
 
         return TRUE;
     }

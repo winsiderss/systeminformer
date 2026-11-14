@@ -21,12 +21,8 @@
 #define KPH_HW_PCI_CACHE_ENTRIES           8
 #define KPH_HW_PCI_IDS_LENGTH                                                  \
     ((ULONG)RTL_SIZEOF_THROUGH_FIELD(PCI_COMMON_HEADER, BIST))
-#define KPH_HW_PCI_CAPABILITY_POINTER_MASK 0xFC
-#define KPH_HW_PCI_POWER_STATE_D0          0
-#define KPH_HW_PCI_EXTENDED_START          0x100
 #define KPH_HW_PCI_EXTENDED_TTL                                                \
-    ((KPH_DYN_HW_PCI_CONFIG_LENGTH - KPH_HW_PCI_EXTENDED_START) / 8)
-#define KPH_HW_PCI_EXT_CAP_NEXT_MASK       0xFFC
+    ((KPH_DYN_HW_PCI_CONFIG_LENGTH - PCI_EXPRESS_ENHANCED_CAPABILITY_START) / 8)
 #define KPH_HW_PCI_VSEC_HEADER1_OFFSET     0x4
 #define KPH_HW_PCI_DVSEC_ID_OFFSET         0x8
 #define KPH_HW_PCI_VSEC_ENTRIES_OFFSET     0xA
@@ -2515,7 +2511,7 @@ NTSTATUS KphpHwPciFindPmCapability(
     }
 
     visited = 0;
-    pointer &= KPH_HW_PCI_CAPABILITY_POINTER_MASK;
+    pointer &= PCI_CAPABILITY_POINTER_MASK;
 
     while (pointer)
     {
@@ -2563,7 +2559,7 @@ NTSTATUS KphpHwPciFindPmCapability(
             return STATUS_SUCCESS;
         }
 
-        pointer = (header.Next & KPH_HW_PCI_CAPABILITY_POINTER_MASK);
+        pointer = (header.Next & PCI_CAPABILITY_POINTER_MASK);
     }
 
     *PmCapability = 0;
@@ -3300,7 +3296,7 @@ NTSTATUS KphpHwPciCheckD0(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    if (pmcsr.PowerState != KPH_HW_PCI_POWER_STATE_D0)
+    if (pmcsr.PowerState != PCI_PMCSR_POWER_STATE_D0)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -4460,7 +4456,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
 
     *Count = 0;
 
-    position = KPH_HW_PCI_EXTENDED_START;
+    position = PCI_EXPRESS_ENHANCED_CAPABILITY_START;
     count = 0;
 
     for (ULONG ttl = KPH_HW_PCI_EXTENDED_TTL; ttl; ttl--)
@@ -4485,7 +4481,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
 
         if (header.Value == MAXULONG)
         {
-            if (position == KPH_HW_PCI_EXTENDED_START)
+            if (position == PCI_EXPRESS_ENHANCED_CAPABILITY_START)
             {
                 return STATUS_SUCCESS;
             }
@@ -4526,7 +4522,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
             Positions[count++] = position;
         }
 
-        next = (header.Next & KPH_HW_PCI_EXT_CAP_NEXT_MASK);
+        next = (header.Next & PCI_EXPRESS_ENHANCED_CAPABILITY_NEXT_MASK);
 
         if (!next)
         {
@@ -4534,7 +4530,7 @@ NTSTATUS KphpHwPciFindVsecCapabilities(
             return STATUS_SUCCESS;
         }
 
-        if (next < KPH_HW_PCI_EXTENDED_START)
+        if (next < PCI_EXPRESS_ENHANCED_CAPABILITY_START)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,

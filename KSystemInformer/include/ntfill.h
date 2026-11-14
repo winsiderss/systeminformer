@@ -12,6 +12,16 @@
 #define FIRMWARE_TABLE_PROVIDER_ACPI   'ACPI'
 #define FIRMWARE_TABLE_PROVIDER_SMBIOS 'RSMB'
 
+#define LPI_STATE_TYPE_NATIVE 0
+
+#define PCI_CAPABILITY_POINTER_MASK               0xFC
+#define PCI_PMCSR_POWER_STATE_D0                  0
+#define PCI_EXPRESS_ENHANCED_CAPABILITY_START     0x100
+#define PCI_EXPRESS_ENHANCED_CAPABILITY_NEXT_MASK 0xFFC
+#define PCI_ECAM_BUS_SHIFT                        20
+#define PCI_ECAM_DEVICE_SHIFT                     15
+#define PCI_ECAM_FUNCTION_SHIFT                   12
+
 #if defined(_M_X64)
 #define CPUID_VENDOR_AMD                     "AuthenticAMD"
 #define CPUID_VENDOR_INTEL                   "GenuineIntel"
