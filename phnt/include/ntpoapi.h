@@ -2692,7 +2692,8 @@ typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT
  * DataLength>=1. It is NOT the direct NtPowerInformation output. Read IntegrityOk only
  * after successful status; FALSE may still accompany success when integrity is invalid.
  * The helper accepts a reported file length from 51 through 2048 bytes,
- * requires a complete read, and checks an 8-bit byte-sum checksum equal to zero. It does not repair the data; restoration is a separate destructive
+ * requires a complete read, and checks an 8-bit byte-sum checksum equal to zero.
+ * It does not repair the data; restoration is a separate destructive
  * operation. Other entries do not receive repeated copies of this Boolean.
  * \sa POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT
  */
@@ -3458,7 +3459,8 @@ typedef enum _POWER_INTERNAL_FREQUENCY_QOS_BUCKET
 /**
  * The POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK structure represents one efficiency-class bank of
  * accumulated cycles indexed by QoS category and frequency band.
- * \remarks CyclesByFreqBand records execution cycles by frequency band for the High, Low, and Total QoS indices. Each bank has 3 rows of 48 counters. This layout can support frequency-distribution diagnostics,
+ * \remarks CyclesByFreqBand records execution cycles by frequency band for the High, Low, and Total QoS indices.
+ * Each bank has 3 rows of 48 counters. This layout can support frequency-distribution diagnostics,
  * but its counters are not wall-clock residency times and its Total row must not be added to its component rows as
  * independent work.
  */
@@ -5232,7 +5234,8 @@ typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
 /**
  * The POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT structure contains the input parameters for the UpdateBlackBoxRecorder (94) information level,
  * used to write a payload into the power black-box recorder entry selected by Index.
- * \remarks InputBufferLength must be sizeof(POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT) (0x20). Layout reversed from PopBlackBoxUpdate.
+ * \remarks InputBufferLength must be sizeof(POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT) (0x20).
+ * Layout reversed from PopBlackBoxUpdate.
  */
 typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 {
@@ -5261,7 +5264,8 @@ typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 /**
  * The POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT structure contains the input parameters for the BlackBoxRecorderDirectAccessBuffer (97) information level,
  * used to obtain a direct-access mapping (kernel address + size) to the power black-box recorder entry selected by Index.
- * \remarks InputBufferLength must be at least sizeof(POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT) (0x20). Layout reversed from PopBlackBoxDirectAccess.
+ * \remarks InputBufferLength must be at least sizeof(POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT) (0x20).
+ * Layout reversed from PopBlackBoxDirectAccess.
  * The handler requires Reserved0..Reserved3 to be zero and only honors Index; the Version/Flags/Category/Modifiers/Offset/Length
  * form and the POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_* macros above are not evaluated by the level-97 handler.
  */
@@ -5396,7 +5400,8 @@ NtSetSystemPowerState(
  * \param State A pointer to the variable that receives the power state.
  * \return Successful or errant status.
  * \remarks An application can use NtGetDevicePowerState to determine whether a device is in the working state or a low-power state.
- * If the device is in a low-power state, accessing the device may cause it to either queue or fail any I/O requests, or transition the device into the working state.
+ * If the device is in a low-power state, accessing the device may cause it to either queue or fail any I/O requests, or
+ * transition the device into the working state.
  * The exact behavior depends on the implementation of the device.
  * \remarks Queries power state through a file object and its related target device.
  * The handle is not a process or thread handle; the entry references IoFileObjectType before device lookup.
