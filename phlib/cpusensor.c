@@ -596,7 +596,7 @@ FLOAT NTAPI PhIntelRaplDramEnergyUnitJoules(
     _In_ PCPH_CPU_IDENTITY Identity
     )
 {
-    static const UCHAR models[] = { 0x3F, 0x4F, 0x56, 0x55, 0x6A, 0x6C, 0x8F, 0xCF, 0x57, 0x85 };
+    static const UCHAR models[] = { 0x3F, 0x4F, 0x56, 0x55, 0x6A, 0x6C, 0x57, 0x85 };
 
     if (PhCpuIdentityIsIntel(Identity) && PhpCpuIdentityIsModel(Identity, 0x06, models, RTL_NUMBER_OF(models)))
         return 0.0000153f;
