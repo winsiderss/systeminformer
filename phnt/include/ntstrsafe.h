@@ -62,6 +62,7 @@ typedef _Return_type_success_(return >= 0) long NTSTATUS;
 #endif
 
 typedef unsigned long ULONG;
+typedef unsigned long DWORD;
 
 
 #ifndef SORTPP_PASS
@@ -13158,6 +13159,72 @@ NTSTRSAFEWORKERDDI
 #define RtlUnicodeStringExHandleFill        RtlUnicodeStringExHandleFill_do_not_call_this_function
 #define RtlUnicodeStringExHandleOtherFlags  RtlUnicodeStringExHandleOtherFlags_do_not_call_this_function
 #endif // !DEPRECATE_SUPPORTED
+
+
+// Generic-text (TCHAR) mappings
+#ifndef NTSTRSAFE_NO_CCH_FUNCTIONS
+#ifdef UNICODE
+#define RtlStringCchCopy        RtlStringCchCopyW
+#define RtlStringCchCopyEx      RtlStringCchCopyExW
+#define RtlStringCchCopyN       RtlStringCchCopyNW
+#define RtlStringCchCopyNEx     RtlStringCchCopyNExW
+#define RtlStringCchCat         RtlStringCchCatW
+#define RtlStringCchCatEx       RtlStringCchCatExW
+#define RtlStringCchCatN        RtlStringCchCatNW
+#define RtlStringCchCatNEx      RtlStringCchCatNExW
+#define RtlStringCchVPrintf     RtlStringCchVPrintfW
+#define RtlStringCchVPrintfEx   RtlStringCchVPrintfExW
+#define RtlStringCchPrintf      RtlStringCchPrintfW
+#define RtlStringCchPrintfEx    RtlStringCchPrintfExW
+#define RtlStringCchLength      RtlStringCchLengthW
+#else
+#define RtlStringCchCopy        RtlStringCchCopyA
+#define RtlStringCchCopyEx      RtlStringCchCopyExA
+#define RtlStringCchCopyN       RtlStringCchCopyNA
+#define RtlStringCchCopyNEx     RtlStringCchCopyNExA
+#define RtlStringCchCat         RtlStringCchCatA
+#define RtlStringCchCatEx       RtlStringCchCatExA
+#define RtlStringCchCatN        RtlStringCchCatNA
+#define RtlStringCchCatNEx      RtlStringCchCatNExA
+#define RtlStringCchVPrintf     RtlStringCchVPrintfA
+#define RtlStringCchVPrintfEx   RtlStringCchVPrintfExA
+#define RtlStringCchPrintf      RtlStringCchPrintfA
+#define RtlStringCchPrintfEx    RtlStringCchPrintfExA
+#define RtlStringCchLength      RtlStringCchLengthA
+#endif // !UNICODE
+#endif // !NTSTRSAFE_NO_CCH_FUNCTIONS
+
+#ifndef NTSTRSAFE_NO_CB_FUNCTIONS
+#ifdef UNICODE
+#define RtlStringCbCopy         RtlStringCbCopyW
+#define RtlStringCbCopyEx       RtlStringCbCopyExW
+#define RtlStringCbCopyN        RtlStringCbCopyNW
+#define RtlStringCbCopyNEx      RtlStringCbCopyNExW
+#define RtlStringCbCat          RtlStringCbCatW
+#define RtlStringCbCatEx        RtlStringCbCatExW
+#define RtlStringCbCatN         RtlStringCbCatNW
+#define RtlStringCbCatNEx       RtlStringCbCatNExW
+#define RtlStringCbVPrintf      RtlStringCbVPrintfW
+#define RtlStringCbVPrintfEx    RtlStringCbVPrintfExW
+#define RtlStringCbPrintf       RtlStringCbPrintfW
+#define RtlStringCbPrintfEx     RtlStringCbPrintfExW
+#define RtlStringCbLength       RtlStringCbLengthW
+#else
+#define RtlStringCbCopy         RtlStringCbCopyA
+#define RtlStringCbCopyEx       RtlStringCbCopyExA
+#define RtlStringCbCopyN        RtlStringCbCopyNA
+#define RtlStringCbCopyNEx      RtlStringCbCopyNExA
+#define RtlStringCbCat          RtlStringCbCatA
+#define RtlStringCbCatEx        RtlStringCbCatExA
+#define RtlStringCbCatN         RtlStringCbCatNA
+#define RtlStringCbCatNEx       RtlStringCbCatNExA
+#define RtlStringCbVPrintf      RtlStringCbVPrintfA
+#define RtlStringCbVPrintfEx    RtlStringCbVPrintfExA
+#define RtlStringCbPrintf       RtlStringCbPrintfA
+#define RtlStringCbPrintfEx     RtlStringCbPrintfExA
+#define RtlStringCbLength       RtlStringCbLengthA
+#endif // !UNICODE
+#endif // !NTSTRSAFE_NO_CB_FUNCTIONS
 
 
 #pragma warning(pop)
