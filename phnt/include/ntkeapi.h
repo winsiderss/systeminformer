@@ -160,7 +160,8 @@ NtCallbackReturn(
  * \param ComponentId The identifier of the component whose debug filter state is being queried.
  * \param Level The debug filter level being queried.
  * \return NTSTATUS Successful or errant status.
- * \remarks Returns the filter-state predicate as status value 0 or 1, not solely STATUS_SUCCESS. Levels 0 through 31 are converted to bit positions; higher
+ * \remarks Returns the filter-state predicate as status value 0 or 1, not solely STATUS_SUCCESS.
+ * Levels 0 through 31 are converted to bit positions; higher
  * values are treated as masks. Querying filter state does not change debugger output policy.
  */
 _Kernel_entry_
