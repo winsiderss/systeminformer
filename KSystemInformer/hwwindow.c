@@ -13,71 +13,17 @@
 #include <kphdyndata.h>
 #include <kphhw.h>
 
+#include <acpitabl.h>
+
 #include <trace.h>
 
-#define KPH_HW_WINDOW_SIGNATURE_LPIT        'TIPL'
-#define KPH_HW_WINDOW_LPIT_TYPE_NATIVE      0
-#define KPH_HW_WINDOW_LPIT_DISABLED         0x00000001
-#define KPH_HW_WINDOW_LPIT_NO_COUNTER       0x00000002
-#define KPH_HW_WINDOW_GAS_SYSTEM_MEMORY     0
-#define KPH_HW_NFIT_SIGNATURE               'TIFN'
-#define KPH_HW_NFIT_HEADER_LENGTH           40
-#define KPH_HW_NFIT_TYPE_SPA_RANGE          0
-#define KPH_HW_MCFG_SIGNATURE               'GFCM'
-#define KPH_HW_MCFG_HEADER_LENGTH           44
+#define KPH_HW_LPIT_TYPE_NATIVE             0
 #define KPH_HW_ECAM_BUS_SHIFT               20
 #define KPH_HW_ECAM_DEVICE_SHIFT            15
 #define KPH_HW_ECAM_FUNCTION_SHIFT          12
 #define KPH_HW_AMD_IORR_COUNT               2
 #define KPH_HW_X86_LEGACY_END               0x100000ull
 #define KPH_HW_4GB                          0x100000000ull
-
-#include <pshpack1.h>
-
-typedef struct _KPH_HW_NFIT_SPA_RANGE
-{
-    USHORT Type;
-    USHORT Length;
-    USHORT RangeIndex;
-    USHORT Flags;
-    ULONG Reserved;
-    ULONG ProximityDomain;
-    GUID AddressRangeType;
-    ULONG64 RangeBase;
-    ULONG64 RangeLength;
-    ULONG64 MappingAttribute;
-} KPH_HW_NFIT_SPA_RANGE, *PKPH_HW_NFIT_SPA_RANGE;
-
-typedef struct _KPH_HW_LPIT_NATIVE_ENTRY
-{
-    ULONG Type;
-    ULONG Length;
-    USHORT UniqueId;
-    USHORT Reserved;
-    ULONG Flags;
-    KPH_HW_ACPI_GAS EntryTrigger;
-    ULONG Residency;
-    ULONG Latency;
-    KPH_HW_ACPI_GAS ResidencyCounter;
-    ULONG64 CounterFrequency;
-} KPH_HW_LPIT_NATIVE_ENTRY, *PKPH_HW_LPIT_NATIVE_ENTRY;
-
-typedef struct _KPH_HW_MCFG_ENTRY
-{
-    ULONG64 BaseAddress;
-    USHORT Segment;
-    UCHAR StartBus;
-    UCHAR EndBus;
-    ULONG Reserved;
-} KPH_HW_MCFG_ENTRY, *PKPH_HW_MCFG_ENTRY;
-
-#include <poppack.h>
-
-C_ASSERT(sizeof(KPH_HW_MCFG_ENTRY) == 16);
-C_ASSERT(FIELD_OFFSET(KPH_HW_LPIT_NATIVE_ENTRY, ResidencyCounter) == 36);
-C_ASSERT(sizeof(KPH_HW_LPIT_NATIVE_ENTRY) == 56);
-C_ASSERT(FIELD_OFFSET(KPH_HW_NFIT_SPA_RANGE, RangeBase) == 32);
-C_ASSERT(sizeof(KPH_HW_NFIT_SPA_RANGE) == 56);
 
 typedef struct _KPH_HW_ACPI_TABLES
 {
@@ -105,7 +51,7 @@ static BOOLEAN KphpHwNvdimmRangesKnown = FALSE;
 static ULONG KphpHwNvdimmRangeCount = 0;
 static PKPH_HW_MEMORY_RANGE KphpHwNvdimmRanges = NULL;
 static ULONG KphpHwEcamRangeCount = 0;
-static PKPH_HW_MCFG_ENTRY KphpHwEcamRanges = NULL;
+static PMCFG_TABLE_ENTRY KphpHwEcamRanges = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
@@ -277,7 +223,7 @@ NTSTATUS KphpHwQueryAcpiTable(
     NTSTATUS status;
     PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
     BOOLEAN present;
-    ULONG embeddedLength;
+    PDESCRIPTION_HEADER header;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -326,7 +272,7 @@ NTSTATUS KphpHwQueryAcpiTable(
         goto Exit;
     }
 
-    if (info->TableBufferLength < KPH_HW_ACPI_HEADER_LENGTH)
+    if (info->TableBufferLength < sizeof(DESCRIPTION_HEADER))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -338,15 +284,15 @@ NTSTATUS KphpHwQueryAcpiTable(
         goto Exit;
     }
 
-    embeddedLength = *(PULONG)Add2Ptr(info->TableBuffer, sizeof(ULONG));
-    if (embeddedLength != info->TableBufferLength)
+    header = (PDESCRIPTION_HEADER)info->TableBuffer;
+    if (header->Length != info->TableBufferLength)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
                       "ACPI table 0x%08lx length %lu, header says %lu",
                       Signature,
                       info->TableBufferLength,
-                      embeddedLength);
+                      header->Length);
 
         status = STATUS_ACPI_INVALID_TABLE;
         goto Exit;
@@ -390,7 +336,7 @@ NTSTATUS KphpHwInitializeLpit(
     KPH_PAGED_CODE_PASSIVE();
 
     status = KphpHwQueryAcpiTable(Tables,
-                                  KPH_HW_WINDOW_SIGNATURE_LPIT,
+                                  LPIT_SIGNATURE,
                                   &info,
                                   &length);
     if (!NT_SUCCESS(status))
@@ -404,12 +350,12 @@ NTSTATUS KphpHwInitializeLpit(
     }
 
     count = 0;
-    offset = KPH_HW_ACPI_HEADER_LENGTH;
-    headerLength = RTL_SIZEOF_THROUGH_FIELD(KPH_HW_LPIT_NATIVE_ENTRY, Length);
+    offset = FIELD_OFFSET(LPIT, LpiStates);
+    headerLength = RTL_SIZEOF_THROUGH_FIELD(LPI_STATE_DESCRIPTOR, Length);
 
     while (offset < length)
     {
-        PKPH_HW_LPIT_NATIVE_ENTRY entry;
+        PLPI_STATE_DESCRIPTOR entry;
         ULONG end;
         UCHAR spaceId;
         UCHAR width;
@@ -454,10 +400,10 @@ NTSTATUS KphpHwInitializeLpit(
 
         offset = end;
 
-        if ((entry->Type != KPH_HW_WINDOW_LPIT_TYPE_NATIVE) ||
-            (entry->Length < sizeof(KPH_HW_LPIT_NATIVE_ENTRY)) ||
-            BooleanFlagOn(entry->Flags, KPH_HW_WINDOW_LPIT_DISABLED) ||
-            BooleanFlagOn(entry->Flags, KPH_HW_WINDOW_LPIT_NO_COUNTER))
+        if ((entry->Type != KPH_HW_LPIT_TYPE_NATIVE) ||
+            (entry->Length < sizeof(LPI_STATE_DESCRIPTOR)) ||
+            entry->Flags.Disabled ||
+            entry->Flags.CounterUnavailable)
         {
             continue;
         }
@@ -472,17 +418,18 @@ NTSTATUS KphpHwInitializeLpit(
             continue;
         }
 
-        spaceId = entry->ResidencyCounter.SpaceId;
+        spaceId = entry->ResidencyCounter.AddressSpaceID;
         width = entry->ResidencyCounter.BitWidth;
 
-        if ((spaceId != KPH_HW_WINDOW_GAS_SYSTEM_MEMORY) ||
+        if ((spaceId != AcpiGenericSpaceMemory) ||
             (entry->ResidencyCounter.BitOffset != 0) ||
             ((width != 32) && (width != 64)))
         {
             continue;
         }
 
-        KphpHwLpitCounters[count].Address = entry->ResidencyCounter.Address;
+        KphpHwLpitCounters[count].Address =
+            (ULONG64)entry->ResidencyCounter.Address.QuadPart;
         KphpHwLpitCounters[count].Width = (width / 8);
         count++;
     }
@@ -520,12 +467,15 @@ NTSTATUS KphpHwWindowParseNfit(
 {
     NTSTATUS status;
     ULONG count;
+    ULONG headerLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
     *Count = 0;
 
-    if (Length < KPH_HW_NFIT_HEADER_LENGTH)
+    headerLength = FIELD_OFFSET(NFIT_TABLE, Structures);
+
+    if (Length < headerLength)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -537,14 +487,14 @@ NTSTATUS KphpHwWindowParseNfit(
 
     count = 0;
 
-    for (ULONG offset = KPH_HW_NFIT_HEADER_LENGTH; offset < Length; )
+    for (ULONG offset = headerLength; offset < Length; )
     {
         USHORT type;
         USHORT structureLength;
-        PKPH_HW_NFIT_SPA_RANGE spa;
+        PNFIT_SYSTEM_PHYSICAL_ADDRESS_RANGE spa;
         ULONG64 end;
 
-        if ((Length - offset) < (sizeof(USHORT) * 2))
+        if ((Length - offset) < sizeof(NFIT_STRUCT_HEADER))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -555,10 +505,11 @@ NTSTATUS KphpHwWindowParseNfit(
             return STATUS_ACPI_INVALID_TABLE;
         }
 
-        type = *(UNALIGNED USHORT*)Add2Ptr(Table, offset);
-        structureLength = *(UNALIGNED USHORT*)Add2Ptr(Table, offset + sizeof(USHORT));
+        spa = Add2Ptr(Table, offset);
+        type = spa->Header.Type;
+        structureLength = spa->Header.Length;
 
-        if ((structureLength < (sizeof(USHORT) * 2)) ||
+        if ((structureLength < sizeof(NFIT_STRUCT_HEADER)) ||
             (structureLength > (Length - offset)))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -572,15 +523,14 @@ NTSTATUS KphpHwWindowParseNfit(
             return STATUS_ACPI_INVALID_TABLE;
         }
 
-        spa = Add2Ptr(Table, offset);
         NT_VERIFY(NT_SUCCESS(RtlULongAdd(offset, structureLength, &offset)));
 
-        if (type != KPH_HW_NFIT_TYPE_SPA_RANGE)
+        if (type != NfitSystemPhysicalAddressRange)
         {
             continue;
         }
 
-        if (structureLength < sizeof(KPH_HW_NFIT_SPA_RANGE))
+        if (structureLength < sizeof(NFIT_SYSTEM_PHYSICAL_ADDRESS_RANGE))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -590,14 +540,16 @@ NTSTATUS KphpHwWindowParseNfit(
             return STATUS_ACPI_INVALID_TABLE;
         }
 
-        status = RtlULongLongAdd(spa->RangeBase, spa->RangeLength, &end);
+        status = RtlULongLongAdd(spa->SPARangeBase,
+                                 spa->SPARangeLength,
+                                 &end);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
                           "NFIT SPA range 0x%llx length 0x%llx overflows",
-                          spa->RangeBase,
-                          spa->RangeLength);
+                          spa->SPARangeBase,
+                          spa->SPARangeLength);
 
             return STATUS_ACPI_INVALID_TABLE;
         }
@@ -614,7 +566,7 @@ NTSTATUS KphpHwWindowParseNfit(
 
         if (Ranges)
         {
-            Ranges[count].Begin = spa->RangeBase;
+            Ranges[count].Begin = spa->SPARangeBase;
             Ranges[count].End = end;
         }
 
@@ -650,7 +602,7 @@ NTSTATUS KphpHwInitializeNfit(
     ranges = NULL;
 
     status = KphpHwQueryAcpiTable(Tables,
-                                  KPH_HW_NFIT_SIGNATURE,
+                                  NFIT_TABLE_SIGNATURE,
                                   &info,
                                   &length);
     if (status == STATUS_NOT_FOUND)
@@ -762,13 +714,14 @@ NTSTATUS KphpHwInitializeMcfg(
     ULONG length;
     ULONG count;
     ULONG rangesLength;
-    PKPH_HW_MCFG_ENTRY entries;
-    PKPH_HW_MCFG_ENTRY ranges;
+    ULONG headerLength;
+    PMCFG_TABLE_ENTRY entries;
+    PMCFG_TABLE_ENTRY ranges;
 
     KPH_PAGED_CODE_PASSIVE();
 
     status = KphpHwQueryAcpiTable(Tables,
-                                  KPH_HW_MCFG_SIGNATURE,
+                                  MCFG_TABLE_SIGNATURE,
                                   &info,
                                   &length);
     if (status == STATUS_NOT_FOUND)
@@ -786,8 +739,10 @@ NTSTATUS KphpHwInitializeMcfg(
         return status;
     }
 
-    if ((length < KPH_HW_MCFG_HEADER_LENGTH) ||
-        ((length - KPH_HW_MCFG_HEADER_LENGTH) % sizeof(KPH_HW_MCFG_ENTRY)))
+    headerLength = FIELD_OFFSET(MCFG_TABLE, TableEntry);
+
+    if ((length < headerLength) ||
+        ((length - headerLength) % sizeof(MCFG_TABLE_ENTRY)))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -798,7 +753,7 @@ NTSTATUS KphpHwInitializeMcfg(
         goto Exit;
     }
 
-    count = ((length - KPH_HW_MCFG_HEADER_LENGTH) / sizeof(KPH_HW_MCFG_ENTRY));
+    count = ((length - headerLength) / sizeof(MCFG_TABLE_ENTRY));
 
     if (!count)
     {
@@ -806,14 +761,14 @@ NTSTATUS KphpHwInitializeMcfg(
         goto Exit;
     }
 
-    entries = Add2Ptr(info->TableBuffer, KPH_HW_MCFG_HEADER_LENGTH);
+    entries = ((PMCFG_TABLE)info->TableBuffer)->TableEntry;
 
     for (ULONG i = 0; i < count; i++)
     {
         ULONG64 end;
 
         status = RtlULongLongAdd(entries[i].BaseAddress,
-                                 (((ULONG64)entries[i].EndBus + 1) <<
+                                 (((ULONG64)entries[i].EndBusNumber + 1) <<
                                   KPH_HW_ECAM_BUS_SHIFT),
                                  &end);
         if (!NT_SUCCESS(status))
@@ -822,7 +777,7 @@ NTSTATUS KphpHwInitializeMcfg(
                           HARDWARE,
                           "MCFG range 0x%llx end bus %lu overflows",
                           entries[i].BaseAddress,
-                          (ULONG)entries[i].EndBus);
+                          (ULONG)entries[i].EndBusNumber);
 
             status = STATUS_ACPI_INVALID_TABLE;
             goto Exit;
@@ -830,7 +785,7 @@ NTSTATUS KphpHwInitializeMcfg(
     }
 
     NT_VERIFY(NT_SUCCESS(RtlULongMult(count,
-                                      sizeof(KPH_HW_MCFG_ENTRY),
+                                      sizeof(MCFG_TABLE_ENTRY),
                                       &rangesLength)));
 
     ranges = KphAllocatePaged(rangesLength, KPH_TAG_HW_ECAM_RANGES);
@@ -1537,13 +1492,13 @@ BOOLEAN KphpHwWindowEcamPage(
 
     for (ULONG i = 0; i < KphpHwEcamRangeCount; i++)
     {
-        PKPH_HW_MCFG_ENTRY range;
+        PMCFG_TABLE_ENTRY range;
 
         range = &KphpHwEcamRanges[i];
 
-        if ((range->Segment != Segment) ||
-            (Bus < range->StartBus) ||
-            (Bus > range->EndBus))
+        if ((range->SegmentNumber != Segment) ||
+            (Bus < range->StartBusNumber) ||
+            (Bus > range->EndBusNumber))
         {
             continue;
         }

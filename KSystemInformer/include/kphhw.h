@@ -78,23 +78,6 @@ C_ASSERT(RTL_FIELD_SIZE(KPH_HW_CPU_IDENTITY, Vendor) ==
          (sizeof(CPUID_VENDOR_INTEL) - sizeof(ANSI_NULL)));
 #endif
 
-#define KPH_HW_ACPI_HEADER_LENGTH 36
-
-#include <pshpack1.h>
-
-typedef struct _KPH_HW_ACPI_GAS
-{
-    UCHAR SpaceId;
-    UCHAR BitWidth;
-    UCHAR BitOffset;
-    UCHAR AccessSize;
-    ULONG64 Address;
-} KPH_HW_ACPI_GAS, *PKPH_HW_ACPI_GAS;
-
-#include <poppack.h>
-
-C_ASSERT(sizeof(KPH_HW_ACPI_GAS) == 12);
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInitializeHardware(
     VOID
