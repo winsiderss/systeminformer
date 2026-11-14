@@ -600,8 +600,11 @@
     <ClInclude Include="CPP\Windows\TimeUtils.h" />
     <ClInclude Include="CPP\Windows\Window.h" />
   </ItemGroup>
+  <!-- Keep debug information in library objects so consumers do not need a separate compiler PDB. -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="Copy7zipPdb" AfterTargets="Build">
-    <Copy SourceFiles="$(OutDir)7zip.pdb" DestinationFolder="$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)\" />
-  </Target>
 </Project>

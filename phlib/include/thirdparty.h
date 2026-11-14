@@ -67,6 +67,12 @@
 #error "ThirdParty.lib is missing"
 #endif
 
+#if __has_include("../../tools/thirdparty/winsdk/listview.h")
+#include "../../tools/thirdparty/winsdk/listview.h"
+#else
+#error "ThirdParty.lib is missing"
+#endif
+
 #if __has_include("../../tools/thirdparty/xxhash/xxhashwrapper.h")
 #include "../../tools/thirdparty/xxhash/xxhashwrapper.h"
 #else
