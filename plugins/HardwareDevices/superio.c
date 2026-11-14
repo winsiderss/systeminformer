@@ -298,6 +298,18 @@ static CONST PCWSTR Nct67TemperatureLabelsA[32] =
     L"PECI Agent 0 Calibration", L"PECI Agent 1 Calibration", NULL, L"Virtual_TEMP"
 };
 
+// NCT6779D, NCT6791D and NCT6792D: one BYTE_TEMP, so the calibrations sit one lower.
+static CONST PCWSTR Nct6779TemperatureLabels[32] =
+{
+    NULL, L"SYSTIN", L"CPUTIN", L"AUXTIN0", L"AUXTIN1", L"AUXTIN2", L"AUXTIN3", NULL,
+    L"SMBUSMASTER 0", L"SMBUSMASTER 1", L"SMBUSMASTER 2", L"SMBUSMASTER 3",
+    L"SMBUSMASTER 4", L"SMBUSMASTER 5", L"SMBUSMASTER 6", L"SMBUSMASTER 7",
+    L"PECI Agent 0", L"PECI Agent 1", L"PCH_CHIP_CPU_MAX_TEMP", L"PCH_CHIP_TEMP",
+    L"PCH_CPU_TEMP", L"PCH_MCH_TEMP", L"Agent0 Dimm0", L"Agent0 Dimm1",
+    L"Agent1 Dimm0", L"Agent1 Dimm1", L"BYTE_TEMP", L"PECI Agent 0 Calibration",
+    L"PECI Agent 1 Calibration", NULL, NULL, L"Virtual_TEMP"
+};
+
 static CONST PCWSTR Nct67TemperatureLabelsB[32] =
 {
     NULL, L"SYSTIN", L"CPUTIN", L"AUXTIN0", L"AUXTIN1", L"AUXTIN2", L"AUXTIN3", L"AUXTIN4",
@@ -329,9 +341,9 @@ static CONST PCWSTR Nct6776TemperatureLabels[32] =
 
 static CONST MB_NCT67_VARIANT Nct6775 = { 9, FALSE, 3, 3, 6, 1, Nct6775TemperatureLabels, 0x001ffffe, 0x00000000, 4, 1350000 / 0xffff, 0, &Nct6775Map };
 static CONST MB_NCT67_VARIANT Nct6776 = { 9, FALSE, 3, 3, 6, 8, Nct6776TemperatureLabels, 0x007ffffe, 0x00000000, 5, 1350000 / 0x1fff, 0, &Nct6776Map };
-static CONST MB_NCT67_VARIANT Nct6779 = { 15, FALSE, 5, 5, 2, 0, Nct67TemperatureLabelsA, 0x07ffff7e, 0x00000000, 7, 0, 0, &Nct6779Map };
-static CONST MB_NCT67_VARIANT Nct6791 = { 15, FALSE, 6, 5, 2, 8, Nct67TemperatureLabelsA, 0x87ffff7e, 0x80000000, 7, 0, 0, &Nct6779Map };
-static CONST MB_NCT67_VARIANT Nct6792 = { 15, FALSE, 6, 6, 2, 8, Nct67TemperatureLabelsA, 0x9fffff7e, 0x80000000, 7, 0, 0, &Nct6779Map };
+static CONST MB_NCT67_VARIANT Nct6779 = { 15, FALSE, 5, 5, 2, 0, Nct6779TemperatureLabels, 0x07ffff7e, 0x00000000, 7, 0, 0, &Nct6779Map };
+static CONST MB_NCT67_VARIANT Nct6791 = { 15, FALSE, 6, 5, 2, 8, Nct6779TemperatureLabels, 0x87ffff7e, 0x80000000, 7, 0, 0, &Nct6779Map };
+static CONST MB_NCT67_VARIANT Nct6792 = { 15, FALSE, 6, 6, 2, 8, Nct6779TemperatureLabels, 0x9fffff7e, 0x80000000, 7, 0, 0, &Nct6779Map };
 static CONST MB_NCT67_VARIANT Nct6793 = { 15, FALSE, 6, 6, 2, 8, Nct67TemperatureLabelsA, 0xbfff037e, 0x80000000, 7, 0, 0, &Nct6779Map };
 static CONST MB_NCT67_VARIANT Nct6795 = { 15, FALSE, 6, 6, 2, 2, Nct67TemperatureLabelsA, 0xbfffff7e, 0x80000000, 7, 0, 0, &Nct6779Map };
 static CONST MB_NCT67_VARIANT Nct6796 = { 15, FALSE, 7, 6, 2, 2, Nct67TemperatureLabelsB, 0xbfff0ffe, 0x80000c00, 7, 0, 0, &Nct6779Map };
@@ -340,7 +352,7 @@ static CONST MB_NCT67_VARIANT Nct6797 = { 15, FALSE, 7, 6, 2, 2, Nct67Temperatur
 // NCT6798D, NCT6799D, NCT6701D: PCH, Agent DIMM, BYTE_TEMP and calibrated PECI/TSI sources by register.
 static CONST MB_NCT67_DIRECT Nct6798Directs[] =
 {
-    { 0x400, 18 }, { 0x401, 19 }, { 0x402, 20 }, { 0x403, 21 },
+    { 0x400, 18 }, { 0x401, 19 }, { 0x402, 20 }, { 0x404, 21 },
     { 0x405, 22 }, { 0x406, 23 }, { 0x407, 24 }, { 0x408, 25 },
     { 0x419, 26 }, { 0x41a, 27 }, { 0x4f4, 28 }, { 0x4f5, 29 },
 };
@@ -396,6 +408,7 @@ static CONST USHORT Nct610xPwmRegisters[] = { 0x4a, 0x4b, 0x4c, 0xd8, 0xd9 };
 #define NCT610X_REG_VBAT 0x318
 #define NCT610X_FIXED_COUNT 6
 #define NCT610X_VBAT_INPUT 8
+#define NCT610X_FAN_MINIMUM_RPM 164 // 1350000 / 1FFFh, the count of a stopped fan
 #define NCT610X_TEMPERATURE_MASK 0x007ffffe // sources 1-22 of Nct6776TemperatureLabels
 
 static CONST MB_NCT610X_VARIANT Nct6106 = { 3, 3, 8, RTL_NUMBER_OF(Nct610xInputRegisters), Nct610xInputRegisters, Nct610xAltInputRegisters, NCT67_SCALED_INPUTS, Nct6775InputLabels };
@@ -462,6 +475,7 @@ static CONST USHORT W83627thfPwmRegisters[] = { 0x01, 0x03, 0x11 };
 #define W83627HF_REG_FANDIV 0x47
 #define W83627HF_REG_PIN 0x4b
 #define W83627HF_REG_VBAT 0x5d
+#define W83627HF_5VSB_INPUT 7
 #define W83627HF_VBAT_INPUT 8
 #define W83627HF_FANS 3
 
@@ -564,9 +578,9 @@ static CONST MB_ITE_VARIANT It8625 = { 11000, MB_ITE_SCALED | MB_ITE_IN7_INTERNA
 static CONST MB_ITE_VARIANT It8631 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 2, 2, 2 };
 static CONST MB_ITE_VARIANT It8655 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_BANK_SELECT, 6, 3, 3 };
 static CONST MB_ITE_VARIANT It8665 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_ALT_FAN6 | MB_ITE_BANK_SELECT, 6, 6, 6 };
-static CONST MB_ITE_VARIANT It8686 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_BANK_SELECT, 6, 6, 5 };
+static CONST MB_ITE_VARIANT It8686 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 5 };
 static CONST MB_ITE_VARIANT It8689 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 6 };
-static CONST MB_ITE_VARIANT It8696 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_BANK_SELECT, 6, 6, 6 };
+static CONST MB_ITE_VARIANT It8696 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 6 };
 static CONST MB_ITE_VARIANT It8736 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL, 3, 4, 3 };
 static CONST MB_ITE_VARIANT It8738 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM, 3, 3, 3 };
 
@@ -600,6 +614,7 @@ static CONST MB_FINTEK_VARIANT F81768d = { 0x7ff, 1, 3, 3, FALSE };
 static CONST MB_FINTEK_VARIANT F81865f = { 0x07f, 1, 2, 2, FALSE };
 static CONST MB_FINTEK_VARIANT F81866a = { 0x0ff, 0, 3, 3, FALSE };
 
+#define FINTEK_REG_START 0x01
 #define FINTEK_REG_IN(n) (0x20 + (n))
 #define FINTEK_REG_TEMP(n) (0x70 + 2 * (n))
 #define FINTEK_REG_TEMP_CONFIG 0x69
@@ -1348,6 +1363,8 @@ static VOID SuperIoAddFintekRegisters(
     _Inout_ PMB_REGISTER_LIST List
     )
 {
+    SuperIoAddRegister(List, FINTEK_REG_START);
+
     for (USHORT i = 0; i < RTL_NUMBER_OF(FintekInputLabels); i++)
     {
         if (Variant->InputMask & (1u << i))
@@ -1985,7 +2002,7 @@ static VOID SuperIoDecodeNct610x(
     for (ULONG i = 0; i < variant->FanCount; i++)
     {
         if (SuperIoRead16(registers, (USHORT)(NCT610X_REG_FAN_RPM + i * 2), &value16))
-            SuperIoAddFan(Context, i, (FLOAT)value16, FALSE);
+            SuperIoAddFan(Context, i, value16 > NCT610X_FAN_MINIMUM_RPM ? (FLOAT)value16 : 0, FALSE);
     }
 
     for (ULONG i = 0; i < variant->PwmCount; i++)
@@ -2196,6 +2213,8 @@ static VOID SuperIoDecodeW83627hf(
 
         if (i == 0 && vrm)
             raw = (value8 * 488 + 70000) / 100000.0f;
+        else if (i == W83627HF_5VSB_INPUT)
+            raw = value8 * 0.016f * (1.0f + 34.0f / 51.0f); // internal 34:51 divider
         else
             raw = value8 * 0.016f;
 
@@ -2479,10 +2498,17 @@ static VOID SuperIoDecodeFintek(
     PCMB_FINTEK_VARIANT variant = Context->State->Chip->Variant;
     PCMB_REGISTERS registers = Context->Registers;
     UCHAR pwmEnable;
+    UCHAR start;
     UCHAR value8;
     USHORT value16;
 
-    for (USHORT i = 0; i < RTL_NUMBER_OF(FintekInputLabels); i++)
+    // 01h: bit 0 runs the voltage and temperature monitor, bit 1 the fan monitor, bit 2 powers both down.
+    if (!SuperIoRead8(registers, FINTEK_REG_START, &start))
+        start = 0x03;
+    if (start & 0x04)
+        return;
+
+    for (USHORT i = 0; (start & 0x01) && i < RTL_NUMBER_OF(FintekInputLabels); i++)
     {
         if (!(variant->InputMask & (1u << i)) || !SuperIoRead8(registers, FINTEK_REG_IN(i), &value8))
             continue;
@@ -2490,7 +2516,7 @@ static VOID SuperIoDecodeFintek(
         SuperIoAddVoltage(Context, i, value8 * 0.008f, !!(FINTEK_SCALED_INPUTS & (1u << i)), FintekInputLabels[i]);
     }
 
-    for (USHORT i = 0; i < variant->TemperatureCount; i++)
+    for (USHORT i = 0; (start & 0x01) && i < variant->TemperatureCount; i++)
     {
         USHORT nr = variant->TemperatureStart + i;
         FLOAT temperature;
@@ -2532,7 +2558,7 @@ static VOID SuperIoDecodeFintek(
     if (!SuperIoRead8(registers, FINTEK_REG_PWM_ENABLE, &pwmEnable))
         pwmEnable = 0;
 
-    for (USHORT i = 0; i < variant->FanCount; i++)
+    for (USHORT i = 0; (start & 0x02) && i < variant->FanCount; i++)
     {
         USHORT target;
         USHORT fullSpeed;
