@@ -658,12 +658,15 @@ FLOAT NTAPI PhIntelPerfStatusToVolts(
     )
 {
     static const UCHAR atomModels[] = { 0x36, 0x37, 0x4D, 0x4A, 0x5A, 0x4C, 0x75, 0x5C, 0x5F, 0x7A, 0x86, 0x96, 0x9C };
+    static const UCHAR phiModels[] = { 0x57, 0x85 };
 
     if (!PhCpuIdentityIsIntel(Identity))
         return 0.0f;
     if (PhpIsIntelNehalem(Identity))
         return 0.0f;
     if (PhpCpuIdentityIsModel(Identity, 0x06, atomModels, RTL_NUMBER_OF(atomModels)))
+        return 0.0f;
+    if (PhpCpuIdentityIsModel(Identity, 0x06, phiModels, RTL_NUMBER_OF(phiModels)))
         return 0.0f;
 
     return (FLOAT)((ULONG)(PerfStatus >> 32) & 0xFFFF) / 8192.0f;
