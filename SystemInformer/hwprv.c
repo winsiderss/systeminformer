@@ -2235,8 +2235,10 @@ static VOID PhpHwResolveLegacyP0Definition(
     VOID
     )
 {
+    static CONST PH_STRINGREF hostBridgeClass = PH_STRINGREF_INIT(L"PCI\\CC_0600");
+    static CONST USHORT boostControlIds[] = { 0x1204, 0x1704, 0x1404, 0x1604, 0x141E, 0x1574, 0x15B4, 0x1534, 0x1584 }; // D18F4; keep in sync with kphdynhw.xml
     INT cpuInfo[4];
-    KPH_HW_PCI_LOCATOR locator;
+    KPH_HW_PCI_LOCATOR nodes[PHP_HW_MAX_ROOTS];
     ULONG control;
 
     PhpHwLegacyP0Definition = PH_AMD_MSR_PSTATE_DEF0;
@@ -2250,19 +2252,10 @@ static VOID PhpHwResolveLegacyP0Definition(
 
     PhpHwLegacyP0Definition = 0;
 
-    if (!PhpHwNodesEnumerated)
-    {
-        PhpHwNodesEnumerated = TRUE;
-        PhpHwAssignLegacyNodes();
-    }
-
-    if (!PhpHwPackages[0].NodeCount)
+    if (!PhpHwFindPciDevices(PHP_HW_AMD_VENDOR_ID, PHP_HW_AMD_VENDOR_ID, &hostBridgeClass, boostControlIds, RTL_NUMBER_OF(boostControlIds), FALSE, nodes, RTL_NUMBER_OF(nodes)))
         return;
 
-    locator = PhpHwPackages[0].Nodes[0];
-    locator.Function = 4;
-
-    if (!NT_SUCCESS(KphHwReadPciConfig(&locator, PH_AMD_D18F4_CPB_CONTROL, &control, sizeof(control), NULL)))
+    if (!NT_SUCCESS(KphHwReadPciConfig(&nodes[0], PH_AMD_D18F4_CPB_CONTROL, &control, sizeof(control), NULL)))
         return;
 
     PhpHwLegacyP0Definition = PH_AMD_MSR_PSTATE_DEF0 + PhAmdBoostStateCount(control, &PhpHwIdentity);
