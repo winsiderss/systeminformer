@@ -3309,7 +3309,8 @@ SamiValidateComputerAccountReuseAttempt(
  * \param Language The null-terminated hexadecimal language identifier.
  * \param Flags Initialization flags. Bit 0 skips the refresh.
  * \return Zero on success or one on failure.
- * \remarks Returns zero on success or one on failure. The last error is set from the localization status when a refresh is attempted.
+ * \remarks Returns zero on success or one on failure.
+ * The last error is set from the localization status when a refresh is attempted.
  */
 NTSYSAPI
 ULONG
