@@ -13610,16 +13610,18 @@ BOOLEAN NTAPI PhHwSourceSensorsPresent(
  * Retrieves a set of named sensors, in index order. The caller holds PhpHwNamedSensorLock.
  *
  * \param Set The set.
+ * \param Available Whether the driver sensors are available.
  * \param Count Receives the number of sensors in the set.
  * \return The sensors, or NULL past the last set.
  */
 static PPH_HW_NAMED_SENSOR PhpHwGetNamedSensorSetLocked(
     _In_ ULONG Set,
+    _In_ BOOLEAN Available,
     _Out_ PULONG Count
     )
 {
     // The driver sets are empty while its sensors are unavailable; the Windows counters do not need it.
-    if (Set < PHP_HW_NAMED_SET_COUNTERS && !PhpHwAvailable)
+    if (Set < PHP_HW_NAMED_SET_COUNTERS && !Available)
     {
         *Count = 0;
         return PhpHwNamedSensors;
@@ -13673,17 +13675,21 @@ PPH_HW_NAMED_SENSOR PhHwCopyNamedSensors(
     ULONG total = 0;
     ULONG copied = 0;
     ULONG count;
+    BOOLEAN available;
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
 
-    for (ULONG set = 0; PhpHwGetNamedSensorSetLocked(set, &count); set++)
+    // The provider writes the flag outside the lock; both passes use one value.
+    available = PhpHwAvailable;
+
+    for (ULONG set = 0; PhpHwGetNamedSensorSetLocked(set, available, &count); set++)
         total += count;
 
     if (total)
     {
         copy = PhAllocate(sizeof(PH_HW_NAMED_SENSOR) * total);
 
-        for (ULONG set = 0; (sensors = PhpHwGetNamedSensorSetLocked(set, &count)); set++)
+        for (ULONG set = 0; (sensors = PhpHwGetNamedSensorSetLocked(set, available, &count)); set++)
         {
             for (ULONG i = 0; i < count; i++)
             {
@@ -13729,7 +13735,7 @@ BOOLEAN PhHwGetNamedSensorValue(
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
 
-    for (ULONG set = 0; !found && (sensors = PhpHwGetNamedSensorSetLocked(set, &count)); set++)
+    for (ULONG set = 0; !found && (sensors = PhpHwGetNamedSensorSetLocked(set, PhpHwAvailable, &count)); set++)
     {
         for (ULONG i = 0; i < count; i++)
         {
