@@ -13,7 +13,10 @@
  * \param ExceptionRecord A pointer to the exception record. The dispatcher can update its flags while processing the exception.
  * \param ContextRecord A pointer to the processor context for the exception. An exception handler can modify this context.
  * \return TRUE if the exception was handled; otherwise, FALSE.
- * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
+ * \remarks These enter exception dispatch/raising, not error-code conversion.
+ * RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow.
+ * Unwind, debugger and architecture-specific handling require a valid context and exception protocol.
+ * Static symbol availability does not make arbitrary invocation safe.
  */
 NTSYSAPI
 BOOLEAN
@@ -28,7 +31,10 @@ RtlDispatchException(
  *
  * \param Status The NTSTATUS value to raise as an exception.
  * \return This function does not return.
- * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
+ * \remarks These enter exception dispatch/raising, not error-code conversion.
+ * RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow.
+ * Unwind, debugger and architecture-specific handling require a valid context and exception protocol.
+ * Static symbol availability does not make arbitrary invocation safe.
  */
 _Analysis_noreturn_
 NTSYSAPI
@@ -46,7 +52,10 @@ RtlRaiseStatus(
  * \return This function does not return a value.
  * \remarks The routine returns to its caller only if an exception handler handles the exception and resumes execution.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-raiseexception
- * \remarks These enter exception dispatch/raising, not error-code conversion. RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow. Unwind, debugger and architecture-specific handling require a valid context and exception protocol. Static symbol availability does not make arbitrary invocation safe.
+ * \remarks These enter exception dispatch/raising, not error-code conversion.
+ * RtlRaiseStatus raises a noncontinuable exception path; code after the call is not ordinary success flow.
+ * Unwind, debugger and architecture-specific handling require a valid context and exception protocol.
+ * Static symbol availability does not make arbitrary invocation safe.
  */
 NTSYSAPI
 VOID
@@ -185,7 +194,8 @@ NtRaiseException(
  * \param LineNumber The source line number at which the assertion failed.
  * \param MutableMessage An optional pointer to a null-terminated ANSI message associated with the assertion.
  * \return This function does not return a value.
- * \remarks Depending on the selected response, the routine can return, break into the debugger, or terminate the current thread or process.
+ * \remarks Depending on the selected response, the routine can return, break into the debugger, or terminate the
+ * current thread or process.
  */
 NTSYSAPI
 VOID
