@@ -558,6 +558,8 @@ typedef struct _KPH_DYN_CONFIG
 
 #define KPH_DYN_HW_MAILBOX_TRANSPORT_SMN_PAIR   ((UCHAR){{DynDataHw.MailboxTransportSmnPair}})
 #define KPH_DYN_HW_MAILBOX_TRANSPORT_MMIO_WINDOW ((UCHAR){{DynDataHw.MailboxTransportMmioWindow}})
+#define KPH_DYN_HW_MAILBOX_PROTOCOL_RSMU        ((UCHAR){{DynDataHw.MailboxProtocolRsmu}})
+#define KPH_DYN_HW_MAILBOX_PROTOCOL_HSMP        ((UCHAR){{DynDataHw.MailboxProtocolHsmp}})
 #define KPH_DYN_HW_MAILBOX_WINDOW_PAGE          ((ULONG)0x{{DynDataHw.MailboxWindowPage:X}})
 #define KPH_DYN_HW_MAILBOX_MAX_ARGS             ((UCHAR){{DynDataHw.MailboxMaxArgs}})
 #define KPH_DYN_HW_MAILBOX_MAX_COMMANDS         ((UCHAR){{DynDataHw.MailboxMaxCommands}})
@@ -936,7 +938,7 @@ typedef struct _KPH_DYN_HW_MAILBOX_TRANSACT
     UCHAR Transport; // KPH_DYN_HW_MAILBOX_TRANSPORT_*
     UCHAR ArgCount;
     UCHAR CommandCount;
-    UCHAR Reserved;
+    UCHAR Protocol; // KPH_DYN_HW_MAILBOX_PROTOCOL_*
     ULONG VersionOpcode;
     ULONG VersionArg0;
     KPH_DYN_HW_MAILBOX_ADDRESS Address;

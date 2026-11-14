@@ -18,6 +18,7 @@
 #define KPH_HW_MAILBOX_FIRMWARE_ENTRIES 16
 #define KPH_HW_MAILBOX_SPIN_US          50
 #define KPH_HW_MAILBOX_SPIN_COUNT       20
+#define KPH_HW_MAILBOX_HSMP_TIMEOUT     (100 * 10000ull)
 
 #define KPH_HW_MAILBOX_RSP_OK           0x01
 #define KPH_HW_MAILBOX_RSP_BUSY         0xFC
@@ -842,6 +843,8 @@ NTSTATUS KphpHwMailboxPostMsg(
  * \brief Runs one mailbox command.
  *
  * \details Another agent's command in flight (RSP zero) is never written over.
+ * HSMP software clears RSP before a command, there a zero RSP that outlasts a
+ * command is stale and is written over.
  *
  * \param[in] Session The mailbox session.
  * \param[in] Op The mailbox_transact op.
@@ -873,6 +876,7 @@ NTSTATUS KphpHwMailboxTransact(
     PKPH_DYN_HW_MAILBOX_TRANSACT mailbox;
     ULONG response;
     ULONG idle;
+    ULONG64 idleDeadline;
     BOOLEAN issued;
     BOOLEAN restoreIdle;
 
@@ -904,17 +908,40 @@ NTSTATUS KphpHwMailboxTransact(
         goto Exit;
     }
 
-    status = KphpHwMailboxWait(Session, Deadline, &response);
+    idleDeadline = Deadline;
+
+    if (mailbox->Protocol == KPH_DYN_HW_MAILBOX_PROTOCOL_HSMP)
+    {
+        NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTime(),
+                                             KPH_HW_MAILBOX_HSMP_TIMEOUT,
+                                             &idleDeadline)));
+        idleDeadline = min(idleDeadline, Deadline);
+    }
+
+    status = KphpHwMailboxWait(Session, idleDeadline, &response);
     if (status == STATUS_IO_TIMEOUT)
     {
+        if ((mailbox->Protocol != KPH_DYN_HW_MAILBOX_PROTOCOL_HSMP) ||
+            KphHwDeadlinePassed(Deadline))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Mailbox 0x%08lx busy before opcode 0x%02lx",
+                          Session->Msg,
+                          Opcode);
+
+            status = STATUS_DEVICE_BUSY;
+            goto Exit;
+        }
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Mailbox 0x%08lx busy before opcode 0x%02lx",
+                      "Mailbox 0x%08lx RSP stale before opcode 0x%02lx",
                       Session->Msg,
                       Opcode);
 
-        status = STATUS_DEVICE_BUSY;
-        goto Exit;
+        NT_ASSERT(!response);
+        status = STATUS_SUCCESS;
     }
 
     if (!NT_SUCCESS(status))
@@ -1089,7 +1116,7 @@ NTSTATUS KphpHwMailboxTransact(
 
 Exit:
 
-    if (restoreIdle)
+    if (restoreIdle && idle)
     {
         NTSTATUS restoreStatus;
 

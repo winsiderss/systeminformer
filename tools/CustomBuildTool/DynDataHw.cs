@@ -404,6 +404,14 @@ namespace CustomBuildTool
         /// </summary>
         public const byte MailboxTransportMmioWindow = 2;
         /// <summary>
+        /// A non-zero RSP is idle; a zero RSP is another agent's command in flight and is never written over.
+        /// </summary>
+        public const byte MailboxProtocolRsmu = 1;
+        /// <summary>
+        /// AMD HSMP: software writes zero to RSP before every command, so a zero RSP that stays zero is stale.
+        /// </summary>
+        public const byte MailboxProtocolHsmp = 2;
+        /// <summary>
         /// MSG, RSP and the argument registers lie in one page of the window.
         /// </summary>
         public const UInt32 MailboxWindowPage = 0x1000;
@@ -494,10 +502,10 @@ namespace CustomBuildTool
         public readonly record struct MailboxRegisters(UInt16 IndexOffset, UInt16 DataOffset, UInt32 Msg, UInt32 Rsp, UInt32 Arg0, byte ArgCount);
 
         /// <summary>
-        /// A mailbox protocol: its register sets, its read-only (GET) opcodes and, where the opcode map differs by part,
+        /// A mailbox protocol: its handshake kind, its register sets, its read-only (GET) opcodes and, where the opcode map differs by part,
         /// the (family, first model, last model) blocks that use it (null: any CPU whose root complex may hold a mailbox).
         /// </summary>
-        public sealed record MailboxProtocol(string Name, MailboxRegisters[] Smn, MailboxRegisters[] Mmio, byte[] GetOpcodes, (UInt16 Family, byte ModelMin, byte ModelMax)[] Cpus);
+        public sealed record MailboxProtocol(string Name, byte Kind, MailboxRegisters[] Smn, MailboxRegisters[] Mmio, byte[] GetOpcodes, (UInt16 Family, byte ModelMin, byte ModelMax)[] Cpus);
 
         /// <summary>
         /// The protocols a mailbox element names; an opcode or register set enters here as reviewed code, never as XML.
@@ -506,6 +514,7 @@ namespace CustomBuildTool
         [
             // AMD HSMP specification (EPYC PPR, Host System Management Port) GET messages; 02h GET_SMU_VER is the version query.
             new("hsmp",
+                Kind: MailboxProtocolHsmp,
                 Smn: [new(0xC4, 0xC8, 0x3B10534, 0x3B10980, 0x3B109E0, 8), new(0xC4, 0xC8, 0x3B10934, 0x3B10980, 0x3B109E0, 8)],
                 Mmio: [],
                 GetOpcodes: [0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x0A, 0x0B, 0x0F, 0x10, 0x11, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
@@ -513,6 +522,7 @@ namespace CustomBuildTool
                 Cpus: [(0x19, 0x00, 0x0F), (0x19, 0x10, 0x1F), (0x19, 0x30, 0x3F), (0x19, 0x90, 0x9F), (0x19, 0xA0, 0xAF), (0x1A, 0x00, 0x1F)]),
             // RSMU, APU map: 02h GetSmuVersion, 06h GetTableVersion, 65h TransferTableToDram, 66h GetDramBaseAddress.
             new("rsmu-renoir",
+                Kind: MailboxProtocolRsmu,
                 Smn: [new(0x60, 0x64, 0x3B10A20, 0x3B10A80, 0x3B10A88, 6)],
                 Mmio: [],
                 GetOpcodes: [0x02, 0x06, 0x65, 0x66],
@@ -520,24 +530,28 @@ namespace CustomBuildTool
             // RSMU, Raven map: 02h GetSmuVersion, 0Ah/0Bh the two-step GetDramBaseAddress, 0Ch GetTableVersion,
             // 3Dh TransferTableToDram.
             new("rsmu-raven",
+                Kind: MailboxProtocolRsmu,
                 Smn: [new(0x60, 0x64, 0x3B10A20, 0x3B10A80, 0x3B10A88, 6)],
                 Mmio: [],
                 GetOpcodes: [0x02, 0x0A, 0x0B, 0x0C, 0x3D],
                 Cpus: [(0x17, 0x10, 0x2F), (0x17, 0x50, 0x5F)]),
             // RSMU: 02h GetSmuVersion, 05h TransferTableToDram, 06h GetDramBaseAddress, 08h GetTableVersion.
             new("rsmu-matisse",
+                Kind: MailboxProtocolRsmu,
                 Smn: [new(0x60, 0x64, 0x3B10524, 0x3B10570, 0x3B10A40, 6)],
                 Mmio: [],
                 GetOpcodes: [0x02, 0x05, 0x06, 0x08],
                 Cpus: [(0x17, 0x30, 0x3F), (0x17, 0x70, 0x7F), (0x19, 0x00, 0x0F), (0x19, 0x20, 0x2F)]),
             // RSMU: 02h GetSmuVersion, 03h TransferTableToDram, 04h GetDramBaseAddress, 05h GetTableVersion.
             new("rsmu-raphael",
+                Kind: MailboxProtocolRsmu,
                 Smn: [new(0x60, 0x64, 0x3B10524, 0x3B10570, 0x3B10A40, 6)],
                 Mmio: [],
                 GetOpcodes: [0x02, 0x03, 0x04, 0x05],
                 Cpus: [(0x19, 0x18, 0x18), (0x19, 0x60, 0x6F), (0x1A, 0x40, 0x4F)]),
             // The Raphael map; Shimada Peak (1Ah M08h) moves MSG and RSP by 400h.
             new("rsmu-shimada",
+                Kind: MailboxProtocolRsmu,
                 Smn: [new(0x60, 0x64, 0x3B10924, 0x3B10970, 0x3B10A40, 6)],
                 Mmio: [],
                 GetOpcodes: [0x02, 0x03, 0x04, 0x05],
@@ -1111,6 +1125,7 @@ namespace CustomBuildTool
             SmbusHosts: [SmbusHostI801, SmbusHostPiix4],
             VsecDiscoveries: [VsecDiscoveryPmtTelemetry, VsecDiscoveryTpmi],
             MailboxTransports: [MailboxTransportSmnPair, MailboxTransportMmioWindow],
+            MailboxProtocolKinds: [MailboxProtocolRsmu, MailboxProtocolHsmp],
             SmuTableBounds: [SmuTableBoundAmdDram],
             SysregRegisters: [.. Enumerable.Range(SysregMidr, SysregMax).Select(r => (byte)r)]
         );
@@ -1261,7 +1276,7 @@ namespace CustomBuildTool
             FieldOffset<HwMailboxCommand>("KPH_DYN_HW_MAILBOX_COMMAND", "ArgFixed", 72),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "ArgCount", 1),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "CommandCount", 2),
-            FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Reserved", 3),
+            FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Protocol", 3),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "VersionOpcode", 4),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "VersionArg0", 8),
             FieldOffset<HwMailboxTransact>("KPH_DYN_HW_MAILBOX_TRANSACT", "Address", 12),
@@ -1653,7 +1668,7 @@ namespace CustomBuildTool
             public byte Transport;
             public byte ArgCount;
             public byte CommandCount;
-            public byte Reserved;
+            public byte Protocol;
             public UInt32 VersionOpcode;
             public UInt32 VersionArg0;
             public HwMailboxSmn Address;
@@ -1917,7 +1932,7 @@ namespace CustomBuildTool
     /// <summary>
     /// The kinds, families, transports, shapes, registers and port pairs a driver implements.
     /// </summary>
-    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] SmuTableBounds, byte[] SysregRegisters);
+    public sealed record HwKindSet(UInt16[] OpKinds, byte[] IdentityKinds, byte[] GateKinds, byte[] WindowBaseKinds, byte[] SuperIoFamilies, byte[] SmbusHosts, byte[] VsecDiscoveries, byte[] MailboxTransports, byte[] MailboxProtocolKinds, byte[] SmuTableBounds, byte[] SysregRegisters);
 
     /// <summary>
     /// An index row: an exact identity and its op table.
@@ -2693,6 +2708,7 @@ namespace CustomBuildTool
             {
                 Transport = DynDataHw.MailboxTransportSmnPair,
                 ArgCount = argCount,
+                Protocol = protocol.Kind,
                 VersionOpcode = versionOpcode,
                 VersionArg0 = versionArg != null ? (UInt32)ParseHex(Context, Mailbox, "version-arg", versionArg, UInt32.MaxValue) : 0,
                 Address = new DynDataHw.HwMailboxSmn
@@ -2801,6 +2817,7 @@ namespace CustomBuildTool
             {
                 Transport = DynDataHw.MailboxTransportMmioWindow,
                 ArgCount = argCount,
+                Protocol = protocol.Kind,
                 VersionOpcode = versionOpcode,
                 VersionArg0 = versionArg != null ? (UInt32)ParseHex(Context, Mailbox, "version-arg", versionArg, UInt32.MaxValue) : 0
             };
@@ -6920,15 +6937,16 @@ namespace CustomBuildTool
 
             if (!DynDataHw.DriverKinds.MailboxTransports.Contains(mailbox.Transport))
                 throw Fail($"mailbox_transact transport {mailbox.Transport} is not implemented by the driver");
+            if (!DynDataHw.DriverKinds.MailboxProtocolKinds.Contains(mailbox.Protocol))
+                throw Fail($"mailbox_transact protocol {mailbox.Protocol} is not implemented by the driver");
             if (mailbox.CommandCount > DynDataHw.MailboxMaxCommands)
                 throw Fail($"mailbox_transact has {mailbox.CommandCount} commands, cap {DynDataHw.MailboxMaxCommands}");
             if (DynDataHw.MailboxTransactSize + mailbox.CommandCount * DynDataHw.MailboxCommandSize > Body.Length)
                 throw Fail("mailbox_transact commands overrun the op");
             if (mailbox.CommandCount < 1 || mailbox.ArgCount < 1 || mailbox.ArgCount > DynDataHw.MailboxMaxArgs ||
-                mailbox.Reserved != 0 ||
                 mailbox.VersionOpcode < 1 || mailbox.VersionOpcode > DynDataHw.MailboxMaxOpcode)
             {
-                throw Fail("mailbox_transact has no command, a bad argument count or version opcode, or non-zero reserved bytes");
+                throw Fail("mailbox_transact has no command or a bad argument count or version opcode");
             }
             if (mmio)
             {
