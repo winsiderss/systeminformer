@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "..\exttools.h"
+#include <utility>
 
 #pragma comment(lib, "tdh.lib")
 #include <tdh.h>
@@ -53,22 +54,22 @@ uint32_t GetStringPropertySize(TRACE_EVENT_INFO const& tei, EVENT_RECORD const& 
 {
     auto const& epi = tei.EventPropertyInfoArray[index];
 
-    if ((epi.Flags & PropertyParamLength) != 0) {
+    if (std::cmp_not_equal((epi.Flags & PropertyParamLength), 0)) {
         assert(false); // TODO: just not implemented yet
         return 0;
     }
 
-    if (epi.length != 0) {
+    if (std::cmp_not_equal(epi.length, 0)) {
         return epi.length * sizeof(T);
     }
 
-    if (offset == UINT32_MAX) {
+    if (std::cmp_equal(offset, UINT32_MAX)) {
         offset = GetPropertyDataOffset(tei, eventRecord, index);
-        assert(offset <= eventRecord.UserDataLength);
+        assert(std::cmp_less_equal(offset, eventRecord.UserDataLength));
     }
 
     for (uint32_t size = 0;; size += sizeof(T)) {
-        if (offset + size > eventRecord.UserDataLength) {
+        if (std::cmp_greater(offset + size, eventRecord.UserDataLength)) {
             // string ends at end of block, possibly ok (see note above)
             return size - sizeof(T);
         }
@@ -90,7 +91,7 @@ void GetPropertySize(
 {
     // We don't handle all flags yet, these are the ones we do:
     auto const& epi = tei.EventPropertyInfoArray[index];
-    assert((epi.Flags & ~(PropertyStruct | PropertyParamCount | PropertyParamFixedCount)) == 0);
+    assert(std::cmp_equal((epi.Flags & ~(PropertyStruct | PropertyParamCount | PropertyParamFixedCount)), 0));
 
     // Use the epi length and count by default.  There are cases where the count
     // is valid but (epi.Flags & PropertyParamFixedCount) == 0.
@@ -101,7 +102,7 @@ void GetPropertySize(
     {
         size = 0;
 
-        for (USHORT i = 0; i < epi.structType.NumOfStructMembers; ++i)
+        for (USHORT i = 0; std::cmp_less(i, epi.structType.NumOfStructMembers); ++i)
         {
             ULONG memberSize = 0;
             ULONG memberCount = 0;
@@ -172,13 +173,13 @@ void GetPropertySize(
 
 ULONG GetPropertyDataOffset(TRACE_EVENT_INFO const& tei, EVENT_RECORD const& eventRecord, ULONG index)
 {
-    assert(index < tei.TopLevelPropertyCount);
+    assert(std::cmp_less(index, tei.TopLevelPropertyCount));
     ULONG size = 0;
     ULONG count = 0;
     ULONG offset = 0;
     ULONG status = 0;
 
-    for (ULONG i = 0; i < index; ++i)
+    for (ULONG i = 0; std::cmp_less(i, index); ++i)
     {
         GetPropertySize(tei, eventRecord, i, offset, &size, &count, &status);
         offset += size * count;
@@ -191,11 +192,11 @@ ULONG GetPropertyDataOffset(TRACE_EVENT_INFO const& tei, EVENT_RECORD const& eve
 
 size_t EventMetadataKeyHash::operator()(EventMetadataKey const& key) const
 {
-    static_assert((sizeof(key) % sizeof(size_t)) == 0, "sizeof(EventMetadataKey) must be multiple of sizeof(size_t)");
+    static_assert(std::cmp_equal((sizeof(key) % sizeof(size_t)), 0), "sizeof(EventMetadataKey) must be multiple of sizeof(size_t)");
     auto p = (size_t const*) &key;
     auto h = (size_t) 0;
 
-    for (size_t i = 0; i < sizeof(key) / sizeof(size_t); ++i)
+    for (size_t i = 0; std::cmp_less(i, sizeof(key) / sizeof(size_t)); ++i)
     {
         h ^= p[i];
     }
@@ -205,17 +206,17 @@ size_t EventMetadataKeyHash::operator()(EventMetadataKey const& key) const
 
 bool EventMetadataKeyEqual::operator()(EventMetadataKey const& lhs, EventMetadataKey const& rhs) const
 {
-    return memcmp(&lhs, &rhs, sizeof(EventMetadataKey)) == 0;
+    return std::cmp_equal(memcmp(&lhs, &rhs, sizeof(EventMetadataKey)), 0);
 }
 
 void EventMetadata::AddMetadata(EVENT_RECORD* eventRecord)
 {
-    if (eventRecord->EventHeader.EventDescriptor.Opcode == Microsoft_Windows_EventMetadata::EventInfo::Opcode)
+    if (std::cmp_equal(eventRecord->EventHeader.EventDescriptor.Opcode, Microsoft_Windows_EventMetadata::EventInfo::Opcode))
     {
         auto userData = (uint8_t const*)eventRecord->UserData;
         auto tei = (TRACE_EVENT_INFO const*)userData;
 
-        if (tei->DecodingSource == DecodingSourceTlg || tei->EventDescriptor.Channel == 0xB)
+        if (tei->DecodingSource == DecodingSourceTlg || std::cmp_equal(tei->EventDescriptor.Channel, 0xB))
         {
             return; // Don't store tracelogging metadata
         }
@@ -246,12 +247,12 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
         status = TdhGetEventInformation(eventRecord, 0, nullptr, nullptr, &bufferSize);
 
-        if (status == ERROR_INSUFFICIENT_BUFFER)
+        if (std::cmp_equal(status, ERROR_INSUFFICIENT_BUFFER))
         {
             ii = metadata_.emplace(key, std::vector<uint8_t>(bufferSize, 0)).first;
 
             status = TdhGetEventInformation(eventRecord, 0, nullptr, (TRACE_EVENT_INFO*) ii->second.data(), &bufferSize);
-            assert(status == ERROR_SUCCESS);
+            assert(std::cmp_equal(status, ERROR_SUCCESS));
         }
         else
         {
@@ -268,12 +269,12 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
 #if 0 /* Helper to see all property names while debugging */
     std::vector<wchar_t const*> props(tei->TopLevelPropertyCount, nullptr);
-    for (ULONG i = 0; i < tei->TopLevelPropertyCount; ++i) {
+    for (ULONG i = 0; std::cmp_less(i, tei->TopLevelPropertyCount); ++i) {
         props[i] = TEI_PROPERTY_NAME(tei, &tei->EventPropertyInfoArray[i]);
     }
 #endif
 
-    for (ULONG i = 0, offset = 0; i < tei->TopLevelPropertyCount; ++i)
+    for (ULONG i = 0, offset = 0; std::cmp_less(i, tei->TopLevelPropertyCount); ++i)
     {
         ULONG size = 0;
         ULONG count = 0;
@@ -283,9 +284,9 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
         PWSTR propName = TEI_PROPERTY_NAME(tei, &tei->EventPropertyInfoArray[i]);
 
-        for (ULONG j = 0; j < descCount; ++j)
+        for (ULONG j = 0; std::cmp_less(j, descCount); ++j)
         {
-            if (desc[j].status_ == PROP_STATUS_NOT_FOUND && wcscmp(propName, desc[j].name_) == 0)
+            if (desc[j].status_ == PROP_STATUS_NOT_FOUND && std::cmp_equal(wcscmp(propName, desc[j].name_), 0))
             {
                 desc[j].data_ = (void*)((uintptr_t)eventRecord->UserData + offset);
                 desc[j].size_ = size;
@@ -294,7 +295,7 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
                 foundCount += 1;
 
-                if (foundCount == descCount)
+                if (std::cmp_equal(foundCount, descCount))
                 {
                     return;
                 }

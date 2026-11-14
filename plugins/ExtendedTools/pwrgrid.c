@@ -655,6 +655,8 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_POWER_GRID_LISTVIEW_COLUMNS, context->ListViewHandle);
 
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+
             PhCreateThread2(EtpEnumeratePowerGridForecast, WindowHandle);
 
             PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
@@ -951,6 +953,7 @@ NTSTATUS EtPowerGridDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

@@ -188,9 +188,9 @@ VOID EtAddGpuFrameToHashTable(
             entry->DisplayLatency = DisplayLatency;
         //if (entry->DisplayFramesPerSecond < DisplayFramesPerSecond)
         //    entry->DisplayFramesPerSecond = DisplayFramesPerSecond;
-        if (entry->Runtime != Runtime)
+        if (std::cmp_not_equal(entry->Runtime, Runtime))
             entry->Runtime = Runtime;
-        if (entry->PresentMode != PresentMode)
+        if (std::cmp_not_equal(entry->PresentMode, PresentMode))
             entry->PresentMode = PresentMode;
     }
     else

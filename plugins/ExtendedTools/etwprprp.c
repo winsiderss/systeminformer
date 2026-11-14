@@ -775,6 +775,7 @@ VOID EtwDiskCreatePanel(
         );
 
     ShowWindow(Context->PanelHandle, SW_SHOW);
+    UpdateWindow(Context->PanelHandle);
 
     margin.left = 0;
     margin.top = 0;
@@ -815,6 +816,7 @@ VOID EtwNetworkCreatePanel(
         );
 
     ShowWindow(Context->PanelHandle, SW_SHOW);
+    UpdateWindow(Context->PanelHandle);
 
     margin.left = 0;
     margin.top = 0;

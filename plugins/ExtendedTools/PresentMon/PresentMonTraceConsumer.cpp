@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "..\exttools.h"
+#include <utility>
 
 #include "PresentMonTraceConsumer.hpp"
 
@@ -117,7 +118,7 @@ const WaitOnAddressShim& GetWaitOnAddressShim(
 
 static void DecrementAndWakeIfDrained(VOID)
 {
-    if (InterlockedDecrement(&mEventProcessingInFlight) == 0)
+    if (std::cmp_equal(InterlockedDecrement(&mEventProcessingInFlight), 0))
     {
         auto const& shim = GetWaitOnAddressShim();
 
@@ -164,7 +165,7 @@ uint32_t GetDeferredCompletionWaitCount(PresentEvent const& p)
 {
     // If the present was displayed or discarded before Present_Stop, defer
     // completion for for one Present_Stop.
-    if (p.Runtime != Runtime::Other && p.PresentStopTime == 0) {
+    if (p.Runtime != Runtime::Other && std::cmp_equal(p.PresentStopTime, 0)) {
         return 1;
     }
 
@@ -370,7 +371,7 @@ void HandleDxgkFlip(EVENT_HEADER const& hdr, int32_t flipInterval, bool isMMIOFl
         if (presentEvent == nullptr)
             return;
 
-        if (presentEvent->QueueSubmitSequence == 0 && !presentEvent->SeenDxgkPresent)
+        if (std::cmp_equal(presentEvent->QueueSubmitSequence, 0) && !presentEvent->SeenDxgkPresent)
             break;
 
         RemoveLostPresent(presentEvent);
@@ -386,7 +387,7 @@ void HandleDxgkFlip(EVENT_HEADER const& hdr, int32_t flipInterval, bool isMMIOFl
 
         presentEvent->PresentMode = PresentMode::Hardware_Legacy_Flip;
 
-        if (flipInterval != -1)
+        if (std::cmp_not_equal(flipInterval, -1))
         {
             presentEvent->SyncInterval = flipInterval;
         }
@@ -398,13 +399,13 @@ void HandleDxgkFlip(EVENT_HEADER const& hdr, int32_t flipInterval, bool isMMIOFl
         {
             presentEvent->WaitForMPOFlipEvent = true;
         }
-        if (!isMMIOFlip && flipInterval == 0)
+        if (!isMMIOFlip && std::cmp_equal(flipInterval, 0))
         {
             presentEvent->SupportsTearing = true;
         }
 
         // If this is the DWM thread, piggyback these pending presents on our fullscreen present
-        if (hdr.ThreadId == DwmPresentThreadId)
+        if (std::cmp_equal(hdr.ThreadId, DwmPresentThreadId))
         {
             for (auto& p : mPresentsWaitingForDWM)
             {
@@ -443,14 +444,14 @@ void HandleDxgkQueueSubmit(
                 present->SeenDxgkPresent = true;
 
                 // If the work is already done, complete it now.
-                if (present->ScreenTime != 0) {
+                if (std::cmp_not_equal(present->ScreenTime, 0)) {
                     CompletePresent(present);
                 }
             }
 
             // We're done with DxgkContext tracking, if the present hasn't
             // completed remove it from the tracking now.
-            if (present->DxgkContext != 0) {
+            if (std::cmp_not_equal(present->DxgkContext, 0)) {
                 mPresentByDxgkContext.erase(eventIter);
                 present->DxgkContext = 0;
             }
@@ -459,14 +460,14 @@ void HandleDxgkQueueSubmit(
 
     // This event is emitted after a flip/blt/PHT event, and may be the only
     // way to trace completion of the present.
-    if (packetType == (uint32_t) Microsoft_Windows_DxgKrnl::QueuePacketType::DXGKETW_MMIOFLIP_COMMAND_BUFFER ||
-        packetType == (uint32_t) Microsoft_Windows_DxgKrnl::QueuePacketType::DXGKETW_SOFTWARE_COMMAND_BUFFER ||
+    if (std::cmp_equal(packetType, (uint32_t) Microsoft_Windows_DxgKrnl::QueuePacketType::DXGKETW_MMIOFLIP_COMMAND_BUFFER) ||
+        std::cmp_equal(packetType, (uint32_t) Microsoft_Windows_DxgKrnl::QueuePacketType::DXGKETW_SOFTWARE_COMMAND_BUFFER) ||
         isPresentPacket) {
         auto eventIter = mPresentByThreadId.find(hdr.ThreadId);
         if (eventIter != mPresentByThreadId.end()) {
             auto present = eventIter->second;
 
-            if (present->QueueSubmitSequence == 0) {
+            if (std::cmp_equal(present->QueueSubmitSequence, 0)) {
 
                 TRACK_PRESENT_PATH(present);
                // DebugModifyPresent(present.get());
@@ -514,7 +515,7 @@ void HandleDxgkQueueComplete(uint64_t timestamp, uint64_t hContext, uint32_t sub
             {
                 //VerboseTraceBeforeModifyingPresent(pEvent.get());
 
-                if (pEvent->ReadyTime == 0)
+                if (std::cmp_equal(pEvent->ReadyTime, 0))
                 {
                     pEvent->ReadyTime = timestamp;
                 }
@@ -555,7 +556,7 @@ std::shared_ptr<PresentEvent> FindPresentBySubmitSequence(uint32_t submitSequenc
             auto present = jj->second;
             for (++jj; jj != je; ++jj)
             {
-                if (present->PresentStartTime > jj->second->PresentStartTime)
+                if (std::cmp_greater(present->PresentStartTime, jj->second->PresentStartTime))
                 {
                     present = jj->second;
                 }
@@ -644,7 +645,7 @@ void HandleDxgkPresentHistory(
         if (presentEvent == nullptr)
             return;
 
-        if (presentEvent->DxgkPresentHistoryToken == 0)
+        if (std::cmp_equal(presentEvent->DxgkPresentHistoryToken, 0))
             break;
 
         RemoveLostPresent(presentEvent);
@@ -667,13 +668,13 @@ void HandleDxgkPresentHistory(
     mPresentByDxgkPresentHistoryToken[token] = presentEvent;
 
     if (presentEvent->PresentMode == PresentMode::Hardware_Legacy_Copy_To_Front_Buffer) {
-        assert(presentModel == (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_UNINITIALIZED ||
-               presentModel == (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_BLT);
+        assert(std::cmp_equal(presentModel, (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_UNINITIALIZED) ||
+               std::cmp_equal(presentModel, (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_BLT));
         presentEvent->PresentMode = PresentMode::Composed_Copy_GPU_GDI;
     }
     else if (presentEvent->PresentMode == PresentMode::Unknown)
     {
-        if (presentModel == (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_COMPOSITION)
+        if (std::cmp_equal(presentModel, (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_COMPOSITION))
         {
             /* BEGIN WORKAROUND: DirectComposition presents are currently ignored. There
              * were rare situations observed where they would lead to issues during present
@@ -692,7 +693,7 @@ void HandleDxgkPresentHistory(
             presentEvent->PresentMode = PresentMode::Composed_Flip;
         }
     } else if (presentEvent->PresentMode == PresentMode::Composed_Copy_CPU_GDI) {
-        if (tokenData == 0) {
+        if (std::cmp_equal(tokenData, 0)) {
             // This is the best we can do, we won't be able to tell how many frames are actually displayed.
             mPresentsWaitingForDWM.emplace_back(presentEvent);
             presentEvent->PresentInDwmWaitingStruct = true;
@@ -721,9 +722,9 @@ void HandleDxgkPresentHistoryInfo(EVENT_HEADER const& hdr, uint64_t token)
     //DebugModifyPresent(eventIter->second.get());
     TRACK_PRESENT_PATH_SAVE_GENERATED_ID(eventIter->second);
 
-    eventIter->second->ReadyTime = eventIter->second->ReadyTime == 0
+    eventIter->second->ReadyTime = std::cmp_equal(eventIter->second->ReadyTime, 0)
         ? hdr.TimeStamp.QuadPart
-        : __min(eventIter->second->ReadyTime, (uint64_t) hdr.TimeStamp.QuadPart);
+        : std::min(eventIter->second->ReadyTime, static_cast<uint64_t>(hdr.TimeStamp.QuadPart));
 
     // Neither Composed Composition Atlas or Win7 Flip has DWM events indicating intent
     // to present this frame.
@@ -760,7 +761,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         };
         mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
         auto FlipInterval = desc[0].GetData<uint32_t>();
-        auto MMIOFlip     = desc[1].GetData<BOOL>() != 0;
+        auto MMIOFlip     = std::cmp_not_equal(desc[1].GetData<BOOL>(), 0);
 
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkFlip(hdr, FlipInterval, MMIOFlip, false);
@@ -805,7 +806,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         auto PacketType     = desc[0].GetData<uint32_t>();
         auto SubmitSequence = desc[1].GetData<uint32_t>();
         auto hContext       = desc[2].GetData<uint64_t>();
-        auto bPresent       = desc[3].GetData<BOOL>() != 0;
+        auto bPresent       = std::cmp_not_equal(desc[3].GetData<BOOL>(), 0);
 
         HandleDxgkQueueSubmit(hdr, hContext, SubmitSequence, PacketType, bPresent, false);
         break;
@@ -840,7 +841,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
     }
     case Microsoft_Windows_DxgKrnl::MMIOFlipMultiPlaneOverlay_Info::Id:
     {
-        auto flipEntryStatusAfterFlipValid = hdr.EventDescriptor.Version >= 2;
+        auto flipEntryStatusAfterFlipValid = std::cmp_greater_equal(hdr.EventDescriptor.Version, 2);
         EventDataDesc desc[] = {
             { L"FlipSubmitSequence" },
             { L"FlipEntryStatusAfterFlip" }, // optional
@@ -856,7 +857,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
 
             // For some present modes (e.g., Hardware_Legacy_Flip) this may be
             // the first event telling us the present is ready.
-            if (present->ReadyTime == 0)
+            if (std::cmp_equal(present->ReadyTime, 0))
             {
                 //VerboseTraceBeforeModifyingPresent(present.get());
                 present->ReadyTime = hdr.TimeStamp.QuadPart;
@@ -868,7 +869,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
                 auto FlipEntryStatusAfterFlip = desc[1].GetData<uint32_t>();
 
                 // Nothing to do for FlipWaitVSync other than wait for the VSync events.
-                if (FlipEntryStatusAfterFlip != (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitVSync)
+                if (std::cmp_not_equal(FlipEntryStatusAfterFlip, (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitVSync))
                 {
                     TRACK_PRESENT_PATH(present);
 
@@ -879,13 +880,13 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
                     // For FlipWaitVSync and FlipWaitHSync, we'll wait for the
                     // corresponding ?SyncDPC event.  Otherwise we consider
                     // this the present screen time.
-                    if (FlipEntryStatusAfterFlip != (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitHSync)
+                    if (std::cmp_not_equal(FlipEntryStatusAfterFlip, (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitHSync))
                     {
                         TRACK_PRESENT_PATH(present);
 
                         present->FinalState = PresentResult::Presented;
 
-                        if (FlipEntryStatusAfterFlip == (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitComplete)
+                        if (std::cmp_equal(FlipEntryStatusAfterFlip, (uint32_t)Microsoft_Windows_DxgKrnl::FlipEntryStatus::FlipWaitComplete))
                         {
                             present->ScreenTime = hdr.TimeStamp.QuadPart;
                         }
@@ -911,8 +912,8 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         };
 
         // Name changed from "ScannedPhysicalAddress" to "PresentIdOrPhysicalAddress"
-        if (hdr.EventDescriptor.Id == Microsoft_Windows_DxgKrnl::VSyncDPCMultiPlane_Info::Id &&
-            hdr.EventDescriptor.Version >= 1) {
+        if (std::cmp_equal(hdr.EventDescriptor.Id, Microsoft_Windows_DxgKrnl::VSyncDPCMultiPlane_Info::Id) &&
+            std::cmp_greater_equal(hdr.EventDescriptor.Version, 1)) {
             desc[1].name_ = L"PresentIdOrPhysicalAddress";
         }
 
@@ -922,14 +923,14 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         auto FlipEntryCount     = desc[2].GetData<uint32_t>();
         auto FlipSubmitSequence = desc[3].GetArray<uint64_t>(FlipEntryCount);
 
-        if (FlipEntryCount > 0) {
+        if (std::cmp_greater(FlipEntryCount, 0)) {
             // The number of active planes is determined by the number of
             // non-zero addresses.  All we care about is if there are more
             // than one or not.
             bool isMultiPlane = false;
-            for (uint32_t i = 0, activePlaneCount = 0; i < PlaneCount; ++i) {
-                if (PlaneAddress[i] != 0) {
-                    if (activePlaneCount == 1) {
+            for (uint32_t i = 0, activePlaneCount = 0; std::cmp_less(i, PlaneCount); ++i) {
+                if (std::cmp_not_equal(PlaneAddress[i], 0)) {
+                    if (std::cmp_equal(activePlaneCount, 1)) {
                         isMultiPlane = true;
                         break;
                     }
@@ -937,8 +938,8 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
                 }
             }
 
-            for (uint32_t i = 0; i < FlipEntryCount; ++i) {
-                if (FlipSubmitSequence[i] > 0) {
+            for (uint32_t i = 0; std::cmp_less(i, FlipEntryCount); ++i) {
+                if (std::cmp_greater(FlipSubmitSequence[i], 0)) {
                     auto submitSequence = (uint32_t)(FlipSubmitSequence[i] >> 32u);
                     auto pEvent = FindPresentBySubmitSequence(submitSequence);
                     if (pEvent != nullptr) {
@@ -972,7 +973,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         TRACK_PRESENT_PATH_GENERATE_ID();
 
         auto FlipFenceId = mMetadata.GetEventData<uint64_t>(pEventRecord, L"FlipFenceId");
-        if (FlipFenceId != 0)
+        if (std::cmp_not_equal(FlipFenceId, 0))
         {
             HandleDxgkSyncDPC(hdr.TimeStamp.QuadPart, (uint32_t)(FlipFenceId >> 32u));
         }
@@ -993,7 +994,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
             //DebugModifyPresent(present.get());
             present->SeenDxgkPresent = true;
 
-            if (present->Hwnd == 0) {
+            if (std::cmp_equal(present->Hwnd, 0)) {
                 present->Hwnd = mMetadata.GetEventData<uint64_t>(pEventRecord, L"hWindow");
             }
 
@@ -1002,14 +1003,14 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
             // due to batched presents or non-instrumented present APIs (i.e.,
             // not DXGI nor D3D9).
             if (present->Runtime == Runtime::Other ||
-                present->ThreadId != hdr.ThreadId) {
+                std::cmp_not_equal(present->ThreadId, hdr.ThreadId)) {
                 mPresentByThreadId.erase(eventIter);
             }
 
             // If this is a deferred blit that's already seen QueuePacket_Stop,
             // then complete it now.
             if (present->PresentMode == PresentMode::Hardware_Legacy_Copy_To_Front_Buffer &&
-                present->ScreenTime != 0) {
+                std::cmp_not_equal(present->ScreenTime, 0)) {
                 CompletePresent(present);
             }
         }
@@ -1028,7 +1029,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         auto Model     = desc[1].GetData<uint32_t>(); // Microsoft_Windows_DxgKrnl::PresentModel
         auto TokenData = desc[2].GetData<uint64_t>();
 
-        if (Model != (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_GDI)
+        if (std::cmp_not_equal(Model, (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_REDIRECTED_GDI))
         {
             TRACK_PRESENT_PATH_GENERATE_ID();
             HandleDxgkPresentHistory(hdr, Token, TokenData, Model);
@@ -1047,7 +1048,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         };
         mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
         auto WindowHandle = desc[0].GetData<uint64_t>();
-        auto bRedirectedPresent = desc[1].GetData<uint32_t>() != 0;
+        auto bRedirectedPresent = std::cmp_not_equal(desc[1].GetData<uint32_t>(), 0);
 
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkBlt(hdr, WindowHandle, bRedirectedPresent);
@@ -1183,7 +1184,7 @@ void HandleWin7DxgkBlt(EVENT_RECORD* pEventRecord)
     HandleDxgkBlt(
         pEventRecord->EventHeader,
         pBltEvent->WindowHandle,
-        pBltEvent->bRedirectedPresent != 0);
+        std::cmp_not_equal(pBltEvent->bRedirectedPresent, 0));
 }
 
 void HandleWin7DxgkFlip(EVENT_RECORD* pEventRecord)
@@ -1195,7 +1196,7 @@ void HandleWin7DxgkFlip(EVENT_RECORD* pEventRecord)
     HandleDxgkFlip(
         pEventRecord->EventHeader,
         pFlipEvent->FlipInterval,
-        pFlipEvent->MMIOFlip != 0,
+        std::cmp_not_equal(pFlipEvent->MMIOFlip, 0),
         false);
 }
 
@@ -1204,7 +1205,7 @@ void HandleWin7DxgkPresentHistory(EVENT_RECORD* pEventRecord)
     //DebugEvent(this, pEventRecord, &mMetadata);
 
     auto pPresentHistoryEvent = static_cast<Win7::DXGKETW_PRESENTHISTORYEVENT*>(pEventRecord->UserData);
-    if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START)
+    if (std::cmp_equal(pEventRecord->EventHeader.EventDescriptor.Opcode, EVENT_TRACE_TYPE_START))
     {
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkPresentHistory(
@@ -1213,7 +1214,7 @@ void HandleWin7DxgkPresentHistory(EVENT_RECORD* pEventRecord)
             0,
             (uint32_t)Microsoft_Windows_DxgKrnl::PresentModel::D3DKMT_PM_UNINITIALIZED);
     }
-    else if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_INFO)
+    else if (std::cmp_equal(pEventRecord->EventHeader.EventDescriptor.Opcode, EVENT_TRACE_TYPE_INFO))
     {
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkPresentHistoryInfo(pEventRecord->EventHeader, pPresentHistoryEvent->Token);
@@ -1224,16 +1225,16 @@ void HandleWin7DxgkQueuePacket(EVENT_RECORD* pEventRecord)
 {
     //DebugEvent(this, pEventRecord, &mMetadata);
 
-    if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START) {
+    if (std::cmp_equal(pEventRecord->EventHeader.EventDescriptor.Opcode, EVENT_TRACE_TYPE_START)) {
         auto pSubmitEvent = static_cast<Win7::DXGKETW_QUEUESUBMITEVENT*>(pEventRecord->UserData);
         HandleDxgkQueueSubmit(
             pEventRecord->EventHeader,
             pSubmitEvent->hContext,
             pSubmitEvent->SubmitSequence,
             pSubmitEvent->PacketType,
-            pSubmitEvent->bPresent != 0,
+            std::cmp_not_equal(pSubmitEvent->bPresent, 0),
             true);
-    } else if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_STOP) {
+    } else if (std::cmp_equal(pEventRecord->EventHeader.EventDescriptor.Opcode, EVENT_TRACE_TYPE_STOP)) {
         auto pCompleteEvent = static_cast<Win7::DXGKETW_QUEUECOMPLETEEVENT*>(pEventRecord->UserData);
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkQueueComplete(
@@ -1292,7 +1293,7 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
             { L"DestWidth" },  // version >= 1
             { L"DestHeight" }, // version >= 1
         };
-        mMetadata.GetEventData(pEventRecord, desc, _countof(desc) - (hdr.EventDescriptor.Version == 0 ? 2 : 0));
+        mMetadata.GetEventData(pEventRecord, desc, _countof(desc) - (std::cmp_equal(hdr.EventDescriptor.Version, 0) ? 2 : 0));
         auto CompositionSurfaceLuid = desc[0].GetData<uint64_t>();
         auto PresentCount           = desc[1].GetData<uint64_t>();
         auto BindId                 = desc[2].GetData<uint64_t>();
@@ -1319,7 +1320,7 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
         present->PresentMode = PresentMode::Composed_Flip;
         present->SeenWin32KEvents = true;
 
-        if (hdr.EventDescriptor.Version >= 1) {
+        if (std::cmp_greater_equal(hdr.EventDescriptor.Version, 1)) {
             present->DestWidth  = desc[3].GetData<uint32_t>();
             present->DestHeight = desc[4].GetData<uint32_t>();
         }
@@ -1362,7 +1363,7 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
             //VerboseTraceBeforeModifyingPresent(presentEvent.get());
             presentEvent->SeenInFrameEvent = true;
 
-            bool iFlip = mMetadata.GetEventData<BOOL>(pEventRecord, L"IndependentFlip") != 0;
+            bool iFlip = std::cmp_not_equal(mMetadata.GetEventData<BOOL>(pEventRecord, L"IndependentFlip"), 0);
             if (iFlip && presentEvent->PresentMode == PresentMode::Composed_Flip) {
                 presentEvent->PresentMode = PresentMode::Hardware_Independent_Flip;
             }
@@ -1403,7 +1404,7 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
             // Handle DO_NOT_SEQUENCE presents, which may get marked as confirmed,
             // if a frame was composed when this token was completed
             if (presentEvent->FinalState == PresentResult::Unknown &&
-                (presentEvent->PresentFlags & DXGI_PRESENT_DO_NOT_SEQUENCE) != 0) {
+                std::cmp_not_equal((presentEvent->PresentFlags & DXGI_PRESENT_DO_NOT_SEQUENCE), 0)) {
                 //DebugModifyPresent(presentEvent.get());
                 presentEvent->FinalState = PresentResult::Discarded;
                 RemovePresentFromSubmitSequenceIdTracking(presentEvent);
@@ -1428,7 +1429,7 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
             presentEvent->Win32KBindId = 0;
             mPresentByWin32KPresentHistoryToken.erase(eventIter);
 
-            if (!presentEvent->SeenInFrameEvent && (presentEvent->FinalState == PresentResult::Unknown || presentEvent->ScreenTime == 0)) {
+            if (!presentEvent->SeenInFrameEvent && (presentEvent->FinalState == PresentResult::Unknown || std::cmp_equal(presentEvent->ScreenTime, 0))) {
                 //VerboseTraceBeforeModifyingPresent(presentEvent.get());
                 presentEvent->FinalState = PresentResult::Discarded;
                 CompletePresent(presentEvent);
@@ -1485,7 +1486,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                 break;
             }
 
-            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
+            if (std::cmp_greater(EtWindowsVersion, WINDOWS_7) && std::cmp_less(EtWindowsVersion, WINDOWS_10))
             {
                 EventDataDesc desc[] = {
                     { L"ulFlipChain" },
@@ -1551,7 +1552,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
         break;
     case Microsoft_Windows_Dwm_Core::SCHEDULE_SURFACEUPDATE_Info::Id:
         {
-            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
+            if (std::cmp_greater(EtWindowsVersion, WINDOWS_7) && std::cmp_less(EtWindowsVersion, WINDOWS_10))
             {
                 EventDataDesc desc[] = {
                     { L"luidSurface" },
@@ -1606,7 +1607,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
 
 void RemovePresentFromSubmitSequenceIdTracking(std::shared_ptr<PresentEvent> const& present)
 {
-    if (present->QueueSubmitSequence == 0)
+    if (std::cmp_equal(present->QueueSubmitSequence, 0))
     {
         return;
     }
@@ -1622,7 +1623,7 @@ void RemovePresentFromSubmitSequenceIdTracking(std::shared_ptr<PresentEvent> con
     // would require storing the queue context in PresentEvent and since
     // presentsBySubmitSequence is expected to be small (typically one element)
     // this should be faster.
-    if (presentsBySubmitSequence->size() == 1)
+    if (std::cmp_equal(presentsBySubmitSequence->size(), 1))
     {
         //DebugAssert(presentsBySubmitSequence->begin()->second == present);
         mPresentBySubmitSequence.erase(ii);
@@ -1648,7 +1649,7 @@ void RemovePresentFromSubmitSequenceIdTracking(std::shared_ptr<PresentEvent> con
 void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent> const& p)
 {
     // mAllPresents
-    if (p->mAllPresentsTrackingIndex != UINT32_MAX) {
+    if (std::cmp_not_equal(p->mAllPresentsTrackingIndex, UINT32_MAX)) {
         mAllPresents[p->mAllPresentsTrackingIndex] = nullptr;
         p->mAllPresentsTrackingIndex = UINT32_MAX;
     }
@@ -1664,7 +1665,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     if (threadEventIter != mPresentByThreadId.end() && threadEventIter->second == p) {
         mPresentByThreadId.erase(threadEventIter);
     }
-    if (p->DriverThreadId != 0) {
+    if (std::cmp_not_equal(p->DriverThreadId, 0)) {
         threadEventIter = mPresentByThreadId.find(p->DriverThreadId);
         if (threadEventIter != mPresentByThreadId.end() && threadEventIter->second == p) {
             mPresentByThreadId.erase(threadEventIter);
@@ -1678,7 +1679,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     RemovePresentFromSubmitSequenceIdTracking(p);
 
     // mPresentByWin32KPresentHistoryToken
-    if (p->CompositionSurfaceLuid != 0)
+    if (std::cmp_not_equal(p->CompositionSurfaceLuid, 0))
     {
         Win32KPresentHistoryToken key(
             p->CompositionSurfaceLuid,
@@ -1698,7 +1699,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     }
 
     // mPresentByDxgkPresentHistoryToken
-    if (p->DxgkPresentHistoryToken != 0)
+    if (std::cmp_not_equal(p->DxgkPresentHistoryToken, 0))
     {
         auto eventIter = mPresentByDxgkPresentHistoryToken.find(p->DxgkPresentHistoryToken);
         if (eventIter != mPresentByDxgkPresentHistoryToken.end() && eventIter->second == p)
@@ -1709,7 +1710,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     }
 
     // mPresentByDxgkPresentHistoryTokenData
-    if (p->DxgkPresentHistoryTokenData != 0)
+    if (std::cmp_not_equal(p->DxgkPresentHistoryTokenData, 0))
     {
         auto eventIter = mPresentByDxgkPresentHistoryTokenData.find(p->DxgkPresentHistoryTokenData);
         if (eventIter != mPresentByDxgkPresentHistoryTokenData.end() && eventIter->second == p)
@@ -1720,7 +1721,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     }
 
     // mPresentByDxgkContext
-    if (p->DxgkContext != 0)
+    if (std::cmp_not_equal(p->DxgkContext, 0))
     {
         auto eventIter = mPresentByDxgkContext.find(p->DxgkContext);
         if (eventIter != mPresentByDxgkContext.end() && eventIter->second == p)
@@ -1731,7 +1732,7 @@ void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent>
     }
 
     // mLastPresentByWindow
-    if (p->Hwnd != 0)
+    if (std::cmp_not_equal(p->Hwnd, 0))
     {
         auto eventIter = mLastPresentByWindow.find(p->Hwnd);
         if (eventIter != mLastPresentByWindow.end() && eventIter->second == p)
@@ -1831,8 +1832,8 @@ void CompletePresentHelper(std::shared_ptr<PresentEvent> const& p)
         for (auto ii = presentsByThisProcess->begin(), ie = presentsByThisProcess->end(); ii != ie; ) {
             auto p2 = ii->second;
             ++ii; // increment iterator first as CompletePresentHelper() will remove it
-            if (p2->SwapChainAddress == p->SwapChainAddress) {
-                if (p2->PresentStartTime >= p->PresentStartTime) break;
+            if (std::cmp_equal(p2->SwapChainAddress, p->SwapChainAddress)) {
+                if (std::cmp_greater_equal(p2->PresentStartTime, p->PresentStartTime)) break;
                 CompletePresentHelper(p2);
             }
         }
@@ -1907,27 +1908,27 @@ void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions)
     auto iterEnqueueEnd = iterBegin;
     for (auto iterEnd = deferredCompletions->mOrderedPresents.end(); iterEnqueueEnd != iterEnd; ++iterEnqueueEnd) {
         auto present = iterEnqueueEnd->second;
-        if (present->DeferredCompletionWaitCount > 0) {
+        if (std::cmp_greater(present->DeferredCompletionWaitCount, 0)) {
             break;
         }
 
         // Assert the present is complete and has been removed from all
         // internal tracking structures.
         assert(present->IsCompleted);
-        assert(present->CompositionSurfaceLuid == 0);
-        assert(present->Win32KPresentCount == 0);
-        assert(present->Win32KBindId == 0);
-        assert(present->DxgkPresentHistoryToken == 0);
-        assert(present->DxgkPresentHistoryTokenData == 0);
-        assert(present->DxgkContext == 0);
-        assert(present->Hwnd == 0);
-        assert(present->mAllPresentsTrackingIndex == UINT32_MAX);
-        assert(present->QueueSubmitSequence == 0);
+        assert(std::cmp_equal(present->CompositionSurfaceLuid, 0));
+        assert(std::cmp_equal(present->Win32KPresentCount, 0));
+        assert(std::cmp_equal(present->Win32KBindId, 0));
+        assert(std::cmp_equal(present->DxgkPresentHistoryToken, 0));
+        assert(std::cmp_equal(present->DxgkPresentHistoryTokenData, 0));
+        assert(std::cmp_equal(present->DxgkContext, 0));
+        assert(std::cmp_equal(present->Hwnd, 0));
+        assert(std::cmp_equal(present->mAllPresentsTrackingIndex, UINT32_MAX));
+        assert(std::cmp_equal(present->QueueSubmitSequence, 0));
         assert(present->PresentInDwmWaitingStruct == false);
 
         // If later presents have already be enqueued for the user, mark this
         // present as lost.
-        if (deferredCompletions->mLastEnqueuedQpcTime > present->PresentStartTime) {
+        if (std::cmp_greater(deferredCompletions->mLastEnqueuedQpcTime, present->PresentStartTime)) {
             present->IsLost = true;
         }
 
@@ -1939,9 +1940,9 @@ void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions)
         }
     }
 
-    if (lostCount + completedCount > 0)
+    if (std::cmp_greater(lostCount + completedCount, 0))
     {
-        if (completedCount > 0)
+        if (std::cmp_greater(completedCount, 0))
         {
             PhAcquireFastLockExclusive(&mPresentEventMutex);
 
@@ -1949,12 +1950,12 @@ void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions)
                 if (!iter->second->IsLost) {
                     ULONG index;
 
-                    if (mCompletedPresentCount == PRESENTEVENT_CIRCULAR_BUFFER_SIZE)
+                    if (std::cmp_equal(mCompletedPresentCount, PRESENTEVENT_CIRCULAR_BUFFER_SIZE))
                     {
                         index = mCompletedPresentIndex;
                         mCompletedPresentIndex = GetCompletedPresentRingIndex(mCompletedPresentIndex + 1);
 
-                        if (mReadyPresentCount > 0)
+                        if (std::cmp_greater(mReadyPresentCount, 0))
                         {
                             mReadyPresentCount--;
                         }
@@ -1973,7 +1974,7 @@ void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions)
             PhReleaseFastLockExclusive(&mPresentEventMutex);
         }
 
-        if (lostCount > 0)
+        if (std::cmp_greater(lostCount, 0))
         {
             //PhAcquireFastLockExclusive(&mLostPresentEventMutex);
             //
@@ -2033,12 +2034,12 @@ std::shared_ptr<PresentEvent> FindOrCreatePresent(EVENT_HEADER const& hdr)
     auto presentsByThisProcess = &mOrderedPresentsByProcessId[hdr.ProcessId];
     for (auto const& tuple : *presentsByThisProcess) {
         auto presentEvent = tuple.second;
-        if (presentEvent->DriverThreadId == 0 &&
+        if (std::cmp_equal(presentEvent->DriverThreadId, 0) &&
             presentEvent->SeenDxgkPresent == false &&
             presentEvent->SeenWin32KEvents == false &&
             presentEvent->PresentMode == PresentMode::Unknown)
         {
-            assert(presentEvent->DriverThreadId == 0);
+            assert(std::cmp_equal(presentEvent->DriverThreadId, 0));
             //DebugModifyPresent(presentEvent.get());
             presentEvent->DriverThreadId = hdr.ThreadId;
             mPresentByThreadId.emplace(hdr.ThreadId, presentEvent);
@@ -2130,10 +2131,10 @@ void RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hdr, uint32_t resul
             auto present = eventIter->second;
 
             // Check expected state (a new Present() that has only been started).
-            assert(present->PresentStopTime                   == 0);
+            assert(std::cmp_equal(present->PresentStopTime, 0));
             assert(present->IsCompleted                 == false);
             assert(present->IsLost                      == false);
-            assert(present->DeferredCompletionWaitCount == 0);
+            assert(std::cmp_equal(present->DeferredCompletionWaitCount, 0));
             assert(present->DependentPresents.empty());
 
             // Remove the present from any tracking structures.
@@ -2162,20 +2163,20 @@ void RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hdr, uint32_t resul
                 bool isOldest = true;
                 for (auto const& pr2 : deferredCompletions->mOrderedPresents) {
                     auto present = pr2.second;
-                    if (present->DeferredCompletionWaitCount > 0 && present->ThreadId == hdr.ThreadId && present->Runtime == runtime) {
+                    if (std::cmp_greater(present->DeferredCompletionWaitCount, 0) && std::cmp_equal(present->ThreadId, hdr.ThreadId) && present->Runtime == runtime) {
 
                         //DebugModifyPresent(present.get());
                         present->DeferredCompletionWaitCount -= 1;
 
-                        if (!presentStopUsed && present->PresentStopTime == 0) {
+                        if (!presentStopUsed && std::cmp_equal(present->PresentStopTime, 0)) {
                             present->PresentStopTime = hdr.TimeStamp.QuadPart - present->PresentStartTime;
-                            if (GetDeferredCompletionWaitCount(*present) == 0) {
+                            if (std::cmp_equal(GetDeferredCompletionWaitCount(*present), 0)) {
                                 present->DeferredCompletionWaitCount = 0;
                             }
                             presentStopUsed = true;
                         }
 
-                        if (present->DeferredCompletionWaitCount == 0 && isOldest) {
+                        if (std::cmp_equal(present->DeferredCompletionWaitCount, 0) && isOldest) {
                             enqueuePresents = true;
                         }
                     }
@@ -2205,14 +2206,14 @@ void RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hdr, uint32_t resul
         bool allowBatching = false;
         switch (runtime) {
         case Runtime::DXGI:
-            if (result != DXGI_STATUS_OCCLUDED &&
-                result != DXGI_STATUS_MODE_CHANGE_IN_PROGRESS &&
-                result != DXGI_STATUS_NO_DESKTOP_ACCESS) {
+            if (std::cmp_not_equal(result, DXGI_STATUS_OCCLUDED) &&
+                std::cmp_not_equal(result, DXGI_STATUS_MODE_CHANGE_IN_PROGRESS) &&
+                std::cmp_not_equal(result, DXGI_STATUS_NO_DESKTOP_ACCESS)) {
                 allowBatching = true;
             }
             break;
         case Runtime::D3D9:
-            if (result != S_PRESENT_OCCLUDED) {
+            if (std::cmp_not_equal(result, S_PRESENT_OCCLUDED)) {
                 allowBatching = true;
             }
             break;
@@ -2244,11 +2245,11 @@ void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresent
 
     outPresentEvents.clear();
 
-    if (mReadyPresentCount > 0)
+    if (std::cmp_greater(mReadyPresentCount, 0))
     {
         outPresentEvents.resize(mReadyPresentCount, nullptr);
 
-        for (ULONG i = 0; i < mReadyPresentCount; ++i)
+        for (ULONG i = 0; std::cmp_less(i, mReadyPresentCount); ++i)
         {
             std::swap(outPresentEvents[i], mCompletedPresentEvents[mCompletedPresentIndex]);
             mCompletedPresentIndex = GetCompletedPresentRingIndex(mCompletedPresentIndex + 1);
@@ -2312,7 +2313,7 @@ VOID ResetPresentTrackingData(
         QueryPerformanceCounter(&startQpc);
         const ULONG timeoutMs = 2000;
 
-        while (InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0) != 0)
+        while (std::cmp_not_equal(InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0), 0))
         {
             LARGE_INTEGER nowQpc;
             ULONGLONG elapsed;
@@ -2322,7 +2323,7 @@ VOID ResetPresentTrackingData(
             if (!PhMultiplyDivide64(nowQpc.QuadPart - startQpc.QuadPart, 1000, freq.QuadPart, &elapsed))
                 elapsed = ULONG64_MAX;
 
-            if (elapsed >= timeoutMs)
+            if (std::cmp_greater_equal(elapsed, timeoutMs))
             {
                 mEventProcessingEnabled.store(true, std::memory_order_release);
                 return;
@@ -2334,10 +2335,10 @@ VOID ResetPresentTrackingData(
             {
                 LONG expected = InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0);
 
-                if (expected != 0)
+                if (std::cmp_not_equal(expected, 0))
                 {
                     BOOL ok = shim.Wait((volatile VOID*)&mEventProcessingInFlight, &expected, sizeof(expected), remaining);
-                    if (!ok && GetLastError() == ERROR_TIMEOUT)
+                    if (!ok && std::cmp_equal(GetLastError(), ERROR_TIMEOUT))
                         break;
                 }
             }

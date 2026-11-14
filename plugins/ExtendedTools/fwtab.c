@@ -684,7 +684,7 @@ VOID FwUpdateNodeLocalAddressString(
 
                 if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->LocalEndpoint.Address.InAddr, 0, FwNode->LocalAddressString, &ipv4AddressStringLength)))
                 {
-                    FwNode->LocalAddressStringLength = (ipv4AddressStringLength - 1);
+                    FwNode->LocalAddressStringLength = (ULONG)(ipv4AddressStringLength - sizeof(ANSI_NULL));
                 }
             }
             break;
@@ -694,7 +694,7 @@ VOID FwUpdateNodeLocalAddressString(
 
                 if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->LocalEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->LocalAddressString, &ipv6AddressStringLength)))
                 {
-                    FwNode->LocalAddressStringLength = (ipv6AddressStringLength - 1);
+                    FwNode->LocalAddressStringLength = (ULONG)(ipv6AddressStringLength - sizeof(ANSI_NULL));
                 }
             }
             break;
@@ -741,7 +741,7 @@ VOID FwUpdateNodeRemoteAddressString(
 
                 if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->RemoteEndpoint.Address.InAddr, 0, FwNode->RemoteAddressString, &ipv4AddressStringLength)))
                 {
-                    FwNode->RemoteAddressStringLength = (ipv4AddressStringLength - 1);
+                    FwNode->RemoteAddressStringLength = (ULONG)(ipv4AddressStringLength - sizeof(ANSI_NULL));
                 }
             }
             break;
@@ -751,7 +751,7 @@ VOID FwUpdateNodeRemoteAddressString(
 
                 if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->RemoteEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->RemoteAddressString, &ipv6AddressStringLength)))
                 {
-                    FwNode->RemoteAddressStringLength = (ipv6AddressStringLength - 1);
+                    FwNode->RemoteAddressStringLength = (ULONG)(ipv6AddressStringLength - sizeof(ANSI_NULL));
                 }
             }
             break;

@@ -369,6 +369,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), WindowHandle, EtpGpuPanelDialogProc, NULL);
             ShowWindow(GpuPanel, SW_SHOW);
+            UpdateWindow(GpuPanel);
             PhAddLayoutItemExLogical(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             EtpCreateGpuGraphs();

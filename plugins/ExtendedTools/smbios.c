@@ -19,6 +19,7 @@ typedef struct _SMBIOS_WINDOW_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 
     BOOLEAN ShowUndefinedTypes;
@@ -1779,7 +1780,7 @@ VOID EtSMBIOSSystemConfigurationOption(
     ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
     ET_SMBIOS_UINT32(L"Number of strings", Entry->SystemConfigurationOption.Count);
 
-    for (UCHAR i = 0; i < Entry->OEMString.Count; i++)
+    for (UCHAR i = 0; i < Entry->SystemConfigurationOption.Count; i++)
     {
         PH_FORMAT format[2];
         PPH_STRING name;
@@ -4319,6 +4320,9 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -4339,6 +4343,9 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_SMBIOS_WINDOW_POSITION, SETTING_NAME_SMBIOS_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -4350,6 +4357,11 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -4416,9 +4428,9 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
                     PhFree(listviewItems);
                 }
+            }
         }
         break;
 

@@ -116,6 +116,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                         context->ServiceListHandle = serviceListHandle;
                         EspLayoutServiceListControl(WindowHandle, serviceListHandle);
                         ShowWindow(serviceListHandle, SW_SHOW);
+                        UpdateWindow(serviceListHandle);
                     }
 
                     PhFree(serviceConfig);
@@ -134,6 +135,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                     )->Buffer);
 
                 ShowWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), SW_SHOW);
+                UpdateWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT));
                 PhClearReference(&errorMessage);
             }
 
@@ -250,6 +252,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                         context->ServiceListHandle = serviceListHandle;
                         EspLayoutServiceListControl(WindowHandle, serviceListHandle);
                         ShowWindow(serviceListHandle, SW_SHOW);
+                        UpdateWindow(serviceListHandle);
                     }
 
                     PhFree(dependentServices);
@@ -268,6 +271,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                     )->Buffer);
 
                 ShowWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), SW_SHOW);
+                UpdateWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT));
                 PhClearReference(&errorMessage);
             }
 

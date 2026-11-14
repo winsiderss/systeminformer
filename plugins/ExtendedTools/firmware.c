@@ -175,6 +175,9 @@ VOID EtFirmwareDeleteEntry(
         if (index != INT_ERROR)
         {
             PhRemoveListViewItem(Context->ListViewHandle, index);
+            PhClearReference(&Entry->Name);
+            PhClearReference(&Entry->GuidString);
+            PhFree(Entry);
         }
     }
     else
@@ -252,7 +255,6 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
             //ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, EtFirmwareNameCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, EtFirmwareNameCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, EtFirmwareEntryLengthCompareFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, context->ListViewHandle);
 
@@ -331,9 +333,10 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                 {
                     if (hdr->hwndFrom == context->ListViewHandle)
                     {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)lParam;
                         PEFI_ENTRY entry;
 
-                        if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                        if (itemActivate->iItem != INT_ERROR && PhGetListViewItemParam(context->ListViewHandle, itemActivate->iItem, &entry))
                         {
                             EtShowFirmwareEditDialog(WindowHandle, entry);
                         }
@@ -382,13 +385,20 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                     {
                         if (!PhHandleCopyListViewEMenuItem(item))
                         {
+                            PEFI_ENTRY focusedEntry = listviewItems[0];
+                            LONG focusedIndex;
+
+                            // Act on the focused (clicked) item rather than the topmost selected item.
+                            if ((focusedIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_FOCUSED | LVNI_SELECTED)) != INT_ERROR)
+                                PhGetListViewItemParam(context->ListViewHandle, focusedIndex, &focusedEntry);
+
                             switch (item->Id)
                             {
                             case 1:
-                                EtShowFirmwareEditDialog(WindowHandle, listviewItems[0]);
+                                EtShowFirmwareEditDialog(WindowHandle, focusedEntry);
                                 break;
                             case 2:
-                                EtFirmwareDeleteEntry(context, listviewItems[0]);
+                                EtFirmwareDeleteEntry(context, focusedEntry);
                                 break;
                             case PHAPP_IDC_COPY:
                                 PhCopyListView(context->ListViewHandle);
@@ -398,9 +408,9 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
                     PhFree(listviewItems);
                 }
+            }
         }
         break;
     case WM_GETDLGCODE:

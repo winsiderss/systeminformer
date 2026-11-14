@@ -86,6 +86,7 @@ NTSTATUS EtpModuleServicesDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
@@ -245,6 +246,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 MapWindowRect(NULL, WindowHandle, &rect);
                 MoveWindow(context->ServiceListHandle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
                 ShowWindow(context->ServiceListHandle, SW_SHOW);
+                UpdateWindow(context->ServiceListHandle);
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);

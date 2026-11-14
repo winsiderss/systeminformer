@@ -1106,7 +1106,7 @@ PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
  */
 VOID EtFwDrawCountryIcon(
     _In_ HDC hdc,
-    _In_ RECT rect,
+    _In_ PRECT rect,
     _In_ LONG Index
     )
 {
@@ -1122,7 +1122,7 @@ VOID EtFwDrawCountryIcon(
  */
 VOID EtFwShowPingWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PH_IP_ENDPOINT Endpoint
+    _In_ PPH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -1137,7 +1137,7 @@ VOID EtFwShowPingWindow(
  */
 VOID EtFwShowTracerWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PH_IP_ENDPOINT Endpoint
+    _In_ PPH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -1152,7 +1152,7 @@ VOID EtFwShowTracerWindow(
  */
 VOID EtFwShowWhoisWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PH_IP_ENDPOINT Endpoint
+    _In_ PPH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -2452,7 +2452,7 @@ VOID CALLBACK EtFwEventCallback(
         PPH_STRING remoteCountryName;
 
         if (EtFwGetPluginInterface()->LookupCountryCode(
-            entry.RemoteEndpoint.Address,
+            &entry.RemoteEndpoint.Address,
             &remoteCountryCode,
             &remoteCountryName
             ))

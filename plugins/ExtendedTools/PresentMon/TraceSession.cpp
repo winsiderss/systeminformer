@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "..\exttools.h"
+#include <utility>
 
 #include <evntcons.h>
 #include <tdh.h>
@@ -44,7 +45,7 @@ struct FilteredProvider {
         maxLevel_ = 0;
 
         if (filterEventIds) {
-            static_assert(MAX_EVENT_FILTER_EVENT_ID_COUNT >= ANYSIZE_ARRAY, "Unexpected MAX_EVENT_FILTER_EVENT_ID_COUNT");
+            static_assert(std::cmp_greater_equal(MAX_EVENT_FILTER_EVENT_ID_COUNT, ANYSIZE_ARRAY), "Unexpected MAX_EVENT_FILTER_EVENT_ID_COUNT");
             auto memorySize = sizeof(EVENT_FILTER_EVENT_ID) + sizeof(USHORT) * (MAX_EVENT_FILTER_EVENT_ID_COUNT - ANYSIZE_ARRAY);
             void* memory = _aligned_malloc(memorySize, alignof(USHORT));
             if (memory != nullptr) {
@@ -68,7 +69,7 @@ struct FilteredProvider {
 
     ~FilteredProvider()
     {
-        if (filterDesc_.Ptr != 0) {
+        if (std::cmp_not_equal(filterDesc_.Ptr, 0)) {
             auto memory = (void*)filterDesc_.Ptr;
             _aligned_free(memory);
         }
@@ -76,7 +77,7 @@ struct FilteredProvider {
 
     void ClearFilter()
     {
-        if (filterDesc_.Ptr != 0) {
+        if (std::cmp_not_equal(filterDesc_.Ptr, 0)) {
             auto filteredEventIds = (EVENT_FILTER_EVENT_ID*)filterDesc_.Ptr;
             filteredEventIds->Count = 0;
         }
@@ -88,7 +89,7 @@ struct FilteredProvider {
 
     void AddKeyword(uint64_t keyword)
     {
-        if (anyKeywordMask_ == 0) {
+        if (std::cmp_equal(anyKeywordMask_, 0)) {
             anyKeywordMask_ = keyword;
             allKeywordMask_ = keyword;
         }
@@ -101,18 +102,18 @@ struct FilteredProvider {
     template<typename T>
     void AddEvent()
     {
-        if (filterDesc_.Ptr != 0) {
+        if (std::cmp_not_equal(filterDesc_.Ptr, 0)) {
             auto filteredEventIds = (EVENT_FILTER_EVENT_ID*)filterDesc_.Ptr;
-            assert(filteredEventIds->Count < MAX_EVENT_FILTER_EVENT_ID_COUNT);
+            assert(std::cmp_less(filteredEventIds->Count, MAX_EVENT_FILTER_EVENT_ID_COUNT));
             filteredEventIds->Events[filteredEventIds->Count++] = T::Id;
         }
 
 #pragma warning(suppress: 4984) // C++17 extension
-        if constexpr ((uint64_t)T::Keyword != 0ull) {
+        if constexpr (std::cmp_not_equal((uint64_t)T::Keyword, 0ull)) {
             AddKeyword((uint64_t)T::Keyword);
         }
 
-        maxLevel_ = __max(maxLevel_, T::Level);
+        maxLevel_ = std::max(maxLevel_, T::Level);
     }
 
     ULONG Enable(
@@ -120,7 +121,7 @@ struct FilteredProvider {
         GUID const& providerGuid)
     {
         ENABLE_TRACE_PARAMETERS* pparams = nullptr;
-        if (filterDesc_.Ptr != 0) {
+        if (std::cmp_not_equal(filterDesc_.Ptr, 0)) {
             pparams = &params_;
 
             // EnableTraceEx2() failes unless Size agrees with Count.
@@ -141,7 +142,7 @@ ULONG EnableProviders(
     ULONG status = 0;
 
     // Scope filtering based on event ID only works on Win8.1 or greater.
-    bool filterEventIds = EtWindowsVersion >= WINDOWS_8_1;
+    bool filterEventIds = std::cmp_greater_equal(EtWindowsVersion, WINDOWS_8_1);
 
     // Start backend providers first to reduce Presents being queued up before
     // we can track them.
@@ -182,7 +183,7 @@ ULONG EnableProviders(
     //     Present_Info
     //     VSyncDPC_Info
 
-    if (EtWindowsVersion >= WINDOWS_11)
+    if (std::cmp_greater_equal(EtWindowsVersion, WINDOWS_11))
     {
         provider.AddKeyword((uint64_t)Microsoft_Windows_DxgKrnl::Keyword::Microsoft_Windows_DxgKrnl_Performance |
             (uint64_t)Microsoft_Windows_DxgKrnl::Keyword::Base |
@@ -197,11 +198,11 @@ ULONG EnableProviders(
     provider.allKeywordMask_ &= ~(uint64_t)Microsoft_Windows_DxgKrnl::Keyword::Microsoft_Windows_DxgKrnl_Performance;
     // END WORKAROUND
     status = provider.Enable(sessionHandle, Microsoft_Windows_DxgKrnl::GUID);
-    if (status != ERROR_SUCCESS) return status;
+    if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
     status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_DxgKrnl::Win7::GUID, EVENT_CONTROL_CODE_ENABLE_PROVIDER,
         TRACE_LEVEL_INFORMATION, 0, 0, 0, nullptr);
-    if (status != ERROR_SUCCESS) return status;
+    if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
     //if (pmConsumer->mTrackDisplay)
     {
@@ -210,7 +211,7 @@ ULONG EnableProviders(
         provider.AddEvent<Microsoft_Windows_Win32k::TokenCompositionSurfaceObject_Info>();
         provider.AddEvent<Microsoft_Windows_Win32k::TokenStateChanged_Info>();
         status = provider.Enable(sessionHandle, Microsoft_Windows_Win32k::GUID);
-        if (status != ERROR_SUCCESS) return status;
+        if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
         // Microsoft_Windows_Dwm_Core
         provider.ClearFilter();
@@ -224,7 +225,7 @@ ULONG EnableProviders(
         // BEGIN WORKAROUND: Windows11 uses Scheduling keyword instead of DwmCore keyword for:
         //     SCHEDULE_PRESENT_Start
         //     SCHEDULE_SURFACEUPDATE_Info
-        if (EtWindowsVersion >= WINDOWS_11)
+        if (std::cmp_greater_equal(EtWindowsVersion, WINDOWS_11))
         {
             provider.AddKeyword((uint64_t)Microsoft_Windows_Dwm_Core::Keyword::Microsoft_Windows_Dwm_Core_Diagnostic |
                 (uint64_t)Microsoft_Windows_Dwm_Core::Keyword::Scheduling);
@@ -232,11 +233,11 @@ ULONG EnableProviders(
         // END WORKAROUND
 
         status = provider.Enable(sessionHandle, Microsoft_Windows_Dwm_Core::GUID);
-        if (status != ERROR_SUCCESS) return status;
+        if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
         status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_Dwm_Core::Win7::GUID, EVENT_CONTROL_CODE_ENABLE_PROVIDER,
             TRACE_LEVEL_VERBOSE, 0, 0, 0, nullptr);
-        if (status != ERROR_SUCCESS) return status;
+        if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
     }
 
     // Microsoft_Windows_DXGI
@@ -246,14 +247,14 @@ ULONG EnableProviders(
     provider.AddEvent<Microsoft_Windows_DXGI::PresentMultiplaneOverlay_Start>();
     provider.AddEvent<Microsoft_Windows_DXGI::PresentMultiplaneOverlay_Stop>();
     status = provider.Enable(sessionHandle, Microsoft_Windows_DXGI::GUID);
-    if (status != ERROR_SUCCESS) return status;
+    if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
     // Microsoft_Windows_D3D9
     provider.ClearFilter();
     provider.AddEvent<Microsoft_Windows_D3D9::Present_Start>();
     provider.AddEvent<Microsoft_Windows_D3D9::Present_Stop>();
     status = provider.Enable(sessionHandle, Microsoft_Windows_D3D9::GUID);
-    if (status != ERROR_SUCCESS) return status;
+    if (std::cmp_not_equal(status, ERROR_SUCCESS)) return status;
 
     //if (mrConsumer != nullptr) {
     //    // DHD
@@ -350,13 +351,13 @@ VOID TraceSession_Stop(
     VOID
     )
 {
-    if (mTraceHandle != INVALID_PROCESSTRACE_HANDLE)
+    if (std::cmp_not_equal(mTraceHandle, INVALID_PROCESSTRACE_HANDLE))
     {
         CloseTrace(mTraceHandle);
         mTraceHandle = INVALID_PROCESSTRACE_HANDLE;
     }
 
-    if (mSessionHandle != 0)
+    if (std::cmp_not_equal(mSessionHandle, 0))
     {
         DisableProviders(mSessionHandle);
 
@@ -410,7 +411,7 @@ BOOLEAN EtEstablishFpsTraceSession(
 
     status = ControlTrace(0, L"SiPresentTraceSession", &sessionProps, EVENT_TRACE_CONTROL_QUERY);
 
-    if (status == ERROR_SUCCESS)
+    if (std::cmp_equal(status, ERROR_SUCCESS))
         mSessionHandle = sessionProps.Wnode.HistoricalContext;
     else
     {
@@ -418,7 +419,7 @@ BOOLEAN EtEstablishFpsTraceSession(
         status = StartTrace(&mSessionHandle, L"SiPresentTraceSession", &sessionProps);
     }
 
-    if (status != ERROR_SUCCESS)
+    if (std::cmp_not_equal(status, ERROR_SUCCESS))
     {
         mSessionHandle = 0;
         return FALSE;
@@ -426,7 +427,7 @@ BOOLEAN EtEstablishFpsTraceSession(
 
     status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid);
 
-    if (status != ERROR_SUCCESS)
+    if (std::cmp_not_equal(status, ERROR_SUCCESS))
     {
         TraceSession_Stop();
         return FALSE;
@@ -439,7 +440,7 @@ BOOLEAN EtEstablishFpsTraceSession(
     traceProps.LoggerName = const_cast<LPWSTR>(L"SiPresentTraceSession");
     mTraceHandle = OpenTrace(&traceProps);
 
-    if (mTraceHandle == INVALID_PROCESSTRACE_HANDLE)
+    if (std::cmp_equal(mTraceHandle, INVALID_PROCESSTRACE_HANDLE))
     {
         TraceSession_Stop();
         return FALSE;
@@ -456,16 +457,16 @@ VOID EtFramesQueryEtwStatus(
     static ULONG lastEventsLost = 0;
     static ULONG lastBuffersLost = 0;
 
-    if (mSessionHandle == 0 || mSessionHandle == INVALID_PROCESSTRACE_HANDLE)
+    if (std::cmp_equal(mSessionHandle, 0) || std::cmp_equal(mSessionHandle, INVALID_PROCESSTRACE_HANDLE))
         return;
 
     TraceProperties sessionProps = {};
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
     sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
 
-    if (ControlTrace(mSessionHandle, nullptr, &sessionProps, EVENT_TRACE_CONTROL_QUERY) == ERROR_SUCCESS)
+    if (std::cmp_equal(ControlTrace(mSessionHandle, nullptr, &sessionProps, EVENT_TRACE_CONTROL_QUERY), ERROR_SUCCESS))
     {
-        if (sessionProps.EventsLost != lastEventsLost || sessionProps.RealTimeBuffersLost != lastBuffersLost)
+        if (std::cmp_not_equal(sessionProps.EventsLost, lastEventsLost) || std::cmp_not_equal(sessionProps.RealTimeBuffersLost, lastBuffersLost))
         {
             dprintf("[FPS] ETW session EventsLost=%lu RealTimeBuffersLost=%lu\n",
                 sessionProps.EventsLost, sessionProps.RealTimeBuffersLost);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "../exttools.h"
+#include <utility>
 #include "../framemon.h"
 #include "PresentMon.hpp"
 #include <atomic>
@@ -66,7 +67,7 @@ static void CheckForTerminatedRealtimeProcesses(
 
             ++it;
         }
-        else if (tickCount - processInfo->LastPresentTickCount >= ET_FPS_STALE_PROCESS_TIMEOUT)
+        else if (std::cmp_greater_equal(tickCount - processInfo->LastPresentTickCount, ET_FPS_STALE_PROCESS_TIMEOUT))
         {
             // Never resolved a process item and it has stopped presenting; drop it
             // directly (the deferred-termination path relies on a held reference).
@@ -100,13 +101,13 @@ static void AddPresents(
 {
     size_t i = *presentEventIndex;
 
-    for (size_t n = presentEvents.size(); i < n; ++i)
+    for (size_t n = presentEvents.size(); std::cmp_less(i, n); ++i)
     {
         const auto& presentEvent = presentEvents[i];
         assert(presentEvent->IsCompleted);
 
         // Stop processing events if we hit the next stop time.
-        if (checkStopQpc && presentEvent->PresentStartTime >= stopQpc)
+        if (checkStopQpc && std::cmp_greater_equal(presentEvent->PresentStartTime, stopQpc))
         {
             *hitStopQpc = true;
             break;
@@ -161,17 +162,17 @@ static void PruneHistory(
             SwapChainData* swapChain = &pair2.second;
             uint32_t count = swapChain->mPresentHistoryCount;
 
-            for (; count > 0; --count)
+            for (; std::cmp_greater(count, 0); --count)
             {
                 uint32_t index = swapChain->mNextPresentIndex - count;
                 auto const& presentEvent = swapChain->mPresentHistory[index % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
 
-                if (presentEvent->PresentStartTime >= minQpc)
+                if (std::cmp_greater_equal(presentEvent->PresentStartTime, minQpc))
                 {
                     break;
                 }
 
-                if (index == swapChain->mLastDisplayedPresentIndex)
+                if (std::cmp_equal(index, swapChain->mLastDisplayedPresentIndex))
                 {
                     swapChain->mLastDisplayedPresentIndex = UINT32_MAX;
                 }
@@ -217,7 +218,7 @@ static void ProcessEvents(
     // termination, we can handle the process termination and continue.
     // Otherwise, we're done handling all the presents and any outstanding
     // terminations will have to wait for the next batch of events.
-    for (; terminatedProcessIndex < terminatedProcesses->size(); ++terminatedProcessIndex)
+    for (; std::cmp_less(terminatedProcessIndex, terminatedProcesses->size()); ++terminatedProcessIndex)
     {
         auto const& pair = (*terminatedProcesses)[terminatedProcessIndex];
         ULONG terminatedProcessId = pair.first;
@@ -252,7 +253,7 @@ done:
     presentEvents->clear();
     //lostPresentEvents->clear();
 
-    if (terminatedProcessIndex > 0)
+    if (std::cmp_greater(terminatedProcessIndex, 0))
     {
         terminatedProcesses->erase(terminatedProcesses->begin(), terminatedProcesses->begin() + terminatedProcessIndex);
     }
@@ -278,10 +279,10 @@ VOID PresentMonUpdateProcessStats(
     {
         auto const& candidate = pair.second;
 
-        if (candidate.mPresentHistoryCount < 2)
+        if (std::cmp_less(candidate.mPresentHistoryCount, 2))
             continue;
 
-        if (!bestChain || candidate.mPresentHistoryCount > bestChain->mPresentHistoryCount)
+        if (!bestChain || std::cmp_greater(candidate.mPresentHistoryCount, bestChain->mPresentHistoryCount))
             bestChain = &candidate;
     }
 
@@ -324,13 +325,13 @@ VOID PresentMonUpdateProcessStats(
             ULONGLONG latSum = 0;
             ULONG displayCount = 0;
 
-            for (ULONG i = 0; i < chain.mPresentHistoryCount; ++i)
+            for (ULONG i = 0; std::cmp_less(i, chain.mPresentHistoryCount); ++i)
             {
                 auto const& p = chain.mPresentHistory[(chain.mNextPresentIndex - chain.mPresentHistoryCount + i) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
 
                 if (p->FinalState == PresentResult::Presented)
                 {
-                    if (displayCount == 0)
+                    if (std::cmp_equal(displayCount, 0))
                     {
                         display0ScreenTime = p->ScreenTime;
                     }
@@ -341,12 +342,12 @@ VOID PresentMonUpdateProcessStats(
                 }
             }
 
-            if (displayCount >= 2)
+            if (std::cmp_greater_equal(displayCount, 2))
             {
                 dspAvg = QpcDeltaToSeconds(displayN->ScreenTime - display0ScreenTime) / (displayCount - 1);
             }
 
-            if (displayCount >= 1)
+            if (std::cmp_greater_equal(displayCount, 1))
             {
                 latAvg = QpcDeltaToSeconds(latSum) / displayCount;
             }
@@ -362,7 +363,7 @@ VOID PresentMonUpdateProcessStats(
             displayFramesPerSecond = 1.0 / dspAvg;
         }
 
-        if (presentN.ReadyTime > 0)
+        if (std::cmp_greater(presentN.ReadyTime, 0))
         {
             msUntilRenderComplete = 1000.0 * QpcDeltaToSeconds(presentN.ReadyTime - presentN.PresentStartTime);
         }
@@ -590,7 +591,7 @@ static NTSTATUS PresentMonTraceThread(
 
         traceHandle = RestartFpsTraceSession();
 
-        if (traceHandle == INVALID_PROCESSTRACE_HANDLE)
+        if (std::cmp_equal(traceHandle, INVALID_PROCESSTRACE_HANDLE))
             break;
     }
 

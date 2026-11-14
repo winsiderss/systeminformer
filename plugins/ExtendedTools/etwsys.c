@@ -341,6 +341,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
 
             DiskPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_DISKPANEL), WindowHandle, EtpDiskPanelDialogProc, NULL);
             ShowWindow(DiskPanel, SW_SHOW);
+            UpdateWindow(DiskPanel);
 
             margin = panelItem->Margin;
             PhGetMarginDpiValue(&margin, DiskSection->Parameters->WindowDpi, TRUE);
@@ -1237,6 +1238,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
 
             NetworkPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NETPANEL), WindowHandle, EtpNetworkPanelDialogProc, NULL);
             ShowWindow(NetworkPanel, SW_SHOW);
+            UpdateWindow(NetworkPanel);
 
             margin = panelItem->Margin;
             PhGetMarginDpiValue(&margin, NetworkSection->Parameters->WindowDpi, TRUE);

@@ -375,6 +375,7 @@ typedef struct _ET_GPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     PH_LAYOUT_MANAGER LayoutManager;
 } ET_GPU_DETAILS_CONTEXT, *PET_GPU_DETAILS_CONTEXT;
@@ -418,6 +419,9 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             //PhSetExtendedListView(context->ListViewHandle);
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
 
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
+
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -449,6 +453,9 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PostQuitMessage(0);
 
             PhFree(context);
@@ -472,6 +479,11 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -487,6 +499,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
+            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }
@@ -575,6 +588,7 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
     PhSetEvent(&EtGpuDetailsInitializedEvent);
 
     ShowWindow(EtGpuDetailsDialogHandle, SW_SHOW);
+    UpdateWindow(EtGpuDetailsDialogHandle);
     SetForegroundWindow(EtGpuDetailsDialogHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

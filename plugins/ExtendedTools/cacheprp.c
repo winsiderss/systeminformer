@@ -125,6 +125,7 @@ typedef struct _ET_CACHE_LATENCY_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
+    HFONT WindowFont;
     WNDPROC ListViewWindowProcedure;
     PPH_LISTVIEW_CONTEXT ListViewContext;
     HWND TabControlHandle;
@@ -2465,6 +2466,7 @@ RTL_ATOM EtCacheGraphInitialization(
     windowClass.cbWndExtra = sizeof(PVOID);
     windowClass.hInstance = NULL;
     windowClass.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    windowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     windowClass.lpszClassName = ET_CACHE_GRAPH_CLASSNAME;
 
     atom = RegisterClassEx(&windowClass);
@@ -2931,10 +2933,16 @@ static VOID EtpCacheLatencySetPageVisibility(
         for (ULONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
         {
             ShowWindow(Context->GroupBoxHandles[level], Overview ? SW_SHOW : SW_HIDE);
+            if (Overview)
+                UpdateWindow(Context->GroupBoxHandles[level]);
             ShowWindow(Context->GraphHandles[level], Overview ? SW_SHOW : SW_HIDE);
+            if (Overview)
+                UpdateWindow(Context->GraphHandles[level]);
         }
 
         ShowWindow(Context->ListViewHandle, Overview ? SW_HIDE : SW_SHOW);
+        if (!Overview)
+            UpdateWindow(Context->ListViewHandle);
     }
 }
 
@@ -3013,7 +3021,11 @@ VOID EtCacheLatencyApplyResult(
     _In_ PET_CACHE_LATENCY_RESULT Result
     )
 {
-    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    BOOLEAN tableVisible = Context->TabIndex == ET_CACHE_LATENCY_TAB_TABLE;
+
+    // Re-enabling redraw makes a hidden list view visible again.
+    if (tableVisible)
+        ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
 
     if (Result->Succeeded)
     {
@@ -3029,7 +3041,8 @@ VOID EtCacheLatencyApplyResult(
         EtCacheLatencyClearOverview(Context);
     }
 
-    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+    if (tableVisible)
+        ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 
     EtCacheLatencyRedrawGraphs(Context);
 
@@ -3161,6 +3174,8 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhSetExtendedListView(context->ListViewHandle);
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
 
             context->ListViewContext = PhListView_Initialize(context->ListViewHandle);
             context->ListViewWindowProcedure = PhGetWindowProcedure(context->ListViewHandle);
@@ -3279,6 +3294,9 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             if (context->ListViewContext)
                 PhListView_Destroy(context->ListViewContext);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -3297,7 +3315,13 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
             context->WindowDpi = LOWORD(wParam);
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, context->WindowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
             EtCacheLatencyLayoutOverview(context);
