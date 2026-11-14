@@ -6791,7 +6791,8 @@ EtwRegisterSecurityProvider(
  * \param Keyword The keyword bitmask to test.
  * \return TRUE if the provider is enabled for the specified level and keyword; otherwise, FALSE.
  * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee. 
- * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
+ * A disabled provider can make a subsequent event write succeed without recording anything.
+ * Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6809,7 +6810,8 @@ EtwEventProviderEnabled(
  * \param EventDescriptor A pointer to the descriptor of the event to test.
  * \return TRUE if the event is enabled; otherwise, FALSE.
  * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee.
- * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
+ * A disabled provider can make a subsequent event write succeed without recording anything.
+ * Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6827,7 +6829,8 @@ EtwEventEnabled(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: a disabled provider takes a successful no-delivery path. 
+ * \remarks Returns a Win32 error code.
+ * ERROR_SUCCESS does not prove an event was recorded: a disabled provider takes a successful no-delivery path.
  * Descriptor counts are element counts and payload lengths are bytes; user data pointers remain caller-owned for the call. 
  * Full consumer/session delivery is separate from provider registration.
  */
@@ -6929,7 +6932,8 @@ EtwEventWriteEx(
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
- * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct
+ * instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -6950,7 +6954,8 @@ EtwEventWriteStartScenario(
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
- * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct
+ * instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -7010,7 +7015,8 @@ EtwEventWriteNoRegistration(
  * \param ControlCode The activity identifier control code to perform.
  * \param ActivityId A pointer to a GUID that specifies or receives the activity identifier.
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Controls the calling thread activity identifier. GET_ID, SET_ID and CREATE_ID have different input/output use of ActivityId; 
+ * \remarks Controls the calling thread activity identifier.
+ * GET_ID, SET_ID and CREATE_ID have different input/output use of ActivityId;
  * preserve and restore an existing identifier around temporary instrumentation. The result is a Win32 error code, not NTSTATUS.
  */
 NTSYSAPI
@@ -7031,7 +7037,8 @@ EtwEventActivityIdControl(
  * \param RegHandle Receives the registration handle.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors. 
- * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, callback lifetimes and reply ownership must follow their specific protocol.
+ * It is not an event-payload write or an arbitrary IPC replacement.
+ * Notification buffers, callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -7051,7 +7058,8 @@ EtwNotificationRegister(
  * \param Context Optional pointer receiving the context previously supplied during registration.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  * \remarks Unregisters the provider/notification handle through the ETW runtime. 
- * The result is a Win32 error code, not NTSTATUS. A registration handle is not a kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
+ * The result is a Win32 error code, not NTSTATUS.
+ * A registration handle is not a kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
  */
 NTSYSAPI
 ULONG
@@ -7109,7 +7117,8 @@ EtwReplyNotification(
  * \param ReturnLength Receives the number of bytes written or required.
  * \return A Win32 error code. ERROR_SUCCESS on success.
  * \remarks Enumerates process registrations, with Win32 sizing/error conventions. 
- * This exposes registration metadata rather than captured events or a list of enabled consumers. Respect output capacity and the reported size/count.
+ * This exposes registration metadata rather than captured events or a list of enabled consumers.
+ * Respect output capacity and the reported size/count.
  */
 NTSYSAPI
 ULONG
@@ -7646,7 +7655,8 @@ typedef struct _TELEMETRY_COVERAGE_POINT
  *
  * \param CoveragePoint A pointer to a TELEMETRY_COVERAGE_POINT structure.
  * \return BOOLEAN TRUE if the coverage point is covered, FALSE otherwise.
- * \remarks Queries the runtime telemetry-coverage helper. A Boolean result here is not an ETW consumer health or event-delivery acknowledgement.
+ * \remarks Queries the runtime telemetry-coverage helper.
+ * A Boolean result here is not an ETW consumer health or event-delivery acknowledgement.
  */
 NTSYSAPI
 BOOLEAN
