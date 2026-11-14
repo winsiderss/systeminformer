@@ -47,7 +47,7 @@ typedef struct _AFD_ENDPOINT_FLAGS
             UCHAR RioSocket : 1;
             UCHAR : 3;
         };
-        ULONG EndpointFlags;
+        ULONG Value;
     };
 } AFD_ENDPOINT_FLAGS, *PAFD_ENDPOINT_FLAGS;
 
@@ -66,7 +66,7 @@ typedef struct _AFD_ENDPOINT_FLAGS
  */
 typedef struct _AFD_OPEN_PACKET
 {
-    _In_ AFD_ENDPOINT_FLAGS __f;
+    _In_ LONG Flags; // AFD_ENDPOINT_FLAGS
     _In_opt_ GROUP GroupID;
     _In_ LONG AddressFamily; // AF_*
     _In_ LONG SocketType; // SOCK_*
