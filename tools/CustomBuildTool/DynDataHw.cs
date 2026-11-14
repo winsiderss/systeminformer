@@ -747,6 +747,8 @@ namespace CustomBuildTool
                     return "a configuration layout needs an enable register above the header";
                 if (Host.BaseMask == 0)
                     return "base-mask must be non-zero";
+                if ((Host.BaseMask & 0x0F) != 0)
+                    return "base-mask must clear the low four bits: the host registers follow the base";
                 if ((Host.Flags & SmbusHostFlagSelectReadOnly) != 0 || Host.EnableMask != 0 || Host.Select != 0 || Host.SelectMask != 0 || Host.SelectShift != 0 ||
                     Host.SelectAlternate != 0 || Host.SelectChoose != 0 || Host.SelectChooseMask != 0)
                     return "a configuration layout has no enable-mask or port select";
@@ -790,6 +792,8 @@ namespace CustomBuildTool
                 return "decode names one register twice";
             if (Host.BaseMask == 0 || Host.EnableMask == 0)
                 return "base-mask and enable-mask must be non-zero";
+            if ((Host.BaseMask & 0x0F) != 0)
+                return "base-mask must clear the low four bits: the host registers follow the base";
             if (Host.SelectMask == 0 || ((Host.SelectMask >> Host.SelectShift) & ((Host.SelectMask >> Host.SelectShift) + 1)) != 0)
                 return $"select-mask 0x{Host.SelectMask:x2} is not one run of bits";
             if (Host.SelectShift != BitOperations.TrailingZeroCount(Host.SelectMask) || Host.SelectMask != portMask)
@@ -2391,6 +2395,9 @@ namespace CustomBuildTool
 
                 if (pin != null)
                 {
+                    if (!nested)
+                        throw Context.Error(Pci, "pin is only for a <pci> nested in a <cpu>: a top-level <pci> matches its IDs at any location");
+
                     var (device, function) = ParsePin(Context, Pci, pin);
 
                     result.DevFn = (byte)((device << 3) | function);
@@ -2486,7 +2493,7 @@ namespace CustomBuildTool
             if (smnWindows.Count != 0 && (!nested || indirect == null))
                 throw Context.Error(smnWindows[0], "base=\"smn\" is only allowed in a <pci> or <pciclass> nested in a <cpu> that has an <indirect>");
 
-            result.PciRowOps = windows.Count != 0 || smnWindows.Count != 0 || smbuses.Count != 0 || smbusHosts.Count != 0 || vsecs.Count != 0;
+            result.PciRowOps = firstRead != null || windows.Count != 0 || smnWindows.Count != 0 || smbuses.Count != 0 || smbusHosts.Count != 0 || vsecs.Count != 0;
 
             byte[] readOp = null;
             byte[] indirectOp = null;
@@ -2514,6 +2521,18 @@ namespace CustomBuildTool
 
             var anchored = new List<(XElement Anchor, byte[] Op)>();
 
+            if (nested)
+            {
+                // ARM64 builds keep no CPU-keyed row.
+                foreach (var element in windows.Concat(vsecs))
+                {
+                    if (OptionalAttribute(element, "arm64") == "true")
+                        throw Context.Error(element, "arm64=\"true\" is only for a top-level <pci>");
+                }
+            }
+
+            var smbusSlaves = new HashSet<(byte Port, int Address)>();
+
             if (readOp != null)
                 anchored.Add((firstRead, readOp));
             if (indirectOp != null)
@@ -2521,7 +2540,7 @@ namespace CustomBuildTool
             foreach (var window in windows)
                 anchored.Add((window, BuildWindowOp(Context, window, nested ? WindowPlacement.RootPci : WindowPlacement.Pci)));
             foreach (var smbus in smbuses)
-                anchored.Add((smbus, BuildSmbusOp(Context, result, nested, smbus)));
+                anchored.Add((smbus, BuildSmbusOp(Context, result, nested, smbus, smbusSlaves)));
 
             //
             // A PIIX4 host is used only in the revision ranges its smbus-host elements describe.
@@ -3637,7 +3656,8 @@ namespace CustomBuildTool
         /// <summary>
         /// Builds the smbus_read op of an smbus element.
         /// </summary>
-        private static byte[] BuildSmbusOp(LoadContext Context, LoadedPci Loaded, bool Nested, XElement Smbus)
+        /// <param name="Slaves">The slaves of the earlier smbus ops of the element; a slave belongs to one op of a port.</param>
+        private static byte[] BuildSmbusOp(LoadContext Context, LoadedPci Loaded, bool Nested, XElement Smbus, HashSet<(byte Port, int Address)> Slaves)
         {
             CheckAttributes(Context, Smbus, SmbusAttributes);
 
@@ -3712,6 +3732,9 @@ namespace CustomBuildTool
                         throw Context.Error(Smbus, $"slave 0x{address:x2} is the host, alert response, EE1004 page/protection select or ARP address");
                     if (slaves.Contains(address))
                         throw Context.Error(Smbus, $"duplicate slave 0x{address:x2}");
+                    // The word-read rule below judges one op; two ops would split a slave's protocols between them.
+                    if (!Slaves.Add((body.Port, address)))
+                        throw Context.Error(Smbus, $"slave 0x{address:x2} is already listed by another <smbus> of this <pci>");
 
                     slaves.Add(address);
                 }
@@ -4392,33 +4415,28 @@ namespace CustomBuildTool
             // The driver never probes a slot outside the listed chassis types.
             //
             DynDataHw.HwGate gate = default;
-            string chassis = OptionalAttribute(SuperIo, "chassis");
+            UInt64 types = 0;
 
-            if (chassis != null)
+            foreach (string item in RequiredAttribute(Context, SuperIo, "chassis").Split(','))
             {
-                UInt64 types = 0;
+                string[] bounds = item.Trim().Split('-');
 
-                foreach (string item in chassis.Split(','))
-                {
-                    string[] bounds = item.Trim().Split('-');
+                if (bounds.Length > 2)
+                    throw Context.Error(SuperIo, $"malformed chassis item \"{item}\"");
 
-                    if (bounds.Length > 2)
-                        throw Context.Error(SuperIo, $"malformed chassis item \"{item}\"");
+                UInt64 low = ParseHex(Context, SuperIo, "chassis", bounds[0].Trim(), 63);
+                UInt64 high = bounds.Length == 2 ? ParseHex(Context, SuperIo, "chassis", bounds[1].Trim(), 63) : low;
 
-                    UInt64 low = ParseHex(Context, SuperIo, "chassis", bounds[0].Trim(), 63);
-                    UInt64 high = bounds.Length == 2 ? ParseHex(Context, SuperIo, "chassis", bounds[1].Trim(), 63) : low;
+                if (low == 0 || low > high)
+                    throw Context.Error(SuperIo, $"chassis item \"{item}\" is zero or reversed");
 
-                    if (low == 0 || low > high)
-                        throw Context.Error(SuperIo, $"chassis item \"{item}\" is zero or reversed");
-
-                    for (UInt64 type = low; type <= high; type++)
-                        types |= 1ul << (int)type;
-                }
-
-                gate.Kind = DynDataHw.GateChassis;
-                gate.Value = (UInt32)types;
-                gate.ValueMax = (UInt32)(types >> 32);
+                for (UInt64 type = low; type <= high; type++)
+                    types |= 1ul << (int)type;
             }
+
+            gate.Kind = DynDataHw.GateChassis;
+            gate.Value = (UInt32)types;
+            gate.ValueMax = (UInt32)(types >> 32);
 
             foreach (byte slot in slots)
             {
@@ -5332,7 +5350,7 @@ namespace CustomBuildTool
 
                     FileName = nestedFile;
 
-                    throw Error(element, $"pci 0x{vendor:x4}:0x{device:x4} holds window/smbus/vsec ops that the top-level {Describe(top)} shadows (the driver tries the PCI row first)");
+                    throw Error(element, $"pci 0x{vendor:x4}:0x{device:x4} holds read/window/smbus/vsec ops that the top-level {Describe(top)} shadows (the driver tries the PCI row first)");
                 }
 
                 FileName = fileName;
