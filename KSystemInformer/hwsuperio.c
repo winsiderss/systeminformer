@@ -1011,11 +1011,26 @@ NTSTATUS KphpHwSuperIoReadMonitor(
     }
 
     KphpHwSuperIoOut(index, (UCHAR)Register);
-    *Value = KphpHwSuperIoIn(data);
 
     if (Session->Family == KPH_DYN_HW_SUPERIO_FAMILY_NUVOTON_EC)
     {
         UCHAR current;
+        BOOLEAN selected;
+
+        current = KphpHwSuperIoIn(index);
+        selected = (current == (UCHAR)Register);
+        if (selected)
+        {
+            *Value = KphpHwSuperIoIn(data);
+        }
+        else
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "SuperIO EC index 0x%02lx selected, not 0x%02lx",
+                          (ULONG)current,
+                          (ULONG)(UCHAR)Register);
+        }
 
         current = KphpHwSuperIoIn(page);
         if (current != bank)
@@ -1033,7 +1048,17 @@ NTSTATUS KphpHwSuperIoReadMonitor(
         }
 
         KphpHwSuperIoOut(page, KPH_HW_SUPERIO_EC_PAGE_FREE);
+
+        if (!selected)
+        {
+            Session->Contended = TRUE;
+            return STATUS_RETRY;
+        }
+
+        return STATUS_SUCCESS;
     }
+
+    *Value = KphpHwSuperIoIn(data);
 
     return STATUS_SUCCESS;
 }
