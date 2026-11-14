@@ -1636,7 +1636,8 @@ typedef union _TIMER2_ATTRIBUTES
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw
- * \remarks Use for an unnamed second-generation timer, not for opening a named legacy timer. The attribute validator accepts base combinations 0, 2, 4, 8, 6 and 12, optionally with bit 0x80000000.
+ * \remarks Use for an unnamed second-generation timer, not for opening a named legacy timer.
+ * The attribute validator accepts base combinations 0, 2, 4, 8, 6 and 12, optionally with bit 0x80000000.
  * The IR bit 0x2 adds TimerId access checks. Successful creation does not arm the timer; close its handle with NtClose.
  */
 _Kernel_entry_
@@ -2729,7 +2730,8 @@ NtSetTimerResolution(
  * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in 100-nanosecond units.
  * \param PerformanceFrequency A pointer to a variable that receives the current performance-frequency value, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
- * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
+ * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
+ * Use RtlQueryPerformanceCounter instead since no system calls are required.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
  * \remarks Returns a counter with an optional frequency, each in an 8-byte LARGE_INTEGER.
  * Use the frequency to interpret deltas; these values are not system-time timestamps. The native
@@ -11372,9 +11374,16 @@ static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XState)                           
  * The NtGetTickCount64 routine retrieves the number of milliseconds that have elapsed since the system was started.
  *
  * \return ULONGLONG The return value is the number of milliseconds that have elapsed since the system was started.
- * \remarks The resolution of the NtGetTickCount64 function is limited to the resolution of the system timer,
- * which is typically in the range of 10 milliseconds to 16 milliseconds. The resolution of the NtGetTickCount64
- * function is not affected by adjustments made by the GetSystemTimeAdjustment function.
+ * \remarks The value is computed from the TickCount and TickCountMultiplier fields of USER_SHARED_DATA without
+ * a system call. On 64-bit builds TickCountQuad is read directly; on 32-bit builds the High1Time, LowPart and
+ * High2Time fields are read with acquire ordering and the read is retried until both high parts match.
+ *
+ * The count is biased: it includes time the system has spent in sleep, hibernation or connected standby.
+ * It does not share a time domain with relative wait timeouts on Windows 8 and later, which exclude that time.
+ * Use PhQueryWaitTime for deadlines that bound a wait, and RtlQueryUnbiasedInterruptTime for elapsed working time.
+ *
+ * The resolution is limited to the system clock tick, typically 10 to 16 milliseconds (15.625 ms by default),
+ * and is not affected by system time adjustments. The 64-bit value does not wrap in practice.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64
  */
 FORCEINLINE
