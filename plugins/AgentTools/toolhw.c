@@ -118,6 +118,7 @@ static CONST PCSTR AtpHwThrottleKeys[] =
 C_ASSERT(RTL_NUMBER_OF(AtpHwThrottleFlags) == RTL_NUMBER_OF(AtpHwThrottleKeys));
 
 #define AT_HW_HISTORY_DEFAULT_WINDOW_SECONDS 60
+#define AT_HW_HISTORY_MAXIMUM_SAMPLES 65536 // per reply, with include_samples
 #define AT_HW_SENSOR_ID_LENGTH (16 + 1 + 2 + 1 + 16)
 
 // A copy of a PH_HW_SENSOR_ENTRY that outlives the enumeration, or of a stored history's info.
@@ -759,6 +760,12 @@ VOID AtpGetHardwareSensorHistory(
     includeSamples = AtJsonGetObjectBoolean(Call->Arguments, "include_samples");
     ids = AtJsonGetObjectMember(Call->Arguments, "ids", PH_JSON_OBJECT_TYPE_ARRAY);
 
+    if (ids && PhGetJsonArrayLength(ids) > AT_ROWS_MAXIMUM_LIMIT)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"ids has more than %lu entries.", AT_ROWS_MAXIMUM_LIMIT);
+        return;
+    }
+
     // Copied out first so that no row is built while the provider or the store holds a lock.
     sensors = PhCreateList(64);
     PhHwEnumerateSensors(AtpHwCollectSensor, sensors);
@@ -851,11 +858,19 @@ VOID AtpGetHardwareSensorHistory(
     structured = PhCreateJsonObject();
     AtInitializeRows(&rows, Call->Arguments);
 
+    // The rows keep their order, so the page is known before a row is built: only its rows carry samples, and it
+    // holds no more of them than AT_HW_HISTORY_MAXIMUM_SAMPLES.
+    PhClearReference(&rows.SortBy);
+
+    if (includeSamples)
+        rows.Limit = min(rows.Limit, max(AT_HW_HISTORY_MAXIMUM_SAMPLES / windowSamples, 1));
+
     for (i = 0; i < selected->Count; i++)
     {
+        BOOLEAN samples = includeSamples && i >= rows.Offset && i - rows.Offset < rows.Limit;
         ULONG count;
 
-        AtAddRow(&rows, AtpHwCreateHistoryRow(selected->Items[i], windowSamples, includeSamples, values, times, &count));
+        AtAddRow(&rows, AtpHwCreateHistoryRow(selected->Items[i], windowSamples, samples, values, times, &count));
         coveredSamples = max(coveredSamples, count);
     }
 
