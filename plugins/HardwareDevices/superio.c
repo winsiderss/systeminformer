@@ -73,6 +73,11 @@ typedef struct _MB_NCT610X_VARIANT
     UCHAR FanCount;
     UCHAR PwmCount;
     UCHAR TsiCount;
+    UCHAR InputCount;
+    const USHORT* InputRegisters;
+    const USHORT* AltInputRegisters;
+    ULONG ScaledInputs;
+    const PCWSTR* InputLabels;
 } MB_NCT610X_VARIANT, *PMB_NCT610X_VARIANT;
 typedef const MB_NCT610X_VARIANT* PCMB_NCT610X_VARIANT;
 
@@ -364,10 +369,21 @@ static CONST MB_NCT67_DIRECT Nct6796sDirects[] =
 
 static CONST MB_NCT67_VARIANT Nct6796s = { 16, TRUE, 7, 7, 8, 2, Nct67TemperatureLabelsB, 0xbfff2ffe, 0x80000c00, 7, 0, 7, &Nct6796sMap, Nct6796sDirects, RTL_NUMBER_OF(Nct6796sDirects) };
 
-// NCT6102D/6104D/6106D and NCT6112D/6114D/6116D/6126D: in0-in8 at 00h-05h,
+// NCT6102D/6104D/6106D and NCT6112D/6114D/6116D: in0-in8 at 00h-05h,
 // 07h-09h, or at 300h-305h, 307h-309h; whichever bank reads.
 static CONST USHORT Nct610xInputRegisters[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x07, 0x08, 0x09 };
 static CONST USHORT Nct610xAltInputRegisters[] = { 0x300, 0x301, 0x302, 0x303, 0x304, 0x305, 0x307, 0x308, 0x309 };
+
+// NCT6122D and NCT6126D: in0-in9 at 00h-09h or 300h-309h, with VHIF at 06h and VTT at 09h.
+static CONST USHORT Nct6126InputRegisters[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 };
+static CONST USHORT Nct6126AltInputRegisters[] = { 0x300, 0x301, 0x302, 0x303, 0x304, 0x305, 0x306, 0x307, 0x308, 0x309 };
+
+static CONST PCWSTR Nct6126InputLabels[] =
+{
+    L"CPUVCORE", L"Voltage 1", L"AVSB", L"3VCC", L"Voltage 4", L"Voltage 5", L"VHIF", L"3VSB", L"VBAT", L"VTT"
+};
+
+#define NCT6126_SCALED_INPUTS 0x000001CC
 static CONST USHORT Nct610xFixedHalfRegisters[] = { 0x16, 0x1b, 0x1b, 0x16, 0x1b, 0x1b }; // half degree of 10h-15h, bit n
 static CONST USHORT Nct610xMonitorSourceRegisters[] = { 0x110, 0x120, 0x130 }; // monitors 18h-1Ah
 static CONST USHORT Nct610xPwmRegisters[] = { 0x4a, 0x4b, 0x4c, 0xd8, 0xd9 };
@@ -382,8 +398,9 @@ static CONST USHORT Nct610xPwmRegisters[] = { 0x4a, 0x4b, 0x4c, 0xd8, 0xd9 };
 #define NCT610X_VBAT_INPUT 8
 #define NCT610X_TEMPERATURE_MASK 0x007ffffe // sources 1-22 of Nct6776TemperatureLabels
 
-static CONST MB_NCT610X_VARIANT Nct6106 = { 3, 3, 8 };
-static CONST MB_NCT610X_VARIANT Nct6116 = { 5, 5, 2 };
+static CONST MB_NCT610X_VARIANT Nct6106 = { 3, 3, 8, RTL_NUMBER_OF(Nct610xInputRegisters), Nct610xInputRegisters, Nct610xAltInputRegisters, NCT67_SCALED_INPUTS, Nct6775InputLabels };
+static CONST MB_NCT610X_VARIANT Nct6116 = { 5, 5, 2, RTL_NUMBER_OF(Nct610xInputRegisters), Nct610xInputRegisters, Nct610xAltInputRegisters, NCT67_SCALED_INPUTS, Nct6775InputLabels };
+static CONST MB_NCT610X_VARIANT Nct6126 = { 5, 5, 2, RTL_NUMBER_OF(Nct6126InputRegisters), Nct6126InputRegisters, Nct6126AltInputRegisters, NCT6126_SCALED_INPUTS, Nct6126InputLabels };
 
 // SMSC SCH311x and SCH5127: 8-bit inputs scaled reg * nominal / 192 mV.
 static CONST USHORT SmscInputRegisters[] = { 0x20, 0x21, 0x22, 0x23, 0x24, 0x99, 0x9a, 0x1f };
@@ -601,8 +618,10 @@ static CONST PCWSTR FintekInputLabels[] =
 static CONST MB_CHIP SuperIoChips[] =
 {
     { MB_FAMILY_NUVOTON, 0xc450, 0xfff8, L"NCT6102D/NCT6104D/NCT6106D", &Nct6106, MB_DECODER_NCT610X },
-    { MB_FAMILY_NUVOTON, 0xd280, 0xfff8, L"NCT6112D/NCT6114D/NCT6116D/NCT6126D", &Nct6116, MB_DECODER_NCT610X },
-    { MB_FAMILY_NUVOTON, 0xd2a0, 0xfff8, L"NCT6122D", &Nct6116, MB_DECODER_NCT610X },
+    { MB_FAMILY_NUVOTON, 0xd283, 0xffff, L"NCT6126D", &Nct6126, MB_DECODER_NCT610X }, // inside the D280 match; first hit wins
+    { MB_FAMILY_NUVOTON, 0xd284, 0xffff, L"NCT6126D", &Nct6126, MB_DECODER_NCT610X },
+    { MB_FAMILY_NUVOTON, 0xd280, 0xfff8, L"NCT6112D/NCT6114D/NCT6116D", &Nct6116, MB_DECODER_NCT610X },
+    { MB_FAMILY_NUVOTON, 0xd2a0, 0xfff8, L"NCT6122D", &Nct6126, MB_DECODER_NCT610X },
     { MB_FAMILY_NUVOTON, 0xb470, 0xfff8, L"NCT6775F", &Nct6775 },
     { MB_FAMILY_NUVOTON, 0xc330, 0xfff8, L"NCT6776D/F", &Nct6776 },
     { MB_FAMILY_NUVOTON, 0xc560, 0xfff8, L"NCT6779D", &Nct6779 },
@@ -1212,10 +1231,10 @@ static VOID SuperIoAddNct610xRegisters(
     _Inout_ PMB_REGISTER_LIST List
     )
 {
-    for (ULONG i = 0; i < RTL_NUMBER_OF(Nct610xInputRegisters); i++)
+    for (ULONG i = 0; i < Variant->InputCount; i++)
     {
-        SuperIoAddRegister(List, Nct610xInputRegisters[i]);
-        SuperIoAddRegister(List, Nct610xAltInputRegisters[i]);
+        SuperIoAddRegister(List, Variant->InputRegisters[i]);
+        SuperIoAddRegister(List, Variant->AltInputRegisters[i]);
     }
     SuperIoAddRegister(List, NCT610X_REG_VBAT);
 
@@ -1869,18 +1888,18 @@ static VOID SuperIoDecodeNct610x(
     // The voltage bank is the first that reads non-zero, the 00h bank when both do in that poll; it is kept for the session.
     if (!Context->State->VoltageBank)
     {
-        for (ULONG i = 0; i < RTL_NUMBER_OF(Nct610xInputRegisters) && Context->State->VoltageBank != 1; i++)
+        for (ULONG i = 0; i < variant->InputCount && Context->State->VoltageBank != 1; i++)
         {
-            if (SuperIoRead8(registers, Nct610xInputRegisters[i], &value8) && value8)
+            if (SuperIoRead8(registers, variant->InputRegisters[i], &value8) && value8)
                 Context->State->VoltageBank = 1;
-            else if (!Context->State->VoltageBank && SuperIoRead8(registers, Nct610xAltInputRegisters[i], &value8) && value8)
+            else if (!Context->State->VoltageBank && SuperIoRead8(registers, variant->AltInputRegisters[i], &value8) && value8)
                 Context->State->VoltageBank = 2;
         }
     }
 
-    inputs = Context->State->VoltageBank == 2 ? Nct610xAltInputRegisters : Nct610xInputRegisters;
+    inputs = Context->State->VoltageBank == 2 ? variant->AltInputRegisters : variant->InputRegisters;
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(Nct610xInputRegisters); i++)
+    for (ULONG i = 0; i < variant->InputCount; i++)
     {
         if (!SuperIoRead8(registers, inputs[i], &value8))
             continue;
@@ -1894,7 +1913,7 @@ static VOID SuperIoDecodeNct610x(
                 continue;
         }
 
-        SuperIoAddVoltage(Context, i, value8 * 0.008f, !!(NCT67_SCALED_INPUTS & (1ul << i)), Nct6775InputLabels[i]);
+        SuperIoAddVoltage(Context, i, value8 * 0.008f, !!(variant->ScaledInputs & (1ul << i)), variant->InputLabels[i]);
     }
 
     // Fixed registers 10h-15h with their B0h-B5h sources, then the fan control monitors; a source is shown once.
