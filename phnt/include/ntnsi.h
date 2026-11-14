@@ -1138,7 +1138,8 @@ typedef struct _NSI_TCP_GLOBAL_HEADER
 /**
  * The NSI_TCP_GLOBAL_ROS structure is the read-only static parameter block of the TCP global object
  * (NPI_MS_TCP_MODULEID, NsiTcpObjectGlobal).
- * \remarks TcpGetAllGlobalParameters requires at least sizeof(NSI_TCP_GLOBAL_ROS) (20) bytes; GetTcpStatisticsEx2 copies the first 16 bytes.
+ * \remarks TcpGetAllGlobalParameters requires at least sizeof(NSI_TCP_GLOBAL_ROS) (20) bytes;
+ * GetTcpStatisticsEx2 copies the first 16 bytes.
  */
 typedef struct _NSI_TCP_GLOBAL_ROS
 {
@@ -2175,7 +2176,8 @@ typedef enum _NDIS_COMPARTMENT_FLAGS
  * (NPI_MS_NDIS_MODULEID, NdisNsiObjectCompartment). Callers fill the header, CompartmentGuid, CompartmentName and Flags to
  * create a compartment; ndis.sys creates the compartment's network and software loopback interface, fills the loopback and
  * network fields, keeps a copy in the compartment block and returns that copy from enumeration.
- * \remarks Setting compartment parameters requires a 0x668-byte input. Persisted records with Revision < 3 or Size < 0x664 are upgraded during compartment initialization.
+ * \remarks Setting compartment parameters requires a 0x668-byte input.
+ * Persisted records with Revision < 3 or Size < 0x664 are upgraded during compartment initialization.
  */
 typedef struct _NDIS_NSI_COMPARTMENT_RW
 {
@@ -5877,7 +5879,8 @@ NsiRpcGetAllParameters(
  * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
  * \param[in,out] Request A pointer to the request (passed to NsiGetAllParametersEx when RpcHandle is NULL).
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or
+ * ModuleId (else ERROR_INVALID_PARAMETER).
  */
 NTSYSAPI
 ULONG
@@ -5925,7 +5928,8 @@ NsiRpcGetParameter(
  * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
  * \param[in,out] Request A pointer to the request (passed to NsiGetParameterEx when RpcHandle is NULL).
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or
+ * ModuleId (else ERROR_INVALID_PARAMETER).
  */
 NTSYSAPI
 ULONG
@@ -6013,7 +6017,8 @@ NsiRpcSetAllParameters(
  * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
  * \param[in,out] Request A pointer to the request (passed to NsiSetAllParametersEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or
+ * ModuleId (else ERROR_INVALID_PARAMETER).
  */
 NTSYSAPI
 ULONG
@@ -6063,7 +6068,8 @@ NsiRpcSetParameter(
  * \param[in] RpcHandle Optional RPC binding handle from NsiConnectToServer. NULL performs the request locally through the matching nsi.dll routine (no RPC).
  * \param[in,out] Request A pointer to the request (passed to NsiSetParameterEx when RpcHandle is NULL). Store NsiCurrent is rejected over RPC.
  * \return A Win32 error code. ERROR_SUCCESS on success.
- * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or ModuleId (else ERROR_INVALID_PARAMETER).
+ * \remarks Over RPC the request must have MustBeZero == 0 (else ERROR_CALL_NOT_IMPLEMENTED) and a ModuleHandle or
+ * ModuleId (else ERROR_INVALID_PARAMETER).
  */
 NTSYSAPI
 ULONG
