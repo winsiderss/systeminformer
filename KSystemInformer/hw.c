@@ -1319,7 +1319,7 @@ BOOLEAN KphHwCpuidGatePasses(
         return TRUE;
     }
 
-    if (Gate->Leaf >= 0x80000000)
+    if (Gate->Leaf >= CPUID_EXTENDED)
     {
         if (Gate->Leaf > Cpu->MaxExtendedLeaf)
         {
