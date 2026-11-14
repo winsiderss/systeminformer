@@ -585,7 +585,8 @@ typedef struct _FILE_BASIC_INFORMATION
 /**
  * The FILE_STANDARD_INFORMATION structure contains standard information of a file.
  * \remarks EndOfFile specifies the byte offset to the end of the file.
- * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to the byte immediately following the last valid byte in the file.
+ * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to
+ * the byte immediately following the last valid byte in the file.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_standard_information
  */
 typedef struct _FILE_STANDARD_INFORMATION
@@ -918,8 +919,10 @@ typedef struct _FILE_TRACKING_INFORMATION
  * The FILE_COMPLETION_INFORMATION structure contains the port handle and key for an I/O completion port created for a file handle.
  *
  * \remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
- * Completion information is replaced with the ZwSetInformationFile routine with the FileInformationClass parameter set to FileReplaceCompletionInformation.
- * The Port and Key members of FILE_COMPLETION_INFORMATION are set to their new values. To remove an existing completion port for a file handle, Port is set to NULL.
+ * Completion information is replaced with the ZwSetInformationFile routine with the FileInformationClass parameter set
+ * to FileReplaceCompletionInformation.
+ * The Port and Key members of FILE_COMPLETION_INFORMATION are set to their new values.
+ * To remove an existing completion port for a file handle, Port is set to NULL.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_completion_information
  */
 typedef struct _FILE_COMPLETION_INFORMATION
@@ -931,10 +934,12 @@ typedef struct _FILE_COMPLETION_INFORMATION
 /**
  * The FILE_PIPE_INFORMATION structure contains information about a named pipe that is not specific to the local or the remote end of the pipe.
  *
- * \remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
+ * \remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a
+ * STATUS_INVALID_PARAMETER error code.
  * When CompletionMode is set to FILE_PIPE_QUEUE_OPERATION, if the pipe is connected to, read to, or written from,
  * the operation is not completed until there is data to read, all data is written, or a client is connected.
- * When CompletionMode is set to FILE_PIPE_COMPLETE_OPERATION, if the pipe is being connected to, read to, or written from, the operation is completed immediately.
+ * When CompletionMode is set to FILE_PIPE_COMPLETE_OPERATION, if the pipe is being connected to, read to, or written
+ * from, the operation is completed immediately.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_information
  */
 typedef struct _FILE_PIPE_INFORMATION
