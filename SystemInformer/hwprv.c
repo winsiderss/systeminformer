@@ -3977,6 +3977,8 @@ static PHP_HW_SMBUS_RESULT PhpHwSmbusClassify(
     case STATUS_NO_SUCH_DEVICE:
         return PhpHwSmbusAbsent;
     case STATUS_RETRY:
+    case STATUS_INSUFFICIENT_RESOURCES: // the request was not run
+    case STATUS_NO_MEMORY:
         return PhpHwSmbusBusy;
     case STATUS_DEVICE_NOT_READY:
         return PhpHwSmbusNotReady;
@@ -5637,6 +5639,8 @@ static BOOLEAN PhpHwSmuApplyStatus(
     switch (Status)
     {
     case STATUS_RETRY:
+    case STATUS_INSUFFICIENT_RESOURCES: // the request was not run
+    case STATUS_NO_MEMORY:
         break;
     case STATUS_DEVICE_BUSY:
     case STATUS_IO_TIMEOUT:
@@ -5852,8 +5856,14 @@ static VOID PhpHwSmuFindAcpiDevices(
 
         PhInitializeStringRefLongHint(&instance, instanceId);
 
+        if (!PhSplitStringRefAtLastChar(&instance, L'\\', &prefix, &uidString))
+            continue;
+
+        // The _UID is the socket, spelled IDnn.
+        if (uidString.Length > 2 * sizeof(WCHAR) && (uidString.Buffer[0] | 0x20) == L'i' && (uidString.Buffer[1] | 0x20) == L'd')
+            PhSkipStringRef(&uidString, 2 * sizeof(WCHAR));
+
         if (
-            !PhSplitStringRefAtLastChar(&instance, L'\\', &prefix, &uidString) ||
             !PhStringToUInt64(&uidString, 10, &uid) ||
             uid >= PhpHwSmuPackageCount ||
             PhpHwSmuPackages[uid].AcpiDevice
@@ -6040,6 +6050,12 @@ static VOID PhpHwSmuReadHsmp(
         case STATUS_IO_TIMEOUT:
             if (NT_SUCCESS(transient) || transient == STATUS_RETRY)
                 transient = entryStatus;
+            break;
+        case STATUS_DEVICE_DATA_ERROR: // the index/data pair was moved under the handshake
+        case STATUS_DEVICE_NOT_READY: // RSP read all ones, or the window moved
+        case STATUS_INSUFFICIENT_RESOURCES:
+        case STATUS_NO_MEMORY:
+            transient = entryStatus;
             break;
         case STATUS_INTERNAL_ERROR: // a firmware prerequisite is not met
         case STATUS_UNSUCCESSFUL: // an unknown firmware answer
@@ -12416,6 +12432,7 @@ static VOID PhpHwInvalidate(
     {
         PhpHwPackageSensors[i].Valid = 0;
         PhpHwPackageSensors[i].CcdValidMask = 0;
+        PhpHwPackageSensors[i].TjMax = 0.0f;
     }
 
     PhpHwSmbiosDataRate = 0;
@@ -14001,8 +14018,8 @@ static VOID PhpHwAppendSpd5118Nvm(
 {
     static CONST PCWSTR moduleTypes[16] =
     {
-        NULL, L"RDIMM", L"UDIMM", L"SODIMM", L"LRDIMM", NULL, NULL, L"MRDIMM",
-        NULL, NULL, NULL, L"CUDIMM", NULL, L"CSODIMM", L"CAMM2", NULL
+        NULL, L"RDIMM", L"UDIMM", L"SODIMM", L"LRDIMM", L"CUDIMM", L"CSODIMM", L"MRDIMM",
+        L"CAMM2", NULL, L"DDIMM", L"Solder down", NULL, NULL, NULL, NULL
     };
     USHORT timings[5];
     USHORT cycle = Nvm[2] | (Nvm[3] << 8);
