@@ -460,6 +460,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS             L"EnvironmentVariablesListViewColumns"
 #define SETTING_PLUGIN_MANAGER_TREE_LIST_COLUMNS                    L"PluginManagerTreeListColumns"
 #define SETTING_PROCESS_SERVICE_LIST_VIEW_COLUMNS                   L"ProcessServiceListViewColumns"
+#define SETTING_PROCESS_TREE_COLLAPSE_ON_START                       L"ProcessTreeCollapseOnStart"
 #define SETTING_PROCESS_TREE_COLUMN_SET_CONFIG                      L"ProcessTreeColumnSetConfig"
 #define SETTING_PROCESS_TREE_LIST_COLUMNS                           L"ProcessTreeListColumns"
 #define SETTING_PROCESS_TREE_LIST_SORT                              L"ProcessTreeListSort"
