@@ -114,7 +114,7 @@ typedef const MB_F71805F_VARIANT* PCMB_F71805F_VARIANT;
 #define MB_ITE_SCALED 0x1
 #define MB_ITE_AVCC3 0x2
 #define MB_ITE_NEWER_PWM 0x4
-#define MB_ITE_8BIT_FANS 0x8
+#define MB_ITE_FAN16_CONFIG 0x8 // fans 1-3 count 16 bits only where 0Ch bits 2:0 enable it
 #define MB_ITE_TEMP_CONFIG 0x10
 #define MB_ITE_ALT_FAN6 0x20
 #define MB_ITE_IN7_INTERNAL 0x40
@@ -548,10 +548,11 @@ static CONST PCWSTR Nct6687MsiTemperatureLabels[] =
     L"CPU", L"System", L"VRM MOS", L"PCH", L"CPU Socket", L"PCIe x1", L"M2_1"
 };
 
-static CONST MB_ITE_VARIANT It8705 = { 16000, MB_ITE_8BIT_FANS, 3, 3, 3 };
-static CONST MB_ITE_VARIANT It8716 = { 16000, 0, 3, 5, 3 };
-static CONST MB_ITE_VARIANT It8781 = { 16000, 0, 3, 3, 3 };
-static CONST MB_ITE_VARIANT It8721 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8705 = { 16000, MB_ITE_FAN16_CONFIG, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8716 = { 16000, MB_ITE_FAN16_CONFIG, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8781 = { 16000, MB_ITE_FAN16_CONFIG, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8721 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM | MB_ITE_FAN16_CONFIG, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8728 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 5, 3 };
 static CONST MB_ITE_VARIANT It8771 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 3, 3 };
 static CONST MB_ITE_VARIANT It8732 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 4, 4 };
 static CONST MB_ITE_VARIANT It8792 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 3, 3 };
@@ -656,7 +657,7 @@ static CONST MB_CHIP SuperIoChips[] =
     { MB_FAMILY_ITE, 0x8720, 0xffff, L"IT8720F", &It8716 },
     { MB_FAMILY_ITE, 0x8726, 0xffff, L"IT8726F", &It8716 },
     { MB_FAMILY_ITE, 0x8721, 0xffff, L"IT8721F", &It8721 },
-    { MB_FAMILY_ITE, 0x8728, 0xffff, L"IT8728F", &It8721 },
+    { MB_FAMILY_ITE, 0x8728, 0xffff, L"IT8728F", &It8728 },
     { MB_FAMILY_ITE, 0x8732, 0xffff, L"IT8732F", &It8732 },
     { MB_FAMILY_ITE, 0x8771, 0xffff, L"IT8771E", &It8771 },
     { MB_FAMILY_ITE, 0x8772, 0xffff, L"IT8772E", &It8771 },
@@ -1330,8 +1331,7 @@ static VOID SuperIoAddIteRegisters(
         }
 
         SuperIoAddRegister(List, IteFanLowRegisters[i]);
-        if (!(Variant->Flags & MB_ITE_8BIT_FANS))
-            SuperIoAddRegister(List, IteFanHighRegisters[i]);
+        SuperIoAddRegister(List, IteFanHighRegisters[i]);
     }
 
     for (ULONG i = 0; i < Variant->PwmCount; i++)
@@ -2393,6 +2393,7 @@ static VOID SuperIoDecodeIte(
     for (ULONG i = 0; i < variant->FanCount; i++)
     {
         BOOLEAN present;
+        BOOLEAN wide;
         ULONG count;
         UCHAR low;
         UCHAR high;
@@ -2411,12 +2412,14 @@ static VOID SuperIoDecodeIte(
         if (!present)
             continue;
 
+        wide = i >= 3 || !(variant->Flags & MB_ITE_FAN16_CONFIG) || (fan16 & (1 << i));
+
         if (i == 5 && (variant->Flags & MB_ITE_ALT_FAN6))
         {
             if (!SuperIoRead8(registers, ITE_REG_FAN6_ALT_LOW, &low) || !SuperIoRead8(registers, ITE_REG_FAN6_ALT_HIGH, &high))
                 continue;
         }
-        else if (variant->Flags & MB_ITE_8BIT_FANS)
+        else if (!wide)
         {
             if (!SuperIoRead8(registers, IteFanLowRegisters[i], &low))
                 continue;
@@ -2430,7 +2433,7 @@ static VOID SuperIoDecodeIte(
 
         count = low | ((ULONG)high << 8);
 
-        if (variant->Flags & MB_ITE_8BIT_FANS)
+        if (!wide)
         {
             // Fan 3 divides by 8 when 0Bh bit 6 is set, else 2.
             ULONG divisor = i < 2 ? 1ul << ((divisors >> (3 * i)) & 7) : ((divisors & 0x40) ? 8 : 2);
