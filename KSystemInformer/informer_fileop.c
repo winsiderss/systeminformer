@@ -1398,6 +1398,8 @@ VOID KphpFltFillPostOpMessage(
             length = min((ULONG)Data->IoStatus.Information,
                          Data->Iopb->Parameters.QueryFileInformation.Length);
             fieldId = KphMsgFieldInformationBuffer;
+            systemBuffer = (FLT_IS_FASTIO_OPERATION(Data) &&
+                            (buffer > MmHighestUserAddress));
             break;
         }
         case IRP_MJ_QUERY_EA:
