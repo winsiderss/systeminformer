@@ -5208,12 +5208,13 @@ static VOID PhpHwReadDimms(
         PHP_HW_DIMM_TYPE Type;
         UCHAR OpIndex;
         UCHAR Command;
+        BOOLEAN Paged; // the page (MR11) is read first, in the same batch
     } reads[] =
     {
-        { PhpHwDimmSpd5118, PHP_HW_SMBUS_OP_SPD, 0x31 },
-        { PhpHwDimmTsod, PHP_HW_SMBUS_OP_TSOD, 0x05 },
+        { PhpHwDimmSpd5118, PHP_HW_SMBUS_OP_SPD, 0x31, TRUE },
+        { PhpHwDimmTsod, PHP_HW_SMBUS_OP_TSOD, 0x05, FALSE },
     };
-    KPH_HW_SMBUS_BATCH_ENTRY entries[PHP_HW_DIMM_COUNT];
+    KPH_HW_SMBUS_BATCH_ENTRY entries[PHP_HW_DIMM_COUNT * 2];
     ULONG slots[PHP_HW_DIMM_COUNT];
     BOOLEAN answered = FALSE;
     BOOLEAN busy = FALSE;
@@ -5222,34 +5223,59 @@ static VOID PhpHwReadDimms(
 
     for (ULONG r = 0; r < RTL_NUMBER_OF(reads) && !busy && !contended; r++)
     {
+        ULONG stride = reads[r].Paged ? 2 : 1;
         ULONG count = 0;
 
         for (ULONG i = 0; i < PHP_HW_DIMM_COUNT; i++)
         {
+            PKPH_HW_SMBUS_BATCH_ENTRY entry = &entries[count * stride];
+            UCHAR address;
+
             if (PhpHwDimms[i].Type != reads[r].Type || PhpHwDimms[i].Item.Disabled)
                 continue;
 
-            PhpHwInitializeSmbusEntry(&entries[count], PhpHwDimmAddress(reads[r].Type, i), reads[r].Command, KPH_DYN_HW_SMBUS_PROTOCOL_WORD_DATA);
+            address = PhpHwDimmAddress(reads[r].Type, i);
+
+            if (reads[r].Paged)
+                PhpHwInitializeSmbusEntry(entry++, address, 0x0B, KPH_DYN_HW_SMBUS_PROTOCOL_BYTE_DATA);
+
+            PhpHwInitializeSmbusEntry(entry, address, reads[r].Command, KPH_DYN_HW_SMBUS_PROTOCOL_WORD_DATA);
             slots[count++] = i;
         }
 
         if (!count)
             continue;
 
-        if (!PhpHwSendSmbusBatch(RequestId, &PhpHwSmbusLocators[PhpHwSmbusHost], reads[r].OpIndex, entries, count))
+        if (!PhpHwSendSmbusBatch(RequestId, &PhpHwSmbusLocators[PhpHwSmbusHost], reads[r].OpIndex, entries, count * stride))
             return;
 
         for (ULONG i = 0; i < count; i++)
         {
+            PKPH_HW_SMBUS_BATCH_ENTRY entry = &entries[i * stride];
             PPHP_HW_DIMM dimm = &PhpHwDimms[slots[i]];
             BOOLEAN valid = FALSE;
             FLOAT celsius = 0.0f;
 
-            switch (PhpHwSmbusClassify(entries[i].Status))
+            if (reads[r].Paged)
+            {
+                // A hub another agent left on a non-zero NVM page (MR11[2:0]) does not read its other registers:
+                // the value is invalid this pass, nothing is counted.
+                if (PhpHwSmbusClassify(entry->Status) == PhpHwSmbusOk && (entry->Value & 0x07))
+                {
+                    answered = TRUE;
+                    read |= (UCHAR)(1 << slots[i]);
+                    PhpHwSetDimmSensor(RequestId, slots[i], FALSE, 0.0f);
+                    continue;
+                }
+
+                entry++;
+            }
+
+            switch (PhpHwSmbusClassify(entry->Status))
             {
             case PhpHwSmbusOk:
                 answered = TRUE;
-                celsius = dimm->Type == PhpHwDimmSpd5118 ? PhpHwSpd5118ToCelsius(entries[i].Value) : PhpHwTsodToCelsius(entries[i].Value);
+                celsius = dimm->Type == PhpHwDimmSpd5118 ? PhpHwSpd5118ToCelsius(entry->Value) : PhpHwTsodToCelsius(entry->Value);
                 valid = PhpHwDimmCelsiusValid(celsius);
                 break;
             case PhpHwSmbusAbsent:
@@ -5281,7 +5307,7 @@ static VOID PhpHwReadDimms(
                 dimm->Item.Disabled = TRUE;
 
             if (dimm->Item.Disabled)
-                PhTraceInfo("Hardware sensor DIMM %lu unavailable: %!STATUS!", slots[i], entries[i].Status);
+                PhTraceInfo("Hardware sensor DIMM %lu unavailable: %!STATUS!", slots[i], entry->Status);
 
             read |= (UCHAR)(1 << slots[i]);
             PhpHwSetDimmSensor(RequestId, slots[i], valid, celsius);
