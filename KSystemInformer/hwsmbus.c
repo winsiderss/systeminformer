@@ -1659,9 +1659,7 @@ NTSTATUS KphpHwSmbusTransact(
                        transaction | KPH_HW_SMBUS_CNT_START);
     }
 
-    NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTime(),
-                                         KPH_HW_SMBUS_TIMEOUT,
-                                         &deadline)));
+    deadline = KphHwDeadlineAfter(KPH_HW_SMBUS_TIMEOUT);
     deadline = max(deadline, Session->Deadline);
 
     KeStallExecutionProcessor(i801 ?

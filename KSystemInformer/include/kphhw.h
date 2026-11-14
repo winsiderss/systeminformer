@@ -220,6 +220,11 @@ VOID KphHwUnpinProcessor(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG64 KphHwDeadlineAfter(
+    _In_ ULONG64 Interval
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHwCaptureDeadline(
     _In_opt_ PLARGE_INTEGER Timeout,

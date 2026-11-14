@@ -1426,6 +1426,32 @@ VOID KphHwUnpinProcessor(
 }
 
 /**
+ * \brief Retrieves the interrupt time deadline an interval from now.
+ *
+ * \param[in] Interval The interval in 100ns units.
+ *
+ * \return The deadline, MAXULONG64 when it is not representable.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG64 KphHwDeadlineAfter(
+    _In_ ULONG64 Interval
+    )
+{
+    NTSTATUS status;
+    ULONG64 deadline;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    status = RtlULongLongAdd(KeQueryInterruptTime(), Interval, &deadline);
+    if (!NT_VERIFY(NT_SUCCESS(status)))
+    {
+        deadline = MAXULONG64;
+    }
+
+    return deadline;
+}
+
+/**
  * \brief Captures an optional timeout as an interrupt time deadline.
  *
  * \param[in] Timeout Optional timeout as KeWaitForSingleObject takes it; NULL
@@ -1481,11 +1507,7 @@ NTSTATUS KphHwCaptureDeadline(
         }
     }
 
-    status = RtlULongLongAdd(KeQueryInterruptTime(), interval, Deadline);
-    if (!NT_SUCCESS(status))
-    {
-        *Deadline = MAXULONG64;
-    }
+    *Deadline = KphHwDeadlineAfter(interval);
 
     return STATUS_SUCCESS;
 }

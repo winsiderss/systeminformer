@@ -912,9 +912,7 @@ NTSTATUS KphpHwMailboxTransact(
 
     if (mailbox->Protocol == KPH_DYN_HW_MAILBOX_PROTOCOL_HSMP)
     {
-        NT_VERIFY(NT_SUCCESS(RtlULongLongAdd(KeQueryInterruptTime(),
-                                             KPH_HW_MAILBOX_HSMP_TIMEOUT,
-                                             &idleDeadline)));
+        idleDeadline = KphHwDeadlineAfter(KPH_HW_MAILBOX_HSMP_TIMEOUT);
         idleDeadline = min(idleDeadline, Deadline);
     }
 
