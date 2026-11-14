@@ -40,6 +40,8 @@
 #define KPH_HW_VSEC_PMT_FIXED_BLOCK_GUID   0x10000000
 #define KPH_HW_VSEC_TPMI_ENTRY_DWORDS      2
 #define KPH_HW_VSEC_TPMI_CAP_UNIT          1024
+#define KPH_HW_VSEC_POSITION(Capability, Entry, Instance)                      \
+    (((ULONG)(Capability) << 16) | ((ULONG)(Entry) << 8) | (ULONG)(Instance))
 #define KPH_HW_PCI_ID_VENDOR               8
 #define KPH_HW_PCI_ID_DEVICE_PREFIX        12
 #define KPH_HW_PCI_ID_DEVICE               17
@@ -5093,6 +5095,7 @@ NTSTATUS KphpHwPciVsecLocatePmt(
  *
  * \param[in] Vsec The vsec_read op body.
  * \param[in] Table The discovery table.
+ * \param[in] Capability The configuration space offset of the capability.
  * \param[in] Index The index of the entry.
  * \param[out] Locations Receives the regions, MaxRegions entries.
  * \param[in,out] Count The number of regions in Locations.
@@ -5101,6 +5104,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpHwPciVsecLocateTpmi(
     _In_ PKPH_DYN_HW_VSEC_READ Vsec,
     _In_ PKPH_HW_VSEC_TABLE Table,
+    _In_ ULONG Capability,
     _In_ ULONG Index,
     _Out_writes_to_(KPH_DYN_HW_VSEC_MAX_REGIONS, *Count)
         PKPH_HW_VSEC_LOCATION Locations,
@@ -5163,6 +5167,7 @@ VOID KphpHwPciVsecLocateTpmi(
             break;
         }
 
+        Locations[*Count].Position = KPH_HW_VSEC_POSITION(Capability, Index, i);
         (*Count)++;
     }
 }
@@ -5287,7 +5292,12 @@ NTSTATUS KphpHwPciLocateVsec(
         {
             if (vsec->Discovery != KPH_DYN_HW_VSEC_DISCOVERY_PMT_TELEMETRY)
             {
-                KphpHwPciVsecLocateTpmi(vsec, &table, i, Locations, &count);
+                KphpHwPciVsecLocateTpmi(vsec,
+                                        &table,
+                                        positions[c],
+                                        i,
+                                        Locations,
+                                        &count);
                 continue;
             }
 
@@ -5314,6 +5324,9 @@ NTSTATUS KphpHwPciLocateVsec(
                 goto Exit;
             }
 
+            Locations[count].Position = KPH_HW_VSEC_POSITION(positions[c],
+                                                             i,
+                                                             0);
             count++;
         }
 
@@ -5446,12 +5459,42 @@ NTSTATUS KSIAPI KphpHwPciRecheckVsec(
 }
 
 /**
+ * \brief Finds the region at a discovery position.
+ *
+ * \param[in] Locations The regions.
+ * \param[in] Count The number of regions.
+ * \param[in] Position The position the region was listed with.
+ *
+ * \return The region, NULL when no region is at the position.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PKPH_HW_VSEC_LOCATION KphpHwPciFindVsecLocation(
+    _In_reads_(Count) PKPH_HW_VSEC_LOCATION Locations,
+    _In_ ULONG Count,
+    _In_ ULONG Position
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (Locations[i].Position == Position)
+        {
+            return &Locations[i];
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * \brief Reads a batch of allow-listed registers of a VSEC region.
  *
  * \param[in] Locator The locator of the device.
  * \param[in] Section The hardware section.
  * \param[in] OpIndex The index of the op among the vsec_read ops of the device.
- * \param[in] Instance The index of the region among those the op exposes.
+ * \param[in] Position The position the region was listed with.
  * \param[in] Id The ID the region was listed with.
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The batch entries, in system memory.
@@ -5464,7 +5507,7 @@ NTSTATUS KphHwPciReadVsec(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ PKPH_DYN_HW_SECTION Section,
     _In_ ULONG OpIndex,
-    _In_ ULONG Instance,
+    _In_ ULONG Position,
     _In_ ULONG Id,
     _In_ ULONG Count,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
@@ -5479,6 +5522,7 @@ NTSTATUS KphHwPciReadVsec(
     BOOLEAN readFailed;
     PKPH_HW_VSEC_LOCATION locations;
     ULONG regionCount;
+    PKPH_HW_VSEC_LOCATION region;
     KPH_HW_VSEC_LOCATION location;
     ULONG spanBegin;
     ULONG spanEnd;
@@ -5576,20 +5620,20 @@ NTSTATUS KphHwPciReadVsec(
         goto Exit;
     }
 
-    if ((Instance >= regionCount) || (locations[Instance].Id != Id))
+    region = KphpHwPciFindVsecLocation(locations, regionCount, Position);
+    if (!region || (region->Id != Id))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "VSEC instance %lu of %lu is not region 0x%08lx",
-                      Instance,
-                      regionCount,
+                      "VSEC position 0x%08lx is not region 0x%08lx",
+                      Position,
                       Id);
 
         status = STATUS_CONTEXT_MISMATCH;
         goto Exit;
     }
 
-    location = locations[Instance];
+    location = *region;
 
     if (!KphHwVsecValidateEntries(op,
                                   &location,
@@ -5637,11 +5681,19 @@ NTSTATUS KphHwPciReadVsec(
                                  locations,
                                  &regionCount,
                                  &readFailed);
-    if (!NT_SUCCESS(status) ||
-        (Instance >= regionCount) ||
-        (locations[Instance].Base != location.Base) ||
-        (locations[Instance].Size != location.Size) ||
-        (locations[Instance].Id != location.Id))
+    if (NT_SUCCESS(status))
+    {
+        region = KphpHwPciFindVsecLocation(locations, regionCount, Position);
+    }
+    else
+    {
+        region = NULL;
+    }
+
+    if (!region ||
+        (region->Base != location.Base) ||
+        (region->Size != location.Size) ||
+        (region->Id != location.Id))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -5818,6 +5870,7 @@ NTSTATUS KphHwPciQueryVsecRegions(
                 Regions[total].Instance = (USHORT)i;
                 Regions[total].Id = locations[i].Id;
                 Regions[total].Size = locations[i].Size;
+                Regions[total].Position = locations[i].Position;
             }
 
             total++;

@@ -374,6 +374,7 @@ typedef struct _KPH_HW_VSEC_LOCATION
     ULONG64 Base;
     ULONG Size;
     ULONG Id;
+    ULONG Position;
     ULONG64 BarBase;
     UCHAR Bar;
 } KPH_HW_VSEC_LOCATION, *PKPH_HW_VSEC_LOCATION;
@@ -384,7 +385,7 @@ NTSTATUS KphHwPciReadVsec(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ PKPH_DYN_HW_SECTION Section,
     _In_ ULONG OpIndex,
-    _In_ ULONG Instance,
+    _In_ ULONG Position,
     _In_ ULONG Id,
     _In_ ULONG Count,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries
@@ -657,7 +658,7 @@ _Must_inspect_result_
 NTSTATUS KphHwReadVsecBatch(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ ULONG OpIndex,
-    _In_ ULONG Instance,
+    _In_ ULONG Position,
     _In_ ULONG Id,
     _In_ ULONG Count,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,

@@ -540,7 +540,7 @@ typedef struct _KPH_HW_VSEC_REGION
     USHORT Instance;
     ULONG Id;
     ULONG Size;
-    ULONG Reserved;
+    ULONG Position;
 } KPH_HW_VSEC_REGION, *PKPH_HW_VSEC_REGION;
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 
@@ -665,7 +665,7 @@ typedef struct _KPHM_HW_READ_VSEC_BATCH
     KPH_HW_PCI_LOCATOR Locator;
     UCHAR OpIndex;
     UCHAR Reserved;
-    USHORT Instance;
+    ULONG Position;
     ULONG Id;
     ULONG Count;
     PKPH_HW_WINDOW_BATCH_ENTRY Entries;

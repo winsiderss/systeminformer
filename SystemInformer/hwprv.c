@@ -485,6 +485,7 @@ typedef struct _PHP_HW_TPMI_REGION
     KPH_HW_PCI_LOCATOR Locator;
     UCHAR OpIndex;
     USHORT Instance;
+    ULONG Position;
     ULONG Id;
     PHP_HW_ITEM Item;
     ULONG FirstEntry;
@@ -782,6 +783,7 @@ typedef struct _PHP_HW_PMT_ENTRY
     ULONG LocatorIndex;
     UCHAR OpIndex;
     USHORT Instance;
+    ULONG Position;
     ULONG Sample; // index in PhpHwPmtSamples
     ULONG NamedIndex;
     PHP_HW_ITEM Item;
@@ -9875,7 +9877,7 @@ static VOID PhpHwInitializeTpmiEntry(
 static VOID PhpHwReadTpmi(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ UCHAR OpIndex,
-    _In_ USHORT Instance,
+    _In_ ULONG Position,
     _In_ ULONG Id,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
     _In_ ULONG Count
@@ -9883,7 +9885,7 @@ static VOID PhpHwReadTpmi(
 {
     NTSTATUS status;
 
-    status = KphHwReadVsecBatch(Locator, OpIndex, Instance, Id, Entries, Count);
+    status = KphHwReadVsecBatch(Locator, OpIndex, Position, Id, Entries, Count);
 
     for (ULONG i = 0; i < Count; i++)
     {
@@ -9924,7 +9926,7 @@ static ULONG PhpHwTpmiDevicePackage(
             continue;
 
         PhpHwInitializeTpmiEntry(&entry, PH_INTEL_TPMI_INFO_BUS_INFO);
-        PhpHwReadTpmi(Locator, Regions[i].OpIndex, Regions[i].Instance, Regions[i].Id, &entry, 1);
+        PhpHwReadTpmi(Locator, Regions[i].OpIndex, Regions[i].Position, Regions[i].Id, &entry, 1);
 
         if (!NT_SUCCESS(entry.Status) || entry.Value == MAXULONG64)
             return ULONG_MAX;
@@ -9958,6 +9960,7 @@ static PPHP_HW_TPMI_REGION PhpHwBeginTpmiRegion(
     region->Locator = *Locator;
     region->OpIndex = Region->OpIndex;
     region->Instance = Region->Instance;
+    region->Position = Region->Position;
     region->Id = Region->Id;
     region->FirstEntry = PhpHwTpmiEntryCount;
 
@@ -10020,7 +10023,7 @@ static VOID PhpHwProbeTpmiRapl(
     for (ULONG i = 0; i < domainCount; i++)
         PhpHwInitializeTpmiEntry(&entries[i], i * PH_INTEL_TPMI_RAPL_DOMAIN_SIZE);
 
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, domainCount);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, domainCount);
 
     // Parsing stops at the first invalid or unknown domain.
     for (ULONG i = 0; i < domainCount; i++)
@@ -10080,7 +10083,7 @@ static VOID PhpHwProbeTpmiRapl(
         PhpHwInitializeTpmiEntry(&entries[i * 2 + 1], domains[i] + PH_INTEL_TPMI_RAPL_REG_DOMAIN_INFO * 8);
     }
 
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, count * 2);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, count * 2);
 
     if (!(region = PhpHwBeginTpmiRegion(Locator, Region)))
         return;
@@ -10147,7 +10150,7 @@ static VOID PhpHwProbeTpmiUncore(
 
     PhpHwInitializeTpmiEntry(&entries[0], 0);
     PhpHwInitializeTpmiEntry(&entries[1], PH_INTEL_TPMI_UNCORE_CLUSTER_OFFSET);
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, 2);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, 2);
 
     if (!NT_SUCCESS(entries[0].Status) || !NT_SUCCESS(entries[1].Status))
         return;
@@ -10237,7 +10240,7 @@ static VOID PhpHwProbeTpmiSst(
     }
 
     PhpHwInitializeTpmiEntry(&entries[0], 0);
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, 1);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, 1);
 
     // Interface version [7:0]: FFh is invalid, major [7:5] must be 0. SST-PP is cap bit 9.
     if (
@@ -10256,7 +10259,7 @@ static VOID PhpHwProbeTpmiSst(
     PhpHwInitializeTpmiEntry(&entries[0], pp + PH_INTEL_TPMI_SST_PP_FEATURES);
     PhpHwInitializeTpmiEntry(&entries[1], pp + PH_INTEL_TPMI_SST_PP_LEVELS);
     PhpHwInitializeTpmiEntry(&entries[2], pp + PH_INTEL_TPMI_SST_PP_STATUS);
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, 3);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, 3);
 
     for (ULONG i = 0; i < 3; i++)
     {
@@ -10275,7 +10278,7 @@ static VOID PhpHwProbeTpmiSst(
 
     PhpHwInitializeTpmiEntry(&entries[0], block + PH_INTEL_TPMI_SST_PP_INFO_1);
     PhpHwInitializeTpmiEntry(&entries[1], block + PH_INTEL_TPMI_SST_PP_INFO_11);
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, 2);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, 2);
 
     for (ULONG i = 0; i < 2; i++)
     {
@@ -10315,7 +10318,7 @@ static VOID PhpHwProbeTpmiPlr(
 
     PhpHwInitializeTpmiEntry(&entries[0], 0);
     PhpHwInitializeTpmiEntry(&entries[1], PH_INTEL_TPMI_PLR_DIE_LEVEL);
-    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Instance, Region->Id, entries, 2);
+    PhpHwReadTpmi(Locator, Region->OpIndex, Region->Position, Region->Id, entries, 2);
 
     // An all-ones header is an invalid instance.
     if (!NT_SUCCESS(entries[0].Status) || entries[0].Value == MAXULONG64 || !NT_SUCCESS(entries[1].Status))
@@ -10618,7 +10621,7 @@ static VOID PhpHwProbePmt(
                 continue;
 
             PhTraceInfo("Hardware sensors: PMT device %lu region GUID 0x%08lx, %lu samples", i, regions[j].Id, count);
-            PhpHwReadTpmi(&PhpHwPmtLocators[i], regions[j].OpIndex, regions[j].Instance, regions[j].Id, entries, count);
+            PhpHwReadTpmi(&PhpHwPmtLocators[i], regions[j].OpIndex, regions[j].Position, regions[j].Id, entries, count);
 
             // A sample that does not read, or reads blocked, at probe is not listed.
             for (ULONG k = 0; k < count && PhpHwPmtEntryCount < RTL_NUMBER_OF(PhpHwPmtEntries); k++)
@@ -10635,6 +10638,7 @@ static VOID PhpHwProbePmt(
                 entry->LocatorIndex = i;
                 entry->OpIndex = regions[j].OpIndex;
                 entry->Instance = regions[j].Instance;
+                entry->Position = regions[j].Position;
                 entry->Sample = samples[k];
                 memset(&entry->Item, 0, sizeof(PHP_HW_ITEM));
 
@@ -10687,7 +10691,7 @@ static VOID PhpHwUpdatePmt(
         }
 
         // Entries of a region share its GUID.
-        status = count ? KphHwReadVsecBatch(&PhpHwPmtLocators[head->LocatorIndex], head->OpIndex, head->Instance, PhpHwPmtSamples[head->Sample].Guid, entries, count) : STATUS_SUCCESS;
+        status = count ? KphHwReadVsecBatch(&PhpHwPmtLocators[head->LocatorIndex], head->OpIndex, head->Position, PhpHwPmtSamples[head->Sample].Guid, entries, count) : STATUS_SUCCESS;
 
         // Entry statuses apply to the samples; a batch that did not run applies its status to each, as TPMI does.
         for (ULONG i = 0; i < count; i++)
@@ -10764,7 +10768,7 @@ static VOID PhpHwUpdateTpmi(
             continue;
         }
 
-        status = KphHwReadVsecBatch(&region->Locator, region->OpIndex, region->Instance, region->Id, entries, count);
+        status = KphHwReadVsecBatch(&region->Locator, region->OpIndex, region->Position, region->Id, entries, count);
         PhQueryPerformanceCounter(&region->SampleTime);
 
         if (

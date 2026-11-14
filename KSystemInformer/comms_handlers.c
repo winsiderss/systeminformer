@@ -2051,7 +2051,7 @@ NTSTATUS KSIAPI KphpCommsHwReadVsecBatch(
 
     msg->Status = KphHwReadVsecBatch(&msg->Locator,
                                      msg->OpIndex,
-                                     msg->Instance,
+                                     msg->Position,
                                      msg->Id,
                                      msg->Count,
                                      msg->Entries,

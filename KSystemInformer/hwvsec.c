@@ -436,7 +436,7 @@ NTSTATUS KphHwVsecMapAndRead(
  *
  * \param[in] Locator The locator of the device.
  * \param[in] OpIndex The index of the vsec_read op among those of the device.
- * \param[in] Instance The index of the region among those the op exposes.
+ * \param[in] Position The position the region was listed with.
  * \param[in] Id The ID the region was listed with.
  * \param[in] Count The number of entries.
  * \param[in,out] Entries The batch entries, offsets relative to the region.
@@ -449,7 +449,7 @@ _Must_inspect_result_
 NTSTATUS KphHwReadVsecBatch(
     _In_ PKPH_HW_PCI_LOCATOR Locator,
     _In_ ULONG OpIndex,
-    _In_ ULONG Instance,
+    _In_ ULONG Position,
     _In_ ULONG Id,
     _In_ ULONG Count,
     _Inout_updates_(Count) PKPH_HW_WINDOW_BATCH_ENTRY Entries,
@@ -517,7 +517,7 @@ NTSTATUS KphHwReadVsecBatch(
     status = KphHwPciReadVsec(&locator,
                               dyn->Hardware.Section,
                               OpIndex,
-                              Instance,
+                              Position,
                               Id,
                               Count,
                               entries);
