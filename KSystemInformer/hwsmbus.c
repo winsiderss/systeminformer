@@ -57,7 +57,6 @@
 #define KPH_HW_SMBUS_I801_HOSTC_HST_EN      0x01
 #define KPH_HW_SMBUS_I801_HOSTC_SMI_EN      0x02
 #define KPH_HW_SMBUS_I801_HOSTC_I2C_EN      0x04
-#define KPH_HW_SMBUS_I801_BAR_IO            0x00000001
 #define KPH_HW_SMBUS_I801_BAR_MASK          0x0000FFE0
 
 #define KPH_HW_SMBUS_SPIN_US                25
@@ -1011,9 +1010,8 @@ NTSTATUS KphpHwSmbusOpenHost(
         }
 
         if (BooleanFlagOn(Host->Hostc, KPH_HW_SMBUS_I801_HOSTC_I2C_EN) ||
-            !BooleanFlagOn(Host->Bar, KPH_HW_SMBUS_I801_BAR_IO) ||
-            (Host->Bar & ~(KPH_HW_SMBUS_I801_BAR_MASK |
-                           KPH_HW_SMBUS_I801_BAR_IO)))
+            !BooleanFlagOn(Host->Bar, PCI_ADDRESS_IO_SPACE) ||
+            (Host->Bar & ~(KPH_HW_SMBUS_I801_BAR_MASK | PCI_ADDRESS_IO_SPACE)))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,

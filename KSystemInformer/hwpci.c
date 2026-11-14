@@ -17,21 +17,16 @@
 
 #include <trace.h>
 
-#define KPH_HW_PCI_MAX_DEVICES             32
-#define KPH_HW_PCI_MAX_FUNCTIONS           8
 #define KPH_HW_PCI_LOCATION_CHARS          128
 #define KPH_HW_PCI_CACHE_ENTRIES           8
 #define KPH_HW_PCI_IDS_LENGTH                                                  \
     ((ULONG)RTL_SIZEOF_THROUGH_FIELD(PCI_COMMON_HEADER, BIST))
-#define KPH_HW_PCI_CAPABILITY_START        0x40
 #define KPH_HW_PCI_CAPABILITY_POINTER_MASK 0xFC
 #define KPH_HW_PCI_POWER_STATE_D0          0
 #define KPH_HW_PCI_EXTENDED_START          0x100
 #define KPH_HW_PCI_EXTENDED_TTL                                                \
     ((KPH_DYN_HW_PCI_CONFIG_LENGTH - KPH_HW_PCI_EXTENDED_START) / 8)
 #define KPH_HW_PCI_EXT_CAP_NEXT_MASK       0xFFC
-#define KPH_HW_PCI_EXT_CAP_VSEC            0x000B
-#define KPH_HW_PCI_EXT_CAP_DVSEC           0x0023
 #define KPH_HW_PCI_VSEC_HEADER1_OFFSET     0x4
 #define KPH_HW_PCI_DVSEC_ID_OFFSET         0x8
 #define KPH_HW_PCI_VSEC_ENTRIES_OFFSET     0xA
@@ -1637,8 +1632,8 @@ NTSTATUS KphpHwPciLookupTable(
         return status;
     }
 
-    NT_ASSERT(Locator->Device < KPH_HW_PCI_MAX_DEVICES);
-    NT_ASSERT(Locator->Function < KPH_HW_PCI_MAX_FUNCTIONS);
+    NT_ASSERT(Locator->Device < PCI_MAX_DEVICES);
+    NT_ASSERT(Locator->Function < PCI_MAX_FUNCTION);
 
     headerTypes = (AnyHeaderType ? KPH_HW_PCI_HEADER_LAYOUTS : 1);
 
@@ -2201,8 +2196,8 @@ BOOLEAN KphpHwPciValidLocator(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    return ((Locator->Device < KPH_HW_PCI_MAX_DEVICES) &&
-            (Locator->Function < KPH_HW_PCI_MAX_FUNCTIONS));
+    return ((Locator->Device < PCI_MAX_DEVICES) &&
+            (Locator->Function < PCI_MAX_FUNCTION));
 }
 
 /**
@@ -2527,7 +2522,7 @@ NTSTATUS KphpHwPciFindPmCapability(
         PCI_CAPABILITIES_HEADER header;
         ULONG slot;
 
-        if (pointer < KPH_HW_PCI_CAPABILITY_START)
+        if (pointer < PCI_COMMON_HDR_LENGTH)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -2537,7 +2532,7 @@ NTSTATUS KphpHwPciFindPmCapability(
             return STATUS_INVALID_DEVICE_STATE;
         }
 
-        slot = ((pointer - KPH_HW_PCI_CAPABILITY_START) / 4);
+        slot = ((pointer - PCI_COMMON_HDR_LENGTH) / 4);
 
         if (BooleanFlagOn(visited, 1ull << slot))
         {
@@ -4366,7 +4361,8 @@ NTSTATUS KphpHwPciVsecMatches(
 
     *Match = FALSE;
 
-    if ((Id != KPH_HW_PCI_EXT_CAP_DVSEC) && (Id != KPH_HW_PCI_EXT_CAP_VSEC))
+    if ((Id != PCI_EXPRESS_DESIGNATED_VENDOR_SPECIFIC_CAP_ID) &&
+        (Id != PCI_EXPRESS_VENDOR_SPECIFIC_CAP_ID))
     {
         return STATUS_SUCCESS;
     }
@@ -4404,7 +4400,7 @@ NTSTATUS KphpHwPciVsecMatches(
         return STATUS_SUCCESS;
     }
 
-    if (Id == KPH_HW_PCI_EXT_CAP_VSEC)
+    if (Id == PCI_EXPRESS_VENDOR_SPECIFIC_CAP_ID)
     {
         *Match = (header1.Id == Vsec->Discovery);
         return STATUS_SUCCESS;
