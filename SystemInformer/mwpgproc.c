@@ -116,6 +116,7 @@ BOOLEAN PhMwpProcessesPageCallback(
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_COLLAPSEALL, L"&Collapse all", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_EXPANDALL, L"&Expand all", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_COLLAPSEALLONSTART, L"Collapse &all on startup", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"&Hide processes from other users", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide si&gned processes", NULL, NULL), ULONG_MAX);
@@ -125,6 +126,8 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SORTROOTPROCESSES, L"Sort &root processes", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), ULONG_MAX);
 
+            if (PhGetIntegerSetting(SETTING_PROCESS_TREE_COLLAPSE_ON_START) && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_COLLAPSEALLONSTART)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhGetIntegerSetting(SETTING_HIDE_OTHER_USER_PROCESSES) && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhGetIntegerSetting(SETTING_HIDE_SIGNED_PROCESSES) && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))

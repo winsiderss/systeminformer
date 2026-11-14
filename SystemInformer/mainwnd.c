@@ -1422,14 +1422,20 @@ VOID PhMwpOnCommand(
         break;
     case ID_VIEW_COLLAPSEALL:
         {
-            PhSetIntegerSetting(SETTING_PROCESS_TREE_COLLAPSE_ON_START, TRUE);
             PhExpandAllProcessNodes(FALSE);
         }
         break;
     case ID_VIEW_EXPANDALL:
         {
-            PhSetIntegerSetting(SETTING_PROCESS_TREE_COLLAPSE_ON_START, FALSE);
             PhExpandAllProcessNodes(TRUE);
+        }
+        break;
+    case ID_VIEW_COLLAPSEALLONSTART:
+        {
+            PhSetIntegerSetting(
+                SETTING_PROCESS_TREE_COLLAPSE_ON_START,
+                !PhGetIntegerSetting(SETTING_PROCESS_TREE_COLLAPSE_ON_START)
+                );
         }
         break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
