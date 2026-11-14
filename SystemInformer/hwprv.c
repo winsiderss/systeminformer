@@ -146,6 +146,7 @@
 #define PHP_HW_METER_PMC_ELEMENTS 14 // then the model, serial and OEM strings
 #define PHP_HW_METER_MAX_INTERVAL_MS 60000 // _GAI above this is polled at this interval
 #define PHP_HW_METER_MAX_MILLIWATTS 10000000 // 10 kW
+#define PHP_HW_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
 #define PHP_HW_ATK_OP_TSIF 0 // acpi_eval ops of the ATK0110 row
 #define PHP_HW_ATK_OP_VSIF 1
 #define PHP_HW_ATK_OP_FSIF 2
@@ -1591,6 +1592,7 @@ static BOOLEAN PhpHwSampleWatts(
 {
     ULONG64 delta;
     FLOAT seconds;
+    FLOAT watts;
 
     if (EnergyUnit <= 0.0f)
         return FALSE;
@@ -1599,7 +1601,12 @@ static BOOLEAN PhpHwSampleWatts(
     if (!PhpHwSampleDelta(Sample, Reg, &delta))
         return FALSE;
 
-    *Watts = (FLOAT)(ULONG)delta * EnergyUnit / seconds;
+    watts = (FLOAT)(ULONG)delta * EnergyUnit / seconds;
+
+    if (watts > PHP_HW_ENERGY_MAX_WATTS)
+        return FALSE;
+
+    *Watts = watts;
 
     return TRUE;
 }
@@ -6907,7 +6914,8 @@ static PHP_HW_FAN_DECODE PhpHwDecodeThinkPadTemperature(
 
     celsius = (LONG)(ULONG)value;
 
-    if (celsius > 127 || celsius < -127)
+    // 00h is a slot the EC does not implement, 80h one without a sensor.
+    if (!celsius || celsius > 127 || celsius < -127)
         return PhpHwFanDecodeUnknown;
 
     *Celsius = (FLOAT)celsius;
@@ -7982,6 +7990,8 @@ static BOOLEAN PhpHwFanApplyStatus(
         disable = ++Fan->BusyCount >= PHP_HW_FAN_BUSY_LIMIT;
         break;
     case STATUS_RETRY:
+    case STATUS_INSUFFICIENT_RESOURCES: // the evaluation was not run
+    case STATUS_NO_MEMORY:
         disable = FALSE;
         break;
     case STATUS_IO_TIMEOUT:
@@ -8512,7 +8522,7 @@ static VOID PhpHwReadFanStatic(
     PhFree(buffer);
 
     fan->Probed = TRUE;
-    fan->FineGrain = fifCount >= 2 && fif[1] == 1;
+    fan->FineGrain = fifCount >= 2 && fif[1] != 0;
 
     PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
 
@@ -9411,7 +9421,7 @@ static VOID PhpHwCounterPublish(
         {
         case PhpHwCounterSetZone:
             // 300.0 K is a dummy only until the zone has shown something else; a live zone may read it.
-            if ((item->Seen & 1) && item->Values[0] >= PHP_HW_COUNTER_ZONE_MINIMUM &&
+            if ((item->Seen & 1) && item->Values[0] > PHP_HW_COUNTER_ZONE_MINIMUM &&
                 item->Values[0] <= PHP_HW_COUNTER_ZONE_MAXIMUM &&
                 (item->SensorIndex != ULONG_MAX || item->Values[0] != PHP_HW_COUNTER_ZONE_DUMMY))
             {
@@ -10846,7 +10856,11 @@ static VOID PhpHwUpdateTpmi(
                 // ENERGY_STATUS [31:0] wraps.
                 value = (FLOAT)((ULONG)entry->Value - (ULONG)entry->LastValue) * entry->EnergyUnit / seconds;
 
-                if (entry->NamedIndex != ULONG_MAX)
+                if (value > PHP_HW_ENERGY_MAX_WATTS)
+                {
+                    NOTHING;
+                }
+                else if (entry->NamedIndex != ULONG_MAX)
                 {
                     valid = TRUE;
                 }
