@@ -192,8 +192,11 @@ NTSTATUS KphpFltQueueFileNameCachePopulate(
 {
     NTSTATUS status;
     PKPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM item;
+    PFLT_INSTANCE instance;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+
+    instance = NULL;
 
     item = KphAllocateNPaged(sizeof(KPH_FLT_FILE_NAME_CACHE_POPULATE_ITEM),
                              KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE);
@@ -218,10 +221,24 @@ NTSTATUS KphpFltQueueFileNameCachePopulate(
         goto Exit;
     }
 
-    ObReferenceObject(FileObject);
+    instance = Instance;
 
-    item->Instance = Instance;
+    if (!FlagOn(FileObject->Flags, FO_HANDLE_CREATED) ||
+        !ObReferenceObjectSafe(FileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "File object cannot be referenced, flags 0x%08lx",
+                      FileObject->Flags);
+
+        status = STATUS_OBJECT_NAME_NOT_FOUND;
+        goto Exit;
+    }
+
+    item->Instance = instance;
     item->FileObject = FileObject;
+
+    instance = NULL;
 
     if (!InterlockedPushEntrySList(&KphpFileNameCachePopulateList,
                                    &item->ListEntry))
@@ -232,6 +249,11 @@ NTSTATUS KphpFltQueueFileNameCachePopulate(
     item = NULL;
 
 Exit:
+
+    if (instance)
+    {
+        FltObjectDereference(instance);
+    }
 
     if (item)
     {
@@ -470,8 +492,6 @@ VOID KphpFltGetNameGeneration(
  *
  * \param[in] Instance The filter instance.
  * \param[in] FileObject The file object.
- * \param[in] Closing TRUE if the file object is being closed, it must not be
- * referenced.
  * \param[in] Context The cached name context.
  *
  * \return Successful or errant status.
@@ -481,7 +501,6 @@ _Must_inspect_result_
 NTSTATUS KphpFltCheckNameContext(
     _In_ PFLT_INSTANCE Instance,
     _In_ PFILE_OBJECT FileObject,
-    _In_ BOOLEAN Closing,
     _In_ PKPH_FLT_STREAMHANDLE_CONTEXT Context
     )
 {
@@ -502,7 +521,7 @@ NTSTATUS KphpFltCheckNameContext(
         return STATUS_FLT_NAME_CACHE_MISS;
     }
 
-    if (Closing || InterlockedCompareExchange(&Context->RefreshQueued, TRUE, FALSE))
+    if (InterlockedCompareExchange(&Context->RefreshQueued, TRUE, FALSE))
     {
         return STATUS_FLT_NAME_CACHE_MISS;
     }
@@ -585,8 +604,6 @@ NTSTATUS KphpFltAllocateNameContext(
  * \param[in] Volume The volume of the file object.
  * \param[in] FileObject The file object.
  * \param[in] PagingIo TRUE if the operation is paging I/O.
- * \param[in] Closing TRUE if the file object is being closed, it must not be
- * referenced.
  * \param[in,out] FltFileName Receives the file name.
  *
  * \return Successful or errant status.
@@ -599,7 +616,6 @@ NTSTATUS KphpFltGetFileNameUseContext(
     _In_ PFLT_VOLUME Volume,
     _In_ PFILE_OBJECT FileObject,
     _In_ BOOLEAN PagingIo,
-    _In_ BOOLEAN Closing,
     _Inout_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
@@ -617,10 +633,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     status = FltGetStreamHandleContext(Instance, FileObject, &context);
     if (NT_SUCCESS(status))
     {
-        status = KphpFltCheckNameContext(Instance,
-                                         FileObject,
-                                         Closing,
-                                         context);
+        status = KphpFltCheckNameContext(Instance, FileObject, context);
         if (!NT_SUCCESS(status))
         {
             FltReleaseContext(context);
@@ -637,15 +650,6 @@ NTSTATUS KphpFltGetFileNameUseContext(
     //
     if (PagingIo || FileObject->RelatedFileObject)
     {
-        if (Closing)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          INFORMER,
-                          "File object is closing");
-
-            return STATUS_OBJECT_NAME_NOT_FOUND;
-        }
-
         //
         // Mark the populate as pending so that only one is ever queued.
         //
@@ -775,10 +779,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     {
         NT_ASSERT(oldContext);
 
-        status = KphpFltCheckNameContext(Instance,
-                                         FileObject,
-                                         Closing,
-                                         oldContext);
+        status = KphpFltCheckNameContext(Instance, FileObject, oldContext);
         if (!NT_SUCCESS(status))
         {
             FltReleaseContext(oldContext);
@@ -1130,7 +1131,6 @@ NTSTATUS KphpFltGetFileName(
 {
     NTSTATUS status;
     BOOLEAN pagingIo;
-    BOOLEAN closing;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -1167,8 +1167,6 @@ NTSTATUS KphpFltGetFileName(
     pagingIo = (FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO) ||
                 FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
 
-    closing = (Data->Iopb->MajorFunction == IRP_MJ_CLOSE);
-
     if (FltSupportsStreamHandleContexts(FltObjects->FileObject))
     {
         status = KphpFltGetFileNameUseContext(FltObjects->Filter,
@@ -1176,7 +1174,6 @@ NTSTATUS KphpFltGetFileName(
                                               FltObjects->Volume,
                                               FltObjects->FileObject,
                                               pagingIo,
-                                              closing,
                                               FltFileName);
     }
     else if (FsRtlIsPagingFile(FltObjects->FileObject))
