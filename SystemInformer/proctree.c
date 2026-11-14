@@ -456,6 +456,10 @@ PPH_PROCESS_NODE PhAddProcessNode(
     memset(processNode, 0, sizeof(PH_PROCESS_NODE));
     PhInitializeTreeNewNode(&processNode->Node);
 
+    // Apply only to the initial snapshot; preserve expansion state on later updates.
+    if (RunId == 1 && PhGetIntegerSetting(SETTING_PROCESS_TREE_COLLAPSE_ON_START))
+        processNode->Node.Expanded = FALSE;
+
     if (PhProcessTreeListStateHighlighting && RunId != 1)
     {
         PhChangeShStateTn(
