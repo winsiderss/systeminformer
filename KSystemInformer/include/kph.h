@@ -2967,12 +2967,26 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureUnicodeString(
     _In_ PUNICODE_STRING UnicodeString,
-    _Out_ PUNICODE_STRING* CapturedUnicodeString
+    _Out_ PUNICODE_STRING* CapturedUnicodeString,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphReleaseUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureAnsiString(
+    _In_ PANSI_STRING AnsiString,
+    _Outptr_ PANSI_STRING* CapturedAnsiString,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphReleaseAnsiString(
+    _In_ PANSI_STRING String
     );
 
 _IRQL_requires_max_(APC_LEVEL)
