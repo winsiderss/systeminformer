@@ -50,6 +50,7 @@
 #define KPH_TAG_REG_BINARY                      '1UpK'
 #define KPH_TAG_FILE_OBJECT_NAME                '2UpK'
 #define KPH_TAG_CAPTURED_UNICODE_STRING         '3UpK'
+#define KPH_TAG_CAPTURED_ANSI_STRING            '4UpK'
 
 // vm
 
