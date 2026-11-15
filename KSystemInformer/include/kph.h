@@ -2667,6 +2667,37 @@ KsiRemoveQueueDpcEx(
     _In_ BOOLEAN WaitIfActive
     );
 
+typedef struct _KSI_IO_COMPLETION
+{
+    PDRIVER_OBJECT DriverObject;
+    PIO_COMPLETION_ROUTINE Routine;
+    PVOID Context;
+    UCHAR Control;
+} KSI_IO_COMPLETION, *PKSI_IO_COMPLETION;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiInitializeIoCompletion(
+    _Out_ PKSI_IO_COMPLETION Completion,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PIO_COMPLETION_ROUTINE CompletionRoutine,
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN InvokeOnSuccess,
+    _In_ BOOLEAN InvokeOnError,
+    _In_ BOOLEAN InvokeOnCancel
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiSetCompletionRoutine(
+    _In_ PIRP Irp,
+    _Inout_ PKSI_IO_COMPLETION Completion
+    );
+
 extern KSISYSAPI PEPROCESS KsiSystemProcess;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
