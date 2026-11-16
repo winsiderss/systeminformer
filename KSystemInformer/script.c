@@ -1065,6 +1065,12 @@ VOID KSIAPI KphpScriptCallout(
         call->ReturnLength = 0;
     }
 
+    if (call->Phase == KphScriptPhaseStopped)
+    {
+        call->Status = STATUS_SI_SCRIPT_CLEANUP_LIMIT;
+        call->ReturnLength = 0;
+    }
+
     KphpScriptRunCleanups(call);
 
     KphLuaCloseState(state);
