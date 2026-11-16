@@ -33,7 +33,6 @@ set(HEADERS
     "include/graphscroll.h"
     "include/guisup.h"
     "include/guisupp.h"
-    "include/guisupview.h"
     "include/handle.h"
     "include/handlep.h"
     "include/treehdr.h"
