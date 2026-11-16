@@ -688,6 +688,166 @@ int KphpLuaHwMsrWrite(
     return 1;
 }
 
+/**
+ * \brief Checks the width argument of a port access: 1, 2 or 4.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ *
+ * \return The width in bytes.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG KphpLuaHwCheckWidth(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    lua_Integer width;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    width = luaL_checkinteger(State, Index);
+
+    luaL_argcheck(State,
+                  (width == 1) || (width == 2) || (width == 4),
+                  Index,
+                  "not 1, 2 or 4");
+
+    return (ULONG)width;
+}
+
+/**
+ * \brief Checks the port argument of a port access.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ *
+ * \return The port.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+USHORT KphpLuaHwCheckPort(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    lua_Integer port;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    port = luaL_checkinteger(State, Index);
+
+    luaL_argcheck(State,
+                  (port >= 0) && (port <= USHORT_MAX),
+                  Index,
+                  "out of range");
+
+    return (USHORT)port;
+}
+
+/**
+ * \brief Reads an I/O port (hw.port_read).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return One, the value read.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwPortRead(
+    _In_ lua_State* State
+    )
+{
+    USHORT port;
+    ULONG width;
+    ULONG value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    port = KphpLuaHwCheckPort(State, 1);
+    width = KphpLuaHwCheckWidth(State, 2);
+
+    switch (width)
+    {
+        case 1:
+        {
+            value = READ_PORT_UCHAR((PUCHAR)(ULONG_PTR)port);
+            break;
+        }
+        case 2:
+        {
+            value = READ_PORT_USHORT((PUSHORT)(ULONG_PTR)port);
+            break;
+        }
+        case 4:
+        {
+            value = READ_PORT_ULONG((PULONG)(ULONG_PTR)port);
+            break;
+        }
+        DEFAULT_UNREACHABLE;
+    }
+
+    lua_pushinteger(State, (lua_Integer)value);
+
+    return 1;
+}
+
+/**
+ * \brief Writes an I/O port (hw.port_write).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwPortWrite(
+    _In_ lua_State* State
+    )
+{
+    USHORT port;
+    ULONG width;
+    lua_Integer value;
+    lua_Integer maximum;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    port = KphpLuaHwCheckPort(State, 1);
+    width = KphpLuaHwCheckWidth(State, 2);
+    value = luaL_checkinteger(State, 3);
+
+    maximum = (lua_Integer)((1ull << (width * 8)) - 1);
+
+    luaL_argcheck(State, (value >= 0) && (value <= maximum), 3, "out of range");
+
+    switch (width)
+    {
+        case 1:
+        {
+            WRITE_PORT_UCHAR((PUCHAR)(ULONG_PTR)port, (UCHAR)value);
+            break;
+        }
+        case 2:
+        {
+            WRITE_PORT_USHORT((PUSHORT)(ULONG_PTR)port, (USHORT)value);
+            break;
+        }
+        case 4:
+        {
+            WRITE_PORT_ULONG((PULONG)(ULONG_PTR)port, (ULONG)value);
+            break;
+        }
+        DEFAULT_UNREACHABLE;
+    }
+
+    return 0;
+}
+
 #endif
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
@@ -699,6 +859,8 @@ static const luaL_Reg KphpLuaHwLibrary[] =
     { "msr_read", KphpLuaHwMsrRead },
     { "msr_write", KphpLuaHwMsrWrite },
     { "pin", KphpLuaHwPin },
+    { "port_read", KphpLuaHwPortRead },
+    { "port_write", KphpLuaHwPortWrite },
 #endif
     { "lock", KphpLuaHwLock },
     { NULL, NULL }
