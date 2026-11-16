@@ -197,6 +197,7 @@
     <ClCompile Include="mapldr.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
+    <ClCompile Include="kphhw.c" />
     <ClCompile Include="kphcomms.c" />
     <ClCompile Include="lsamsup.c" />
     <ClCompile Include="lsasup.c" />
@@ -315,6 +316,7 @@
     <ClInclude Include="include\hexedit.h" />
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\filestreamp.h" />
+    <ClInclude Include="include\kphhw.h" />
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\wslsup.h" />
     <ClInclude Include="include\ph.h" />

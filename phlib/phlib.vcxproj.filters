@@ -71,6 +71,9 @@
     <ClCompile Include="kph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kphhw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="mapclr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -347,6 +350,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phintrnl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphhw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphuser.h">
