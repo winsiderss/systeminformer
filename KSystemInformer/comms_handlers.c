@@ -63,6 +63,7 @@ KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceDriver);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceBaseDevice);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerStats);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerClientStats);
+KPHM_DEFINE_HANDLER(KphpCommsScriptCall);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -76,6 +77,7 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationThreadRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryVirtualMemoryRequires);
+KPHM_DEFINE_REQUIRED_STATE(KphpCommsScriptCallRequires);
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
@@ -129,6 +131,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenDeviceBaseDevice,          KphpCommsOpenDeviceBaseDevice,          KphpCommsRequireMaximum },
 { KphMsgGetInformerStats,              KphpCommsGetInformerStats,              KphpCommsRequireLow },
 { KphMsgGetInformerClientStats,        KphpCommsGetInformerClientStats,        KphpCommsRequireLow },
+{ KphMsgScriptCall,                    KphpCommsScriptCall,                    KphpCommsScriptCallRequires },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
@@ -1779,6 +1782,61 @@ NTSTATUS KSIAPI KphpCommsGetInformerClientStats(
     msg = &Message->User.GetInformerClientStats;
 
     msg->Status = KphGetInformerClientStats(Client, msg->Stats);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_REQUIRED_STATE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+KPH_PROCESS_STATE KSIAPI KphpCommsScriptCallRequires(
+    _In_ PKPH_CLIENT Client,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PANSI_STRING script;
+    PANSI_STRING routine;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgScriptCall);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    script = Message->User.ScriptCall.Script;
+    routine = Message->User.ScriptCall.Routine;
+
+    return KphScriptGetRequiredState(script, routine, UserMode);
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsScriptCall(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SCRIPT_CALL msg;
+    KPH_PROCESS_STATE processState;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgScriptCall);
+
+    msg = &Message->User.ScriptCall;
+
+    processState = KphGetProcessState(Client->Process);
+
+    msg->Status = KphScriptCall(msg->Script,
+                                msg->Routine,
+                                msg->Input,
+                                msg->InputLength,
+                                msg->Output,
+                                msg->OutputLength,
+                                msg->ReturnLength,
+                                processState,
+                                UserMode);
 
     return STATUS_SUCCESS;
 }

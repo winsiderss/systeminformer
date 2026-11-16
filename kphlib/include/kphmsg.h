@@ -72,6 +72,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenDeviceBaseDevice,
     KphMsgGetInformerStats,
     KphMsgGetInformerClientStats,
+    KphMsgScriptCall,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -368,6 +369,7 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_DEVICE_BASE_DEVICE OpenDeviceBaseDevice;
             KPHM_GET_INFORMER_STATS GetInformerStats;
             KPHM_GET_INFORMER_CLIENT_STATS GetInformerClientStats;
+            KPHM_SCRIPT_CALL ScriptCall;
         } User;
 
         //
