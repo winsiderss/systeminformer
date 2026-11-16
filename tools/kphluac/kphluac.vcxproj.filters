@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <Filter Include="Source Files">
+            <UniqueIdentifier>{2c5ae820-6683-4465-9c7e-209d5ff5b2b1}</UniqueIdentifier>
+        </Filter>
+        <Filter Include="Lua">
+            <UniqueIdentifier>{0334e804-84fb-4d3c-bc2a-7e3f9e8f4a4a}</UniqueIdentifier>
+        </Filter>
+        <Filter Include="Lua\Configuration">
+            <UniqueIdentifier>{d1541cf7-06ca-496f-ae25-9dbd44af49d6}</UniqueIdentifier>
+        </Filter>
+    </ItemGroup>
+    <ItemGroup>
+        <ClCompile Include="main.c">
+            <Filter>Source Files</Filter>
+        </ClCompile>
+        <ClCompile Include="luaglue.c">
+            <Filter>Source Files</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lapi.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lcode.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lctype.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\ldebug.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\ldo.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\ldump.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lfunc.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lgc.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\llex.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lmem.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lobject.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lopcodes.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lparser.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lstate.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lstring.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\ltable.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\ltm.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lundump.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lvm.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+        <ClCompile Include="..\thirdparty\lua\src\lzio.c">
+            <Filter>Lua</Filter>
+        </ClCompile>
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="..\thirdparty\luaconfig\kphluaconf.h">
+            <Filter>Lua\Configuration</Filter>
+        </ClInclude>
+        <ClInclude Include="..\thirdparty\luaconfig\kphluauser.h">
+            <Filter>Lua\Configuration</Filter>
+        </ClInclude>
+    </ItemGroup>
+</Project>
