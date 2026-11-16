@@ -662,6 +662,19 @@ KphGetInformerClientStats(
     _Out_ PKPH_INFORMER_CLIENT_STATS Stats
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphScriptCall(
+    _In_ PANSI_STRING Script,
+    _In_ PANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 EXTERN_C_END
 
 #endif
