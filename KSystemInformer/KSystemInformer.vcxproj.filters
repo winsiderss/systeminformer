@@ -132,6 +132,9 @@
     <ClCompile Include="lualib.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="luahw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>

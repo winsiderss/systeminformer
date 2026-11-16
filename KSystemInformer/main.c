@@ -94,6 +94,7 @@ VOID KphpDriverCleanup(
     KphFltUnregister();
     KphCidCleanup();
     KphCleanupInformer();
+    KphCleanupScript();
     KphCleanupDynData();
     KphCleanupVerify();
     KphCleanupHashing();
@@ -263,6 +264,7 @@ NTSTATUS DriverEntry(
     }
 
     KphInitializeDynData();
+    KphInitializeScript();
     KphInitializeProtection();
     KphInitializeSessionToken();
 

@@ -113,6 +113,23 @@ VOID KphLuaRaiseAbort(
     _In_ lua_State* State
     );
 
+// luahw
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardware(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardware(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareLibrary(
+    _In_ lua_State* State
+    );
+
 // script
 
 typedef

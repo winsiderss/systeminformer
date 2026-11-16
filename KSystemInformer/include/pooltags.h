@@ -136,6 +136,7 @@
 // lua
 
 #define KPH_TAG_LUA_BLOCK                       '0LpK'
+#define KPH_TAG_LUA_HARDWARE_LOCK               '1LpK'
 
 // script
 
