@@ -460,8 +460,11 @@ typedef struct _KPH_DYN_CONFIG
     ULONG Version;
     BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     ULONG Count;
+    ULONG ScriptOffset;
+    ULONG ScriptLength;
     KPH_DYN_DATA Data[ANYSIZE_ARRAY];
     // BYTE Fields[ANYSIZE_ARRAY];
+    // KPH_DYN_SCRIPT_SECTION Scripts;
 } KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
 
 #include <poppack.h>
@@ -681,6 +684,7 @@ typedef struct _KPH_DYN_CONFIG
             sb.WriteLine();
             sb.WriteLine(Includes);
             sb.WriteLine(DynConfigC);
+            sb.WriteLine(DynDataScript.HeaderC);
         }
 
         /// <summary>
@@ -818,13 +822,39 @@ typedef struct _KPH_DYN_CONFIG
                 entries.Add(entry);
             }
 
+            // Build the script section. It follows the field data on an aligned offset.
+            byte[] scripts = DynDataScript.Generate(Version, out int scriptCount, out int routineCount);
+
+            // The size up to the end of the field data is calculated as: Version (4) + Public Key Length + Count (4) +
+            // ScriptOffset (4) + ScriptLength (4) + (Entries * EntrySize) + Fields Data Length.
+            int fieldsEnd = sizeof(uint) +
+                            SessionTokenPublicKey.Length +
+                            sizeof(uint) +
+                            sizeof(uint) +
+                            sizeof(uint) +
+                            (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
+                            fieldsStream.WrittenCount;
+            int scriptOffset = 0;
+            int scriptLength = 0;
+            int totalLength = fieldsEnd;
+
+            if (scripts != null)
+            {
+                scriptOffset = DynDataScript.AlignUp(fieldsEnd, sizeof(ulong));
+                scriptLength = scripts.Length;
+                totalLength = scriptOffset + scriptLength;
+
+                Program.PrintColorMessage(
+                    $"Dynamic scripts -> {scriptCount} scripts, {routineCount} routines, {scriptLength} bytes",
+                    ConsoleColor.Cyan);
+            }
+            else
+            {
+                Program.PrintColorMessage("Dynamic scripts -> none, the tree has no script manifest", ConsoleColor.Cyan);
+            }
+
             // Allocate a pre-sized buffer for the entire configuration binary.
-            // The size is calculated as: Version (4) + Public Key Length + Count (4) + (Entries * EntrySize) + Fields Data Length.
-            byte[] result = new byte[sizeof(uint) +
-                                     SessionTokenPublicKey.Length +
-                                     sizeof(uint) +
-                                     (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
-                                     fieldsStream.WrittenCount];
+            byte[] result = new byte[totalLength];
             // Create a span over the result buffer for efficient writing.
             Span<byte> span = result;
 
@@ -840,13 +870,25 @@ typedef struct _KPH_DYN_CONFIG
             BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)entries.Count);
             span = span[sizeof(uint)..];
 
+            // Write where the script section is and how long it is, both zero when there is none.
+            BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)scriptOffset);
+            span = span[sizeof(uint)..];
+            BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)scriptLength);
+            span = span[sizeof(uint)..];
+
             // Convert the entry list to a read-only byte span and copy it to the buffer.
             ReadOnlySpan<byte> entriesSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries));
             entriesSpan.CopyTo(span);
             span = span[entriesSpan.Length..];
 
-            // Copy the field data from the ArrayBufferWriter to the remaining buffer space.
+            // Copy the field data from the ArrayBufferWriter to the buffer.
             fieldsStream.WrittenSpan.CopyTo(span);
+
+            // Copy the script section to its offset. The bytes between it and the field data stay zero.
+            if (scripts != null)
+            {
+                scripts.CopyTo(result.AsSpan(scriptOffset));
+            }
 
             return result;
         }
