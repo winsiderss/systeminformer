@@ -708,7 +708,4 @@
     <UsingTask TaskName="MARMASM" TaskFactory="XamlTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Override="true">
         <Task>$(VCTargetsPath)\BuildCustomizations\marmasm.xml</Task>
     </UsingTask>
-    <Target Name="CopyThirdPartyPdb" AfterTargets="Build">
-        <Copy SourceFiles="$(OutDir)thirdparty.pdb" DestinationFolder="$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)\" />
-    </Target>
 </Project>
