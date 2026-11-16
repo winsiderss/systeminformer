@@ -1204,7 +1204,9 @@ NTSTATUS KsiValidateDynamicConfiguration(
  * This routine attempts to read a local `ksidyn.bin` and `ksidyn.sig` files,
  * validate the dynamic configuration for the current kernel and return both
  * the data and signature buffers to the caller. Caller owns the returned
- * buffers and must free them using PhFree().
+ * buffers and must free them using PhFree(). The buffers are also returned
+ * with STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL: the driver activates what the
+ * configuration holds besides kernel data.
  *
  * \param[out] DynData Receives pointer to allocated dynamic data buffer.
  * \param[out] DynDataLength Receives the length of the dynamic data buffer.
@@ -1220,6 +1222,7 @@ NTSTATUS KsiGetDynData(
     )
 {
     NTSTATUS status;
+    NTSTATUS validateStatus;
     PBYTE data = NULL;
     ULONG dataLength;
     PBYTE sig = NULL;
@@ -1234,9 +1237,12 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiValidateDynamicConfiguration(data, dataLength);
-    if (!NT_SUCCESS(status))
+    validateStatus = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(validateStatus) && validateStatus != STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    {
+        status = validateStatus;
         goto CleanupExit;
+    }
 
     status = KsiReadConfiguration(&KsiDynSigFileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
@@ -1256,7 +1262,7 @@ NTSTATUS KsiGetDynData(
     *Signature = sig;
     sig = NULL;
 
-    status = STATUS_SUCCESS;
+    status = validateStatus;
 
 CleanupExit:
     if (data)
