@@ -85,4 +85,12 @@ Language     = English
 System Informer script exceeded a limit.
 .
 
+MessageId    = 0x0003
+Facility     = Script
+Severity     = Error
+SymbolicName = STATUS_SI_SCRIPT_CLEANUP_LIMIT
+Language     = English
+System Informer script exceeded a limit during cleanup.
+.
+
 ;#endif
