@@ -15,6 +15,7 @@
 #include <trace.h>
 
 #define KPH_LUA_LIBRARY_NAME "ksi"
+#define KPH_LUA_STALL_PIECE 50
 #define KphLuaStackIsNearLimit()                                               \
     (IoGetRemainingStackSize() < KERNEL_STACK_SIZE)
 
@@ -743,10 +744,55 @@ int KphpLuaSleep(
     return 0;
 }
 
+/**
+ * \brief Waits a number of microseconds without giving up the processor, no
+ * longer than the call may still run (ksi.stall).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaStall(
+    _In_ lua_State* L
+    )
+{
+    lua_Integer microseconds;
+    ULONG remaining;
+    ULONG piece;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    microseconds = luaL_checkinteger(L, 1);
+
+    luaL_argcheck(L,
+                  (microseconds >= 0) && (microseconds <= ULONG_MAX),
+                  1,
+                  "out of range");
+
+    remaining = (ULONG)microseconds;
+
+    while (remaining > 0)
+    {
+        piece = min(remaining, KPH_LUA_STALL_PIECE);
+
+        KeStallExecutionProcessor(piece);
+
+        remaining -= piece;
+
+        KphScriptCharge(L, 0);
+    }
+
+    return 0;
+}
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaLibrary[] =
 {
     { "sleep", KphpLuaSleep },
+    { "stall", KphpLuaStall },
     { "time", KphpLuaTime },
     { NULL, NULL }
 };
