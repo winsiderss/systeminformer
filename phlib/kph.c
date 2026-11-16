@@ -2818,3 +2818,52 @@ NTSTATUS KphGetInformerClientStats(
     PhDereferenceObject(msg);
     return status;
 }
+
+/**
+ * Calls a routine of a script in the active dynamic data.
+ *
+ * \param Script The name of the script.
+ * \param Routine The name of the routine.
+ * \param Input The input for the routine.
+ * \param InputLength The length of the input in bytes.
+ * \param Output Receives the output of the routine.
+ * \param OutputLength The length of the output buffer in bytes.
+ * \param ReturnLength Receives the length of the output of the routine, the
+ * length required when the output buffer is too small.
+ * \return The status the routine returned, or an errant status when the
+ * routine could not be called, failed or reached a limit.
+ */
+NTSTATUS KphScriptCall(
+    _In_ PANSI_STRING Script,
+    _In_ PANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    if (ReturnLength)
+        *ReturnLength = 0;
+
+    msg = KphCreateUserMessage(KphMsgScriptCall);
+    msg->User.ScriptCall.Script = Script;
+    msg->User.ScriptCall.Routine = Routine;
+    msg->User.ScriptCall.Input = Input;
+    msg->User.ScriptCall.InputLength = InputLength;
+    msg->User.ScriptCall.Output = Output;
+    msg->User.ScriptCall.OutputLength = OutputLength;
+    msg->User.ScriptCall.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.ScriptCall.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
