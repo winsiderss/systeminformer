@@ -172,7 +172,7 @@ set(SOURCES
     "symprv.c"
     "symprv_std.cpp"
     "sync.c"
-    "tabnew.c"
+    "controls/tabnew.c"
     "theme.c"
     "treehdr.c"
     "treenew.c"
