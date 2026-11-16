@@ -3004,7 +3004,7 @@ NTSTATUS KphZeroModeMemory(
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphCopyToMode(
     _Out_writes_bytes_all_(Length) PVOID Destination,
-    _In_reads_bytes_(Length) PVOID Source,
+    _In_reads_bytes_(Length) PCVOID Source,
     _In_ SIZE_T Length,
     _In_ KPROCESSOR_MODE AccessMode
     );
