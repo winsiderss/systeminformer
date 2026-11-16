@@ -84,6 +84,9 @@ if not exist "%CustomBuildTool%" (
     exit /b 1
 )
 
+call :BuildScriptCompiler "%CBT_PLATFORMS%"
+if errorlevel 1 exit /b %errorlevel%
+
 echo:
 call :RunCustomBuildTool "-write-tools-id"
 if errorlevel 1 exit /b %errorlevel%
@@ -104,6 +107,27 @@ echo:
 echo Building CustomBuildTool.sln [%~2]
 dotnet msbuild -mt -p:UseClStructuredOutput=false -restore /m /graph tools\CustomBuildTool\CustomBuildTool.csproj -t:All -p:BuildAllTarget=Publish -p:Configuration=Release -p:Platform=x86 -p:BuildTargetConfigurations=Release -p:ContinuousIntegrationBuild=%TIB% -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG%
 exit /b %errorlevel%
+
+REM -----------------------------------------------------------------------------
+REM Function: BuildScriptCompiler
+REM Description: Builds kphluac, which compiles the driver scripts, for each tool platform.
+REM Parameters:
+REM   %~1 - Semicolon-separated platform list (e.g. "x86;x64;ARM64").
+REM -----------------------------------------------------------------------------
+:BuildScriptCompiler
+call :CleanupPath "tools\kphluac\bin"
+if errorlevel 1 exit /b %errorlevel%
+call :CleanupPath "tools\kphluac\obj"
+if errorlevel 1 exit /b %errorlevel%
+echo:
+echo Building kphluac.vcxproj [%~1]
+for %%p in (%~1) do (
+    set "ScriptCompilerPlatform=%%p"
+    if /i "%%p"=="x86" set "ScriptCompilerPlatform=Win32"
+    msbuild -p:UseClStructuredOutput=false -t:Build -p:Configuration=Release -p:Platform=!ScriptCompilerPlatform! -verbosity:minimal -terminalLogger:%TLG% tools\kphluac\kphluac.vcxproj
+    if errorlevel 1 exit /b !errorlevel!
+)
+exit /b 0
 
 REM -----------------------------------------------------------------------------
 REM Function: RunCustomBuildTool
