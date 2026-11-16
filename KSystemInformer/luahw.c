@@ -549,6 +549,145 @@ int KphpLuaHwPin(
     return 1;
 }
 
+/**
+ * \brief Reads an MSR of the current processor.
+ *
+ * \param[in] Index The MSR.
+ * \param[out] Value Receives the value, zero when the read faults.
+ *
+ * \return TRUE when the read did not fault, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpLuaHwReadMsr(
+    _In_ ULONG Index,
+    _Out_ PULONG64 Value
+    )
+{
+    ULONG64 value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Value = 0;
+
+    __try
+    {
+        value = __readmsr(Index);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+
+    *Value = value;
+
+    return TRUE;
+}
+
+/**
+ * \brief Writes an MSR of the current processor.
+ *
+ * \param[in] Index The MSR.
+ * \param[in] Value The value.
+ *
+ * \return TRUE when the write did not fault, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpLuaHwWriteMsr(
+    _In_ ULONG Index,
+    _In_ ULONG64 Value
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    __try
+    {
+        __writemsr(Index, Value);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * \brief Reads an MSR of the current processor (hw.msr_read).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the value, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwMsrRead(
+    _In_ lua_State* State
+    )
+{
+    ULONG index;
+    ULONG64 value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    index = KphpLuaHwCheckUlong(State, 1);
+
+    if (!KphpLuaHwReadMsr(index, &value))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "MSR 0x%08lx read faulted",
+                      index);
+
+        lua_pushnil(State);
+        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_NOT_SUPPORTED);
+        return 2;
+    }
+
+    lua_pushinteger(State, (lua_Integer)value);
+
+    return 1;
+}
+
+/**
+ * \brief Writes an MSR of the current processor (hw.msr_write).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: true, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwMsrWrite(
+    _In_ lua_State* State
+    )
+{
+    ULONG index;
+    ULONG64 value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    index = KphpLuaHwCheckUlong(State, 1);
+    value = (ULONG64)luaL_checkinteger(State, 2);
+
+    if (!KphpLuaHwWriteMsr(index, value))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "MSR 0x%08lx write faulted",
+                      index);
+
+        lua_pushnil(State);
+        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_NOT_SUPPORTED);
+        return 2;
+    }
+
+    lua_pushboolean(State, TRUE);
+
+    return 1;
+}
+
 #endif
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
@@ -557,6 +696,8 @@ static const luaL_Reg KphpLuaHwLibrary[] =
 #if defined(_M_X64)
     { "cpu", KphpLuaHwCpu },
     { "cpuid", KphpLuaHwCpuid },
+    { "msr_read", KphpLuaHwMsrRead },
+    { "msr_write", KphpLuaHwMsrWrite },
     { "pin", KphpLuaHwPin },
 #endif
     { "lock", KphpLuaHwLock },
