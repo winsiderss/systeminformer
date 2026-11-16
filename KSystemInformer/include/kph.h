@@ -23,6 +23,7 @@
 #include <ntldr.h>
 #include <ntwow64.h>
 #include <kphapi.h>
+#include <kphdyn.h>
 #include <kphringbuff.h>
 
 #define KSIAPI NTAPI
@@ -865,6 +866,9 @@ typedef struct _KPH_DYN
     ULONG LxPicoThrdInfoTID;
 
     KPH_VERIFY_KEY_HANDLE SessionTokenPublicKeyHandle;
+
+    PKPH_DYN_SCRIPT_SECTION ScriptSection;
+    ULONG ScriptSectionLength;
 } KPH_DYN, *PKPH_DYN;
 
 _IRQL_requires_max_(HIGH_LEVEL)

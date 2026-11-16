@@ -20,6 +20,8 @@ typedef struct _KPH_DYN_INIT
     PKPH_DYN_CONFIG Config;
     PKPH_DYN_KERNEL_FIELDS Kernel;
     PKPH_DYN_LXCORE_FIELDS Lxcore;
+    PKPH_DYN_SCRIPT_SECTION ScriptSection;
+    ULONG ScriptSectionLength;
 } KPH_DYN_INIT, *PKPH_DYN_INIT;
 
 typedef union _KPH_DYN_ATOMIC
@@ -116,15 +118,22 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     NTSTATUS status;
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
+    KPH_VERIFY_KEY_HANDLE sessionTokenPublicKeyHandle;
+    PVOID scriptSection;
+    ULONG scriptSectionLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
+    sessionTokenPublicKeyHandle = NULL;
+    scriptSection = NULL;
+    scriptSectionLength = 0;
+
     dyn = Object;
     init = Parameter;
 
-#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = C_2sTo4(init->Kernel->x)
+#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = init->Kernel ? C_2sTo4(init->Kernel->x) : ULONG_MAX;
 #define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
 
     KPH_LOAD_DYNITEM_KERNEL(EgeGuid);
@@ -171,7 +180,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfo);
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfoTID);
 
-    status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
+    status = KphVerifyCreateKey(&sessionTokenPublicKeyHandle,
                                 init->Config->SessionTokenPublicKey,
                                 KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
     if (!NT_SUCCESS(status))
@@ -181,7 +190,47 @@ NTSTATUS KSIAPI KphpInitializeDynData(
                       "KphVerifyCreateKey failed: %!STATUS!",
                       status);
 
-        dyn->SessionTokenPublicKeyHandle = NULL;
+        sessionTokenPublicKeyHandle = NULL;
+        goto Exit;
+    }
+
+    if (init->ScriptSection)
+    {
+        scriptSection = KphAllocatePaged(init->ScriptSectionLength,
+                                         KPH_TAG_DYNDATA_SCRIPT);
+        if (!scriptSection)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Failed to allocate script section");
+
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        RtlCopyMemory(scriptSection,
+                      init->ScriptSection,
+                      init->ScriptSectionLength);
+
+        scriptSectionLength = init->ScriptSectionLength;
+    }
+
+    dyn->SessionTokenPublicKeyHandle = sessionTokenPublicKeyHandle;
+    sessionTokenPublicKeyHandle = NULL;
+    dyn->ScriptSection = scriptSection;
+    scriptSection = NULL;
+    dyn->ScriptSectionLength = scriptSectionLength;
+
+Exit:
+
+    if (sessionTokenPublicKeyHandle)
+    {
+        KphVerifyCloseKey(sessionTokenPublicKeyHandle);
+    }
+
+    if (scriptSection)
+    {
+        KphFree(scriptSection, KPH_TAG_DYNDATA_SCRIPT);
     }
 
     return status;
@@ -207,6 +256,11 @@ VOID KSIAPI KphpDeleteDynData(
     if (dyn->SessionTokenPublicKeyHandle)
     {
         KphVerifyCloseKey(dyn->SessionTokenPublicKeyHandle);
+    }
+
+    if (dyn->ScriptSection)
+    {
+        KphFree(dyn->ScriptSection, KPH_TAG_DYNDATA_SCRIPT);
     }
 }
 
@@ -250,12 +304,16 @@ NTSTATUS KphpActivateDynData(
     KPH_DYN_INIT init;
     PKPH_DYN_KERNEL_FIELDS kernel;
     PKPH_DYN_LXCORE_FIELDS lxcore;
+    PKPH_DYN_SCRIPT_SECTION scriptSection;
+    ULONG scriptSectionLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
     kernel = NULL;
     lxcore = NULL;
+    scriptSection = NULL;
+    scriptSectionLength = 0;
 
     if (Signature)
     {
@@ -312,9 +370,9 @@ NTSTATUS KphpActivateDynData(
                       status);
 
         //
-        // Activating dynamic data requires at least kernel data.
+        // Activating dynamic data does not require kernel data.
         //
-        goto Exit;
+        kernel = NULL;
     }
 
     if (KphpDynModules[KphDynLxcore].Valid)
@@ -347,9 +405,29 @@ NTSTATUS KphpActivateDynData(
         lxcore = NULL;
     }
 
+    status = KphDynDataLookupScriptSection((PKPH_DYN_CONFIG)DynConfig,
+                                           DynConfigLength,
+                                           &scriptSection,
+                                           &scriptSectionLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphDynDataLookupScriptSection failed: %!STATUS!",
+                      status);
+
+        //
+        // Activating dynamic data does not require a script section.
+        //
+        scriptSection = NULL;
+        scriptSectionLength = 0;
+    }
+
     init.Config = (PKPH_DYN_CONFIG)DynConfig;
     init.Kernel = kernel;
     init.Lxcore = lxcore;
+    init.ScriptSection = scriptSection;
+    init.ScriptSectionLength = scriptSectionLength;
 
     status = KphCreateObject(KphpDynDataType, sizeof(KPH_DYN), &dyn, &init);
     if (!NT_SUCCESS(status))
