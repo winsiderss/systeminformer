@@ -22,6 +22,7 @@
         WPP_DEFINE_BIT(HASH)        /* bit  5 = 0x00000020 */                  \
         WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                  \
         WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                  \
+        WPP_DEFINE_BIT(SCRIPT)      /* bit  8 = 0x00000100 */                  \
         )
 
 #define WPP_LEVEL_EVENT_LOGGER(level,event) WPP_LEVEL_LOGGER(event)
@@ -36,9 +37,12 @@
 //
 
 #ifdef KSI_NO_WPP
+#define KphTraceEnabled(LEVEL,EVENT)       (FALSE)
 #define KphTracePrint(LEVEL,EVENT,MSG,...) ((void)(MSG, ## __VA_ARGS__))
 #define WPP_INIT_TRACING(...)              ((void)0)
 #define WPP_CLEANUP(...)                   ((void)0)
+#else
+#define KphTraceEnabled(LEVEL,EVENT) WPP_LEVEL_EVENT_ENABLED(LEVEL,EVENT)
 #endif
 
 #define TMH_STRINGIFYX(x) #x
