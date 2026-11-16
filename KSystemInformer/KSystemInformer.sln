@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ksidll", "ksidll.vcxproj", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "symcrypt_km", "..\tools\thirdparty\symcrypt_km.vcxproj", "{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua_km", "..\tools\thirdparty\lua_km.vcxproj", "{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -71,6 +73,14 @@ Global
 		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|ARM64.Build.0 = Release|ARM64
 		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|x64.ActiveCfg = Release|x64
 		{7A61C2F4-0F3B-4E7C-9D5C-2B8F1E6A9D21}.Release|x64.Build.0 = Release|x64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Debug|ARM64.Build.0 = Debug|ARM64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Debug|x64.ActiveCfg = Debug|x64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Debug|x64.Build.0 = Debug|x64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Release|ARM64.ActiveCfg = Release|ARM64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Release|ARM64.Build.0 = Release|ARM64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Release|x64.ActiveCfg = Release|x64
+		{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
