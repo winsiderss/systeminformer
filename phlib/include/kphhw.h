@@ -41,9 +41,24 @@ typedef struct _KPH_HW_VALUE64
     ULONG64 Value;
 } KPH_HW_VALUE64, *PKPH_HW_VALUE64;
 
+typedef struct _KPH_HW_SUPERIO_CHIP
+{
+    ULONG Family;
+    ULONG Chip;
+    ULONG Customer;
+} KPH_HW_SUPERIO_CHIP, *PKPH_HW_SUPERIO_CHIP;
+
+typedef struct _KPH_HW_VALUE32
+{
+    NTSTATUS Status;
+    ULONG Value;
+} KPH_HW_VALUE32, *PKPH_HW_VALUE32;
+
 C_ASSERT(sizeof(KPH_HW_CPU_IDENTITY) == 28);
 C_ASSERT(sizeof(KPH_HW_CPU_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_VALUE64) == 16);
+C_ASSERT(sizeof(KPH_HW_SUPERIO_CHIP) == 12);
+C_ASSERT(sizeof(KPH_HW_VALUE32) == 8);
 
 PHLIBAPI
 NTSTATUS
@@ -59,6 +74,24 @@ KphHwCpuRead(
     _In_reads_(Count) PCKPH_HW_CPU_ITEM Items,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE64 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwSuperIoIdentify(
+    _In_ ULONG Slot,
+    _Out_ PKPH_HW_SUPERIO_CHIP Chip
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwSuperIoRead(
+    _In_ ULONG Slot,
+    _In_reads_(Count) PCULONG Registers,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
 EXTERN_C_END
