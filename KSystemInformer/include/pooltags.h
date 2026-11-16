@@ -136,3 +136,7 @@
 // lua
 
 #define KPH_TAG_LUA_BLOCK                       '0LpK'
+
+// script
+
+#define KPH_TAG_SCRIPT_INPUT                    '0SpK'

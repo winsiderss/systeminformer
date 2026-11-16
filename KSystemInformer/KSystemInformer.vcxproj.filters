@@ -129,6 +129,9 @@
     <ClCompile Include="lua.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lualib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -136,6 +139,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ringbuff.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="script.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kphthread.c">
