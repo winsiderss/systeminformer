@@ -35,11 +35,16 @@ NTSTATUS KphpGetLsassProcessId(
     NTSTATUS status;
     KIRQL currentIrql;
     PKPH_DYN dyn;
+    BOOLEAN stackAttached;
     HANDLE portHandle;
     KAPC_STATE apcState;
     KPH_ALPC_COMMUNICATION_INFORMATION info;
 
     KPH_PAGED_CODE();
+
+    dyn = NULL;
+    stackAttached = FALSE;
+    portHandle = NULL;
 
     //
     // We cache the process ID of lsass since opening and closing the connection
@@ -58,7 +63,8 @@ NTSTATUS KphpGetLsassProcessId(
                                                    NULL);
     if (*ProcessId)
     {
-        return STATUS_SUCCESS;
+        status = STATUS_SUCCESS;
+        goto Exit;
     }
 
     currentIrql = KeGetCurrentIrql();
@@ -69,7 +75,8 @@ NTSTATUS KphpGetLsassProcessId(
                       "KphpGetLsassProcessId called at %!irql!",
                       currentIrql);
 
-        return STATUS_INVALID_LEVEL;
+        status = STATUS_INVALID_LEVEL;
+        goto Exit;
     }
 
     //
@@ -79,9 +86,10 @@ NTSTATUS KphpGetLsassProcessId(
     // do not have the dynamic data, exit early.
     //
     dyn = KphReferenceDynData();
-    if (!dyn)
+    if (!dyn || (dyn->AlpcCommunicationInfo == ULONG_MAX))
     {
-        return STATUS_NOINTERFACE;
+        status = STATUS_NOINTERFACE;
+        goto Exit;
     }
 
     //
@@ -93,6 +101,7 @@ NTSTATUS KphpGetLsassProcessId(
     //
 
     KeStackAttachProcess(PsInitialSystemProcess, &apcState);
+    stackAttached = TRUE;
 
     status = ZwAlpcConnectPort(&portHandle,
                                (PUNICODE_STRING)&KphpLsaPortName,
@@ -141,9 +150,15 @@ Exit:
         ObCloseHandle(portHandle, KernelMode);
     }
 
-    KeUnstackDetachProcess(&apcState);
+    if (stackAttached)
+    {
+        KeUnstackDetachProcess(&apcState);
+    }
 
-    KphDereferenceObject(dyn);
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
 
     return status;
 }
