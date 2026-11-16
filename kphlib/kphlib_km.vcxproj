@@ -90,6 +90,8 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
+    <Xml Include="kphscript.xml" />
+    <None Include="script\selftest.lua" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
