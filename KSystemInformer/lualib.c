@@ -707,9 +707,46 @@ int KphpLuaTime(
     return 1;
 }
 
+/**
+ * \brief Waits a number of milliseconds, no longer than the call may still
+ * run (ksi.sleep).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaSleep(
+    _In_ lua_State* L
+    )
+{
+    NTSTATUS status;
+    lua_Integer milliseconds;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    milliseconds = luaL_checkinteger(L, 1);
+
+    luaL_argcheck(L,
+                  (milliseconds >= 0) && (milliseconds < ULONG_MAX),
+                  1,
+                  "out of range");
+
+    status = KphScriptWait(L, NULL, (ULONG)milliseconds);
+    if (status == STATUS_SI_SCRIPT_LIMIT)
+    {
+        KphScriptCharge(L, 0);
+    }
+
+    return 0;
+}
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaLibrary[] =
 {
+    { "sleep", KphpLuaSleep },
     { "time", KphpLuaTime },
     { NULL, NULL }
 };

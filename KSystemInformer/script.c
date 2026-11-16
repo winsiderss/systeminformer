@@ -663,6 +663,103 @@ VOID KphScriptCharge(
 }
 
 /**
+ * \brief Waits for an object, or for a time, no longer than the current
+ * phase of the call may still run.
+ *
+ * \details Does not raise. At the deadline the caller releases what it must
+ * and then charges the call, which raises.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Object The object to wait for, NULL to wait for the time only.
+ * \param[in] Milliseconds The caller's own timeout, ULONG_MAX for none.
+ *
+ * \return Successful or errant status, STATUS_TIMEOUT when the caller's
+ * timeout passed, STATUS_SI_SCRIPT_LIMIT when the call's time is up.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphScriptWait(
+    _In_ lua_State* State,
+    _In_opt_ PVOID Object,
+    _In_ ULONG Milliseconds
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_CALL call;
+    ULONG64 now;
+    ULONG64 end;
+    ULONG64 until;
+    LARGE_INTEGER timeout;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    call = KphpScriptGetCall(State);
+
+    if (call->Phase == KphScriptPhaseStopped)
+    {
+        return STATUS_SI_SCRIPT_LIMIT;
+    }
+
+    now = KeQueryInterruptTime();
+
+    end = ULONG64_MAX;
+    if (Milliseconds != ULONG_MAX)
+    {
+        end = KphpScriptDeadline(now, Milliseconds);
+    }
+
+    if (now >= call->Deadline)
+    {
+        return STATUS_SI_SCRIPT_LIMIT;
+    }
+
+    for (;;)
+    {
+        until = min(call->Deadline, end);
+
+        timeout.QuadPart = -(LONG64)(until - now);
+
+        if (Object)
+        {
+            status = KeWaitForSingleObject(Object,
+                                           Executive,
+                                           KernelMode,
+                                           FALSE,
+                                           &timeout);
+            if (status == STATUS_SUCCESS)
+            {
+                return STATUS_SUCCESS;
+            }
+        }
+        else
+        {
+            status = KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              SCRIPT,
+                              "KeDelayExecutionThread failed: %!STATUS!",
+                              status);
+
+                return status;
+            }
+        }
+
+        now = KeQueryInterruptTime();
+
+        if (now >= call->Deadline)
+        {
+            return STATUS_SI_SCRIPT_LIMIT;
+        }
+
+        if (now >= end)
+        {
+            return STATUS_TIMEOUT;
+        }
+    }
+}
+
+/**
  * \brief Takes the status a routine returned.
  *
  * \param[in] State The Lua state, with the status at the given index.

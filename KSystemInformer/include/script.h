@@ -147,3 +147,11 @@ VOID KphScriptCharge(
     _In_ lua_State* State,
     _In_ ULONG64 Count
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphScriptWait(
+    _In_ lua_State* State,
+    _In_opt_ PVOID Object,
+    _In_ ULONG Milliseconds
+    );
