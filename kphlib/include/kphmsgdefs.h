@@ -428,6 +428,18 @@ typedef struct _KPHM_GET_INFORMER_CLIENT_STATS
     PKPH_INFORMER_CLIENT_STATS Stats;
 } KPHM_GET_INFORMER_CLIENT_STATS, *PKPHM_GET_INFORMER_CLIENT_STATS;
 
+typedef struct _KPHM_SCRIPT_CALL
+{
+    NTSTATUS Status;
+    PANSI_STRING Script;
+    PANSI_STRING Routine;
+    PVOID Input;
+    ULONG InputLength;
+    PVOID Output;
+    ULONG OutputLength;
+    PULONG ReturnLength;
+} KPHM_SCRIPT_CALL, *PKPHM_SCRIPT_CALL;
+
 //
 // KPH -> PH
 //
