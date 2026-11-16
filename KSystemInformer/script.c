@@ -1721,3 +1721,29 @@ Exit:
 
     return requiredState;
 }
+
+/**
+ * \brief Initializes the script infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeScript(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphLuaInitializeHardware();
+}
+
+/**
+ * \brief Cleans up the script infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupScript(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphLuaCleanupHardware();
+}

@@ -3122,6 +3122,16 @@ BOOLEAN KphRateLimitConsumeToken(
 // script
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeScript(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupScript(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphScriptCall(
     _In_ PANSI_STRING Script,

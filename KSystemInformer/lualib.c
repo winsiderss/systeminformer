@@ -964,5 +964,7 @@ VOID KphLuaOpenLibraries(
     luaL_requiref(State, KPH_LUA_LIBRARY_NAME, KphpLuaOpenLibrary, 1);
     lua_settop(State, 0);
 
+    KphLuaOpenHardwareLibrary(State);
+
     KphpLuaRemove(State);
 }
