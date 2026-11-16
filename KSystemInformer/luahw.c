@@ -23,11 +23,96 @@ typedef struct _KPH_LUA_HW_LOCK
     ANSI_STRING Name;
 } KPH_LUA_HW_LOCK, *PKPH_LUA_HW_LOCK;
 
+#if defined(_M_X64)
+
+typedef struct _KPH_LUA_HW_CPU
+{
+    CHAR Vendor[12];
+    ULONG Family;
+    ULONG Model;
+    ULONG Stepping;
+    ULONG Signature;
+    ULONG PhysicalBits;
+} KPH_LUA_HW_CPU, *PKPH_LUA_HW_CPU;
+
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static KPH_LUA_HW_CPU KphpLuaHwCpuIdentity = { 0 };
+KPH_PROTECTED_DATA_SECTION_POP();
+
+#endif
+
 KPH_PAGED_FILE();
 
 static LIST_ENTRY KphpLuaHwLocks;
 static KPH_RWLOCK KphpLuaHwLocksLock;
 static BOOLEAN KphpLuaHwInitialized = FALSE;
+
+#if defined(_M_X64)
+
+/**
+ * \brief Captures the identity of the processor.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLuaHwInitializeCpu(
+    VOID
+    )
+{
+    int basic[4];
+    int version[4];
+    int extended[4];
+    int addresses[4];
+    int vendor[3];
+    ULONG signature;
+    ULONG baseFamily;
+    ULONG family;
+    ULONG model;
+    ULONG physicalBits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    __cpuidex(basic, CPUID_BASIC, 0);
+    __cpuidex(version, CPUID_VERSION, 0);
+    __cpuidex(extended, CPUID_EXTENDED, 0);
+
+    vendor[0] = basic[1];
+    vendor[1] = basic[3];
+    vendor[2] = basic[2];
+
+    signature = (ULONG)version[0];
+
+    baseFamily = (signature >> 8) & 0xF;
+
+    family = baseFamily;
+    if (baseFamily == 0xF)
+    {
+        family += (signature >> 20) & 0xFF;
+    }
+
+    model = (signature >> 4) & 0xF;
+    if (baseFamily >= 0x6)
+    {
+        model |= ((signature >> 16) & 0xF) << 4;
+    }
+
+    physicalBits = 36;
+    if ((ULONG)extended[0] >= CPUID_ADDRESS_SIZES)
+    {
+        __cpuidex(addresses, CPUID_ADDRESS_SIZES, 0);
+
+        physicalBits = (ULONG)addresses[0] & 0xFF;
+    }
+
+    C_ASSERT(sizeof(vendor) == sizeof(KphpLuaHwCpuIdentity.Vendor));
+
+    RtlCopyMemory(KphpLuaHwCpuIdentity.Vendor, vendor, sizeof(vendor));
+    KphpLuaHwCpuIdentity.Family = family;
+    KphpLuaHwCpuIdentity.Model = model;
+    KphpLuaHwCpuIdentity.Stepping = signature & 0xF;
+    KphpLuaHwCpuIdentity.Signature = signature;
+    KphpLuaHwCpuIdentity.PhysicalBits = physicalBits;
+}
+
+#endif
 
 /**
  * \brief Initializes the hardware library.
@@ -41,6 +126,10 @@ VOID KphLuaInitializeHardware(
 
     InitializeListHead(&KphpLuaHwLocks);
     KphInitializeRWLock(&KphpLuaHwLocksLock);
+
+#if defined(_M_X64)
+    KphpLuaHwInitializeCpu();
+#endif
 
     KphpLuaHwInitialized = TRUE;
 }
@@ -245,9 +334,118 @@ int KphpLuaHwLock(
     return 2;
 }
 
+#if defined(_M_X64)
+
+/**
+ * \brief Checks that an argument is an integer from 0 to ULONG_MAX.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ *
+ * \return The argument.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG KphpLuaHwCheckUlong(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    lua_Integer value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    value = luaL_checkinteger(State, Index);
+
+    luaL_argcheck(State,
+                  (value >= 0) && (value <= ULONG_MAX),
+                  Index,
+                  "out of range");
+
+    return (ULONG)value;
+}
+
+/**
+ * \brief Executes CPUID on the current processor (hw.cpuid).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return Four, the registers EAX, EBX, ECX and EDX.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwCpuid(
+    _In_ lua_State* State
+    )
+{
+    ULONG leaf;
+    ULONG subleaf;
+    int registers[4];
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    leaf = KphpLuaHwCheckUlong(State, 1);
+    subleaf = KphpLuaHwCheckUlong(State, 2);
+
+    __cpuidex(registers, (int)leaf, (int)subleaf);
+
+    for (ULONG i = 0; i < ARRAYSIZE(registers); i++)
+    {
+        lua_pushinteger(State, (lua_Integer)(ULONG)registers[i]);
+    }
+
+    return ARRAYSIZE(registers);
+}
+
+/**
+ * \brief Describes the processor, as captured when the driver loaded
+ * (hw.cpu).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return One, a table of the vendor, the display family, model and
+ * stepping, the signature and the physical address width.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwCpu(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    lua_createtable(State, 0, 6);
+
+    lua_pushlstring(State,
+                    KphpLuaHwCpuIdentity.Vendor,
+                    sizeof(KphpLuaHwCpuIdentity.Vendor));
+    lua_setfield(State, -2, "vendor");
+    lua_pushinteger(State, KphpLuaHwCpuIdentity.Family);
+    lua_setfield(State, -2, "family");
+    lua_pushinteger(State, KphpLuaHwCpuIdentity.Model);
+    lua_setfield(State, -2, "model");
+    lua_pushinteger(State, KphpLuaHwCpuIdentity.Stepping);
+    lua_setfield(State, -2, "stepping");
+    lua_pushinteger(State, KphpLuaHwCpuIdentity.Signature);
+    lua_setfield(State, -2, "signature");
+    lua_pushinteger(State, KphpLuaHwCpuIdentity.PhysicalBits);
+    lua_setfield(State, -2, "physical_bits");
+
+    return 1;
+}
+
+#endif
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaHwLibrary[] =
 {
+#if defined(_M_X64)
+    { "cpu", KphpLuaHwCpu },
+    { "cpuid", KphpLuaHwCpuid },
+#endif
     { "lock", KphpLuaHwLock },
     { NULL, NULL }
 };
