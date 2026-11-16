@@ -23,6 +23,7 @@
         WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                  \
         WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                  \
         WPP_DEFINE_BIT(SCRIPT)      /* bit  8 = 0x00000100 */                  \
+        WPP_DEFINE_BIT(HARDWARE)    /* bit  9 = 0x00000200 */                  \
         )
 
 #define WPP_LEVEL_EVENT_LOGGER(level,event) WPP_LEVEL_LOGGER(event)
