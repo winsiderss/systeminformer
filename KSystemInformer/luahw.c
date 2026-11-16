@@ -344,8 +344,6 @@ int KphpLuaHwLock(
     return 2;
 }
 
-#if defined(_M_X64)
-
 /**
  * \brief Checks that an argument is an integer from 0 to ULONG_MAX.
  *
@@ -375,6 +373,189 @@ ULONG KphpLuaHwCheckUlong(
 
     return (ULONG)value;
 }
+
+/**
+ * \brief Checks a four-character argument.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ *
+ * \return The characters.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PCSTR KphpLuaHwCheckSignature(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    PCSTR signature;
+    size_t length;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    signature = luaL_checklstring(State, Index, &length);
+
+    luaL_argcheck(State, length == 4, Index, "not 4 characters");
+
+    return signature;
+}
+
+/**
+ * \brief Retrieves a firmware table (hw.firmware_table).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the table, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwFirmwareTable(
+    _In_ lua_State* State
+    )
+{
+    NTSTATUS status;
+    PCSTR provider;
+    PCSTR id;
+    SYSTEM_FIRMWARE_TABLE_INFORMATION query;
+    PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
+    ULONG headerLength;
+    ULONG infoLength;
+    ULONG tableLength;
+    luaL_Buffer buffer;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    RtlZeroMemory(&query, sizeof(query));
+
+    provider = KphpLuaHwCheckSignature(State, 1);
+
+    query.ProviderSignature = (((ULONG)(UCHAR)provider[0] << 24) |
+                               ((ULONG)(UCHAR)provider[1] << 16) |
+                               ((ULONG)(UCHAR)provider[2] << 8) |
+                               (ULONG)(UCHAR)provider[3]);
+
+    if (lua_type(State, 2) == LUA_TSTRING)
+    {
+        id = KphpLuaHwCheckSignature(State, 2);
+
+        query.TableID = ((ULONG)(UCHAR)id[0] |
+                         ((ULONG)(UCHAR)id[1] << 8) |
+                         ((ULONG)(UCHAR)id[2] << 16) |
+                         ((ULONG)(UCHAR)id[3] << 24));
+    }
+    else
+    {
+        query.TableID = KphpLuaHwCheckUlong(State, 2);
+    }
+
+    query.Action = SystemFirmwareTable_Get;
+
+    status = ZwQuerySystemInformation(SystemFirmwareTableInformation,
+                                      &query,
+                                      sizeof(query),
+                                      NULL);
+    if (NT_SUCCESS(status) && (query.TableBufferLength == 0))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Firmware table 0x%08lx 0x%08lx is empty",
+                      query.ProviderSignature,
+                      query.TableID);
+
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    if ((status != STATUS_BUFFER_TOO_SMALL) || (query.TableBufferLength == 0))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Firmware table 0x%08lx 0x%08lx: %!STATUS! length %lu",
+                      query.ProviderSignature,
+                      query.TableID,
+                      status,
+                      query.TableBufferLength);
+
+        if (NT_SUCCESS(status))
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        goto Exit;
+    }
+
+    tableLength = query.TableBufferLength;
+    headerLength = FIELD_OFFSET(SYSTEM_FIRMWARE_TABLE_INFORMATION, TableBuffer);
+
+    status = RtlULongAdd(headerLength, tableLength, &infoLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlULongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    info = (PSYSTEM_FIRMWARE_TABLE_INFORMATION)luaL_buffinitsize(State,
+                                                                 &buffer,
+                                                                 infoLength);
+
+    info->ProviderSignature = query.ProviderSignature;
+    info->Action = SystemFirmwareTable_Get;
+    info->TableID = query.TableID;
+    info->TableBufferLength = tableLength;
+
+    status = ZwQuerySystemInformation(SystemFirmwareTableInformation,
+                                      info,
+                                      infoLength,
+                                      NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Firmware table 0x%08lx 0x%08lx: %!STATUS!",
+                      query.ProviderSignature,
+                      query.TableID,
+                      status);
+
+        goto Exit;
+    }
+
+    if (info->TableBufferLength > tableLength)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Firmware table 0x%08lx 0x%08lx grew to %lu",
+                      query.ProviderSignature,
+                      query.TableID,
+                      info->TableBufferLength);
+
+        status = STATUS_BUFFER_OVERFLOW;
+        goto Exit;
+    }
+
+    tableLength = info->TableBufferLength;
+
+    RtlMoveMemory(info, info->TableBuffer, tableLength);
+
+    luaL_pushresultsize(&buffer, tableLength);
+
+    return 1;
+
+Exit:
+
+    lua_pushnil(State);
+    lua_pushinteger(State, (lua_Integer)(ULONG)status);
+
+    return 2;
+}
+
+#if defined(_M_X64)
 
 /**
  * \brief Executes CPUID on the current processor (hw.cpuid).
@@ -862,6 +1043,7 @@ static const luaL_Reg KphpLuaHwLibrary[] =
     { "port_read", KphpLuaHwPortRead },
     { "port_write", KphpLuaHwPortWrite },
 #endif
+    { "firmware_table", KphpLuaHwFirmwareTable },
     { "lock", KphpLuaHwLock },
     { NULL, NULL }
 };
