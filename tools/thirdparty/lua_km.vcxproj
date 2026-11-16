@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup Label="ProjectConfigurations">
+        <ProjectConfiguration Include="Debug|x64">
+            <Configuration>Debug</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|x64">
+            <Configuration>Release</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Debug|ARM64">
+            <Configuration>Debug</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|ARM64">
+            <Configuration>Release</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+    </ItemGroup>
+    <PropertyGroup Label="Globals">
+        <ProjectGuid>{B571AB08-544B-487B-B7B6-7F54BD6AFD2C}</ProjectGuid>
+        <TemplateGuid>{dd38f7fc-d7bd-488b-9242-7d8754cde80d}</TemplateGuid>
+        <ConfigurationType>StaticLibrary</ConfigurationType>
+        <RootNamespace>lua_km</RootNamespace>
+        <ProjectName>lua_km</ProjectName>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <ImportGroup Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <PropertyGroup Label="UserMacros" />
+    <PropertyGroup>
+        <!-- Lua has no WPP trace macros; keep tracewpp off. -->
+        <KsiNoWpp>true</KsiNoWpp>
+        <!-- Vendored code; PREfast/analysis is not ours to fix. -->
+        <RunCodeAnalysis>false</RunCodeAnalysis>
+        <!-- RunCodeAnalysis=true is a global from the prefast leg and overrides the line above; this disables the analysis target. -->
+        <EnableMicrosoftCodeAnalysis>false</EnableMicrosoftCodeAnalysis>
+        <IntDir>$(SystemInformerRoot)KSystemInformer\obj\$(Configuration)$(PlatformArchitecture)\$(ProjectName)\</IntDir>
+        <OutDir>$(SystemInformerRoot)KSystemInformer\bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <TargetName>lua_km</TargetName>
+    </PropertyGroup>
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <!-- Vendored code is not W4 clean (C4701, C4709, C4310, C4702). -->
+            <WarningLevel>Level3</WarningLevel>
+            <AdditionalIncludeDirectories>$(ProjectDir)lua\src\;$(ProjectDir)luaconfig\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <!-- The Lua sources are the unmodified release; the configuration is forced in. -->
+            <ForcedIncludeFiles>%(ForcedIncludeFiles);kphluaconf.h</ForcedIncludeFiles>
+            <!-- Optimized in Debug too: unoptimized, the interpreter's frame is 3.7 KB per nested call and the kernel stack cannot carry Lua's nesting limit. -->
+            <Optimization>MaxSpeed</Optimization>
+            <IntrinsicFunctions>true</IntrinsicFunctions>
+        </ClCompile>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <!-- The interpreter without the compiler: no lparser, llex, lcode or ldump. -->
+        <ClCompile Include="lua\src\lapi.c" />
+        <ClCompile Include="lua\src\lauxlib.c" />
+        <ClCompile Include="lua\src\lbaselib.c" />
+        <ClCompile Include="lua\src\lctype.c" />
+        <ClCompile Include="lua\src\ldebug.c" />
+        <ClCompile Include="lua\src\ldo.c" />
+        <ClCompile Include="lua\src\lfunc.c" />
+        <ClCompile Include="lua\src\lgc.c" />
+        <ClCompile Include="lua\src\lmem.c" />
+        <ClCompile Include="lua\src\lobject.c" />
+        <ClCompile Include="lua\src\lopcodes.c" />
+        <ClCompile Include="lua\src\lstate.c" />
+        <ClCompile Include="lua\src\lstring.c" />
+        <ClCompile Include="lua\src\lstrlib.c" />
+        <ClCompile Include="lua\src\ltable.c" />
+        <ClCompile Include="lua\src\ltablib.c" />
+        <ClCompile Include="lua\src\ltm.c" />
+        <ClCompile Include="lua\src\lundump.c" />
+        <ClCompile Include="lua\src\lvm.c" />
+        <ClCompile Include="lua\src\lzio.c" />
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="luaconfig\kphluaconf.h" />
+        <ClInclude Include="luaconfig\kphluauser.h" />
+        <ClInclude Include="lua\src\lapi.h" />
+        <ClInclude Include="lua\src\lauxlib.h" />
+        <ClInclude Include="lua\src\lctype.h" />
+        <ClInclude Include="lua\src\ldebug.h" />
+        <ClInclude Include="lua\src\ldo.h" />
+        <ClInclude Include="lua\src\lfunc.h" />
+        <ClInclude Include="lua\src\lgc.h" />
+        <ClInclude Include="lua\src\llex.h" />
+        <ClInclude Include="lua\src\llimits.h" />
+        <ClInclude Include="lua\src\lmem.h" />
+        <ClInclude Include="lua\src\lobject.h" />
+        <ClInclude Include="lua\src\lopcodes.h" />
+        <ClInclude Include="lua\src\lparser.h" />
+        <ClInclude Include="lua\src\lprefix.h" />
+        <ClInclude Include="lua\src\lstate.h" />
+        <ClInclude Include="lua\src\lstring.h" />
+        <ClInclude Include="lua\src\ltable.h" />
+        <ClInclude Include="lua\src\ltm.h" />
+        <ClInclude Include="lua\src\lua.h" />
+        <ClInclude Include="lua\src\luaconf.h" />
+        <ClInclude Include="lua\src\lualib.h" />
+        <ClInclude Include="lua\src\lundump.h" />
+        <ClInclude Include="lua\src\lvm.h" />
+        <ClInclude Include="lua\src\lzio.h" />
+    </ItemGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

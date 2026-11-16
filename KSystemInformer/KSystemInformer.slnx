@@ -7,6 +7,8 @@
     </Project>
     <Project Path="../tools/thirdparty/symcrypt_km.vcxproj" Id="7a61c2f4-0f3b-4e7c-9d5c-2b8f1e6a9d21">
     </Project>
+    <Project Path="../tools/thirdparty/lua_km.vcxproj" Id="b571ab08-544b-487b-b7b6-7f54bd6afd2c">
+    </Project>
     <Project Path="ksidll.vcxproj" Id="b385d394-19cc-48bc-827e-af9adce559e0">
         <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
     </Project>
