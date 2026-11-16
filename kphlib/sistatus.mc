@@ -26,6 +26,7 @@ FacilityNames = (
     SystemInformer  = 0x1:FACILITY_SI
     DynamicData     = 0x2:FACILITY_SI_DYNDATA
     KSystemInformer = 0x3:FACILITY_KSI
+    Script          = 0x4:FACILITY_SI_SCRIPT
     )
 
 MessageId    = 0x0001
@@ -66,6 +67,22 @@ Severity     = Error
 SymbolicName = STATUS_SI_KSIDLL_VERSION_MISMATCH
 Language     = English
 System Informer kernel library version is incompatible.
+.
+
+MessageId    = 0x0001
+Facility     = Script
+Severity     = Error
+SymbolicName = STATUS_SI_SCRIPT_ERROR
+Language     = English
+System Informer script raised an error.
+.
+
+MessageId    = 0x0002
+Facility     = Script
+Severity     = Error
+SymbolicName = STATUS_SI_SCRIPT_LIMIT
+Language     = English
+System Informer script exceeded a limit.
 .
 
 ;#endif
