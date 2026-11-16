@@ -100,3 +100,50 @@ VOID KphLuaLoadChunk(
     _In_ SIZE_T Length,
     _In_ PCANSI_STRING Name
     );
+
+// lualib
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenLibraries(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaRaiseAbort(
+    _In_ lua_State* State
+    );
+
+// script
+
+typedef
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+KSIAPI
+KPH_SCRIPT_CLEANUP_ROUTINE(
+    _In_opt_ PVOID Context
+    );
+typedef KPH_SCRIPT_CLEANUP_ROUTINE* PKPH_SCRIPT_CLEANUP_ROUTINE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptPushCleanup(
+    _In_ lua_State* State,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine,
+    _In_opt_ PVOID Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PCANSI_STRING KphScriptGetName(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+ULONG64 KphScriptGetAbortCount(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptCharge(
+    _In_ lua_State* State,
+    _In_ ULONG64 Count
+    );

@@ -77,6 +77,7 @@
     <ClCompile Include="kphthread.c" />
     <ClCompile Include="lsa.c" />
     <ClCompile Include="lua.c" />
+    <ClCompile Include="lualib.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
     <ClCompile Include="parameters.c" />
@@ -84,6 +85,7 @@
     <ClCompile Include="protection.c" />
     <ClCompile Include="ratelmt.c" />
     <ClCompile Include="ringbuff.c" />
+    <ClCompile Include="script.c" />
     <ClCompile Include="session_token.c" />
     <ClCompile Include="symcrypt.c" />
     <ClCompile Include="system.c" />

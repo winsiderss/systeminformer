@@ -1,0 +1,884 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s   2026
+ *
+ */
+
+#include <kph.h>
+#include <script.h>
+
+#include <trace.h>
+
+#define KPH_LUA_LIBRARY_NAME "ksi"
+#define KphLuaStackIsNearLimit()                                               \
+    (IoGetRemainingStackSize() < KERNEL_STACK_SIZE)
+
+typedef struct _KPH_LUA_STATUS
+{
+    PCSTR Name;
+    NTSTATUS Status;
+} KPH_LUA_STATUS, *PKPH_LUA_STATUS;
+
+typedef struct _KPH_LUA_REMOVED
+{
+    PCSTR Library;
+    PCSTR Name;
+} KPH_LUA_REMOVED, *PKPH_LUA_REMOVED;
+
+#define KPH_LUA_STATUS_ENTRY(s) { #s, s }
+
+KPH_PAGED_FILE();
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const CHAR KphpLuaAbortKey = 0;
+static const KPH_LUA_STATUS KphpLuaStatuses[] =
+{
+    KPH_LUA_STATUS_ENTRY(STATUS_SUCCESS),
+    KPH_LUA_STATUS_ENTRY(STATUS_UNSUCCESSFUL),
+    KPH_LUA_STATUS_ENTRY(STATUS_NOT_IMPLEMENTED),
+    KPH_LUA_STATUS_ENTRY(STATUS_NOT_SUPPORTED),
+    KPH_LUA_STATUS_ENTRY(STATUS_NOT_FOUND),
+    KPH_LUA_STATUS_ENTRY(STATUS_ACCESS_DENIED),
+    KPH_LUA_STATUS_ENTRY(STATUS_INVALID_PARAMETER),
+    KPH_LUA_STATUS_ENTRY(STATUS_INVALID_BUFFER_SIZE),
+    KPH_LUA_STATUS_ENTRY(STATUS_BUFFER_TOO_SMALL),
+    KPH_LUA_STATUS_ENTRY(STATUS_INFO_LENGTH_MISMATCH),
+};
+static const KPH_LUA_REMOVED KphpLuaRemoved[] =
+{
+    { LUA_GNAME, "collectgarbage" },
+    { LUA_GNAME, "dofile" },
+    { LUA_GNAME, "load" },
+    { LUA_GNAME, "loadfile" },
+    { LUA_GNAME, "print" },
+    { LUA_GNAME, "warn" },
+    { LUA_GNAME, "xpcall" },
+    { LUA_STRLIBNAME, "dump" },
+    { LUA_STRLIBNAME, "gmatch" },
+    { LUA_STRLIBNAME, "gsub" },
+    { LUA_STRLIBNAME, "match" },
+    { LUA_TABLIBNAME, "move" },
+};
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+
+/**
+ * \brief Raises the abort error of a call. Does not return.
+ *
+ * \details The error object was created when the libraries were opened, so
+ * raising it allocates nothing.
+ *
+ * \param[in] State The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaRaiseAbort(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    lua_rawgetp(State, LUA_REGISTRYINDEX, &KphpLuaAbortKey);
+    lua_error(State);
+}
+
+/**
+ * \brief Raises a Lua error when less than a default kernel stack remains.
+ *
+ * \param[in] L The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLuaCheckStack(
+    _In_ lua_State* L
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (KphLuaStackIsNearLimit())
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z is short of stack",
+                      KphScriptGetName(L));
+
+        luaL_error(L, "C stack overflow");
+    }
+}
+
+/**
+ * \brief Calls a function in protected mode, for scripts: pcall.
+ *
+ * \details Unlike the pcall of Lua, an abort raised inside the call is raised
+ * again: a script cannot catch the end of its call and carry on.
+ *
+ * \param[in] L The Lua state, with the function and its arguments.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaProtectedCallForScript(
+    _In_ lua_State* L
+    )
+{
+    ULONG64 aborts;
+    int arguments;
+    int result;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    luaL_checkany(L, 1);
+
+    KphpLuaCheckStack(L);
+
+    aborts = KphScriptGetAbortCount(L);
+
+    lua_pushboolean(L, TRUE);
+    lua_rotate(L, 1, 1);
+
+    arguments = lua_gettop(L) - 2;
+
+    result = lua_pcall(L, arguments, LUA_MULTRET, 0);
+
+    if (KphScriptGetAbortCount(L) != aborts)
+    {
+        KphLuaRaiseAbort(L);
+    }
+
+    if (result != LUA_OK)
+    {
+        lua_pushboolean(L, FALSE);
+        lua_rotate(L, -2, 1);
+
+        return 2;
+    }
+
+    return lua_gettop(L);
+}
+
+/**
+ * \brief Sets the metatable of a table, for scripts: setmetatable.
+ *
+ * \details Unlike the setmetatable of Lua, a metatable with a finalizer is
+ * refused.
+ *
+ * \param[in] L The Lua state, with the table and the metatable. The first
+ * upvalue is the setmetatable of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaSetMetatableForScript(
+    _In_ lua_State* L
+    )
+{
+    int arguments;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (lua_type(L, 2) == LUA_TTABLE)
+    {
+        lua_pushliteral(L, "__gc");
+
+        if (lua_rawget(L, 2) != LUA_TNIL)
+        {
+            luaL_error(L, "a metatable may not have a finalizer");
+        }
+
+        lua_settop(L, -2);
+    }
+
+    arguments = lua_gettop(L);
+
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_rotate(L, 1, 1);
+
+    lua_call(L, arguments, LUA_MULTRET);
+
+    return lua_gettop(L);
+}
+
+/**
+ * \brief Finds text in a string, for scripts: string.find.
+ *
+ * \details Unlike the find of Lua, the text is never a pattern.
+ *
+ * \param[in] L The Lua state, with the string, the text and the optional
+ * start. The first upvalue is the find of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaFindForScript(
+    _In_ lua_State* L
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    lua_settop(L, 3);
+    lua_pushboolean(L, TRUE);
+
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_rotate(L, 1, 1);
+
+    lua_call(L, 4, LUA_MULTRET);
+
+    return lua_gettop(L);
+}
+
+/**
+ * \brief Calls the function of Lua that a function for scripts stands in
+ * front of, with the arguments on the stack.
+ *
+ * \param[in] L The Lua state. The first upvalue is the function of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaCallStock(
+    _In_ lua_State* L
+    )
+{
+    int arguments;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    arguments = lua_gettop(L);
+
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_rotate(L, 1, 1);
+
+    lua_call(L, arguments, LUA_MULTRET);
+
+    return lua_gettop(L);
+}
+
+/**
+ * \brief Checks that the first argument is a table without a metatable, and
+ * retrieves its length.
+ *
+ * \details Raises a Lua error otherwise. The table functions of Lua loop in C
+ * over a length and through metamethods, outside the count hook. For scripts
+ * they take plain tables.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return The length of the table.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+lua_Unsigned KphpLuaCheckPlainTable(
+    _In_ lua_State* L
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    luaL_checktype(L, 1, LUA_TTABLE);
+
+    if (lua_getmetatable(L, 1))
+    {
+        luaL_error(L, "the table has a metatable");
+    }
+
+    return lua_rawlen(L, 1);
+}
+
+/**
+ * \brief Calls a table function of Lua on a plain table, for scripts:
+ * table.concat and table.unpack.
+ *
+ * \param[in] L The Lua state, with the table and the other arguments. The
+ * first upvalue is the function of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaPlainTableForScript(
+    _In_ lua_State* L
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphpLuaCheckPlainTable(L);
+
+    return KphpLuaCallStock(L);
+}
+
+/**
+ * \brief Inserts into a plain table, for scripts: table.insert.
+ *
+ * \details The elements an insert moves are charged to the call.
+ *
+ * \param[in] L The Lua state, with the table, the optional position and the
+ * value. The first upvalue is the insert of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaInsertForScript(
+    _In_ lua_State* L
+    )
+{
+    lua_Unsigned length;
+    lua_Unsigned position;
+    lua_Unsigned count;
+    int arguments;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    length = KphpLuaCheckPlainTable(L);
+
+    arguments = lua_gettop(L);
+
+    if (arguments == 3)
+    {
+        position = (lua_Unsigned)luaL_checkinteger(L, 2);
+
+        if ((position >= 1) && (position <= length))
+        {
+            count = length - position + 1;
+
+            KphScriptCharge(L, count);
+        }
+    }
+
+    return KphpLuaCallStock(L);
+}
+
+/**
+ * \brief Removes from a plain table, for scripts: table.remove.
+ *
+ * \details The elements a remove moves are charged to the call.
+ *
+ * \param[in] L The Lua state, with the table and the optional position. The
+ * first upvalue is the remove of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaRemoveForScript(
+    _In_ lua_State* L
+    )
+{
+    lua_Unsigned length;
+    lua_Unsigned position;
+    lua_Unsigned count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    length = KphpLuaCheckPlainTable(L);
+
+    //
+    // No position, or nil, removes the last element.
+    //
+    if (!lua_isnoneornil(L, 2))
+    {
+        position = (lua_Unsigned)luaL_checkinteger(L, 2);
+
+        if ((position >= 1) && (position < length))
+        {
+            count = length - position;
+
+            KphScriptCharge(L, count);
+        }
+    }
+
+    return KphpLuaCallStock(L);
+}
+
+/**
+ * \brief Sorts a plain table, for scripts: table.sort.
+ *
+ * \details The comparisons a sort of that length makes are charged to the
+ * call: the length times the number of its halvings.
+ *
+ * \param[in] L The Lua state, with the table and the optional comparison
+ * function. The first upvalue is the sort of Lua.
+ *
+ * \return The number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaSortForScript(
+    _In_ lua_State* L
+    )
+{
+    NTSTATUS status;
+    lua_Unsigned length;
+    ULONG64 halvings;
+    ULONG64 count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphpLuaCheckStack(L);
+
+    length = KphpLuaCheckPlainTable(L);
+
+    halvings = 1;
+    for (lua_Unsigned remaining = length; remaining > 1; remaining >>= 1)
+    {
+        halvings++;
+    }
+
+    status = RtlULongLongMult(length, halvings, &count);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "RtlULongLongMult failed: %!STATUS!",
+                      status);
+
+        count = ULONG64_MAX;
+    }
+
+    if (count > 0)
+    {
+        KphScriptCharge(L, count);
+    }
+
+    return KphpLuaCallStock(L);
+}
+
+/**
+ * \brief Retrieves the absolute value of an integer: math.abs.
+ *
+ * \param[in] L The Lua state, with the integer.
+ *
+ * \return One, the absolute value.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaAbs(
+    _In_ lua_State* L
+    )
+{
+    lua_Integer value;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    value = luaL_checkinteger(L, 1);
+
+    if (value < 0)
+    {
+        value = (lua_Integer)(0 - (lua_Unsigned)value);
+    }
+
+    lua_pushinteger(L, value);
+
+    return 1;
+}
+
+/**
+ * \brief Retrieves the largest of its integers: math.max.
+ *
+ * \param[in] L The Lua state, with one or more integers.
+ *
+ * \return One, the largest.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaMax(
+    _In_ lua_State* L
+    )
+{
+    lua_Integer result;
+    lua_Integer value;
+    int arguments;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    arguments = lua_gettop(L);
+
+    result = luaL_checkinteger(L, 1);
+
+    for (int i = 2; i <= arguments; i++)
+    {
+        value = luaL_checkinteger(L, i);
+
+        if (value > result)
+        {
+            result = value;
+        }
+    }
+
+    lua_pushinteger(L, result);
+
+    return 1;
+}
+
+/**
+ * \brief Retrieves the smallest of its integers: math.min.
+ *
+ * \param[in] L The Lua state, with one or more integers.
+ *
+ * \return One, the smallest.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaMin(
+    _In_ lua_State* L
+    )
+{
+    lua_Integer result;
+    lua_Integer value;
+    int arguments;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    arguments = lua_gettop(L);
+
+    result = luaL_checkinteger(L, 1);
+
+    for (int i = 2; i <= arguments; i++)
+    {
+        value = luaL_checkinteger(L, i);
+
+        if (value < result)
+        {
+            result = value;
+        }
+    }
+
+    lua_pushinteger(L, result);
+
+    return 1;
+}
+
+/**
+ * \brief Compares two integers as unsigned: math.ult.
+ *
+ * \param[in] L The Lua state, with two integers.
+ *
+ * \return One, whether the first is below the second.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaUlt(
+    _In_ lua_State* L
+    )
+{
+    lua_Unsigned first;
+    lua_Unsigned second;
+    BOOLEAN below;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    first = (lua_Unsigned)luaL_checkinteger(L, 1);
+    second = (lua_Unsigned)luaL_checkinteger(L, 2);
+
+    below = FALSE;
+    if (first < second)
+    {
+        below = TRUE;
+    }
+
+    lua_pushboolean(L, below);
+
+    return 1;
+}
+
+/**
+ * \brief Traces a line for a script: ksi.trace.
+ *
+ * \details With one argument the text is traced as it is. With more, the
+ * first is a format for the rest, as for string.format. Nothing is formatted,
+ * and nothing can fail, unless the trace is being collected.
+ *
+ * \param[in] L The Lua state, with the text or the format and its arguments.
+ * The first upvalue is the format of Lua.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaTrace(
+    _In_ lua_State* L
+    )
+{
+    PCANSI_STRING script;
+    ANSI_STRING text;
+    PCSTR buffer;
+    SIZE_T length;
+    ULONG64 aborts;
+    int arguments;
+    int result;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphTraceEnabled(TRACE_LEVEL_VERBOSE, SCRIPT))
+    {
+        return 0;
+    }
+
+    script = KphScriptGetName(L);
+
+    arguments = lua_gettop(L);
+
+    if (arguments > 1)
+    {
+        //
+        // Formatting can call back into the script. A trace is not worth
+        // the stack, and may not raise.
+        //
+        if (KphLuaStackIsNearLimit())
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script %Z trace skipped: the stack is short",
+                          script);
+
+            return 0;
+        }
+
+        aborts = KphScriptGetAbortCount(L);
+
+        lua_pushvalue(L, lua_upvalueindex(1));
+        lua_rotate(L, 1, 1);
+
+        result = lua_pcall(L, arguments, 1, 0);
+
+        if (KphScriptGetAbortCount(L) != aborts)
+        {
+            KphLuaRaiseAbort(L);
+        }
+
+        //
+        // Whether the trace is collected must not change what a script
+        // does, so a format that fails is traced and not raised.
+        //
+        if (result != LUA_OK)
+        {
+            buffer = lua_tolstring(L, -1, NULL);
+
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script %Z trace failed: %hs",
+                          script,
+                          buffer);
+
+            return 0;
+        }
+    }
+
+    buffer = lua_tolstring(L, 1, &length);
+    if (!buffer)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z traced a value that is not text",
+                      script);
+
+        return 0;
+    }
+
+    if (length > USHORT_MAX)
+    {
+        length = USHORT_MAX;
+    }
+
+    text.Buffer = (PCHAR)buffer;
+    text.Length = (USHORT)length;
+    text.MaximumLength = (USHORT)length;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  SCRIPT,
+                  "Script %Z: %Z",
+                  script,
+                  &text);
+
+    return 0;
+}
+
+/**
+ * \brief Retrieves the interrupt time: ksi.time.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return One, the interrupt time in 100 nanosecond units.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaTime(
+    _In_ lua_State* L
+    )
+{
+    ULONG64 now;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    now = KeQueryInterruptTime();
+
+    lua_pushinteger(L, (lua_Integer)now);
+
+    return 1;
+}
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const luaL_Reg KphpLuaLibrary[] =
+{
+    { "time", KphpLuaTime },
+    { NULL, NULL }
+};
+static const luaL_Reg KphpLuaMathLibrary[] =
+{
+    { "abs", KphpLuaAbs },
+    { "max", KphpLuaMax },
+    { "min", KphpLuaMin },
+    { "ult", KphpLuaUlt },
+    { NULL, NULL }
+};
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+
+/**
+ * \brief Opens the library of the driver.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return One, the library table.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaOpenLibrary(
+    _In_ lua_State* L
+    )
+{
+    BOOLEAN tracing;
+    lua_Integer status;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    luaL_newlib(L, KphpLuaLibrary);
+
+    lua_getglobal(L, LUA_STRLIBNAME);
+    lua_getfield(L, -1, "format");
+    lua_pushcclosure(L, KphpLuaTrace, 1);
+    lua_setfield(L, -3, "trace");
+    lua_settop(L, -2);
+
+    //
+    // A script tests this to skip work that only a trace needs.
+    //
+    tracing = FALSE;
+    if (KphTraceEnabled(TRACE_LEVEL_VERBOSE, SCRIPT))
+    {
+        tracing = TRUE;
+    }
+
+    lua_pushboolean(L, tracing);
+    lua_setfield(L, -2, "tracing");
+
+    for (ULONG i = 0; i < ARRAYSIZE(KphpLuaStatuses); i++)
+    {
+        status = (lua_Integer)(ULONG)KphpLuaStatuses[i].Status;
+
+        lua_pushinteger(L, status);
+        lua_setfield(L, -2, KphpLuaStatuses[i].Name);
+    }
+
+    return 1;
+}
+
+/**
+ * \brief Opens the integer mathematics library.
+ *
+ * \param[in] L The Lua state.
+ *
+ * \return One, the library table.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaOpenMath(
+    _In_ lua_State* L
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    luaL_newlib(L, KphpLuaMathLibrary);
+
+    lua_pushinteger(L, LUA_MAXINTEGER);
+    lua_setfield(L, -2, "maxinteger");
+
+    lua_pushinteger(L, LUA_MININTEGER);
+    lua_setfield(L, -2, "mininteger");
+
+    return 1;
+}
+
+/**
+ * \brief Removes from the opened libraries what a script does not get.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLuaRemove(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < ARRAYSIZE(KphpLuaRemoved); i++)
+    {
+        lua_getglobal(State, KphpLuaRemoved[i].Library);
+        lua_pushnil(State);
+        lua_setfield(State, -2, KphpLuaRemoved[i].Name);
+        lua_settop(State, -2);
+    }
+}
+
+/**
+ * \brief Replaces a function of the table on top of the Lua stack with one
+ * that receives the replaced function as its first upvalue.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Name The name of the function.
+ * \param[in] Function The replacement.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLuaWrap(
+    _In_ lua_State* State,
+    _In_z_ PCSTR Name,
+    _In_ lua_CFunction Function
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    lua_getfield(State, -1, Name);
+    lua_pushcclosure(State, Function, 1);
+    lua_setfield(State, -2, Name);
+}
+
+/**
+ * \brief Opens the libraries a script sees.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenLibraries(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    lua_pushliteral(State, "limit reached");
+    lua_rawsetp(State, LUA_REGISTRYINDEX, &KphpLuaAbortKey);
+
+    luaL_requiref(State, LUA_GNAME, luaopen_base, 1);
+    lua_pushcfunction(State, KphpLuaProtectedCallForScript);
+    lua_setfield(State, -2, "pcall");
+    KphpLuaWrap(State, "setmetatable", KphpLuaSetMetatableForScript);
+    lua_settop(State, 0);
+
+    luaL_requiref(State, LUA_STRLIBNAME, luaopen_string, 1);
+    KphpLuaWrap(State, "find", KphpLuaFindForScript);
+    lua_settop(State, 0);
+
+    luaL_requiref(State, LUA_TABLIBNAME, luaopen_table, 1);
+    KphpLuaWrap(State, "concat", KphpLuaPlainTableForScript);
+    KphpLuaWrap(State, "insert", KphpLuaInsertForScript);
+    KphpLuaWrap(State, "remove", KphpLuaRemoveForScript);
+    KphpLuaWrap(State, "sort", KphpLuaSortForScript);
+    KphpLuaWrap(State, "unpack", KphpLuaPlainTableForScript);
+    lua_settop(State, 0);
+
+    luaL_requiref(State, LUA_MATHLIBNAME, KphpLuaOpenMath, 1);
+    luaL_requiref(State, KPH_LUA_LIBRARY_NAME, KphpLuaOpenLibrary, 1);
+    lua_settop(State, 0);
+
+    KphpLuaRemove(State);
+}
