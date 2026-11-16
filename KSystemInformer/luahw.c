@@ -39,6 +39,8 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static KPH_LUA_HW_CPU KphpLuaHwCpuIdentity = { 0 };
 KPH_PROTECTED_DATA_SECTION_POP();
 
+static NPAGED_LOOKASIDE_LIST KphpLuaHwPinLookaside = { 0 };
+
 #endif
 
 KPH_PAGED_FILE();
@@ -129,6 +131,10 @@ VOID KphLuaInitializeHardware(
 
 #if defined(_M_X64)
     KphpLuaHwInitializeCpu();
+
+    KphInitializeNPagedLookaside(&KphpLuaHwPinLookaside,
+                                 sizeof(GROUP_AFFINITY),
+                                 KPH_TAG_LUA_HARDWARE_PIN);
 #endif
 
     KphpLuaHwInitialized = TRUE;
@@ -162,6 +168,10 @@ VOID KphLuaCleanupHardware(
     }
 
     KphDeleteRWLock(&KphpLuaHwLocksLock);
+
+#if defined(_M_X64)
+    KphDeleteNPagedLookaside(&KphpLuaHwPinLookaside);
+#endif
 }
 
 /**
@@ -437,6 +447,108 @@ int KphpLuaHwCpu(
     return 1;
 }
 
+/**
+ * \brief Restores the affinity a pin replaced.
+ *
+ * \param[in] Context The affinity to restore.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaHwReleasePin(
+    _In_opt_ PVOID Context
+    )
+{
+    PGROUP_AFFINITY previous;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    previous = Context;
+
+    KeRevertToUserGroupAffinityThread(previous);
+
+    KphFreeToNPagedLookaside(&KphpLuaHwPinLookaside, previous);
+}
+
+/**
+ * \brief Runs the calling thread on one processor until the pin is released
+ * (hw.pin).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the pin object, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwPin(
+    _In_ lua_State* State
+    )
+{
+    lua_Integer group;
+    lua_Integer number;
+    PROCESSOR_NUMBER processor;
+    GROUP_AFFINITY affinity;
+    PGROUP_AFFINITY previous;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    group = luaL_checkinteger(State, 1);
+    number = luaL_checkinteger(State, 2);
+
+    luaL_argcheck(State,
+                  (group >= 0) && (group <= USHORT_MAX),
+                  1,
+                  "out of range");
+    luaL_argcheck(State,
+                  (number >= 0) && (number <= UCHAR_MAX),
+                  2,
+                  "out of range");
+
+    RtlZeroMemory(&processor, sizeof(processor));
+    processor.Group = (USHORT)group;
+    processor.Number = (UCHAR)number;
+
+    if (KeGetProcessorIndexFromNumber(&processor) == INVALID_PROCESSOR_INDEX)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Processor %lu:%lu is not active",
+                      (ULONG)processor.Group,
+                      (ULONG)processor.Number);
+
+        lua_pushnil(State);
+        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_INVALID_PARAMETER);
+        return 2;
+    }
+
+    previous = KphAllocateFromNPagedLookaside(&KphpLuaHwPinLookaside);
+    if (!previous)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate pin");
+
+        lua_pushnil(State);
+        lua_pushinteger(State,
+                        (lua_Integer)(ULONG)STATUS_INSUFFICIENT_RESOURCES);
+        return 2;
+    }
+
+    NT_ASSERT(sizeof(GROUP_AFFINITY) <= KphpLuaHwPinLookaside.L.Size);
+
+    RtlZeroMemory(&affinity, sizeof(affinity));
+    affinity.Group = processor.Group;
+    affinity.Mask = (KAFFINITY)1 << processor.Number;
+
+    KeSetSystemGroupAffinityThread(&affinity, previous);
+
+    KphScriptPushCleanup(State, KphpLuaHwReleasePin, previous);
+
+    return 1;
+}
+
 #endif
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
@@ -445,6 +557,7 @@ static const luaL_Reg KphpLuaHwLibrary[] =
 #if defined(_M_X64)
     { "cpu", KphpLuaHwCpu },
     { "cpuid", KphpLuaHwCpuid },
+    { "pin", KphpLuaHwPin },
 #endif
     { "lock", KphpLuaHwLock },
     { NULL, NULL }

@@ -137,6 +137,7 @@
 
 #define KPH_TAG_LUA_BLOCK                       '0LpK'
 #define KPH_TAG_LUA_HARDWARE_LOCK               '1LpK'
+#define KPH_TAG_LUA_HARDWARE_PIN                '2LpK'
 
 // script
 
