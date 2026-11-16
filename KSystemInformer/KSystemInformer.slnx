@@ -16,5 +16,6 @@
         <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
         <BuildDependency Project="ksidll.vcxproj" />
         <BuildDependency Project="../tools/thirdparty/symcrypt_km.vcxproj" />
+        <BuildDependency Project="../tools/thirdparty/lua_km.vcxproj" />
     </Project>
 </Solution>

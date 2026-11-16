@@ -131,3 +131,7 @@
 // kphthread
 
 #define KPH_TAG_THREAD_START_CONTEXT            '0rpK'
+
+// lua
+
+#define KPH_TAG_LUA_BLOCK                       '0LpK'

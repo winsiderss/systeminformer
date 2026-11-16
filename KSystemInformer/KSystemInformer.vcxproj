@@ -36,8 +36,11 @@
     <TargetName>SystemInformer</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)tools\thirdparty\lua\src\;$(SystemInformerRoot)tools\thirdparty\luaconfig\</AdditionalIncludeDirectories>
+    </ClCompile>
     <Link>
-      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;symcrypt_km.lib;volatileaccessk.lib;umaccess.lib%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;symcrypt_km.lib;lua_km.lib;volatileaccessk.lib;umaccess.lib%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\include\;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\;</AdditionalIncludeDirectories>
@@ -73,6 +76,7 @@
     <ClCompile Include="kphobject.c" />
     <ClCompile Include="kphthread.c" />
     <ClCompile Include="lsa.c" />
+    <ClCompile Include="lua.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
     <ClCompile Include="parameters.c" />
@@ -99,6 +103,7 @@
     <ClInclude Include="include\kph.h" />
     <ClInclude Include="include\ntfill.h" />
     <ClInclude Include="include\pooltags.h" />
+    <ClInclude Include="include\script.h" />
     <ClInclude Include="include\trace.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

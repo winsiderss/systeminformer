@@ -126,6 +126,9 @@
     <ClCompile Include="lsa.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lua.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -170,6 +173,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\pooltags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\script.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\informer_filep.h">
