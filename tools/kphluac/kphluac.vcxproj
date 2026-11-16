@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup Label="ProjectConfigurations">
+        <ProjectConfiguration Include="Debug|Win32">
+            <Configuration>Debug</Configuration>
+            <Platform>Win32</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|Win32">
+            <Configuration>Release</Configuration>
+            <Platform>Win32</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Debug|x64">
+            <Configuration>Debug</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|x64">
+            <Configuration>Release</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Debug|ARM64">
+            <Configuration>Debug</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|ARM64">
+            <Configuration>Release</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+    </ItemGroup>
+    <PropertyGroup Label="Globals">
+        <ProjectGuid>{345C27F6-9849-4AB2-BD37-0CC7CD9CE596}</ProjectGuid>
+        <RootNamespace>kphluac</RootNamespace>
+        <Keyword>Win32Proj</Keyword>
+        <ProjectName>kphluac</ProjectName>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <PropertyGroup Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <ImportGroup Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <PropertyGroup Label="UserMacros" />
+    <PropertyGroup>
+        <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <TargetName>kphluac</TargetName>
+    </PropertyGroup>
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)tools\thirdparty\lua\src\;$(SystemInformerRoot)tools\thirdparty\luaconfig\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <!-- The Lua sources are the unmodified release; the configuration of the driver's Lua is forced in. -->
+            <ForcedIncludeFiles>%(ForcedIncludeFiles);kphluaconf.h</ForcedIncludeFiles>
+            <!-- Lua uses strcpy. -->
+            <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <SubSystem>Console</SubSystem>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <ClCompile Include="main.c">
+            <WarningLevel>Level4</WarningLevel>
+        </ClCompile>
+        <ClCompile Include="luaglue.c">
+            <WarningLevel>Level4</WarningLevel>
+        </ClCompile>
+        <!-- The core of Lua with its compiler, and none of its libraries. -->
+        <ClCompile Include="..\thirdparty\lua\src\lapi.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lcode.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lctype.c" />
+        <ClCompile Include="..\thirdparty\lua\src\ldebug.c" />
+        <ClCompile Include="..\thirdparty\lua\src\ldo.c" />
+        <ClCompile Include="..\thirdparty\lua\src\ldump.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lfunc.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lgc.c" />
+        <ClCompile Include="..\thirdparty\lua\src\llex.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lmem.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lobject.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lopcodes.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lparser.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lstate.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lstring.c" />
+        <ClCompile Include="..\thirdparty\lua\src\ltable.c" />
+        <ClCompile Include="..\thirdparty\lua\src\ltm.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lundump.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lvm.c" />
+        <ClCompile Include="..\thirdparty\lua\src\lzio.c" />
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="..\thirdparty\luaconfig\kphluaconf.h" />
+        <ClInclude Include="..\thirdparty\luaconfig\kphluauser.h" />
+    </ItemGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
