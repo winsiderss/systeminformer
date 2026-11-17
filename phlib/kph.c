@@ -2911,6 +2911,93 @@ NTSTATUS KphCreateScript(
     return status;
 }
 
+static CONST PH_STRINGREF KphpScriptSignatureExtension = PH_STRINGREF_INIT(L".sig");
+
+/**
+ * Creates a script object from a signed script file on disk.
+ *
+ * \param ScriptHandle Receives the handle to the script object.
+ * \param FileName The native file name of the script file. Its signature is
+ * the file of the same name with the extension .sig.
+ * \param Flags KPH_SCRIPT_VOLATILE or KPH_SCRIPT_NON_VOLATILE.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphLoadScript(
+    _Out_ PHANDLE ScriptHandle,
+    _In_ PCPH_STRINGREF FileName,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    PPH_STRING signatureFileName = NULL;
+    PVOID script = NULL;
+    ULONG scriptLength = 0;
+    PVOID signature = NULL;
+    ULONG signatureLength = 0;
+
+    *ScriptHandle = NULL;
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileData(fileHandle, &script, &scriptLength);
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    signatureFileName = PhGetBaseNameChangeExtension(FileName, &KphpScriptSignatureExtension);
+
+    status = PhCreateFile(
+        &fileHandle,
+        &signatureFileName->sr,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileData(fileHandle, &signature, &signatureLength);
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KphCreateScript(
+        ScriptHandle,
+        script,
+        scriptLength,
+        signature,
+        signatureLength,
+        Flags
+        );
+
+CleanupExit:
+    if (signature)
+        PhFree(signature);
+    if (script)
+        PhFree(script);
+    if (signatureFileName)
+        PhDereferenceObject(signatureFileName);
+
+    return status;
+}
+
 /**
  * Closes a handle to a kernel object.
  *

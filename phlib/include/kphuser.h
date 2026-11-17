@@ -677,6 +677,15 @@ KphCreateScript(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphLoadScript(
+    _Out_ PHANDLE ScriptHandle,
+    _In_ PCPH_STRINGREF FileName,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphScriptCall(
     _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
