@@ -9,6 +9,13 @@
 
 #pragma once
 
+#if defined(_M_X64)
+#define CPUID_BASIC         0x00000000
+#define CPUID_VERSION       0x00000001
+#define CPUID_EXTENDED      0x80000000
+#define CPUID_ADDRESS_SIZES 0x80000008
+#endif
+
 typedef struct _CLIENT_ID32
 {
     ULONG UniqueProcess;
