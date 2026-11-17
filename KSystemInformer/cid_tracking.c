@@ -794,6 +794,8 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     process = Object;
 
+    KphDeleteHandleTable(process);
+
     KphAtomicAssignObjectReference(&process->InformerState.Atomic, NULL);
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
 

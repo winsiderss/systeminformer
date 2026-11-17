@@ -78,6 +78,9 @@
     <ClCompile Include="cid_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="handle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="kphobject.c">
       <Filter>Source Files</Filter>
     </ClCompile>

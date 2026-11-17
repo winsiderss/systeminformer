@@ -2011,6 +2011,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
     KPH_INFORMER_STATE_ATOMIC InformerState;
+    struct _KPH_HANDLE_TABLE* HandleTable;
 
     union
     {
@@ -2186,6 +2187,21 @@ PKPH_PROCESS_CONTEXT KphGetEProcessContext(
     );
 
 #define KphGetCurrentProcessContext() KphGetEProcessContext(PsGetCurrentProcess())
+
+_IRQL_requires_max_(HIGH_LEVEL)
+_Must_inspect_result_
+FORCEINLINE
+PKPH_PROCESS_CONTEXT KphGetProcessContextForMode(
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    if (AccessMode != KernelMode)
+    {
+        return KphGetCurrentProcessContext();
+    }
+
+    return KphGetSystemProcessContext();
+}
 
 _IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
@@ -2391,6 +2407,62 @@ NTSTATUS KphStripProtectedProcessMasks(
     _In_ ACCESS_MASK ProcessAllowedMask,
     _In_ ACCESS_MASK ThreadAllowedMask,
     _In_ KPROCESSOR_MODE AccessMode
+    );
+
+// handle
+
+#ifdef _WIN64
+#define KPH_HANDLE_TAG        ((ULONG_PTR)0x5349000000000000)
+#define KPH_HANDLE_INDEX_MASK ((ULONG_PTR)0x0000000003FFFFFC)
+#else
+#error Unsupported platform
+#endif
+
+typedef struct _KPH_HANDLE_TABLE_ENTRY
+{
+    KPH_ATOMIC_OBJECT_REF ObjectRef;
+    ULONG_PTR NextFree;
+} KPH_HANDLE_TABLE_ENTRY, *PKPH_HANDLE_TABLE_ENTRY;
+
+typedef struct _KPH_HANDLE_TABLE
+{
+    KSPIN_LOCK Lock;
+    ULONG_PTR Table;
+    ULONG_PTR FirstFree;
+    ULONG_PTR NextIndex;
+} KPH_HANDLE_TABLE, *PKPH_HANDLE_TABLE;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateHandle(
+    _In_ PVOID Object,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PHANDLE Handle
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReferenceObjectByHandle(
+    _In_ HANDLE Handle,
+    _In_ PKPH_OBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Outptr_result_nullonfailure_ PVOID* Object
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+NTSTATUS KphCloseHandle(
+    _In_ HANDLE Handle,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphRundownHandleTable(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphDeleteHandleTable(
+    _Inout_ PKPH_PROCESS_CONTEXT Process
     );
 
 // imgcoherency
@@ -3062,6 +3134,13 @@ NTSTATUS KphWritePointerToMode(
 
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphWriteHandleToMode(
+    _Out_ PHANDLE Destination,
+    _In_ _Post_ptr_invalid_ HANDLE Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteKphHandleToMode(
     _Out_ PHANDLE Destination,
     _In_ _Post_ptr_invalid_ HANDLE Source,
     _In_ KPROCESSOR_MODE AccessMode

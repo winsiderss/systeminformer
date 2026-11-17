@@ -18,6 +18,7 @@
 #define KPH_CID_TABLE_L1 ((ULONG_PTR)1)
 #define KPH_CID_TABLE_L2 ((ULONG_PTR)2)
 #define KPH_CID_TABLE_POINTER_MASK ~KPH_CID_TABLE_LEVEL_MASK
+#define KphpCidTablePointer(x) ((PVOID)((x) & KPH_CID_TABLE_POINTER_MASK))
 
 #define KPH_CID_LIMIT (1 << 24)
 
@@ -89,7 +90,7 @@ PKPH_CID_TABLE_ENTRY KphCidLookupEntry(
                 return NULL;
             }
 
-            tableL0 = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL0 = KphpCidTablePointer(table);
 
             return &tableL0[id];
         }
@@ -100,7 +101,7 @@ PKPH_CID_TABLE_ENTRY KphCidLookupEntry(
                 return NULL;
             }
 
-            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL1 = KphpCidTablePointer(table);
             tableL0 = ReadPointerAcquire(&tableL1[id / KPH_CID_MAX_L0]);
             if (!tableL0)
             {
@@ -116,7 +117,7 @@ PKPH_CID_TABLE_ENTRY KphCidLookupEntry(
                 return NULL;
             }
 
-            tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL2 = KphpCidTablePointer(table);
             tableL1 = ReadPointerAcquire((PVOID*)&tableL2[id / KPH_CID_MAX_L1]);
             if (!tableL1)
             {
@@ -275,7 +276,7 @@ VOID KphCidTableDelete(
     {
         case KPH_CID_TABLE_L0:
         {
-            tableL0 = (PKPH_CID_TABLE_ENTRY)(tableCode & KPH_CID_TABLE_POINTER_MASK);
+            tableL0 = KphpCidTablePointer(tableCode);
 
             NT_ASSERT(tableL0);
 
@@ -285,7 +286,7 @@ VOID KphCidTableDelete(
         }
         case KPH_CID_TABLE_L1:
         {
-            tableL1 = (PKPH_CID_TABLE_ENTRY*)(tableCode & KPH_CID_TABLE_POINTER_MASK);
+            tableL1 = KphpCidTablePointer(tableCode);
 
             NT_ASSERT(tableL1);
 
@@ -304,7 +305,7 @@ VOID KphCidTableDelete(
         }
         case KPH_CID_TABLE_L2:
         {
-            tableL2 = (PKPH_CID_TABLE_ENTRY**)(tableCode & KPH_CID_TABLE_POINTER_MASK);
+            tableL2 = KphpCidTablePointer(tableCode);
 
             NT_ASSERT(tableL2);
 
@@ -416,7 +417,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
             goto Exit;
         }
 
-        tableL1[0] = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
+        tableL1[0] = KphpCidTablePointer(table);
         table = ((ULONG_PTR)tableL1 | KPH_CID_TABLE_L1);
         level = KPH_CID_TABLE_L1;
         InterlockedExchangePointer((PVOID*)&Table->Table, (PVOID)table);
@@ -433,7 +434,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
             //
             // Allocate a new block in the level 1 table.
             //
-            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL1 = KphpCidTablePointer(table);
             NT_ASSERT(!tableL1[id / KPH_CID_MAX_L0]);
             tableL0 = KphpCidAllocateTable(KPH_CID_TABLE_L0);
             if (!tableL0)
@@ -457,7 +458,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
             goto Exit;
         }
 
-        tableL2[0] = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+        tableL2[0] = KphpCidTablePointer(table);
         table = ((ULONG_PTR)tableL2 | KPH_CID_TABLE_L2);
         level = KPH_CID_TABLE_L2;
         InterlockedExchangePointer((PVOID*)&Table->Table, (PVOID)table);
@@ -474,7 +475,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
     // Allocate new block(s) in the level 2 table.
     //
 
-    tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
+    tableL2 = KphpCidTablePointer(table);
     tableL1 = tableL2[id / KPH_CID_MAX_L1];
     if (!tableL1)
     {
@@ -633,7 +634,7 @@ VOID KphpCidEnumerate(
     {
         case KPH_CID_TABLE_L0:
         {
-            tableL0 = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL0 = KphpCidTablePointer(table);
 
             NT_ASSERT(tableL0);
 
@@ -652,7 +653,7 @@ VOID KphpCidEnumerate(
         }
         case KPH_CID_TABLE_L1:
         {
-            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL1 = KphpCidTablePointer(table);
 
             NT_ASSERT(tableL1);
 
@@ -680,7 +681,7 @@ VOID KphpCidEnumerate(
         }
         case KPH_CID_TABLE_L2:
         {
-            tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL2 = KphpCidTablePointer(table);
 
             NT_ASSERT(tableL2);
 
