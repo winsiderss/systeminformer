@@ -848,6 +848,9 @@ int KphpLuaOpenLibrary(
     lua_pushboolean(State, tracing);
     lua_setfield(State, -2, "tracing");
 
+    lua_pushboolean(State, KphScriptIsVolatile(State));
+    lua_setfield(State, -2, "volatile");
+
     for (ULONG i = 0; i < ARRAYSIZE(KphpLuaStatuses); i++)
     {
         status = (lua_Integer)(ULONG)KphpLuaStatuses[i].Status;

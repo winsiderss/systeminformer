@@ -49,6 +49,7 @@ typedef struct _KPH_SCRIPT_CALL
     ULONG OutputLength;
     ULONG ReturnLength;
     KPROCESSOR_MODE AccessMode;
+    BOOLEAN Volatile;
     LIST_ENTRY Cleanups;
     KPH_SCRIPT_PHASE Phase;
     ULONG64 Instructions;
@@ -64,7 +65,18 @@ typedef struct _KPH_SCRIPT
     ULONG Flags;
     PKPH_SCRIPT_FILE File;
     ANSI_STRING Name;
+    KPH_RWLOCK Lock;
+    BOOLEAN Faulted;
+    KPH_LUA_ALLOCATOR Allocator;
+    lua_State* State;
 } KPH_SCRIPT, *PKPH_SCRIPT;
+
+typedef struct _KPH_SCRIPT_KEPT_CALL
+{
+    PKPH_SCRIPT Script;
+    PKPH_SCRIPT_CALL Call;
+    BOOLEAN Clean;
+} KPH_SCRIPT_KEPT_CALL, *PKPH_SCRIPT_KEPT_CALL;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpScriptTypeName, L"KphScript");
@@ -120,6 +132,27 @@ PCANSI_STRING KphScriptGetName(
 }
 
 /**
+ * \brief Retrieves whether the script a Lua state is running is volatile.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return TRUE in volatile mode, FALSE in non-volatile mode.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphScriptIsVolatile(
+    _In_ lua_State* State
+    )
+{
+    PKPH_SCRIPT_CALL call;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    call = KphpScriptGetCall(State);
+
+    return call->Volatile;
+}
+
+/**
  * \brief Retrieves how many times the call of a Lua state has been aborted:
  * by a limit, or by a memory error.
  *
@@ -145,10 +178,13 @@ ULONG64 KphScriptGetAbortCount(
  * \brief Runs the cleanups a call still holds, newest first.
  *
  * \param[in,out] Call The call.
+ * \param[in] State The Lua state of the call when it outlives the call, NULL
+ * otherwise. It no longer holds the cleanup objects afterwards.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpScriptRunCleanups(
-    _Inout_ PKPH_SCRIPT_CALL Call
+    _Inout_ PKPH_SCRIPT_CALL Call,
+    _In_opt_ lua_State* State
     )
 {
     PLIST_ENTRY entry;
@@ -170,6 +206,15 @@ VOID KphpScriptRunCleanups(
         NT_ASSERT(routine);
 
         cleanup->Routine = NULL;
+
+        if (State)
+        {
+            //
+            // Neither allocates, so neither can raise.
+            //
+            lua_pushnil(State);
+            lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+        }
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
@@ -1037,6 +1082,66 @@ VOID KSIAPI KphpScriptProtectedRoutine(
 }
 
 /**
+ * \brief Does what the end of a call does: takes a failed protected call's
+ * status, the abort checks, the cleanups.
+ *
+ * \param[in,out] Call The call.
+ * \param[in] Status The status of the protected call.
+ * \param[in] State The Lua state of the call when it outlives the call, NULL
+ * otherwise.
+ *
+ * \return TRUE if the call ended cleanly, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpScriptEndCall(
+    _Inout_ PKPH_SCRIPT_CALL Call,
+    _In_ NTSTATUS Status,
+    _In_opt_ lua_State* State
+    )
+{
+    BOOLEAN clean;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    clean = (NT_SUCCESS(Status) &&
+             !Call->Aborted &&
+             (Call->Allocator->Failures == 0) &&
+             (Call->Phase == KphScriptPhaseBody));
+
+    if (!NT_SUCCESS(Status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphLuaProtectedCall failed: %!STATUS!",
+                      Status);
+
+        Call->Status = Status;
+    }
+
+    if (!Call->Aborted && (Call->Allocator->Failures != 0))
+    {
+        Call->Aborted = TRUE;
+        Call->AbortStatus = STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    if (Call->Aborted)
+    {
+        Call->Status = Call->AbortStatus;
+        Call->ReturnLength = 0;
+    }
+
+    if (Call->Phase == KphScriptPhaseStopped)
+    {
+        Call->Status = STATUS_SI_SCRIPT_CLEANUP_LIMIT;
+        Call->ReturnLength = 0;
+    }
+
+    KphpScriptRunCleanups(Call, State);
+
+    return clean;
+}
+
+/**
  * \brief Runs a call in a Lua state of its own.
  *
  * \param[in,out] Context The call.
@@ -1084,37 +1189,194 @@ VOID KSIAPI KphpScriptCallout(
         status = KphLuaProtectedCall(state, KphpScriptProtectedRoutine, call);
     }
 
+    KphpScriptEndCall(call, status, NULL);
+
+    KphLuaCloseState(state);
+}
+
+/**
+ * \brief Creates the kept state of a non-volatile script and runs its
+ * top-level code in it. The state is kept only when the load ended cleanly.
+ *
+ * \param[in,out] Context The kept call.
+ */
+_Function_class_(KPH_LUA_CALLOUT_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpScriptLoadCallout(
+    _Inout_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_KEPT_CALL kept;
+    PKPH_SCRIPT_CALL call;
+    lua_State* state;
+    PKPH_SCRIPT_CALL* slot;
+    ULONG64 now;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    kept = Context;
+    call = kept->Call;
+
+    status = KphLuaCreateState(call->Allocator, &state);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphLuaProtectedCall failed: %!STATUS!",
+                      "KphLuaCreateState failed: %!STATUS!",
                       status);
 
         call->Status = status;
+        return;
     }
 
-    if (!call->Aborted && (call->Allocator->Failures != 0))
+    slot = lua_getextraspace(state);
+    *slot = call;
+
+    now = KeQueryInterruptTime();
+
+    call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
+
+    status = KphLuaProtectedCall(state, KphpScriptProtectedLoad, call);
+
+    kept->Clean = KphpScriptEndCall(call, status, state);
+
+    *slot = NULL;
+    lua_settop(state, 0);
+
+    if (!kept->Clean)
     {
-        call->Aborted = TRUE;
-        call->AbortStatus = STATUS_INSUFFICIENT_RESOURCES;
+        KphLuaCloseState(state);
+        return;
     }
 
-    if (call->Aborted)
-    {
-        call->Status = call->AbortStatus;
-        call->ReturnLength = 0;
-    }
+    kept->Script->State = state;
+}
 
-    if (call->Phase == KphScriptPhaseStopped)
-    {
-        call->Status = STATUS_SI_SCRIPT_CLEANUP_LIMIT;
-        call->ReturnLength = 0;
-    }
+/**
+ * \brief Runs a call in the kept state of a non-volatile script.
+ *
+ * \param[in,out] Context The kept call.
+ */
+_Function_class_(KPH_LUA_CALLOUT_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpScriptRoutineCallout(
+    _Inout_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_KEPT_CALL kept;
+    PKPH_SCRIPT_CALL call;
+    lua_State* state;
+    PKPH_SCRIPT_CALL* slot;
+    ULONG64 now;
 
-    KphpScriptRunCleanups(call);
+    KPH_PAGED_CODE_PASSIVE();
 
-    KphLuaCloseState(state);
+    NT_ASSERT(Context);
+
+    kept = Context;
+    call = kept->Call;
+    state = kept->Script->State;
+
+    slot = lua_getextraspace(state);
+    *slot = call;
+
+    now = KeQueryInterruptTime();
+
+    call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
+
+    status = KphLuaProtectedCall(state, KphpScriptProtectedRoutine, call);
+
+    kept->Clean = KphpScriptEndCall(call, status, state);
+
+    *slot = NULL;
+    lua_settop(state, 0);
+}
+
+/**
+ * \brief Closes the kept state of a non-volatile script.
+ *
+ * \param[in,out] Context The script.
+ */
+_Function_class_(KPH_LUA_CALLOUT_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpScriptCloseCallout(
+    _Inout_opt_ PVOID Context
+    )
+{
+    PKPH_SCRIPT script;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    script = Context;
+
+    KphLuaCloseState(script->State);
+
+    script->State = NULL;
+}
+
+/**
+ * \brief Prepares a call.
+ *
+ * \param[out] Call The call.
+ * \param[in] Allocator The allocator of the call's state.
+ * \param[in] Limits The limits of the call.
+ * \param[in] Chunk The precompiled script.
+ * \param[in] ChunkLength The length of the script in bytes.
+ * \param[in] Script The name of the script.
+ * \param[in] Routine The name of the routine, NULL for a load.
+ * \param[in] Input The input for the routine.
+ * \param[in] InputLength The length of the input in bytes.
+ * \param[out] Output Receives the output of the routine.
+ * \param[in] OutputLength The length of the output buffer in bytes.
+ * \param[in] Volatile Whether the script is volatile.
+ * \param[in] AccessMode The mode in which to write the output.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpScriptInitializeCall(
+    _Out_ PKPH_SCRIPT_CALL Call,
+    _In_ PKPH_LUA_ALLOCATOR Allocator,
+    _In_ PKPH_SCRIPT_LIMITS Limits,
+    _In_reads_bytes_(ChunkLength) PCVOID Chunk,
+    _In_ ULONG ChunkLength,
+    _In_ PCANSI_STRING Script,
+    _In_opt_ PCANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _In_ BOOLEAN Volatile,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    Call->Allocator = Allocator;
+    Call->Limits = Limits;
+    Call->Chunk = Chunk;
+    Call->ChunkLength = ChunkLength;
+    Call->Script = Script;
+    Call->Routine = Routine;
+    Call->Input = Input;
+    Call->InputLength = InputLength;
+    Call->Output = Output;
+    Call->OutputLength = OutputLength;
+    Call->ReturnLength = 0;
+    Call->AccessMode = AccessMode;
+    Call->Volatile = Volatile;
+    InitializeListHead(&Call->Cleanups);
+    Call->Phase = KphScriptPhaseBody;
+    Call->Instructions = 0;
+    Call->Deadline = ULONG64_MAX;
+    Call->Aborts = 0;
+    Call->Aborted = FALSE;
+    Call->AbortStatus = STATUS_SUCCESS;
+    Call->Status = STATUS_UNSUCCESSFUL;
 }
 
 /**
@@ -1162,26 +1424,20 @@ NTSTATUS KphpScriptRunChunk(
     KphLuaInitializeAllocator(&allocator,
                               Limits->Memory,
                               Limits->CleanupMemory);
-    call.Allocator = &allocator;
-    call.Limits = Limits;
-    call.Chunk = Chunk;
-    call.ChunkLength = ChunkLength;
-    call.Script = Script;
-    call.Routine = Routine;
-    call.Input = Input;
-    call.InputLength = InputLength;
-    call.Output = Output;
-    call.OutputLength = OutputLength;
-    call.ReturnLength = 0;
-    call.AccessMode = AccessMode;
-    InitializeListHead(&call.Cleanups);
-    call.Phase = KphScriptPhaseBody;
-    call.Instructions = 0;
-    call.Deadline = ULONG64_MAX;
-    call.Aborts = 0;
-    call.Aborted = FALSE;
-    call.AbortStatus = STATUS_SUCCESS;
-    call.Status = STATUS_UNSUCCESSFUL;
+
+    KphpScriptInitializeCall(&call,
+                             &allocator,
+                             Limits,
+                             Chunk,
+                             ChunkLength,
+                             Script,
+                             Routine,
+                             Input,
+                             InputLength,
+                             Output,
+                             OutputLength,
+                             TRUE,
+                             AccessMode);
 
     KeEnterCriticalRegion();
 
@@ -1201,11 +1457,208 @@ NTSTATUS KphpScriptRunChunk(
 
 Exit:
 
-    KphpScriptRunCleanups(&call);
+    KphpScriptRunCleanups(&call, NULL);
 
     KeLeaveCriticalRegion();
 
     KphLuaDeleteAllocator(&allocator);
+
+    return status;
+}
+
+/**
+ * \brief Builds the kept state of a non-volatile script and runs its
+ * top-level code, as the start of a call does.
+ *
+ * \param[in,out] Script The script object.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpScriptLoadKept(
+    _Inout_ PKPH_SCRIPT Script
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_FILE file;
+    KPH_SCRIPT_CALL call;
+    KPH_SCRIPT_KEPT_CALL kept;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    file = Script->File;
+
+    KphLuaInitializeAllocator(&Script->Allocator,
+                              file->Limits.Memory,
+                              file->Limits.CleanupMemory);
+
+    KphpScriptInitializeCall(&call,
+                             &Script->Allocator,
+                             &file->Limits,
+                             Add2Ptr(file, file->ChunkOffset),
+                             file->ChunkLength,
+                             &Script->Name,
+                             NULL,
+                             NULL,
+                             0,
+                             NULL,
+                             0,
+                             FALSE,
+                             KernelMode);
+
+    kept.Script = Script;
+    kept.Call = &call;
+    kept.Clean = FALSE;
+
+    KeEnterCriticalRegion();
+
+    status = KphLuaCallout(KphpScriptLoadCallout, &kept);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphLuaCallout failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!kept.Clean)
+    {
+        status = call.Status;
+
+        NT_ASSERT(!NT_SUCCESS(status));
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z did not load cleanly: %!STATUS!",
+                      &Script->Name,
+                      status);
+
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    KphpScriptRunCleanups(&call, NULL);
+
+    KeLeaveCriticalRegion();
+
+    if (!Script->State)
+    {
+        KphLuaDeleteAllocator(&Script->Allocator);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Calls a routine of a non-volatile script in its kept state.
+ *
+ * \param[in,out] Script The script object.
+ * \param[in] Routine The name of the routine.
+ * \param[in] Input The input for the routine.
+ * \param[in] InputLength The length of the input in bytes.
+ * \param[out] Output Receives the output of the routine.
+ * \param[in] OutputLength The length of the output buffer in bytes.
+ * \param[out] ReturnLength Receives the length of the output of the routine.
+ * \param[in] AccessMode The mode in which to write the output.
+ *
+ * \return The status the routine returned, or an errant status when the
+ * routine could not be called, failed or reached a limit, and
+ * STATUS_SI_SCRIPT_FAULTED once a call did not end cleanly.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpScriptRunKept(
+    _Inout_ PKPH_SCRIPT Script,
+    _In_ PCANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_FILE file;
+    KPH_SCRIPT_CALL call;
+    KPH_SCRIPT_KEPT_CALL kept;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *ReturnLength = 0;
+
+    file = Script->File;
+
+    KphpScriptInitializeCall(&call,
+                             &Script->Allocator,
+                             &file->Limits,
+                             Add2Ptr(file, file->ChunkOffset),
+                             file->ChunkLength,
+                             &Script->Name,
+                             Routine,
+                             Input,
+                             InputLength,
+                             Output,
+                             OutputLength,
+                             FALSE,
+                             AccessMode);
+
+    kept.Script = Script;
+    kept.Call = &call;
+    kept.Clean = FALSE;
+
+    KeEnterCriticalRegion();
+    KphAcquireRWLockExclusive(&Script->Lock);
+
+    if (Script->Faulted)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z is faulted",
+                      &Script->Name);
+
+        status = STATUS_SI_SCRIPT_FAULTED;
+        goto Exit;
+    }
+
+    status = KphLuaCallout(KphpScriptRoutineCallout, &kept);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphLuaCallout failed: %!STATUS!",
+                      status);
+
+        Script->Faulted = TRUE;
+        goto Exit;
+    }
+
+    if (!kept.Clean)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z faulted: %!STATUS!",
+                      &Script->Name,
+                      call.Status);
+
+        Script->Faulted = TRUE;
+    }
+
+    status = call.Status;
+    *ReturnLength = call.ReturnLength;
+
+Exit:
+
+    KphpScriptRunCleanups(&call, NULL);
+
+    KphReleaseRWLock(&Script->Lock);
+    KeLeaveCriticalRegion();
 
     return status;
 }
@@ -1657,6 +2110,7 @@ NTSTATUS KSIAPI KphpInitializeScript(
     script->Name.Buffer = Add2Ptr(file, file->NameOffset);
     script->Name.Length = file->NameLength;
     script->Name.MaximumLength = file->NameLength;
+    KphInitializeRWLock(&script->Lock);
 
     return STATUS_SUCCESS;
 }
@@ -1672,11 +2126,28 @@ VOID KSIAPI KphpDeleteScript(
     _In_freesMem_ PVOID Object
     )
 {
+    NTSTATUS status;
     PKPH_SCRIPT script;
 
     KPH_PAGED_CODE_PASSIVE();
 
     script = Object;
+
+    if (script->State)
+    {
+        status = KphLuaCallout(KphpScriptCloseCallout, script);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "KphLuaCallout failed: %!STATUS!",
+                          status);
+        }
+
+        KphLuaDeleteAllocator(&script->Allocator);
+    }
+
+    KphDeleteRWLock(&script->Lock);
 
     KphFree(script->File, KPH_TAG_SCRIPT_FILE);
 }
@@ -1750,15 +2221,14 @@ NTSTATUS KphCreateScript(
         goto Exit;
     }
 
-    if (Flags != KPH_SCRIPT_VOLATILE)
+    if ((Flags != KPH_SCRIPT_VOLATILE) && (Flags != KPH_SCRIPT_NON_VOLATILE))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
                       "Script flags 0x%08lx are not valid",
                       Flags);
 
-        status = (Flags == KPH_SCRIPT_NON_VOLATILE) ?
-                 STATUS_NOT_SUPPORTED : STATUS_INVALID_PARAMETER;
+        status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
@@ -1890,6 +2360,20 @@ NTSTATUS KphCreateScript(
     file = NULL;
 
     script->Flags = Flags;
+
+    if (Flags == KPH_SCRIPT_NON_VOLATILE)
+    {
+        status = KphpScriptLoadKept(script);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "KphpScriptLoadKept failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
 
     status = KphCreateHandle(script, AccessMode, &scriptHandle);
     if (!NT_SUCCESS(status))
@@ -2050,17 +2534,31 @@ NTSTATUS KphpScriptCall(
         goto Exit;
     }
 
-    status = KphpScriptRunChunk(Add2Ptr(file, file->ChunkOffset),
-                                file->ChunkLength,
-                                &Script->Name,
-                                Routine,
-                                input,
-                                InputLength,
-                                Output,
-                                OutputLength,
-                                ReturnLength,
-                                &file->Limits,
-                                AccessMode);
+    if (Script->Flags == KPH_SCRIPT_NON_VOLATILE)
+    {
+        status = KphpScriptRunKept(Script,
+                                   Routine,
+                                   input,
+                                   InputLength,
+                                   Output,
+                                   OutputLength,
+                                   ReturnLength,
+                                   AccessMode);
+    }
+    else
+    {
+        status = KphpScriptRunChunk(Add2Ptr(file, file->ChunkOffset),
+                                    file->ChunkLength,
+                                    &Script->Name,
+                                    Routine,
+                                    input,
+                                    InputLength,
+                                    Output,
+                                    OutputLength,
+                                    ReturnLength,
+                                    &file->Limits,
+                                    AccessMode);
+    }
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

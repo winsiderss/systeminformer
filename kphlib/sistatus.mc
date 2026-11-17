@@ -93,4 +93,12 @@ Language     = English
 System Informer script exceeded a limit during cleanup.
 .
 
+MessageId    = 0x0004
+Facility     = Script
+Severity     = Error
+SymbolicName = STATUS_SI_SCRIPT_FAULTED
+Language     = English
+The script can no longer be called; close it and create it again.
+.
+
 ;#endif

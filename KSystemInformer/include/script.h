@@ -197,6 +197,11 @@ PCANSI_STRING KphScriptGetName(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphScriptIsVolatile(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 ULONG64 KphScriptGetAbortCount(
     _In_ lua_State* State
     );
