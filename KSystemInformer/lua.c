@@ -509,13 +509,13 @@ unsigned int KphLuaSeed(
  * \details A memory error releases the reserve of the allocator, so that what
  * runs while the error unwinds has memory to do it.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  * \param[in] Status The status of the error (LUA_ERR*).
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __declspec(noreturn)
 VOID KphLuaThrow(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ int Status
     )
 {
@@ -526,7 +526,7 @@ VOID KphLuaThrow(
 
     if (Status == LUA_ERRMEM)
     {
-        lua_getallocf(L, &context);
+        lua_getallocf(State, &context);
 
         allocator = context;
 
@@ -565,14 +565,14 @@ VOID KphLuaUnprotectedError(
  * \brief Calls a routine for Lua, returning when it returns or raises a Lua
  * error.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  * \param[in] Jump The recovery point of Lua, which receives the status.
  * \param[in] Routine The routine to call.
  * \param[in] Context The context for the routine.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaTry(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ struct lua_longjmp* Jump,
     _In_ KPH_LUA_PROTECTED_ROUTINE Routine,
     _In_opt_ void* Context
@@ -584,7 +584,7 @@ VOID KphLuaTry(
 
     __try
     {
-        Routine(L, Context);
+        Routine(State, Context);
     }
     __except (KphpLuaExceptionFilter(GetExceptionCode(),
                                      KPH_LUA_EXCEPTION_ERROR))
@@ -596,16 +596,16 @@ VOID KphLuaTry(
 /**
  * \brief Stands in for the lexer's initialization: there is no compiler.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void luaX_init(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    UNREFERENCED_PARAMETER(L);
+    UNREFERENCED_PARAMETER(State);
 }
 
 /**
@@ -613,7 +613,7 @@ void luaX_init(
  *
  * \details Raises a Lua error.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  * \param[in] z Unused.
  * \param[in] anchor Unused.
  * \param[in] buff Unused.
@@ -623,7 +623,7 @@ void luaX_init(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 LClosure* luaY_parser(
-    _In_ lua_State* L,
+    _In_ lua_State* State,
     _In_ ZIO* z,
     _In_ Table* anchor,
     _In_ Mbuffer* buff,
@@ -641,14 +641,14 @@ LClosure* luaY_parser(
     UNREFERENCED_PARAMETER(name);
     UNREFERENCED_PARAMETER(firstchar);
 
-    lua_pushliteral(L, "source is not supported");
-    luaD_throw(L, LUA_ERRSYNTAX);
+    lua_pushliteral(State, "source is not supported");
+    luaD_throw(State, LUA_ERRSYNTAX);
 }
 
 /**
  * \brief Stands in for the chunk writer: there is no compiler.
  *
- * \param[in] L Unused.
+ * \param[in] State Unused.
  * \param[in] f Unused.
  * \param[in] w Unused.
  * \param[in] data Unused.
@@ -658,7 +658,7 @@ LClosure* luaY_parser(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int luaU_dump(
-    _In_ lua_State* L,
+    _In_ lua_State* State,
     _In_ const Proto* f,
     _In_ lua_Writer w,
     _In_opt_ void* data,
@@ -667,7 +667,7 @@ int luaU_dump(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    UNREFERENCED_PARAMETER(L);
+    UNREFERENCED_PARAMETER(State);
     UNREFERENCED_PARAMETER(f);
     UNREFERENCED_PARAMETER(w);
     UNREFERENCED_PARAMETER(data);
@@ -1001,26 +1001,26 @@ VOID KphLuaCloseState(
 /**
  * \brief Runs the routine of a protected call.
  *
- * \param[in] L The Lua state, with the protected call on its stack.
+ * \param[in] State The Lua state, with the protected call on its stack.
  *
  * \return Zero, the number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaProtectedCall(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     PKPH_LUA_PROTECTED_CALL call;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    call = lua_touserdata(L, 1);
+    call = lua_touserdata(State, 1);
 
     NT_ASSERT(call);
 
-    lua_settop(L, 0);
+    lua_settop(State, 0);
 
-    call->Routine(L, call->Context);
+    call->Routine(State, call->Context);
 
     return 0;
 }
