@@ -38,7 +38,7 @@ typedef enum _KPH_SCRIPT_PHASE
 
 typedef struct _KPH_SCRIPT_CALL
 {
-    KPH_LUA_ALLOCATOR Allocator;
+    PKPH_LUA_ALLOCATOR Allocator;
     PKPH_DYN_SCRIPT_LIMITS Limits;
     PCVOID Chunk;
     ULONG ChunkLength;
@@ -125,7 +125,7 @@ ULONG64 KphScriptGetAbortCount(
 
     call = KphpScriptGetCall(State);
 
-    return (call->Aborts + call->Allocator.Failures);
+    return (call->Aborts + call->Allocator->Failures);
 }
 
 /**
@@ -421,7 +421,7 @@ VOID KphpScriptBeginCleanup(
     Call->Instructions = 0;
     Call->Deadline = KphpScriptDeadline(Now, Call->Limits->CleanupMilliseconds);
 
-    KphLuaReleaseReserve(&Call->Allocator);
+    KphLuaReleaseReserve(Call->Allocator);
 }
 
 /**
@@ -584,7 +584,7 @@ VOID KphpScriptCount(
     // A memory error is already unwinding the body: what runs is cleanup.
     //
     if ((call->Phase == KphScriptPhaseBody) &&
-        (call->Allocator.Failures != 0))
+        (call->Allocator->Failures != 0))
     {
         KphpScriptBeginCleanup(call, STATUS_INSUFFICIENT_RESOURCES, now);
     }
@@ -908,22 +908,20 @@ NTSTATUS KphpScriptTakeOutput(
 }
 
 /**
- * \brief Loads the script of a call, calls its routine and takes the results.
- * A Lua error ends it.
+ * \brief Loads the script of a call and runs its top-level code. A Lua error
+ * ends it.
  *
  * \param[in] State The Lua state.
  * \param[in,out] Context The call.
  */
 _Function_class_(KPH_LUA_PROTECTED_CALL_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpScriptProtectedCall(
+VOID KSIAPI KphpScriptProtectedLoad(
     _In_ lua_State* State,
     _Inout_opt_ PVOID Context
     )
 {
-    NTSTATUS status;
     PKPH_SCRIPT_CALL call;
-    NTSTATUS routineStatus;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -943,6 +941,31 @@ VOID KSIAPI KphpScriptProtectedCall(
     KphLuaLoadChunk(State, call->Chunk, call->ChunkLength, call->Script);
 
     lua_call(State, 0, 0);
+}
+
+/**
+ * \brief Calls the routine of a call and takes the results. A Lua error ends
+ * it.
+ *
+ * \param[in] State The Lua state, with the script loaded.
+ * \param[in,out] Context The call.
+ */
+_Function_class_(KPH_LUA_PROTECTED_CALL_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpScriptProtectedRoutine(
+    _In_ lua_State* State,
+    _Inout_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_SCRIPT_CALL call;
+    NTSTATUS routineStatus;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    call = Context;
 
     //
     // A routine is a global function of the script.
@@ -1023,7 +1046,7 @@ VOID KSIAPI KphpScriptCallout(
 
     call = Context;
 
-    status = KphLuaCreateState(&call->Allocator, &state);
+    status = KphLuaCreateState(call->Allocator, &state);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1042,7 +1065,12 @@ VOID KSIAPI KphpScriptCallout(
 
     call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
 
-    status = KphLuaProtectedCall(state, KphpScriptProtectedCall, call);
+    status = KphLuaProtectedCall(state, KphpScriptProtectedLoad, call);
+    if (NT_SUCCESS(status))
+    {
+        status = KphLuaProtectedCall(state, KphpScriptProtectedRoutine, call);
+    }
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1053,7 +1081,7 @@ VOID KSIAPI KphpScriptCallout(
         call->Status = status;
     }
 
-    if (!call->Aborted && (call->Allocator.Failures != 0))
+    if (!call->Aborted && (call->Allocator->Failures != 0))
     {
         call->Aborted = TRUE;
         call->AbortStatus = STATUS_INSUFFICIENT_RESOURCES;
@@ -1112,14 +1140,16 @@ NTSTATUS KphpScriptRunChunk(
 {
     NTSTATUS status;
     KPH_SCRIPT_CALL call;
+    KPH_LUA_ALLOCATOR allocator;
 
     KPH_PAGED_CODE_PASSIVE();
 
     *ReturnLength = 0;
 
-    KphLuaInitializeAllocator(&call.Allocator,
+    KphLuaInitializeAllocator(&allocator,
                               Limits->Memory,
                               Limits->CleanupMemory);
+    call.Allocator = &allocator;
     call.Limits = Limits;
     call.Chunk = Chunk;
     call.ChunkLength = ChunkLength;
@@ -1162,7 +1192,7 @@ Exit:
 
     KeLeaveCriticalRegion();
 
-    KphLuaDeleteAllocator(&call.Allocator);
+    KphLuaDeleteAllocator(&allocator);
 
     return status;
 }
