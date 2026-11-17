@@ -102,6 +102,11 @@
 #define KPH_TAG_CID_APC                         '4cpK'
 #define KPH_TAG_PROCESS_IMAGE_FILE_NAME         '5cpK'
 
+// handle
+
+#define KPH_TAG_HANDLE_TABLE                    '0hpK'
+#define KPH_TAG_HANDLE_TABLE_BLOCK              '1hpK'
+
 // protection
 
 #define KPH_TAG_IMAGE_LOAD_APC                  '0ppK'

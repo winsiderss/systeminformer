@@ -510,6 +510,40 @@ NTSTATUS KphWriteHandleToMode(
 }
 
 /**
+ * \brief Writes a KPH handle to the specified mode.
+ *
+ * \details If the write fails then the handle is closed on behalf of the
+ * caller to prevent a handle leak.
+ *
+ * \param[out] Destination Address to write the handle to.
+ * \param[in] Source The handle to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteKphHandleToMode(
+    _Out_ PHANDLE Destination,
+    _In_ _Post_ptr_invalid_ HANDLE Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    __try
+    {
+        WriteHandleToMode(Destination, Source, AccessMode);
+    }
+    __except (UmaExceptionFilter(AccessMode))
+    {
+        KphCloseHandle(Source, AccessMode);
+        return GetExceptionCode();
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Copies a Unicode string to the specified mode.
  *
  * \details The Unicode string is constructed at the destination address and the
