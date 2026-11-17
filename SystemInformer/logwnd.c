@@ -33,6 +33,7 @@ static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 static HWND AutoScrollHandle;
 static HWND ListViewHandle;
+static HFONT WindowFont = NULL;
 static PPH_LISTVIEW_CONTEXT ListViewContext;
 static ULONG ListViewCount;
 static PH_CALLBACK_REGISTRATION LoggedRegistration;
@@ -121,7 +122,7 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
         if (!All)
         {
             // The list view displays the items in reverse order...
-            if (!PhListView_GetItemState(ListViewContext, ListViewCount - i - 1, LVIS_SELECTED, &itemState) && FlagOn(itemState, LVIS_SELECTED))
+            if (!PhListView_GetItemState(ListViewContext, ListViewCount - i - 1, LVIS_SELECTED, &itemState) || !FlagOn(itemState, LVIS_SELECTED))
             {
                 goto ContinueLoop;
             }
@@ -451,6 +452,11 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&WindowFont, ListViewHandle, windowFont, TRUE);
+
             PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&WindowLayoutManager);
         }
