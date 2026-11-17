@@ -89,11 +89,11 @@ VOID KphLuaRaiseAbort(
 /**
  * \brief Raises a Lua error when less than a default kernel stack remains.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpLuaCheckStack(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
@@ -103,9 +103,9 @@ VOID KphpLuaCheckStack(
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
                       "Script %Z is short of stack",
-                      KphScriptGetName(L));
+                      KphScriptGetName(State));
 
-        luaL_error(L, "C stack overflow");
+        luaL_error(State, "C stack overflow");
     }
 }
 
@@ -115,13 +115,13 @@ VOID KphpLuaCheckStack(
  * \details Unlike the pcall of Lua, an abort raised inside the call is raised
  * again: a script cannot catch the end of its call and carry on.
  *
- * \param[in] L The Lua state, with the function and its arguments.
+ * \param[in] State The Lua state, with the function and its arguments.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaProtectedCallForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     ULONG64 aborts;
@@ -130,33 +130,33 @@ int KphpLuaProtectedCallForScript(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    luaL_checkany(L, 1);
+    luaL_checkany(State, 1);
 
-    KphpLuaCheckStack(L);
+    KphpLuaCheckStack(State);
 
-    aborts = KphScriptGetAbortCount(L);
+    aborts = KphScriptGetAbortCount(State);
 
-    lua_pushboolean(L, TRUE);
-    lua_rotate(L, 1, 1);
+    lua_pushboolean(State, TRUE);
+    lua_rotate(State, 1, 1);
 
-    arguments = lua_gettop(L) - 2;
+    arguments = lua_gettop(State) - 2;
 
-    result = lua_pcall(L, arguments, LUA_MULTRET, 0);
+    result = lua_pcall(State, arguments, LUA_MULTRET, 0);
 
-    if (KphScriptGetAbortCount(L) != aborts)
+    if (KphScriptGetAbortCount(State) != aborts)
     {
-        KphLuaRaiseAbort(L);
+        KphLuaRaiseAbort(State);
     }
 
     if (result != LUA_OK)
     {
-        lua_pushboolean(L, FALSE);
-        lua_rotate(L, -2, 1);
+        lua_pushboolean(State, FALSE);
+        lua_rotate(State, -2, 1);
 
         return 2;
     }
 
-    return lua_gettop(L);
+    return lua_gettop(State);
 }
 
 /**
@@ -165,40 +165,40 @@ int KphpLuaProtectedCallForScript(
  * \details Unlike the setmetatable of Lua, a metatable with a finalizer is
  * refused.
  *
- * \param[in] L The Lua state, with the table and the metatable. The first
+ * \param[in] State The Lua state, with the table and the metatable. The first
  * upvalue is the setmetatable of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaSetMetatableForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     int arguments;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (lua_type(L, 2) == LUA_TTABLE)
+    if (lua_type(State, 2) == LUA_TTABLE)
     {
-        lua_pushliteral(L, "__gc");
+        lua_pushliteral(State, "__gc");
 
-        if (lua_rawget(L, 2) != LUA_TNIL)
+        if (lua_rawget(State, 2) != LUA_TNIL)
         {
-            luaL_error(L, "a metatable may not have a finalizer");
+            luaL_error(State, "a metatable may not have a finalizer");
         }
 
-        lua_settop(L, -2);
+        lua_settop(State, -2);
     }
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
-    lua_pushvalue(L, lua_upvalueindex(1));
-    lua_rotate(L, 1, 1);
+    lua_pushvalue(State, lua_upvalueindex(1));
+    lua_rotate(State, 1, 1);
 
-    lua_call(L, arguments, LUA_MULTRET);
+    lua_call(State, arguments, LUA_MULTRET);
 
-    return lua_gettop(L);
+    return lua_gettop(State);
 }
 
 /**
@@ -206,54 +206,54 @@ int KphpLuaSetMetatableForScript(
  *
  * \details Unlike the find of Lua, the text is never a pattern.
  *
- * \param[in] L The Lua state, with the string, the text and the optional
+ * \param[in] State The Lua state, with the string, the text and the optional
  * start. The first upvalue is the find of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaFindForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    lua_settop(L, 3);
-    lua_pushboolean(L, TRUE);
+    lua_settop(State, 3);
+    lua_pushboolean(State, TRUE);
 
-    lua_pushvalue(L, lua_upvalueindex(1));
-    lua_rotate(L, 1, 1);
+    lua_pushvalue(State, lua_upvalueindex(1));
+    lua_rotate(State, 1, 1);
 
-    lua_call(L, 4, LUA_MULTRET);
+    lua_call(State, 4, LUA_MULTRET);
 
-    return lua_gettop(L);
+    return lua_gettop(State);
 }
 
 /**
  * \brief Calls the function of Lua that a function for scripts stands in
  * front of, with the arguments on the stack.
  *
- * \param[in] L The Lua state. The first upvalue is the function of Lua.
+ * \param[in] State The Lua state. The first upvalue is the function of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaCallStock(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     int arguments;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
-    lua_pushvalue(L, lua_upvalueindex(1));
-    lua_rotate(L, 1, 1);
+    lua_pushvalue(State, lua_upvalueindex(1));
+    lua_rotate(State, 1, 1);
 
-    lua_call(L, arguments, LUA_MULTRET);
+    lua_call(State, arguments, LUA_MULTRET);
 
-    return lua_gettop(L);
+    return lua_gettop(State);
 }
 
 /**
@@ -264,46 +264,46 @@ int KphpLuaCallStock(
  * over a length and through metamethods, outside the count hook. For scripts
  * they take plain tables.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return The length of the table.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 lua_Unsigned KphpLuaCheckPlainTable(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    luaL_checktype(L, 1, LUA_TTABLE);
+    luaL_checktype(State, 1, LUA_TTABLE);
 
-    if (lua_getmetatable(L, 1))
+    if (lua_getmetatable(State, 1))
     {
-        luaL_error(L, "the table has a metatable");
+        luaL_error(State, "the table has a metatable");
     }
 
-    return lua_rawlen(L, 1);
+    return lua_rawlen(State, 1);
 }
 
 /**
  * \brief Calls a table function of Lua on a plain table, for scripts:
  * table.concat and table.unpack.
  *
- * \param[in] L The Lua state, with the table and the other arguments. The
+ * \param[in] State The Lua state, with the table and the other arguments. The
  * first upvalue is the function of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaPlainTableForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    KphpLuaCheckPlainTable(L);
+    KphpLuaCheckPlainTable(State);
 
-    return KphpLuaCallStock(L);
+    return KphpLuaCallStock(State);
 }
 
 /**
@@ -311,14 +311,14 @@ int KphpLuaPlainTableForScript(
  *
  * \details The elements an insert moves are charged to the call.
  *
- * \param[in] L The Lua state, with the table, the optional position and the
+ * \param[in] State The Lua state, with the table, the optional position and the
  * value. The first upvalue is the insert of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaInsertForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Unsigned length;
@@ -328,23 +328,23 @@ int KphpLuaInsertForScript(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    length = KphpLuaCheckPlainTable(L);
+    length = KphpLuaCheckPlainTable(State);
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
     if (arguments == 3)
     {
-        position = (lua_Unsigned)luaL_checkinteger(L, 2);
+        position = (lua_Unsigned)luaL_checkinteger(State, 2);
 
         if ((position >= 1) && (position <= length))
         {
             count = length - position + 1;
 
-            KphScriptCharge(L, count);
+            KphScriptCharge(State, count);
         }
     }
 
-    return KphpLuaCallStock(L);
+    return KphpLuaCallStock(State);
 }
 
 /**
@@ -352,14 +352,14 @@ int KphpLuaInsertForScript(
  *
  * \details The elements a remove moves are charged to the call.
  *
- * \param[in] L The Lua state, with the table and the optional position. The
+ * \param[in] State The Lua state, with the table and the optional position. The
  * first upvalue is the remove of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaRemoveForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Unsigned length;
@@ -368,24 +368,24 @@ int KphpLuaRemoveForScript(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    length = KphpLuaCheckPlainTable(L);
+    length = KphpLuaCheckPlainTable(State);
 
     //
     // No position, or nil, removes the last element.
     //
-    if (!lua_isnoneornil(L, 2))
+    if (!lua_isnoneornil(State, 2))
     {
-        position = (lua_Unsigned)luaL_checkinteger(L, 2);
+        position = (lua_Unsigned)luaL_checkinteger(State, 2);
 
         if ((position >= 1) && (position < length))
         {
             count = length - position;
 
-            KphScriptCharge(L, count);
+            KphScriptCharge(State, count);
         }
     }
 
-    return KphpLuaCallStock(L);
+    return KphpLuaCallStock(State);
 }
 
 /**
@@ -394,14 +394,14 @@ int KphpLuaRemoveForScript(
  * \details The comparisons a sort of that length makes are charged to the
  * call: the length times the number of its halvings.
  *
- * \param[in] L The Lua state, with the table and the optional comparison
+ * \param[in] State The Lua state, with the table and the optional comparison
  * function. The first upvalue is the sort of Lua.
  *
  * \return The number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaSortForScript(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     NTSTATUS status;
@@ -411,9 +411,9 @@ int KphpLuaSortForScript(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    KphpLuaCheckStack(L);
+    KphpLuaCheckStack(State);
 
-    length = KphpLuaCheckPlainTable(L);
+    length = KphpLuaCheckPlainTable(State);
 
     halvings = 1;
     for (lua_Unsigned remaining = length; remaining > 1; remaining >>= 1)
@@ -434,36 +434,36 @@ int KphpLuaSortForScript(
 
     if (count > 0)
     {
-        KphScriptCharge(L, count);
+        KphScriptCharge(State, count);
     }
 
-    return KphpLuaCallStock(L);
+    return KphpLuaCallStock(State);
 }
 
 /**
  * \brief Retrieves the absolute value of an integer: math.abs.
  *
- * \param[in] L The Lua state, with the integer.
+ * \param[in] State The Lua state, with the integer.
  *
  * \return One, the absolute value.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaAbs(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Integer value;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    value = luaL_checkinteger(L, 1);
+    value = luaL_checkinteger(State, 1);
 
     if (value < 0)
     {
         value = (lua_Integer)(0 - (lua_Unsigned)value);
     }
 
-    lua_pushinteger(L, value);
+    lua_pushinteger(State, value);
 
     return 1;
 }
@@ -471,13 +471,13 @@ int KphpLuaAbs(
 /**
  * \brief Retrieves the largest of its integers: math.max.
  *
- * \param[in] L The Lua state, with one or more integers.
+ * \param[in] State The Lua state, with one or more integers.
  *
  * \return One, the largest.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaMax(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Integer result;
@@ -486,13 +486,13 @@ int KphpLuaMax(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
-    result = luaL_checkinteger(L, 1);
+    result = luaL_checkinteger(State, 1);
 
     for (int i = 2; i <= arguments; i++)
     {
-        value = luaL_checkinteger(L, i);
+        value = luaL_checkinteger(State, i);
 
         if (value > result)
         {
@@ -500,7 +500,7 @@ int KphpLuaMax(
         }
     }
 
-    lua_pushinteger(L, result);
+    lua_pushinteger(State, result);
 
     return 1;
 }
@@ -508,13 +508,13 @@ int KphpLuaMax(
 /**
  * \brief Retrieves the smallest of its integers: math.min.
  *
- * \param[in] L The Lua state, with one or more integers.
+ * \param[in] State The Lua state, with one or more integers.
  *
  * \return One, the smallest.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaMin(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Integer result;
@@ -523,13 +523,13 @@ int KphpLuaMin(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
-    result = luaL_checkinteger(L, 1);
+    result = luaL_checkinteger(State, 1);
 
     for (int i = 2; i <= arguments; i++)
     {
-        value = luaL_checkinteger(L, i);
+        value = luaL_checkinteger(State, i);
 
         if (value < result)
         {
@@ -537,7 +537,7 @@ int KphpLuaMin(
         }
     }
 
-    lua_pushinteger(L, result);
+    lua_pushinteger(State, result);
 
     return 1;
 }
@@ -545,13 +545,13 @@ int KphpLuaMin(
 /**
  * \brief Compares two integers as unsigned: math.ult.
  *
- * \param[in] L The Lua state, with two integers.
+ * \param[in] State The Lua state, with two integers.
  *
  * \return One, whether the first is below the second.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaUlt(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Unsigned first;
@@ -560,8 +560,8 @@ int KphpLuaUlt(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    first = (lua_Unsigned)luaL_checkinteger(L, 1);
-    second = (lua_Unsigned)luaL_checkinteger(L, 2);
+    first = (lua_Unsigned)luaL_checkinteger(State, 1);
+    second = (lua_Unsigned)luaL_checkinteger(State, 2);
 
     below = FALSE;
     if (first < second)
@@ -569,7 +569,7 @@ int KphpLuaUlt(
         below = TRUE;
     }
 
-    lua_pushboolean(L, below);
+    lua_pushboolean(State, below);
 
     return 1;
 }
@@ -581,14 +581,15 @@ int KphpLuaUlt(
  * first is a format for the rest, as for string.format. Nothing is formatted,
  * and nothing can fail, unless the trace is being collected.
  *
- * \param[in] L The Lua state, with the text or the format and its arguments.
+ * \param[in] State The Lua state, with the text or the format and its
+ * arguments.
  * The first upvalue is the format of Lua.
  *
  * \return Zero, the number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaTrace(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     PCANSI_STRING script;
@@ -606,9 +607,9 @@ int KphpLuaTrace(
         return 0;
     }
 
-    script = KphScriptGetName(L);
+    script = KphScriptGetName(State);
 
-    arguments = lua_gettop(L);
+    arguments = lua_gettop(State);
 
     if (arguments > 1)
     {
@@ -626,16 +627,16 @@ int KphpLuaTrace(
             return 0;
         }
 
-        aborts = KphScriptGetAbortCount(L);
+        aborts = KphScriptGetAbortCount(State);
 
-        lua_pushvalue(L, lua_upvalueindex(1));
-        lua_rotate(L, 1, 1);
+        lua_pushvalue(State, lua_upvalueindex(1));
+        lua_rotate(State, 1, 1);
 
-        result = lua_pcall(L, arguments, 1, 0);
+        result = lua_pcall(State, arguments, 1, 0);
 
-        if (KphScriptGetAbortCount(L) != aborts)
+        if (KphScriptGetAbortCount(State) != aborts)
         {
-            KphLuaRaiseAbort(L);
+            KphLuaRaiseAbort(State);
         }
 
         //
@@ -644,7 +645,7 @@ int KphpLuaTrace(
         //
         if (result != LUA_OK)
         {
-            buffer = lua_tolstring(L, -1, NULL);
+            buffer = lua_tolstring(State, -1, NULL);
 
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SCRIPT,
@@ -656,7 +657,7 @@ int KphpLuaTrace(
         }
     }
 
-    buffer = lua_tolstring(L, 1, &length);
+    buffer = lua_tolstring(State, 1, &length);
     if (!buffer)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -688,13 +689,13 @@ int KphpLuaTrace(
 /**
  * \brief Retrieves the interrupt time: ksi.time.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return One, the interrupt time in 100 nanosecond units.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaTime(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     ULONG64 now;
@@ -703,7 +704,7 @@ int KphpLuaTime(
 
     now = KeQueryInterruptTime();
 
-    lua_pushinteger(L, (lua_Integer)now);
+    lua_pushinteger(State, (lua_Integer)now);
 
     return 1;
 }
@@ -714,13 +715,13 @@ int KphpLuaTime(
  *
  * \details May raise a Lua error.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return Zero, the number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaSleep(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     NTSTATUS status;
@@ -728,17 +729,17 @@ int KphpLuaSleep(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    milliseconds = luaL_checkinteger(L, 1);
+    milliseconds = luaL_checkinteger(State, 1);
 
-    luaL_argcheck(L,
+    luaL_argcheck(State,
                   (milliseconds >= 0) && (milliseconds < ULONG_MAX),
                   1,
                   "out of range");
 
-    status = KphScriptWait(L, NULL, (ULONG)milliseconds);
+    status = KphScriptWait(State, NULL, (ULONG)milliseconds);
     if (status == STATUS_SI_SCRIPT_LIMIT)
     {
-        KphScriptCharge(L, 0);
+        KphScriptCharge(State, 0);
     }
 
     return 0;
@@ -750,13 +751,13 @@ int KphpLuaSleep(
  *
  * \details May raise a Lua error.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return Zero, the number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaStall(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     lua_Integer microseconds;
@@ -765,9 +766,9 @@ int KphpLuaStall(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    microseconds = luaL_checkinteger(L, 1);
+    microseconds = luaL_checkinteger(State, 1);
 
-    luaL_argcheck(L,
+    luaL_argcheck(State,
                   (microseconds >= 0) && (microseconds <= ULONG_MAX),
                   1,
                   "out of range");
@@ -782,7 +783,7 @@ int KphpLuaStall(
 
         remaining -= piece;
 
-        KphScriptCharge(L, 0);
+        KphScriptCharge(State, 0);
     }
 
     return 0;
@@ -809,13 +810,13 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
 /**
  * \brief Opens the library of the driver.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return One, the library table.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaOpenLibrary(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     BOOLEAN tracing;
@@ -823,13 +824,13 @@ int KphpLuaOpenLibrary(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    luaL_newlib(L, KphpLuaLibrary);
+    luaL_newlib(State, KphpLuaLibrary);
 
-    lua_getglobal(L, LUA_STRLIBNAME);
-    lua_getfield(L, -1, "format");
-    lua_pushcclosure(L, KphpLuaTrace, 1);
-    lua_setfield(L, -3, "trace");
-    lua_settop(L, -2);
+    lua_getglobal(State, LUA_STRLIBNAME);
+    lua_getfield(State, -1, "format");
+    lua_pushcclosure(State, KphpLuaTrace, 1);
+    lua_setfield(State, -3, "trace");
+    lua_settop(State, -2);
 
     //
     // A script tests this to skip work that only a trace needs.
@@ -840,15 +841,15 @@ int KphpLuaOpenLibrary(
         tracing = TRUE;
     }
 
-    lua_pushboolean(L, tracing);
-    lua_setfield(L, -2, "tracing");
+    lua_pushboolean(State, tracing);
+    lua_setfield(State, -2, "tracing");
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpLuaStatuses); i++)
     {
         status = (lua_Integer)(ULONG)KphpLuaStatuses[i].Status;
 
-        lua_pushinteger(L, status);
-        lua_setfield(L, -2, KphpLuaStatuses[i].Name);
+        lua_pushinteger(State, status);
+        lua_setfield(State, -2, KphpLuaStatuses[i].Name);
     }
 
     return 1;
@@ -857,24 +858,24 @@ int KphpLuaOpenLibrary(
 /**
  * \brief Opens the integer mathematics library.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return One, the library table.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaOpenMath(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    luaL_newlib(L, KphpLuaMathLibrary);
+    luaL_newlib(State, KphpLuaMathLibrary);
 
-    lua_pushinteger(L, LUA_MAXINTEGER);
-    lua_setfield(L, -2, "maxinteger");
+    lua_pushinteger(State, LUA_MAXINTEGER);
+    lua_setfield(State, -2, "maxinteger");
 
-    lua_pushinteger(L, LUA_MININTEGER);
-    lua_setfield(L, -2, "mininteger");
+    lua_pushinteger(State, LUA_MININTEGER);
+    lua_setfield(State, -2, "mininteger");
 
     return 1;
 }

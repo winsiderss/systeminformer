@@ -171,13 +171,13 @@ VOID KphpScriptRunCleanups(
  * \brief Runs the cleanup of a cleanup object, if it has not run: its release
  * method and its close handler.
  *
- * \param[in] L The Lua state, with the cleanup object.
+ * \param[in] State The Lua state, with the cleanup object.
  *
  * \return Zero, the number of results.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpScriptReleaseCleanup(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     PKPH_SCRIPT_CLEANUP cleanup;
@@ -186,7 +186,7 @@ int KphpScriptReleaseCleanup(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    cleanup = luaL_checkudata(L, 1, KPH_SCRIPT_CLEANUP_NAME);
+    cleanup = luaL_checkudata(State, 1, KPH_SCRIPT_CLEANUP_NAME);
 
     routine = cleanup->Routine;
     context = cleanup->Context;
@@ -205,8 +205,8 @@ int KphpScriptReleaseCleanup(
     //
     // The registry held the object for as long as it held a cleanup.
     //
-    lua_pushnil(L);
-    lua_rawsetp(L, LUA_REGISTRYINDEX, cleanup);
+    lua_pushnil(State);
+    lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
 
     return 0;
 }
@@ -217,29 +217,29 @@ int KphpScriptReleaseCleanup(
  * \details May raise a Lua error. The registry holds the object until its
  * cleanup has run.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  *
  * \return One, the cleanup object.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpScriptNewCleanup(
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     PKPH_SCRIPT_CLEANUP cleanup;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    cleanup = lua_newuserdatauv(L, sizeof(KPH_SCRIPT_CLEANUP), 0);
+    cleanup = lua_newuserdatauv(State, sizeof(KPH_SCRIPT_CLEANUP), 0);
 
     InitializeListHead(&cleanup->Entry);
     cleanup->Routine = NULL;
     cleanup->Context = NULL;
 
-    luaL_setmetatable(L, KPH_SCRIPT_CLEANUP_NAME);
+    luaL_setmetatable(State, KPH_SCRIPT_CLEANUP_NAME);
 
-    lua_pushvalue(L, -1);
-    lua_rawsetp(L, LUA_REGISTRYINDEX, cleanup);
+    lua_pushvalue(State, -1);
+    lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
 
     return 1;
 }
@@ -628,12 +628,12 @@ VOID KphpScriptCount(
 /**
  * \brief Counts the instructions the count hook of a call stands for.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  * \param[in] Debug Unused.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpScriptHook(
-    _In_ lua_State* L,
+    _In_ lua_State* State,
     _In_ lua_Debug* Debug
     )
 {
@@ -641,7 +641,7 @@ VOID KphpScriptHook(
 
     UNREFERENCED_PARAMETER(Debug);
 
-    KphpScriptCount(L, KPH_SCRIPT_HOOK_INTERVAL);
+    KphpScriptCount(State, KPH_SCRIPT_HOOK_INTERVAL);
 }
 
 /**
