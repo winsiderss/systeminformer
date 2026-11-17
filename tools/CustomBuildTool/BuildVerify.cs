@@ -186,7 +186,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    if (string.Equals(KeyName, "kph", StringComparison.OrdinalIgnoreCase))
+                    if (IsHybridKey(KeyName))
                     {
                         string reason = KphKey.GetPrivateContainerError(keyMaterial);
 
@@ -212,7 +212,7 @@ namespace CustomBuildTool
                         }
                     }
 
-                    byte[] signature = string.Equals(KeyName, "kph", StringComparison.OrdinalIgnoreCase)
+                    byte[] signature = IsHybridKey(KeyName)
                         ? SignKphFile(keyMaterial, FileName)
                         : SignFile(keyMaterial, FileName);
 
@@ -230,6 +230,17 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks whether a key signs with the hybrid kph signature.
+        /// </summary>
+        /// <param name="KeyName">The key name.</param>
+        /// <returns>True for the kph and script keys; otherwise, false.</returns>
+        private static bool IsHybridKey(string KeyName)
+        {
+            return string.Equals(KeyName, "kph", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(KeyName, "script", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
