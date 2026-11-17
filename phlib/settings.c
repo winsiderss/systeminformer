@@ -27,7 +27,6 @@
 #include <ph.h>
 #include <apiimport.h>
 #include <guisup.h>
-#include <guisupview.h>
 #include <mapimg.h>
 #include <mapldr.h>
 #include <thirdparty.h>
