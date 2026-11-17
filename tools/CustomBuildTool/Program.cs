@@ -76,6 +76,7 @@ namespace CustomBuildTool
             rootCommand.Add(CreateCheckMsvcCommand());
             rootCommand.Add(CreateInstallMsvcCommand());
             rootCommand.Add(CreateDynDataCommand());
+            rootCommand.Add(CreateScriptsCommand());
             rootCommand.Add(CreateBuildDeltaCommand());
             rootCommand.Add(CreateBuildPatchCommand());
             rootCommand.Add(CreateRotateSetupCommand());
@@ -162,6 +163,7 @@ namespace CustomBuildTool
                     { "-verbose", "Enables verbose output." },
 
                     { "-dyndata", "Generates dynamic data." },
+                    { "-scripts", "Generates the script files." },
                     { "-portsgen", "Generates the port-service table from the IANA registry." },
                     { "-reflowrevert", "Revert export header to previous state." },
                     { "-reflowvalid", "Validates the current export header." },
@@ -335,6 +337,29 @@ namespace CustomBuildTool
                 BuildToolsId.CheckForOutOfDateTools();
 
                 if (!Build.BuildDynamicData(a))
+                    Environment.Exit(1);
+            });
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a command that writes the script files of the script manifest to an output directory.
+        /// </summary>
+        /// <returns>A command that generates the script files.</returns>
+        private static Command CreateScriptsCommand()
+        {
+            var cmd = new Command("-scripts", "Generates the script files.");
+            var arg = new Argument<string>("outdir")
+            {
+                Description = "Output directory"
+            };
+            cmd.Add(arg);
+            cmd.SetAction(ParseResult =>
+            {
+                string a = ParseResult.GetValue(arg);
+                BuildToolsId.CheckForOutOfDateTools();
+
+                if (!Build.BuildScripts(a))
                     Environment.Exit(1);
             });
             return cmd;

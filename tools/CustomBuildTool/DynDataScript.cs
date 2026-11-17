@@ -28,6 +28,11 @@ namespace CustomBuildTool
         private const string ScriptFolder = "kphlib";
 
         /// <summary>
+        /// The folder of an output directory that holds the script files.
+        /// </summary>
+        private const string OutputFolder = "scripts";
+
+        /// <summary>
         /// The header that names the Lua release of the tree, relative to the build working folder.
         /// </summary>
         private const string LuaHeaderFile = "tools\\thirdparty\\lua\\src\\lua.h";
@@ -48,6 +53,10 @@ namespace CustomBuildTool
         private const int ScriptSize = 20;
         private const int RoutineSize = 8;
         private const int ChunkAlignment = 8;
+
+        // The layout of a script file. KSystemInformer\include\script.h asserts the same numbers.
+        private const UInt32 FileMagic = 0x5349534B;
+        private const int FileHeaderSize = 64;
 
         /// <summary>
         /// The client levels a routine can require, by their names in the manifest.
@@ -130,6 +139,8 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
         {
             public string Name;
             public string File;
+            public UInt16 Level;
+            public Limits? Limits;
             public List<Routine> Routines = [];
             public byte[] Chunk;
         }
@@ -263,6 +274,27 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
         }
 
         /// <summary>
+        /// Reads a limits element: all six limits.
+        /// </summary>
+        private static Limits ParseLimits(XmlNode Node)
+        {
+            CheckNode(
+                Node,
+                ["instructions", "milliseconds", "memory", "cleanup-instructions", "cleanup-milliseconds", "cleanup-memory"],
+                []);
+
+            return new Limits
+            {
+                Instructions = ParseLimit(Node, "instructions", UInt64.MaxValue),
+                CleanupInstructions = ParseLimit(Node, "cleanup-instructions", UInt64.MaxValue),
+                Milliseconds = (UInt32)ParseLimit(Node, "milliseconds", UInt32.MaxValue),
+                CleanupMilliseconds = (UInt32)ParseLimit(Node, "cleanup-milliseconds", UInt32.MaxValue),
+                Memory = (UInt32)ParseLimit(Node, "memory", UInt32.MaxValue),
+                CleanupMemory = (UInt32)ParseLimit(Node, "cleanup-memory", UInt32.MaxValue),
+            };
+        }
+
+        /// <summary>
         /// Reads the script manifest.
         /// </summary>
         /// <param name="FileName">The manifest file.</param>
@@ -292,28 +324,13 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
             if (limitsNodes == null || limitsNodes.Count != 1)
                 throw new Exception($"{ManifestFile}: one <limits> element is needed");
 
-            XmlNode limitsNode = limitsNodes[0];
-
-            CheckNode(
-                limitsNode,
-                ["instructions", "milliseconds", "memory", "cleanup-instructions", "cleanup-milliseconds", "cleanup-memory"],
-                []);
-
-            ManifestLimits = new Limits
-            {
-                Instructions = ParseLimit(limitsNode, "instructions", UInt64.MaxValue),
-                CleanupInstructions = ParseLimit(limitsNode, "cleanup-instructions", UInt64.MaxValue),
-                Milliseconds = (UInt32)ParseLimit(limitsNode, "milliseconds", UInt32.MaxValue),
-                CleanupMilliseconds = (UInt32)ParseLimit(limitsNode, "cleanup-milliseconds", UInt32.MaxValue),
-                Memory = (UInt32)ParseLimit(limitsNode, "memory", UInt32.MaxValue),
-                CleanupMemory = (UInt32)ParseLimit(limitsNode, "cleanup-memory", UInt32.MaxValue),
-            };
+            ManifestLimits = ParseLimits(limitsNodes[0]);
 
             Scripts = [];
 
             foreach (XmlNode scriptNode in root.SelectNodes("script"))
             {
-                CheckNode(scriptNode, ["name", "file"], ["routine"]);
+                CheckNode(scriptNode, ["name", "file", "level"], ["routine", "limits"]);
 
                 var script = new Script
                 {
@@ -346,6 +363,37 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
 
                 if (script.Routines.Count > UInt16.MaxValue)
                     throw new Exception($"{ManifestFile}: script \"{script.Name}\" lists too many routines");
+
+                if (script.Routines.Count == 0)
+                    throw new Exception($"{ManifestFile}: script \"{script.Name}\" lists no routine");
+
+                string scriptLevel = scriptNode.Attributes?.GetNamedItem("level")?.Value;
+
+                if (scriptLevel == null)
+                {
+                    script.Level = script.Routines.Min(r => r.Level);
+                }
+                else
+                {
+                    int index = Array.FindIndex(Levels, l => l.Name.Equals(scriptLevel, StringComparison.Ordinal));
+
+                    if (index < 0)
+                        throw new Exception($"{ManifestFile}: script \"{script.Name}\": level \"{scriptLevel}\" is not one of {string.Join(", ", Levels.Select(l => l.Name))}");
+
+                    script.Level = Levels[index].Value;
+
+                    Routine below = script.Routines.FirstOrDefault(r => r.Level < script.Level);
+
+                    if (below != null)
+                        throw new Exception($"{ManifestFile}: routine \"{below.Name}\" of script \"{script.Name}\" asks for a lower level than the script's \"{scriptLevel}\"");
+                }
+
+                XmlNodeList ownLimits = scriptNode.SelectNodes("limits");
+
+                if (ownLimits.Count > 1)
+                    throw new Exception($"{ManifestFile}: script \"{script.Name}\" has more than one <limits> element");
+                if (ownLimits.Count == 1)
+                    script.Limits = ParseLimits(ownLimits[0]);
 
                 script.Routines.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
 
@@ -528,6 +576,137 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
             }
 
             return section;
+        }
+
+        /// <summary>
+        /// Generates one script file image for each script of the manifest.
+        /// </summary>
+        /// <returns>The scripts by name with their images; empty when the tree has no script manifest.</returns>
+        public static List<(string Name, byte[] Image)> GenerateFiles()
+        {
+            string manifestFile = Path.Join([Build.BuildWorkingFolder, ManifestFile]);
+            var files = new List<(string Name, byte[] Image)>();
+
+            if (!File.Exists(manifestFile))
+                return files;
+
+            ParseManifest(manifestFile, out Limits limits, out List<Script> scripts);
+
+            foreach (Script script in scripts)
+            {
+                script.Chunk = Compile(script);
+                files.Add((script.Name, LayoutFile(script.Limits ?? limits, script)));
+            }
+
+            return files;
+        }
+
+        /// <summary>
+        /// Lays out one script file: the header, the routines, the names, then the chunk.
+        /// </summary>
+        /// <param name="ScriptLimits">The limits of the script.</param>
+        /// <param name="Target">The script, compiled.</param>
+        /// <returns>The file image.</returns>
+        private static byte[] LayoutFile(Limits ScriptLimits, Script Target)
+        {
+            int routinesOffset = FileHeaderSize;
+            int namesOffset = routinesOffset + (Target.Routines.Count * RoutineSize);
+            int namesLength = Target.Name.Length + Target.Routines.Sum(r => r.Name.Length);
+            int chunkOffset = AlignUp(namesOffset + namesLength, ChunkAlignment);
+            int length = chunkOffset + Target.Chunk.Length;
+
+            byte[] image = new byte[length];
+            Span<byte> span = image;
+
+            BinaryPrimitives.WriteUInt32LittleEndian(span[0..], FileMagic);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[4..], (UInt32)length);
+            BinaryPrimitives.WriteUInt64LittleEndian(span[8..], ScriptLimits.Instructions);
+            BinaryPrimitives.WriteUInt64LittleEndian(span[16..], ScriptLimits.CleanupInstructions);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[24..], ScriptLimits.Milliseconds);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[28..], ScriptLimits.CleanupMilliseconds);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[32..], ScriptLimits.Memory);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[36..], ScriptLimits.CleanupMemory);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[40..], (UInt32)namesOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[44..], (UInt32)routinesOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[48..], (UInt32)chunkOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[52..], (UInt32)Target.Chunk.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(span[56..], (UInt16)Target.Name.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(span[58..], (UInt16)Target.Routines.Count);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[60..], Target.Level);
+
+            int nameAt = namesOffset + Encoding.ASCII.GetBytes(Target.Name, span[namesOffset..]);
+            int routineAt = routinesOffset;
+
+            foreach (Routine routine in Target.Routines)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(span[routineAt..], (UInt32)nameAt);
+                BinaryPrimitives.WriteUInt16LittleEndian(span[(routineAt + 4)..], (UInt16)routine.Name.Length);
+                BinaryPrimitives.WriteUInt16LittleEndian(span[(routineAt + 6)..], routine.Level);
+                routineAt += RoutineSize;
+
+                nameAt += Encoding.ASCII.GetBytes(routine.Name, span[nameAt..]);
+            }
+
+            Target.Chunk.CopyTo(span[chunkOffset..]);
+
+            return image;
+        }
+
+        /// <summary>
+        /// Checks whether a file is a script file, which the script key signs.
+        /// </summary>
+        /// <param name="FileName">The path to the file.</param>
+        /// <returns>True for a .bin file in a scripts folder; otherwise, false.</returns>
+        public static bool IsScriptFile(string FileName)
+        {
+            string folder = Path.GetFileName(Path.GetDirectoryName(FileName));
+
+            return string.Equals(Path.GetExtension(FileName), ".bin", StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(folder, OutputFolder, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Writes and signs the script files of the manifest in the scripts folder of an output directory.
+        /// </summary>
+        /// <param name="OutDir">The output directory.</param>
+        /// <param name="StrictChecks">Whether to enforce strict signature checks.</param>
+        /// <returns>True if successful; otherwise, false.</returns>
+        public static bool Execute(string OutDir, bool StrictChecks)
+        {
+            string folder = Path.Join([OutDir, OutputFolder]);
+
+            Win32.CreateDirectory(folder);
+
+            foreach ((string name, byte[] image) in GenerateFiles())
+            {
+                string file = Path.Join([folder, $"{name}.bin"]);
+                string sigFile = Path.ChangeExtension(file, ".sig");
+
+                if (File.Exists(file) &&
+                    Utils.ReadAllBytes(file).AsSpan().SequenceEqual(image) &&
+                    BuildVerify.IsValidKphSigFile(sigFile))
+                {
+                    Program.PrintColorMessage($"Script file -> {file} ({image.Length} bytes)", ConsoleColor.Cyan);
+                    continue;
+                }
+
+                if (File.Exists(file))
+                    File.Delete(file);
+                if (File.Exists(sigFile))
+                    File.Delete(sigFile);
+
+                Utils.WriteAllBytes(file, image);
+
+                if (!BuildVerify.CreateSigFile("script", file, StrictChecks))
+                    return false;
+
+                if (!File.Exists(sigFile))
+                    Program.PrintColorMessage($"[No script key, nothing signed] ({file})", ConsoleColor.Yellow);
+
+                Program.PrintColorMessage($"Script file -> {file} ({image.Length} bytes)", ConsoleColor.Cyan);
+            }
+
+            return true;
         }
     }
 }

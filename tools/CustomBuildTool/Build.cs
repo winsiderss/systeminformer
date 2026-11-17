@@ -824,6 +824,26 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Builds the script files for the specified output directory.
+        /// </summary>
+        /// <param name="OutputDirectory">Output directory for the script files.</param>
+        /// <returns>True if the script files are built successfully; otherwise, false.</returns>
+        public static bool BuildScripts(string OutputDirectory)
+        {
+            Program.PrintColorMessage("Building script files...", ConsoleColor.Cyan);
+
+            try
+            {
+                return DynDataScript.Execute(OutputDirectory, BuildCanary);
+            }
+            catch (Exception exception)
+            {
+                Program.PrintErrorMessage(exception);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Builds dynamic data files for the specified output directory.
         /// </summary>
         /// <param name="OutputDirectory">Output directory for dynamic data.</param>
@@ -837,7 +857,13 @@ namespace CustomBuildTool
 
             try
             {
-                return DynData.Execute(OutputDirectory, BuildCanary);
+                if (!DynData.Execute(OutputDirectory, BuildCanary))
+                    return false;
+
+                if (!string.IsNullOrWhiteSpace(OutputDirectory))
+                    return DynDataScript.Execute(OutputDirectory, BuildCanary);
+
+                return true;
             }
             catch (Exception exception)
             {
@@ -927,7 +953,9 @@ namespace CustomBuildTool
 
             foreach (string fileName in fileList)
             {
-                if (!BuildVerify.CreateSigFile("kph", fileName, BuildCanary))
+                string keyName = DynDataScript.IsScriptFile(fileName) ? "script" : "kph";
+
+                if (!BuildVerify.CreateSigFile(keyName, fileName, BuildCanary))
                     return false;
             }
 

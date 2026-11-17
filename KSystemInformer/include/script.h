@@ -17,6 +17,48 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+// script file
+
+#define KPH_SCRIPT_FILE_MAGIC ((ULONG)'SISK')
+
+typedef struct _KPH_SCRIPT_LIMITS
+{
+    ULONG64 Instructions;
+    ULONG64 CleanupInstructions;
+    ULONG Milliseconds;
+    ULONG CleanupMilliseconds;
+    ULONG Memory;
+    ULONG CleanupMemory;
+} KPH_SCRIPT_LIMITS, *PKPH_SCRIPT_LIMITS;
+
+typedef struct _KPH_SCRIPT_ROUTINE
+{
+    ULONG NameOffset;
+    USHORT NameLength;
+    USHORT Level;
+} KPH_SCRIPT_ROUTINE, *PKPH_SCRIPT_ROUTINE;
+
+typedef struct _KPH_SCRIPT_FILE
+{
+    ULONG Magic;
+    ULONG Length;
+    KPH_SCRIPT_LIMITS Limits;
+    ULONG NameOffset;
+    ULONG RoutinesOffset;
+    ULONG ChunkOffset;
+    ULONG ChunkLength;
+    USHORT NameLength;
+    USHORT RoutineCount;
+    ULONG Level;
+    // KPH_SCRIPT_ROUTINE Routines[RoutineCount];
+    // CHAR Names[];
+    // BYTE Chunk[ChunkLength];
+} KPH_SCRIPT_FILE, *PKPH_SCRIPT_FILE;
+
+C_ASSERT(sizeof(KPH_SCRIPT_LIMITS) == 32);
+C_ASSERT(sizeof(KPH_SCRIPT_ROUTINE) == 8);
+C_ASSERT(sizeof(KPH_SCRIPT_FILE) == 64);
+
 // lua
 
 typedef struct _KPH_LUA_ALLOCATOR
