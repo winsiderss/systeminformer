@@ -29,7 +29,6 @@
 // dyndata
 
 #define KPH_TAG_DYNDATA                         '0YpK'
-#define KPH_TAG_DYNDATA_SCRIPT                  '1YpK'
 
 // object
 
@@ -147,3 +146,4 @@
 // script
 
 #define KPH_TAG_SCRIPT_INPUT                    '0SpK'
+#define KPH_TAG_SCRIPT_FILE                     '1SpK'

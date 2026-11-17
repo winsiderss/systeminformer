@@ -24,6 +24,7 @@ typedef enum _KPH_MESSAGE_ID
     // PH -> KPH
     //
 
+    KphMsgClose,
     KphMsgGetInformerSettings,
     KphMsgSetInformerSettings,
     KphMsgOpenProcess,
@@ -72,6 +73,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenDeviceBaseDevice,
     KphMsgGetInformerStats,
     KphMsgGetInformerClientStats,
+    KphMsgCreateScript,
     KphMsgScriptCall,
 
     MaxKphMsgClient,
@@ -321,6 +323,7 @@ typedef struct _KPH_MESSAGE
         //
         union
         {
+            KPHM_CLOSE Close;
             KPHM_GET_INFORMER_SETTINGS GetInformerSettings;
             KPHM_SET_INFORMER_SETTINGS SetInformerSettings;
             KPHM_OPEN_PROCESS OpenProcess;
@@ -369,6 +372,7 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_DEVICE_BASE_DEVICE OpenDeviceBaseDevice;
             KPHM_GET_INFORMER_STATS GetInformerStats;
             KPHM_GET_INFORMER_CLIENT_STATS GetInformerClientStats;
+            KPHM_CREATE_SCRIPT CreateScript;
             KPHM_SCRIPT_CALL ScriptCall;
         } User;
 

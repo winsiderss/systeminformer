@@ -2820,9 +2820,9 @@ NTSTATUS KphGetInformerClientStats(
 }
 
 /**
- * Calls a routine of a script in the active dynamic data.
+ * Calls a routine of a script object.
  *
- * \param Script The name of the script.
+ * \param ScriptHandle The handle to the script object.
  * \param Routine The name of the routine.
  * \param Input The input for the routine.
  * \param InputLength The length of the input in bytes.
@@ -2834,7 +2834,7 @@ NTSTATUS KphGetInformerClientStats(
  * routine could not be called, failed or reached a limit.
  */
 NTSTATUS KphScriptCall(
-    _In_ PANSI_STRING Script,
+    _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
@@ -2850,7 +2850,7 @@ NTSTATUS KphScriptCall(
         *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgScriptCall);
-    msg->User.ScriptCall.Script = Script;
+    msg->User.ScriptCall.ScriptHandle = ScriptHandle;
     msg->User.ScriptCall.Routine = Routine;
     msg->User.ScriptCall.Input = Input;
     msg->User.ScriptCall.InputLength = InputLength;
@@ -2862,6 +2862,75 @@ NTSTATUS KphScriptCall(
     if (NT_SUCCESS(status))
     {
         status = msg->User.ScriptCall.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Creates a script object from a signed script file.
+ *
+ * \param ScriptHandle Receives the handle to the script object.
+ * \param Script Pointer to the script file.
+ * \param ScriptLength Length of the script file.
+ * \param Signature Pointer to the signature of the script file.
+ * \param SignatureLength Length of the signature.
+ * \param Flags KPH_SCRIPT_VOLATILE or KPH_SCRIPT_NON_VOLATILE.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphCreateScript(
+    _Out_ PHANDLE ScriptHandle,
+    _In_reads_bytes_(ScriptLength) PVOID Script,
+    _In_ ULONG ScriptLength,
+    _In_reads_bytes_(SignatureLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    *ScriptHandle = NULL;
+
+    msg = KphCreateUserMessage(KphMsgCreateScript);
+    msg->User.CreateScript.Script = Script;
+    msg->User.CreateScript.ScriptLength = ScriptLength;
+    msg->User.CreateScript.Signature = Signature;
+    msg->User.CreateScript.SignatureLength = SignatureLength;
+    msg->User.CreateScript.Flags = Flags;
+    msg->User.CreateScript.ScriptHandle = ScriptHandle;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.CreateScript.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+/**
+ * Closes a handle to a kernel object.
+ *
+ * \param Handle The handle to close.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphClose(
+    _In_ HANDLE Handle
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = KphCreateUserMessage(KphMsgClose);
+    msg->User.Close.Handle = Handle;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.Close.Status;
     }
 
     PhDereferenceObject(msg);

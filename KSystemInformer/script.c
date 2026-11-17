@@ -10,7 +10,6 @@
  */
 
 #include <kph.h>
-#include <kphdyndata.h>
 #include <script.h>
 
 #include <trace.h>
@@ -39,7 +38,7 @@ typedef enum _KPH_SCRIPT_PHASE
 typedef struct _KPH_SCRIPT_CALL
 {
     PKPH_LUA_ALLOCATOR Allocator;
-    PKPH_DYN_SCRIPT_LIMITS Limits;
+    PKPH_SCRIPT_LIMITS Limits;
     PCVOID Chunk;
     ULONG ChunkLength;
     PCANSI_STRING Script;
@@ -59,6 +58,20 @@ typedef struct _KPH_SCRIPT_CALL
     NTSTATUS AbortStatus;
     NTSTATUS Status;
 } KPH_SCRIPT_CALL, *PKPH_SCRIPT_CALL;
+
+typedef struct _KPH_SCRIPT
+{
+    ULONG Flags;
+    PKPH_SCRIPT_FILE File;
+    ANSI_STRING Name;
+} KPH_SCRIPT, *PKPH_SCRIPT;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+DECLARE_CONST_UNICODE_STRING(KphpScriptTypeName, L"KphScript");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_OBJECT_TYPE KphpScriptType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
 
@@ -1134,7 +1147,7 @@ NTSTATUS KphpScriptRunChunk(
     _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PVOID Output,
     _In_ ULONG OutputLength,
     _Out_ PULONG ReturnLength,
-    _In_ PKPH_DYN_SCRIPT_LIMITS Limits,
+    _In_ PKPH_SCRIPT_LIMITS Limits,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
@@ -1198,17 +1211,17 @@ Exit:
 }
 
 /**
- * \brief Retrieves the process state a routine requires of its caller.
+ * \brief Retrieves the process state a script level requires of a caller.
  *
- * \param[in] Routine The routine.
- * \param[out] RequiredState Receives the process state the routine requires.
+ * \param[in] Level The level of a script or of a routine.
+ * \param[out] RequiredState Receives the process state the level requires.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpScriptRequiredState(
-    _In_ PKPH_DYN_SCRIPT_ROUTINE Routine,
+    _In_ ULONG Level,
     _Out_ PKPH_PROCESS_STATE RequiredState
     )
 {
@@ -1216,7 +1229,7 @@ NTSTATUS KphpScriptRequiredState(
 
     *RequiredState = KPH_PROCESS_STATE_MAXIMUM;
 
-    switch (Routine->Level)
+    switch (Level)
     {
         case KPH_DYN_SCRIPT_LEVEL_LOW:
         {
@@ -1242,8 +1255,8 @@ NTSTATUS KphpScriptRequiredState(
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SCRIPT,
-                          "Routine has an unknown level: %lu",
-                          (ULONG)Routine->Level);
+                          "Unknown script level: %lu",
+                          Level);
 
             return STATUS_ACCESS_DENIED;
         }
@@ -1269,7 +1282,7 @@ _Must_inspect_result_
 NTSTATUS KphpScriptCaptureInput(
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
-    _In_ PKPH_DYN_SCRIPT_LIMITS Limits,
+    _In_ PKPH_SCRIPT_LIMITS Limits,
     _In_ KPROCESSOR_MODE AccessMode,
     _Outptr_result_maybenull_ PVOID* CapturedInput
     )
@@ -1349,91 +1362,498 @@ Exit:
 }
 
 /**
- * \brief Calls a routine of a script of the active dynamic data.
+ * \brief Checks that a span of a script file lies within it.
  *
- * \details The script and the routine are resolved, and the state of the
- * calling process is checked against what the routine requires, before the
- * input is captured and before any script code runs.
+ * \param[in] FileLength The length of the script file.
+ * \param[in] Offset The offset of the span from the start of the file.
+ * \param[in] Length The length of the span.
  *
- * \param[in] Script The name of the script.
- * \param[in] Routine The name of the routine.
- * \param[in] Input The input for the routine.
- * \param[in] InputLength The length of the input in bytes.
- * \param[out] Output Receives the output of the routine.
- * \param[in] OutputLength The length of the output buffer in bytes.
- * \param[out] ReturnLength Receives the length of the output of the routine.
- * \param[in] ProcessState The state of the calling process.
- * \param[in] AccessMode The mode in which to perform access checks.
- *
- * \return The status the routine returned, or an errant status when the
- * routine could not be called, failed or reached a limit.
+ * \return TRUE if the span lies within the file, FALSE otherwise.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpScriptCall(
-    _In_ PCANSI_STRING Script,
-    _In_ PCANSI_STRING Routine,
-    _In_reads_bytes_opt_(InputLength) PVOID Input,
-    _In_ ULONG InputLength,
-    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PVOID Output,
-    _In_ ULONG OutputLength,
-    _Out_ PULONG ReturnLength,
-    _In_ KPH_PROCESS_STATE ProcessState,
+BOOLEAN KphpScriptFileSpan(
+    _In_ ULONG FileLength,
+    _In_ ULONG Offset,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    ULONG end;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    status = RtlULongAdd(Offset, Length, &end);
+    if (!NT_SUCCESS(status) || (end > FileLength))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * \brief Compares the name of a routine of a script file with a name.
+ *
+ * \param[in] File The script file.
+ * \param[in] Routine The routine.
+ * \param[in] Name The name to compare with.
+ *
+ * \return Negative if the routine orders before the name, zero if they are
+ * equal, positive otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+LONG KphpScriptCompareRoutine(
+    _In_ PKPH_SCRIPT_FILE File,
+    _In_ PKPH_SCRIPT_ROUTINE Routine,
+    _In_ PCANSI_STRING Name
+    )
+{
+    ANSI_STRING name;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    name.Buffer = Add2Ptr(File, Routine->NameOffset);
+    name.Length = Routine->NameLength;
+    name.MaximumLength = Routine->NameLength;
+
+    return RtlCompareString(&name, Name, FALSE);
+}
+
+/**
+ * \brief Validates a script file.
+ *
+ * \param[in] File The script file.
+ * \param[in] Length The length of the script file in bytes.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpScriptValidateFile(
+    _In_reads_bytes_(Length) PKPH_SCRIPT_FILE File,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    KPH_PROCESS_STATE state;
+    PKPH_SCRIPT_ROUTINE routines;
+    PKPH_SCRIPT_ROUTINE routine;
+    ANSI_STRING name;
+    ULONG length;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if ((Length < sizeof(KPH_SCRIPT_FILE)) ||
+        (File->Magic != KPH_SCRIPT_FILE_MAGIC) ||
+        (File->Length != Length))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file header is not valid");
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    if ((File->NameLength == 0) ||
+        !KphpScriptFileSpan(Length, File->NameOffset, File->NameLength))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file name is not valid");
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    NT_VERIFY(NT_SUCCESS(RtlULongMult(File->RoutineCount,
+                                      sizeof(KPH_SCRIPT_ROUTINE),
+                                      &length)));
+
+    if ((File->RoutineCount == 0) ||
+        !KphpScriptFileSpan(Length, File->RoutinesOffset, length))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file routine table is not valid");
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    status = KphpScriptRequiredState(File->Level, &state);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphpScriptRequiredState failed: %!STATUS!",
+                      status);
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    routines = Add2Ptr(File, File->RoutinesOffset);
+
+    for (ULONG i = 0; i < File->RoutineCount; i++)
+    {
+        routine = &routines[i];
+
+        if ((routine->NameLength == 0) ||
+            !KphpScriptFileSpan(Length,
+                                routine->NameOffset,
+                                routine->NameLength))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script file routine %lu name is not valid",
+                          i);
+
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        status = KphpScriptRequiredState(routine->Level, &state);
+        if (!NT_SUCCESS(status) || (routine->Level < File->Level))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script file routine %lu level is not valid",
+                          i);
+
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        if (i == 0)
+        {
+            continue;
+        }
+
+        name.Buffer = Add2Ptr(File, routine->NameOffset);
+        name.Length = routine->NameLength;
+        name.MaximumLength = routine->NameLength;
+
+        if (KphpScriptCompareRoutine(File, &routines[i - 1], &name) >= 0)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script file routine %lu is out of order",
+                          i);
+
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    if ((File->ChunkLength == 0) ||
+        !KphpScriptFileSpan(Length, File->ChunkOffset, File->ChunkLength))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file chunk is not valid");
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Searches the routine table of a script file.
+ *
+ * \param[in] File The script file, validated.
+ * \param[in] Name The name of the routine.
+ *
+ * \return The routine, NULL when the file has no routine of that name.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PKPH_SCRIPT_ROUTINE KphpScriptLookupRoutine(
+    _In_ PKPH_SCRIPT_FILE File,
+    _In_ PCANSI_STRING Name
+    )
+{
+    PKPH_SCRIPT_ROUTINE routines;
+    PKPH_SCRIPT_ROUTINE routine;
+    ULONG low;
+    ULONG high;
+    ULONG middle;
+    LONG order;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    routines = Add2Ptr(File, File->RoutinesOffset);
+
+    low = 0;
+    high = File->RoutineCount;
+
+    while (low < high)
+    {
+        middle = low + ((high - low) / 2);
+
+        routine = &routines[middle];
+
+        order = KphpScriptCompareRoutine(File, routine, Name);
+        if (order < 0)
+        {
+            low = middle + 1;
+            continue;
+        }
+
+        if (order > 0)
+        {
+            high = middle;
+            continue;
+        }
+
+        return routine;
+    }
+
+    return NULL;
+}
+
+/**
+ * \brief Allocates a script object.
+ *
+ * \param[in] Size The size of the object to allocate.
+ *
+ * \return Pointer to the allocated object, NULL on failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateScript(
+    _In_ SIZE_T Size
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    return KphAllocateNPaged(Size, KPH_TAG_SCRIPT_FILE);
+}
+
+/**
+ * \brief Initializes a script object.
+ *
+ * \param[in,out] Object The script object to initialize.
+ * \param[in] Parameter The script file, validated, which the object takes.
+ *
+ * \return STATUS_SUCCESS
+ */
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpInitializeScript(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PKPH_SCRIPT script;
+    PKPH_SCRIPT_FILE file;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Parameter);
+
+    script = Object;
+    file = Parameter;
+
+    script->File = file;
+    script->Name.Buffer = Add2Ptr(file, file->NameOffset);
+    script->Name.Length = file->NameLength;
+    script->Name.MaximumLength = file->NameLength;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Deletes a script object.
+ *
+ * \param[in] Object The script object to delete.
+ */
+_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpDeleteScript(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PKPH_SCRIPT script;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    script = Object;
+
+    KphFree(script->File, KPH_TAG_SCRIPT_FILE);
+}
+
+/**
+ * \brief Frees a script object.
+ *
+ * \param[in] Object The script object to free.
+ */
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpFreeScript(
+    _In_freesMem_ PVOID Object
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphFree(Object, KPH_TAG_SCRIPT_FILE);
+}
+
+/**
+ * \brief Creates a script object from a signed script file.
+ *
+ * \param[in] Script The script file.
+ * \param[in] ScriptLength The length of the script file in bytes.
+ * \param[in] Signature The signature of the script file.
+ * \param[in] SignatureLength The length of the signature in bytes.
+ * \param[in] Flags KPH_SCRIPT_VOLATILE or KPH_SCRIPT_NON_VOLATILE.
+ * \param[out] ScriptHandle Receives the handle to the script object.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateScript(
+    _In_reads_bytes_(ScriptLength) PVOID Script,
+    _In_ ULONG ScriptLength,
+    _In_reads_bytes_(SignatureLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE ScriptHandle,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
+    PKPH_PROCESS_CONTEXT process;
+    PKPH_SCRIPT_FILE file;
+    PVOID signature;
     PKPH_DYN dyn;
-    PKPH_DYN_SCRIPT script;
-    PKPH_DYN_SCRIPT_ROUTINE routine;
     KPH_PROCESS_STATE requiredState;
-    PKPH_DYN_SCRIPT_LIMITS limits;
-    PVOID input;
-    PVOID chunk;
+    PKPH_SCRIPT script;
+    HANDLE scriptHandle;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    *ReturnLength = 0;
+    file = NULL;
+    signature = NULL;
+    dyn = NULL;
+    script = NULL;
+    scriptHandle = NULL;
 
-    input = NULL;
+    process = KphGetProcessContextForMode(AccessMode);
+    if (!process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphGetProcessContextForMode failed");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    if (Flags != KPH_SCRIPT_VOLATILE)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script flags 0x%08lx are not valid",
+                      Flags);
+
+        status = (Flags == KPH_SCRIPT_NON_VOLATILE) ?
+                 STATUS_NOT_SUPPORTED : STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (!Script || !ScriptLength || !Signature || !SignatureLength)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script or signature is empty");
+
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    file = KphAllocatePaged(ScriptLength, KPH_TAG_SCRIPT_FILE);
+    if (!file)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to allocate script file");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    signature = KphAllocatePaged(SignatureLength, KPH_TAG_SCRIPT_FILE);
+    if (!signature)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to allocate script signature");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphCopyFromMode(file, Script, ScriptLength, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphCopyFromMode(signature, Signature, SignatureLength, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
 
     dyn = KphReferenceDynData();
-    if (!dyn || !dyn->ScriptSection)
+    if (!dyn || !dyn->ScriptPublicKeyHandle)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "No script key is active");
+
         status = STATUS_NOINTERFACE;
         goto Exit;
     }
 
-    status = KphDynDataLookupScript(dyn->ScriptSection,
-                                    dyn->ScriptSectionLength,
-                                    Script,
-                                    &script);
+    status = KphVerifyBufferEx(dyn->ScriptPublicKeyHandle,
+                               (PBYTE)file,
+                               ScriptLength,
+                               signature,
+                               SignatureLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphDynDataLookupScript failed: %!STATUS!",
+                      "KphVerifyBufferEx failed: %!STATUS!",
                       status);
 
         goto Exit;
     }
 
-    status = KphDynDataLookupScriptRoutine(dyn->ScriptSection,
-                                           dyn->ScriptSectionLength,
-                                           script,
-                                           Routine,
-                                           &routine);
+    status = KphpScriptValidateFile(file, ScriptLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphDynDataLookupScriptRoutine failed: %!STATUS!",
+                      "KphpScriptValidateFile failed: %!STATUS!",
                       status);
 
         goto Exit;
     }
 
-    status = KphpScriptRequiredState(routine, &requiredState);
+    status = KphpScriptRequiredState(file->Level, &requiredState);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1444,25 +1864,180 @@ NTSTATUS KphpScriptCall(
         goto Exit;
     }
 
-    if (!KphTestProcessState(ProcessState, requiredState))
+    if (!KphTestProcessContextState(process, requiredState))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "Script %Z routine %Z requires 0x%08x, caller has 0x%08x",
-                      Script,
-                      Routine,
-                      requiredState,
-                      ProcessState);
+                      "Script requires 0x%08x",
+                      requiredState);
 
         status = STATUS_ACCESS_DENIED;
         goto Exit;
     }
 
-    limits = &dyn->ScriptSection->Limits;
+    status = KphCreateObject(KphpScriptType, sizeof(KPH_SCRIPT), &script, file);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphCreateObject failed: %!STATUS!",
+                      status);
+
+        script = NULL;
+        goto Exit;
+    }
+
+    file = NULL;
+
+    script->Flags = Flags;
+
+    status = KphCreateHandle(script, AccessMode, &scriptHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphCreateHandle failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphWriteKphHandleToMode(ScriptHandle, scriptHandle, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphWriteKphHandleToMode failed: %!STATUS!",
+                      status);
+    }
+
+Exit:
+
+    if (script)
+    {
+        KphDereferenceObject(script);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
+
+    if (signature)
+    {
+        KphFree(signature, KPH_TAG_SCRIPT_FILE);
+    }
+
+    if (file)
+    {
+        KphFree(file, KPH_TAG_SCRIPT_FILE);
+    }
+
+    if (process)
+    {
+        KphDereferenceObject(process);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Calls a routine of a script object.
+ *
+ * \details The routine is resolved, and the state of the calling process is
+ * checked against what the routine requires, before the input is captured and
+ * before any script code runs.
+ *
+ * \param[in] Script The script object.
+ * \param[in] Routine The name of the routine.
+ * \param[in] Input The input for the routine.
+ * \param[in] InputLength The length of the input in bytes.
+ * \param[out] Output Receives the output of the routine.
+ * \param[in] OutputLength The length of the output buffer in bytes.
+ * \param[out] ReturnLength Receives the length of the output of the routine.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return The status the routine returned, or an errant status when the
+ * routine could not be called, failed or reached a limit.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpScriptCall(
+    _In_ PKPH_SCRIPT Script,
+    _In_ PCANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_PROCESS_CONTEXT process;
+    PKPH_SCRIPT_FILE file;
+    PKPH_SCRIPT_ROUTINE routine;
+    KPH_PROCESS_STATE requiredState;
+    PVOID input;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *ReturnLength = 0;
+
+    input = NULL;
+    file = Script->File;
+
+    process = KphGetProcessContextForMode(AccessMode);
+    if (!process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphGetProcessContextForMode failed");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    routine = KphpScriptLookupRoutine(file, Routine);
+    if (!routine)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z has no routine %Z",
+                      &Script->Name,
+                      Routine);
+
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    status = KphpScriptRequiredState(routine->Level, &requiredState);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphpScriptRequiredState failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!KphTestProcessContextState(process, requiredState))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script %Z routine %Z requires 0x%08x",
+                      &Script->Name,
+                      Routine,
+                      requiredState);
+
+        status = STATUS_ACCESS_DENIED;
+        goto Exit;
+    }
 
     status = KphpScriptCaptureInput(Input,
                                     InputLength,
-                                    limits,
+                                    &file->Limits,
                                     AccessMode,
                                     &input);
     if (!NT_SUCCESS(status))
@@ -1475,25 +2050,23 @@ NTSTATUS KphpScriptCall(
         goto Exit;
     }
 
-    chunk = Add2Ptr(dyn->ScriptSection, script->ChunkOffset);
-
-    status = KphpScriptRunChunk(chunk,
-                                script->ChunkLength,
-                                Script,
+    status = KphpScriptRunChunk(Add2Ptr(file, file->ChunkOffset),
+                                file->ChunkLength,
+                                &Script->Name,
                                 Routine,
                                 input,
                                 InputLength,
                                 Output,
                                 OutputLength,
                                 ReturnLength,
-                                limits,
+                                &file->Limits,
                                 AccessMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
                       "Script %Z routine %Z failed: %!STATUS!",
-                      Script,
+                      &Script->Name,
                       Routine,
                       status);
     }
@@ -1505,18 +2078,18 @@ Exit:
         KphFree(input, KPH_TAG_SCRIPT_INPUT);
     }
 
-    if (dyn)
+    if (process)
     {
-        KphDereferenceObject(dyn);
+        KphDereferenceObject(process);
     }
 
     return status;
 }
 
 /**
- * \brief Calls a routine of a script of the active dynamic data.
+ * \brief Calls a routine of a script object.
  *
- * \param[in] Script The name of the script.
+ * \param[in] ScriptHandle The handle to the script object.
  * \param[in] Routine The name of the routine.
  * \param[in] Input The input for the routine.
  * \param[in] InputLength The length of the input in bytes.
@@ -1524,7 +2097,6 @@ Exit:
  * \param[in] OutputLength The length of the output buffer in bytes.
  * \param[out] ReturnLength Receives the length of the output of the routine,
  * the length required when the output buffer is too small.
- * \param[in] ProcessState The state of the calling process.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return The status the routine returned, or an errant status when the
@@ -1533,19 +2105,18 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphScriptCall(
-    _In_ PANSI_STRING Script,
+    _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_opt_(OutputLength) PVOID Output,
     _In_ ULONG OutputLength,
     _Out_opt_ PULONG ReturnLength,
-    _In_ KPH_PROCESS_STATE ProcessState,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
-    PANSI_STRING script;
+    PKPH_SCRIPT script;
     PANSI_STRING routine;
     ULONG returnLength;
 
@@ -1565,14 +2136,18 @@ NTSTATUS KphScriptCall(
         goto Exit;
     }
 
-    status = KphCaptureAnsiString(Script, &script, AccessMode);
+    status = KphReferenceObjectByHandle(ScriptHandle,
+                                        KphpScriptType,
+                                        AccessMode,
+                                        &script);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphCaptureAnsiString failed: %!STATUS!",
+                      "KphReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
+        script = NULL;
         goto Exit;
     }
 
@@ -1594,7 +2169,6 @@ NTSTATUS KphScriptCall(
                             Output,
                             OutputLength,
                             &returnLength,
-                            ProcessState,
                             AccessMode);
     if (!NT_SUCCESS(status))
     {
@@ -1618,19 +2192,19 @@ Exit:
 
     if (script)
     {
-        KphReleaseAnsiString(script);
+        KphDereferenceObject(script);
     }
 
     return status;
 }
 
 /**
- * \brief Retrieves the process state a routine of a script requires.
+ * \brief Retrieves the process state a routine of a script object requires.
  *
- * \details Advisory. KphScriptCall checks again against the dynamic data it
- * then runs from.
+ * \details Advisory. KphScriptCall checks again.
  *
- * \param[in] Script The name of the script.
+ * \param[in] Process The process that holds the handle.
+ * \param[in] ScriptHandle The handle to the script object.
  * \param[in] Routine The name of the routine.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
@@ -1640,7 +2214,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KphScriptGetRequiredState(
-    _In_ PANSI_STRING Script,
+    _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
     _In_ KPROCESSOR_MODE AccessMode
     )
@@ -1648,28 +2222,29 @@ KPH_PROCESS_STATE KphScriptGetRequiredState(
     NTSTATUS status;
     KPH_PROCESS_STATE requiredState;
     KPH_PROCESS_STATE routineState;
-    PANSI_STRING scriptName;
+    PKPH_SCRIPT script;
     PANSI_STRING routineName;
-    PKPH_DYN dyn;
-    PKPH_DYN_SCRIPT script;
-    PKPH_DYN_SCRIPT_ROUTINE routine;
+    PKPH_SCRIPT_ROUTINE routine;
 
     KPH_PAGED_CODE_PASSIVE();
 
     requiredState = KPH_PROCESS_STATE_LOW;
 
-    scriptName = NULL;
+    script = NULL;
     routineName = NULL;
-    dyn = NULL;
 
-    status = KphCaptureAnsiString(Script, &scriptName, AccessMode);
+    status = KphReferenceObjectByHandle(ScriptHandle,
+                                        KphpScriptType,
+                                        AccessMode,
+                                        &script);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphCaptureAnsiString failed: %!STATUS!",
+                      "KphReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
+        script = NULL;
         goto Exit;
     }
 
@@ -1684,42 +2259,19 @@ KPH_PROCESS_STATE KphScriptGetRequiredState(
         goto Exit;
     }
 
-    dyn = KphReferenceDynData();
-    if (!dyn || !dyn->ScriptSection)
-    {
-        goto Exit;
-    }
-
-    status = KphDynDataLookupScript(dyn->ScriptSection,
-                                    dyn->ScriptSectionLength,
-                                    scriptName,
-                                    &script);
-    if (!NT_SUCCESS(status))
+    routine = KphpScriptLookupRoutine(script->File, routineName);
+    if (!routine)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphDynDataLookupScript failed: %!STATUS!",
-                      status);
+                      "Script %Z has no routine %Z",
+                      &script->Name,
+                      routineName);
 
         goto Exit;
     }
 
-    status = KphDynDataLookupScriptRoutine(dyn->ScriptSection,
-                                           dyn->ScriptSectionLength,
-                                           script,
-                                           routineName,
-                                           &routine);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      SCRIPT,
-                      "KphDynDataLookupScriptRoutine failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = KphpScriptRequiredState(routine, &routineState);
+    status = KphpScriptRequiredState(routine->Level, &routineState);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1734,19 +2286,14 @@ KPH_PROCESS_STATE KphScriptGetRequiredState(
 
 Exit:
 
-    if (dyn)
-    {
-        KphDereferenceObject(dyn);
-    }
-
     if (routineName)
     {
         KphReleaseAnsiString(routineName);
     }
 
-    if (scriptName)
+    if (script)
     {
-        KphReleaseAnsiString(scriptName);
+        KphDereferenceObject(script);
     }
 
     return requiredState;
@@ -1760,7 +2307,18 @@ VOID KphInitializeScript(
     VOID
     )
 {
+    KPH_OBJECT_TYPE_INFO typeInfo;
+
     KPH_PAGED_CODE_PASSIVE();
+
+    typeInfo.Allocate = KphpAllocateScript;
+    typeInfo.Initialize = KphpInitializeScript;
+    typeInfo.Delete = KphpDeleteScript;
+    typeInfo.Free = KphpFreeScript;
+    typeInfo.Flags = 0;
+    typeInfo.DeferDelete = TRUE;
+
+    KphCreateObjectType(&KphpScriptTypeName, &typeInfo, &KphpScriptType);
 
     KphLuaInitializeHardware();
 }
