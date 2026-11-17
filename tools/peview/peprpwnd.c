@@ -309,13 +309,18 @@ LRESULT CALLBACK PvSplitterWindowProc(
     case WM_LBUTTONDOWN:
         {
             POINT point;
+            RECT treeRect;
+
+            if (!PhGetWindowRect(PvTabTreeControl, &treeRect))
+                return 0;
 
             GetCursorPos(&point);
             ScreenToClient(GetParent(WindowHandle), &point);
 
             // Remember where inside the splitter the drag started so the
-            // sidebar doesn't jump to the cursor. (dmex)
-            PvTabSplitterDragOffset = point.x - PvTabSidebarWidth;
+            // sidebar doesn't jump to the cursor. Use the displayed width since
+            // layout can clamp it below the saved preferred width. (dmex)
+            PvTabSplitterDragOffset = point.x - (treeRect.right - treeRect.left);
             PvTabSplitterDragging = TRUE;
 
             SetCapture(WindowHandle);

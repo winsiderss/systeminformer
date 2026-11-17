@@ -379,9 +379,7 @@ VOID PvPeProperties(
     
             // ProdId page
             {
-                ULONG imageDosStubLength = ((PIMAGE_DOS_HEADER)PvMappedImage.ViewBase)->e_lfanew - RTL_SIZEOF_THROUGH_FIELD(IMAGE_DOS_HEADER, e_lfanew);
-    
-                if (imageDosStubLength != 0 && imageDosStubLength != 64)
+                if (PvPeHasProdIdHeader())
                 {
                     newPage = PvCreatePropPageContext(
                         MAKEINTRESOURCE(IDD_PEPRODID),

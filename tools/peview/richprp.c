@@ -693,6 +693,29 @@ VOID PvpPeEnumProdEntries(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
+/**
+ * Determines whether the image contains a valid Rich (ProdID) header.
+ *
+ * \return TRUE if the DanS and Rich tags were found, otherwise FALSE.
+ */
+BOOLEAN PvPeHasProdIdHeader(
+    VOID
+    )
+{
+    PH_MAPPED_IMAGE_PRODID prodids;
+
+    if (!NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
+        return FALSE;
+
+    if (prodids.ProdIdEntries)
+        PhFree(prodids.ProdIdEntries);
+    PhClearReference(&prodids.Hash);
+    PhClearReference(&prodids.RawHash);
+    PhClearReference(&prodids.Key);
+
+    return TRUE;
+}
+
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
