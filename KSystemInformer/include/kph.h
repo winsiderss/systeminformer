@@ -866,6 +866,7 @@ typedef struct _KPH_DYN
     ULONG LxPicoThrdInfoTID;
 
     KPH_VERIFY_KEY_HANDLE SessionTokenPublicKeyHandle;
+    KPH_VERIFY_KEY_HANDLE ScriptPublicKeyHandle;
 
     PKPH_DYN_SCRIPT_SECTION ScriptSection;
     ULONG ScriptSectionLength;
