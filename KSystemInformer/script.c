@@ -1140,6 +1140,8 @@ NTSTATUS KphpScriptRunChunk(
     call.AbortStatus = STATUS_SUCCESS;
     call.Status = STATUS_UNSUCCESSFUL;
 
+    KeEnterCriticalRegion();
+
     status = KphLuaCallout(KphpScriptCallout, &call);
     if (!NT_SUCCESS(status))
     {
@@ -1157,6 +1159,8 @@ NTSTATUS KphpScriptRunChunk(
 Exit:
 
     KphpScriptRunCleanups(&call);
+
+    KeLeaveCriticalRegion();
 
     KphLuaDeleteAllocator(&call.Allocator);
 
