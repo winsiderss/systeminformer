@@ -12,6 +12,106 @@
 #include <ph.h>
 #include <kphhw.h>
 
+static CONST PH_STRINGREF KphpHwCpuFileName = PH_STRINGREF_INIT(L"scripts\\cpu.bin");
+static CONST PH_STRINGREF KphpHwCpuSignatureName = PH_STRINGREF_INIT(L"scripts\\cpu.sig");
+static CONST PH_STRINGREF KphpHwSuperIoFileName = PH_STRINGREF_INIT(L"scripts\\superio.bin");
+static CONST PH_STRINGREF KphpHwSuperIoSignatureName = PH_STRINGREF_INIT(L"scripts\\superio.sig");
+
+static NTSTATUS KphpHwReadFile(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_ PVOID* Data,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    HANDLE fileHandle;
+
+    *Data = NULL;
+    *Length = 0;
+
+    if (!(fileName = PhGetApplicationDirectoryFileName(FileName, TRUE)))
+        return STATUS_NO_SUCH_FILE;
+
+    status = PhCreateFile(
+        &fileHandle,
+        &fileName->sr,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetFileData(fileHandle, Data, Length);
+        NtClose(fileHandle);
+    }
+
+    PhDereferenceObject(fileName);
+
+    return status;
+}
+
+static NTSTATUS KphpHwScriptCall(
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF SignatureName,
+    _In_ PANSI_STRING Routine,
+    _In_reads_bytes_opt_(InputLength) PVOID Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_opt_(OutputLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PVOID script = NULL;
+    ULONG scriptLength;
+    PVOID signature = NULL;
+    ULONG signatureLength;
+    HANDLE scriptHandle;
+
+    *ReturnLength = 0;
+
+    if (!NT_SUCCESS(status = KphpHwReadFile(FileName, &script, &scriptLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = KphpHwReadFile(SignatureName, &signature, &signatureLength)))
+        goto CleanupExit;
+
+    status = KphCreateScript(
+        &scriptHandle,
+        script,
+        scriptLength,
+        signature,
+        signatureLength,
+        KPH_SCRIPT_VOLATILE
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KphScriptCall(
+        scriptHandle,
+        Routine,
+        Input,
+        InputLength,
+        Output,
+        OutputLength,
+        ReturnLength
+        );
+
+    KphClose(scriptHandle);
+
+CleanupExit:
+    if (signature)
+        PhFree(signature);
+    if (script)
+        PhFree(script);
+
+    return status;
+}
+
 /**
  * Identifies the processor.
  *
@@ -23,16 +123,15 @@ NTSTATUS KphHwCpuIdentify(
     )
 {
     NTSTATUS status;
-    ANSI_STRING script;
     ANSI_STRING routine;
     KPH_HW_CPU_IDENTITY identity;
     ULONG returnLength;
 
-    RtlInitAnsiString(&script, "cpu");
     RtlInitAnsiString(&routine, "identify");
 
-    status = KphScriptCall(
-        &script,
+    status = KphpHwScriptCall(
+        &KphpHwCpuFileName,
+        &KphpHwCpuSignatureName,
         &routine,
         NULL,
         0,
@@ -68,7 +167,6 @@ NTSTATUS KphHwCpuRead(
     )
 {
     NTSTATUS status;
-    ANSI_STRING script;
     ANSI_STRING routine;
     ULONG inputLength;
     ULONG outputLength;
@@ -80,13 +178,13 @@ NTSTATUS KphHwCpuRead(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE64), &outputLength)))
         return status;
 
-    RtlInitAnsiString(&script, "cpu");
     RtlInitAnsiString(&routine, "read");
 
     values = PhAllocate(outputLength ? outputLength : 1);
 
-    status = KphScriptCall(
-        &script,
+    status = KphpHwScriptCall(
+        &KphpHwCpuFileName,
+        &KphpHwCpuSignatureName,
         &routine,
         (PVOID)Items,
         inputLength,
@@ -254,19 +352,18 @@ NTSTATUS KphHwSuperIoIdentify(
     )
 {
     NTSTATUS status;
-    ANSI_STRING script;
     ANSI_STRING routine;
     KPH_HW_SUPERIO_CHIP chip;
     ULONG returnLength;
 
-    RtlInitAnsiString(&script, "superio");
     RtlInitAnsiString(&routine, "identify");
 
     if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
         return status;
 
-    status = KphScriptCall(
-        &script,
+    status = KphpHwScriptCall(
+        &KphpHwSuperIoFileName,
+        &KphpHwSuperIoSignatureName,
         &routine,
         &Slot,
         sizeof(Slot),
@@ -308,7 +405,6 @@ NTSTATUS KphHwSuperIoRead(
     )
 {
     NTSTATUS status;
-    ANSI_STRING script;
     ANSI_STRING routine;
     ULONG registersLength;
     ULONG inputLength;
@@ -324,7 +420,6 @@ NTSTATUS KphHwSuperIoRead(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE32), &outputLength)))
         return status;
 
-    RtlInitAnsiString(&script, "superio");
     RtlInitAnsiString(&routine, "read");
 
     input = PhAllocate(inputLength);
@@ -335,8 +430,9 @@ NTSTATUS KphHwSuperIoRead(
 
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
     {
-        status = KphScriptCall(
-            &script,
+        status = KphpHwScriptCall(
+            &KphpHwSuperIoFileName,
+            &KphpHwSuperIoSignatureName,
             &routine,
             input,
             inputLength,

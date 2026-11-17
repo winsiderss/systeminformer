@@ -96,11 +96,8 @@ typedef struct _KPH_DYN_CONFIG
     BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     BYTE ScriptPublicKey[KPH_DYN_SCRIPT_PUBLIC_KEY_LENGTH];
     ULONG Count;
-    ULONG ScriptOffset;
-    ULONG ScriptLength;
     KPH_DYN_DATA Data[ANYSIZE_ARRAY];
     // BYTE Fields[ANYSIZE_ARRAY];
-    // KPH_DYN_SCRIPT_SECTION Scripts;
 } KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
 
 #include <poppack.h>
@@ -109,45 +106,3 @@ typedef struct _KPH_DYN_CONFIG
 #define KPH_DYN_SCRIPT_LEVEL_MEDIUM             ((USHORT)1)
 #define KPH_DYN_SCRIPT_LEVEL_HIGH               ((USHORT)2)
 #define KPH_DYN_SCRIPT_LEVEL_MAXIMUM            ((USHORT)3)
-
-typedef struct _KPH_DYN_SCRIPT_LIMITS
-{
-    ULONG64 Instructions;
-    ULONG64 CleanupInstructions;
-    ULONG Milliseconds;
-    ULONG CleanupMilliseconds;
-    ULONG Memory;
-    ULONG CleanupMemory;
-} KPH_DYN_SCRIPT_LIMITS, *PKPH_DYN_SCRIPT_LIMITS;
-
-typedef struct _KPH_DYN_SCRIPT_ROUTINE
-{
-    ULONG NameOffset;
-    USHORT NameLength;
-    USHORT Level;
-} KPH_DYN_SCRIPT_ROUTINE, *PKPH_DYN_SCRIPT_ROUTINE;
-
-typedef struct _KPH_DYN_SCRIPT
-{
-    ULONG NameOffset;
-    USHORT NameLength;
-    USHORT RoutineCount;
-    ULONG RoutinesOffset;
-    ULONG ChunkOffset;
-    ULONG ChunkLength;
-} KPH_DYN_SCRIPT, *PKPH_DYN_SCRIPT;
-
-typedef struct _KPH_DYN_SCRIPT_SECTION
-{
-    KPH_DYN_SCRIPT_LIMITS Limits;
-    ULONG Count;
-    KPH_DYN_SCRIPT Scripts[ANYSIZE_ARRAY];
-    // KPH_DYN_SCRIPT_ROUTINE Routines[ANYSIZE_ARRAY];
-    // CHAR Names[ANYSIZE_ARRAY];
-    // BYTE Chunks[ANYSIZE_ARRAY];
-} KPH_DYN_SCRIPT_SECTION, *PKPH_DYN_SCRIPT_SECTION;
-
-C_ASSERT(sizeof(KPH_DYN_SCRIPT_LIMITS) == 32);
-C_ASSERT(sizeof(KPH_DYN_SCRIPT_ROUTINE) == 8);
-C_ASSERT(sizeof(KPH_DYN_SCRIPT) == 20);
-C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == 36);

@@ -867,9 +867,6 @@ typedef struct _KPH_DYN
 
     KPH_VERIFY_KEY_HANDLE SessionTokenPublicKeyHandle;
     KPH_VERIFY_KEY_HANDLE ScriptPublicKeyHandle;
-
-    PKPH_DYN_SCRIPT_SECTION ScriptSection;
-    ULONG ScriptSectionLength;
 } KPH_DYN, *PKPH_DYN;
 
 _IRQL_requires_max_(HIGH_LEVEL)
@@ -3213,22 +3210,33 @@ VOID KphCleanupScript(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
+NTSTATUS KphCreateScript(
+    _In_reads_bytes_(ScriptLength) PVOID Script,
+    _In_ ULONG ScriptLength,
+    _In_reads_bytes_(SignatureLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE ScriptHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphScriptCall(
-    _In_ PANSI_STRING Script,
+    _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_opt_(OutputLength) PVOID Output,
     _In_ ULONG OutputLength,
     _Out_opt_ PULONG ReturnLength,
-    _In_ KPH_PROCESS_STATE ProcessState,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KphScriptGetRequiredState(
-    _In_ PANSI_STRING Script,
+    _In_ HANDLE ScriptHandle,
     _In_ PANSI_STRING Routine,
     _In_ KPROCESSOR_MODE AccessMode
     );

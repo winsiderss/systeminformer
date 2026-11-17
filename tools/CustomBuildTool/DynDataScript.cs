@@ -12,8 +12,7 @@
 namespace CustomBuildTool
 {
     /// <summary>
-    /// Builds the script section of the dynamic data from the script manifest: the limits, a directory of
-    /// scripts with their routines, and the compiled chunks.
+    /// Builds the script files from the script manifest: one compiled script with its name, limits and routines.
     /// </summary>
     public static class DynDataScript
     {
@@ -37,20 +36,6 @@ namespace CustomBuildTool
         /// </summary>
         private const string LuaHeaderFile = "tools\\thirdparty\\lua\\src\\lua.h";
 
-        /// <summary>
-        /// The Lua release scripts are compiled and run with, by the dynamic data version that began using it.
-        /// The driver cannot tell the release of a chunk, so a new release takes a new row with a new
-        /// DynData.Version, and the driver rebuilt and shipped.
-        /// </summary>
-        private static readonly (UInt32 Version, string Release)[] LuaReleases =
-        [
-            (17, "5.5.1"),
-        ];
-
-        // The layout of the section. The generated header asserts the same numbers.
-        private const int LimitsSize = 32;
-        private const int ScriptsOffset = 36;
-        private const int ScriptSize = 20;
         private const int RoutineSize = 8;
         private const int ChunkAlignment = 8;
 
@@ -70,7 +55,7 @@ namespace CustomBuildTool
         ];
 
         /// <summary>
-        /// The C header content for the script section.
+        /// The C header content for the script levels.
         /// </summary>
         public static readonly string HeaderC =
 $$"""
@@ -79,48 +64,6 @@ $$"""
 #define KPH_DYN_SCRIPT_LEVEL_MEDIUM             ((USHORT){{Levels[1].Value}})
 #define KPH_DYN_SCRIPT_LEVEL_HIGH               ((USHORT){{Levels[2].Value}})
 #define KPH_DYN_SCRIPT_LEVEL_MAXIMUM            ((USHORT){{Levels[3].Value}})
-
-typedef struct _KPH_DYN_SCRIPT_LIMITS
-{
-    ULONG64 Instructions;
-    ULONG64 CleanupInstructions;
-    ULONG Milliseconds;
-    ULONG CleanupMilliseconds;
-    ULONG Memory;
-    ULONG CleanupMemory;
-} KPH_DYN_SCRIPT_LIMITS, *PKPH_DYN_SCRIPT_LIMITS;
-
-typedef struct _KPH_DYN_SCRIPT_ROUTINE
-{
-    ULONG NameOffset;
-    USHORT NameLength;
-    USHORT Level;
-} KPH_DYN_SCRIPT_ROUTINE, *PKPH_DYN_SCRIPT_ROUTINE;
-
-typedef struct _KPH_DYN_SCRIPT
-{
-    ULONG NameOffset;
-    USHORT NameLength;
-    USHORT RoutineCount;
-    ULONG RoutinesOffset;
-    ULONG ChunkOffset;
-    ULONG ChunkLength;
-} KPH_DYN_SCRIPT, *PKPH_DYN_SCRIPT;
-
-typedef struct _KPH_DYN_SCRIPT_SECTION
-{
-    KPH_DYN_SCRIPT_LIMITS Limits;
-    ULONG Count;
-    KPH_DYN_SCRIPT Scripts[ANYSIZE_ARRAY];
-    // KPH_DYN_SCRIPT_ROUTINE Routines[ANYSIZE_ARRAY];
-    // CHAR Names[ANYSIZE_ARRAY];
-    // BYTE Chunks[ANYSIZE_ARRAY];
-} KPH_DYN_SCRIPT_SECTION, *PKPH_DYN_SCRIPT_SECTION;
-
-C_ASSERT(sizeof(KPH_DYN_SCRIPT_LIMITS) == {{LimitsSize}});
-C_ASSERT(sizeof(KPH_DYN_SCRIPT_ROUTINE) == {{RoutineSize}});
-C_ASSERT(sizeof(KPH_DYN_SCRIPT) == {{ScriptSize}});
-C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
 """;
 
         /// <summary>
@@ -167,38 +110,6 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
         public static int AlignUp(int Value, int Alignment)
         {
             return (Value + Alignment - 1) & ~(Alignment - 1);
-        }
-
-        /// <summary>
-        /// Generates the script section from the script manifest.
-        /// </summary>
-        /// <param name="Version">The dynamic data version.</param>
-        /// <param name="ScriptCount">Receives the number of scripts.</param>
-        /// <param name="RoutineCount">Receives the number of routines of all scripts.</param>
-        /// <returns>The section, or null when the tree has no script manifest.</returns>
-        public static byte[] Generate(UInt32 Version, out int ScriptCount, out int RoutineCount)
-        {
-            string manifestFile = Path.Join([Build.BuildWorkingFolder, ManifestFile]);
-
-            ScriptCount = 0;
-            RoutineCount = 0;
-
-            if (!File.Exists(manifestFile))
-                return null;
-
-            CheckLuaRelease(Version);
-
-            ParseManifest(manifestFile, out Limits limits, out List<Script> scripts);
-
-            foreach (Script script in scripts)
-            {
-                script.Chunk = Compile(script);
-                RoutineCount += script.Routines.Count;
-            }
-
-            ScriptCount = scripts.Count;
-
-            return Layout(limits, scripts, RoutineCount);
         }
 
         /// <summary>
@@ -427,10 +338,9 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
         }
 
         /// <summary>
-        /// Checks the Lua release of the tree and of the script compiler against the pinned release.
+        /// Checks that the script compiler was built from the Lua release of the tree.
         /// </summary>
-        /// <param name="Version">The dynamic data version.</param>
-        private static void CheckLuaRelease(UInt32 Version)
+        private static void CheckLuaRelease()
         {
             string header = File.ReadAllText(Path.Join([Build.BuildWorkingFolder, LuaHeaderFile]));
             List<string> numbers = [];
@@ -446,22 +356,6 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
             }
 
             string release = string.Join('.', numbers);
-
-            for (int i = 1; i < LuaReleases.Length; i++)
-            {
-                if (LuaReleases[i].Version <= LuaReleases[i - 1].Version)
-                    throw new Exception("DynDataScript.LuaReleases: a row needs a higher version than the row before it");
-            }
-
-            (UInt32 pinnedVersion, string pinnedRelease) = LuaReleases[^1];
-
-            if (!release.Equals(pinnedRelease, StringComparison.Ordinal) || Version < pinnedVersion)
-            {
-                throw new Exception(
-                    $"{LuaHeaderFile} is Lua {release} and the dynamic data version is {Version}, but " +
-                    $"DynDataScript.LuaReleases pins Lua {pinnedRelease} from version {pinnedVersion}. A new Lua " +
-                    "release needs a higher DynData.Version, a new row in LuaReleases, and the driver rebuilt and shipped.");
-            }
 
             List<string> arguments = ["-v"];
             int exitCode = Win32.CreateProcess(GetCompilerPath(), arguments, out string compilerRelease, false);
@@ -515,70 +409,6 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
         }
 
         /// <summary>
-        /// Lays out the section: the limits, the scripts, their routines, the names, then the chunks.
-        /// </summary>
-        /// <param name="ManifestLimits">The limits.</param>
-        /// <param name="Scripts">The scripts, compiled.</param>
-        /// <param name="RoutineCount">The number of routines of all scripts.</param>
-        /// <returns>The section.</returns>
-        private static byte[] Layout(Limits ManifestLimits, List<Script> Scripts, int RoutineCount)
-        {
-            int routinesOffset = ScriptsOffset + (Scripts.Count * ScriptSize);
-            int namesOffset = routinesOffset + (RoutineCount * RoutineSize);
-            int namesLength = Scripts.Sum(s => s.Name.Length + s.Routines.Sum(r => r.Name.Length));
-            int length = AlignUp(namesOffset + namesLength, ChunkAlignment);
-
-            foreach (Script script in Scripts)
-            {
-                length = AlignUp(length + script.Chunk.Length, ChunkAlignment);
-            }
-
-            byte[] section = new byte[length];
-            Span<byte> span = section;
-
-            BinaryPrimitives.WriteUInt64LittleEndian(span[0..], ManifestLimits.Instructions);
-            BinaryPrimitives.WriteUInt64LittleEndian(span[8..], ManifestLimits.CleanupInstructions);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[16..], ManifestLimits.Milliseconds);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[20..], ManifestLimits.CleanupMilliseconds);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[24..], ManifestLimits.Memory);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[28..], ManifestLimits.CleanupMemory);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[LimitsSize..], (UInt32)Scripts.Count);
-
-            int scriptAt = ScriptsOffset;
-            int routineAt = routinesOffset;
-            int nameAt = namesOffset;
-            int chunkAt = AlignUp(namesOffset + namesLength, ChunkAlignment);
-
-            foreach (Script script in Scripts)
-            {
-                BinaryPrimitives.WriteUInt32LittleEndian(span[scriptAt..], (UInt32)nameAt);
-                BinaryPrimitives.WriteUInt16LittleEndian(span[(scriptAt + 4)..], (UInt16)script.Name.Length);
-                BinaryPrimitives.WriteUInt16LittleEndian(span[(scriptAt + 6)..], (UInt16)script.Routines.Count);
-                BinaryPrimitives.WriteUInt32LittleEndian(span[(scriptAt + 8)..], (UInt32)routineAt);
-                BinaryPrimitives.WriteUInt32LittleEndian(span[(scriptAt + 12)..], (UInt32)chunkAt);
-                BinaryPrimitives.WriteUInt32LittleEndian(span[(scriptAt + 16)..], (UInt32)script.Chunk.Length);
-                scriptAt += ScriptSize;
-
-                nameAt += Encoding.ASCII.GetBytes(script.Name, span[nameAt..]);
-
-                foreach (Routine routine in script.Routines)
-                {
-                    BinaryPrimitives.WriteUInt32LittleEndian(span[routineAt..], (UInt32)nameAt);
-                    BinaryPrimitives.WriteUInt16LittleEndian(span[(routineAt + 4)..], (UInt16)routine.Name.Length);
-                    BinaryPrimitives.WriteUInt16LittleEndian(span[(routineAt + 6)..], routine.Level);
-                    routineAt += RoutineSize;
-
-                    nameAt += Encoding.ASCII.GetBytes(routine.Name, span[nameAt..]);
-                }
-
-                script.Chunk.CopyTo(span[chunkAt..]);
-                chunkAt = AlignUp(chunkAt + script.Chunk.Length, ChunkAlignment);
-            }
-
-            return section;
-        }
-
-        /// <summary>
         /// Generates one script file image for each script of the manifest.
         /// </summary>
         /// <returns>The scripts by name with their images; empty when the tree has no script manifest.</returns>
@@ -589,6 +419,8 @@ C_ASSERT(FIELD_OFFSET(KPH_DYN_SCRIPT_SECTION, Scripts) == {{ScriptsOffset}});
 
             if (!File.Exists(manifestFile))
                 return files;
+
+            CheckLuaRelease();
 
             ParseManifest(manifestFile, out Limits limits, out List<Script> scripts);
 

@@ -606,4 +606,9 @@ typedef struct _KPH_SESSION_ACCESS_TOKEN
 C_ASSERT(sizeof(KPH_SESSION_ACCESS_TOKEN) == 64);
 #include <poppack.h>
 
+// Script
+
+#define KPH_SCRIPT_VOLATILE     0x00000001ul
+#define KPH_SCRIPT_NON_VOLATILE 0x00000002ul
+
 #pragma warning(pop)

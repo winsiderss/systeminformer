@@ -19,10 +19,6 @@ typedef struct _KPH_DYN_INIT
 {
     PKPH_DYN_CONFIG Config;
     ULONG ConfigLength;
-    PKPH_DYN_KERNEL_FIELDS Kernel;
-    PKPH_DYN_LXCORE_FIELDS Lxcore;
-    PKPH_DYN_SCRIPT_SECTION ScriptSection;
-    ULONG ScriptSectionLength;
 } KPH_DYN_INIT, *PKPH_DYN_INIT;
 
 typedef union _KPH_DYN_ATOMIC
@@ -205,25 +201,93 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     NTSTATUS status;
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
-    KPH_VERIFY_KEY_HANDLE sessionTokenPublicKeyHandle;
-    KPH_VERIFY_KEY_HANDLE scriptPublicKeyHandle;
-    PVOID scriptSection;
-    ULONG scriptSectionLength;
+    PKPH_DYN_KERNEL_FIELDS kernel;
+    PKPH_DYN_LXCORE_FIELDS lxcore;
 
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
-    sessionTokenPublicKeyHandle = NULL;
-    scriptPublicKeyHandle = NULL;
-    scriptSection = NULL;
-    scriptSectionLength = 0;
-
     dyn = Object;
     init = Parameter;
 
-#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = init->Kernel ? C_2sTo4(init->Kernel->x) : ULONG_MAX;
-#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
+    kernel = NULL;
+    lxcore = NULL;
+
+    if (KphpDynModules[KphDynNtoskrnl].Valid)
+    {
+        status = KphDynDataLookup(init->Config,
+                                  init->ConfigLength,
+                                  KphpDynModules[KphDynNtoskrnl].Class,
+                                  KphpDynModules[KphDynNtoskrnl].Machine,
+                                  KphpDynModules[KphDynNtoskrnl].TimeDateStamp,
+                                  KphpDynModules[KphDynNtoskrnl].SizeOfImage,
+                                  NULL,
+                                  sizeof(KPH_DYN_NTOSKRNL_FIELDS),
+                                  &kernel);
+    }
+    else if (KphpDynModules[KphDynNtkrla57].Valid)
+    {
+        status = KphDynDataLookup(init->Config,
+                                  init->ConfigLength,
+                                  KphpDynModules[KphDynNtkrla57].Class,
+                                  KphpDynModules[KphDynNtkrla57].Machine,
+                                  KphpDynModules[KphDynNtkrla57].TimeDateStamp,
+                                  KphpDynModules[KphDynNtkrla57].SizeOfImage,
+                                  NULL,
+                                  sizeof(KPH_DYN_NTKRLA57_FIELDS),
+                                  &kernel);
+    }
+    else
+    {
+        status = STATUS_NOT_FOUND;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphDynDataLookup failed: %!STATUS!",
+                      status);
+
+        //
+        // Activating dynamic data does not require kernel data.
+        //
+        kernel = NULL;
+    }
+
+    if (KphpDynModules[KphDynLxcore].Valid)
+    {
+        status = KphDynDataLookup(init->Config,
+                                  init->ConfigLength,
+                                  KphpDynModules[KphDynLxcore].Class,
+                                  KphpDynModules[KphDynLxcore].Machine,
+                                  KphpDynModules[KphDynLxcore].TimeDateStamp,
+                                  KphpDynModules[KphDynLxcore].SizeOfImage,
+                                  NULL,
+                                  sizeof(KPH_DYN_LXCORE_FIELDS),
+                                  &lxcore);
+    }
+    else
+    {
+        status = STATUS_NOT_FOUND;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphDynDataLookup failed: %!STATUS!",
+                      status);
+
+        //
+        // Activating dynamic data does not require lxcore data.
+        //
+        lxcore = NULL;
+    }
+
+#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = kernel ? C_2sTo4(kernel->x) : ULONG_MAX;
+#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = lxcore ? C_2sTo4(lxcore->x) : ULONG_MAX;
 
     KPH_LOAD_DYNITEM_KERNEL(EgeGuid);
     KPH_LOAD_DYNITEM_KERNEL(EpObjectTable);
@@ -269,7 +333,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfo);
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfoTID);
 
-    status = KphpCreateDynDataKey(&sessionTokenPublicKeyHandle,
+    status = KphpCreateDynDataKey(&dyn->SessionTokenPublicKeyHandle,
                                   init->Config,
                                   init->ConfigLength,
                                   UFIELD_OFFSET(KPH_DYN_CONFIG, SessionTokenPublicKey),
@@ -281,10 +345,10 @@ NTSTATUS KSIAPI KphpInitializeDynData(
                       "KphpCreateDynDataKey failed: %!STATUS!",
                       status);
 
-        sessionTokenPublicKeyHandle = NULL;
+        dyn->SessionTokenPublicKeyHandle = NULL;
     }
 
-    status = KphpCreateDynDataKey(&scriptPublicKeyHandle,
+    status = KphpCreateDynDataKey(&dyn->ScriptPublicKeyHandle,
                                   init->Config,
                                   init->ConfigLength,
                                   UFIELD_OFFSET(KPH_DYN_CONFIG, ScriptPublicKey),
@@ -296,58 +360,10 @@ NTSTATUS KSIAPI KphpInitializeDynData(
                       "KphpCreateDynDataKey failed: %!STATUS!",
                       status);
 
-        scriptPublicKeyHandle = NULL;
+        dyn->ScriptPublicKeyHandle = NULL;
     }
 
-    if (init->ScriptSection)
-    {
-        scriptSection = KphAllocatePaged(init->ScriptSectionLength,
-                                         KPH_TAG_DYNDATA_SCRIPT);
-        if (!scriptSection)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          GENERAL,
-                          "Failed to allocate script section");
-
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
-
-        RtlCopyMemory(scriptSection,
-                      init->ScriptSection,
-                      init->ScriptSectionLength);
-
-        scriptSectionLength = init->ScriptSectionLength;
-    }
-
-    dyn->SessionTokenPublicKeyHandle = sessionTokenPublicKeyHandle;
-    sessionTokenPublicKeyHandle = NULL;
-    dyn->ScriptPublicKeyHandle = scriptPublicKeyHandle;
-    scriptPublicKeyHandle = NULL;
-    dyn->ScriptSection = scriptSection;
-    scriptSection = NULL;
-    dyn->ScriptSectionLength = scriptSectionLength;
-
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    if (sessionTokenPublicKeyHandle)
-    {
-        KphVerifyCloseKey(sessionTokenPublicKeyHandle);
-    }
-
-    if (scriptPublicKeyHandle)
-    {
-        KphVerifyCloseKey(scriptPublicKeyHandle);
-    }
-
-    if (scriptSection)
-    {
-        KphFree(scriptSection, KPH_TAG_DYNDATA_SCRIPT);
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -375,11 +391,6 @@ VOID KSIAPI KphpDeleteDynData(
     if (dyn->ScriptPublicKeyHandle)
     {
         KphVerifyCloseKey(dyn->ScriptPublicKeyHandle);
-    }
-
-    if (dyn->ScriptSection)
-    {
-        KphFree(dyn->ScriptSection, KPH_TAG_DYNDATA_SCRIPT);
     }
 }
 
@@ -421,18 +432,10 @@ NTSTATUS KphpActivateDynData(
     NTSTATUS status;
     PKPH_DYN dyn;
     KPH_DYN_INIT init;
-    PKPH_DYN_KERNEL_FIELDS kernel;
-    PKPH_DYN_LXCORE_FIELDS lxcore;
-    PKPH_DYN_SCRIPT_SECTION scriptSection;
-    ULONG scriptSectionLength;
 
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    kernel = NULL;
-    lxcore = NULL;
-    scriptSection = NULL;
-    scriptSectionLength = 0;
 
     if (Signature)
     {
@@ -452,102 +455,8 @@ NTSTATUS KphpActivateDynData(
         }
     }
 
-    if (KphpDynModules[KphDynNtoskrnl].Valid)
-    {
-        status = KphDynDataLookup((PKPH_DYN_CONFIG)DynConfig,
-                                  DynConfigLength,
-                                  KphpDynModules[KphDynNtoskrnl].Class,
-                                  KphpDynModules[KphDynNtoskrnl].Machine,
-                                  KphpDynModules[KphDynNtoskrnl].TimeDateStamp,
-                                  KphpDynModules[KphDynNtoskrnl].SizeOfImage,
-                                  NULL,
-                                  sizeof(KPH_DYN_NTOSKRNL_FIELDS),
-                                  &kernel);
-    }
-    else if (KphpDynModules[KphDynNtkrla57].Valid)
-    {
-        status = KphDynDataLookup((PKPH_DYN_CONFIG)DynConfig,
-                                  DynConfigLength,
-                                  KphpDynModules[KphDynNtkrla57].Class,
-                                  KphpDynModules[KphDynNtkrla57].Machine,
-                                  KphpDynModules[KphDynNtkrla57].TimeDateStamp,
-                                  KphpDynModules[KphDynNtkrla57].SizeOfImage,
-                                  NULL,
-                                  sizeof(KPH_DYN_NTKRLA57_FIELDS),
-                                  &kernel);
-    }
-    else
-    {
-        status = STATUS_NOT_FOUND;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "KphDynDataLookup failed: %!STATUS!",
-                      status);
-
-        //
-        // Activating dynamic data does not require kernel data.
-        //
-        kernel = NULL;
-    }
-
-    if (KphpDynModules[KphDynLxcore].Valid)
-    {
-        status = KphDynDataLookup((PKPH_DYN_CONFIG)DynConfig,
-                                  DynConfigLength,
-                                  KphpDynModules[KphDynLxcore].Class,
-                                  KphpDynModules[KphDynLxcore].Machine,
-                                  KphpDynModules[KphDynLxcore].TimeDateStamp,
-                                  KphpDynModules[KphDynLxcore].SizeOfImage,
-                                  NULL,
-                                  sizeof(KPH_DYN_LXCORE_FIELDS),
-                                  &lxcore);
-    }
-    else
-    {
-        status = STATUS_NOT_FOUND;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "KphDynDataLookup failed: %!STATUS!",
-                      status);
-
-        //
-        // Activating dynamic data does not require lxcore data.
-        //
-        lxcore = NULL;
-    }
-
-    status = KphDynDataLookupScriptSection((PKPH_DYN_CONFIG)DynConfig,
-                                           DynConfigLength,
-                                           &scriptSection,
-                                           &scriptSectionLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "KphDynDataLookupScriptSection failed: %!STATUS!",
-                      status);
-
-        //
-        // Activating dynamic data does not require a script section.
-        //
-        scriptSection = NULL;
-        scriptSectionLength = 0;
-    }
-
     init.Config = (PKPH_DYN_CONFIG)DynConfig;
     init.ConfigLength = DynConfigLength;
-    init.Kernel = kernel;
-    init.Lxcore = lxcore;
-    init.ScriptSection = scriptSection;
-    init.ScriptSectionLength = scriptSectionLength;
 
     status = KphCreateObject(KphpDynDataType, sizeof(KPH_DYN), &dyn, &init);
     if (!NT_SUCCESS(status))

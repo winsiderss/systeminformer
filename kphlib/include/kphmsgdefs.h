@@ -20,6 +20,12 @@
 #pragma warning(push)
 #pragma warning(disable : 4201)
 
+typedef struct _KPHM_CLOSE
+{
+    NTSTATUS Status;
+    HANDLE Handle;
+} KPHM_CLOSE, *PKPHM_CLOSE;
+
 typedef struct _KPHM_SET_INFORMER_SETTINGS
 {
     NTSTATUS Status;
@@ -428,10 +434,21 @@ typedef struct _KPHM_GET_INFORMER_CLIENT_STATS
     PKPH_INFORMER_CLIENT_STATS Stats;
 } KPHM_GET_INFORMER_CLIENT_STATS, *PKPHM_GET_INFORMER_CLIENT_STATS;
 
+typedef struct _KPHM_CREATE_SCRIPT
+{
+    NTSTATUS Status;
+    PVOID Script;
+    ULONG ScriptLength;
+    PVOID Signature;
+    ULONG SignatureLength;
+    ULONG Flags;
+    PHANDLE ScriptHandle;
+} KPHM_CREATE_SCRIPT, *PKPHM_CREATE_SCRIPT;
+
 typedef struct _KPHM_SCRIPT_CALL
 {
     NTSTATUS Status;
-    PANSI_STRING Script;
+    HANDLE ScriptHandle;
     PANSI_STRING Routine;
     PVOID Input;
     ULONG InputLength;
@@ -439,6 +456,7 @@ typedef struct _KPHM_SCRIPT_CALL
     ULONG OutputLength;
     PULONG ReturnLength;
 } KPHM_SCRIPT_CALL, *PKPHM_SCRIPT_CALL;
+typedef const KPHM_SCRIPT_CALL *PCKPHM_SCRIPT_CALL;
 
 //
 // KPH -> PH
