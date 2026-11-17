@@ -89,6 +89,11 @@ typedef PVOID* PPVOID;
  */
 typedef CONST VOID *PCVOID;
 
+/**
+ * The PCULONG type is a pointer to a constant unsigned long.
+ */
+typedef CONST ULONG *PCULONG;
+
 //
 // Specific
 //
