@@ -11,52 +11,96 @@
 
 #include <ph.h>
 #include <kphhw.h>
+#include <sistatus.h>
+
+typedef struct _KPH_HW_SCRIPT
+{
+    PH_QUEUED_LOCK Lock;
+    HANDLE Handle;
+    ULONG Flags;
+    PCPH_STRINGREF FileName;
+} KPH_HW_SCRIPT, *PKPH_HW_SCRIPT;
 
 static CONST PH_STRINGREF KphpHwCpuFileName = PH_STRINGREF_INIT(L"scripts\\cpu.bin");
-static CONST PH_STRINGREF KphpHwCpuSignatureName = PH_STRINGREF_INIT(L"scripts\\cpu.sig");
 static CONST PH_STRINGREF KphpHwSuperIoFileName = PH_STRINGREF_INIT(L"scripts\\superio.bin");
-static CONST PH_STRINGREF KphpHwSuperIoSignatureName = PH_STRINGREF_INIT(L"scripts\\superio.sig");
+static KPH_HW_SCRIPT KphpHwCpuScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_VOLATILE, &KphpHwCpuFileName };
+static KPH_HW_SCRIPT KphpHwSuperIoScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_VOLATILE, &KphpHwSuperIoFileName };
 
-static NTSTATUS KphpHwReadFile(
-    _In_ PCPH_STRINGREF FileName,
-    _Out_ PVOID* Data,
-    _Out_ PULONG Length
+/**
+ * Retrieves the handle of a script, loading the script on first use.
+ *
+ * \param Script The script.
+ * \param ScriptHandle Receives the handle. The script is held shared while the
+ * handle is in use; release it with PhReleaseQueuedLockShared.
+ * \return Successful or errant status.
+ */
+static NTSTATUS KphpHwAcquireScript(
+    _Inout_ PKPH_HW_SCRIPT Script,
+    _Out_ PHANDLE ScriptHandle
     )
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    HANDLE fileHandle;
 
-    *Data = NULL;
-    *Length = 0;
-
-    if (!(fileName = PhGetApplicationDirectoryFileName(FileName, TRUE)))
-        return STATUS_NO_SUCH_FILE;
-
-    status = PhCreateFile(
-        &fileHandle,
-        &fileName->sr,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (NT_SUCCESS(status))
+    for (;;)
     {
-        status = PhGetFileData(fileHandle, Data, Length);
-        NtClose(fileHandle);
+        PhAcquireQueuedLockShared(&Script->Lock);
+
+        if (Script->Handle)
+        {
+            *ScriptHandle = Script->Handle;
+            return STATUS_SUCCESS;
+        }
+
+        PhReleaseQueuedLockShared(&Script->Lock);
+
+        PhAcquireQueuedLockExclusive(&Script->Lock);
+
+        if (Script->Handle)
+        {
+            status = STATUS_SUCCESS;
+        }
+        else if (!(fileName = PhGetApplicationDirectoryFileName(Script->FileName, TRUE)))
+        {
+            status = STATUS_NO_SUCH_FILE;
+        }
+        else
+        {
+            status = KphLoadScript(&Script->Handle, &fileName->sr, Script->Flags);
+            PhDereferenceObject(fileName);
+        }
+
+        PhReleaseQueuedLockExclusive(&Script->Lock);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+}
+
+/**
+ * Closes the handle of a script if it is still the given one.
+ *
+ * \param Script The script.
+ * \param ScriptHandle The handle a call failed with.
+ */
+static VOID KphpHwCloseScript(
+    _Inout_ PKPH_HW_SCRIPT Script,
+    _In_ HANDLE ScriptHandle
+    )
+{
+    PhAcquireQueuedLockExclusive(&Script->Lock);
+
+    if (Script->Handle == ScriptHandle)
+    {
+        KphClose(Script->Handle);
+        Script->Handle = NULL;
     }
 
-    PhDereferenceObject(fileName);
-
-    return status;
+    PhReleaseQueuedLockExclusive(&Script->Lock);
 }
 
 static NTSTATUS KphpHwScriptCall(
-    _In_ PCPH_STRINGREF FileName,
-    _In_ PCPH_STRINGREF SignatureName,
+    _Inout_ PKPH_HW_SCRIPT Script,
     _In_ PANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
@@ -66,50 +110,62 @@ static NTSTATUS KphpHwScriptCall(
     )
 {
     NTSTATUS status;
-    PVOID script = NULL;
-    ULONG scriptLength;
-    PVOID signature = NULL;
-    ULONG signatureLength;
     HANDLE scriptHandle;
 
     *ReturnLength = 0;
 
-    if (!NT_SUCCESS(status = KphpHwReadFile(FileName, &script, &scriptLength)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = KphpHwReadFile(SignatureName, &signature, &signatureLength)))
-        goto CleanupExit;
+    for (ULONG attempt = 0; attempt < 2; attempt++)
+    {
+        if (!NT_SUCCESS(status = KphpHwAcquireScript(Script, &scriptHandle)))
+            return status;
 
-    status = KphCreateScript(
-        &scriptHandle,
-        script,
-        scriptLength,
-        signature,
-        signatureLength,
-        KPH_SCRIPT_VOLATILE
-        );
+        status = KphScriptCall(
+            scriptHandle,
+            Routine,
+            Input,
+            InputLength,
+            Output,
+            OutputLength,
+            ReturnLength
+            );
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        PhReleaseQueuedLockShared(&Script->Lock);
 
-    status = KphScriptCall(
-        scriptHandle,
-        Routine,
-        Input,
-        InputLength,
-        Output,
-        OutputLength,
-        ReturnLength
-        );
+        if (status != STATUS_SI_SCRIPT_FAULTED && status != STATUS_INVALID_HANDLE)
+            break;
 
-    KphClose(scriptHandle);
-
-CleanupExit:
-    if (signature)
-        PhFree(signature);
-    if (script)
-        PhFree(script);
+        KphpHwCloseScript(Script, scriptHandle);
+    }
 
     return status;
+}
+
+/**
+ * Chooses the mode scripts are loaded in from now on, and closes the scripts
+ * that are loaded.
+ *
+ * \param Flags KPH_SCRIPT_VOLATILE or KPH_SCRIPT_NON_VOLATILE.
+ */
+VOID KphHwSetScriptMode(
+    _In_ ULONG Flags
+    )
+{
+    PKPH_HW_SCRIPT scripts[] = { &KphpHwCpuScript, &KphpHwSuperIoScript };
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
+    {
+        PhAcquireQueuedLockExclusive(&scripts[i]->Lock);
+
+        scripts[i]->Flags = Flags;
+
+        if (scripts[i]->Handle)
+        {
+            KphClose(scripts[i]->Handle);
+            scripts[i]->Handle = NULL;
+        }
+
+        PhReleaseQueuedLockExclusive(&scripts[i]->Lock);
+    }
 }
 
 /**
@@ -130,8 +186,7 @@ NTSTATUS KphHwCpuIdentify(
     RtlInitAnsiString(&routine, "identify");
 
     status = KphpHwScriptCall(
-        &KphpHwCpuFileName,
-        &KphpHwCpuSignatureName,
+        &KphpHwCpuScript,
         &routine,
         NULL,
         0,
@@ -153,6 +208,8 @@ NTSTATUS KphHwCpuIdentify(
 
 /**
  * Reads model-specific registers, each on the processor its item names.
+ * Items for the same processor must be adjacent; the script pins once per run
+ * of the same processor. The helper does not sort.
  *
  * \param Items The registers to read.
  * \param Count The number of items.
@@ -183,8 +240,7 @@ NTSTATUS KphHwCpuRead(
     values = PhAllocate(outputLength ? outputLength : 1);
 
     status = KphpHwScriptCall(
-        &KphpHwCpuFileName,
-        &KphpHwCpuSignatureName,
+        &KphpHwCpuScript,
         &routine,
         (PVOID)Items,
         inputLength,
@@ -362,8 +418,7 @@ NTSTATUS KphHwSuperIoIdentify(
         return status;
 
     status = KphpHwScriptCall(
-        &KphpHwSuperIoFileName,
-        &KphpHwSuperIoSignatureName,
+        &KphpHwSuperIoScript,
         &routine,
         &Slot,
         sizeof(Slot),
@@ -431,8 +486,7 @@ NTSTATUS KphHwSuperIoRead(
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
     {
         status = KphpHwScriptCall(
-            &KphpHwSuperIoFileName,
-            &KphpHwSuperIoSignatureName,
+            &KphpHwSuperIoScript,
             &routine,
             input,
             inputLength,
