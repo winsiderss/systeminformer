@@ -14,7 +14,8 @@
 #define _PH_PHGUI_H
 
 #include <commctrl.h>
-#include <guisupview.h>
+
+typedef interface IListView IListView;
 
 EXTERN_C_START
 
