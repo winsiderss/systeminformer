@@ -85,6 +85,13 @@ KphHwSuperIoIdentify(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+KphHwSetScriptMode(
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 KphHwSuperIoRead(
