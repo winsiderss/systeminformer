@@ -18,6 +18,7 @@
 typedef struct _KPH_DYN_INIT
 {
     PKPH_DYN_CONFIG Config;
+    ULONG ConfigLength;
     PKPH_DYN_KERNEL_FIELDS Kernel;
     PKPH_DYN_LXCORE_FIELDS Lxcore;
     PKPH_DYN_SCRIPT_SECTION ScriptSection;
@@ -100,6 +101,92 @@ PVOID KSIAPI KphpAllocateDynData(
 }
 
 /**
+ * \brief Create key handle for the given public key of dynamic configuration.
+ *
+ * \param[out] KeyHandle Receives the key handle.
+ * \param[in] DynConfig The dynamic configuration.
+ * \param[in] DynConfigLength The length of the dynamic configuration.
+ * \param[in] KeyOffset The offset of the public key in the configuration.
+ * \param[in] KeyLength The length of the public key.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpCreateDynDataKey(
+    _Out_ KPH_VERIFY_KEY_HANDLE* KeyHandle,
+    _In_reads_bytes_(DynConfigLength) PKPH_DYN_CONFIG DynConfig,
+    _In_ ULONG DynConfigLength,
+    _In_ ULONG KeyOffset,
+    _In_ ULONG KeyLength
+    )
+{
+    NTSTATUS status;
+    ULONG endOffset;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *KeyHandle = NULL;
+
+    if (DynConfigLength < RTL_SIZEOF_THROUGH_FIELD(KPH_DYN_CONFIG, Version))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Version not within configuration extents");
+
+        status = STATUS_SI_DYNDATA_INVALID_LENGTH;
+        goto Exit;
+    }
+
+    if (DynConfig->Version != KPH_DYN_CONFIGURATION_VERSION)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Dynamic configuration version %lu is not %lu",
+                      DynConfig->Version,
+                      KPH_DYN_CONFIGURATION_VERSION);
+
+        status = STATUS_SI_DYNDATA_VERSION_MISMATCH;
+        goto Exit;
+    }
+
+    status = RtlULongAdd(KeyOffset, KeyLength, &endOffset);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "RtlULongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (endOffset > DynConfigLength)
+    {
+        status = STATUS_SI_DYNDATA_INVALID_LENGTH;
+        goto Exit;
+    }
+
+    status = KphVerifyCreateKey(KeyHandle,
+                                Add2Ptr(DynConfig, KeyOffset),
+                                KeyLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphVerifyCreateKey failed: %!STATUS!",
+                      status);
+
+        *KeyHandle = NULL;
+        goto Exit;
+    }
+
+Exit:
+
+    return status;
+}
+
+/**
  * \brief Initializes a dynamic configuration object.
  *
  * \param[in] Object Dynamic configuration object to initialize.
@@ -119,6 +206,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
     KPH_VERIFY_KEY_HANDLE sessionTokenPublicKeyHandle;
+    KPH_VERIFY_KEY_HANDLE scriptPublicKeyHandle;
     PVOID scriptSection;
     ULONG scriptSectionLength;
 
@@ -127,6 +215,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     NT_ASSERT(Parameter);
 
     sessionTokenPublicKeyHandle = NULL;
+    scriptPublicKeyHandle = NULL;
     scriptSection = NULL;
     scriptSectionLength = 0;
 
@@ -180,18 +269,34 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfo);
     KPH_LOAD_DYNITEM_LXCORE(LxPicoThrdInfoTID);
 
-    status = KphVerifyCreateKey(&sessionTokenPublicKeyHandle,
-                                init->Config->SessionTokenPublicKey,
-                                KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
+    status = KphpCreateDynDataKey(&sessionTokenPublicKeyHandle,
+                                  init->Config,
+                                  init->ConfigLength,
+                                  UFIELD_OFFSET(KPH_DYN_CONFIG, SessionTokenPublicKey),
+                                  KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "KphVerifyCreateKey failed: %!STATUS!",
+                      "KphpCreateDynDataKey failed: %!STATUS!",
                       status);
 
         sessionTokenPublicKeyHandle = NULL;
-        goto Exit;
+    }
+
+    status = KphpCreateDynDataKey(&scriptPublicKeyHandle,
+                                  init->Config,
+                                  init->ConfigLength,
+                                  UFIELD_OFFSET(KPH_DYN_CONFIG, ScriptPublicKey),
+                                  KPH_DYN_SCRIPT_PUBLIC_KEY_LENGTH);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphpCreateDynDataKey failed: %!STATUS!",
+                      status);
+
+        scriptPublicKeyHandle = NULL;
     }
 
     if (init->ScriptSection)
@@ -217,15 +322,24 @@ NTSTATUS KSIAPI KphpInitializeDynData(
 
     dyn->SessionTokenPublicKeyHandle = sessionTokenPublicKeyHandle;
     sessionTokenPublicKeyHandle = NULL;
+    dyn->ScriptPublicKeyHandle = scriptPublicKeyHandle;
+    scriptPublicKeyHandle = NULL;
     dyn->ScriptSection = scriptSection;
     scriptSection = NULL;
     dyn->ScriptSectionLength = scriptSectionLength;
+
+    status = STATUS_SUCCESS;
 
 Exit:
 
     if (sessionTokenPublicKeyHandle)
     {
         KphVerifyCloseKey(sessionTokenPublicKeyHandle);
+    }
+
+    if (scriptPublicKeyHandle)
+    {
+        KphVerifyCloseKey(scriptPublicKeyHandle);
     }
 
     if (scriptSection)
@@ -256,6 +370,11 @@ VOID KSIAPI KphpDeleteDynData(
     if (dyn->SessionTokenPublicKeyHandle)
     {
         KphVerifyCloseKey(dyn->SessionTokenPublicKeyHandle);
+    }
+
+    if (dyn->ScriptPublicKeyHandle)
+    {
+        KphVerifyCloseKey(dyn->ScriptPublicKeyHandle);
     }
 
     if (dyn->ScriptSection)
@@ -424,6 +543,7 @@ NTSTATUS KphpActivateDynData(
     }
 
     init.Config = (PKPH_DYN_CONFIG)DynConfig;
+    init.ConfigLength = DynConfigLength;
     init.Kernel = kernel;
     init.Lxcore = lxcore;
     init.ScriptSection = scriptSection;

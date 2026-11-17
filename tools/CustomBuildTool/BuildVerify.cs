@@ -26,6 +26,7 @@ namespace CustomBuildTool
             { "kph",       new("KPH_BUILD_KEY", "KPH_BUILD_S", "KPH_BUILD_I") },
             { "preview",   new("PREVIEW_BUILD_KEY", "PREVIEW_BUILD_S", "PREVIEW_BUILD_I") },
             { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_S", "RELEASE_BUILD_I") },
+            { "script",    new("SCRIPT_BUILD_KEY", "SCRIPT_BUILD_S", "SCRIPT_BUILD_I") },
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
         public record BuildVerifyKeyPair(string Key, string Salt, string Iterations);
 
