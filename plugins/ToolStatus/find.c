@@ -11,6 +11,7 @@
  */
 
 #include "toolstatus.h"
+#include <ntstrsafe.h>
 
 ULONG FindDialogMessage = ULONG_MAX;
 static FINDREPLACE FindDialogData = { 0 };
@@ -191,7 +192,7 @@ BOOLEAN FindMatchInNode(
                         if (length >= RTL_NUMBER_OF(buffer))
                             length = RTL_NUMBER_OF(buffer) - 1;
 
-                        wcsncpy_s(buffer, RTL_NUMBER_OF(buffer), getCellText.Text.Buffer, length);
+                        RtlStringCchCopyNExW(buffer, RTL_NUMBER_OF(buffer), getCellText.Text.Buffer, length, NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                         buffer[length] = UNICODE_NULL;
 
                         string.Buffer = buffer;
@@ -407,7 +408,7 @@ VOID FindDialogHandleFindMessage(
         // If search text changed, reset index so we start fresh
         if (!PhEqualStringZ(FindDialogText, fr->lpstrFindWhat, FALSE))
         {
-            wcsncpy_s(FindDialogText, RTL_NUMBER_OF(FindDialogText), fr->lpstrFindWhat, _TRUNCATE);
+            RtlStringCchCopy(FindDialogText, RTL_NUMBER_OF(FindDialogText), fr->lpstrFindWhat);
             PhInitializeStringRefLongHint(&FindDialogExpression, FindDialogText);
             searchParamsChanged = TRUE;
         }

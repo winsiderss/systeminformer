@@ -1118,7 +1118,8 @@ NTSTATUS UpdateDownloadThread(
         // Calculate the number of ticks
         totalDownloaded += bytesWritten;
         timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
-        timeBitsPerSecond = timeTicks ? (ULONG64)totalDownloaded * PH_TICKS_PER_SEC / timeTicks : 0;
+        timeBitsPerSecond = 0;
+        PhMultiplyDivide128(totalDownloaded, PH_TICKS_PER_SEC, timeTicks, 0, &timeBitsPerSecond);
 
 #ifdef FORCE_NO_STATUS_TIMER
         LONG percent = PhMultiplyDivide((LONG64)totalDownloaded, 100, (LONG64)contentLength);

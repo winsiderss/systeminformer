@@ -426,7 +426,12 @@ BOOLEAN WhoisDualStackSocketConnectByAddressList(
         dnsRecordListCount += 1;
     }
 
-    socketAddressArray = PhAllocate(dnsRecordListCount * sizeof(SOCKADDR_IN6));
+    SIZE_T socketAddressArrayAllocationSize;
+
+    if (!NT_SUCCESS(RtlSizeTMult(dnsRecordListCount, sizeof(SOCKADDR_IN6), &socketAddressArrayAllocationSize)))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    socketAddressArray = PhAllocate(socketAddressArrayAllocationSize);
     memset(socketAddressArray, 0, dnsRecordListCount * sizeof(SOCKADDR_IN6));
 
     socketAddressListSize = SIZEOF_SOCKET_ADDRESS_LIST(dnsRecordListCount) + (dnsRecordListCount * sizeof(SOCKADDR_STORAGE));
@@ -769,11 +774,11 @@ BOOLEAN WhoisQueryServer(
 
         if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
         {
-            _snprintf_s(formatBuffer, RTL_NUMBER_OF(formatBuffer), _TRUNCATE, "n %ls\r\n", WhoisQueryAddress);
+            RtlStringCchPrintfA(formatBuffer, RTL_NUMBER_OF(formatBuffer), "n %ls\r\n", WhoisQueryAddress);
         }
         else
         {
-            _snprintf_s(formatBuffer, RTL_NUMBER_OF(formatBuffer), _TRUNCATE, "%ls\r\n", WhoisQueryAddress);
+            RtlStringCchPrintfA(formatBuffer, RTL_NUMBER_OF(formatBuffer), "%ls\r\n", WhoisQueryAddress);
         }
 
         // Length in bytes including the null terminator.

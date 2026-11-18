@@ -44,7 +44,7 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
     VOID
     )
 {
-    static ULONG NextUniqueId = 1;
+    static LONG NextUniqueId = 0;
     PTRACERT_ROOT_NODE tracertNode;
 
     tracertNode = PhCreateObject(sizeof(TRACERT_ROOT_NODE), TracertTreeNodeItemType);
@@ -52,7 +52,7 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
 
     PhInitializeTreeNewNode(&tracertNode->Node);
 
-    tracertNode->UniqueId = NextUniqueId++; // used to stabilize sorting
+    tracertNode->UniqueId = (ULONG)InterlockedIncrement(&NextUniqueId);
     tracertNode->CountryIconIndex = INT_ERROR;
 
     return tracertNode;

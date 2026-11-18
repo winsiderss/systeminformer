@@ -133,7 +133,12 @@ VOID PhHeaderNewNormalizeOrder(
     // which is how SysHeader32 settles ambiguous orders. The item count is small
     // enough that anything cleverer than this is not worth the code.
 
-    ranks = PhAllocate(count * sizeof(LONG));
+    SIZE_T ranksAllocationSize;
+
+    if (!NT_SUCCESS(RtlSizeTMult(count, sizeof(LONG), &ranksAllocationSize)))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    ranks = PhAllocate(ranksAllocationSize);
 
     for (i = 0; i < count; i++)
     {

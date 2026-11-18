@@ -145,7 +145,7 @@ VOID ShowPingWindow(
 
 VOID ShowPingWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    _In_ PPH_IP_ENDPOINT RemoteEndpoint
     );
 
 // whois.c

@@ -1743,7 +1743,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     if (node->CountryIconIndex != INT_ERROR)
                     {
                         rect.left += FwTreeLeftMarginPadding;
-                        EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);
+                        EtFwDrawCountryIcon(hdc, &rect, node->CountryIconIndex);
                         rect.left += FwTreeRightMarginPadding;
                     }
 
@@ -1963,7 +1963,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowPingWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
+                EtFwShowPingWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
             }
         }
         break;
@@ -1973,7 +1973,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowTracerWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
+                EtFwShowTracerWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
             }
         }
         break;
@@ -1983,7 +1983,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowWhoisWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
+                EtFwShowWhoisWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
             }
         }
         break;

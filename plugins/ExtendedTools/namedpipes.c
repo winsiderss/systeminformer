@@ -13,6 +13,7 @@
 #include <secedit.h>
 #include <kphuser.h>
 #include <hndlinfo.h>
+#include <ntstrsafe.h>
 
 #define ET_PIPE_ENUM_MAX_COLUMNS 15
 #define ET_PIPE_NOTIFY_BUFFER_SIZE (16 * 1024)
@@ -1296,16 +1297,11 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                         WCHAR value[PH_INT32_STR_LEN_1];
 
                         PhPrintUInt32(value, (ULONG)dispInfo->item.iItem + 1);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value, _TRUNCATE);
+                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, value);
                     }
                     else if ((ULONG)dispInfo->item.iSubItem < RTL_NUMBER_OF(item->Text))
                     {
-                        wcsncpy_s(
-                            dispInfo->item.pszText,
-                            dispInfo->item.cchTextMax,
-                            PhGetStringOrEmpty(item->Text[dispInfo->item.iSubItem]),
-                            _TRUNCATE
-                            );
+                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrEmpty(item->Text[dispInfo->item.iSubItem]));
                     }
                 }
             }

@@ -624,8 +624,8 @@ VOID WeDrawWindowBorderForTargeting(
 
     if (hdc)
     {
-        INT penWidth = 3;
-        INT oldDc = SaveDC(hdc);
+        LONG penWidth = 3;
+        LONG oldDc = SaveDC(hdc);
         HPEN pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
         HBRUSH brush = GetStockBrush(NULL_BRUSH);
 
@@ -660,8 +660,8 @@ VOID WeInvertWindowBorder(
 
     if (hdc)
     {
-        INT penWidth;
-        INT oldDc;
+        LONG penWidth;
+        LONG oldDc;
         HPEN pen;
         HPEN oldPen;
         HBRUSH brush;
@@ -1064,7 +1064,7 @@ static BOOLEAN WeCreateBlurredSnapshotBitmap(
     HDC smallDC;
     HBITMAP smallBitmap;
     HBITMAP oldSmallBitmap;
-    INT oldStretchMode;
+    LONG oldStretchMode;
 
     screenWidth = Context->ScreenRect.right - Context->ScreenRect.left;
     screenHeight = Context->ScreenRect.bottom - Context->ScreenRect.top;
@@ -1493,6 +1493,7 @@ BOOLEAN WeCreateSnapshotSelection(
 
     // Force window to show and paint
     ShowWindow(Context->SnapshotWindow, SW_SHOWNA);
+    UpdateWindow(Context->SnapshotWindow);
     SetWindowPos(Context->SnapshotWindow, HWND_TOPMOST, 0, 0, 0, 0,
         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     UpdateWindow(Context->SnapshotWindow);

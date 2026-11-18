@@ -1985,13 +1985,14 @@ VOID NTAPI SettingsUpdatedCallback(
         if (ToolBarHandle)
         {
             ToolbarUpdateWindowStyle();
-            InvalidateRect(ToolBarHandle, NULL, TRUE);
+            InvalidateRect(ToolBarHandle, NULL, FALSE);
+            UpdateWindow(ToolBarHandle);
         }
 
         if (StatusBarHandle)
         {
             SendMessage(StatusBarHandle, WM_THEMECHANGED, 0, 0);
-            InvalidateRect(StatusBarHandle, NULL, TRUE);
+            InvalidateRect(StatusBarHandle, NULL, FALSE);
             UpdateWindow(StatusBarHandle);
         }
     }

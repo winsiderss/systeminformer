@@ -12,6 +12,7 @@
 #include "exttools.h"
 #include <hndlinfo.h>
 #include <sddl.h>
+#include <ntstrsafe.h>
 
 typedef _Function_class_(PH_ENUM_SD_ENTRY)
 BOOLEAN NTAPI PH_ENUM_SD_ENTRY(
@@ -1422,7 +1423,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                     NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
 
                     listview->dwFlags = EMF_CENTERED;
-                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying objects...", _TRUNCATE);
+                    RtlStringCchCopy(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying objects...");
 
                     SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                     return TRUE;

@@ -2535,7 +2535,7 @@ NTSTATUS PhGetThreadSocketState(
     {
 #if defined(PHLIB_SOCKET_STATE_WINSOCK)
         static LONG (WINAPI* LPFN_WSASTARTUP)(
-            _In_ WORD wVersionRequested,
+            _In_ USHORT wVersionRequested,
             _Out_ PVOID* lpWSAData
             );
         static LONG (WINAPI* LPFN_GETSOCKOPT)(

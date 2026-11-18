@@ -1073,7 +1073,7 @@ VOID PhMipCreateSectionDialog(
         {
             Section->DialogHandle = PhCreateDialogFromTemplate(
                 PhMipWindow,
-                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
+                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPCHILDREN,
                 createDialog.Instance,
                 createDialog.Template,
                 createDialog.DialogProc,
@@ -1202,7 +1202,7 @@ VOID PhMipLayout(
             CurrentSection->DialogHandle,
             windowRect.left, windowRect.top,
             windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
-            TRUE
+            FALSE
             );
     }
 

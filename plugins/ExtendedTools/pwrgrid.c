@@ -13,6 +13,7 @@
 #include <float.h>
 #include <roapi.h>
 #include <windows.devices.power.h>
+#include <ntstrsafe.h>
 
 #define ET_WM_POWERGRID_UPDATE (WM_APP + 1)
 
@@ -155,7 +156,7 @@ VOID EtpFormatPowerGridDateTime(
 
     if (!DateTime.UniversalTime)
     {
-        wcscpy_s(Buffer, PH_DATETIME_STR_LEN_1, L"N/A");
+        RtlStringCchCopyEx(Buffer, PH_DATETIME_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
         return;
     }
 
@@ -171,7 +172,7 @@ VOID EtpFormatPowerGridDateTime(
     if (PhFormatDateTimeToBuffer(&systemTime, Buffer, PH_DATETIME_STR_LEN_1 * sizeof(WCHAR), ReturnLength))
         return;
 
-    wcscpy_s(Buffer, PH_DATETIME_STR_LEN_1, L"N/A");
+    RtlStringCchCopyEx(Buffer, PH_DATETIME_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
 }
 
 /**
@@ -187,7 +188,7 @@ VOID EtpFormatPowerGridDuration(
 {
     if (Duration.Duration <= 0)
     {
-        wcscpy_s(Buffer, PH_TIMESPAN_STR_LEN_1, L"N/A");
+        RtlStringCchCopyEx(Buffer, PH_TIMESPAN_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
         return;
     }
 
@@ -216,7 +217,7 @@ VOID EtAddSummaryWindowText(
 
     if (!Summary || Summary->TotalBlocks == 0)
     {
-        SetWindowText(SummaryHandle, L"No forecast data available.");
+        PhSetWindowText(SummaryHandle, L"No forecast data available.");
         return;
     }
 

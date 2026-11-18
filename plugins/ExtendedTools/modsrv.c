@@ -24,7 +24,6 @@ typedef struct _MODULE_SERVICES_CONTEXT
     PPH_SERVICE_ITEM* ServiceItems;
 } MODULE_SERVICES_CONTEXT, *PMODULE_SERVICES_CONTEXT;
 
-_Success_(return)
 ULONG PhQueryModuleServiceReferences(
     _In_ PMODULE_SERVICES_CONTEXT Context,
     _Out_ PPH_LIST* ServiceList
@@ -124,7 +123,6 @@ VOID EtShowModuleServicesDialog(
     PhCreateThread2(EtpModuleServicesDialogThreadStart, context);
 }
 
-_Success_(return)
 ULONG PhQueryModuleServiceReferences(
     _In_ PMODULE_SERVICES_CONTEXT Context,
     _Out_ PPH_LIST *ServiceList

@@ -298,7 +298,12 @@ NTSTATUS PhLookupSids(
     PLSA_TRANSLATED_NAME names = NULL;
     PPH_STRING *translatedNames;
 
-    translatedNames = PhAllocateZero(sizeof(PPH_STRING) * Count);
+    SIZE_T translatedNamesAllocationSize;
+
+    if (!NT_SUCCESS(RtlSizeTMult(Count, sizeof(PPH_STRING), &translatedNamesAllocationSize)))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    translatedNames = PhAllocateZero(translatedNamesAllocationSize);
 
     status = LsaLookupSids(
         PhGetLookupPolicyHandle(),

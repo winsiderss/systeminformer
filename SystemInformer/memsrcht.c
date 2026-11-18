@@ -1835,9 +1835,9 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     zeroPad = PhCreateEMenuItem(0, 8, L"Zero pad addresses", NULL, NULL);
                     refresh = PhCreateEMenuItem(0, 9, L"Refresh\bF5", NULL, NULL);
                     if (context->ThreadCount == 0)
-                        swprintf_s(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), L"Thread count... (auto)");
+                        RtlStringCchPrintfExW(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (auto)");
                     else
-                        swprintf_s(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), L"Thread count... (%lu)", context->ThreadCount);
+                        RtlStringCchPrintfExW(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (%lu)", context->ThreadCount);
                     threadCount = PhCreateEMenuItem(0, 10, threadCountLabel, NULL, NULL);
 
                     menu = PhCreateEMenu();
@@ -2014,6 +2014,7 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
+    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

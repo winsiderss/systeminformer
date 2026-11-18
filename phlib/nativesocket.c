@@ -1617,7 +1617,7 @@ PPH_STRING PhAfdFormatInterfaceOption(
 
         // Other values (0.0.0.0/24 addresses) store a big-endian interface index/scope ID
         PhInitFormatC(&format[0], L'%');
-        PhInitFormatU(&format[1], _byteswap_ulong(Interface));
+        PhInitFormatU(&format[1], RtlUlongByteSwap(Interface));
         return PhFormat(format, RTL_NUMBER_OF(format), 8);
     }
     else
@@ -1761,22 +1761,20 @@ NTSTATUS PhAfdInitializeOperation(
 {
     NTSTATUS status;
 
-    if (!Operation)
-        return STATUS_INVALID_PARAMETER;
-
-    RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
-
-    status = NtCreateEvent(
-        &Operation->EventHandle,
-        EVENT_ALL_ACCESS,
-        NULL,
-        NotificationEvent,
-        FALSE
-        );
-
-    if (!NT_SUCCESS(status))
+    if (Operation)
     {
-        Operation->EventHandle = NULL;
+        RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
+
+        status = PhCreateEvent(
+            &Operation->EventHandle,
+            EVENT_ALL_ACCESS,
+            NotificationEvent,
+            FALSE
+            );
+    }
+    else
+    {
+        status = STATUS_INVALID_PARAMETER;
     }
 
     return status;

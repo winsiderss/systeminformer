@@ -6907,7 +6907,7 @@ VOID PhFormatNeighborMacAddress(
 
     if (!AddressLength)
     {
-        RtlStringCchCopyW(Buffer, BufferCount, L"(none)");
+        RtlStringCchCopy(Buffer, BufferCount, L"(none)");
         return;
     }
 
@@ -12826,11 +12826,11 @@ static NTSTATUS PhpCopyOwnerModuleInfo(
     PWSTR nameBuffer;
     PWSTR pathBuffer;
 
-    if (NameLength > MAXULONG - sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) - 2 * sizeof(WCHAR) ||
-        PathLength > MAXULONG - sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) - 2 * sizeof(WCHAR) - NameLength)
+    if (!NT_SUCCESS(RtlULongAdd(NameLength, PathLength, &requiredSize)) ||
+        !NT_SUCCESS(RtlULongAdd(requiredSize, sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) + 2 * sizeof(WCHAR), &requiredSize)))
+    {
         return STATUS_INTEGER_OVERFLOW;
-
-    requiredSize = sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) + NameLength + PathLength + 2 * sizeof(WCHAR);
+    }
     if (*SizePointer < requiredSize || !Buffer)
     {
         *SizePointer = requiredSize;
@@ -16755,7 +16755,7 @@ NTSTATUS NTAPI PhParseNetworkString(
                 return STATUS_BUFFER_TOO_SMALL;
             }
 
-            RtlStringCchCopyW(AddressInfo->NamedAddress.Port, RTL_NUMBER_OF(AddressInfo->NamedAddress.Port), colon ? colon + 1 : L"");
+            RtlStringCchCopy(AddressInfo->NamedAddress.Port, RTL_NUMBER_OF(AddressInfo->NamedAddress.Port), colon ? colon + 1 : L"");
         }
 
         if (PrefixLength)

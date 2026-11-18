@@ -4505,10 +4505,12 @@ BOOLEAN PhUiSetBoostPriorityProcess(
  * \param StringBuilder The string builder receiving the name.
  * \param Item The action item.
  */
-typedef VOID (NTAPI *PPH_UI_ACTION_FORMAT_NAME)(
+typedef _Function_class_(PH_UI_ACTION_FORMAT_NAME)
+VOID NTAPI PH_UI_ACTION_FORMAT_NAME(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ PVOID Item
     );
+typedef PH_UI_ACTION_FORMAT_NAME* PPH_UI_ACTION_FORMAT_NAME;
 
 /**
  * Performs an action on a single item through phsvc (elevated).
@@ -4517,10 +4519,12 @@ typedef VOID (NTAPI *PPH_UI_ACTION_FORMAT_NAME)(
  * \param Command The action command code.
  * \return NTSTATUS.
  */
-typedef NTSTATUS (NTAPI *PPH_UI_ACTION_ELEVATED_CALLBACK)(
+typedef _Function_class_(PH_UI_ACTION_ELEVATED_CALLBACK)
+NTSTATUS NTAPI PH_UI_ACTION_ELEVATED_CALLBACK(
     _In_ PVOID Item,
     _In_ ULONG Command
     );
+typedef PH_UI_ACTION_ELEVATED_CALLBACK* PPH_UI_ACTION_ELEVATED_CALLBACK;
 
 /**
  * Describes the item-type specific behavior of the action progress dialog.

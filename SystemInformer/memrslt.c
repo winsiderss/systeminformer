@@ -18,6 +18,7 @@
 #include <settings.h>
 #include <phsettings.h>
 #include <thirdparty.h>
+#include <ntstrsafe.h>
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2
@@ -519,12 +520,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                 WCHAR addressString[PH_PTR_STR_LEN_1];
 
                                 PhPrintPointer(addressString, result->Address);
-                                wcsncpy_s(
-                                    dispInfo->item.pszText,
-                                    dispInfo->item.cchTextMax,
-                                    addressString,
-                                    _TRUNCATE
-                                    );
+                                RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, addressString);
                             }
                             break;
                         case 1:
@@ -532,12 +528,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                 WCHAR baseAddressString[PH_PTR_STR_LEN_1];
 
                                 PhPrintPointer(baseAddressString, result->BaseAddress);
-                                wcsncpy_s(
-                                    dispInfo->item.pszText,
-                                    dispInfo->item.cchTextMax,
-                                    baseAddressString,
-                                    _TRUNCATE
-                                    );
+                                RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, baseAddressString);
                             }
                             break;
                         case 2:
@@ -545,22 +536,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                 WCHAR lengthString[PH_INT32_STR_LEN_1];
 
                                 PhPrintUInt32(lengthString, (ULONG)result->Length);
-                                wcsncpy_s(
-                                    dispInfo->item.pszText,
-                                    dispInfo->item.cchTextMax,
-                                    lengthString,
-                                    _TRUNCATE
-                                    );
+                                RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, lengthString);
                             }
                             break;
                         case 3:
                             {
-                                wcsncpy_s(
-                                    dispInfo->item.pszText,
-                                    dispInfo->item.cchTextMax,
-                                    result->Display.Buffer,
-                                    _TRUNCATE
-                                    );
+                                RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, result->Display.Buffer);
                             }
                             break;
                         }

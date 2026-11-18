@@ -394,9 +394,24 @@ VOID AtpGetKsiStatus(
     {
         PVOID roundTrip = PhCreateJsonObject();
 
-        PhAddJsonObjectUInt64(roundTrip, "total_microseconds", duration * 1000000 / frequency.QuadPart);
-        PhAddJsonObjectUInt64(roundTrip, "to_kernel_microseconds", durationDown * 1000000 / frequency.QuadPart);
-        PhAddJsonObjectUInt64(roundTrip, "from_kernel_microseconds", durationUp * 1000000 / frequency.QuadPart);
+        {
+            ULONG64 microseconds = 0;
+
+            PhMultiplyDivide128(duration, 1000000, frequency.QuadPart, 0, &microseconds);
+            PhAddJsonObjectUInt64(roundTrip, "total_microseconds", microseconds);
+        }
+        {
+            ULONG64 microseconds = 0;
+
+            PhMultiplyDivide128(durationDown, 1000000, frequency.QuadPart, 0, &microseconds);
+            PhAddJsonObjectUInt64(roundTrip, "to_kernel_microseconds", microseconds);
+        }
+        {
+            ULONG64 microseconds = 0;
+
+            PhMultiplyDivide128(durationUp, 1000000, frequency.QuadPart, 0, &microseconds);
+            PhAddJsonObjectUInt64(roundTrip, "from_kernel_microseconds", microseconds);
+        }
         PhAddJsonObjectValue(structured, "round_trip", roundTrip);
     }
     else

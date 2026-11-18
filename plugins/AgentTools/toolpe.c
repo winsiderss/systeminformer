@@ -1023,8 +1023,18 @@ VOID AtpRenderBytes(
     PSTR ascii;
     SIZE_T i;
 
-    hex = PhAllocate(Size * 2 + 1);
-    ascii = PhAllocate(Size + 1);
+    SIZE_T hexSize;
+    SIZE_T asciiSize;
+
+    if (!NT_SUCCESS(RtlSizeTMult(Size, 2, &hexSize)) ||
+        !NT_SUCCESS(RtlSizeTAdd(hexSize, 1, &hexSize)) ||
+        !NT_SUCCESS(RtlSizeTAdd(Size, 1, &asciiSize)))
+    {
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+    }
+
+    hex = PhAllocate(hexSize);
+    ascii = PhAllocate(asciiSize);
 
     for (i = 0; i < Size; i++)
     {

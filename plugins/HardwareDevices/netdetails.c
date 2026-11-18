@@ -516,29 +516,35 @@ VOID NetAdapterUpdateDetails(
         }
     }
 
-    interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
-    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue;
-    //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
-    //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
+    interfaceRcvSpeed = 0;
+    interfaceXmitSpeed = 0;
 
-    if (!Context->HaveFirstSample)
+    if (Context->HaveFirstSample)
     {
-        interfaceRcvSpeed = 0;
-        interfaceXmitSpeed = 0;
-        Context->HaveFirstSample = TRUE;
-    }
-    else if (NetRateIntervalMs != 0)
-    {
-        interfaceRcvSpeed *= 1000;
-        interfaceRcvSpeed /= NetRateIntervalMs;
-
-        interfaceXmitSpeed *= 1000;
-        interfaceXmitSpeed /= NetRateIntervalMs;
+        if (interfaceStats.ifHCInOctets >= Context->LastDetailsInboundValue)
+        {
+            PhMultiplyDivide128(
+                interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue, 
+                1000, 
+                NetRateIntervalMs,
+                0, 
+                &interfaceRcvSpeed
+                );
+        }
+        if (interfaceStats.ifHCOutOctets >= Context->LastDetailsOutboundValue)
+        {
+            PhMultiplyDivide128(
+                interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue,
+                1000, 
+                NetRateIntervalMs, 
+                0,
+                &interfaceXmitSpeed
+                );
+        }
     }
     else
     {
-        interfaceRcvSpeed = 0;
-        interfaceXmitSpeed = 0;
+        Context->HaveFirstSample = TRUE;
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");

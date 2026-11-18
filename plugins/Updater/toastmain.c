@@ -178,7 +178,8 @@ VOID UpdaterUpdateProgressToast(
         PPH_STRING totalString;
         ULONG64 percent;
 
-        percent = (downloaded * 100) / total;
+        percent = 0;
+        PhMultiplyDivide128(downloaded, 100, total, 0, &percent);
         downloadedString = PhFormatSize(downloaded, ULONG_MAX);
         totalString = PhFormatSize(total, ULONG_MAX);
 

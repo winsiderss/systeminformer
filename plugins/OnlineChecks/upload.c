@@ -792,7 +792,8 @@ NTSTATUS UploadFileThreadStart(
 
         totalUploadedLength += totalWriteLength;
         timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
-        timeBitsPerSecond = timeTicks ? (ULONG64)totalUploadedLength * PH_TICKS_PER_SEC / timeTicks : 0;
+        timeBitsPerSecond = 0;
+        PhMultiplyDivide128(totalUploadedLength, PH_TICKS_PER_SEC, timeTicks, 0, &timeBitsPerSecond);
 
 #ifdef FORCE_NO_STATUS_TIMER
         ULONG percent = PhMultiplyDivide(totalUploadedLength, 100, context->TotalFileLength);

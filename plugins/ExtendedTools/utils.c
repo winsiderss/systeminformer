@@ -174,12 +174,8 @@ ULONG64 EtCalculateRate(
 {
     ULONG64 number;
 
-    if (EtRateIntervalMs == 0)
+    if (!PhMultiplyDivide128(ValuePerPeriod, 1000, EtRateIntervalMs, 0, &number))
         return 0;
-
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= EtRateIntervalMs;
 
     return number;
 }

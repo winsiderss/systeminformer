@@ -316,7 +316,7 @@ VOID ScanExclusionsAddFromEdit(
     if (ExcludeValidateRegex(&pattern->sr, message, RTL_NUMBER_OF(message)))
     {
         ListBox_AddString(ListBoxHandle, pattern->Buffer);
-        SetWindowText(EditHandle, L"");
+        PhSetWindowText(EditHandle, L"");
         PhSetDialogFocus(WindowHandle, EditHandle);
     }
     else

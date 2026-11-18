@@ -425,11 +425,15 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
             // Calculate the number of ticks
             bytesTotalDownloaded += (ULONG64)isb.Information;
             timeTicks = (ULONG64)(timeNow.QuadPart - timeStart.QuadPart);
-            timeBitsPerSecond = timeTicks ? bytesTotalDownloaded * PH_TICKS_PER_SEC / timeTicks : 0;
+            timeBitsPerSecond = 0;
+            PhMultiplyDivide128(bytesTotalDownloaded, PH_TICKS_PER_SEC, timeTicks, 0, &timeBitsPerSecond);
 
             // Update download status (TODO: Update on timer callback)
             {
-                ULONG percent = httpContentLength != 0 ? (ULONG)(bytesTotalDownloaded * 100 / httpContentLength) : 0;
+                ULONG64 percentValue = 0;
+
+                PhMultiplyDivide128(bytesTotalDownloaded, 100, httpContentLength, 0, &percentValue);
+                ULONG percent = (ULONG)percentValue;
                 PH_FORMAT format[9];
                 WCHAR string[MAX_PATH];
 

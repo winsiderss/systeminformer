@@ -10,6 +10,7 @@
  */
 
 #include "exttools.h"
+#include <ntstrsafe.h>
 
 #define ET_CACHE_LATENCY_SERIALIZE 1
 #define ET_CACHE_LATENCY_TRIALS 10
@@ -748,7 +749,8 @@ ULONG EtCacheLatencyCalibrateIterations(
         return ET_CACHE_LATENCY_OUTER_ITERS;
 
     elapsed = stop - start;
-    iterations = ((ULONG64)ET_CACHE_LATENCY_TRIAL_BUDGET_CYCLES * ET_CACHE_LATENCY_CALIBRATE_ITERS) / elapsed;
+    iterations = ET_CACHE_LATENCY_OUTER_ITERS;
+    PhMultiplyDivide128(ET_CACHE_LATENCY_TRIAL_BUDGET_CYCLES, ET_CACHE_LATENCY_CALIBRATE_ITERS, elapsed, 0, &iterations);
 
     if (iterations > ET_CACHE_LATENCY_OUTER_ITERS)
         return ET_CACHE_LATENCY_OUTER_ITERS;
@@ -1135,13 +1137,11 @@ VOID EtCacheLatencyUpdateBenchmarkRows(
         {
             cacheRow->Median[column] = EtCacheLatencyMedian(Result->Trials[row][column], ET_CACHE_LATENCY_TRIALS);
 
-            wcsncpy_s(cacheRow->Text[column], RTL_NUMBER_OF(cacheRow->Text[column]), PhaFormatString(
+            RtlStringCchCopy(cacheRow->Text[column], RTL_NUMBER_OF(cacheRow->Text[column]), PhaFormatString(
                 L"%.2f (%.2f)",
                 cacheRow->Median[column],
                 EtCacheLatencyStdDev(Result->Trials[row][column], ET_CACHE_LATENCY_TRIALS)
-                )->Buffer,
-                _TRUNCATE
-                );
+                )->Buffer);
         }
     }
 }
@@ -1177,11 +1177,11 @@ VOID EtCacheLatencyGetDispInfo(
 
     if (DispInfo->item.iSubItem == 0)
     {
-        wcsncpy_s(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->SizeText, _TRUNCATE);
+        RtlStringCchCopy(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->SizeText);
     }
     else if ((ULONG)DispInfo->item.iSubItem <= ET_CACHE_LATENCY_MAX_STRIDE_COLS)
     {
-        wcsncpy_s(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->Text[DispInfo->item.iSubItem - 1], _TRUNCATE);
+        RtlStringCchCopy(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->Text[DispInfo->item.iSubItem - 1]);
     }
 }
 
@@ -1815,12 +1815,11 @@ static VOID EtpCgFormatLatency(
 {
     if (Context->Data.CyclesToNanoseconds > 0)
     {
-        _snwprintf_s(Buffer, Count, _TRUNCATE, L"%.2f cycles (%.1f ns)",
-            Cycles, Cycles * Context->Data.CyclesToNanoseconds);
+        RtlStringCchPrintf(Buffer, Count, L"%.2f cycles (%.1f ns)", Cycles, Cycles * Context->Data.CyclesToNanoseconds);
     }
     else
     {
-        _snwprintf_s(Buffer, Count, _TRUNCATE, L"%.2f cycles", Cycles);
+        RtlStringCchPrintf(Buffer, Count, L"%.2f cycles", Cycles);
     }
 }
 
@@ -1853,7 +1852,7 @@ static VOID EtpCgGetPlotRect(
 
     pad = PhScaleToDisplay(4, Context->WindowDpi);
 
-    _snwprintf_s(label, RTL_NUMBER_OF(label), _TRUNCATE, L"%.0f", EtpCgNiceMaximum(Context->Data.Maximum));
+    RtlStringCchPrintf(label, RTL_NUMBER_OF(label), L"%.0f", EtpCgNiceMaximum(Context->Data.Maximum));
 
     if (GetTextExtentPoint32(Hdc, label, (int)wcslen(label), &size))
         labelWidth = size.cx;
@@ -2096,7 +2095,7 @@ static VOID EtpCgPaint(
         MoveToEx(Hdc, plot.left, y, NULL);
         LineTo(Hdc, plot.right, y);
 
-        _snwprintf_s(label, RTL_NUMBER_OF(label), _TRUNCATE, L"%.0f", maximum * i / 4);
+        RtlStringCchPrintf(label, RTL_NUMBER_OF(label), L"%.0f", maximum * i / 4);
 
         labelRect.left = 0;
         labelRect.right = plot.left - PhScaleToDisplay(4, Context->WindowDpi);

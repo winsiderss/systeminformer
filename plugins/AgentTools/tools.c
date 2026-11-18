@@ -703,7 +703,12 @@ VOID AtpSortRows(
     if (!(key = PhConvertUtf16ToUtf8Ex(Rows->SortBy->Buffer, Rows->SortBy->Length)))
         return;
 
-    entries = PhAllocate(Rows->Rows->Count * sizeof(AT_ROW_SORT_ENTRY));
+    SIZE_T entriesAllocationSize;
+
+    if (!NT_SUCCESS(RtlSizeTMult(Rows->Rows->Count, sizeof(AT_ROW_SORT_ENTRY), &entriesAllocationSize)))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    entries = PhAllocate(entriesAllocationSize);
 
     for (i = 0; i < Rows->Rows->Count; i++)
         AtpInitializeSortEntry(&entries[i], Rows->Rows->Items[i], i, key->Buffer);
