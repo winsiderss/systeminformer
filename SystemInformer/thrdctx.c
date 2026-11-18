@@ -708,6 +708,71 @@ NTSTATUS PhAddFrameContextItems(
     return STATUS_NOT_SUPPORTED;
 }
 
+// Frame comparison columns vary with the selected frame. Restore widths by column
+// index and retain the relative order of columns that still exist.
+static VOID PhpLoadThreadContextColumns(
+    _In_ PPH_THREAD_CONTEXT_DIALOG_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PH_STRINGREF remainingPart;
+    LONG count;
+    PLONG order;
+    PULONG64 ranks;
+    LONG dpi;
+
+    settings = PhGetStringSetting(SETTING_THREAD_CONTEXT_LISTVIEW_COLUMNS);
+    remainingPart = settings->sr;
+    count = Header_GetItemCount(ListView_GetHeader(Context->ListViewHandle));
+    order = PhAllocate(sizeof(LONG) * count);
+    ranks = PhAllocate(sizeof(ULONG64) * count);
+    dpi = PhGetWindowDpi(Context->ListViewHandle);
+
+    for (LONG i = 0; i < count; i++)
+    {
+        PH_STRINGREF columnPart;
+        PH_STRINGREF orderPart;
+        PH_STRINGREF widthPart;
+        ULONG64 rank;
+        ULONG64 width;
+
+        order[i] = i;
+        ranks[i] = (ULONG64)MAXULONG + i;
+
+        if (!remainingPart.Length)
+            continue;
+
+        PhSplitStringRefAtChar(&remainingPart, L'|', &columnPart, &remainingPart);
+        PhSplitStringRefAtChar(&columnPart, L',', &orderPart, &widthPart);
+
+        if (PhStringToInteger64(&orderPart, 10, &rank) && rank < MAXULONG)
+            ranks[i] = rank;
+
+        if (PhStringToInteger64(&widthPart, 10, &width) && width <= MAXLONG)
+            ListView_SetColumnWidth(Context->ListViewHandle, i, PhScaleToDisplay((LONG)width, dpi));
+    }
+
+    // Produce a complete permutation even when saved columns are missing or added.
+    for (LONG i = 1; i < count; i++)
+    {
+        LONG column = order[i];
+        LONG j = i;
+
+        while (j > 0 && ranks[order[j - 1]] > ranks[column])
+        {
+            order[j] = order[j - 1];
+            j--;
+        }
+
+        order[j] = column;
+    }
+
+    ListView_SetColumnOrderArray(Context->ListViewHandle, count, order);
+    PhFree(ranks);
+    PhFree(order);
+    PhDereferenceObject(settings);
+}
+
 INT_PTR CALLBACK PhThreadContextDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
