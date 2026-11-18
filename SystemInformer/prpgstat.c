@@ -19,6 +19,7 @@
 
 #include <emenu.h>
 #include <settings.h>
+#include <ntstrsafe.h>
 
 typedef enum _PH_PROCESS_STATISTICS_CATEGORY
 {
@@ -147,6 +148,23 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_MOUSE,
     PH_PROCESS_STATISTICS_INDEX_KEYBOARD,
 
+    // Derived time-share/efficiency metrics (computed from the energy durations and running time).
+    // Intentionally placed outside the [ENERGYCYCLES, ENERGYMOUSEINPUT] range so the energy-column
+    // min/max/diff machinery ignores them; they are rendered by explicit cases in the value column.
+    PH_PROCESS_STATISTICS_INDEX_FOREGROUNDUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_VISIBLEUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_INTERACTIONUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_CPUACTIVEUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_DISKACTIVEUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_BACKGROUNDUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_DISPLAYREQUIREDUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_SUSPENDEDUTILIZATION,
+    PH_PROCESS_STATISTICS_INDEX_FOREGROUNDIDLE,
+    PH_PROCESS_STATISTICS_INDEX_VISIBLENOTFOREGROUND,
+    PH_PROCESS_STATISTICS_INDEX_FOREGROUNDEFFICIENCY,
+    PH_PROCESS_STATISTICS_INDEX_INTERACTIONEFFICIENCY,
+    PH_PROCESS_STATISTICS_INDEX_INPUTRATE,
+
     PH_PROCESS_STATISTICS_INDEX_MAX,
 } PH_PROCESS_STATISTICS_INDEX;
 
@@ -240,13 +258,13 @@ VOID PhpUpdateStatisticsAddListViewGroups(
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESNORMALKERNEL, L"Cycles: normal kernel", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESNORMALKERNEL);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWUSER, L"Cycles: low/background user", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWUSER);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWKERNEL, L"Cycles: low/background kernel", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWKERNEL);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISK, L"Disk energy (uJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISK);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES, L"Disk energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS, L"Disk energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISK, L"Disk energy", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISK);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES, L"Disk energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS, L"Disk energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS, L"Disk power (W)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL, L"Network tail energy (uJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES, L"Network tail energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS, L"Network tail energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL, L"Network tail energy", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES, L"Network tail energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS, L"Network tail energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS, L"Network tail power (W)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS);
 
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_CARBON, L"Carbon impact", (PVOID)PH_PROCESS_STATISTICS_INDEX_CARBON);
@@ -270,13 +288,27 @@ VOID PhpUpdateStatisticsAddListViewGroups(
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYKEYBOARDINPUT, L"Keyboard input", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYKEYBOARDINPUT);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMOUSEINPUT, L"Mouse input", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMOUSEINPUT);
 
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDUTILIZATION, L"Foreground time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_FOREGROUNDUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_VISIBLEUTILIZATION, L"Visible time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_VISIBLEUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_INTERACTIONUTILIZATION, L"Interaction time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_INTERACTIONUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_CPUACTIVEUTILIZATION, L"CPU active time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_CPUACTIVEUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_DISKACTIVEUTILIZATION, L"Disk active time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_DISKACTIVEUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_BACKGROUNDUTILIZATION, L"Background time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_BACKGROUNDUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_DISPLAYREQUIREDUTILIZATION, L"Display required time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_DISPLAYREQUIREDUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_SUSPENDEDUTILIZATION, L"Suspended time %", (PVOID)PH_PROCESS_STATISTICS_INDEX_SUSPENDEDUTILIZATION);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDIDLE, L"Foreground idle time", (PVOID)PH_PROCESS_STATISTICS_INDEX_FOREGROUNDIDLE);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_VISIBLENOTFOREGROUND, L"Visible not foreground", (PVOID)PH_PROCESS_STATISTICS_INDEX_VISIBLENOTFOREGROUND);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDEFFICIENCY, L"Foreground efficiency", (PVOID)PH_PROCESS_STATISTICS_INDEX_FOREGROUNDEFFICIENCY);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_INTERACTIONEFFICIENCY, L"Interaction efficiency", (PVOID)PH_PROCESS_STATISTICS_INDEX_INTERACTIONEFFICIENCY);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_INPUTRATE, L"Input rate", (PVOID)PH_PROCESS_STATISTICS_INDEX_INPUTRATE);
+
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME, L"Running time", (PVOID)PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME, L"Suspended time", (PVOID)PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_HANGCOUNT, L"Hang count", (PVOID)PH_PROCESS_STATISTICS_INDEX_HANGCOUNT);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT, L"Ghost count", (PVOID)PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT);
         //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_DISKREAD, L"BytesRead", NULL);
         //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, L"BytesWritten", NULL);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, L"NetworkTxRxBytes", (PVOID)PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, L"Network Tx/Rx bytes", (PVOID)PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES);
         //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, L"MBBTxRxBytes", NULL);
     }
 
@@ -338,27 +370,25 @@ VOID PhpUpdateProcessStatisticDelta(
         format[1].u.Size = delta;
 
         value = PhFormat(format, 2, 0);
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, value->Buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, value->Buffer);
         PhDereferenceObject(value);
     }
     else
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"0", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"0");
     }
 }
 
 VOID PhpUpdateProcessStatisticDeltaBytes(
     _In_ NMLVDISPINFO* Entry,
-    _In_ PH_UINT64_DELTA DeltaBuffer
+    _In_ PPH_UINT64_DELTA DeltaBuffer
     )
 {
     ULONG64 number = 0;
 
-    if (DeltaBuffer.Delta != DeltaBuffer.Value && PhProcessProviderElapsedMilliseconds != 0)
+    if (DeltaBuffer->Delta != DeltaBuffer->Value && PhProcessProviderElapsedMilliseconds != 0)
     {
-        number = DeltaBuffer.Delta;
-        number *= 1000;
-        number /= PhProcessProviderElapsedMilliseconds;
+        PhMultiplyDivide64(DeltaBuffer->Delta, 1000, PhProcessProviderElapsedMilliseconds, &number);
     }
 
     if (number != 0)
@@ -370,12 +400,12 @@ VOID PhpUpdateProcessStatisticDeltaBytes(
         PhInitFormatS(&format[1], L"/s");
 
         value = PhFormat(format, 2, 0);
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, value->Buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, value->Buffer);
         PhDereferenceObject(value);
     }
     else
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
     }
 }
 
@@ -393,7 +423,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_F(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -407,7 +437,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_I64U(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -415,7 +445,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_I64U(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -429,7 +459,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -437,7 +467,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -451,7 +481,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -460,7 +490,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -475,7 +505,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_RATIO(
 {
     if (Denominator == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -494,7 +524,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_RATE(
 
     if (Count == 0 || RunningTimeTicks == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -503,7 +533,7 @@ VOID PH_PROCESS_STATISTICS_FORMAT_RATE(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -516,13 +546,13 @@ VOID PH_PROCESS_STATISTICS_FORMAT_TIME(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
     if (PhPrintTimeSpanToBuffer(Value, PH_TIMESPAN_DHMSM, buffer, sizeof(buffer), NULL))
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
     }
 }
 
@@ -535,11 +565,11 @@ VOID PH_PROCESS_STATISTICS_FORMAT_IOPRIORITY(
     {
         const PH_STRINGREF ioPriority = PhIoPriorityHintNames[Value];
 
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, ioPriority.Buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, ioPriority.Buffer);
     }
     else
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"N/A", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"N/A");
     }
 }
 
@@ -1064,7 +1094,7 @@ static VOID PhpFormatProcessStatisticsCarbon(
 
     if (Carbon == 0.0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1080,7 +1110,7 @@ static VOID PhpFormatProcessStatisticsCarbon(
     }
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyWatts(
@@ -1195,7 +1225,7 @@ static VOID PhpFormatProcessStatisticsEnergyMicroJoules(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1205,7 +1235,7 @@ static VOID PhpFormatProcessStatisticsEnergyMicroJoules(
         PhInitFormatS(&format[1], L" uJ");
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-            wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+            RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 
         return;
     }
@@ -1219,7 +1249,7 @@ static VOID PhpFormatProcessStatisticsEnergyMicroJoules(
 
     if (string)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, string->Buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, string->Buffer);
         PhDereferenceObject(string);
     }
 }
@@ -1235,21 +1265,18 @@ static VOID PhpFormatProcessStatisticsEnergyNanoJoules(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
-    // Check for overflow before multiplying by 1000
-    if (Value > (MAXULONG64 / 1000))
+    if (!NT_SUCCESS(RtlULongLongMult(Value, 1000, &nJ)))
         nJ = MAXULONG64;
-    else
-        nJ = Value * 1000;
 
     PhInitFormatI64UGroupDigits(&format[0], nJ);
     PhInitFormatS(&format[1], L" nJ");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyMilliWattSeconds(
@@ -1262,7 +1289,7 @@ static VOID PhpFormatProcessStatisticsEnergyMilliWattSeconds(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1270,7 +1297,7 @@ static VOID PhpFormatProcessStatisticsEnergyMilliWattSeconds(
     PhInitFormatS(&format[1], L" mW*s");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyJoules(
@@ -1283,7 +1310,7 @@ static VOID PhpFormatProcessStatisticsEnergyJoules(
 
     if (Joules == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1291,7 +1318,7 @@ static VOID PhpFormatProcessStatisticsEnergyJoules(
     PhInitFormatS(&format[1], L" J");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyWattHours(
@@ -1304,7 +1331,7 @@ static VOID PhpFormatProcessStatisticsEnergyWattHours(
 
     if (WattHours == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1312,7 +1339,7 @@ static VOID PhpFormatProcessStatisticsEnergyWattHours(
     PhInitFormatS(&format[1], L" Wh");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyWatts(
@@ -1325,7 +1352,7 @@ static VOID PhpFormatProcessStatisticsEnergyWatts(
 
     if (Watts == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1333,7 +1360,7 @@ static VOID PhpFormatProcessStatisticsEnergyWatts(
     PhInitFormatS(&format[1], L" W");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
 }
 
 static VOID PhpFormatProcessStatisticsEnergyCyclePercentage(
@@ -1348,7 +1375,7 @@ static VOID PhpFormatProcessStatisticsEnergyCyclePercentage(
 
     if (Value == 0)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1361,7 +1388,33 @@ static VOID PhpFormatProcessStatisticsEnergyCyclePercentage(
     PhInitFormatC(&format[4], L')');
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
+}
+
+VOID PhpFormatProcessStatisticsHandlePercentage(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value,
+    _In_ ULONG64 Total
+    )
+{
+    if (Total > 1)
+    {
+        PhpFormatProcessStatisticsEnergyCyclePercentage(Entry, Value, Total);
+    }
+    else if (Value)
+    {
+        PH_FORMAT format[1];
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        PhInitFormatI64UGroupDigits(&format[0], Value);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+            RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
+    }
+    else
+    {
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
+    }
 }
 
 static VOID PhpFormatProcessStatisticsSampleColumn(
@@ -1379,7 +1432,7 @@ static VOID PhpFormatProcessStatisticsSampleColumn(
 
     if (Index >= PH_PROCESS_STATISTICS_SAMPLE_LIMIT || !Context->StatisticsSampleValid[Index])
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"");
         return;
     }
 
@@ -1400,6 +1453,18 @@ static VOID PhpFormatProcessStatisticsSampleColumn(
         }
 
         break;
+    case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
+        PhpFormatProcessStatisticsHandlePercentage(Entry, (ULONG64)value, Context->GdiHandleTotal);
+        return;
+    case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
+        PhpFormatProcessStatisticsHandlePercentage(Entry, (ULONG64)value, Context->PeakGdiHandleTotal);
+        return;
+    case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
+        PhpFormatProcessStatisticsHandlePercentage(Entry, (ULONG64)value, Context->UserHandleTotal);
+        return;
+    case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
+        PhpFormatProcessStatisticsHandlePercentage(Entry, (ULONG64)value, Context->PeakUserHandleTotal);
+        return;
     }
 
     if (
@@ -1455,7 +1520,7 @@ static BOOLEAN PhpFormatProcessStatisticsEnergyColumn(
 
     if (!Context->GotExtendedEnergyValues)
     {
-        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"N/A", _TRUNCATE);
+        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, L"N/A");
         return TRUE;
     }
 
@@ -2063,6 +2128,117 @@ VOID PhpUpdateProcessStatisticsSamples(
         Context->StatisticsSampleCount++;
 }
 
+static void PrintStateDuration(const char* name, ENERGY_STATE_DURATION d) { ULONG lastChange = (ULONG)(d.Value & 0xFFFFFFFFull); ULONG duration31 = (ULONG)((d.Value >> 32) & 0x7FFFFFFFull); ULONG inState = (ULONG)((d.Value >> 63) & 1ull); printf("%s: LastChangeTime=%lu Duration=%lu IsInState=%lu Raw=0x%016llX\n", name, lastChange, duration31, inState, (unsigned long long)d.Value); }
+
+static void PrintEnergyUj(const char *label, uint64_t raw_uJ)
+{
+    uint64_t J_int = raw_uJ / 1000000ULL;
+    uint64_t J_frac = raw_uJ % 1000000ULL;
+
+    uint64_t mWs_int = raw_uJ / 1000ULL;
+    uint64_t mWs_frac = raw_uJ % 1000ULL;
+
+    printf("%s: %llu uJ  (%llu.%06llu J, %llu.%03llu mW*s)\n",
+           label,
+           (unsigned long long)raw_uJ,
+           (unsigned long long)J_int,
+           (unsigned long long)J_frac,
+           (unsigned long long)mWs_int,
+           (unsigned long long)mWs_frac);
+}
+
+static void PrintEnergyNanoJ(const char *label, uint64_t raw_uJ)
+{
+    // If raw is uJ, then nJ = uJ * 1000
+    uint64_t nJ = (uint64_t)raw_uJ * 1000ULL;
+    printf("%s: %llu nJ  (this equals mW*s * 1e-6)\n",
+           label, (unsigned long long)nJ);
+}
+
+static void PrintEnergyField(const char *name, uint64_t raw_uJ)
+{
+    // uJ -> J
+    uint64_t joule_i = raw_uJ / 1000000ULL;
+    uint64_t joule_f = raw_uJ % 1000000ULL;
+
+    // uJ -> mW*s (1 mW*s = 1000 uJ)
+    uint64_t mws_i = raw_uJ / 1000ULL;
+    uint64_t mws_f = raw_uJ % 1000ULL;
+
+    // mW*s * 1e-6 == nJ
+    // If you explicitly want "mW*s × 10^-6", this numeric value is nJ.
+    uint64_t nJ = (uint64_t)raw_uJ * 1000ULL; // uJ -> nJ
+
+    printf("%-18s raw=%llu uJ | %llu.%06llu J | %llu.%03llu mW*s | %llu (mW*s*1e-6 == nJ)\n",
+           name,
+           (unsigned long long)raw_uJ,
+           (unsigned long long)joule_i,
+           (unsigned long long)joule_f,
+           (unsigned long long)mws_i,
+           (unsigned long long)mws_f,
+           (unsigned long long)nJ);
+}
+
+void PrintProcessEnergy(const PROCESS_EXTENDED_ENERGY_VALUES *v)
+{
+    PrintEnergyField("DiskEnergy",        v->Base.DiskEnergy);
+    PrintEnergyField("NetworkTailEnergy", v->Base.NetworkTailEnergy);
+    PrintEnergyField("MBBTailEnergy",     v->Base.MBBTailEnergy);
+}
+
+static uint64_t U64Delta(uint64_t cur, uint64_t prev)
+{
+    // Handles normal monotonic counters and protects against reset/wrap cases.
+    return (cur >= prev) ? (cur - prev) : 0;
+}
+
+static void PrintEnergyDelta(
+    const char *name,
+    uint64_t cur_uJ,
+    uint64_t prev_uJ,
+    uint32_t intervalSec
+)
+{
+    uint64_t d_uJ = U64Delta(cur_uJ, prev_uJ);
+
+    // Energy over interval
+    uint64_t d_J_i   = d_uJ / 1000000ULL;
+    uint64_t d_J_f   = d_uJ % 1000000ULL;
+    uint64_t d_mWs_i = d_uJ / 1000ULL;
+    uint64_t d_mWs_f = d_uJ % 1000ULL;
+
+    // Average power over interval: mW = uJ / (1000 * s)
+    double avg_mW = 0.0;
+    if (intervalSec != 0)
+        avg_mW = (double)d_uJ / (1000.0 * (double)intervalSec);
+
+    // "mW*s * 1e-6" numeric value equals nJ.
+    uint64_t d_nJ = (uint64_t)d_uJ * 1000ULL;
+
+    printf(
+        "%-18s delta=%llu uJ | %llu.%06llu J | %llu.%03llu mW*s | avg %.3f mW | %llu (mW*s*1e-6 == nJ)\n",
+        name,
+        (unsigned long long)d_uJ,
+        (unsigned long long)d_J_i,
+        (unsigned long long)d_J_f,
+        (unsigned long long)d_mWs_i,
+        (unsigned long long)d_mWs_f,
+        avg_mW,
+        (unsigned long long)d_nJ
+    );
+}
+
+void PrintProcessEnergyDelta(
+    const PROCESS_EXTENDED_ENERGY_VALUES *cur,
+    const PROCESS_EXTENDED_ENERGY_VALUES *prev,
+    uint32_t intervalSec
+)
+{
+    PrintEnergyDelta("DiskEnergy",        cur->Base.DiskEnergy,        prev->Base.DiskEnergy,        intervalSec);
+    PrintEnergyDelta("NetworkTailEnergy", cur->Base.NetworkTailEnergy, prev->Base.NetworkTailEnergy, intervalSec);
+    PrintEnergyDelta("MBBTailEnergy",     cur->Base.MBBTailEnergy,     prev->Base.MBBTailEnergy,     intervalSec);
+}
+
 ULONG64 PhpEnergyStateDurationToTicks(
     _In_ ENERGY_STATE_DURATION Duration
     )
@@ -2229,6 +2405,7 @@ VOID PhpUpdateProcessStatistics(
                 objectsTotal = 1;
 
             Context->GdiHandleCount = objects;
+            Context->GdiHandleTotal = objectsTotal;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->GdiHandles, string);
@@ -2240,6 +2417,7 @@ VOID PhpUpdateProcessStatistics(
                 objectsTotal = 1;
 
             Context->UserHandleCount = objects;
+            Context->UserHandleTotal = objectsTotal;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->UserHandles, string);
@@ -2251,6 +2429,7 @@ VOID PhpUpdateProcessStatistics(
                 objectsTotal = 1;
 
             Context->PeakGdiHandleCount = objects;
+            Context->PeakGdiHandleTotal = objectsTotal;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->PeakGdiHandles, string);
@@ -2262,6 +2441,7 @@ VOID PhpUpdateProcessStatistics(
                 objectsTotal = 1;
 
             Context->PeakUserHandleCount = objects;
+            Context->PeakUserHandleTotal = objectsTotal;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->PeakUserHandles, string);
@@ -2312,7 +2492,7 @@ VOID PhpUpdateProcessStatistics(
     Context->KeyboardInput = Context->KeyboardDelta.Value;
     PhpUpdateProcessStatisticsSamples(Context);
     PhUpdateProcessStatisticsMinMax(ProcessItem, Context);
-    PhRedrawListViewItems(Context->ListViewHandle);
+    InvalidateRect(Context->ListViewHandle, NULL, FALSE);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -2327,6 +2507,95 @@ static VOID NTAPI PhpStatisticsUpdateHandler(
     {
         PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
     }
+}
+
+_Function_class_(PH_EXTLV_GET_SUBITEM_TEXT_COLOR)
+COLORREF NTAPI PhpStatisticsSubItemTextColorFunction(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STATISTICS_CONTEXT context = (PPH_STATISTICS_CONTEXT)Context;
+    WCHAR valueText[128];
+    WCHAR cellText[128];
+    COLORREF textColor;
+    COLORREF backColor;
+    ULONG weight;
+
+    if (!context || !context->ListViewContext)
+        return CLR_DEFAULT;
+
+    // Property/Value: full contrast; muted when the row has no value.
+    // Difference: full contrast.
+    // Min/Max/Average/Median: muted secondary; strongly dimmed when identical to Value or N/A.
+    // Hang/Ghost count: amber when non-zero.
+
+    valueText[0] = UNICODE_NULL;
+    PhListView_GetItemText(context->ListViewContext, Index, 1, valueText, RTL_NUMBER_OF(valueText));
+
+    if (SubItem <= 1)
+    {
+        ULONG index = PtrToUlong(Param);
+
+        if (
+            (index == PH_PROCESS_STATISTICS_INDEX_HANGCOUNT || index == PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT) &&
+            valueText[0] != UNICODE_NULL && !PhEqualStringZ(valueText, L"0", FALSE)
+            )
+        {
+            return PhEnableThemeSupport ? RGB(0xff, 0xb3, 0x40) : RGB(0xb3, 0x6b, 0x00); // amber
+        }
+
+        // Value column: red when above the average, green when below (5% tolerance).
+        if (SubItem == 1 && valueText[0] != UNICODE_NULL && index < PH_PROCESS_STATISTICS_SAMPLE_LIMIT && context->StatisticsSampleValid[index])
+        {
+            DOUBLE current;
+            DOUBLE average = context->StatisticsAverages[index];
+
+            if (average != 0.0 && PhpGetProcessStatisticsNumericValue(context, (PH_PROCESS_STATISTICS_INDEX)index, &current))
+            {
+                if (current > average * 1.05)
+                    return PhEnableThemeSupport ? RGB(0xff, 0x6b, 0x6b) : RGB(0xc6, 0x28, 0x28); // higher
+                if (current < average * 0.95)
+                    return PhEnableThemeSupport ? RGB(0x4c, 0xc3, 0x8a) : RGB(0x2e, 0x7d, 0x32); // lower
+            }
+        }
+
+        if (valueText[0] == UNICODE_NULL || PhEqualStringZ(valueText, L"N/A", FALSE))
+            weight = 30;
+        else
+            return CLR_DEFAULT;
+    }
+    else if (SubItem == 4)
+    {
+        return CLR_DEFAULT;
+    }
+    else
+    {
+        cellText[0] = UNICODE_NULL;
+        PhListView_GetItemText(context->ListViewContext, Index, SubItem, cellText, RTL_NUMBER_OF(cellText));
+
+        if (PhEqualStringZ(cellText, L"N/A", FALSE))
+            weight = 25;
+        else if (valueText[0] != UNICODE_NULL && PhEqualStringZ(cellText, valueText, FALSE))
+            weight = 25;
+        else
+            weight = 60;
+    }
+
+    textColor = PhEnableThemeSupport ? PhThemeWindowTextColor : GetSysColor(COLOR_WINDOWTEXT);
+    backColor = ListView_GetBkColor(context->ListViewHandle);
+
+    if (backColor == CLR_NONE || backColor == CLR_DEFAULT)
+        backColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
+    // Blend the text color toward the background (weight = percentage of text color).
+    return RGB(
+        (GetRValue(textColor) * weight + GetRValue(backColor) * (100 - weight)) / 100,
+        (GetGValue(textColor) * weight + GetGValue(backColor) * (100 - weight)) / 100,
+        (GetBValue(textColor) * weight + GetBValue(backColor) * (100 - weight)) / 100
+        );
 }
 
 INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
@@ -2382,26 +2651,24 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
             PhSetExtendedListView(statisticsContext->ListViewHandle);
             PhListView_AddColumn(statisticsContext->ListViewContext, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 2, 2, 2, LVCFMT_LEFT, 150, L"Min");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 3, 3, 3, LVCFMT_LEFT, 150, L"Max");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 4, 4, 4, LVCFMT_LEFT, 150, L"Difference");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 5, 5, 5, LVCFMT_LEFT, 150, L"Average");
-            PhListView_AddColumn(statisticsContext->ListViewContext, 6, 6, 6, LVCFMT_LEFT, 150, L"Median");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 1, 1, 1, LVCFMT_RIGHT, 150, L"Value");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 2, 2, 2, LVCFMT_RIGHT, 150, L"Min");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 3, 3, 3, LVCFMT_RIGHT, 150, L"Max");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 4, 4, 4, LVCFMT_RIGHT, 150, L"Difference");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 5, 5, 5, LVCFMT_RIGHT, 150, L"Average");
+            PhListView_AddColumn(statisticsContext->ListViewContext, 6, 6, 6, LVCFMT_RIGHT, 150, L"Median");
             ExtendedListView_SetTriState(statisticsContext->ListViewHandle, TRUE);
+            ExtendedListView_SetContext(statisticsContext->ListViewHandle, statisticsContext);
+            ExtendedListView_SetSubItemTextColorFunction(statisticsContext->ListViewHandle, PhpStatisticsSubItemTextColorFunction);
             PhpUpdateStatisticsAddListViewGroups(statisticsContext);
             PhLoadListViewColumnsFromSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_LIST_VIEW_COLUMNS, statisticsContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_LIST_VIEW_SORT, statisticsContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_STATES, statisticsContext->ListViewHandle);
 
-            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for WS information.
+            // Use the process item query handle for WS information.
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
             {
-                PhOpenProcess(
-                    &statisticsContext->ProcessHandle,
-                    PROCESS_QUERY_INFORMATION,
-                    processItem->ProcessId
-                    );
+                statisticsContext->ProcessHandle = processItem->QueryHandle;
             }
 
             PhRegisterCallback(
@@ -2469,9 +2736,6 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            if (statisticsContext->ProcessHandle)
-                NtClose(statisticsContext->ProcessHandle);
-
             PhFree(statisticsContext);
         }
         break;
@@ -2493,6 +2757,12 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             LPNMHDR header = (LPNMHDR)lParam;
 
             PhHandleListViewNotifyBehaviors(lParam, statisticsContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
+            // Forward NM_CUSTOMDRAW to the extended listview (subitem text colors).
+            if (header->code == NM_CUSTOMDRAW)
+            {
+                REFLECT_MESSAGE_DLG(hwndDlg, statisticsContext->ListViewHandle, uMsg, wParam, lParam);
+            }
 
             switch (header->code)
             {
@@ -2547,7 +2817,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                                     {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
                                     }
                                 }
                                 break;
@@ -2583,7 +2853,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     WCHAR priority[PH_INT32_STR_LEN_1] = L"";
 
                                     PhPrintInt32(priority, statisticsContext->ProcessItem->BasePriority);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
@@ -2624,7 +2894,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfPrivatePages)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePages);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
@@ -2632,7 +2902,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfShareablePages)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePages);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
@@ -2640,7 +2910,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfSharedPages)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPages);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
@@ -2660,7 +2930,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->SharedCommitUsage)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsage);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
@@ -2668,7 +2938,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PrivateCommitUsage)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsage);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
@@ -2676,7 +2946,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PeakPrivateCommitUsage)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsage);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
@@ -2685,11 +2955,11 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     {
                                         const PH_STRINGREF pagePriority = PhPagePriorityNames[statisticsContext->PagePriority];
 
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, pagePriority.Buffer, _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, pagePriority.Buffer);
                                     }
                                     else
                                     {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                     }
                                 }
                                 break;
@@ -2737,7 +3007,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->OtherTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA:
-                                PhpUpdateProcessStatisticDeltaBytes(dispInfo, statisticsContext->ProcessItem->IoOtherDelta);
+                                PhpUpdateProcessStatisticDeltaBytes(dispInfo, &statisticsContext->ProcessItem->IoOtherDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDelta);
@@ -2767,27 +3037,27 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakHandles, L"N/A"), _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakHandles, L"N/A"));
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->GdiHandles, L"N/A"), _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->GdiHandles, L"N/A"));
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakGdiHandles, L"N/A"), _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakGdiHandles, L"N/A"));
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->UserHandles, L"N/A"), _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->UserHandles, L"N/A"));
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakUserHandles, L"N/A"), _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakUserHandles, L"N/A"));
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
@@ -2795,7 +3065,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
 
                                     PhPrintTimeSpan(timeSpan, statisticsContext->RunningTime, PH_TIMESPAN_HMSM);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME:
@@ -2803,7 +3073,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
 
                                     PhPrintTimeSpan(timeSpan, statisticsContext->SuspendedTime, PH_TIMESPAN_HMSM);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HANGCOUNT:
@@ -2860,6 +3130,51 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 {
                                     PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KeyboardDelta.Value);
                                 }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_FOREGROUNDUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyForegroundDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_VISIBLEUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyDesktopVisibleDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_INTERACTIONUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyInputDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUACTIVEUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyCpuTimelineActive, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_DISKACTIVEUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyDiskTimelineActive, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_BACKGROUNDUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo,
+                                    statisticsContext->RunningTime > statisticsContext->EnergyForegroundDuration ? statisticsContext->RunningTime - statisticsContext->EnergyForegroundDuration : 0,
+                                    statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_DISPLAYREQUIREDUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyDisplayRequiredDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->RunningTime : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SUSPENDEDUTILIZATION:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->SuspendedTime, statisticsContext->RunningTime);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_FOREGROUNDIDLE:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo,
+                                    statisticsContext->GotExtendedEnergyValues && statisticsContext->EnergyForegroundDuration > statisticsContext->EnergyInputDuration ? statisticsContext->EnergyForegroundDuration - statisticsContext->EnergyInputDuration : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_VISIBLENOTFOREGROUND:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo,
+                                    statisticsContext->GotExtendedEnergyValues && statisticsContext->EnergyDesktopVisibleDuration > statisticsContext->EnergyForegroundDuration ? statisticsContext->EnergyDesktopVisibleDuration - statisticsContext->EnergyForegroundDuration : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_FOREGROUNDEFFICIENCY:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyInputDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->EnergyForegroundDuration : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_INTERACTIONEFFICIENCY:
+                                PH_PROCESS_STATISTICS_FORMAT_RATIO(dispInfo, statisticsContext->EnergyInputDuration, statisticsContext->GotExtendedEnergyValues ? statisticsContext->EnergyDesktopVisibleDuration : 0);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_INPUTRATE:
+                                PH_PROCESS_STATISTICS_FORMAT_RATE(dispInfo,
+                                    statisticsContext->GotExtendedEnergyValues ? (ULONG64)statisticsContext->EnergyKeyboardInput + statisticsContext->EnergyMouseInput : 0,
+                                    statisticsContext->RunningTime);
                                 break;
                             default:
                                 {
@@ -2921,7 +3236,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                                     {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
                                     }
                                 }
                                 break;
@@ -2958,7 +3273,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     PhPrintInt32(priority, statisticsContext->BasePriorityMin);
 
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
@@ -2999,7 +3314,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfPrivatePagesMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
@@ -3007,7 +3322,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfShareablePagesMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
@@ -3015,7 +3330,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfSharedPagesMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
@@ -3035,7 +3350,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->SharedCommitUsageMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
@@ -3043,7 +3358,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PrivateCommitUsageMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
@@ -3051,7 +3366,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PeakPrivateCommitUsageMin)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageMin);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
@@ -3114,16 +3429,16 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountMin);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountMin);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->GdiHandleCountMin, statisticsContext->GdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountMin);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakGdiHandleCountMin, statisticsContext->PeakGdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountMin);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->UserHandleCountMin, statisticsContext->UserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountMin);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakUserHandleCountMin, statisticsContext->PeakUserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
                                 PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeMin);
@@ -3198,7 +3513,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                                     {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
                                     }
                                 }
                                 break;
@@ -3235,7 +3550,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     PhPrintInt32(priority, statisticsContext->BasePriorityMax);
 
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
@@ -3276,7 +3591,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfPrivatePagesMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
@@ -3284,7 +3599,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfShareablePagesMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
@@ -3292,7 +3607,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfSharedPagesMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
@@ -3312,7 +3627,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->SharedCommitUsageMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
@@ -3320,7 +3635,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PrivateCommitUsageMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
@@ -3328,7 +3643,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PeakPrivateCommitUsageMax)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageMax);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
@@ -3391,16 +3706,16 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountMax);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountMax);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->GdiHandleCountMax, statisticsContext->GdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountMax);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakGdiHandleCountMax, statisticsContext->PeakGdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountMax);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->UserHandleCountMax, statisticsContext->UserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountMax);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakUserHandleCountMax, statisticsContext->PeakUserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
                                 PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeMax);
@@ -3475,7 +3790,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                                     {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
                                     }
                                 }
                                 break;
@@ -3512,7 +3827,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                                     PhPrintInt32(priority, statisticsContext->BasePriorityDiff);
 
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                    RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
@@ -3553,7 +3868,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfPrivatePagesDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
@@ -3561,7 +3876,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfShareablePagesDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
@@ -3569,7 +3884,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->NumberOfSharedPagesDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
@@ -3589,7 +3904,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->SharedCommitUsageDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
@@ -3597,7 +3912,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PrivateCommitUsageDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
@@ -3605,7 +3920,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     if (statisticsContext->PeakPrivateCommitUsageDiff)
                                         PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageDiff);
                                     else
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                        RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A");
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
@@ -3668,16 +3983,16 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountDiff);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountDiff);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->GdiHandleCountDiff, statisticsContext->GdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountDiff);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakGdiHandleCountDiff, statisticsContext->PeakGdiHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountDiff);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->UserHandleCountDiff, statisticsContext->UserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
-                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountDiff);
+                                PhpFormatProcessStatisticsHandlePercentage(dispInfo, statisticsContext->PeakUserHandleCountDiff, statisticsContext->PeakUserHandleTotal);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
                                 PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeDiff);
@@ -3731,6 +4046,28 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 TRUE
                                 );
                         }
+                    }
+
+                    // Hide zero values ("0", "0.00%", "0 B", "0:00:00:00:000", etc).
+                    if (dispInfo->item.iSubItem >= 1 && FlagOn(dispInfo->item.mask, LVIF_TEXT) && dispInfo->item.pszText)
+                    {
+                        PWSTR text = dispInfo->item.pszText;
+                        BOOLEAN hasZero = FALSE;
+                        BOOLEAN hasNonZero = FALSE;
+
+                        for (ULONG i = 0; i < (ULONG)dispInfo->item.cchTextMax && text[i]; i++)
+                        {
+                            if (text[i] == L'0')
+                                hasZero = TRUE;
+                            else if (text[i] >= L'1' && text[i] <= L'9')
+                            {
+                                hasNonZero = TRUE;
+                                break;
+                            }
+                        }
+
+                        if (hasZero && !hasNonZero)
+                            text[0] = UNICODE_NULL;
                     }
                 }
                 break;
@@ -3801,9 +4138,9 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
                     PhFree(listviewItems);
                 }
+            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -3816,4 +4153,5 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
     return FALSE;
 }
+
 

@@ -536,18 +536,19 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
-    ULONG id = 0;
+    BOOLEAN isSuspended = FALSE;
+    BOOLEAN isPartiallySuspended = FALSE;
 
     if (processItem = PhReferenceProcessItem(ProcessId))
     {
+        isSuspended = (BOOLEAN)processItem->IsSuspended;
+        isPartiallySuspended = (BOOLEAN)processItem->IsPartiallySuspended;
+
         if (processItem->QueryHandle)
         {
             if (SetPriority)
             {
-                if (!NT_SUCCESS(PhGetProcessPriorityClass(
-                    processItem->QueryHandle,
-                    &priorityClass
-                    )))
+                if (!NT_SUCCESS(PhGetProcessPriorityClass(processItem->QueryHandle, &priorityClass)))
                 {
                     priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
                 }
@@ -555,10 +556,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
             if (SetIoPriority)
             {
-                if (!NT_SUCCESS(PhGetProcessIoPriority(
-                    processItem->QueryHandle,
-                    &ioPriority
-                    )))
+                if (!NT_SUCCESS(PhGetProcessIoPriority(processItem->QueryHandle, &ioPriority)))
                 {
                     ioPriority = ULONG_MAX;
                 }
@@ -566,10 +564,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
             if (SetPagePriority)
             {
-                if (!NT_SUCCESS(PhGetProcessPagePriority(
-                    processItem->QueryHandle,
-                    &pagePriority
-                    )))
+                if (!NT_SUCCESS(PhGetProcessPagePriority(processItem->QueryHandle, &pagePriority)))
                 {
                     pagePriority = ULONG_MAX;
                 }
@@ -581,6 +576,8 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
     if (SetPriority && priorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
     {
+        ULONG id;
+
         switch (priorityClass)
         {
         case PROCESS_PRIORITY_CLASS_REALTIME:
@@ -601,9 +598,12 @@ VOID PhMwpSetProcessMenuPriorityChecks(
         case PROCESS_PRIORITY_CLASS_IDLE:
             id = ID_PRIORITY_IDLE;
             break;
+        default:
+            id = ULONG_MAX;
+            break;
         }
 
-        if (id != 0)
+        if (id != ULONG_MAX)
         {
             PhSetFlagsEMenuItem(Menu, id,
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
@@ -613,7 +613,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
     if (SetIoPriority && ioPriority != ULONG_MAX)
     {
-        id = 0;
+        ULONG id;
 
         switch (ioPriority)
         {
@@ -629,19 +629,22 @@ VOID PhMwpSetProcessMenuPriorityChecks(
         case IoPriorityHigh:
             id = ID_IOPRIORITY_HIGH;
             break;
+        default:
+            id = ULONG_MAX;
+            break;
         }
 
-        if (id != 0)
+        if (id != ULONG_MAX)
         {
             PhSetFlagsEMenuItem(Menu, id,
-                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK, 
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
 
     if (SetPagePriority && pagePriority != ULONG_MAX)
     {
-        id = 0;
+        ULONG id;
 
         switch (pagePriority)
         {
@@ -660,15 +663,21 @@ VOID PhMwpSetProcessMenuPriorityChecks(
         case MEMORY_PRIORITY_NORMAL:
             id = ID_PAGEPRIORITY_NORMAL;
             break;
+        default:
+            id = ULONG_MAX;
+            break;
         }
 
-        if (id != 0)
+        if (id != ULONG_MAX)
         {
             PhSetFlagsEMenuItem(Menu, id,
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
+
+    PhEnableEMenuItem(Menu, ID_PROCESS_SUSPEND, !isSuspended);
+    PhEnableEMenuItem(Menu, ID_PROCESS_RESUME, isSuspended || isPartiallySuspended);
 }
 
 /**

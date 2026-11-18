@@ -596,7 +596,12 @@ BEGIN_SORT_FUNCTION(TriState)
     }
     else
     {
-        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->Name, moduleItem2->Name, context->TreeNewSortOrder, TRUE); // fall back to sorting by name
+        sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress);
+
+        if (sortResult == 0)
+        {
+            sortResult = PhCompareStringWithNullSortOrder(moduleItem1->Name, moduleItem2->Name, context->TreeNewSortOrder, TRUE);
+        }
     }
 }
 END_SORT_FUNCTION
