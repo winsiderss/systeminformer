@@ -11,16 +11,20 @@
 
 #include <phapp.h>
 #include <phsettings.h>
+#include <settings.h>
 #include <procprv.h>
 #include <emenu.h>
 #include <mapldr.h>
+#include <ntstrsafe.h>
 
 typedef struct _PH_THREAD_CONTEXT_DIALOG_CONTEXT
 {
     HANDLE ProcessId;
     HANDLE ThreadId;
     HWND ListViewHandle;
+    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
+    SIZE MinimumSize;
 
     // Captured (stack frame) context. When set the live thread context is not queried.
     USHORT FrameMachine;
@@ -281,13 +285,13 @@ VOID PhAddNativeContextItems(
 
     for (ULONG i = 0; i < 8; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"St%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"St%lu", i);
         PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_X87, name, &ThreadContext->FltSave.FloatRegisters[i], sizeof(M128A));
     }
 
     for (ULONG i = 0; i < 16; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"Xmm%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"Xmm%lu", i);
         PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_XMM, name, &ThreadContext->FltSave.XmmRegisters[i], sizeof(M128A));
     }
 
@@ -315,7 +319,7 @@ VOID PhAddNativeContextItems(
                 memcpy(&ymm[0], &ThreadContext->FltSave.XmmRegisters[i], 16);
                 memcpy(&ymm[16], &avx[i], 16);
 
-                _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"Ymm%lu", i);
+                RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"Ymm%lu", i);
                 PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_YMM, name, ymm, sizeof(ymm));
             }
         }
@@ -337,7 +341,7 @@ VOID PhAddNativeContextItems(
             {
                 for (ULONG i = 0; i < 8; i++)
                 {
-                    _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"K%lu", i);
+                    RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"K%lu", i);
                     PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_AVX512, name, PhaFormatString(L"0x%016I64x", kmask[i])->Buffer);
                 }
             }
@@ -356,7 +360,7 @@ VOID PhAddNativeContextItems(
                     memcpy(&zmm[16], &avx[i], 16);
                     memcpy(&zmm[32], &zmmHigh[i * 32], 32);
 
-                    _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"Zmm%lu", i);
+                    RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"Zmm%lu", i);
                     PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_AVX512, name, zmm, sizeof(zmm));
                 }
             }
@@ -367,7 +371,7 @@ VOID PhAddNativeContextItems(
             {
                 for (ULONG i = 0; i < 16; i++)
                 {
-                    _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"Zmm%lu", i + 16);
+                    RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"Zmm%lu", i + 16);
                     PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_AVX512, name, &zmmFull[i * 64], 64);
                 }
             }
@@ -495,7 +499,7 @@ VOID PhAddWow64ContextItems(
 
     for (ULONG i = 0; i < 8; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"St%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"St%lu", i);
         PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_X87, name, &ThreadContext->FloatSave.RegisterArea[i * 10], 10);
     }
 
@@ -504,7 +508,7 @@ VOID PhAddWow64ContextItems(
 
     for (ULONG i = 0; i < 8; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"Xmm%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"Xmm%lu", i);
         PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_XMM, name, &ThreadContext->ExtendedRegisters[160 + i * 16], 16);
     }
 }
@@ -527,7 +531,7 @@ VOID PhAddNativeContextItems(
 
     for (ULONG i = 0; i < 29; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"X%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"X%lu", i);
         PhThreadFrameContextAddItem(Context, PH_CONTEXT_GROUP_GENERAL, name, PhaFormatString(L"0x%016I64x", ThreadContext->X[i])->Buffer);
     }
 
@@ -543,7 +547,7 @@ VOID PhAddNativeContextItems(
 
     for (ULONG i = 0; i < 32; i++)
     {
-        _snwprintf_s(name, RTL_NUMBER_OF(name), _TRUNCATE, L"V%lu", i);
+        RtlStringCchPrintf(name, RTL_NUMBER_OF(name), L"V%lu", i);
         PhAddThreadFrameContextVectorItem(Context, PH_CONTEXT_GROUP_XMM, name, &ThreadContext->V[i], sizeof(ThreadContext->V[i]));
     }
 }
@@ -757,10 +761,12 @@ INT_PTR CALLBACK PhThreadContextDlgProc(
             }
             PhSetWindowText(hwndDlg, title->Buffer);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhSetApplicationWindowIcon(hwndDlg);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Register");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 380, L"Value");
             context->ValueColumn = 1;
@@ -775,6 +781,14 @@ INT_PTR CALLBACK PhThreadContextDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            {
+                RECT rect = { 0, 0, 190, 120 };
+
+                MapDialogRect(hwndDlg, &rect);
+                context->MinimumSize.cx = PhScaleToDefault(rect.right, context->LayoutManager.WindowDpi);
+                context->MinimumSize.cy = PhScaleToDefault(rect.bottom, context->LayoutManager.WindowDpi);
+            }
 
             if (context->FrameContext)
                 status = PhAddFrameContextItems(context);
@@ -803,12 +817,45 @@ INT_PTR CALLBACK PhThreadContextDlgProc(
 
             PhSetDialogFocus(hwndDlg, context->ListViewHandle);
 
+            PhpLoadThreadContextColumns(context);
+
+            if (PhValidWindowPlacementFromSetting(SETTING_THREAD_CONTEXT_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_THREAD_CONTEXT_WINDOW_POSITION, SETTING_THREAD_CONTEXT_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(SETTING_THREAD_CONTEXT_LISTVIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_THREAD_CONTEXT_WINDOW_POSITION, SETTING_THREAD_CONTEXT_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize(
+                (PRECT)lParam,
+                wParam,
+                PhScaleToDisplay(context->MinimumSize.cx, context->LayoutManager.WindowDpi),
+                PhScaleToDisplay(context->MinimumSize.cy, context->LayoutManager.WindowDpi)
+                );
         }
         break;
     case WM_SIZE:
