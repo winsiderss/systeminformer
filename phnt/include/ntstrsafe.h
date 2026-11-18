@@ -162,8 +162,8 @@ C_ASSERT(NTSTRSAFE_UNICODE_STRING_MAX_CCH > 1);
 #define STRSAFE_UNICODE_STRING_VALID_FLAGS      (0x000000FF | STRSAFE_IGNORE_NULLS | STRSAFE_FILL_BEHIND | STRSAFE_FILL_ON_FAILURE | STRSAFE_ZERO_LENGTH_ON_FAILURE | STRSAFE_NO_TRUNCATION)
 
 // helper macro to set the fill character and specify buffer filling
-#define STRSAFE_FILL_BYTE(x)                    ((ULONG)((x & 0x000000FF) | STRSAFE_FILL_BEHIND_NULL))
-#define STRSAFE_FAILURE_BYTE(x)                 ((ULONG)((x & 0x000000FF) | STRSAFE_FILL_ON_FAILURE))
+#define STRSAFE_FILL_BYTE(x)                    ((DWORD)((x & 0x000000FF) | STRSAFE_FILL_BEHIND_NULL))
+#define STRSAFE_FAILURE_BYTE(x)                 ((DWORD)((x & 0x000000FF) | STRSAFE_FILL_ON_FAILURE))
 
 #define STRSAFE_GET_FILL_PATTERN(dwFlags)       ((int)(dwFlags & 0x000000FF))
 
@@ -4658,7 +4658,7 @@ NTSTRSAFEDDI
 
 
 NTSTRSAFEDDI
-    RtlStringCchPrintfW(
+    RtlStringCchPrintf(
             _Out_writes_(cchDest) _Always_(_Post_z_) NTSTRSAFE_PWSTR pszDest,
             _In_ size_t cchDest,
             _In_ _Printf_format_string_ NTSTRSAFE_PCWSTR pszFormat,
@@ -13174,7 +13174,7 @@ NTSTRSAFEWORKERDDI
 #define RtlStringCchCatNEx      RtlStringCchCatNExW
 #define RtlStringCchVPrintf     RtlStringCchVPrintfW
 #define RtlStringCchVPrintfEx   RtlStringCchVPrintfExW
-#define RtlStringCchPrintf      RtlStringCchPrintfW
+//#define RtlStringCchPrintf      RtlStringCchPrintfW
 #define RtlStringCchPrintfEx    RtlStringCchPrintfExW
 #define RtlStringCchLength      RtlStringCchLengthW
 #else
@@ -13188,7 +13188,7 @@ NTSTRSAFEWORKERDDI
 #define RtlStringCchCatNEx      RtlStringCchCatNExA
 #define RtlStringCchVPrintf     RtlStringCchVPrintfA
 #define RtlStringCchVPrintfEx   RtlStringCchVPrintfExA
-#define RtlStringCchPrintf      RtlStringCchPrintfA
+//#define RtlStringCchPrintf      RtlStringCchPrintfA
 #define RtlStringCchPrintfEx    RtlStringCchPrintfExA
 #define RtlStringCchLength      RtlStringCchLengthA
 #endif // !UNICODE
