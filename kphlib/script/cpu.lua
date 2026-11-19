@@ -9,12 +9,13 @@
 --
 
 --
--- Reads the model-specific registers of the processors. The registers each
--- processor family may be asked for are listed below; a register outside the
--- list, or one whose CPUID gate does not hold, is refused.
+-- Reads the model-specific registers of the processors, or their system
+-- registers on ARM64. The registers each processor family may be asked for are
+-- listed below; a register outside the list, or one whose gate does not hold,
+-- is refused.
 --
 
-local ROWS = {
+local X64_ROWS = {
     {
         vendor = "GenuineIntel",
         family = 0x06,
@@ -2425,8 +2426,251 @@ local ROWS = {
     },
 }
 
+local ARM64_ROWS = {
+    {
+        implementer = 0x51,
+        parts = { { 0x001, 0x001 } },
+        variants = { { 0x1, 0x4 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x51,
+        parts = { { 0x002, 0x002 } },
+        variants = { { 0x1, 0x3 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd4b, 0xd4b }, { 0xd4c, 0xd4c } },
+        variants = { { 0x0, 0xf } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd41, 0xd41 } },
+        variants = { { 0x0, 0xf } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd05, 0xd05 } },
+        variants = { { 0x0, 0xf } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd03, 0xd03 } },
+        variants = { { 0x0, 0x0 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd08, 0xd08 } },
+        variants = { { 0x0, 0x1 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd0b, 0xd0b } },
+        variants = { { 0x0, 0x4 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x41,
+        parts = { { 0xd85, 0xd85 }, { 0xd87, 0xd87 } },
+        variants = { { 0x0, 0x1 } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+    {
+        implementer = 0x51,
+        parts = { { 0x800, 0x805 } },
+        variants = { { 0x0, 0xf } },
+        revisions = { { 0x0, 0xf } },
+        sysregs = function()
+            return {
+                [0x4000] = true,
+                [0x4005] = true,
+                [0x4006] = true,
+                [0x4020] = true,
+                [0x4021] = true,
+                [0x4028] = true,
+                [0x5f00] = true,
+                [0x5f02] = true,
+                [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+            }
+        end,
+    },
+}
+
+local ARM_AMU = {
+    [0x5e91] = true,
+    [0x5e92] = true,
+    [0x5e95] = true,
+    [0x5e96] = true,
+    [0x5ea0] = true,
+    [0x5ea1] = true,
+    [0x5ea2] = true,
+    [0x5ea3] = true,
+    [0x5ee0] = true,
+    [0x5ee1] = true,
+    [0x5ee2] = true,
+    [0x5ee3] = true,
+    [0x5ee4] = true,
+    [0x5ee5] = true,
+    [0x5ee6] = true,
+    [0x5ee7] = true,
+    [0x5ee8] = true,
+    [0x5ee9] = true,
+    [0x5eea] = true,
+    [0x5eeb] = true,
+    [0x5eec] = true,
+    [0x5eed] = true,
+    [0x5eee] = true,
+    [0x5eef] = true,
+    [0x5ef0] = true,
+    [0x5ef1] = true,
+    [0x5ef2] = true,
+    [0x5ef3] = true,
+    [0x5ef4] = true,
+    [0x5ef5] = true,
+    [0x5ef6] = true,
+    [0x5ef7] = true,
+    [0x5ef8] = true,
+    [0x5ef9] = true,
+    [0x5efa] = true,
+    [0x5efb] = true,
+    [0x5efc] = true,
+    [0x5efd] = true,
+    [0x5efe] = true,
+    [0x5eff] = true,
+}
+
+local ARM_PMCCNTR = 0x5ce8
+local ARM_ID_AA64PFR0 = 0x4020
+local ARM_ID_AA64DFR0 = 0x4028
+local ARM_MIDR = 0x4000
+
+local GATE_LEAVES = { 0x6, 0x1a, 0x80000007, 0x80000008 }
+
 local function find_row(cpu)
-    for _, row in ipairs(ROWS) do
+    for _, row in ipairs(X64_ROWS) do
         if row.vendor == cpu.vendor and row.family == cpu.family then
             for _, range in ipairs(row.models) do
                 if cpu.model >= range[1] and cpu.model <= range[2] then
@@ -2438,117 +2682,457 @@ local function find_row(cpu)
     return nil
 end
 
-local function gate_holds(gate)
-    local leaf, register, shift, width, low, high = table.unpack(gate)
-    local maximum
-    if leaf >= 0x80000000 then
-        maximum = hw.cpuid(0x80000000, 0)
-    else
-        maximum = hw.cpuid(0, 0)
+local function query(processors, gates)
+    local items = {}
+    for _, p in ipairs(processors) do
+        items[#items + 1] = string.pack("<I2I2I4I4", p.group, p.number, 0, 0)
+        items[#items + 1] = string.pack("<I2I2I4I4", p.group, p.number, 1, 0)
+        if gates then
+            items[#items + 1] = string.pack("<I2I2I4I4", p.group, p.number,
+                                            0x80000000, 0)
+            for _, leaf in ipairs(GATE_LEAVES) do
+                items[#items + 1] = string.pack("<I2I2I4I4", p.group,
+                                                p.number, leaf, 0)
+            end
+        end
     end
+
+    local results, status = ksi.hw.cpuid(table.concat(items))
+    if not results then
+        ksi.trace("cpuid failed: 0x%x", status)
+        return status
+    end
+
+    local at = 1
+    for _, p in ipairs(processors) do
+        local function take()
+            local s, a, b, c, d = string.unpack("<I4I4I4I4I4", results, at)
+            at = at + 20
+            if s ~= ksi.STATUS_SUCCESS then
+                p.invalid = true
+            end
+            return { a, b, c, d }
+        end
+
+        local basic = take()
+        local version = take()
+        local signature = version[1]
+        local base = (signature >> 8) & 0xf
+        local family = base
+        if base == 0xf then
+            family = family + ((signature >> 20) & 0xff)
+        end
+        local model = (signature >> 4) & 0xf
+        if base >= 0x6 then
+            model = model | (((signature >> 16) & 0xf) << 4)
+        end
+
+        p.vendor = string.pack("<I4I4I4", basic[2], basic[4], basic[3])
+        p.family = family
+        p.model = model
+        p.stepping = signature & 0xf
+        p.signature = signature
+        p.basic = basic[1]
+
+        if gates then
+            p.extended = take()[1]
+            p.leaves = {}
+            for _, leaf in ipairs(GATE_LEAVES) do
+                p.leaves[leaf] = take()
+            end
+        end
+    end
+
+    return ksi.STATUS_SUCCESS
+end
+
+local function gate_holds(p, gate)
+    local leaf, register, shift, width, low, high = table.unpack(gate)
+    local maximum = (leaf >= 0x80000000) and p.extended or p.basic
     if leaf > maximum then
         return false
     end
-    local value = select(register + 1, hw.cpuid(leaf, 0))
-    value = (value >> shift) & ((1 << width) - 1)
+    local registers = p.leaves[leaf]
+    if not registers then
+        ksi.trace("CPUID leaf 0x%x is not read for gates", leaf)
+        return false
+    end
+    local value = (registers[register + 1] >> shift) & ((1 << width) - 1)
     return value >= low and value <= high
 end
 
--- Returns the identity of the processor.
+-- Returns the identity of the processor the input names.
 function identify(input)
-    if not hw.cpu then
+    if not ksi.hw.cpuid then
+        ksi.trace("no CPUID function")
         return ksi.STATUS_NOT_SUPPORTED
     end
-    local cpu = hw.cpu()
-    return ksi.STATUS_SUCCESS, string.pack("<c12I4I4I4I4", cpu.vendor,
-                                           cpu.family, cpu.model,
-                                           cpu.stepping, cpu.signature)
+    if #input ~= 4 then
+        ksi.trace("input of %d bytes", #input)
+        return ksi.STATUS_INVALID_PARAMETER
+    end
+
+    local group, number = string.unpack("<I2I2", input)
+    local processor = { group = group, number = number }
+    local status = query({ processor }, false)
+    if status ~= ksi.STATUS_SUCCESS then
+        return status
+    end
+    if processor.invalid then
+        ksi.trace("processor %d:%d is not active", group, number)
+        return ksi.STATUS_INVALID_PARAMETER
+    end
+
+    return ksi.STATUS_SUCCESS, string.pack("<c12I4I4I4I4", processor.vendor,
+                                           processor.family, processor.model,
+                                           processor.stepping,
+                                           processor.signature)
 end
 
--- Reads a list of registers, each on the processor its item names.
-function read(input)
-    if not hw.msr_read then
-        return ksi.STATUS_NOT_SUPPORTED
-    end
+local function read_msr(input)
     if #input % 8 ~= 0 then
         ksi.trace("input of %d bytes", #input)
         return ksi.STATUS_INVALID_PARAMETER
     end
 
-    local cpu = hw.cpu()
-    local row = find_row(cpu)
-    local permitted = row and row.msrs() or {}
-    if not row then
-        ksi.trace("no registers are listed for %s family 0x%x model 0x%x",
-                  cpu.vendor, cpu.family, cpu.model)
-    end
-    local output = {}
-    local pin
-    local pinned
-    local pin_failed = false
-    local gates
+    local items = {}
+    local processors = {}
+    local byKey = {}
 
     for at = 1, #input, 8 do
         local group, number, index = string.unpack("<I2I2I4", input, at)
-        local processor = (group << 16) | number
-        local status = ksi.STATUS_SUCCESS
-        local value = 0
-
-        if processor ~= pinned then
-            if pin then
-                pin:release()
-                pin = nil
-            end
-            pinned = processor
-            gates = {}
-            if number <= 0xFF then
-                pin = hw.pin(group, number)
-            end
-            pin_failed = (pin == nil)
-            if pin_failed then
-                ksi.trace("processor %d:%d cannot be pinned", group, number)
-            end
+        local key = (group << 16) | number
+        local p = byKey[key]
+        if not p then
+            p = { group = group, number = number }
+            byKey[key] = p
+            processors[#processors + 1] = p
         end
-
-        local entry = permitted[index]
-
-        if pin_failed then
-            status = ksi.STATUS_INVALID_PARAMETER
-        elseif not entry then
-            if row then
-                ksi.trace("MSR 0x%x is not permitted", index)
-            end
-            status = ksi.STATUS_NOT_FOUND
-        else
-            local gate = type(entry) == "table" and entry.gate
-            if gate then
-                if gates[gate] == nil then
-                    gates[gate] = gate_holds(gate)
-                end
-                if not gates[gate] then
-                    ksi.trace("MSR 0x%x is gated off on processor %d:%d",
-                              index, group, number)
-                    status = ksi.STATUS_NOT_FOUND
-                end
-            end
-            if status == ksi.STATUS_SUCCESS then
-                local result = hw.msr_read(index)
-                if result == nil then
-                    status = ksi.STATUS_NOT_SUPPORTED
-                elseif type(entry) == "table" and entry.mask then
-                    value = result & entry.mask
-                else
-                    value = result
-                end
-            end
-        end
-
-        output[#output + 1] = string.pack("<I4I4I8", status, 0, value)
+        items[#items + 1] = { processor = p, index = index }
     end
 
-    if pin then
-        pin:release()
+    if #items == 0 then
+        return ksi.STATUS_SUCCESS, ""
+    end
+
+    local status = query(processors, true)
+    if status ~= ksi.STATUS_SUCCESS then
+        return status
+    end
+
+    local permitted = {}
+    for _, p in ipairs(processors) do
+        if p.invalid then
+            ksi.trace("processor %d:%d is not active", p.group, p.number)
+        else
+            p.row = find_row(p)
+            if p.row then
+                if not permitted[p.row] then
+                    permitted[p.row] = p.row.msrs()
+                end
+                p.permitted = permitted[p.row]
+            else
+                ksi.trace("no registers are listed for %s family 0x%x " ..
+                          "model 0x%x", p.vendor, p.family, p.model)
+                p.permitted = {}
+            end
+            p.gates = {}
+        end
+    end
+
+    local reads = {}
+    for _, item in ipairs(items) do
+        local p = item.processor
+        local index = item.index
+        item.status = ksi.STATUS_SUCCESS
+        item.value = 0
+
+        if p.invalid then
+            item.status = ksi.STATUS_INVALID_PARAMETER
+        else
+            local entry = p.permitted[index]
+            if not entry then
+                if p.row then
+                    ksi.trace("MSR 0x%x is not permitted", index)
+                end
+                item.status = ksi.STATUS_NOT_FOUND
+            else
+                local gate = type(entry) == "table" and entry.gate
+                if gate then
+                    if p.gates[gate] == nil then
+                        p.gates[gate] = gate_holds(p, gate)
+                    end
+                    if not p.gates[gate] then
+                        ksi.trace("MSR 0x%x is gated off on processor %d:%d",
+                                  index, p.group, p.number)
+                        item.status = ksi.STATUS_NOT_FOUND
+                    end
+                end
+                if item.status == ksi.STATUS_SUCCESS then
+                    item.entry = entry
+                    reads[#reads + 1] = item
+                end
+            end
+        end
+    end
+
+    if #reads > 0 then
+        local packed = {}
+        for i, item in ipairs(reads) do
+            packed[i] = string.pack("<I2I2I4", item.processor.group,
+                                    item.processor.number, item.index)
+        end
+        local results, failure = ksi.hw.msr_read(table.concat(packed))
+        if not results then
+            ksi.trace("msr_read failed: 0x%x", failure)
+            return failure
+        end
+        for i, item in ipairs(reads) do
+            local s, _, value = string.unpack("<I4I4I8", results,
+                                              (i - 1) * 16 + 1)
+            if s ~= ksi.STATUS_SUCCESS then
+                item.status = s
+            elseif type(item.entry) == "table" and item.entry.mask then
+                item.value = value & item.entry.mask
+            else
+                item.value = value
+            end
+        end
+    end
+
+    local output = {}
+    for i, item in ipairs(items) do
+        output[i] = string.pack("<I4I4I8", item.status, 0, item.value)
     end
 
     return ksi.STATUS_SUCCESS, table.concat(output)
+end
+
+local function within(ranges, value)
+    for _, range in ipairs(ranges) do
+        if value >= range[1] and value <= range[2] then
+            return true
+        end
+    end
+    return false
+end
+
+local function find_arm_row(midr)
+    local implementer = (midr >> 24) & 0xff
+    local variant = (midr >> 20) & 0xf
+    local part = (midr >> 4) & 0xfff
+    local revision = midr & 0xf
+    for _, row in ipairs(ARM64_ROWS) do
+        if row.implementer == implementer and within(row.parts, part) and
+           within(row.variants, variant) and
+           within(row.revisions, revision) then
+            return row
+        end
+    end
+    return nil
+end
+
+local function read_ids(processors, codes)
+    local items = {}
+    for _, p in ipairs(processors) do
+        for _, code in ipairs(codes[p]) do
+            items[#items + 1] = string.pack("<I2I2I4", p.group, p.number,
+                                            code)
+        end
+    end
+    if #items == 0 then
+        return ksi.STATUS_SUCCESS
+    end
+
+    local results, status = ksi.hw.sysreg_read(table.concat(items))
+    if not results then
+        ksi.trace("sysreg_read failed: 0x%x", status)
+        return status
+    end
+
+    local at = 1
+    for _, p in ipairs(processors) do
+        for _, code in ipairs(codes[p]) do
+            local s, _, value = string.unpack("<I4I4I8", results, at)
+            at = at + 16
+            p.ids[code] = { status = s, value = value }
+        end
+    end
+
+    return ksi.STATUS_SUCCESS
+end
+
+local function prerequisite(p, code)
+    if ARM_AMU[code] then
+        return p.amu
+    end
+    if code == ARM_PMCCNTR then
+        return p.pmu
+    end
+    return true
+end
+
+local function read_sysreg(input)
+    if #input % 8 ~= 0 then
+        ksi.trace("input of %d bytes", #input)
+        return ksi.STATUS_INVALID_PARAMETER
+    end
+
+    local items = {}
+    local processors = {}
+    local byKey = {}
+
+    for at = 1, #input, 8 do
+        local group, number, code = string.unpack("<I2I2I4", input, at)
+        local key = (group << 16) | number
+        local p = byKey[key]
+        if not p then
+            p = { group = group, number = number, ids = {} }
+            byKey[key] = p
+            processors[#processors + 1] = p
+        end
+        items[#items + 1] = { processor = p, code = code }
+    end
+
+    if #items == 0 then
+        return ksi.STATUS_SUCCESS, ""
+    end
+
+    local codes = {}
+    for _, p in ipairs(processors) do
+        codes[p] = { ARM_MIDR, ARM_ID_AA64PFR0, ARM_ID_AA64DFR0 }
+    end
+    local status = read_ids(processors, codes)
+    if status ~= ksi.STATUS_SUCCESS then
+        return status
+    end
+
+    local permitted = {}
+    local gates = {}
+    for _, p in ipairs(processors) do
+        local midr = p.ids[ARM_MIDR]
+        gates[p] = {}
+        if midr.status ~= ksi.STATUS_SUCCESS then
+            ksi.trace("MIDR_EL1 of processor %d:%d not read: 0x%x", p.group,
+                      p.number, midr.status)
+            p.failure = midr.status
+        else
+            local midrValue = midr.value & 0xffffffff
+            p.row = find_arm_row(midrValue)
+            if p.row then
+                if not permitted[p.row] then
+                    permitted[p.row] = p.row.sysregs()
+                end
+                p.permitted = permitted[p.row]
+            else
+                ksi.trace("no registers are listed for MIDR 0x%x",
+                          midrValue)
+                p.permitted = {}
+            end
+
+            local pfr0 = p.ids[ARM_ID_AA64PFR0]
+            p.amu = pfr0.status == ksi.STATUS_SUCCESS and
+                    ((pfr0.value >> 44) & 0xf) >= 1
+            local dfr0 = p.ids[ARM_ID_AA64DFR0]
+            local version = (dfr0.value >> 8) & 0xf
+            p.pmu = dfr0.status == ksi.STATUS_SUCCESS and version >= 1 and
+                    version < 0xf
+
+            local seen = {}
+            for _, entry in pairs(p.permitted) do
+                local gate = type(entry) == "table" and entry.gate
+                if gate and not p.ids[gate[1]] and not seen[gate[1]] then
+                    seen[gate[1]] = true
+                    gates[p][#gates[p] + 1] = gate[1]
+                end
+            end
+        end
+    end
+
+    status = read_ids(processors, gates)
+    if status ~= ksi.STATUS_SUCCESS then
+        return status
+    end
+
+    local reads = {}
+    for _, item in ipairs(items) do
+        local p = item.processor
+        local code = item.code
+        item.status = ksi.STATUS_SUCCESS
+        item.value = 0
+
+        if p.failure then
+            item.status = p.failure
+        else
+            local entry = p.permitted[code]
+            if not entry then
+                if p.row then
+                    ksi.trace("system register 0x%x is not permitted", code)
+                end
+                item.status = ksi.STATUS_NOT_FOUND
+            else
+                local gate = type(entry) == "table" and entry.gate
+                if gate then
+                    local id = p.ids[gate[1]]
+                    local value = (id.value >> gate[2]) &
+                                  ((1 << gate[3]) - 1)
+                    if id.status ~= ksi.STATUS_SUCCESS or value < gate[4] or
+                       value > gate[5] then
+                        ksi.trace("system register 0x%x is gated off on " ..
+                                  "processor %d:%d", code, p.group, p.number)
+                        item.status = ksi.STATUS_NOT_FOUND
+                    end
+                end
+                if item.status == ksi.STATUS_SUCCESS and
+                   not prerequisite(p, code) then
+                    ksi.trace("system register 0x%x is not implemented on " ..
+                              "processor %d:%d", code, p.group, p.number)
+                    item.status = ksi.STATUS_NOT_SUPPORTED
+                end
+                if item.status == ksi.STATUS_SUCCESS then
+                    reads[#reads + 1] = item
+                end
+            end
+        end
+    end
+
+    if #reads > 0 then
+        local packed = {}
+        for i, item in ipairs(reads) do
+            packed[i] = string.pack("<I2I2I4", item.processor.group,
+                                    item.processor.number, item.code)
+        end
+        local results, failure = ksi.hw.sysreg_read(table.concat(packed))
+        if not results then
+            ksi.trace("sysreg_read failed: 0x%x", failure)
+            return failure
+        end
+        for i, item in ipairs(reads) do
+            local s, _, value = string.unpack("<I4I4I8", results,
+                                              (i - 1) * 16 + 1)
+            item.status = s
+            if s == ksi.STATUS_SUCCESS then
+                item.value = value
+            end
+        end
+    end
+
+    local output = {}
+    for i, item in ipairs(items) do
+        output[i] = string.pack("<I4I4I8", item.status, 0, item.value)
+    end
+
+    return ksi.STATUS_SUCCESS, table.concat(output)
+end
+
+-- Reads a list of registers, each on the processor its item names.
+function read(input)
+    if ksi.hw.msr_read then
+        return read_msr(input)
+    end
+    if ksi.hw.sysreg_read then
+        return read_sysreg(input)
+    end
+    ksi.trace("no register read function")
+    return ksi.STATUS_NOT_SUPPORTED
 end
