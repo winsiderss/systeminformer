@@ -164,6 +164,7 @@
     <ClCompile Include="bcd.cpp" />
     <ClCompile Include="circbuf.c" />
     <ClCompile Include="colorbox.c" />
+    <ClCompile Include="cpusensor.c" />
     <ClCompile Include="cpysave.c" />
     <ClCompile Include="data.c" />
     <ClCompile Include="directdraw.cpp" />
@@ -189,6 +190,7 @@
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="http.c" />
+    <ClCompile Include="hwacpi.c" />
     <ClCompile Include="hvsocketcontrol.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
@@ -198,6 +200,8 @@
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphhw.c" />
+    <ClCompile Include="hwsmu.c" />
+    <ClCompile Include="hwdimm.c" />
     <ClCompile Include="kphcomms.c" />
     <ClCompile Include="lsamsup.c" />
     <ClCompile Include="lsasup.c" />
@@ -257,6 +261,7 @@
     <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
     <ClInclude Include="include\searchmatch.h" />
+    <ClInclude Include="include\cpusensor.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />
@@ -266,6 +271,7 @@
     <ClInclude Include="include\handle.h" />
     <ClInclude Include="include\hndlinfo.h" />
     <ClInclude Include="include\hvsocketcontrol.h" />
+    <ClInclude Include="include\hwacpi.h" />
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
     <ClInclude Include="include\guisupview.h" />
@@ -317,6 +323,8 @@
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\filestreamp.h" />
     <ClInclude Include="include\kphhw.h" />
+    <ClInclude Include="include\hwsmu.h" />
+    <ClInclude Include="include\hwdimm.h" />
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\wslsup.h" />
     <ClInclude Include="include\ph.h" />
