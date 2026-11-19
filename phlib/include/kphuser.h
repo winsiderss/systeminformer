@@ -688,7 +688,7 @@ NTSTATUS
 NTAPI
 KphScriptCall(
     _In_ HANDLE ScriptHandle,
-    _In_ PANSI_STRING Routine,
+    _In_ PCANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_opt_(OutputLength) PVOID Output,
