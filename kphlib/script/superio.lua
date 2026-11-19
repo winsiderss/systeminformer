@@ -9,12 +9,13 @@
 --
 
 --
--- Identifies an ITE Super I/O chip at a configuration port and reads its
--- hardware monitor registers. The chips and registers each row permits are
--- listed below.
+-- Identifies a Super I/O chip at a configuration port and reads its hardware
+-- monitor registers. The chips and registers each row permits are listed
+-- below.
 --
 
-local FAMILY = 3
+local FAMILY_NUVOTON = 1
+local FAMILY_ITE = 3
 
 local SLOTS = { [0] = 0x2e, [1] = 0x4e }
 
@@ -26,6 +27,8 @@ local BASE_LAST = 0x0ccf
 local EXIT_NONE = 0
 local EXIT_KEY_AA = 1
 local EXIT_CONFIG_02 = 2
+
+local BANK = 0x4e
 
 local function ite_monitor()
     return {
@@ -39,7 +42,7 @@ local function ite_monitor()
     }
 end
 
-local ROWS = {
+local ITE_ROWS = {
     {
         chips = {
             0x8705, 0x8712, 0x8716, 0x8718, 0x8720, 0x8721, 0x8726, 0x8728,
@@ -50,13 +53,362 @@ local ROWS = {
         },
         ldn = 0x04,
         exit = EXIT_CONFIG_02,
+        bank_mask = 0,
         monitor = ite_monitor,
     },
     {
         chips = { 0x8790, 0x8733, 0x8695 },
         ldn = 0x04,
         exit = EXIT_NONE,
+        bank_mask = 0,
         monitor = ite_monitor,
+    },
+}
+
+local NUVOTON_ROWS = {
+    {
+        chips = {
+            0xc450, 0xc451, 0xc452, 0xc453, 0xc454, 0xc455, 0xc456, 0xc457,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x80fe, 0x5c, 0x5c },
+                    { 0x00fe, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x00fe, 0x1 }, { 0x80fe, 0x1 }, { 0x0000, 0x1c },
+                    { 0x0020, 0x6 }, { 0x0030, 0x6 }, { 0x004a, 0x3 },
+                    { 0x0051, 0x4 }, { 0x0059, 0x10 }, { 0x006b, 0x1 },
+                    { 0x0090, 0x14 }, { 0x00b0, 0xd }, { 0x00c0, 0x18 },
+                    { 0x00e0, 0x6 }, { 0x00f3, 0x1 }, { 0x00f6, 0x1 },
+                    { 0x0110, 0xe }, { 0x0120, 0xe }, { 0x0130, 0xe },
+                    { 0x0160, 0xe }, { 0x0170, 0xe }, { 0x0180, 0xe },
+                    { 0x0204, 0x2 }, { 0x0300, 0xa }, { 0x0311, 0x3 },
+                    { 0x0318, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xd280, 0xd281, 0xd282, 0xd283, 0xd284, 0xd285, 0xd286, 0xd287,
+            0xd2a0, 0xd2a1, 0xd2a2, 0xd2a3, 0xd2a4, 0xd2a5, 0xd2a6, 0xd2a7,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x80fe, 0x5c, 0x5c },
+                    { 0x00fe, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x00fe, 0x1 }, { 0x80fe, 0x1 }, { 0x0000, 0x1c },
+                    { 0x0020, 0xa }, { 0x0030, 0xa }, { 0x004a, 0x3 },
+                    { 0x0051, 0x4 }, { 0x0059, 0x4 }, { 0x006b, 0x1 },
+                    { 0x0090, 0x14 }, { 0x00b0, 0xd }, { 0x00c0, 0x18 },
+                    { 0x00d8, 0x2 }, { 0x00e0, 0xa }, { 0x00f3, 0x1 },
+                    { 0x00f5, 0x2 }, { 0x0110, 0xe }, { 0x0120, 0xe },
+                    { 0x0130, 0xe }, { 0x0160, 0xe }, { 0x0170, 0xe },
+                    { 0x0180, 0xe }, { 0x0190, 0xe }, { 0x01a0, 0xe },
+                    { 0x01d0, 0x8 }, { 0x01e0, 0x8 }, { 0x0204, 0x2 },
+                    { 0x0300, 0xa }, { 0x0311, 0x3 }, { 0x0318, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xb470, 0xb471, 0xb472, 0xb473, 0xb474, 0xb475, 0xb476, 0xb477,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0004, 0x1 }, { 0x0011, 0x1 },
+                    { 0x0012, 0x1 }, { 0x0020, 0x8 }, { 0x005d, 0x2 },
+                    { 0x0073, 0x6 }, { 0x0150, 0x7 }, { 0x0250, 0x7 },
+                    { 0x0454, 0x3 }, { 0x0459, 0x3 }, { 0x0506, 0x2 },
+                    { 0x0550, 0x3 }, { 0x0621, 0xe }, { 0x0630, 0xa },
+                    { 0x0641, 0x4 }, { 0x0656, 0xa }, { 0x0661, 0x4 },
+                    { 0x0669, 0x2 }, { 0x0100, 0xa }, { 0x0121, 0xc },
+                    { 0x0134, 0x2 }, { 0x0200, 0xa }, { 0x0221, 0xc },
+                    { 0x0234, 0x2 }, { 0x0300, 0xa }, { 0x0321, 0xc },
+                    { 0x0334, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xc330, 0xc331, 0xc332, 0xc333, 0xc334, 0xc335, 0xc336, 0xc337,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0004, 0x1 }, { 0x0011, 0x1 },
+                    { 0x0020, 0x8 }, { 0x005d, 0x2 }, { 0x0073, 0x6 },
+                    { 0x0150, 0x7 }, { 0x0250, 0x7 }, { 0x0401, 0x4 },
+                    { 0x0409, 0x10 }, { 0x0454, 0x3 }, { 0x0459, 0x3 },
+                    { 0x0550, 0x3 }, { 0x0621, 0xe }, { 0x0630, 0xa },
+                    { 0x0644, 0x6 }, { 0x0656, 0xa }, { 0x0100, 0xa },
+                    { 0x0121, 0xc }, { 0x0134, 0x2 }, { 0x0200, 0xa },
+                    { 0x0221, 0xc }, { 0x0234, 0x2 }, { 0x0300, 0xa },
+                    { 0x0321, 0xc }, { 0x0334, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xc560, 0xc561, 0xc562, 0xc563, 0xc564, 0xc565, 0xc566, 0xc567,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0011, 0x1 }, { 0x0013, 0x1 },
+                    { 0x0015, 0x1 }, { 0x0027, 0x1 }, { 0x005d, 0x2 },
+                    { 0x0073, 0xc }, { 0x0150, 0x2 }, { 0x0409, 0x10 },
+                    { 0x0459, 0x3 }, { 0x0470, 0x2 }, { 0x0480, 0xf },
+                    { 0x04b0, 0xc }, { 0x04c0, 0x10 }, { 0x0568, 0x1 },
+                    { 0x0621, 0x6 }, { 0x0100, 0xa }, { 0x0121, 0xc },
+                    { 0x0134, 0x2 }, { 0x0200, 0xa }, { 0x0221, 0xc },
+                    { 0x0234, 0x2 }, { 0x0300, 0xa }, { 0x0321, 0xc },
+                    { 0x0334, 0x2 }, { 0x0800, 0xa }, { 0x0821, 0xc },
+                    { 0x0834, 0x2 }, { 0x0900, 0xa }, { 0x0921, 0xc },
+                    { 0x0934, 0x2 }, { 0x0a00, 0xa }, { 0x0a21, 0xc },
+                    { 0x0a34, 0x2 }, { 0x0b00, 0xa }, { 0x0b21, 0xc },
+                    { 0x0b34, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xc800, 0xc801, 0xc802, 0xc803, 0xc804, 0xc805, 0xc806, 0xc807,
+            0xc910, 0xc911, 0xc912, 0xc913, 0xc914, 0xc915, 0xc916, 0xc917,
+            0xd120, 0xd121, 0xd122, 0xd123, 0xd124, 0xd125, 0xd126, 0xd127,
+            0xd350, 0xd351, 0xd352, 0xd353, 0xd354, 0xd355, 0xd356, 0xd357,
+            0xd420, 0xd421, 0xd422, 0xd423, 0xd424, 0xd425, 0xd426, 0xd427,
+            0xd450, 0xd451, 0xd452, 0xd453, 0xd454, 0xd455, 0xd456, 0xd457,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0011, 0x1 }, { 0x0013, 0x1 },
+                    { 0x0015, 0x1 }, { 0x0027, 0x1 }, { 0x005d, 0x2 },
+                    { 0x0073, 0xc }, { 0x0150, 0x2 }, { 0x0409, 0x10 },
+                    { 0x0459, 0x3 }, { 0x0470, 0x2 }, { 0x0480, 0xf },
+                    { 0x04b0, 0xc }, { 0x04c0, 0x10 }, { 0x0568, 0x1 },
+                    { 0x0621, 0x6 }, { 0x045d, 0x1 }, { 0x0449, 0x1 },
+                    { 0x04a0, 0x1 }, { 0x0720, 0x2 }, { 0x0100, 0xa },
+                    { 0x0121, 0xc }, { 0x0134, 0x2 }, { 0x0200, 0xa },
+                    { 0x0221, 0xc }, { 0x0234, 0x2 }, { 0x0300, 0xa },
+                    { 0x0321, 0xc }, { 0x0334, 0x2 }, { 0x0800, 0xa },
+                    { 0x0821, 0xc }, { 0x0834, 0x2 }, { 0x0900, 0xa },
+                    { 0x0921, 0xc }, { 0x0934, 0x2 }, { 0x0a00, 0xa },
+                    { 0x0a21, 0xc }, { 0x0a34, 0x2 }, { 0x0b00, 0xa },
+                    { 0x0b21, 0xc }, { 0x0b34, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xd428, 0xd429, 0xd42a, 0xd42b, 0xd42c, 0xd42d, 0xd42e, 0xd42f,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0011, 0x1 }, { 0x0013, 0x1 },
+                    { 0x0015, 0x1 }, { 0x0027, 0x1 }, { 0x005d, 0x2 },
+                    { 0x0073, 0xc }, { 0x0150, 0x2 }, { 0x0400, 0x9 },
+                    { 0x0409, 0x10 }, { 0x0419, 0x2 }, { 0x0459, 0x3 },
+                    { 0x0470, 0x2 }, { 0x0480, 0xf }, { 0x04b0, 0xc },
+                    { 0x04c0, 0x10 }, { 0x0568, 0x1 }, { 0x0621, 0x6 },
+                    { 0x045d, 0x1 }, { 0x0490, 0x7 }, { 0x04a0, 0x3 },
+                    { 0x04f4, 0x2 }, { 0x0670, 0xb }, { 0x0720, 0x2 },
+                    { 0x0c26, 0x6 }, { 0x0100, 0xa }, { 0x0121, 0xc },
+                    { 0x0134, 0x2 }, { 0x0200, 0xa }, { 0x0221, 0xc },
+                    { 0x0234, 0x2 }, { 0x0300, 0xa }, { 0x0321, 0xc },
+                    { 0x0334, 0x2 }, { 0x0800, 0xa }, { 0x0821, 0xc },
+                    { 0x0834, 0x2 }, { 0x0900, 0xa }, { 0x0921, 0xc },
+                    { 0x0934, 0x2 }, { 0x0a00, 0xa }, { 0x0a21, 0xc },
+                    { 0x0a34, 0x2 }, { 0x0b00, 0xa }, { 0x0b21, 0xc },
+                    { 0x0b34, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0xd800, 0xd801, 0xd802, 0xd803, 0xd804, 0xd805, 0xd806, 0xd807,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0xff,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0001, 0x1 },
+                    { 0x0003, 0x1 }, { 0x0011, 0x1 }, { 0x0013, 0x1 },
+                    { 0x0015, 0x1 }, { 0x0027, 0x1 }, { 0x005d, 0x2 },
+                    { 0x0073, 0xc }, { 0x0150, 0x2 }, { 0x0400, 0x9 },
+                    { 0x0409, 0x10 }, { 0x0419, 0x2 }, { 0x0449, 0x1 },
+                    { 0x049e, 0x1 }, { 0x04f4, 0x2 }, { 0x0720, 0x2 },
+                    { 0x0c16, 0x1 }, { 0x0459, 0x3 }, { 0x0470, 0x2 },
+                    { 0x0480, 0xf }, { 0x04b0, 0xc }, { 0x04c0, 0x10 },
+                    { 0x0568, 0x1 }, { 0x0621, 0x6 }, { 0x045d, 0x1 },
+                    { 0x048f, 0x1 }, { 0x0490, 0x7 }, { 0x04a0, 0x3 },
+                    { 0x0670, 0xb }, { 0x0c01, 0x1 }, { 0x0c26, 0x6 },
+                    { 0x0100, 0xa }, { 0x0121, 0xc }, { 0x0134, 0x2 },
+                    { 0x0200, 0xa }, { 0x0221, 0xc }, { 0x0234, 0x2 },
+                    { 0x0300, 0xa }, { 0x0321, 0xc }, { 0x0334, 0x2 },
+                    { 0x0800, 0xa }, { 0x0821, 0xc }, { 0x0834, 0x2 },
+                    { 0x0900, 0xa }, { 0x0921, 0xc }, { 0x0934, 0x2 },
+                    { 0x0a00, 0xa }, { 0x0a21, 0xc }, { 0x0a34, 0x2 },
+                    { 0x0b00, 0xa }, { 0x0b21, 0xc }, { 0x0b34, 0x2 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0x8850, 0x8851, 0x8852, 0x8853, 0x8854, 0x8855, 0x8856, 0x8857,
+            0x8858, 0x8859, 0x885a, 0x885b, 0x885c, 0x885d, 0x885e, 0x885f,
+            0x8860, 0x8861, 0x8862, 0x8863, 0x8864, 0x8865, 0x8866, 0x8867,
+            0x8868, 0x8869, 0x886a, 0x886b, 0x886c, 0x886d, 0x886e, 0x886f,
+            0xa020, 0xa021, 0xa022, 0xa023, 0xa024, 0xa025, 0xa026, 0xa027,
+            0xa028, 0xa029, 0xa02a, 0xa02b, 0xa02c, 0xa02d, 0xa02e, 0xa02f,
+            0xb070, 0xb071, 0xb072, 0xb073, 0xb074, 0xb075, 0xb076, 0xb077,
+            0xb078, 0xb079, 0xb07a, 0xb07b, 0xb07c, 0xb07d, 0xb07e, 0xb07f,
+            0xa230, 0xa231, 0xa232, 0xa233, 0xa234, 0xa235, 0xa236, 0xa237,
+            0xa238, 0xa239, 0xa23a, 0xa23b, 0xa23c, 0xa23d, 0xa23e, 0xa23f,
+            0xa510, 0xa511, 0xa512, 0xa513, 0xa514, 0xa515, 0xa516, 0xa517,
+            0xa518, 0xa519, 0xa51a, 0xa51b, 0xa51c, 0xa51d, 0xa51e, 0xa51f,
+            0xb350, 0xb351, 0xb352, 0xb353, 0xb354, 0xb355, 0xb356, 0xb357,
+            0xb358, 0xb359, 0xb35a, 0xb35b, 0xb35c, 0xb35d, 0xb35e, 0xb35f,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0x87,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0000, 0x18 },
+                    { 0x0020, 0x20 }, { 0x0047, 0x6 }, { 0x0059, 0x1 },
+                    { 0x005d, 0x1 }, { 0x0060, 0xd }, { 0x007c, 0x3 },
+                    { 0x0150, 0x7 }, { 0x0250, 0x7 }, { 0x0454, 0x3 },
+                    { 0x0459, 0x3 }, { 0x0550, 0x4 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0x5210, 0x5211, 0x5212, 0x5213, 0x5214, 0x5215, 0x5216, 0x5217,
+            0x5218, 0x5219, 0x521a, 0x521b, 0x521c, 0x521d, 0x521e, 0x521f,
+            0x5230, 0x5231, 0x5232, 0x5233, 0x5234, 0x5235, 0x5236, 0x5237,
+            0x5238, 0x5239, 0x523a, 0x523b, 0x523c, 0x523d, 0x523e, 0x523f,
+            0x5240, 0x5241, 0x5242, 0x5243, 0x5244, 0x5245, 0x5246, 0x5247,
+            0x5248, 0x5249, 0x524a, 0x524b, 0x524c, 0x524d, 0x524e, 0x524f,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0x87,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0020, 0x1e },
+                    { 0x0040, 0x1 }, { 0x0047, 0x5 }, { 0x0056, 0x8 },
+                    { 0x0150, 0x7 }, { 0x0250, 0x7 }, { 0x0453, 0x1 },
+                    { 0x0459, 0x3 }, { 0x0550, 0x2 }, { 0x0554, 0x4 },
+                },
+            }
+        end,
+    },
+    {
+        chips = {
+            0x8280, 0x8281, 0x8282, 0x8283, 0x8284, 0x8285, 0x8286, 0x8287,
+            0x8288, 0x8289, 0x828a, 0x828b, 0x828c, 0x828d, 0x828e, 0x828f,
+            0x8540, 0x8541, 0x8542, 0x8543, 0x8544, 0x8545, 0x8546, 0x8547,
+            0x8548, 0x8549, 0x854a, 0x854b, 0x854c, 0x854d, 0x854e, 0x854f,
+        },
+        ldn = 0x0b,
+        exit = EXIT_KEY_AA,
+        bank_mask = 0x87,
+        monitor = function()
+            return {
+                ids = {
+                    { 0x804f, 0x5c, 0x5c },
+                    { 0x004f, 0xa3, 0xa3 },
+                },
+                reads = {
+                    { 0x004f, 0x1 }, { 0x804f, 0x1 }, { 0x0000, 0x5 },
+                    { 0x0010, 0x3 }, { 0x0018, 0x1 }, { 0x0020, 0x1e },
+                    { 0x0040, 0x1 }, { 0x0047, 0x5 }, { 0x0056, 0x4 },
+                    { 0x005d, 0x1 }, { 0x0150, 0x7 }, { 0x0250, 0x7 },
+                    { 0x0453, 0x1 }, { 0x0459, 0x3 }, { 0x0550, 0x2 },
+                    { 0x0554, 0x4 },
+                },
+            }
+        end,
     },
 }
 
@@ -64,8 +416,25 @@ local function answers(id)
     return (id ~= 0) and (id ~= 0xffff)
 end
 
-local function find_row(id)
-    for _, row in ipairs(ROWS) do
+local function ite_key(s)
+    ksi.hw.port_write(s.port, 1, 0x87)
+    ksi.hw.port_write(s.port, 1, 0x01)
+    ksi.hw.port_write(s.port, 1, 0x55)
+    ksi.hw.port_write(s.port, 1, s.port == 0x2e and 0x55 or 0xaa)
+end
+
+local function nuvoton_key(s)
+    ksi.hw.port_write(s.port, 1, 0x87)
+    ksi.hw.port_write(s.port, 1, 0x87)
+end
+
+local FAMILIES = {
+    { family = FAMILY_ITE, rows = ITE_ROWS, key = ite_key },
+    { family = FAMILY_NUVOTON, rows = NUVOTON_ROWS, key = nuvoton_key },
+}
+
+local function find_row(family, id)
+    for _, row in ipairs(family.rows) do
         for _, chip in ipairs(row.chips) do
             if chip == id then
                 return row
@@ -76,7 +445,7 @@ local function find_row(id)
 end
 
 local function chassis_type()
-    local smbios = hw.firmware_table("RSMB", 0)
+    local smbios = ksi.hw.firmware_table("RSMB", 0)
     if not smbios or #smbios < 8 then
         return nil
     end
@@ -121,13 +490,13 @@ local function chassis_permitted()
 end
 
 local function rc(s, reg)
-    hw.port_write(s.port, 1, reg)
-    return hw.port_read(s.port + 1, 1)
+    ksi.hw.port_write(s.port, 1, reg)
+    return ksi.hw.port_read(s.port + 1, 1)
 end
 
 local function wc(s, reg, value)
-    hw.port_write(s.port, 1, reg)
-    hw.port_write(s.port + 1, 1, value)
+    ksi.hw.port_write(s.port, 1, reg)
+    ksi.hw.port_write(s.port + 1, 1, value)
 end
 
 local function rcw(s, reg)
@@ -139,7 +508,7 @@ end
 local function exit_config(s)
     if s.entered then
         if s.row.exit == EXIT_KEY_AA then
-            hw.port_write(s.port, 1, 0xaa)
+            ksi.hw.port_write(s.port, 1, 0xaa)
         end
         if s.row.exit == EXIT_CONFIG_02 then
             wc(s, 0x02, 0x02)
@@ -150,8 +519,8 @@ end
 
 local function abandon(s)
     if s.entered then
-        hw.port_write(s.port, 1, 0xaa)
-        if answers(rcw(s, 0x20)) then
+        ksi.hw.port_write(s.port, 1, 0xaa)
+        if s.family.family == FAMILY_ITE and answers(rcw(s, 0x20)) then
             wc(s, 0x02, 0x02)
         end
         if answers(rcw(s, 0x20)) then
@@ -163,16 +532,17 @@ local function abandon(s)
 end
 
 local function close(s)
-    if s.ldn_set and not s.contended and s.orig_ldn ~= s.row.ldn then
+    if s.ldn_select and not s.contended and s.orig_ldn ~= s.row.ldn then
         local current = rc(s, 0x07)
         if current == s.row.ldn then
             wc(s, 0x07, s.orig_ldn)
-        else
+        elseif s.ldn_set or current ~= s.orig_ldn then
             ksi.trace("LDN 0x%02x selected, not 0x%02x: not restored",
                       current, s.row.ldn)
             s.contended = true
         end
     end
+    s.ldn_select = false
     s.ldn_set = false
     if not s.contended then
         if s.identified then
@@ -184,37 +554,50 @@ local function close(s)
 end
 
 local function probe(s)
-    hw.port_write(s.port, 1, 0x20)
-    local hi = hw.port_read(s.port + 1, 1)
-    hw.port_write(s.port, 1, 0x21)
-    local lo = hw.port_read(s.port + 1, 1)
+    ksi.hw.port_write(s.port, 1, 0x20)
+    local hi = ksi.hw.port_read(s.port + 1, 1)
+    ksi.hw.port_write(s.port, 1, 0x21)
+    local lo = ksi.hw.port_read(s.port + 1, 1)
     local id = (hi << 8) | lo
     s.already_open = answers(id)
-    if s.already_open and not find_row(id) then
+    if s.already_open then
+        for _, family in ipairs(FAMILIES) do
+            if find_row(family, id) then
+                s.open_family = family
+                return true
+            end
+        end
         ksi.trace("port 0x%02x answers 0x%04x before any key", s.port, id)
         return false
     end
     return true
 end
 
-local function configure(s)
+local function configure(s, family)
+    s.family = family
+    s.row = nil
+    s.entered = false
+    s.identified = false
+    s.ldn_select = false
+    s.ldn_set = false
+    s.contended = false
+    s.busy = false
     s.idphase = true
     if not s.already_open then
         s.entered = true
-        hw.port_write(s.port, 1, 0x87)
-        hw.port_write(s.port, 1, 0x01)
-        hw.port_write(s.port, 1, 0x55)
-        hw.port_write(s.port, 1, s.port == 0x2e and 0x55 or 0xaa)
+        family.key(s)
     end
     local id = rcw(s, 0x20)
     s.entered = (not s.already_open) and answers(id)
-    s.row = find_row(id)
+    s.row = find_row(family, id)
     if not s.row then
-        ksi.trace("chip 0x%04x at port 0x%02x is not known", id, s.port)
+        ksi.trace("chip 0x%04x at port 0x%02x is not known to family %d",
+                  id, s.port, family.family)
         return ksi.STATUS_NOT_FOUND
     end
     s.identified = true
     s.orig_ldn = rc(s, 0x07)
+    s.ldn_select = true
     wc(s, 0x07, s.row.ldn)
     s.ldn_set = true
     if (rc(s, 0x30) & 1) == 0 then
@@ -251,24 +634,6 @@ local function configure(s)
     return ksi.STATUS_SUCCESS
 end
 
-local function permitted(monitor, reg)
-    for _, range in ipairs(monitor.reads) do
-        if reg >= range[1] and reg < range[1] + range[2] then
-            return true
-        end
-    end
-    return false
-end
-
-local function rm(s, reg)
-    hw.port_write(s.base + 5, 1, reg & 0xff)
-    local value = hw.port_read(s.base + 6, 1)
-    if hw.port_read(s.base + 5, 1) ~= (reg & 0xff) then
-        return nil
-    end
-    return value
-end
-
 local function finish(s, status)
     if s.idphase then
         close(s)
@@ -280,6 +645,113 @@ local function finish(s, status)
         end
     end
     return status
+end
+
+local function identify_chip(s)
+    local status = ksi.STATUS_NOT_FOUND
+    for _, family in ipairs(FAMILIES) do
+        if not s.open_family or s.open_family == family then
+            status = finish(s, configure(s, family))
+            if s.identified or s.busy then
+                return status
+            end
+        end
+    end
+    return status
+end
+
+local function permitted(monitor, reg)
+    for _, range in ipairs(monitor.reads) do
+        if reg >= range[1] and reg < range[1] + range[2] then
+            return true
+        end
+    end
+    return false
+end
+
+local function read_bank(s)
+    if not s.bank_read then
+        ksi.hw.port_write(s.base + 5, 1, BANK)
+        s.orig_bank = ksi.hw.port_read(s.base + 6, 1)
+        s.bank = s.orig_bank
+        s.bank_read = true
+    end
+end
+
+local function put_back_bank(s)
+    local mask = s.row.bank_mask
+    if not s.bank_read or s.contended or
+       ((s.bank ~ s.orig_bank) & mask) == 0 then
+        return
+    end
+    ksi.hw.port_write(s.base + 5, 1, BANK)
+    local current = ksi.hw.port_read(s.base + 6, 1)
+    if (current & mask) ~= (s.bank & mask) then
+        ksi.trace("bank 0x%02x selected, not 0x%02x: 0x%02x not restored",
+                  current, s.bank, s.orig_bank)
+        return
+    end
+    ksi.hw.port_write(s.base + 6, 1, (current & ~mask) | (s.orig_bank & mask))
+end
+
+local function rm(s, reg)
+    local mask = s.row.bank_mask
+    if mask ~= 0 then
+        read_bank(s)
+        local want = reg >> 8
+        if want ~= (s.bank & mask) then
+            ksi.hw.port_write(s.base + 5, 1, BANK)
+            local current = ksi.hw.port_read(s.base + 6, 1)
+            if (current & mask) ~= (s.bank & mask) then
+                ksi.trace("bank 0x%02x selected, not 0x%02x", current, s.bank)
+                s.contended = true
+                return nil
+            end
+            s.bank = (current & ~mask) | want
+            ksi.hw.port_write(s.base + 6, 1, s.bank)
+        end
+    end
+    ksi.hw.port_write(s.base + 5, 1, reg & 0xff)
+    local value = ksi.hw.port_read(s.base + 6, 1)
+    if ksi.hw.port_read(s.base + 5, 1) ~= (reg & 0xff) then
+        ksi.trace("the monitor index moved under register 0x%04x", reg)
+        return nil
+    end
+    if mask ~= 0 then
+        ksi.hw.port_write(s.base + 5, 1, BANK)
+        local now = ksi.hw.port_read(s.base + 6, 1)
+        if (now & mask) ~= (s.bank & mask) then
+            ksi.trace("bank 0x%02x selected under register 0x%04x", now, reg)
+            s.contended = true
+            return nil
+        end
+    end
+    return value
+end
+
+local function vendor(s, monitor)
+    local mask = s.row.bank_mask
+    local first = 0
+    if mask ~= 0 then
+        read_bank(s)
+        first = s.bank & mask
+    end
+    for pass = 1, 2 do
+        for _, want in ipairs(monitor.ids) do
+            if (((want[1] >> 8) & mask) == first) == (pass == 1) then
+                local got = rm(s, want[1])
+                if not got then
+                    return ksi.STATUS_RETRY
+                end
+                if got ~= want[2] and got ~= want[3] then
+                    ksi.trace("register 0x%04x is 0x%02x, not 0x%02x or 0x%02x",
+                              want[1], got, want[2], want[3])
+                    return ksi.STATUS_NOT_FOUND
+                end
+            end
+        end
+    end
+    return ksi.STATUS_SUCCESS
 end
 
 local function session(input)
@@ -297,7 +769,8 @@ end
 
 -- Returns the family, chip and customer of the chip at a slot.
 function identify(input)
-    if not hw.port_read then
+    if not ksi.hw.port_read then
+        ksi.trace("no port functions")
         return ksi.STATUS_NOT_SUPPORTED
     end
     if #input ~= 4 then
@@ -308,7 +781,7 @@ function identify(input)
     if not s then
         return refused
     end
-    local lock <close>, failed = hw.lock("isa")
+    local lock <close>, failed = ksi.lock("isa")
     if not lock then
         ksi.trace("the isa lock was not taken: 0x%08x", failed)
         return failed
@@ -321,16 +794,18 @@ function identify(input)
     if not probe(s) then
         return ksi.STATUS_NOT_FOUND
     end
-    local status = finish(s, configure(s))
+    local status = identify_chip(s)
     if status ~= ksi.STATUS_SUCCESS then
         return status
     end
-    return ksi.STATUS_SUCCESS, string.pack("<I4I4I4", FAMILY, s.chip, 0)
+    return ksi.STATUS_SUCCESS, string.pack("<I4I4I4", s.family.family,
+                                           s.chip, 0)
 end
 
 -- Reads hardware monitor registers of the chip at a slot.
 function read(input)
-    if not hw.port_read then
+    if not ksi.hw.port_read then
+        ksi.trace("no port functions")
         return ksi.STATUS_NOT_SUPPORTED
     end
     if #input < 8 or (#input % 4) ~= 0 then
@@ -341,7 +816,7 @@ function read(input)
     if not s then
         return refused
     end
-    local lock <close>, failed = hw.lock("isa")
+    local lock <close>, failed = ksi.lock("isa")
     if not lock then
         ksi.trace("the isa lock was not taken: 0x%08x", failed)
         return failed
@@ -354,7 +829,7 @@ function read(input)
     if not probe(s) then
         return ksi.STATUS_NOT_FOUND
     end
-    local status = finish(s, configure(s))
+    local status = identify_chip(s)
     if status ~= ksi.STATUS_SUCCESS then
         return status
     end
@@ -370,35 +845,28 @@ function read(input)
         ksi.trace("no register asked for is permitted")
         return ksi.STATUS_INVALID_PARAMETER
     end
-    for _, want in ipairs(monitor.ids) do
-        local got = rm(s, want[1])
-        if not got then
-            ksi.trace("the monitor index moved under register 0x%02x", want[1])
-            return ksi.STATUS_RETRY
-        end
-        if got ~= want[2] and got ~= want[3] then
-            ksi.trace("register 0x%02x is 0x%02x, not 0x%02x or 0x%02x",
-                      want[1], got, want[2], want[3])
-            return ksi.STATUS_NOT_FOUND
-        end
+    local bank <close> = setmetatable({}, {
+        __close = function()
+            put_back_bank(s)
+        end,
+    })
+    status = vendor(s, monitor)
+    if status ~= ksi.STATUS_SUCCESS then
+        return status
     end
     local output = {}
-    local moved = false
+    local stopped = false
     for i = 1, count do
         local reg = string.unpack("<I4", input, 1 + 4 * i)
         local item = ksi.STATUS_ACCESS_DENIED
         local value = 0
         if permitted(monitor, reg) then
             item = ksi.STATUS_RETRY
-            if not moved then
+            if not stopped then
                 value = rm(s, reg)
-                moved = (value == nil)
-                item = moved and ksi.STATUS_RETRY or ksi.STATUS_SUCCESS
+                stopped = (value == nil)
+                item = stopped and ksi.STATUS_RETRY or ksi.STATUS_SUCCESS
                 value = value or 0
-                if moved then
-                    ksi.trace("the monitor index moved under register 0x%02x",
-                              reg)
-                end
             end
         else
             ksi.trace("register 0x%x is not permitted", reg)
