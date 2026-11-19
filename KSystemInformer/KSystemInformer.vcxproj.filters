@@ -146,6 +146,9 @@
     <KsiAsm Include="amd64\luahwsmi.asm">
       <Filter>Source Files</Filter>
     </KsiAsm>
+    <ClCompile Include="luahwpci.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="luahwsysreg.c">
       <Filter>Source Files</Filter>
     </ClCompile>

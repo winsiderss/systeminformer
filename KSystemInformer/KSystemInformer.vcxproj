@@ -80,6 +80,7 @@
     <ClCompile Include="lua.c" />
     <ClCompile Include="luahw.c" />
     <ClCompile Include="luahwcpu.c" />
+    <ClCompile Include="luahwpci.c" />
     <ClCompile Include="luahwsysreg.c" />
     <ClCompile Include="lualib.c" />
     <ClCompile Include="main.c" />
