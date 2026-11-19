@@ -49,4 +49,7 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="command" level="maximum"/>
     </script>
+    <script name="platform" file="script/platform.lua" desc="Intel platform windows">
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>
