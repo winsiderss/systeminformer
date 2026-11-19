@@ -41,4 +41,8 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="pcimmio" file="script/pcimmio.lua" desc="PCI memory windows">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>
