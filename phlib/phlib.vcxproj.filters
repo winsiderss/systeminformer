@@ -74,6 +74,12 @@
     <ClCompile Include="kphhw.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hwsmu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwdimm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="mapclr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -114,6 +120,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="workqueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpusensor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpysave.c">
@@ -168,6 +177,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="http.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hwacpi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="format_std.cpp">
@@ -316,6 +328,9 @@
     <ClInclude Include="include\hexeditp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\hwacpi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\ph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -355,7 +370,16 @@
     <ClInclude Include="include\kphhw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\hwsmu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hwdimm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\kphuser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cpusensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cpysave.h">
