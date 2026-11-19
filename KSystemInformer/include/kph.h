@@ -3059,7 +3059,7 @@ VOID KphInitializeThreading(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureUnicodeString(
-    _In_ PUNICODE_STRING UnicodeString,
+    _In_ PCUNICODE_STRING UnicodeString,
     _Out_ PUNICODE_STRING* CapturedUnicodeString,
     _In_ KPROCESSOR_MODE AccessMode
     );
@@ -3072,7 +3072,7 @@ VOID KphReleaseUnicodeString(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureAnsiString(
-    _In_ PANSI_STRING AnsiString,
+    _In_ PCANSI_STRING AnsiString,
     _Outptr_ PANSI_STRING* CapturedAnsiString,
     _In_ KPROCESSOR_MODE AccessMode
     );
@@ -3102,7 +3102,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCopyFromMode(
     _Out_writes_bytes_all_(Length) PVOID Destination,
-    _In_reads_bytes_(Length) PVOID Source,
+    _In_reads_bytes_(Length) PCVOID Source,
     _In_ SIZE_T Length,
     _In_ KPROCESSOR_MODE AccessMode
     );
@@ -3243,7 +3243,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphScriptCall(
     _In_ HANDLE ScriptHandle,
-    _In_ PANSI_STRING Routine,
+    _In_ PCANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_opt_(OutputLength) PVOID Output,
@@ -3256,6 +3256,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KphScriptGetRequiredState(
     _In_ HANDLE ScriptHandle,
-    _In_ PANSI_STRING Routine,
+    _In_ PCANSI_STRING Routine,
     _In_ KPROCESSOR_MODE AccessMode
     );

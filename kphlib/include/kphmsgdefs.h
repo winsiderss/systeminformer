@@ -449,7 +449,7 @@ typedef struct _KPHM_SCRIPT_CALL
 {
     NTSTATUS Status;
     HANDLE ScriptHandle;
-    PANSI_STRING Routine;
+    PCANSI_STRING Routine;
     PVOID Input;
     ULONG InputLength;
     PVOID Output;

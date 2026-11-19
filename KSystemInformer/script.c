@@ -2604,7 +2604,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphScriptCall(
     _In_ HANDLE ScriptHandle,
-    _In_ PANSI_STRING Routine,
+    _In_ PCANSI_STRING Routine,
     _In_reads_bytes_opt_(InputLength) PVOID Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_opt_(OutputLength) PVOID Output,
@@ -2713,7 +2713,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KphScriptGetRequiredState(
     _In_ HANDLE ScriptHandle,
-    _In_ PANSI_STRING Routine,
+    _In_ PCANSI_STRING Routine,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
