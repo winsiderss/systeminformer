@@ -31,6 +31,7 @@ VOID KphLuaInitializeHardware(
     KPH_PAGED_CODE_PASSIVE();
 
     KphLuaInitializeHardwareCpu();
+    KphLuaInitializeHardwarePci();
     KphLuaInitializeHardwareSysreg();
 
     KphpLuaHwInitialized = TRUE;
@@ -52,6 +53,7 @@ VOID KphLuaCleanupHardware(
     }
 
     KphLuaCleanupHardwareSysreg();
+    KphLuaCleanupHardwarePci();
     KphLuaCleanupHardwareCpu();
 }
 
@@ -1065,6 +1067,7 @@ VOID KphLuaOpenHardwareLibrary(
     luaL_newlib(State, KphpLuaHwLibrary);
 
     KphLuaOpenHardwareCpu(State);
+    KphLuaOpenHardwarePci(State);
     KphLuaOpenHardwareSysreg(State);
 
     lua_setfield(State, -2, KPH_LUA_HARDWARE_LIBRARY_NAME);
