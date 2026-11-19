@@ -608,7 +608,7 @@ C_ASSERT(sizeof(KPH_SESSION_ACCESS_TOKEN) == 64);
 
 // Script
 
+#define KPH_SCRIPT_NON_VOLATILE 0x00000000ul
 #define KPH_SCRIPT_VOLATILE     0x00000001ul
-#define KPH_SCRIPT_NON_VOLATILE 0x00000002ul
 
 #pragma warning(pop)

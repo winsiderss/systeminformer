@@ -140,8 +140,21 @@
 // lua
 
 #define KPH_TAG_LUA_BLOCK                       '0LpK'
-#define KPH_TAG_LUA_HARDWARE_LOCK               '1LpK'
-#define KPH_TAG_LUA_HARDWARE_PIN                '2LpK'
+#define KPH_TAG_LUA_LOCK                        '1LpK'
+#define KPH_TAG_LUA_HARDWARE_BATCH              '3LpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICES            '4LpK'
+#define KPH_TAG_LUA_HARDWARE_PROPERTY           '5LpK'
+#define KPH_TAG_LUA_HARDWARE_PCI                '6LpK'
+#define KPH_TAG_LUA_HARDWARE_PCI_LIST           '7LpK'
+#define KPH_TAG_LUA_HARDWARE_MAPPING            '8LpK'
+#define KPH_TAG_LUA_HARDWARE_NVDIMM             '9LpK'
+#define KPH_TAG_LUA_HARDWARE_FIRMWARE           'ALpK'
+#define KPH_TAG_LUA_HARDWARE_ACPI               'BLpK'
+#define KPH_TAG_LUA_HARDWARE_ACPI_PATH          'CLpK'
+#define KPH_TAG_LUA_HARDWARE_REQUEST            'DLpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICE             'ELpK'
+#define KPH_TAG_LUA_HARDWARE_NAME               'FLpK'
+#define KPH_TAG_LUA_HARDWARE_ACPI_EVAL          'GLpK'
 
 // script
 
