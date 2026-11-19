@@ -152,4 +152,30 @@
       <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <PropertyGroup>
+    <ComputeLinkInputsTargets>$(ComputeLinkInputsTargets);KsiAsmLinkInputs</ComputeLinkInputsTargets>
+  </PropertyGroup>
+  <Target Name="KsiRunAsm"
+          BeforeTargets="Link"
+          Condition="'@(KsiAsm)'!=''"
+          Inputs="@(KsiAsm);$(MSBuildThisFileFullPath)"
+          Outputs="@(KsiAsm->'$(IntDir)asm\%(Filename).obj')">
+      <MakeDir Directories="$(IntDir)asm" Condition="!Exists('$(IntDir)asm')" />
+      <PropertyGroup>
+          <KsiAsmHostArch>x64</KsiAsmHostArch>
+          <KsiAsmHostArch Condition="'$(PreferredToolArchitecture)'!=''">$(PreferredToolArchitecture)</KsiAsmHostArch>
+          <KsiAsmExe Condition="'$(Platform)'=='x64'">ml64.exe</KsiAsmExe>
+          <KsiAsmExe Condition="'$(Platform)'=='ARM64'">armasm64.exe</KsiAsmExe>
+          <KsiAsmPath>$(VCToolsInstallDir)bin\Host$(KsiAsmHostArch)\$(Platform)\$(KsiAsmExe)</KsiAsmPath>
+          <KsiAsmPath Condition="!Exists('$(KsiAsmPath)')">$(KsiAsmExe)</KsiAsmPath>
+          <KsiAsmCmd Condition="'$(Platform)'=='x64'">&quot;$(KsiAsmPath)&quot; /nologo /c /Zi /W3 /WX /GuardRetpoline /Fo</KsiAsmCmd>
+          <KsiAsmCmd Condition="'$(Platform)'=='ARM64'">&quot;$(KsiAsmPath)&quot; -g -machine ARM64 -o</KsiAsmCmd>
+      </PropertyGroup>
+      <Exec Command="$(KsiAsmCmd) &quot;$(IntDir)asm\%(KsiAsm.Filename).obj&quot; &quot;%(KsiAsm.FullPath)&quot;" />
+  </Target>
+  <Target Name="KsiAsmLinkInputs" Condition="'@(KsiAsm)'!=''">
+    <ItemGroup>
+      <Link Include="@(KsiAsm->'$(IntDir)asm\%(Filename).obj')" />
+    </ItemGroup>
+  </Target>
 </Project>

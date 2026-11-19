@@ -79,6 +79,8 @@
     <ClCompile Include="lsa.c" />
     <ClCompile Include="lua.c" />
     <ClCompile Include="luahw.c" />
+    <ClCompile Include="luahwcpu.c" />
+    <ClCompile Include="luahwsysreg.c" />
     <ClCompile Include="lualib.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
@@ -109,6 +111,9 @@
     <ClInclude Include="include\pooltags.h" />
     <ClInclude Include="include\script.h" />
     <ClInclude Include="include\trace.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <KsiAsm Include="amd64\luahwsmi.asm" Condition="'$(Platform)'=='x64'" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

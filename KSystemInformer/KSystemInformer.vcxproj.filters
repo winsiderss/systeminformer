@@ -138,6 +138,17 @@
     <ClCompile Include="luahw.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="luahwcpu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <KsiAsm Include="amd64\luahwsmi.asm">
+      <Filter>Source Files</Filter>
+    </KsiAsm>
+    <ClCompile Include="luahwsysreg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>
