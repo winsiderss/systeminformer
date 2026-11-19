@@ -16,105 +16,9 @@
 
 #define KPH_LUA_HARDWARE_LIBRARY_NAME "hw"
 
-typedef struct _KPH_LUA_HW_LOCK
-{
-    LIST_ENTRY Entry;
-    KEVENT Event;
-    ANSI_STRING Name;
-} KPH_LUA_HW_LOCK, *PKPH_LUA_HW_LOCK;
-
-#if defined(_M_X64)
-
-typedef struct _KPH_LUA_HW_CPU
-{
-    CHAR Vendor[12];
-    ULONG Family;
-    ULONG Model;
-    ULONG Stepping;
-    ULONG Signature;
-    ULONG PhysicalBits;
-} KPH_LUA_HW_CPU, *PKPH_LUA_HW_CPU;
-
-KPH_PROTECTED_DATA_SECTION_PUSH();
-static KPH_LUA_HW_CPU KphpLuaHwCpuIdentity = { 0 };
-KPH_PROTECTED_DATA_SECTION_POP();
-
-static NPAGED_LOOKASIDE_LIST KphpLuaHwPinLookaside = { 0 };
-
-#endif
-
-KPH_PAGED_FILE();
-
-static LIST_ENTRY KphpLuaHwLocks;
-static KPH_RWLOCK KphpLuaHwLocksLock;
 static BOOLEAN KphpLuaHwInitialized = FALSE;
 
-#if defined(_M_X64)
-
-/**
- * \brief Captures the identity of the processor.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpLuaHwInitializeCpu(
-    VOID
-    )
-{
-    int basic[4];
-    int version[4];
-    int extended[4];
-    int addresses[4];
-    int vendor[3];
-    ULONG signature;
-    ULONG baseFamily;
-    ULONG family;
-    ULONG model;
-    ULONG physicalBits;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    __cpuidex(basic, CPUID_BASIC, 0);
-    __cpuidex(version, CPUID_VERSION, 0);
-    __cpuidex(extended, CPUID_EXTENDED, 0);
-
-    vendor[0] = basic[1];
-    vendor[1] = basic[3];
-    vendor[2] = basic[2];
-
-    signature = (ULONG)version[0];
-
-    baseFamily = (signature >> 8) & 0xF;
-
-    family = baseFamily;
-    if (baseFamily == 0xF)
-    {
-        family += (signature >> 20) & 0xFF;
-    }
-
-    model = (signature >> 4) & 0xF;
-    if (baseFamily >= 0x6)
-    {
-        model |= ((signature >> 16) & 0xF) << 4;
-    }
-
-    physicalBits = 36;
-    if ((ULONG)extended[0] >= CPUID_ADDRESS_SIZES)
-    {
-        __cpuidex(addresses, CPUID_ADDRESS_SIZES, 0);
-
-        physicalBits = (ULONG)addresses[0] & 0xFF;
-    }
-
-    C_ASSERT(sizeof(vendor) == sizeof(KphpLuaHwCpuIdentity.Vendor));
-
-    RtlCopyMemory(KphpLuaHwCpuIdentity.Vendor, vendor, sizeof(vendor));
-    KphpLuaHwCpuIdentity.Family = family;
-    KphpLuaHwCpuIdentity.Model = model;
-    KphpLuaHwCpuIdentity.Stepping = signature & 0xF;
-    KphpLuaHwCpuIdentity.Signature = signature;
-    KphpLuaHwCpuIdentity.PhysicalBits = physicalBits;
-}
-
-#endif
+KPH_PAGED_FILE();
 
 /**
  * \brief Initializes the hardware library.
@@ -126,16 +30,6 @@ VOID KphLuaInitializeHardware(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    InitializeListHead(&KphpLuaHwLocks);
-    KphInitializeRWLock(&KphpLuaHwLocksLock);
-
-#if defined(_M_X64)
-    KphpLuaHwInitializeCpu();
-
-    KphInitializeNPagedLookaside(&KphpLuaHwPinLookaside,
-                                 sizeof(GROUP_AFFINITY),
-                                 KPH_TAG_LUA_HARDWARE_PIN);
-#endif
 
     KphpLuaHwInitialized = TRUE;
 }
@@ -148,9 +42,6 @@ VOID KphLuaCleanupHardware(
     VOID
     )
 {
-    PLIST_ENTRY entry;
-    PKPH_LUA_HW_LOCK lock;
-
     KPH_PAGED_CODE_PASSIVE();
 
     if (!KphpLuaHwInitialized)
@@ -158,190 +49,6 @@ VOID KphLuaCleanupHardware(
         return;
     }
 
-    while (!IsListEmpty(&KphpLuaHwLocks))
-    {
-        entry = RemoveHeadList(&KphpLuaHwLocks);
-
-        lock = CONTAINING_RECORD(entry, KPH_LUA_HW_LOCK, Entry);
-
-        KphFree(lock, KPH_TAG_LUA_HARDWARE_LOCK);
-    }
-
-    KphDeleteRWLock(&KphpLuaHwLocksLock);
-
-#if defined(_M_X64)
-    KphDeleteNPagedLookaside(&KphpLuaHwPinLookaside);
-#endif
-}
-
-/**
- * \brief Finds the lock of a name, creating it the first time the name is
- * used.
- *
- * \param[in] Name The name of the lock.
- *
- * \return The lock, NULL when it could not be created.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-PKPH_LUA_HW_LOCK KphpLuaHwFindLock(
-    _In_ PCANSI_STRING Name
-    )
-{
-    PLIST_ENTRY entry;
-    PKPH_LUA_HW_LOCK lock;
-    SIZE_T size;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    lock = NULL;
-
-    KphAcquireRWLockExclusive(&KphpLuaHwLocksLock);
-
-    for (entry = KphpLuaHwLocks.Flink;
-         entry != &KphpLuaHwLocks;
-         entry = entry->Flink)
-    {
-        lock = CONTAINING_RECORD(entry, KPH_LUA_HW_LOCK, Entry);
-
-        if (RtlEqualString(&lock->Name, Name, FALSE))
-        {
-            goto Exit;
-        }
-    }
-
-    NT_VERIFY(NT_SUCCESS(RtlSIZETAdd(sizeof(KPH_LUA_HW_LOCK),
-                                     Name->Length,
-                                     &size)));
-
-    lock = KphAllocateNPaged(size, KPH_TAG_LUA_HARDWARE_LOCK);
-    if (!lock)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Failed to allocate lock %Z",
-                      Name);
-
-        goto Exit;
-    }
-
-    KeInitializeEvent(&lock->Event, SynchronizationEvent, TRUE);
-
-    lock->Name.Buffer = Add2Ptr(lock, sizeof(KPH_LUA_HW_LOCK));
-    lock->Name.Length = Name->Length;
-    lock->Name.MaximumLength = Name->Length;
-    RtlCopyMemory(lock->Name.Buffer, Name->Buffer, Name->Length);
-
-    InsertTailList(&KphpLuaHwLocks, &lock->Entry);
-
-Exit:
-
-    KphReleaseRWLock(&KphpLuaHwLocksLock);
-
-    return lock;
-}
-
-/**
- * \brief Releases a lock a script holds.
- *
- * \param[in] Context The lock.
- */
-_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpLuaHwReleaseLock(
-    _In_opt_ PVOID Context
-    )
-{
-    PKPH_LUA_HW_LOCK lock;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(Context);
-
-    lock = Context;
-
-    KeSetEvent(&lock->Event, IO_NO_INCREMENT, FALSE);
-
-    KeLeaveCriticalRegion();
-}
-
-/**
- * \brief Takes a lock by name (hw.lock).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: the lock object, or nil and a status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwLock(
-    _In_ lua_State* State
-    )
-{
-    NTSTATUS status;
-    PCSTR buffer;
-    size_t length;
-    lua_Integer milliseconds;
-    ANSI_STRING name;
-    PKPH_LUA_HW_LOCK lock;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    buffer = luaL_checklstring(State, 1, &length);
-
-    luaL_argcheck(State,
-                  (length > 0) && (length <= USHORT_MAX),
-                  1,
-                  "empty or too long");
-
-    milliseconds = ULONG_MAX;
-    if (!lua_isnoneornil(State, 2))
-    {
-        milliseconds = luaL_checkinteger(State, 2);
-
-        luaL_argcheck(State,
-                      (milliseconds >= 0) && (milliseconds < ULONG_MAX),
-                      2,
-                      "out of range");
-    }
-
-    name.Buffer = (PCHAR)buffer;
-    name.Length = (USHORT)length;
-    name.MaximumLength = (USHORT)length;
-
-    lock = KphpLuaHwFindLock(&name);
-    if (!lock)
-    {
-        lua_pushnil(State);
-        lua_pushinteger(State,
-                        (lua_Integer)(ULONG)STATUS_INSUFFICIENT_RESOURCES);
-        return 2;
-    }
-
-    KeEnterCriticalRegion();
-
-    status = KphScriptWait(State, &lock->Event, (ULONG)milliseconds);
-    if (status == STATUS_SUCCESS)
-    {
-        KphScriptPushCleanup(State, KphpLuaHwReleaseLock, lock);
-        return 1;
-    }
-
-    KeLeaveCriticalRegion();
-
-    if (status == STATUS_SI_SCRIPT_LIMIT)
-    {
-        KphScriptCharge(State, 0);
-    }
-
-    KphTracePrint(TRACE_LEVEL_VERBOSE,
-                  HARDWARE,
-                  "KphScriptWait failed: %!STATUS!",
-                  status);
-
-    lua_pushnil(State);
-    lua_pushinteger(State, (lua_Integer)(ULONG)status);
-    return 2;
 }
 
 /**
@@ -403,7 +110,7 @@ PCSTR KphpLuaHwCheckSignature(
 }
 
 /**
- * \brief Retrieves a firmware table (hw.firmware_table).
+ * \brief Retrieves a firmware table (ksi.hw.firmware_table).
  *
  * \details May raise a Lua error.
  *
@@ -416,6 +123,7 @@ int KphpLuaHwFirmwareTable(
     _In_ lua_State* State
     )
 {
+    int results;
     NTSTATUS status;
     PCSTR provider;
     PCSTR id;
@@ -466,6 +174,7 @@ int KphpLuaHwFirmwareTable(
                       query.TableID);
 
         status = STATUS_NOT_FOUND;
+        results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
 
@@ -484,6 +193,7 @@ int KphpLuaHwFirmwareTable(
             status = STATUS_UNSUCCESSFUL;
         }
 
+        results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
 
@@ -498,6 +208,7 @@ int KphpLuaHwFirmwareTable(
                       "RtlULongAdd failed: %!STATUS!",
                       status);
 
+        results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
 
@@ -523,6 +234,7 @@ int KphpLuaHwFirmwareTable(
                       query.TableID,
                       status);
 
+        results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
 
@@ -536,6 +248,7 @@ int KphpLuaHwFirmwareTable(
                       info->TableBufferLength);
 
         status = STATUS_BUFFER_OVERFLOW;
+        results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
 
@@ -545,329 +258,14 @@ int KphpLuaHwFirmwareTable(
 
     luaL_pushresultsize(&buffer, tableLength);
 
-    return 1;
+    results = 1;
 
 Exit:
 
-    lua_pushnil(State);
-    lua_pushinteger(State, (lua_Integer)(ULONG)status);
-
-    return 2;
+    return results;
 }
 
 #if defined(_M_X64)
-
-/**
- * \brief Executes CPUID on the current processor (hw.cpuid).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return Four, the registers EAX, EBX, ECX and EDX.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwCpuid(
-    _In_ lua_State* State
-    )
-{
-    ULONG leaf;
-    ULONG subleaf;
-    int registers[4];
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    leaf = KphpLuaHwCheckUlong(State, 1);
-    subleaf = KphpLuaHwCheckUlong(State, 2);
-
-    __cpuidex(registers, (int)leaf, (int)subleaf);
-
-    for (ULONG i = 0; i < ARRAYSIZE(registers); i++)
-    {
-        lua_pushinteger(State, (lua_Integer)(ULONG)registers[i]);
-    }
-
-    return ARRAYSIZE(registers);
-}
-
-/**
- * \brief Describes the processor, as captured when the driver loaded
- * (hw.cpu).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return One, a table of the vendor, the display family, model and
- * stepping, the signature and the physical address width.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwCpu(
-    _In_ lua_State* State
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    lua_createtable(State, 0, 6);
-
-    lua_pushlstring(State,
-                    KphpLuaHwCpuIdentity.Vendor,
-                    sizeof(KphpLuaHwCpuIdentity.Vendor));
-    lua_setfield(State, -2, "vendor");
-    lua_pushinteger(State, KphpLuaHwCpuIdentity.Family);
-    lua_setfield(State, -2, "family");
-    lua_pushinteger(State, KphpLuaHwCpuIdentity.Model);
-    lua_setfield(State, -2, "model");
-    lua_pushinteger(State, KphpLuaHwCpuIdentity.Stepping);
-    lua_setfield(State, -2, "stepping");
-    lua_pushinteger(State, KphpLuaHwCpuIdentity.Signature);
-    lua_setfield(State, -2, "signature");
-    lua_pushinteger(State, KphpLuaHwCpuIdentity.PhysicalBits);
-    lua_setfield(State, -2, "physical_bits");
-
-    return 1;
-}
-
-/**
- * \brief Restores the affinity a pin replaced.
- *
- * \param[in] Context The affinity to restore.
- */
-_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpLuaHwReleasePin(
-    _In_opt_ PVOID Context
-    )
-{
-    PGROUP_AFFINITY previous;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(Context);
-
-    previous = Context;
-
-    KeRevertToUserGroupAffinityThread(previous);
-
-    KphFreeToNPagedLookaside(&KphpLuaHwPinLookaside, previous);
-}
-
-/**
- * \brief Runs the calling thread on one processor until the pin is released
- * (hw.pin).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: the pin object, or nil and a status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwPin(
-    _In_ lua_State* State
-    )
-{
-    lua_Integer group;
-    lua_Integer number;
-    PROCESSOR_NUMBER processor;
-    GROUP_AFFINITY affinity;
-    PGROUP_AFFINITY previous;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    group = luaL_checkinteger(State, 1);
-    number = luaL_checkinteger(State, 2);
-
-    luaL_argcheck(State,
-                  (group >= 0) && (group <= USHORT_MAX),
-                  1,
-                  "out of range");
-    luaL_argcheck(State,
-                  (number >= 0) && (number <= UCHAR_MAX),
-                  2,
-                  "out of range");
-
-    RtlZeroMemory(&processor, sizeof(processor));
-    processor.Group = (USHORT)group;
-    processor.Number = (UCHAR)number;
-
-    if (KeGetProcessorIndexFromNumber(&processor) == INVALID_PROCESSOR_INDEX)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Processor %lu:%lu is not active",
-                      (ULONG)processor.Group,
-                      (ULONG)processor.Number);
-
-        lua_pushnil(State);
-        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_INVALID_PARAMETER);
-        return 2;
-    }
-
-    previous = KphAllocateFromNPagedLookaside(&KphpLuaHwPinLookaside);
-    if (!previous)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Failed to allocate pin");
-
-        lua_pushnil(State);
-        lua_pushinteger(State,
-                        (lua_Integer)(ULONG)STATUS_INSUFFICIENT_RESOURCES);
-        return 2;
-    }
-
-    NT_ASSERT(sizeof(GROUP_AFFINITY) <= KphpLuaHwPinLookaside.L.Size);
-
-    RtlZeroMemory(&affinity, sizeof(affinity));
-    affinity.Group = processor.Group;
-    affinity.Mask = (KAFFINITY)1 << processor.Number;
-
-    KeSetSystemGroupAffinityThread(&affinity, previous);
-
-    KphScriptPushCleanup(State, KphpLuaHwReleasePin, previous);
-
-    return 1;
-}
-
-/**
- * \brief Reads an MSR of the current processor.
- *
- * \param[in] Index The MSR.
- * \param[out] Value Receives the value, zero when the read faults.
- *
- * \return TRUE when the read did not fault, FALSE otherwise.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphpLuaHwReadMsr(
-    _In_ ULONG Index,
-    _Out_ PULONG64 Value
-    )
-{
-    ULONG64 value;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    *Value = 0;
-
-    __try
-    {
-        value = __readmsr(Index);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return FALSE;
-    }
-
-    *Value = value;
-
-    return TRUE;
-}
-
-/**
- * \brief Writes an MSR of the current processor.
- *
- * \param[in] Index The MSR.
- * \param[in] Value The value.
- *
- * \return TRUE when the write did not fault, FALSE otherwise.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphpLuaHwWriteMsr(
-    _In_ ULONG Index,
-    _In_ ULONG64 Value
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    __try
-    {
-        __writemsr(Index, Value);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-/**
- * \brief Reads an MSR of the current processor (hw.msr_read).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: the value, or nil and a status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwMsrRead(
-    _In_ lua_State* State
-    )
-{
-    ULONG index;
-    ULONG64 value;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    index = KphpLuaHwCheckUlong(State, 1);
-
-    if (!KphpLuaHwReadMsr(index, &value))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "MSR 0x%08lx read faulted",
-                      index);
-
-        lua_pushnil(State);
-        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_NOT_SUPPORTED);
-        return 2;
-    }
-
-    lua_pushinteger(State, (lua_Integer)value);
-
-    return 1;
-}
-
-/**
- * \brief Writes an MSR of the current processor (hw.msr_write).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: true, or nil and a status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwMsrWrite(
-    _In_ lua_State* State
-    )
-{
-    ULONG index;
-    ULONG64 value;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    index = KphpLuaHwCheckUlong(State, 1);
-    value = (ULONG64)luaL_checkinteger(State, 2);
-
-    if (!KphpLuaHwWriteMsr(index, value))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "MSR 0x%08lx write faulted",
-                      index);
-
-        lua_pushnil(State);
-        lua_pushinteger(State, (lua_Integer)(ULONG)STATUS_NOT_SUPPORTED);
-        return 2;
-    }
-
-    lua_pushboolean(State, TRUE);
-
-    return 1;
-}
 
 /**
  * \brief Checks the width argument of a port access: 1, 2 or 4.
@@ -930,7 +328,7 @@ USHORT KphpLuaHwCheckPort(
 }
 
 /**
- * \brief Reads an I/O port (hw.port_read).
+ * \brief Reads an I/O port (ksi.hw.port_read).
  *
  * \details May raise a Lua error.
  *
@@ -978,7 +376,7 @@ int KphpLuaHwPortRead(
 }
 
 /**
- * \brief Writes an I/O port (hw.port_write).
+ * \brief Writes an I/O port (ksi.hw.port_write).
  *
  * \details May raise a Lua error.
  *
@@ -1031,49 +429,627 @@ int KphpLuaHwPortWrite(
 
 #endif
 
+/**
+ * \brief References the device objects of a driver.
+ *
+ * \param[in] DriverName The name of the driver object.
+ * \param[out] Devices Receives the referenced device objects, released with
+ * KphLuaHwDereferenceDevices.
+ * \param[out] Count Receives the number of device objects.
+ *
+ * \return Successful or errant status; STATUS_NOT_FOUND when the driver does
+ * not exist or has no device objects.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwReferenceDevices(
+    _In_ PCUNICODE_STRING DriverName,
+    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
+    _Out_ PULONG Count
+    )
+{
+    NTSTATUS status;
+    PDRIVER_OBJECT driver;
+    PDEVICE_OBJECT* devices;
+    ULONG count;
+    ULONG length;
+    ULONG capacity;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Devices = NULL;
+    *Count = 0;
+
+    driver = NULL;
+    devices = NULL;
+
+    status = ObReferenceObjectByName((PUNICODE_STRING)DriverName,
+                                     OBJ_DONT_REPARSE,
+                                     NULL,
+                                     0,
+                                     *IoDriverObjectType,
+                                     KernelMode,
+                                     NULL,
+                                     (PVOID*)&driver);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "ObReferenceObjectByName failed: %!STATUS!",
+                      status);
+
+        driver = NULL;
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    count = 0;
+
+    status = IoEnumerateDeviceObjectList(driver, NULL, 0, &count);
+    if ((status != STATUS_BUFFER_TOO_SMALL) || !count)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoEnumerateDeviceObjectList returned: %!STATUS!",
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        goto Exit;
+    }
+
+    for (ULONG attempt = 0; attempt < 2; attempt++)
+    {
+        status = RtlULongMult(count, sizeof(PDEVICE_OBJECT), &length);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "RtlULongMult failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        devices = KphAllocateNPaged(length, KPH_TAG_LUA_HARDWARE_DEVICES);
+        if (!devices)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Failed to allocate the device list");
+
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        status = IoEnumerateDeviceObjectList(driver, devices, length, &count);
+        if (status != STATUS_BUFFER_TOO_SMALL)
+        {
+            break;
+        }
+
+        capacity = length / sizeof(PDEVICE_OBJECT);
+
+        for (ULONG i = 0; (i < count) && (i < capacity); i++)
+        {
+            ObDereferenceObject(devices[i]);
+        }
+
+        KphFree(devices, KPH_TAG_LUA_HARDWARE_DEVICES);
+        devices = NULL;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoEnumerateDeviceObjectList failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    *Devices = devices;
+    *Count = count;
+    devices = NULL;
+
+Exit:
+
+    if (devices)
+    {
+        KphFree(devices, KPH_TAG_LUA_HARDWARE_DEVICES);
+    }
+
+    if (driver)
+    {
+        ObDereferenceObject(driver);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Releases the device objects of KphLuaHwReferenceDevices.
+ *
+ * \param[in] Devices The device objects.
+ * \param[in] Count The number of device objects.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaHwDereferenceDevices(
+    _In_reads_(Count) PDEVICE_OBJECT* Devices,
+    _In_ ULONG Count
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        ObDereferenceObject(Devices[i]);
+    }
+
+    KphFree(Devices, KPH_TAG_LUA_HARDWARE_DEVICES);
+}
+
+/**
+ * \brief Retrieves a property of a device of variable length.
+ *
+ * \param[in] Pdo The physical device object.
+ * \param[in] Property The property.
+ * \param[out] Buffer Receives the property followed by two zero characters,
+ * freed with KPH_TAG_LUA_HARDWARE_PROPERTY.
+ * \param[out] Length Receives the length of the property.
+ *
+ * \return Successful or errant status; STATUS_NOT_FOUND when the device has
+ * no such property.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwQueryProperty(
+    _In_ PDEVICE_OBJECT Pdo,
+    _In_ DEVICE_REGISTRY_PROPERTY Property,
+    _Outptr_result_bytebuffer_(*Length) PVOID* Buffer,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG length;
+    ULONG allocationLength;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Buffer = NULL;
+    *Length = 0;
+
+    buffer = NULL;
+    length = 0;
+
+    status = IoGetDeviceProperty(Pdo, Property, 0, NULL, &length);
+    if ((status != STATUS_BUFFER_TOO_SMALL) || !length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty returned: %!STATUS!",
+                      status);
+
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    status = RtlULongAdd(length, 2 * sizeof(UNICODE_NULL), &allocationLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlULongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    buffer = KphAllocatePaged(allocationLength, KPH_TAG_LUA_HARDWARE_PROPERTY);
+    if (!buffer)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate a device property");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = IoGetDeviceProperty(Pdo, Property, length, buffer, &length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    *Buffer = buffer;
+    *Length = length;
+    buffer = NULL;
+
+Exit:
+
+    if (buffer)
+    {
+        KphFree(buffer, KPH_TAG_LUA_HARDWARE_PROPERTY);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Frees a device property.
+ *
+ * \param[in] Context The property.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphLuaHwFreeProperty(
+    _In_opt_ PVOID Context
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    KphFree(Context, KPH_TAG_LUA_HARDWARE_PROPERTY);
+}
+
+/**
+ * \brief Walks a resource list to its end, or to a memory or port descriptor.
+ *
+ * \param[in] List The resource list.
+ * \param[in] Available The number of bytes available at the list.
+ * \param[in] Ordinal The memory or port descriptor to find, from zero, or
+ * ULONG_MAX to walk the whole list.
+ * \param[out] Size Receives the size of the list when the whole list was
+ * walked, zero otherwise.
+ *
+ * \return The descriptor found, NULL when there is no such descriptor or the
+ * list does not fit.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PCM_PARTIAL_RESOURCE_DESCRIPTOR KphpLuaHwWalkResources(
+    _In_reads_bytes_(Available) PCM_RESOURCE_LIST List,
+    _In_ ULONG Available,
+    _In_ ULONG Ordinal,
+    _Out_ PULONG Size
+    )
+{
+    NTSTATUS status;
+    ULONG fullHeaderLength;
+    ULONG offset;
+    ULONG next;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Size = 0;
+
+    if (Available < UFIELD_OFFSET(CM_RESOURCE_LIST, List))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Resource list of %lu bytes is cut short",
+                      Available);
+
+        return NULL;
+    }
+
+    fullHeaderLength = FIELD_OFFSET(CM_FULL_RESOURCE_DESCRIPTOR,
+                                    PartialResourceList.PartialDescriptors);
+    offset = FIELD_OFFSET(CM_RESOURCE_LIST, List);
+
+    for (ULONG i = 0; i < List->Count; i++)
+    {
+        PCM_FULL_RESOURCE_DESCRIPTOR full;
+        ULONG partialCount;
+
+        status = RtlULongAdd(offset, fullHeaderLength, &next);
+        if (!NT_SUCCESS(status) || (next > Available))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Resource list of %lu bytes is cut short",
+                          Available);
+
+            return NULL;
+        }
+
+        full = Add2Ptr(List, offset);
+        partialCount = full->PartialResourceList.Count;
+        offset = next;
+
+        for (ULONG j = 0; j < partialCount; j++)
+        {
+            PCM_PARTIAL_RESOURCE_DESCRIPTOR partial;
+
+            status = RtlULongAdd(offset,
+                                 sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR),
+                                 &next);
+            if (!NT_SUCCESS(status) || (next > Available))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HARDWARE,
+                              "Resource list of %lu bytes is cut short",
+                              Available);
+
+                return NULL;
+            }
+
+            partial = Add2Ptr(List, offset);
+            offset = next;
+
+            if (partial->Type == CmResourceTypeDeviceSpecific)
+            {
+                status = RtlULongAdd(offset,
+                                     partial->u.DeviceSpecificData.DataSize,
+                                     &next);
+                if (!NT_SUCCESS(status) || (next > Available))
+                {
+                    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                                  HARDWARE,
+                                  "Resource list of %lu bytes is cut short",
+                                  Available);
+
+                    return NULL;
+                }
+
+                offset = next;
+                continue;
+            }
+
+            if ((partial->Type != CmResourceTypeMemory) &&
+                (partial->Type != CmResourceTypeMemoryLarge) &&
+                (partial->Type != CmResourceTypePort))
+            {
+                continue;
+            }
+
+            if (Ordinal == 0)
+            {
+                return partial;
+            }
+
+            Ordinal--;
+        }
+    }
+
+    *Size = offset;
+
+    return NULL;
+}
+
+/**
+ * \brief Pushes a table of the memory and port resources of a device
+ * (ksi.hw.pci_resources, ksi.hw.acpi_resources).
+ *
+ * \details May raise a Lua error. The resources the PnP manager assigned, or
+ * when it assigned none, the boot configuration. Pushes an array of tables
+ * with the fields kind (1 memory, 2 port), raw, translated, length and flags,
+ * empty when the device has none; or nil and a status.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Pdo The physical device object.
+ *
+ * \return The number of values pushed.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphLuaHwPushResources(
+    _In_ lua_State* State,
+    _In_ PDEVICE_OBJECT Pdo
+    )
+{
+    int results;
+    NTSTATUS status;
+    PVOID allocated;
+    ULONG allocatedLength;
+    PVOID raw;
+    ULONG rawLength;
+    PVOID translated;
+    ULONG translatedLength;
+    ULONG size;
+    lua_Integer index;
+    int top;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    results = 0;
+    raw = NULL;
+    rawLength = 0;
+    translated = NULL;
+    translatedLength = 0;
+
+    top = lua_gettop(State);
+
+    status = KphLuaHwQueryProperty(Pdo,
+                                   DevicePropertyAllocatedResources,
+                                   &allocated,
+                                   &allocatedLength);
+    if (NT_SUCCESS(status))
+    {
+        KphScriptPushCleanup(State, KphLuaHwFreeProperty, allocated);
+
+        //
+        // The raw list is followed by the translated list.
+        //
+        KphpLuaHwWalkResources(allocated, allocatedLength, ULONG_MAX, &size);
+        if (!size || (size >= allocatedLength))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Allocated resources of %lu bytes are not two lists",
+                          allocatedLength);
+
+            status = STATUS_DEVICE_CONFIGURATION_ERROR;
+            goto Exit;
+        }
+
+        raw = allocated;
+        rawLength = size;
+        translated = Add2Ptr(allocated, size);
+        translatedLength = allocatedLength - size;
+        goto WalkResources;
+    }
+
+    if (status != STATUS_NOT_FOUND)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphLuaHwQueryProperty failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphLuaHwQueryProperty(Pdo,
+                                   DevicePropertyBootConfiguration,
+                                   &raw,
+                                   &rawLength);
+    if (status == STATUS_NOT_FOUND)
+    {
+        goto WalkResources;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphLuaHwQueryProperty failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphScriptPushCleanup(State, KphLuaHwFreeProperty, raw);
+
+    status = KphLuaHwQueryProperty(Pdo,
+                                   DevicePropertyBootConfigurationTranslated,
+                                   &translated,
+                                   &translatedLength);
+    if (NT_SUCCESS(status))
+    {
+        KphScriptPushCleanup(State, KphLuaHwFreeProperty, translated);
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphLuaHwQueryProperty failed: %!STATUS!",
+                      status);
+    }
+
+WalkResources:
+
+    lua_newtable(State);
+
+    index = 0;
+
+    for (ULONG i = 0; raw; i++)
+    {
+        PCM_PARTIAL_RESOURCE_DESCRIPTOR descriptor;
+        PCM_PARTIAL_RESOURCE_DESCRIPTOR other;
+
+        descriptor = KphpLuaHwWalkResources(raw, rawLength, i, &size);
+        if (!descriptor)
+        {
+            break;
+        }
+
+        KphScriptCharge(State, 1);
+
+        other = NULL;
+
+        if (translated)
+        {
+            other = KphpLuaHwWalkResources(translated,
+                                           translatedLength,
+                                           i,
+                                           &size);
+        }
+
+        if (!other)
+        {
+            other = descriptor;
+        }
+
+        lua_createtable(State, 0, 5);
+        lua_pushinteger(State,
+                        (descriptor->Type == CmResourceTypePort) ? 2 : 1);
+        lua_setfield(State, -2, "kind");
+        lua_pushinteger(State,
+                        (lua_Integer)descriptor->u.Generic.Start.QuadPart);
+        lua_setfield(State, -2, "raw");
+        lua_pushinteger(State, (lua_Integer)other->u.Generic.Start.QuadPart);
+        lua_setfield(State, -2, "translated");
+        lua_pushinteger(State,
+                        (lua_Integer)RtlCmDecodeMemIoResource(descriptor,
+                                                              NULL));
+        lua_setfield(State, -2, "length");
+        lua_pushinteger(State, (lua_Integer)descriptor->Flags);
+        lua_setfield(State, -2, "flags");
+
+        lua_rawseti(State, -2, ++index);
+    }
+
+    if (lua_gettop(State) > (top + 1))
+    {
+        for (int i = top + 1; i < lua_gettop(State); i++)
+        {
+            KphScriptReleaseCleanup(State, i);
+        }
+
+        lua_replace(State, top + 1);
+        lua_settop(State, top + 1);
+    }
+
+    results = 1;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (!NT_SUCCESS(status))
+    {
+        for (int i = top + 1; i <= lua_gettop(State); i++)
+        {
+            KphScriptReleaseCleanup(State, i);
+        }
+
+        lua_settop(State, top);
+
+        results = KphLuaNilErrorStatus(State, status);
+    }
+
+    return results;
+}
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaHwLibrary[] =
 {
 #if defined(_M_X64)
-    { "cpu", KphpLuaHwCpu },
-    { "cpuid", KphpLuaHwCpuid },
-    { "msr_read", KphpLuaHwMsrRead },
-    { "msr_write", KphpLuaHwMsrWrite },
-    { "pin", KphpLuaHwPin },
     { "port_read", KphpLuaHwPortRead },
     { "port_write", KphpLuaHwPortWrite },
 #endif
     { "firmware_table", KphpLuaHwFirmwareTable },
-    { "lock", KphpLuaHwLock },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
- * \brief Opens the hardware library.
- *
- * \param[in] State The Lua state.
- *
- * \return One, the library table.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwOpen(
-    _In_ lua_State* State
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    luaL_newlib(State, KphpLuaHwLibrary);
-
-    return 1;
-}
-
-/**
- * \brief Opens the hardware library in a Lua state, as the global hw.
+ * \brief Opens the hardware library as the field hw of the library of the
+ * driver.
  *
  * \details May raise a Lua error.
  *
- * \param[in] State The Lua state.
+ * \param[in] State The Lua state, with the library of the driver on top.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaOpenHardwareLibrary(
@@ -1082,6 +1058,8 @@ VOID KphLuaOpenHardwareLibrary(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    luaL_requiref(State, KPH_LUA_HARDWARE_LIBRARY_NAME, KphpLuaHwOpen, 1);
-    lua_settop(State, 0);
+    luaL_newlib(State, KphpLuaHwLibrary);
+
+
+    lua_setfield(State, -2, KPH_LUA_HARDWARE_LIBRARY_NAME);
 }

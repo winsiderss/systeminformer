@@ -31,9 +31,14 @@ typedef struct _KPH_LUA_REMOVED
     PCSTR Name;
 } KPH_LUA_REMOVED, *PKPH_LUA_REMOVED;
 
-#define KPH_LUA_STATUS_ENTRY(s) { #s, s }
+typedef struct _KPH_LUA_LOCK
+{
+    LIST_ENTRY Entry;
+    KMUTEX Mutex;
+    ANSI_STRING Name;
+} KPH_LUA_LOCK, *PKPH_LUA_LOCK;
 
-KPH_PAGED_FILE();
+#define KPH_LUA_STATUS_ENTRY(s) { #s, s }
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const CHAR KphpLuaAbortKey = 0;
@@ -53,6 +58,16 @@ static const KPH_LUA_STATUS KphpLuaStatuses[] =
     KPH_LUA_STATUS_ENTRY(STATUS_DEVICE_BUSY),
     KPH_LUA_STATUS_ENTRY(STATUS_DEVICE_CONFIGURATION_ERROR),
     KPH_LUA_STATUS_ENTRY(STATUS_RETRY),
+    KPH_LUA_STATUS_ENTRY(STATUS_IO_TIMEOUT),
+    KPH_LUA_STATUS_ENTRY(STATUS_BUFFER_OVERFLOW),
+    KPH_LUA_STATUS_ENTRY(STATUS_OBJECT_TYPE_MISMATCH),
+    KPH_LUA_STATUS_ENTRY(STATUS_CANCELLED),
+    KPH_LUA_STATUS_ENTRY(STATUS_DEVICE_DATA_ERROR),
+    KPH_LUA_STATUS_ENTRY(STATUS_INTERNAL_ERROR),
+    KPH_LUA_STATUS_ENTRY(STATUS_CONFLICTING_ADDRESSES),
+    KPH_LUA_STATUS_ENTRY(STATUS_INTEGER_OVERFLOW),
+    KPH_LUA_STATUS_ENTRY(STATUS_NO_SUCH_DEVICE),
+    KPH_LUA_STATUS_ENTRY(STATUS_DEVICE_POWERED_OFF),
 };
 static const KPH_LUA_REMOVED KphpLuaRemoved[] =
 {
@@ -70,6 +85,11 @@ static const KPH_LUA_REMOVED KphpLuaRemoved[] =
     { LUA_TABLIBNAME, "move" },
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+static LIST_ENTRY KphpLuaLocks;
+static KPH_RWLOCK KphpLuaLocksLock;
+static BOOLEAN KphpLuaLocksInitialized = FALSE;
+
+KPH_PAGED_FILE();
 
 /**
  * \brief Raises the abort error of a call. Does not return.
@@ -164,10 +184,51 @@ int KphpLuaProtectedCallForScript(
 }
 
 /**
+ * \brief Calls a close handler of a script.
+ *
+ * \details May raise a Lua error. A limit the body reaches inside the handler
+ * ends the call when the handler returns, not before.
+ *
+ * \param[in] State The Lua state, with the arguments of the handler. The
+ * first upvalue is the handler.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaCloseForScript(
+    _In_ lua_State* State
+    )
+{
+    int arguments;
+    int result;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    arguments = lua_gettop(State);
+
+    lua_pushvalue(State, lua_upvalueindex(1));
+    lua_rotate(State, 1, 1);
+
+    KphScriptEnterHandler(State);
+
+    result = lua_pcall(State, arguments, 0, 0);
+
+    KphScriptLeaveHandler(State);
+
+    if (result != LUA_OK)
+    {
+        lua_error(State);
+    }
+
+    return 0;
+}
+
+/**
  * \brief Sets the metatable of a table, for scripts: setmetatable.
  *
  * \details Unlike the setmetatable of Lua, a metatable with a finalizer is
- * refused.
+ * refused, and the close handler of a metatable is called through
+ * KphpLuaCloseForScript.
  *
  * \param[in] State The Lua state, with the table and the metatable. The first
  * upvalue is the setmetatable of Lua.
@@ -193,6 +254,20 @@ int KphpLuaSetMetatableForScript(
         }
 
         lua_settop(State, -2);
+
+        lua_pushliteral(State, "__close");
+        lua_pushliteral(State, "__close");
+
+        if ((lua_rawget(State, 2) != LUA_TNIL) &&
+            (lua_tocfunction(State, -1) != KphpLuaCloseForScript))
+        {
+            lua_pushcclosure(State, KphpLuaCloseForScript, 1);
+            lua_rawset(State, 2);
+        }
+        else
+        {
+            lua_settop(State, -3);
+        }
     }
 
     arguments = lua_gettop(State);
@@ -793,9 +868,238 @@ int KphpLuaStall(
     return 0;
 }
 
+/**
+ * \brief Initializes the locks of scripts.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeLocks(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    InitializeListHead(&KphpLuaLocks);
+    KphInitializeRWLock(&KphpLuaLocksLock);
+
+    KphpLuaLocksInitialized = TRUE;
+}
+
+/**
+ * \brief Cleans up the locks of scripts.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupLocks(
+    VOID
+    )
+{
+    PLIST_ENTRY entry;
+    PKPH_LUA_LOCK lock;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphpLuaLocksInitialized)
+    {
+        return;
+    }
+
+    while (!IsListEmpty(&KphpLuaLocks))
+    {
+        entry = RemoveHeadList(&KphpLuaLocks);
+
+        lock = CONTAINING_RECORD(entry, KPH_LUA_LOCK, Entry);
+
+        KphFree(lock, KPH_TAG_LUA_LOCK);
+    }
+
+    KphDeleteRWLock(&KphpLuaLocksLock);
+}
+
+/**
+ * \brief Finds the lock of a name, creating it the first time the name is
+ * used.
+ *
+ * \param[in] Name The name of the lock.
+ *
+ * \return The lock, NULL when it could not be created.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PKPH_LUA_LOCK KphpLuaFindLock(
+    _In_ PCANSI_STRING Name
+    )
+{
+    PLIST_ENTRY entry;
+    PKPH_LUA_LOCK lock;
+    SIZE_T size;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    lock = NULL;
+
+    KphAcquireRWLockExclusive(&KphpLuaLocksLock);
+
+    for (entry = KphpLuaLocks.Flink;
+         entry != &KphpLuaLocks;
+         entry = entry->Flink)
+    {
+        lock = CONTAINING_RECORD(entry, KPH_LUA_LOCK, Entry);
+
+        if (RtlEqualString(&lock->Name, Name, FALSE))
+        {
+            goto Exit;
+        }
+    }
+
+    NT_VERIFY(NT_SUCCESS(RtlSIZETAdd(sizeof(KPH_LUA_LOCK),
+                                     Name->Length,
+                                     &size)));
+
+    lock = KphAllocateNPaged(size, KPH_TAG_LUA_LOCK);
+    if (!lock)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to allocate lock %Z",
+                      Name);
+
+        goto Exit;
+    }
+
+    KeInitializeMutex(&lock->Mutex, 0);
+
+    lock->Name.Buffer = Add2Ptr(lock, sizeof(KPH_LUA_LOCK));
+    lock->Name.Length = Name->Length;
+    lock->Name.MaximumLength = Name->Length;
+    RtlCopyMemory(lock->Name.Buffer, Name->Buffer, Name->Length);
+
+    InsertTailList(&KphpLuaLocks, &lock->Entry);
+
+Exit:
+
+    KphReleaseRWLock(&KphpLuaLocksLock);
+
+    return lock;
+}
+
+/**
+ * \brief Releases a lock a script holds.
+ *
+ * \param[in] Context The lock.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaReleaseLock(
+    _In_opt_ PVOID Context
+    )
+{
+    PKPH_LUA_LOCK lock;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    lock = Context;
+
+    KeReleaseMutex(&lock->Mutex, FALSE);
+
+    KeLeaveCriticalRegion();
+}
+
+/**
+ * \brief Takes a lock by name (ksi.lock).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the lock object, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaLock(
+    _In_ lua_State* State
+    )
+{
+    int results;
+    NTSTATUS status;
+    PCSTR buffer;
+    size_t length;
+    lua_Integer milliseconds;
+    ANSI_STRING name;
+    PKPH_LUA_LOCK lock;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    buffer = luaL_checklstring(State, 1, &length);
+
+    luaL_argcheck(State,
+                  (length > 0) && (length <= USHORT_MAX),
+                  1,
+                  "empty or too long");
+
+    milliseconds = ULONG_MAX;
+    if (!lua_isnoneornil(State, 2))
+    {
+        milliseconds = luaL_checkinteger(State, 2);
+
+        luaL_argcheck(State,
+                      (milliseconds >= 0) && (milliseconds < ULONG_MAX),
+                      2,
+                      "out of range");
+    }
+
+    name.Buffer = (PCHAR)buffer;
+    name.Length = (USHORT)length;
+    name.MaximumLength = (USHORT)length;
+
+    lock = KphpLuaFindLock(&name);
+    if (!lock)
+    {
+        results = KphLuaNilErrorStatus(State, STATUS_INSUFFICIENT_RESOURCES);
+        goto Exit;
+    }
+
+    if (lock->Mutex.OwnerThread == KeGetCurrentThread())
+    {
+        luaL_error(State, "the lock is already held");
+    }
+
+    KeEnterCriticalRegion();
+
+    status = KphScriptWait(State, &lock->Mutex, (ULONG)milliseconds);
+    if (status == STATUS_SUCCESS)
+    {
+        KphScriptPushCleanup(State, KphpLuaReleaseLock, lock);
+        results = 1;
+        goto Exit;
+    }
+
+    KeLeaveCriticalRegion();
+
+    if (status == STATUS_TIMEOUT)
+    {
+        status = STATUS_IO_TIMEOUT;
+    }
+
+    if (status == STATUS_SI_SCRIPT_LIMIT)
+    {
+        KphScriptCharge(State, 0);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  SCRIPT,
+                  "KphScriptWait failed: %!STATUS!",
+                  status);
+
+    results = KphLuaNilErrorStatus(State, status);
+
+Exit:
+
+    return results;
+}
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaLibrary[] =
 {
+    { "lock", KphpLuaLock },
     { "sleep", KphpLuaSleep },
     { "stall", KphpLuaStall },
     { "time", KphpLuaTime },
@@ -824,7 +1128,6 @@ int KphpLuaOpenLibrary(
     )
 {
     BOOLEAN tracing;
-    lua_Integer status;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -853,9 +1156,7 @@ int KphpLuaOpenLibrary(
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpLuaStatuses); i++)
     {
-        status = (lua_Integer)(ULONG)KphpLuaStatuses[i].Status;
-
-        lua_pushinteger(State, status);
+        KphLuaPushStatus(State, KphpLuaStatuses[i].Status);
         lua_setfield(State, -2, KphpLuaStatuses[i].Name);
     }
 
@@ -969,9 +1270,8 @@ VOID KphLuaOpenLibraries(
 
     luaL_requiref(State, LUA_MATHLIBNAME, KphpLuaOpenMath, 1);
     luaL_requiref(State, KPH_LUA_LIBRARY_NAME, KphpLuaOpenLibrary, 1);
-    lua_settop(State, 0);
-
     KphLuaOpenHardwareLibrary(State);
+    lua_settop(State, 0);
 
     KphpLuaRemove(State);
 }

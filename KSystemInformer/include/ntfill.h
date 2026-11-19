@@ -9,11 +9,144 @@
 
 #pragma once
 
+#define FIRMWARE_TABLE_PROVIDER_ACPI   'ACPI'
+
 #if defined(_M_X64)
 #define CPUID_BASIC         0x00000000
 #define CPUID_VERSION       0x00000001
 #define CPUID_EXTENDED      0x80000000
 #define CPUID_ADDRESS_SIZES 0x80000008
+#endif
+
+#if defined(_M_ARM64)
+#define ARM64_MIDR_EL1               ARM64_SYSREG(3, 0, 0, 0, 0)
+#define ARM64_MPIDR_EL1              ARM64_SYSREG(3, 0, 0, 0, 5)
+#define ARM64_REVIDR_EL1             ARM64_SYSREG(3, 0, 0, 0, 6)
+#define ARM64_ID_AA64PFR0_EL1        ARM64_SYSREG(3, 0, 0, 4, 0)
+#define ARM64_ID_AA64PFR1_EL1        ARM64_SYSREG(3, 0, 0, 4, 1)
+#define ARM64_ID_AA64DFR0_EL1        ARM64_SYSREG(3, 0, 0, 5, 0)
+#define ARM64_AMCFGR_EL0             ARM64_SYSREG(3, 3, 13, 2, 1)
+#define ARM64_AMCGCR_EL0             ARM64_SYSREG(3, 3, 13, 2, 2)
+#define ARM64_AMCNTENSET0_EL0        ARM64_SYSREG(3, 3, 13, 2, 5)
+#define ARM64_AMEVCNTR0_EL0(n) \
+    ARM64_SYSREG(3, 3, 13, 4 + ((n) >> 3), (n) & 7)
+#define ARM64_ID_AA64ISAR0_EL1       ARM64_SYSREG(3, 0, 0, 6, 0)
+#define ARM64_ID_AA64ISAR1_EL1       ARM64_SYSREG(3, 0, 0, 6, 1)
+#define ARM64_ID_AA64ISAR2_EL1       ARM64_SYSREG(3, 0, 0, 6, 2)
+#define ARM64_ID_AA64MMFR0_EL1       ARM64_SYSREG(3, 0, 0, 7, 0)
+#define ARM64_ID_AA64MMFR1_EL1       ARM64_SYSREG(3, 0, 0, 7, 1)
+#define ARM64_ID_AA64MMFR2_EL1       ARM64_SYSREG(3, 0, 0, 7, 2)
+#define ARM64_ID_AA64ZFR0_EL1        ARM64_SYSREG(3, 0, 0, 4, 4)
+#define ARM64_ID_AA64SMFR0_EL1       ARM64_SYSREG(3, 0, 0, 4, 5)
+#define ARM64_CNTPCT_EL0             ARM64_SYSREG(3, 3, 14, 0, 1)
+#define ARM64_AMCG1IDR_EL0           ARM64_SYSREG(3, 3, 13, 2, 6)
+#define ARM64_AMEVCNTR1_EL0(n) \
+    ARM64_SYSREG(3, 3, 13, 12 + ((n) >> 3), (n) & 7)
+#define ARM64_AMEVTYPER1_EL0(n) \
+    ARM64_SYSREG(3, 3, 13, 14 + ((n) >> 3), (n) & 7)
+#define ARM64_AIDR_EL1               ARM64_SYSREG(3, 1, 0, 0, 7)
+#define ARM64_ID_AA64PFR2_EL1        ARM64_SYSREG(3, 0, 0, 4, 2)
+#define ARM64_ID_AA64DFR1_EL1        ARM64_SYSREG(3, 0, 0, 5, 1)
+#define ARM64_ID_AA64AFR0_EL1        ARM64_SYSREG(3, 0, 0, 5, 4)
+#define ARM64_ID_AA64AFR1_EL1        ARM64_SYSREG(3, 0, 0, 5, 5)
+#define ARM64_ID_AA64ISAR3_EL1       ARM64_SYSREG(3, 0, 0, 6, 3)
+#define ARM64_ID_AA64MMFR3_EL1       ARM64_SYSREG(3, 0, 0, 7, 3)
+#define ARM64_ID_AA64MMFR4_EL1       ARM64_SYSREG(3, 0, 0, 7, 4)
+#define ARM64_ID_AA64FPFR0_EL1       ARM64_SYSREG(3, 0, 0, 4, 7)
+#define ARM64_CTR_EL0                ARM64_SYSREG(3, 3, 0, 0, 1)
+#define ARM64_DCZID_EL0              ARM64_SYSREG(3, 3, 0, 0, 7)
+#define ARM64_CLIDR_EL1              ARM64_SYSREG(3, 1, 0, 0, 1)
+#define ARM64_GMID_EL1               ARM64_SYSREG(3, 1, 0, 0, 4)
+#define ARM64_SMIDR_EL1              ARM64_SYSREG(3, 1, 0, 0, 6)
+#define ARM64_MPAMIDR_EL1            ARM64_SYSREG(3, 0, 10, 4, 4)
+#define ARM64_ERRIDR_EL1             ARM64_SYSREG(3, 0, 5, 3, 0)
+#define ARM64_PMMIR_EL1              ARM64_SYSREG(3, 0, 9, 14, 6)
+#define ARM64_PMSIDR_EL1             ARM64_SYSREG(3, 0, 9, 9, 7)
+#define ARM64_PMBIDR_EL1             ARM64_SYSREG(3, 0, 9, 10, 7)
+#define ARM64_TRBIDR_EL1             ARM64_SYSREG(3, 0, 9, 11, 7)
+#define ARM64_CNTVCTSS_EL0           ARM64_SYSREG(3, 3, 14, 0, 6)
+#define ARM64_CNTPCTSS_EL0           ARM64_SYSREG(3, 3, 14, 0, 5)
+#define ARM64_PMCR_EL0               ARM64_SYSREG(3, 3, 9, 12, 0)
+#define ARM64_PMCEID0_EL0            ARM64_SYSREG(3, 3, 9, 12, 6)
+#define ARM64_PMCEID1_EL0            ARM64_SYSREG(3, 3, 9, 12, 7)
+#define ARM64_PMCNTENSET_EL0         ARM64_SYSREG(3, 3, 9, 12, 1)
+#define ARM64_PMOVSSET_EL0           ARM64_SYSREG(3, 3, 9, 14, 3)
+#define ARM64_PMCCFILTR_EL0          ARM64_SYSREG(3, 3, 14, 15, 7)
+#define ARM64_PMICNTR_EL0            ARM64_SYSREG(3, 3, 9, 4, 0)
+#define ARM64_PMEVCNTR_EL0(n) \
+    ARM64_SYSREG(3, 3, 14, 8 | (((n) >> 3) & 3), (n) & 7)
+#define ARM64_PMEVTYPER_EL0(n) \
+    ARM64_SYSREG(3, 3, 14, 12 | (((n) >> 3) & 3), (n) & 7)
+#define ARM64_AMCR_EL0               ARM64_SYSREG(3, 3, 13, 2, 0)
+#define ARM64_AMUSERENR_EL0          ARM64_SYSREG(3, 3, 13, 2, 3)
+#define ARM64_AMCNTENSET1_EL0        ARM64_SYSREG(3, 3, 13, 3, 1)
+#define ARM64_AMEVTYPER0_EL0(n) \
+    ARM64_SYSREG(3, 3, 13, 6 + ((n) >> 3), (n) & 7)
+#define ARM64_ZCR_EL1                ARM64_SYSREG(3, 0, 1, 2, 0)
+#define ARM64_SMCR_EL1               ARM64_SYSREG(3, 0, 1, 2, 6)
+#define ARM64_MPAM0_EL1              ARM64_SYSREG(3, 0, 10, 5, 1)
+#define ARM64_MPAM1_EL1              ARM64_SYSREG(3, 0, 10, 5, 0)
+#define ARM64_CSSELR_EL1             ARM64_SYSREG(3, 2, 0, 0, 0)
+#define ARM64_CCSIDR_EL1             ARM64_SYSREG(3, 1, 0, 0, 0)
+#define ARM64_CCSIDR2_EL1            ARM64_SYSREG(3, 1, 0, 0, 2)
+#define ARM64_PMBLIMITR_EL1          ARM64_SYSREG(3, 0, 9, 10, 0)
+#define ARM64_PMBMAR_EL1             ARM64_SYSREG(3, 0, 9, 10, 5)
+#define ARM64_PMBPTR_EL1             ARM64_SYSREG(3, 0, 9, 10, 1)
+#define ARM64_PMBSR_EL1              ARM64_SYSREG(3, 0, 9, 10, 3)
+#define ARM64_PMSCR_EL1              ARM64_SYSREG(3, 0, 9, 9, 0)
+#define ARM64_PMSDSFR_EL1            ARM64_SYSREG(3, 0, 9, 10, 4)
+#define ARM64_PMSEVFR_EL1            ARM64_SYSREG(3, 0, 9, 9, 5)
+#define ARM64_PMSFCR_EL1             ARM64_SYSREG(3, 0, 9, 9, 4)
+#define ARM64_PMSICR_EL1             ARM64_SYSREG(3, 0, 9, 9, 2)
+#define ARM64_PMSIRR_EL1             ARM64_SYSREG(3, 0, 9, 9, 3)
+#define ARM64_PMSLATFR_EL1           ARM64_SYSREG(3, 0, 9, 9, 6)
+#define ARM64_PMSNEVFR_EL1           ARM64_SYSREG(3, 0, 9, 9, 1)
+#define ARM64_PMSSCR_EL1             ARM64_SYSREG(3, 0, 9, 13, 3)
+#define ARM64_TRBBASER_EL1           ARM64_SYSREG(3, 0, 9, 11, 2)
+#define ARM64_TRBLIMITR_EL1          ARM64_SYSREG(3, 0, 9, 11, 0)
+#define ARM64_TRBMAR_EL1             ARM64_SYSREG(3, 0, 9, 11, 4)
+#define ARM64_TRBMPAM_EL1            ARM64_SYSREG(3, 0, 9, 11, 5)
+#define ARM64_TRBPTR_EL1             ARM64_SYSREG(3, 0, 9, 11, 1)
+#define ARM64_TRBSR_EL1              ARM64_SYSREG(3, 0, 9, 11, 3)
+#define ARM64_TRBTRG_EL1             ARM64_SYSREG(3, 0, 9, 11, 6)
+#define ARM64_ERRSELR_EL1            ARM64_SYSREG(3, 0, 5, 3, 1)
+#define ARM64_ERXADDR_EL1            ARM64_SYSREG(3, 0, 5, 4, 3)
+#define ARM64_ERXCTLR_EL1            ARM64_SYSREG(3, 0, 5, 4, 1)
+#define ARM64_ERXFR_EL1              ARM64_SYSREG(3, 0, 5, 4, 0)
+#define ARM64_ERXGSR_EL1             ARM64_SYSREG(3, 0, 5, 3, 2)
+#define ARM64_ERXMISC0_EL1           ARM64_SYSREG(3, 0, 5, 5, 0)
+#define ARM64_ERXMISC1_EL1           ARM64_SYSREG(3, 0, 5, 5, 1)
+#define ARM64_ERXMISC2_EL1           ARM64_SYSREG(3, 0, 5, 5, 2)
+#define ARM64_ERXMISC3_EL1           ARM64_SYSREG(3, 0, 5, 5, 3)
+#define ARM64_ERXPFGCDN_EL1          ARM64_SYSREG(3, 0, 5, 4, 6)
+#define ARM64_ERXPFGCTL_EL1          ARM64_SYSREG(3, 0, 5, 4, 5)
+#define ARM64_ERXPFGF_EL1            ARM64_SYSREG(3, 0, 5, 4, 4)
+#define ARM64_ERXSTATUS_EL1          ARM64_SYSREG(3, 0, 5, 4, 2)
+#define ARM64_CLUSTERPMCR_EL1        ARM64_SYSREG(3, 0, 15, 5, 0)
+#define ARM64_CLUSTERPMCNTENSET_EL1  ARM64_SYSREG(3, 0, 15, 5, 1)
+#define ARM64_CLUSTERPMCNTENCLR_EL1  ARM64_SYSREG(3, 0, 15, 5, 2)
+#define ARM64_CLUSTERPMOVSSET_EL1    ARM64_SYSREG(3, 0, 15, 5, 3)
+#define ARM64_CLUSTERPMOVSCLR_EL1    ARM64_SYSREG(3, 0, 15, 5, 4)
+#define ARM64_CLUSTERPMSELR_EL1      ARM64_SYSREG(3, 0, 15, 5, 5)
+#define ARM64_CLUSTERPMINTENSET_EL1  ARM64_SYSREG(3, 0, 15, 5, 6)
+#define ARM64_CLUSTERPMINTENCLR_EL1  ARM64_SYSREG(3, 0, 15, 5, 7)
+#define ARM64_CLUSTERPMCCNTR_EL1     ARM64_SYSREG(3, 0, 15, 6, 0)
+#define ARM64_CLUSTERPMXEVTYPER_EL1  ARM64_SYSREG(3, 0, 15, 6, 1)
+#define ARM64_CLUSTERPMXEVCNTR_EL1   ARM64_SYSREG(3, 0, 15, 6, 2)
+#define ARM64_CLUSTERPMMDCR_EL1      ARM64_SYSREG(3, 0, 15, 6, 3)
+#define ARM64_CLUSTERPMCEID0_EL1     ARM64_SYSREG(3, 0, 15, 6, 4)
+#define ARM64_CLUSTERPMCEID1_EL1     ARM64_SYSREG(3, 0, 15, 6, 5)
+#define ARM64_L2CPUSRSELR_EL1        ARM64_SYSREG(3, 3, 15, 0, 6)
+#define ARM64_L2CPUSRDR_EL1          ARM64_SYSREG(3, 3, 15, 0, 7)
+#define ARM64_AMCNTENCLR0_EL0        ARM64_SYSREG(3, 3, 13, 2, 4)
+#define ARM64_PMCNTENCLR_EL0         ARM64_SYSREG(3, 3, 9, 12, 2)
+#define ARM64_PMOVSCLR_EL0           ARM64_SYSREG(3, 3, 9, 12, 3)
+#define ARM64_AMCNTENCLR1_EL0        ARM64_SYSREG(3, 3, 13, 3, 0)
+#define ARM64_PMXEVTYPER_EL0         ARM64_SYSREG(3, 3, 9, 13, 1)
+#define ARM64_PMSWINC_EL0            ARM64_SYSREG(3, 3, 9, 12, 4)
+#define ARM64_PMUSERENR_EL0          ARM64_SYSREG(3, 3, 9, 14, 0)
+#define ARM64_PMINTENSET_EL1         ARM64_SYSREG(3, 0, 9, 14, 1)
+#define ARM64_PMINTENCLR_EL1         ARM64_SYSREG(3, 0, 9, 14, 2)
 #endif
 
 typedef struct _CLIENT_ID32
@@ -157,6 +290,22 @@ ZwQuerySection(
     _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
     _In_ SIZE_T SectionInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObReferenceObjectByName(
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ ULONG Attributes,
+    _In_opt_ PACCESS_STATE AccessState,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Inout_opt_ PVOID ParseContext,
+    _Out_ PVOID *Object
     );
 
 // IO

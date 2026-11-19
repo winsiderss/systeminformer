@@ -109,6 +109,12 @@ VOID KphLuaReleaseReserve(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaRestoreReserve(
+    _Inout_ PKPH_LUA_ALLOCATOR Allocator,
+    _In_ SIZE_T Reserve
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphLuaCallout(
     _In_ PKPH_LUA_CALLOUT_ROUTINE Routine,
@@ -155,7 +161,40 @@ VOID KphLuaRaiseAbort(
     _In_ lua_State* State
     );
 
+FORCEINLINE
+VOID KphLuaPushStatus(
+    _In_ lua_State* State,
+    _In_ NTSTATUS Status
+    )
+{
+    lua_pushinteger(State, (lua_Integer)(ULONG)Status);
+}
+
+FORCEINLINE
+int KphLuaNilErrorStatus(
+    _In_ lua_State* State,
+    _In_ NTSTATUS Status
+    )
+{
+    NT_ASSERT(!NT_SUCCESS(Status));
+
+    lua_pushnil(State);
+    KphLuaPushStatus(State, Status);
+
+    return 2;
+}
+
 // luahw
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeLocks(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupLocks(
+    VOID
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaInitializeHardware(
@@ -171,6 +210,199 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaOpenHardwareLibrary(
     _In_ lua_State* State
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwReferenceDevices(
+    _In_ PCUNICODE_STRING DriverName,
+    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
+    _Out_ PULONG Count
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaHwDereferenceDevices(
+    _In_reads_(Count) PDEVICE_OBJECT* Devices,
+    _In_ ULONG Count
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwQueryProperty(
+    _In_ PDEVICE_OBJECT Pdo,
+    _In_ DEVICE_REGISTRY_PROPERTY Property,
+    _Outptr_result_bytebuffer_(*Length) PVOID* Buffer,
+    _Out_ PULONG Length
+    );
+
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphLuaHwFreeProperty(
+    _In_opt_ PVOID Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PDEVICE_OBJECT KphLuaHwPciTestDevice(
+    _In_ lua_State* State,
+    _In_ int Index
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PDEVICE_OBJECT KphLuaHwAcpiTestDevice(
+    _In_ lua_State* State,
+    _In_ int Index
+    );
+
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphLuaHwReleaseRequest(
+    _In_opt_ PVOID Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwSendRequest(
+    _In_ lua_State* State,
+    _In_ PDEVICE_OBJECT Device,
+    _In_opt_ PFILE_OBJECT FileObject,
+    _In_ ULONG IoControlCode,
+    _In_ BOOLEAN Internal,
+    _In_reads_bytes_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _In_ ULONG OutputLength,
+    _In_ ULONG Milliseconds,
+    _Outptr_result_maybenull_ PVOID* Request,
+    _Outptr_result_maybenull_ PVOID* Output,
+    _Out_ PULONG Information
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphLuaHwPushResources(
+    _In_ lua_State* State,
+    _In_ PDEVICE_OBJECT Pdo
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwareCpu(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwareCpu(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareCpu(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwarePci(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwarePci(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwarePci(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwareMemory(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwareMemory(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareMemory(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwareDevice(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwareDevice(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareDevice(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwareAcpi(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwareAcpi(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareAcpi(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaInitializeHardwareSysreg(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaCleanupHardwareSysreg(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaOpenHardwareSysreg(
+    _In_ lua_State* State
+    );
+
+#if defined(_M_X64)
+
+_IRQL_requires_(DISPATCH_LEVEL)
+VOID KphpLuaHwCallSmi(
+    _In_ USHORT Port,
+    _Inout_updates_(7) PULONG64 Registers
+    );
+
+#endif
+
+#if defined(_M_ARM64)
+
+_IRQL_requires_max_(HIGH_LEVEL)
+BOOLEAN KphpLuaHwIsSysregListed(
+    _In_ ULONG Register
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+BOOLEAN KphpLuaHwReadSysreg(
+    _In_ ULONG Register,
+    _Out_ PULONG64 Value,
+    _Out_ PBOOLEAN Listed
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+BOOLEAN KphpLuaHwWriteSysreg(
+    _In_ ULONG Register,
+    _In_ ULONG64 Value,
+    _Out_ PBOOLEAN Listed
+    );
+
+#endif
 
 // script
 
@@ -192,6 +424,26 @@ VOID KphScriptPushCleanup(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID KphScriptTestCleanup(
+    _In_ lua_State* State,
+    _In_ int Index,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID KphScriptCheckCleanup(
+    _In_ lua_State* State,
+    _In_ int Index,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptReleaseCleanup(
+    _In_ lua_State* State,
+    _In_ int Index
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 PCANSI_STRING KphScriptGetName(
     _In_ lua_State* State
     );
@@ -210,6 +462,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphScriptCharge(
     _In_ lua_State* State,
     _In_ ULONG64 Count
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptEnterHandler(
+    _In_ lua_State* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptLeaveHandler(
+    _In_ lua_State* State
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

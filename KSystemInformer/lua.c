@@ -172,6 +172,27 @@ VOID KphLuaReleaseReserve(
     Allocator->Reserve = 0;
 }
 
+/**
+ * \brief Takes the reserve of an allocator back out of its limit.
+ *
+ * \param[in,out] Allocator The allocator.
+ * \param[in] Reserve The bytes KphLuaReleaseReserve added to the limit.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphLuaRestoreReserve(
+    _Inout_ PKPH_LUA_ALLOCATOR Allocator,
+    _In_ SIZE_T Reserve
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Allocator->Reserve == 0);
+    NT_ASSERT(Allocator->Limit >= Reserve);
+
+    Allocator->Limit -= Reserve;
+    Allocator->Reserve = Reserve;
+}
+
 // Declared by Lua and its configuration without SAL; these contracts are ours.
 #pragma warning(push)
 #pragma warning(disable: 28253 28301)

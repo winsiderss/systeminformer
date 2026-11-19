@@ -57,6 +57,9 @@ typedef struct _KPH_SCRIPT_CALL
     ULONG64 Aborts;
     BOOLEAN Aborted;
     NTSTATUS AbortStatus;
+    ULONG Handlers;
+    SIZE_T HandlerReserve;
+    BOOLEAN AbortDeferred;
     NTSTATUS Status;
 } KPH_SCRIPT_CALL, *PKPH_SCRIPT_CALL;
 
@@ -226,16 +229,17 @@ VOID KphpScriptRunCleanups(
 }
 
 /**
- * \brief Runs the cleanup of a cleanup object, if it has not run: its release
- * method and its close handler.
+ * \brief Runs the cleanup of a cleanup object now, if it has not run.
  *
- * \param[in] State The Lua state, with the cleanup object.
+ * \details May raise a Lua error.
  *
- * \return Zero, the number of results.
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the cleanup object.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpScriptReleaseCleanup(
-    _In_ lua_State* State
+VOID KphScriptReleaseCleanup(
+    _In_ lua_State* State,
+    _In_ int Index
     )
 {
     PKPH_SCRIPT_CLEANUP cleanup;
@@ -244,14 +248,14 @@ int KphpScriptReleaseCleanup(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    cleanup = luaL_checkudata(State, 1, KPH_SCRIPT_CLEANUP_NAME);
+    cleanup = luaL_checkudata(State, Index, KPH_SCRIPT_CLEANUP_NAME);
 
     routine = cleanup->Routine;
     context = cleanup->Context;
 
     if (!routine)
     {
-        return 0;
+        return;
     }
 
     RemoveEntryList(&cleanup->Entry);
@@ -265,6 +269,26 @@ int KphpScriptReleaseCleanup(
     //
     lua_pushnil(State);
     lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+}
+
+/**
+ * \brief Runs the cleanup of a cleanup object, if it has not run: its release
+ * method and its close handler.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state, with the cleanup object.
+ *
+ * \return Zero, the number of results.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpScriptReleaseCleanup(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphScriptReleaseCleanup(State, 1);
 
     return 0;
 }
@@ -365,6 +389,70 @@ VOID KphScriptPushCleanup(
     cleanup->Context = Context;
 
     InsertHeadList(&call->Cleanups, &cleanup->Entry);
+}
+
+/**
+ * \brief Retrieves the context of a cleanup object of the caller's kind that
+ * has not been released.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the value.
+ * \param[in] Routine The routine the caller recorded its objects with.
+ *
+ * \return The context the object was recorded with, NULL when the value is
+ * not such an object.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID KphScriptTestCleanup(
+    _In_ lua_State* State,
+    _In_ int Index,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine
+    )
+{
+    PKPH_SCRIPT_CLEANUP cleanup;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    cleanup = luaL_testudata(State, Index, KPH_SCRIPT_CLEANUP_NAME);
+    if (!cleanup || (cleanup->Routine != Routine))
+    {
+        return NULL;
+    }
+
+    return cleanup->Context;
+}
+
+/**
+ * \brief Checks that an argument is a cleanup object of the caller's kind
+ * that has not been released.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ * \param[in] Routine The routine the caller recorded its objects with.
+ *
+ * \return The context the object was recorded with.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID KphScriptCheckCleanup(
+    _In_ lua_State* State,
+    _In_ int Index,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine
+    )
+{
+    PKPH_SCRIPT_CLEANUP cleanup;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    cleanup = luaL_checkudata(State, Index, KPH_SCRIPT_CLEANUP_NAME);
+
+    if (cleanup->Routine != Routine)
+    {
+        luaL_argerror(State, Index, "released, or another kind of object");
+    }
+
+    return cleanup->Context;
 }
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
@@ -616,7 +704,9 @@ BOOLEAN KphpScriptCountCleanup(
  *
  * \details The body of a routine that reaches a limit ends with an error. Its
  * to-be-closed variables are then closed under the cleanup allowance. When
- * that is used up too, no further script code runs.
+ * that is used up too, no further script code runs. A close handler of the
+ * script that is running when the body reaches a limit finishes under the
+ * cleanup allowance first.
  *
  * \param[in] State The Lua state.
  * \param[in] Count The instructions to count.
@@ -652,19 +742,18 @@ VOID KphpScriptCount(
         case KphScriptPhaseBody:
         {
             abort = KphpScriptCountBody(call, now, Count);
+            if (abort && (call->Handlers != 0))
+            {
+                NT_ASSERT(call->Phase == KphScriptPhaseCleanup);
+
+                call->AbortDeferred = TRUE;
+                abort = KphpScriptCountCleanup(call, now, Count);
+            }
             break;
         }
         case KphScriptPhaseCleanup:
         {
             abort = KphpScriptCountCleanup(call, now, Count);
-            if (abort)
-            {
-                //
-                // From here on the hook runs before every instruction.
-                //
-                hook = lua_gethook(State);
-                lua_sethook(State, hook, LUA_MASKCOUNT, 1);
-            }
             break;
         }
         case KphScriptPhaseStopped:
@@ -677,6 +766,15 @@ VOID KphpScriptCount(
 
     if (abort)
     {
+        if (call->Phase == KphScriptPhaseStopped)
+        {
+            //
+            // From here on the hook runs before every instruction.
+            //
+            hook = lua_gethook(State);
+            lua_sethook(State, hook, LUA_MASKCOUNT, 1);
+        }
+
         call->Aborts++;
 
         KphLuaRaiseAbort(State);
@@ -706,6 +804,9 @@ VOID KphpScriptHook(
  * \brief Charges a call for work a library function is about to do outside
  * the count hook. Raises the abort of the call when that is over its limit.
  *
+ * \details Inside a close handler of the script the body's limit is raised
+ * when the handler returns, and the work counts against the cleanup allowance.
+ *
  * \param[in] State The Lua state.
  * \param[in] Count The instructions the work counts as.
  */
@@ -718,6 +819,123 @@ VOID KphScriptCharge(
     KPH_PAGED_CODE_PASSIVE();
 
     KphpScriptCount(State, Count);
+}
+
+/**
+ * \brief Notes that a close handler of the script begins. In the body of a
+ * call the handler has the memory reserve.
+ *
+ * \param[in] State The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptEnterHandler(
+    _In_ lua_State* State
+    )
+{
+    PKPH_SCRIPT_CALL call;
+    SIZE_T limit;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    call = KphpScriptGetCall(State);
+
+    if ((call->Handlers == 0) && (call->Phase == KphScriptPhaseBody))
+    {
+        limit = call->Allocator->Limit;
+
+        KphLuaReleaseReserve(call->Allocator);
+
+        call->HandlerReserve = call->Allocator->Limit - limit;
+    }
+
+    call->Handlers++;
+}
+
+/**
+ * \brief Notes that a close handler of the script ended.
+ *
+ * \details May raise a Lua error: the abort of the call, when the body reached
+ * a limit while its handlers ran.
+ *
+ * \param[in] State The Lua state.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptLeaveHandler(
+    _In_ lua_State* State
+    )
+{
+    PKPH_SCRIPT_CALL call;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    call = KphpScriptGetCall(State);
+
+    NT_ASSERT(call->Handlers > 0);
+
+    call->Handlers--;
+
+    if (call->Handlers != 0)
+    {
+        return;
+    }
+
+    if ((call->Phase == KphScriptPhaseBody) &&
+        (call->Allocator->Failures == 0))
+    {
+        KphLuaRestoreReserve(call->Allocator, call->HandlerReserve);
+    }
+
+    call->HandlerReserve = 0;
+
+    if (call->AbortDeferred)
+    {
+        call->AbortDeferred = FALSE;
+        call->Aborts++;
+
+        KphLuaRaiseAbort(State);
+    }
+}
+
+/**
+ * \brief Tells whether the time of the phase a call is in is up.
+ *
+ * \details The time of the body running out inside a close handler of the
+ * script begins the cleanup, whose time the handler then has.
+ *
+ * \param[in,out] Call The call.
+ * \param[in] Now The interrupt time.
+ *
+ * \return TRUE if the time is up, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpScriptTimeIsUp(
+    _Inout_ PKPH_SCRIPT_CALL Call,
+    _In_ ULONG64 Now
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Now < Call->Deadline)
+    {
+        return FALSE;
+    }
+
+    if ((Call->Phase != KphScriptPhaseBody) || (Call->Handlers == 0))
+    {
+        return TRUE;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  SCRIPT,
+                  "Script %Z reached a limit",
+                  Call->Script);
+
+    KphpScriptBeginCleanup(Call, STATUS_SI_SCRIPT_LIMIT, Now);
+
+    Call->AbortDeferred = TRUE;
+
+    return (Now >= Call->Deadline);
 }
 
 /**
@@ -766,7 +984,7 @@ NTSTATUS KphScriptWait(
         end = KphpScriptDeadline(now, Milliseconds);
     }
 
-    if (now >= call->Deadline)
+    if (KphpScriptTimeIsUp(call, now))
     {
         return STATUS_SI_SCRIPT_LIMIT;
     }
@@ -805,7 +1023,7 @@ NTSTATUS KphScriptWait(
 
         now = KeQueryInterruptTime();
 
-        if (now >= call->Deadline)
+        if (KphpScriptTimeIsUp(call, now))
         {
             return STATUS_SI_SCRIPT_LIMIT;
         }
@@ -1103,6 +1321,8 @@ BOOLEAN KphpScriptEndCall(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    NT_ASSERT((Call->Handlers == 0) && !Call->AbortDeferred);
+
     clean = (NT_SUCCESS(Status) &&
              !Call->Aborted &&
              (Call->Allocator->Failures == 0) &&
@@ -1376,6 +1596,9 @@ VOID KphpScriptInitializeCall(
     Call->Aborts = 0;
     Call->Aborted = FALSE;
     Call->AbortStatus = STATUS_SUCCESS;
+    Call->Handlers = 0;
+    Call->HandlerReserve = 0;
+    Call->AbortDeferred = FALSE;
     Call->Status = STATUS_UNSUCCESSFUL;
 }
 
@@ -2221,7 +2444,7 @@ NTSTATUS KphCreateScript(
         goto Exit;
     }
 
-    if ((Flags != KPH_SCRIPT_VOLATILE) && (Flags != KPH_SCRIPT_NON_VOLATILE))
+    if (Flags & ~KPH_SCRIPT_VOLATILE)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
@@ -2818,6 +3041,7 @@ VOID KphInitializeScript(
 
     KphCreateObjectType(&KphpScriptTypeName, &typeInfo, &KphpScriptType);
 
+    KphLuaInitializeLocks();
     KphLuaInitializeHardware();
 }
 
@@ -2832,4 +3056,5 @@ VOID KphCleanupScript(
     KPH_PAGED_CODE_PASSIVE();
 
     KphLuaCleanupHardware();
+    KphLuaCleanupLocks();
 }
