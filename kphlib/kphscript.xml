@@ -28,4 +28,8 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="eval" level="maximum"/>
     </script>
+    <script name="smn" file="script/smn.lua" desc="AMD system management network">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>
