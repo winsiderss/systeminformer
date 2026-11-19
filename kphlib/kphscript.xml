@@ -32,4 +32,9 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="smu" file="script/smu.lua" desc="AMD firmware mailbox">
+        <routine name="identify" level="maximum"/>
+        <routine name="command" level="maximum"/>
+        <routine name="table" level="maximum"/>
+    </script>
 </scripts>
