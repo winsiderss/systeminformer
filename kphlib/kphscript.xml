@@ -45,4 +45,8 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="hsmp" file="script/hsmp.lua" desc="AMD HSMP mailbox">
+        <routine name="identify" level="maximum"/>
+        <routine name="command" level="maximum"/>
+    </script>
 </scripts>
