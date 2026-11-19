@@ -149,6 +149,9 @@
     <ClCompile Include="luahwpci.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="luahwmem.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="luahwsysreg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
