@@ -44,6 +44,7 @@ typedef struct _EX_FAST_REF
 
 typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 VOID
 FASTCALL
@@ -111,6 +112,8 @@ typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
 typedef
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
+_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_same_
 _Must_inspect_result_
 BOOLEAN
 NTAPI
@@ -122,6 +125,7 @@ EX_ENUM_HANDLE_CALLBACK(
     );
 typedef EX_ENUM_HANDLE_CALLBACK* PEX_ENUM_HANDLE_CALLBACK;
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 BOOLEAN
 NTAPI
@@ -132,6 +136,7 @@ ExEnumHandleTable(
     _Out_opt_ PHANDLE Handle
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -142,6 +147,7 @@ ZwQuerySystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -160,6 +166,7 @@ extern POBJECT_TYPE *IoDeviceObjectType;
 
 typedef // routine: IoCheckFileObjectOpenedAsCopySource
 _Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN
 NTAPI
 IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE(
@@ -169,7 +176,9 @@ typedef IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE* PIO_CHECK_FILE_OBJECT_OPENED
 
 typedef // routine: IoCheckFileObjectOpenedAsCopyDestination
 _Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN
+NTAPI
 IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION(
     _In_ PFILE_OBJECT FileObject
     );
@@ -183,6 +192,8 @@ typedef struct _COPY_INFORMATION
 
 typedef // routine: IoGetCopyInformationExtension
 _Function_class_(IO_GET_COPY_INFORMATION_EXTENSION)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
 NTSTATUS
 IO_GET_COPY_INFORMATION_EXTENSION(
     _In_ PIRP Irp,
@@ -252,6 +263,7 @@ KKERNEL_ROUTINE(
     );
 typedef KKERNEL_ROUTINE *PKKERNEL_ROUTINE;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 VOID
 NTAPI
@@ -266,6 +278,8 @@ KeInitializeApc(
     _In_opt_ PVOID NormalContext
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 BOOLEAN
 NTAPI
@@ -276,6 +290,7 @@ KeInsertQueueApc(
     _In_ KPRIORITY Increment
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 BOOLEAN
 NTAPI
@@ -285,6 +300,8 @@ KeTestAlertThread(
 
 typedef // routine: KeRemoveQueueApc
 _Function_class_(KE_REMOVE_QUEUE_APC)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
 BOOLEAN
 NTAPI
 KE_REMOVE_QUEUE_APC(
@@ -379,6 +396,7 @@ C_ASSERT(sizeof(OBJECT_HEADER) == 0x020);
 
 #define OBJECT_TO_OBJECT_HEADER(Object) CONTAINING_RECORD((Object), OBJECT_HEADER, Body)
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 POBJECT_TYPE
 NTAPI
@@ -386,6 +404,8 @@ ObGetObjectType(
     _In_ PVOID Object
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -399,6 +419,7 @@ ObOpenObjectByName(
     _Out_ PHANDLE Handle
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -408,6 +429,8 @@ ObSetHandleAttributes(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -457,6 +480,8 @@ typedef struct _REG_SAVE_MERGED_KEY_INFORMATION
 
 typedef struct _IMAGE_RESOURCE_DATA_ENTRY IMAGE_RESOURCE_DATA_ENTRY, *PIMAGE_RESOURCE_DATA_ENTRY;
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -479,6 +504,8 @@ typedef struct _LDR_RESOURCE_INFO
 #define RESOURCE_LANGUAGE_LEVEL 2
 #define RESOURCE_DATA_LEVEL 3
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -555,28 +582,32 @@ typedef struct _KLDR_DATA_TABLE_ENTRY
 
 // PS
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryInformationProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESSINFOCLASS ProcessInformationClass,
-    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _Out_writes_bytes_opt_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryInformationThread(
     _In_ HANDLE ThreadHandle,
     _In_ THREADINFOCLASS ThreadInformationClass,
-    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
     _In_ ULONG ThreadInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -590,6 +621,8 @@ typedef struct _EJOB *PEJOB;
 
 extern POBJECT_TYPE *PsJobType;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
 NTKERNELAPI
 PEJOB
 NTAPI
@@ -599,6 +632,7 @@ PsGetProcessJob(
 
 _IRQL_requires_max_(APC_LEVEL)
 _When_(NT_SUCCESS(return), _Acquires_lock_(Process))
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -615,6 +649,7 @@ PsReleaseProcessExitSynchronization(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 PVOID
 NTAPI
@@ -622,6 +657,7 @@ PsGetProcessSectionBaseAddress(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 BOOLEAN
 NTAPI
@@ -629,6 +665,7 @@ PsGetProcessExitProcessCalled(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -636,6 +673,7 @@ PsSuspendProcess(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -679,6 +717,7 @@ typedef enum _PS_PROTECTED_SIGNER
 } PS_PROTECTED_SIGNER, *PPS_PROTECTED_SIGNER;
 
 #if (NTDDI_VERSION >= NTDDI_WIN10)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 PS_PROTECTION
 NTAPI
@@ -689,6 +728,7 @@ PsGetProcessProtection(
 
 typedef // routine: PsSetLoadImageNotifyRoutineEx
 _Function_class_(PS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 PS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX(
@@ -707,6 +747,7 @@ typedef enum _PSCREATEPROCESSNOTIFYTYPE
 
 typedef // routine: PsSetCreateProcessNotifyRoutineEx2
 _Function_class_(PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2(
@@ -720,6 +761,7 @@ typedef PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2* PPS_SET_CREATE_PROCESS_NOTIFY_
 #define PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE            0x1
 #endif
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 _Must_inspect_result_
 NTSTATUS
@@ -729,6 +771,7 @@ PsReferenceProcessFilePointer(
     _Out_ PFILE_OBJECT* FileObject
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 HANDLE
 NTAPI
@@ -738,6 +781,8 @@ PsGetProcessInheritedFromUniqueProcessId(
 
 #ifdef _WIN64
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
 NTKERNELAPI
 PVOID
 NTAPI
@@ -745,6 +790,8 @@ PsGetProcessWow64Process(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
 NTKERNELAPI
 PVOID
 NTAPI
@@ -754,6 +801,8 @@ PsGetCurrentProcessWow64Process(
 
 #endif
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
 NTKERNELAPI
 PVOID
 NTAPI
@@ -761,6 +810,7 @@ PsGetThreadTeb(
     _In_ PETHREAD Thread
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 BOOLEAN
 NTAPI
@@ -768,7 +818,8 @@ PsIsProcessBeingDebugged(
     _In_ PEPROCESS Process
     );
 
-NTKERNELAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetInformationProcess(
@@ -815,6 +866,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 PUCHAR
 NTAPI
@@ -867,6 +919,7 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 
 typedef // routine: ZwCreateProcessEx
 _Function_class_(ZW_CREATE_PROCESS_EX)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -917,6 +970,7 @@ typedef struct _SILO_MONITOR_REGISTRATION {
 
 typedef // routine: PsGetSiloIdentifier
 _Function_class_(PS_GET_SILO_IDENTIFIER)
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 ULONG
 PS_GET_SILO_IDENTIFIER(
@@ -926,6 +980,7 @@ typedef PS_GET_SILO_IDENTIFIER* PPS_GET_SILO_IDENTIFIER;
 
 typedef // routine: PsGetEffectiveServerSilo
 _Function_class_(PS_GET_EFFECTIVE_SERVER_SILO)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 _Ret_maybenull_
 PESILO
@@ -936,6 +991,7 @@ typedef PS_GET_EFFECTIVE_SERVER_SILO* PPS_GET_EFFECTIVE_SERVER_SILO;
 
 typedef // routine: PsIsHostSilo
 _Function_class_(PS_IS_HOST_SILO)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 BOOLEAN
 PS_IS_HOST_SILO(
@@ -945,6 +1001,7 @@ typedef PS_IS_HOST_SILO* PPS_IS_HOST_SILO;
 
 typedef // routine: PsRegisterSiloMonitor
 _Function_class_(PS_REGISTER_SILO_MONITOR)
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 _Must_inspect_result_
 NTSTATUS
@@ -956,6 +1013,7 @@ typedef PS_REGISTER_SILO_MONITOR* PPS_REGISTER_SILO_MONITOR;
 
 typedef // routine: PsStartSiloMonitor
 _Function_class_(PS_START_SILO_MONITOR)
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 _Must_inspect_result_
 NTSTATUS
@@ -966,6 +1024,7 @@ typedef PS_START_SILO_MONITOR* PPS_START_SILO_MONITOR;
 
 typedef // routine: PsUnregisterSiloMonitor
 _Function_class_(PS_UNREGISTER_SILO_MONITOR)
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 VOID
 PS_UNREGISTER_SILO_MONITOR(
@@ -975,6 +1034,7 @@ typedef PS_UNREGISTER_SILO_MONITOR* PPS_UNREGISTER_SILO_MONITOR;
 
 typedef // routine: PsGetServerSiloServiceSessionId
 _Function_class_(PS_GET_SERVER_SILO_SERVICE_SESSION_ID)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 ULONG
 PS_GET_SERVER_SILO_SERVICE_SESSION_ID(
@@ -984,6 +1044,7 @@ typedef PS_GET_SERVER_SILO_SERVICE_SESSION_ID* PPS_GET_SERVER_SILO_SERVICE_SESSI
 
 typedef // routine: PsGetServerSiloActiveConsoleId
 _Function_class_(PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 ULONG
 PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID(
@@ -993,6 +1054,7 @@ typedef PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID* PPS_GET_SERVER_SILO_ACTIVE_CONSOLE
 
 typedef // routine: PsGetSiloContainerId
 _Function_class_(PS_GET_SILO_CONTAINER_ID)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTKERNELAPI
 GUID*
 PS_GET_SILO_CONTAINER_ID(
@@ -1011,6 +1073,9 @@ typedef PS_GET_SILO_CONTAINER_ID* PPS_GET_SILO_CONTAINER_ID;
 
 #define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 8
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+_Ret_maybenull_
 NTKERNELAPI
 PIMAGE_NT_HEADERS
 NTAPI
@@ -1020,6 +1085,8 @@ RtlImageNtHeader(
 
 #define RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK 0x00000001
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -1030,6 +1097,8 @@ RtlImageNtHeaderEx(
     _Out_ PIMAGE_NT_HEADERS* OutHeaders
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Ret_maybenull_
 NTKERNELAPI
 PVOID
 NTAPI
@@ -1041,6 +1110,9 @@ RtlImageDirectoryEntryToData(
     );
 
 #if (NTDDI_VERSION >= NTDDI_WIN10)
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+_Ret_maybenull_
 NTKERNELAPI
 PVOID
 NTAPI
@@ -1058,6 +1130,7 @@ extern POBJECT_TYPE *MmSectionObjectType;
 
 typedef // routine: MmProtectDriverSection
 _Function_class_(MM_PROTECT_DRIVER_SECTION)
+_IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
 MM_PROTECT_DRIVER_SECTION(
     _In_ PVOID AddressWithinSection,
@@ -1429,6 +1502,8 @@ MiGetVadEndAddress(
     return MiGetVadShortEndAddress(&Vad->Core);
 }
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -1443,6 +1518,8 @@ MmCreateSection(
     _In_opt_ PFILE_OBJECT FileObject
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -1459,6 +1536,7 @@ MmMapViewOfSection(
     _In_ ULONG PageProtection
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -1467,6 +1545,8 @@ MmUnmapViewOfSection(
     _In_ PVOID BaseAddress
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -1799,6 +1879,8 @@ typedef CI_VERIFY_HASH_IN_CATALOG* PCI_VERIFY_HASH_IN_CATALOG;
 // rev
 typedef // routine: CiValidateFileObject
 _Function_class_(CI_VALIDATE_FILE_OBJECT)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_VALIDATE_FILE_OBJECT(
@@ -1827,6 +1909,8 @@ typedef CI_ALLOCATE_ROUTINE* PCI_ALLOCATE_ROUTINE;
 // rev
 typedef // routine: CiGetCertPublisherName
 _Function_class_(CI_GET_CERT_PUBLISHER_NAME)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_GET_CERT_PUBLISHER_NAME(
@@ -1918,6 +2002,7 @@ typedef struct _ALPC_MESSAGE_ATTRIBUTES
 #define ALPC_MSGFLG_WAIT_ALERTABLE 0x200000
 #define ALPC_MSGFLG_WOW64_CALL 0x80000000 // dbg
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2020,6 +2105,8 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
 #define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -2031,8 +2118,9 @@ SeCaptureSecurityDescriptor(
     _Out_ PSECURITY_DESCRIPTOR *CapturedSecurityDescriptor
     );
 
+_IRQL_requires_max_(APC_LEVEL)
 NTKERNELAPI
-NTSTATUS
+VOID
 NTAPI
 SeReleaseSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR CapturedSecurityDescriptor,
@@ -2041,6 +2129,8 @@ SeReleaseSecurityDescriptor(
     );
 
 #if (NTDDI_VERSION >= NTDDI_WINBLUE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTKERNELAPI
 NTSTATUS
 NTAPI

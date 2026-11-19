@@ -463,6 +463,25 @@ HANDLE KphpGetProcessId(
 }
 #define PsGetProcessId KphpGetProcessId
 
+_IRQL_requires_max_(APC_LEVEL)
+FORCEINLINE
+NTSTATUS KphpZwQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ THREADINFOCLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+#pragma prefast(suppress: 28118) // allow at APC_LEVEL
+    return ZwQueryInformationThread(ThreadHandle,
+                                    ThreadInformationClass,
+                                    ThreadInformation,
+                                    ThreadInformationLength,
+                                    ReturnLength);
+}
+#define ZwQueryInformationThread KphpZwQueryInformationThread
+
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;
