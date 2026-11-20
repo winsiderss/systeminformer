@@ -278,8 +278,8 @@ namespace CustomBuildTool
         /// <summary>
         /// Attempts to set the current working directory to the nearest parent directory containing the specified file.
         /// </summary>
-        /// <remarks>If the specified file is found in a parent directory, the current working directory
-        /// is changed to that directory. If the file is not found or an error occurs, the current directory remains
+        /// <remarks>The search starts at the current directory, then falls back to the directory of this
+        /// executable. If the file is not found or an error occurs, the current directory remains
         /// unchanged and the method returns false.</remarks>
         /// <param name="FileName">The name of the file to search for in parent directories. Cannot be null or empty.</param>
         /// <returns>true if the current directory contains the specified file after the operation; otherwise, false.</returns>
@@ -287,12 +287,20 @@ namespace CustomBuildTool
         {
             try
             {
-                for (DirectoryInfo info = new DirectoryInfo("."); info != null; info = info.Parent)
+                string[] searchRoots = [Environment.CurrentDirectory, Path.GetDirectoryName(Environment.ProcessPath)];
+
+                foreach (string searchRoot in searchRoots)
                 {
-                    if (File.Exists($"{info.FullName}\\{FileName}"))
+                    if (string.IsNullOrWhiteSpace(searchRoot))
+                        continue;
+
+                    for (DirectoryInfo info = new DirectoryInfo(searchRoot); info != null; info = info.Parent)
                     {
-                        Directory.SetCurrentDirectory(info.FullName);
-                        break;
+                        if (File.Exists($"{info.FullName}\\{FileName}"))
+                        {
+                            Directory.SetCurrentDirectory(info.FullName);
+                            return true;
+                        }
                     }
                 }
             }
