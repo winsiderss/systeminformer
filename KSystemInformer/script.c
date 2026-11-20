@@ -79,11 +79,18 @@ typedef struct _KPH_SCRIPT
     LIST_ENTRY Objects;
 } KPH_SCRIPT, *PKPH_SCRIPT;
 
+typedef enum _KPH_SCRIPT_END
+{
+    KphScriptEndClean,
+    KphScriptEndError,
+    KphScriptEndFatal,
+} KPH_SCRIPT_END, *PKPH_SCRIPT_END;
+
 typedef struct _KPH_SCRIPT_KEPT_CALL
 {
     PKPH_SCRIPT Script;
     PKPH_SCRIPT_CALL Call;
-    BOOLEAN Clean;
+    KPH_SCRIPT_END End;
 } KPH_SCRIPT_KEPT_CALL, *PKPH_SCRIPT_KEPT_CALL;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
@@ -1528,25 +1535,35 @@ VOID KSIAPI KphpScriptProtectedRoutine(
  * \param[in] State The Lua state of the call when it outlives the call, NULL
  * otherwise.
  *
- * \return TRUE if the call ended cleanly, FALSE otherwise.
+ * \return How the call ended: cleanly, with a Lua error, or at a limit.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphpScriptEndCall(
+KPH_SCRIPT_END KphpScriptEndCall(
     _Inout_ PKPH_SCRIPT_CALL Call,
     _In_ NTSTATUS Status,
     _In_opt_ lua_State* State
     )
 {
-    BOOLEAN clean;
+    KPH_SCRIPT_END end;
 
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT((Call->Handlers == 0) && !Call->AbortDeferred);
 
-    clean = (NT_SUCCESS(Status) &&
-             !Call->Aborted &&
-             (Call->Allocator->Failures == 0) &&
-             (Call->Phase == KphScriptPhaseBody));
+    if (Call->Aborted ||
+        (Call->Allocator->Failures != 0) ||
+        (Call->Phase != KphScriptPhaseBody))
+    {
+        end = KphScriptEndFatal;
+    }
+    else if (!NT_SUCCESS(Status))
+    {
+        end = KphScriptEndError;
+    }
+    else
+    {
+        end = KphScriptEndClean;
+    }
 
     if (!NT_SUCCESS(Status))
     {
@@ -1578,7 +1595,7 @@ BOOLEAN KphpScriptEndCall(
 
     KphpScriptRunCleanups(Call, State);
 
-    return clean;
+    return end;
 }
 
 /**
@@ -1681,12 +1698,12 @@ VOID KSIAPI KphpScriptLoadCallout(
 
     status = KphLuaProtectedCall(state, KphpScriptProtectedLoad, call);
 
-    kept->Clean = KphpScriptEndCall(call, status, state);
+    kept->End = KphpScriptEndCall(call, status, state);
 
     *slot = NULL;
     lua_settop(state, 0);
 
-    if (!kept->Clean)
+    if (kept->End != KphScriptEndClean)
     {
         KphpScriptRunObjects(kept->Script);
         KphLuaCloseState(state);
@@ -1736,12 +1753,12 @@ VOID KSIAPI KphpScriptRoutineCallout(
 
     status = KphLuaProtectedCall(state, KphpScriptProtectedRoutine, call);
 
-    kept->Clean = KphpScriptEndCall(call, status, state);
+    kept->End = KphpScriptEndCall(call, status, state);
 
     *slot = NULL;
     lua_settop(state, 0);
 
-    if (kept->Clean && call->Opened)
+    if ((kept->End != KphScriptEndFatal) && call->Opened)
     {
         lua_gc(state, LUA_GCCOLLECT);
     }
@@ -1967,7 +1984,7 @@ NTSTATUS KphpScriptLoadKept(
 
     kept.Script = Script;
     kept.Call = &call;
-    kept.Clean = FALSE;
+    kept.End = KphScriptEndFatal;
 
     KeEnterCriticalRegion();
 
@@ -1982,7 +1999,7 @@ NTSTATUS KphpScriptLoadKept(
         goto Exit;
     }
 
-    if (!kept.Clean)
+    if (kept.End != KphScriptEndClean)
     {
         status = call.Status;
 
@@ -2073,7 +2090,7 @@ NTSTATUS KphpScriptRunKept(
 
     kept.Script = Script;
     kept.Call = &call;
-    kept.Clean = FALSE;
+    kept.End = KphScriptEndFatal;
 
     KeEnterCriticalRegion();
     KphAcquireRWLockExclusive(&Script->Lock);
@@ -2101,7 +2118,7 @@ NTSTATUS KphpScriptRunKept(
         goto Exit;
     }
 
-    if (!kept.Clean)
+    if (kept.End == KphScriptEndFatal)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
