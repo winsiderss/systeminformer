@@ -134,6 +134,8 @@ local MILLISECONDS_MAX = 0xfffffffe
 local ARGUMENT_INTEGER = 0
 local ARGUMENT_PACKAGE = 3
 
+local kept = {}
+
 local function row_has(row, id)
     for _, candidate in ipairs(row.ids) do
         if candidate == id then
@@ -158,19 +160,24 @@ local function each_device(row, visit)
     for _, id in ipairs(row.ids) do
         local index = 0
         while true do
-            local device <close> = ksi.hw.acpi_find(id, index)
+            local device = ksi.hw.acpi_find(id, index)
             if not device then
                 break
             end
+            local stop, held = false, false
             local path, failed = ksi.hw.acpi_path(device)
             if not path then
                 ksi.trace("%s %d has no path: 0x%08x", id, index, failed)
             elseif not seen[path] then
                 seen[path] = true
-                if visit(ordinal, device, path) then
-                    return
-                end
+                stop, held = visit(ordinal, device)
                 ordinal = ordinal + 1
+            end
+            if not held then
+                device:release()
+            end
+            if stop then
+                return
             end
             index = index + 1
         end
@@ -297,15 +304,36 @@ local function evaluate_on(device, row, record, milliseconds)
     return ksi.STATUS_SUCCESS, output
 end
 
+-- Keeps the device found for a row and ordinal; false in a volatile script.
+local function remember(number, ordinal, device)
+    if ksi.volatile then
+        return false
+    end
+    kept[number] = kept[number] or {}
+    kept[number][ordinal] = { device = device }
+    return true
+end
+
 local function evaluate(record, milliseconds)
     local row = ROWS[record.row]
+    local devices = kept[record.row]
+    local k = devices and devices[record.ordinal]
     local status, output
+    if k then
+        status, output = evaluate_on(k.device, row, record, milliseconds)
+        if status == ksi.STATUS_NO_SUCH_DEVICE then
+            ksi.trace("row %d device %d is gone", record.row, record.ordinal)
+            devices[record.ordinal] = nil
+            k.device:release()
+        end
+        return status, output
+    end
     each_device(row, function(ordinal, device)
         if ordinal ~= record.ordinal then
-            return false
+            return false, false
         end
         status, output = evaluate_on(device, row, record, milliseconds)
-        return true
+        return true, remember(record.row, ordinal, device)
     end)
     if not status then
         ksi.trace("row %d has no device %d", record.row, record.ordinal)
@@ -327,13 +355,20 @@ function identify(input)
         ksi.trace("input of %d bytes", #input)
         return ksi.STATUS_INVALID_PARAMETER
     end
+    local old = kept
+    kept = {}
+    for number = 1, #ROWS do
+        for _, k in pairs(old[number] or {}) do
+            k.device:release()
+        end
+    end
     local output = {}
     for number, row in ipairs(ROWS) do
         each_device(row, function(ordinal, device)
             local id = first_id(row, device)
             output[#output + 1] = string.pack("<I4I4c8", number, ordinal,
                                               id .. string.rep("\0", 8 - #id))
-            return false
+            return false, false
         end)
     end
     return ksi.STATUS_SUCCESS, table.concat(output)
