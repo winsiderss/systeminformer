@@ -995,6 +995,9 @@ local function session(locator)
         end
         ksi.trace("the function kept for 0x%x changed", locator)
         kept[locator] = nil
+        for _, w in pairs(k.maps) do
+            w.map:release()
+        end
         k.device:release()
     end
     local device, status = ksi.hw.pci_open(locator >> 16, (locator >> 8) & 0xff,
@@ -1039,7 +1042,7 @@ local function session(locator)
             end
             s.kept = { device = device, key = header_key(header),
                        vendor = vendor, id = id, rows = rows,
-                       type = s.header, reads = reads }
+                       type = s.header, reads = reads, maps = {} }
             kept[locator] = s.kept
         end
     end
@@ -1421,39 +1424,68 @@ function read(input)
     end
 
     if spanBegin then
-        local base, failed = derive(s, row, true)
+        spanBegin = spanBegin & -8
+        local maps = s.kept and s.kept.maps
+        local w = maps and maps[window]
+        local base, failed = derive(s, row, not w)
+        local had = w ~= nil
+        if w and (not base or w.base ~= base) then
+            maps[window] = nil
+            w.map:release()
+            w = nil
+        elseif w and (spanBegin < w.first or spanEnd > w.last) then
+            spanBegin = math.min(spanBegin, w.first)
+            spanEnd = math.max(spanEnd, w.last)
+            maps[window] = nil
+            w.map:release()
+            w = nil
+        end
+        if had and not w and base then
+            base, failed = derive(s, row, true)
+        end
         if not base then
             return failed
         end
-        local windowEnd = base + row.size
-        if math.ult(windowEnd, base) or math.ult(HUGE_PAGE_END, windowEnd) then
-            ksi.trace("window 0x%x size 0x%x ends beyond the address space",
-                      base, row.size)
-            return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+        local m, first
+        if w then
+            m, first = w.map, w.first
+        else
+            local windowEnd = base + row.size
+            if math.ult(windowEnd, base) or
+               math.ult(HUGE_PAGE_END, windowEnd) then
+                ksi.trace("window 0x%x size 0x%x ends beyond the address " ..
+                          "space", base, row.size)
+                return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+            end
+            local bits, bitsFailed = address_bits()
+            if not bits then
+                return bitsFailed
+            end
+            local st = check_range(base & -PAGE,
+                                   (windowEnd + PAGE - 1) & -PAGE, bits)
+            if st ~= ksi.STATUS_SUCCESS then
+                return st
+            end
+            local mapFailed
+            m, mapFailed = ksi.hw.map(base + spanBegin, spanEnd - spanBegin)
+            if not m then
+                ksi.trace("window 0x%x not mapped: 0x%x", base, mapFailed)
+                return mapFailed
+            end
+            first = spanBegin
+            if maps then
+                maps[window] = { map = m, base = base, first = spanBegin,
+                                 last = spanEnd }
+            end
         end
-        local bits, bitsFailed = address_bits()
-        if not bits then
-            return bitsFailed
-        end
-        local st = check_range(base & -PAGE, (windowEnd + PAGE - 1) & -PAGE,
-                               bits)
-        if st ~= ksi.STATUS_SUCCESS then
-            return st
-        end
-        spanBegin = spanBegin & -8
-        local m, mapFailed = ksi.hw.map(base + spanBegin, spanEnd - spanBegin)
-        if not m then
-            ksi.trace("window 0x%x not mapped: 0x%x", base, mapFailed)
-            return mapFailed
-        end
-        local mapping <close> = m
+        local mapping <close> = (not maps) and m or nil
         local stopped = false
         for _, e in ipairs(entries) do
             if e.status == nil then
                 if stopped then
                     e.status = ksi.STATUS_CANCELLED
                 else
-                    e.value = ksi.hw.map_read(m, e.offset - spanBegin, e.width)
+                    e.value = ksi.hw.map_read(m, e.offset - first, e.width)
                     e.status = ksi.STATUS_SUCCESS
                     if e.value == all_ones(e.width) then
                         local again, refusedAgain = derive(s, row, false)
@@ -1468,12 +1500,19 @@ function read(input)
                 end
             end
         end
-        m:release()
+        if not maps then
+            m:release()
+        end
 
-        local check, checkFailed = derive(s, row, true)
+        local check, checkFailed = derive(s, row, not w)
         if not check or check ~= base then
             ksi.trace("window base 0x%x changed to 0x%x: 0x%x", base,
                       check or 0, checkFailed or 0)
+            if maps and maps[window] then
+                local gone = maps[window]
+                maps[window] = nil
+                gone.map:release()
+            end
             for _, e in ipairs(entries) do
                 if e.status == ksi.STATUS_SUCCESS then
                     e.status, e.value = ksi.STATUS_DEVICE_NOT_READY, 0
