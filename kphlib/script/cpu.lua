@@ -2669,6 +2669,10 @@ local ARM_MIDR = 0x4000
 
 local GATE_LEAVES = { 0x6, 0x1a, 0x80000007, 0x80000008 }
 
+local kept = {}
+local records = {}
+local permitted = {}
+
 local function find_row(cpu)
     for _, row in ipairs(X64_ROWS) do
         if row.vendor == cpu.vendor and row.family == cpu.family then
@@ -2705,6 +2709,7 @@ local function query(processors, gates)
 
     local at = 1
     for _, p in ipairs(processors) do
+        local start = at
         local function take()
             local s, a, b, c, d = string.unpack("<I4I4I4I4I4", results, at)
             at = at + 20
@@ -2740,6 +2745,8 @@ local function query(processors, gates)
             for _, leaf in ipairs(GATE_LEAVES) do
                 p.leaves[leaf] = take()
             end
+            p.bytes = string.sub(results, start, start + 27) ..
+                      string.sub(results, start + 40, at - 1)
         end
     end
 
@@ -2773,6 +2780,7 @@ function identify(input)
     end
 
     local group, number = string.unpack("<I2I2", input)
+    kept[(group << 16) | number] = nil
     local processor = { group = group, number = number }
     local status = query({ processor }, false)
     if status ~= ksi.STATUS_SUCCESS then
@@ -2797,6 +2805,7 @@ local function read_msr(input)
 
     local items = {}
     local processors = {}
+    local unknown = {}
     local byKey = {}
 
     for at = 1, #input, 8 do
@@ -2804,7 +2813,10 @@ local function read_msr(input)
         local key = (group << 16) | number
         local p = byKey[key]
         if not p then
-            p = { group = group, number = number }
+            p = { group = group, number = number, record = kept[key] }
+            if not p.record then
+                unknown[#unknown + 1] = p
+            end
             byKey[key] = p
             processors[#processors + 1] = p
         end
@@ -2815,54 +2827,69 @@ local function read_msr(input)
         return ksi.STATUS_SUCCESS, ""
     end
 
-    local status = query(processors, true)
-    if status ~= ksi.STATUS_SUCCESS then
-        return status
+    if #unknown > 0 then
+        local status = query(unknown, true)
+        if status ~= ksi.STATUS_SUCCESS then
+            return status
+        end
     end
 
-    local permitted = {}
-    for _, p in ipairs(processors) do
+    for _, p in ipairs(unknown) do
         if p.invalid then
             ksi.trace("processor %d:%d is not active", p.group, p.number)
         else
-            p.row = find_row(p)
-            if p.row then
-                if not permitted[p.row] then
-                    permitted[p.row] = p.row.msrs()
+            local record = records[p.bytes]
+            if not record then
+                record = p
+                record.row = find_row(p)
+                if record.row then
+                    if not permitted[record.row] then
+                        permitted[record.row] = record.row.msrs()
+                    end
+                    record.permitted = permitted[record.row]
+                else
+                    record.permitted = {}
                 end
-                p.permitted = permitted[p.row]
-            else
-                ksi.trace("no registers are listed for %s family 0x%x " ..
-                          "model 0x%x", p.vendor, p.family, p.model)
-                p.permitted = {}
+                record.gates = {}
+                records[p.bytes] = record
             end
-            p.gates = {}
+            kept[(p.group << 16) | p.number] = record
+            p.record = record
+        end
+    end
+    for _, p in ipairs(processors) do
+        local record = p.record
+        if record and not record.row then
+            ksi.trace("no registers are listed for %s family 0x%x " ..
+                      "model 0x%x", record.vendor, record.family,
+                      record.model)
         end
     end
 
     local reads = {}
     for _, item in ipairs(items) do
         local p = item.processor
+        local record = p.record
         local index = item.index
         item.status = ksi.STATUS_SUCCESS
         item.value = 0
 
-        if p.invalid then
+        if not record then
             item.status = ksi.STATUS_INVALID_PARAMETER
         else
-            local entry = p.permitted[index]
+            local entry = record.permitted[index]
             if not entry then
-                if p.row then
+                if record.row then
                     ksi.trace("MSR 0x%x is not permitted", index)
                 end
                 item.status = ksi.STATUS_NOT_FOUND
             else
                 local gate = type(entry) == "table" and entry.gate
                 if gate then
-                    if p.gates[gate] == nil then
-                        p.gates[gate] = gate_holds(p, gate)
+                    if record.gates[gate] == nil then
+                        record.gates[gate] = gate_holds(record, gate)
                     end
-                    if not p.gates[gate] then
+                    if not record.gates[gate] then
                         ksi.trace("MSR 0x%x is gated off on processor %d:%d",
                                   index, p.group, p.number)
                         item.status = ksi.STATUS_NOT_FOUND
