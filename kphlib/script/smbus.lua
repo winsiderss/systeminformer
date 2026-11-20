@@ -239,7 +239,12 @@ local MOVED = 1
 local NOT_READY = 2
 local UNSUPPORTED = 3
 
+local kept = {}
+
 local function address_bits()
+    if kept.bits then
+        return kept.bits
+    end
     local results, status = ksi.hw.cpuid(
         string.pack("<I2I2I4I4", 0, 0, 0x80000000, 0) ..
         string.pack("<I2I2I4I4", 0, 0, 0x80000008, 0))
@@ -251,7 +256,11 @@ local function address_bits()
     local s1, eax = string.unpack("<I4I4", results, 21)
     if s0 == ksi.STATUS_SUCCESS and maximum >= 0x80000008 and
        s1 == ksi.STATUS_SUCCESS and eax & 0xff >= 32 and eax & 0xff < 64 then
-        return eax & 0xff
+        kept.bits = eax & 0xff
+        return kept.bits
+    end
+    if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+        kept.bits = 36
     end
     return 36
 end
@@ -554,42 +563,75 @@ local function uninterrupted(step)
 end
 
 -- The PCI function the input names, its row and its layout.
+-- Forgets what is kept for a locator, then releases it.
+local function forget(locator)
+    local k = kept[locator]
+    kept[locator] = nil
+    k.device:release()
+end
+
 local function session(locator)
     local segment, bus = locator >> 16, (locator >> 8) & 0xff
     local slot, fn = (locator >> 3) & 0x1f, locator & 0x7
-    local device, status = ksi.hw.pci_open(segment, bus, slot, fn)
-    if not device then
-        ksi.trace("no PCI function at 0x%x: 0x%x", locator, status)
-        return nil, status
+    local k = kept[locator]
+    local device, ids, failed
+    if k then
+        ids = ksi.hw.pci_read(k.device, 0, 4)
+        if ids and ids == k.ids then
+            device = k.device
+        else
+            ksi.trace("the function kept for 0x%x changed", locator)
+            forget(locator)
+            k = nil
+        end
     end
-    local ids, failed = ksi.hw.pci_read(device, 0, 4)
-    if not ids then
-        ksi.trace("IDs of 0x%x not read: 0x%x", locator, failed)
-        device:release()
-        return nil, ksi.STATUS_DEVICE_NOT_READY
+    if not device then
+        local status
+        device, status = ksi.hw.pci_open(segment, bus, slot, fn)
+        if not device then
+            ksi.trace("no PCI function at 0x%x: 0x%x", locator, status)
+            return nil, status
+        end
+        ids, failed = ksi.hw.pci_read(device, 0, 4)
+        if not ids then
+            ksi.trace("IDs of 0x%x not read: 0x%x", locator, failed)
+            device:release()
+            return nil, ksi.STATUS_DEVICE_NOT_READY
+        end
     end
     local key = ((ids & 0xffff) << 16) | (ids >> 16)
+    local s
     if I801_DEVICES[key] then
-        return { device = device, kind = KIND_INTEL, vendor = ids & 0xffff,
-                 id = ids >> 16 }
+        s = { device = device, kind = KIND_INTEL, vendor = ids & 0xffff,
+              id = ids >> 16 }
+    else
+        local host = HOSTS[key]
+        if not host then
+            ksi.trace("no row for PCI %04x:%04x", ids & 0xffff, ids >> 16)
+            device:release()
+            return nil, ksi.STATUS_NOT_SUPPORTED
+        end
+        s = { device = device, kind = KIND_FCH, host = host,
+              vendor = ids & 0xffff, id = ids >> 16 }
+        local st, rev, index, cb, hc = read_host(s)
+        if st ~= OK then
+            ksi.trace("host 0x%x not read: %d", locator, st)
+            if k then
+                forget(locator)
+            else
+                device:release()
+            end
+            return nil, st == UNSUPPORTED and ksi.STATUS_NOT_SUPPORTED or
+                        ksi.STATUS_DEVICE_NOT_READY
+        end
+        s.revision, s.index, s.cbase, s.hostc = rev, index, cb, hc
+        s.layout = host.layouts[index]
     end
-    local host = HOSTS[key]
-    if not host then
-        ksi.trace("no row for PCI %04x:%04x", ids & 0xffff, ids >> 16)
-        device:release()
-        return nil, ksi.STATUS_NOT_SUPPORTED
+    if not k and not ksi.volatile and ksi.hw.pci_fixed(device) then
+        k = { device = device, ids = ids }
+        kept[locator] = k
     end
-    local s = { device = device, kind = KIND_FCH, host = host,
-                vendor = ids & 0xffff, id = ids >> 16 }
-    local st, rev, index, cb, hc = read_host(s)
-    if st ~= OK then
-        ksi.trace("host 0x%x not read: %d", locator, st)
-        device:release()
-        return nil, st == UNSUPPORTED and ksi.STATUS_NOT_SUPPORTED or
-                    ksi.STATUS_DEVICE_NOT_READY
-    end
-    s.revision, s.index, s.cbase, s.hostc = rev, index, cb, hc
-    s.layout = host.layouts[index]
+    s.kept = k
     return s
 end
 
@@ -766,7 +808,7 @@ function identify(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
     if s.kind == KIND_INTEL then
         s.cmd, s.bar, s.hostc = i801_host(s)
         if not s.cmd then
@@ -1108,7 +1150,7 @@ function read(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
     if s.kind == KIND_INTEL then
         return i801_read(s, entries, port)
     end
