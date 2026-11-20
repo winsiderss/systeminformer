@@ -61,7 +61,6 @@ typedef struct _KPH_LUA_HW_PCI_ENTRY
 typedef struct _KPH_LUA_HW_PCI_DEVICE
 {
     PDEVICE_OBJECT Pdo;
-    PDEVICE_OBJECT Top;
     BUS_INTERFACE_STANDARD Bus;
 } KPH_LUA_HW_PCI_DEVICE, *PKPH_LUA_HW_PCI_DEVICE;
 
@@ -1032,11 +1031,6 @@ VOID KSIAPI KphpLuaHwReleasePciDevice(
         device->Bus.InterfaceDereference(device->Bus.Context);
     }
 
-    if (device->Top)
-    {
-        ObDereferenceObject(device->Top);
-    }
-
     if (device->Pdo)
     {
         ObDereferenceObject(device->Pdo);
@@ -1162,11 +1156,13 @@ int KphpLuaHwPciOpen(
     lua_Integer function;
     KPH_LUA_HW_PCI_LOCATOR locator;
     PKPH_LUA_HW_PCI_DEVICE device;
+    PDEVICE_OBJECT top;
     ULONG count;
 
     KPH_PAGED_CODE_PASSIVE();
 
     count = 0;
+    top = NULL;
 
     segment = luaL_checkinteger(State, 1);
     bus = luaL_checkinteger(State, 2);
@@ -1212,9 +1208,9 @@ int KphpLuaHwPciOpen(
         goto Exit;
     }
 
-    device->Top = IoGetAttachedDeviceReference(device->Pdo);
+    top = IoGetAttachedDeviceReference(device->Pdo);
 
-    status = KphpLuaHwPciConfirmPdo(device->Top, device->Pdo);
+    status = KphpLuaHwPciConfirmPdo(top, device->Pdo);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1226,7 +1222,7 @@ int KphpLuaHwPciOpen(
         goto Exit;
     }
 
-    status = KphpLuaHwPciQueryBusInterface(device->Top, &device->Bus);
+    status = KphpLuaHwPciQueryBusInterface(top, &device->Bus);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1238,12 +1234,20 @@ int KphpLuaHwPciOpen(
         goto Exit;
     }
 
+    ObDereferenceObject(top);
+    top = NULL;
+
     KphScriptPushObject(State, KphpLuaHwReleasePciDevice, device);
     device = NULL;
 
     results = 1;
 
 Exit:
+
+    if (top)
+    {
+        ObDereferenceObject(top);
+    }
 
     if (device)
     {
