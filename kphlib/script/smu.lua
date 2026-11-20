@@ -923,7 +923,18 @@ local WAIT_MS = 1000
 local RESTORE_TRIES = 1000
 local ALL_ONES = 0xffffffff
 
+local kept = {}
+
+-- The header bytes a function is identified by.
+local function header_key(header)
+    return string.sub(header, 1, 4) .. string.sub(header, 9, 12) ..
+           string.sub(header, 15, 15)
+end
+
 local function cpu_identity()
+    if kept.cpu then
+        return kept.cpu
+    end
     local items = string.pack("<I2I2I4I4", 0, 0, 0, 0) ..
                   string.pack("<I2I2I4I4", 0, 0, 1, 0)
     local results, status = ksi.hw.cpuid(items)
@@ -946,8 +957,9 @@ local function cpu_identity()
     if base >= 0x6 then
         model = model | (((signature >> 16) & 0xf) << 4)
     end
-    return { vendor = string.pack("<I4I4I4", b, d, c), family = family,
-             model = model }
+    kept.cpu = { vendor = string.pack("<I4I4I4", b, d, c), family = family,
+                 model = model }
+    return kept.cpu
 end
 
 local function cpu_matches(row, cpu)
@@ -1000,6 +1012,19 @@ local function session(input)
         slot = (locator >> 3) & 0x1f,
         fn = locator & 0x7,
     }
+
+    local k = kept[locator]
+    if k then
+        local header = ksi.hw.pci_read_block(k.device, 0, 16)
+        if header and header_key(header) == k.key then
+            return { device = k.device, kept = k, mailbox = k.mailbox,
+                     root = k.root }
+        end
+        ksi.trace("the function kept for 0x%x changed", locator)
+        kept[locator] = nil
+        k.device:release()
+    end
+
     local device, status = ksi.hw.pci_open(root.segment, root.bus, root.slot,
                                            root.fn)
     if not device then
@@ -1031,7 +1056,13 @@ local function session(input)
         return nil, ksi.STATUS_ACCESS_DENIED
     end
 
-    return { device = device, mailbox = row.mailbox(), root = root }
+    local s = { device = device, mailbox = row.mailbox(), root = root }
+    if not ksi.volatile and ksi.hw.pci_fixed(device) then
+        s.kept = { device = device, key = header_key(header), root = root,
+                   mailbox = s.mailbox }
+        kept[locator] = s.kept
+    end
+    return s
 end
 
 -- Runs body(late) once a round until it returns true or the round that
@@ -1378,7 +1409,7 @@ function identify(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
 
     local lock <close>, failed = ksi.lock("mailbox")
     if not lock then
@@ -1433,7 +1464,7 @@ function command(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
 
     local lock <close>, failed = ksi.lock("mailbox")
     if not lock then
@@ -1505,6 +1536,9 @@ local IORR_COUNT = 2
 -- The physical address width of processor 0:0: CPUID 80000008h EAX[7:0], 36
 -- when the leaf is absent or its width is outside 32 to 63.
 local function address_bits()
+    if kept.bits then
+        return kept.bits
+    end
     local results, status = ksi.hw.cpuid(
         string.pack("<I2I2I4I4", 0, 0, 0x80000000, 0) ..
         string.pack("<I2I2I4I4", 0, 0, 0x80000008, 0))
@@ -1516,9 +1550,13 @@ local function address_bits()
     local s1, eax = string.unpack("<I4I4", results, 21)
     if s0 == ksi.STATUS_SUCCESS and maximum >= 0x80000008 and
        s1 == ksi.STATUS_SUCCESS and eax & 0xff >= 32 and eax & 0xff < 64 then
-        return eax & 0xff
+        kept.bits = eax & 0xff
+        return kept.bits
     end
     ksi.trace("address width 36: CPUID 80000008h not usable")
+    if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+        kept.bits = 36
+    end
     return 36
 end
 
@@ -1663,11 +1701,12 @@ end
 -- The ECAM page of a function, from the MCFG ranges; nil when no range
 -- decodes the bus or the table is absent or malformed.
 local function ecam_page(segment, bus, device, fn)
-    local mcfg = ksi.hw.firmware_table("ACPI", "MCFG")
+    local mcfg = kept.mcfg or ksi.hw.firmware_table("ACPI", "MCFG")
     if not mcfg or #mcfg < 44 or (#mcfg - 44) % 16 ~= 0 then
         ksi.trace("no MCFG ranges")
         return nil
     end
+    kept.mcfg = mcfg
     for at = 45, #mcfg, 16 do
         local base, entrySegment, startBus, endBus =
             string.unpack("<I8I2I1I1", mcfg, at)
@@ -1768,7 +1807,7 @@ function table(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
     local t = s.mailbox.table
     if not t then
         ksi.trace("the row has no table")
