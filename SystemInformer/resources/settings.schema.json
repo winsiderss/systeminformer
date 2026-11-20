@@ -2701,6 +2701,21 @@
       "type": "string",
       "description": "Setting: Stores the column configuration for the process services list."
     },
+    "ProcessTreeCollapseOnStart": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Collapses all process nodes when System Informer starts. Controlled by View > Processes > Collapse all on startup. Changes apply on the next launch and do not affect the current process tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "ProcessTreeColumnSetConfig": {
       "type": "string",
       "description": "Setting: Stores the configuration for process tree column sets."
