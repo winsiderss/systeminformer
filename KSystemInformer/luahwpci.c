@@ -434,6 +434,8 @@ ULONG KphpLuaHwPciParseLocation(
  * \brief Reads where a PCI physical device object is.
  *
  * \param[in] Pdo A bus-enumerated device object of the PCI bus driver.
+ * \param[in] Match When given, a device a query rules out is not queried
+ * further.
  * \param[out] Locator Receives the segment, bus, device and function.
  *
  * \return Successful or errant status.
@@ -442,6 +444,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpLuaHwPciReadLocator(
     _In_ PDEVICE_OBJECT Pdo,
+    _In_opt_ PKPH_LUA_HW_PCI_LOCATOR Match,
     _Out_ PKPH_LUA_HW_PCI_LOCATOR Locator
     )
 {
@@ -474,6 +477,12 @@ NTSTATUS KphpLuaHwPciReadLocator(
         goto Exit;
     }
 
+    if (Match && (busNumber.u.bits.BusNumber != Match->Bus))
+    {
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
     status = IoGetDeviceProperty(Pdo,
                                  DevicePropertyAddress,
                                  sizeof(address.Value),
@@ -486,6 +495,14 @@ NTSTATUS KphpLuaHwPciReadLocator(
                       "IoGetDeviceProperty failed: %!STATUS!",
                       status);
 
+        goto Exit;
+    }
+
+    if (Match &&
+        ((address.Device != Match->Device) ||
+         (address.Function != Match->Function)))
+    {
+        status = STATUS_NOT_FOUND;
         goto Exit;
     }
 
@@ -682,7 +699,7 @@ int KphpLuaHwPciDevices(
             goto Exit;
         }
 
-        status = KphpLuaHwPciReadLocator(devices[i], &entry->Locator);
+        status = KphpLuaHwPciReadLocator(devices[i], NULL, &entry->Locator);
         if (status == STATUS_NOT_FOUND)
         {
             continue;
@@ -1093,7 +1110,7 @@ NTSTATUS KphpLuaHwPciFindPdo(
             continue;
         }
 
-        status = KphpLuaHwPciReadLocator(devices[i], &locator);
+        status = KphpLuaHwPciReadLocator(devices[i], Locator, &locator);
         if (!NT_SUCCESS(status))
         {
             continue;
