@@ -424,6 +424,13 @@ VOID KphScriptPushCleanup(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptPushCallCleanup(
+    _In_ lua_State* State,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine,
+    _In_opt_ PVOID Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KphScriptTestCleanup(
     _In_ lua_State* State,
     _In_ int Index,
