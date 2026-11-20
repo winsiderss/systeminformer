@@ -185,13 +185,37 @@ local function each_device(row, visit)
 end
 
 local function present(ids)
+    local yes = kept.present
+    if yes then
+        for _, id in ipairs(ids) do
+            if yes[id] then
+                return true
+            end
+        end
+    end
     for _, id in ipairs(ids) do
         local device <close> = ksi.hw.acpi_find(id)
         if device then
+            if not ksi.volatile then
+                kept.present = yes or {}
+                kept.present[id] = true
+            end
             return true
         end
     end
     return false
+end
+
+local function row_evals(number)
+    local evals = kept.evals and kept.evals[number]
+    if not evals then
+        evals = ROWS[number].evals()
+        if not ksi.volatile then
+            kept.evals = kept.evals or {}
+            kept.evals[number] = evals
+        end
+    end
+    return evals
 end
 
 local function argument_values(arguments)
@@ -239,9 +263,9 @@ local function result_types(output)
     return types
 end
 
-local function evaluate_on(device, row, record, milliseconds)
+local function evaluate_on(device, record, milliseconds)
     local candidates = {}
-    for _, eval in ipairs(row.evals()) do
+    for _, eval in ipairs(row_evals(record.row)) do
         if eval.name == record.name then
             candidates[#candidates + 1] = eval
         end
@@ -320,7 +344,7 @@ local function evaluate(record, milliseconds)
     local k = devices and devices[record.ordinal]
     local status, output
     if k then
-        status, output = evaluate_on(k.device, row, record, milliseconds)
+        status, output = evaluate_on(k.device, record, milliseconds)
         if status == ksi.STATUS_NO_SUCH_DEVICE then
             ksi.trace("row %d device %d is gone", record.row, record.ordinal)
             devices[record.ordinal] = nil
@@ -332,7 +356,7 @@ local function evaluate(record, milliseconds)
         if ordinal ~= record.ordinal then
             return false, false
         end
-        status, output = evaluate_on(device, row, record, milliseconds)
+        status, output = evaluate_on(device, record, milliseconds)
         return true, remember(record.row, ordinal, device)
     end)
     if not status then
@@ -368,7 +392,7 @@ function identify(input)
             local id = first_id(row, device)
             output[#output + 1] = string.pack("<I4I4c8", number, ordinal,
                                               id .. string.rep("\0", 8 - #id))
-            return false, false
+            return false, remember(number, ordinal, device)
         end)
     end
     return ksi.STATUS_SUCCESS, table.concat(output)
