@@ -867,7 +867,7 @@ int KphpLuaHwMap(
     mapping->Length = (ULONG)length;
     mapping->Writable = writable;
 
-    KphScriptPushCleanup(State, KphpLuaHwUnmap, mapping);
+    KphScriptPushObject(State, KphpLuaHwUnmap, mapping);
     mapping = NULL;
 
     results = 1;
