@@ -910,7 +910,18 @@ local ROWS = {
 local PAGE = 0x1000
 local HUGE_PAGE_END = -PAGE
 
+local kept = {}
+
+-- The header bytes a function is identified by.
+local function header_key(header)
+    return string.sub(header, 1, 4) .. string.sub(header, 9, 12) ..
+           string.sub(header, 15, 15)
+end
+
 local function cpu_identity()
+    if kept.cpu then
+        return kept.cpu
+    end
     local items = string.pack("<I2I2I4I4", 0, 0, 0, 0) ..
                   string.pack("<I2I2I4I4", 0, 0, 1, 0)
     local results, status = ksi.hw.cpuid(items)
@@ -933,11 +944,12 @@ local function cpu_identity()
     if base >= 0x6 then
         model = model | (((signature >> 16) & 0xf) << 4)
     end
-    return {
+    kept.cpu = {
         vendor = string.pack("<I4I4I4", b, d, c),
         family = family,
         model = model,
     }
+    return kept.cpu
 end
 
 local function row_matches(row, cpu, vendor, device)
@@ -973,6 +985,18 @@ local function session(locator)
     if not cpu then
         return nil, failed
     end
+    local k = kept[locator]
+    if k then
+        local header = ksi.hw.pci_read_block(k.device, 0, 16)
+        if header and header_key(header) == k.key then
+            return { device = k.device, kept = k, fixed = true,
+                     vendor = k.vendor, id = k.id, rows = k.rows,
+                     header = k.type }
+        end
+        ksi.trace("the function kept for 0x%x changed", locator)
+        kept[locator] = nil
+        k.device:release()
+    end
     local device, status = ksi.hw.pci_open(locator >> 16, (locator >> 8) & 0xff,
                                            (locator >> 3) & 0x1f, locator & 0x7)
     if not device then
@@ -1004,11 +1028,28 @@ local function session(locator)
         device:release()
         return nil, ksi.STATUS_NOT_SUPPORTED
     end
-    return { device = device, vendor = vendor, id = id, rows = rows,
-             header = string.byte(header, 15) & 0x7f }
+    local s = { device = device, vendor = vendor, id = id, rows = rows,
+                header = string.byte(header, 15) & 0x7f }
+    if not ksi.volatile then
+        s.fixed = ksi.hw.pci_fixed(device)
+        if s.fixed then
+            local reads = {}
+            for _, row in ipairs(rows) do
+                reads[row] = row.reads()
+            end
+            s.kept = { device = device, key = header_key(header),
+                       vendor = vendor, id = id, rows = rows,
+                       type = s.header, reads = reads }
+            kept[locator] = s.kept
+        end
+    end
+    return s
 end
 
 local function address_bits()
+    if kept.bits then
+        return kept.bits
+    end
     local results, status = ksi.hw.cpuid(
         string.pack("<I2I2I4I4", 0, 0, 0x80000000, 0) ..
         string.pack("<I2I2I4I4", 0, 0, 0x80000008, 0))
@@ -1020,7 +1061,11 @@ local function address_bits()
     local s1, eax = string.unpack("<I4I4", results, 21)
     if s0 == ksi.STATUS_SUCCESS and maximum >= 0x80000008 and
        s1 == ksi.STATUS_SUCCESS and eax & 0xff >= 32 and eax & 0xff < 64 then
-        return eax & 0xff
+        kept.bits = eax & 0xff
+        return kept.bits
+    end
+    if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+        kept.bits = 36
     end
     return 36
 end
@@ -1299,7 +1344,9 @@ function identify(input)
     if not s then
         return refused
     end
-    s.device:release()
+    if not s.kept then
+        s.device:release()
+    end
     local mask = 0
     for _, row in ipairs(s.rows) do
         mask = mask | (1 << (row.window - 1))
@@ -1333,7 +1380,7 @@ function read(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
 
     local row
     for _, r in ipairs(s.rows) do
@@ -1346,12 +1393,16 @@ function read(input)
         ksi.trace("%04x:%04x has no window %d", s.vendor, s.id, window)
         return ksi.STATUS_NOT_SUPPORTED
     end
-    if not ksi.hw.pci_fixed(s.device) then
+    local fixed = s.fixed
+    if fixed == nil then
+        fixed = ksi.hw.pci_fixed(s.device)
+    end
+    if not fixed then
         ksi.trace("%04x:%04x may be removed", s.vendor, s.id)
         return ksi.STATUS_NOT_SUPPORTED
     end
 
-    local ranges = row.reads()
+    local ranges = s.kept and s.kept.reads[row] or row.reads()
     local spanBegin, spanEnd
     for _, e in ipairs(entries) do
         e.status, e.value = ksi.STATUS_ACCESS_DENIED, 0
