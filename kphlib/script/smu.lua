@@ -1022,6 +1022,9 @@ local function session(input)
         end
         ksi.trace("the function kept for 0x%x changed", locator)
         kept[locator] = nil
+        if k.table then
+            k.table.map:release()
+        end
         k.device:release()
     end
 
@@ -1897,24 +1900,36 @@ function table(input)
     end
     local rangeEnd = (last + PAGE - 1) & ~(PAGE - 1)
 
-    st = check_amd_dram(base, rangeEnd, bits)
-    if st ~= ksi.STATUS_SUCCESS then
-        ksi.trace("table version 0x%x base 0x%x refused: 0x%x", version, base,
-                  st)
-        return st
+    local k = s.kept
+    local kt = k and k.table
+    if kt and (kt.base ~= base or kt.size ~= size) then
+        ksi.trace("table at 0x%x size %d was 0x%x size %d", base, size,
+                  kt.base, kt.size)
+        k.table = nil
+        kt.map:release()
+        kt = nil
     end
-    if t.dfmap then
-        st = check_amd_df(t.dfmap, s.root, base, rangeEnd, bits)
+
+    if not kt then
+        st = check_amd_dram(base, rangeEnd, bits)
         if st ~= ksi.STATUS_SUCCESS then
-            ksi.trace("table base 0x%x refused by the data fabric: 0x%x", base,
-                      st)
+            ksi.trace("table version 0x%x base 0x%x refused: 0x%x", version,
+                      base, st)
             return st
         end
-    end
-    st = check_range(base, rangeEnd, bits)
-    if st ~= ksi.STATUS_SUCCESS then
-        ksi.trace("table version 0x%x refused: 0x%x", version, st)
-        return st
+        if t.dfmap then
+            st = check_amd_df(t.dfmap, s.root, base, rangeEnd, bits)
+            if st ~= ksi.STATUS_SUCCESS then
+                ksi.trace("table base 0x%x refused by the data fabric: 0x%x",
+                          base, st)
+                return st
+            end
+        end
+        st = check_range(base, rangeEnd, bits)
+        if st ~= ksi.STATUS_SUCCESS then
+            ksi.trace("table version 0x%x refused: 0x%x", version, st)
+            return st
+        end
     end
 
     if size % 4 ~= 0 then
@@ -1922,13 +1937,21 @@ function table(input)
         return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
     end
 
-    local bytes
-    do
-        local m <close>, mapFailed = ksi.hw.map(base, size)
+    local m = kt and kt.map
+    if not m then
+        local mapFailed
+        m, mapFailed = ksi.hw.map(base, size)
         if not m then
             ksi.trace("table at 0x%x not mapped: 0x%x", base, mapFailed)
             return mapFailed
         end
+        if k then
+            k.table = { map = m, base = base, size = size }
+        end
+    end
+    local bytes
+    do
+        local mapping <close> = (not k) and m or nil
         bytes = ksi.hw.map_read_block(m, 0, size, 4)
         if ksi.hw.map_read(m, 0, 4) ~= string.unpack("<I4", bytes) then
             ksi.trace("table changed during the copy")
