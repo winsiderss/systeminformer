@@ -1534,6 +1534,8 @@ VOID KSIAPI KphpCidCleanupCallback(
 
         process = Object;
 
+        KphRundownHandleTable(process);
+
         KphpUnlinkProcessContextThreadContexts(process);
     }
 }
