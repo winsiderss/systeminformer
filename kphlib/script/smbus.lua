@@ -303,13 +303,13 @@ end
 -- layout in configuration space the base and enable registers.
 local function read_host(s)
     local rev = ksi.hw.pci_read(s.device, 0x08, 1)
-    if rev == 0xff then
+    if not rev or rev == 0xff then
         return NOT_READY
     end
     local index
     for i, l in ipairs(s.host.layouts) do
         local g = ksi.hw.pci_read(s.device, 0x08, 4)
-        if g == 0xffffffff then
+        if not g or g == 0xffffffff then
             return NOT_READY
         end
         local f = g & 0xff
@@ -325,11 +325,11 @@ local function read_host(s)
     local cb, hc = 0, 0
     if l.pm == 3 then
         cb = ksi.hw.pci_read(s.device, l.decode_low, 2)
-        if cb == 0xffff then
+        if not cb or cb == 0xffff then
             return NOT_READY
         end
         hc = ksi.hw.pci_read(s.device, l.en_reg, 1)
-        if hc == 0xff then
+        if not hc or hc == 0xff then
             return NOT_READY
         end
     end
@@ -562,7 +562,12 @@ local function session(locator)
         ksi.trace("no PCI function at 0x%x: 0x%x", locator, status)
         return nil, status
     end
-    local ids = ksi.hw.pci_read(device, 0, 4)
+    local ids, failed = ksi.hw.pci_read(device, 0, 4)
+    if not ids then
+        ksi.trace("IDs of 0x%x not read: 0x%x", locator, failed)
+        device:release()
+        return nil, ksi.STATUS_DEVICE_NOT_READY
+    end
     local key = ((ids & 0xffff) << 16) | (ids >> 16)
     if I801_DEVICES[key] then
         return { device = device, kind = KIND_INTEL, vendor = ids & 0xffff,
