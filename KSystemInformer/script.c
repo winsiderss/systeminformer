@@ -26,6 +26,7 @@ typedef struct _KPH_SCRIPT_CLEANUP
     LIST_ENTRY Entry;
     PKPH_SCRIPT_CLEANUP_ROUTINE Routine;
     PVOID Context;
+    BOOLEAN Held;
 } KPH_SCRIPT_CLEANUP, *PKPH_SCRIPT_CLEANUP;
 
 typedef enum _KPH_SCRIPT_PHASE
@@ -210,8 +211,10 @@ VOID KphpScriptRunCleanups(
 
         cleanup->Routine = NULL;
 
-        if (State)
+        if (State && cleanup->Held)
         {
+            cleanup->Held = FALSE;
+
             //
             // Neither allocates, so neither can raise.
             //
@@ -264,16 +267,18 @@ VOID KphScriptReleaseCleanup(
 
     routine(context);
 
-    //
-    // The registry held the object for as long as it held a cleanup.
-    //
-    lua_pushnil(State);
-    lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+    if (cleanup->Held)
+    {
+        cleanup->Held = FALSE;
+
+        lua_pushnil(State);
+        lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+    }
 }
 
 /**
  * \brief Runs the cleanup of a cleanup object, if it has not run: its release
- * method and its close handler.
+ * method, its close handler and its finalizer.
  *
  * \details May raise a Lua error.
  *
@@ -296,10 +301,10 @@ int KphpScriptReleaseCleanup(
 /**
  * \brief Creates a cleanup object that holds no cleanup yet.
  *
- * \details May raise a Lua error. The registry holds the object until its
- * cleanup has run.
+ * \details May raise a Lua error. When its argument is true the registry
+ * holds the object until its cleanup has run.
  *
- * \param[in] State The Lua state.
+ * \param[in] State The Lua state, with whether the registry holds the object.
  *
  * \return One, the cleanup object.
  */
@@ -309,19 +314,26 @@ int KphpScriptNewCleanup(
     )
 {
     PKPH_SCRIPT_CLEANUP cleanup;
+    BOOLEAN held;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    held = !!lua_toboolean(State, 1);
 
     cleanup = lua_newuserdatauv(State, sizeof(KPH_SCRIPT_CLEANUP), 0);
 
     InitializeListHead(&cleanup->Entry);
     cleanup->Routine = NULL;
     cleanup->Context = NULL;
+    cleanup->Held = held;
 
     luaL_setmetatable(State, KPH_SCRIPT_CLEANUP_NAME);
 
-    lua_pushvalue(State, -1);
-    lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+    if (held)
+    {
+        lua_pushvalue(State, -1);
+        lua_rawsetp(State, LUA_REGISTRYINDEX, cleanup);
+    }
 
     return 1;
 }
@@ -330,19 +342,21 @@ int KphpScriptNewCleanup(
  * \brief Records what undoes something a script was just handed, and pushes
  * the object that stands for it onto the Lua stack.
  *
- * \details The routine runs exactly once: when the script releases or closes
- * the object, when the call returns, or here when it cannot be recorded, in
+ * \details The routine runs exactly once, here when it cannot be recorded, in
  * which case this raises a Lua error and does not return.
  *
  * \param[in] State The Lua state.
  * \param[in] Routine The routine that undoes it.
  * \param[in] Context The context for the routine.
+ * \param[in] Held TRUE when the registry holds the object until its cleanup
+ * has run.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphScriptPushCleanup(
+VOID KphpScriptPushCleanup(
     _In_ lua_State* State,
     _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN Held
     )
 {
     PKPH_SCRIPT_CALL call;
@@ -367,8 +381,9 @@ VOID KphScriptPushCleanup(
     }
 
     lua_pushcfunction(State, KphpScriptNewCleanup);
+    lua_pushboolean(State, Held);
 
-    result = lua_pcall(State, 0, 1, 0);
+    result = lua_pcall(State, 1, 1, 0);
     if (result != LUA_OK)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -389,6 +404,55 @@ VOID KphScriptPushCleanup(
     cleanup->Context = Context;
 
     InsertHeadList(&call->Cleanups, &cleanup->Entry);
+}
+
+/**
+ * \brief Records what undoes something a script was just handed, and pushes
+ * the object that stands for it onto the Lua stack.
+ *
+ * \details The routine runs exactly once: when the script releases or closes
+ * the object, when nothing refers to the object any more, when the call
+ * returns, or here when it cannot be recorded, in which case this raises a
+ * Lua error and does not return.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Routine The routine that undoes it.
+ * \param[in] Context The context for the routine.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptPushCleanup(
+    _In_ lua_State* State,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine,
+    _In_opt_ PVOID Context
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphpScriptPushCleanup(State, Routine, Context, FALSE);
+}
+
+/**
+ * \brief Records what undoes something a script holds until its call
+ * returns, and pushes the object that stands for it onto the Lua stack.
+ *
+ * \details The routine runs exactly once: when the script releases or closes
+ * the object, when the call returns, or here when it cannot be recorded, in
+ * which case this raises a Lua error and does not return.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Routine The routine that undoes it.
+ * \param[in] Context The context for the routine.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphScriptPushCallCleanup(
+    _In_ lua_State* State,
+    _In_ PKPH_SCRIPT_CLEANUP_ROUTINE Routine,
+    _In_opt_ PVOID Context
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphpScriptPushCleanup(State, Routine, Context, TRUE);
 }
 
 /**
@@ -464,6 +528,7 @@ static const luaL_Reg KphpScriptCleanupMethods[] =
 static const luaL_Reg KphpScriptCleanupMetamethods[] =
 {
     { "__close", KphpScriptReleaseCleanup },
+    { "__gc", KphpScriptReleaseCleanup },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();

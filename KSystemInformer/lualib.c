@@ -1067,7 +1067,7 @@ int KphpLuaLock(
     status = KphScriptWait(State, &lock->Mutex, (ULONG)milliseconds);
     if (status == STATUS_SUCCESS)
     {
-        KphScriptPushCleanup(State, KphpLuaReleaseLock, lock);
+        KphScriptPushCallCleanup(State, KphpLuaReleaseLock, lock);
         results = 1;
         goto Exit;
     }
