@@ -2136,9 +2136,12 @@ Exit:
 
     KphpScriptRunCleanups(&call, NULL);
 
-    if (Script->Faulted)
+    if (Script->Faulted && Script->State)
     {
         KphpScriptRunObjects(Script);
+
+        KphLuaDeleteAllocator(&Script->Allocator);
+        Script->State = NULL;
     }
 
     KphReleaseRWLock(&Script->Lock);
