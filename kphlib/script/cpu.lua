@@ -2908,12 +2908,16 @@ local function read_msr(input)
     end
 
     if #reads > 0 then
-        local packed = {}
-        for i, item in ipairs(reads) do
-            packed[i] = string.pack("<I2I2I4", item.processor.group,
-                                    item.processor.number, item.index)
+        local batch = input
+        if #reads < #items then
+            local packed = {}
+            for i, item in ipairs(reads) do
+                packed[i] = string.pack("<I2I2I4", item.processor.group,
+                                        item.processor.number, item.index)
+            end
+            batch = table.concat(packed)
         end
-        local results, failure = ksi.hw.msr_read(table.concat(packed))
+        local results, failure = ksi.hw.msr_read(batch)
         if not results then
             ksi.trace("msr_read failed: 0x%x", failure)
             return failure
