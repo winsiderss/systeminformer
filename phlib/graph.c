@@ -205,6 +205,49 @@ FORCEINLINE VOID PhpGetGraphPoint(
     }
 }
 
+// Fills a rectangle with a solid color at the given constant alpha, so the graph
+// behind a text box shows through. (semi-transparent overlay background)
+static VOID PhpFillRectAlpha(
+    _In_ HDC hdc,
+    _In_ PRECT Rect,
+    _In_ COLORREF Color,
+    _In_ BYTE Alpha
+    )
+{
+    LONG width = Rect->right - Rect->left;
+    LONG height = Rect->bottom - Rect->top;
+    HDC sourceDC;
+    HBITMAP sourceBitmap;
+    HBITMAP oldBitmap;
+    BLENDFUNCTION blendFunction;
+
+    if (width <= 0 || height <= 0)
+        return;
+
+    if (!(sourceDC = CreateCompatibleDC(hdc)))
+        return;
+
+    if (!(sourceBitmap = CreateCompatibleBitmap(hdc, 1, 1)))
+    {
+        DeleteDC(sourceDC);
+        return;
+    }
+
+    oldBitmap = SelectBitmap(sourceDC, sourceBitmap);
+    SetPixelV(sourceDC, 0, 0, Color);
+
+    blendFunction.BlendOp = AC_SRC_OVER;
+    blendFunction.BlendFlags = 0;
+    blendFunction.SourceConstantAlpha = Alpha;
+    blendFunction.AlphaFormat = 0;
+
+    GdiAlphaBlend(hdc, Rect->left, Rect->top, width, height, sourceDC, 0, 0, 1, 1, blendFunction);
+
+    SelectBitmap(sourceDC, oldBitmap);
+    DeleteObject(sourceBitmap);
+    DeleteDC(sourceDC);
+}
+
 static VOID PhpDrawGraphClassic(
     _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
@@ -857,7 +900,6 @@ static VOID PhpDrawGraphText(
     if (DrawInfo->Text.Buffer)
     {
         HFONT oldFont = NULL;
-        HBRUSH brush;
 
         if (DrawInfo->TextFont)
             oldFont = SelectFont(hdc, DrawInfo->TextFont);
@@ -876,10 +918,8 @@ static VOID PhpDrawGraphText(
         }
         else
         {
-            brush = PhGetStockBrush(DC_BRUSH);
-            SelectBrush(hdc, brush);
-            SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-            FillRect(hdc, &DrawInfo->TextBoxRect, brush);
+            // Classic renderer: semi-transparent so the graph shows through.
+            PhpFillRectAlpha(hdc, &DrawInfo->TextBoxRect, DrawInfo->TextBoxColor, 160);
         }
 
         // Draw the text.
@@ -911,8 +951,8 @@ static VOID PhpDrawGraphText(
         }
         else
         {
-            SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-            FillRect(hdc, &DrawInfo->TextBoxRect2, PhGetStockBrush(DC_BRUSH));
+            // Classic renderer: semi-transparent so the graph shows through.
+            PhpFillRectAlpha(hdc, &DrawInfo->TextBoxRect2, DrawInfo->TextBoxColor, 160);
         }
 
         // Draw the text.
