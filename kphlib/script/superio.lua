@@ -30,6 +30,8 @@ local EXIT_CONFIG_02 = 2
 
 local BANK = 0x4e
 
+local kept = {}
+
 local function ite_monitor()
     return {
         ids = { { 0x58, 0x90, 0x7f } },
@@ -475,11 +477,12 @@ local function chassis_type()
 end
 
 local function chassis_permitted()
-    local kind = chassis_type()
+    local kind = kept.chassis or chassis_type()
     if not kind then
         ksi.trace("no chassis type in the SMBIOS table")
         return false
     end
+    kept.chassis = kind
     for _, range in ipairs(CHASSIS) do
         if kind >= range[1] and kind <= range[2] then
             return true
@@ -689,6 +692,7 @@ local function put_back_bank(s)
     if (current & mask) ~= (s.bank & mask) then
         ksi.trace("bank 0x%02x selected, not 0x%02x: 0x%02x not restored",
                   current, s.bank, s.orig_bank)
+        kept[s.port] = nil
         return
     end
     ksi.hw.port_write(s.base + 6, 1, (current & ~mask) | (s.orig_bank & mask))
@@ -781,6 +785,7 @@ function identify(input)
     if not s then
         return refused
     end
+    kept[s.port] = nil
     local lock <close>, failed = ksi.lock("isa")
     if not lock then
         ksi.trace("the isa lock was not taken: 0x%08x", failed)
@@ -826,14 +831,20 @@ function read(input)
             finish(s, ksi.STATUS_SUCCESS)
         end,
     })
-    if not probe(s) then
-        return ksi.STATUS_NOT_FOUND
+    local k = kept[s.port]
+    local status, monitor
+    if k then
+        s.row, s.base, monitor = k.row, k.base, k.monitor
+    else
+        if not probe(s) then
+            return ksi.STATUS_NOT_FOUND
+        end
+        status = identify_chip(s)
+        if status ~= ksi.STATUS_SUCCESS then
+            return status
+        end
+        monitor = s.row.monitor()
     end
-    local status = identify_chip(s)
-    if status ~= ksi.STATUS_SUCCESS then
-        return status
-    end
-    local monitor = s.row.monitor()
     local count = (#input - 4) // 4
     local any = false
     for i = 1, count do
@@ -852,6 +863,7 @@ function read(input)
     })
     status = vendor(s, monitor)
     if status ~= ksi.STATUS_SUCCESS then
+        kept[s.port] = nil
         return status
     end
     local output = {}
@@ -872,6 +884,11 @@ function read(input)
             ksi.trace("register 0x%x is not permitted", reg)
         end
         output[i] = string.pack("<I4I4", item, value)
+    end
+    if stopped then
+        kept[s.port] = nil
+    elseif not k and not ksi.volatile then
+        kept[s.port] = { row = s.row, base = s.base, monitor = monitor }
     end
     return ksi.STATUS_SUCCESS, table.concat(output)
 end
