@@ -1238,7 +1238,7 @@ int KphpLuaHwPciOpen(
         goto Exit;
     }
 
-    KphScriptPushCleanup(State, KphpLuaHwReleasePciDevice, device);
+    KphScriptPushObject(State, KphpLuaHwReleasePciDevice, device);
     device = NULL;
 
     results = 1;

@@ -690,7 +690,7 @@ int KphpLuaHwDeviceOpen(
     KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
     name.Buffer = NULL;
 
-    KphScriptPushCleanup(State, KphpLuaHwReleaseNamedDevice, device);
+    KphScriptPushObject(State, KphpLuaHwReleaseNamedDevice, device);
     device = NULL;
 
     results = 1;

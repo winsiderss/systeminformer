@@ -715,7 +715,7 @@ int KphpLuaHwAcpiPushDevice(
     device->Pdo = Pdo;
     Pdo = NULL;
 
-    KphScriptPushCleanup(State, KphpLuaHwAcpiReleaseDevice, device);
+    KphScriptPushObject(State, KphpLuaHwAcpiReleaseDevice, device);
 
     results = 1;
 
