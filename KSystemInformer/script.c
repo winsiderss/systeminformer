@@ -53,6 +53,8 @@ typedef struct _KPH_SCRIPT_CALL
     KPROCESSOR_MODE AccessMode;
     BOOLEAN Volatile;
     LIST_ENTRY Cleanups;
+    PLIST_ENTRY Objects;
+    BOOLEAN Opened;
     KPH_SCRIPT_PHASE Phase;
     ULONG64 Instructions;
     ULONG64 Deadline;
@@ -74,6 +76,7 @@ typedef struct _KPH_SCRIPT
     BOOLEAN Faulted;
     KPH_LUA_ALLOCATOR Allocator;
     lua_State* State;
+    LIST_ENTRY Objects;
 } KPH_SCRIPT, *PKPH_SCRIPT;
 
 typedef struct _KPH_SCRIPT_KEPT_CALL
@@ -227,6 +230,40 @@ VOID KphpScriptRunCleanups(
                       SCRIPT,
                       "Script %Z left a cleanup behind",
                       Call->Script);
+
+        routine(context);
+    }
+}
+
+/**
+ * \brief Runs the cleanups of the objects a script holds, newest first.
+ *
+ * \param[in,out] Script The script.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpScriptRunObjects(
+    _Inout_ PKPH_SCRIPT Script
+    )
+{
+    PLIST_ENTRY entry;
+    PKPH_SCRIPT_CLEANUP cleanup;
+    PKPH_SCRIPT_CLEANUP_ROUTINE routine;
+    PVOID context;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    while (!IsListEmpty(&Script->Objects))
+    {
+        entry = RemoveHeadList(&Script->Objects);
+
+        cleanup = CONTAINING_RECORD(entry, KPH_SCRIPT_CLEANUP, Entry);
+
+        routine = cleanup->Routine;
+        context = cleanup->Context;
+
+        NT_ASSERT(routine);
+
+        cleanup->Routine = NULL;
 
         routine(context);
     }
@@ -513,7 +550,15 @@ VOID KphpScriptPushCleanup(
     cleanup->Routine = Routine;
     cleanup->Context = Context;
 
-    InsertHeadList(&call->Cleanups, &cleanup->Entry);
+    if (Held)
+    {
+        InsertHeadList(&call->Cleanups, &cleanup->Entry);
+    }
+    else
+    {
+        InsertHeadList(call->Objects, &cleanup->Entry);
+        call->Opened = TRUE;
+    }
 }
 
 /**
@@ -545,9 +590,10 @@ VOID KphScriptPushCleanup(
  * keep, and pushes the object onto the Lua stack.
  *
  * \details The routine runs exactly once: when the script releases or closes
- * the object, when nothing refers to the object any more, when the call
- * returns, or here when it cannot be recorded, in which case this raises a
- * Lua error and does not return.
+ * the object, when nothing refers to the object any more, when the call of a
+ * volatile script returns, when a kept script faults or is deleted, or here
+ * when it cannot be recorded, in which case this raises a Lua error and does
+ * not return.
  *
  * \param[in] State The Lua state.
  * \param[in] Routine The routine that undoes it.
@@ -1642,8 +1688,14 @@ VOID KSIAPI KphpScriptLoadCallout(
 
     if (!kept->Clean)
     {
+        KphpScriptRunObjects(kept->Script);
         KphLuaCloseState(state);
         return;
+    }
+
+    if (call->Opened)
+    {
+        lua_gc(state, LUA_GCCOLLECT);
     }
 
     kept->Script->State = state;
@@ -1688,6 +1740,11 @@ VOID KSIAPI KphpScriptRoutineCallout(
 
     *slot = NULL;
     lua_settop(state, 0);
+
+    if (kept->Clean && call->Opened)
+    {
+        lua_gc(state, LUA_GCCOLLECT);
+    }
 }
 
 /**
@@ -1764,6 +1821,8 @@ VOID KphpScriptInitializeCall(
     Call->AccessMode = AccessMode;
     Call->Volatile = Volatile;
     InitializeListHead(&Call->Cleanups);
+    Call->Objects = &Call->Cleanups;
+    Call->Opened = FALSE;
     Call->Phase = KphScriptPhaseBody;
     Call->Instructions = 0;
     Call->Deadline = ULONG64_MAX;
@@ -1904,6 +1963,8 @@ NTSTATUS KphpScriptLoadKept(
                              FALSE,
                              KernelMode);
 
+    call.Objects = &Script->Objects;
+
     kept.Script = Script;
     kept.Call = &call;
     kept.Clean = FALSE;
@@ -1946,6 +2007,8 @@ Exit:
 
     if (!Script->State)
     {
+        KphpScriptRunObjects(Script);
+
         KphLuaDeleteAllocator(&Script->Allocator);
     }
 
@@ -2006,6 +2069,8 @@ NTSTATUS KphpScriptRunKept(
                              FALSE,
                              AccessMode);
 
+    call.Objects = &Script->Objects;
+
     kept.Script = Script;
     kept.Call = &call;
     kept.Clean = FALSE;
@@ -2053,6 +2118,11 @@ NTSTATUS KphpScriptRunKept(
 Exit:
 
     KphpScriptRunCleanups(&call, NULL);
+
+    if (Script->Faulted)
+    {
+        KphpScriptRunObjects(Script);
+    }
 
     KphReleaseRWLock(&Script->Lock);
     KeLeaveCriticalRegion();
@@ -2508,6 +2578,7 @@ NTSTATUS KSIAPI KphpInitializeScript(
     script->Name.Length = file->NameLength;
     script->Name.MaximumLength = file->NameLength;
     KphInitializeRWLock(&script->Lock);
+    InitializeListHead(&script->Objects);
 
     return STATUS_SUCCESS;
 }
@@ -2529,6 +2600,8 @@ VOID KSIAPI KphpDeleteScript(
     KPH_PAGED_CODE_PASSIVE();
 
     script = Object;
+
+    KphpScriptRunObjects(script);
 
     if (script->State)
     {
