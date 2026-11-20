@@ -1324,6 +1324,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                 ShowWindow(hwndDlg, SW_RESTORE);
             else
                 ShowWindow(hwndDlg, SW_SHOW);
+            UpdateWindow(hwndDlg);
 
             SetForegroundWindow(hwndDlg);
         }

@@ -346,10 +346,11 @@ BOOLEAN PhTabNewReadLayoutToken(
     {
         ULONG digit = (ULONG)(cursor[index] - L'0');
 
-        if (length > (ULONG_MAX - digit) / PH_TABNEW_LAYOUT_DECIMAL_RADIX)
+        if (!NT_SUCCESS(RtlULongMult(length, PH_TABNEW_LAYOUT_DECIMAL_RADIX, &length)))
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongAdd(length, digit, &length)))
             return FALSE;
 
-        length = (length * PH_TABNEW_LAYOUT_DECIMAL_RADIX) + digit;
         index++;
     }
 

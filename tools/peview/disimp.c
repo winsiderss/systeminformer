@@ -12,6 +12,7 @@
 #include <peview.h>
 #include <thirdparty.h>
 #include "..\thirdparty\zydis\Zydis.h"
+#include <ntstrsafe.h>
 
 // Sliding window (keep last N instructions)
 #define PV_BACKSLICE_WINDOW_SIZE 400
@@ -1722,11 +1723,11 @@ VOID PvAppendListView(
         WCHAR bufferSlot[64];
         INT index;
 
-        _snwprintf_s(bufferVa, ARRAYSIZE(bufferVa), _TRUNCATE, L"0x%I64X", row.CallVa);
+        RtlStringCchPrintf(bufferVa, ARRAYSIZE(bufferVa), L"0x%I64X", row.CallVa);
         index = PhAddListViewItem(ctx->ListViewHandle, MAXINT, bufferVa, NULL);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 1, row.Target);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 2, row.Argument);
-        _snwprintf_s(bufferSlot, ARRAYSIZE(bufferSlot), _TRUNCATE, L"0x%I64X", row.IatSlotVa);
+        RtlStringCchPrintf(bufferSlot, ARRAYSIZE(bufferSlot), L"0x%I64X", row.IatSlotVa);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 3, bufferSlot);
     }
 
@@ -1957,7 +1958,7 @@ VOID PvScanImageForPage(
 
                         if (value.Kind == PvValConst && value.U <= 0xFFFF)
                         {
-                            _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<ordinal:%llu>", (ULONG64)value.U);
+                            RtlStringCchPrintf(argument, RTL_NUMBER_OF(argument), L"<ordinal:%llu>", (ULONG64)value.U);
                         }
                         else if (value.Kind == PvValStackSlot)
                         {
@@ -1974,7 +1975,7 @@ VOID PvScanImageForPage(
                                 RTL_NUMBER_OF(argument)
                                 ))
                             {
-                                wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                             }
                         }
                         else if (value.Kind == PvValImport)
@@ -1982,9 +1983,9 @@ VOID PvScanImageForPage(
                             PCWSTR importName = PvFindIatName(&Context->IatMap, value.U);
 
                             if (importName)
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of %s>", importName);
+                                RtlStringCchPrintf(argument, RTL_NUMBER_OF(argument), L"<result of %s>", importName);
                             else
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", (ULONG64)value.U);
+                                RtlStringCchPrintf(argument, RTL_NUMBER_OF(argument), L"<result of 0x%llx>", (ULONG64)value.U);
                         }
                         else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
                         {
@@ -1992,7 +1993,7 @@ VOID PvScanImageForPage(
                             {
                                 if (!PvReadAnsiStringStructAtVa(value.U, argument, RTL_NUMBER_OF(argument)))
                                 {
-                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                    RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                                 }
                             }
                             else
@@ -2001,13 +2002,13 @@ VOID PvScanImageForPage(
 
                                 if (argument[0] == UNICODE_NULL)
                                 {
-                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                    RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                                 }
                             }
                         }
                         else
                         {
-                            wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                         }
                     }
                     else
@@ -2047,7 +2048,7 @@ VOID PvScanImageForPage(
                                 RTL_NUMBER_OF(argument)
                                 ))
                             {
-                                wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                             }
                         }
                         else if (value.Kind == PvValImport)
@@ -2055,9 +2056,9 @@ VOID PvScanImageForPage(
                             PCWSTR importName = PvFindIatName(&Context->IatMap, value.U);
 
                             if (importName)
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of %s>", importName);
+                                RtlStringCchPrintf(argument, RTL_NUMBER_OF(argument), L"<result of %s>", importName);
                             else
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", (ULONG64)value.U);
+                                RtlStringCchPrintf(argument, RTL_NUMBER_OF(argument), L"<result of 0x%llx>", (ULONG64)value.U);
                         }
                         else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
                         {
@@ -2065,7 +2066,7 @@ VOID PvScanImageForPage(
                             {
                                 if (!PvReadUnicodeStringStructAtVa(value.U, argument, RTL_NUMBER_OF(argument)))
                                 {
-                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                    RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                                 }
                             }
                             else
@@ -2074,13 +2075,13 @@ VOID PvScanImageForPage(
 
                                 if (argument[0] == UNICODE_NULL)
                                 {
-                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                    RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                                 }
                             }
                         }
                         else
                         {
-                            wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            RtlStringCchCopyEx(argument, RTL_NUMBER_OF(argument), L"<unknown>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
                         }
                     }
 
@@ -2090,8 +2091,8 @@ VOID PvScanImageForPage(
                         PPV_API_SCAN_ROW row = &Context->Rows.Items[Context->Rows.Count++];
                         row->CallVa = ip;
                         row->IatSlotVa = slotVa;
-                        wcsncpy_s(row->Target, RTL_NUMBER_OF(row->Target), targetName, _TRUNCATE);
-                        wcsncpy_s(row->Argument, RTL_NUMBER_OF(row->Argument), argument, _TRUNCATE);
+                        RtlStringCchCopy(row->Target, RTL_NUMBER_OF(row->Target), targetName);
+                        RtlStringCchCopy(row->Argument, RTL_NUMBER_OF(row->Argument), argument);
                     }
                     PhReleaseQueuedLockExclusive(&Context->RowsLock);
 
@@ -2170,7 +2171,7 @@ static VOID PvBuildIatMapForPage(
 
             if (!NT_SUCCESS(status))
             {
-                wcscpy_s(dllName, RTL_NUMBER_OF(dllName), L"<invalid>");
+                RtlStringCchCopyEx(dllName, RTL_NUMBER_OF(dllName), L"<invalid>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
             }
 
             status = PhCopyStringZFromUtf8(
@@ -2183,17 +2184,10 @@ static VOID PvBuildIatMapForPage(
 
             if (!NT_SUCCESS(status))
             {
-                wcscpy_s(functionName, RTL_NUMBER_OF(functionName), L"<invalid>");
+                RtlStringCchCopyEx(functionName, RTL_NUMBER_OF(functionName), L"<invalid>", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
             }
 
-            _snwprintf_s(
-                Context->IatMap.Items[Context->IatMap.Count].Name,
-                RTL_NUMBER_OF(Context->IatMap.Items[Context->IatMap.Count].Name),
-                _TRUNCATE,
-                L"%s!%s",
-                dllName,
-                functionName
-                );
+            RtlStringCchPrintf(Context->IatMap.Items[Context->IatMap.Count].Name, RTL_NUMBER_OF(Context->IatMap.Items[Context->IatMap.Count].Name), L"%s!%s", dllName, functionName);
 
             // dprintf("PvBuildIatMapForPage: Mapped %S to 0x%llx\n", Context->IatMap.Items[Context->IatMap.Count].Name, slotVa);
             Context->IatMap.Count++;
@@ -2225,14 +2219,14 @@ VOID PvPopulateListView(
     for (ULONG i = 0; i < ctx->Rows.Count; i++)
     {
         WCHAR bufferVa[64];
-        _snwprintf_s(bufferVa, ARRAYSIZE(bufferVa), _TRUNCATE, L"0x%I64X", ctx->Rows.Items[i].CallVa);
+        RtlStringCchPrintf(bufferVa, ARRAYSIZE(bufferVa), L"0x%I64X", ctx->Rows.Items[i].CallVa);
 
         INT index = PhAddListViewItem(ctx->ListViewHandle, MAXINT, bufferVa, NULL);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 1, ctx->Rows.Items[i].Target);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 2, ctx->Rows.Items[i].Argument);
 
         WCHAR bufferSlot[64];
-        _snwprintf_s(bufferSlot, ARRAYSIZE(bufferSlot), _TRUNCATE, L"0x%I64X", ctx->Rows.Items[i].IatSlotVa);
+        RtlStringCchPrintf(bufferSlot, ARRAYSIZE(bufferSlot), L"0x%I64X", ctx->Rows.Items[i].IatSlotVa);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 3, bufferSlot);
     }
 

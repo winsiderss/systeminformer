@@ -842,8 +842,8 @@ BOOLEAN PhNfpShowBalloonTip(
         notifyIcon.guidItem = registeredIcon->IconGuid;
     }
 
-    wcsncpy_s(notifyIcon.szInfoTitle, RTL_NUMBER_OF(notifyIcon.szInfoTitle), Title, _TRUNCATE);
-    wcsncpy_s(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text, _TRUNCATE);
+    RtlStringCchCopy(notifyIcon.szInfoTitle, RTL_NUMBER_OF(notifyIcon.szInfoTitle), Title);
+    RtlStringCchCopy(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text);
     notifyIcon.uTimeout = Timeout;
 
     if (PhGetIntegerSetting(SETTING_ICON_BALLOON_SHOW_ICON) || WindowsVersion < WINDOWS_11)
@@ -1235,11 +1235,7 @@ BOOLEAN PhNfpAddNotifyIcon(
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
-    wcsncpy_s(
-        notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip),
-        PhGetStringOrDefault(Icon->TextCache, PhApplicationName),
-        _TRUNCATE
-        );
+    RtlStringCchCopy(notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip), PhGetStringOrDefault(Icon->TextCache, PhApplicationName));
     //notifyIcon.hIcon = PhNfpGetBlackIcon();
     notifyIcon.hIcon = PhNfGetApplicationIcon(0); // Fixes GH#1845 (dmex)
 
@@ -1308,7 +1304,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     if (FlagOn(Flags, NIF_TIP))
     {
         PhSwapReference(&Icon->TextCache, Text);
-        wcsncpy_s(notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip), PhGetStringOrDefault(Text, PhApplicationName), _TRUNCATE);
+        RtlStringCchCopy(notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip), PhGetStringOrDefault(Text, PhApplicationName));
     }
 
     if (!PhShellNotifyIcon(NIM_MODIFY, &notifyIcon))

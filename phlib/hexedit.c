@@ -11,9 +11,11 @@
  */
 
 #include <ph.h>
+#include <ntintsafe.h>
 #include <hexedit.h>
 #include <guisup.h>
 #include <hexeditp.h>
+#include <uxtheme.h>
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
@@ -148,9 +150,10 @@ LRESULT CALLBACK PhpHexEditWndProc(
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
                 PH_BUFFERED_PAINT bufferedPaint;
+                PH_PAINTPARAMS paintParams = { sizeof(PH_PAINTPARAMS), BPPF_NOCLIP };
                 HDC bufferDc;
 
-                if (PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
+                if (PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, &paintParams, &bufferedPaint, &bufferDc))
                 {
                     PhpHexEditOnPaint(hwnd, context, &clientRect, bufferDc);
                     PhEndBufferedPaint(&bufferedPaint, TRUE);
@@ -812,8 +815,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
                 break;
             case VK_INSERT:
-                PhpHexEditSelInsert(hwnd, context, context->CurrentAddress,
-                    max(1, context->SelEnd - context->SelStart));
+                PhpHexEditReplaceRange(hwnd, context, context->CurrentAddress, context->CurrentAddress,
+                    NULL, max(1, context->SelEnd - context->SelStart));
                 REDRAW_WINDOW(hwnd);
                 break;
             case VK_DELETE:
@@ -1734,54 +1737,44 @@ VOID PhpHexEditPasteEdit(
 
         if (memory)
         {
-            PUCHAR p = GlobalLock(memory);
-            ULONG length = (ULONG)GlobalSize(memory);
-            ULONG paste;
-            ULONG oldCurrentAddress = Context->CurrentAddress;
+            LONG length;
+            PUCHAR data;
 
-            PhpHexEditNormalizeSel(hwnd, Context);
-
-            if (Context->AllowLengthChange)
+            if (NT_SUCCESS(RtlSIZETToLong(GlobalSize(memory), &length)) && length > 0 &&
+                (data = GlobalLock(memory)))
             {
+                LONG start;
+                LONG end;
+
+                PhpHexEditNormalizeSel(hwnd, Context);
+
                 if (Context->SelStart == -1)
                 {
-                    if (Context->CurrentMode == EDIT_LOW)
-                        Context->CurrentAddress++;
+                    start = Context->CurrentAddress;
 
-                    paste = Context->CurrentAddress;
-                    PhpHexEditSelInsert(hwnd, Context, Context->CurrentAddress, length);
+                    if (Context->CurrentMode == EDIT_LOW && !NT_SUCCESS(RtlLongLongToLong((LONG64)start + 1, &start)))
+                        start = -1;
+
+                    end = start;
                 }
                 else
                 {
-                    paste = Context->SelStart;
-                    PhpHexEditSelDelete(hwnd, Context, Context->SelStart, Context->SelEnd);
-                    PhpHexEditSelInsert(hwnd, Context, paste, length);
-                    PhpHexEditSetSel(hwnd, Context, -1, -1);
+                    start = Context->SelStart;
+                    end = Context->SelEnd;
                 }
-            }
-            else
-            {
-                if (Context->SelStart == -1)
+
+                if (Context->AllowLengthChange)
                 {
-                    if (Context->CurrentMode == EDIT_LOW)
-                        Context->CurrentAddress++;
-
-                    paste = Context->CurrentAddress;
+                    PhpHexEditReplaceRange(hwnd, Context, start, end, data, length);
                 }
-                else
+                else if (start >= 0 && start < Context->Length)
                 {
-                    paste = Context->SelStart;
+                    memcpy(&Context->Data[start], data, min(length, Context->Length - start));
                 }
 
-                if (length > Context->Length - paste)
-                    length = Context->Length - paste;
+                GlobalUnlock(memory);
+                REDRAW_WINDOW(hwnd);
             }
-
-            memcpy(&Context->Data[paste], p, length);
-            GlobalUnlock(memory);
-
-            Context->CurrentAddress = oldCurrentAddress;
-            REDRAW_WINDOW(hwnd);
         }
 
         CloseClipboard();
@@ -1853,28 +1846,49 @@ VOID PhpHexEditSelDelete(
     }
 }
 
-VOID PhpHexEditSelInsert(
+VOID PhpHexEditReplaceRange(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
-    _In_ LONG S,
-    _In_ LONG L
+    _In_ LONG Start,
+    _In_ LONG End,
+    _In_reads_bytes_opt_(Length) CONST UCHAR *Data,
+    _In_ LONG Length
     )
 {
-    if (Context->AllowLengthChange)
+    LONG newLength;
+    PUCHAR buffer;
+
+    if (!Context->AllowLengthChange || Start < 0 || End < Start || End > Context->Length || Length <= 0 ||
+        !NT_SUCCESS(RtlLongLongToLong((LONG64)Context->Length - (End - Start) + Length, &newLength)))
     {
-        PUCHAR p = PhAllocate(Context->Length + L);
-
-        memset(p, 0, Context->Length + L);
-        memcpy(p, Context->Data, S);
-        memcpy(&p[S + L], &Context->Data[S], Context->Length - S);
-
-        PhFree(Context->Data);
-        Context->Data = p;
-        PhpHexEditSetSel(hwnd, Context, -1, -1);
-        Context->Length += L;
-
-        Context->Update = TRUE;
+        return;
     }
+
+    buffer = PhAllocate(newLength);
+
+    if (Start != 0)
+        memcpy(buffer, Context->Data, Start);
+
+    if (Data)
+        memcpy(buffer + Start, Data, Length);
+    else
+        memset(buffer + Start, 0, Length);
+
+    if (End != Context->Length)
+        memcpy(buffer + Start + Length, Context->Data + End, Context->Length - End);
+
+    PhFree(Context->Data);
+    Context->Data = buffer;
+    Context->Length = newLength;
+    PhpHexEditSetSel(hwnd, Context, -1, -1);
+
+    if (Context->CurrentAddress > newLength)
+    {
+        Context->CurrentAddress = newLength;
+        PhpHexEditRepositionCaret(hwnd, Context, Context->CurrentAddress);
+    }
+
+    Context->Update = TRUE;
 }
 
 VOID PhpHexEditSetBuffer(

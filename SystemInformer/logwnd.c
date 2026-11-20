@@ -18,6 +18,7 @@
 #include <emenu.h>
 #include <procprv.h>
 #include <srvprv.h>
+#include <ntstrsafe.h>
 
 #define WM_PH_LOG_UPDATED (WM_APP + 300)
 
@@ -364,7 +365,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
                             PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
                             dateTime = PhFormatDateTime(&systemTime);
-                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer, _TRUNCATE);
+                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer);
                             PhDereferenceObject(dateTime);
                         }
                     }
@@ -375,7 +376,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PCPH_STRINGREF string;
 
                             string = PhFormatLogType(entry);
-                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
+                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
                         }
                     }
                     else if (dispInfo->item.iSubItem == 2)
@@ -385,7 +386,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING string;
 
                             string = PhFormatLogEntry(entry);
-                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
+                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
                             PhDereferenceObject(string);
                         }
                     }
@@ -396,7 +397,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING string;
 
                             string = PhpGetLogEntryExtraString(entry);
-                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
+                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
                             PhDereferenceObject(string);
                         }
                     }

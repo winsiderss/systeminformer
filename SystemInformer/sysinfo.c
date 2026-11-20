@@ -1219,12 +1219,21 @@ VOID PhSipOnUserMessage(
             }
 
             if (IsMinimized(PhSipWindow))
+            {
                 ShowWindow(PhSipWindow, SW_RESTORE);
+                UpdateWindow(PhSipWindow);
+            }
             else if (!IsWindowVisible(PhSipWindow) &&
                 PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
+            {
                 ShowWindow(PhSipWindow, SW_SHOWMAXIMIZED);
+                UpdateWindow(PhSipWindow);
+            }
             else
+            {
                 ShowWindow(PhSipWindow, SW_SHOW);
+                UpdateWindow(PhSipWindow);
+            }
 
             SetForegroundWindow(PhSipWindow);
         }
@@ -2686,6 +2695,32 @@ VOID PhSipEnterSectionView(
 
     if (fromSummaryView && NewSection->DialogHandle)
         RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+
+    if (IsWindowVisible(PhSipWindow))
+    {
+        UpdateWindow(ContainerControl);
+        UpdateWindow(RestoreSummaryControl);
+        UpdateWindow(SeparatorControl);
+
+        if (fromSummaryView)
+        {
+            for (i = 0; i < SectionList->Count; i++)
+            {
+                section = SectionList->Items[i];
+                UpdateWindow(section->PanelHandle);
+            }
+
+            if (NewSection->DialogHandle)
+                UpdateWindow(NewSection->DialogHandle);
+        }
+        else
+        {
+            if (oldSection)
+                UpdateWindow(oldSection->PanelHandle);
+
+            UpdateWindow(NewSection->PanelHandle);
+        }
+    }
 }
 
 VOID PhSipEnterSectionViewInner(

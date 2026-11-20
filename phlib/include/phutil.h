@@ -2636,6 +2636,7 @@ PhInitializeStopwatch(
 {
     Stopwatch->StartCounter.QuadPart = 0;
     Stopwatch->EndCounter.QuadPart = 0;
+    Stopwatch->Frequency.QuadPart = 0;
 }
 
 /**
@@ -2650,8 +2651,17 @@ PhStartStopwatch(
     _Inout_ PPH_STOPWATCH Stopwatch
     )
 {
-    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
-    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
+    if (!PhQueryPerformanceCounter(&Stopwatch->StartCounter))
+    {
+        Stopwatch->StartCounter.QuadPart = 0;
+        Stopwatch->Frequency.QuadPart = 0;
+    }
+    else if (!PhQueryPerformanceFrequency(&Stopwatch->Frequency))
+    {
+        Stopwatch->Frequency.QuadPart = 0;
+    }
+
+    Stopwatch->EndCounter = Stopwatch->StartCounter;
 }
 
 /**
@@ -2665,7 +2675,8 @@ PhStopStopwatch(
     _Inout_ PPH_STOPWATCH Stopwatch
     )
 {
-    PhQueryPerformanceCounter(&Stopwatch->EndCounter);
+    if (!PhQueryPerformanceCounter(&Stopwatch->EndCounter))
+        Stopwatch->EndCounter = Stopwatch->StartCounter;
 }
 
 /**
@@ -2680,13 +2691,18 @@ PhGetMillisecondsStopwatch(
     _In_ PPH_STOPWATCH Stopwatch
     )
 {
-    LARGE_INTEGER elapsedMilliseconds;
+    ULONG64 elapsedTicks;
+    ULONG64 elapsedMilliseconds;
 
-    elapsedMilliseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
-    elapsedMilliseconds.QuadPart *= 1000;
-    elapsedMilliseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
+    if (Stopwatch->Frequency.QuadPart <= 0 || Stopwatch->EndCounter.QuadPart < Stopwatch->StartCounter.QuadPart)
+        return 0;
 
-    return (ULONG)elapsedMilliseconds.QuadPart;
+    elapsedTicks = (ULONG64)Stopwatch->EndCounter.QuadPart - (ULONG64)Stopwatch->StartCounter.QuadPart;
+
+    if (!PhMultiplyDivide64(elapsedTicks, 1000, (ULONG64)Stopwatch->Frequency.QuadPart, &elapsedMilliseconds))
+        return ULONG_MAX;
+
+    return elapsedMilliseconds > ULONG_MAX ? ULONG_MAX : (ULONG)elapsedMilliseconds;
 }
 
 /**

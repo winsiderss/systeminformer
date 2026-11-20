@@ -3,7 +3,6 @@
  */
 
 #include "setup.h"
-#include "..\thirdparty\miniz\miniz.h"
 
 #define SETUP_RELEASE_HOST L"github.com"
 #define SETUP_RELEASE_PATH L"/winsiderss/systeminformer/releases/latest/download/systeminformer-build-bin.zip"

@@ -1027,7 +1027,7 @@ LONG CALLBACK PhpUnhandledExceptionCallback(
             );
 #else
         message = PhFormatString(
-            L"%s\r\n0x%08X (%s)\r\n%s",
+            L"%s\r\n0x%08X (%s)",
             PhGetStringOrEmpty(title),
             ExceptionInfo->ExceptionRecord->ExceptionCode,
             PhGetStringOrEmpty(errorMessage)
@@ -1156,11 +1156,12 @@ NTSTATUS PhInitializeComPolicy(
     PACL dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
     PSID administratorsSid = PhSeAdministratorsSid();
     ULONG daclLength;
+    HRESULT result;
 
-    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-        return STATUS_SUCCESS; // Continue without COM support. (dmex)
+    if (!HR_SUCCESS(result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+        return PhNtStatusFromHResult(result);
 
-    if (SUCCEEDED(PhGetClassObject(L"combase.dll", &CLSID_GlobalOptions, &IID_IGlobalOptions, &globalOptions)))
+    if (HR_SUCCESS(PhGetClassObject(L"combase.dll", &CLSID_GlobalOptions, &IID_IGlobalOptions, &globalOptions)))
     {
         #define COMGLB_PROPERTIES_EXPLICIT_WINSTA_DESKTOP COMGLB_PROPERTIES_RESERVED1
         #define COMGLB_PROCESS_MITIGATION_POLICY_BLOB COMGLB_PROPERTIES_RESERVED2
@@ -1169,8 +1170,8 @@ NTSTATUS PhInitializeComPolicy(
         #define COMGLB_ADD_RESTRICTEDCODE_SID_TO_COM_CALLPERMISSIONS COMGLB_RESERVED3
         #define HKLM_ONLY_CLASSIC_COM_CATALOG COMGLB_RESERVED5
 
-        if (SUCCEEDED(IGlobalOptions_Set(globalOptions, COMGLB_EXCEPTION_HANDLING, COMGLB_EXCEPTION_DONOT_HANDLE_ANY)) &&
-            SUCCEEDED(IGlobalOptions_Set(globalOptions, COMGLB_RO_SETTINGS, COMGLB_FAST_RUNDOWN | COMGLB_ENABLE_AGILE_OOP_PROXIES | HKLM_ONLY_CLASSIC_COM_CATALOG)))
+        if (HR_SUCCESS(IGlobalOptions_Set(globalOptions, COMGLB_EXCEPTION_HANDLING, COMGLB_EXCEPTION_DONOT_HANDLE_ANY)) &&
+            HR_SUCCESS(IGlobalOptions_Set(globalOptions, COMGLB_RO_SETTINGS, COMGLB_FAST_RUNDOWN | COMGLB_ENABLE_AGILE_OOP_PROXIES | HKLM_ONLY_CLASSIC_COM_CATALOG)))
         {
             // Successfully configured global COM options.
         }
@@ -1204,7 +1205,7 @@ NTSTATUS PhInitializeComPolicy(
     if (!NT_SUCCESS(status = PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE)))
         goto CleanupExit;
 
-    if (!SUCCEEDED(CoInitializeSecurity(
+    if (!HR_SUCCESS(result = CoInitializeSecurity(
         securityDescriptor,
         UINT_MAX,
         NULL,
@@ -1216,16 +1217,17 @@ NTSTATUS PhInitializeComPolicy(
         NULL
         )))
     {
+        status = PhNtStatusFromHResult(result);
         goto CleanupExit;
     }
 
 #ifdef DEBUG
     assert(PhValidSecurityDescriptor(securityDescriptor));
-    assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
+    assert(daclLength < sizeof(securityDescriptorBuffer));
     assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
 CleanupExit:
-    return STATUS_SUCCESS;
+    return status;
 #else
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         NOTHING;
@@ -1275,6 +1277,8 @@ NTSTATUS PhInitializeExecutionPolicy(
             {
                 PhExitApplication(STATUS_SUCCESS);
             }
+
+            PhClearReference(&fileName);
         }
     }
 
@@ -1588,6 +1592,7 @@ VOID PhInitializeAppSettings(
     PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
     PhEnableThemeNativeButtons = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS);
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE);
+    PhEnableEMenuDxCompact = !!PhGetIntegerSetting(SETTING_ENABLE_MENU_COMPACT);
     PhEnableDeferredLayout = !!PhGetIntegerSetting(SETTING_ENABLE_DEFERRED_LAYOUT);
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL);
     PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY);

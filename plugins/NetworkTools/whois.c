@@ -11,6 +11,7 @@
 
 #include "nettools.h"
 #include <richedit.h>
+#include <ntstrsafe.h>
 
 PPH_OBJECT_TYPE WhoisContextType = NULL;
 PH_INITONCE WhoisContextTypeInitOnce = PH_INITONCE_INIT;

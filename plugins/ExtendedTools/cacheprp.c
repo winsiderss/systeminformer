@@ -681,10 +681,8 @@ NTSTATUS EtCacheLatencyBuildRing(
         *(PULONG_PTR)PTR_ADD_OFFSET(Base, offset) = (ULONG_PTR)PTR_ADD_OFFSET(Base, last);
         last = offset;
 
-        if (ULONG_MAX - offset < Stride)
+        if (!NT_SUCCESS(RtlULongAdd(offset, Stride, &offset)))
             break;
-
-        offset += Stride;
     }
 
     //

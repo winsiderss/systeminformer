@@ -84,6 +84,7 @@ typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V2
     BYTE PageHash[32]; // SHA-256
 } SPC_PE_IMAGE_PAGE_HASHES_V2, *PSPC_PE_IMAGE_PAGE_HASHES_V2;
 #include <poppack.h>
+#include <ntstrsafe.h>
 
 typedef enum _PV_HASHLIST_CATEGORY
 {
@@ -1737,7 +1738,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
                     NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
 
                     listview->dwFlags = EMF_CENTERED;
-                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Generating hashes...", _TRUNCATE);
+                    RtlStringCchCopy(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Generating hashes...");
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                     return TRUE;

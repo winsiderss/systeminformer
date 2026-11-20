@@ -171,8 +171,8 @@ public:
         timeTicks = (timeNow.QuadPart - TimeStart.QuadPart) / PH_TICKS_PER_SEC;
         bytesPerSecond = timeTicks ? status->BytesTransferred / timeTicks : 0;
 
-        if (status->BytesTotal != 0 &&
-            status->BytesTransferred >= status->BytesTotal &&
+        if (std::cmp_not_equal(status->BytesTotal, 0) &&
+            std::cmp_greater_equal(status->BytesTransferred, status->BytesTotal) &&
             status->State != DODownloadState_Transferred &&
             status->State != DODownloadState_Finalized &&
             status->State != DODownloadState_Aborted &&
@@ -478,7 +478,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithDeliveryOptimization(
             PhTimeoutFromMilliseconds(&timeout, 200)
             );
 
-        if (waitStatus == STATUS_TIMEOUT)
+        if (std::cmp_equal(waitStatus, STATUS_TIMEOUT))
             continue;
 
         if (!NT_SUCCESS(waitStatus))
@@ -487,7 +487,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithDeliveryOptimization(
             goto CleanupExit;
         }
 
-        if (waitStatus == STATUS_WAIT_0)
+        if (std::cmp_equal(waitStatus, STATUS_WAIT_0))
             break;
     }
 

@@ -630,7 +630,7 @@ static HRESULT PhpToastThreadInvoke(
     if (!PhpToastThreadHandle)
         return E_FAIL;
 
-    if (HandleToUlong(NtCurrentThreadId()) == PhpToastThreadId)
+    if (std::cmp_equal(HandleToUlong(NtCurrentThreadId()), PhpToastThreadId))
         return Routine(Context);
 
     memset(&work, 0, sizeof(work));

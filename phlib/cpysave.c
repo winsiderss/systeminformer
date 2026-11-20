@@ -252,6 +252,7 @@ BOOLEAN PhMapDisplayIndexTreeNew(
 {
     BOOLEAN result = TRUE;
     PPH_TREENEW_COLUMN fixedColumn;
+    SIZE_T displayToIdAllocationSize;
     ULONG numberOfColumns;
     PULONG displayToId;
     PWSTR *displayToText;
@@ -261,7 +262,10 @@ BOOLEAN PhMapDisplayIndexTreeNew(
     fixedColumn = TreeNew_GetFixedColumn(TreeNewHandle);
     numberOfColumns = TreeNew_GetVisibleColumnCount(TreeNewHandle);
 
-    displayToId = PhAllocate(numberOfColumns * sizeof(ULONG));
+    if (!NT_SUCCESS(RtlSizeTMult(numberOfColumns, sizeof(ULONG), &displayToIdAllocationSize)))
+        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+    displayToId = PhAllocate(displayToIdAllocationSize);
 
     if (fixedColumn)
     {
@@ -275,7 +279,12 @@ BOOLEAN PhMapDisplayIndexTreeNew(
 
     if (DisplayToText)
     {
-        displayToText = PhAllocate(numberOfColumns * sizeof(PWSTR));
+        SIZE_T displayToTextAllocationSize;
+
+        if (!NT_SUCCESS(RtlSizeTMult(numberOfColumns, sizeof(PWSTR), &displayToTextAllocationSize)))
+            PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
+        displayToText = PhAllocate(displayToTextAllocationSize);
 
         for (i = 0; i < numberOfColumns; i++)
         {
