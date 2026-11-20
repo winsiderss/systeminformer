@@ -2772,6 +2772,10 @@ end
 function identify(input)
     if not ksi.hw.cpuid then
         ksi.trace("no CPUID function")
+        if #input == 4 then
+            local group, number = string.unpack("<I2I2", input)
+            kept[(group << 16) | number] = nil
+        end
         return ksi.STATUS_NOT_SUPPORTED
     end
     if #input ~= 4 then
@@ -3007,6 +3011,7 @@ local function read_sysreg(input)
 
     local items = {}
     local processors = {}
+    local unknown = {}
     local byKey = {}
 
     for at = 1, #input, 8 do
@@ -3014,7 +3019,12 @@ local function read_sysreg(input)
         local key = (group << 16) | number
         local p = byKey[key]
         if not p then
-            p = { group = group, number = number, ids = {} }
+            p = { group = group, number = number, record = kept[key] }
+            if not p.record then
+                p.ids = {}
+                p.record = p
+                unknown[#unknown + 1] = p
+            end
             byKey[key] = p
             processors[#processors + 1] = p
         end
@@ -3026,17 +3036,16 @@ local function read_sysreg(input)
     end
 
     local codes = {}
-    for _, p in ipairs(processors) do
+    for _, p in ipairs(unknown) do
         codes[p] = { ARM_MIDR, ARM_ID_AA64PFR0, ARM_ID_AA64DFR0 }
     end
-    local status = read_ids(processors, codes)
+    local status = read_ids(unknown, codes)
     if status ~= ksi.STATUS_SUCCESS then
         return status
     end
 
-    local permitted = {}
     local gates = {}
-    for _, p in ipairs(processors) do
+    for _, p in ipairs(unknown) do
         local midr = p.ids[ARM_MIDR]
         gates[p] = {}
         if midr.status ~= ksi.STATUS_SUCCESS then
@@ -3076,14 +3085,38 @@ local function read_sysreg(input)
         end
     end
 
-    status = read_ids(processors, gates)
+    status = read_ids(unknown, gates)
     if status ~= ksi.STATUS_SUCCESS then
         return status
+    end
+
+    for _, p in ipairs(unknown) do
+        if not p.failure then
+            local parts = {}
+            local whole = true
+            for _, list in ipairs({ codes[p], gates[p] }) do
+                for _, code in ipairs(list) do
+                    local id = p.ids[code]
+                    whole = whole and id.status == ksi.STATUS_SUCCESS
+                    parts[#parts + 1] = string.pack("<I4I8", id.status,
+                                                    id.value)
+                end
+            end
+            if whole then
+                local bytes = table.concat(parts)
+                if not records[bytes] then
+                    records[bytes] = p
+                end
+                p.record = records[bytes]
+                kept[(p.group << 16) | p.number] = p.record
+            end
+        end
     end
 
     local reads = {}
     for _, item in ipairs(items) do
         local p = item.processor
+        local record = p.record
         local code = item.code
         item.status = ksi.STATUS_SUCCESS
         item.value = 0
@@ -3091,16 +3124,16 @@ local function read_sysreg(input)
         if p.failure then
             item.status = p.failure
         else
-            local entry = p.permitted[code]
+            local entry = record.permitted[code]
             if not entry then
-                if p.row then
+                if record.row then
                     ksi.trace("system register 0x%x is not permitted", code)
                 end
                 item.status = ksi.STATUS_NOT_FOUND
             else
                 local gate = type(entry) == "table" and entry.gate
                 if gate then
-                    local id = p.ids[gate[1]]
+                    local id = record.ids[gate[1]]
                     local value = (id.value >> gate[2]) &
                                   ((1 << gate[3]) - 1)
                     if id.status ~= ksi.STATUS_SUCCESS or value < gate[4] or
@@ -3111,7 +3144,7 @@ local function read_sysreg(input)
                     end
                 end
                 if item.status == ksi.STATUS_SUCCESS and
-                   not prerequisite(p, code) then
+                   not prerequisite(record, code) then
                     ksi.trace("system register 0x%x is not implemented on " ..
                               "processor %d:%d", code, p.group, p.number)
                     item.status = ksi.STATUS_NOT_SUPPORTED
