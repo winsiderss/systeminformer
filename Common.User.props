@@ -249,7 +249,7 @@
     <!-- Release|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /jumptablerdata /guard:xfg /pathmap:"$(MSBuildThisFileDirectory)=." /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /jumptablerdata /pathmap:"$(MSBuildThisFileDirectory)=." /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -268,7 +268,7 @@
             <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
         <Link>
-            <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /GUARD:XFG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
             <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
             <CETCompat>true</CETCompat>
             <MinimumRequiredVersion>6.01</MinimumRequiredVersion>

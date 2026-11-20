@@ -91,12 +91,10 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
     )
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
     list(APPEND SI_COMPILE_FLAGS_RELEASE_INIT
-        /guard:xfg                      # Extended flow guard
         /guard:ehcont                   # EH continuation guard
         /QIntel-jcc-erratum             # Intel erratum 1279
     )
     list(APPEND SI_LINK_FLAGS_RELEASE_INIT
-        /GUARD:XFG                      # Extended flow guard
         /GUARD:EHCONT                   # EH continuation guard
         /CETCOMPAT                      # CET compatibility
     )

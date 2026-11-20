@@ -63,7 +63,6 @@ set(SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS
     /Gm-                ${_remove}
     /Zc:preprocessor    ${_remove}
     /d1nodatetime       ${_remove}
-    /guard:xfg          ${_remove}
     /ZI                 /Z7
     /Qspectre           ${_si_qspectre} # see SI_CLANG_SLH above
     /guard:signret      -msign-return-address=all

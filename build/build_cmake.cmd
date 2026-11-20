@@ -167,7 +167,7 @@ if /i "%TOOLCHAIN%"=="clang-msvc-arm64" (
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-msvc-arm64.cmake"
     exit /b 0
 )
-REM clang-lld-* are DEBUG-only. lld-link cannot emit XFG or EHCONT, so Release
+REM clang-lld-* are DEBUG-only. lld-link cannot emit EHCONT, so Release
 REM builds must use a clang-msvc-* or msvc-* toolchain. See cmake\toolchain\clang-lld.cmake.
 if /i "%TOOLCHAIN%"=="clang-lld-x86" (
     set "PLATFORM=Win32"

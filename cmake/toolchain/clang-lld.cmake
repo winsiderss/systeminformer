@@ -4,7 +4,7 @@
 # This file is part of System Informer.
 #
 # Shared clang-cl + LLVM lld-link configuration. Intended for DEBUG / local
-# iteration only. lld-link cannot emit /GUARD:XFG or /GUARD:EHCONT, so shipping
+# iteration only. lld-link cannot emit /GUARD:EHCONT, so shipping
 # binaries must continue to be produced by the clang-msvc-* toolchains, which
 # link with MSVC link.exe.
 #
@@ -36,11 +36,9 @@ list(REMOVE_ITEM SI_LINK_FLAGS_INIT /BASERELOCCLUSTERING)
 # build through this toolchain is obviously not a shippable one.
 #
 list(REMOVE_ITEM SI_COMPILE_FLAGS_RELEASE_INIT
-    /guard:xfg
     /guard:ehcont
 )
 list(REMOVE_ITEM SI_LINK_FLAGS_RELEASE_INIT
-    /GUARD:XFG
     /GUARD:EHCONT
     /CETCOMPAT
     /LTCG
@@ -50,8 +48,8 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
 endif()
 
 message(WARNING
-    "clang-lld is a Debug-only toolchain. lld-link cannot emit XFG or EHCONT, "
-    "so /guard:xfg, /guard:ehcont, /GUARD:XFG, /GUARD:EHCONT, /CETCOMPAT and "
+    "clang-lld is a Debug-only toolchain. lld-link cannot emit EHCONT, "
+    "so /guard:ehcont, /GUARD:EHCONT, /CETCOMPAT and "
     "/LTCG have been dropped from the Release configuration. Use a "
     "clang-msvc-* or msvc-* toolchain for binaries that will be signed or "
     "shipped."
