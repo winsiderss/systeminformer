@@ -20,6 +20,8 @@
 #include <strsrch.h>
 #include <colmgr.h>
 #include <cpysave.h>
+#include <ntintsafe.h>
+#include <ntstrsafe.h>
 
 #define WM_PH_MEMSEARCH_SHOWMENU    (WM_USER + 3000)
 #define WM_PH_MEMSEARCH_FINISHED    (WM_USER + 3001)
@@ -29,6 +31,7 @@
 #define PH_MEMSEARCH_STATE_FINISHED  2
 
 static CONST PH_STRINGREF EmptyStringsText = PH_STRINGREF_INIT(L"There are no strings to display.");
+static CONST PH_STRINGREF SearchSizeErrorText = PH_STRINGREF_INIT(L"The memory region list is too large to search.");
 static CONST PH_STRINGREF LoadingStringsText = PH_STRINGREF_INIT(L"Loading strings...");
 
 typedef struct _PH_MEMSTRINGS_SETTINGS
@@ -532,6 +535,7 @@ NTSTATUS PhpMemorySearchStringsThread(
     PMEMORY_BASIC_INFORMATION regionArray;
     ULONG regionCount;
     ULONG regionCapacity;
+    NTSTATUS status = STATUS_SUCCESS;
 
 
     handle = Context->UseClone ? Context->CloneHandle : Context->ProcessHandle;
@@ -573,8 +577,29 @@ NTSTATUS PhpMemorySearchStringsThread(
             {
                 if (regionCount >= regionCapacity)
                 {
-                    regionCapacity *= 2;
-                    regionArray = PhReAllocate(regionArray, regionCapacity * sizeof(MEMORY_BASIC_INFORMATION));
+                    ULONG newCapacity;
+                    SIZE_T allocationSize;
+
+                    status = RtlULongMult(
+                        regionCapacity,
+                        2, 
+                        &newCapacity
+                        );
+
+                    if (!NT_SUCCESS(status))
+                        goto CleanupRegionArray;
+
+                    status = RtlSIZETMult(
+                        newCapacity, 
+                        sizeof(MEMORY_BASIC_INFORMATION), 
+                        &allocationSize
+                        );
+
+                    if (!NT_SUCCESS(status))
+                        goto CleanupRegionArray;
+
+                    regionArray = PhReAllocate(regionArray, allocationSize);
+                    regionCapacity = newCapacity;
                 }
                 regionArray[regionCount++] = basicInfo;
             }
@@ -607,8 +632,8 @@ NTSTATUS PhpMemorySearchStringsThread(
             worker->TreeContext = Context;
             worker->TypeMask = typeMask;
             worker->RegionArray = regionArray;
-            worker->RegionStart = t * regionCount / threadCount;
-            worker->RegionEnd = (t + 1) * regionCount / threadCount;
+            worker->RegionStart = (ULONG)((ULONG64)t * regionCount / threadCount);
+            worker->RegionEnd = (ULONG)((ULONG64)(t + 1) * regionCount / threadCount);
 
             // N.B. Only wait on threads that were actually created, otherwise the wait fails
             // immediately and regionArray is freed while workers still use it.
@@ -633,13 +658,14 @@ NTSTATUS PhpMemorySearchStringsThread(
         PhFree(threadHandles);
     }
 
+CleanupRegionArray:
     PhFree(regionArray);
 
 Finished:
     if (!ReadBooleanAcquire(&Context->StopSearch))
-        PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, 0, 0);
+        PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, (WPARAM)status, 0);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 VOID PhpMemoryStringsCheckBackOff(
@@ -1687,7 +1713,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
             context->State = PH_MEMSEARCH_STATE_FINISHED;
 
-            TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyStringsText, 0);
+            TreeNew_SetEmptyText(context->TreeNewHandle, NT_SUCCESS((NTSTATUS)wParam) ? &EmptyStringsText : &SearchSizeErrorText, 0);
             TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
@@ -1835,9 +1861,9 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     zeroPad = PhCreateEMenuItem(0, 8, L"Zero pad addresses", NULL, NULL);
                     refresh = PhCreateEMenuItem(0, 9, L"Refresh\bF5", NULL, NULL);
                     if (context->ThreadCount == 0)
-                        RtlStringCchPrintfExW(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (auto)");
+                        RtlStringCchPrintfEx(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (auto)");
                     else
-                        RtlStringCchPrintfExW(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (%lu)", context->ThreadCount);
+                        RtlStringCchPrintfEx(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), NULL, NULL, STRSAFE_NULL_ON_FAILURE, L"Thread count... (%lu)", context->ThreadCount);
                     threadCount = PhCreateEMenuItem(0, 10, threadCountLabel, NULL, NULL);
 
                     menu = PhCreateEMenu();
