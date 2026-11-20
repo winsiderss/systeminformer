@@ -443,7 +443,7 @@ NTSTATUS KphpHandleCloseIndex(
     Table->FirstFree = Index;
     KeReleaseSpinLock(&Table->Lock, oldIrql);
 
-    KphDereferenceObject(object);
+    KphDereferenceObjectDeferDelete(object);
 
     return STATUS_SUCCESS;
 }
@@ -659,7 +659,7 @@ NTSTATUS KphpReferenceObjectByHandle(
                       "Handle %p is of another type",
                       Handle);
 
-        KphDereferenceObject(object);
+        KphDereferenceObjectDeferDelete(object);
         status = STATUS_OBJECT_TYPE_MISMATCH;
         goto Exit;
     }
