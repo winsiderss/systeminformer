@@ -114,7 +114,12 @@ local LPI_NATIVE = 0
 local LPI_LENGTH = 56
 local SPACE_MEMORY = 0
 
+local kept = {}
+
 local function cpu_identity()
+    if kept.cpu then
+        return kept.cpu
+    end
     local items = string.pack("<I2I2I4I4", 0, 0, 0, 0) ..
                   string.pack("<I2I2I4I4", 0, 0, 1, 0)
     local results, status = ksi.hw.cpuid(items)
@@ -137,11 +142,12 @@ local function cpu_identity()
     if base >= 0x6 then
         model = model | (((signature >> 16) & 0xf) << 4)
     end
-    return {
+    kept.cpu = {
         vendor = string.pack("<I4I4I4", b, d, c),
         family = family,
         model = model,
     }
+    return kept.cpu
 end
 
 local function find_row(cpu)
@@ -161,6 +167,9 @@ local function find_row(cpu)
 end
 
 local function lpit_counters()
+    if kept.counters then
+        return kept.counters
+    end
     local lpit = ksi.hw.firmware_table("ACPI", "LPIT")
     if not lpit then
         ksi.trace("no LPIT")
@@ -194,6 +203,7 @@ local function lpit_counters()
         end
         offset = finish
     end
+    kept.counters = counters
     return counters
 end
 
@@ -248,6 +258,9 @@ local function pwrm_window(row)
 end
 
 local function address_bits()
+    if kept.bits then
+        return kept.bits
+    end
     local results, status = ksi.hw.cpuid(
         string.pack("<I2I2I4I4", 0, 0, 0x80000000, 0) ..
         string.pack("<I2I2I4I4", 0, 0, 0x80000008, 0))
@@ -259,7 +272,11 @@ local function address_bits()
     local s1, eax = string.unpack("<I4I4", results, 21)
     if s0 == ksi.STATUS_SUCCESS and maximum >= 0x80000008 and
        s1 == ksi.STATUS_SUCCESS and eax & 0xff >= 32 and eax & 0xff < 64 then
-        return eax & 0xff
+        kept.bits = eax & 0xff
+        return kept.bits
+    end
+    if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+        kept.bits = 36
     end
     return 36
 end
