@@ -567,6 +567,9 @@ end
 local function forget(locator)
     local k = kept[locator]
     kept[locator] = nil
+    if k.view then
+        k.view:release()
+    end
     k.device:release()
 end
 
@@ -626,6 +629,11 @@ local function session(locator)
         end
         s.revision, s.index, s.cbase, s.hostc = rev, index, cb, hc
         s.layout = host.layouts[index]
+        if k and k.view and k.view_index ~= index then
+            local view = k.view
+            k.view = nil
+            view:release()
+        end
     end
     if not k and not ksi.volatile and ksi.hw.pci_fixed(device) then
         k = { device = device, ids = ids }
@@ -647,6 +655,10 @@ end
 -- The mapped view of the PM registers, behind the general check.
 local function map_view(s)
     local l = s.layout
+    local k = s.kept
+    if k and k.view then
+        return k.view
+    end
     local first = l.pm_base & ~(PAGE - 1)
     local last = (l.pm_base + l.pm_length + PAGE - 1) & ~(PAGE - 1)
     local bits, failed = address_bits()
@@ -663,7 +675,25 @@ local function map_view(s)
         ksi.trace("PM view 0x%x not mapped: 0x%x", l.pm_base, mapFailed)
         return nil, mapFailed
     end
+    if k then
+        k.view, k.view_index = m, s.index
+    end
     return m
+end
+
+-- Releases a view the host does not keep.
+local function close_view(s, m)
+    if not (s.kept and s.kept.view == m) then
+        m:release()
+    end
+end
+
+-- Releases a view, kept or not.
+local function drop_view(s, m)
+    if s.kept and s.kept.view == m then
+        s.kept.view = nil
+    end
+    m:release()
 end
 
 -- Reaches the PM registers the layout names and finds the SMBus base.
@@ -705,7 +735,7 @@ local function open_host(s)
                         local pv
                         st, pv = pair_in(s, r)
                         if st ~= OK then
-                            m:release()
+                            drop_view(s, m)
                             return pm_failed(st, r)
                         end
                         if vv == 0xff or vv ~= pv then
@@ -716,7 +746,7 @@ local function open_host(s)
                     if agreed then
                         s.view = m
                     else
-                        m:release()
+                        drop_view(s, m)
                     end
                 end
             end
@@ -829,7 +859,7 @@ function identify(input)
     end
     local st = open_host(s)
     if s.view then
-        s.view:release()
+        close_view(s, s.view)
     end
     if st ~= ksi.STATUS_SUCCESS then
         return st
@@ -1178,7 +1208,7 @@ function read(input)
     local view <close> = setmetatable({}, {
         __close = function()
             if s.view then
-                s.view:release()
+                close_view(s, s.view)
             end
         end,
     })
