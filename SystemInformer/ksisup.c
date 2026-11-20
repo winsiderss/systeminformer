@@ -26,6 +26,7 @@
 #include <svcsup.h>
 
 #include <ksisup.h>
+#include <ntstrsafe.h>
 
 typedef struct _KSI_SUPPORT_DATA
 {
