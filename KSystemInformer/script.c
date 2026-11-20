@@ -69,6 +69,8 @@ typedef struct _KPH_SCRIPT_CALL
 
 typedef struct _KPH_SCRIPT
 {
+    LIST_ENTRY Entry;
+    LIST_ENTRY Objects;
     ULONG Flags;
     PKPH_SCRIPT_FILE File;
     ANSI_STRING Name;
@@ -76,7 +78,6 @@ typedef struct _KPH_SCRIPT
     BOOLEAN Faulted;
     KPH_LUA_ALLOCATOR Allocator;
     lua_State* State;
-    LIST_ENTRY Objects;
 } KPH_SCRIPT, *PKPH_SCRIPT;
 
 typedef enum _KPH_SCRIPT_END
@@ -99,6 +100,10 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpScriptType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
+static KPH_RUNDOWN KphpScriptRundown;
+static LIST_ENTRY KphpScripts;
+static KPH_RWLOCK KphpScriptsLock;
+static BOOLEAN KphpScriptInitialized = FALSE;
 
 KPH_PAGED_FILE();
 
@@ -2600,11 +2605,56 @@ NTSTATUS KSIAPI KphpInitializeScript(
     KphInitializeRWLock(&script->Lock);
     InitializeListHead(&script->Objects);
 
+    KphAcquireRWLockExclusive(&KphpScriptsLock);
+    InsertTailList(&KphpScripts, &script->Entry);
+    KphReleaseRWLock(&KphpScriptsLock);
+
     return STATUS_SUCCESS;
 }
 
 /**
+ * \brief Runs down a script object, releasing the objects and the state it
+ * holds.
+ *
+ * \details The caller holds the lock of the list of script objects and has
+ * unlinked the script object.
+ *
+ * \param[in,out] Script The script object.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpRundownScript(
+    _Inout_ PKPH_SCRIPT Script
+    )
+{
+    NTSTATUS status;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphpScriptRunObjects(Script);
+
+    if (!Script->State)
+    {
+        return;
+    }
+
+    status = KphLuaCallout(KphpScriptCloseCallout, Script);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "KphLuaCallout failed: %!STATUS!",
+                      status);
+    }
+
+    KphLuaDeleteAllocator(&Script->Allocator);
+    Script->State = NULL;
+}
+
+/**
  * \brief Deletes a script object.
+ *
+ * \details May run after KphCleanupScript, which has then run the script
+ * object down.
  *
  * \param[in] Object The script object to delete.
  */
@@ -2614,28 +2664,19 @@ VOID KSIAPI KphpDeleteScript(
     _In_freesMem_ PVOID Object
     )
 {
-    NTSTATUS status;
     PKPH_SCRIPT script;
 
     KPH_PAGED_CODE_PASSIVE();
 
     script = Object;
 
-    KphpScriptRunObjects(script);
-
-    if (script->State)
+    KphAcquireRWLockExclusive(&KphpScriptsLock);
+    if (!IsListEmpty(&script->Entry))
     {
-        status = KphLuaCallout(KphpScriptCloseCallout, script);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          SCRIPT,
-                          "KphLuaCallout failed: %!STATUS!",
-                          status);
-        }
-
-        KphLuaDeleteAllocator(&script->Allocator);
+        RemoveEntryList(&script->Entry);
+        KphpRundownScript(script);
     }
+    KphReleaseRWLock(&KphpScriptsLock);
 
     KphDeleteRWLock(&script->Lock);
 
@@ -2693,6 +2734,15 @@ NTSTATUS KphCreateScript(
     HANDLE scriptHandle;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphAcquireRundown(&KphpScriptRundown))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to acquire rundown.");
+
+        return STATUS_TOO_LATE;
+    }
 
     file = NULL;
     signature = NULL;
@@ -2912,6 +2962,8 @@ Exit:
         KphDereferenceObject(process);
     }
 
+    KphReleaseRundown(&KphpScriptRundown);
+
     return status;
 }
 
@@ -3110,6 +3162,15 @@ NTSTATUS KphScriptCall(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    if (!KphAcquireRundown(&KphpScriptRundown))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to acquire rundown.");
+
+        return STATUS_TOO_LATE;
+    }
+
     script = NULL;
     routine = NULL;
     returnLength = 0;
@@ -3183,6 +3244,8 @@ Exit:
         KphDereferenceObject(script);
     }
 
+    KphReleaseRundown(&KphpScriptRundown);
+
     return status;
 }
 
@@ -3216,8 +3279,16 @@ KPH_PROCESS_STATE KphScriptGetRequiredState(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    requiredState = KPH_PROCESS_STATE_LOW;
+    if (!KphAcquireRundown(&KphpScriptRundown))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to acquire rundown.");
 
+        return KPH_PROCESS_STATE_LOW;
+    }
+
+    requiredState = KPH_PROCESS_STATE_LOW;
     script = NULL;
     routineName = NULL;
 
@@ -3284,6 +3355,8 @@ Exit:
         KphDereferenceObject(script);
     }
 
+    KphReleaseRundown(&KphpScriptRundown);
+
     return requiredState;
 }
 
@@ -3308,19 +3381,49 @@ VOID KphInitializeScript(
 
     KphCreateObjectType(&KphpScriptTypeName, &typeInfo, &KphpScriptType);
 
+    KphInitializeRundown(&KphpScriptRundown);
+    InitializeListHead(&KphpScripts);
+    KphInitializeRWLock(&KphpScriptsLock);
+
+    KphpScriptInitialized = TRUE;
+
     KphLuaInitializeLocks();
     KphLuaInitializeHardware();
 }
 
 /**
  * \brief Cleans up the script infrastructure.
+ *
+ * \details Script objects that are still referenced are run down here. The
+ * lock of the list of script objects is not deleted, a script object deleted
+ * later acquires it.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCleanupScript(
     VOID
     )
 {
+    PLIST_ENTRY entry;
+    PKPH_SCRIPT script;
+
     KPH_PAGED_CODE_PASSIVE();
+
+    if (!KphpScriptInitialized)
+    {
+        return;
+    }
+
+    KphWaitForRundown(&KphpScriptRundown);
+
+    KphAcquireRWLockExclusive(&KphpScriptsLock);
+    while (!IsListEmpty(&KphpScripts))
+    {
+        entry = RemoveHeadList(&KphpScripts);
+        script = CONTAINING_RECORD(entry, KPH_SCRIPT, Entry);
+        InitializeListHead(&script->Entry);
+        KphpRundownScript(script);
+    }
+    KphReleaseRWLock(&KphpScriptsLock);
 
     KphLuaCleanupHardware();
     KphLuaCleanupLocks();
