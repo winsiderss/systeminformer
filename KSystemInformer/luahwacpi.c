@@ -1466,7 +1466,8 @@ BOOLEAN KphpLuaHwAcpiCountArguments(
  *
  * \param[in] State The Lua state.
  *
- * \return The number of results: the output buffer, or nil and a status.
+ * \return The number of results: the output buffer, or nil, a status and,
+ * when the output does not fit, the size required.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaHwAcpiEval(
@@ -1481,10 +1482,11 @@ int KphpLuaHwAcpiEval(
     lua_Integer milliseconds;
     PCSTR arguments;
     SIZE_T argumentsLength;
+    lua_Integer size;
     ULONG count;
     ULONG inputLength;
     PVOID input;
-    ULONG outputLength;
+    ULONG signature;
     ULONG required;
     PVOID request;
     PVOID output;
@@ -1498,8 +1500,10 @@ int KphpLuaHwAcpiEval(
     name = luaL_checklstring(State, 2, &nameLength);
     milliseconds = luaL_checkinteger(State, 3);
     arguments = luaL_optlstring(State, 4, "", &argumentsLength);
+    size = luaL_optinteger(State, 5, PAGE_SIZE);
 
     count = 0;
+    required = 0;
 
     luaL_argcheck(State,
                   (nameLength >= 1) &&
@@ -1512,6 +1516,7 @@ int KphpLuaHwAcpiEval(
                   3,
                   "out of range");
     luaL_argcheck(State, argumentsLength <= ULONG_MAX, 4, "too long");
+    luaL_argcheck(State, (size >= 1) && (size <= ULONG_MAX), 5, "out of range");
 
     KphScriptCharge(State,
                     argumentsLength /
@@ -1583,57 +1588,42 @@ int KphpLuaHwAcpiEval(
         RtlCopyMemory(simple->MethodName, name, nameLength);
     }
 
-    outputLength = PAGE_SIZE;
-
-    for (ULONG attempt = 0; attempt < 2; attempt++)
+    status = KphLuaHwSendRequest(State,
+                                 device->Pdo,
+                                 NULL,
+                                 IOCTL_ACPI_ASYNC_EVAL_METHOD_EX,
+                                 FALSE,
+                                 input,
+                                 inputLength,
+                                 (ULONG)size,
+                                 (ULONG)milliseconds,
+                                 &request,
+                                 &output,
+                                 &information);
+    if (status == STATUS_BUFFER_OVERFLOW)
     {
-        status = KphLuaHwSendRequest(State,
-                                     device->Pdo,
-                                     NULL,
-                                     IOCTL_ACPI_ASYNC_EVAL_METHOD_EX,
-                                     FALSE,
-                                     input,
-                                     inputLength,
-                                     outputLength,
-                                     (ULONG)milliseconds,
-                                     &request,
-                                     &output,
-                                     &information);
-        if (status != STATUS_BUFFER_OVERFLOW)
-        {
-            break;
-        }
-
+        signature = ((PACPI_EVAL_OUTPUT_BUFFER)output)->Signature;
         required = ((PACPI_EVAL_OUTPUT_BUFFER)output)->Length;
 
-        if (((PACPI_EVAL_OUTPUT_BUFFER)output)->Signature !=
-            ACPI_EVAL_OUTPUT_BUFFER_SIGNATURE)
+        KphLuaHwReleaseRequest(request);
+        request = NULL;
+
+        if (signature != ACPI_EVAL_OUTPUT_BUFFER_SIGNATURE)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
                           "ACPI overflow answer without an output header");
 
-            KphLuaHwReleaseRequest(request);
-            request = NULL;
             status = STATUS_ACPI_INVALID_DATA;
-            break;
         }
-
-        KphLuaHwReleaseRequest(request);
-        request = NULL;
-
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "ACPI output of %lu bytes is larger than %lu",
-                      required,
-                      outputLength);
-
-        if (required <= outputLength)
+        else
         {
-            break;
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "ACPI output of %lu bytes is larger than %lu",
+                          required,
+                          (ULONG)size);
         }
-
-        outputLength = required;
     }
 
     KphFree(input, KPH_TAG_LUA_HARDWARE_ACPI_EVAL);
@@ -1652,6 +1642,13 @@ int KphpLuaHwAcpiEval(
                       status);
 
         results = KphLuaNilErrorStatus(State, status);
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            lua_pushinteger(State, (lua_Integer)required);
+            results++;
+        }
+
         goto Exit;
     }
 
