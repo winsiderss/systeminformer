@@ -664,12 +664,17 @@ local function identify_chip(s)
 end
 
 local function permitted(monitor, reg)
-    for _, range in ipairs(monitor.reads) do
-        if reg >= range[1] and reg < range[1] + range[2] then
-            return true
+    local allowed = monitor.allowed
+    if not allowed then
+        allowed = {}
+        for _, range in ipairs(monitor.reads) do
+            for listed = range[1], range[1] + range[2] - 1 do
+                allowed[listed] = true
+            end
         end
+        monitor.allowed = allowed
     end
-    return false
+    return allowed[reg] == true
 end
 
 local function read_bank(s)
