@@ -316,32 +316,55 @@ local function permitted(ranges, offset, width)
     return false
 end
 
-local function map_and_read(entries, base, size, spanBegin, spanEnd)
-    local windowEnd = base + size
-    if math.ult(windowEnd, base) or math.ult(HUGE_PAGE_END, windowEnd) then
-        ksi.trace("window 0x%x size 0x%x ends beyond the address space",
-                  base, size)
-        return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
-    end
-    local bits, bitsFailed = address_bits()
-    if not bits then
-        return bitsFailed
-    end
-    local st = check_range(base & -PAGE, (windowEnd + PAGE - 1) & -PAGE,
-                           bits)
-    if st ~= ksi.STATUS_SUCCESS then
-        return st
-    end
+local function map_and_read(window, entries, base, size, spanBegin, spanEnd)
     spanBegin = spanBegin & -8
-    local m, mapFailed = ksi.hw.map(base + spanBegin, spanEnd - spanBegin)
-    if not m then
-        ksi.trace("window 0x%x not mapped: 0x%x", base, mapFailed)
-        return mapFailed
+    local w = kept[window]
+    if w and w.base ~= base then
+        kept[window] = nil
+        w.map:release()
+        w = nil
+    elseif w and (spanBegin < w.first or spanEnd > w.last) then
+        spanBegin = math.min(spanBegin, w.first)
+        spanEnd = math.max(spanEnd, w.last)
+        kept[window] = nil
+        w.map:release()
+        w = nil
     end
-    local mapping <close> = m
+    local m, first
+    if w then
+        m, first = w.map, w.first
+    else
+        local windowEnd = base + size
+        if math.ult(windowEnd, base) or math.ult(HUGE_PAGE_END, windowEnd) then
+            ksi.trace("window 0x%x size 0x%x ends beyond the address space",
+                      base, size)
+            return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+        end
+        local bits, bitsFailed = address_bits()
+        if not bits then
+            return bitsFailed
+        end
+        local st = check_range(base & -PAGE, (windowEnd + PAGE - 1) & -PAGE,
+                               bits)
+        if st ~= ksi.STATUS_SUCCESS then
+            return st
+        end
+        local mapFailed
+        m, mapFailed = ksi.hw.map(base + spanBegin, spanEnd - spanBegin)
+        if not m then
+            ksi.trace("window 0x%x not mapped: 0x%x", base, mapFailed)
+            return mapFailed
+        end
+        first = spanBegin
+        if not ksi.volatile then
+            kept[window] = { map = m, base = base, first = spanBegin,
+                             last = spanEnd }
+        end
+    end
+    local mapping <close> = ksi.volatile and m or nil
     for _, e in ipairs(entries) do
         if e.status == nil then
-            e.value = ksi.hw.map_read(m, e.offset - spanBegin, e.width)
+            e.value = ksi.hw.map_read(m, e.offset - first, e.width)
             e.status = ksi.STATUS_SUCCESS
         end
     end
@@ -436,7 +459,8 @@ function read(input)
             end
         end
         if spanBegin then
-            local st = map_and_read(entries, base, size, spanBegin, spanEnd)
+            local st = map_and_read(window, entries, base, size, spanBegin,
+                                    spanEnd)
             if st ~= ksi.STATUS_SUCCESS then
                 return st
             end
