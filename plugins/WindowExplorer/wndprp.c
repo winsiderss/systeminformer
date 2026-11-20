@@ -206,11 +206,6 @@ VOID NTAPI WepWindowPropertiesSheetInitialized(
     _In_opt_ PVOID Context
     );
 
-VOID WepUpdateWindowPropertiesBorderColor(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN Active
-    );
-
 LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -220,11 +215,6 @@ LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
 
 VOID WepShowWindowPropertiesOptionsMenu(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
-    );
-
-VOID WepGetWindowPropertiesOptionsButtonRect(
-    _In_ HWND PropertySheetHandle,
-    _Out_ PRECT ButtonRect
     );
 
 VOID WepLayoutWindowPropertiesOptionsButton(
@@ -969,7 +959,7 @@ VOID WepGetWindowPropertiesOptionsButtonRect(
     buttonHeight = MulDiv(23, dpiValue, USER_DEFAULT_SCREEN_DPI);
 
     if (!GetClientRect(PropertySheetHandle, &clientRect))
-        PhSetRectEmpty(&clientRect);
+        memset(&clientRect, 0, sizeof(RECT));
 
     ButtonRect->left = padding;
     ButtonRect->top = clientRect.bottom - padding - buttonHeight;
@@ -1087,26 +1077,6 @@ VOID NTAPI WepWindowPropertiesSheetInitialized(
     PhSetWindowContext(HostHandle, WE_WINDOW_PROPERTIES_CONTEXT_SLOT, context);
     context->PropertySheetWindowProcedure = PhGetWindowProcedure(HostHandle);
     PhSetWindowProcedure(HostHandle, WepWindowPropertiesSheetWndProc);
-
-    if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
-        PhInitializeWindowTheme(HostHandle, TRUE);
-
-    WepUpdateWindowPropertiesBorderColor(HostHandle, GetActiveWindow() == HostHandle);
-
-    PhRegisterWindowCallback(HostHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
-}
-
-VOID WepUpdateWindowPropertiesBorderColor(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN Active
-    )
-{
-    COLORREF borderColor;
-
-    borderColor = PhGetWindowActiveBorderColor(Active);
-
-    if (borderColor)
-        PhSetWindowBorderColor(WindowHandle, borderColor);
 }
 
 LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
@@ -1159,13 +1129,8 @@ LRESULT CALLBACK WepWindowPropertiesSheetWndProc(
             WepLayoutWindowPropertiesOptionsButton(context);
             return result;
         }
-    case WM_ACTIVATE:
-        WepUpdateWindowPropertiesBorderColor(WindowHandle, LOWORD(wParam) != WA_INACTIVE);
-        break;
     case WM_NCDESTROY:
         {
-            PhUnregisterWindowCallback(WindowHandle);
-
             WeStopWindowHighlight(
                 &context->HighlightingOverlayWindow,
                 &context->HighlightingWindow,
@@ -1192,7 +1157,6 @@ NTSTATUS WepResolveSymbolFunction(
     )
 {
     PSYMBOL_RESOLVE_CONTEXT context = Parameter;
-    PWINDOW_PROPERTIES_CONTEXT parent;
 
     if (PhBeginInitOnce(&context->Context->SymbolProviderInitOnce))
     {
@@ -1218,26 +1182,13 @@ NTSTATUS WepResolveSymbolFunction(
         return STATUS_SUCCESS;
     }
 
-    // N.B. The UI thread frees the resolve item when it handles WEM_RESOLVE_DONE, so nothing
-    // may be read from it after the post. Keep the parent in a local.
-    parent = context->Context;
+    PhAcquireQueuedLockExclusive(&context->Context->ResolveListLock);
+    InsertHeadListNoFence(&context->Context->ResolveListHead, &context->ListEntry);
+    PhReleaseQueuedLockExclusive(&context->Context->ResolveListLock);
 
-    PhAcquireQueuedLockExclusive(&parent->ResolveListLock);
-    InsertHeadListNoFence(&parent->ResolveListHead, &context->ListEntry);
-    PhReleaseQueuedLockExclusive(&parent->ResolveListLock);
+    PostMessage(context->NotifyWindow, WEM_RESOLVE_DONE, 0, (LPARAM)context);
 
-    if (!PostMessage(context->NotifyWindow, WEM_RESOLVE_DONE, 0, (LPARAM)context))
-    {
-        // The window is gone and the message will never be handled; the item is still ours.
-        PhAcquireQueuedLockExclusive(&parent->ResolveListLock);
-        RemoveEntryListNoFence(&context->ListEntry);
-        PhReleaseQueuedLockExclusive(&parent->ResolveListLock);
-
-        PhClearReference(&context->Symbol);
-        PhFree(context);
-    }
-
-    PhDereferenceObject(parent);
+    PhDereferenceObject(context->Context);
     return STATUS_SUCCESS;
 }
 
@@ -2685,7 +2636,7 @@ VOID WepFreeListViewWindowProps(
     _In_ PWINDOW_PROPERTIES_PROPLIST_PAGE_CONTEXT Context
     )
 {
-    LONG index = INT_ERROR;
+    INT index = INT_ERROR;
 
     if (!Context->ListViewHandle || !IsWindow(Context->ListViewHandle))
         return;
@@ -2713,7 +2664,7 @@ BOOL CALLBACK WepPropertyEnumCallback(
 {
     PWINDOW_PROPERTIES_PROPLIST_PAGE_CONTEXT context = (PWINDOW_PROPERTIES_PROPLIST_PAGE_CONTEXT)Context;
     PWINDOW_PROPERTIES_CONTEXT parentContext = context->Parent;
-    LONG lvItemIndex;
+    INT lvItemIndex;
     PPH_STRING propName;
     WCHAR value[PH_INT64_STR_LEN_1];
 
@@ -3000,7 +2951,7 @@ VOID WepRefreshWindowPropertyStorage(
 
                 if (SUCCEEDED(IPropertyStore_GetAt(propstore, i, &propkey)))
                 {
-                    LONG lvItemIndex;
+                    INT lvItemIndex;
                     PROPVARIANT propKeyVariant = { 0 };
                     PWSTR propKeyName;
                     WCHAR value[PH_INT64_STR_LEN_1];
@@ -3918,7 +3869,7 @@ BOOLEAN CALLBACK WepEnumWindowChildrenProc(
 {
     PWINDOW_PROPERTIES_CHILDREN_PAGE_CONTEXT context = Context;
     PWE_CHILDREN_ITEM item;
-    LONG lvItemIndex;
+    INT lvItemIndex;
     CLIENT_ID clientId;
     WCHAR handleStr[32];
     WCHAR processIdStr[32];
@@ -4012,7 +3963,7 @@ VOID WepFreeListViewChildren(
     _In_ PWINDOW_PROPERTIES_CHILDREN_PAGE_CONTEXT Context
     )
 {
-    LONG index = INT_ERROR;
+    INT index = INT_ERROR;
 
     if (!Context->ListViewHandle || !IsWindow(Context->ListViewHandle))
         return;

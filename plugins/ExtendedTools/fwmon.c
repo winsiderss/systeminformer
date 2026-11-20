@@ -844,7 +844,7 @@ NTSTATUS EtFwNetworkItemQueryWorker(
     hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
     PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-    if (PhIsNullOrEmptyString(hostString))
+    if (!hostString)
     {
         hostString = EtFwGetNameFromAddress(&data->Address);
 
@@ -1106,7 +1106,7 @@ PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
  */
 VOID EtFwDrawCountryIcon(
     _In_ HDC hdc,
-    _In_ PRECT rect,
+    _In_ RECT rect,
     _In_ LONG Index
     )
 {
@@ -1122,7 +1122,7 @@ VOID EtFwDrawCountryIcon(
  */
 VOID EtFwShowPingWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT Endpoint
+    _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -1137,7 +1137,7 @@ VOID EtFwShowPingWindow(
  */
 VOID EtFwShowTracerWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT Endpoint
+    _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -1152,7 +1152,7 @@ VOID EtFwShowTracerWindow(
  */
 VOID EtFwShowWhoisWindow(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT Endpoint
+    _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
@@ -2225,59 +2225,35 @@ static BOOLEAN EtFwIsAddressReadable(
  * structures and their embedded strings. The bounds let us validate undocumented string pointers
  * by containment rather than a page probe.
  */
-typedef struct _ET_FWPM_NET_EVENT_BLOCK
+typedef struct _ET_FW_EVENT_BLOCK
 {
-    ULONG_PTR AllocationBase;
-    SIZE_T AllocationSize;
-} ET_FWPM_NET_EVENT_BLOCK, *PET_FWPM_NET_EVENT_BLOCK;
+    ULONG_PTR Base;
+    ULONG_PTR End;
+} ET_FW_EVENT_BLOCK, *PET_FW_EVENT_BLOCK;
 
 /**
  * Determines whether a null-terminated string lies entirely within an enumeration block.
  *
  * \param Block The bounds of the enumeration allocation.
  * \param String The string to validate.
- * \return TRUE only if [String .. NUL] is fully contained in the allocation; never reads past it.
+ * \return TRUE only if [String .. NUL] is fully contained in [Base, End); never reads past End.
  */
 static BOOLEAN EtFwStringInBlock(
-    _In_ PET_FWPM_NET_EVENT_BLOCK Block,
+    _In_ PET_FW_EVENT_BLOCK Block,
     _In_opt_ PCWSTR String
     )
 {
     ULONG_PTR address = (ULONG_PTR)String;
-    ULONG_PTR offset;
-    SIZE_T maximumStringOffset;
 
-    // A WCHAR must fit before we can safely inspect a terminator.
-    
-    if (Block->AllocationSize < sizeof(WCHAR))
+    if (address < Block->Base || address >= Block->End)
         return FALSE;
 
-    // Reject pointers below the allocation base and compute their offset safely.
-
-    if (!NT_SUCCESS(RtlULongPtrSub(address, Block->AllocationBase, &offset)))
-        return FALSE;
-
-    // The string pointer must begin inside the allocation.
-    
-    if (offset >= Block->AllocationSize)
-        return FALSE;
-
-    // Find the last offset with room for one complete WCHAR.
-    
-    if (!NT_SUCCESS(RtlSizeTSub(Block->AllocationSize, sizeof(WCHAR), &maximumStringOffset)))
-        return FALSE;
-
-    // Walk one WCHAR at a time, stopping before a read could cross the allocation end.
-    
-    for (PCWSTR current = String; offset <= maximumStringOffset; current++, offset += sizeof(WCHAR))
+    // Walk for a terminator, but never step past the block end.
+    for (PCWSTR current = String; (ULONG_PTR)(current + 1) <= Block->End; current++)
     {
-        // The string is contained when its terminator is found within the allocation.
-        
         if (*current == UNICODE_NULL)
             return TRUE;
     }
-
-    // No terminator was found before the allocation ended.
 
     return FALSE;
 }
@@ -2293,7 +2269,7 @@ static BOOLEAN EtFwStringInBlock(
  * page-readability probe.
  */
 static BOOLEAN EtFwIsStringReadable(
-    _In_opt_ PET_FWPM_NET_EVENT_BLOCK Block,
+    _In_opt_ PET_FW_EVENT_BLOCK Block,
     _In_opt_ PCWSTR String
     )
 {
@@ -2476,7 +2452,7 @@ VOID CALLBACK EtFwEventCallback(
         PPH_STRING remoteCountryName;
 
         if (EtFwGetPluginInterface()->LookupCountryCode(
-            &entry.RemoteEndpoint.Address,
+            entry.RemoteEndpoint.Address,
             &remoteCountryCode,
             &remoteCountryName
             ))
@@ -2490,7 +2466,7 @@ VOID CALLBACK EtFwEventCallback(
     {
         const FWPM_NET_EVENT_INTERNAL* FwEventInternal = (const FWPM_NET_EVENT_INTERNAL*)FwEvent;
         const FWPM_NET_EVENT_INTERNAL_FIELDS0* FwInternal = &FwEventInternal->InternalFields;
-        PET_FWPM_NET_EVENT_BLOCK FwBlock = (PET_FWPM_NET_EVENT_BLOCK)FwContext;
+        PET_FW_EVENT_BLOCK FwBlock = (PET_FW_EVENT_BLOCK)FwContext;
         PPH_PROCESS_ITEM processItem;
 
         processItem = EtFwReferenceProcessItemForEvent(
@@ -2703,7 +2679,7 @@ ULONG EtFwMonitorEnumEvents(
 
     while (TRUE)
     {
-        ET_FWPM_NET_EVENT_BLOCK block = { 0 };
+        ET_FW_EVENT_BLOCK block = { 0, 0 };
         FWPM_NET_EVENT** entries;
         ULONG count;
 
@@ -2724,14 +2700,14 @@ ULONG EtFwMonitorEnumEvents(
 
             if (blockSize != SIZE_MAX)
             {
-                block.AllocationBase = (ULONG_PTR)entries;
-                block.AllocationSize = blockSize;
+                block.Base = (ULONG_PTR)entries;
+                block.End = block.Base + blockSize;
             }
         }
 
         for (ULONG i = 0; i < count; i++)
         {
-            EtFwEventCallback(block.AllocationSize ? &block : NULL, entries[i]);
+            EtFwEventCallback(block.End ? &block : NULL, entries[i]);
         }
 
         FwpmFreeMemory((PVOID*)&entries);

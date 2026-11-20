@@ -13,6 +13,7 @@
 #include <phcrypt.h>
 #include "..\tools\thirdparty\SymCrypt\inc\symcrypt.h"
 #include <bcrypt.h>
+#include <ntintsafe.h>
 
 #ifndef BCRYPT_SHA3_224_ALGORITHM
 #define BCRYPT_SHA3_224_ALGORITHM L"SHA3-224"

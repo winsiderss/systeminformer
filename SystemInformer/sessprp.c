@@ -16,7 +16,6 @@
 #include <secedit.h>
 #include <lsasup.h>
 #include <winsta.h>
-#include <ntstrsafe.h>
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ HWND hwndDlg,
@@ -605,7 +604,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
         }
         else
         {
-            RtlStringCchCopyEx(addressString, 65, clientInfo.ClientAddress, NULL, NULL, STRSAFE_NULL_ON_FAILURE);
+            wcscpy_s(addressString, 65, clientInfo.ClientAddress);
         }
 
         PhSetListViewSubItem(Context->ListViewHandle, 8, 1, addressString);

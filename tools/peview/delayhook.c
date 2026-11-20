@@ -1111,9 +1111,12 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
+        PhpHeaderUpdateTheme(context, WindowHandle);
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
-        //InvalidateRect(WindowHandle, NULL, FALSE);
+        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
+        InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else
     {
@@ -1124,12 +1127,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
     {
         switch (WindowMessage)
         {
-        case WM_CREATE:
-            {
-                PhpHeaderUpdateTheme(context, WindowHandle);
-                PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
-            }
-            break;
         case WM_NCDESTROY:
             {
                 PhRemoveWindowContext(WindowHandle, LONG_MAX);
@@ -1722,9 +1719,6 @@ HWND PhCreateWindowExHook(
         Instance,
         Param
         );
-
-    if (!windowHandle)
-        return NULL;
 
     if (Parent == NULL)
     {

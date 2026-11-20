@@ -47,14 +47,10 @@ VOID PhShowPagefilesDialog(
             );
         PhRegisterDialog(PhPageFileWindowHandle);
         ShowWindow(PhPageFileWindowHandle, SW_SHOW);
-        UpdateWindow(PhPageFileWindowHandle);
     }
 
     if (IsMinimized(PhPageFileWindowHandle))
-    {
         ShowWindow(PhPageFileWindowHandle, SW_RESTORE);
-        UpdateWindow(PhPageFileWindowHandle);
-    }
     else
         SetForegroundWindow(PhPageFileWindowHandle);
 }

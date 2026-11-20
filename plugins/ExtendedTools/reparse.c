@@ -12,22 +12,18 @@
 #include "exttools.h"
 #include <hndlinfo.h>
 #include <sddl.h>
-#include <ntstrsafe.h>
 
-typedef _Function_class_(PH_ENUM_SD_ENTRY)
-BOOLEAN NTAPI PH_ENUM_SD_ENTRY(
+typedef BOOLEAN (NTAPI* PPH_ENUM_SD_ENTRY)(
     _In_ PSD_ENUM_SDS_ENTRY SDEntry,
     _In_ HANDLE RootDirectory,
     _In_opt_ PVOID Context
     );
-typedef PH_ENUM_SD_ENTRY* PPH_ENUM_SD_ENTRY;
 
 typedef struct _REPARSE_WINDOW_CONTEXT
 {
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
-    HFONT WindowFont;
     ULONG MenuItemIndex;
     PH_LAYOUT_MANAGER LayoutManager;
     ULONG Count;
@@ -965,7 +961,6 @@ VOID EtFreeReparseListViewEntries(
 typedef struct _REPARSE_SECURITYID_CONTEXT
 {
     HWND ListViewHandle;
-    HFONT WindowFont;
     PPH_LIST FileList;
     PH_LAYOUT_MANAGER LayoutManager;
 } REPARSE_SECURITYID_CONTEXT, *PREPARSE_SECURITYID_CONTEXT;
@@ -1016,10 +1011,6 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Filename");
 
@@ -1051,18 +1042,7 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             PhFree(context);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SIZE:
@@ -1205,10 +1185,6 @@ INT_PTR CALLBACK EtReparseDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
 
             switch (context->MenuItemIndex)
@@ -1252,11 +1228,6 @@ INT_PTR CALLBACK EtReparseDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -1285,9 +1256,6 @@ INT_PTR CALLBACK EtReparseDlgProc(
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
 
             PhDereferenceObject(context);
         }
@@ -1423,7 +1391,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                     NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
 
                     listview->dwFlags = EMF_CENTERED;
-                    RtlStringCchCopy(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying objects...");
+                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying objects...", _TRUNCATE);
 
                     SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                     return TRUE;

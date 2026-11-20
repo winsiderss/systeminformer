@@ -38,7 +38,6 @@ typedef struct _COMMON_PAGE_CONTEXT
     HANDLE ProcessId;
     HWND WindowHandle;
     HWND ListViewHandle;
-    HFONT WindowFont;
     BOOLEAN ObjectManagerContext;
 
     // Handles tab
@@ -81,7 +80,7 @@ INT_PTR CALLBACK EtpObjGeneralPageDlgProc(
     _In_ LPARAM lParam
     );
 
-LONG CALLBACK EtCommonPropPageProc(
+INT CALLBACK EtCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -809,7 +808,7 @@ HPROPSHEETPAGE EtpCommonCreatePage(
     return propSheetPageHandle;
 }
 
-LONG CALLBACK EtCommonPropPageProc(
+INT CALLBACK EtCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -1207,7 +1206,7 @@ VOID EtpEnumObjectHandles(
         PhDereferenceObject(processHandleHashtable);
 
         ULONG ownHandlesIndex = 0;
-        LONG lvItemIndex;
+        INT lvItemIndex;
         WCHAR value[PH_INT64_STR_LEN_1];
         PET_HANDLE_ENTRY entry;
         PPH_STRING columnString;
@@ -1464,7 +1463,7 @@ VOID EtpCloseObjectHandles(
 }
 
 COLORREF NTAPI EtColorItemColorFunction(
-    _In_ LONG Index,
+    _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
     )
@@ -1522,7 +1521,7 @@ VOID EtpHandlesFreeListViewItems(
     PCOMMON_PAGE_CONTEXT Context
     )
 {
-    LONG index = INT_ERROR;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
@@ -1572,10 +1571,6 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             PhAddListViewColumn(context->ListViewHandle, ETHNLVC_PROCESS, ETHNLVC_PROCESS, ETHNLVC_PROCESS, LVCFMT_LEFT, 120, L"Process");
             PhAddListViewColumn(context->ListViewHandle, ETHNLVC_HANDLE, ETHNLVC_HANDLE, ETHNLVC_HANDLE, LVCFMT_LEFT, 50, L"Handle");
             PhAddListViewColumn(context->ListViewHandle, ETHNLVC_ACCESS, ETHNLVC_ACCESS, ETHNLVC_ACCESS, LVCFMT_LEFT, 125, L"Access");
@@ -1606,17 +1601,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     case WM_NCDESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_KEYDOWN:
@@ -2140,10 +2125,6 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             PhAddListViewColumn(context->ListViewHandle, ETDTLVC_NAME, ETDTLVC_NAME, ETDTLVC_NAME, LVCFMT_LEFT, 152, L"Name");
             PhAddListViewColumn(context->ListViewHandle, ETDTLVC_SID, ETDTLVC_SID, ETDTLVC_SID, LVCFMT_LEFT, 105, L"SID");
             PhAddListViewColumn(context->ListViewHandle, ETDTLVC_HEAP, ETDTLVC_HEAP, ETDTLVC_HEAP, LVCFMT_LEFT, 62, L"Heap Size");
@@ -2190,7 +2171,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
         break;
     case WM_DESTROY:
         {
-            LONG index = INT_ERROR;
+            INT index = INT_ERROR;
 
             while ((index = PhFindListViewItemByFlags(
                 context->ListViewHandle,
@@ -2209,17 +2190,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     case WM_NCDESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NOTIFY:
@@ -2360,10 +2331,6 @@ INT_PTR CALLBACK EtpObjGeneralPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
@@ -2474,17 +2441,7 @@ INT_PTR CALLBACK EtpObjGeneralPageDlgProc(
     case WM_NCDESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NOTIFY:

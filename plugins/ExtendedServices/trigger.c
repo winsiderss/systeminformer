@@ -595,7 +595,7 @@ VOID EsLoadServiceTriggerInfo(
             PWSTR triggerString;
             PWSTR actionString;
             PPH_STRING stringUsed;
-            LONG lvItemIndex;
+            INT lvItemIndex;
 
             info = EspCreateTriggerInfo(trigger);
             PhAddItemList(Context->InfoList, info);
@@ -749,7 +749,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
 
 LOGICAL EspSetListViewItemParam(
     _In_ HWND ListViewHandle,
-    _In_ LONG Index,
+    _In_ INT Index,
     _In_ PVOID Param
     )
 {
@@ -789,7 +789,7 @@ VOID EsHandleEventServiceTrigger(
                 PWSTR triggerString;
                 PWSTR actionString;
                 PPH_STRING stringUsed;
-                LONG lvItemIndex;
+                INT lvItemIndex;
 
                 Context->Dirty = TRUE;
                 PhAddItemList(Context->InfoList, Context->EditingInfo);
@@ -812,7 +812,7 @@ VOID EsHandleEventServiceTrigger(
         break;
     case ES_TRIGGER_EVENT_EDIT:
         {
-            LONG lvItemIndex;
+            INT lvItemIndex;
             PES_TRIGGER_INFO info;
             ULONG index;
 
@@ -863,7 +863,7 @@ VOID EsHandleEventServiceTrigger(
         break;
     case ES_TRIGGER_EVENT_DELETE:
         {
-            LONG lvItemIndex;
+            INT lvItemIndex;
             PES_TRIGGER_INFO info;
             ULONG index;
 
@@ -1148,7 +1148,6 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
     _In_ LPARAM lParam
     )
 {
-    static HFONT WindowFont = NULL;
     PES_TRIGGER_CONTEXT context;
 
     if (WindowMessage == WM_INITDIALOG)
@@ -1235,8 +1234,6 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 280, L"Data");
-            WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(lvHandle, WindowFont, FALSE);
 
             if (context->EditingInfo->DataList)
             {
@@ -1244,7 +1241,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                 {
                     PES_TRIGGER_DATA data;
                     PPH_STRING text;
-                    LONG lvItemIndex;
+                    INT lvItemIndex;
 
                     data = context->EditingInfo->DataList->Items[i];
 
@@ -1264,20 +1261,6 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhClearReference(&context->LastCustomSubType);
-
-            if (WindowFont)
-            {
-                DeleteFont(WindowFont);
-                WindowFont = NULL;
-            }
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&WindowFont, GetDlgItem(WindowHandle, IDC_LIST), windowFont, TRUE);
         }
         break;
     case WM_COMMAND:
@@ -1313,7 +1296,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     {
                         PES_TRIGGER_DATA data;
                         PPH_STRING text;
-                        LONG lvItemIndex;
+                        INT lvItemIndex;
 
                         data = EspCreateTriggerData(NULL);
                         data->Type = SERVICE_TRIGGER_DATA_TYPE_STRING;
@@ -1335,7 +1318,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             case IDC_EDIT:
                 {
                     HWND lvHandle;
-                    LONG lvItemIndex;
+                    INT lvItemIndex;
                     PES_TRIGGER_DATA data;
                     ULONG index;
 
@@ -1378,7 +1361,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             case IDC_DELETE:
                 {
                     HWND lvHandle;
-                    LONG lvItemIndex;
+                    INT lvItemIndex;
                     PES_TRIGGER_DATA data;
                     ULONG index;
 

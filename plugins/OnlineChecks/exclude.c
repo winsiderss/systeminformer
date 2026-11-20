@@ -127,10 +127,10 @@ BOOLEAN ScanIsFileExcluded(
 
 static PPH_STRING ExcludeGetListBoxItemText(
     _In_ HWND ListBoxHandle,
-    _In_ LONG Index
+    _In_ INT Index
     )
 {
-    LONG length;
+    INT length;
     PPH_STRING string;
 
     length = ListBox_GetTextLen(ListBoxHandle, Index);
@@ -316,7 +316,7 @@ VOID ScanExclusionsAddFromEdit(
     if (ExcludeValidateRegex(&pattern->sr, message, RTL_NUMBER_OF(message)))
     {
         ListBox_AddString(ListBoxHandle, pattern->Buffer);
-        PhSetWindowText(EditHandle, L"");
+        SetWindowText(EditHandle, L"");
         PhSetDialogFocus(WindowHandle, EditHandle);
     }
     else
@@ -332,12 +332,12 @@ VOID ScanExclusionsSaveListBox(
     _In_ HWND ListBoxHandle
     )
 {
-    LONG count = ListBox_GetCount(ListBoxHandle);
+    INT count = ListBox_GetCount(ListBoxHandle);
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 64);
 
-    for (LONG i = 0; i < count; i++)
+    for (INT i = 0; i < count; i++)
     {
         PPH_STRING entry = ExcludeGetListBoxItemText(ListBoxHandle, i);
 

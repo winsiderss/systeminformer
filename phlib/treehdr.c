@@ -60,8 +60,8 @@ RTL_ATOM PhHeaderNewInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.lpszClassName = PH_HEADERNEW_CLASSNAME;
+    //wcex.hbrBackground = PhThemeWindowBackgroundBrush;
 
     return RegisterClassEx(&wcex);
 }
@@ -133,12 +133,7 @@ VOID PhHeaderNewNormalizeOrder(
     // which is how SysHeader32 settles ambiguous orders. The item count is small
     // enough that anything cleverer than this is not worth the code.
 
-    SIZE_T ranksAllocationSize;
-
-    if (!NT_SUCCESS(RtlSizeTMult(count, sizeof(LONG), &ranksAllocationSize)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-
-    ranks = PhAllocate(ranksAllocationSize);
+    ranks = PhAllocate(count * sizeof(LONG));
 
     for (i = 0; i < count; i++)
     {
@@ -1990,11 +1985,8 @@ LRESULT CALLBACK PhHeaderNewWndProc(
     case WM_THEMECHANGED:
     case WM_SYSCOLORCHANGE:
         {
-            BOOLEAN oldThemeDark = !!context->ThemeDark;
-
             PhHeaderNewUpdateTheme(context);
-            if (oldThemeDark != context->ThemeDark)
-                PhSetControlTheme(WindowHandle, context->ThemeDark ? L"DarkMode_ItemsView" : L"Explorer");
+            PhSetControlTheme(WindowHandle, context->ThemeDark ? L"DarkMode_ItemsView" : L"Explorer");
             PhHeaderNewUpdateHeight(context);
             PhHeaderNewLayoutItems(context);
             PhHeaderNewInvalidate(context, NULL);

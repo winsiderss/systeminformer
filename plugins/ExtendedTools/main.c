@@ -722,7 +722,7 @@ static VOID EtpFormatProcessStatisticsValue(
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
-        RtlStringCchCopy(Entry->item.pszText, Entry->item.cchTextMax, buffer);
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
     }
 }
 
@@ -921,7 +921,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUTOTALSHARED))
@@ -933,7 +933,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUTOTALCOMMIT))
@@ -945,7 +945,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUTOTAL))
@@ -957,7 +957,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKREADS))
@@ -969,7 +969,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES))
@@ -981,7 +981,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKREADBYTESDELTA))
@@ -993,7 +993,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKWRITES))
@@ -1005,7 +1005,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES))
@@ -1017,7 +1017,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA))
@@ -1029,7 +1029,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKTOTAL))
@@ -1041,7 +1041,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTES))
@@ -1053,7 +1053,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTESDELTA))
@@ -1065,7 +1065,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKREADS))
@@ -1077,7 +1077,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES))
@@ -1089,7 +1089,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTESDELTA))
@@ -1101,7 +1101,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES))
@@ -1113,7 +1113,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES))
@@ -1125,7 +1125,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA))
@@ -1137,7 +1137,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTAL))
@@ -1149,7 +1149,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTES))
@@ -1161,7 +1161,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA))
@@ -1173,7 +1173,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED))
@@ -1185,7 +1185,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED))
@@ -1197,7 +1197,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT))
@@ -1209,7 +1209,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NPUTOTAL))
@@ -1221,7 +1221,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUVIRTUALMEMORY))
@@ -1233,7 +1233,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUEVICTED))
@@ -1245,7 +1245,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMASIZE))
@@ -1257,7 +1257,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMAALLOCLIST))
@@ -1269,7 +1269,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMAPATCHLIST))
@@ -1281,7 +1281,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUINTERFERENCE))
@@ -1293,7 +1293,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                     else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUVIDPNSOURCES))
@@ -1305,7 +1305,7 @@ VOID NTAPI ProcessStatsEventCallback(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
                 }

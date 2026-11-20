@@ -24,7 +24,6 @@ typedef struct _PH_PROCESS_HEAPS_CONTEXT
     HWND ParentWindowHandle;
     HWND ListViewHandle;
     HFONT BoldFont;
-    HFONT WindowFont;
     union
     {
         BOOLEAN Flags;
@@ -709,11 +708,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 
             PhpSetProcessHeapsWindowText(hwndDlg, L"Heaps - ", context->ProcessItem);
 
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Address");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"Used");
@@ -758,9 +754,6 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             if (context->BoldFont)
             {
                 DeleteFont(context->BoldFont);
@@ -801,11 +794,11 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             case IDC_SIZESINBYTES:
                 {
                     BOOLEAN sizesInBytes = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
-                    INT index = INT_ERROR;
+                    INT index = -1;
 
                     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
-                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
+                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
                     {
                         PPH_STRING usedString = NULL;
                         PPH_STRING committedString = NULL;
@@ -864,11 +857,6 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-
             if (context->BoldFont)
             {
                 DeleteFont(context->BoldFont);
@@ -1319,7 +1307,6 @@ typedef struct _PH_PROCESS_LOCKS_CONTEXT
     HWND ParentWindowHandle;
     HWND ListViewHandle;
     HFONT BoldFont;
-    HFONT WindowFont;
     union
     {
         BOOLEAN Flags;
@@ -1494,11 +1481,8 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
 
             PhpSetProcessHeapsWindowText(WindowHandle, L"Locks - ", context->ProcessItem);
 
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Type");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Address");
@@ -1544,9 +1528,6 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             if (context->BoldFont)
             {
                 DeleteFont(context->BoldFont);
@@ -1554,9 +1535,9 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             }
 
             {
-                INT index = INT_ERROR;
+                INT index = -1;
 
-                while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
+                while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
                 {
                     PRTL_PROCESS_LOCK_INFORMATION lockInfo;
 
@@ -1599,11 +1580,11 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             case IDC_SIZESINBYTES:
                 {
                     BOOLEAN sizesInBytes = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
-                    INT index = INT_ERROR;
+                    INT index = -1;
 
                     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
-                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
+                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
                     {
                         PPH_STRING usedString = NULL;
                         PPH_STRING committedString = NULL;
@@ -1662,18 +1643,6 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-
-            if (context->BoldFont)
-            {
-                DeleteFont(context->BoldFont);
-                context->BoldFont = NULL;
-                InvalidateRect(context->ListViewHandle, NULL, TRUE);
-            }
-
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

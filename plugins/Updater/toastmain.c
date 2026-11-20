@@ -63,7 +63,7 @@ typedef struct _UPDATER_TOAST_CONTEXT
 {
     PPH_UPDATER_CONTEXT UpdaterContext;
     PPH_TOAST Toast;
-    LONG Handled;
+    volatile LONG Handled;
 } UPDATER_TOAST_CONTEXT, *PUPDATER_TOAST_CONTEXT;
 
 BOOLEAN UpdaterToastActionMatches(
@@ -178,8 +178,7 @@ VOID UpdaterUpdateProgressToast(
         PPH_STRING totalString;
         ULONG64 percent;
 
-        percent = 0;
-        PhMultiplyDivide128(downloaded, 100, total, 0, &percent);
+        percent = (downloaded * 100) / total;
         downloadedString = PhFormatSize(downloaded, ULONG_MAX);
         totalString = PhFormatSize(total, ULONG_MAX);
 

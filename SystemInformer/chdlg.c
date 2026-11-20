@@ -281,7 +281,6 @@ INT_PTR CALLBACK PhChoiceDlgProc(
 
             context->ComboBoxHandle = comboBoxHandle;
             ShowWindow(context->ComboBoxHandle, SW_SHOW);
-            UpdateWindow(context->ComboBoxHandle);
 
             PhpChoiceDialogInitializeBrushes(context);
 

@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 
+static VOID PhpRegisterMultiSortFunctions(_In_ HWND TreeNewHandle);
 #include <apiimport.h>
 #include <appresolver.h>
 #include <appmodel.h>
@@ -26,7 +27,6 @@
 #include <workqueue.h>
 #include <procprp.h>
 #include <phsettings.h>
-#include <ntstrsafe.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
@@ -3184,9 +3184,9 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                     if (tokenSourceTypeString = PhGetLuidKnownTypeToString(&tokenSource.SourceIdentifier))
                     {
-                        RtlStringCchCatEx(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L" (", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
-                        RtlStringCchCatEx(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), PhGetStringRefZ(tokenSourceTypeString), NULL, NULL, STRSAFE_NULL_ON_FAILURE);
-                        RtlStringCchCatEx(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L")", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L" (");
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), PhGetStringRefZ(tokenSourceTypeString));
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L")");
                     }
                 }
 

@@ -112,11 +112,11 @@ typedef struct _NETWORK_PING_CONTEXT
     ULONG Timeout;
     ULONG MinPingScaling;
     LONG WindowDpi;
-    LONG HashFailCount;
-    LONG UnknownAddrCount;
-    LONG PingSentCount;
-    LONG PingRecvCount;
-    LONG PingLossCount;
+    volatile LONG HashFailCount;
+    volatile LONG UnknownAddrCount;
+    volatile LONG PingSentCount;
+    volatile LONG PingRecvCount;
+    volatile LONG PingLossCount;
     FLOAT CurrentPingMs;
     FLOAT PingMinMs;
     FLOAT PingMaxMs;
@@ -145,17 +145,15 @@ VOID ShowPingWindow(
 
 VOID ShowPingWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT RemoteEndpoint
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
 // whois.c
 
-typedef _Function_class_(NETWORKTOOLS_WHOIS_PROGRESS)
-VOID NTAPI NETWORKTOOLS_WHOIS_PROGRESS(
+typedef VOID (NTAPI* PNETWORKTOOLS_WHOIS_PROGRESS)(
     _In_ PCWSTR Message,
     _In_opt_ PVOID Context
     );
-typedef NETWORKTOOLS_WHOIS_PROGRESS* PNETWORKTOOLS_WHOIS_PROGRESS;
 
 _Success_(return)
 BOOLEAN NetworkToolsQueryWhois(
@@ -196,7 +194,7 @@ VOID ShowWhoisWindow(
 
 VOID ShowWhoisWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT RemoteEndpoint
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
 _Success_(return)
@@ -238,7 +236,7 @@ typedef struct _NETWORK_TRACERT_CONTEXT
 
     ULONG Timeout;
     ULONG MaximumHops;
-    LONG MaximumTTL;
+    volatile LONG MaximumTTL;
     BOOLEAN Cancel;
     PH_WORK_QUEUE WorkQueue;
 
@@ -268,7 +266,7 @@ VOID ShowTracertWindow(
 
 VOID ShowTracertWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT RemoteEndpoint
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
 BOOLEAN TracertInitializeCountryImageList(
@@ -360,7 +358,7 @@ VOID FreeGeoLiteDb(
 
 _Success_(return)
 BOOLEAN LookupCountryCodeEx(
-    _In_ PPH_IP_ADDRESS RemoteAddress,
+    _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_opt_ PULONG CountryNameId,
     _Out_opt_ PPH_STRING *CountryName,
     _Out_opt_ PLONG CountryIconIndex
@@ -368,7 +366,7 @@ BOOLEAN LookupCountryCodeEx(
 
 _Success_(return)
 BOOLEAN LookupCountryCode(
-    _In_ PPH_IP_ADDRESS RemoteAddress,
+    _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ ULONG *CountryNameId,
     _Out_ PPH_STRING *CountryName
     );
@@ -382,7 +380,7 @@ BOOLEAN LookupSockInAddr4CountryCode(
 
 _Success_(return)
 BOOLEAN LookupSockInAddr6CountryCode(
-    _In_ PIN6_ADDR RemoteAddress,
+    _In_ IN6_ADDR RemoteAddress,
     _Out_ ULONG *CountryNameId,
     _Out_ PPH_STRING *CountryName
     );
@@ -393,8 +391,8 @@ LONG LookupCountryIcon(
 
 VOID DrawCountryIcon(
     _In_ HDC hdc,
-    _In_ PRECT rect,
-    _In_ LONG Index
+    _In_ RECT rect,
+    _In_ INT Index
     );
 
 VOID NetworkToolsGeoDbFlushCache(

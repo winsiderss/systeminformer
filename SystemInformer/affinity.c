@@ -304,16 +304,20 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 }
 
                 ShowWindow(context->GroupComboHandle, SW_SHOW);
-                UpdateWindow(context->GroupComboHandle);
             }
 
             if (context->ProcessItem)
             {
+                HANDLE processHandle;
                 GROUP_AFFINITY processGroupAffinity = { 0 };
 
-                if (context->ProcessItem->QueryHandle)
+                if (NT_SUCCESS(status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    context->ProcessItem->ProcessId
+                    )))
                 {
-                    status = PhGetProcessGroupAffinity(context->ProcessItem->QueryHandle, &processGroupAffinity);
+                    status = PhGetProcessGroupAffinity(processHandle, &processGroupAffinity);
 
                     if (NT_SUCCESS(status))
                     {
@@ -325,10 +329,8 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                             ComboBox_SetCurSel(context->GroupComboHandle, processGroupAffinity.Group);
                         }
                     }
-                }
-                else
-                {
-                    status = STATUS_INVALID_HANDLE;
+
+                    NtClose(processHandle);
                 }
             }
             else if (context->ThreadItem)
@@ -336,7 +338,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 HANDLE threadHandle;
                 THREAD_BASIC_INFORMATION basicInfo;
                 GROUP_AFFINITY groupAffinity = { 0 };
-                PPH_PROCESS_ITEM processItem;
+                HANDLE processHandle;
 
                 if (NT_SUCCESS(status = PhOpenThread(
                     &threadHandle,
@@ -364,16 +366,20 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                             // A thread's affinity mask is restricted by the process affinity mask,
                             // so use that as the system affinity mask. (wj32)
 
-                            if (processItem = PhReferenceProcessItem(basicInfo.ClientId.UniqueProcess))
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                PROCESS_QUERY_LIMITED_INFORMATION,
+                                basicInfo.ClientId.UniqueProcess
+                                )))
                             {
                                 GROUP_AFFINITY processGroupAffinity = { 0 };
 
-                                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &processGroupAffinity)))
+                                if (NT_SUCCESS(PhGetProcessGroupAffinity(processHandle, &processGroupAffinity)))
                                 {
                                     context->SystemAffinityMask = processGroupAffinity.Mask;
                                 }
 
-                                PhDereferenceObject(processItem);
+                                NtClose(processHandle);
                             }
                         }
                     }
@@ -383,7 +389,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             }
             else if (context->Threads)
             {
-                PPH_PROCESS_ITEM processItem;
+                HANDLE processHandle;
                 THREAD_BASIC_INFORMATION basicInfo;
                 GROUP_AFFINITY groupAffinity = { 0 };
                 PPH_STRING windowText;
@@ -425,16 +431,20 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                         &basicInfo
                         )))
                     {
-                        if (processItem = PhReferenceProcessItem(basicInfo.ClientId.UniqueProcess))
+                        if (NT_SUCCESS(PhOpenProcess(
+                            &processHandle,
+                            PROCESS_QUERY_LIMITED_INFORMATION,
+                            basicInfo.ClientId.UniqueProcess
+                            )))
                         {
                             GROUP_AFFINITY processGroupAffinity = { 0 };
 
-                            if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &processGroupAffinity)))
+                            if (NT_SUCCESS(PhGetProcessGroupAffinity(processHandle, &processGroupAffinity)))
                             {
                                 context->SystemAffinityMask = processGroupAffinity.Mask;
                             }
 
-                            PhDereferenceObject(processItem);
+                            NtClose(processHandle);
                         }
                     }
                 }

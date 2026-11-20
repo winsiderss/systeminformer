@@ -19,7 +19,6 @@ typedef struct _PNP_SERVICE_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HFONT WindowFont;
     PPH_SERVICE_ITEM ServiceItem;
     HIMAGELIST ImageList;
 } PNP_SERVICE_CONTEXT, *PPNP_SERVICE_CONTEXT;
@@ -150,7 +149,7 @@ BOOLEAN HardwareDeviceShowProperties(
         _In_ HWND hwndStub,
         _In_ HINSTANCE hAppInstance,
         _In_ PCWSTR lpCmdLine,
-        _In_ LONG nCmdShow
+        _In_ INT nCmdShow
         );
 
     //ULONG (WINAPI *DeviceAdvancedPropertiesW_I)(
@@ -328,8 +327,8 @@ VOID EspShowDeviceInstanceMenu(
 
 VOID EspLoadDeviceInstanceImage(
     _In_ PPNP_SERVICE_CONTEXT Context,
-    _In_ PCGUID DeviceClass,
-    _In_ LONG ItemIndex
+    _In_ GUID DeviceClass,
+    _In_ INT ItemIndex
     )
 {
     HICON largeIcon;
@@ -344,7 +343,7 @@ VOID EspLoadDeviceInstanceImage(
         { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
     };
 
-    classGuidString = PhFormatGuid(DeviceClass);
+    classGuidString = PhFormatGuid(&DeviceClass);
 
     if (!classGuidString)
         return;
@@ -404,7 +403,7 @@ VOID EspLoadDeviceInstanceImage(
                 if (PhExtractIconEx(
                     &dllIconPath->sr,
                     FALSE,
-                    (LONG)index,
+                    (INT)index,
                     PhGetSystemMetrics(SM_CXICON, dpiValue),
                     PhGetSystemMetrics(SM_CYICON, dpiValue),
                     0,
@@ -415,7 +414,7 @@ VOID EspLoadDeviceInstanceImage(
                 {
                     if (Context->ImageList)
                     {
-                        LONG imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
+                        INT imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
                         PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
                         DestroyIcon(largeIcon);
                     }
@@ -558,7 +557,7 @@ BOOLEAN EspEnumerateDriverPnpDevicesAlt(
             0
             ) == CR_SUCCESS)
         {
-            LONG lvItemIndex = PhAddListViewGroupItem(
+            INT lvItemIndex = PhAddListViewGroupItem(
                 Context->ListViewHandle,
                 devicePresent ? 0 : 1,
                 MAXINT,
@@ -566,7 +565,7 @@ BOOLEAN EspEnumerateDriverPnpDevicesAlt(
                 PhCreateString(deviceIdentifier)
                 );
 
-            EspLoadDeviceInstanceImage(Context, &classGuid, lvItemIndex);
+            EspLoadDeviceInstanceImage(Context, classGuid, lvItemIndex);
         }
     }
 
@@ -626,7 +625,7 @@ BOOLEAN EspEnumerateDriverPnpDevices(
         for (ULONG i = 0; i < deviceCount; i++)
         {
             DEV_OBJECT device = deviceObjects[i];
-            LONG lvItemIndex;
+            INT lvItemIndex;
             PPH_STRING deviceName;
             PH_STRINGREF deviceInterface;
             PH_STRINGREF displayName;
@@ -676,7 +675,7 @@ BOOLEAN EspEnumerateDriverPnpDevices(
                 PhGetString(deviceName),
                 PhCreateString2(&deviceInterface)
                 );
-            EspLoadDeviceInstanceImage(Context, &classGuid, lvItemIndex);
+            EspLoadDeviceInstanceImage(Context, classGuid, lvItemIndex);
 
             if (deviceName) PhDereferenceObject(deviceName);
         }
@@ -691,7 +690,7 @@ VOID EspFreeListViewDiskDriveEntries(
     _In_ PPNP_SERVICE_CONTEXT Context
     )
 {
-    LONG index = INT_ERROR;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
@@ -744,8 +743,6 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"PnP Devices");
             PhSetExtendedListView(context->ListViewHandle);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
             if (PhWindowsVersion > WINDOWS_7)
                 ListView_EnableGroupView(context->ListViewHandle, TRUE);
@@ -789,18 +786,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
             EspFreeListViewDiskDriveEntries(context);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             PhFree(context);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_SIZE:

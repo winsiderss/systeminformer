@@ -116,20 +116,13 @@ PVOID PhImageDirectoryEntryToData(
             if (rva >= section->VirtualAddress &&
                 rva < (ULONG_PTR)section->VirtualAddress + sectionSize)
             {
-                ULONG sectionOffset;
-                ULONG fileOffset;
-
-                if (!NT_SUCCESS(RtlULongSub((ULONG)rva, section->VirtualAddress, &sectionOffset)))
-                    return NULL;
+                ULONG_PTR sectionOffset = rva - section->VirtualAddress;
 
                 if (sectionOffset >= section->SizeOfRawData)
                     return NULL;
 
-                if (!NT_SUCCESS(RtlULongAdd(section->PointerToRawData, sectionOffset, &fileOffset)))
-                    return NULL;
-
                 *Size = dataDirectory->Size;
-                return PTR_ADD_OFFSET(BaseOfImage, fileOffset);
+                return PTR_ADD_OFFSET(BaseOfImage, section->PointerToRawData + sectionOffset);
             }
 
             section++;
@@ -807,25 +800,17 @@ NTSTATUS PhGetProcedureAddressRemote(
     }
 
 #ifdef _M_ARM64
-    __try
+    exportsFlags = 0;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC &&
+        mappedImage.NtHeaders->FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
     {
-        exportsFlags = 0;
-        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC &&
-            mappedImage.NtHeaders->FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
-        {
-            status = PhGetProcessArchitecture(ProcessHandle, &processArchitecture);
-    
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
-    
-            if (processArchitecture == IMAGE_FILE_MACHINE_AMD64)
-                exportsFlags |= PH_GET_IMAGE_EXPORTS_ARM64X;
-        }
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
-        goto CleanupExit;
+        status = PhGetProcessArchitecture(ProcessHandle, &processArchitecture);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        if (processArchitecture == IMAGE_FILE_MACHINE_AMD64)
+            exportsFlags |= PH_GET_IMAGE_EXPORTS_ARM64X;
     }
 
     status = PhGetMappedImageExportsEx(&exports, &mappedImage, exportsFlags);
@@ -1717,16 +1702,7 @@ NTSTATUS PhLoaderEntryImageRvaToFileOffset(
             Rva < sectionHeader->VirtualAddress + sectionHeader->SizeOfRawData
             )
         {
-            ULONG sectionOffset;
-            ULONG fileOffset;
-
-            if (!NT_SUCCESS(RtlULongSub((ULONG)Rva, sectionHeader->VirtualAddress, &sectionOffset)))
-                continue;
-
-            if (!NT_SUCCESS(RtlULongAdd(sectionHeader->PointerToRawData, sectionOffset, &fileOffset)))
-                continue;
-
-            *Offset = fileOffset;
+            *Offset = sectionHeader->PointerToRawData + (Rva - sectionHeader->VirtualAddress);
             return STATUS_SUCCESS;
         }
     }
@@ -1835,16 +1811,10 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
     if (!NT_SUCCESS(status))
         return status;
 
-    ULONG sectionOffset;
-    ULONG fileOffset;
-
-    if (!NT_SUCCESS(RtlULongSub((ULONG)Rva, imageSection->VirtualAddress, &sectionOffset)))
-        return STATUS_FAIL_CHECK;
-
-    if (!NT_SUCCESS(RtlULongAdd(sectionOffset, imageSection->PointerToRawData, &fileOffset)))
-        return STATUS_FAIL_CHECK;
-
-    *Va = PTR_ADD_OFFSET(BaseAddress, fileOffset);
+    *Va = PTR_ADD_OFFSET(BaseAddress, UInt32Add32To64(
+        UInt32Sub32To64(Rva, imageSection->VirtualAddress),
+        imageSection->PointerToRawData
+        ));
 
     return STATUS_SUCCESS;
 }

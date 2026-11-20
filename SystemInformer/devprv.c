@@ -1380,13 +1380,6 @@ BOOLEAN PhpGetDevicePropertyStringList(
     for (PZZWSTR item = buffer;;)
     {
         PH_STRINGREF string;
-        SIZE_T rawLength;
-
-        // Bound the walk by the returned length. (dmex)
-        if ((ULONG_PTR)item - (ULONG_PTR)buffer + sizeof(UNICODE_NULL) > requiredLength)
-        {
-            break;
-        }
 
         PhInitializeStringRefLongHint(&string, item);
 
@@ -1395,13 +1388,10 @@ BOOLEAN PhpGetDevicePropertyStringList(
             break;
         }
 
-        // Advance by the untrimmed length; trimming changes Buffer and Length. (dmex)
-        rawLength = string.Length;
-
         PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, rawLength + sizeof(UNICODE_NULL));
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -1469,13 +1459,6 @@ BOOLEAN PhpGetDeviceInterfacePropertyStringList(
     for (PZZWSTR item = buffer;;)
     {
         PH_STRINGREF string;
-        SIZE_T rawLength;
-
-        // Bound the walk by the returned length. (dmex)
-        if ((ULONG_PTR)item - (ULONG_PTR)buffer + sizeof(UNICODE_NULL) > requiredLength)
-        {
-            break;
-        }
 
         PhInitializeStringRefLongHint(&string, item);
 
@@ -1484,13 +1467,10 @@ BOOLEAN PhpGetDeviceInterfacePropertyStringList(
             break;
         }
 
-        // Advance by the untrimmed length; trimming changes Buffer and Length. (dmex)
-        rawLength = string.Length;
-
         PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, rawLength + sizeof(UNICODE_NULL));
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -1556,13 +1536,6 @@ BOOLEAN PhpGetClassPropertyStringList(
     for (PZZWSTR item = buffer;;)
     {
         PH_STRINGREF string;
-        SIZE_T rawLength;
-
-        // Bound the walk by the returned length. (dmex)
-        if ((ULONG_PTR)item - (ULONG_PTR)buffer + sizeof(UNICODE_NULL) > requiredLength)
-        {
-            break;
-        }
 
         PhInitializeStringRefLongHint(&string, item);
 
@@ -1571,13 +1544,10 @@ BOOLEAN PhpGetClassPropertyStringList(
             break;
         }
 
-        // Advance by the untrimmed length; trimming changes Buffer and Length. (dmex)
-        rawLength = string.Length;
-
         PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, rawLength + sizeof(UNICODE_NULL));
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -5163,10 +5133,9 @@ BOOLEAN PhEnumDeviceResources(
                 CM_Free_Res_Des_Handle(deviceResource);
                 deviceResource = nextResource;
             }
-
-            // Only free the handle when CM_Get_Next_Res_Des succeeded. (dmex)
-            CM_Free_Res_Des_Handle(deviceResource);
         }
+
+        CM_Free_Res_Des_Handle(deviceResource);
 
         if (done)
             break;

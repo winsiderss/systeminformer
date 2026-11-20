@@ -50,7 +50,6 @@ typedef struct _PH_EXTLV_CONTEXT
     PPH_EXTLV_GET_ITEM_COLOR ItemColorFunction;
     PPH_EXTLV_DRAW_SUBITEM SubItemDrawFunction;
     PPH_EXTLV_GET_ITEM_FONT ItemFontFunction;
-    PPH_EXTLV_GET_SUBITEM_TEXT_COLOR SubItemTextColorFunction;
     HFONT FontHandle;
 
     // Misc.
@@ -423,15 +422,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                         customDraw->clrText = RGB(0xff, 0xff, 0xff);
                                 }
 
-                                {
-                                    ULONG result = newFont ? CDRF_NEWFONT : CDRF_DODEFAULT;
-
-                                    // Per-subitem text colors are skipped for colored, hot and selected rows. (dmex)
-                                    if (context->SubItemTextColorFunction && !selected && !colorChanged)
-                                        result |= CDRF_NOTIFYSUBITEMDRAW;
-
-                                    return result;
-                                }
+                                if (newFont)
+                                    return CDRF_NEWFONT;
+                                else
+                                    return CDRF_DODEFAULT;
                             }
                             break;
                         case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
@@ -444,23 +438,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 context->Context
                                 ))
                                 return CDRF_SKIPDEFAULT;
-
-                            if (context->SubItemTextColorFunction)
-                            {
-                                COLORREF textColor = context->SubItemTextColorFunction(
-                                    (LONG)customDraw->nmcd.dwItemSpec,
-                                    customDraw->iSubItem,
-                                    (PVOID)customDraw->nmcd.lItemlParam,
-                                    context->Context
-                                    );
-
-                                // The text color persists between subitems, always reset it.
-                                if (textColor == CLR_DEFAULT)
-                                    textColor = PhEnableThemeSupport ? PhThemeWindowTextColor : GetSysColor(COLOR_WINDOWTEXT);
-
-                                customDraw->clrText = textColor;
-                                return CDRF_NEWFONT;
-                            }
                             break;
                         }
                     }
@@ -659,11 +636,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_SETITEMFONTFUNCTION:
         {
             context->ItemFontFunction = (PPH_EXTLV_GET_ITEM_FONT)lParam;
-        }
-        return TRUE;
-    case ELVM_SETSUBITEMTEXTCOLORFUNCTION:
-        {
-            context->SubItemTextColorFunction = (PPH_EXTLV_GET_SUBITEM_TEXT_COLOR)lParam;
         }
         return TRUE;
     case ELVM_SETREDRAW:

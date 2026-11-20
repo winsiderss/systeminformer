@@ -19,65 +19,6 @@
 #include <limits.h>
 #include <netlistmgr.h>
 
-#ifdef PHLIB_IPHLPAPI
-typedef ULONG (WINAPI *_GetExtendedTcpTable)(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
-    _Inout_ PULONG pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
-    _In_ TCP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-
-typedef ULONG (WINAPI *_GetExtendedUdpTable)(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
-    _Inout_ PULONG pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
-    _In_ UDP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-
-typedef ULONG (WINAPI *_InternalGetBoundTcpEndpointTable)(
-    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable,
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
-    );
-
-typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
-    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable,
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG HeapFlags
-    );
-
-static _GetExtendedTcpTable GetExtendedTcpTable_I = NULL;
-static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
-static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
-static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
-
-static VOID PhpInitializeIphlpapiImports(
-    VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID iphlpapi;
-
-        if (iphlpapi = PhLoadLibrary(L"iphlpapi.dll"))
-        {
-            GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
-            GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
-            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
-            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-}
-#endif
-
 CONST NPI_MODULEID NPI_MS_IPV4_MODULEID = NPI_MS_IPV4_MODULEID_INIT;
 CONST NPI_MODULEID NPI_MS_IPV6_MODULEID = NPI_MS_IPV6_MODULEID_INIT;
 CONST NPI_MODULEID NPI_MS_UDP_MODULEID = NPI_MS_UDP_MODULEID_INIT;
@@ -6907,7 +6848,7 @@ VOID PhFormatNeighborMacAddress(
 
     if (!AddressLength)
     {
-        RtlStringCchCopy(Buffer, BufferCount, L"(none)");
+        RtlStringCchCopyW(Buffer, BufferCount, L"(none)");
         return;
     }
 
@@ -10722,21 +10663,6 @@ NTSTATUS PhGetExtendedTcpTable(
     _In_ ULONG Reserved
     )
 {
-#ifdef PHLIB_IPHLPAPI
-    PhpInitializeIphlpapiImports();
-
-    if (!GetExtendedTcpTable_I)
-        return STATUS_NOT_SUPPORTED;
-
-    return PhNetioDosErrorToNtStatus(GetExtendedTcpTable_I(
-        TcpTable,
-        SizePointer,
-        Order,
-        Family,
-        TableClass,
-        Reserved
-        ));
-#else
     if (Family == AF_INET)
     {
         PH_TCP_OWNER_CLASS ownerClass;
@@ -10803,7 +10729,6 @@ NTSTATUS PhGetExtendedTcpTable(
     }
 
     return STATUS_INVALID_PARAMETER;
-#endif
 }
 
 /**
@@ -10827,21 +10752,6 @@ NTSTATUS PhGetExtendedUdpTable(
     _In_ ULONG Reserved
     )
 {
-#ifdef PHLIB_IPHLPAPI
-    PhpInitializeIphlpapiImports();
-
-    if (!GetExtendedUdpTable_I)
-        return STATUS_NOT_SUPPORTED;
-
-    return PhNetioDosErrorToNtStatus(GetExtendedUdpTable_I(
-        UdpTable,
-        SizePointer,
-        Order,
-        Family,
-        TableClass,
-        Reserved
-        ));
-#else
     if (Family == AF_INET)
     {
         return PhGetUdpTableInternal(UdpTable, SizePointer, Order, TableClass, Reserved);
@@ -10861,7 +10771,6 @@ NTSTATUS PhGetExtendedUdpTable(
     }
 
     return STATUS_INVALID_PARAMETER;
-#endif
 }
 
 /**
@@ -12826,11 +12735,11 @@ static NTSTATUS PhpCopyOwnerModuleInfo(
     PWSTR nameBuffer;
     PWSTR pathBuffer;
 
-    if (!NT_SUCCESS(RtlULongAdd(NameLength, PathLength, &requiredSize)) ||
-        !NT_SUCCESS(RtlULongAdd(requiredSize, sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) + 2 * sizeof(WCHAR), &requiredSize)))
-    {
+    if (NameLength > MAXULONG - sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) - 2 * sizeof(WCHAR) ||
+        PathLength > MAXULONG - sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) - 2 * sizeof(WCHAR) - NameLength)
         return STATUS_INTEGER_OVERFLOW;
-    }
+
+    requiredSize = sizeof(TCPIP_OWNER_MODULE_BASIC_INFO) + NameLength + PathLength + 2 * sizeof(WCHAR);
     if (*SizePointer < requiredSize || !Buffer)
     {
         *SizePointer = requiredSize;
@@ -16151,18 +16060,6 @@ NTSTATUS WINAPI PhInternalGetBoundTcpEndpointTable(
     _Outptr_ PMIB_TCPTABLE2* BoundTcpTable
     )
 {
-#ifdef PHLIB_IPHLPAPI
-    ULONG error;
-
-    PhpInitializeIphlpapiImports();
-
-    if (!GetBoundTcpEndpointTable_I)
-        return STATUS_NOT_SUPPORTED;
-
-    error = GetBoundTcpEndpointTable_I(BoundTcpTable, PhHeapHandle, 0);
-
-    return PhNetioDosErrorToNtStatus(error);
-#else
     NTSTATUS status;
     PVOID table;
 
@@ -16172,7 +16069,6 @@ NTSTATUS WINAPI PhInternalGetBoundTcpEndpointTable(
         *BoundTcpTable = table;
 
     return status;
-#endif
 }
 
 /**
@@ -16186,18 +16082,6 @@ NTSTATUS WINAPI PhInternalGetBoundTcp6EndpointTable(
     _Outptr_ PMIB_TCP6TABLE2* BoundTcpTable
     )
 {
-#ifdef PHLIB_IPHLPAPI
-    ULONG error;
-
-    PhpInitializeIphlpapiImports();
-
-    if (!GetBoundTcp6EndpointTable_I)
-        return STATUS_NOT_SUPPORTED;
-
-    error = GetBoundTcp6EndpointTable_I(BoundTcpTable, PhHeapHandle, 0);
-
-    return PhNetioDosErrorToNtStatus(error);
-#else
     NTSTATUS status;
     PVOID table;
 
@@ -16207,7 +16091,6 @@ NTSTATUS WINAPI PhInternalGetBoundTcp6EndpointTable(
         *BoundTcpTable = table;
 
     return status;
-#endif
 }
 
 //
@@ -16755,7 +16638,7 @@ NTSTATUS NTAPI PhParseNetworkString(
                 return STATUS_BUFFER_TOO_SMALL;
             }
 
-            RtlStringCchCopy(AddressInfo->NamedAddress.Port, RTL_NUMBER_OF(AddressInfo->NamedAddress.Port), colon ? colon + 1 : L"");
+            RtlStringCchCopyW(AddressInfo->NamedAddress.Port, RTL_NUMBER_OF(AddressInfo->NamedAddress.Port), colon ? colon + 1 : L"");
         }
 
         if (PrefixLength)

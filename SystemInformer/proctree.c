@@ -5786,8 +5786,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (number == 0)
                         break;
 
-                    if (!PhMultiplyDivide128(number, 1000, PhProcessProviderElapsedMilliseconds, 0, &number))
-                        number = 0;
+                    number *= 1000;
+                    number /= PhProcessProviderElapsedMilliseconds;
                     PhInitFormatSize(&format[0], number);
                     PhInitFormatS(&format[1], L"/s");
 

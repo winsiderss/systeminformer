@@ -546,13 +546,13 @@ VOID PhpUpdateHeapRegions(
         numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
-    if (!NT_SUCCESS(RtlSizeTMult(numberOfHeaps, sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY), &heapDebugInfoLength)) ||
-        !NT_SUCCESS(RtlSizeTAdd(heapDebugInfoLength, sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION), &heapDebugInfoLength)))
+    if ((SIZE_T)numberOfHeaps > (SIZE_MAX - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
     {
         RtlDestroyQueryDebugBuffer(debugBuffer);
         return;
     }
 
+    heapDebugInfoLength = sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + (SIZE_T)numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY);
     heapDebugInfo = PhAllocateZero(heapDebugInfoLength);
 
     if (!heapDebugInfo)

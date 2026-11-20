@@ -165,7 +165,7 @@ PPH_STRING AtpGetCertificateSerialNumber(
         return NULL;
 
     // Two hex digits a byte, over a length the certificate chose.
-    if (!NT_SUCCESS(RtlSIZETMult(serial->cbData, 2 * sizeof(WCHAR), &length)))
+    if (!NT_SUCCESS(RtlSizeTMult(serial->cbData, 2 * sizeof(WCHAR), &length)))
         return NULL;
 
     string = PhCreateStringEx(NULL, length);
@@ -1023,18 +1023,8 @@ VOID AtpRenderBytes(
     PSTR ascii;
     SIZE_T i;
 
-    SIZE_T hexSize;
-    SIZE_T asciiSize;
-
-    if (!NT_SUCCESS(RtlSizeTMult(Size, 2, &hexSize)) ||
-        !NT_SUCCESS(RtlSizeTAdd(hexSize, 1, &hexSize)) ||
-        !NT_SUCCESS(RtlSizeTAdd(Size, 1, &asciiSize)))
-    {
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-    }
-
-    hex = PhAllocate(hexSize);
-    ascii = PhAllocate(asciiSize);
+    hex = PhAllocate(Size * 2 + 1);
+    ascii = PhAllocate(Size + 1);
 
     for (i = 0; i < Size; i++)
     {

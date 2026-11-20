@@ -18,7 +18,6 @@
 #include <emenu.h>
 #include <procprv.h>
 #include <srvprv.h>
-#include <ntstrsafe.h>
 
 #define WM_PH_LOG_UPDATED (WM_APP + 300)
 
@@ -34,7 +33,6 @@ static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 static HWND AutoScrollHandle;
 static HWND ListViewHandle;
-static HFONT WindowFont = NULL;
 static PPH_LISTVIEW_CONTEXT ListViewContext;
 static ULONG ListViewCount;
 static PH_CALLBACK_REGISTRATION LoggedRegistration;
@@ -56,14 +54,10 @@ VOID PhShowLogDialog(
             );
         PhRegisterDialog(PhLogWindowHandle);
         ShowWindow(PhLogWindowHandle, SW_SHOW);
-        UpdateWindow(PhLogWindowHandle);
     }
 
     if (IsMinimized(PhLogWindowHandle))
-    {
         ShowWindow(PhLogWindowHandle, SW_RESTORE);
-        UpdateWindow(PhLogWindowHandle);
-    }
     else
         SetForegroundWindow(PhLogWindowHandle);
 }
@@ -123,7 +117,7 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
         if (!All)
         {
             // The list view displays the items in reverse order...
-            if (!PhListView_GetItemState(ListViewContext, ListViewCount - i - 1, LVIS_SELECTED, &itemState) || !FlagOn(itemState, LVIS_SELECTED))
+            if (!PhListView_GetItemState(ListViewContext, ListViewCount - i - 1, LVIS_SELECTED, &itemState) && FlagOn(itemState, LVIS_SELECTED))
             {
                 goto ContinueLoop;
             }
@@ -186,11 +180,8 @@ INT_PTR CALLBACK PhpLogDlgProc(
             ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             ListViewContext = PhListView_Initialize(ListViewHandle);
 
-            WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-
             PhSetListViewStyle(ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(ListViewHandle, L"explorer");
-            SetWindowFont(ListViewHandle, WindowFont, FALSE);
             PhSetExtendedListView(ListViewHandle);
             PhListView_AddColumn(ListViewContext, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
             PhListView_AddColumn(ListViewContext, 1, 1, 1, LVCFMT_LEFT, 140, L"Type");
@@ -241,12 +232,6 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
             PhListView_Destroy(ListViewContext);
             ListViewContext = NULL;
-
-            if (WindowFont)
-            {
-                DeleteFont(WindowFont);
-                WindowFont = NULL;
-            }
         }
         break;
     case WM_COMMAND:
@@ -365,7 +350,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
                             PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
                             dateTime = PhFormatDateTime(&systemTime);
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer, _TRUNCATE);
                             PhDereferenceObject(dateTime);
                         }
                     }
@@ -376,7 +361,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PCPH_STRINGREF string;
 
                             string = PhFormatLogType(entry);
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                         }
                     }
                     else if (dispInfo->item.iSubItem == 2)
@@ -386,7 +371,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING string;
 
                             string = PhFormatLogEntry(entry);
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
                         }
                     }
@@ -397,7 +382,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING string;
 
                             string = PhpGetLogEntryExtraString(entry);
-                            RtlStringCchCopy(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
                         }
                     }
@@ -453,11 +438,6 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&WindowFont, ListViewHandle, windowFont, TRUE);
-
             PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&WindowLayoutManager);
         }

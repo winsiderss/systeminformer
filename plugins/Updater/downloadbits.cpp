@@ -162,7 +162,7 @@ public:
     {
         BG_JOB_PROGRESS progress;
 
-        if (job && HR_SUCCESS(job->GetProgress(&progress)) && std::cmp_not_equal(progress.BytesTotal, BG_SIZE_UNKNOWN))
+        if (job && HR_SUCCESS(job->GetProgress(&progress)) && progress.BytesTotal != BG_SIZE_UNKNOWN)
             UpdateProgress(progress, FALSE);
 
         NtSetEvent(CompletionEvent, nullptr);
@@ -192,7 +192,7 @@ public:
     {
         BG_JOB_PROGRESS progress;
 
-        if (job && HR_SUCCESS(job->GetProgress(&progress)) && std::cmp_not_equal(progress.BytesTotal, BG_SIZE_UNKNOWN))
+        if (job && HR_SUCCESS(job->GetProgress(&progress)) && progress.BytesTotal != BG_SIZE_UNKNOWN)
             UpdateProgress(progress, TRUE);
 
         return S_OK;
@@ -217,7 +217,7 @@ private:
         timeTicks = (timeNow.QuadPart - TimeStart.QuadPart) / PH_TICKS_PER_SEC;
         bytesPerSecond = timeTicks ? progress.BytesTransferred / timeTicks : 0;
 
-        if (Finalizing && std::cmp_not_equal(progress.BytesTotal, 0) && std::cmp_greater_equal(progress.BytesTransferred, progress.BytesTotal))
+        if (Finalizing && progress.BytesTotal != 0 && progress.BytesTransferred >= progress.BytesTotal)
             UpdateSetProgressFinalizingState(Context, L"Finalizing BITS download...");
         else
             UpdateSetProgressState(Context, progress.BytesTotal, progress.BytesTransferred, bytesPerSecond);
@@ -509,8 +509,8 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
         if (HR_SUCCESS(result) && progress.BytesTotal != BG_SIZE_UNKNOWN)
         {
             if (state != BG_JOB_STATE_TRANSFERRED &&
-                std::cmp_not_equal(progress.BytesTotal, 0) &&
-                std::cmp_greater_equal(progress.BytesTransferred, progress.BytesTotal))
+                progress.BytesTotal != 0 &&
+                progress.BytesTransferred >= progress.BytesTotal)
             {
                 UpdateSetProgressFinalizingState(Context, L"Finalizing BITS download...");
             }
@@ -567,7 +567,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
             PhTimeoutFromMilliseconds(&timeout, 1000)
             );
 
-        if (std::cmp_equal(static_cast<ULONG>(result), WAIT_FAILED))
+        if (result == WAIT_FAILED)
         {
             status = PhGetLastWin32ErrorAsNtStatus();
             goto CleanupExit;

@@ -13,7 +13,6 @@
 #include <float.h>
 #include <roapi.h>
 #include <windows.devices.power.h>
-#include <ntstrsafe.h>
 
 #define ET_WM_POWERGRID_UPDATE (WM_APP + 1)
 
@@ -156,7 +155,7 @@ VOID EtpFormatPowerGridDateTime(
 
     if (!DateTime.UniversalTime)
     {
-        RtlStringCchCopyEx(Buffer, PH_DATETIME_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
+        wcscpy_s(Buffer, PH_DATETIME_STR_LEN_1, L"N/A");
         return;
     }
 
@@ -172,7 +171,7 @@ VOID EtpFormatPowerGridDateTime(
     if (PhFormatDateTimeToBuffer(&systemTime, Buffer, PH_DATETIME_STR_LEN_1 * sizeof(WCHAR), ReturnLength))
         return;
 
-    RtlStringCchCopyEx(Buffer, PH_DATETIME_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
+    wcscpy_s(Buffer, PH_DATETIME_STR_LEN_1, L"N/A");
 }
 
 /**
@@ -188,7 +187,7 @@ VOID EtpFormatPowerGridDuration(
 {
     if (Duration.Duration <= 0)
     {
-        RtlStringCchCopyEx(Buffer, PH_TIMESPAN_STR_LEN_1, L"N/A", NULL, NULL, STRSAFE_NULL_ON_FAILURE);
+        wcscpy_s(Buffer, PH_TIMESPAN_STR_LEN_1, L"N/A");
         return;
     }
 
@@ -217,7 +216,7 @@ VOID EtAddSummaryWindowText(
 
     if (!Summary || Summary->TotalBlocks == 0)
     {
-        PhSetWindowText(SummaryHandle, L"No forecast data available.");
+        SetWindowText(SummaryHandle, L"No forecast data available.");
         return;
     }
 
@@ -656,8 +655,6 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_POWER_GRID_LISTVIEW_COLUMNS, context->ListViewHandle);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
-
             PhCreateThread2(EtpEnumeratePowerGridForecast, WindowHandle);
 
             PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
@@ -954,7 +951,6 @@ NTSTATUS EtPowerGridDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
-    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))

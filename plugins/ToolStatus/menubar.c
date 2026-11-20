@@ -923,7 +923,7 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
             BOOLEAN isEnabled;
             COLORREF textColor;
             COLORREF oldTextColor;
-            LONG oldBkMode;
+            INT oldBkMode;
             HFONT oldFont;
             ULONG textFlags;
             LONG_PTR textLength;
@@ -970,7 +970,7 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
                 buttonText = PhAllocate(((SIZE_T)textLength + 1) * sizeof(WCHAR));
                 if (SendMessage(toolBarHandle, TB_GETBUTTONTEXT, DrawInfo->nmcd.dwItemSpec, (LPARAM)buttonText) != INT_ERROR)
                 {
-                    DrawText(hdc, buttonText, (LONG)textLength, &textRect, textFlags);
+                    DrawText(hdc, buttonText, (INT)textLength, &textRect, textFlags);
                 }
                 PhFree(buttonText);
             }
@@ -1651,7 +1651,7 @@ VOID ToolbarDrawRoundedProfile(
     )
 {
     HRGN clipRegion;
-    LONG savedDc;
+    INT savedDc;
 
     savedDc = SaveDC(Hdc);
     clipRegion = CreateRoundRectRgn(
@@ -1878,7 +1878,7 @@ VOID ToolbarDrawRebarBackground(
 {
     HWND rebarHandle;
     RECT gradientRect;
-    LONG savedDc;
+    INT savedDc;
 
     rebarHandle = GetParent(ToolbarHandle);
     savedDc = SaveDC(Hdc);
@@ -1911,7 +1911,7 @@ VOID ToolbarDrawBackground(
     _In_ ULONG Variant
     )
 {
-    LONG savedDc;
+    INT savedDc;
 
     if (!Hdc || !Rect || IsRectEmpty(Rect))
         return;
@@ -1948,7 +1948,7 @@ VOID ToolbarDrawItemBackground(
     _In_ BOOLEAN Pressed
     )
 {
-    LONG savedDc;
+    INT savedDc;
 
     savedDc = SaveDC(Hdc);
     ToolbarDrawButtonBackground(ToolbarHandle, Hdc, Rect, ToolbarIsDarkTheme(), Pressed, PhGetWindowDpi(ToolbarHandle));
@@ -2036,7 +2036,7 @@ LRESULT CALLBACK ToolbarDrawToolbar(
 
             if (buttonInfo.fsStyle & BTNS_SEP)
             {
-                LONG savedDc;
+                INT savedDc;
 
                 savedDc = SaveDC(DrawInfo->nmcd.hdc);
                 ToolbarDrawSeparator(
@@ -2071,7 +2071,7 @@ LRESULT CALLBACK ToolbarDrawToolbar(
 
             if (isEnabled && (isPressed || isChecked || isHot))
             {
-                LONG savedDc;
+                INT savedDc;
 
                 savedDc = SaveDC(DrawInfo->nmcd.hdc);
                 ToolbarDrawButtonBackground(

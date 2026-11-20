@@ -84,12 +84,7 @@ VOID PhpFreeLogEntry(
         PhDereferenceObject(Entry->Service.Name);
         PhDereferenceObject(Entry->Service.DisplayName);
     }
-    else if (Entry->Type == PH_LOG_ENTRY_DEVICE_REMOVED || Entry->Type == PH_LOG_ENTRY_DEVICE_ARRIVED)
-    {
-        PhDereferenceObject(Entry->Device.Classification);
-        PhDereferenceObject(Entry->Device.Name);
-    }
-    else if (Entry->Message)
+    else if (Entry->Type == PH_LOG_ENTRY_MESSAGE)
     {
         PhDereferenceObject(Entry->Message);
     }
@@ -611,11 +606,13 @@ PPH_STRING PhFormatLogEntry(
         {
             PPH_STRING extraString;
 
+            PhReferenceObject(Entry->Message);
+
             if (Entry->BufferLength == 0)
-                return PhReferenceObject(Entry->Message);
+                return Entry->Message;
 
             extraString = PH_AUTO_T(PH_STRING, PhpFormatLogEntryExtra(Entry));
-            return PhFormatString(L"%s [Extra: %s]", Entry->Message->Buffer, extraString->Buffer);
+            return PhaFormatString(L"%s [Extra: %s]", Entry->Message->Buffer, extraString->Buffer);
         }
     default:
         {
@@ -625,7 +622,7 @@ PPH_STRING PhFormatLogEntry(
                 return PhReferenceEmptyString();
 
             extraString = PH_AUTO_T(PH_STRING, PhpFormatLogEntryExtra(Entry));
-            return PhFormatString(L"[Extra: %s]", extraString->Buffer);
+            return PhaFormatString(L"[Extra: %s]", extraString->Buffer);
         }
     }
 }
@@ -638,9 +635,9 @@ static CONST PH_KEY_VALUE_PAIR PhpLogEntryTypePairs[] =
     SIP(SREF(L"Process created"), PH_LOG_ENTRY_PROCESS_CREATE),
     SIP(SREF(L"Process terminated"), PH_LOG_ENTRY_PROCESS_DELETE),
     SIP(SREF(L"Service created"), PH_LOG_ENTRY_SERVICE_CREATE),
-    SIP(SREF(L"Service deleted"), PH_LOG_ENTRY_SERVICE_DELETE),
+    SIP(SREF(L"Service terminated"), PH_LOG_ENTRY_SERVICE_DELETE),
     SIP(SREF(L"Service started"), PH_LOG_ENTRY_SERVICE_START),
-    SIP(SREF(L"Service stopped"), PH_LOG_ENTRY_SERVICE_STOP),
+    SIP(SREF(L"Service terminated"), PH_LOG_ENTRY_SERVICE_STOP),
     SIP(SREF(L"Service continued"), PH_LOG_ENTRY_SERVICE_CONTINUE),
     SIP(SREF(L"Service paused"), PH_LOG_ENTRY_SERVICE_PAUSE),
     SIP(SREF(L"Service modified"), PH_LOG_ENTRY_SERVICE_MODIFIED),

@@ -1077,25 +1077,21 @@ BOOLEAN AtpDeferRequest(
     )
 {
     PAT_DEFERRED_REQUEST request;
-    SIZE_T deferredBytes;
-    SIZE_T allocationSize;
 
     // A bounded queue: a client cannot grow the process by streaming requests into a wait.
     if (Connection->DeferredCount >= AT_MAX_DEFERRED_REQUESTS ||
-        !NT_SUCCESS(RtlSizeTAdd(Connection->DeferredBytes, Length, &deferredBytes)) ||
-        deferredBytes > AT_MAX_DEFERRED_BYTES ||
-        !NT_SUCCESS(RtlSizeTAdd(UFIELD_OFFSET(AT_DEFERRED_REQUEST, Payload), Length, &allocationSize)))
+        Connection->DeferredBytes + Length > AT_MAX_DEFERRED_BYTES)
     {
         return FALSE;
     }
 
-    request = PhAllocate(allocationSize);
+    request = PhAllocate(UFIELD_OFFSET(AT_DEFERRED_REQUEST, Payload) + Length);
     request->IdJson = PhReferenceObject(IdJson);
     request->Length = Length;
     memcpy(request->Payload, Payload, Length);
     InsertTailList(&Connection->DeferredRequests, &request->ListEntry);
     Connection->DeferredCount++;
-    Connection->DeferredBytes = deferredBytes;
+    Connection->DeferredBytes += Length;
 
     return TRUE;
 }

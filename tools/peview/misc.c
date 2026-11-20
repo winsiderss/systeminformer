@@ -396,7 +396,7 @@ VOID PvSaveWindowState(
     _In_ HWND WindowHandle
     )
 {
-    WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
+    WINDOWPLACEMENT placement = { sizeof(placement) };
 
     GetWindowPlacement(WindowHandle, &placement);
 

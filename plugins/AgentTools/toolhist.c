@@ -89,10 +89,7 @@ VOID AtpGetProcessHistory(
         windowSeconds = AT_HISTORY_DEFAULT_WINDOW_SECONDS;
 
     // One sample per provider run: a window in seconds is that many runs back.
-    ULONG64 sampleCount = MAXLONG;
-
-    PhMultiplyDivide128(windowSeconds, 1000, interval, 0, &sampleCount);
-    windowSamples = (ULONG)min(sampleCount, MAXLONG);
+    windowSamples = (ULONG)min(windowSeconds * 1000 / interval, MAXLONG);
 
     if (windowSamples == 0)
         windowSamples = 1;
@@ -169,12 +166,7 @@ VOID AtpGetProcessHistory(
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, processItem);
     PhAddJsonObjectUInt64(structured, "update_interval_ms", interval);
-    {
-        ULONG64 seconds = 0;
-
-        PhMultiplyDivide128(cpu.Count, interval, 1000, 0, &seconds);
-        PhAddJsonObjectUInt64(structured, "window_seconds", seconds);
-    }
+    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)cpu.Count * interval / 1000);
     PhAddJsonObjectUInt64(structured, "sample_count", cpu.Count);
 
     AtpAddStats(structured, "cpu_usage", &cpu, FALSE);
@@ -250,10 +242,7 @@ VOID AtpGetSystemHistory(
     if (!AtGetArgumentUInt64(Call->Arguments, "window_seconds", &windowSeconds) || windowSeconds == 0)
         windowSeconds = AT_HISTORY_DEFAULT_WINDOW_SECONDS;
 
-    ULONG64 sampleCount = MAXLONG;
-
-    PhMultiplyDivide128(windowSeconds, 1000, interval, 0, &sampleCount);
-    windowSamples = (ULONG)min(sampleCount, MAXLONG);
+    windowSamples = (ULONG)min(windowSeconds * 1000 / interval, MAXLONG);
 
     if (windowSamples == 0)
         windowSamples = 1;
@@ -377,12 +366,7 @@ VOID AtpGetSystemHistory(
 
     structured = PhCreateJsonObject();
     PhAddJsonObjectUInt64(structured, "update_interval_ms", interval);
-    {
-        ULONG64 seconds = 0;
-
-        PhMultiplyDivide128(cpu.Count, interval, 1000, 0, &seconds);
-        PhAddJsonObjectUInt64(structured, "window_seconds", seconds);
-    }
+    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)cpu.Count * interval / 1000);
     PhAddJsonObjectUInt64(structured, "sample_count", cpu.Count);
     PhAddJsonObjectUInt64(structured, "processor_count", processorCount);
 
@@ -506,10 +490,7 @@ VOID AtpRankProcesses(
     if (!AtGetArgumentUInt64(Call->Arguments, "window_seconds", &windowSeconds) || windowSeconds == 0)
         windowSeconds = AT_HISTORY_DEFAULT_WINDOW_SECONDS;
 
-    ULONG64 sampleCount = MAXLONG;
-
-    PhMultiplyDivide128(windowSeconds, 1000, interval, 0, &sampleCount);
-    windowSamples = (ULONG)min(sampleCount, MAXLONG);
+    windowSamples = (ULONG)min(windowSeconds * 1000 / interval, MAXLONG);
 
     if (windowSamples == 0)
         windowSamples = 1;
@@ -613,12 +594,7 @@ VOID AtpRankProcesses(
 
     structured = PhCreateJsonObject();
     PhAddJsonObjectUInt64(structured, "update_interval_ms", interval);
-    {
-        ULONG64 seconds = 0;
-
-        PhMultiplyDivide128(windowSamples, interval, 1000, 0, &seconds);
-        PhAddJsonObjectUInt64(structured, "window_seconds", seconds);
-    }
+    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)windowSamples * interval / 1000);
     AtJsonAddStringZ(structured, "ranked_by", PhGetStringOrEmpty(rows.SortBy));
     AtAddRows(structured, "processes", &rows);
     AtAddSnapshot(structured);

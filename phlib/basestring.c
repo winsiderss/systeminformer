@@ -11,13 +11,12 @@
  */
 
 #include <phbase.h>
-#include <ntintsafe.h>
-#include <ntstrsafe.h>
 #include <phintrnl.h>
 #include <phintrin.h>
 #include <phnative.h>
 #include <circbuf.h>
 #include <thirdparty.h>
+#include <ntintsafe.h>
 
 #include <trace.h>
 
@@ -2915,19 +2914,9 @@ PPH_STRING PhCreateStringEx(
     )
 {
     PPH_STRING string;
-    SIZE_T size;
-
-    if (!NT_SUCCESS(RtlSizeTAdd(
-        Length, 
-        UFIELD_OFFSET(PH_STRING, Data) + sizeof(UNICODE_NULL), 
-        &size
-        )))
-    {
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-    }
 
     string = PhCreateObject(
-        size,
+        UFIELD_OFFSET(PH_STRING, Data) + Length + sizeof(UNICODE_NULL),
         PhStringType
         );
 
@@ -2960,23 +2949,13 @@ PPH_STRING PhCreateString3(
 {
     PPH_STRING string;
     PH_STRINGREF sr;
-    SIZE_T size;
 
     sr = *String;
     if (TrimCharSet)
         PhTrimStringRef(&sr, TrimCharSet, Flags & PH_STRING_TRIM_MASK);
 
-    if (!NT_SUCCESS(RtlSizeTAdd(
-        sr.Length,
-        UFIELD_OFFSET(PH_STRING, Data) + sizeof(UNICODE_NULL),
-        &size
-        )))
-    {
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-    }
-
     string = PhCreateObject(
-        size,
+        UFIELD_OFFSET(PH_STRING, Data) + sr.Length + sizeof(UNICODE_NULL), // Null terminator for compatibility
         PhStringType
         );
 
@@ -3301,7 +3280,6 @@ PPH_STRING PhFormatString_V(
     )
 {
     PPH_STRING string;
-    SIZE_T lengthInBytes;
     LONG length;
 
     length = _vscwprintf(Format, ArgPtr);
@@ -3309,27 +3287,8 @@ PPH_STRING PhFormatString_V(
     if (length == INT_ERROR)
         return NULL;
 
-    if (!NT_SUCCESS(RtlSizeTMult(
-        (SIZE_T)length, 
-        sizeof(WCHAR), 
-        &lengthInBytes
-        )))
-    {
-        return NULL;
-    }
-
-    string = PhCreateStringEx(NULL, lengthInBytes);
-
-    if (!NT_SUCCESS(RtlStringCchVPrintfW(
-        string->Buffer, 
-        (SIZE_T)length + 1, 
-        Format, 
-        ArgPtr
-        )))
-    {
-        PhDereferenceObject(string);
-        return NULL;
-    }
+    string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
+    _vsnwprintf(string->Buffer, length, Format, ArgPtr);
 
     return string;
 }
@@ -3346,19 +3305,9 @@ PPH_BYTES PhCreateBytesEx(
     )
 {
     PPH_BYTES bytes;
-    SIZE_T size;
-
-    if (!NT_SUCCESS(RtlSizeTAdd(
-        Length, 
-        UFIELD_OFFSET(PH_BYTES, Data) + sizeof(ANSI_NULL), // Null terminator for compatibility
-        &size
-        )))
-    {
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-    }
 
     bytes = PhCreateObject(
-        size,
+        UFIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(ANSI_NULL), // Null terminator for compatibility
         PhBytesType
         );
 
@@ -3394,18 +3343,8 @@ PPH_BYTES PhFormatBytes_V(
     if (length == INT_ERROR)
         return NULL;
 
-    string = PhCreateBytesEx(NULL, (SIZE_T)length);
-
-    if (!NT_SUCCESS(RtlStringCchVPrintfA(
-        string->Buffer, 
-        (SIZE_T)length + 1, 
-        Format, 
-        ArgPtr
-        )))
-    {
-        PhDereferenceObject(string);
-        return NULL;
-    }
+    string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
+    _vsnprintf(string->Buffer, length, Format, ArgPtr);
 
     return string;
 }
@@ -4750,8 +4689,8 @@ VOID PhInitializeStringBuilder(
     )
 {
     // Make sure the initial capacity is even, as required for all string objects.
-    if ((InitialCapacity & 1) && !NT_SUCCESS(RtlSizeTAdd(InitialCapacity, 1, &InitialCapacity)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+    if (InitialCapacity & 1)
+        InitialCapacity++;
 
     StringBuilder->AllocatedLength = InitialCapacity;
 
@@ -4806,23 +4745,16 @@ VOID PhpResizeStringBuilder(
     )
 {
     PPH_STRING newString;
-    SIZE_T capacity;
 
     // Double the string size. If that still isn't enough room, just use the new length.
-    if (!NT_SUCCESS(RtlSizeTMult(StringBuilder->AllocatedLength, 2, &capacity)))
-    {
-        capacity = NewCapacity;
-    }
-    else if (capacity > SIZE_T_MAX - UFIELD_OFFSET(PH_STRING, Data) - sizeof(UNICODE_NULL))
-    {
-        capacity = NewCapacity;
-    }
-    else if (capacity < NewCapacity)
-    {
-        capacity = NewCapacity;
-    }
 
-    newString = PhCreateStringEx(NULL, capacity);
+    StringBuilder->AllocatedLength *= 2;
+
+    if (StringBuilder->AllocatedLength < NewCapacity)
+        StringBuilder->AllocatedLength = NewCapacity;
+
+    // Allocate a new string.
+    newString = PhCreateStringEx(NULL, StringBuilder->AllocatedLength);
 
     // Copy the old string to the new string.
     memcpy(
@@ -4836,7 +4768,6 @@ VOID PhpResizeStringBuilder(
 
     // Dereference the old string and replace it with the new string.
     PhMoveReference(&StringBuilder->String, newString);
-    StringBuilder->AllocatedLength = capacity;
 
     PHLIB_INC_STATISTIC(BaseStringBuildersResized);
 }
@@ -4974,34 +4905,25 @@ VOID PhAppendFormatStringBuilder_V(
 {
     LONG length;
     SIZE_T lengthInBytes;
-    SIZE_T newLength;
 
     length = _vscwprintf(Format, ArgPtr);
 
     if (length == INT_ERROR || length == 0)
         return;
 
-    if (!NT_SUCCESS(RtlSizeTMult((SIZE_T)length, sizeof(WCHAR), &lengthInBytes)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+    lengthInBytes = length * sizeof(WCHAR);
 
-    if (!NT_SUCCESS(RtlSizeTAdd(StringBuilder->String->Length, lengthInBytes, &newLength)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + lengthInBytes)
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + lengthInBytes);
 
-    if (StringBuilder->AllocatedLength < newLength)
-        PhpResizeStringBuilder(StringBuilder, newLength);
-
-    if (!NT_SUCCESS(RtlStringCchVPrintfW(
+    _vsnwprintf(
         PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length),
-        (SIZE_T)length + 1,
+        length,
         Format,
         ArgPtr
-        )))
-    {
-        PhpWriteNullTerminatorStringBuilder(StringBuilder);
-        return;
-    }
+        );
 
-    StringBuilder->String->Length = newLength;
+    StringBuilder->String->Length += lengthInBytes;
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -5170,22 +5092,16 @@ VOID PhpResizeBytesBuilder(
     )
 {
     PPH_BYTES newBytes;
-    SIZE_T capacity;
 
-    if (!NT_SUCCESS(RtlSizeTMult(BytesBuilder->AllocatedLength, 2, &capacity)))
-    {
-        capacity = NewCapacity;
-    }
-    else if (capacity > SIZE_T_MAX - UFIELD_OFFSET(PH_BYTES, Data) - sizeof(ANSI_NULL))
-    {
-        capacity = NewCapacity;
-    }
-    else if (capacity < NewCapacity)
-    {
-        capacity = NewCapacity;
-    }
+    // Double the byte string size. If that still isn't enough room, just use the new length.
 
-    newBytes = PhCreateBytesEx(NULL, capacity);
+    BytesBuilder->AllocatedLength *= 2;
+
+    if (BytesBuilder->AllocatedLength < NewCapacity)
+        BytesBuilder->AllocatedLength = NewCapacity;
+
+    // Allocate a new byte string.
+    newBytes = PhCreateBytesEx(NULL, BytesBuilder->AllocatedLength);
 
     // Copy the old byte string to the new byte string.
     memcpy(
@@ -5199,7 +5115,6 @@ VOID PhpResizeBytesBuilder(
 
     // Dereference the old byte string and replace it with the new byte string.
     PhMoveReference(&BytesBuilder->Bytes, newBytes);
-    BytesBuilder->AllocatedLength = capacity;
 }
 
 FORCEINLINE VOID PhpWriteNullTerminatorBytesBuilder(
@@ -5293,33 +5208,25 @@ VOID PhAppendFormatBytesBuilder_V(
 {
     LONG length;
     SIZE_T lengthInBytes;
-    SIZE_T newLength;
 
     length = _vscprintf(Format, ArgPtr);
 
     if (length == INT_ERROR || length == 0)
         return;
 
-    lengthInBytes = (SIZE_T)length;
+    lengthInBytes = length * sizeof(CHAR);
 
-    if (!NT_SUCCESS(RtlSizeTAdd(BytesBuilder->Bytes->Length, lengthInBytes, &newLength)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+    if (BytesBuilder->AllocatedLength < BytesBuilder->Bytes->Length + lengthInBytes)
+        PhpResizeBytesBuilder(BytesBuilder, BytesBuilder->Bytes->Length + lengthInBytes);
 
-    if (BytesBuilder->AllocatedLength < newLength)
-        PhpResizeBytesBuilder(BytesBuilder, newLength);
-
-    if (!NT_SUCCESS(RtlStringCchVPrintfA(
+    _vsnprintf(
         PTR_ADD_OFFSET(BytesBuilder->Bytes->Buffer, BytesBuilder->Bytes->Length),
-        (SIZE_T)length + 1,
+        length,
         Format,
         ArgPtr
-        )))
-    {
-        PhpWriteNullTerminatorBytesBuilder(BytesBuilder);
-        return;
-    }
+        );
 
-    BytesBuilder->Bytes->Length = newLength;
+    BytesBuilder->Bytes->Length += lengthInBytes;
     PhpWriteNullTerminatorBytesBuilder(BytesBuilder);
 }
 
@@ -5849,19 +5756,15 @@ BOOLEAN PhBufferToHexStringBuffer(
     )
 {
     PCCH table;
-    SIZE_T i;
-    SIZE_T outputBytes;
-    SIZE_T requiredBytes;
+    ULONG i;
 
-    if (!NT_SUCCESS(RtlSizeTMult(InputLength, sizeof(WCHAR) * 2, &outputBytes)))
-        return FALSE;
-    if (!NT_SUCCESS(RtlSizeTAdd(outputBytes, sizeof(WCHAR), &requiredBytes)))
+    if (InputLength > (SIZE_MAX - sizeof(WCHAR)) / (sizeof(WCHAR) * 2))
         return FALSE;
 
-    if (OutputLength < requiredBytes)
+    if (OutputLength < InputLength * sizeof(WCHAR) * 2 + sizeof(WCHAR))
     {
         if (ReturnLength)
-            *ReturnLength = outputBytes;
+            *ReturnLength = InputLength * sizeof(WCHAR) * 2;
         return FALSE;
     }
 

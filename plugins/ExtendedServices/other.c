@@ -26,7 +26,6 @@ typedef struct _SERVICE_OTHER_CONTEXT
         ULONG LaunchProtectedValid : 1;
     };
     HWND PrivilegesLv;
-    HFONT WindowFont;
     PPH_LIST PrivilegeList;
     PH_LAYOUT_MANAGER LayoutManager;
     ULONG OriginalLaunchProtected;
@@ -162,7 +161,7 @@ NTSTATUS EspLoadOtherInfo(
     {
         PWSTR privilege;
         ULONG privilegeLength;
-        LONG lvItemIndex;
+        INT lvItemIndex;
         PH_STRINGREF privilegeSr;
         PPH_STRING privilegeString;
         PPH_STRING displayName;
@@ -337,8 +336,6 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhAddListViewColumn(privilegesLv, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
             PhAddListViewColumn(privilegesLv, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
             PhSetExtendedListView(privilegesLv);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(privilegesLv, context->WindowFont, FALSE);
 
             context->PrivilegeList = PhCreateList(32);
 
@@ -399,9 +396,6 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 PhDereferenceObject(context->PrivilegeList);
             }
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             PhFree(context);
         }
         break;
@@ -443,7 +437,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     {
                         BOOLEAN found = FALSE;
                         PPH_STRING privilegeString;
-                        LONG lvItemIndex;
+                        INT lvItemIndex;
                         PPH_STRING displayName;
 
                         // Check for duplicates.
@@ -497,7 +491,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 break;
             case IDC_REMOVE:
                 {
-                    LONG lvItemIndex;
+                    INT lvItemIndex;
                     PPH_STRING privilegeString;
                     ULONG index;
 
@@ -574,7 +568,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                     if (context->LaunchProtectedValid && launchProtected != 0 && launchProtected != context->OriginalLaunchProtected)
                     {
-                        LONG result;
+                        INT result;
                         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
 
                         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
@@ -736,11 +730,6 @@ Done:
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle)))
-                PhSwapReferenceFont(&context->WindowFont, context->PrivilegesLv, windowFont, TRUE);
-
             PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

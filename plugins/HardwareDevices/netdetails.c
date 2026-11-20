@@ -516,35 +516,29 @@ VOID NetAdapterUpdateDetails(
         }
     }
 
-    interfaceRcvSpeed = 0;
-    interfaceXmitSpeed = 0;
+    interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
+    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue;
+    //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
+    //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
 
-    if (Context->HaveFirstSample)
+    if (!Context->HaveFirstSample)
     {
-        if (interfaceStats.ifHCInOctets >= Context->LastDetailsInboundValue)
-        {
-            PhMultiplyDivide128(
-                interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue, 
-                1000, 
-                NetRateIntervalMs,
-                0, 
-                &interfaceRcvSpeed
-                );
-        }
-        if (interfaceStats.ifHCOutOctets >= Context->LastDetailsOutboundValue)
-        {
-            PhMultiplyDivide128(
-                interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue,
-                1000, 
-                NetRateIntervalMs, 
-                0,
-                &interfaceXmitSpeed
-                );
-        }
+        interfaceRcvSpeed = 0;
+        interfaceXmitSpeed = 0;
+        Context->HaveFirstSample = TRUE;
+    }
+    else if (NetRateIntervalMs != 0)
+    {
+        interfaceRcvSpeed *= 1000;
+        interfaceRcvSpeed /= NetRateIntervalMs;
+
+        interfaceXmitSpeed *= 1000;
+        interfaceXmitSpeed /= NetRateIntervalMs;
     }
     else
     {
-        Context->HaveFirstSample = TRUE;
+        interfaceRcvSpeed = 0;
+        interfaceXmitSpeed = 0;
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
@@ -650,8 +644,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 240, L"Value");
 
@@ -701,9 +693,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             PostQuitMessage(0);
         }
         break;
@@ -722,14 +711,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-        }
-        break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
@@ -739,7 +720,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
-            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

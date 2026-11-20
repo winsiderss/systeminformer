@@ -570,8 +570,7 @@ NTSTATUS DiskDriveQueryStatisticsWmi(
         goto CleanupExit;
     }
 
-    if (bufferLength < sizeof(WNODE_ALL_DATA) ||
-        !(allData->WnodeHeader.Flags & WNODE_FLAG_ALL_DATA) ||
+    if (!(allData->WnodeHeader.Flags & WNODE_FLAG_ALL_DATA) ||
         allData->WnodeHeader.BufferSize > bufferLength)
     {
         status = STATUS_INFO_LENGTH_MISMATCH;
@@ -580,68 +579,38 @@ NTSTATUS DiskDriveQueryStatisticsWmi(
 
     status = STATUS_WMI_INSTANCE_NOT_FOUND;
 
-    // Every offset and length below is provider supplied, so all arithmetic is
-    // overflow checked and every read is bounded by the returned buffer length.
+    for (ULONG i = 0; i < allData->InstanceCount; i++)
     {
-        BOOLEAN fixedInstanceSize = FlagOn(allData->WnodeHeader.Flags, WNODE_FLAG_FIXED_INSTANCE_SIZE);
-        ULONG instanceCount = allData->InstanceCount;
-        ULONG i = 0;
+        ULONG instanceOffset;
+        ULONG instanceLength;
+        PDISK_PERFORMANCE instanceData;
 
-        while (i < instanceCount)
+        if (FlagOn(allData->WnodeHeader.Flags, WNODE_FLAG_FIXED_INSTANCE_SIZE))
         {
-            ULONG instanceOffset;
-            ULONG instanceLength;
-            ULONG instanceEnd;
-            PDISK_PERFORMANCE instanceData;
-
-            if (fixedInstanceSize)
-            {
-                ULONG relativeOffset;
-
-                if (!NT_SUCCESS(RtlULongMult(allData->FixedInstanceSize, i, &relativeOffset)))
-                    break;
-                if (!NT_SUCCESS(RtlULongAdd(allData->DataBlockOffset, relativeOffset, &instanceOffset)))
-                    break;
-
-                instanceLength = allData->FixedInstanceSize;
-            }
-            else
-            {
-                ULONG arrayOffset;
-                ULONG arrayEnd;
-
-                // The OffsetInstanceDataAndLength array must hold entry i.
-                if (!NT_SUCCESS(RtlULongMult(i, sizeof(OFFSETINSTANCEDATAANDLENGTH), &arrayOffset)))
-                    break;
-                if (!NT_SUCCESS(RtlULongAdd(FIELD_OFFSET(WNODE_ALL_DATA, OffsetInstanceDataAndLength), arrayOffset, &arrayEnd)))
-                    break;
-                if (!NT_SUCCESS(RtlULongAdd(arrayEnd, sizeof(OFFSETINSTANCEDATAANDLENGTH), &arrayEnd)))
-                    break;
-                if (arrayEnd > bufferLength)
-                    break;
-
-                instanceOffset = allData->OffsetInstanceDataAndLength[i].OffsetInstanceData;
-                instanceLength = allData->OffsetInstanceDataAndLength[i].LengthInstanceData;
-            }
-
-            i++;
-
-            if (instanceLength < sizeof(DISK_PERFORMANCE))
-                continue;
-            if (!NT_SUCCESS(RtlULongAdd(instanceOffset, sizeof(DISK_PERFORMANCE), &instanceEnd)))
-                continue;
-            if (instanceEnd > bufferLength)
-                continue;
-
-            instanceData = PTR_ADD_OFFSET(allData, instanceOffset);
-
-            if (instanceData->StorageDeviceNumber != deviceNumber)
-                continue;
-
-            result = instanceData;
-            status = STATUS_SUCCESS;
-            break;
+            instanceOffset = allData->DataBlockOffset + (allData->FixedInstanceSize * i);
+            instanceLength = allData->FixedInstanceSize;
         }
+        else
+        {
+            instanceOffset = allData->OffsetInstanceDataAndLength[i].OffsetInstanceData;
+            instanceLength = allData->OffsetInstanceDataAndLength[i].LengthInstanceData;
+        }
+
+        if (instanceOffset > bufferLength ||
+            instanceLength < sizeof(DISK_PERFORMANCE) ||
+            instanceOffset + sizeof(DISK_PERFORMANCE) > bufferLength)
+        {
+            continue;
+        }
+
+        instanceData = PTR_ADD_OFFSET(allData, instanceOffset);
+
+        if (instanceData->StorageDeviceNumber != deviceNumber)
+            continue;
+
+        result = instanceData;
+        status = STATUS_SUCCESS;
+        break;
     }
 
     if (NT_SUCCESS(status))
@@ -924,20 +893,6 @@ NTSTATUS DiskDriveQueryNvmeHealthInfo(
     if (protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
         protocolData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
         return STATUS_UNSUCCESSFUL;
-
-    // ProtocolDataOffset is relative to ProtocolSpecificData and is driver supplied;
-    // the log must lie wholly inside the bytes that were returned.
-    {
-        ULONG logOffset;
-        ULONG logEnd;
-
-        if (!NT_SUCCESS(RtlULongAdd(FIELD_OFFSET(STORAGE_PROTOCOL_DATA_DESCRIPTOR, ProtocolSpecificData), protocolData->ProtocolDataOffset, &logOffset)))
-            return STATUS_UNSUCCESSFUL;
-        if (!NT_SUCCESS(RtlULongAdd(logOffset, sizeof(NVME_HEALTH_INFO_LOG), &logEnd)))
-            return STATUS_UNSUCCESSFUL;
-        if (logEnd > min(returnedLength, (ULONG)sizeof(buffer)))
-            return STATUS_UNSUCCESSFUL;
-    }
 
     *HealthInfo = *(PNVME_HEALTH_INFO_LOG)PTR_ADD_OFFSET(protocolData, protocolData->ProtocolDataOffset);
     return STATUS_SUCCESS;

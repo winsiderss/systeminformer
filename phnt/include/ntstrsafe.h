@@ -62,7 +62,6 @@ typedef _Return_type_success_(return >= 0) long NTSTATUS;
 #endif
 
 typedef unsigned long ULONG;
-typedef unsigned long DWORD;
 
 
 #ifndef SORTPP_PASS
@@ -162,8 +161,8 @@ C_ASSERT(NTSTRSAFE_UNICODE_STRING_MAX_CCH > 1);
 #define STRSAFE_UNICODE_STRING_VALID_FLAGS      (0x000000FF | STRSAFE_IGNORE_NULLS | STRSAFE_FILL_BEHIND | STRSAFE_FILL_ON_FAILURE | STRSAFE_ZERO_LENGTH_ON_FAILURE | STRSAFE_NO_TRUNCATION)
 
 // helper macro to set the fill character and specify buffer filling
-#define STRSAFE_FILL_BYTE(x)                    ((DWORD)((x & 0x000000FF) | STRSAFE_FILL_BEHIND_NULL))
-#define STRSAFE_FAILURE_BYTE(x)                 ((DWORD)((x & 0x000000FF) | STRSAFE_FILL_ON_FAILURE))
+#define STRSAFE_FILL_BYTE(x)                    ((ULONG)((x & 0x000000FF) | STRSAFE_FILL_BEHIND_NULL))
+#define STRSAFE_FAILURE_BYTE(x)                 ((ULONG)((x & 0x000000FF) | STRSAFE_FILL_ON_FAILURE))
 
 #define STRSAFE_GET_FILL_PATTERN(dwFlags)       ((int)(dwFlags & 0x000000FF))
 
@@ -13159,72 +13158,6 @@ NTSTRSAFEWORKERDDI
 #define RtlUnicodeStringExHandleFill        RtlUnicodeStringExHandleFill_do_not_call_this_function
 #define RtlUnicodeStringExHandleOtherFlags  RtlUnicodeStringExHandleOtherFlags_do_not_call_this_function
 #endif // !DEPRECATE_SUPPORTED
-
-
-// Generic-text (TCHAR) mappings
-#ifndef NTSTRSAFE_NO_CCH_FUNCTIONS
-#ifdef UNICODE
-#define RtlStringCchCopy        RtlStringCchCopyW
-#define RtlStringCchCopyEx      RtlStringCchCopyExW
-#define RtlStringCchCopyN       RtlStringCchCopyNW
-#define RtlStringCchCopyNEx     RtlStringCchCopyNExW
-#define RtlStringCchCat         RtlStringCchCatW
-#define RtlStringCchCatEx       RtlStringCchCatExW
-#define RtlStringCchCatN        RtlStringCchCatNW
-#define RtlStringCchCatNEx      RtlStringCchCatNExW
-#define RtlStringCchVPrintf     RtlStringCchVPrintfW
-#define RtlStringCchVPrintfEx   RtlStringCchVPrintfExW
-#define RtlStringCchPrintf      RtlStringCchPrintfW
-#define RtlStringCchPrintfEx    RtlStringCchPrintfExW
-#define RtlStringCchLength      RtlStringCchLengthW
-#else
-#define RtlStringCchCopy        RtlStringCchCopyA
-#define RtlStringCchCopyEx      RtlStringCchCopyExA
-#define RtlStringCchCopyN       RtlStringCchCopyNA
-#define RtlStringCchCopyNEx     RtlStringCchCopyNExA
-#define RtlStringCchCat         RtlStringCchCatA
-#define RtlStringCchCatEx       RtlStringCchCatExA
-#define RtlStringCchCatN        RtlStringCchCatNA
-#define RtlStringCchCatNEx      RtlStringCchCatNExA
-#define RtlStringCchVPrintf     RtlStringCchVPrintfA
-#define RtlStringCchVPrintfEx   RtlStringCchVPrintfExA
-#define RtlStringCchPrintf      RtlStringCchPrintfA
-#define RtlStringCchPrintfEx    RtlStringCchPrintfExA
-#define RtlStringCchLength      RtlStringCchLengthA
-#endif // !UNICODE
-#endif // !NTSTRSAFE_NO_CCH_FUNCTIONS
-
-#ifndef NTSTRSAFE_NO_CB_FUNCTIONS
-#ifdef UNICODE
-#define RtlStringCbCopy         RtlStringCbCopyW
-#define RtlStringCbCopyEx       RtlStringCbCopyExW
-#define RtlStringCbCopyN        RtlStringCbCopyNW
-#define RtlStringCbCopyNEx      RtlStringCbCopyNExW
-#define RtlStringCbCat          RtlStringCbCatW
-#define RtlStringCbCatEx        RtlStringCbCatExW
-#define RtlStringCbCatN         RtlStringCbCatNW
-#define RtlStringCbCatNEx       RtlStringCbCatNExW
-#define RtlStringCbVPrintf      RtlStringCbVPrintfW
-#define RtlStringCbVPrintfEx    RtlStringCbVPrintfExW
-#define RtlStringCbPrintf       RtlStringCbPrintfW
-#define RtlStringCbPrintfEx     RtlStringCbPrintfExW
-#define RtlStringCbLength       RtlStringCbLengthW
-#else
-#define RtlStringCbCopy         RtlStringCbCopyA
-#define RtlStringCbCopyEx       RtlStringCbCopyExA
-#define RtlStringCbCopyN        RtlStringCbCopyNA
-#define RtlStringCbCopyNEx      RtlStringCbCopyNExA
-#define RtlStringCbCat          RtlStringCbCatA
-#define RtlStringCbCatEx        RtlStringCbCatExA
-#define RtlStringCbCatN         RtlStringCbCatNA
-#define RtlStringCbCatNEx       RtlStringCbCatNExA
-#define RtlStringCbVPrintf      RtlStringCbVPrintfA
-#define RtlStringCbVPrintfEx    RtlStringCbVPrintfExA
-#define RtlStringCbPrintf       RtlStringCbPrintfA
-#define RtlStringCbPrintfEx     RtlStringCbPrintfExA
-#define RtlStringCbLength       RtlStringCbLengthA
-#endif // !UNICODE
-#endif // !NTSTRSAFE_NO_CB_FUNCTIONS
 
 
 #pragma warning(pop)

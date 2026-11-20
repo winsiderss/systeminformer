@@ -367,7 +367,7 @@ PhAfdCreateSocket(
     _In_ LONG AddressFamily,
     _In_ LONG SocketType,
     _In_ LONG Protocol,
-    _In_ LONG Flags
+    _In_ ULONG EndpointFlags
     );
 
 PHLIBAPI

@@ -690,12 +690,6 @@
         <None Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.symcryptasm" />
         <None Include="SymCrypt\lib\amd64\wipe.symcryptasm" />
     </ItemGroup>
-    <!-- Keep debug information in library objects so consumers do not need a separate compiler PDB. -->
-    <ItemDefinitionGroup>
-        <ClCompile>
-            <DebugInformationFormat>OldStyle</DebugInformationFormat>
-        </ClCompile>
-    </ItemDefinitionGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
     <ImportGroup Label="ExtensionTargets">
         <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
@@ -708,4 +702,7 @@
     <UsingTask TaskName="MARMASM" TaskFactory="XamlTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Override="true">
         <Task>$(VCTargetsPath)\BuildCustomizations\marmasm.xml</Task>
     </UsingTask>
+    <Target Name="CopyThirdPartyPdb" AfterTargets="Build">
+        <Copy SourceFiles="$(OutDir)thirdparty.pdb" DestinationFolder="$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)\" />
+    </Target>
 </Project>

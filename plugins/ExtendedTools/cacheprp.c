@@ -10,7 +10,6 @@
  */
 
 #include "exttools.h"
-#include <ntstrsafe.h>
 
 #define ET_CACHE_LATENCY_SERIALIZE 1
 #define ET_CACHE_LATENCY_TRIALS 10
@@ -126,7 +125,6 @@ typedef struct _ET_CACHE_LATENCY_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
-    HFONT WindowFont;
     WNDPROC ListViewWindowProcedure;
     PPH_LISTVIEW_CONTEXT ListViewContext;
     HWND TabControlHandle;
@@ -681,8 +679,10 @@ NTSTATUS EtCacheLatencyBuildRing(
         *(PULONG_PTR)PTR_ADD_OFFSET(Base, offset) = (ULONG_PTR)PTR_ADD_OFFSET(Base, last);
         last = offset;
 
-        if (!NT_SUCCESS(RtlULongAdd(offset, Stride, &offset)))
+        if (ULONG_MAX - offset < Stride)
             break;
+
+        offset += Stride;
     }
 
     //
@@ -747,8 +747,7 @@ ULONG EtCacheLatencyCalibrateIterations(
         return ET_CACHE_LATENCY_OUTER_ITERS;
 
     elapsed = stop - start;
-    iterations = ET_CACHE_LATENCY_OUTER_ITERS;
-    PhMultiplyDivide128(ET_CACHE_LATENCY_TRIAL_BUDGET_CYCLES, ET_CACHE_LATENCY_CALIBRATE_ITERS, elapsed, 0, &iterations);
+    iterations = ((ULONG64)ET_CACHE_LATENCY_TRIAL_BUDGET_CYCLES * ET_CACHE_LATENCY_CALIBRATE_ITERS) / elapsed;
 
     if (iterations > ET_CACHE_LATENCY_OUTER_ITERS)
         return ET_CACHE_LATENCY_OUTER_ITERS;
@@ -1135,11 +1134,13 @@ VOID EtCacheLatencyUpdateBenchmarkRows(
         {
             cacheRow->Median[column] = EtCacheLatencyMedian(Result->Trials[row][column], ET_CACHE_LATENCY_TRIALS);
 
-            RtlStringCchCopy(cacheRow->Text[column], RTL_NUMBER_OF(cacheRow->Text[column]), PhaFormatString(
+            wcsncpy_s(cacheRow->Text[column], RTL_NUMBER_OF(cacheRow->Text[column]), PhaFormatString(
                 L"%.2f (%.2f)",
                 cacheRow->Median[column],
                 EtCacheLatencyStdDev(Result->Trials[row][column], ET_CACHE_LATENCY_TRIALS)
-                )->Buffer);
+                )->Buffer,
+                _TRUNCATE
+                );
         }
     }
 }
@@ -1175,11 +1176,11 @@ VOID EtCacheLatencyGetDispInfo(
 
     if (DispInfo->item.iSubItem == 0)
     {
-        RtlStringCchCopy(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->SizeText);
+        wcsncpy_s(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->SizeText, _TRUNCATE);
     }
     else if ((ULONG)DispInfo->item.iSubItem <= ET_CACHE_LATENCY_MAX_STRIDE_COLS)
     {
-        RtlStringCchCopy(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->Text[DispInfo->item.iSubItem - 1]);
+        wcsncpy_s(DispInfo->item.pszText, DispInfo->item.cchTextMax, cacheRow->Text[DispInfo->item.iSubItem - 1], _TRUNCATE);
     }
 }
 
@@ -1813,11 +1814,12 @@ static VOID EtpCgFormatLatency(
 {
     if (Context->Data.CyclesToNanoseconds > 0)
     {
-        RtlStringCchPrintf(Buffer, Count, L"%.2f cycles (%.1f ns)", Cycles, Cycles * Context->Data.CyclesToNanoseconds);
+        _snwprintf_s(Buffer, Count, _TRUNCATE, L"%.2f cycles (%.1f ns)",
+            Cycles, Cycles * Context->Data.CyclesToNanoseconds);
     }
     else
     {
-        RtlStringCchPrintf(Buffer, Count, L"%.2f cycles", Cycles);
+        _snwprintf_s(Buffer, Count, _TRUNCATE, L"%.2f cycles", Cycles);
     }
 }
 
@@ -1850,7 +1852,7 @@ static VOID EtpCgGetPlotRect(
 
     pad = PhScaleToDisplay(4, Context->WindowDpi);
 
-    RtlStringCchPrintf(label, RTL_NUMBER_OF(label), L"%.0f", EtpCgNiceMaximum(Context->Data.Maximum));
+    _snwprintf_s(label, RTL_NUMBER_OF(label), _TRUNCATE, L"%.0f", EtpCgNiceMaximum(Context->Data.Maximum));
 
     if (GetTextExtentPoint32(Hdc, label, (int)wcslen(label), &size))
         labelWidth = size.cx;
@@ -2093,7 +2095,7 @@ static VOID EtpCgPaint(
         MoveToEx(Hdc, plot.left, y, NULL);
         LineTo(Hdc, plot.right, y);
 
-        RtlStringCchPrintf(label, RTL_NUMBER_OF(label), L"%.0f", maximum * i / 4);
+        _snwprintf_s(label, RTL_NUMBER_OF(label), _TRUNCATE, L"%.0f", maximum * i / 4);
 
         labelRect.left = 0;
         labelRect.right = plot.left - PhScaleToDisplay(4, Context->WindowDpi);
@@ -2463,7 +2465,6 @@ RTL_ATOM EtCacheGraphInitialization(
     windowClass.cbWndExtra = sizeof(PVOID);
     windowClass.hInstance = NULL;
     windowClass.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    windowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     windowClass.lpszClassName = ET_CACHE_GRAPH_CLASSNAME;
 
     atom = RegisterClassEx(&windowClass);
@@ -2930,16 +2931,10 @@ static VOID EtpCacheLatencySetPageVisibility(
         for (ULONG level = 0; level < ET_CACHE_LATENCY_LEVELS; level++)
         {
             ShowWindow(Context->GroupBoxHandles[level], Overview ? SW_SHOW : SW_HIDE);
-            if (Overview)
-                UpdateWindow(Context->GroupBoxHandles[level]);
             ShowWindow(Context->GraphHandles[level], Overview ? SW_SHOW : SW_HIDE);
-            if (Overview)
-                UpdateWindow(Context->GraphHandles[level]);
         }
 
         ShowWindow(Context->ListViewHandle, Overview ? SW_HIDE : SW_SHOW);
-        if (!Overview)
-            UpdateWindow(Context->ListViewHandle);
     }
 }
 
@@ -3018,11 +3013,7 @@ VOID EtCacheLatencyApplyResult(
     _In_ PET_CACHE_LATENCY_RESULT Result
     )
 {
-    BOOLEAN tableVisible = Context->TabIndex == ET_CACHE_LATENCY_TAB_TABLE;
-
-    // Re-enabling redraw makes a hidden list view visible again.
-    if (tableVisible)
-        ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
 
     if (Result->Succeeded)
     {
@@ -3038,8 +3029,7 @@ VOID EtCacheLatencyApplyResult(
         EtCacheLatencyClearOverview(Context);
     }
 
-    if (tableVisible)
-        ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 
     EtCacheLatencyRedrawGraphs(Context);
 
@@ -3171,8 +3161,6 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhSetExtendedListView(context->ListViewHandle);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
 
             context->ListViewContext = PhListView_Initialize(context->ListViewHandle);
             context->ListViewWindowProcedure = PhGetWindowProcedure(context->ListViewHandle);
@@ -3291,9 +3279,6 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
             if (context->ListViewContext)
                 PhListView_Destroy(context->ListViewContext);
 
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -3312,13 +3297,7 @@ INT_PTR CALLBACK EtCacheLatencyDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
             context->WindowDpi = LOWORD(wParam);
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-
             PhLayoutManagerUpdate(&context->LayoutManager, context->WindowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
             EtCacheLatencyLayoutOverview(context);

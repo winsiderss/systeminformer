@@ -144,14 +144,10 @@ VOID PhShowAboutDialog(
             );
         PhRegisterDialog(PhAboutWindowHandle);
         ShowWindow(PhAboutWindowHandle, SW_SHOW);
-        UpdateWindow(PhAboutWindowHandle);
     }
 
     if (IsMinimized(PhAboutWindowHandle))
-    {
         ShowWindow(PhAboutWindowHandle, SW_RESTORE);
-        UpdateWindow(PhAboutWindowHandle);
-    }
     else
         SetForegroundWindow(PhAboutWindowHandle);
 }

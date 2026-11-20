@@ -50,29 +50,16 @@ BOOLEAN PvShowStartPage(
 
     // Modeless: retain the actual launcher until the properties window is shown.
     // Both debug and release continue in this process instead of relaunching.
-
-    PvStartPageWindowHandle = PhCreateDialog(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_STARTPAGE),
-        NULL, 
-        PvpStartPageDialogProc,
-        NULL
-        );
-
+    PvStartPageWindowHandle = PhCreateDialog(PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_STARTPAGE), NULL, PvpStartPageDialogProc, NULL);
     if (!PvStartPageWindowHandle)
         return FALSE;
-
     ShowWindow(PvStartPageWindowHandle, ShowCommand);
-    if (IsWindowVisible(PvStartPageWindowHandle))
-        UpdateWindow(PvStartPageWindowHandle);
-
     while (PvStartPageWindowHandle && !PvStartPageLoading)
     {
         BOOL result = GetMessage(&message, NULL, 0, 0);
-
         if (result <= 0)
             break;
-
         if (!IsDialogMessage(PvStartPageWindowHandle, &message))
         {
             TranslateMessage(&message);
@@ -316,6 +303,7 @@ VOID PvAddRecentFile(
     }
 
     PvSaveRecentFileList(fileList);
+
     PvDestroyRecentFileList(fileList);
 }
 
@@ -819,26 +807,23 @@ INT_PTR CALLBACK PvpStartPageDialogProc(
         }
         return TRUE;
     case WM_CLOSE:
+        if (PvStartPageLoading)
         {
-            if (PvStartPageLoading)
-            {
-                // Cancel the pending transition using the model owner's normal cleanup.
-                HWND propertiesWindow = PvGetPePropertiesWindowHandle();
-                if (propertiesWindow)
-                    DestroyWindow(propertiesWindow);
-            }
-            else
-            {
-                PhClearReference(&PvFileName);
-            }
-
-            DestroyWindow(WindowHandle);
+            // Cancel the pending transition using the model owner's normal cleanup.
+            HWND propertiesWindow = PvGetPePropertiesWindowHandle();
+            if (propertiesWindow)
+                DestroyWindow(propertiesWindow);
         }
+        else
+            PhClearReference(&PvFileName);
+        DestroyWindow(WindowHandle);
         return TRUE;
     case WM_DESTROY:
         {
             PvStartPageWindowHandle = NULL;
+        }
 
+        {
             PhSaveWindowPlacementToSetting(L"StartWindowPosition", L"StartWindowSize", WindowHandle);
             PhSaveListViewColumnsToSetting(L"StartWindowListViewColumns", context->ListViewHandle);
 
@@ -870,15 +855,12 @@ INT_PTR CALLBACK PvpStartPageDialogProc(
         {
             if (PvStartPageLoading && LOWORD(wParam) != IDCANCEL)
                 return TRUE;
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_START_OPEN_FILE:
                 {
-                    if (PvSelectFile(WindowHandle))
-                    {
+                    if (PvSelectFile())
                         PostMessage(WindowHandle, PV_STARTPAGE_BEGIN_LOADING, 0, 0);
-                    }
                 }
                 break;
             case IDCANCEL:
@@ -898,18 +880,14 @@ INT_PTR CALLBACK PvpStartPageDialogProc(
                 PPH_STRING fileName;
 
                 if (fileName = PvpGetSelectedRecentFile(context))
-                {
                     PvpStartPageSelectFile(context, fileName);
-                }
             }
         }
         break;
     case WM_CONTEXTMENU:
         {
             if ((HWND)wParam == context->ListViewHandle)
-            {
                 PvpShowRecentFileMenu(context, lParam);
-            }
         }
         break;
     case WM_DROPFILES:
@@ -948,7 +926,7 @@ INT_PTR CALLBACK PvpStartPageDialogProc(
 }
 
 BOOLEAN PvSelectFile(
-    _In_opt_ HWND WindowHandle
+    VOID
     )
 {
     static PH_FILETYPE_FILTER filters[] =
@@ -959,17 +937,14 @@ BOOLEAN PvSelectFile(
     PVOID fileDialog;
 
     fileDialog = PhCreateOpenFileDialog();
-    PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
+    PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_SHOWHIDDEN | PH_FILEDIALOG_NOPATHVALIDATE);
     PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-
-    if (PhShowFileDialog(WindowHandle, fileDialog))
+    if (PhShowFileDialog(NULL, fileDialog))
     {
         PhMoveReference(&PvFileName, PhGetFileDialogFileName(fileDialog));
         PhFreeFileDialog(fileDialog);
-
         return !PhIsNullOrEmptyString(PvFileName);
     }
-
     PhFreeFileDialog(fileDialog);
     return FALSE;
 }

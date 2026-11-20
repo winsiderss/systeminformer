@@ -71,31 +71,31 @@ ULONG PhNetworkProviderFlagsMask = 0;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
-static PPH_PROCESS_ITEM PhReferenceNetworkItemProcessItem(
-    _In_ PPH_NETWORK_ITEM NetworkItem,
-    _Out_opt_ PBOOLEAN ProcessItemMismatch
+static _GetExtendedTcpTable GetExtendedTcpTable_I = NULL;
+static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
+static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
+static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
+
+VOID PhpInitializeNetworkImports(
+    VOID
     )
 {
-    PPH_PROCESS_ITEM processItem;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
-    if (ProcessItemMismatch)
-        *ProcessItemMismatch = FALSE;
-
-    if (!(processItem = PhReferenceProcessItem(NetworkItem->ProcessId)))
-        return NULL;
-
-    if (NetworkItem->CreateTime.QuadPart != 0 &&
-        processItem->CreateTime.QuadPart > NetworkItem->CreateTime.QuadPart)
+    if (PhBeginInitOnce(&initOnce))
     {
-        PhDereferenceObject(processItem);
+        PVOID iphlpapi;
 
-        if (ProcessItemMismatch)
-            *ProcessItemMismatch = TRUE;
+        if (iphlpapi = PhLoadLibrary(L"iphlpapi.dll"))
+        {
+            GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
+            GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
+            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
+            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
+        }
 
-        return NULL;
+        PhEndInitOnce(&initOnce);
     }
-
-    return processItem;
 }
 
 /**
@@ -1165,7 +1165,6 @@ VOID PhNetworkProviderUpdate(
         if (!networkItem)
         {
             PPH_PROCESS_ITEM processItem;
-            BOOLEAN processItemMismatch = FALSE;
 
             // Network item not found, create it.
 
@@ -1302,9 +1301,7 @@ VOID PhNetworkProviderUpdate(
             PhNetworkItemResolveHostname(networkItem);
 
             // Get process information.
-            processItem = PhReferenceNetworkItemProcessItem(networkItem, &processItemMismatch);
-
-            if (processItem)
+            if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
             {
                 networkItem->ProcessItem = processItem;
                 PhSetReference(&networkItem->ProcessName, processItem->ProcessName);
@@ -1318,7 +1315,7 @@ VOID PhNetworkProviderUpdate(
 
                 // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
             }
-            else if (!processItemMismatch)
+            else
             {
                 HANDLE processHandle;
                 PPH_STRING fileName;
@@ -1345,10 +1342,6 @@ VOID PhNetworkProviderUpdate(
                     NtClose(processHandle);
                 }
 
-                networkItem->UnknownProcess = TRUE;
-            }
-            else
-            {
                 networkItem->UnknownProcess = TRUE;
             }
 
@@ -1704,7 +1697,7 @@ static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
 VOID PhpGetHvSocket(
     _Out_ PHVSOCKET_LISTENERS* Listeners,
     _Out_ PHVSOCKET_CONNECTIONS* Connections
-    )
+)
 {
     static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
     PH_ARRAY guidArray;
@@ -1772,13 +1765,18 @@ BOOLEAN PhGetNetworkConnections(
     ULONG index = 0;
     PPH_NETWORK_CONNECTION connections;
 
+    PhpInitializeNetworkImports();
+
+    if (!GetExtendedTcpTable_I || !GetExtendedUdpTable_I)
+        return FALSE;
+
     // TCP IPv4
 
     tableSize = 0;
-    PhGetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (NT_SUCCESS(PhGetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0)))
+    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp4Table = table;
         count += tcp4Table->dwNumEntries;
@@ -1792,10 +1790,10 @@ BOOLEAN PhGetNetworkConnections(
     // TCP IPv6
 
     tableSize = 0;
-    PhGetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (NT_SUCCESS(PhGetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0)))
+    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp6Table = table;
         count += tcp6Table->dwNumEntries;
@@ -1809,10 +1807,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv4
 
     tableSize = 0;
-    PhGetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (NT_SUCCESS(PhGetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0)))
+    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp4Table = table;
         count += udp4Table->dwNumEntries;
@@ -1826,10 +1824,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv6
 
     tableSize = 0;
-    PhGetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (NT_SUCCESS(PhGetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0)))
+    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp6Table = table;
         count += udp6Table->dwNumEntries;
@@ -1853,12 +1851,13 @@ BOOLEAN PhGetNetworkConnections(
     }
 #endif
 
-    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5 && GetBoundTcpEndpointTable_I && GetBoundTcp6EndpointTable_I)
     {
         // Bound TCP IPv4
 
-        if (NT_SUCCESS(PhInternalGetBoundTcpEndpointTable(&boundTcpTable)))
+        if (GetBoundTcpEndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
+            boundTcpTable = table;
             count += boundTcpTable->dwNumEntries;
         }
         else
@@ -1868,8 +1867,9 @@ BOOLEAN PhGetNetworkConnections(
 
         // Bound TCP IPv6
 
-        if (NT_SUCCESS(PhInternalGetBoundTcp6EndpointTable(&boundTcp6Table)))
+        if (GetBoundTcp6EndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
+            boundTcp6Table = table;
             count += boundTcp6Table->dwNumEntries;
         }
         else

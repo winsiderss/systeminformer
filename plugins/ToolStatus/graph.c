@@ -259,7 +259,6 @@ BOOLEAN ToolbarAddGraph(
             if (!IsWindowVisible(Graph->GraphHandle))
             {
                 ShowWindow(Graph->GraphHandle, SW_SHOW);
-                UpdateWindow(Graph->GraphHandle);
             }
         }
     }

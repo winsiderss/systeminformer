@@ -902,12 +902,7 @@ PPH_STRING PhGetAccessString(
     }
     else
     {
-        SIZE_T matchedAllocationSize;
-
-        if (!NT_SUCCESS(RtlSizeTMult(NumberOfAccessEntries, sizeof(BOOLEAN), &matchedAllocationSize)))
-            PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-
-        matched = PhAllocateZero(matchedAllocationSize);
+        matched = PhAllocateZero(NumberOfAccessEntries * sizeof(BOOLEAN));
     }
 
     for (i = 0; i < NumberOfAccessEntries; i++)

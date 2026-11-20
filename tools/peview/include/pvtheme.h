@@ -89,9 +89,6 @@ EXTERN_C HICON PvGetSectionIcon(
 // the General page hero card and the version chip so the surfaces read as one set.
 #define PV_CARD_CORNER_RADIUS 6
 #define PV_CARD_GUTTER 8
-// Space between the last row and the bottom edge of a card. Reserved in the group
-// bottom border, so the gutter between cards is unchanged. (dmex)
-#define PV_CARD_BOTTOM_PADDING 6
 // Horizontal inset stays zero: rows are laid out across the full control width, so a
 // left/right group border would leave them overhanging the card corners. (dmex)
 #define PV_CARD_INSET 0

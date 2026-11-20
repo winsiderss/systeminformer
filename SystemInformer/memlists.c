@@ -55,15 +55,9 @@ VOID PhShowMemoryListsDialog(
     }
 
     if (!IsWindowVisible(PhMemoryListsWindowHandle))
-    {
         ShowWindow(PhMemoryListsWindowHandle, SW_SHOW);
-        UpdateWindow(PhMemoryListsWindowHandle);
-    }
     else if (IsMinimized(PhMemoryListsWindowHandle))
-    {
         ShowWindow(PhMemoryListsWindowHandle, SW_RESTORE);
-        UpdateWindow(PhMemoryListsWindowHandle);
-    }
     else
         SetForegroundWindow(PhMemoryListsWindowHandle);
 }

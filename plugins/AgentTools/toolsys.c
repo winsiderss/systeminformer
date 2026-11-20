@@ -394,24 +394,9 @@ VOID AtpGetKsiStatus(
     {
         PVOID roundTrip = PhCreateJsonObject();
 
-        {
-            ULONG64 microseconds = 0;
-
-            PhMultiplyDivide128(duration, 1000000, frequency.QuadPart, 0, &microseconds);
-            PhAddJsonObjectUInt64(roundTrip, "total_microseconds", microseconds);
-        }
-        {
-            ULONG64 microseconds = 0;
-
-            PhMultiplyDivide128(durationDown, 1000000, frequency.QuadPart, 0, &microseconds);
-            PhAddJsonObjectUInt64(roundTrip, "to_kernel_microseconds", microseconds);
-        }
-        {
-            ULONG64 microseconds = 0;
-
-            PhMultiplyDivide128(durationUp, 1000000, frequency.QuadPart, 0, &microseconds);
-            PhAddJsonObjectUInt64(roundTrip, "from_kernel_microseconds", microseconds);
-        }
+        PhAddJsonObjectUInt64(roundTrip, "total_microseconds", duration * 1000000 / frequency.QuadPart);
+        PhAddJsonObjectUInt64(roundTrip, "to_kernel_microseconds", durationDown * 1000000 / frequency.QuadPart);
+        PhAddJsonObjectUInt64(roundTrip, "from_kernel_microseconds", durationUp * 1000000 / frequency.QuadPart);
         PhAddJsonObjectValue(structured, "round_trip", roundTrip);
     }
     else
@@ -1793,7 +1778,7 @@ VOID AtpListPoolTags(
     tagFilter = AtGetArgumentString(Call->Arguments, "tag");
     AtGetArgumentUInt64(Call->Arguments, "min_bytes", &minimumBytes);
 
-    if (!NT_SUCCESS(RtlSIZETMult(sizeof(AT_POOL_TAG_ENTRY), poolTable->Count, &entriesSize)))
+    if (!NT_SUCCESS(RtlSizeTMult(sizeof(AT_POOL_TAG_ENTRY), poolTable->Count, &entriesSize)))
     {
         AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"The pool tag table is too large to read.");
         PhFree(poolTable);

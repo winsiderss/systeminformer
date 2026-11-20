@@ -684,7 +684,7 @@ VOID FwUpdateNodeLocalAddressString(
 
                 if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->LocalEndpoint.Address.InAddr, 0, FwNode->LocalAddressString, &ipv4AddressStringLength)))
                 {
-                    FwNode->LocalAddressStringLength = (ULONG)(ipv4AddressStringLength - sizeof(ANSI_NULL));
+                    FwNode->LocalAddressStringLength = (ipv4AddressStringLength - 1);
                 }
             }
             break;
@@ -694,7 +694,7 @@ VOID FwUpdateNodeLocalAddressString(
 
                 if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->LocalEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->LocalAddressString, &ipv6AddressStringLength)))
                 {
-                    FwNode->LocalAddressStringLength = (ULONG)(ipv6AddressStringLength - sizeof(ANSI_NULL));
+                    FwNode->LocalAddressStringLength = (ipv6AddressStringLength - 1);
                 }
             }
             break;
@@ -741,7 +741,7 @@ VOID FwUpdateNodeRemoteAddressString(
 
                 if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->RemoteEndpoint.Address.InAddr, 0, FwNode->RemoteAddressString, &ipv4AddressStringLength)))
                 {
-                    FwNode->RemoteAddressStringLength = (ULONG)(ipv4AddressStringLength - sizeof(ANSI_NULL));
+                    FwNode->RemoteAddressStringLength = (ipv4AddressStringLength - 1);
                 }
             }
             break;
@@ -751,7 +751,7 @@ VOID FwUpdateNodeRemoteAddressString(
 
                 if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->RemoteEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->RemoteAddressString, &ipv6AddressStringLength)))
                 {
-                    FwNode->RemoteAddressStringLength = (ULONG)(ipv6AddressStringLength - sizeof(ANSI_NULL));
+                    FwNode->RemoteAddressStringLength = (ipv6AddressStringLength - 1);
                 }
             }
             break;
@@ -1743,7 +1743,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     if (node->CountryIconIndex != INT_ERROR)
                     {
                         rect.left += FwTreeLeftMarginPadding;
-                        EtFwDrawCountryIcon(hdc, &rect, node->CountryIconIndex);
+                        EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);
                         rect.left += FwTreeRightMarginPadding;
                     }
 
@@ -1963,7 +1963,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowPingWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
+                EtFwShowPingWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1973,7 +1973,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowTracerWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
+                EtFwShowTracerWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1983,7 +1983,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowWhoisWindow(SystemInformer_GetWindowHandle(), &entry->RemoteEndpoint);
+                EtFwShowWhoisWindow(SystemInformer_GetWindowHandle(), entry->RemoteEndpoint);
             }
         }
         break;

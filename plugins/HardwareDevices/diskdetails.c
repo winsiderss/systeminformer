@@ -113,7 +113,7 @@ VOID AddNvmeSmartEntry(
     _In_ PPH_STRING Value
     )
 {
-    LONG lvItemIndex = PhAddListViewItem(
+    INT lvItemIndex = PhAddListViewItem(
         ListViewHandle,
         MAXINT,
         Name,
@@ -151,7 +151,7 @@ VOID DiskDeviceQuerySmart(
             {
                 PSMART_ATTRIBUTES attribute = attributes->Items[i];
 
-                LONG lvItemIndex = PhAddListViewItem(
+                INT lvItemIndex = PhAddListViewItem(
                     Context->ListViewHandle,
                     MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
@@ -249,7 +249,7 @@ VOID DiskDeviceQuerySmart(
 }
 
 //COLORREF NTAPI PhpColorItemColorFunction(
-//    _In_ LONG Index,
+//    _In_ INT Index,
 //    _In_ PVOID Param,
 //    _In_opt_ PVOID Context
 //    )
@@ -265,7 +265,7 @@ VOID DiskDeviceQuerySmart(
 VOID DiskDeviceQueryVolumeInfo(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context,
     _In_ USHORT Type,
-    _In_ LONG Column,
+    _In_ INT Column,
     _In_ HANDLE DeviceHandle
     )
 {
@@ -394,7 +394,7 @@ VOID DiskDeviceQueryFileSystem(
 
     for (ULONG i = 0; i < deviceMountHandles->Count; i++)
     {
-        LONG column = i + 1;
+        INT column = i + 1;
         USHORT fsInfoType;
         PVOID fsInfoBuffer;
         PFILE_FS_VOLUME_INFORMATION volumeInfo;
@@ -498,13 +498,8 @@ VOID DiskDeviceQueryFileSystem(
                     PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_WRITE_BYTES, column,
                         PhaFormatSize(buffer->NtfsStatistics.MftWriteBytes, ULONG_MAX)->Buffer);
 
-                    ULONG otherExceptions;
-
-                    if (!NT_SUCCESS(RtlULongAdd(buffer->NtfsStatistics.LogFileFullExceptions, buffer->NtfsStatistics.OtherExceptions, &otherExceptions)))
-                        otherExceptions = ULONG_MAX;
-
                     PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS, column,
-                        PhaFormatUInt64(otherExceptions, TRUE)->Buffer);
+                        PhaFormatUInt64(UInt32Add32To64(buffer->NtfsStatistics.LogFileFullExceptions, buffer->NtfsStatistics.OtherExceptions), TRUE)->Buffer);
 
                     if (PhWindowsVersion >= WINDOWS_8_1)
                     {
@@ -605,13 +600,8 @@ VOID DiskDeviceQueryFileSystem(
                         PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_WRITE_BYTES, column,
                             PhaFormatSize(buffer->NtfsStatistics.MftWriteBytes, ULONG_MAX)->Buffer);
 
-                        ULONG otherExceptions;
-
-                        if (!NT_SUCCESS(RtlULongAdd(buffer->NtfsStatistics.LogFileFullExceptions, buffer->NtfsStatistics.OtherExceptions, &otherExceptions)))
-                            otherExceptions = ULONG_MAX;
-
                         PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS, column,
-                            PhaFormatUInt64(otherExceptions, TRUE)->Buffer);
+                            PhaFormatUInt64(UInt32Add32To64(buffer->NtfsStatistics.LogFileFullExceptions, buffer->NtfsStatistics.OtherExceptions), TRUE)->Buffer);
                     }
                     break;
                 case FILESYSTEM_STATISTICS_TYPE_EXFAT:
@@ -681,8 +671,6 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 290, L"Property");
             PhSetExtendedListView(context->ListViewHandle);
 
@@ -710,17 +698,6 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
 
             PhSaveListViewColumnsToSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
-
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NCDESTROY:
@@ -742,9 +719,6 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
 
                 propPageContext->LayoutInitialized = TRUE;
             }
-
-            if (wParam && context->RefreshPending)
-                PostMessage(WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -753,24 +727,16 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
-            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
         {
-            if (!IsWindowVisible(WindowHandle) || IsIconic(GetAncestor(WindowHandle, GA_ROOT)))
-            {
-                context->RefreshPending = TRUE;
-                break;
-            }
-
-            context->RefreshPending = FALSE;
-            SendMessage(context->ListViewHandle, WM_SETREDRAW, FALSE, 0);
             DiskDeviceQueryFileSystem(context, FALSE);
-            SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
-            InvalidateRect(context->ListViewHandle, NULL, FALSE);
+
+            ListView_RedrawItems(context->ListViewHandle, 0, INT_MAX);
+            UpdateWindow(context->ListViewHandle);
         }
         break;
     case WM_NOTIFY:
@@ -873,8 +839,6 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Value");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Best");
@@ -894,17 +858,6 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
-
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
         }
         break;
     case WM_NCDESTROY:
@@ -933,7 +886,6 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
-            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

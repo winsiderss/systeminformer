@@ -825,7 +825,6 @@ VOID SearchBoxApplySettings(
     if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && SearchboxHandle)
     {
         ShowWindow(SearchboxHandle, SW_SHOW);
-        UpdateWindow(SearchboxHandle);
 
         if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
         {
@@ -865,7 +864,6 @@ VOID StatusBarApplySettings(
         if (StatusBarHandle && !IsWindowVisible(StatusBarHandle))
         {
             ShowWindow(StatusBarHandle, SW_SHOW);
-            UpdateWindow(StatusBarHandle);
         }
     }
     else
@@ -1786,7 +1784,7 @@ VOID ToolStatusGetBarWindowRect(
     LONG height;
 
     if (!PhGetClientRect(ParentWindowHandle, &clientRect))
-        PhSetRectEmpty(&clientRect);
+        SetRectEmpty(&clientRect);
 
     if (ToolbarWindowFont)
         height = ToolStatusGetWindowFontSize(ParentWindowHandle, ToolbarWindowFont);

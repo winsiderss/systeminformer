@@ -24,6 +24,7 @@ typedef struct _MODULE_SERVICES_CONTEXT
     PPH_SERVICE_ITEM* ServiceItems;
 } MODULE_SERVICES_CONTEXT, *PMODULE_SERVICES_CONTEXT;
 
+_Success_(return)
 ULONG PhQueryModuleServiceReferences(
     _In_ PMODULE_SERVICES_CONTEXT Context,
     _Out_ PPH_LIST* ServiceList
@@ -85,7 +86,6 @@ NTSTATUS EtpModuleServicesDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
-    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
@@ -123,6 +123,7 @@ VOID EtShowModuleServicesDialog(
     PhCreateThread2(EtpModuleServicesDialogThreadStart, context);
 }
 
+_Success_(return)
 ULONG PhQueryModuleServiceReferences(
     _In_ PMODULE_SERVICES_CONTEXT Context,
     _Out_ PPH_LIST *ServiceList
@@ -244,7 +245,6 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 MapWindowRect(NULL, WindowHandle, &rect);
                 MoveWindow(context->ServiceListHandle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
                 ShowWindow(context->ServiceListHandle, SW_SHOW);
-                UpdateWindow(context->ServiceListHandle);
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);

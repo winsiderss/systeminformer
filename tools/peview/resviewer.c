@@ -610,7 +610,6 @@ INT_PTR CALLBACK PvpResourceViewerDlgProc(
             {
                 ShowWindow(context->ImageHandle, SW_HIDE);
                 ShowWindow(context->TextHandle, SW_SHOW);
-                UpdateWindow(context->TextHandle);
 
                 SendMessage(context->TextHandle, EM_SETLIMITTEXT, ULONG_MAX, 0);
 
@@ -830,5 +829,4 @@ VOID PvShowResourceViewerDialog(
     }
 
     ShowWindow(dialogHandle, SW_SHOW);
-    UpdateWindow(dialogHandle);
 }

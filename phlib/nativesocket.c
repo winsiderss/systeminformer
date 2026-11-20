@@ -1617,7 +1617,7 @@ PPH_STRING PhAfdFormatInterfaceOption(
 
         // Other values (0.0.0.0/24 addresses) store a big-endian interface index/scope ID
         PhInitFormatC(&format[0], L'%');
-        PhInitFormatU(&format[1], RtlUlongByteSwap(Interface));
+        PhInitFormatU(&format[1], _byteswap_ulong(Interface));
         return PhFormat(format, RTL_NUMBER_OF(format), 8);
     }
     else
@@ -1761,20 +1761,22 @@ NTSTATUS PhAfdInitializeOperation(
 {
     NTSTATUS status;
 
-    if (Operation)
-    {
-        RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
+    if (!Operation)
+        return STATUS_INVALID_PARAMETER;
 
-        status = PhCreateEvent(
-            &Operation->EventHandle,
-            EVENT_ALL_ACCESS,
-            NotificationEvent,
-            FALSE
-            );
-    }
-    else
+    RtlZeroMemory(Operation, sizeof(PH_AFD_IO_OPERATION));
+
+    status = NtCreateEvent(
+        &Operation->EventHandle,
+        EVENT_ALL_ACCESS,
+        NULL,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
     {
-        status = STATUS_INVALID_PARAMETER;
+        Operation->EventHandle = NULL;
     }
 
     return status;
@@ -1917,7 +1919,7 @@ NTSTATUS PhAfdCreateSocket(
     _In_ LONG AddressFamily,
     _In_ LONG SocketType,
     _In_ LONG Protocol,
-    _In_ LONG Flags
+    _In_ ULONG EndpointFlags
     )
 {
     NTSTATUS status;
@@ -1925,7 +1927,7 @@ NTSTATUS PhAfdCreateSocket(
     UNICODE_STRING deviceName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
-    AFD_OPEN_PACKET_FULL_EA extendedAttribute;
+    AFD_OPEN_PACKET_FULL_EA ea;
 
     if (!SocketHandle)
         return STATUS_INVALID_PARAMETER;
@@ -1945,15 +1947,15 @@ NTSTATUS PhAfdCreateSocket(
         NULL
         );
 
-    RtlZeroMemory(&extendedAttribute, sizeof(AFD_OPEN_PACKET_FULL_EA));
-    extendedAttribute.EaNameLength = sizeof(AfdOpenPacket) - sizeof(ANSI_NULL);
-    extendedAttribute.EaValueLength = sizeof(AFD_OPEN_PACKET);
-    RtlCopyMemory(extendedAttribute.EaName, AfdOpenPacket, sizeof(AfdOpenPacket));
-    extendedAttribute.OpenPacket.Flags = Flags;
-    extendedAttribute.OpenPacket.GroupID = 0;
-    extendedAttribute.OpenPacket.AddressFamily = AddressFamily;
-    extendedAttribute.OpenPacket.SocketType = SocketType;
-    extendedAttribute.OpenPacket.Protocol = Protocol;
+    RtlZeroMemory(&ea, sizeof(AFD_OPEN_PACKET_FULL_EA));
+    ea.EaNameLength = sizeof(AfdOpenPacket) - sizeof(ANSI_NULL);
+    ea.EaValueLength = sizeof(AFD_OPEN_PACKET);
+    RtlCopyMemory(ea.EaName, AfdOpenPacket, sizeof(AfdOpenPacket));
+    ea.OpenPacket.__f.EndpointFlags = EndpointFlags;
+    ea.OpenPacket.GroupID = 0;
+    ea.OpenPacket.AddressFamily = AddressFamily;
+    ea.OpenPacket.SocketType = SocketType;
+    ea.OpenPacket.Protocol = Protocol;
 
     status = NtCreateFile(
         &socketHandle,
@@ -1965,7 +1967,7 @@ NTSTATUS PhAfdCreateSocket(
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN_IF,
         0,
-        &extendedAttribute,
+        &ea,
         sizeof(AFD_OPEN_PACKET_FULL_EA)
         );
 
@@ -2236,21 +2238,19 @@ NTSTATUS PhAfdBind(
     _In_ ULONG AddressLength
     )
 {
-    NTSTATUS status;
     UCHAR buffer[FIELD_OFFSET(AFD_BIND_INFO_TL, Address) + sizeof(SOCKADDR_STORAGE)] = { 0 };
     PAFD_BIND_INFO_TL bindInfo = (PAFD_BIND_INFO_TL)buffer;
     SOCKADDR_STORAGE boundAddress = { 0 };
 
     if (!Address || Address->sa_family != AF_INET)
         return STATUS_INVALID_PARAMETER;
-
     if (AddressLength < sizeof(SOCKADDR_IN) || AddressLength > sizeof(SOCKADDR_STORAGE))
         return STATUS_INVALID_PARAMETER;
 
     bindInfo->ShareAccess = ShareAccess;
     RtlCopyMemory(&bindInfo->Address, Address, AddressLength);
 
-    status = PhpAfdRun(
+    return PhpAfdRun(
         SocketHandle,
         IOCTL_AFD_BIND,
         buffer,
@@ -2259,8 +2259,6 @@ NTSTATUS PhAfdBind(
         sizeof(SOCKADDR_STORAGE),
         NULL
         );
-
-    return status;
 }
 
 /**
@@ -2277,7 +2275,6 @@ NTSTATUS PhAfdConnect(
     _In_ ULONG AddressLength
     )
 {
-    NTSTATUS status;
     UCHAR buffer[FIELD_OFFSET(AFD_CONNECT_JOIN_INFO_TL, RemoteAddress) + sizeof(SOCKADDR_STORAGE)] = { 0 };
     PAFD_CONNECT_JOIN_INFO_TL connectInfo = (PAFD_CONNECT_JOIN_INFO_TL)buffer;
 
@@ -2288,7 +2285,7 @@ NTSTATUS PhAfdConnect(
 
     RtlCopyMemory(&connectInfo->RemoteAddress, Address, AddressLength);
 
-    status = PhpAfdRun(
+    return PhpAfdRun(
         SocketHandle,
         IOCTL_AFD_CONNECT,
         buffer,
@@ -2297,8 +2294,6 @@ NTSTATUS PhAfdConnect(
         0,
         NULL
         );
-
-    return status;
 }
 
 /**
@@ -2315,7 +2310,6 @@ NTSTATUS PhAfdSetConnectData(
     _In_ ULONG Length
     )
 {
-    NTSTATUS status;
     AFD_UNACCEPTED_CONNECT_DATA_INFO connectDataInfo = { 0 };
 
     if (!Data || !Length)
@@ -2323,7 +2317,7 @@ NTSTATUS PhAfdSetConnectData(
 
     connectDataInfo.ConnectDataLength = Length;
 
-    status = PhpAfdRun(
+    return PhpAfdRun(
         SocketHandle,
         IOCTL_AFD_SET_CONNECT_DATA,
         &connectDataInfo,
@@ -2332,8 +2326,6 @@ NTSTATUS PhAfdSetConnectData(
         Length,
         NULL
         );
-
-    return status;
 }
 
 /**

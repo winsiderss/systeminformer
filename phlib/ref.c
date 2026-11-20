@@ -10,7 +10,6 @@
  */
 
 #include <phbase.h>
-#include <ntintsafe.h>
 #include <refp.h>
 
 #include <phintrnl.h>
@@ -445,14 +444,10 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     )
 {
     PPH_OBJECT_HEADER objectHeader;
-    SIZE_T allocationSize;
-
-    if (!NT_SUCCESS(RtlSizeTAdd(ObjectSize, UFIELD_OFFSET(PH_OBJECT_HEADER, Body), &allocationSize)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
 
     if (ObjectType->Flags & PH_OBJECT_TYPE_USE_FREE_LIST)
     {
-        assert(ObjectType->FreeList.Size == allocationSize);
+        assert(ObjectType->FreeList.Size == PhAddObjectHeaderSize(ObjectSize));
 
         objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
         objectHeader->Flags = PH_OBJECT_FROM_TYPE_FREE_LIST;
@@ -465,7 +460,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
         REF_STAT_UP(RefObjectsAllocatedFromSmallFreeList);
     }
     else if (ObjectType->Flags & PH_OBJECT_TYPE_TRY_USE_FREE_LIST &&
-             allocationSize <= ObjectType->FreeList.Size)
+             PhAddObjectHeaderSize(ObjectSize) <= ObjectType->FreeList.Size)
     {
         objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
         objectHeader->Flags = PH_OBJECT_FROM_TYPE_FREE_LIST;
@@ -473,7 +468,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     }
     else
     {
-        objectHeader = PhAllocate(allocationSize);
+        objectHeader = PhAllocate(PhAddObjectHeaderSize(ObjectSize));
         objectHeader->Flags = 0;
         REF_STAT_UP(RefObjectsAllocated);
     }

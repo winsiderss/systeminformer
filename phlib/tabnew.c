@@ -36,7 +36,7 @@ RTL_ATOM PhTabNewInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
+    wcex.hbrBackground = NULL;
     wcex.lpszClassName = PH_TABNEW_CLASSNAME;
 
     return RegisterClassEx(&wcex);
@@ -346,11 +346,10 @@ BOOLEAN PhTabNewReadLayoutToken(
     {
         ULONG digit = (ULONG)(cursor[index] - L'0');
 
-        if (!NT_SUCCESS(RtlULongMult(length, PH_TABNEW_LAYOUT_DECIMAL_RADIX, &length)))
-            return FALSE;
-        if (!NT_SUCCESS(RtlULongAdd(length, digit, &length)))
+        if (length > (ULONG_MAX - digit) / PH_TABNEW_LAYOUT_DECIMAL_RADIX)
             return FALSE;
 
+        length = (length * PH_TABNEW_LAYOUT_DECIMAL_RADIX) + digit;
         index++;
     }
 
@@ -1192,7 +1191,7 @@ VOID PhTabNewSendLayoutNotify(
 
     // Physical-client fallback rectangles are translated to parent coordinates.
     // Virtual rectangles remain in the coordinate space supplied to
-    // PhTabNew_SetLayoutRect or TCM_ADJUSTRECT.
+    // TCM_ADJUSTRECT.
     if (!Context->HasVirtualRect && Context->ParentHandle)
     {
         MapWindowRect(Context->WindowHandle, Context->ParentHandle, &nm.PageRect);
@@ -1668,15 +1667,11 @@ VOID PhTabNewUpdateDrag(
         UpdateWindow(Context->WindowHandle);
 
         if (Context->DragImageList)
-        {
             PhImageListDragShowNolock(TRUE);
-        }
     }
 
     if (Context->DragImageList)
-    {
         PhImageListDragMove(Point.x, Point.y);
-    }
 }
 
 /**
@@ -1889,37 +1884,6 @@ VOID PhTabNewUpdateCachedResources(
     Context->OutlinePen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, outlineColor);
     Context->BackgroundPen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, backgroundColor);
     Context->ActivePen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, activeColor);
-}
-
-static VOID PhpTabNewGetStripRect(
-    _In_ PPH_TABNEW_CONTEXT Context,
-    _In_ RECT const *ClientRect,
-    _Out_ PRECT StripRect
-    )
-{
-    LONG thickness;
-
-    *StripRect = *ClientRect;
-
-    switch (Context->Side)
-    {
-    case TNS_TOP:
-    case TNS_BOTTOM:
-        thickness = max(0, min(Context->StripThickness, ClientRect->bottom - ClientRect->top));
-        if (Context->Side == TNS_TOP)
-            StripRect->bottom = StripRect->top + thickness;
-        else
-            StripRect->top = StripRect->bottom - thickness;
-        break;
-    case TNS_LEFT:
-    case TNS_RIGHT:
-        thickness = max(0, min(Context->StripThickness, ClientRect->right - ClientRect->left));
-        if (Context->Side == TNS_LEFT)
-            StripRect->right = StripRect->left + thickness;
-        else
-            StripRect->left = StripRect->right - thickness;
-        break;
-    }
 }
 
 /**
@@ -2353,7 +2317,6 @@ VOID PhTabNewPaintUxTheme(
     )
 {
     COLORREF text = PhTabNewTextColor(Context);
-    RECT stripRect;
     ULONG i;
 
     if (!Context->ThemeHandle)
@@ -2362,12 +2325,10 @@ VOID PhTabNewPaintUxTheme(
         return;
     }
 
-    PhpTabNewGetStripRect(Context, ClientRect, &stripRect);
-
     // Fill the strip first — the buffered DC is uninitialized memory
     // (renders as black). DrawThemeParentBackground only succeeds when the
     // parent paints its own client area; many of our parents don't.
-    PhTabNewFillBackground(Context, Hdc, &stripRect);
+    PhTabNewFillBackground(Context, Hdc, ClientRect);
 
     if (Context->ThemeDark)
     {
@@ -2418,7 +2379,7 @@ VOID PhTabNewPaintUxTheme(
         return;
     }
 
-    PhDrawThemeParentBackground(Context->WindowHandle, Hdc, &stripRect);
+    PhDrawThemeParentBackground(Context->WindowHandle, Hdc, ClientRect);
 
     for (i = 0; i < Context->Items->Count; i++)
     {
@@ -2464,34 +2425,10 @@ VOID PhTabNewPaint(
     )
 {
     HFONT oldFont;
-    INT savedDc = 0;
 
     if (Context->LayoutDirty)
     {
         PhTabNewLayout(Context, Hdc);
-    }
-
-    // The parent clips this window's entire client area when erasing its
-    // background, so paint the page before clipping the skin to the tab strip.
-    FillRect(Hdc, ClientRect, Context->WindowBackgroundBrush);
-
-    if (Context->Skin != PhTabNewSkinWin10 && Context->Skin != PhTabNewSkinWin7)
-    {
-        RECT stripRect;
-
-        PhpTabNewGetStripRect(Context, ClientRect, &stripRect);
-        if (PhRectEmpty(&stripRect))
-            return;
-
-        savedDc = SaveDC(Hdc);
-        if (!savedDc)
-            return;
-
-        if (IntersectClipRect(Hdc, stripRect.left, stripRect.top, stripRect.right, stripRect.bottom) == ERROR)
-        {
-            RestoreDC(Hdc, savedDc);
-            return;
-        }
     }
 
     oldFont = SelectFont(Hdc, Context->Font ? Context->Font : GetStockFont(DEFAULT_GUI_FONT));
@@ -2545,9 +2482,6 @@ VOID PhTabNewPaint(
     //}
 
     SelectFont(Hdc, oldFont);
-
-    if (savedDc)
-        RestoreDC(Hdc, savedDc);
 }
 
 /**
@@ -2564,12 +2498,8 @@ VOID PhTabNewPaintBuffered(
     )
 {
     RECT clientRect;
-    RECT updateRect = *UpdateRect;
 
     GetClientRect(Context->WindowHandle, &clientRect);
-
-    if (Context->LayoutDirty)
-        PhTabNewLayout(Context, Hdc);
 
     // The buffer only grows (same as TreeNew). Reallocating the DIB on every WM_SIZE
     // churns during a live resize, and a larger buffer is simply painted partially. (dmex)
@@ -2593,13 +2523,13 @@ VOID PhTabNewPaintBuffered(
         PhTabNewPaint(Context, Context->BufferedContext, &clientRect);
         BitBlt(
             Hdc,
-            updateRect.left,
-            updateRect.top,
-            updateRect.right - updateRect.left,
-            updateRect.bottom - updateRect.top,
+            UpdateRect->left,
+            UpdateRect->top,
+            UpdateRect->right - UpdateRect->left,
+            UpdateRect->bottom - UpdateRect->top,
             Context->BufferedContext,
-            updateRect.left,
-            updateRect.top,
+            UpdateRect->left,
+            UpdateRect->top,
             SRCCOPY
             );
     }
@@ -2949,19 +2879,6 @@ PPH_TABNEW_PAGE PhpTabNewGetCurrentPage(
     return ((PPH_TABNEW_INTERNAL_ITEM)TabContext->Items->Items[index])->Page;
 }
 
-static VOID PhpTabNewSetLayoutRect(
-    _In_ PPH_TABNEW_CONTEXT Context,
-    _In_ RECT const *LayoutRect
-    )
-{
-    Context->VirtualRect = *LayoutRect;
-    Context->HasVirtualRect = TRUE;
-    Context->LayoutDirty = TRUE;
-
-    PhTabNewLayout(Context, NULL);
-    InvalidateRect(Context->WindowHandle, NULL, FALSE);
-}
-
 // ---------------------------------------------------------------------------
 // WndProc
 // ---------------------------------------------------------------------------
@@ -3041,16 +2958,6 @@ LRESULT PhTabNewOnUserMessage(
 
             item = Context->Items->Items[idx];
             item->Param = (LPARAM)LParam;
-        }
-        return TRUE;
-    case PHTNM_SETLAYOUTRECT:
-        {
-            RECT const *layoutRect = (RECT const *)LParam;
-
-            if (!layoutRect)
-                return FALSE;
-
-            PhpTabNewSetLayoutRect(Context, layoutRect);
         }
         return TRUE;
     case PHTNM_GETPAGERECT:
@@ -3303,7 +3210,9 @@ LRESULT PhTabNewOnUserMessage(
             // contain only the tab strip.
             if (!(BOOL)WParam)
             {
-                PhpTabNewSetLayoutRect(Context, rc);
+                Context->VirtualRect = *rc;
+                Context->HasVirtualRect = TRUE;
+                Context->LayoutDirty = TRUE;
             }
 
             if (Context->LayoutDirty)
@@ -3470,19 +3379,10 @@ LRESULT CALLBACK PhTabNewWndProc(
         return 0;
     case WM_SIZE:
         {
-            // A virtual rectangle is measured by its host before resizing the strip.
-            // Its physical size does not change that logical layout.
-            if (context->HasVirtualRect)
-            {
-                InvalidateRect(WindowHandle, NULL, FALSE);
-            }
-            else
-            {
-                context->LayoutDirty = TRUE;
+            context->LayoutDirty = TRUE;
 
-                if (wParam != SIZE_MINIMIZED)
-                    PhTabNewFlushLayout(context, TRUE, FALSE);
-            }
+            if (wParam != SIZE_MINIMIZED)
+                PhTabNewFlushLayout(context, !context->HasVirtualRect, FALSE);
         }
         break;
     case WM_SETFOCUS:

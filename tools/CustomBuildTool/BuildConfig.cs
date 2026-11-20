@@ -133,6 +133,7 @@ namespace CustomBuildTool
             "graphprp.h",
             "graphscroll.h",
             "guisup.h",
+            "guisupview.h",
             "treehdr.h",
             "hexedit.h",
             "hndlinfo.h",

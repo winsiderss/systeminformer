@@ -945,7 +945,6 @@ VOID SetSearchFocus(
                 if (!IsWindowVisible(SearchboxHandle))
                 {
                     ShowWindow(SearchboxHandle, SW_SHOW);
-                    UpdateWindow(SearchboxHandle);
                 }
             }
 
@@ -1985,14 +1984,13 @@ VOID NTAPI SettingsUpdatedCallback(
         if (ToolBarHandle)
         {
             ToolbarUpdateWindowStyle();
-            InvalidateRect(ToolBarHandle, NULL, FALSE);
-            UpdateWindow(ToolBarHandle);
+            InvalidateRect(ToolBarHandle, NULL, TRUE);
         }
 
         if (StatusBarHandle)
         {
             SendMessage(StatusBarHandle, WM_THEMECHANGED, 0, 0);
-            InvalidateRect(StatusBarHandle, NULL, FALSE);
+            InvalidateRect(StatusBarHandle, NULL, TRUE);
             UpdateWindow(StatusBarHandle);
         }
     }

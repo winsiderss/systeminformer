@@ -404,7 +404,7 @@ BOOLEAN NTAPI PvDynRelocBddCollectCallback(
 // Names come from the SDK overridecapabilities.h (OVRDCAP_*), which defines the capability numbering
 // the linker emits into the BDD. Two families are deliberately not spelled out here:
 //
-//  - CPU-signature Infoclass (vendor / family / model and their extended forms) are fused by the
+//  - CPU-signature selectors (vendor / family / model and their extended forms) are fused by the
 //    condition builder into "Intel family 6 model 0x8F", which reads far better than the 304
 //    separate OVRDCAP_AMD64_CPU_* terms those four ranges span (16 family, 256 extended family,
 //    16 model, 16 extended model). Only the vendor names are handled below.
@@ -442,7 +442,7 @@ PPH_STRING PvDynRelocFeatureString(
     {
     // ---- AMD64 -----------------------------------------------------------------------------
 
-    // Vendor Infoclass. The remaining CPU-signature ranges are fused by the caller.
+    // Vendor selectors. The remaining CPU-signature ranges are fused by the caller.
     case OVRDCAP_AMD64_CPU_MANUFACTURER_RECOGNIZED: name = L"any known CPU vendor"; break;
     case OVRDCAP_AMD64_CPU_MANUFACTURER_INTEL:      name = L"Intel"; break;
     case OVRDCAP_AMD64_CPU_MANUFACTURER_AMD:        name = L"AMD"; break;
@@ -1255,20 +1255,6 @@ BOOLEAN NTAPI PvDynRelocTreeNewCallback(
 
     switch (Message)
     {
-    case TreeNewHeaderRightClick:
-        {
-            PH_TN_COLUMN_MENU_DATA data;
-            data.TreeNewHandle = WindowHandle;
-            data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = NoSortOrder;
-            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
-            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
-            PhHandleTreeNewColumnMenu(&data);
-            PhDeleteTreeNewColumnMenu(&data);
-        }
-        return TRUE;
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
@@ -1708,7 +1694,7 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
             SetBkMode((HDC)wParam, TRANSPARENT);
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)PhStockDcBrush;
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     }

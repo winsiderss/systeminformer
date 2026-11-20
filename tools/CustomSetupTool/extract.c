@@ -243,7 +243,7 @@ NTSTATUS SetupExtractBuildCommitFiles(
         if (StagedFiles->Count)
         {
             percent = 0;
-            PhMultiplyDivide128(i + 1, 100, StagedFiles->Count, 0, &percent);
+            PhMultiplyDivide64(i + 1, 100, StagedFiles->Count, &percent);
         }
 
         if (!NT_SUCCESS(status = SetupCommitFile(Context, file)))

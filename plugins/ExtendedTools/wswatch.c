@@ -510,7 +510,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 // WS Watch is already enabled for the process. Enable updating.
                 EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLE), FALSE);
                 ShowWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED), SW_SHOW);
-                UpdateWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED));
                 PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
             }
             else
@@ -582,7 +581,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     {
                         EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLE), FALSE);
                         ShowWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED), SW_SHOW);
-                        UpdateWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED));
                         PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
                     }
                     else

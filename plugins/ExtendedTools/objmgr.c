@@ -101,7 +101,7 @@ typedef struct _ET_OBJECT_CONTEXT
     HIMAGELIST ListImageList;
 
     PPH_STRING CurrentPath;
-    PPH_LIST CurrentDirectoryList;
+    volatile PPH_LIST CurrentDirectoryList;
     BOOLEAN DisableSelChanged;
 
     struct _RESOLVER_THREAD_CONTEXT* ResolverThreadContext;
@@ -120,7 +120,7 @@ typedef struct _ET_OBJECT_ENTRY
     PPH_STRING Name;
     PPH_STRING TypeName;
 
-    LONG ItemIndex;
+    INT ItemIndex;
     PPH_STRING Target;
     BOOLEAN TargetIsResolving;
     BOOLEAN TargetIsInfoOnly;
@@ -152,7 +152,7 @@ typedef struct _ET_HANDLE_OPEN_CONTEXT
 typedef struct _RESOLVER_THREAD_CONTEXT
 {
     PET_OBJECT_CONTEXT Context;
-    BOOLEAN Break;
+    volatile BOOLEAN Break;
     PPH_LIST EntryToResolve;
     HANDLE ThreadHandle;
     ULONG Generation;
@@ -1426,7 +1426,7 @@ VOID EtpObjectManagerDrainResolvedEntries(
 
         if (UpdateListView)
         {
-            LONG index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, resolvedEntry->Entry);
+            INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, resolvedEntry->Entry);
             if (index != INT_ERROR)
                 ListView_RedrawItems(Context->ListViewHandle, index, index);
         }
@@ -1565,7 +1565,7 @@ VOID EtObjectManagerFreeListViewItems(
         PhDereferenceObject(Context->CurrentDirectoryList->Items[i]);
     }
 
-    //LONG index = INT_ERROR;
+    //INT index = INT_ERROR;
     //while ((index = PhFindListViewItemByFlags(
     //    Context->ListViewHandle,
     //    index,
@@ -2177,7 +2177,7 @@ NTSTATUS EtObjectManagerHandleCloseCallback(
     return STATUS_SUCCESS;
 }
 
-LONG NTAPI WinObjNameCompareFunction(
+INT NTAPI WinObjNameCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2189,7 +2189,7 @@ LONG NTAPI WinObjNameCompareFunction(
     return PhCompareStringWithNull(item1->Name, item2->Name, TRUE);
 }
 
-LONG NTAPI WinObjTypeCompareFunction(
+INT NTAPI WinObjTypeCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2201,7 +2201,7 @@ LONG NTAPI WinObjTypeCompareFunction(
     return PhCompareStringWithNull(item1->TypeName, item2->TypeName, TRUE);
 }
 
-LONG NTAPI WinObjTargetCompareFunction(
+INT NTAPI WinObjTargetCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2216,7 +2216,7 @@ LONG NTAPI WinObjTargetCompareFunction(
         return PhCompareStringWithNull(item1->Target, item2->Target, TRUE);
 }
 
-LONG NTAPI WinObjTriStateCompareFunction(
+INT NTAPI WinObjTriStateCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2229,7 +2229,7 @@ LONG NTAPI WinObjTriStateCompareFunction(
     return PhFindItemList(context->CurrentDirectoryList, Item1) - PhFindItemList(context->CurrentDirectoryList, Item2);
 }
 
-LONG NTAPI WinObjObjectCompareFunction(
+INT NTAPI WinObjObjectCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2484,7 +2484,7 @@ BOOLEAN EtListViewFindAndSelectItem(
     findinfo.psz = PH_AUTO_T(PH_STRING, PhCreateString2(Name))->Buffer;
     findinfo.flags = LVFI_STRING;
 
-    LONG item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
+    INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
 
     // Navigate to target object
     if (item != INT_ERROR)
@@ -2799,7 +2799,7 @@ VOID NTAPI EtpObjectManagerSortAndSelectOld(
         findinfo.psz = OldSelection->Buffer;
         findinfo.flags = LVFI_STRING;
 
-        LONG item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
+        INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
 
         if (item != INT_ERROR)
         {
@@ -2983,9 +2983,7 @@ VOID EtpObjectManagerGetStatusBarRect(
     HDC hdc;
 
     if (!PhGetClientRect(WindowHandle, &clientRect))
-    {
-        PhSetRectEmpty(&clientRect);
-    }
+        SetRectEmpty(&clientRect);
 
     dpiValue = PhGetWindowDpi(WindowHandle);
     height = PhScaleToDisplay(16, dpiValue);
@@ -3258,7 +3256,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         ExtendedListView_SortItems(context->ListViewHandle);
 
-                        LONG index = ListView_GetNextItem(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                        INT index = ListView_GetNextItem(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
                         if (index != INT_ERROR)
                             ListView_EnsureVisible(context->ListViewHandle, index, TRUE);
                     }
@@ -3272,7 +3270,6 @@ INT_PTR CALLBACK WinObjDlgProc(
                 ShowWindow(hwndDlg, SW_RESTORE);
             else
                 ShowWindow(hwndDlg, SW_SHOW);
-            UpdateWindow(hwndDlg);
 
             SetForegroundWindow(hwndDlg);
         }
@@ -3914,7 +3911,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     if (!PhIsNullOrEmptyString(newTarget) &&
                         EtpObjectManagerOpenTarget(context, newTarget))
                     {
-                        for (LONG i = 0; i < ComboBox_GetCount(context->PathControlHandle); i++)
+                        for (INT i = 0; i < ComboBox_GetCount(context->PathControlHandle); i++)
                         {
                             comboEntry = PH_AUTO(PhGetComboBoxString(context->PathControlHandle, i));
                             if (PhEqualString(newTarget, comboEntry, TRUE))

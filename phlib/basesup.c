@@ -52,7 +52,6 @@
  */
 
 #include <phbase.h>
-#include <ntintsafe.h>
 #include <phintrnl.h>
 #include <phintrin.h>
 #include <phnative.h>
@@ -60,6 +59,7 @@
 #include <circbuf.h>
 #include <mapldr.h>
 #include <thirdparty.h>
+#include <ntintsafe.h>
 
 #include <trace.h>
 
@@ -555,18 +555,14 @@ DOUBLE PhReadTimeStampFrequency(
     ULONG64 yieldCount = 0;
     ULONG64 startTsc;
     ULONG64 endTsc;
-    ULONG64 calibrationIntervalTicks;
 
     // Get QPC frequency for time conversion.
 
-    if (!PhQueryPerformanceFrequency(&performanceFrequency) || performanceFrequency.QuadPart <= 0)
-        return 0.0;
+    PhQueryPerformanceFrequency(&performanceFrequency);
 
-    // Calculate the 100ms wait interval in QPC ticks, rounded to the nearest tick.
+    // Calculate wait interval in QPC ticks (100ms measurement window)
 
-    if (!PhMultiplyDivide128((ULONG64)performanceFrequency.QuadPart, 100, 1000, 500, &calibrationIntervalTicks) ||
-        calibrationIntervalTicks == 0)
-        return 0.0;
+    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, 100, 1000);
 
     // Warm up CPU caches and branch predictors.
 
@@ -599,7 +595,7 @@ DOUBLE PhReadTimeStampFrequency(
         yieldCount++;
 
         PhQueryPerformanceCounter(&endTime);
-    } while ((endTime.QuadPart - startTime.QuadPart) < (LONGLONG)calibrationIntervalTicks);
+    } while ((endTime.QuadPart - startTime.QuadPart) < calibrationIntervalTicks);
 
     // Capture end TSC with speculation barriers.
 
@@ -2888,6 +2884,7 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
         if (Hashtable->NextEntry == Hashtable->AllocatedEntries)
         {
             // Resize the hashtable.
+            PhpResizeHashtable(Hashtable, Hashtable->AllocatedBuckets * 2);
             index = PhpIndexFromHash(Hashtable, hashCode);
         }
 
@@ -3303,6 +3300,7 @@ PVOID PhAllocateFromFreeList(
     }
     else
     {
+        entry = PhAllocate(UFIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size);
     }
 
     return &entry->Body;

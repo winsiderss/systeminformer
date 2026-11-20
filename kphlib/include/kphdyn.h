@@ -101,5 +101,4 @@ typedef struct _KPH_DYN_CONFIG
 #ifdef _WIN64
 extern CONST BYTE KphDynConfig[];
 extern CONST ULONG KphDynConfigLength;
-extern CONST ULONG KphDynConfigUncompressedLength;
 #endif

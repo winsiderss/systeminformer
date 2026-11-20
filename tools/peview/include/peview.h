@@ -62,7 +62,7 @@ VOID PvStartPageFinishLoading(
     );
 
 BOOLEAN PvSelectFile(
-    _In_opt_ HWND WindowHandle
+    VOID
     );
 
 VOID PvAddRecentFile(
@@ -756,25 +756,7 @@ INT_PTR CALLBACK PvpPeProcessesDlgProc(
     _In_ LPARAM lParam
     );
 
-INT_PTR CALLBACK PvpPeGuidsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 INT_PTR CALLBACK PvpPeTlsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-BOOLEAN PvPeSupportsRtti(
-    VOID
-    );
-
-INT_PTR CALLBACK PvpPeRttiDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -786,10 +768,6 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-    );
-
-BOOLEAN PvPeHasProdIdHeader(
-    VOID
     );
 
 INT_PTR CALLBACK PvpPeProdIdDlgProc(

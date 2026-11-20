@@ -606,11 +606,7 @@ ULONG PhGetProviderElapsedMilliseconds(
     if (!PhGetProviderElapsed(Registration, &elapsed))
         return 0;
 
-    ULONG64 milliseconds = 0;
-
-    PhMultiplyDivide128(elapsed.Ticks, 1000, elapsed.Frequency, 0, &milliseconds);
-
-    return (ULONG)milliseconds;
+    return (ULONG)(elapsed.Ticks * 1000 / elapsed.Frequency);
 }
 
 /**

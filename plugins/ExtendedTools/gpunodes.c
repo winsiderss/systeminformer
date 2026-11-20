@@ -557,7 +557,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 ShowWindow(WindowHandle, SW_RESTORE);
             else
                 ShowWindow(WindowHandle, SW_SHOW);
-            UpdateWindow(WindowHandle);
 
             SetForegroundWindow(WindowHandle);
         }

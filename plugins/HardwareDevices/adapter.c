@@ -198,11 +198,13 @@ VOID NetworkDevicesUpdate(
 
         if (RunCount != 0 && NetRateIntervalMs != 0)
         {
-            entry->CurrentNetworkSend = 0;
-            entry->CurrentNetworkReceive = 0;
+            entry->CurrentNetworkSend = entry->NetworkSendDelta.Delta;
+            entry->CurrentNetworkReceive = entry->NetworkReceiveDelta.Delta;
 
-            PhMultiplyDivide64(entry->NetworkSendDelta.Delta, 1000, NetRateIntervalMs, &entry->CurrentNetworkSend);
-            PhMultiplyDivide64(entry->NetworkReceiveDelta.Delta, 1000, NetRateIntervalMs, &entry->CurrentNetworkReceive);
+            entry->CurrentNetworkSend *= 1000;
+            entry->CurrentNetworkSend /= NetRateIntervalMs;
+            entry->CurrentNetworkReceive *= 1000;
+            entry->CurrentNetworkReceive /= NetRateIntervalMs;
 
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, entry->CurrentNetworkSend);
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, entry->CurrentNetworkReceive);

@@ -29,7 +29,7 @@
     <ClCompile Include="emenu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="controls\emenudx.cpp">
+    <ClCompile Include="emenudx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="error.c">
@@ -116,7 +116,7 @@
     <ClCompile Include="filepool.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="controls\tabnew.c">
+    <ClCompile Include="tabnew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Controls\propwnd.c">
@@ -215,7 +215,7 @@
     <ClCompile Include="nativeflt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="controls\searchbox.c">
+    <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="guisuplistview.cpp">
@@ -260,7 +260,7 @@
     <ClCompile Include="Controls\graphbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="controls\scrollbar.c">
+    <ClCompile Include="graphscroll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -482,6 +482,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\strsrch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\guisupview.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\thirdparty.h">

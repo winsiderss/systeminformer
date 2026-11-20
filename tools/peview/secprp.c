@@ -1519,7 +1519,6 @@ VOID PvpPeEnumerateFileCertificates(
             PhaFormatSize(Context->TotalSize, ULONG_MAX)->Buffer
             )->Buffer);
         ShowWindow(Context->LabelHandle, SW_SHOW);
-        UpdateWindow(Context->LabelHandle);
     }
 }
 
@@ -1788,7 +1787,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
              SetBkMode((HDC)wParam, TRANSPARENT);
              SetTextColor((HDC)wParam, RGB(0, 0, 0));
              SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-             return (INT_PTR)PhStockDcBrush;
+             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
          }
          break;
      case WM_KEYDOWN:

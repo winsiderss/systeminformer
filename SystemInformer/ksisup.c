@@ -26,7 +26,6 @@
 #include <svcsup.h>
 
 #include <ksisup.h>
-#include <ntstrsafe.h>
 
 typedef struct _KSI_SUPPORT_DATA
 {
@@ -644,15 +643,21 @@ LONG PhpShowKsiMessage(
 
         if (Status != STATUS_SUCCESS)
         {
-            WCHAR buffer[0x100] = L"";
+            INT bufferLength;
+            WCHAR buffer[0x100];
 
-            RtlStringCchPrintf(
+            bufferLength = _snwprintf(
                 buffer,
                 ARRAYSIZE(buffer),
                 L"%s (0x%08x)",
                 Title,
                 Status
                 );
+
+            if (bufferLength >= 0 && bufferLength < ARRAYSIZE(buffer))
+                buffer[bufferLength] = UNICODE_NULL;
+            else
+                buffer[ARRAYSIZE(buffer) - 1] = UNICODE_NULL;
 
             result = PhShowMessageOneTime2(
                 WindowHandle,

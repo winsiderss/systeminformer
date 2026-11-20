@@ -1876,7 +1876,7 @@ VOID PhGenerateClass5Guid(
     UCHAR hash[20];
 
     data = *NamespaceGuid;
-    data.Data1 = RtlUlongByteSwap(NamespaceGuid->Data1);
+    data.Data1 = _byteswap_ulong(NamespaceGuid->Data1);
     data.Data2 = _rotr16(NamespaceGuid->Data2, 8);
     data.Data3 = _rotr16(NamespaceGuid->Data3, 8);
 
@@ -1903,7 +1903,7 @@ VOID PhGenerateClass5Guid(
 
     guid = (PGUID_EX)Guid;
     memcpy(guid->Data, hash, sizeof(GUID));
-    guid->Guid.Data1 = RtlUlongByteSwap(guid->Guid.Data1);
+    guid->Guid.Data1 = _byteswap_ulong(guid->Guid.Data1);
     guid->Guid.Data2 = _rotr16(guid->Guid.Data2, 8);
     guid->Guid.Data3 = _rotr16(guid->Guid.Data3, 8);
     guid->s2.Version = GUID_VERSION_SHA1;
@@ -3326,11 +3326,11 @@ PPH_STRING PhFormatEnergy(
 {
     static const PH_STRINGREF PhEnergyUnitStrings[] =
     {
-        PH_STRINGREF_INIT(L" mJ"),
-        PH_STRINGREF_INIT(L" J"),
-        PH_STRINGREF_INIT(L" kJ"),
-        PH_STRINGREF_INIT(L" MJ"),
-        PH_STRINGREF_INIT(L" GJ")
+        PH_STRINGREF_INIT(L"mJ"),
+        PH_STRINGREF_INIT(L"J"),
+        PH_STRINGREF_INIT(L"kJ"),
+        PH_STRINGREF_INIT(L"MJ"),
+        PH_STRINGREF_INIT(L"GJ")
     };
     static const ULONGLONG PhEnergyUnitDivisors[] =
     {
@@ -3362,7 +3362,7 @@ PPH_STRING PhFormatEnergy(
         unit++;
     }
 
-    format.Type = DoubleFormatType | FormatUsePrecision;
+    format.Type = DoubleFormatType;
     format.Precision = 2;
     format.u.Double = (DOUBLE)MilliJoules / (DOUBLE)PhEnergyUnitDivisors[unit];
 

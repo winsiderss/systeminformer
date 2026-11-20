@@ -74,8 +74,6 @@ VOID PhEmSetObjectExtension(
 {
     PPH_EM_OBJECT_TYPE_STATE objectTypeState;
     PPH_EM_OBJECT_EXTENSION objectExtension;
-    SIZE_T alignedSize;
-    SIZE_T extensionEnd;
 
     if ((ULONG)ObjectType >= EmMaximumObjectType)
         PhRaiseStatus(STATUS_INVALID_PARAMETER);
@@ -85,12 +83,12 @@ VOID PhEmSetObjectExtension(
     if (objectTypeState->InitialSize)
         PhRaiseStatus(STATUS_INVALID_DEVICE_STATE);
 
-    if (!NT_SUCCESS(RtlSizeTAdd(ExtensionSize, MEMORY_ALLOCATION_ALIGNMENT - 1, &alignedSize)))
+    if (ExtensionSize > SIZE_MAX - (MEMORY_ALLOCATION_ALIGNMENT - 1))
         PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
 
-    ExtensionSize = alignedSize & ~((SIZE_T)MEMORY_ALLOCATION_ALIGNMENT - 1);
+    ExtensionSize = ALIGN_UP_BY(ExtensionSize, MEMORY_ALLOCATION_ALIGNMENT);
 
-    if (!NT_SUCCESS(RtlSizeTAdd(objectTypeState->ExtensionOffset, ExtensionSize, &extensionEnd)))
+    if (ExtensionSize > SIZE_MAX - objectTypeState->ExtensionOffset)
         PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
 
     objectExtension = AppContext->Extensions[ObjectType];
@@ -104,7 +102,7 @@ VOID PhEmSetObjectExtension(
 
         objectExtension->ExtensionSize = ExtensionSize;
         objectExtension->ExtensionOffset = objectTypeState->ExtensionOffset;
-        objectTypeState->ExtensionOffset = extensionEnd;
+        objectTypeState->ExtensionOffset += ExtensionSize;
     }
 
     objectExtension->Callbacks[EmObjectCreate] = CreateCallback;
@@ -174,17 +172,15 @@ SIZE_T PhEmGetObjectSize(
     _In_ SIZE_T InitialSize
     )
 {
-    SIZE_T objectSize;
-
     if ((ULONG)ObjectType >= EmMaximumObjectType ||
-        !NT_SUCCESS(RtlSizeTAdd(InitialSize, PhEmObjectTypeState[ObjectType].ExtensionOffset, &objectSize)))
+        InitialSize > SIZE_MAX - PhEmObjectTypeState[ObjectType].ExtensionOffset)
     {
         PhRaiseStatus(STATUS_INVALID_PARAMETER);
     }
 
     PhEmObjectTypeState[ObjectType].InitialSize = InitialSize;
 
-    return objectSize;
+    return InitialSize + PhEmObjectTypeState[ObjectType].ExtensionOffset;
 }
 
 /**

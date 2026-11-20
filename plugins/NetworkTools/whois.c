@@ -11,7 +11,6 @@
 
 #include "nettools.h"
 #include <richedit.h>
-#include <ntstrsafe.h>
 
 PPH_OBJECT_TYPE WhoisContextType = NULL;
 PH_INITONCE WhoisContextTypeInitOnce = PH_INITONCE_INIT;
@@ -427,12 +426,7 @@ BOOLEAN WhoisDualStackSocketConnectByAddressList(
         dnsRecordListCount += 1;
     }
 
-    SIZE_T socketAddressArrayAllocationSize;
-
-    if (!NT_SUCCESS(RtlSizeTMult(dnsRecordListCount, sizeof(SOCKADDR_IN6), &socketAddressArrayAllocationSize)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-
-    socketAddressArray = PhAllocate(socketAddressArrayAllocationSize);
+    socketAddressArray = PhAllocate(dnsRecordListCount * sizeof(SOCKADDR_IN6));
     memset(socketAddressArray, 0, dnsRecordListCount * sizeof(SOCKADDR_IN6));
 
     socketAddressListSize = SIZEOF_SOCKET_ADDRESS_LIST(dnsRecordListCount) + (dnsRecordListCount * sizeof(SOCKADDR_STORAGE));
@@ -775,11 +769,11 @@ BOOLEAN WhoisQueryServer(
 
         if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
         {
-            RtlStringCchPrintfA(formatBuffer, RTL_NUMBER_OF(formatBuffer), "n %ls\r\n", WhoisQueryAddress);
+            _snprintf_s(formatBuffer, RTL_NUMBER_OF(formatBuffer), _TRUNCATE, "n %ls\r\n", WhoisQueryAddress);
         }
         else
         {
-            RtlStringCchPrintfA(formatBuffer, RTL_NUMBER_OF(formatBuffer), "%ls\r\n", WhoisQueryAddress);
+            _snprintf_s(formatBuffer, RTL_NUMBER_OF(formatBuffer), _TRUNCATE, "%ls\r\n", WhoisQueryAddress);
         }
 
         // Length in bytes including the null terminator.
@@ -1301,7 +1295,6 @@ NTSTATUS NetworkWhoisDialogThreadStart(
         );
 
     ShowWindow(windowHandle, SW_SHOW);
-    UpdateWindow(windowHandle);
     SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
@@ -1372,7 +1365,7 @@ VOID ShowWhoisWindow(
 
 VOID ShowWhoisWindowFromAddress(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_IP_ENDPOINT RemoteEndpoint
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
     )
 {
     PNETWORK_WHOIS_CONTEXT context;

@@ -59,8 +59,8 @@ NTSTATUS UpdaterMsixNtStatusFromHResult(
         ClearFlag(Result, FACILITY_NT_BIT); // reverse HRESULT_FROM_NT (dmex)
     }
     else if (
-        std::cmp_equal(HRESULT_FACILITY(Result), FACILITY_WIN32) ||
-        std::cmp_equal(HRESULT_FACILITY(Result), FACILITY_WINDOWS)
+        HRESULT_FACILITY(Result) == FACILITY_WIN32 ||
+        HRESULT_FACILITY(Result) == FACILITY_WINDOWS
         )
     {
         Result = PhDosErrorToNtStatus(HRESULT_CODE(Result));

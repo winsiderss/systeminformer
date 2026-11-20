@@ -55,7 +55,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            LONG buttonId = (LONG)wParam;
+            INT buttonId = (INT)wParam;
 
             if (buttonId == IDRETRY)
             {

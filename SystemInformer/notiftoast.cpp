@@ -329,7 +329,7 @@ HRESULT PH::Toast::Initialize(
 
         status = toast.As(&toast4);
 
-        if (std::cmp_not_equal(status, E_NOINTERFACE))
+        if (status != E_NOINTERFACE)
         {
             RETURN_IF_FAILED(status);
             RETURN_IF_FAILED(toast4->put_Priority(PH::ToastNotificationPriority_High));
@@ -630,7 +630,7 @@ static HRESULT PhpToastThreadInvoke(
     if (!PhpToastThreadHandle)
         return E_FAIL;
 
-    if (std::cmp_equal(HandleToUlong(NtCurrentThreadId()), PhpToastThreadId))
+    if (HandleToUlong(NtCurrentThreadId()) == PhpToastThreadId)
         return Routine(Context);
 
     memset(&work, 0, sizeof(work));
@@ -761,7 +761,7 @@ static NTSTATUS PhpToastNotificationThread(
         {
             while (GetMessage(&message, NULL, 0, 0))
             {
-                if (std::cmp_equal(message.message, PH_TOAST_THREAD_QUIT))
+                if (message.message == PH_TOAST_THREAD_QUIT)
                     break;
 
                 TranslateMessage(&message);
@@ -1341,7 +1341,7 @@ static HRESULT NTAPI PhpShowToastEx2Worker(
     {
         ComPtr<PH::IToastNotification4> toast4;
         HRESULT status = toast.As(&toast4);
-        if (std::cmp_not_equal(status, E_NOINTERFACE))
+        if (status != E_NOINTERFACE)
         {
             RETURN_IF_FAILED(status);
             RETURN_IF_FAILED(toast4->put_Priority(PH::ToastNotificationPriority_High));
@@ -1543,7 +1543,7 @@ static HRESULT NTAPI PhpUpdateToastProgressWorker(
     WCHAR valueBuffer[32];
     if (Value < 0.0) Value = 0.0;
     if (Value > 1.0) Value = 1.0;
-    RtlStringCchPrintf(valueBuffer, RTL_NUMBER_OF(valueBuffer), L"%.4f", Value);
+    _snwprintf_s(valueBuffer, _TRUNCATE, L"%.4f", Value);
 
     RETURN_IF_FAILED(insertValue(L"progressValue", valueBuffer));
     RETURN_IF_FAILED(insertValue(L"progressValueString", String));

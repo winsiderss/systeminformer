@@ -235,7 +235,7 @@
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
-    <ClCompile Include="controls\tabnew.c" />
+    <ClCompile Include="tabnew.c" />
     <ClCompile Include="controls\propwnd.c" />
     <ClCompile Include="treenew.c" />
     <ClCompile Include="verify.c" />
@@ -266,6 +266,7 @@
     <ClInclude Include="include\hvsocketcontrol.h" />
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
+    <ClInclude Include="include\guisupview.h" />
     <ClInclude Include="include\lsamsup.h" />
     <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapclr.h" />

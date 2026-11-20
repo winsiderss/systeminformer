@@ -117,7 +117,7 @@ BOOLEAN PhMainWndInitialization(
 
     // Initialize the window.
 
-    PhMainWndHandle = PhCreateWindow(
+    PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
         NULL,
         WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? WS_CLIPCHILDREN : 0),
@@ -134,7 +134,7 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    PhMwpShowWindow(PhMainWndHandle, ShowCommand);
+    PhMwpShowWindow(PhMainWndHandle, SW_SHOWDEFAULT);
 
     return TRUE;
 }
@@ -372,7 +372,6 @@ PPH_STRING PhMwpInitializeWindowTitle(
         PhAppendStringBuilder2(&stringBuilder, L"-");
         break;
     case KphLevelMin:
-    default:
         PhAppendStringBuilder2(&stringBuilder, L"--");
         break;
     }
@@ -2780,7 +2779,6 @@ VOID PhMwpOnShowWindow(
     if (NeedsMaximize)
     {
         ShowWindow(WindowHandle, SW_MAXIMIZE);
-        UpdateWindow(WindowHandle);
         NeedsMaximize = FALSE;
     }
 
@@ -3187,13 +3185,11 @@ LRESULT PhMwpOnUserMessage(
                 if (!IsWindowVisible(WindowHandle))
                 {
                     ShowWindow(WindowHandle, SW_SHOW);
-                    UpdateWindow(WindowHandle);
                 }
 
                 if (IsMinimized(WindowHandle))
                 {
                     ShowWindow(WindowHandle, SW_RESTORE);
-                    UpdateWindow(WindowHandle);
                 }
 
                 return PH_ACTIVATE_REPLY;
@@ -3610,7 +3606,6 @@ VOID PhMwpActivateWindow(
     if (IsMinimized(WindowHandle))
     {
         ShowWindow(WindowHandle, SW_RESTORE);
-        UpdateWindow(WindowHandle);
         SetForegroundWindow(WindowHandle);
     }
     else if (IsWindowVisible(WindowHandle))
@@ -3623,7 +3618,6 @@ VOID PhMwpActivateWindow(
     else
     {
         ShowWindow(WindowHandle, SW_SHOW);
-        UpdateWindow(WindowHandle);
         SetForegroundWindow(WindowHandle);
     }
 }

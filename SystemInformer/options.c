@@ -191,7 +191,6 @@ VOID PhShowOptionsDialog(
 
             PhRegisterDialog(PhOptionsWindowHandle);
             ShowWindow(PhOptionsWindowHandle, SW_SHOW);
-            UpdateWindow(PhOptionsWindowHandle);
         }
         else if (SectionName)
         {
@@ -205,10 +204,7 @@ VOID PhShowOptionsDialog(
         }
 
         if (IsMinimized(PhOptionsWindowHandle))
-        {
             ShowWindow(PhOptionsWindowHandle, SW_RESTORE);
-            UpdateWindow(PhOptionsWindowHandle);
-        }
         else
             SetForegroundWindow(PhOptionsWindowHandle);
     }

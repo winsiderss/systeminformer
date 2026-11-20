@@ -337,12 +337,7 @@ NTSTATUS PhLookupSamNames(
     PULONG relativeIds = NULL;
     PSID_NAME_USE uses = NULL;
 
-    SIZE_T namesAllocationSize;
-
-    if (!NT_SUCCESS(RtlSizeTMult(Count, sizeof(UNICODE_STRING), &namesAllocationSize)))
-        PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
-
-    names = PhAllocateZero(namesAllocationSize);
+    names = PhAllocateZero(sizeof(UNICODE_STRING) * Count);
 
     for (ULONG i = 0; i < Count; i++)
     {

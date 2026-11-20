@@ -369,7 +369,6 @@ typedef struct _WBCL_WINDOW_CONTEXT
     HWND ListViewHandle;
     HWND BankHandle;
     HWND ParentWindowHandle;
-    HFONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
     PVOID LogBuffer;
     ULONG LogLength;
@@ -1095,13 +1094,6 @@ PPH_STRING EtWbclFormatLeaf(
     return PhBufferToHexString((PUCHAR)Data, Size);
 }
 
-// TRUE if Size bytes starting at Pointer lie at or before End. Compares against the
-// remaining byte count rather than computing Pointer + Size, which can wrap on 32-bit
-// builds when Size is taken from the log.
-#define ET_WBCL_OFFSET(Pointer, End, Size) \
-    ((ULONG_PTR)(Pointer) <= (ULONG_PTR)(End) && \
-     (ULONG64)(Size) <= (ULONG64)((ULONG_PTR)(End) - (ULONG_PTR)(Pointer)))
-
 // A crafted log can nest aggregation records arbitrarily deeply and describe an
 // unbounded number of them, so decoding is capped on all three axes. (dmex)
 #define ET_WBCL_SIPA_MAX_DEPTH 32
@@ -1126,7 +1118,7 @@ VOID EtWbclAppendSipaEvents(
         return;
     }
 
-    while (ET_WBCL_OFFSET(position, end, RTL_SIZEOF_THROUGH_FIELD(ET_SIPA_EVENT_HEADER, EventSize)))
+    while ((position + RTL_SIZEOF_THROUGH_FIELD(ET_SIPA_EVENT_HEADER, EventSize)) <= end)
     {
         PET_SIPA_EVENT_HEADER header = (PET_SIPA_EVENT_HEADER)position;
         ULONG sipaType = header->EventType;
@@ -1134,7 +1126,7 @@ VOID EtWbclAppendSipaEvents(
         PBYTE sipaData = header->EventData;
         PCWSTR name;
 
-        if (!ET_WBCL_OFFSET(sipaData, end, sipaSize))
+        if (sipaData + sipaSize > end)
             break;
 
         if (*RecordBudget == 0 || StringBuilder->String->Length >= ET_WBCL_SIPA_MAX_OUTPUT)
@@ -1207,13 +1199,13 @@ PPH_STRING EtWbclFormatEventData(
                 PPH_STRING nameString;
                 PPH_STRING result;
                 GUID guid;
-                ULONG64 nameBytes;
+                ULONG64 nameLength = variable->UnicodeNameLength;
+                ULONG64 nameBytes = nameLength * sizeof(WCHAR);
 
                 memcpy(&guid, variable->VariableName, sizeof(GUID));
                 guidString = PhFormatGuid(&guid);
 
-                if (NT_SUCCESS(RtlULongLongMult(variable->UnicodeNameLength, sizeof(WCHAR), &nameBytes)) &&
-                    nameBytes <= EventSize - UFIELD_OFFSET(ET_UEFI_VARIABLE_DATA, UnicodeName))
+                if (nameBytes <= EventSize - UFIELD_OFFSET(ET_UEFI_VARIABLE_DATA, UnicodeName))
                     nameString = PhCreateStringEx(variable->UnicodeName, (SIZE_T)nameBytes);
                 else
                     nameString = PhCreateString(L"?");
@@ -1459,13 +1451,13 @@ ULONG EtWbclEnumerate(
     EtWbclClearEntries(Context);
 
     // The first record is always a legacy SHA1 TCG_PCR_EVENT.
-    if (ET_WBCL_OFFSET(position, end, UFIELD_OFFSET(ET_TCG_PCR_EVENT, Event)))
+    if ((position + UFIELD_OFFSET(ET_TCG_PCR_EVENT, Event)) <= end)
     {
         PET_TCG_PCR_EVENT first = (PET_TCG_PCR_EVENT)position;
         ULONG eventSize = first->EventSize;
         PBYTE eventData = first->Event;
 
-        if (ET_WBCL_OFFSET(eventData, end, eventSize))
+        if (eventData + eventSize <= end)
         {
             // Detect the crypto-agile "Spec ID Event03" header.
             if (first->EventType == SIPAEV_NO_ACTION &&
@@ -1534,7 +1526,7 @@ ULONG EtWbclEnumerate(
             PBYTE cursor = position;
             ULONG digestCount;
 
-            if (!ET_WBCL_OFFSET(cursor, end, sizeof(ULONG) * 3))
+            if (cursor + sizeof(ULONG) * 2 + sizeof(ULONG) > end)
                 break;
 
             pcrIndex = *(PULONG UNALIGNED)cursor;
@@ -1549,7 +1541,7 @@ ULONG EtWbclEnumerate(
                 USHORT algId;
                 USHORT digestSize;
 
-                if (!ET_WBCL_OFFSET(cursor, end, sizeof(USHORT)))
+                if (cursor + sizeof(USHORT) > end)
                 {
                     cursor = end;
                     break;
@@ -1571,7 +1563,7 @@ ULONG EtWbclEnumerate(
                 if (digestSize == 0)
                     digestSize = EtWbclAlgorithmDigestSize(algId);
 
-                if (digestSize == 0 || !ET_WBCL_OFFSET(cursor, end, digestSize))
+                if (digestSize == 0 || cursor + digestSize > end)
                 {
                     cursor = end;
                     break;
@@ -1588,14 +1580,14 @@ ULONG EtWbclEnumerate(
                 cursor += digestSize;
             }
 
-            if (!ET_WBCL_OFFSET(cursor, end, sizeof(ULONG)))
+            if (cursor + sizeof(ULONG) > end)
                 break;
 
             eventSize = *(PULONG UNALIGNED)cursor;
             cursor += sizeof(ULONG);
             eventData = cursor;
 
-            if (!ET_WBCL_OFFSET(eventData, end, eventSize))
+            if (eventData + eventSize > end)
                 break;
 
             position = eventData + eventSize;
@@ -1604,7 +1596,7 @@ ULONG EtWbclEnumerate(
         {
             PET_TCG_PCR_EVENT record = (PET_TCG_PCR_EVENT)position;
 
-            if (!ET_WBCL_OFFSET(position, end, UFIELD_OFFSET(ET_TCG_PCR_EVENT, Event)))
+            if (position + UFIELD_OFFSET(ET_TCG_PCR_EVENT, Event) > end)
                 break;
 
             pcrIndex = record->PcrIndex;
@@ -1616,7 +1608,7 @@ ULONG EtWbclEnumerate(
             eventSize = record->EventSize;
             eventData = record->Event;
 
-            if (!ET_WBCL_OFFSET(eventData, end, eventSize))
+            if (eventData + eventSize > end)
                 break;
 
             position = eventData + eventSize;
@@ -2262,8 +2254,6 @@ VOID EtWbclShowEntryDetails(
     PhDereferenceObject(text);
 }
 
-static HFONT WbclGeneralWindowFont = NULL; // modal property sheet, single instance (page has no context struct)
-
 static INT_PTR CALLBACK EtWbclGeneralDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -2291,9 +2281,6 @@ static INT_PTR CALLBACK EtWbclGeneralDlgProc(
             PhAddListViewColumn(listViewHandle, 1, 1, 1, LVCFMT_LEFT, 175, L"Value");
             PhSetExtendedListView(listViewHandle);
 
-            WbclGeneralWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(listViewHandle, WbclGeneralWindowFont, FALSE);
-
             PhAddListViewItem(listViewHandle, MAXINT, L"Index", NULL);
             PhSetListViewSubItem(listViewHandle, 0, 1, PH_AUTO_T(PH_STRING, PhFormatUInt64(entry->Index, FALSE))->Buffer);
 
@@ -2319,23 +2306,6 @@ static INT_PTR CALLBACK EtWbclGeneralDlgProc(
             PhSetListViewSubItem(listViewHandle, 5, 1, PH_AUTO_T(PH_STRING, PhFormatSize(entry->EventSize, ULONG_MAX))->Buffer);
         }
         return TRUE;
-    case WM_DESTROY:
-        {
-            if (WbclGeneralWindowFont)
-            {
-                DeleteFont(WbclGeneralWindowFont);
-                WbclGeneralWindowFont = NULL;
-            }
-        }
-        break;
-    case WM_DPICHANGED:
-        {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&WbclGeneralWindowFont, GetDlgItem(WindowHandle, IDC_WBCL_PROP_LIST), windowFont, TRUE);
-        }
-        break;
     case WM_NOTIFY:
         {
             if (((LPNMHDR)lParam)->code == PSN_SETACTIVE)
@@ -2433,9 +2403,6 @@ INT_PTR CALLBACK EtWbclDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 110, L"PCR state");
     PhSetExtendedListView(context->ListViewHandle);
 
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, EtWbclIndexCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, EtWbclPcrCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 5, EtWbclSizeCompareFunction);
@@ -2470,8 +2437,6 @@ INT_PTR CALLBACK EtWbclDlgProc(
                 PhDereferenceObject(context->Entries);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-            if (context->WindowFont)
-                DeleteFont(context->WindowFont);
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -2483,11 +2448,6 @@ INT_PTR CALLBACK EtWbclDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
-
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

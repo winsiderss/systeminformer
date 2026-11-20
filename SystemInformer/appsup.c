@@ -2502,7 +2502,6 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (IsMinimized(RegeditWindow))
     {
         ShowWindow(RegeditWindow, SW_RESTORE);
-        UpdateWindow(RegeditWindow);
     }
 
     SetForegroundWindow(RegeditWindow);

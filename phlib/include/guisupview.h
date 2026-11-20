@@ -13,8 +13,6 @@
 #ifndef _PH_GUISUPPVIEW_H
 #define _PH_GUISUPPVIEW_H
 
-#include <commctrl.h>
-
 //
 // Listview2 (Undocumented)
 //
