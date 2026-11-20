@@ -363,10 +363,7 @@ HICON PhUpdateIconCpuHistory(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
-    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_CPU_USER);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), PhGetIntegerSetting(SETTING_COLOR_CPU_USER), PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectBitmap(hdc, oldBitmap);
@@ -382,6 +379,7 @@ HICON PhUpdateIconIoHistory(
     _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -463,13 +461,10 @@ HICON PhUpdateIconIoHistory(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
-    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (TaskbarTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -487,6 +482,7 @@ HICON PhUpdateIconCommitHistory(
     _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -529,11 +525,10 @@ HICON PhUpdateIconCommitHistory(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (TaskbarTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -592,8 +587,7 @@ HICON PhUpdateIconPhysicalHistory(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_PHYSICAL);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectBitmap(hdc, oldBitmap);

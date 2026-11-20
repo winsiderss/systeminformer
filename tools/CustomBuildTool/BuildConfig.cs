@@ -130,6 +130,7 @@ namespace CustomBuildTool
             "fastlock.h",
             "filestream.h",
             "graph.h",
+            "graphstyle.h",
             "graphprp.h",
             "graphscroll.h",
             "guisup.h",

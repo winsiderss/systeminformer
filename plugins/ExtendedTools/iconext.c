@@ -395,6 +395,7 @@ VOID EtpGpuIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -442,11 +443,10 @@ VOID EtpGpuIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -536,6 +536,7 @@ VOID EtpNpuIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -583,11 +584,10 @@ VOID EtpNpuIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -656,6 +656,7 @@ VOID EtpDiskIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -720,13 +721,10 @@ VOID EtpDiskIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
-    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -794,6 +792,7 @@ VOID EtpNetworkIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -875,13 +874,10 @@ VOID EtpNetworkIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
-    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -1203,6 +1199,7 @@ VOID EtpGpuMemoryIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -1249,11 +1246,10 @@ VOID EtpGpuMemoryIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -1341,6 +1337,7 @@ VOID EtpGpuTemperatureIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN transparent;
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -1387,11 +1384,10 @@ VOID EtpGpuTemperatureIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_TEMPERATURE);
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhGetIntegerSetting(SETTING_COLOR_TEMPERATURE), 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (EtTrayIconTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }

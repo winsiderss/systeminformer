@@ -21,8 +21,16 @@ extern "C" {
 
 extern RECT PhNormalGraphTextMargin;
 extern RECT PhNormalGraphTextPadding;
-// TRUE draws graphs with the anti-aliased renderer; FALSE uses the classic renderer.
-extern BOOLEAN PhEnableGraphSmoothing;
+typedef struct _PH_GRAPH_RENDER_OPTIONS
+{
+    BOOLEAN Smooth; // anti-aliased renderer; FALSE uses the classic renderer
+    BOOLEAN Motion; // scrolling and morphing between updates; smooth renderer only
+    UCHAR Fill; // PH_GRAPH_FILL
+    UCHAR TextBoxAlpha; // 0-255
+} PH_GRAPH_RENDER_OPTIONS, *PPH_GRAPH_RENDER_OPTIONS;
+
+// Render options of graphs without their own (GCM_SETRENDEROPTIONS).
+extern PH_GRAPH_RENDER_OPTIONS PhGraphRenderOptions;
 
 #define PH_GRAPH_USE_GRID_X 0x1
 #define PH_GRAPH_USE_GRID_Y 0x2
@@ -273,6 +281,7 @@ typedef struct _PH_GRAPH_OPTIONS
 #define GCM_SETOPTIONS (WM_USER + 1309)
 #define GCM_UPDATE (WM_USER + 1310)
 #define GCM_SETCALLBACK (WM_USER + 1311)
+#define GCM_SETRENDEROPTIONS (WM_USER + 1312) // lParam: PPH_GRAPH_RENDER_OPTIONS to copy, or NULL to follow PhGraphRenderOptions
 
 #define Graph_GetDrawInfo(hWnd, DrawInfo) \
     SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
@@ -296,6 +305,8 @@ typedef struct _PH_GRAPH_OPTIONS
     SendMessage((hWnd), GCM_UPDATE, 0, 0)
 #define Graph_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), GCM_SETCALLBACK, (WPARAM)(Callback), (LPARAM)(Context))
+#define Graph_SetRenderOptions(hWnd, RenderOptions) \
+    SendMessage((hWnd), GCM_SETRENDEROPTIONS, 0, (LPARAM)(RenderOptions))
 
 // Notifications
 

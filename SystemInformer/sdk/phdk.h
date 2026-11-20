@@ -30,6 +30,7 @@
 #include "treenew.h"
 #include "tabnew.h"
 #include "graph.h"
+#include "graphstyle.h"
 #include "emenu.h"
 #include "cpysave.h"
 

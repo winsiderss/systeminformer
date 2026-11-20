@@ -23,6 +23,7 @@
 #include <procprv.h>
 #include <phsettings.h>
 #include <graphbar.h>
+#include <graphstyle.h>
 
 static CONST PH_KEY_VALUE_PAIR MemoryFormFactors[] =
 {
@@ -140,6 +141,14 @@ static BOOLEAN PhSipGetMemoryListInfo(
 
 // Smooth graphs: the fraction of the bar each segment takes. Non-empty segments are at least
 // PH_SI_MEMORY_BAR_MIN_SEGMENT wide; the difference comes proportionally from the wider ones.
+// The memory bar fades like the graphs with the smooth renderer and gradient fills; otherwise its segments are solid.
+static BOOLEAN PhSipMemoryBarFades(
+    VOID
+    )
+{
+    return PhGraphRenderOptions.Smooth && PhGraphRenderOptions.Fill == PhGraphFillGradient;
+}
+
 static VOID PhSipLayoutMemoryGraphBar(
     _In_reads_(Count) const ULONG64* SegmentPages,
     _In_ ULONG Count,
@@ -1237,7 +1246,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
             segmentColors[4] = PhEnableThemeSupport ? RGB(0x7a, 0x7a, 0x7a) : RGB(0x9e, 0x9e, 0x9e); // Zero (gray)
             segmentColors[5] = PhEnableThemeSupport ? PhHalveColorBrightness(RGB(0x48, 0xc0, 0xc4)) : RGB(0x48, 0xc0, 0xc4); // Free (teal)
 
-            if (PhEnableGraphSmoothing)
+            if (PhSipMemoryBarFades())
             {
                 FLOAT fractions[RTL_NUMBER_OF(segmentPages)];
                 COLORREF lineColors[RTL_NUMBER_OF(segmentPages)];
@@ -1367,7 +1376,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
             hit = FALSE;
             hitIndex = 0;
 
-            if (PhEnableGraphSmoothing)
+            if (PhSipMemoryBarFades())
             {
                 FLOAT fractions[RTL_NUMBER_OF(segmentPages)];
                 FLOAT start = 0;
@@ -1390,7 +1399,7 @@ static BOOLEAN NTAPI PhSipNotifyMemoryGraphBar(
                 }
             }
 
-            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages) && !PhEnableGraphSmoothing; i++)
+            for (ULONG i = 0; i < RTL_NUMBER_OF(segmentPages) && !PhSipMemoryBarFades(); i++)
             {
                 LONG right;
                 ULONG64 scaledWidth = 0;

@@ -13,6 +13,7 @@
 #include <ph.h>
 #include <math.h>
 #include <graph.h>
+#include <graphstyle.h>
 #include <guisup.h>
 
 #define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
@@ -101,6 +102,9 @@ typedef struct _PHP_GRAPH_CONTEXT
     PH_GRAPH_TEXT_BOX_STATE TextBoxState;
     PH_GRAPH_TEXT_BOX_STATE TextBoxState2;
     PHP_GRAPH_LABEL_CACHE LabelCache;
+
+    BOOLEAN HasRenderOptions; // FALSE follows PhGraphRenderOptions
+    PH_GRAPH_RENDER_OPTIONS RenderOptions;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 #define PH_GRAPH_ANIMATION_TIMER_ID 1
@@ -120,7 +124,14 @@ LRESULT CALLBACK PhpGraphWndProc(
 
 RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
-BOOLEAN PhEnableGraphSmoothing = TRUE;
+PH_GRAPH_RENDER_OPTIONS PhGraphRenderOptions = { TRUE, TRUE, PhGraphFillGradient, 224 };
+
+FORCEINLINE PPH_GRAPH_RENDER_OPTIONS PhpGetGraphRenderOptions(
+    _In_ PPHP_GRAPH_CONTEXT Context
+    )
+{
+    return Context->HasRenderOptions ? &Context->RenderOptions : &PhGraphRenderOptions;
+}
 
 RTL_ATOM PhGraphControlInitialization(
     VOID
@@ -205,9 +216,95 @@ FORCEINLINE VOID PhpGetGraphPoint(
     }
 }
 
+#define PH_GRAPH_SMOOTH_SUBSAMPLES 4
+#define PH_GRAPH_SMOOTH_FILL_TOP 1.0f
+#define PH_GRAPH_SMOOTH_FILL_BOTTOM 0.30f // fill opacity at the bottom of the graph
+#define PH_GRAPH_TRANSLUCENT_FILL_OPACITY 0.25f // PhGraphFillTranslucent: the line color over the background
+#define PH_GRAPH_TRANSLUCENT_FILL_WEIGHT 64 // PH_GRAPH_TRANSLUCENT_FILL_OPACITY of 256
+#define PH_GRAPH_SMOOTH_GRID_UNDER_FILL 0.35f
+
+// Rec. 601 luma of a bits-format (0x00RRGGBB) color.
+FORCEINLINE BOOLEAN PhpIsLightGraphColor(
+    _In_ ULONG Color
+    )
+{
+    return ((Color >> 16) & 0xff) * 299 + ((Color >> 8) & 0xff) * 587 + (Color & 0xff) * 114 >= 128 * 1000;
+}
+
+// Fill opacity for row y (0 is the bottom), from FillBottom up to the top opacity. Curve keeps
+// the upper part stronger and drops off lower down (dark backgrounds); otherwise linear.
+FORCEINLINE FLOAT PhpGraphSmoothFillOpacity(
+    _In_ LONG y,
+    _In_ LONG Height,
+    _In_ FLOAT FillBottom,
+    _In_ BOOLEAN Curve
+    )
+{
+    FLOAT t = ((FLOAT)y + 0.5f) / (FLOAT)Height;
+
+    return FillBottom + (PH_GRAPH_SMOOTH_FILL_TOP - FillBottom) * (Curve ? t * sqrtf(t) : t);
+}
+
+typedef struct _PHP_GRAPH_SMOOTH_CONTEXT
+{
+    LONG Width;
+    LONG Height;
+    LONG PointCount;
+    FLOAT Origin; // x of data point 0
+    PFLOAT Y1;
+    PFLOAT Y2;
+} PHP_GRAPH_SMOOTH_CONTEXT, *PPHP_GRAPH_SMOOTH_CONTEXT;
+
+FORCEINLINE ULONG PhpGraphCoverageToWeight(
+    _In_ FLOAT Coverage
+    )
+{
+    if (Coverage <= 0.0f)
+        return 0;
+    if (Coverage >= 1.0f)
+        return 256;
+
+    return (ULONG)(Coverage * 256.0f + 0.5f);
+}
+
+FORCEINLINE ULONG PhpBlendGraphColor(
+    _In_ ULONG Destination,
+    _In_ ULONG Source,
+    _In_ ULONG Weight
+    )
+{
+    ULONG inverse = 256 - Weight;
+    ULONG rb;
+    ULONG g;
+
+    rb = ((Destination & 0x00ff00ff) * inverse + (Source & 0x00ff00ff) * Weight) >> 8;
+    g = ((Destination & 0x0000ff00) * inverse + (Source & 0x0000ff00) * Weight) >> 8;
+
+    return (rb & 0x00ff00ff) | (g & 0x0000ff00);
+}
+
+FORCEINLINE ULONG PhpBlendGraphColor3(
+    _In_ ULONG Color0,
+    _In_ ULONG Color1,
+    _In_ ULONG Weight1,
+    _In_ ULONG Color2,
+    _In_ ULONG Weight2
+    )
+{
+    ULONG weight0 = 256 - Weight1 - Weight2;
+    ULONG rb;
+    ULONG g;
+
+    rb = ((Color0 & 0x00ff00ff) * weight0 + (Color1 & 0x00ff00ff) * Weight1 + (Color2 & 0x00ff00ff) * Weight2) >> 8;
+    g = ((Color0 & 0x0000ff00) * weight0 + (Color1 & 0x0000ff00) * Weight1 + (Color2 & 0x0000ff00) * Weight2) >> 8;
+
+    return (rb & 0x00ff00ff) | (g & 0x0000ff00);
+}
+
 static VOID PhpDrawGraphClassic(
     _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options,
     _Out_ PULONG LabelMaxY,
     _Out_ PULONG LabelDataIndex
     )
@@ -253,6 +350,10 @@ static VOID PhpDrawGraphClassic(
     ULONG gridColor;
     FLOAT gridBase;
     FLOAT gridLevel;
+    UCHAR fill = Options->Fill;
+    PULONG fillRows1 = NULL; // gradient fill color of each row, 0 is the bottom
+    PULONG fillRows2 = NULL;
+    LONG y;
 
     ULONG yLabelMax = 0;
     ULONG yLabelDataIndex = 0;
@@ -264,6 +365,36 @@ static VOID PhpDrawGraphClassic(
     lineBackColor1 = COLORREF_TO_BITS(DrawInfo->LineBackColor1);
     lineColor2 = COLORREF_TO_BITS(DrawInfo->LineColor2);
     lineBackColor2 = COLORREF_TO_BITS(DrawInfo->LineBackColor2);
+
+    if (fill == PhGraphFillTranslucent)
+    {
+        ULONG backColor = COLORREF_TO_BITS(DrawInfo->BackColor);
+
+        lineBackColor1 = PhpBlendGraphColor(backColor, lineColor1, PH_GRAPH_TRANSLUCENT_FILL_WEIGHT);
+        lineBackColor2 = PhpBlendGraphColor(backColor, lineColor2, PH_GRAPH_TRANSLUCENT_FILL_WEIGHT);
+    }
+    else if (fill == PhGraphFillGradient && height > 0)
+    {
+        ULONG backColor = COLORREF_TO_BITS(DrawInfo->BackColor);
+        BOOLEAN fillCurve = !PhpIsLightGraphColor(backColor);
+
+        if (fillRows1 = PhAllocateStack(height * sizeof(ULONG) * 2))
+        {
+            fillRows2 = fillRows1 + height;
+
+            for (y = 0; y < height; y++)
+            {
+                ULONG weight = PhpGraphCoverageToWeight(PhpGraphSmoothFillOpacity(y, height, PH_GRAPH_SMOOTH_FILL_BOTTOM, fillCurve));
+
+                fillRows1[y] = PhpBlendGraphColor(backColor, lineBackColor1, weight);
+                fillRows2[y] = PhpBlendGraphColor(backColor, lineBackColor2, weight);
+            }
+        }
+        else
+        {
+            fill = PhGraphFillSolid;
+        }
+    }
 
     if (DrawInfo->BackColor == 0)
     {
@@ -481,17 +612,35 @@ static VOID PhpDrawGraphClassic(
 
         // Fill in the background.
 
-        if (flags & PH_GRAPH_USE_LINE_2)
+        if (fill == PhGraphFillGradient)
         {
-            for (i = h1_high1 + width; i < h2_low1; i += width)
+            if (flags & PH_GRAPH_USE_LINE_2)
             {
-                bits[i] = lineBackColor2;
+                for (i = h1_high1 + width, y = (h1_high1 - x) / width + 1; i < h2_low1; i += width, y++)
+                {
+                    bits[i] = fillRows2[y];
+                }
+            }
+
+            for (i = x, y = 0; i < h1_low1; i += width, y++)
+            {
+                bits[i] = fillRows1[y];
             }
         }
-
-        for (i = x; i < h1_low1; i += width)
+        else if (fill != PhGraphFillNone)
         {
-            bits[i] = lineBackColor1;
+            if (flags & PH_GRAPH_USE_LINE_2)
+            {
+                for (i = h1_high1 + width; i < h2_low1; i += width)
+                {
+                    bits[i] = lineBackColor2;
+                }
+            }
+
+            for (i = x; i < h1_low1; i += width)
+            {
+                bits[i] = lineBackColor1;
+            }
         }
 
         // Draw the grid.
@@ -581,6 +730,9 @@ static VOID PhpDrawGraphClassic(
         x--;
     }
 
+    if (fillRows1)
+        PhFreeStack(fillRows1);
+
     *LabelMaxY = yLabelMax;
     *LabelDataIndex = yLabelDataIndex;
 }
@@ -616,13 +768,13 @@ static VOID PhpDrawGraphRoundRect(
 #define PH_GRAPH_CHIP_EXTRA_PADDING_X 3.0f // rounded ends need more room beside the text than above it
 #define PH_GRAPH_LABEL_PADDING_X 7.0f // peak label pill: space beside the text
 #define PH_GRAPH_BAR_LINE_WIDTH 1.5f // stacked bar: line on the right edge of each segment
-#define PH_GRAPH_CHIP_FILL_OPACITY 0.88f
 #define PH_GRAPH_CHIP_BORDER_MIX 0.25f // border color: background mixed toward the text color
 
 static VOID PhpDrawGraphChip(
     _In_ PPHP_GRAPH_SURFACE Surface,
     _In_ PRECT Rect,
     _In_ COLORREF FillColor,
+    _In_ FLOAT FillOpacity,
     _In_ COLORREF BorderColor
     )
 {
@@ -636,7 +788,7 @@ static VOID PhpDrawGraphChip(
         (FLOAT)Rect->bottom,
         radius,
         FillColor,
-        PH_GRAPH_CHIP_FILL_OPACITY,
+        FillOpacity,
         BorderColor,
         1.0f
         );
@@ -698,12 +850,39 @@ static PPHP_GRAPH_TEXT_MASK PhpGetGraphLabelCacheMask(
     return &Cache->Mask;
 }
 
-// Surface is NULL for the classic text style. ValueDrawInfo, when set, holds the data the label
-// values are read from (an animation frame is drawn from data between two updates).
+// Fills a rectangle (top-down coordinates) with Color at Alpha (0-255).
+static VOID PhpBlendGraphRect(
+    _In_ PPHP_GRAPH_SURFACE Surface,
+    _In_ PRECT Rect,
+    _In_ COLORREF Color,
+    _In_ UCHAR Alpha
+    )
+{
+    ULONG color = COLORREF_TO_BITS(Color);
+    ULONG weight = Alpha + (Alpha >> 7); // 0-256
+    LONG left = max(Rect->left, 0);
+    LONG right = min(Rect->right, Surface->Width);
+    LONG top = max(Rect->top, 0);
+    LONG bottom = min(Rect->bottom, Surface->Height);
+
+    for (LONG y = top; y < bottom; y++)
+    {
+        PULONG row = Surface->Bits + (Surface->BottomUp ? Surface->Height - 1 - y : y) * Surface->Width;
+
+        for (LONG x = left; x < right; x++)
+            row[x] = PhpBlendGraphColor(row[x], color, weight);
+    }
+}
+
+// SmoothText draws text boxes as anti-aliased chips; otherwise classic rectangles. ValueDrawInfo,
+// when set, holds the data the label values are read from (an animation frame is drawn from data
+// between two updates).
 static VOID PhpDrawGraphText(
     _In_ HDC hdc,
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
-    _In_opt_ PPHP_GRAPH_SURFACE Surface,
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options,
+    _In_ PPHP_GRAPH_SURFACE Surface,
+    _In_ BOOLEAN SmoothText,
     _In_ FLOAT Offset,
     _In_opt_ PPH_GRAPH_DRAW_INFO ValueDrawInfo,
     _Inout_opt_ PPHP_GRAPH_LABEL_CACHE LabelCache,
@@ -765,7 +944,7 @@ static VOID PhpDrawGraphText(
             PHP_GRAPH_TEXT_MASK labelMask;
             PPHP_GRAPH_TEXT_MASK mask = NULL;
 
-            if (Surface)
+            if (SmoothText)
             {
                 if (LabelCache)
                     mask = PhpGetGraphLabelCacheMask(LabelCache, hdc, label);
@@ -817,7 +996,7 @@ static VOID PhpDrawGraphText(
                     textTop + mask->TextHeight + 1.0f,
                     (mask->TextHeight + 2.0f) * 0.5f,
                     DrawInfo->BackColor,
-                    PH_GRAPH_CHIP_FILL_OPACITY,
+                    Options->TextBoxAlpha / 255.0f,
                     borderColor,
                     1.0f
                     );
@@ -865,14 +1044,20 @@ static VOID PhpDrawGraphText(
         SetBkMode(hdc, TRANSPARENT);
 
         // Fill in the text box.
-        if (Surface)
+        if (SmoothText)
         {
             PhpDrawGraphChip(
                 Surface,
                 &DrawInfo->TextBoxRect,
-                DrawInfo->BackColor,
+                DrawInfo->TextBoxColor,
+                Options->TextBoxAlpha / 255.0f,
                 PhpMixGraphColor(DrawInfo->BackColor, DrawInfo->TextColor, PH_GRAPH_CHIP_BORDER_MIX)
                 );
+        }
+        else if (Options->TextBoxAlpha < 255)
+        {
+            GdiFlush();
+            PhpBlendGraphRect(Surface, &DrawInfo->TextBoxRect, DrawInfo->TextBoxColor, Options->TextBoxAlpha);
         }
         else
         {
@@ -900,14 +1085,20 @@ static VOID PhpDrawGraphText(
         SetBkMode(hdc, TRANSPARENT);
 
         // Fill in the text box.
-        if (Surface)
+        if (SmoothText)
         {
             PhpDrawGraphChip(
                 Surface,
                 &DrawInfo->TextBoxRect2,
-                DrawInfo->BackColor,
+                DrawInfo->TextBoxColor,
+                Options->TextBoxAlpha / 255.0f,
                 PhpMixGraphColor(DrawInfo->BackColor, DrawInfo->TextColor, PH_GRAPH_CHIP_BORDER_MIX)
                 );
+        }
+        else if (Options->TextBoxAlpha < 255)
+        {
+            GdiFlush();
+            PhpBlendGraphRect(Surface, &DrawInfo->TextBoxRect2, DrawInfo->TextBoxColor, Options->TextBoxAlpha);
         }
         else
         {
@@ -928,89 +1119,6 @@ static VOID PhpDrawGraphText(
         if (oldFont)
             SelectFont(hdc, oldFont);
     }
-}
-
-#define PH_GRAPH_SMOOTH_SUBSAMPLES 4
-#define PH_GRAPH_SMOOTH_FILL_TOP 1.0f
-#define PH_GRAPH_SMOOTH_FILL_BOTTOM 0.30f // fill opacity at the bottom of the graph
-#define PH_GRAPH_SMOOTH_GRID_UNDER_FILL 0.35f
-
-// Rec. 601 luma of a bits-format (0x00RRGGBB) color.
-FORCEINLINE BOOLEAN PhpIsLightGraphColor(
-    _In_ ULONG Color
-    )
-{
-    return ((Color >> 16) & 0xff) * 299 + ((Color >> 8) & 0xff) * 587 + (Color & 0xff) * 114 >= 128 * 1000;
-}
-
-// Fill opacity for row y (0 is the bottom), from FillBottom up to the top opacity. Curve keeps
-// the upper part stronger and drops off lower down (dark backgrounds); otherwise linear.
-FORCEINLINE FLOAT PhpGraphSmoothFillOpacity(
-    _In_ LONG y,
-    _In_ LONG Height,
-    _In_ FLOAT FillBottom,
-    _In_ BOOLEAN Curve
-    )
-{
-    FLOAT t = ((FLOAT)y + 0.5f) / (FLOAT)Height;
-
-    return FillBottom + (PH_GRAPH_SMOOTH_FILL_TOP - FillBottom) * (Curve ? t * sqrtf(t) : t);
-}
-
-typedef struct _PHP_GRAPH_SMOOTH_CONTEXT
-{
-    LONG Width;
-    LONG Height;
-    LONG PointCount;
-    FLOAT Origin; // x of data point 0
-    PFLOAT Y1;
-    PFLOAT Y2;
-} PHP_GRAPH_SMOOTH_CONTEXT, *PPHP_GRAPH_SMOOTH_CONTEXT;
-
-FORCEINLINE ULONG PhpGraphCoverageToWeight(
-    _In_ FLOAT Coverage
-    )
-{
-    if (Coverage <= 0.0f)
-        return 0;
-    if (Coverage >= 1.0f)
-        return 256;
-
-    return (ULONG)(Coverage * 256.0f + 0.5f);
-}
-
-FORCEINLINE ULONG PhpBlendGraphColor(
-    _In_ ULONG Destination,
-    _In_ ULONG Source,
-    _In_ ULONG Weight
-    )
-{
-    ULONG inverse = 256 - Weight;
-    ULONG rb;
-    ULONG g;
-
-    rb = ((Destination & 0x00ff00ff) * inverse + (Source & 0x00ff00ff) * Weight) >> 8;
-    g = ((Destination & 0x0000ff00) * inverse + (Source & 0x0000ff00) * Weight) >> 8;
-
-    return (rb & 0x00ff00ff) | (g & 0x0000ff00);
-}
-
-FORCEINLINE ULONG PhpBlendGraphColor3(
-    _In_ ULONG Color0,
-    _In_ ULONG Color1,
-    _In_ ULONG Weight1,
-    _In_ ULONG Color2,
-    _In_ ULONG Weight2
-    )
-{
-    ULONG weight0 = 256 - Weight1 - Weight2;
-    ULONG rb;
-    ULONG g;
-
-    rb = ((Color0 & 0x00ff00ff) * weight0 + (Color1 & 0x00ff00ff) * Weight1 + (Color2 & 0x00ff00ff) * Weight2) >> 8;
-    g = ((Color0 & 0x0000ff00) * weight0 + (Color1 & 0x0000ff00) * Weight1 + (Color2 & 0x0000ff00) * Weight2) >> 8;
-
-    return (rb & 0x00ff00ff) | (g & 0x0000ff00);
 }
 
 // Grid lines are blended in linear light: a line moving between two pixels then emits the same
@@ -1339,7 +1447,7 @@ VOID PhDrawGraphTextBox(
 
     if (PhpGetGraphSurfaceFromDC(hdc, &surface, &rect))
     {
-        PhpDrawGraphChip(&surface, &rect, FillColor, BorderColor);
+        PhpDrawGraphChip(&surface, &rect, FillColor, PhGraphRenderOptions.TextBoxAlpha / 255.0f, BorderColor);
     }
     else
     {
@@ -1686,6 +1794,7 @@ typedef struct _PHP_GRAPH_SMOOTH_COLUMN
 static BOOLEAN PhpDrawGraphSmooth(
     _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options,
     _In_ FLOAT Offset,
     _Out_ PULONG LabelMaxY,
     _Out_ PULONG LabelDataIndex
@@ -1716,6 +1825,7 @@ static BOOLEAN PhpDrawGraphSmooth(
     FLOAT halfWidth;
     FLOAT fillBottom;
     FLOAT gridUnderFill;
+    FLOAT gridFillWeight; // how much a complete fill softens the grid
     BOOLEAN fillCurve;
     LONG gridXCounter = 0;
 
@@ -1787,7 +1897,15 @@ static BOOLEAN PhpDrawGraphSmooth(
     lineBackColor1 = COLORREF_TO_BITS(DrawInfo->LineBackColor1);
     lineBackColor2 = COLORREF_TO_BITS(DrawInfo->LineBackColor2);
     gridColor = COLORREF_TO_BITS(DrawInfo->GridColor);
-    gridUnderFill = 1.0f - (1.0f - PH_GRAPH_SMOOTH_GRID_UNDER_FILL) * 1.0f; // grid weight where the fill is complete
+    gridFillWeight = Options->Fill == PhGraphFillNone ? 0.0f : 1.0f - PH_GRAPH_SMOOTH_GRID_UNDER_FILL;
+    gridUnderFill = 1.0f - gridFillWeight; // grid weight where the fill is complete
+
+    // Translucent fills tint with the line color; the other fills use the fill color.
+    if (Options->Fill == PhGraphFillTranslucent)
+    {
+        lineBackColor1 = lineColor1;
+        lineBackColor2 = lineColor2;
+    }
 
     // The fill fades linearly on light backgrounds and along a curve on dark ones. Small graphs
     // (tray icons, tree cells) keep a one pixel stroke.
@@ -1797,7 +1915,23 @@ static BOOLEAN PhpDrawGraphSmooth(
 
     for (LONG y = 0; y < height; y++)
     {
-        FLOAT opacity = PhpGraphSmoothFillOpacity(y, height, fillBottom, fillCurve);
+        FLOAT opacity;
+
+        switch (Options->Fill)
+        {
+        case PhGraphFillNone:
+            opacity = 0.0f;
+            break;
+        case PhGraphFillTranslucent:
+            opacity = PH_GRAPH_TRANSLUCENT_FILL_OPACITY;
+            break;
+        case PhGraphFillSolid:
+            opacity = 1.0f;
+            break;
+        default:
+            opacity = PhpGraphSmoothFillOpacity(y, height, fillBottom, fillCurve);
+            break;
+        }
 
         opacityRows[y] = opacity;
         filledRows[y] = PhpBlendGraphColor(backColor, lineBackColor1, PhpGraphCoverageToWeight(opacity));
@@ -1996,7 +2130,7 @@ static BOOLEAN PhpDrawGraphSmooth(
                 color = PhpBlendGraphColorLinear(
                     color,
                     gridColor,
-                    (gridRow ? 1.0f : column->Grid) * (1.0f - (1.0f - PH_GRAPH_SMOOTH_GRID_UNDER_FILL) * coverage2)
+                    (gridRow ? 1.0f : column->Grid) * (1.0f - gridFillWeight * coverage2)
                     );
             }
 
@@ -2032,6 +2166,7 @@ static VOID PhpDrawGraphDirect(
     _In_ HDC hdc,
     _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options,
     _In_ FLOAT Offset,
     _In_opt_ PPH_GRAPH_DRAW_INFO ValueDrawInfo,
     _Inout_opt_ PPHP_GRAPH_LABEL_CACHE LabelCache
@@ -2057,7 +2192,7 @@ VOID PhDrawGraphDirect(
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo
     )
 {
-    PhpDrawGraphDirect(hdc, Bits, DrawInfo, 0, NULL, NULL);
+    PhpDrawGraphDirect(hdc, Bits, DrawInfo, &PhGraphRenderOptions, 0, NULL, NULL);
 }
 
 /**
@@ -2075,7 +2210,7 @@ VOID PhDrawGraphDirectEx(
     _In_ FLOAT Offset
     )
 {
-    PhpDrawGraphDirect(hdc, Bits, DrawInfo, Offset, NULL, NULL);
+    PhpDrawGraphDirect(hdc, Bits, DrawInfo, &PhGraphRenderOptions, Offset, NULL, NULL);
 }
 
 // The animation lasts until the next update is expected, so the scrolling never stops.
@@ -2095,12 +2230,12 @@ static ULONG PhpMeasureGraphAnimationDuration(
 }
 
 static BOOLEAN PhpGraphAnimationEnabled(
-    VOID
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options
     )
 {
     BOOL clientAreaAnimation = TRUE;
 
-    if (!PhEnableGraphSmoothing)
+    if (!Options->Smooth || !Options->Motion)
         return FALSE;
     if (SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &clientAreaAnimation, 0) && !clientAreaAnimation)
         return FALSE;
@@ -2128,7 +2263,7 @@ ULONG PhStartGraphScroll(
 {
     ULONG64 now;
 
-    if (!PhpGraphAnimationEnabled())
+    if (!PhpGraphAnimationEnabled(&PhGraphRenderOptions))
     {
         State->StartTime = 0;
         return 0;
@@ -2182,28 +2317,29 @@ static VOID PhpDrawGraphDirect(
     _In_ HDC hdc,
     _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
+    _In_ PPH_GRAPH_RENDER_OPTIONS Options,
     _In_ FLOAT Offset,
     _In_opt_ PPH_GRAPH_DRAW_INFO ValueDrawInfo,
     _Inout_opt_ PPHP_GRAPH_LABEL_CACHE LabelCache
     )
 {
+    PHP_GRAPH_SURFACE surface;
     ULONG labelMaxY;
     ULONG labelDataIndex;
 
-    if (PhEnableGraphSmoothing && PhpDrawGraphSmooth(Bits, DrawInfo, Offset, &labelMaxY, &labelDataIndex))
-    {
-        PHP_GRAPH_SURFACE surface;
+    surface.Bits = Bits;
+    surface.Width = DrawInfo->Width;
+    surface.Height = DrawInfo->Height;
+    surface.BottomUp = TRUE;
 
-        surface.Bits = Bits;
-        surface.Width = DrawInfo->Width;
-        surface.Height = DrawInfo->Height;
-        surface.BottomUp = TRUE;
-        PhpDrawGraphText(hdc, DrawInfo, &surface, Offset, ValueDrawInfo, LabelCache, labelMaxY, labelDataIndex);
+    if (Options->Smooth && PhpDrawGraphSmooth(Bits, DrawInfo, Options, Offset, &labelMaxY, &labelDataIndex))
+    {
+        PhpDrawGraphText(hdc, DrawInfo, Options, &surface, TRUE, Offset, ValueDrawInfo, LabelCache, labelMaxY, labelDataIndex);
     }
     else
     {
-        PhpDrawGraphClassic(Bits, DrawInfo, &labelMaxY, &labelDataIndex);
-        PhpDrawGraphText(hdc, DrawInfo, NULL, 0, NULL, NULL, labelMaxY, labelDataIndex);
+        PhpDrawGraphClassic(Bits, DrawInfo, Options, &labelMaxY, &labelDataIndex);
+        PhpDrawGraphText(hdc, DrawInfo, Options, &surface, FALSE, 0, NULL, NULL, labelMaxY, labelDataIndex);
     }
 }
 
@@ -2598,7 +2734,7 @@ VOID PhpUpdateDrawInfo(
     PhpCaptureGraphAnimationTarget(Context);
 
     // Smooth graphs: text boxes don't resize with every small change of the text.
-    if (PhEnableGraphSmoothing)
+    if (PhpGetGraphRenderOptions(Context)->Smooth)
     {
         PPH_GRAPH_DRAW_INFO drawInfo = &Context->DrawInfo;
 
@@ -2632,9 +2768,10 @@ static VOID PhpCaptureGraphAnimationTarget(
     _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
+    PPH_GRAPH_RENDER_OPTIONS options = PhpGetGraphRenderOptions(Context);
     ULONG count = Context->DrawInfo.LineDataCount;
 
-    if (!PhEnableGraphSmoothing || !Context->DrawInfo.LineData1)
+    if (!options->Smooth || !options->Motion || !Context->DrawInfo.LineData1)
     {
         Context->AnimationTargetCount = 0;
         return;
@@ -2706,7 +2843,7 @@ static VOID PhpStartGraphAnimation(
         !Context->AnimationTargetCount ||
         !IsWindowVisible(Context->Handle) ||
         ((rootWindow = GetAncestor(Context->Handle, GA_ROOT)) && IsIconic(rootWindow)) ||
-        !PhpGraphAnimationEnabled()
+        !PhpGraphAnimationEnabled(PhpGetGraphRenderOptions(Context))
         )
     {
         PhpStopGraphAnimation(Context);
@@ -2785,6 +2922,7 @@ static VOID PhpDrawGraphAnimationFrame(
         Context->BufferedContext,
         Context->BufferedBits,
         &drawInfo,
+        PhpGetGraphRenderOptions(Context),
         (FLOAT)(shift * 2) * (1.0f - progress),
         &Context->DrawInfo, // label values come from the update, not the in-between frame
         &Context->LabelCache
@@ -2798,10 +2936,12 @@ VOID PhpDrawGraphControl(
 {
     if (Context->BufferedBits)
     {
-        if (Context->AnimationStartTime && PhEnableGraphSmoothing && Context->AnimationTargetCount)
+        PPH_GRAPH_RENDER_OPTIONS options = PhpGetGraphRenderOptions(Context);
+
+        if (Context->AnimationStartTime && options->Smooth && options->Motion && Context->AnimationTargetCount)
             PhpDrawGraphAnimationFrame(Context);
         else
-            PhpDrawGraphDirect(Context->BufferedContext, Context->BufferedBits, &Context->DrawInfo, 0, NULL, &Context->LabelCache);
+            PhpDrawGraphDirect(Context->BufferedContext, Context->BufferedBits, &Context->DrawInfo, options, 0, NULL, &Context->LabelCache);
     }
 
     if (Context->Style & GC_STYLE_FADEOUT)
@@ -3375,6 +3515,23 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             context->Callback = (PVOID)wParam;
             context->Context = (PVOID)lParam;
+        }
+        return TRUE;
+    case GCM_SETRENDEROPTIONS:
+        {
+            PPH_GRAPH_RENDER_OPTIONS options = (PPH_GRAPH_RENDER_OPTIONS)lParam;
+
+            if (options)
+                context->RenderOptions = *options;
+
+            context->HasRenderOptions = !!options;
+            options = PhpGetGraphRenderOptions(context);
+
+            if (!options->Smooth || !options->Motion)
+                PhpStopGraphAnimation(context);
+
+            context->NeedsDraw = TRUE;
+            InvalidateRect(hwnd, NULL, FALSE);
         }
         return TRUE;
     }

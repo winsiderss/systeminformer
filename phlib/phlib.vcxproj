@@ -179,6 +179,7 @@
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
+    <ClCompile Include="graphstyle.c" />
     <ClCompile Include="controls\graphbar.c" />
     <ClCompile Include="controls\scrollbar.c" />
     <ClCompile Include="guisup.c" />
@@ -306,6 +307,7 @@
     <ClInclude Include="include\fastlock.h" />
     <ClInclude Include="format_i.h" />
     <ClInclude Include="include\graph.h" />
+    <ClInclude Include="include\graphstyle.h" />
     <ClInclude Include="include\guisupp.h" />
     <ClInclude Include="include\handlep.h" />
     <ClInclude Include="include\treehdr.h" />

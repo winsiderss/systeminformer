@@ -451,7 +451,6 @@
 #define IDC_IMAGEDESC                   1500
 #define IDC_MAPPED                      1240
 #define IDC_EXTENDEDUNICODE             1241
-#define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251
 #define IDC_CONVERT                     1252
@@ -468,7 +467,6 @@
 #define IDC_LOGONTIME                   1272
 #define IDC_ZPEAKHANDLES_V              1273
 #define IDC_SHIFT                       1274
-#define IDC_USEOLDCOLORS                1274
 #define IDC_OPENURL                     1279
 #define IDC_COMPANYNAME_LINK            1279
 #define IDC_SAMPLECOUNT                 1280
@@ -1029,7 +1027,51 @@
 #define ID_MENUBAR_ELEVATE              10336
 
 #define IDD_THRDSHADOWSTACK             298
-#define IDC_ENABLESMOOTHGRAPHS          1570
+#define IDC_GRAPHSTYLESTATUS            1571
+#define IDC_GRAPHSTYLELIST              1572
+#define IDC_GRAPHSTYLEPREVIEWCPU        1574
+#define IDC_GRAPHSTYLEPREVIEWIO         1575
+#define IDC_GRAPHSTYLEPREVIEWMEMORY     1576
+#define IDC_GRAPHSTYLEUSELIGHT          1578
+#define IDC_GRAPHSTYLEUSEDARK           1579
+#define IDC_GRAPHSTYLEEDIT              1580
+#define IDC_GRAPHSTYLEDUPLICATE         1581
+#define IDC_GRAPHSTYLERENAME            1582
+#define IDC_GRAPHSTYLEDELETE            1583
+#define IDD_GRAPHSTYLEEDIT              299
+#define IDC_GSE_NAME                    1584
+#define IDC_GSE_BASE                    1585
+#define IDC_GSE_RESET                   1586
+#define IDC_GSE_SMOOTH                  1587
+#define IDC_GSE_CLASSIC                 1588
+#define IDC_GSE_MOTION                  1589
+#define IDC_GSE_FILL                    1590
+#define IDC_GSE_PANELAUTO               1591
+#define IDC_GSE_PANELCOLOR              1592
+#define IDC_GSE_ICONAUTO                1593
+#define IDC_GSE_ICONTRANSPARENT         1594
+#define IDC_GSE_ICONCOLOR               1595
+#define IDC_GSE_CELLAUTO                1596
+#define IDC_GSE_CELLCOLOR               1597
+#define IDC_GSE_SHOWGRID                1598
+#define IDC_GSE_GRIDAUTO                1599
+#define IDC_GSE_GRIDCOLOR               1600
+#define IDC_GSE_SHOWTEXT                1601
+#define IDC_GSE_TEXTAUTO                1602
+#define IDC_GSE_TEXTCOLOR               1603
+#define IDC_GSE_TEXTBOXAUTO             1604
+#define IDC_GSE_TEXTBOXCOLOR            1605
+#define IDC_GSE_OPACITY                 1606
+#define IDC_GSE_OPACITYTEXT             1607
+#define IDC_GSE_LABELAUTO               1608
+#define IDC_GSE_LABELCOLOR              1609
+#define IDC_GSE_SERIESLIST              1610
+#define IDC_GSE_CELLTRANSPARENT         1629
+#define IDC_GSE_PREVIEWCPU              1619
+#define IDC_GSE_PREVIEWIO               1620
+#define IDC_GSE_PREVIEWMEMORY           1621
+#define IDC_GSE_PREVIEWICON             1622
+#define IDC_GSE_PREVIEWCELL             1623
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -1037,9 +1079,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        299
+#define _APS_NEXT_RESOURCE_VALUE        301
 #define _APS_NEXT_COMMAND_VALUE         10355
-#define _APS_NEXT_CONTROL_VALUE         1571
+#define _APS_NEXT_CONTROL_VALUE         1630
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

@@ -331,6 +331,8 @@
         <ClCompile Include="srvprp.c" />
         <ClCompile Include="srvprv.c" />
         <ClCompile Include="sessmsg.c" />
+        <ClCompile Include="graphstyledlg.c" />
+        <ClCompile Include="graphstyles.c" />
         <ClCompile Include="sysinfo.c" />
         <ClCompile Include="syssccpu.c" />
         <ClCompile Include="sysscio.c" />
@@ -390,6 +392,7 @@
         <ClInclude Include="include\proctree.h" />
         <ClInclude Include="include\srvlist.h" />
         <ClInclude Include="include\srvprv.h" />
+        <ClInclude Include="include\graphstyles.h" />
         <ClInclude Include="include\sysinfo.h" />
         <ClInclude Include="include\sysinfop.h" />
         <ClInclude Include="include\thrdlist.h" />

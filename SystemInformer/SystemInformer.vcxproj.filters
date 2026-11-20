@@ -159,6 +159,12 @@
     <ClCompile Include="srvprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="graphstyledlg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="graphstyles.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="sysinfo.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -429,6 +435,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\procgrp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\graphstyles.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\sysinfo.h">

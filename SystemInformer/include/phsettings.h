@@ -188,7 +188,6 @@ EXT ULONG PhCsColorInheritHandles;
 EXT ULONG PhCsUseColorEfficiencyMode;
 EXT ULONG PhCsColorEfficiencyMode;
 EXT ULONG PhCsGraphShowText;
-EXT ULONG PhCsGraphColorMode; // PH_GRAPH_MODE_* (sysinfo.h)
 EXT ULONG PhCsColorCpuKernel;
 EXT ULONG PhCsColorCpuUser;
 EXT ULONG PhCsColorIoReadOther;
@@ -700,6 +699,9 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_COLOR_INLINE_THREAD_STACK                           L"ColorInlineThreadStack"
 #define SETTING_GRAPH_SHOW_TEXT                                     L"GraphShowText"
 #define SETTING_GRAPH_COLOR_MODE                                    L"GraphColorMode"
+#define SETTING_GRAPH_STYLES                                        L"GraphStyles"
+#define SETTING_GRAPH_STYLE_LIGHT                                   L"GraphStyleLight"
+#define SETTING_GRAPH_STYLE_DARK                                    L"GraphStyleDark"
 #define SETTING_COLOR_CPU_KERNEL                                    L"ColorCpuKernel"
 #define SETTING_COLOR_CPU_USER                                      L"ColorCpuUser"
 #define SETTING_COLOR_IO_READ_OTHER                                 L"ColorIoReadOther"

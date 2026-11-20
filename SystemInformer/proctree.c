@@ -19,6 +19,7 @@
  */
 
 #include <phapp.h>
+#include <sysinfo.h>
 #include <proctree.h>
 
 #include <appresolver.h>
@@ -5128,6 +5129,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             PPH_PROCESS_ITEM processItem;
             RECT rect;
             PH_GRAPH_DRAW_INFO drawInfo;
+            BOOLEAN transparentBack = FALSE;
 
             node = (PPH_PROCESS_NODE)customDraw->Node;
             processItem = node->ProcessItem;
@@ -5146,7 +5148,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 drawInfo.Step = 2;
                 drawInfo.Width = rect.right - rect.left - 1 + drawInfo.Step; // leave a small gap; one more sample scrolls in from the left
                 drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
-                drawInfo.BackColor = RGB(0x00, 0x00, 0x00);
                 break;
             }
 
@@ -5156,10 +5157,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_CPUHISTORY:
                 {
                     drawInfo.Flags = PH_GRAPH_USE_LINE_2;
-                    drawInfo.LineColor1 = PhCsColorCpuKernel;
-                    drawInfo.LineColor2 = PhCsColorCpuUser;
-                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
-                    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+                    transparentBack = PhSiSetGraphStyleColors(&drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, PhGraphSurfaceCell);
 
                     PhGetDrawInfoGraphBuffers(
                         &node->CpuGraphBuffers,
@@ -5217,8 +5215,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PRIVATEBYTESHISTORY:
                 {
                     drawInfo.Flags = 0;
-                    drawInfo.LineColor1 = PhCsColorPrivate;
-                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
+                    transparentBack = PhSiSetGraphStyleColors(&drawInfo, PhCsColorPrivate, 0, PhGraphSurfaceCell);
 
                     PhGetDrawInfoGraphBuffers(
                         &node->PrivateGraphBuffers,
@@ -5274,10 +5271,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IOHISTORY:
                 {
                     drawInfo.Flags = PH_GRAPH_USE_LINE_2;
-                    drawInfo.LineColor1 = PhCsColorIoReadOther;
-                    drawInfo.LineColor2 = PhCsColorIoWrite;
-                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
-                    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+                    transparentBack = PhSiSetGraphStyleColors(&drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, PhGraphSurfaceCell);
 
                     PhGetDrawInfoGraphBuffers(
                         &node->IoGraphBuffers,
@@ -5343,12 +5337,26 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 drawInfo.Width -= drawInfo.Step;
                 PhpNeedGraphContext(customDraw->Dc, drawInfo.Width, drawInfo.Height);
 
+                // A transparent background draws on the row color the tree already painted.
+                if (transparentBack)
+                {
+                    COLORREF rowColor = GetPixel(customDraw->Dc, rect.left, rect.top + 1);
+
+                    if (rowColor == CLR_INVALID)
+                        rowColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
+                    drawInfo.BackColor = rowColor;
+                    drawInfo.LineBackColor1 = PhGsDeriveFillColor(drawInfo.LineColor1, rowColor, FALSE);
+                    drawInfo.LineBackColor2 = PhGsDeriveFillColor(drawInfo.LineColor2, rowColor, FALSE);
+                }
+
                 if (GraphBits)
                 {
                     FLOAT offset;
 
                     PhGetGraphScrollOffset(&ProcessTreeGraphScroll, drawInfo.Step, &offset);
                     PhDrawGraphDirectEx(GraphContext, GraphBits, &drawInfo, offset);
+
                     BitBlt(
                         customDraw->Dc,
                         rect.left,

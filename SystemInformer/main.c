@@ -24,6 +24,7 @@
 #include <netprv.h>
 #include <phconsole.h>
 #include <phsettings.h>
+#include <graphstyles.h>
 #include <phsvc.h>
 #include <procprv.h>
 #include <devprv.h>
@@ -1563,6 +1564,7 @@ VOID PhInitializeAppSettings(
         }
     }
 
+    PhGsInitialize();
     PhUpdateCachedSettings();
 
     // Apply basic global settings.

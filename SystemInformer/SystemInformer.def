@@ -205,6 +205,7 @@ EXPORTS
     PhShowToastEx2
     PhSiDoubleLabelYFunction
     PhSiSetColorsGraphDrawInfo
+    PhSiSetGraphStyleColors
     PhSiSizeLabelYFunction
     PhSiUInt64LabelYFunction
     PhThawThread

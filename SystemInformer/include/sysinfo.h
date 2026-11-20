@@ -13,6 +13,8 @@
 #ifndef PH_SYSINFO_H
 #define PH_SYSINFO_H
 
+#include <graphstyle.h>
+
 EXTERN_C_START
 
 // begin_phapppub
@@ -165,34 +167,36 @@ VOID PhSiNotifyChangeSettings(
     VOID
     );
 
-// GraphColorMode values.
-#define PH_GRAPH_MODE_SMOOTH 0 // smooth renderer, palette follows the theme
-#define PH_GRAPH_MODE_LEGACY 1 // stored by older versions; resolved when settings are cached
-#define PH_GRAPH_MODE_CLASSIC 2 // classic renderer, palette follows the theme
-#define PH_GRAPH_MODE_CLASSIC_OLD_COLORS 3 // classic renderer, black background and green grid
-#define PH_GRAPH_MODE_SMOOTH_OLD_COLORS 4 // smooth renderer, black background and green grid
-
-#define PH_GRAPH_MODE_IS_SMOOTH(Mode) ((Mode) == PH_GRAPH_MODE_SMOOTH || (Mode) == PH_GRAPH_MODE_SMOOTH_OLD_COLORS)
-#define PH_GRAPH_MODE_IS_OLD_COLORS(Mode) ((Mode) == PH_GRAPH_MODE_CLASSIC_OLD_COLORS || (Mode) == PH_GRAPH_MODE_SMOOTH_OLD_COLORS)
 typedef enum _PH_SI_GRAPH_PALETTE
 {
     PhSiGraphPaletteLight,
-    PhSiGraphPaletteDark,
-    PhSiGraphPaletteOldSchool // black background and green grid
+    PhSiGraphPaletteDark
 } PH_SI_GRAPH_PALETTE;
 
-// Graph palette for the graph mode and the active theme.
+// Light or dark, as the graph styles resolve the mode.
 PH_SI_GRAPH_PALETTE PhSiGetGraphPalette(
     VOID
     );
 
 // begin_phapppub
+// Sets the background, grid, text and line colors of a graph from the active graph style.
+// Returns TRUE when the background is transparent (icons only).
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSiSetGraphStyleColors(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ COLORREF Color1,
+    _In_ COLORREF Color2,
+    _In_ PH_GRAPH_SURFACE Surface
+    );
+
 _Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 PHAPPAPI
 VOID
 NTAPI
 PhSiSetColorsGraphDrawInfo(
-    _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2,
     _In_ LONG WindowDpi

@@ -50,6 +50,9 @@
     <ClCompile Include="graph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="graphstyle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="guisup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -293,6 +296,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\graphstyle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\guisupp.h">

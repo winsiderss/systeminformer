@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <mainwnd.h>
+#include <sysinfo.h>
 #include <procprv.h>
 
 #include <cpysave.h>
@@ -870,7 +871,10 @@ VOID PhMwpOnSettingChange(
         // The user toggled the Windows light/dark preference. In Automatic mode
         // re-theme all open windows live to match.
         if (PhEnableThemeSupport && PhGetIntegerSetting(SETTING_THEME_MODE) == PhThemeModeAutomatic)
+        {
             PhApplyThemeMode(PhThemeModeAutomatic, WindowHandle);
+            PhSiNotifyChangeSettings();
+        }
     }
 
     //if (Action == SPI_SETNONCLIENTMETRICS && Metric && PhEqualStringZ(Metric, L"WindowMetrics", TRUE))

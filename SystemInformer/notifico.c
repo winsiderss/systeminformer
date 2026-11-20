@@ -11,6 +11,7 @@
  */
 
 #include <phapp.h>
+#include <sysinfo.h>
 #include <phsettings.h>
 
 #include <shellapi.h>
@@ -1678,6 +1679,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
+    BOOLEAN transparent;
     HANDLE maxCpuProcessId;
     PPH_PROCESS_ITEM maxCpuProcessItem;
     PH_FORMAT format[8];
@@ -1699,13 +1701,10 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhCsColorCpuKernel;
-    drawInfo.LineColor2 = PhCsColorCpuUser;
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (PhNfTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -1784,6 +1783,7 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
+    BOOLEAN transparent;
     HANDLE maxIoProcessId;
     PPH_PROCESS_ITEM maxIoProcessItem;
     PH_FORMAT format[8];
@@ -1819,13 +1819,10 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhCsColorIoReadOther;
-    drawInfo.LineColor2 = PhCsColorIoWrite;
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
-    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (PhNfTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -1902,6 +1899,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
+    BOOLEAN transparent;
     FLOAT commitFraction;
     PH_FORMAT format[5];
 
@@ -1923,11 +1921,10 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhCsColorPrivate;
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhCsColorPrivate, 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (PhNfTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
@@ -1987,6 +1984,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
+    BOOLEAN transparent;
     ULONG_PTR physicalUsage;
     FLOAT physicalFraction;
     PH_FORMAT format[5];
@@ -2009,11 +2007,10 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhCsColorPhysical;
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
+    transparent = PhSiSetGraphStyleColors(&drawInfo, PhCsColorPhysical, 0, PhGraphSurfaceIcon);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (PhNfTransparencyEnabled)
+    if (transparent)
     {
         PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
     }
