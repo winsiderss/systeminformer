@@ -67,6 +67,7 @@ typedef struct _KPH_LUA_ALLOCATOR
     SIZE_T Limit;
     SIZE_T Reserve;
     SIZE_T Used;
+    SIZE_T CollectAt;
     ULONG Failures;
 } KPH_LUA_ALLOCATOR, *PKPH_LUA_ALLOCATOR;
 

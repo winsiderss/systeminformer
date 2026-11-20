@@ -1014,7 +1014,52 @@ VOID KphpScriptCount(
 }
 
 /**
- * \brief Counts the instructions the count hook of a call stands for.
+ * \brief Runs a full garbage collection when the state of a call uses
+ * more than three quarters of its memory limit, or when the caller wants one.
+ *
+ * \details After a collection that leaves the state above three quarters the
+ * next runs when use has grown half-way into what is left.
+ *
+ * \param[in,out] Call The call.
+ * \param[in] State The Lua state.
+ * \param[in] Always TRUE to collect whatever the state uses.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpScriptCollect(
+    _Inout_ PKPH_SCRIPT_CALL Call,
+    _In_ lua_State* State,
+    _In_ BOOLEAN Always
+    )
+{
+    PKPH_LUA_ALLOCATOR allocator;
+    SIZE_T limit;
+    SIZE_T used;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    allocator = Call->Allocator;
+
+    if (!Always && (allocator->Used <= allocator->CollectAt))
+    {
+        return;
+    }
+
+    lua_gc(State, LUA_GCCOLLECT);
+
+    limit = Call->Limits->Memory;
+    used = allocator->Used;
+
+    allocator->CollectAt = limit - (limit / 4);
+
+    if ((used > allocator->CollectAt) && (used < limit))
+    {
+        allocator->CollectAt = used + ((limit - used) / 2);
+    }
+}
+
+/**
+ * \brief Counts the instructions the count hook of a call stands for, and
+ * collects when the state is near its memory limit.
  *
  * \param[in] State The Lua state.
  * \param[in] Debug Unused.
@@ -1025,11 +1070,20 @@ VOID KphpScriptHook(
     _In_ lua_Debug* Debug
     )
 {
+    PKPH_SCRIPT_CALL call;
+
     KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Debug);
 
     KphpScriptCount(State, KPH_SCRIPT_HOOK_INTERVAL);
+
+    call = KphpScriptGetCall(State);
+
+    if ((call->Phase == KphScriptPhaseBody) && (call->Handlers == 0))
+    {
+        KphpScriptCollect(call, State, FALSE);
+    }
 }
 
 /**
@@ -1715,10 +1769,7 @@ VOID KSIAPI KphpScriptLoadCallout(
         return;
     }
 
-    if (call->Opened)
-    {
-        lua_gc(state, LUA_GCCOLLECT);
-    }
+    KphpScriptCollect(call, state, call->Opened);
 
     kept->Script->State = state;
 }
@@ -1763,9 +1814,9 @@ VOID KSIAPI KphpScriptRoutineCallout(
     *slot = NULL;
     lua_settop(state, 0);
 
-    if ((kept->End != KphScriptEndFatal) && call->Opened)
+    if (kept->End != KphScriptEndFatal)
     {
-        lua_gc(state, LUA_GCCOLLECT);
+        KphpScriptCollect(call, state, call->Opened);
     }
 }
 

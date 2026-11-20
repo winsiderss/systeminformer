@@ -719,6 +719,7 @@ VOID KphLuaInitializeAllocator(
     Allocator->Limit = Limit;
     Allocator->Reserve = Reserve;
     Allocator->Used = 0;
+    Allocator->CollectAt = Limit - (Limit / 4);
     Allocator->Failures = 0;
 }
 
