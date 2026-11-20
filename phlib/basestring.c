@@ -5849,15 +5849,19 @@ BOOLEAN PhBufferToHexStringBuffer(
     )
 {
     PCCH table;
-    ULONG i;
+    SIZE_T i;
+    SIZE_T outputBytes;
+    SIZE_T requiredBytes;
 
-    if (InputLength > (SIZE_MAX - sizeof(WCHAR)) / (sizeof(WCHAR) * 2))
+    if (!NT_SUCCESS(RtlSizeTMult(InputLength, sizeof(WCHAR) * 2, &outputBytes)))
+        return FALSE;
+    if (!NT_SUCCESS(RtlSizeTAdd(outputBytes, sizeof(WCHAR), &requiredBytes)))
         return FALSE;
 
-    if (OutputLength < InputLength * sizeof(WCHAR) * 2 + sizeof(WCHAR))
+    if (OutputLength < requiredBytes)
     {
         if (ReturnLength)
-            *ReturnLength = InputLength * sizeof(WCHAR) * 2;
+            *ReturnLength = outputBytes;
         return FALSE;
     }
 
