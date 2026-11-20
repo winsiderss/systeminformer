@@ -558,7 +558,18 @@ local ROWS = {
 
 local ALL_ONES = 0xffffffff
 
+local kept = {}
+
+-- The header bytes a function is identified by.
+local function header_key(header)
+    return string.sub(header, 1, 4) .. string.sub(header, 9, 12) ..
+           string.sub(header, 15, 15)
+end
+
 local function cpu_identity()
+    if kept.cpu then
+        return kept.cpu
+    end
     local items = string.pack("<I2I2I4I4", 0, 0, 0, 0) ..
                   string.pack("<I2I2I4I4", 0, 0, 1, 0)
     local results, status = ksi.hw.cpuid(items)
@@ -581,12 +592,13 @@ local function cpu_identity()
     if base >= 0x6 then
         model = model | (((signature >> 16) & 0xf) << 4)
     end
-    return {
+    kept.cpu = {
         vendor = string.pack("<I4I4I4", b, d, c),
         family = family,
         model = model,
         stepping = signature & 0xf,
     }
+    return kept.cpu
 end
 
 local function cpu_matches(row, cpu)
@@ -643,6 +655,19 @@ local function session(input)
         slot = (locator >> 3) & 0x1f,
         fn = locator & 0x7,
     }
+
+    local k = kept[locator]
+    if k then
+        local header = ksi.hw.pci_read_block(k.device, 0, 16)
+        if header and header_key(header) == k.key then
+            return { device = k.device, kept = k, cpu = cpu, root = k.root,
+                     row = k.row }
+        end
+        ksi.trace("the function kept for 0x%x changed", locator)
+        kept[locator] = nil
+        k.device:release()
+    end
+
     local device, status = ksi.hw.pci_open(root.segment, root.bus, root.slot,
                                            root.fn)
     if not device then
@@ -680,7 +705,14 @@ local function session(input)
         return nil, ksi.STATUS_ACCESS_DENIED
     end
 
-    return { device = device, cpu = cpu, root = root, row = row }
+    local s = { device = device, cpu = cpu, root = root, row = row }
+    if not ksi.volatile and ksi.hw.pci_fixed(device) then
+        local ranges, values = row.targets()
+        s.kept = { device = device, key = header_key(header), root = root,
+                   row = row, ranges = ranges, values = values }
+        kept[locator] = s.kept
+    end
+    return s
 end
 
 local function allowed(ranges, values, address)
@@ -751,7 +783,9 @@ function identify(input)
     if not s then
         return refused
     end
-    s.device:release()
+    if not s.kept then
+        s.device:release()
+    end
     return ksi.STATUS_SUCCESS, string.pack("<I2I2I4I4I4", s.root.vendor,
                                            s.root.device, s.cpu.family,
                                            s.cpu.model, s.cpu.stepping)
@@ -769,9 +803,14 @@ function read(input)
     if not s then
         return refused
     end
-    local device <close> = s.device
+    local closer <close> = (not s.kept) and s.device or nil
 
-    local ranges, values = s.row.targets()
+    local ranges, values
+    if s.kept then
+        ranges, values = s.kept.ranges, s.kept.values
+    else
+        ranges, values = s.row.targets()
+    end
     local count = #input // 4 - 1
     local output = {}
 
