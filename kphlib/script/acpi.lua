@@ -206,16 +206,29 @@ local function present(ids)
     return false
 end
 
-local function row_evals(number)
-    local evals = kept.evals and kept.evals[number]
-    if not evals then
-        evals = ROWS[number].evals()
+-- A row's evaluations by name, each name's in row order and by argument count.
+local function row_names(number)
+    local names = kept.names and kept.names[number]
+    if not names then
+        names = {}
+        for _, eval in ipairs(ROWS[number].evals()) do
+            local entry = names[eval.name]
+            if not entry then
+                entry = { all = {}, counted = {} }
+                names[eval.name] = entry
+            end
+            entry.all[#entry.all + 1] = eval
+            local count = #(eval.args or {})
+            entry.counted[count] = entry.counted[count] or {}
+            local counted = entry.counted[count]
+            counted[#counted + 1] = eval
+        end
         if not ksi.volatile then
-            kept.evals = kept.evals or {}
-            kept.evals[number] = evals
+            kept.names = kept.names or {}
+            kept.names[number] = names
         end
     end
-    return evals
+    return names
 end
 
 local function argument_values(arguments)
@@ -264,16 +277,12 @@ local function result_types(output)
 end
 
 local function evaluate_on(device, record, milliseconds)
-    local candidates = {}
-    for _, eval in ipairs(row_evals(record.row)) do
-        if eval.name == record.name then
-            candidates[#candidates + 1] = eval
-        end
-    end
-    if #candidates == 0 then
+    local entry = row_names(record.row)[record.name]
+    if not entry then
         ksi.trace("row %d does not permit %s", record.row, record.name)
         return ksi.STATUS_ACCESS_DENIED
     end
+    local candidates = entry.all
     if candidates[1].require and not present(candidates[1].require) then
         ksi.trace("%s: no required device is present", record.name)
         return ksi.STATUS_NOT_FOUND
@@ -287,13 +296,8 @@ local function evaluate_on(device, record, milliseconds)
         ksi.trace("%s: arguments that no row describes", record.name)
         return ksi.STATUS_ACCESS_DENIED
     end
-    local counted = {}
-    for _, eval in ipairs(candidates) do
-        if #(eval.args or {}) == #values then
-            counted[#counted + 1] = eval
-        end
-    end
-    if #counted == 0 then
+    local counted = entry.counted[#values]
+    if not counted then
         ksi.trace("%s takes no %d arguments", record.name, #values)
         return ksi.STATUS_INVALID_PARAMETER
     end
