@@ -287,12 +287,8 @@ namespace CustomBuildTool
         {
             try
             {
-                DirectoryInfo info = new DirectoryInfo(".");
-
-                while (info.Parent?.Parent != null)
+                for (DirectoryInfo info = new DirectoryInfo("."); info != null; info = info.Parent)
                 {
-                    info = info.Parent;
-
                     if (File.Exists($"{info.FullName}\\{FileName}"))
                     {
                         Directory.SetCurrentDirectory(info.FullName);
@@ -566,7 +562,7 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(DirectoryPath))
                 return null;
 
-            if (!Directory.Exists($"{DirectoryPath}\\.git"))
+            if (!Path.Exists($"{DirectoryPath}\\.git"))
                 return null;
 
             return $"--git-dir=\"{DirectoryPath}\\.git\" --work-tree=\"{DirectoryPath}\" ";
