@@ -261,12 +261,34 @@ local permitted = {}
 
 -- Returns the identity of the processor the input names.
 function identify(input)
-  ksi.trace('no CPUID function')
-  if #input == 4 then
-    local group, number = string.unpack('<I2I2', input)
-    kept[(group << 16) | number] = nil
+  if not ksi.hw.sysreg_read then
+    ksi.trace('no register read function')
+    if #input == 4 then
+      local group, number = string.unpack('<I2I2', input)
+      kept[(group << 16) | number] = nil
+    end
+    return ksi.STATUS_NOT_SUPPORTED
   end
-  return ksi.STATUS_NOT_SUPPORTED
+  if #input ~= 4 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+
+  local group, number = string.unpack('<I2I2', input)
+  kept[(group << 16) | number] = nil
+  local results, status = ksi.hw.sysreg_read(string.pack('<I2I2I4', group, number, MIDR))
+  if not results then
+    ksi.trace('sysreg_read failed: 0x%x', status)
+    return status
+  end
+
+  local failure, _, value = string.unpack('<I4I4I8', results, 1)
+  if failure ~= ksi.STATUS_SUCCESS then
+    ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', group, number, failure)
+    return failure
+  end
+
+  return ksi.STATUS_SUCCESS, string.pack('<c12I4I4I4I4I4', '', 0, 0, 0, value & 0xffffffff, 0)
 end
 
 local function within(ranges, value)

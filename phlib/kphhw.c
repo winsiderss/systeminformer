@@ -211,7 +211,8 @@ VOID KphHwSetScriptMode(
  *
  * \param Group The processor group.
  * \param Number The processor number within the group.
- * \param Identity Receives the identity.
+ * \param Identity Receives the identity. On ARM64 the signature is the
+ * processor's MIDR and the other fields are zero.
  * \return Successful or errant status.
  */
 NTSTATUS KphHwCpuIdentify(
