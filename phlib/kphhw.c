@@ -1545,7 +1545,7 @@ NTSTATUS KphHwPciConfigReadBlock(
 }
 
 /**
- * Identifies the memory map of the ChromeOS embedded controller of the board.
+ * Identifies the memory map of the Chrome EC embedded controller of the board.
  *
  * \param Identity Receives the map's signature and the version and flag bytes
  * after it.
@@ -1591,7 +1591,7 @@ NTSTATUS KphHwCrosEcIdentify(
 }
 
 /**
- * Reads bytes of the memory map of the ChromeOS embedded controller of the
+ * Reads bytes of the memory map of the Chrome EC embedded controller of the
  * board.
  *
  * \param Offsets The offsets in the map to read.
