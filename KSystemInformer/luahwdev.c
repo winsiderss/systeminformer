@@ -43,6 +43,17 @@ typedef struct _KPH_LUA_HW_NAMED_DEVICE
     PFILE_OBJECT FileObject;
 } KPH_LUA_HW_NAMED_DEVICE, *PKPH_LUA_HW_NAMED_DEVICE;
 
+typedef struct _KPH_LUA_HW_DEVICE
+{
+    PDEVICE_OBJECT Pdo;
+} KPH_LUA_HW_DEVICE, *PKPH_LUA_HW_DEVICE;
+
+typedef struct _KPH_LUA_HW_DEVICE_LIST
+{
+    PDEVICE_OBJECT* Devices;
+    ULONG Count;
+} KPH_LUA_HW_DEVICE_LIST, *PKPH_LUA_HW_DEVICE_LIST;
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpLuaHwRequestTypeName, L"KphLuaHwRequest");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -52,6 +63,7 @@ KPH_PROTECTED_DATA_SECTION_POP();
 static KSPIN_LOCK KphpLuaHwAbandonLock;
 static LIST_ENTRY KphpLuaHwAbandoned;
 static PAGED_LOOKASIDE_LIST KphpLuaHwNamedDeviceLookaside = { 0 };
+static PAGED_LOOKASIDE_LIST KphpLuaHwDeviceLookaside = { 0 };
 
 /**
  * \brief Deletes a request.
@@ -711,6 +723,285 @@ Exit:
 }
 
 /**
+ * \brief Releases a device object of ksi.hw.devices.
+ *
+ * \param[in] Context The device.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaHwReleaseDevice(
+    _In_opt_ PVOID Context
+    )
+{
+    PKPH_LUA_HW_DEVICE device;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    device = Context;
+
+    ObDereferenceObject(device->Pdo);
+
+    KphFreeToPagedLookaside(&KphpLuaHwDeviceLookaside, device);
+}
+
+/**
+ * \brief Releases the device objects ksi.hw.devices did not hand out.
+ *
+ * \param[in] Context The list.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaHwReleaseDeviceList(
+    _In_opt_ PVOID Context
+    )
+{
+    PKPH_LUA_HW_DEVICE_LIST list;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    list = Context;
+
+    for (ULONG i = 0; i < list->Count; i++)
+    {
+        if (list->Devices[i])
+        {
+            ObDereferenceObject(list->Devices[i]);
+        }
+    }
+
+    if (list->Devices)
+    {
+        KphFree(list->Devices, KPH_TAG_LUA_HARDWARE_DEVICES);
+    }
+
+    KphFree(list, KPH_TAG_LUA_HARDWARE_DEVICES);
+}
+
+/**
+ * \brief Tells whether a value is a device object of ksi.hw.devices.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the value.
+ *
+ * \return The physical device object, valid while the object is, or NULL.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PDEVICE_OBJECT KphLuaHwTestDevice(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    PKPH_LUA_HW_DEVICE device;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    device = KphScriptTestCleanup(State, Index, KphpLuaHwReleaseDevice);
+    if (!device)
+    {
+        return NULL;
+    }
+
+    return device->Pdo;
+}
+
+/**
+ * \brief Lists the bus-enumerated device objects of a driver
+ * (ksi.hw.devices).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the array of device objects, or nil and a
+ * status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwDevices(
+    _In_ lua_State* State
+    )
+{
+    int results;
+    NTSTATUS status;
+    PCSTR text;
+    SIZE_T length;
+    UNICODE_STRING name;
+    PDRIVER_OBJECT driver;
+    PKPH_LUA_HW_DEVICE_LIST list;
+    PKPH_LUA_HW_DEVICE device;
+    lua_Integer index;
+    int cleanup;
+    int size;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    text = luaL_checklstring(State, 1, &length);
+
+    luaL_argcheck(State,
+                  (length >= 1) && (length <= KPH_LUA_HW_DEVICE_NAME_MAX),
+                  1,
+                  "1 to 32767 characters");
+
+    driver = NULL;
+    list = NULL;
+
+    name.Length = (USHORT)(length * sizeof(WCHAR));
+    name.MaximumLength = name.Length;
+    name.Buffer = KphAllocatePaged(name.Length, KPH_TAG_LUA_HARDWARE_NAME);
+    if (!name.Buffer)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate a driver name");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    for (ULONG i = 0; i < (name.Length / sizeof(WCHAR)); i++)
+    {
+        name.Buffer[i] = (WCHAR)(UCHAR)text[i];
+    }
+
+    status = ObReferenceObjectByName(&name,
+                                     OBJ_DONT_REPARSE,
+                                     NULL,
+                                     0,
+                                     *IoDriverObjectType,
+                                     KernelMode,
+                                     NULL,
+                                     (PVOID*)&driver);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "ObReferenceObjectByName failed: %!STATUS!",
+                      status);
+
+        driver = NULL;
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    list = KphAllocatePaged(sizeof(KPH_LUA_HW_DEVICE_LIST),
+                            KPH_TAG_LUA_HARDWARE_DEVICES);
+    if (!list)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate a device list");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    status = KphLuaHwReferenceDriverDevices(driver,
+                                            &list->Devices,
+                                            &list->Count);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphLuaHwReferenceDriverDevices failed: %!STATUS!",
+                      status);
+
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+    name.Buffer = NULL;
+
+    ObDereferenceObject(driver);
+    driver = NULL;
+
+    if (!list->Devices)
+    {
+        KphpLuaHwReleaseDeviceList(list);
+        list = NULL;
+
+        lua_newtable(State);
+
+        results = 1;
+        goto Exit;
+    }
+
+    KphScriptPushCleanup(State, KphpLuaHwReleaseDeviceList, list);
+    cleanup = lua_gettop(State);
+
+    KphScriptCharge(State, list->Count);
+
+    NT_VERIFY(NT_SUCCESS(RtlULongToInt(list->Count, &size)));
+
+    lua_createtable(State, size, 0);
+
+    index = 0;
+
+    for (ULONG i = 0; i < list->Count; i++)
+    {
+        if (!BooleanFlagOn(list->Devices[i]->Flags, DO_BUS_ENUMERATED_DEVICE))
+        {
+            continue;
+        }
+
+        device = KphAllocateFromPagedLookaside(&KphpLuaHwDeviceLookaside);
+        if (!device)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Failed to allocate a device object");
+
+            KphScriptReleaseCleanup(State, cleanup);
+            list = NULL;
+
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            results = KphLuaNilErrorStatus(State, status);
+            goto Exit;
+        }
+
+        NT_ASSERT(sizeof(KPH_LUA_HW_DEVICE) <=
+                  KphpLuaHwDeviceLookaside.L.Size);
+
+        device->Pdo = list->Devices[i];
+        list->Devices[i] = NULL;
+
+        KphScriptPushObject(State, KphpLuaHwReleaseDevice, device);
+
+        lua_rawseti(State, -2, ++index);
+    }
+
+    KphScriptReleaseCleanup(State, cleanup);
+    lua_remove(State, cleanup);
+    list = NULL;
+
+    results = 1;
+
+Exit:
+
+    if (driver)
+    {
+        ObDereferenceObject(driver);
+    }
+
+    if (list)
+    {
+        KphpLuaHwReleaseDeviceList(list);
+    }
+
+    if (name.Buffer)
+    {
+        KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+    }
+
+    return results;
+}
+
+/**
  * \brief Sends a device control request (ksi.hw.device_control).
  *
  * \details May raise a Lua error. A named device takes the request at the top
@@ -730,6 +1021,7 @@ int KphpLuaHwDeviceControl(
     int results;
     NTSTATUS status;
     PKPH_LUA_HW_NAMED_DEVICE named;
+    PDEVICE_OBJECT pdo;
     PDEVICE_OBJECT pci;
     PDEVICE_OBJECT acpi;
     lua_Integer code;
@@ -748,11 +1040,12 @@ int KphpLuaHwDeviceControl(
     KPH_PAGED_CODE_PASSIVE();
 
     named = KphScriptTestCleanup(State, 1, KphpLuaHwReleaseNamedDevice);
+    pdo = KphLuaHwTestDevice(State, 1);
     pci = KphLuaHwPciTestDevice(State, 1);
     acpi = KphLuaHwAcpiTestDevice(State, 1);
 
     luaL_argcheck(State,
-                  named || pci || acpi,
+                  named || pdo || pci || acpi,
                   1,
                   "a device, PCI or ACPI device object");
 
@@ -784,6 +1077,11 @@ int KphpLuaHwDeviceControl(
     {
         fileObject = named->FileObject;
         target = IoGetRelatedDeviceObject(fileObject);
+        ObReferenceObject(target);
+    }
+    else if (pdo)
+    {
+        target = pdo;
         ObReferenceObject(target);
     }
     else if (pci)
@@ -870,13 +1168,18 @@ PDEVICE_OBJECT KphpLuaHwCheckPdo(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    pdo = KphLuaHwPciTestDevice(State, Index);
+    pdo = KphLuaHwTestDevice(State, Index);
+    if (!pdo)
+    {
+        pdo = KphLuaHwPciTestDevice(State, Index);
+    }
+
     if (!pdo)
     {
         pdo = KphLuaHwAcpiTestDevice(State, Index);
     }
 
-    luaL_argcheck(State, pdo, Index, "a PCI or ACPI device object");
+    luaL_argcheck(State, pdo, Index, "a device, PCI or ACPI device object");
 
     return pdo;
 }
@@ -1066,6 +1369,7 @@ static const luaL_Reg KphpLuaHwDeviceLibrary[] =
 {
     { "device_control", KphpLuaHwDeviceControl },
     { "device_open", KphpLuaHwDeviceOpen },
+    { "devices", KphpLuaHwDevices },
     { "device_property", KphpLuaHwDeviceProperty },
     { "device_property_data", KphpLuaHwDevicePropertyData },
     { NULL, NULL }
@@ -1086,6 +1390,10 @@ VOID KphLuaInitializeHardwareDevice(
 
     KeInitializeSpinLock(&KphpLuaHwAbandonLock);
     InitializeListHead(&KphpLuaHwAbandoned);
+
+    KphInitializePagedLookaside(&KphpLuaHwDeviceLookaside,
+                                sizeof(KPH_LUA_HW_DEVICE),
+                                KPH_TAG_LUA_HARDWARE_DEVICE);
 
     KphInitializePagedLookaside(&KphpLuaHwNamedDeviceLookaside,
                                 sizeof(KPH_LUA_HW_NAMED_DEVICE),
@@ -1144,6 +1452,7 @@ VOID KphLuaCleanupHardwareDevice(
     }
 
     KphDeletePagedLookaside(&KphpLuaHwNamedDeviceLookaside);
+    KphDeletePagedLookaside(&KphpLuaHwDeviceLookaside);
 }
 
 /**

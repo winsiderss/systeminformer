@@ -442,26 +442,24 @@ int KphpLuaHwPortWrite(
 #endif
 
 /**
- * \brief References the device objects of a driver.
+ * \brief References the device objects of a driver object.
  *
- * \param[in] DriverName The name of the driver object.
+ * \param[in] Driver The driver object.
  * \param[out] Devices Receives the referenced device objects, released with
- * KphLuaHwDereferenceDevices.
+ * KphLuaHwDereferenceDevices, or NULL when the driver has none.
  * \param[out] Count Receives the number of device objects.
  *
- * \return Successful or errant status; STATUS_NOT_FOUND when the driver does
- * not exist or has no device objects.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphLuaHwReferenceDevices(
-    _In_ PCUNICODE_STRING DriverName,
-    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
+NTSTATUS KphLuaHwReferenceDriverDevices(
+    _In_ PDRIVER_OBJECT Driver,
+    _Outptr_result_buffer_maybenull_(*Count) PDEVICE_OBJECT** Devices,
     _Out_ PULONG Count
     )
 {
     NTSTATUS status;
-    PDRIVER_OBJECT driver;
     PDEVICE_OBJECT* devices;
     ULONG count;
     ULONG length;
@@ -472,32 +470,10 @@ NTSTATUS KphLuaHwReferenceDevices(
     *Devices = NULL;
     *Count = 0;
 
-    driver = NULL;
     devices = NULL;
-
-    status = ObReferenceObjectByName((PUNICODE_STRING)DriverName,
-                                     OBJ_DONT_REPARSE,
-                                     NULL,
-                                     0,
-                                     *IoDriverObjectType,
-                                     KernelMode,
-                                     NULL,
-                                     (PVOID*)&driver);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "ObReferenceObjectByName failed: %!STATUS!",
-                      status);
-
-        driver = NULL;
-        status = STATUS_NOT_FOUND;
-        goto Exit;
-    }
-
     count = 0;
 
-    status = IoEnumerateDeviceObjectList(driver, NULL, 0, &count);
+    status = IoEnumerateDeviceObjectList(Driver, NULL, 0, &count);
     if ((status != STATUS_BUFFER_TOO_SMALL) || !count)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -505,9 +481,9 @@ NTSTATUS KphLuaHwReferenceDevices(
                       "IoEnumerateDeviceObjectList returned: %!STATUS!",
                       status);
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) || (status == STATUS_BUFFER_TOO_SMALL))
         {
-            status = STATUS_NOT_FOUND;
+            status = STATUS_SUCCESS;
         }
 
         goto Exit;
@@ -537,7 +513,7 @@ NTSTATUS KphLuaHwReferenceDevices(
             goto Exit;
         }
 
-        status = IoEnumerateDeviceObjectList(driver, devices, length, &count);
+        status = IoEnumerateDeviceObjectList(Driver, devices, length, &count);
         if (status != STATUS_BUFFER_TOO_SMALL)
         {
             break;
@@ -575,12 +551,84 @@ Exit:
         KphFree(devices, KPH_TAG_LUA_HARDWARE_DEVICES);
     }
 
-    if (driver)
+    return status;
+}
+
+/**
+ * \brief References the device objects of a driver.
+ *
+ * \param[in] DriverName The name of the driver object.
+ * \param[out] Devices Receives the referenced device objects, released with
+ * KphLuaHwDereferenceDevices.
+ * \param[out] Count Receives the number of device objects.
+ *
+ * \return Successful or errant status; STATUS_NOT_FOUND when the driver does
+ * not exist or has no device objects.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphLuaHwReferenceDevices(
+    _In_ PCUNICODE_STRING DriverName,
+    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
+    _Out_ PULONG Count
+    )
+{
+    NTSTATUS status;
+    PDRIVER_OBJECT driver;
+    PDEVICE_OBJECT* devices;
+    ULONG count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *Devices = NULL;
+    *Count = 0;
+
+    status = ObReferenceObjectByName((PUNICODE_STRING)DriverName,
+                                     OBJ_DONT_REPARSE,
+                                     NULL,
+                                     0,
+                                     *IoDriverObjectType,
+                                     KernelMode,
+                                     NULL,
+                                     (PVOID*)&driver);
+    if (!NT_SUCCESS(status))
     {
-        ObDereferenceObject(driver);
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "ObReferenceObjectByName failed: %!STATUS!",
+                      status);
+
+        return STATUS_NOT_FOUND;
     }
 
-    return status;
+    status = KphLuaHwReferenceDriverDevices(driver, &devices, &count);
+
+    ObDereferenceObject(driver);
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphLuaHwReferenceDriverDevices failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    if (!devices)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "%wZ has no device objects",
+                      DriverName);
+
+        return STATUS_NOT_FOUND;
+    }
+
+    *Devices = devices;
+    *Count = count;
+
+    return STATUS_SUCCESS;
 }
 
 /**

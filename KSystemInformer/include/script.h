@@ -214,6 +214,14 @@ VOID KphLuaOpenHardwareLibrary(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
+NTSTATUS KphLuaHwReferenceDriverDevices(
+    _In_ PDRIVER_OBJECT Driver,
+    _Outptr_result_buffer_maybenull_(*Count) PDEVICE_OBJECT** Devices,
+    _Out_ PULONG Count
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphLuaHwReferenceDevices(
     _In_ PCUNICODE_STRING DriverName,
     _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
@@ -239,6 +247,12 @@ _Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphLuaHwFreeProperty(
     _In_opt_ PVOID Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PDEVICE_OBJECT KphLuaHwTestDevice(
+    _In_ lua_State* State,
+    _In_ int Index
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
