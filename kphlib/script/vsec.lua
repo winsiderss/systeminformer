@@ -179,6 +179,9 @@ local function session(locator)
     end
     ksi.trace('the function kept for 0x%x changed', locator)
     kept[locator] = nil
+    for _, w in pairs(k.maps) do
+      w.map:release()
+    end
     k.device:release()
   end
   local device, status =
@@ -225,6 +228,8 @@ local function session(locator)
       id = id,
       operations = s.operations,
       type = s.header,
+      walks = {},
+      maps = {},
     }
     kept[locator] = s.kept
   end
@@ -235,6 +240,9 @@ local function drop(s, locator)
   local k = s.kept
   if k and kept[locator] == k then
     kept[locator] = nil
+    for _, w in pairs(k.maps) do
+      w.map:release()
+    end
     k.device:release()
   end
 end
@@ -374,9 +382,9 @@ local function check_d0(s)
   return ksi.STATUS_SUCCESS
 end
 
--- A memory BAR's base and length. On failure, nil, the status and whether a
--- configuration read failed.
-local function memory_bar(s, index)
+-- A memory BAR's base and its register. On failure, nil, the status and
+-- whether a configuration read failed.
+local function bar_base(s, index)
   local command = config_read(s, 0x04, 2, 0xffff)
   if not command then
     return nil, ksi.STATUS_DEVICE_NOT_READY, true
@@ -394,7 +402,7 @@ local function memory_bar(s, index)
     ksi.trace('header type 0x%x has no BARs', s.header)
     return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  local base
+  local base, register
   local i = 0
   while i < count and i <= index do
     local low = config_read(s, 0x10 + i * 4, 4, 0xffffffff)
@@ -407,7 +415,7 @@ local function memory_bar(s, index)
           ksi.trace('BAR %d is not 32-bit memory: 0x%x', i, low)
           return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
         end
-        base = low & 0xfffffff0
+        base, register = low & 0xfffffff0, low
         break
       end
       i = i + 1
@@ -421,7 +429,7 @@ local function memory_bar(s, index)
         if not high then
           return nil, ksi.STATUS_DEVICE_NOT_READY, true
         end
-        base = (high << 32) | (low & 0xfffffff0)
+        base, register = (high << 32) | (low & 0xfffffff0), low
         break
       end
       i = i + 2
@@ -435,6 +443,16 @@ local function memory_bar(s, index)
     ksi.trace('BAR %d of %04x:%04x is not assigned', index, s.vendor, s.id)
     return nil, ksi.STATUS_DEVICE_NOT_READY
   end
+  return base, register
+end
+
+-- A memory BAR: { base, length, register }. On failure, nil, the status and
+-- whether a configuration read failed.
+local function memory_bar(s, index)
+  local base, register, readFailed = bar_base(s, index)
+  if not base then
+    return nil, register, readFailed
+  end
   local resources, failed = ksi.hw.pci_resources(s.device)
   if not resources then
     ksi.trace('resources of %04x:%04x not read: 0x%x', s.vendor, s.id, failed)
@@ -446,29 +464,32 @@ local function memory_bar(s, index)
         ksi.trace('BAR 0x%x translates to 0x%x', base, r.translated)
         return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
       end
-      return base, r.length
+      return { base = base, length = r.length, register = register }
     end
   end
   ksi.trace('no memory resource at 0x%x', base)
   return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
 end
 
--- A BAR derived once per walk: its base and length, or nil, the status and
--- whether a read failed.
+-- A BAR derived once per walk: { base, length, register }, or nil, the
+-- status and whether a read failed.
 local function bar(s, bars, index)
   local b = bars[index]
   if not b then
-    local base, length, readFailed = memory_bar(s, index)
-    if not base and readFailed then
-      return nil, length, true
+    local failed, readFailed
+    b, failed, readFailed = memory_bar(s, index)
+    if not b then
+      if readFailed then
+        return nil, failed, true
+      end
+      b = { failed = failed }
     end
-    b = { base = base, length = length }
     bars[index] = b
   end
-  if not b.base then
-    return nil, b.length
+  if b.failed then
+    return nil, b.failed
   end
-  return b.base, b.length
+  return b
 end
 
 -- The configuration offsets of the capabilities of a discovery kind, or nil,
@@ -539,7 +560,7 @@ local function table_of(s, op, position, dwords, bars)
     ksi.trace('discovery header at 0x%x not read', position)
     return nil, ksi.STATUS_DEVICE_NOT_READY, true
   end
-  local t = { bar = register & 0x7, offset = register & 0xfffffff8 }
+  local t = { bar = register & 0x7, offset = register & 0xfffffff8, register = register }
   if op.shift then
     t.offset = t.offset >> 3
   end
@@ -547,11 +568,12 @@ local function table_of(s, op, position, dwords, bars)
     ksi.trace('discovery table at 0x%x skipped', position)
     return nil
   end
-  local base, length, readFailed = bar(s, bars, t.bar)
-  if not base then
-    return nil, length, readFailed
+  local b, failed, readFailed = bar(s, bars, t.bar)
+  if not b then
+    return nil, failed, readFailed
   end
-  t.base, t.length, t.stride = base, length, entrySize * 4
+  local base, length = b.base, b.length
+  t.base, t.length, t.stride, t.barRegister = base, length, entrySize * 4, b.register
   local tableLength = entries * t.stride
   if t.offset + tableLength > 0xffffffff or t.offset + tableLength > length then
     ksi.trace('discovery table at 0x%x leaves BAR %d', position, t.bar)
@@ -624,17 +646,24 @@ local function pmt_region(s, op, t, i, bars)
   else
     return nil
   end
-  local base, length, readFailed = bar(s, bars, index)
-  if not base then
+  local b, failed, readFailed = bar(s, bars, index)
+  if not b then
     if readFailed then
-      return nil, length, true
+      return nil, failed, true
     end
     return nil
   end
-  if offset + size > length then
+  if offset + size > b.length then
     return nil
   end
-  return { base = base + offset, size = size, id = guid }
+  return {
+    base = b.base + offset,
+    size = size,
+    id = guid,
+    bar = index,
+    barBase = b.base,
+    barRegister = b.register,
+  }
 end
 
 -- Appends the regions of TPMI entry i of a table: one per instance, until an
@@ -658,12 +687,18 @@ local function tpmi_regions(op, t, i, position, regions)
       size = size,
       id = op.selector,
       position = (position << 16) | (i << 8) | instance,
+      bar = t.bar,
+      barBase = t.base,
+      barRegister = t.barRegister,
+      capability = position,
+      tableRegister = t.register,
     }
   end
 end
 
--- The regions of an operation: each { base, size, id, position }. Nil, the
--- status and whether a read failed when the walk fails.
+-- The regions of an operation: each { base, size, id, position } and what
+-- locates it (its BAR and register, its capability and table register). Nil,
+-- the status and whether a read failed when the walk fails.
 local function walk(s, op)
   local st = check_d0(s)
   if st ~= ksi.STATUS_SUCCESS then
@@ -695,6 +730,7 @@ local function walk(s, op)
         end
         if r then
           r.position = (position << 16) | (i << 8)
+          r.capability, r.tableRegister = position, t.register
           regions[#regions + 1] = r
         end
       end
@@ -752,6 +788,199 @@ function regions(input)
   end
   if not s.kept then
     s.device:release()
+  end
+  return ksi.STATUS_SUCCESS, table.concat(out)
+end
+
+-- The regions of an operation, walked or kept. A kept list is checked by the
+-- asked region's BAR register and its capability's table register; nil and
+-- nil when they changed.
+local function regions_of(s, index, op, position)
+  local k = s.kept
+  local list = k and k.walks[index]
+  if list then
+    for _, r in ipairs(list) do
+      if r.position == position then
+        if
+          ksi.hw.pci_read(s.device, 0x10 + r.bar * 4, 4) ~= r.barRegister
+          or ksi.hw.pci_read(s.device, r.capability + 0xc, 4) ~= r.tableRegister
+        then
+          ksi.trace('region 0x%x moved', position)
+          return nil
+        end
+        break
+      end
+    end
+    return list
+  end
+  local fresh, failed, readFailed = walk(s, op)
+  if fresh and k then
+    k.walks[index] = fresh
+  end
+  return fresh, failed, readFailed
+end
+
+local function permitted(ranges, offset, width)
+  for _, r in ipairs(ranges) do
+    if r[3] == width and offset >= r[1] and offset - r[1] < r[2] then
+      return true
+    end
+  end
+  return false
+end
+
+local function all_ones(width)
+  if width == 8 then
+    return -1
+  end
+  return 0xffffffff
+end
+
+-- Reads registers of a region of an operation of the function at a locator.
+function read(input)
+  if #input < 24 or (#input - 16) % 8 ~= 0 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local locator, index, position, id = string.unpack('<I4I4I4I4', input)
+  local s, refused = session(locator)
+  if not s then
+    return refused
+  end
+  local op = s.operations[index + 1]
+  if not op then
+    ksi.trace('no operation %d', index)
+    if not s.kept then
+      s.device:release()
+    end
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local list, failed, readFailed = regions_of(s, index + 1, op, position)
+  if not list and not failed then
+    drop(s, locator)
+    s, refused = session(locator)
+    if not s then
+      return refused
+    end
+    list, failed, readFailed = regions_of(s, index + 1, op, position)
+  end
+  if not list then
+    if not s.kept then
+      s.device:release()
+    elseif readFailed then
+      drop(s, locator)
+    end
+    return failed
+  end
+  local region
+  for _, r in ipairs(list) do
+    if r.position == position then
+      region = r
+      break
+    end
+  end
+  if not region or region.id ~= id then
+    ksi.trace('no region 0x%x of ID 0x%x', position, id)
+    if not s.kept then
+      s.device:release()
+    end
+    return ksi.STATUS_NOT_FOUND
+  end
+
+  local entries = {}
+  local spanBegin, spanEnd
+  for at = 17, #input, 8 do
+    local offset, width = string.unpack('<I4I4', input, at)
+    local e = { offset = offset, width = width }
+    if (width ~= 4 and width ~= 8) or offset % width ~= 0 then
+      e.status = ksi.STATUS_INVALID_PARAMETER
+    elseif not permitted(op.ranges, offset, width) or offset + width > region.size then
+      e.status = ksi.STATUS_ACCESS_DENIED
+    elseif (region.base + offset) % width ~= 0 then
+      e.status = ksi.STATUS_INVALID_PARAMETER
+    else
+      spanBegin = math.min(spanBegin or offset, offset)
+      spanEnd = math.max(spanEnd or 0, offset + width)
+    end
+    entries[#entries + 1] = e
+  end
+
+  if spanBegin then
+    local maps = s.kept and s.kept.maps
+    local key = (index << 32) | position
+    local w = maps and maps[key]
+    if w and (spanBegin < w.first or spanEnd > w.last) then
+      spanBegin = math.min(spanBegin, w.first)
+      spanEnd = math.max(spanEnd, w.last)
+      maps[key] = nil
+      w.map:release()
+      w = nil
+    end
+    if not w then
+      local first = region.base & -PAGE
+      local last = (region.base + region.size + PAGE - 1) & -PAGE
+      if math.ult(last, first) or math.ult(HUGE_PAGE_END, last) then
+        ksi.trace('region 0x%x ends beyond the address space', region.base)
+        if not s.kept then
+          s.device:release()
+        end
+        return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      end
+      local bits, bitsFailed = address_bits()
+      local st = bits and check_range(first, last, bits) or bitsFailed
+      if st ~= ksi.STATUS_SUCCESS then
+        if not s.kept then
+          s.device:release()
+        end
+        return st
+      end
+      local start = (region.base + spanBegin) & -8
+      local m, mapFailed = ksi.hw.map(start, region.base + spanEnd - start)
+      if not m then
+        ksi.trace('region 0x%x not mapped: 0x%x', region.base, mapFailed)
+        if not s.kept then
+          s.device:release()
+        end
+        return mapFailed
+      end
+      w = { map = m, start = start, first = spanBegin, last = spanEnd }
+      if maps then
+        maps[key] = w
+      end
+    end
+    local mapping <close> = (not maps) and w.map or nil
+    local stopped = false
+    for _, e in ipairs(entries) do
+      if e.status == nil then
+        if stopped then
+          e.status = ksi.STATUS_CANCELLED
+        else
+          e.value = ksi.hw.map_read(w.map, region.base + e.offset - w.start, e.width)
+          e.status = ksi.STATUS_SUCCESS
+          if e.value == all_ones(e.width) then
+            local st = check_d0(s)
+            local base = st == ksi.STATUS_SUCCESS and bar_base(s, region.bar)
+            if base ~= region.barBase then
+              ksi.trace('offset 0x%x read all-ones; the region is gone', e.offset)
+              e.status, e.value = ksi.STATUS_DEVICE_NOT_READY, 0
+              stopped = true
+            end
+          end
+        end
+      end
+    end
+    if stopped and maps and maps[key] then
+      maps[key] = nil
+      w.map:release()
+    end
+  end
+  if not s.kept then
+    s.device:release()
+  end
+
+  local out = {}
+  for _, e in ipairs(entries) do
+    out[#out + 1] = string.pack('<I4I4I8', e.status, 0, e.value or 0)
   end
   return ksi.STATUS_SUCCESS, table.concat(out)
 end
