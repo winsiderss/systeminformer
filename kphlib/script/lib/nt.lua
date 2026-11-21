@@ -10,7 +10,8 @@
 
 --
 -- The Windows NT definitions scripts use: status values and the tests of their
--- severity. A script reaches it with local nt = require('nt').
+-- severity, device property keys and values. A script reaches it with
+-- local nt = require('nt').
 --
 
 local M = {}
@@ -18,6 +19,14 @@ local M = {}
 -- A status as Windows writes it, as the signed 32-bit value the driver gives.
 local function status(value)
   return (value ~ 0x80000000) - 0x80000000
+end
+
+-- A DEVPROPKEY as devpkey.h writes it: the GUID's fields, then the property id.
+local function devpkey(data1, data2, data3, b0, b1, b2, b3, b4, b5, b6, b7, pid)
+  return {
+    guid = string.pack('<I4I2I2BBBBBBBB', data1, data2, data3, b0, b1, b2, b3, b4, b5, b6, b7),
+    pid = pid,
+  }
 end
 
 M.STATUS_ACCESS_DENIED = status(0xC0000022)
@@ -64,6 +73,30 @@ end
 
 function M.NT_ERROR(s)
   return (s >> 30) & 3 == 3
+end
+
+M.DEVPKEY_Device_RemovalPolicy =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 33)
+
+M.DEVPROP_TYPE_UINT32 = 0x00000007
+
+M.DevicePropertyBootConfiguration = 0x3
+M.DevicePropertyBootConfigurationTranslated = 0x4
+M.DevicePropertyResourceRequirements = 0x14
+M.DevicePropertyAllocatedResources = 0x15
+
+M.RemovalPolicyExpectNoRemoval = 1
+M.RemovalPolicyExpectOrderlyRemoval = 2
+M.RemovalPolicyExpectSurpriseRemoval = 3
+
+-- Whether a device may go away while a script holds it: true unless the system
+-- expects it never to be removed, and true when its policy cannot be read.
+function M.is_device_removable(device)
+  local bytes, kind = ksi.hw.device_property_data(device, M.DEVPKEY_Device_RemovalPolicy)
+  if not bytes or kind ~= M.DEVPROP_TYPE_UINT32 or #bytes ~= 4 then
+    return true
+  end
+  return string.unpack('<I4', bytes) ~= M.RemovalPolicyExpectNoRemoval
 end
 
 return M
