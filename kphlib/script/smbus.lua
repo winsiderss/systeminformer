@@ -466,8 +466,8 @@ local function address_bits()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, maximum = string.unpack('<I4I4', results, 1)
-  local s1, eax = string.unpack('<I4I4', results, 21)
+  local s0, maximum = string.unpack('<i4I4', results, 1)
+  local s1, eax = string.unpack('<i4I4', results, 21)
   if
     s0 == ksi.STATUS_SUCCESS
     and maximum >= 0x80000008
@@ -1288,7 +1288,7 @@ local function i801_read(s, entries, port)
   if allowed == 0 then
     local denied = {}
     for i = 1, #entries do
-      denied[i] = string.pack('<I4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      denied[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
     end
     return ksi.STATUS_SUCCESS, table.concat(denied)
   end
@@ -1364,7 +1364,7 @@ local function i801_read(s, entries, port)
 
   local packed = {}
   for i, o in ipairs(output) do
-    packed[i] = string.pack('<I4I4', o[1], o[2])
+    packed[i] = string.pack('<i4I4', o[1], o[2])
   end
   return ksi.STATUS_SUCCESS, table.concat(packed)
 end
@@ -1415,7 +1415,7 @@ function read(input)
   if allowed == 0 then
     local denied = {}
     for i = 1, #entries do
-      denied[i] = string.pack('<I4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      denied[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
     end
     return ksi.STATUS_SUCCESS, table.concat(denied)
   end
@@ -1581,7 +1581,7 @@ function read(input)
 
   local packed = {}
   for i, o in ipairs(output) do
-    packed[i] = string.pack('<I4I4', o[1], o[2])
+    packed[i] = string.pack('<i4I4', o[1], o[2])
   end
   return ksi.STATUS_SUCCESS, table.concat(packed)
 end

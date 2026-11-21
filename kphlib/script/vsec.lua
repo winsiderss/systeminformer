@@ -258,8 +258,8 @@ local function address_bits()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, maximum = string.unpack('<I4I4', results, 1)
-  local s1, eax = string.unpack('<I4I4', results, 21)
+  local s0, maximum = string.unpack('<i4I4', results, 1)
+  local s1, eax = string.unpack('<i4I4', results, 21)
   if
     s0 == ksi.STATUS_SUCCESS
     and maximum >= 0x80000008
@@ -980,7 +980,7 @@ function read(input)
 
   local out = {}
   for _, e in ipairs(entries) do
-    out[#out + 1] = string.pack('<I4I4I8', e.status, 0, e.value or 0)
+    out[#out + 1] = string.pack('<i4I4I8', e.status, 0, e.value or 0)
   end
   return ksi.STATUS_SUCCESS, table.concat(out)
 end

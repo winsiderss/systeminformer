@@ -302,7 +302,7 @@ function read(input)
         status = ksi.STATUS_DEVICE_NOT_READY
       end
     end
-    output[i] = string.pack('<I4I4', status, value)
+    output[i] = string.pack('<i4I4', status, value)
   end
 
   return ksi.STATUS_SUCCESS, table.concat(output)

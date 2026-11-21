@@ -542,8 +542,8 @@ local function cpu_identity()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, _, b, c, d = string.unpack('<I4I4I4I4I4', results, 1)
-  local s1, signature = string.unpack('<I4I4', results, 21)
+  local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
+  local s1, signature = string.unpack('<i4I4', results, 21)
   if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
     return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
@@ -820,7 +820,7 @@ function read(input)
     else
       status, value = cycle(s, address)
     end
-    output[i] = string.pack('<I4I4', status, value)
+    output[i] = string.pack('<i4I4', status, value)
   end
 
   return ksi.STATUS_SUCCESS, table.concat(output)

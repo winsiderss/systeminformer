@@ -367,11 +367,11 @@ function read(input)
   local output = {}
   for i = 1, count do
     if not offsets[i] then
-      output[i] = string.pack('<I4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      output[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
     elseif present then
-      output[i] = string.pack('<I4I4', ksi.STATUS_SUCCESS, values[i])
+      output[i] = string.pack('<i4I4', ksi.STATUS_SUCCESS, values[i])
     else
-      output[i] = string.pack('<I4I4', ksi.STATUS_DEVICE_NOT_READY, 0)
+      output[i] = string.pack('<i4I4', ksi.STATUS_DEVICE_NOT_READY, 0)
     end
   end
   return ksi.STATUS_SUCCESS, table.concat(output)

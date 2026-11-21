@@ -2522,7 +2522,7 @@ local function query(processors, gates)
   for _, p in ipairs(processors) do
     local start = at
     local function take()
-      local s, a, b, c, d = string.unpack('<I4I4I4I4I4', results, at)
+      local s, a, b, c, d = string.unpack('<i4I4I4I4I4', results, at)
       at = at + 20
       if s ~= ksi.STATUS_SUCCESS then
         p.invalid = true
@@ -2746,7 +2746,7 @@ local function read_msr(input)
       return failure
     end
     for i, item in ipairs(reads) do
-      local s, _, value = string.unpack('<I4I4I8', results, (i - 1) * 16 + 1)
+      local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
       if s ~= ksi.STATUS_SUCCESS then
         item.status = s
       elseif type(item.entry) == 'table' and item.entry.mask then
@@ -2759,7 +2759,7 @@ local function read_msr(input)
 
   local output = {}
   for i, item in ipairs(items) do
-    output[i] = string.pack('<I4I4I8', item.status, 0, item.value)
+    output[i] = string.pack('<i4I4I8', item.status, 0, item.value)
   end
 
   return ksi.STATUS_SUCCESS, table.concat(output)

@@ -1123,8 +1123,8 @@ local function cpu_identity()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, _, b, c, d = string.unpack('<I4I4I4I4I4', results, 1)
-  local s1, signature = string.unpack('<I4I4', results, 21)
+  local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
+  local s1, signature = string.unpack('<i4I4', results, 21)
   if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
     return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
@@ -1699,7 +1699,7 @@ function command(input)
       status, completed, results, answer = transact(s, op, args, c.words)
       stopped = not completed
     end
-    output[i] = string.pack('<I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, 6))
+    output[i] = string.pack('<i4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, 6))
   end
 
   return ksi.STATUS_SUCCESS, concat(output)
@@ -1738,8 +1738,8 @@ local function address_bits()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, maximum = string.unpack('<I4I4', results, 1)
-  local s1, eax = string.unpack('<I4I4', results, 21)
+  local s0, maximum = string.unpack('<i4I4', results, 1)
+  local s1, eax = string.unpack('<i4I4', results, 21)
   if
     s0 == ksi.STATUS_SUCCESS
     and maximum >= 0x80000008
@@ -1803,7 +1803,7 @@ local function address_map()
   end
   local map = {}
   for i, index in ipairs(indexes) do
-    local s, _, value = string.unpack('<I4I4I8', results, (i - 1) * 16 + 1)
+    local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
     if s == ksi.STATUS_SUCCESS then
       map[index] = value
     end

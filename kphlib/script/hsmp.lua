@@ -512,8 +512,8 @@ local function cpu_identity()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, _, b, c, d = string.unpack('<I4I4I4I4I4', results, 1)
-  local s1, signature = string.unpack('<I4I4', results, 21)
+  local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
+  local s1, signature = string.unpack('<i4I4', results, 21)
   if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
     return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
@@ -1198,8 +1198,8 @@ local function address_bits()
     ksi.trace('cpuid failed: 0x%x', status)
     return nil, status
   end
-  local s0, maximum = string.unpack('<I4I4', results, 1)
-  local s1, eax = string.unpack('<I4I4', results, 21)
+  local s0, maximum = string.unpack('<i4I4', results, 1)
+  local s1, eax = string.unpack('<i4I4', results, 21)
   if
     s0 == ksi.STATUS_SUCCESS
     and maximum >= 0x80000008
@@ -1573,7 +1573,7 @@ local function root_command(input, entries)
       status, completed, results, answer = transact(s, op, args, c.words)
       stopped = not completed
     end
-    output[i] = string.pack('<I4I4I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, ARGS))
+    output[i] = string.pack('<i4I4I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, ARGS))
   end
 
   return ksi.STATUS_SUCCESS, concat(output)
@@ -1650,7 +1650,7 @@ local function acpi_command(s, socket, entries)
       status, completed, results, answer = acpi_transact(s, op, args, c.words)
       stopped = not completed
     end
-    output[i] = string.pack('<I4I4I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, ARGS))
+    output[i] = string.pack('<i4I4I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, ARGS))
   end
 
   if acpi_moved(s) then

@@ -1826,7 +1826,7 @@ function read(input)
     else
       ksi.trace('register 0x%x is not permitted', reg)
     end
-    output[i] = string.pack('<I4I4', item, value)
+    output[i] = string.pack('<i4I4', item, value)
   end
   if stopped then
     kept[s.port] = nil

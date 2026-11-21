@@ -282,7 +282,7 @@ function identify(input)
     return status
   end
 
-  local failure, _, value = string.unpack('<I4I4I8', results, 1)
+  local failure, _, value = string.unpack('<i4I4I8', results, 1)
   if failure ~= ksi.STATUS_SUCCESS then
     ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', group, number, failure)
     return failure
@@ -338,7 +338,7 @@ local function read_ids(processors, codes)
   local at = 1
   for _, p in ipairs(processors) do
     for _, code in ipairs(codes[p]) do
-      local s, _, value = string.unpack('<I4I4I8', results, at)
+      local s, _, value = string.unpack('<i4I4I8', results, at)
       at = at + 16
       p.ids[code] = { status = s, value = value }
     end
@@ -448,7 +448,7 @@ local function read_sysreg(input)
         for _, code in ipairs(list) do
           local id = p.ids[code]
           whole = whole and id.status == ksi.STATUS_SUCCESS
-          parts[#parts + 1] = string.pack('<I4I8', id.status, id.value)
+          parts[#parts + 1] = string.pack('<i4I8', id.status, id.value)
         end
       end
       if whole then
@@ -521,7 +521,7 @@ local function read_sysreg(input)
       return failure
     end
     for i, item in ipairs(reads) do
-      local s, _, value = string.unpack('<I4I4I8', results, (i - 1) * 16 + 1)
+      local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
       item.status = s
       if s == ksi.STATUS_SUCCESS then
         item.value = value
@@ -531,7 +531,7 @@ local function read_sysreg(input)
 
   local output = {}
   for i, item in ipairs(items) do
-    output[i] = string.pack('<I4I4I8', item.status, 0, item.value)
+    output[i] = string.pack('<i4I4I8', item.status, 0, item.value)
   end
 
   return ksi.STATUS_SUCCESS, table.concat(output)

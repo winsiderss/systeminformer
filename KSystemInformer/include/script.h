@@ -168,7 +168,7 @@ VOID KphLuaPushStatus(
     _In_ NTSTATUS Status
     )
 {
-    lua_pushinteger(State, (lua_Integer)(ULONG)Status);
+    lua_pushinteger(State, (lua_Integer)Status);
 }
 
 FORCEINLINE

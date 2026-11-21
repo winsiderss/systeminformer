@@ -537,7 +537,7 @@ function eval(input)
   for i, record in ipairs(records) do
     local status, result = evaluate(record, milliseconds)
     result = result or ''
-    output[i] = string.pack('<I4I4', status, #result) .. pad(result)
+    output[i] = string.pack('<i4I4', status, #result) .. pad(result)
   end
   return ksi.STATUS_SUCCESS, table.concat(output)
 end

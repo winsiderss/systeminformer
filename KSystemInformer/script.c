@@ -1361,10 +1361,7 @@ NTSTATUS KphpScriptTakeStatus(
 
     value = lua_tointegerx(State, Index, NULL);
 
-    //
-    // A script may write a status as a signed or as an unsigned 32-bit value.
-    //
-    if ((value < LONG_MIN) || (value > ULONG_MAX))
+    if ((value < LONG_MIN) || (value > LONG_MAX))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
@@ -1373,7 +1370,7 @@ NTSTATUS KphpScriptTakeStatus(
         return STATUS_SI_SCRIPT_ERROR;
     }
 
-    *RoutineStatus = (NTSTATUS)(ULONG)(value & ULONG_MAX);
+    *RoutineStatus = (NTSTATUS)value;
 
     return STATUS_SUCCESS;
 }
