@@ -23,6 +23,7 @@ typedef struct _KPH_HW_CPU_IDENTITY
     ULONG Model;
     ULONG Stepping;
     ULONG Signature;
+    ULONG Hybrid;
 } KPH_HW_CPU_IDENTITY, *PKPH_HW_CPU_IDENTITY;
 
 typedef struct _KPH_HW_CPU_ITEM
@@ -168,7 +169,7 @@ typedef const KPH_HW_WINDOW_ITEM* PCKPH_HW_WINDOW_ITEM;
 #define KPH_HW_ACPI_ROW_ACPI000D 6
 #define KPH_HW_ACPI_ROW_INT3407 7
 
-C_ASSERT(sizeof(KPH_HW_CPU_IDENTITY) == 28);
+C_ASSERT(sizeof(KPH_HW_CPU_IDENTITY) == 32);
 C_ASSERT(sizeof(KPH_HW_CPU_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_VALUE64) == 16);
 C_ASSERT(sizeof(KPH_HW_SUPERIO_CHIP) == 12);
