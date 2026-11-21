@@ -18,20 +18,20 @@
 
 -- Returns its input.
 function echo(input)
-    return ksi.STATUS_SUCCESS, input
+  return ksi.STATUS_SUCCESS, input
 end
 
 -- Returns the sum of a list of 64-bit integers, as 8 bytes.
 function sum(input)
-    local total = 0
+  local total = 0
 
-    if #input % 8 ~= 0 then
-        return ksi.STATUS_INVALID_PARAMETER
-    end
+  if #input % 8 ~= 0 then
+    return ksi.STATUS_INVALID_PARAMETER
+  end
 
-    for at = 1, #input, 8 do
-        total = total + string.unpack("<i8", input, at)
-    end
+  for at = 1, #input, 8 do
+    total = total + string.unpack('<i8', input, at)
+  end
 
-    return ksi.STATUS_SUCCESS, string.pack("<i8", total)
+  return ksi.STATUS_SUCCESS, string.pack('<i8', total)
 end
