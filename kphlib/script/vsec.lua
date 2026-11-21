@@ -884,7 +884,7 @@ function read(input)
     if not s.kept then
       s.device:release()
     end
-    return ksi.STATUS_NOT_FOUND
+    return ksi.STATUS_CONTEXT_MISMATCH
   end
 
   local entries = {}
@@ -897,7 +897,7 @@ function read(input)
     elseif not permitted(op.ranges, offset, width) or offset + width > region.size then
       e.status = ksi.STATUS_ACCESS_DENIED
     elseif (region.base + offset) % width ~= 0 then
-      e.status = ksi.STATUS_INVALID_PARAMETER
+      e.status = ksi.STATUS_DATATYPE_MISALIGNMENT
     else
       spanBegin = math.min(spanBegin or offset, offset)
       spanEnd = math.max(spanEnd or 0, offset + width)
