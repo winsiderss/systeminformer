@@ -562,7 +562,6 @@ local function uninterrupted(step)
     })
 end
 
--- The PCI function the input names, its row and its layout.
 -- Forgets what is kept for a locator, then releases it.
 local function forget(locator)
     local k = kept[locator]
@@ -573,6 +572,7 @@ local function forget(locator)
     k.device:release()
 end
 
+-- The PCI function the input names, its row and its layout.
 local function session(locator)
     local segment, bus = locator >> 16, (locator >> 8) & 0xff
     local slot, fn = (locator >> 3) & 0x1f, locator & 0x7
