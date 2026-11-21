@@ -10,8 +10,8 @@
 
 --
 -- The Windows NT definitions scripts use: status values and the tests of their
--- severity, device property keys and values, and the parts (nt.pci). A script
--- reaches it with local nt = require('nt').
+-- severity, device property keys and values, and the parts (nt.pci, nt.acpi). A
+-- script reaches it with local nt = require('nt').
 --
 
 local M = {}
@@ -83,8 +83,15 @@ M.DEVPKEY_Device_Address =
   devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 30)
 M.DEVPKEY_Device_LocationInfo =
   devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 15)
+M.DEVPKEY_Device_HardwareIds =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 3)
+M.DEVPKEY_Device_CompatibleIds =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 4)
+M.DEVPKEY_Device_BiosDeviceName =
+  devpkey(0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 10)
 
 M.DEVPROP_TYPE_UINT32 = 0x00000007
+M.DEVPROP_TYPE_STRING = 0x00000012
 
 M.DevicePropertyBootConfiguration = 0x3
 M.DevicePropertyBootConfigurationTranslated = 0x4
@@ -106,5 +113,6 @@ function M.is_device_removable(device)
 end
 
 M.pci = require('pci')(M)
+M.acpi = require('acpi')(M)
 
 return M
