@@ -22,12 +22,29 @@
 #include <lua.h>
 
 #include <ldebug.h>
+#include <lgc.h>
 #include <lobject.h>
 #include <lopcodes.h>
 #include <lstate.h>
 
 #define KPHLUAC_ENVIRONMENT "_ENV"
 #define KPHLUAC_REGISTERS 256
+#define KPHLUAC_REQUIRE "require"
+#define KPHLUAC_LIBRARY_ENTRY "nt"
+#define KPHLUAC_MARKER "kphluac require "
+
+typedef enum _KPHLUAC_KIND
+{
+    KPHLUAC_KIND_SCRIPT,
+    KPHLUAC_KIND_ENTRY,
+    KPHLUAC_KIND_PART
+} KPHLUAC_KIND;
+
+typedef struct _REQUIRE
+{
+    char* Name;
+    int Line;
+} REQUIRE, *PREQUIRE;
 
 typedef struct _BUILD_CONTEXT
 {
@@ -37,7 +54,24 @@ typedef struct _BUILD_CONTEXT
     int* RoutineLines;
     int RoutineCount;
     int Errors;
+    KPHLUAC_KIND Kind;
+    const wchar_t* LibraryFolder;
+    PREQUIRE Requires;
+    int RequireCount;
 } BUILD_CONTEXT, *PBUILD_CONTEXT;
+
+typedef struct _TEXT_BUFFER
+{
+    char* Data;
+    size_t Length;
+    size_t Capacity;
+} TEXT_BUFFER, *PTEXT_BUFFER;
+
+static const char* KphluacOpeningWords[] = { "function", "do", "if", "repeat" };
+static const char* KphluacClosingWords[] = { "end", "until" };
+static const char KphluacPlaceholderStart[] =
+    "(function(...) local _ = '" KPHLUAC_MARKER;
+static const char KphluacPlaceholderEnd[] = "' end)()";
 
 typedef struct _SOURCE_TEXT
 {
@@ -760,6 +794,16 @@ static void CheckGlobalStore(
 
     line = luaG_getfuncline(Function, Pc);
 
+    if (Context->Kind != KPHLUAC_KIND_SCRIPT)
+    {
+        Report(Context,
+               line,
+               "global '%s': a script library defines no globals (a missing "
+               "'local'?)",
+               Name);
+        return;
+    }
+
     if (!IsMain)
     {
         Report(Context,
@@ -926,6 +970,787 @@ static void CheckFunction(
 }
 
 /**
+ * \brief Appends text to a growing buffer.
+ *
+ * \param[in,out] Buffer The buffer.
+ * \param[in] Text The text.
+ * \param[in] Length The length of the text.
+ *
+ * \return Non-zero on success.
+ */
+static int AppendText(
+    _Inout_ PTEXT_BUFFER Buffer,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length
+    )
+{
+    char* data;
+    size_t capacity;
+
+    if ((Buffer->Length + Length + 1) > Buffer->Capacity)
+    {
+        capacity = (Buffer->Length + Length + 1) * 2;
+
+        data = realloc(Buffer->Data, capacity);
+        if (!data)
+        {
+            return 0;
+        }
+
+        Buffer->Data = data;
+        Buffer->Capacity = capacity;
+    }
+
+    memcpy(Buffer->Data + Buffer->Length, Text, Length);
+    Buffer->Length += Length;
+    Buffer->Data[Buffer->Length] = '\0';
+
+    return 1;
+}
+
+/**
+ * \brief Checks if a character can start a Lua name.
+ *
+ * \param[in] Character The character.
+ *
+ * \return Non-zero when it can.
+ */
+static int IsNameStart(
+    _In_ char Character
+    )
+{
+    return (((Character >= 'a') && (Character <= 'z')) ||
+            ((Character >= 'A') && (Character <= 'Z')) ||
+            (Character == '_'));
+}
+
+/**
+ * \brief Checks if a character can be part of a Lua name.
+ *
+ * \param[in] Character The character.
+ *
+ * \return Non-zero when it can.
+ */
+static int IsNameCharacter(
+    _In_ char Character
+    )
+{
+    return (IsNameStart(Character) ||
+            ((Character >= '0') && (Character <= '9')));
+}
+
+/**
+ * \brief Measures the opening long bracket at a position, if there is one.
+ *
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ * \param[in] At The position of a '['.
+ *
+ * \return The level of the bracket plus one, or zero when there is none.
+ */
+static size_t LongBracketLevel(
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _In_ size_t At
+    )
+{
+    size_t level;
+    size_t i;
+
+    level = 0;
+
+    for (i = At + 1; (i < Length) && (Text[i] == '='); i++)
+    {
+        level++;
+    }
+
+    if ((i < Length) && (Text[i] == '['))
+    {
+        return level + 1;
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Skips a long string or comment.
+ *
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ * \param[in] At The position of its opening bracket.
+ * \param[in] Level The level of the bracket plus one.
+ *
+ * \return The position after its closing bracket, or the length.
+ */
+static size_t SkipLongBracket(
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _In_ size_t At,
+    _In_ size_t Level
+    )
+{
+    size_t count;
+    size_t j;
+
+    for (size_t i = At + Level + 1; i < Length; i++)
+    {
+        if (Text[i] != ']')
+        {
+            continue;
+        }
+
+        count = 0;
+
+        for (j = i + 1; (j < Length) && (Text[j] == '='); j++)
+        {
+            count++;
+        }
+
+        if (((count + 1) == Level) && (j < Length) && (Text[j] == ']'))
+        {
+            return j + 1;
+        }
+    }
+
+    return Length;
+}
+
+/**
+ * \brief Counts the line of a position in the source text.
+ *
+ * \param[in] Text The source text.
+ * \param[in] At The position.
+ *
+ * \return The line, from one.
+ */
+static int LineOf(
+    _In_reads_bytes_(At) const char* Text,
+    _In_ size_t At
+    )
+{
+    int line;
+
+    line = 1;
+
+    for (size_t i = 0; i < At; i++)
+    {
+        if (Text[i] == '\n')
+        {
+            line++;
+        }
+    }
+
+    return line;
+}
+
+/**
+ * \brief Checks if a name is a word that opens or closes a block.
+ *
+ * \param[in] Name The name.
+ * \param[in] Length The length of the name.
+ *
+ * \return One for a word that opens a block, minus one for one that closes
+ * it, zero for any other name.
+ */
+static int BlockWord(
+    _In_reads_bytes_(Length) const char* Name,
+    _In_ size_t Length
+    )
+{
+    for (int i = 0; i < (int)ARRAYSIZE(KphluacOpeningWords); i++)
+    {
+        if ((strlen(KphluacOpeningWords[i]) == Length) &&
+            (memcmp(KphluacOpeningWords[i], Name, Length) == 0))
+        {
+            return 1;
+        }
+    }
+
+    for (int i = 0; i < (int)ARRAYSIZE(KphluacClosingWords); i++)
+    {
+        if ((strlen(KphluacClosingWords[i]) == Length) &&
+            (memcmp(KphluacClosingWords[i], Name, Length) == 0))
+        {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Records a library a unit requires.
+ *
+ * \param[in,out] Context The build of the unit.
+ * \param[in] Name The name of the library.
+ * \param[in] Length The length of the name.
+ * \param[in] Line The line of the require.
+ *
+ * \return Non-zero on success.
+ */
+static int AddRequire(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_reads_bytes_(Length) const char* Name,
+    _In_ size_t Length,
+    _In_ int Line
+    )
+{
+    PREQUIRE requires;
+    char* name;
+
+    for (int i = 0; i < Context->RequireCount; i++)
+    {
+        if ((strlen(Context->Requires[i].Name) == Length) &&
+            (memcmp(Context->Requires[i].Name, Name, Length) == 0))
+        {
+            Report(Context,
+                   Line,
+                   "'%s' is already required at line %d",
+                   Context->Requires[i].Name,
+                   Context->Requires[i].Line);
+            return 1;
+        }
+    }
+
+    requires = realloc(Context->Requires,
+                       ((size_t)Context->RequireCount + 1) * sizeof(REQUIRE));
+    if (!requires)
+    {
+        return 0;
+    }
+
+    Context->Requires = requires;
+
+    name = malloc(Length + 1);
+    if (!name)
+    {
+        return 0;
+    }
+
+    memcpy(name, Name, Length);
+    name[Length] = '\0';
+
+    Context->Requires[Context->RequireCount].Name = name;
+    Context->Requires[Context->RequireCount].Line = Line;
+    Context->RequireCount++;
+
+    return 1;
+}
+
+/**
+ * \brief Rewrites each require of a unit, in place on its own line, as a call
+ * of an empty function marked with the library's name, and records the
+ * libraries required.
+ *
+ * \details A require is written require('name') in the main body, outside
+ * every function and block. Strings and comments are skipped; a name after
+ * '.' or ':' is a field, not the global.
+ *
+ * \param[in,out] Context The build of the unit.
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ * \param[in,out] Output Receives the rewritten text.
+ *
+ * \return Non-zero on success; errors in the text are reported, not failed.
+ */
+static int RewriteRequires(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _Inout_ PTEXT_BUFFER Output
+    )
+{
+    size_t copied;
+    size_t i;
+    size_t level;
+    size_t start;
+    size_t nameStart;
+    size_t nameEnd;
+    char quote;
+    char previous;
+    char beforePrevious;
+    int depth;
+    int field;
+    int line;
+
+    copied = 0;
+    i = 0;
+    depth = 0;
+    previous = 0;
+    beforePrevious = 0;
+
+    while (i < Length)
+    {
+        if ((Text[i] == '-') && ((i + 1) < Length) && (Text[i + 1] == '-'))
+        {
+            level = 0;
+
+            if (((i + 2) < Length) && (Text[i + 2] == '['))
+            {
+                level = LongBracketLevel(Text, Length, i + 2);
+            }
+
+            if (level != 0)
+            {
+                i = SkipLongBracket(Text, Length, i + 2, level);
+            }
+            else
+            {
+                while ((i < Length) && (Text[i] != '\n'))
+                {
+                    i++;
+                }
+            }
+
+            continue;
+        }
+
+        if ((Text[i] == '\'') || (Text[i] == '"'))
+        {
+            quote = Text[i];
+            i++;
+
+            while ((i < Length) && (Text[i] != quote) && (Text[i] != '\n'))
+            {
+                if (Text[i] == '\\')
+                {
+                    i++;
+                }
+
+                i++;
+            }
+
+            i++;
+            beforePrevious = previous;
+            previous = quote;
+            continue;
+        }
+
+        if (Text[i] == '[')
+        {
+            level = LongBracketLevel(Text, Length, i);
+
+            if (level != 0)
+            {
+                i = SkipLongBracket(Text, Length, i, level);
+                beforePrevious = previous;
+                previous = ']';
+                continue;
+            }
+        }
+
+        if ((Text[i] >= '0') && (Text[i] <= '9'))
+        {
+            while ((i < Length) &&
+                   (IsNameCharacter(Text[i]) || (Text[i] == '.')))
+            {
+                i++;
+            }
+
+            beforePrevious = previous;
+            previous = '0';
+            continue;
+        }
+
+        if (!IsNameStart(Text[i]))
+        {
+            if ((Text[i] != ' ') && (Text[i] != '\t') && (Text[i] != '\r') &&
+                (Text[i] != '\n'))
+            {
+                beforePrevious = previous;
+                previous = Text[i];
+            }
+
+            i++;
+            continue;
+        }
+
+        start = i;
+
+        while ((i < Length) && IsNameCharacter(Text[i]))
+        {
+            i++;
+        }
+
+        field = (((previous == '.') && (beforePrevious != '.')) ||
+                 (previous == ':'));
+        beforePrevious = previous;
+        previous = 'a';
+
+        if (field)
+        {
+            continue;
+        }
+
+        //
+        // A name followed by '=' is assigned to or a table key, not called.
+        //
+        nameEnd = i;
+
+        while ((nameEnd < Length) &&
+               ((Text[nameEnd] == ' ') || (Text[nameEnd] == '\t')))
+        {
+            nameEnd++;
+        }
+
+        if ((nameEnd < Length) && (Text[nameEnd] == '=') &&
+            (((nameEnd + 1) >= Length) || (Text[nameEnd + 1] != '=')))
+        {
+            continue;
+        }
+
+        depth += BlockWord(Text + start, i - start);
+
+        if (((i - start) != (sizeof(KPHLUAC_REQUIRE) - 1)) ||
+            (memcmp(Text + start, KPHLUAC_REQUIRE, i - start) != 0))
+        {
+            continue;
+        }
+
+        line = LineOf(Text, start);
+
+        nameStart = i + 2;
+        nameEnd = nameStart;
+
+        if (((i + 1) < Length) && (Text[i] == '(') &&
+            ((Text[i + 1] == '\'') || (Text[i + 1] == '"')))
+        {
+            quote = Text[i + 1];
+
+            while ((nameEnd < Length) && IsNameCharacter(Text[nameEnd]))
+            {
+                nameEnd++;
+            }
+
+            if ((nameEnd == nameStart) || ((nameEnd + 1) >= Length) ||
+                (Text[nameEnd] != quote) || (Text[nameEnd + 1] != ')'))
+            {
+                nameEnd = nameStart;
+            }
+        }
+
+        if (nameEnd == nameStart)
+        {
+            Report(Context,
+                   line,
+                   "require takes one name in quotes, as require('nt')");
+            continue;
+        }
+
+        if (depth != 0)
+        {
+            Report(Context,
+                   line,
+                   "require is allowed only in the main body, outside every "
+                   "function and block");
+        }
+
+        if (!AddRequire(Context, Text + nameStart, nameEnd - nameStart, line))
+        {
+            return 0;
+        }
+
+        if (!AppendText(Output, Text + copied, start - copied) ||
+            !AppendText(Output,
+                        KphluacPlaceholderStart,
+                        sizeof(KphluacPlaceholderStart) - 1) ||
+            !AppendText(Output, Text + nameStart, nameEnd - nameStart) ||
+            !AppendText(Output,
+                        KphluacPlaceholderEnd,
+                        sizeof(KphluacPlaceholderEnd) - 1))
+        {
+            return 0;
+        }
+
+        i = nameEnd + 2;
+        copied = i;
+        beforePrevious = 'a';
+        previous = ')';
+    }
+
+    return AppendText(Output, Text + copied, Length - copied);
+}
+
+/**
+ * \brief Finds the placeholder of a require among the functions of a unit's
+ * main body.
+ *
+ * \param[in] Function The main function of the unit.
+ * \param[in] Name The name of the library.
+ *
+ * \return The index of the placeholder, or -1.
+ */
+static int FindPlaceholder(
+    _In_ const Proto* Function,
+    _In_z_ const char* Name
+    )
+{
+    const char* text;
+    size_t prefix;
+
+    prefix = sizeof(KPHLUAC_MARKER) - 1;
+
+    for (int i = 0; i < Function->sizep; i++)
+    {
+        for (int k = 0; k < Function->p[i]->sizek; k++)
+        {
+            text = GetStringConstant(Function->p[i], k);
+
+            if (text &&
+                (strncmp(text, KPHLUAC_MARKER, prefix) == 0) &&
+                (strcmp(text + prefix, Name) == 0))
+            {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * \brief Checks that the main body of a script library ends by returning one
+ * value.
+ *
+ * \param[in,out] Context The build of the library.
+ * \param[in] Function The main function of the library.
+ */
+static void CheckLibraryReturn(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_ const Proto* Function
+    )
+{
+    Instruction instruction;
+
+    if (Function->sizecode >= 2)
+    {
+        instruction = Function->code[Function->sizecode - 2];
+
+        if ((GET_OPCODE(instruction) == OP_RETURN1) ||
+            ((GET_OPCODE(instruction) == OP_RETURN) &&
+             (GETARG_B(instruction) == 2)))
+        {
+            return;
+        }
+    }
+
+    Report(Context,
+           luaG_getfuncline(Function, Function->sizecode - 1),
+           "a script library ends by returning one value (its table, or for "
+           "a part the function that makes it)");
+}
+
+/**
+ * \brief Compiles and checks a unit (a script, nt or a part) and the libraries
+ * it requires, and builds each library into it in place of its require.
+ *
+ * \details The unit's compiled main function is left on the stack. A library
+ * is compiled from its own file under its own name, so that a Lua error in
+ * it reports its own name and line. Its main function takes the place of the
+ * require's placeholder, and its one upvalue, the table of globals, comes
+ * from the unit's main function as a nested function's does.
+ *
+ * \param[in,out] Context The build of the unit.
+ * \param[in] State The Lua state of the build.
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ *
+ * \return The main function of the unit, or NULL.
+ */
+_Ret_maybenull_
+static Proto* CompileUnit(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_ lua_State* State,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length
+    )
+{
+    Proto* function;
+    Proto* library;
+    BUILD_CONTEXT child;
+    TEXT_BUFFER rewritten;
+    SOURCE_TEXT source;
+    char chunkName[LUA_IDSIZE];
+    wchar_t path[MAX_PATH];
+    char display[MAX_PATH * 3];
+    char* text;
+    const char* start;
+    size_t length;
+    int index;
+
+    function = NULL;
+    memset(&rewritten, 0, sizeof(rewritten));
+
+    if (!RewriteRequires(Context, Text, Length, &rewritten))
+    {
+        fprintf(stderr, "kphluac: out of memory\n");
+        Context->Errors++;
+        goto Exit;
+    }
+
+    for (int i = 0; i < Context->RequireCount; i++)
+    {
+        if ((Context->Kind == KPHLUAC_KIND_SCRIPT) &&
+            (strcmp(Context->Requires[i].Name, KPHLUAC_LIBRARY_ENTRY) != 0))
+        {
+            Report(Context,
+                   Context->Requires[i].Line,
+                   "a script requires only '" KPHLUAC_LIBRARY_ENTRY "'; "
+                   "'%s' is not it (a part is reached as "
+                   KPHLUAC_LIBRARY_ENTRY ".%s)",
+                   Context->Requires[i].Name,
+                   Context->Requires[i].Name);
+        }
+        else if ((Context->Kind == KPHLUAC_KIND_ENTRY) &&
+                 (strcmp(Context->Requires[i].Name,
+                         KPHLUAC_LIBRARY_ENTRY) == 0))
+        {
+            Report(Context,
+                   Context->Requires[i].Line,
+                   "'" KPHLUAC_LIBRARY_ENTRY "' requires only its parts");
+        }
+        else if (Context->Kind == KPHLUAC_KIND_PART)
+        {
+            Report(Context,
+                   Context->Requires[i].Line,
+                   "a part requires nothing; '" KPHLUAC_LIBRARY_ENTRY "' gives "
+                   "it what it needs");
+        }
+    }
+
+    if (Context->Errors != 0)
+    {
+        goto Exit;
+    }
+
+    //
+    // A chunk named "=<name>" is shown as "<name>" in messages, in the build
+    // and in the driver.
+    //
+    if (strlen(Context->Script) > (sizeof(chunkName) - 2))
+    {
+        Report(Context, 0, "the name is too long");
+        goto Exit;
+    }
+
+    chunkName[0] = '=';
+    strcpy_s(chunkName + 1, sizeof(chunkName) - 1, Context->Script);
+
+    source.Text = rewritten.Data ? rewritten.Data : "";
+    source.Length = rewritten.Length;
+
+    if (lua_load(State, ReadPiece, &source, chunkName, "t") != LUA_OK)
+    {
+        ReportCompileError(Context, State);
+        goto Exit;
+    }
+
+    function = clLvalue(s2v(State->top.p - 1))->p;
+
+    CheckFunction(Context, function, 1);
+
+    if (Context->Kind != KPHLUAC_KIND_SCRIPT)
+    {
+        CheckLibraryReturn(Context, function);
+    }
+
+    for (int i = 0; i < Context->RequireCount; i++)
+    {
+        memset(&child, 0, sizeof(child));
+        child.Script = Context->Requires[i].Name;
+        child.LibraryFolder = Context->LibraryFolder;
+        child.Kind = (Context->Kind == KPHLUAC_KIND_SCRIPT) ?
+            KPHLUAC_KIND_ENTRY : KPHLUAC_KIND_PART;
+
+        if ((swprintf_s(path,
+                        ARRAYSIZE(path),
+                        L"%ls\\%hs.lua",
+                        Context->LibraryFolder,
+                        child.Script) < 0) ||
+            (sprintf_s(display,
+                       sizeof(display),
+                       "%ls\\%s.lua",
+                       Context->LibraryFolder,
+                       child.Script) < 0))
+        {
+            Report(Context, Context->Requires[i].Line, "the path is too long");
+            continue;
+        }
+
+        child.Source = display;
+
+        text = ReadSource(path, &length);
+        if (!text)
+        {
+            Report(Context,
+                   Context->Requires[i].Line,
+                   "no script library '%s': %s cannot be read",
+                   child.Script,
+                   display);
+            continue;
+        }
+
+        start = text;
+
+        if ((length >= 3) &&
+            ((unsigned char)text[0] == 0xEF) &&
+            ((unsigned char)text[1] == 0xBB) &&
+            ((unsigned char)text[2] == 0xBF))
+        {
+            start += 3;
+            length -= 3;
+        }
+
+        library = CompileUnit(&child, State, start, length);
+
+        free(text);
+
+        for (int r = 0; r < child.RequireCount; r++)
+        {
+            free(child.Requires[r].Name);
+        }
+
+        free(child.Requires);
+
+        Context->Errors += child.Errors;
+
+        if (!library)
+        {
+            continue;
+        }
+
+        index = FindPlaceholder(function, Context->Requires[i].Name);
+
+        if ((index < 0) ||
+            (library->sizeupvalues != 1) ||
+            !IsEnvironment(function, 0))
+        {
+            Report(Context,
+                   Context->Requires[i].Line,
+                   "the require of '%s' cannot be built in",
+                   Context->Requires[i].Name);
+            continue;
+        }
+
+        library->upvalues[0].instack = 0;
+        library->upvalues[0].idx = 0;
+        function->p[index] = library;
+        luaC_objbarrier(State, function, library);
+    }
+
+Exit:
+
+    free(rewritten.Data);
+
+    if (Context->Errors != 0)
+    {
+        return NULL;
+    }
+
+    return function;
+}
+
+/**
  * \brief Compiles and checks the script and writes its chunk.
  *
  * \param[in,out] Context The build.
@@ -944,9 +1769,6 @@ static int Build(
 {
     int result;
     lua_State* state;
-    SOURCE_TEXT source;
-    char chunkName[LUA_IDSIZE];
-    const LClosure* closure;
     FILE* file;
     int failed;
 
@@ -960,33 +1782,11 @@ static int Build(
         return 2;
     }
 
-    //
-    // A chunk named "=<script>" is shown as "<script>" in messages, in the
-    // build and in the driver.
-    //
-    if (strlen(Context->Script) > (sizeof(chunkName) - 2))
+    if (!CompileUnit(Context, state, Text, Length))
     {
-        Report(Context, 0, "the script name is too long");
         result = 1;
         goto Exit;
     }
-
-    chunkName[0] = '=';
-    strcpy_s(chunkName + 1, sizeof(chunkName) - 1, Context->Script);
-
-    source.Text = Text;
-    source.Length = Length;
-
-    if (lua_load(state, ReadPiece, &source, chunkName, "t") != LUA_OK)
-    {
-        ReportCompileError(Context, state);
-        result = 1;
-        goto Exit;
-    }
-
-    closure = clLvalue(s2v(state->top.p - 1));
-
-    CheckFunction(Context, closure->p, 1);
 
     for (int i = 0; i < Context->RoutineCount; i++)
     {
@@ -1015,8 +1815,11 @@ static int Build(
     }
 
     //
-    // The chunk keeps its line information for the trace of the driver.
+    // The chunk keeps its line information for the trace of the driver. The
+    // libraries built in leave other functions on the stack: the script's
+    // main function is the first.
     //
+    lua_settop(state, 1);
     failed = lua_dump(state, WritePiece, file, 0);
 
     if (fclose(file) != 0)
@@ -1094,6 +1897,9 @@ int __cdecl main(
     wchar_t** arguments;
     const wchar_t* sourcePath;
     const wchar_t* outputPath;
+    wchar_t* libraryFolder;
+    wchar_t* slash;
+    size_t folderLength;
     int count;
     char* text;
     const char* start;
@@ -1103,6 +1909,7 @@ int __cdecl main(
     memset(&context, 0, sizeof(context));
     sourcePath = NULL;
     outputPath = NULL;
+    libraryFolder = NULL;
 
     //
     // The tools of this tree link without the C runtime's argument processing.
@@ -1149,6 +1956,10 @@ int __cdecl main(
         {
             outputPath = arguments[++i];
         }
+        else if (wcscmp(arguments[i], L"-L") == 0)
+        {
+            libraryFolder = arguments[++i];
+        }
         else if (wcscmp(arguments[i], L"-r") == 0)
         {
             context.Routines[context.RoutineCount] = ToUtf8(arguments[++i]);
@@ -1171,7 +1982,7 @@ int __cdecl main(
     {
         fprintf(stderr,
                 "usage: kphluac -n <script> -i <source> -o <chunk> "
-                "[-r <routine>]...\n"
+                "[-r <routine>]... [-L <library folder>]\n"
                 "       kphluac -v\n");
         return 2;
     }
@@ -1212,6 +2023,44 @@ int __cdecl main(
     {
         return 1;
     }
+
+    //
+    // The script libraries are in the folder "lib" beside the source, unless
+    // another is given.
+    //
+    if (!libraryFolder)
+    {
+        folderLength = wcslen(sourcePath) + 8;
+
+        libraryFolder = calloc(folderLength, sizeof(wchar_t));
+        if (!libraryFolder)
+        {
+            fprintf(stderr, "kphluac: out of memory\n");
+            return 2;
+        }
+
+        wcscpy_s(libraryFolder, folderLength, sourcePath);
+
+        slash = wcsrchr(libraryFolder, L'\\');
+        if (!slash)
+        {
+            slash = wcsrchr(libraryFolder, L'/');
+        }
+
+        if (slash)
+        {
+            wcscpy_s(slash + 1,
+                     folderLength - (size_t)(slash + 1 - libraryFolder),
+                     L"lib");
+        }
+        else
+        {
+            wcscpy_s(libraryFolder, folderLength, L"lib");
+        }
+    }
+
+    context.Kind = KPHLUAC_KIND_SCRIPT;
+    context.LibraryFolder = libraryFolder;
 
     text = ReadSource(sourcePath, &length);
     if (!text)
