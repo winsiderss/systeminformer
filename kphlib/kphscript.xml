@@ -48,6 +48,7 @@ This file is part of System Informer.
     <script name="hsmp" file="script/hsmp.lua" arch="amd64" desc="AMD HSMP mailbox">
         <routine name="identify" level="maximum"/>
         <routine name="command" level="maximum"/>
+        <routine name="acpi_identify" level="maximum"/>
     </script>
     <script name="platform" file="script/platform.lua" arch="amd64" desc="Intel platform windows">
         <routine name="read" level="maximum"/>

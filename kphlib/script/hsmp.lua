@@ -954,6 +954,495 @@ local function protocol_version(s)
   return ksi.STATUS_SUCCESS, first[1]
 end
 
+local ACPI_ID = 'AMDI0097'
+local ACPI_MS = 100
+local ACPI_OUTPUT = 0x426f6541
+local ACPI_INTEGER = 0
+local ACPI_STRING = 1
+local ACPI_BUFFER = 2
+local ACPI_PACKAGE = 3
+local DSD_GUID = '\x9d\x61\x4d\xb7\x07\x57\xbd\x48\xa6\x9f\x4e\xa2\x87\x1f\xc2\xf6'
+local MEMORY = 1
+local READ_ONLY = 0x0001
+local PAGE = 0x1000
+local SOCKET_DIGITS = 9
+
+local function acpi_row(cpu)
+  for _, row in ipairs(ROWS) do
+    if cpu_matches(row, cpu) then
+      return row
+    end
+  end
+  return nil
+end
+
+-- The records from at to last of an ACPI answer: { kind, length, at } each,
+-- or nil when one runs past last.
+local function acpi_records(data, at, last)
+  local list = {}
+  while at <= last do
+    if at + 3 > last then
+      return nil
+    end
+    local kind, length = string.unpack('<I2I2', data, at)
+    if at + 3 + math.max(4, length) > last then
+      return nil
+    end
+    list[#list + 1] = { kind = kind, length = length, at = at + 4 }
+    at = at + 4 + math.max(4, length)
+  end
+  return list
+end
+
+local function acpi_answer(device, name)
+  local output, failed = ksi.hw.acpi_eval(device, name, ACPI_MS)
+  if not output then
+    ksi.trace('%s not evaluated: 0x%x', name, failed)
+    return nil
+  end
+  if #output < 12 then
+    return nil
+  end
+  local signature, length, count = string.unpack('<I4I4I4', output, 1)
+  if signature ~= ACPI_OUTPUT or length > #output then
+    ksi.trace('%s answered no output buffer', name)
+    return nil
+  end
+  local list = acpi_records(output, 13, length)
+  if not list or #list ~= count then
+    ksi.trace('%s answer malformed', name)
+    return nil
+  end
+  return output, list
+end
+
+local function acpi_integer(output, r)
+  if r.kind ~= ACPI_INTEGER or (r.length ~= 4 and r.length ~= 8) then
+    return nil
+  end
+  return string.unpack(r.length == 4 and '<I4' or '<i8', output, r.at)
+end
+
+local function acpi_text(output, r)
+  if r.kind ~= ACPI_STRING or r.length < 1 then
+    return nil
+  end
+  return string.sub(output, r.at, r.at + r.length - 2)
+end
+
+-- The socket a device's _UID names: false when it names none, nil when the
+-- _UID cannot be evaluated.
+local function acpi_socket(device)
+  local output, list = acpi_answer(device, '_UID')
+  if not output then
+    return nil
+  end
+  if #list ~= 1 then
+    return false
+  end
+  local number = acpi_integer(output, list[1])
+  if number then
+    return number
+  end
+  local text = acpi_text(output, list[1])
+  if not text then
+    return false
+  end
+  local at = 1
+  local i, d = string.byte(text, 1, 2)
+  if (i == 0x49 or i == 0x69) and (d == 0x44 or d == 0x64) then
+    at = 3
+  end
+  if at > #text or #text - at + 1 > SOCKET_DIGITS then
+    return false
+  end
+  local socket = 0
+  for c = at, #text do
+    local byte = string.byte(text, c)
+    if byte < 0x30 or byte > 0x39 then
+      return false
+    end
+    socket = socket * 10 + byte - 0x30
+  end
+  return socket
+end
+
+-- The three register offsets of a device's _DSD, or nil.
+local function acpi_offsets(device)
+  local output, top = acpi_answer(device, '_DSD')
+  if not output then
+    return nil
+  end
+  local elements = top
+  if #top == 1 and top[1].kind == ACPI_PACKAGE then
+    elements = acpi_records(output, top[1].at, top[1].at + top[1].length - 1)
+    if not elements then
+      return nil
+    end
+  end
+  if
+    #elements ~= 2
+    or elements[1].kind ~= ACPI_BUFFER
+    or elements[1].length ~= 16
+    or string.sub(output, elements[1].at, elements[1].at + 15) ~= DSD_GUID
+    or elements[2].kind ~= ACPI_PACKAGE
+  then
+    ksi.trace('_DSD is not the HSMP properties')
+    return nil
+  end
+  local properties = acpi_records(output, elements[2].at, elements[2].at + elements[2].length - 1)
+  if not properties then
+    return nil
+  end
+  local found = {}
+  for _, p in ipairs(properties) do
+    if p.kind ~= ACPI_PACKAGE then
+      return nil
+    end
+    local pair = acpi_records(output, p.at, p.at + p.length - 1)
+    if not pair or #pair ~= 2 then
+      return nil
+    end
+    local name, value = acpi_text(output, pair[1]), acpi_integer(output, pair[2])
+    if not name or not value then
+      return nil
+    end
+    if name == 'MsgIdOffset' or name == 'MsgRspOffset' or name == 'MsgArgOffset' then
+      if found[name] then
+        ksi.trace('_DSD names %s twice', name)
+        return nil
+      end
+      found[name] = value
+    end
+  end
+  local msg, rsp, arg = found.MsgIdOffset, found.MsgRspOffset, found.MsgArgOffset
+  if not msg or not rsp or not arg then
+    ksi.trace('_DSD lacks an offset')
+    return nil
+  end
+  return msg, rsp, arg
+end
+
+-- The device's one memory window, or nil.
+local function acpi_window(device)
+  local resources, failed = ksi.hw.acpi_resources(device)
+  if not resources then
+    ksi.trace('resources not read: 0x%x', failed)
+    return nil
+  end
+  local window
+  for _, r in ipairs(resources) do
+    if r.kind == MEMORY then
+      if window then
+        ksi.trace('more than one memory resource')
+        return nil
+      end
+      window = r
+    end
+  end
+  if not window then
+    return nil
+  end
+  if
+    window.raw ~= window.translated
+    or window.raw == 0
+    or window.raw % PAGE ~= 0
+    or window.flags & READ_ONLY ~= 0
+  then
+    ksi.trace('window 0x%x refused', window.raw)
+    return nil
+  end
+  local requirements = ksi.hw.acpi_requirements(device)
+  if not requirements then
+    return nil
+  end
+  for _, r in ipairs(requirements) do
+    if r.minimum == window.raw and r.maximum == window.raw + window.length - 1 then
+      return window.raw, window.length
+    end
+  end
+  ksi.trace('no requirement pins 0x%x', window.raw)
+  return nil
+end
+
+-- The registers' span: its first offset and its end, or nil when the offsets
+-- are zero, unaligned, overlapping, in two pages or outside the window.
+local function acpi_span(msg, rsp, arg, args, length)
+  local spans = { { msg, msg + 4 }, { rsp, rsp + 4 }, { arg, arg + args * 4 } }
+  for i, a in ipairs(spans) do
+    if a[1] == 0 or a[1] % 4 ~= 0 then
+      return nil
+    end
+    for j = i + 1, #spans do
+      local b = spans[j]
+      if a[1] < b[2] and b[1] < a[2] then
+        return nil
+      end
+    end
+  end
+  local first = math.min(msg, rsp, arg)
+  local last = math.max(msg + 4, rsp + 4, arg + args * 4)
+  if first // PAGE ~= (last - 1) // PAGE or last > length then
+    return nil
+  end
+  return first, last
+end
+
+local function address_bits()
+  local results, status = ksi.hw.cpuid(
+    string.pack('<I2I2I4I4', 0, 0, 0x80000000, 0) .. string.pack('<I2I2I4I4', 0, 0, 0x80000008, 0)
+  )
+  if not results then
+    ksi.trace('cpuid failed: 0x%x', status)
+    return nil, status
+  end
+  local s0, maximum = string.unpack('<I4I4', results, 1)
+  local s1, eax = string.unpack('<I4I4', results, 21)
+  if
+    s0 == ksi.STATUS_SUCCESS
+    and maximum >= 0x80000008
+    and s1 == ksi.STATUS_SUCCESS
+    and eax & 0xff >= 32
+    and eax & 0xff < 64
+  then
+    return eax & 0xff
+  end
+  return 36
+end
+
+local function check_range(first, last, bits)
+  if math.ult(1 << bits, last) then
+    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  local nvdimm = ksi.hw.is_nvdimm(first, last - first)
+  if nvdimm == nil then
+    ksi.trace('NVDIMM ranges unknown')
+    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  if nvdimm then
+    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  local ram, ramFailed = ksi.hw.is_ram(first, last - first)
+  if ram == nil then
+    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
+    return ramFailed
+  end
+  if ram then
+    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  return ksi.STATUS_SUCCESS
+end
+
+-- The mailbox of a socket's AMDI0097 device: the device, its window, the
+-- offsets from its _DSD and the page mapped. Nil and the status of the call
+-- when it is refused.
+local function acpi_session(socket)
+  if not ksi.hw.acpi_find or not ksi.hw.cpuid or not ksi.hw.map then
+    ksi.trace('no ACPI, CPUID or map functions')
+    return nil, ksi.STATUS_NOT_SUPPORTED
+  end
+  local cpu, failed = cpu_identity()
+  if not cpu then
+    return nil, failed
+  end
+  local row = acpi_row(cpu)
+  if not row then
+    ksi.trace('no row for %s family 0x%x model 0x%x', cpu.vendor, cpu.family, cpu.model)
+    return nil, ksi.STATUS_NOT_SUPPORTED
+  end
+  local device
+  local ordinal = 0
+  while true do
+    local d = ksi.hw.acpi_find(ACPI_ID, ordinal)
+    if not d then
+      ksi.trace('no %s device of socket %d', ACPI_ID, socket)
+      return nil, ksi.STATUS_NOT_FOUND
+    end
+    local named = acpi_socket(d)
+    if named == nil then
+      d:release()
+      return nil, ksi.STATUS_NOT_SUPPORTED
+    end
+    if named == socket then
+      device = d
+      break
+    end
+    d:release()
+    ordinal = ordinal + 1
+  end
+  local m = row.mailbox()
+  local base, length = acpi_window(device)
+  local msg, rsp, arg
+  if base then
+    msg, rsp, arg = acpi_offsets(device)
+  end
+  local first, last
+  if msg then
+    first, last = acpi_span(msg, rsp, arg, m.args, length)
+  end
+  if not first then
+    device:release()
+    return nil, ksi.STATUS_NOT_SUPPORTED
+  end
+  local windowEnd = base + length
+  if math.ult(windowEnd, base) or math.ult(-PAGE, windowEnd) then
+    device:release()
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local bits, bitsFailed = address_bits()
+  if not bits then
+    device:release()
+    return nil, bitsFailed
+  end
+  local page = first & -PAGE
+  local st = check_range(base + page, base + page + PAGE, bits)
+  if st ~= ksi.STATUS_SUCCESS then
+    device:release()
+    return nil, st
+  end
+  local map, mapFailed = ksi.hw.map(base + page, PAGE, true)
+  if not map then
+    ksi.trace('mailbox page 0x%x not mapped: 0x%x', base + page, mapFailed)
+    device:release()
+    return nil, mapFailed
+  end
+  return {
+    device = device,
+    map = map,
+    base = base,
+    length = length,
+    page = page,
+    msg = msg,
+    rsp = rsp,
+    arg = arg,
+    mailbox = m,
+  }
+end
+
+local function acpi_moved(s)
+  local resources = ksi.hw.acpi_resources(s.device)
+  if not resources then
+    return true
+  end
+  for _, r in ipairs(resources) do
+    if r.kind == MEMORY then
+      return r.raw ~= s.base or r.length ~= s.length
+    end
+  end
+  return true
+end
+
+local function acpi_read(s, register)
+  return ksi.hw.map_read(s.map, register - s.page, 4)
+end
+
+local function acpi_write(s, register, value)
+  ksi.hw.map_write(s.map, register - s.page, 4, value)
+end
+
+local function acpi_wait(s, timeout)
+  local st, resp = ksi.STATUS_IO_TIMEOUT, 0
+  poll(50, 20, 1, timeout, function()
+    local value = acpi_read(s, s.rsp)
+    if value == ALL_ONES then
+      ksi.trace('RSP reads all-ones')
+      st = ksi.STATUS_DEVICE_NOT_READY
+      return true
+    end
+    if value ~= 0 then
+      st, resp = ksi.STATUS_SUCCESS, value
+      return true
+    end
+    return false
+  end)
+  return st, resp
+end
+
+local function acpi_command_body(s, op, args, words, state)
+  local results = zeros()
+  local st, resp = acpi_wait(s, STALE_MS)
+  if st == ksi.STATUS_IO_TIMEOUT then
+    ksi.trace('RSP stayed zero: stale, written over')
+    st, resp = ksi.STATUS_SUCCESS, 0
+  end
+  if st ~= ksi.STATUS_SUCCESS then
+    return st, false, results
+  end
+  state.idle = resp
+  state.clearing = true
+  acpi_write(s, s.rsp, 0)
+  state.restore = true
+  state.clearing = false
+  for i = 1, math.min(s.mailbox.args, ARGS) do
+    acpi_write(s, s.arg + (i - 1) * 4, args[i])
+  end
+  state.posting = true
+  acpi_write(s, s.msg, op)
+  state.restore = false
+  st, resp = acpi_wait(s, WAIT_MS)
+  if st ~= ksi.STATUS_SUCCESS then
+    if st == ksi.STATUS_IO_TIMEOUT then
+      ksi.trace('RSP stayed zero')
+    end
+    return st, false, results
+  end
+  if resp ~= 0x01 then
+    ksi.trace('MSG 0x%x answered 0x%x', op, resp)
+    return ANSWERS[resp] or ksi.STATUS_UNSUCCESSFUL, true, results, resp
+  end
+  for i = 1, words do
+    results[i] = acpi_read(s, s.arg + (i - 1) * 4)
+  end
+  return ksi.STATUS_SUCCESS, true, results, resp
+end
+
+local function acpi_transact(s, op, args, words)
+  local state = { restore = false, idle = 0 }
+  local putback <close> = setmetatable({}, {
+    __close = function(_, err)
+      if err and (state.restore or state.clearing) and not state.posting and state.idle ~= 0 then
+        acpi_write(s, s.rsp, state.idle)
+      end
+    end,
+  })
+  local st, completed, results, answer = acpi_command_body(s, op, args, words, state)
+  if state.restore and state.idle ~= 0 then
+    acpi_write(s, s.rsp, state.idle)
+    state.restore = false
+  end
+  return st, completed, results, answer or 0
+end
+
+local function acpi_protocol_version(s)
+  local m = s.mailbox
+  local args = { m.version_arg, 0, 0, 0, 0, 0, 0, 0 }
+  local st, _, first = acpi_transact(s, m.version, args, 1)
+  if st ~= ksi.STATUS_SUCCESS then
+    return st, 0
+  end
+  if first[1] == 0 or first[1] == ALL_ONES then
+    ksi.trace('version 0x%x', first[1])
+    return ksi.STATUS_DEVICE_NOT_READY, 0
+  end
+  local again
+  st, _, again = acpi_transact(s, m.version, args, 1)
+  if st ~= ksi.STATUS_SUCCESS then
+    return st, 0
+  end
+  if again[1] == 0 or again[1] == ALL_ONES then
+    ksi.trace('version 0x%x', again[1])
+    return ksi.STATUS_DEVICE_NOT_READY, 0
+  end
+  if again[1] ~= first[1] then
+    ksi.trace('version 0x%x then 0x%x', first[1], again[1])
+    return ksi.STATUS_RETRY, 0
+  end
+  return ksi.STATUS_SUCCESS, first[1]
+end
+
 -- Returns the version of the mailbox behind the root complex the input names.
 function identify(input)
   if #input ~= 4 then
@@ -1047,4 +1536,39 @@ function command(input)
   end
 
   return ksi.STATUS_SUCCESS, concat(output)
+end
+
+-- Returns the version of the mailbox in the window of the AMDI0097 device of
+-- the socket the input names.
+function acpi_identify(input)
+  if #input ~= 4 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local s, refused = acpi_session(string.unpack('<I4', input))
+  if not s then
+    return refused
+  end
+  local device <close> = s.device
+  local mapping <close> = s.map
+
+  local lock <close>, failed = ksi.lock('mailbox')
+  if not lock then
+    ksi.trace('the mailbox lock was not taken: 0x%x', failed)
+    return failed
+  end
+
+  if acpi_moved(s) then
+    ksi.trace('the window moved')
+    return ksi.STATUS_DEVICE_NOT_READY
+  end
+  local st, version = acpi_protocol_version(s)
+  if st == ksi.STATUS_SUCCESS and acpi_moved(s) then
+    ksi.trace('the window moved')
+    st = ksi.STATUS_DEVICE_NOT_READY
+  end
+  if st ~= ksi.STATUS_SUCCESS then
+    return st
+  end
+  return ksi.STATUS_SUCCESS, string.pack('<I4I4', version, 0)
 end
