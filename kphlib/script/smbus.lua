@@ -808,7 +808,7 @@ local function session(locator)
   end
   if not device then
     local status
-    device, status = ksi.hw.pci_open(segment, bus, slot, fn)
+    device, status = nt.pci.open(segment, bus, slot, fn)
     if not device then
       ksi.trace('no PCI function at 0x%x: 0x%x', locator, status)
       return nil, status

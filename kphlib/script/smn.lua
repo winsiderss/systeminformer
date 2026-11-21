@@ -649,7 +649,7 @@ local function session(input)
     k.device:release()
   end
 
-  local device, status = ksi.hw.pci_open(root.segment, root.bus, root.slot, root.fn)
+  local device, status = nt.pci.open(root.segment, root.bus, root.slot, root.fn)
   if not device then
     ksi.trace('no PCI function at 0x%x: 0x%x', locator, status)
     return nil, status

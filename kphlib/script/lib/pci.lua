@@ -119,5 +119,17 @@ return function(nt)
     return found
   end
 
+  -- A PCI device object of the function at a location: find, then
+  -- ksi.hw.pci_open. Nil and the status of the call when either refuses.
+  function P.open(segment, bus, device, fn)
+    local d, status = P.find(segment, bus, device, fn)
+    if not d then
+      return nil, status
+    end
+    local opened, failed = ksi.hw.pci_open(d)
+    d:release()
+    return opened, failed
+  end
+
   return P
 end
