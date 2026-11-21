@@ -12,7 +12,11 @@ This file is part of System Informer.
         cleanup-instructions="100000"
         cleanup-milliseconds="100"
         cleanup-memory="16384"/>
-    <script name="cpu" file="script/cpu.lua" arch="amd64,arm64" desc="processor registers">
+    <script name="cpu" file="script/cpu-amd64.lua" arch="amd64" desc="processor registers">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
+    <script name="cpu" file="script/cpu-arm64.lua" arch="arm64" desc="processor registers">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
