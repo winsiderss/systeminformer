@@ -1344,7 +1344,7 @@ local function abandon(s)
   s.entered = false
 end
 
-local function close(s)
+local function put_back(s)
   if s.ldn_select and not s.contended and s.orig_ldn ~= s.row.ldn then
     local current = rc(s, 0x07)
     if current == s.row.ldn then
@@ -1363,6 +1363,14 @@ local function close(s)
       abandon(s)
     end
   end
+end
+
+-- Puts the chip back as a close handler: a limit reached inside it ends the
+-- call only after it returns.
+local PUT_BACK = { __close = function(g) put_back(g.s) end }
+
+local function close(s)
+  local g <close> = setmetatable({ s = s }, PUT_BACK)
 end
 
 local function probe(s)
