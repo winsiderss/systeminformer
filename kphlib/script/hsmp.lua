@@ -9,9 +9,11 @@
 --
 
 --
--- Talks to the AMD HSMP mailbox behind the root complex's system management
--- network pair. The root complexes, their mailbox registers and the commands
--- each processor family may be sent are listed below.
+-- Talks to the AMD HSMP mailbox of a socket: in the memory window of the
+-- socket's AMDI0097 device when the firmware describes one, otherwise behind
+-- the root complex's system management network pair. The root complexes,
+-- their mailbox registers and the commands each processor family may be sent
+-- are listed below.
 --
 
 local concat, pack, unpack = table.concat, table.pack, table.unpack
@@ -1461,12 +1463,61 @@ local function acpi_protocol_version(s)
   return ksi.STATUS_SUCCESS, first[1]
 end
 
--- Returns the version of the mailbox behind the root complex the input names.
-function identify(input)
-  if #input ~= 4 then
-    ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+-- The ACPI way to a socket's mailbox: its session, or false when the socket
+-- has no AMDI0097 device and the root complex is used. Nil and the status of
+-- the call when a device is found but refused. A kept script remembers a
+-- socket without a device.
+local function acpi_way(socket)
+  if not ksi.hw.acpi_find or not ksi.hw.map or (kept.direct and kept.direct[socket]) then
+    return false
   end
+  local s, refused = acpi_session(socket)
+  if s then
+    return s
+  end
+  if refused ~= ksi.STATUS_NOT_FOUND then
+    return nil, refused
+  end
+  if not ksi.volatile then
+    kept.direct = kept.direct or {}
+    kept.direct[socket] = true
+  end
+  return false
+end
+
+-- The commands of an input from byte at: { opcode, arguments... } each, or
+-- nil when an opcode is 0.
+local function entries_of(input, at)
+  local entries = {}
+  for i = 1, (#input - at + 1) // 36 do
+    local e = pack(string.unpack('<I4I4I4I4I4I4I4I4I4', input, at + (i - 1) * 36))
+    if e[1] == 0 then
+      ksi.trace('entry %d has opcode 0', i)
+      return nil
+    end
+    entries[i] = e
+  end
+  return entries
+end
+
+-- The arguments of an entry as the row's command permits them, or nil.
+local function permitted_args(c, e)
+  if not c then
+    return nil
+  end
+  local mask, fixed = c.mask or {}, c.fixed or {}
+  local args = {}
+  for a = 1, ARGS do
+    local value = e[a + 1]
+    if (value & ~(mask[a] or 0)) ~= 0 then
+      return nil
+    end
+    args[a] = value | (fixed[a] or 0)
+  end
+  return args
+end
+
+local function root_identify(input)
   local s, refused = session(input)
   if not s then
     return refused
@@ -1486,23 +1537,7 @@ function identify(input)
   return ksi.STATUS_SUCCESS, string.pack('<I4I4', version, 0)
 end
 
--- Sends a list of the row's commands to the mailbox behind the root complex
--- the input names.
-function command(input)
-  if #input < 4 or (#input - 4) % 36 ~= 0 then
-    ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
-  end
-  local entries = {}
-  for i = 1, (#input - 4) // 36 do
-    local e = pack(string.unpack('<I4I4I4I4I4I4I4I4I4', input, 5 + (i - 1) * 36))
-    if e[1] == 0 then
-      ksi.trace('entry %d has opcode 0', i)
-      return ksi.STATUS_INVALID_PARAMETER
-    end
-    entries[i] = e
-  end
-
+local function root_command(input, entries)
   local s, refused = session(input)
   if not s then
     return refused
@@ -1527,19 +1562,7 @@ function command(input)
     local c = s.mailbox.commands[op]
     local status, answer = ksi.STATUS_SUCCESS, 0
     local results = zeros()
-    local args
-    if c then
-      local mask, fixed = c.mask or {}, c.fixed or {}
-      args = {}
-      for a = 1, ARGS do
-        local value = e[a + 1]
-        if (value & ~(mask[a] or 0)) ~= 0 then
-          args = nil
-          break
-        end
-        args[a] = value | (fixed[a] or 0)
-      end
-    end
+    local args = permitted_args(c, e)
     if not args then
       ksi.trace('command 0x%x is not permitted', op)
       status = ksi.STATUS_ACCESS_DENIED
@@ -1556,18 +1579,7 @@ function command(input)
   return ksi.STATUS_SUCCESS, concat(output)
 end
 
--- Returns the version of the mailbox in the window of the AMDI0097 device of
--- the socket the input names.
-function acpi_identify(input)
-  if #input ~= 4 then
-    ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
-  end
-  local socket = string.unpack('<I4', input)
-  local s, refused = acpi_session(socket)
-  if not s then
-    return refused
-  end
+local function acpi_identify(s, socket)
   local device <close> = (not s.kept) and s.device or nil
   local mapping <close> = (not s.kept) and s.map or nil
 
@@ -1594,28 +1606,7 @@ function acpi_identify(input)
   return ksi.STATUS_SUCCESS, string.pack('<I4I4', version, 0)
 end
 
--- Sends a list of the row's commands to the mailbox in the window of the
--- AMDI0097 device of the socket the input names.
-function acpi_command(input)
-  if #input < 4 + 36 or (#input - 4) % 36 ~= 0 then
-    ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
-  end
-  local entries = {}
-  for i = 1, (#input - 4) // 36 do
-    local e = pack(string.unpack('<I4I4I4I4I4I4I4I4I4', input, 5 + (i - 1) * 36))
-    if e[1] == 0 then
-      ksi.trace('entry %d has opcode 0', i)
-      return ksi.STATUS_INVALID_PARAMETER
-    end
-    entries[i] = e
-  end
-
-  local socket = string.unpack('<I4', input)
-  local s, refused = acpi_session(socket)
-  if not s then
-    return refused
-  end
+local function acpi_command(s, socket, entries)
   local device <close> = (not s.kept) and s.device or nil
   local mapping <close> = (not s.kept) and s.map or nil
 
@@ -1643,19 +1634,7 @@ function acpi_command(input)
     local c = s.mailbox.commands[op]
     local status, answer = ksi.STATUS_SUCCESS, 0
     local results = zeros()
-    local args
-    if c then
-      local mask, fixed = c.mask or {}, c.fixed or {}
-      args = {}
-      for a = 1, ARGS do
-        local value = e[a + 1]
-        if (value & ~(mask[a] or 0)) ~= 0 then
-          args = nil
-          break
-        end
-        args[a] = value | (fixed[a] or 0)
-      end
-    end
+    local args = permitted_args(c, e)
     if not args then
       ksi.trace('command 0x%x is not permitted', op)
       status = ksi.STATUS_ACCESS_DENIED
@@ -1683,4 +1662,46 @@ function acpi_command(input)
     acpi_drop(socket, s)
   end
   return ksi.STATUS_SUCCESS, concat(output)
+end
+
+-- Returns the version of the mailbox of a socket: in the window of its
+-- AMDI0097 device when it has one, otherwise behind the root complex the
+-- input names.
+function identify(input)
+  if #input ~= 8 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local socket = string.unpack('<I4', input, 5)
+  local s, refused = acpi_way(socket)
+  if s == nil then
+    return refused
+  end
+  if s then
+    return acpi_identify(s, socket)
+  end
+  return root_identify(input)
+end
+
+-- Sends a list of the row's commands to the mailbox of a socket: in the
+-- window of its AMDI0097 device when it has one, otherwise behind the root
+-- complex the input names.
+function command(input)
+  if #input < 8 + 36 or (#input - 8) % 36 ~= 0 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local entries = entries_of(input, 9)
+  if not entries then
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local socket = string.unpack('<I4', input, 5)
+  local s, refused = acpi_way(socket)
+  if s == nil then
+    return refused
+  end
+  if s then
+    return acpi_command(s, socket, entries)
+  end
+  return root_command(input, entries)
 end
