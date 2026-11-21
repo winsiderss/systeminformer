@@ -24,7 +24,7 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
-    <script name="acpi" file="script/acpi.lua" arch="amd64" desc="ACPI methods">
+    <script name="acpi" file="script/acpi.lua" arch="amd64,arm64" desc="ACPI methods">
         <routine name="identify" level="maximum"/>
         <routine name="eval" level="maximum"/>
     </script>
