@@ -307,3 +307,31 @@ function read(input)
 
   return ksi.STATUS_SUCCESS, table.concat(output)
 end
+
+-- Reads a range of configuration space of the function the input names.
+function block(input)
+  if #input ~= 12 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local locator, offset, length = string.unpack('<I4I4I4', input)
+  if length == 0 then
+    ksi.trace('a block of no bytes at 0x%x', offset)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local s, refused = session(locator)
+  if not s then
+    return refused
+  end
+  local closer <close> = (not s.kept) and s.device or nil
+  if not permitted(s.ranges or s.row.reads(), offset, length) then
+    ksi.trace('0x%x of %d bytes is not permitted', offset, length)
+    return ksi.STATUS_ACCESS_DENIED
+  end
+  local bytes, failed = ksi.hw.pci_read_block(s.device, offset, length)
+  if not bytes then
+    ksi.trace('0x%x of %d bytes not read: 0x%x', offset, length, failed)
+    return ksi.STATUS_DEVICE_NOT_READY
+  end
+  return ksi.STATUS_SUCCESS, bytes
+end
