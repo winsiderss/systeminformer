@@ -43,7 +43,7 @@
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(SystemInformerRoot)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SystemInformerRoot)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)" "$(Platform)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <!-- sistatus

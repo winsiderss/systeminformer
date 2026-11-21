@@ -330,13 +330,20 @@ namespace CustomBuildTool
                 Description = "Dynamic data argument (optional)",
                 DefaultValueFactory = _ => string.Empty
             };
+            var platform = new Argument<string>("platform")
+            {
+                Description = "Platform of the output directory: x64, ARM64 or Win32 (with an output directory)",
+                DefaultValueFactory = _ => string.Empty
+            };
             cmd.Add(arg);
+            cmd.Add(platform);
             cmd.SetAction(ParseResult =>
             {
                 string a = ParseResult.GetValue(arg);
+                string p = ParseResult.GetValue(platform);
                 BuildToolsId.CheckForOutOfDateTools();
 
-                if (!Build.BuildDynamicData(a))
+                if (!Build.BuildDynamicData(a, p))
                     Environment.Exit(1);
             });
             return cmd;
@@ -353,13 +360,19 @@ namespace CustomBuildTool
             {
                 Description = "Output directory"
             };
+            var platform = new Argument<string>("platform")
+            {
+                Description = "Platform of the output directory: x64, ARM64 or Win32"
+            };
             cmd.Add(arg);
+            cmd.Add(platform);
             cmd.SetAction(ParseResult =>
             {
                 string a = ParseResult.GetValue(arg);
+                string p = ParseResult.GetValue(platform);
                 BuildToolsId.CheckForOutOfDateTools();
 
-                if (!Build.BuildScripts(a))
+                if (!Build.BuildScripts(a, p))
                     Environment.Exit(1);
             });
             return cmd;
