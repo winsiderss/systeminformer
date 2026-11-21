@@ -32,6 +32,7 @@ static CONST PH_STRINGREF KphpHwSmbusFileName = PH_STRINGREF_INIT(L"scripts\\smb
 static CONST PH_STRINGREF KphpHwPciMmioFileName = PH_STRINGREF_INIT(L"scripts\\pcimmio.bin");
 static CONST PH_STRINGREF KphpHwHsmpFileName = PH_STRINGREF_INIT(L"scripts\\hsmp.bin");
 static CONST PH_STRINGREF KphpHwPlatformFileName = PH_STRINGREF_INIT(L"scripts\\platform.bin");
+static CONST PH_STRINGREF KphpHwPciConfigFileName = PH_STRINGREF_INIT(L"scripts\\pciconfig.bin");
 static KPH_HW_SCRIPT KphpHwCpuScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCpuFileName };
 static KPH_HW_SCRIPT KphpHwSuperIoScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwSuperIoFileName };
 static KPH_HW_SCRIPT KphpHwAcpiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAcpiFileName };
@@ -41,6 +42,7 @@ static KPH_HW_SCRIPT KphpHwSmbusScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT
 static KPH_HW_SCRIPT KphpHwPciMmioScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciMmioFileName };
 static KPH_HW_SCRIPT KphpHwHsmpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHsmpFileName };
 static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPlatformFileName };
+static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
 
 /**
  * Retrieves the handle of a script, loading the script on first use.
@@ -189,6 +191,7 @@ VOID KphHwSetScriptMode(
         &KphpHwPciMmioScript,
         &KphpHwHsmpScript,
         &KphpHwPlatformScript,
+        &KphpHwPciConfigScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1270,6 +1273,163 @@ NTSTATUS KphHwPciMmioRead(
 
     PhFree(values);
     PhFree(input);
+
+    return status;
+}
+
+/**
+ * Identifies the PCI function at a location whose configuration space may be
+ * read.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Device Receives the vendor and device IDs and the number of ranges
+ * that may be read.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwPciConfigIdentify(
+    _In_ ULONG Locator,
+    _Out_ PKPH_HW_PCI_CONFIG Device
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_PCI_CONFIG device;
+    ULONG returnLength;
+
+    status = KphpHwScriptCall(
+        &KphpHwPciConfigScript,
+        &routine,
+        &Locator,
+        sizeof(Locator),
+        &device,
+        sizeof(device),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(device))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Device = device;
+
+    return status;
+}
+
+/**
+ * Reads registers of the configuration space of the PCI function at a
+ * location.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Items The reads: offset in configuration space and width (1, 2 or 4).
+ * \param Count The number of reads.
+ * \param Values Receives a status and a value per read, in the order of the
+ * reads.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwPciConfigRead(
+    _In_ ULONG Locator,
+    _In_reads_(Count) PCKPH_HW_WINDOW_ITEM Items,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG itemsLength;
+    ULONG inputLength;
+    ULONG outputLength;
+    ULONG returnLength;
+    PULONG input;
+    PKPH_HW_VALUE32 values;
+
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_WINDOW_ITEM), &itemsLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongAdd(itemsLength, sizeof(ULONG), &inputLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE32), &outputLength)))
+        return status;
+
+    input = PhAllocate(inputLength);
+    input[0] = Locator;
+    RtlCopyMemory(&input[1], Items, itemsLength);
+
+    values = PhAllocate(outputLength ? outputLength : 1);
+
+    status = KphpHwScriptCall(
+        &KphpHwPciConfigScript,
+        &routine,
+        input,
+        inputLength,
+        values,
+        outputLength,
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        RtlCopyMemory(Values, values, outputLength);
+
+    PhFree(values);
+    PhFree(input);
+
+    return status;
+}
+
+/**
+ * Reads a range of the configuration space of the PCI function at a location.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Offset The offset of the range in configuration space.
+ * \param Buffer Receives the range.
+ * \param Length The length of the range and of Buffer.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwPciConfigReadBlock(
+    _In_ ULONG Locator,
+    _In_ ULONG Offset,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("block");
+    NTSTATUS status;
+    ULONG input[3];
+    ULONG returnLength;
+    PVOID output;
+
+    input[0] = Locator;
+    input[1] = Offset;
+    input[2] = Length;
+
+    output = PhAllocate(Length ? Length : 1);
+
+    status = KphpHwScriptCall(
+        &KphpHwPciConfigScript,
+        &routine,
+        input,
+        sizeof(input),
+        output,
+        Length,
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) && returnLength != Length) || status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        RtlCopyMemory(Buffer, output, Length);
+
+    PhFree(output);
 
     return status;
 }
