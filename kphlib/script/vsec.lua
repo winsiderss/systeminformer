@@ -136,6 +136,7 @@ local PMT_BAR = 2
 local PMT_RESERVED = 0xf
 local PMT_PUNIT_FIXED = 2
 local PMT_FIXED_GUID = 0x10000000
+local TPMI_UNIT = 1024
 
 local kept = {}
 
@@ -636,6 +637,31 @@ local function pmt_region(s, op, t, i, bars)
   return { base = base + offset, size = size, id = guid }
 end
 
+-- Appends the regions of TPMI entry i of a table: one per instance, until an
+-- instance leaves the BAR or the operation has its regions.
+local function tpmi_regions(op, t, i, position, regions)
+  local header, location = t[i * TPMI_DWORDS + 1], t[i * TPMI_DWORDS + 2]
+  if header & 0xff ~= op.selector then
+    return
+  end
+  local size = ((header >> 16) & 0xffff) * 4
+  if size == 0 or size > op.size then
+    return
+  end
+  local offset = t.offset + (location & 0xffff) * TPMI_UNIT
+  for instance = 0, ((header >> 8) & 0xff) - 1 do
+    if #regions >= op.regions or offset + instance * size + size > t.length then
+      return
+    end
+    regions[#regions + 1] = {
+      base = t.base + offset + instance * size,
+      size = size,
+      id = op.selector,
+      position = (position << 16) | (i << 8) | instance,
+    }
+  end
+end
+
 -- The regions of an operation: each { base, size, id, position }. Nil, the
 -- status and whether a read failed when the walk fails.
 local function walk(s, op)
@@ -671,6 +697,10 @@ local function walk(s, op)
           r.position = (position << 16) | (i << 8)
           regions[#regions + 1] = r
         end
+      end
+    elseif t then
+      for i = 0, t.count - 1 do
+        tpmi_regions(op, t, i, position, regions)
       end
     end
   end
