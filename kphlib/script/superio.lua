@@ -15,6 +15,7 @@
 --
 
 local FAMILY_NUVOTON = 1
+local FAMILY_NCT668X = 2
 local FAMILY_ITE = 3
 local FAMILY_FINTEK = 4
 local FAMILY_SMSC = 5
@@ -31,6 +32,8 @@ local EXIT_KEY_AA = 1
 local EXIT_CONFIG_02 = 2
 
 local BANK = 0x4e
+local PAGE_FREE = 0xff
+local PAGE_WAIT = 500000
 
 local kept = {}
 
@@ -946,6 +949,102 @@ local NUVOTON_ROWS = {
     end,
   },
 }
+local NCT668X_ROWS = {
+  {
+    chips = {
+      0xc730,
+      0xc731,
+      0xc732,
+      0xc733,
+      0xc734,
+      0xc735,
+      0xc736,
+      0xc737,
+      0xc738,
+      0xc739,
+      0xc73a,
+      0xc73b,
+      0xc73c,
+      0xc73d,
+      0xc73e,
+      0xc73f,
+      0xd440,
+      0xd441,
+      0xd442,
+      0xd443,
+      0xd444,
+      0xd445,
+      0xd446,
+      0xd447,
+      0xd448,
+      0xd449,
+      0xd44a,
+      0xd44b,
+      0xd44c,
+      0xd44d,
+      0xd44e,
+      0xd44f,
+      0xd590,
+      0xd591,
+      0xd592,
+      0xd593,
+      0xd594,
+      0xd595,
+      0xd596,
+      0xd597,
+      0xd598,
+      0xd599,
+      0xd59a,
+      0xd59b,
+      0xd59c,
+      0xd59d,
+      0xd59e,
+      0xd59f,
+    },
+    ldn = 0x0b,
+    exit = EXIT_KEY_AA,
+    active = true,
+    bank_mask = 0x00,
+    customers = {
+      0x0805,
+      0x0a0e,
+      0x0200,
+      0x0201,
+      0x0207,
+      0x020d,
+      0x162b,
+      0x0e2c,
+      0x0e1b,
+      0x1631,
+      0x163e,
+      0x1621,
+      0x1633,
+      0x163d,
+    },
+    customer = 0x0602,
+    monitor = function()
+      return {
+        ids = {},
+        reads = {
+          { 0x0100, 0x40 },
+          { 0x0140, 0x20 },
+          { 0x0160, 0x10 },
+          { 0x0180, 0x1 },
+          { 0x01a0, 0x20 },
+          { 0x01c0, 0x10 },
+          { 0x01d0, 0x10 },
+          { 0x0604, 0x6 },
+          { 0x080f, 0x1 },
+          { 0x0852, 0x2 },
+          { 0x0a00, 0x1 },
+          { 0x0c93, 0x1 },
+          { 0x0cf8, 0x1 },
+          { 0x0e00, 0x6 },
+        },
+      }
+    end,
+  },
+}
 
 local FINTEK_ROWS = {
   {
@@ -1123,6 +1222,7 @@ end
 local FAMILIES = {
   { family = FAMILY_ITE, rows = ITE_ROWS, key = ite_key },
   { family = FAMILY_NUVOTON, rows = NUVOTON_ROWS, key = nuvoton_key },
+  { family = FAMILY_NCT668X, rows = NCT668X_ROWS, key = nuvoton_key, paged = true },
   { family = FAMILY_FINTEK, rows = FINTEK_ROWS, key = nuvoton_key, remember = false },
   {
     family = FAMILY_SMSC,
@@ -1285,6 +1385,76 @@ local function probe(s)
   return true
 end
 
+-- Releases the page this call claimed, only while the page register still
+-- reads it.
+local function release_page(s)
+  if s.claimed then
+    if ksi.hw.port_read(s.base + 4, 1) == s.claimed then
+      ksi.hw.port_write(s.base + 4, 1, PAGE_FREE)
+    end
+    s.claimed = nil
+  end
+end
+
+-- Reads a register of a paged monitor: waits for the page register to be
+-- free within what is left of the call's waits, claims the page, selects the
+-- index, reads the data and releases the page.
+local function rp(s, reg)
+  local page = reg >> 8
+  local start = ksi.time()
+  while ksi.hw.port_read(s.base + 4, 1) ~= PAGE_FREE do
+    if ksi.time() - start >= s.wait then
+      s.wait = 0
+      ksi.trace('the page register stays busy for register 0x%04x', reg)
+      return ksi.STATUS_IO_TIMEOUT, 0
+    end
+    ksi.sleep(1)
+  end
+  s.wait = s.wait - (ksi.time() - start)
+  ksi.hw.port_write(s.base + 4, 1, page)
+  if ksi.hw.port_read(s.base + 4, 1) ~= page then
+    ksi.trace('page 0x%02x was not claimed', page)
+    return ksi.STATUS_RETRY, 0
+  end
+  s.claimed = page
+  ksi.hw.port_write(s.base + 5, 1, reg & 0xff)
+  local selected = ksi.hw.port_read(s.base + 5, 1) == (reg & 0xff)
+  local value = selected and ksi.hw.port_read(s.base + 6, 1) or 0
+  if ksi.hw.port_read(s.base + 4, 1) ~= page then
+    ksi.trace('page 0x%02x was taken under register 0x%04x', page, reg)
+    s.claimed = nil
+    return ksi.STATUS_RETRY, 0
+  end
+  ksi.hw.port_write(s.base + 4, 1, PAGE_FREE)
+  s.claimed = nil
+  if not selected then
+    ksi.trace('the monitor index moved under register 0x%04x', reg)
+    return ksi.STATUS_RETRY, 0
+  end
+  return ksi.STATUS_SUCCESS, value
+end
+
+local function customer(s)
+  local status, hi = rp(s, s.row.customer)
+  if status ~= ksi.STATUS_SUCCESS then
+    return status
+  end
+  local lo
+  status, lo = rp(s, s.row.customer + 1)
+  if status ~= ksi.STATUS_SUCCESS then
+    return status
+  end
+  local id = (hi << 8) | lo
+  for _, listed in ipairs(s.row.customers) do
+    if listed == id then
+      s.customer = id
+      return ksi.STATUS_SUCCESS
+    end
+  end
+  ksi.trace('customer 0x%04x is not permitted', id)
+  return ksi.STATUS_NOT_FOUND
+end
+
 local function configure(s, family)
   s.family = family
   s.row = nil
@@ -1350,10 +1520,14 @@ local function configure(s, family)
   if s.contended then
     return ksi.STATUS_RETRY
   end
+  if family.paged then
+    return customer(s)
+  end
   return ksi.STATUS_SUCCESS
 end
 
 local function finish(s, status)
+  release_page(s)
   if s.idphase then
     close(s)
     s.idphase = false
@@ -1520,7 +1694,7 @@ local function session(input)
   if not chassis_permitted() then
     return nil, ksi.STATUS_NOT_SUPPORTED
   end
-  return { port = port }
+  return { port = port, wait = PAGE_WAIT }
 end
 
 -- Returns the family, chip and customer of the chip at a slot.
@@ -1555,7 +1729,7 @@ function identify(input)
   if status ~= ksi.STATUS_SUCCESS then
     return status
   end
-  return ksi.STATUS_SUCCESS, string.pack('<I4I4I4', s.family.family, s.chip, 0)
+  return ksi.STATUS_SUCCESS, string.pack('<I4I4I4', s.family.family, s.chip, s.customer or 0)
 end
 
 -- Reads hardware monitor registers of the chip at a slot.
@@ -1613,6 +1787,9 @@ function read(input)
     end,
   })
   status = vendor(s, monitor)
+  if status == ksi.STATUS_SUCCESS and k and s.family.paged then
+    status = customer(s)
+  end
   if status ~= ksi.STATUS_SUCCESS then
     kept[s.port] = nil
     return status
@@ -1625,7 +1802,9 @@ function read(input)
     local value = 0
     if permitted(monitor, reg) then
       item = ksi.STATUS_RETRY
-      if not stopped then
+      if s.family.paged then
+        item, value = rp(s, reg)
+      elseif not stopped then
         value = rm(s, reg)
         stopped = (value == nil)
         item = stopped and ksi.STATUS_RETRY or ksi.STATUS_SUCCESS
