@@ -155,6 +155,13 @@ typedef struct _KPH_HW_WINDOW_ITEM
 
 typedef const KPH_HW_WINDOW_ITEM* PCKPH_HW_WINDOW_ITEM;
 
+typedef struct _KPH_HW_PCI_CONFIG
+{
+    USHORT Vendor;
+    USHORT Device;
+    ULONG Ranges;
+} KPH_HW_PCI_CONFIG, *PKPH_HW_PCI_CONFIG;
+
 #define KPH_HW_WINDOW_MCHBAR 1
 #define KPH_HW_WINDOW_BAR0 2
 
@@ -187,6 +194,7 @@ C_ASSERT(sizeof(KPH_HW_SMBUS_HOST) == 16);
 C_ASSERT(sizeof(KPH_HW_SMBUS_ITEM) == 4);
 C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);
 C_ASSERT(sizeof(KPH_HW_WINDOW_ITEM) == 8);
+C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 
 PHLIBAPI
 NTSTATUS
@@ -332,6 +340,34 @@ KphHwPciMmioRead(
     _In_reads_(Count) PCKPH_HW_WINDOW_ITEM Items,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE64 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwPciConfigIdentify(
+    _In_ ULONG Locator,
+    _Out_ PKPH_HW_PCI_CONFIG Device
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwPciConfigRead(
+    _In_ ULONG Locator,
+    _In_reads_(Count) PCKPH_HW_WINDOW_ITEM Items,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwPciConfigReadBlock(
+    _In_ ULONG Locator,
+    _In_ ULONG Offset,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
     );
 
 PHLIBAPI
