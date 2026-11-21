@@ -1237,9 +1237,13 @@ local function check_range(first, last, bits)
 end
 
 -- The mailbox of a socket's AMDI0097 device: the device, its window, the
--- offsets from its _DSD and the page mapped. Nil and the status of the call
--- when it is refused.
+-- offsets from its _DSD and the page mapped, kept when the script is not
+-- volatile. Nil and the status of the call when it is refused.
 local function acpi_session(socket)
+  local k = kept.acpi and kept.acpi[socket]
+  if k then
+    return k
+  end
   if not ksi.hw.acpi_find or not ksi.hw.cpuid or not ksi.hw.map then
     ksi.trace('no ACPI, CPUID or map functions')
     return nil, ksi.STATUS_NOT_SUPPORTED
@@ -1309,7 +1313,7 @@ local function acpi_session(socket)
     device:release()
     return nil, mapFailed
   end
-  return {
+  local s = {
     device = device,
     map = map,
     base = base,
@@ -1320,6 +1324,20 @@ local function acpi_session(socket)
     arg = arg,
     mailbox = m,
   }
+  if not ksi.volatile then
+    s.kept = true
+    kept.acpi = kept.acpi or {}
+    kept.acpi[socket] = s
+  end
+  return s
+end
+
+local function acpi_drop(socket, s)
+  if s.kept and kept.acpi[socket] == s then
+    kept.acpi[socket] = nil
+    s.map:release()
+    s.device:release()
+  end
 end
 
 local function acpi_moved(s)
@@ -1545,12 +1563,13 @@ function acpi_identify(input)
     ksi.trace('input of %d bytes', #input)
     return ksi.STATUS_INVALID_PARAMETER
   end
-  local s, refused = acpi_session(string.unpack('<I4', input))
+  local socket = string.unpack('<I4', input)
+  local s, refused = acpi_session(socket)
   if not s then
     return refused
   end
-  local device <close> = s.device
-  local mapping <close> = s.map
+  local device <close> = (not s.kept) and s.device or nil
+  local mapping <close> = (not s.kept) and s.map or nil
 
   local lock <close>, failed = ksi.lock('mailbox')
   if not lock then
@@ -1560,15 +1579,108 @@ function acpi_identify(input)
 
   if acpi_moved(s) then
     ksi.trace('the window moved')
+    acpi_drop(socket, s)
     return ksi.STATUS_DEVICE_NOT_READY
   end
   local st, version = acpi_protocol_version(s)
   if st == ksi.STATUS_SUCCESS and acpi_moved(s) then
     ksi.trace('the window moved')
+    acpi_drop(socket, s)
     st = ksi.STATUS_DEVICE_NOT_READY
   end
   if st ~= ksi.STATUS_SUCCESS then
     return st
   end
   return ksi.STATUS_SUCCESS, string.pack('<I4I4', version, 0)
+end
+
+-- Sends a list of the row's commands to the mailbox in the window of the
+-- AMDI0097 device of the socket the input names.
+function acpi_command(input)
+  if #input < 4 + 36 or (#input - 4) % 36 ~= 0 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local entries = {}
+  for i = 1, (#input - 4) // 36 do
+    local e = pack(string.unpack('<I4I4I4I4I4I4I4I4I4', input, 5 + (i - 1) * 36))
+    if e[1] == 0 then
+      ksi.trace('entry %d has opcode 0', i)
+      return ksi.STATUS_INVALID_PARAMETER
+    end
+    entries[i] = e
+  end
+
+  local socket = string.unpack('<I4', input)
+  local s, refused = acpi_session(socket)
+  if not s then
+    return refused
+  end
+  local device <close> = (not s.kept) and s.device or nil
+  local mapping <close> = (not s.kept) and s.map or nil
+
+  local lock <close>, failed = ksi.lock('mailbox')
+  if not lock then
+    ksi.trace('the mailbox lock was not taken: 0x%x', failed)
+    return failed
+  end
+
+  if acpi_moved(s) then
+    ksi.trace('the window moved before the batch')
+    acpi_drop(socket, s)
+    return ksi.STATUS_DEVICE_NOT_READY
+  end
+  local st = acpi_protocol_version(s)
+  if st ~= ksi.STATUS_SUCCESS then
+    return st
+  end
+
+  local output = {}
+  local stopped = false
+  local changed = false
+  for i, e in ipairs(entries) do
+    local op = e[1]
+    local c = s.mailbox.commands[op]
+    local status, answer = ksi.STATUS_SUCCESS, 0
+    local results = zeros()
+    local args
+    if c then
+      local mask, fixed = c.mask or {}, c.fixed or {}
+      args = {}
+      for a = 1, ARGS do
+        local value = e[a + 1]
+        if (value & ~(mask[a] or 0)) ~= 0 then
+          args = nil
+          break
+        end
+        args[a] = value | (fixed[a] or 0)
+      end
+    end
+    if not args then
+      ksi.trace('command 0x%x is not permitted', op)
+      status = ksi.STATUS_ACCESS_DENIED
+    elseif stopped then
+      status = ksi.STATUS_CANCELLED
+    elseif acpi_moved(s) then
+      ksi.trace('the window moved before entry %d', i)
+      status = ksi.STATUS_DEVICE_NOT_READY
+      stopped = true
+      changed = true
+    else
+      local completed
+      status, completed, results, answer = acpi_transact(s, op, args, c.words)
+      stopped = not completed
+    end
+    output[i] = string.pack('<I4I4I4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, ARGS))
+  end
+
+  if acpi_moved(s) then
+    ksi.trace('the window moved during the batch')
+    acpi_drop(socket, s)
+    return ksi.STATUS_DEVICE_NOT_READY
+  end
+  if changed then
+    acpi_drop(socket, s)
+  end
+  return ksi.STATUS_SUCCESS, concat(output)
 end

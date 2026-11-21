@@ -49,6 +49,7 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="command" level="maximum"/>
         <routine name="acpi_identify" level="maximum"/>
+        <routine name="acpi_command" level="maximum"/>
     </script>
     <script name="platform" file="script/platform.lua" arch="amd64" desc="Intel platform windows">
         <routine name="read" level="maximum"/>
