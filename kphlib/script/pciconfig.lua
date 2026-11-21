@@ -14,6 +14,8 @@
 -- lists the ranges a read must lie inside.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     vendor = 0x1022,
@@ -178,7 +180,7 @@ end
 local function session(locator)
   if not ksi.hw.pci_open then
     ksi.trace('no PCI functions')
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   local k = kept[locator]
   if k then
@@ -213,18 +215,18 @@ local function session(locator)
   if vendor == 0xffff then
     ksi.trace('no device answers at 0x%x', locator)
     device:release()
-    return nil, ksi.STATUS_NOT_FOUND
+    return nil, nt.STATUS_NOT_FOUND
   end
   local row = find_row(vendor, id)
   if not row then
     ksi.trace('no row for PCI %04x:%04x', vendor, id)
     device:release()
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   if not ksi.hw.pci_fixed(device) then
     ksi.trace('%04x:%04x may be removed', vendor, id)
     device:release()
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   local s = { device = device, vendor = vendor, id = id, row = row }
   if not ksi.volatile then
@@ -247,7 +249,7 @@ end
 function identify(input)
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(string.unpack('<I4', input))
   if not s then
@@ -257,7 +259,7 @@ function identify(input)
     s.device:release()
   end
   local ranges = s.ranges or s.row.reads()
-  return ksi.STATUS_SUCCESS, string.pack('<I2I2I4', s.vendor, s.id, #ranges)
+  return nt.STATUS_SUCCESS, string.pack('<I2I2I4', s.vendor, s.id, #ranges)
 end
 
 local function permitted(ranges, offset, width)
@@ -274,7 +276,7 @@ end
 function read(input)
   if #input < 12 or (#input - 4) % 8 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(string.unpack('<I4', input))
   if not s then
@@ -286,38 +288,38 @@ function read(input)
 
   for i = 1, (#input - 4) // 8 do
     local offset, width = string.unpack('<I4I4', input, i * 8 - 3)
-    local status, value = ksi.STATUS_SUCCESS, 0
+    local status, value = nt.STATUS_SUCCESS, 0
     if width ~= 1 and width ~= 2 and width ~= 4 then
       ksi.trace('width %d at 0x%x', width, offset)
-      status = ksi.STATUS_INVALID_PARAMETER
+      status = nt.STATUS_INVALID_PARAMETER
     elseif not permitted(ranges, offset, width) then
       ksi.trace('0x%x of %d bytes is not permitted', offset, width)
-      status = ksi.STATUS_ACCESS_DENIED
+      status = nt.STATUS_ACCESS_DENIED
     else
       local got, failed = ksi.hw.pci_read(s.device, offset, width)
       if got then
         value = got
       else
         ksi.trace('0x%x of %d bytes not read: 0x%x', offset, width, failed)
-        status = ksi.STATUS_DEVICE_NOT_READY
+        status = nt.STATUS_DEVICE_NOT_READY
       end
     end
     output[i] = string.pack('<i4I4', status, value)
   end
 
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
 
 -- Reads a range of configuration space of the function the input names.
 function read_block(input)
   if #input ~= 12 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local locator, offset, length = string.unpack('<I4I4I4', input)
   if length == 0 then
     ksi.trace('a block of no bytes at 0x%x', offset)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(locator)
   if not s then
@@ -326,12 +328,12 @@ function read_block(input)
   local closer <close> = (not s.kept) and s.device or nil
   if not permitted(s.ranges or s.row.reads(), offset, length) then
     ksi.trace('0x%x of %d bytes is not permitted', offset, length)
-    return ksi.STATUS_ACCESS_DENIED
+    return nt.STATUS_ACCESS_DENIED
   end
   local bytes, failed = ksi.hw.pci_read_block(s.device, offset, length)
   if not bytes then
     ksi.trace('0x%x of %d bytes not read: 0x%x', offset, length, failed)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
-  return ksi.STATUS_SUCCESS, bytes
+  return nt.STATUS_SUCCESS, bytes
 end

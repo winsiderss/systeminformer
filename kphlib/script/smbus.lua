@@ -14,6 +14,8 @@
 -- each port are listed below.
 --
 
+local nt = require('nt')
+
 local HOSTS = {
   [0x1022790b] = {
     layouts = {
@@ -469,16 +471,16 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == ksi.STATUS_SUCCESS
+    s0 == nt.STATUS_SUCCESS
     and maximum >= 0x80000008
-    and s1 == ksi.STATUS_SUCCESS
+    and s1 == nt.STATUS_SUCCESS
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
     kept.bits = eax & 0xff
     return kept.bits
   end
-  if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
     kept.bits = 36
   end
   return 36
@@ -487,16 +489,16 @@ end
 local function check_range(first, last, bits)
   if math.ult(1 << bits, last) then
     ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local nvdimm = ksi.hw.is_nvdimm(first, last - first)
   if nvdimm == nil then
     ksi.trace('NVDIMM ranges unknown')
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   if nvdimm then
     ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local ram, ramFailed = ksi.hw.is_ram(first, last - first)
   if ram == nil then
@@ -505,9 +507,9 @@ local function check_range(first, last, bits)
   end
   if ram then
     ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function poll(every, spins, sleep, timeout, body)
@@ -815,7 +817,7 @@ local function session(locator)
     if not ids then
       ksi.trace('IDs of 0x%x not read: 0x%x', locator, failed)
       device:release()
-      return nil, ksi.STATUS_DEVICE_NOT_READY
+      return nil, nt.STATUS_DEVICE_NOT_READY
     end
   end
   local key = ((ids & 0xffff) << 16) | (ids >> 16)
@@ -827,7 +829,7 @@ local function session(locator)
     if not host then
       ksi.trace('no row for PCI %04x:%04x', ids & 0xffff, ids >> 16)
       device:release()
-      return nil, ksi.STATUS_NOT_SUPPORTED
+      return nil, nt.STATUS_NOT_SUPPORTED
     end
     s = { device = device, kind = KIND_FCH, host = host, vendor = ids & 0xffff, id = ids >> 16 }
     local st, rev, index, cb, hc = read_host(s)
@@ -838,7 +840,7 @@ local function session(locator)
       else
         device:release()
       end
-      return nil, st == UNSUPPORTED and ksi.STATUS_NOT_SUPPORTED or ksi.STATUS_DEVICE_NOT_READY
+      return nil, st == UNSUPPORTED and nt.STATUS_NOT_SUPPORTED or nt.STATUS_DEVICE_NOT_READY
     end
     s.revision, s.index, s.cbase, s.hostc = rev, index, cb, hc
     s.layout = host.layouts[index]
@@ -859,10 +861,10 @@ end
 local function pm_failed(st, reg)
   if st == MOVED then
     ksi.trace('PM index moved at 0x%x', reg)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   ksi.trace('PM pair not ready at 0x%x', reg)
-  return ksi.STATUS_DEVICE_NOT_READY
+  return nt.STATUS_DEVICE_NOT_READY
 end
 
 -- The mapped view of the PM registers, behind the general check.
@@ -879,7 +881,7 @@ local function map_view(s)
     return nil, failed
   end
   local st = check_range(first, last, bits)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     ksi.trace('PM view 0x%x refused: 0x%x', l.pm_base, st)
     return nil, st
   end
@@ -915,7 +917,7 @@ local function open_host(s)
   if l.pm == 3 then
     if s.hostc & l.en_mask == 0 then
       ksi.trace('host disabled: 0x%x', s.hostc)
-      return ksi.STATUS_DEVICE_NOT_READY
+      return nt.STATUS_DEVICE_NOT_READY
     end
     s.base = s.cbase & l.base_mask
   else
@@ -928,7 +930,7 @@ local function open_host(s)
     else
       if l.data_port ~= l.index_port + 1 then
         ksi.trace('PM pair 0x%x 0x%x', l.index_port, l.data_port)
-        return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+        return nt.STATUS_DEVICE_CONFIGURATION_ERROR
       end
       s.index_port = l.index_port
       if l.en_mask ~= 0 then
@@ -987,13 +989,13 @@ local function open_host(s)
   end
   if s.base == 0 then
     ksi.trace('SMBus base 0')
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   if s.base < LEGACY_IO_END then
     ksi.trace('SMBus base 0x%x', s.base)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function i801_host(s)
@@ -1020,22 +1022,22 @@ end
 local function i801_open(s)
   if s.cmd & 0x01 == 0 or s.hostc & 0x01 == 0 then
     ksi.trace('host disabled: 0x%x 0x%x', s.cmd, s.hostc)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   if s.hostc & 0x04 ~= 0 or s.bar & 0x01 == 0 or s.bar & ~0xffe1 ~= 0 then
     ksi.trace('host BAR 0x%x HOSTC 0x%x', s.bar, s.hostc)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   s.base = s.bar & 0xffe0
   if s.base == 0 then
     ksi.trace('SMBus base 0')
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   if s.base < LEGACY_IO_END then
     ksi.trace('SMBus base 0x%x', s.base)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 -- Returns the host's IDs, revision, kind (1 for the AMD FCH, 2 for the Intel
@@ -1043,7 +1045,7 @@ end
 function identify(input)
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local lock <close>, failed = ksi.lock('smbus')
   if not lock then
@@ -1059,28 +1061,28 @@ function identify(input)
     s.cmd, s.bar, s.hostc = i801_host(s)
     if not s.cmd then
       ksi.trace('host configuration reads all ones')
-      return ksi.STATUS_DEVICE_NOT_READY
+      return nt.STATUS_DEVICE_NOT_READY
     end
     local st = i801_open(s)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st
     end
     local revision = ksi.hw.pci_read(s.device, 0x08, 1)
     if not revision then
       ksi.trace('host revision not read')
-      return ksi.STATUS_DEVICE_NOT_READY
+      return nt.STATUS_DEVICE_NOT_READY
     end
-    return ksi.STATUS_SUCCESS,
+    return nt.STATUS_SUCCESS,
       string.pack('<I2I2I4I4I4', s.vendor, s.id, revision, KIND_INTEL, s.base)
   end
   local st = open_host(s)
   if s.view then
     close_view(s, s.view)
   end
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
-  return ksi.STATUS_SUCCESS, string.pack('<I2I2I4I4I4', s.vendor, s.id, s.revision, 1, s.base)
+  return nt.STATUS_SUCCESS, string.pack('<I2I2I4I4I4', s.vendor, s.id, s.revision, 1, s.base)
 end
 
 -- The transaction up to the end of the wait; a transfer that does not end
@@ -1089,14 +1091,14 @@ local function transact(s, hs, c, n)
   local sts = host_in(s, HST_STS)
   if sts & 0x01 ~= 0 then
     ksi.trace('the host is busy: 0x%x', sts)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if sts & 0x1e ~= 0 then
     host_out(s, HST_STS, sts & 0x1e)
     sts = host_in(s, HST_STS)
     if sts & 0x1e ~= 0 then
       ksi.trace('host status 0x%x does not clear', sts)
-      return ksi.STATUS_DEVICE_NOT_READY
+      return nt.STATUS_DEVICE_NOT_READY
     end
   end
   host_out(s, HST_ADD, hs)
@@ -1121,9 +1123,9 @@ local function transact(s, hs, c, n)
       host_out(s, HST_STS, k & 0x1e)
     end
     ksi.trace('transaction to 0x%x timed out', hs)
-    return ksi.STATUS_IO_TIMEOUT
+    return nt.STATUS_IO_TIMEOUT
   end
-  return ksi.STATUS_SUCCESS, sts
+  return nt.STATUS_SUCCESS, sts
 end
 
 -- The transaction after the data reads: a collision, the clear, the errors.
@@ -1133,20 +1135,20 @@ local function finish(s, hs, c, n, sts)
   local n2 = host_in(s, HST_CNT)
   if a2 ~= hs or c2 ~= c or n2 & 0x1c ~= n then
     ksi.trace("another agent's transaction on the host")
-    return ksi.STATUS_RETRY, true
+    return nt.STATUS_RETRY, true
   end
   if sts & 0x1e ~= 0 then
     host_out(s, HST_STS, sts & 0x1e)
   end
   if sts & 0x18 ~= 0 then
     ksi.trace('transaction to 0x%x failed: 0x%x', hs, sts)
-    return ksi.STATUS_RETRY, true
+    return nt.STATUS_RETRY, true
   end
   if sts & 0x04 ~= 0 then
     ksi.trace('no device answered at 0x%x', hs)
-    return ksi.STATUS_NO_SUCH_DEVICE, false
+    return nt.STATUS_NO_SUCH_DEVICE, false
   end
-  return ksi.STATUS_SUCCESS, false
+  return nt.STATUS_SUCCESS, false
 end
 
 -- Puts the port select back (five tries 1 ms apart) and releases the
@@ -1177,14 +1179,14 @@ local function i801_transact(s, hs, c, n)
   if sts & 0x01 ~= 0 then
     ksi.trace('the host is busy: 0x%x', sts)
     s.collided = true
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if sts & 0x9e ~= 0 then
     host_out(s, HST_STS, sts & 0x9e)
     sts = host_in(s, HST_STS)
     if sts & 0x9e ~= 0 then
       ksi.trace('host status 0x%x does not clear', sts)
-      return ksi.STATUS_DEVICE_NOT_READY
+      return nt.STATUS_DEVICE_NOT_READY
     end
   end
   s.started = true
@@ -1209,9 +1211,9 @@ local function i801_transact(s, hs, c, n)
       host_out(s, HST_STS, k & 0x9e)
     end
     ksi.trace('transaction to 0x%x timed out', hs)
-    return ksi.STATUS_IO_TIMEOUT
+    return nt.STATUS_IO_TIMEOUT
   end
-  return ksi.STATUS_SUCCESS, sts
+  return nt.STATUS_SUCCESS, sts
 end
 
 local function i801_finish(s, hs, c, n, sts)
@@ -1221,20 +1223,20 @@ local function i801_finish(s, hs, c, n, sts)
   if a2 ~= hs or c2 ~= c or n2 & 0x1c ~= n then
     ksi.trace("another agent's transaction on the host")
     s.collided = true
-    return ksi.STATUS_RETRY, true
+    return nt.STATUS_RETRY, true
   end
   if sts & 0x9e ~= 0 then
     host_out(s, HST_STS, sts & 0x9e)
   end
   if sts & 0x18 ~= 0 then
     ksi.trace('transaction to 0x%x failed: 0x%x', hs, sts)
-    return ksi.STATUS_RETRY, true
+    return nt.STATUS_RETRY, true
   end
   if sts & 0x04 ~= 0 then
     ksi.trace('no device answered at 0x%x', hs)
-    return ksi.STATUS_NO_SUCH_DEVICE, false
+    return nt.STATUS_NO_SUCH_DEVICE, false
   end
-  return ksi.STATUS_SUCCESS, false
+  return nt.STATUS_SUCCESS, false
 end
 
 local function i801_release(s)
@@ -1273,7 +1275,7 @@ local function i801_read(s, entries, port)
   s.cmd, s.bar, s.hostc = i801_host(s)
   if not s.cmd then
     ksi.trace('host configuration reads all ones')
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   local lines = I801_READS[port]
   local allowed = 0
@@ -1288,12 +1290,12 @@ local function i801_read(s, entries, port)
   if allowed == 0 then
     local denied = {}
     for i = 1, #entries do
-      denied[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      denied[i] = string.pack('<i4I4', nt.STATUS_ACCESS_DENIED, 0)
     end
-    return ksi.STATUS_SUCCESS, table.concat(denied)
+    return nt.STATUS_SUCCESS, table.concat(denied)
   end
   local st = i801_open(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
 
@@ -1309,39 +1311,39 @@ local function i801_read(s, entries, port)
   end)
   if s.claim & 0x40 ~= 0 then
     ksi.trace('the host is in use')
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   s.owned = true
   if host_in(s, HST_STS) & 0x01 ~= 0 then
     ksi.trace('the host is busy')
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
 
   local output = {}
   local stopped
   for i, e in ipairs(entries) do
-    local es, value = ksi.STATUS_SUCCESS, 0
+    local es, value = nt.STATUS_SUCCESS, 0
     if not e.allowed then
-      es = ksi.STATUS_ACCESS_DENIED
+      es = nt.STATUS_ACCESS_DENIED
     elseif stopped then
-      es = ksi.STATUS_CANCELLED
+      es = nt.STATUS_CANCELLED
     elseif not i801_confirm(s) then
       ksi.trace('the host changed before entry %d', i)
-      es = ksi.STATUS_RETRY
+      es = nt.STATUS_RETRY
       stopped = true
     else
       local hs = (e[1] << 1) | 1
       local cnt = e[3] == 1 and 0x0c or 0x08
       local sts
       es, sts = i801_transact(s, hs, e[2], cnt)
-      if es == ksi.STATUS_SUCCESS then
+      if es == nt.STATUS_SUCCESS then
         local v = host_in(s, HST_DAT0)
         if e[3] == 1 then
           v = v | (host_in(s, HST_DAT1) << 8)
         end
         local abort
         es, abort = i801_finish(s, hs, e[2], cnt, sts)
-        if es == ksi.STATUS_SUCCESS then
+        if es == nt.STATUS_SUCCESS then
           value = v
         elseif abort then
           stopped = true
@@ -1356,8 +1358,8 @@ local function i801_read(s, entries, port)
   if not i801_confirm(s) then
     ksi.trace('the host changed during the read')
     for _, o in ipairs(output) do
-      if o[1] == ksi.STATUS_SUCCESS or o[1] == ksi.STATUS_NO_SUCH_DEVICE then
-        o[1], o[2] = ksi.STATUS_DEVICE_NOT_READY, 0
+      if o[1] == nt.STATUS_SUCCESS or o[1] == nt.STATUS_NO_SUCH_DEVICE then
+        o[1], o[2] = nt.STATUS_DEVICE_NOT_READY, 0
       end
     end
   end
@@ -1366,14 +1368,14 @@ local function i801_read(s, entries, port)
   for i, o in ipairs(output) do
     packed[i] = string.pack('<i4I4', o[1], o[2])
   end
-  return ksi.STATUS_SUCCESS, table.concat(packed)
+  return nt.STATUS_SUCCESS, table.concat(packed)
 end
 
 -- Reads bytes and words from devices on the host's SMBus port.
 function read(input)
   if #input < 12 or (#input - 8) % 4 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local locator, port = string.unpack('<I4I4', input)
   local entries = {}
@@ -1381,7 +1383,7 @@ function read(input)
     local address, command, protocol, zero = string.unpack('<I1I1I1I1', input, 9 + (i - 1) * 4)
     if address > 0x7f or protocol > 1 or zero ~= 0 then
       ksi.trace('entry %d malformed', i)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     entries[i] = { address, command, protocol }
   end
@@ -1415,9 +1417,9 @@ function read(input)
   if allowed == 0 then
     local denied = {}
     for i = 1, #entries do
-      denied[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      denied[i] = string.pack('<i4I4', nt.STATUS_ACCESS_DENIED, 0)
     end
-    return ksi.STATUS_SUCCESS, table.concat(denied)
+    return nt.STATUS_SUCCESS, table.concat(denied)
   end
 
   local view <close> = setmetatable({}, {
@@ -1428,7 +1430,7 @@ function read(input)
     end,
   })
   local st = open_host(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
 
@@ -1450,7 +1452,7 @@ function read(input)
     local ctl = host_in(s, SMB_CTL)
     if ctl & 0x10 ~= 0 then
       ksi.trace('the host semaphore is taken')
-      return ksi.STATUS_RETRY
+      return nt.STATUS_RETRY
     end
     local granted = false
     for _ = 1, 5 do
@@ -1466,19 +1468,19 @@ function read(input)
     if not granted then
       ksi.trace('the host semaphore was not granted')
       s.requested = false
-      return ksi.STATUS_RETRY
+      return nt.STATUS_RETRY
     end
   end
   s.owned = true
 
-  local status = ksi.STATUS_SUCCESS
+  local status = nt.STATUS_SUCCESS
   local keep = false
   local acquired = false
   repeat
     local sts = host_in(s, HST_STS)
     if sts & 0x01 ~= 0 then
       ksi.trace('the host is busy')
-      status = ksi.STATUS_RETRY
+      status = nt.STATUS_RETRY
       break
     end
     if s.pm_open then
@@ -1494,7 +1496,7 @@ function read(input)
         if l.flags & FLAG_KEEP_PORT ~= 0 then
           keep = true
           ksi.trace('the row keeps port %d', s.original_port)
-          status = ksi.STATUS_NOT_SUPPORTED
+          status = nt.STATUS_NOT_SUPPORTED
           break
         end
         s.port_changed = true
@@ -1509,7 +1511,7 @@ function read(input)
     sts = host_in(s, HST_STS)
     if sts & 0x01 ~= 0 then
       ksi.trace('the host is busy')
-      status = ksi.STATUS_RETRY
+      status = nt.STATUS_RETRY
       break
     end
     acquired = true
@@ -1519,32 +1521,32 @@ function read(input)
   if acquired then
     local stopped
     for i, e in ipairs(entries) do
-      local es, value = ksi.STATUS_SUCCESS, 0
+      local es, value = nt.STATUS_SUCCESS, 0
       if not e.allowed then
-        es = ksi.STATUS_ACCESS_DENIED
+        es = nt.STATUS_ACCESS_DENIED
       elseif stopped then
-        es = ksi.STATUS_CANCELLED
+        es = nt.STATUS_CANCELLED
       else
         if not s.pm_open or s.view then
           if confirm(s) ~= OK then
             ksi.trace('the host changed before entry %d', i)
-            es = ksi.STATUS_RETRY
+            es = nt.STATUS_RETRY
             stopped = true
           end
         end
-        if es == ksi.STATUS_SUCCESS then
+        if es == nt.STATUS_SUCCESS then
           local hs = (e[1] << 1) | 1
           local cnt = e[3] == 1 and 0x0c or 0x08
           local sts
           es, sts = transact(s, hs, e[2], cnt)
-          if es == ksi.STATUS_SUCCESS then
+          if es == nt.STATUS_SUCCESS then
             local v = host_in(s, HST_DAT0)
             if e[3] == 1 then
               v = v | (host_in(s, HST_DAT1) << 8)
             end
             local abort
             es, abort = finish(s, hs, e[2], cnt, sts)
-            if es == ksi.STATUS_SUCCESS then
+            if es == nt.STATUS_SUCCESS then
               value = v
             elseif abort then
               stopped = true
@@ -1560,9 +1562,9 @@ function read(input)
     local cs = confirm(s)
     if cs ~= OK then
       ksi.trace('the host changed during the read')
-      local to = cs == MOVED and ksi.STATUS_RETRY or ksi.STATUS_DEVICE_NOT_READY
+      local to = cs == MOVED and nt.STATUS_RETRY or nt.STATUS_DEVICE_NOT_READY
       for _, o in ipairs(output) do
-        if o[1] == ksi.STATUS_SUCCESS or o[1] == ksi.STATUS_NO_SUCH_DEVICE then
+        if o[1] == nt.STATUS_SUCCESS or o[1] == nt.STATUS_NO_SUCH_DEVICE then
           o[1], o[2] = to, 0
         end
       end
@@ -1573,9 +1575,9 @@ function read(input)
   s.owned = false
   if bad and not keep then
     ksi.trace('the port select was not put back')
-    status = ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    status = nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
 
@@ -1583,5 +1585,5 @@ function read(input)
   for i, o in ipairs(output) do
     packed[i] = string.pack('<i4I4', o[1], o[2])
   end
-  return ksi.STATUS_SUCCESS, table.concat(packed)
+  return nt.STATUS_SUCCESS, table.concat(packed)
 end
