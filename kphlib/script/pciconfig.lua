@@ -309,7 +309,7 @@ function read(input)
 end
 
 -- Reads a range of configuration space of the function the input names.
-function block(input)
+function read_block(input)
   if #input ~= 12 then
     ksi.trace('input of %d bytes', #input)
     return ksi.STATUS_INVALID_PARAMETER

@@ -55,7 +55,7 @@ This file is part of System Informer.
     <script name="pciconfig" file="script/pciconfig.lua" arch="amd64" desc="PCI configuration space">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
-        <routine name="block" level="maximum"/>
+        <routine name="read_block" level="maximum"/>
     </script>
     <script name="vsec" file="script/vsec.lua" arch="amd64" desc="Intel telemetry regions">
         <routine name="identify" level="maximum"/>

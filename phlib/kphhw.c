@@ -1419,7 +1419,7 @@ NTSTATUS KphHwPciConfigReadBlock(
     _In_ ULONG Length
     )
 {
-    static const ANSI_STRING routine = RTL_CONSTANT_STRING("block");
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read_block");
     NTSTATUS status;
     ULONG input[3];
     ULONG returnLength;
