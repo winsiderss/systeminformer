@@ -16,6 +16,7 @@
 
 local FAMILY_NUVOTON = 1
 local FAMILY_ITE = 3
+local FAMILY_FINTEK = 4
 
 local SLOTS = { [0] = 0x2e, [1] = 0x4e }
 
@@ -945,6 +946,105 @@ local NUVOTON_ROWS = {
   },
 }
 
+local FINTEK_ROWS = {
+  {
+    chips = {
+      0x0901,
+      0x1001,
+      0x0601,
+      0x1106,
+      0x0814,
+      0x1007,
+      0x0541,
+      0x0723,
+      0x0909,
+      0x1005,
+      0x0581,
+      0x1210,
+      0x0704,
+      0x1010,
+      0x1806,
+      0x1502,
+    },
+    ldn = 0x04,
+    exit = EXIT_KEY_AA,
+    active = true,
+    bank_mask = 0x00,
+    config_id = { 0x23, 0x1934 },
+    monitor = function()
+      return {
+        ids = {},
+        reads = {
+          { 0x0001, 0x1 },
+          { 0x0020, 0xb },
+          { 0x0069, 0x1 },
+          { 0x006b, 0x5 },
+          { 0x0070, 0x7 },
+          { 0x0094, 0x1 },
+          { 0x0096, 0x1 },
+          { 0x0098, 0x2 },
+          { 0x00a0, 0x40 },
+        },
+      }
+    end,
+  },
+  {
+    chips = {
+      0x0507,
+      0x0903,
+    },
+    ldn = 0x02,
+    exit = EXIT_KEY_AA,
+    active = true,
+    bank_mask = 0x00,
+    config_id = { 0x23, 0x1934 },
+    monitor = function()
+      return {
+        ids = {},
+        reads = {
+          { 0x0001, 0x1 },
+          { 0x0020, 0xb },
+          { 0x0069, 0x1 },
+          { 0x006b, 0x5 },
+          { 0x0070, 0x6 },
+          { 0x0094, 0x1 },
+          { 0x0096, 0x1 },
+          { 0x0098, 0x2 },
+          { 0x00a0, 0x40 },
+        },
+      }
+    end,
+  },
+  {
+    chips = {
+      0x0406,
+      0x0341,
+    },
+    ldn = 0x04,
+    exit = EXIT_KEY_AA,
+    active = true,
+    bank_mask = 0x00,
+    config_id = { 0x23, 0x1934 },
+    monitor = function()
+      return {
+        ids = {},
+        reads = {
+          { 0x0000, 0x2 },
+          { 0x0010, 0xe },
+          { 0x0020, 0x10 },
+          { 0x0040, 0x1a },
+          { 0x0060, 0xc },
+          { 0x0070, 0xc },
+          { 0x0080, 0xc },
+          { 0x00a0, 0xa },
+          { 0x00b0, 0xa },
+          { 0x00c0, 0xa },
+        },
+      }
+    end,
+  },
+}
+
 local function answers(id)
   return (id ~= 0) and (id ~= 0xffff)
 end
@@ -964,6 +1064,7 @@ end
 local FAMILIES = {
   { family = FAMILY_ITE, rows = ITE_ROWS, key = ite_key },
   { family = FAMILY_NUVOTON, rows = NUVOTON_ROWS, key = nuvoton_key },
+  { family = FAMILY_FINTEK, rows = FINTEK_ROWS, key = nuvoton_key, remember = false },
 }
 
 local function find_row(family, id)
@@ -1127,12 +1228,17 @@ local function configure(s, family)
     ksi.trace('chip 0x%04x at port 0x%02x is not known to family %d', id, s.port, family.family)
     return ksi.STATUS_NOT_FOUND
   end
+  local config = s.row.config_id
+  if config and rcw(s, config[1]) ~= config[2] then
+    ksi.trace('chip 0x%04x has no configuration ID 0x%04x', id, config[2])
+    return ksi.STATUS_NOT_FOUND
+  end
   s.identified = true
   s.orig_ldn = rc(s, 0x07)
   s.ldn_select = true
   wc(s, 0x07, s.row.ldn)
   s.ldn_set = true
-  if (rc(s, 0x30) & 1) == 0 then
+  if s.row.active ~= false and (rc(s, 0x30) & 1) == 0 then
     ksi.trace('LDN 0x%02x is not active', s.row.ldn)
     return ksi.STATUS_DEVICE_NOT_READY
   end
@@ -1146,6 +1252,9 @@ local function configure(s, family)
   if base == 0 or base == 0xffff then
     ksi.trace('monitor base 0x%04x is not set', base)
     return ksi.STATUS_DEVICE_NOT_READY
+  end
+  if family.family == FAMILY_FINTEK and (base & 7) == 5 then
+    base = base - 5
   end
   if (base & 7) ~= 0 then
     ksi.trace('monitor base 0x%04x is misaligned', base)
@@ -1178,11 +1287,34 @@ local function finish(s, status)
   return status
 end
 
+-- The families in the order a slot is tried: the one that identified last
+-- first, in a kept script.
+local function family_order(s)
+  return kept.orders and kept.orders[s.port] or FAMILIES
+end
+
+local function remember_family(s)
+  if ksi.volatile or family_order(s)[1] == s.family then
+    return
+  end
+  local order = { s.family }
+  for _, family in ipairs(FAMILIES) do
+    if family ~= s.family then
+      order[#order + 1] = family
+    end
+  end
+  kept.orders = kept.orders or {}
+  kept.orders[s.port] = order
+end
+
 local function identify_chip(s)
   local status = ksi.STATUS_NOT_FOUND
-  for _, family in ipairs(FAMILIES) do
+  for _, family in ipairs(family_order(s)) do
     if not s.open_family or s.open_family == family then
       status = finish(s, configure(s, family))
+      if s.identified and status == ksi.STATUS_SUCCESS then
+        remember_family(s)
+      end
       if s.identified or s.busy then
         return status
       end
@@ -1422,7 +1554,7 @@ function read(input)
   end
   if stopped then
     kept[s.port] = nil
-  elseif not k and not ksi.volatile then
+  elseif not k and not ksi.volatile and s.family.remember ~= false then
     kept[s.port] = { row = s.row, base = s.base, monitor = monitor }
   end
   return ksi.STATUS_SUCCESS, table.concat(output)
