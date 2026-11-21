@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <kphhw.h>
+#include <cpusensor.h>
 #include <sistatus.h>
 
 typedef struct _KPH_HW_SCRIPT
@@ -981,6 +982,68 @@ NTSTATUS KphHwHsmpCommand(
 }
 
 /**
+ * Acquires the buses an SMBus host is reached through.
+ *
+ * \details The host of a processor that is not Intel's is reached through an
+ * index and data port pair on the ISA bus, so that bus is held as well.
+ *
+ * \param Isa Receives whether the ISA bus is held.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds a
+ * bus.
+ */
+static NTSTATUS KphpHwAcquireSmbus(
+    _Out_ PBOOLEAN Isa
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN isa = FALSE;
+    NTSTATUS status;
+
+    *Isa = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PH_CPU_IDENTITY identity;
+
+        if (PhGetCpuIdentity(&identity))
+            isa = !PhCpuIdentityIsIntel(&identity);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusSmbus, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    if (isa)
+    {
+        if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+        {
+            KphpHwReleaseBus(KphHwBusSmbus);
+            return status;
+        }
+
+        *Isa = TRUE;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Releases the buses acquired with KphpHwAcquireSmbus.
+ *
+ * \param Isa Whether the ISA bus is held.
+ */
+static VOID KphpHwReleaseSmbus(
+    _In_ BOOLEAN Isa
+    )
+{
+    if (Isa)
+        KphpHwReleaseBus(KphHwBusIsa);
+
+    KphpHwReleaseBus(KphHwBusSmbus);
+}
+
+/**
  * Identifies the SMBus host at a PCI location.
  *
  * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
@@ -999,8 +1062,9 @@ NTSTATUS KphHwSmbusIdentify(
     NTSTATUS status;
     KPH_HW_SMBUS_HOST host;
     ULONG returnLength;
+    BOOLEAN isa;
 
-    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusSmbus, KPH_HW_BUS_TIMEOUT)))
+    if (!NT_SUCCESS(status = KphpHwAcquireSmbus(&isa)))
         return status;
 
     status = KphpHwScriptCall(
@@ -1013,7 +1077,7 @@ NTSTATUS KphHwSmbusIdentify(
         &returnLength
         );
 
-    KphpHwReleaseBus(KphHwBusSmbus);
+    KphpHwReleaseSmbus(isa);
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
@@ -1059,6 +1123,7 @@ NTSTATUS KphHwSmbusRead(
     ULONG returnLength;
     PULONG input;
     PKPH_HW_VALUE32 values;
+    BOOLEAN isa;
 
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_SMBUS_ITEM), &itemsLength)))
         return status;
@@ -1074,7 +1139,7 @@ NTSTATUS KphHwSmbusRead(
 
     values = PhAllocate(outputLength ? outputLength : 1);
 
-    if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusSmbus, KPH_HW_BUS_TIMEOUT)))
+    if (NT_SUCCESS(status = KphpHwAcquireSmbus(&isa)))
     {
         status = KphpHwScriptCall(
             &KphpHwSmbusScript,
@@ -1086,7 +1151,7 @@ NTSTATUS KphHwSmbusRead(
             &returnLength
             );
 
-        KphpHwReleaseBus(KphHwBusSmbus);
+        KphpHwReleaseSmbus(isa);
 
         if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
             status = STATUS_INFO_LENGTH_MISMATCH;
