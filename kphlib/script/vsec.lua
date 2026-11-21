@@ -119,6 +119,24 @@ local ROWS = {
   },
 }
 
+local PAGE = 0x1000
+local HUGE_PAGE_END = -PAGE
+local KIND_PMT = 2
+local CAP_VSEC = 0x000b
+local CAP_DVSEC = 0x0023
+local REVISION = 1
+local DVSEC_VENDOR = 0x8086
+local EXTENDED_START = 0x100
+local EXTENDED_TTL = (0x1000 - 0x100) // 8
+local MATCHES_MAX = 8
+local PMT_DWORDS = 3
+local TPMI_DWORDS = 2
+local PMT_LOCAL = 3
+local PMT_BAR = 2
+local PMT_RESERVED = 0xf
+local PMT_PUNIT_FIXED = 2
+local PMT_FIXED_GUID = 0x10000000
+
 local kept = {}
 
 local function header_key(header)
@@ -155,6 +173,7 @@ local function session(locator)
         vendor = k.vendor,
         id = k.id,
         operations = k.operations,
+        header = k.type,
       }
     end
     ksi.trace('the function kept for 0x%x changed', locator)
@@ -190,7 +209,13 @@ local function session(locator)
     device:release()
     return nil, ksi.STATUS_NOT_SUPPORTED
   end
-  local s = { device = device, vendor = vendor, id = id, operations = row.operations() }
+  local s = {
+    device = device,
+    vendor = vendor,
+    id = id,
+    operations = row.operations(),
+    header = string.byte(header, 15) & 0x7f,
+  }
   if not ksi.volatile then
     s.kept = {
       device = device,
@@ -198,10 +223,458 @@ local function session(locator)
       vendor = vendor,
       id = id,
       operations = s.operations,
+      type = s.header,
     }
     kept[locator] = s.kept
   end
   return s
+end
+
+local function drop(s, locator)
+  local k = s.kept
+  if k and kept[locator] == k then
+    kept[locator] = nil
+    k.device:release()
+  end
+end
+
+local function address_bits()
+  if kept.bits then
+    return kept.bits
+  end
+  local results, status = ksi.hw.cpuid(
+    string.pack('<I2I2I4I4', 0, 0, 0x80000000, 0) .. string.pack('<I2I2I4I4', 0, 0, 0x80000008, 0)
+  )
+  if not results then
+    ksi.trace('cpuid failed: 0x%x', status)
+    return nil, status
+  end
+  local s0, maximum = string.unpack('<I4I4', results, 1)
+  local s1, eax = string.unpack('<I4I4', results, 21)
+  if
+    s0 == ksi.STATUS_SUCCESS
+    and maximum >= 0x80000008
+    and s1 == ksi.STATUS_SUCCESS
+    and eax & 0xff >= 32
+    and eax & 0xff < 64
+  then
+    kept.bits = eax & 0xff
+    return kept.bits
+  end
+  if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+    kept.bits = 36
+  end
+  return 36
+end
+
+local function check_range(first, last, bits)
+  if math.ult(1 << bits, last) then
+    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  local nvdimm = ksi.hw.is_nvdimm(first, last - first)
+  if nvdimm == nil then
+    ksi.trace('NVDIMM ranges unknown')
+    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  if nvdimm then
+    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  local ram, ramFailed = ksi.hw.is_ram(first, last - first)
+  if ram == nil then
+    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
+    return ramFailed
+  end
+  if ram then
+    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
+    return ksi.STATUS_CONFLICTING_ADDRESSES
+  end
+  return ksi.STATUS_SUCCESS
+end
+
+local function config_read(s, offset, width, ones)
+  local value = ksi.hw.pci_read(s.device, offset, width)
+  if not value or value == ones then
+    ksi.trace('configuration 0x%x of %04x:%04x not read', offset, s.vendor, s.id)
+    return nil
+  end
+  return value
+end
+
+-- The power-management capability: 0 when the device has none, nil and a
+-- status when the list cannot be walked.
+local function pm_capability(s)
+  local pciStatus = config_read(s, 0x06, 2, 0xffff)
+  if not pciStatus then
+    return nil, ksi.STATUS_DEVICE_NOT_READY
+  end
+  if pciStatus & 0x10 == 0 then
+    return 0
+  end
+  local pointerOffset
+  if s.header == 0 or s.header == 1 then
+    pointerOffset = 0x34
+  elseif s.header == 2 then
+    pointerOffset = 0x14
+  else
+    ksi.trace('header type 0x%x has no capability list', s.header)
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local pointer = ksi.hw.pci_read(s.device, pointerOffset, 1)
+  if not pointer then
+    ksi.trace('capability pointer of %04x:%04x not read', s.vendor, s.id)
+    return nil, ksi.STATUS_DEVICE_NOT_READY
+  end
+  local visited = {}
+  pointer = pointer & 0xfc
+  while pointer ~= 0 do
+    if pointer < 0x40 then
+      ksi.trace('capability at 0x%x inside the header', pointer)
+      return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    if visited[pointer] then
+      ksi.trace('capability list loops at 0x%x', pointer)
+      return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    visited[pointer] = true
+    local capability = config_read(s, pointer, 2, 0xffff)
+    if not capability then
+      return nil, ksi.STATUS_DEVICE_NOT_READY
+    end
+    if capability & 0xff == 0x01 then
+      return pointer
+    end
+    pointer = (capability >> 8) & 0xfc
+  end
+  return 0
+end
+
+local function check_d0(s)
+  if not s.pm then
+    local pm, failed = pm_capability(s)
+    if not pm then
+      return failed
+    end
+    s.pm = pm
+  end
+  local pm = s.pm
+  if pm == 0 then
+    return ksi.STATUS_SUCCESS
+  end
+  local pmcsr = config_read(s, pm + 4, 2, 0xffff)
+  if not pmcsr then
+    return ksi.STATUS_DEVICE_NOT_READY
+  end
+  if pmcsr & 0x3 ~= 0 then
+    ksi.trace('%04x:%04x is in D%d', s.vendor, s.id, pmcsr & 0x3)
+    return ksi.STATUS_DEVICE_POWERED_OFF
+  end
+  return ksi.STATUS_SUCCESS
+end
+
+-- A memory BAR's base and length. On failure, nil, the status and whether a
+-- configuration read failed.
+local function memory_bar(s, index)
+  local command = config_read(s, 0x04, 2, 0xffff)
+  if not command then
+    return nil, ksi.STATUS_DEVICE_NOT_READY, true
+  end
+  if command & 0x2 == 0 then
+    ksi.trace('%04x:%04x does not decode memory', s.vendor, s.id)
+    return nil, ksi.STATUS_DEVICE_NOT_READY
+  end
+  local count
+  if s.header == 0 then
+    count = 6
+  elseif s.header == 1 then
+    count = 2
+  else
+    ksi.trace('header type 0x%x has no BARs', s.header)
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local base
+  local i = 0
+  while i < count and i <= index do
+    local low = config_read(s, 0x10 + i * 4, 4, 0xffffffff)
+    if not low then
+      return nil, ksi.STATUS_DEVICE_NOT_READY, true
+    end
+    if low & 0x1 ~= 0 or low & 0x6 ~= 0x4 then
+      if i == index then
+        if low & 0x1 ~= 0 or low & 0x6 ~= 0 then
+          ksi.trace('BAR %d is not 32-bit memory: 0x%x', i, low)
+          return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+        end
+        base = low & 0xfffffff0
+        break
+      end
+      i = i + 1
+    else
+      if i + 1 >= count or i + 1 == index then
+        ksi.trace('BAR %d is the high half of BAR %d', index, i)
+        return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      end
+      if i == index then
+        local high = config_read(s, 0x10 + i * 4 + 4, 4, 0xffffffff)
+        if not high then
+          return nil, ksi.STATUS_DEVICE_NOT_READY, true
+        end
+        base = (high << 32) | (low & 0xfffffff0)
+        break
+      end
+      i = i + 2
+    end
+  end
+  if not base then
+    ksi.trace('BAR %d beyond the %d BARs', index, count)
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  if base == 0 then
+    ksi.trace('BAR %d of %04x:%04x is not assigned', index, s.vendor, s.id)
+    return nil, ksi.STATUS_DEVICE_NOT_READY
+  end
+  local resources, failed = ksi.hw.pci_resources(s.device)
+  if not resources then
+    ksi.trace('resources of %04x:%04x not read: 0x%x', s.vendor, s.id, failed)
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  for _, r in ipairs(resources) do
+    if r.kind == 1 and r.raw == base then
+      if r.translated ~= base then
+        ksi.trace('BAR 0x%x translates to 0x%x', base, r.translated)
+        return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      end
+      return base, r.length
+    end
+  end
+  ksi.trace('no memory resource at 0x%x', base)
+  return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+end
+
+-- A BAR derived once per walk: its base and length, or nil, the status and
+-- whether a read failed.
+local function bar(s, bars, index)
+  local b = bars[index]
+  if not b then
+    local base, length, readFailed = memory_bar(s, index)
+    if not base and readFailed then
+      return nil, length, true
+    end
+    b = { base = base, length = length }
+    bars[index] = b
+  end
+  if not b.base then
+    return nil, b.length
+  end
+  return b.base, b.length
+end
+
+-- The configuration offsets of the capabilities of a discovery kind, or nil,
+-- the status and whether a read failed.
+local function capabilities(s, kind)
+  local found = {}
+  local position = EXTENDED_START
+  for _ = 1, EXTENDED_TTL do
+    local header = ksi.hw.pci_read(s.device, position, 4)
+    if not header then
+      return nil, ksi.STATUS_DEVICE_NOT_READY, true
+    end
+    if header == 0xffffffff then
+      if position == EXTENDED_START then
+        return found
+      end
+      ksi.trace('extended capability at 0x%x read all-ones', position)
+      return nil, ksi.STATUS_DEVICE_NOT_READY, true
+    end
+    local id = header & 0xffff
+    local match = false
+    if (id == CAP_VSEC or id == CAP_DVSEC) and position + 0x10 <= 0x1000 then
+      local header1 = config_read(s, position + 4, 4, 0xffffffff)
+      if not header1 then
+        return nil, ksi.STATUS_DEVICE_NOT_READY, true
+      end
+      if (header1 >> 16) & 0xf == REVISION and header1 >> 20 >= 0x10 then
+        if id == CAP_VSEC then
+          match = header1 & 0xffff == kind
+        elseif header1 & 0xffff == DVSEC_VENDOR then
+          local dvsecId = ksi.hw.pci_read(s.device, position + 8, 2)
+          if not dvsecId then
+            return nil, ksi.STATUS_DEVICE_NOT_READY, true
+          end
+          match = dvsecId == kind
+        end
+      end
+    end
+    if match then
+      if #found >= MATCHES_MAX then
+        ksi.trace('discovery capability at 0x%x beyond %d', position, MATCHES_MAX)
+        return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      end
+      found[#found + 1] = position
+    end
+    local link = (header >> 20) & 0xffc
+    if link == 0 then
+      return found
+    end
+    if link < EXTENDED_START then
+      ksi.trace('extended capability at 0x%x links to 0x%x', position, link)
+      return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    position = link
+  end
+  ksi.trace('extended capability chain does not end')
+  return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+end
+
+-- The discovery table of the capability at a position: its first dwords of
+-- every entry. Nil and nil when the capability is skipped; nil, the status
+-- and whether a read failed when the walk fails.
+local function table_of(s, op, position, dwords, bars)
+  local entries = ksi.hw.pci_read(s.device, position + 0xa, 1)
+  local entrySize = ksi.hw.pci_read(s.device, position + 0xb, 1)
+  local register = ksi.hw.pci_read(s.device, position + 0xc, 4)
+  if not entries or not entrySize or not register or register == 0xffffffff then
+    ksi.trace('discovery header at 0x%x not read', position)
+    return nil, ksi.STATUS_DEVICE_NOT_READY, true
+  end
+  local t = { bar = register & 0x7, offset = register & 0xfffffff8 }
+  if op.shift then
+    t.offset = t.offset >> 3
+  end
+  if entries == 0 or entrySize < dwords or t.bar >= 6 or t.offset & 0x3 ~= 0 then
+    ksi.trace('discovery table at 0x%x skipped', position)
+    return nil
+  end
+  local base, length, readFailed = bar(s, bars, t.bar)
+  if not base then
+    return nil, length, readFailed
+  end
+  t.base, t.length, t.stride = base, length, entrySize * 4
+  local tableLength = entries * t.stride
+  if t.offset + tableLength > 0xffffffff or t.offset + tableLength > length then
+    ksi.trace('discovery table at 0x%x leaves BAR %d', position, t.bar)
+    return nil
+  end
+  local first = base + t.offset
+  local bits, bitsFailed = address_bits()
+  if not bits then
+    return nil, bitsFailed
+  end
+  local last = (first + tableLength + PAGE - 1) & -PAGE
+  if math.ult(last, first) or math.ult(HUGE_PAGE_END, last) then
+    ksi.trace('discovery table 0x%x ends beyond the address space', first)
+    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local st = check_range(first & -PAGE, last, bits)
+  if st ~= ksi.STATUS_SUCCESS then
+    return nil, st
+  end
+  local start = first & -8
+  local m <close>, mapFailed = ksi.hw.map(start, first - start + tableLength)
+  if not m then
+    ksi.trace('discovery table 0x%x not mapped: 0x%x', first, mapFailed)
+    return nil, mapFailed
+  end
+  local skip = first - start
+  for i = 0, entries - 1 do
+    for j = 0, dwords - 1 do
+      t[#t + 1] = ksi.hw.map_read(m, skip + i * t.stride + j * 4, 4)
+    end
+  end
+  t.count = entries
+  return t
+end
+
+-- The region of PMT entry i of a table, or nil and nil when it is skipped,
+-- or nil, the status and true when the walk fails.
+local function pmt_region(s, op, t, i, bars)
+  local header, guid, register = t[i * PMT_DWORDS + 1], t[i * PMT_DWORDS + 2], t[i * PMT_DWORDS + 3]
+  local access = header & 0xf
+  local size = ((header >> 12) & 0xffff) * 4
+  if size == 0 or access == PMT_RESERVED then
+    return nil
+  end
+  if op.early and ((header >> 4) & 0xf == PMT_PUNIT_FIXED or guid == PMT_FIXED_GUID) then
+    return nil
+  end
+  if op.selector ~= 0 and guid ~= op.selector then
+    return nil
+  end
+  if size > op.size then
+    return nil
+  end
+  local index, offset
+  if access == PMT_LOCAL then
+    if register & 0x7 ~= 0 then
+      return nil
+    end
+    index = t.bar
+    if op.early then
+      offset = register
+    else
+      offset = t.offset + (i + 1) * t.stride + register
+    end
+  elseif access == PMT_BAR then
+    index, offset = register & 0x7, register & 0xfffffff8
+    if index >= 6 then
+      return nil
+    end
+  else
+    return nil
+  end
+  local base, length, readFailed = bar(s, bars, index)
+  if not base then
+    if readFailed then
+      return nil, length, true
+    end
+    return nil
+  end
+  if offset + size > length then
+    return nil
+  end
+  return { base = base + offset, size = size, id = guid }
+end
+
+-- The regions of an operation: each { base, size, id, position }. Nil, the
+-- status and whether a read failed when the walk fails.
+local function walk(s, op)
+  local st = check_d0(s)
+  if st ~= ksi.STATUS_SUCCESS then
+    return nil, st, st == ksi.STATUS_DEVICE_NOT_READY
+  end
+  local positions, failed, readFailed = capabilities(s, op.discovery)
+  if not positions then
+    return nil, failed, readFailed
+  end
+  local dwords = op.discovery == KIND_PMT and PMT_DWORDS or TPMI_DWORDS
+  local bars = {}
+  local regions = {}
+  for _, position in ipairs(positions) do
+    if #regions >= op.regions then
+      break
+    end
+    local t, tableFailed, tableRead = table_of(s, op, position, dwords, bars)
+    if not t and tableFailed then
+      return nil, tableFailed, tableRead
+    end
+    if t and op.discovery == KIND_PMT then
+      for i = 0, t.count - 1 do
+        if #regions >= op.regions then
+          break
+        end
+        local r, regionFailed, regionRead = pmt_region(s, op, t, i, bars)
+        if regionFailed then
+          return nil, regionFailed, regionRead
+        end
+        if r then
+          r.position = (position << 16) | (i << 8)
+          regions[#regions + 1] = r
+        end
+      end
+    end
+  end
+  return regions
 end
 
 -- Returns the PCI IDs at a locator and the number of operations of its row.
@@ -218,4 +691,37 @@ function identify(input)
     s.device:release()
   end
   return ksi.STATUS_SUCCESS, string.pack('<I2I2I4', s.vendor, s.id, #s.operations)
+end
+
+-- Lists the regions of every operation of the function at a locator.
+function regions(input)
+  if #input ~= 4 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local locator = string.unpack('<I4', input)
+  local s, refused = session(locator)
+  if not s then
+    return refused
+  end
+  local out = {}
+  for index, op in ipairs(s.operations) do
+    local list, failed, readFailed = walk(s, op)
+    if not list then
+      if not s.kept then
+        s.device:release()
+      elseif readFailed then
+        drop(s, locator)
+      end
+      return failed
+    end
+    for i, r in ipairs(list) do
+      out[#out + 1] =
+        string.pack('<I1I1I2I4I4I4', index - 1, op.discovery, i - 1, r.id, r.size, r.position)
+    end
+  end
+  if not s.kept then
+    s.device:release()
+  end
+  return ksi.STATUS_SUCCESS, table.concat(out)
 end
