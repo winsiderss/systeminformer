@@ -827,14 +827,15 @@ namespace CustomBuildTool
         /// Builds the script files for the specified output directory.
         /// </summary>
         /// <param name="OutputDirectory">Output directory for the script files.</param>
+        /// <param name="Platform">Platform the output directory is built for.</param>
         /// <returns>True if the script files are built successfully; otherwise, false.</returns>
-        public static bool BuildScripts(string OutputDirectory)
+        public static bool BuildScripts(string OutputDirectory, string Platform)
         {
             Program.PrintColorMessage("Building script files...", ConsoleColor.Cyan);
 
             try
             {
-                return DynDataScript.Execute(OutputDirectory, BuildCanary);
+                return DynDataScript.Execute(OutputDirectory, Platform, BuildCanary);
             }
             catch (Exception exception)
             {
@@ -847,8 +848,9 @@ namespace CustomBuildTool
         /// Builds dynamic data files for the specified output directory.
         /// </summary>
         /// <param name="OutputDirectory">Output directory for dynamic data.</param>
+        /// <param name="Platform">Platform the output directory is built for.</param>
         /// <returns>True if dynamic data is built successfully; otherwise, false.</returns>
-        public static bool BuildDynamicData(string OutputDirectory)
+        public static bool BuildDynamicData(string OutputDirectory, string Platform)
         {
             Program.PrintColorMessage("Building dynamic data...", ConsoleColor.Cyan);
 
@@ -861,7 +863,12 @@ namespace CustomBuildTool
                     return false;
 
                 if (!string.IsNullOrWhiteSpace(OutputDirectory))
-                    return DynDataScript.Execute(OutputDirectory, BuildCanary);
+                {
+                    if (string.IsNullOrWhiteSpace(Platform))
+                        throw new Exception("an output directory needs its platform");
+
+                    return DynDataScript.Execute(OutputDirectory, Platform, BuildCanary);
+                }
 
                 return true;
             }

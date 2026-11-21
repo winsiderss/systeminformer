@@ -14,7 +14,7 @@ set "CustomBuildTool=tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\
 
 REM Run the main script flow and capture the final exit code.
 call :DetectCi
-call :Main "%~1"
+call :Main "%~1" "%~2"
 if errorlevel 1 set "ExitCode=%errorlevel%"
 
 :end
@@ -27,10 +27,11 @@ REM Function: Main
 REM Description: Validates arguments and runs the dynamic data generation action.
 REM Parameters:
 REM   %~1 - Build output path consumed by CustomBuildTool.
+REM   %~2 - Platform of the build output path: x64, ARM64 or Win32.
 REM -----------------------------------------------------------------------------
 :Main
 if "%~1"=="" (
-    echo Usage: build_dyndata.cmd [BUILD_OUTPUT_PATH]
+    echo Usage: build_dyndata.cmd [BUILD_OUTPUT_PATH] [PLATFORM]
     exit /b 1
 )
 
@@ -39,7 +40,7 @@ call :CheckCustomBuildTool
 if errorlevel 1 exit /b %errorlevel%
 
 REM Run dynamic data generation for the provided build output path.
-call :RunCustomBuildTool "-dyndata" "%~1"
+call :RunCustomBuildTool "-dyndata" "%~1" "%~2"
 if errorlevel 1 exit /b %errorlevel%
 
 REM Explicit success exit for predictable script composition.

@@ -37,6 +37,11 @@ namespace CustomBuildTool
         private const string LuaHeaderFile = "tools\\thirdparty\\lua\\src\\lua.h";
 
         private const int RoutineSize = 8;
+
+        /// <summary>
+        /// The architectures a script can be built for, by their names in the manifest.
+        /// </summary>
+        private static readonly string[] Architectures = ["amd64", "arm64"];
         private const int ChunkAlignment = 8;
 
         // The layout of a script file. KSystemInformer\include\script.h asserts the same numbers.
@@ -82,6 +87,7 @@ $$"""
         {
             public string Name;
             public string File;
+            public string[] Architectures;
             public UInt16 Level;
             public Limits? Limits;
             public List<Routine> Routines = [];
@@ -241,18 +247,29 @@ $$"""
 
             foreach (XmlNode scriptNode in root.SelectNodes("script"))
             {
-                CheckNode(scriptNode, ["name", "file", "level"], ["routine", "limits"]);
+                CheckNode(scriptNode, ["name", "file", "arch", "level"], ["routine", "limits"]);
 
                 var script = new Script
                 {
                     Name = RequiredAttribute(scriptNode, "name"),
                     File = RequiredAttribute(scriptNode, "file"),
+                    Architectures = RequiredAttribute(scriptNode, "arch").Split(','),
                 };
 
                 if (!IsValidName(script.Name))
                     throw new Exception($"{ManifestFile}: script name \"{script.Name}\": a name is ASCII letters, digits, '_' and '-'");
-                if (Scripts.Any(s => s.Name.Equals(script.Name, StringComparison.Ordinal)))
-                    throw new Exception($"{ManifestFile}: script \"{script.Name}\" is listed twice");
+
+                foreach (string arch in script.Architectures)
+                {
+                    if (!Architectures.Contains(arch, StringComparer.Ordinal))
+                        throw new Exception($"{ManifestFile}: script \"{script.Name}\": arch \"{arch}\" is not one of {string.Join(", ", Architectures)}");
+                    if (script.Architectures.Count(a => a.Equals(arch, StringComparison.Ordinal)) > 1)
+                        throw new Exception($"{ManifestFile}: script \"{script.Name}\": arch \"{arch}\" is listed twice");
+                }
+
+                if (Scripts.Any(s => s.Name.Equals(script.Name, StringComparison.Ordinal) &&
+                                     s.Architectures.Intersect(script.Architectures, StringComparer.Ordinal).Any()))
+                    throw new Exception($"{ManifestFile}: script \"{script.Name}\" is listed twice for one arch");
 
                 foreach (XmlNode routineNode in scriptNode.SelectNodes("routine"))
                 {
@@ -311,8 +328,24 @@ $$"""
                 Scripts.Add(script);
             }
 
-            // The driver searches scripts and routines by name with a binary search.
             Scripts.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+        }
+
+        /// <summary>
+        /// Converts a build platform to the architecture it builds for.
+        /// </summary>
+        /// <param name="Platform">The platform: x64, ARM64 or Win32.</param>
+        /// <returns>The architecture, by its name in the manifest; x86 for Win32, which no script is built for.</returns>
+        public static string GetArchitecture(string Platform)
+        {
+            if (Platform.Equals("x64", StringComparison.OrdinalIgnoreCase))
+                return "amd64";
+            if (Platform.Equals("ARM64", StringComparison.OrdinalIgnoreCase))
+                return "arm64";
+            if (Platform.Equals("Win32", StringComparison.OrdinalIgnoreCase))
+                return "x86";
+
+            throw new Exception($"platform \"{Platform}\" is not x64, ARM64 or Win32");
         }
 
         /// <summary>
@@ -409,10 +442,11 @@ $$"""
         }
 
         /// <summary>
-        /// Generates one script file image for each script of the manifest.
+        /// Generates one script file image for each script of the manifest built for an architecture.
         /// </summary>
+        /// <param name="Architecture">The architecture.</param>
         /// <returns>The scripts by name with their images; empty when the tree has no script manifest.</returns>
-        public static List<(string Name, byte[] Image)> GenerateFiles()
+        public static List<(string Name, byte[] Image)> GenerateFiles(string Architecture)
         {
             string manifestFile = Path.Join([Build.BuildWorkingFolder, ManifestFile]);
             var files = new List<(string Name, byte[] Image)>();
@@ -426,6 +460,9 @@ $$"""
 
             foreach (Script script in scripts)
             {
+                if (!script.Architectures.Contains(Architecture, StringComparer.Ordinal))
+                    continue;
+
                 script.Chunk = Compile(script);
                 files.Add((script.Name, LayoutFile(script.Limits ?? limits, script)));
             }
@@ -501,15 +538,30 @@ $$"""
         /// Writes and signs the script files of the manifest in the scripts folder of an output directory.
         /// </summary>
         /// <param name="OutDir">The output directory.</param>
+        /// <param name="Platform">The platform the output directory is built for.</param>
         /// <param name="StrictChecks">Whether to enforce strict signature checks.</param>
         /// <returns>True if successful; otherwise, false.</returns>
-        public static bool Execute(string OutDir, bool StrictChecks)
+        public static bool Execute(string OutDir, string Platform, bool StrictChecks)
         {
             string folder = Path.Join([OutDir, OutputFolder]);
+            List<(string Name, byte[] Image)> files = GenerateFiles(GetArchitecture(Platform));
 
             Win32.CreateDirectory(folder);
 
-            foreach ((string name, byte[] image) in GenerateFiles())
+            foreach (string stale in Directory.EnumerateFiles(folder))
+            {
+                string extension = Path.GetExtension(stale);
+                string name = Path.GetFileNameWithoutExtension(stale);
+
+                if ((extension.Equals(".bin", StringComparison.OrdinalIgnoreCase) ||
+                     extension.Equals(".sig", StringComparison.OrdinalIgnoreCase)) &&
+                    !files.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    File.Delete(stale);
+                }
+            }
+
+            foreach ((string name, byte[] image) in files)
             {
                 string file = Path.Join([folder, $"{name}.bin"]);
                 string sigFile = Path.ChangeExtension(file, ".sig");
