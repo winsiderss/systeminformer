@@ -1411,12 +1411,13 @@ local function rp(s, reg)
     ksi.sleep(1)
   end
   s.wait = s.wait - (ksi.time() - start)
+  s.claimed = page
   ksi.hw.port_write(s.base + 4, 1, page)
   if ksi.hw.port_read(s.base + 4, 1) ~= page then
     ksi.trace('page 0x%02x was not claimed', page)
+    s.claimed = nil
     return ksi.STATUS_RETRY, 0
   end
-  s.claimed = page
   ksi.hw.port_write(s.base + 5, 1, reg & 0xff)
   local selected = ksi.hw.port_read(s.base + 5, 1) == (reg & 0xff)
   local value = selected and ksi.hw.port_read(s.base + 6, 1) or 0
