@@ -273,7 +273,10 @@ local function devices()
 end
 
 local function release_devices()
-  for _, entry in ipairs(listed or {}) do
+  if not listed then
+    return
+  end
+  for _, entry in ipairs(listed) do
     if not entry.held then
       entry.device:release()
     end
