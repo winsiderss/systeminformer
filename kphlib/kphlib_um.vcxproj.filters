@@ -57,7 +57,6 @@
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
     <Xml Include="kphscript.xml" />
-    <None Include="script\selftest.lua" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="sistatus.mc">
