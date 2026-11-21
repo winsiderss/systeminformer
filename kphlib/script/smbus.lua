@@ -850,7 +850,7 @@ local function session(locator)
       view:release()
     end
   end
-  if not k and not ksi.volatile and ksi.hw.pci_fixed(device) then
+  if not k and not ksi.volatile and not nt.is_device_removable(device) then
     k = { device = device, ids = ids }
     kept[locator] = k
   end

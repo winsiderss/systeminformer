@@ -1394,7 +1394,7 @@ local function session(locator)
     header = string.byte(header, 15) & 0x7f,
   }
   if not ksi.volatile then
-    s.fixed = ksi.hw.pci_fixed(device)
+    s.fixed = not nt.is_device_removable(device)
     if s.fixed then
       local reads = {}
       for _, row in ipairs(rows) do
@@ -1765,7 +1765,7 @@ function read(input)
   end
   local fixed = s.fixed
   if fixed == nil then
-    fixed = ksi.hw.pci_fixed(s.device)
+    fixed = not nt.is_device_removable(s.device)
   end
   if not fixed then
     ksi.trace('%04x:%04x may be removed', s.vendor, s.id)

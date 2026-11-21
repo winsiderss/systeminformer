@@ -1254,7 +1254,7 @@ local function session(input)
   end
 
   local s = { device = device, mailbox = row.mailbox(), root = root }
-  if not ksi.volatile and ksi.hw.pci_fixed(device) then
+  if not ksi.volatile and not nt.is_device_removable(device) then
     s.kept = { device = device, key = header_key(header), root = root, mailbox = s.mailbox }
     kept[locator] = s.kept
   end

@@ -210,7 +210,7 @@ local function session(locator)
     device:release()
     return nil, nt.STATUS_NOT_SUPPORTED
   end
-  if not ksi.hw.pci_fixed(device) then
+  if nt.is_device_removable(device) then
     ksi.trace('%04x:%04x may be removed', vendor, id)
     device:release()
     return nil, nt.STATUS_NOT_SUPPORTED

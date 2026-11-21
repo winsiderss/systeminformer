@@ -690,7 +690,7 @@ local function session(input)
   end
 
   local s = { device = device, cpu = cpu, root = root, row = row }
-  if not ksi.volatile and ksi.hw.pci_fixed(device) then
+  if not ksi.volatile and not nt.is_device_removable(device) then
     local ranges, values = row.targets()
     s.kept = {
       device = device,
