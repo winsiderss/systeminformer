@@ -778,7 +778,7 @@ VOID KSIAPI KphpLuaHwReleaseDeviceList(
         KphFree(list->Devices, KPH_TAG_LUA_HARDWARE_DEVICES);
     }
 
-    KphFree(list, KPH_TAG_LUA_HARDWARE_DEVICES);
+    KphFree(list, KPH_TAG_LUA_HARDWARE_DEVICE_LIST);
 }
 
 /**
@@ -888,7 +888,7 @@ int KphpLuaHwDevices(
     }
 
     list = KphAllocatePaged(sizeof(KPH_LUA_HW_DEVICE_LIST),
-                            KPH_TAG_LUA_HARDWARE_DEVICES);
+                            KPH_TAG_LUA_HARDWARE_DEVICE_LIST);
     if (!list)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
