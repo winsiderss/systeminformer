@@ -34,7 +34,6 @@ VOID KphLuaInitializeHardware(
     KphLuaInitializeHardwarePci();
     KphLuaInitializeHardwareMemory();
     KphLuaInitializeHardwareDevice();
-    KphLuaInitializeHardwareAcpi();
     KphLuaInitializeHardwareSysreg();
 
     KphpLuaHwInitialized = TRUE;
@@ -56,7 +55,6 @@ VOID KphLuaCleanupHardware(
     }
 
     KphLuaCleanupHardwareSysreg();
-    KphLuaCleanupHardwareAcpi();
     KphLuaCleanupHardwareDevice();
     KphLuaCleanupHardwareMemory();
     KphLuaCleanupHardwarePci();
@@ -445,8 +443,9 @@ int KphpLuaHwPortWrite(
  * \brief References the device objects of a driver object.
  *
  * \param[in] Driver The driver object.
- * \param[out] Devices Receives the referenced device objects, released with
- * KphLuaHwDereferenceDevices, or NULL when the driver has none.
+ * \param[out] Devices Receives the referenced device objects, or NULL when the
+ * driver has none; the caller dereferences each and frees the list with
+ * KPH_TAG_LUA_HARDWARE_DEVICES.
  * \param[out] Count Receives the number of device objects.
  *
  * \return Successful or errant status.
@@ -552,105 +551,6 @@ Exit:
     }
 
     return status;
-}
-
-/**
- * \brief References the device objects of a driver.
- *
- * \param[in] DriverName The name of the driver object.
- * \param[out] Devices Receives the referenced device objects, released with
- * KphLuaHwDereferenceDevices.
- * \param[out] Count Receives the number of device objects.
- *
- * \return Successful or errant status; STATUS_NOT_FOUND when the driver does
- * not exist or has no device objects.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphLuaHwReferenceDevices(
-    _In_ PCUNICODE_STRING DriverName,
-    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
-    _Out_ PULONG Count
-    )
-{
-    NTSTATUS status;
-    PDRIVER_OBJECT driver;
-    PDEVICE_OBJECT* devices;
-    ULONG count;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    *Devices = NULL;
-    *Count = 0;
-
-    status = ObReferenceObjectByName((PUNICODE_STRING)DriverName,
-                                     OBJ_DONT_REPARSE,
-                                     NULL,
-                                     0,
-                                     *IoDriverObjectType,
-                                     KernelMode,
-                                     NULL,
-                                     (PVOID*)&driver);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "ObReferenceObjectByName failed: %!STATUS!",
-                      status);
-
-        return STATUS_NOT_FOUND;
-    }
-
-    status = KphLuaHwReferenceDriverDevices(driver, &devices, &count);
-
-    ObDereferenceObject(driver);
-
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphLuaHwReferenceDriverDevices failed: %!STATUS!",
-                      status);
-
-        return status;
-    }
-
-    if (!devices)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "%wZ has no device objects",
-                      DriverName);
-
-        return STATUS_NOT_FOUND;
-    }
-
-    *Devices = devices;
-    *Count = count;
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Releases the device objects of KphLuaHwReferenceDevices.
- *
- * \param[in] Devices The device objects.
- * \param[in] Count The number of device objects.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphLuaHwDereferenceDevices(
-    _In_reads_(Count) PDEVICE_OBJECT* Devices,
-    _In_ ULONG Count
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    for (ULONG i = 0; i < Count; i++)
-    {
-        ObDereferenceObject(Devices[i]);
-    }
-
-    KphFree(Devices, KPH_TAG_LUA_HARDWARE_DEVICES);
 }
 
 /**

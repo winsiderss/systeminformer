@@ -40,27 +40,42 @@ return function(nt)
     return true
   end
 
-  -- The ACPI identity of a hardware or compatible ID: ACPI\ or * dropped, the
-  -- vendor form VEN_v&DEV_d joined, upper case; nil unless it is then 7 or 8
-  -- of A-Z, 0-9 and _.
+  -- Where a UTF-16 code unit first is in UTF-16 text (at a unit, not between
+  -- two), nil when it is not.
+  local function find_unit(text, unit, at)
+    local found = string.find(text, unit, at, true)
+    while found and found % 2 == 0 do
+      found = string.find(text, unit, found + 1, true)
+    end
+    return found
+  end
+
+  -- The ACPI identity of a hardware or compatible ID (UTF-16): ACPI\ or *
+  -- dropped, the vendor form VEN_v&DEV_d joined, upper case; nil unless it is
+  -- then 7 or 8 of A-Z, 0-9 and _. Upper case is taken of the UTF-16 bytes:
+  -- a unit over 7Fh stays over 7Fh and is refused.
   local function identity(id)
     local rest = string.upper(id)
-    if string.sub(rest, 1, 5) == 'ACPI\\' then
-      rest = string.sub(rest, 6)
-    elseif string.sub(rest, 1, 1) == '*' then
-      rest = string.sub(rest, 2)
+    if string.sub(rest, 1, 10) == 'A\0C\0P\0I\0\\\0' then
+      rest = string.sub(rest, 11)
+    elseif string.sub(rest, 1, 2) == '*\0' then
+      rest = string.sub(rest, 3)
     else
       return nil
     end
-    if string.sub(rest, 1, 4) == 'VEN_' then
-      rest = string.sub(rest, 5)
-      local amp = string.find(rest, '&', 1, true) or #rest + 1
-      if string.sub(rest, amp, amp + 4) ~= '&DEV_' then
+    if string.sub(rest, 1, 8) == 'V\0E\0N\0_\0' then
+      rest = string.sub(rest, 9)
+      local amp = find_unit(rest, '&\0', 1) or #rest + 1
+      if string.sub(rest, amp, amp + 9) ~= '&\0D\0E\0V\0_\0' then
         return nil
       end
-      rest = string.sub(rest, 1, amp - 1) .. string.sub(rest, amp + 5)
+      rest = string.sub(rest, 1, amp - 1) .. string.sub(rest, amp + 10)
     end
-    if (#rest ~= 7 and #rest ~= 8) or not name(rest, false) then
+    if #rest ~= 14 and #rest ~= 16 then
+      return nil
+    end
+    rest = units(rest)
+    if not name(rest, false) then
       return nil
     end
     return rest
@@ -73,15 +88,15 @@ return function(nt)
     for _, key in ipairs({ nt.DEVPKEY_Device_HardwareIds, nt.DEVPKEY_Device_CompatibleIds }) do
       local bytes = ksi.hw.device_property_data(device, key)
       if bytes then
-        local text = units(bytes) .. '\0'
+        local text = bytes .. '\0\0'
         local at = 1
         while true do
-          local stop = string.find(text, '\0', at, true)
-          if stop == at then
+          local stop = find_unit(text, '\0\0', at)
+          if not stop or stop == at then
             break
           end
           list[#list + 1] = identity(string.sub(text, at, stop - 1))
-          at = stop + 1
+          at = stop + 2
         end
       end
     end
@@ -142,6 +157,21 @@ return function(nt)
   -- The device's IDs as ACPI identities, hardware IDs first.
   function A.ids(device)
     return identities(device)
+  end
+
+  -- The devices of the ACPI driver in its order, each as { device, ids }, so a
+  -- script that looks for many IDs walks them once. Nil and STATUS_NOT_FOUND
+  -- when they cannot be listed.
+  function A.list()
+    local list = devices()
+    if not list then
+      return nil, nt.STATUS_NOT_FOUND
+    end
+    local out = {}
+    for i, d in ipairs(list) do
+      out[i] = { device = d, ids = identities(d) }
+    end
+    return out
   end
 
   -- The device of the ACPI driver that has an ID, the ordinal-th (from 0) of

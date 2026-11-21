@@ -1005,7 +1005,7 @@ Exit:
  * \brief Sends a device control request (ksi.hw.device_control).
  *
  * \details May raise a Lua error. A named device takes the request at the top
- * of its stack, with its file object. A PCI or an ACPI device object takes it
+ * of its stack, with its file object. A device or a PCI device object takes it
  * itself: the request goes to the bus driver, and no other driver of the stack
  * sees it.
  *
@@ -1023,7 +1023,6 @@ int KphpLuaHwDeviceControl(
     PKPH_LUA_HW_NAMED_DEVICE named;
     PDEVICE_OBJECT pdo;
     PDEVICE_OBJECT pci;
-    PDEVICE_OBJECT acpi;
     lua_Integer code;
     PCSTR input;
     SIZE_T inputLength;
@@ -1042,12 +1041,11 @@ int KphpLuaHwDeviceControl(
     named = KphScriptTestCleanup(State, 1, KphpLuaHwReleaseNamedDevice);
     pdo = KphLuaHwTestDevice(State, 1);
     pci = KphLuaHwPciTestDevice(State, 1);
-    acpi = KphLuaHwAcpiTestDevice(State, 1);
 
     luaL_argcheck(State,
-                  named || pdo || pci || acpi,
+                  named || pdo || pci,
                   1,
-                  "a device, PCI or ACPI device object");
+                  "a named, device or PCI device object");
 
     code = luaL_checkinteger(State, 2);
     input = luaL_checklstring(State, 3, &inputLength);
@@ -1084,16 +1082,11 @@ int KphpLuaHwDeviceControl(
         target = pdo;
         ObReferenceObject(target);
     }
-    else if (pci)
-    {
-        target = pci;
-        ObReferenceObject(target);
-    }
     else
     {
-        NT_ASSERT(acpi);
+        NT_ASSERT(pci);
 
-        target = acpi;
+        target = pci;
         ObReferenceObject(target);
     }
 
@@ -1149,7 +1142,7 @@ Exit:
 }
 
 /**
- * \brief Checks a device object argument: a PCI or an ACPI device object.
+ * \brief Checks a device object argument: a device or a PCI device object.
  *
  * \details May raise a Lua error.
  *
@@ -1174,12 +1167,7 @@ PDEVICE_OBJECT KphpLuaHwCheckPdo(
         pdo = KphLuaHwPciTestDevice(State, Index);
     }
 
-    if (!pdo)
-    {
-        pdo = KphLuaHwAcpiTestDevice(State, Index);
-    }
-
-    luaL_argcheck(State, pdo, Index, "a device, PCI or ACPI device object");
+    luaL_argcheck(State, pdo, Index, "a device or PCI device object");
 
     return pdo;
 }

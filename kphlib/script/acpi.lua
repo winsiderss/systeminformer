@@ -242,8 +242,8 @@ local function row_has(row, id)
   return false
 end
 
-local function first_id(row, device)
-  for _, id in ipairs(ksi.hw.acpi_ids(device)) do
+local function first_id(row, ids)
+  for _, id in ipairs(ids) do
     if row_has(row, id) then
       return id
     end
@@ -251,32 +251,77 @@ local function first_id(row, device)
   return nil
 end
 
+local function has_id(entry, id)
+  for _, candidate in ipairs(entry.ids) do
+    if candidate == id then
+      return true
+    end
+  end
+  return false
+end
+
+-- The ACPI devices of the call, each { device, ids }: listed once a call, the
+-- path read once a device; the routines release them at their end, but those a
+-- row keeps.
+local listed
+
+local function devices()
+  if not listed then
+    listed = nt.acpi.list() or {}
+  end
+  return listed
+end
+
+local function release_devices()
+  for _, entry in ipairs(listed or {}) do
+    if not entry.held then
+      entry.device:release()
+    end
+  end
+  listed = nil
+end
+
+local function path_of(entry)
+  if entry.path == nil and entry.failed == nil then
+    entry.path, entry.failed = nt.acpi.path(entry.device)
+  end
+  return entry.path, entry.failed
+end
+
+-- Visits each device a row covers, by the row's IDs in order and each ID's
+-- devices in the driver's order, once a path. A device another row keeps is
+-- opened again, so no two rows share one.
 local function each_device(row, visit)
   local seen = {}
   local ordinal = 0
   for _, id in ipairs(row.ids) do
     local index = 0
-    while true do
-      local device = ksi.hw.acpi_find(id, index)
-      if not device then
-        break
+    for _, entry in ipairs(devices()) do
+      if has_id(entry, id) then
+        local path, failed = path_of(entry)
+        if not path then
+          ksi.trace('%s %d has no path: 0x%08x', id, index, failed)
+        elseif not seen[path] then
+          seen[path] = true
+          local device = entry.device
+          if entry.held then
+            device = nt.acpi.open(path)
+          end
+          if device then
+            local stop, held = visit(ordinal, device, entry.ids)
+            if held and device == entry.device then
+              entry.held = true
+            elseif not held and device ~= entry.device then
+              device:release()
+            end
+            ordinal = ordinal + 1
+            if stop then
+              return
+            end
+          end
+        end
+        index = index + 1
       end
-      local stop, held = false, false
-      local path, failed = ksi.hw.acpi_path(device)
-      if not path then
-        ksi.trace('%s %d has no path: 0x%08x', id, index, failed)
-      elseif not seen[path] then
-        seen[path] = true
-        stop, held = visit(ordinal, device)
-        ordinal = ordinal + 1
-      end
-      if not held then
-        device:release()
-      end
-      if stop then
-        return
-      end
-      index = index + 1
     end
   end
 end
@@ -290,15 +335,20 @@ local function present(ids)
       end
     end
   end
+  local found
   for _, id in ipairs(ids) do
-    local device <close> = ksi.hw.acpi_find(id)
-    if device then
-      if not ksi.volatile then
-        kept.present = yes or {}
-        kept.present[id] = true
+    for _, entry in ipairs(devices()) do
+      if not found and has_id(entry, id) then
+        found = id
       end
-      return true
     end
+  end
+  if found then
+    if not ksi.volatile then
+      kept.present = yes or {}
+      kept.present[found] = true
+    end
+    return true
   end
   return false
 end
@@ -469,9 +519,8 @@ local function pad(data)
   return data .. string.rep('\0', (8 - #data % 8) % 8)
 end
 
--- Returns the row, ordinal and matching ID of each device a row covers.
-function identify(input)
-  if not ksi.hw.acpi_find then
+local function identify_call(input)
+  if not ksi.hw.devices then
     return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 0 then
@@ -487,8 +536,8 @@ function identify(input)
   end
   local output = {}
   for number, row in ipairs(ROWS) do
-    each_device(row, function(ordinal, device)
-      local id = first_id(row, device)
+    each_device(row, function(ordinal, device, ids)
+      local id = first_id(row, ids)
       output[#output + 1] = string.pack('<I4I4c8', number, ordinal, id .. string.rep('\0', 8 - #id))
       return false, remember(number, ordinal, device)
     end)
@@ -496,8 +545,7 @@ function identify(input)
   return nt.STATUS_SUCCESS, table.concat(output)
 end
 
--- Evaluates the permitted methods of the devices the rows cover.
-function eval(input)
+local function eval_call(input)
   if not ksi.hw.acpi_eval then
     return nt.STATUS_NOT_SUPPORTED
   end
@@ -542,4 +590,20 @@ function eval(input)
     output[i] = string.pack('<i4I4', status, #result) .. pad(result)
   end
   return nt.STATUS_SUCCESS, table.concat(output)
+end
+
+-- Returns the row, ordinal and matching ID of each device a row covers.
+function identify(input)
+  release_devices()
+  local status, output = identify_call(input)
+  release_devices()
+  return status, output
+end
+
+-- Evaluates the permitted methods of the devices the rows cover.
+function eval(input)
+  release_devices()
+  local status, output = eval_call(input)
+  release_devices()
+  return status, output
 end

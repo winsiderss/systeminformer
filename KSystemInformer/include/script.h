@@ -222,20 +222,6 @@ NTSTATUS KphLuaHwReferenceDriverDevices(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphLuaHwReferenceDevices(
-    _In_ PCUNICODE_STRING DriverName,
-    _Outptr_result_buffer_(*Count) PDEVICE_OBJECT** Devices,
-    _Out_ PULONG Count
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphLuaHwDereferenceDevices(
-    _In_reads_(Count) PDEVICE_OBJECT* Devices,
-    _In_ ULONG Count
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphLuaHwQueryProperty(
     _In_ PDEVICE_OBJECT Pdo,
     _In_ DEVICE_REGISTRY_PROPERTY Property,
@@ -257,12 +243,6 @@ PDEVICE_OBJECT KphLuaHwTestDevice(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 PDEVICE_OBJECT KphLuaHwPciTestDevice(
-    _In_ lua_State* State,
-    _In_ int Index
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-PDEVICE_OBJECT KphLuaHwAcpiTestDevice(
     _In_ lua_State* State,
     _In_ int Index
     );
@@ -354,16 +334,6 @@ VOID KphLuaCleanupHardwareDevice(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaOpenHardwareDevice(
     _In_ lua_State* State
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphLuaInitializeHardwareAcpi(
-    VOID
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphLuaCleanupHardwareAcpi(
-    VOID
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

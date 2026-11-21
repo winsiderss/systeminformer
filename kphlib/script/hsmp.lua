@@ -1248,7 +1248,7 @@ local function acpi_session(socket)
   if k then
     return k
   end
-  if not ksi.hw.acpi_find or not ksi.hw.cpuid or not ksi.hw.map then
+  if not ksi.hw.devices or not ksi.hw.cpuid or not ksi.hw.map then
     ksi.trace('no ACPI, CPUID or map functions')
     return nil, nt.STATUS_NOT_SUPPORTED
   end
@@ -1264,7 +1264,7 @@ local function acpi_session(socket)
   local device
   local ordinal = 0
   while true do
-    local d = ksi.hw.acpi_find(ACPI_ID, ordinal)
+    local d = nt.acpi.find(ACPI_ID, ordinal)
     if not d then
       ksi.trace('no %s device of socket %d', ACPI_ID, socket)
       return nil, nt.STATUS_NOT_FOUND
@@ -1475,7 +1475,7 @@ end
 -- the call when a device is found but refused. A kept script remembers a
 -- socket without a device.
 local function acpi_way(socket)
-  if not ksi.hw.acpi_find or not ksi.hw.map or (kept.direct and kept.direct[socket]) then
+  if not ksi.hw.devices or not ksi.hw.map or (kept.direct and kept.direct[socket]) then
     return false
   end
   local s, refused = acpi_session(socket)
