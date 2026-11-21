@@ -57,4 +57,8 @@ This file is part of System Informer.
         <routine name="read" level="maximum"/>
         <routine name="block" level="maximum"/>
     </script>
+    <script name="crosec" file="script/crosec.lua" arch="amd64" desc="ChromeOS embedded controller">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>
