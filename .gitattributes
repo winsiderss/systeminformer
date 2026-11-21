@@ -35,6 +35,7 @@
 *.inc           text
 *.inf           text
 *.json          text
+*.lua           text eol=lf
 *.map           text
 *.manifest      text
 *.mc            text
