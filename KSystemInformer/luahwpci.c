@@ -1618,50 +1618,6 @@ int KphpLuaHwPciResources(
 }
 
 /**
- * \brief Tells whether a PCI function is expected never to be removed
- * (ksi.hw.pci_fixed).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return One, a boolean.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwPciFixed(
-    _In_ lua_State* State
-    )
-{
-    NTSTATUS status;
-    PKPH_LUA_HW_PCI_DEVICE device;
-    DEVICE_REMOVAL_POLICY policy;
-    ULONG length;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    device = KphScriptCheckCleanup(State, 1, KphpLuaHwReleasePciDevice);
-
-    status = IoGetDeviceProperty(device->Pdo,
-                                 DevicePropertyRemovalPolicy,
-                                 sizeof(policy),
-                                 &policy,
-                                 &length);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "IoGetDeviceProperty failed: %!STATUS!",
-                      status);
-
-        policy = RemovalPolicyExpectOrderlyRemoval;
-    }
-
-    lua_pushboolean(State, (policy == RemovalPolicyExpectNoRemoval));
-
-    return 1;
-}
-
-/**
  * \brief Tells whether a value is a device object of ksi.hw.pci_open.
  *
  * \param[in] State The Lua state.
@@ -1692,7 +1648,6 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaHwPciLibrary[] =
 {
     { "pci_devices", KphpLuaHwPciDevices },
-    { "pci_fixed", KphpLuaHwPciFixed },
     { "pci_open", KphpLuaHwPciOpen },
     { "pci_read", KphpLuaHwPciRead },
     { "pci_read_block", KphpLuaHwPciReadBlock },
