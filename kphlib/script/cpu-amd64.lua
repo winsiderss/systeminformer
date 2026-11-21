@@ -2507,6 +2507,8 @@ local function query(processors, gates)
       for _, leaf in ipairs(GATE_LEAVES) do
         items[#items + 1] = string.pack('<I2I2I4I4', p.group, p.number, leaf, 0)
       end
+    else
+      items[#items + 1] = string.pack('<I2I2I4I4', p.group, p.number, 0x7, 0)
     end
   end
 
@@ -2555,6 +2557,12 @@ local function query(processors, gates)
         p.leaves[leaf] = take()
       end
       p.bytes = string.sub(results, start, start + 27) .. string.sub(results, start + 40, at - 1)
+    else
+      local structured = take()
+      p.hybrid = 0
+      if p.basic >= 0x7 then
+        p.hybrid = (structured[4] >> 15) & 1
+      end
     end
   end
 
@@ -2605,12 +2613,13 @@ function identify(input)
 
   return ksi.STATUS_SUCCESS,
     string.pack(
-      '<c12I4I4I4I4',
+      '<c12I4I4I4I4I4',
       processor.vendor,
       processor.family,
       processor.model,
       processor.stepping,
-      processor.signature
+      processor.signature,
+      processor.hybrid
     )
 end
 
