@@ -12,10 +12,6 @@ This file is part of System Informer.
         cleanup-instructions="100000"
         cleanup-milliseconds="100"
         cleanup-memory="16384"/>
-    <script name="selftest" file="script/selftest.lua" desc="engine self test">
-        <routine name="echo" level="low" desc="returns its input"/>
-        <routine name="sum" level="maximum" desc="returns the sum of a list of 64-bit integers"/>
-    </script>
     <script name="cpu" file="script/cpu.lua" desc="processor registers">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>

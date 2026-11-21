@@ -274,7 +274,6 @@ mc.exe -c -u -U -n -b -h "$(ProjectDir)bin\$(Configuration)$(PlatformArchitectur
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
     <Xml Include="kphscript.xml" />
-    <None Include="script\selftest.lua" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

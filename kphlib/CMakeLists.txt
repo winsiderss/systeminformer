@@ -20,7 +20,6 @@ source_group("Header Files" FILES ${HEADERS})
 set(RESOURCES
     "kphdyn.xml"
     "kphscript.xml"
-    "script/selftest.lua"
     "sistatus.mc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
