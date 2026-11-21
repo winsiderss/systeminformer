@@ -173,6 +173,26 @@ typedef struct _KPH_HW_CROSEC_IDENTITY
     UCHAR HostCommandFlags;
 } KPH_HW_CROSEC_IDENTITY, *PKPH_HW_CROSEC_IDENTITY;
 
+typedef struct _KPH_HW_VSEC
+{
+    USHORT Vendor;
+    USHORT Device;
+    ULONG Operations;
+} KPH_HW_VSEC, *PKPH_HW_VSEC;
+
+typedef struct _KPH_HW_VSEC_REGION
+{
+    UCHAR Operation;
+    UCHAR Discovery;
+    USHORT Index;
+    ULONG Id;
+    ULONG Size;
+    ULONG Position;
+} KPH_HW_VSEC_REGION, *PKPH_HW_VSEC_REGION;
+
+#define KPH_HW_VSEC_DISCOVERY_PMT 2
+#define KPH_HW_VSEC_DISCOVERY_TPMI 66
+
 #define KPH_HW_WINDOW_MCHBAR 1
 #define KPH_HW_WINDOW_BAR0 2
 
@@ -207,6 +227,8 @@ C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);
 C_ASSERT(sizeof(KPH_HW_WINDOW_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
+C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
+C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 
 PHLIBAPI
 NTSTATUS
@@ -396,6 +418,37 @@ KphHwCrosEcRead(
     _In_reads_(Count) PCULONG Offsets,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwVsecIdentify(
+    _In_ ULONG Locator,
+    _Out_ PKPH_HW_VSEC Device
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwVsecRegions(
+    _In_ ULONG Locator,
+    _Out_writes_to_opt_(Count, *ReturnCount) PKPH_HW_VSEC_REGION Regions,
+    _In_ ULONG Count,
+    _Out_ PULONG ReturnCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwVsecRead(
+    _In_ ULONG Locator,
+    _In_ ULONG Operation,
+    _In_ ULONG Position,
+    _In_ ULONG Id,
+    _In_reads_(Count) PCKPH_HW_WINDOW_ITEM Items,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE64 Values
     );
 
 PHLIBAPI

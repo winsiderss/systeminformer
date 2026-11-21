@@ -34,6 +34,7 @@ static CONST PH_STRINGREF KphpHwHsmpFileName = PH_STRINGREF_INIT(L"scripts\\hsmp
 static CONST PH_STRINGREF KphpHwPlatformFileName = PH_STRINGREF_INIT(L"scripts\\platform.bin");
 static CONST PH_STRINGREF KphpHwPciConfigFileName = PH_STRINGREF_INIT(L"scripts\\pciconfig.bin");
 static CONST PH_STRINGREF KphpHwCrosEcFileName = PH_STRINGREF_INIT(L"scripts\\crosec.bin");
+static CONST PH_STRINGREF KphpHwVsecFileName = PH_STRINGREF_INIT(L"scripts\\vsec.bin");
 static KPH_HW_SCRIPT KphpHwCpuScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCpuFileName };
 static KPH_HW_SCRIPT KphpHwSuperIoScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwSuperIoFileName };
 static KPH_HW_SCRIPT KphpHwAcpiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAcpiFileName };
@@ -45,6 +46,7 @@ static KPH_HW_SCRIPT KphpHwHsmpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_
 static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPlatformFileName };
 static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
 static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
+static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
 
 /**
  * Retrieves the handle of a script, loading the script on first use.
@@ -195,6 +197,7 @@ VOID KphHwSetScriptMode(
         &KphpHwPlatformScript,
         &KphpHwPciConfigScript,
         &KphpHwCrosEcScript,
+        &KphpHwVsecScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1538,6 +1541,184 @@ NTSTATUS KphHwCrosEcRead(
         if (NT_SUCCESS(status))
             RtlCopyMemory(Values, values, outputLength);
     }
+
+    PhFree(values);
+    PhFree(input);
+
+    return status;
+}
+
+/**
+ * Identifies the PCI function at a location whose Intel telemetry regions may
+ * be read.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Device Receives the vendor and device IDs and the number of
+ * operations of the function.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwVsecIdentify(
+    _In_ ULONG Locator,
+    _Out_ PKPH_HW_VSEC Device
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_VSEC device;
+    ULONG returnLength;
+
+    status = KphpHwScriptCall(
+        &KphpHwVsecScript,
+        &routine,
+        &Locator,
+        sizeof(Locator),
+        &device,
+        sizeof(device),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(device))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Device = device;
+
+    return status;
+}
+
+/**
+ * Lists the Intel telemetry regions of every operation of the PCI function at
+ * a location.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Regions Receives an operation, discovery kind, index, ID, size and
+ * position per region.
+ * \param Count The number of entries Regions holds.
+ * \param ReturnCount Receives the number of regions, also when Regions is too
+ * small.
+ * \return Successful or errant status; STATUS_BUFFER_TOO_SMALL when Regions
+ * does not hold every region.
+ */
+NTSTATUS KphHwVsecRegions(
+    _In_ ULONG Locator,
+    _Out_writes_to_opt_(Count, *ReturnCount) PKPH_HW_VSEC_REGION Regions,
+    _In_ ULONG Count,
+    _Out_ PULONG ReturnCount
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("regions");
+    NTSTATUS status;
+    ULONG outputLength;
+    ULONG returnLength;
+    PKPH_HW_VSEC_REGION regions;
+
+    if (!Regions)
+        Count = 0;
+
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VSEC_REGION), &outputLength)))
+        return status;
+
+    regions = PhAllocate(outputLength ? outputLength : 1);
+
+    status = KphpHwScriptCall(
+        &KphpHwVsecScript,
+        &routine,
+        &Locator,
+        sizeof(Locator),
+        outputLength ? regions : NULL,
+        outputLength,
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL) &&
+        (returnLength % sizeof(KPH_HW_VSEC_REGION)) != 0)
+    {
+        status = STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
+        *ReturnCount = returnLength / sizeof(KPH_HW_VSEC_REGION);
+
+    if (NT_SUCCESS(status))
+        RtlCopyMemory(Regions, regions, returnLength);
+
+    PhFree(regions);
+
+    return status;
+}
+
+/**
+ * Reads registers of an Intel telemetry region of the PCI function at a
+ * location.
+ *
+ * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
+ * function.
+ * \param Operation The operation of the region, as KphHwVsecRegions lists it.
+ * \param Position The position of the region, as KphHwVsecRegions lists it.
+ * \param Id The ID of the region, as KphHwVsecRegions lists it.
+ * \param Items The reads: offset in the region and width (4 or 8).
+ * \param Count The number of reads.
+ * \param Values Receives a status and a value per read, in the order of the
+ * reads.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwVsecRead(
+    _In_ ULONG Locator,
+    _In_ ULONG Operation,
+    _In_ ULONG Position,
+    _In_ ULONG Id,
+    _In_reads_(Count) PCKPH_HW_WINDOW_ITEM Items,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE64 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG itemsLength;
+    ULONG inputLength;
+    ULONG outputLength;
+    ULONG returnLength;
+    PULONG input;
+    PKPH_HW_VALUE64 values;
+
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_WINDOW_ITEM), &itemsLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongAdd(itemsLength, sizeof(ULONG) * 4, &inputLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE64), &outputLength)))
+        return status;
+
+    input = PhAllocate(inputLength);
+    input[0] = Locator;
+    input[1] = Operation;
+    input[2] = Position;
+    input[3] = Id;
+    RtlCopyMemory(&input[4], Items, itemsLength);
+
+    values = PhAllocate(outputLength ? outputLength : 1);
+
+    status = KphpHwScriptCall(
+        &KphpHwVsecScript,
+        &routine,
+        input,
+        inputLength,
+        values,
+        outputLength,
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        RtlCopyMemory(Values, values, outputLength);
 
     PhFree(values);
     PhFree(input);
