@@ -1,0 +1,123 @@
+--
+-- Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+--
+-- This file is part of System Informer.
+--
+-- Authors:
+--
+--     jxy-s   2026
+--
+
+--
+-- PCI functions: the device of the PCI bus driver at a location. Reached as
+-- nt.pci.
+--
+
+return function(nt)
+  local P = {}
+
+  -- the location text the driver read: 128 characters and the terminator
+  local LOCATION_MAX = 256
+
+  local function check(value, maximum, argument)
+    if type(value) ~= 'number' or value < 0 or value > maximum then
+      error(string.format("bad argument #%d to 'find' (out of range)", argument), 3)
+    end
+  end
+
+  -- A 32-bit property, nil when it cannot be read or has another length.
+  local function uint32(device, key)
+    local bytes = ksi.hw.device_property_data(device, key)
+    if not bytes or #bytes ~= 4 then
+      return nil
+    end
+    return string.unpack('<I4', bytes)
+  end
+
+  -- The decimal numbers of a location (UTF-16) up to its terminator, nil when
+  -- there are more than four or one is over 65535.
+  local function location_numbers(text)
+    local numbers = {}
+    local inNumber = false
+    for i = 1, #text - 1, 2 do
+      local c = string.unpack('<I2', text, i)
+      if c == 0 then
+        break
+      end
+      if c < 0x30 or c > 0x39 then
+        inNumber = false
+      else
+        if not inNumber then
+          if #numbers == 4 then
+            return nil
+          end
+          inNumber = true
+          numbers[#numbers + 1] = 0
+        end
+        local n = numbers[#numbers] * 10 + (c - 0x30)
+        if n > 0xFFFF then
+          return nil
+        end
+        numbers[#numbers] = n
+      end
+    end
+    return numbers
+  end
+
+  -- Whether a device is at a location: its bus number, its address, then its
+  -- location, which must name the same bus, device and function, and the
+  -- segment when it has four numbers (0 when it has three).
+  local function at(d, segment, bus, device, fn)
+    local number = uint32(d, nt.DEVPKEY_Device_BusNumber)
+    if not number or number & 0xFF ~= bus then
+      return false
+    end
+    local address = uint32(d, nt.DEVPKEY_Device_Address)
+    if not address or address >> 16 ~= device or address & 0xFFFF ~= fn then
+      return false
+    end
+    local text = ksi.hw.device_property_data(d, nt.DEVPKEY_Device_LocationInfo)
+    if not text or #text > LOCATION_MAX then
+      return false
+    end
+    local n = location_numbers(text)
+    if not n then
+      return false
+    end
+    local s = 0
+    if #n == 4 then
+      s = table.remove(n, 1)
+    elseif #n ~= 3 then
+      return false
+    end
+    return s == segment and n[1] == bus and n[2] == device and n[3] == fn
+  end
+
+  -- The device of \Driver\pci at a location. Nil and the status of the call
+  -- when the devices cannot be listed, nil and STATUS_NOT_FOUND when none is
+  -- there.
+  function P.find(segment, bus, device, fn)
+    check(segment, 0xFFFF, 1)
+    check(bus, 0xFF, 2)
+    check(device, 0x1F, 3)
+    check(fn, 0x7, 4)
+    local devices, status = ksi.hw.devices('\\Driver\\pci')
+    if not devices then
+      return nil, status
+    end
+    local found
+    for _, d in ipairs(devices) do
+      if not found and at(d, segment, bus, device, fn) then
+        found = d
+      else
+        d:release()
+      end
+    end
+    if not found then
+      return nil, nt.STATUS_NOT_FOUND
+    end
+    return found
+  end
+
+  return P
+end

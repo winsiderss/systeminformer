@@ -10,8 +10,8 @@
 
 --
 -- The Windows NT definitions scripts use: status values and the tests of their
--- severity, device property keys and values. A script reaches it with
--- local nt = require('nt').
+-- severity, device property keys and values, and the parts (nt.pci). A script
+-- reaches it with local nt = require('nt').
 --
 
 local M = {}
@@ -77,6 +77,12 @@ end
 
 M.DEVPKEY_Device_RemovalPolicy =
   devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 33)
+M.DEVPKEY_Device_BusNumber =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 23)
+M.DEVPKEY_Device_Address =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 30)
+M.DEVPKEY_Device_LocationInfo =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 15)
 
 M.DEVPROP_TYPE_UINT32 = 0x00000007
 
@@ -98,5 +104,7 @@ function M.is_device_removable(device)
   end
   return string.unpack('<I4', bytes) ~= M.RemovalPolicyExpectNoRemoval
 end
+
+M.pci = require('pci')(M)
 
 return M
