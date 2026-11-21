@@ -850,11 +850,224 @@ Exit:
     return results;
 }
 
+/**
+ * \brief Checks a device object argument: a PCI or an ACPI device object.
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the argument.
+ *
+ * \return The physical device object, valid while the object is.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PDEVICE_OBJECT KphpLuaHwCheckPdo(
+    _In_ lua_State* State,
+    _In_ int Index
+    )
+{
+    PDEVICE_OBJECT pdo;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    pdo = KphLuaHwPciTestDevice(State, Index);
+    if (!pdo)
+    {
+        pdo = KphLuaHwAcpiTestDevice(State, Index);
+    }
+
+    luaL_argcheck(State, pdo, Index, "a PCI or ACPI device object");
+
+    return pdo;
+}
+
+/**
+ * \brief Retrieves a device property by key (ksi.hw.device_property_data).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the bytes and the type, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwDevicePropertyData(
+    _In_ lua_State* State
+    )
+{
+    NTSTATUS status;
+    PDEVICE_OBJECT pdo;
+    DEVPROPKEY key;
+    int fieldType;
+    PCSTR guid;
+    SIZE_T guidLength;
+    lua_Integer pid;
+    int isInteger;
+    ULONG length;
+    ULONG required;
+    DEVPROPTYPE type;
+    PVOID data;
+    luaL_Buffer buffer;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    pdo = KphpLuaHwCheckPdo(State, 1);
+
+    luaL_checktype(State, 2, LUA_TTABLE);
+
+    fieldType = lua_getfield(State, 2, "guid");
+    luaL_argcheck(State,
+                  fieldType == LUA_TSTRING,
+                  2,
+                  "guid not a 16-byte string");
+    guid = lua_tolstring(State, -1, &guidLength);
+    luaL_argcheck(State,
+                  guidLength == sizeof(key.fmtid),
+                  2,
+                  "guid not a 16-byte string");
+    RtlCopyMemory(&key.fmtid, guid, sizeof(key.fmtid));
+
+    lua_getfield(State, 2, "pid");
+    pid = lua_tointegerx(State, -1, &isInteger);
+    luaL_argcheck(State,
+                  isInteger && (pid >= 0) && (pid <= ULONG_MAX),
+                  2,
+                  "pid out of range");
+    key.pid = (DEVPROPID)pid;
+
+    lua_pop(State, 2);
+
+    required = 0;
+    type = DEVPROP_TYPE_EMPTY;
+
+    status = IoGetDevicePropertyData(pdo,
+                                     &key,
+                                     LOCALE_NEUTRAL,
+                                     0,
+                                     0,
+                                     NULL,
+                                     &required,
+                                     &type);
+    if (NT_SUCCESS(status))
+    {
+        lua_pushliteral(State, "");
+        lua_pushinteger(State, (lua_Integer)type);
+        return 2;
+    }
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDevicePropertyData failed: %!STATUS!",
+                      status);
+
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    length = required;
+    data = luaL_buffinitsize(State, &buffer, length);
+
+    status = IoGetDevicePropertyData(pdo,
+                                     &key,
+                                     LOCALE_NEUTRAL,
+                                     0,
+                                     length,
+                                     data,
+                                     &required,
+                                     &type);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDevicePropertyData failed: %!STATUS!",
+                      status);
+
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    luaL_pushresultsize(&buffer, min(required, length));
+    lua_pushinteger(State, (lua_Integer)type);
+
+    return 2;
+}
+
+/**
+ * \brief Retrieves a device property by number (ksi.hw.device_property).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the bytes, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwDeviceProperty(
+    _In_ lua_State* State
+    )
+{
+    NTSTATUS status;
+    PDEVICE_OBJECT pdo;
+    lua_Integer id;
+    DEVICE_REGISTRY_PROPERTY property;
+    ULONG length;
+    ULONG required;
+    PVOID data;
+    luaL_Buffer buffer;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    pdo = KphpLuaHwCheckPdo(State, 1);
+    id = luaL_checkinteger(State, 2);
+
+    luaL_argcheck(State, (id >= 0) && (id <= ULONG_MAX), 2, "out of range");
+
+    property = (DEVICE_REGISTRY_PROPERTY)(ULONG)id;
+    required = 0;
+
+    status = IoGetDeviceProperty(pdo, property, 0, NULL, &required);
+    if (NT_SUCCESS(status))
+    {
+        lua_pushliteral(State, "");
+        return 1;
+    }
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!",
+                      status);
+
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    length = required;
+    data = luaL_buffinitsize(State, &buffer, length);
+
+    status = IoGetDeviceProperty(pdo, property, length, data, &required);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!",
+                      status);
+
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    luaL_pushresultsize(&buffer, min(required, length));
+
+    return 1;
+}
+
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaHwDeviceLibrary[] =
 {
     { "device_control", KphpLuaHwDeviceControl },
     { "device_open", KphpLuaHwDeviceOpen },
+    { "device_property", KphpLuaHwDeviceProperty },
+    { "device_property_data", KphpLuaHwDevicePropertyData },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
