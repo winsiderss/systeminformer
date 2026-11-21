@@ -12,7 +12,8 @@
 -- Reads registers behind a memory window of a PCI function: the memory
 -- controller hub window whose base a configuration register holds, or a BAR.
 -- The devices, their windows and the offsets each may be asked for are listed
--- below; every one is a function of an Intel processor.
+-- below; every one but the last is a function of an Intel processor, the last
+-- (the PCH thermal function, a row without family and models) is read on any.
 --
 
 local ROWS = {
@@ -1217,6 +1218,33 @@ local ROWS = {
       }
     end,
   },
+  {
+    vendor = 0x8086,
+    devices = {
+      0x9c24,
+      0x8c24,
+      0x9ca4,
+      0x9d31,
+      0xa131,
+      0x9df9,
+      0xa379,
+      0x02f9,
+      0x06f9,
+      0xa1b1,
+      0x8d24,
+      0xa2b1,
+      0x8ca4,
+    },
+    window = 2,
+    size = 0x100,
+    d0 = true,
+    reads = function()
+      return {
+        { 0x0000, 0x2, 2 },
+        { 0x0008, 0x1, 1 },
+      }
+    end,
+  },
 }
 
 local PAGE = 0x1000
@@ -1263,17 +1291,22 @@ local function cpu_identity()
 end
 
 local function row_matches(row, cpu, vendor, device)
-  if cpu.vendor ~= 'GenuineIntel' or row.family ~= cpu.family or row.vendor ~= vendor then
+  if row.vendor ~= vendor then
     return false
   end
-  local modelMatch = false
-  for _, range in ipairs(row.models) do
-    if cpu.model >= range[1] and cpu.model <= range[2] then
-      modelMatch = true
+  if row.family then
+    if cpu.vendor ~= 'GenuineIntel' or row.family ~= cpu.family then
+      return false
     end
-  end
-  if not modelMatch then
-    return false
+    local modelMatch = false
+    for _, range in ipairs(row.models) do
+      if cpu.model >= range[1] and cpu.model <= range[2] then
+        modelMatch = true
+      end
+    end
+    if not modelMatch then
+      return false
+    end
   end
   for _, id in ipairs(row.devices) do
     if id == device then
