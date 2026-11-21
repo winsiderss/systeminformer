@@ -1281,6 +1281,11 @@ local function acpi_session(socket)
     d:release()
     ordinal = ordinal + 1
   end
+  if nt.is_device_removable(device) then
+    ksi.trace('%s device of socket %d may be removed', ACPI_ID, socket)
+    device:release()
+    return nil, nt.STATUS_NOT_SUPPORTED
+  end
   local m = row.mailbox()
   local base, length = acpi_window(device)
   local msg, rsp, arg
