@@ -19,6 +19,7 @@ typedef struct _KPH_HW_SCRIPT
     HANDLE Handle;
     ULONG Flags;
     PCPH_STRINGREF FileName;
+    NTSTATUS MissingStatus;
 } KPH_HW_SCRIPT, *PKPH_HW_SCRIPT;
 
 static CONST PH_STRINGREF KphpHwCpuFileName = PH_STRINGREF_INIT(L"scripts\\cpu.bin");
@@ -66,13 +67,22 @@ static NTSTATUS KphpHwAcquireScript(
             return STATUS_SUCCESS;
         }
 
+        status = Script->MissingStatus;
+
         PhReleaseQueuedLockShared(&Script->Lock);
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         PhAcquireQueuedLockExclusive(&Script->Lock);
 
         if (Script->Handle)
         {
             status = STATUS_SUCCESS;
+        }
+        else if (!NT_SUCCESS(Script->MissingStatus))
+        {
+            status = Script->MissingStatus;
         }
         else if (!(fileName = PhGetApplicationDirectoryFileName(Script->FileName, TRUE)))
         {
@@ -82,6 +92,9 @@ static NTSTATUS KphpHwAcquireScript(
         {
             status = KphLoadScript(&Script->Handle, &fileName->sr, Script->Flags);
             PhDereferenceObject(fileName);
+
+            if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_OBJECT_PATH_NOT_FOUND)
+                Script->MissingStatus = status;
         }
 
         PhReleaseQueuedLockExclusive(&Script->Lock);
