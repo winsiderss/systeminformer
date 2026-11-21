@@ -9,7 +9,7 @@
 --
 
 --
--- Reads the memory map of the ChromeOS embedded controller through its port
+-- Reads the memory map of the Chrome EC embedded controller through its port
 -- window on the boards listed below, found by the manufacturer and product
 -- name of the SMBIOS system structure. A signature in the map is checked
 -- before and after every read.
