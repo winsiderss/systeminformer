@@ -874,23 +874,31 @@ NTSTATUS KphHwSmuCommand(
 }
 
 /**
- * Identifies the HSMP mailbox behind the root complex at a PCI location.
+ * Identifies the HSMP mailbox of a socket: in the memory window of the
+ * socket's AMDI0097 device when it has one, otherwise behind the root complex
+ * at a PCI location.
  *
- * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
- * function.
+ * \param Locator The location of the socket's root complex: (segment << 16) |
+ * (bus << 8) | (device << 3) | function.
+ * \param Socket The socket, as its AMDI0097 device's _UID names it.
  * \param Identity Receives the mailbox's version.
  * \return Successful or errant status; STATUS_RETRY when another tool holds
  * the bus.
  */
 NTSTATUS KphHwHsmpIdentify(
     _In_ ULONG Locator,
+    _In_ ULONG Socket,
     _Out_ PKPH_HW_HSMP_IDENTITY Identity
     )
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
     NTSTATUS status;
+    ULONG input[2];
     KPH_HW_HSMP_IDENTITY identity;
     ULONG returnLength;
+
+    input[0] = Locator;
+    input[1] = Socket;
 
     if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
         return status;
@@ -898,8 +906,8 @@ NTSTATUS KphHwHsmpIdentify(
     status = KphpHwScriptCall(
         &KphpHwHsmpScript,
         &routine,
-        &Locator,
-        sizeof(Locator),
+        input,
+        sizeof(input),
         &identity,
         sizeof(identity),
         &returnLength
@@ -922,11 +930,13 @@ NTSTATUS KphHwHsmpIdentify(
 }
 
 /**
- * Sends commands to the HSMP mailbox behind the root complex at a PCI
- * location; only the commands the script's row permits are sent.
+ * Sends commands to the HSMP mailbox of a socket: in the memory window of the
+ * socket's AMDI0097 device when it has one, otherwise behind the root complex
+ * at a PCI location. Only the commands the script's row permits are sent.
  *
- * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
- * function.
+ * \param Locator The location of the socket's root complex: (segment << 16) |
+ * (bus << 8) | (device << 3) | function.
+ * \param Socket The socket, as its AMDI0097 device's _UID names it.
  * \param Commands The commands.
  * \param Count The number of commands.
  * \param Results Receives a status, the mailbox's response and the result words
@@ -936,6 +946,7 @@ NTSTATUS KphHwHsmpIdentify(
  */
 NTSTATUS KphHwHsmpCommand(
     _In_ ULONG Locator,
+    _In_ ULONG Socket,
     _In_reads_(Count) PCKPH_HW_HSMP_COMMAND Commands,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_HSMP_RESULT Results
@@ -952,14 +963,15 @@ NTSTATUS KphHwHsmpCommand(
 
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_HSMP_COMMAND), &commandsLength)))
         return status;
-    if (!NT_SUCCESS(status = RtlULongAdd(commandsLength, sizeof(ULONG), &inputLength)))
+    if (!NT_SUCCESS(status = RtlULongAdd(commandsLength, sizeof(ULONG) * 2, &inputLength)))
         return status;
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_HSMP_RESULT), &outputLength)))
         return status;
 
     input = PhAllocate(inputLength);
     input[0] = Locator;
-    RtlCopyMemory(&input[1], Commands, commandsLength);
+    input[1] = Socket;
+    RtlCopyMemory(&input[2], Commands, commandsLength);
 
     results = PhAllocate(outputLength ? outputLength : 1);
 
@@ -983,110 +995,6 @@ NTSTATUS KphHwHsmpCommand(
         if (NT_SUCCESS(status))
             RtlCopyMemory(Results, results, outputLength);
     }
-
-    PhFree(results);
-    PhFree(input);
-
-    return status;
-}
-
-/**
- * Identifies the HSMP mailbox in the memory window of the AMDI0097 device of a
- * socket.
- *
- * \param Socket The socket, as the device's _UID names it.
- * \param Identity Receives the mailbox's version.
- * \return Successful or errant status.
- */
-NTSTATUS KphHwHsmpAcpiIdentify(
-    _In_ ULONG Socket,
-    _Out_ PKPH_HW_HSMP_IDENTITY Identity
-    )
-{
-    static const ANSI_STRING routine = RTL_CONSTANT_STRING("acpi_identify");
-    NTSTATUS status;
-    KPH_HW_HSMP_IDENTITY identity;
-    ULONG returnLength;
-
-    status = KphpHwScriptCall(
-        &KphpHwHsmpScript,
-        &routine,
-        &Socket,
-        sizeof(Socket),
-        &identity,
-        sizeof(identity),
-        &returnLength
-        );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    if (returnLength != sizeof(identity))
-        return STATUS_INFO_LENGTH_MISMATCH;
-
-    *Identity = identity;
-
-    return status;
-}
-
-/**
- * Sends commands to the HSMP mailbox in the memory window of the AMDI0097
- * device of a socket; only the commands the script's row permits are sent.
- *
- * \param Socket The socket, as the device's _UID names it.
- * \param Commands The commands.
- * \param Count The number of commands.
- * \param Results Receives a status, the mailbox's response and the result words
- * per command, in the order of the commands.
- * \return Successful or errant status.
- */
-NTSTATUS KphHwHsmpAcpiCommand(
-    _In_ ULONG Socket,
-    _In_reads_(Count) PCKPH_HW_HSMP_COMMAND Commands,
-    _In_ ULONG Count,
-    _Out_writes_(Count) PKPH_HW_HSMP_RESULT Results
-    )
-{
-    static const ANSI_STRING routine = RTL_CONSTANT_STRING("acpi_command");
-    NTSTATUS status;
-    ULONG commandsLength;
-    ULONG inputLength;
-    ULONG outputLength;
-    ULONG returnLength;
-    PULONG input;
-    PKPH_HW_HSMP_RESULT results;
-
-    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_HSMP_COMMAND), &commandsLength)))
-        return status;
-    if (!NT_SUCCESS(status = RtlULongAdd(commandsLength, sizeof(ULONG), &inputLength)))
-        return status;
-    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_HSMP_RESULT), &outputLength)))
-        return status;
-
-    input = PhAllocate(inputLength);
-    input[0] = Socket;
-    RtlCopyMemory(&input[1], Commands, commandsLength);
-
-    results = PhAllocate(outputLength ? outputLength : 1);
-
-    status = KphpHwScriptCall(
-        &KphpHwHsmpScript,
-        &routine,
-        input,
-        inputLength,
-        results,
-        outputLength,
-        &returnLength
-        );
-
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
-        status = STATUS_INFO_LENGTH_MISMATCH;
-
-    if (NT_SUCCESS(status))
-        RtlCopyMemory(Results, results, outputLength);
 
     PhFree(results);
     PhFree(input);
