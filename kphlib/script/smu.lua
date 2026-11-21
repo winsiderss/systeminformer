@@ -14,6 +14,8 @@
 -- the commands each processor family may be sent are listed below.
 --
 
+local nt = require('nt')
+
 local concat, pack, unpack = table.concat, table.pack, table.unpack
 
 local ROWS = {
@@ -1125,9 +1127,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
+  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
+    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base
@@ -1186,7 +1188,7 @@ end
 local function session(input)
   if not ksi.hw.pci_open or not ksi.hw.cpuid then
     ksi.trace('no PCI or CPUID functions')
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
 
   local locator = string.unpack('<I4', input)
@@ -1243,12 +1245,12 @@ local function session(input)
       root.device
     )
     device:release()
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   if row.pin[1] ~= root.slot or row.pin[2] ~= root.fn then
     ksi.trace('the mailbox is pinned to %d.%d', row.pin[1], row.pin[2])
     device:release()
-    return nil, ksi.STATUS_ACCESS_DENIED
+    return nil, nt.STATUS_ACCESS_DENIED
   end
 
   local s = { device = device, mailbox = row.mailbox(), root = root }
@@ -1285,24 +1287,24 @@ local function smn_read(s, address)
   for _ = 1, 2 do
     if not ksi.hw.pci_write(s.device, m.index, 4, address) then
       ksi.trace('index write for SMN 0x%x failed', address)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     local value = ksi.hw.pci_read(s.device, m.data, 4)
     if not value then
       ksi.trace('data read of SMN 0x%x failed', address)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     local check = ksi.hw.pci_read(s.device, m.index, 4)
     if not check then
       ksi.trace('index read for SMN 0x%x failed', address)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     if check == address then
-      return ksi.STATUS_SUCCESS, value
+      return nt.STATUS_SUCCESS, value
     end
   end
   ksi.trace('the index of SMN 0x%x moved', address)
-  return ksi.STATUS_RETRY, 0
+  return nt.STATUS_RETRY, 0
 end
 
 -- One SMN write: index, index back (failed or moved: not issued), data, index
@@ -1312,16 +1314,16 @@ local function smn_write(s, address, value, before, after)
   local m = s.mailbox
   if not ksi.hw.pci_write(s.device, m.index, 4, address) then
     ksi.trace('index write for SMN 0x%x failed', address)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   local check = ksi.hw.pci_read(s.device, m.index, 4)
   if not check then
     ksi.trace('index read for SMN 0x%x failed', address)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if check ~= address then
     ksi.trace('the index of SMN 0x%x is not ours before the write', address)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if before then
     before()
@@ -1332,66 +1334,66 @@ local function smn_write(s, address, value, before, after)
   end
   if not written then
     ksi.trace('data write of SMN 0x%x failed', address)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   check = ksi.hw.pci_read(s.device, m.index, 4)
   if not check then
     ksi.trace('index read for SMN 0x%x failed', address)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   if check ~= address then
     ksi.trace('the index of SMN 0x%x moved during the write', address)
-    return ksi.STATUS_DEVICE_DATA_ERROR
+    return nt.STATUS_DEVICE_DATA_ERROR
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 -- A store: an unproven write is settled by reading the register back.
 local function store(s, register, value, mark)
   local st = smn_write(s, register, value, mark)
-  if st == ksi.STATUS_RETRY then
+  if st == nt.STATUS_RETRY then
     return st, false
   end
-  if st == ksi.STATUS_SUCCESS or st ~= ksi.STATUS_DEVICE_DATA_ERROR then
+  if st == nt.STATUS_SUCCESS or st ~= nt.STATUS_DEVICE_DATA_ERROR then
     return st, true
   end
   local rs, held = smn_read(s, register)
-  if rs == ksi.STATUS_RETRY then
-    return ksi.STATUS_DEVICE_DATA_ERROR, true
+  if rs == nt.STATUS_RETRY then
+    return nt.STATUS_DEVICE_DATA_ERROR, true
   end
-  if rs ~= ksi.STATUS_SUCCESS then
+  if rs ~= nt.STATUS_SUCCESS then
     return rs, true
   end
   if held ~= value then
     ksi.trace('SMN 0x%x holds 0x%x, not 0x%x', register, held, value)
-    return ksi.STATUS_RETRY, true
+    return nt.STATUS_RETRY, true
   end
-  return ksi.STATUS_SUCCESS, true
+  return nt.STATUS_SUCCESS, true
 end
 
 -- RSP polled until it is not zero.
 local function wait(s)
-  local st, resp = ksi.STATUS_IO_TIMEOUT, 0
+  local st, resp = nt.STATUS_IO_TIMEOUT, 0
   poll(50, 20, 1, WAIT_MS, function(late)
     local rs, value = smn_read(s, s.mailbox.rsp)
-    if rs == ksi.STATUS_RETRY and not late then
+    if rs == nt.STATUS_RETRY and not late then
       value = 0
-    elseif rs ~= ksi.STATUS_SUCCESS then
+    elseif rs ~= nt.STATUS_SUCCESS then
       st = rs
       return true
     end
     if value == ALL_ONES then
       ksi.trace('RSP reads all-ones')
-      st = ksi.STATUS_DEVICE_NOT_READY
+      st = nt.STATUS_DEVICE_NOT_READY
       return true
     end
     if value ~= 0 then
-      st, resp = ksi.STATUS_SUCCESS, value
+      st, resp = nt.STATUS_SUCCESS, value
       return true
     end
     return false
   end)
-  if st == ksi.STATUS_IO_TIMEOUT then
+  if st == nt.STATUS_IO_TIMEOUT then
     ksi.trace('RSP stayed zero')
   end
   return st, resp
@@ -1401,40 +1403,40 @@ end
 local function post(s, op, mark)
   local m = s.mailbox
   local bs, before = smn_read(s, m.msg)
-  local st = ksi.STATUS_RETRY
+  local st = nt.STATUS_RETRY
   poll(0, 0, 1, WAIT_MS, function(late)
     local ws = smn_write(s, m.msg, op, nil, mark)
-    if ws == ksi.STATUS_RETRY then
+    if ws == nt.STATUS_RETRY then
       ws = smn_write(s, m.msg, op, nil, mark)
     end
-    if ws == ksi.STATUS_RETRY or ws == ksi.STATUS_SUCCESS then
+    if ws == nt.STATUS_RETRY or ws == nt.STATUS_SUCCESS then
       st = ws
       return true
     end
-    if ws ~= ksi.STATUS_DEVICE_DATA_ERROR then
+    if ws ~= nt.STATUS_DEVICE_DATA_ERROR then
       st = ws
       return true
     end
-    if bs ~= ksi.STATUS_SUCCESS then
-      st = ksi.STATUS_SUCCESS
+    if bs ~= nt.STATUS_SUCCESS then
+      st = nt.STATUS_SUCCESS
       return true
     end
     local as, after = smn_read(s, m.msg)
-    if as ~= ksi.STATUS_SUCCESS then
-      st = ksi.STATUS_SUCCESS
+    if as ~= nt.STATUS_SUCCESS then
+      st = nt.STATUS_SUCCESS
       return true
     end
     if (after == op and before ~= op) or after ~= before or after == op then
-      st = ksi.STATUS_SUCCESS
+      st = nt.STATUS_SUCCESS
       return true
     end
     if late then
-      st = ksi.STATUS_RETRY
+      st = nt.STATUS_RETRY
       return true
     end
     return false
   end)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     ksi.trace('MSG 0x%x not posted: 0x%x', op, st)
   end
   return st
@@ -1444,32 +1446,32 @@ end
 local function restore_idle(s, idle)
   for _ = 1, RESTORE_TRIES do
     local st = store(s, s.mailbox.rsp, idle)
-    if st == ksi.STATUS_SUCCESS then
+    if st == nt.STATUS_SUCCESS then
       return st
     end
-    if st == ksi.STATUS_DEVICE_NOT_READY then
+    if st == nt.STATUS_DEVICE_NOT_READY then
       break
     end
     ksi.sleep(1)
   end
   ksi.trace('the idle RSP 0x%x was not put back', idle)
-  return ksi.STATUS_DEVICE_DATA_ERROR
+  return nt.STATUS_DEVICE_DATA_ERROR
 end
 
 -- One result word, re-read while the index is contended.
 local function read_result(s, register)
-  local st, value = ksi.STATUS_RETRY, 0
+  local st, value = nt.STATUS_RETRY, 0
   poll(0, 0, 1, WAIT_MS, function()
     st, value = smn_read(s, register)
-    return st ~= ksi.STATUS_RETRY
+    return st ~= nt.STATUS_RETRY
   end)
   return st, value
 end
 
 local ANSWERS = {
-  [0xfc] = ksi.STATUS_DEVICE_BUSY,
-  [0xfd] = ksi.STATUS_INTERNAL_ERROR,
-  [0xfe] = ksi.STATUS_NOT_IMPLEMENTED,
+  [0xfc] = nt.STATUS_DEVICE_BUSY,
+  [0xfd] = nt.STATUS_INTERNAL_ERROR,
+  [0xfe] = nt.STATUS_NOT_IMPLEMENTED,
 }
 
 -- The command up to its exit; state.restore says whether the idle RSP must be
@@ -1479,11 +1481,11 @@ local function command_body(s, op, args, words, state)
   local m = s.mailbox
   local results = { 0, 0, 0, 0, 0, 0 }
   local st, resp = wait(s)
-  if st == ksi.STATUS_IO_TIMEOUT then
+  if st == nt.STATUS_IO_TIMEOUT then
     ksi.trace('the mailbox stayed busy')
-    return ksi.STATUS_DEVICE_BUSY, false, results
+    return nt.STATUS_DEVICE_BUSY, false, results
   end
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, false, results
   end
   state.idle = resp
@@ -1491,8 +1493,8 @@ local function command_body(s, op, args, words, state)
   st, issued = store(s, m.rsp, 0, function()
     state.clearing = true
   end)
-  if st ~= ksi.STATUS_SUCCESS then
-    state.restore = issued and st ~= ksi.STATUS_RETRY
+  if st ~= nt.STATUS_SUCCESS then
+    state.restore = issued and st ~= nt.STATUS_RETRY
     state.clearing = false
     return st, false, results
   end
@@ -1500,35 +1502,35 @@ local function command_body(s, op, args, words, state)
   state.clearing = false
   for i = 1, math.min(m.args, 6) do
     st = store(s, m.arg + (i - 1) * 4, args[i])
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st, false, results
     end
   end
   st = post(s, op, function()
     state.posting = true
   end)
-  if st == ksi.STATUS_RETRY then
+  if st == nt.STATUS_RETRY then
     return st, false, results
   end
   state.restore = false
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, false, results
   end
   st, resp = wait(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, false, results
   end
   if resp ~= 0x01 then
     ksi.trace('MSG 0x%x answered 0x%x', op, resp)
-    return ANSWERS[resp] or ksi.STATUS_UNSUCCESSFUL, true, results, resp
+    return ANSWERS[resp] or nt.STATUS_UNSUCCESSFUL, true, results, resp
   end
   for i = 1, words do
     st, results[i] = read_result(s, m.arg + (i - 1) * 4)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st, false, { 0, 0, 0, 0, 0, 0 }, resp
     end
   end
-  return ksi.STATUS_SUCCESS, true, results, resp
+  return nt.STATUS_SUCCESS, true, results, resp
 end
 
 -- The command under the pci lock, then the idle RSP put back on its exit; a
@@ -1551,7 +1553,7 @@ local function transact(s, op, args, words)
   if state.restore and state.idle ~= 0 then
     local rs = restore_idle(s, state.idle)
     state.restore = false
-    if rs ~= ksi.STATUS_SUCCESS then
+    if rs ~= nt.STATUS_SUCCESS then
       st = rs
     end
   end
@@ -1570,27 +1572,27 @@ local function firmware_version(s)
   local m = s.mailbox
   local args = { m.version_arg, 0, 0, 0, 0, 0 }
   local st, _, first = transact(s, m.version, args, 1)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, 0
   end
   if first[1] == 0 or first[1] == ALL_ONES then
     ksi.trace('firmware version 0x%x', first[1])
-    return ksi.STATUS_DEVICE_NOT_READY, 0
+    return nt.STATUS_DEVICE_NOT_READY, 0
   end
   local again
   st, _, again = transact(s, m.version, args, 1)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, 0
   end
   if again[1] == 0 or again[1] == ALL_ONES then
     ksi.trace('firmware version 0x%x', again[1])
-    return ksi.STATUS_DEVICE_NOT_READY, 0
+    return nt.STATUS_DEVICE_NOT_READY, 0
   end
   if again[1] ~= first[1] then
     ksi.trace('firmware version 0x%x then 0x%x', first[1], again[1])
-    return ksi.STATUS_RETRY, 0
+    return nt.STATUS_RETRY, 0
   end
-  return ksi.STATUS_SUCCESS, first[1]
+  return nt.STATUS_SUCCESS, first[1]
 end
 
 -- Returns the firmware version, the table version and the table length of
@@ -1598,7 +1600,7 @@ end
 function identify(input)
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(input)
   if not s then
@@ -1613,7 +1615,7 @@ function identify(input)
   end
 
   local st, firmware = firmware_version(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
 
@@ -1622,7 +1624,7 @@ function identify(input)
   if t then
     local completed, results
     st, completed, results = row_command(s, t.version)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       ksi.trace('the table version was not read: 0x%x', st)
       return st
     end
@@ -1633,7 +1635,7 @@ function identify(input)
     end
   end
 
-  return ksi.STATUS_SUCCESS, string.pack('<I4I4I4I4', firmware, version, length, 0)
+  return nt.STATUS_SUCCESS, string.pack('<I4I4I4I4', firmware, version, length, 0)
 end
 
 -- Sends a list of the row's commands to the mailbox behind the root complex
@@ -1641,14 +1643,14 @@ end
 function command(input)
   if #input < 4 or (#input - 4) % 28 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local entries = {}
   for i = 1, (#input - 4) // 28 do
     local e = pack(string.unpack('<I4I4I4I4I4I4I4', input, 5 + (i - 1) * 28))
     if e[1] == 0 then
       ksi.trace('entry %d has opcode 0', i)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     entries[i] = e
   end
@@ -1666,7 +1668,7 @@ function command(input)
   end
 
   local st = firmware_version(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
 
@@ -1675,7 +1677,7 @@ function command(input)
   for i, e in ipairs(entries) do
     local op = e[1]
     local c = s.mailbox.commands[op]
-    local status, answer = ksi.STATUS_SUCCESS, 0
+    local status, answer = nt.STATUS_SUCCESS, 0
     local results = { 0, 0, 0, 0, 0, 0 }
     local args
     if c and not c.internal then
@@ -1691,9 +1693,9 @@ function command(input)
     end
     if not args then
       ksi.trace('command 0x%x is not permitted', op)
-      status = ksi.STATUS_ACCESS_DENIED
+      status = nt.STATUS_ACCESS_DENIED
     elseif stopped then
-      status = ksi.STATUS_CANCELLED
+      status = nt.STATUS_CANCELLED
     else
       local completed
       status, completed, results, answer = transact(s, op, args, c.words)
@@ -1702,7 +1704,7 @@ function command(input)
     output[i] = string.pack('<i4I4I4I4I4I4I4I4', status, answer, unpack(results, 1, 6))
   end
 
-  return ksi.STATUS_SUCCESS, concat(output)
+  return nt.STATUS_SUCCESS, concat(output)
 end
 
 local PAGE = 0x1000
@@ -1741,9 +1743,9 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == ksi.STATUS_SUCCESS
+    s0 == nt.STATUS_SUCCESS
     and maximum >= 0x80000008
-    and s1 == ksi.STATUS_SUCCESS
+    and s1 == nt.STATUS_SUCCESS
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
@@ -1751,7 +1753,7 @@ local function address_bits()
     return kept.bits
   end
   ksi.trace('address width 36: CPUID 80000008h not usable')
-  if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
     kept.bits = 36
   end
   return 36
@@ -1762,16 +1764,16 @@ end
 local function check_range(first, last, bits)
   if math.ult(1 << bits, last) then
     ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local nvdimm = ksi.hw.is_nvdimm(first, last - first)
   if nvdimm == nil then
     ksi.trace('NVDIMM ranges unknown')
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   if nvdimm then
     ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local ram, ramFailed = ksi.hw.is_ram(first, last - first)
   if ram == nil then
@@ -1780,9 +1782,9 @@ local function check_range(first, last, bits)
   end
   if ram then
     ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 -- The MSRs of the AMD address map, read on processor 0:0; a register that
@@ -1804,7 +1806,7 @@ local function address_map()
   local map = {}
   for i, index in ipairs(indexes) do
     local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
-    if s == ksi.STATUS_SUCCESS then
+    if s == nt.STATUS_SUCCESS then
       map[index] = value
     end
   end
@@ -1831,14 +1833,14 @@ local function check_amd_dram(first, last, bits)
     ksi.trace('DRAM bound skipped: SYSCFG hidden')
   elseif syscfg & SYSCFG_VAR_DRAM_EN == 0 then
     ksi.trace('range 0x%x refused: SYSCFG 0x%x has no TOP_MEM', first, syscfg)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   elseif not msrs[MSR_TOP_MEM] then
     ksi.trace('DRAM bound skipped: TOP_MEM hidden')
   else
     local top = msrs[MSR_TOP_MEM] & (limit & ~TOP_MEM_LOW_BITS)
     if top == 0 then
       ksi.trace('range 0x%x refused: TOP_MEM is zero', first)
-      return ksi.STATUS_CONFLICTING_ADDRESSES
+      return nt.STATUS_CONFLICTING_ADDRESSES
     end
     local inside = not math.ult(first, LEGACY_END) and not math.ult(top, last)
     local skipped = false
@@ -1858,7 +1860,7 @@ local function check_amd_dram(first, last, bits)
         last,
         top
       )
-      return ksi.STATUS_CONFLICTING_ADDRESSES
+      return nt.STATUS_CONFLICTING_ADDRESSES
     end
   end
 
@@ -1869,7 +1871,7 @@ local function check_amd_dram(first, last, bits)
     local tsegFirst, tsegLast = amd_region(base, mask, SMM_LOW_BITS, limit)
     if mask & SMM_MASK_TVALID ~= 0 and math.ult(first, tsegLast) and math.ult(tsegFirst, last) then
       ksi.trace('range 0x%x-0x%x refused: TSEG 0x%x-0x%x', first, last, tsegFirst, tsegLast)
-      return ksi.STATUS_CONFLICTING_ADDRESSES
+      return nt.STATUS_CONFLICTING_ADDRESSES
     end
   end
 
@@ -1882,12 +1884,12 @@ local function check_amd_dram(first, last, bits)
       local ioFirst, ioLast = amd_region(ibase, imask, IORR_LOW_BITS, limit)
       if math.ult(first, ioLast) and math.ult(ioFirst, last) then
         ksi.trace('range 0x%x-0x%x refused: IORR %d reads I/O', first, last, i)
-        return ksi.STATUS_CONFLICTING_ADDRESSES
+        return nt.STATUS_CONFLICTING_ADDRESSES
       end
     end
   end
 
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 -- The ECAM page of a function, from the MCFG ranges; nil when no range
@@ -1914,10 +1916,10 @@ local function check_amd_df(df, root, first, last, bits)
   local page = ecam_page(root.segment, root.bus, df.device, df.fn)
   if not page then
     ksi.trace('data fabric bound skipped: no ECAM range for %x:%x', root.segment, root.bus)
-    return ksi.STATUS_SUCCESS
+    return nt.STATUS_SUCCESS
   end
   local st = check_range(page, page + PAGE, bits)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     ksi.trace('ECAM page 0x%x refused: 0x%x', page, st)
     return st
   end
@@ -1928,7 +1930,7 @@ local function check_amd_df(df, root, first, last, bits)
   end
   if ksi.hw.map_read(m, 0, 4) == 0xffffffff then
     ksi.trace('data fabric at 0x%x reads all-ones', page)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   local holeValid, holeBase = false, 0
   if df.hole ~= 0 then
@@ -1947,7 +1949,7 @@ local function check_amd_df(df, root, first, last, bits)
       if not math.ult(first, mapFirst) and not math.ult(mapLast, last) then
         if math.ult(first, LEGACY_END) then
           ksi.trace('range 0x%x refused: in the legacy region', first)
-          return ksi.STATUS_CONFLICTING_ADDRESSES
+          return nt.STATUS_CONFLICTING_ADDRESSES
         end
         if
           holeValid
@@ -1956,14 +1958,14 @@ local function check_amd_df(df, root, first, last, bits)
           and math.ult(holeBase, last)
         then
           ksi.trace('range 0x%x refused: DRAM hole at 0x%x', first, holeBase)
-          return ksi.STATUS_CONFLICTING_ADDRESSES
+          return nt.STATUS_CONFLICTING_ADDRESSES
         end
-        return ksi.STATUS_SUCCESS
+        return nt.STATUS_SUCCESS
       end
     end
   end
   ksi.trace('range 0x%x-0x%x refused: no data fabric DRAM map', first, last)
-  return ksi.STATUS_CONFLICTING_ADDRESSES
+  return nt.STATUS_CONFLICTING_ADDRESSES
 end
 
 -- The table base: the setup command when the row has one, then the base
@@ -1972,20 +1974,20 @@ local function table_base(s, t)
   local st, results
   if t.setup ~= 0 then
     st = row_command(s, t.setup)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st, 0
     end
   end
   local completed
   st, completed, results = row_command(s, t.base)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st, 0
   end
   local base = results[t.base_low + 1]
   if t.base_high ~= 0xff then
     base = base | (results[t.base_high + 1] << 32)
   end
-  return ksi.STATUS_SUCCESS, base, results
+  return nt.STATUS_SUCCESS, base, results
 end
 
 -- Returns the power-management table of the mailbox behind the root complex
@@ -1993,7 +1995,7 @@ end
 function table(input)
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(input)
   if not s then
@@ -2003,7 +2005,7 @@ function table(input)
   local t = s.mailbox.table
   if not t then
     ksi.trace('the row has no table')
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local bits, failed = address_bits()
   if not bits then
@@ -2017,20 +2019,20 @@ function table(input)
   end
 
   local st = firmware_version(s)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
   local commands = s.mailbox.commands
   for _, op in ipairs({ t.version, t.base, t.transfer, t.setup }) do
     if op ~= 0 and not commands[op] then
       ksi.trace('table command 0x%x is not in the row', op)
-      return ksi.STATUS_ACCESS_DENIED
+      return nt.STATUS_ACCESS_DENIED
     end
   end
 
   local completed, results
   st, completed, results = row_command(s, t.version)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     ksi.trace('the table version was not read: 0x%x', st)
     return st
   end
@@ -2038,54 +2040,54 @@ function table(input)
   local size = t.versions[version]
   if not size then
     ksi.trace('table version 0x%x is not supported', version)
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
 
   if t.setup ~= 0 and t.transfer ~= 0 then
     st = row_command(s, t.setup)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st
     end
   end
   if t.transfer ~= 0 then
     st = row_command(s, t.transfer)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st
     end
   end
 
   local base, check, reply
   st, base, reply = table_base(s, t)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
   st, check = table_base(s, t)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
   if check ~= base then
     ksi.trace('table base 0x%x moved to 0x%x', base, check)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if t.size_word ~= 0xff then
     local reported = reply[t.size_word + 1]
     if reported ~= 0 and reported < size then
       ksi.trace('reported table size %d below %d', reported, size)
-      return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      return nt.STATUS_DEVICE_CONFIGURATION_ERROR
     end
   end
   if base == 0 then
     ksi.trace('table base 0')
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   local last = base + size
   if math.ult(last, base) then
     ksi.trace('table base 0x%x plus %d overflows', base, size)
-    return ksi.STATUS_INTEGER_OVERFLOW
+    return nt.STATUS_INTEGER_OVERFLOW
   end
   if base % PAGE ~= 0 or math.ult(-PAGE, last) then
     ksi.trace('table range 0x%x-0x%x invalid', base, last)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   local rangeEnd = (last + PAGE - 1) & ~(PAGE - 1)
 
@@ -2100,19 +2102,19 @@ function table(input)
 
   if not kt then
     st = check_amd_dram(base, rangeEnd, bits)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       ksi.trace('table version 0x%x base 0x%x refused: 0x%x', version, base, st)
       return st
     end
     if t.dfmap then
       st = check_amd_df(t.dfmap, s.root, base, rangeEnd, bits)
-      if st ~= ksi.STATUS_SUCCESS then
+      if st ~= nt.STATUS_SUCCESS then
         ksi.trace('table base 0x%x refused by the data fabric: 0x%x', base, st)
         return st
       end
     end
     st = check_range(base, rangeEnd, bits)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       ksi.trace('table version 0x%x refused: 0x%x', version, st)
       return st
     end
@@ -2120,7 +2122,7 @@ function table(input)
 
   if size % 4 ~= 0 then
     ksi.trace('table length %d is not whole words', size)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
 
   local m = kt and kt.map
@@ -2141,18 +2143,18 @@ function table(input)
     bytes = ksi.hw.map_read_block(m, 0, size, 4)
     if ksi.hw.map_read(m, 0, 4) ~= string.unpack('<I4', bytes) then
       ksi.trace('table changed during the copy')
-      return ksi.STATUS_RETRY
+      return nt.STATUS_RETRY
     end
   end
 
   st, check = table_base(s, t)
-  if st ~= ksi.STATUS_SUCCESS then
+  if st ~= nt.STATUS_SUCCESS then
     return st
   end
   if check ~= base then
     ksi.trace('table base 0x%x moved to 0x%x', base, check)
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
 
-  return ksi.STATUS_SUCCESS, string.pack('<I4I4', version, size) .. bytes
+  return nt.STATUS_SUCCESS, string.pack('<I4I4', version, size) .. bytes
 end

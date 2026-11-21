@@ -14,6 +14,8 @@
 -- each processor family may be asked for are listed below.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     vendor = 'AuthenticAMD',
@@ -544,9 +546,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
+  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
+    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base
@@ -610,11 +612,11 @@ end
 local function session(input)
   if not ksi.hw.pci_open or not ksi.hw.cpuid then
     ksi.trace('no PCI or CPUID functions')
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   if #input < 4 or #input % 4 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return nil, ksi.STATUS_INVALID_PARAMETER
+    return nil, nt.STATUS_INVALID_PARAMETER
   end
 
   local locator = string.unpack('<I4', input)
@@ -663,7 +665,7 @@ local function session(input)
   if root.vendor == 0xffff then
     ksi.trace('no device answers at 0x%x', locator)
     device:release()
-    return nil, ksi.STATUS_NOT_FOUND
+    return nil, nt.STATUS_NOT_FOUND
   end
   root.class = string.unpack('<I4', header, 9) >> 8
   root.header = string.byte(header, 15) & 0x7f
@@ -679,12 +681,12 @@ local function session(input)
       root.device
     )
     device:release()
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   if row.pin[1] ~= root.slot or row.pin[2] ~= root.fn then
     ksi.trace('the index and data pair is pinned to %d.%d', row.pin[1], row.pin[2])
     device:release()
-    return nil, ksi.STATUS_ACCESS_DENIED
+    return nil, nt.STATUS_ACCESS_DENIED
   end
 
   local s = { device = device, cpu = cpu, root = root, row = row }
@@ -727,28 +729,28 @@ local function cycle(s, address)
     local written, failed = ksi.hw.pci_write(device, row.index, 4, address)
     if not written then
       ksi.trace('index write at 0x%x failed: 0x%x', row.index, failed)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     value, failed = ksi.hw.pci_read(device, row.data, 4)
     if not value then
       ksi.trace('data read at 0x%x failed: 0x%x', row.data, failed)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     check, failed = ksi.hw.pci_read(device, row.index, 4)
     if not check then
       ksi.trace('index read at 0x%x failed: 0x%x', row.index, failed)
-      return ksi.STATUS_DEVICE_NOT_READY, 0
+      return nt.STATUS_DEVICE_NOT_READY, 0
     end
     if check == address then
       if value == ALL_ONES then
         ksi.trace('SMN 0x%x read all-ones', address)
-        return ksi.STATUS_DEVICE_NOT_READY, 0
+        return nt.STATUS_DEVICE_NOT_READY, 0
       end
-      return ksi.STATUS_SUCCESS, value
+      return nt.STATUS_SUCCESS, value
     end
   end
   ksi.trace('index 0x%x moved to 0x%x', address, check)
-  return ksi.STATUS_RETRY, 0
+  return nt.STATUS_RETRY, 0
 end
 
 -- Returns the identity of the root complex the input names and of the
@@ -756,11 +758,11 @@ end
 function identify(input)
   if not ksi.hw.pci_open or not ksi.hw.cpuid then
     ksi.trace('no PCI or CPUID functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local lock <close>, failed = ksi.lock('pci')
   if not lock then
@@ -774,7 +776,7 @@ function identify(input)
   if not s.kept then
     s.device:release()
   end
-  return ksi.STATUS_SUCCESS,
+  return nt.STATUS_SUCCESS,
     string.pack(
       '<I2I2I4I4I4',
       s.root.vendor,
@@ -810,18 +812,18 @@ function read(input)
 
   for i = 1, count do
     local address = string.unpack('<I4', input, i * 4 + 1)
-    local status, value = ksi.STATUS_SUCCESS, 0
+    local status, value = nt.STATUS_SUCCESS, 0
     if address % 4 ~= 0 then
       ksi.trace('SMN 0x%x is not aligned', address)
-      status = ksi.STATUS_INVALID_PARAMETER
+      status = nt.STATUS_INVALID_PARAMETER
     elseif not allowed(ranges, values, address) then
       ksi.trace('SMN 0x%x is not permitted', address)
-      status = ksi.STATUS_ACCESS_DENIED
+      status = nt.STATUS_ACCESS_DENIED
     else
       status, value = cycle(s, address)
     end
     output[i] = string.pack('<i4I4', status, value)
   end
 
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end

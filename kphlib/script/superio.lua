@@ -14,6 +14,8 @@
 -- below.
 --
 
+local nt = require('nt')
+
 local FAMILY_NUVOTON = 1
 local FAMILY_NCT668X = 2
 local FAMILY_ITE = 3
@@ -1418,7 +1420,7 @@ local function rp(s, reg)
     if ksi.time() - start >= s.wait then
       s.wait = 0
       ksi.trace('the page register stays busy for register 0x%04x', reg)
-      return ksi.STATUS_IO_TIMEOUT, 0
+      return nt.STATUS_IO_TIMEOUT, 0
     end
     ksi.sleep(1)
   end
@@ -1428,7 +1430,7 @@ local function rp(s, reg)
   if ksi.hw.port_read(s.base + 4, 1) ~= page then
     ksi.trace('page 0x%02x was not claimed', page)
     s.claimed = nil
-    return ksi.STATUS_RETRY, 0
+    return nt.STATUS_RETRY, 0
   end
   ksi.hw.port_write(s.base + 5, 1, reg & 0xff)
   local selected = ksi.hw.port_read(s.base + 5, 1) == (reg & 0xff)
@@ -1436,36 +1438,36 @@ local function rp(s, reg)
   if ksi.hw.port_read(s.base + 4, 1) ~= page then
     ksi.trace('page 0x%02x was taken under register 0x%04x', page, reg)
     s.claimed = nil
-    return ksi.STATUS_RETRY, 0
+    return nt.STATUS_RETRY, 0
   end
   ksi.hw.port_write(s.base + 4, 1, PAGE_FREE)
   s.claimed = nil
   if not selected then
     ksi.trace('the monitor index moved under register 0x%04x', reg)
-    return ksi.STATUS_RETRY, 0
+    return nt.STATUS_RETRY, 0
   end
-  return ksi.STATUS_SUCCESS, value
+  return nt.STATUS_SUCCESS, value
 end
 
 local function customer(s)
   local status, hi = rp(s, s.row.customer)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
   local lo
   status, lo = rp(s, s.row.customer + 1)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
   local id = (hi << 8) | lo
   for _, listed in ipairs(s.row.customers) do
     if listed == id then
       s.customer = id
-      return ksi.STATUS_SUCCESS
+      return nt.STATUS_SUCCESS
     end
   end
   ksi.trace('customer 0x%04x is not permitted', id)
-  return ksi.STATUS_NOT_FOUND
+  return nt.STATUS_NOT_FOUND
 end
 
 local function configure(s, family)
@@ -1487,12 +1489,12 @@ local function configure(s, family)
   s.row = find_row(family, id)
   if not s.row then
     ksi.trace('chip 0x%04x at port 0x%02x is not known to family %d', id, s.port, family.family)
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local config = s.row.config_id
   if config and rcw(s, config[1]) ~= config[2] then
     ksi.trace('chip 0x%04x has no configuration ID 0x%04x', id, config[2])
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   s.identified = true
   s.orig_ldn = rc(s, 0x07)
@@ -1501,18 +1503,18 @@ local function configure(s, family)
   s.ldn_set = true
   if s.row.active ~= false and (rc(s, 0x30) & 1) == 0 then
     ksi.trace('LDN 0x%02x is not active', s.row.ldn)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   local base = rcw(s, 0x60)
   ksi.sleep(1)
   if rc(s, 0x07) ~= s.row.ldn or rcw(s, 0x60) ~= base then
     ksi.trace('LDN 0x%02x base 0x%04x changed while read', s.row.ldn, base)
     s.contended = true
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if base == 0 or base == 0xffff then
     ksi.trace('monitor base 0x%04x is not set', base)
-    return ksi.STATUS_DEVICE_NOT_READY
+    return nt.STATUS_DEVICE_NOT_READY
   end
   if family.family == FAMILY_FINTEK and (base & 7) == 5 then
     base = base - 5
@@ -1520,23 +1522,23 @@ local function configure(s, family)
   local block = family.block or 8
   if base % block ~= 0 then
     ksi.trace('monitor base 0x%04x is misaligned', base)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   if base < BASE_MIN or base + block - 1 > BASE_LAST then
     ksi.trace('monitor base 0x%04x is outside the permitted range', base)
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   s.base = base
   s.chip = id
   close(s)
   s.idphase = false
   if s.contended then
-    return ksi.STATUS_RETRY
+    return nt.STATUS_RETRY
   end
   if family.paged then
     return customer(s)
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function finish(s, status)
@@ -1545,9 +1547,9 @@ local function finish(s, status)
     close(s)
     s.idphase = false
     if s.contended then
-      status = ksi.STATUS_RETRY
+      status = nt.STATUS_RETRY
     elseif s.busy then
-      status = ksi.STATUS_DEVICE_BUSY
+      status = nt.STATUS_DEVICE_BUSY
     end
   end
   return status
@@ -1574,11 +1576,11 @@ local function remember_family(s)
 end
 
 local function identify_chip(s)
-  local status = ksi.STATUS_NOT_FOUND
+  local status = nt.STATUS_NOT_FOUND
   for _, family in ipairs(family_order(s)) do
     if not s.open_family or s.open_family == family then
       status = finish(s, configure(s, family))
-      if s.identified and status == ksi.STATUS_SUCCESS then
+      if s.identified and status == nt.STATUS_SUCCESS then
         remember_family(s)
       end
       if s.identified or s.busy then
@@ -1679,7 +1681,7 @@ local function vendor(s, monitor)
       if (((want[1] >> 8) & mask) == first) == (pass == 1) then
         local got = rm(s, want[1])
         if not got then
-          return ksi.STATUS_RETRY
+          return nt.STATUS_RETRY
         end
         if got ~= want[2] and got ~= want[3] then
           ksi.trace(
@@ -1689,12 +1691,12 @@ local function vendor(s, monitor)
             want[2],
             want[3]
           )
-          return ksi.STATUS_NOT_FOUND
+          return nt.STATUS_NOT_FOUND
         end
       end
     end
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function session(input)
@@ -1702,10 +1704,10 @@ local function session(input)
   local port = SLOTS[slot]
   if not port then
     ksi.trace('slot %d does not exist', slot)
-    return nil, ksi.STATUS_INVALID_PARAMETER
+    return nil, nt.STATUS_INVALID_PARAMETER
   end
   if not chassis_permitted() then
-    return nil, ksi.STATUS_NOT_SUPPORTED
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   return { port = port, wait = PAGE_WAIT }
 end
@@ -1714,11 +1716,11 @@ end
 function identify(input)
   if not ksi.hw.port_read then
     ksi.trace('no port functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(input)
   if not s then
@@ -1732,28 +1734,28 @@ function identify(input)
   end
   local putback <close> = setmetatable({}, {
     __close = function()
-      finish(s, ksi.STATUS_SUCCESS)
+      finish(s, nt.STATUS_SUCCESS)
     end,
   })
   if not probe(s) then
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local status = identify_chip(s)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
-  return ksi.STATUS_SUCCESS, string.pack('<I4I4I4', s.family.family, s.chip, s.customer or 0)
+  return nt.STATUS_SUCCESS, string.pack('<I4I4I4', s.family.family, s.chip, s.customer or 0)
 end
 
 -- Reads hardware monitor registers of the chip at a slot.
 function read(input)
   if not ksi.hw.port_read then
     ksi.trace('no port functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input < 8 or (#input % 4) ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local s, refused = session(input)
   if not s then
@@ -1766,7 +1768,7 @@ function read(input)
   end
   local putback <close> = setmetatable({}, {
     __close = function()
-      finish(s, ksi.STATUS_SUCCESS)
+      finish(s, nt.STATUS_SUCCESS)
     end,
   })
   local k = kept[s.port]
@@ -1775,10 +1777,10 @@ function read(input)
     s.row, s.base, monitor, s.family = k.row, k.base, k.monitor, k.family
   else
     if not probe(s) then
-      return ksi.STATUS_NOT_FOUND
+      return nt.STATUS_NOT_FOUND
     end
     status = identify_chip(s)
-    if status ~= ksi.STATUS_SUCCESS then
+    if status ~= nt.STATUS_SUCCESS then
       return status
     end
     monitor = s.row.monitor()
@@ -1792,7 +1794,7 @@ function read(input)
   end
   if not any then
     ksi.trace('no register asked for is permitted')
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local bank <close> = setmetatable({}, {
     __close = function()
@@ -1800,10 +1802,10 @@ function read(input)
     end,
   })
   status = vendor(s, monitor)
-  if status == ksi.STATUS_SUCCESS and k and s.family.paged then
+  if status == nt.STATUS_SUCCESS and k and s.family.paged then
     status = customer(s)
   end
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     kept[s.port] = nil
     return status
   end
@@ -1811,16 +1813,16 @@ function read(input)
   local stopped = false
   for i = 1, count do
     local reg = string.unpack('<I4', input, 1 + 4 * i)
-    local item = ksi.STATUS_ACCESS_DENIED
+    local item = nt.STATUS_ACCESS_DENIED
     local value = 0
     if permitted(monitor, reg) then
-      item = ksi.STATUS_RETRY
+      item = nt.STATUS_RETRY
       if s.family.paged then
         item, value = rp(s, reg)
       elseif not stopped then
         value = rm(s, reg)
         stopped = (value == nil)
-        item = stopped and ksi.STATUS_RETRY or ksi.STATUS_SUCCESS
+        item = stopped and nt.STATUS_RETRY or nt.STATUS_SUCCESS
         value = value or 0
       end
     else
@@ -1833,5 +1835,5 @@ function read(input)
   elseif not k and not ksi.volatile and s.family.remember ~= false then
     kept[s.port] = { row = s.row, base = s.base, monitor = monitor, family = s.family }
   end
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end

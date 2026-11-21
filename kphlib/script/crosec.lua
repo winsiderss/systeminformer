@@ -15,6 +15,8 @@
 -- before and after every read.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     manufacturer = 'Framework',
@@ -279,16 +281,16 @@ end
 function identify(input)
   if not ksi.hw.port_read or not ksi.hw.firmware_table then
     ksi.trace('no port or firmware table functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local b = board()
   if not b then
     ksi.trace('no row for this board')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   local lock <close>, failed = ksi.lock('isa')
   if not lock then
@@ -297,7 +299,7 @@ function identify(input)
   end
   if not signature_present(b) then
     ksi.trace('no signature at 0x%x', b.row.port + b.row.signature[1])
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local signature = b.row.signature
   local bytes = {}
@@ -311,23 +313,23 @@ function identify(input)
     end
     bytes[#bytes + 1] = string.char(value)
   end
-  return ksi.STATUS_SUCCESS, table.concat(bytes)
+  return nt.STATUS_SUCCESS, table.concat(bytes)
 end
 
 -- Reads bytes of the embedded controller's memory map.
 function read(input)
   if not ksi.hw.port_read or not ksi.hw.firmware_table then
     ksi.trace('no port or firmware table functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input == 0 or #input % 4 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local b = board()
   if not b then
     ksi.trace('no row for this board')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   local count = #input // 4
   local offsets = {}
@@ -343,7 +345,7 @@ function read(input)
   end
   if not any then
     ksi.trace('nothing permitted')
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local lock <close>, failed = ksi.lock('isa')
   if not lock then
@@ -352,7 +354,7 @@ function read(input)
   end
   if not signature_present(b) then
     ksi.trace('no signature at 0x%x', b.row.port + b.row.signature[1])
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local values = {}
   for i = 1, count do
@@ -367,12 +369,12 @@ function read(input)
   local output = {}
   for i = 1, count do
     if not offsets[i] then
-      output[i] = string.pack('<i4I4', ksi.STATUS_ACCESS_DENIED, 0)
+      output[i] = string.pack('<i4I4', nt.STATUS_ACCESS_DENIED, 0)
     elseif present then
-      output[i] = string.pack('<i4I4', ksi.STATUS_SUCCESS, values[i])
+      output[i] = string.pack('<i4I4', nt.STATUS_SUCCESS, values[i])
     else
-      output[i] = string.pack('<i4I4', ksi.STATUS_DEVICE_NOT_READY, 0)
+      output[i] = string.pack('<i4I4', nt.STATUS_DEVICE_NOT_READY, 0)
     end
   end
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
