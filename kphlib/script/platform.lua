@@ -15,6 +15,8 @@
 -- listed below.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     family = 0x06,
@@ -182,9 +184,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= ksi.STATUS_SUCCESS or s1 ~= ksi.STATUS_SUCCESS then
+  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= ksi.STATUS_SUCCESS and s0 or s1
+    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base
@@ -265,11 +267,11 @@ local function counter_at(entry)
   local counter = lpit_counters()[entry + 1]
   if not counter then
     ksi.trace('LPIT counter %d not found', entry)
-    return nil, ksi.STATUS_NOT_FOUND
+    return nil, nt.STATUS_NOT_FOUND
   end
   if counter.address == 0 then
     ksi.trace('LPIT counter %d has no address', entry)
-    return nil, ksi.STATUS_DEVICE_NOT_READY
+    return nil, nt.STATUS_DEVICE_NOT_READY
   end
   return counter
 end
@@ -288,7 +290,7 @@ local function lpit_window(row)
       counter.width,
       w.size
     )
-    return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   return counter.address, w.size, { { 0, w.size, w.size } }
 end
@@ -300,11 +302,11 @@ local function pwrm_window(row)
     local counter = counters[w.entry + 1]
     if not counter then
       ksi.trace('LPIT counter %d not found', w.entry)
-      return nil, ksi.STATUS_NOT_FOUND
+      return nil, nt.STATUS_NOT_FOUND
     end
     if counter.address == 0 then
       ksi.trace('LPIT counter %d has no address', w.entry)
-      return nil, ksi.STATUS_DEVICE_NOT_READY
+      return nil, nt.STATUS_DEVICE_NOT_READY
     end
     if not math.ult(counter.address, w.offset) and (counter.address - w.offset) % w.size == 0 then
       return counter.address - w.offset, w.size, w.reads
@@ -317,7 +319,7 @@ local function pwrm_window(row)
       w.size
     )
   end
-  return nil, ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+  return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
 end
 
 local function address_bits()
@@ -334,16 +336,16 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == ksi.STATUS_SUCCESS
+    s0 == nt.STATUS_SUCCESS
     and maximum >= 0x80000008
-    and s1 == ksi.STATUS_SUCCESS
+    and s1 == nt.STATUS_SUCCESS
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
     kept.bits = eax & 0xff
     return kept.bits
   end
-  if s0 == ksi.STATUS_SUCCESS and s1 == ksi.STATUS_SUCCESS then
+  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
     kept.bits = 36
   end
   return 36
@@ -352,16 +354,16 @@ end
 local function check_range(first, last, bits)
   if math.ult(1 << bits, last) then
     ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local nvdimm = ksi.hw.is_nvdimm(first, last - first)
   if nvdimm == nil then
     ksi.trace('NVDIMM ranges unknown')
-    return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   if nvdimm then
     ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
   local ram, ramFailed = ksi.hw.is_ram(first, last - first)
   if ram == nil then
@@ -370,9 +372,9 @@ local function check_range(first, last, bits)
   end
   if ram then
     ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return ksi.STATUS_CONFLICTING_ADDRESSES
+    return nt.STATUS_CONFLICTING_ADDRESSES
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function permitted(ranges, offset, width)
@@ -405,14 +407,14 @@ local function map_and_read(window, entries, base, size, spanBegin, spanEnd)
     local windowEnd = base + size
     if math.ult(windowEnd, base) or math.ult(HUGE_PAGE_END, windowEnd) then
       ksi.trace('window 0x%x size 0x%x ends beyond the address space', base, size)
-      return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
+      return nt.STATUS_DEVICE_CONFIGURATION_ERROR
     end
     local bits, bitsFailed = address_bits()
     if not bits then
       return bitsFailed
     end
     local st = check_range(base & -PAGE, (windowEnd + PAGE - 1) & -PAGE, bits)
-    if st ~= ksi.STATUS_SUCCESS then
+    if st ~= nt.STATUS_SUCCESS then
       return st
     end
     local mapFailed
@@ -430,10 +432,10 @@ local function map_and_read(window, entries, base, size, spanBegin, spanEnd)
   for _, e in ipairs(entries) do
     if e.status == nil then
       e.value = ksi.hw.map_read(m, e.offset - first, e.width)
-      e.status = ksi.STATUS_SUCCESS
+      e.status = nt.STATUS_SUCCESS
     end
   end
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 -- Reads registers of a platform window: the LPIT residency counter, or the
@@ -441,23 +443,23 @@ end
 function read(input)
   if not ksi.hw.cpuid or not ksi.hw.firmware_table then
     ksi.trace('no CPUID or firmware table functions')
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input < 12 or (#input - 4) % 8 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local window = string.unpack('<I4', input)
   if window ~= WINDOW_LPIT and window ~= WINDOW_PWRM then
     ksi.trace('window %d', window)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local entries = {}
   for i = 1, (#input - 4) // 8 do
     local offset, width = string.unpack('<I4I4', input, 5 + (i - 1) * 8)
     if (width ~= 1 and width ~= 2 and width ~= 4 and width ~= 8) or offset % width ~= 0 then
       ksi.trace('entry %d: offset 0x%x width %d', i, offset, width)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     entries[i] = { offset = offset, width = width }
   end
@@ -469,11 +471,11 @@ function read(input)
   local row = find_row(cpu)
   if not row then
     ksi.trace('no row for %s family 0x%x model 0x%x', cpu.vendor, cpu.family, cpu.model)
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if (window == WINDOW_LPIT and not row.lpit) or (window == WINDOW_PWRM and #row.pwrm == 0) then
     ksi.trace('family 0x%x model 0x%x has no window %d', cpu.family, cpu.model, window)
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
 
   local candidates = {}
@@ -486,7 +488,7 @@ function read(input)
   end
   local any = false
   for _, e in ipairs(entries) do
-    e.status, e.value = ksi.STATUS_ACCESS_DENIED, 0
+    e.status, e.value = nt.STATUS_ACCESS_DENIED, 0
     for _, ranges in ipairs(candidates) do
       if permitted(ranges, e.offset, e.width) then
         any = true
@@ -520,7 +522,7 @@ function read(input)
     end
     if spanBegin then
       local st = map_and_read(window, entries, base, size, spanBegin, spanEnd)
-      if st ~= ksi.STATUS_SUCCESS then
+      if st ~= nt.STATUS_SUCCESS then
         return st
       end
     end
@@ -530,5 +532,5 @@ function read(input)
   for i, e in ipairs(entries) do
     output[i] = string.pack('<i4I4I8', e.status, 0, e.value)
   end
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end

@@ -14,6 +14,8 @@
 -- list, or one whose gate does not hold, is refused.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     vendor = 'GenuineIntel',
@@ -2524,7 +2526,7 @@ local function query(processors, gates)
     local function take()
       local s, a, b, c, d = string.unpack('<i4I4I4I4I4', results, at)
       at = at + 20
-      if s ~= ksi.STATUS_SUCCESS then
+      if s ~= nt.STATUS_SUCCESS then
         p.invalid = true
       end
       return { a, b, c, d }
@@ -2566,7 +2568,7 @@ local function query(processors, gates)
     end
   end
 
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function gate_holds(p, gate)
@@ -2592,26 +2594,26 @@ function identify(input)
       local group, number = string.unpack('<I2I2', input)
       kept[(group << 16) | number] = nil
     end
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
 
   local group, number = string.unpack('<I2I2', input)
   kept[(group << 16) | number] = nil
   local processor = { group = group, number = number }
   local status = query({ processor }, false)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
   if processor.invalid then
     ksi.trace('processor %d:%d is not active', group, number)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
 
-  return ksi.STATUS_SUCCESS,
+  return nt.STATUS_SUCCESS,
     string.pack(
       '<c12I4I4I4I4I4',
       processor.vendor,
@@ -2626,7 +2628,7 @@ end
 local function read_msr(input)
   if #input % 8 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
 
   local items = {}
@@ -2650,12 +2652,12 @@ local function read_msr(input)
   end
 
   if #items == 0 then
-    return ksi.STATUS_SUCCESS, ''
+    return nt.STATUS_SUCCESS, ''
   end
 
   if #unknown > 0 then
     local status = query(unknown, true)
-    if status ~= ksi.STATUS_SUCCESS then
+    if status ~= nt.STATUS_SUCCESS then
       return status
     end
   end
@@ -2700,18 +2702,18 @@ local function read_msr(input)
     local p = item.processor
     local record = p.record
     local index = item.index
-    item.status = ksi.STATUS_SUCCESS
+    item.status = nt.STATUS_SUCCESS
     item.value = 0
 
     if not record then
-      item.status = ksi.STATUS_INVALID_PARAMETER
+      item.status = nt.STATUS_INVALID_PARAMETER
     else
       local entry = record.permitted[index]
       if not entry then
         if record.row then
           ksi.trace('MSR 0x%x is not permitted', index)
         end
-        item.status = ksi.STATUS_NOT_FOUND
+        item.status = nt.STATUS_NOT_FOUND
       else
         local gate = type(entry) == 'table' and entry.gate
         if gate then
@@ -2720,10 +2722,10 @@ local function read_msr(input)
           end
           if not record.gates[gate] then
             ksi.trace('MSR 0x%x is gated off on processor %d:%d', index, p.group, p.number)
-            item.status = ksi.STATUS_NOT_FOUND
+            item.status = nt.STATUS_NOT_FOUND
           end
         end
-        if item.status == ksi.STATUS_SUCCESS then
+        if item.status == nt.STATUS_SUCCESS then
           item.entry = entry
           reads[#reads + 1] = item
         end
@@ -2747,7 +2749,7 @@ local function read_msr(input)
     end
     for i, item in ipairs(reads) do
       local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
-      if s ~= ksi.STATUS_SUCCESS then
+      if s ~= nt.STATUS_SUCCESS then
         item.status = s
       elseif type(item.entry) == 'table' and item.entry.mask then
         item.value = value & item.entry.mask
@@ -2762,7 +2764,7 @@ local function read_msr(input)
     output[i] = string.pack('<i4I4I8', item.status, 0, item.value)
   end
 
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
 
 -- Reads a list of registers, each on the processor its item names.
@@ -2771,5 +2773,5 @@ function read(input)
     return read_msr(input)
   end
   ksi.trace('no register read function')
-  return ksi.STATUS_NOT_SUPPORTED
+  return nt.STATUS_NOT_SUPPORTED
 end

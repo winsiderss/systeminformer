@@ -14,6 +14,8 @@
 -- one whose prerequisite does not hold, is refused.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     implementer = 0x51,
@@ -267,11 +269,11 @@ function identify(input)
       local group, number = string.unpack('<I2I2', input)
       kept[(group << 16) | number] = nil
     end
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
 
   local group, number = string.unpack('<I2I2', input)
@@ -283,12 +285,12 @@ function identify(input)
   end
 
   local failure, _, value = string.unpack('<i4I4I8', results, 1)
-  if failure ~= ksi.STATUS_SUCCESS then
+  if failure ~= nt.STATUS_SUCCESS then
     ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', group, number, failure)
     return failure
   end
 
-  return ksi.STATUS_SUCCESS, string.pack('<c12I4I4I4I4I4', '', 0, 0, 0, value & 0xffffffff, 0)
+  return nt.STATUS_SUCCESS, string.pack('<c12I4I4I4I4I4', '', 0, 0, 0, value & 0xffffffff, 0)
 end
 
 local function within(ranges, value)
@@ -326,7 +328,7 @@ local function read_ids(processors, codes)
     end
   end
   if #items == 0 then
-    return ksi.STATUS_SUCCESS
+    return nt.STATUS_SUCCESS
   end
 
   local results, status = ksi.hw.sysreg_read(table.concat(items))
@@ -344,7 +346,7 @@ local function read_ids(processors, codes)
     end
   end
 
-  return ksi.STATUS_SUCCESS
+  return nt.STATUS_SUCCESS
 end
 
 local function prerequisite(p, code)
@@ -360,7 +362,7 @@ end
 local function read_sysreg(input)
   if #input % 8 ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
 
   local items = {}
@@ -386,7 +388,7 @@ local function read_sysreg(input)
   end
 
   if #items == 0 then
-    return ksi.STATUS_SUCCESS, ''
+    return nt.STATUS_SUCCESS, ''
   end
 
   local codes = {}
@@ -394,7 +396,7 @@ local function read_sysreg(input)
     codes[p] = { MIDR, ID_AA64PFR0, ID_AA64DFR0 }
   end
   local status = read_ids(unknown, codes)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
 
@@ -402,7 +404,7 @@ local function read_sysreg(input)
   for _, p in ipairs(unknown) do
     local midr = p.ids[MIDR]
     gates[p] = {}
-    if midr.status ~= ksi.STATUS_SUCCESS then
+    if midr.status ~= nt.STATUS_SUCCESS then
       ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', p.group, p.number, midr.status)
       p.failure = midr.status
     else
@@ -419,10 +421,10 @@ local function read_sysreg(input)
       end
 
       local pfr0 = p.ids[ID_AA64PFR0]
-      p.amu = pfr0.status == ksi.STATUS_SUCCESS and ((pfr0.value >> 44) & 0xf) >= 1
+      p.amu = pfr0.status == nt.STATUS_SUCCESS and ((pfr0.value >> 44) & 0xf) >= 1
       local dfr0 = p.ids[ID_AA64DFR0]
       local version = (dfr0.value >> 8) & 0xf
-      p.pmu = dfr0.status == ksi.STATUS_SUCCESS and version >= 1 and version < 0xf
+      p.pmu = dfr0.status == nt.STATUS_SUCCESS and version >= 1 and version < 0xf
 
       local seen = {}
       for _, entry in pairs(p.permitted) do
@@ -436,7 +438,7 @@ local function read_sysreg(input)
   end
 
   status = read_ids(unknown, gates)
-  if status ~= ksi.STATUS_SUCCESS then
+  if status ~= nt.STATUS_SUCCESS then
     return status
   end
 
@@ -447,7 +449,7 @@ local function read_sysreg(input)
       for _, list in ipairs({ codes[p], gates[p] }) do
         for _, code in ipairs(list) do
           local id = p.ids[code]
-          whole = whole and id.status == ksi.STATUS_SUCCESS
+          whole = whole and id.status == nt.STATUS_SUCCESS
           parts[#parts + 1] = string.pack('<i4I8', id.status, id.value)
         end
       end
@@ -467,7 +469,7 @@ local function read_sysreg(input)
     local p = item.processor
     local record = p.record
     local code = item.code
-    item.status = ksi.STATUS_SUCCESS
+    item.status = nt.STATUS_SUCCESS
     item.value = 0
 
     if p.failure then
@@ -478,32 +480,32 @@ local function read_sysreg(input)
         if record.row then
           ksi.trace('system register 0x%x is not permitted', code)
         end
-        item.status = ksi.STATUS_NOT_FOUND
+        item.status = nt.STATUS_NOT_FOUND
       else
         local gate = type(entry) == 'table' and entry.gate
         if gate then
           local id = record.ids[gate[1]]
           local value = (id.value >> gate[2]) & ((1 << gate[3]) - 1)
-          if id.status ~= ksi.STATUS_SUCCESS or value < gate[4] or value > gate[5] then
+          if id.status ~= nt.STATUS_SUCCESS or value < gate[4] or value > gate[5] then
             ksi.trace(
               'system register 0x%x is gated off on ' .. 'processor %d:%d',
               code,
               p.group,
               p.number
             )
-            item.status = ksi.STATUS_NOT_FOUND
+            item.status = nt.STATUS_NOT_FOUND
           end
         end
-        if item.status == ksi.STATUS_SUCCESS and not prerequisite(record, code) then
+        if item.status == nt.STATUS_SUCCESS and not prerequisite(record, code) then
           ksi.trace(
             'system register 0x%x is not implemented on ' .. 'processor %d:%d',
             code,
             p.group,
             p.number
           )
-          item.status = ksi.STATUS_NOT_SUPPORTED
+          item.status = nt.STATUS_NOT_SUPPORTED
         end
-        if item.status == ksi.STATUS_SUCCESS then
+        if item.status == nt.STATUS_SUCCESS then
           reads[#reads + 1] = item
         end
       end
@@ -523,7 +525,7 @@ local function read_sysreg(input)
     for i, item in ipairs(reads) do
       local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
       item.status = s
-      if s == ksi.STATUS_SUCCESS then
+      if s == nt.STATUS_SUCCESS then
         item.value = value
       end
     end
@@ -534,7 +536,7 @@ local function read_sysreg(input)
     output[i] = string.pack('<i4I4I8', item.status, 0, item.value)
   end
 
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
 
 -- Reads a list of registers, each on the processor its item names.
@@ -543,5 +545,5 @@ function read(input)
     return read_sysreg(input)
   end
   ksi.trace('no register read function')
-  return ksi.STATUS_NOT_SUPPORTED
+  return nt.STATUS_NOT_SUPPORTED
 end

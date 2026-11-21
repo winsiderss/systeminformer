@@ -13,6 +13,8 @@
 -- row permits, with the arguments it permits.
 --
 
+local nt = require('nt')
+
 local ROWS = {
   {
     ids = {
@@ -375,26 +377,26 @@ local function evaluate_on(device, record, milliseconds)
   local entry = row_names(record.row)[record.name]
   if not entry then
     ksi.trace('row %d does not permit %s', record.row, record.name)
-    return ksi.STATUS_ACCESS_DENIED
+    return nt.STATUS_ACCESS_DENIED
   end
   local candidates = entry.all
   if candidates[1].require and not present(candidates[1].require) then
     ksi.trace('%s: no required device is present', record.name)
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   local values, malformed = argument_values(record.arguments)
   if not values then
     if malformed then
       ksi.trace('%s: argument bytes do not parse', record.name)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     ksi.trace('%s: arguments that no row describes', record.name)
-    return ksi.STATUS_ACCESS_DENIED
+    return nt.STATUS_ACCESS_DENIED
   end
   local counted = entry.counted[#values]
   if not counted then
     ksi.trace('%s takes no %d arguments', record.name, #values)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local eval
   for _, candidate in ipairs(counted) do
@@ -405,7 +407,7 @@ local function evaluate_on(device, record, milliseconds)
   end
   if not eval then
     ksi.trace('%s: argument values not permitted', record.name)
-    return ksi.STATUS_ACCESS_DENIED
+    return nt.STATUS_ACCESS_DENIED
   end
   local arguments = #values > 0 and record.arguments or nil
   local output, failed = ksi.hw.acpi_eval(device, record.name, milliseconds, arguments)
@@ -415,14 +417,14 @@ local function evaluate_on(device, record, milliseconds)
   end
   if #output > eval.max then
     ksi.trace('%s output of %d bytes exceeds 0x%x', record.name, #output, eval.max)
-    return ksi.STATUS_BUFFER_OVERFLOW
+    return nt.STATUS_BUFFER_OVERFLOW
   end
   local types = result_types(output)
   if not types or (types & ~eval.results) ~= 0 then
     ksi.trace('%s result types are not permitted', record.name)
-    return ksi.STATUS_OBJECT_TYPE_MISMATCH
+    return nt.STATUS_OBJECT_TYPE_MISMATCH
   end
-  return ksi.STATUS_SUCCESS, output
+  return nt.STATUS_SUCCESS, output
 end
 
 -- Keeps the device found for a row and ordinal; false in a volatile script.
@@ -442,7 +444,7 @@ local function evaluate(record, milliseconds)
   local status, output
   if k then
     status, output = evaluate_on(k.device, record, milliseconds)
-    if status == ksi.STATUS_NO_SUCH_DEVICE then
+    if status == nt.STATUS_NO_SUCH_DEVICE then
       ksi.trace('row %d device %d is gone', record.row, record.ordinal)
       devices[record.ordinal] = nil
       k.device:release()
@@ -458,7 +460,7 @@ local function evaluate(record, milliseconds)
   end)
   if not status then
     ksi.trace('row %d has no device %d', record.row, record.ordinal)
-    return ksi.STATUS_NOT_FOUND
+    return nt.STATUS_NOT_FOUND
   end
   return status, output
 end
@@ -470,11 +472,11 @@ end
 -- Returns the row, ordinal and matching ID of each device a row covers.
 function identify(input)
   if not ksi.hw.acpi_find then
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input ~= 0 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local old = kept
   kept = {}
@@ -491,35 +493,35 @@ function identify(input)
       return false, remember(number, ordinal, device)
     end)
   end
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
 
 -- Evaluates the permitted methods of the devices the rows cover.
 function eval(input)
   if not ksi.hw.acpi_eval then
-    return ksi.STATUS_NOT_SUPPORTED
+    return nt.STATUS_NOT_SUPPORTED
   end
   if #input < 4 then
     ksi.trace('input of %d bytes', #input)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local milliseconds = string.unpack('<I4', input)
   if milliseconds == 0 or milliseconds > MILLISECONDS_MAX then
     ksi.trace('%u milliseconds', milliseconds)
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local records = {}
   local at = 5
   while at <= #input do
     if at + 15 > #input then
       ksi.trace('record at %d is truncated', at)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     local row, ordinal, names, arguments = string.unpack('<I4I4I4I4', input, at)
     local size = 16 + names + arguments
     if not ROWS[row] or names == 0 or names > 255 or at + size - 1 > #input then
       ksi.trace('record at %d is malformed', at)
-      return ksi.STATUS_INVALID_PARAMETER
+      return nt.STATUS_INVALID_PARAMETER
     end
     records[#records + 1] = {
       row = row,
@@ -531,7 +533,7 @@ function eval(input)
   end
   if #records == 0 then
     ksi.trace('no record')
-    return ksi.STATUS_INVALID_PARAMETER
+    return nt.STATUS_INVALID_PARAMETER
   end
   local output = {}
   for i, record in ipairs(records) do
@@ -539,5 +541,5 @@ function eval(input)
     result = result or ''
     output[i] = string.pack('<i4I4', status, #result) .. pad(result)
   end
-  return ksi.STATUS_SUCCESS, table.concat(output)
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
