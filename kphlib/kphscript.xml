@@ -54,5 +54,6 @@ This file is part of System Informer.
     </script>
     <script name="pciconfig" file="script/pciconfig.lua" arch="amd64" desc="PCI configuration space">
         <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
     </script>
 </scripts>
