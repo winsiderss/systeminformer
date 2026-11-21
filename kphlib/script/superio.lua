@@ -17,6 +17,7 @@
 local FAMILY_NUVOTON = 1
 local FAMILY_ITE = 3
 local FAMILY_FINTEK = 4
+local FAMILY_SMSC = 5
 
 local SLOTS = { [0] = 0x2e, [1] = 0x4e }
 
@@ -1044,6 +1045,60 @@ local FINTEK_ROWS = {
     end,
   },
 }
+local SMSC_ROWS = {
+  {
+    chips = {
+      0x7c,
+      0x7d,
+      0x7f,
+    },
+    ldn = 0x0a,
+    exit = EXIT_KEY_AA,
+    active = false,
+    bank_mask = 0x00,
+    monitor = function()
+      return {
+        ids = {
+          { 0x003e, 0x5c, 0x5c },
+          { 0x003d, 0x8c, 0x8c },
+        },
+        reads = {
+          { 0x0020, 0xe },
+          { 0x0030, 0x3 },
+          { 0x003d, 0x2 },
+          { 0x0040, 0x1 },
+          { 0x0084, 0x5 },
+          { 0x0099, 0x2 },
+        },
+      }
+    end,
+  },
+  {
+    chips = {
+      0x86,
+    },
+    ldn = 0x0a,
+    exit = EXIT_KEY_AA,
+    active = false,
+    bank_mask = 0x00,
+    monitor = function()
+      return {
+        ids = {
+          { 0x003e, 0x5c, 0x5c },
+          { 0x003d, 0x8e, 0x8e },
+        },
+        reads = {
+          { 0x001f, 0xf },
+          { 0x0030, 0x3 },
+          { 0x003d, 0x2 },
+          { 0x0040, 0x1 },
+          { 0x0084, 0x6 },
+          { 0x0099, 0x2 },
+        },
+      }
+    end,
+  },
+}
 
 local function answers(id)
   return (id ~= 0) and (id ~= 0xffff)
@@ -1061,10 +1116,22 @@ local function nuvoton_key(s)
   ksi.hw.port_write(s.port, 1, 0x87)
 end
 
+local function smsc_key(s)
+  ksi.hw.port_write(s.port, 1, 0x55)
+end
+
 local FAMILIES = {
   { family = FAMILY_ITE, rows = ITE_ROWS, key = ite_key },
   { family = FAMILY_NUVOTON, rows = NUVOTON_ROWS, key = nuvoton_key },
   { family = FAMILY_FINTEK, rows = FINTEK_ROWS, key = nuvoton_key, remember = false },
+  {
+    family = FAMILY_SMSC,
+    rows = SMSC_ROWS,
+    key = smsc_key,
+    byte_id = true,
+    block = 0x80,
+    pair = 0x70,
+  },
 }
 
 local function find_row(family, id)
@@ -1140,6 +1207,17 @@ local function rcw(s, reg)
   return (hi << 8) | lo
 end
 
+-- The chip ID at CR20h, one byte for a family that has one, and whether a
+-- chip answers.
+local function chip_id(s, family)
+  if family.byte_id then
+    local id = rc(s, 0x20)
+    return id, id ~= 0 and id ~= 0xff
+  end
+  local id = rcw(s, 0x20)
+  return id, answers(id)
+end
+
 local function exit_config(s)
   if s.entered then
     if s.row.exit == EXIT_KEY_AA then
@@ -1158,7 +1236,7 @@ local function abandon(s)
     if s.family.family == FAMILY_ITE and answers(rcw(s, 0x20)) then
       wc(s, 0x02, 0x02)
     end
-    if answers(rcw(s, 0x20)) then
+    if select(2, chip_id(s, s.family)) then
       ksi.trace('port 0x%02x still answers after the exit', s.port)
       s.busy = true
     end
@@ -1196,7 +1274,7 @@ local function probe(s)
   s.already_open = answers(id)
   if s.already_open then
     for _, family in ipairs(FAMILIES) do
-      if find_row(family, id) then
+      if find_row(family, family.byte_id and (id >> 8) or id) then
         s.open_family = family
         return true
       end
@@ -1221,8 +1299,8 @@ local function configure(s, family)
     s.entered = true
     family.key(s)
   end
-  local id = rcw(s, 0x20)
-  s.entered = (not s.already_open) and answers(id)
+  local id, answered = chip_id(s, family)
+  s.entered = (not s.already_open) and answered
   s.row = find_row(family, id)
   if not s.row then
     ksi.trace('chip 0x%04x at port 0x%02x is not known to family %d', id, s.port, family.family)
@@ -1256,11 +1334,12 @@ local function configure(s, family)
   if family.family == FAMILY_FINTEK and (base & 7) == 5 then
     base = base - 5
   end
-  if (base & 7) ~= 0 then
+  local block = family.block or 8
+  if base % block ~= 0 then
     ksi.trace('monitor base 0x%04x is misaligned', base)
     return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  if base < BASE_MIN or base + 7 > BASE_LAST then
+  if base < BASE_MIN or base + block - 1 > BASE_LAST then
     ksi.trace('monitor base 0x%04x is outside the permitted range', base)
     return ksi.STATUS_DEVICE_CONFIGURATION_ERROR
   end
@@ -1362,6 +1441,11 @@ local function put_back_bank(s)
 end
 
 local function rm(s, reg)
+  local pair = s.family.pair
+  if pair then
+    ksi.hw.port_write(s.base + pair, 1, reg & 0xff)
+    return ksi.hw.port_read(s.base + pair + 1, 1)
+  end
   local mask = s.row.bank_mask
   if mask ~= 0 then
     read_bank(s)
@@ -1501,7 +1585,7 @@ function read(input)
   local k = kept[s.port]
   local status, monitor
   if k then
-    s.row, s.base, monitor = k.row, k.base, k.monitor
+    s.row, s.base, monitor, s.family = k.row, k.base, k.monitor, k.family
   else
     if not probe(s) then
       return ksi.STATUS_NOT_FOUND
@@ -1555,7 +1639,7 @@ function read(input)
   if stopped then
     kept[s.port] = nil
   elseif not k and not ksi.volatile and s.family.remember ~= false then
-    kept[s.port] = { row = s.row, base = s.base, monitor = monitor }
+    kept[s.port] = { row = s.row, base = s.base, monitor = monitor, family = s.family }
   end
   return ksi.STATUS_SUCCESS, table.concat(output)
 end
