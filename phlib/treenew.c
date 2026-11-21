@@ -2263,8 +2263,8 @@ VOID PhTnpOnHScroll(
         break;
     case SB_THUMBPOSITION:
         // Touch scrolling seems to give us Position but not nTrackPos. The problem is that Position
-        // is a 16-bit value, so don't use it if we have too many rows.
-        if (Context->FlatList->Count <= 0xffff)
+        // is a 16-bit value, so don't use it if the horizontal scroll range is too large.
+        if (scrollInfo.nMax <= 0xffff)
             scrollInfo.nPos = Position;
         break;
     case SB_THUMBTRACK:
@@ -2282,6 +2282,33 @@ VOID PhTnpOnHScroll(
 
     if (deltaX != 0)
         PhTnpProcessScroll(Context, 0, deltaX);
+}
+
+static LONG PhpTnpClampColumnWidth(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG Width
+    )
+{
+    LONG remainingWidth = SHRT_MAX;
+    LONG count;
+    HDITEM item;
+
+    // Header windows cannot move left of -32768, and mouse coordinates in header
+    // messages are signed 16-bit values. Keep the whole header within that range.
+    if (Column->Fixed)
+        return min(max(Width, Context->FixedWidthMinimum + 1), SHRT_MAX);
+
+    count = Header_GetItemCount(Context->HeaderHandle);
+    item.mask = HDI_WIDTH | HDI_LPARAM;
+
+    for (LONG i = 0; i < count; i++)
+    {
+        if (Header_GetItem(Context->HeaderHandle, i, &item) && (PPH_TREENEW_COLUMN)item.lParam != Column)
+            remainingWidth -= min(max(item.cxy, 0), remainingWidth);
+    }
+
+    return min(max(Width, 0), remainingWidth);
 }
 
 /**
@@ -2311,35 +2338,11 @@ BOOLEAN PhTnpOnNotify(
             if (!nmHeader->pitem)
                 break;
 
-            if (Header->code == HDN_ITEMCHANGING && Header->hwndFrom == Context->FixedHeaderHandle)
-            {
-                if (nmHeader->pitem->mask & HDI_WIDTH)
-                {
-                    if (Context->FixedColumnVisible)
-                    {
-                        Context->FixedWidth = nmHeader->pitem->cxy - 1;
-
-                        if (Context->FixedWidth < Context->FixedWidthMinimum)
-                            Context->FixedWidth = Context->FixedWidthMinimum;
-
-                        Context->NormalLeft = Context->FixedWidth + 1;
-                        nmHeader->pitem->cxy = Context->FixedWidth + 1;
-                    }
-                    else
-                    {
-                        Context->FixedWidth = 0;
-                        Context->NormalLeft = 0;
-                    }
-                }
-            }
-
             if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
             {
                 if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
-                    // A column is being resized. Note that this arrives for every mouse movement
-                    // while the divider is dragged (HDS_FULLDRAG), so the whole header must not be
-                    // enumerated here - only the column that actually changed is touched. (dmex)
+                    // Clamp the native header width before updating the cached column geometry.
 
                     if (Header->code == HDN_ITEMCHANGING)
                     {
@@ -2349,6 +2352,11 @@ BOOLEAN PhTnpOnNotify(
 
                         if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item) && item.lParam)
                         {
+                            nmHeader->pitem->cxy = PhpTnpClampColumnWidth(
+                                Context,
+                                (PPH_TREENEW_COLUMN)item.lParam,
+                                nmHeader->pitem->cxy
+                                );
                             Context->ResizingColumn = (PPH_TREENEW_COLUMN)item.lParam;
                             Context->OldColumnWidth = item.cxy;
                         }
@@ -2356,6 +2364,22 @@ BOOLEAN PhTnpOnNotify(
                         {
                             Context->ResizingColumn = NULL;
                             Context->OldColumnWidth = -1;
+                        }
+
+                        // Use the clamped header width for layout and hit testing too,
+                        // including requests that clamp back to the existing width.
+                        if (Header->hwndFrom == Context->FixedHeaderHandle)
+                        {
+                            if (Context->FixedColumnVisible)
+                            {
+                                Context->FixedWidth = nmHeader->pitem->cxy - 1;
+                                Context->NormalLeft = nmHeader->pitem->cxy;
+                            }
+                            else
+                            {
+                                Context->FixedWidth = 0;
+                                Context->NormalLeft = 0;
+                            }
                         }
                     }
                     else if (Header->code == HDN_ITEMCHANGED)
@@ -2366,11 +2390,12 @@ BOOLEAN PhTnpOnNotify(
 
                             delta = nmHeader->pitem->cxy - Context->OldColumnWidth;
 
+                            // A programmatic update may have changed Column->Width even when
+                            // the header clamps the request back to its existing width.
+                            PhTnpUpdateColumnWidth(Context, Context->ResizingColumn, nmHeader->pitem->cxy);
+
                             if (delta != 0)
                             {
-                                // The scroll below depends on the new width, so apply it first.
-                                PhTnpUpdateColumnWidth(Context, Context->ResizingColumn, nmHeader->pitem->cxy);
-
                                 PhTnpProcessResizeColumn(Context, Context->ResizingColumn, delta);
                                 Context->Callback(Context->Handle, TreeNewColumnResized, Context->ResizingColumn, NULL, Context->CallbackContext);
                             }
@@ -3841,7 +3866,7 @@ VOID PhTnpSetFixedWidth(
 
     if (Context->FixedColumnVisible)
     {
-        Context->FixedWidth = FixedWidth;
+        Context->FixedWidth = min(FixedWidth, SHRT_MAX - 1);
 
         if (Context->FixedWidth < Context->FixedWidthMinimum)
             Context->FixedWidth = Context->FixedWidthMinimum;
@@ -4608,8 +4633,14 @@ LONG PhTnpInsertColumnHeader(
 {
     HDITEM item;
 
+    Column->Width = PhpTnpClampColumnWidth(Context, Column, Column->Fixed ? min(Column->Width, SHRT_MAX - 1) + 1 : Column->Width);
+    if (Column->Fixed)
+        Column->Width--;
+
     if (Column->Fixed)
     {
+        Context->FixedColumn = Column;
+
         if (Column->Width < Context->FixedWidthMinimum)
             Column->Width = Context->FixedWidthMinimum;
 
@@ -4689,7 +4720,7 @@ VOID PhTnpChangeColumnHeader(
         item.cxy = Column->Width;
 
         if (Column->Fixed)
-            item.cxy++;
+            item.cxy = min(item.cxy, SHRT_MAX - 1) + 1;
     }
 
     if (Mask & TN_COLUMN_ALIGNMENT)
@@ -9599,6 +9630,49 @@ VOID PhTnpSelectionDestroyBufferedContext(
     }
 }
 
+static VOID PhpTnpPaintHeader(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ WNDPROC WindowProc
+    )
+{
+    if (Context->HeaderCustomDraw || Context->ThemeSupport)
+    {
+        RECT clipRect;
+        LONG count = Header_GetItemCount(WindowHandle);
+        HDITEM item;
+        NMCUSTOMDRAW customDraw = { 0 };
+
+        GetClipBox(Hdc, &clipRect);
+        SetDCBrushColor(Hdc, Context->ThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW));
+        FillRect(Hdc, &clipRect, PhGetStockBrush(DC_BRUSH));
+
+        item.mask = HDI_LPARAM;
+        customDraw.hdr.hwndFrom = WindowHandle;
+        customDraw.hdc = Hdc;
+
+        // Render directly into our buffer: the native WM_PRINTCLIENT path loses
+        // custom-drawn items in wide headers.
+        for (LONG i = 0; i < count; i++)
+        {
+            if (Header_GetItem(WindowHandle, i, &item) &&
+                Header_GetItemRect(WindowHandle, i, &customDraw.rc) &&
+                RectVisible(Hdc, &customDraw.rc))
+            {
+                customDraw.dwItemSpec = i;
+                customDraw.lItemlParam = item.lParam;
+                customDraw.uItemState = Context->HeaderDragging ? CDIS_SELECTED : 0;
+                TnHeaderCustomPaint(Context, &customDraw);
+            }
+        }
+    }
+    else
+    {
+        CallWindowProc(WindowProc, WindowHandle, WM_PRINTCLIENT, (WPARAM)Hdc, PRF_CLIENT);
+    }
+}
+
 /**
  * Window procedure hook for the header control.
  *
@@ -9675,13 +9749,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     paintStruct.rcPaint.bottom
                     );
 
-                CallWindowProc(
-                    oldWndProc,
-                    WindowHandle,
-                    WM_PRINTCLIENT,
-                    (WPARAM)context->HeaderBufferedDc,
-                    PRF_CLIENT
-                    );
+                PhpTnpPaintHeader(context, WindowHandle, context->HeaderBufferedDc, oldWndProc);
 
                 if (savedDcState)
                     RestoreDC(context->HeaderBufferedDc, savedDcState);
@@ -9702,7 +9770,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             }
             else
             {
-                CallWindowProc(oldWndProc, WindowHandle, WM_PRINTCLIENT,  (WPARAM)hdc, PRF_CLIENT);
+                PhpTnpPaintHeader(context, WindowHandle, hdc, oldWndProc);
             }
 
             EndPaint(WindowHandle, &paintStruct);
