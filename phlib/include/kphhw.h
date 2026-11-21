@@ -162,6 +162,17 @@ typedef struct _KPH_HW_PCI_CONFIG
     ULONG Ranges;
 } KPH_HW_PCI_CONFIG, *PKPH_HW_PCI_CONFIG;
 
+typedef struct _KPH_HW_CROSEC_IDENTITY
+{
+    CHAR Id[2];
+    UCHAR IdVersion;
+    UCHAR ThermalVersion;
+    UCHAR BatteryVersion;
+    UCHAR SwitchesVersion;
+    UCHAR EventsVersion;
+    UCHAR HostCommandFlags;
+} KPH_HW_CROSEC_IDENTITY, *PKPH_HW_CROSEC_IDENTITY;
+
 #define KPH_HW_WINDOW_MCHBAR 1
 #define KPH_HW_WINDOW_BAR0 2
 
@@ -195,6 +206,7 @@ C_ASSERT(sizeof(KPH_HW_SMBUS_ITEM) == 4);
 C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);
 C_ASSERT(sizeof(KPH_HW_WINDOW_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
+C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
 
 PHLIBAPI
 NTSTATUS
@@ -368,6 +380,22 @@ KphHwPciConfigReadBlock(
     _In_ ULONG Offset,
     _Out_writes_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwCrosEcIdentify(
+    _Out_ PKPH_HW_CROSEC_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwCrosEcRead(
+    _In_reads_(Count) PCULONG Offsets,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
 PHLIBAPI

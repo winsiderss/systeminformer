@@ -33,6 +33,7 @@ static CONST PH_STRINGREF KphpHwPciMmioFileName = PH_STRINGREF_INIT(L"scripts\\p
 static CONST PH_STRINGREF KphpHwHsmpFileName = PH_STRINGREF_INIT(L"scripts\\hsmp.bin");
 static CONST PH_STRINGREF KphpHwPlatformFileName = PH_STRINGREF_INIT(L"scripts\\platform.bin");
 static CONST PH_STRINGREF KphpHwPciConfigFileName = PH_STRINGREF_INIT(L"scripts\\pciconfig.bin");
+static CONST PH_STRINGREF KphpHwCrosEcFileName = PH_STRINGREF_INIT(L"scripts\\crosec.bin");
 static KPH_HW_SCRIPT KphpHwCpuScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCpuFileName };
 static KPH_HW_SCRIPT KphpHwSuperIoScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwSuperIoFileName };
 static KPH_HW_SCRIPT KphpHwAcpiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAcpiFileName };
@@ -43,6 +44,7 @@ static KPH_HW_SCRIPT KphpHwPciMmioScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRI
 static KPH_HW_SCRIPT KphpHwHsmpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHsmpFileName };
 static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPlatformFileName };
 static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
+static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
 
 /**
  * Retrieves the handle of a script, loading the script on first use.
@@ -192,6 +194,7 @@ VOID KphHwSetScriptMode(
         &KphpHwHsmpScript,
         &KphpHwPlatformScript,
         &KphpHwPciConfigScript,
+        &KphpHwCrosEcScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1430,6 +1433,114 @@ NTSTATUS KphHwPciConfigReadBlock(
         RtlCopyMemory(Buffer, output, Length);
 
     PhFree(output);
+
+    return status;
+}
+
+/**
+ * Identifies the memory map of the ChromeOS embedded controller of the board.
+ *
+ * \param Identity Receives the map's signature and the version and flag bytes
+ * after it.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+NTSTATUS KphHwCrosEcIdentify(
+    _Out_ PKPH_HW_CROSEC_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_CROSEC_IDENTITY identity;
+    ULONG returnLength;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwCrosEcScript,
+        &routine,
+        NULL,
+        0,
+        &identity,
+        sizeof(identity),
+        &returnLength
+        );
+
+    KphpHwReleaseBus(KphHwBusIsa);
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(identity))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads bytes of the memory map of the ChromeOS embedded controller of the
+ * board.
+ *
+ * \param Offsets The offsets in the map to read.
+ * \param Count The number of offsets.
+ * \param Values Receives a status and a byte per offset, in the order of the
+ * offsets.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+NTSTATUS KphHwCrosEcRead(
+    _In_reads_(Count) PCULONG Offsets,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG inputLength;
+    ULONG outputLength;
+    ULONG returnLength;
+    PULONG input;
+    PKPH_HW_VALUE32 values;
+
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(ULONG), &inputLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE32), &outputLength)))
+        return status;
+
+    input = PhAllocate(inputLength ? inputLength : 1);
+    RtlCopyMemory(input, Offsets, inputLength);
+
+    values = PhAllocate(outputLength ? outputLength : 1);
+
+    if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+    {
+        status = KphpHwScriptCall(
+            &KphpHwCrosEcScript,
+            &routine,
+            input,
+            inputLength,
+            values,
+            outputLength,
+            &returnLength
+            );
+
+        KphpHwReleaseBus(KphHwBusIsa);
+
+        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+            status = STATUS_INFO_LENGTH_MISMATCH;
+
+        if (NT_SUCCESS(status))
+            RtlCopyMemory(Values, values, outputLength);
+    }
+
+    PhFree(values);
+    PhFree(input);
 
     return status;
 }
