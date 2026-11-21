@@ -341,6 +341,24 @@ KphHwHsmpCommand(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphHwHsmpAcpiIdentify(
+    _In_ ULONG Socket,
+    _Out_ PKPH_HW_HSMP_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwHsmpAcpiCommand(
+    _In_ ULONG Socket,
+    _In_reads_(Count) PCKPH_HW_HSMP_COMMAND Commands,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_HSMP_RESULT Results
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphHwSmbusIdentify(
     _In_ ULONG Locator,
     _Out_ PKPH_HW_SMBUS_HOST Host
