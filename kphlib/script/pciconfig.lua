@@ -259,3 +259,51 @@ function identify(input)
   local ranges = s.ranges or s.row.reads()
   return ksi.STATUS_SUCCESS, string.pack('<I2I2I4', s.vendor, s.id, #ranges)
 end
+
+local function permitted(ranges, offset, width)
+  for _, range in ipairs(ranges) do
+    local delta = offset - range[1]
+    if offset >= range[1] and delta < range[2] and width <= range[2] - delta then
+      return true
+    end
+  end
+  return false
+end
+
+-- Reads a list of registers of the function the input names.
+function read(input)
+  if #input < 12 or (#input - 4) % 8 ~= 0 then
+    ksi.trace('input of %d bytes', #input)
+    return ksi.STATUS_INVALID_PARAMETER
+  end
+  local s, refused = session(string.unpack('<I4', input))
+  if not s then
+    return refused
+  end
+  local closer <close> = (not s.kept) and s.device or nil
+  local ranges = s.ranges or s.row.reads()
+  local output = {}
+
+  for i = 1, (#input - 4) // 8 do
+    local offset, width = string.unpack('<I4I4', input, i * 8 - 3)
+    local status, value = ksi.STATUS_SUCCESS, 0
+    if width ~= 1 and width ~= 2 and width ~= 4 then
+      ksi.trace('width %d at 0x%x', width, offset)
+      status = ksi.STATUS_INVALID_PARAMETER
+    elseif not permitted(ranges, offset, width) then
+      ksi.trace('0x%x of %d bytes is not permitted', offset, width)
+      status = ksi.STATUS_ACCESS_DENIED
+    else
+      local got, failed = ksi.hw.pci_read(s.device, offset, width)
+      if got then
+        value = got
+      else
+        ksi.trace('0x%x of %d bytes not read: 0x%x', offset, width, failed)
+        status = ksi.STATUS_DEVICE_NOT_READY
+      end
+    end
+    output[i] = string.pack('<I4I4', status, value)
+  end
+
+  return ksi.STATUS_SUCCESS, table.concat(output)
+end
