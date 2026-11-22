@@ -104,6 +104,25 @@ typedef struct _MB_W83627HF_VARIANT
 } MB_W83627HF_VARIANT, *PMB_W83627HF_VARIANT;
 typedef const MB_W83627HF_VARIANT* PCMB_W83627HF_VARIANT;
 
+#define MB_ITE_SCALED 0x1
+#define MB_ITE_AVCC3 0x2
+#define MB_ITE_NEWER_PWM 0x4
+#define MB_ITE_FAN16_CONFIG 0x8 // fans 1-3 count 16 bits only where 0Ch bits 2:0 enable it
+#define MB_ITE_TEMP_CONFIG 0x10
+#define MB_ITE_ALT_FAN6 0x20
+#define MB_ITE_IN7_INTERNAL 0x40
+#define MB_ITE_BANK_SELECT 0x80 // 06h bits 6:5 swap 10h-AFh; a non-zero bank drops the sample
+
+typedef struct _MB_ITE_VARIANT
+{
+    USHORT LsbMicrovolts;
+    UCHAR Flags;
+    UCHAR TemperatureCount;
+    UCHAR FanCount;
+    UCHAR PwmCount;
+} MB_ITE_VARIANT, *PMB_ITE_VARIANT;
+typedef const MB_ITE_VARIANT* PCMB_ITE_VARIANT;
+
 struct _MB_CHIP
 {
     UCHAR Family;
@@ -484,6 +503,47 @@ static CONST PCWSTR Nct6687MsiTemperatureLabels[] =
     L"CPU", L"System", L"VRM MOS", L"PCH", L"CPU Socket", L"PCIe x1", L"M2_1"
 };
 
+static CONST MB_ITE_VARIANT It8705 = { 16000, MB_ITE_FAN16_CONFIG, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8716 = { 16000, MB_ITE_FAN16_CONFIG, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8781 = { 16000, MB_ITE_FAN16_CONFIG, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8721 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM | MB_ITE_FAN16_CONFIG, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8728 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 5, 3 };
+static CONST MB_ITE_VARIANT It8771 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8732 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 4, 4 };
+static CONST MB_ITE_VARIANT It8792 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8603 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM, 3, 3, 3 };
+static CONST MB_ITE_VARIANT It8613 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM, 4, 5, 4 };
+static CONST MB_ITE_VARIANT It8620 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG, 6, 6, 6 };
+static CONST MB_ITE_VARIANT It8622 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM, 4, 5, 5 };
+static CONST MB_ITE_VARIANT It8625 = { 11000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_ALT_FAN6 | MB_ITE_BANK_SELECT, 3, 6, 6 };
+static CONST MB_ITE_VARIANT It8631 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_NEWER_PWM, 2, 2, 2 };
+static CONST MB_ITE_VARIANT It8655 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_BANK_SELECT, 6, 3, 3 };
+static CONST MB_ITE_VARIANT It8665 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_ALT_FAN6 | MB_ITE_BANK_SELECT, 6, 6, 6 };
+static CONST MB_ITE_VARIANT It8686 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 5 };
+static CONST MB_ITE_VARIANT It8689 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 6 };
+static CONST MB_ITE_VARIANT It8696 = { 12000, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM | MB_ITE_TEMP_CONFIG | MB_ITE_BANK_SELECT, 6, 6, 6 };
+static CONST MB_ITE_VARIANT It8736 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL, 3, 4, 3 };
+static CONST MB_ITE_VARIANT It8738 = { 10900, MB_ITE_SCALED | MB_ITE_IN7_INTERNAL | MB_ITE_AVCC3 | MB_ITE_NEWER_PWM, 3, 3, 3 };
+
+static CONST USHORT IteFanLowRegisters[] = { 0x0d, 0x0e, 0x0f, 0x80, 0x82, 0x4c };
+static CONST USHORT IteFanHighRegisters[] = { 0x18, 0x19, 0x1a, 0x81, 0x83, 0x4d };
+static CONST USHORT ItePwmControlRegisters[] = { 0x15, 0x16, 0x17, 0x7f, 0xa7, 0xaf };
+static CONST USHORT ItePwmDutyRegisters[] = { 0x63, 0x6b, 0x73, 0x7b, 0xa3, 0xab };
+static CONST USHORT IteInputRegisters[] = { 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2f };
+static CONST PCWSTR IteInputLabels[] =
+{
+    L"VIN0", L"VIN1", L"VIN2", L"VIN3", L"VIN4", L"VIN5", L"VIN6", L"3VSB", L"VBAT", L"AVCC3"
+};
+
+#define ITE_REG_BANK 0x06
+#define ITE_REG_FAN_DIVISOR 0x0b
+#define ITE_REG_FAN_16BIT 0x0c
+#define ITE_REG_FAN_MAIN_CTRL 0x13
+#define ITE_REG_TEMP(n) ((USHORT)(0x29 + (n)))
+#define ITE_REG_TEMP456_ENABLE 0x77
+#define ITE_REG_FAN6_ALT_LOW 0x93
+#define ITE_REG_FAN6_ALT_HIGH 0x94
+
 static CONST MB_CHIP SuperIoChips[] =
 {
     { MB_FAMILY_NUVOTON, 0xc450, 0xfff8, L"NCT6102D/NCT6104D/NCT6106D", &Nct6106, MB_DECODER_NCT610X },
@@ -518,6 +578,45 @@ static CONST MB_CHIP SuperIoChips[] =
     { MB_FAMILY_NUVOTON_EC, 0xc730, 0xfff0, L"NCT6683D", NULL },
     { MB_FAMILY_NUVOTON_EC, 0xd440, 0xfff0, L"NCT6686D", NULL },
     { MB_FAMILY_NUVOTON_EC, 0xd590, 0xfff0, L"NCT6687D", NULL },
+    { MB_FAMILY_ITE, 0x8705, 0xffff, L"IT8705F", &It8705 },
+    { MB_FAMILY_ITE, 0x8712, 0xffff, L"IT8712F", &It8705 },
+    { MB_FAMILY_ITE, 0x8716, 0xffff, L"IT8716F", &It8716 },
+    { MB_FAMILY_ITE, 0x8718, 0xffff, L"IT8718F", &It8716 },
+    { MB_FAMILY_ITE, 0x8720, 0xffff, L"IT8720F", &It8716 },
+    { MB_FAMILY_ITE, 0x8726, 0xffff, L"IT8726F", &It8716 },
+    { MB_FAMILY_ITE, 0x8721, 0xffff, L"IT8721F", &It8721 },
+    { MB_FAMILY_ITE, 0x8728, 0xffff, L"IT8728F", &It8728 },
+    { MB_FAMILY_ITE, 0x8732, 0xffff, L"IT8732F", &It8732 },
+    { MB_FAMILY_ITE, 0x8771, 0xffff, L"IT8771E", &It8771 },
+    { MB_FAMILY_ITE, 0x8772, 0xffff, L"IT8772E", &It8771 },
+    { MB_FAMILY_ITE, 0x8781, 0xffff, L"IT8781F", &It8781 },
+    { MB_FAMILY_ITE, 0x8782, 0xffff, L"IT8782F", &It8781 },
+    { MB_FAMILY_ITE, 0x8783, 0xffff, L"IT8783E/F", &It8781 },
+    { MB_FAMILY_ITE, 0x8786, 0xffff, L"IT8786E", &It8771 },
+    { MB_FAMILY_ITE, 0x8790, 0xffff, L"IT8790E", &It8771 },
+    { MB_FAMILY_ITE, 0x8785, 0xffff, L"IT8785E", &It8771 },
+    { MB_FAMILY_ITE, 0x8736, 0xffff, L"IT8736F", &It8736 },
+    { MB_FAMILY_ITE, 0x8738, 0xffff, L"IT8738E", &It8738 },
+    { MB_FAMILY_ITE, 0x8733, 0xffff, L"IT8792E", &It8792 },
+    { MB_FAMILY_ITE, 0x8695, 0xffff, L"IT87952E", &It8792 },
+    { MB_FAMILY_ITE, 0x8603, 0xffff, L"IT8603E", &It8603 },
+    { MB_FAMILY_ITE, 0x8623, 0xffff, L"IT8623E", &It8603 },
+    { MB_FAMILY_ITE, 0x8606, 0xffff, L"IT8606E", &It8603 },
+    { MB_FAMILY_ITE, 0x8607, 0xffff, L"IT8607E", &It8603 },
+    { MB_FAMILY_ITE, 0x8613, 0xffff, L"IT8613E", &It8613 },
+    { MB_FAMILY_ITE, 0x8620, 0xffff, L"IT8620E", &It8620 },
+    { MB_FAMILY_ITE, 0x8628, 0xffff, L"IT8628E", &It8620 },
+    { MB_FAMILY_ITE, 0x8622, 0xffff, L"IT8622E", &It8622 },
+    { MB_FAMILY_ITE, 0x8625, 0xffff, L"IT8625E", &It8625 },
+    { MB_FAMILY_ITE, 0x8631, 0xffff, L"IT8631E", &It8631 },
+    { MB_FAMILY_ITE, 0x8638, 0xffff, L"IT8638E", &It8631 },
+    { MB_FAMILY_ITE, 0x8655, 0xffff, L"IT8655E", &It8655 },
+    { MB_FAMILY_ITE, 0x8665, 0xffff, L"IT8665E", &It8665 },
+    { MB_FAMILY_ITE, 0x8686, 0xffff, L"IT8686E", &It8686 },
+    { MB_FAMILY_ITE, 0x8688, 0xffff, L"IT8688E", &It8686 },
+    { MB_FAMILY_ITE, 0x8689, 0xffff, L"IT8689E", &It8689 },
+    { MB_FAMILY_ITE, 0x8696, 0xffff, L"IT8696E", &It8696 },
+    { MB_FAMILY_ITE, 0x8698, 0xffff, L"IT8698E", &It8689 },
 };
 
 // Board-gated chip identities; never matched by ID.
@@ -534,6 +633,45 @@ static CONST PH_STRINGREF AsrockNct6796sPrefixProducts[] =
 {
     PH_STRINGREF_INIT(L"B650M-HDV/M.2"),
     { 0, NULL }
+};
+
+static CONST PH_STRINGREF GigabyteB650AorusEliteProducts[] =
+{
+    PH_STRINGREF_INIT(L"B650 AORUS ELITE"),
+    PH_STRINGREF_INIT(L"B650 AORUS ELITE AX"),
+    PH_STRINGREF_INIT(L"B650 AORUS ELITE V2"),
+    PH_STRINGREF_INIT(L"B650 AORUS ELITE AX V2"),
+    PH_STRINGREF_INIT(L"B650 AORUS ELITE AX ICE"),
+    PH_STRINGREF_INIT(L"B650E AORUS ELITE AX ICE"),
+    PH_STRINGREF_INIT(L"B650 GAMING X AX"),
+    PH_STRINGREF_INIT(L"B650M AORUS PRO"),
+    PH_STRINGREF_INIT(L"B650M AORUS PRO AX"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB650AorusEliteVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"Vcore Misc", 0, 1, 0 },
+    { 6, L"Dual DDR5 5V", 1.5f, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB650AorusEliteTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"PCH" }, { 2, L"CPU" }, { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"VSoC MOS" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB650AorusEliteFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"System Fan #4 / Pump" }, { 5, L"CPU Optional Fan" },
 };
 
 static CONST PH_STRINGREF AsusRogStrixX670eProducts[] =
@@ -687,6 +825,13 @@ static CONST MB_BOARD_LABEL MsiNct6687drFans[] =
 
 static CONST MB_BOARD SuperIoBoards[] =
 {
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB650AorusEliteProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB650AorusEliteVoltages),
+        MB_BOARD_ENTRIES(GigabyteB650AorusEliteTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB650AorusEliteFans),
+        MB_BOARD_ENTRIES(GigabyteB650AorusEliteFans),
+    },
     {
         PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixX670eProducts, 0xd800, 0xfff8,
         MB_BOARD_ENTRIES(AsusRogStrixX670eVoltages),
@@ -1036,6 +1181,51 @@ static VOID SuperIoAddNct668xRegisters(
     }
 }
 
+static VOID SuperIoAddIteRegisters(
+    _In_ PCMB_ITE_VARIANT Variant,
+    _Inout_ PMB_REGISTER_LIST List
+    )
+{
+    if (Variant->LsbMicrovolts)
+    {
+        for (ULONG i = 0; i < ((Variant->Flags & MB_ITE_AVCC3) ? 10ul : 9ul); i++)
+            SuperIoAddRegister(List, IteInputRegisters[i]);
+    }
+
+    for (USHORT i = 0; i < Variant->TemperatureCount; i++)
+        SuperIoAddRegister(List, ITE_REG_TEMP(i));
+    if (Variant->Flags & MB_ITE_TEMP_CONFIG)
+        SuperIoAddRegister(List, ITE_REG_TEMP456_ENABLE);
+
+    if (Variant->Flags & MB_ITE_BANK_SELECT)
+        SuperIoAddRegister(List, ITE_REG_BANK);
+
+    SuperIoAddRegister(List, ITE_REG_FAN_MAIN_CTRL);
+    SuperIoAddRegister(List, ITE_REG_FAN_16BIT);
+    SuperIoAddRegister(List, ITE_REG_FAN_DIVISOR);
+
+    for (ULONG i = 0; i < Variant->FanCount; i++)
+    {
+        if (i == 5 && (Variant->Flags & MB_ITE_ALT_FAN6))
+        {
+            SuperIoAddRegister(List, ITE_REG_FAN6_ALT_LOW);
+            SuperIoAddRegister(List, ITE_REG_FAN6_ALT_HIGH);
+            continue;
+        }
+
+        SuperIoAddRegister(List, IteFanLowRegisters[i]);
+        SuperIoAddRegister(List, IteFanHighRegisters[i]);
+    }
+
+    for (ULONG i = 0; i < Variant->PwmCount; i++)
+    {
+        if (Variant->Flags & MB_ITE_NEWER_PWM)
+            SuperIoAddRegister(List, ItePwmDutyRegisters[i]);
+        else
+            SuperIoAddRegister(List, ItePwmControlRegisters[i]);
+    }
+}
+
 /**
  * Lists the hardware monitor registers the decoder of a chip reads.
  *
@@ -1070,6 +1260,9 @@ ULONG SuperIoGetRegisters(
         break;
     case MB_FAMILY_NUVOTON_EC:
         SuperIoAddNct668xRegisters(State->Board, &list);
+        break;
+    case MB_FAMILY_ITE:
+        SuperIoAddIteRegisters(State->Chip->Variant, &list);
         break;
     }
 
@@ -1943,6 +2136,140 @@ static VOID SuperIoDecodeNct668x(
     }
 }
 
+static VOID SuperIoDecodeIte(
+    _Inout_ PMB_DECODE_CONTEXT Context
+    )
+{
+    PCMB_ITE_VARIANT variant = Context->State->Chip->Variant;
+    PCMB_REGISTERS registers = Context->Registers;
+    UCHAR fanMain = 0;
+    UCHAR fan16 = 0;
+    UCHAR divisors = 0;
+    UCHAR temp456 = 0;
+    UCHAR value8;
+
+    // Firmware that leaves a non-zero bank swaps the registers read below; this sample is dropped.
+    if ((variant->Flags & MB_ITE_BANK_SELECT) && SuperIoRead8(registers, ITE_REG_BANK, &value8) && ((value8 >> 5) & 3))
+    {
+        Context->Rejected = TRUE;
+        return;
+    }
+
+    if (variant->LsbMicrovolts)
+    {
+        for (ULONG i = 0; i < ((variant->Flags & MB_ITE_AVCC3) ? 10ul : 9ul); i++)
+        {
+            if (!SuperIoRead8(registers, IteInputRegisters[i], &value8))
+                continue;
+
+            SuperIoAddVoltage(
+                Context,
+                i,
+                value8 * variant->LsbMicrovolts / 1000000.0f,
+                (variant->Flags & MB_ITE_SCALED) && (i >= 8 || (i == 7 && (variant->Flags & MB_ITE_IN7_INTERNAL))),
+                IteInputLabels[i]
+                );
+        }
+    }
+
+    if (variant->Flags & MB_ITE_TEMP_CONFIG)
+    {
+        if (!SuperIoRead8(registers, ITE_REG_TEMP456_ENABLE, &temp456))
+            temp456 = 0;
+    }
+
+    for (ULONG i = 0; i < variant->TemperatureCount; i++)
+    {
+        // Temperatures 4-6 share 2Ch-2Eh with in10-in12; 77h says which.
+        if (i >= 3 && (variant->Flags & MB_ITE_TEMP_CONFIG) && ((temp456 >> (2 * (i - 3))) & 3) < 2)
+            continue;
+        if (!SuperIoRead8(registers, ITE_REG_TEMP(i), &value8))
+            continue;
+        // Absent sensors read 0 or 127.
+        if ((SCHAR)value8 <= 0 || value8 == 0x7f)
+            continue;
+
+        SuperIoAddTemperature(Context, i, i, (SCHAR)value8, L"Temperature #", i + 1);
+    }
+
+    SuperIoRead8(registers, ITE_REG_FAN_MAIN_CTRL, &fanMain);
+    SuperIoRead8(registers, ITE_REG_FAN_16BIT, &fan16);
+    SuperIoRead8(registers, ITE_REG_FAN_DIVISOR, &divisors);
+
+    for (ULONG i = 0; i < variant->FanCount; i++)
+    {
+        BOOLEAN present;
+        BOOLEAN wide;
+        ULONG count;
+        UCHAR low;
+        UCHAR high;
+        FLOAT rpm;
+
+        // Fans 1-3: 13h bits 4-6; fans 4/5: 0Ch bits 4/5; fan 6: 0Ch bit 2 or 0Bh bit 3.
+        if (i < 3)
+            present = !!(fanMain & (0x10 << i));
+        else if (i < 5)
+            present = !!(fan16 & (0x10 << (i - 3)));
+        else if (variant->Flags & MB_ITE_ALT_FAN6)
+            present = !!(divisors & 0x08);
+        else
+            present = !!(fan16 & 0x04);
+
+        if (!present)
+            continue;
+
+        wide = i >= 3 || !(variant->Flags & MB_ITE_FAN16_CONFIG) || (fan16 & (1 << i));
+
+        if (i == 5 && (variant->Flags & MB_ITE_ALT_FAN6))
+        {
+            if (!SuperIoRead8(registers, ITE_REG_FAN6_ALT_LOW, &low) || !SuperIoRead8(registers, ITE_REG_FAN6_ALT_HIGH, &high))
+                continue;
+        }
+        else if (!wide)
+        {
+            if (!SuperIoRead8(registers, IteFanLowRegisters[i], &low))
+                continue;
+            high = 0;
+        }
+        else
+        {
+            if (!SuperIoRead8(registers, IteFanLowRegisters[i], &low) || !SuperIoRead8(registers, IteFanHighRegisters[i], &high))
+                continue;
+        }
+
+        count = low | ((ULONG)high << 8);
+
+        if (!wide)
+        {
+            // Fan 3 divides by 8 when 0Bh bit 6 is set, else 2.
+            ULONG divisor = i < 2 ? 1ul << ((divisors >> (3 * i)) & 7) : ((divisors & 0x40) ? 8 : 2);
+
+            rpm = count && count < 0xff ? 1350000.0f / (count * divisor) : 0;
+        }
+        else
+        {
+            rpm = count && count < 0xffff ? 1350000.0f / (count * 2) : 0;
+        }
+
+        SuperIoAddFan(Context, i, rpm, TRUE);
+    }
+
+    for (ULONG i = 0; i < variant->PwmCount; i++)
+    {
+        if (variant->Flags & MB_ITE_NEWER_PWM)
+        {
+            if (SuperIoRead8(registers, ItePwmDutyRegisters[i], &value8))
+                SuperIoAddControl(Context, i, value8 * 100.0f / 255.0f);
+        }
+        else
+        {
+            // Bit 7 set: automatic mode, duty not readable.
+            if (SuperIoRead8(registers, ItePwmControlRegisters[i], &value8) && !(value8 & 0x80))
+                SuperIoAddControl(Context, i, (value8 & 0x7f) * 100.0f / 127.0f);
+        }
+    }
+}
+
 /**
  * Decodes a register snapshot into sensors.
  *
@@ -1984,6 +2311,9 @@ ULONG SuperIoDecode(
         break;
     case MB_FAMILY_NUVOTON_EC:
         SuperIoDecodeNct668x(&context);
+        break;
+    case MB_FAMILY_ITE:
+        SuperIoDecodeIte(&context);
         break;
     }
 
