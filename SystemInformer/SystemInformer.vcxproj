@@ -260,6 +260,7 @@
         <ClCompile Include="hwprvsmn.c" />
         <ClCompile Include="hwprvmmio.c" />
         <ClCompile Include="hwprvplat.c" />
+        <ClCompile Include="hwprvsmu.c" />
         <ClCompile Include="hwprvctr.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwprvpci.c" />

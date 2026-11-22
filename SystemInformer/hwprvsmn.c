@@ -623,8 +623,15 @@ NTSTATUS PhpHwSmnPass(
 
         sensor->CcdValidMask = ccdValidMask;
 
-        // The last decode stands between the memory controller's turns.
-        if (package->MemoryValid)
+        // The SMU's memory clock of its last pass takes the UMC's place; the UMC's last decode stands between turns.
+        if (PhpHwSmuQueryMemoryClock(i, &celsius))
+        {
+            sensor->MemoryClockMhz = celsius;
+            sensor->MemoryDataRate = celsius * 2.0f;
+            owned |= PH_HW_CAP_MEMORY_CLOCK;
+            valid |= PH_HW_CAP_MEMORY_CLOCK;
+        }
+        else if (package->MemoryValid)
         {
             sensor->MemoryClockMhz = package->MemoryClockMhz;
             sensor->MemoryDataRate = package->MemoryDataRate;
@@ -642,6 +649,26 @@ NTSTATUS PhpHwSmnPass(
     }
 
     return retried && !answered ? STATUS_RETRY : STATUS_SUCCESS;
+}
+
+/**
+ * Retrieves the root complex this session assigned to a package, for smu and hsmp.
+ *
+ * \param Package The package.
+ * \param Locator Receives the root complex.
+ * \return TRUE when the package has one.
+ */
+_Success_(return)
+BOOLEAN PhpHwSmnQueryRoot(
+    _In_ ULONG Package,
+    _Out_ PULONG Locator
+    )
+{
+    if (!PhpHwSmnPackages || Package >= PhpHwPackageCount || !PhpHwSmnPackages[Package].HasRoot)
+        return FALSE;
+
+    *Locator = PhpHwSmnPackages[Package].Locator;
+    return TRUE;
 }
 
 /**

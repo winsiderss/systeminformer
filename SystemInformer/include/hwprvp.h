@@ -147,6 +147,34 @@ BOOLEAN PhpHwMmioChipsetPlanned(
     VOID
     );
 
+_Success_(return)
+BOOLEAN PhpHwSmnQueryRoot(
+    _In_ ULONG Package,
+    _Out_ PULONG Locator
+    );
+
+NTSTATUS PhpHwSmuProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwSmuPass(
+    VOID
+    );
+
+VOID PhpHwSmuEnd(
+    VOID
+    );
+
+VOID PhpHwSmuDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+_Success_(return)
+BOOLEAN PhpHwSmuQueryMemoryClock(
+    _In_ ULONG Package,
+    _Out_ PFLOAT MemoryClock
+    );
+
 NTSTATUS PhpHwPlatformProbe(
     VOID
     );
@@ -188,7 +216,7 @@ BOOLEAN PhpHwFamiliesNotShipped(
 
 // The named-sensor store: a collector adds its sensors at the probe and sets them in its passes.
 
-#define PHP_HW_MAX_NAMED_SENSORS 128
+#define PHP_HW_MAX_NAMED_SENSORS 384
 
 ULONG PhpHwAddNamedSensor(
     _In_ PH_HW_NAMED_SENSOR_KIND Kind,
