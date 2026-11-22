@@ -140,7 +140,7 @@ NTSTATUS KphpLuaHwPciConfirmPdo(
                       "TargetDeviceRelation failed: %!STATUS!",
                       status);
 
-        return STATUS_NOT_FOUND;
+        return status;
     }
 
     relations = (PDEVICE_RELATIONS)information;
@@ -221,7 +221,6 @@ NTSTATUS KphpLuaHwPciQueryBusInterface(
 
         RtlZeroMemory(Bus, sizeof(BUS_INTERFACE_STANDARD));
 
-        status = STATUS_NOT_FOUND;
         goto Exit;
     }
 
