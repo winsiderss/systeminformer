@@ -772,6 +772,90 @@ int KphpLuaHwIsNvdimm(
 }
 
 /**
+ * \brief Frees the physical memory ranges of MmGetPhysicalMemoryRanges.
+ *
+ * \param[in] Context The ranges.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaHwFreeMemoryRanges(
+    _In_opt_ PVOID Context
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    KphFreePool(Context);
+}
+
+/**
+ * \brief Lists the physical memory ranges the operating system owns
+ * (ksi.hw.memory_ranges).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the ranges, each its base and its length as
+ * two little-endian 64-bit values, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwMemoryRanges(
+    _In_ lua_State* State
+    )
+{
+    PPHYSICAL_MEMORY_RANGE ranges;
+    PPHYSICAL_MEMORY_RANGE range;
+    ULONG count;
+    int cleanup;
+    luaL_Buffer buffer;
+    PCHAR data;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    ranges = MmGetPhysicalMemoryRanges();
+    if (!ranges)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Physical memory ranges unavailable");
+
+        return KphLuaNilErrorStatus(State, STATUS_INSUFFICIENT_RESOURCES);
+    }
+
+    KphScriptPushCleanup(State, KphpLuaHwFreeMemoryRanges, ranges);
+    cleanup = lua_gettop(State);
+
+    count = 0;
+
+    for (range = ranges;
+         range->BaseAddress.QuadPart || range->NumberOfBytes.QuadPart;
+         range++)
+    {
+        count++;
+    }
+
+    KphScriptCharge(State, count);
+
+    data = luaL_buffinitsize(State, &buffer, (SIZE_T)count * 16);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        RtlCopyMemory(data, &ranges[i].BaseAddress.QuadPart, 8);
+        RtlCopyMemory(data + 8, &ranges[i].NumberOfBytes.QuadPart, 8);
+        data += 16;
+    }
+
+    luaL_pushresultsize(&buffer, (SIZE_T)count * 16);
+
+    KphScriptReleaseCleanup(State, cleanup);
+    lua_remove(State, cleanup);
+
+    return 1;
+}
+
+/**
  * \brief Unmaps a mapping of ksi.hw.map.
  *
  * \param[in] Context The mapping.
@@ -1166,6 +1250,7 @@ static const luaL_Reg KphpLuaHwMemoryLibrary[] =
     { "map_read_block", KphpLuaHwMapReadBlock },
     { "map_write", KphpLuaHwMapWrite },
     { "map_write_block", KphpLuaHwMapWriteBlock },
+    { "memory_ranges", KphpLuaHwMemoryRanges },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();

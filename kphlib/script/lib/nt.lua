@@ -31,6 +31,7 @@ end
 
 M.STATUS_ACCESS_DENIED = status(0xC0000022)
 M.STATUS_ACPI_INVALID_DATA = status(0xC014000F)
+M.STATUS_ACPI_INVALID_TABLE = status(0xC0140019)
 M.STATUS_BUFFER_OVERFLOW = status(0x80000005)
 M.STATUS_BUFFER_TOO_SMALL = status(0xC0000023)
 M.STATUS_CANCELLED = status(0xC0000120)
@@ -286,6 +287,128 @@ function M.requirements(device)
     end
   end
   return list
+end
+
+-- Whether first to last (exclusive) overlaps a range of ranges, each its base
+-- and length as two unsigned 64-bit values; addresses compare unsigned, an end
+-- past 2^64 is 2^64 - 1.
+local function overlaps(ranges, first, last)
+  for at = 1, #ranges - 15, 16 do
+    local base, length = string.unpack('<I8I8', ranges, at)
+    local stop = base + length
+    if math.ult(stop, base) then
+      stop = -1
+    end
+    if math.ult(first, stop) and math.ult(base, last) then
+      return true
+    end
+  end
+  return false
+end
+
+-- The end of base and length, 2^64 - 1 when it is past 2^64.
+local function range_end(base, length)
+  local stop = base + length
+  if math.ult(stop, base) then
+    return -1
+  end
+  return stop
+end
+
+-- Whether a physical range overlaps memory the operating system owns; nil and
+-- a status when the ranges cannot be had.
+function M.is_ram(base, length)
+  local ranges, failed = ksi.hw.memory_ranges()
+  if not ranges then
+    return nil, failed
+  end
+  return overlaps(ranges, base, range_end(base, length))
+end
+
+-- The system physical address ranges of the NFIT, as overlaps takes them;
+-- empty when there is no NFIT, nil and a status when it cannot be read or is
+-- malformed.
+local nfit
+
+local function nfit_ranges()
+  if nfit then
+    return nfit
+  end
+  local bytes, failed = ksi.hw.firmware_table('ACPI', 'NFIT')
+  if not bytes then
+    if failed ~= M.STATUS_NOT_FOUND then
+      return nil, failed
+    end
+    nfit = ''
+    return nfit
+  end
+  local length = #bytes
+  if length < 36 or string.unpack('<I4', bytes, 5) ~= length or length < 40 then
+    return nil, M.STATUS_ACPI_INVALID_TABLE
+  end
+  local found = {}
+  local at = 41
+  while at <= length do
+    if length - at + 1 < 4 then
+      return nil, M.STATUS_ACPI_INVALID_TABLE
+    end
+    local kind, size = string.unpack('<I2I2', bytes, at)
+    if size < 4 or size > length - at + 1 then
+      return nil, M.STATUS_ACPI_INVALID_TABLE
+    end
+    if kind == 0 then
+      if size < 56 then
+        return nil, M.STATUS_ACPI_INVALID_TABLE
+      end
+      local base, span = string.unpack('<I8I8', bytes, at + 32)
+      if math.ult(base + span, base) then
+        return nil, M.STATUS_ACPI_INVALID_TABLE
+      end
+      found[#found + 1] = string.pack('<I8I8', base, span)
+    end
+    at = at + size
+  end
+  nfit = table.concat(found)
+  return nfit
+end
+
+-- Whether a physical range overlaps memory the firmware describes as
+-- non-volatile; nil and a status when the NFIT cannot be read or is malformed.
+function M.is_nvdimm(base, length)
+  local ranges, failed = nfit_ranges()
+  if not ranges then
+    return nil, failed
+  end
+  return overlaps(ranges, base, range_end(base, length))
+end
+
+-- Whether a script may map first to last: STATUS_SUCCESS, or the refusal (an
+-- end beyond the address bits, non-volatile memory or memory the operating
+-- system owns, or not knowing).
+function M.check_range(first, last, bits)
+  if math.ult(1 << bits, last) then
+    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
+    return M.STATUS_CONFLICTING_ADDRESSES
+  end
+  local nvdimm = M.is_nvdimm(first, last - first)
+  if nvdimm == nil then
+    ksi.trace('NVDIMM ranges unknown')
+    return M.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  if nvdimm then
+    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
+    return M.STATUS_CONFLICTING_ADDRESSES
+  end
+  local ram, ramFailed = M.is_ram(first, last - first)
+  if ram == nil then
+    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
+    return ramFailed
+  end
+  if ram then
+    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
+    return M.STATUS_CONFLICTING_ADDRESSES
+  end
+  return M.STATUS_SUCCESS
 end
 
 M.pci = require('pci')(M)
