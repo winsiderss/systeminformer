@@ -25,6 +25,12 @@
 #define PHP_HW_MMIO_MAX_WINDOWS (PHP_HW_MMIO_MAX_CANDIDATES * 2)
 #define PHP_HW_MMIO_STRIKE_LIMIT 3 // failures of a register before it leaves the window for the session
 #define PHP_HW_MMIO_RAPL_LIMITED_ID 1 // named residency sensor id of PACKAGE_RAPL_PERF_STATUS; LPIT S0ix is 0
+#define PHP_HW_MMIO_GT_CLOCK_ID 0x47540000 // named sensor id of the MCHBAR graphics clock
+#define PHP_HW_MMIO_IMC_COUNT_BYTES 64 // bytes per IMC data read/write count
+#define PHP_HW_MMIO_IMC_BYTES_PER_TRANSFER_BOUND 32 // twice the 16 bytes per transfer of two 64-bit client channels
+#define PHP_HW_MMIO_IMC_DATA_RATE_BOUND 12000.0f // MT/s when the data rate is unknown
+#define PHP_HW_MMIO_IMC_DATA_RATE_BOUND_32 4800.0f // MT/s when unknown, parts with 32-bit counters (DDR3/DDR4)
+#define PHP_HW_MMIO_IMC_MAX_INTERVAL 10.0f // seconds; a longer interval is a gap
 
 typedef enum _PHP_HW_MMIO_REG
 {
@@ -34,27 +40,68 @@ typedef enum _PHP_HW_MMIO_REG
     PhpHwMmioPowerLimit1,
     PhpHwMmioPowerLimit2,
     PhpHwMmioRaplPerfStatus,
+    PhpHwMmioMcBiosReq,
+    PhpHwMmioMcBiosData,
+    PhpHwMmioSaPerfStatus,
+    PhpHwMmioBclkFreq,
+    PhpHwMmioMemssBiosData,
+    PhpHwMmioImcReads32,
+    PhpHwMmioImcWrites32,
+    PhpHwMmioImc0Reads,
+    PhpHwMmioImc0Writes,
+    PhpHwMmioImc0ReadsAlt,
+    PhpHwMmioImc0WritesAlt,
+    PhpHwMmioImc1Reads,
+    PhpHwMmioImc1Writes,
+    PhpHwMmioImc1ReadsAlt,
+    PhpHwMmioImc1WritesAlt,
+    PhpHwMmioGtPerfStatus,
+    PhpHwMmioGtPerfStatusLp, // Apollo Lake, Gemini Lake: GT_PERF_STATUS at 7070h, in place of PhpHwMmioGtPerfStatus
     PhpHwMmioPowerUnit, // probe only from here
     PhpHwMmioTemperatureTarget,
+    PhpHwMmioRpStateCap,
+    PhpHwMmioFreqInfo,
     PhpHwMmioMaximum
 } PHP_HW_MMIO_REG;
+
+C_ASSERT(PhpHwMmioMaximum <= 32);
 
 typedef struct _PHP_HW_MMIO_REG_INFO
 {
     ULONG Offset;
     ULONG Width;
+    CHAR Imc; // 'R' data reads, 'W' data writes, 0 otherwise
 } PHP_HW_MMIO_REG_INFO;
 
 static CONST PHP_HW_MMIO_REG_INFO PhpHwMmioRegInfo[PhpHwMmioMaximum] =
 {
-    { PH_INTEL_MCHBAR_PKG_TEMPERATURE, 4 },
-    { PH_INTEL_MCHBAR_PP0_TEMPERATURE, 4 },
-    { PH_INTEL_MCHBAR_PP1_TEMPERATURE, 4 },
-    { PH_INTEL_MCHBAR_PKG_POWER_LIMIT, 4 },
-    { PH_INTEL_MCHBAR_PKG_POWER_LIMIT + 4, 4 },
-    { PH_INTEL_MCHBAR_RAPL_PERF_STATUS, 4 },
-    { PH_INTEL_MCHBAR_PKG_POWER_UNIT, 4 },
-    { PH_INTEL_MCHBAR_TEMPERATURE_TARGET, 4 },
+    { PH_INTEL_MCHBAR_PKG_TEMPERATURE, 4, 0 },
+    { PH_INTEL_MCHBAR_PP0_TEMPERATURE, 4, 0 },
+    { PH_INTEL_MCHBAR_PP1_TEMPERATURE, 4, 0 },
+    { PH_INTEL_MCHBAR_PKG_POWER_LIMIT, 4, 0 },
+    { PH_INTEL_MCHBAR_PKG_POWER_LIMIT + 4, 4, 0 },
+    { PH_INTEL_MCHBAR_RAPL_PERF_STATUS, 4, 0 },
+    { PH_INTEL_MCHBAR_MC_BIOS_REQ, 4, 0 },
+    { PH_INTEL_MCHBAR_MC_BIOS_DATA, 4, 0 },
+    { PH_INTEL_MCHBAR_SA_PERF_STATUS, 4, 0 },
+    { PH_INTEL_MCHBAR_BCLK_FREQ, 4, 0 },
+    { PH_INTEL_MCHBAR_MEMSS_BIOS_DATA, 4, 0 },
+    { PH_INTEL_MCHBAR_IMC_DATA_READS, 4, 'R' },
+    { PH_INTEL_MCHBAR_IMC_DATA_WRITES, 4, 'W' },
+    { PH_INTEL_MCHBAR_IMC_READS, 8, 'R' },
+    { PH_INTEL_MCHBAR_IMC_WRITES, 8, 'W' },
+    { PH_INTEL_MCHBAR_IMC_READS_ALT, 8, 'R' },
+    { PH_INTEL_MCHBAR_IMC_WRITES_ALT, 8, 'W' },
+    { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_IMC_READS, 8, 'R' },
+    { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_IMC_WRITES, 8, 'W' },
+    { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_IMC_READS_ALT, 8, 'R' },
+    { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_IMC_WRITES_ALT, 8, 'W' },
+    { PH_INTEL_MCHBAR_GT_PERF_STATUS, 4, 0 },
+    { PH_INTEL_MCHBAR_GT_PERF_STATUS_LP, 4, 0 },
+    { PH_INTEL_MCHBAR_PKG_POWER_UNIT, 4, 0 },
+    { PH_INTEL_MCHBAR_TEMPERATURE_TARGET, 4, 0 },
+    { PH_INTEL_MCHBAR_RP_STATE_CAP, 4, 0 },
+    { PH_INTEL_MCHBAR_FREQ_INFO_REC, 4, 0 },
 };
 
 typedef struct _PHP_HW_MMIO_REGISTER
@@ -84,6 +131,13 @@ static FLOAT PhpHwMmioUnitWatts = 0.0f; // watts a power limit increment
 static FLOAT PhpHwMmioLimit1 = 0.0f; // watts, 0 when unavailable or disabled
 static FLOAT PhpHwMmioLimit2 = 0.0f;
 static ULONG PhpHwMmioRaplLimitedIndex = ULONG_MAX; // the named residency sensor
+static ULONG PhpHwMmioGtIndex = ULONG_MAX; // the named graphics clock
+static ULONG PhpHwMmioSmbiosDataRate = 0; // the SMBIOS configured speed, MT/s; 0 when unknown
+static ULONG PhpHwMmioGtCaps = 0; // RP_STATE_CAP at the probe, for the report
+static ULONG PhpHwMmioGtRpe = 0; // FREQ_INFO_REC at the probe, for the report
+static ULONG PhpHwMmioGtPerfStatusLast = 0; // GT_PERF_STATUS, for the report
+static ULONG PhpHwMmioGtPerfStatusPeak = 0; // the GT_PERF_STATUS with the highest decoded clock, for the report
+static BOOLEAN PhpHwMmioDataRateRejected = FALSE; // the decoded data rate disagreed with SMBIOS
 static ULONG64 PhpHwMmioSampleTime = 0;
 static ULONG64 PhpHwMmioLastSampleTime = 0;
 
@@ -298,6 +352,191 @@ static BOOLEAN PhpHwMmioDecodeRaplLimited(
 }
 
 /**
+ * Decodes the memory clock of the MCHBAR clock registers; a data rate within 7% of half or twice the SMBIOS configured
+ * speed is a wrong unit and is rejected.
+ */
+_Success_(return)
+static BOOLEAN PhpHwMmioDecodeMemoryClock(
+    _Out_ PFLOAT MemoryClockMhz,
+    _Out_ PFLOAT DataRate,
+    _Out_ PULONG Gear
+    )
+{
+    ULONG req;
+    ULONG data;
+    ULONG saPerfStatus;
+    ULONG bclk;
+    ULONG memss;
+    BOOLEAN reqValid = PhpHwMmioValue(PhpHwMmioMcBiosReq, &req);
+    BOOLEAN dataValid = PhpHwMmioValue(PhpHwMmioMcBiosData, &data);
+    BOOLEAN saPerfStatusValid = PhpHwMmioValue(PhpHwMmioSaPerfStatus, &saPerfStatus);
+    BOOLEAN bclkValid = PhpHwMmioValue(PhpHwMmioBclkFreq, &bclk);
+    BOOLEAN memssValid = PhpHwMmioValue(PhpHwMmioMemssBiosData, &memss);
+    FLOAT mhz;
+    FLOAT dataRate;
+    ULONG gear;
+
+    if (!PhIntelMchbarToMemoryClock(
+        &PhpHwMmioIdentity,
+        reqValid ? &req : NULL,
+        dataValid ? &data : NULL,
+        saPerfStatusValid ? &saPerfStatus : NULL,
+        bclkValid ? &bclk : NULL,
+        memssValid ? &memss : NULL,
+        &mhz,
+        &dataRate,
+        &gear
+        ))
+    {
+        return FALSE;
+    }
+
+    if (PhpHwMmioSmbiosDataRate)
+    {
+        FLOAT ratio = dataRate / (FLOAT)PhpHwMmioSmbiosDataRate;
+
+        if ((ratio >= 0.5f * 0.93f && ratio <= 0.5f * 1.07f) || (ratio >= 2.0f * 0.93f && ratio <= 2.0f * 1.07f))
+        {
+            if (!PhpHwMmioDataRateRejected)
+                PhTraceWarning("Hardware sensors: memory data rate %lu MT/s disagrees with SMBIOS %lu MT/s", (ULONG)dataRate, PhpHwMmioSmbiosDataRate);
+
+            PhpHwMmioDataRateRejected = TRUE;
+            return FALSE;
+        }
+    }
+
+    *MemoryClockMhz = mhz;
+    *DataRate = dataRate;
+    *Gear = gear;
+    return TRUE;
+}
+
+/**
+ * Converts the IMC data read and write count deltas to MB/s (10^6 bytes).
+ *
+ * \param DataRate The data rate in MT/s, or 0 when unknown.
+ * \return FALSE for the pass when an interval or a counter delta is implausible.
+ */
+_Success_(return)
+static BOOLEAN PhpHwMmioDecodeBandwidth(
+    _In_ FLOAT DataRate,
+    _Out_ PFLOAT ReadBandwidth,
+    _Out_ PFLOAT WriteBandwidth
+    )
+{
+    FLOAT readBandwidth = 0.0f;
+    FLOAT writeBandwidth = 0.0f;
+    BOOLEAN valid = FALSE;
+    FLOAT seconds;
+
+    if (!PhpHwMmioLastSampleTime || PhpHwMmioSampleTime <= PhpHwMmioLastSampleTime)
+        return FALSE;
+
+    seconds = (FLOAT)(PhpHwMmioSampleTime - PhpHwMmioLastSampleTime) / (FLOAT)PHP_HW_SECOND;
+
+    // The first sample after a gap is dropped.
+    if (seconds > PHP_HW_MMIO_IMC_MAX_INTERVAL)
+        return FALSE;
+
+    for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
+    {
+        PPHP_HW_MMIO_WINDOW window = &PhpHwMmioWindows[i];
+        ULONG64 reads = 0;
+        ULONG64 writes = 0;
+        BOOLEAN counted = FALSE;
+
+        for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
+        {
+            FLOAT ceiling;
+            ULONG64 delta;
+
+            if (!PhpHwMmioRegInfo[reg].Imc || !(window->Valid & window->LastValid & (1UL << reg)))
+                continue;
+
+            delta = window->Value[reg] - window->LastValue[reg];
+
+            if (PhpHwMmioRegInfo[reg].Width == 4)
+            {
+                // 32-bit counters are DDR3 and DDR4 parts; one that could wrap twice in the interval is no value.
+                ceiling = (DataRate > 0.0f ? DataRate : PHP_HW_MMIO_IMC_DATA_RATE_BOUND_32) * 1000000.0f * PHP_HW_MMIO_IMC_BYTES_PER_TRANSFER_BOUND;
+
+                if (seconds >= 4294967296.0f * PHP_HW_MMIO_IMC_COUNT_BYTES / ceiling)
+                    return FALSE;
+
+                delta = (ULONG)delta;
+            }
+            else
+            {
+                ceiling = (DataRate > 0.0f ? DataRate : PHP_HW_MMIO_IMC_DATA_RATE_BOUND) * 1000000.0f * PHP_HW_MMIO_IMC_BYTES_PER_TRANSFER_BOUND;
+            }
+
+            if ((FLOAT)delta * PHP_HW_MMIO_IMC_COUNT_BYTES / seconds > ceiling)
+                return FALSE;
+
+            if (PhpHwMmioRegInfo[reg].Imc == 'R')
+                reads += delta;
+            else
+                writes += delta;
+
+            counted = TRUE;
+        }
+
+        if (!counted)
+            continue;
+
+        readBandwidth += (FLOAT)reads * PHP_HW_MMIO_IMC_COUNT_BYTES / seconds / 1000000.0f;
+        writeBandwidth += (FLOAT)writes * PHP_HW_MMIO_IMC_COUNT_BYTES / seconds / 1000000.0f;
+        valid = TRUE;
+    }
+
+    if (!valid)
+        return FALSE;
+
+    *ReadBandwidth = readBandwidth;
+    *WriteBandwidth = writeBandwidth;
+    return TRUE;
+}
+
+/**
+ * Decodes the current render clock of GT_PERF_STATUS: [15:8] in 50 MHz steps before Skylake, unslice ratio [16:8]
+ * from Skylake, unslice ratio [19:11] from Ice Lake, both in 50/3 MHz steps. A GT in RC6 reads 0.
+ */
+static FLOAT PhpHwMmioDecodeGtClock(
+    _In_ ULONG GtPerfStatus
+    )
+{
+    static CONST UCHAR legacyModels[] = { 0x2A, 0x3A, 0x3C, 0x45, 0x46, 0x3D, 0x47 }; // SNB..BDW client, the rows that read it
+    static CONST UCHAR gen11Models[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7, 0xD7, 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE, 0x96, 0x9C }; // ICL..RPL, ADL-N, Elkhart and Jasper Lake
+
+    if (PhpHwMmioIdentity.DisplayFamily == 0x06)
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(legacyModels); i++)
+        {
+            if (PhpHwMmioIdentity.DisplayModel == legacyModels[i])
+                return (FLOAT)((GtPerfStatus >> 8) & 0xFF) * 50.0f;
+        }
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(gen11Models); i++)
+        {
+            if (PhpHwMmioIdentity.DisplayModel == gen11Models[i])
+                return (FLOAT)((GtPerfStatus >> 11) & 0x1FF) * 50.0f / 3.0f;
+        }
+    }
+
+    return (FLOAT)((GtPerfStatus >> 8) & 0x1FF) * 50.0f / 3.0f;
+}
+
+/**
+ * The GT_PERF_STATUS of the part: the client register, else the Apollo and Gemini Lake one at 7070h.
+ */
+static PHP_HW_MMIO_REG PhpHwMmioGtPerfStatusRegister(
+    VOID
+    )
+{
+    return PhpHwMmioActive(PhpHwMmioGtPerfStatus) ? PhpHwMmioGtPerfStatus : PhpHwMmioGtPerfStatusLp;
+}
+
+/**
  * Finds the windows of the Intel host bridge and the signal processing functions and reads each register once.
  * Called once a session.
  *
@@ -420,6 +659,44 @@ NTSTATUS PhpHwMmioProbe(
     if (PhpHwMmioActive(PhpHwMmioRaplPerfStatus))
         PhpHwMmioRaplLimitedIndex = PhpHwAddNamedSensor(PhHwNamedSensorPlatformResidency, 0, PHP_HW_MMIO_RAPL_LIMITED_ID, L"Power limited (RAPL)");
 
+    // The memory clock registers stay only when they decode, and agree with SMBIOS.
+    {
+        PHP_HW_MEMORY_DEVICES devices;
+        FLOAT mhz;
+        FLOAT dataRate;
+        ULONG gear;
+
+        PhpHwQueryMemoryDevices(&devices);
+        PhpHwMmioSmbiosDataRate = devices.ConfiguredSpeed;
+        PhpHwFreeMemoryDevices(&devices);
+
+        if (!PhpHwMmioDecodeMemoryClock(&mhz, &dataRate, &gear))
+        {
+            PhpHwMmioDisable(PhpHwMmioMcBiosReq);
+            PhpHwMmioDisable(PhpHwMmioMcBiosData);
+            PhpHwMmioDisable(PhpHwMmioSaPerfStatus);
+            PhpHwMmioDisable(PhpHwMmioBclkFreq);
+            PhpHwMmioDisable(PhpHwMmioMemssBiosData);
+        }
+    }
+
+    // RP_STATE_CAP RP0 of 0 or FFh: no integrated graphics (dGPU-only SKU or iGPU disabled).
+    if (PhpHwMmioValue(PhpHwMmioRpStateCap, &value) && (value & 0xFF) && (value & 0xFF) != 0xFF)
+    {
+        PhpHwMmioGtCaps = value;
+
+        if (PhpHwMmioValue(PhpHwMmioFreqInfo, &value))
+            PhpHwMmioGtRpe = value;
+    }
+    else
+    {
+        PhpHwMmioDisable(PhpHwMmioGtPerfStatus);
+        PhpHwMmioDisable(PhpHwMmioGtPerfStatusLp);
+    }
+
+    if (PhpHwMmioActive(PhpHwMmioGtPerfStatusRegister()))
+        PhpHwMmioGtIndex = PhpHwAddNamedSensor(PhHwNamedSensorUncoreClock, 0, PHP_HW_MMIO_GT_CLOCK_ID, L"Graphics");
+
     // Deltas start at the first pass.
     for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
         PhpHwMmioWindows[i].Valid = 0;
@@ -464,6 +741,63 @@ NTSTATUS PhpHwMmioPass(
         owned |= PH_HW_CAP_CORES_TEMP;
     if (PhpHwMmioActive(PhpHwMmioPp1Temperature))
         owned |= PH_HW_CAP_GRAPHICS_TEMP;
+    if (PhpHwMmioActive(PhpHwMmioMcBiosData) || PhpHwMmioActive(PhpHwMmioSaPerfStatus) || PhpHwMmioActive(PhpHwMmioMcBiosReq) ||
+        PhpHwMmioActive(PhpHwMmioMemssBiosData))
+        owned |= PH_HW_CAP_MEMORY_CLOCK;
+
+    for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
+    {
+        if (PhpHwMmioRegInfo[reg].Imc && PhpHwMmioActive(reg))
+            owned |= PH_HW_CAP_MEMORY_BANDWIDTH;
+    }
+
+    {
+        FLOAT mhz;
+        FLOAT dataRate;
+        FLOAT readBandwidth;
+        FLOAT writeBandwidth;
+        ULONG gear;
+
+        if (PhpHwMmioDecodeMemoryClock(&mhz, &dataRate, &gear))
+        {
+            sensor->MemoryClockMhz = mhz;
+            sensor->MemoryDataRate = dataRate;
+            sensor->MemoryGear = gear;
+            valid |= PH_HW_CAP_MEMORY_CLOCK;
+        }
+        else
+        {
+            dataRate = 0.0f;
+        }
+
+        if (PhpHwMmioDecodeBandwidth(dataRate, &readBandwidth, &writeBandwidth))
+        {
+            sensor->MemoryReadBandwidth = readBandwidth;
+            sensor->MemoryWriteBandwidth = writeBandwidth;
+            valid |= PH_HW_CAP_MEMORY_BANDWIDTH;
+        }
+    }
+
+    if (PhpHwMmioGtIndex != ULONG_MAX)
+    {
+        BOOLEAN gtValid = PhpHwMmioValue(PhpHwMmioGtPerfStatusRegister(), &value);
+        FLOAT mhz = 0.0f;
+
+        if (gtValid)
+        {
+            PhpHwMmioGtPerfStatusLast = value;
+            mhz = PhpHwMmioDecodeGtClock(value);
+
+            if (mhz >= PhpHwMmioDecodeGtClock(PhpHwMmioGtPerfStatusPeak))
+                PhpHwMmioGtPerfStatusPeak = value;
+
+            // RP0 bounds the render clock; above it the decode is wrong for the part.
+            if (PhpHwMmioGtCaps && mhz > (FLOAT)((PhpHwMmioGtCaps & 0xFF) * 50))
+                gtValid = FALSE;
+        }
+
+        PhpHwSetNamedSensor(PhpHwMmioGtIndex, gtValid, mhz);
+    }
 
     if (PhpHwMmioValue(PhpHwMmioPackageTemperature, &value) && PhIntelMmioTemperatureToCelsius(value, &celsius))
     {
@@ -494,8 +828,9 @@ NTSTATUS PhpHwMmioPass(
         PhpHwSetNamedSensor(PhpHwMmioRaplLimitedIndex, limited, percent);
     }
 
-    PhpHwFamilies[PhpHwFamilyMmio].Capabilities = (PhpHwMmioRaplLimitedIndex != ULONG_MAX && PhpHwMmioActive(PhpHwMmioRaplPerfStatus)) ?
-        PH_HW_CAP_RESIDENCY : 0;
+    PhpHwFamilies[PhpHwFamilyMmio].Capabilities =
+        ((PhpHwMmioRaplLimitedIndex != ULONG_MAX && PhpHwMmioActive(PhpHwMmioRaplPerfStatus)) ? PH_HW_CAP_RESIDENCY : 0) |
+        ((PhpHwMmioGtIndex != ULONG_MAX && PhpHwMmioActive(PhpHwMmioGtPerfStatusRegister())) ? PH_HW_CAP_UNCORE_CLOCK : 0);
 
     // Only the bits this collector owns are replaced.
     WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~owned) | (valid & owned));
@@ -540,6 +875,13 @@ VOID PhpHwMmioEnd(
     PhpHwMmioLimit1 = 0.0f;
     PhpHwMmioLimit2 = 0.0f;
     PhpHwMmioRaplLimitedIndex = ULONG_MAX;
+    PhpHwMmioGtIndex = ULONG_MAX;
+    PhpHwMmioSmbiosDataRate = 0;
+    PhpHwMmioGtCaps = 0;
+    PhpHwMmioGtRpe = 0;
+    PhpHwMmioGtPerfStatusLast = 0;
+    PhpHwMmioGtPerfStatusPeak = 0;
+    PhpHwMmioDataRateRejected = FALSE;
     PhpHwMmioSampleTime = 0;
     PhpHwMmioLastSampleTime = 0;
 }
@@ -554,6 +896,20 @@ VOID PhpHwMmioDiagnostics(
     )
 {
     PhAppendFormatStringBuilder(Builder, L"  Candidates: %lu; windows: %lu; power unit %g W\n", PhpHwMmioCandidateCount, PhpHwMmioWindowCount, PhpHwMmioUnitWatts);
+
+    if (PhpHwMmioWindowCount)
+    {
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  Memory: SMBIOS %lu MT/s%s; GT: RP_STATE_CAP 0x%08lx, FREQ_INFO_REC 0x%08lx, GT_PERF_STATUS 0x%08lx, peak 0x%08lx\n",
+            PhpHwMmioSmbiosDataRate,
+            PhpHwMmioDataRateRejected ? L", the decoded data rate disagreed" : L"",
+            PhpHwMmioGtCaps,
+            PhpHwMmioGtRpe,
+            PhpHwMmioGtPerfStatusLast,
+            PhpHwMmioGtPerfStatusPeak
+            );
+    }
 
     for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
     {
