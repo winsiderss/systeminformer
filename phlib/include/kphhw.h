@@ -119,6 +119,7 @@ typedef struct _KPH_HW_ACPI_DEVICE
     ULONG Row;
     ULONG Ordinal;
     CHAR Id[8];
+    CHAR Path[128]; // the normalized namespace path, zero-terminated; empty when it does not fit
 } KPH_HW_ACPI_DEVICE, *PKPH_HW_ACPI_DEVICE;
 
 typedef struct _KPH_HW_SMBUS_HOST
@@ -220,7 +221,7 @@ C_ASSERT(sizeof(KPH_HW_SMU_RESULT) == 32);
 C_ASSERT(sizeof(KPH_HW_HSMP_IDENTITY) == 8);
 C_ASSERT(sizeof(KPH_HW_HSMP_COMMAND) == 36);
 C_ASSERT(sizeof(KPH_HW_HSMP_RESULT) == 40);
-C_ASSERT(sizeof(KPH_HW_ACPI_DEVICE) == 16);
+C_ASSERT(sizeof(KPH_HW_ACPI_DEVICE) == 144);
 C_ASSERT(sizeof(KPH_HW_SMBUS_HOST) == 16);
 C_ASSERT(sizeof(KPH_HW_SMBUS_ITEM) == 4);
 C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);

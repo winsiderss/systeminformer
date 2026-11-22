@@ -1803,7 +1803,8 @@ NTSTATUS KphHwPlatformRead(
 /**
  * Lists the ACPI devices the acpi script's rows cover.
  *
- * \param Devices Receives a row, ordinal and matching ID per device.
+ * \param Devices Receives a row, ordinal, matching ID and namespace path per
+ * device.
  * \param Count The number of entries Devices holds.
  * \param ReturnCount Receives the number of devices, also when Devices is too
  * small.

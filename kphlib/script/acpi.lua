@@ -311,7 +311,7 @@ local function each_device(row, visit)
             device = nt.acpi.open(path)
           end
           if device then
-            local stop, held = visit(ordinal, device, entry.ids)
+            local stop, held = visit(ordinal, device, entry.ids, path)
             if held and device == entry.device then
               entry.held = true
             elseif not held and device ~= entry.device then
@@ -522,6 +522,9 @@ local function evaluate(record, milliseconds)
   return status, output
 end
 
+-- The room of a path in identify's output, its zero terminator included.
+local PATH_MAX = 128
+
 local function pad(data)
   return data .. string.rep('\0', (8 - #data % 8) % 8)
 end
@@ -543,9 +546,19 @@ local function identify_call(input)
   end
   local output = {}
   for number, row in ipairs(ROWS) do
-    each_device(row, function(ordinal, device, ids)
+    each_device(row, function(ordinal, device, ids, path)
       local id = first_id(row, ids)
-      output[#output + 1] = string.pack('<I4I4c8', number, ordinal, id .. string.rep('\0', 8 - #id))
+      if #path >= PATH_MAX then
+        ksi.trace('%s %d: a path of %d characters is not given', id, ordinal, #path)
+        path = ''
+      end
+      output[#output + 1] = string.pack(
+        '<I4I4c8c' .. PATH_MAX,
+        number,
+        ordinal,
+        id .. string.rep('\0', 8 - #id),
+        path .. string.rep('\0', PATH_MAX - #path)
+      )
       return false, remember(number, ordinal, device)
     end)
   end
@@ -602,7 +615,8 @@ end
 -- Releases the call's devices when a routine ends, by return or by error.
 local release = setmetatable({}, { __close = release_devices })
 
--- Returns the row, ordinal and matching ID of each device a row covers.
+-- Returns the row, ordinal, matching ID and namespace path of each device a row
+-- covers.
 function identify(input)
   local closer <close> = release
   return identify_call(input)
