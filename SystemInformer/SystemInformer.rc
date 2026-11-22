@@ -1218,10 +1218,10 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Utilization:",IDC_STATIC,6,3,34,8
     LTEXT           "Speed:",IDC_STATIC,108,3,24,8
-    LTEXT           "Virtualization:",IDC_STATIC,247,3,60,8
+    LTEXT           "Virtualization:",IDC_STATIC,277,3,60,8
     LTEXT           "Static",IDC_UTILIZATION,46,0,60,15
-    LTEXT           "Static",IDC_SPEED,137,0,100,15
-    LTEXT           "Static",IDC_VIRTUALIZATION,296,0,500,15
+    LTEXT           "Static",IDC_SPEED,137,0,130,15
+    LTEXT           "Static",IDC_VIRTUALIZATION,326,0,500,15
     GROUPBOX        "System",IDC_STATIC,0,17,97,55
     LTEXT           "Processes",IDC_STATIC,7,28,33,8
     LTEXT           "Threads",IDC_STATIC,7,38,27,8
@@ -1257,6 +1257,8 @@ BEGIN
     RTEXT           "Static",IDC_ZL2CACHE_V,394,38,52,8,SS_ENDELLIPSIS
     LTEXT           "L3 cache",IDC_STATIC,362,48,53,8
     RTEXT           "Static",IDC_ZL3CACHE_V,394,48,52,8,SS_ENDELLIPSIS
+    LTEXT           "Limits",IDC_ZCPULIMITS_L,362,58,24,8,NOT WS_VISIBLE
+    RTEXT           "Static",IDC_ZCPULIMITS_V,386,58,60,8,SS_ENDELLIPSIS | NOT WS_VISIBLE
 END
 
 IDD_SYSINFO_CPUEX DIALOGEX 0, 0, 316, 240

@@ -646,6 +646,8 @@
 #define IDC_ZL1CACHE_V                  1451
 #define IDC_ZL2CACHE_V                  1452
 #define IDC_ZL3CACHE_V                  1453
+#define IDC_ZCPULIMITS_L                1562
+#define IDC_ZCPULIMITS_V                1563
 #define IDC_CAPTURE                     1454
 #define IDC_HOTKEYS_LIST_VIEW           1455
 #define IDC_HOTKEYS_HOTKEY              1456

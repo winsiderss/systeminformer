@@ -528,6 +528,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SYSINFO_MINIMUM_GRAPH_HEIGHT                        L"SysInfoMinimumGraphHeight"
 #define SETTING_SYSINFO_WINDOW_SCROLL_ENABLED                       L"SysInfoScrollEnabled"
 #define SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ                          L"SysInfoShowCpuSpeedMhz"
+#define SETTING_SYSINFO_SHOW_CPU_TEMPERATURE_PER_CPU                L"SysInfoShowCpuTemperaturePerCpu"
 #define SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU                      L"SysInfoShowCpuSpeedPerCpu"
 #define SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP                        L"SysInfoWindowAlwaysOnTop"
 #define SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU                    L"SysInfoWindowOneGraphPerCpu"

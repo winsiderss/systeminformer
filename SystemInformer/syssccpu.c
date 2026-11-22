@@ -18,6 +18,8 @@
 #include <phsettings.h>
 #include <phfirmware.h>
 #include <phintrin.h>
+#include <hwprv.h>
+#include <hwsmu.h>
 #include <devguid.h>
 
 static PPH_SYSINFO_SECTION CpuSection;
@@ -30,8 +32,10 @@ static PH_GRAPH_STATE CpuGraphState;
 static HWND *CpusGraphHandle;
 static PPH_GRAPH_STATE CpusGraphState;
 static BOOLEAN OneGraphPerCpu;
+static BOOLEAN CpuTemperaturePerCpu;
 static HWND CpuPanel;
 static ULONG CpuTicked;
+static BOOLEAN CpuLimitsShown;
 static ULONG CpuMaxMhz;
 static PULONG CpuNominalMhz; // Per processor nominal frequency (hybrid processors have more than one)
 static ULONG NumberOfProcessors;
@@ -67,6 +71,202 @@ static HWND CpuPanelLatencyLabel;
 static ULONG64 CpuL1CacheSize;
 static ULONG64 CpuL2CacheSize;
 static ULONG64 CpuL3CacheSize;
+
+typedef struct _CPU_HARDWARE_SENSORS
+{
+    ULONG Valid; // PH_HW_CAP_* bits with at least one current value
+    FLOAT Temperature; // Hottest package
+    FLOAT CcdTemperature; // Hottest CCD
+    FLOAT Voltage; // Highest logical processor
+    FLOAT ActiveMhz; // Average over logical processors
+    FLOAT Multiplier; // Average over logical processors
+    FLOAT PackagePower; // Sum over packages
+    FLOAT CorePower;
+    FLOAT DramPower;
+    ULONG ThrottleFlags;
+} CPU_HARDWARE_SENSORS, *PCPU_HARDWARE_SENSORS;
+
+// Valid is zero when hardware sensors are unavailable.
+static VOID CpuQueryHardwareSensors(
+    _Out_ PCPU_HARDWARE_SENSORS Sensors
+    )
+{
+    ULONG valid = 0;
+    ULONG activeCount = 0;
+    ULONG multiplierCount = 0;
+    ULONG packageCount;
+    PPH_HW_PACKAGE_SENSOR package;
+    PPH_HW_CPU_SENSOR sensor;
+
+    memset(Sensors, 0, sizeof(CPU_HARDWARE_SENSORS));
+
+    if (!PhHwSensorsAvailable())
+        return;
+
+    packageCount = PhHwGetPackageCount();
+
+    for (ULONG i = 0; i < packageCount; i++)
+    {
+        if (!(package = PhHwGetPackageSensor(i)))
+            break;
+
+        if (package->Valid & PH_HW_CAP_PACKAGE_TEMP)
+        {
+            if (!(valid & PH_HW_CAP_PACKAGE_TEMP) || package->Temperature > Sensors->Temperature)
+                Sensors->Temperature = package->Temperature;
+
+            valid |= PH_HW_CAP_PACKAGE_TEMP;
+        }
+
+        if (package->Valid & PH_HW_CAP_CCD_TEMP)
+        {
+            for (ULONG ccd = 0; ccd < PH_HW_MAX_CCD; ccd++)
+            {
+                if (!(package->CcdValidMask & (1UL << ccd)))
+                    continue;
+
+                if (!(valid & PH_HW_CAP_CCD_TEMP) || package->CcdTemperature[ccd] > Sensors->CcdTemperature)
+                    Sensors->CcdTemperature = package->CcdTemperature[ccd];
+
+                valid |= PH_HW_CAP_CCD_TEMP;
+            }
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_PACKAGE)
+        {
+            Sensors->PackagePower += package->PackagePower;
+            valid |= PH_HW_CAP_RAPL_PACKAGE;
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_CORE)
+        {
+            Sensors->CorePower += package->CorePower;
+            valid |= PH_HW_CAP_RAPL_CORE;
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_DRAM)
+        {
+            Sensors->DramPower += package->DramPower;
+            valid |= PH_HW_CAP_RAPL_DRAM;
+        }
+
+        if (package->Valid & PH_HW_CAP_THROTTLE)
+        {
+            Sensors->ThrottleFlags |= package->ThrottleFlags;
+            valid |= PH_HW_CAP_THROTTLE;
+        }
+    }
+
+    for (ULONG i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
+    {
+        if (!(sensor = PhHwGetCpuSensor(i)))
+            break;
+
+        if (sensor->Valid & PH_HW_CAP_ACTIVE_CLOCK)
+        {
+            Sensors->ActiveMhz += sensor->ActiveMhz;
+            activeCount++;
+        }
+
+        if (sensor->Valid & PH_HW_CAP_MULTIPLIER)
+        {
+            Sensors->Multiplier += sensor->Multiplier;
+            multiplierCount++;
+        }
+
+        if (sensor->Valid & PH_HW_CAP_VOLTAGE)
+        {
+            if (!(valid & PH_HW_CAP_VOLTAGE) || sensor->Voltage > Sensors->Voltage)
+                Sensors->Voltage = sensor->Voltage;
+
+            valid |= PH_HW_CAP_VOLTAGE;
+        }
+    }
+
+    if (activeCount)
+    {
+        Sensors->ActiveMhz /= (FLOAT)activeCount;
+        valid |= PH_HW_CAP_ACTIVE_CLOCK;
+    }
+
+    if (multiplierCount)
+    {
+        Sensors->Multiplier /= (FLOAT)multiplierCount;
+        valid |= PH_HW_CAP_MULTIPLIER;
+    }
+
+    Sensors->Valid = valid;
+}
+
+// Hottest package, degrees Celsius.
+_Success_(return)
+static BOOLEAN CpuGetPackageTemperature(
+    _Out_ PFLOAT Temperature
+    )
+{
+    BOOLEAN found = FALSE;
+    FLOAT temperature = 0.0f;
+    ULONG packageCount;
+    PPH_HW_PACKAGE_SENSOR package;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+
+    packageCount = PhHwGetPackageCount();
+
+    for (ULONG i = 0; i < packageCount; i++)
+    {
+        if (!(package = PhHwGetPackageSensor(i)))
+            break;
+
+        if ((package->Valid & PH_HW_CAP_PACKAGE_TEMP) && (!found || package->Temperature > temperature))
+        {
+            temperature = package->Temperature;
+            found = TRUE;
+        }
+    }
+
+    if (found)
+        *Temperature = temperature;
+
+    return found;
+}
+
+// Index is the flat processor index; degrees Celsius.
+_Success_(return)
+static BOOLEAN CpuGetCoreTemperature(
+    _In_ ULONG Index,
+    _Out_ PFLOAT Temperature
+    )
+{
+    PPH_HW_CPU_SENSOR sensor;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+    if (!(sensor = PhHwGetCpuSensor(Index)) || !(sensor->Valid & PH_HW_CAP_CORE_TEMP))
+        return FALSE;
+
+    *Temperature = sensor->Temperature;
+    return TRUE;
+}
+
+// Index is the flat processor index; MHz.
+_Success_(return)
+static BOOLEAN CpuGetCoreActiveClock(
+    _In_ ULONG Index,
+    _Out_ PFLOAT Mhz
+    )
+{
+    PPH_HW_CPU_SENSOR sensor;
+
+    if (!PhHwSensorsAvailable())
+        return FALSE;
+    if (!(sensor = PhHwGetCpuSensor(Index)) || !(sensor->Valid & PH_HW_CAP_ACTIVE_CLOCK))
+        return FALSE;
+
+    *Mhz = sensor->ActiveMhz;
+    return TRUE;
+}
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
@@ -223,14 +423,27 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
-            PH_FORMAT format[2];
+            PH_FORMAT format[3 + PH_HW_TEMPERATURE_FORMAT_COUNT];
+            FLOAT temperature;
 
             // %.2f%%
             PhInitFormatF(&format[0], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
 
             drawPanel->Title = PhCreateString(L"CPU");
-            drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 16);
+
+            if (CpuGetPackageTemperature(&temperature))
+            {
+                // %.2f%%\n%.1f%s
+                PhInitFormatC(&format[2], L'\n');
+                PhHwFormatTemperature(temperature, 1, &format[3]);
+
+                drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 32);
+            }
+            else
+            {
+                drawPanel->SubTitle = PhFormat(format, 2, 16);
+            }
         }
         return TRUE;
     }
@@ -259,12 +472,15 @@ VOID PhSipInitializeCpuDialog(
         CpuFrequencyInformation = PhAllocateZero(sizeof(FLOAT) * NumberOfProcessors);
     }
 
+    CpuTemperaturePerCpu = !!PhGetIntegerSetting(SETTING_SYSINFO_SHOW_CPU_TEMPERATURE_PER_CPU);
+
     PhInitializeGraphState(&CpuGraphState);
 
     for (ULONG i = 0; i < NumberOfProcessors; i++)
         PhInitializeGraphState(&CpusGraphState[i]);
 
     CpuTicked = 0;
+    CpuLimitsShown = FALSE;
     CpuMaxMhz = 0;
 
     PhSipUpdateTimerResolution();
@@ -898,10 +1114,19 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     HDC hdc;
                     FLOAT cpuKernel;
                     FLOAT cpuUser;
-                    PH_FORMAT format[11];
+                    FLOAT temperature;
+                    BOOLEAN temperatureValid;
+                    FLOAT mhz;
+                    PH_FORMAT format[12 + PH_HW_TEMPERATURE_FORMAT_COUNT];
+                    ULONG count;
 
                     cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[index], 0);
                     cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[index], 0);
+                    temperatureValid = CpuTemperaturePerCpu && CpuGetCoreTemperature(index, &temperature);
+
+                    // The active clock replaces the performance distribution estimate when available.
+                    if (!CpuGetCoreActiveClock(index, &mhz))
+                        mhz = CpuFrequencyInformation ? CpuFrequencyInformation[index] : 0.0f;
 
                     // %.2f%% (K: %.2f%%, U: %.2f%%)
                     PhInitFormatF(&format[0], (cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
@@ -910,16 +1135,27 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     PhInitFormatS(&format[3], L"%, U: ");
                     PhInitFormatF(&format[4], cpuUser * 100, PhMaxPrecisionUnit);
 
-                    if (CpuFrequencyInformation)
+                    if (mhz > 0.0f)
                     {
                         PhInitFormatS(&format[5], L"%)\r\n");
-                        PhInitFormatF(&format[6], CpuFrequencyInformation[index] / 1000, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[6], mhz / 1000, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[7], L" GHz");
                         PhInitFormatS(&format[8], L" (");
-                        PhInitFormatFD(&format[9], 1000 / CpuFrequencyInformation[index], 3); // ns per cycle
+                        PhInitFormatFD(&format[9], 1000 / mhz, 3); // ns per cycle
                         PhInitFormatS(&format[10], L" \u00B5s)");
-                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        count = 11;
 
+                        if (temperatureValid)
+                        {
+                            PhInitFormatS(&format[count++], L", ");
+                            PhHwFormatTemperature(temperature, 0, &format[count]);
+                            count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+                        }
+
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, count, 0));
+
+                        // The text can switch layouts once a clock appears; the other one's string is freed.
+                        drawInfo->Text.Buffer = NULL;
                         hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                         PhSetGraphText2(
                             hdc,
@@ -933,8 +1169,17 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     else
                     {
                         PhInitFormatS(&format[5], L"%) ");
-                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, 6, 0));
+                        count = 6;
 
+                        if (temperatureValid)
+                        {
+                            PhHwFormatTemperature(temperature, 0, &format[count]);
+                            count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+                        }
+
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, count, 0));
+
+                        drawInfo->Text2.Buffer = NULL;
                         hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                         PhSetGraphText(
                             hdc,
@@ -1116,15 +1361,90 @@ VOID PhSipUpdateCpuGraphs(
     }
 }
 
+// The limits row shows the temperature limit and the power limit the hardware reports.
+static VOID PhSipUpdateCpuLimits(
+    VOID
+    )
+{
+    static CONST ULONG smuLimits[] = { PhHwSmuIdPpt, PhHwSmuIdSocket | PH_HW_SMU_ID_HSMP, PhHwSmuIdPptSlow };
+    PPH_HW_PACKAGE_SENSOR package = PhHwSensorsAvailable() ? PhHwGetPackageSensor(0) : NULL;
+    PH_FORMAT format[PH_HW_TEMPERATURE_FORMAT_COUNT + 5];
+    ULONG count = 0;
+    FLOAT value;
+    BOOLEAN show;
+
+    if (package && package->TjMax > 0.0f)
+    {
+        PhHwFormatTemperature(package->TjMax, 0, &format[count]);
+        count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+    }
+    else if (PhHwGetNamedSensorValue(PhHwNamedSensorSmuTemperatureLimit, 0, PhHwSmuIdThermal, &value))
+    {
+        PhHwFormatTemperature(value, 0, &format[count]);
+        count += PH_HW_TEMPERATURE_FORMAT_COUNT;
+    }
+
+    if (package && (package->Valid & PH_HW_CAP_POWER_LIMIT1))
+    {
+        if (count)
+            PhInitFormatS(&format[count++], L" | ");
+
+        PhInitFormatF(&format[count++], package->ActivePowerLimit1, 0);
+
+        if (package->Valid & PH_HW_CAP_POWER_LIMIT2)
+        {
+            PhInitFormatS(&format[count++], L" / ");
+            PhInitFormatF(&format[count++], package->ActivePowerLimit2, 0);
+        }
+
+        PhInitFormatS(&format[count++], L" W");
+    }
+    else
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(smuLimits); i++)
+        {
+            if (PhHwGetNamedSensorValue(PhHwNamedSensorSmuPowerLimit, 0, smuLimits[i], &value))
+            {
+                if (count)
+                    PhInitFormatS(&format[count++], L" | ");
+
+                PhInitFormatF(&format[count++], value, 0);
+                PhInitFormatS(&format[count++], L" W");
+                break;
+            }
+        }
+    }
+
+    show = count != 0;
+
+    if (show)
+        PhSetDialogItemText(CpuPanel, IDC_ZCPULIMITS_V, PhaFormat(format, count, 32)->Buffer);
+
+    // A limit can miss a pass; the row stays while the hardware reports limits.
+    if (!show && (PhHwGetCapabilities() & (PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_SMU)) && CpuLimitsShown)
+        return;
+
+    if (show != CpuLimitsShown)
+    {
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_L), show ? SW_SHOW : SW_HIDE);
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_V), show ? SW_SHOW : SW_HIDE);
+        CpuLimitsShown = show;
+    }
+}
+
 VOID PhSipUpdateCpuPanel(
     VOID
     )
 {
     LARGE_INTEGER systemUptime;
     LARGE_INTEGER performanceCounterTicks;
+    CPU_HARDWARE_SENSORS sensors;
+    FLOAT currentMhz;
     PH_FORMAT format[6];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
+
+    CpuQueryHardwareSensors(&sensors);
 
     // Hardware
 
@@ -1156,6 +1476,8 @@ VOID PhSipUpdateCpuPanel(
         PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, CpuL3CacheSize ? PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer : L"N/A");
     }
 
+    PhSipUpdateCpuLimits();
+
     // %.2f%%
     PhInitFormatF(&format[0], (PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[1], L'%');
@@ -1167,16 +1489,22 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelUtilizationLabel, PH_AUTO_T(PH_STRING, PhFormat(format, 2, 0))->Buffer);
     }
 
+    // The active clock replaces the performance distribution estimate when available.
+    if (sensors.Valid & PH_HW_CAP_ACTIVE_CLOCK)
+        currentMhz = sensors.ActiveMhz;
+    else
+        currentMhz = CpuCurrentFrequency;
+
     if (PhGetIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ))
     {
-        PhInitFormatF(&format[0], CpuCurrentFrequency, 0);
+        PhInitFormatF(&format[0], currentMhz, 0);
         PhInitFormatS(&format[1], L" / ");
         PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz, 0);
         PhInitFormatS(&format[3], L" MHz");
     }
     else
     {
-        PhInitFormatF(&format[0], CpuCurrentFrequency / 1000, PhMaxPrecisionUnit);
+        PhInitFormatF(&format[0], currentMhz / 1000, PhMaxPrecisionUnit);
         PhInitFormatS(&format[1], L" / ");
         PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz / 1000, PhMaxPrecisionUnit);
         PhInitFormatS(&format[3], L" GHz");

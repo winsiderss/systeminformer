@@ -3311,6 +3311,21 @@
         }
       ]
     },
+    "SysInfoShowCpuTemperaturePerCpu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays the temperature of each individual core in the System Information CPU graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "SysInfoWindowAlwaysOnTop": {
       "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Keeps the system information window on top of other windows.",
       "anyOf": [
