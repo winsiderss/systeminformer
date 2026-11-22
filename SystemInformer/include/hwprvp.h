@@ -86,6 +86,24 @@ typedef struct _PHP_HW_FAMILY
 
 extern PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum];
 
+// Collector cpu (hwprvcpu.c).
+
+NTSTATUS PhpHwCpuProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwCpuPass(
+    VOID
+    );
+
+VOID PhpHwCpuEnd(
+    VOID
+    );
+
+VOID PhpHwCpuDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 // TRUE during an update that serves a report request (D11): each pass ends with its report-only reads.
 extern BOOLEAN PhpHwReportReads;
 extern ULONG PhpHwReportWaitMilliseconds; // how long a report waits for the update that serves it

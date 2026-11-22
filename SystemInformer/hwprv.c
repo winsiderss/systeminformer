@@ -71,7 +71,7 @@ PH_PROVIDER_REGISTRATION PhHwProviderRegistration;
 
 PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
 {
-    { L"cpu", 0 },
+    { L"cpu", 0, PhpHwCpuProbe, PhpHwCpuPass, PhpHwCpuEnd, PhpHwCpuDiagnostics },
     { L"smn", 0 },
     { L"mmio", 0 },
     { L"platform", 0 },
@@ -540,7 +540,8 @@ static VOID PhpHwUpdateSources(
 }
 
 /**
- * Recomputes the capability bits from what currently has a value.
+ * Recomputes the capability bits from what currently has a value; the first published sensor of the session makes
+ * the sensors available.
  */
 static VOID PhpHwUpdateCapabilities(
     VOID
@@ -554,6 +555,9 @@ static VOID PhpHwUpdateCapabilities(
         capabilities |= PhpHwPackageSensors[i].Valid;
 
     PhpHwCapabilities = capabilities;
+
+    if (capabilities || PhpHwNamedSensorCount)
+        PhpHwAvailable = TRUE;
 }
 
 /**

@@ -114,6 +114,7 @@ set(SOURCES
     "hndlstat.c"
     "hwhist.c"
     "hwprv.c"
+    "hwprvcpu.c"
     "hwprvctr.c"
     "hwprvdev.c"
     "hwprvpci.c"

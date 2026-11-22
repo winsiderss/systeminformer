@@ -75,6 +75,9 @@
     <ClCompile Include="hwprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwprvcpu.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="hwprvctr.c">
       <Filter>System Informer</Filter>
     </ClCompile>
