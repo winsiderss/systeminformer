@@ -14,7 +14,7 @@
 --
 
 return function(nt)
-  local P = {}
+  local M = {}
 
   -- the location text the driver read: 128 characters and the terminator
   local LOCATION_MAX = 256
@@ -96,7 +96,7 @@ return function(nt)
   -- The device of \Driver\pci at a location. Nil and the status of the call
   -- when the devices cannot be listed, nil and STATUS_NOT_FOUND when none is
   -- there.
-  function P.find(segment, bus, device, fn)
+  function M.find(segment, bus, device, fn)
     check(segment, 0xFFFF, 1)
     check(bus, 0xFF, 2)
     check(device, 0x1F, 3)
@@ -121,8 +121,8 @@ return function(nt)
 
   -- A PCI device object of the function at a location: find, then
   -- ksi.hw.pci_open. Nil and the status of the call when either refuses.
-  function P.open(segment, bus, device, fn)
-    local d, status = P.find(segment, bus, device, fn)
+  function M.open(segment, bus, device, fn)
+    local d, status = M.find(segment, bus, device, fn)
     if not d then
       return nil, status
     end
@@ -131,5 +131,5 @@ return function(nt)
     return opened, failed
   end
 
-  return P
+  return M
 end

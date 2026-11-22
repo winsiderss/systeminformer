@@ -14,7 +14,7 @@
 --
 
 return function(nt)
-  local A = {}
+  local M = {}
 
   -- UTF-16 text as one byte a code unit: the unit itself below 80h, FFh above.
   local function units(text)
@@ -135,7 +135,7 @@ return function(nt)
 
   -- The device's namespace path as its BIOS name gives it, normalized. Nil and
   -- STATUS_NOT_FOUND when it has none that is a path.
-  function A.path(device)
+  function M.path(device)
     local bytes, kind = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_BiosDeviceName)
     if not bytes or kind ~= nt.DEVPROP_TYPE_STRING or #bytes < 4 or #bytes % 2 ~= 0 then
       return nil, nt.STATUS_NOT_FOUND
@@ -155,14 +155,14 @@ return function(nt)
   end
 
   -- The device's IDs as ACPI identities, hardware IDs first.
-  function A.ids(device)
+  function M.ids(device)
     return identities(device)
   end
 
   -- The devices of the ACPI driver in its order, each as { device, ids }, so a
   -- script that looks for many IDs walks them once. Nil and STATUS_NOT_FOUND
   -- when they cannot be listed.
-  function A.list()
+  function M.list()
     local list = devices()
     if not list then
       return nil, nt.STATUS_NOT_FOUND
@@ -176,7 +176,7 @@ return function(nt)
 
   -- The device of the ACPI driver that has an ID, the ordinal-th (from 0) of
   -- them. Nil and STATUS_NOT_FOUND when there is none.
-  function A.find(id, ordinal)
+  function M.find(id, ordinal)
     ordinal = ordinal or 0
     if type(id) ~= 'string' or #id < 1 or #id > 8 then
       error("bad argument #1 to 'find' (1 to 8 characters)", 2)
@@ -216,7 +216,7 @@ return function(nt)
 
   -- The device of the ACPI driver at a namespace path, padded or not. Nil and
   -- STATUS_NOT_FOUND when there is none.
-  function A.open(path)
+  function M.open(path)
     if type(path) ~= 'string' then
       error("bad argument #1 to 'open' (string expected)", 2)
     end
@@ -227,7 +227,7 @@ return function(nt)
     end
     local found
     for _, d in ipairs(list) do
-      if not found and A.path(d) == wanted then
+      if not found and M.path(d) == wanted then
         found = d
       else
         d:release()
@@ -239,5 +239,5 @@ return function(nt)
     return found
   end
 
-  return A
+  return M
 end
