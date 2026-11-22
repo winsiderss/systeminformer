@@ -183,8 +183,8 @@ int KphpLuaHwFirmwareTable(
                       query.ProviderSignature,
                       query.TableID);
 
-        status = STATUS_NOT_FOUND;
-        results = KphLuaNilErrorStatus(State, status);
+        lua_pushliteral(State, "");
+        results = 1;
         goto Exit;
     }
 

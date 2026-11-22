@@ -341,10 +341,10 @@ local function nfit_ranges()
     return nfit
   end
   local bytes, failed = ksi.hw.firmware_table('ACPI', 'NFIT')
-  if not bytes then
-    if failed ~= M.STATUS_NOT_FOUND then
-      return nil, failed
-    end
+  if not bytes and failed ~= M.STATUS_NOT_FOUND then
+    return nil, failed
+  end
+  if not bytes or bytes == '' then
     nfit = ''
     return nfit
   end
