@@ -76,7 +76,7 @@ return function(nt)
     if not address or address >> 16 ~= device or address & 0xFFFF ~= fn then
       return false
     end
-    local text = ksi.hw.device_property_data(d, nt.DEVPKEY_Device_LocationInfo)
+    local text = ksi.hw.device_property(d, nt.DevicePropertyLocationInformation)
     if not text or #text > LOCATION_MAX then
       return false
     end

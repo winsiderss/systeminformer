@@ -99,6 +99,7 @@ M.DEVPROP_TYPE_UINT32 = 0x00000007
 M.DEVPROP_TYPE_STRING = 0x00000012
 M.DEVPROP_TYPE_BINARY = 0x00001003
 
+M.DevicePropertyLocationInformation = 0xA
 M.DevicePropertyBootConfiguration = 0x3
 M.DevicePropertyBootConfigurationTranslated = 0x4
 M.DevicePropertyResourceRequirements = 0x14
