@@ -581,7 +581,7 @@ VOID PhpHwPciDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    PhAppendFormatStringBuilder(Builder, L"  Functions: %lu D18F3, %lu D18F4\n", PhpHwPciMiscNodeCount, PhpHwPciLinkNodeCount);
+    PhAppendFormatStringBuilder(Builder, L"  Functions: %lu D18F3, %lu D18F4, %lu bridges\n", PhpHwPciMiscNodeCount, PhpHwPciLinkNodeCount, PhpHwPciBridgeCount);
 
     for (ULONG i = 0; PhpHwPciPackages && i < PhpHwPackageCount; i++)
     {
@@ -827,7 +827,10 @@ VOID PhHwWriteBridgeDiagnostics(
 
         if (!NT_SUCCESS(config->Status))
         {
-            PhAppendFormatStringBuilder(Builder, L": status 0x%08lx\n", config->Status);
+            PPH_STRING message = PhGetStatusMessage(config->Status, 0);
+
+            PhAppendFormatStringBuilder(Builder, L": status 0x%08lx (%s)\n", config->Status, PhGetStringOrDefault(message, L"no description"));
+            PhClearReference(&message);
             continue;
         }
 
