@@ -15,16 +15,46 @@
 #include <trace.h>
 
 // Collector acpi: the ACPI devices the acpi script covers, listed by one KphHwAcpiIdentify a session; each device read
-// by a KphHwAcpiEval of its own every 2 seconds (the family's interval), so one slow method costs only its device.
+// by a KphHwAcpiEval of its own every 2 seconds (the family's interval; a power meter at its own), with a record per
+// value, so one slow method costs only its device.
 
 #define PHP_HW_ACPI_MAX_DEVICES 64 // identify's first answer; more are asked for once
+#define PHP_HW_ACPI_MAX_VALUES 3 // the readings of a device: a DPTF power participant's PMAX, PROP and PBSS
 #define PHP_HW_ACPI_EVAL_MS 500 // the most an evaluation may take
 #define PHP_HW_ACPI_CALL_MS 900 // the most a call's evaluations may take together
-#define PHP_HW_ACPI_STRIKE_LIMIT 2 // consecutive timed-out evaluations that end a device for the session
-#define PHP_HW_ACPI_BUSY_LIMIT 5 // consecutive busy evaluations that end a device for the session
-#define PHP_HW_ACPI_IMPLAUSIBLE_LIMIT 3 // consecutive implausible readings that end a device for the session
-#define PHP_HW_ACPI_STATIC_LENGTH 0x1000 // the static methods' answers: _FIF (0x40) and _FPS (0x800) with their headers
-#define PHP_HW_ACPI_READ_LENGTH 0x100 // a reading's answer
+#define PHP_HW_ACPI_STRIKE_LIMIT 2 // consecutive timed-out evaluations that end a value for the session
+#define PHP_HW_ACPI_BUSY_LIMIT 5 // consecutive busy evaluations that end a value for the session
+#define PHP_HW_ACPI_IMPLAUSIBLE_LIMIT 3 // consecutive implausible readings that end a value for the session
+#define PHP_HW_ACPI_STATIC_LENGTH 0x1000 // a static call's answers: at most _FIF (0x40) and _FPS (0x800), or _PMC (0x200)
+#define PHP_HW_ACPI_READ_LENGTH 0x100 // a reading call's answers: at most three records of 0x20
+#define PHP_HW_ACPI_METER_MIN_MS 2000
+#define PHP_HW_ACPI_METER_MAX_MS 60000 // _GAI above this is read at this interval
+#define PHP_HW_ACPI_TYPE_POWER 0x11 // DPTF PTYP of a power participant
+#define PHP_HW_ACPI_TYPE_BATTERY 0xC // DPTF PTYP of a battery
+
+typedef struct _PHP_HW_ACPI_STATE
+{
+    BOOLEAN Disabled;
+    UCHAR Strikes;
+    UCHAR Busy;
+    UCHAR Implausible;
+} PHP_HW_ACPI_STATE, *PPHP_HW_ACPI_STATE;
+
+// A reading of a device: a fan's speed, a participant's temperature, a meter's or a getter's power.
+typedef struct _PHP_HW_ACPI_VALUE
+{
+    PCSTR Method;
+    UCHAR Op; // sets the value apart in its id
+    PH_HW_NAMED_SENSOR_KIND Kind;
+    PHP_HW_ACPI_STATE State;
+    BOOLEAN Listed; // a reading decoded, known or not: the sensors are listed
+    BOOLEAN Named;
+    ULONG SensorId;
+    ULONG Index; // in the named-sensor store
+    ULONG ControlIndex; // a fine-grain fan's control
+    PCWSTR Label; // the name of a getter, NULL for the device's name
+    WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
+} PHP_HW_ACPI_VALUE, *PPHP_HW_ACPI_VALUE;
 
 typedef struct _PHP_HW_ACPI_DEVICE
 {
@@ -33,37 +63,34 @@ typedef struct _PHP_HW_ACPI_DEVICE
     CHAR Id[9];
     CHAR Path[RTL_FIELD_SIZE(KPH_HW_ACPI_DEVICE, Path)];
     PH_HW_ACPI_KIND Kind;
-    BOOLEAN Disabled;
-    BOOLEAN Answered; // a reading decoded, known or not: the sensors are listed
-    BOOLEAN FineGrain;
+    PHP_HW_ACPI_STATE State; // of the static call
     BOOLEAN StaticRead;
-    UCHAR Strikes;
-    UCHAR Busy;
-    UCHAR Implausible;
-    ULONG SensorId;
-    ULONG SpeedIndex; // in the named-sensor store
-    ULONG ControlIndex;
-    PPH_BYTES Reading; // the evaluation record of the reading, built once
-    WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
-    ULONG FifCount;
-    ULONG Fif[4];
-    ULONG StateCount;
-    PH_HW_FAN_STATE States[PH_HW_FAN_MAX_STATES];
+    BOOLEAN FineGrain;
+    ULONG64 IntervalTicks; // a meter's; 0 for the family's
+    ULONG64 LastRead;
+    PPH_STRING TreeName; // the device tree's
+    PPH_STRING FirmwareName; // _STR, or a meter's model
+    ULONG ValueCount;
+    PHP_HW_ACPI_VALUE Values[PHP_HW_ACPI_MAX_VALUES];
+    PPH_BYTES Reading; // the records of the values still read, built when they change
+    PH_HW_ACPI_REPORT Report;
 } PHP_HW_ACPI_DEVICE, *PPHP_HW_ACPI_DEVICE;
 
 static ULONG PhpHwAcpiIdentified = 0; // the devices identify listed this session
-static PPHP_HW_ACPI_DEVICE PhpHwAcpiDevices = NULL; // the devices read
+static PPHP_HW_ACPI_DEVICE PhpHwAcpiDevices = NULL; // the devices of the rows read
 static ULONG PhpHwAcpiDeviceCount = 0;
+static BOOLEAN PhpHwAcpiProbedThisUpdate = FALSE; // the probe's static answers stand until the next update
 static UCHAR PhpHwAcpiReadBuffer[PHP_HW_ACPI_READ_LENGTH];
 
 /**
- * Applies the session failure policy to a device: contention and an evaluation not run are no value; two timeouts or
- * five busy answers in a row end it; anything else ends it at once.
+ * Applies the session failure policy to a device's static call or a value: contention and an evaluation not run are
+ * no value; two timeouts or five busy answers in a row end it; anything else ends it at once.
  *
  * \return TRUE when the evaluation answered.
  */
 static BOOLEAN PhpHwAcpiApplyStatus(
-    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _Inout_ PPHP_HW_ACPI_STATE State,
+    _In_ PCSTR Path,
     _In_ NTSTATUS Status
     )
 {
@@ -71,15 +98,15 @@ static BOOLEAN PhpHwAcpiApplyStatus(
 
     if (NT_SUCCESS(Status))
     {
-        Device->Strikes = 0;
-        Device->Busy = 0;
+        State->Strikes = 0;
+        State->Busy = 0;
         return TRUE;
     }
 
     switch (Status)
     {
     case STATUS_DEVICE_BUSY:
-        disable = ++Device->Busy >= PHP_HW_ACPI_BUSY_LIMIT;
+        disable = ++State->Busy >= PHP_HW_ACPI_BUSY_LIMIT;
         break;
     case STATUS_RETRY:
     case STATUS_INSUFFICIENT_RESOURCES:
@@ -87,8 +114,8 @@ static BOOLEAN PhpHwAcpiApplyStatus(
         disable = FALSE;
         break;
     case STATUS_IO_TIMEOUT:
-        Device->Busy = 0;
-        disable = ++Device->Strikes >= PHP_HW_ACPI_STRIKE_LIMIT;
+        State->Busy = 0;
+        disable = ++State->Strikes >= PHP_HW_ACPI_STRIKE_LIMIT;
         break;
     default:
         disable = TRUE;
@@ -97,8 +124,8 @@ static BOOLEAN PhpHwAcpiApplyStatus(
 
     if (disable)
     {
-        Device->Disabled = TRUE;
-        PhTraceInfo("Hardware sensors: ACPI device %hs unavailable: 0x%lx", Device->Path, Status);
+        State->Disabled = TRUE;
+        PhTraceInfo("Hardware sensors: ACPI device %hs unavailable: 0x%lx", Path, Status);
     }
 
     return FALSE;
@@ -153,6 +180,32 @@ static BOOLEAN PhpHwAcpiRecord(
 }
 
 /**
+ * Reads a record's answer as an integer.
+ *
+ * \return TRUE when the record answered with an integer; Status receives the record's status either way.
+ */
+_Success_(return)
+static BOOLEAN PhpHwAcpiRecordInteger(
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length,
+    _In_ ULONG Index,
+    _Out_ PULONG64 Value,
+    _Out_ PNTSTATUS Status
+    )
+{
+    const UCHAR* data;
+    ULONG dataLength;
+
+    if (!PhpHwAcpiRecord(Output, Length, Index, Status, &data, &dataLength))
+    {
+        *Status = STATUS_INFO_LENGTH_MISMATCH;
+        return FALSE;
+    }
+
+    return NT_SUCCESS(*Status) && PhHwAcpiReadInteger(data, dataLength, Value);
+}
+
+/**
  * The time each of a call's evaluations may take: PHP_HW_ACPI_EVAL_MS, or PHP_HW_ACPI_CALL_MS shared by the records
  * when that is less; never 0.
  */
@@ -176,50 +229,312 @@ static VOID PhpHwAcpiAppend(
 }
 
 /**
- * Reads a fan's static methods in one call: _FIF (fine-grain control and its step) and _FPS (its states, for the
- * report). Both are optional, so a record that fails is not counted; a call that fails whole is.
+ * Builds the records of a device's values still read.
  */
-static VOID PhpHwAcpiReadFanStatic(
+static VOID PhpHwAcpiBuildReading(
     _Inout_ PPHP_HW_ACPI_DEVICE Device
     )
 {
     PH_BYTES_BUILDER evals;
-    PUCHAR output;
-    ULONG returnLength = 0;
+
+    PhInitializeBytesBuilder(&evals, 64);
+
+    for (ULONG i = 0; i < Device->ValueCount; i++)
+    {
+        if (!Device->Values[i].State.Disabled)
+            PhpHwAcpiAppend(&evals, Device, Device->Values[i].Method);
+    }
+
+    PhMoveReference(&Device->Reading, PhFinalBytesBuilderBytes(&evals));
+}
+
+static VOID PhpHwAcpiAddValue(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_ PCSTR Method,
+    _In_ UCHAR Op,
+    _In_ PH_HW_NAMED_SENSOR_KIND Kind,
+    _In_opt_ PCWSTR Label
+    )
+{
+    PPHP_HW_ACPI_VALUE value = &Device->Values[Device->ValueCount++];
+
+    value->Method = Method;
+    value->Op = Op;
+    value->Kind = Kind;
+    value->Label = Label;
+    value->Index = ULONG_MAX;
+    value->ControlIndex = ULONG_MAX;
+}
+
+/**
+ * Decides from a static call whose first record is _STA whether a device is present: _STA with Present and
+ * Functioning, or no _STA (ACPI 6.5 6.3.7).
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED when it is not, or the record's status to count.
+ */
+static NTSTATUS PhpHwAcpiPresent(
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    ULONG64 value;
     NTSTATUS status;
-    NTSTATUS recordStatus;
+
+    if (PhpHwAcpiRecordInteger(Output, Length, 0, &value, &status))
+        return (value & 0x9) == 0x9 ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+        return STATUS_SUCCESS;
+    if (NT_SUCCESS(status))
+        return STATUS_NOT_SUPPORTED;
+
+    return status;
+}
+
+/**
+ * Reads a fan's static methods: _FIF (fine-grain control and its step) and _FPS (its states, for the report). Both are
+ * optional, so a record that fails is not counted.
+ */
+static NTSTATUS PhpHwAcpiFanStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
     const UCHAR* data;
     ULONG dataLength;
 
-    PhInitializeBytesBuilder(&evals, 64);
-    PhpHwAcpiAppend(&evals, Device, "_FIF");
-    PhpHwAcpiAppend(&evals, Device, "_FPS");
-    output = PhAllocate(PHP_HW_ACPI_STATIC_LENGTH);
-
-    status = KphHwAcpiEval(PhpHwAcpiMilliseconds(2), evals.Bytes->Buffer, (ULONG)evals.Bytes->Length, output, PHP_HW_ACPI_STATIC_LENGTH, &returnLength);
-
-    if (!NT_SUCCESS(status))
+    if (PhpHwAcpiRecord(Output, Length, 0, &status, &data, &dataLength) && NT_SUCCESS(status))
     {
-        PhpHwAcpiApplyStatus(Device, status);
+        ULONG64 fif[4];
+
+        Device->Report.FifCount = PhHwAcpiReadIntegers(data, dataLength, fif, RTL_NUMBER_OF(fif));
+
+        for (ULONG i = 0; i < Device->Report.FifCount; i++)
+            Device->Report.Fif[i] = fif[i] > ULONG_MAX ? ULONG_MAX : (ULONG)fif[i];
+
+        Device->FineGrain = Device->Report.FifCount >= 2 && fif[1] != 0;
+    }
+
+    if (PhpHwAcpiRecord(Output, Length, 1, &status, &data, &dataLength) && NT_SUCCESS(status))
+        Device->Report.StateCount = PhHwDecodeFanStates(data, dataLength, Device->Report.States, RTL_NUMBER_OF(Device->Report.States));
+
+    PhpHwAcpiAddValue(Device, "_FST", 0, PhHwNamedSensorFanSpeed, NULL);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads a DPTF participant's static methods: _STA and PTYP (only a sensor, a memory or a battery participant has a
+ * participant temperature), _STR for its name, and the trip points for the report.
+ */
+static NTSTATUS PhpHwAcpiParticipantStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    ULONG64 value;
+    const UCHAR* data;
+    ULONG dataLength;
+
+    if (!NT_SUCCESS(status = PhpHwAcpiPresent(Output, Length)))
+        return status;
+
+    // The IETM (0), fans (4), the PCH (5) and power participants (11h) carry no participant temperature.
+    if (!PhpHwAcpiRecordInteger(Output, Length, 1, &value, &status))
+        return NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND ? STATUS_NOT_SUPPORTED : status;
+    if (value != 0x3 && value != 0xB && value != 0xC)
+        return STATUS_NOT_SUPPORTED;
+
+    Device->Report.Type = (ULONG)value;
+
+    if (PhpHwAcpiRecord(Output, Length, 2, &status, &data, &dataLength) && NT_SUCCESS(status))
+        PhMoveReference(&Device->FirmwareName, PhHwAcpiReadString(data, dataLength));
+
+    for (ULONG i = 0; i < PH_HW_DPTF_TRIPS; i++)
+    {
+        if (PhpHwAcpiRecordInteger(Output, Length, 3 + i, &value, &status) && value < ULONG_MAX)
+            Device->Report.Trips[i] = (ULONG)value;
+    }
+
+    PhpHwAcpiAddValue(Device, "_TMP", 3, PhHwNamedSensorAcpiTemperature, NULL);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads a power meter's static methods: _STA, _PMC (it measures, in mW; its model names it) and _GAI (its
+ * averaging interval, which paces its reading).
+ */
+static NTSTATUS PhpHwAcpiMeterStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    ULONG64 value;
+    const UCHAR* data;
+    ULONG dataLength;
+
+    if (!NT_SUCCESS(status = PhpHwAcpiPresent(Output, Length)))
+        return status;
+
+    if (!PhpHwAcpiRecord(Output, Length, 1, &status, &data, &dataLength))
+        return STATUS_INFO_LENGTH_MISMATCH;
+    if (!NT_SUCCESS(status))
+        return status == STATUS_OBJECT_NAME_NOT_FOUND ? STATUS_NOT_SUPPORTED : status;
+
+    PhHwDecodePowerMeterCapabilities(data, dataLength, &Device->Report);
+
+    // [0] bit 0 measurement; [1] unit 0 is mW, the only unit accepted.
+    if (Device->Report.MeterCount < 2 || !(Device->Report.Meter[0] & 0x1) || Device->Report.Meter[1] != 0)
+        return STATUS_NOT_SUPPORTED;
+
+    if (Device->Report.MeterStrings[0][0])
+        PhMoveReference(&Device->FirmwareName, PhZeroExtendToUtf16(Device->Report.MeterStrings[0]));
+    else if (Device->Report.MeterStrings[2][0])
+        PhMoveReference(&Device->FirmwareName, PhZeroExtendToUtf16(Device->Report.MeterStrings[2]));
+
+    Device->IntervalTicks = PHP_HW_ACPI_METER_MIN_MS * (PHP_HW_SECOND / 1000);
+
+    if (PhpHwAcpiRecordInteger(Output, Length, 2, &value, &status) && value < ULONG_MAX)
+    {
+        Device->Report.AveragingMs = (ULONG)value;
+        Device->IntervalTicks = max(min(value, PHP_HW_ACPI_METER_MAX_MS), PHP_HW_ACPI_METER_MIN_MS) * (PHP_HW_SECOND / 1000);
+    }
+
+    PhpHwAcpiAddValue(Device, "_PMM", 2, PhHwNamedSensorAcpiPower, NULL);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads a DPTF power participant's static methods: _STA, PTYP (a power participant, 11h, or a battery, Ch) and the
+ * getters of its type for the report; its readings are PMAX, PROP (not a battery's) and PBSS.
+ */
+static NTSTATUS PhpHwAcpiPowerStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    static CONST BOOLEAN battery[PH_HW_POWER_STATICS] = { FALSE, FALSE, FALSE, TRUE, TRUE, TRUE };
+    NTSTATUS status;
+    ULONG64 value;
+
+    if (!NT_SUCCESS(status = PhpHwAcpiPresent(Output, Length)))
+        return status;
+
+    if (!PhpHwAcpiRecordInteger(Output, Length, 1, &value, &status))
+        return NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND ? STATUS_NOT_SUPPORTED : status;
+    if (value != PHP_HW_ACPI_TYPE_POWER && value != PHP_HW_ACPI_TYPE_BATTERY)
+        return STATUS_NOT_SUPPORTED;
+
+    Device->Report.Type = (ULONG)value;
+
+    for (ULONG i = 0; i < PH_HW_POWER_STATICS; i++)
+    {
+        if (battery[i] != (Device->Report.Type == PHP_HW_ACPI_TYPE_BATTERY))
+            continue;
+
+        if (PhpHwAcpiRecordInteger(Output, Length, 2 + i, &value, &status) && value < ULONG_MAX)
+            Device->Report.Power[i] = (ULONG)value;
+    }
+
+    PhpHwAcpiAddValue(Device, "PMAX", 3, PhHwNamedSensorAcpiPower, L"Maximum power");
+
+    if (Device->Report.Type != PHP_HW_ACPI_TYPE_BATTERY)
+        PhpHwAcpiAddValue(Device, "PROP", 6, PhHwNamedSensorAcpiPower, L"Rest of platform");
+
+    PhpHwAcpiAddValue(Device, "PBSS", 5, PhHwNamedSensorAcpiPower, L"Steady-state power");
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads a device's static methods in one call and decides what it reads. A device the static methods show has no
+ * reading ends for the session; a call that fails whole counts against the device and is made again.
+ */
+static VOID PhpHwAcpiReadStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device
+    )
+{
+    static CONST PCSTR fan[] = { "_FIF", "_FPS" };
+    static CONST PCSTR participant[] = { "_STA", "PTYP", "_STR", "_PSV", "_CRT", "_AC0", "GTSH" };
+    static CONST PCSTR meter[] = { "_STA", "_PMC", "_GAI" };
+    static CONST PCSTR power[] = { "_STA", "PTYP", "PSRC", "ARTG", "CTYP", "RBHF", "VBNL", "CMPP" };
+    const PCSTR* methods;
+    ULONG count;
+    PH_BYTES_BUILDER evals;
+    PUCHAR output;
+    ULONG returnLength = 0;
+    NTSTATUS status;
+
+    switch (Device->Kind)
+    {
+    case PhHwAcpiFan:
+        methods = fan;
+        count = RTL_NUMBER_OF(fan);
+        break;
+    case PhHwAcpiDptfTemperature:
+        methods = participant;
+        count = RTL_NUMBER_OF(participant);
+        break;
+    case PhHwAcpiPowerMeter:
+        methods = meter;
+        count = RTL_NUMBER_OF(meter);
+        break;
+    default:
+        methods = power;
+        count = RTL_NUMBER_OF(power);
+        break;
+    }
+
+    PhInitializeBytesBuilder(&evals, 128);
+
+    for (ULONG i = 0; i < count; i++)
+        PhpHwAcpiAppend(&evals, Device, methods[i]);
+
+    output = PhAllocate(PHP_HW_ACPI_STATIC_LENGTH);
+    status = KphHwAcpiEval(PhpHwAcpiMilliseconds(count), evals.Bytes->Buffer, (ULONG)evals.Bytes->Length, output, PHP_HW_ACPI_STATIC_LENGTH, &returnLength);
+
+    if (NT_SUCCESS(status))
+    {
+        switch (Device->Kind)
+        {
+        case PhHwAcpiFan:
+            status = PhpHwAcpiFanStatic(Device, output, returnLength);
+            break;
+        case PhHwAcpiDptfTemperature:
+            status = PhpHwAcpiParticipantStatic(Device, output, returnLength);
+            break;
+        case PhHwAcpiPowerMeter:
+            status = PhpHwAcpiMeterStatic(Device, output, returnLength);
+            break;
+        default:
+            status = PhpHwAcpiPowerStatic(Device, output, returnLength);
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        Device->StaticRead = TRUE;
+        Device->State.Strikes = 0;
+        Device->State.Busy = 0;
+        PhpHwAcpiBuildReading(Device);
+    }
+    else if (status == STATUS_NOT_SUPPORTED)
+    {
+        Device->State.Disabled = TRUE;
+        PhTraceInfo("Hardware sensors: ACPI device %hs has no reading", Device->Path);
     }
     else
     {
-        Device->StaticRead = TRUE;
-
-        if (PhpHwAcpiRecord(output, returnLength, 0, &recordStatus, &data, &dataLength) && NT_SUCCESS(recordStatus))
-        {
-            ULONG64 fif[4];
-
-            Device->FifCount = PhHwAcpiReadIntegers(data, dataLength, fif, RTL_NUMBER_OF(fif));
-
-            for (ULONG i = 0; i < Device->FifCount; i++)
-                Device->Fif[i] = fif[i] > ULONG_MAX ? ULONG_MAX : (ULONG)fif[i];
-
-            Device->FineGrain = Device->FifCount >= 2 && fif[1] != 0;
-        }
-
-        if (PhpHwAcpiRecord(output, returnLength, 1, &recordStatus, &data, &dataLength) && NT_SUCCESS(recordStatus))
-            Device->StateCount = PhHwDecodeFanStates(data, dataLength, Device->States, RTL_NUMBER_OF(Device->States));
+        PhpHwAcpiApplyStatus(&Device->State, Device->Path, status);
     }
 
     PhFree(output);
@@ -241,89 +556,122 @@ static PCSTR PhpHwAcpiLastSegment(
     return segment;
 }
 
-/**
- * Names the devices (decision D7): the device tree's name of the device at the namespace path, else the ID and the
- * ordinal; devices that share a name are told apart by their last path segment, or the whole path when that is shared
- * too. Each device's id follows its path across sessions; a colliding hash takes the next free value.
- */
-static VOID PhpHwAcpiNameDevices(
-    VOID
+static PPH_STRING PhpHwAcpiBaseName(
+    _In_ PPHP_HW_ACPI_DEVICE Device,
+    _In_ PPHP_HW_ACPI_VALUE Value
     )
 {
-    PCSTR* paths;
-    PPH_STRING* names;
+    if (Value->Label)
+        return PhCreateString((PWSTR)Value->Label);
+    if (Device->FirmwareName && Device->FirmwareName->Length)
+        return PhReferenceObject(Device->FirmwareName);
+    if (Device->TreeName)
+        return PhReferenceObject(Device->TreeName);
 
-    paths = PhAllocate(sizeof(PCSTR) * PhpHwAcpiDeviceCount);
-    names = PhAllocate(sizeof(PPH_STRING) * PhpHwAcpiDeviceCount);
+    return PhFormatString(L"%hs %lu", Device->Id, Device->Ordinal);
+}
 
-    for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
-        paths[i] = PhpHwAcpiDevices[i].Path;
-
-    PhpHwQueryAcpiDeviceNames(paths, PhpHwAcpiDeviceCount, names);
-
+static BOOLEAN PhpHwAcpiSensorIdUsed(
+    _In_ PPHP_HW_ACPI_VALUE Value,
+    _In_ ULONG SensorId
+    )
+{
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
-        PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
-
-        if (!names[i])
-            names[i] = PhFormatString(L"%hs %lu", device->Id, device->Ordinal);
-
-        if (device->Path[0])
-            device->SensorId = PhHashBytes((PUCHAR)device->Path, strlen(device->Path));
-        else
-            device->SensorId = PhHashBytes((PUCHAR)device->Id, strlen(device->Id)) ^ (device->Ordinal * 0x9E3779B9);
-
-        for (ULONG j = 0; j < i; )
+        for (ULONG v = 0; v < PhpHwAcpiDevices[i].ValueCount; v++)
         {
-            if (PhpHwAcpiDevices[j].SensorId == device->SensorId)
-            {
-                device->SensorId++;
-                j = 0;
-            }
-            else
-            {
-                j++;
-            }
+            PPHP_HW_ACPI_VALUE other = &PhpHwAcpiDevices[i].Values[v];
+
+            if (other != Value && other->Named && other->SensorId == SensorId)
+                return TRUE;
         }
     }
 
+    return FALSE;
+}
+
+/**
+ * Names the values of the devices whose static methods were read (decision D7): the firmware's name (_STR, a meter's
+ * model), else the device tree's name of the device at the namespace path, else the ID and the ordinal; a getter by
+ * its label. Values that share a name are told apart by their device's last path segment, or the whole path when
+ * that is shared too. A value's id follows its path and method across sessions; a colliding hash takes the next free
+ * value.
+ */
+static VOID PhpHwAcpiNameValues(
+    VOID
+    )
+{
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
         PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
         PCSTR segment = PhpHwAcpiLastSegment(device->Path);
-        BOOLEAN sharedName = FALSE;
-        BOOLEAN sharedSegment = FALSE;
-        PPH_STRING name;
 
-        for (ULONG j = 0; j < PhpHwAcpiDeviceCount; j++)
+        for (ULONG v = 0; v < device->ValueCount; v++)
         {
-            if (j == i || !PhEqualString(names[j], names[i], TRUE))
+            PPHP_HW_ACPI_VALUE value = &device->Values[v];
+            PPH_STRING base;
+            PPH_STRING name;
+            BOOLEAN sharedName = FALSE;
+            BOOLEAN sharedSegment = FALSE;
+            ULONG sensorId;
+
+            if (value->Named)
                 continue;
 
-            sharedName = TRUE;
+            if (device->Path[0])
+                sensorId = PhHashBytes((PUCHAR)device->Path, strlen(device->Path));
+            else
+                sensorId = PhHashBytes((PUCHAR)device->Id, strlen(device->Id)) ^ (device->Ordinal * 0x85EBCA6B);
 
-            if (strcmp(PhpHwAcpiLastSegment(PhpHwAcpiDevices[j].Path), segment) == 0)
-                sharedSegment = TRUE;
+            sensorId ^= value->Op * 0x9E3779B9;
+
+            while (PhpHwAcpiSensorIdUsed(value, sensorId))
+                sensorId++;
+
+            value->SensorId = sensorId;
+            base = PhpHwAcpiBaseName(device, value);
+
+            for (ULONG j = 0; j < PhpHwAcpiDeviceCount; j++)
+            {
+                PPHP_HW_ACPI_DEVICE other = &PhpHwAcpiDevices[j];
+
+                for (ULONG w = 0; w < other->ValueCount; w++)
+                {
+                    PPH_STRING otherBase;
+
+                    if (other == device && w == v)
+                        continue;
+
+                    otherBase = PhpHwAcpiBaseName(other, &other->Values[w]);
+
+                    if (PhEqualString(otherBase, base, TRUE))
+                    {
+                        sharedName = TRUE;
+
+                        if (other != device && strcmp(PhpHwAcpiLastSegment(other->Path), segment) == 0)
+                            sharedSegment = TRUE;
+                    }
+
+                    PhDereferenceObject(otherBase);
+                }
+            }
+
+            if (sharedName && device->Path[0])
+                name = PhFormatString(L"%s (%hs)", base->Buffer, sharedSegment ? device->Path : segment);
+            else
+                name = PhReferenceObject(base);
+
+            PhCopyStringZ(name->Buffer, name->Length / sizeof(WCHAR), value->Name, RTL_NUMBER_OF(value->Name), NULL);
+            value->Named = TRUE;
+            PhDereferenceObject(name);
+            PhDereferenceObject(base);
         }
-
-        if (sharedName && device->Path[0])
-            name = PhFormatString(L"%s (%hs)", names[i]->Buffer, sharedSegment ? device->Path : segment);
-        else
-            name = PhReferenceObject(names[i]);
-
-        PhCopyStringZ(name->Buffer, name->Length / sizeof(WCHAR), device->Name, RTL_NUMBER_OF(device->Name), NULL);
-        PhDereferenceObject(name);
     }
-
-    for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
-        PhDereferenceObject(names[i]);
-
-    PhFree(names);
-    PhFree(paths);
 }
 
 /**
- * Lists the devices of the rows read (fans), names them and reads their static methods. Called once a session.
+ * Lists the devices of the rows read, finds their device tree names and reads their static methods. Called once a
+ * session.
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a device, or identify's status.
  */
@@ -335,6 +683,8 @@ NTSTATUS PhpHwAcpiProbe(
     ULONG capacity = PHP_HW_ACPI_MAX_DEVICES;
     ULONG count = 0;
     NTSTATUS status;
+    PCSTR* paths;
+    PPH_STRING* names;
 
     // Identify numbers the devices anew: it is asked once, or twice when the first answer did not fit.
     devices = PhAllocate(sizeof(KPH_HW_ACPI_DEVICE) * capacity);
@@ -361,58 +711,205 @@ NTSTATUS PhpHwAcpiProbe(
     for (ULONG i = 0; i < count; i++)
     {
         PPHP_HW_ACPI_DEVICE device;
+        PH_HW_ACPI_KIND kind;
 
-        if (devices[i].Row != KPH_HW_ACPI_ROW_PNP0C0B)
+        switch (devices[i].Row)
+        {
+        case KPH_HW_ACPI_ROW_PNP0C0B:
+            kind = PhHwAcpiFan;
+            break;
+        case KPH_HW_ACPI_ROW_INT3403:
+            kind = PhHwAcpiDptfTemperature;
+            break;
+        case KPH_HW_ACPI_ROW_ACPI000D:
+            kind = PhHwAcpiPowerMeter;
+            break;
+        case KPH_HW_ACPI_ROW_INT3407:
+            kind = PhHwAcpiDptfPower;
+            break;
+        default:
             continue;
+        }
 
         device = &PhpHwAcpiDevices[PhpHwAcpiDeviceCount++];
         device->Row = devices[i].Row;
         device->Ordinal = devices[i].Ordinal;
-        device->Kind = PhHwAcpiFan;
-        device->SpeedIndex = ULONG_MAX;
-        device->ControlIndex = ULONG_MAX;
+        device->Kind = kind;
         memcpy(device->Id, devices[i].Id, sizeof(devices[i].Id));
         memcpy(device->Path, devices[i].Path, sizeof(device->Path));
         device->Path[sizeof(device->Path) - 1] = ANSI_NULL;
+        device->Report.Type = ULONG_MAX;
+        device->Report.AveragingMs = ULONG_MAX;
+
+        for (ULONG j = 0; j < PH_HW_DPTF_TRIPS; j++)
+            device->Report.Trips[j] = ULONG_MAX;
+        for (ULONG j = 0; j < PH_HW_POWER_STATICS; j++)
+            device->Report.Power[j] = ULONG_MAX;
     }
 
     PhFree(devices);
 
-    if (PhpHwAcpiDeviceCount)
-        PhpHwAcpiNameDevices();
+    if (!PhpHwAcpiDeviceCount)
+        return STATUS_SUCCESS;
+
+    paths = PhAllocate(sizeof(PCSTR) * PhpHwAcpiDeviceCount);
+    names = PhAllocate(sizeof(PPH_STRING) * PhpHwAcpiDeviceCount);
 
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
-    {
-        PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
-        PH_BYTES_BUILDER evals;
+        paths[i] = PhpHwAcpiDevices[i].Path;
 
-        PhpHwAcpiReadFanStatic(device);
+    PhpHwQueryAcpiDeviceNames(paths, PhpHwAcpiDeviceCount, names);
 
-        PhInitializeBytesBuilder(&evals, 32);
-        PhpHwAcpiAppend(&evals, device, "_FST");
-        device->Reading = PhFinalBytesBuilderBytes(&evals);
-    }
+    for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
+        PhpHwAcpiDevices[i].TreeName = names[i];
+
+    PhFree(names);
+    PhFree(paths);
+
+    for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
+        PhpHwAcpiReadStatic(&PhpHwAcpiDevices[i]);
+
+    PhpHwAcpiNameValues();
+    PhpHwAcpiProbedThisUpdate = TRUE;
 
     return STATUS_SUCCESS;
 }
 
 /**
- * Lists a device's sensors on its first answer.
+ * Lists a value's sensors on its first answer.
  */
 static VOID PhpHwAcpiListSensors(
-    _Inout_ PPHP_HW_ACPI_DEVICE Device
+    _In_ PPHP_HW_ACPI_DEVICE Device,
+    _Inout_ PPHP_HW_ACPI_VALUE Value
     )
 {
-    Device->Answered = TRUE;
-    Device->SpeedIndex = PhpHwAddNamedSensor(PhHwNamedSensorFanSpeed, 0, Device->SensorId, Device->Name);
+    Value->Listed = TRUE;
+    Value->Index = PhpHwAddNamedSensor(Value->Kind, 0, Value->SensorId, Value->Name);
 
-    if (Device->FineGrain)
-        Device->ControlIndex = PhpHwAddNamedSensor(PhHwNamedSensorFanControl, 0, Device->SensorId, Device->Name);
+    if (Device->Kind == PhHwAcpiFan && Device->FineGrain)
+        Value->ControlIndex = PhpHwAddNamedSensor(PhHwNamedSensorFanControl, 0, Value->SensorId, Value->Name);
 }
 
 /**
- * Reads each device: a fan's _FST, one call a device. A malformed result ends the device for the session; an unknown
- * reading is no value.
+ * Reads a device's values in one call. A malformed result ends a value for the session; an unknown reading is no
+ * value.
+ *
+ * \return The call's status.
+ */
+static NTSTATUS PhpHwAcpiReadDevice(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device
+    )
+{
+    ULONG records = 0;
+    ULONG record = 0;
+    ULONG returnLength = 0;
+    BOOLEAN dropped = FALSE;
+    NTSTATUS status;
+
+    for (ULONG v = 0; v < Device->ValueCount; v++)
+        records += !Device->Values[v].State.Disabled;
+
+    status = KphHwAcpiEval(
+        PhpHwAcpiMilliseconds(records),
+        Device->Reading->Buffer,
+        (ULONG)Device->Reading->Length,
+        PhpHwAcpiReadBuffer,
+        sizeof(PhpHwAcpiReadBuffer),
+        &returnLength
+        );
+
+    for (ULONG v = 0; v < Device->ValueCount; v++)
+    {
+        PPHP_HW_ACPI_VALUE value = &Device->Values[v];
+        NTSTATUS recordStatus = status;
+        const UCHAR* data = NULL;
+        ULONG dataLength = 0;
+        FLOAT reading = 0.0f;
+        ULONG64 control = 0;
+        BOOLEAN valid = FALSE;
+
+        if (value->State.Disabled)
+            continue;
+
+        // A call that fails whole counts against each of its values; a record's own status counts otherwise.
+        if (NT_SUCCESS(status) && !PhpHwAcpiRecord(PhpHwAcpiReadBuffer, returnLength, record, &recordStatus, &data, &dataLength))
+            recordStatus = STATUS_INFO_LENGTH_MISMATCH;
+
+        record++;
+
+        if (PhpHwAcpiApplyStatus(&value->State, Device->Path, recordStatus))
+        {
+            PH_HW_FAN_DECODE decode;
+
+            switch (Device->Kind)
+            {
+            case PhHwAcpiFan:
+                {
+                    ULONG rpm = 0;
+
+                    decode = PhHwDecodeFanStatus(data, dataLength, &rpm, &control);
+                    reading = (FLOAT)rpm;
+                }
+                break;
+            case PhHwAcpiDptfTemperature:
+                decode = PhHwDecodeDptfTemperature(data, dataLength, &reading);
+                break;
+            default:
+                decode = PhHwDecodePowerMeterReading(data, dataLength, &reading);
+                break;
+            }
+
+            switch (decode)
+            {
+            case PhHwFanDecodeOk:
+                valid = TRUE;
+                value->State.Implausible = 0;
+                break;
+            case PhHwFanDecodeUnknown:
+                // Firmware may report an unknown speed while the fan is spun down, or no reading yet.
+                break;
+            case PhHwFanDecodeImplausible:
+                if (++value->State.Implausible >= PHP_HW_ACPI_IMPLAUSIBLE_LIMIT)
+                {
+                    value->State.Disabled = TRUE;
+                    PhTraceInfo("Hardware sensors: ACPI device %hs %hs unavailable: implausible reading", Device->Path, value->Method);
+                }
+                break;
+            case PhHwFanDecodeMalformed:
+                value->State.Disabled = TRUE;
+                PhTraceInfo("Hardware sensors: ACPI device %hs %hs unavailable: malformed result of %lu bytes", Device->Path, value->Method, dataLength);
+                break;
+            }
+
+            if (!value->Listed && !value->State.Disabled)
+                PhpHwAcpiListSensors(Device, value);
+        }
+
+        dropped |= value->State.Disabled;
+        PhpHwSetNamedSensor(value->Index, valid && !value->State.Disabled, reading);
+        PhpHwSetNamedSensor(value->ControlIndex, valid && !value->State.Disabled && Device->FineGrain && control <= 100, (FLOAT)control);
+    }
+
+    if (dropped)
+    {
+        BOOLEAN any = FALSE;
+
+        for (ULONG v = 0; v < Device->ValueCount; v++)
+            any |= !Device->Values[v].State.Disabled;
+
+        if (any)
+            PhpHwAcpiBuildReading(Device);
+        else
+            Device->State.Disabled = TRUE;
+    }
+
+    return status;
+}
+
+/**
+ * Reads the static methods of a device whose static call met contention (from the update after the probe's), and
+ * each device that is due: a fan's _FST, a participant's _TMP, a meter's _PMM at its interval, a power participant's
+ * getters.
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
@@ -422,95 +919,79 @@ NTSTATUS PhpHwAcpiPass(
 {
     BOOLEAN answered = FALSE;
     BOOLEAN retried = FALSE;
+    BOOLEAN named = FALSE;
     ULONG capabilities = 0;
+    ULONG64 now = 0;
 
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
         PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
-        ULONG returnLength = 0;
         NTSTATUS status;
-        NTSTATUS recordStatus;
-        const UCHAR* data;
-        ULONG dataLength;
-        ULONG rpm = 0;
-        ULONG64 control = 0;
-        BOOLEAN valid = FALSE;
 
-        if (device->Disabled)
+        if (device->State.Disabled)
             continue;
 
-        status = KphHwAcpiEval(
-            PhpHwAcpiMilliseconds(1),
-            device->Reading->Buffer,
-            (ULONG)device->Reading->Length,
-            PhpHwAcpiReadBuffer,
-            sizeof(PhpHwAcpiReadBuffer),
-            &returnLength
-            );
+        if (!device->StaticRead)
+        {
+            if (PhpHwAcpiProbedThisUpdate)
+                continue;
+
+            PhpHwAcpiReadStatic(device);
+            named |= device->StaticRead;
+            continue;
+        }
+
+        if (device->IntervalTicks)
+        {
+            if (!now)
+                now = PhpHwQueryTime();
+
+            if (device->LastRead && now - device->LastRead < device->IntervalTicks)
+                continue;
+
+            device->LastRead = now;
+        }
+
+        status = PhpHwAcpiReadDevice(device);
 
         if (status == STATUS_RETRY)
             retried = TRUE;
         else
             answered = TRUE;
-
-        // A call that fails whole counts against its device; the record's status counts otherwise.
-        if (!NT_SUCCESS(status))
-        {
-            PhpHwAcpiApplyStatus(device, status);
-        }
-        else
-        {
-            if (!PhpHwAcpiRecord(PhpHwAcpiReadBuffer, returnLength, 0, &recordStatus, &data, &dataLength))
-            {
-                recordStatus = STATUS_INFO_LENGTH_MISMATCH;
-                data = NULL;
-                dataLength = 0;
-            }
-
-            if (PhpHwAcpiApplyStatus(device, recordStatus))
-            {
-                switch (PhHwDecodeFanStatus(data, dataLength, &rpm, &control))
-                {
-                case PhHwFanDecodeOk:
-                    valid = TRUE;
-                    device->Implausible = 0;
-                    break;
-                case PhHwFanDecodeUnknown:
-                    // Firmware may report an unknown speed while the fan is spun down.
-                    break;
-                case PhHwFanDecodeImplausible:
-                    if (++device->Implausible >= PHP_HW_ACPI_IMPLAUSIBLE_LIMIT)
-                    {
-                        device->Disabled = TRUE;
-                        PhTraceInfo("Hardware sensors: ACPI device %hs unavailable: implausible reading", device->Path);
-                    }
-                    break;
-                case PhHwFanDecodeMalformed:
-                    device->Disabled = TRUE;
-                    PhTraceInfo("Hardware sensors: ACPI device %hs unavailable: malformed result of %lu bytes", device->Path, dataLength);
-                    break;
-                }
-
-                if (!device->Answered && !device->Disabled)
-                    PhpHwAcpiListSensors(device);
-            }
-        }
-
-        PhpHwSetNamedSensor(device->SpeedIndex, valid && !device->Disabled, (FLOAT)rpm);
-        PhpHwSetNamedSensor(device->ControlIndex, valid && !device->Disabled && device->FineGrain && control <= 100, (FLOAT)control);
     }
+
+    if (named)
+        PhpHwAcpiNameValues();
+
+    PhpHwAcpiProbedThisUpdate = FALSE;
 
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
         PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
 
-        if (device->Disabled || !device->Answered)
-            continue;
+        for (ULONG v = 0; !device->State.Disabled && v < device->ValueCount; v++)
+        {
+            PPHP_HW_ACPI_VALUE value = &device->Values[v];
 
-        capabilities |= PH_HW_CAP_FAN_SPEED;
+            if (value->State.Disabled || !value->Listed)
+                continue;
 
-        if (device->FineGrain)
-            capabilities |= PH_HW_CAP_FAN_CONTROL;
+            switch (value->Kind)
+            {
+            case PhHwNamedSensorFanSpeed:
+                capabilities |= PH_HW_CAP_FAN_SPEED;
+
+                if (device->FineGrain)
+                    capabilities |= PH_HW_CAP_FAN_CONTROL;
+                break;
+            case PhHwNamedSensorAcpiTemperature:
+                capabilities |= PH_HW_CAP_ACPI_TEMP;
+                break;
+            default:
+                capabilities |= PH_HW_CAP_ACPI_POWER;
+                break;
+            }
+        }
     }
 
     PhpHwFamilies[PhpHwFamilyAcpi].Capabilities = capabilities;
@@ -527,8 +1008,9 @@ VOID PhpHwAcpiEnd(
 {
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
-        if (PhpHwAcpiDevices[i].Reading)
-            PhDereferenceObject(PhpHwAcpiDevices[i].Reading);
+        PhClearReference(&PhpHwAcpiDevices[i].Reading);
+        PhClearReference(&PhpHwAcpiDevices[i].TreeName);
+        PhClearReference(&PhpHwAcpiDevices[i].FirmwareName);
     }
 
     if (PhpHwAcpiDevices)
@@ -539,11 +1021,12 @@ VOID PhpHwAcpiEnd(
 
     PhpHwAcpiDeviceCount = 0;
     PhpHwAcpiIdentified = 0;
+    PhpHwAcpiProbedThisUpdate = FALSE;
 }
 
 /**
- * Writes the collector's section of the hardware report: the devices identify listed and each device read with its
- * static methods.
+ * Writes the collector's section of the hardware report: the devices identify listed and each device whose static
+ * methods were read, with them.
  *
  * \param Builder The report.
  */
@@ -551,36 +1034,92 @@ VOID PhpHwAcpiDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    static CONST PCWSTR kindNames[] = { L"fan", L"DPTF participant", L"power meter", L"DPTF power participant" };
+    static CONST PCWSTR tripNames[PH_HW_DPTF_TRIPS] = { L"_PSV", L"_CRT", L"_AC0", L"GTSH" };
+    static CONST PCWSTR getterNames[PH_HW_POWER_STATICS] = { L"PSRC", L"ARTG", L"CTYP", L"RBHF", L"VBNL", L"CMPP" };
+    static CONST PCWSTR stringNames[] = { L"model", L"serial", L"OEM" };
+
     PhAppendFormatStringBuilder(Builder, L"  Devices: %lu identified\n", PhpHwAcpiIdentified);
 
     for (ULONG i = 0; i < PhpHwAcpiDeviceCount; i++)
     {
         PPHP_HW_ACPI_DEVICE device = &PhpHwAcpiDevices[i];
+        PPH_HW_ACPI_REPORT report = &device->Report;
 
         if (!device->StaticRead)
             continue;
 
-        PhAppendFormatStringBuilder(Builder, L"  %hs: fan", device->Path);
+        PhAppendFormatStringBuilder(Builder, L"  %hs: %s", device->Path, kindNames[min((ULONG)device->Kind, RTL_NUMBER_OF(kindNames) - 1)]);
 
-        if (device->FifCount >= 3)
-            PhAppendFormatStringBuilder(Builder, L", _FIF fine-grain %lu step %lu%%", device->Fif[1], device->Fif[2]);
-
-        // _FPS states: control/trip point/RPM/noise in 0.1 dBA/power in mW; '-' is not supported.
-        for (ULONG j = 0; j < device->StateCount; j++)
+        if (device->Kind == PhHwAcpiFan)
         {
-            PhAppendStringBuilder2(Builder, j ? L" " : L", _FPS ");
+            if (report->FifCount >= 3)
+                PhAppendFormatStringBuilder(Builder, L", _FIF fine-grain %lu step %lu%%", report->Fif[1], report->Fif[2]);
 
-            for (ULONG k = 0; k < RTL_NUMBER_OF(device->States[j].Values); k++)
+            // _FPS states: control/trip point/RPM/noise in 0.1 dBA/power in mW; '-' is not supported.
+            for (ULONG j = 0; j < report->StateCount; j++)
             {
-                ULONG value = device->States[j].Values[k];
+                PhAppendStringBuilder2(Builder, j ? L" " : L", _FPS ");
 
-                if (k)
-                    PhAppendCharStringBuilder(Builder, L'/');
+                for (ULONG k = 0; k < RTL_NUMBER_OF(report->States[j].Values); k++)
+                {
+                    ULONG value = report->States[j].Values[k];
 
-                if (value == ULONG_MAX)
-                    PhAppendCharStringBuilder(Builder, L'-');
+                    if (k)
+                        PhAppendCharStringBuilder(Builder, L'/');
+
+                    if (value == ULONG_MAX)
+                        PhAppendCharStringBuilder(Builder, L'-');
+                    else
+                        PhAppendFormatStringBuilder(Builder, L"%lu", value);
+                }
+            }
+        }
+
+        if ((device->Kind == PhHwAcpiDptfPower || device->Kind == PhHwAcpiDptfTemperature) && report->Type != ULONG_MAX)
+            PhAppendFormatStringBuilder(Builder, L", PTYP 0x%lx", report->Type);
+
+        if (device->Kind == PhHwAcpiDptfPower)
+        {
+            for (ULONG j = 0; j < PH_HW_POWER_STATICS; j++)
+            {
+                if (report->Power[j] != ULONG_MAX)
+                    PhAppendFormatStringBuilder(Builder, L", %s %lu", getterNames[j], report->Power[j]);
+            }
+        }
+
+        if (device->Kind == PhHwAcpiPowerMeter)
+        {
+            if (report->MeterCount)
+            {
+                PhAppendStringBuilder2(Builder, L", _PMC");
+
+                for (ULONG j = 0; j < report->MeterCount; j++)
+                    PhAppendFormatStringBuilder(Builder, L" 0x%lx", report->Meter[j]);
+            }
+
+            for (ULONG j = 0; j < RTL_NUMBER_OF(report->MeterStrings); j++)
+            {
+                if (report->MeterStrings[j][0])
+                    PhAppendFormatStringBuilder(Builder, L", %s \"%hs\"", stringNames[j], report->MeterStrings[j]);
+            }
+
+            if (report->AveragingMs != ULONG_MAX)
+                PhAppendFormatStringBuilder(Builder, L", _GAI %lu ms", report->AveragingMs);
+        }
+
+        if (device->Kind == PhHwAcpiDptfTemperature)
+        {
+            for (ULONG j = 0; j < PH_HW_DPTF_TRIPS; j++)
+            {
+                if (report->Trips[j] == ULONG_MAX)
+                    continue;
+
+                // Trip points are tenths of a kelvin; GTSH is a hysteresis, in tenths of a degree.
+                if (j == PH_HW_DPTF_TRIPS - 1)
+                    PhAppendFormatStringBuilder(Builder, L", %s %.1f C", tripNames[j], (FLOAT)report->Trips[j] / 10.0f);
                 else
-                    PhAppendFormatStringBuilder(Builder, L"%lu", value);
+                    PhAppendFormatStringBuilder(Builder, L", %s %.1f C", tripNames[j], (FLOAT)report->Trips[j] / 10.0f - 273.15f);
             }
         }
 
