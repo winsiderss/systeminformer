@@ -119,7 +119,7 @@ typedef struct _KPH_HW_ACPI_DEVICE
     ULONG Row;
     ULONG Ordinal;
     CHAR Id[8];
-    CHAR Path[128]; // the normalized namespace path, zero-terminated; empty when it does not fit
+    CHAR Path[128];
 } KPH_HW_ACPI_DEVICE, *PKPH_HW_ACPI_DEVICE;
 
 typedef struct _KPH_HW_SMBUS_HOST
