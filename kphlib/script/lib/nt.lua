@@ -54,6 +54,7 @@ M.STATUS_NOT_FOUND = status(0xC0000225)
 M.STATUS_NOT_IMPLEMENTED = status(0xC0000002)
 M.STATUS_NOT_SUPPORTED = status(0xC00000BB)
 M.STATUS_NO_SUCH_DEVICE = status(0xC000000E)
+M.STATUS_OBJECT_NAME_NOT_FOUND = status(0xC0000034)
 M.STATUS_OBJECT_TYPE_MISMATCH = status(0xC0000024)
 M.STATUS_RETRY = status(0xC000022D)
 M.STATUS_SUCCESS = status(0x00000000)
@@ -110,6 +111,181 @@ function M.is_device_removable(device)
     return true
   end
   return string.unpack('<I4', bytes) ~= M.RemovalPolicyExpectNoRemoval
+end
+
+-- A registry property of a device; nil when the device does not have it (the
+-- system's STATUS_OBJECT_NAME_NOT_FOUND, or no bytes), nil and the status when
+-- it cannot be read.
+local function registry_list(device, id)
+  local bytes, failed = ksi.hw.device_property(device, id)
+  if not bytes then
+    if failed == M.STATUS_OBJECT_NAME_NOT_FOUND then
+      return nil
+    end
+    return nil, failed
+  end
+  if #bytes == 0 then
+    return nil
+  end
+  return bytes
+end
+
+-- The memory and port descriptors (types 3, 7 and 1) of a CM_RESOURCE_LIST in
+-- bytes first to last, in order, device-specific data (type 5) stepped over;
+-- and the list's size, or 0 when it is cut short.
+local function cm_descriptors(bytes, first, last)
+  local found = {}
+  if last - first + 1 < 4 then
+    return found, 0
+  end
+  local at = first + 4
+  for _ = 1, string.unpack('<I4', bytes, first) do
+    if at + 15 > last then
+      return found, 0
+    end
+    local count = string.unpack('<I4', bytes, at + 12)
+    at = at + 16
+    for _ = 1, count do
+      if at + 19 > last then
+        return found, 0
+      end
+      local descriptor = at
+      local kind = string.byte(bytes, descriptor)
+      at = at + 20
+      if kind == 5 then
+        at = at + string.unpack('<I4', bytes, descriptor + 4)
+        if at - 1 > last then
+          return found, 0
+        end
+      elseif kind == 1 or kind == 3 or kind == 7 then
+        found[#found + 1] = descriptor
+      end
+    end
+  end
+  return found, at - first
+end
+
+-- The length of a CM_PARTIAL_RESOURCE_DESCRIPTOR, as RtlCmDecodeMemIoResource
+-- gives it.
+local function cm_length(bytes, at)
+  local kind, flags = string.byte(bytes, at), string.unpack('<I2', bytes, at + 2)
+  local length = string.unpack('<I4', bytes, at + 12)
+  if kind == 1 or kind == 3 then
+    return length
+  elseif flags & 0x200 ~= 0 then
+    return length << 8
+  elseif flags & 0x400 ~= 0 then
+    return length << 16
+  elseif flags & 0x800 ~= 0 then
+    return length << 32
+  end
+  return 0
+end
+
+-- The memory and port resources of a device: those the PnP manager assigned,
+-- or when it assigned none, the boot configuration. Each is { kind (1 memory,
+-- 2 port), raw, translated, length, flags }; nil and a status on failure.
+function M.resources(device)
+  local raw, rawLast, translated, translatedFirst, translatedLast
+  local allocated, failed = registry_list(device, M.DevicePropertyAllocatedResources)
+  if allocated then
+    -- the raw list is followed by the translated list
+    local _, size = cm_descriptors(allocated, 1, #allocated)
+    if size == 0 or size >= #allocated then
+      return nil, M.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    raw, rawLast = allocated, size
+    translated, translatedFirst, translatedLast = allocated, size + 1, #allocated
+  elseif failed then
+    return nil, failed
+  else
+    raw, failed = registry_list(device, M.DevicePropertyBootConfiguration)
+    if failed then
+      return nil, failed
+    end
+    if raw then
+      rawLast = #raw
+      translated = registry_list(device, M.DevicePropertyBootConfigurationTranslated)
+      if translated then
+        translatedFirst, translatedLast = 1, #translated
+      end
+    end
+  end
+  local list = {}
+  if not raw then
+    return list
+  end
+  local paired = translated and cm_descriptors(translated, translatedFirst, translatedLast) or {}
+  for i, at in ipairs((cm_descriptors(raw, 1, rawLast))) do
+    local other, otherAt = translated, paired[i]
+    if not otherAt then
+      other, otherAt = raw, at
+    end
+    list[i] = {
+      kind = string.byte(raw, at) == 1 and 2 or 1,
+      raw = string.unpack('<i8', raw, at + 4),
+      translated = string.unpack('<i8', other, otherAt + 4),
+      length = cm_length(raw, at),
+      flags = string.unpack('<I2', raw, at + 2),
+    }
+  end
+  return list
+end
+
+-- The memory requirements of a device, each { minimum, maximum, length,
+-- alignment, flags } as RtlIoDecodeMemIoResource gives them, those of length 0
+-- left out; nil and a status on failure (STATUS_NOT_FOUND for a list of no
+-- bytes).
+function M.requirements(device)
+  local bytes, failed = ksi.hw.device_property(device, M.DevicePropertyResourceRequirements)
+  if not bytes then
+    return nil, failed
+  end
+  if #bytes == 0 then
+    return nil, M.STATUS_NOT_FOUND
+  end
+  if #bytes < 32 then
+    return nil, M.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local list = {}
+  local at = 33
+  for _ = 1, string.unpack('<I4', bytes, 29) do
+    if at + 7 > #bytes then
+      return nil, M.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    local count = string.unpack('<I4', bytes, at + 4)
+    local descriptors = at + 8
+    at = descriptors + count * 32
+    if at - 1 > #bytes then
+      return nil, M.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    for j = 0, count - 1 do
+      local descriptor = descriptors + j * 32
+      local kind = string.byte(bytes, descriptor + 1)
+      if kind == 3 or kind == 7 then
+        local flags = string.unpack('<I2', bytes, descriptor + 4)
+        local length, alignment, minimum, maximum =
+          string.unpack('<I4I4i8i8', bytes, descriptor + 8)
+        if kind == 7 then
+          local shift = (flags & 0x200 ~= 0 and 8)
+            or (flags & 0x400 ~= 0 and 16)
+            or (flags & 0x800 ~= 0 and 32)
+          length = shift and length << shift or 0
+          alignment = shift and alignment << shift or 0
+        end
+        if length ~= 0 then
+          list[#list + 1] = {
+            minimum = minimum,
+            maximum = maximum,
+            length = length,
+            alignment = alignment,
+            flags = flags,
+          }
+        end
+      end
+    end
+  end
+  return list
 end
 
 M.pci = require('pci')(M)
