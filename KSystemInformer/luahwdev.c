@@ -621,11 +621,11 @@ int KphpLuaHwDeviceOpen(
     PCSTR text;
     SIZE_T length;
     lua_Integer access;
+    ANSI_STRING ansi;
     UNICODE_STRING name;
     PKPH_LUA_HW_NAMED_DEVICE device;
     PFILE_OBJECT fileObject;
     PDEVICE_OBJECT deviceObject;
-    BYTE stackBuffer[64];
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -640,29 +640,6 @@ int KphpLuaHwDeviceOpen(
                   (access >= 0) && (access <= ULONG_MAX),
                   2,
                   "out of range");
-
-    device = NULL;
-
-    name.Length = (USHORT)(length * sizeof(WCHAR));
-    name.MaximumLength = name.Length;
-    name.Buffer = KphAllocatePagedA(name.Length,
-                                    KPH_TAG_LUA_HARDWARE_NAME,
-                                    stackBuffer);
-    if (!name.Buffer)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Failed to allocate a device name");
-
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        results = KphLuaNilErrorStatus(State, status);
-        goto Exit;
-    }
-
-    for (ULONG i = 0; i < (name.Length / sizeof(WCHAR)); i++)
-    {
-        name.Buffer[i] = (WCHAR)(UCHAR)text[i];
-    }
 
     device = KphAllocateFromPagedLookaside(&KphpLuaHwNamedDeviceLookaside);
     if (!device)
@@ -679,10 +656,31 @@ int KphpLuaHwDeviceOpen(
     NT_ASSERT(sizeof(KPH_LUA_HW_NAMED_DEVICE) <=
               KphpLuaHwNamedDeviceLookaside.L.Size);
 
+    ansi.Buffer = (PCHAR)text;
+    ansi.Length = (USHORT)length;
+    ansi.MaximumLength = (USHORT)length;
+
+    RtlZeroMemory(&name, sizeof(name));
+
+    status = RtlAnsiStringToUnicodeString(&name, &ansi, TRUE);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "RtlAnsiStringToUnicodeString failed: %!STATUS!",
+                      status);
+
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
     status = IoGetDeviceObjectPointer(&name,
                                       (ACCESS_MASK)access,
                                       &fileObject,
                                       &deviceObject);
+
+    RtlFreeUnicodeString(&name);
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -696,9 +694,6 @@ int KphpLuaHwDeviceOpen(
 
     device->FileObject = fileObject;
 
-    KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
-    name.Buffer = NULL;
-
     KphScriptPushObject(State, KphpLuaHwReleaseNamedDevice, device);
     device = NULL;
 
@@ -709,11 +704,6 @@ Exit:
     if (device)
     {
         KphFreeToPagedLookaside(&KphpLuaHwNamedDeviceLookaside, device);
-    }
-
-    if (name.Buffer)
-    {
-        KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     }
 
     return results;
@@ -825,6 +815,7 @@ int KphpLuaHwDevices(
     NTSTATUS status;
     PCSTR text;
     SIZE_T length;
+    ANSI_STRING ansi;
     UNICODE_STRING name;
     PDRIVER_OBJECT driver;
     PKPH_LUA_HW_DEVICE_LIST list;
@@ -832,7 +823,6 @@ int KphpLuaHwDevices(
     lua_Integer index;
     int cleanup;
     int size;
-    BYTE stackBuffer[64];
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -846,25 +836,22 @@ int KphpLuaHwDevices(
     driver = NULL;
     list = NULL;
 
-    name.Length = (USHORT)(length * sizeof(WCHAR));
-    name.MaximumLength = name.Length;
-    name.Buffer = KphAllocatePagedA(name.Length,
-                                    KPH_TAG_LUA_HARDWARE_NAME,
-                                    stackBuffer);
-    if (!name.Buffer)
+    ansi.Buffer = (PCHAR)text;
+    ansi.Length = (USHORT)length;
+    ansi.MaximumLength = (USHORT)length;
+
+    RtlZeroMemory(&name, sizeof(name));
+
+    status = RtlAnsiStringToUnicodeString(&name, &ansi, TRUE);
+    if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Failed to allocate a driver name");
+                      "RtlAnsiStringToUnicodeString failed: %!STATUS!",
+                      status);
 
-        status = STATUS_INSUFFICIENT_RESOURCES;
         results = KphLuaNilErrorStatus(State, status);
         goto Exit;
-    }
-
-    for (ULONG i = 0; i < (name.Length / sizeof(WCHAR)); i++)
-    {
-        name.Buffer[i] = (WCHAR)(UCHAR)text[i];
     }
 
     status = ObReferenceObjectByName(&name,
@@ -875,6 +862,9 @@ int KphpLuaHwDevices(
                                      KernelMode,
                                      NULL,
                                      (PVOID*)&driver);
+
+    RtlFreeUnicodeString(&name);
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -913,9 +903,6 @@ int KphpLuaHwDevices(
         results = KphLuaNilErrorStatus(State, status);
         goto Exit;
     }
-
-    KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
-    name.Buffer = NULL;
 
     ObDereferenceObject(driver);
     driver = NULL;
@@ -991,11 +978,6 @@ Exit:
     if (list)
     {
         KphpLuaHwReleaseDeviceList(list);
-    }
-
-    if (name.Buffer)
-    {
-        KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     }
 
     return results;

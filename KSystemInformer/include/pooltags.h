@@ -147,8 +147,7 @@
 #define KPH_TAG_LUA_HARDWARE_MAPPING            '5LpK'
 #define KPH_TAG_LUA_HARDWARE_REQUEST            '6LpK'
 #define KPH_TAG_LUA_HARDWARE_DEVICE             '7LpK'
-#define KPH_TAG_LUA_HARDWARE_NAME               '8LpK'
-#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        '9LpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        '8LpK'
 
 // script
 
