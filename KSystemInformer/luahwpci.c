@@ -662,6 +662,74 @@ Exit:
 }
 
 /**
+ * \brief Writes a block of configuration space (ksi.hw.pci_write_block).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: true, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwPciWriteBlock(
+    _In_ lua_State* State
+    )
+{
+    int results;
+    PKPH_LUA_HW_PCI_DEVICE device;
+    PCSTR data;
+    SIZE_T length;
+    ULONG offset;
+    ULONG bytes;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    device = KphScriptCheckCleanup(State, 1, KphpLuaHwReleasePciDevice);
+
+    data = luaL_checklstring(State, 3, &length);
+
+    luaL_argcheck(State,
+                  (length >= 1) && (length <= KPH_LUA_HW_PCI_CONFIG_LENGTH),
+                  3,
+                  "out of range");
+
+    offset = KphpLuaHwPciCheckOffset(State, 2, (ULONG)length);
+
+    NT_ASSERT(length >= 1);
+
+    KphScriptCharge(State, (ULONG64)length);
+
+    //
+    // The bus driver only reads the buffer of a write.
+    //
+    bytes = device->Bus.SetBusData(device->Bus.Context,
+                                   PCI_WHICHSPACE_CONFIG,
+                                   (PVOID)data,
+                                   offset,
+                                   (ULONG)length);
+    if (bytes != (ULONG)length)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Configuration write 0x%lx of %lu bytes gave %lu",
+                      offset,
+                      (ULONG)length,
+                      bytes);
+
+        results = KphLuaNilErrorStatus(State, STATUS_IO_DEVICE_ERROR);
+        goto Exit;
+    }
+
+    lua_pushboolean(State, TRUE);
+
+    results = 1;
+
+Exit:
+
+    return results;
+}
+
+/**
  * \brief Tells whether a value is a device object of ksi.hw.pci_open.
  *
  * \param[in] State The Lua state.
@@ -695,6 +763,7 @@ static const luaL_Reg KphpLuaHwPciLibrary[] =
     { "pci_read", KphpLuaHwPciRead },
     { "pci_read_block", KphpLuaHwPciReadBlock },
     { "pci_write", KphpLuaHwPciWrite },
+    { "pci_write_block", KphpLuaHwPciWriteBlock },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
