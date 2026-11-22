@@ -41,6 +41,12 @@ static CONST PCWSTR PhpGsSeriesSettings[PhGraphSeriesMaximum] =
     SETTING_COLOR_POWER_USAGE,
     SETTING_COLOR_TEMPERATURE,
     SETTING_COLOR_FAN_RPM,
+    SETTING_COLOR_CLOCK,
+    SETTING_COLOR_MULTIPLIER,
+    SETTING_COLOR_VOLTAGE,
+    SETTING_COLOR_CURRENT,
+    SETTING_COLOR_BANDWIDTH,
+    SETTING_COLOR_PERCENTAGE,
 };
 
 static ULONG* CONST PhpGsSeriesCache[PhGraphSeriesMaximum] =
@@ -54,6 +60,12 @@ static ULONG* CONST PhpGsSeriesCache[PhGraphSeriesMaximum] =
     &PhCsColorPowerUsage,
     &PhCsColorTemperature,
     &PhCsColorFanRpm,
+    &PhCsColorClock,
+    &PhCsColorMultiplier,
+    &PhCsColorVoltage,
+    &PhCsColorCurrent,
+    &PhCsColorBandwidth,
+    &PhCsColorPercentage,
 };
 
 static PPH_GRAPH_STYLE PhpGsFindCustomStyle(

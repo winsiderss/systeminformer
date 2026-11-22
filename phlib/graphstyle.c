@@ -25,6 +25,12 @@ static CONST COLORREF PhpLegacySeriesColors[PhGraphSeriesMaximum] =
     0x00ff00, // power
     0x0000ff, // temperature
     0xff0077, // fan
+    0xffff00, // clock
+    0x00ffbf, // multiplier
+    0xc850ff, // voltage
+    0x00beff, // current
+    0xff9696, // bandwidth
+    0xc8c8c8, // percentage
 };
 
 static VOID PhpInitializeBuiltInStyle(
@@ -460,6 +466,12 @@ static CONST PCSTR PhpGraphSeriesKeys[PhGraphSeriesMaximum] =
     "power",
     "temperature",
     "fan",
+    "clock",
+    "multiplier",
+    "voltage",
+    "current",
+    "bandwidth",
+    "percentage",
 };
 
 static CONST PCSTR PhpGraphFillNames[PhGraphFillMaximum] =

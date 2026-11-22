@@ -503,6 +503,12 @@ static CONST PCWSTR PhpGseSeriesNames[PhGraphSeriesMaximum] =
     L"Power",
     L"Temperature",
     L"Fan",
+    L"Clock",
+    L"Multiplier",
+    L"Voltage",
+    L"Current",
+    L"Bandwidth",
+    L"Percentage",
 };
 
 // Fill choices in the order shown.

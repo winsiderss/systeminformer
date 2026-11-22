@@ -23,6 +23,12 @@ typedef enum _PH_GRAPH_SERIES
     PhGraphSeriesPower,
     PhGraphSeriesTemperature,
     PhGraphSeriesFan,
+    PhGraphSeriesClock,
+    PhGraphSeriesMultiplier,
+    PhGraphSeriesVoltage,
+    PhGraphSeriesCurrent,
+    PhGraphSeriesBandwidth,
+    PhGraphSeriesPercentage,
     PhGraphSeriesMaximum
 } PH_GRAPH_SERIES;
 
