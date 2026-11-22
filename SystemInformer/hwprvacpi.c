@@ -19,18 +19,20 @@
 // value, so one slow method costs only its device.
 
 #define PHP_HW_ACPI_MAX_DEVICES 64 // identify's first answer; more are asked for once
-#define PHP_HW_ACPI_MAX_VALUES 3 // the readings of a device: a DPTF power participant's PMAX, PROP and PBSS
 #define PHP_HW_ACPI_EVAL_MS 500 // the most an evaluation may take
 #define PHP_HW_ACPI_CALL_MS 900 // the most a call's evaluations may take together
 #define PHP_HW_ACPI_STRIKE_LIMIT 2 // consecutive timed-out evaluations that end a value for the session
 #define PHP_HW_ACPI_BUSY_LIMIT 5 // consecutive busy evaluations that end a value for the session
 #define PHP_HW_ACPI_IMPLAUSIBLE_LIMIT 3 // consecutive implausible readings that end a value for the session
-#define PHP_HW_ACPI_STATIC_LENGTH 0x1000 // a static call's answers: at most _FIF (0x40) and _FPS (0x800), or _PMC (0x200)
-#define PHP_HW_ACPI_READ_LENGTH 0x100 // a reading call's answers: at most three records of 0x20
+#define PHP_HW_ACPI_STATIC_LENGTH 0x2000 // a static call's answers: at most ATK's three lists of 0x800
+#define PHP_HW_ACPI_READ_LENGTH 0x1000 // a reading call's answers: a record of 0x20 a value
 #define PHP_HW_ACPI_METER_MIN_MS 2000
 #define PHP_HW_ACPI_METER_MAX_MS 60000 // _GAI above this is read at this interval
 #define PHP_HW_ACPI_TYPE_POWER 0x11 // DPTF PTYP of a power participant
 #define PHP_HW_ACPI_TYPE_BATTERY 0xC // DPTF PTYP of a battery
+#define PHP_HW_ACPI_ATK_FIELDS 5 // id, name, limit1, limit2, enable
+#define PHP_HW_ACPI_THINKPAD_SENSORS 8 // TMP0-TMP7
+#define PHP_HW_ACPI_DYTC_FC_MMC 27 // DYTC function capabilities: MMC
 
 typedef struct _PHP_HW_ACPI_STATE
 {
@@ -44,7 +46,9 @@ typedef struct _PHP_HW_ACPI_STATE
 typedef struct _PHP_HW_ACPI_VALUE
 {
     PCSTR Method;
-    UCHAR Op; // sets the value apart in its id
+    UCHAR Op; // sets the value apart in its id; an ATK reader's PH_HW_ATK_OP_*
+    BOOLEAN HasArgument;
+    ULONG Argument; // an ATK reader's sensor id
     PH_HW_NAMED_SENSOR_KIND Kind;
     PHP_HW_ACPI_STATE State;
     BOOLEAN Listed; // a reading decoded, known or not: the sensors are listed
@@ -52,7 +56,7 @@ typedef struct _PHP_HW_ACPI_VALUE
     ULONG SensorId;
     ULONG Index; // in the named-sensor store
     ULONG ControlIndex; // a fine-grain fan's control
-    PCWSTR Label; // the name of a getter, NULL for the device's name
+    WCHAR Label[PH_HW_NAMED_SENSOR_NAME_LENGTH]; // the value's own name; empty for the device's name
     WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
 } PHP_HW_ACPI_VALUE, *PPHP_HW_ACPI_VALUE;
 
@@ -71,7 +75,9 @@ typedef struct _PHP_HW_ACPI_DEVICE
     PPH_STRING TreeName; // the device tree's
     PPH_STRING FirmwareName; // _STR, or a meter's model
     ULONG ValueCount;
-    PHP_HW_ACPI_VALUE Values[PHP_HW_ACPI_MAX_VALUES];
+    ULONG ValueCapacity;
+    PPHP_HW_ACPI_VALUE Values;
+    UCHAR EcSlots; // the ThinkPad EC's TMPn that answered, for the report
     PPH_BYTES Reading; // the records of the values still read, built when they change
     PH_HW_ACPI_REPORT Report;
 } PHP_HW_ACPI_DEVICE, *PPHP_HW_ACPI_DEVICE;
@@ -216,16 +222,38 @@ static ULONG PhpHwAcpiMilliseconds(
     return max(min(PHP_HW_ACPI_EVAL_MS, PHP_HW_ACPI_CALL_MS / max(Records, 1)), 1);
 }
 
+static VOID PhpHwAcpiAppendArgument(
+    _Inout_ PPH_BYTES_BUILDER Evals,
+    _In_ PPHP_HW_ACPI_DEVICE Device,
+    _In_ PCSTR Name,
+    _In_ BOOLEAN HasArgument,
+    _In_ ULONG Argument
+    )
+{
+    PH_BYTESREF name;
+    PH_BYTESREF arguments;
+    UCHAR argument[PH_HW_ACPI_ARGUMENT_HEADER + sizeof(ULONG)];
+    USHORT type = PH_HW_ACPI_ARGUMENT_INTEGER;
+    USHORT length = sizeof(ULONG);
+
+    // One integer argument as the ACPI driver takes it: its type, its length, the value.
+    memcpy(argument, &type, sizeof(USHORT));
+    memcpy(argument + sizeof(USHORT), &length, sizeof(USHORT));
+    memcpy(argument + PH_HW_ACPI_ARGUMENT_HEADER, &Argument, sizeof(ULONG));
+    arguments.Buffer = (PCH)argument;
+    arguments.Length = sizeof(argument);
+
+    PhInitializeBytesRef(&name, (PSTR)Name);
+    KphHwAcpiAppendEval(Evals, Device->Row, Device->Ordinal, &name, HasArgument ? &arguments : NULL);
+}
+
 static VOID PhpHwAcpiAppend(
     _Inout_ PPH_BYTES_BUILDER Evals,
     _In_ PPHP_HW_ACPI_DEVICE Device,
     _In_ PCSTR Name
     )
 {
-    PH_BYTESREF name;
-
-    PhInitializeBytesRef(&name, (PSTR)Name);
-    KphHwAcpiAppendEval(Evals, Device->Row, Device->Ordinal, &name, NULL);
+    PhpHwAcpiAppendArgument(Evals, Device, Name, FALSE, 0);
 }
 
 /**
@@ -242,13 +270,13 @@ static VOID PhpHwAcpiBuildReading(
     for (ULONG i = 0; i < Device->ValueCount; i++)
     {
         if (!Device->Values[i].State.Disabled)
-            PhpHwAcpiAppend(&evals, Device, Device->Values[i].Method);
+            PhpHwAcpiAppendArgument(&evals, Device, Device->Values[i].Method, Device->Values[i].HasArgument, Device->Values[i].Argument);
     }
 
     PhMoveReference(&Device->Reading, PhFinalBytesBuilderBytes(&evals));
 }
 
-static VOID PhpHwAcpiAddValue(
+static PPHP_HW_ACPI_VALUE PhpHwAcpiAddValue(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
     _In_ PCSTR Method,
     _In_ UCHAR Op,
@@ -256,14 +284,26 @@ static VOID PhpHwAcpiAddValue(
     _In_opt_ PCWSTR Label
     )
 {
-    PPHP_HW_ACPI_VALUE value = &Device->Values[Device->ValueCount++];
+    PPHP_HW_ACPI_VALUE value;
 
+    if (Device->ValueCount == Device->ValueCapacity)
+    {
+        Device->ValueCapacity = Device->ValueCapacity ? Device->ValueCapacity * 2 : 4;
+        Device->Values = PhReAllocate(Device->Values, sizeof(PHP_HW_ACPI_VALUE) * Device->ValueCapacity);
+    }
+
+    value = &Device->Values[Device->ValueCount++];
+    memset(value, 0, sizeof(PHP_HW_ACPI_VALUE));
     value->Method = Method;
     value->Op = Op;
     value->Kind = Kind;
-    value->Label = Label;
     value->Index = ULONG_MAX;
     value->ControlIndex = ULONG_MAX;
+
+    if (Label)
+        PhCopyStringZ(Label, SIZE_MAX, value->Label, RTL_NUMBER_OF(value->Label), NULL);
+
+    return value;
 }
 
 /**
@@ -454,6 +494,242 @@ static NTSTATUS PhpHwAcpiPowerStatic(
     return STATUS_SUCCESS;
 }
 
+static PCSTR PhpHwAcpiLastSegment(
+    _In_ PCSTR Path
+    )
+{
+    PCSTR segment = Path;
+
+    for (PCSTR p = Path; *p; p++)
+    {
+        if (*p == '.' || *p == '\\')
+            segment = p + 1;
+    }
+
+    return segment;
+}
+
+/**
+ * Expands an ATK0110 device's sensor lists into its values: each list a count, then packages of { id, name, limit1,
+ * limit2, enable }; an enabled sensor of the list's class is read by its reader with its id.
+ */
+static NTSTATUS PhpHwAcpiAtkStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    static CONST struct { PCSTR Reader; UCHAR Op; ULONG Class; PH_HW_NAMED_SENSOR_KIND Kind; } lists[] =
+    {
+        { "RTMP", PH_HW_ATK_OP_RTMP, 0x0603, PhHwNamedSensorAcpiTemperature },
+        { "RVLT", PH_HW_ATK_OP_RVLT, 0x0602, PhHwNamedSensorAcpiVoltage },
+        { "RFAN", PH_HW_ATK_OP_RFAN, 0x0604, PhHwNamedSensorFanSpeed },
+    };
+    NTSTATUS firstStatus = STATUS_SUCCESS;
+    BOOLEAN answered = FALSE;
+
+    for (ULONG l = 0; l < RTL_NUMBER_OF(lists); l++)
+    {
+        NTSTATUS status;
+        const UCHAR* data;
+        ULONG dataLength;
+        ULONG offset;
+        ULONG end;
+        ULONG elements;
+        USHORT type;
+        USHORT length;
+        ULONG size;
+
+        if (!PhpHwAcpiRecord(Output, Length, l, &status, &data, &dataLength))
+            return STATUS_INFO_LENGTH_MISMATCH;
+
+        if (!NT_SUCCESS(status))
+        {
+            if (NT_SUCCESS(firstStatus))
+                firstStatus = status;
+
+            continue;
+        }
+
+        answered = TRUE;
+
+        if (!PhHwAcpiGetElements(data, dataLength, &offset, &end, &elements) || !elements)
+            continue;
+
+        // The count, then the sensor packages.
+        if (!PhHwAcpiReadArgument(data, end, offset, &type, &length, &size) || type != PH_HW_ACPI_ARGUMENT_INTEGER)
+            continue;
+
+        offset += size;
+
+        for (ULONG e = 1; e < elements; e++)
+        {
+            ULONG fields[PHP_HW_ACPI_ATK_FIELDS];
+            USHORT fieldTypes[PHP_HW_ACPI_ATK_FIELDS];
+            USHORT fieldLengths[PHP_HW_ACPI_ATK_FIELDS];
+            ULONG fieldEnd;
+            ULONG field;
+            ULONG64 id;
+            ULONG64 enable;
+            PPH_STRING name = NULL;
+            PPHP_HW_ACPI_VALUE value;
+            ULONG f;
+
+            if (!PhHwAcpiReadArgument(data, end, offset, &type, &length, &size) || type != PH_HW_ACPI_ARGUMENT_PACKAGE)
+                break;
+
+            // { id, name, limit1, limit2, enable }; a short package or a zero enable is skipped.
+            field = offset + PH_HW_ACPI_ARGUMENT_HEADER;
+            fieldEnd = field + length;
+
+            for (f = 0; f < PHP_HW_ACPI_ATK_FIELDS; f++)
+            {
+                ULONG fieldSize;
+
+                if (!PhHwAcpiReadArgument(data, fieldEnd, field, &fieldTypes[f], &fieldLengths[f], &fieldSize))
+                    break;
+
+                fields[f] = field;
+                field += fieldSize;
+            }
+
+            offset += size;
+
+            if (
+                f < PHP_HW_ACPI_ATK_FIELDS ||
+                PhHwAcpiReadIntegersAt(data, fields[0], fieldEnd, &id, 1) != 1 ||
+                (id >> 16) != lists[l].Class ||
+                PhHwAcpiReadIntegersAt(data, fields[4], fieldEnd, &enable, 1) != 1 ||
+                !enable
+                )
+            {
+                continue;
+            }
+
+            if (fieldTypes[1] == PH_HW_ACPI_ARGUMENT_STRING && fieldLengths[1] > 1)
+            {
+                name = PhZeroExtendToUtf16Ex((PCSTR)(data + fields[1] + PH_HW_ACPI_ARGUMENT_HEADER), fieldLengths[1]);
+                PhTrimToNullTerminatorString(name);
+            }
+
+            if (!name || !name->Length)
+                PhMoveReference(&name, PhFormatString(L"ATK 0x%08I64x", id));
+
+            value = PhpHwAcpiAddValue(Device, lists[l].Reader, lists[l].Op, lists[l].Kind, name->Buffer);
+            value->HasArgument = TRUE;
+            value->Argument = (ULONG)id;
+            PhDereferenceObject(name);
+        }
+    }
+
+    if (!answered)
+        return firstStatus == STATUS_OBJECT_NAME_NOT_FOUND ? STATUS_NOT_SUPPORTED : firstStatus;
+
+    return Device->ValueCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Reads a ThinkPad HKEY's DYTC query, get, function capabilities and MMC get, for the report; the profile is a label,
+ * so the device is not read after. Without bit 8 of the query DYTC is not enabled; MMC get needs its function
+ * capability.
+ */
+static NTSTATUS PhpHwAcpiDytcStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    for (ULONG i = 0; i < PH_HW_DYTC_COMMANDS; i++)
+    {
+        ULONG64 value;
+        NTSTATUS status;
+
+        Device->Report.Dytc[i] = ULONG_MAX;
+
+        if (PhpHwAcpiRecordInteger(Output, Length, i, &value, &status) && value < ULONG_MAX)
+            Device->Report.Dytc[i] = (ULONG)value;
+
+        if (i == 0 && (Device->Report.Dytc[0] == ULONG_MAX || !(Device->Report.Dytc[0] & 0x100)))
+            break;
+        if (i == 2 && (Device->Report.Dytc[2] == ULONG_MAX || !(Device->Report.Dytc[2] & (1UL << PHP_HW_ACPI_DYTC_FC_MMC))))
+            break;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads a ThinkPad EC's TMP0-TMP7: each slot that answers is read after. The row answers STATUS_NOT_FOUND without a
+ * ThinkPad hotkey device: then the EC has no reading.
+ */
+static NTSTATUS PhpHwAcpiThinkPadStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    static CONST PCSTR methods[PHP_HW_ACPI_THINKPAD_SENSORS] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
+    PCSTR segment = PhpHwAcpiLastSegment(Device->Path);
+    NTSTATUS firstStatus = STATUS_SUCCESS;
+
+    for (ULONG i = 0; i < PHP_HW_ACPI_THINKPAD_SENSORS; i++)
+    {
+        NTSTATUS status;
+        const UCHAR* data;
+        ULONG dataLength;
+        PPH_STRING label;
+
+        if (!PhpHwAcpiRecord(Output, Length, i, &status, &data, &dataLength))
+            return STATUS_INFO_LENGTH_MISMATCH;
+
+        if (!NT_SUCCESS(status))
+        {
+            if (NT_SUCCESS(firstStatus))
+                firstStatus = status;
+
+            continue;
+        }
+
+        label = PhFormatString(L"%hs TMP%lu", segment, i);
+        PhpHwAcpiAddValue(Device, methods[i], (UCHAR)i, PhHwNamedSensorAcpiTemperature, label->Buffer);
+        PhDereferenceObject(label);
+        Device->EcSlots |= (UCHAR)(1 << i);
+    }
+
+    if (Device->ValueCount)
+        return STATUS_SUCCESS;
+    if (firstStatus == STATUS_NOT_FOUND || firstStatus == STATUS_OBJECT_NAME_NOT_FOUND)
+        return STATUS_NOT_SUPPORTED;
+
+    return firstStatus;
+}
+
+/**
+ * Decodes a ThinkPad EC TMPn reading: signed degrees C; outside -127 to 127 the sensor is absent.
+ */
+_Success_(return == PhHwFanDecodeOk)
+static PH_HW_FAN_DECODE PhpHwDecodeThinkPadTemperature(
+    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_ ULONG Length,
+    _Out_ PFLOAT Celsius
+    )
+{
+    ULONG64 value;
+    LONG celsius;
+
+    if (!PhHwAcpiReadInteger(Buffer, Length, &value))
+        return PhHwFanDecodeMalformed;
+
+    celsius = (LONG)(ULONG)value;
+
+    // 00h is a slot the EC does not implement, 80h one without a sensor.
+    if (!celsius || celsius > 127 || celsius < -127)
+        return PhHwFanDecodeUnknown;
+
+    *Celsius = (FLOAT)celsius;
+    return PhHwFanDecodeOk;
+}
+
 /**
  * Reads a device's static methods in one call and decides what it reads. A device the static methods show has no
  * reading ends for the session; a call that fails whole counts against the device and is made again.
@@ -466,6 +742,10 @@ static VOID PhpHwAcpiReadStatic(
     static CONST PCSTR participant[] = { "_STA", "PTYP", "_STR", "_PSV", "_CRT", "_AC0", "GTSH" };
     static CONST PCSTR meter[] = { "_STA", "_PMC", "_GAI" };
     static CONST PCSTR power[] = { "_STA", "PTYP", "PSRC", "ARTG", "CTYP", "RBHF", "VBNL", "CMPP" };
+    static CONST PCSTR atk[] = { "TSIF", "VSIF", "FSIF" };
+    static CONST PCSTR dytc[] = { "DYTC", "DYTC", "DYTC", "DYTC" };
+    static CONST ULONG dytcCommands[PH_HW_DYTC_COMMANDS] = { 0x0, 0x2, 0x3, 0x8 }; // query, get, capabilities, MMC get
+    static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
     const PCSTR* methods;
     ULONG count;
     PH_BYTES_BUILDER evals;
@@ -487,6 +767,18 @@ static VOID PhpHwAcpiReadStatic(
         methods = meter;
         count = RTL_NUMBER_OF(meter);
         break;
+    case PhHwAcpiAtk:
+        methods = atk;
+        count = RTL_NUMBER_OF(atk);
+        break;
+    case PhHwAcpiDytc:
+        methods = dytc;
+        count = RTL_NUMBER_OF(dytc);
+        break;
+    case PhHwAcpiHotkeyTemperature:
+        methods = thinkPad;
+        count = RTL_NUMBER_OF(thinkPad);
+        break;
     default:
         methods = power;
         count = RTL_NUMBER_OF(power);
@@ -496,7 +788,7 @@ static VOID PhpHwAcpiReadStatic(
     PhInitializeBytesBuilder(&evals, 128);
 
     for (ULONG i = 0; i < count; i++)
-        PhpHwAcpiAppend(&evals, Device, methods[i]);
+        PhpHwAcpiAppendArgument(&evals, Device, methods[i], Device->Kind == PhHwAcpiDytc, Device->Kind == PhHwAcpiDytc ? dytcCommands[i] : 0);
 
     output = PhAllocate(PHP_HW_ACPI_STATIC_LENGTH);
     status = KphHwAcpiEval(PhpHwAcpiMilliseconds(count), evals.Bytes->Buffer, (ULONG)evals.Bytes->Length, output, PHP_HW_ACPI_STATIC_LENGTH, &returnLength);
@@ -514,6 +806,15 @@ static VOID PhpHwAcpiReadStatic(
         case PhHwAcpiPowerMeter:
             status = PhpHwAcpiMeterStatic(Device, output, returnLength);
             break;
+        case PhHwAcpiAtk:
+            status = PhpHwAcpiAtkStatic(Device, output, returnLength);
+            break;
+        case PhHwAcpiDytc:
+            status = PhpHwAcpiDytcStatic(Device, output, returnLength);
+            break;
+        case PhHwAcpiHotkeyTemperature:
+            status = PhpHwAcpiThinkPadStatic(Device, output, returnLength);
+            break;
         default:
             status = PhpHwAcpiPowerStatic(Device, output, returnLength);
             break;
@@ -525,7 +826,12 @@ static VOID PhpHwAcpiReadStatic(
         Device->StaticRead = TRUE;
         Device->State.Strikes = 0;
         Device->State.Busy = 0;
-        PhpHwAcpiBuildReading(Device);
+
+        // A device without a reading (DYTC) is in the report only.
+        if (Device->ValueCount)
+            PhpHwAcpiBuildReading(Device);
+        else
+            Device->State.Disabled = TRUE;
     }
     else if (status == STATUS_NOT_SUPPORTED)
     {
@@ -541,28 +847,13 @@ static VOID PhpHwAcpiReadStatic(
     PhDeleteBytesBuilder(&evals);
 }
 
-static PCSTR PhpHwAcpiLastSegment(
-    _In_ PCSTR Path
-    )
-{
-    PCSTR segment = Path;
-
-    for (PCSTR p = Path; *p; p++)
-    {
-        if (*p == '.' || *p == '\\')
-            segment = p + 1;
-    }
-
-    return segment;
-}
-
 static PPH_STRING PhpHwAcpiBaseName(
     _In_ PPHP_HW_ACPI_DEVICE Device,
     _In_ PPHP_HW_ACPI_VALUE Value
     )
 {
-    if (Value->Label)
-        return PhCreateString((PWSTR)Value->Label);
+    if (Value->Label[0])
+        return PhCreateString(Value->Label);
     if (Device->FirmwareName && Device->FirmwareName->Length)
         return PhReferenceObject(Device->FirmwareName);
     if (Device->TreeName)
@@ -727,6 +1018,15 @@ NTSTATUS PhpHwAcpiProbe(
         case KPH_HW_ACPI_ROW_INT3407:
             kind = PhHwAcpiDptfPower;
             break;
+        case KPH_HW_ACPI_ROW_ATK0110:
+            kind = PhHwAcpiAtk;
+            break;
+        case KPH_HW_ACPI_ROW_LEN0068:
+            kind = PhHwAcpiDytc;
+            break;
+        case KPH_HW_ACPI_ROW_PNP0C09:
+            kind = PhHwAcpiHotkeyTemperature;
+            break;
         default:
             continue;
         }
@@ -745,6 +1045,8 @@ NTSTATUS PhpHwAcpiProbe(
             device->Report.Trips[j] = ULONG_MAX;
         for (ULONG j = 0; j < PH_HW_POWER_STATICS; j++)
             device->Report.Power[j] = ULONG_MAX;
+        for (ULONG j = 0; j < PH_HW_DYTC_COMMANDS; j++)
+            device->Report.Dytc[j] = ULONG_MAX;
     }
 
     PhFree(devices);
@@ -853,6 +1155,12 @@ static NTSTATUS PhpHwAcpiReadDevice(
                 break;
             case PhHwAcpiDptfTemperature:
                 decode = PhHwDecodeDptfTemperature(data, dataLength, &reading);
+                break;
+            case PhHwAcpiAtk:
+                decode = PhHwDecodeAtkReading(value->Op, data, dataLength, &reading);
+                break;
+            case PhHwAcpiHotkeyTemperature:
+                decode = PhpHwDecodeThinkPadTemperature(data, dataLength, &reading);
                 break;
             default:
                 decode = PhHwDecodePowerMeterReading(data, dataLength, &reading);
@@ -985,6 +1293,7 @@ NTSTATUS PhpHwAcpiPass(
                     capabilities |= PH_HW_CAP_FAN_CONTROL;
                 break;
             case PhHwNamedSensorAcpiTemperature:
+            case PhHwNamedSensorAcpiVoltage:
                 capabilities |= PH_HW_CAP_ACPI_TEMP;
                 break;
             default:
@@ -1011,6 +1320,9 @@ VOID PhpHwAcpiEnd(
         PhClearReference(&PhpHwAcpiDevices[i].Reading);
         PhClearReference(&PhpHwAcpiDevices[i].TreeName);
         PhClearReference(&PhpHwAcpiDevices[i].FirmwareName);
+
+        if (PhpHwAcpiDevices[i].Values)
+            PhFree(PhpHwAcpiDevices[i].Values);
     }
 
     if (PhpHwAcpiDevices)
@@ -1034,7 +1346,12 @@ VOID PhpHwAcpiDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    static CONST PCWSTR kindNames[] = { L"fan", L"DPTF participant", L"power meter", L"DPTF power participant" };
+    static CONST PCWSTR kindNames[] =
+    {
+        L"fan", L"DPTF participant", L"power meter", L"DPTF power participant", L"ATK0110", L"ATK0110 sensor", L"DYTC",
+        L"ThinkPad EC temperature"
+    };
+    static CONST PCWSTR dytcNames[PH_HW_DYTC_COMMANDS] = { L"query", L"get", L"capabilities", L"MMC" };
     static CONST PCWSTR tripNames[PH_HW_DPTF_TRIPS] = { L"_PSV", L"_CRT", L"_AC0", L"GTSH" };
     static CONST PCWSTR getterNames[PH_HW_POWER_STATICS] = { L"PSRC", L"ARTG", L"CTYP", L"RBHF", L"VBNL", L"CMPP" };
     static CONST PCWSTR stringNames[] = { L"model", L"serial", L"OEM" };
@@ -1073,6 +1390,34 @@ VOID PhpHwAcpiDiagnostics(
                     else
                         PhAppendFormatStringBuilder(Builder, L"%lu", value);
                 }
+            }
+        }
+
+        if (device->Kind == PhHwAcpiAtk)
+        {
+            for (ULONG v = 0; v < device->ValueCount; v++)
+                PhAppendFormatStringBuilder(Builder, L", %hs 0x%08lx", device->Values[v].Method, device->Values[v].Argument);
+        }
+
+        if (device->Kind == PhHwAcpiDytc)
+        {
+            for (ULONG j = 0; j < PH_HW_DYTC_COMMANDS; j++)
+            {
+                if (report->Dytc[j] != ULONG_MAX)
+                    PhAppendFormatStringBuilder(Builder, L", %s 0x%08lx", dytcNames[j], report->Dytc[j]);
+            }
+
+            // GET: [11:8] function, [15:12] mode, bit 17 lap mode.
+            if (report->Dytc[1] != ULONG_MAX)
+                PhAppendFormatStringBuilder(Builder, L" (function %lu, mode %lu, lap %lu)", (report->Dytc[1] >> 8) & 0xF, (report->Dytc[1] >> 12) & 0xF, (report->Dytc[1] >> 17) & 1);
+        }
+
+        if (device->Kind == PhHwAcpiHotkeyTemperature)
+        {
+            for (ULONG j = 0; j < PHP_HW_ACPI_THINKPAD_SENSORS; j++)
+            {
+                if (device->EcSlots & (1 << j))
+                    PhAppendFormatStringBuilder(Builder, j && (device->EcSlots & ((1 << j) - 1)) ? L" TMP%lu" : L", TMP%lu", j);
             }
         }
 
