@@ -91,9 +91,12 @@ M.DEVPKEY_Device_CompatibleIds =
   devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 4)
 M.DEVPKEY_Device_BiosDeviceName =
   devpkey(0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 10)
+M.DEVPKEY_Device_PowerData =
+  devpkey(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 32)
 
 M.DEVPROP_TYPE_UINT32 = 0x00000007
 M.DEVPROP_TYPE_STRING = 0x00000012
+M.DEVPROP_TYPE_BINARY = 0x00001003
 
 M.DevicePropertyBootConfiguration = 0x3
 M.DevicePropertyBootConfigurationTranslated = 0x4
@@ -103,6 +106,8 @@ M.DevicePropertyAllocatedResources = 0x15
 M.RemovalPolicyExpectNoRemoval = 1
 M.RemovalPolicyExpectOrderlyRemoval = 2
 M.RemovalPolicyExpectSurpriseRemoval = 3
+
+M.PowerDeviceD0 = 1
 
 -- Whether a device may go away while a script holds it: true unless the system
 -- expects it never to be removed, and true when its policy cannot be read.

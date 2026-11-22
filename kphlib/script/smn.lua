@@ -658,8 +658,9 @@ local function session(input)
   local header, readFailed = ksi.hw.pci_read_block(device, 0, 16)
   if not header then
     ksi.trace('configuration header of 0x%x not read: 0x%x', locator, readFailed)
+    local refused = nt.pci.refused(device, readFailed)
     device:release()
-    return nil, readFailed
+    return nil, refused
   end
   root.vendor, root.device = string.unpack('<I2I2', header, 1)
   if root.vendor == 0xffff then

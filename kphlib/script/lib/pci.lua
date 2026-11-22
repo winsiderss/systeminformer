@@ -131,5 +131,30 @@ return function(nt)
     return opened, failed
   end
 
+  -- The function's most recent power state, a DEVICE_POWER_STATE. Nil and a
+  -- status when its power data cannot be read.
+  function M.power_state(device)
+    local bytes, kind = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_PowerData)
+    if not bytes then
+      return nil, kind
+    end
+    if kind ~= nt.DEVPROP_TYPE_BINARY or #bytes ~= 56 then
+      return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
+    end
+    return (string.unpack('<I4', bytes, 5))
+  end
+
+  -- The status of an access the bus refused: STATUS_DEVICE_POWERED_OFF for a
+  -- device error of a function that is not in D0, the status given otherwise.
+  function M.refused(device, status)
+    if status == nt.STATUS_IO_DEVICE_ERROR then
+      local state = M.power_state(device)
+      if state and state ~= nt.PowerDeviceD0 then
+        return nt.STATUS_DEVICE_POWERED_OFF
+      end
+    end
+    return status
+  end
+
   return M
 end
