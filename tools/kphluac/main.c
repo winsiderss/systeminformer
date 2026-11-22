@@ -32,6 +32,12 @@
 #define KPHLUAC_REQUIRE "require"
 #define KPHLUAC_LIBRARY_ENTRY "nt"
 #define KPHLUAC_MARKER "kphluac require "
+#define KPHLUAC_STATUS_PREFIX "STATUS_"
+#define KPHLUAC_STATUS_LINE "M." KPHLUAC_STATUS_PREFIX
+#define KPHLUAC_STATUS_FORM " = status(0x"
+#define KPHLUAC_STATUS_FUNCTION "local function status(value)"
+#define KPHLUAC_STATUS_BODY "return (value ~ 0x80000000) - 0x80000000"
+#define KPHLUAC_PENDING_TESTS 64
 
 typedef enum _KPHLUAC_KIND
 {
@@ -46,6 +52,18 @@ typedef struct _REQUIRE
     int Line;
 } REQUIRE, *PREQUIRE;
 
+typedef struct _STATUS_NAME
+{
+    char* Name;
+    long long Value;
+} STATUS_NAME, *PSTATUS_NAME;
+
+typedef struct _STATUS_TABLE
+{
+    PSTATUS_NAME Names;
+    int Count;
+} STATUS_TABLE, *PSTATUS_TABLE;
+
 typedef struct _BUILD_CONTEXT
 {
     const char* Script;
@@ -58,7 +76,27 @@ typedef struct _BUILD_CONTEXT
     const wchar_t* LibraryFolder;
     PREQUIRE Requires;
     int RequireCount;
+    int Fold;
+    const STATUS_TABLE* Statuses;
+    int LibraryUseLine;
 } BUILD_CONTEXT, *PBUILD_CONTEXT;
+
+typedef struct _STATUS_TEST
+{
+    const char* Name;
+    const char* Prefix;
+    const char* Suffix;
+} STATUS_TEST, *PSTATUS_TEST;
+
+typedef struct _PENDING_TEST
+{
+    int Depth;
+    size_t Start;
+    int Line;
+    int Arguments;
+    const char* Name;
+    const char* Suffix;
+} PENDING_TEST, *PPENDING_TEST;
 
 typedef struct _TEXT_BUFFER
 {
@@ -73,6 +111,17 @@ static const char KphluacPlaceholderStart[] =
     "(function(...) local _ = '" KPHLUAC_MARKER;
 static const char KphluacPlaceholderEnd[] = "' end)()";
 
+//
+// Each is the body of the function of the same name in nt.lua.
+//
+static const STATUS_TEST KphluacStatusTests[] =
+{
+    { "NT_SUCCESS", "((", ") >= 0)" },
+    { "NT_INFORMATION", "((((", ") >> 30) & 3) == 1)" },
+    { "NT_WARNING", "((((", ") >> 30) & 3) == 2)" },
+    { "NT_ERROR", "((((", ") >> 30) & 3) == 3)" },
+};
+
 typedef struct _SOURCE_TEXT
 {
     const char* Text;
@@ -85,6 +134,7 @@ typedef struct _REGISTER_STATE
     const char* Field;
     unsigned char Environment;
     unsigned char Closure;
+    unsigned char Library;
 } REGISTER_STATE, *PREGISTER_STATE;
 
 /**
@@ -568,6 +618,35 @@ static int IsEnvironment(
 }
 
 /**
+ * \brief Checks if an upvalue of a function is the local that holds nt.
+ *
+ * \param[in] Function The function.
+ * \param[in] Index The index of the upvalue.
+ *
+ * \return Non-zero when it is.
+ */
+static int IsLibrary(
+    _In_ const Proto* Function,
+    _In_ int Index
+    )
+{
+    const TString* name;
+
+    if ((Index < 0) || (Index >= Function->sizeupvalues))
+    {
+        return 0;
+    }
+
+    name = Function->upvalues[Index].name;
+    if (!name)
+    {
+        return 0;
+    }
+
+    return (strcmp(getstr(name), KPHLUAC_LIBRARY_ENTRY) == 0);
+}
+
+/**
  * \brief Forgets what is known of the registers from one on.
  *
  * \param[in,out] Registers What is known of each register.
@@ -586,6 +665,7 @@ static void ForgetRegisters(
         Registers[i].Field = NULL;
         Registers[i].Environment = 0;
         Registers[i].Closure = 0;
+        Registers[i].Library = 0;
     }
 }
 
@@ -649,6 +729,10 @@ static void FollowInstruction(
             if (IsEnvironment(Function, GETARG_B(instruction)))
             {
                 Registers[a].Environment = 1;
+            }
+            else if (IsLibrary(Function, GETARG_B(instruction)))
+            {
+                Registers[a].Library = 1;
             }
 
             break;
@@ -1472,6 +1556,920 @@ static int RewriteRequires(
 }
 
 /**
+ * \brief Finds text in text.
+ *
+ * \param[in] Text The text to search.
+ * \param[in] Length The length of the text to search.
+ * \param[in] Needle The text to find.
+ *
+ * \return Non-zero when it is found.
+ */
+static int ContainsText(
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _In_z_ const char* Needle
+    )
+{
+    size_t needle;
+
+    needle = strlen(Needle);
+
+    for (size_t i = 0; (i + needle) <= Length; i++)
+    {
+        if (memcmp(Text + i, Needle, needle) == 0)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Finds a status of nt by name.
+ *
+ * \param[in] Table The statuses of nt, or NULL when there are none.
+ * \param[in] Name The name, STATUS_ and the rest.
+ * \param[in] Length The length of the name.
+ *
+ * \return The index of the status, or -1.
+ */
+static int FindStatus(
+    _In_opt_ const STATUS_TABLE* Table,
+    _In_reads_bytes_(Length) const char* Name,
+    _In_ size_t Length
+    )
+{
+    if (!Table)
+    {
+        return -1;
+    }
+
+    for (int i = 0; i < Table->Count; i++)
+    {
+        if ((strlen(Table->Names[i].Name) == Length) &&
+            (memcmp(Table->Names[i].Name, Name, Length) == 0))
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * \brief Reads one status line of nt.lua: M.STATUS_<name> = status(0x<8 hex
+ * digits>), the value made signed as nt's status function does.
+ *
+ * \param[in,out] Context The build of nt.lua.
+ * \param[in] Text The line after "M.".
+ * \param[in] Length The length of the line.
+ * \param[in] Line The number of the line.
+ * \param[in,out] Table Receives the status.
+ *
+ * \return Non-zero on success; errors in the text are reported, not failed.
+ */
+static int AddStatus(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _In_ int Line,
+    _Inout_ PSTATUS_TABLE Table
+    )
+{
+    PSTATUS_NAME names;
+    unsigned long long value;
+    size_t nameLength;
+    size_t at;
+    char* name;
+    char digit;
+
+    nameLength = 0;
+
+    while ((nameLength < Length) && IsNameCharacter(Text[nameLength]))
+    {
+        nameLength++;
+    }
+
+    at = nameLength + sizeof(KPHLUAC_STATUS_FORM) - 1;
+
+    if ((Length != (at + 9)) ||
+        (memcmp(Text + nameLength,
+                KPHLUAC_STATUS_FORM,
+                sizeof(KPHLUAC_STATUS_FORM) - 1) != 0) ||
+        (Text[Length - 1] != ')'))
+    {
+        Report(Context,
+               Line,
+               "a status is written " KPHLUAC_STATUS_LINE "<name> = "
+               "status(0x<8 hex digits>), the form kphluac folds");
+        return 1;
+    }
+
+    value = 0;
+
+    for (size_t i = at; i < (at + 8); i++)
+    {
+        digit = Text[i];
+
+        if ((digit >= '0') && (digit <= '9'))
+        {
+            value = (value << 4) | (unsigned long long)(digit - '0');
+        }
+        else if ((digit >= 'A') && (digit <= 'F'))
+        {
+            value = (value << 4) | (unsigned long long)(digit - 'A' + 10);
+        }
+        else if ((digit >= 'a') && (digit <= 'f'))
+        {
+            value = (value << 4) | (unsigned long long)(digit - 'a' + 10);
+        }
+        else
+        {
+            Report(Context,
+                   Line,
+                   "a status is written " KPHLUAC_STATUS_LINE "<name> = "
+                   "status(0x<8 hex digits>), the form kphluac folds");
+            return 1;
+        }
+    }
+
+    if (FindStatus(Table, Text, nameLength) >= 0)
+    {
+        Report(Context, Line, "'%.*s' is defined twice", (int)nameLength, Text);
+        return 1;
+    }
+
+    names = realloc(Table->Names,
+                    ((size_t)Table->Count + 1) * sizeof(STATUS_NAME));
+    if (!names)
+    {
+        return 0;
+    }
+
+    Table->Names = names;
+
+    name = malloc(nameLength + 1);
+    if (!name)
+    {
+        return 0;
+    }
+
+    memcpy(name, Text, nameLength);
+    name[nameLength] = '\0';
+
+    Table->Names[Table->Count].Name = name;
+    Table->Names[Table->Count].Value =
+        (long long)(value ^ 0x80000000ull) - 0x80000000ll;
+    Table->Count++;
+
+    return 1;
+}
+
+/**
+ * \brief Reads the statuses of nt.lua, the values kphluac folds.
+ *
+ * \param[in,out] Context The build of nt.lua.
+ * \param[in] Text The source text of nt.lua.
+ * \param[in] Length The length of the source text.
+ * \param[in,out] Table Receives the statuses.
+ *
+ * \return Non-zero on success; errors in the text are reported, not failed.
+ */
+static int LoadStatuses(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _Inout_ PSTATUS_TABLE Table
+    )
+{
+    size_t at;
+    size_t end;
+    size_t lineEnd;
+    int line;
+
+    at = 0;
+    line = 1;
+
+    while (at < Length)
+    {
+        end = at;
+
+        while ((end < Length) && (Text[end] != '\n'))
+        {
+            end++;
+        }
+
+        lineEnd = end;
+
+        if ((lineEnd > at) && (Text[lineEnd - 1] == '\r'))
+        {
+            lineEnd--;
+        }
+
+        if (((lineEnd - at) >= (sizeof(KPHLUAC_STATUS_LINE) - 1)) &&
+            (memcmp(Text + at,
+                    KPHLUAC_STATUS_LINE,
+                    sizeof(KPHLUAC_STATUS_LINE) - 1) == 0))
+        {
+            if (!AddStatus(Context, Text + at + 2, lineEnd - at - 2, line, Table))
+            {
+                return 0;
+            }
+        }
+
+        at = end + 1;
+        line++;
+    }
+
+    if ((Table->Count != 0) &&
+        (!ContainsText(Text, Length, KPHLUAC_STATUS_FUNCTION) ||
+         !ContainsText(Text, Length, KPHLUAC_STATUS_BODY)))
+    {
+        Report(Context,
+               0,
+               "the status function is not the one kphluac folds: "
+               KPHLUAC_STATUS_FUNCTION " " KPHLUAC_STATUS_BODY " end");
+    }
+
+    return 1;
+}
+
+/**
+ * \brief Finds a test of nt that kphluac writes as its body.
+ *
+ * \param[in] Name The name.
+ * \param[in] Length The length of the name.
+ *
+ * \return The test, or NULL.
+ */
+_Ret_maybenull_
+static const STATUS_TEST* FindStatusTest(
+    _In_reads_bytes_(Length) const char* Name,
+    _In_ size_t Length
+    )
+{
+    for (int i = 0; i < (int)ARRAYSIZE(KphluacStatusTests); i++)
+    {
+        if ((strlen(KphluacStatusTests[i].Name) == Length) &&
+            (memcmp(KphluacStatusTests[i].Name, Name, Length) == 0))
+        {
+            return &KphluacStatusTests[i];
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * \brief Rewrites a unit's uses of nt's statuses and tests, in place on their
+ * own lines: nt.STATUS_<name> as its value, nt.NT_SUCCESS(x) and the other
+ * tests as their bodies.
+ *
+ * \details Strings and comments are skipped; a name after '.' or ':' is a
+ * field, not the library. A test used as a value, not called, is left to the
+ * function in nt.lua. Without folding the unit is only checked: the names, the
+ * arguments, the first use of nt.
+ *
+ * \param[in,out] Context The build of the unit.
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ * \param[in,out] Output Receives the rewritten text.
+ *
+ * \return Non-zero on success; errors in the text are reported, not failed.
+ */
+static int RewriteLibraryUses(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _Inout_ PTEXT_BUFFER Output
+    )
+{
+    PENDING_TEST pending[KPHLUAC_PENDING_TESTS];
+    PPENDING_TEST top;
+    const STATUS_TEST* test;
+    char value[32];
+    size_t copied;
+    size_t i;
+    size_t level;
+    size_t start;
+    size_t at;
+    size_t nameStart;
+    size_t nameEnd;
+    char quote;
+    char previous;
+    char beforePrevious;
+    int pendingCount;
+    int depth;
+    int field;
+    int index;
+    int empty;
+
+    copied = 0;
+    i = 0;
+    depth = 0;
+    pendingCount = 0;
+    previous = 0;
+    beforePrevious = 0;
+
+    while (i < Length)
+    {
+        if ((Text[i] == '-') && ((i + 1) < Length) && (Text[i + 1] == '-'))
+        {
+            level = 0;
+
+            if (((i + 2) < Length) && (Text[i + 2] == '['))
+            {
+                level = LongBracketLevel(Text, Length, i + 2);
+            }
+
+            if (level != 0)
+            {
+                i = SkipLongBracket(Text, Length, i + 2, level);
+            }
+            else
+            {
+                while ((i < Length) && (Text[i] != '\n'))
+                {
+                    i++;
+                }
+            }
+
+            continue;
+        }
+
+        if ((Text[i] == '\'') || (Text[i] == '"'))
+        {
+            quote = Text[i];
+            i++;
+
+            while ((i < Length) && (Text[i] != quote) && (Text[i] != '\n'))
+            {
+                if (Text[i] == '\\')
+                {
+                    i++;
+                }
+
+                i++;
+            }
+
+            i++;
+            beforePrevious = previous;
+            previous = quote;
+            continue;
+        }
+
+        if (Text[i] == '[')
+        {
+            level = LongBracketLevel(Text, Length, i);
+
+            if (level != 0)
+            {
+                i = SkipLongBracket(Text, Length, i, level);
+                beforePrevious = previous;
+                previous = ']';
+                continue;
+            }
+        }
+
+        if ((Text[i] >= '0') && (Text[i] <= '9'))
+        {
+            while ((i < Length) &&
+                   (IsNameCharacter(Text[i]) || (Text[i] == '.')))
+            {
+                i++;
+            }
+
+            beforePrevious = previous;
+            previous = '0';
+            continue;
+        }
+
+        if (!IsNameStart(Text[i]))
+        {
+            top = pendingCount ? &pending[pendingCount - 1] : NULL;
+
+            if ((Text[i] == '(') || (Text[i] == '[') || (Text[i] == '{'))
+            {
+                depth++;
+            }
+            else if ((Text[i] == ')') || (Text[i] == ']') || (Text[i] == '}'))
+            {
+                if (top && (top->Depth == depth) && (Text[i] == ')'))
+                {
+                    empty = 1;
+
+                    for (size_t j = top->Start; j < i; j++)
+                    {
+                        if ((Text[j] != ' ') && (Text[j] != '\t') &&
+                            (Text[j] != '\r') && (Text[j] != '\n'))
+                        {
+                            empty = 0;
+                            break;
+                        }
+                    }
+
+                    if (empty)
+                    {
+                        Report(Context,
+                               top->Line,
+                               "nt.%s takes one argument",
+                               top->Name);
+                    }
+
+                    if (Context->Fold)
+                    {
+                        if (!AppendText(Output, Text + copied, i - copied) ||
+                            !AppendText(Output, top->Suffix, strlen(top->Suffix)))
+                        {
+                            return 0;
+                        }
+
+                        copied = i + 1;
+                    }
+
+                    pendingCount--;
+                }
+
+                depth--;
+            }
+            else if ((Text[i] == ',') && top && (top->Depth == depth))
+            {
+                if (top->Arguments++ == 0)
+                {
+                    Report(Context,
+                           top->Line,
+                           "nt.%s takes one argument",
+                           top->Name);
+                }
+            }
+
+            if ((Text[i] != ' ') && (Text[i] != '\t') && (Text[i] != '\r') &&
+                (Text[i] != '\n'))
+            {
+                beforePrevious = previous;
+                previous = Text[i];
+            }
+
+            i++;
+            continue;
+        }
+
+        start = i;
+
+        while ((i < Length) && IsNameCharacter(Text[i]))
+        {
+            i++;
+        }
+
+        field = (((previous == '.') && (beforePrevious != '.')) ||
+                 (previous == ':'));
+        beforePrevious = previous;
+        previous = 'a';
+
+        if (field ||
+            ((i - start) != (sizeof(KPHLUAC_LIBRARY_ENTRY) - 1)) ||
+            (memcmp(Text + start, KPHLUAC_LIBRARY_ENTRY, i - start) != 0))
+        {
+            continue;
+        }
+
+        if (Context->LibraryUseLine == 0)
+        {
+            Context->LibraryUseLine = LineOf(Text, start);
+        }
+
+        //
+        // nt.<name>, with nothing but spaces around the dot.
+        //
+        at = i;
+
+        while ((at < Length) && ((Text[at] == ' ') || (Text[at] == '\t')))
+        {
+            at++;
+        }
+
+        if ((at >= Length) || (Text[at] != '.') ||
+            (((at + 1) < Length) && (Text[at + 1] == '.')))
+        {
+            continue;
+        }
+
+        at++;
+
+        while ((at < Length) && ((Text[at] == ' ') || (Text[at] == '\t')))
+        {
+            at++;
+        }
+
+        if ((at >= Length) || !IsNameStart(Text[at]))
+        {
+            continue;
+        }
+
+        nameStart = at;
+
+        while ((at < Length) && IsNameCharacter(Text[at]))
+        {
+            at++;
+        }
+
+        nameEnd = at;
+        i = nameEnd;
+
+        if (((nameEnd - nameStart) > (sizeof(KPHLUAC_STATUS_PREFIX) - 1)) &&
+            (memcmp(Text + nameStart,
+                    KPHLUAC_STATUS_PREFIX,
+                    sizeof(KPHLUAC_STATUS_PREFIX) - 1) == 0))
+        {
+            //
+            // An assignment is left for the check of the code to refuse.
+            //
+            while ((at < Length) && ((Text[at] == ' ') || (Text[at] == '\t')))
+            {
+                at++;
+            }
+
+            if ((at < Length) && (Text[at] == '=') &&
+                (((at + 1) >= Length) || (Text[at + 1] != '=')))
+            {
+                continue;
+            }
+
+            index = FindStatus(Context->Statuses,
+                               Text + nameStart,
+                               nameEnd - nameStart);
+            if (index < 0)
+            {
+                Report(Context,
+                       LineOf(Text, start),
+                       "'nt.%.*s' is not a status nt.lua defines",
+                       (int)(nameEnd - nameStart),
+                       Text + nameStart);
+                continue;
+            }
+
+            if (Context->Fold)
+            {
+                if ((sprintf_s(value,
+                               sizeof(value),
+                               "(%lld)",
+                               Context->Statuses->Names[index].Value) < 0) ||
+                    !AppendText(Output, Text + copied, start - copied) ||
+                    !AppendText(Output, value, strlen(value)))
+                {
+                    return 0;
+                }
+
+                copied = nameEnd;
+            }
+
+            beforePrevious = 'a';
+            previous = ')';
+            continue;
+        }
+
+        test = FindStatusTest(Text + nameStart, nameEnd - nameStart);
+        if (!test)
+        {
+            continue;
+        }
+
+        while ((at < Length) && ((Text[at] == ' ') || (Text[at] == '\t')))
+        {
+            at++;
+        }
+
+        if ((at >= Length) || (Text[at] != '('))
+        {
+            continue;
+        }
+
+        if (pendingCount == KPHLUAC_PENDING_TESTS)
+        {
+            Report(Context,
+                   LineOf(Text, start),
+                   "nt.%s is nested too deeply",
+                   test->Name);
+            return 1;
+        }
+
+        depth++;
+
+        top = &pending[pendingCount++];
+        top->Depth = depth;
+        top->Start = at + 1;
+        top->Line = LineOf(Text, start);
+        top->Arguments = 0;
+        top->Name = test->Name;
+        top->Suffix = test->Suffix;
+
+        if (Context->Fold)
+        {
+            if (!AppendText(Output, Text + copied, start - copied) ||
+                !AppendText(Output, test->Prefix, strlen(test->Prefix)))
+            {
+                return 0;
+            }
+
+            copied = at + 1;
+        }
+
+        i = at + 1;
+        beforePrevious = 'a';
+        previous = '(';
+    }
+
+    if (pendingCount != 0)
+    {
+        Report(Context,
+               pending[0].Line,
+               "nt.%s has no closing parenthesis",
+               pending[0].Name);
+    }
+
+    return AppendText(Output, Text + copied, Length - copied);
+}
+
+/**
+ * \brief Finds the locals named nt in a function and the functions nested in
+ * it.
+ *
+ * \param[in] Function The function.
+ * \param[in,out] Found Receives the first two functions that have one.
+ * \param[in,out] FoundIndex Receives the index of each one's local.
+ * \param[in,out] Count The number found so far, all of them counted.
+ */
+static void FindLibraryLocals(
+    _In_ const Proto* Function,
+    _Inout_updates_(2) const Proto** Found,
+    _Inout_updates_(2) int* FoundIndex,
+    _Inout_ int* Count
+    )
+{
+    const TString* name;
+
+    for (int i = 0; i < Function->sizelocvars; i++)
+    {
+        name = Function->locvars[i].varname;
+
+        if (!name || (strcmp(getstr(name), KPHLUAC_LIBRARY_ENTRY) != 0))
+        {
+            continue;
+        }
+
+        if (*Count < 2)
+        {
+            Found[*Count] = Function;
+            FoundIndex[*Count] = i;
+        }
+
+        (*Count)++;
+    }
+
+    for (int i = 0; i < Function->sizep; i++)
+    {
+        FindLibraryLocals(Function->p[i], Found, FoundIndex, Count);
+    }
+}
+
+/**
+ * \brief Gives the line of an instruction, or of the function's start when the
+ * index is outside its code.
+ *
+ * \param[in] Function The function.
+ * \param[in] Pc The index of the instruction.
+ *
+ * \return The line.
+ */
+static int LineOfCode(
+    _In_ const Proto* Function,
+    _In_ int Pc
+    )
+{
+    if ((Pc < 0) || (Pc >= Function->sizecode))
+    {
+        return Function->linedefined;
+    }
+
+    return luaG_getfuncline(Function, Pc);
+}
+
+/**
+ * \brief Refuses assignments to nt and to its fields: the folded statuses and
+ * tests are nt's only while nothing changes it.
+ *
+ * \details A copy of nt in another local is followed in the order the code is
+ * written; a copy held in a table is not.
+ *
+ * \param[in,out] Context The build.
+ * \param[in] Function The function.
+ * \param[in] Holder The function whose local is nt.
+ * \param[in] Register The register of that local.
+ * \param[in] StartPc The first instruction where the local is live.
+ * \param[in] EndPc The instruction after the last where it is live.
+ */
+static void CheckLibraryWrites(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_ const Proto* Function,
+    _In_ const Proto* Holder,
+    _In_ int Register,
+    _In_ int StartPc,
+    _In_ int EndPc
+    )
+{
+    REGISTER_STATE registers[KPHLUAC_REGISTERS];
+    Instruction instruction;
+    OpCode opcode;
+    int live;
+    int a;
+
+    ForgetRegisters(registers, 0, KPHLUAC_REGISTERS);
+
+    for (int pc = 0; pc < Function->sizecode; pc++)
+    {
+        instruction = Function->code[pc];
+        opcode = GET_OPCODE(instruction);
+        a = GETARG_A(instruction);
+        live = ((Function == Holder) && (pc >= StartPc) && (pc < EndPc));
+
+        if (live)
+        {
+            registers[Register].Library = 1;
+        }
+
+        switch (opcode)
+        {
+            case OP_SETFIELD:
+            case OP_SETTABLE:
+            case OP_SETI:
+            {
+                if (registers[a].Library)
+                {
+                    Report(Context,
+                           LineOfCode(Function, pc),
+                           "a field of nt is assigned; nt is not changed");
+                }
+
+                break;
+            }
+            case OP_SETTABUP:
+            {
+                if (IsLibrary(Function, a))
+                {
+                    Report(Context,
+                           LineOfCode(Function, pc),
+                           "a field of nt is assigned; nt is not changed");
+                }
+
+                break;
+            }
+            case OP_SETUPVAL:
+            {
+                if (IsLibrary(Function, GETARG_B(instruction)))
+                {
+                    Report(Context,
+                           LineOfCode(Function, pc),
+                           "nt is assigned; nt is not changed");
+                }
+
+                break;
+            }
+            default:
+            {
+                if (live && testAMode(opcode) && (a == Register))
+                {
+                    Report(Context,
+                           LineOfCode(Function, pc),
+                           "nt is assigned; nt is not changed");
+                }
+
+                break;
+            }
+        }
+
+        FollowInstruction(registers, Function, pc);
+    }
+
+    for (int i = 0; i < Function->sizep; i++)
+    {
+        CheckLibraryWrites(Context,
+                           Function->p[i],
+                           Holder,
+                           Register,
+                           StartPc,
+                           EndPc);
+    }
+}
+
+/**
+ * \brief Checks that nt in a unit is the library: one local of that name, a
+ * script's set by its require in the main body, a part's the parameter of the
+ * function it returns; never assigned, nor its fields.
+ *
+ * \param[in,out] Context The build of the unit.
+ * \param[in] Main The main function of the unit.
+ */
+static void CheckLibrary(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_ const Proto* Main
+    )
+{
+    const Proto* found[2];
+    const LocVar* local;
+    int foundIndex[2];
+    int count;
+    int line;
+    int requireLine;
+    int registerIndex;
+
+    count = 0;
+
+    FindLibraryLocals(Main, found, foundIndex, &count);
+
+    if (count == 0)
+    {
+        if (Context->LibraryUseLine != 0)
+        {
+            Report(Context,
+                   Context->LibraryUseLine,
+                   "'nt' is not the library here: a script writes local nt = "
+                   "require('nt'), a part returns function(nt)");
+        }
+
+        return;
+    }
+
+    if (count > 1)
+    {
+        local = &found[1]->locvars[foundIndex[1]];
+
+        Report(Context,
+               (foundIndex[1] < found[1]->numparams) ?
+               found[1]->linedefined :
+               LineOfCode(found[1], local->startpc - 1),
+               "a second local named 'nt'; the name is the library's");
+        return;
+    }
+
+    local = &found[0]->locvars[foundIndex[0]];
+    line = (foundIndex[0] < found[0]->numparams) ?
+        found[0]->linedefined :
+        LineOfCode(found[0], local->startpc - 1);
+
+    if (Context->Kind == KPHLUAC_KIND_SCRIPT)
+    {
+        requireLine = 0;
+
+        for (int i = 0; i < Context->RequireCount; i++)
+        {
+            if (strcmp(Context->Requires[i].Name, KPHLUAC_LIBRARY_ENTRY) == 0)
+            {
+                requireLine = Context->Requires[i].Line;
+            }
+        }
+
+        if ((found[0] != Main) || (requireLine != line))
+        {
+            Report(Context,
+                   line,
+                   "'nt' is not the library here: a script writes local nt = "
+                   "require('nt') in its main body");
+            return;
+        }
+    }
+    else if ((found[0] == Main) || (foundIndex[0] >= found[0]->numparams))
+    {
+        Report(Context,
+               line,
+               "'nt' is not the library here: a part returns function(nt)");
+        return;
+    }
+
+    //
+    // A local's register is the number of locals live where it starts that
+    // were declared before it.
+    //
+    registerIndex = 0;
+
+    for (int i = 0; i < foundIndex[0]; i++)
+    {
+        if ((found[0]->locvars[i].startpc <= local->startpc) &&
+            (found[0]->locvars[i].endpc > local->startpc))
+        {
+            registerIndex++;
+        }
+    }
+
+    CheckLibraryWrites(Context,
+                       Main,
+                       found[0],
+                       registerIndex,
+                       local->startpc,
+                       local->endpc);
+}
+
+/**
  * \brief Finds the placeholder of a require among the functions of a unit's
  * main body.
  *
@@ -1569,6 +2567,7 @@ static Proto* CompileUnit(
     Proto* library;
     BUILD_CONTEXT child;
     TEXT_BUFFER rewritten;
+    TEXT_BUFFER folded;
     SOURCE_TEXT source;
     char chunkName[LUA_IDSIZE];
     wchar_t path[MAX_PATH];
@@ -1586,6 +2585,35 @@ static Proto* CompileUnit(
         fprintf(stderr, "kphluac: out of memory\n");
         Context->Errors++;
         goto Exit;
+    }
+
+    //
+    // nt itself is the definition of what is folded.
+    //
+    if (Context->Kind != KPHLUAC_KIND_ENTRY)
+    {
+        memset(&folded, 0, sizeof(folded));
+
+        if (!RewriteLibraryUses(Context,
+                                rewritten.Data ? rewritten.Data : "",
+                                rewritten.Length,
+                                &folded))
+        {
+            free(folded.Data);
+            fprintf(stderr, "kphluac: out of memory\n");
+            Context->Errors++;
+            goto Exit;
+        }
+
+        if (Context->Fold)
+        {
+            free(rewritten.Data);
+            rewritten = folded;
+        }
+        else
+        {
+            free(folded.Data);
+        }
     }
 
     for (int i = 0; i < Context->RequireCount; i++)
@@ -1654,11 +2682,18 @@ static Proto* CompileUnit(
         CheckLibraryReturn(Context, function);
     }
 
+    if (Context->Kind != KPHLUAC_KIND_ENTRY)
+    {
+        CheckLibrary(Context, function);
+    }
+
     for (int i = 0; i < Context->RequireCount; i++)
     {
         memset(&child, 0, sizeof(child));
         child.Script = Context->Requires[i].Name;
         child.LibraryFolder = Context->LibraryFolder;
+        child.Fold = Context->Fold;
+        child.Statuses = Context->Statuses;
         child.Kind = (Context->Kind == KPHLUAC_KIND_SCRIPT) ?
             KPHLUAC_KIND_ENTRY : KPHLUAC_KIND_PART;
 
@@ -1889,11 +2924,80 @@ static char* ToUtf8(
     return buffer;
 }
 
+/**
+ * \brief Reads the statuses of nt.lua in the library folder; a folder without
+ * nt.lua has none.
+ *
+ * \param[in,out] Context The build of the script.
+ * \param[in] LibraryFolder The library folder.
+ * \param[in,out] Table Receives the statuses.
+ *
+ * \return Non-zero on success; errors in the text are reported, not failed.
+ */
+static int ReadStatuses(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_z_ const wchar_t* LibraryFolder,
+    _Inout_ PSTATUS_TABLE Table
+    )
+{
+    BUILD_CONTEXT library;
+    wchar_t path[MAX_PATH];
+    char display[MAX_PATH * 3];
+    char* text;
+    const char* start;
+    size_t length;
+    int result;
+
+    if ((swprintf_s(path,
+                    ARRAYSIZE(path),
+                    L"%ls\\%hs.lua",
+                    LibraryFolder,
+                    KPHLUAC_LIBRARY_ENTRY) < 0) ||
+        (sprintf_s(display,
+                   sizeof(display),
+                   "%ls\\%s.lua",
+                   LibraryFolder,
+                   KPHLUAC_LIBRARY_ENTRY) < 0))
+    {
+        return 1;
+    }
+
+    text = ReadSource(path, &length);
+    if (!text)
+    {
+        return 1;
+    }
+
+    start = text;
+
+    if ((length >= 3) &&
+        ((unsigned char)text[0] == 0xEF) &&
+        ((unsigned char)text[1] == 0xBB) &&
+        ((unsigned char)text[2] == 0xBF))
+    {
+        start += 3;
+        length -= 3;
+    }
+
+    memset(&library, 0, sizeof(library));
+    library.Script = KPHLUAC_LIBRARY_ENTRY;
+    library.Source = display;
+
+    result = LoadStatuses(&library, start, length, Table);
+
+    Context->Errors += library.Errors;
+
+    free(text);
+
+    return result;
+}
+
 int __cdecl main(
     void
     )
 {
     BUILD_CONTEXT context;
+    STATUS_TABLE statuses;
     wchar_t** arguments;
     const wchar_t* sourcePath;
     const wchar_t* outputPath;
@@ -1907,9 +3011,11 @@ int __cdecl main(
     int result;
 
     memset(&context, 0, sizeof(context));
+    memset(&statuses, 0, sizeof(statuses));
     sourcePath = NULL;
     outputPath = NULL;
     libraryFolder = NULL;
+    context.Fold = 1;
 
     //
     // The tools of this tree link without the C runtime's argument processing.
@@ -1960,6 +3066,24 @@ int __cdecl main(
         {
             libraryFolder = arguments[++i];
         }
+        else if (wcscmp(arguments[i], L"-O") == 0)
+        {
+            i++;
+
+            if (wcscmp(arguments[i], L"0") == 0)
+            {
+                context.Fold = 0;
+            }
+            else if (wcscmp(arguments[i], L"1") == 0)
+            {
+                context.Fold = 1;
+            }
+            else
+            {
+                context.Script = NULL;
+                break;
+            }
+        }
         else if (wcscmp(arguments[i], L"-r") == 0)
         {
             context.Routines[context.RoutineCount] = ToUtf8(arguments[++i]);
@@ -1982,7 +3106,7 @@ int __cdecl main(
     {
         fprintf(stderr,
                 "usage: kphluac -n <script> -i <source> -o <chunk> "
-                "[-r <routine>]... [-L <library folder>]\n"
+                "[-r <routine>]... [-L <library folder>] [-O 0|1]\n"
                 "       kphluac -v\n");
         return 2;
     }
@@ -2061,6 +3185,22 @@ int __cdecl main(
 
     context.Kind = KPHLUAC_KIND_SCRIPT;
     context.LibraryFolder = libraryFolder;
+    context.Statuses = &statuses;
+
+    //
+    // nt's statuses are folded into the script and its parts as their values,
+    // and its tests as their bodies; -O 0 builds without folding.
+    //
+    if (!ReadStatuses(&context, libraryFolder, &statuses))
+    {
+        fprintf(stderr, "kphluac: out of memory\n");
+        return 2;
+    }
+
+    if (context.Errors != 0)
+    {
+        return 1;
+    }
 
     text = ReadSource(sourcePath, &length);
     if (!text)
