@@ -455,7 +455,7 @@ local function memory_bar(s, index)
   if not base then
     return nil, register, readFailed
   end
-  local resources, failed = ksi.hw.pci_resources(s.device)
+  local resources, failed = nt.resources(s.device)
   if not resources then
     ksi.trace('resources of %04x:%04x not read: 0x%x', s.vendor, s.id, failed)
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR

@@ -221,17 +221,6 @@ NTSTATUS KphLuaHwReferenceDriverDevices(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphLuaHwQueryProperty(
-    _In_ lua_State* State,
-    _In_ PDEVICE_OBJECT Pdo,
-    _In_ DEVICE_REGISTRY_PROPERTY Property,
-    _Out_ luaL_Buffer* Buffer,
-    _Outptr_result_bytebuffer_(*Length) PVOID* Data,
-    _Out_ PULONG Length
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 PDEVICE_OBJECT KphLuaHwTestDevice(
     _In_ lua_State* State,
     _In_ int Index
@@ -264,12 +253,6 @@ NTSTATUS KphLuaHwSendRequest(
     _Outptr_result_maybenull_ PVOID* Request,
     _Outptr_result_maybenull_ PVOID* Output,
     _Out_ PULONG Information
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphLuaHwPushResources(
-    _In_ lua_State* State,
-    _In_ PDEVICE_OBJECT Pdo
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

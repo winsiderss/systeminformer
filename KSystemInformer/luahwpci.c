@@ -728,31 +728,6 @@ Exit:
 }
 
 /**
- * \brief Lists the memory and port resources of a PCI function
- * (ksi.hw.pci_resources).
- *
- * \details May raise a Lua error.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: the array of resources, or nil and a
- * status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwPciResources(
-    _In_ lua_State* State
-    )
-{
-    PKPH_LUA_HW_PCI_DEVICE device;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    device = KphScriptCheckCleanup(State, 1, KphpLuaHwReleasePciDevice);
-
-    return KphLuaHwPushResources(State, device->Pdo);
-}
-
-/**
  * \brief Tells whether a value is a device object of ksi.hw.pci_open.
  *
  * \param[in] State The Lua state.
@@ -785,7 +760,6 @@ static const luaL_Reg KphpLuaHwPciLibrary[] =
     { "pci_open", KphpLuaHwPciOpen },
     { "pci_read", KphpLuaHwPciRead },
     { "pci_read_block", KphpLuaHwPciReadBlock },
-    { "pci_resources", KphpLuaHwPciResources },
     { "pci_write", KphpLuaHwPciWrite },
     { NULL, NULL }
 };

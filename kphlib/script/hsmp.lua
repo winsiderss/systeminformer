@@ -1129,7 +1129,7 @@ end
 
 -- The device's one memory window, or nil.
 local function acpi_window(device)
-  local resources, failed = ksi.hw.acpi_resources(device)
+  local resources, failed = nt.resources(device)
   if not resources then
     ksi.trace('resources not read: 0x%x', failed)
     return nil
@@ -1156,7 +1156,7 @@ local function acpi_window(device)
     ksi.trace('window 0x%x refused', window.raw)
     return nil
   end
-  local requirements = ksi.hw.acpi_requirements(device)
+  local requirements = nt.requirements(device)
   if not requirements then
     return nil
   end
@@ -1350,7 +1350,7 @@ local function acpi_drop(socket, s)
 end
 
 local function acpi_moved(s)
-  local resources = ksi.hw.acpi_resources(s.device)
+  local resources = nt.resources(s.device)
   if not resources then
     return true
   end
