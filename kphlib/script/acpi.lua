@@ -466,6 +466,10 @@ local function evaluate_on(device, record, milliseconds)
   local output, failed = nt.acpi.eval(device, record.name, milliseconds, arguments)
   if not output then
     ksi.trace('%s failed: 0x%08x', record.name, failed)
+    -- STATUS_TIMEOUT is a success code; the item's answer is an error
+    if failed == nt.STATUS_TIMEOUT then
+      return nt.STATUS_IO_TIMEOUT
+    end
     return failed
   end
   if #output > eval.max then

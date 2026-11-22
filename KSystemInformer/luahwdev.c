@@ -444,7 +444,6 @@ NTSTATUS KphLuaHwSendRequest(
                       "RtlULongAdd failed: %!STATUS!",
                       status);
 
-        status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
 
@@ -537,11 +536,6 @@ NTSTATUS KphLuaHwSendRequest(
                           "(cancelled %!bool!)",
                           IoControlCode,
                           cancelled);
-
-            if (status != STATUS_SI_SCRIPT_LIMIT)
-            {
-                status = STATUS_IO_TIMEOUT;
-            }
 
             goto Exit;
         }
