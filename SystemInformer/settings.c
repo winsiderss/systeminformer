@@ -515,9 +515,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_COLOR_PRIVATE, L"0077ff");
     PhpAddIntegerSetting(SETTING_COLOR_PHYSICAL, L"ff8000"); // Blue
 
-    PhpAddIntegerSetting(SETTING_COLOR_POWER_USAGE, L"00ff00");
-    PhpAddIntegerSetting(SETTING_COLOR_TEMPERATURE, L"0000ff");
-    PhpAddIntegerSetting(SETTING_COLOR_FAN_RPM, L"ff0077");
+    PhpAddIntegerSetting(SETTING_COLOR_POWER_USAGE, L"33ff22");
+    PhpAddIntegerSetting(SETTING_COLOR_TEMPERATURE, L"3322ff");
+    PhpAddIntegerSetting(SETTING_COLOR_FAN_RPM, L"8cb400");
     PhpAddIntegerSetting(SETTING_COLOR_CLOCK, L"ffff00");
     PhpAddIntegerSetting(SETTING_COLOR_MULTIPLIER, L"00ffbf");
     PhpAddIntegerSetting(SETTING_COLOR_VOLTAGE, L"c850ff");

@@ -22,9 +22,9 @@ static CONST COLORREF PhpLegacySeriesColors[PhGraphSeriesMaximum] =
     0xff0077, // I/O write
     0x0077ff, // private bytes
     0xff8000, // physical memory
-    0x00ff00, // power
-    0x0000ff, // temperature
-    0xff0077, // fan
+    0x33ff22, // power
+    0x3322ff, // temperature
+    0x8cb400, // fan
     0xffff00, // clock
     0x00ffbf, // multiplier
     0xc850ff, // voltage
