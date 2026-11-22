@@ -540,21 +540,29 @@ static VOID PhpHwUpdateSources(
 }
 
 /**
- * Recomputes the capability bits from what currently has a value; the first published sensor of the session makes
- * the sensors available.
+ * Recomputes the capability bits and the processor temperature (the hottest package) from what currently has a
+ * value; the first published sensor of the session makes the sensors available.
  */
 static VOID PhpHwUpdateCapabilities(
     VOID
     )
 {
     ULONG capabilities = 0;
+    FLOAT temperature = 0.0f;
 
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
         capabilities |= PhpHwCpuSensors[i].Valid;
+
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
         capabilities |= PhpHwPackageSensors[i].Valid;
 
+        if ((PhpHwPackageSensors[i].Valid & PH_HW_CAP_PACKAGE_TEMP) && PhpHwPackageSensors[i].Temperature > temperature)
+            temperature = PhpHwPackageSensors[i].Temperature;
+    }
+
     PhpHwCapabilities = capabilities;
+    PhHwCpuTemperature = temperature;
 
     if (capabilities || PhpHwNamedSensorCount)
         PhpHwAvailable = TRUE;

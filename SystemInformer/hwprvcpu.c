@@ -22,7 +22,8 @@
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
 #define PHP_HW_CPU_BUS_MHZ 100.0f
 #define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
-#define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE) // the package bits this collector owns
+#define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE) // package bits this collector always owns
+#define PHP_HW_CPU_THERMAL_CAPS (PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_CORE_TEMP | PH_HW_CAP_THROTTLE) // with a thermal plan
 
 typedef enum _PHP_HW_CPU_CLASS
 {
@@ -37,11 +38,16 @@ typedef enum _PHP_HW_REG
 {
     PhpHwRegAperf,
     PhpHwRegMperf,
-    PhpHwRegPerfStatus, // AMD HW_PSTATE_STATUS (core)
+    PhpHwRegPerfStatus, // Intel IA32_PERF_STATUS (thread), AMD HW_PSTATE_STATUS (core)
+    PhpHwRegThermStatus, // Intel IA32_THERM_STATUS (core)
     PhpHwRegCoreEnergy,
+    PhpHwRegPackageThermStatus, // Intel IA32_PACKAGE_THERM_STATUS
     PhpHwRegPackageEnergy,
     PhpHwRegRaplUnit, // probe only from here
     PhpHwRegPStateDef0,
+    PhpHwRegTemperatureTarget, // Intel MSR_TEMPERATURE_TARGET
+    PhpHwRegPlatformInfo,
+    PhpHwRegFsbFreq, // Intel Silvermont and Airmont MSR_FSB_FREQ
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 32);
@@ -96,6 +102,13 @@ static PULONG PhpHwCpuTickCoreCount = NULL; // per package
 static FLOAT PhpHwCpuTscMhz = 0.0f; // the base clock MPERF counts at; 0 when unknown
 static FLOAT PhpHwCpuEnergyUnit = 0.0f; // joules
 static BOOLEAN PhpHwCpuVoltageSupported = FALSE;
+static ULONG PhpHwCpuCoreReadoutMask = 0x7F; // IA32_THERM_STATUS readout width
+static ULONG PhpHwCpuPackageReadoutMask = 0x7F; // IA32_PACKAGE_THERM_STATUS readout width
+static ULONG PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS; // the package bits this collector owns this session
+static PULONG PhpHwCpuTjMax = NULL; // per package, degrees Celsius; 0 when unknown
+static PULONG PhpHwCpuTickValid = NULL; // per package: PH_HW_CAP_* the processors of the package gave this pass
+static PULONG PhpHwCpuTickThrottle = NULL; // per package
+static PFLOAT PhpHwCpuTickMaxCore = NULL; // per package
 static ULONG PhpHwCpuItemCount = 0; // items of the last pass
 static ULONG64 PhpHwCpuSampleTime = 0;
 static ULONG64 PhpHwCpuLastSampleTime = 0;
@@ -144,6 +157,20 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegPackageEnergy, PH_AMD_MSR_PKG_ENERGY_STAT, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegRaplUnit, PH_AMD_MSR_RAPL_PWR_UNIT, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+    }
+    else if (PhpHwCpuClass == PhpHwCpuIntel)
+    {
+        PhpHwCpuSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegPerfStatus, PH_INTEL_MSR_PERF_STATUS, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegThermStatus, PH_INTEL_MSR_THERM_STATUS, PhpHwScopeCore);
+        PhpHwCpuSetRegister(PhpHwRegPackageThermStatus, PH_INTEL_MSR_PACKAGE_THERM_STATUS, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegTemperatureTarget, PH_INTEL_MSR_TEMPERATURE_TARGET, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPlatformInfo, PH_INTEL_MSR_PLATFORM_INFO, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegFsbFreq, PhIntelFsbFreqMsr(&PhpHwCpuIdentity), PhpHwScopePackage);
+
+        PhpHwCpuCoreReadoutMask = PhIntelThermReadoutMask(&PhpHwCpuIdentity, FALSE);
+        PhpHwCpuPackageReadoutMask = PhIntelThermReadoutMask(&PhpHwCpuIdentity, TRUE);
     }
 }
 
@@ -251,6 +278,24 @@ static VOID PhpHwCpuStoreValues(
     }
 }
 
+static BOOLEAN PhpHwCpuIsIntelNehalem(
+    VOID
+    )
+{
+    static CONST UCHAR models[] = { 0x1A, 0x1E, 0x1F, 0x25, 0x2C, 0x2E, 0x2F };
+
+    if (PhpHwCpuIdentity.DisplayFamily != 0x06)
+        return FALSE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(models); i++)
+    {
+        if (PhpHwCpuIdentity.DisplayModel == models[i])
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 /**
  * Reads the whole plan once, the thread and core registers on the first processor and the package registers on the
  * first processor of each package, and decides from it what the plan keeps and what it decodes with.
@@ -261,6 +306,8 @@ static VOID PhpHwCpuProbeRead(
 {
     PPHP_HW_SAMPLE first = &PhpHwCpuSamples[0];
     ULONG64 value;
+    FLOAT busMhz;
+    BOOLEAN anyTjMax = FALSE;
 
     PhpHwCpuItemCount = 0;
     PhpHwCpuTscMhz = 0.0f;
@@ -305,20 +352,47 @@ static VOID PhpHwCpuProbeRead(
     if (PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Valid & (1UL << PhpHwRegRaplUnit))
         PhpHwCpuEnergyUnit = PhRaplEnergyUnitJoules(PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Value[PhpHwRegRaplUnit], &PhpHwCpuIdentity);
 
+    // Silvermont and Airmont select the bus clock in MSR_FSB_FREQ; undecoded, the base clock stays unknown.
+    busMhz = (PhpHwCpuClass == PhpHwCpuIntel && PhpHwCpuIsIntelNehalem()) ? 133.33f : PHP_HW_CPU_BUS_MHZ;
+
+    if (PhpHwCpuRegisters[PhpHwRegFsbFreq].Register)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[0]];
+
+        busMhz = (sample->Valid & (1UL << PhpHwRegFsbFreq)) ? PhIntelFsbFreqToMhz(sample->Value[PhpHwRegFsbFreq], &PhpHwCpuIdentity) : 0.0f;
+    }
+
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
     {
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
         FLOAT baseMhz = 0.0f;
+        ULONG tjMax = 0;
 
-        // MPERF counts at the P0 frequency.
-        if (sample->Valid & (1UL << PhpHwRegPStateDef0))
-            baseMhz = PhAmdPStateDefToMhz(sample->Value[PhpHwRegPStateDef0], &PhpHwCpuIdentity, 0);
+        if (PhpHwCpuClass == PhpHwCpuIntel)
+        {
+            if (sample->Valid & (1UL << PhpHwRegTemperatureTarget))
+                tjMax = PhIntelTemperatureTargetTjMax(sample->Value[PhpHwRegTemperatureTarget]);
+            if (!tjMax && (PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus)))
+                tjMax = PhIntelFixedTjMax(&PhpHwCpuIdentity);
+            if (sample->Valid & (1UL << PhpHwRegPlatformInfo))
+                baseMhz = (FLOAT)((sample->Value[PhpHwRegPlatformInfo] >> 8) & 0xFF) * busMhz;
+        }
+        else if (PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy)
+        {
+            // MPERF counts at the P0 frequency.
+            if (sample->Valid & (1UL << PhpHwRegPStateDef0))
+                baseMhz = PhAmdPStateDefToMhz(sample->Value[PhpHwRegPStateDef0], &PhpHwCpuIdentity, 0);
+        }
 
         if (i == 0)
             PhpHwCpuTscMhz = baseMhz;
+        if (tjMax)
+            anyTjMax = TRUE;
 
+        PhpHwCpuTjMax[i] = tjMax;
+        PhpHwPackageSensors[i].TjMax = (FLOAT)tjMax;
         PhpHwPackageSensors[i].BaseMhz = baseMhz;
-        PhpHwPackageSensors[i].BusMhz = PHP_HW_CPU_BUS_MHZ;
+        PhpHwPackageSensors[i].BusMhz = busMhz;
     }
 
     if (first->Valid & (1UL << PhpHwRegPerfStatus))
@@ -326,8 +400,23 @@ static VOID PhpHwCpuProbeRead(
         UCHAR vid;
 
         value = first->Value[PhpHwRegPerfStatus];
-        PhpHwCpuVoltageSupported = PhAmdPStateVid(value, &PhpHwCpuIdentity, &vid) && PhAmdCpuVidToVolts(vid, &PhpHwCpuIdentity) > 0.0f;
+
+        if (PhpHwCpuClass == PhpHwCpuIntel)
+            PhpHwCpuVoltageSupported = PhIntelPerfStatusToVolts(value, &PhpHwCpuIdentity) > 0.0f;
+        else
+            PhpHwCpuVoltageSupported = PhAmdPStateVid(value, &PhpHwCpuIdentity, &vid) && PhAmdCpuVidToVolts(vid, &PhpHwCpuIdentity) > 0.0f;
     }
+
+    if (!anyTjMax)
+    {
+        PhpHwCpuRegisters[PhpHwRegThermStatus].Disabled = TRUE;
+        PhpHwCpuRegisters[PhpHwRegPackageThermStatus].Disabled = TRUE;
+    }
+
+    PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS;
+
+    if (PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus))
+        PhpHwCpuPackageCaps |= PHP_HW_CPU_THERMAL_CAPS;
 
     // MPERF is only needed for the active clock; APERF alone yields the effective clock.
     if (PhpHwCpuTscMhz <= 0.0f)
@@ -425,6 +514,10 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuPackageCores = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuTickCorePower = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
     PhpHwCpuTickCoreCount = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTjMax = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTickValid = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTickThrottle = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTickMaxCore = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
     memset(PhpHwCpuCoreFirst, 0xFF, sizeof(ULONG) * PhpHwCpuCoreCount);
     memset(PhpHwCpuPackageFirst, 0, sizeof(ULONG) * max(PhpHwPackageCount, 1));
 
@@ -536,6 +629,24 @@ static NTSTATUS PhpHwCpuReadItems(
     return answered ? STATUS_SUCCESS : status;
 }
 
+static ULONG PhpHwCpuDecodeThrottle(
+    _In_ ULONG64 ThermStatus
+    )
+{
+    ULONG flags = 0;
+
+    if (ThermStatus & (1ULL << 0))
+        flags |= PH_HW_THROTTLE_THERMAL;
+    if (ThermStatus & (1ULL << 2))
+        flags |= PH_HW_THROTTLE_PROCHOT;
+    if (ThermStatus & (1ULL << 4))
+        flags |= PH_HW_THROTTLE_CRITICAL;
+    if (ThermStatus & (1ULL << 10))
+        flags |= PH_HW_THROTTLE_POWER_LIMIT;
+
+    return flags;
+}
+
 /**
  * Decodes the pass and publishes it: the values first, then their bits.
  */
@@ -553,6 +664,9 @@ static VOID PhpHwCpuPublish(
     {
         PhpHwCpuTickCorePower[i] = 0.0f;
         PhpHwCpuTickCoreCount[i] = 0;
+        PhpHwCpuTickValid[i] = 0;
+        PhpHwCpuTickThrottle[i] = 0;
+        PhpHwCpuTickMaxCore[i] = 0.0f;
     }
 
     for (ULONG c = 0; c < PhpHwCpuCoreCount; c++)
@@ -599,7 +713,51 @@ static VOID PhpHwCpuPublish(
             }
         }
 
-        if (PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy)
+        if (PhpHwCpuClass == PhpHwCpuIntel)
+        {
+            ULONG package = sensor->PackageIndex;
+
+            if (sample->Valid & (1UL << PhpHwRegPerfStatus))
+            {
+                ULONG64 value = sample->Value[PhpHwRegPerfStatus];
+                ULONG ratio = PhIntelPerfStatusRatio(value, &PhpHwCpuIdentity);
+
+                if (ratio)
+                {
+                    sensor->Multiplier = (FLOAT)ratio;
+                    valid |= PH_HW_CAP_MULTIPLIER;
+                }
+
+                if (PhpHwCpuVoltageSupported)
+                {
+                    sensor->Voltage = PhIntelPerfStatusToVolts(value, &PhpHwCpuIdentity);
+                    valid |= PH_HW_CAP_VOLTAGE;
+                }
+            }
+
+            if ((core->Valid & (1UL << PhpHwRegThermStatus)) && package < PhpHwPackageCount && PhpHwCpuTjMax[package])
+            {
+                ULONG64 value = core->Value[PhpHwRegThermStatus];
+                FLOAT celsius;
+
+                if (PhIntelThermStatusToCelsius(value, PhpHwCpuTjMax[package], PhpHwCpuCoreReadoutMask, &celsius))
+                {
+                    sensor->Temperature = celsius;
+                    valid |= PH_HW_CAP_CORE_TEMP;
+
+                    if (!(PhpHwCpuTickValid[package] & PH_HW_CAP_CORE_TEMP) || celsius > PhpHwCpuTickMaxCore[package])
+                        PhpHwCpuTickMaxCore[package] = celsius;
+
+                    PhpHwCpuTickValid[package] |= PH_HW_CAP_CORE_TEMP;
+                }
+
+                sensor->ThrottleFlags = PhpHwCpuDecodeThrottle(value);
+                valid |= PH_HW_CAP_THROTTLE;
+                PhpHwCpuTickThrottle[package] |= sensor->ThrottleFlags;
+                PhpHwCpuTickValid[package] |= PH_HW_CAP_THROTTLE;
+            }
+        }
+        else if (PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy)
         {
             // HwPstateStatus and COFVID_STATUS report the requested P-state, not the boosted ratio.
             if ((valid & PH_HW_CAP_ACTIVE_CLOCK) && busMhz > 0.0f)
@@ -635,8 +793,29 @@ static VOID PhpHwCpuPublish(
     {
         PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
-        ULONG valid = 0;
+        ULONG valid = PhpHwCpuTickValid[i];
         FLOAT watts;
+
+        // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family and, on ARM64,
+        // the counters' hottest zone come after (spec 5.1).
+        if ((sample->Valid & (1UL << PhpHwRegPackageThermStatus)) && PhpHwCpuTjMax[i])
+        {
+            ULONG64 value = sample->Value[PhpHwRegPackageThermStatus];
+
+            sensor->Temperature = PhIntelPackageThermStatusToCelsius(value, PhpHwCpuTjMax[i], PhpHwCpuPackageReadoutMask);
+            valid |= PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_THROTTLE;
+            PhpHwCpuTickThrottle[i] |= PhpHwCpuDecodeThrottle(value);
+        }
+        else if ((PhpHwCpuClass == PhpHwCpuIntel || PhpHwCpuClass == PhpHwCpuCentaur) && (valid & PH_HW_CAP_CORE_TEMP))
+        {
+            sensor->Temperature = PhpHwCpuTickMaxCore[i];
+            valid |= PH_HW_CAP_PACKAGE_TEMP;
+        }
+
+        if (valid & PH_HW_CAP_CORE_TEMP)
+            sensor->MaxCoreTemperature = PhpHwCpuTickMaxCore[i];
+
+        sensor->ThrottleFlags = PhpHwCpuTickThrottle[i];
 
         if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, seconds, &watts))
         {
@@ -651,7 +830,7 @@ static VOID PhpHwCpuPublish(
             valid |= PH_HW_CAP_RAPL_CORE;
         }
 
-        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PHP_HW_CPU_PACKAGE_CAPS) | valid);
+        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PhpHwCpuPackageCaps) | (valid & PhpHwCpuPackageCaps));
     }
 
     PhHwCpuPower = cpuPower;
@@ -746,6 +925,11 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuPackageCores);
     PhpHwCpuFree(&PhpHwCpuTickCorePower);
     PhpHwCpuFree(&PhpHwCpuTickCoreCount);
+    PhpHwCpuFree(&PhpHwCpuTjMax);
+    PhpHwCpuFree(&PhpHwCpuTickValid);
+    PhpHwCpuFree(&PhpHwCpuTickThrottle);
+    PhpHwCpuFree(&PhpHwCpuTickMaxCore);
+    PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS;
     PhpHwCpuCoreCount = 0;
     PhpHwCpuTscMhz = 0.0f;
     PhpHwCpuEnergyUnit = 0.0f;
@@ -776,7 +960,7 @@ VOID PhpHwCpuDiagnostics(
 
     PhAppendFormatStringBuilder(
         Builder,
-        L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s\n"
+        L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s%s\n"
         L"  Plan: %lu items a pass, calls of at most %lu\n"
         L"  Base clock: %.0f MHz, energy unit %g J, voltage %s\n",
         vendor,
@@ -785,6 +969,7 @@ VOID PhpHwCpuDiagnostics(
         PhpHwCpuIdentity.Stepping,
         PhpHwCpuSignature,
         classNames[PhpHwCpuClass],
+        PhpHwCpuIdentity.Hybrid ? L", hybrid" : L"",
         PhpHwCpuItemCount,
         PhpHwCpuBatch,
         PhpHwCpuTscMhz,
