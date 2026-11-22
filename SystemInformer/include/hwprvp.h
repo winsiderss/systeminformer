@@ -195,6 +195,22 @@ VOID PhpHwSmuPublish(
     _In_ const PH_HW_SMU_DECODE* Decode
     );
 
+NTSTATUS PhpHwSmbusProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwSmbusPass(
+    VOID
+    );
+
+VOID PhpHwSmbusEndSession(
+    VOID
+    );
+
+VOID PhpHwSmbusDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 NTSTATUS PhpHwHsmpProbe(
     VOID
     );

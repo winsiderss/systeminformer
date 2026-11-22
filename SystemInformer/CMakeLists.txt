@@ -120,6 +120,7 @@ set(SOURCES
     "hwprvplat.c"
     "hwprvsmu.c"
     "hwprvhsmp.c"
+    "hwprvsmbus.c"
     "hwprvctr.c"
     "hwprvdev.c"
     "hwprvpci.c"

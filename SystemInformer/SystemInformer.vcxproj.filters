@@ -93,6 +93,9 @@
     <ClCompile Include="hwprvhsmp.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwprvsmbus.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="hwprvctr.c">
       <Filter>System Informer</Filter>
     </ClCompile>

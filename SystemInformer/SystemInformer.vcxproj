@@ -262,6 +262,7 @@
         <ClCompile Include="hwprvplat.c" />
         <ClCompile Include="hwprvsmu.c" />
         <ClCompile Include="hwprvhsmp.c" />
+        <ClCompile Include="hwprvsmbus.c" />
         <ClCompile Include="hwprvctr.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwprvpci.c" />
