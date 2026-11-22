@@ -30,6 +30,9 @@
 #define PHP_HW_CPU_LIMIT_PLATFORM_PL1 1
 #define PHP_HW_CPU_LIMIT_PLATFORM_PL2 2
 #define PHP_HW_CPU_LIMIT_SENSORS 3
+#define PHP_HW_CPU_ARM_AMU_BUILD 26100 // from this build Windows reads AMCNTENSET0_EL0 at boot: the AMU does not trap
+#define PHP_HW_CPU_ARM_AMU_COUNTERS 0x3 // AMCNTENSET0_EL0: CPU_CYCLES and CNT_CYCLES enabled
+#define PHP_HW_CPU_ARM_STALL_LIMIT 3 // updates a cycle counter may stand still before it leaves the processor's plan
 #define PHP_HW_CPU_THERMAL_CAPS (PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_CORE_TEMP | PH_HW_CAP_THROTTLE) // with a thermal plan
 
 typedef enum _PHP_HW_CPU_CLASS
@@ -38,7 +41,8 @@ typedef enum _PHP_HW_CPU_CLASS
     PhpHwCpuIntel,
     PhpHwCpuAmdZen, // AuthenticAMD or HygonGenuine, family 17h and later
     PhpHwCpuAmdLegacy, // AuthenticAMD, families 10h to 16h
-    PhpHwCpuCentaur // CentaurHauls or "  Shanghai  "
+    PhpHwCpuCentaur, // CentaurHauls or "  Shanghai  "
+    PhpHwCpuArm64 // the application runs on ARM64
 } PHP_HW_CPU_CLASS;
 
 typedef enum _PHP_HW_REG
@@ -61,12 +65,18 @@ typedef enum _PHP_HW_REG
     PhpHwRegCuPowerAccumulator, // AMD 15h and 16h CU_PWR_ACCUMULATOR
     PhpHwRegPtsc, // AMD 15h and 16h PTSC, read with the accumulator
     PhpHwRegCentaurTemperature, // Centaur and Zhaoxin 1423h (core)
+    PhpHwRegArmCounter, // ARM64 CNTVCT_EL0
+    PhpHwRegArmCycles, // ARM64 AMEVCNTR00_EL0 (CPU_CYCLES)
+    PhpHwRegArmConstantCycles, // ARM64 AMEVCNTR01_EL0 (CNT_CYCLES)
+    PhpHwRegArmPmuCycles, // ARM64 PMCCNTR_EL0, without the AMU
     PhpHwRegRaplUnit, // probe only from here
     PhpHwRegPStateDef0,
     PhpHwRegTemperatureTarget, // Intel MSR_TEMPERATURE_TARGET, the Centaur and Zhaoxin critical temperature
     PhpHwRegPlatformInfo,
     PhpHwRegFsbFreq, // Intel Silvermont and Airmont MSR_FSB_FREQ
     PhpHwRegCuMaxPowerAccumulator, // AMD 15h and 16h CU_MAX_PWR_ACCUMULATOR
+    PhpHwRegArmFrequency, // ARM64 CNTFRQ_EL0
+    PhpHwRegArmAmuEnable, // ARM64 AMCNTENSET0_EL0
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 32);
@@ -135,6 +145,10 @@ static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSOR
 static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
 static ULONG PhpHwCpuUnitSampleRatio = 0; // CPUID 8000_0007h ECX
 static ULONG64 PhpHwCpuUnitMaxAccumulator = 0; // CU_MAX_PWR_ACCUMULATOR; 0 when unread
+static PULONG PhpHwCpuArmMidr = NULL; // ARM64, per processor: the MIDR identify gave; 0 when not identified
+static PULONG PhpHwCpuArmDisabled = NULL; // ARM64, per processor: 1 << PHP_HW_REG of the registers out of its plan
+static PUCHAR PhpHwCpuArmStalls = NULL; // ARM64, per processor: updates its cycle counter stood still
+static ULONG64 PhpHwCpuArmCounterHz = 0; // CNTFRQ_EL0
 static BOOLEAN PhpHwCpuVoltageSupported = FALSE;
 static ULONG PhpHwCpuCoreReadoutMask = 0x7F; // IA32_THERM_STATUS readout width
 static ULONG PhpHwCpuPackageReadoutMask = 0x7F; // IA32_PACKAGE_THERM_STATUS readout width
@@ -205,6 +219,20 @@ static VOID PhpHwCpuInitializePlan(
             PhpHwCpuSetRegister(PhpHwRegCuMaxPowerAccumulator, PH_AMD_MSR_CU_MAX_PWR_ACCUMULATOR, PhpHwScopeComputeUnit);
         }
     }
+    else if (PhpHwCpuClass == PhpHwCpuArm64)
+    {
+        // System register codes are ARM64_SYSREG(op0, op1, CRn, CRm, op2), which only ARM64 builds define.
+        PhpHwCpuSetRegister(PhpHwRegArmCounter, 0x5F02, PhpHwScopeThread); // CNTVCT_EL0
+        PhpHwCpuSetRegister(PhpHwRegArmPmuCycles, 0x5CE8, PhpHwScopeThread); // PMCCNTR_EL0
+        PhpHwCpuSetRegister(PhpHwRegArmFrequency, 0x5F00, PhpHwScopeThread); // CNTFRQ_EL0
+
+        if (PhpHwQueryBuildNumber() >= PHP_HW_CPU_ARM_AMU_BUILD)
+        {
+            PhpHwCpuSetRegister(PhpHwRegArmCycles, 0x5EA0, PhpHwScopeThread); // AMEVCNTR00_EL0
+            PhpHwCpuSetRegister(PhpHwRegArmConstantCycles, 0x5EA1, PhpHwScopeThread); // AMEVCNTR01_EL0
+            PhpHwCpuSetRegister(PhpHwRegArmAmuEnable, 0x5E95, PhpHwScopeThread); // AMCNTENSET0_EL0
+        }
+    }
     else if (PhpHwCpuClass == PhpHwCpuCentaur)
     {
         ULONG critical = PhCentaurCriticalTemperatureMsr(&PhpHwCpuIdentity);
@@ -267,6 +295,45 @@ static BOOLEAN PhpHwCpuRegisterOnProcessor(
 }
 
 /**
+ * Determines whether a register is in the plan of a processor: on ARM64 each kind of core has its own.
+ */
+static BOOLEAN PhpHwCpuRegisterUsable(
+    _In_ PHP_HW_REG Reg,
+    _In_ ULONG Processor
+    )
+{
+    if (!PhpHwCpuRegisterActive(Reg))
+        return FALSE;
+    if (PhpHwCpuArmDisabled && (PhpHwCpuArmDisabled[Processor] & (1UL << Reg)))
+        return FALSE;
+
+    return TRUE;
+}
+
+/**
+ * Takes an ARM64 register out of the plan of a processor; out of the session's plan once no processor reads it.
+ */
+static VOID PhpHwCpuArmDisable(
+    _In_ PHP_HW_REG Reg,
+    _In_ ULONG Processor
+    )
+{
+    PhpHwCpuArmDisabled[Processor] |= 1UL << Reg;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        if (!(PhpHwCpuArmDisabled[i] & (1UL << Reg)))
+            return;
+    }
+
+    if (PhpHwCpuRegisterActive(Reg))
+    {
+        PhpHwCpuRegisters[Reg].Disabled = TRUE;
+        PhTraceInfo("Hardware sensor register 0x%lx unavailable on every processor", PhpHwCpuRegisters[Reg].Register);
+    }
+}
+
+/**
  * Determines the processor class from the identity the driver gave.
  */
 static PHP_HW_CPU_CLASS PhpHwCpuClassify(
@@ -293,6 +360,7 @@ static PHP_HW_CPU_CLASS PhpHwCpuClassify(
  */
 static BOOLEAN PhpHwCpuApplyStatus(
     _In_ PHP_HW_REG Reg,
+    _In_ ULONG Processor,
     _In_ NTSTATUS Status
     )
 {
@@ -311,7 +379,13 @@ static BOOLEAN PhpHwCpuApplyStatus(
     case STATUS_DEVICE_NOT_READY:
         break;
     case STATUS_NOT_FOUND: // not permitted
-    case STATUS_NOT_SUPPORTED: // a faulting register
+    case STATUS_NOT_SUPPORTED: // a faulting register, or on ARM64 one the processor lacks
+        if (PhpHwCpuArmDisabled)
+        {
+            PhpHwCpuArmDisable(Reg, Processor);
+            break;
+        }
+
         reg->Disabled = TRUE;
         PhTraceInfo("Hardware sensor register 0x%lx unavailable: 0x%lx", reg->Register, Status);
         break;
@@ -342,7 +416,7 @@ static VOID PhpHwCpuStoreValues(
     {
         PPHP_HW_CPU_TAG tag = &PhpHwCpuTags[i];
 
-        if (!PhpHwCpuApplyStatus(tag->Reg, PhpHwCpuValues[i].Status))
+        if (!PhpHwCpuApplyStatus(tag->Reg, tag->Processor, PhpHwCpuValues[i].Status))
             continue;
 
         PhpHwCpuSamples[tag->Processor].Value[tag->Reg] = PhpHwCpuValues[i].Value;
@@ -413,6 +487,87 @@ static BOOLEAN PhpHwCpuIsIntelNehalem(
     }
 
     return FALSE;
+}
+
+/**
+ * Reads the whole ARM64 plan once on every processor, since each kind of core has its own registers, and chooses
+ * each processor's clock source: the AMU when both its counters answer and firmware enabled them, else the cycle
+ * counter. Deltas start at the next update.
+ */
+static VOID PhpHwCpuProbeReadArm64(
+    VOID
+    )
+{
+    PhpHwCpuItemCount = 0;
+    PhpHwCpuArmCounterHz = 0;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
+        {
+            if (!PhpHwCpuRegisters[reg].Register || PhpHwCpuItemCount >= PhpHwCpuCapacity)
+                continue;
+
+            PhpHwCpuItems[PhpHwCpuItemCount].Group = PhpHwCpuSensors[i].ProcessorNumber.Group;
+            PhpHwCpuItems[PhpHwCpuItemCount].Number = PhpHwCpuSensors[i].ProcessorNumber.Number;
+            PhpHwCpuItems[PhpHwCpuItemCount].Msr = PhpHwCpuRegisters[reg].Register;
+            PhpHwCpuTags[PhpHwCpuItemCount].Reg = reg;
+            PhpHwCpuTags[PhpHwCpuItemCount].Processor = i;
+            PhpHwCpuItemCount++;
+        }
+    }
+
+    if (PhpHwCpuItemCount)
+    {
+        PhpHwCpuReadItems();
+        PhpHwCpuStoreValues();
+    }
+
+    // Firmware programs CNTFRQ_EL0 once for the whole system.
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        if ((PhpHwCpuSamples[i].Valid & (1UL << PhpHwRegArmFrequency)) && PhpHwCpuSamples[i].Value[PhpHwRegArmFrequency])
+        {
+            PhpHwCpuArmCounterHz = PhpHwCpuSamples[i].Value[PhpHwRegArmFrequency];
+            break;
+        }
+    }
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[i];
+
+        // The driver never writes AMCNTENSET0_EL0.
+        if (
+            !(sample->Valid & (1UL << PhpHwRegArmAmuEnable)) ||
+            (sample->Value[PhpHwRegArmAmuEnable] & PHP_HW_CPU_ARM_AMU_COUNTERS) != PHP_HW_CPU_ARM_AMU_COUNTERS ||
+            !PhpHwCpuRegisterUsable(PhpHwRegArmCycles, i) || !PhpHwCpuRegisterUsable(PhpHwRegArmConstantCycles, i)
+            )
+        {
+            PhpHwCpuArmDisable(PhpHwRegArmCycles, i);
+            PhpHwCpuArmDisable(PhpHwRegArmConstantCycles, i);
+        }
+        else
+        {
+            PhpHwCpuArmDisable(PhpHwRegArmPmuCycles, i);
+        }
+
+        sample->Valid = 0;
+    }
+
+    PhpHwCpuRegisters[PhpHwRegArmFrequency].Disabled = TRUE;
+    PhpHwCpuRegisters[PhpHwRegArmAmuEnable].Disabled = !!PhpHwCpuRegisters[PhpHwRegArmAmuEnable].Register;
+
+    // No ARM64 part has a package temperature register: the counters' hottest thermal zone stands in.
+    PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS | PH_HW_CAP_PACKAGE_TEMP;
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PhpHwPackageSensors[i].TjMax = 0.0f;
+        PhpHwPackageSensors[i].BaseMhz = 0.0f;
+        PhpHwPackageSensors[i].BusMhz = 0.0f;
+        PhpHwPackageSensors[i].PowerLimit = 0.0f;
+    }
 }
 
 /**
@@ -672,8 +827,6 @@ NTSTATUS PhpHwCpuProbe(
     ULONG lastCore = ULONG_MAX;
     ULONG lastPackage = ULONG_MAX;
 
-    if (PhpHwQueryMachine() == IMAGE_FILE_MACHINE_ARM64)
-        return STATUS_NOT_SUPPORTED;
     if (!(first = PhHwGetCpuSensor(0)))
         return STATUS_NOT_SUPPORTED;
 
@@ -681,6 +834,26 @@ NTSTATUS PhpHwCpuProbe(
 
     if (!NT_SUCCESS(status))
         return status;
+
+    // On ARM64 identify gives only the MIDR, and each kind of core has its own.
+    if (PhpHwQueryMachine() == IMAGE_FILE_MACHINE_ARM64)
+    {
+        PhpHwCpuArmMidr = PhAllocateZero(sizeof(ULONG) * PhpHwProcessorCount);
+        PhpHwCpuArmDisabled = PhAllocateZero(sizeof(ULONG) * PhpHwProcessorCount);
+        PhpHwCpuArmStalls = PhAllocateZero(sizeof(UCHAR) * PhpHwProcessorCount);
+        PhpHwCpuArmMidr[0] = identity.Signature;
+
+        for (ULONG i = 1; i < PhpHwProcessorCount; i++)
+        {
+            KPH_HW_CPU_IDENTITY other;
+
+            if (NT_SUCCESS(KphHwCpuIdentify(PhpHwCpuSensors[i].ProcessorNumber.Group, PhpHwCpuSensors[i].ProcessorNumber.Number, &other)))
+                PhpHwCpuArmMidr[i] = other.Signature;
+        }
+
+        memset(&identity, 0, sizeof(identity));
+        identity.Signature = PhpHwCpuArmMidr[0];
+    }
 
     memset(&PhpHwCpuIdentity, 0, sizeof(PH_CPU_IDENTITY));
     memcpy(PhpHwCpuIdentity.Vendor, identity.Vendor, sizeof(identity.Vendor));
@@ -690,7 +863,9 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuIdentity.Hybrid = !!identity.Hybrid;
     PhpHwCpuSignature = identity.Signature;
 
-    if ((PhpHwCpuClass = PhpHwCpuClassify(&PhpHwCpuIdentity)) == PhpHwCpuNone)
+    if (PhpHwCpuArmMidr)
+        PhpHwCpuClass = PhpHwCpuArm64;
+    else if ((PhpHwCpuClass = PhpHwCpuClassify(&PhpHwCpuIdentity)) == PhpHwCpuNone)
         return STATUS_NOT_SUPPORTED;
 
     if (PhpHwCpuClass == PhpHwCpuAmdLegacy && (PhpHwCpuIdentity.DisplayFamily == 0x15 || PhpHwCpuIdentity.DisplayFamily == 0x16))
@@ -766,7 +941,10 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuSampleTime = 0;
     PhpHwCpuLastSampleTime = 0;
 
-    PhpHwCpuProbeRead();
+    if (PhpHwCpuClass == PhpHwCpuArm64)
+        PhpHwCpuProbeReadArm64();
+    else
+        PhpHwCpuProbeRead();
 
     return STATUS_SUCCESS;
 }
@@ -976,6 +1154,74 @@ static BOOLEAN PhpHwCpuComputeUnitPower(
     return found;
 }
 
+/**
+ * Decodes the clocks of an ARM64 processor. A cycle counter that stands still for PHP_HW_CPU_ARM_STALL_LIMIT updates
+ * leaves the processor's plan for the session.
+ *
+ * \return The PH_HW_CAP_* bits of the processor.
+ */
+static ULONG PhpHwCpuDecodeArm64(
+    _In_ ULONG Index
+    )
+{
+    PPH_HW_CPU_SENSOR sensor = &PhpHwCpuSensors[Index];
+    PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[Index];
+    BOOLEAN amu = PhpHwCpuRegisterUsable(PhpHwRegArmCycles, Index) && PhpHwCpuRegisterUsable(PhpHwRegArmConstantCycles, Index);
+    PHP_HW_REG cyclesReg = amu ? PhpHwRegArmCycles : PhpHwRegArmPmuCycles;
+    ULONG mask = (1UL << PhpHwRegArmCounter) | (1UL << cyclesReg) | (amu ? (1UL << PhpHwRegArmConstantCycles) : 0);
+    PH_ARM_CYCLE_SAMPLE last;
+    PH_ARM_CYCLE_SAMPLE current;
+    PH_ARM_CLOCK_STATUS status;
+    FLOAT effectiveMhz;
+    FLOAT activeMhz;
+    ULONG valid = 0;
+
+    if (!PhpHwCpuArmCounterHz || (!amu && !PhpHwCpuRegisterUsable(PhpHwRegArmPmuCycles, Index)))
+        return 0;
+    if ((sample->Valid & sample->LastValid & mask) != mask)
+        return 0;
+
+    last.Counter = sample->LastValue[PhpHwRegArmCounter];
+    last.Cycles = sample->LastValue[cyclesReg];
+    last.ConstantCycles = amu ? sample->LastValue[PhpHwRegArmConstantCycles] : 0;
+    current.Counter = sample->Value[PhpHwRegArmCounter];
+    current.Cycles = sample->Value[cyclesReg];
+    current.ConstantCycles = amu ? sample->Value[PhpHwRegArmConstantCycles] : 0;
+
+    status = PhArmCycleClocks(&last, &current, PhpHwCpuArmCounterHz, amu, &effectiveMhz, &activeMhz);
+
+    if (status == PhArmClockStalled)
+    {
+        if (++PhpHwCpuArmStalls[Index] >= PHP_HW_CPU_ARM_STALL_LIMIT)
+        {
+            PhTraceInfo("Hardware sensor register 0x%lx unavailable on processor %lu: the cycle counter stalled", PhpHwCpuRegisters[cyclesReg].Register, Index);
+            PhpHwCpuArmStalls[Index] = 0;
+            PhpHwCpuArmDisable(cyclesReg, Index);
+
+            if (amu)
+                PhpHwCpuArmDisable(PhpHwRegArmConstantCycles, Index);
+        }
+
+        return 0;
+    }
+
+    PhpHwCpuArmStalls[Index] = 0;
+
+    if (status != PhArmClockValid)
+        return 0;
+
+    sensor->EffectiveMhz = effectiveMhz;
+    valid |= PH_HW_CAP_EFFECTIVE_CLOCK;
+
+    if (amu)
+    {
+        sensor->ActiveMhz = activeMhz;
+        valid |= PH_HW_CAP_ACTIVE_CLOCK;
+    }
+
+    return valid;
+}
+
 static VOID PhpHwCpuPublish(
     VOID
     )
@@ -1113,6 +1359,10 @@ static VOID PhpHwCpuPublish(
                 }
             }
         }
+        else if (PhpHwCpuClass == PhpHwCpuArm64)
+        {
+            valid = PhpHwCpuDecodeArm64(i);
+        }
         else if (PhpHwCpuClass == PhpHwCpuCentaur)
         {
             ULONG package = sensor->PackageIndex;
@@ -1142,6 +1392,7 @@ static VOID PhpHwCpuPublish(
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
         ULONG valid = PhpHwCpuTickValid[i];
         FLOAT watts;
+        FLOAT celsius;
 
         // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family and, on ARM64,
         // the counters' hottest zone come after (spec 5.1).
@@ -1156,6 +1407,12 @@ static VOID PhpHwCpuPublish(
         else if ((PhpHwCpuClass == PhpHwCpuIntel || PhpHwCpuClass == PhpHwCpuCentaur) && (valid & PH_HW_CAP_CORE_TEMP))
         {
             sensor->Temperature = PhpHwCpuTickMaxCore[i];
+            valid |= PH_HW_CAP_PACKAGE_TEMP;
+        }
+        else if (PhpHwCpuClass == PhpHwCpuArm64 && PhpHwCounterHottestZone(&celsius))
+        {
+            // On x64 a zone is often a board sensor or a constant, and would mislead as the processor's.
+            sensor->Temperature = celsius;
             valid |= PH_HW_CAP_PACKAGE_TEMP;
         }
 
@@ -1311,7 +1568,7 @@ NTSTATUS PhpHwCpuPass(
 
         for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
         {
-            if (!PhpHwCpuRegisterActive(reg) || PhpHwCpuProbeOnly(reg) || !PhpHwCpuRegisterOnProcessor(reg, i) ||
+            if (!PhpHwCpuRegisterUsable(reg, i) || PhpHwCpuProbeOnly(reg) || !PhpHwCpuRegisterOnProcessor(reg, i) ||
                 PhpHwCpuItemCount >= PhpHwCpuCapacity)
             {
                 continue;
@@ -1390,6 +1647,10 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuUncoreIndex);
     PhpHwCpuFree(&PhpHwCpuLimitIndex);
     PhpHwCpuFree(&PhpHwCpuFirstOfUnit);
+    PhpHwCpuFree(&PhpHwCpuArmMidr);
+    PhpHwCpuFree(&PhpHwCpuArmDisabled);
+    PhpHwCpuFree(&PhpHwCpuArmStalls);
+    PhpHwCpuArmCounterHz = 0;
     PhpHwCpuUnitSampleRatio = 0;
     PhpHwCpuUnitMaxAccumulator = 0;
     PhpHwCpuDramEnergyUnit = 0.0f;
@@ -1411,7 +1672,7 @@ VOID PhpHwCpuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    static CONST PCWSTR classNames[] = { L"none", L"Intel", L"AMD Zen", L"AMD 10h to 16h", L"Centaur" };
+    static CONST PCWSTR classNames[] = { L"none", L"Intel", L"AMD Zen", L"AMD 10h to 16h", L"Centaur", L"ARM64" };
     static CONST PCWSTR scopeNames[] = { L"thread", L"core", L"package", L"compute unit" };
     CHAR vendor[13];
 
@@ -1421,27 +1682,52 @@ VOID PhpHwCpuDiagnostics(
         return;
     }
 
-    memcpy(vendor, PhpHwCpuIdentity.Vendor, 12);
-    vendor[12] = ANSI_NULL;
+    // Each kind of core has its own MIDR; consecutive processors of a kind share a line.
+    if (PhpHwCpuClass == PhpHwCpuArm64)
+    {
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  Processor: class ARM64, counter %llu Hz\n  Plan: %lu items a pass, calls of at most %lu\n",
+            PhpHwCpuArmCounterHz,
+            PhpHwCpuItemCount,
+            PhpHwCpuBatch
+            );
 
-    PhAppendFormatStringBuilder(
-        Builder,
-        L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s%s\n"
-        L"  Plan: %lu items a pass, calls of at most %lu\n"
-        L"  Base clock: %.0f MHz, energy unit %g J, voltage %s\n",
-        vendor,
-        PhpHwCpuIdentity.DisplayFamily,
-        PhpHwCpuIdentity.DisplayModel,
-        PhpHwCpuIdentity.Stepping,
-        PhpHwCpuSignature,
-        classNames[PhpHwCpuClass],
-        PhpHwCpuIdentity.Hybrid ? L", hybrid" : L"",
-        PhpHwCpuItemCount,
-        PhpHwCpuBatch,
-        PhpHwCpuTscMhz,
-        PhpHwCpuEnergyUnit,
-        PhpHwCpuVoltageSupported ? L"decoded" : L"not decoded"
-        );
+        for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+        {
+            ULONG last = i;
+
+            while (last + 1 < PhpHwProcessorCount && PhpHwCpuArmMidr[last + 1] == PhpHwCpuArmMidr[i])
+                last++;
+
+            PhAppendFormatStringBuilder(Builder, L"  Processors %lu to %lu: MIDR 0x%08lx\n", i, last, PhpHwCpuArmMidr[i]);
+            i = last;
+        }
+    }
+    else
+    {
+        memcpy(vendor, PhpHwCpuIdentity.Vendor, 12);
+        vendor[12] = ANSI_NULL;
+
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s%s\n"
+            L"  Plan: %lu items a pass, calls of at most %lu\n"
+            L"  Base clock: %.0f MHz, energy unit %g J, voltage %s\n",
+            vendor,
+            PhpHwCpuIdentity.DisplayFamily,
+            PhpHwCpuIdentity.DisplayModel,
+            PhpHwCpuIdentity.Stepping,
+            PhpHwCpuSignature,
+            classNames[PhpHwCpuClass],
+            PhpHwCpuIdentity.Hybrid ? L", hybrid" : L"",
+            PhpHwCpuItemCount,
+            PhpHwCpuBatch,
+            PhpHwCpuTscMhz,
+            PhpHwCpuEnergyUnit,
+            PhpHwCpuVoltageSupported ? L"decoded" : L"not decoded"
+            );
+    }
 
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
     {

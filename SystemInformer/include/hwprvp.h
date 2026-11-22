@@ -192,6 +192,10 @@ USHORT PhpHwQueryMachine(
     VOID
     );
 
+ULONG PhpHwQueryBuildNumber(
+    VOID
+    );
+
 _Success_(return)
 BOOLEAN PhpHwQueryTopology(
     _Out_ PPHP_HW_TOPOLOGY Topology

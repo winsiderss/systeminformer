@@ -45,6 +45,18 @@ USHORT PhpHwQueryMachine(
 #endif
 }
 
+/**
+ * Retrieves the build number of Windows.
+ *
+ * \return The build number.
+ */
+ULONG PhpHwQueryBuildNumber(
+    VOID
+    )
+{
+    return PhOsVersion.BuildNumber;
+}
+
 static ULONG PhpHwFlatProcessorIndex(
     _In_ PPHP_HW_TOPOLOGY Topology,
     _In_ USHORT Group,
