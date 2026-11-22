@@ -592,12 +592,14 @@ VOID PhHwProviderUpdate(
 
         PhpHwReportReads = FALSE;
 
+        PhpHwUpdateCounters(TRUE);
         PhpHwUpdateSources(TRUE);
         PhpHwUpdateCapabilities();
         PhpHwSignalReportRequests(&serving);
     }
     else
     {
+        PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
         PhpHwUpdateSources(FALSE);
     }
 
@@ -784,6 +786,9 @@ VOID PhHwWriteDiagnostics(
         else
             PhAppendStringBuilder2(Builder, L"  Not collected\n");
     }
+
+    PhAppendCharStringBuilder(Builder, L'\n');
+    PhpHwWriteCounterDiagnostics(Builder);
 }
 
 /**
@@ -997,7 +1002,8 @@ BOOLEAN NTAPI PhHwSourceSensorsPresent(
 }
 
 /**
- * Copies the active named sensors under one hold of the lock.
+ * Copies the active named sensors under one hold of the lock: the driver families' while they are available, and
+ * the Windows counters'.
  *
  * \param Count Receives the number of sensors copied.
  * \return The sensors, freed with PhFree, or NULL when there are none.
@@ -1008,18 +1014,27 @@ PPH_HW_NAMED_SENSOR PhHwCopyNamedSensors(
     )
 {
     PPH_HW_NAMED_SENSOR copy = NULL;
+    ULONG driverCount;
     ULONG copied = 0;
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
 
-    if (PhpHwAvailable && PhpHwNamedSensorCount)
-    {
-        copy = PhAllocate(sizeof(PH_HW_NAMED_SENSOR) * PhpHwNamedSensorCount);
+    driverCount = PhpHwAvailable ? PhpHwNamedSensorCount : 0;
 
-        for (ULONG i = 0; i < PhpHwNamedSensorCount; i++)
+    if (driverCount + PhpHwCounterSensorCount)
+    {
+        copy = PhAllocate(sizeof(PH_HW_NAMED_SENSOR) * (driverCount + PhpHwCounterSensorCount));
+
+        for (ULONG i = 0; i < driverCount; i++)
         {
             if (PhpHwNamedSensors[i].Active)
                 copy[copied++] = PhpHwNamedSensors[i];
+        }
+
+        for (ULONG i = 0; i < PhpHwCounterSensorCount; i++)
+        {
+            if (PhpHwCounterSensors[i].Active)
+                copy[copied++] = PhpHwCounterSensors[i];
         }
     }
 
@@ -1070,6 +1085,21 @@ BOOLEAN PhHwGetNamedSensorValue(
             *Value = PhpHwNamedSensors[i].Value;
             found = TRUE;
             break;
+        }
+    }
+
+    for (ULONG i = 0; !found && i < PhpHwCounterSensorCount; i++)
+    {
+        if (
+            PhpHwCounterSensors[i].Active &&
+            PhpHwCounterSensors[i].Valid &&
+            PhpHwCounterSensors[i].Kind == Kind &&
+            PhpHwCounterSensors[i].PackageIndex == PackageIndex &&
+            PhpHwCounterSensors[i].Id == Id
+            )
+        {
+            *Value = PhpHwCounterSensors[i].Value;
+            found = TRUE;
         }
     }
 
@@ -1229,14 +1259,3 @@ FLOAT NTAPI PhHwGetCpuTemperatureLimit(
     return limit > 0.0f ? limit : 100.0f;
 }
 
-/**
- * Determines whether the Windows performance counters have published a sensor.
- *
- * \return TRUE when at least one counter sensor exists.
- */
-BOOLEAN NTAPI PhHwCounterSensorsPresent(
-    VOID
-    )
-{
-    return FALSE;
-}
