@@ -72,7 +72,7 @@ PH_PROVIDER_REGISTRATION PhHwProviderRegistration;
 PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
 {
     { L"cpu", 0, PhpHwCpuProbe, PhpHwCpuPass, PhpHwCpuEnd, PhpHwCpuDiagnostics },
-    { L"smn", 0 },
+    { L"smn", 0, PhpHwSmnProbe, PhpHwSmnPass, PhpHwSmnEnd, PhpHwSmnDiagnostics },
     { L"mmio", 0 },
     { L"platform", 0 },
     { L"pciconfig", 0 },
@@ -457,15 +457,16 @@ VOID PhpHwSetNamedSensor(
 }
 
 /**
- * Determines whether the session found no script for any family it probed.
+ * Determines whether the session found nothing because a script is not shipped.
  *
- * \return TRUE when the session has probed and every family with a probe was not shipped with this build.
+ * \return TRUE when the session has probed, no family with a probe is present and one was not shipped with this
+ * build; a family absent for its hardware (no root complex, another processor) does not count against it.
  */
 BOOLEAN PhpHwFamiliesNotShipped(
     VOID
     )
 {
-    BOOLEAN probed = FALSE;
+    BOOLEAN notShipped = FALSE;
 
     if (!PhpHwGateOpen || !PhpHwProbed)
         return FALSE;
@@ -474,13 +475,13 @@ BOOLEAN PhpHwFamiliesNotShipped(
     {
         if (!PhpHwFamilies[i].Probe)
             continue;
-        if (!PhpHwFamilies[i].NotShipped)
+        if (!PhpHwFamilies[i].Absent)
             return FALSE;
-
-        probed = TRUE;
+        if (PhpHwFamilies[i].NotShipped)
+            notShipped = TRUE;
     }
 
-    return probed;
+    return notShipped;
 }
 
 static BOOLEAN PhpHwSourceSensorMatches(

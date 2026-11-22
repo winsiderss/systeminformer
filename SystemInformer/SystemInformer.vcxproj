@@ -257,6 +257,7 @@
         <ClCompile Include="hwhist.c" />
         <ClCompile Include="hwprv.c" />
         <ClCompile Include="hwprvcpu.c" />
+        <ClCompile Include="hwprvsmn.c" />
         <ClCompile Include="hwprvctr.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwprvpci.c" />
