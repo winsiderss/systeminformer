@@ -1722,8 +1722,9 @@ VOID PhCreateSearchControlEx(
     context->CaseButton.Active = !!PhGetIntegerSetting(context->CaseSetting);
     context->FuzzyButton.Active = !!PhGetIntegerSetting(context->FuzzySetting);
 
-    if (context->FuzzyButton.Active)
-        context->RegexButton.Active = FALSE;
+    // The fuzzy setting is shared by every search control; this control's own regex setting wins.
+    if (context->RegexButton.Active)
+        context->FuzzyButton.Active = FALSE;
 
     // Subclass the Edit control window procedure.
     context->DefaultWindowProc = PhGetWindowProcedure(SearchWindowHandle);
