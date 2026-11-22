@@ -1039,11 +1039,6 @@ int KphpLuaLock(
 
     KeLeaveCriticalRegion();
 
-    if (status == STATUS_TIMEOUT)
-    {
-        status = STATUS_IO_TIMEOUT;
-    }
-
     if (status == STATUS_SI_SCRIPT_LIMIT)
     {
         KphScriptCharge(State, 0);
