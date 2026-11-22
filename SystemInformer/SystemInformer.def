@@ -134,6 +134,7 @@ EXPORTS
     PhHwGetSensorHistorySlots
     PhHwSensorsAvailable
     PhHwSensorsEnabled
+    PhHwSourceSensorsPresent
     PhImageListExtractIcon
     PhImageListFlushCache
     PhInitializeTreeNewColumnMenu
@@ -174,6 +175,7 @@ EXPORTS
     PhReferenceProcessRecordSafe
     PhReferenceServiceItem
     PhRegisterDialog
+    PhRegisterHardwareSensorSource
     PhRegisterMessageLoopFilter
     PhHideToast
     PhReleaseToast
@@ -225,6 +227,7 @@ EXPORTS
     PhSiUInt64LabelYFunction
     PhThawThread
     PhUnregisterDialog
+    PhUnregisterHardwareSensorSource
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
     PhUpdateServiceNode

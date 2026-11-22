@@ -169,6 +169,23 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhHwComponentWindows, PhHwGroupThrottling, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
 };
 
+// Group and unit of each PH_HW_SENSOR_TYPE.
+static CONST struct
+{
+    PH_HW_SENSOR_GROUP Group;
+    PH_HW_SENSOR_UNIT Unit;
+} PhpHwSourceTypeInfo[PhHwSensorTypeMaximum] =
+{
+    { PhHwGroupTemperatures, PhHwUnitTemperature },
+    { PhHwGroupPowers, PhHwUnitPower },
+    { PhHwGroupClocks, PhHwUnitClock },
+    { PhHwGroupVoltages, PhHwUnitVoltage },
+    { PhHwGroupCurrents, PhHwUnitCurrent },
+    { PhHwGroupFans, PhHwUnitFan },
+    { PhHwGroupControls, PhHwUnitPercent },
+    { PhHwGroupBandwidth, PhHwUnitBandwidth },
+};
+
 // The display kind of each PH_HW_NAMED_SENSOR_KIND.
 static CONST PHP_HW_SENSOR_KIND PhpHwNamedSensorKinds[] =
 {
@@ -549,6 +566,36 @@ static VOID PhpHwEnumerateNamed(
     PhFree(sensors);
 }
 
+_Function_class_(PH_HW_SOURCE_SENSOR_CALLBACK)
+static VOID NTAPI PhpHwEnumerateSourceSensor(
+    _In_ PCPH_HW_SOURCE_SENSOR Sensor,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_HW_ENUM_CONTEXT context = Context;
+    PH_HW_SENSOR_ENTRY entry;
+
+    if (!context || Sensor->Type >= RTL_NUMBER_OF(PhpHwSourceTypeInfo))
+        return;
+
+    entry.ComponentKind = PhHwComponentSource;
+    entry.ComponentIndex = Sensor->ComponentId;
+    entry.SourceId = Sensor->SourceId;
+    entry.ComponentKey = PhpHwComponentKey(PhHwComponentSource, Sensor->SourceId, Sensor->ComponentId);
+    entry.ComponentName = (context->Flags & PHP_HW_ENUM_NO_NAMES) ? NULL : Sensor->ComponentName;
+    entry.Group = PhpHwSourceTypeInfo[Sensor->Type].Group;
+    entry.Unit = PhpHwSourceTypeInfo[Sensor->Type].Unit;
+    entry.SensorKey = PhpHwSensorKey(PhpHwSensorMaximum, Sensor->SensorId);
+    entry.SensorName = (context->Flags & PHP_HW_ENUM_NO_NAMES) ? NULL : Sensor->SensorName;
+    entry.Capability = 0;
+    entry.Current = Sensor->Current;
+    entry.History = !!(Sensor->Flags & PH_HW_SENSOR_REPORT_HISTORY);
+    entry.Value = Sensor->Value;
+    entry.ThrottleFlags = 0;
+
+    context->Callback(&entry, context->Context);
+}
+
 /**
  * Enumerates the hardware sensors as the sensors window shows them.
  *
@@ -592,6 +639,7 @@ VOID PhpHwEnumerateSensorsEx(
     }
 
     PhpHwEnumerateNamed(&context);
+    PhHwEnumerateSourceSensors(PhpHwEnumerateSourceSensor, &context);
 
     PhClearReference(&context.ComponentName);
 }

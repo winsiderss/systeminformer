@@ -10,7 +10,33 @@
  */
 
 #include <hwprvp.h>
-#include <phplug.h>
+#include <trace.h>
+
+#define PHP_HW_SOURCE_MAX_SENSORS 1024 // per source
+#define PHP_HW_SOURCE_MAX_NAME 128 // characters
+
+typedef struct _PHP_HW_SOURCE_SENSOR
+{
+    ULONG ComponentId;
+    ULONG Type;
+    ULONG SensorId;
+    PPH_STRING ComponentName;
+    PPH_STRING SensorName;
+    ULONG Flags;
+    FLOAT Value;
+    ULONG UpdateId; // PhpHwSourceUpdateId of the last report
+} PHP_HW_SOURCE_SENSOR, *PPHP_HW_SOURCE_SENSOR;
+
+typedef struct _PH_HW_SENSOR_SOURCE_REGISTRATION
+{
+    LIST_ENTRY ListEntry;
+    ULONG Id;
+    PPH_PLUGIN Plugin;
+    PH_HW_SENSOR_SOURCE Source;
+    PPH_LIST Sensors; // PPHP_HW_SOURCE_SENSOR in first-report order
+    ULONG NextIndex; // where the next report is expected
+    BOOLEAN CapTraced;
+} PH_HW_SENSOR_SOURCE_REGISTRATION;
 
 ULONG PhpHwProcessorCount = 0;
 ULONG PhpHwPackageCount = 0;
@@ -54,6 +80,16 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
 static ULONG PhpHwRunCount = 0;
 static BOOLEAN PhpHwTopologyQueried = FALSE;
 static BOOLEAN PhpHwHistoryInitialized = FALSE;
+
+// The update lock serializes source callbacks with registration; the data lock guards the source
+// list and the reported sensors. The list changes under both.
+static PH_QUEUED_LOCK PhpHwSourceUpdateLock = PH_QUEUED_LOCK_INIT;
+static PH_QUEUED_LOCK PhpHwSourceDataLock = PH_QUEUED_LOCK_INIT;
+static LIST_ENTRY PhpHwSourceListHead = { &PhpHwSourceListHead, &PhpHwSourceListHead };
+static ULONG PhpHwSourceNextId = 1;
+static ULONG PhpHwSourceUpdateId = 0;
+static ULONG PhpHwSourceCompletedUpdateId = 0; // the last update whose source loop finished
+static HANDLE PhpHwSourceUpdateThread = NULL; // the thread in the source loop, for assertions
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -223,6 +259,131 @@ static VOID PhpHwRunFamily(
         Family->RetryStreak = 0;
 }
 
+static BOOLEAN PhpHwSourceSensorMatches(
+    _In_ PPHP_HW_SOURCE_SENSOR Sensor,
+    _In_ PCPH_HW_SENSOR_REPORT Report
+    )
+{
+    return Sensor->ComponentId == Report->ComponentId && Sensor->Type == Report->Type && Sensor->SensorId == Report->SensorId;
+}
+
+static PPH_STRING PhpHwCreateSourceName(
+    _In_ PCWSTR Name
+    )
+{
+    SIZE_T count = 0;
+
+    while (count < PHP_HW_SOURCE_MAX_NAME && Name[count] != UNICODE_NULL)
+        count++;
+
+    return PhCreateStringEx((PWSTR)Name, count * sizeof(WCHAR));
+}
+
+_Function_class_(PH_HW_SENSOR_REPORT_FUNCTION)
+static VOID NTAPI PhpHwSourceReport(
+    _In_ PVOID ReportContext,
+    _In_ PCPH_HW_SENSOR_REPORT Report
+    )
+{
+    PPH_HW_SENSOR_SOURCE_REGISTRATION source = ReportContext;
+    PPHP_HW_SOURCE_SENSOR sensor = NULL;
+    ULONG index;
+
+    if (Report->Size < RTL_SIZEOF_THROUGH_FIELD(PH_HW_SENSOR_REPORT, Value))
+        return;
+    if (Report->Type >= PhHwSensorTypeMaximum || (Report->Flags & ~PH_HW_SENSOR_REPORT_HISTORY))
+        return;
+    if (!Report->ComponentName || !Report->SensorName)
+        return;
+    if (!(Report->Value >= -FLT_MAX && Report->Value <= FLT_MAX))
+        return;
+
+    PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+
+    // Reports usually arrive in the same order on every update.
+    index = source->NextIndex;
+
+    if (index >= source->Sensors->Count || !PhpHwSourceSensorMatches(source->Sensors->Items[index], Report))
+    {
+        for (index = 0; index < source->Sensors->Count; index++)
+        {
+            if (PhpHwSourceSensorMatches(source->Sensors->Items[index], Report))
+                break;
+        }
+    }
+
+    if (index < source->Sensors->Count)
+    {
+        sensor = source->Sensors->Items[index];
+    }
+    else if (source->Sensors->Count < PHP_HW_SOURCE_MAX_SENSORS)
+    {
+        sensor = PhAllocateZero(sizeof(PHP_HW_SOURCE_SENSOR));
+        sensor->ComponentId = Report->ComponentId;
+        sensor->Type = Report->Type;
+        sensor->SensorId = Report->SensorId;
+        sensor->ComponentName = PhpHwCreateSourceName(Report->ComponentName);
+        sensor->SensorName = PhpHwCreateSourceName(Report->SensorName);
+        sensor->Flags = Report->Flags;
+        PhAddItemList(source->Sensors, sensor);
+    }
+    else if (!source->CapTraced)
+    {
+        PhTraceWarning("Hardware sensor source %lu exceeds %lu sensors", source->Id, PHP_HW_SOURCE_MAX_SENSORS);
+        source->CapTraced = TRUE;
+    }
+
+    if (sensor)
+    {
+        sensor->Value = Report->Value;
+        sensor->UpdateId = PhpHwSourceUpdateId;
+        source->NextIndex = index + 1;
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
+}
+
+/**
+ * Invokes the callback of each registered source; while the gate is closed every source sensor is stale.
+ *
+ * \param GateOpen Whether the gate is open.
+ */
+static VOID PhpHwUpdateSources(
+    _In_ BOOLEAN GateOpen
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhpHwSourceUpdateLock);
+
+    if (!IsListEmpty(&PhpHwSourceListHead))
+    {
+        PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+        PhpHwSourceUpdateId++;
+        PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
+
+        if (GateOpen)
+        {
+            WritePointerRelease(&PhpHwSourceUpdateThread, NtCurrentThreadId());
+
+            for (PLIST_ENTRY entry = PhpHwSourceListHead.Flink; entry != &PhpHwSourceListHead; entry = entry->Flink)
+            {
+                PPH_HW_SENSOR_SOURCE_REGISTRATION source = CONTAINING_RECORD(entry, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+                source->NextIndex = 0;
+                source->Source.Callback(PhpHwSourceReport, source, source->Source.Context);
+            }
+
+            WritePointerRelease(&PhpHwSourceUpdateThread, NULL);
+        }
+
+        // Sensors are current against a finished update only.
+        PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+        PhpHwSourceCompletedUpdateId = PhpHwSourceUpdateId;
+        PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwSourceUpdateLock);
+}
+
 /**
  * Recomputes the capability bits from what currently has a value.
  */
@@ -269,7 +430,12 @@ VOID PhHwProviderUpdate(
         for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
             PhpHwRunFamily(&PhpHwFamilies[i], now);
 
+        PhpHwUpdateSources(TRUE);
         PhpHwUpdateCapabilities();
+    }
+    else
+    {
+        PhpHwUpdateSources(FALSE);
     }
 
     memset(&updatedEvent, 0, sizeof(PH_PROVIDER_UPDATED_EVENT));
@@ -335,6 +501,216 @@ BOOLEAN NTAPI PhHwGetCpuHistory(
     *PowerHistory = &PhHwCpuPowerHistory;
 
     return TRUE;
+}
+
+/**
+ * Registers a hardware sensor source.
+ *
+ * \param Plugin The plugin that owns the source.
+ * \param Source The source; copied. Size must reach Context (fields past Size are zero) and Flags must be zero.
+ * \param Registration Receives the registration; unregister it at the latest from PluginCallbackUnload.
+ * \return STATUS_SUCCESS, or STATUS_INVALID_PARAMETER for a malformed source.
+ * \remarks Must not be called from within a source callback.
+ */
+NTSTATUS NTAPI PhRegisterHardwareSensorSource(
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PCPH_HW_SENSOR_SOURCE Source,
+    _Out_ PPH_HW_SENSOR_SOURCE_REGISTRATION* Registration
+    )
+{
+    PPH_HW_SENSOR_SOURCE_REGISTRATION registration;
+
+    assert(ReadPointerAcquire(&PhpHwSourceUpdateThread) != NtCurrentThreadId());
+
+    if (!Plugin || Source->Size < RTL_SIZEOF_THROUGH_FIELD(PH_HW_SENSOR_SOURCE, Context) || Source->Flags || !Source->Callback)
+        return STATUS_INVALID_PARAMETER;
+
+    registration = PhAllocateZero(sizeof(PH_HW_SENSOR_SOURCE_REGISTRATION));
+    registration->Plugin = Plugin;
+    memcpy(&registration->Source, Source, min(Source->Size, sizeof(PH_HW_SENSOR_SOURCE)));
+    registration->Source.Size = sizeof(PH_HW_SENSOR_SOURCE);
+    registration->Sensors = PhCreateList(16);
+
+    PhAcquireQueuedLockExclusive(&PhpHwSourceUpdateLock);
+    PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+    registration->Id = PhpHwSourceNextId++;
+    InsertTailList(&PhpHwSourceListHead, &registration->ListEntry);
+    PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
+    PhReleaseQueuedLockExclusive(&PhpHwSourceUpdateLock);
+
+    *Registration = registration;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Writes the diagnostics of each hardware sensor source for the hardware report.
+ *
+ * \details The update lock serializes the diagnostics with the source callbacks and registration.
+ *
+ * \param Builder The report.
+ */
+VOID PhHwWriteSourceDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    ULONG count = 0;
+
+    assert(ReadPointerAcquire(&PhpHwSourceUpdateThread) != NtCurrentThreadId());
+
+    PhAcquireQueuedLockExclusive(&PhpHwSourceUpdateLock);
+    WritePointerRelease(&PhpHwSourceUpdateThread, NtCurrentThreadId());
+
+    for (PLIST_ENTRY entry = PhpHwSourceListHead.Flink; entry != &PhpHwSourceListHead; entry = entry->Flink)
+    {
+        PPH_HW_SENSOR_SOURCE_REGISTRATION registration = CONTAINING_RECORD(entry, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+        PhAppendFormatStringBuilder(Builder, L"%.*s: %lu sensors\n", (ULONG)(registration->Plugin->Name.Length / sizeof(WCHAR)), registration->Plugin->Name.Buffer, registration->Sensors->Count);
+
+        if (registration->Source.Diagnostics)
+            registration->Source.Diagnostics(Builder, registration->Source.Context);
+
+        count++;
+    }
+
+    WritePointerRelease(&PhpHwSourceUpdateThread, NULL);
+    PhReleaseQueuedLockExclusive(&PhpHwSourceUpdateLock);
+
+    if (!count)
+        PhAppendStringBuilder2(Builder, L"None\n");
+}
+
+/**
+ * Unregisters a hardware sensor source and removes its sensors.
+ *
+ * \details Waits for a callback in progress; afterwards its context may be freed.
+ *
+ * \param Registration The registration from PhRegisterHardwareSensorSource.
+ * \remarks Must not be called from within a source callback.
+ */
+VOID NTAPI PhUnregisterHardwareSensorSource(
+    _In_ _Post_invalid_ PPH_HW_SENSOR_SOURCE_REGISTRATION Registration
+    )
+{
+    assert(ReadPointerAcquire(&PhpHwSourceUpdateThread) != NtCurrentThreadId());
+
+    PhAcquireQueuedLockExclusive(&PhpHwSourceUpdateLock);
+    PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+    RemoveEntryList(&Registration->ListEntry);
+    PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
+    PhReleaseQueuedLockExclusive(&PhpHwSourceUpdateLock);
+
+    for (ULONG i = 0; i < Registration->Sensors->Count; i++)
+    {
+        PPHP_HW_SOURCE_SENSOR sensor = Registration->Sensors->Items[i];
+
+        PhDereferenceObject(sensor->ComponentName);
+        PhDereferenceObject(sensor->SensorName);
+        PhFree(sensor);
+    }
+
+    PhDereferenceObject(Registration->Sensors);
+    PhFree(Registration);
+}
+
+/**
+ * Removes the sources plugins left registered. Called after the plugin unload callbacks.
+ */
+VOID PhHwSweepSensorSources(
+    VOID
+    )
+{
+    ULONG count = 0;
+
+    while (TRUE)
+    {
+        PPH_HW_SENSOR_SOURCE_REGISTRATION registration = NULL;
+
+        PhAcquireQueuedLockShared(&PhpHwSourceDataLock);
+
+        if (!IsListEmpty(&PhpHwSourceListHead))
+            registration = CONTAINING_RECORD(PhpHwSourceListHead.Flink, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+        PhReleaseQueuedLockShared(&PhpHwSourceDataLock);
+
+        if (!registration)
+            break;
+
+        PhUnregisterHardwareSensorSource(registration);
+        count++;
+    }
+
+    if (count)
+        PhTraceWarning("Hardware sensors: %lu sources left registered after plugin unload", count);
+}
+
+/**
+ * Enumerates the sensors of the registered sources in registration and first-report order.
+ *
+ * \details The callback runs under the source data lock and must not register or unregister a source.
+ *
+ * \param Callback Called once per sensor.
+ * \param Context Passed to the callback.
+ */
+VOID PhHwEnumerateSourceSensors(
+    _In_ PPH_HW_SOURCE_SENSOR_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PhAcquireQueuedLockShared(&PhpHwSourceDataLock);
+
+    for (PLIST_ENTRY entry = PhpHwSourceListHead.Flink; entry != &PhpHwSourceListHead; entry = entry->Flink)
+    {
+        PPH_HW_SENSOR_SOURCE_REGISTRATION source = CONTAINING_RECORD(entry, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+        for (ULONG i = 0; i < source->Sensors->Count; i++)
+        {
+            PPHP_HW_SOURCE_SENSOR sensor = source->Sensors->Items[i];
+            PH_HW_SOURCE_SENSOR info;
+
+            info.SourceId = source->Id;
+            info.ComponentId = sensor->ComponentId;
+            info.ComponentName = sensor->ComponentName;
+            info.Type = sensor->Type;
+            info.SensorId = sensor->SensorId;
+            info.SensorName = sensor->SensorName;
+            info.Flags = sensor->Flags;
+            info.Value = sensor->Value;
+            info.Current = sensor->UpdateId == PhpHwSourceCompletedUpdateId;
+
+            Callback(&info, Context);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhpHwSourceDataLock);
+}
+
+/**
+ * Determines whether a source has reported a sensor.
+ *
+ * \return TRUE when a registered source has a sensor, listed current or not.
+ */
+BOOLEAN NTAPI PhHwSourceSensorsPresent(
+    VOID
+    )
+{
+    BOOLEAN present = FALSE;
+
+    PhAcquireQueuedLockShared(&PhpHwSourceDataLock);
+
+    for (PLIST_ENTRY entry = PhpHwSourceListHead.Flink; entry != &PhpHwSourceListHead; entry = entry->Flink)
+    {
+        PPH_HW_SENSOR_SOURCE_REGISTRATION source = CONTAINING_RECORD(entry, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+        if (source->Sensors->Count)
+        {
+            present = TRUE;
+            break;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhpHwSourceDataLock);
+
+    return present;
 }
 
 /**

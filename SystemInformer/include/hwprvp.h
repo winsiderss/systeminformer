@@ -13,6 +13,7 @@
 #define PH_HWPRVP_H
 
 #include <phapp.h>
+#include <phplug.h>
 #include <hwprv.h>
 #include <procprv.h>
 
