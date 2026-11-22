@@ -69,6 +69,9 @@
     <ClCompile Include="hndlstat.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwhist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="hwprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>

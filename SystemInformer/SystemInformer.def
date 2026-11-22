@@ -119,15 +119,19 @@ EXPORTS
     PhHandleListViewNotifyBehaviors
     PhHandleListViewNotifyForCopy
     PhHandleTreeNewColumnMenu
+    PhHwCopySensorHistory
     PhHwCounterSensorsPresent
+    PhHwEnumerateSensorHistories
     PhHwEnumerateSensors
     PhHwFormatTemperature
     PhHwGetCapabilities
     PhHwGetChipsetTemperature
+    PhHwGetCpuHistory
     PhHwGetCpuSensor
     PhHwGetCpuTemperatureLimit
     PhHwGetPackageCount
     PhHwGetPackageSensor
+    PhHwGetSensorHistorySlots
     PhHwSensorsAvailable
     PhHwSensorsEnabled
     PhImageListExtractIcon

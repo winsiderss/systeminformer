@@ -112,6 +112,7 @@ set(SOURCES
     "hndlprp.c"
     "hndlprv.c"
     "hndlstat.c"
+    "hwhist.c"
     "hwprv.c"
     "hwprvdev.c"
     "hwsensor.c"

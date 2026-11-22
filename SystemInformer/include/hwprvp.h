@@ -14,6 +14,7 @@
 
 #include <phapp.h>
 #include <hwprv.h>
+#include <procprv.h>
 
 extern ULONG PhpHwProcessorCount;
 extern ULONG PhpHwPackageCount;

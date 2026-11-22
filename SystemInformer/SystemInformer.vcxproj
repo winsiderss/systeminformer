@@ -254,6 +254,7 @@
         <ClCompile Include="hndlprp.c" />
         <ClCompile Include="hndlprv.c" />
         <ClCompile Include="hndlstat.c" />
+        <ClCompile Include="hwhist.c" />
         <ClCompile Include="hwprv.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwsensor.c" />

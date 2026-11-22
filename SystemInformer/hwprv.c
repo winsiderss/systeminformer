@@ -29,6 +29,8 @@ PH_QUEUED_LOCK PhpHwNamedSensorLock = PH_QUEUED_LOCK_INIT;
 PPH_HW_NAMED_SENSOR PhpHwNamedSensors = NULL;
 ULONG PhpHwNamedSensorCount = 0;
 
+PH_CIRCULAR_BUFFER_FLOAT PhHwCpuTemperatureHistory;
+PH_CIRCULAR_BUFFER_FLOAT PhHwCpuPowerHistory;
 FLOAT PhHwCpuTemperature = 0.0f;
 FLOAT PhHwCpuPower = 0.0f;
 
@@ -51,6 +53,7 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
 
 static ULONG PhpHwRunCount = 0;
 static BOOLEAN PhpHwTopologyQueried = FALSE;
+static BOOLEAN PhpHwHistoryInitialized = FALSE;
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -108,8 +111,14 @@ static VOID PhpHwInitializeTopology(
         PhpHwCpuSensors[i].PackageIndex = topology.Processors[i].PackageIndex;
     }
 
-    PhpHwPackageCount = topology.PackageCount;
+    for (ULONG i = 0; i < topology.PackageCount; i++)
+    {
+        PhInitializeCircularBuffer_FLOAT(&PhpHwPackageSensors[i].TemperatureHistory, PhStatisticsSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&PhpHwPackageSensors[i].PackagePowerHistory, PhStatisticsSampleCount);
+    }
+
     PhpHwProcessorCount = topology.ProcessorCount;
+    WriteULongRelease(&PhpHwPackageCount, topology.PackageCount);
 
     PhpHwFreeTopology(&topology);
 }
@@ -281,7 +290,51 @@ VOID PhHwProviderUpdateHistory(
     VOID
     )
 {
-    NOTHING;
+    ULONG packageCount;
+
+    if (!PhpHwHistoryInitialized)
+    {
+        PhInitializeCircularBuffer_FLOAT(&PhHwCpuTemperatureHistory, PhStatisticsSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&PhHwCpuPowerHistory, PhStatisticsSampleCount);
+        WriteBooleanRelease(&PhpHwHistoryInitialized, TRUE);
+    }
+
+    PhAddItemCircularBuffer_FLOAT(&PhHwCpuTemperatureHistory, PhHwCpuTemperature);
+    PhAddItemCircularBuffer_FLOAT(&PhHwCpuPowerHistory, PhHwCpuPower);
+
+    packageCount = ReadULongAcquire(&PhpHwPackageCount);
+
+    for (ULONG i = 0; i < packageCount; i++)
+    {
+        PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
+
+        PhAddItemCircularBuffer_FLOAT(&sensor->TemperatureHistory, (sensor->Valid & PH_HW_CAP_PACKAGE_TEMP) ? sensor->Temperature : 0.0f);
+        PhAddItemCircularBuffer_FLOAT(&sensor->PackagePowerHistory, (sensor->Valid & PH_HW_CAP_RAPL_PACKAGE) ? sensor->PackagePower : 0.0f);
+    }
+
+    PhpHwHistoryAppend();
+}
+
+/**
+ * Retrieves the CPU temperature and power histories, which are sampled with the system histories.
+ *
+ * \param TemperatureHistory Receives the hottest package temperature at each sample, 0 without a reading.
+ * \param PowerHistory Receives the total package power at each sample, 0 without a reading.
+ * \return TRUE once the histories exist, otherwise FALSE.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhHwGetCpuHistory(
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* TemperatureHistory,
+    _Out_ PPH_CIRCULAR_BUFFER_FLOAT* PowerHistory
+    )
+{
+    if (!ReadBooleanAcquire(&PhpHwHistoryInitialized))
+        return FALSE;
+
+    *TemperatureHistory = &PhHwCpuTemperatureHistory;
+    *PowerHistory = &PhHwCpuPowerHistory;
+
+    return TRUE;
 }
 
 /**
