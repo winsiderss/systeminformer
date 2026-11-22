@@ -104,6 +104,33 @@ static CONST PHP_HW_MMIO_REG_INFO PhpHwMmioRegInfo[PhpHwMmioMaximum] =
     { PH_INTEL_MCHBAR_FREQ_INFO_REC, 4, 0 },
 };
 
+// MCHBAR memory controller register layouts.
+typedef enum _PHP_HW_MMIO_TIMINGS_FORMAT
+{
+    PhpHwMmioTimingsNone,
+    PhpHwMmioTimingsSnb, // Sandy Bridge, Ivy Bridge
+    PhpHwMmioTimingsHsw, // Haswell, Broadwell
+    PhpHwMmioTimingsSkl, // Skylake through Comet Lake
+    PhpHwMmioTimingsIcl, // Ice Lake, Rocket Lake
+    PhpHwMmioTimingsTglU, // Tiger Lake U
+    PhpHwMmioTimingsTglH, // Tiger Lake H
+    PhpHwMmioTimingsAdl, // Alder Lake, Raptor Lake
+    PhpHwMmioTimingsMtl, // Meteor, Arrow, Panther and Wildcat Lake
+    PhpHwMmioTimingsLnl // Lunar Lake: the Meteor Lake layout without SC_GS_CFG
+} PHP_HW_MMIO_TIMINGS_FORMAT;
+
+#define PHP_HW_MMIO_TIMINGS_REGISTERS 5 // TC_PRE, SC_GS_CFG, TC_RFTP, TC_ODT, TC_ACT
+#define PHP_HW_MMIO_TIMINGS_CHANNELS 4
+#define PHP_HW_MMIO_CONFIG_REGISTERS (2 + 2 * 3 + 3 + PH_INTEL_MCHBAR_DUNITS)
+
+typedef struct _PHP_HW_MMIO_MEMORY_CONFIG
+{
+    ULONG Valid; // bit 0 MemConfig, bits 1-6 Mad, bits 7-10 Drp0
+    ULONG MemConfig; // MEMSS_PMA_CR_MEM_CONFIG
+    ULONG Mad[2][3]; // per IMC: MAD_INTER_CHANNEL, MAD_DIMM_CH0, MAD_DIMM_CH1
+    ULONG Drp0[PH_INTEL_MCHBAR_DUNITS]; // Apollo Lake, Gemini Lake
+} PHP_HW_MMIO_MEMORY_CONFIG;
+
 typedef struct _PHP_HW_MMIO_REGISTER
 {
     BOOLEAN Disabled; // not asked of this window
@@ -138,6 +165,11 @@ static ULONG PhpHwMmioGtRpe = 0; // FREQ_INFO_REC at the probe, for the report
 static ULONG PhpHwMmioGtPerfStatusLast = 0; // GT_PERF_STATUS, for the report
 static ULONG PhpHwMmioGtPerfStatusPeak = 0; // the GT_PERF_STATUS with the highest decoded clock, for the report
 static BOOLEAN PhpHwMmioDataRateRejected = FALSE; // the decoded data rate disagreed with SMBIOS
+static BOOLEAN PhpHwMmioHostBridge = FALSE; // the first candidate is the host bridge
+static PHP_HW_MMIO_TIMINGS_FORMAT PhpHwMmioTimingsFormat = PhpHwMmioTimingsNone;
+static BOOLEAN PhpHwMmioTimingsValid = FALSE;
+static PH_HW_MEMORY_TIMINGS PhpHwMmioTimings;
+static PHP_HW_MMIO_MEMORY_CONFIG PhpHwMmioMemoryConfig;
 static ULONG64 PhpHwMmioSampleTime = 0;
 static ULONG64 PhpHwMmioLastSampleTime = 0;
 
@@ -537,6 +569,368 @@ static PHP_HW_MMIO_REG PhpHwMmioGtPerfStatusRegister(
 }
 
 /**
+ * Determines the memory controller register layout of the processor model.
+ */
+static PHP_HW_MMIO_TIMINGS_FORMAT PhpHwMmioQueryTimingsFormat(
+    VOID
+    )
+{
+    if (PhpHwMmioIdentity.DisplayFamily != 0x06)
+        return PhpHwMmioTimingsNone;
+
+    switch (PhpHwMmioIdentity.DisplayModel)
+    {
+    case 0x2a:
+    case 0x3a:
+        return PhpHwMmioTimingsSnb;
+    case 0x3c:
+    case 0x45:
+    case 0x46:
+    case 0x3d:
+    case 0x47:
+        return PhpHwMmioTimingsHsw;
+    case 0x4e:
+    case 0x5e:
+    case 0x8e:
+    case 0x9e:
+    case 0xa5:
+    case 0xa6:
+        return PhpHwMmioTimingsSkl;
+    case 0x7d:
+    case 0x7e:
+    case 0xa7:
+        return PhpHwMmioTimingsIcl;
+    case 0x8c:
+        return PhpHwMmioTimingsTglU;
+    case 0x8d:
+        return PhpHwMmioTimingsTglH;
+    case 0x97:
+    case 0x9a:
+    case 0xb7:
+    case 0xba:
+    case 0xbf:
+    case 0xbe:
+    case 0xd7:
+        return PhpHwMmioTimingsAdl;
+    case 0xaa:
+    case 0xac:
+    case 0xb5:
+    case 0xc5:
+    case 0xc6:
+    case 0xcc:
+    case 0xd5:
+        return PhpHwMmioTimingsMtl;
+    case 0xbd:
+        return PhpHwMmioTimingsLnl;
+    }
+
+    return PhpHwMmioTimingsNone;
+}
+
+/**
+ * Decodes the timings of one channel; Registers holds TC_PRE, SC_GS_CFG, TC_RFTP, TC_ODT and TC_ACT in the layout of
+ * the format (unused entries are zero).
+ *
+ * \return FALSE when the values are implausible, as on an unpopulated channel.
+ */
+_Success_(return)
+static BOOLEAN PhpHwMmioDecodeTimings(
+    _In_ PHP_HW_MMIO_TIMINGS_FORMAT Format,
+    _In_reads_(PHP_HW_MMIO_TIMINGS_REGISTERS) const ULONG64* Registers,
+    _Out_ PPH_HW_MEMORY_TIMINGS Timings
+    )
+{
+    ULONG64 pre = Registers[0];
+    ULONG64 config = Registers[1];
+    ULONG64 refresh = Registers[2];
+    ULONG64 odt = Registers[3];
+    ULONG64 act = Registers[4];
+    PH_HW_MEMORY_TIMINGS timings;
+    ULONG stretch;
+
+    memset(&timings, 0, sizeof(PH_HW_MEMORY_TIMINGS));
+
+    switch (Format)
+    {
+    case PhpHwMmioTimingsSnb:
+        timings.RasToCasDelay = (ULONG)(pre & 0xF);
+        timings.RowPrecharge = (ULONG)((pre >> 4) & 0xF);
+        timings.CasLatency = (ULONG)((pre >> 8) & 0xF);
+        timings.RowActive = (ULONG)((pre >> 16) & 0xFF);
+        timings.RefreshCycle = (ULONG)((refresh >> 16) & 0x1FF);
+        stretch = (ULONG)((config >> 30) & 0x3);
+        timings.CommandRate = stretch <= 1 ? 1 : stretch;
+        break;
+    case PhpHwMmioTimingsHsw:
+        timings.RasToCasDelay = (ULONG)(pre & 0x1F);
+        timings.RowPrecharge = (ULONG)((pre >> 5) & 0x1F);
+        timings.RowActive = (ULONG)((pre >> 10) & 0x3F);
+        timings.CasLatency = (ULONG)(odt & 0x1F);
+        timings.RefreshCycle = (ULONG)((refresh >> 16) & 0x1FF);
+        stretch = (ULONG)((config >> 30) & 0x3);
+        timings.CommandRate = stretch <= 1 ? 1 : stretch;
+        break;
+    case PhpHwMmioTimingsSkl:
+        if ((config & 0x3) == 0x3) // SC_GS_CFG DRAM type: 0 DDR4, 1 DDR3, 2 LPDDR3
+            return FALSE;
+
+        timings.RowPrecharge = (ULONG)(pre & 0x3F);
+        timings.RasToCasDelay = timings.RowPrecharge;
+        timings.RowActive = (ULONG)((pre >> 8) & 0x7F);
+        timings.CasLatency = (ULONG)((odt >> 16) & 0x1F);
+        timings.RefreshCycle = (ULONG)((refresh >> 16) & 0x3FF);
+        stretch = (ULONG)((config >> 2) & 0x3);
+        timings.CommandRate = stretch == 3 ? 0 : stretch + 1;
+        break;
+    case PhpHwMmioTimingsIcl:
+        timings.RowPrecharge = (ULONG)(pre & 0x3F);
+        timings.RasToCasDelay = timings.RowPrecharge;
+        timings.RowActive = (ULONG)((pre >> 9) & 0x7F);
+        timings.CasLatency = (ULONG)((odt >> 16) & 0x3F);
+        timings.RefreshCycle = (ULONG)((refresh >> 16) & 0x3FF);
+        stretch = (ULONG)((config >> 3) & 0x3);
+        timings.CommandRate = stretch == 3 ? 0 : stretch + 1;
+        break;
+    case PhpHwMmioTimingsTglU:
+    case PhpHwMmioTimingsTglH:
+        timings.RowPrecharge = (ULONG)(pre & 0x7F);
+        timings.RowActive = (ULONG)((pre >> 33) & 0xFF);
+        timings.RasToCasDelay = (ULONG)((pre >> 41) & 0x7F);
+        timings.CasLatency = (ULONG)((odt >> 16) & 0x7F);
+        timings.RefreshCycle = (ULONG)((refresh >> 17) & 0xFFF);
+        stretch = (ULONG)((config >> 3) & 0x3);
+        timings.CommandRate = stretch == 3 ? 0 : stretch + 1;
+        break;
+    case PhpHwMmioTimingsAdl:
+        timings.RowPrecharge = (ULONG)(pre & 0xFF);
+        timings.RowActive = (ULONG)((pre >> 42) & 0x1FF);
+        timings.RasToCasDelay = (ULONG)((pre >> 51) & 0xFF);
+        timings.CasLatency = (ULONG)((odt >> 16) & 0x7F);
+        timings.RefreshCycle = (ULONG)((refresh >> 18) & 0x1FFF);
+        stretch = (ULONG)((config >> 3) & 0x3);
+        timings.CommandRate = stretch == 3 ? 0 : stretch + 1;
+        break;
+    case PhpHwMmioTimingsMtl:
+    case PhpHwMmioTimingsLnl:
+        timings.RowPrecharge = (ULONG)(pre & 0xFF);
+        timings.RowActive = (ULONG)((pre >> 45) & 0x1FF);
+        timings.RasToCasDelay = (ULONG)((act >> 22) & 0xFF);
+        timings.CasLatency = (ULONG)((odt >> 16) & 0x7F);
+        timings.RefreshCycle = (ULONG)((refresh >> 18) & 0x1FFF);
+        timings.CommandRate = (config & (1ULL << 3)) ? 2 : 1;
+        break;
+    default:
+        return FALSE;
+    }
+
+    // An unpopulated channel can keep plausible reset values; the TGL TC_PRE default decodes to 8-8-28.
+    if ((Format == PhpHwMmioTimingsTglU || Format == PhpHwMmioTimingsTglH) && pre == 0x103803083008)
+        return FALSE;
+
+    if (
+        timings.RefreshCycle == 0 ||
+        timings.CasLatency < 4 || timings.CasLatency > 120 ||
+        timings.RasToCasDelay < 4 || timings.RasToCasDelay > 200 ||
+        timings.RowPrecharge < 4 || timings.RowPrecharge > 200 ||
+        timings.RowActive < timings.RasToCasDelay
+        )
+    {
+        return FALSE;
+    }
+
+    *Timings = timings;
+    return TRUE;
+}
+
+/**
+ * Reads, in one call through the host bridge's MCHBAR, the timing registers of every channel and keeps those of the
+ * first populated one.
+ */
+static VOID PhpHwMmioReadTimings(
+    _In_ PPHP_HW_MMIO_WINDOW Window
+    )
+{
+    static CONST USHORT offsets[][PHP_HW_MMIO_TIMINGS_REGISTERS] =
+    {
+        { 0 }, // None
+        { 0x000, 0x004, 0x298, 0, 0 }, // Snb: TC_DBP, TC_RAP, TC_RFTP
+        { 0x000, 0x004, 0x298, 0x014, 0 }, // Hsw: TC_BANK, TC_BANK_RANK_A, TC_RFTP, TC_BANK_RANK_D
+        { 0x000, 0x01c, 0x23c, 0x070, 0 }, // Skl
+        { 0x000, 0x088, 0x23c, 0x070, 0 }, // Icl
+        { 0x000, 0x088, 0x23c, 0x070, 0 }, // TglU
+        { 0x000, 0x088, 0x43c, 0x070, 0 }, // TglH
+        { 0x000, 0x088, 0x43c, 0x070, 0 }, // Adl
+        { 0x000, 0x088, 0x4a0, 0x070, 0x138 }, // Mtl
+        { 0x000, 0, 0x4a0, 0x070, 0x138 }, // Lnl
+    };
+    PHP_HW_MMIO_TIMINGS_FORMAT format = PhpHwMmioTimingsFormat;
+    KPH_HW_WINDOW_ITEM items[PHP_HW_MMIO_TIMINGS_CHANNELS * PHP_HW_MMIO_TIMINGS_REGISTERS];
+    KPH_HW_VALUE64 values[PHP_HW_MMIO_TIMINGS_CHANNELS * PHP_HW_MMIO_TIMINGS_REGISTERS];
+    ULONG channels[PHP_HW_MMIO_TIMINGS_CHANNELS];
+    ULONG channelCount;
+    ULONG count = 0;
+    ULONG base;
+    ULONG stride;
+
+    C_ASSERT(RTL_NUMBER_OF(offsets) == PhpHwMmioTimingsLnl + 1);
+
+    if (format == PhpHwMmioTimingsNone)
+        return;
+
+    if (format >= PhpHwMmioTimingsTglH)
+    {
+        base = 0xE000;
+        stride = 0x800;
+    }
+    else
+    {
+        base = 0x4000;
+        stride = 0x400;
+    }
+
+    // Channels 0 and 1 of the first controller, then of the second at +10000h.
+    channels[0] = base;
+    channels[1] = base + stride;
+    channels[2] = 0x10000 + base;
+    channels[3] = 0x10000 + base + stride;
+    channelCount = format >= PhpHwMmioTimingsTglU ? 4 : 2;
+
+    for (ULONG i = 0; i < channelCount; i++)
+    {
+        // A register the layout does not use (offset 0 past TC_PRE) is not asked for.
+        for (ULONG j = 0; j < PHP_HW_MMIO_TIMINGS_REGISTERS; j++)
+        {
+            if (j && !offsets[format][j])
+                continue;
+
+            items[count].Offset = channels[i] + offsets[format][j];
+            items[count].Width = (j == 0 && format >= PhpHwMmioTimingsTglU) ? 8 : 4;
+            count++;
+        }
+    }
+
+    if (!NT_SUCCESS(KphHwPciMmioRead(Window->Locator, Window->Window, items, count, values)))
+        return;
+
+    for (ULONG i = 0, e = 0; i < channelCount; i++)
+    {
+        ULONG64 registers[PHP_HW_MMIO_TIMINGS_REGISTERS] = { 0 };
+        BOOLEAN valid = TRUE;
+
+        for (ULONG j = 0; j < PHP_HW_MMIO_TIMINGS_REGISTERS; j++)
+        {
+            if (j && !offsets[format][j])
+                continue;
+
+            if (NT_SUCCESS(values[e].Status))
+                registers[j] = values[e].Value;
+            else
+                valid = FALSE;
+
+            e++;
+        }
+
+        if (valid && PhpHwMmioDecodeTimings(format, registers, &PhpHwMmioTimings))
+        {
+            PhpHwMmioTimingsValid = TRUE;
+            break;
+        }
+    }
+}
+
+/**
+ * Reads, in one call through the host bridge's MCHBAR, MEMSS_PMA_CR_MEM_CONFIG and the MAD registers; the counters of
+ * an IMC that MEM_CONFIG shows disabled leave the plan.
+ */
+static VOID PhpHwMmioReadMemoryConfig(
+    _In_ PPHP_HW_MMIO_WINDOW Window
+    )
+{
+    static CONST PHP_HW_MMIO_REG imcRegisters[2][4] =
+    {
+        { PhpHwMmioImc0Reads, PhpHwMmioImc0Writes, PhpHwMmioImc0ReadsAlt, PhpHwMmioImc0WritesAlt },
+        { PhpHwMmioImc1Reads, PhpHwMmioImc1Writes, PhpHwMmioImc1ReadsAlt, PhpHwMmioImc1WritesAlt },
+    };
+    KPH_HW_WINDOW_ITEM items[PHP_HW_MMIO_CONFIG_REGISTERS];
+    KPH_HW_VALUE64 values[PHP_HW_MMIO_CONFIG_REGISTERS];
+    PHP_HW_MMIO_MEMORY_CONFIG* config = &PhpHwMmioMemoryConfig;
+
+    items[0].Offset = PH_INTEL_MCHBAR_MEMSS_MEM_CONFIG;
+    items[1].Offset = PH_INTEL_MCHBAR_MEMSS_MEM_CONFIG_NVL;
+
+    for (ULONG i = 0; i < 2; i++)
+    {
+        items[2 + i * 3].Offset = i * PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_MAD_INTER_CHANNEL;
+        items[3 + i * 3].Offset = i * PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_MAD_DIMM;
+        items[4 + i * 3].Offset = i * PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_MAD_DIMM + 4;
+    }
+
+    // A part permits the MAD registers of one layout; DRP0 only on Apollo and Gemini Lake.
+    items[8].Offset = PH_INTEL_MCHBAR_MAD_INTER_CHANNEL_ICL;
+    items[9].Offset = PH_INTEL_MCHBAR_MAD_DIMM_ICL;
+    items[10].Offset = PH_INTEL_MCHBAR_MAD_DIMM_ICL + 4;
+
+    for (ULONG i = 0; i < PH_INTEL_MCHBAR_DUNITS; i++)
+        items[11 + i].Offset = PH_INTEL_MCHBAR_DUNIT_DRP0 + i * PH_INTEL_MCHBAR_DUNIT_STRIDE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(items); i++)
+        items[i].Width = 4;
+
+    if (!NT_SUCCESS(KphHwPciMmioRead(Window->Locator, Window->Window, items, RTL_NUMBER_OF(items), values)))
+        return;
+
+    // A part permits one of the two MEM_CONFIG offsets.
+    for (ULONG i = 0; i < 2; i++)
+    {
+        if (NT_SUCCESS(values[i].Status) && !(config->Valid & 0x1))
+        {
+            config->MemConfig = (ULONG)values[i].Value;
+            config->Valid |= 0x1;
+        }
+    }
+
+    for (ULONG i = 0; i < 2 * 3; i++)
+    {
+        if (NT_SUCCESS(values[2 + i].Status))
+        {
+            config->Mad[i / 3][i % 3] = (ULONG)values[2 + i].Value;
+            config->Valid |= 0x2UL << i;
+        }
+    }
+
+    for (ULONG i = 0; i < 3; i++)
+    {
+        if (NT_SUCCESS(values[8 + i].Status) && !(config->Valid & (0x2UL << i)))
+        {
+            config->Mad[0][i] = (ULONG)values[8 + i].Value;
+            config->Valid |= 0x2UL << i;
+        }
+    }
+
+    for (ULONG i = 0; i < PH_INTEL_MCHBAR_DUNITS; i++)
+    {
+        if (NT_SUCCESS(values[11 + i].Status))
+        {
+            config->Drp0[i] = (ULONG)values[11 + i].Value;
+            config->Valid |= 0x80UL << i;
+        }
+    }
+
+    // MC0_EN [0], MC1_EN [1]; neither set is not a configuration.
+    if ((config->Valid & 0x1) && (config->MemConfig & 0x3))
+    {
+        for (ULONG i = 0; i < 2; i++)
+        {
+            if (config->MemConfig & (1UL << i))
+                continue;
+
+            for (ULONG j = 0; j < RTL_NUMBER_OF(imcRegisters[i]); j++)
+                PhpHwMmioDisable(imcRegisters[i][j]);
+        }
+    }
+}
+
+/**
  * Finds the windows of the Intel host bridge and the signal processing functions and reads each register once.
  * Called once a session.
  *
@@ -567,6 +961,7 @@ NTSTATUS PhpHwMmioProbe(
         candidates,
         1
         );
+    PhpHwMmioHostBridge = PhpHwMmioCandidateCount != 0;
     PhpHwMmioCandidateCount += PhpHwEnumeratePciFunctions(
         PHP_HW_MMIO_INTEL_VENDOR_ID,
         PHP_HW_MMIO_INTEL_VENDOR_ID,
@@ -625,6 +1020,15 @@ NTSTATUS PhpHwMmioProbe(
 
     if (!PhpHwMmioWindowCount)
         return lastStatus;
+
+    // The memory configuration and the timings are read once, through the host bridge's MCHBAR.
+    PhpHwMmioTimingsFormat = PhpHwMmioQueryTimingsFormat();
+
+    if (PhpHwMmioHostBridge && PhpHwMmioWindows[0].Locator == candidates[0] && PhpHwMmioWindows[0].Window == KPH_HW_WINDOW_MCHBAR)
+    {
+        PhpHwMmioReadMemoryConfig(&PhpHwMmioWindows[0]);
+        PhpHwMmioReadTimings(&PhpHwMmioWindows[0]);
+    }
 
     // The MMIO package temperature and TjMax stand in for the processor's registers only.
     if (PhpHwCpuThermalPlanned())
@@ -749,6 +1153,14 @@ NTSTATUS PhpHwMmioPass(
     {
         if (PhpHwMmioRegInfo[reg].Imc && PhpHwMmioActive(reg))
             owned |= PH_HW_CAP_MEMORY_BANDWIDTH;
+    }
+
+    // The timings are the probe's.
+    if (PhpHwMmioTimingsValid)
+    {
+        sensor->MemoryTimings = PhpHwMmioTimings;
+        owned |= PH_HW_CAP_MEMORY_TIMINGS;
+        valid |= PH_HW_CAP_MEMORY_TIMINGS;
     }
 
     {
@@ -882,6 +1294,10 @@ VOID PhpHwMmioEnd(
     PhpHwMmioGtPerfStatusLast = 0;
     PhpHwMmioGtPerfStatusPeak = 0;
     PhpHwMmioDataRateRejected = FALSE;
+    PhpHwMmioHostBridge = FALSE;
+    PhpHwMmioTimingsFormat = PhpHwMmioTimingsNone;
+    PhpHwMmioTimingsValid = FALSE;
+    memset(&PhpHwMmioMemoryConfig, 0, sizeof(PhpHwMmioMemoryConfig));
     PhpHwMmioSampleTime = 0;
     PhpHwMmioLastSampleTime = 0;
 }
@@ -899,6 +1315,35 @@ VOID PhpHwMmioDiagnostics(
 
     if (PhpHwMmioWindowCount)
     {
+        static CONST PCWSTR formatNames[] = { L"none", L"SNB", L"HSW", L"SKL", L"ICL", L"TGL-U", L"TGL-H", L"ADL", L"MTL", L"LNL" };
+
+        if (PhpHwMmioMemoryConfig.Valid)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  Memory configuration: valid 0x%lx, MEM_CONFIG 0x%08lx, MAD 0x%08lx 0x%08lx 0x%08lx / 0x%08lx 0x%08lx 0x%08lx; ",
+                PhpHwMmioMemoryConfig.Valid,
+                PhpHwMmioMemoryConfig.MemConfig,
+                PhpHwMmioMemoryConfig.Mad[0][0],
+                PhpHwMmioMemoryConfig.Mad[0][1],
+                PhpHwMmioMemoryConfig.Mad[0][2],
+                PhpHwMmioMemoryConfig.Mad[1][0],
+                PhpHwMmioMemoryConfig.Mad[1][1],
+                PhpHwMmioMemoryConfig.Mad[1][2]
+                );
+        }
+        else
+        {
+            PhAppendStringBuilder2(Builder, L"  Memory configuration: none; ");
+        }
+
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"timings format %s, %s\n",
+            formatNames[PhpHwMmioTimingsFormat],
+            PhpHwMmioTimingsValid ? L"read" : L"none"
+            );
+
         PhAppendFormatStringBuilder(
             Builder,
             L"  Memory: SMBIOS %lu MT/s%s; GT: RP_STATE_CAP 0x%08lx, FREQ_INFO_REC 0x%08lx, GT_PERF_STATUS 0x%08lx, peak 0x%08lx\n",
