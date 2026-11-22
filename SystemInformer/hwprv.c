@@ -79,7 +79,7 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
     { L"vsec", 0 },
     { L"crosec", 0 },
     { L"smu", PHP_HW_SECOND, PhpHwSmuProbe, PhpHwSmuPass, PhpHwSmuEnd, PhpHwSmuDiagnostics },
-    { L"hsmp", PHP_HW_SECOND },
+    { L"hsmp", PHP_HW_SECOND, PhpHwHsmpProbe, PhpHwHsmpPass, PhpHwHsmpEnd, PhpHwHsmpDiagnostics },
     { L"smbus", 3 * PHP_HW_SECOND },
     { L"acpi", 2 * PHP_HW_SECOND },
 };

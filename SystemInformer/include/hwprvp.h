@@ -175,6 +175,48 @@ BOOLEAN PhpHwSmuQueryMemoryClock(
     _Out_ PFLOAT MemoryClock
     );
 
+typedef struct _PHP_HW_SMU_SENSOR
+{
+    PH_HW_NAMED_SENSOR_KIND Kind;
+    ULONG Id;
+    ULONG Index; // in the named-sensor store
+} PHP_HW_SMU_SENSOR, *PPHP_HW_SMU_SENSOR;
+
+typedef struct _PHP_HW_SMU_SENSORS
+{
+    ULONG Count;
+    PHP_HW_SMU_SENSOR Sensors[PH_HW_SMU_MAX_READINGS];
+} PHP_HW_SMU_SENSORS, *PPHP_HW_SMU_SENSORS;
+
+VOID PhpHwSmuPublish(
+    _Inout_ PPHP_HW_SMU_SENSORS Sensors,
+    _In_ ULONG PackageIndex,
+    _In_ ULONG IdFlags,
+    _In_ const PH_HW_SMU_DECODE* Decode
+    );
+
+NTSTATUS PhpHwHsmpProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwHsmpPass(
+    VOID
+    );
+
+VOID PhpHwHsmpEnd(
+    VOID
+    );
+
+VOID PhpHwHsmpDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+_Success_(return)
+BOOLEAN PhpHwHsmpQueryMemoryClock(
+    _In_ ULONG Package,
+    _Out_ PFLOAT MemoryClock
+    );
+
 NTSTATUS PhpHwPlatformProbe(
     VOID
     );

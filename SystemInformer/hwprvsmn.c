@@ -623,8 +623,8 @@ NTSTATUS PhpHwSmnPass(
 
         sensor->CcdValidMask = ccdValidMask;
 
-        // The SMU's memory clock of its last pass takes the UMC's place; the UMC's last decode stands between turns.
-        if (PhpHwSmuQueryMemoryClock(i, &celsius))
+        // The SMU's or HSMP's memory clock of its last pass takes the UMC's place; the UMC's last decode stands between turns.
+        if (PhpHwSmuQueryMemoryClock(i, &celsius) || PhpHwHsmpQueryMemoryClock(i, &celsius))
         {
             sensor->MemoryClockMhz = celsius;
             sensor->MemoryDataRate = celsius * 2.0f;

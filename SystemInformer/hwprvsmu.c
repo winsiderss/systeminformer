@@ -19,13 +19,6 @@
 
 #define PHP_HW_SMU_STRIKE_LIMIT 2 // consecutive busy or timed-out requests that end the table for the session
 
-typedef struct _PHP_HW_SMU_SENSOR
-{
-    PH_HW_NAMED_SENSOR_KIND Kind;
-    ULONG Id;
-    ULONG Index; // in the named-sensor store
-} PHP_HW_SMU_SENSOR, *PPHP_HW_SMU_SENSOR;
-
 typedef struct _PHP_HW_SMU_PACKAGE
 {
     ULONG Locator; // the root complex smn assigned
@@ -42,23 +35,23 @@ typedef struct _PHP_HW_SMU_PACKAGE
     ULONG Capacity;
     ULONG Length; // of the last table read
     PH_HW_SMU_CORE_SLOTS CoreSlots;
-    ULONG SensorCount;
-    PHP_HW_SMU_SENSOR Sensors[PH_HW_SMU_MAX_READINGS];
+    PHP_HW_SMU_SENSORS Sensors;
 } PHP_HW_SMU_PACKAGE, *PPHP_HW_SMU_PACKAGE;
 
 static PPHP_HW_SMU_PACKAGE PhpHwSmuPackages = NULL; // per package
 static PH_HW_SMU_DECODE PhpHwSmuDecode; // the pass's
 
 /**
- * Finds the named sensor of a reading, adding it the first time; the readings of a version come in the same order,
+ * Finds the named sensor of a reading, adding it the first time; the readings of a source come in the same order,
  * so the reading's position is tried first.
  *
  * \return The index in the named-sensor store, or ULONG_MAX when the store is full.
  */
 static ULONG PhpHwSmuSensorIndex(
-    _Inout_ PPHP_HW_SMU_PACKAGE Package,
+    _Inout_ PPHP_HW_SMU_SENSORS Sensors,
     _In_ ULONG PackageIndex,
     _In_ ULONG Position,
+    _In_ ULONG Id,
     _In_ const PH_HW_SMU_READING* Reading
     )
 {
@@ -67,16 +60,16 @@ static ULONG PhpHwSmuSensorIndex(
     WCHAR name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
     PPHP_HW_SMU_SENSOR sensor;
 
-    if (Position < Package->SensorCount && Package->Sensors[Position].Kind == Reading->Kind && Package->Sensors[Position].Id == Reading->Id)
-        return Package->Sensors[Position].Index;
+    if (Position < Sensors->Count && Sensors->Sensors[Position].Kind == Reading->Kind && Sensors->Sensors[Position].Id == Id)
+        return Sensors->Sensors[Position].Index;
 
-    for (ULONG i = 0; i < Package->SensorCount; i++)
+    for (ULONG i = 0; i < Sensors->Count; i++)
     {
-        if (Package->Sensors[i].Kind == Reading->Kind && Package->Sensors[i].Id == Reading->Id)
-            return Package->Sensors[i].Index;
+        if (Sensors->Sensors[i].Kind == Reading->Kind && Sensors->Sensors[i].Id == Id)
+            return Sensors->Sensors[i].Index;
     }
 
-    if (Package->SensorCount >= RTL_NUMBER_OF(Package->Sensors))
+    if (Sensors->Count >= RTL_NUMBER_OF(Sensors->Sensors))
         return ULONG_MAX;
 
     PhInitFormatS(&format[formatCount++], (PWSTR)Reading->Name);
@@ -88,28 +81,38 @@ static ULONG PhpHwSmuSensorIndex(
     if (!PhFormatToBuffer(format, formatCount, name, sizeof(name), NULL))
         name[0] = UNICODE_NULL;
 
-    sensor = &Package->Sensors[Package->SensorCount++];
+    sensor = &Sensors->Sensors[Sensors->Count++];
     sensor->Kind = Reading->Kind;
-    sensor->Id = Reading->Id;
-    sensor->Index = PhpHwAddNamedSensor(Reading->Kind, PackageIndex, Reading->Id, name);
+    sensor->Id = Id;
+    sensor->Index = PhpHwAddNamedSensor(Reading->Kind, PackageIndex, Id, name);
 
     return sensor->Index;
 }
 
 /**
- * Publishes a package's decode: every sensor of the package not in it has no value.
+ * Publishes a package's decode of one source (smu or hsmp): every sensor of the source not in it has no value.
+ *
+ * \param Sensors The source's sensors of the package.
+ * \param PackageIndex The package.
+ * \param IdFlags Set in the ID of each reading: PH_HW_SMU_ID_HSMP for hsmp, else 0.
+ * \param Decode The decode.
  */
-static VOID PhpHwSmuPublish(
-    _Inout_ PPHP_HW_SMU_PACKAGE Package,
+VOID PhpHwSmuPublish(
+    _Inout_ PPHP_HW_SMU_SENSORS Sensors,
     _In_ ULONG PackageIndex,
+    _In_ ULONG IdFlags,
     _In_ const PH_HW_SMU_DECODE* Decode
     )
 {
-    for (ULONG i = 0; i < Package->SensorCount; i++)
-        PhpHwSetNamedSensor(Package->Sensors[i].Index, FALSE, 0.0f);
+    for (ULONG i = 0; i < Sensors->Count; i++)
+        PhpHwSetNamedSensor(Sensors->Sensors[i].Index, FALSE, 0.0f);
 
     for (ULONG i = 0; i < Decode->Count; i++)
-        PhpHwSetNamedSensor(PhpHwSmuSensorIndex(Package, PackageIndex, i, &Decode->Readings[i]), TRUE, Decode->Readings[i].Value);
+    {
+        const PH_HW_SMU_READING* reading = &Decode->Readings[i];
+
+        PhpHwSetNamedSensor(PhpHwSmuSensorIndex(Sensors, PackageIndex, i, reading->Id | IdFlags, reading), TRUE, reading->Value);
+    }
 }
 
 /**
@@ -274,7 +277,7 @@ NTSTATUS PhpHwSmuPass(
             }
         }
 
-        PhpHwSmuPublish(package, i, &PhpHwSmuDecode);
+        PhpHwSmuPublish(&package->Sensors, i, 0, &PhpHwSmuDecode);
 
         if (PhpHwSmuDecode.MemoryClockValid)
         {
@@ -282,7 +285,7 @@ NTSTATUS PhpHwSmuPass(
             package->MemoryClockValid = TRUE;
         }
 
-        any |= package->HasTable && package->SensorCount != 0;
+        any |= package->HasTable && package->Sensors.Count != 0;
     }
 
     PhpHwFamilies[PhpHwFamilySmu].Capabilities = any ? PH_HW_CAP_SMU : 0;
@@ -358,7 +361,7 @@ VOID PhpHwSmuDiagnostics(
             package->Length,
             package->HasTable ? (package->Decoded ? L"decoded" : L"read") : L"not read",
             package->Status,
-            package->SensorCount
+            package->Sensors.Count
             );
 
         for (ULONG j = 0; package->Table && j + 4 <= package->Length; j += 4 * 8)
