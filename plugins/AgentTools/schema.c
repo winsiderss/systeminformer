@@ -396,6 +396,18 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the processor layout", L"Allow reading the processor layout", L"get_cpu_info"
     },
     {
+        AtActionGetHardwareSensors, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensors"),
+        L"read the hardware sensors", L"Allow reading hardware sensors", L"get_hardware_sensors"
+    },
+    {
+        AtActionGetHardwareReport, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
+        L"create the hardware report", L"Allow creating the hardware report", L"get_hardware_report"
+    },
+    {
+        AtActionGetHardwareSensorHistory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensor_history"),
+        L"read the history of the hardware sensors", L"Allow reading hardware sensor history", L"get_hardware_sensor_history"
+    },
+    {
         AtActionListLogonSessions, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_logon_sessions"),
         L"list who is logged on", L"List the logon sessions", L"list_logon_sessions"
     },
@@ -3477,7 +3489,9 @@ CONST AT_TOOL AtTools[] =
         "maximum and last. Set include_samples for the series itself, most recent first; each sample also names the "
         "process that used the most CPU and the most I/O in that run, which is how to find what spiked at a given "
         "moment. Those are process ids only, and the process may since have exited. include_per_cpu summarises each "
-        "processor over the window. "
+        "processor over the window. cpu_temperature_celsius (the hottest package) and cpu_package_power_watts (all "
+        "packages together) come from the hardware sensors and are null when those are unavailable - "
+        "get_hardware_sensors says why - so a hot or power-limited stretch can be matched to max_cpu_pid. "
         AT_SNAPSHOT_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"window_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How far back to look; default 60, capped by what the history holds\"},"
@@ -3498,6 +3512,8 @@ CONST AT_TOOL AtTools[] =
         "\"io_other_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the other I/O bytes in the window") ","
         "\"commit_bytes\":" AT_HISTORY_STATS_SCHEMA("Committed bytes at each sample") ","
         "\"physical_in_use_bytes\":" AT_HISTORY_STATS_SCHEMA("Physical memory in use at each sample") ","
+        "\"cpu_temperature_celsius\":{\"anyOf\":[" AT_HISTORY_STATS_SCHEMA("Hottest package temperature over the samples that had a reading") ",{\"type\":\"null\"}]},"
+        "\"cpu_package_power_watts\":{\"anyOf\":[" AT_HISTORY_STATS_SCHEMA("Total package power over the samples that had a reading") ",{\"type\":\"null\"}]},"
         "\"per_cpu\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_per_cpu was set\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"index\":{\"type\":\"integer\"},"
         "\"cpu_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of that processor, 0..1")
@@ -3513,7 +3529,9 @@ CONST AT_TOOL AtTools[] =
         "\"commit_bytes\":{\"type\":\"integer\"},"
         "\"physical_in_use_bytes\":{\"type\":\"integer\"},"
         "\"max_cpu_pid\":{\"type\":[\"integer\",\"null\"],\"description\":\"Process that used the most CPU in that sample; may have exited\"},"
-        "\"max_io_pid\":{\"type\":[\"integer\",\"null\"]}"
+        "\"max_io_pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"cpu_temperature_celsius\":{\"type\":[\"number\",\"null\"],\"description\":\"Hottest package; null without a reading\"},"
+        "\"cpu_package_power_watts\":{\"type\":[\"number\",\"null\"],\"description\":\"All packages; null without a reading\"}"
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
@@ -4249,6 +4267,142 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"architecture\",\"logical_processor_count\",\"page_size\"]},"
         AT_ANNOTATIONS("Get processor information", AT_READ_HINTS) "}"
+    },
+    {
+        "get_hardware_sensors", L"Get hardware sensors", AtTierRead, AtActionGetHardwareSensors,
+        SETTING_NAME_TOOL_ACCESS(L"get_hardware_sensors"), SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensors"),
+        "{\"name\":\"get_hardware_sensors\",\"title\":\"Get hardware sensors\","
+        "\"description\":\"The live readings of the hardware sensors, exactly as System Informer's Hardware "
+        "sensors window shows them: CPU and memory temperatures, power, clocks, voltages, currents, fans and "
+        "limits, plus the readings Windows itself publishes and those that plugins such as HardwareDevices "
+        "add for the motherboard. Values are SI units and temperatures are always Celsius, whatever the "
+        "display setting. When clocks look low, the throttling group says why: throttle names each reason the "
+        "processor is being held back, and an empty list means it is not. Per-processor groups (clocks, "
+        "active_clocks, multipliers, voltages) are large on big machines, so filter by group. get_cpu_info "
+        "says how the processors are laid out; this tool says what they are doing. Most sensors need the "
+        "hardware sensors option and the kernel driver with full access; collector says which of those are "
+        "missing in unavailable_reason, and the Windows rows can still be present without them. Windows rows "
+        "take a few seconds to appear after System Informer starts. "
+        AT_PAGE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"component\":{\"type\":\"string\",\"enum\":[\"cpu\",\"memory\",\"chipset\",\"system\",\"windows\",\"source\"],\"description\":\"Only rows of this kind of component\"},"
+        "\"group\":{\"type\":\"string\",\"enum\":[\"temperatures\",\"powers\",\"limits\",\"clocks\",\"bandwidth\",\"active_clocks\",\"multipliers\",\"voltages\",\"currents\",\"residency\",\"fans\",\"controls\",\"throttling\"],\"description\":\"Only rows of this group\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Only rows whose sensor or component name contains this, case-insensitive\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sensors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"id\":{\"type\":\"string\",\"description\":\"Unique per call and stable while this System Informer runs; not stable across restarts\"},"
+        "\"component\":{\"type\":\"object\",\"properties\":{"
+        "\"kind\":{\"type\":\"string\",\"description\":\"cpu, memory, chipset, system, windows or source\"},"
+        "\"index\":{\"type\":\"integer\",\"description\":\"Processor package for cpu and memory; the source's own component number for source\"},"
+        "\"source_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Which registered source published it; null unless kind is source\"},"
+        "\"name\":{\"type\":\"string\"}"
+        "},\"required\":[\"kind\",\"index\",\"source_id\",\"name\"]},"
+        "\"group\":{\"type\":\"string\"},"
+        "\"name\":{\"type\":\"string\"},"
+        "\"unit\":{\"type\":\"string\",\"description\":\"celsius, watts, mhz, mt_per_s, multiplier, volts, throttle, mb_per_s, gear, amperes, rpm or percent\"},"
+        "\"value\":{\"type\":[\"number\",\"null\"],\"description\":\"The last reading; null when the sensor did not report in the last update, and always null for unit throttle\"},"
+        "\"throttle\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"Unit throttle only: thermal, prochot, critical, power_limit, pl1, pl2, vr_thermal, vr_current, electrical, max_turbo, turbo_attenuation, running_average_thermal, residency, graphics, autonomous; empty when not throttling\"}"
+        "},\"required\":[\"id\",\"component\",\"group\",\"name\",\"unit\",\"value\",\"throttle\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"collector\":{\"type\":\"object\",\"description\":\"Why the rows are what they are\",\"properties\":{"
+        "\"sensors_enabled\":{\"type\":\"boolean\",\"description\":\"The hardware sensors option\"},"
+        "\"kernel_sensors_available\":{\"type\":\"boolean\",\"description\":\"The driver-backed sensors are running\"},"
+        "\"windows_counters_present\":{\"type\":\"boolean\",\"description\":\"Windows has published sensor readings\"},"
+        "\"source_sensors_present\":{\"type\":\"boolean\",\"description\":\"A plugin has published sensor readings\"},"
+        "\"unavailable_reason\":{\"type\":[\"string\",\"null\"],\"description\":\"Why the kernel and plugin sensors are missing; null when either is present. Windows rows can be present regardless\"}"
+        "},\"required\":[\"sensors_enabled\",\"kernel_sensors_available\",\"windows_counters_present\",\"source_sensors_present\",\"unavailable_reason\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"sensors\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
+        AT_ANNOTATIONS("Get hardware sensors", AT_READ_HINTS) "}"
+    },
+    {
+        "get_hardware_report", L"Get hardware report", AtTierSensitiveRead, AtActionGetHardwareReport,
+        SETTING_NAME_TOOL_ACCESS(L"get_hardware_report"), SETTING_NAME_TOOL_CONFIRM(L"get_hardware_report"),
+        "{\"name\":\"get_hardware_report\",\"title\":\"Get hardware report\","
+        "\"description\":\"The hardware report System Informer saves from its Hardware sensors window: the text "
+        "a person attaches to an issue when sensors are missing or wrong. It says whether sensors are available "
+        "and why not, what the sensor provider and each plugin source found and how they are configured, the "
+        "processor identification, the current sensor readings, the devices, and the SMBIOS tables, serial "
+        "numbers included. Use get_hardware_sensors for the readings as data; use this when the question is why "
+        "a sensor is missing or reads wrong, or when a report is wanted for a bug. "
+        AT_SENSITIVE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"report\":{\"type\":\"string\",\"description\":\"The report as plain text, in sections: Status, Provider, Sources, Processor, Sensors, Devices, SMBIOS\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"report\"]},"
+        AT_ANNOTATIONS("Get hardware report", AT_READ_HINTS) "}"
+    },
+    {
+        "get_hardware_sensor_history", L"Get hardware sensor history", AtTierRead, AtActionGetHardwareSensorHistory,
+        SETTING_NAME_TOOL_ACCESS(L"get_hardware_sensor_history"), SETTING_NAME_TOOL_CONFIRM(L"get_hardware_sensor_history"),
+        "{\"name\":\"get_hardware_sensor_history\",\"title\":\"Get hardware sensor history\","
+        "\"description\":\"What the hardware sensors read over time: per sensor, the average, minimum, maximum "
+        "and last reading over a window, and optionally every sample. System Informer records every sensor "
+        "for as long as it has run, whether or not its Hardware sensors window is open, up to history_slots "
+        "samples of update_interval_ms each. Pass ids from get_hardware_sensors to read particular sensors; "
+        "ids change when System Informer restarts or a plugin source re-registers, so fetch them again from "
+        "get_hardware_sensors rather than keeping them. A sensor that disappeared, for example because its "
+        "driver was unloaded, is still returned by id with listed false. For throttling, throttle counts how "
+        "many samples each reason held the processor back. Sample times have one-second resolution. To find "
+        "what caused a spike, pair the sample times with get_system_history's max_cpu_pid. "
+        AT_PAGE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"ids\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Sensor ids from get_hardware_sensors, returned in this order, at most 10000; the filters are ignored when given\"},"
+        "\"component\":{\"type\":\"string\",\"enum\":[\"cpu\",\"memory\",\"chipset\",\"system\",\"windows\",\"source\"],\"description\":\"Only rows of this kind of component\"},"
+        "\"group\":{\"type\":\"string\",\"enum\":[\"temperatures\",\"powers\",\"limits\",\"clocks\",\"bandwidth\",\"active_clocks\",\"multipliers\",\"voltages\",\"currents\",\"residency\",\"fans\",\"controls\",\"throttling\"],\"description\":\"Only rows of this group\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Only rows whose sensor or component name contains this, case-insensitive\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How far back to look; default 60, capped by the history\"},"
+        "\"include_samples\":{\"type\":\"boolean\",\"description\":\"Also return every sample in the window; a page then holds at most 65536 samples, so limit can come back lower than asked\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"update_interval_ms\":{\"type\":\"integer\",\"description\":\"Time between samples\"},"
+        "\"history_slots\":{\"type\":\"integer\",\"description\":\"How many samples each sensor's history holds\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"description\":\"The seconds the window actually covers\"},"
+        "\"sensors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"id\":{\"type\":\"string\",\"description\":\"As get_hardware_sensors returns it\"},"
+        "\"component\":{\"type\":\"object\",\"properties\":{"
+        "\"kind\":{\"type\":\"string\",\"description\":\"cpu, memory, chipset, system, windows or source\"},"
+        "\"index\":{\"type\":\"integer\"},"
+        "\"source_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Null unless kind is source\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"kind\",\"index\",\"source_id\",\"name\"]},"
+        "\"group\":{\"type\":\"string\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"unit\":{\"type\":\"string\",\"description\":\"celsius, watts, mhz, mt_per_s, multiplier, volts, throttle, mb_per_s, gear, amperes, rpm or percent\"},"
+        "\"listed\":{\"type\":\"boolean\",\"description\":\"The sensor was listed in the last update; false once it has disappeared\"},"
+        "\"sample_count\":{\"type\":\"integer\",\"description\":\"This sensor's samples in the window; fewer than the window for a sensor that appeared later\"},"
+        "\"stats\":{\"type\":[\"object\",\"null\"],\"description\":\"Over the samples with a reading; null when there were none, and always null for unit throttle\",\"properties\":{"
+        "\"average\":{\"type\":\"number\"},"
+        "\"minimum\":{\"type\":\"number\"},"
+        "\"maximum\":{\"type\":\"number\"},"
+        "\"last\":{\"type\":\"number\",\"description\":\"The most recent reading\"},"
+        "\"reading_count\":{\"type\":\"integer\"}"
+        "},\"required\":[\"average\",\"minimum\",\"maximum\",\"last\",\"reading_count\"]},"
+        "\"throttle\":{\"type\":[\"object\",\"null\"],\"description\":\"Unit throttle only\",\"properties\":{"
+        "\"throttled_count\":{\"type\":\"integer\",\"description\":\"Samples in which any reason applied\"},"
+        "\"reasons\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"integer\"},\"description\":\"Samples per reason, for the reasons that occurred\"}"
+        "},\"required\":[\"throttled_count\",\"reasons\"]},"
+        "\"samples\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_samples; most recent first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"time\":{\"type\":[\"string\",\"null\"]},"
+        "\"value\":{\"type\":[\"number\",\"null\"],\"description\":\"Null when the sensor did not report; absent for unit throttle\"},"
+        "\"throttle\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"Unit throttle only, in place of value: the reasons that applied, or null when the sensor did not report\"}"
+        "},\"required\":[\"time\"]}}"
+        "},\"required\":[\"id\",\"component\",\"group\",\"name\",\"unit\",\"listed\",\"sample_count\",\"stats\",\"throttle\",\"samples\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"collector\":{\"type\":\"object\",\"description\":\"As get_hardware_sensors returns it\",\"properties\":{"
+        "\"sensors_enabled\":{\"type\":\"boolean\"},"
+        "\"kernel_sensors_available\":{\"type\":\"boolean\"},"
+        "\"windows_counters_present\":{\"type\":\"boolean\"},"
+        "\"source_sensors_present\":{\"type\":\"boolean\"},"
+        "\"unavailable_reason\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"sensors_enabled\",\"kernel_sensors_available\",\"windows_counters_present\",\"source_sensors_present\",\"unavailable_reason\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"update_interval_ms\",\"history_slots\",\"window_seconds\",\"sensors\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
+        AT_ANNOTATIONS("Get hardware sensor history", AT_READ_HINTS) "}"
     },
     {
         "list_logon_sessions", L"List logon sessions", AtTierSensitiveRead, AtActionListLogonSessions,

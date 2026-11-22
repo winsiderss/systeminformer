@@ -1869,6 +1869,11 @@ VOID AtInvokeTool(
     case AtActionGetCpuInfo:
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetHardwareSensors:
+    case AtActionGetHardwareReport:
+    case AtActionGetHardwareSensorHistory:
+        AtHardwareInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionListLogonSessions:
     case AtActionListTerminalSessions:
     case AtActionLookupAccount:
