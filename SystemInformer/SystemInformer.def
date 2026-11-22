@@ -1472,6 +1472,8 @@ EXPORTS
     KphAlpcQueryCommunicationsNamesInfo
     KphAlpcQueryInformation
     KphDuplicateObject
+    KphHwSuperIoIdentify
+    KphHwSuperIoRead
     KphOpenDevice
     KphOpenDeviceBaseDevice
     KphOpenDeviceDriver

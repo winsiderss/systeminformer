@@ -473,6 +473,9 @@
     <ClInclude Include="include\hndlprv.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\hwprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="include\memprv.h">
       <Filter>Headers</Filter>
     </ClInclude>

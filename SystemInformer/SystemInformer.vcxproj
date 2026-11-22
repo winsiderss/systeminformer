@@ -359,6 +359,7 @@
         <ClInclude Include="include\hndllist.h" />
         <ClInclude Include="include\hndlmenu.h" />
         <ClInclude Include="include\hndlprv.h" />
+        <ClInclude Include="include\hwprv.h" />
         <ClInclude Include="include\informer.h" />
         <ClInclude Include="include\ksisup.h" />
         <ClInclude Include="include\mainwnd.h" />

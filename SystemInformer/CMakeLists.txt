@@ -17,6 +17,7 @@ set(HEADERS
     "include/hndllist.h"
     "include/hndlmenu.h"
     "include/hndlprv.h"
+    "include/hwprv.h"
     "include/informer.h"
     "include/ksisup.h"
     "include/mainwnd.h"
