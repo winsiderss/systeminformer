@@ -16,7 +16,7 @@
 
 // Collector vsec: the Intel OOBMSM functions' TPMI regions (RAPL energy where the processor's MSRs do not serve, the
 // uncore clocks) and the PMT functions' telemetry groups the sample table knows; one KphHwVsecRead a kept region or
-// group every update.
+// group every update. TPMI SST and PLR are read only for a report.
 
 #define PHP_HW_VSEC_MAX_DEVICES 16
 #define PHP_HW_VSEC_LIST_REGIONS 128 // a region list's first answer; more are asked for once
@@ -151,6 +151,24 @@ static PPHP_HW_VSEC_REGION PhpHwVsecRegions = NULL;
 static ULONG PhpHwVsecRegionCount = 0;
 static BOOLEAN PhpHwVsecRelist[PHP_HW_VSEC_MAX_DEVICES]; // a region of the device missed: list it again next update
 static PPHP_HW_VSEC_PACKAGE PhpHwVsecPackages = NULL; // per package
+
+// A TPMI SST or PLR instance, read for the report.
+typedef struct _PHP_HW_VSEC_REPORT
+{
+    ULONG Device; // in PhpHwVsecLocators
+    KPH_HW_VSEC_REGION Region;
+    ULONG PackageIndex; // ULONG_MAX when not mapped to a package
+    BOOLEAN Read; // the last report's reads gave a reading
+    UCHAR Version; // SST interface version
+    UCHAR Level; // SST-PP current level
+    BOOLEAN Locked;
+    ULONG64 Value; // SST: level INFO_1 (TDP, TjMax); PLR: die-level reasons
+    ULONG64 Ratios; // SST: level INFO_11
+} PHP_HW_VSEC_REPORT, *PPHP_HW_VSEC_REPORT;
+
+static PHP_HW_VSEC_REPORT PhpHwVsecReports[PHP_HW_VSEC_MAX_REGIONS];
+static ULONG PhpHwVsecReportCount = 0;
+static ULONG PhpHwVsecReportsOmitted = 0;
 static ULONG64 PhpHwVsecSampleTime = 0;
 static ULONG64 PhpHwVsecLastSampleTime = 0;
 static KPH_HW_VALUE64 PhpHwVsecValues[PHP_HW_VSEC_REGION_ENTRIES * 2];
@@ -229,6 +247,101 @@ static BOOLEAN PhpHwVsecValue(
 {
     *Value = PhpHwVsecValues[Index].Value;
     return NT_SUCCESS(PhpHwVsecValues[Index].Status) && *Value != ULONG64_MAX;
+}
+
+/**
+ * Reads the values of a region for the report; FALSE when any is missing or reads all ones.
+ */
+static BOOLEAN PhpHwVsecReadReport(
+    _In_ PPHP_HW_VSEC_REPORT Report,
+    _In_reads_(Count) const ULONG* Offsets,
+    _In_ ULONG Count
+    )
+{
+    ULONG64 value;
+
+    PhpHwVsecReadOnce(PhpHwVsecLocators[Report->Device], &Report->Region, Offsets, Count);
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (!PhpHwVsecValue(i, &value))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Reads the active SST-PP level of a TPMI SST instance: its TDP, TjMax and core ratios.
+ */
+static VOID PhpHwVsecReadSst(
+    _Inout_ PPHP_HW_VSEC_REPORT Report
+    )
+{
+    static CONST ULONG offset = 0;
+    ULONG offsets[3];
+    ULONG64 header;
+    ULONG pp;
+    ULONG level;
+
+    PhpHwVsecReadOnce(PhpHwVsecLocators[Report->Device], &Report->Region, &offset, 1);
+
+    // Interface version [7:0]: FFh is invalid, major [7:5] must be 0. SST-PP is cap bit 9.
+    if (!NT_SUCCESS(PhpHwVsecValues[0].Status))
+        return;
+
+    header = PhpHwVsecValues[0].Value;
+
+    if ((UCHAR)header == 0xFF || ((header >> 5) & 0x7) || !(header & 0x200))
+        return;
+
+    pp = (ULONG)((header >> 24) & 0xFF) * 8;
+    offsets[0] = pp + PH_INTEL_TPMI_SST_PP_FEATURES;
+    offsets[1] = pp + PH_INTEL_TPMI_SST_PP_LEVELS;
+    offsets[2] = pp + PH_INTEL_TPMI_SST_PP_STATUS;
+
+    if (!PhpHwVsecReadReport(Report, offsets, 3))
+        return;
+
+    level = (ULONG)(PhpHwVsecValues[2].Value & 0x7);
+
+    if (level > PH_INTEL_TPMI_SST_PP_MAX_LEVEL)
+        return;
+
+    Report->Version = (UCHAR)header;
+    Report->Level = (UCHAR)level;
+    Report->Locked = !!(PhpHwVsecValues[2].Value & 0x8);
+
+    // Level n is at byte n of the level offsets, the PP feature at byte 0 of the feature offsets; both in qwords.
+    pp += (ULONG)((PhpHwVsecValues[1].Value >> (level * 8)) & 0xFF) * 8 + (ULONG)(PhpHwVsecValues[0].Value & 0xFF) * 8;
+    offsets[0] = pp + PH_INTEL_TPMI_SST_PP_INFO_1;
+    offsets[1] = pp + PH_INTEL_TPMI_SST_PP_INFO_11;
+
+    if (!PhpHwVsecReadReport(Report, offsets, 2))
+        return;
+
+    Report->Value = PhpHwVsecValues[0].Value;
+    Report->Ratios = PhpHwVsecValues[1].Value;
+    Report->Read = TRUE;
+}
+
+/**
+ * Reads the die-level reasons of a TPMI PLR instance; they hold until cleared. An all-ones header is an invalid
+ * instance.
+ */
+static VOID PhpHwVsecReadPlr(
+    _Inout_ PPHP_HW_VSEC_REPORT Report
+    )
+{
+    static CONST ULONG offsets[2] = { 0, PH_INTEL_TPMI_PLR_DIE_LEVEL };
+
+    PhpHwVsecReadOnce(PhpHwVsecLocators[Report->Device], &Report->Region, offsets, 2);
+
+    if (!PhpHwVsecValue(0, &Report->Value) || !NT_SUCCESS(PhpHwVsecValues[1].Status))
+        return;
+
+    Report->Value = PhpHwVsecValues[1].Value;
+    Report->Read = TRUE;
 }
 
 /**
@@ -751,6 +864,22 @@ NTSTATUS PhpHwVsecProbe(
             case PH_INTEL_TPMI_ID_UNCORE:
                 PhpHwVsecProbeUncore(i, &regions[j], packageIndex, packageIndex == ULONG_MAX ? &unmappedDomainIndex : &domainIndex[packageIndex]);
                 break;
+            case PH_INTEL_TPMI_ID_SST:
+            case PH_INTEL_TPMI_ID_PLR:
+                if (PhpHwVsecReportCount < RTL_NUMBER_OF(PhpHwVsecReports))
+                {
+                    PPHP_HW_VSEC_REPORT report = &PhpHwVsecReports[PhpHwVsecReportCount++];
+
+                    memset(report, 0, sizeof(PHP_HW_VSEC_REPORT));
+                    report->Device = i;
+                    report->Region = regions[j];
+                    report->PackageIndex = packageIndex;
+                }
+                else
+                {
+                    PhpHwVsecReportsOmitted++;
+                }
+                break;
             }
         }
 
@@ -759,7 +888,7 @@ NTSTATUS PhpHwVsecProbe(
 
     PhFree(domainIndex);
 
-    if (!PhpHwVsecRegionCount)
+    if (!PhpHwVsecRegionCount && !PhpHwVsecReportCount)
         return NT_SUCCESS(firstStatus) ? STATUS_NOT_SUPPORTED : firstStatus;
 
     return STATUS_SUCCESS;
@@ -827,6 +956,16 @@ NTSTATUS PhpHwVsecPass(
     {
         if (PhpHwVsecRelist[i])
             PhpHwVsecRelistDevice(i);
+    }
+
+    for (ULONG i = 0; PhpHwReportReads && i < PhpHwVsecReportCount; i++)
+    {
+        PhpHwVsecReports[i].Read = FALSE;
+
+        if (PhpHwVsecReports[i].Region.Id == PH_INTEL_TPMI_ID_SST)
+            PhpHwVsecReadSst(&PhpHwVsecReports[i]);
+        else
+            PhpHwVsecReadPlr(&PhpHwVsecReports[i]);
     }
 
     PhpHwVsecLastSampleTime = PhpHwVsecSampleTime;
@@ -1038,6 +1177,8 @@ VOID PhpHwVsecEnd(
     }
 
     PhpHwVsecRegionCount = 0;
+    PhpHwVsecReportCount = 0;
+    PhpHwVsecReportsOmitted = 0;
     PhpHwVsecDeviceCount = 0;
     PhpHwVsecOobmsmCount = 0;
     PhpHwVsecSampleTime = 0;
@@ -1070,4 +1211,57 @@ VOID PhpHwVsecDiagnostics(
             region->Disabled ? L", ended" : L""
             );
     }
+
+    for (ULONG i = 0; i < PhpHwVsecReportCount; i++)
+    {
+        PPHP_HW_VSEC_REPORT report = &PhpHwVsecReports[i];
+
+        PhAppendFormatStringBuilder(Builder, L"  TPMI %s ", report->Region.Id == PH_INTEL_TPMI_ID_SST ? L"SST" : L"PLR");
+
+        if (report->PackageIndex == ULONG_MAX)
+            PhAppendStringBuilder2(Builder, L"(unmapped)");
+        else
+            PhAppendFormatStringBuilder(Builder, L"package %lu", report->PackageIndex);
+
+        PhAppendFormatStringBuilder(Builder, L" instance %u: ", report->Region.Index);
+
+        if (!report->Read)
+        {
+            PhAppendStringBuilder2(Builder, L"no reading\n");
+        }
+        else if (report->Region.Id == PH_INTEL_TPMI_ID_SST)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"version %u.%u, level %u%s, TDP %.3f W, TjMax %lu C, P0 %lu MHz, P1 %lu MHz, Pn %lu MHz, Pm %lu MHz\n",
+                (report->Version >> 5) & 0x7,
+                report->Version & 0x1F,
+                report->Level,
+                report->Locked ? L" (locked)" : L"",
+                (DOUBLE)((report->Value >> 32) & 0x7FFF) / 8.0,
+                (ULONG)((report->Value >> 47) & 0xFF),
+                (ULONG)(report->Ratios & 0xFF) * 100,
+                (ULONG)((report->Ratios >> 8) & 0xFF) * 100,
+                (ULONG)((report->Ratios >> 16) & 0xFF) * 100,
+                (ULONG)((report->Ratios >> 24) & 0xFF) * 100
+                );
+        }
+        else
+        {
+            static CONST PCWSTR reasons[] = { L"frequency", L"current", L"power", L"thermal", L"platform", L"MCP", L"RAS", L"misc", L"QoS", L"DFC" };
+
+            PhAppendFormatStringBuilder(Builder, L"reasons since cleared 0x%016I64x", report->Value);
+
+            for (ULONG j = 0; j < RTL_NUMBER_OF(reasons); j++)
+            {
+                if (report->Value & (1ULL << j))
+                    PhAppendFormatStringBuilder(Builder, L", %s", reasons[j]);
+            }
+
+            PhAppendCharStringBuilder(Builder, L'\n');
+        }
+    }
+
+    if (PhpHwVsecReportsOmitted)
+        PhAppendFormatStringBuilder(Builder, L"  TPMI: %lu SST/PLR instances omitted\n", PhpHwVsecReportsOmitted);
 }
