@@ -124,6 +124,7 @@
     <ClCompile Include="poweroptions.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="storage.c" />
+    <ClCompile Include="superio.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
