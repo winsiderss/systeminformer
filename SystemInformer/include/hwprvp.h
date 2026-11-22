@@ -16,6 +16,7 @@
 #include <phplug.h>
 #include <hwprv.h>
 #include <procprv.h>
+#include <cpusensor.h>
 
 extern ULONG PhpHwProcessorCount;
 extern ULONG PhpHwPackageCount;
@@ -119,6 +120,42 @@ VOID PhpHwSmnEnd(
 
 VOID PhpHwSmnDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+NTSTATUS PhpHwMmioProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwMmioPass(
+    VOID
+    );
+
+VOID PhpHwMmioEnd(
+    VOID
+    );
+
+VOID PhpHwMmioDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+FLOAT PhpHwMmioPowerLimit(
+    _In_ ULONG Package,
+    _In_ BOOLEAN Second
+    );
+
+// What cpu's probe found, for the families that depend on it (called on the provider thread, after cpu's probe).
+
+_Success_(return)
+BOOLEAN PhpHwCpuQueryIntel(
+    _Out_ PPH_CPU_IDENTITY Identity
+    );
+
+BOOLEAN PhpHwCpuThermalPlanned(
+    VOID
+    );
+
+FLOAT PhpHwCpuQueryPowerUnit(
+    VOID
     );
 
 // TRUE during an update that serves a report request (D11): each pass ends with its report-only reads.

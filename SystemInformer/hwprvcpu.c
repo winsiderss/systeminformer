@@ -1242,6 +1242,22 @@ static ULONG PhpHwCpuDecodeArm64(
     return valid;
 }
 
+/**
+ * \return The lower of two limits, ignoring a limit of 0 (unavailable).
+ */
+static FLOAT PhpHwCpuLowerLimit(
+    _In_ FLOAT Limit1,
+    _In_ FLOAT Limit2
+    )
+{
+    if (Limit1 <= 0.0f)
+        return Limit2;
+    if (Limit2 <= 0.0f)
+        return Limit1;
+
+    return min(Limit1, Limit2);
+}
+
 static VOID PhpHwCpuPublish(
     VOID
     )
@@ -1413,6 +1429,7 @@ static VOID PhpHwCpuPublish(
         ULONG valid = PhpHwCpuTickValid[i];
         FLOAT watts;
         FLOAT celsius;
+        FLOAT limit;
 
         // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family and, on ARM64,
         // the counters' hottest zone come after (spec 5.1).
@@ -1493,15 +1510,16 @@ static VOID PhpHwCpuPublish(
 
         sensor->ThrottleFlags = PhpHwCpuTickThrottle[i];
 
-        if (PhpHwCpuMsrPowerLimit1[i] > 0.0f)
+        // The active limit is the lower of the MSR and MMIO limits (mmio's of the last update).
+        if (limit = PhpHwCpuLowerLimit(PhpHwCpuMsrPowerLimit1[i], PhpHwMmioPowerLimit(i, FALSE)))
         {
-            sensor->ActivePowerLimit1 = PhpHwCpuMsrPowerLimit1[i];
+            sensor->ActivePowerLimit1 = limit;
             valid |= PH_HW_CAP_POWER_LIMIT1;
         }
 
-        if (PhpHwCpuMsrPowerLimit2[i] > 0.0f)
+        if (limit = PhpHwCpuLowerLimit(PhpHwCpuMsrPowerLimit2[i], PhpHwMmioPowerLimit(i, TRUE)))
         {
-            sensor->ActivePowerLimit2 = PhpHwCpuMsrPowerLimit2[i];
+            sensor->ActivePowerLimit2 = limit;
             valid |= PH_HW_CAP_POWER_LIMIT2;
         }
 
@@ -1682,6 +1700,45 @@ VOID PhpHwCpuEnd(
     PhpHwCpuTscMhz = 0.0f;
     PhpHwCpuEnergyUnit = 0.0f;
     PhpHwCpuVoltageSupported = FALSE;
+}
+
+/**
+ * Retrieves the processor identity of the session when the processor is Intel.
+ *
+ * \param Identity Receives the identity.
+ * \return TRUE for an Intel processor this session identified.
+ */
+_Success_(return)
+BOOLEAN PhpHwCpuQueryIntel(
+    _Out_ PPH_CPU_IDENTITY Identity
+    )
+{
+    if (PhpHwCpuClass != PhpHwCpuIntel)
+        return FALSE;
+
+    *Identity = PhpHwCpuIdentity;
+    return TRUE;
+}
+
+/**
+ * Determines whether the session reads the processor's thermal registers.
+ */
+BOOLEAN PhpHwCpuThermalPlanned(
+    VOID
+    )
+{
+    return PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus) ||
+        PhpHwCpuRegisterActive(PhpHwRegCentaurTemperature);
+}
+
+/**
+ * \return The RAPL power unit of the session in watts, or 0 when unknown.
+ */
+FLOAT PhpHwCpuQueryPowerUnit(
+    VOID
+    )
+{
+    return PhpHwCpuPowerUnit;
 }
 
 /**
