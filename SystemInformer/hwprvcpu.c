@@ -20,6 +20,9 @@
 
 #define PHP_HW_CPU_BATCH 512 // items a call; halved for the session at the script's limits (D8)
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
+#define PHP_HW_CPU_BUS_MHZ 100.0f
+#define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
+#define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE) // the package bits this collector owns
 
 typedef enum _PHP_HW_CPU_CLASS
 {
@@ -34,6 +37,11 @@ typedef enum _PHP_HW_REG
 {
     PhpHwRegAperf,
     PhpHwRegMperf,
+    PhpHwRegPerfStatus, // AMD HW_PSTATE_STATUS (core)
+    PhpHwRegCoreEnergy,
+    PhpHwRegPackageEnergy,
+    PhpHwRegRaplUnit, // probe only from here
+    PhpHwRegPStateDef0,
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 32);
@@ -79,6 +87,15 @@ static PPHP_HW_CPU_TAG PhpHwCpuTags = NULL;
 static PPHP_HW_SAMPLE PhpHwCpuSamples = NULL; // per processor
 static PBOOLEAN PhpHwCpuFirstOfCore = NULL; // per processor
 static PBOOLEAN PhpHwCpuFirstOfPackage = NULL; // per processor
+static ULONG PhpHwCpuCoreCount = 0;
+static PULONG PhpHwCpuCoreFirst = NULL; // per core, its first processor; ULONG_MAX for an index no processor has
+static PULONG PhpHwCpuPackageFirst = NULL; // per package
+static PULONG PhpHwCpuPackageCores = NULL; // per package
+static PFLOAT PhpHwCpuTickCorePower = NULL; // per package
+static PULONG PhpHwCpuTickCoreCount = NULL; // per package
+static FLOAT PhpHwCpuTscMhz = 0.0f; // the base clock MPERF counts at; 0 when unknown
+static FLOAT PhpHwCpuEnergyUnit = 0.0f; // joules
+static BOOLEAN PhpHwCpuVoltageSupported = FALSE;
 static ULONG PhpHwCpuItemCount = 0; // items of the last pass
 static ULONG64 PhpHwCpuSampleTime = 0;
 static ULONG64 PhpHwCpuLastSampleTime = 0;
@@ -102,6 +119,13 @@ static BOOLEAN PhpHwCpuRegisterActive(
     return PhpHwCpuRegisters[Reg].Register && !PhpHwCpuRegisters[Reg].Disabled;
 }
 
+static BOOLEAN PhpHwCpuProbeOnly(
+    _In_ PHP_HW_REG Reg
+    )
+{
+    return Reg >= PhpHwRegRaplUnit;
+}
+
 /**
  * Builds the plan of registers of the processor class.
  */
@@ -115,6 +139,11 @@ static VOID PhpHwCpuInitializePlan(
     {
         PhpHwCpuSetRegister(PhpHwRegAperf, PH_AMD_MSR_APERF_READONLY, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegMperf, PH_AMD_MSR_MPERF_READONLY, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_HW_PSTATE_STATUS, PhpHwScopeCore);
+        PhpHwCpuSetRegister(PhpHwRegCoreEnergy, PH_AMD_MSR_CORE_ENERGY_STAT, PhpHwScopeCore);
+        PhpHwCpuSetRegister(PhpHwRegPackageEnergy, PH_AMD_MSR_PKG_ENERGY_STAT, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegRaplUnit, PH_AMD_MSR_RAPL_PWR_UNIT, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
     }
 }
 
@@ -199,6 +228,145 @@ static BOOLEAN PhpHwCpuApplyStatus(
     return FALSE;
 }
 
+static NTSTATUS PhpHwCpuReadItems(
+    VOID
+    );
+
+/**
+ * Stores the answered items of the last read in the samples, applying each item's status.
+ */
+static VOID PhpHwCpuStoreValues(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < PhpHwCpuItemCount; i++)
+    {
+        PPHP_HW_CPU_TAG tag = &PhpHwCpuTags[i];
+
+        if (!PhpHwCpuApplyStatus(tag->Reg, PhpHwCpuValues[i].Status))
+            continue;
+
+        PhpHwCpuSamples[tag->Processor].Value[tag->Reg] = PhpHwCpuValues[i].Value;
+        PhpHwCpuSamples[tag->Processor].Valid |= 1UL << tag->Reg;
+    }
+}
+
+/**
+ * Reads the whole plan once, the thread and core registers on the first processor and the package registers on the
+ * first processor of each package, and decides from it what the plan keeps and what it decodes with.
+ */
+static VOID PhpHwCpuProbeRead(
+    VOID
+    )
+{
+    PPHP_HW_SAMPLE first = &PhpHwCpuSamples[0];
+    ULONG64 value;
+
+    PhpHwCpuItemCount = 0;
+    PhpHwCpuTscMhz = 0.0f;
+    PhpHwCpuEnergyUnit = 0.0f;
+    PhpHwCpuVoltageSupported = FALSE;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
+        {
+            BOOLEAN package = PhpHwCpuRegisters[reg].Scope == PhpHwScopePackage;
+
+            if (!PhpHwCpuRegisters[reg].Register || PhpHwCpuItemCount >= PhpHwCpuCapacity)
+                continue;
+            if (package ? !PhpHwCpuFirstOfPackage[i] : i != 0)
+                continue;
+
+            PhpHwCpuItems[PhpHwCpuItemCount].Group = PhpHwCpuSensors[i].ProcessorNumber.Group;
+            PhpHwCpuItems[PhpHwCpuItemCount].Number = PhpHwCpuSensors[i].ProcessorNumber.Number;
+            PhpHwCpuItems[PhpHwCpuItemCount].Msr = PhpHwCpuRegisters[reg].Register;
+            PhpHwCpuTags[PhpHwCpuItemCount].Reg = reg;
+            PhpHwCpuTags[PhpHwCpuItemCount].Processor = i;
+            PhpHwCpuItemCount++;
+        }
+    }
+
+    if (PhpHwCpuItemCount)
+    {
+        PhpHwCpuReadItems();
+        PhpHwCpuStoreValues();
+    }
+
+    // The read-only APERF and MPERF aliases may fault or read zero under a hypervisor.
+    if (PhpHwCpuClass == PhpHwCpuAmdZen && (
+        !(first->Valid & (1UL << PhpHwRegAperf)) || first->Value[PhpHwRegAperf] == 0 || !PhpHwCpuRegisterActive(PhpHwRegMperf)
+        ))
+    {
+        PhpHwCpuSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
+    }
+
+    if (PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Valid & (1UL << PhpHwRegRaplUnit))
+        PhpHwCpuEnergyUnit = PhRaplEnergyUnitJoules(PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Value[PhpHwRegRaplUnit], &PhpHwCpuIdentity);
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
+        FLOAT baseMhz = 0.0f;
+
+        // MPERF counts at the P0 frequency.
+        if (sample->Valid & (1UL << PhpHwRegPStateDef0))
+            baseMhz = PhAmdPStateDefToMhz(sample->Value[PhpHwRegPStateDef0], &PhpHwCpuIdentity, 0);
+
+        if (i == 0)
+            PhpHwCpuTscMhz = baseMhz;
+
+        PhpHwPackageSensors[i].BaseMhz = baseMhz;
+        PhpHwPackageSensors[i].BusMhz = PHP_HW_CPU_BUS_MHZ;
+    }
+
+    if (first->Valid & (1UL << PhpHwRegPerfStatus))
+    {
+        UCHAR vid;
+
+        value = first->Value[PhpHwRegPerfStatus];
+        PhpHwCpuVoltageSupported = PhAmdPStateVid(value, &PhpHwCpuIdentity, &vid) && PhAmdCpuVidToVolts(vid, &PhpHwCpuIdentity) > 0.0f;
+    }
+
+    // MPERF is only needed for the active clock; APERF alone yields the effective clock.
+    if (PhpHwCpuTscMhz <= 0.0f)
+        PhpHwCpuRegisters[PhpHwRegMperf].Disabled = TRUE;
+
+    if (PhpHwCpuEnergyUnit <= 0.0f)
+    {
+        PhpHwCpuRegisters[PhpHwRegPackageEnergy].Disabled = TRUE;
+        PhpHwCpuRegisters[PhpHwRegCoreEnergy].Disabled = TRUE;
+    }
+}
+
+/**
+ * Converts the change of a 32-bit energy counter over the sample interval to watts.
+ */
+_Success_(return)
+static BOOLEAN PhpHwCpuSampleWatts(
+    _In_ PPHP_HW_SAMPLE Sample,
+    _In_ PHP_HW_REG Reg,
+    _In_ FLOAT Seconds,
+    _Out_ PFLOAT Watts
+    )
+{
+    FLOAT watts;
+
+    if (Seconds <= 0.0f || PhpHwCpuEnergyUnit <= 0.0f)
+        return FALSE;
+    if (!(Sample->Valid & Sample->LastValid & (1UL << Reg)))
+        return FALSE;
+
+    watts = (FLOAT)(ULONG)(Sample->Value[Reg] - Sample->LastValue[Reg]) * PhpHwCpuEnergyUnit / Seconds;
+
+    if (watts > PHP_HW_CPU_ENERGY_MAX_WATTS)
+        return FALSE;
+
+    *Watts = watts;
+    return TRUE;
+}
+
 /**
  * Identifies the processor of the first package and builds the plan. Called once a session.
  *
@@ -249,6 +417,29 @@ NTSTATUS PhpHwCpuProbe(
         PhpHwCpuFirstOfPackage[i] = PhpHwCpuSensors[i].PackageIndex != lastPackage;
         lastCore = PhpHwCpuSensors[i].CoreIndex;
         lastPackage = PhpHwCpuSensors[i].PackageIndex;
+        PhpHwCpuCoreCount = max(PhpHwCpuCoreCount, PhpHwCpuSensors[i].CoreIndex + 1);
+    }
+
+    PhpHwCpuCoreFirst = PhAllocate(sizeof(ULONG) * PhpHwCpuCoreCount);
+    PhpHwCpuPackageFirst = PhAllocate(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPackageCores = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTickCorePower = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
+    PhpHwCpuTickCoreCount = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    memset(PhpHwCpuCoreFirst, 0xFF, sizeof(ULONG) * PhpHwCpuCoreCount);
+    memset(PhpHwCpuPackageFirst, 0, sizeof(ULONG) * max(PhpHwPackageCount, 1));
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        if (PhpHwCpuFirstOfCore[i])
+        {
+            PhpHwCpuCoreFirst[PhpHwCpuSensors[i].CoreIndex] = i;
+
+            if (PhpHwCpuSensors[i].PackageIndex < PhpHwPackageCount)
+                PhpHwCpuPackageCores[PhpHwCpuSensors[i].PackageIndex]++;
+        }
+
+        if (PhpHwCpuFirstOfPackage[i] && PhpHwCpuSensors[i].PackageIndex < PhpHwPackageCount)
+            PhpHwCpuPackageFirst[PhpHwCpuSensors[i].PackageIndex] = i;
     }
 
     PhpHwCpuCapacity = 0;
@@ -268,6 +459,8 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuBatch = PHP_HW_CPU_BATCH;
     PhpHwCpuSampleTime = 0;
     PhpHwCpuLastSampleTime = 0;
+
+    PhpHwCpuProbeRead();
 
     return STATUS_SUCCESS;
 }
@@ -344,32 +537,124 @@ static NTSTATUS PhpHwCpuReadItems(
 }
 
 /**
- * Decodes the per-processor values of the pass and publishes them: the values first, then their bits.
+ * Decodes the pass and publishes it: the values first, then their bits.
  */
 static VOID PhpHwCpuPublish(
     VOID
     )
 {
     FLOAT seconds = 0.0f;
+    FLOAT cpuPower = 0.0f;
 
     if (PhpHwCpuLastSampleTime && PhpHwCpuSampleTime > PhpHwCpuLastSampleTime)
         seconds = (FLOAT)(PhpHwCpuSampleTime - PhpHwCpuLastSampleTime) / (FLOAT)PHP_HW_SECOND;
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PhpHwCpuTickCorePower[i] = 0.0f;
+        PhpHwCpuTickCoreCount[i] = 0;
+    }
+
+    for (ULONG c = 0; c < PhpHwCpuCoreCount; c++)
+    {
+        ULONG first = PhpHwCpuCoreFirst[c];
+        ULONG package;
+        FLOAT watts;
+
+        if (first == ULONG_MAX || (package = PhpHwCpuSensors[first].PackageIndex) >= PhpHwPackageCount)
+            continue;
+
+        if (PhpHwCpuSampleWatts(&PhpHwCpuSamples[first], PhpHwRegCoreEnergy, seconds, &watts))
+        {
+            PhpHwCpuTickCorePower[package] += watts;
+            PhpHwCpuTickCoreCount[package]++;
+        }
+    }
 
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
     {
         PPH_HW_CPU_SENSOR sensor = &PhpHwCpuSensors[i];
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[i];
-        ULONG bit = 1UL << PhpHwRegAperf;
+        PPHP_HW_SAMPLE core = &PhpHwCpuSamples[PhpHwCpuCoreFirst[sensor->CoreIndex]];
+        FLOAT busMhz = PhpHwPackageSensors[sensor->PackageIndex].BusMhz;
         ULONG valid = 0;
 
-        if (seconds > 0.0f && (sample->Valid & sample->LastValid & bit))
+        if (seconds > 0.0f && (sample->Valid & sample->LastValid & (1UL << PhpHwRegAperf)))
         {
-            sensor->EffectiveMhz = PhEffectiveMhzFromAperf(sample->Value[PhpHwRegAperf] - sample->LastValue[PhpHwRegAperf], seconds);
+            ULONG64 deltaAperf = sample->Value[PhpHwRegAperf] - sample->LastValue[PhpHwRegAperf];
+
+            sensor->EffectiveMhz = PhEffectiveMhzFromAperf(deltaAperf, seconds);
             valid |= PH_HW_CAP_EFFECTIVE_CLOCK;
+
+            // MPERF counts at the base clock; without one there is no active clock.
+            if (PhpHwCpuTscMhz > 0.0f && (sample->Valid & sample->LastValid & (1UL << PhpHwRegMperf)))
+            {
+                ULONG64 deltaMperf = sample->Value[PhpHwRegMperf] - sample->LastValue[PhpHwRegMperf];
+
+                if (deltaMperf)
+                {
+                    sensor->ActiveMhz = PhActiveMhzFromAperfMperf(deltaAperf, deltaMperf, PhpHwCpuTscMhz);
+                    valid |= PH_HW_CAP_ACTIVE_CLOCK;
+                }
+            }
+        }
+
+        if (PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy)
+        {
+            // HwPstateStatus and COFVID_STATUS report the requested P-state, not the boosted ratio.
+            if ((valid & PH_HW_CAP_ACTIVE_CLOCK) && busMhz > 0.0f)
+            {
+                sensor->Multiplier = sensor->ActiveMhz / busMhz;
+                valid |= PH_HW_CAP_MULTIPLIER;
+            }
+
+            if (core->Valid & (1UL << PhpHwRegPerfStatus))
+            {
+                ULONG64 value = core->Value[PhpHwRegPerfStatus];
+                FLOAT mhz = PhAmdHwPStateStatusToMhz(value, &PhpHwCpuIdentity, 0);
+                UCHAR vid;
+
+                if (!(valid & PH_HW_CAP_MULTIPLIER) && mhz > 0.0f && busMhz > 0.0f)
+                {
+                    sensor->Multiplier = mhz / busMhz;
+                    valid |= PH_HW_CAP_MULTIPLIER;
+                }
+
+                if (PhpHwCpuVoltageSupported && PhAmdPStateVid(value, &PhpHwCpuIdentity, &vid))
+                {
+                    sensor->Voltage = PhAmdCpuVidToVolts(vid, &PhpHwCpuIdentity);
+                    valid |= PH_HW_CAP_VOLTAGE;
+                }
+            }
         }
 
         WriteULongRelease(&sensor->Valid, valid);
     }
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
+        ULONG valid = 0;
+        FLOAT watts;
+
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, seconds, &watts))
+        {
+            sensor->PackagePower = watts;
+            valid |= PH_HW_CAP_RAPL_PACKAGE;
+            cpuPower += watts;
+        }
+
+        if (PhpHwCpuRegisterActive(PhpHwRegCoreEnergy) && PhpHwCpuPackageCores[i] && PhpHwCpuTickCoreCount[i] == PhpHwCpuPackageCores[i])
+        {
+            sensor->CorePower = PhpHwCpuTickCorePower[i];
+            valid |= PH_HW_CAP_RAPL_CORE;
+        }
+
+        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PHP_HW_CPU_PACKAGE_CAPS) | valid);
+    }
+
+    PhHwCpuPower = cpuPower;
 }
 
 /**
@@ -395,8 +680,11 @@ NTSTATUS PhpHwCpuPass(
 
         for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
         {
-            if (!PhpHwCpuRegisterActive(reg) || !PhpHwCpuRegisterOnProcessor(reg, i) || PhpHwCpuItemCount >= PhpHwCpuCapacity)
+            if (!PhpHwCpuRegisterActive(reg) || PhpHwCpuProbeOnly(reg) || !PhpHwCpuRegisterOnProcessor(reg, i) ||
+                PhpHwCpuItemCount >= PhpHwCpuCapacity)
+            {
                 continue;
+            }
 
             PhpHwCpuItems[PhpHwCpuItemCount].Group = PhpHwCpuSensors[i].ProcessorNumber.Group;
             PhpHwCpuItems[PhpHwCpuItemCount].Number = PhpHwCpuSensors[i].ProcessorNumber.Number;
@@ -415,17 +703,7 @@ NTSTATUS PhpHwCpuPass(
     PhpHwCpuLastSampleTime = PhpHwCpuSampleTime;
     PhpHwCpuSampleTime = PhpHwQueryTime();
 
-    for (ULONG i = 0; i < PhpHwCpuItemCount; i++)
-    {
-        PPHP_HW_CPU_TAG tag = &PhpHwCpuTags[i];
-
-        if (!PhpHwCpuApplyStatus(tag->Reg, PhpHwCpuValues[i].Status))
-            continue;
-
-        PhpHwCpuSamples[tag->Processor].Value[tag->Reg] = PhpHwCpuValues[i].Value;
-        PhpHwCpuSamples[tag->Processor].Valid |= 1UL << tag->Reg;
-    }
-
+    PhpHwCpuStoreValues();
     PhpHwCpuPublish();
 
     return status;
@@ -463,6 +741,15 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuSamples);
     PhpHwCpuFree(&PhpHwCpuFirstOfCore);
     PhpHwCpuFree(&PhpHwCpuFirstOfPackage);
+    PhpHwCpuFree(&PhpHwCpuCoreFirst);
+    PhpHwCpuFree(&PhpHwCpuPackageFirst);
+    PhpHwCpuFree(&PhpHwCpuPackageCores);
+    PhpHwCpuFree(&PhpHwCpuTickCorePower);
+    PhpHwCpuFree(&PhpHwCpuTickCoreCount);
+    PhpHwCpuCoreCount = 0;
+    PhpHwCpuTscMhz = 0.0f;
+    PhpHwCpuEnergyUnit = 0.0f;
+    PhpHwCpuVoltageSupported = FALSE;
 }
 
 /**
@@ -490,7 +777,8 @@ VOID PhpHwCpuDiagnostics(
     PhAppendFormatStringBuilder(
         Builder,
         L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s\n"
-        L"  Plan: %lu items a pass, calls of at most %lu\n",
+        L"  Plan: %lu items a pass, calls of at most %lu\n"
+        L"  Base clock: %.0f MHz, energy unit %g J, voltage %s\n",
         vendor,
         PhpHwCpuIdentity.DisplayFamily,
         PhpHwCpuIdentity.DisplayModel,
@@ -498,7 +786,10 @@ VOID PhpHwCpuDiagnostics(
         PhpHwCpuSignature,
         classNames[PhpHwCpuClass],
         PhpHwCpuItemCount,
-        PhpHwCpuBatch
+        PhpHwCpuBatch,
+        PhpHwCpuTscMhz,
+        PhpHwCpuEnergyUnit,
+        PhpHwCpuVoltageSupported ? L"decoded" : L"not decoded"
         );
 
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
@@ -513,7 +804,7 @@ VOID PhpHwCpuDiagnostics(
             L"  Register 0x%08lx (%s): %s\n",
             r->Register,
             scopeNames[r->Scope],
-            r->Disabled ? L"left out" : L"read"
+            r->Disabled ? L"left out" : PhpHwCpuProbeOnly(reg) ? L"probe" : L"read"
             );
     }
 }
