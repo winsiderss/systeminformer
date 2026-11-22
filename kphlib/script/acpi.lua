@@ -599,18 +599,17 @@ local function eval_call(input)
   return nt.STATUS_SUCCESS, table.concat(output)
 end
 
+-- Releases the call's devices when a routine ends, by return or by error.
+local release = setmetatable({}, { __close = release_devices })
+
 -- Returns the row, ordinal and matching ID of each device a row covers.
 function identify(input)
-  release_devices()
-  local status, output = identify_call(input)
-  release_devices()
-  return status, output
+  local closer <close> = release
+  return identify_call(input)
 end
 
 -- Evaluates the permitted methods of the devices the rows cover.
 function eval(input)
-  release_devices()
-  local status, output = eval_call(input)
-  release_devices()
-  return status, output
+  local closer <close> = release
+  return eval_call(input)
 end
