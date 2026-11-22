@@ -74,6 +74,7 @@ typedef struct _PHP_HW_FAMILY
     PPHP_HW_FAMILY_PASS Pass;
     PPHP_HW_FAMILY_END End;
     PPHP_HW_FAMILY_DIAGNOSTICS Diagnostics;
+    ULONG Capabilities; // PH_HW_CAP_* of the family's named sensors, set by its pass
 
     // the core's, for the session
     BOOLEAN Absent;
@@ -110,6 +111,23 @@ extern ULONG PhpHwReportWaitMilliseconds; // how long a report waits for the upd
 
 BOOLEAN PhpHwFamiliesNotShipped(
     VOID
+    );
+
+// The named-sensor store: a collector adds its sensors at the probe and sets them in its passes.
+
+#define PHP_HW_MAX_NAMED_SENSORS 128
+
+ULONG PhpHwAddNamedSensor(
+    _In_ PH_HW_NAMED_SENSOR_KIND Kind,
+    _In_ ULONG PackageIndex,
+    _In_ ULONG Id,
+    _In_ PCWSTR Name
+    );
+
+VOID PhpHwSetNamedSensor(
+    _In_ ULONG Index,
+    _In_ BOOLEAN Valid,
+    _In_ FLOAT Value
     );
 
 // Collector counters (hwprvctr.c): runs on the setting alone, gate open or not. Its sensors are under PhpHwNamedSensorLock.

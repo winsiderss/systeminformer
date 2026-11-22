@@ -224,6 +224,8 @@ static VOID PhpHwEndSession(
     {
         if (PhpHwFamilies[i].End)
             PhpHwFamilies[i].End();
+
+        PhpHwFamilies[i].Capabilities = 0;
     }
 
     PhpHwGateOpen = FALSE;
@@ -385,6 +387,73 @@ static BOOLEAN PhpHwRequestReportReads(
         PhSetEvent(&request.ServedEvent);
 
     return served;
+}
+
+/**
+ * Adds a named sensor for the session. Called on the provider thread.
+ *
+ * \param Kind The kind of the sensor.
+ * \param PackageIndex The component of the sensor.
+ * \param Id The ID of the sensor within the kind and component.
+ * \param Name The name of the sensor; at most PH_HW_NAMED_SENSOR_NAME_LENGTH - 1 characters are kept.
+ * \return The index of the sensor, or ULONG_MAX when the store is full.
+ */
+ULONG PhpHwAddNamedSensor(
+    _In_ PH_HW_NAMED_SENSOR_KIND Kind,
+    _In_ ULONG PackageIndex,
+    _In_ ULONG Id,
+    _In_ PCWSTR Name
+    )
+{
+    PPH_HW_NAMED_SENSOR sensor;
+    ULONG index = ULONG_MAX;
+
+    PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+
+    if (!PhpHwNamedSensors)
+        PhpHwNamedSensors = PhAllocate(sizeof(PH_HW_NAMED_SENSOR) * PHP_HW_MAX_NAMED_SENSORS);
+
+    if (PhpHwNamedSensorCount < PHP_HW_MAX_NAMED_SENSORS)
+    {
+        index = PhpHwNamedSensorCount++;
+        sensor = &PhpHwNamedSensors[index];
+        memset(sensor, 0, sizeof(PH_HW_NAMED_SENSOR));
+        sensor->Kind = Kind;
+        sensor->PackageIndex = PackageIndex;
+        sensor->Id = Id;
+        sensor->Active = TRUE;
+        PhCopyStringZ(Name, SIZE_MAX, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
+
+    return index;
+}
+
+/**
+ * Sets the value of a named sensor. Called on the provider thread.
+ *
+ * \param Index The index from PhpHwAddNamedSensor; ULONG_MAX is ignored.
+ * \param Valid Whether the value is current; a value that is not keeps the last one.
+ * \param Value The value.
+ */
+VOID PhpHwSetNamedSensor(
+    _In_ ULONG Index,
+    _In_ BOOLEAN Valid,
+    _In_ FLOAT Value
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+
+    if (Index < PhpHwNamedSensorCount)
+    {
+        if (Valid)
+            PhpHwNamedSensors[Index].Value = Value;
+
+        PhpHwNamedSensors[Index].Valid = Valid;
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 }
 
 /**
@@ -550,6 +619,8 @@ static VOID PhpHwUpdateCapabilities(
     ULONG capabilities = 0;
     FLOAT temperature = 0.0f;
 
+    for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
+        capabilities |= PhpHwFamilies[i].Capabilities;
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
         capabilities |= PhpHwCpuSensors[i].Valid;
 
