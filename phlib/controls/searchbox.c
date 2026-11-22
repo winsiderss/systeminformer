@@ -1330,7 +1330,7 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
                         {
                             PPH_STRING selectedText = PH_AUTO(PhSubstring(text, selStart, selEnd - selStart));
                             PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
-                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR) - selEnd));
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
                             PhSetClipboardString(WindowHandle, &selectedText->sr);
                             PhSetWindowText(WindowHandle, newText->Buffer);
@@ -1347,7 +1347,7 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
                         {
                             PPH_STRING clipText = PH_AUTO(PhGetClipboardString(WindowHandle));
                             PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
-                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR) - selEnd));
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef3(&startText->sr, &clipText->sr, &endText->sr));
                             PhSetWindowText(WindowHandle, newText->Buffer);
                             PhSearchUpdateText(WindowHandle, context, FALSE);
@@ -1356,7 +1356,7 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
                     case 5:
                         {
                             PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
-                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR) - selEnd));
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
                             PhSetWindowText(WindowHandle, newText->Buffer);
                             PhSearchUpdateText(WindowHandle, context, FALSE);
