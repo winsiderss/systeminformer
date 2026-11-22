@@ -120,6 +120,8 @@ EXPORTS
     PhHandleListViewNotifyForCopy
     PhHandleTreeNewColumnMenu
     PhHwCounterSensorsPresent
+    PhHwEnumerateSensors
+    PhHwFormatTemperature
     PhHwGetCapabilities
     PhHwGetChipsetTemperature
     PhHwGetCpuSensor
