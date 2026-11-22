@@ -786,7 +786,7 @@ BOOLEAN PhSearchUpdateText(
 
     PhDereferenceObject(searchboxTextString);
 
-    //PhSearchUpdateRegex(WindowHandle, Context);
+    PhpSearchUpdateRegex(WindowHandle, Context);
 
     if (!Context->Callback)
         return TRUE;
@@ -1235,7 +1235,7 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(context->CaseSetting, context->CaseButton.Active);
-                PhSearchUpdateText(WindowHandle, context, FALSE);
+                PhSearchUpdateText(WindowHandle, context, TRUE);
             }
 
             PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
