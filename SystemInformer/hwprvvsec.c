@@ -14,16 +14,18 @@
 #include <cpusensor.h>
 #include <trace.h>
 
-// Collector vsec: the Intel OOBMSM functions' TPMI regions: RAPL energy where the processor's MSRs do not serve, and
-// the uncore clocks; one KphHwVsecRead a kept region every update.
+// Collector vsec: the Intel OOBMSM functions' TPMI regions (RAPL energy where the processor's MSRs do not serve, the
+// uncore clocks) and the PMT functions' telemetry groups the sample table knows; one KphHwVsecRead a kept region or
+// group every update.
 
 #define PHP_HW_VSEC_MAX_DEVICES 16
 #define PHP_HW_VSEC_LIST_REGIONS 128 // a region list's first answer; more are asked for once
 #define PHP_HW_VSEC_MAX_REGIONS 64
-#define PHP_HW_VSEC_REGION_ENTRIES 32 // RAPL domains of a 4 KiB instance
+#define PHP_HW_VSEC_REGION_ENTRIES 32 // RAPL domains of a 4 KiB instance, samples of a PMT group
 #define PHP_HW_VSEC_STRIKE_LIMIT 3 // failures of a region or an entry before it ends for the session
 #define PHP_HW_VSEC_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
 #define PHP_HW_VSEC_UNMAPPED_ID 0x80000000 // named sensor id bit of uncore domains not mapped to a package
+#define PHP_HW_VSEC_PMT_ID_BASE 0x50000000 // named sensor ids of the PMT samples: | device << 16 | group << 8 | sample
 
 typedef enum _PHP_HW_VSEC_KIND
 {
@@ -31,8 +33,77 @@ typedef enum _PHP_HW_VSEC_KIND
     PhpHwVsecDramEnergy,
     PhpHwVsecPlatformEnergy,
     PhpHwVsecEnergyMaximum,
-    PhpHwVsecUncoreStatus = PhpHwVsecEnergyMaximum
+    PhpHwVsecUncoreStatus = PhpHwVsecEnergyMaximum,
+    PhpHwVsecPmtSample
 } PHP_HW_VSEC_KIND;
+
+typedef enum _PHP_HW_PMT_TRANSFORM
+{
+    PhpHwPmtTemperature, // signed 8-bit degrees Celsius
+    PhpHwPmtRatio100, // x 100 MHz
+    PhpHwPmtRatio33 // x 33.33 MHz
+} PHP_HW_PMT_TRANSFORM;
+
+// Intel PMT telemetry samples by aggregator GUID: qword index, field, transform.
+typedef struct _PHP_HW_PMT_SAMPLE
+{
+    ULONG Guid;
+    USHORT Qword;
+    UCHAR Lsb;
+    UCHAR Transform; // PHP_HW_PMT_TRANSFORM
+    PCWSTR Name;
+} PHP_HW_PMT_SAMPLE, *PPHP_HW_PMT_SAMPLE;
+typedef const PHP_HW_PMT_SAMPLE* PCPHP_HW_PMT_SAMPLE;
+
+static CONST PHP_HW_PMT_SAMPLE PhpHwPmtSamples[] =
+{
+    // MTL PUNIT normal aggregator.
+    { 0x130670B2, 11, 48, PhpHwPmtRatio33, L"Memory clock (QCLK)" },
+    { 0x130670B2, 19, 0, PhpHwPmtTemperature, L"PCH" },
+    { 0x130670B2, 19, 8, PhpHwPmtTemperature, L"DRAM" },
+    { 0x130670B2, 19, 16, PhpHwPmtTemperature, L"System agent" },
+    { 0x130670B2, 19, 24, PhpHwPmtTemperature, L"IPU" },
+    { 0x130670B2, 19, 32, PhpHwPmtTemperature, L"Display engine" },
+    { 0x130670B2, 19, 40, PhpHwPmtTemperature, L"VPU" },
+    { 0x130670B2, 19, 48, PhpHwPmtTemperature, L"Media" },
+    // MTL DMU normal aggregator: CORE_TEMPERATURE0-5, 32-bit DTS0-3 groups from q9 [63:32]; DTS1 is the maximum.
+    { 0x1A067002, 9, 40, PhpHwPmtTemperature, L"P-core 0" },
+    { 0x1A067002, 10, 8, PhpHwPmtTemperature, L"P-core 1" },
+    { 0x1A067002, 10, 40, PhpHwPmtTemperature, L"P-core 2" },
+    { 0x1A067002, 11, 8, PhpHwPmtTemperature, L"P-core 3" },
+    { 0x1A067002, 11, 40, PhpHwPmtTemperature, L"P-core 4" },
+    { 0x1A067002, 12, 8, PhpHwPmtTemperature, L"P-core 5" },
+    // LNL.
+    { 0x03072005, 2, 0, PhpHwPmtRatio33, L"Memory clock (MEMSS)" },
+    { 0x03072005, 14, 0, PhpHwPmtTemperature, L"PCH" },
+    { 0x03072005, 14, 16, PhpHwPmtTemperature, L"System agent" },
+    { 0x03072005, 14, 24, PhpHwPmtTemperature, L"IPU" },
+    { 0x03072005, 14, 32, PhpHwPmtTemperature, L"Display engine" },
+    { 0x03072005, 14, 40, PhpHwPmtTemperature, L"VPU" },
+    { 0x03072005, 14, 48, PhpHwPmtTemperature, L"Media" },
+    { 0x03072005, 28, 0, PhpHwPmtRatio100, L"Core 0 average" },
+    { 0x03072005, 28, 8, PhpHwPmtRatio100, L"Core 1 average" },
+    { 0x03072005, 28, 16, PhpHwPmtRatio100, L"Core 2 average" },
+    { 0x03072005, 28, 24, PhpHwPmtRatio100, L"Core 3 average" },
+    { 0x03072005, 28, 32, PhpHwPmtRatio100, L"Core 4 average" },
+    { 0x03072005, 28, 40, PhpHwPmtRatio100, L"Core 5 average" },
+    { 0x03072005, 28, 48, PhpHwPmtRatio100, L"Core 6 average" },
+    { 0x03072005, 28, 56, PhpHwPmtRatio100, L"Core 7 average" },
+    // PTL and WCL share the q15 temperatures; PTL q2 is reserved.
+    { 0x03086000, 15, 0, PhpHwPmtTemperature, L"PCH" },
+    { 0x03086000, 15, 8, PhpHwPmtTemperature, L"System agent" },
+    { 0x03086000, 15, 16, PhpHwPmtTemperature, L"IPU" },
+    { 0x03086000, 15, 24, PhpHwPmtTemperature, L"Display engine" },
+    { 0x03086000, 15, 32, PhpHwPmtTemperature, L"VPU" },
+    { 0x03086000, 15, 40, PhpHwPmtTemperature, L"Media" },
+    { 0x0308D000, 2, 0, PhpHwPmtRatio33, L"Memory clock (MEMSS)" },
+    { 0x0308D000, 15, 0, PhpHwPmtTemperature, L"PCH" },
+    { 0x0308D000, 15, 8, PhpHwPmtTemperature, L"System agent" },
+    { 0x0308D000, 15, 16, PhpHwPmtTemperature, L"IPU" },
+    { 0x0308D000, 15, 24, PhpHwPmtTemperature, L"Display engine" },
+    { 0x0308D000, 15, 32, PhpHwPmtTemperature, L"VPU" },
+    { 0x0308D000, 15, 40, PhpHwPmtTemperature, L"Media" },
+};
 
 typedef struct _PHP_HW_VSEC_ENTRY
 {
@@ -41,6 +112,7 @@ typedef struct _PHP_HW_VSEC_ENTRY
     ULONG PackageIndex; // ULONG_MAX when not mapped to a package
     ULONG NamedIndex; // ULONG_MAX when the value feeds a package sensor
     FLOAT EnergyUnit; // joules
+    ULONG Sample; // PMT: index in PhpHwPmtSamples
     BOOLEAN Disabled;
     UCHAR Strikes;
     BOOLEAN Valid;
@@ -61,6 +133,7 @@ typedef struct _PHP_HW_VSEC_REGION
 {
     ULONG Device; // in PhpHwVsecLocators
     ULONG Operation;
+    ULONG Discovery;
     ULONG Id;
     ULONG Position;
     BOOLEAN Disabled;
@@ -73,10 +146,10 @@ typedef struct _PHP_HW_VSEC_REGION
 
 static ULONG PhpHwVsecLocators[PHP_HW_VSEC_MAX_DEVICES];
 static ULONG PhpHwVsecDeviceCount = 0;
+static ULONG PhpHwVsecOobmsmCount = 0; // the OOBMSM functions lead PhpHwVsecLocators; the PMT functions follow
 static PPHP_HW_VSEC_REGION PhpHwVsecRegions = NULL;
 static ULONG PhpHwVsecRegionCount = 0;
 static BOOLEAN PhpHwVsecRelist[PHP_HW_VSEC_MAX_DEVICES]; // a region of the device missed: list it again next update
-static ULONG PhpHwVsecUncoreDomains = 0; // the uncore instances numbered so far, mapped and not
 static PPHP_HW_VSEC_PACKAGE PhpHwVsecPackages = NULL; // per package
 static ULONG64 PhpHwVsecSampleTime = 0;
 static ULONG64 PhpHwVsecLastSampleTime = 0;
@@ -248,6 +321,7 @@ static PPHP_HW_VSEC_REGION PhpHwVsecBeginRegion(
     memset(region, 0, sizeof(PHP_HW_VSEC_REGION));
     region->Device = Device;
     region->Operation = Region->Operation;
+    region->Discovery = Region->Discovery;
     region->Id = Region->Id;
     region->Position = Region->Position;
 
@@ -487,7 +561,106 @@ static VOID PhpHwVsecProbeUncore(
 }
 
 /**
- * Finds the OOBMSM functions, lists each one's regions and reads the TPMI headers. Called once a session.
+ * Applies the transform of a PMT sample to its qword.
+ *
+ * \return FALSE when the field is not a reading: a temperature outside 1-125 C, or a zero ratio.
+ */
+_Success_(return)
+static BOOLEAN PhpHwVsecDecodePmtSample(
+    _In_ PCPHP_HW_PMT_SAMPLE Sample,
+    _In_ ULONG64 Qword,
+    _Out_ PFLOAT Value
+    )
+{
+    UCHAR field = (UCHAR)(Qword >> Sample->Lsb);
+
+    switch (Sample->Transform)
+    {
+    case PhpHwPmtTemperature:
+        if ((SCHAR)field <= 0 || (SCHAR)field > 125)
+            return FALSE;
+        *Value = (FLOAT)(SCHAR)field;
+        return TRUE;
+    case PhpHwPmtRatio100:
+        if (!field)
+            return FALSE;
+        *Value = (FLOAT)field * 100.0f;
+        return TRUE;
+    case PhpHwPmtRatio33:
+        if (!field)
+            return FALSE;
+        *Value = (FLOAT)field * 100.0f / 3.0f;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Lists the samples of a PMT group the table knows by its GUID; a sample that does not read, or reads all ones, at
+ * the probe is not listed.
+ */
+static VOID PhpHwVsecProbePmt(
+    _In_ ULONG Device,
+    _In_ const KPH_HW_VSEC_REGION* Region
+    )
+{
+    ULONG offsets[PHP_HW_VSEC_REGION_ENTRIES];
+    ULONG samples[PHP_HW_VSEC_REGION_ENTRIES];
+    PPHP_HW_VSEC_REGION region;
+    ULONG count = 0;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwPmtSamples) && count < RTL_NUMBER_OF(samples); i++)
+    {
+        if (PhpHwPmtSamples[i].Guid != Region->Id || (ULONG)PhpHwPmtSamples[i].Qword * 8 + 8 > Region->Size)
+            continue;
+
+        offsets[count] = PhpHwPmtSamples[i].Qword * 8;
+        samples[count++] = i;
+    }
+
+    if (count == 0)
+        return;
+
+    PhpHwVsecReadOnce(PhpHwVsecLocators[Device], Region, offsets, count);
+
+    if (!(region = PhpHwVsecBeginRegion(Device, Region)))
+        return;
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        PCPHP_HW_PMT_SAMPLE sample = &PhpHwPmtSamples[samples[i]];
+        PPHP_HW_VSEC_ENTRY entry;
+        ULONG64 value;
+
+        // A field that reads 0 at the probe may be idle; it is listed and shown once it reads.
+        if (!PhpHwVsecValue(i, &value))
+            continue;
+        if (!(entry = PhpHwVsecAddEntry(region, offsets[i], PhpHwVsecPmtSample, 0)))
+            break;
+
+        entry->Sample = samples[i];
+        entry->NamedIndex = PhpHwAddNamedSensor(
+            sample->Transform == PhpHwPmtTemperature ? PhHwNamedSensorPmtTemperature : PhHwNamedSensorUncoreClock,
+            0,
+            PHP_HW_VSEC_PMT_ID_BASE | ((Device - PhpHwVsecOobmsmCount) << 16) | ((ULONG)(Region->Index & 0xFF) << 8) | samples[i],
+            sample->Name
+            );
+
+        if (entry->NamedIndex == ULONG_MAX)
+        {
+            region->EntryCount--;
+            break;
+        }
+    }
+
+    if (region->EntryCount)
+        PhpHwVsecRegionCount++;
+}
+
+/**
+ * Finds the OOBMSM and PMT functions, lists each one's regions and reads the TPMI headers and the known PMT samples.
+ * Called once a session.
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a region to read, or the first identify's status.
  */
@@ -496,11 +669,12 @@ NTSTATUS PhpHwVsecProbe(
     )
 {
     static CONST USHORT oobmsmIds[] = { 0x09A7, 0x09A1 }; // SPR/EMR/GNR/SRF, DMR
+    static CONST USHORT pmtIds[] = { 0x7D0D, 0xAD0D, 0x647D, 0xB07D, 0xFD7D, 0xD70D }; // MTL-M, MTL-S/ARL-S, LNL, PTL, WCL, NVL
     NTSTATUS firstStatus = STATUS_NOT_SUPPORTED;
     PULONG domainIndex;
     ULONG unmappedDomainIndex = 0;
 
-    PhpHwVsecDeviceCount = PhpHwEnumeratePciFunctions(
+    PhpHwVsecOobmsmCount = PhpHwEnumeratePciFunctions(
         0x8086,
         0x8086,
         PHP_HW_ANY_CLASS_CODE,
@@ -509,6 +683,16 @@ NTSTATUS PhpHwVsecProbe(
         FALSE,
         PhpHwVsecLocators,
         RTL_NUMBER_OF(PhpHwVsecLocators)
+        );
+    PhpHwVsecDeviceCount = PhpHwVsecOobmsmCount + PhpHwEnumeratePciFunctions(
+        0x8086,
+        0x8086,
+        PHP_HW_ANY_CLASS_CODE,
+        pmtIds,
+        RTL_NUMBER_OF(pmtIds),
+        FALSE,
+        &PhpHwVsecLocators[PhpHwVsecOobmsmCount],
+        RTL_NUMBER_OF(PhpHwVsecLocators) - PhpHwVsecOobmsmCount
         );
 
     if (!PhpHwVsecDeviceCount)
@@ -535,6 +719,19 @@ NTSTATUS PhpHwVsecProbe(
             continue;
         if (!(regions = PhpHwVsecListRegions(locator, &regionCount)))
             continue;
+
+        // A PMT function whose groups match no sample of the table ends here.
+        if (i >= PhpHwVsecOobmsmCount)
+        {
+            for (ULONG j = 0; j < regionCount; j++)
+            {
+                if (regions[j].Discovery == KPH_HW_VSEC_DISCOVERY_PMT)
+                    PhpHwVsecProbePmt(i, &regions[j]);
+            }
+
+            PhFree(regions);
+            continue;
+        }
 
         packageIndex = PhpHwVsecDevicePackage(locator, regions, regionCount);
 
@@ -592,7 +789,7 @@ static VOID PhpHwVsecRelistDevice(
 
         for (ULONG j = 0; regions && j < regionCount; j++)
         {
-            if (regions[j].Discovery == KPH_HW_VSEC_DISCOVERY_TPMI && regions[j].Id == region->Id && regions[j].Operation == region->Operation)
+            if (regions[j].Discovery == region->Discovery && regions[j].Id == region->Id && regions[j].Operation == region->Operation)
             {
                 region->Position = regions[j].Position;
                 found = TRUE;
@@ -733,6 +930,10 @@ NTSTATUS PhpHwVsecPass(
                     valid = TRUE;
                 }
             }
+            else if (entry->Kind == PhpHwVsecPmtSample)
+            {
+                valid = entry->Valid && PhpHwVsecDecodePmtSample(&PhpHwPmtSamples[entry->Sample], entry->Value, &value);
+            }
             else if (entry->Valid && entry->LastValid && seconds > 0.0f)
             {
                 // ENERGY_STATUS [31:0] wraps.
@@ -805,7 +1006,9 @@ NTSTATUS PhpHwVsecPass(
 
             if (region->Entries[i].Kind == PhpHwVsecUncoreStatus)
                 capabilities |= PH_HW_CAP_UNCORE_CLOCK;
-            else if (region->Entries[i].NamedIndex != ULONG_MAX)
+            else if (region->Entries[i].Kind == PhpHwVsecPmtSample)
+                capabilities |= PhpHwPmtSamples[region->Entries[i].Sample].Transform == PhpHwPmtTemperature ? PH_HW_CAP_TPMI_POWER : PH_HW_CAP_UNCORE_CLOCK;
+            else if (region->Entries[i].Kind < PhpHwVsecEnergyMaximum && region->Entries[i].NamedIndex != ULONG_MAX)
                 capabilities |= PH_HW_CAP_TPMI_POWER;
         }
     }
@@ -836,6 +1039,7 @@ VOID PhpHwVsecEnd(
 
     PhpHwVsecRegionCount = 0;
     PhpHwVsecDeviceCount = 0;
+    PhpHwVsecOobmsmCount = 0;
     PhpHwVsecSampleTime = 0;
     PhpHwVsecLastSampleTime = 0;
     memset(PhpHwVsecRelist, 0, sizeof(PhpHwVsecRelist));
@@ -858,7 +1062,7 @@ VOID PhpHwVsecDiagnostics(
 
         PhAppendFormatStringBuilder(
             Builder,
-            L"  Device %lu region 0x%lx (TPMI 0x%02lx): %lu entries%s\n",
+            region->Discovery == KPH_HW_VSEC_DISCOVERY_PMT ? L"  Device %lu region 0x%lx (PMT 0x%08lx): %lu entries%s\n" : L"  Device %lu region 0x%lx (TPMI 0x%02lx): %lu entries%s\n",
             region->Device,
             region->Position,
             region->Id,
