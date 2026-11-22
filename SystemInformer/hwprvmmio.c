@@ -57,10 +57,12 @@ typedef enum _PHP_HW_MMIO_REG
     PhpHwMmioImc1WritesAlt,
     PhpHwMmioGtPerfStatus,
     PhpHwMmioGtPerfStatusLp, // Apollo Lake, Gemini Lake: GT_PERF_STATUS at 7070h, in place of PhpHwMmioGtPerfStatus
+    PhpHwMmioPchTemp, // the PCH thermal function's TEMP
     PhpHwMmioPowerUnit, // probe only from here
     PhpHwMmioTemperatureTarget,
     PhpHwMmioRpStateCap,
     PhpHwMmioFreqInfo,
+    PhpHwMmioPchTsel, // the PCH thermal function's TSEL
     PhpHwMmioMaximum
 } PHP_HW_MMIO_REG;
 
@@ -98,10 +100,12 @@ static CONST PHP_HW_MMIO_REG_INFO PhpHwMmioRegInfo[PhpHwMmioMaximum] =
     { PH_INTEL_MCHBAR_IMC_STRIDE + PH_INTEL_MCHBAR_IMC_WRITES_ALT, 8, 'W' },
     { PH_INTEL_MCHBAR_GT_PERF_STATUS, 4, 0 },
     { PH_INTEL_MCHBAR_GT_PERF_STATUS_LP, 4, 0 },
+    { PH_INTEL_PCH_THERMAL_TEMP, 2, 0 },
     { PH_INTEL_MCHBAR_PKG_POWER_UNIT, 4, 0 },
     { PH_INTEL_MCHBAR_TEMPERATURE_TARGET, 4, 0 },
     { PH_INTEL_MCHBAR_RP_STATE_CAP, 4, 0 },
     { PH_INTEL_MCHBAR_FREQ_INFO_REC, 4, 0 },
+    { PH_INTEL_PCH_THERMAL_TSEL, 1, 0 },
 };
 
 // MCHBAR memory controller register layouts.
@@ -1101,6 +1105,15 @@ NTSTATUS PhpHwMmioProbe(
     if (PhpHwMmioActive(PhpHwMmioGtPerfStatusRegister()))
         PhpHwMmioGtIndex = PhpHwAddNamedSensor(PhHwNamedSensorUncoreClock, 0, PHP_HW_MMIO_GT_CLOCK_ID, L"Graphics");
 
+    // Firmware enables the PCH sensor (TSEL.ETS); it is never enabled here.
+    if (
+        !PhpHwMmioValue(PhpHwMmioPchTsel, &value) || !(value & 0x1) ||
+        !PhpHwMmioValue(PhpHwMmioPchTemp, &value) || !PhIntelPchTemperatureToCelsius((USHORT)value, &celsius)
+        )
+    {
+        PhpHwMmioDisable(PhpHwMmioPchTemp);
+    }
+
     // Deltas start at the first pass.
     for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
         PhpHwMmioWindows[i].Valid = 0;
@@ -1229,6 +1242,18 @@ NTSTATUS PhpHwMmioPass(
         valid |= PH_HW_CAP_GRAPHICS_TEMP;
     }
 
+    // The chipset temperature's first source; without it, platform's PWRM.
+    if (PhpHwMmioActive(PhpHwMmioPchTemp))
+    {
+        PhpHwChipsetTemperatureValid = FALSE;
+
+        if (PhpHwMmioValue(PhpHwMmioPchTemp, &value) && PhIntelPchTemperatureToCelsius((USHORT)value, &celsius))
+        {
+            PhpHwChipsetTemperature = celsius;
+            PhpHwChipsetTemperatureValid = TRUE;
+        }
+    }
+
     // cpu publishes the active limits, the lower of these and the MSR's.
     PhpHwMmioLimit1 = PhpHwMmioDecodePowerLimit(PhpHwMmioPowerLimit1);
     PhpHwMmioLimit2 = PhpHwMmioDecodePowerLimit(PhpHwMmioPowerLimit2);
@@ -1241,6 +1266,7 @@ NTSTATUS PhpHwMmioPass(
     }
 
     PhpHwFamilies[PhpHwFamilyMmio].Capabilities =
+        (PhpHwMmioActive(PhpHwMmioPchTemp) ? PH_HW_CAP_CHIPSET_TEMP : 0) |
         ((PhpHwMmioRaplLimitedIndex != ULONG_MAX && PhpHwMmioActive(PhpHwMmioRaplPerfStatus)) ? PH_HW_CAP_RESIDENCY : 0) |
         ((PhpHwMmioGtIndex != ULONG_MAX && PhpHwMmioActive(PhpHwMmioGtPerfStatusRegister())) ? PH_HW_CAP_UNCORE_CLOCK : 0);
 
@@ -1248,6 +1274,16 @@ NTSTATUS PhpHwMmioPass(
     WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~owned) | (valid & owned));
 
     return retried && !answered ? STATUS_RETRY : STATUS_SUCCESS;
+}
+
+/**
+ * Determines whether the PCH thermal function's window is the chipset temperature's source, for platform.
+ */
+BOOLEAN PhpHwMmioChipsetPlanned(
+    VOID
+    )
+{
+    return PhpHwMmioWindows && PhpHwMmioActive(PhpHwMmioPchTemp);
 }
 
 /**

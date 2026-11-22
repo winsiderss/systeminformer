@@ -74,7 +74,7 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
     { L"cpu", 0, PhpHwCpuProbe, PhpHwCpuPass, PhpHwCpuEnd, PhpHwCpuDiagnostics },
     { L"smn", 0, PhpHwSmnProbe, PhpHwSmnPass, PhpHwSmnEnd, PhpHwSmnDiagnostics },
     { L"mmio", 0, PhpHwMmioProbe, PhpHwMmioPass, PhpHwMmioEnd, PhpHwMmioDiagnostics },
-    { L"platform", 0 },
+    { L"platform", 0, PhpHwPlatformProbe, PhpHwPlatformPass, PhpHwPlatformEnd, PhpHwPlatformDiagnostics },
     { L"pciconfig", 0 },
     { L"vsec", 0 },
     { L"crosec", 0 },

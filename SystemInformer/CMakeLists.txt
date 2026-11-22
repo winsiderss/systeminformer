@@ -117,6 +117,7 @@ set(SOURCES
     "hwprvcpu.c"
     "hwprvsmn.c"
     "hwprvmmio.c"
+    "hwprvplat.c"
     "hwprvctr.c"
     "hwprvdev.c"
     "hwprvpci.c"

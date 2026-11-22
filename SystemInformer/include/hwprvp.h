@@ -143,6 +143,26 @@ FLOAT PhpHwMmioPowerLimit(
     _In_ BOOLEAN Second
     );
 
+BOOLEAN PhpHwMmioChipsetPlanned(
+    VOID
+    );
+
+NTSTATUS PhpHwPlatformProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwPlatformPass(
+    VOID
+    );
+
+VOID PhpHwPlatformEnd(
+    VOID
+    );
+
+VOID PhpHwPlatformDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 // What cpu's probe found, for the families that depend on it (called on the provider thread, after cpu's probe).
 
 _Success_(return)
