@@ -58,11 +58,14 @@ typedef enum _PHP_HW_REG
     PhpHwRegVrCurrentConfig, // Intel MSR_VR_CURRENT_CONFIG, PL4
     PhpHwRegPlatformPowerLimit, // Intel MSR_PLATFORM_POWER_LIMIT
     PhpHwRegUncorePerfStatus, // Intel MSR_UNCORE_PERF_STATUS
+    PhpHwRegCuPowerAccumulator, // AMD 15h and 16h CU_PWR_ACCUMULATOR
+    PhpHwRegPtsc, // AMD 15h and 16h PTSC, read with the accumulator
     PhpHwRegRaplUnit, // probe only from here
     PhpHwRegPStateDef0,
     PhpHwRegTemperatureTarget, // Intel MSR_TEMPERATURE_TARGET
     PhpHwRegPlatformInfo,
     PhpHwRegFsbFreq, // Intel Silvermont and Airmont MSR_FSB_FREQ
+    PhpHwRegCuMaxPowerAccumulator, // AMD 15h and 16h CU_MAX_PWR_ACCUMULATOR
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 32);
@@ -71,7 +74,8 @@ typedef enum _PHP_HW_SCOPE
 {
     PhpHwScopeThread,
     PhpHwScopeCore, // the first processor of each core
-    PhpHwScopePackage // the first processor of each package
+    PhpHwScopePackage, // the first processor of each package
+    PhpHwScopeComputeUnit // AMD 15h and 16h, the first processor of each compute unit
 } PHP_HW_SCOPE;
 
 typedef struct _PHP_HW_REGISTER
@@ -127,6 +131,9 @@ static PBOOLEAN PhpHwCpuDramEnergySeen = NULL; // per package: the counter moved
 static PBOOLEAN PhpHwCpuPlatformEnergySeen = NULL;
 static PULONG PhpHwCpuUncoreIndex = NULL; // per package, the uncore clock's named sensor; ULONG_MAX when not listed
 static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSORS named sensors; ULONG_MAX when not listed
+static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
+static ULONG PhpHwCpuUnitSampleRatio = 0; // CPUID 8000_0007h ECX
+static ULONG64 PhpHwCpuUnitMaxAccumulator = 0; // CU_MAX_PWR_ACCUMULATOR; 0 when unread
 static BOOLEAN PhpHwCpuVoltageSupported = FALSE;
 static ULONG PhpHwCpuCoreReadoutMask = 0x7F; // IA32_THERM_STATUS readout width
 static ULONG PhpHwCpuPackageReadoutMask = 0x7F; // IA32_PACKAGE_THERM_STATUS readout width
@@ -184,6 +191,19 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegRaplUnit, PH_AMD_MSR_RAPL_PWR_UNIT, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
     }
+    else if (PhpHwCpuClass == PhpHwCpuAmdLegacy)
+    {
+        PhpHwCpuSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
+
+        if (PhpHwCpuFirstOfUnit)
+        {
+            PhpHwCpuSetRegister(PhpHwRegCuPowerAccumulator, PH_AMD_MSR_CU_PWR_ACCUMULATOR, PhpHwScopeComputeUnit);
+            PhpHwCpuSetRegister(PhpHwRegPtsc, PH_AMD_MSR_PTSC, PhpHwScopeComputeUnit);
+            PhpHwCpuSetRegister(PhpHwRegCuMaxPowerAccumulator, PH_AMD_MSR_CU_MAX_PWR_ACCUMULATOR, PhpHwScopeComputeUnit);
+        }
+    }
     else if (PhpHwCpuClass == PhpHwCpuIntel)
     {
         PhpHwCpuSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
@@ -227,6 +247,8 @@ static BOOLEAN PhpHwCpuRegisterOnProcessor(
         return PhpHwCpuFirstOfCore[Processor];
     case PhpHwScopePackage:
         return PhpHwCpuFirstOfPackage[Processor];
+    case PhpHwScopeComputeUnit:
+        return PhpHwCpuFirstOfUnit && PhpHwCpuFirstOfUnit[Processor];
     }
 
     return TRUE;
@@ -537,6 +559,15 @@ static VOID PhpHwCpuProbeRead(
         PhpHwCpuRegisters[PhpHwRegCoreEnergy].Disabled = TRUE;
     }
 
+    // Every compute unit wraps at the same maximum.
+    PhpHwCpuUnitMaxAccumulator = (first->Valid & (1UL << PhpHwRegCuMaxPowerAccumulator)) ? first->Value[PhpHwRegCuMaxPowerAccumulator] : 0;
+
+    if (!PhpHwCpuUnitMaxAccumulator)
+    {
+        PhpHwCpuRegisters[PhpHwRegCuPowerAccumulator].Disabled = TRUE;
+        PhpHwCpuRegisters[PhpHwRegPtsc].Disabled = TRUE;
+    }
+
     if (PhpHwCpuDramEnergyUnit <= 0.0f)
         PhpHwCpuRegisters[PhpHwRegDramEnergy].Disabled = TRUE;
     if (PhpHwCpuPlatformEnergyUnit <= 0.0f)
@@ -569,6 +600,40 @@ static BOOLEAN PhpHwCpuSampleWatts(
 
     *Watts = watts;
     return TRUE;
+}
+
+/**
+ * Finds the first processor of each compute unit of an AMD family 15h or 16h processor; without them the compute-unit
+ * power is not planned.
+ */
+static VOID PhpHwCpuQueryComputeUnits(
+    VOID
+    )
+{
+    PHP_HW_TOPOLOGY topology;
+
+    topology.ProcessorCount = PhpHwProcessorCount;
+    topology.CoreCount = 0;
+    topology.PackageCount = PhpHwPackageCount;
+    topology.Processors = PhAllocate(sizeof(PHP_HW_PROCESSOR) * PhpHwProcessorCount);
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        topology.Processors[i].Number = PhpHwCpuSensors[i].ProcessorNumber;
+        topology.Processors[i].CoreIndex = PhpHwCpuSensors[i].CoreIndex;
+        topology.Processors[i].PackageIndex = PhpHwCpuSensors[i].PackageIndex;
+    }
+
+    PhpHwCpuFirstOfUnit = PhAllocate(sizeof(BOOLEAN) * PhpHwProcessorCount);
+
+    if (!PhpHwQueryComputeUnits(&topology, PhpHwCpuFirstOfUnit, &PhpHwCpuUnitSampleRatio))
+    {
+        PhFree(PhpHwCpuFirstOfUnit);
+        PhpHwCpuFirstOfUnit = NULL;
+        PhpHwCpuUnitSampleRatio = 0;
+    }
+
+    PhFree(topology.Processors);
 }
 
 /**
@@ -607,6 +672,9 @@ NTSTATUS PhpHwCpuProbe(
 
     if ((PhpHwCpuClass = PhpHwCpuClassify(&PhpHwCpuIdentity)) == PhpHwCpuNone)
         return STATUS_NOT_SUPPORTED;
+
+    if (PhpHwCpuClass == PhpHwCpuAmdLegacy && (PhpHwCpuIdentity.DisplayFamily == 0x15 || PhpHwCpuIdentity.DisplayFamily == 0x16))
+        PhpHwCpuQueryComputeUnits();
 
     PhpHwCpuInitializePlan();
 
@@ -844,6 +912,50 @@ static VOID PhpHwCpuDropIdleEnergy(
 /**
  * Decodes the pass and publishes it: the values first, then their bits.
  */
+/**
+ * Sums the accumulator power of the compute units of an AMD family 15h or 16h package over the sample interval.
+ *
+ * \return FALSE unless every compute unit of the package has two samples.
+ */
+_Success_(return)
+static BOOLEAN PhpHwCpuComputeUnitPower(
+    _In_ ULONG Package,
+    _Out_ PFLOAT Watts
+    )
+{
+    FLOAT total = 0.0f;
+    BOOLEAN found = FALSE;
+
+    if (!PhpHwCpuFirstOfUnit || !PhpHwCpuRegisterActive(PhpHwRegCuPowerAccumulator) || !PhpHwCpuRegisterActive(PhpHwRegPtsc))
+        return FALSE;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[i];
+        ULONG both = (1UL << PhpHwRegCuPowerAccumulator) | (1UL << PhpHwRegPtsc);
+        ULONG64 current;
+        ULONG64 last;
+
+        if (!PhpHwCpuFirstOfUnit[i] || PhpHwCpuSensors[i].PackageIndex != Package)
+            continue;
+        if ((sample->Valid & sample->LastValid & both) != both)
+            return FALSE;
+
+        // The accumulator wraps at CU_MAX_PWR_ACCUMULATOR.
+        current = sample->Value[PhpHwRegCuPowerAccumulator];
+        last = sample->LastValue[PhpHwRegCuPowerAccumulator];
+        total += PhAmdComputeUnitPowerToWatts(
+            current >= last ? current - last : PhpHwCpuUnitMaxAccumulator + current - last,
+            sample->Value[PhpHwRegPtsc] - sample->LastValue[PhpHwRegPtsc],
+            PhpHwCpuUnitSampleRatio
+            );
+        found = TRUE;
+    }
+
+    *Watts = total;
+    return found;
+}
+
 static VOID PhpHwCpuPublish(
     VOID
     )
@@ -1077,7 +1189,10 @@ static VOID PhpHwCpuPublish(
             valid |= PH_HW_CAP_POWER_LIMIT2;
         }
 
-        if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, PhpHwCpuEnergyUnit, seconds, &watts))
+        if (
+            PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, PhpHwCpuEnergyUnit, seconds, &watts) ||
+            PhpHwCpuComputeUnitPower(i, &watts)
+            )
         {
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
@@ -1235,6 +1350,9 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuPlatformEnergySeen);
     PhpHwCpuFree(&PhpHwCpuUncoreIndex);
     PhpHwCpuFree(&PhpHwCpuLimitIndex);
+    PhpHwCpuFree(&PhpHwCpuFirstOfUnit);
+    PhpHwCpuUnitSampleRatio = 0;
+    PhpHwCpuUnitMaxAccumulator = 0;
     PhpHwCpuDramEnergyUnit = 0.0f;
     PhpHwCpuPlatformEnergyUnit = 0.0f;
     PhpHwCpuPowerUnit = 0.0f;
@@ -1255,7 +1373,7 @@ VOID PhpHwCpuDiagnostics(
     )
 {
     static CONST PCWSTR classNames[] = { L"none", L"Intel", L"AMD Zen", L"AMD 10h to 16h", L"Centaur" };
-    static CONST PCWSTR scopeNames[] = { L"thread", L"core", L"package" };
+    static CONST PCWSTR scopeNames[] = { L"thread", L"core", L"package", L"compute unit" };
     CHAR vendor[13];
 
     if (PhpHwCpuClass == PhpHwCpuNone)
