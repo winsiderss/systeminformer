@@ -285,7 +285,7 @@ function identify(input)
   end
 
   local failure, _, value = string.unpack('<i4I4I8', results, 1)
-  if failure ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(failure) then
     ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', group, number, failure)
     return failure
   end
@@ -396,7 +396,7 @@ local function read_sysreg(input)
     codes[p] = { MIDR, ID_AA64PFR0, ID_AA64DFR0 }
   end
   local status = read_ids(unknown, codes)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
 
@@ -404,7 +404,7 @@ local function read_sysreg(input)
   for _, p in ipairs(unknown) do
     local midr = p.ids[MIDR]
     gates[p] = {}
-    if midr.status ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(midr.status) then
       ksi.trace('MIDR_EL1 of processor %d:%d not read: 0x%x', p.group, p.number, midr.status)
       p.failure = midr.status
     else
@@ -421,10 +421,10 @@ local function read_sysreg(input)
       end
 
       local pfr0 = p.ids[ID_AA64PFR0]
-      p.amu = pfr0.status == nt.STATUS_SUCCESS and ((pfr0.value >> 44) & 0xf) >= 1
+      p.amu = nt.NT_SUCCESS(pfr0.status) and ((pfr0.value >> 44) & 0xf) >= 1
       local dfr0 = p.ids[ID_AA64DFR0]
       local version = (dfr0.value >> 8) & 0xf
-      p.pmu = dfr0.status == nt.STATUS_SUCCESS and version >= 1 and version < 0xf
+      p.pmu = nt.NT_SUCCESS(dfr0.status) and version >= 1 and version < 0xf
 
       local seen = {}
       for _, entry in pairs(p.permitted) do
@@ -438,7 +438,7 @@ local function read_sysreg(input)
   end
 
   status = read_ids(unknown, gates)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
 
@@ -449,7 +449,7 @@ local function read_sysreg(input)
       for _, list in ipairs({ codes[p], gates[p] }) do
         for _, code in ipairs(list) do
           local id = p.ids[code]
-          whole = whole and id.status == nt.STATUS_SUCCESS
+          whole = whole and nt.NT_SUCCESS(id.status)
           parts[#parts + 1] = string.pack('<i4I8', id.status, id.value)
         end
       end
@@ -486,7 +486,7 @@ local function read_sysreg(input)
         if gate then
           local id = record.ids[gate[1]]
           local value = (id.value >> gate[2]) & ((1 << gate[3]) - 1)
-          if id.status ~= nt.STATUS_SUCCESS or value < gate[4] or value > gate[5] then
+          if not nt.NT_SUCCESS(id.status) or value < gate[4] or value > gate[5] then
             ksi.trace(
               'system register 0x%x is gated off on ' .. 'processor %d:%d',
               code,
@@ -496,7 +496,7 @@ local function read_sysreg(input)
             item.status = nt.STATUS_NOT_FOUND
           end
         end
-        if item.status == nt.STATUS_SUCCESS and not prerequisite(record, code) then
+        if nt.NT_SUCCESS(item.status) and not prerequisite(record, code) then
           ksi.trace(
             'system register 0x%x is not implemented on ' .. 'processor %d:%d',
             code,
@@ -505,7 +505,7 @@ local function read_sysreg(input)
           )
           item.status = nt.STATUS_NOT_SUPPORTED
         end
-        if item.status == nt.STATUS_SUCCESS then
+        if nt.NT_SUCCESS(item.status) then
           reads[#reads + 1] = item
         end
       end
@@ -525,7 +525,7 @@ local function read_sysreg(input)
     for i, item in ipairs(reads) do
       local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
       item.status = s
-      if s == nt.STATUS_SUCCESS then
+      if nt.NT_SUCCESS(s) then
         item.value = value
       end
     end

@@ -1451,12 +1451,12 @@ end
 
 local function customer(s)
   local status, hi = rp(s, s.row.customer)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
   local lo
   status, lo = rp(s, s.row.customer + 1)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
   local id = (hi << 8) | lo
@@ -1580,7 +1580,7 @@ local function identify_chip(s)
   for _, family in ipairs(family_order(s)) do
     if not s.open_family or s.open_family == family then
       status = finish(s, configure(s, family))
-      if s.identified and status == nt.STATUS_SUCCESS then
+      if s.identified and nt.NT_SUCCESS(status) then
         remember_family(s)
       end
       if s.identified or s.busy then
@@ -1741,7 +1741,7 @@ function identify(input)
     return nt.STATUS_NOT_FOUND
   end
   local status = identify_chip(s)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
   return nt.STATUS_SUCCESS, string.pack('<I4I4I4', s.family.family, s.chip, s.customer or 0)
@@ -1780,7 +1780,7 @@ function read(input)
       return nt.STATUS_NOT_FOUND
     end
     status = identify_chip(s)
-    if status ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(status) then
       return status
     end
     monitor = s.row.monitor()
@@ -1802,10 +1802,10 @@ function read(input)
     end,
   })
   status = vendor(s, monitor)
-  if status == nt.STATUS_SUCCESS and k and s.family.paged then
+  if nt.NT_SUCCESS(status) and k and s.family.paged then
     status = customer(s)
   end
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     kept[s.port] = nil
     return status
   end

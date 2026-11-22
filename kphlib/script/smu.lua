@@ -1127,9 +1127,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(s0) or not nt.NT_SUCCESS(s1) then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
+    return nil, not nt.NT_SUCCESS(s0) and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base
@@ -1354,14 +1354,14 @@ local function store(s, register, value, mark)
   if st == nt.STATUS_RETRY then
     return st, false
   end
-  if st == nt.STATUS_SUCCESS or st ~= nt.STATUS_DEVICE_DATA_ERROR then
+  if nt.NT_SUCCESS(st) or st ~= nt.STATUS_DEVICE_DATA_ERROR then
     return st, true
   end
   local rs, held = smn_read(s, register)
   if rs == nt.STATUS_RETRY then
     return nt.STATUS_DEVICE_DATA_ERROR, true
   end
-  if rs ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(rs) then
     return rs, true
   end
   if held ~= value then
@@ -1378,7 +1378,7 @@ local function wait(s)
     local rs, value = smn_read(s, s.mailbox.rsp)
     if rs == nt.STATUS_RETRY and not late then
       value = 0
-    elseif rs ~= nt.STATUS_SUCCESS then
+    elseif not nt.NT_SUCCESS(rs) then
       st = rs
       return true
     end
@@ -1409,7 +1409,7 @@ local function post(s, op, mark)
     if ws == nt.STATUS_RETRY then
       ws = smn_write(s, m.msg, op, nil, mark)
     end
-    if ws == nt.STATUS_RETRY or ws == nt.STATUS_SUCCESS then
+    if ws == nt.STATUS_RETRY or nt.NT_SUCCESS(ws) then
       st = ws
       return true
     end
@@ -1417,12 +1417,12 @@ local function post(s, op, mark)
       st = ws
       return true
     end
-    if bs ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(bs) then
       st = nt.STATUS_SUCCESS
       return true
     end
     local as, after = smn_read(s, m.msg)
-    if as ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(as) then
       st = nt.STATUS_SUCCESS
       return true
     end
@@ -1436,7 +1436,7 @@ local function post(s, op, mark)
     end
     return false
   end)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     ksi.trace('MSG 0x%x not posted: 0x%x', op, st)
   end
   return st
@@ -1446,7 +1446,7 @@ end
 local function restore_idle(s, idle)
   for _ = 1, RESTORE_TRIES do
     local st = store(s, s.mailbox.rsp, idle)
-    if st == nt.STATUS_SUCCESS then
+    if nt.NT_SUCCESS(st) then
       return st
     end
     if st == nt.STATUS_DEVICE_NOT_READY then
@@ -1485,7 +1485,7 @@ local function command_body(s, op, args, words, state)
     ksi.trace('the mailbox stayed busy')
     return nt.STATUS_DEVICE_BUSY, false, results
   end
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, false, results
   end
   state.idle = resp
@@ -1493,7 +1493,7 @@ local function command_body(s, op, args, words, state)
   st, issued = store(s, m.rsp, 0, function()
     state.clearing = true
   end)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     state.restore = issued and st ~= nt.STATUS_RETRY
     state.clearing = false
     return st, false, results
@@ -1502,7 +1502,7 @@ local function command_body(s, op, args, words, state)
   state.clearing = false
   for i = 1, math.min(m.args, 6) do
     st = store(s, m.arg + (i - 1) * 4, args[i])
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st, false, results
     end
   end
@@ -1513,11 +1513,11 @@ local function command_body(s, op, args, words, state)
     return st, false, results
   end
   state.restore = false
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, false, results
   end
   st, resp = wait(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, false, results
   end
   if resp ~= 0x01 then
@@ -1526,7 +1526,7 @@ local function command_body(s, op, args, words, state)
   end
   for i = 1, words do
     st, results[i] = read_result(s, m.arg + (i - 1) * 4)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st, false, { 0, 0, 0, 0, 0, 0 }, resp
     end
   end
@@ -1553,7 +1553,7 @@ local function transact(s, op, args, words)
   if state.restore and state.idle ~= 0 then
     local rs = restore_idle(s, state.idle)
     state.restore = false
-    if rs ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(rs) then
       st = rs
     end
   end
@@ -1572,7 +1572,7 @@ local function firmware_version(s)
   local m = s.mailbox
   local args = { m.version_arg, 0, 0, 0, 0, 0 }
   local st, _, first = transact(s, m.version, args, 1)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, 0
   end
   if first[1] == 0 or first[1] == ALL_ONES then
@@ -1581,7 +1581,7 @@ local function firmware_version(s)
   end
   local again
   st, _, again = transact(s, m.version, args, 1)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, 0
   end
   if again[1] == 0 or again[1] == ALL_ONES then
@@ -1615,7 +1615,7 @@ function identify(input)
   end
 
   local st, firmware = firmware_version(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
 
@@ -1624,7 +1624,7 @@ function identify(input)
   if t then
     local completed, results
     st, completed, results = row_command(s, t.version)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       ksi.trace('the table version was not read: 0x%x', st)
       return st
     end
@@ -1668,7 +1668,7 @@ function command(input)
   end
 
   local st = firmware_version(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
 
@@ -1743,9 +1743,9 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == nt.STATUS_SUCCESS
+    nt.NT_SUCCESS(s0)
     and maximum >= 0x80000008
-    and s1 == nt.STATUS_SUCCESS
+    and nt.NT_SUCCESS(s1)
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
@@ -1753,7 +1753,7 @@ local function address_bits()
     return kept.bits
   end
   ksi.trace('address width 36: CPUID 80000008h not usable')
-  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
+  if nt.NT_SUCCESS(s0) and nt.NT_SUCCESS(s1) then
     kept.bits = 36
   end
   return 36
@@ -1806,7 +1806,7 @@ local function address_map()
   local map = {}
   for i, index in ipairs(indexes) do
     local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
-    if s == nt.STATUS_SUCCESS then
+    if nt.NT_SUCCESS(s) then
       map[index] = value
     end
   end
@@ -1919,7 +1919,7 @@ local function check_amd_df(df, root, first, last, bits)
     return nt.STATUS_SUCCESS
   end
   local st = check_range(page, page + PAGE, bits)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     ksi.trace('ECAM page 0x%x refused: 0x%x', page, st)
     return st
   end
@@ -1974,13 +1974,13 @@ local function table_base(s, t)
   local st, results
   if t.setup ~= 0 then
     st = row_command(s, t.setup)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st, 0
     end
   end
   local completed
   st, completed, results = row_command(s, t.base)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st, 0
   end
   local base = results[t.base_low + 1]
@@ -2019,7 +2019,7 @@ function table(input)
   end
 
   local st = firmware_version(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
   local commands = s.mailbox.commands
@@ -2032,7 +2032,7 @@ function table(input)
 
   local completed, results
   st, completed, results = row_command(s, t.version)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     ksi.trace('the table version was not read: 0x%x', st)
     return st
   end
@@ -2045,24 +2045,24 @@ function table(input)
 
   if t.setup ~= 0 and t.transfer ~= 0 then
     st = row_command(s, t.setup)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st
     end
   end
   if t.transfer ~= 0 then
     st = row_command(s, t.transfer)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st
     end
   end
 
   local base, check, reply
   st, base, reply = table_base(s, t)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
   st, check = table_base(s, t)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
   if check ~= base then
@@ -2102,19 +2102,19 @@ function table(input)
 
   if not kt then
     st = check_amd_dram(base, rangeEnd, bits)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       ksi.trace('table version 0x%x base 0x%x refused: 0x%x', version, base, st)
       return st
     end
     if t.dfmap then
       st = check_amd_df(t.dfmap, s.root, base, rangeEnd, bits)
-      if st ~= nt.STATUS_SUCCESS then
+      if not nt.NT_SUCCESS(st) then
         ksi.trace('table base 0x%x refused by the data fabric: 0x%x', base, st)
         return st
       end
     end
     st = check_range(base, rangeEnd, bits)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       ksi.trace('table version 0x%x refused: 0x%x', version, st)
       return st
     end
@@ -2148,7 +2148,7 @@ function table(input)
   end
 
   st, check = table_base(s, t)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
   if check ~= base then

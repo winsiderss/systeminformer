@@ -1271,9 +1271,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(s0) or not nt.NT_SUCCESS(s1) then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
+    return nil, not nt.NT_SUCCESS(s0) and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base
@@ -1430,16 +1430,16 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == nt.STATUS_SUCCESS
+    nt.NT_SUCCESS(s0)
     and maximum >= 0x80000008
-    and s1 == nt.STATUS_SUCCESS
+    and nt.NT_SUCCESS(s1)
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
     kept.bits = eax & 0xff
     return kept.bits
   end
-  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
+  if nt.NT_SUCCESS(s0) and nt.NT_SUCCESS(s1) then
     kept.bits = 36
   end
   return 36
@@ -1637,7 +1637,7 @@ end
 local function derive(s, row, length)
   if row.d0 then
     local st = check_d0(s)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return nil, st
     end
   end
@@ -1826,7 +1826,7 @@ function read(input)
         return bitsFailed
       end
       local st = check_range(base & -PAGE, (windowEnd + PAGE - 1) & -PAGE, bits)
-      if st ~= nt.STATUS_SUCCESS then
+      if not nt.NT_SUCCESS(st) then
         return st
       end
       local mapFailed
@@ -1877,7 +1877,7 @@ function read(input)
         gone.map:release()
       end
       for _, e in ipairs(entries) do
-        if e.status == nt.STATUS_SUCCESS then
+        if nt.NT_SUCCESS(e.status) then
           e.status, e.value = nt.STATUS_DEVICE_NOT_READY, 0
         end
       end

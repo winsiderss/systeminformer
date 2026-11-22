@@ -2526,7 +2526,7 @@ local function query(processors, gates)
     local function take()
       local s, a, b, c, d = string.unpack('<i4I4I4I4I4', results, at)
       at = at + 20
-      if s ~= nt.STATUS_SUCCESS then
+      if not nt.NT_SUCCESS(s) then
         p.invalid = true
       end
       return { a, b, c, d }
@@ -2605,7 +2605,7 @@ function identify(input)
   kept[(group << 16) | number] = nil
   local processor = { group = group, number = number }
   local status = query({ processor }, false)
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
   if processor.invalid then
@@ -2657,7 +2657,7 @@ local function read_msr(input)
 
   if #unknown > 0 then
     local status = query(unknown, true)
-    if status ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(status) then
       return status
     end
   end
@@ -2725,7 +2725,7 @@ local function read_msr(input)
             item.status = nt.STATUS_NOT_FOUND
           end
         end
-        if item.status == nt.STATUS_SUCCESS then
+        if nt.NT_SUCCESS(item.status) then
           item.entry = entry
           reads[#reads + 1] = item
         end
@@ -2749,7 +2749,7 @@ local function read_msr(input)
     end
     for i, item in ipairs(reads) do
       local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
-      if s ~= nt.STATUS_SUCCESS then
+      if not nt.NT_SUCCESS(s) then
         item.status = s
       elseif type(item.entry) == 'table' and item.entry.mask then
         item.value = value & item.entry.mask

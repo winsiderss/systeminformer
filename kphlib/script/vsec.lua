@@ -263,16 +263,16 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == nt.STATUS_SUCCESS
+    nt.NT_SUCCESS(s0)
     and maximum >= 0x80000008
-    and s1 == nt.STATUS_SUCCESS
+    and nt.NT_SUCCESS(s1)
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
     kept.bits = eax & 0xff
     return kept.bits
   end
-  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
+  if nt.NT_SUCCESS(s0) and nt.NT_SUCCESS(s1) then
     kept.bits = 36
   end
   return 36
@@ -592,7 +592,7 @@ local function table_of(s, op, position, dwords, bars)
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   local st = check_range(first & -PAGE, last, bits)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return nil, st
   end
   local start = first & -8
@@ -703,7 +703,7 @@ end
 -- the status and whether a read failed when the walk fails.
 local function walk(s, op)
   local st = check_d0(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return nil, st, st == nt.STATUS_DEVICE_NOT_READY
   end
   local positions, failed, readFailed = capabilities(s, op.discovery)
@@ -930,7 +930,7 @@ function read(input)
       end
       local bits, bitsFailed = address_bits()
       local st = bits and check_range(first, last, bits) or bitsFailed
-      if st ~= nt.STATUS_SUCCESS then
+      if not nt.NT_SUCCESS(st) then
         if not s.kept then
           s.device:release()
         end
@@ -961,7 +961,7 @@ function read(input)
           e.status = nt.STATUS_SUCCESS
           if e.value == all_ones(e.width) then
             local st = check_d0(s)
-            local base = st == nt.STATUS_SUCCESS and bar_base(s, region.bar)
+            local base = nt.NT_SUCCESS(st) and bar_base(s, region.bar)
             if base ~= region.barBase then
               ksi.trace('offset 0x%x read all-ones; the region is gone', e.offset)
               e.status, e.value = nt.STATUS_DEVICE_NOT_READY, 0

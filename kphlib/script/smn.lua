@@ -546,9 +546,9 @@ local function cpu_identity()
   end
   local s0, _, b, c, d = string.unpack('<i4I4I4I4I4', results, 1)
   local s1, signature = string.unpack('<i4I4', results, 21)
-  if s0 ~= nt.STATUS_SUCCESS or s1 ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(s0) or not nt.NT_SUCCESS(s1) then
     ksi.trace('CPUID of processor 0:0 failed: 0x%x 0x%x', s0, s1)
-    return nil, s0 ~= nt.STATUS_SUCCESS and s0 or s1
+    return nil, not nt.NT_SUCCESS(s0) and s0 or s1
   end
   local base = (signature >> 8) & 0xf
   local family = base

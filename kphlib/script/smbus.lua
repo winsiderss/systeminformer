@@ -471,16 +471,16 @@ local function address_bits()
   local s0, maximum = string.unpack('<i4I4', results, 1)
   local s1, eax = string.unpack('<i4I4', results, 21)
   if
-    s0 == nt.STATUS_SUCCESS
+    nt.NT_SUCCESS(s0)
     and maximum >= 0x80000008
-    and s1 == nt.STATUS_SUCCESS
+    and nt.NT_SUCCESS(s1)
     and eax & 0xff >= 32
     and eax & 0xff < 64
   then
     kept.bits = eax & 0xff
     return kept.bits
   end
-  if s0 == nt.STATUS_SUCCESS and s1 == nt.STATUS_SUCCESS then
+  if nt.NT_SUCCESS(s0) and nt.NT_SUCCESS(s1) then
     kept.bits = 36
   end
   return 36
@@ -881,7 +881,7 @@ local function map_view(s)
     return nil, failed
   end
   local st = check_range(first, last, bits)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     ksi.trace('PM view 0x%x refused: 0x%x', l.pm_base, st)
     return nil, st
   end
@@ -1064,7 +1064,7 @@ function identify(input)
       return nt.STATUS_DEVICE_NOT_READY
     end
     local st = i801_open(s)
-    if st ~= nt.STATUS_SUCCESS then
+    if not nt.NT_SUCCESS(st) then
       return st
     end
     local revision = ksi.hw.pci_read(s.device, 0x08, 1)
@@ -1079,7 +1079,7 @@ function identify(input)
   if s.view then
     close_view(s, s.view)
   end
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
   return nt.STATUS_SUCCESS, string.pack('<I2I2I4I4I4', s.vendor, s.id, s.revision, 1, s.base)
@@ -1295,7 +1295,7 @@ local function i801_read(s, entries, port)
     return nt.STATUS_SUCCESS, table.concat(denied)
   end
   local st = i801_open(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
 
@@ -1336,14 +1336,14 @@ local function i801_read(s, entries, port)
       local cnt = e[3] == 1 and 0x0c or 0x08
       local sts
       es, sts = i801_transact(s, hs, e[2], cnt)
-      if es == nt.STATUS_SUCCESS then
+      if nt.NT_SUCCESS(es) then
         local v = host_in(s, HST_DAT0)
         if e[3] == 1 then
           v = v | (host_in(s, HST_DAT1) << 8)
         end
         local abort
         es, abort = i801_finish(s, hs, e[2], cnt, sts)
-        if es == nt.STATUS_SUCCESS then
+        if nt.NT_SUCCESS(es) then
           value = v
         elseif abort then
           stopped = true
@@ -1358,7 +1358,7 @@ local function i801_read(s, entries, port)
   if not i801_confirm(s) then
     ksi.trace('the host changed during the read')
     for _, o in ipairs(output) do
-      if o[1] == nt.STATUS_SUCCESS or o[1] == nt.STATUS_NO_SUCH_DEVICE then
+      if nt.NT_SUCCESS(o[1]) or o[1] == nt.STATUS_NO_SUCH_DEVICE then
         o[1], o[2] = nt.STATUS_DEVICE_NOT_READY, 0
       end
     end
@@ -1430,7 +1430,7 @@ function read(input)
     end,
   })
   local st = open_host(s)
-  if st ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(st) then
     return st
   end
 
@@ -1534,19 +1534,19 @@ function read(input)
             stopped = true
           end
         end
-        if es == nt.STATUS_SUCCESS then
+        if nt.NT_SUCCESS(es) then
           local hs = (e[1] << 1) | 1
           local cnt = e[3] == 1 and 0x0c or 0x08
           local sts
           es, sts = transact(s, hs, e[2], cnt)
-          if es == nt.STATUS_SUCCESS then
+          if nt.NT_SUCCESS(es) then
             local v = host_in(s, HST_DAT0)
             if e[3] == 1 then
               v = v | (host_in(s, HST_DAT1) << 8)
             end
             local abort
             es, abort = finish(s, hs, e[2], cnt, sts)
-            if es == nt.STATUS_SUCCESS then
+            if nt.NT_SUCCESS(es) then
               value = v
             elseif abort then
               stopped = true
@@ -1564,7 +1564,7 @@ function read(input)
       ksi.trace('the host changed during the read')
       local to = cs == MOVED and nt.STATUS_RETRY or nt.STATUS_DEVICE_NOT_READY
       for _, o in ipairs(output) do
-        if o[1] == nt.STATUS_SUCCESS or o[1] == nt.STATUS_NO_SUCH_DEVICE then
+        if nt.NT_SUCCESS(o[1]) or o[1] == nt.STATUS_NO_SUCH_DEVICE then
           o[1], o[2] = to, 0
         end
       end
@@ -1577,7 +1577,7 @@ function read(input)
     ksi.trace('the port select was not put back')
     status = nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  if status ~= nt.STATUS_SUCCESS then
+  if not nt.NT_SUCCESS(status) then
     return status
   end
 
