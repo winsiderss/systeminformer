@@ -177,7 +177,7 @@ int KphLuaNilErrorStatus(
     _In_ NTSTATUS Status
     )
 {
-    NT_ASSERT(!NT_SUCCESS(Status));
+    NT_ASSERT(Status != STATUS_SUCCESS);
 
     lua_pushnil(State);
     KphLuaPushStatus(State, Status);
