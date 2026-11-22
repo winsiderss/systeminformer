@@ -555,6 +555,134 @@ ULONG PhpHwEnumeratePciFunctions(
     return found;
 }
 
+/**
+ * Normalizes an ACPI namespace path as the acpi script does: a backslash, then segments of 1 to 4 of A-Z, _ and (past
+ * the first) 0-9 between dots, each without its trailing underscore padding.
+ *
+ * \param Text The path, with or without its leading backslash.
+ * \param Path Receives the normalized path.
+ * \param Length The number of characters Path holds.
+ * \return TRUE when Text is such a path and it fits.
+ */
+_Success_(return)
+static BOOLEAN PhpHwNormalizeAcpiPath(
+    _In_ PCWSTR Text,
+    _Out_writes_z_(Length) PSTR Path,
+    _In_ ULONG Length
+    )
+{
+    ULONG at = 0;
+
+    if (*Text == L'\\')
+        Text++;
+
+    while (TRUE)
+    {
+        CHAR segment[4];
+        ULONG count = 0;
+
+        while (*Text && *Text != L'.')
+        {
+            WCHAR c = *Text++;
+
+            if (count == RTL_NUMBER_OF(segment))
+                return FALSE;
+            if (!((c >= L'A' && c <= L'Z') || c == L'_' || (count && c >= L'0' && c <= L'9')))
+                return FALSE;
+
+            segment[count++] = (CHAR)c;
+        }
+
+        if (!count)
+            return FALSE;
+
+        while (count > 1 && segment[count - 1] == '_')
+            count--;
+
+        if (at + 1 + count >= Length)
+            return FALSE;
+
+        Path[at] = at ? '.' : '\\';
+        at++;
+        memcpy(Path + at, segment, count);
+        at += count;
+
+        if (!*Text)
+            break;
+
+        Text++;
+    }
+
+    Path[at] = ANSI_NULL;
+    return TRUE;
+}
+
+/**
+ * Finds the device tree's name of ACPI devices: the friendly name, else the description, of the device whose BIOS
+ * device name is the namespace path.
+ *
+ * \param Paths The normalized namespace paths.
+ * \param Count The number of paths.
+ * \param Names Receives the name of each path's device, NULL when none was found.
+ */
+VOID PhpHwQueryAcpiDeviceNames(
+    _In_reads_(Count) const PCSTR* Paths,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PPH_STRING* Names
+    )
+{
+    HDEVINFO deviceInfoSet;
+    SP_DEVINFO_DATA deviceInfoData;
+
+    memset(Names, 0, sizeof(PPH_STRING) * Count);
+
+    deviceInfoSet = SetupDiGetClassDevsW(NULL, L"ACPI", NULL, DIGCF_ALLCLASSES | DIGCF_PRESENT);
+
+    if (deviceInfoSet == INVALID_HANDLE_VALUE)
+        return;
+
+    memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
+    deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+    for (ULONG i = 0; SetupDiEnumDeviceInfo(deviceInfoSet, i, &deviceInfoData); i++)
+    {
+        DEVPROPTYPE propertyType;
+        WCHAR text[256];
+        CHAR path[256];
+
+        if (!SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_BiosDeviceName, &propertyType, (PBYTE)text, sizeof(text) - sizeof(WCHAR), NULL, 0))
+            continue;
+        if (propertyType != DEVPROP_TYPE_STRING)
+            continue;
+
+        text[RTL_NUMBER_OF(text) - 1] = UNICODE_NULL;
+
+        if (!PhpHwNormalizeAcpiPath(text, path, RTL_NUMBER_OF(path)))
+            continue;
+
+        for (ULONG j = 0; j < Count; j++)
+        {
+            WCHAR name[256];
+
+            if (Names[j] || strcmp(Paths[j], path) != 0)
+                continue;
+
+            if (
+                (SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_FriendlyName, &propertyType, (PBYTE)name, sizeof(name) - sizeof(WCHAR), NULL, 0) && propertyType == DEVPROP_TYPE_STRING) ||
+                (SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_DeviceDesc, &propertyType, (PBYTE)name, sizeof(name) - sizeof(WCHAR), NULL, 0) && propertyType == DEVPROP_TYPE_STRING)
+                )
+            {
+                name[RTL_NUMBER_OF(name) - 1] = UNICODE_NULL;
+
+                if (name[0])
+                    Names[j] = PhCreateString(name);
+            }
+        }
+    }
+
+    SetupDiDestroyDeviceInfoList(deviceInfoSet);
+}
+
 _Function_class_(PH_ENUM_SMBIOS_CALLBACK)
 static BOOLEAN NTAPI PhpHwSmbiosMemoryCallback(
     _In_ ULONG_PTR EnumHandle,

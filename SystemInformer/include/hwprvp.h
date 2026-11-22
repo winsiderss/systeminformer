@@ -195,6 +195,22 @@ VOID PhpHwSmuPublish(
     _In_ const PH_HW_SMU_DECODE* Decode
     );
 
+NTSTATUS PhpHwAcpiProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwAcpiPass(
+    VOID
+    );
+
+VOID PhpHwAcpiEnd(
+    VOID
+    );
+
+VOID PhpHwAcpiDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 NTSTATUS PhpHwSmbusProbe(
     VOID
     );
@@ -392,6 +408,12 @@ VOID PhpHwQueryMemoryDevices(
 
 VOID PhpHwFreeMemoryDevices(
     _Inout_ PPHP_HW_MEMORY_DEVICES Devices
+    );
+
+VOID PhpHwQueryAcpiDeviceNames(
+    _In_reads_(Count) const PCSTR* Paths,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PPH_STRING* Names
     );
 
 _Success_(return)
