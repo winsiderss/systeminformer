@@ -13,7 +13,7 @@
 #define _PH_SEARCHMATCH_H
 
 //
-// Private search matching engine shared by the search controls (searchbox.c, searchboxextended.cpp).
+// Private search matching engine used by the search control (controls\searchbox.c).
 // The MatchHandle passed to search callbacks is a pointer to a PH_SEARCH_MATCH_STATE.
 //
 
