@@ -288,6 +288,11 @@ BOOLEAN PhpHwCpuQueryIntel(
     _Out_ PPH_CPU_IDENTITY Identity
     );
 
+_Success_(return)
+BOOLEAN PhpHwCpuQueryAmdLegacy(
+    _Out_ PPH_CPU_IDENTITY Identity
+    );
+
 BOOLEAN PhpHwCpuThermalPlanned(
     VOID
     );
@@ -402,8 +407,20 @@ VOID PhpHwPciQueryLegacyClock(
     _Out_ PULONG ClockPowerTimingControl0
     );
 
+NTSTATUS PhpHwPciProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwPciPass(
+    VOID
+    );
+
 VOID PhpHwPciEnd(
     VOID
+    );
+
+VOID PhpHwPciDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
     );
 
 _Success_(return)

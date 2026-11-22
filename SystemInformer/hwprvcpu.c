@@ -1730,6 +1730,24 @@ BOOLEAN PhpHwCpuQueryIntel(
 }
 
 /**
+ * Retrieves the processor identity of the session when the processor is AMD family 10h to 16h.
+ *
+ * \param Identity Receives the identity.
+ * \return TRUE for such a processor this session identified.
+ */
+_Success_(return)
+BOOLEAN PhpHwCpuQueryAmdLegacy(
+    _Out_ PPH_CPU_IDENTITY Identity
+    )
+{
+    if (PhpHwCpuClass != PhpHwCpuAmdLegacy)
+        return FALSE;
+
+    *Identity = PhpHwCpuIdentity;
+    return TRUE;
+}
+
+/**
  * Determines whether the session reads the processor's thermal registers.
  */
 BOOLEAN PhpHwCpuThermalPlanned(
