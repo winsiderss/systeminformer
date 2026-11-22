@@ -10,9 +10,3 @@
  */
 
 #include <kph.h>
-
-//
-// The device property keys' definitions, for the hardware library.
-//
-#include <initguid.h>
-#include <devpkey.h>

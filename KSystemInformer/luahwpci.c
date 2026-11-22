@@ -13,7 +13,6 @@
 #include <script.h>
 #include <initguid.h>
 #include <wdmguid.h>
-#include <devpkey.h>
 
 #include <trace.h>
 
@@ -476,61 +475,6 @@ ULONG KphpLuaHwPciCheckWidth(
 }
 
 /**
- * \brief Retrieves the status of a configuration access the bus driver
- * refused.
- *
- * \param[in] Device The device.
- *
- * \return STATUS_DEVICE_POWERED_OFF when the function is not in D0,
- * STATUS_IO_DEVICE_ERROR otherwise.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphpLuaHwPciRefusedStatus(
-    _In_ PKPH_LUA_HW_PCI_DEVICE Device
-    )
-{
-    NTSTATUS status;
-    CM_POWER_DATA power;
-    ULONG length;
-    DEVPROPTYPE type;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    RtlZeroMemory(&power, sizeof(power));
-    length = 0;
-    type = DEVPROP_TYPE_EMPTY;
-
-    status = IoGetDevicePropertyData(Device->Pdo,
-                                     &DEVPKEY_Device_PowerData,
-                                     LOCALE_NEUTRAL,
-                                     0,
-                                     sizeof(power),
-                                     &power,
-                                     &length,
-                                     &type);
-    if (!NT_SUCCESS(status) ||
-        (type != DEVPROP_TYPE_BINARY) ||
-        (length != sizeof(power)))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "PowerData query: %!STATUS! type %lu length %lu",
-                      status,
-                      (ULONG)type,
-                      length);
-
-        return STATUS_IO_DEVICE_ERROR;
-    }
-
-    if (power.PD_MostRecentPowerState != PowerDeviceD0)
-    {
-        return STATUS_DEVICE_POWERED_OFF;
-    }
-
-    return STATUS_IO_DEVICE_ERROR;
-}
-
-/**
  * \brief Reads configuration space (ksi.hw.pci_read).
  *
  * \details May raise a Lua error.
@@ -545,7 +489,6 @@ int KphpLuaHwPciRead(
     )
 {
     int results;
-    NTSTATUS status;
     PKPH_LUA_HW_PCI_DEVICE device;
     ULONG width;
     ULONG offset;
@@ -574,9 +517,7 @@ int KphpLuaHwPciRead(
                       width,
                       bytes);
 
-        status = KphpLuaHwPciRefusedStatus(device);
-
-        results = KphLuaNilErrorStatus(State, status);
+        results = KphLuaNilErrorStatus(State, STATUS_IO_DEVICE_ERROR);
         goto Exit;
     }
 
@@ -604,7 +545,6 @@ int KphpLuaHwPciReadBlock(
     )
 {
     int results;
-    NTSTATUS status;
     PKPH_LUA_HW_PCI_DEVICE device;
     lua_Integer length;
     ULONG offset;
@@ -645,9 +585,7 @@ int KphpLuaHwPciReadBlock(
                       (ULONG)length,
                       bytes);
 
-        status = KphpLuaHwPciRefusedStatus(device);
-
-        results = KphLuaNilErrorStatus(State, status);
+        results = KphLuaNilErrorStatus(State, STATUS_IO_DEVICE_ERROR);
         goto Exit;
     }
 
@@ -675,7 +613,6 @@ int KphpLuaHwPciWrite(
     )
 {
     int results;
-    NTSTATUS status;
     PKPH_LUA_HW_PCI_DEVICE device;
     ULONG width;
     ULONG offset;
@@ -712,9 +649,7 @@ int KphpLuaHwPciWrite(
                       width,
                       bytes);
 
-        status = KphpLuaHwPciRefusedStatus(device);
-
-        results = KphLuaNilErrorStatus(State, status);
+        results = KphLuaNilErrorStatus(State, STATUS_IO_DEVICE_ERROR);
         goto Exit;
     }
 
