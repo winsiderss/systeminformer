@@ -68,8 +68,12 @@ typedef struct _PHP_HW_DIMM
     UCHAR PmicFailures;
     ULONG Index; // in the named-sensor store
     ULONG VoltageIndex[PH_HW_PMIC_RAILS];
-    ULONG PmicIndex[PH_HW_PMIC_SENSORS];
+    ULONG PmicIndex[PH_HW_PMIC_SENSORS]; // ULONG_MAX until the sensor's first reading
     FLOAT Voltages[PH_HW_PMIC_RAILS]; // the set points
+    WCHAR Slot[PH_HW_NAMED_SENSOR_NAME_LENGTH]; // the slot's name, for the PMIC sensors
+    BOOLEAN PmicTelemetryRead; // PmicTelemetry and PmicTelemetryStatus hold the last read, for the report
+    UCHAR PmicTelemetry[PHP_HW_PMIC_TELEMETRY];
+    NTSTATUS PmicTelemetryStatus;
 } PHP_HW_DIMM, *PPHP_HW_DIMM;
 
 // The SPD of a slot as probed, for the report.
@@ -714,41 +718,7 @@ static VOID PhpHwSmbusNameDimms(
             PhDereferenceObject(name);
         }
 
-        // The PMIC sensors are listed now and have a value from their first reading.
-        for (ULONG j = 0; dimm->Pmic && j < PH_HW_PMIC_SENSORS; j++)
-        {
-            PH_HW_NAMED_SENSOR_KIND kind;
-            ULONG id;
-
-            if (j < PH_HW_PMIC_SENSOR_POWER)
-            {
-                kind = PhHwNamedSensorDimmCurrent;
-                id = i * PH_HW_PMIC_RAILS + j;
-                name = PhFormatString(L"%s %s", slot->Buffer, rails[j]);
-            }
-            else if (j < PH_HW_PMIC_SENSOR_POWER + PH_HW_PMIC_RAILS)
-            {
-                kind = PhHwNamedSensorDimmPower;
-                id = i * (PH_HW_PMIC_RAILS + 1) + j - PH_HW_PMIC_SENSOR_POWER;
-                name = PhFormatString(L"%s %s", slot->Buffer, rails[j - PH_HW_PMIC_SENSOR_POWER]);
-            }
-            else if (j < PH_HW_PMIC_SENSOR_TEMPERATURE)
-            {
-                kind = PhHwNamedSensorDimmPower;
-                id = i * (PH_HW_PMIC_RAILS + 1) + PH_HW_PMIC_RAILS;
-                name = PhFormatString(L"%s total", slot->Buffer);
-            }
-            else
-            {
-                kind = PhHwNamedSensorDimmPmicTemperature;
-                id = i;
-                name = PhFormatString(L"%s PMIC (coarse)", slot->Buffer);
-            }
-
-            dimm->PmicIndex[j] = PhpHwAddNamedSensor(kind, 0, id, name->Buffer);
-            PhDereferenceObject(name);
-        }
-
+        PhCopyStringZ(slot->Buffer, SIZE_MAX, dimm->Slot, RTL_NUMBER_OF(dimm->Slot), NULL);
         PhDereferenceObject(slot);
     }
 
@@ -756,16 +726,69 @@ static VOID PhpHwSmbusNameDimms(
 }
 
 /**
- * Sets the PMIC telemetry of a slot; without values every one has no value.
+ * Lists a PMIC sensor of a slot on its first reading.
+ *
+ * \param Dimm The slot.
+ * \param Sensor The PH_HW_PMIC_SENSOR_* index.
+ */
+static VOID PhpHwListPmicSensor(
+    _Inout_ PPHP_HW_DIMM Dimm,
+    _In_ ULONG Sensor
+    )
+{
+    static CONST PCWSTR rails[PH_HW_PMIC_RAILS] = { L"VDD", L"VDDQ", L"VPP" };
+    ULONG i = (ULONG)(Dimm - PhpHwDimms);
+    PH_HW_NAMED_SENSOR_KIND kind;
+    ULONG id;
+    PPH_STRING name;
+
+    if (Sensor < PH_HW_PMIC_SENSOR_POWER)
+    {
+        kind = PhHwNamedSensorDimmCurrent;
+        id = i * PH_HW_PMIC_RAILS + Sensor;
+        name = PhFormatString(L"%s %s", Dimm->Slot, rails[Sensor]);
+    }
+    else if (Sensor < PH_HW_PMIC_SENSOR_POWER + PH_HW_PMIC_RAILS)
+    {
+        kind = PhHwNamedSensorDimmPower;
+        id = i * (PH_HW_PMIC_RAILS + 1) + Sensor - PH_HW_PMIC_SENSOR_POWER;
+        name = PhFormatString(L"%s %s", Dimm->Slot, rails[Sensor - PH_HW_PMIC_SENSOR_POWER]);
+    }
+    else if (Sensor < PH_HW_PMIC_SENSOR_TEMPERATURE)
+    {
+        kind = PhHwNamedSensorDimmPower;
+        id = i * (PH_HW_PMIC_RAILS + 1) + PH_HW_PMIC_RAILS;
+        name = PhFormatString(L"%s total", Dimm->Slot);
+    }
+    else
+    {
+        kind = PhHwNamedSensorDimmPmicTemperature;
+        id = i;
+        name = PhFormatString(L"%s PMIC (coarse)", Dimm->Slot);
+    }
+
+    Dimm->PmicIndex[Sensor] = PhpHwAddNamedSensor(kind, 0, id, name->Buffer);
+    PhDereferenceObject(name);
+}
+
+/**
+ * Sets the PMIC telemetry of a slot; without values every one has no value. A sensor is listed on its first reading.
  */
 static VOID PhpHwSetPmicSensors(
-    _In_ PPHP_HW_DIMM Dimm,
+    _Inout_ PPHP_HW_DIMM Dimm,
     _In_reads_opt_(PH_HW_PMIC_SENSORS) const BOOLEAN* Valid,
     _In_reads_opt_(PH_HW_PMIC_SENSORS) const FLOAT* Values
     )
 {
     for (ULONG i = 0; Dimm->Pmic && i < PH_HW_PMIC_SENSORS; i++)
-        PhpHwSetNamedSensor(Dimm->PmicIndex[i], Valid && Values && Valid[i], Values ? Values[i] : 0.0f);
+    {
+        BOOLEAN valid = Valid && Values && Valid[i];
+
+        if (valid && Dimm->PmicIndex[i] == ULONG_MAX)
+            PhpHwListPmicSensor(Dimm, i);
+
+        PhpHwSetNamedSensor(Dimm->PmicIndex[i], valid, Values ? Values[i] : 0.0f);
+    }
 }
 
 /**
@@ -1092,7 +1115,12 @@ static NTSTATUS PhpHwSmbusRead(
                 result = itemResult;
                 pmicStatus = value[j].Status;
             }
+
+            dimm->PmicTelemetry[j] = (UCHAR)value[j].Value;
         }
+
+        dimm->PmicTelemetryRead = TRUE;
+        dimm->PmicTelemetryStatus = pmicStatus;
 
         switch (result)
         {
@@ -1418,6 +1446,25 @@ VOID PhpHwSmbusDiagnostics(
                 PhpHwAppendPmic(Builder, PhpHwPmicReportRegisters[i]);
             else
                 PhAppendFormatStringBuilder(Builder, L"\n    PMIC 0x%08lx", PhpHwPmicReportStatus[i]);
+        }
+
+        if (PhpHwDimms[i].PmicTelemetryRead)
+        {
+            PUCHAR telemetry = PhpHwDimms[i].PmicTelemetry;
+
+            // A zero SWA (0Ch) is the meter off: no current or power has a value.
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"\n    PMIC telemetry: status 0x%08lx, 0Ch %02x 0Eh %02x 0Fh %02x 1Ah %02x 1Bh %02x 33h %02x%s",
+                PhpHwDimms[i].PmicTelemetryStatus,
+                telemetry[0],
+                telemetry[1],
+                telemetry[2],
+                telemetry[3],
+                telemetry[4],
+                telemetry[5],
+                NT_SUCCESS(PhpHwDimms[i].PmicTelemetryStatus) && !telemetry[0] ? L", meter off" : L""
+                );
         }
 
         PhAppendCharStringBuilder(Builder, L'\n');
