@@ -265,6 +265,7 @@
         <ClCompile Include="hwprvsmbus.c" />
         <ClCompile Include="hwprvacpi.c" />
         <ClCompile Include="hwprvvsec.c" />
+        <ClCompile Include="hwprvec.c" />
         <ClCompile Include="hwprvctr.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwprvpci.c" />
