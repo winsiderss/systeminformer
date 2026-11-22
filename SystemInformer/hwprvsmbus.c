@@ -14,8 +14,8 @@
 #include <hwdimm.h>
 #include <trace.h>
 
-// Collector smbus: the memory modules' thermal sensors on the first SMBus host that has them, one KphHwSmbusRead
-// every 3 seconds (the family's interval) carrying every module.
+// Collector smbus: the memory modules' thermal sensors on the first SMBus host that has them, and their DDR5 PMICs,
+// one KphHwSmbusRead every 3 seconds (the family's interval) carrying every module.
 
 #define PHP_HW_SMBUS_MAX_HOSTS 8
 #define PHP_HW_SMBUS_STRIKE_LIMIT 2 // consecutive timed-out or not-ready reads that end the SMBus for the session
@@ -28,7 +28,10 @@
 #define PHP_HW_SMBUS_WORD 1
 #define PHP_HW_DIMM_MIN_CELSIUS -20.0f
 #define PHP_HW_DIMM_MAX_CELSIUS 120.0f
-#define PHP_HW_SMBUS_MAX_ITEMS (PHP_HW_DIMM_COUNT * PHP_HW_SPD_NVM_BYTES)
+#define PHP_HW_PMIC_ADDRESS 0x48
+#define PHP_HW_PMIC_RAIL_VPP 2 // rails are VDD, VDDQ, VPP
+#define PHP_HW_PMIC_TELEMETRY 6 // SWA, SWB, SWC, power mode, telemetry mode, temperature
+#define PHP_HW_SMBUS_MAX_ITEMS (PHP_HW_DIMM_COUNT * PH_HW_PMIC_REPORT_REGISTERS)
 
 typedef enum _PHP_HW_DIMM_TYPE
 {
@@ -60,7 +63,13 @@ typedef struct _PHP_HW_DIMM
     PHP_HW_DIMM_TYPE Type;
     BOOLEAN Disabled;
     UCHAR Failures;
+    BOOLEAN Pmic; // the PMIC answered the probe; its telemetry is read with the temperature
+    BOOLEAN PmicDisabled;
+    UCHAR PmicFailures;
     ULONG Index; // in the named-sensor store
+    ULONG VoltageIndex[PH_HW_PMIC_RAILS];
+    ULONG PmicIndex[PH_HW_PMIC_SENSORS];
+    FLOAT Voltages[PH_HW_PMIC_RAILS]; // the set points
 } PHP_HW_DIMM, *PPHP_HW_DIMM;
 
 // The SPD of a slot as probed, for the report.
@@ -98,6 +107,10 @@ static UCHAR PhpHwSmbusTimedOutTsod = 0;
 static KPH_HW_SMBUS_HOST PhpHwSmbusIdentity;
 static PHP_HW_DIMM PhpHwDimms[PHP_HW_DIMM_COUNT];
 static PHP_HW_SPD_REPORT PhpHwSpdReports[PHP_HW_DIMM_COUNT];
+static UCHAR PhpHwSmbusTimedOutPmic = 0;
+static UCHAR PhpHwPmicReportMask = 0; // the slots whose PMIC was read for the report
+static NTSTATUS PhpHwPmicReportStatus[PHP_HW_DIMM_COUNT];
+static UCHAR PhpHwPmicReportRegisters[PHP_HW_DIMM_COUNT][PH_HW_PMIC_REPORT_REGISTERS];
 static ULONG PhpHwSpdReportHost = ULONG_MAX;
 static KPH_HW_SMBUS_ITEM PhpHwSmbusItems[PHP_HW_SMBUS_MAX_ITEMS];
 static KPH_HW_VALUE32 PhpHwSmbusValues[PHP_HW_SMBUS_MAX_ITEMS];
@@ -226,6 +239,124 @@ static PHP_HW_DIMM_PROBE PhpHwDimmProbeOutcome(
     return PhpHwDimmProbeContended;
 }
 
+static UCHAR PhpHwPmicRegister(
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_ UCHAR Command
+    )
+{
+    for (ULONG i = 0; i < PH_HW_PMIC_REPORT_REGISTERS; i++)
+    {
+        if (PhHwPmicCommands[i] == Command)
+            return Registers[i];
+    }
+
+    return 0;
+}
+
+/**
+ * Reads the DDR5 PMIC registers of the slots whose SPD5118 hub answered, and their set points, in one call. A PMIC
+ * that times out, is not ready or refuses has no set points or telemetry for the session.
+ *
+ * \return FALSE when another agent held the bus; the probe is made again.
+ */
+static BOOLEAN PhpHwProbePmics(
+    _In_ ULONG Locator
+    )
+{
+    static CONST FLOAT bases[PH_HW_PMIC_RAILS] = { 0.8f, 0.8f, 1.5f }; // VDD, VDDQ, VPP
+    static CONST UCHAR setPoints[PH_HW_PMIC_RAILS] = { 0x21, 0x25, 0x27 }; // SWA, SWB, SWC
+    ULONG slots[PHP_HW_DIMM_COUNT];
+    ULONG count = 0;
+    BOOLEAN contended = FALSE;
+
+    for (ULONG slot = 0; slot < PHP_HW_DIMM_COUNT; slot++)
+    {
+        PhpHwDimms[slot].Pmic = FALSE;
+
+        if (PhpHwDimms[slot].Type != PhpHwDimmSpd5118 || (PhpHwSmbusTimedOutPmic & (1 << slot)))
+            continue;
+
+        for (ULONG j = 0; j < PH_HW_PMIC_REPORT_REGISTERS; j++)
+            PhpHwSmbusItem(count * PH_HW_PMIC_REPORT_REGISTERS + j, (UCHAR)(PHP_HW_PMIC_ADDRESS + slot), PhHwPmicCommands[j], PHP_HW_SMBUS_BYTE);
+
+        slots[count++] = slot;
+    }
+
+    if (!count)
+        return TRUE;
+
+    PhpHwSmbusSend(Locator, count * PH_HW_PMIC_REPORT_REGISTERS);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        PKPH_HW_VALUE32 value = &PhpHwSmbusValues[i * PH_HW_PMIC_REPORT_REGISTERS];
+        PPHP_HW_DIMM dimm = &PhpHwDimms[slots[i]];
+        UCHAR registers[PH_HW_PMIC_REPORT_REGISTERS];
+        NTSTATUS status = STATUS_SUCCESS;
+        BOOLEAN timedOut = FALSE;
+        BOOLEAN busy = FALSE;
+        BOOLEAN highVoltage;
+
+        for (ULONG j = 0; j < PH_HW_PMIC_REPORT_REGISTERS; j++)
+        {
+            switch (PhpHwSmbusClassify(value[j].Status))
+            {
+            case PhpHwSmbusBusy:
+                busy = TRUE;
+                break;
+            case PhpHwSmbusTimeout:
+                timedOut = TRUE;
+                break;
+            }
+
+            if (NT_SUCCESS(status) && !NT_SUCCESS(value[j].Status))
+                status = value[j].Status;
+
+            registers[j] = (UCHAR)value[j].Value;
+        }
+
+        if (timedOut)
+        {
+            // A PMIC that hangs the bus is never asked again this session.
+            PhpHwSmbusTimedOutPmic |= (UCHAR)(1 << slots[i]);
+            status = STATUS_IO_TIMEOUT;
+        }
+        else if (busy)
+        {
+            // Contention does not use up the set points.
+            contended = TRUE;
+            continue;
+        }
+
+        memcpy(PhpHwPmicReportRegisters[slots[i]], registers, sizeof(registers));
+        PhpHwPmicReportMask |= (UCHAR)(1 << slots[i]);
+        PhpHwPmicReportStatus[slots[i]] = status;
+
+        if (!NT_SUCCESS(status))
+        {
+            PhTraceInfo("Hardware sensors: PMIC 0x%02X: 0x%lx", PHP_HW_PMIC_ADDRESS + slots[i], status);
+            continue;
+        }
+
+        highVoltage = PhHwPmicHighVoltage(registers);
+
+        for (ULONG rail = 0; rail < PH_HW_PMIC_RAILS; rail++)
+        {
+            UCHAR vid = PhpHwPmicRegister(registers, setPoints[rail]);
+
+            // JEDEC set point: [7:1] in 5 mV steps above the rail base; VPP has no high-voltage mode.
+            if (highVoltage && rail != PHP_HW_PMIC_RAIL_VPP)
+                dimm->Voltages[rail] = bases[rail] + (FLOAT)vid * 0.005f;
+            else
+                dimm->Voltages[rail] = bases[rail] + (FLOAT)((vid >> 1) & 0x7F) * 0.005f;
+        }
+
+        dimm->Pmic = TRUE;
+    }
+
+    return !contended;
+}
+
 /**
  * Finds the modules' thermal sensors on a host and records what was read of each SPD for the report.
  *
@@ -251,7 +382,10 @@ static PHP_HW_DIMM_PROBE PhpHwProbeDimmSensorsOnHost(
     ULONG count;
 
     for (ULONG i = 0; i < PHP_HW_DIMM_COUNT; i++)
+    {
         PhpHwDimms[i].Type = PhpHwDimmNone;
+        PhpHwDimms[i].Pmic = FALSE;
+    }
 
     // An SPD5118 hub reads 51h, 18h from MR0:MR1; a DDR3/DDR4 EEPROM answers with SPD bytes 0 and 1.
     count = 0;
@@ -439,6 +573,12 @@ static PHP_HW_DIMM_PROBE PhpHwProbeDimmSensorsOnHost(
             if (PhpHwDimmProbeStopped(&state))
                 return PhpHwDimmProbeOutcome(&state);
         }
+
+        if (found && !PhpHwProbePmics(Locator))
+        {
+            state.Contended = TRUE;
+            return PhpHwDimmProbeOutcome(&state);
+        }
     }
 
     // DDR3/DDR4: a JC-42.4 sensor at 18h + slot; CAP [15:8] and CONFIG [15:11] are reserved zero.
@@ -536,13 +676,21 @@ static VOID PhpHwSmbusNameDimms(
 
     for (ULONG i = 0; i < PHP_HW_DIMM_COUNT; i++)
     {
+        static CONST PCWSTR rails[PH_HW_PMIC_RAILS] = { L"VDD", L"VDDQ", L"VPP" };
         PPHP_HW_DIMM dimm = &PhpHwDimms[i];
         PPH_STRING slot;
         PPH_STRING name;
 
         dimm->Disabled = FALSE;
         dimm->Failures = 0;
+        dimm->PmicDisabled = FALSE;
+        dimm->PmicFailures = 0;
         dimm->Index = ULONG_MAX;
+
+        for (ULONG j = 0; j < PH_HW_PMIC_RAILS; j++)
+            dimm->VoltageIndex[j] = ULONG_MAX;
+        for (ULONG j = 0; j < PH_HW_PMIC_SENSORS; j++)
+            dimm->PmicIndex[j] = ULONG_MAX;
 
         if (dimm->Type == PhpHwDimmNone)
             continue;
@@ -557,10 +705,83 @@ static VOID PhpHwSmbusNameDimms(
         name = PhFormatString(L"%s (0x%02X)", slot->Buffer, PhpHwDimmAddress(dimm->Type, i));
         dimm->Index = PhpHwAddNamedSensor(PhHwNamedSensorDimmTemperature, 0, i, name->Buffer);
         PhDereferenceObject(name);
+
+        for (ULONG rail = 0; dimm->Pmic && rail < PH_HW_PMIC_RAILS; rail++)
+        {
+            name = PhFormatString(L"%s %s", slot->Buffer, rails[rail]);
+            dimm->VoltageIndex[rail] = PhpHwAddNamedSensor(PhHwNamedSensorDimmVoltage, 0, i * PH_HW_PMIC_RAILS + rail, name->Buffer);
+            PhpHwSetNamedSensor(dimm->VoltageIndex[rail], TRUE, dimm->Voltages[rail]);
+            PhDereferenceObject(name);
+        }
+
+        // The PMIC sensors are listed now and have a value from their first reading.
+        for (ULONG j = 0; dimm->Pmic && j < PH_HW_PMIC_SENSORS; j++)
+        {
+            PH_HW_NAMED_SENSOR_KIND kind;
+            ULONG id;
+
+            if (j < PH_HW_PMIC_SENSOR_POWER)
+            {
+                kind = PhHwNamedSensorDimmCurrent;
+                id = i * PH_HW_PMIC_RAILS + j;
+                name = PhFormatString(L"%s %s", slot->Buffer, rails[j]);
+            }
+            else if (j < PH_HW_PMIC_SENSOR_POWER + PH_HW_PMIC_RAILS)
+            {
+                kind = PhHwNamedSensorDimmPower;
+                id = i * (PH_HW_PMIC_RAILS + 1) + j - PH_HW_PMIC_SENSOR_POWER;
+                name = PhFormatString(L"%s %s", slot->Buffer, rails[j - PH_HW_PMIC_SENSOR_POWER]);
+            }
+            else if (j < PH_HW_PMIC_SENSOR_TEMPERATURE)
+            {
+                kind = PhHwNamedSensorDimmPower;
+                id = i * (PH_HW_PMIC_RAILS + 1) + PH_HW_PMIC_RAILS;
+                name = PhFormatString(L"%s total", slot->Buffer);
+            }
+            else
+            {
+                kind = PhHwNamedSensorDimmPmicTemperature;
+                id = i;
+                name = PhFormatString(L"%s PMIC (coarse)", slot->Buffer);
+            }
+
+            dimm->PmicIndex[j] = PhpHwAddNamedSensor(kind, 0, id, name->Buffer);
+            PhDereferenceObject(name);
+        }
+
         PhDereferenceObject(slot);
     }
 
     PhpHwFreeMemoryDevices(&devices);
+}
+
+/**
+ * Sets the PMIC telemetry of a slot; without values every one has no value.
+ */
+static VOID PhpHwSetPmicSensors(
+    _In_ PPHP_HW_DIMM Dimm,
+    _In_reads_opt_(PH_HW_PMIC_SENSORS) const BOOLEAN* Valid,
+    _In_reads_opt_(PH_HW_PMIC_SENSORS) const FLOAT* Values
+    )
+{
+    for (ULONG i = 0; Dimm->Pmic && i < PH_HW_PMIC_SENSORS; i++)
+        PhpHwSetNamedSensor(Dimm->PmicIndex[i], Valid && Values && Valid[i], Values ? Values[i] : 0.0f);
+}
+
+/**
+ * Drops a module: its temperature, set points and PMIC telemetry have no value.
+ */
+static VOID PhpHwSmbusDropDimm(
+    _In_ PPHP_HW_DIMM Dimm
+    )
+{
+    Dimm->Disabled = TRUE;
+    PhpHwSetNamedSensor(Dimm->Index, FALSE, 0.0f);
+
+    for (ULONG rail = 0; Dimm->Pmic && rail < PH_HW_PMIC_RAILS; rail++)
+        PhpHwSetNamedSensor(Dimm->VoltageIndex[rail], FALSE, 0.0f);
+
+    PhpHwSetPmicSensors(Dimm, NULL, NULL);
 }
 
 /**
@@ -573,7 +794,7 @@ static VOID PhpHwSmbusEnd(
     for (ULONG i = 0; i < PHP_HW_DIMM_COUNT; i++)
     {
         if (PhpHwDimms[i].Type != PhpHwDimmNone)
-            PhpHwSetNamedSensor(PhpHwDimms[i].Index, FALSE, 0.0f);
+            PhpHwSmbusDropDimm(&PhpHwDimms[i]);
 
         PhpHwDimms[i].Disabled = TRUE;
     }
@@ -668,6 +889,7 @@ static NTSTATUS PhpHwSmbusProbeHosts(
         PhpHwSmbusStrikes = 0;
         PhpHwSmbusTimedOutSpd = 0;
         PhpHwSmbusTimedOutTsod = 0;
+        PhpHwSmbusTimedOutPmic = 0;
         status = STATUS_SUCCESS;
     }
 
@@ -713,7 +935,8 @@ NTSTATUS PhpHwSmbusProbe(
 }
 
 /**
- * Reads every module's temperature in one call: an SPD5118 hub's page (MR11) and MR49:MR50, a TSOD's TEMP.
+ * Reads every module's temperature and PMIC telemetry in one call: an SPD5118 hub's page (MR11) and MR49:MR50, a
+ * TSOD's TEMP, a PMIC's SWA, SWB, SWC, power and telemetry modes and temperature.
  *
  * \return STATUS_RETRY when the call met contention, else STATUS_SUCCESS.
  */
@@ -721,8 +944,12 @@ static NTSTATUS PhpHwSmbusRead(
     VOID
     )
 {
+    static CONST UCHAR pmicCommands[PHP_HW_PMIC_TELEMETRY] = { 0x0C, 0x0E, 0x0F, 0x1A, 0x1B, 0x33 };
     ULONG slots[PHP_HW_DIMM_COUNT];
     ULONG firsts[PHP_HW_DIMM_COUNT];
+    ULONG pmicSlots[PHP_HW_DIMM_COUNT];
+    ULONG pmicFirst;
+    ULONG pmicCount = 0;
     BOOLEAN answered = FALSE;
     BOOLEAN busy = FALSE;
     ULONG count = 0;
@@ -756,6 +983,21 @@ static NTSTATUS PhpHwSmbusRead(
     {
         PhpHwSmbusEnd();
         return STATUS_SUCCESS;
+    }
+
+    pmicFirst = items;
+
+    for (ULONG i = 0; i < PHP_HW_DIMM_COUNT; i++)
+    {
+        PPHP_HW_DIMM dimm = &PhpHwDimms[i];
+
+        if (!dimm->Pmic || dimm->PmicDisabled || dimm->Type == PhpHwDimmNone || dimm->Disabled)
+            continue;
+
+        for (ULONG j = 0; j < PHP_HW_PMIC_TELEMETRY; j++)
+            PhpHwSmbusItem(items++, (UCHAR)(PHP_HW_PMIC_ADDRESS + i), pmicCommands[j], PHP_HW_SMBUS_BYTE);
+
+        pmicSlots[pmicCount++] = i;
     }
 
     status = PhpHwSmbusSend(PhpHwSmbusHosts[PhpHwSmbusHost], items);
@@ -815,9 +1057,90 @@ static NTSTATUS PhpHwSmbusRead(
             dimm->Disabled = TRUE;
 
         if (dimm->Disabled)
+        {
             PhTraceInfo("Hardware sensors: DIMM %lu unavailable: 0x%lx", slots[i], value->Status);
+            PhpHwSmbusDropDimm(dimm);
+            continue;
+        }
 
         PhpHwSetNamedSensor(dimm->Index, valid, celsius);
+    }
+
+    for (ULONG i = 0; i < pmicCount; i++)
+    {
+        static CONST UCHAR severity[] = { 0, 1, 2, 3, 5, 4 }; // by PHP_HW_SMBUS_RESULT: Ok, Absent, Busy, NotReady, Timeout, Refused
+        PKPH_HW_VALUE32 value = &PhpHwSmbusValues[pmicFirst + i * PHP_HW_PMIC_TELEMETRY];
+        PPHP_HW_DIMM dimm = &PhpHwDimms[pmicSlots[i]];
+        PHP_HW_SMBUS_RESULT result = PhpHwSmbusOk;
+        NTSTATUS pmicStatus = STATUS_SUCCESS;
+        BOOLEAN valid[PH_HW_PMIC_SENSORS];
+        FLOAT values[PH_HW_PMIC_SENSORS];
+
+        C_ASSERT(RTL_NUMBER_OF(severity) == PhpHwSmbusRefused + 1);
+
+        // A module dropped in this pass takes its PMIC with it.
+        if (dimm->Disabled)
+            continue;
+
+        // The most severe result decides.
+        for (ULONG j = 0; j < PHP_HW_PMIC_TELEMETRY; j++)
+        {
+            PHP_HW_SMBUS_RESULT itemResult = PhpHwSmbusClassify(value[j].Status);
+
+            if (severity[itemResult] > severity[result])
+            {
+                result = itemResult;
+                pmicStatus = value[j].Status;
+            }
+        }
+
+        switch (result)
+        {
+        case PhpHwSmbusOk:
+        case PhpHwSmbusAbsent:
+            answered = TRUE;
+            break;
+        case PhpHwSmbusBusy:
+            // Contention, or an item not attempted: no value this pass, nothing counted.
+            PhpHwSetPmicSensors(dimm, NULL, NULL);
+            continue;
+        case PhpHwSmbusNotReady:
+            busy = TRUE;
+            break;
+        case PhpHwSmbusTimeout:
+            busy = TRUE;
+            dimm->PmicDisabled = TRUE;
+            break;
+        case PhpHwSmbusRefused:
+            dimm->PmicDisabled = TRUE;
+            break;
+        }
+
+        if (result == PhpHwSmbusOk)
+            dimm->PmicFailures = 0;
+        else if (!dimm->PmicDisabled && ++dimm->PmicFailures >= PHP_HW_DIMM_FAILURE_LIMIT)
+            dimm->PmicDisabled = TRUE;
+
+        if (dimm->PmicDisabled)
+            PhTraceInfo("Hardware sensors: DIMM %lu PMIC unavailable: 0x%lx", pmicSlots[i], pmicStatus);
+
+        if (result != PhpHwSmbusOk)
+        {
+            PhpHwSetPmicSensors(dimm, NULL, NULL);
+            continue;
+        }
+
+        PhHwDecodePmicTelemetry(
+            (UCHAR)value[0].Value,
+            (UCHAR)value[1].Value,
+            (UCHAR)value[2].Value,
+            (UCHAR)value[3].Value,
+            (UCHAR)value[4].Value,
+            (UCHAR)value[5].Value,
+            valid,
+            values
+            );
+        PhpHwSetPmicSensors(dimm, valid, values);
     }
 
     if (busy)
@@ -838,7 +1161,7 @@ NTSTATUS PhpHwSmbusPass(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN any = FALSE;
+    ULONG capabilities = 0;
 
     if (!PhpHwSmbusEnded && PhpHwSmbusHost == ULONG_MAX && PhpHwSmbusProbeHost != ULONG_MAX && !PhpHwSmbusProbedThisUpdate)
         status = PhpHwSmbusProbeHosts();
@@ -847,10 +1170,22 @@ NTSTATUS PhpHwSmbusPass(
         status = PhpHwSmbusRead();
 
     for (ULONG i = 0; !PhpHwSmbusEnded && i < PHP_HW_DIMM_COUNT; i++)
-        any |= PhpHwDimms[i].Type != PhpHwDimmNone && !PhpHwDimms[i].Disabled;
+    {
+        PPHP_HW_DIMM dimm = &PhpHwDimms[i];
+
+        if (dimm->Type == PhpHwDimmNone || dimm->Disabled)
+            continue;
+
+        capabilities |= PH_HW_CAP_DIMM_TEMP;
+
+        if (dimm->Pmic)
+            capabilities |= PH_HW_CAP_DIMM_VOLTAGE;
+        if (dimm->Pmic && !dimm->PmicDisabled)
+            capabilities |= PH_HW_CAP_DIMM_PMIC;
+    }
 
     PhpHwSmbusProbedThisUpdate = FALSE;
-    PhpHwFamilies[PhpHwFamilySmbus].Capabilities = any ? PH_HW_CAP_DIMM_TEMP : 0;
+    PhpHwFamilies[PhpHwFamilySmbus].Capabilities = capabilities;
 
     return status == STATUS_RETRY ? STATUS_RETRY : STATUS_SUCCESS;
 }
@@ -871,6 +1206,8 @@ VOID PhpHwSmbusEndSession(
     PhpHwSmbusStrikes = 0;
     PhpHwSmbusTimedOutSpd = 0;
     PhpHwSmbusTimedOutTsod = 0;
+    PhpHwSmbusTimedOutPmic = 0;
+    PhpHwPmicReportMask = 0;
     PhpHwSpdReportHost = ULONG_MAX;
     memset(&PhpHwSmbusIdentity, 0, sizeof(PhpHwSmbusIdentity));
     memset(PhpHwDimms, 0, sizeof(PhpHwDimms));
@@ -922,6 +1259,91 @@ static VOID PhpHwAppendSpd5118Nvm(
         );
 }
 
+static BOOLEAN PhpHwOddParity(
+    _In_ UCHAR Value
+    )
+{
+    Value ^= Value >> 4;
+    Value ^= Value >> 2;
+    Value ^= Value >> 1;
+
+    return Value & 1;
+}
+
+/**
+ * Writes the PMIC5100 registers of a slot and their decode.
+ */
+static VOID PhpHwAppendPmic(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers
+    )
+{
+    static CONST struct
+    {
+        UCHAR Bank;
+        UCHAR Id;
+        PCWSTR Name;
+    } vendors[] =
+    {
+        { 0x8A, 0x8C, L"Richtek" },
+        { 0x04, 0x23, L"Renesas" },
+        { 0x80, 0xB3, L"Renesas (IDT)" },
+        { 0x0B, 0x2A, L"Monolithic Power Systems" },
+        { 0x86, 0x32, L"Montage" },
+        { 0x0B, 0x10, L"Anpec" },
+        { 0x80, 0x97, L"Texas Instruments" },
+        { 0x86, 0x9D, L"Rambus" },
+    };
+    UCHAR bank = PhpHwPmicRegister(Registers, 0x3C);
+    UCHAR id = PhpHwPmicRegister(Registers, 0x3D);
+    UCHAR revision = PhpHwPmicRegister(Registers, 0x3B);
+    PCWSTR vendor = NULL;
+
+    PhAppendStringBuilder2(Builder, L"\n    PMIC");
+
+    for (ULONG i = 0; i < PH_HW_PMIC_REPORT_REGISTERS; i++)
+    {
+        if (!i || PhHwPmicCommands[i] != PhHwPmicCommands[i - 1] + 1)
+            PhAppendFormatStringBuilder(Builder, L" %02Xh:", PhHwPmicCommands[i]);
+
+        PhAppendFormatStringBuilder(Builder, L" %02x", Registers[i]);
+    }
+
+    // JEP106 bank and id, each with odd parity in bit 7.
+    if (PhpHwOddParity(bank) && PhpHwOddParity(id) && (id & 0x7F) && (id & 0x7F) != 0x7F)
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(vendors); i++)
+        {
+            if (vendors[i].Bank == bank && vendors[i].Id == id)
+            {
+                vendor = vendors[i].Name;
+                break;
+            }
+        }
+
+        if (!vendor)
+            vendor = L"unknown";
+    }
+    else
+    {
+        vendor = L"invalid";
+    }
+
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"\n    PMIC vendor %s (0x%02x 0x%02x), revision %u.%u, %s mode, %s, %s, high voltage %s",
+        vendor,
+        bank,
+        id,
+        ((revision >> 4) & 0x3) + 1,
+        (revision >> 1) & 0x7,
+        (PhpHwPmicRegister(Registers, 0x2F) & 0x04) ? L"programmable" : L"secure",
+        (PhpHwPmicRegister(Registers, 0x32) & 0x40) ? L"I3C" : L"I2C",
+        (PhpHwPmicRegister(Registers, 0x1B) & 0x40) ? ((PhpHwPmicRegister(Registers, 0x1A) & 0x02) ? L"total power meter" : L"power meter") : L"current meter",
+        PhHwPmicHighVoltage(Registers) ? L"yes" : L"no"
+        );
+}
+
 /**
  * Writes the collector's section of the hardware report: the hosts, the host with the modules, and what was read of
  * each SPD.
@@ -964,7 +1386,7 @@ VOID PhpHwSmbusDiagnostics(
         PPHP_HW_SPD_REPORT report = &PhpHwSpdReports[i];
         PHP_HW_DIMM_TYPE type = PhpHwDimms[i].Type;
 
-        if (type == PhpHwDimmNone && !report->Ddr4Read && !report->HubRead)
+        if (type == PhpHwDimmNone && !(PhpHwPmicReportMask & (1 << i)) && !report->Ddr4Read && !report->HubRead)
             continue;
 
         PhAppendFormatStringBuilder(Builder, L"  Slot %lu: %s", i, dimmTypes[type < RTL_NUMBER_OF(dimmTypes) ? type : 0]);
@@ -989,6 +1411,14 @@ VOID PhpHwSmbusDiagnostics(
 
         if (report->NvmRead)
             PhpHwAppendSpd5118Nvm(Builder, report->Nvm);
+
+        if (PhpHwPmicReportMask & (1 << i))
+        {
+            if (NT_SUCCESS(PhpHwPmicReportStatus[i]))
+                PhpHwAppendPmic(Builder, PhpHwPmicReportRegisters[i]);
+            else
+                PhAppendFormatStringBuilder(Builder, L"\n    PMIC 0x%08lx", PhpHwPmicReportStatus[i]);
+        }
 
         PhAppendCharStringBuilder(Builder, L'\n');
     }
