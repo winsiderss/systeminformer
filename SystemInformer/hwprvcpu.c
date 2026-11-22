@@ -22,7 +22,9 @@
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
 #define PHP_HW_CPU_BUS_MHZ 100.0f
 #define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
-#define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE) // package bits this collector always owns
+#define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE | PH_HW_CAP_RAPL_DRAM | PH_HW_CAP_RAPL_PSYS | \
+    PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_POWER_LIMIT2) // package bits this collector always owns
+#define PHP_HW_CPU_ENERGY_IDLE_TICKS 5 // samples a DRAM or platform counter may stay still before it leaves the plan
 #define PHP_HW_CPU_THERMAL_CAPS (PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_CORE_TEMP | PH_HW_CAP_THROTTLE) // with a thermal plan
 
 typedef enum _PHP_HW_CPU_CLASS
@@ -43,6 +45,11 @@ typedef enum _PHP_HW_REG
     PhpHwRegCoreEnergy,
     PhpHwRegPackageThermStatus, // Intel IA32_PACKAGE_THERM_STATUS
     PhpHwRegPackageEnergy,
+    PhpHwRegPp0Energy, // Intel
+    PhpHwRegDramEnergy,
+    PhpHwRegPlatformEnergy,
+    PhpHwRegPowerLimit, // Intel MSR_PKG_POWER_LIMIT, read every update: firmware and DTT change it at runtime
+    PhpHwRegLimitReasons, // Intel MSR_CORE_PERF_LIMIT_REASONS
     PhpHwRegRaplUnit, // probe only from here
     PhpHwRegPStateDef0,
     PhpHwRegTemperatureTarget, // Intel MSR_TEMPERATURE_TARGET
@@ -101,6 +108,15 @@ static PFLOAT PhpHwCpuTickCorePower = NULL; // per package
 static PULONG PhpHwCpuTickCoreCount = NULL; // per package
 static FLOAT PhpHwCpuTscMhz = 0.0f; // the base clock MPERF counts at; 0 when unknown
 static FLOAT PhpHwCpuEnergyUnit = 0.0f; // joules
+static FLOAT PhpHwCpuDramEnergyUnit = 0.0f;
+static FLOAT PhpHwCpuPlatformEnergyUnit = 0.0f;
+static FLOAT PhpHwCpuPowerUnit = 0.0f; // watts
+static PFLOAT PhpHwCpuMsrPowerLimit1 = NULL; // per package, watts; 0 when unavailable
+static PFLOAT PhpHwCpuMsrPowerLimit2 = NULL;
+static PUCHAR PhpHwCpuDramIdleTicks = NULL; // per package: samples whose DRAM energy did not move, until it does
+static PUCHAR PhpHwCpuPlatformIdleTicks = NULL;
+static PBOOLEAN PhpHwCpuDramEnergySeen = NULL; // per package: the counter moved
+static PBOOLEAN PhpHwCpuPlatformEnergySeen = NULL;
 static BOOLEAN PhpHwCpuVoltageSupported = FALSE;
 static ULONG PhpHwCpuCoreReadoutMask = 0x7F; // IA32_THERM_STATUS readout width
 static ULONG PhpHwCpuPackageReadoutMask = 0x7F; // IA32_PACKAGE_THERM_STATUS readout width
@@ -168,6 +184,13 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegTemperatureTarget, PH_INTEL_MSR_TEMPERATURE_TARGET, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegPlatformInfo, PH_INTEL_MSR_PLATFORM_INFO, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegFsbFreq, PhIntelFsbFreqMsr(&PhpHwCpuIdentity), PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPackageEnergy, PH_INTEL_MSR_PKG_ENERGY_STATUS, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPp0Energy, PH_INTEL_MSR_PP0_ENERGY_STATUS, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegDramEnergy, PH_INTEL_MSR_DRAM_ENERGY_STATUS, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPlatformEnergy, PH_INTEL_MSR_PLATFORM_ENERGY_STATUS, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegPowerLimit, PH_INTEL_MSR_PKG_POWER_LIMIT, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegLimitReasons, PhIntelLimitReasonsMsr(&PhpHwCpuIdentity), PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegRaplUnit, PH_INTEL_MSR_RAPL_POWER_UNIT, PhpHwScopePackage);
 
         PhpHwCpuCoreReadoutMask = PhIntelThermReadoutMask(&PhpHwCpuIdentity, FALSE);
         PhpHwCpuPackageReadoutMask = PhIntelThermReadoutMask(&PhpHwCpuIdentity, TRUE);
@@ -278,6 +301,15 @@ static VOID PhpHwCpuStoreValues(
     }
 }
 
+static VOID PhpHwCpuDecodeMsrPowerLimit(
+    _In_ ULONG Package,
+    _In_ ULONG64 PowerLimit
+    )
+{
+    PhpHwCpuMsrPowerLimit1[Package] = (PowerLimit & 0x8000) ? (FLOAT)(PowerLimit & 0x7FFF) * PhpHwCpuPowerUnit : 0.0f;
+    PhpHwCpuMsrPowerLimit2[Package] = (PowerLimit & (1ULL << 47)) ? (FLOAT)((PowerLimit >> 32) & 0x7FFF) * PhpHwCpuPowerUnit : 0.0f;
+}
+
 static BOOLEAN PhpHwCpuIsIntelNehalem(
     VOID
     )
@@ -308,6 +340,7 @@ static VOID PhpHwCpuProbeRead(
     ULONG64 value;
     FLOAT busMhz;
     BOOLEAN anyTjMax = FALSE;
+    BOOLEAN raplUnitValid;
 
     PhpHwCpuItemCount = 0;
     PhpHwCpuTscMhz = 0.0f;
@@ -349,8 +382,19 @@ static VOID PhpHwCpuProbeRead(
         PhpHwCpuSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
     }
 
-    if (PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Valid & (1UL << PhpHwRegRaplUnit))
-        PhpHwCpuEnergyUnit = PhRaplEnergyUnitJoules(PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Value[PhpHwRegRaplUnit], &PhpHwCpuIdentity);
+    if (raplUnitValid = !!(PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Valid & (1UL << PhpHwRegRaplUnit)))
+    {
+        ULONG64 raplUnit = PhpHwCpuSamples[PhpHwCpuPackageFirst[0]].Value[PhpHwRegRaplUnit];
+
+        PhpHwCpuEnergyUnit = PhRaplEnergyUnitJoules(raplUnit, &PhpHwCpuIdentity);
+
+        if (PhpHwCpuClass == PhpHwCpuIntel)
+        {
+            PhpHwCpuDramEnergyUnit = PhIntelRaplDramEnergyUnitJoules(raplUnit, &PhpHwCpuIdentity);
+            PhpHwCpuPlatformEnergyUnit = PhIntelRaplPlatformEnergyUnitJoules(raplUnit, &PhpHwCpuIdentity);
+            PhpHwCpuPowerUnit = PhRaplPowerUnitWatts(raplUnit, &PhpHwCpuIdentity);
+        }
+    }
 
     // Silvermont and Airmont select the bus clock in MSR_FSB_FREQ; undecoded, the base clock stays unknown.
     busMhz = (PhpHwCpuClass == PhpHwCpuIntel && PhpHwCpuIsIntelNehalem()) ? 133.33f : PHP_HW_CPU_BUS_MHZ;
@@ -366,6 +410,7 @@ static VOID PhpHwCpuProbeRead(
     {
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
         FLOAT baseMhz = 0.0f;
+        FLOAT powerLimit = 0.0f;
         ULONG tjMax = 0;
 
         if (PhpHwCpuClass == PhpHwCpuIntel)
@@ -376,6 +421,11 @@ static VOID PhpHwCpuProbeRead(
                 tjMax = PhIntelFixedTjMax(&PhpHwCpuIdentity);
             if (sample->Valid & (1UL << PhpHwRegPlatformInfo))
                 baseMhz = (FLOAT)((sample->Value[PhpHwRegPlatformInfo] >> 8) & 0xFF) * busMhz;
+            if (raplUnitValid && (sample->Valid & (1UL << PhpHwRegPowerLimit)))
+            {
+                powerLimit = (FLOAT)(sample->Value[PhpHwRegPowerLimit] & 0x7FFF) * PhpHwCpuPowerUnit;
+                PhpHwCpuDecodeMsrPowerLimit(i, sample->Value[PhpHwRegPowerLimit]);
+            }
         }
         else if (PhpHwCpuClass == PhpHwCpuAmdZen || PhpHwCpuClass == PhpHwCpuAmdLegacy)
         {
@@ -393,6 +443,7 @@ static VOID PhpHwCpuProbeRead(
         PhpHwPackageSensors[i].TjMax = (FLOAT)tjMax;
         PhpHwPackageSensors[i].BaseMhz = baseMhz;
         PhpHwPackageSensors[i].BusMhz = busMhz;
+        PhpHwPackageSensors[i].PowerLimit = powerLimit;
     }
 
     if (first->Valid & (1UL << PhpHwRegPerfStatus))
@@ -417,6 +468,8 @@ static VOID PhpHwCpuProbeRead(
 
     if (PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus))
         PhpHwCpuPackageCaps |= PHP_HW_CPU_THERMAL_CAPS;
+    if (PhpHwCpuRegisterActive(PhpHwRegLimitReasons))
+        PhpHwCpuPackageCaps |= PH_HW_CAP_THROTTLE;
 
     // MPERF is only needed for the active clock; APERF alone yields the effective clock.
     if (PhpHwCpuTscMhz <= 0.0f)
@@ -425,8 +478,14 @@ static VOID PhpHwCpuProbeRead(
     if (PhpHwCpuEnergyUnit <= 0.0f)
     {
         PhpHwCpuRegisters[PhpHwRegPackageEnergy].Disabled = TRUE;
+        PhpHwCpuRegisters[PhpHwRegPp0Energy].Disabled = TRUE;
         PhpHwCpuRegisters[PhpHwRegCoreEnergy].Disabled = TRUE;
     }
+
+    if (PhpHwCpuDramEnergyUnit <= 0.0f)
+        PhpHwCpuRegisters[PhpHwRegDramEnergy].Disabled = TRUE;
+    if (PhpHwCpuPlatformEnergyUnit <= 0.0f)
+        PhpHwCpuRegisters[PhpHwRegPlatformEnergy].Disabled = TRUE;
 }
 
 /**
@@ -436,18 +495,19 @@ _Success_(return)
 static BOOLEAN PhpHwCpuSampleWatts(
     _In_ PPHP_HW_SAMPLE Sample,
     _In_ PHP_HW_REG Reg,
+    _In_ FLOAT EnergyUnit,
     _In_ FLOAT Seconds,
     _Out_ PFLOAT Watts
     )
 {
     FLOAT watts;
 
-    if (Seconds <= 0.0f || PhpHwCpuEnergyUnit <= 0.0f)
+    if (Seconds <= 0.0f || EnergyUnit <= 0.0f)
         return FALSE;
     if (!(Sample->Valid & Sample->LastValid & (1UL << Reg)))
         return FALSE;
 
-    watts = (FLOAT)(ULONG)(Sample->Value[Reg] - Sample->LastValue[Reg]) * PhpHwCpuEnergyUnit / Seconds;
+    watts = (FLOAT)(ULONG)(Sample->Value[Reg] - Sample->LastValue[Reg]) * EnergyUnit / Seconds;
 
     if (watts > PHP_HW_CPU_ENERGY_MAX_WATTS)
         return FALSE;
@@ -518,6 +578,12 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuTickValid = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuTickThrottle = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuTickMaxCore = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
+    PhpHwCpuMsrPowerLimit1 = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
+    PhpHwCpuMsrPowerLimit2 = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
+    PhpHwCpuDramIdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPlatformIdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
+    PhpHwCpuDramEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPlatformEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
     memset(PhpHwCpuCoreFirst, 0xFF, sizeof(ULONG) * PhpHwCpuCoreCount);
     memset(PhpHwCpuPackageFirst, 0, sizeof(ULONG) * max(PhpHwPackageCount, 1));
 
@@ -647,6 +713,75 @@ static ULONG PhpHwCpuDecodeThrottle(
     return flags;
 }
 
+static ULONG PhpHwCpuDecodeLimitReasons(
+    _In_ ULONG64 LimitReasons
+    )
+{
+    static CONST struct { UCHAR Bit; ULONG Flag; } skylake[] =
+    {
+        { 0, PH_HW_THROTTLE_PROCHOT }, { 1, PH_HW_THROTTLE_THERMAL }, { 4, PH_HW_THROTTLE_RESIDENCY },
+        { 5, PH_HW_THROTTLE_RUNNING_AVERAGE_THERMAL }, { 6, PH_HW_THROTTLE_VR_THERMAL }, { 7, PH_HW_THROTTLE_VR_CURRENT },
+        { 8, PH_HW_THROTTLE_ELECTRICAL }, { 10, PH_HW_THROTTLE_PL1 }, { 11, PH_HW_THROTTLE_PL2 },
+        { 12, PH_HW_THROTTLE_MAX_TURBO }, { 13, PH_HW_THROTTLE_TURBO_ATTENUATION },
+    };
+    static CONST struct { UCHAR Bit; ULONG Flag; } haswell[] =
+    {
+        { 0, PH_HW_THROTTLE_PROCHOT }, { 1, PH_HW_THROTTLE_THERMAL }, { 4, PH_HW_THROTTLE_GRAPHICS },
+        { 5, PH_HW_THROTTLE_AUTONOMOUS }, { 6, PH_HW_THROTTLE_VR_THERMAL }, { 8, PH_HW_THROTTLE_ELECTRICAL },
+        { 9, PH_HW_THROTTLE_POWER_LIMIT }, { 10, PH_HW_THROTTLE_PL1 }, { 11, PH_HW_THROTTLE_PL2 },
+        { 12, PH_HW_THROTTLE_MAX_TURBO }, { 13, PH_HW_THROTTLE_TURBO_ATTENUATION },
+    };
+    ULONG flags = 0;
+
+    if (PhpHwCpuRegisters[PhpHwRegLimitReasons].Register == PH_INTEL_MSR_HSW_CORE_PERF_LIMIT_REASONS)
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(haswell); i++)
+        {
+            if (LimitReasons & (1ULL << haswell[i].Bit))
+                flags |= haswell[i].Flag;
+        }
+    }
+    else
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(skylake); i++)
+        {
+            if (LimitReasons & (1ULL << skylake[i].Bit))
+                flags |= skylake[i].Flag;
+        }
+    }
+
+    return flags;
+}
+
+/**
+ * Drops the RAPL DRAM and platform registers when no package's counter moved in PHP_HW_CPU_ENERGY_IDLE_TICKS samples.
+ */
+static VOID PhpHwCpuDropIdleEnergy(
+    VOID
+    )
+{
+    BOOLEAN dramIdle = PhpHwCpuRegisterActive(PhpHwRegDramEnergy) && PhpHwPackageCount;
+    BOOLEAN platformIdle = PhpHwCpuRegisterActive(PhpHwRegPlatformEnergy) && PhpHwPackageCount;
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        dramIdle &= !PhpHwCpuDramEnergySeen[i] && PhpHwCpuDramIdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
+        platformIdle &= !PhpHwCpuPlatformEnergySeen[i] && PhpHwCpuPlatformIdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
+    }
+
+    if (dramIdle)
+    {
+        PhTraceInfo("Hardware sensors: RAPL DRAM energy does not count; dropped");
+        PhpHwCpuRegisters[PhpHwRegDramEnergy].Disabled = TRUE;
+    }
+
+    if (platformIdle)
+    {
+        PhTraceInfo("Hardware sensors: RAPL platform energy does not count; dropped");
+        PhpHwCpuRegisters[PhpHwRegPlatformEnergy].Disabled = TRUE;
+    }
+}
+
 /**
  * Decodes the pass and publishes it: the values first, then their bits.
  */
@@ -678,7 +813,7 @@ static VOID PhpHwCpuPublish(
         if (first == ULONG_MAX || (package = PhpHwCpuSensors[first].PackageIndex) >= PhpHwPackageCount)
             continue;
 
-        if (PhpHwCpuSampleWatts(&PhpHwCpuSamples[first], PhpHwRegCoreEnergy, seconds, &watts))
+        if (PhpHwCpuSampleWatts(&PhpHwCpuSamples[first], PhpHwRegCoreEnergy, PhpHwCpuEnergyUnit, seconds, &watts))
         {
             PhpHwCpuTickCorePower[package] += watts;
             PhpHwCpuTickCoreCount[package]++;
@@ -812,28 +947,87 @@ static VOID PhpHwCpuPublish(
             valid |= PH_HW_CAP_PACKAGE_TEMP;
         }
 
+        // A failed read of the power limit keeps the last value.
+        if (PhpHwCpuPowerUnit > 0.0f && (sample->Valid & (1UL << PhpHwRegPowerLimit)))
+            PhpHwCpuDecodeMsrPowerLimit(i, sample->Value[PhpHwRegPowerLimit]);
+
+        if (sample->Valid & (1UL << PhpHwRegLimitReasons))
+        {
+            PhpHwCpuTickThrottle[i] |= PhpHwCpuDecodeLimitReasons(sample->Value[PhpHwRegLimitReasons]);
+            valid |= PH_HW_CAP_THROTTLE;
+        }
+
         if (valid & PH_HW_CAP_CORE_TEMP)
             sensor->MaxCoreTemperature = PhpHwCpuTickMaxCore[i];
 
         sensor->ThrottleFlags = PhpHwCpuTickThrottle[i];
 
-        if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, seconds, &watts))
+        if (PhpHwCpuMsrPowerLimit1[i] > 0.0f)
+        {
+            sensor->ActivePowerLimit1 = PhpHwCpuMsrPowerLimit1[i];
+            valid |= PH_HW_CAP_POWER_LIMIT1;
+        }
+
+        if (PhpHwCpuMsrPowerLimit2[i] > 0.0f)
+        {
+            sensor->ActivePowerLimit2 = PhpHwCpuMsrPowerLimit2[i];
+            valid |= PH_HW_CAP_POWER_LIMIT2;
+        }
+
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, PhpHwCpuEnergyUnit, seconds, &watts))
         {
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
             cpuPower += watts;
         }
 
-        if (PhpHwCpuRegisterActive(PhpHwRegCoreEnergy) && PhpHwCpuPackageCores[i] && PhpHwCpuTickCoreCount[i] == PhpHwCpuPackageCores[i])
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegPp0Energy, PhpHwCpuEnergyUnit, seconds, &watts))
+        {
+            sensor->CorePower = watts;
+            valid |= PH_HW_CAP_RAPL_CORE;
+        }
+        else if (PhpHwCpuRegisterActive(PhpHwRegCoreEnergy) && PhpHwCpuPackageCores[i] && PhpHwCpuTickCoreCount[i] == PhpHwCpuPackageCores[i])
         {
             sensor->CorePower = PhpHwCpuTickCorePower[i];
             valid |= PH_HW_CAP_RAPL_CORE;
+        }
+
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegDramEnergy, PhpHwCpuDramEnergyUnit, seconds, &watts))
+        {
+            PhpHwCpuDramEnergySeen[i] |= watts > 0.0f;
+
+            if (PhpHwCpuDramEnergySeen[i])
+            {
+                sensor->DramPower = watts;
+                valid |= PH_HW_CAP_RAPL_DRAM;
+            }
+            else if (PhpHwCpuDramIdleTicks[i] < PHP_HW_CPU_ENERGY_IDLE_TICKS)
+            {
+                PhpHwCpuDramIdleTicks[i]++;
+            }
+        }
+
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegPlatformEnergy, PhpHwCpuPlatformEnergyUnit, seconds, &watts))
+        {
+            PhpHwCpuPlatformEnergySeen[i] |= watts > 0.0f;
+
+            if (PhpHwCpuPlatformEnergySeen[i])
+            {
+                sensor->PlatformPower = watts;
+                valid |= PH_HW_CAP_RAPL_PSYS;
+            }
+            else if (PhpHwCpuPlatformIdleTicks[i] < PHP_HW_CPU_ENERGY_IDLE_TICKS)
+            {
+                PhpHwCpuPlatformIdleTicks[i]++;
+            }
         }
 
         WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PhpHwCpuPackageCaps) | (valid & PhpHwCpuPackageCaps));
     }
 
     PhHwCpuPower = cpuPower;
+
+    PhpHwCpuDropIdleEnergy();
 }
 
 /**
@@ -929,6 +1123,15 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuTickValid);
     PhpHwCpuFree(&PhpHwCpuTickThrottle);
     PhpHwCpuFree(&PhpHwCpuTickMaxCore);
+    PhpHwCpuFree(&PhpHwCpuMsrPowerLimit1);
+    PhpHwCpuFree(&PhpHwCpuMsrPowerLimit2);
+    PhpHwCpuFree(&PhpHwCpuDramIdleTicks);
+    PhpHwCpuFree(&PhpHwCpuPlatformIdleTicks);
+    PhpHwCpuFree(&PhpHwCpuDramEnergySeen);
+    PhpHwCpuFree(&PhpHwCpuPlatformEnergySeen);
+    PhpHwCpuDramEnergyUnit = 0.0f;
+    PhpHwCpuPlatformEnergyUnit = 0.0f;
+    PhpHwCpuPowerUnit = 0.0f;
     PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS;
     PhpHwCpuCoreCount = 0;
     PhpHwCpuTscMhz = 0.0f;
