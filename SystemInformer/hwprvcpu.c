@@ -130,6 +130,7 @@ static PULONG PhpHwCpuPackageCores = NULL; // per package
 static PFLOAT PhpHwCpuTickCorePower = NULL; // per package
 static PULONG PhpHwCpuTickCoreCount = NULL; // per package
 static FLOAT PhpHwCpuTscMhz = 0.0f; // the base clock MPERF counts at; 0 when unknown
+static ULONG PhpHwCpuClockControl = 0; // family 14h D18F3xD4: the main PLL its P-states divide; 0 when unknown
 static FLOAT PhpHwCpuEnergyUnit = 0.0f; // joules
 static FLOAT PhpHwCpuDramEnergyUnit = 0.0f;
 static FLOAT PhpHwCpuPlatformEnergyUnit = 0.0f;
@@ -195,7 +196,10 @@ static VOID PhpHwCpuInitializePlan(
     VOID
     )
 {
+    ULONG p0Definition;
+
     memset(PhpHwCpuRegisters, 0, sizeof(PhpHwCpuRegisters));
+    PhpHwCpuClockControl = 0;
 
     if (PhpHwCpuClass == PhpHwCpuAmdZen)
     {
@@ -212,6 +216,10 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegAperf, PH_INTEL_MSR_APERF, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegMperf, PH_INTEL_MSR_MPERF, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegPerfStatus, PH_AMD_MSR_COFVID_STATUS, PhpHwScopeCore);
+        PhpHwPciQueryLegacyClock(&PhpHwCpuIdentity, &p0Definition, &PhpHwCpuClockControl);
+
+        if (p0Definition)
+            PhpHwCpuSetRegister(PhpHwRegPStateDef0, p0Definition, PhpHwScopePackage);
 
         if (PhpHwCpuFirstOfUnit)
         {
@@ -674,7 +682,7 @@ static VOID PhpHwCpuProbeRead(
         {
             // MPERF counts at the P0 frequency.
             if (sample->Valid & (1UL << PhpHwRegPStateDef0))
-                baseMhz = PhAmdPStateDefToMhz(sample->Value[PhpHwRegPStateDef0], &PhpHwCpuIdentity, 0);
+                baseMhz = PhAmdPStateDefToMhz(sample->Value[PhpHwRegPStateDef0], &PhpHwCpuIdentity, PhpHwCpuClockControl);
         }
         else if (PhpHwCpuClass == PhpHwCpuCentaur)
         {
@@ -1379,7 +1387,7 @@ static VOID PhpHwCpuPublish(
             if (core->Valid & (1UL << PhpHwRegPerfStatus))
             {
                 ULONG64 value = core->Value[PhpHwRegPerfStatus];
-                FLOAT mhz = PhAmdHwPStateStatusToMhz(value, &PhpHwCpuIdentity, 0);
+                FLOAT mhz = PhAmdHwPStateStatusToMhz(value, &PhpHwCpuIdentity, PhpHwCpuClockControl);
                 UCHAR vid;
 
                 if (!(valid & PH_HW_CAP_MULTIPLIER) && mhz > 0.0f && busMhz > 0.0f)
@@ -1657,6 +1665,7 @@ VOID PhpHwCpuEnd(
 {
     PhpHwCpuClass = PhpHwCpuNone;
     PhpHwCpuSignature = 0;
+    PhpHwCpuClockControl = 0;
     PhpHwCpuItemCount = 0;
     PhpHwCpuCapacity = 0;
     memset(PhpHwCpuRegisters, 0, sizeof(PhpHwCpuRegisters));

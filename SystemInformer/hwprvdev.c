@@ -46,6 +46,32 @@ USHORT PhpHwQueryMachine(
 }
 
 /**
+ * Determines whether the processor has core performance boost (CPUID 8000_0007h EDX bit 9), with the application's
+ * own CPUID: a feature bit, not the processor identity.
+ *
+ * \return TRUE when the processor reports it.
+ */
+BOOLEAN PhpHwQueryCoreBoost(
+    VOID
+    )
+{
+#if defined(_M_IX86) || defined(_M_X64)
+    INT cpuInfo[4];
+
+    __cpuid(cpuInfo, 0x80000000);
+
+    if ((ULONG)cpuInfo[0] < 0x80000007)
+        return FALSE;
+
+    __cpuid(cpuInfo, 0x80000007);
+
+    return !!(cpuInfo[3] & (1 << 9));
+#else
+    return FALSE;
+#endif
+}
+
+/**
  * Retrieves the build number of Windows.
  *
  * \return The build number.

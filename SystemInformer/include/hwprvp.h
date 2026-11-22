@@ -392,6 +392,20 @@ ULONG PhpHwQueryBuildNumber(
     VOID
     );
 
+BOOLEAN PhpHwQueryCoreBoost(
+    VOID
+    );
+
+VOID PhpHwPciQueryLegacyClock(
+    _In_ PCPH_CPU_IDENTITY Identity,
+    _Out_ PULONG P0Definition,
+    _Out_ PULONG ClockPowerTimingControl0
+    );
+
+VOID PhpHwPciEnd(
+    VOID
+    );
+
 _Success_(return)
 BOOLEAN PhpHwQueryTopology(
     _Out_ PPHP_HW_TOPOLOGY Topology
