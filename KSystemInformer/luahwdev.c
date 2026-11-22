@@ -1017,7 +1017,8 @@ Exit:
  *
  * \param[in] State The Lua state.
  *
- * \return The number of results: the output bytes, or nil and a status.
+ * \return The number of results: the output bytes, or nil and a status and,
+ * on STATUS_BUFFER_OVERFLOW, the output buffer.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int KphpLuaHwDeviceControl(
@@ -1113,7 +1114,21 @@ int KphpLuaHwDeviceControl(
 
     if (status == STATUS_BUFFER_OVERFLOW)
     {
-        KphLuaHwReleaseRequest(request);
+        KphScriptPushCleanup(State, KphLuaHwReleaseRequest, request);
+        cleanup = lua_gettop(State);
+
+        results = KphLuaNilErrorStatus(State, status);
+
+        //
+        // The whole buffer: the ACPI driver writes its header and counts none.
+        //
+        lua_pushlstring(State, output, (SIZE_T)outputLength);
+        results++;
+
+        KphScriptReleaseCleanup(State, cleanup);
+        lua_remove(State, cleanup);
+
+        goto Exit;
     }
 
     if (status == STATUS_SI_SCRIPT_LIMIT)
