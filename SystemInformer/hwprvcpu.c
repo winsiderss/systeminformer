@@ -1732,6 +1732,21 @@ BOOLEAN PhpHwCpuThermalPlanned(
 }
 
 /**
+ * Determines whether the processor's RAPL MSR of an energy kind serves this session; TPMI stands in where it does
+ * not.
+ *
+ * \param Kind 0 the package, 1 DRAM, 2 the platform.
+ */
+BOOLEAN PhpHwCpuEnergyPlanned(
+    _In_ ULONG Kind
+    )
+{
+    static CONST PHP_HW_REG registers[] = { PhpHwRegPackageEnergy, PhpHwRegDramEnergy, PhpHwRegPlatformEnergy };
+
+    return Kind < RTL_NUMBER_OF(registers) && PhpHwCpuRegisterActive(registers[Kind]);
+}
+
+/**
  * \return The RAPL power unit of the session in watts, or 0 when unknown.
  */
 FLOAT PhpHwCpuQueryPowerUnit(

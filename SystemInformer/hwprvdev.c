@@ -429,7 +429,7 @@ static BOOLEAN PhpHwHasCompatibleClass(
  *
  * \param VendorId The vendor ID to accept, or PHP_HW_ANY_VENDOR_ID for any.
  * \param AlternateVendorId A second vendor ID to accept.
- * \param ClassCode The base class and subclass, e.g. 0600h for a host bridge.
+ * \param ClassCode The base class and subclass, e.g. 0600h for a host bridge, or PHP_HW_ANY_CLASS_CODE for any.
  * \param DeviceIds The device IDs to accept, or NULL for any.
  * \param DeviceIdCount The number of device IDs.
  * \param FunctionZeroOnly TRUE to accept device 0, function 0 only.
@@ -454,7 +454,10 @@ ULONG PhpHwEnumeratePciFunctions(
     PH_STRINGREF classPrefix;
     ULONG found = 0;
 
-    _snwprintf_s(classBuffer, RTL_NUMBER_OF(classBuffer), _TRUNCATE, L"PCI\\CC_%04X", ClassCode);
+    if (ClassCode == PHP_HW_ANY_CLASS_CODE)
+        _snwprintf_s(classBuffer, RTL_NUMBER_OF(classBuffer), _TRUNCATE, L"PCI\\CC_");
+    else
+        _snwprintf_s(classBuffer, RTL_NUMBER_OF(classBuffer), _TRUNCATE, L"PCI\\CC_%04X", ClassCode);
     PhInitializeStringRefLongHint(&classPrefix, classBuffer);
 
     deviceInfoSet = SetupDiGetClassDevsW(NULL, L"PCI", NULL, DIGCF_ALLCLASSES | DIGCF_PRESENT);

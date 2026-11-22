@@ -195,6 +195,22 @@ VOID PhpHwSmuPublish(
     _In_ const PH_HW_SMU_DECODE* Decode
     );
 
+NTSTATUS PhpHwVsecProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwVsecPass(
+    VOID
+    );
+
+VOID PhpHwVsecEnd(
+    VOID
+    );
+
+VOID PhpHwVsecDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
 NTSTATUS PhpHwAcpiProbe(
     VOID
     );
@@ -276,6 +292,10 @@ BOOLEAN PhpHwCpuThermalPlanned(
     VOID
     );
 
+BOOLEAN PhpHwCpuEnergyPlanned(
+    _In_ ULONG Kind
+    );
+
 FLOAT PhpHwCpuQueryPowerUnit(
     VOID
     );
@@ -334,6 +354,7 @@ BOOLEAN PhpHwStatusNotShipped(
 // Discovery (hwprvdev.c): what the provider asks Windows or the driver connection.
 
 #define PHP_HW_ANY_VENDOR_ID 0xFFFF // no PCI function has it
+#define PHP_HW_ANY_CLASS_CODE 0xFFFF // no PCI function has it
 #define PHP_HW_MEMORY_DEVICE_MAX 8
 
 typedef struct _PHP_HW_PROCESSOR
