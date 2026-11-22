@@ -99,9 +99,11 @@ M.DEVPROP_TYPE_UINT32 = 0x00000007
 M.DEVPROP_TYPE_STRING = 0x00000012
 M.DEVPROP_TYPE_BINARY = 0x00001003
 
-M.DevicePropertyLocationInformation = 0xA
 M.DevicePropertyBootConfiguration = 0x3
 M.DevicePropertyBootConfigurationTranslated = 0x4
+M.DevicePropertyLocationInformation = 0xA
+M.DevicePropertyBusNumber = 0xE
+M.DevicePropertyRemovalPolicy = 0x13
 M.DevicePropertyResourceRequirements = 0x14
 M.DevicePropertyAllocatedResources = 0x15
 
@@ -114,8 +116,8 @@ M.PowerDeviceD0 = 1
 -- Whether a device may go away while a script holds it: true unless the system
 -- expects it never to be removed, and true when its policy cannot be read.
 function M.is_device_removable(device)
-  local bytes, kind = ksi.hw.device_property_data(device, M.DEVPKEY_Device_RemovalPolicy)
-  if not bytes or kind ~= M.DEVPROP_TYPE_UINT32 or #bytes ~= 4 then
+  local bytes = ksi.hw.device_property(device, M.DevicePropertyRemovalPolicy)
+  if not bytes or #bytes ~= 4 then
     return true
   end
   return string.unpack('<I4', bytes) ~= M.RemovalPolicyExpectNoRemoval

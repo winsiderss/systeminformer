@@ -25,9 +25,8 @@ return function(nt)
     end
   end
 
-  -- A 32-bit property, nil when it cannot be read or has another length.
-  local function uint32(device, key)
-    local bytes = ksi.hw.device_property_data(device, key)
+  -- A 32-bit property's bytes as a number, nil when unread or another length.
+  local function uint32(bytes)
     if not bytes or #bytes ~= 4 then
       return nil
     end
@@ -68,11 +67,11 @@ return function(nt)
   -- location, which must name the same bus, device and function, and the
   -- segment when it has four numbers (0 when it has three).
   local function at(d, segment, bus, device, fn)
-    local number = uint32(d, nt.DEVPKEY_Device_BusNumber)
+    local number = uint32(ksi.hw.device_property(d, nt.DevicePropertyBusNumber))
     if not number or number & 0xFF ~= bus then
       return false
     end
-    local address = uint32(d, nt.DEVPKEY_Device_Address)
+    local address = uint32((ksi.hw.device_property_data(d, nt.DEVPKEY_Device_Address)))
     if not address or address >> 16 ~= device or address & 0xFFFF ~= fn then
       return false
     end
