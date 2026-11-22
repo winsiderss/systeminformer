@@ -54,6 +54,7 @@
 #include <extmgri.h>
 #include <phplug.h>
 #include <srvprv.h>
+#include <hwprv.h>
 
 #include <trace.h>
 
@@ -3632,6 +3633,7 @@ VOID PhProcessProviderUpdate(
             PhpUpdateCpuCycleUsageInformation(sysTotalCycleTime, sysIdleCycleTime);
 
         PhpUpdateSystemHistory();
+        PhHwProviderUpdateHistory();
 
         // Note that we need to add a reference to the records of these processes, to make it
         // possible for others to get the name of a max. CPU or I/O process.

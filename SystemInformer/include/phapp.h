@@ -92,6 +92,7 @@ extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 extern PH_PROVIDER_THREAD PhTertiaryProviderThread;
+extern PH_PROVIDER_THREAD PhHardwareProviderThread;
 
 extern RTL_ATOM PhTreeWindowAtom;
 extern RTL_ATOM PhGraphWindowAtom;

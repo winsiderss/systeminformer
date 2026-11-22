@@ -32,6 +32,61 @@ extern PH_QUEUED_LOCK PhpHwNamedSensorLock;
 extern PPH_HW_NAMED_SENSOR PhpHwNamedSensors;
 extern ULONG PhpHwNamedSensorCount;
 
+extern BOOLEAN PhpHwSettingEnabled;
+
+// the application's, as phsettings.h declares it
+extern ULONG PhCsUpdateInterval;
+
+#define PHP_HW_SECOND 10000000ULL // in PhpHwQueryTime units
+#define PHP_HW_RETRY_BACKOFF 10 // updates between tries after two STATUS_RETRY in a row (D9)
+
+// The driver families in update order (spec 3.2).
+typedef enum _PHP_HW_FAMILY_ID
+{
+    PhpHwFamilyCpu,
+    PhpHwFamilySmn,
+    PhpHwFamilyMmio,
+    PhpHwFamilyPlatform,
+    PhpHwFamilyPciConfig,
+    PhpHwFamilyVsec,
+    PhpHwFamilyCrosEc,
+    PhpHwFamilySmu,
+    PhpHwFamilyHsmp,
+    PhpHwFamilySmbus,
+    PhpHwFamilyAcpi,
+    PhpHwFamilyMaximum
+} PHP_HW_FAMILY_ID;
+
+// A probe or pass returns STATUS_SUCCESS, STATUS_RETRY (no strike; see PHP_HW_RETRY_BACKOFF), STATUS_NOT_SUPPORTED
+// (the family is absent for the session) or another status (a failed pass, handled by the collector).
+typedef NTSTATUS (*PPHP_HW_FAMILY_PROBE)(VOID);
+typedef NTSTATUS (*PPHP_HW_FAMILY_PASS)(VOID);
+typedef VOID (*PPHP_HW_FAMILY_END)(VOID);
+typedef VOID (*PPHP_HW_FAMILY_DIAGNOSTICS)(_Inout_ PPH_STRING_BUILDER Builder);
+
+typedef struct _PHP_HW_FAMILY
+{
+    PCWSTR Name;
+    ULONG64 Interval; // the least time between passes; 0 for every update
+    PPHP_HW_FAMILY_PROBE Probe;
+    PPHP_HW_FAMILY_PASS Pass;
+    PPHP_HW_FAMILY_END End;
+    PPHP_HW_FAMILY_DIAGNOSTICS Diagnostics;
+
+    // the core's, for the session
+    BOOLEAN Absent;
+    BOOLEAN Ran;
+    ULONG64 LastRun;
+    ULONG RetryStreak;
+    ULONG BackoffUpdates;
+} PHP_HW_FAMILY, *PPHP_HW_FAMILY;
+
+extern PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum];
+
+BOOLEAN PhpHwStatusNotShipped(
+    _In_ NTSTATUS Status
+    );
+
 // Discovery (hwprvdev.c): what the provider asks Windows or the driver connection.
 
 #define PHP_HW_ANY_VENDOR_ID 0xFFFF // no PCI function has it

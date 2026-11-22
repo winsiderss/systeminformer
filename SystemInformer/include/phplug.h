@@ -85,6 +85,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackSettingsUpdated,
     GeneralCallbackDangerousProcess,
     GeneralCallbackUpdateAutomatically,
+    GeneralCallbackHardwareProviderUpdatedEvent, // PPH_PROVIDER_UPDATED_EVENT [hardware provider thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;

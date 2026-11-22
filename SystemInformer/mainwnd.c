@@ -30,6 +30,7 @@
 #include <memsrch.h>
 #include <netlist.h>
 #include <netprv.h>
+#include <hwprv.h>
 #include <notifico.h>
 #include <phconsole.h>
 #include <phplug.h>
@@ -403,24 +404,29 @@ VOID PhMwpInitializeProviders(
     PhInitializeProviderThread(&PhPrimaryProviderThread, PhCsUpdateInterval);
     PhInitializeProviderThread(&PhSecondaryProviderThread, PhCsUpdateInterval);
     PhInitializeProviderThread(&PhTertiaryProviderThread, PhCsUpdateInterval);
+    PhInitializeProviderThread(&PhHardwareProviderThread, PhCsUpdateInterval);
 
     if (PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION))
     {
         PhSetHighResolutionProvider(&PhPrimaryProviderThread, TRUE);
         PhSetHighResolutionProvider(&PhSecondaryProviderThread, TRUE);
         PhSetHighResolutionProvider(&PhTertiaryProviderThread, TRUE);
+        PhSetHighResolutionProvider(&PhHardwareProviderThread, TRUE);
     }
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &PhMwpProcessProviderRegistration);
     PhRegisterProvider(&PhSecondaryProviderThread, PhServiceProviderUpdate, NULL, &PhMwpServiceProviderRegistration);
     PhRegisterProvider(&PhSecondaryProviderThread, PhNetworkProviderUpdate, NULL, &PhMwpNetworkProviderRegistration);
+    PhRegisterProvider(&PhHardwareProviderThread, PhHwProviderUpdate, NULL, &PhHwProviderRegistration);
 
     PhSetEnabledProvider(&PhMwpProcessProviderRegistration, TRUE);
     PhSetEnabledProvider(&PhMwpServiceProviderRegistration, TRUE);
+    PhSetEnabledProvider(&PhHwProviderRegistration, TRUE);
 
     PhStartProviderThread(&PhPrimaryProviderThread);
     PhStartProviderThread(&PhSecondaryProviderThread);
     PhStartProviderThread(&PhTertiaryProviderThread);
+    PhStartProviderThread(&PhHardwareProviderThread);
 }
 
 /**
@@ -529,6 +535,7 @@ VOID PhMwpApplyUpdateInterval(
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhTertiaryProviderThread, Interval);
+    PhSetIntervalProviderThread(&PhHardwareProviderThread, Interval);
 }
 
 VOID PhMwpSetUpdateAutomatically(

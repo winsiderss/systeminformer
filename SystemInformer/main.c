@@ -22,6 +22,7 @@
 #include <mainwnd.h>
 #include <mainwndp.h>
 #include <netprv.h>
+#include <hwprv.h>
 #include <phconsole.h>
 #include <phsettings.h>
 #include <graphstyles.h>
@@ -43,6 +44,7 @@ PH_STARTUP_PARAMETERS PhStartupParameters = { .UpdateChannel = PhInvalidChannel 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
 PH_PROVIDER_THREAD PhTertiaryProviderThread;
+PH_PROVIDER_THREAD PhHardwareProviderThread;
 RTL_ATOM PhTreeWindowAtom = RTL_ATOM_INVALID_ATOM;
 RTL_ATOM PhGraphWindowAtom = RTL_ATOM_INVALID_ATOM;
 RTL_ATOM PhHexEditWindowAtom = RTL_ATOM_INVALID_ATOM;
@@ -1467,6 +1469,8 @@ NTSTATUS PhInitializeAppSystem(
         return STATUS_UNSUCCESSFUL;
     if (!PhNetworkProviderInitialization())
         return STATUS_UNSUCCESSFUL;
+
+    PhHwProviderInitialization();
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 

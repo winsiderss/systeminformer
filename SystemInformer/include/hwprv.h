@@ -131,12 +131,15 @@ extern PH_CIRCULAR_BUFFER_FLOAT PhHwCpuPowerHistory;
 extern FLOAT PhHwCpuTemperature;
 extern FLOAT PhHwCpuPower;
 
+extern PH_PROVIDER_REGISTRATION PhHwProviderRegistration;
+
 VOID PhHwProviderInitialization(
     VOID
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhHwProviderUpdate(
-    VOID
+    _In_ PVOID Object
     );
 
 VOID PhHwProviderUpdateHistory(
