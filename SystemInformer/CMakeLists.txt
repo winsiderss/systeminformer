@@ -113,6 +113,7 @@ set(SOURCES
     "hndlprv.c"
     "hndlstat.c"
     "hwprv.c"
+    "hwprvdev.c"
     "infodlg.c"
     "informer.c"
     "informerwnd.c"

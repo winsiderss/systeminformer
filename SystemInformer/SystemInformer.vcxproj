@@ -255,6 +255,7 @@
         <ClCompile Include="hndlprv.c" />
         <ClCompile Include="hndlstat.c" />
         <ClCompile Include="hwprv.c" />
+        <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="infodlg.c" />
         <ClCompile Include="itemtips.c" />
         <ClCompile Include="jobprp.c" />
